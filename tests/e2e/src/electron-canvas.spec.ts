@@ -331,6 +331,27 @@ async function getContentEditableCount(page: Page): Promise<number> {
   return page.evaluate(() => document.querySelectorAll('[contenteditable="true"]').length)
 }
 
+async function selectCanvasNode(page: Page, selector: string, index = 0): Promise<void> {
+  const locator = page.locator(selector).nth(index)
+  await expect(locator).toBeVisible({ timeout: 30_000 })
+  await locator.evaluate((element: HTMLElement) => {
+    const rect = element.getBoundingClientRect()
+    const clientX = rect.left + Math.min(40, rect.width / 2)
+    const clientY = rect.top + Math.min(80, rect.height / 2)
+    const eventInit = {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX,
+      clientY
+    }
+
+    element.dispatchEvent(new MouseEvent('mousedown', eventInit))
+    element.dispatchEvent(new MouseEvent('mouseup', eventInit))
+    element.dispatchEvent(new MouseEvent('click', eventInit))
+  })
+}
+
 test.describe('Electron canvas shell', () => {
   test.describe.configure({ mode: 'serial' })
   test.setTimeout(240_000)
@@ -440,13 +461,7 @@ test.describe('Electron canvas shell', () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
 
-    const firstPageNode = page.locator('.canvas-node[data-node-type="page"]').first()
-    await expect(firstPageNode).toBeVisible({ timeout: 30_000 })
-
-    await firstPageNode.click({
-      force: true,
-      position: { x: 40, y: 80 }
-    })
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]')
     const pageSurface = page.locator('[data-canvas-page-surface="true"]').first()
     await expect(pageSurface).toBeVisible({ timeout: 30_000 })
     await expect
@@ -459,7 +474,7 @@ test.describe('Electron canvas shell', () => {
     await titleInput.fill('Canvas draft')
 
     const editor = page.locator('[data-canvas-page-editor="true"] [contenteditable="true"]')
-    await editor.click()
+    await editor.focus()
     await page.keyboard.type('Canvas body text')
     await expect(pageSurface).toContainText('Canvas body text')
 
@@ -474,13 +489,7 @@ test.describe('Electron canvas shell', () => {
       .toBe(0)
     await expect(page.getByText('Canvas draft')).toBeVisible({ timeout: 30_000 })
 
-    await page
-      .locator('.canvas-node[data-node-type="page"]')
-      .first()
-      .click({
-        force: true,
-        position: { x: 40, y: 80 }
-      })
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]')
     await expect(pageSurface).toContainText('Canvas body text', { timeout: 30_000 })
     await expect
       .poll(async () => getContentEditableCount(page), {
@@ -490,6 +499,78 @@ test.describe('Electron canvas shell', () => {
 
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-inline-page.png`,
+      fullPage: true
+    })
+  })
+
+  test('keeps database preview bounded and supports open-return workflows', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="database"]')
+    const databaseSurface = page.locator('[data-canvas-database-surface="true"]').first()
+    await expect(databaseSurface).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-canvas-page-surface="true"]')).toHaveCount(0)
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => ({
+            contentEditableElements: document.querySelectorAll('[contenteditable="true"]').length,
+            tableElements: document.querySelectorAll('table').length
+          })),
+        {
+          timeout: 15_000
+        }
+      )
+      .toEqual({
+        contentEditableElements: 0,
+        tableElements: 0
+      })
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => ({
+            startTable: document.querySelectorAll('[data-canvas-database-start-table="true"]')
+              .length,
+            open: document.querySelectorAll('[data-canvas-database-open="true"]').length
+          })),
+        {
+          timeout: 30_000
+        }
+      )
+      .not.toEqual({
+        startTable: 0,
+        open: 0
+      })
+
+    const startTableButton = page.locator('[data-canvas-database-start-table="true"]').first()
+    if ((await startTableButton.count()) > 0 && (await startTableButton.isVisible())) {
+      await startTableButton.evaluate((button: HTMLButtonElement) => button.click())
+      await expect(databaseSurface).toHaveAttribute('data-canvas-database-empty', 'false', {
+        timeout: 30_000
+      })
+    }
+
+    await page
+      .locator('[data-canvas-database-open="true"]')
+      .first()
+      .evaluate((button: HTMLButtonElement) => button.click())
+    await expect(
+      page.locator('[data-database-view="true"][data-database-view-chrome="minimal"]')
+    ).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByRole('button', { name: 'Canvas' })).toBeVisible({ timeout: 30_000 })
+
+    await page.getByRole('button', { name: 'Canvas' }).click({ force: true })
+    await expect(
+      page.locator('[data-database-view="true"][data-database-view-chrome="minimal"]')
+    ).toHaveCount(0, {
+      timeout: 30_000
+    })
+    await expect(databaseSurface).toBeVisible({ timeout: 30_000 })
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-database-preview.png`,
       fullPage: true
     })
   })

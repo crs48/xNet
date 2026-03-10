@@ -127,4 +127,48 @@ describe('useDatabase', () => {
       ])
     })
   })
+
+  it('settles loading for empty databases without columns', async () => {
+    const wrapper = createWrapper()
+
+    const { result: storeResult } = renderHook(() => useNodeStore(), { wrapper })
+
+    await waitFor(() => {
+      expect(storeResult.current.isReady).toBe(true)
+    })
+
+    let databaseId = ''
+    await act(async () => {
+      const database = await storeResult.current.store?.create({
+        schemaId: DatabaseSchema.schema['@id'],
+        properties: { title: 'Empty Database' }
+      })
+      databaseId = database?.id ?? ''
+    })
+
+    expect(databaseId).not.toBe('')
+
+    const { result } = renderHook(
+      () => ({
+        databaseDoc: useDatabaseDoc(databaseId),
+        database: useDatabase(databaseId)
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.databaseDoc.loading).toBe(false)
+      expect(result.current.databaseDoc.doc).not.toBeNull()
+    })
+
+    await waitFor(() => {
+      expect(result.current.database.loading).toBe(false)
+    })
+
+    expect(result.current.database.columns).toEqual([])
+    expect(result.current.database.rows).toEqual([])
+    expect(result.current.database.total).toBe(0)
+    expect(result.current.database.hasMore).toBe(false)
+    expect(result.current.database.error).toBeNull()
+  })
 })

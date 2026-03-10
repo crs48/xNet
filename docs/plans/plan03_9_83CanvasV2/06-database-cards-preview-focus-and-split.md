@@ -116,9 +116,9 @@ pnpm --filter @xnetjs/views test
 
 ## Step Checklist
 
-- [ ] Add database object creation and placement using real `Database` nodes.
-- [ ] Render bounded live preview cards backed by `useDatabase` and `useDatabaseDoc`.
+- [x] Add database object creation and placement using real `Database` nodes.
+- [x] Render bounded live preview cards backed by `useDatabase` and `useDatabaseDoc`.
 - [ ] Limit preview density and virtualize heavy preview surfaces when needed.
-- [ ] Preserve focused full-database workflows.
+- [x] Preserve focused full-database workflows.
 - [ ] Add optional split canvas + database workflows after focus/open is stable.
 - [ ] Add alias/backlink support once preview/focus behavior is solid.

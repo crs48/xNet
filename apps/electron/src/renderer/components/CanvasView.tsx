@@ -27,6 +27,7 @@ import {
   type LinkedDocType,
   type LinkedDocumentItem
 } from '../lib/canvas-shell'
+import { CanvasDatabasePreviewSurface } from './CanvasDatabasePreviewSurface'
 import { CanvasInlinePageSurface } from './CanvasInlinePageSurface'
 
 type ViewportSnapshot = {
@@ -121,6 +122,26 @@ function shouldActivateInlinePageSurface(
   }
 
   if (displayType !== 'page' && displayType !== 'note') {
+    return false
+  }
+
+  return (
+    context.selected &&
+    context.selectionSize === 1 &&
+    context.lod === 'full' &&
+    context.viewportZoom >= 0.9
+  )
+}
+
+function shouldActivateDatabasePreviewSurface(
+  node: CanvasNode,
+  context: CanvasNodeRenderContext,
+  linkedDocument?: LinkedDocumentItem
+): boolean {
+  const displayType = getCanvasShellDisplayType(node, linkedDocument)
+  const sourceId = getCanvasShellSourceId(node)
+
+  if (!sourceId || displayType !== 'database') {
     return false
   }
 
@@ -352,6 +373,19 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                   docId={sourceNodeId}
                   variant={displayType === 'note' ? 'note' : 'page'}
                   onOpenDocument={(targetDocId) => onOpenDocument?.(targetDocId, 'page')}
+                />
+              )
+            }
+
+            if (
+              sourceNodeId &&
+              shouldActivateDatabasePreviewSurface(node, context, linkedDocument)
+            ) {
+              return (
+                <CanvasDatabasePreviewSurface
+                  node={node}
+                  docId={sourceNodeId}
+                  onOpenDocument={(targetDocId) => onOpenDocument?.(targetDocId, 'database')}
                 />
               )
             }
