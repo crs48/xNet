@@ -14,6 +14,7 @@ import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout
 import { Viewport, createViewport } from '../spatial/index'
 import { CanvasStore, createCanvasStore } from '../store'
 import { DEFAULT_CANVAS_CONFIG } from '../types'
+import { createAnimationFrameBatcher } from './animation-frame-batcher'
 
 /**
  * Canvas hook options
@@ -131,11 +132,28 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
     setChunkStats(chunkManager.getStats())
   }, [chunkManager])
 
-  const commitViewportState = useCallback(() => {
+  const flushViewportState = useCallback(() => {
     setViewportState(viewportRef.current.clone())
     chunkManager.updateViewport(viewportRef.current)
     syncRenderState()
   }, [chunkManager, syncRenderState])
+  const viewportCommitBatcherRef = useRef(createAnimationFrameBatcher(flushViewportState))
+
+  useEffect(() => {
+    const batcher = viewportCommitBatcherRef.current
+    batcher.setCommit(flushViewportState)
+    return () => batcher.cancel()
+  }, [flushViewportState])
+
+  const scheduleViewportStateCommit = useCallback(() => {
+    viewportCommitBatcherRef.current.schedule()
+  }, [])
+
+  const commitViewportState = useCallback(() => {
+    const batcher = viewportCommitBatcherRef.current
+    batcher.cancel()
+    batcher.flush()
+  }, [])
 
   // Sync state from store
   useEffect(() => {
@@ -365,17 +383,17 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
   const pan = useCallback(
     (deltaX: number, deltaY: number) => {
       viewportRef.current.pan(deltaX, deltaY)
-      commitViewportState()
+      scheduleViewportStateCommit()
     },
-    [commitViewportState]
+    [scheduleViewportStateCommit]
   )
 
   const zoomAt = useCallback(
     (x: number, y: number, factor: number) => {
       viewportRef.current.zoomAt(x, y, factor, fullConfig.minZoom, fullConfig.maxZoom)
-      commitViewportState()
+      scheduleViewportStateCommit()
     },
-    [commitViewportState, fullConfig.minZoom, fullConfig.maxZoom]
+    [fullConfig.maxZoom, fullConfig.minZoom, scheduleViewportStateCommit]
   )
 
   const fitToContent = useCallback(
