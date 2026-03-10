@@ -264,7 +264,7 @@ flowchart LR
 - [ ] Replace the current generic canvas object contract with a typed scene graph.
 - [x] Add a reusable `MediaAsset`-style node schema for dropped images/files.
 - [x] Replace the current linked-card shell with a hybrid renderer shell.
-- [ ] Route the main runtime through chunking, culling, and explicit layer display lists.
+- [x] Route the main runtime through chunking, culling, and explicit layer display lists.
 - [x] Add universal drop ingestion for internal drags, URLs, text, images, and files.
 - [ ] Ship live page cards with inline editing and peek behavior.
 - [x] Ship database preview cards with focus/open and split workflows.
@@ -283,7 +283,7 @@ flowchart LR
 - [x] Dropping a URL creates or reuses an `ExternalReference` node and renders the correct fallback chain.
 - [x] Dropping an image or file creates a reusable media node and preserves it after reload.
 - [x] Web Playwright smoke coverage verifies URL and image drops create source-backed canvas objects.
-- [ ] Pan/zoom remains smooth on large scenes with chunk load/evict active.
+- [x] Pan/zoom remains smooth on large scenes with chunk load/evict active.
 - [x] The background grid and minimap remain outside the main DOM path.
 - [x] Far-field objects do not mount rich editors or oversized DOM subtrees.
 - [x] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.

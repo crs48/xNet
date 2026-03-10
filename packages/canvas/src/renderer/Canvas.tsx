@@ -296,12 +296,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const {
     nodes,
     edges,
+    renderNodes,
+    renderEdges,
+    chunkStats,
     selectedNodeIds,
     selectedEdgeIds,
     viewport,
     selectNode,
     clearSelection,
     updateNodePosition,
+    setViewportSize,
     pan,
     zoomAt
   } = canvas
@@ -403,8 +407,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     if (!container) return
 
     const updateSize = () => {
-      viewport.width = container.clientWidth
-      viewport.height = container.clientHeight
+      setViewportSize(container.clientWidth, container.clientHeight)
     }
 
     updateSize()
@@ -413,7 +416,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     observer.observe(container)
 
     return () => observer.disconnect()
-  }, [viewport])
+  }, [setViewportSize])
 
   // Attach wheel handler with { passive: false } so preventDefault works
   // (React's onWheel registers as passive by default in modern browsers)
@@ -539,11 +542,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
   const handleStepSelection = useCallback(
     (direction: -1 | 1) => {
-      if (nodes.length === 0) {
+      const navigableNodes = renderNodes.length > 0 ? renderNodes : nodes
+      if (navigableNodes.length === 0) {
         return
       }
 
-      const orderedNodes = [...nodes].sort((left, right) => {
+      const orderedNodes = [...navigableNodes].sort((left, right) => {
         const leftZ = left.position.zIndex ?? 0
         const rightZ = right.position.zIndex ?? 0
         if (leftZ !== rightZ) {
@@ -569,7 +573,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       const nextIndex = (resolvedIndex + direction + orderedNodes.length) % orderedNodes.length
       selectNode(orderedNodes[nextIndex].id)
     },
-    [nodes, selectNode, selectedNodeIds]
+    [nodes, renderNodes, selectNode, selectedNodeIds]
   )
 
   const handleNudgeSelection = useCallback(
@@ -715,12 +719,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     () =>
       createCanvasDisplayList({
         viewport,
-        nodes,
-        edges,
+        nodes: renderNodes,
+        edges: renderEdges,
         store: canvas.store,
         selectedNodeIds
       }),
-    [canvas.store, edges, nodes, selectedNodeIds, viewport]
+    [canvas.store, renderEdges, renderNodes, selectedNodeIds, viewport]
   )
   const { nodeMap, visibleNodes, visibleEdges, domNodes, overviewNodes } = displayList
 
@@ -801,12 +805,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       style={containerStyle}
       data-canvas-surface="true"
       data-node-count={nodes.length}
+      data-loaded-node-count={renderNodes.length}
       data-visible-node-count={visibleNodes.length}
       data-dom-node-count={domNodes.length}
       data-overview-node-count={overviewNodes.length}
       data-canvas-render-mode={overviewNodes.length > 0 ? 'hybrid' : 'dom'}
       data-edge-count={edges.length}
+      data-loaded-edge-count={renderEdges.length}
       data-visible-edge-count={visibleEdges.length}
+      data-loaded-chunk-count={chunkStats.loadedCount}
+      data-loading-chunk-count={chunkStats.loadingCount}
+      data-queued-chunk-count={chunkStats.queuedCount}
+      data-cross-chunk-edge-count={chunkStats.crossChunkEdgeCount}
       data-viewport-x={viewport.x}
       data-viewport-y={viewport.y}
       data-viewport-zoom={viewport.zoom}

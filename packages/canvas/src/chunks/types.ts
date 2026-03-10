@@ -51,6 +51,31 @@ export interface ChunkData {
 }
 
 /**
+ * Storage contract used by the chunk manager.
+ *
+ * The primary Canvas V2 runtime can satisfy this either with the dedicated
+ * chunked Y.Doc store or with an adapter over the current flat canvas maps.
+ */
+export interface ChunkStoreAdapter {
+  loadChunk(key: ChunkKey): Promise<ChunkData>
+  loadCrossChunkEdgesFor(chunkKey: ChunkKey): Promise<CrossChunkEdge[]>
+  addNode(node: CanvasNode, chunkKey: ChunkKey): void
+  getNodeChunk(nodeId: string): ChunkKey | null
+  updateNodePosition(nodeId: string, position: CanvasNodePosition): void
+  moveNodeToChunk(
+    nodeId: string,
+    fromKey: ChunkKey,
+    toKey: ChunkKey,
+    newPosition: CanvasNodePosition
+  ): void
+  removeNode(nodeId: string): void
+  getNode(nodeId: string): CanvasNode | null
+  addEdge(edge: CanvasEdge, sourceChunk: ChunkKey, targetChunk: ChunkKey): void
+  removeEdge(edgeId: string): void
+  updateEdgeChunkAssignment(edgeId: string, sourceChunk: ChunkKey, targetChunk: ChunkKey): void
+}
+
+/**
  * Chunk load status for UI feedback.
  */
 export type ChunkLoadStatus = 'pending' | 'loading' | 'loaded' | 'error'

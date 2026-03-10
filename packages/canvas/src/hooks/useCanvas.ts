@@ -4,9 +4,11 @@
  * React hook for managing canvas state with a Yjs-backed store.
  */
 
+import type { ChunkStats } from '../chunks'
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, CanvasConfig, Rect } from '../types'
 import type * as Y from 'yjs'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { createChunkManager, createFlatCanvasChunkStore } from '../chunks'
 import { createLayoutEngine, type LayoutConfig } from '../layout/index'
 import { Viewport, createViewport } from '../spatial/index'
 import { CanvasStore, createCanvasStore } from '../store'
@@ -31,6 +33,9 @@ export interface UseCanvasReturn {
   // State
   nodes: CanvasNode[]
   edges: CanvasEdge[]
+  renderNodes: CanvasNode[]
+  renderEdges: CanvasEdge[]
+  chunkStats: ChunkStats
   selectedNodeIds: Set<string>
   selectedEdgeIds: Set<string>
   viewport: Viewport
@@ -64,6 +69,7 @@ export interface UseCanvasReturn {
   resetView: () => void
   getViewportSnapshot: () => { x: number; y: number; zoom: number }
   setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) => void
+  setViewportSize: (width: number, height: number) => void
 
   // Layout
   autoLayout: (config?: LayoutConfig) => Promise<void>
@@ -87,6 +93,8 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
 
   // Create store (memoized on doc)
   const store = useMemo(() => createCanvasStore(doc), [doc])
+  const chunkStore = useMemo(() => createFlatCanvasChunkStore(doc), [doc])
+  const chunkManager = useMemo(() => createChunkManager(chunkStore), [chunkStore])
 
   // Create viewport
   const viewportRef = useRef(
@@ -103,30 +111,75 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
   // State
   const [nodes, setNodes] = useState<CanvasNode[]>([])
   const [edges, setEdges] = useState<CanvasEdge[]>([])
+  const [renderNodes, setRenderNodes] = useState<CanvasNode[]>([])
+  const [renderEdges, setRenderEdges] = useState<CanvasEdge[]>([])
+  const [chunkStats, setChunkStats] = useState<ChunkStats>(() => chunkManager.getStats())
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set())
   const [viewportState, setViewportState] = useState(viewportRef.current)
 
+  const syncSceneState = useCallback(() => {
+    setNodes(store.getNodes())
+    setEdges(store.getEdges())
+  }, [store])
+
+  const syncRenderState = useCallback(() => {
+    setRenderNodes(chunkManager.getAllNodes())
+    setRenderEdges(chunkManager.getAllEdges())
+    setChunkStats(chunkManager.getStats())
+  }, [chunkManager])
+
+  const commitViewportState = useCallback(() => {
+    setViewportState(viewportRef.current.clone())
+    chunkManager.updateViewport(viewportRef.current)
+    syncRenderState()
+  }, [chunkManager, syncRenderState])
+
   // Sync state from store
   useEffect(() => {
-    const updateState = () => {
-      setNodes(store.getNodes())
-      setEdges(store.getEdges())
+    let active = true
+    const nodesMap = doc.getMap<CanvasNode>('nodes')
+    const edgesMap = doc.getMap<CanvasEdge>('edges')
+
+    const handleSceneChange = () => {
+      syncSceneState()
+      chunkManager.updateViewport(viewportRef.current)
+      void chunkManager.refreshLoadedChunks().then(() => {
+        if (active) {
+          syncRenderState()
+        }
+      })
     }
 
-    // Initial load
-    updateState()
-
-    // Subscribe to changes
-    const unsubscribe = store.subscribe(() => {
-      updateState()
+    syncSceneState()
+    chunkManager.updateViewport(viewportRef.current)
+    syncRenderState()
+    void chunkManager.refreshLoadedChunks().then(() => {
+      if (active) {
+        syncRenderState()
+      }
     })
 
+    const unsubscribeChunks = chunkManager.subscribe(() => {
+      void chunkManager.refreshLoadedChunks().then(() => {
+        if (active) {
+          syncRenderState()
+        }
+      })
+    })
+    nodesMap.observe(handleSceneChange)
+    edgesMap.observe(handleSceneChange)
+
     return () => {
-      unsubscribe()
+      active = false
+      nodesMap.unobserve(handleSceneChange)
+      edgesMap.unobserve(handleSceneChange)
+      unsubscribeChunks()
+      chunkManager.dispose()
+      chunkStore.dispose()
       store.dispose()
     }
-  }, [store])
+  }, [chunkManager, chunkStore, doc, store, syncRenderState, syncSceneState])
 
   // ============================================================================
   // Node operations
@@ -134,47 +187,77 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
 
   const addNode = useCallback(
     (node: CanvasNode) => {
-      store.addNode(node)
+      chunkManager.addNode(node)
+      syncSceneState()
+      syncRenderState()
     },
-    [store]
+    [chunkManager, syncRenderState, syncSceneState]
   )
 
   const updateNodePosition = useCallback(
     (id: string, position: Partial<CanvasNodePosition>) => {
-      store.updateNodePosition(id, position)
+      const node = store.getNode(id)
+      if (!node) return
+
+      chunkManager.moveNode(id, {
+        ...node.position,
+        ...position
+      })
+      syncSceneState()
+      syncRenderState()
     },
-    [store]
+    [chunkManager, store, syncRenderState, syncSceneState]
   )
 
   const updateNodePositions = useCallback(
     (updates: Array<{ id: string; position: Partial<CanvasNodePosition> }>) => {
-      store.updateNodePositions(updates)
+      for (const update of updates) {
+        const node = store.getNode(update.id)
+        if (!node) {
+          continue
+        }
+
+        chunkManager.moveNode(update.id, {
+          ...node.position,
+          ...update.position
+        })
+      }
+
+      syncSceneState()
+      syncRenderState()
     },
-    [store]
+    [chunkManager, store, syncRenderState, syncSceneState]
   )
 
   const removeNode = useCallback(
     (id: string) => {
-      store.removeNode(id)
+      chunkManager.removeNode(id)
+      syncSceneState()
+      syncRenderState()
       setSelectedNodeIds((prev) => {
         const next = new Set(prev)
         next.delete(id)
         return next
       })
     },
-    [store]
+    [chunkManager, syncRenderState, syncSceneState]
   )
 
   const removeNodes = useCallback(
     (ids: string[]) => {
-      store.removeNodes(ids)
+      for (const id of ids) {
+        chunkManager.removeNode(id)
+      }
+
+      syncSceneState()
+      syncRenderState()
       setSelectedNodeIds((prev) => {
         const next = new Set(prev)
         ids.forEach((id) => next.delete(id))
         return next
       })
     },
-    [store]
+    [chunkManager, syncRenderState, syncSceneState]
   )
 
   // ============================================================================
@@ -183,21 +266,25 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
 
   const addEdge = useCallback(
     (edge: CanvasEdge) => {
-      store.addEdge(edge)
+      chunkManager.addEdge(edge)
+      syncSceneState()
+      syncRenderState()
     },
-    [store]
+    [chunkManager, syncRenderState, syncSceneState]
   )
 
   const removeEdge = useCallback(
     (id: string) => {
-      store.removeEdge(id)
+      chunkManager.removeEdge(id)
+      syncSceneState()
+      syncRenderState()
       setSelectedEdgeIds((prev) => {
         const next = new Set(prev)
         next.delete(id)
         return next
       })
     },
-    [store]
+    [chunkManager, syncRenderState, syncSceneState]
   )
 
   // ============================================================================
@@ -247,26 +334,31 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
       removeNodes(Array.from(selectedNodeIds))
     }
     selectedEdgeIds.forEach((id) => {
-      store.removeEdge(id)
+      chunkManager.removeEdge(id)
     })
+    syncSceneState()
+    syncRenderState()
     setSelectedEdgeIds(new Set())
-  }, [selectedNodeIds, selectedEdgeIds, removeNodes, store])
+  }, [chunkManager, removeNodes, selectedEdgeIds, selectedNodeIds, syncRenderState, syncSceneState])
 
   // ============================================================================
   // Viewport
   // ============================================================================
 
-  const pan = useCallback((deltaX: number, deltaY: number) => {
-    viewportRef.current.pan(deltaX, deltaY)
-    setViewportState(viewportRef.current.clone())
-  }, [])
+  const pan = useCallback(
+    (deltaX: number, deltaY: number) => {
+      viewportRef.current.pan(deltaX, deltaY)
+      commitViewportState()
+    },
+    [commitViewportState]
+  )
 
   const zoomAt = useCallback(
     (x: number, y: number, factor: number) => {
       viewportRef.current.zoomAt(x, y, factor, fullConfig.minZoom, fullConfig.maxZoom)
-      setViewportState(viewportRef.current.clone())
+      commitViewportState()
     },
-    [fullConfig.minZoom, fullConfig.maxZoom]
+    [commitViewportState, fullConfig.minZoom, fullConfig.maxZoom]
   )
 
   const fitToContent = useCallback(
@@ -274,21 +366,24 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
       const bounds = store.getBounds()
       if (bounds) {
         viewportRef.current.fitToRect(bounds, padding)
-        setViewportState(viewportRef.current.clone())
+        commitViewportState()
       }
     },
-    [store]
+    [commitViewportState, store]
   )
 
-  const fitToRect = useCallback((rect: Rect, padding = 50) => {
-    viewportRef.current.fitToRect(rect, padding)
-    setViewportState(viewportRef.current.clone())
-  }, [])
+  const fitToRect = useCallback(
+    (rect: Rect, padding = 50) => {
+      viewportRef.current.fitToRect(rect, padding)
+      commitViewportState()
+    },
+    [commitViewportState]
+  )
 
   const resetView = useCallback(() => {
     viewportRef.current.reset()
-    setViewportState(viewportRef.current.clone())
-  }, [])
+    commitViewportState()
+  }, [commitViewportState])
 
   const getViewportSnapshot = useCallback(() => {
     const snapshot = viewportRef.current.clone()
@@ -309,9 +404,18 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
       viewportRef.current.x = x
       viewportRef.current.y = y
       viewportRef.current.zoom = zoom
-      setViewportState(viewportRef.current.clone())
+      commitViewportState()
     },
-    [fullConfig.maxZoom, fullConfig.minZoom]
+    [commitViewportState, fullConfig.maxZoom, fullConfig.minZoom]
+  )
+
+  const setViewportSize = useCallback(
+    (width: number, height: number) => {
+      viewportRef.current.width = width
+      viewportRef.current.height = height
+      commitViewportState()
+    },
+    [commitViewportState]
   )
 
   // ============================================================================
@@ -330,13 +434,13 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
         id,
         position: pos
       }))
-      store.updateNodePositions(updates)
+      updateNodePositions(updates)
 
       // Fit to new layout
       viewportRef.current.fitToRect(result.bounds, 50)
-      setViewportState(viewportRef.current.clone())
+      commitViewportState()
     },
-    [store]
+    [commitViewportState, store, updateNodePositions]
   )
 
   const layoutSelected = useCallback(
@@ -357,9 +461,9 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
         id,
         position: pos
       }))
-      store.updateNodePositions(updates)
+      updateNodePositions(updates)
     },
-    [selectedNodeIds, store]
+    [selectedNodeIds, store, updateNodePositions]
   )
 
   // ============================================================================
@@ -389,6 +493,9 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
     // State
     nodes,
     edges,
+    renderNodes,
+    renderEdges,
+    chunkStats,
     selectedNodeIds,
     selectedEdgeIds,
     viewport: viewportState,
@@ -420,6 +527,7 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
     resetView,
     getViewportSnapshot,
     setViewportSnapshot,
+    setViewportSize,
 
     // Layout
     autoLayout,

@@ -97,6 +97,16 @@ function createCanvasMockBase() {
   return {
     nodes: [],
     edges: [],
+    renderNodes: [],
+    renderEdges: [],
+    chunkStats: {
+      loadedCount: 1,
+      loadingCount: 0,
+      totalNodes: 0,
+      totalEdges: 0,
+      crossChunkEdgeCount: 0,
+      queuedCount: 0
+    },
     selectedNodeIds: new Set<string>(),
     selectedEdgeIds: new Set<string>(),
     viewport,
@@ -120,6 +130,7 @@ function createCanvasMockBase() {
     resetView: vi.fn(),
     getViewportSnapshot: vi.fn(() => ({ x: 100, y: 80, zoom: 1 })),
     setViewportSnapshot: vi.fn(),
+    setViewportSize: vi.fn(),
     autoLayout: vi.fn(),
     layoutSelected: vi.fn(),
     findNodeAt: vi.fn(),
@@ -262,6 +273,16 @@ describe('Canvas navigation shell', () => {
     const canvasMock = createCanvasMock()
     canvasMock.nodes = scene.nodes
     canvasMock.edges = scene.edges
+    canvasMock.renderNodes = visibleNodes
+    canvasMock.renderEdges = scene.edges
+    canvasMock.chunkStats = {
+      loadedCount: 6,
+      loadingCount: 0,
+      totalNodes: visibleNodes.length,
+      totalEdges: scene.edges.length,
+      crossChunkEdgeCount: 24,
+      queuedCount: 0
+    }
     canvasMock.store.getVisibleNodes = vi.fn(() => visibleNodes)
 
     mockUseCanvas.mockReturnValue(canvasMock)
@@ -274,10 +295,12 @@ describe('Canvas navigation shell', () => {
     const minimap = document.querySelector<HTMLElement>('[data-canvas-minimap="true"]')
 
     expect(surface?.dataset.nodeCount).toBe(String(scene.nodeCount))
+    expect(surface?.dataset.loadedNodeCount).toBe(String(visibleNodes.length))
     expect(surface?.dataset.visibleNodeCount).toBe(String(visibleNodes.length))
     expect(surface?.dataset.canvasRenderMode).toBe('hybrid')
     expect(surface?.dataset.domNodeCount).toBe('48')
     expect(surface?.dataset.overviewNodeCount).toBe(String(visibleNodes.length - 48))
+    expect(surface?.dataset.loadedChunkCount).toBe('6')
     expect(Number(surface?.dataset.visibleEdgeCount ?? 0)).toBeLessThanOrEqual(scene.edgeCount)
     expect(document.querySelectorAll('.canvas-node')).toHaveLength(48)
     expect(renderNode).toHaveBeenCalledTimes(48)

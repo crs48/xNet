@@ -161,7 +161,7 @@ PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests e
 
 ## Step Checklist
 
-- [ ] Promote chunk loading/eviction into the primary Canvas V2 runtime.
+- [x] Promote chunk loading/eviction into the primary Canvas V2 runtime.
 - [x] Route visible-object selection through the existing R-tree search path.
 - [x] Build overview and interactive display lists from a shared visibility pipeline.
 - [x] Gate DOM mounts behind visibility, zoom, and interaction state.

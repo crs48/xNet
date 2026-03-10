@@ -5,14 +5,14 @@
  * Handles the lifecycle of chunks as the user pans and zooms.
  */
 
-import type { ChunkedCanvasStore } from './chunked-canvas-store'
 import type {
   Chunk,
   CrossChunkEdge,
   ChunkStats,
   ChunkEvent,
   ChunkEventListener,
-  ChunkManagerOptions
+  ChunkManagerOptions,
+  ChunkStoreAdapter
 } from './types'
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, Rect } from '../types'
 import { Viewport } from '../spatial/index'
@@ -53,7 +53,7 @@ export class ChunkManager {
   private readonly maxLoadedChunks: number
 
   constructor(
-    private store: ChunkedCanvasStore,
+    private store: ChunkStoreAdapter,
     options: ChunkManagerOptions = {}
   ) {
     this.chunkSize = options.chunkSize ?? CHUNK_SIZE
@@ -102,6 +102,14 @@ export class ChunkManager {
     const missingChunks = visibleChunks.filter(
       (key) => !this.chunks.has(key) || !this.chunks.get(key)!.loaded
     )
+
+    const now = Date.now()
+    for (const key of visibleChunks) {
+      const chunk = this.chunks.get(key)
+      if (chunk?.loaded) {
+        chunk.lastAccessed = now
+      }
+    }
 
     // Sort by distance from viewport center
     const sorted = missingChunks.sort((a, b) => {
@@ -206,6 +214,40 @@ export class ChunkManager {
       crossChunkEdgeCount: this.crossChunkEdges.length,
       queuedCount: this.loadQueue.length
     }
+  }
+
+  getLoadedChunkKeys(): ChunkKey[] {
+    return Array.from(this.chunks.entries())
+      .filter(([, chunk]) => chunk.loaded)
+      .map(([key]) => key)
+  }
+
+  async refreshLoadedChunks(): Promise<void> {
+    if (this.disposed) {
+      return
+    }
+
+    const loadedKeys = this.getLoadedChunkKeys()
+    const crossEdges = new Map<string, CrossChunkEdge>()
+
+    for (const key of loadedKeys) {
+      const chunk = this.chunks.get(key)
+      if (!chunk?.loaded) {
+        continue
+      }
+
+      const data = await this.store.loadChunk(key)
+      chunk.nodes = data.nodes
+      chunk.edges = data.edges
+      chunk.lastAccessed = Date.now()
+
+      const chunkCrossEdges = await this.store.loadCrossChunkEdgesFor(key)
+      for (const edge of chunkCrossEdges) {
+        crossEdges.set(edge.id, edge)
+      }
+    }
+
+    this.crossChunkEdges = Array.from(crossEdges.values())
   }
 
   // ─── Node Operations ────────────────────────────────────────────────────────
@@ -454,12 +496,12 @@ export class ChunkManager {
   }
 
   private enforceMemoryLimit(): void {
-    if (this.chunks.size <= this.maxLoadedChunks) return
-
     // Sort by last accessed time (oldest first)
     const loadedChunks = Array.from(this.chunks.entries())
       .filter(([, chunk]) => chunk.loaded)
       .sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed)
+
+    if (loadedChunks.length <= this.maxLoadedChunks) return
 
     // Evict oldest chunks until under limit
     const toEvict = loadedChunks.length - this.maxLoadedChunks
@@ -594,7 +636,7 @@ export class ChunkManager {
  * Create a new chunk manager.
  */
 export function createChunkManager(
-  store: ChunkedCanvasStore,
+  store: ChunkStoreAdapter,
   options?: ChunkManagerOptions
 ): ChunkManager {
   return new ChunkManager(store, options)

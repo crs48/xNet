@@ -153,6 +153,20 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     }
   }, [doc])
 
+  useEffect(() => {
+    const testHarness = window as Window & {
+      __xnetCanvasTestHarness?: {
+        registerCanvasDoc?: (canvasId: string, doc: import('yjs').Doc | null) => void
+      } | null
+    }
+
+    testHarness.__xnetCanvasTestHarness?.registerCanvasDoc?.(docId, doc)
+
+    return () => {
+      testHarness.__xnetCanvasTestHarness?.registerCanvasDoc?.(docId, null)
+    }
+  }, [doc, docId])
+
   const handleCreateNote = useCallback(async () => {
     const note = await create(PageSchema, { title: 'Untitled Note' })
     if (!note) {

@@ -430,12 +430,16 @@ async function getActiveCanvasNodeId(page: Page): Promise<string | null> {
 
 async function getCanvasShellMetrics(page: Page): Promise<{
   nodeCount: number
+  loadedNodeCount: number
   visibleNodeCount: number
   domNodeCount: number
   overviewNodeCount: number
   renderMode: string
   edgeCount: number
+  loadedEdgeCount: number
   visibleEdgeCount: number
+  loadedChunkCount: number
+  queuedChunkCount: number
   viewportX: number
   viewportY: number
   viewportZoom: number
@@ -455,12 +459,16 @@ async function getCanvasShellMetrics(page: Page): Promise<{
 
     return {
       nodeCount: Number(surface.dataset.nodeCount ?? 0),
+      loadedNodeCount: Number(surface.dataset.loadedNodeCount ?? 0),
       visibleNodeCount: Number(surface.dataset.visibleNodeCount ?? 0),
       domNodeCount: Number(surface.dataset.domNodeCount ?? 0),
       overviewNodeCount: Number(surface.dataset.overviewNodeCount ?? 0),
       renderMode: surface.dataset.canvasRenderMode ?? 'dom',
       edgeCount: Number(surface.dataset.edgeCount ?? 0),
+      loadedEdgeCount: Number(surface.dataset.loadedEdgeCount ?? 0),
       visibleEdgeCount: Number(surface.dataset.visibleEdgeCount ?? 0),
+      loadedChunkCount: Number(surface.dataset.loadedChunkCount ?? 0),
+      queuedChunkCount: Number(surface.dataset.queuedChunkCount ?? 0),
       viewportX: Number(surface.dataset.viewportX ?? 0),
       viewportY: Number(surface.dataset.viewportY ?? 0),
       viewportZoom: Number(surface.dataset.viewportZoom ?? 0),

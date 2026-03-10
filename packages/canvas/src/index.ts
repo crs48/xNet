@@ -140,6 +140,7 @@ export {
   type Chunk,
   type CrossChunkEdge,
   type ChunkData,
+  type ChunkStoreAdapter,
   type ChunkLoadStatus,
   type ChunkStats,
   type ChunkEvent,
@@ -149,8 +150,10 @@ export {
   ChunkManager,
   createChunkManager,
   ChunkedCanvasStore,
+  FlatCanvasChunkStore,
   createChunkedCanvasStore,
-  createChunkedCanvasStoreFromDoc
+  createChunkedCanvasStoreFromDoc,
+  createFlatCanvasChunkStore
 } from './chunks/index'
 
 // React components
