@@ -959,6 +959,81 @@ async function dragCanvasNode(
   await page.mouse.up()
 }
 
+async function connectCanvasNodes(
+  page: Page,
+  sourceSelector: string,
+  sourceIndex: number,
+  targetSelector: string,
+  targetIndex: number
+): Promise<void> {
+  await selectCanvasNode(page, sourceSelector, sourceIndex)
+
+  const handle = page
+    .locator(sourceSelector)
+    .nth(sourceIndex)
+    .locator('[data-canvas-connect-handle="true"]')
+  const target = page.locator(targetSelector).nth(targetIndex)
+
+  await expect(handle).toBeVisible({ timeout: 30_000 })
+  await expect(target).toBeVisible({ timeout: 30_000 })
+  await page.evaluate(
+    (input) => {
+      const sourceElements = Array.from(
+        document.querySelectorAll<HTMLElement>(input.sourceSelector)
+      )
+      const targetElements = Array.from(
+        document.querySelectorAll<HTMLElement>(input.targetSelector)
+      )
+      const sourceElement = sourceElements[input.sourceIndex]
+      const targetElement = targetElements[input.targetIndex]
+      const handleElement = sourceElement?.querySelector<HTMLElement>(
+        '[data-canvas-connect-handle="true"]'
+      )
+
+      if (!sourceElement || !targetElement || !handleElement) {
+        throw new Error('Unable to resolve connector drag elements')
+      }
+
+      const handleRect = handleElement.getBoundingClientRect()
+      const targetRect = targetElement.getBoundingClientRect()
+      const startX = handleRect.left + handleRect.width / 2
+      const startY = handleRect.top + handleRect.height / 2
+      const endX = targetRect.left + targetRect.width / 2
+      const endY = targetRect.top + targetRect.height / 2
+
+      handleElement.dispatchEvent(
+        new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: startX,
+          clientY: startY
+        })
+      )
+      document.dispatchEvent(
+        new MouseEvent('mousemove', {
+          bubbles: true,
+          cancelable: true,
+          buttons: 1,
+          clientX: endX,
+          clientY: endY
+        })
+      )
+      document.dispatchEvent(
+        new MouseEvent('mouseup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: endX,
+          clientY: endY
+        })
+      )
+    },
+    { sourceSelector, sourceIndex, targetSelector, targetIndex }
+  )
+}
+
 async function getCanvasNodeIds(page: Page, selector: string): Promise<string[]> {
   return page
     .locator(selector)
@@ -1380,6 +1455,40 @@ test.describe('Electron canvas shell', () => {
     })
   })
 
+  test('creates connectors by dragging between selected canvas nodes in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    const noteCountBefore = await getCanvasNodeCount(page, 'note')
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="note"]')
+      .click({ force: true })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="note"]')
+      .click({ force: true })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 2)
+    await dragCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore + 1, 280, 160)
+
+    await connectCanvasNodes(
+      page,
+      '.canvas-node[data-node-type="note"]',
+      noteCountBefore,
+      '.canvas-node[data-node-type="note"]',
+      noteCountBefore + 1
+    )
+
+    await expect(surface).toHaveAttribute('data-canvas-connecting', 'false')
+    await expect(surface).toHaveAttribute('data-edge-count', /[1-9]\d*/)
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-connectors.png`,
+      fullPage: true
+    })
+  })
+
   test('renames source-backed canvas objects and shows linked copies in Electron', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
@@ -1623,11 +1732,7 @@ test.describe('Electron canvas shell', () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
 
-    const noteCountBefore = await getCanvasNodeCount(page, 'note')
-    await page
-      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="note"]')
-      .click({ force: true })
-    await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 1)
+    const noteCountBefore = await createCanvasObjectFromDock(page, 'note')
 
     await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
     const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)

@@ -8,6 +8,7 @@ import type {
   CanvasAlignment,
   CanvasConfig,
   CanvasDistributionAxis,
+  EdgeAnchor,
   CanvasLayerDirection,
   CanvasNode,
   GridType,
@@ -36,7 +37,11 @@ import {
 import { CommentOverlay } from '../comments/CommentOverlay'
 import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
-import { getCanvasEdgeSourceObjectId, getCanvasEdgeTargetObjectId } from '../edges/bindings'
+import {
+  getCanvasEdgeSourceObjectId,
+  getCanvasEdgeTargetObjectId,
+  resolveCanvasAnchorPoint
+} from '../edges/bindings'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
 import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
@@ -64,6 +69,7 @@ import {
   getSelectionLockState,
   getUnlockedSelection
 } from '../selection/scene-operations'
+import { createEdge } from '../store'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 import { CanvasEdgeCanvasLayer } from './CanvasEdgeCanvasLayer'
 import { createCanvasDisplayList } from './display-list'
@@ -286,6 +292,13 @@ export interface CanvasNodeRenderContext {
   viewportZoom: number
 }
 
+type CanvasConnectionPreview = {
+  sourceNodeId: string
+  sourcePlacement: EdgeAnchor
+  currentPoint: Point
+  targetNodeId: string | null
+}
+
 function getCanvasAccessibleNodeLabel(node: CanvasNode): string {
   const title = node.alias ?? (node.properties.title as string) ?? 'Untitled'
   const resolvedKind = getCanvasResolvedNodeKind(node)
@@ -460,6 +473,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const [isDragging, setIsDragging] = useState(false)
   const [pointerActivity, setPointerActivity] = useState<CanvasActivity>('idle')
   const [marqueeRect, setMarqueeRect] = useState<Rect | null>(null)
+  const [connectionPreview, setConnectionPreview] = useState<CanvasConnectionPreview | null>(null)
   const [focusedEditingNodeId, setFocusedEditingNodeId] = useState<string | null>(null)
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
   const [lastAnnouncement, setLastAnnouncement] = useState('')
@@ -607,6 +621,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [canvas.store, selectedNodeIds]
   )
 
+  const resolveConnectionTarget = useCallback(
+    (clientX: number, clientY: number, sourceNodeId: string): CanvasNode | null => {
+      const canvasPoint = clientToCanvas(clientX, clientY)
+      const hitNode = canvas.findNodeAt(canvasPoint.x, canvasPoint.y)
+
+      if (!hitNode || hitNode.id === sourceNodeId) {
+        return null
+      }
+
+      return hitNode
+    },
+    [canvas, clientToCanvas]
+  )
+
   const applySelectionPositionUpdates = useCallback(
     (updates: Array<{ id: string; position: Partial<CanvasNode['position']> }>): boolean => {
       const expandedUpdates = expandContainerPositionUpdates(canvas.store.getNodesMap(), updates)
@@ -707,6 +735,42 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       return true
     })
   }, [canvas, runSceneOperation])
+
+  const connectCanvasNodes = useCallback(
+    (sourceNodeId: string, targetNodeId: string, sourcePlacement: EdgeAnchor): boolean => {
+      const existingEdge = edges.find(
+        (edge) =>
+          getCanvasEdgeSourceObjectId(edge) === sourceNodeId &&
+          getCanvasEdgeTargetObjectId(edge) === targetNodeId
+      )
+
+      if (existingEdge) {
+        canvas.selectEdge(existingEdge.id)
+        return false
+      }
+
+      separateSceneUndoBoundary()
+      const edge = createEdge(sourceNodeId, targetNodeId, {
+        source: {
+          objectId: sourceNodeId,
+          placement: sourcePlacement
+        },
+        target: {
+          objectId: targetNodeId,
+          placement: 'auto'
+        },
+        style: {
+          markerEnd: 'arrow'
+        }
+      })
+      canvas.addEdge(edge)
+      canvas.selectEdge(edge.id)
+      onSceneMutation?.()
+      separateSceneUndoBoundary()
+      return true
+    },
+    [canvas, edges, onSceneMutation, separateSceneUndoBoundary]
+  )
 
   const runSceneUndo = useCallback((direction: 'undo' | 'redo'): boolean => {
     const manager = undoManagerRef.current
@@ -1486,6 +1550,58 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [canvas.store, selectedNodeIds, separateSceneUndoBoundary]
   )
 
+  const handleNodeConnectStart = useCallback(
+    (id: string, point: Point, placement: EdgeAnchor) => {
+      containerRef.current?.focus()
+      setFocusedNodeId(id)
+      selectNode(id)
+      setPointerActivity('dragging')
+
+      const targetNode = resolveConnectionTarget(point.x, point.y, id)
+      setConnectionPreview({
+        sourceNodeId: id,
+        sourcePlacement: placement,
+        currentPoint: clientToCanvas(point.x, point.y),
+        targetNodeId: targetNode?.id ?? null
+      })
+    },
+    [clientToCanvas, resolveConnectionTarget, selectNode]
+  )
+
+  const handleNodeConnectDrag = useCallback(
+    (id: string, point: Point) => {
+      setConnectionPreview((current) => {
+        if (!current || current.sourceNodeId !== id) {
+          return current
+        }
+
+        const targetNode = resolveConnectionTarget(point.x, point.y, id)
+        return {
+          ...current,
+          currentPoint: clientToCanvas(point.x, point.y),
+          targetNodeId: targetNode?.id ?? null
+        }
+      })
+    },
+    [clientToCanvas, resolveConnectionTarget]
+  )
+
+  const handleNodeConnectEnd = useCallback(
+    (id: string, point: Point) => {
+      const sourcePlacement = connectionPreview?.sourcePlacement ?? 'right'
+      setPointerActivity('idle')
+      const targetNode = resolveConnectionTarget(point.x, point.y, id)
+      setConnectionPreview(null)
+
+      if (!targetNode) {
+        return
+      }
+
+      connectCanvasNodes(id, targetNode.id, sourcePlacement)
+    },
+    [connectCanvasNodes, connectionPreview?.sourcePlacement, resolveConnectionTarget]
+  )
+
   const handleNodeDrag = useCallback(
     (_id: string, delta: Point) => {
       // Accumulate offset and compute final position from initial positions.
@@ -1584,6 +1700,41 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       ? 'hybrid'
       : 'canvas'
     : 'svg'
+  const connectionPreviewTargetNode = connectionPreview?.targetNodeId
+    ? (nodeMap.get(connectionPreview.targetNodeId) ??
+      canvas.store.getNode(connectionPreview.targetNodeId))
+    : null
+  const connectionPreviewSourceNode = connectionPreview
+    ? (nodeMap.get(connectionPreview.sourceNodeId) ??
+      canvas.store.getNode(connectionPreview.sourceNodeId))
+    : null
+  const connectionPreviewGeometry = useMemo(() => {
+    if (!connectionPreview || !connectionPreviewSourceNode) {
+      return null
+    }
+
+    const startPoint = resolveCanvasAnchorPoint(
+      connectionPreviewSourceNode.position,
+      {
+        placement: connectionPreview.sourcePlacement
+      },
+      connectionPreview.currentPoint
+    )
+    const endPoint = connectionPreviewTargetNode
+      ? resolveCanvasAnchorPoint(
+          connectionPreviewTargetNode.position,
+          {
+            placement: 'auto'
+          },
+          startPoint
+        )
+      : connectionPreview.currentPoint
+
+    return {
+      startPoint,
+      endPoint
+    }
+  }, [connectionPreview, connectionPreviewSourceNode, connectionPreviewTargetNode])
   const navigableNodes = useMemo<NavigableNode[]>(() => {
     const sourceNodes =
       visibleNodes.length > 0 ? visibleNodes : renderNodes.length > 0 ? renderNodes : nodes
@@ -1924,6 +2075,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-canvas-marquee-active={marqueeRect ? 'true' : 'false'}
       data-canvas-marquee-width={marqueeRect?.width ?? 0}
       data-canvas-marquee-height={marqueeRect?.height ?? 0}
+      data-canvas-connecting={connectionPreview ? 'true' : 'false'}
+      data-canvas-connect-source-id={connectionPreview?.sourceNodeId ?? ''}
+      data-canvas-connect-target-id={connectionPreview?.targetNodeId ?? ''}
       role="region"
       aria-label="Canvas workspace"
       aria-roledescription="infinite canvas"
@@ -1937,8 +2091,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     >
       <div id={instructionsId} style={SCREEN_READER_ONLY_STYLE}>
         Use Tab to step through nearby objects, Alt plus arrow keys for spatial focus, Enter to peek
-        the selection, Alt plus Enter to open split view, Shift plus drag to marquee select, and
-        question mark for shortcuts.
+        the selection, Alt plus Enter to open split view, Shift plus drag to marquee select, drag a
+        connector handle from a selected object to link it, and question mark for shortcuts.
       </div>
 
       {/* Grid background is rendered via WebGL/CSS layer (useWebGLGrid hook) */}
@@ -1980,6 +2134,33 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
                 />
               )
             })}
+          </g>
+        </svg>
+      ) : null}
+
+      {connectionPreviewGeometry ? (
+        <svg
+          data-canvas-connection-preview="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            overflow: 'visible'
+          }}
+        >
+          <g style={{ transform: viewport.getTransform() }}>
+            <path
+              d={`M ${connectionPreviewGeometry.startPoint.x} ${connectionPreviewGeometry.startPoint.y} L ${connectionPreviewGeometry.endPoint.x} ${connectionPreviewGeometry.endPoint.y}`}
+              stroke={
+                theme.mode === 'dark' ? 'rgba(96, 165, 250, 0.92)' : 'rgba(37, 99, 235, 0.92)'
+              }
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              fill="none"
+            />
           </g>
         </svg>
       ) : null}
@@ -2070,6 +2251,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
               node={node}
               selected={selected}
               focused={focusedNodeId === node.id}
+              connectionTargeted={connectionPreview?.targetNodeId === node.id}
               lod={lod}
               remoteUsers={nodePresence.get(node.id)}
               onSelect={handleNodeSelect}
@@ -2079,6 +2261,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
               onResizeStart={handleNodeResizeStart}
               onResize={handleNodeResize}
               onResizeEnd={handleNodeResizeEnd}
+              onConnectStart={handleNodeConnectStart}
+              onConnectDrag={handleNodeConnectDrag}
+              onConnectEnd={handleNodeConnectEnd}
               onDoubleClick={handleNodeDoubleClick}
             >
               {/* Only render custom content at full LOD for performance */}

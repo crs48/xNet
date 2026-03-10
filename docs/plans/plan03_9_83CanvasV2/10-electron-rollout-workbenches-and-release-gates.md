@@ -172,6 +172,7 @@ Automated validation should include:
 - Electron CDP smoke coverage for:
   - shell boot
   - dock creation
+  - connector creation by dragging from a selected object into another object
   - command-palette creation
   - minimap toggle
   - theme transitions across the shared canvas surface, navigation cluster, and minimap controls
@@ -181,6 +182,7 @@ Automated validation should include:
   - database split-view open/close flows
 - Web Playwright smoke coverage for:
   - light/dark theme transitions across the shared canvas surface, navigation cluster, and minimap controls
+  - connector creation by dragging from a selected object into another object
   - URL drops creating source-backed `ExternalReference` cards
   - image/file drops creating source-backed `MediaAsset` cards
   - pointer-driven resize flows that keep canvas activity diagnostics and persisted geometry in sync

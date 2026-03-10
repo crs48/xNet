@@ -517,6 +517,81 @@ async function dragCanvasNode(
   await page.mouse.up()
 }
 
+async function connectCanvasNodes(
+  page: import('@playwright/test').Page,
+  sourceSelector: string,
+  sourceIndex: number,
+  targetSelector: string,
+  targetIndex: number
+): Promise<void> {
+  await selectCanvasNode(page, sourceSelector, sourceIndex)
+
+  const handle = page
+    .locator(sourceSelector)
+    .nth(sourceIndex)
+    .locator('[data-canvas-connect-handle="true"]')
+  const target = page.locator(targetSelector).nth(targetIndex)
+
+  await expect(handle).toBeVisible({ timeout: 30_000 })
+  await expect(target).toBeVisible({ timeout: 30_000 })
+  await page.evaluate(
+    (input) => {
+      const sourceElements = Array.from(
+        document.querySelectorAll<HTMLElement>(input.sourceSelector)
+      )
+      const targetElements = Array.from(
+        document.querySelectorAll<HTMLElement>(input.targetSelector)
+      )
+      const sourceElement = sourceElements[input.sourceIndex]
+      const targetElement = targetElements[input.targetIndex]
+      const handleElement = sourceElement?.querySelector<HTMLElement>(
+        '[data-canvas-connect-handle="true"]'
+      )
+
+      if (!sourceElement || !targetElement || !handleElement) {
+        throw new Error('Unable to resolve connector drag elements')
+      }
+
+      const handleRect = handleElement.getBoundingClientRect()
+      const targetRect = targetElement.getBoundingClientRect()
+      const startX = handleRect.left + handleRect.width / 2
+      const startY = handleRect.top + handleRect.height / 2
+      const endX = targetRect.left + targetRect.width / 2
+      const endY = targetRect.top + targetRect.height / 2
+
+      handleElement.dispatchEvent(
+        new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          buttons: 1,
+          clientX: startX,
+          clientY: startY
+        })
+      )
+      document.dispatchEvent(
+        new MouseEvent('mousemove', {
+          bubbles: true,
+          cancelable: true,
+          buttons: 1,
+          clientX: endX,
+          clientY: endY
+        })
+      )
+      document.dispatchEvent(
+        new MouseEvent('mouseup', {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: endX,
+          clientY: endY
+        })
+      )
+    },
+    { sourceSelector, sourceIndex, targetSelector, targetIndex }
+  )
+}
+
 async function marqueeSelectCanvasNodes(
   page: import('@playwright/test').Page,
   selector: string,
@@ -820,6 +895,40 @@ test.describe('Web canvas ingestion', () => {
 
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-marquee-selection.png',
+      fullPage: true
+    })
+  })
+
+  test('creates connectors by dragging between selected canvas nodes on the web', async ({
+    page
+  }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    await createCanvasNote(page)
+    await createCanvasNote(page)
+
+    const notes = page.locator('.canvas-node[data-node-type="note"]')
+    await expect(notes).toHaveCount(2, { timeout: 30_000 })
+    await dragCanvasNode(page, '.canvas-node[data-node-type="note"]', 1, 280, 160)
+
+    await connectCanvasNodes(
+      page,
+      '.canvas-node[data-node-type="note"]',
+      0,
+      '.canvas-node[data-node-type="note"]',
+      1
+    )
+
+    await expect(surface).toHaveAttribute('data-canvas-connecting', 'false')
+    await expect(surface).toHaveAttribute('data-edge-count', '1')
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-connectors.png',
       fullPage: true
     })
   })

@@ -2014,6 +2014,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
               {[
                 ['P / D / N', 'Create page, database, or note'],
                 ['R / F', 'Create a rectangle or an empty frame'],
+                ['Drag handle', 'Pull from a selected card to connect objects'],
                 ['Tab', 'Step through canvas objects'],
                 ['Arrow keys', 'Pan the board or nudge the selection'],
                 ['Enter', 'Peek or edit the selected object'],

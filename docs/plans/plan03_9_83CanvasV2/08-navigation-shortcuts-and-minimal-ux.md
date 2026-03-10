@@ -48,6 +48,8 @@ By default show only:
 - transient insertion affordances.
 
 Do not add a permanent left tool rail and permanent right inspector as the default Canvas V2 posture.
+When controls do need to persist, compress them into compact segmented bars with tooltip-discoverable
+hotkeys instead of large floating buttons.
 
 ### 2. Command-first object creation
 
@@ -134,6 +136,8 @@ type CanvasCommand = {
 - Reuse the current `CommandPalette` component and feed it a canvas-scoped command registry.
 - Maintain one “are we typing?” guard for single-key shortcuts so canvas shortcuts never steal editor input.
 - Keep minimap controls and zoom controls compact and collapsible.
+- Prefer one connected bottom action bar over multiple oversized floating pills when creation controls must
+  remain visible.
 
 ## Testing and Validation Approach
 
@@ -142,6 +146,7 @@ type CanvasCommand = {
   - `Cmd/Ctrl+Shift+P` palette open
   - page/database/note creation from shortcuts or palette
   - minimap hide/show
+  - compact action-dock tooltips exposing the correct hotkey hints
   - Escape/Enter focused-surface transitions
 - Verify that shortcuts remain discoverable via palette/HUD/help overlay.
 - Manually verify keyboard-first flows in Electron.

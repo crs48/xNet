@@ -288,6 +288,7 @@ flowchart LR
 - [x] The background grid and minimap remain outside the main DOM path.
 - [x] Far-field objects do not mount rich editors or oversized DOM subtrees.
 - [x] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.
+- [x] Electron and web e2e coverage verify direct drag-to-connect object creation.
 - [x] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
 - [x] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
 - [x] Undo/redo behaves correctly across canvas-object moves and inline content edits.

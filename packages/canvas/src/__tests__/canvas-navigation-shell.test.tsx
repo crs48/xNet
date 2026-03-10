@@ -34,16 +34,24 @@ vi.mock('../nodes/CanvasNodeComponent', () => ({
     children,
     selected,
     focused,
+    connectionTargeted,
     onResizeStart,
     onResize,
-    onResizeEnd
+    onResizeEnd,
+    onConnectStart,
+    onConnectDrag,
+    onConnectEnd
   }: {
     node: { id: string; type: string }
     selected?: boolean
     focused?: boolean
+    connectionTargeted?: boolean
     onResizeStart?: (id: string, handle: string, point: { x: number; y: number }) => void
     onResize?: (id: string, handle: string, delta: { x: number; y: number }) => void
     onResizeEnd?: (id: string) => void
+    onConnectStart?: (id: string, point: { x: number; y: number }, placement: 'right') => void
+    onConnectDrag?: (id: string, point: { x: number; y: number }) => void
+    onConnectEnd?: (id: string, point: { x: number; y: number }) => void
     children?: React.ReactNode
   }) => (
     <div
@@ -52,6 +60,7 @@ vi.mock('../nodes/CanvasNodeComponent', () => ({
       data-node-type={node.type}
       data-focused={focused ? 'true' : 'false'}
       data-selected={selected ? 'true' : 'false'}
+      data-canvas-connect-target={connectionTargeted ? 'true' : 'false'}
     >
       {children}
       {selected && onResizeStart && onResize && onResizeEnd ? (
@@ -81,6 +90,38 @@ vi.mock('../nodes/CanvasNodeComponent', () => ({
           }}
         >
           Resize
+        </button>
+      ) : null}
+      {selected && onConnectStart && onConnectDrag && onConnectEnd ? (
+        <button
+          type="button"
+          data-canvas-connect-handle="true"
+          onPointerDown={(event) => {
+            const start = { x: event.clientX, y: event.clientY }
+            onConnectStart(node.id, start, 'right')
+            const ownerDocument = document
+
+            const handlePointerMove = (moveEvent: PointerEvent) => {
+              onConnectDrag(node.id, {
+                x: moveEvent.clientX,
+                y: moveEvent.clientY
+              })
+            }
+
+            const handlePointerUp = (upEvent: PointerEvent) => {
+              ownerDocument.removeEventListener('pointermove', handlePointerMove)
+              ownerDocument.removeEventListener('pointerup', handlePointerUp)
+              onConnectEnd(node.id, {
+                x: upEvent.clientX,
+                y: upEvent.clientY
+              })
+            }
+
+            ownerDocument.addEventListener('pointermove', handlePointerMove)
+            ownerDocument.addEventListener('pointerup', handlePointerUp)
+          }}
+        >
+          Connect
         </button>
       ) : null}
     </div>
@@ -413,6 +454,71 @@ describe('Canvas navigation shell', () => {
     fireEvent.mouseUp(document)
 
     expect(surface?.dataset.canvasLocalActivity).toBe('idle')
+  })
+
+  it('creates connectors by dragging from a selected node into a target node', () => {
+    const sourceNode = {
+      id: 'page-1',
+      type: 'page',
+      position: { x: 20, y: 40, width: 320, height: 200 },
+      properties: { title: 'Source Page' }
+    }
+    const targetNode = {
+      id: 'page-2',
+      type: 'page',
+      position: { x: 420, y: 120, width: 320, height: 200 },
+      properties: { title: 'Target Page' }
+    }
+    const nodesMap = new Map([
+      [sourceNode.id, sourceNode],
+      [targetNode.id, targetNode]
+    ])
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = [sourceNode, targetNode]
+    canvasMock.renderNodes = [sourceNode, targetNode]
+    canvasMock.selectedNodeIds = new Set(['page-1'])
+    canvasMock.store.getVisibleNodes = vi.fn(() => [sourceNode, targetNode])
+    canvasMock.store.getNode = vi.fn((nodeId: string) => nodesMap.get(nodeId))
+    canvasMock.store.getNodesMap = vi.fn(() => nodesMap)
+    canvasMock.findNodeAt = vi.fn(() => targetNode)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    const connectHandle = screen.getByRole('button', { name: 'Connect' })
+
+    fireEvent.pointerDown(connectHandle, {
+      button: 0,
+      buttons: 1,
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 340,
+      clientY: 140
+    })
+
+    expect(surface?.dataset.canvasConnecting).toBe('true')
+
+    fireEvent.pointerMove(document, {
+      buttons: 1,
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 520,
+      clientY: 240
+    })
+    fireEvent.pointerUp(document, {
+      button: 0,
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 520,
+      clientY: 240
+    })
+
+    expect(canvasMock.addEdge).toHaveBeenCalledTimes(1)
+    expect(canvasMock.selectEdge).toHaveBeenCalledTimes(1)
+    expect(surface?.dataset.canvasConnecting).toBe('false')
+    expect(surface?.dataset.canvasConnectTargetId).toBe('')
   })
 
   it('lets a parent runtime intercept undo and redo shortcuts', () => {

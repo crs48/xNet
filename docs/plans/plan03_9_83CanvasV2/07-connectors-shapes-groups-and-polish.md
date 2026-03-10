@@ -50,7 +50,8 @@ Connector records should:
 - remember anchor metadata,
 - survive move/resize,
 - support object/object endpoints consistently,
-- leave room for future block-level anchors.
+- leave room for future block-level anchors,
+- support direct drag-to-connect from selected objects without switching into a separate inspector flow.
 
 ### 2. Shapes and frames remain canvas-native
 
@@ -113,6 +114,8 @@ type CanvasConnector = {
 ## Implementation Notes
 
 - Keep group/frame UI lightweight and contextual.
+- Prefer direct manipulation for connector creation: a selected object should expose a small drag handle that
+  previews the pending edge and highlights valid targets.
 - Use locks to protect both content objects and shapes.
 - Alignment/tidy-up should work on scene selections without requiring the user to open a side inspector.
 - Backlink metadata can start simple and become richer later.
@@ -121,6 +124,8 @@ type CanvasConnector = {
 
 - Unit test anchor persistence on move/resize.
 - Validate alignment/tidy-up determinism on selected sets.
+- Add Electron and web e2e coverage for drag-to-connect creation so connector affordances stay stable
+  across shared runtime changes.
 - Verify lock behavior and selection visuals manually in Electron.
 
 Suggested commands:

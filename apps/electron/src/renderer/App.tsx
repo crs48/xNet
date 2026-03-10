@@ -955,7 +955,6 @@ export function App(): React.ReactElement {
           onCreatePage={() => void handleCreateLinkedDocument('page')}
           onCreateDatabase={() => void handleCreateLinkedDocument('database')}
           onCreateNote={handleCreateCanvasNote}
-          onOpenRecent={showPalette}
           onOpenSearch={showPalette}
           onReturnHome={handleReturnHome}
         />

@@ -136,4 +136,47 @@ describe('CanvasNodeComponent', () => {
     expect(onResize).toHaveBeenCalledWith('page-1', 'bottom-right', expect.any(Object))
     expect(onResizeEnd).toHaveBeenCalledWith('page-1')
   })
+
+  it('routes connector handle drags through the connection callbacks', () => {
+    const onConnectStart = vi.fn()
+    const onConnectDrag = vi.fn()
+    const onConnectEnd = vi.fn()
+    const onDragStart = vi.fn()
+
+    render(
+      <CanvasNodeComponent
+        node={TEST_NODE}
+        selected
+        onSelect={vi.fn()}
+        onDragStart={onDragStart}
+        onDrag={vi.fn()}
+        onDragEnd={vi.fn()}
+        onConnectStart={onConnectStart}
+        onConnectDrag={onConnectDrag}
+        onConnectEnd={onConnectEnd}
+      />
+    )
+
+    const handle = screen.getByRole('button', { name: 'Connect Canvas Page' })
+
+    fireEvent.mouseDown(handle, {
+      button: 0,
+      clientX: 330,
+      clientY: 130
+    })
+    fireEvent.mouseMove(document, {
+      clientX: 420,
+      clientY: 190
+    })
+    fireEvent.mouseUp(document, {
+      button: 0,
+      clientX: 420,
+      clientY: 190
+    })
+
+    expect(onDragStart).not.toHaveBeenCalled()
+    expect(onConnectStart).toHaveBeenCalledWith('page-1', expect.any(Object), 'right')
+    expect(onConnectDrag).toHaveBeenCalledWith('page-1', expect.any(Object))
+    expect(onConnectEnd).toHaveBeenCalledWith('page-1', expect.any(Object))
+  })
 })

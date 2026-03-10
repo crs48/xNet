@@ -54,14 +54,6 @@ export function NavigationTools({
     onViewportChange({ zoom: newZoom })
   }, [viewport.zoom, onViewportChange])
 
-  const zoomTo = useCallback(
-    (zoom: number) => {
-      const clampedZoom = Math.max(0.1, Math.min(4, zoom))
-      onViewportChange({ zoom: clampedZoom })
-    },
-    [onViewportChange]
-  )
-
   const fitToContent = useCallback(() => {
     if (!canvasBounds || !canvasBounds.width || !canvasBounds.height) return
 
@@ -91,6 +83,7 @@ export function NavigationTools({
   const getButtonStyle = (disabled: boolean): React.CSSProperties => ({
     ...styles.button,
     color: disabled ? theme.panelButtonDisabled : theme.panelIconColor,
+    background: 'transparent',
     cursor: disabled ? 'not-allowed' : 'pointer'
   })
 
@@ -112,37 +105,31 @@ export function NavigationTools({
     >
       <div style={styles.toolGroup}>
         <button
-          style={getButtonStyle(viewport.zoom >= 4)}
-          onClick={zoomIn}
-          title="Zoom In (Ctrl/Cmd +)"
-          disabled={viewport.zoom >= 4}
-          aria-label="Zoom in"
-        >
-          <PlusIcon />
-        </button>
-
-        <div style={styles.sliderContainer}>
-          <input
-            type="range"
-            min="10"
-            max="400"
-            value={zoomPercent}
-            onChange={(e) => zoomTo(Number(e.target.value) / 100)}
-            style={styles.slider}
-            title={`${zoomPercent}%`}
-            aria-label="Zoom level"
-          />
-          {showZoomLabel && <span style={zoomLabelStyle}>{zoomPercent}%</span>}
-        </div>
-
-        <button
           style={getButtonStyle(viewport.zoom <= 0.1)}
           onClick={zoomOut}
-          title="Zoom Out (Ctrl/Cmd -)"
+          title="Zoom out (Ctrl/Cmd -)"
           disabled={viewport.zoom <= 0.1}
           aria-label="Zoom out"
+          data-navigation-tool="zoom-out"
         >
           <MinusIcon />
+        </button>
+
+        {showZoomLabel ? (
+          <span style={zoomLabelStyle} title={`Current zoom: ${zoomPercent}%`} aria-live="polite">
+            {zoomPercent}%
+          </span>
+        ) : null}
+
+        <button
+          style={getButtonStyle(viewport.zoom >= 4)}
+          onClick={zoomIn}
+          title="Zoom in (Ctrl/Cmd +)"
+          disabled={viewport.zoom >= 4}
+          aria-label="Zoom in"
+          data-navigation-tool="zoom-in"
+        >
+          <PlusIcon />
         </button>
       </div>
 
@@ -152,9 +139,10 @@ export function NavigationTools({
         <button
           style={getButtonStyle(!canvasBounds)}
           onClick={fitToContent}
-          title="Fit to Content (Ctrl/Cmd 1)"
+          title="Fit to content (Ctrl/Cmd 1)"
           disabled={!canvasBounds}
           aria-label="Fit to content"
+          data-navigation-tool="fit"
         >
           <FitIcon />
         </button>
@@ -162,8 +150,9 @@ export function NavigationTools({
         <button
           style={getButtonStyle(false)}
           onClick={resetView}
-          title="Reset View (Ctrl/Cmd 0)"
+          title="Reset view (Ctrl/Cmd 0)"
           aria-label="Reset view"
+          data-navigation-tool="reset"
         >
           <ResetIcon />
         </button>
@@ -183,10 +172,10 @@ function getPositionStyles(
     position: 'absolute',
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    padding: '8px 12px',
+    gap: 0,
+    padding: '6px 8px',
     background: theme.panelBackground,
-    borderRadius: 8,
+    borderRadius: 999,
     boxShadow: theme.panelShadow,
     border: `1px solid ${theme.panelBorder}`,
     zIndex: 10
@@ -210,37 +199,28 @@ const styles: Record<string, React.CSSProperties> = {
   toolGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: 4
+    gap: 2
   },
   button: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     border: 'none',
-    background: 'transparent',
-    borderRadius: 4,
+    borderRadius: 999,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
   },
-  sliderContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4
-  },
-  slider: {
-    width: 80,
-    height: 4,
-    cursor: 'pointer'
-  },
   zoomLabel: {
     fontSize: 11,
-    minWidth: 32,
-    textAlign: 'right' as const
+    minWidth: 40,
+    textAlign: 'center' as const,
+    fontVariantNumeric: 'tabular-nums',
+    userSelect: 'none'
   },
   divider: {
     width: 1,
-    height: 20,
-    margin: '0 4px'
+    height: 18,
+    margin: '0 6px'
   }
 }
 
