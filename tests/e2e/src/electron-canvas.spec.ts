@@ -704,6 +704,73 @@ test.describe('Electron canvas shell', () => {
     })
   })
 
+  test('supports centered page peek before full focus transitions', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]')
+    await page.locator('[data-canvas-surface="true"]').focus()
+    await page.keyboard.press('Enter')
+
+    const peekSurface = page.locator(
+      '[data-canvas-peek-surface="true"][data-canvas-peek-kind="page"]'
+    )
+    await expect(peekSurface).toBeVisible({ timeout: 30_000 })
+    await expect(
+      page.locator('[data-canvas-page-surface="true"][data-canvas-page-surface-mode="peek"]')
+    ).toHaveCount(1)
+    await expect(
+      page.locator('[data-canvas-page-surface="true"][data-canvas-page-surface-mode="inline"]')
+    ).toHaveCount(0)
+    await expect
+      .poll(async () => getContentEditableCount(page), {
+        timeout: 15_000
+      })
+      .toBe(1)
+
+    const titleInput = page
+      .locator('[data-canvas-peek-surface="true"] [data-canvas-page-title="true"]')
+      .first()
+    await titleInput.fill('Peek Draft')
+
+    const editor = page.locator(
+      '[data-canvas-peek-surface="true"] [data-canvas-page-editor="true"] [contenteditable="true"]'
+    )
+    await editor.focus()
+    await page.keyboard.type('Peek body text')
+    await expect(peekSurface).toContainText('Peek body text')
+
+    await page.keyboard.press('Escape')
+    await expect(peekSurface).toHaveCount(0, { timeout: 15_000 })
+    await expect(
+      page.locator('[data-canvas-page-surface="true"][data-canvas-page-surface-mode="inline"]')
+    ).toHaveCount(1, {
+      timeout: 30_000
+    })
+
+    await page.locator('[data-canvas-surface="true"]').focus()
+    await page.keyboard.press('Enter')
+    await expect(peekSurface).toBeVisible({ timeout: 30_000 })
+    await page
+      .locator('[data-canvas-peek-surface="true"] [data-canvas-page-open="true"]')
+      .first()
+      .evaluate((button: HTMLButtonElement) => button.click())
+    await expect(
+      page.locator('[data-page-view="true"][data-page-view-chrome="minimal"]')
+    ).toBeVisible({
+      timeout: 30_000
+    })
+
+    await page.getByRole('button', { name: 'Canvas' }).click({ force: true })
+    await expect(peekSurface).toHaveCount(0, { timeout: 30_000 })
+    await expect(page.getByText('Peek Draft')).toBeVisible({ timeout: 30_000 })
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-page-peek.png`,
+      fullPage: true
+    })
+  })
+
   test('supports canvas-scoped hotkeys, command commands, and typing guards', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!

@@ -41,6 +41,14 @@ type ViewportSnapshot = {
   zoom: number
 }
 
+type PeekableCanvasDisplayType = LinkedDocType | 'note'
+
+type CanvasPeekState = {
+  nodeId: string
+  sourceId: string
+  displayType: PeekableCanvasDisplayType
+}
+
 type CanvasViewProps = {
   docId: string
   documents?: LinkedDocumentItem[]
@@ -94,6 +102,12 @@ function getCanvasViewDisplayType(
   }
 
   return getCanvasShellDisplayType(node, document)
+}
+
+function isPeekableCanvasDisplayType(
+  displayType: LinkedDocType | 'note' | 'external-reference' | 'media'
+): displayType is PeekableCanvasDisplayType {
+  return displayType === 'page' || displayType === 'database' || displayType === 'note'
 }
 
 function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.ReactElement {
@@ -258,6 +272,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     edgeIds: []
   })
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
+  const [peekState, setPeekState] = useState<CanvasPeekState | null>(null)
   const documentMap = useMemo(
     () => new Map(documents.map((entry) => [entry.id, entry])),
     [documents]
@@ -295,6 +310,18 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     }
   }, [doc, documentMap, selection.nodeIds])
 
+  const peekedCanvasObject = useMemo(() => {
+    if (!peekState || !selectedCanvasObject) {
+      return null
+    }
+
+    return selectedCanvasObject.node.id === peekState.nodeId &&
+      selectedCanvasObject.sourceId === peekState.sourceId &&
+      selectedCanvasObject.displayType === peekState.displayType
+      ? selectedCanvasObject
+      : null
+  }, [peekState, selectedCanvasObject])
+
   useEffect(() => {
     if (!doc) return
     setCanvasReady(true)
@@ -304,6 +331,21 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     if (!canvasReady || !canvasRef.current) return
     lastViewportSnapshotRef.current = canvasRef.current.getViewportSnapshot()
   }, [canvasReady])
+
+  useEffect(() => {
+    if (!peekState) {
+      return
+    }
+
+    if (
+      !selectedCanvasObject ||
+      selectedCanvasObject.node.id !== peekState.nodeId ||
+      selectedCanvasObject.sourceId !== peekState.sourceId ||
+      selectedCanvasObject.displayType !== peekState.displayType
+    ) {
+      setPeekState(null)
+    }
+  }, [peekState, selectedCanvasObject])
 
   useEffect(() => {
     if (!doc) return
@@ -388,9 +430,14 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     canvasRef.current?.setViewportSnapshot(snapshot)
   }, [])
 
-  const clearCanvasSelection = useCallback(() => {
-    canvasRef.current?.clearSelection()
+  const closePeekSurface = useCallback(() => {
+    setPeekState(null)
   }, [])
+
+  const clearCanvasSelection = useCallback(() => {
+    closePeekSurface()
+    canvasRef.current?.clearSelection()
+  }, [closePeekSurface])
 
   const fitSelection = useCallback((): boolean => {
     if (!selectedCanvasObject) {
@@ -402,13 +449,21 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }, [selectedCanvasObject])
 
   const focusSelectionSurface = useCallback(
-    (sourceId: string, displayType: LinkedDocType | 'note') => {
+    (
+      sourceId: string,
+      displayType: PeekableCanvasDisplayType,
+      scope: 'peek' | 'inline' = 'inline'
+    ) => {
       window.requestAnimationFrame(() => {
-        const titleSelector =
+        const targetSelector =
           displayType === 'database'
             ? `[data-canvas-source-id="${sourceId}"] [data-canvas-database-title="true"]`
             : `[data-canvas-source-id="${sourceId}"] [data-canvas-page-title="true"]`
-        const target = document.querySelector<HTMLElement>(titleSelector)
+        const scopeSelector =
+          scope === 'peek' ? `[data-canvas-peek-surface="true"] ${targetSelector}` : targetSelector
+        const target =
+          document.querySelector<HTMLElement>(scopeSelector) ??
+          document.querySelector<HTMLElement>(targetSelector)
         target?.focus()
         if (target instanceof HTMLInputElement) {
           target.select()
@@ -417,6 +472,14 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     },
     []
   )
+
+  useEffect(() => {
+    if (!peekState?.sourceId || !isPeekableCanvasDisplayType(peekState.displayType)) {
+      return
+    }
+
+    focusSelectionSurface(peekState.sourceId, peekState.displayType, 'peek')
+  }, [focusSelectionSurface, peekState])
 
   const openSelection = useCallback(
     (mode: 'peek' | 'focus' | 'split' = 'focus'): boolean => {
@@ -429,11 +492,19 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
         if (
           selectedCanvasObject.sourceId &&
-          (selectedCanvasObject.displayType === 'page' ||
-            selectedCanvasObject.displayType === 'database' ||
-            selectedCanvasObject.displayType === 'note')
+          isPeekableCanvasDisplayType(selectedCanvasObject.displayType)
         ) {
-          focusSelectionSurface(selectedCanvasObject.sourceId, selectedCanvasObject.displayType)
+          setPeekState({
+            nodeId: selectedCanvasObject.node.id,
+            sourceId: selectedCanvasObject.sourceId,
+            displayType: selectedCanvasObject.displayType
+          })
+          focusSelectionSurface(
+            selectedCanvasObject.sourceId,
+            selectedCanvasObject.displayType,
+            'peek'
+          )
+          return true
         }
 
         return didFit
@@ -448,6 +519,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           return false
         }
 
+        closePeekSurface()
         onOpenDatabaseSplit?.(selectedCanvasObject.sourceId)
         return true
       }
@@ -456,10 +528,18 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         return false
       }
 
+      closePeekSurface()
       onOpenDocument?.(selectedCanvasObject.sourceId, selectedCanvasObject.sourceType)
       return true
     },
-    [fitSelection, focusSelectionSurface, onOpenDatabaseSplit, onOpenDocument, selectedCanvasObject]
+    [
+      closePeekSurface,
+      fitSelection,
+      focusSelectionSurface,
+      onOpenDatabaseSplit,
+      onOpenDocument,
+      selectedCanvasObject
+    ]
   )
 
   const handleSurfaceDrop = useCallback(
@@ -495,18 +575,43 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     [ingestDataTransfer]
   )
 
+  useEffect(() => {
+    if (!peekedCanvasObject) {
+      return
+    }
+
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return
+      }
+
+      event.preventDefault()
+      closePeekSurface()
+    }
+
+    window.addEventListener('keydown', handleWindowKeyDown, true)
+    return () => {
+      window.removeEventListener('keydown', handleWindowKeyDown, true)
+    }
+  }, [closePeekSurface, peekedCanvasObject])
+
   const toggleShortcutHelp = useCallback((open?: boolean) => {
     setShortcutHelpOpen((current) => (typeof open === 'boolean' ? open : !current))
   }, [])
 
   const handleDismissTransientUi = useCallback((): boolean => {
+    if (peekedCanvasObject) {
+      closePeekSurface()
+      return true
+    }
+
     if (!shortcutHelpOpen) {
       return false
     }
 
     setShortcutHelpOpen(false)
     return true
-  }, [shortcutHelpOpen])
+  }, [closePeekSurface, peekedCanvasObject, shortcutHelpOpen])
 
   const handleCreateObject = useCallback(
     (kind: 'page' | 'database' | 'note') => {
@@ -619,7 +724,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                     : selectedCanvasObject.displayType === 'external-reference' ||
                         selectedCanvasObject.displayType === 'media'
                       ? 'Center'
-                      : 'Edit'}
+                      : 'Peek'}
                   <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                     Enter
                   </span>
@@ -727,6 +832,73 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         </div>
       ) : null}
 
+      {peekedCanvasObject?.sourceId ? (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-6">
+          <button
+            type="button"
+            className="pointer-events-auto absolute inset-0 bg-slate-950/18 backdrop-blur-[2px]"
+            onClick={closePeekSurface}
+            aria-label="Close canvas peek"
+            data-canvas-peek-backdrop="true"
+          />
+
+          <div
+            className="pointer-events-auto relative z-10 h-[min(78vh,760px)] w-[min(88vw,980px)] overflow-hidden rounded-[32px] border border-border/60 bg-background/92 p-3 shadow-2xl shadow-black/15 backdrop-blur-xl transition-transform duration-150"
+            data-canvas-peek-surface="true"
+            data-canvas-peek-kind={peekedCanvasObject.displayType}
+            data-canvas-peek-node-id={peekedCanvasObject.node.id}
+            data-canvas-peek-source-id={peekedCanvasObject.sourceId}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3 px-2 pt-1">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Peek
+                </span>
+                <span className="text-sm text-muted-foreground">{peekedCanvasObject.title}</span>
+              </div>
+
+              <button
+                type="button"
+                className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                onClick={closePeekSurface}
+                data-canvas-peek-close="true"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="h-[calc(100%-3rem)]">
+              {peekedCanvasObject.displayType === 'database' ? (
+                <CanvasDatabasePreviewSurface
+                  node={peekedCanvasObject.node}
+                  docId={peekedCanvasObject.sourceId}
+                  mode="peek"
+                  onOpenDocument={(targetDocId) => {
+                    closePeekSurface()
+                    onOpenDocument?.(targetDocId, 'database')
+                  }}
+                  onSplitDocument={(targetDocId) => {
+                    closePeekSurface()
+                    onOpenDatabaseSplit?.(targetDocId)
+                  }}
+                />
+              ) : (
+                <CanvasInlinePageSurface
+                  node={peekedCanvasObject.node}
+                  docId={peekedCanvasObject.sourceId}
+                  variant={peekedCanvasObject.displayType === 'note' ? 'note' : 'page'}
+                  mode="peek"
+                  onOpenDocument={(targetDocId) => {
+                    closePeekSurface()
+                    onOpenDocument?.(targetDocId, 'page')
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {!hasNodes ? (
         <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 w-full max-w-xl -translate-x-1/2 px-6">
           <div className="mx-auto rounded-[28px] border border-border/60 bg-background/70 px-5 py-4 text-center shadow-2xl shadow-black/5 backdrop-blur-xl">
@@ -774,8 +946,13 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             const sourceNodeId = getCanvasShellSourceId(node)
             const linkedDocument = sourceNodeId ? documentMap.get(sourceNodeId) : undefined
             const displayType = getCanvasViewDisplayType(node, linkedDocument)
+            const isPeekedNode = peekedCanvasObject?.node.id === node.id
 
-            if (sourceNodeId && shouldActivateInlinePageSurface(node, context, linkedDocument)) {
+            if (
+              sourceNodeId &&
+              !isPeekedNode &&
+              shouldActivateInlinePageSurface(node, context, linkedDocument)
+            ) {
               return (
                 <CanvasInlinePageSurface
                   node={node}
@@ -788,6 +965,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
             if (
               sourceNodeId &&
+              !isPeekedNode &&
               shouldActivateDatabasePreviewSurface(node, context, linkedDocument)
             ) {
               return (

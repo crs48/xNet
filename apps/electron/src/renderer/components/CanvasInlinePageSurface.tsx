@@ -22,6 +22,7 @@ type CanvasInlinePageSurfaceProps = {
   node: CanvasNode
   docId: string
   variant: 'page' | 'note'
+  mode?: 'inline' | 'peek'
   onOpenDocument?: (docId: string) => void
 }
 
@@ -67,6 +68,7 @@ export function CanvasInlinePageSurface({
   node,
   docId,
   variant,
+  mode = 'inline',
   onOpenDocument
 }: CanvasInlinePageSurfaceProps): React.ReactElement {
   const { did } = useIdentity()
@@ -117,8 +119,11 @@ export function CanvasInlinePageSurface({
 
   return (
     <div
-      className="flex h-full flex-col rounded-[22px] border border-border/60 bg-background/95 shadow-lg shadow-black/5"
+      className={`flex h-full flex-col border border-border/60 bg-background/95 shadow-lg shadow-black/5 ${
+        mode === 'peek' ? 'rounded-[28px] shadow-2xl shadow-black/10' : 'rounded-[22px]'
+      }`}
       data-canvas-page-surface="true"
+      data-canvas-page-surface-mode={mode}
       data-canvas-page-variant={variant}
       data-canvas-source-id={docId}
     >
@@ -146,6 +151,7 @@ export function CanvasInlinePageSurface({
             className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
             onClick={handleOpenDocument}
             data-canvas-interactive="true"
+            data-canvas-page-open="true"
           >
             Open
           </button>

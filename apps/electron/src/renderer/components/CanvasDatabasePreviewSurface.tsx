@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 type CanvasDatabasePreviewSurfaceProps = {
   node: CanvasNode
   docId: string
+  mode?: 'inline' | 'peek'
   onOpenDocument?: (docId: string) => void
   onSplitDocument?: (docId: string) => void
 }
@@ -115,6 +116,7 @@ function formatCellValue(value: CellValue, column: ColumnDefinition): string {
 export function CanvasDatabasePreviewSurface({
   node,
   docId,
+  mode = 'inline',
   onOpenDocument,
   onSplitDocument
 }: CanvasDatabasePreviewSurfaceProps): React.ReactElement {
@@ -305,8 +307,11 @@ export function CanvasDatabasePreviewSurface({
 
   return (
     <div
-      className="flex h-full flex-col overflow-hidden rounded-[22px] border border-border/60 bg-background/95 shadow-lg shadow-black/5"
+      className={`flex h-full flex-col overflow-hidden border border-border/60 bg-background/95 shadow-lg shadow-black/5 ${
+        mode === 'peek' ? 'rounded-[28px] shadow-2xl shadow-black/10' : 'rounded-[22px]'
+      }`}
       data-canvas-database-surface="true"
+      data-canvas-database-surface-mode={mode}
       data-canvas-database-empty={isEmpty ? 'true' : 'false'}
       data-canvas-source-id={docId}
     >

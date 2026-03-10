@@ -134,6 +134,6 @@ pnpm --filter @xnetjs/react test
 - [x] Add page creation directly on the canvas using real `Page` nodes.
 - [x] Implement page-backed note objects as a display preset, not a separate editor primitive.
 - [x] Define page render modes and mount gates for preview/editing.
-- [ ] Add center-peek behavior before full route transitions.
+- [x] Add center-peek behavior before full route transitions.
 - [x] Preserve full `PageView` open/focus behavior for deep work.
-- [ ] Validate smooth transitions between preview, peek, editing, and full focus.
+- [x] Validate smooth transitions between preview, peek, editing, and full focus.

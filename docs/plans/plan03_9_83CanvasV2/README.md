@@ -266,7 +266,7 @@ flowchart LR
 - [x] Replace the current linked-card shell with a hybrid renderer shell.
 - [x] Route the main runtime through chunking, culling, and explicit layer display lists.
 - [x] Add universal drop ingestion for internal drags, URLs, text, images, and files.
-- [ ] Ship live page cards with inline editing and peek behavior.
+- [x] Ship live page cards with inline editing and peek behavior.
 - [x] Ship database preview cards with focus/open and split workflows.
 - [ ] Add connector bindings, shapes, groups, locks, align/tidy operations, and aliases/backlinks.
 - [ ] Define and implement the full shortcut/command surface for Canvas V2.
