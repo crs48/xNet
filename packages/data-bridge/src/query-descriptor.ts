@@ -1,7 +1,15 @@
 /**
  * Shared query descriptor helpers for @xnetjs/data-bridge
  */
-import type { QueryDescriptor, QueryOptions, SortDirection, SystemOrderField } from './types'
+import type {
+  QueryDescriptor,
+  QueryOptions,
+  QuerySpatialFilter,
+  QuerySpatialPoint,
+  QuerySpatialRect,
+  SortDirection,
+  SystemOrderField
+} from './types'
 import type { NodeState, PropertyBuilder, InferCreateProps, SchemaIRI } from '@xnetjs/data'
 
 export type QueryResultDelta =
@@ -18,6 +26,106 @@ function sortRecord<T>(record?: Record<string, T>): Record<string, T> | undefine
   return Object.fromEntries(entries)
 }
 
+function normalizeSpatialPoint(point: QuerySpatialPoint): QuerySpatialPoint {
+  return {
+    x: point.x,
+    y: point.y
+  }
+}
+
+function normalizeSpatialRect(rect: QuerySpatialRect): QuerySpatialRect {
+  return {
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height
+  }
+}
+
+function normalizeSpatialFilter(spatial?: QuerySpatialFilter): QuerySpatialFilter | undefined {
+  if (!spatial) {
+    return undefined
+  }
+
+  if (spatial.kind === 'window') {
+    const overscan = spatial.overscan ?? 0
+
+    return {
+      kind: 'window',
+      rect: normalizeSpatialRect(spatial.rect),
+      fields: {
+        x: spatial.fields.x,
+        y: spatial.fields.y,
+        width: spatial.fields.width,
+        height: spatial.fields.height
+      },
+      ...(overscan !== 0 ? { overscan } : {})
+    }
+  }
+
+  return {
+    kind: 'radius',
+    center: normalizeSpatialPoint(spatial.center),
+    radius: spatial.radius,
+    fields: {
+      x: spatial.fields.x,
+      y: spatial.fields.y
+    }
+  }
+}
+
+function getNumericProperty(
+  properties: NodeState['properties'],
+  key: string | undefined
+): number | null {
+  if (!key) {
+    return null
+  }
+
+  const value = properties[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function matchesSpatialFilter(descriptor: QueryDescriptor, node: NodeState): boolean {
+  const spatial = descriptor.spatial
+  if (!spatial) {
+    return true
+  }
+
+  const x = getNumericProperty(node.properties, spatial.fields.x)
+  const y = getNumericProperty(node.properties, spatial.fields.y)
+
+  if (x === null || y === null) {
+    return false
+  }
+
+  if (spatial.kind === 'radius') {
+    const dx = x - spatial.center.x
+    const dy = y - spatial.center.y
+
+    return dx * dx + dy * dy <= spatial.radius * spatial.radius
+  }
+
+  const overscan = spatial.overscan ?? 0
+  const left = spatial.rect.x - overscan
+  const top = spatial.rect.y - overscan
+  const right = spatial.rect.x + spatial.rect.width + overscan
+  const bottom = spatial.rect.y + spatial.rect.height + overscan
+  const width = getNumericProperty(node.properties, spatial.fields.width) ?? 0
+  const height = getNumericProperty(node.properties, spatial.fields.height) ?? 0
+  const nodeLeft = Math.min(x, x + width)
+  const nodeTop = Math.min(y, y + height)
+  const nodeRight = Math.max(x, x + width)
+  const nodeBottom = Math.max(y, y + height)
+  const isPointLike = width === 0 && height === 0
+
+  if (isPointLike) {
+    return x >= left && x <= right && y >= top && y <= bottom
+  }
+
+  return nodeRight >= left && nodeLeft <= right && nodeBottom >= top && nodeTop <= bottom
+}
+
 export function createQueryDescriptor<P extends Record<string, PropertyBuilder>>(
   schemaId: SchemaIRI,
   options?: QueryOptions<P>
@@ -29,7 +137,8 @@ export function createQueryDescriptor<P extends Record<string, PropertyBuilder>>
     includeDeleted: options?.includeDeleted ?? false,
     orderBy: sortRecord(options?.orderBy as Record<string, SortDirection> | undefined),
     limit: options?.limit,
-    offset: options?.offset
+    offset: options?.offset,
+    spatial: normalizeSpatialFilter(options?.spatial)
   }
 }
 
@@ -62,6 +171,10 @@ export function queryDescriptorToOptions<
     options.offset = descriptor.offset
   }
 
+  if (descriptor.spatial) {
+    options.spatial = descriptor.spatial
+  }
+
   return options
 }
 
@@ -86,7 +199,7 @@ export function matchesQueryDescriptor(
     }
   }
 
-  return true
+  return matchesSpatialFilter(descriptor, node)
 }
 
 export function filterQueryNodes(nodes: NodeState[], descriptor: QueryDescriptor): NodeState[] {

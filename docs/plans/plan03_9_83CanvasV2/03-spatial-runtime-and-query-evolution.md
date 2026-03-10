@@ -166,6 +166,6 @@ PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests e
 - [x] Route visible-object selection through the existing R-tree search path.
 - [x] Build overview and interactive display lists from a shared visibility pipeline.
 - [x] Gate DOM mounts behind visibility, zoom, and interaction state.
-- [ ] Extend `useQuery`/`QueryDescriptor` only where Canvas V2 genuinely benefits.
-- [ ] Add viewport-window and future geospatial query coverage around `useQuery`.
+- [x] Extend `useQuery`/`QueryDescriptor` only where Canvas V2 genuinely benefits.
+- [x] Add viewport-window and future geospatial query coverage around `useQuery`.
 - [x] Add telemetry and benchmark coverage for display-list and query behavior.
