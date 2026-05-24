@@ -6,7 +6,8 @@
 
 import type { CanvasNode, CanvasEdge } from '../types'
 import { describe, it, expect } from 'vitest'
-import { getNodeMinimapColor } from '../components/Minimap'
+import { getCanvasObjectKindMinimapColor, getNodeMinimapColor } from '../components/Minimap'
+import { createMinimapSummaryFromCanvasScene } from '../scene/minimap-summary'
 import { Viewport } from '../spatial/index'
 
 function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
@@ -69,6 +70,29 @@ describe('Minimap', () => {
     it('returns correct color for group nodes', () => {
       const node = createTestNode('n1', 0, 0, 100, 50, 'group')
       expect(getNodeMinimapColor(node)).toBe('rgba(107, 114, 128, 0.3)')
+    })
+
+    it('returns correct color for summary object kinds', () => {
+      expect(getCanvasObjectKindMinimapColor('page')).toBe('rgba(59, 130, 246, 0.7)')
+      expect(getCanvasObjectKindMinimapColor('group')).toBe('rgba(107, 114, 128, 0.35)')
+    })
+  })
+
+  describe('summary input', () => {
+    it('creates a fixed-budget minimap summary from canvas scene data', () => {
+      const nodes = [
+        createTestNode('n1', -100, -50, 100, 50, 'page'),
+        createTestNode('n2', 4200, 150, 100, 50, 'database'),
+        createTestNode('n3', 50, 300, 100, 50, 'shape')
+      ]
+      const edges = [createTestEdge('e1', 'n1', 'n2')]
+      const summary = createMinimapSummaryFromCanvasScene({ nodes, edges })
+
+      expect(summary.totalObjectCount).toBe(3)
+      expect(summary.totalEdgeCount).toBe(1)
+      expect(summary.tiles.length).toBe(3)
+      expect(summary.mode).toBe('small-scene')
+      expect(summary.tiles.every((tile) => tile.density.values.length === 64)).toBe(true)
     })
   })
 

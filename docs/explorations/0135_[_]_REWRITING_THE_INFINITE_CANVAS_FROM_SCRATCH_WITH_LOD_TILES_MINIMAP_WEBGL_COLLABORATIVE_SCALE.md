@@ -841,9 +841,20 @@ Start with adaptive tiles:
 - split if object count, byte size, or room user count crosses thresholds
 - merge cold sparse siblings if summary overhead dominates
 
+## Rewrite Constraint 🧨
+
+Canvas v3 does **not** need to preserve Canvas v2 renderer or component API compatibility. The rewrite can break the current raw `CanvasNode[]`/`CanvasEdge[]` rendering contracts when they conflict with the tile-summary/provider model, as long as the active web and Electron app entry points are moved forward and keep compiling during the migration.
+
+That means implementation should favor the new source-of-truth contracts:
+
+- `@xnetjs/canvas-core` owns tile coordinates, camera math, LOD decisions, summary tiles, and provider interfaces.
+- Minimap and far-field renderers consume `MinimapSummary`/tile summary data, not global node and edge arrays.
+- Existing Canvas v2 adapters are temporary migration bridges, not compatibility promises.
+- Code can be deleted or reshaped once the app uses the v3 path and validation gates pass.
+
 ## Recommendation 🧩
 
-Build a new Canvas v3 runtime behind a feature flag rather than incrementally contorting the current Canvas V2 renderer. Reuse ideas and small utilities from the current package, but make the core contracts tile-first from day one.
+Build a new Canvas v3 runtime directly around tile-first contracts rather than incrementally contorting the current Canvas V2 renderer. Reuse ideas and small utilities from the current package, but do not preserve old APIs when they force global scene arrays or DOM-first rendering assumptions.
 
 Recommended sequence:
 
@@ -855,8 +866,8 @@ Recommended sequence:
 6. Replace minimap inputs with a summary tile source.
 7. Add tile Y.Doc sync and viewport-interest subscriptions.
 8. Add thumbnail and raster tile artifact generation.
-9. Migrate Electron canvas shell onto Canvas v3.
-10. Decommission Canvas V2 once parity and performance gates pass.
+9. Replace the Electron and web canvas shells with Canvas v3 entry points.
+10. Delete or archive Canvas V2 code paths once the apps compile and validation gates pass.
 
 ## Proposed API Shape
 
@@ -944,14 +955,15 @@ export function chooseObjectLod(input: {
 
 ## Implementation Checklist 🛠️
 
-- [ ] Create `@xnetjs/canvas-core` with tile-addressed coordinates, camera transforms, and world/screen conversion tests.
-- [ ] Create `CanvasSceneProvider` and remove renderer dependence on `CanvasNode[]`/`CanvasEdge[]` global arrays.
-- [ ] Build a synthetic tile generator that can simulate 10K, 1M, 100M, and 1B objects without materializing all objects in JS memory.
+- [x] Create `@xnetjs/canvas-core` with tile-addressed coordinates, camera transforms, and world/screen conversion tests.
+- [x] Create `CanvasSceneProvider` contracts for viewport snapshots, tile mutation receipts, source docs, and minimap summaries.
+- [ ] Remove renderer dependence on `CanvasNode[]`/`CanvasEdge[]` global arrays outside temporary migration adapters.
+- [x] Build a synthetic tile generator that can simulate 10K, 1M, 100M, and 1B objects without materializing all objects in JS memory.
 - [ ] Implement WebGL2 instanced rect renderer for vector aggregate tiles.
 - [ ] Implement raster tile quad renderer with stale-tile crossfade and texture LRU.
 - [ ] Implement thumbnail sprite renderer with atlas packing and invalidation keys.
 - [ ] Implement DOM island pool with explicit L0/L1 budgets and priority scoring.
-- [ ] Replace current minimap props with summary tile input and large-scene modes.
+- [x] Replace current minimap props with summary tile input and large-scene modes.
 - [ ] Define tile Y.Doc schema and write adapters from existing flat canvas docs for migration.
 - [ ] Implement viewport-interest tile subscription manager with halo and velocity-based prefetch.
 - [ ] Implement tile summary generation for object counts, type histograms, density grids, and cluster bounds.
@@ -960,20 +972,20 @@ export function chooseObjectLod(input: {
 - [ ] Implement cross-tile connector storage and far-field edge summaries.
 - [ ] Add off-main-thread tile decode and summary workers using transferable binary payloads.
 - [ ] Add optional WASM prototype for density-grid/binning only after TypeScript worker baseline exists.
-- [ ] Integrate Canvas v3 into Electron behind a feature flag.
+- [ ] Replace the active Electron and web canvas entry points with Canvas v3; do not preserve V2 renderer/component APIs.
 - [ ] Migrate page/database/note source-backed rendering into the DOM island pool.
 - [ ] Add debug overlays for tile boundaries, LOD tier, cache status, and sync room membership.
-- [ ] Write migration tooling from Canvas V2 flat Y.Doc maps to Canvas V3 tile docs.
-- [ ] Remove or archive Canvas V2 only after parity gates pass.
+- [ ] Write one-way data conversion from existing flat Y.Doc maps to Canvas V3 tile docs where persisted data requires it.
+- [ ] Remove or archive Canvas V2 code paths after the active apps compile and validation gates pass.
 
 ## Validation Checklist 🧪
 
-- [ ] Unit-test camera math at extreme tile coordinates and fractional zooms.
-- [ ] Unit-test tile coverage queries for negative coordinates, huge coordinates, and viewport boundary cases.
-- [ ] Unit-test LOD selection with fixed budgets, selected objects, focused objects, and dense viewports.
+- [x] Unit-test camera math at extreme tile coordinates and fractional zooms.
+- [x] Unit-test tile coverage queries for negative coordinates, huge coordinates, and viewport boundary cases.
+- [x] Unit-test LOD selection with fixed budgets, selected objects, focused objects, and dense viewports.
 - [ ] Unit-test summary rollups for correctness after create, move, resize, delete, and style changes.
 - [ ] Unit-test cross-tile object moves under concurrent edits.
-- [ ] Unit-test minimap summary rendering without raw object arrays.
+- [x] Unit-test minimap summary rendering without raw object arrays.
 - [ ] Verify no renderer path calls `getNodes()` or materializes the entire canvas for large scenes.
 - [ ] Benchmark hot-cache pan/zoom at 120fps targets on modern desktop.
 - [ ] Benchmark low-end 60fps fallback with WebGL2 and Canvas 2D fallback.
@@ -985,9 +997,10 @@ export function chooseObjectLod(input: {
 - [ ] Test minimap collaborator aggregation with high user counts.
 - [ ] Test offline edits in multiple tiles and reconnect reconciliation.
 - [ ] Test thumbnail invalidation for pages, databases, media, and external references.
+- [x] Test web app flow with browser automation after Canvas v3 summary integration.
 - [ ] Test Electron app flow with Playwright Electron over CDP after integration.
-- [ ] Save Playwright screenshots to `tmp/playwright/` for UI validation.
-- [ ] Kill all dev servers after UI verification.
+- [x] Save Playwright screenshots to `tmp/playwright/` for UI validation.
+- [x] Kill all dev servers after UI verification.
 
 ## Migration Plan 🧭
 
@@ -1018,9 +1031,9 @@ Add tile Y.Doc rooms, awareness scoping, tile subscriptions, and cross-tile oper
 
 Add thumbnails, vector summaries, raster tiles, invalidation, and background rebuilds. Use TypeScript workers first.
 
-### Phase 5: Electron integration
+### Phase 5: App integration
 
-Replace current `CanvasView` internals with the Canvas v3 provider and renderer behind a feature flag. Preserve product affordances: create page/database/note, peek/focus/split, comments, selection, connectors, and minimap.
+Replace the active web and Electron canvas entry points with the Canvas v3 provider and renderer directly. Port product affordances forward: create page/database/note, peek/focus/split, comments, selection, connectors, and minimap.
 
 ### Phase 6: Optional kernels
 
@@ -1075,7 +1088,7 @@ Major unknowns to answer with prototypes:
 3. Implement WebGL2 instanced rect/vector tile renderer and measure pan/zoom frame budget.
 4. Replace the current minimap data contract in a prototype with summary tiles.
 5. Define tile Y.Doc schema and simulate two far-apart collaboration rooms.
-6. Write a migration RFC for Canvas V2 flat docs into tile docs.
+6. Specify one-way persisted-data conversion from Canvas V2 flat docs into Canvas v3 tile docs.
 
 ## References 📚
 

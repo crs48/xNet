@@ -19,7 +19,8 @@ export function isTestBypassEnabled(): boolean {
   if (
     typeof import.meta !== 'undefined' &&
     'env' in import.meta &&
-    (import.meta as { env?: Record<string, unknown> }).env?.XNET_TEST_BYPASS === 'true'
+    ((import.meta as { env?: Record<string, unknown> }).env?.XNET_TEST_BYPASS === 'true' ||
+      (import.meta as { env?: Record<string, unknown> }).env?.VITE_XNET_TEST_BYPASS === 'true')
   ) {
     return true
   }

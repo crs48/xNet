@@ -95,6 +95,45 @@ export {
 } from './scene/node-kind'
 export type { CanvasResolvedNodeKind } from './scene/node-kind'
 
+export { createMinimapSummaryFromCanvasScene } from './scene/minimap-summary'
+
+export {
+  DEFAULT_CANVAS_TILE_SIZE,
+  anchorLocalToWorldPoint,
+  chooseObjectLod,
+  createCanvasCamera,
+  createEmptyMinimapSummary,
+  createMinimapSummaryFromTileSummaries,
+  createSyntheticCanvasScene,
+  createTileId,
+  createWorldPointFromCanvasPoint,
+  getCameraVisibleTileCoverage,
+  getDominantCanvasObjectKind,
+  getMinimapSummaryMode,
+  getTileBounds,
+  getTileCoverageForRect,
+  normalizeWorldPoint,
+  parseTileId,
+  screenToWorldPoint,
+  worldPointToAnchorLocal,
+  worldToScreenPoint
+} from '@xnetjs/canvas-core'
+export type {
+  CanvasCameraState,
+  CanvasDensityGrid,
+  CanvasLodTier,
+  CanvasObjectRecord,
+  CanvasSceneProvider,
+  CanvasSceneSnapshot,
+  CanvasTileSummary,
+  MinimapSummary,
+  MinimapSummaryMode,
+  TileAddress,
+  TileCoord,
+  ViewportInterest,
+  WorldPoint
+} from '@xnetjs/canvas-core'
+
 export {
   createAlignmentUpdates,
   createDistributionUpdates,

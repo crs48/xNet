@@ -2,6 +2,7 @@ import { render, screen, waitFor, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
+import { createMinimapSummaryFromCanvasScene } from '../scene/minimap-summary'
 import { Viewport } from '../spatial/index'
 import { resolveCanvasThemeTokens } from '../theme/canvas-theme'
 
@@ -100,17 +101,20 @@ describe('theme-aware canvas chrome', () => {
     document.documentElement.className = 'dark'
 
     const viewport = createViewport()
+    const summary = createMinimapSummaryFromCanvasScene({
+      nodes: [
+        {
+          id: 'page-1',
+          type: 'page',
+          position: { x: 0, y: 0, width: 240, height: 180 },
+          properties: {}
+        }
+      ],
+      edges: []
+    })
     const { container } = render(
       <CollapsibleMinimap
-        nodes={[
-          {
-            id: 'page-1',
-            type: 'page',
-            position: { x: 0, y: 0, width: 240, height: 180 },
-            properties: {}
-          }
-        ]}
-        edges={[]}
+        summary={summary}
         viewport={viewport}
         onViewportChange={() => undefined}
       />
