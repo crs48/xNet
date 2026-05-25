@@ -1000,7 +1000,7 @@ export function chooseObjectLod(input: {
 - [ ] Test offline edits in multiple tiles and reconnect reconciliation.
 - [ ] Test thumbnail invalidation for pages, databases, media, and external references.
 - [x] Test web app flow with browser automation after Canvas v3 summary integration.
-- [ ] Test Electron app flow with Playwright Electron over CDP after integration.
+- [x] Test Electron app flow with Playwright Electron over CDP after integration.
 - [x] Save Playwright screenshots to `tmp/playwright/` for UI validation.
 - [x] Kill all dev servers after UI verification.
 
