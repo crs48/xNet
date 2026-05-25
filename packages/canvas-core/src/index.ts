@@ -153,6 +153,15 @@ export {
 } from './synthetic'
 
 export {
+  createCanvasDensityGridWithOptionalWasm,
+  isCanvasDensityBinningWasmAvailable,
+  type CanvasDensityBinningMode,
+  type CanvasDensityBinningBackend,
+  type CanvasDensityGridBinningInput,
+  type CanvasDensityGridBinningResult
+} from './wasm-density'
+
+export {
   createCanvasWorkerTransferBenchmarkObjects,
   profileCanvasObjectTransferPayload,
   measureCanvasWorkerTransferOverhead,
