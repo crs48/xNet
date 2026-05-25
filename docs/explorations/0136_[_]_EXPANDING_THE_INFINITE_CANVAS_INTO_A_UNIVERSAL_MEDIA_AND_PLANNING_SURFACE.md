@@ -395,6 +395,7 @@ The canvas should feel less like a drawing app and more like a living planning s
 3. **The surface creates structure without demanding structure first.** Users can start messy, then add frames, groups, tags, edges, lanes, templates, and generated databases.
 4. **Relationships are visible and queryable.** An edge can be a visual connector, but it can also mean "depends on", "blocks", "owns", "references", "approves", "ships with", or "belongs to".
 5. **Plugins add domain power without breaking the canvas.** A plugin can define ERP entities, risk cards, CAD previews, CRM accounts, clinical records, lesson plans, or incident maps while still participating in the same LOD, sync, and permission model.
+6. **Editing should feel physical and immediate.** Selecting, moving, resizing, layering, aligning, connecting, styling, and opening objects should be as direct as a modern design tool, with contextual controls appearing exactly where the user's attention already is.
 
 ```mermaid
 journey
@@ -461,6 +462,94 @@ Recommended user-visible states:
 | `live`          | Object has active DOM or iframe interaction   | Focus outline, escape affordance              |
 | `offline`       | Remote content cannot load now                | Cached metadata and retry action              |
 | `error`         | Work failed but object still exists           | Recoverable error card                        |
+
+### Editing And Direct Manipulation UX
+
+The canvas cannot become the best place to plan online if objects feel static once they land. Miro-comparable media support depends on Miro-comparable editing ergonomics: users should be able to select an object without precision hunting, drag it around confidently, resize it from obvious handles, align and distribute groups, and get the right contextual toolbar without leaving the canvas.
+
+The current codebase already has useful starting points:
+
+- [`packages/canvas/src/types.ts`](../../packages/canvas/src/types.ts) models interaction state with `pan`, `select`, `move`, `resize`, and `connect` drag modes, eight resize handles, and grid snapping configuration.
+- [`packages/canvas/src/selection/scene-operations.ts`](../../packages/canvas/src/selection/scene-operations.ts) provides pure helpers for bounds, locking, alignment, distribution, z-order, resizing, and frame wrapping.
+- [`packages/canvas/src/__tests__/canvas-node-component.test.tsx`](../../packages/canvas/src/__tests__/canvas-node-component.test.tsx) verifies that interactive child regions can be selected without accidentally dragging, and that resize/connector handles route through dedicated callbacks.
+- [`apps/electron/src/renderer/components/CanvasView.tsx`](../../apps/electron/src/renderer/components/CanvasView.tsx) already renders a selection HUD with peek/open/alias/references/comment/lock/connect/align/distribute/tidy/layer/clear actions.
+
+The next step is to make these affordances feel like one coherent editing system.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> HoveringObject: pointer enters object
+  HoveringObject --> Selected: click object
+  Idle --> BoxSelecting: drag empty canvas
+  BoxSelecting --> Selected: release over objects
+  Selected --> Moving: drag object body
+  Selected --> Resizing: drag resize handle
+  Selected --> Connecting: drag connector handle
+  Selected --> EditingInline: double click or Enter
+  Selected --> ContextToolbar: selection stable
+  ContextToolbar --> PopoverOpen: choose style, link, alias, comment, embed, layout
+  PopoverOpen --> Selected: apply or dismiss
+  Moving --> Selected: release with snapped position
+  Resizing --> Selected: release with constrained size
+  Connecting --> Selected: release on target or cancel
+  EditingInline --> Selected: escape or blur
+  Selected --> Idle: escape or clear
+```
+
+Recommended baseline editing behaviors:
+
+| Interaction      | Expected UX                                                     | Notes                                                           |
+| ---------------- | --------------------------------------------------------------- | --------------------------------------------------------------- |
+| Single select    | Click any visible object body or thumbnail                      | Respect interactive child regions inside live cards             |
+| Multi-select     | Shift-click, marquee selection, command palette select commands | Show aggregate bounds and count                                 |
+| Move             | Drag selected object or group                                   | Preserve relative positions, announce snap/guides visually      |
+| Resize           | Eight handles on selected object, proportional resize modifier  | Respect min size and object-specific aspect rules               |
+| Crop/fit         | Media-specific contextual controls                              | Images/video/PDF cards need fit/fill/crop/page controls         |
+| Rotate           | Optional for shapes/images, not required for all source cards   | Keep off by default for docs/databases to avoid awkward reading |
+| Connect          | Connector handles on selected object                            | Drag to object, anchor, block, PDF page, or database row        |
+| Align/distribute | Contextual toolbar for multi-select                             | Use existing pure helpers and make failures visible             |
+| Layer/order      | Bring forward/back/send to front/back                           | Respect frames/groups and locked objects                        |
+| Lock             | Prevent accidental move/resize/edit                             | Still allow select and inspect                                  |
+| Group/frame      | Wrap selected objects or add to frame                           | Frame auto-resize should be explicit or predictable             |
+| Style            | Popover for fill, stroke, text, shape, edge style               | Contextual to object capabilities                               |
+| Inspect          | Side panel or anchored popover for metadata and source refs     | Avoid modal interruption for common edits                       |
+
+The key design choice is that **direct manipulation is the primary editor**, while sidebars and inspectors are secondary. Users should not need to open a property panel to do the common work of planning: move this card, make it bigger, connect it to that decision, change its color, lock it, group it, or put it in a frame.
+
+```mermaid
+flowchart LR
+  Selection["Selection geometry"]
+  Handles["Handles and hit targets"]
+  Toolbar["Contextual toolbar"]
+  Popovers["Popover editors"]
+  Inspector["Optional inspector"]
+  Operations["Pure scene operations"]
+  TilePatch["Tile mutation patch"]
+  Awareness["Collaborative awareness"]
+
+  Selection --> Handles
+  Selection --> Toolbar
+  Toolbar --> Popovers
+  Toolbar --> Inspector
+  Handles --> Operations
+  Popovers --> Operations
+  Inspector --> Operations
+  Operations --> TilePatch
+  TilePatch --> Awareness
+```
+
+Detailed UX requirements:
+
+- **Selection hit targets:** every object needs a forgiving selection surface even when its visual content is sparse, transparent, or an iframe shell. Selected objects should show a visible outline, resize handles, connector handles, and lock state.
+- **Drag behavior:** moving should start only after a small movement threshold, so clicks, text selection, and embedded controls do not accidentally move objects. Drag previews should stay smooth even when source cards are heavy by moving transform shells while committing final positions to tile docs.
+- **Resize behavior:** resizing should use eight handles, enforce minimum dimensions, support aspect-ratio lock for media, support crop/fit for images/videos/PDFs, and expose numeric dimensions in a contextual popover for precision edits.
+- **Contextual toolbar:** a stable floating toolbar should follow the selection bounds and expose high-frequency actions: open/peek, comment, connect, style, lock, align, distribute, tidy, layer, group/frame, duplicate, delete, and more.
+- **Contextual popovers:** object-specific controls should be popovers anchored to toolbar buttons or handles: media crop, PDF page, embed settings, edge type, shape style, source aliases, source references, and object metadata.
+- **Snap and guides:** grid snapping should be visible and optional. Smart guides should appear for alignment with nearby objects, frame edges, lanes, and equal spacing. Holding a modifier should temporarily disable snapping.
+- **Keyboard parity:** arrow keys nudge, Shift+arrow moves larger steps, Mod+D duplicates, Delete removes, Enter opens, Esc exits modes, and shortcuts should work on multi-selection.
+- **Remote collaboration:** dragging/resizing should publish transient awareness without committing excessive sync churn. Final commits should be coalesced into undoable transactions.
+- **Accessibility:** handles and toolbar controls need accessible labels and keyboard reachability. Resize and move operations should have keyboard alternatives.
 
 ## Media And Object Type Expansion
 
@@ -913,7 +1002,21 @@ The high-frequency actions need keyboard and gesture flows:
 - Drop onto a frame to add containment.
 - Select objects and press a command to convert to database, mind map, task list, or frame.
 
-### 5. Plugins Should Extend Capabilities, Not Replace The Canvas Runtime
+### 5. Direct Manipulation Should Be The Main Editing API
+
+The common path should be "select it and change it where it sits."
+
+That means:
+
+- Object outlines, handles, and connector targets are visible and predictable.
+- Moving, resizing, grouping, framing, layering, aligning, distributing, locking, and duplicating happen directly on the canvas.
+- Contextual toolbars expose the next likely actions without requiring a mode switch.
+- Popovers handle focused parameters: shape color, stroke, edge type, media crop, PDF page, embed policy, alias, source references, and dimensions.
+- Side panels remain available for deeper metadata, plugin-specific fields, and bulk editing, but they should not be required for ordinary layout work.
+
+This matters for source-backed objects as much as shapes. A database preview, PDF card, YouTube embed, and ERP object should all be movable, resizable, alignable, connectable, duplicable, lockable, and inspectable through the same interaction grammar.
+
+### 6. Plugins Should Extend Capabilities, Not Replace The Canvas Runtime
 
 Plugins should not own camera, selection, sync, tile documents, or core rendering budgets. They should contribute controlled capabilities that the canvas runtime schedules.
 
@@ -1100,6 +1203,57 @@ Visual edges can then render:
 - Semantic relationship, hidden unless filtered.
 - Generated relationship from plugin/domain data.
 
+### Add A First-Class Interaction Model
+
+The direct manipulation UI should be modeled as a first-class canvas subsystem, not scattered across object components. Object components can declare capabilities, but the canvas runtime should own hit testing, selection geometry, drag state, resize handles, snapping, awareness, undo grouping, and contextual UI placement.
+
+```typescript
+export type CanvasSelectionAction =
+  | 'open'
+  | 'peek'
+  | 'move'
+  | 'resize'
+  | 'connect'
+  | 'style'
+  | 'align'
+  | 'distribute'
+  | 'tidy'
+  | 'lock'
+  | 'duplicate'
+  | 'delete'
+  | 'group'
+  | 'frame'
+  | 'inspect'
+
+export type CanvasObjectInteractionCapabilities = {
+  readonly movable: boolean
+  readonly resizable: boolean
+  readonly lockable: boolean
+  readonly connectable: boolean
+  readonly styleable: boolean
+  readonly editableInline: boolean
+  readonly maintainAspectRatio?: boolean
+  readonly minSize: { readonly width: number; readonly height: number }
+  readonly preferredToolbarActions: readonly CanvasSelectionAction[]
+}
+
+export type CanvasContextPopover =
+  | { readonly type: 'style'; readonly objectIds: readonly string[] }
+  | { readonly type: 'dimensions'; readonly objectIds: readonly string[] }
+  | { readonly type: 'media-crop'; readonly objectId: string }
+  | { readonly type: 'pdf-page'; readonly objectId: string }
+  | { readonly type: 'edge-type'; readonly edgeId: string }
+  | { readonly type: 'source-references'; readonly sourceNodeId: string }
+```
+
+Recommended boundaries:
+
+- `CanvasInteractionController` owns pointer capture, drag thresholds, box selection, movement, resize, connect, keyboard nudge, snapping, and undo grouping.
+- `CanvasSelectionOverlay` renders outlines, handles, connector affordances, remote selections, and multi-select bounds.
+- `CanvasContextToolbar` renders high-frequency actions based on selection capabilities.
+- `CanvasContextPopover` renders focused editors for style, dimensions, crop, PDF page, edge type, aliases, source references, and plugin fields.
+- Object renderers expose capabilities and anchors but do not implement their own global interaction rules.
+
 ## Product Roadmap
 
 ### Phase 0 - Tighten Canvas V3 Parity
@@ -1109,6 +1263,7 @@ Goal: make the current v3 canvas feel complete before adding many new object typ
 - Wire v3 imperative handles for align, distribute, tidy, connect, frame wrap, and shape/frame creation where v2 already has product affordances.
 - Confirm page, note, database, media, external reference, shape, and group flows work through the v3 renderer.
 - Make current ingestion state visible: resolving URL, uploading file, ready, error.
+- Make selection, drag, resize, connector handles, keyboard nudging, snapping, and contextual toolbar behavior feel complete in v3.
 - Add object create menus that match actual available kinds.
 - Ensure minimap and WebGL summaries represent media/reference objects clearly.
 
@@ -1143,6 +1298,7 @@ Goal: match the speed of a whiteboard while producing structured xNet objects.
 - Add edge labels, types, filters, and endpoint anchors.
 - Add sticky note promotion to page/task/database row.
 - Add frame variants: presentation frame, query frame, swimlane, kanban, timeline.
+- Add contextual popovers for style, dimensions, media crop, PDF page, edge type, aliases, source references, and plugin object fields.
 - Add selection transforms: cluster, stack, tidy, wrap, convert to database, convert to mind map.
 
 ### Phase 4 - Canvas Plugin Platform
@@ -1183,9 +1339,10 @@ gantt
   axisFormat  %b
   section Foundation
   V3 parity and current object flows       :a1, 2026-06-01, 4w
-  Universal ingestion and preview states   :a2, after a1, 5w
+  Direct manipulation and editing polish   :a2, after a1, 4w
+  Universal ingestion and preview states   :a3, after a2, 5w
   section Rich objects
-  Media, PDF, and embed cards              :b1, after a2, 6w
+  Media, PDF, and embed cards              :b1, after a3, 6w
   Mind maps, connectors, shapes            :b2, after b1, 6w
   section Platform
   Canvas plugin contributions              :c1, after b2, 7w
@@ -1203,6 +1360,19 @@ gantt
 - [ ] Ensure v3 create menus expose page, database, note, media/reference, shape, and frame creation consistently.
 - [ ] Validate minimap summaries for all current object kinds.
 - [ ] Validate DOM island budget behavior for mixed page/database/media/reference boards.
+
+### Direct Manipulation And Editing UI
+
+- [ ] Define a first-class `CanvasInteractionController` boundary for selection, move, resize, connect, snapping, keyboard nudging, and undo grouping.
+- [ ] Render selection outlines, eight resize handles, connector handles, lock indicators, and multi-select bounds consistently across object kinds.
+- [ ] Add forgiving hit targets for sparse shapes, transparent media, iframe shells, and source-backed cards.
+- [ ] Move selected objects with smooth transform previews and commit coalesced position patches at drag end.
+- [ ] Resize objects with minimum dimensions, aspect-ratio constraints for media, and object-specific resize policies for docs, databases, PDFs, frames, and embeds.
+- [ ] Add grid snapping, smart guides, equal-spacing guides, frame-edge snapping, and a temporary modifier to disable snapping.
+- [ ] Add keyboard nudge, large-step nudge, duplicate, delete, lock, group, frame, layer, open, and clear shortcuts.
+- [ ] Add contextual toolbar actions derived from selection capabilities.
+- [ ] Add contextual popovers for style, dimensions, crop/fit, PDF page, edge type, alias, references, comments, and plugin fields.
+- [ ] Add remote drag/resize awareness without flooding tile sync with intermediate updates.
 
 ### Universal Ingestion
 
@@ -1294,6 +1464,9 @@ gantt
 - [ ] Test semantic edge creation, endpoint anchors, and cross-tile storage plans.
 - [ ] Test plugin contribution validation and permission enforcement.
 - [ ] Test JSON Canvas import/export once implemented.
+- [ ] Test selection hit targets, marquee selection, multi-select bounds, drag thresholds, and locked-object behavior.
+- [ ] Test resize handles, minimum dimensions, aspect-ratio constraints, and object-specific resize policies.
+- [ ] Test contextual toolbar action availability for single-select, multi-select, locked selection, media, PDF, embed, shape, frame, and plugin cards.
 
 ### Performance
 
@@ -1303,9 +1476,17 @@ gantt
 - [ ] Benchmark minimap updates for dense media boards.
 - [ ] Confirm far-zoom object summaries do not mount React card components.
 - [ ] Confirm iframe activation respects budget and reclamation.
+- [ ] Confirm dragging and resizing large multi-selections stay smooth by using transform previews and coalesced commits.
+- [ ] Confirm smart-guide calculations cap nearby-object scans and do not require global board traversal.
 
 ### Electron Manual Checks
 
+- [ ] Select single objects, nested frame members, transparent shapes, media cards, iframe shells, and live document/database surfaces.
+- [ ] Drag single objects and multi-selections across tile boundaries and confirm positions persist after reload.
+- [ ] Resize images, PDFs, embeds, pages, databases, notes, frames, and shapes from all handles.
+- [ ] Verify contextual toolbars stay anchored to selection bounds and do not cover active resize/drag handles.
+- [ ] Open style, dimensions, crop, PDF page, edge type, alias, source reference, and comment popovers from the selection toolbar.
+- [ ] Verify grid snapping, smart guides, frame-edge snapping, equal spacing, and snap-disable modifier behavior.
 - [ ] Paste a YouTube URL and confirm poster card, activation, fallback, and console cleanliness.
 - [ ] Paste a Spotify playlist and confirm sizing, provider metadata, and live activation.
 - [ ] Drop an image and confirm thumbnail, resize, crop/fill behavior, and alt/caption.
@@ -1329,6 +1510,8 @@ gantt
 ### Accessibility
 
 - [ ] Keyboard-create, select, move, connect, and edit common objects.
+- [ ] Keyboard-resize objects and expose current dimensions to assistive technology.
+- [ ] Navigate contextual toolbar and popovers without trapping focus.
 - [ ] Provide accessible names for media cards, embeds, shapes, and connector labels.
 - [ ] Ensure live iframe mode has clear escape/focus behavior.
 - [ ] Ensure zoomed cards have readable text without overlap.
@@ -1413,17 +1596,19 @@ Verdict: plugins should extend a strong first-party baseline, not replace it.
 ## Recommended Next Actions
 
 1. **Ship Canvas v3 parity first.** Before adding many new media features, wire the operations that already exist in the Electron handle and scene helpers.
-2. **Define the preview contract.** Add an internal `CanvasPreviewModel` for summary, thumbnail, shell, live, anchors, and actions.
-3. **Move ingestion behind a registry.** Convert current URL/file/text/internal-node handling into first-party ingestors with explicit priority and fallback.
-4. **Build rich PDF and provider cards.** PDFs, YouTube, Spotify, GitHub, Figma, and generic Open Graph cards will prove the architecture quickly.
-5. **Add semantic edges.** Treat connectors as optional visualizations of real relationships, starting with `reference`, `depends-on`, `blocks`, and `parent-child`.
-6. **Prototype mind map mode.** This is a high-value planning workflow and a good test of keyboard creation, auto layout, and semantic edge storage.
-7. **Design canvas plugin contributions.** Extend the plugin manifest only after first-party media/card/tool patterns are validated.
-8. **Create one ERP-style sample plugin.** A fake CRM or inventory plugin will test whether the canvas truly works as an organizational grid.
+2. **Polish direct manipulation.** Make selection, drag, resize, snapping, contextual toolbars, popovers, keyboard nudging, grouping, framing, and layering feel complete before expanding object complexity.
+3. **Define the preview contract.** Add an internal `CanvasPreviewModel` for summary, thumbnail, shell, live, anchors, and actions.
+4. **Move ingestion behind a registry.** Convert current URL/file/text/internal-node handling into first-party ingestors with explicit priority and fallback.
+5. **Build rich PDF and provider cards.** PDFs, YouTube, Spotify, GitHub, Figma, and generic Open Graph cards will prove the architecture quickly.
+6. **Add semantic edges.** Treat connectors as optional visualizations of real relationships, starting with `reference`, `depends-on`, `blocks`, and `parent-child`.
+7. **Prototype mind map mode.** This is a high-value planning workflow and a good test of keyboard creation, auto layout, and semantic edge storage.
+8. **Design canvas plugin contributions.** Extend the plugin manifest only after first-party media/card/tool patterns are validated.
+9. **Create one ERP-style sample plugin.** A fake CRM or inventory plugin will test whether the canvas truly works as an organizational grid.
 
 ```mermaid
 flowchart LR
   Parity["V3 parity"]
+  Manipulation["Direct manipulation polish"]
   Preview["Preview model"]
   Ingest["Ingestor registry"]
   Media["Rich media/PDF cards"]
@@ -1432,7 +1617,8 @@ flowchart LR
   Plugins["Canvas plugin contributions"]
   ERP["ERP sample grid"]
 
-  Parity --> Preview
+  Parity --> Manipulation
+  Manipulation --> Preview
   Preview --> Ingest
   Ingest --> Media
   Ingest --> Edges
@@ -1452,9 +1638,11 @@ flowchart LR
 - [`packages/canvas/src/types.ts`](../../packages/canvas/src/types.ts)
 - [`packages/canvas/src/ingestion.ts`](../../packages/canvas/src/ingestion.ts)
 - [`packages/canvas/src/hooks/useCanvasObjectIngestion.ts`](../../packages/canvas/src/hooks/useCanvasObjectIngestion.ts)
+- [`packages/canvas/src/selection/scene-operations.ts`](../../packages/canvas/src/selection/scene-operations.ts)
 - [`packages/canvas/src/renderer/CanvasV3.tsx`](../../packages/canvas/src/renderer/CanvasV3.tsx)
 - [`packages/canvas/src/renderer/dom-island-pool.ts`](../../packages/canvas/src/renderer/dom-island-pool.ts)
 - [`packages/canvas/src/scene/tile-doc-schema.ts`](../../packages/canvas/src/scene/tile-doc-schema.ts)
+- [`packages/canvas/src/__tests__/canvas-node-component.test.tsx`](../../packages/canvas/src/__tests__/canvas-node-component.test.tsx)
 - [`packages/canvas-core/src/provider.ts`](../../packages/canvas-core/src/provider.ts)
 - [`packages/canvas-core/src/lod.ts`](../../packages/canvas-core/src/lod.ts)
 - [`packages/canvas-core/src/connectors.ts`](../../packages/canvas-core/src/connectors.ts)
