@@ -964,7 +964,7 @@ export function chooseObjectLod(input: {
 - [x] Implement thumbnail sprite renderer with atlas packing and invalidation keys.
 - [x] Implement DOM island pool with explicit L0/L1 budgets and priority scoring.
 - [x] Replace current minimap props with summary tile input and large-scene modes.
-- [ ] Define tile Y.Doc schema and write adapters from existing flat canvas docs for migration.
+- [x] Define tile Y.Doc schema and write adapters from existing flat canvas docs for migration.
 - [x] Implement viewport-interest tile subscription manager with halo and velocity-based prefetch.
 - [x] Implement tile summary generation for object counts, type histograms, density grids, and cluster bounds.
 - [x] Implement summary pyramid rollups and cache invalidation.

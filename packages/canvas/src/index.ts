@@ -95,6 +95,28 @@ export {
 } from './scene/node-kind'
 export type { CanvasResolvedNodeKind } from './scene/node-kind'
 
+export {
+  CANVAS_TILE_CONNECTORS_MAP_KEY,
+  CANVAS_TILE_METADATA_MAP_KEY,
+  CANVAS_TILE_OBJECTS_MAP_KEY,
+  CANVAS_TILE_SCHEMA_VERSION,
+  CANVAS_TILE_TOMBSTONES_MAP_KEY,
+  canvasEdgeToConnectorRecord,
+  canvasNodeToObjectRecord,
+  convertFlatCanvasDocToTileDocs,
+  createCanvasTileDoc,
+  ensureCanvasTileDocMaps,
+  readCanvasTileDocSnapshot,
+  writeCanvasTileDocSnapshot
+} from './scene/tile-doc-schema'
+export type {
+  CanvasTileDocMaps,
+  CanvasTileDocSnapshot,
+  CreateCanvasTileDocInput,
+  FlatCanvasDocTileConversionInput,
+  FlatCanvasDocTileConversionResult
+} from './scene/tile-doc-schema'
+
 export { createMinimapSummaryFromCanvasScene } from './scene/minimap-summary'
 
 export {
