@@ -21,6 +21,18 @@ export { CSSGridFallback, getViewportOriginOffset, normalizeGridOffset } from '.
 
 export { EdgeRenderer, createEdgeRenderer, type EdgeRendererViewport } from './edge-renderer'
 
+export {
+  WebGLVectorTileRenderer,
+  createVectorTileInstances,
+  createWebGLVectorTileRenderer,
+  isWebGL2Available,
+  packVectorTileInstances,
+  VECTOR_TILE_INSTANCE_FLOATS,
+  type VectorTileInstance,
+  type WebGLVectorTileConfig,
+  type WebGLVectorTileViewport
+} from './webgl-vector-tiles'
+
 // ─── Grid Layer Factory ─────────────────────────────────────────────────────
 
 import { CSSGridFallback } from './css-grid-fallback'

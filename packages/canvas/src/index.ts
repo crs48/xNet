@@ -195,9 +195,18 @@ export {
   DEFAULT_GRID_CONFIG,
   EdgeRenderer,
   createEdgeRenderer,
+  WebGLVectorTileRenderer,
+  createVectorTileInstances,
+  createWebGLVectorTileRenderer,
+  isWebGL2Available,
+  packVectorTileInstances,
+  VECTOR_TILE_INSTANCE_FLOATS,
   type GridLayer,
   type WebGLGridConfig,
-  type EdgeRendererViewport
+  type EdgeRendererViewport,
+  type VectorTileInstance,
+  type WebGLVectorTileConfig,
+  type WebGLVectorTileViewport
 } from './layers/index'
 
 // Spatial indexing

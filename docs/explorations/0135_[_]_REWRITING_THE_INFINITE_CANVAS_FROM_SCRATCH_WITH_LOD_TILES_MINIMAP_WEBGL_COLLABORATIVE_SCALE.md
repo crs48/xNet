@@ -959,7 +959,7 @@ export function chooseObjectLod(input: {
 - [x] Create `CanvasSceneProvider` contracts for viewport snapshots, tile mutation receipts, source docs, and minimap summaries.
 - [ ] Remove renderer dependence on `CanvasNode[]`/`CanvasEdge[]` global arrays outside temporary migration adapters.
 - [x] Build a synthetic tile generator that can simulate 10K, 1M, 100M, and 1B objects without materializing all objects in JS memory.
-- [ ] Implement WebGL2 instanced rect renderer for vector aggregate tiles.
+- [x] Implement WebGL2 instanced rect renderer for vector aggregate tiles.
 - [ ] Implement raster tile quad renderer with stale-tile crossfade and texture LRU.
 - [ ] Implement thumbnail sprite renderer with atlas packing and invalidation keys.
 - [ ] Implement DOM island pool with explicit L0/L1 budgets and priority scoring.
