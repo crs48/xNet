@@ -991,9 +991,9 @@ export function chooseObjectLod(input: {
 - [x] Verify the active Canvas v3 renderer path calls neither `getNodes()` nor `getEdges()`; temporary flat-doc materialization remains isolated in the migration adapter.
 - [ ] Benchmark hot-cache pan/zoom at 120fps targets on modern desktop.
 - [ ] Benchmark low-end 60fps fallback with WebGL2 and Canvas 2D fallback.
-- [ ] Benchmark synthetic 1M, 100M, and 1B-object worlds using generated summary tiles.
+- [x] Benchmark synthetic 1M, 100M, and 1B-object worlds using generated summary tiles.
 - [ ] Measure memory budgets with texture cache pressure and forced eviction.
-- [ ] Measure worker transfer overhead with packed binary tiles vs JSON payloads.
+- [x] Measure worker transfer overhead with packed binary tiles vs JSON payloads.
 - [ ] Test live DOM editing while far-field summaries update asynchronously.
 - [ ] Test 100 users in one tile and 100 users in another tile without cross-room sync fanout.
 - [ ] Test minimap collaborator aggregation with high user counts.
@@ -1003,6 +1003,25 @@ export function chooseObjectLod(input: {
 - [x] Test Electron app flow with Playwright Electron over CDP after integration.
 - [x] Save Playwright screenshots to `tmp/playwright/` for UI validation.
 - [x] Kill all dev servers after UI verification.
+
+### Canvas V3 benchmark notes
+
+Local benchmark helper run on May 25, 2026:
+
+```bash
+pnpm exec tsx --eval "import { benchmarkSyntheticCanvasWorlds, measureCanvasWorkerTransferOverhead } from './packages/canvas-core/src/benchmarks.ts'; void (async () => { const transfer = measureCanvasWorkerTransferOverhead({ objectCount: 10000, iterations: 5, warmupIterations: 1, seed: 23 }); const worlds = await benchmarkSyntheticCanvasWorlds({ objectCounts: [1000000, 100000000, 1000000000], maxTileSummaries: 128, seed: 23 }); console.log(JSON.stringify({ transfer, worlds }, null, 2)); })();"
+```
+
+| Measurement                      |              Result |
+| -------------------------------- | ------------------: |
+| 10K object packed binary payload |       598,907 bytes |
+| 10K object JSON payload          |       998,077 bytes |
+| JSON-to-binary byte ratio        |               1.67x |
+| Binary encode/decode average     |     0.94ms / 1.28ms |
+| JSON encode/decode average       |     1.98ms / 4.27ms |
+| 1M-object synthetic summary      | 121 tiles in 5.76ms |
+| 100M-object synthetic summary    | 121 tiles in 5.38ms |
+| 1B-object synthetic summary      | 121 tiles in 3.81ms |
 
 ## Migration Plan 🧭
 

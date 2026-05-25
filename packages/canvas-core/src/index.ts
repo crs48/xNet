@@ -141,3 +141,17 @@ export {
   type SyntheticCanvasSceneOptions,
   type SyntheticCanvasScene
 } from './synthetic'
+
+export {
+  createCanvasWorkerTransferBenchmarkObjects,
+  profileCanvasObjectTransferPayload,
+  measureCanvasWorkerTransferOverhead,
+  benchmarkSyntheticCanvasWorlds,
+  type BenchmarkClock,
+  type CanvasWorkerTransferBenchmarkObjectsInput,
+  type CanvasObjectTransferPayloadProfile,
+  type CanvasWorkerTransferBenchmarkInput,
+  type CanvasWorkerTransferOverheadMeasurement,
+  type SyntheticCanvasWorldBenchmarkInput,
+  type SyntheticCanvasWorldBenchmarkResult
+} from './benchmarks'
