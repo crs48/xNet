@@ -75,6 +75,15 @@ export type {
 } from './provider'
 
 export {
+  createViewportTileSubscriptionPlan,
+  DEFAULT_INTEREST_HALO_TILES,
+  DEFAULT_INTEREST_PREFETCH_MS,
+  DEFAULT_MAX_SUBSCRIBED_TILES,
+  type ViewportTileSubscriptionPlan,
+  type ViewportTileSubscriptionPlanOptions
+} from './interest'
+
+export {
   createEmptyMinimapSummary,
   mergeCanvasObjectTypeCounts,
   getDominantCanvasObjectKind,

@@ -965,7 +965,7 @@ export function chooseObjectLod(input: {
 - [ ] Implement DOM island pool with explicit L0/L1 budgets and priority scoring.
 - [x] Replace current minimap props with summary tile input and large-scene modes.
 - [ ] Define tile Y.Doc schema and write adapters from existing flat canvas docs for migration.
-- [ ] Implement viewport-interest tile subscription manager with halo and velocity-based prefetch.
+- [x] Implement viewport-interest tile subscription manager with halo and velocity-based prefetch.
 - [ ] Implement tile summary generation for object counts, type histograms, density grids, and cluster bounds.
 - [ ] Implement summary pyramid rollups and cache invalidation.
 - [ ] Implement cross-tile moves with move IDs, tombstones, and duplicate reconciliation.
@@ -983,6 +983,7 @@ export function chooseObjectLod(input: {
 - [x] Unit-test camera math at extreme tile coordinates and fractional zooms.
 - [x] Unit-test tile coverage queries for negative coordinates, huge coordinates, and viewport boundary cases.
 - [x] Unit-test LOD selection with fixed budgets, selected objects, focused objects, and dense viewports.
+- [x] Unit-test viewport-interest subscription planning with halo, velocity prefetch, clipping, and tile deltas.
 - [ ] Unit-test summary rollups for correctness after create, move, resize, delete, and style changes.
 - [ ] Unit-test cross-tile object moves under concurrent edits.
 - [x] Unit-test minimap summary rendering without raw object arrays.
