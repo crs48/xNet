@@ -2,7 +2,7 @@
  * WebGL thumbnail sprite renderer tests.
  */
 
-import type { ThumbnailSpritePayload } from '@xnetjs/canvas-core'
+import type { CanvasObjectKind, ThumbnailSpritePayload } from '@xnetjs/canvas-core'
 import { describe, expect, it, vi } from 'vitest'
 import {
   createThumbnailInvalidationKey,
@@ -19,6 +19,7 @@ describe('WebGL thumbnail sprite helpers', () => {
       [
         {
           objectId: 'page-1',
+          kind: 'page',
           tileId: '0/0/0',
           bounds: { x: 0, y: 0, width: 200, height: 120 },
           pixelSize: { width: 32, height: 32 },
@@ -27,6 +28,7 @@ describe('WebGL thumbnail sprite helpers', () => {
         },
         {
           objectId: 'page-2',
+          kind: 'page',
           tileId: '0/0/0',
           bounds: { x: 240, y: 0, width: 200, height: 120 },
           pixelSize: { width: 32, height: 16 },
@@ -35,6 +37,7 @@ describe('WebGL thumbnail sprite helpers', () => {
         },
         {
           objectId: 'page-3',
+          kind: 'page',
           tileId: '0/0/1',
           bounds: { x: 0, y: 200, width: 200, height: 120 },
           pixelSize: { width: 128, height: 128 },
@@ -59,6 +62,7 @@ describe('WebGL thumbnail sprite helpers', () => {
   it('creates invalidation keys from source version, thumbnail hash, size, and bounds', () => {
     const base = {
       objectId: 'page-1',
+      kind: 'page' as const,
       tileId: '0/0/0',
       bounds: { x: 0, y: 0, width: 200, height: 120 },
       pixelSize: { width: 32, height: 32 },
@@ -66,13 +70,52 @@ describe('WebGL thumbnail sprite helpers', () => {
       thumbnailHash: 'hash-1'
     }
 
-    expect(createThumbnailInvalidationKey(base)).toBe('page-1:v1:hash-1:32:32:0,0,200,120')
+    expect(createThumbnailInvalidationKey(base)).toBe('page-1:page:v1:hash-1:32:32:0,0,200,120')
     expect(
       createThumbnailInvalidationKey({
         ...base,
         thumbnailHash: 'hash-2'
       })
     ).not.toBe(createThumbnailInvalidationKey(base))
+  })
+
+  it('invalidates pages, databases, media, and external references independently', () => {
+    const kinds: readonly CanvasObjectKind[] = ['page', 'database', 'media', 'external-reference']
+    const sources = kinds.map((kind) => ({
+      objectId: `${kind}-1`,
+      kind,
+      tileId: '0/0/0',
+      bounds: { x: 0, y: 0, width: 320, height: 180 },
+      pixelSize: { width: 160, height: 90 },
+      sourceVersion: `${kind}:v1`,
+      thumbnailHash: `${kind}:hash-1`
+    }))
+    const keys = sources.map(createThumbnailInvalidationKey)
+
+    expect(new Set(keys).size).toBe(kinds.length)
+
+    sources.forEach((source) => {
+      const baseKey = createThumbnailInvalidationKey(source)
+
+      expect(
+        createThumbnailInvalidationKey({ ...source, sourceVersion: `${source.kind}:v2` })
+      ).not.toBe(baseKey)
+      expect(
+        createThumbnailInvalidationKey({ ...source, thumbnailHash: `${source.kind}:hash-2` })
+      ).not.toBe(baseKey)
+      expect(
+        createThumbnailInvalidationKey({
+          ...source,
+          pixelSize: { width: source.pixelSize.width * 2, height: source.pixelSize.height }
+        })
+      ).not.toBe(baseKey)
+      expect(
+        createThumbnailInvalidationKey({
+          ...source,
+          bounds: { ...source.bounds, width: source.bounds.width + 1 }
+        })
+      ).not.toBe(baseKey)
+    })
   })
 
   it('uses atlas invalidation keys when creating sprite instances', () => {

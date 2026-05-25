@@ -2,7 +2,7 @@
  * WebGL2 thumbnail sprite renderer for Canvas v3.
  */
 
-import type { Rect, ThumbnailSpritePayload } from '@xnetjs/canvas-core'
+import type { CanvasObjectKind, Rect, ThumbnailSpritePayload } from '@xnetjs/canvas-core'
 
 export type WebGLThumbnailSpriteViewport = {
   x: number
@@ -14,6 +14,7 @@ export type WebGLThumbnailSpriteViewport = {
 
 export type ThumbnailSpriteSource = {
   objectId: string
+  kind?: CanvasObjectKind
   tileId: string
   bounds: Rect
   pixelSize: {
@@ -120,6 +121,7 @@ function stableRect(rect: Rect): string {
 export function createThumbnailInvalidationKey(source: ThumbnailSpriteSource): string {
   return [
     source.objectId,
+    source.kind ?? 'unknown-kind',
     source.sourceVersion ?? 'no-version',
     source.thumbnailHash ?? 'no-thumbnail-hash',
     stableNumber(source.pixelSize.width),

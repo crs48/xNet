@@ -998,7 +998,7 @@ export function chooseObjectLod(input: {
 - [ ] Test 100 users in one tile and 100 users in another tile without cross-room sync fanout.
 - [ ] Test minimap collaborator aggregation with high user counts.
 - [ ] Test offline edits in multiple tiles and reconnect reconciliation.
-- [ ] Test thumbnail invalidation for pages, databases, media, and external references.
+- [x] Test thumbnail invalidation for pages, databases, media, and external references.
 - [x] Test web app flow with browser automation after Canvas v3 summary integration.
 - [x] Test Electron app flow with Playwright Electron over CDP after integration.
 - [x] Save Playwright screenshots to `tmp/playwright/` for UI validation.
