@@ -50,6 +50,24 @@ export {
   type WebGLRasterTileViewport
 } from './webgl-raster-tiles'
 
+export {
+  WebGLThumbnailSpriteRenderer,
+  createThumbnailInvalidationKey,
+  createThumbnailSpriteInstances,
+  createWebGLThumbnailSpriteRenderer,
+  packThumbnailAtlases,
+  packThumbnailSpriteInstances,
+  THUMBNAIL_SPRITE_INSTANCE_FLOATS,
+  type PackedThumbnailAtlas,
+  type ThumbnailAtlasPackingOptions,
+  type ThumbnailAtlasPackingResult,
+  type ThumbnailAtlasTextureResolver,
+  type ThumbnailAtlasTextureSource,
+  type ThumbnailSpriteInstance,
+  type ThumbnailSpriteSource,
+  type WebGLThumbnailSpriteViewport
+} from './webgl-thumbnail-sprites'
+
 // ─── Grid Layer Factory ─────────────────────────────────────────────────────
 
 import { CSSGridFallback } from './css-grid-fallback'
