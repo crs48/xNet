@@ -30,6 +30,7 @@
  * update({ typo: 'x' })           // Type error!
  * ```
  */
+import type { SyncManager } from '../sync/sync-manager'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Awareness } from 'y-protocols/awareness'
@@ -196,6 +197,17 @@ function generateColor(seed: string): string {
       .toString(16)
       .padStart(2, '0')
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+function hasSyncManagerSetter(
+  bridge: unknown
+): bridge is { setSyncManager: (syncManager: SyncManager | null) => void } {
+  if (!bridge || typeof bridge !== 'object') {
+    return false
+  }
+
+  const candidate = bridge as { setSyncManager?: unknown }
+  return typeof candidate.setSyncManager === 'function'
 }
 
 // =============================================================================
@@ -407,6 +419,10 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
           if (bridge?.acquireDoc && !disableSync) {
             // === DataBridge path: use bridge.acquireDoc() ===
             // This abstracts away whether we're using SyncManager, Worker, or IPC
+            if (syncManager && hasSyncManagerSetter(bridge)) {
+              bridge.setSyncManager(syncManager)
+            }
+
             const acquired = await bridge.acquireDoc(id)
             ydoc = acquired.doc
             acquiredAwareness = acquired.awareness
