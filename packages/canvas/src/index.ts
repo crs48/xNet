@@ -274,6 +274,17 @@ export {
   type CanvasPerformanceSceneSeedResult
 } from './fixtures/performance-scene'
 
+export { DomIslandPool, planDomIslandPool } from './renderer/dom-island-pool'
+export type {
+  DomIslandAssignment,
+  DomIslandCandidate,
+  DomIslandPoolBudgets,
+  DomIslandPoolPlan,
+  DomIslandPoolUpdate,
+  DomIslandTier,
+  PlanDomIslandPoolInput
+} from './renderer/dom-island-pool'
+
 // Chunked storage (for infinite canvases)
 export {
   // Configuration
