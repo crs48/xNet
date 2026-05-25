@@ -87,6 +87,16 @@ export {
 } from './interest'
 
 export {
+  createCanvasTileRoomId,
+  createTileAwarenessFanoutPlan,
+  DEFAULT_CANVAS_TILE_ROOM_PREFIX,
+  type CanvasTilePresenceParticipant,
+  type CanvasTileAwarenessRoomPlan,
+  type CanvasTileAwarenessFanoutPlan,
+  type CreateTileAwarenessFanoutPlanInput
+} from './collaboration'
+
+export {
   createEmptyMinimapSummary,
   createCanvasTileSummaries,
   rollUpCanvasTileSummaries,

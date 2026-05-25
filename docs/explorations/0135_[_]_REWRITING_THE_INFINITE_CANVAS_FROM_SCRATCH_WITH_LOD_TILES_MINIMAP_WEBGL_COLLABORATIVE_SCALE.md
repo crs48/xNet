@@ -995,7 +995,7 @@ export function chooseObjectLod(input: {
 - [x] Measure memory budgets with texture cache pressure and forced eviction.
 - [x] Measure worker transfer overhead with packed binary tiles vs JSON payloads.
 - [ ] Test live DOM editing while far-field summaries update asynchronously.
-- [ ] Test 100 users in one tile and 100 users in another tile without cross-room sync fanout.
+- [x] Test 100 users in one tile and 100 users in another tile without cross-room sync fanout.
 - [x] Test minimap collaborator aggregation with high user counts.
 - [ ] Test offline edits in multiple tiles and reconnect reconciliation.
 - [x] Test thumbnail invalidation for pages, databases, media, and external references.
