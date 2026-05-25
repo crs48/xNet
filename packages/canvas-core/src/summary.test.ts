@@ -1,3 +1,4 @@
+import type { CanvasTileSummary } from './types'
 import { describe, expect, it } from 'vitest'
 import {
   createCanvasTileSummaryCacheKey,
@@ -180,5 +181,44 @@ describe('summary rollups', () => {
 
     expect(hasCanvasTileSummaryChanged(summary, cacheKey)).toBe(false)
     expect(hasCanvasTileSummaryChanged({ ...summary, objectCount: 2 }, cacheKey)).toBe(true)
+  })
+})
+
+describe('minimap summaries', () => {
+  it('aggregates high collaborator counts without materializing users', () => {
+    const tiles: readonly CanvasTileSummary[] = [
+      {
+        tileId: '0/0/0',
+        address: { z: 0, x: 0, y: 0 },
+        bounds: { x: 0, y: 0, width: 100, height: 100 },
+        objectCount: 50,
+        edgeCount: 10,
+        typeCounts: { page: 50 },
+        density: { columns: 1, rows: 1, values: [50] },
+        clusters: [],
+        activePresenceCount: 100,
+        dirty: false,
+        stale: false
+      },
+      {
+        tileId: '0/1/0',
+        address: { z: 0, x: 1, y: 0 },
+        bounds: { x: 100, y: 0, width: 100, height: 100 },
+        objectCount: 75,
+        edgeCount: 15,
+        typeCounts: { database: 75 },
+        density: { columns: 1, rows: 1, values: [75] },
+        clusters: [],
+        activePresenceCount: 100,
+        dirty: false,
+        stale: false
+      }
+    ]
+    const summary = createMinimapSummaryFromTileSummaries(tiles)
+
+    expect(summary.totalObjectCount).toBe(125)
+    expect(summary.totalEdgeCount).toBe(25)
+    expect(summary.activePresenceCount).toBe(200)
+    expect(summary.tiles).toHaveLength(2)
   })
 })
