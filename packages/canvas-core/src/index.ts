@@ -85,11 +85,15 @@ export {
 
 export {
   createEmptyMinimapSummary,
+  createCanvasTileSummaries,
   mergeCanvasObjectTypeCounts,
   getDominantCanvasObjectKind,
   getMinimapSummaryMode,
   getBoundsForTileSummaries,
-  createMinimapSummaryFromTileSummaries
+  createMinimapSummaryFromTileSummaries,
+  type CanvasTileSummaryObject,
+  type CanvasTileSummaryEdge,
+  type CreateCanvasTileSummariesInput
 } from './summary'
 
 export {
