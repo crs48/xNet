@@ -63,6 +63,8 @@ export type {
   ViewportInterest,
   CanvasObjectRecord,
   CanvasObjectTombstone,
+  CanvasConnectorEndpoint,
+  CanvasConnectorRecord,
   VectorTilePayload,
   RasterTileRef,
   ThumbnailSpritePayload,
@@ -113,6 +115,16 @@ export {
   type ReconcileCrossTileObjectMovesInput,
   type ReconcileCrossTileObjectMovesResult
 } from './moves'
+
+export {
+  createConnectorStoragePlan,
+  createFarFieldEdgeSummaries,
+  type ConnectorStorageKind,
+  type ConnectorStoragePlan,
+  type FarFieldEdgeSummary,
+  type CreateConnectorStoragePlanOptions,
+  type CreateFarFieldEdgeSummariesOptions
+} from './connectors'
 
 export {
   createSyntheticCanvasScene,

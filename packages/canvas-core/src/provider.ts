@@ -75,6 +75,20 @@ export type ThumbnailSpritePayload = {
   uv: Rect
 }
 
+export type CanvasConnectorEndpoint = {
+  objectId: string
+  tileId: string
+  anchor: Point
+}
+
+export type CanvasConnectorRecord = {
+  id: string
+  source: CanvasConnectorEndpoint
+  target: CanvasConnectorEndpoint
+  kind: 'line' | 'reference' | 'dependency'
+  updatedAt?: number
+}
+
 export type CanvasOverlayRecord = {
   id: string
   bounds: Rect

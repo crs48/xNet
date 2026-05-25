@@ -969,7 +969,7 @@ export function chooseObjectLod(input: {
 - [x] Implement tile summary generation for object counts, type histograms, density grids, and cluster bounds.
 - [x] Implement summary pyramid rollups and cache invalidation.
 - [x] Implement cross-tile moves with move IDs, tombstones, and duplicate reconciliation.
-- [ ] Implement cross-tile connector storage and far-field edge summaries.
+- [x] Implement cross-tile connector storage and far-field edge summaries.
 - [ ] Add off-main-thread tile decode and summary workers using transferable binary payloads.
 - [ ] Add optional WASM prototype for density-grid/binning only after TypeScript worker baseline exists.
 - [ ] Replace the active Electron and web canvas entry points with Canvas v3; do not preserve V2 renderer/component APIs.
