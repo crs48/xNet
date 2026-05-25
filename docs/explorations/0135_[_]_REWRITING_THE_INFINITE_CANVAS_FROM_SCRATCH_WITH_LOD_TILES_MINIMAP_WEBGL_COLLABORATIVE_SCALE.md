@@ -957,7 +957,7 @@ export function chooseObjectLod(input: {
 
 - [x] Create `@xnetjs/canvas-core` with tile-addressed coordinates, camera transforms, and world/screen conversion tests.
 - [x] Create `CanvasSceneProvider` contracts for viewport snapshots, tile mutation receipts, source docs, and minimap summaries.
-- [ ] Remove renderer dependence on `CanvasNode[]`/`CanvasEdge[]` global arrays outside temporary migration adapters.
+- [x] Remove renderer dependence on `CanvasNode[]`/`CanvasEdge[]` global arrays outside temporary migration adapters.
 - [x] Build a synthetic tile generator that can simulate 10K, 1M, 100M, and 1B objects without materializing all objects in JS memory.
 - [x] Implement WebGL2 instanced rect renderer for vector aggregate tiles.
 - [x] Implement raster tile quad renderer with stale-tile crossfade and texture LRU.
@@ -972,8 +972,8 @@ export function chooseObjectLod(input: {
 - [x] Implement cross-tile connector storage and far-field edge summaries.
 - [x] Add off-main-thread tile decode and summary workers using transferable binary payloads.
 - [ ] Add optional WASM prototype for density-grid/binning only after TypeScript worker baseline exists.
-- [ ] Replace the active Electron and web canvas entry points with Canvas v3; do not preserve V2 renderer/component APIs.
-- [ ] Migrate page/database/note source-backed rendering into the DOM island pool.
+- [x] Replace the active Electron and web canvas entry points with Canvas v3; do not preserve V2 renderer/component APIs.
+- [x] Migrate page/database/note source-backed rendering into the DOM island pool.
 - [x] Add debug overlays for tile boundaries, LOD tier, cache status, and sync room membership.
 - [x] Write one-way data conversion from existing flat Y.Doc maps to Canvas V3 tile docs where persisted data requires it.
 - [ ] Remove or archive Canvas V2 code paths after the active apps compile and validation gates pass.
@@ -988,7 +988,7 @@ export function chooseObjectLod(input: {
 - [x] Unit-test summary rollups for correctness after create, move, resize, delete, and style changes.
 - [x] Unit-test cross-tile object moves under concurrent edits.
 - [x] Unit-test minimap summary rendering without raw object arrays.
-- [ ] Verify no renderer path calls `getNodes()` or materializes the entire canvas for large scenes.
+- [x] Verify the active Canvas v3 renderer path calls neither `getNodes()` nor `getEdges()`; temporary flat-doc materialization remains isolated in the migration adapter.
 - [ ] Benchmark hot-cache pan/zoom at 120fps targets on modern desktop.
 - [ ] Benchmark low-end 60fps fallback with WebGL2 and Canvas 2D fallback.
 - [ ] Benchmark synthetic 1M, 100M, and 1B-object worlds using generated summary tiles.

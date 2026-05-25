@@ -356,7 +356,7 @@ export {
 } from './chunks/index'
 
 // React components
-export { Canvas } from './renderer/Canvas'
+export { Canvas } from './renderer/CanvasV3'
 export type {
   CanvasProps,
   CanvasHandle,
@@ -364,7 +364,7 @@ export type {
   CanvasSurfaceEventContext,
   CanvasRemoteUser,
   CanvasNodeRenderContext
-} from './renderer/Canvas'
+} from './renderer/CanvasV3'
 export {
   useCanvasThemeTokens,
   resolveCanvasThemeMode,

@@ -69,6 +69,53 @@ function getNodePreview(node: CanvasNode): CanvasObjectRecord['preview'] {
   }
 }
 
+function readFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function readPositiveFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback
+}
+
+function getDefaultObjectSize(kind: CanvasObjectRecord['kind']): { width: number; height: number } {
+  switch (kind) {
+    case 'page':
+      return { width: 360, height: 220 }
+    case 'database':
+      return { width: 440, height: 260 }
+    case 'note':
+      return { width: 320, height: 180 }
+    case 'external-reference':
+      return { width: 360, height: 180 }
+    case 'media':
+      return { width: 320, height: 240 }
+    case 'group':
+      return { width: 320, height: 220 }
+    case 'shape':
+    default:
+      return { width: 200, height: 100 }
+  }
+}
+
+function getObjectKind(node: CanvasNode): CanvasObjectRecord['kind'] {
+  return isCanvasObjectKind(node.type) ? node.type : 'shape'
+}
+
+function getNodePosition(node: CanvasNode): CanvasObjectRecord['position'] {
+  const kind = getObjectKind(node)
+  const defaultSize = getDefaultObjectSize(kind)
+  const rotation = readFiniteNumber(node.position.rotation, Number.NaN)
+
+  return {
+    x: readFiniteNumber(node.position.x, 0),
+    y: readFiniteNumber(node.position.y, 0),
+    width: readPositiveFiniteNumber(node.position.width, defaultSize.width),
+    height: readPositiveFiniteNumber(node.position.height, defaultSize.height),
+    ...(Number.isFinite(rotation) ? { rotation } : {}),
+    zIndex: readFiniteNumber(node.position.zIndex, 0)
+  }
+}
+
 function getObjectTileIdFromRect(rect: Rect, tileSize: number, z: number): string {
   const centerRect = {
     x: rect.x + rect.width / 2,
@@ -89,10 +136,11 @@ function fallbackAnchor(node: CanvasNode | undefined): Point {
   if (!node) {
     return { x: 0, y: 0 }
   }
+  const position = getNodePosition(node)
 
   return {
-    x: node.position.x + node.position.width / 2,
-    y: node.position.y + node.position.height / 2
+    x: position.x + position.width / 2,
+    y: position.y + position.height / 2
   }
 }
 
@@ -101,12 +149,13 @@ function getEdgeAnchor(input: {
   endpoint: CanvasEdge['source'] | CanvasEdge['target']
   otherNode: CanvasNode | undefined
 }): Point {
-  if (!input.node) {
+  if (!input.node || !input.endpoint) {
     return fallbackAnchor(input.node)
   }
+  const position = getNodePosition(input.node)
 
   return resolveCanvasAnchorPoint(
-    input.node.position,
+    position,
     input.endpoint,
     input.otherNode ? fallbackAnchor(input.otherNode) : undefined
   )
@@ -147,21 +196,15 @@ export function createCanvasTileDoc(input: CreateCanvasTileDocInput): Y.Doc {
 }
 
 export function canvasNodeToObjectRecord(node: CanvasNode): CanvasObjectRecord {
-  const kind = isCanvasObjectKind(node.type) ? node.type : 'shape'
+  const kind = getObjectKind(node)
+  const position = getNodePosition(node)
 
   return {
     id: node.id,
     kind,
     sourceNodeId: node.sourceNodeId ?? node.linkedNodeId,
     sourceSchemaId: node.sourceSchemaId,
-    position: {
-      x: node.position.x,
-      y: node.position.y,
-      width: node.position.width,
-      height: node.position.height,
-      rotation: node.position.rotation,
-      zIndex: node.position.zIndex
-    },
+    position,
     display: {
       collapsed: node.display?.collapsed ?? node.position.collapsed,
       styleVariant: node.display?.styleVariant

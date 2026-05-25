@@ -122,6 +122,41 @@ describe('Canvas tile Y.Doc schema', () => {
     expect(canvasNodeToObjectRecord(createNode('legacy', 0, 0, 'card')).kind).toBe('shape')
   })
 
+  it('normalizes missing or invalid node dimensions during flat-doc migration', () => {
+    const node = {
+      ...createNode('partial', 20, 30, 'page'),
+      position: { x: 20, y: 30 } as CanvasNode['position']
+    }
+
+    expect(canvasNodeToObjectRecord(node).position).toEqual({
+      x: 20,
+      y: 30,
+      width: 360,
+      height: 220,
+      zIndex: 0
+    })
+
+    expect(
+      canvasNodeToObjectRecord({
+        ...createNode('invalid', 0, 0, 'shape'),
+        position: {
+          x: Number.NaN,
+          y: Number.NaN,
+          width: 0,
+          height: Number.NaN,
+          rotation: Number.NaN,
+          zIndex: Number.NaN
+        }
+      }).position
+    ).toEqual({
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 100,
+      zIndex: 0
+    })
+  })
+
   it('adapts flat canvas edges to connector records with tile endpoints', () => {
     const sourceNode = createNode('a', 0, 0)
     const targetNode = createNode('b', 400, 0)
@@ -145,6 +180,30 @@ describe('Canvas tile Y.Doc schema', () => {
       target: { objectId: 'b', tileId: '0/1/0', anchor: { x: 400, y: 50 } },
       kind: 'line'
     })
+  })
+
+  it('falls back to node centers for legacy edges without endpoint records', () => {
+    const sourceNode = createNode('a', 0, 0)
+    const targetNode = createNode('b', 400, 0)
+    const connector = canvasEdgeToConnectorRecord({
+      edge: {
+        id: 'edge-legacy',
+        sourceId: 'a',
+        targetId: 'b'
+      },
+      nodesById: new Map([
+        ['a', sourceNode],
+        ['b', targetNode]
+      ]),
+      objectTileIds: new Map([
+        ['a', '0/0/0'],
+        ['b', '0/1/0']
+      ]),
+      fallbackTileId: '0/0/0'
+    })
+
+    expect(connector?.source.anchor).toEqual({ x: 100, y: 50 })
+    expect(connector?.target.anchor).toEqual({ x: 500, y: 50 })
   })
 
   it('converts flat canvas docs into primary tile docs', () => {
