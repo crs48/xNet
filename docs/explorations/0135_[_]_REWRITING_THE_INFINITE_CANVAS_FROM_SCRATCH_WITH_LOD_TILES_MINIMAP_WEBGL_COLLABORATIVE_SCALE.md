@@ -970,7 +970,7 @@ export function chooseObjectLod(input: {
 - [x] Implement summary pyramid rollups and cache invalidation.
 - [x] Implement cross-tile moves with move IDs, tombstones, and duplicate reconciliation.
 - [x] Implement cross-tile connector storage and far-field edge summaries.
-- [ ] Add off-main-thread tile decode and summary workers using transferable binary payloads.
+- [x] Add off-main-thread tile decode and summary workers using transferable binary payloads.
 - [ ] Add optional WASM prototype for density-grid/binning only after TypeScript worker baseline exists.
 - [ ] Replace the active Electron and web canvas entry points with Canvas v3; do not preserve V2 renderer/component APIs.
 - [ ] Migrate page/database/note source-backed rendering into the DOM island pool.

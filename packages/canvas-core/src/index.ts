@@ -127,6 +127,16 @@ export {
 } from './connectors'
 
 export {
+  createTransferableCanvasObjectPayload,
+  decodeTransferableCanvasObjectPayload,
+  handleCanvasTileSummaryWorkerRequest,
+  type TransferableCanvasObjectPayload,
+  type DecodeCanvasObjectPayloadResult,
+  type CanvasTileSummaryWorkerRequest,
+  type CanvasTileSummaryWorkerResponse
+} from './workers'
+
+export {
   createSyntheticCanvasScene,
   type SyntheticCanvasSceneOptions,
   type SyntheticCanvasScene
