@@ -307,6 +307,18 @@ export type {
   PlanDomIslandPoolInput
 } from './renderer/dom-island-pool'
 
+export {
+  createCanvasDebugOverlayCommands,
+  renderCanvasDebugOverlay
+} from './renderer/debug-overlays'
+export type {
+  CanvasDebugCacheStatus,
+  CanvasDebugOverlayCommand,
+  CanvasDebugOverlayInput,
+  CanvasDebugOverlayViewport,
+  CanvasDebugTileOverlay
+} from './renderer/debug-overlays'
+
 // Chunked storage (for infinite canvases)
 export {
   // Configuration
