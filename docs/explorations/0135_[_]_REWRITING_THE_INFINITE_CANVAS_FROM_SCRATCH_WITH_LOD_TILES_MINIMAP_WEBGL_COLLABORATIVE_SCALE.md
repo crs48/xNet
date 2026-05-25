@@ -960,7 +960,7 @@ export function chooseObjectLod(input: {
 - [ ] Remove renderer dependence on `CanvasNode[]`/`CanvasEdge[]` global arrays outside temporary migration adapters.
 - [x] Build a synthetic tile generator that can simulate 10K, 1M, 100M, and 1B objects without materializing all objects in JS memory.
 - [x] Implement WebGL2 instanced rect renderer for vector aggregate tiles.
-- [ ] Implement raster tile quad renderer with stale-tile crossfade and texture LRU.
+- [x] Implement raster tile quad renderer with stale-tile crossfade and texture LRU.
 - [ ] Implement thumbnail sprite renderer with atlas packing and invalidation keys.
 - [ ] Implement DOM island pool with explicit L0/L1 budgets and priority scoring.
 - [x] Replace current minimap props with summary tile input and large-scene modes.

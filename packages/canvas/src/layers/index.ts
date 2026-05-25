@@ -33,6 +33,23 @@ export {
   type WebGLVectorTileViewport
 } from './webgl-vector-tiles'
 
+export {
+  RasterTileTextureLru,
+  WebGLRasterTileRenderer,
+  createRasterTileDrawPlan,
+  createWebGLRasterTileRenderer,
+  type RasterTileDrawItem,
+  type RasterTileDrawPlan,
+  type RasterTileDrawPlanInput,
+  type RasterTileTextureResolver,
+  type RasterTileTextureSource,
+  type RasterTileTransitionEntry,
+  type RasterTileTransitionState,
+  type RetiringRasterTileTransitionEntry,
+  type WebGLRasterTileConfig,
+  type WebGLRasterTileViewport
+} from './webgl-raster-tiles'
+
 // ─── Grid Layer Factory ─────────────────────────────────────────────────────
 
 import { CSSGridFallback } from './css-grid-fallback'
