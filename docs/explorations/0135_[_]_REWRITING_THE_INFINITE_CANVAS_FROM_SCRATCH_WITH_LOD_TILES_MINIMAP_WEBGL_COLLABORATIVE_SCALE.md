@@ -967,7 +967,7 @@ export function chooseObjectLod(input: {
 - [ ] Define tile Y.Doc schema and write adapters from existing flat canvas docs for migration.
 - [x] Implement viewport-interest tile subscription manager with halo and velocity-based prefetch.
 - [x] Implement tile summary generation for object counts, type histograms, density grids, and cluster bounds.
-- [ ] Implement summary pyramid rollups and cache invalidation.
+- [x] Implement summary pyramid rollups and cache invalidation.
 - [ ] Implement cross-tile moves with move IDs, tombstones, and duplicate reconciliation.
 - [ ] Implement cross-tile connector storage and far-field edge summaries.
 - [ ] Add off-main-thread tile decode and summary workers using transferable binary payloads.
@@ -985,7 +985,7 @@ export function chooseObjectLod(input: {
 - [x] Unit-test LOD selection with fixed budgets, selected objects, focused objects, and dense viewports.
 - [x] Unit-test viewport-interest subscription planning with halo, velocity prefetch, clipping, and tile deltas.
 - [x] Unit-test tile summary generation for counts, type histograms, density grids, clusters, and edge participation.
-- [ ] Unit-test summary rollups for correctness after create, move, resize, delete, and style changes.
+- [x] Unit-test summary rollups for correctness after create, move, resize, delete, and style changes.
 - [ ] Unit-test cross-tile object moves under concurrent edits.
 - [x] Unit-test minimap summary rendering without raw object arrays.
 - [ ] Verify no renderer path calls `getNodes()` or materializes the entire canvas for large scenes.

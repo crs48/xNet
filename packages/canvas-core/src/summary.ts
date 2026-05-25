@@ -48,6 +48,13 @@ export type CreateCanvasTileSummariesInput = {
   maxClustersPerTile?: number
 }
 
+export type RollUpCanvasTileSummariesInput = {
+  tiles: readonly CanvasTileSummary[]
+  densityColumns?: number
+  densityRows?: number
+  maxClustersPerTile?: number
+}
+
 type MutableCanvasTileSummary = Omit<CanvasTileSummary, 'density' | 'clusters'> & {
   density: {
     columns: number
@@ -203,6 +210,80 @@ function freezeTileSummary(summary: MutableCanvasTileSummary): CanvasTileSummary
   }
 }
 
+function getParentTileAddress(address: TileAddress): TileAddress {
+  return {
+    z: address.z + 1,
+    x: Math.floor(address.x / 2),
+    y: Math.floor(address.y / 2)
+  }
+}
+
+function createRollupTileSummary(input: {
+  address: TileAddress
+  bounds: Rect
+  densityColumns: number
+  densityRows: number
+}): MutableCanvasTileSummary {
+  return {
+    tileId: createTileId(input.address),
+    address: input.address,
+    bounds: input.bounds,
+    objectCount: 0,
+    edgeCount: 0,
+    typeCounts: {},
+    density: {
+      columns: input.densityColumns,
+      rows: input.densityRows,
+      values: Array.from({ length: input.densityColumns * input.densityRows }, () => 0)
+    },
+    clusters: [],
+    activePresenceCount: 0,
+    dirty: false,
+    stale: false
+  }
+}
+
+function addDensityCellToRollup(input: {
+  rollup: MutableCanvasTileSummary
+  child: CanvasTileSummary
+  childColumn: number
+  childRow: number
+  value: number
+}): void {
+  if (input.value <= 0) {
+    return
+  }
+
+  const childCellWidth = input.child.bounds.width / input.child.density.columns
+  const childCellHeight = input.child.bounds.height / input.child.density.rows
+  const centerX = input.child.bounds.x + (input.childColumn + 0.5) * childCellWidth
+  const centerY = input.child.bounds.y + (input.childRow + 0.5) * childCellHeight
+  const relativeX = (centerX - input.rollup.bounds.x) / input.rollup.bounds.width
+  const relativeY = (centerY - input.rollup.bounds.y) / input.rollup.bounds.height
+  const column = Math.max(
+    0,
+    Math.min(input.rollup.density.columns - 1, Math.floor(relativeX * input.rollup.density.columns))
+  )
+  const row = Math.max(
+    0,
+    Math.min(input.rollup.density.rows - 1, Math.floor(relativeY * input.rollup.density.rows))
+  )
+
+  input.rollup.density.values[row * input.rollup.density.columns + column] += input.value
+}
+
+function addChildDensityToRollup(rollup: MutableCanvasTileSummary, child: CanvasTileSummary): void {
+  child.density.values.forEach((value, index) => {
+    addDensityCellToRollup({
+      rollup,
+      child,
+      childColumn: index % child.density.columns,
+      childRow: Math.floor(index / child.density.columns),
+      value
+    })
+  })
+}
+
 export function createCanvasTileSummaries({
   objects,
   edges = [],
@@ -260,6 +341,104 @@ export function createCanvasTileSummaries({
   return Array.from(summaries.values())
     .map(freezeTileSummary)
     .sort((left, right) => left.address.y - right.address.y || left.address.x - right.address.x)
+}
+
+export function rollUpCanvasTileSummaries({
+  tiles,
+  densityColumns = 8,
+  densityRows = 8,
+  maxClustersPerTile = 128
+}: RollUpCanvasTileSummariesInput): CanvasTileSummary[] {
+  const columns = Math.max(1, Math.floor(densityColumns))
+  const rows = Math.max(1, Math.floor(densityRows))
+  const clusterLimit = Math.max(0, Math.floor(maxClustersPerTile))
+  const groupedChildren = tiles.reduce<Map<string, CanvasTileSummary[]>>((groups, tile) => {
+    const parentAddress = getParentTileAddress(tile.address)
+    const parentTileId = createTileId(parentAddress)
+    const existing = groups.get(parentTileId) ?? []
+
+    groups.set(parentTileId, [...existing, tile])
+    return groups
+  }, new Map())
+
+  return Array.from(groupedChildren.entries())
+    .map(([tileId, children]) => {
+      const address =
+        children.length > 0 ? getParentTileAddress(children[0].address) : { z: 1, x: 0, y: 0 }
+      const rollup = createRollupTileSummary({
+        address,
+        bounds: getBoundsForTileSummaries(children),
+        densityColumns: columns,
+        densityRows: rows
+      })
+
+      for (const child of children) {
+        rollup.objectCount += child.objectCount
+        rollup.edgeCount += child.edgeCount
+        rollup.typeCounts = mergeCanvasObjectTypeCounts([rollup.typeCounts, child.typeCounts])
+        rollup.activePresenceCount += child.activePresenceCount
+        rollup.dirty = rollup.dirty || child.dirty
+        rollup.stale = rollup.stale || child.stale
+        rollup.clusters = [...rollup.clusters, ...child.clusters]
+          .sort((left, right) => right.objectCount - left.objectCount)
+          .slice(0, clusterLimit)
+        addChildDensityToRollup(rollup, child)
+      }
+
+      return {
+        ...freezeTileSummary(rollup),
+        tileId
+      }
+    })
+    .sort(
+      (left, right) =>
+        left.address.z - right.address.z ||
+        left.address.y - right.address.y ||
+        left.address.x - right.address.x
+    )
+}
+
+export function createCanvasTileSummaryCacheKey(summary: CanvasTileSummary): string {
+  const typeCounts = CANVAS_OBJECT_KINDS.map((kind) => `${kind}:${summary.typeCounts[kind] ?? 0}`)
+  const density = summary.density.values.join(',')
+  const clusters = summary.clusters
+    .map((cluster) =>
+      [
+        cluster.id,
+        cluster.objectCount,
+        cluster.dominantKind,
+        cluster.bounds.x,
+        cluster.bounds.y,
+        cluster.bounds.width,
+        cluster.bounds.height,
+        cluster.sampleObjectIds.join(',')
+      ].join(':')
+    )
+    .join('|')
+
+  return [
+    summary.tileId,
+    summary.bounds.x,
+    summary.bounds.y,
+    summary.bounds.width,
+    summary.bounds.height,
+    summary.objectCount,
+    summary.edgeCount,
+    summary.activePresenceCount,
+    summary.dirty ? 1 : 0,
+    summary.stale ? 1 : 0,
+    typeCounts.join(','),
+    `${summary.density.columns}x${summary.density.rows}`,
+    density,
+    clusters
+  ].join('|')
+}
+
+export function hasCanvasTileSummaryChanged(
+  summary: CanvasTileSummary,
+  previousCacheKey?: string
+): boolean {
+  return createCanvasTileSummaryCacheKey(summary) !== previousCacheKey
 }
 
 export function createMinimapSummaryFromTileSummaries(

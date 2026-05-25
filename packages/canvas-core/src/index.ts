@@ -86,6 +86,9 @@ export {
 export {
   createEmptyMinimapSummary,
   createCanvasTileSummaries,
+  rollUpCanvasTileSummaries,
+  createCanvasTileSummaryCacheKey,
+  hasCanvasTileSummaryChanged,
   mergeCanvasObjectTypeCounts,
   getDominantCanvasObjectKind,
   getMinimapSummaryMode,
@@ -93,7 +96,8 @@ export {
   createMinimapSummaryFromTileSummaries,
   type CanvasTileSummaryObject,
   type CanvasTileSummaryEdge,
-  type CreateCanvasTileSummariesInput
+  type CreateCanvasTileSummariesInput,
+  type RollUpCanvasTileSummariesInput
 } from './summary'
 
 export {

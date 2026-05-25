@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  createCanvasTileSummaryCacheKey,
   createCanvasTileSummaries,
   createMinimapSummaryFromTileSummaries,
+  hasCanvasTileSummaryChanged,
+  rollUpCanvasTileSummaries,
   type CanvasTileSummaryObject
 } from './summary'
 
@@ -84,5 +87,98 @@ describe('tile-summary generation', () => {
 
   it('handles empty scenes', () => {
     expect(createCanvasTileSummaries({ objects: [] })).toEqual([])
+  })
+})
+
+describe('summary rollups', () => {
+  it('rolls child tile summaries into parent summaries', () => {
+    const leafSummaries = createCanvasTileSummaries({
+      objects: [
+        createObject('a', 'page', 10, 10),
+        createObject('b', 'shape', 120, 10),
+        createObject('c', 'database', 10, 120),
+        createObject('d', 'note', 120, 120)
+      ],
+      edges: [
+        { id: 'edge-1', sourceObjectId: 'a', targetObjectId: 'b' },
+        { id: 'edge-2', sourceObjectId: 'c', targetObjectId: 'd' }
+      ],
+      tileSize: 100,
+      densityColumns: 2,
+      densityRows: 2
+    })
+
+    const rollups = rollUpCanvasTileSummaries({
+      tiles: leafSummaries,
+      densityColumns: 2,
+      densityRows: 2
+    })
+
+    expect(rollups).toHaveLength(1)
+    expect(rollups[0].tileId).toBe('1/0/0')
+    expect(rollups[0].objectCount).toBe(4)
+    expect(rollups[0].edgeCount).toBe(4)
+    expect(rollups[0].typeCounts).toEqual({
+      page: 1,
+      shape: 1,
+      database: 1,
+      note: 1
+    })
+    expect(rollups[0].density.values.reduce((total, value) => total + value, 0)).toBe(4)
+    expect(rollups[0].clusters).toHaveLength(4)
+  })
+
+  it('rolls negative tile coordinates into stable parent addresses', () => {
+    const leafSummaries = createCanvasTileSummaries({
+      objects: [createObject('a', 'page', -120, -120), createObject('b', 'shape', -20, -20)],
+      tileSize: 100
+    })
+    const rollups = rollUpCanvasTileSummaries({ tiles: leafSummaries })
+
+    expect(rollups.map((summary) => summary.tileId)).toEqual(['1/-1/-1'])
+    expect(rollups[0].objectCount).toBe(2)
+  })
+
+  it('generates cache keys that change after create, move, resize, delete, and kind changes', () => {
+    const getRollupKey = (objects: readonly CanvasTileSummaryObject[]): string => {
+      const [rollup] = rollUpCanvasTileSummaries({
+        tiles: createCanvasTileSummaries({ objects, tileSize: 100 })
+      })
+
+      return createCanvasTileSummaryCacheKey(rollup)
+    }
+    const baselineObjects = [createObject('a', 'page', 10, 10), createObject('b', 'shape', 120, 10)]
+    const baselineKey = getRollupKey(baselineObjects)
+
+    expect(getRollupKey([...baselineObjects, createObject('c', 'note', 10, 120)])).not.toBe(
+      baselineKey
+    )
+    expect(getRollupKey([createObject('a', 'page', 60, 60), baselineObjects[1]])).not.toBe(
+      baselineKey
+    )
+    expect(
+      getRollupKey([
+        {
+          ...baselineObjects[0],
+          position: { ...baselineObjects[0].position, width: 60, height: 80 }
+        },
+        baselineObjects[1]
+      ])
+    ).not.toBe(baselineKey)
+    expect(getRollupKey([baselineObjects[0]])).not.toBe(baselineKey)
+    expect(getRollupKey([createObject('a', 'database', 10, 10), baselineObjects[1]])).not.toBe(
+      baselineKey
+    )
+  })
+
+  it('detects unchanged summary cache keys', () => {
+    const [summary] = createCanvasTileSummaries({
+      objects: [createObject('a', 'page', 10, 10)],
+      tileSize: 100
+    })
+    const cacheKey = createCanvasTileSummaryCacheKey(summary)
+
+    expect(hasCanvasTileSummaryChanged(summary, cacheKey)).toBe(false)
+    expect(hasCanvasTileSummaryChanged({ ...summary, objectCount: 2 }, cacheKey)).toBe(true)
   })
 })
