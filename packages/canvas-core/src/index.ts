@@ -62,6 +62,7 @@ export {
 export type {
   ViewportInterest,
   CanvasObjectRecord,
+  CanvasObjectTombstone,
   VectorTilePayload,
   RasterTileRef,
   ThumbnailSpritePayload,
@@ -99,6 +100,19 @@ export {
   type CreateCanvasTileSummariesInput,
   type RollUpCanvasTileSummariesInput
 } from './summary'
+
+export {
+  createCanvasObjectMoveId,
+  createCrossTileObjectMove,
+  reconcileCrossTileObjectMoves,
+  type CreateCanvasObjectMoveIdInput,
+  type CreateCrossTileObjectMoveInput,
+  type CrossTileObjectMove,
+  type CanvasObjectPlacementCandidate,
+  type CanvasDuplicateObjectResolution,
+  type ReconcileCrossTileObjectMovesInput,
+  type ReconcileCrossTileObjectMovesResult
+} from './moves'
 
 export {
   createSyntheticCanvasScene,

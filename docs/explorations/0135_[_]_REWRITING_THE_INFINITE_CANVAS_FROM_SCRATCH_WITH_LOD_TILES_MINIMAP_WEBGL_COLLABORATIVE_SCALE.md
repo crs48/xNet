@@ -968,7 +968,7 @@ export function chooseObjectLod(input: {
 - [x] Implement viewport-interest tile subscription manager with halo and velocity-based prefetch.
 - [x] Implement tile summary generation for object counts, type histograms, density grids, and cluster bounds.
 - [x] Implement summary pyramid rollups and cache invalidation.
-- [ ] Implement cross-tile moves with move IDs, tombstones, and duplicate reconciliation.
+- [x] Implement cross-tile moves with move IDs, tombstones, and duplicate reconciliation.
 - [ ] Implement cross-tile connector storage and far-field edge summaries.
 - [ ] Add off-main-thread tile decode and summary workers using transferable binary payloads.
 - [ ] Add optional WASM prototype for density-grid/binning only after TypeScript worker baseline exists.
@@ -986,7 +986,7 @@ export function chooseObjectLod(input: {
 - [x] Unit-test viewport-interest subscription planning with halo, velocity prefetch, clipping, and tile deltas.
 - [x] Unit-test tile summary generation for counts, type histograms, density grids, clusters, and edge participation.
 - [x] Unit-test summary rollups for correctness after create, move, resize, delete, and style changes.
-- [ ] Unit-test cross-tile object moves under concurrent edits.
+- [x] Unit-test cross-tile object moves under concurrent edits.
 - [x] Unit-test minimap summary rendering without raw object arrays.
 - [ ] Verify no renderer path calls `getNodes()` or materializes the entire canvas for large scenes.
 - [ ] Benchmark hot-cache pan/zoom at 120fps targets on modern desktop.

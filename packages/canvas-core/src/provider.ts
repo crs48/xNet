@@ -91,10 +91,20 @@ export type CanvasSceneSnapshot = {
   overlays: readonly CanvasOverlayRecord[]
 }
 
+export type CanvasObjectTombstone = {
+  objectId: string
+  moveId: string
+  sourceTileId: string
+  targetTileId: string
+  deletedAt: number
+  actorId?: string
+}
+
 export type CanvasTileMutation = {
   tileId: string
   objects: readonly CanvasObjectRecord[]
   deletedObjectIds: readonly string[]
+  tombstones: readonly CanvasObjectTombstone[]
   moveId?: string
 }
 
