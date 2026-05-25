@@ -181,4 +181,63 @@ describe('cross-tile object moves', () => {
       }
     ])
   })
+
+  it('reconciles offline edits replayed from multiple tile rooms after reconnect', () => {
+    const sourceObject = createObject('shape-1', 20, 20)
+    const firstTarget = createObject('shape-1', 420, 20)
+    const secondTarget = createObject('shape-1', 820, 20)
+    const firstMove = createCrossTileObjectMove({
+      object: firstTarget,
+      sourceTileId: '0/0/0',
+      targetTileId: '0/1/0',
+      movedAt: 20,
+      actorId: 'offline-client',
+      moveId: 'offline-move-a'
+    })
+    const secondMove = createCrossTileObjectMove({
+      object: secondTarget,
+      sourceTileId: '0/1/0',
+      targetTileId: '0/2/0',
+      movedAt: 30,
+      actorId: 'offline-client',
+      moveId: 'offline-move-b'
+    })
+    const replayedMutations = [
+      secondMove.mutations[1],
+      firstMove.mutations[1],
+      firstMove.mutations[0],
+      secondMove.mutations[0]
+    ]
+
+    const result = reconcileCrossTileObjectMoves({
+      candidates: [
+        { tileId: '0/0/0', object: sourceObject, updatedAt: 10 },
+        { tileId: '0/1/0', object: firstTarget, updatedAt: 20, moveId: firstMove.moveId },
+        { tileId: '0/2/0', object: secondTarget, updatedAt: 30, moveId: secondMove.moveId }
+      ],
+      tombstones: replayedMutations.flatMap((mutation) => mutation.tombstones)
+    })
+
+    expect(result.placements).toEqual([
+      {
+        tileId: '0/2/0',
+        object: secondTarget,
+        updatedAt: 30,
+        moveId: 'offline-move-b'
+      }
+    ])
+    expect(result.cleanupMutations.map((mutation) => mutation.tileId)).toEqual(['0/0/0', '0/1/0'])
+    expect(result.cleanupMutations.map((mutation) => mutation.deletedObjectIds)).toEqual([
+      ['shape-1'],
+      ['shape-1']
+    ])
+    expect(result.cleanupMutations[1]?.tombstones).toEqual([secondMove.tombstone])
+    expect(result.duplicates[0]).toMatchObject({
+      objectId: 'shape-1',
+      retainedTileId: '0/2/0',
+      discardedTileIds: ['0/0/0', '0/1/0'],
+      moveId: 'offline-move-b',
+      reason: 'tombstone-target'
+    })
+  })
 })

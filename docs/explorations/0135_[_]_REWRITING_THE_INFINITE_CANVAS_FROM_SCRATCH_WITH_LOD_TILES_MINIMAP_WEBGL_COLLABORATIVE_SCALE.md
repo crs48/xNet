@@ -997,7 +997,7 @@ export function chooseObjectLod(input: {
 - [x] Test live DOM editing while far-field summaries update asynchronously.
 - [x] Test 100 users in one tile and 100 users in another tile without cross-room sync fanout.
 - [x] Test minimap collaborator aggregation with high user counts.
-- [ ] Test offline edits in multiple tiles and reconnect reconciliation.
+- [x] Test offline edits in multiple tiles and reconnect reconciliation.
 - [x] Test thumbnail invalidation for pages, databases, media, and external references.
 - [x] Test web app flow with browser automation after Canvas v3 summary integration.
 - [x] Test Electron app flow with Playwright Electron over CDP after integration.
