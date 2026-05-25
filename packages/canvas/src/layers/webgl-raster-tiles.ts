@@ -66,6 +66,38 @@ export type RasterTileDrawPlan = {
   state: RasterTileTransitionState
 }
 
+export type RasterTileTexturePressureRecord = {
+  key: string
+  bytes: number
+  lastUsedAtMs?: number
+}
+
+export type RasterTileTexturePressureSample = {
+  key: string
+  bytes: number
+  projectedBytes: number
+  sizeBytes: number
+  retainedCount: number
+  evictedKeys: readonly string[]
+}
+
+export type RasterTileTexturePressureMeasurement = {
+  maxTextureBytes: number
+  forcedEvictionBytes: number | null
+  peakProjectedBytes: number
+  finalBytes: number
+  retainedCount: number
+  evictedKeys: readonly string[]
+  forcedEvictedKeys: readonly string[]
+  samples: readonly RasterTileTexturePressureSample[]
+}
+
+export type MeasureRasterTileTexturePressureInput = {
+  maxTextureBytes: number
+  records: readonly RasterTileTexturePressureRecord[]
+  forcedEvictionBytes?: number
+}
+
 type RasterTileTextureRecord<T> = {
   key: string
   value: T
@@ -278,6 +310,10 @@ export class RasterTileTextureLru<T> {
     return this.evictUntilWithinBudget(key)
   }
 
+  evictToBudget(maxBytes: number, protectedKey?: string): T[] {
+    return this.evictUntilWithinBudget(protectedKey ?? null, Math.max(0, maxBytes))
+  }
+
   delete(key: string): T | null {
     const record = this.records.get(key)
     if (!record) {
@@ -296,10 +332,10 @@ export class RasterTileTextureLru<T> {
     return values
   }
 
-  private evictUntilWithinBudget(protectedKey: string): T[] {
+  private evictUntilWithinBudget(protectedKey: string | null, maxBytes = this.maxBytes): T[] {
     const evicted: T[] = []
 
-    while (this.totalBytes > this.maxBytes && this.records.size > 1) {
+    while (this.totalBytes > maxBytes && this.records.size > 0) {
       const oldest = Array.from(this.records.values())
         .filter((record) => record.key !== protectedKey)
         .sort((left, right) => left.lastUsedAtMs - right.lastUsedAtMs)[0]
@@ -314,6 +350,51 @@ export class RasterTileTextureLru<T> {
     }
 
     return evicted
+  }
+}
+
+export function measureRasterTileTexturePressure(
+  input: MeasureRasterTileTexturePressureInput
+): RasterTileTexturePressureMeasurement {
+  const cache = new RasterTileTextureLru<string>(Math.max(0, input.maxTextureBytes))
+  const samples: RasterTileTexturePressureSample[] = []
+  const evictedKeys: string[] = []
+  let peakProjectedBytes = 0
+
+  input.records.forEach((record, index) => {
+    const projectedBytes = cache.sizeBytes + Math.max(1, record.bytes)
+    const evicted = cache.upsert(
+      record.key,
+      record.key,
+      Math.max(1, record.bytes),
+      record.lastUsedAtMs ?? index
+    )
+
+    peakProjectedBytes = Math.max(peakProjectedBytes, projectedBytes)
+    evictedKeys.push(...evicted)
+    samples.push({
+      key: record.key,
+      bytes: Math.max(1, record.bytes),
+      projectedBytes,
+      sizeBytes: cache.sizeBytes,
+      retainedCount: cache.size,
+      evictedKeys: evicted
+    })
+  })
+
+  const forcedEvictedKeys =
+    input.forcedEvictionBytes === undefined ? [] : cache.evictToBudget(input.forcedEvictionBytes)
+
+  return {
+    maxTextureBytes: Math.max(0, input.maxTextureBytes),
+    forcedEvictionBytes:
+      input.forcedEvictionBytes === undefined ? null : Math.max(0, input.forcedEvictionBytes),
+    peakProjectedBytes,
+    finalBytes: cache.sizeBytes,
+    retainedCount: cache.size,
+    evictedKeys,
+    forcedEvictedKeys,
+    samples
   }
 }
 

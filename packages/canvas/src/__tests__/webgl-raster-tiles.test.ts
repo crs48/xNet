@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createRasterTileDrawPlan,
   createWebGLRasterTileRenderer,
+  measureRasterTileTexturePressure,
   RasterTileTextureLru
 } from '../layers/webgl-raster-tiles'
 
@@ -108,6 +109,38 @@ describe('WebGL raster tile helpers', () => {
     expect(lru.upsert('c', 'texture-c', 4, 3)).toEqual(['texture-b'])
     expect(lru.get('b', 4)).toBeNull()
     expect(lru.sizeBytes).toBe(8)
+  })
+
+  it('measures texture memory pressure and forced cache eviction', () => {
+    const measurement = measureRasterTileTexturePressure({
+      maxTextureBytes: 10,
+      forcedEvictionBytes: 4,
+      records: [
+        { key: 'a', bytes: 4, lastUsedAtMs: 0 },
+        { key: 'b', bytes: 4, lastUsedAtMs: 1 },
+        { key: 'c', bytes: 4, lastUsedAtMs: 2 },
+        { key: 'd', bytes: 2, lastUsedAtMs: 3 }
+      ]
+    })
+
+    expect(measurement.peakProjectedBytes).toBe(12)
+    expect(measurement.evictedKeys).toEqual(['a'])
+    expect(measurement.forcedEvictedKeys).toEqual(['b', 'c'])
+    expect(measurement.finalBytes).toBe(2)
+    expect(measurement.retainedCount).toBe(1)
+    expect(measurement.samples.map((sample) => sample.sizeBytes)).toEqual([4, 8, 8, 10])
+  })
+
+  it('can force-evict cached textures below the constructor budget', () => {
+    const lru = new RasterTileTextureLru<string>(12)
+
+    lru.upsert('a', 'texture-a', 4, 0)
+    lru.upsert('b', 'texture-b', 4, 1)
+    lru.upsert('c', 'texture-c', 4, 2)
+
+    expect(lru.evictToBudget(4)).toEqual(['texture-a', 'texture-b'])
+    expect(lru.sizeBytes).toBe(4)
+    expect(lru.get('c', 3)).toBe('texture-c')
   })
 
   it('returns null instead of throwing when WebGL2 is unavailable', () => {
