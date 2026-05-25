@@ -976,7 +976,7 @@ export function chooseObjectLod(input: {
 - [x] Migrate page/database/note source-backed rendering into the DOM island pool.
 - [x] Add debug overlays for tile boundaries, LOD tier, cache status, and sync room membership.
 - [x] Write one-way data conversion from existing flat Y.Doc maps to Canvas V3 tile docs where persisted data requires it.
-- [ ] Remove or archive Canvas V2 code paths after the active apps compile and validation gates pass.
+- [x] Remove or archive Canvas V2 code paths after the active apps compile and validation gates pass.
 
 ## Validation Checklist 🧪
 

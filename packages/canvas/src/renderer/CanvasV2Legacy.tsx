@@ -1,7 +1,8 @@
 /**
- * Canvas Component
+ * Legacy Canvas V2 Component
  *
- * Main infinite canvas component with pan, zoom, and node rendering.
+ * Archived flat-array renderer retained only for legacy stories and focused tests.
+ * Public app entry points use CanvasV3.
  */
 
 import type {

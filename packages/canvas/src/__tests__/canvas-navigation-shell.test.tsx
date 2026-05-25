@@ -3,7 +3,7 @@ import React from 'react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
 import { buildCanvasPerformanceScene } from '../fixtures/performance-scene'
-import { Canvas } from '../renderer/Canvas'
+import { Canvas } from '../renderer/CanvasV2Legacy'
 import { createViewport } from '../spatial'
 
 const mockUseCanvas = vi.fn()
@@ -547,7 +547,7 @@ describe('Canvas navigation shell', () => {
 
   it('collects frame diagnostics when performance monitoring is enabled', async () => {
     mockUseCanvas.mockReturnValue(createCanvasMock())
-    const canvasRef = React.createRef<import('../renderer/Canvas').CanvasHandle>()
+    const canvasRef = React.createRef<import('../renderer/CanvasV2Legacy').CanvasHandle>()
 
     render(<Canvas ref={canvasRef} doc={new Y.Doc()} collectPerformanceMetrics />)
 

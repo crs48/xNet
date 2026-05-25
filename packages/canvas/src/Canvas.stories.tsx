@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Badge, Button } from '@xnetjs/ui'
 import { useRef, useState, type ReactElement } from 'react'
 import { createCanvasPerformanceSceneDoc } from './fixtures/performance-scene'
-import { Canvas, type CanvasHandle } from './renderer/Canvas'
+import { Canvas, type CanvasHandle } from './renderer/CanvasV2Legacy'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from './scene/doc-layout'
 import { getCanvasResolvedNodeKind } from './scene/node-kind'
 import { createCanvasDoc, createEdge, createNode } from './store'
@@ -26,7 +26,7 @@ const WORKBENCH_OBJECT_SEQUENCE = [
 ] as const
 
 function createCanvasStoryDoc(): ReturnType<typeof createCanvasDoc> {
-  const doc = createCanvasDoc('storybook-canvas', 'Canvas V2 Workbench')
+  const doc = createCanvasDoc('storybook-canvas', 'Legacy Canvas V2 Workbench')
   const nodes = getCanvasObjectsMap<CanvasNode>(doc)
   const edges = getCanvasConnectorsMap(doc)
 
