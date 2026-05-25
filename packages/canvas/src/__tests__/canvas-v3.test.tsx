@@ -142,4 +142,54 @@ describe('Canvas v3 active renderer', () => {
     expect(scene.minimapSummary.totalObjectCount).toBe(2)
     expect(scene.summaries.reduce((total, summary) => total + summary.objectCount, 0)).toBe(2)
   })
+
+  it('keeps a live DOM editor mounted while far-field summaries refresh', async () => {
+    const doc = createCanvasTestDoc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const editingNode = Array.from(nodes.values()).find((node) => node.sourceNodeId)
+
+    if (!editingNode) {
+      throw new Error('Expected a source-backed node for live editing')
+    }
+
+    render(
+      <Canvas
+        doc={doc}
+        presenceIntent={{ activity: 'editing', editingNodeId: editingNode.id }}
+        renderNode={(node) => (
+          <input
+            aria-label={`${node.properties.title as string} live editor`}
+            defaultValue={node.properties.title as string}
+          />
+        )}
+      />
+    )
+
+    const editor = screen.getByLabelText('Research Page live editor') as HTMLInputElement
+    const island = editor.closest('[data-canvas-v3-object="true"]')
+    fireEvent.change(editor, { target: { value: 'Draft title' } })
+
+    expect(island?.getAttribute('data-canvas-dom-island-tier')).toBe('live-dom')
+
+    await act(async () => {
+      await Promise.resolve()
+      nodes.set(
+        'far-summary-object',
+        createNode(
+          'shape',
+          { x: 24_000, y: 24_000, width: 180, height: 120 },
+          { title: 'Far Summary Object' }
+        )
+      )
+    })
+
+    const refreshedEditor = screen.getByLabelText('Research Page live editor') as HTMLInputElement
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    expect(refreshedEditor).toBe(editor)
+    expect(refreshedEditor.value).toBe('Draft title')
+    expect(refreshedEditor.closest('[data-canvas-v3-object="true"]')).toBe(island)
+    expect(island?.getAttribute('data-canvas-dom-island-tier')).toBe('live-dom')
+    expect(surface.getAttribute('data-canvas-object-count')).toBe('3')
+  })
 })
