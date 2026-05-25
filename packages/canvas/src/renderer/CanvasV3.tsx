@@ -1151,8 +1151,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
                 ...styles.domIsland,
                 left: item.rect.x,
                 top: item.rect.y,
-                width: Math.max(36, item.rect.width),
-                height: Math.max(28, item.rect.height),
+                width: item.object.position.width,
+                height: item.object.position.height,
+                transform: `scale(${viewport.zoom})`,
                 borderColor: selected ? theme.minimapViewportStroke : theme.panelBorder,
                 boxShadow: selected
                   ? `0 0 0 2px ${theme.minimapViewportStroke}`

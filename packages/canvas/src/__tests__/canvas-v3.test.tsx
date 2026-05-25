@@ -134,6 +134,25 @@ describe('Canvas v3 active renderer', () => {
     expect(ref.current?.getViewportSnapshot().zoom).toBeGreaterThan(0)
   })
 
+  it('scales DOM island content with the canvas viewport', () => {
+    const doc = createCanvasTestDoc()
+
+    render(
+      <Canvas
+        doc={doc}
+        initialViewport={{ x: 0, y: 0, zoom: 0.5 }}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+
+    expect(pageIsland).toBeTruthy()
+    expect((pageIsland as HTMLElement).style.width).toBe('260px')
+    expect((pageIsland as HTMLElement).style.height).toBe('160px')
+    expect((pageIsland as HTMLElement).style.transform).toBe('scale(0.5)')
+  })
+
   it('creates tile summaries from the temporary flat-doc migration adapter', () => {
     const scene = readCanvasV3MigrationSceneFromFlatDoc(createCanvasTestDoc())
 
