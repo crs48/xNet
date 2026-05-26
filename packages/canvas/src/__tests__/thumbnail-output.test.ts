@@ -11,7 +11,8 @@ describe('canvas thumbnail outputs', () => {
       'pdf',
       'generic-file',
       'url-card',
-      'audio-card'
+      'audio-card',
+      'iframe-placeholder'
     ]
 
     for (const kind of kinds) {

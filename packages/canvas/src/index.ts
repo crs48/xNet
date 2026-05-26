@@ -134,6 +134,15 @@ export {
   getCanvasThumbnailOutputCacheKey
 } from './preview/thumbnail-output'
 export {
+  createCanvasIframeExportPreview,
+  createCanvasIframePlaceholderThumbnail,
+  isCanvasIframePlaceholderPreview
+} from './preview/iframe-placeholder'
+export type {
+  CanvasIframePlaceholderReason,
+  CreateCanvasIframePlaceholderInput
+} from './preview/iframe-placeholder'
+export {
   createCanvasPreviewSourceFingerprint,
   shouldInvalidateCanvasPreviewCache
 } from './preview/cache-invalidation'

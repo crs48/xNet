@@ -11,6 +11,7 @@ export type CanvasThumbnailOutputKind =
   | 'url-card'
   | 'video-poster'
   | 'audio-card'
+  | 'iframe-placeholder'
 
 export type CreateCanvasThumbnailOutputInput = {
   kind: CanvasThumbnailOutputKind
@@ -52,7 +53,8 @@ const KIND_LABELS: Record<CanvasThumbnailOutputKind, string> = {
   'generic-file': 'FILE',
   'url-card': 'LINK',
   'video-poster': 'VIDEO',
-  'audio-card': 'AUDIO'
+  'audio-card': 'AUDIO',
+  'iframe-placeholder': 'EMBED'
 }
 
 function hashString(input: string): string {
