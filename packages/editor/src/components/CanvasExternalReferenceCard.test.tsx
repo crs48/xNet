@@ -128,6 +128,40 @@ describe('CanvasExternalReferenceCard', () => {
     expect(screen.getByText('Video player')).toBeInTheDocument()
   })
 
+  it('activates and deactivates iframe pointer events explicitly', () => {
+    const onEmbedActivationChange = vi.fn()
+
+    render(
+      <CanvasExternalReferenceCard
+        title="YouTube video"
+        url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        provider="youtube"
+        embedUrl="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        subtitle="YouTube"
+        themeMode="dark"
+        onEmbedActivationChange={onEmbedActivationChange}
+      />
+    )
+
+    const embedShell = document.querySelector('[data-canvas-embed-node="true"]')
+    const iframe = document.querySelector('[data-canvas-embed-iframe="true"]')
+
+    expect(embedShell).toHaveAttribute('data-canvas-embed-activation', 'shell')
+    expect(iframe).toHaveClass('pointer-events-none')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Activate YouTube embed' }))
+
+    expect(embedShell).toHaveAttribute('data-canvas-embed-activation', 'interactive')
+    expect(iframe).toHaveClass('pointer-events-auto')
+    expect(onEmbedActivationChange).toHaveBeenCalledWith(true)
+
+    fireEvent.keyDown(embedShell as Element, { key: 'Escape' })
+
+    expect(embedShell).toHaveAttribute('data-canvas-embed-activation', 'shell')
+    expect(iframe).toHaveClass('pointer-events-none')
+    expect(onEmbedActivationChange).toHaveBeenCalledWith(false)
+  })
+
   it('renders failed-card recovery actions and routes action callbacks', () => {
     const onFailedAction = vi.fn()
 

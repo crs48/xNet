@@ -23,6 +23,8 @@ export interface CanvasExternalReferenceCardProps {
   embedUrl?: string | null
   subtitle?: string | null
   status?: string | null
+  defaultEmbedActivated?: boolean
+  onEmbedActivationChange?: (activated: boolean) => void
   onFailedAction?: (action: CanvasFailedCardActionKind) => void
 }
 
@@ -272,6 +274,8 @@ export function CanvasExternalReferenceCard({
   embedUrl,
   subtitle,
   status,
+  defaultEmbedActivated = false,
+  onEmbedActivationChange,
   onFailedAction
 }: CanvasExternalReferenceCardProps): JSX.Element {
   const parsedEmbed = parseEmbedUrl(url)
@@ -294,6 +298,12 @@ export function CanvasExternalReferenceCard({
   const fallbackSubtitle = normalizeValue(subtitle)
   const [resolvedMetadata, setResolvedMetadata] =
     useState<ExternalReferenceResolvedMetadata | null>(null)
+  const [isEmbedActivated, setIsEmbedActivated] = useState(defaultEmbedActivated)
+
+  const setEmbedActivated = (activated: boolean) => {
+    setIsEmbedActivated(activated)
+    onEmbedActivationChange?.(activated)
+  }
 
   useEffect(() => {
     const cacheKey = `${providerId}:${url}`
@@ -329,6 +339,10 @@ export function CanvasExternalReferenceCard({
       controller.abort()
     }
   }, [fallbackSubtitle, providerId, title, url])
+
+  useEffect(() => {
+    setIsEmbedActivated(defaultEmbedActivated)
+  }, [defaultEmbedActivated, resolvedEmbedUrl])
 
   const resolvedTitle = resolvedMetadata?.title ?? title
   const resolvedSubtitle = resolvedMetadata?.subtitle ?? fallbackSubtitle
@@ -416,6 +430,13 @@ export function CanvasExternalReferenceCard({
             data-canvas-embed-node="true"
             data-canvas-embed-provider={providerId}
             data-canvas-embed-theme={themeMode}
+            data-canvas-embed-activation={isEmbedActivated ? 'interactive' : 'shell'}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && isEmbedActivated) {
+                event.stopPropagation()
+                setEmbedActivated(false)
+              }
+            }}
           >
             <iframe
               title={embedFrameTitle}
@@ -424,10 +445,44 @@ export function CanvasExternalReferenceCard({
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
-              tabIndex={-1}
-              className="pointer-events-none absolute inset-0 h-full w-full border-0 bg-transparent"
+              tabIndex={isEmbedActivated ? 0 : -1}
+              className={cn(
+                'absolute inset-0 h-full w-full border-0 bg-transparent',
+                isEmbedActivated ? 'pointer-events-auto' : 'pointer-events-none'
+              )}
               data-canvas-embed-iframe="true"
             />
+            {isEmbedActivated ? (
+              <button
+                type="button"
+                className="absolute right-2 top-2 z-20 rounded-md border border-white/15 bg-black/70 px-2 py-1 text-[11px] font-semibold uppercase text-white shadow-sm"
+                aria-label={`Deactivate ${providerLabel} embed`}
+                data-canvas-embed-deactivate="true"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setEmbedActivated(false)
+                }}
+              >
+                Done
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="absolute inset-0 z-10 grid place-items-center bg-black/5 text-white transition-colors hover:bg-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                aria-label={`Activate ${providerLabel} embed`}
+                data-canvas-embed-activate="true"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setEmbedActivated(true)
+                }}
+              >
+                <span className="rounded-md bg-black/70 px-2.5 py-1.5 text-[11px] font-semibold uppercase shadow-sm">
+                  Activate
+                </span>
+              </button>
+            )}
             <div
               className={cn(
                 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent px-3 py-2 text-[11px] font-medium uppercase tracking-[0.18em]',
