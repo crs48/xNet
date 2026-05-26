@@ -1561,7 +1561,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Benchmark minimap updates for dense media boards.
 - [x] Confirm far-zoom object summaries do not mount React card components.
 - [x] Confirm iframe activation respects budget and reclamation.
-- [ ] Confirm dragging and resizing large multi-selections stay smooth by using transform previews and coalesced commits.
+- [x] Confirm dragging and resizing large multi-selections stay smooth by using transform previews and coalesced commits.
 - [x] Confirm smart-guide calculations cap nearby-object scans and do not require global board traversal.
 
 ### Electron Manual Checks

@@ -304,14 +304,22 @@ type NodeDragState = {
 
 type NodeResizeState = {
   pointerId: number
-  lastClientPoint: Point
-  nodeId: string
+  nodeIds: string[]
+  originNodes: ReadonlyMap<string, CanvasNode>
+  screenDelta: Point
+  startClientPoint: Point
   handle: ResizeHandle
+  viewportZoom: number
 }
 
 type DragPreviewState = {
   nodeIds: ReadonlySet<string>
   screenDelta: Point
+}
+
+type ResizePreviewState = {
+  nodeIds: ReadonlySet<string>
+  rects: ReadonlyMap<string, Rect>
 }
 
 type SelectionPopover = 'dimensions' | 'shape-style' | 'sticky-note' | 'frame-variant'
@@ -696,6 +704,92 @@ function getScreenRectForCanvasRect(rect: Rect, viewport: ViewportState, viewpor
     y: Math.min(topLeft.y, bottomRight.y),
     width: Math.abs(bottomRight.x - topLeft.x),
     height: Math.abs(bottomRight.y - topLeft.y)
+  }
+}
+
+function getBoundsForRects(rects: readonly Rect[]): Rect | null {
+  if (rects.length === 0) {
+    return null
+  }
+
+  const minX = Math.min(...rects.map((rect) => rect.x))
+  const minY = Math.min(...rects.map((rect) => rect.y))
+  const maxX = Math.max(...rects.map((rect) => rect.x + rect.width))
+  const maxY = Math.max(...rects.map((rect) => rect.y + rect.height))
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  }
+}
+
+function getNodePositionRect(node: CanvasNode): Rect {
+  return {
+    x: node.position.x,
+    y: node.position.y,
+    width: node.position.width,
+    height: node.position.height
+  }
+}
+
+function createResizeUpdatesFromOriginals(input: {
+  nodes: readonly CanvasNode[]
+  handle: ResizeHandle
+  screenDelta: Point
+  viewportZoom: number
+}): CanvasPositionUpdate[] {
+  if (input.screenDelta.x === 0 && input.screenDelta.y === 0) {
+    return []
+  }
+
+  const canvasDelta = {
+    x: input.screenDelta.x / input.viewportZoom,
+    y: input.screenDelta.y / input.viewportZoom
+  }
+
+  return input.nodes.map((node) =>
+    createResizeUpdate(node, input.handle, canvasDelta, getCanvasResizePolicy(node, input.handle))
+  )
+}
+
+function createResizePreviewState(input: {
+  nodes: readonly CanvasNode[]
+  handle: ResizeHandle
+  screenDelta: Point
+  viewportZoom: number
+}): ResizePreviewState | null {
+  const updates = createResizeUpdatesFromOriginals(input)
+  if (updates.length === 0) {
+    return null
+  }
+
+  const nodesById = new Map(input.nodes.map((node) => [node.id, node] as const))
+  const rects = new Map<string, Rect>()
+
+  updates.forEach((update) => {
+    const node = nodesById.get(update.id)
+    if (!node) {
+      return
+    }
+
+    const position = {
+      ...node.position,
+      ...update.position
+    }
+
+    rects.set(update.id, {
+      x: position.x,
+      y: position.y,
+      width: position.width,
+      height: position.height
+    })
+  })
+
+  return {
+    nodeIds: new Set(updates.map((update) => update.id)),
+    rects
   }
 }
 
@@ -1669,6 +1763,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
   const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null)
+  const [resizePreview, setResizePreview] = useState<ResizePreviewState | null>(null)
   const [activeSnapGuides, setActiveSnapGuides] = useState<CanvasSnapGuideSegment[]>([])
   const [connectorStart, setConnectorStart] = useState<ConnectorStart | null>(null)
   const [activeSelectionPopover, setActiveSelectionPopover] = useState<SelectionPopover | null>(
@@ -2464,7 +2559,28 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [doc, getSelectedNodes, onSceneMutation, selectedNodeIds])
 
   const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes, scene.objects])
-  const selectionBounds = useMemo(() => getSelectionBounds(selectedNodes), [selectedNodes])
+  const selectedNodesForBounds = useMemo(() => {
+    if (!resizePreview) {
+      return selectedNodes
+    }
+
+    return selectedNodes.map((node) => {
+      const rect = resizePreview.rects.get(node.id)
+      return rect
+        ? {
+            ...node,
+            position: {
+              ...node.position,
+              ...rect
+            }
+          }
+        : node
+    })
+  }, [resizePreview, selectedNodes])
+  const selectionBounds = useMemo(
+    () => getSelectionBounds(selectedNodesForBounds),
+    [selectedNodesForBounds]
+  )
   const selectionLockState = useMemo(() => getSelectionLockState(selectedNodes), [selectedNodes])
   const selectionCapabilities = useMemo(
     () =>
@@ -2819,25 +2935,27 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   )
 
   const createResizeInteraction = useCallback(
-    (nodeId: string): CanvasRemoteInteraction | null => {
-      const node = getCanvasObjectsMap<CanvasNode>(doc).get(nodeId)
+    (
+      preview: ResizePreviewState | null,
+      fallbackNodes: readonly CanvasNode[] = []
+    ): CanvasRemoteInteraction | null => {
+      const nodeIds = preview ? Array.from(preview.nodeIds) : fallbackNodes.map((node) => node.id)
+      const rects = preview
+        ? Array.from(preview.rects.values())
+        : fallbackNodes.map(getNodePositionRect)
+      const bounds = getBoundsForRects(rects)
 
-      if (!node) {
+      if (!bounds || nodeIds.length === 0) {
         return null
       }
 
       return {
         type: 'resizing',
-        nodeIds: [node.id],
-        bounds: {
-          x: node.position.x,
-          y: node.position.y,
-          width: node.position.width,
-          height: node.position.height
-        }
+        nodeIds,
+        bounds
       }
     },
-    [doc]
+    []
   )
 
   const getDragPreviewDeltaForObject = useCallback(
@@ -2849,6 +2967,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       return dragPreview.screenDelta
     },
     [dragPreview]
+  )
+  const getResizePreviewRectForObject = useCallback(
+    (objectId: string): Rect | null => {
+      if (!resizePreview?.nodeIds.has(objectId)) {
+        return null
+      }
+
+      return resizePreview.rects.get(objectId) ?? null
+    },
+    [resizePreview]
   )
 
   const getDragPreviewDeltaForConnectorEndpoint = useCallback(
@@ -2909,30 +3037,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [applySelectionPositionUpdates, doc]
   )
 
-  const resizeNodeByScreenDelta = useCallback(
-    (nodeId: string, handle: ResizeHandle, delta: Point): boolean => {
-      if (delta.x === 0 && delta.y === 0) {
-        return false
-      }
+  const commitResizeState = useCallback(
+    (resizeState: NodeResizeState): boolean => {
+      const updates = createResizeUpdatesFromOriginals({
+        nodes: Array.from(resizeState.originNodes.values()),
+        handle: resizeState.handle,
+        screenDelta: resizeState.screenDelta,
+        viewportZoom: resizeState.viewportZoom
+      })
 
-      const node = getCanvasObjectsMap<CanvasNode>(doc).get(nodeId)
-      if (!node || node.locked) {
-        return false
-      }
-
-      return applyPositionUpdates([
-        createResizeUpdate(
-          node,
-          handle,
-          {
-            x: delta.x / viewport.zoom,
-            y: delta.y / viewport.zoom
-          },
-          getCanvasResizePolicy(node, handle)
-        )
-      ])
+      return applyPositionUpdates(updates)
     },
-    [applyPositionUpdates, doc, viewport.zoom]
+    [applyPositionUpdates]
   )
 
   const applyViewportChanges = useCallback(
@@ -3246,31 +3362,41 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         return
       }
 
+      const candidateIds = selectedNodeIds.has(objectId) ? Array.from(selectedNodeIds) : [objectId]
+      const resizeNodes = getUnlockedSelection(
+        candidateIds
+          .map((id) => getCanvasObjectsMap<CanvasNode>(doc).get(id))
+          .filter((candidate): candidate is CanvasNode => candidate !== undefined)
+      )
+
+      if (resizeNodes.length === 0) {
+        return
+      }
+
       event.preventDefault()
       event.stopPropagation()
       setFocusedNodeId(objectId)
-      setSelectedNodeIds(new Set([objectId]))
+      setSelectedNodeIds(new Set(candidateIds))
       setActiveSnapGuides([])
+      setResizePreview(null)
       nodeResizeRef.current = {
         pointerId: event.pointerId,
-        lastClientPoint: { x: event.clientX, y: event.clientY },
-        nodeId: objectId,
-        handle
+        nodeIds: resizeNodes.map((resizeNode) => resizeNode.id),
+        originNodes: new Map(resizeNodes.map((resizeNode) => [resizeNode.id, resizeNode] as const)),
+        screenDelta: { x: 0, y: 0 },
+        startClientPoint: { x: event.clientX, y: event.clientY },
+        handle,
+        viewportZoom: viewport.zoom
       }
       containerRef.current?.setPointerCapture?.(event.pointerId)
       awareness?.setLocalStateField('activity', 'resizing')
-      awareness?.setLocalStateField('canvasInteraction', {
-        type: 'resizing',
-        nodeIds: [objectId],
-        bounds: {
-          x: node.position.x,
-          y: node.position.y,
-          width: node.position.width,
-          height: node.position.height
-        }
-      } satisfies CanvasRemoteInteraction)
+      const interaction = createResizeInteraction(null, resizeNodes)
+
+      if (interaction) {
+        awareness?.setLocalStateField('canvasInteraction', interaction)
+      }
     },
-    [awareness, doc]
+    [awareness, createResizeInteraction, doc, selectedNodeIds, viewport.zoom]
   )
 
   const handleBackgroundPointerDown = useCallback(
@@ -3295,24 +3421,30 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       const nodeResize = nodeResizeRef.current
       if (nodeResize && nodeResize.pointerId === event.pointerId) {
-        const delta = {
-          x: event.clientX - nodeResize.lastClientPoint.x,
-          y: event.clientY - nodeResize.lastClientPoint.y
+        const screenDelta = {
+          x: event.clientX - nodeResize.startClientPoint.x,
+          y: event.clientY - nodeResize.startClientPoint.y
         }
-
-        if (resizeNodeByScreenDelta(nodeResize.nodeId, nodeResize.handle, delta)) {
-          awareness?.setLocalStateField('activity', 'resizing')
-          const interaction = createResizeInteraction(nodeResize.nodeId)
-
-          if (interaction) {
-            awareness?.setLocalStateField('canvasInteraction', interaction)
-          }
-        }
+        const resizeNodes = Array.from(nodeResize.originNodes.values())
+        const preview = createResizePreviewState({
+          nodes: resizeNodes,
+          handle: nodeResize.handle,
+          screenDelta,
+          viewportZoom: nodeResize.viewportZoom
+        })
 
         nodeResizeRef.current = {
           ...nodeResize,
-          lastClientPoint: { x: event.clientX, y: event.clientY }
+          screenDelta
         }
+        setResizePreview(preview)
+        awareness?.setLocalStateField('activity', 'resizing')
+        const interaction = createResizeInteraction(preview, resizeNodes)
+
+        if (interaction) {
+          awareness?.setLocalStateField('canvasInteraction', interaction)
+        }
+
         return
       }
 
@@ -3367,7 +3499,6 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       createDragPreview,
       createResizeInteraction,
       createSnappedDragPreviewState,
-      resizeNodeByScreenDelta,
       screenToCanvasPoint,
       setViewportClamped
     ]
@@ -3376,7 +3507,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (nodeResizeRef.current?.pointerId === event.pointerId) {
+        if (event.type !== 'pointercancel') {
+          commitResizeState(nodeResizeRef.current)
+        }
+
         nodeResizeRef.current = null
+        setResizePreview(null)
         setActiveSnapGuides([])
         awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
         awareness?.setLocalStateField('canvasInteraction', null)
@@ -3400,7 +3536,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }
       lastPointerRef.current = null
     },
-    [awareness, commitSelectionDragByScreenDelta, presenceIntent?.activity]
+    [awareness, commitResizeState, commitSelectionDragByScreenDelta, presenceIntent?.activity]
   )
 
   const handleWheel = useCallback(
@@ -3861,16 +3997,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             .filter((item) => !domIslandIds.has(item.object.id))
             .map((item) => {
               const previewDelta = getDragPreviewDeltaForObject(item.object.id)
+              const resizeRect = getResizePreviewRectForObject(item.object.id)
+              const renderRect = resizeRect
+                ? getScreenRectForCanvasRect(resizeRect, viewport, viewportSize)
+                : item.rect
 
               return (
                 <div
                   key={item.object.id}
                   style={{
                     ...styles.vectorFallbackObject,
-                    left: item.rect.x + (previewDelta?.x ?? 0),
-                    top: item.rect.y + (previewDelta?.y ?? 0),
-                    width: Math.max(2, item.rect.width),
-                    height: Math.max(2, item.rect.height),
+                    left: renderRect.x + (previewDelta?.x ?? 0),
+                    top: renderRect.y + (previewDelta?.y ?? 0),
+                    width: Math.max(2, renderRect.width),
+                    height: Math.max(2, renderRect.height),
                     borderColor: getObjectColor(item.object.kind),
                     background: `${getObjectColor(item.object.kind)}22`
                   }}
@@ -3883,7 +4023,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       {screenObjects.map((item) => {
         const previewDelta = getDragPreviewDeltaForObject(item.object.id)
-        const hitRect = getCanvasObjectHitTargetRect(item.rect)
+        const resizeRect = getResizePreviewRectForObject(item.object.id)
+        const renderRect = resizeRect
+          ? getScreenRectForCanvasRect(resizeRect, viewport, viewportSize)
+          : item.rect
+        const hitRect = getCanvasObjectHitTargetRect(renderRect)
         const title = getObjectTitle(item.object)
         const locked = item.node.locked === true
 
@@ -3916,6 +4060,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           const tier = domIslandTierById.get(item.object.id) ?? 'shell-dom'
           const title = getObjectTitle(item.object)
           const previewDelta = getDragPreviewDeltaForObject(item.object.id)
+          const resizeRect = getResizePreviewRectForObject(item.object.id)
+          const renderRect = resizeRect
+            ? getScreenRectForCanvasRect(resizeRect, viewport, viewportSize)
+            : item.rect
           const locked = item.node.locked === true
           const showConnectorHandles = !locked && (selected || connectorStart !== null)
           const mindMapMetadata = getCanvasMindMapMetadata(item.node)
@@ -3925,10 +4073,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               key={item.object.id}
               style={{
                 ...styles.domIsland,
-                left: item.rect.x + (previewDelta?.x ?? 0),
-                top: item.rect.y + (previewDelta?.y ?? 0),
-                width: item.object.position.width,
-                height: item.object.position.height,
+                left: renderRect.x + (previewDelta?.x ?? 0),
+                top: renderRect.y + (previewDelta?.y ?? 0),
+                width: resizeRect?.width ?? item.object.position.width,
+                height: resizeRect?.height ?? item.object.position.height,
                 transform: `scale(${viewport.zoom})`,
                 borderColor: selected ? theme.minimapViewportStroke : theme.panelBorder,
                 boxShadow: selected

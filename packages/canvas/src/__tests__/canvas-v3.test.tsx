@@ -1831,6 +1831,14 @@ describe('Canvas v3 active renderer', () => {
       clientX: 780,
       clientY: 510
     })
+
+    const previewed = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(previewed?.position.width).toBe(initialWidth)
+    expect(previewed?.position.height).toBe(initialHeight)
+    expect(Number.parseFloat((pageIsland as HTMLElement).style.width)).toBe(initialWidth + 40)
+    expect(Number.parseFloat((pageIsland as HTMLElement).style.height)).toBe(initialHeight + 30)
+    expect(onSceneMutation).not.toHaveBeenCalled()
+
     fireEvent.pointerUp(surface, {
       pointerId: 9,
       clientX: 780,
@@ -1841,6 +1849,107 @@ describe('Canvas v3 active renderer', () => {
     expect(resized?.position.width).toBe(initialWidth + 40)
     expect(resized?.position.height).toBe(initialHeight + 30)
     expect(onSceneMutation).toHaveBeenCalled()
+  })
+
+  it('resizes large multi-selections with previews and one coalesced commit', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const selectedNodes = Array.from({ length: 24 }, (_, index) =>
+      createNode(
+        'shape',
+        {
+          x: -420 + (index % 8) * 110,
+          y: -220 + Math.floor(index / 8) * 100,
+          width: 180,
+          height: 120
+        },
+        {
+          title: `Resize Node ${index + 1}`
+        }
+      )
+    )
+    const ref = React.createRef<CanvasHandle>()
+    const onSceneMutation = vi.fn()
+
+    selectedNodes.forEach((node) => nodes.set(node.id, node))
+
+    render(
+      <Canvas
+        ref={ref}
+        doc={doc}
+        config={{ gridSize: 0 }}
+        onSceneMutation={onSceneMutation}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    act(() => {
+      ref.current?.selectNodes(selectedNodes.map((node) => node.id))
+    })
+
+    const firstNode = selectedNodes[0]
+    if (!firstNode) {
+      throw new Error('Expected selected nodes')
+    }
+
+    const firstIsland = document.querySelector(
+      `[data-canvas-v3-object="true"][data-canvas-object-id="${firstNode.id}"]`
+    ) as HTMLElement | null
+    const resizeHandle = screen.getByRole('button', {
+      name: 'Resize Resize Node 1 from bottom-right'
+    })
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const initialPositions = new Map(
+      selectedNodes.map((node) => [
+        node.id,
+        {
+          width: node.position.width,
+          height: node.position.height
+        }
+      ])
+    )
+
+    if (!firstIsland) {
+      throw new Error('Expected first selected node DOM island')
+    }
+
+    fireEvent.pointerDown(resizeHandle, {
+      button: 0,
+      pointerId: 74,
+      clientX: 720,
+      clientY: 460
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 74,
+      clientX: 756,
+      clientY: 484
+    })
+
+    selectedNodes.forEach((node) => {
+      const current = nodes.get(node.id)
+      const initial = initialPositions.get(node.id)
+
+      expect(current?.position.width).toBe(initial?.width)
+      expect(current?.position.height).toBe(initial?.height)
+    })
+    expect(Number.parseFloat(firstIsland.style.width)).toBe(firstNode.position.width + 36)
+    expect(Number.parseFloat(firstIsland.style.height)).toBe(firstNode.position.height + 24)
+    expect(onSceneMutation).not.toHaveBeenCalled()
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 74,
+      clientX: 756,
+      clientY: 484
+    })
+
+    selectedNodes.forEach((node) => {
+      const current = nodes.get(node.id)
+      const initial = initialPositions.get(node.id)
+
+      expect(current?.position.width).toBe((initial?.width ?? 0) + 36)
+      expect(current?.position.height).toBe((initial?.height ?? 0) + 24)
+    })
+    expect(onSceneMutation).toHaveBeenCalledOnce()
   })
 
   it('preserves media aspect ratio from v3 corner resize handles', () => {
