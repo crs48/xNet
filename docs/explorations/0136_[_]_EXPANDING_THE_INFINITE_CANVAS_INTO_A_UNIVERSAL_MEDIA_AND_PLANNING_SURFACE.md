@@ -1379,6 +1379,7 @@ gantt
 - [x] Add first-pass Canvas v3 keyboard duplicate and delete shortcuts for unlocked selections.
 - [x] Add first-pass Canvas v3 contextual toolbar actions for open, comment, lock, connect, align, distribute, tidy, layer, frame, duplicate, delete, and clear.
 - [ ] Add contextual toolbar actions derived from selection capabilities.
+- [x] Add first-pass Canvas v3 contextual toolbar action availability derived from selection count, lock state, and app callbacks.
 - [ ] Add contextual popovers for style, dimensions, crop/fit, PDF page, edge type, alias, references, comments, and plugin fields.
 - [ ] Add remote drag/resize awareness without flooding tile sync with intermediate updates.
 
@@ -1482,6 +1483,7 @@ gantt
 - [x] Test v3 resize handles update canvas object dimensions.
 - [x] Test v3 media corner-resize aspect-ratio policy from pure helpers and renderer behavior.
 - [x] Test v3 contextual toolbar action routing for single and multi-selection.
+- [x] Test v3 contextual toolbar action availability for single-select, multi-select, and locked selections.
 - [x] Test v3 keyboard editing shortcuts for nudge, lock, connect, frame wrap, and layer movement.
 - [x] Test v3 duplicate and delete behavior from keyboard shortcuts and contextual toolbar actions.
 

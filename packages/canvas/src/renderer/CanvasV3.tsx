@@ -225,6 +225,22 @@ type DragPreviewState = {
   screenDelta: Point
 }
 
+type CanvasSelectionCapabilities = {
+  canOpen: boolean
+  canEditAlias: boolean
+  canComment: boolean
+  canDuplicate: boolean
+  canToggleLock: boolean
+  canConnect: boolean
+  canAlign: boolean
+  canDistribute: boolean
+  canTidy: boolean
+  canWrapInFrame: boolean
+  canShiftLayer: boolean
+  canDelete: boolean
+  canClear: boolean
+}
+
 const RESIZE_HANDLES: ResizeHandle[] = [
   'top-left',
   'top',
@@ -252,6 +268,35 @@ function getActiveSnapGridSize(config: CanvasConfig): number | null {
 
 function getObjectTitle(object: CanvasObjectRecord): string {
   return object.preview.title ?? object.kind.replace('-', ' ')
+}
+
+function createSelectionCapabilities(input: {
+  nodes: readonly CanvasNode[]
+  hasOpenHandler: boolean
+  hasAliasHandler: boolean
+  hasCommentHandler: boolean
+}): CanvasSelectionCapabilities {
+  const selectionCount = input.nodes.length
+  const unlockedCount = input.nodes.filter((node) => !node.locked).length
+  const firstNode = input.nodes[0] ?? null
+  const hasSelection = selectionCount > 0
+  const hasUnlockedSelection = unlockedCount > 0
+
+  return {
+    canOpen: selectionCount === 1 && input.hasOpenHandler,
+    canEditAlias: selectionCount === 1 && Boolean(firstNode?.sourceNodeId) && input.hasAliasHandler,
+    canComment: hasSelection && input.hasCommentHandler,
+    canDuplicate: hasUnlockedSelection,
+    canToggleLock: hasSelection,
+    canConnect: selectionCount === 2 && unlockedCount === 2,
+    canAlign: selectionCount > 1 && unlockedCount > 1,
+    canDistribute: selectionCount > 2 && unlockedCount > 2,
+    canTidy: selectionCount > 1 && unlockedCount > 1,
+    canWrapInFrame: hasUnlockedSelection,
+    canShiftLayer: hasUnlockedSelection,
+    canDelete: hasUnlockedSelection,
+    canClear: hasSelection
+  }
 }
 
 function getObjectColor(kind: CanvasObjectRecord['kind']): string {
@@ -1070,6 +1115,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes, scene.objects])
   const selectionBounds = useMemo(() => getSelectionBounds(selectedNodes), [selectedNodes])
   const selectionLockState = useMemo(() => getSelectionLockState(selectedNodes), [selectedNodes])
+  const selectionCapabilities = useMemo(
+    () =>
+      createSelectionCapabilities({
+        nodes: selectedNodes,
+        hasOpenHandler: Boolean(onOpenSelection),
+        hasAliasHandler: Boolean(onEditSelectionAlias),
+        hasCommentHandler: Boolean(onCreateSelectionComment)
+      }),
+    [onCreateSelectionComment, onEditSelectionAlias, onOpenSelection, selectedNodes]
+  )
   const firstSelectedNode = selectedNodes[0] ?? null
   const selectionToolbarTitle =
     selectedNodes.length === 1 && firstSelectedNode
@@ -2083,7 +2138,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             {selectionToolbarTitle}
           </span>
 
-          {selectedNodes.length === 1 && onOpenSelection ? (
+          {selectionCapabilities.canOpen && onOpenSelection ? (
             <CanvasSelectionToolbarButton
               action="open"
               label="Open"
@@ -2093,7 +2148,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             />
           ) : null}
 
-          {selectedNodes.length === 1 && firstSelectedNode?.sourceNodeId && onEditSelectionAlias ? (
+          {selectionCapabilities.canEditAlias && onEditSelectionAlias ? (
             <CanvasSelectionToolbarButton
               action="alias"
               label="Alias"
@@ -2103,7 +2158,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             />
           ) : null}
 
-          {onCreateSelectionComment ? (
+          {selectionCapabilities.canComment && onCreateSelectionComment ? (
             <CanvasSelectionToolbarButton
               action="comment"
               label="Comment"
@@ -2119,7 +2174,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             action="duplicate"
             label="Duplicate"
             title="Duplicate selection"
-            disabled={selectionLockState.allLocked}
+            disabled={!selectionCapabilities.canDuplicate}
             theme={theme}
             onClick={() => {
               duplicateSelection()
@@ -2130,6 +2185,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             action="lock"
             label={selectionLockState.allLocked ? 'Unlock' : 'Lock'}
             title={`${selectionLockState.allLocked ? 'Unlock' : 'Lock'} selection`}
+            disabled={!selectionCapabilities.canToggleLock}
             theme={theme}
             onClick={() => {
               toggleSelectionLock()
@@ -2141,6 +2197,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               action="connect"
               label="Connect"
               title="Connect selection"
+              disabled={!selectionCapabilities.canConnect}
               theme={theme}
               onClick={() => {
                 connectSelection()
@@ -2153,6 +2210,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               action="align-left"
               label="Align"
               title="Align selection left"
+              disabled={!selectionCapabilities.canAlign}
               theme={theme}
               onClick={() => {
                 alignSelection('left')
@@ -2165,6 +2223,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               action="distribute-horizontal"
               label="Distribute"
               title="Distribute selection horizontally"
+              disabled={!selectionCapabilities.canDistribute}
               theme={theme}
               onClick={() => {
                 distributeSelection('horizontal')
@@ -2177,6 +2236,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               action="tidy"
               label="Tidy"
               title="Tidy selection"
+              disabled={!selectionCapabilities.canTidy}
               theme={theme}
               onClick={() => {
                 tidySelection()
@@ -2188,6 +2248,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             action="frame"
             label="Frame"
             title="Wrap selection in frame"
+            disabled={!selectionCapabilities.canWrapInFrame}
             theme={theme}
             onClick={() => {
               wrapSelectionInFrame()
@@ -2198,6 +2259,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             action="send-backward"
             label="Back"
             title="Send selection backward"
+            disabled={!selectionCapabilities.canShiftLayer}
             theme={theme}
             onClick={() => {
               shiftSelectionLayer('backward')
@@ -2208,6 +2270,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             action="bring-forward"
             label="Forward"
             title="Bring selection forward"
+            disabled={!selectionCapabilities.canShiftLayer}
             theme={theme}
             onClick={() => {
               shiftSelectionLayer('forward')
@@ -2218,7 +2281,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             action="delete"
             label="Delete"
             title="Delete selection"
-            disabled={selectionLockState.allLocked}
+            disabled={!selectionCapabilities.canDelete}
             theme={theme}
             onClick={() => {
               deleteSelection()
@@ -2229,6 +2292,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             action="clear"
             label="Clear"
             title="Clear selection"
+            disabled={!selectionCapabilities.canClear}
             theme={theme}
             onClick={clearSelection}
           />

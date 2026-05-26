@@ -306,6 +306,142 @@ describe('Canvas v3 active renderer', () => {
     ).toBe(true)
   })
 
+  it('derives v3 selection toolbar actions from selection capabilities', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const onOpenSelection = vi.fn()
+    const onEditSelectionAlias = vi.fn()
+    const onCreateSelectionComment = vi.fn()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const extraNote = createNode(
+      'note',
+      { x: 540, y: 220, width: 200, height: 120 },
+      {
+        title: 'Extra Note'
+      }
+    )
+
+    objects.set(extraNote.id, extraNote)
+
+    render(
+      <Canvas
+        ref={ref}
+        doc={doc}
+        onOpenSelection={onOpenSelection}
+        onEditSelectionAlias={onEditSelectionAlias}
+        onCreateSelectionComment={onCreateSelectionComment}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+
+    const singleToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    expect(within(singleToolbar).getByRole('button', { name: 'Open selection' })).toBeTruthy()
+    expect(within(singleToolbar).getByRole('button', { name: 'Edit selection alias' })).toBeTruthy()
+    expect(within(singleToolbar).getByRole('button', { name: 'Comment on selection' })).toBeTruthy()
+    expect(within(singleToolbar).queryByRole('button', { name: 'Connect selection' })).toBeNull()
+    expect(within(singleToolbar).queryByRole('button', { name: 'Align selection left' })).toBeNull()
+    expect(
+      within(singleToolbar).queryByRole('button', {
+        name: 'Distribute selection horizontally'
+      })
+    ).toBeNull()
+    expect(within(singleToolbar).queryByRole('button', { name: 'Tidy selection' })).toBeNull()
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+
+    const pairToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    expect(
+      (
+        within(pairToolbar).getByRole('button', {
+          name: 'Connect selection'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
+    expect(
+      (
+        within(pairToolbar).getByRole('button', {
+          name: 'Align selection left'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
+    expect(
+      (
+        within(pairToolbar).getByRole('button', {
+          name: 'Tidy selection'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
+    expect(
+      within(pairToolbar).queryByRole('button', {
+        name: 'Distribute selection horizontally'
+      })
+    ).toBeNull()
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id, extraNote.id])
+    })
+
+    const threeItemToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    expect(
+      (
+        within(threeItemToolbar).getByRole('button', {
+          name: 'Distribute selection horizontally'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
+
+    act(() => {
+      objects.set(page.id, { ...page, locked: true })
+      objects.set(shape.id, { ...shape, locked: true })
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+
+    const lockedToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    expect(
+      (
+        within(lockedToolbar).getByRole('button', {
+          name: 'Duplicate selection'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
+    expect(
+      (
+        within(lockedToolbar).getByRole('button', {
+          name: 'Connect selection'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
+    expect(
+      (
+        within(lockedToolbar).getByRole('button', {
+          name: 'Align selection left'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
+    expect(
+      (
+        within(lockedToolbar).getByRole('button', {
+          name: 'Delete selection'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
+    expect(
+      (
+        within(lockedToolbar).getByRole('button', {
+          name: 'Unlock selection'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
+  })
+
   it('duplicates and deletes v3 selections from toolbar and keyboard shortcuts', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()
