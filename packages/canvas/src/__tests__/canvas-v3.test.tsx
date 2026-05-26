@@ -1055,6 +1055,73 @@ describe('Canvas v3 active renderer', () => {
     expect(moved?.position.y).toBe(initialY + 51)
   })
 
+  it('snaps v3 drag previews to smart object guides', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const mover = createNode(
+      'page',
+      { x: 0, y: 0, width: 100, height: 80 },
+      {
+        title: 'Mover'
+      }
+    )
+    const target = createNode(
+      'page',
+      { x: 206, y: 24, width: 120, height: 80 },
+      {
+        title: 'Target'
+      }
+    )
+
+    nodes.set(mover.id, mover)
+    nodes.set(target.id, target)
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const moverIsland = screen.getByText('Mover').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!moverIsland) {
+      throw new Error('Expected Mover DOM island')
+    }
+
+    const initialScreenLeft = Number.parseFloat((moverIsland as HTMLElement).style.left)
+
+    fireEvent.pointerDown(moverIsland, {
+      button: 0,
+      pointerId: 21,
+      clientX: 500,
+      clientY: 340
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 21,
+      clientX: 604,
+      clientY: 340
+    })
+
+    expect(Number.parseFloat((moverIsland as HTMLElement).style.left)).toBe(initialScreenLeft + 106)
+
+    const guide = surface.querySelector('[data-canvas-v3-snap-guide="true"]')
+    expect(guide?.getAttribute('data-canvas-snap-guide-source')).toBe('object')
+    expect(guide?.getAttribute('data-canvas-snap-guide-orientation')).toBe('vertical')
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 21,
+      clientX: 604,
+      clientY: 340
+    })
+
+    const moved = nodes.get(mover.id)
+    expect(moved?.position.x).toBe(106)
+    expect(surface.querySelector('[data-canvas-v3-snap-guide="true"]')).toBeNull()
+  })
+
   it('resizes a selected v3 object from a resize handle', () => {
     const doc = createCanvasTestDoc()
     const onSceneMutation = vi.fn()

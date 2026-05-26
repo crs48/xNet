@@ -1428,7 +1428,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add first-pass Canvas v3 lock indicators for locked DOM islands and hide resize handles for locked selections.
 - [x] Resize objects with minimum dimensions, aspect-ratio constraints for media, and object-specific resize policies for docs, databases, PDFs, frames, and embeds.
 - [x] Add first-pass Canvas v3 media corner-resize aspect-ratio preservation through centralized resize policies.
-- [ ] Add grid snapping, smart guides, equal-spacing guides, frame-edge snapping, and a temporary modifier to disable snapping.
+- [x] Add grid snapping, smart guides, equal-spacing guides, frame-edge snapping, and a temporary modifier to disable snapping.
 - [x] Add first-pass Canvas v3 grid snapping for drag previews and drag commits with Alt to temporarily disable snapping.
 - [x] Add keyboard nudge, large-step nudge, duplicate, delete, lock, group, frame, layer, open, and clear shortcuts.
 - [x] Add first-pass Canvas v3 keyboard shortcuts for nudge, large-step nudge, lock, connect, frame wrap, and layer movement.

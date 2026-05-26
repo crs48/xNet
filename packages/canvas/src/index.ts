@@ -228,6 +228,7 @@ export {
   getUnlockedSelection
 } from './selection/scene-operations'
 export { getCanvasResizePolicy } from './selection/resize-policy'
+export { createCanvasSmartSnap } from './selection/snap-guides'
 export type {
   CanvasContainerRole,
   CanvasLockUpdate,
@@ -236,6 +237,7 @@ export type {
   CreateGroupSelectionNodeOptions
 } from './selection/scene-operations'
 export type { CanvasResizePolicy } from './selection/resize-policy'
+export type { CanvasSmartSnapResult, CanvasSnapGuideSegment } from './selection/snap-guides'
 
 export {
   CANVAS_INTERNAL_NODE_MIME,

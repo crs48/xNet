@@ -62,6 +62,7 @@ import {
   type CanvasLockUpdate,
   type CanvasPositionUpdate
 } from '../selection/scene-operations'
+import { createCanvasSmartSnap, type CanvasSnapGuideSegment } from '../selection/snap-guides'
 import { Viewport } from '../spatial'
 import { createEdge, generateNodeId } from '../store'
 import { type CanvasThemeTokens, useCanvasThemeTokens } from '../theme/canvas-theme'
@@ -306,6 +307,7 @@ const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
 const CANVAS_OBJECT_HIT_TARGET_PADDING = 8
 const CANVAS_OBJECT_MIN_HIT_TARGET_SIZE = 36
+const SMART_GUIDE_SCREEN_THRESHOLD = 8
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -455,6 +457,16 @@ function getScreenRectForObject(
   return getScreenRectForCanvasRect(object.position, viewport, viewportSize)
 }
 
+function getScreenPointForCanvasPoint(
+  point: Point,
+  viewport: ViewportState,
+  viewportSize: Size
+): Point {
+  const camera = createCanvasCameraForViewport(viewport, viewportSize)
+
+  return worldToScreenPoint(camera, createWorldPointFromCanvasPoint(point))
+}
+
 function getScreenRectForCanvasRect(rect: Rect, viewport: ViewportState, viewportSize: Size): Rect {
   const camera = createCanvasCameraForViewport(viewport, viewportSize)
   const topLeft = worldToScreenPoint(
@@ -474,6 +486,30 @@ function getScreenRectForCanvasRect(rect: Rect, viewport: ViewportState, viewpor
     y: Math.min(topLeft.y, bottomRight.y),
     width: Math.abs(bottomRight.x - topLeft.x),
     height: Math.abs(bottomRight.y - topLeft.y)
+  }
+}
+
+function getScreenLineForSnapGuide(
+  guide: CanvasSnapGuideSegment,
+  viewport: ViewportState,
+  viewportSize: Size
+): { x1: number; y1: number; x2: number; y2: number } {
+  const startPoint =
+    guide.orientation === 'vertical'
+      ? { x: guide.position, y: guide.start }
+      : { x: guide.start, y: guide.position }
+  const endPoint =
+    guide.orientation === 'vertical'
+      ? { x: guide.position, y: guide.end }
+      : { x: guide.end, y: guide.position }
+  const start = getScreenPointForCanvasPoint(startPoint, viewport, viewportSize)
+  const end = getScreenPointForCanvasPoint(endPoint, viewport, viewportSize)
+
+  return {
+    x1: start.x,
+    y1: start.y,
+    x2: end.x,
+    y2: end.y
   }
 }
 
@@ -978,6 +1014,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
   const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null)
+  const [activeSnapGuides, setActiveSnapGuides] = useState<CanvasSnapGuideSegment[]>([])
   const [connectorStart, setConnectorStart] = useState<ConnectorStart | null>(null)
   const [activeSelectionPopover, setActiveSelectionPopover] = useState<SelectionPopover | null>(
     null
@@ -1045,6 +1082,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     setSelectedNodeIds(new Set())
     setFocusedNodeId(null)
     setConnectorStart(null)
+    setActiveSnapGuides([])
   }, [])
 
   const selectNodes = useCallback((nodeIds: string[]) => {
@@ -1668,18 +1706,90 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [applySelectionPositionUpdates, doc, viewport.zoom]
   )
 
-  const createSnappedDragScreenDelta = useCallback(
-    (screenDelta: Point, snapDisabled: boolean): Point => {
-      if (snapDisabled || !snapGridSize) {
-        return screenDelta
+  const createSnappedDragPreviewState = useCallback(
+    (
+      dragState: NodeDragState,
+      screenDelta: Point,
+      snapDisabled: boolean
+    ): { screenDelta: Point; guides: CanvasSnapGuideSegment[] } => {
+      if (snapDisabled) {
+        return {
+          screenDelta,
+          guides: []
+        }
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const movingIds = new Set(dragState.nodeIds)
+      const movingNodes = getUnlockedSelection(
+        dragState.nodeIds
+          .map((id) => {
+            const node = objects.get(id)
+            const origin = dragState.originPositions.get(id)
+
+            return node && origin
+              ? {
+                  ...node,
+                  position: {
+                    ...node.position,
+                    x: origin.x,
+                    y: origin.y
+                  }
+                }
+              : null
+          })
+          .filter((node): node is CanvasNode => node !== null)
+      )
+      const movingBounds = getSelectionBounds(movingNodes)
+      const rawCanvasDelta = {
+        x: screenDelta.x / viewport.zoom,
+        y: screenDelta.y / viewport.zoom
+      }
+
+      if (!movingBounds) {
+        return {
+          screenDelta: snapGridSize
+            ? {
+                x: snapCanvasValue(rawCanvasDelta.x, snapGridSize) * viewport.zoom,
+                y: snapCanvasValue(rawCanvasDelta.y, snapGridSize) * viewport.zoom
+              }
+            : screenDelta,
+          guides: []
+        }
+      }
+
+      const smartSnap = createCanvasSmartSnap({
+        movingBounds,
+        canvasDelta: rawCanvasDelta,
+        stationaryNodes: Array.from(objects.values()).filter((node) => !movingIds.has(node.id)),
+        threshold: SMART_GUIDE_SCREEN_THRESHOLD / viewport.zoom
+      })
+      const hasVerticalGuide = smartSnap.guides.some((guide) => guide.orientation === 'vertical')
+      const hasHorizontalGuide = smartSnap.guides.some(
+        (guide) => guide.orientation === 'horizontal'
+      )
+      const canvasDelta = {
+        x: hasVerticalGuide
+          ? smartSnap.canvasDelta.x
+          : snapGridSize
+            ? snapCanvasValue(rawCanvasDelta.x, snapGridSize)
+            : rawCanvasDelta.x,
+        y: hasHorizontalGuide
+          ? smartSnap.canvasDelta.y
+          : snapGridSize
+            ? snapCanvasValue(rawCanvasDelta.y, snapGridSize)
+            : rawCanvasDelta.y
       }
 
       return {
-        x: snapCanvasValue(screenDelta.x / viewport.zoom, snapGridSize) * viewport.zoom,
-        y: snapCanvasValue(screenDelta.y / viewport.zoom, snapGridSize) * viewport.zoom
+        screenDelta: {
+          x: canvasDelta.x * viewport.zoom,
+          y: canvasDelta.y * viewport.zoom
+        },
+        guides: smartSnap.guides
       }
     },
-    [snapGridSize, viewport.zoom]
+    [doc, snapGridSize, viewport.zoom]
   )
 
   const createDragPreview = useCallback(
@@ -2067,6 +2177,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       })
       .filter((line) => [line.x1, line.y1, line.x2, line.y2].every(Number.isFinite))
   }, [getDragPreviewDeltaForConnectorEndpoint, scene.connectors, viewport, viewportSize])
+  const visibleSnapGuideLines = useMemo(() => {
+    return activeSnapGuides
+      .map((guide) => ({
+        ...guide,
+        ...getScreenLineForSnapGuide(guide, viewport, viewportSize)
+      }))
+      .filter((line) => [line.x1, line.y1, line.x2, line.y2].every(Number.isFinite))
+  }, [activeSnapGuides, viewport, viewportSize])
 
   const createSurfaceEventContext = useCallback(
     (): CanvasSurfaceEventContext => ({
@@ -2109,6 +2227,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           y: event.clientY
         })
         setDragPreview(null)
+        setActiveSnapGuides([])
         containerRef.current?.setPointerCapture?.(event.pointerId)
       }
     },
@@ -2130,6 +2249,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       event.stopPropagation()
       setFocusedNodeId(objectId)
       setSelectedNodeIds(new Set([objectId]))
+      setActiveSnapGuides([])
       nodeResizeRef.current = {
         pointerId: event.pointerId,
         lastClientPoint: { x: event.clientX, y: event.clientY },
@@ -2201,15 +2321,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           x: event.clientX - nodeDrag.startClientPoint.x,
           y: event.clientY - nodeDrag.startClientPoint.y
         }
-        const screenDelta = createSnappedDragScreenDelta(rawScreenDelta, event.altKey)
+        const snapPreview = createSnappedDragPreviewState(nodeDrag, rawScreenDelta, event.altKey)
 
         nodeDragRef.current = {
           ...nodeDrag,
-          screenDelta
+          screenDelta: snapPreview.screenDelta
         }
-        setDragPreview(createDragPreview(nodeDrag.nodeIds, screenDelta))
+        setDragPreview(createDragPreview(nodeDrag.nodeIds, snapPreview.screenDelta))
+        setActiveSnapGuides(snapPreview.guides)
         awareness?.setLocalStateField('activity', 'dragging')
-        const interaction = createDragInteraction({ ...nodeDrag, screenDelta })
+        const interaction = createDragInteraction({
+          ...nodeDrag,
+          screenDelta: snapPreview.screenDelta
+        })
 
         if (interaction) {
           awareness?.setLocalStateField('canvasInteraction', interaction)
@@ -2236,7 +2360,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       createDragInteraction,
       createDragPreview,
       createResizeInteraction,
-      createSnappedDragScreenDelta,
+      createSnappedDragPreviewState,
       resizeNodeByScreenDelta,
       screenToCanvasPoint,
       setViewportClamped
@@ -2247,6 +2371,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (nodeResizeRef.current?.pointerId === event.pointerId) {
         nodeResizeRef.current = null
+        setActiveSnapGuides([])
         awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
         awareness?.setLocalStateField('canvasInteraction', null)
       }
@@ -2259,6 +2384,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
         nodeDragRef.current = null
         setDragPreview(null)
+        setActiveSnapGuides([])
         awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
         awareness?.setLocalStateField('canvasInteraction', null)
       }
@@ -2600,6 +2726,31 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           />
         ))}
       </svg>
+
+      {visibleSnapGuideLines.length > 0 ? (
+        <svg
+          style={styles.snapGuideLayer}
+          aria-hidden="true"
+          data-canvas-v3-snap-guide-layer="true"
+        >
+          {visibleSnapGuideLines.map((line) => (
+            <line
+              key={line.id}
+              x1={line.x1}
+              y1={line.y1}
+              x2={line.x2}
+              y2={line.y2}
+              stroke={theme.minimapViewportStroke}
+              strokeWidth={1.5}
+              strokeDasharray={line.source === 'spacing' ? '3 5' : undefined}
+              strokeLinecap="round"
+              data-canvas-v3-snap-guide="true"
+              data-canvas-snap-guide-source={line.source}
+              data-canvas-snap-guide-orientation={line.orientation}
+            />
+          ))}
+        </svg>
+      ) : null}
 
       {!vectorLayerAvailable
         ? screenObjects
@@ -3142,6 +3293,15 @@ const styles: Record<string, React.CSSProperties> = {
     height: '100%',
     pointerEvents: 'none',
     overflow: 'visible'
+  },
+  snapGuideLayer: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    pointerEvents: 'none',
+    overflow: 'visible',
+    zIndex: 15
   },
   vectorFallbackObject: {
     position: 'absolute',
