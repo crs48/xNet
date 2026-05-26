@@ -9,6 +9,7 @@ import type {
   CanvasConfig,
   CanvasDistributionAxis,
   CanvasEdge,
+  CanvasEdgeRelationshipKind,
   CanvasLayerDirection,
   CanvasNode,
   CanvasNodeProperties,
@@ -324,9 +325,20 @@ type ResizePreviewState = {
   rects: ReadonlyMap<string, Rect>
 }
 
-type SelectionPopover = 'dimensions' | 'shape-style' | 'sticky-note' | 'frame-variant'
+type SelectionPopover =
+  | 'dimensions'
+  | 'shape-style'
+  | 'sticky-note'
+  | 'frame-variant'
+  | 'media-fit'
+  | 'pdf-page'
+  | 'edge-type'
+  | 'references'
+  | 'source-bulk'
+  | 'plugin-fields'
 
 type DimensionField = 'x' | 'y' | 'width' | 'height'
+type CanvasMediaFit = 'contain' | 'cover' | 'fill'
 type CanvasNodePropertiesUpdate = {
   id: string
   properties: CanvasNodeProperties
@@ -349,6 +361,12 @@ type CanvasSelectionCapabilities = {
   canEditShapeStyle: boolean
   canEditStickyNote: boolean
   canEditFrameVariant: boolean
+  canEditMediaFit: boolean
+  canInspectPdfPage: boolean
+  canEditEdgeType: boolean
+  canInspectReferences: boolean
+  canInspectSourceBulk: boolean
+  canInspectPluginFields: boolean
   canToggleMindMapCollapse: boolean
   canDuplicate: boolean
   canToggleLock: boolean
@@ -464,6 +482,25 @@ const STICKY_NOTE_PROMOTION_TARGETS: readonly CanvasStickyNotePromotionTarget[] 
   'page',
   'task',
   'database-row'
+]
+const MEDIA_FIT_OPTIONS: readonly {
+  fit: CanvasMediaFit
+  label: string
+  description: string
+}[] = [
+  { fit: 'contain', label: 'Fit', description: 'Show the whole asset inside the card.' },
+  { fit: 'cover', label: 'Fill', description: 'Fill the card and crop overflow.' },
+  { fit: 'fill', label: 'Stretch', description: 'Stretch the asset to the card bounds.' }
+]
+const EDGE_TYPE_OPTIONS: readonly {
+  kind: CanvasEdgeRelationshipKind
+  label: string
+  description: string
+}[] = [
+  { kind: 'relates-to', label: 'Related', description: 'Loose planning relationship.' },
+  { kind: 'references', label: 'References', description: 'Source cites or points at target.' },
+  { kind: 'depends-on', label: 'Depends on', description: 'Source needs target first.' },
+  { kind: 'blocks', label: 'Blocks', description: 'Source blocks target progress.' }
 ]
 const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
@@ -618,6 +655,107 @@ function hasLiveIframeSurface(node: CanvasNode): boolean {
   )
 }
 
+function isCanvasMediaLikeNode(node: CanvasNode | null | undefined): boolean {
+  return node?.type === 'media' || node?.type === 'image' || node?.type === 'embed'
+}
+
+function isCanvasPdfNode(node: CanvasNode | null | undefined): boolean {
+  if (!node) {
+    return false
+  }
+
+  const mimeType = typeof node.properties.mimeType === 'string' ? node.properties.mimeType : ''
+  const mediaKind = typeof node.properties.kind === 'string' ? node.properties.kind : ''
+
+  return mimeType === 'application/pdf' || mediaKind === 'pdf' || mediaKind === 'pdf-page'
+}
+
+function isCanvasSourceBackedNode(node: CanvasNode | null | undefined): boolean {
+  return Boolean(node?.sourceNodeId ?? node?.linkedNodeId)
+}
+
+function getCanvasPluginFieldEntries(node: CanvasNode | null | undefined): string[] {
+  const fields = node?.properties.pluginFields
+
+  if (!Array.isArray(fields)) {
+    return []
+  }
+
+  return fields
+    .map((field, index) => {
+      if (typeof field === 'string') {
+        return field
+      }
+
+      if (!field || typeof field !== 'object') {
+        return `Field ${index + 1}`
+      }
+
+      const record = field as Record<string, unknown>
+      const label = record.label ?? record.name ?? record.key ?? record.id
+
+      return typeof label === 'string' && label.trim().length > 0
+        ? label.trim()
+        : `Field ${index + 1}`
+    })
+    .filter((field) => field.length > 0)
+}
+
+function hasCanvasPluginMetadata(node: CanvasNode | null | undefined): boolean {
+  if (!node) {
+    return false
+  }
+
+  return (
+    getCanvasPluginFieldEntries(node).length > 0 ||
+    typeof node.properties.pluginId === 'string' ||
+    typeof node.properties.pluginContributionId === 'string'
+  )
+}
+
+function countSourceBackedNodes(nodes: readonly CanvasNode[]): number {
+  return nodes.filter(isCanvasSourceBackedNode).length
+}
+
+function getPositiveIntegerProperty(
+  properties: CanvasNodeProperties,
+  key: string,
+  fallback: number
+): number {
+  const value = properties[key]
+
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : fallback
+}
+
+function isCanvasEdgeBetweenNodeIds(
+  edge: CanvasEdge,
+  firstNodeId: string,
+  secondNodeId: string
+): boolean {
+  const [sourceId, targetId] = getCanvasEdgeNodeIds(edge)
+
+  return (
+    (sourceId === firstNodeId && targetId === secondNodeId) ||
+    (sourceId === secondNodeId && targetId === firstNodeId)
+  )
+}
+
+function findCanvasEdgeEntryBetweenNodes(
+  connectors: Y.Map<CanvasEdge>,
+  firstNodeId: string,
+  secondNodeId: string
+): readonly [string, CanvasEdge] | null {
+  for (const entry of connectors.entries()) {
+    const [edgeId, edge] = entry
+
+    if (isCanvasEdgeBetweenNodeIds(edge, firstNodeId, secondNodeId)) {
+      return [edgeId, edge]
+    }
+  }
+
+  return null
+}
+
 function createSelectionCapabilities(input: {
   nodes: readonly CanvasNode[]
   hasOpenHandler: boolean
@@ -629,6 +767,7 @@ function createSelectionCapabilities(input: {
   const firstNode = input.nodes[0] ?? null
   const hasSelection = selectionCount > 0
   const hasUnlockedSelection = unlockedCount > 0
+  const sourceBackedCount = countSourceBackedNodes(input.nodes)
 
   return {
     canOpen: selectionCount === 1 && input.hasOpenHandler,
@@ -646,6 +785,22 @@ function createSelectionCapabilities(input: {
       unlockedCount === 1 &&
       firstNode !== null &&
       getCanvasContainerRole(firstNode) === 'frame',
+    canEditMediaFit:
+      selectionCount === 1 &&
+      unlockedCount === 1 &&
+      firstNode !== null &&
+      isCanvasMediaLikeNode(firstNode),
+    canInspectPdfPage:
+      selectionCount === 1 &&
+      unlockedCount === 1 &&
+      firstNode !== null &&
+      isCanvasPdfNode(firstNode),
+    canEditEdgeType: selectionCount === 2 && unlockedCount === 2,
+    canInspectReferences:
+      selectionCount === 1 && firstNode !== null && isCanvasSourceBackedNode(firstNode),
+    canInspectSourceBulk: sourceBackedCount > 1,
+    canInspectPluginFields:
+      selectionCount === 1 && firstNode !== null && hasCanvasPluginMetadata(firstNode),
     canToggleMindMapCollapse:
       selectionCount === 1 &&
       unlockedCount === 1 &&
@@ -1615,6 +1770,408 @@ function CanvasSelectionFrameVariantPopover({
   )
 }
 
+function CanvasSelectionMediaFitPopover({
+  node,
+  theme,
+  style,
+  onUpdate
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+  onUpdate: (properties: CanvasNodeProperties) => void
+}) {
+  const selectedFit =
+    node.properties.objectFit === 'cover' || node.properties.objectFit === 'fill'
+      ? node.properties.objectFit
+      : 'contain'
+  const alt = typeof node.properties.alt === 'string' ? node.properties.alt : ''
+  const caption = typeof node.properties.caption === 'string' ? node.properties.caption : ''
+  const mimeType =
+    typeof node.properties.mimeType === 'string' && node.properties.mimeType.trim().length > 0
+      ? node.properties.mimeType
+      : 'media'
+
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.mediaFitPopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Media crop and fit"
+      data-canvas-v3-media-fit-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Crop" theme={theme}>
+        <div style={styles.popoverActionGrid}>
+          {MEDIA_FIT_OPTIONS.map((option) => {
+            const active = option.fit === selectedFit
+
+            return (
+              <button
+                key={option.fit}
+                type="button"
+                aria-label={`${option.label} media`}
+                title={option.description}
+                style={{
+                  ...styles.popoverActionButton,
+                  color: theme.panelText,
+                  background: active ? theme.minimapViewportFill : theme.surfaceBackground,
+                  borderColor: active ? theme.minimapViewportStroke : theme.panelBorder
+                }}
+                data-canvas-v3-media-fit={option.fit}
+                data-active={active ? 'true' : 'false'}
+                onClick={() => onUpdate({ objectFit: option.fit })}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+        <span style={{ ...styles.popoverDescription, color: theme.panelMutedText }}>
+          {mimeType}
+        </span>
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Alt" theme={theme}>
+        <input
+          type="text"
+          value={alt}
+          aria-label="Alt text"
+          style={{
+            ...styles.selectionPopoverInput,
+            color: theme.panelText,
+            background: theme.surfaceBackground,
+            borderColor: theme.panelBorder
+          }}
+          onChange={(event) => onUpdate({ alt: event.currentTarget.value })}
+        />
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Caption" theme={theme}>
+        <textarea
+          value={caption}
+          aria-label="Caption"
+          style={{
+            ...styles.popoverTextarea,
+            color: theme.panelText,
+            background: theme.surfaceBackground,
+            borderColor: theme.panelBorder
+          }}
+          onChange={(event) => onUpdate({ caption: event.currentTarget.value })}
+        />
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
+function CanvasSelectionPdfPagePopover({
+  node,
+  theme,
+  style,
+  onUpdate
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+  onUpdate: (properties: CanvasNodeProperties) => void
+}) {
+  const pageCount = getPositiveIntegerProperty(node.properties, 'pageCount', 1)
+  const pageNumber = clamp(
+    getPositiveIntegerProperty(node.properties, 'pageNumber', 1),
+    1,
+    pageCount
+  )
+  const getPageAnchorId = (selectedPageNumber: number): string =>
+    `${node.id}:page:${selectedPageNumber}`
+  const pageAnchorId =
+    typeof node.properties.pageAnchorId === 'string' && node.properties.pageAnchorId.length > 0
+      ? node.properties.pageAnchorId
+      : getPageAnchorId(pageNumber)
+  const setPageNumber = (nextPageNumber: number) => {
+    const clampedPageNumber = clamp(Math.round(nextPageNumber), 1, pageCount)
+
+    onUpdate({
+      pageNumber: clampedPageNumber,
+      pageAnchorId: getPageAnchorId(clampedPageNumber)
+    })
+  }
+
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.pdfPagePopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="PDF page controls"
+      data-canvas-v3-pdf-page-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Page" theme={theme}>
+        <div style={styles.popoverActionGrid}>
+          <button
+            type="button"
+            aria-label="Previous PDF page"
+            title="Previous PDF page"
+            disabled={pageNumber <= 1}
+            style={{
+              ...styles.popoverActionButton,
+              color: pageNumber <= 1 ? theme.panelButtonDisabled : theme.panelText,
+              background: theme.surfaceBackground,
+              borderColor: theme.panelBorder
+            }}
+            onClick={() => setPageNumber(pageNumber - 1)}
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            aria-label="Next PDF page"
+            title="Next PDF page"
+            disabled={pageNumber >= pageCount}
+            style={{
+              ...styles.popoverActionButton,
+              color: pageNumber >= pageCount ? theme.panelButtonDisabled : theme.panelText,
+              background: theme.surfaceBackground,
+              borderColor: theme.panelBorder
+            }}
+            onClick={() => setPageNumber(pageNumber + 1)}
+          >
+            Next
+          </button>
+        </div>
+      </CanvasShapePopoverSection>
+
+      <label style={styles.selectionPopoverField}>
+        <span style={{ ...styles.selectionPopoverLabel, color: theme.panelMutedText }}>
+          Page number
+        </span>
+        <input
+          type="number"
+          min={1}
+          max={pageCount}
+          value={pageNumber}
+          aria-label="PDF page number"
+          style={{
+            ...styles.selectionPopoverInput,
+            color: theme.panelText,
+            background: theme.surfaceBackground,
+            borderColor: theme.panelBorder
+          }}
+          onChange={(event) => {
+            const value = Number(event.currentTarget.value)
+
+            if (Number.isFinite(value)) {
+              setPageNumber(value)
+            }
+          }}
+        />
+      </label>
+
+      <CanvasShapePopoverSection label="Anchor" theme={theme}>
+        <span style={{ ...styles.popoverCodeValue, color: theme.panelText }}>{pageAnchorId}</span>
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
+function CanvasSelectionEdgeTypePopover({
+  theme,
+  style,
+  currentKind,
+  onSelect
+}: {
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+  currentKind: CanvasEdgeRelationshipKind | null
+  onSelect: (kind: CanvasEdgeRelationshipKind) => void
+}) {
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.edgeTypePopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Edge type"
+      data-canvas-v3-edge-type-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Relationship" theme={theme}>
+        <div style={styles.edgeTypeGrid}>
+          {EDGE_TYPE_OPTIONS.map((option) => {
+            const active = option.kind === currentKind
+
+            return (
+              <button
+                key={option.kind}
+                type="button"
+                aria-label={`${option.label} edge`}
+                title={option.description}
+                style={{
+                  ...styles.frameVariantButton,
+                  color: theme.panelText,
+                  background: active ? theme.minimapViewportFill : theme.surfaceBackground,
+                  borderColor: active ? theme.minimapViewportStroke : theme.panelBorder
+                }}
+                data-canvas-v3-edge-type={option.kind}
+                data-active={active ? 'true' : 'false'}
+                onClick={() => onSelect(option.kind)}
+              >
+                <span style={styles.frameVariantTitle}>{option.label}</span>
+                <span style={{ ...styles.frameVariantDescription, color: theme.panelMutedText }}>
+                  {option.description}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
+function CanvasSelectionReferencesPopover({
+  node,
+  theme,
+  style
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+}) {
+  const sourceNodeId = node.sourceNodeId ?? node.linkedNodeId ?? 'canvas-local'
+  const sourceSchemaId = node.sourceSchemaId ?? 'untyped'
+
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.referencesPopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Source reference"
+      data-canvas-v3-references-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Reference" theme={theme}>
+        <div style={styles.popoverMetaGrid}>
+          <span style={{ ...styles.selectionPopoverLabel, color: theme.panelMutedText }}>Node</span>
+          <span style={{ ...styles.popoverCodeValue, color: theme.panelText }}>{sourceNodeId}</span>
+          <span style={{ ...styles.selectionPopoverLabel, color: theme.panelMutedText }}>
+            Schema
+          </span>
+          <span style={{ ...styles.popoverCodeValue, color: theme.panelText }}>
+            {sourceSchemaId}
+          </span>
+        </div>
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
+function CanvasSelectionSourceBulkPopover({
+  nodes,
+  theme,
+  style
+}: {
+  nodes: readonly CanvasNode[]
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+}) {
+  const sourceBackedNodes = nodes.filter(isCanvasSourceBackedNode)
+
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.referencesPopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Source references"
+      data-canvas-v3-source-bulk-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Selected sources" theme={theme}>
+        <div style={styles.popoverList}>
+          {sourceBackedNodes.map((node) => (
+            <span key={node.id} style={{ ...styles.popoverCodeValue, color: theme.panelText }}>
+              {node.sourceNodeId ?? node.linkedNodeId}
+            </span>
+          ))}
+        </div>
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
+function CanvasSelectionPluginFieldsPopover({
+  node,
+  theme,
+  style
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+}) {
+  const fields = getCanvasPluginFieldEntries(node)
+  const pluginId = typeof node.properties.pluginId === 'string' ? node.properties.pluginId : null
+  const contributionId =
+    typeof node.properties.pluginContributionId === 'string'
+      ? node.properties.pluginContributionId
+      : null
+
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.pluginFieldsPopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Plugin fields"
+      data-canvas-v3-plugin-fields-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Plugin" theme={theme}>
+        <div style={styles.popoverMetaGrid}>
+          <span style={{ ...styles.selectionPopoverLabel, color: theme.panelMutedText }}>ID</span>
+          <span style={{ ...styles.popoverCodeValue, color: theme.panelText }}>
+            {pluginId ?? 'canvas-native'}
+          </span>
+          <span style={{ ...styles.selectionPopoverLabel, color: theme.panelMutedText }}>Card</span>
+          <span style={{ ...styles.popoverCodeValue, color: theme.panelText }}>
+            {contributionId ?? 'default'}
+          </span>
+        </div>
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Fields" theme={theme}>
+        <div style={styles.popoverList}>
+          {fields.length > 0 ? (
+            fields.map((field) => (
+              <span key={field} style={{ ...styles.popoverCodeValue, color: theme.panelText }}>
+                {field}
+              </span>
+            ))
+          ) : (
+            <span style={{ ...styles.popoverDescription, color: theme.panelMutedText }}>
+              No custom fields advertised.
+            </span>
+          )}
+        </div>
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
 function isFiniteRect(value: unknown): value is Rect {
   if (!value || typeof value !== 'object') {
     return false
@@ -2192,6 +2749,87 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [doc, getSelectedNodes, onSceneMutation]
   )
 
+  const updateSelectionMediaProperties = useCallback(
+    (properties: CanvasNodeProperties): boolean => {
+      const selectedNodes = getSelectedNodes()
+      const node = selectedNodes[0] ?? null
+
+      if (selectedNodes.length !== 1 || !node || node.locked || !isCanvasMediaLikeNode(node)) {
+        return false
+      }
+
+      return applyNodePropertiesUpdates([
+        {
+          id: node.id,
+          properties
+        }
+      ])
+    },
+    [applyNodePropertiesUpdates, getSelectedNodes]
+  )
+
+  const updateSelectionPdfProperties = useCallback(
+    (properties: CanvasNodeProperties): boolean => {
+      const selectedNodes = getSelectedNodes()
+      const node = selectedNodes[0] ?? null
+
+      if (selectedNodes.length !== 1 || !node || node.locked || !isCanvasPdfNode(node)) {
+        return false
+      }
+
+      return applyNodePropertiesUpdates([
+        {
+          id: node.id,
+          properties
+        }
+      ])
+    },
+    [applyNodePropertiesUpdates, getSelectedNodes]
+  )
+
+  const updateSelectionEdgeRelationship = useCallback(
+    (kind: CanvasEdgeRelationshipKind): boolean => {
+      const selectedNodes = getSelectedNodes()
+      if (selectedNodes.length !== 2 || selectedNodes.some((node) => node.locked)) {
+        return false
+      }
+
+      const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+      const sourceNode = selectedNodes[0]
+      const targetNode = selectedNodes[1]
+      if (!sourceNode || !targetNode) {
+        return false
+      }
+
+      const existingEdge = findCanvasEdgeEntryBetweenNodes(connectors, sourceNode.id, targetNode.id)
+      const relationship = createCanvasEdgeRelationship({ kind })
+      const newEdge = existingEdge
+        ? null
+        : createEdge(sourceNode.id, targetNode.id, {
+            relationship
+          })
+
+      doc.transact(() => {
+        if (existingEdge) {
+          const [edgeId, edge] = existingEdge
+          connectors.set(edgeId, {
+            ...edge,
+            relationship
+          })
+          return
+        }
+
+        if (newEdge) {
+          connectors.set(newEdge.id, newEdge)
+        }
+      })
+      onSceneMutation?.()
+
+      return true
+    },
+    [doc, getSelectedNodes, onSceneMutation]
+  )
+
   const toggleSelectionLock = useCallback((): boolean => {
     return applyLockUpdates(createLockUpdates(getSelectedNodes()))
   }, [applyLockUpdates, getSelectedNodes])
@@ -2481,12 +3119,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
   const connectSelection = useCallback((): boolean => {
     const selectedNodes = getSelectedNodes()
-    if (selectedNodes.length !== 2) {
+    const sourceNode = selectedNodes[0]
+    const targetNode = selectedNodes[1]
+
+    if (selectedNodes.length !== 2 || !sourceNode || !targetNode) {
       return false
     }
 
     const connectors = getCanvasConnectorsMap(doc)
-    const edge = createEdge(selectedNodes[0].id, selectedNodes[1].id, {
+    const edge = createEdge(sourceNode.id, targetNode.id, {
       relationship: createCanvasEdgeRelationship({ kind: 'relates-to' })
     })
 
@@ -2711,19 +3352,50 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       (activeSelectionPopover === 'dimensions' && !selectionCapabilities.canEditDimensions) ||
       (activeSelectionPopover === 'shape-style' && !selectionCapabilities.canEditShapeStyle) ||
       (activeSelectionPopover === 'sticky-note' && !selectionCapabilities.canEditStickyNote) ||
-      (activeSelectionPopover === 'frame-variant' && !selectionCapabilities.canEditFrameVariant)
+      (activeSelectionPopover === 'frame-variant' && !selectionCapabilities.canEditFrameVariant) ||
+      (activeSelectionPopover === 'media-fit' && !selectionCapabilities.canEditMediaFit) ||
+      (activeSelectionPopover === 'pdf-page' && !selectionCapabilities.canInspectPdfPage) ||
+      (activeSelectionPopover === 'edge-type' && !selectionCapabilities.canEditEdgeType) ||
+      (activeSelectionPopover === 'references' && !selectionCapabilities.canInspectReferences) ||
+      (activeSelectionPopover === 'source-bulk' && !selectionCapabilities.canInspectSourceBulk) ||
+      (activeSelectionPopover === 'plugin-fields' && !selectionCapabilities.canInspectPluginFields)
     ) {
       setActiveSelectionPopover(null)
     }
   }, [
     activeSelectionPopover,
     selectionCapabilities.canEditDimensions,
+    selectionCapabilities.canEditEdgeType,
     selectionCapabilities.canEditFrameVariant,
+    selectionCapabilities.canEditMediaFit,
     selectionCapabilities.canEditShapeStyle,
-    selectionCapabilities.canEditStickyNote
+    selectionCapabilities.canEditStickyNote,
+    selectionCapabilities.canInspectPdfPage,
+    selectionCapabilities.canInspectPluginFields,
+    selectionCapabilities.canInspectReferences,
+    selectionCapabilities.canInspectSourceBulk
   ])
 
   const firstSelectedNode = selectedNodes[0] ?? null
+  const selectedPairEdgeKind = useMemo<CanvasEdgeRelationshipKind | null>(() => {
+    if (selectedNodes.length !== 2) {
+      return null
+    }
+
+    const firstNode = selectedNodes[0]
+    const secondNode = selectedNodes[1]
+    if (!firstNode || !secondNode) {
+      return null
+    }
+
+    const edge = findCanvasEdgeEntryBetweenNodes(
+      getCanvasConnectorsMap<CanvasEdge>(doc),
+      firstNode.id,
+      secondNode.id
+    )
+
+    return edge?.[1].relationship?.kind ?? null
+  }, [doc, scene.connectors, selectedNodes])
   const firstSelectedMindMapMetadata = firstSelectedNode
     ? getCanvasMindMapMetadata(firstSelectedNode)
     : null
@@ -4551,6 +5223,88 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             />
           ) : null}
 
+          {selectionCapabilities.canEditMediaFit ? (
+            <CanvasSelectionToolbarButton
+              action="media-fit"
+              label="Crop"
+              title="Edit media crop and fit"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'media-fit' ? null : 'media-fit'
+                )
+              }}
+            />
+          ) : null}
+
+          {selectionCapabilities.canInspectPdfPage ? (
+            <CanvasSelectionToolbarButton
+              action="pdf-page"
+              label="PDF"
+              title="Edit PDF page"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) => (current === 'pdf-page' ? null : 'pdf-page'))
+              }}
+            />
+          ) : null}
+
+          {selectionCapabilities.canEditEdgeType ? (
+            <CanvasSelectionToolbarButton
+              action="edge-type"
+              label="Edge"
+              title="Edit edge type"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'edge-type' ? null : 'edge-type'
+                )
+              }}
+            />
+          ) : null}
+
+          {selectionCapabilities.canInspectReferences ? (
+            <CanvasSelectionToolbarButton
+              action="references"
+              label="Source"
+              title="Open source reference"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'references' ? null : 'references'
+                )
+              }}
+            />
+          ) : null}
+
+          {selectionCapabilities.canInspectSourceBulk ? (
+            <CanvasSelectionToolbarButton
+              action="source-bulk"
+              label="Sources"
+              title="Open source references"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'source-bulk' ? null : 'source-bulk'
+                )
+              }}
+            />
+          ) : null}
+
+          {selectionCapabilities.canInspectPluginFields ? (
+            <CanvasSelectionToolbarButton
+              action="plugin-fields"
+              label="Plugin"
+              title="Open plugin fields"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'plugin-fields' ? null : 'plugin-fields'
+                )
+              }}
+            />
+          ) : null}
+
           {selectionCapabilities.canToggleMindMapCollapse ? (
             <CanvasSelectionToolbarButton
               action="mind-map-collapse"
@@ -4772,6 +5526,73 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           theme={theme}
           style={selectionPopoverStyle}
           onSelect={updateSelectionFrameVariant}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'media-fit' &&
+      firstSelectedNode &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canEditMediaFit ? (
+        <CanvasSelectionMediaFitPopover
+          node={firstSelectedNode}
+          theme={theme}
+          style={selectionPopoverStyle}
+          onUpdate={updateSelectionMediaProperties}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'pdf-page' &&
+      firstSelectedNode &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canInspectPdfPage ? (
+        <CanvasSelectionPdfPagePopover
+          node={firstSelectedNode}
+          theme={theme}
+          style={selectionPopoverStyle}
+          onUpdate={updateSelectionPdfProperties}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'edge-type' &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canEditEdgeType ? (
+        <CanvasSelectionEdgeTypePopover
+          theme={theme}
+          style={selectionPopoverStyle}
+          currentKind={selectedPairEdgeKind}
+          onSelect={updateSelectionEdgeRelationship}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'references' &&
+      firstSelectedNode &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canInspectReferences ? (
+        <CanvasSelectionReferencesPopover
+          node={firstSelectedNode}
+          theme={theme}
+          style={selectionPopoverStyle}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'source-bulk' &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canInspectSourceBulk ? (
+        <CanvasSelectionSourceBulkPopover
+          nodes={selectedNodes}
+          theme={theme}
+          style={selectionPopoverStyle}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'plugin-fields' &&
+      firstSelectedNode &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canInspectPluginFields ? (
+        <CanvasSelectionPluginFieldsPopover
+          node={firstSelectedNode}
+          theme={theme}
+          style={selectionPopoverStyle}
         />
       ) : null}
 
@@ -5050,6 +5871,31 @@ const styles: Record<string, React.CSSProperties> = {
     width: 'min(520px, calc(100% - 24px))',
     gap: 12
   },
+  mediaFitPopover: {
+    gridTemplateColumns: '1fr',
+    width: 'min(420px, calc(100% - 24px))',
+    gap: 12
+  },
+  pdfPagePopover: {
+    gridTemplateColumns: 'minmax(0, 1fr) 96px minmax(0, 1fr)',
+    width: 'min(460px, calc(100% - 24px))',
+    gap: 12
+  },
+  edgeTypePopover: {
+    gridTemplateColumns: '1fr',
+    width: 'min(560px, calc(100% - 24px))',
+    gap: 12
+  },
+  referencesPopover: {
+    gridTemplateColumns: '1fr',
+    width: 'min(460px, calc(100% - 24px))',
+    gap: 12
+  },
+  pluginFieldsPopover: {
+    gridTemplateColumns: '1fr',
+    width: 'min(480px, calc(100% - 24px))',
+    gap: 12
+  },
   shapePopoverSection: {
     minWidth: 0,
     display: 'flex',
@@ -5131,6 +5977,67 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 700,
     whiteSpace: 'nowrap'
+  },
+  popoverActionGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: 6
+  },
+  popoverActionButton: {
+    minWidth: 0,
+    height: 30,
+    border: '1px solid',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 700,
+    whiteSpace: 'nowrap'
+  },
+  popoverDescription: {
+    minWidth: 0,
+    fontSize: 11,
+    fontWeight: 600,
+    lineHeight: 1.25
+  },
+  popoverTextarea: {
+    width: '100%',
+    minWidth: 0,
+    minHeight: 64,
+    boxSizing: 'border-box',
+    border: '1px solid',
+    borderRadius: 6,
+    padding: 8,
+    resize: 'vertical',
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: 1.35
+  },
+  edgeTypeGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: 8
+  },
+  popoverMetaGrid: {
+    display: 'grid',
+    gridTemplateColumns: '72px minmax(0, 1fr)',
+    gap: '8px 10px',
+    alignItems: 'center'
+  },
+  popoverCodeValue: {
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontFamily:
+      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontSize: 11,
+    fontWeight: 700,
+    lineHeight: 1.25
+  },
+  popoverList: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: 6
   },
   frameVariantGrid: {
     display: 'grid',

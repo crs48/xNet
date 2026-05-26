@@ -694,6 +694,131 @@ describe('Canvas v3 active renderer', () => {
     ).toBeTruthy()
   })
 
+  it('edits media fit, PDF page, source, and plugin popovers from the toolbar', () => {
+    const doc = new Y.Doc()
+    const ref = React.createRef<CanvasHandle>()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const media = createNode(
+      'media',
+      { x: 0, y: 0, width: 320, height: 180 },
+      {
+        title: 'Reference Image',
+        kind: 'image',
+        mimeType: 'image/png',
+        pluginId: 'com.xnet.media-fixture',
+        pluginContributionId: 'media.image-card',
+        pluginFields: ['assetId', 'license']
+      }
+    )
+    const pdf = createNode(
+      'media',
+      { x: 360, y: 0, width: 280, height: 360 },
+      {
+        title: 'Spec PDF',
+        kind: 'pdf',
+        mimeType: 'application/pdf',
+        pageNumber: 2,
+        pageCount: 4
+      }
+    )
+
+    media.sourceNodeId = 'source-media-1'
+    media.sourceSchemaId = 'xnet://schema/MediaAsset'
+    pdf.sourceNodeId = 'source-pdf-1'
+    pdf.sourceSchemaId = 'xnet://schema/PdfAsset'
+    objects.set(media.id, media)
+    objects.set(pdf.id, pdf)
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    act(() => {
+      ref.current?.selectNodes([media.id])
+    })
+
+    const mediaToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(mediaToolbar).getByRole('button', { name: 'Edit media crop and fit' }))
+
+    const mediaPopover = screen.getByRole('dialog', { name: 'Media crop and fit' })
+    fireEvent.click(within(mediaPopover).getByRole('button', { name: 'Fill media' }))
+    fireEvent.change(within(mediaPopover).getByLabelText('Alt text'), {
+      target: { value: 'Architecture diagram thumbnail' }
+    })
+    fireEvent.change(within(mediaPopover).getByLabelText('Caption'), {
+      target: { value: 'Use this image in the launch plan.' }
+    })
+
+    expect(objects.get(media.id)?.properties).toMatchObject({
+      objectFit: 'cover',
+      alt: 'Architecture diagram thumbnail',
+      caption: 'Use this image in the launch plan.'
+    })
+
+    fireEvent.click(within(mediaToolbar).getByRole('button', { name: 'Open source reference' }))
+    expect(screen.getByRole('dialog', { name: 'Source reference' }).textContent).toContain(
+      'source-media-1'
+    )
+
+    fireEvent.click(within(mediaToolbar).getByRole('button', { name: 'Open plugin fields' }))
+    expect(screen.getByRole('dialog', { name: 'Plugin fields' }).textContent).toContain('assetId')
+
+    act(() => {
+      ref.current?.selectNodes([pdf.id])
+    })
+
+    const pdfToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(pdfToolbar).getByRole('button', { name: 'Edit PDF page' }))
+
+    const pdfPopover = screen.getByRole('dialog', { name: 'PDF page controls' })
+    fireEvent.click(within(pdfPopover).getByRole('button', { name: 'Next PDF page' }))
+    fireEvent.change(within(pdfPopover).getByLabelText('PDF page number'), {
+      target: { value: '4' }
+    })
+
+    expect(objects.get(pdf.id)?.properties).toMatchObject({
+      pageNumber: 4,
+      pageAnchorId: `${pdf.id}:page:4`
+    })
+  })
+
+  it('edits semantic edge type and bulk source references from the toolbar', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const sourceBackedShape = {
+      ...shape,
+      sourceNodeId: 'source-shape-1',
+      sourceSchemaId: 'xnet://schema/Decision'
+    }
+
+    objects.set(shape.id, sourceBackedShape)
+    render(<Canvas ref={ref} doc={doc} />)
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Open source references' }))
+
+    const sourcesPopover = screen.getByRole('dialog', { name: 'Source references' })
+    expect(sourcesPopover.textContent).toContain('source-page-1')
+    expect(sourcesPopover.textContent).toContain('source-shape-1')
+
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Edit edge type' }))
+
+    const edgePopover = screen.getByRole('dialog', { name: 'Edge type' })
+    fireEvent.click(within(edgePopover).getByRole('button', { name: 'References edge' }))
+
+    expect(connectors.get('edge-1')?.relationship).toEqual({
+      kind: 'references',
+      direction: 'directed'
+    })
+    expect(connectors.size).toBe(1)
+  })
+
   it('collapses mind map branches from the selection toolbar', () => {
     const doc = new Y.Doc()
     const objects = getCanvasObjectsMap<CanvasNode>(doc)

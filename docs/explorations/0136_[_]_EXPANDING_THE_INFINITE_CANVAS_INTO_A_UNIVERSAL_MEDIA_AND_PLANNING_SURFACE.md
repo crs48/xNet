@@ -1570,7 +1570,7 @@ controllers, object toolbars, and plugin command routing.
 - [ ] Drag single objects and multi-selections across tile boundaries and confirm positions persist after reload.
 - [ ] Resize images, PDFs, embeds, pages, databases, notes, frames, and shapes from all handles.
 - [x] Verify contextual toolbars stay anchored to selection bounds and do not cover active resize/drag handles.
-- [ ] Open style, dimensions, crop, PDF page, edge type, alias, source reference, and comment popovers from the selection toolbar.
+- [x] Open style, dimensions, crop, PDF page, edge type, alias, source reference, and comment popovers from the selection toolbar.
 - [ ] Verify grid snapping, smart guides, frame-edge snapping, equal spacing, and snap-disable modifier behavior.
 - [x] Paste a YouTube URL and confirm poster card, activation, fallback, and console cleanliness.
 - [x] Paste a Spotify playlist and confirm sizing, provider metadata, and live activation.
@@ -1591,6 +1591,10 @@ controllers, object toolbars, and plugin command routing.
 - Verified the contextual toolbar remains above the selected bounds and clear of active resize handles, with dimensions, shape style, alias, comment, and frame-variant popovers opening from selection controls.
 - Verified YouTube and Spotify URL paste create provider-specific live embeds with clean warning/error console logs.
 - Verified shift-select plus `Mod+Shift+K` creates a connector between the YouTube embed and database surface.
+
+2026-05-26 automated renderer validation notes:
+
+- Verified Canvas V3 toolbar coverage for media crop/fit, PDF page, source reference, plugin field, bulk source, and edge type popovers; crop/fill, alt/caption, PDF page anchors, and semantic edge relationship updates persist into the Yjs canvas scene.
 
 ### Security And Privacy
 
