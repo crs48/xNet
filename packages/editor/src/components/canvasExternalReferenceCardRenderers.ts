@@ -4,6 +4,7 @@
 
 import type { ExternalReferenceDescriptor, ExternalReferenceProvider } from '@xnetjs/data'
 import { parseExternalReferenceUrl } from '@xnetjs/data'
+import { createCanvasCardFieldId } from './canvasPermissionedCardFields'
 
 export type CanvasExternalReferenceCardRendererKind =
   | 'github-record'
@@ -25,6 +26,7 @@ export type CanvasExternalReferenceCardAccent =
   | 'slate'
 
 export type CanvasExternalReferenceCardMetadata = {
+  fieldId: string
   label: string
   value: string
 }
@@ -258,7 +260,8 @@ function compactMetadata(
 
 function createMetadata(
   label: string,
-  value: string | null | undefined
+  value: string | null | undefined,
+  fieldId = createCanvasCardFieldId(label)
 ): CanvasExternalReferenceCardMetadata | null {
   if (!value) {
     return null
@@ -270,6 +273,7 @@ function createMetadata(
   }
 
   return {
+    fieldId,
     label,
     value: normalized
   }

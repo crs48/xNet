@@ -106,6 +106,45 @@ describe('CanvasExternalReferenceCard', () => {
     expect(screen.getByText('456')).toBeInTheDocument()
   })
 
+  it('redacts restricted provider metadata fields without rendering raw values', () => {
+    render(
+      <CanvasExternalReferenceCard
+        title="openai PR #456"
+        url="https://github.com/openai/openai/pull/456"
+        provider="github"
+        subtitle="openai"
+        themeMode="light"
+        restrictedFields={[
+          {
+            label: 'Repo',
+            reason: 'missing-permission',
+            requiredPermission: 'github.repo:read'
+          }
+        ]}
+      />
+    )
+
+    const card = document.querySelector('[data-canvas-node-card="true"]')
+    const repoField = document.querySelector('[data-canvas-card-field="repo"]')
+    const numberField = document.querySelector('[data-canvas-card-field="number"]')
+
+    expect(card).toHaveAttribute('data-canvas-card-has-restricted-fields', 'true')
+    expect(repoField).toHaveAttribute('data-canvas-card-field-restricted', 'true')
+    expect(repoField).toHaveAttribute(
+      'data-canvas-card-field-restricted-reason',
+      'missing-permission'
+    )
+    expect(repoField).toHaveAttribute(
+      'data-canvas-card-field-required-permission',
+      'github.repo:read'
+    )
+    expect(repoField).toHaveTextContent('Repo')
+    expect(repoField).toHaveTextContent('Restricted')
+    expect(numberField).toHaveAttribute('data-canvas-card-field-restricted', 'false')
+    expect(screen.queryByText('openai/openai')).not.toBeInTheDocument()
+    expect(screen.getByText('456')).toBeInTheDocument()
+  })
+
   it('renders provider-specific live embed labels for video cards', () => {
     vi.mocked(fetch).mockRejectedValue(new Error('metadata unavailable'))
 

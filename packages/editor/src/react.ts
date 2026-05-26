@@ -36,6 +36,15 @@ export {
   type CreateCanvasExternalReferenceCardRendererInput
 } from './components/canvasExternalReferenceCardRenderers'
 export {
+  createCanvasCardFieldId,
+  createCanvasPermissionedCardField,
+  createCanvasPermissionedCardFields,
+  type CanvasCardField,
+  type CanvasPermissionedCardField,
+  type CanvasRestrictedCardField,
+  type CanvasRestrictedCardFieldReason
+} from './components/canvasPermissionedCardFields'
+export {
   createCanvasExternalReferenceEmbedFallback,
   type CanvasExternalReferenceEmbedFallback,
   type CanvasExternalReferenceEmbedFallbackReason,

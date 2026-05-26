@@ -17,6 +17,11 @@ import {
   type CanvasExternalReferenceCardAccent
 } from './canvasExternalReferenceCardRenderers'
 import { createCanvasExternalReferenceEmbedFallback } from './canvasExternalReferenceEmbedFallbacks'
+import {
+  createCanvasPermissionedCardField,
+  createCanvasPermissionedCardFields,
+  type CanvasRestrictedCardField
+} from './canvasPermissionedCardFields'
 
 export interface CanvasExternalReferenceCardProps {
   title: string
@@ -28,6 +33,7 @@ export interface CanvasExternalReferenceCardProps {
   status?: string | null
   embedPolicy?: ExternalReferenceEmbedPolicy | null
   defaultEmbedActivated?: boolean
+  restrictedFields?: readonly CanvasRestrictedCardField[] | null
   onEmbedActivationChange?: (activated: boolean) => void
   onFailedAction?: (action: CanvasFailedCardActionKind) => void
 }
@@ -283,6 +289,7 @@ export function CanvasExternalReferenceCard({
   status,
   embedPolicy,
   defaultEmbedActivated = false,
+  restrictedFields,
   onEmbedActivationChange,
   onFailedAction
 }: CanvasExternalReferenceCardProps): JSX.Element {
@@ -365,6 +372,20 @@ export function CanvasExternalReferenceCard({
   const resolvedMetadata = metadataResult?.status === 'resolved' ? metadataResult.metadata : null
   const resolvedTitle = resolvedMetadata?.title ?? title
   const resolvedSubtitle = resolvedMetadata?.subtitle ?? fallbackSubtitle
+  const permissionedTitle = createCanvasPermissionedCardField(
+    { fieldId: 'title', label: 'Title', value: resolvedTitle },
+    restrictedFields
+  )
+  const permissionedSubtitle = resolvedSubtitle
+    ? createCanvasPermissionedCardField(
+        { fieldId: 'subtitle', label: 'Subtitle', value: resolvedSubtitle },
+        restrictedFields
+      )
+    : null
+  const permissionedMetadata = createCanvasPermissionedCardFields(
+    cardRenderer.metadata,
+    restrictedFields
+  )
   const lifecycle = normalizeLifecycleStatus(status)
   const embedFallback = createCanvasExternalReferenceEmbedFallback({
     policyDecision: embedPolicyDecision,
@@ -376,8 +397,8 @@ export function CanvasExternalReferenceCard({
   const shouldRenderLiveEmbed =
     Boolean(allowedEmbedUrl && allowedEmbedPolicy) && embedFallback?.disablesLiveEmbed !== true
   const embedFrameTitle = useMemo(
-    () => `${providerLabel} embed for ${resolvedTitle}`,
-    [providerLabel, resolvedTitle]
+    () => `${providerLabel} embed for ${permissionedTitle.displayValue}`,
+    [permissionedTitle.displayValue, providerLabel]
   )
 
   return (
@@ -395,6 +416,15 @@ export function CanvasExternalReferenceCard({
       data-canvas-embed-fallback-reason={shouldRenderLiveEmbed ? undefined : embedFallback?.reason}
       data-canvas-provider-renderer={cardRenderer.kind}
       data-canvas-provider-accent={cardRenderer.accent}
+      data-canvas-card-has-restricted-fields={
+        [
+          ...permissionedMetadata,
+          permissionedTitle,
+          ...(permissionedSubtitle ? [permissionedSubtitle] : [])
+        ].some((field) => field.restricted)
+          ? 'true'
+          : 'false'
+      }
     >
       <div className="flex items-start justify-between gap-3">
         <span
@@ -423,31 +453,48 @@ export function CanvasExternalReferenceCard({
           <div
             className="line-clamp-2 text-base font-semibold leading-tight text-foreground"
             data-canvas-embed-title="true"
+            data-canvas-card-field="title"
+            data-canvas-card-field-restricted={permissionedTitle.restricted ? 'true' : 'false'}
+            data-canvas-card-field-restricted-reason={permissionedTitle.restrictionReason}
+            data-canvas-card-field-required-permission={permissionedTitle.requiredPermission}
           >
-            {resolvedTitle}
+            {permissionedTitle.displayValue}
           </div>
-          {resolvedSubtitle ? (
+          {permissionedSubtitle ? (
             <p
               className="truncate text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
               data-canvas-embed-subtitle="true"
+              data-canvas-card-field="subtitle"
+              data-canvas-card-field-restricted={permissionedSubtitle.restricted ? 'true' : 'false'}
+              data-canvas-card-field-restricted-reason={permissionedSubtitle.restrictionReason}
+              data-canvas-card-field-required-permission={permissionedSubtitle.requiredPermission}
             >
-              {resolvedSubtitle}
+              {permissionedSubtitle.displayValue}
             </p>
           ) : null}
         </div>
 
-        {cardRenderer.metadata.length > 0 ? (
+        {permissionedMetadata.length > 0 ? (
           <dl className="grid grid-cols-2 gap-2" data-canvas-provider-metadata="true">
-            {cardRenderer.metadata.map((entry) => (
+            {permissionedMetadata.map((entry) => (
               <div
-                key={`${entry.label}:${entry.value}`}
+                key={`${entry.label}:${entry.fieldId}`}
                 className={cn(
                   'min-w-0 rounded-lg border px-2 py-1.5 text-[11px]',
                   accentClasses.metadata
                 )}
+                data-canvas-card-field={entry.fieldId}
+                data-canvas-card-field-restricted={entry.restricted ? 'true' : 'false'}
+                data-canvas-card-field-restricted-reason={entry.restrictionReason}
+                data-canvas-card-field-required-permission={entry.requiredPermission}
               >
                 <dt className="font-medium">{entry.label}</dt>
-                <dd className="truncate">{entry.value}</dd>
+                <dd className="truncate">{entry.displayValue}</dd>
+                {entry.restricted && entry.requiredPermission ? (
+                  <span className="sr-only" data-canvas-card-field-required-permission-label="true">
+                    Requires {entry.requiredPermission}
+                  </span>
+                ) : null}
               </div>
             ))}
           </dl>
