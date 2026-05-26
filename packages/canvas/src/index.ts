@@ -474,11 +474,13 @@ export type {
 
 export {
   createAlignmentUpdates,
+  createClusterSelectionUpdates,
   createDistributionUpdates,
   createFrameSelectionNode,
   createGroupSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
+  createStackSelectionUpdates,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
   getCanvasContainerMemberIds,

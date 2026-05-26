@@ -4,10 +4,12 @@ import {
   createFrameSelectionNode,
   createGroupSelectionNode,
   createAlignmentUpdates,
+  createClusterSelectionUpdates,
   createDistributionUpdates,
   createLayerShiftUpdates,
   createLockUpdates,
   createResizeUpdate,
+  createStackSelectionUpdates,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
   getCanvasContainerMemberIds,
@@ -114,6 +116,36 @@ describe('scene operations', () => {
       { id: 'c', position: { x: 172, y: 20 } },
       { id: 'a', position: { x: 40, y: 132 } },
       { id: 'd', position: { x: 172, y: 132 } }
+    ])
+  })
+
+  it('clusters selections around their shared center', () => {
+    const nodes = [
+      createNode('a', { x: 0, y: 0, width: 100, height: 100 }),
+      createNode('b', { x: 200, y: 0, width: 100, height: 100 }),
+      createNode('c', { x: 0, y: 200, width: 100, height: 100 }),
+      createNode('d', { x: 200, y: 200, width: 100, height: 100 })
+    ]
+
+    expect(createClusterSelectionUpdates(nodes, 28)).toEqual([
+      { id: 'a', position: { x: 100, y: 0 } },
+      { id: 'b', position: { x: 200, y: 100 } },
+      { id: 'c', position: { x: 100, y: 200 } },
+      { id: 'd', position: { x: 0, y: 100 } }
+    ])
+  })
+
+  it('stacks selections from the shared top-left corner', () => {
+    const nodes = [
+      createNode('a', { x: 300, y: 220, width: 100, height: 80, zIndex: 4 }),
+      createNode('b', { x: 40, y: 20, width: 100, height: 80, zIndex: 2 }),
+      createNode('c', { x: 180, y: 120, width: 100, height: 80, zIndex: 7 })
+    ]
+
+    expect(createStackSelectionUpdates(nodes, { x: 24, y: 18 })).toEqual([
+      { id: 'b', position: { x: 40, y: 20, zIndex: 2 } },
+      { id: 'c', position: { x: 64, y: 38, zIndex: 3 } },
+      { id: 'a', position: { x: 88, y: 56, zIndex: 4 } }
     ])
   })
 

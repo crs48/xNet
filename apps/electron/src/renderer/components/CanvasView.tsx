@@ -164,6 +164,9 @@ export type CanvasViewHandle = {
   ) => boolean
   distributeSelection: (axis: CanvasDistributionAxis) => boolean
   tidySelection: () => boolean
+  clusterSelection: () => boolean
+  stackSelection: () => boolean
+  convertSelectionToMindMap: () => boolean
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
   connectSelection: () => boolean
   createShape: (shapeType?: ShapeType) => boolean
@@ -1001,6 +1004,18 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return canvasRef.current?.tidySelection() ?? false
   }, [])
 
+  const clusterSelection = useCallback((): boolean => {
+    return canvasRef.current?.clusterSelection() ?? false
+  }, [])
+
+  const stackSelection = useCallback((): boolean => {
+    return canvasRef.current?.stackSelection() ?? false
+  }, [])
+
+  const convertSelectionToMindMap = useCallback((): boolean => {
+    return canvasRef.current?.convertSelectionToMindMap() ?? false
+  }, [])
+
   const shiftSelectionLayer = useCallback((direction: CanvasLayerDirection): boolean => {
     return canvasRef.current?.shiftSelectionLayer(direction) ?? false
   }, [])
@@ -1630,6 +1645,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       alignSelection,
       distributeSelection,
       tidySelection,
+      clusterSelection,
+      stackSelection,
+      convertSelectionToMindMap,
       shiftSelectionLayer,
       connectSelection,
       createShape,
@@ -1647,6 +1665,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     [
       alignSelection,
       clearCanvasSelection,
+      clusterSelection,
+      convertSelectionToMindMap,
       createExternalReference,
       createFrame,
       createMindMap,
@@ -1664,6 +1684,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       resetCanvasView,
       restoreViewport,
       shiftSelectionLayer,
+      stackSelection,
       tidySelection,
       toggleSourceReferences,
       toggleSelectionLock,

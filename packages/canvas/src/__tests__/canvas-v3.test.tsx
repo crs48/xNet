@@ -16,6 +16,7 @@ import {
   createCanvasMindMapRootProperties,
   createCanvasStickyNoteNode,
   createNode,
+  getCanvasMindMapMetadata,
   getCanvasConnectorsMap,
   getCanvasObjectsMap
 } from '../index'
@@ -389,6 +390,55 @@ describe('Canvas v3 active renderer', () => {
     expect(objects.size).toBe(initialObjectCount + 2)
     expect(group).toBeTruthy()
     expect(frame).toBeTruthy()
+  })
+
+  it('clusters, stacks, and converts v3 selections through command handlers', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap(doc)
+    const initialConnectorCount = connectors.size
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+    act(() => {
+      expect(ref.current?.clusterSelection()).toBe(true)
+    })
+
+    expect(objects.get(page.id)?.position.x).not.toBe(page.position.x)
+    expect(objects.get(shape.id)?.position.y).not.toBe(shape.position.y)
+
+    act(() => {
+      expect(ref.current?.stackSelection()).toBe(true)
+    })
+
+    const stackedPage = objects.get(page.id)
+    const stackedShape = objects.get(shape.id)
+    expect(stackedPage?.position.zIndex).toBe(0)
+    expect(stackedShape?.position.zIndex).toBe(1)
+
+    act(() => {
+      expect(ref.current?.convertSelectionToMindMap()).toBe(true)
+    })
+
+    const mindMapNodes = Array.from(objects.values()).filter((node) =>
+      Boolean(getCanvasMindMapMetadata(node))
+    )
+    const root = mindMapNodes.find((node) => getCanvasMindMapMetadata(node)?.role === 'root')
+    const branches = mindMapNodes.filter(
+      (node) => getCanvasMindMapMetadata(node)?.role === 'branch'
+    )
+
+    expect(root).toBeTruthy()
+    expect(branches.map((node) => node.id).sort()).toEqual([page.id, shape.id].sort())
+    expect(branches.every((node) => node.type === 'shape')).toBe(true)
+    expect(connectors.size).toBe(initialConnectorCount + 2)
   })
 
   it('renders a contextual v3 selection toolbar and routes toolbar actions', () => {

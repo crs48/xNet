@@ -62,6 +62,7 @@ import {
 } from '../mind-map/branches'
 import {
   CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasMindMapBranchProperties,
   createCanvasMindMapRootProperties
 } from '../mind-map/creation'
 import { calculateLOD } from '../nodes/CanvasNodeComponent'
@@ -80,12 +81,14 @@ import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migr
 import { getCanvasResizePolicy } from '../selection/resize-policy'
 import {
   createAlignmentUpdates,
+  createClusterSelectionUpdates,
   createDistributionUpdates,
   createFrameSelectionNode,
   createGroupSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
   createResizeUpdate,
+  createStackSelectionUpdates,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
   getCanvasContainerRole,
@@ -178,9 +181,12 @@ export type CanvasHandle = {
   alignSelection: (alignment: CanvasAlignment) => boolean
   distributeSelection: (axis: CanvasDistributionAxis) => boolean
   tidySelection: () => boolean
+  clusterSelection: () => boolean
+  stackSelection: () => boolean
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
   groupSelection: () => boolean
   wrapSelectionInFrame: () => boolean
+  convertSelectionToMindMap: () => boolean
   connectSelection: () => boolean
   duplicateSelection: () => boolean
   deleteSelection: () => boolean
@@ -308,8 +314,11 @@ type CanvasSelectionCapabilities = {
   canAlign: boolean
   canDistribute: boolean
   canTidy: boolean
+  canCluster: boolean
+  canStack: boolean
   canGroup: boolean
   canWrapInFrame: boolean
+  canConvertToMindMap: boolean
   canShiftLayer: boolean
   canDelete: boolean
   canClear: boolean
@@ -456,6 +465,19 @@ function getObjectTitle(object: CanvasObjectRecord): string {
   return object.preview.title ?? object.kind.replace('-', ' ')
 }
 
+function getNodeTitle(node: CanvasNode, fallback: string): string {
+  const title =
+    typeof node.alias === 'string'
+      ? node.alias
+      : typeof node.properties.title === 'string'
+        ? node.properties.title
+        : typeof node.properties.label === 'string'
+          ? node.properties.label
+          : fallback
+
+  return title.trim().length > 0 ? title : fallback
+}
+
 function hasLiveIframeSurface(node: CanvasNode): boolean {
   return (
     node.type === 'external-reference' &&
@@ -503,8 +525,11 @@ function createSelectionCapabilities(input: {
     canAlign: selectionCount > 1 && unlockedCount > 1,
     canDistribute: selectionCount > 2 && unlockedCount > 2,
     canTidy: selectionCount > 1 && unlockedCount > 1,
+    canCluster: selectionCount > 1 && unlockedCount > 1,
+    canStack: selectionCount > 1 && unlockedCount > 1,
     canGroup: selectionCount > 1 && unlockedCount > 1,
     canWrapInFrame: hasUnlockedSelection,
+    canConvertToMindMap: hasUnlockedSelection,
     canShiftLayer: hasUnlockedSelection,
     canDelete: hasUnlockedSelection,
     canClear: hasSelection
@@ -1967,6 +1992,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     )
   }, [applySelectionPositionUpdates, getSelectedNodes])
 
+  const clusterSelection = useCallback((): boolean => {
+    return applySelectionPositionUpdates(
+      createClusterSelectionUpdates(getUnlockedSelection(getSelectedNodes()))
+    )
+  }, [applySelectionPositionUpdates, getSelectedNodes])
+
+  const stackSelection = useCallback((): boolean => {
+    return applySelectionPositionUpdates(
+      createStackSelectionUpdates(getUnlockedSelection(getSelectedNodes()))
+    )
+  }, [applySelectionPositionUpdates, getSelectedNodes])
+
   const shiftSelectionLayer = useCallback(
     (direction: CanvasLayerDirection): boolean => {
       return applySelectionPositionUpdates(
@@ -1993,6 +2030,81 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
     return true
   }, [doc, getSelectedNodes, onSceneMutation])
+
+  const convertSelectionToMindMap = useCallback((): boolean => {
+    const selectedNodes = getUnlockedSelection(getSelectedNodes())
+    if (selectedNodes.length === 0) {
+      return false
+    }
+
+    const bounds = getSelectionBounds(selectedNodes)
+    if (!bounds) {
+      return false
+    }
+
+    const rootRect = CANVAS_MIND_MAP_CREATION_TOOL.rootRect
+    const mapId = `mindmap-${generateNodeId()}`
+    const rootTitle =
+      selectedNodes.length === 1 ? getNodeTitle(selectedNodes[0], 'Mind map') : 'Mind map'
+    const rootProperties = createCanvasMindMapRootProperties({
+      title: rootTitle,
+      mapId
+    })
+    const rootNode = createCanvasPrimitiveNode({
+      objectKind: CANVAS_MIND_MAP_CREATION_TOOL.objectKind,
+      viewport,
+      title: rootTitle,
+      canvasPoint: {
+        x: bounds.x - 96 - rootRect.width / 2,
+        y: bounds.y + bounds.height / 2
+      },
+      rect: rootRect,
+      properties: rootProperties
+    })
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+
+    doc.transact(() => {
+      objects.set(rootNode.id, rootNode)
+
+      selectedNodes.forEach((node, index) => {
+        const title = getNodeTitle(node, `Branch ${index + 1}`)
+        objects.set(node.id, {
+          ...node,
+          type: 'shape',
+          properties: {
+            ...createCanvasMindMapBranchProperties({
+              title,
+              mapId,
+              parentId: rootNode.id,
+              depth: 1,
+              index
+            }),
+            convertedFrom: {
+              nodeId: node.id,
+              type: node.type,
+              ...(node.sourceNodeId ? { sourceNodeId: node.sourceNodeId } : {}),
+              ...(node.sourceSchemaId ? { sourceSchemaId: node.sourceSchemaId } : {})
+            }
+          }
+        })
+
+        const connector = {
+          ...createEdge(rootNode.id, node.id),
+          relationship: createCanvasEdgeRelationship({
+            kind: 'contains',
+            label: 'Branch'
+          })
+        }
+        connectors.set(connector.id, connector)
+      })
+    })
+    setSelectedNodeIds(new Set([rootNode.id, ...selectedNodes.map((node) => node.id)]))
+    setFocusedNodeId(rootNode.id)
+    onSceneMutation?.()
+
+    return true
+  }, [doc, getSelectedNodes, onSceneMutation, viewport])
 
   const groupSelection = useCallback((): boolean => {
     const selectedNodes = getUnlockedSelection(getSelectedNodes())
@@ -2777,9 +2889,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       alignSelection,
       distributeSelection,
       tidySelection,
+      clusterSelection,
+      stackSelection,
       shiftSelectionLayer,
       groupSelection,
       wrapSelectionInFrame,
+      convertSelectionToMindMap,
       connectSelection,
       duplicateSelection,
       deleteSelection,
@@ -2795,7 +2910,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [
       clearSelection,
       alignSelection,
+      clusterSelection,
       connectSelection,
+      convertSelectionToMindMap,
       createFrame,
       createMindMap,
       createShape,
@@ -2810,6 +2927,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       selectNodes,
       setViewportClamped,
       shiftSelectionLayer,
+      stackSelection,
       tidySelection,
       toggleSelectionLock,
       viewport,
@@ -4053,6 +4171,45 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               theme={theme}
               onClick={() => {
                 tidySelection()
+              }}
+            />
+          ) : null}
+
+          {selectedNodes.length > 1 ? (
+            <CanvasSelectionToolbarButton
+              action="cluster"
+              label="Cluster"
+              title="Cluster selection"
+              disabled={!selectionCapabilities.canCluster}
+              theme={theme}
+              onClick={() => {
+                clusterSelection()
+              }}
+            />
+          ) : null}
+
+          {selectedNodes.length > 1 ? (
+            <CanvasSelectionToolbarButton
+              action="stack"
+              label="Stack"
+              title="Stack selection"
+              disabled={!selectionCapabilities.canStack}
+              theme={theme}
+              onClick={() => {
+                stackSelection()
+              }}
+            />
+          ) : null}
+
+          {selectedNodes.length > 0 ? (
+            <CanvasSelectionToolbarButton
+              action="convert-mind-map"
+              label="Mind map"
+              title="Convert selection to mind map"
+              disabled={!selectionCapabilities.canConvertToMindMap}
+              theme={theme}
+              onClick={() => {
+                convertSelectionToMindMap()
               }}
             />
           ) : null}

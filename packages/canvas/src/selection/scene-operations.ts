@@ -299,6 +299,67 @@ export function createTidySelectionUpdates(
   })
 }
 
+export function createClusterSelectionUpdates(
+  nodes: CanvasNode[],
+  spacing = 28
+): CanvasPositionUpdate[] {
+  if (nodes.length < 2) {
+    return []
+  }
+
+  const bounds = getSelectionBounds(nodes)
+  if (!bounds) {
+    return []
+  }
+
+  const ordered = sortNodesByVisualOrder(nodes)
+  const centerX = bounds.x + bounds.width / 2
+  const centerY = bounds.y + bounds.height / 2
+  const maxWidth = Math.max(...ordered.map((node) => node.position.width))
+  const maxHeight = Math.max(...ordered.map((node) => node.position.height))
+  const radius = Math.max(maxWidth, maxHeight) * 0.72 + spacing
+
+  return ordered.map((node, index) => {
+    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / ordered.length
+
+    return {
+      id: node.id,
+      position: {
+        x: roundPosition(centerX + Math.cos(angle) * radius - node.position.width / 2),
+        y: roundPosition(centerY + Math.sin(angle) * radius - node.position.height / 2)
+      }
+    }
+  })
+}
+
+export function createStackSelectionUpdates(
+  nodes: CanvasNode[],
+  offset: { x?: number; y?: number } = {}
+): CanvasPositionUpdate[] {
+  if (nodes.length < 2) {
+    return []
+  }
+
+  const bounds = getSelectionBounds(nodes)
+  if (!bounds) {
+    return []
+  }
+
+  const ordered = sortNodesByVisualOrder(nodes)
+  const offsetX = offset.x ?? 32
+  const offsetY = offset.y ?? 32
+  const minZIndex = Math.min(...ordered.map((node) => node.position.zIndex ?? 0))
+
+  return ordered.map((node, index) => ({
+    id: node.id,
+    position: {
+      x: roundPosition(bounds.x + index * offsetX),
+      y: roundPosition(bounds.y + index * offsetY),
+      zIndex: minZIndex + index
+    }
+  }))
+}
+
 export function createLayerShiftUpdates(
   nodes: CanvasNode[],
   direction: CanvasLayerDirection

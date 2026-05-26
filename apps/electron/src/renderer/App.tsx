@@ -697,6 +697,42 @@ export function App(): React.ReactElement {
         }
       },
       {
+        id: 'canvas-cluster-selection',
+        name: 'Cluster Selection',
+        description: 'Pull selected objects into a compact planning cluster',
+        icon: 'sparkles',
+        group: 'Canvas',
+        keywords: ['cluster', 'arrange', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.clusterSelection()
+        }
+      },
+      {
+        id: 'canvas-stack-selection',
+        name: 'Stack Selection',
+        description: 'Stack selected objects into an offset pile',
+        icon: 'layers',
+        group: 'Canvas',
+        keywords: ['stack', 'pile', 'arrange', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.stackSelection()
+        }
+      },
+      {
+        id: 'canvas-convert-selection-mind-map',
+        name: 'Convert Selection To Mind Map',
+        description: 'Create a mind-map root and convert the selected objects into branches',
+        icon: 'git-branch',
+        group: 'Canvas',
+        keywords: ['convert', 'mind map', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
+        execute: () => {
+          canvasViewRef.current?.convertSelectionToMindMap()
+        }
+      },
+      {
         id: 'canvas-send-backward',
         name: 'Send Selection Backward',
         description: 'Move the selected objects back one layer',
