@@ -814,7 +814,16 @@ describe('Canvas v3 active renderer', () => {
 
     expect(connectors.get('edge-1')?.relationship).toEqual({
       kind: 'references',
-      direction: 'directed'
+      direction: 'directed',
+      sourceRole: 'page',
+      targetRole: 'shape',
+      properties: {
+        sourceRole: 'page',
+        targetRole: 'shape',
+        sourceNodeId: 'source-page-1',
+        targetNodeId: 'source-shape-1',
+        targetSchemaId: 'xnet://schema/Decision'
+      }
     })
     expect(connectors.size).toBe(1)
   })
@@ -976,7 +985,14 @@ describe('Canvas v3 active renderer', () => {
     expect(createdConnector?.target?.placement).toBe('left')
     expect(createdConnector?.relationship).toEqual({
       kind: 'relates-to',
-      direction: 'undirected'
+      direction: 'undirected',
+      sourceRole: 'page',
+      targetRole: 'shape',
+      properties: {
+        sourceRole: 'page',
+        targetRole: 'shape',
+        sourceNodeId: 'source-page-1'
+      }
     })
     expect(onSceneMutation).toHaveBeenCalledOnce()
   })

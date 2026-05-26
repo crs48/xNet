@@ -45,6 +45,10 @@ import { getCanvasEdgeNodeIds } from '../edges/bindings'
 import { getCanvasEdgePresentation } from '../edges/presentation'
 import { createCanvasEdgeRelationship } from '../edges/relationships'
 import {
+  createCanvasSemanticEdgeDraft,
+  createCanvasSemanticEdgeRelationshipForNodes
+} from '../edges/source-semantics'
+import {
   CANVAS_FRAME_VARIANT_DEFINITIONS,
   applyCanvasFrameVariant,
   createCanvasFrameVariantNode,
@@ -2802,11 +2806,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }
 
       const existingEdge = findCanvasEdgeEntryBetweenNodes(connectors, sourceNode.id, targetNode.id)
-      const relationship = createCanvasEdgeRelationship({ kind })
+      const relationship = createCanvasSemanticEdgeRelationshipForNodes({
+        sourceNode,
+        targetNode,
+        relationshipKind: kind
+      })
       const newEdge = existingEdge
         ? null
         : createEdge(sourceNode.id, targetNode.id, {
-            relationship
+            ...createCanvasSemanticEdgeDraft({
+              sourceNode,
+              targetNode,
+              relationshipKind: kind
+            })
           })
 
       doc.transact(() => {
@@ -3128,7 +3140,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
     const connectors = getCanvasConnectorsMap(doc)
     const edge = createEdge(sourceNode.id, targetNode.id, {
-      relationship: createCanvasEdgeRelationship({ kind: 'relates-to' })
+      ...createCanvasSemanticEdgeDraft({
+        sourceNode,
+        targetNode
+      })
     })
 
     doc.transact(() => {
@@ -3170,15 +3185,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       const connectors = getCanvasConnectorsMap(doc)
       const edge = createEdge(connectorStart.nodeId, nodeId, {
-        relationship: createCanvasEdgeRelationship({ kind: 'relates-to' }),
-        source: {
-          objectId: connectorStart.nodeId,
-          placement: connectorStart.placement
-        },
-        target: {
-          objectId: nodeId,
-          placement
-        }
+        ...createCanvasSemanticEdgeDraft({
+          sourceNode,
+          targetNode: node,
+          sourcePlacement: connectorStart.placement,
+          targetPlacement: placement
+        })
       })
 
       doc.transact(() => {

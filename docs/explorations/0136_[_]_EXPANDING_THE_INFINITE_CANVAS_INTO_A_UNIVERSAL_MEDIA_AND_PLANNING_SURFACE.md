@@ -1578,7 +1578,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Drop/upload a PDF and confirm page strip, page anchors, and focused page view.
 - [x] Drop/upload a local file and confirm local-only/synced policy state.
 - [x] Create a mind map with keyboard only.
-- [ ] Connect page, PDF page, database row, and external reference with semantic edges.
+- [x] Connect page, PDF page, database row, and external reference with semantic edges.
 - [x] Use frames to present/export a board section.
 - [ ] Install a sample plugin and confirm its cards degrade gracefully when disabled.
 
@@ -1599,6 +1599,7 @@ controllers, object toolbars, and plugin command routing.
 - Verified web canvas media ingestion creates a PDF card with focused page rendering, a page strip, page anchor state, copied-blob storage policy, and ready lifecycle state.
 - Fixed blob storage adapter startup and serialized multi-file ingestion so image and PDF uploads do not race nested SQLite transactions.
 - Verified selecting a frame exposes Present and Export actions; Present fits the viewport to the frame and Export downloads a JSON Canvas section containing the frame, enclosed objects, and internal connectors.
+- Verified source-aware semantic edge drafts infer page, PDF page, database row, and external reference roles, attach PDF page anchors, and preserve source IDs/schema IDs in relationship properties.
 
 ### Security And Privacy
 

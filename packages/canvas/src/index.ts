@@ -106,6 +106,11 @@ export {
   normalizeCanvasEdgeRelationship
 } from './edges/relationships'
 export {
+  createCanvasSemanticEdgeDraft,
+  createCanvasSemanticEdgeRelationshipForNodes,
+  getCanvasSemanticEndpointRole
+} from './edges/source-semantics'
+export {
   canvasEdgeMatchesFilter,
   filterCanvasEdges,
   getCanvasEdgePresentation,
@@ -127,6 +132,11 @@ export type {
   CanvasSemanticRelationshipRecord,
   CreateCanvasEdgeRelationshipInput
 } from './edges/relationships'
+export type {
+  CanvasSemanticEdgeDraft,
+  CanvasSemanticEndpointRole,
+  CreateCanvasSemanticEdgeDraftInput
+} from './edges/source-semantics'
 export type {
   CanvasEdgeEndpointAnchorPickMode,
   CanvasEdgeFilter,
