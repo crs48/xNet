@@ -3476,6 +3476,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       {showMinimap ? (
         <CollapsibleMinimap
           summary={scene.minimapSummary}
+          relationshipHints={scene.relationshipHints}
           viewport={minimapViewport}
           width={minimapWidth}
           height={minimapHeight}

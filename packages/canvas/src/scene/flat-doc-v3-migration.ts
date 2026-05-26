@@ -2,6 +2,7 @@
  * Temporary flat-doc to Canvas v3 scene adapter.
  */
 
+import type { CanvasMinimapRelationshipHint } from '../edges/summaries'
 import type { CanvasEdge, CanvasNode } from '../types'
 import type {
   CanvasConnectorRecord,
@@ -20,6 +21,10 @@ import {
 } from '@xnetjs/canvas-core'
 import * as Y from 'yjs'
 import { getCanvasEdgeNodeIds } from '../edges/bindings'
+import {
+  createCanvasFarZoomEdgeSummaries,
+  createCanvasMinimapRelationshipHints
+} from '../edges/summaries'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from './doc-layout'
 import { canvasEdgeToConnectorRecord, canvasNodeToObjectRecord } from './tile-doc-schema'
 
@@ -30,6 +35,7 @@ export type CanvasV3MigrationScene = {
   objectTileIds: ReadonlyMap<string, string>
   summaries: readonly CanvasTileSummary[]
   minimapSummary: MinimapSummary
+  relationshipHints: readonly CanvasMinimapRelationshipHint[]
   bounds: Rect | null
 }
 
@@ -77,13 +83,14 @@ export function readCanvasV3MigrationSceneFromFlatDoc(
   tileSize = DEFAULT_CANVAS_TILE_SIZE
 ): CanvasV3MigrationScene {
   const sourceNodes = Array.from(getCanvasObjectsMap<CanvasNode>(doc).values())
+  const sourceEdges = Array.from(getCanvasConnectorsMap<CanvasEdge>(doc).values())
   const sourceNodesById = new Map(sourceNodes.map((node) => [node.id, node]))
   const objects = sourceNodes.map(canvasNodeToObjectRecord)
   const objectTileIds = new Map(
     objects.map((object) => [object.id, getObjectTileId(object, tileSize)] as const)
   )
   const fallbackTileId = objectTileIds.values().next().value as string | undefined
-  const connectors = Array.from(getCanvasConnectorsMap<CanvasEdge>(doc).values())
+  const connectors = sourceEdges
     .map((edge) => {
       const [sourceId] = getCanvasEdgeNodeIds(edge)
       const connectorFallbackTileId =
@@ -112,6 +119,11 @@ export function readCanvasV3MigrationSceneFromFlatDoc(
   })
   const bounds = getBoundsForObjects(objects)
   const summaryBounds = summaries.length > 0 ? getBoundsForTileSummaries(summaries) : undefined
+  const edgeSummaries = createCanvasFarZoomEdgeSummaries({
+    nodes: sourceNodes,
+    edges: sourceEdges,
+    tileSize
+  })
 
   return {
     objects,
@@ -120,6 +132,7 @@ export function readCanvasV3MigrationSceneFromFlatDoc(
     objectTileIds,
     summaries,
     minimapSummary: createMinimapSummaryFromTileSummaries(summaries, bounds ?? summaryBounds),
+    relationshipHints: createCanvasMinimapRelationshipHints({ summaries: edgeSummaries }),
     bounds
   }
 }

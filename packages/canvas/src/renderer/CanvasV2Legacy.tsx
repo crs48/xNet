@@ -46,6 +46,10 @@ import {
   resolveCanvasAnchorPoint
 } from '../edges/bindings'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
+import {
+  createCanvasFarZoomEdgeSummaries,
+  createCanvasMinimapRelationshipHints
+} from '../edges/summaries'
 import { useCanvas } from '../hooks/useCanvas'
 import { useCanvasKeyboard, type CanvasCreationShortcut } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
@@ -1705,6 +1709,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       }),
     [edges, nodes]
   )
+  const minimapRelationshipHints = useMemo(
+    () =>
+      createCanvasMinimapRelationshipHints({
+        summaries: createCanvasFarZoomEdgeSummaries({ nodes, edges })
+      }),
+    [edges, nodes]
+  )
   const shouldUseCanvasEdgeLayer =
     overviewNodes.length > 0 || edges.length > CANVAS_EDGE_LAYER_THRESHOLD
   const canvasEdges = useMemo(
@@ -2352,6 +2363,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       {showMinimap && (
         <CollapsibleMinimap
           summary={minimapSummary}
+          relationshipHints={minimapRelationshipHints}
           viewport={viewport}
           width={minimapWidth}
           height={minimapHeight}

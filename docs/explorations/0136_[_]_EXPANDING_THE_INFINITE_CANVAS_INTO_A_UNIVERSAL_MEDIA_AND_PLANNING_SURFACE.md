@@ -1490,7 +1490,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add conversion commands between notes, tasks, pages, database rows, and mind map branches.
 - [x] Add semantic relationship records for edges.
 - [x] Add edge labels, filters, styles, and endpoint anchor picking.
-- [ ] Add far-zoom edge summaries and minimap relationship hints.
+- [x] Add far-zoom edge summaries and minimap relationship hints.
 
 ### Shapes, Frames, And Planning Tools
 

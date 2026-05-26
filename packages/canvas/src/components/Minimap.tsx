@@ -5,6 +5,7 @@
  * Renders fixed-budget Canvas v3 summary tiles instead of raw scene objects.
  */
 
+import type { CanvasMinimapRelationshipHint } from '../edges/summaries'
 import type { CanvasNode } from '../types'
 import type { CanvasObjectKind, CanvasTileSummary, MinimapSummary } from '@xnetjs/canvas-core'
 import { getDominantCanvasObjectKind } from '@xnetjs/canvas-core'
@@ -35,6 +36,8 @@ export interface MinimapProps {
   backgroundColor?: string
   /** Show tile boundary diagnostics */
   showTileBoundaries?: boolean
+  /** Far-zoom semantic relationship hints rendered without live edge DOM */
+  relationshipHints?: readonly CanvasMinimapRelationshipHint[]
 }
 
 // ─── Color Helpers ────────────────────────────────────────────────────────────
@@ -86,6 +89,17 @@ function getTileDominantColor(tile: CanvasTileSummary): string {
   return getCanvasObjectKindMinimapColor(getDominantCanvasObjectKind(tile.typeCounts))
 }
 
+function parseStrokeDasharray(strokeDasharray: string | undefined): number[] {
+  if (!strokeDasharray) {
+    return []
+  }
+
+  return strokeDasharray
+    .split(/[,\s]+/u)
+    .map((part) => Number(part))
+    .filter((value) => Number.isFinite(value) && value > 0)
+}
+
 // ─── Minimap Component ────────────────────────────────────────────────────────
 
 export function Minimap({
@@ -96,7 +110,8 @@ export function Minimap({
   onViewportChange,
   className,
   backgroundColor,
-  showTileBoundaries = false
+  showTileBoundaries = false,
+  relationshipHints = []
 }: MinimapProps) {
   const theme = useCanvasThemeTokens()
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -187,6 +202,32 @@ export function Minimap({
       }
     }
 
+    for (const hint of relationshipHints) {
+      const sourceX = hint.source.x * scale + offset.x
+      const sourceY = hint.source.y * scale + offset.y
+      const targetX = hint.target.x * scale + offset.x
+      const targetY = hint.target.y * scale + offset.y
+
+      if (![sourceX, sourceY, targetX, targetY].every(Number.isFinite)) {
+        continue
+      }
+
+      ctx.globalAlpha = hint.opacity
+      ctx.strokeStyle = hint.stroke
+      ctx.lineWidth = Math.max(hint.strokeWidth, hint.edgeCount > 1 ? 1.5 : 1)
+      if (typeof ctx.setLineDash === 'function') {
+        ctx.setLineDash(parseStrokeDasharray(hint.strokeDasharray))
+      }
+      ctx.beginPath()
+      ctx.moveTo(sourceX, sourceY)
+      ctx.lineTo(targetX, targetY)
+      ctx.stroke()
+      if (typeof ctx.setLineDash === 'function') {
+        ctx.setLineDash([])
+      }
+      ctx.globalAlpha = 1
+    }
+
     for (const cluster of summary.tiles.flatMap((tile) => tile.clusters)) {
       const x = cluster.bounds.x * scale + offset.x
       const y = cluster.bounds.y * scale + offset.y
@@ -227,6 +268,7 @@ export function Minimap({
     height,
     maxDensityValue,
     resolvedBackgroundColor,
+    relationshipHints,
     theme.minimapBorder,
     theme.minimapViewportFill,
     theme.minimapViewportStroke,
@@ -311,6 +353,7 @@ export function Minimap({
       data-canvas-minimap-node-count={summary.totalObjectCount}
       data-canvas-minimap-rendered-tile-count={summary.tiles.length}
       data-canvas-minimap-edge-count={summary.totalEdgeCount}
+      data-canvas-minimap-relationship-hint-count={relationshipHints.length}
       data-canvas-minimap-render-mode={summary.mode}
       data-canvas-minimap-edge-mode="summary"
     >

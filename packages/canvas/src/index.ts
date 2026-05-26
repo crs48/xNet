@@ -111,6 +111,10 @@ export {
   getCanvasEdgePresentation,
   pickCanvasEdgeEndpointAnchor
 } from './edges/presentation'
+export {
+  createCanvasFarZoomEdgeSummaries,
+  createCanvasMinimapRelationshipHints
+} from './edges/summaries'
 export type {
   CanvasConnectorRecordKind,
   CanvasSemanticRelationshipRecord,
@@ -122,6 +126,12 @@ export type {
   CanvasEdgePresentation,
   PickCanvasEdgeEndpointAnchorInput
 } from './edges/presentation'
+export type {
+  CanvasFarZoomEdgeSummary,
+  CanvasMinimapRelationshipHint,
+  CreateCanvasFarZoomEdgeSummariesInput,
+  CreateCanvasMinimapRelationshipHintsInput
+} from './edges/summaries'
 
 export {
   CANVAS_TILE_CONNECTORS_MAP_KEY,
