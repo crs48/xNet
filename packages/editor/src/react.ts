@@ -28,6 +28,14 @@ export {
   type CanvasExternalReferenceCardProps
 } from './components/CanvasExternalReferenceCard'
 export {
+  createCanvasExternalReferenceCardRenderer,
+  type CanvasExternalReferenceCardAccent,
+  type CanvasExternalReferenceCardMetadata,
+  type CanvasExternalReferenceCardRenderer,
+  type CanvasExternalReferenceCardRendererKind,
+  type CreateCanvasExternalReferenceCardRendererInput
+} from './components/canvasExternalReferenceCardRenderers'
+export {
   FloatingToolbar,
   type FloatingToolbarProps,
   type ToolbarMode,

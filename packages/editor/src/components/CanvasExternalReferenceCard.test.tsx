@@ -60,7 +60,7 @@ describe('CanvasExternalReferenceCard', () => {
     )
 
     expect(screen.getByText('Post from @storybookjs')).toBeInTheDocument()
-    expect(screen.getByText('X')).toBeInTheDocument()
+    expect(document.querySelector('[data-canvas-embed-subtitle="true"]')).toHaveTextContent('X')
   })
 
   it('renders lifecycle status badges with semantic state attributes', () => {
@@ -81,6 +81,51 @@ describe('CanvasExternalReferenceCard', () => {
 
     expect(badge).toBeInTheDocument()
     expect(badge).toHaveAttribute('data-canvas-lifecycle-tone', 'progress')
+  })
+
+  it('renders provider-specific card metadata for GitHub references', () => {
+    render(
+      <CanvasExternalReferenceCard
+        title="openai PR #456"
+        url="https://github.com/openai/openai/pull/456"
+        provider="github"
+        subtitle="openai"
+        themeMode="light"
+      />
+    )
+
+    const card = document.querySelector('[data-canvas-node-card="true"]')
+
+    expect(card).toHaveAttribute('data-canvas-provider-renderer', 'github-record')
+    expect(card).toHaveAttribute('data-canvas-provider-accent', 'slate')
+    expect(screen.getByText('GH')).toBeInTheDocument()
+    expect(screen.getByText('GitHub pull request')).toBeInTheDocument()
+    expect(screen.getByText('Repo')).toBeInTheDocument()
+    expect(screen.getByText('openai/openai')).toBeInTheDocument()
+    expect(screen.getByText('Number')).toBeInTheDocument()
+    expect(screen.getByText('456')).toBeInTheDocument()
+  })
+
+  it('renders provider-specific live embed labels for video cards', () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('metadata unavailable'))
+
+    render(
+      <CanvasExternalReferenceCard
+        title="YouTube video"
+        url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        provider="youtube"
+        embedUrl="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        subtitle="YouTube"
+        themeMode="dark"
+      />
+    )
+
+    const card = document.querySelector('[data-canvas-node-card="true"]')
+
+    expect(card).toHaveAttribute('data-canvas-provider-renderer', 'video')
+    expect(card).toHaveAttribute('data-canvas-provider-accent', 'red')
+    expect(screen.getByText('YouTube video embed')).toBeInTheDocument()
+    expect(screen.getByText('Video player')).toBeInTheDocument()
   })
 
   it('renders failed-card recovery actions and routes action callbacks', () => {

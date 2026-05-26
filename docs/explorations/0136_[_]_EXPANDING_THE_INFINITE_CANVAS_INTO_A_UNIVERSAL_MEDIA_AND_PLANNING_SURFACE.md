@@ -1474,7 +1474,7 @@ controllers, object toolbars, and plugin command routing.
 
 ### Embeds
 
-- [ ] Add provider-specific card renderers for known external reference providers.
+- [x] Add provider-specific card renderers for known external reference providers.
 - [ ] Add Open Graph/oEmbed metadata resolution pipeline.
 - [ ] Add iframe activation mode with pointer-event state handling.
 - [ ] Add workspace embed policy and arbitrary iframe restrictions.

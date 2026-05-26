@@ -6,6 +6,10 @@ import type { JSX } from 'react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from '../extensions/embed'
 import { cn } from '../utils'
+import {
+  createCanvasExternalReferenceCardRenderer,
+  type CanvasExternalReferenceCardAccent
+} from './canvasExternalReferenceCardRenderers'
 
 export interface CanvasExternalReferenceCardProps {
   title: string
@@ -46,6 +50,74 @@ const FAILED_CARD_ACTIONS: readonly CanvasFailedCardActionConfig[] = [
   { kind: 'open-source', label: 'Open', ariaLabel: 'Open source failed card' },
   { kind: 'copy-link', label: 'Copy', ariaLabel: 'Copy link failed card' }
 ]
+
+const PROVIDER_ACCENT_CLASSES: Record<
+  CanvasExternalReferenceCardAccent,
+  {
+    badge: string
+    icon: string
+    preview: string
+    footer: string
+    metadata: string
+  }
+> = {
+  neutral: {
+    badge: 'bg-muted text-muted-foreground',
+    icon: 'bg-background text-foreground',
+    preview: 'border-border/60 bg-muted/40',
+    footer: 'from-black/45 via-black/10 text-white',
+    metadata: 'border-border/50 bg-muted/25 text-muted-foreground'
+  },
+  blue: {
+    badge: 'bg-sky-500/10 text-sky-700 dark:text-sky-200',
+    icon: 'bg-sky-500 text-white',
+    preview: 'border-sky-500/25 bg-sky-500/10',
+    footer: 'from-sky-950/70 via-sky-950/20 text-white',
+    metadata: 'border-sky-500/25 bg-sky-500/10 text-sky-800 dark:text-sky-100'
+  },
+  green: {
+    badge: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+    icon: 'bg-emerald-500 text-white',
+    preview: 'border-emerald-500/25 bg-emerald-500/10',
+    footer: 'from-emerald-950/70 via-emerald-950/20 text-white',
+    metadata: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-100'
+  },
+  purple: {
+    badge: 'bg-violet-500/10 text-violet-700 dark:text-violet-200',
+    icon: 'bg-violet-500 text-white',
+    preview: 'border-violet-500/25 bg-violet-500/10',
+    footer: 'from-violet-950/70 via-violet-950/20 text-white',
+    metadata: 'border-violet-500/25 bg-violet-500/10 text-violet-800 dark:text-violet-100'
+  },
+  red: {
+    badge: 'bg-red-500/10 text-red-700 dark:text-red-200',
+    icon: 'bg-red-500 text-white',
+    preview: 'border-red-500/25 bg-red-500/10',
+    footer: 'from-red-950/70 via-red-950/20 text-white',
+    metadata: 'border-red-500/25 bg-red-500/10 text-red-800 dark:text-red-100'
+  },
+  pink: {
+    badge: 'bg-pink-500/10 text-pink-700 dark:text-pink-200',
+    icon: 'bg-pink-500 text-white',
+    preview: 'border-pink-500/25 bg-pink-500/10',
+    footer: 'from-pink-950/70 via-pink-950/20 text-white',
+    metadata: 'border-pink-500/25 bg-pink-500/10 text-pink-800 dark:text-pink-100'
+  },
+  amber: {
+    badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+    icon: 'bg-amber-500 text-white',
+    preview: 'border-amber-500/25 bg-amber-500/10',
+    footer: 'from-amber-950/70 via-amber-950/20 text-white',
+    metadata: 'border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-100'
+  },
+  slate: {
+    badge: 'bg-slate-500/10 text-slate-700 dark:text-slate-200',
+    icon: 'bg-slate-700 text-white',
+    preview: 'border-slate-500/25 bg-slate-500/10',
+    footer: 'from-slate-950/70 via-slate-950/20 text-white',
+    metadata: 'border-slate-500/25 bg-slate-500/10 text-slate-800 dark:text-slate-100'
+  }
+}
 
 function getProvider(name: string | null | undefined): EmbedProvider | null {
   if (!name) {
@@ -271,8 +343,20 @@ export function CanvasExternalReferenceCard({
   const parsedEmbed = parseEmbedUrl(url)
   const resolvedProvider = getProvider(provider) ?? parsedEmbed?.provider ?? null
   const resolvedEmbedUrl = normalizeValue(embedUrl) ?? parsedEmbed?.embedUrl ?? null
-  const providerLabel = resolvedProvider?.displayName ?? 'Link preview'
-  const providerId = resolvedProvider?.name ?? normalizeValue(provider) ?? 'generic'
+  const cardRenderer = useMemo(
+    () =>
+      createCanvasExternalReferenceCardRenderer({
+        url,
+        provider,
+        embedUrl: resolvedEmbedUrl,
+        title,
+        subtitle
+      }),
+    [provider, resolvedEmbedUrl, subtitle, title, url]
+  )
+  const providerLabel = resolvedProvider?.displayName ?? cardRenderer.providerLabel
+  const providerId = resolvedProvider?.name ?? cardRenderer.providerId
+  const accentClasses = PROVIDER_ACCENT_CLASSES[cardRenderer.accent]
   const fallbackSubtitle = normalizeValue(subtitle)
   const [resolvedMetadata, setResolvedMetadata] = useState<ExternalReferenceMetadata | null>(null)
 
@@ -345,10 +429,27 @@ export function CanvasExternalReferenceCard({
       data-canvas-theme={themeMode}
       data-canvas-embed-provider={providerId}
       data-canvas-embed-active={resolvedEmbedUrl ? 'true' : 'false'}
+      data-canvas-provider-renderer={cardRenderer.kind}
+      data-canvas-provider-accent={cardRenderer.accent}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          {resolvedEmbedUrl ? `${providerLabel} embed` : providerLabel}
+        <span
+          className={cn(
+            'inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em]',
+            accentClasses.badge
+          )}
+          data-canvas-provider-badge="true"
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              'grid h-5 w-5 place-items-center rounded-full text-[9px] font-bold',
+              accentClasses.icon
+            )}
+          >
+            {cardRenderer.iconLabel}
+          </span>
+          {resolvedEmbedUrl ? cardRenderer.liveBadgeLabel : cardRenderer.badgeLabel}
         </span>
         <CanvasLifecycleStatusBadge status={status} />
       </div>
@@ -371,10 +472,28 @@ export function CanvasExternalReferenceCard({
           ) : null}
         </div>
 
+        {cardRenderer.metadata.length > 0 ? (
+          <dl className="grid grid-cols-2 gap-2" data-canvas-provider-metadata="true">
+            {cardRenderer.metadata.map((entry) => (
+              <div
+                key={`${entry.label}:${entry.value}`}
+                className={cn(
+                  'min-w-0 rounded-lg border px-2 py-1.5 text-[11px]',
+                  accentClasses.metadata
+                )}
+              >
+                <dt className="font-medium">{entry.label}</dt>
+                <dd className="truncate">{entry.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+
         {resolvedEmbedUrl ? (
           <div
             className={cn(
-              'relative min-h-[116px] flex-1 overflow-hidden rounded-[18px] border border-border/60 bg-muted/40',
+              'relative min-h-[116px] flex-1 overflow-hidden rounded-[18px] border',
+              accentClasses.preview,
               themeMode === 'dark' ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]' : ''
             )}
             data-canvas-embed-node="true"
@@ -392,12 +511,23 @@ export function CanvasExternalReferenceCard({
               className="pointer-events-none absolute inset-0 h-full w-full border-0 bg-transparent"
               data-canvas-embed-iframe="true"
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent px-3 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white">
-              {providerLabel}
+            <div
+              className={cn(
+                'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t to-transparent px-3 py-2 text-[11px] font-medium uppercase tracking-[0.18em]',
+                accentClasses.footer
+              )}
+            >
+              {cardRenderer.previewLabel}
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 items-center rounded-[18px] border border-dashed border-border/60 bg-muted/30 px-3 py-4">
+          <div
+            className="flex flex-1 flex-col justify-center gap-2 rounded-[18px] border border-dashed border-border/60 bg-muted/30 px-3 py-4"
+            data-canvas-provider-fallback="true"
+          >
+            <span className="text-[11px] font-semibold uppercase text-muted-foreground">
+              {cardRenderer.emptyStateLabel}
+            </span>
             <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{url}</p>
           </div>
         )}
