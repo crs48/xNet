@@ -15,7 +15,13 @@ import {
   normalizeExternalReferenceUrl,
   serializeCanvasInternalNodeDragData
 } from '../ingestion'
-import { resolveCanvasIngestOptions, selectCanvasIngestor } from '../ingestors'
+import {
+  dedupeCanvasIngressPayloads,
+  getCanvasIngressPayloadDedupeKey,
+  ingestCanvasPayloadBatch,
+  resolveCanvasIngestOptions,
+  selectCanvasIngestor
+} from '../ingestors'
 
 describe('canvas ingestion utilities', () => {
   it('normalizes bare URLs and strips hashes', () => {
@@ -129,6 +135,21 @@ describe('canvas ingestion utilities', () => {
         })
       )
     ).toBe('document')
+    expect(
+      inferMediaKind(
+        new File(['x'], 'slides.pptx', {
+          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        })
+      )
+    ).toBe('document')
+    expect(
+      inferMediaKind(
+        new File(['x'], 'sheet.xlsx', {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+      )
+    ).toBe('document')
+    expect(inferMediaKind(new File(['x'], 'notes.txt', { type: 'text/plain' }))).toBe('document')
     expect(inferMediaKind(new File(['x'], 'archive.zip', { type: 'application/zip' }))).toBe('file')
   })
 
@@ -308,5 +329,157 @@ describe('canvas ingestion utilities', () => {
       canvasPoint: { x: 12, y: 24 },
       spreadIndex: 3
     })
+  })
+
+  it('deduplicates file, URL, text URL, and internal node ingestion payloads', () => {
+    const file = new File(['hello'], 'hello.txt', {
+      type: 'text/plain',
+      lastModified: 123
+    })
+    const duplicateFile = new File(['hello'], 'hello.txt', {
+      type: 'text/plain',
+      lastModified: 123
+    })
+    const payloads: CanvasIngressPayload[] = [
+      { kind: 'url', url: 'https://example.com/path#section' },
+      { kind: 'text', text: 'example.com/path' },
+      { kind: 'file', file },
+      { kind: 'file', file: duplicateFile },
+      {
+        kind: 'internal-node',
+        data: {
+          nodeId: 'page-1',
+          schemaId: PageSchema._schemaId,
+          title: 'Page'
+        }
+      },
+      {
+        kind: 'internal-node',
+        data: {
+          nodeId: 'page-1',
+          schemaId: PageSchema._schemaId,
+          title: 'Page copy'
+        }
+      },
+      { kind: 'text', text: 'Loose note' }
+    ]
+
+    expect(payloads.map(getCanvasIngressPayloadDedupeKey)).toEqual([
+      'url:https://example.com/path',
+      'url:https://example.com/path',
+      'file:hello.txt:text/plain:5:123',
+      'file:hello.txt:text/plain:5:123',
+      `internal-node:${PageSchema._schemaId}:page-1`,
+      `internal-node:${PageSchema._schemaId}:page-1`,
+      'text:Loose note'
+    ])
+    expect(dedupeCanvasIngressPayloads(payloads)).toEqual([
+      payloads[0],
+      payloads[2],
+      payloads[4],
+      payloads[6]
+    ])
+  })
+
+  it('batch-ingests deduplicated payloads while recording unsupported payloads and errors', async () => {
+    const file = new File(['hello'], 'hello.txt', {
+      type: 'text/plain',
+      lastModified: 123
+    })
+    const ingestors: CanvasIngestor[] = [
+      {
+        id: 'url',
+        priority: 10,
+        matches: (payload) =>
+          (payload.kind === 'url' || payload.kind === 'text') &&
+          getCanvasIngressPayloadDedupeKey(payload)?.startsWith('url:') === true,
+        ingest: async (payload, options) => {
+          if (payload.kind === 'url' && payload.url.includes('bad.example')) {
+            throw new Error('provider denied metadata')
+          }
+
+          return {
+            canvasNodeId: `url-${options.spreadIndex}`
+          }
+        }
+      },
+      {
+        id: 'file',
+        priority: 5,
+        matches: (payload) => payload.kind === 'file',
+        ingest: async (_payload, options) => ({
+          canvasNodeId: `file-${options.spreadIndex}`
+        })
+      }
+    ]
+
+    const result = await ingestCanvasPayloadBatch(
+      [
+        { kind: 'url', url: 'https://example.com/path#section' },
+        { kind: 'text', text: 'https://example.com/path' },
+        { kind: 'file', file },
+        { kind: 'file', file },
+        { kind: 'url', url: 'https://bad.example/resource' },
+        { kind: 'text', text: 'Loose note' }
+      ],
+      ingestors
+    )
+
+    expect(result.cancelled).toBe(false)
+    expect(result.results).toEqual([{ canvasNodeId: 'url-0' }, { canvasNodeId: 'file-1' }])
+    expect(result.skipped).toMatchObject([
+      { index: 1, reason: 'duplicate' },
+      { index: 3, reason: 'duplicate' },
+      { index: 5, reason: 'unsupported' }
+    ])
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0]).toMatchObject({
+      index: 4,
+      ingestorId: 'url'
+    })
+    expect(result.errors[0]?.error.message).toBe('provider denied metadata')
+  })
+
+  it('stops batch ingestion when the active signal is cancelled', async () => {
+    const controller = new AbortController()
+    const calls: string[] = []
+    const ingestors: CanvasIngestor[] = [
+      {
+        id: 'text',
+        priority: 1,
+        matches: (payload) => payload.kind === 'text',
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'text') {
+            return null
+          }
+
+          calls.push(`${payload.text}:${options.spreadIndex}`)
+          if (payload.text === 'stop') {
+            controller.abort()
+          }
+
+          return {
+            canvasNodeId: payload.text
+          }
+        }
+      }
+    ]
+
+    const result = await ingestCanvasPayloadBatch(
+      [
+        { kind: 'text', text: 'first' },
+        { kind: 'text', text: 'stop' },
+        { kind: 'text', text: 'after' }
+      ],
+      ingestors,
+      {
+        signal: controller.signal
+      }
+    )
+
+    expect(calls).toEqual(['first:0', 'stop:1'])
+    expect(result.results).toEqual([{ canvasNodeId: 'first' }])
+    expect(result.cancelled).toBe(true)
+    expect(result.skipped).toMatchObject([{ index: 2, reason: 'cancelled' }])
   })
 })

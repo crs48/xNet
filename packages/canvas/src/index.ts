@@ -529,8 +529,19 @@ export type {
   PlaceCanvasSourceObjectInput,
   CanvasIngestionResult
 } from './hooks/useCanvasObjectIngestion'
-export { resolveCanvasIngestOptions, selectCanvasIngestor } from './ingestors'
+export {
+  dedupeCanvasIngressPayloads,
+  getCanvasIngressPayloadDedupeKey,
+  ingestCanvasPayloadBatch,
+  resolveCanvasIngestOptions,
+  selectCanvasIngestor
+} from './ingestors'
 export type {
+  CanvasIngestBatchError,
+  CanvasIngestBatchOptions,
+  CanvasIngestBatchResult,
+  CanvasIngestBatchSkippedPayload,
+  CanvasIngestBatchSkippedReason,
   CanvasIngestOptions,
   CanvasResolvedIngestOptions,
   CanvasIngestResult,

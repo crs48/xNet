@@ -8,7 +8,12 @@ import type {
   CanvasPrimitiveObjectKind,
   CanvasViewportSnapshot
 } from '../ingestion'
-import type { CanvasIngestOptions, CanvasIngestResult, CanvasIngestor } from '../ingestors'
+import type {
+  CanvasIngestBatchOptions,
+  CanvasIngestOptions,
+  CanvasIngestResult,
+  CanvasIngestor
+} from '../ingestors'
 import type { CanvasNode, Point } from '../types'
 import type { BlobService, ExternalReference } from '@xnetjs/data'
 import type * as Y from 'yjs'
@@ -25,7 +30,11 @@ import {
   inferMediaKind,
   readImageDimensions
 } from '../ingestion'
-import { resolveCanvasIngestOptions, selectCanvasIngestor } from '../ingestors'
+import {
+  ingestCanvasPayloadBatch,
+  resolveCanvasIngestOptions,
+  selectCanvasIngestor
+} from '../ingestors'
 import { getCanvasObjectsMap } from '../scene/doc-layout'
 
 export interface UseCanvasObjectIngestionOptions {
@@ -501,6 +510,10 @@ export function useCanvasObjectIngestion({
       payload: CanvasIngressPayload,
       options: CanvasIngestOptions = {}
     ): Promise<CanvasIngestionResult | null> => {
+      if (options.signal?.aborted) {
+        return null
+      }
+
       const ingestor = selectCanvasIngestor(payload, builtInIngestors)
       if (!ingestor) {
         return null
@@ -514,31 +527,24 @@ export function useCanvasObjectIngestion({
   const ingestDataTransfer = useCallback(
     async (
       dataTransfer: DataTransfer,
-      options: { canvasPoint?: Point | null } = {}
+      options: Pick<CanvasIngestBatchOptions, 'canvasPoint' | 'dedupe' | 'signal'> = {}
     ): Promise<CanvasIngestionResult[]> => {
       const payloads = extractCanvasIngressPayloads(dataTransfer)
-      const results: CanvasIngestionResult[] = []
+      const batch = await ingestCanvasPayloadBatch(payloads, builtInIngestors, {
+        canvasPoint: options.canvasPoint,
+        dedupe: options.dedupe,
+        signal: options.signal
+      })
 
-      for (const [index, payload] of payloads.entries()) {
-        const result = await ingestPayload(payload, {
-          canvasPoint: options.canvasPoint,
-          spreadIndex: index
-        })
-
-        if (result) {
-          results.push(result)
-        }
-      }
-
-      return results
+      return batch.results
     },
-    [ingestPayload]
+    [builtInIngestors]
   )
 
   const ingestText = useCallback(
     async (
       text: string,
-      options: { canvasPoint?: Point | null } = {}
+      options: CanvasIngestOptions = {}
     ): Promise<CanvasIngestionResult | null> => {
       return await ingestPayload({ kind: 'text', text }, options)
     },
