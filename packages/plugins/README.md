@@ -18,6 +18,7 @@ pnpm add @xnetjs/plugins
 - **Middleware chain** -- Composable middleware for plugin operations
 - **Extension context** -- Scoped API surface for plugins
 - **Plugin/Script schemas** -- Plugins and scripts stored as Nodes
+- **Canvas contributions** -- Cards, ingestors, tools, layouts, edges, inspectors, templates, permission gates, sandbox policies, and development fixtures
 - **Sandboxed execution** -- Safe script execution with AST validation (acorn)
 - **Script runner** -- Execute validated scripts in a restricted context
 - **AI script generation** -- Generate scripts via Anthropic, OpenAI, or Ollama
@@ -100,6 +101,35 @@ import { ShortcutManager } from '@xnetjs/plugins'
 const shortcuts = new ShortcutManager()
 shortcuts.register('mod+shift+t', () => openTaskPanel())
 shortcuts.register('mod+/', () => openSlashMenu())
+```
+
+### Canvas Plugin Authoring
+
+Canvas plugins can contribute provider-aware cards, URL/file ingestors, contextual tools, semantic edges, layouts, inspectors, and templates. See the full authoring guide: [Canvas Plugin Authoring](../../docs/reference/canvas-plugin-authoring.md).
+
+```typescript
+import { defineExtension } from '@xnetjs/plugins'
+
+export const crmCanvasPlugin = defineExtension({
+  id: 'com.example.crm-canvas',
+  name: 'CRM Canvas',
+  version: '1.0.0',
+  contributes: {
+    canvasCards: [
+      {
+        id: 'crm.account-card',
+        type: 'canvas.card',
+        name: 'Account Card',
+        schemaId: 'xnet://example.crm/account',
+        provider: 'crm',
+        canvasKinds: ['record', 'database-row'],
+        previewTiers: ['summary', 'thumbnail', 'shell'],
+        rendererEntrypoint: 'crm/cards/account.render',
+        previewEntrypoint: 'crm/cards/account.preview'
+      }
+    ]
+  }
+})
 ```
 
 ### Node.js Services

@@ -1509,7 +1509,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add permission prompts and workspace policy gates.
 - [x] Add missing-plugin fallback card rendering.
 - [x] Add fake plugin fixtures for CRM, ERP, and media provider cards.
-- [ ] Add docs for plugin authors with examples.
+- [x] Add docs for plugin authors with examples.
 
 ### ERP And Query Grids
 
