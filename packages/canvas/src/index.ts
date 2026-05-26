@@ -205,6 +205,24 @@ export {
   createCanvasPreviewGenerationBenchmarkSources,
   measureCanvasPreviewGenerationBenchmark
 } from './preview/benchmarks'
+export { exportCanvasToJsonCanvas, importCanvasFromJsonCanvas } from './interop/json-canvas'
+export type {
+  ExportCanvasToJsonCanvasInput,
+  ImportCanvasFromJsonCanvasResult,
+  JsonCanvasDocument,
+  JsonCanvasEdge,
+  JsonCanvasEdgeEnd,
+  JsonCanvasFileNode,
+  JsonCanvasGroupNode,
+  JsonCanvasLinkNode,
+  JsonCanvasNode,
+  JsonCanvasNodeBase,
+  JsonCanvasNodeType,
+  JsonCanvasSide,
+  JsonCanvasTextNode,
+  JsonCanvasXNetEdgeMetadata,
+  JsonCanvasXNetNodeMetadata
+} from './interop/json-canvas'
 export {
   createCanvasPdfAnnotation,
   createCanvasPdfAnnotationOverlay,

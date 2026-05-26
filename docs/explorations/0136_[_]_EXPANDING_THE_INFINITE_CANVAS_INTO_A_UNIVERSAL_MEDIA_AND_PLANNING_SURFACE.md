@@ -1531,7 +1531,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Test preview cache invalidation by source version and content hash.
 - [x] Test semantic edge creation, endpoint anchors, and cross-tile storage plans.
 - [x] Test plugin contribution validation and permission enforcement.
-- [ ] Test JSON Canvas import/export once implemented.
+- [x] Test JSON Canvas import/export once implemented.
 - [ ] Test selection hit targets, marquee selection, multi-select bounds, drag thresholds, and locked-object behavior.
 - [x] Test resize handles, minimum dimensions, aspect-ratio constraints, and object-specific resize policies.
 - [ ] Test contextual toolbar action availability for single-select, multi-select, locked selection, media, PDF, embed, shape, frame, and plugin cards.
