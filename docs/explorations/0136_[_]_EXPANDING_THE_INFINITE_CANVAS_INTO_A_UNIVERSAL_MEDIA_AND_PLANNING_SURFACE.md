@@ -1579,7 +1579,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Drop/upload a local file and confirm local-only/synced policy state.
 - [x] Create a mind map with keyboard only.
 - [ ] Connect page, PDF page, database row, and external reference with semantic edges.
-- [ ] Use frames to present/export a board section.
+- [x] Use frames to present/export a board section.
 - [ ] Install a sample plugin and confirm its cards degrade gracefully when disabled.
 
 2026-05-26 local web validation notes:
@@ -1598,6 +1598,7 @@ controllers, object toolbars, and plugin command routing.
 - Verified web canvas media ingestion creates an image card with a rendered thumbnail, default contain crop mode, alt/caption metadata, copied-blob storage policy, and ready lifecycle state.
 - Verified web canvas media ingestion creates a PDF card with focused page rendering, a page strip, page anchor state, copied-blob storage policy, and ready lifecycle state.
 - Fixed blob storage adapter startup and serialized multi-file ingestion so image and PDF uploads do not race nested SQLite transactions.
+- Verified selecting a frame exposes Present and Export actions; Present fits the viewport to the frame and Export downloads a JSON Canvas section containing the frame, enclosed objects, and internal connectors.
 
 ### Security And Privacy
 

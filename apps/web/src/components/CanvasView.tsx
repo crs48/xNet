@@ -3,6 +3,7 @@
  */
 
 import type {
+  CanvasEdge,
   CanvasHandle,
   CanvasNode,
   CanvasPdfPageThumbnail,
@@ -15,10 +16,13 @@ import {
   Canvas,
   CanvasPdfPageViewer,
   CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasFrameExportDocument,
   createCanvasPdfPageAnchorId,
   createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
+  getCanvasConnectorsMap,
+  getCanvasContainerRole,
   getCanvasObjectsMap,
   useCanvasObjectIngestion,
   useCanvasThemeTokens
@@ -41,6 +45,7 @@ import {
 } from '@xnetjs/editor/react'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
 import {
+  Download,
   FileImage,
   FileText,
   GitFork,
@@ -48,6 +53,7 @@ import {
   Link2,
   Maximize2,
   MessageSquare,
+  Presentation,
   Square,
   StickyNote,
   Table2
@@ -168,6 +174,29 @@ function getStoragePolicyLabel(node: CanvasNode): string {
   }
 
   return 'Not synced'
+}
+
+function sanitizeCanvasExportFileName(value: string): string {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return normalized.length > 0 ? normalized : 'canvas-frame'
+}
+
+function downloadJsonFile(input: { fileName: string; data: unknown }): void {
+  const blob = new Blob([JSON.stringify(input.data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+
+  anchor.href = url
+  anchor.download = input.fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 function getPdfPageCount(node: CanvasNode): number {
@@ -578,6 +607,13 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       title: selectedCanvasNode.title
     }
   }, [selectedCanvasNode])
+  const selectedCanvasFrame = useMemo(() => {
+    if (!selectedCanvasNode || getCanvasContainerRole(selectedCanvasNode.node) !== 'frame') {
+      return null
+    }
+
+    return selectedCanvasNode
+  }, [selectedCanvasNode])
   const selectedObjectCommentCount = useMemo(() => {
     if (!selectedCanvasNode) {
       return 0
@@ -959,6 +995,42 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     [doc]
   )
 
+  const presentSelectedFrame = useCallback(() => {
+    if (!selectedCanvasFrame) {
+      return
+    }
+
+    canvasRef.current?.fitToRect(
+      {
+        x: selectedCanvasFrame.node.position.x,
+        y: selectedCanvasFrame.node.position.y,
+        width: selectedCanvasFrame.node.position.width,
+        height: selectedCanvasFrame.node.position.height
+      },
+      48
+    )
+  }, [selectedCanvasFrame])
+
+  const exportSelectedFrame = useCallback(() => {
+    if (!doc || !selectedCanvasFrame) {
+      return
+    }
+
+    const nodes = Array.from(getCanvasObjectsMap<CanvasNode>(doc).values())
+    const edges = Array.from(getCanvasConnectorsMap<CanvasEdge>(doc).values())
+    const frameExport = createCanvasFrameExportDocument({
+      frame: selectedCanvasFrame.node,
+      nodes,
+      edges
+    })
+    const fileName = `${sanitizeCanvasExportFileName(selectedCanvasFrame.title)}.canvas-section.json`
+
+    downloadJsonFile({
+      fileName,
+      data: frameExport
+    })
+  }, [doc, selectedCanvasFrame])
+
   const submitSelectedComment = useCallback(async () => {
     if (!selectedCanvasNode) {
       return
@@ -1245,6 +1317,28 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
                 <MessageSquare size={12} />
                 Comment{selectedObjectCommentCount > 0 ? ` ${selectedObjectCommentCount}` : ''}
               </button>
+              {selectedCanvasFrame ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={presentSelectedFrame}
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                    data-web-canvas-selection-action="present-frame"
+                  >
+                    <Presentation size={12} />
+                    Present
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exportSelectedFrame}
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                    data-web-canvas-selection-action="export-frame"
+                  >
+                    <Download size={12} />
+                    Export
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
         ) : null}

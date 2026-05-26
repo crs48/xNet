@@ -559,6 +559,12 @@ export {
   isCanvasFrameVariant,
   isCanvasFrameVariantNode
 } from './frames/frame-variants'
+export {
+  createCanvasFrameExportDocument,
+  getCanvasFrameExportEdges,
+  getCanvasFrameExportMembers,
+  isCanvasNodeInsideFrameExportBounds
+} from './frames/frame-export'
 export type {
   CanvasFrameLaneAxis,
   CanvasFrameVariant,
@@ -566,6 +572,11 @@ export type {
   CanvasFrameVariantNodeInput,
   CanvasFrameVariantProperties
 } from './frames/frame-variants'
+export type {
+  CanvasFrameExportDocument,
+  CanvasFrameExportFormat,
+  CreateCanvasFrameExportDocumentInput
+} from './frames/frame-export'
 export {
   createCanvasQueryFrameDefinition,
   createCanvasQueryFrameNode,
