@@ -344,6 +344,14 @@ describe('Canvas v3 active renderer', () => {
     expect(within(singleToolbar).getByRole('button', { name: 'Open selection' })).toBeTruthy()
     expect(within(singleToolbar).getByRole('button', { name: 'Edit selection alias' })).toBeTruthy()
     expect(within(singleToolbar).getByRole('button', { name: 'Comment on selection' })).toBeTruthy()
+    fireEvent.click(
+      within(singleToolbar).getByRole('button', { name: 'Edit selection dimensions' })
+    )
+    const dimensionsPopover = screen.getByRole('dialog', { name: 'Selection dimensions' })
+    fireEvent.change(within(dimensionsPopover).getByLabelText('Width'), {
+      target: { value: '320' }
+    })
+    expect(objects.get(page.id)?.position.width).toBe(320)
     expect(within(singleToolbar).queryByRole('button', { name: 'Connect selection' })).toBeNull()
     expect(within(singleToolbar).queryByRole('button', { name: 'Align selection left' })).toBeNull()
     expect(

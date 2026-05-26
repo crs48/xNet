@@ -225,10 +225,15 @@ type DragPreviewState = {
   screenDelta: Point
 }
 
+type SelectionPopover = 'dimensions'
+
+type DimensionField = 'x' | 'y' | 'width' | 'height'
+
 type CanvasSelectionCapabilities = {
   canOpen: boolean
   canEditAlias: boolean
   canComment: boolean
+  canEditDimensions: boolean
   canDuplicate: boolean
   canToggleLock: boolean
   canConnect: boolean
@@ -251,6 +256,16 @@ const RESIZE_HANDLES: ResizeHandle[] = [
   'bottom-left',
   'left'
 ]
+
+const DIMENSION_FIELDS: DimensionField[] = ['x', 'y', 'width', 'height']
+const DIMENSION_LABELS: Record<DimensionField, string> = {
+  x: 'X',
+  y: 'Y',
+  width: 'Width',
+  height: 'Height'
+}
+const MIN_SELECTION_DIMENSION_WIDTH = 96
+const MIN_SELECTION_DIMENSION_HEIGHT = 72
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -286,6 +301,7 @@ function createSelectionCapabilities(input: {
     canOpen: selectionCount === 1 && input.hasOpenHandler,
     canEditAlias: selectionCount === 1 && Boolean(firstNode?.sourceNodeId) && input.hasAliasHandler,
     canComment: hasSelection && input.hasCommentHandler,
+    canEditDimensions: selectionCount === 1 && hasUnlockedSelection,
     canDuplicate: hasUnlockedSelection,
     canToggleLock: hasSelection,
     canConnect: selectionCount === 2 && unlockedCount === 2,
@@ -582,6 +598,57 @@ function CanvasSelectionToolbarButton({
   )
 }
 
+function CanvasSelectionDimensionsPopover({
+  node,
+  theme,
+  style,
+  onUpdate
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+  onUpdate: (field: DimensionField, value: number) => void
+}) {
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Selection dimensions"
+      data-canvas-v3-dimensions-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      {DIMENSION_FIELDS.map((field) => (
+        <label key={field} style={styles.selectionPopoverField}>
+          <span style={{ ...styles.selectionPopoverLabel, color: theme.panelMutedText }}>
+            {DIMENSION_LABELS[field]}
+          </span>
+          <input
+            type="number"
+            value={Math.round(node.position[field])}
+            aria-label={DIMENSION_LABELS[field]}
+            style={{
+              ...styles.selectionPopoverInput,
+              color: theme.panelText,
+              background: theme.surfaceBackground,
+              borderColor: theme.panelBorder
+            }}
+            onChange={(event) => {
+              const value = Number(event.currentTarget.value)
+
+              if (Number.isFinite(value)) {
+                onUpdate(field, value)
+              }
+            }}
+          />
+        </label>
+      ))}
+    </div>
+  )
+}
+
 function readRemoteUsers(awareness: AwarenessLike | null | undefined): CanvasRemoteUser[] {
   if (!awareness) {
     return []
@@ -786,6 +853,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
   const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null)
+  const [activeSelectionPopover, setActiveSelectionPopover] = useState<SelectionPopover | null>(
+    null
+  )
   const [remoteUsers, setRemoteUsers] = useState<CanvasRemoteUser[]>(() =>
     readRemoteUsers(awareness)
   )
@@ -940,6 +1010,34 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       return applyPositionUpdates(expandContainerPositionUpdates(nodesById, updates))
     },
     [applyPositionUpdates, doc]
+  )
+
+  const updateSelectionDimension = useCallback(
+    (field: DimensionField, value: number): boolean => {
+      const selectedNodes = getSelectedNodes()
+      const node = selectedNodes[0] ?? null
+
+      if (selectedNodes.length !== 1 || !node || node.locked || !Number.isFinite(value)) {
+        return false
+      }
+
+      const nextValue =
+        field === 'width'
+          ? Math.max(MIN_SELECTION_DIMENSION_WIDTH, value)
+          : field === 'height'
+            ? Math.max(MIN_SELECTION_DIMENSION_HEIGHT, value)
+            : value
+
+      return applySelectionPositionUpdates([
+        {
+          id: node.id,
+          position: {
+            [field]: Math.round(nextValue)
+          }
+        }
+      ])
+    },
+    [applySelectionPositionUpdates, getSelectedNodes]
   )
 
   const toggleSelectionLock = useCallback((): boolean => {
@@ -1125,6 +1223,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }),
     [onCreateSelectionComment, onEditSelectionAlias, onOpenSelection, selectedNodes]
   )
+  const selectedNodeKey = useMemo(
+    () => Array.from(selectedNodeIds).sort().join('|'),
+    [selectedNodeIds]
+  )
+
+  useEffect(() => {
+    setActiveSelectionPopover(null)
+  }, [selectedNodeKey])
+
+  useEffect(() => {
+    if (!selectionCapabilities.canEditDimensions) {
+      setActiveSelectionPopover(null)
+    }
+  }, [selectionCapabilities.canEditDimensions])
+
   const firstSelectedNode = selectedNodes[0] ?? null
   const selectionToolbarTitle =
     selectedNodes.length === 1 && firstSelectedNode
@@ -1174,6 +1287,47 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       background: theme.panelBackground,
       borderColor: theme.panelBorder,
       boxShadow: theme.panelShadow
+    }
+  }, [
+    selectionToolbarRect,
+    selectionToolbarPreviewDelta,
+    theme.panelBackground,
+    theme.panelBorder,
+    theme.panelShadow,
+    theme.panelText,
+    viewportSize.height,
+    viewportSize.width
+  ])
+  const selectionPopoverStyle = useMemo<React.CSSProperties | null>(() => {
+    if (!selectionToolbarRect) {
+      return null
+    }
+
+    const selectionCenter = selectionToolbarRect.x + selectionToolbarRect.width / 2
+    const toolbarAboveSelection = selectionToolbarRect.y >= 58
+    const toolbarTop = toolbarAboveSelection
+      ? selectionToolbarRect.y - 48
+      : Math.min(
+          viewportSize.height - 48,
+          selectionToolbarRect.y + selectionToolbarRect.height + 12
+        )
+    const popoverTop = toolbarTop + 48
+
+    return {
+      color: theme.panelText,
+      background: theme.panelBackground,
+      borderColor: theme.panelBorder,
+      boxShadow: theme.panelShadow,
+      left: clamp(
+        selectionCenter + (selectionToolbarPreviewDelta?.x ?? 0),
+        180,
+        Math.max(180, viewportSize.width - 180)
+      ),
+      top: clamp(
+        popoverTop + (selectionToolbarPreviewDelta?.y ?? 0),
+        58,
+        Math.max(58, viewportSize.height - 102)
+      )
     }
   }, [
     selectionToolbarRect,
@@ -2229,6 +2383,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             }}
           />
 
+          {selectionCapabilities.canEditDimensions ? (
+            <CanvasSelectionToolbarButton
+              action="dimensions"
+              label="Size"
+              title="Edit selection dimensions"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'dimensions' ? null : 'dimensions'
+                )
+              }}
+            />
+          ) : null}
+
           {selectedNodes.length === 2 ? (
             <CanvasSelectionToolbarButton
               action="connect"
@@ -2334,6 +2502,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             onClick={clearSelection}
           />
         </div>
+      ) : null}
+
+      {activeSelectionPopover === 'dimensions' &&
+      firstSelectedNode &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canEditDimensions ? (
+        <CanvasSelectionDimensionsPopover
+          node={firstSelectedNode}
+          theme={theme}
+          style={selectionPopoverStyle}
+          onUpdate={updateSelectionDimension}
+        />
       ) : null}
 
       {remoteUsers.map((user) =>
@@ -2501,6 +2681,43 @@ const styles: Record<string, React.CSSProperties> = {
     width: 1,
     height: 20,
     margin: '0 2px'
+  },
+  selectionPopover: {
+    position: 'absolute',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(64px, 1fr))',
+    gap: 8,
+    width: 'min(360px, calc(100% - 24px))',
+    padding: 10,
+    border: '1px solid',
+    borderRadius: 8,
+    pointerEvents: 'auto',
+    transform: 'translateX(-50%)',
+    zIndex: 19
+  },
+  selectionPopoverField: {
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4
+  },
+  selectionPopoverLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    lineHeight: 1,
+    textTransform: 'uppercase'
+  },
+  selectionPopoverInput: {
+    width: '100%',
+    minWidth: 0,
+    height: 28,
+    boxSizing: 'border-box',
+    border: '1px solid',
+    borderRadius: 6,
+    padding: '0 6px',
+    fontSize: 12,
+    fontWeight: 600,
+    lineHeight: 1
   },
   builtinNodeContent: {
     width: '100%',
