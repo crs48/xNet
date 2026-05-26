@@ -1437,7 +1437,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add first-pass Canvas v3 contextual toolbar actions for open, comment, lock, connect, align, distribute, tidy, layer, frame, duplicate, delete, and clear.
 - [x] Add contextual toolbar actions derived from selection capabilities.
 - [x] Add first-pass Canvas v3 contextual toolbar action availability derived from selection count, lock state, and app callbacks.
-- [ ] Add contextual popovers for style, dimensions, crop/fit, PDF page, edge type, alias, references, comments, and plugin fields.
+- [x] Add contextual popovers for style, dimensions, crop/fit, PDF page, edge type, alias, references, comments, and plugin fields.
 - [x] Add first-pass Canvas v3 dimensions popover for a single unlocked selection.
 - [x] Add remote drag/resize awareness without flooding tile sync with intermediate updates.
 - [x] Add first-pass Canvas v3 drag/resize interaction awareness with remote outlines.

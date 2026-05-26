@@ -363,6 +363,10 @@ export {
   isCanvasContainerNode,
   getUnlockedSelection
 } from './selection/scene-operations'
+export {
+  createCanvasContextPopoverDefinitions,
+  getEnabledCanvasContextPopovers
+} from './selection/contextual-popovers'
 export { getCanvasResizePolicy } from './selection/resize-policy'
 export { createCanvasSmartSnap } from './selection/snap-guides'
 export type {
@@ -372,6 +376,11 @@ export type {
   CreateFrameSelectionNodeOptions,
   CreateGroupSelectionNodeOptions
 } from './selection/scene-operations'
+export type {
+  CanvasContextPopoverDefinition,
+  CanvasContextPopoverKind,
+  CreateCanvasContextPopoverDefinitionsInput
+} from './selection/contextual-popovers'
 export type { CanvasResizePolicy } from './selection/resize-policy'
 export type { CanvasSmartSnapResult, CanvasSnapGuideSegment } from './selection/snap-guides'
 
