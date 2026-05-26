@@ -3,6 +3,10 @@
  */
 
 import type { JSX } from 'react'
+import {
+  resolveExternalReferenceMetadata,
+  type ExternalReferenceResolvedMetadata
+} from '@xnetjs/data'
 import React, { useEffect, useMemo, useState } from 'react'
 import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from '../extensions/embed'
 import { cn } from '../utils'
@@ -255,80 +259,10 @@ export function CanvasFailedCardActions({
   )
 }
 
-type ExternalReferenceMetadata = {
-  title: string
-  subtitle: string | null
-}
-
-type OEmbedResponse = {
-  title?: string
-  author_name?: string
-  provider_name?: string
-}
-
-const EXTERNAL_REFERENCE_METADATA_CACHE = new Map<string, ExternalReferenceMetadata | null>()
-
-function getOEmbedEndpoint(url: string, providerId: string): string | null {
-  const encodedUrl = encodeURIComponent(url)
-
-  switch (providerId) {
-    case 'youtube':
-      return `https://www.youtube.com/oembed?url=${encodedUrl}&format=json`
-    case 'twitter':
-      return `https://publish.twitter.com/oembed?url=${encodedUrl}&omit_script=true`
-    default:
-      return null
-  }
-}
-
-function toAuthorHandle(value: string | null | undefined): string | null {
-  const normalized = normalizeValue(value)
-  if (!normalized) {
-    return null
-  }
-
-  return normalized.startsWith('@') ? normalized : `@${normalized}`
-}
-
-function toAuthorName(value: string | null | undefined): string | null {
-  return normalizeValue(value)
-}
-
-function resolveExternalReferenceMetadata(
-  providerId: string,
-  payload: OEmbedResponse,
-  fallbackTitle: string,
-  fallbackSubtitle: string | null
-): ExternalReferenceMetadata | null {
-  const providerName = normalizeValue(payload.provider_name)
-  const title = normalizeValue(payload.title)
-  const authorHandle = toAuthorHandle(payload.author_name)
-  const authorName = toAuthorName(payload.author_name)
-
-  if (providerId === 'youtube') {
-    if (!title && !authorName) {
-      return null
-    }
-
-    return {
-      title: title ?? fallbackTitle,
-      subtitle: authorName ?? providerName ?? fallbackSubtitle
-    }
-  }
-
-  if (providerId === 'twitter') {
-    if (!title && !authorHandle) {
-      return null
-    }
-
-    return {
-      title: title ?? (authorHandle ? `Post from ${authorHandle}` : fallbackTitle),
-      subtitle: authorHandle ?? providerName ?? fallbackSubtitle
-    }
-  }
-
-  return null
-}
+const EXTERNAL_REFERENCE_METADATA_CACHE = new Map<
+  string,
+  ExternalReferenceResolvedMetadata | null
+>()
 
 export function CanvasExternalReferenceCard({
   title,
@@ -358,7 +292,8 @@ export function CanvasExternalReferenceCard({
   const providerId = resolvedProvider?.name ?? cardRenderer.providerId
   const accentClasses = PROVIDER_ACCENT_CLASSES[cardRenderer.accent]
   const fallbackSubtitle = normalizeValue(subtitle)
-  const [resolvedMetadata, setResolvedMetadata] = useState<ExternalReferenceMetadata | null>(null)
+  const [resolvedMetadata, setResolvedMetadata] =
+    useState<ExternalReferenceResolvedMetadata | null>(null)
 
   useEffect(() => {
     const cacheKey = `${providerId}:${url}`
@@ -367,35 +302,17 @@ export function CanvasExternalReferenceCard({
       return
     }
 
-    const endpoint = getOEmbedEndpoint(url, providerId)
-    if (!endpoint) {
-      EXTERNAL_REFERENCE_METADATA_CACHE.set(cacheKey, null)
-      setResolvedMetadata(null)
-      return
-    }
-
     const controller = new AbortController()
 
-    void fetch(endpoint, {
-      headers: {
-        Accept: 'application/json'
-      },
+    void resolveExternalReferenceMetadata({
+      url,
+      provider: providerId,
+      fallbackTitle: title,
+      fallbackSubtitle,
       signal: controller.signal
     })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`External reference metadata request failed (${response.status})`)
-        }
-
-        return (await response.json()) as OEmbedResponse
-      })
-      .then((payload) => {
-        const metadata = resolveExternalReferenceMetadata(
-          providerId,
-          payload,
-          title,
-          fallbackSubtitle
-        )
+      .then((result) => {
+        const metadata = result.status === 'resolved' ? result.metadata : null
         EXTERNAL_REFERENCE_METADATA_CACHE.set(cacheKey, metadata)
         setResolvedMetadata(metadata)
       })

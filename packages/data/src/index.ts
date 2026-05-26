@@ -162,6 +162,17 @@ export {
   parseEmbedUrl,
   parseExternalReferenceUrl
 } from './external-references'
+export {
+  getExternalReferenceOEmbedEndpoint,
+  parseOpenGraphMetadata,
+  resolveExternalReferenceMetadata,
+  type ExternalReferenceMetadataFetcher,
+  type ExternalReferenceMetadataResult,
+  type ExternalReferenceMetadataSource,
+  type ExternalReferenceMetadataStatus,
+  type ExternalReferenceResolvedMetadata,
+  type ResolveExternalReferenceMetadataInput
+} from './external-reference-metadata'
 
 // Update handling
 export {
