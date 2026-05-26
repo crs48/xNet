@@ -129,6 +129,10 @@ export {
   getCanvasPreviewJobKey
 } from './preview/queue'
 export {
+  createCanvasThumbnailOutput,
+  getCanvasThumbnailOutputCacheKey
+} from './preview/thumbnail-output'
+export {
   createCanvasStoragePolicyPrompt,
   createCanvasStoragePolicyDecision,
   getCanvasStoragePolicies,
@@ -158,6 +162,11 @@ export type {
   CanvasPreviewQueueJobStatus,
   CanvasPreviewQueueState
 } from './preview/queue'
+export type {
+  CanvasThumbnailOutput,
+  CanvasThumbnailOutputKind,
+  CreateCanvasThumbnailOutputInput
+} from './preview/thumbnail-output'
 export type {
   CanvasStoragePolicy,
   CanvasStoragePolicyCapability,
