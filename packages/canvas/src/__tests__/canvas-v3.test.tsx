@@ -1046,6 +1046,121 @@ describe('Canvas v3 active renderer', () => {
     ).toBe(false)
   })
 
+  it('keeps contextual toolbar actions available across rich object kinds', () => {
+    const doc = new Y.Doc()
+    const ref = React.createRef<CanvasHandle>()
+    const onEditSelectionAlias = vi.fn()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const media = createNode(
+      'media',
+      { x: 0, y: 0, width: 320, height: 180 },
+      {
+        title: 'Reference Image',
+        kind: 'image'
+      }
+    )
+    const pdf = createNode(
+      'media',
+      { x: 360, y: 0, width: 280, height: 360 },
+      {
+        title: 'Spec PDF',
+        kind: 'pdf',
+        mimeType: 'application/pdf'
+      }
+    )
+    const embed = createNode(
+      'external-reference',
+      { x: 680, y: 0, width: 360, height: 202 },
+      {
+        title: 'Demo Video',
+        embedUrl: 'https://www.youtube.com/embed/video'
+      }
+    )
+    const shape = createNode(
+      'shape',
+      { x: 0, y: 260, width: 220, height: 140 },
+      {
+        title: 'Decision Shape'
+      }
+    )
+    const baseFrame = createCanvasFrameVariantNode({
+      title: 'Planning Frame',
+      viewport: { x: 0, y: 0, zoom: 1 },
+      variant: 'standard'
+    })
+    const frame: CanvasNode = {
+      ...baseFrame,
+      id: 'frame-kind',
+      position: { x: 260, y: 240, width: 360, height: 260 }
+    }
+    const pluginCard = createNode(
+      'external-reference',
+      { x: 660, y: 260, width: 320, height: 180 },
+      {
+        title: 'ERP Purchase Order',
+        pluginId: 'com.xnet.fixtures.erp',
+        pluginContributionId: 'erp.purchase-order-card'
+      }
+    )
+    pluginCard.sourceNodeId = 'source-erp-po'
+    const richNodes = [media, pdf, embed, shape, frame, pluginCard]
+
+    richNodes.forEach((node) => {
+      objects.set(node.id, node)
+    })
+
+    render(<Canvas ref={ref} doc={doc} onEditSelectionAlias={onEditSelectionAlias} />)
+
+    const expectEnabledToolbarButton = (toolbar: HTMLElement, name: string) => {
+      expect((within(toolbar).getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(
+        false
+      )
+    }
+
+    for (const node of richNodes) {
+      act(() => {
+        ref.current?.selectNodes([node.id])
+      })
+
+      const toolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+      expectEnabledToolbarButton(toolbar, 'Edit selection dimensions')
+      expectEnabledToolbarButton(toolbar, 'Duplicate selection')
+      expectEnabledToolbarButton(toolbar, 'Lock selection')
+      expectEnabledToolbarButton(toolbar, 'Wrap selection in frame')
+      expectEnabledToolbarButton(toolbar, 'Send selection backward')
+      expectEnabledToolbarButton(toolbar, 'Bring selection forward')
+      expectEnabledToolbarButton(toolbar, 'Delete selection')
+      expectEnabledToolbarButton(toolbar, 'Clear selection')
+    }
+
+    act(() => {
+      ref.current?.selectNodes([shape.id])
+    })
+    expect(
+      screen.getByRole('button', {
+        name: 'Edit shape style'
+      })
+    ).toBeTruthy()
+
+    act(() => {
+      ref.current?.selectNodes([frame.id])
+    })
+    expect(
+      screen.getByRole('button', {
+        name: 'Edit frame variant'
+      })
+    ).toBeTruthy()
+
+    act(() => {
+      ref.current?.selectNodes([pluginCard.id])
+    })
+    expect(
+      screen.getByRole('button', {
+        name: 'Edit selection alias'
+      })
+    ).toBeTruthy()
+  })
+
   it('duplicates and deletes v3 selections from toolbar and keyboard shortcuts', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()
@@ -1247,6 +1362,52 @@ describe('Canvas v3 active renderer', () => {
     expect(moved?.position.x).toBe(initialX + 40)
     expect(moved?.position.y).toBe(initialY + 30)
     expect(onSceneMutation).toHaveBeenCalled()
+  })
+
+  it('ignores v3 DOM island drag jitter below the movement threshold', () => {
+    const doc = createCanvasTestDoc()
+    const onSceneMutation = vi.fn()
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        onSceneMutation={onSceneMutation}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const initialX = page.position.x
+    const initialY = page.position.y
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!pageIsland) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    fireEvent.pointerDown(pageIsland, {
+      button: 0,
+      pointerId: 70,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 70,
+      clientX: 481,
+      clientY: 321
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 70,
+      clientX: 481,
+      clientY: 321
+    })
+
+    const moved = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(moved?.position.x).toBe(initialX)
+    expect(moved?.position.y).toBe(initialY)
+    expect(onSceneMutation).not.toHaveBeenCalled()
   })
 
   it('shares v3 drag interactions through awareness without committing intermediate positions', () => {

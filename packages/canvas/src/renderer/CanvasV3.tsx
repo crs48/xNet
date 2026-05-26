@@ -432,6 +432,7 @@ const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
 const CANVAS_OBJECT_HIT_TARGET_PADDING = 8
 const CANVAS_OBJECT_MIN_HIT_TARGET_SIZE = 36
+const CANVAS_DRAG_START_THRESHOLD_PX = 3
 const SMART_GUIDE_SCREEN_THRESHOLD = 8
 
 function clamp(value: number, min: number, max: number): number {
@@ -3285,6 +3286,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         const rawScreenDelta = {
           x: event.clientX - nodeDrag.startClientPoint.x,
           y: event.clientY - nodeDrag.startClientPoint.y
+        }
+        if (Math.hypot(rawScreenDelta.x, rawScreenDelta.y) < CANVAS_DRAG_START_THRESHOLD_PX) {
+          setDragPreview(null)
+          setActiveSnapGuides([])
+          return
         }
         const snapPreview = createSnappedDragPreviewState(nodeDrag, rawScreenDelta, event.altKey)
 
