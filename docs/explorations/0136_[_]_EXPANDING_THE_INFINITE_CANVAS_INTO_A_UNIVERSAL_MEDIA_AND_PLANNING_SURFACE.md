@@ -1419,7 +1419,7 @@ controllers, object toolbars, and plugin command routing.
 
 ### Direct Manipulation And Editing UI
 
-- [ ] Define a first-class `CanvasInteractionController` boundary for selection, move, resize, connect, snapping, keyboard nudging, and undo grouping.
+- [x] Define a first-class `CanvasInteractionController` boundary for selection, move, resize, connect, snapping, keyboard nudging, and undo grouping.
 - [x] Render selection outlines, eight resize handles, connector handles, lock indicators, and multi-select bounds consistently across object kinds.
 - [x] Add forgiving hit targets for sparse shapes, transparent media, iframe shells, and source-backed cards.
 - [x] Add first-pass Canvas v3 DOM-island dragging that repositions unlocked selected objects through Yjs.

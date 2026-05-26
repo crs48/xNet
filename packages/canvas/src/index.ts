@@ -147,6 +147,32 @@ export type {
   CanvasStorageSourceKind,
   CreateCanvasStoragePolicyDecisionInput
 } from './storage-policy'
+export {
+  createCanvasInteractionController,
+  createCanvasInteractionResult,
+  getCanvasInteractionUndoGroupId
+} from './interaction/controller'
+export type {
+  CanvasConnectCommand,
+  CanvasInteractionCommand,
+  CanvasInteractionCommandKind,
+  CanvasInteractionConnectorEndpoint,
+  CanvasInteractionController,
+  CanvasInteractionHandlerMap,
+  CanvasInteractionPhase,
+  CanvasInteractionResult,
+  CanvasInteractionUndoScope,
+  CanvasMoveCommand,
+  CanvasNudgeCommand,
+  CanvasResizeCommand,
+  CanvasSelectCommand,
+  CanvasSelectionInteractionMode,
+  CanvasSnapCommand,
+  CanvasSnapGuide,
+  CanvasSnapGuideSource,
+  CanvasSnapState,
+  CanvasUndoGroupCommand
+} from './interaction/controller'
 
 export {
   DEFAULT_CANVAS_TILE_SIZE,
