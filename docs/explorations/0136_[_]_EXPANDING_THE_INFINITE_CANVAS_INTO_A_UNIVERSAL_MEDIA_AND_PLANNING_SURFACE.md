@@ -1465,7 +1465,7 @@ controllers, object toolbars, and plugin command routing.
 ### Files And PDFs
 
 - [x] Add storage policy model: reference-only, copied blob, synced blob, remote-only, blocked.
-- [ ] Add PDF.js-backed page thumbnail generation.
+- [x] Add PDF.js-backed page thumbnail generation.
 - [ ] Add focused PDF page viewer with page strip.
 - [ ] Add page-level anchors for comments and edges.
 - [ ] Add annotation overlay model separate from source PDF bytes.

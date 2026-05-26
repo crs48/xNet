@@ -141,6 +141,7 @@ export {
   createCanvasPreviewGenerationBenchmarkSources,
   measureCanvasPreviewGenerationBenchmark
 } from './preview/benchmarks'
+export { createCanvasPdfPageThumbnails } from './pdf/page-thumbnails'
 export {
   createCanvasOfflinePreviewFallback,
   isCanvasOfflinePreviewFallback
@@ -191,6 +192,19 @@ export type {
   CanvasPreviewGenerationBenchmarkMeasurement,
   CanvasPreviewGenerationBenchmarkSource
 } from './preview/benchmarks'
+export type {
+  CanvasPdfJsAdapter,
+  CanvasPdfJsDocument,
+  CanvasPdfJsLoadingTask,
+  CanvasPdfJsPage,
+  CanvasPdfPageThumbnail,
+  CanvasPdfRenderTask,
+  CanvasPdfThumbnailCanvas,
+  CanvasPdfThumbnailCanvasFactory,
+  CanvasPdfThumbnailMimeType,
+  CanvasPdfViewport,
+  CreateCanvasPdfPageThumbnailsInput
+} from './pdf/page-thumbnails'
 export type { CanvasPreviewSourceFingerprintInput } from './preview/cache-invalidation'
 export type {
   CanvasPreviewOfflineFallbackReason,
