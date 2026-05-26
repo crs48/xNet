@@ -1001,6 +1001,29 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [applySelectionPositionUpdates, doc, viewport.zoom]
   )
 
+  const nudgeSelectionByCanvasDelta = useCallback(
+    (nodeIds: string[], delta: Point): boolean => {
+      if (nodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
+        return false
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const selectedNodes = nodeIds
+        .map((id) => objects.get(id))
+        .filter((node): node is CanvasNode => node !== undefined)
+      const updates = getUnlockedSelection(selectedNodes).map((node) => ({
+        id: node.id,
+        position: {
+          x: Math.round(node.position.x + delta.x),
+          y: Math.round(node.position.y + delta.y)
+        }
+      }))
+
+      return applySelectionPositionUpdates(updates)
+    },
+    [applySelectionPositionUpdates, doc]
+  )
+
   const resizeNodeByScreenDelta = useCallback(
     (nodeId: string, handle: ResizeHandle, delta: Point): boolean => {
       if (delta.x === 0 && delta.y === 0) {
@@ -1473,6 +1496,54 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         return
       }
 
+      const selectedIds = Array.from(selectedNodeIds)
+      const nudgeStep = event.shiftKey ? (config.gridSize ?? 20) : 1
+      const nudgeDeltaByKey: Record<string, Point> = {
+        arrowup: { x: 0, y: -nudgeStep },
+        arrowdown: { x: 0, y: nudgeStep },
+        arrowleft: { x: -nudgeStep, y: 0 },
+        arrowright: { x: nudgeStep, y: 0 }
+      }
+      const nudgeDelta = nudgeDeltaByKey[key]
+
+      if (!mod && selectedIds.length > 0 && nudgeDelta) {
+        event.preventDefault()
+        if (nudgeSelectionByCanvasDelta(selectedIds, nudgeDelta)) {
+          awareness?.setLocalStateField('activity', 'moving')
+        }
+        return
+      }
+
+      if (selectedIds.length > 0 && key === '[') {
+        event.preventDefault()
+        shiftSelectionLayer('backward')
+        return
+      }
+
+      if (selectedIds.length > 0 && key === ']') {
+        event.preventDefault()
+        shiftSelectionLayer('forward')
+        return
+      }
+
+      if (mod && event.shiftKey && selectedIds.length > 0 && key === 'l') {
+        event.preventDefault()
+        toggleSelectionLock()
+        return
+      }
+
+      if (mod && event.shiftKey && selectedIds.length === 2 && key === 'k') {
+        event.preventDefault()
+        connectSelection()
+        return
+      }
+
+      if (mod && event.shiftKey && selectedIds.length > 0 && key === 'f') {
+        event.preventDefault()
+        wrapSelectionInFrame()
+        return
+      }
+
       if (key === 'enter' && selectedNodeIds.size > 0) {
         event.preventDefault()
         onOpenSelection?.('focus')
@@ -1515,8 +1586,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }
     },
     [
+      awareness,
       clearSelection,
+      config.gridSize,
+      connectSelection,
       fitToRect,
+      nudgeSelectionByCanvasDelta,
       onCreateObject,
       onCreateSelectionComment,
       onDismissTransientUi,
@@ -1525,8 +1600,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       onToggleShortcutHelp,
       onUndoRedoShortcut,
       scene.bounds,
-      selectedNodeIds.size,
-      setViewportClamped
+      selectedNodeIds,
+      setViewportClamped,
+      shiftSelectionLayer,
+      toggleSelectionLock,
+      wrapSelectionInFrame
     ]
   )
 

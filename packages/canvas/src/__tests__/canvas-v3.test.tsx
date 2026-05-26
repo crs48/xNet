@@ -306,6 +306,56 @@ describe('Canvas v3 active renderer', () => {
     ).toBe(true)
   })
 
+  it('routes v3 keyboard editing shortcuts through selection operations', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+
+    render(<Canvas ref={ref} doc={doc} config={{ gridSize: 24 }} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap(doc)
+    const initialConnectorCount = connectors.size
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+
+    fireEvent.keyDown(surface, { key: 'ArrowRight' })
+    fireEvent.keyDown(surface, { key: 'ArrowDown', shiftKey: true })
+    fireEvent.keyDown(surface, { key: ']' })
+
+    expect(objects.get(page.id)?.position.x).toBe(page.position.x + 1)
+    expect(objects.get(page.id)?.position.y).toBe(page.position.y + 24)
+    expect(objects.get(page.id)?.position.zIndex).toBe(1)
+
+    fireEvent.keyDown(surface, { key: 'L', metaKey: true, shiftKey: true })
+    expect(objects.get(page.id)?.locked).toBe(true)
+
+    fireEvent.keyDown(surface, { key: 'L', metaKey: true, shiftKey: true })
+    expect(objects.get(page.id)?.locked).toBe(false)
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+
+    fireEvent.keyDown(surface, { key: 'K', metaKey: true, shiftKey: true })
+    expect(connectors.size).toBe(initialConnectorCount + 1)
+
+    fireEvent.keyDown(surface, { key: 'F', metaKey: true, shiftKey: true })
+    expect(
+      Array.from(objects.values()).some(
+        (node) =>
+          node.type === 'group' &&
+          Array.isArray(node.properties.memberIds) &&
+          node.properties.memberIds.includes(page.id) &&
+          node.properties.memberIds.includes(shape.id)
+      )
+    ).toBe(true)
+  })
+
   it('moves a v3 object by dragging its DOM island', () => {
     const doc = createCanvasTestDoc()
     const onSceneMutation = vi.fn()
