@@ -1365,7 +1365,7 @@ gantt
 ### Direct Manipulation And Editing UI
 
 - [ ] Define a first-class `CanvasInteractionController` boundary for selection, move, resize, connect, snapping, keyboard nudging, and undo grouping.
-- [ ] Render selection outlines, eight resize handles, connector handles, lock indicators, and multi-select bounds consistently across object kinds.
+- [x] Render selection outlines, eight resize handles, connector handles, lock indicators, and multi-select bounds consistently across object kinds.
 - [ ] Add forgiving hit targets for sparse shapes, transparent media, iframe shells, and source-backed cards.
 - [x] Add first-pass Canvas v3 DOM-island dragging that repositions unlocked selected objects through Yjs.
 - [x] Add first-pass Canvas v3 resize handles that update object dimensions through Yjs.
@@ -1495,6 +1495,7 @@ gantt
 - [x] Test v3 minimap summary type counts for all current object kinds.
 - [x] Test v3 keyboard editing shortcuts for nudge, lock, group, connect, frame wrap, open, clear, and layer movement.
 - [x] Test v3 duplicate and delete behavior from keyboard shortcuts and contextual toolbar actions.
+- [x] Test v3 connector handles, handle endpoint bindings, and multi-select bounds rendering.
 
 ### Performance
 

@@ -387,6 +387,71 @@ describe('Canvas v3 active renderer', () => {
     ).toBe(true)
   })
 
+  it('renders v3 connector handles, multi-select bounds, and connects handle endpoints', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const onSceneMutation = vi.fn()
+
+    render(<Canvas ref={ref} doc={doc} onSceneMutation={onSceneMutation} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const connectors = getCanvasConnectorsMap(doc)
+    const initialConnectorIds = new Set(
+      Array.from(connectors.values()).map((connector) => connector.id)
+    )
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    expect(surface.querySelector('[data-canvas-v3-selection-bounds="true"]')).toBeTruthy()
+    expect(surface.querySelectorAll('[data-canvas-v3-connector-handle]')).toHaveLength(8)
+
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    const shapeIsland = screen.getByText('Decision Box').closest('[data-canvas-v3-object="true"]')
+
+    if (!pageIsland || !shapeIsland) {
+      throw new Error('Expected page and shape DOM islands')
+    }
+
+    fireEvent.click(
+      within(pageIsland as HTMLElement).getByRole('button', {
+        name: 'Start connector from Research Page right'
+      })
+    )
+
+    expect(
+      within(pageIsland as HTMLElement)
+        .getByRole('button', {
+          name: 'Connector start from Research Page right'
+        })
+        .getAttribute('data-canvas-connector-active')
+    ).toBe('true')
+    expect(
+      within(shapeIsland as HTMLElement).getByRole('button', {
+        name: 'Finish connector at Decision Box left'
+      })
+    ).toBeTruthy()
+
+    fireEvent.click(
+      within(shapeIsland as HTMLElement).getByRole('button', {
+        name: 'Finish connector at Decision Box left'
+      })
+    )
+
+    const createdConnector = Array.from(connectors.values()).find(
+      (connector) => !initialConnectorIds.has(connector.id)
+    )
+
+    expect(createdConnector?.source?.objectId).toBe(page.id)
+    expect(createdConnector?.source?.placement).toBe('right')
+    expect(createdConnector?.target?.objectId).toBe(shape.id)
+    expect(createdConnector?.target?.placement).toBe('left')
+    expect(onSceneMutation).toHaveBeenCalledOnce()
+  })
+
   it('derives v3 selection toolbar actions from selection capabilities', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()

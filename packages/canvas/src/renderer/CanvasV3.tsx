@@ -11,6 +11,7 @@ import type {
   CanvasEdge,
   CanvasLayerDirection,
   CanvasNode,
+  CanvasObjectAnchorPlacement,
   Point,
   Rect,
   ResizeHandle
@@ -237,6 +238,15 @@ type DragPreviewState = {
 type SelectionPopover = 'dimensions'
 
 type DimensionField = 'x' | 'y' | 'width' | 'height'
+type ConnectorHandlePlacement = Extract<
+  CanvasObjectAnchorPlacement,
+  'top' | 'right' | 'bottom' | 'left'
+>
+
+type ConnectorStart = {
+  nodeId: string
+  placement: ConnectorHandlePlacement
+}
 
 type CanvasSelectionCapabilities = {
   canOpen: boolean
@@ -266,6 +276,7 @@ const RESIZE_HANDLES: ResizeHandle[] = [
   'bottom-left',
   'left'
 ]
+const CONNECTOR_HANDLE_PLACEMENTS: ConnectorHandlePlacement[] = ['top', 'right', 'bottom', 'left']
 
 const DIMENSION_FIELDS: DimensionField[] = ['x', 'y', 'width', 'height']
 const DIMENSION_LABELS: Record<DimensionField, string> = {
@@ -551,6 +562,47 @@ function getResizeHandleStyle(
       return { ...base, bottom: inset, left: inset }
     case 'left':
       return { ...base, top: '50%', left: inset, marginTop: centerOffset }
+  }
+}
+
+function getConnectorHandleStyle(
+  placement: ConnectorHandlePlacement,
+  colors: {
+    background: string
+    border: string
+    activeBackground: string
+    activeBorder: string
+    shadow: string
+  },
+  active: boolean
+): React.CSSProperties {
+  const size = 14
+  const centerOffset = -size / 2
+  const offset = -size / 2
+  const base: React.CSSProperties = {
+    position: 'absolute',
+    appearance: 'none',
+    width: size,
+    height: size,
+    padding: 0,
+    borderRadius: 999,
+    border: `2px solid ${active ? colors.activeBorder : colors.border}`,
+    backgroundColor: active ? colors.activeBackground : colors.background,
+    boxShadow: colors.shadow,
+    cursor: 'crosshair',
+    pointerEvents: 'auto',
+    zIndex: 4
+  }
+
+  switch (placement) {
+    case 'top':
+      return { ...base, top: offset, left: '50%', marginLeft: centerOffset }
+    case 'right':
+      return { ...base, top: '50%', right: offset, marginTop: centerOffset }
+    case 'bottom':
+      return { ...base, bottom: offset, left: '50%', marginLeft: centerOffset }
+    case 'left':
+      return { ...base, top: '50%', left: offset, marginTop: centerOffset }
   }
 }
 
@@ -902,6 +954,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
   const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null)
+  const [connectorStart, setConnectorStart] = useState<ConnectorStart | null>(null)
   const [activeSelectionPopover, setActiveSelectionPopover] = useState<SelectionPopover | null>(
     null
   )
@@ -967,11 +1020,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const clearSelection = useCallback(() => {
     setSelectedNodeIds(new Set())
     setFocusedNodeId(null)
+    setConnectorStart(null)
   }, [])
 
   const selectNodes = useCallback((nodeIds: string[]) => {
     setSelectedNodeIds(new Set(nodeIds))
     setFocusedNodeId(nodeIds[0] ?? null)
+    setConnectorStart(null)
   }, [])
 
   const getSelectedNodes = useCallback((): CanvasNode[] => {
@@ -1182,6 +1237,60 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     return true
   }, [doc, getSelectedNodes, onSceneMutation])
 
+  const connectFromHandle = useCallback(
+    (nodeId: string, placement: ConnectorHandlePlacement): boolean => {
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const node = objects.get(nodeId)
+
+      if (!node || node.locked) {
+        return false
+      }
+
+      if (!connectorStart) {
+        setConnectorStart({ nodeId, placement })
+        setSelectedNodeIds(new Set([nodeId]))
+        setFocusedNodeId(nodeId)
+        return true
+      }
+
+      if (connectorStart.nodeId === nodeId) {
+        setConnectorStart({ nodeId, placement })
+        return false
+      }
+
+      const sourceNode = objects.get(connectorStart.nodeId)
+      if (!sourceNode || sourceNode.locked) {
+        setConnectorStart({ nodeId, placement })
+        setSelectedNodeIds(new Set([nodeId]))
+        setFocusedNodeId(nodeId)
+        return false
+      }
+
+      const connectors = getCanvasConnectorsMap(doc)
+      const edge = createEdge(connectorStart.nodeId, nodeId, {
+        source: {
+          objectId: connectorStart.nodeId,
+          placement: connectorStart.placement
+        },
+        target: {
+          objectId: nodeId,
+          placement
+        }
+      })
+
+      doc.transact(() => {
+        connectors.set(edge.id, edge)
+      })
+      setConnectorStart(null)
+      setSelectedNodeIds(new Set([connectorStart.nodeId, nodeId]))
+      setFocusedNodeId(nodeId)
+      onSceneMutation?.()
+
+      return true
+    },
+    [connectorStart, doc, onSceneMutation]
+  )
+
   const duplicateSelection = useCallback((): boolean => {
     const selectedNodes = getUnlockedSelection(getSelectedNodes())
     if (selectedNodes.length === 0) {
@@ -1304,6 +1413,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [selectedNodeKey])
 
   useEffect(() => {
+    if (!connectorStart) {
+      return
+    }
+
+    const sourceNode = getCanvasObjectsMap<CanvasNode>(doc).get(connectorStart.nodeId)
+    if (!sourceNode || sourceNode.locked) {
+      setConnectorStart(null)
+    }
+  }, [connectorStart, doc, scene.objects])
+
+  useEffect(() => {
     if (!selectionCapabilities.canEditDimensions) {
       setActiveSelectionPopover(null)
     }
@@ -1368,6 +1488,26 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     theme.panelText,
     viewportSize.height,
     viewportSize.width
+  ])
+  const selectionBoundsStyle = useMemo<React.CSSProperties | null>(() => {
+    if (!selectionToolbarRect || selectedNodes.length < 2) {
+      return null
+    }
+
+    return {
+      ...styles.selectionBounds,
+      left: selectionToolbarRect.x + (selectionToolbarPreviewDelta?.x ?? 0),
+      top: selectionToolbarRect.y + (selectionToolbarPreviewDelta?.y ?? 0),
+      width: Math.max(2, selectionToolbarRect.width),
+      height: Math.max(2, selectionToolbarRect.height),
+      borderColor: theme.minimapViewportStroke,
+      boxShadow: `0 0 0 1px ${theme.minimapViewportStroke}33`
+    }
+  }, [
+    selectedNodes.length,
+    selectionToolbarPreviewDelta,
+    selectionToolbarRect,
+    theme.minimapViewportStroke
   ])
   const selectionPopoverStyle = useMemo<React.CSSProperties | null>(() => {
     if (!selectionToolbarRect) {
@@ -2403,6 +2543,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           const title = getObjectTitle(item.object)
           const previewDelta = getDragPreviewDeltaForObject(item.object.id)
           const locked = item.node.locked === true
+          const showConnectorHandles = !locked && (selected || connectorStart !== null)
 
           return (
             <div
@@ -2464,6 +2605,48 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
                   </svg>
                 </div>
               ) : null}
+              {showConnectorHandles
+                ? CONNECTOR_HANDLE_PLACEMENTS.map((placement) => {
+                    const active =
+                      connectorStart?.nodeId === item.object.id &&
+                      connectorStart.placement === placement
+                    const pendingConnector = connectorStart !== null
+                    const connectorLabel = active
+                      ? `Connector start from ${title} ${placement}`
+                      : pendingConnector
+                        ? `Finish connector at ${title} ${placement}`
+                        : `Start connector from ${title} ${placement}`
+
+                    return (
+                      <button
+                        key={placement}
+                        type="button"
+                        style={getConnectorHandleStyle(
+                          placement,
+                          {
+                            background: theme.panelBackground,
+                            border: theme.minimapViewportStroke,
+                            activeBackground: theme.minimapViewportStroke,
+                            activeBorder: theme.panelBackground,
+                            shadow: theme.panelShadow
+                          },
+                          active
+                        )}
+                        aria-label={connectorLabel}
+                        title={connectorLabel}
+                        data-canvas-v3-connector-handle={placement}
+                        data-canvas-connector-active={active ? 'true' : 'false'}
+                        onPointerDown={(event) => {
+                          event.stopPropagation()
+                        }}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          connectFromHandle(item.object.id, placement)
+                        }}
+                      />
+                    )
+                  })
+                : null}
               {selected && !locked
                 ? RESIZE_HANDLES.map((handle) => (
                     <button
@@ -2485,6 +2668,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             </div>
           )
         })}
+
+      {selectionBoundsStyle ? (
+        <div
+          style={selectionBoundsStyle}
+          aria-hidden="true"
+          data-canvas-v3-selection-bounds="true"
+          data-canvas-selection-count={selectedNodes.length}
+        />
+      ) : null}
 
       {selectionToolbarStyle ? (
         <div
@@ -2861,6 +3053,13 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     pointerEvents: 'none',
     zIndex: 3
+  },
+  selectionBounds: {
+    position: 'absolute',
+    border: '1.5px dashed',
+    borderRadius: 10,
+    pointerEvents: 'none',
+    zIndex: 16
   },
   selectionToolbar: {
     position: 'absolute',
