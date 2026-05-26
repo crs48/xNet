@@ -197,6 +197,12 @@ type ScreenObject = {
   rect: Rect
 }
 
+type NodeDragState = {
+  pointerId: number
+  lastClientPoint: Point
+  nodeIds: string[]
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
 }
@@ -341,6 +347,10 @@ function isTextInputLikeElement(target: EventTarget | null): boolean {
     target.tagName === 'SELECT' ||
     target.isContentEditable
   )
+}
+
+function isPrimaryPointerButton(event: React.PointerEvent): boolean {
+  return event.button === 0 || event.button === undefined
 }
 
 function readRemoteUsers(awareness: AwarenessLike | null | undefined): CanvasRemoteUser[] {
@@ -532,6 +542,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const containerRef = useRef<HTMLDivElement | null>(null)
   const vectorLayerRef = useRef<HTMLDivElement | null>(null)
   const lastPointerRef = useRef<Point | null>(null)
+  const nodeDragRef = useRef<NodeDragState | null>(null)
   const scene = useCanvasV3Scene(doc)
   const viewportSize = useElementSize(containerRef)
   const minZoom = config.minZoom ?? 0.1
@@ -770,6 +781,33 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     return true
   }, [doc, getSelectedNodes, onSceneMutation])
 
+  const moveSelectionByScreenDelta = useCallback(
+    (nodeIds: string[], delta: Point): boolean => {
+      if (nodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
+        return false
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const selectedNodes = nodeIds
+        .map((id) => objects.get(id))
+        .filter((node): node is CanvasNode => node !== undefined)
+      const deltaCanvas = {
+        x: delta.x / viewport.zoom,
+        y: delta.y / viewport.zoom
+      }
+      const updates = getUnlockedSelection(selectedNodes).map((node) => ({
+        id: node.id,
+        position: {
+          x: Math.round(node.position.x + deltaCanvas.x),
+          y: Math.round(node.position.y + deltaCanvas.y)
+        }
+      }))
+
+      return applySelectionPositionUpdates(updates)
+    },
+    [applySelectionPositionUpdates, doc, viewport.zoom]
+  )
+
   const applyViewportChanges = useCallback(
     (changes: { x?: number; y?: number; zoom?: number }) => {
       setViewportClamped((current) => ({
@@ -985,8 +1023,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
   const handleNodePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>, objectId: string) => {
+      if (!isPrimaryPointerButton(event) || isTextInputLikeElement(event.target)) {
+        return
+      }
+
       event.stopPropagation()
       const additive = event.shiftKey || event.metaKey
+      const wasSelected = selectedNodeIds.has(objectId)
+      const dragNodeIds = !additive && wasSelected ? Array.from(selectedNodeIds) : [objectId]
 
       setFocusedNodeId(objectId)
       setSelectedNodeIds((current) => {
@@ -1003,8 +1047,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
         return next
       })
+
+      if (!additive) {
+        nodeDragRef.current = {
+          pointerId: event.pointerId,
+          lastClientPoint: { x: event.clientX, y: event.clientY },
+          nodeIds: dragNodeIds
+        }
+        containerRef.current?.setPointerCapture?.(event.pointerId)
+      }
     },
-    []
+    [selectedNodeIds]
   )
 
   const handleBackgroundPointerDown = useCallback(
@@ -1027,6 +1080,24 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     (event: React.PointerEvent<HTMLDivElement>) => {
       awareness?.setLocalStateField('cursor', screenToCanvasPoint(event.clientX, event.clientY))
 
+      const nodeDrag = nodeDragRef.current
+      if (nodeDrag && nodeDrag.pointerId === event.pointerId) {
+        const delta = {
+          x: event.clientX - nodeDrag.lastClientPoint.x,
+          y: event.clientY - nodeDrag.lastClientPoint.y
+        }
+
+        if (moveSelectionByScreenDelta(nodeDrag.nodeIds, delta)) {
+          awareness?.setLocalStateField('activity', 'dragging')
+        }
+
+        nodeDragRef.current = {
+          ...nodeDrag,
+          lastClientPoint: { x: event.clientX, y: event.clientY }
+        }
+        return
+      }
+
       const lastPointer = lastPointerRef.current
       if (!lastPointer) {
         return
@@ -1041,15 +1112,23 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         y: current.y - deltaY / current.zoom
       }))
     },
-    [awareness, screenToCanvasPoint, setViewportClamped]
+    [awareness, moveSelectionByScreenDelta, screenToCanvasPoint, setViewportClamped]
   )
 
-  const handlePointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (lastPointerRef.current) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-    lastPointerRef.current = null
-  }, [])
+  const handlePointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (nodeDragRef.current?.pointerId === event.pointerId) {
+        nodeDragRef.current = null
+        awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
+      }
+
+      if (lastPointerRef.current || event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture?.(event.pointerId)
+      }
+      lastPointerRef.current = null
+    },
+    [awareness, presenceIntent?.activity]
+  )
 
   const handleWheel = useCallback(
     (event: React.WheelEvent<HTMLDivElement>) => {

@@ -30,6 +30,17 @@ class ResizeObserverStub {
   }
 }
 
+class PointerEventStub extends MouseEvent {
+  pointerId: number
+  pointerType: string
+
+  constructor(type: string, init: PointerEventInit = {}) {
+    super(type, init)
+    this.pointerId = init.pointerId ?? 1
+    this.pointerType = init.pointerType ?? 'mouse'
+  }
+}
+
 function createCanvasTestDoc(): Y.Doc {
   const doc = new Y.Doc()
   const nodes = getCanvasObjectsMap<CanvasNode>(doc)
@@ -80,6 +91,10 @@ beforeAll(() => {
   Object.defineProperty(window, 'ResizeObserver', {
     configurable: true,
     value: ResizeObserverStub
+  })
+  Object.defineProperty(window, 'PointerEvent', {
+    configurable: true,
+    value: PointerEventStub
   })
   HTMLCanvasElement.prototype.getContext = vi.fn(() => null)
 })
@@ -228,6 +243,51 @@ describe('Canvas v3 active renderer', () => {
 
     expect(objects.size).toBe(initialObjectCount + 1)
     expect(frame).toBeTruthy()
+  })
+
+  it('moves a v3 object by dragging its DOM island', () => {
+    const doc = createCanvasTestDoc()
+    const onSceneMutation = vi.fn()
+
+    render(
+      <Canvas
+        doc={doc}
+        onSceneMutation={onSceneMutation}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const initialX = page.position.x
+    const initialY = page.position.y
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!pageIsland) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    fireEvent.pointerDown(pageIsland, {
+      button: 0,
+      pointerId: 7,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 7,
+      clientX: 520,
+      clientY: 350
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 7,
+      clientX: 520,
+      clientY: 350
+    })
+
+    const moved = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(moved?.position.x).toBe(initialX + 40)
+    expect(moved?.position.y).toBe(initialY + 30)
+    expect(onSceneMutation).toHaveBeenCalled()
   })
 
   it('scales DOM island content with the canvas viewport', () => {

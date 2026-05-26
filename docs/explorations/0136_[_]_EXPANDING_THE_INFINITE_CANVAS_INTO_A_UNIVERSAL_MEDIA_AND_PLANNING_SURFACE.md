@@ -1367,6 +1367,7 @@ gantt
 - [ ] Define a first-class `CanvasInteractionController` boundary for selection, move, resize, connect, snapping, keyboard nudging, and undo grouping.
 - [ ] Render selection outlines, eight resize handles, connector handles, lock indicators, and multi-select bounds consistently across object kinds.
 - [ ] Add forgiving hit targets for sparse shapes, transparent media, iframe shells, and source-backed cards.
+- [x] Add first-pass Canvas v3 DOM-island dragging that repositions unlocked selected objects through Yjs.
 - [ ] Move selected objects with smooth transform previews and commit coalesced position patches at drag end.
 - [ ] Resize objects with minimum dimensions, aspect-ratio constraints for media, and object-specific resize policies for docs, databases, PDFs, frames, and embeds.
 - [ ] Add grid snapping, smart guides, equal-spacing guides, frame-edge snapping, and a temporary modifier to disable snapping.
@@ -1469,6 +1470,7 @@ gantt
 - [ ] Test resize handles, minimum dimensions, aspect-ratio constraints, and object-specific resize policies.
 - [ ] Test contextual toolbar action availability for single-select, multi-select, locked selection, media, PDF, embed, shape, frame, and plugin cards.
 - [x] Test v3 imperative handle behavior for lock, align, layer, connect, and frame-wrap operations.
+- [x] Test v3 DOM-island dragging updates canvas object positions.
 
 ### Performance
 
