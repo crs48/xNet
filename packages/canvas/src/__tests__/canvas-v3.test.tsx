@@ -296,6 +296,48 @@ describe('Canvas v3 active renderer', () => {
     expect(onSceneMutation).toHaveBeenCalledTimes(2)
   })
 
+  it('creates planning templates through the v3 imperative handle', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const onSceneMutation = vi.fn()
+
+    render(<Canvas ref={ref} doc={doc} onSceneMutation={onSceneMutation} />)
+
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap(doc)
+    const initialObjectCount = objects.size
+    const initialConnectorCount = connectors.size
+
+    act(() => {
+      expect(ref.current?.createPlanningTemplate('incident-review')).toBe(true)
+    })
+
+    const incidentFrame = Array.from(objects.values()).find(
+      (node) => node.properties.title === 'Incident Review'
+    )
+    const actionNote = Array.from(objects.values()).find(
+      (node) => node.properties.title === 'Corrective actions'
+    )
+
+    expect(objects.size).toBe(initialObjectCount + 6)
+    expect(connectors.size).toBe(initialConnectorCount + 3)
+    expect(incidentFrame).toMatchObject({
+      type: 'group',
+      properties: {
+        frameVariant: 'swimlane',
+        memberCount: 5
+      }
+    })
+    expect(actionNote).toMatchObject({
+      type: 'note',
+      properties: {
+        stickyNoteRole: 'sticky-note',
+        stickyNoteColor: 'green'
+      }
+    })
+    expect(onSceneMutation).toHaveBeenCalledOnce()
+  })
+
   it('applies v3 selection handle operations to the flat canvas document', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()

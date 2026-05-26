@@ -101,6 +101,10 @@ import {
 import { createCanvasSmartSnap, type CanvasSnapGuideSegment } from '../selection/snap-guides'
 import { Viewport } from '../spatial'
 import { createEdge, generateNodeId } from '../store'
+import {
+  createCanvasPlanningTemplateInstance,
+  type CanvasPlanningTemplateId
+} from '../templates/planning-templates'
 import { type CanvasThemeTokens, useCanvasThemeTokens } from '../theme/canvas-theme'
 import { planDomIslandPool } from './dom-island-pool'
 
@@ -193,6 +197,7 @@ export type CanvasHandle = {
   createShape: (shapeType?: ShapeType) => boolean
   createFrame: () => boolean
   createMindMap: () => boolean
+  createPlanningTemplate: (templateId: CanvasPlanningTemplateId) => boolean
   undo: () => boolean
   redo: () => boolean
   screenToCanvas: (clientX: number, clientY: number) => Point
@@ -2194,6 +2199,32 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     return true
   }, [doc, onSceneMutation, viewport])
 
+  const createPlanningTemplate = useCallback(
+    (templateId: CanvasPlanningTemplateId): boolean => {
+      const instance = createCanvasPlanningTemplateInstance({
+        templateId,
+        viewport
+      })
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+
+      doc.transact(() => {
+        instance.nodes.forEach((node) => {
+          objects.set(node.id, node)
+        })
+        instance.edges.forEach((edge) => {
+          connectors.set(edge.id, edge)
+        })
+      })
+      setSelectedNodeIds(new Set([instance.rootNodeId]))
+      setFocusedNodeId(instance.rootNodeId)
+      onSceneMutation?.()
+
+      return true
+    },
+    [doc, onSceneMutation, viewport]
+  )
+
   const createStickyNote = useCallback((): boolean => {
     const object = createCanvasStickyNoteNode({
       viewport,
@@ -2901,6 +2932,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       createShape,
       createFrame,
       createMindMap,
+      createPlanningTemplate,
       undo: () => onUndoRedoShortcut?.('undo') ?? false,
       redo: () => onUndoRedoShortcut?.('redo') ?? false,
       screenToCanvas: screenToCanvasPoint,
@@ -2915,6 +2947,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       convertSelectionToMindMap,
       createFrame,
       createMindMap,
+      createPlanningTemplate,
       createShape,
       deleteSelection,
       distributeSelection,

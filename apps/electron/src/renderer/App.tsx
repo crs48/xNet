@@ -4,6 +4,7 @@
 
 import type { LinkedDocumentItem } from './lib/canvas-shell'
 import type { PaletteCommand } from '@xnetjs/ui'
+import { CANVAS_PLANNING_TEMPLATE_DEFINITIONS } from '@xnetjs/canvas'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useDevTools } from '@xnetjs/devtools'
 import { useQuery, useMutate } from '@xnetjs/react'
@@ -435,6 +436,18 @@ export function App(): React.ReactElement {
           canvasViewRef.current?.createFrame()
         }
       },
+      ...CANVAS_PLANNING_TEMPLATE_DEFINITIONS.map<PaletteCommand>((template) => ({
+        id: `create-canvas-template-${template.id}`,
+        name: `Create ${template.name}`,
+        description: template.description,
+        icon: 'layout',
+        group: 'Canvas',
+        keywords: ['template', template.category, template.name, 'canvas', 'planning'],
+        when: () => isCanvasInteractiveShell,
+        execute: () => {
+          canvasViewRef.current?.createPlanningTemplate(template.id)
+        }
+      })),
       {
         id: 'frame-selection',
         name: 'Frame Selection',

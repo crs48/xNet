@@ -9,6 +9,7 @@ import type {
   CanvasLayerDirection,
   CanvasNode,
   CanvasNodeRenderContext,
+  CanvasPlanningTemplateId,
   CanvasSelectionSnapshot,
   Rect,
   ShapeType
@@ -16,6 +17,7 @@ import type {
 import {
   Canvas,
   CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasFrameVariantProperties,
   createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
@@ -172,6 +174,7 @@ export type CanvasViewHandle = {
   createShape: (shapeType?: ShapeType) => boolean
   createFrame: () => boolean
   createMindMap: () => boolean
+  createPlanningTemplate: (templateId: CanvasPlanningTemplateId) => boolean
   createExternalReference: (url?: string) => boolean
   createMediaFile: () => boolean
   wrapSelectionInFrame: () => boolean
@@ -1487,12 +1490,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           width: 640,
           height: 420
         },
-        properties: {
-          title: 'Frame',
-          containerRole: 'frame',
-          memberIds: [],
-          memberCount: 0
-        }
+        properties: createCanvasFrameVariantProperties('standard', {
+          title: 'Frame'
+        })
       })
     )
 
@@ -1520,6 +1520,19 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
     return created
   }, [placePrimitiveObject, recordUndoBoundary])
+
+  const createPlanningTemplate = useCallback(
+    (templateId: CanvasPlanningTemplateId): boolean => {
+      const created = canvasRef.current?.createPlanningTemplate(templateId) ?? false
+
+      if (created) {
+        recordUndoBoundary('scene')
+      }
+
+      return created
+    },
+    [recordUndoBoundary]
+  )
 
   const createExternalReference = useCallback(
     (url?: string): boolean => {
@@ -1653,6 +1666,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createShape,
       createFrame,
       createMindMap,
+      createPlanningTemplate,
       createExternalReference,
       createMediaFile,
       wrapSelectionInFrame,
@@ -1670,6 +1684,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createExternalReference,
       createFrame,
       createMindMap,
+      createPlanningTemplate,
       createMediaFile,
       createShape,
       connectSelection,

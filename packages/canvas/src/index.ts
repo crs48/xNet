@@ -511,6 +511,18 @@ export type {
   CanvasFrameVariantNodeInput,
   CanvasFrameVariantProperties
 } from './frames/frame-variants'
+export {
+  CANVAS_PLANNING_TEMPLATE_DEFINITIONS,
+  createCanvasPlanningTemplateInstance,
+  getCanvasPlanningTemplateDefinition
+} from './templates/planning-templates'
+export type {
+  CanvasPlanningTemplateCategory,
+  CanvasPlanningTemplateDefinition,
+  CanvasPlanningTemplateId,
+  CanvasPlanningTemplateInstance,
+  CreateCanvasPlanningTemplateInstanceInput
+} from './templates/planning-templates'
 export { getCanvasResizePolicy } from './selection/resize-policy'
 export { createCanvasSmartSnap } from './selection/snap-guides'
 export type {
