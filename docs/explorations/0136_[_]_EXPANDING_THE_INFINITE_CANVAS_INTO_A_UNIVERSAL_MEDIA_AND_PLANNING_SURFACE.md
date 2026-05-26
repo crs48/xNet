@@ -1574,9 +1574,9 @@ controllers, object toolbars, and plugin command routing.
 - [ ] Verify grid snapping, smart guides, frame-edge snapping, equal spacing, and snap-disable modifier behavior.
 - [x] Paste a YouTube URL and confirm poster card, activation, fallback, and console cleanliness.
 - [x] Paste a Spotify playlist and confirm sizing, provider metadata, and live activation.
-- [ ] Drop an image and confirm thumbnail, resize, crop/fill behavior, and alt/caption.
-- [ ] Drop a PDF and confirm page strip, page anchors, and focused page view.
-- [ ] Drop a local file and confirm local-only/synced policy state.
+- [x] Drop/upload an image and confirm thumbnail, resize, crop/fill behavior, and alt/caption.
+- [x] Drop/upload a PDF and confirm page strip, page anchors, and focused page view.
+- [x] Drop/upload a local file and confirm local-only/synced policy state.
 - [x] Create a mind map with keyboard only.
 - [ ] Connect page, PDF page, database row, and external reference with semantic edges.
 - [ ] Use frames to present/export a board section.
@@ -1595,6 +1595,9 @@ controllers, object toolbars, and plugin command routing.
 2026-05-26 automated renderer validation notes:
 
 - Verified Canvas V3 toolbar coverage for media crop/fit, PDF page, source reference, plugin field, bulk source, and edge type popovers; crop/fill, alt/caption, PDF page anchors, and semantic edge relationship updates persist into the Yjs canvas scene.
+- Verified web canvas media ingestion creates an image card with a rendered thumbnail, default contain crop mode, alt/caption metadata, copied-blob storage policy, and ready lifecycle state.
+- Verified web canvas media ingestion creates a PDF card with focused page rendering, a page strip, page anchor state, copied-blob storage policy, and ready lifecycle state.
+- Fixed blob storage adapter startup and serialized multi-file ingestion so image and PDF uploads do not race nested SQLite transactions.
 
 ### Security And Privacy
 

@@ -5,6 +5,7 @@
 import type {
   CanvasExternalReferenceDescriptor,
   CanvasIngressPayload,
+  CanvasMediaKind,
   CanvasPrimitiveObjectKind,
   CanvasViewportSnapshot
 } from '../ingestion'
@@ -15,7 +16,7 @@ import type {
   CanvasIngestor
 } from '../ingestors'
 import type { CanvasNode, Point } from '../types'
-import type { BlobService, ExternalReference } from '@xnetjs/data'
+import type { BlobService, ExternalReference, FileRef } from '@xnetjs/data'
 import type * as Y from 'yjs'
 import { ExternalReferenceSchema, MediaAssetSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
@@ -36,7 +37,11 @@ import {
   selectCanvasIngestor
 } from '../ingestors'
 import { getCanvasObjectsMap } from '../scene/doc-layout'
-import { getCanvasBlockedPreviewReason } from '../storage-policy'
+import {
+  createCanvasStoragePolicyDecision,
+  getCanvasBlockedPreviewReason,
+  getCanvasStoragePolicyCapability
+} from '../storage-policy'
 
 export interface UseCanvasObjectIngestionOptions {
   doc: Y.Doc | null
@@ -101,8 +106,10 @@ function toMediaProperties(input: {
   size: number
   width?: number
   height?: number
+  file?: FileRef
   status: 'uploading' | 'ready' | 'error' | 'blocked'
   error?: string
+  extra?: Record<string, unknown>
 }): Record<string, unknown> {
   return {
     title: input.title,
@@ -111,9 +118,62 @@ function toMediaProperties(input: {
     size: input.size,
     width: input.width,
     height: input.height,
+    ...(input.file ? { file: input.file } : {}),
     status: input.status,
-    ...(input.error ? { error: input.error } : {})
+    ...(input.error ? { error: input.error } : {}),
+    ...(input.extra ?? {})
   }
+}
+
+function getLocalFileStorageProperties(blocked: boolean): Record<string, unknown> {
+  const decision = createCanvasStoragePolicyDecision({
+    policy: blocked ? 'blocked' : 'copied-blob',
+    sourceKind: 'local-file'
+  })
+  const capability = getCanvasStoragePolicyCapability(decision.policy)
+
+  return {
+    storagePolicy: decision.policy,
+    storageSourceKind: decision.sourceKind,
+    copiesBytes: capability.copiesBytes,
+    syncsBytes: capability.syncsBytes,
+    availableToCollaborators: capability.availableToCollaborators,
+    availableOfflineOnCurrentDevice: capability.availableOfflineOnCurrentDevice
+  }
+}
+
+function getLocalFileMediaMetadata(input: {
+  nodeId: string
+  fileName: string
+  mimeType: string
+  mediaKind: string
+  blocked: boolean
+  localPreviewUrl?: string
+}): Record<string, unknown> {
+  const isImage = input.mediaKind === 'image'
+  const isPdf = input.mimeType === 'application/pdf'
+
+  return {
+    ...getLocalFileStorageProperties(input.blocked),
+    objectFit: 'contain',
+    ...(input.localPreviewUrl ? { localPreviewUrl: input.localPreviewUrl } : {}),
+    ...(isImage ? { alt: input.fileName, caption: '' } : {}),
+    ...(isPdf
+      ? {
+          pageNumber: 1,
+          pageCount: 1,
+          pageAnchorId: `${input.nodeId}:page:1`
+        }
+      : {})
+  }
+}
+
+function inferLocalFileMediaKind(file: File, mimeType: string): CanvasMediaKind {
+  if (mimeType === 'application/pdf') {
+    return 'document'
+  }
+
+  return inferMediaKind(file)
 }
 
 function toExternalReferenceCreateInput(descriptor: CanvasExternalReferenceDescriptor) {
@@ -334,11 +394,18 @@ export function useCanvasObjectIngestion({
         return null
       }
 
-      const mediaKind = inferMediaKind(file)
+      const mimeType =
+        file.type ||
+        (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream')
+      const mediaKind = inferLocalFileMediaKind(file, mimeType)
       const blockedReason = getCanvasBlockedPreviewReason({
         fileName: file.name,
-        mimeType: file.type || 'application/octet-stream'
+        mimeType
       })
+      const localPreviewUrl =
+        !blockedReason && mediaKind === 'image' && typeof URL.createObjectURL === 'function'
+          ? URL.createObjectURL(file)
+          : undefined
       const pendingNode = createSourceBackedCanvasNode({
         objectKind: 'media',
         viewport: getViewportSnapshot(),
@@ -347,16 +414,30 @@ export function useCanvasObjectIngestion({
         spreadIndex,
         properties: toMediaProperties({
           title: file.name,
-          mimeType: file.type || 'application/octet-stream',
+          mimeType,
           kind: mediaKind,
           size: file.size,
           status: blockedReason ? 'blocked' : 'uploading',
           error: blockedReason ?? undefined
         })
       })
+      const pendingNodeWithStorageState = {
+        ...pendingNode,
+        properties: {
+          ...pendingNode.properties,
+          ...getLocalFileMediaMetadata({
+            nodeId: pendingNode.id,
+            fileName: file.name,
+            mimeType,
+            mediaKind,
+            blocked: Boolean(blockedReason),
+            localPreviewUrl
+          })
+        }
+      }
 
       doc.transact(() => {
-        nodes.set(pendingNode.id, pendingNode)
+        nodes.set(pendingNodeWithStorageState.id, pendingNodeWithStorageState)
       })
 
       if (blockedReason) {
@@ -392,12 +473,21 @@ export function useCanvasObjectIngestion({
           },
           properties: toMediaProperties({
             title: file.name,
-            mimeType: file.type || 'application/octet-stream',
+            mimeType,
             kind: mediaKind,
             size: file.size,
             width: dimensions?.width,
             height: dimensions?.height,
-            status: 'ready'
+            file: fileRef,
+            status: 'ready',
+            extra: getLocalFileMediaMetadata({
+              nodeId: pendingNode.id,
+              fileName: file.name,
+              mimeType,
+              mediaKind,
+              blocked: false,
+              localPreviewUrl
+            })
           })
         }))
 
@@ -411,11 +501,19 @@ export function useCanvasObjectIngestion({
           ...node,
           properties: toMediaProperties({
             title: file.name,
-            mimeType: file.type || 'application/octet-stream',
+            mimeType,
             kind: mediaKind,
             size: file.size,
             status: 'error',
-            error: message
+            error: message,
+            extra: getLocalFileMediaMetadata({
+              nodeId: pendingNode.id,
+              fileName: file.name,
+              mimeType,
+              mediaKind,
+              blocked: false,
+              localPreviewUrl
+            })
           })
         }))
         return {

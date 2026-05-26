@@ -205,6 +205,7 @@ export function App(): JSX.Element {
   useEffect(() => {
     let cancelled = false
     let cleanupAdapter: SQLiteAdapter | null = null
+    let cleanupStorageAdapter: SQLiteStorageAdapter | null = null
 
     async function initialize() {
       try {
@@ -244,12 +245,15 @@ export function App(): JSX.Element {
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
+        await storageAdapter.open()
+        cleanupStorageAdapter = storageAdapter
 
         const blobStore = new BlobStore(storageAdapter)
         const chunkManager = new ChunkManager(blobStore)
         const blobService = new BlobService(chunkManager)
 
         if (cancelled) {
+          await storageAdapter.close()
           await sqliteAdapter.close()
           return
         }
@@ -304,6 +308,10 @@ export function App(): JSX.Element {
     return () => {
       cancelled = true
       // Cleanup: close adapter immediately to prevent OPFS access handle conflicts
+      if (cleanupStorageAdapter) {
+        cleanupStorageAdapter.close().catch(console.error)
+      }
+
       if (cleanupAdapter) {
         cleanupAdapter.close().catch(console.error)
       } else if (storageRef.current?.sqliteAdapter) {
