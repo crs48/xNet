@@ -405,6 +405,8 @@ describe('Canvas v3 active renderer', () => {
     })
 
     const lockedToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    expect(screen.getAllByRole('img', { name: /^Locked / })).toHaveLength(2)
+    expect(screen.queryAllByRole('button', { name: /^Resize / })).toHaveLength(0)
     expect(
       (
         within(lockedToolbar).getByRole('button', {

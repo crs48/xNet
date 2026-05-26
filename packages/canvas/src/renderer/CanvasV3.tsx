@@ -2078,6 +2078,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           const tier = domIslandTierById.get(item.object.id) ?? 'shell-dom'
           const title = getObjectTitle(item.object)
           const previewDelta = getDragPreviewDeltaForObject(item.object.id)
+          const locked = item.node.locked === true
 
           return (
             <div
@@ -2093,17 +2094,53 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
                 boxShadow: selected
                   ? `0 0 0 2px ${theme.minimapViewportStroke}`
                   : theme.panelShadow,
-                background: theme.panelBackground
+                background: theme.panelBackground,
+                cursor: locked ? 'default' : 'grab'
               }}
               data-canvas-v3-object="true"
               data-canvas-object-id={item.object.id}
               data-canvas-dom-island-tier={tier}
+              data-canvas-object-locked={locked ? 'true' : 'false'}
               data-selected={selected ? 'true' : 'false'}
               onPointerDown={(event) => handleNodePointerDown(event, item.object.id)}
               onDoubleClick={() => onNodeDoubleClick?.(item.object.id)}
             >
               {renderObjectContent(item, tier)}
-              {selected
+              {locked ? (
+                <div
+                  style={{
+                    ...styles.lockIndicator,
+                    background: theme.mode === 'dark' ? 'rgba(15, 23, 42, 0.92)' : '#ffffff',
+                    borderColor: theme.panelBorder,
+                    color: theme.panelMutedText,
+                    boxShadow: theme.panelShadow
+                  }}
+                  role="img"
+                  aria-label={`Locked ${title}`}
+                  title={`Locked ${title}`}
+                  data-canvas-v3-lock-indicator="true"
+                  data-canvas-object-id={item.object.id}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <rect
+                      x="2.25"
+                      y="5.25"
+                      width="7.5"
+                      height="5"
+                      rx="1"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                    />
+                    <path
+                      d="M3.75 5.25V3.75a2.25 2.25 0 0 1 4.5 0v1.5"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+              ) : null}
+              {selected && !locked
                 ? RESIZE_HANDLES.map((handle) => (
                     <button
                       key={handle}
@@ -2416,6 +2453,20 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(255, 255, 255, 0.9)',
     transformOrigin: 'top left',
     pointerEvents: 'auto'
+  },
+  lockIndicator: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    border: '1px solid',
+    borderRadius: 999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+    zIndex: 3
   },
   selectionToolbar: {
     position: 'absolute',

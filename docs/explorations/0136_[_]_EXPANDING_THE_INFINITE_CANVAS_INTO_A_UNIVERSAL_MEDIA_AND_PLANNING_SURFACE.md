@@ -1370,6 +1370,7 @@ gantt
 - [x] Add first-pass Canvas v3 DOM-island dragging that repositions unlocked selected objects through Yjs.
 - [x] Add first-pass Canvas v3 resize handles that update object dimensions through Yjs.
 - [x] Move selected objects with smooth transform previews and commit coalesced position patches at drag end.
+- [x] Add first-pass Canvas v3 lock indicators for locked DOM islands and hide resize handles for locked selections.
 - [ ] Resize objects with minimum dimensions, aspect-ratio constraints for media, and object-specific resize policies for docs, databases, PDFs, frames, and embeds.
 - [x] Add first-pass Canvas v3 media corner-resize aspect-ratio preservation through centralized resize policies.
 - [ ] Add grid snapping, smart guides, equal-spacing guides, frame-edge snapping, and a temporary modifier to disable snapping.
@@ -1484,6 +1485,7 @@ gantt
 - [x] Test v3 media corner-resize aspect-ratio policy from pure helpers and renderer behavior.
 - [x] Test v3 contextual toolbar action routing for single and multi-selection.
 - [x] Test v3 contextual toolbar action availability for single-select, multi-select, and locked selections.
+- [x] Test v3 locked-object indicators and resize-handle suppression.
 - [x] Test v3 keyboard editing shortcuts for nudge, lock, connect, frame wrap, and layer movement.
 - [x] Test v3 duplicate and delete behavior from keyboard shortcuts and contextual toolbar actions.
 
