@@ -273,18 +273,36 @@ describe('Canvas v3 active renderer', () => {
     expect(connectors.size).toBe(initialConnectorCount + 1)
 
     act(() => {
+      expect(ref.current?.groupSelection()).toBe(true)
+    })
+
+    const group = Array.from(objects.values()).find(
+      (node) =>
+        node.type === 'group' &&
+        node.properties.containerRole === 'group' &&
+        Array.isArray(node.properties.memberIds) &&
+        node.properties.memberIds.includes(page.id) &&
+        node.properties.memberIds.includes(shape.id)
+    )
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+    act(() => {
       expect(ref.current?.wrapSelectionInFrame()).toBe(true)
     })
 
     const frame = Array.from(objects.values()).find(
       (node) =>
         node.type === 'group' &&
+        node.properties.containerRole === 'frame' &&
         Array.isArray(node.properties.memberIds) &&
         node.properties.memberIds.includes(page.id) &&
         node.properties.memberIds.includes(shape.id)
     )
 
-    expect(objects.size).toBe(initialObjectCount + 1)
+    expect(objects.size).toBe(initialObjectCount + 2)
+    expect(group).toBeTruthy()
     expect(frame).toBeTruthy()
   })
 
@@ -337,11 +355,31 @@ describe('Canvas v3 active renderer', () => {
     fireEvent.click(within(multiToolbar).getByRole('button', { name: 'Connect selection' }))
     expect(connectors.size).toBe(initialConnectorCount + 1)
 
-    fireEvent.click(within(multiToolbar).getByRole('button', { name: 'Wrap selection in frame' }))
+    fireEvent.click(within(multiToolbar).getByRole('button', { name: 'Group selection' }))
     expect(
       Array.from(objects.values()).some(
         (node) =>
           node.type === 'group' &&
+          node.properties.containerRole === 'group' &&
+          Array.isArray(node.properties.memberIds) &&
+          node.properties.memberIds.includes(page.id) &&
+          node.properties.memberIds.includes(shape.id)
+      )
+    ).toBe(true)
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+
+    const regroupedToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(
+      within(regroupedToolbar).getByRole('button', { name: 'Wrap selection in frame' })
+    )
+    expect(
+      Array.from(objects.values()).some(
+        (node) =>
+          node.type === 'group' &&
+          node.properties.containerRole === 'frame' &&
           Array.isArray(node.properties.memberIds) &&
           node.properties.memberIds.includes(page.id) &&
           node.properties.memberIds.includes(shape.id)
@@ -397,6 +435,7 @@ describe('Canvas v3 active renderer', () => {
     expect(objects.get(page.id)?.position.width).toBe(320)
     expect(within(singleToolbar).queryByRole('button', { name: 'Connect selection' })).toBeNull()
     expect(within(singleToolbar).queryByRole('button', { name: 'Align selection left' })).toBeNull()
+    expect(within(singleToolbar).queryByRole('button', { name: 'Group selection' })).toBeNull()
     expect(
       within(singleToolbar).queryByRole('button', {
         name: 'Distribute selection horizontally'
@@ -427,6 +466,13 @@ describe('Canvas v3 active renderer', () => {
       (
         within(pairToolbar).getByRole('button', {
           name: 'Tidy selection'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(false)
+    expect(
+      (
+        within(pairToolbar).getByRole('button', {
+          name: 'Group selection'
         }) as HTMLButtonElement
       ).disabled
     ).toBe(false)
@@ -476,6 +522,13 @@ describe('Canvas v3 active renderer', () => {
       (
         within(lockedToolbar).getByRole('button', {
           name: 'Align selection left'
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
+    expect(
+      (
+        within(lockedToolbar).getByRole('button', {
+          name: 'Group selection'
         }) as HTMLButtonElement
       ).disabled
     ).toBe(true)
@@ -568,8 +621,11 @@ describe('Canvas v3 active renderer', () => {
   it('routes v3 keyboard editing shortcuts through selection operations', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()
+    const onOpenSelection = vi.fn()
 
-    render(<Canvas ref={ref} doc={doc} config={{ gridSize: 24 }} />)
+    render(
+      <Canvas ref={ref} doc={doc} config={{ gridSize: 24 }} onOpenSelection={onOpenSelection} />
+    )
 
     const page = getNodeByTitle(doc, 'Research Page')
     const shape = getNodeByTitle(doc, 'Decision Box')
@@ -581,6 +637,9 @@ describe('Canvas v3 active renderer', () => {
     act(() => {
       ref.current?.selectNodes([page.id])
     })
+
+    fireEvent.keyDown(surface, { key: 'Enter' })
+    expect(onOpenSelection).toHaveBeenCalledWith('focus')
 
     fireEvent.keyDown(surface, { key: 'ArrowRight' })
     fireEvent.keyDown(surface, { key: 'ArrowDown', shiftKey: true })
@@ -603,16 +662,36 @@ describe('Canvas v3 active renderer', () => {
     fireEvent.keyDown(surface, { key: 'K', metaKey: true, shiftKey: true })
     expect(connectors.size).toBe(initialConnectorCount + 1)
 
-    fireEvent.keyDown(surface, { key: 'F', metaKey: true, shiftKey: true })
+    fireEvent.keyDown(surface, { key: 'G', metaKey: true })
     expect(
       Array.from(objects.values()).some(
         (node) =>
           node.type === 'group' &&
+          node.properties.containerRole === 'group' &&
           Array.isArray(node.properties.memberIds) &&
           node.properties.memberIds.includes(page.id) &&
           node.properties.memberIds.includes(shape.id)
       )
     ).toBe(true)
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+
+    fireEvent.keyDown(surface, { key: 'F', metaKey: true, shiftKey: true })
+    expect(
+      Array.from(objects.values()).some(
+        (node) =>
+          node.type === 'group' &&
+          node.properties.containerRole === 'frame' &&
+          Array.isArray(node.properties.memberIds) &&
+          node.properties.memberIds.includes(page.id) &&
+          node.properties.memberIds.includes(shape.id)
+      )
+    ).toBe(true)
+
+    fireEvent.keyDown(surface, { key: 'Escape' })
+    expect(screen.queryByRole('toolbar', { name: 'Canvas selection actions' })).toBeNull()
   })
 
   it('moves a v3 object by dragging its DOM island', () => {

@@ -1375,9 +1375,10 @@ gantt
 - [x] Add first-pass Canvas v3 media corner-resize aspect-ratio preservation through centralized resize policies.
 - [ ] Add grid snapping, smart guides, equal-spacing guides, frame-edge snapping, and a temporary modifier to disable snapping.
 - [x] Add first-pass Canvas v3 grid snapping for drag previews and drag commits with Alt to temporarily disable snapping.
-- [ ] Add keyboard nudge, large-step nudge, duplicate, delete, lock, group, frame, layer, open, and clear shortcuts.
+- [x] Add keyboard nudge, large-step nudge, duplicate, delete, lock, group, frame, layer, open, and clear shortcuts.
 - [x] Add first-pass Canvas v3 keyboard shortcuts for nudge, large-step nudge, lock, connect, frame wrap, and layer movement.
 - [x] Add first-pass Canvas v3 keyboard duplicate and delete shortcuts for unlocked selections.
+- [x] Add first-pass Canvas v3 group command through pure helpers, imperative handle, toolbar, and keyboard shortcut.
 - [x] Add first-pass Canvas v3 contextual toolbar actions for open, comment, lock, connect, align, distribute, tidy, layer, frame, duplicate, delete, and clear.
 - [x] Add contextual toolbar actions derived from selection capabilities.
 - [x] Add first-pass Canvas v3 contextual toolbar action availability derived from selection count, lock state, and app callbacks.
@@ -1490,7 +1491,7 @@ gantt
 - [x] Test v3 locked-object indicators and resize-handle suppression.
 - [x] Test v3 dimensions popover updates selected object geometry.
 - [x] Test v3 drag interaction awareness publication and remote outline rendering.
-- [x] Test v3 keyboard editing shortcuts for nudge, lock, connect, frame wrap, and layer movement.
+- [x] Test v3 keyboard editing shortcuts for nudge, lock, group, connect, frame wrap, open, clear, and layer movement.
 - [x] Test v3 duplicate and delete behavior from keyboard shortcuts and contextual toolbar actions.
 
 ### Performance

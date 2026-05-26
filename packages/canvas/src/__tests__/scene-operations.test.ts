@@ -2,6 +2,7 @@ import type { CanvasNode } from '../types'
 import { describe, expect, it } from 'vitest'
 import {
   createFrameSelectionNode,
+  createGroupSelectionNode,
   createAlignmentUpdates,
   createDistributionUpdates,
   createLayerShiftUpdates,
@@ -223,6 +224,26 @@ describe('scene operations', () => {
       y: -18,
       width: 416,
       height: 346,
+      zIndex: 3
+    })
+  })
+
+  it('creates a group container around the current selection', () => {
+    const group = createGroupSelectionNode([
+      createNode('a', { x: 40, y: 30, width: 100, height: 80, zIndex: 4 }),
+      createNode('b', { x: 220, y: 160, width: 140, height: 120, zIndex: 7 })
+    ])
+
+    expect(group).not.toBeNull()
+    expect(group?.type).toBe('group')
+    expect(getCanvasContainerRole(group!)).toBe('group')
+    expect(getCanvasContainerMemberIds(group!)).toEqual(['a', 'b'])
+    expect(group?.properties.title).toBe('Group')
+    expect(group?.position).toMatchObject({
+      x: 28,
+      y: 18,
+      width: 344,
+      height: 274,
       zIndex: 3
     })
   })

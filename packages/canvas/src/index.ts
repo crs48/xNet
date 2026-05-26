@@ -160,6 +160,7 @@ export {
   createAlignmentUpdates,
   createDistributionUpdates,
   createFrameSelectionNode,
+  createGroupSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
   createTidySelectionUpdates,
@@ -175,7 +176,8 @@ export type {
   CanvasContainerRole,
   CanvasLockUpdate,
   CanvasPositionUpdate,
-  CreateFrameSelectionNodeOptions
+  CreateFrameSelectionNodeOptions,
+  CreateGroupSelectionNodeOptions
 } from './selection/scene-operations'
 
 export {

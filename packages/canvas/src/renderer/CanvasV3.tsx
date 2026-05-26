@@ -46,6 +46,7 @@ import {
   createAlignmentUpdates,
   createDistributionUpdates,
   createFrameSelectionNode,
+  createGroupSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
   createResizeUpdate,
@@ -139,6 +140,7 @@ export type CanvasHandle = {
   distributeSelection: (axis: CanvasDistributionAxis) => boolean
   tidySelection: () => boolean
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
+  groupSelection: () => boolean
   wrapSelectionInFrame: () => boolean
   connectSelection: () => boolean
   duplicateSelection: () => boolean
@@ -247,6 +249,7 @@ type CanvasSelectionCapabilities = {
   canAlign: boolean
   canDistribute: boolean
   canTidy: boolean
+  canGroup: boolean
   canWrapInFrame: boolean
   canShiftLayer: boolean
   canDelete: boolean
@@ -315,6 +318,7 @@ function createSelectionCapabilities(input: {
     canAlign: selectionCount > 1 && unlockedCount > 1,
     canDistribute: selectionCount > 2 && unlockedCount > 2,
     canTidy: selectionCount > 1 && unlockedCount > 1,
+    canGroup: selectionCount > 1 && unlockedCount > 1,
     canWrapInFrame: hasUnlockedSelection,
     canShiftLayer: hasUnlockedSelection,
     canDelete: hasUnlockedSelection,
@@ -1139,6 +1143,28 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     return true
   }, [doc, getSelectedNodes, onSceneMutation])
 
+  const groupSelection = useCallback((): boolean => {
+    const selectedNodes = getUnlockedSelection(getSelectedNodes())
+    if (selectedNodes.length < 2) {
+      return false
+    }
+
+    const group = createGroupSelectionNode(selectedNodes)
+    if (!group) {
+      return false
+    }
+
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    doc.transact(() => {
+      objects.set(group.id, group)
+    })
+    setSelectedNodeIds(new Set([group.id]))
+    setFocusedNodeId(group.id)
+    onSceneMutation?.()
+
+    return true
+  }, [doc, getSelectedNodes, onSceneMutation])
+
   const connectSelection = useCallback((): boolean => {
     const selectedNodes = getSelectedNodes()
     if (selectedNodes.length !== 2) {
@@ -1645,6 +1671,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       distributeSelection,
       tidySelection,
       shiftSelectionLayer,
+      groupSelection,
       wrapSelectionInFrame,
       connectSelection,
       duplicateSelection,
@@ -1663,6 +1690,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       distributeSelection,
       duplicateSelection,
       fitToRect,
+      groupSelection,
       onUndoRedoShortcut,
       scene.bounds,
       screenToCanvasPoint,
@@ -2155,6 +2183,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         return
       }
 
+      if (mod && !event.shiftKey && selectedIds.length > 1 && key === 'g') {
+        event.preventDefault()
+        groupSelection()
+        return
+      }
+
       if (key === 'enter' && selectedNodeIds.size > 0) {
         event.preventDefault()
         onOpenSelection?.('focus')
@@ -2204,6 +2238,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       deleteSelection,
       duplicateSelection,
       fitToRect,
+      groupSelection,
       nudgeSelectionByCanvasDelta,
       onCreateObject,
       onCreateSelectionComment,
@@ -2580,6 +2615,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               theme={theme}
               onClick={() => {
                 tidySelection()
+              }}
+            />
+          ) : null}
+
+          {selectedNodes.length > 1 ? (
+            <CanvasSelectionToolbarButton
+              action="group"
+              label="Group"
+              title="Group selection"
+              disabled={!selectionCapabilities.canGroup}
+              theme={theme}
+              onClick={() => {
+                groupSelection()
               }}
             />
           ) : null}

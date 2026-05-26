@@ -38,8 +38,15 @@ export interface CreateFrameSelectionNodeOptions {
   padding?: number
 }
 
+export interface CreateGroupSelectionNodeOptions {
+  title?: string
+  padding?: number
+}
+
 const DEFAULT_FRAME_PADDING = 48
+const DEFAULT_GROUP_PADDING = 12
 const DEFAULT_FRAME_TITLE = 'Frame'
+const DEFAULT_GROUP_TITLE = 'Group'
 const DEFAULT_MIN_NODE_WIDTH = 96
 const DEFAULT_MIN_NODE_HEIGHT = 72
 
@@ -465,19 +472,22 @@ export function expandContainerPositionUpdates(
   return Array.from(resolved.values())
 }
 
-export function createFrameSelectionNode(
+function createContainerSelectionNode(
   nodes: CanvasNode[],
-  options: CreateFrameSelectionNodeOptions = {}
+  role: CanvasContainerRole,
+  options: CreateFrameSelectionNodeOptions | CreateGroupSelectionNodeOptions = {}
 ): CanvasNode | null {
   const bounds = getSelectionBounds(nodes)
   if (!bounds) {
     return null
   }
 
-  const padding = options.padding ?? DEFAULT_FRAME_PADDING
+  const padding =
+    options.padding ?? (role === 'frame' ? DEFAULT_FRAME_PADDING : DEFAULT_GROUP_PADDING)
   const memberIds = Array.from(new Set(nodes.map((node) => node.id)))
   const minZIndex = Math.min(...nodes.map((node) => node.position.zIndex ?? 0))
-  const title = options.title?.trim() || DEFAULT_FRAME_TITLE
+  const title =
+    options.title?.trim() || (role === 'frame' ? DEFAULT_FRAME_TITLE : DEFAULT_GROUP_TITLE)
 
   return createNode(
     'group',
@@ -490,11 +500,25 @@ export function createFrameSelectionNode(
     },
     {
       title,
-      containerRole: 'frame',
+      containerRole: role,
       memberIds,
       memberCount: memberIds.length
     }
   )
+}
+
+export function createFrameSelectionNode(
+  nodes: CanvasNode[],
+  options: CreateFrameSelectionNodeOptions = {}
+): CanvasNode | null {
+  return createContainerSelectionNode(nodes, 'frame', options)
+}
+
+export function createGroupSelectionNode(
+  nodes: CanvasNode[],
+  options: CreateGroupSelectionNodeOptions = {}
+): CanvasNode | null {
+  return createContainerSelectionNode(nodes, 'group', options)
 }
 
 export function createAnchorSummary(nodes: CanvasNode[]): {
