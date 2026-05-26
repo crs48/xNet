@@ -18,6 +18,22 @@ export type {
 } from './types'
 export { getPlatformCapabilities, createExtensionStorage } from './types'
 
+// Canvas plugin permission policy
+export {
+  createCanvasPluginPermissionPrompt,
+  evaluateCanvasPluginPermissionGate,
+  normalizeCanvasPluginWorkspacePolicy
+} from './canvas-permissions'
+export type {
+  CanvasPluginPermissionDecisionStatus,
+  CanvasPluginPermissionGateDecision,
+  CanvasPluginPermissionGateInput,
+  CanvasPluginPermissionPrompt,
+  CanvasPluginPermissionPromptOption,
+  CanvasPluginPromptMode,
+  CanvasPluginWorkspacePolicy
+} from './canvas-permissions'
+
 // Manifest
 export type { XNetExtension, PluginContributions } from './manifest'
 export { validateManifest, defineExtension, PluginValidationError } from './manifest'

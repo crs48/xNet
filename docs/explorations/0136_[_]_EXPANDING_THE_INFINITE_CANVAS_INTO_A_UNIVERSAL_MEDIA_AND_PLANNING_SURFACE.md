@@ -1506,7 +1506,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Extend plugin manifest schema with canvas contributions.
 - [x] Add runtime registry for plugin card, ingestor, tool, layout, edge, inspector, and template contributions.
 - [x] Add plugin renderer sandbox and preview sandbox.
-- [ ] Add permission prompts and workspace policy gates.
+- [x] Add permission prompts and workspace policy gates.
 - [ ] Add missing-plugin fallback card rendering.
 - [ ] Add fake plugin fixtures for CRM, ERP, and media provider cards.
 - [ ] Add docs for plugin authors with examples.
