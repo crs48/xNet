@@ -1048,6 +1048,48 @@ describe('Canvas v3 active renderer', () => {
     expect(scene.summaries.reduce((total, summary) => total + summary.objectCount, 0)).toBe(2)
   })
 
+  it('summarizes all current v3 canvas object kinds for the minimap', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const kinds = [
+      'page',
+      'database',
+      'note',
+      'external-reference',
+      'media',
+      'shape',
+      'group'
+    ] as const
+
+    kinds.forEach((kind, index) => {
+      nodes.set(
+        `${kind}-${index}`,
+        createNode(
+          kind,
+          { x: index * 180, y: index * 120, width: 140, height: 90 },
+          {
+            title: kind,
+            containerRole: kind === 'group' ? 'frame' : undefined
+          }
+        )
+      )
+    })
+
+    const scene = readCanvasV3MigrationSceneFromFlatDoc(doc)
+    const typeCounts = scene.summaries.reduce<Record<string, number>>((counts, summary) => {
+      Object.entries(summary.typeCounts).forEach(([kind, count]) => {
+        counts[kind] = (counts[kind] ?? 0) + count
+      })
+
+      return counts
+    }, {})
+
+    expect(scene.minimapSummary.totalObjectCount).toBe(kinds.length)
+    kinds.forEach((kind) => {
+      expect(typeCounts[kind]).toBe(1)
+    })
+  })
+
   it('keeps a live DOM editor mounted while far-field summaries refresh', async () => {
     const doc = createCanvasTestDoc()
     const nodes = getCanvasObjectsMap<CanvasNode>(doc)

@@ -2,7 +2,7 @@
  * Canvas v3 DOM island pool tests.
  */
 
-import type { CanvasObjectRecord } from '@xnetjs/canvas-core'
+import type { CanvasObjectKind, CanvasObjectRecord } from '@xnetjs/canvas-core'
 import { describe, expect, it } from 'vitest'
 import {
   DomIslandPool,
@@ -10,10 +10,10 @@ import {
   planDomIslandPool
 } from '../renderer/dom-island-pool'
 
-function createObject(id: string, title = id): CanvasObjectRecord {
+function createObject(id: string, title = id, kind: CanvasObjectKind = 'page'): CanvasObjectRecord {
   return {
     id,
-    kind: 'page',
+    kind,
     position: { x: 0, y: 0, width: 400, height: 240 },
     display: {},
     preview: { title }
@@ -106,6 +106,52 @@ describe('DOM island pool', () => {
     })
 
     expect(plan.shellObjects.map((object) => object.id)).toEqual(['recent', 'near'])
+  })
+
+  it('plans budgets predictably for mixed page database media and reference objects', () => {
+    const plan = planDomIslandPool({
+      candidates: [
+        createCandidate('page', {
+          object: createObject('page', 'Page', 'page'),
+          focused: true
+        }),
+        createCandidate('database', {
+          object: createObject('database', 'Database', 'database'),
+          editing: true
+        }),
+        createCandidate('media', {
+          object: createObject('media', 'Image', 'media'),
+          screenRect: { x: 0, y: 0, width: 520, height: 280 }
+        }),
+        createCandidate('reference', {
+          object: createObject('reference', 'YouTube', 'external-reference'),
+          selected: true
+        }),
+        createCandidate('note', {
+          object: createObject('note', 'Note', 'note'),
+          screenRect: { x: 0, y: 0, width: 180, height: 120 }
+        })
+      ],
+      budgets: { maxLiveDom: 2, maxShellDom: 3 },
+      nowMs: 1_000
+    })
+
+    expect(plan.liveObjects.map((object) => [object.id, object.kind])).toEqual([
+      ['page', 'page'],
+      ['database', 'database']
+    ])
+    expect(plan.shellObjects.map((object) => [object.id, object.kind])).toEqual([
+      ['reference', 'external-reference'],
+      ['media', 'media'],
+      ['note', 'note']
+    ])
+    expect(plan.parkedObjectIds).toEqual([])
+    expect(plan.budgets).toEqual({
+      liveUsed: 2,
+      liveRemaining: 0,
+      shellUsed: 3,
+      shellRemaining: 0
+    })
   })
 
   it('reports mount, tier-update, and unmount operations for pool reconciliation', () => {

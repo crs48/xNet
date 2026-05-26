@@ -1359,8 +1359,8 @@ gantt
 - [ ] Wire v3 shape and frame creation through renderer-level imperative handles if the existing Electron callbacks are not sufficient.
 - [x] Add focused tests for v3 selection operations.
 - [ ] Ensure v3 create menus expose page, database, note, media/reference, shape, and frame creation consistently.
-- [ ] Validate minimap summaries for all current object kinds.
-- [ ] Validate DOM island budget behavior for mixed page/database/media/reference boards.
+- [x] Validate minimap summaries for all current object kinds.
+- [x] Validate DOM island budget behavior for mixed page/database/media/reference boards.
 
 ### Direct Manipulation And Editing UI
 
@@ -1482,6 +1482,7 @@ gantt
 - [ ] Test contextual toolbar action availability for single-select, multi-select, locked selection, media, PDF, embed, shape, frame, and plugin cards.
 - [x] Test v3 imperative handle behavior for lock, align, layer, connect, and frame-wrap operations.
 - [x] Test v3 DOM-island dragging updates canvas object positions.
+- [x] Test v3 DOM island budget planning for mixed page, database, media, reference, and note objects.
 - [x] Test v3 drag previews leave Yjs positions unchanged until pointer release.
 - [x] Test v3 drag preview and commit snapping with temporary Alt-disable behavior.
 - [x] Test v3 resize handles update canvas object dimensions.
@@ -1491,6 +1492,7 @@ gantt
 - [x] Test v3 locked-object indicators and resize-handle suppression.
 - [x] Test v3 dimensions popover updates selected object geometry.
 - [x] Test v3 drag interaction awareness publication and remote outline rendering.
+- [x] Test v3 minimap summary type counts for all current object kinds.
 - [x] Test v3 keyboard editing shortcuts for nudge, lock, group, connect, frame wrap, open, clear, and layer movement.
 - [x] Test v3 duplicate and delete behavior from keyboard shortcuts and contextual toolbar actions.
 
