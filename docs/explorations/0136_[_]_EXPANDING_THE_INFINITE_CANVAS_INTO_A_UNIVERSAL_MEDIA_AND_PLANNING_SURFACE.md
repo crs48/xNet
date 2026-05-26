@@ -1519,7 +1519,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add bulk operations on selected source-backed cards.
 - [x] Add permission-aware card rendering for restricted fields.
 - [x] Add audit trail surfaces for plugin/domain cards.
-- [ ] Add sample ERP plugin exploration or prototype.
+- [x] Add sample ERP plugin exploration or prototype.
 
 ## Validation Checklist
 

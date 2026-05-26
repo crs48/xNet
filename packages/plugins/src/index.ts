@@ -91,6 +91,29 @@ export type {
   CanvasPluginFixtureCardSample,
   CanvasPluginFixtureKind
 } from './fixtures/canvas'
+export {
+  createCanvasErpPrototypeRiskSummary,
+  createCanvasErpPrototypeScenario,
+  getCanvasErpPrototypeAuditEntriesForCard,
+  getCanvasErpPrototypeCardsForFrame
+} from './fixtures/erp-prototype'
+export type {
+  CanvasErpPrototypeAuditEntry,
+  CanvasErpPrototypeAuditOperation,
+  CanvasErpPrototypeAuditSource,
+  CanvasErpPrototypeCard,
+  CanvasErpPrototypeCommand,
+  CanvasErpPrototypeEdge,
+  CanvasErpPrototypeEntityKind,
+  CanvasErpPrototypeLayoutKind,
+  CanvasErpPrototypeQueryFrame,
+  CanvasErpPrototypeQueryPredicate,
+  CanvasErpPrototypeRect,
+  CanvasErpPrototypeRisk,
+  CanvasErpPrototypeRiskSummary,
+  CanvasErpPrototypeScenario,
+  CanvasErpPrototypeStatus
+} from './fixtures/erp-prototype'
 
 // Shortcuts
 export { ShortcutManager, getShortcutManager, installShortcutHandler } from './shortcuts'
