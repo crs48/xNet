@@ -141,6 +141,7 @@ export {
   createCanvasPreviewGenerationBenchmarkSources,
   measureCanvasPreviewGenerationBenchmark
 } from './preview/benchmarks'
+export { CanvasPdfPageViewer } from './pdf/PdfPageViewer'
 export { createCanvasPdfPageThumbnails } from './pdf/page-thumbnails'
 export {
   createCanvasOfflinePreviewFallback,
@@ -192,6 +193,7 @@ export type {
   CanvasPreviewGenerationBenchmarkMeasurement,
   CanvasPreviewGenerationBenchmarkSource
 } from './preview/benchmarks'
+export type { CanvasPdfPageViewerProps, CanvasPdfPageViewerThemeMode } from './pdf/PdfPageViewer'
 export type {
   CanvasPdfJsAdapter,
   CanvasPdfJsDocument,
