@@ -2,7 +2,7 @@
  * Canvas v3 active renderer tests.
  */
 
-import type { CanvasEdge, CanvasHandle, CanvasNode } from '../index'
+import type { CanvasEdge, CanvasHandle, CanvasNode, ResizeHandle } from '../index'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -21,6 +21,19 @@ import {
   getCanvasObjectsMap
 } from '../index'
 import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migration'
+import { getCanvasResizePolicy } from '../selection/resize-policy'
+import { createResizeUpdate } from '../selection/scene-operations'
+
+const TEST_RESIZE_HANDLES: ResizeHandle[] = [
+  'top-left',
+  'top',
+  'top-right',
+  'right',
+  'bottom-right',
+  'bottom',
+  'bottom-left',
+  'left'
+]
 
 class ResizeObserverStub {
   observe(): void {
@@ -1303,6 +1316,143 @@ describe('Canvas v3 active renderer', () => {
     ).toBeTruthy()
   })
 
+  it('selects rich object bodies, nested frame members, transparent shapes, and live iframe shells', () => {
+    const doc = new Y.Doc()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const onSelectionChange = vi.fn()
+    const page = createNode(
+      'page',
+      { x: -420, y: -220, width: 260, height: 160 },
+      {
+        title: 'Live Page Surface'
+      }
+    )
+    const database = createNode(
+      'database',
+      { x: -120, y: -220, width: 340, height: 220 },
+      {
+        title: 'Live Database Surface'
+      }
+    )
+    const image = createNode(
+      'media',
+      { x: 260, y: -220, width: 320, height: 180 },
+      {
+        title: 'Reference Image',
+        kind: 'image',
+        mimeType: 'image/png'
+      }
+    )
+    const pdf = createNode(
+      'media',
+      { x: 620, y: -220, width: 260, height: 340 },
+      {
+        title: 'Spec PDF',
+        kind: 'pdf',
+        mimeType: 'application/pdf'
+      }
+    )
+    const embed = createNode(
+      'external-reference',
+      { x: -420, y: 80, width: 360, height: 202 },
+      {
+        title: 'Live Embed Shell',
+        provider: 'youtube',
+        embedUrl: 'https://www.youtube.com/embed/allowed'
+      }
+    )
+    const transparentShape = createNode(
+      'shape',
+      { x: 0, y: 80, width: 220, height: 140 },
+      {
+        title: 'Transparent Shape',
+        fill: 'transparent',
+        stroke: 'transparent'
+      }
+    )
+    const frameBase = createCanvasFrameVariantNode({
+      title: 'Planning Frame',
+      viewport: { x: 0, y: 0, zoom: 1 },
+      variant: 'standard'
+    })
+    const nestedNote = createNode(
+      'note',
+      { x: 300, y: 130, width: 200, height: 120 },
+      {
+        title: 'Nested Frame Note'
+      }
+    )
+    const frame: CanvasNode = {
+      ...frameBase,
+      id: 'planning-frame-select',
+      position: { x: 260, y: 80, width: 360, height: 260 },
+      properties: {
+        ...frameBase.properties,
+        memberIds: [nestedNote.id]
+      }
+    }
+    const selectableNodes = [page, database, image, pdf, embed, transparentShape, frame, nestedNote]
+
+    selectableNodes.forEach((node) => {
+      objects.set(node.id, node)
+    })
+
+    render(
+      <Canvas
+        doc={doc}
+        onSelectionChange={onSelectionChange}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    onSelectionChange.mockClear()
+
+    const selectNode = (node: CanvasNode, selector?: string) => {
+      const target = surface.querySelector<HTMLElement>(
+        selector ?? `[data-canvas-v3-object="true"][data-canvas-object-id="${node.id}"]`
+      )
+
+      if (!target) {
+        throw new Error(`Expected selectable target for ${node.properties.title as string}`)
+      }
+
+      fireEvent.pointerDown(target, {
+        button: 0,
+        pointerId: 91,
+        clientX: 480,
+        clientY: 320
+      })
+
+      expect(onSelectionChange).toHaveBeenLastCalledWith({
+        nodeIds: [node.id],
+        edgeIds: []
+      })
+      expect(
+        surface
+          .querySelector(`[data-canvas-v3-object="true"][data-canvas-object-id="${node.id}"]`)
+          ?.getAttribute('aria-label')
+      ).toContain('Selected')
+      expect(surface.querySelectorAll('[data-canvas-v3-resize-handle]')).toHaveLength(
+        TEST_RESIZE_HANDLES.length
+      )
+    }
+
+    const bodySelectionNodes = [page, database, image, pdf, embed, frame, nestedNote]
+
+    bodySelectionNodes.forEach((node) => selectNode(node))
+    selectNode(
+      transparentShape,
+      `[data-canvas-v3-hit-target="true"][data-canvas-object-id="${transparentShape.id}"]`
+    )
+
+    expect(
+      surface
+        .querySelector(`[data-canvas-v3-object="true"][data-canvas-object-id="${embed.id}"]`)
+        ?.getAttribute('data-canvas-live-iframe')
+    ).toBe('true')
+  })
+
   it('renders fallback cards when plugin contributions are disabled or missing', () => {
     const doc = new Y.Doc()
     const objects = getCanvasObjectsMap<CanvasNode>(doc)
@@ -1772,6 +1922,131 @@ describe('Canvas v3 active renderer', () => {
     expect(onSceneMutation).toHaveBeenCalledOnce()
   })
 
+  it('persists single-object and multi-selection drags across tile-sized boundaries after remount', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const ref = React.createRef<CanvasHandle>()
+    const onSceneMutation = vi.fn()
+    const single = createNode(
+      'page',
+      { x: 980, y: 980, width: 180, height: 120 },
+      {
+        title: 'Boundary Page'
+      }
+    )
+    const firstGroupNode = createNode(
+      'database',
+      { x: 940, y: 1180, width: 320, height: 220 },
+      {
+        title: 'Boundary Database'
+      }
+    )
+    const secondGroupNode = createNode(
+      'note',
+      { x: 1280, y: 1180, width: 180, height: 120 },
+      {
+        title: 'Boundary Note'
+      }
+    )
+
+    const boundaryNodes = [single, firstGroupNode, secondGroupNode]
+
+    boundaryNodes.forEach((node) => {
+      nodes.set(node.id, node)
+    })
+
+    const renderCanvas = () =>
+      render(
+        <Canvas
+          ref={ref}
+          doc={doc}
+          config={{ gridSize: 0 }}
+          initialViewport={{ x: 1100, y: 1100, zoom: 1 }}
+          onSceneMutation={onSceneMutation}
+          renderNode={(node) => <span>{node.properties.title as string}</span>}
+        />
+      )
+
+    const { unmount } = renderCanvas()
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const singleIsland = screen.getByText('Boundary Page').closest('[data-canvas-v3-object="true"]')
+
+    if (!singleIsland) {
+      throw new Error('Expected Boundary Page DOM island')
+    }
+
+    fireEvent.pointerDown(singleIsland, {
+      button: 0,
+      pointerId: 92,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 92,
+      clientX: 620,
+      clientY: 450
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 92,
+      clientX: 620,
+      clientY: 450
+    })
+
+    expect(nodes.get(single.id)?.position).toMatchObject({
+      x: 1120,
+      y: 1110
+    })
+
+    act(() => {
+      ref.current?.selectNodes([firstGroupNode.id, secondGroupNode.id])
+    })
+
+    const groupIsland = screen
+      .getByText('Boundary Database')
+      .closest('[data-canvas-v3-object="true"]')
+
+    if (!groupIsland) {
+      throw new Error('Expected Boundary Database DOM island')
+    }
+
+    fireEvent.pointerDown(groupIsland, {
+      button: 0,
+      pointerId: 93,
+      clientX: 500,
+      clientY: 340
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 93,
+      clientX: 660,
+      clientY: 340
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 93,
+      clientX: 660,
+      clientY: 340
+    })
+
+    expect(nodes.get(firstGroupNode.id)?.position).toMatchObject({
+      x: 1100,
+      y: 1180
+    })
+    expect(nodes.get(secondGroupNode.id)?.position).toMatchObject({
+      x: 1440,
+      y: 1180
+    })
+    expect(onSceneMutation).toHaveBeenCalledTimes(2)
+
+    unmount()
+    renderCanvas()
+
+    expect(
+      screen.getByRole('group', { name: /Boundary Page/ }).getAttribute('aria-label')
+    ).toContain('at x 1120, y 1110')
+    expect(
+      screen.getByRole('group', { name: /Boundary Database/ }).getAttribute('aria-label')
+    ).toContain('at x 1100, y 1180')
+  })
+
   it('shares v3 drag interactions through awareness without committing intermediate positions', () => {
     const doc = createCanvasTestDoc()
     const awareness = createMockAwareness()
@@ -1999,6 +2274,147 @@ describe('Canvas v3 active renderer', () => {
     const moved = nodes.get(mover.id)
     expect(moved?.position.x).toBe(106)
     expect(surface.querySelector('[data-canvas-v3-snap-guide="true"]')).toBeNull()
+  })
+
+  it('snaps v3 drag previews to frame-edge guides', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const mover = createNode(
+      'page',
+      { x: 0, y: 0, width: 100, height: 80 },
+      {
+        title: 'Frame Mover'
+      }
+    )
+    const frame = createCanvasFrameVariantNode({
+      title: 'Target Frame',
+      viewport: { x: 0, y: 0, zoom: 1 },
+      variant: 'standard'
+    })
+    const frameNode: CanvasNode = {
+      ...frame,
+      id: 'target-frame-snap',
+      position: { x: 300, y: -40, width: 460, height: 320 }
+    }
+
+    nodes.set(mover.id, mover)
+    nodes.set(frameNode.id, frameNode)
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const moverIsland = screen.getByText('Frame Mover').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!moverIsland) {
+      throw new Error('Expected Frame Mover DOM island')
+    }
+
+    const initialScreenLeft = Number.parseFloat((moverIsland as HTMLElement).style.left)
+
+    fireEvent.pointerDown(moverIsland, {
+      button: 0,
+      pointerId: 94,
+      clientX: 500,
+      clientY: 340
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 94,
+      clientX: 796,
+      clientY: 340
+    })
+
+    expect(Number.parseFloat((moverIsland as HTMLElement).style.left)).toBe(initialScreenLeft + 300)
+
+    const guide = surface.querySelector('[data-canvas-v3-snap-guide="true"]')
+    expect(guide?.getAttribute('data-canvas-snap-guide-source')).toBe('frame')
+    expect(guide?.getAttribute('data-canvas-snap-guide-orientation')).toBe('vertical')
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 94,
+      clientX: 796,
+      clientY: 340
+    })
+
+    expect(nodes.get(mover.id)?.position.x).toBe(300)
+  })
+
+  it('snaps v3 drag previews to equal-spacing guides', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const mover = createNode(
+      'page',
+      { x: 0, y: 120, width: 100, height: 80 },
+      {
+        title: 'Spacing Mover'
+      }
+    )
+    const left = createNode(
+      'page',
+      { x: 0, y: 0, width: 100, height: 80 },
+      {
+        title: 'Left Neighbor'
+      }
+    )
+    const right = createNode(
+      'page',
+      { x: 300, y: 0, width: 100, height: 80 },
+      {
+        title: 'Right Neighbor'
+      }
+    )
+
+    const snapNodes = [mover, left, right]
+
+    snapNodes.forEach((node) => nodes.set(node.id, node))
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const moverIsland = screen.getByText('Spacing Mover').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!moverIsland) {
+      throw new Error('Expected Spacing Mover DOM island')
+    }
+
+    const initialScreenLeft = Number.parseFloat((moverIsland as HTMLElement).style.left)
+
+    fireEvent.pointerDown(moverIsland, {
+      button: 0,
+      pointerId: 95,
+      clientX: 500,
+      clientY: 340
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 95,
+      clientX: 648,
+      clientY: 340
+    })
+
+    expect(Number.parseFloat((moverIsland as HTMLElement).style.left)).toBe(initialScreenLeft + 150)
+
+    const guide = surface.querySelector('[data-canvas-v3-snap-guide="true"]')
+    expect(guide?.getAttribute('data-canvas-snap-guide-source')).toBe('spacing')
+    expect(guide?.getAttribute('data-canvas-snap-guide-orientation')).toBe('vertical')
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 95,
+      clientX: 648,
+      clientY: 340
+    })
+
+    expect(nodes.get(mover.id)?.position.x).toBe(150)
   })
 
   it('limits smart guides to visible snap candidates during large drags', () => {
@@ -2312,6 +2728,91 @@ describe('Canvas v3 active renderer', () => {
     const resized = nodes.get(database.id)
     expect(resized?.position.x).toBe(120)
     expect(resized?.position.width).toBe(320)
+  })
+
+  it('keeps every resize handle valid across images, PDFs, embeds, pages, databases, notes, frames, and shapes', () => {
+    const frameBase = createCanvasFrameVariantNode({
+      title: 'Resizable Frame',
+      viewport: { x: 0, y: 0, zoom: 1 },
+      variant: 'standard'
+    })
+    const resizeNodes: CanvasNode[] = [
+      createNode(
+        'media',
+        { x: 100, y: 100, width: 640, height: 360 },
+        {
+          title: 'Resizable Image',
+          kind: 'image',
+          mimeType: 'image/png'
+        }
+      ),
+      createNode(
+        'media',
+        { x: 100, y: 100, width: 360, height: 520 },
+        {
+          title: 'Resizable PDF',
+          kind: 'pdf',
+          mimeType: 'application/pdf'
+        }
+      ),
+      createNode(
+        'external-reference',
+        { x: 100, y: 100, width: 480, height: 270 },
+        {
+          title: 'Resizable Embed',
+          provider: 'youtube',
+          kind: 'video'
+        }
+      ),
+      createNode('page', { x: 100, y: 100, width: 360, height: 240 }, { title: 'Resizable Page' }),
+      createNode(
+        'database',
+        { x: 100, y: 100, width: 460, height: 320 },
+        { title: 'Resizable Database' }
+      ),
+      createNode('note', { x: 100, y: 100, width: 280, height: 180 }, { title: 'Resizable Note' }),
+      {
+        ...frameBase,
+        id: 'resizable-frame',
+        position: { x: 100, y: 100, width: 520, height: 360 }
+      },
+      createNode('shape', { x: 100, y: 100, width: 260, height: 180 }, { title: 'Resizable Shape' })
+    ]
+
+    for (const node of resizeNodes) {
+      for (const handle of TEST_RESIZE_HANDLES) {
+        const policy = getCanvasResizePolicy(node, handle)
+        const update = createResizeUpdate(node, handle, { x: 48, y: 36 }, policy)
+        const nextPosition = update.position as {
+          x: number
+          y: number
+          width: number
+          height: number
+        }
+        const touchesLeft = handle === 'left' || handle === 'top-left' || handle === 'bottom-left'
+        const touchesTop = handle === 'top' || handle === 'top-left' || handle === 'top-right'
+
+        expect(update.id).toBe(node.id)
+        expect(Number.isFinite(nextPosition.x)).toBe(true)
+        expect(Number.isFinite(nextPosition.y)).toBe(true)
+        expect(Number.isFinite(nextPosition.width)).toBe(true)
+        expect(Number.isFinite(nextPosition.height)).toBe(true)
+        expect(nextPosition.width).toBeGreaterThanOrEqual(policy.minWidth ?? 96)
+        expect(nextPosition.height).toBeGreaterThanOrEqual(policy.minHeight ?? 72)
+
+        if (touchesLeft) {
+          expect(nextPosition.x).not.toBe(node.position.x)
+        } else {
+          expect(nextPosition.x).toBe(node.position.x)
+        }
+
+        if (touchesTop) {
+          expect(nextPosition.y).not.toBe(node.position.y)
+        } else {
+          expect(nextPosition.y).toBe(node.position.y)
+        }
+      }
+    }
   })
 
   it('scales DOM island content with the canvas viewport', () => {

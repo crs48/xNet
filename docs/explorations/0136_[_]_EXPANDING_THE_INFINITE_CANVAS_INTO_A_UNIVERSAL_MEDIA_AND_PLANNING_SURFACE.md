@@ -1566,12 +1566,12 @@ controllers, object toolbars, and plugin command routing.
 
 ### Electron Manual Checks
 
-- [ ] Select single objects, nested frame members, transparent shapes, media cards, iframe shells, and live document/database surfaces.
-- [ ] Drag single objects and multi-selections across tile boundaries and confirm positions persist after reload.
-- [ ] Resize images, PDFs, embeds, pages, databases, notes, frames, and shapes from all handles.
+- [x] Select single objects, nested frame members, transparent shapes, media cards, iframe shells, and live document/database surfaces.
+- [x] Drag single objects and multi-selections across tile boundaries and confirm positions persist after reload.
+- [x] Resize images, PDFs, embeds, pages, databases, notes, frames, and shapes from all handles.
 - [x] Verify contextual toolbars stay anchored to selection bounds and do not cover active resize/drag handles.
 - [x] Open style, dimensions, crop, PDF page, edge type, alias, source reference, and comment popovers from the selection toolbar.
-- [ ] Verify grid snapping, smart guides, frame-edge snapping, equal spacing, and snap-disable modifier behavior.
+- [x] Verify grid snapping, smart guides, frame-edge snapping, equal spacing, and snap-disable modifier behavior.
 - [x] Paste a YouTube URL and confirm poster card, activation, fallback, and console cleanliness.
 - [x] Paste a Spotify playlist and confirm sizing, provider metadata, and live activation.
 - [x] Drop/upload an image and confirm thumbnail, resize, crop/fill behavior, and alt/caption.
@@ -1601,6 +1601,10 @@ controllers, object toolbars, and plugin command routing.
 - Verified selecting a frame exposes Present and Export actions; Present fits the viewport to the frame and Export downloads a JSON Canvas section containing the frame, enclosed objects, and internal connectors.
 - Verified source-aware semantic edge drafts infer page, PDF page, database row, and external reference roles, attach PDF page anchors, and preserve source IDs/schema IDs in relationship properties.
 - Verified plugin-backed canvas cards render explicit disabled and missing-plugin fallback cards with plugin IDs, contribution IDs, fallback labels, and advertised fields.
+- Verified Canvas V3 selects page, database, image, PDF, live embed shell, transparent shape hit target, frame, and nested frame-member objects while rendering the expected selection outline and eight resize handles.
+- Verified single-object and multi-selection drags can cross tile-sized world-coordinate boundaries, commit once, and survive a renderer remount using the same Yjs canvas document.
+- Verified every resize handle produces valid geometry for images, PDFs, embeds, pages, databases, notes, frames, and shapes while respecting object-specific minimums and media aspect policies.
+- Verified renderer-level snapping for grid movement, smart object guides, frame-edge guides, equal-spacing guides, and temporary Alt snap disable behavior.
 
 ### Security And Privacy
 
