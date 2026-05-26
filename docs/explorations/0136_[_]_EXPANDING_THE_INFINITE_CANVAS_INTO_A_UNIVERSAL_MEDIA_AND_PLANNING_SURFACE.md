@@ -1515,7 +1515,7 @@ controllers, object toolbars, and plugin command routing.
 
 - [x] Add query-backed canvas frames.
 - [x] Add saved layouts: grid, swimlane, kanban, timeline, dependency map, org chart.
-- [ ] Add semantic edge queries and filters.
+- [x] Add semantic edge queries and filters.
 - [ ] Add bulk operations on selected source-backed cards.
 - [ ] Add permission-aware card rendering for restricted fields.
 - [ ] Add audit trail surfaces for plugin/domain cards.

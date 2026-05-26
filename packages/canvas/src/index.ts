@@ -112,6 +112,13 @@ export {
   pickCanvasEdgeEndpointAnchor
 } from './edges/presentation'
 export {
+  canvasEdgeMatchesSemanticQuery,
+  createCanvasSemanticEdgeQuery,
+  createCanvasSemanticEdgeQueryRows,
+  filterCanvasEdgesBySemanticQuery,
+  runCanvasSemanticEdgeQuery
+} from './edges/queries'
+export {
   createCanvasFarZoomEdgeSummaries,
   createCanvasMinimapRelationshipHints
 } from './edges/summaries'
@@ -126,6 +133,16 @@ export type {
   CanvasEdgePresentation,
   PickCanvasEdgeEndpointAnchorInput
 } from './edges/presentation'
+export type {
+  CanvasSemanticEdgeEndpointFilter,
+  CanvasSemanticEdgeQuery,
+  CanvasSemanticEdgeQueryFilter,
+  CanvasSemanticEdgeQueryResult,
+  CanvasSemanticEdgeQueryRow,
+  CanvasSemanticEdgeQuerySort,
+  CanvasSemanticEdgeQuerySortField,
+  CreateCanvasSemanticEdgeQueryInput
+} from './edges/queries'
 export type {
   CanvasFarZoomEdgeSummary,
   CanvasMinimapRelationshipHint,
