@@ -7,7 +7,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
-import { Canvas, createEdge, createNode, getCanvasObjectsMap } from '../index'
+import {
+  Canvas,
+  createEdge,
+  createNode,
+  getCanvasConnectorsMap,
+  getCanvasObjectsMap
+} from '../index'
 import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migration'
 
 class ResizeObserverStub {
@@ -48,6 +54,18 @@ function createCanvasTestDoc(): Y.Doc {
   doc.getMap('connectors').set('edge-1', createEdge(page.id, shape.id))
 
   return doc
+}
+
+function getNodeByTitle(doc: Y.Doc, title: string): CanvasNode {
+  const node = Array.from(getCanvasObjectsMap<CanvasNode>(doc).values()).find(
+    (candidate) => candidate.properties.title === title
+  )
+
+  if (!node) {
+    throw new Error(`Expected node titled ${title}`)
+  }
+
+  return node
 }
 
 beforeAll(() => {
@@ -132,6 +150,84 @@ describe('Canvas v3 active renderer', () => {
       ref.current?.fitToContent(80)
     })
     expect(ref.current?.getViewportSnapshot().zoom).toBeGreaterThan(0)
+  })
+
+  it('applies v3 selection handle operations to the flat canvas document', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const onSceneMutation = vi.fn()
+
+    render(<Canvas ref={ref} doc={doc} onSceneMutation={onSceneMutation} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+    act(() => {
+      expect(ref.current?.toggleSelectionLock()).toBe(true)
+    })
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(page.id)?.locked).toBe(true)
+
+    act(() => {
+      expect(ref.current?.toggleSelectionLock()).toBe(true)
+    })
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(page.id)?.locked).toBe(false)
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+    act(() => {
+      expect(ref.current?.alignSelection('left')).toBe(true)
+    })
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(shape.id)?.position.x).toBe(
+      getCanvasObjectsMap<CanvasNode>(doc).get(page.id)?.position.x
+    )
+
+    act(() => {
+      expect(ref.current?.shiftSelectionLayer('forward')).toBe(true)
+    })
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(page.id)?.position.zIndex).toBe(1)
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(shape.id)?.position.zIndex).toBe(1)
+    expect(onSceneMutation).toHaveBeenCalled()
+  })
+
+  it('connects and wraps v3 selections through the imperative handle', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap(doc)
+    const initialConnectorCount = connectors.size
+    const initialObjectCount = objects.size
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+    act(() => {
+      expect(ref.current?.connectSelection()).toBe(true)
+    })
+    expect(connectors.size).toBe(initialConnectorCount + 1)
+
+    act(() => {
+      expect(ref.current?.wrapSelectionInFrame()).toBe(true)
+    })
+
+    const frame = Array.from(objects.values()).find(
+      (node) =>
+        node.type === 'group' &&
+        Array.isArray(node.properties.memberIds) &&
+        node.properties.memberIds.includes(page.id) &&
+        node.properties.memberIds.includes(shape.id)
+    )
+
+    expect(objects.size).toBe(initialObjectCount + 1)
+    expect(frame).toBeTruthy()
   })
 
   it('scales DOM island content with the canvas viewport', () => {

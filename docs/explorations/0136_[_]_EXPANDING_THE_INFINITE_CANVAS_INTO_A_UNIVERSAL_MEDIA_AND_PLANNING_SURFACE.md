@@ -1355,8 +1355,9 @@ gantt
 ### Canvas V3 Parity
 
 - [ ] Audit all `CanvasViewHandle` methods expected by Electron and confirm whether `CanvasV3` implements them.
-- [ ] Wire align, distribute, tidy, layer, lock, connect, frame wrap, shape creation, and frame creation to existing scene operation helpers where possible.
-- [ ] Add focused tests for v3 selection operations.
+- [x] Wire v3 imperative handles for lock, align, distribute, tidy, layer, connect, and frame wrap to existing scene operation helpers.
+- [ ] Wire v3 shape and frame creation through renderer-level imperative handles if the existing Electron callbacks are not sufficient.
+- [x] Add focused tests for v3 selection operations.
 - [ ] Ensure v3 create menus expose page, database, note, media/reference, shape, and frame creation consistently.
 - [ ] Validate minimap summaries for all current object kinds.
 - [ ] Validate DOM island budget behavior for mixed page/database/media/reference boards.
@@ -1467,6 +1468,7 @@ gantt
 - [ ] Test selection hit targets, marquee selection, multi-select bounds, drag thresholds, and locked-object behavior.
 - [ ] Test resize handles, minimum dimensions, aspect-ratio constraints, and object-specific resize policies.
 - [ ] Test contextual toolbar action availability for single-select, multi-select, locked selection, media, PDF, embed, shape, frame, and plugin cards.
+- [x] Test v3 imperative handle behavior for lock, align, layer, connect, and frame-wrap operations.
 
 ### Performance
 

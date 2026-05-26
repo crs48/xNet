@@ -39,7 +39,20 @@ import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../
 import { calculateLOD } from '../nodes/CanvasNodeComponent'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migration'
+import {
+  createAlignmentUpdates,
+  createDistributionUpdates,
+  createFrameSelectionNode,
+  createLayerShiftUpdates,
+  createLockUpdates,
+  createTidySelectionUpdates,
+  expandContainerPositionUpdates,
+  getUnlockedSelection,
+  type CanvasLockUpdate,
+  type CanvasPositionUpdate
+} from '../selection/scene-operations'
 import { Viewport } from '../spatial'
+import { createEdge } from '../store'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 import { planDomIslandPool } from './dom-island-pool'
 
@@ -599,6 +612,164 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     setFocusedNodeId(nodeIds[0] ?? null)
   }, [])
 
+  const getSelectedNodes = useCallback((): CanvasNode[] => {
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+
+    return Array.from(selectedNodeIds)
+      .map((id) => objects.get(id))
+      .filter((node): node is CanvasNode => node !== undefined)
+  }, [doc, selectedNodeIds])
+
+  const applyPositionUpdates = useCallback(
+    (updates: CanvasPositionUpdate[]): boolean => {
+      if (updates.length === 0) {
+        return false
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      let changed = false
+
+      doc.transact(() => {
+        for (const update of updates) {
+          const node = objects.get(update.id)
+          if (!node) {
+            continue
+          }
+
+          objects.set(update.id, {
+            ...node,
+            position: {
+              ...node.position,
+              ...update.position
+            }
+          })
+          changed = true
+        }
+      })
+
+      if (changed) {
+        onSceneMutation?.()
+      }
+
+      return changed
+    },
+    [doc, onSceneMutation]
+  )
+
+  const applyLockUpdates = useCallback(
+    (updates: CanvasLockUpdate[]): boolean => {
+      if (updates.length === 0) {
+        return false
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      let changed = false
+
+      doc.transact(() => {
+        for (const update of updates) {
+          const node = objects.get(update.id)
+          if (!node) {
+            continue
+          }
+
+          objects.set(update.id, {
+            ...node,
+            locked: update.locked
+          })
+          changed = true
+        }
+      })
+
+      if (changed) {
+        onSceneMutation?.()
+      }
+
+      return changed
+    },
+    [doc, onSceneMutation]
+  )
+
+  const applySelectionPositionUpdates = useCallback(
+    (updates: CanvasPositionUpdate[]): boolean => {
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const nodesById = new Map(Array.from(objects.entries()))
+
+      return applyPositionUpdates(expandContainerPositionUpdates(nodesById, updates))
+    },
+    [applyPositionUpdates, doc]
+  )
+
+  const toggleSelectionLock = useCallback((): boolean => {
+    return applyLockUpdates(createLockUpdates(getSelectedNodes()))
+  }, [applyLockUpdates, getSelectedNodes])
+
+  const alignSelection = useCallback(
+    (alignment: CanvasAlignment): boolean => {
+      return applySelectionPositionUpdates(
+        createAlignmentUpdates(getUnlockedSelection(getSelectedNodes()), alignment)
+      )
+    },
+    [applySelectionPositionUpdates, getSelectedNodes]
+  )
+
+  const distributeSelection = useCallback(
+    (axis: CanvasDistributionAxis): boolean => {
+      return applySelectionPositionUpdates(
+        createDistributionUpdates(getUnlockedSelection(getSelectedNodes()), axis)
+      )
+    },
+    [applySelectionPositionUpdates, getSelectedNodes]
+  )
+
+  const tidySelection = useCallback((): boolean => {
+    return applySelectionPositionUpdates(
+      createTidySelectionUpdates(getUnlockedSelection(getSelectedNodes()))
+    )
+  }, [applySelectionPositionUpdates, getSelectedNodes])
+
+  const shiftSelectionLayer = useCallback(
+    (direction: CanvasLayerDirection): boolean => {
+      return applySelectionPositionUpdates(
+        createLayerShiftUpdates(getUnlockedSelection(getSelectedNodes()), direction)
+      )
+    },
+    [applySelectionPositionUpdates, getSelectedNodes]
+  )
+
+  const wrapSelectionInFrame = useCallback((): boolean => {
+    const frame = createFrameSelectionNode(getUnlockedSelection(getSelectedNodes()))
+    if (!frame) {
+      return false
+    }
+
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    doc.transact(() => {
+      objects.set(frame.id, frame)
+    })
+    setSelectedNodeIds(new Set([frame.id]))
+    setFocusedNodeId(frame.id)
+    onSceneMutation?.()
+
+    return true
+  }, [doc, getSelectedNodes, onSceneMutation])
+
+  const connectSelection = useCallback((): boolean => {
+    const selectedNodes = getSelectedNodes()
+    if (selectedNodes.length !== 2) {
+      return false
+    }
+
+    const connectors = getCanvasConnectorsMap(doc)
+    const edge = createEdge(selectedNodes[0].id, selectedNodes[1].id)
+
+    doc.transact(() => {
+      connectors.set(edge.id, edge)
+    })
+    onSceneMutation?.()
+
+    return true
+  }, [doc, getSelectedNodes, onSceneMutation])
+
   const applyViewportChanges = useCallback(
     (changes: { x?: number; y?: number; zoom?: number }) => {
       setViewportClamped((current) => ({
@@ -629,13 +800,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         }),
       clearSelection,
       selectNodes,
-      toggleSelectionLock: () => false,
-      alignSelection: () => false,
-      distributeSelection: () => false,
-      tidySelection: () => false,
-      shiftSelectionLayer: () => false,
-      wrapSelectionInFrame: () => false,
-      connectSelection: () => false,
+      toggleSelectionLock,
+      alignSelection,
+      distributeSelection,
+      tidySelection,
+      shiftSelectionLayer,
+      wrapSelectionInFrame,
+      connectSelection,
       undo: () => onUndoRedoShortcut?.('undo') ?? false,
       redo: () => onUndoRedoShortcut?.('redo') ?? false,
       screenToCanvas: screenToCanvasPoint,
@@ -644,13 +815,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     }),
     [
       clearSelection,
+      alignSelection,
+      connectSelection,
+      distributeSelection,
       fitToRect,
       onUndoRedoShortcut,
       scene.bounds,
       screenToCanvasPoint,
       selectNodes,
       setViewportClamped,
-      viewport
+      shiftSelectionLayer,
+      tidySelection,
+      toggleSelectionLock,
+      viewport,
+      wrapSelectionInFrame
     ]
   )
 
