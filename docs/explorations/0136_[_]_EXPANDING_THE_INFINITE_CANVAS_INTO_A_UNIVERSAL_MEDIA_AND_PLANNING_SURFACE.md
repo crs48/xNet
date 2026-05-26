@@ -1352,9 +1352,62 @@ gantt
 
 ## Implementation Checklist
 
+### CanvasViewHandle Parity Audit
+
+The current Electron `CanvasViewHandle` is now backed by either direct `CanvasV3` handle methods or
+wrapper-level orchestration that composes existing `CanvasV3` primitives with Electron-specific UI.
+This keeps the renderer focused on scene interaction while the shell owns document opening, file
+pickers, source reference panels, alias editing, comments, and shortcut help.
+
+```mermaid
+flowchart LR
+  App["Electron App commands"]
+  View["CanvasViewHandle"]
+  Renderer["CanvasV3 CanvasHandle"]
+  Shell["Electron shell panels and source actions"]
+  Scene["Yjs scene maps and Canvas v3 helpers"]
+
+  App --> View
+  View --> Renderer
+  View --> Shell
+  Renderer --> Scene
+  Shell --> Scene
+```
+
+| Electron handle method      | Backing implementation in Canvas v3 path                                  | Audit result                   |
+| --------------------------- | -------------------------------------------------------------------------- | ------------------------------ |
+| `focusLinkedDocument`       | Wrapper lookup plus `getViewportSnapshot` and `fitToRect`                  | Covered by composed primitives |
+| `restoreViewport`           | `setViewportSnapshot`                                                       | Covered                        |
+| `zoomOut`, `zoomIn`         | Wrapper zoom math plus `getViewportSnapshot` and `setViewportSnapshot`     | Covered by composed primitives |
+| `fitCanvasContent`          | `fitToContent`                                                              | Covered                        |
+| `resetCanvasView`           | `resetView`                                                                 | Covered                        |
+| `clearSelection`            | Wrapper closes panels plus `clearSelection`                                | Covered by composed primitives |
+| `fitSelection`              | Wrapper selection bounds plus `fitToRect`                                  | Covered by composed primitives |
+| `openSelection`             | Wrapper opens peek, focus, or split document surfaces                      | Shell-owned                    |
+| `toggleSelectionLock`       | `toggleSelectionLock`                                                       | Covered                        |
+| `alignSelection`            | `alignSelection`                                                            | Covered                        |
+| `distributeSelection`       | `distributeSelection`                                                       | Covered                        |
+| `tidySelection`             | `tidySelection`                                                             | Covered                        |
+| `shiftSelectionLayer`       | `shiftSelectionLayer`                                                       | Covered                        |
+| `connectSelection`          | `connectSelection`                                                          | Covered                        |
+| `createShape`               | `createShape`                                                               | Covered                        |
+| `createFrame`               | `createFrame`                                                               | Covered                        |
+| `createExternalReference`   | Wrapper prompt and ingestion pipeline                                      | Shell-owned                    |
+| `createMediaFile`           | Wrapper file input and ingestion pipeline                                  | Shell-owned                    |
+| `wrapSelectionInFrame`      | `wrapSelectionInFrame`                                                      | Covered                        |
+| `openAliasEditor`           | Wrapper panel, also exposed to v3 via `onEditSelectionAlias`               | Shell-owned                    |
+| `openCommentComposer`       | Wrapper panel, also exposed to v3 via `onCreateSelectionComment`           | Shell-owned                    |
+| `clearSelectionAlias`       | Wrapper source alias mutation                                               | Shell-owned                    |
+| `toggleSourceReferences`    | Wrapper source reference panel                                              | Shell-owned                    |
+| `toggleShortcutHelp`        | Wrapper help state, also exposed to v3 via `onToggleShortcutHelp`          | Shell-owned                    |
+
+Audit conclusion: no current Electron command requires an unimplemented `CanvasV3` imperative method.
+The remaining gap is not parity; it is productizing the same operations into richer interaction
+controllers, object toolbars, and plugin command routing.
+
 ### Canvas V3 Parity
 
-- [ ] Audit all `CanvasViewHandle` methods expected by Electron and confirm whether `CanvasV3` implements them.
+- [x] Audit all `CanvasViewHandle` methods expected by Electron and confirm whether `CanvasV3` implements them.
 - [x] Wire v3 imperative handles for lock, align, distribute, tidy, layer, connect, and frame wrap to existing scene operation helpers.
 - [x] Wire v3 shape and frame creation through renderer-level imperative handles if the existing Electron callbacks are not sufficient.
 - [x] Add focused tests for v3 selection operations.
