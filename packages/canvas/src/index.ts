@@ -335,6 +335,11 @@ export {
   resolveCanvasMindMapBranchStyle
 } from './mind-map/branches'
 export {
+  createCanvasMindMapBranchToObjectConversionCommand,
+  createCanvasNodeToMindMapBranchConversionCommand,
+  getCanvasMindMapConvertibleKind
+} from './mind-map/conversion'
+export {
   CANVAS_MIND_MAP_TREE_LAYOUT_DEFAULTS,
   createCanvasMindMapTreeLayoutRequest,
   createCanvasMindMapTreePositionUpdates,
@@ -345,6 +350,17 @@ export type {
   CanvasMindMapNodePropertiesUpdate,
   CanvasMindMapVisibilityState
 } from './mind-map/branches'
+export type {
+  CanvasMindMapConversionCommand,
+  CanvasMindMapConversionNodeUpdate,
+  CanvasMindMapConversionTrace,
+  CanvasMindMapConversionValidation,
+  CanvasMindMapConvertibleKind,
+  CanvasMindMapObjectConversionTarget,
+  CanvasMindMapSourceNodeDraft,
+  CreateCanvasMindMapBranchToObjectConversionInput,
+  CreateCanvasNodeToMindMapBranchConversionInput
+} from './mind-map/conversion'
 export type {
   CanvasMindMapBranchDirection,
   CanvasMindMapCreationTool,
