@@ -43,6 +43,13 @@ import { NavigationTools } from '../components/NavigationTools'
 import { getCanvasEdgeNodeIds } from '../edges/bindings'
 import { getCanvasEdgePresentation } from '../edges/presentation'
 import { createCanvasEdgeRelationship } from '../edges/relationships'
+import {
+  CANVAS_FRAME_VARIANT_DEFINITIONS,
+  applyCanvasFrameVariant,
+  createCanvasFrameVariantNode,
+  getCanvasFrameVariant,
+  type CanvasFrameVariant
+} from '../frames/frame-variants'
 import { createCanvasPrimitiveNode } from '../ingestion'
 import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../layers'
 import {
@@ -81,6 +88,7 @@ import {
   createResizeUpdate,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
+  getCanvasContainerRole,
   getSelectionBounds,
   getSelectionLockState,
   getUnlockedSelection,
@@ -268,7 +276,7 @@ type DragPreviewState = {
   screenDelta: Point
 }
 
-type SelectionPopover = 'dimensions' | 'shape-style' | 'sticky-note'
+type SelectionPopover = 'dimensions' | 'shape-style' | 'sticky-note' | 'frame-variant'
 
 type DimensionField = 'x' | 'y' | 'width' | 'height'
 type CanvasNodePropertiesUpdate = {
@@ -292,6 +300,7 @@ type CanvasSelectionCapabilities = {
   canEditDimensions: boolean
   canEditShapeStyle: boolean
   canEditStickyNote: boolean
+  canEditFrameVariant: boolean
   canToggleMindMapCollapse: boolean
   canDuplicate: boolean
   canToggleLock: boolean
@@ -478,6 +487,11 @@ function createSelectionCapabilities(input: {
       unlockedCount === 1 &&
       firstNode !== null &&
       isCanvasStickyNoteNode(firstNode),
+    canEditFrameVariant:
+      selectionCount === 1 &&
+      unlockedCount === 1 &&
+      firstNode !== null &&
+      getCanvasContainerRole(firstNode) === 'frame',
     canToggleMindMapCollapse:
       selectionCount === 1 &&
       unlockedCount === 1 &&
@@ -1291,6 +1305,70 @@ function CanvasSelectionStickyNotePopover({
   )
 }
 
+function CanvasSelectionFrameVariantPopover({
+  node,
+  theme,
+  style,
+  onSelect
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+  onSelect: (variant: CanvasFrameVariant) => void
+}) {
+  const selectedVariant = getCanvasFrameVariant(node)
+
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.frameVariantPopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Frame variants"
+      data-canvas-v3-frame-variant-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Frame type" theme={theme}>
+        <div style={styles.frameVariantGrid}>
+          {CANVAS_FRAME_VARIANT_DEFINITIONS.map((definition) => {
+            const active = definition.variant === selectedVariant
+
+            return (
+              <button
+                key={definition.variant}
+                type="button"
+                aria-label={`${definition.label} frame`}
+                title={definition.description}
+                style={{
+                  ...styles.frameVariantButton,
+                  color: theme.panelText,
+                  background: active ? theme.minimapViewportFill : theme.surfaceBackground,
+                  borderColor: active ? theme.minimapViewportStroke : theme.panelBorder
+                }}
+                data-canvas-v3-frame-variant={definition.variant}
+                data-active={active ? 'true' : 'false'}
+                onClick={() => onSelect(definition.variant)}
+              >
+                <span style={styles.frameVariantTitle}>{definition.label}</span>
+                <span
+                  style={{
+                    ...styles.frameVariantDescription,
+                    color: theme.panelMutedText
+                  }}
+                >
+                  {definition.description}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
 function isFiniteRect(value: unknown): value is Rect {
   if (!value || typeof value !== 'object') {
     return false
@@ -1821,6 +1899,33 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [doc, getSelectedNodes, onSceneMutation]
   )
 
+  const updateSelectionFrameVariant = useCallback(
+    (variant: CanvasFrameVariant): boolean => {
+      const selectedNodes = getSelectedNodes()
+      const node = selectedNodes[0] ?? null
+
+      if (
+        selectedNodes.length !== 1 ||
+        !node ||
+        node.locked ||
+        getCanvasContainerRole(node) !== 'frame'
+      ) {
+        return false
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const updatedNode = applyCanvasFrameVariant(node, variant)
+
+      doc.transact(() => {
+        objects.set(updatedNode.id, updatedNode)
+      })
+      onSceneMutation?.()
+
+      return true
+    },
+    [doc, getSelectedNodes, onSceneMutation]
+  )
+
   const toggleSelectionLock = useCallback((): boolean => {
     return applyLockUpdates(createLockUpdates(getSelectedNodes()))
   }, [applyLockUpdates, getSelectedNodes])
@@ -1877,12 +1982,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       return false
     }
 
+    const variantFrame = applyCanvasFrameVariant(frame, 'standard')
     const objects = getCanvasObjectsMap<CanvasNode>(doc)
     doc.transact(() => {
-      objects.set(frame.id, frame)
+      objects.set(variantFrame.id, variantFrame)
     })
-    setSelectedNodeIds(new Set([frame.id]))
-    setFocusedNodeId(frame.id)
+    setSelectedNodeIds(new Set([variantFrame.id]))
+    setFocusedNodeId(variantFrame.id)
     onSceneMutation?.()
 
     return true
@@ -1938,20 +2044,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   )
 
   const createFrame = useCallback((): boolean => {
-    const object = createCanvasPrimitiveNode({
-      objectKind: 'group',
+    const object = createCanvasFrameVariantNode({
+      variant: 'standard',
       viewport,
-      title: 'Frame',
-      rect: {
-        width: 640,
-        height: 420
-      },
-      properties: {
-        title: 'Frame',
-        containerRole: 'frame',
-        memberIds: [],
-        memberCount: 0
-      }
+      title: 'Frame'
     })
     const objects = getCanvasObjectsMap<CanvasNode>(doc)
 
@@ -2214,13 +2310,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     if (
       (activeSelectionPopover === 'dimensions' && !selectionCapabilities.canEditDimensions) ||
       (activeSelectionPopover === 'shape-style' && !selectionCapabilities.canEditShapeStyle) ||
-      (activeSelectionPopover === 'sticky-note' && !selectionCapabilities.canEditStickyNote)
+      (activeSelectionPopover === 'sticky-note' && !selectionCapabilities.canEditStickyNote) ||
+      (activeSelectionPopover === 'frame-variant' && !selectionCapabilities.canEditFrameVariant)
     ) {
       setActiveSelectionPopover(null)
     }
   }, [
     activeSelectionPopover,
     selectionCapabilities.canEditDimensions,
+    selectionCapabilities.canEditFrameVariant,
     selectionCapabilities.canEditShapeStyle,
     selectionCapabilities.canEditStickyNote
   ])
@@ -3877,6 +3975,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             />
           ) : null}
 
+          {selectionCapabilities.canEditFrameVariant ? (
+            <CanvasSelectionToolbarButton
+              action="frame-variant"
+              label="Frame"
+              title="Edit frame variant"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'frame-variant' ? null : 'frame-variant'
+                )
+              }}
+            />
+          ) : null}
+
           {selectionCapabilities.canToggleMindMapCollapse ? (
             <CanvasSelectionToolbarButton
               action="mind-map-collapse"
@@ -4047,6 +4159,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           style={selectionPopoverStyle}
           onUpdate={updateSelectionStickyNoteProperties}
           onPromote={promoteSelectionStickyNote}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'frame-variant' &&
+      firstSelectedNode &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canEditFrameVariant ? (
+        <CanvasSelectionFrameVariantPopover
+          node={firstSelectedNode}
+          theme={theme}
+          style={selectionPopoverStyle}
+          onSelect={updateSelectionFrameVariant}
         />
       ) : null}
 
@@ -4320,6 +4444,11 @@ const styles: Record<string, React.CSSProperties> = {
     width: 'min(380px, calc(100% - 24px))',
     gap: 12
   },
+  frameVariantPopover: {
+    gridTemplateColumns: '1fr',
+    width: 'min(520px, calc(100% - 24px))',
+    gap: 12
+  },
   shapePopoverSection: {
     minWidth: 0,
     display: 'flex',
@@ -4401,6 +4530,37 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 700,
     whiteSpace: 'nowrap'
+  },
+  frameVariantGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: 8
+  },
+  frameVariantButton: {
+    minWidth: 0,
+    minHeight: 74,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    gap: 6,
+    border: '1px solid',
+    borderRadius: 8,
+    padding: 10,
+    cursor: 'pointer',
+    textAlign: 'left'
+  },
+  frameVariantTitle: {
+    minWidth: 0,
+    fontSize: 13,
+    fontWeight: 800,
+    lineHeight: 1.1
+  },
+  frameVariantDescription: {
+    minWidth: 0,
+    fontSize: 11,
+    fontWeight: 600,
+    lineHeight: 1.25
   },
   stickyNoteContent: {
     width: '100%',

@@ -492,6 +492,23 @@ export {
   createCanvasContextPopoverDefinitions,
   getEnabledCanvasContextPopovers
 } from './selection/contextual-popovers'
+export {
+  CANVAS_FRAME_VARIANT_DEFINITIONS,
+  applyCanvasFrameVariant,
+  createCanvasFrameVariantNode,
+  createCanvasFrameVariantProperties,
+  getCanvasFrameVariant,
+  getCanvasFrameVariantDefinition,
+  isCanvasFrameVariant,
+  isCanvasFrameVariantNode
+} from './frames/frame-variants'
+export type {
+  CanvasFrameLaneAxis,
+  CanvasFrameVariant,
+  CanvasFrameVariantDefinition,
+  CanvasFrameVariantNodeInput,
+  CanvasFrameVariantProperties
+} from './frames/frame-variants'
 export { getCanvasResizePolicy } from './selection/resize-policy'
 export { createCanvasSmartSnap } from './selection/snap-guides'
 export type {

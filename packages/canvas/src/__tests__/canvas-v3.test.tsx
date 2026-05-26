@@ -12,6 +12,7 @@ import {
   createEdge,
   createCanvasMindMapBranchProperties,
   createCanvasEdgeRelationship,
+  createCanvasFrameVariantNode,
   createCanvasMindMapRootProperties,
   createCanvasStickyNoteNode,
   createNode,
@@ -288,6 +289,7 @@ describe('Canvas v3 active renderer', () => {
 
     expect(objects.size).toBe(initialObjectCount + 2)
     expect(frame?.properties.title).toBe('Frame')
+    expect(frame?.properties.frameVariant).toBe('standard')
     expect(frame?.position.width).toBe(640)
     expect(frame?.position.height).toBe(420)
     expect(onSceneMutation).toHaveBeenCalledTimes(2)
@@ -560,6 +562,44 @@ describe('Canvas v3 active renderer', () => {
         priority: 'medium'
       }
     })
+  })
+
+  it('edits frame variants from the contextual toolbar', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const frame = createCanvasFrameVariantNode({
+      variant: 'standard',
+      viewport: { x: 0, y: 0, zoom: 1 },
+      title: 'Planning board'
+    })
+
+    objects.set(frame.id, frame)
+    render(<Canvas ref={ref} doc={doc} />)
+
+    act(() => {
+      ref.current?.selectNodes([frame.id])
+    })
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Edit frame variant' }))
+
+    const framePopover = screen.getByRole('dialog', { name: 'Frame variants' })
+    fireEvent.click(within(framePopover).getByRole('button', { name: 'Kanban frame' }))
+
+    expect(objects.get(frame.id)?.properties).toMatchObject({
+      title: 'Planning board',
+      containerRole: 'frame',
+      frameVariant: 'kanban',
+      frameIntent: 'kanban',
+      laneAxis: 'vertical',
+      lanes: ['Backlog', 'In progress', 'Done']
+    })
+    expect(
+      screen
+        .getByRole('application', { name: 'Canvas' })
+        .querySelector('[data-canvas-frame-variant="kanban"]')
+    ).toBeTruthy()
   })
 
   it('collapses mind map branches from the selection toolbar', () => {
