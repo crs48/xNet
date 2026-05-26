@@ -11,6 +11,7 @@ import type {
   CanvasEdge,
   CanvasLayerDirection,
   CanvasNode,
+  CanvasNodeProperties,
   CanvasObjectAnchorPlacement,
   Point,
   Rect,
@@ -50,14 +51,15 @@ import {
   createCanvasMindMapVisibilityState,
   getCanvasMindMapMetadata,
   isCanvasMindMapNode,
-  type CanvasMindMapBranchStyle,
-  type CanvasMindMapNodePropertiesUpdate
+  type CanvasMindMapBranchStyle
 } from '../mind-map/branches'
 import {
   CANVAS_MIND_MAP_CREATION_TOOL,
   createCanvasMindMapRootProperties
 } from '../mind-map/creation'
 import { calculateLOD } from '../nodes/CanvasNodeComponent'
+import { CanvasPrimitiveNodeContent } from '../nodes/CanvasPrimitiveNodeContent'
+import { createShapePath } from '../nodes/shape-node'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migration'
 import { getCanvasResizePolicy } from '../selection/resize-policy'
@@ -258,9 +260,13 @@ type DragPreviewState = {
   screenDelta: Point
 }
 
-type SelectionPopover = 'dimensions'
+type SelectionPopover = 'dimensions' | 'shape-style'
 
 type DimensionField = 'x' | 'y' | 'width' | 'height'
+type CanvasNodePropertiesUpdate = {
+  id: string
+  properties: CanvasNodeProperties
+}
 type ConnectorHandlePlacement = Extract<
   CanvasObjectAnchorPlacement,
   'top' | 'right' | 'bottom' | 'left'
@@ -276,6 +282,7 @@ type CanvasSelectionCapabilities = {
   canEditAlias: boolean
   canComment: boolean
   canEditDimensions: boolean
+  canEditShapeStyle: boolean
   canToggleMindMapCollapse: boolean
   canDuplicate: boolean
   canToggleLock: boolean
@@ -321,6 +328,56 @@ const SHAPE_LABELS: Record<ShapeType, string> = {
   cylinder: 'Cylinder',
   cloud: 'Cloud'
 }
+const SHAPE_VARIANTS: readonly ShapeType[] = [
+  'rectangle',
+  'rounded-rectangle',
+  'ellipse',
+  'diamond',
+  'triangle',
+  'hexagon',
+  'star',
+  'arrow',
+  'cylinder',
+  'cloud'
+]
+const SHAPE_STYLE_SWATCHES = [
+  { label: 'Sky', fill: '#e0f2fe', stroke: '#0284c7', labelColor: '#0f172a' },
+  { label: 'Emerald', fill: '#dcfce7', stroke: '#16a34a', labelColor: '#052e16' },
+  { label: 'Amber', fill: '#fef3c7', stroke: '#d97706', labelColor: '#451a03' },
+  { label: 'Rose', fill: '#ffe4e6', stroke: '#e11d48', labelColor: '#4c0519' },
+  { label: 'Violet', fill: '#ede9fe', stroke: '#7c3aed', labelColor: '#2e1065' },
+  { label: 'Slate', fill: '#f8fafc', stroke: '#475569', labelColor: '#0f172a' }
+] as const
+const SHAPE_FILL_SWATCHES = [
+  '#ffffff',
+  '#e0f2fe',
+  '#dcfce7',
+  '#fef3c7',
+  '#ffe4e6',
+  '#ede9fe',
+  '#f1f5f9',
+  '#111827'
+] as const
+const SHAPE_STROKE_SWATCHES = [
+  '#0f172a',
+  '#0284c7',
+  '#16a34a',
+  '#d97706',
+  '#e11d48',
+  '#7c3aed',
+  '#64748b',
+  '#ffffff'
+] as const
+const SHAPE_LABEL_COLOR_SWATCHES = [
+  '#0f172a',
+  '#0369a1',
+  '#166534',
+  '#92400e',
+  '#be123c',
+  '#5b21b6',
+  '#ffffff'
+] as const
+const SHAPE_STROKE_WIDTHS = [1, 2, 3, 4, 6] as const
 const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
 const CANVAS_OBJECT_HIT_TARGET_PADDING = 8
@@ -388,6 +445,7 @@ function createSelectionCapabilities(input: {
     canEditAlias: selectionCount === 1 && Boolean(firstNode?.sourceNodeId) && input.hasAliasHandler,
     canComment: hasSelection && input.hasCommentHandler,
     canEditDimensions: selectionCount === 1 && hasUnlockedSelection,
+    canEditShapeStyle: selectionCount === 1 && unlockedCount === 1 && firstNode?.type === 'shape',
     canToggleMindMapCollapse:
       selectionCount === 1 &&
       unlockedCount === 1 &&
@@ -820,6 +878,265 @@ function CanvasSelectionDimensionsPopover({
   )
 }
 
+function readShapeStringProperty(
+  node: CanvasNode,
+  key: 'fill' | 'stroke' | 'label' | 'labelColor',
+  fallback: string
+): string {
+  const value = node.properties[key]
+
+  return typeof value === 'string' ? value : fallback
+}
+
+function readShapeStrokeWidth(node: CanvasNode): number {
+  const value = node.properties.strokeWidth
+
+  return typeof value === 'number' && Number.isFinite(value) ? value : 2
+}
+
+function readShapeType(node: CanvasNode): ShapeType {
+  const value = node.properties.shapeType
+
+  return SHAPE_VARIANTS.includes(value as ShapeType) ? (value as ShapeType) : 'rectangle'
+}
+
+function CanvasShapePopoverSection({
+  label,
+  theme,
+  children
+}: {
+  label: string
+  theme: CanvasThemeTokens
+  children: React.ReactNode
+}) {
+  return (
+    <section style={styles.shapePopoverSection}>
+      <span style={{ ...styles.selectionPopoverLabel, color: theme.panelMutedText }}>{label}</span>
+      {children}
+    </section>
+  )
+}
+
+function CanvasSelectionShapePopover({
+  node,
+  theme,
+  style,
+  onUpdate
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+  onUpdate: (properties: CanvasNodeProperties) => void
+}) {
+  const fill = readShapeStringProperty(
+    node,
+    'fill',
+    theme.mode === 'dark' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(14, 165, 233, 0.14)'
+  )
+  const stroke = readShapeStringProperty(
+    node,
+    'stroke',
+    theme.mode === 'dark' ? 'rgba(125, 211, 252, 0.92)' : 'rgba(2, 132, 199, 0.82)'
+  )
+  const label = readShapeStringProperty(
+    node,
+    'label',
+    typeof node.properties.title === 'string' ? node.properties.title : ''
+  )
+  const labelColor = readShapeStringProperty(
+    node,
+    'labelColor',
+    theme.mode === 'dark' ? 'rgba(241, 245, 249, 0.96)' : 'rgba(15, 23, 42, 0.9)'
+  )
+  const strokeWidth = readShapeStrokeWidth(node)
+  const selectedShapeType = readShapeType(node)
+
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.shapePopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Shape style"
+      data-canvas-v3-shape-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Style" theme={theme}>
+        <div style={styles.shapeSwatchGrid}>
+          {SHAPE_STYLE_SWATCHES.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              aria-label={`${preset.label} shape style`}
+              title={`${preset.label} shape style`}
+              style={{
+                ...styles.shapeStyleSwatch,
+                background: preset.fill,
+                borderColor: preset.stroke
+              }}
+              data-canvas-v3-shape-style-swatch={preset.label}
+              onClick={() =>
+                onUpdate({
+                  fill: preset.fill,
+                  stroke: preset.stroke,
+                  labelColor: preset.labelColor
+                })
+              }
+            />
+          ))}
+        </div>
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Variant" theme={theme}>
+        <div style={styles.shapeVariantGrid}>
+          {SHAPE_VARIANTS.map((shapeType) => {
+            const active = shapeType === selectedShapeType
+
+            return (
+              <button
+                key={shapeType}
+                type="button"
+                aria-label={`${SHAPE_LABELS[shapeType]} shape`}
+                title={SHAPE_LABELS[shapeType]}
+                style={{
+                  ...styles.shapeVariantButton,
+                  color: theme.panelText,
+                  background: active ? theme.minimapViewportFill : theme.surfaceBackground,
+                  borderColor: active ? theme.minimapViewportStroke : theme.panelBorder
+                }}
+                data-canvas-v3-shape-variant={shapeType}
+                data-active={active ? 'true' : 'false'}
+                onClick={() =>
+                  onUpdate({
+                    shapeType,
+                    title:
+                      typeof node.properties.title === 'string'
+                        ? node.properties.title
+                        : SHAPE_LABELS[shapeType]
+                  })
+                }
+              >
+                <svg width="32" height="24" viewBox="0 0 32 24" aria-hidden="true">
+                  <path
+                    d={createShapePath(shapeType, 26, 18, 5)}
+                    transform="translate(3 3)"
+                    fill={fill}
+                    stroke={stroke}
+                    strokeWidth="1.5"
+                  />
+                </svg>
+              </button>
+            )
+          })}
+        </div>
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Fill" theme={theme}>
+        <div style={styles.shapeSwatchGrid}>
+          {SHAPE_FILL_SWATCHES.map((color) => (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Fill ${color}`}
+              title={`Fill ${color}`}
+              style={{
+                ...styles.shapeColorSwatch,
+                background: color,
+                borderColor: fill === color ? theme.minimapViewportStroke : theme.panelBorder
+              }}
+              data-canvas-v3-shape-fill={color}
+              onClick={() => onUpdate({ fill: color })}
+            />
+          ))}
+        </div>
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Stroke" theme={theme}>
+        <div style={styles.shapeSwatchGrid}>
+          {SHAPE_STROKE_SWATCHES.map((color) => (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Stroke ${color}`}
+              title={`Stroke ${color}`}
+              style={{
+                ...styles.shapeColorSwatch,
+                background: color,
+                borderColor: stroke === color ? theme.minimapViewportStroke : theme.panelBorder
+              }}
+              data-canvas-v3-shape-stroke={color}
+              onClick={() => onUpdate({ stroke: color })}
+            />
+          ))}
+        </div>
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Width" theme={theme}>
+        <div style={styles.shapeStrokeWidthGrid}>
+          {SHAPE_STROKE_WIDTHS.map((width) => (
+            <button
+              key={width}
+              type="button"
+              aria-label={`Stroke width ${width}`}
+              title={`Stroke width ${width}`}
+              style={{
+                ...styles.shapeStrokeWidthButton,
+                color: theme.panelText,
+                background:
+                  width === strokeWidth ? theme.minimapViewportFill : theme.surfaceBackground,
+                borderColor: width === strokeWidth ? theme.minimapViewportStroke : theme.panelBorder
+              }}
+              data-canvas-v3-shape-stroke-width={width}
+              onClick={() => onUpdate({ strokeWidth: width })}
+            >
+              {width}
+            </button>
+          ))}
+        </div>
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Text" theme={theme}>
+        <input
+          type="text"
+          value={label}
+          aria-label="Shape label"
+          style={{
+            ...styles.selectionPopoverInput,
+            color: theme.panelText,
+            background: theme.surfaceBackground,
+            borderColor: theme.panelBorder
+          }}
+          onChange={(event) =>
+            onUpdate({
+              label: event.currentTarget.value,
+              title: event.currentTarget.value
+            })
+          }
+        />
+        <div style={styles.shapeSwatchGrid}>
+          {SHAPE_LABEL_COLOR_SWATCHES.map((color) => (
+            <button
+              key={color}
+              type="button"
+              aria-label={`Text ${color}`}
+              title={`Text ${color}`}
+              style={{
+                ...styles.shapeColorSwatch,
+                background: color,
+                borderColor: labelColor === color ? theme.minimapViewportStroke : theme.panelBorder
+              }}
+              data-canvas-v3-shape-label-color={color}
+              onClick={() => onUpdate({ labelColor: color })}
+            />
+          ))}
+        </div>
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
 function isFiniteRect(value: unknown): value is Rect {
   if (!value || typeof value !== 'object') {
     return false
@@ -1217,7 +1534,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   )
 
   const applyNodePropertiesUpdates = useCallback(
-    (updates: CanvasMindMapNodePropertiesUpdate[]): boolean => {
+    (updates: CanvasNodePropertiesUpdate[]): boolean => {
       if (updates.length === 0) {
         return false
       }
@@ -1288,6 +1605,25 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       ])
     },
     [applySelectionPositionUpdates, getSelectedNodes]
+  )
+
+  const updateSelectionShapeProperties = useCallback(
+    (properties: CanvasNodeProperties): boolean => {
+      const selectedNodes = getSelectedNodes()
+      const node = selectedNodes[0] ?? null
+
+      if (selectedNodes.length !== 1 || !node || node.locked || node.type !== 'shape') {
+        return false
+      }
+
+      return applyNodePropertiesUpdates([
+        {
+          id: node.id,
+          properties
+        }
+      ])
+    },
+    [applyNodePropertiesUpdates, getSelectedNodes]
   )
 
   const toggleSelectionLock = useCallback((): boolean => {
@@ -1662,10 +1998,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [connectorStart, doc, scene.objects])
 
   useEffect(() => {
-    if (!selectionCapabilities.canEditDimensions) {
+    if (
+      (activeSelectionPopover === 'dimensions' && !selectionCapabilities.canEditDimensions) ||
+      (activeSelectionPopover === 'shape-style' && !selectionCapabilities.canEditShapeStyle)
+    ) {
       setActiveSelectionPopover(null)
     }
-  }, [selectionCapabilities.canEditDimensions])
+  }, [
+    activeSelectionPopover,
+    selectionCapabilities.canEditDimensions,
+    selectionCapabilities.canEditShapeStyle
+  ])
 
   const firstSelectedNode = selectedNodes[0] ?? null
   const firstSelectedMindMapMetadata = firstSelectedNode
@@ -2821,6 +3164,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       return customContent
     }
 
+    if (item.node.type === 'shape' || item.node.type === 'group') {
+      return <CanvasPrimitiveNodeContent node={item.node} />
+    }
+
     return (
       <div style={styles.builtinNodeContent}>
         <div
@@ -3249,6 +3596,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             />
           ) : null}
 
+          {selectionCapabilities.canEditShapeStyle ? (
+            <CanvasSelectionToolbarButton
+              action="shape-style"
+              label="Shape"
+              title="Edit shape style"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'shape-style' ? null : 'shape-style'
+                )
+              }}
+            />
+          ) : null}
+
           {selectionCapabilities.canToggleMindMapCollapse ? (
             <CanvasSelectionToolbarButton
               action="mind-map-collapse"
@@ -3394,6 +3755,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           theme={theme}
           style={selectionPopoverStyle}
           onUpdate={updateSelectionDimension}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'shape-style' &&
+      firstSelectedNode &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canEditShapeStyle ? (
+        <CanvasSelectionShapePopover
+          node={firstSelectedNode}
+          theme={theme}
+          style={selectionPopoverStyle}
+          onUpdate={updateSelectionShapeProperties}
         />
       ) : null}
 
@@ -3656,6 +4029,65 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 600,
     lineHeight: 1
+  },
+  shapePopover: {
+    gridTemplateColumns: '1fr',
+    width: 'min(420px, calc(100% - 24px))',
+    gap: 12
+  },
+  shapePopoverSection: {
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6
+  },
+  shapeSwatchGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(8, 28px)',
+    gap: 6
+  },
+  shapeVariantGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, minmax(40px, 1fr))',
+    gap: 6
+  },
+  shapeStyleSwatch: {
+    width: 28,
+    height: 28,
+    border: '2px solid',
+    borderRadius: 6,
+    cursor: 'pointer'
+  },
+  shapeColorSwatch: {
+    width: 28,
+    height: 28,
+    border: '2px solid',
+    borderRadius: 999,
+    cursor: 'pointer'
+  },
+  shapeVariantButton: {
+    minWidth: 0,
+    height: 34,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid',
+    borderRadius: 6,
+    cursor: 'pointer'
+  },
+  shapeStrokeWidthGrid: {
+    display: 'flex',
+    gap: 6,
+    flexWrap: 'wrap'
+  },
+  shapeStrokeWidthButton: {
+    minWidth: 32,
+    height: 28,
+    border: '1px solid',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 700
   },
   builtinNodeContent: {
     width: '100%',

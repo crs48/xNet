@@ -469,6 +469,48 @@ describe('Canvas v3 active renderer', () => {
     ).toBe(true)
   })
 
+  it('edits shape variants and styles from the contextual toolbar', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const shape = getNodeByTitle(doc, 'Decision Box')
+
+    act(() => {
+      ref.current?.selectNodes([shape.id])
+    })
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Edit shape style' }))
+
+    let shapePopover = screen.getByRole('dialog', { name: 'Shape style' })
+    fireEvent.click(within(shapePopover).getByRole('button', { name: 'Emerald shape style' }))
+
+    shapePopover = screen.getByRole('dialog', { name: 'Shape style' })
+    fireEvent.click(within(shapePopover).getByRole('button', { name: 'Diamond shape' }))
+
+    shapePopover = screen.getByRole('dialog', { name: 'Shape style' })
+    fireEvent.click(within(shapePopover).getByRole('button', { name: 'Stroke width 4' }))
+    fireEvent.change(within(shapePopover).getByLabelText('Shape label'), {
+      target: { value: 'Approved' }
+    })
+
+    shapePopover = screen.getByRole('dialog', { name: 'Shape style' })
+    fireEvent.click(within(shapePopover).getByRole('button', { name: 'Text #ffffff' }))
+
+    expect(objects.get(shape.id)?.properties).toMatchObject({
+      fill: '#dcfce7',
+      stroke: '#16a34a',
+      strokeWidth: 4,
+      shapeType: 'diamond',
+      label: 'Approved',
+      title: 'Approved',
+      labelColor: '#ffffff'
+    })
+  })
+
   it('collapses mind map branches from the selection toolbar', () => {
     const doc = new Y.Doc()
     const objects = getCanvasObjectsMap<CanvasNode>(doc)

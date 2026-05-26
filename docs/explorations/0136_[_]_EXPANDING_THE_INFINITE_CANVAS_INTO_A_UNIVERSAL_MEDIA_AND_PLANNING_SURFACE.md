@@ -1494,7 +1494,7 @@ controllers, object toolbars, and plugin command routing.
 
 ### Shapes, Frames, And Planning Tools
 
-- [ ] Finish shape toolbar with style swatches, stroke/fill, text, and shape variants.
+- [x] Finish shape toolbar with style swatches, stroke/fill, text, and shape variants.
 - [ ] Add sticky notes with promotion to page/task/database row.
 - [ ] Add frame variants: presentation, query, swimlane, kanban, timeline.
 - [ ] Add selection commands: cluster, stack, tidy, distribute, align, wrap, convert.

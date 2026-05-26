@@ -61,7 +61,12 @@ function toShapeNodeData(node: CanvasNode, themeMode: 'light' | 'dark'): ShapeNo
         typeof node.properties.strokeWidth === 'number' ? node.properties.strokeWidth : 2,
       cornerRadius:
         typeof node.properties.cornerRadius === 'number' ? node.properties.cornerRadius : 18,
-      label: typeof node.properties.label === 'string' ? node.properties.label : undefined,
+      label:
+        typeof node.properties.label === 'string'
+          ? node.properties.label
+          : typeof node.properties.title === 'string'
+            ? node.properties.title
+            : undefined,
       labelColor
     }
   }
