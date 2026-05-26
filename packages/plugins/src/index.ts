@@ -101,7 +101,13 @@ export {
   executeScript,
   validateScript,
   // Runner
-  ScriptRunner
+  ScriptRunner,
+  // Canvas sandbox policies
+  createCanvasPluginSandboxPolicy,
+  createCanvasPreviewSandboxRequest,
+  createCanvasRendererSandboxRequest,
+  evaluateCanvasPluginSandboxRequest,
+  validateCanvasPluginSandboxOutput
 } from './sandbox'
 export type {
   // Context types
@@ -120,7 +126,19 @@ export type {
   ScriptStore,
   ScriptNodeChangeEvent,
   ScriptRunnerOptions,
-  ScriptExecutionResult
+  ScriptExecutionResult,
+  // Canvas sandbox types
+  CanvasPluginSandboxDecision,
+  CanvasPluginSandboxDomAccess,
+  CanvasPluginSandboxKind,
+  CanvasPluginSandboxMutationAccess,
+  CanvasPluginSandboxNetworkAccess,
+  CanvasPluginSandboxOutput,
+  CanvasPluginSandboxOutputKind,
+  CanvasPluginSandboxOutputValidation,
+  CanvasPluginSandboxPolicy,
+  CanvasPluginSandboxRequest,
+  CanvasRendererSandboxContribution
 } from './sandbox'
 
 // AI (Script generation from natural language)

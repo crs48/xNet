@@ -36,3 +36,25 @@ export type {
   ScriptRunnerOptions,
   ScriptExecutionResult
 } from './runner'
+
+// Canvas renderer and preview sandbox policies
+export {
+  createCanvasPluginSandboxPolicy,
+  createCanvasPreviewSandboxRequest,
+  createCanvasRendererSandboxRequest,
+  evaluateCanvasPluginSandboxRequest,
+  validateCanvasPluginSandboxOutput
+} from './canvas'
+export type {
+  CanvasPluginSandboxDecision,
+  CanvasPluginSandboxDomAccess,
+  CanvasPluginSandboxKind,
+  CanvasPluginSandboxMutationAccess,
+  CanvasPluginSandboxNetworkAccess,
+  CanvasPluginSandboxOutput,
+  CanvasPluginSandboxOutputKind,
+  CanvasPluginSandboxOutputValidation,
+  CanvasPluginSandboxPolicy,
+  CanvasPluginSandboxRequest,
+  CanvasRendererSandboxContribution
+} from './canvas'
