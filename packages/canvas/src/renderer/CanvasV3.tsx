@@ -49,13 +49,15 @@ import {
   createResizeUpdate,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
+  getSelectionBounds,
+  getSelectionLockState,
   getUnlockedSelection,
   type CanvasLockUpdate,
   type CanvasPositionUpdate
 } from '../selection/scene-operations'
 import { Viewport } from '../spatial'
 import { createEdge } from '../store'
-import { useCanvasThemeTokens } from '../theme/canvas-theme'
+import { type CanvasThemeTokens, useCanvasThemeTokens } from '../theme/canvas-theme'
 import { planDomIslandPool } from './dom-island-pool'
 
 const EMPTY_FRAME_STATS: FrameStats = {
@@ -301,16 +303,20 @@ function getScreenRectForObject(
   viewport: ViewportState,
   viewportSize: Size
 ): Rect {
+  return getScreenRectForCanvasRect(object.position, viewport, viewportSize)
+}
+
+function getScreenRectForCanvasRect(rect: Rect, viewport: ViewportState, viewportSize: Size): Rect {
   const camera = createCanvasCameraForViewport(viewport, viewportSize)
   const topLeft = worldToScreenPoint(
     camera,
-    createWorldPointFromCanvasPoint({ x: object.position.x, y: object.position.y })
+    createWorldPointFromCanvasPoint({ x: rect.x, y: rect.y })
   )
   const bottomRight = worldToScreenPoint(
     camera,
     createWorldPointFromCanvasPoint({
-      x: object.position.x + object.position.width,
-      y: object.position.y + object.position.height
+      x: rect.x + rect.width,
+      y: rect.y + rect.height
     })
   )
 
@@ -432,6 +438,61 @@ function getResizeHandleStyle(
     case 'left':
       return { ...base, top: '50%', left: inset, marginTop: centerOffset }
   }
+}
+
+function getSelectionToolbarButtonStyle(
+  theme: CanvasThemeTokens,
+  disabled: boolean
+): React.CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 28,
+    padding: '0 10px',
+    border: `1px solid ${theme.panelBorder}`,
+    borderRadius: 999,
+    background: disabled ? 'transparent' : theme.panelBackground,
+    color: disabled ? theme.panelButtonDisabled : theme.panelText,
+    fontSize: 12,
+    fontWeight: 600,
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
+    cursor: disabled ? 'not-allowed' : 'pointer'
+  }
+}
+
+function CanvasSelectionToolbarButton({
+  action,
+  label,
+  title,
+  disabled = false,
+  theme,
+  onClick
+}: {
+  action: string
+  label: string
+  title?: string
+  disabled?: boolean
+  theme: CanvasThemeTokens
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      style={getSelectionToolbarButtonStyle(theme, disabled)}
+      disabled={disabled}
+      aria-label={title ?? label}
+      title={title ?? label}
+      data-canvas-v3-selection-action={action}
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick()
+      }}
+    >
+      {label}
+    </button>
+  )
 }
 
 function readRemoteUsers(awareness: AwarenessLike | null | undefined): CanvasRemoteUser[] {
@@ -862,6 +923,56 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
     return true
   }, [doc, getSelectedNodes, onSceneMutation])
+
+  const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes, scene.objects])
+  const selectionBounds = useMemo(() => getSelectionBounds(selectedNodes), [selectedNodes])
+  const selectionLockState = useMemo(() => getSelectionLockState(selectedNodes), [selectedNodes])
+  const firstSelectedNode = selectedNodes[0] ?? null
+  const selectionToolbarTitle =
+    selectedNodes.length === 1 && firstSelectedNode
+      ? String(
+          firstSelectedNode.alias ?? firstSelectedNode.properties.title ?? firstSelectedNode.type
+        )
+      : `${selectedNodes.length} selected`
+  const selectionToolbarRect = useMemo(() => {
+    if (!selectionBounds) {
+      return null
+    }
+
+    return getScreenRectForCanvasRect(selectionBounds, viewport, viewportSize)
+  }, [selectionBounds, viewport, viewportSize])
+  const selectionToolbarStyle = useMemo<React.CSSProperties | null>(() => {
+    if (!selectionToolbarRect) {
+      return null
+    }
+
+    const selectionCenter = selectionToolbarRect.x + selectionToolbarRect.width / 2
+    const top =
+      selectionToolbarRect.y >= 58
+        ? selectionToolbarRect.y - 48
+        : Math.min(
+            viewportSize.height - 48,
+            selectionToolbarRect.y + selectionToolbarRect.height + 12
+          )
+
+    return {
+      ...styles.selectionToolbar,
+      left: clamp(selectionCenter, 168, Math.max(168, viewportSize.width - 168)),
+      top: Math.max(12, top),
+      color: theme.panelText,
+      background: theme.panelBackground,
+      borderColor: theme.panelBorder,
+      boxShadow: theme.panelShadow
+    }
+  }, [
+    selectionToolbarRect,
+    theme.panelBackground,
+    theme.panelBorder,
+    theme.panelShadow,
+    theme.panelText,
+    viewportSize.height,
+    viewportSize.width
+  ])
 
   const moveSelectionByScreenDelta = useCallback(
     (nodeIds: string[], delta: Point): boolean => {
@@ -1607,6 +1718,149 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           )
         })}
 
+      {selectionToolbarStyle ? (
+        <div
+          style={selectionToolbarStyle}
+          role="toolbar"
+          aria-label="Canvas selection actions"
+          data-canvas-v3-selection-toolbar="true"
+          data-canvas-selection-count={selectedNodes.length}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <span style={{ ...styles.selectionToolbarLabel, color: theme.panelMutedText }}>
+            {selectionToolbarTitle}
+          </span>
+
+          {selectedNodes.length === 1 && onOpenSelection ? (
+            <CanvasSelectionToolbarButton
+              action="open"
+              label="Open"
+              title="Open selection"
+              theme={theme}
+              onClick={() => onOpenSelection('peek')}
+            />
+          ) : null}
+
+          {selectedNodes.length === 1 && firstSelectedNode?.sourceNodeId && onEditSelectionAlias ? (
+            <CanvasSelectionToolbarButton
+              action="alias"
+              label="Alias"
+              title="Edit selection alias"
+              theme={theme}
+              onClick={onEditSelectionAlias}
+            />
+          ) : null}
+
+          {onCreateSelectionComment ? (
+            <CanvasSelectionToolbarButton
+              action="comment"
+              label="Comment"
+              title="Comment on selection"
+              theme={theme}
+              onClick={onCreateSelectionComment}
+            />
+          ) : null}
+
+          <span style={{ ...styles.selectionToolbarDivider, background: theme.panelDivider }} />
+
+          <CanvasSelectionToolbarButton
+            action="lock"
+            label={selectionLockState.allLocked ? 'Unlock' : 'Lock'}
+            title={`${selectionLockState.allLocked ? 'Unlock' : 'Lock'} selection`}
+            theme={theme}
+            onClick={() => {
+              toggleSelectionLock()
+            }}
+          />
+
+          {selectedNodes.length === 2 ? (
+            <CanvasSelectionToolbarButton
+              action="connect"
+              label="Connect"
+              title="Connect selection"
+              theme={theme}
+              onClick={() => {
+                connectSelection()
+              }}
+            />
+          ) : null}
+
+          {selectedNodes.length > 1 ? (
+            <CanvasSelectionToolbarButton
+              action="align-left"
+              label="Align"
+              title="Align selection left"
+              theme={theme}
+              onClick={() => {
+                alignSelection('left')
+              }}
+            />
+          ) : null}
+
+          {selectedNodes.length > 2 ? (
+            <CanvasSelectionToolbarButton
+              action="distribute-horizontal"
+              label="Distribute"
+              title="Distribute selection horizontally"
+              theme={theme}
+              onClick={() => {
+                distributeSelection('horizontal')
+              }}
+            />
+          ) : null}
+
+          {selectedNodes.length > 1 ? (
+            <CanvasSelectionToolbarButton
+              action="tidy"
+              label="Tidy"
+              title="Tidy selection"
+              theme={theme}
+              onClick={() => {
+                tidySelection()
+              }}
+            />
+          ) : null}
+
+          <CanvasSelectionToolbarButton
+            action="frame"
+            label="Frame"
+            title="Wrap selection in frame"
+            theme={theme}
+            onClick={() => {
+              wrapSelectionInFrame()
+            }}
+          />
+
+          <CanvasSelectionToolbarButton
+            action="send-backward"
+            label="Back"
+            title="Send selection backward"
+            theme={theme}
+            onClick={() => {
+              shiftSelectionLayer('backward')
+            }}
+          />
+
+          <CanvasSelectionToolbarButton
+            action="bring-forward"
+            label="Forward"
+            title="Bring selection forward"
+            theme={theme}
+            onClick={() => {
+              shiftSelectionLayer('forward')
+            }}
+          />
+
+          <CanvasSelectionToolbarButton
+            action="clear"
+            label="Clear"
+            title="Clear selection"
+            theme={theme}
+            onClick={clearSelection}
+          />
+        </div>
+      ) : null}
+
       {remoteUsers.map((user) =>
         user.cursor ? (
           <div
@@ -1724,6 +1978,40 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(255, 255, 255, 0.9)',
     transformOrigin: 'top left',
     pointerEvents: 'auto'
+  },
+  selectionToolbar: {
+    position: 'absolute',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: 'min(760px, calc(100% - 24px))',
+    minHeight: 38,
+    padding: '4px 6px',
+    border: '1px solid',
+    borderRadius: 999,
+    pointerEvents: 'auto',
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    transform: 'translateX(-50%)',
+    zIndex: 18
+  },
+  selectionToolbarLabel: {
+    flex: '0 1 auto',
+    minWidth: 0,
+    maxWidth: 180,
+    padding: '0 8px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: 12,
+    fontWeight: 600,
+    lineHeight: 1
+  },
+  selectionToolbarDivider: {
+    flex: '0 0 auto',
+    width: 1,
+    height: 20,
+    margin: '0 2px'
   },
   builtinNodeContent: {
     width: '100%',

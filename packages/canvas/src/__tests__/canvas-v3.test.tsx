@@ -3,7 +3,7 @@
  */
 
 import type { CanvasHandle, CanvasNode } from '../index'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
@@ -243,6 +243,67 @@ describe('Canvas v3 active renderer', () => {
 
     expect(objects.size).toBe(initialObjectCount + 1)
     expect(frame).toBeTruthy()
+  })
+
+  it('renders a contextual v3 selection toolbar and routes toolbar actions', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const onOpenSelection = vi.fn()
+    const onCreateSelectionComment = vi.fn()
+
+    render(
+      <Canvas
+        ref={ref}
+        doc={doc}
+        onOpenSelection={onOpenSelection}
+        onCreateSelectionComment={onCreateSelectionComment}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap(doc)
+    const initialConnectorCount = connectors.size
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+
+    const singleToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    expect(within(singleToolbar).getByText('Research Page')).toBeTruthy()
+
+    fireEvent.click(within(singleToolbar).getByRole('button', { name: 'Open selection' }))
+    fireEvent.click(within(singleToolbar).getByRole('button', { name: 'Comment on selection' }))
+    fireEvent.click(within(singleToolbar).getByRole('button', { name: 'Lock selection' }))
+
+    expect(onOpenSelection).toHaveBeenCalledWith('peek')
+    expect(onCreateSelectionComment).toHaveBeenCalledOnce()
+    expect(objects.get(page.id)?.locked).toBe(true)
+
+    fireEvent.click(within(singleToolbar).getByRole('button', { name: 'Unlock selection' }))
+    expect(objects.get(page.id)?.locked).toBe(false)
+
+    act(() => {
+      ref.current?.selectNodes([page.id, shape.id])
+    })
+
+    const multiToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    expect(within(multiToolbar).getByText('2 selected')).toBeTruthy()
+
+    fireEvent.click(within(multiToolbar).getByRole('button', { name: 'Connect selection' }))
+    expect(connectors.size).toBe(initialConnectorCount + 1)
+
+    fireEvent.click(within(multiToolbar).getByRole('button', { name: 'Wrap selection in frame' }))
+    expect(
+      Array.from(objects.values()).some(
+        (node) =>
+          node.type === 'group' &&
+          Array.isArray(node.properties.memberIds) &&
+          node.properties.memberIds.includes(page.id) &&
+          node.properties.memberIds.includes(shape.id)
+      )
+    ).toBe(true)
   })
 
   it('moves a v3 object by dragging its DOM island', () => {
