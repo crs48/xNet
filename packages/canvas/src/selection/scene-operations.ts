@@ -24,6 +24,13 @@ export type CanvasLockUpdate = {
   locked: boolean
 }
 
+export type CanvasResizeUpdateOptions = {
+  minWidth?: number
+  minHeight?: number
+  preserveAspectRatio?: boolean
+  aspectRatio?: number
+}
+
 export type CanvasContainerRole = 'frame' | 'group'
 
 export interface CreateFrameSelectionNodeOptions {
@@ -42,6 +49,10 @@ function isStringArray(value: unknown): value is string[] {
 
 function roundPosition(value: number): number {
   return Math.round(value)
+}
+
+function isFinitePositive(value: number): boolean {
+  return Number.isFinite(value) && value > 0
 }
 
 function getNodeCenter(node: CanvasNode): { x: number; y: number } {
@@ -306,14 +317,13 @@ export function createResizeUpdate(
   node: CanvasNode,
   handle: ResizeHandle,
   delta: { x: number; y: number },
-  options: {
-    minWidth?: number
-    minHeight?: number
-  } = {}
+  options: CanvasResizeUpdateOptions = {}
 ): CanvasPositionUpdate {
   const minWidth = options.minWidth ?? DEFAULT_MIN_NODE_WIDTH
   const minHeight = options.minHeight ?? DEFAULT_MIN_NODE_HEIGHT
   const initial = node.position
+  const initialAspectRatio = initial.width / initial.height
+  const aspectRatio = options.aspectRatio ?? initialAspectRatio
 
   let nextX = initial.x
   let nextY = initial.y
@@ -337,6 +347,31 @@ export function createResizeUpdate(
     nextY = roundPosition(initial.y + (initial.height - nextHeight))
   } else if (touchesBottom) {
     nextHeight = Math.max(minHeight, initial.height + delta.y)
+  }
+
+  if (
+    options.preserveAspectRatio === true &&
+    isFinitePositive(aspectRatio) &&
+    (touchesLeft || touchesRight) &&
+    (touchesTop || touchesBottom)
+  ) {
+    const horizontalDriven = Math.abs(delta.x) >= Math.abs(delta.y)
+
+    if (horizontalDriven) {
+      nextWidth = Math.max(nextWidth, minWidth, minHeight * aspectRatio)
+      nextHeight = nextWidth / aspectRatio
+    } else {
+      nextHeight = Math.max(nextHeight, minHeight, minWidth / aspectRatio)
+      nextWidth = nextHeight * aspectRatio
+    }
+
+    if (touchesLeft) {
+      nextX = roundPosition(initial.x + (initial.width - nextWidth))
+    }
+
+    if (touchesTop) {
+      nextY = roundPosition(initial.y + (initial.height - nextHeight))
+    }
   }
 
   return {

@@ -180,6 +180,34 @@ describe('scene operations', () => {
     })
   })
 
+  it('preserves aspect ratio for corner resize updates when requested', () => {
+    const node = createNode('media-1', { x: 80, y: 60, width: 320, height: 160 })
+
+    expect(
+      createResizeUpdate(node, 'bottom-right', { x: 20, y: 50 }, { preserveAspectRatio: true })
+    ).toEqual({
+      id: 'media-1',
+      position: {
+        x: 80,
+        y: 60,
+        width: 420,
+        height: 210
+      }
+    })
+
+    expect(
+      createResizeUpdate(node, 'top-left', { x: 80, y: 20 }, { preserveAspectRatio: true })
+    ).toEqual({
+      id: 'media-1',
+      position: {
+        x: 160,
+        y: 100,
+        width: 240,
+        height: 120
+      }
+    })
+  })
+
   it('creates a frame container around the current selection', () => {
     const frame = createFrameSelectionNode([
       createNode('a', { x: 40, y: 30, width: 100, height: 80, zIndex: 4 }),

@@ -413,6 +413,19 @@ function getResizeHandleCursor(handle: ResizeHandle): string {
   return cursors[handle]
 }
 
+function isCornerResizeHandle(handle: ResizeHandle): boolean {
+  return (
+    handle === 'top-left' ||
+    handle === 'top-right' ||
+    handle === 'bottom-right' ||
+    handle === 'bottom-left'
+  )
+}
+
+function shouldPreserveResizeAspectRatio(node: CanvasNode, handle: ResizeHandle): boolean {
+  return node.type === 'media' && isCornerResizeHandle(handle)
+}
+
 function getResizeHandleStyle(
   handle: ResizeHandle,
   colors: {
@@ -1236,10 +1249,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }
 
       return applyPositionUpdates([
-        createResizeUpdate(node, handle, {
-          x: delta.x / viewport.zoom,
-          y: delta.y / viewport.zoom
-        })
+        createResizeUpdate(
+          node,
+          handle,
+          {
+            x: delta.x / viewport.zoom,
+            y: delta.y / viewport.zoom
+          },
+          {
+            preserveAspectRatio: shouldPreserveResizeAspectRatio(node, handle)
+          }
+        )
       ])
     },
     [applyPositionUpdates, doc, viewport.zoom]

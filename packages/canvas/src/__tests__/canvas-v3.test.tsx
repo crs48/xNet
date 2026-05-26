@@ -542,6 +542,53 @@ describe('Canvas v3 active renderer', () => {
     expect(onSceneMutation).toHaveBeenCalled()
   })
 
+  it('preserves media aspect ratio from v3 corner resize handles', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const media = createNode(
+      'media',
+      { x: 40, y: 40, width: 320, height: 160 },
+      {
+        title: 'Reference Image',
+        kind: 'image'
+      }
+    )
+
+    nodes.set(media.id, media)
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    act(() => {
+      ref.current?.selectNodes([media.id])
+    })
+
+    const resizeHandle = screen.getByRole('button', {
+      name: 'Resize Reference Image from bottom-right'
+    })
+    fireEvent.pointerDown(resizeHandle, {
+      button: 0,
+      pointerId: 10,
+      clientX: 680,
+      clientY: 400
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 10,
+      clientX: 690,
+      clientY: 450
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 10,
+      clientX: 690,
+      clientY: 450
+    })
+
+    const resized = nodes.get(media.id)
+    expect(resized?.position.width).toBe(420)
+    expect(resized?.position.height).toBe(210)
+  })
+
   it('scales DOM island content with the canvas viewport', () => {
     const doc = createCanvasTestDoc()
 
