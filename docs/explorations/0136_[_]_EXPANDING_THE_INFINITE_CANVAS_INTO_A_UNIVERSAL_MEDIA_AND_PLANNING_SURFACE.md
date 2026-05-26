@@ -1503,8 +1503,8 @@ controllers, object toolbars, and plugin command routing.
 
 ### Canvas Plugin Platform
 
-- [ ] Extend plugin manifest schema with canvas contributions.
-- [ ] Add runtime registry for plugin card, ingestor, tool, layout, edge, inspector, and template contributions.
+- [x] Extend plugin manifest schema with canvas contributions.
+- [x] Add runtime registry for plugin card, ingestor, tool, layout, edge, inspector, and template contributions.
 - [ ] Add plugin renderer sandbox and preview sandbox.
 - [ ] Add permission prompts and workspace policy gates.
 - [ ] Add missing-plugin fallback card rendering.

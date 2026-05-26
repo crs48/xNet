@@ -10,7 +10,14 @@ import type {
   EditorContribution,
   SidebarContribution,
   PropertyHandlerContribution,
-  BlockContribution
+  BlockContribution,
+  CanvasCardContribution,
+  CanvasIngestorContribution,
+  CanvasToolContribution,
+  CanvasLayoutContribution,
+  CanvasEdgeContribution,
+  CanvasInspectorContribution,
+  CanvasTemplateContribution
 } from './contributions'
 import type { NodeStoreMiddleware } from './middleware'
 import type { Disposable, Platform, PlatformCapabilities, ExtensionStorage } from './types'
@@ -79,6 +86,20 @@ export interface ExtensionContext {
   registerSlashCommand(cmd: SlashCommandContribution): Disposable
   /** Register a custom block type */
   registerBlockType(block: BlockContribution): Disposable
+  /** Register a canvas card renderer descriptor */
+  registerCanvasCard(card: CanvasCardContribution): Disposable
+  /** Register a canvas ingestor descriptor */
+  registerCanvasIngestor(ingestor: CanvasIngestorContribution): Disposable
+  /** Register a canvas tool descriptor */
+  registerCanvasTool(tool: CanvasToolContribution): Disposable
+  /** Register a canvas layout descriptor */
+  registerCanvasLayout(layout: CanvasLayoutContribution): Disposable
+  /** Register a canvas edge relationship descriptor */
+  registerCanvasEdge(edge: CanvasEdgeContribution): Disposable
+  /** Register a canvas inspector descriptor */
+  registerCanvasInspector(inspector: CanvasInspectorContribution): Disposable
+  /** Register a canvas template descriptor */
+  registerCanvasTemplate(template: CanvasTemplateContribution): Disposable
   /** Add middleware to NodeStore */
   addMiddleware(middleware: NodeStoreMiddleware): Disposable
 
@@ -217,6 +238,48 @@ export function createExtensionContext(options: CreateContextOptions): Extension
 
     registerBlockType(block) {
       const d = contributions.blocks.register(block)
+      disposables.push(d)
+      return d
+    },
+
+    registerCanvasCard(card) {
+      const d = contributions.canvasCards.register(card)
+      disposables.push(d)
+      return d
+    },
+
+    registerCanvasIngestor(ingestor) {
+      const d = contributions.canvasIngestors.register(ingestor)
+      disposables.push(d)
+      return d
+    },
+
+    registerCanvasTool(tool) {
+      const d = contributions.canvasTools.register(tool)
+      disposables.push(d)
+      return d
+    },
+
+    registerCanvasLayout(layout) {
+      const d = contributions.canvasLayouts.register(layout)
+      disposables.push(d)
+      return d
+    },
+
+    registerCanvasEdge(edge) {
+      const d = contributions.canvasEdges.register(edge)
+      disposables.push(d)
+      return d
+    },
+
+    registerCanvasInspector(inspector) {
+      const d = contributions.canvasInspectors.register(inspector)
+      disposables.push(d)
+      return d
+    },
+
+    registerCanvasTemplate(template) {
+      const d = contributions.canvasTemplates.register(template)
       disposables.push(d)
       return d
     },

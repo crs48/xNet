@@ -189,6 +189,146 @@ export interface SchemaContribution {
   schema: unknown // DefinedSchema from @xnetjs/data
 }
 
+export type CanvasPreviewTier = 'summary' | 'thumbnail' | 'shell' | 'live'
+
+export type CanvasIngestInputKind = 'url' | 'file' | 'data-transfer' | 'text' | 'node' | 'custom'
+
+export type CanvasToolGroup = 'select' | 'create' | 'connect' | 'annotate' | 'layout' | 'custom'
+
+export type CanvasLayoutScope =
+  | 'selection'
+  | 'frame'
+  | 'canvas'
+  | 'query-results'
+  | 'mind-map'
+  | 'custom'
+
+export type CanvasInspectorPlacement = 'popover' | 'side-panel' | 'bottom-panel'
+
+export type CanvasTemplateCategory =
+  | 'planning'
+  | 'research'
+  | 'operations'
+  | 'diagramming'
+  | 'erp'
+  | 'custom'
+
+export type CanvasContributionPermission =
+  | 'canvas.read'
+  | 'canvas.write'
+  | 'canvas.ingest'
+  | 'canvas.render'
+  | 'canvas.layout'
+  | 'network'
+  | 'storage'
+  | 'clipboard'
+
+export interface CanvasContributionBase {
+  /** Unique contribution ID, preferably plugin-scoped */
+  id: string
+  /** Contribution discriminator for validation and registry routing */
+  type: string
+  /** Display name shown in canvas menus, toolbars, or inspectors */
+  name?: string
+  /** Short help text for command palettes and plugin management */
+  description?: string
+  /** Lucide icon name or plugin-owned icon token */
+  icon?: string
+  /** Lower values win when multiple plugin contributions match */
+  priority?: number
+  /** Fine-grained capabilities requested by this canvas contribution */
+  permissions?: CanvasContributionPermission[]
+}
+
+export interface CanvasCardContribution extends CanvasContributionBase {
+  type: 'canvas.card'
+  /** Source schema this card knows how to render */
+  schemaId?: string
+  /** External-reference provider ID, such as youtube, spotify, github, or crm */
+  provider?: string
+  /** Canvas object kinds supported by this card */
+  canvasKinds?: string[]
+  /** LOD tiers this card can satisfy */
+  previewTiers?: CanvasPreviewTier[]
+  /** Sandboxed renderer module/function ID */
+  rendererEntrypoint: string
+  /** Optional deterministic thumbnail/summary entrypoint */
+  previewEntrypoint?: string
+  /** Human-readable fallback label when renderer is unavailable */
+  fallbackLabel?: string
+}
+
+export interface CanvasIngestorContribution extends CanvasContributionBase {
+  type: 'canvas.ingestor'
+  input: CanvasIngestInputKind
+  /** MIME types accepted by file/data-transfer ingestors */
+  mimeTypes?: string[]
+  /** File extensions accepted by file ingestors */
+  fileExtensions?: string[]
+  /** URL patterns or provider tokens matched by URL ingestors */
+  urlPatterns?: string[]
+  /** Sandboxed matcher entrypoint */
+  matchEntrypoint: string
+  /** Sandboxed ingestion entrypoint */
+  ingestEntrypoint: string
+}
+
+export interface CanvasToolContribution extends CanvasContributionBase {
+  type: 'canvas.tool'
+  group?: CanvasToolGroup
+  keybinding?: string
+  cursor?: string
+  /** Sandboxed activation entrypoint that returns a tool controller */
+  activationEntrypoint: string
+}
+
+export interface CanvasLayoutContribution extends CanvasContributionBase {
+  type: 'canvas.layout'
+  scope: CanvasLayoutScope
+  supportedKinds?: string[]
+  supportedSchemas?: string[]
+  /** Sandboxed layout function entrypoint */
+  applyEntrypoint: string
+}
+
+export interface CanvasEdgeContribution extends CanvasContributionBase {
+  type: 'canvas.edge'
+  label: string
+  directed: boolean
+  allowedSourceSchemas?: string[]
+  allowedTargetSchemas?: string[]
+  style?: 'solid' | 'dashed' | 'dotted'
+}
+
+export interface CanvasInspectorContribution extends CanvasContributionBase {
+  type: 'canvas.inspector'
+  placement: CanvasInspectorPlacement
+  supportedKinds?: string[]
+  supportedSchemas?: string[]
+  supportedProviders?: string[]
+  /** Sandboxed panel renderer entrypoint */
+  panelEntrypoint: string
+}
+
+export interface CanvasTemplateContribution extends CanvasContributionBase {
+  type: 'canvas.template'
+  category: CanvasTemplateCategory
+  tags?: string[]
+  /** Sandboxed template instantiation entrypoint */
+  instantiateEntrypoint: string
+  /** Optional preview renderer entrypoint */
+  previewEntrypoint?: string
+}
+
+export type CanvasContribution =
+  | CanvasCardContribution
+  | CanvasIngestorContribution
+  | CanvasToolContribution
+  | CanvasLayoutContribution
+  | CanvasEdgeContribution
+  | CanvasInspectorContribution
+  | CanvasTemplateContribution
+
 // ─── Typed Registry ────────────────────────────────────────────────────────
 
 /**
@@ -268,6 +408,13 @@ export class ContributionRegistry {
   readonly propertyHandlers = new TypedRegistry<PropertyHandlerContribution>()
   readonly blocks = new TypedRegistry<BlockContribution>()
   readonly settings = new TypedRegistry<SettingContribution>()
+  readonly canvasCards = new TypedRegistry<CanvasCardContribution>()
+  readonly canvasIngestors = new TypedRegistry<CanvasIngestorContribution>()
+  readonly canvasTools = new TypedRegistry<CanvasToolContribution>()
+  readonly canvasLayouts = new TypedRegistry<CanvasLayoutContribution>()
+  readonly canvasEdges = new TypedRegistry<CanvasEdgeContribution>()
+  readonly canvasInspectors = new TypedRegistry<CanvasInspectorContribution>()
+  readonly canvasTemplates = new TypedRegistry<CanvasTemplateContribution>()
 
   /**
    * Clear all registries (for cleanup/testing)
@@ -281,5 +428,12 @@ export class ContributionRegistry {
     this.propertyHandlers.clear()
     this.blocks.clear()
     this.settings.clear()
+    this.canvasCards.clear()
+    this.canvasIngestors.clear()
+    this.canvasTools.clear()
+    this.canvasLayouts.clear()
+    this.canvasEdges.clear()
+    this.canvasInspectors.clear()
+    this.canvasTemplates.clear()
   }
 }
