@@ -1411,7 +1411,7 @@ gantt
 
 ### Files And PDFs
 
-- [ ] Add storage policy model: reference-only, copied blob, synced blob, remote-only, blocked.
+- [x] Add storage policy model: reference-only, copied blob, synced blob, remote-only, blocked.
 - [ ] Add PDF.js-backed page thumbnail generation.
 - [ ] Add focused PDF page viewer with page strip.
 - [ ] Add page-level anchors for comments and edges.

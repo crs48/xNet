@@ -119,6 +119,13 @@ export type {
 
 export { createMinimapSummaryFromCanvasScene } from './scene/minimap-summary'
 export { createCanvasPreviewModel, getCanvasPreviewCacheKey } from './preview/model'
+export {
+  createCanvasStoragePolicyDecision,
+  getCanvasStoragePolicies,
+  getCanvasStoragePolicyCapability,
+  isCanvasStoragePolicy,
+  normalizeCanvasStoragePolicy
+} from './storage-policy'
 export type {
   CanvasPreviewAction,
   CanvasPreviewActionKind,
@@ -133,6 +140,13 @@ export type {
   CanvasPreviewTier,
   CreateCanvasPreviewModelInput
 } from './preview/model'
+export type {
+  CanvasStoragePolicy,
+  CanvasStoragePolicyCapability,
+  CanvasStoragePolicyDecision,
+  CanvasStorageSourceKind,
+  CreateCanvasStoragePolicyDecisionInput
+} from './storage-policy'
 
 export {
   DEFAULT_CANVAS_TILE_SIZE,
