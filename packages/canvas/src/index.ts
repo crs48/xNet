@@ -199,6 +199,22 @@ export {
   createCanvasPdfCollectPagesCommand,
   createCanvasPdfExplodePagesCommand
 } from './pdf/page-commands'
+export {
+  CANVAS_STICKY_NOTE_COLOR_PRESETS,
+  CANVAS_STICKY_NOTE_ROLE,
+  createCanvasStickyNoteNode,
+  createCanvasStickyNoteProperties,
+  createCanvasStickyNotePromotionDraft,
+  isCanvasStickyNoteNode,
+  promoteCanvasStickyNoteNode
+} from './notes/sticky-notes'
+export type {
+  CanvasStickyNoteColor,
+  CanvasStickyNotePromotionDraft,
+  CanvasStickyNotePromotionTarget,
+  CreateCanvasStickyNoteNodeInput,
+  CreateCanvasStickyNotePropertiesInput
+} from './notes/sticky-notes'
 export { extractCanvasPdfText } from './pdf/text-extraction'
 export {
   createCanvasPdfPageAnchorId,

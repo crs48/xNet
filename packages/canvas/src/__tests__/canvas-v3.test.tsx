@@ -13,6 +13,7 @@ import {
   createCanvasMindMapBranchProperties,
   createCanvasEdgeRelationship,
   createCanvasMindMapRootProperties,
+  createCanvasStickyNoteNode,
   createNode,
   getCanvasConnectorsMap,
   getCanvasObjectsMap
@@ -508,6 +509,56 @@ describe('Canvas v3 active renderer', () => {
       label: 'Approved',
       title: 'Approved',
       labelColor: '#ffffff'
+    })
+  })
+
+  it('edits sticky notes and records promotion targets from the toolbar', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const sticky = createCanvasStickyNoteNode({
+      viewport: { x: 0, y: 0, zoom: 1 },
+      title: 'Customer quote',
+      body: 'Keep the rough idea visible.'
+    })
+
+    objects.set(sticky.id, sticky)
+    render(<Canvas ref={ref} doc={doc} />)
+
+    act(() => {
+      ref.current?.selectNodes([sticky.id])
+    })
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Edit sticky note' }))
+
+    let stickyPopover = screen.getByRole('dialog', { name: 'Sticky note' })
+    fireEvent.click(within(stickyPopover).getByRole('button', { name: 'Blue sticky color' }))
+    fireEvent.change(within(stickyPopover).getByLabelText('Sticky note title'), {
+      target: { value: 'Follow-up task' }
+    })
+    fireEvent.change(within(stickyPopover).getByLabelText('Sticky note body'), {
+      target: { value: 'Assign this in planning.' }
+    })
+
+    stickyPopover = screen.getByRole('dialog', { name: 'Sticky note' })
+    fireEvent.click(
+      within(stickyPopover).getByRole('button', { name: 'Promote sticky note to Task' })
+    )
+
+    expect(objects.get(sticky.id)).toMatchObject({
+      type: 'note',
+      sourceSchemaId: expect.stringContaining('Task'),
+      properties: {
+        title: 'Follow-up task',
+        body: 'Assign this in planning.',
+        stickyNoteColor: 'blue',
+        stickyNotePromoted: true,
+        stickyNotePromotionTarget: 'task',
+        sourceDisplayKind: 'task',
+        status: 'todo',
+        priority: 'medium'
+      }
     })
   })
 

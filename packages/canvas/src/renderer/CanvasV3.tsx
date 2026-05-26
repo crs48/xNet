@@ -60,6 +60,14 @@ import {
 import { calculateLOD } from '../nodes/CanvasNodeComponent'
 import { CanvasPrimitiveNodeContent } from '../nodes/CanvasPrimitiveNodeContent'
 import { createShapePath } from '../nodes/shape-node'
+import {
+  CANVAS_STICKY_NOTE_COLOR_PRESETS,
+  createCanvasStickyNoteNode,
+  isCanvasStickyNoteNode,
+  promoteCanvasStickyNoteNode,
+  type CanvasStickyNoteColor,
+  type CanvasStickyNotePromotionTarget
+} from '../notes/sticky-notes'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migration'
 import { getCanvasResizePolicy } from '../selection/resize-policy'
@@ -260,7 +268,7 @@ type DragPreviewState = {
   screenDelta: Point
 }
 
-type SelectionPopover = 'dimensions' | 'shape-style'
+type SelectionPopover = 'dimensions' | 'shape-style' | 'sticky-note'
 
 type DimensionField = 'x' | 'y' | 'width' | 'height'
 type CanvasNodePropertiesUpdate = {
@@ -283,6 +291,7 @@ type CanvasSelectionCapabilities = {
   canComment: boolean
   canEditDimensions: boolean
   canEditShapeStyle: boolean
+  canEditStickyNote: boolean
   canToggleMindMapCollapse: boolean
   canDuplicate: boolean
   canToggleLock: boolean
@@ -378,6 +387,24 @@ const SHAPE_LABEL_COLOR_SWATCHES = [
   '#ffffff'
 ] as const
 const SHAPE_STROKE_WIDTHS = [1, 2, 3, 4, 6] as const
+const STICKY_NOTE_COLOR_LABELS: Record<CanvasStickyNoteColor, string> = {
+  yellow: 'Yellow',
+  blue: 'Blue',
+  green: 'Green',
+  rose: 'Rose',
+  violet: 'Violet',
+  slate: 'Slate'
+}
+const STICKY_NOTE_PROMOTION_LABELS: Record<CanvasStickyNotePromotionTarget, string> = {
+  page: 'Page',
+  task: 'Task',
+  'database-row': 'Database row'
+}
+const STICKY_NOTE_PROMOTION_TARGETS: readonly CanvasStickyNotePromotionTarget[] = [
+  'page',
+  'task',
+  'database-row'
+]
 const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
 const CANVAS_OBJECT_HIT_TARGET_PADDING = 8
@@ -446,6 +473,11 @@ function createSelectionCapabilities(input: {
     canComment: hasSelection && input.hasCommentHandler,
     canEditDimensions: selectionCount === 1 && hasUnlockedSelection,
     canEditShapeStyle: selectionCount === 1 && unlockedCount === 1 && firstNode?.type === 'shape',
+    canEditStickyNote:
+      selectionCount === 1 &&
+      unlockedCount === 1 &&
+      firstNode !== null &&
+      isCanvasStickyNoteNode(firstNode),
     canToggleMindMapCollapse:
       selectionCount === 1 &&
       unlockedCount === 1 &&
@@ -1137,6 +1169,128 @@ function CanvasSelectionShapePopover({
   )
 }
 
+function CanvasSelectionStickyNotePopover({
+  node,
+  theme,
+  style,
+  onUpdate,
+  onPromote
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+  onUpdate: (properties: CanvasNodeProperties) => void
+  onPromote: (target: CanvasStickyNotePromotionTarget) => void
+}) {
+  const title = typeof node.properties.title === 'string' ? node.properties.title : 'Sticky note'
+  const body = typeof node.properties.body === 'string' ? node.properties.body : ''
+  const selectedColor =
+    typeof node.properties.stickyNoteColor === 'string' &&
+    node.properties.stickyNoteColor in CANVAS_STICKY_NOTE_COLOR_PRESETS
+      ? (node.properties.stickyNoteColor as CanvasStickyNoteColor)
+      : 'yellow'
+
+  return (
+    <div
+      style={{
+        ...styles.selectionPopover,
+        ...styles.stickyNotePopover,
+        ...style
+      }}
+      role="dialog"
+      aria-label="Sticky note"
+      data-canvas-v3-sticky-note-popover="true"
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <CanvasShapePopoverSection label="Color" theme={theme}>
+        <div style={styles.shapeSwatchGrid}>
+          {Object.entries(CANVAS_STICKY_NOTE_COLOR_PRESETS).map(([color, preset]) => {
+            const active = color === selectedColor
+
+            return (
+              <button
+                key={color}
+                type="button"
+                aria-label={`${STICKY_NOTE_COLOR_LABELS[color as CanvasStickyNoteColor]} sticky color`}
+                title={`${STICKY_NOTE_COLOR_LABELS[color as CanvasStickyNoteColor]} sticky color`}
+                style={{
+                  ...styles.shapeStyleSwatch,
+                  background: preset.fill,
+                  borderColor: active ? theme.minimapViewportStroke : preset.stroke
+                }}
+                data-canvas-v3-sticky-color={color}
+                data-active={active ? 'true' : 'false'}
+                onClick={() =>
+                  onUpdate({
+                    stickyNoteColor: color,
+                    fill: preset.fill,
+                    stroke: preset.stroke,
+                    labelColor: preset.labelColor
+                  })
+                }
+              />
+            )
+          })}
+        </div>
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Text" theme={theme}>
+        <input
+          type="text"
+          value={title}
+          aria-label="Sticky note title"
+          style={{
+            ...styles.selectionPopoverInput,
+            color: theme.panelText,
+            background: theme.surfaceBackground,
+            borderColor: theme.panelBorder
+          }}
+          onChange={(event) =>
+            onUpdate({
+              title: event.currentTarget.value,
+              label: event.currentTarget.value
+            })
+          }
+        />
+        <textarea
+          value={body}
+          aria-label="Sticky note body"
+          style={{
+            ...styles.stickyNoteTextArea,
+            color: theme.panelText,
+            background: theme.surfaceBackground,
+            borderColor: theme.panelBorder
+          }}
+          onChange={(event) => onUpdate({ body: event.currentTarget.value })}
+        />
+      </CanvasShapePopoverSection>
+
+      <CanvasShapePopoverSection label="Promote" theme={theme}>
+        <div style={styles.stickyPromotionGrid}>
+          {STICKY_NOTE_PROMOTION_TARGETS.map((target) => (
+            <button
+              key={target}
+              type="button"
+              aria-label={`Promote sticky note to ${STICKY_NOTE_PROMOTION_LABELS[target]}`}
+              title={`Promote sticky note to ${STICKY_NOTE_PROMOTION_LABELS[target]}`}
+              style={{
+                ...styles.stickyPromotionButton,
+                color: theme.panelText,
+                background: theme.surfaceBackground,
+                borderColor: theme.panelBorder
+              }}
+              data-canvas-v3-sticky-promote={target}
+              onClick={() => onPromote(target)}
+            >
+              {STICKY_NOTE_PROMOTION_LABELS[target]}
+            </button>
+          ))}
+        </div>
+      </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
 function isFiniteRect(value: unknown): value is Rect {
   if (!value || typeof value !== 'object') {
     return false
@@ -1626,6 +1780,47 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [applyNodePropertiesUpdates, getSelectedNodes]
   )
 
+  const updateSelectionStickyNoteProperties = useCallback(
+    (properties: CanvasNodeProperties): boolean => {
+      const selectedNodes = getSelectedNodes()
+      const node = selectedNodes[0] ?? null
+
+      if (selectedNodes.length !== 1 || !node || node.locked || !isCanvasStickyNoteNode(node)) {
+        return false
+      }
+
+      return applyNodePropertiesUpdates([
+        {
+          id: node.id,
+          properties
+        }
+      ])
+    },
+    [applyNodePropertiesUpdates, getSelectedNodes]
+  )
+
+  const promoteSelectionStickyNote = useCallback(
+    (target: CanvasStickyNotePromotionTarget): boolean => {
+      const selectedNodes = getSelectedNodes()
+      const node = selectedNodes[0] ?? null
+
+      if (selectedNodes.length !== 1 || !node || node.locked || !isCanvasStickyNoteNode(node)) {
+        return false
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const promotedNode = promoteCanvasStickyNoteNode(node, target)
+
+      doc.transact(() => {
+        objects.set(promotedNode.id, promotedNode)
+      })
+      onSceneMutation?.()
+
+      return true
+    },
+    [doc, getSelectedNodes, onSceneMutation]
+  )
+
   const toggleSelectionLock = useCallback((): boolean => {
     return applyLockUpdates(createLockUpdates(getSelectedNodes()))
   }, [applyLockUpdates, getSelectedNodes])
@@ -1778,6 +1973,24 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       title: properties.title,
       rect: CANVAS_MIND_MAP_CREATION_TOOL.rootRect,
       properties
+    })
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+
+    doc.transact(() => {
+      objects.set(object.id, object)
+    })
+    setSelectedNodeIds(new Set([object.id]))
+    setFocusedNodeId(object.id)
+    onSceneMutation?.()
+
+    return true
+  }, [doc, onSceneMutation, viewport])
+
+  const createStickyNote = useCallback((): boolean => {
+    const object = createCanvasStickyNoteNode({
+      viewport,
+      title: 'Sticky note',
+      color: 'yellow'
     })
     const objects = getCanvasObjectsMap<CanvasNode>(doc)
 
@@ -2000,14 +2213,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   useEffect(() => {
     if (
       (activeSelectionPopover === 'dimensions' && !selectionCapabilities.canEditDimensions) ||
-      (activeSelectionPopover === 'shape-style' && !selectionCapabilities.canEditShapeStyle)
+      (activeSelectionPopover === 'shape-style' && !selectionCapabilities.canEditShapeStyle) ||
+      (activeSelectionPopover === 'sticky-note' && !selectionCapabilities.canEditStickyNote)
     ) {
       setActiveSelectionPopover(null)
     }
   }, [
     activeSelectionPopover,
     selectionCapabilities.canEditDimensions,
-    selectionCapabilities.canEditShapeStyle
+    selectionCapabilities.canEditShapeStyle,
+    selectionCapabilities.canEditStickyNote
   ])
 
   const firstSelectedNode = selectedNodes[0] ?? null
@@ -3071,7 +3286,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       if (key === 'n') {
         event.preventDefault()
-        onCreateObject?.('note')
+        if (onCreateObject) {
+          onCreateObject('note')
+        } else {
+          createStickyNote()
+        }
         return
       }
 
@@ -3104,6 +3323,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       createFrame,
       createMindMap,
       createShape,
+      createStickyNote,
       deleteSelection,
       duplicateSelection,
       fitToRect,
@@ -3162,6 +3382,39 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
     if (customContent) {
       return customContent
+    }
+
+    if (isCanvasStickyNoteNode(item.node)) {
+      const fill =
+        typeof item.node.properties.fill === 'string'
+          ? item.node.properties.fill
+          : CANVAS_STICKY_NOTE_COLOR_PRESETS.yellow.fill
+      const stroke =
+        typeof item.node.properties.stroke === 'string'
+          ? item.node.properties.stroke
+          : CANVAS_STICKY_NOTE_COLOR_PRESETS.yellow.stroke
+      const labelColor =
+        typeof item.node.properties.labelColor === 'string'
+          ? item.node.properties.labelColor
+          : CANVAS_STICKY_NOTE_COLOR_PRESETS.yellow.labelColor
+      const title =
+        typeof item.node.properties.title === 'string' ? item.node.properties.title : 'Sticky note'
+      const body = typeof item.node.properties.body === 'string' ? item.node.properties.body : ''
+
+      return (
+        <div
+          style={{
+            ...styles.stickyNoteContent,
+            background: fill,
+            borderColor: stroke,
+            color: labelColor
+          }}
+          data-canvas-v3-sticky-note="true"
+        >
+          <span style={styles.stickyNoteTitle}>{title}</span>
+          {body ? <span style={styles.stickyNoteBody}>{body}</span> : null}
+        </div>
+      )
     }
 
     if (item.node.type === 'shape' || item.node.type === 'group') {
@@ -3610,6 +3863,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             />
           ) : null}
 
+          {selectionCapabilities.canEditStickyNote ? (
+            <CanvasSelectionToolbarButton
+              action="sticky-note"
+              label="Sticky"
+              title="Edit sticky note"
+              theme={theme}
+              onClick={() => {
+                setActiveSelectionPopover((current) =>
+                  current === 'sticky-note' ? null : 'sticky-note'
+                )
+              }}
+            />
+          ) : null}
+
           {selectionCapabilities.canToggleMindMapCollapse ? (
             <CanvasSelectionToolbarButton
               action="mind-map-collapse"
@@ -3767,6 +4034,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           theme={theme}
           style={selectionPopoverStyle}
           onUpdate={updateSelectionShapeProperties}
+        />
+      ) : null}
+
+      {activeSelectionPopover === 'sticky-note' &&
+      firstSelectedNode &&
+      selectionPopoverStyle &&
+      selectionCapabilities.canEditStickyNote ? (
+        <CanvasSelectionStickyNotePopover
+          node={firstSelectedNode}
+          theme={theme}
+          style={selectionPopoverStyle}
+          onUpdate={updateSelectionStickyNoteProperties}
+          onPromote={promoteSelectionStickyNote}
         />
       ) : null}
 
@@ -4035,6 +4315,11 @@ const styles: Record<string, React.CSSProperties> = {
     width: 'min(420px, calc(100% - 24px))',
     gap: 12
   },
+  stickyNotePopover: {
+    gridTemplateColumns: '1fr',
+    width: 'min(380px, calc(100% - 24px))',
+    gap: 12
+  },
   shapePopoverSection: {
     minWidth: 0,
     display: 'flex',
@@ -4088,6 +4373,63 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: 12,
     fontWeight: 700
+  },
+  stickyNoteTextArea: {
+    width: '100%',
+    minWidth: 0,
+    minHeight: 72,
+    boxSizing: 'border-box',
+    border: '1px solid',
+    borderRadius: 6,
+    padding: 8,
+    resize: 'vertical',
+    fontSize: 12,
+    fontWeight: 500,
+    lineHeight: 1.35
+  },
+  stickyPromotionGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: 6
+  },
+  stickyPromotionButton: {
+    minWidth: 0,
+    height: 30,
+    border: '1px solid',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 700,
+    whiteSpace: 'nowrap'
+  },
+  stickyNoteContent: {
+    width: '100%',
+    height: '100%',
+    boxSizing: 'border-box',
+    border: '1px solid',
+    borderRadius: 8,
+    padding: 14,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    boxShadow: 'inset 0 -18px 28px rgba(15, 23, 42, 0.06)'
+  },
+  stickyNoteTitle: {
+    fontSize: 15,
+    fontWeight: 800,
+    lineHeight: 1.2,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  },
+  stickyNoteBody: {
+    fontSize: 13,
+    fontWeight: 600,
+    lineHeight: 1.35,
+    overflow: 'hidden',
+    display: '-webkit-box',
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 5
   },
   builtinNodeContent: {
     width: '100%',
