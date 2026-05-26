@@ -87,6 +87,27 @@ describe('canvas plugin permission gates', () => {
     expect(decision.issues).toEqual(["Plugin 'com.example.new' requires workspace approval"])
   })
 
+  it('shows plugin permissions before canvas ingestion or rendering', () => {
+    const decision = evaluateCanvasPluginPermissionGate({
+      pluginId: 'com.example.importer',
+      contributionId: 'importer.canvas-card',
+      contributionName: 'Importer Card',
+      requestedPermissions: ['canvas.ingest', 'canvas.render', 'network'],
+      requestedNetworkDomains: ['api.example.com'],
+      policy: {
+        allowUnknownPlugins: false
+      }
+    })
+
+    expect(decision.status).toBe('prompt-required')
+    expect(decision.allowed).toBe(false)
+    expect(decision.prompt).toMatchObject({
+      title: 'Allow Importer Card?',
+      requestedPermissions: ['canvas.ingest', 'canvas.render', 'network'],
+      requestedNetworkDomains: ['api.example.com']
+    })
+  })
+
   it('gates network domains through workspace policy', () => {
     const allowed = evaluateCanvasPluginPermissionGate({
       pluginId: 'com.example.crm',

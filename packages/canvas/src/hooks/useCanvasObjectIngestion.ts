@@ -36,6 +36,7 @@ import {
   selectCanvasIngestor
 } from '../ingestors'
 import { getCanvasObjectsMap } from '../scene/doc-layout'
+import { getCanvasBlockedPreviewReason } from '../storage-policy'
 
 export interface UseCanvasObjectIngestionOptions {
   doc: Y.Doc | null
@@ -100,7 +101,7 @@ function toMediaProperties(input: {
   size: number
   width?: number
   height?: number
-  status: 'uploading' | 'ready' | 'error'
+  status: 'uploading' | 'ready' | 'error' | 'blocked'
   error?: string
 }): Record<string, unknown> {
   return {
@@ -334,6 +335,10 @@ export function useCanvasObjectIngestion({
       }
 
       const mediaKind = inferMediaKind(file)
+      const blockedReason = getCanvasBlockedPreviewReason({
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream'
+      })
       const pendingNode = createSourceBackedCanvasNode({
         objectKind: 'media',
         viewport: getViewportSnapshot(),
@@ -345,13 +350,20 @@ export function useCanvasObjectIngestion({
           mimeType: file.type || 'application/octet-stream',
           kind: mediaKind,
           size: file.size,
-          status: 'uploading'
+          status: blockedReason ? 'blocked' : 'uploading',
+          error: blockedReason ?? undefined
         })
       })
 
       doc.transact(() => {
         nodes.set(pendingNode.id, pendingNode)
       })
+
+      if (blockedReason) {
+        return {
+          canvasNodeId: pendingNode.id
+        }
+      }
 
       try {
         const dimensions = await readImageDimensions(file)

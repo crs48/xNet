@@ -165,4 +165,23 @@ describe('external reference metadata pipeline', () => {
     })
     expect(fetcher).toHaveBeenCalledTimes(1)
   })
+
+  it('can disable external metadata fetching per workspace', async () => {
+    const fetcher = vi.fn()
+
+    const result = await resolveExternalReferenceMetadata({
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      provider: 'youtube',
+      fetcher,
+      allowOEmbed: false,
+      allowOpenGraph: false
+    })
+
+    expect(result).toMatchObject({
+      status: 'unavailable',
+      metadata: null,
+      reason: 'No metadata resolver matched this reference'
+    })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
 })

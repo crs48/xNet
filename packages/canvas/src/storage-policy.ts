@@ -78,6 +78,11 @@ export type CreateCanvasStoragePolicyPromptInput = {
   blockedReason?: string
 }
 
+export type CanvasBlockedPreviewInput = {
+  fileName?: string
+  mimeType?: string
+}
+
 const CANVAS_STORAGE_POLICIES: readonly CanvasStoragePolicy[] = [
   'reference-only',
   'copied-blob',
@@ -156,6 +161,40 @@ const CANVAS_STORAGE_POLICY_CAPABILITIES: Readonly<
   }
 }
 
+const BLOCKED_PREVIEW_MIME_TYPES = new Set([
+  'application/javascript',
+  'application/vnd.microsoft.portable-executable',
+  'application/x-msdownload',
+  'application/x-msdos-program',
+  'application/x-sh',
+  'application/xhtml+xml',
+  'image/svg+xml',
+  'text/html',
+  'text/javascript'
+])
+
+const BLOCKED_PREVIEW_EXTENSIONS = new Set([
+  '.app',
+  '.bat',
+  '.cmd',
+  '.com',
+  '.dmg',
+  '.exe',
+  '.hta',
+  '.html',
+  '.htm',
+  '.jar',
+  '.js',
+  '.mjs',
+  '.msi',
+  '.pkg',
+  '.ps1',
+  '.scr',
+  '.sh',
+  '.svg',
+  '.vbs'
+])
+
 export function getCanvasStoragePolicies(): CanvasStoragePolicy[] {
   return [...CANVAS_STORAGE_POLICIES]
 }
@@ -207,17 +246,47 @@ function getStoragePromptSourceLabel(
   return input.fileName ?? input.url
 }
 
+function getFileExtension(fileName: string | undefined): string | null {
+  if (!fileName) {
+    return null
+  }
+
+  const dotIndex = fileName.lastIndexOf('.')
+  return dotIndex >= 0 ? fileName.slice(dotIndex).toLowerCase() : null
+}
+
+export function getCanvasBlockedPreviewReason(input: CanvasBlockedPreviewInput): string | null {
+  const mimeType = input.mimeType?.trim().toLowerCase()
+  const extension = getFileExtension(input.fileName)
+
+  if (mimeType && BLOCKED_PREVIEW_MIME_TYPES.has(mimeType)) {
+    return `Files with MIME type '${mimeType}' cannot be previewed or executed from canvas.`
+  }
+
+  if (extension && BLOCKED_PREVIEW_EXTENSIONS.has(extension)) {
+    return `Files with extension '${extension}' cannot be previewed or executed from canvas.`
+  }
+
+  return null
+}
+
 export function createCanvasStoragePolicyPrompt(
   input: CreateCanvasStoragePolicyPromptInput
 ): CanvasStoragePolicyPrompt {
   const sourceLabel = getStoragePromptSourceLabel(input)
+  const blockedReason =
+    input.blockedReason ??
+    getCanvasBlockedPreviewReason({
+      fileName: input.fileName,
+      mimeType: input.mimeType
+    })
 
-  if (input.blockedReason) {
+  if (blockedReason) {
     return {
       intent: 'blocked-source',
       sourceKind: input.sourceKind,
       title: 'File blocked',
-      description: input.blockedReason,
+      description: blockedReason,
       sourceLabel,
       mimeType: input.mimeType,
       sizeBytes: input.sizeBytes,
@@ -225,7 +294,7 @@ export function createCanvasStoragePolicyPrompt(
       options: [
         createPromptOption('blocked', {
           recommended: true,
-          description: input.blockedReason
+          description: blockedReason
         })
       ]
     }

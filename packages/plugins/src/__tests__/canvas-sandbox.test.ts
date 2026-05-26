@@ -97,6 +97,37 @@ describe('canvas plugin sandbox policies', () => {
     expect(decision.issues).toContain('preview sandbox cannot request network access')
   })
 
+  it('prevents preview workers from exfiltrating restricted blobs', () => {
+    const decision = evaluateCanvasPluginSandboxRequest({
+      pluginId: 'com.example.crm',
+      contributionId: 'crm.account-card',
+      kind: 'preview',
+      entrypoint: 'canvas/cards/account.preview',
+      permissions: ['storage', 'network'],
+      requestedNetworkDomains: ['blob.local']
+    })
+
+    expect(decision.allowed).toBe(false)
+    expect(decision.issues).toContain('preview sandbox cannot request storage access')
+    expect(decision.issues).toContain('preview sandbox cannot request network access')
+
+    const output = validateCanvasPluginSandboxOutput(
+      {
+        kind: 'html-fragment',
+        html: '<iframe src="https://blob.local/export"></iframe>',
+        bytes: 64
+      },
+      createCanvasPluginSandboxPolicy('preview')
+    )
+
+    expect(output.valid).toBe(false)
+    expect(output.issues).toContain("Output kind 'html-fragment' is not allowed in preview sandbox")
+    expect(output.issues).toContain('HTML fragments require an isolated iframe renderer sandbox')
+    expect(output.issues).toContain(
+      'HTML fragment contains scriptable or nested browsing-context markup'
+    )
+  })
+
   it('rejects unsafe entrypoints', () => {
     const decision = evaluateCanvasPluginSandboxRequest({
       pluginId: 'com.example.crm',

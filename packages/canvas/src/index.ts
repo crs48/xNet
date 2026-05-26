@@ -198,6 +198,17 @@ export type {
   CreateCanvasIframePlaceholderInput
 } from './preview/iframe-placeholder'
 export {
+  evaluateCanvasEmbedPolicy,
+  getCanvasEmbedProviderPolicies,
+  getCanvasEmbedProviderPolicy
+} from './preview/embed-policy'
+export type {
+  CanvasEmbedPolicyDecision,
+  CanvasEmbedProvider,
+  CanvasEmbedProviderPolicy,
+  CanvasIframeSecurityAttributes
+} from './preview/embed-policy'
+export {
   createCanvasPreviewSourceFingerprint,
   shouldInvalidateCanvasPreviewCache
 } from './preview/cache-invalidation'
@@ -273,6 +284,7 @@ export {
 export {
   createCanvasStoragePolicyPrompt,
   createCanvasStoragePolicyDecision,
+  getCanvasBlockedPreviewReason,
   getCanvasStoragePolicies,
   getCanvasStoragePolicyCapability,
   isCanvasStoragePolicy,
@@ -371,6 +383,7 @@ export type {
   CanvasPreviewTileSummaryUpdate
 } from './preview/tile-summary'
 export type {
+  CanvasBlockedPreviewInput,
   CanvasStoragePolicy,
   CanvasStoragePolicyCapability,
   CanvasStoragePolicyDecision,

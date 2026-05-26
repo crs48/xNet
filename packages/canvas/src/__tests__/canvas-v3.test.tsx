@@ -2096,6 +2096,43 @@ describe('Canvas v3 active renderer', () => {
     expect(liveIframeIslands).toHaveLength(8)
   })
 
+  it('requires provider allow policies before activating live iframes', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const allowed = createNode(
+      'external-reference',
+      { x: -120, y: -80, width: 360, height: 180 },
+      {
+        title: 'Allowed video',
+        provider: 'youtube',
+        embedUrl: 'https://www.youtube.com/embed/allowed'
+      }
+    )
+    const spoofed = createNode(
+      'external-reference',
+      { x: 260, y: -80, width: 360, height: 180 },
+      {
+        title: 'Spoofed video',
+        provider: 'youtube',
+        embedUrl: 'https://evil.example.com/embed/spoofed'
+      }
+    )
+
+    nodes.set(allowed.id, allowed)
+    nodes.set(spoofed.id, spoofed)
+
+    render(
+      <Canvas doc={doc} renderNode={(node) => <span>{node.properties.title as string}</span>} />
+    )
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const liveIframeIslands = document.querySelectorAll('[data-canvas-live-iframe="true"]')
+
+    expect(surface.getAttribute('data-canvas-dom-live-iframe-count')).toBe('1')
+    expect(liveIframeIslands).toHaveLength(1)
+    expect(liveIframeIslands[0]?.textContent).toContain('Allowed video')
+  })
+
   it('uses vector summaries instead of React card shells at placeholder zoom', () => {
     const doc = new Y.Doc()
     const nodes = getCanvasObjectsMap<CanvasNode>(doc)

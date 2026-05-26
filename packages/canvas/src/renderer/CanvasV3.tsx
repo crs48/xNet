@@ -76,6 +76,7 @@ import {
   type CanvasStickyNoteColor,
   type CanvasStickyNotePromotionTarget
 } from '../notes/sticky-notes'
+import { evaluateCanvasEmbedPolicy } from '../preview/embed-policy'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migration'
 import { getCanvasResizePolicy } from '../selection/resize-policy'
@@ -520,10 +521,15 @@ function getNodeTitle(node: CanvasNode, fallback: string): string {
 }
 
 function hasLiveIframeSurface(node: CanvasNode): boolean {
+  const embedUrl = typeof node.properties.embedUrl === 'string' ? node.properties.embedUrl : null
+  const provider = typeof node.properties.provider === 'string' ? node.properties.provider : null
+
   return (
     node.type === 'external-reference' &&
-    typeof node.properties.embedUrl === 'string' &&
-    node.properties.embedUrl.length > 0
+    evaluateCanvasEmbedPolicy({
+      provider,
+      embedUrl
+    }).allowed
   )
 }
 

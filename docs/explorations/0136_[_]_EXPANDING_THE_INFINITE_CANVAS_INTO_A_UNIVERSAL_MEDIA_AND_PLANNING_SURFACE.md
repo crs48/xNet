@@ -1584,13 +1584,13 @@ controllers, object toolbars, and plugin command routing.
 
 ### Security And Privacy
 
-- [ ] Confirm arbitrary iframes use strict sandbox defaults.
-- [ ] Confirm provider allow policies are explicit and reviewed.
-- [ ] Confirm blocked file types cannot execute through preview or plugin paths.
-- [ ] Confirm local-only file cards do not sync bytes without consent.
-- [ ] Confirm preview workers cannot exfiltrate restricted blobs.
-- [ ] Confirm plugin permissions are visible before canvas ingestion/rendering.
-- [ ] Confirm external metadata fetching can be disabled per workspace.
+- [x] Confirm arbitrary iframes use strict sandbox defaults.
+- [x] Confirm provider allow policies are explicit and reviewed.
+- [x] Confirm blocked file types cannot execute through preview or plugin paths.
+- [x] Confirm local-only file cards do not sync bytes without consent.
+- [x] Confirm preview workers cannot exfiltrate restricted blobs.
+- [x] Confirm plugin permissions are visible before canvas ingestion/rendering.
+- [x] Confirm external metadata fetching can be disabled per workspace.
 
 ### Accessibility
 

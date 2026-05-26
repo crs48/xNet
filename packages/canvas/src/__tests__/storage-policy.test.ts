@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createCanvasStoragePolicyDecision,
   createCanvasStoragePolicyPrompt,
+  getCanvasBlockedPreviewReason,
   getCanvasStoragePolicies,
   getCanvasStoragePolicyCapability,
   isCanvasStoragePolicy,
@@ -170,6 +171,73 @@ describe('canvas storage policy model', () => {
           recommended: true
         })
       ]
+    })
+  })
+
+  it('should block active preview types before storage choices are offered', () => {
+    expect(
+      getCanvasBlockedPreviewReason({
+        fileName: 'installer.exe',
+        mimeType: 'application/octet-stream'
+      })
+    ).toContain("extension '.exe'")
+    expect(
+      getCanvasBlockedPreviewReason({
+        fileName: 'preview.svg',
+        mimeType: 'image/svg+xml'
+      })
+    ).toContain("MIME type 'image/svg+xml'")
+    expect(
+      getCanvasBlockedPreviewReason({
+        fileName: 'brief.doc',
+        mimeType: 'application/msword'
+      })
+    ).toBeNull()
+    expect(
+      getCanvasBlockedPreviewReason({
+        fileName: 'photo.png',
+        mimeType: 'image/png'
+      })
+    ).toBeNull()
+
+    expect(
+      createCanvasStoragePolicyPrompt({
+        sourceKind: 'local-file',
+        fileName: 'widget.html',
+        mimeType: 'text/html'
+      })
+    ).toMatchObject({
+      intent: 'blocked-source',
+      defaultPolicy: 'blocked',
+      options: [
+        expect.objectContaining({
+          policy: 'blocked',
+          allowsPreview: false
+        })
+      ]
+    })
+  })
+
+  it('should keep local-only file cards from syncing bytes without consent', () => {
+    const localOnly = getCanvasStoragePolicyCapability('reference-only')
+    const copied = getCanvasStoragePolicyCapability('copied-blob')
+    const synced = getCanvasStoragePolicyCapability('synced-blob')
+
+    expect(localOnly).toMatchObject({
+      storesReference: true,
+      copiesBytes: false,
+      syncsBytes: false,
+      requiresConsent: false
+    })
+    expect(copied).toMatchObject({
+      copiesBytes: true,
+      syncsBytes: false,
+      requiresConsent: true
+    })
+    expect(synced).toMatchObject({
+      copiesBytes: true,
+      syncsBytes: true,
+      requiresConsent: true
     })
   })
 })
