@@ -465,6 +465,13 @@ export type {
   PlaceCanvasSourceObjectInput,
   CanvasIngestionResult
 } from './hooks/useCanvasObjectIngestion'
+export { resolveCanvasIngestOptions, selectCanvasIngestor } from './ingestors'
+export type {
+  CanvasIngestOptions,
+  CanvasResolvedIngestOptions,
+  CanvasIngestResult,
+  CanvasIngestor
+} from './ingestors'
 
 export { useSpacePan } from './hooks/useSpacePan'
 export type { UseSpacePanOptions } from './hooks/useSpacePan'

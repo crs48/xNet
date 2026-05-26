@@ -1,3 +1,5 @@
+import type { CanvasIngressPayload } from '../ingestion'
+import type { CanvasIngestor } from '../ingestors'
 import { DatabaseSchema, PageSchema } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import {
@@ -12,6 +14,7 @@ import {
   normalizeExternalReferenceUrl,
   serializeCanvasInternalNodeDragData
 } from '../ingestion'
+import { resolveCanvasIngestOptions, selectCanvasIngestor } from '../ingestors'
 
 describe('canvas ingestion utilities', () => {
   it('normalizes bare URLs and strips hashes', () => {
@@ -222,5 +225,32 @@ describe('canvas ingestion utilities', () => {
     expect(getCanvasObjectKindFromSchema(PageSchema._schemaId)).toBe('page')
     expect(getCanvasObjectKindFromSchema(DatabaseSchema._schemaId)).toBe('database')
     expect(getMediaRect({ width: 1920, height: 1080 })).toEqual({ width: 420, height: 236 })
+  })
+
+  it('selects canvas ingestors by priority with deterministic tie-breaking', () => {
+    const payload: CanvasIngressPayload = {
+      kind: 'text',
+      text: 'https://example.com'
+    }
+    const ingest = async () => ({ canvasNodeId: 'node-1' })
+    const ingestors: CanvasIngestor[] = [
+      { id: 'beta', priority: 10, matches: () => true, ingest },
+      { id: 'alpha', priority: 10, matches: () => true, ingest },
+      { id: 'preferred', priority: 20, matches: () => true, ingest },
+      { id: 'ignored', priority: 100, matches: () => false, ingest }
+    ]
+
+    expect(selectCanvasIngestor(payload, ingestors)?.id).toBe('preferred')
+    expect(selectCanvasIngestor(payload, ingestors.slice(0, 2))?.id).toBe('alpha')
+    expect(selectCanvasIngestor(payload, ingestors.slice(3))).toBeNull()
+    expect(
+      resolveCanvasIngestOptions({
+        canvasPoint: { x: 12, y: 24 },
+        spreadIndex: 3
+      })
+    ).toEqual({
+      canvasPoint: { x: 12, y: 24 },
+      spreadIndex: 3
+    })
   })
 })

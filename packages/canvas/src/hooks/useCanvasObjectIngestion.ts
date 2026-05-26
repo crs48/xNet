@@ -8,6 +8,7 @@ import type {
   CanvasPrimitiveObjectKind,
   CanvasViewportSnapshot
 } from '../ingestion'
+import type { CanvasIngestOptions, CanvasIngestResult, CanvasIngestor } from '../ingestors'
 import type { CanvasNode, Point } from '../types'
 import type { BlobService, ExternalReference } from '@xnetjs/data'
 import type * as Y from 'yjs'
@@ -24,6 +25,7 @@ import {
   inferMediaKind,
   readImageDimensions
 } from '../ingestion'
+import { resolveCanvasIngestOptions, selectCanvasIngestor } from '../ingestors'
 import { getCanvasObjectsMap } from '../scene/doc-layout'
 
 export interface UseCanvasObjectIngestionOptions {
@@ -53,10 +55,7 @@ export interface PlaceCanvasPrimitiveObjectInput {
   properties?: Record<string, unknown>
 }
 
-export interface CanvasIngestionResult {
-  canvasNodeId: string
-  sourceNodeId?: string
-}
+export type CanvasIngestionResult = CanvasIngestResult
 
 function getNodesMap(doc: Y.Doc | null): Y.Map<CanvasNode> | null {
   if (!doc) {
@@ -406,57 +405,110 @@ export function useCanvasObjectIngestion({
     [blobService, create, doc, getViewportSnapshot]
   )
 
+  const builtInIngestors = useMemo<CanvasIngestor[]>(
+    () => [
+      {
+        id: 'internal-node',
+        priority: 1000,
+        matches: (payload) =>
+          payload.kind === 'internal-node' &&
+          getCanvasObjectKindFromSchema(payload.data.schemaId, payload.data.canvasKind) !== null,
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'internal-node') {
+            return null
+          }
+
+          const objectKind = getCanvasObjectKindFromSchema(
+            payload.data.schemaId,
+            payload.data.canvasKind
+          )
+          if (!objectKind) {
+            return null
+          }
+
+          return placeSourceObject({
+            objectKind,
+            sourceNodeId: payload.data.nodeId,
+            sourceSchemaId: payload.data.schemaId,
+            title: payload.data.title,
+            canvasPoint: options.canvasPoint,
+            spreadIndex: options.spreadIndex,
+            properties:
+              objectKind === 'external-reference'
+                ? (() => {
+                    const externalReference = externalReferenceById.get(payload.data.nodeId)
+                    return externalReference
+                      ? toStoredExternalReferenceProperties(externalReference)
+                      : undefined
+                  })()
+                : undefined
+          })
+        }
+      },
+      {
+        id: 'file',
+        priority: 900,
+        matches: (payload) => payload.kind === 'file',
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'file') {
+            return null
+          }
+
+          return await ingestFilePayload(payload.file, options.canvasPoint, options.spreadIndex)
+        }
+      },
+      {
+        id: 'url',
+        priority: 800,
+        matches: (payload) =>
+          payload.kind === 'url' && describeExternalReference(payload.url) !== null,
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'url') {
+            return null
+          }
+
+          return await ingestUrlPayload(payload.url, options.canvasPoint, options.spreadIndex)
+        }
+      },
+      {
+        id: 'text-url',
+        priority: 700,
+        matches: (payload) =>
+          payload.kind === 'text' && describeExternalReference(payload.text) !== null,
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'text') {
+            return null
+          }
+
+          const descriptor = describeExternalReference(payload.text)
+          if (!descriptor) {
+            return null
+          }
+
+          return await ingestUrlPayload(
+            descriptor.normalizedUrl,
+            options.canvasPoint,
+            options.spreadIndex
+          )
+        }
+      }
+    ],
+    [externalReferenceById, ingestFilePayload, ingestUrlPayload, placeSourceObject]
+  )
+
   const ingestPayload = useCallback(
     async (
       payload: CanvasIngressPayload,
-      options: { canvasPoint?: Point | null; spreadIndex?: number } = {}
+      options: CanvasIngestOptions = {}
     ): Promise<CanvasIngestionResult | null> => {
-      const spreadIndex = options.spreadIndex ?? 0
-
-      if (payload.kind === 'internal-node') {
-        const objectKind = getCanvasObjectKindFromSchema(
-          payload.data.schemaId,
-          payload.data.canvasKind
-        )
-        if (!objectKind) {
-          return null
-        }
-
-        return placeSourceObject({
-          objectKind,
-          sourceNodeId: payload.data.nodeId,
-          sourceSchemaId: payload.data.schemaId,
-          title: payload.data.title,
-          canvasPoint: options.canvasPoint,
-          spreadIndex,
-          properties:
-            objectKind === 'external-reference'
-              ? (() => {
-                  const externalReference = externalReferenceById.get(payload.data.nodeId)
-                  return externalReference
-                    ? toStoredExternalReferenceProperties(externalReference)
-                    : undefined
-                })()
-              : undefined
-        })
-      }
-
-      if (payload.kind === 'url') {
-        return await ingestUrlPayload(payload.url, options.canvasPoint, spreadIndex)
-      }
-
-      if (payload.kind === 'file') {
-        return await ingestFilePayload(payload.file, options.canvasPoint, spreadIndex)
-      }
-
-      const descriptor = describeExternalReference(payload.text)
-      if (!descriptor) {
+      const ingestor = selectCanvasIngestor(payload, builtInIngestors)
+      if (!ingestor) {
         return null
       }
 
-      return await ingestUrlPayload(descriptor.normalizedUrl, options.canvasPoint, spreadIndex)
+      return await ingestor.ingest(payload, resolveCanvasIngestOptions(options))
     },
-    [externalReferenceById, ingestFilePayload, ingestUrlPayload, placeSourceObject]
+    [builtInIngestors]
   )
 
   const ingestDataTransfer = useCallback(

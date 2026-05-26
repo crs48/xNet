@@ -1391,9 +1391,9 @@ gantt
 
 ### Universal Ingestion
 
-- [ ] Define `CanvasIngestor` and `CanvasIngestResult` types.
-- [ ] Convert current internal-node, URL, file, and text ingestion into first-party ingestors.
-- [ ] Add payload matching priority and conflict resolution.
+- [x] Define `CanvasIngestor` and `CanvasIngestResult` types.
+- [x] Convert current internal-node, URL, file, and text ingestion into first-party ingestors.
+- [x] Add payload matching priority and conflict resolution.
 - [ ] Add visible object lifecycle states to canvas cards.
 - [ ] Add retry, replace source, open source, and copy link actions for failed cards.
 - [ ] Add local-only versus copied/synced file policy prompts.
@@ -1472,7 +1472,7 @@ gantt
 
 ### Unit And Integration Tests
 
-- [ ] Test `CanvasIngestor` matching priority and fallback behavior.
+- [x] Test `CanvasIngestor` matching priority and fallback behavior.
 - [ ] Test file/media kind inference for images, videos, audio, PDFs, documents, and generic files.
 - [ ] Test provider parsing for YouTube, Spotify, Figma, GitHub, Loom, Vimeo, and generic URLs.
 - [ ] Test preview cache invalidation by source version and content hash.
