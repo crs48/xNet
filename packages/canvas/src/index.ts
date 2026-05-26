@@ -227,6 +227,7 @@ export {
   isCanvasContainerNode,
   getUnlockedSelection
 } from './selection/scene-operations'
+export { getCanvasResizePolicy } from './selection/resize-policy'
 export type {
   CanvasContainerRole,
   CanvasLockUpdate,
@@ -234,6 +235,7 @@ export type {
   CreateFrameSelectionNodeOptions,
   CreateGroupSelectionNodeOptions
 } from './selection/scene-operations'
+export type { CanvasResizePolicy } from './selection/resize-policy'
 
 export {
   CANVAS_INTERNAL_NODE_MIME,

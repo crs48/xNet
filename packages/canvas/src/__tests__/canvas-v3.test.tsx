@@ -1162,6 +1162,52 @@ describe('Canvas v3 active renderer', () => {
     expect(resized?.position.height).toBe(210)
   })
 
+  it('applies object-specific v3 resize policy minimums', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const database = createNode(
+      'database',
+      { x: 80, y: 80, width: 360, height: 260 },
+      {
+        title: 'Roadmap Database'
+      }
+    )
+
+    nodes.set(database.id, database)
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    act(() => {
+      ref.current?.selectNodes([database.id])
+    })
+
+    const resizeHandle = screen.getByRole('button', {
+      name: 'Resize Roadmap Database from left'
+    })
+    fireEvent.pointerDown(resizeHandle, {
+      button: 0,
+      pointerId: 11,
+      clientX: 120,
+      clientY: 300
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 11,
+      clientX: 340,
+      clientY: 300
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 11,
+      clientX: 340,
+      clientY: 300
+    })
+
+    const resized = nodes.get(database.id)
+    expect(resized?.position.x).toBe(120)
+    expect(resized?.position.width).toBe(320)
+  })
+
   it('scales DOM island content with the canvas viewport', () => {
     const doc = createCanvasTestDoc()
 

@@ -45,6 +45,7 @@ import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../
 import { calculateLOD } from '../nodes/CanvasNodeComponent'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migration'
+import { getCanvasResizePolicy } from '../selection/resize-policy'
 import {
   createAlignmentUpdates,
   createDistributionUpdates,
@@ -540,19 +541,6 @@ function getResizeHandleCursor(handle: ResizeHandle): string {
   }
 
   return cursors[handle]
-}
-
-function isCornerResizeHandle(handle: ResizeHandle): boolean {
-  return (
-    handle === 'top-left' ||
-    handle === 'top-right' ||
-    handle === 'bottom-right' ||
-    handle === 'bottom-left'
-  )
-}
-
-function shouldPreserveResizeAspectRatio(node: CanvasNode, handle: ResizeHandle): boolean {
-  return node.type === 'media' && isCornerResizeHandle(handle)
 }
 
 function getResizeHandleStyle(
@@ -1858,9 +1846,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             x: delta.x / viewport.zoom,
             y: delta.y / viewport.zoom
           },
-          {
-            preserveAspectRatio: shouldPreserveResizeAspectRatio(node, handle)
-          }
+          getCanvasResizePolicy(node, handle)
         )
       ])
     },
