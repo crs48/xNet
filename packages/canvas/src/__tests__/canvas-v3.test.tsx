@@ -290,6 +290,66 @@ describe('Canvas v3 active renderer', () => {
     expect(onSceneMutation).toHaveBeenCalled()
   })
 
+  it('resizes a selected v3 object from a resize handle', () => {
+    const doc = createCanvasTestDoc()
+    const onSceneMutation = vi.fn()
+
+    render(
+      <Canvas
+        doc={doc}
+        onSceneMutation={onSceneMutation}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const initialWidth = page.position.width
+    const initialHeight = page.position.height
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!pageIsland) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    fireEvent.pointerDown(pageIsland, {
+      button: 0,
+      pointerId: 8,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 8,
+      clientX: 480,
+      clientY: 320
+    })
+
+    const resizeHandle = screen.getByRole('button', {
+      name: 'Resize Research Page from bottom-right'
+    })
+    fireEvent.pointerDown(resizeHandle, {
+      button: 0,
+      pointerId: 9,
+      clientX: 740,
+      clientY: 480
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 9,
+      clientX: 780,
+      clientY: 510
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 9,
+      clientX: 780,
+      clientY: 510
+    })
+
+    const resized = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(resized?.position.width).toBe(initialWidth + 40)
+    expect(resized?.position.height).toBe(initialHeight + 30)
+    expect(onSceneMutation).toHaveBeenCalled()
+  })
+
   it('scales DOM island content with the canvas viewport', () => {
     const doc = createCanvasTestDoc()
 

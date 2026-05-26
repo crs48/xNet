@@ -11,7 +11,8 @@ import type {
   CanvasLayerDirection,
   CanvasNode,
   Point,
-  Rect
+  Rect,
+  ResizeHandle
 } from '../types'
 import type { CanvasObjectRecord, CanvasTileSummary } from '@xnetjs/canvas-core'
 import {
@@ -45,6 +46,7 @@ import {
   createFrameSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
+  createResizeUpdate,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
   getUnlockedSelection,
@@ -203,6 +205,24 @@ type NodeDragState = {
   nodeIds: string[]
 }
 
+type NodeResizeState = {
+  pointerId: number
+  lastClientPoint: Point
+  nodeId: string
+  handle: ResizeHandle
+}
+
+const RESIZE_HANDLES: ResizeHandle[] = [
+  'top-left',
+  'top',
+  'top-right',
+  'right',
+  'bottom-right',
+  'bottom',
+  'bottom-left',
+  'left'
+]
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
 }
@@ -351,6 +371,67 @@ function isTextInputLikeElement(target: EventTarget | null): boolean {
 
 function isPrimaryPointerButton(event: React.PointerEvent): boolean {
   return event.button === 0 || event.button === undefined
+}
+
+function getResizeHandleCursor(handle: ResizeHandle): string {
+  const cursors: Record<ResizeHandle, string> = {
+    'top-left': 'nwse-resize',
+    top: 'ns-resize',
+    'top-right': 'nesw-resize',
+    right: 'ew-resize',
+    'bottom-right': 'nwse-resize',
+    bottom: 'ns-resize',
+    'bottom-left': 'nesw-resize',
+    left: 'ew-resize'
+  }
+
+  return cursors[handle]
+}
+
+function getResizeHandleStyle(
+  handle: ResizeHandle,
+  colors: {
+    background: string
+    border: string
+    shadow: string
+  }
+): React.CSSProperties {
+  const size = 10
+  const inset = 4
+  const centerOffset = -size / 2
+  const base: React.CSSProperties = {
+    position: 'absolute',
+    appearance: 'none',
+    width: size,
+    height: size,
+    padding: 0,
+    backgroundColor: colors.background,
+    border: `1px solid ${colors.border}`,
+    borderRadius: 999,
+    boxShadow: colors.shadow,
+    cursor: getResizeHandleCursor(handle),
+    pointerEvents: 'auto',
+    zIndex: 3
+  }
+
+  switch (handle) {
+    case 'top-left':
+      return { ...base, top: inset, left: inset }
+    case 'top':
+      return { ...base, top: inset, left: '50%', marginLeft: centerOffset }
+    case 'top-right':
+      return { ...base, top: inset, right: inset }
+    case 'right':
+      return { ...base, top: '50%', right: inset, marginTop: centerOffset }
+    case 'bottom-right':
+      return { ...base, right: inset, bottom: inset }
+    case 'bottom':
+      return { ...base, bottom: inset, left: '50%', marginLeft: centerOffset }
+    case 'bottom-left':
+      return { ...base, bottom: inset, left: inset }
+    case 'left':
+      return { ...base, top: '50%', left: inset, marginTop: centerOffset }
+  }
 }
 
 function readRemoteUsers(awareness: AwarenessLike | null | undefined): CanvasRemoteUser[] {
@@ -543,6 +624,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const vectorLayerRef = useRef<HTMLDivElement | null>(null)
   const lastPointerRef = useRef<Point | null>(null)
   const nodeDragRef = useRef<NodeDragState | null>(null)
+  const nodeResizeRef = useRef<NodeResizeState | null>(null)
   const scene = useCanvasV3Scene(doc)
   const viewportSize = useElementSize(containerRef)
   const minZoom = config.minZoom ?? 0.1
@@ -808,6 +890,27 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [applySelectionPositionUpdates, doc, viewport.zoom]
   )
 
+  const resizeNodeByScreenDelta = useCallback(
+    (nodeId: string, handle: ResizeHandle, delta: Point): boolean => {
+      if (delta.x === 0 && delta.y === 0) {
+        return false
+      }
+
+      const node = getCanvasObjectsMap<CanvasNode>(doc).get(nodeId)
+      if (!node || node.locked) {
+        return false
+      }
+
+      return applyPositionUpdates([
+        createResizeUpdate(node, handle, {
+          x: delta.x / viewport.zoom,
+          y: delta.y / viewport.zoom
+        })
+      ])
+    },
+    [applyPositionUpdates, doc, viewport.zoom]
+  )
+
   const applyViewportChanges = useCallback(
     (changes: { x?: number; y?: number; zoom?: number }) => {
       setViewportClamped((current) => ({
@@ -1060,6 +1163,33 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [selectedNodeIds]
   )
 
+  const handleResizePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>, objectId: string, handle: ResizeHandle) => {
+      if (!isPrimaryPointerButton(event)) {
+        return
+      }
+
+      const node = getCanvasObjectsMap<CanvasNode>(doc).get(objectId)
+      if (!node || node.locked) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      setFocusedNodeId(objectId)
+      setSelectedNodeIds(new Set([objectId]))
+      nodeResizeRef.current = {
+        pointerId: event.pointerId,
+        lastClientPoint: { x: event.clientX, y: event.clientY },
+        nodeId: objectId,
+        handle
+      }
+      containerRef.current?.setPointerCapture?.(event.pointerId)
+      awareness?.setLocalStateField('activity', 'resizing')
+    },
+    [awareness, doc]
+  )
+
   const handleBackgroundPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (event.button !== 0 || event.target !== containerRef.current) {
@@ -1079,6 +1209,24 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const handlePointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       awareness?.setLocalStateField('cursor', screenToCanvasPoint(event.clientX, event.clientY))
+
+      const nodeResize = nodeResizeRef.current
+      if (nodeResize && nodeResize.pointerId === event.pointerId) {
+        const delta = {
+          x: event.clientX - nodeResize.lastClientPoint.x,
+          y: event.clientY - nodeResize.lastClientPoint.y
+        }
+
+        if (resizeNodeByScreenDelta(nodeResize.nodeId, nodeResize.handle, delta)) {
+          awareness?.setLocalStateField('activity', 'resizing')
+        }
+
+        nodeResizeRef.current = {
+          ...nodeResize,
+          lastClientPoint: { x: event.clientX, y: event.clientY }
+        }
+        return
+      }
 
       const nodeDrag = nodeDragRef.current
       if (nodeDrag && nodeDrag.pointerId === event.pointerId) {
@@ -1112,11 +1260,22 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         y: current.y - deltaY / current.zoom
       }))
     },
-    [awareness, moveSelectionByScreenDelta, screenToCanvasPoint, setViewportClamped]
+    [
+      awareness,
+      moveSelectionByScreenDelta,
+      resizeNodeByScreenDelta,
+      screenToCanvasPoint,
+      setViewportClamped
+    ]
   )
 
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (nodeResizeRef.current?.pointerId === event.pointerId) {
+        nodeResizeRef.current = null
+        awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
+      }
+
       if (nodeDragRef.current?.pointerId === event.pointerId) {
         nodeDragRef.current = null
         awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
@@ -1400,6 +1559,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         .map((item) => {
           const selected = selectedNodeIds.has(item.object.id)
           const tier = domIslandTierById.get(item.object.id) ?? 'shell-dom'
+          const title = getObjectTitle(item.object)
 
           return (
             <div
@@ -1425,6 +1585,24 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               onDoubleClick={() => onNodeDoubleClick?.(item.object.id)}
             >
               {renderObjectContent(item, tier)}
+              {selected
+                ? RESIZE_HANDLES.map((handle) => (
+                    <button
+                      key={handle}
+                      type="button"
+                      style={getResizeHandleStyle(handle, {
+                        background: theme.panelBackground,
+                        border: theme.minimapViewportStroke,
+                        shadow: theme.panelShadow
+                      })}
+                      aria-label={`Resize ${title} from ${handle}`}
+                      data-canvas-v3-resize-handle={handle}
+                      onPointerDown={(event) =>
+                        handleResizePointerDown(event, item.object.id, handle)
+                      }
+                    />
+                  ))
+                : null}
             </div>
           )
         })}
