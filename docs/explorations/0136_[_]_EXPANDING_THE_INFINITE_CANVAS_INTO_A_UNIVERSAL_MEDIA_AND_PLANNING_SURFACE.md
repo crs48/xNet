@@ -1555,14 +1555,14 @@ controllers, object toolbars, and plugin command routing.
 
 ### Performance
 
-- [ ] Benchmark 10K mixed media/reference/doc/database objects.
-- [ ] Benchmark boards with many thumbnails but limited live DOM/iframe objects.
-- [ ] Benchmark PDF preview generation queue under bursty drag/drop.
-- [ ] Benchmark minimap updates for dense media boards.
-- [ ] Confirm far-zoom object summaries do not mount React card components.
-- [ ] Confirm iframe activation respects budget and reclamation.
+- [x] Benchmark 10K mixed media/reference/doc/database objects.
+- [x] Benchmark boards with many thumbnails but limited live DOM/iframe objects.
+- [x] Benchmark PDF preview generation queue under bursty drag/drop.
+- [x] Benchmark minimap updates for dense media boards.
+- [x] Confirm far-zoom object summaries do not mount React card components.
+- [x] Confirm iframe activation respects budget and reclamation.
 - [ ] Confirm dragging and resizing large multi-selections stay smooth by using transform previews and coalesced commits.
-- [ ] Confirm smart-guide calculations cap nearby-object scans and do not require global board traversal.
+- [x] Confirm smart-guide calculations cap nearby-object scans and do not require global board traversal.
 
 ### Electron Manual Checks
 

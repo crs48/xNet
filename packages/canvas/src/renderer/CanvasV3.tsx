@@ -124,6 +124,33 @@ const DEFAULT_DOM_BUDGETS = {
   maxLiveIframes: 8
 }
 
+function getDomIslandBudgetsForZoom(zoom: number): typeof DEFAULT_DOM_BUDGETS {
+  const lod = calculateLOD(zoom)
+
+  switch (lod) {
+    case 'placeholder':
+      return {
+        maxLiveDom: 4,
+        maxShellDom: 0,
+        maxLiveIframes: 0
+      }
+    case 'minimal':
+      return {
+        maxLiveDom: 8,
+        maxShellDom: 48,
+        maxLiveIframes: 2
+      }
+    case 'compact':
+      return {
+        maxLiveDom: 16,
+        maxShellDom: 96,
+        maxLiveIframes: 4
+      }
+    case 'full':
+      return DEFAULT_DOM_BUDGETS
+  }
+}
+
 type AwarenessLike = {
   clientID: number
   getStates(): Map<number, Record<string, unknown>>
@@ -1656,6 +1683,25 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     viewport,
     viewportSize
   })
+  const screenObjects = useMemo<ScreenObject[]>(() => {
+    const candidates = scene.objects.map((object) => ({
+      object,
+      node: scene.sourceNodesById.get(object.id) ?? createFallbackCanvasNode(object),
+      rect: getScreenRectForObject(object, viewport, viewportSize)
+    }))
+    const visibility = createCanvasMindMapVisibilityState(candidates.map((item) => item.node))
+    const inheritedStyles = createCanvasMindMapInheritedStyleMap(
+      candidates.map((item) => item.node)
+    )
+
+    return candidates
+      .filter((item) => !visibility.hiddenNodeIds.has(item.object.id))
+      .map((item) => ({
+        ...item,
+        node: applyMindMapInheritedStyle(item.node, inheritedStyles.get(item.object.id))
+      }))
+      .filter((item) => intersectsViewport(item.rect, viewportSize))
+  }, [scene.objects, scene.sourceNodesById, viewport, viewportSize])
 
   const setViewportClamped = useCallback(
     (updater: ViewportState | ((current: ViewportState) => ViewportState)) => {
@@ -2685,7 +2731,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       const smartSnap = createCanvasSmartSnap({
         movingBounds,
         canvasDelta: rawCanvasDelta,
-        stationaryNodes: Array.from(objects.values()).filter((node) => !movingIds.has(node.id)),
+        stationaryNodes: screenObjects
+          .map((item) => item.node)
+          .filter((node) => !movingIds.has(node.id)),
         threshold: SMART_GUIDE_SCREEN_THRESHOLD / viewport.zoom
       })
       const hasVerticalGuide = smartSnap.guides.some((guide) => guide.orientation === 'vertical')
@@ -2713,7 +2761,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         guides: smartSnap.guides
       }
     },
-    [doc, snapGridSize, viewport.zoom]
+    [doc, screenObjects, snapGridSize, viewport.zoom]
   )
 
   const createDragPreview = useCallback(
@@ -3003,26 +3051,6 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     return () => awareness.off('change', syncRemoteUsers)
   }, [awareness])
 
-  const screenObjects = useMemo<ScreenObject[]>(() => {
-    const candidates = scene.objects.map((object) => ({
-      object,
-      node: scene.sourceNodesById.get(object.id) ?? createFallbackCanvasNode(object),
-      rect: getScreenRectForObject(object, viewport, viewportSize)
-    }))
-    const visibility = createCanvasMindMapVisibilityState(candidates.map((item) => item.node))
-    const inheritedStyles = createCanvasMindMapInheritedStyleMap(
-      candidates.map((item) => item.node)
-    )
-
-    return candidates
-      .filter((item) => !visibility.hiddenNodeIds.has(item.object.id))
-      .map((item) => ({
-        ...item,
-        node: applyMindMapInheritedStyle(item.node, inheritedStyles.get(item.object.id))
-      }))
-      .filter((item) => intersectsViewport(item.rect, viewportSize))
-  }, [scene.objects, scene.sourceNodesById, viewport, viewportSize])
-
   const islandPlan = useMemo(() => {
     return planDomIslandPool({
       candidates: screenObjects.map((item) => ({
@@ -3037,9 +3065,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           item.rect.y + item.rect.height / 2 - viewportSize.height / 2
         )
       })),
-      budgets: DEFAULT_DOM_BUDGETS
+      budgets: getDomIslandBudgetsForZoom(viewport.zoom)
     })
-  }, [focusedNodeId, presenceIntent?.editingNodeId, screenObjects, selectedNodeIds, viewportSize])
+  }, [
+    focusedNodeId,
+    presenceIntent?.editingNodeId,
+    screenObjects,
+    selectedNodeIds,
+    viewport.zoom,
+    viewportSize
+  ])
   const domIslandIds = useMemo(
     () => new Set(islandPlan.assignments.map((assignment) => assignment.objectId)),
     [islandPlan.assignments]

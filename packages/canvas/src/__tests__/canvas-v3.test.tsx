@@ -1410,6 +1410,99 @@ describe('Canvas v3 active renderer', () => {
     expect(onSceneMutation).not.toHaveBeenCalled()
   })
 
+  it('moves large multi-selections with transform previews and one coalesced commit', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const selectedNodes = Array.from({ length: 32 }, (_, index) =>
+      createNode(
+        'media',
+        {
+          x: -360 + (index % 8) * 100,
+          y: -220 + Math.floor(index / 8) * 90,
+          width: 80,
+          height: 60
+        },
+        {
+          title: `Media ${index + 1}`
+        }
+      )
+    )
+    const ref = React.createRef<CanvasHandle>()
+    const onSceneMutation = vi.fn()
+
+    selectedNodes.forEach((node) => nodes.set(node.id, node))
+
+    render(
+      <Canvas
+        ref={ref}
+        doc={doc}
+        config={{ gridSize: 0 }}
+        onSceneMutation={onSceneMutation}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    act(() => {
+      ref.current?.selectNodes(selectedNodes.map((node) => node.id))
+    })
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const firstNode = selectedNodes[0]
+    const firstIsland = firstNode
+      ? (surface.querySelector(
+          `[data-canvas-v3-object="true"][data-canvas-object-id="${firstNode.id}"]`
+        ) as HTMLElement | null)
+      : null
+
+    if (!firstNode || !firstIsland) {
+      throw new Error('Expected the first selected node to have a DOM island')
+    }
+
+    const initialPositions = new Map(
+      selectedNodes.map((node) => [node.id, { x: node.position.x, y: node.position.y }])
+    )
+    const initialScreenLeft = Number.parseFloat(firstIsland.style.left)
+    const initialScreenTop = Number.parseFloat(firstIsland.style.top)
+
+    fireEvent.pointerDown(firstIsland, {
+      button: 0,
+      pointerId: 72,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 72,
+      clientX: 540,
+      clientY: 360
+    })
+
+    selectedNodes.forEach((node) => {
+      const current = nodes.get(node.id)
+      const initial = initialPositions.get(node.id)
+
+      expect(current?.position.x).toBe(initial?.x)
+      expect(current?.position.y).toBe(initial?.y)
+    })
+    expect(Number.parseFloat(firstIsland.style.left)).toBe(initialScreenLeft + 60)
+    expect(Number.parseFloat(firstIsland.style.top)).toBe(initialScreenTop + 40)
+    expect(onSceneMutation).not.toHaveBeenCalled()
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 72,
+      clientX: 540,
+      clientY: 360
+    })
+
+    selectedNodes.forEach((node) => {
+      const current = nodes.get(node.id)
+      const initial = initialPositions.get(node.id)
+
+      expect(current?.position.x).toBe((initial?.x ?? 0) + 60)
+      expect(current?.position.y).toBe((initial?.y ?? 0) + 40)
+    })
+    expect(onSceneMutation).toHaveBeenCalledOnce()
+  })
+
   it('shares v3 drag interactions through awareness without committing intermediate positions', () => {
     const doc = createCanvasTestDoc()
     const awareness = createMockAwareness()
@@ -1639,6 +1732,57 @@ describe('Canvas v3 active renderer', () => {
     expect(surface.querySelector('[data-canvas-v3-snap-guide="true"]')).toBeNull()
   })
 
+  it('limits smart guides to visible snap candidates during large drags', () => {
+    const doc = createCanvasTestDoc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const offscreenTarget = createNode(
+      'page',
+      { x: 2046, y: -80, width: 120, height: 100 },
+      { title: 'Offscreen Snap Target' }
+    )
+
+    nodes.set(offscreenTarget.id, offscreenTarget)
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const initialX = page.position.x
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!pageIsland) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    fireEvent.pointerDown(pageIsland, {
+      button: 0,
+      pointerId: 73,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 73,
+      clientX: 2384,
+      clientY: 320
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 73,
+      clientX: 2384,
+      clientY: 320
+    })
+
+    const moved = nodes.get(page.id)
+
+    expect(moved?.position.x).toBe(initialX + 1904)
+    expect(moved?.position.x).not.toBe(initialX + 1906)
+  })
+
   it('resizes a selected v3 object from a resize handle', () => {
     const doc = createCanvasTestDoc()
     const onSceneMutation = vi.fn()
@@ -1841,6 +1985,45 @@ describe('Canvas v3 active renderer', () => {
     expect(surface.getAttribute('data-canvas-dom-live-count')).toBe('0')
     expect(surface.getAttribute('data-canvas-dom-live-iframe-count')).toBe('8')
     expect(liveIframeIslands).toHaveLength(8)
+  })
+
+  it('uses vector summaries instead of React card shells at placeholder zoom', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+
+    Array.from({ length: 120 }, (_, index) => {
+      const node = createNode(
+        index % 3 === 0 ? 'media' : index % 3 === 1 ? 'external-reference' : 'database',
+        { x: (index % 20) * 180, y: Math.floor(index / 20) * 140, width: 160, height: 100 },
+        {
+          title: `Summary ${index}`,
+          provider: index % 3 === 1 ? 'youtube' : undefined,
+          url: index % 3 === 1 ? `https://www.youtube.com/watch?v=video${index}` : undefined
+        }
+      )
+
+      nodes.set(node.id, node)
+      return node
+    })
+
+    render(
+      <Canvas
+        doc={doc}
+        initialViewport={{ x: 1_700, y: 350, zoom: 0.05 }}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    expect(surface.getAttribute('data-canvas-object-count')).toBe('120')
+    expect(surface.getAttribute('data-canvas-dom-live-count')).toBe('0')
+    expect(surface.getAttribute('data-canvas-dom-shell-count')).toBe('0')
+    expect(surface.getAttribute('data-canvas-dom-live-iframe-count')).toBe('0')
+    expect(document.querySelectorAll('[data-canvas-v3-object="true"]')).toHaveLength(0)
+    expect(
+      document.querySelectorAll('[data-canvas-v3-vector-fallback="true"]').length
+    ).toBeGreaterThan(0)
   })
 
   it('creates tile summaries from the temporary flat-doc migration adapter', () => {
