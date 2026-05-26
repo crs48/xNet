@@ -7,11 +7,13 @@ import {
   ArrowLeft,
   Database,
   FileText,
+  Layout,
   Minus,
   Plus,
   RotateCcw,
   Search,
   Sparkles,
+  Square,
   Target
 } from 'lucide-react'
 import React from 'react'
@@ -23,6 +25,8 @@ interface ActionDockProps {
   onCreatePage: () => void
   onCreateDatabase: () => void
   onCreateNote: () => void
+  onCreateShape: () => void
+  onCreateFrame: () => void
   onOpenSearch: () => void
   onReturnHome: () => void
   onZoomOut?: () => void
@@ -74,6 +78,8 @@ export function ActionDock({
   onCreatePage,
   onCreateDatabase,
   onCreateNote,
+  onCreateShape,
+  onCreateFrame,
   onOpenSearch,
   onReturnHome,
   onZoomOut,
@@ -134,6 +140,20 @@ export function ActionDock({
               label="Note"
               shortcut="N"
               onClick={onCreateNote}
+            />
+            <DockButton
+              id="shape"
+              icon={<Square size={16} />}
+              label="Shape"
+              shortcut="R"
+              onClick={onCreateShape}
+            />
+            <DockButton
+              id="frame"
+              icon={<Layout size={16} />}
+              label="Frame"
+              shortcut="F"
+              onClick={onCreateFrame}
             />
           </>
         )}

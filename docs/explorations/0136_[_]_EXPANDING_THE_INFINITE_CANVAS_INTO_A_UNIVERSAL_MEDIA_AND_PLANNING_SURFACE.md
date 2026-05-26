@@ -1359,6 +1359,7 @@ gantt
 - [x] Wire v3 shape and frame creation through renderer-level imperative handles if the existing Electron callbacks are not sufficient.
 - [x] Add focused tests for v3 selection operations.
 - [ ] Ensure v3 create menus expose page, database, note, media/reference, shape, and frame creation consistently.
+- [x] Add first-pass Shape and Frame entries to the Electron action dock and web canvas quick actions.
 - [x] Validate minimap summaries for all current object kinds.
 - [x] Validate DOM island budget behavior for mixed page/database/media/reference boards.
 

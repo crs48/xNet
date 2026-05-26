@@ -22,7 +22,16 @@ import {
 } from '@xnetjs/data'
 import { CanvasExternalReferenceCard, useBlobService } from '@xnetjs/editor/react'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
-import { FileImage, FileText, Maximize2, MessageSquare, StickyNote, Table2 } from 'lucide-react'
+import {
+  FileImage,
+  FileText,
+  Layout,
+  Maximize2,
+  MessageSquare,
+  Square,
+  StickyNote,
+  Table2
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -658,6 +667,30 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       icon: <StickyNote size={14} />,
       dataAttributes: {
         'data-web-canvas-create-note': 'true'
+      }
+    },
+    {
+      id: 'shape',
+      title: 'Create shape (R)',
+      label: 'Create shape',
+      onClick: () => {
+        handleCreateShape()
+      },
+      icon: <Square size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-shape': 'true'
+      }
+    },
+    {
+      id: 'frame',
+      title: 'Create frame (F)',
+      label: 'Create frame',
+      onClick: () => {
+        handleCreateFrame()
+      },
+      icon: <Layout size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-frame': 'true'
       }
     },
     {

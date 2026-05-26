@@ -968,6 +968,12 @@ export function App(): React.ReactElement {
           onCreatePage={() => void handleCreateLinkedDocument('page')}
           onCreateDatabase={() => void handleCreateLinkedDocument('database')}
           onCreateNote={handleCreateCanvasNote}
+          onCreateShape={() => {
+            canvasViewRef.current?.createShape('rectangle')
+          }}
+          onCreateFrame={() => {
+            canvasViewRef.current?.createFrame()
+          }}
           onOpenSearch={showPalette}
           onReturnHome={handleReturnHome}
           onZoomOut={() => {
