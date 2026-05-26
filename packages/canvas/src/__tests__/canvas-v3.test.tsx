@@ -306,6 +306,76 @@ describe('Canvas v3 active renderer', () => {
     ).toBe(true)
   })
 
+  it('duplicates and deletes v3 selections from toolbar and keyboard shortcuts', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap(doc)
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const initialObjectCount = objects.size
+    const initialConnectorCount = connectors.size
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Duplicate selection' }))
+
+    const firstDuplicate = Array.from(objects.values()).find(
+      (node) => node.id !== page.id && node.properties.title === page.properties.title
+    )
+
+    expect(objects.size).toBe(initialObjectCount + 1)
+    expect(firstDuplicate).toBeTruthy()
+
+    if (!firstDuplicate) {
+      throw new Error('Expected first duplicated page object')
+    }
+
+    expect(firstDuplicate.position.x).toBe(page.position.x + 32)
+    expect(firstDuplicate.position.y).toBe(page.position.y + 32)
+    expect(firstDuplicate.locked).toBe(false)
+
+    fireEvent.keyDown(surface, { key: 'd', metaKey: true })
+
+    const secondDuplicate = Array.from(objects.values()).find(
+      (node) =>
+        node.id !== page.id &&
+        node.id !== firstDuplicate.id &&
+        node.properties.title === page.properties.title
+    )
+
+    expect(objects.size).toBe(initialObjectCount + 2)
+    expect(secondDuplicate).toBeTruthy()
+
+    if (!secondDuplicate) {
+      throw new Error('Expected second duplicated page object')
+    }
+
+    expect(secondDuplicate.position.x).toBe(firstDuplicate.position.x + 32)
+    expect(secondDuplicate.position.y).toBe(firstDuplicate.position.y + 32)
+
+    fireEvent.keyDown(surface, { key: 'Delete' })
+    expect(objects.has(secondDuplicate.id)).toBe(false)
+    expect(objects.size).toBe(initialObjectCount + 1)
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+
+    const deleteToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(deleteToolbar).getByRole('button', { name: 'Delete selection' }))
+
+    expect(objects.has(page.id)).toBe(false)
+    expect(connectors.size).toBe(initialConnectorCount - 1)
+    expect(objects.size).toBe(initialObjectCount)
+  })
+
   it('routes v3 keyboard editing shortcuts through selection operations', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()

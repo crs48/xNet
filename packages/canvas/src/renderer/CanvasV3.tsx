@@ -8,6 +8,7 @@ import type {
   CanvasAlignment,
   CanvasConfig,
   CanvasDistributionAxis,
+  CanvasEdge,
   CanvasLayerDirection,
   CanvasNode,
   Point,
@@ -36,6 +37,7 @@ import * as Y from 'yjs'
 import { CommentOverlay } from '../comments/CommentOverlay'
 import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
+import { getCanvasEdgeNodeIds } from '../edges/bindings'
 import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../layers'
 import { calculateLOD } from '../nodes/CanvasNodeComponent'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
@@ -56,7 +58,7 @@ import {
   type CanvasPositionUpdate
 } from '../selection/scene-operations'
 import { Viewport } from '../spatial'
-import { createEdge } from '../store'
+import { createEdge, generateNodeId } from '../store'
 import { type CanvasThemeTokens, useCanvasThemeTokens } from '../theme/canvas-theme'
 import { planDomIslandPool } from './dom-island-pool'
 
@@ -132,6 +134,8 @@ export type CanvasHandle = {
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
   wrapSelectionInFrame: () => boolean
   connectSelection: () => boolean
+  duplicateSelection: () => boolean
+  deleteSelection: () => boolean
   undo: () => boolean
   redo: () => boolean
   screenToCanvas: (clientX: number, clientY: number) => Point
@@ -251,6 +255,14 @@ function getObjectColor(kind: CanvasObjectRecord['kind']): string {
     default:
       return '#f97316'
   }
+}
+
+function cloneCanvasNodeProperties(properties: CanvasNode['properties']): CanvasNode['properties'] {
+  if (typeof globalThis.structuredClone === 'function') {
+    return globalThis.structuredClone(properties) as CanvasNode['properties']
+  }
+
+  return { ...properties }
 }
 
 function rgbaTupleToCss(color: readonly [number, number, number, number]): string {
@@ -924,6 +936,105 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     return true
   }, [doc, getSelectedNodes, onSceneMutation])
 
+  const duplicateSelection = useCallback((): boolean => {
+    const selectedNodes = getUnlockedSelection(getSelectedNodes())
+    if (selectedNodes.length === 0) {
+      return false
+    }
+
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const idMap = new Map(selectedNodes.map((node) => [node.id, generateNodeId()] as const))
+    const maxZIndex = Math.max(
+      0,
+      ...Array.from(objects.values()).map((node) => node.position.zIndex ?? 0)
+    )
+    const duplicateIds: string[] = []
+
+    doc.transact(() => {
+      selectedNodes.forEach((node, index) => {
+        const duplicateId = idMap.get(node.id)
+        if (!duplicateId) {
+          return
+        }
+
+        const properties = cloneCanvasNodeProperties(node.properties)
+        if (Array.isArray(properties.memberIds)) {
+          properties.memberIds = properties.memberIds.map((memberId) =>
+            typeof memberId === 'string' ? (idMap.get(memberId) ?? memberId) : memberId
+          )
+        }
+
+        const duplicate: CanvasNode = {
+          ...node,
+          id: duplicateId,
+          locked: false,
+          position: {
+            ...node.position,
+            x: Math.round(node.position.x + 32),
+            y: Math.round(node.position.y + 32),
+            zIndex: maxZIndex + index + 1
+          },
+          properties
+        }
+
+        objects.set(duplicate.id, duplicate)
+        duplicateIds.push(duplicate.id)
+      })
+    })
+
+    if (duplicateIds.length === 0) {
+      return false
+    }
+
+    setSelectedNodeIds(new Set(duplicateIds))
+    setFocusedNodeId(duplicateIds[0] ?? null)
+    onSceneMutation?.()
+
+    return true
+  }, [doc, getSelectedNodes, onSceneMutation])
+
+  const deleteSelection = useCallback((): boolean => {
+    const selectedNodes = getUnlockedSelection(getSelectedNodes())
+    if (selectedNodes.length === 0) {
+      return false
+    }
+
+    const deletedIds = new Set(selectedNodes.map((node) => node.id))
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+    let changed = false
+
+    doc.transact(() => {
+      for (const id of deletedIds) {
+        if (!objects.has(id)) {
+          continue
+        }
+
+        objects.delete(id)
+        changed = true
+      }
+
+      connectors.forEach((edge, edgeId) => {
+        const [sourceId, targetId] = getCanvasEdgeNodeIds(edge)
+        if ((sourceId && deletedIds.has(sourceId)) || (targetId && deletedIds.has(targetId))) {
+          connectors.delete(edgeId)
+          changed = true
+        }
+      })
+    })
+
+    if (!changed) {
+      return false
+    }
+
+    const remainingIds = Array.from(selectedNodeIds).filter((id) => !deletedIds.has(id))
+    setSelectedNodeIds(new Set(remainingIds))
+    setFocusedNodeId(remainingIds[0] ?? null)
+    onSceneMutation?.()
+
+    return true
+  }, [doc, getSelectedNodes, onSceneMutation, selectedNodeIds])
+
   const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes, scene.objects])
   const selectionBounds = useMemo(() => getSelectionBounds(selectedNodes), [selectedNodes])
   const selectionLockState = useMemo(() => getSelectionLockState(selectedNodes), [selectedNodes])
@@ -1082,6 +1193,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       shiftSelectionLayer,
       wrapSelectionInFrame,
       connectSelection,
+      duplicateSelection,
+      deleteSelection,
       undo: () => onUndoRedoShortcut?.('undo') ?? false,
       redo: () => onUndoRedoShortcut?.('redo') ?? false,
       screenToCanvas: screenToCanvasPoint,
@@ -1092,7 +1205,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       clearSelection,
       alignSelection,
       connectSelection,
+      deleteSelection,
       distributeSelection,
+      duplicateSelection,
       fitToRect,
       onUndoRedoShortcut,
       scene.bounds,
@@ -1506,6 +1621,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }
       const nudgeDelta = nudgeDeltaByKey[key]
 
+      if (mod && !event.shiftKey && selectedIds.length > 0 && key === 'd') {
+        event.preventDefault()
+        duplicateSelection()
+        return
+      }
+
+      if (!mod && selectedIds.length > 0 && (key === 'delete' || key === 'backspace')) {
+        event.preventDefault()
+        deleteSelection()
+        return
+      }
+
       if (!mod && selectedIds.length > 0 && nudgeDelta) {
         event.preventDefault()
         if (nudgeSelectionByCanvasDelta(selectedIds, nudgeDelta)) {
@@ -1590,6 +1717,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       clearSelection,
       config.gridSize,
       connectSelection,
+      deleteSelection,
+      duplicateSelection,
       fitToRect,
       nudgeSelectionByCanvasDelta,
       onCreateObject,
@@ -1842,6 +1971,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           <span style={{ ...styles.selectionToolbarDivider, background: theme.panelDivider }} />
 
           <CanvasSelectionToolbarButton
+            action="duplicate"
+            label="Duplicate"
+            title="Duplicate selection"
+            disabled={selectionLockState.allLocked}
+            theme={theme}
+            onClick={() => {
+              duplicateSelection()
+            }}
+          />
+
+          <CanvasSelectionToolbarButton
             action="lock"
             label={selectionLockState.allLocked ? 'Unlock' : 'Lock'}
             title={`${selectionLockState.allLocked ? 'Unlock' : 'Lock'} selection`}
@@ -1926,6 +2066,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             theme={theme}
             onClick={() => {
               shiftSelectionLayer('forward')
+            }}
+          />
+
+          <CanvasSelectionToolbarButton
+            action="delete"
+            label="Delete"
+            title="Delete selection"
+            disabled={selectionLockState.allLocked}
+            theme={theme}
+            onClick={() => {
+              deleteSelection()
             }}
           />
 
