@@ -1470,7 +1470,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add page-level anchors for comments and edges.
 - [x] Add annotation overlay model separate from source PDF bytes.
 - [x] Add text extraction where feasible and permissioned.
-- [ ] Add "explode pages to canvas" and "collect selected pages into doc" commands.
+- [x] Add "explode pages to canvas" and "collect selected pages into doc" commands.
 
 ### Embeds
 
