@@ -43,6 +43,19 @@ export {
   type CreateCanvasExternalReferenceEmbedFallbackInput
 } from './components/canvasExternalReferenceEmbedFallbacks'
 export {
+  CanvasPluginFallbackCard,
+  type CanvasPluginFallbackCardProps
+} from './components/CanvasPluginFallbackCard'
+export {
+  createCanvasMissingPluginFallback,
+  type CanvasMissingPluginFallback,
+  type CanvasMissingPluginFallbackAction,
+  type CanvasMissingPluginFallbackActionKind,
+  type CanvasMissingPluginFallbackReason,
+  type CanvasMissingPluginFallbackTone,
+  type CreateCanvasMissingPluginFallbackInput
+} from './components/canvasPluginFallbacks'
+export {
   FloatingToolbar,
   type FloatingToolbarProps,
   type ToolbarMode,
