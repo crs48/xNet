@@ -106,6 +106,7 @@ export {
   convertFlatCanvasDocToTileDocs,
   createCanvasTileDoc,
   ensureCanvasTileDocMaps,
+  applyCanvasPreviewTileSummaryUpdateToTileDoc,
   readCanvasTileDocSnapshot,
   writeCanvasTileDocSnapshot
 } from './scene/tile-doc-schema'
@@ -136,6 +137,12 @@ export {
   createCanvasPreviewSourceFingerprint,
   shouldInvalidateCanvasPreviewCache
 } from './preview/cache-invalidation'
+export {
+  applyCanvasPreviewTileSummaryUpdate,
+  createCanvasPreviewTileSummaryMetadata,
+  createCanvasPreviewTileSummaryUpdate,
+  hasCanvasPreviewTileSummaryChanged
+} from './preview/tile-summary'
 export {
   createCanvasStoragePolicyPrompt,
   createCanvasStoragePolicyDecision,
@@ -172,6 +179,10 @@ export type {
   CreateCanvasThumbnailOutputInput
 } from './preview/thumbnail-output'
 export type { CanvasPreviewSourceFingerprintInput } from './preview/cache-invalidation'
+export type {
+  CanvasPreviewTileSummaryMetadata,
+  CanvasPreviewTileSummaryUpdate
+} from './preview/tile-summary'
 export type {
   CanvasStoragePolicy,
   CanvasStoragePolicyCapability,

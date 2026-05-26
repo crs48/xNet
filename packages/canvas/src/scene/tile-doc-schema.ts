@@ -2,6 +2,7 @@
  * Canvas v3 tile Y.Doc schema and flat-doc migration helpers.
  */
 
+import type { CanvasPreviewTileSummaryUpdate } from '../preview/tile-summary'
 import type { CanvasEdge, CanvasNode } from '../types'
 import type {
   CanvasConnectorRecord,
@@ -14,6 +15,7 @@ import type {
 import { DEFAULT_CANVAS_TILE_SIZE, createTileId, getTileCoverageForRect } from '@xnetjs/canvas-core'
 import * as Y from 'yjs'
 import { getCanvasEdgeNodeIds, resolveCanvasAnchorPoint } from '../edges/bindings'
+import { applyCanvasPreviewTileSummaryUpdate } from '../preview/tile-summary'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from './doc-layout'
 import { isCanvasObjectKind } from './node-kind'
 
@@ -273,6 +275,30 @@ export function readCanvasTileDocSnapshot(doc: Y.Doc): CanvasTileDocSnapshot {
     connectors: Array.from(maps.connectors.values()),
     tombstones: Array.from(maps.tombstones.values())
   }
+}
+
+export function applyCanvasPreviewTileSummaryUpdateToTileDoc(
+  doc: Y.Doc,
+  update: CanvasPreviewTileSummaryUpdate
+): CanvasObjectRecord | null {
+  const maps = ensureCanvasTileDocMaps(doc)
+  const existing = maps.objects.get(update.objectId)
+
+  if (!existing) {
+    return null
+  }
+
+  const next = applyCanvasPreviewTileSummaryUpdate(existing, update)
+
+  if (next === existing) {
+    return existing
+  }
+
+  doc.transact(() => {
+    maps.objects.set(next.id, next)
+  })
+
+  return next
 }
 
 export function convertFlatCanvasDocToTileDocs(
