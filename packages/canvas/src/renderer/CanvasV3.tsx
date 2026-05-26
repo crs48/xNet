@@ -40,6 +40,7 @@ import { CommentOverlay } from '../comments/CommentOverlay'
 import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
 import { getCanvasEdgeNodeIds } from '../edges/bindings'
+import { getCanvasEdgePresentation } from '../edges/presentation'
 import { createCanvasEdgeRelationship } from '../edges/relationships'
 import { createCanvasPrimitiveNode } from '../ingestion'
 import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../layers'
@@ -2272,8 +2273,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [viewport, viewportSize]
   )
   const visibleConnectorLines = useMemo(() => {
+    const fullEdges = getCanvasConnectorsMap<CanvasEdge>(doc)
+    const fullEdgesById = new Map(Array.from(fullEdges.values()).map((edge) => [edge.id, edge]))
+
     return scene.connectors
       .map((connector) => {
+        const edge = fullEdgesById.get(connector.id) ?? fullEdges.get(connector.id)
+        const presentation = edge ? getCanvasEdgePresentation(edge) : null
         const sourceRect = getScreenRectForObject(
           {
             id: `${connector.id}:source`,
@@ -2312,11 +2318,23 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           x1: sourceRect.x + getDragPreviewDeltaForConnectorEndpoint(connector.source.objectId).x,
           y1: sourceRect.y + getDragPreviewDeltaForConnectorEndpoint(connector.source.objectId).y,
           x2: targetRect.x + getDragPreviewDeltaForConnectorEndpoint(connector.target.objectId).x,
-          y2: targetRect.y + getDragPreviewDeltaForConnectorEndpoint(connector.target.objectId).y
+          y2: targetRect.y + getDragPreviewDeltaForConnectorEndpoint(connector.target.objectId).y,
+          label: presentation?.label,
+          stroke: presentation?.stroke ?? theme.minimapEdge,
+          strokeWidth: presentation?.strokeWidth ?? 1.5,
+          strokeDasharray: presentation?.strokeDasharray,
+          markerEnd: presentation?.markerEnd
         }
       })
       .filter((line) => [line.x1, line.y1, line.x2, line.y2].every(Number.isFinite))
-  }, [getDragPreviewDeltaForConnectorEndpoint, scene.connectors, viewport, viewportSize])
+  }, [
+    doc,
+    getDragPreviewDeltaForConnectorEndpoint,
+    scene.connectors,
+    theme.minimapEdge,
+    viewport,
+    viewportSize
+  ])
   const visibleSnapGuideLines = useMemo(() => {
     return activeSnapGuides
       .map((guide) => ({
@@ -2865,18 +2883,62 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       <div ref={vectorLayerRef} style={styles.vectorLayer} aria-hidden="true" />
 
       <svg style={styles.edgeLayer} aria-hidden="true" data-canvas-v3-edge-layer="true">
-        {visibleConnectorLines.map((line) => (
-          <line
-            key={line.id}
-            x1={line.x1}
-            y1={line.y1}
-            x2={line.x2}
-            y2={line.y2}
-            stroke={theme.minimapEdge}
-            strokeWidth={1.5}
-            strokeOpacity={0.42}
-          />
-        ))}
+        <defs>
+          {visibleConnectorLines
+            .filter((line) => line.markerEnd === 'arrow')
+            .map((line) => (
+              <marker
+                key={`marker:${line.id}`}
+                id={`canvas-v3-edge-arrow-${line.id}`}
+                markerWidth="8"
+                markerHeight="8"
+                refX="7"
+                refY="4"
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <path d="M 0 0 L 8 4 L 0 8 z" fill={line.stroke} />
+              </marker>
+            ))}
+        </defs>
+        {visibleConnectorLines.map((line) => {
+          const midX = (line.x1 + line.x2) / 2
+          const midY = (line.y1 + line.y2) / 2
+
+          return (
+            <g key={line.id} data-canvas-v3-edge-id={line.id}>
+              <line
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke={line.stroke}
+                strokeWidth={line.strokeWidth}
+                strokeDasharray={line.strokeDasharray}
+                strokeOpacity={0.72}
+                markerEnd={
+                  line.markerEnd === 'arrow' ? `url(#canvas-v3-edge-arrow-${line.id})` : undefined
+                }
+              />
+              {line.label ? (
+                <text
+                  x={midX}
+                  y={midY - 8}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fontWeight={600}
+                  fill={line.stroke}
+                  paintOrder="stroke"
+                  stroke={theme.panelBackground}
+                  strokeWidth={3}
+                  data-canvas-v3-edge-label="true"
+                >
+                  {line.label}
+                </text>
+              ) : null}
+            </g>
+          )
+        })}
       </svg>
 
       {visibleSnapGuideLines.length > 0 ? (

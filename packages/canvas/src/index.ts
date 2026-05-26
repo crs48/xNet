@@ -105,11 +105,23 @@ export {
   getCanvasConnectorKindForRelationship,
   normalizeCanvasEdgeRelationship
 } from './edges/relationships'
+export {
+  canvasEdgeMatchesFilter,
+  filterCanvasEdges,
+  getCanvasEdgePresentation,
+  pickCanvasEdgeEndpointAnchor
+} from './edges/presentation'
 export type {
   CanvasConnectorRecordKind,
   CanvasSemanticRelationshipRecord,
   CreateCanvasEdgeRelationshipInput
 } from './edges/relationships'
+export type {
+  CanvasEdgeEndpointAnchorPickMode,
+  CanvasEdgeFilter,
+  CanvasEdgePresentation,
+  PickCanvasEdgeEndpointAnchorInput
+} from './edges/presentation'
 
 export {
   CANVAS_TILE_CONNECTORS_MAP_KEY,

@@ -2,7 +2,7 @@
  * Canvas v3 active renderer tests.
  */
 
-import type { CanvasHandle, CanvasNode } from '../index'
+import type { CanvasEdge, CanvasHandle, CanvasNode } from '../index'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,7 @@ import {
   Canvas,
   createEdge,
   createCanvasMindMapBranchProperties,
+  createCanvasEdgeRelationship,
   createCanvasMindMapRootProperties,
   createNode,
   getCanvasConnectorsMap,
@@ -628,6 +629,35 @@ describe('Canvas v3 active renderer', () => {
       direction: 'undirected'
     })
     expect(onSceneMutation).toHaveBeenCalledOnce()
+  })
+
+  it('renders v3 edge labels and semantic edge styles', () => {
+    const doc = createCanvasTestDoc()
+    const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+    const edge = connectors.get('edge-1')
+
+    if (!edge) {
+      throw new Error('Expected edge-1')
+    }
+
+    connectors.set('edge-1', {
+      ...edge,
+      relationship: createCanvasEdgeRelationship({
+        kind: 'depends-on',
+        label: 'Needs'
+      })
+    })
+
+    render(<Canvas doc={doc} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const edgeGroup = surface.querySelector(`[data-canvas-v3-edge-id="${edge.id}"]`)
+    const line = edgeGroup?.querySelector('line')
+    const label = edgeGroup?.querySelector('[data-canvas-v3-edge-label="true"]')
+
+    expect(line?.getAttribute('stroke')).toBe('#dc2626')
+    expect(line?.getAttribute('marker-end')).toBe(`url(#canvas-v3-edge-arrow-${edge.id})`)
+    expect(label?.textContent).toBe('Needs')
   })
 
   it('derives v3 selection toolbar actions from selection capabilities', () => {

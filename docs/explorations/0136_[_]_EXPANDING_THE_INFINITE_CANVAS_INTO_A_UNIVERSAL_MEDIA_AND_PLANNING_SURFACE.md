@@ -1489,7 +1489,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add collapsible branches and inherited branch styling.
 - [x] Add conversion commands between notes, tasks, pages, database rows, and mind map branches.
 - [x] Add semantic relationship records for edges.
-- [ ] Add edge labels, filters, styles, and endpoint anchor picking.
+- [x] Add edge labels, filters, styles, and endpoint anchor picking.
 - [ ] Add far-zoom edge summaries and minimap relationship hints.
 
 ### Shapes, Frames, And Planning Tools
