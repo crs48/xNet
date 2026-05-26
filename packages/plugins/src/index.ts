@@ -76,6 +76,22 @@ export type {
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
 
+// Canvas plugin fixtures
+export {
+  CANVAS_PLUGIN_FIXTURES,
+  CRM_CANVAS_PLUGIN_FIXTURE,
+  ERP_CANVAS_PLUGIN_FIXTURE,
+  MEDIA_PROVIDER_CANVAS_PLUGIN_FIXTURE,
+  createCanvasPluginFixtureCards,
+  createCanvasPluginFixtureManifests,
+  getCanvasPluginFixture
+} from './fixtures/canvas'
+export type {
+  CanvasPluginFixture,
+  CanvasPluginFixtureCardSample,
+  CanvasPluginFixtureKind
+} from './fixtures/canvas'
+
 // Shortcuts
 export { ShortcutManager, getShortcutManager, installShortcutHandler } from './shortcuts'
 
