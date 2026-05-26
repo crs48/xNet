@@ -120,6 +120,15 @@ export type {
 export { createMinimapSummaryFromCanvasScene } from './scene/minimap-summary'
 export { createCanvasPreviewModel, getCanvasPreviewCacheKey } from './preview/model'
 export {
+  cancelCanvasPreviewJob,
+  claimNextCanvasPreviewJob,
+  completeCanvasPreviewJob,
+  createCanvasPreviewQueueState,
+  enqueueCanvasPreviewJob,
+  failCanvasPreviewJob,
+  getCanvasPreviewJobKey
+} from './preview/queue'
+export {
   createCanvasStoragePolicyPrompt,
   createCanvasStoragePolicyDecision,
   getCanvasStoragePolicies,
@@ -141,6 +150,14 @@ export type {
   CanvasPreviewTier,
   CreateCanvasPreviewModelInput
 } from './preview/model'
+export type {
+  CanvasPreviewQueueClaimResult,
+  CanvasPreviewQueueFailureOptions,
+  CanvasPreviewQueueJob,
+  CanvasPreviewQueueJobInput,
+  CanvasPreviewQueueJobStatus,
+  CanvasPreviewQueueState
+} from './preview/queue'
 export type {
   CanvasStoragePolicy,
   CanvasStoragePolicyCapability,
