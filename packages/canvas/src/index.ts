@@ -148,6 +148,7 @@ export {
   isCanvasPdfAnnotationSourceDetached,
   updateCanvasPdfAnnotation
 } from './pdf/annotations'
+export { extractCanvasPdfText } from './pdf/text-extraction'
 export {
   createCanvasPdfPageAnchorId,
   createCanvasPdfPageCommentAnchor,
@@ -218,6 +219,19 @@ export type {
   CreateCanvasPdfAnnotationInput,
   CreateCanvasPdfAnnotationOverlayInput
 } from './pdf/annotations'
+export type {
+  CanvasPdfPageText,
+  CanvasPdfTextAdapter,
+  CanvasPdfTextContent,
+  CanvasPdfTextDocument,
+  CanvasPdfTextExtractionResult,
+  CanvasPdfTextExtractionStatus,
+  CanvasPdfTextItem,
+  CanvasPdfTextLoadingTask,
+  CanvasPdfTextPage,
+  CanvasPdfTextRun,
+  ExtractCanvasPdfTextInput
+} from './pdf/text-extraction'
 export type {
   CanvasPdfPageAnchorLayout,
   CanvasPdfPageCommentAnchor,
