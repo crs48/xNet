@@ -10,6 +10,29 @@
 import type { HybridKeyBundle } from '../types'
 import { createKeyBundle } from '../key-bundle'
 
+const TEST_BYPASS_IDENTITY_MARKER = 'xnet:test:identity-created'
+
+function readTestIdentityMarker(): boolean {
+  if (typeof localStorage === 'undefined') {
+    return false
+  }
+
+  return localStorage.getItem(TEST_BYPASS_IDENTITY_MARKER) === 'true'
+}
+
+function writeTestIdentityMarker(enabled: boolean): void {
+  if (typeof localStorage === 'undefined') {
+    return
+  }
+
+  if (enabled) {
+    localStorage.setItem(TEST_BYPASS_IDENTITY_MARKER, 'true')
+    return
+  }
+
+  localStorage.removeItem(TEST_BYPASS_IDENTITY_MARKER)
+}
+
 /**
  * Check if test bypass mode is enabled.
  * Returns true if XNET_TEST_BYPASS environment variable is set to 'true'.
@@ -99,13 +122,14 @@ export function createTestIdentityManager() {
     },
 
     async hasIdentity(): Promise<boolean> {
-      return storedInMemory
+      return storedInMemory || readTestIdentityMarker()
     },
 
     async create(): Promise<HybridKeyBundle> {
       const keyBundle = createTestIdentity()
       cachedKeyBundle = keyBundle
       storedInMemory = true
+      writeTestIdentityMarker(true)
       return keyBundle
     },
 
@@ -114,12 +138,13 @@ export function createTestIdentityManager() {
         return cachedKeyBundle
       }
 
-      if (!storedInMemory) {
+      if (!storedInMemory && !readTestIdentityMarker()) {
         throw new Error('No test identity found')
       }
 
       const keyBundle = createTestIdentity()
       cachedKeyBundle = keyBundle
+      storedInMemory = true
       return keyBundle
     },
 
@@ -130,6 +155,7 @@ export function createTestIdentityManager() {
     async clear(): Promise<void> {
       cachedKeyBundle = null
       storedInMemory = false
+      writeTestIdentityMarker(false)
     }
   }
 }
