@@ -118,6 +118,21 @@ export type {
 } from './scene/tile-doc-schema'
 
 export { createMinimapSummaryFromCanvasScene } from './scene/minimap-summary'
+export { createCanvasPreviewModel, getCanvasPreviewCacheKey } from './preview/model'
+export type {
+  CanvasPreviewAction,
+  CanvasPreviewActionKind,
+  CanvasPreviewAnchor,
+  CanvasPreviewLifecycleStatus,
+  CanvasPreviewLiveSurface,
+  CanvasPreviewModel,
+  CanvasPreviewShell,
+  CanvasPreviewSourceRef,
+  CanvasPreviewSummary,
+  CanvasPreviewThumbnail,
+  CanvasPreviewTier,
+  CreateCanvasPreviewModelInput
+} from './preview/model'
 
 export {
   DEFAULT_CANVAS_TILE_SIZE,
