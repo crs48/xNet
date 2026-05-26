@@ -11,12 +11,14 @@ import type {
 import type { JSX } from 'react'
 import React from 'react'
 import { cn } from '../utils'
+import { CanvasCardAuditTrail, type CanvasCardAuditEntry } from './CanvasCardAuditTrail'
 
 export type CanvasPluginFallbackCardProps = {
   fallback: CanvasMissingPluginFallback
   themeMode: 'light' | 'dark'
   title?: string | null
   subtitle?: string | null
+  auditEntries?: readonly CanvasCardAuditEntry[] | null
   onAction?: (
     action: CanvasMissingPluginFallbackActionKind,
     fallback: CanvasMissingPluginFallback
@@ -90,6 +92,7 @@ export function CanvasPluginFallbackCard({
   themeMode,
   title,
   subtitle,
+  auditEntries,
   onAction
 }: CanvasPluginFallbackCardProps): JSX.Element {
   const toneClasses = TONE_CLASSES[fallback.tone]
@@ -208,6 +211,10 @@ export function CanvasPluginFallbackCard({
             </button>
           ))}
         </div>
+
+        {auditEntries ? (
+          <CanvasCardAuditTrail entries={auditEntries} themeMode={themeMode} maxEntries={3} />
+        ) : null}
 
         <p
           className="truncate text-xs text-muted-foreground"

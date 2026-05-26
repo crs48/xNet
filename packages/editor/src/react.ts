@@ -28,6 +28,19 @@ export {
   type CanvasExternalReferenceCardProps
 } from './components/CanvasExternalReferenceCard'
 export {
+  CanvasCardAuditTrail,
+  createCanvasCardAuditSummary,
+  formatCanvasCardAuditTimestamp,
+  getCanvasCardAuditOperationLabel,
+  normalizeCanvasCardAuditEntries,
+  type CanvasCardAuditEntry,
+  type CanvasCardAuditOperation,
+  type CanvasCardAuditSource,
+  type CanvasCardAuditSummary,
+  type CanvasCardAuditTrailProps,
+  type CanvasNormalizedCardAuditEntry
+} from './components/CanvasCardAuditTrail'
+export {
   createCanvasExternalReferenceCardRenderer,
   type CanvasExternalReferenceCardAccent,
   type CanvasExternalReferenceCardMetadata,

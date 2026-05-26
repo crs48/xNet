@@ -85,4 +85,38 @@ describe('CanvasPluginFallbackCard', () => {
     expect(permissionLabel).toHaveTextContent('erp.purchase-orders:read, files:read')
     expect(screen.getByRole('button', { name: 'Request plugin permission' })).toBeInTheDocument()
   })
+
+  it('renders plugin card audit trail entries when provided', () => {
+    const fallback = createCanvasMissingPluginFallback({
+      reason: 'plugin-disabled',
+      pluginName: 'ERP Planner',
+      contributionName: 'Purchase order card'
+    })
+
+    render(
+      <CanvasPluginFallbackCard
+        fallback={fallback}
+        themeMode="light"
+        auditEntries={[
+          {
+            id: 'audit-1',
+            operation: 'plugin-render',
+            occurredAt: '2026-05-02T12:30:00.000Z',
+            summary: 'Renderer disabled by workspace policy',
+            actorLabel: 'Workspace admin',
+            source: 'plugin',
+            pluginId: 'com.xnet.fixtures.erp',
+            contributionId: 'erp.purchase-order-card'
+          }
+        ]}
+      />
+    )
+
+    const trail = document.querySelector('[data-canvas-card-audit-trail="true"]')
+    const entry = document.querySelector('[data-canvas-card-audit-entry="true"]')
+
+    expect(trail).toHaveAttribute('data-canvas-card-audit-count', '1')
+    expect(entry).toHaveAttribute('data-canvas-card-audit-operation', 'plugin-render')
+    expect(screen.getByText('Renderer disabled by workspace policy')).toBeInTheDocument()
+  })
 })
