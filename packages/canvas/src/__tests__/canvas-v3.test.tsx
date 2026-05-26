@@ -228,10 +228,12 @@ describe('Canvas v3 active renderer', () => {
     fireEvent.keyDown(surface, { key: 'r' })
     fireEvent.keyDown(surface, { key: 'f' })
     fireEvent.keyDown(surface, { key: 'n' })
+    fireEvent.keyDown(surface, { key: 'm' })
 
     expect(onCreateObject).toHaveBeenNthCalledWith(1, 'shape')
     expect(onCreateObject).toHaveBeenNthCalledWith(2, 'frame')
     expect(onCreateObject).toHaveBeenNthCalledWith(3, 'note')
+    expect(onCreateObject).toHaveBeenNthCalledWith(4, 'mind-map')
   })
 
   it('exposes viewport operations without the legacy useCanvas hook', () => {

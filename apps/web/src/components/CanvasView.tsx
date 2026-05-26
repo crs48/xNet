@@ -7,6 +7,8 @@ import type { ChangeEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
+  CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
   getCanvasObjectsMap,
@@ -31,6 +33,7 @@ import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
 import {
   FileImage,
   FileText,
+  GitFork,
   Layout,
   Link2,
   Maximize2,
@@ -418,6 +421,17 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     })
   }, [placePrimitiveObject])
 
+  const handleCreateMindMap = useCallback((): void => {
+    const properties = createCanvasMindMapRootProperties()
+
+    placePrimitiveObject({
+      objectKind: CANVAS_MIND_MAP_CREATION_TOOL.objectKind,
+      title: properties.title,
+      rect: CANVAS_MIND_MAP_CREATION_TOOL.rootRect,
+      properties
+    })
+  }, [placePrimitiveObject])
+
   const handleCreateReference = useCallback((): void => {
     const candidate = window.prompt('Paste a URL to add to the canvas', 'https://')?.trim()
 
@@ -449,7 +463,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   )
 
   const handleCreateObject = useCallback(
-    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => {
+    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame' | 'mind-map') => {
       if (kind === 'page') {
         void handleCreatePage()
         return
@@ -470,11 +484,23 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         return
       }
 
+      if (kind === 'mind-map') {
+        handleCreateMindMap()
+        return
+      }
+
       if (kind === 'note') {
         void handleCreateNote()
       }
     },
-    [handleCreateDatabase, handleCreateFrame, handleCreateNote, handleCreatePage, handleCreateShape]
+    [
+      handleCreateDatabase,
+      handleCreateFrame,
+      handleCreateMindMap,
+      handleCreateNote,
+      handleCreatePage,
+      handleCreateShape
+    ]
   )
 
   const handleSurfaceDrop = useCallback(
@@ -732,6 +758,18 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       icon: <Layout size={14} />,
       dataAttributes: {
         'data-web-canvas-create-frame': 'true'
+      }
+    },
+    {
+      id: 'mind-map',
+      title: 'Create mind map (M)',
+      label: 'Create mind map',
+      onClick: () => {
+        handleCreateMindMap()
+      },
+      icon: <GitFork size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-mind-map': 'true'
       }
     },
     {
@@ -1020,7 +1058,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
               <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Drop a URL for a link card, drag in a page or database from the sidebar, or press
-                `R`, `F`, or `N` to build directly on the board.
+                `R`, `F`, `N`, or `M` to build directly on the board.
               </p>
             </div>
           </div>

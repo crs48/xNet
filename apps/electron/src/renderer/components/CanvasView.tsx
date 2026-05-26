@@ -15,6 +15,8 @@ import type {
 } from '@xnetjs/canvas'
 import {
   Canvas,
+  CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
   getCanvasObjectsMap,
@@ -166,6 +168,7 @@ export type CanvasViewHandle = {
   connectSelection: () => boolean
   createShape: (shapeType?: ShapeType) => boolean
   createFrame: () => boolean
+  createMindMap: () => boolean
   createExternalReference: (url?: string) => boolean
   createMediaFile: () => boolean
   wrapSelectionInFrame: () => boolean
@@ -1485,6 +1488,24 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return created
   }, [placePrimitiveObject, recordUndoBoundary])
 
+  const createMindMap = useCallback((): boolean => {
+    const properties = createCanvasMindMapRootProperties()
+    const created = Boolean(
+      placePrimitiveObject({
+        objectKind: CANVAS_MIND_MAP_CREATION_TOOL.objectKind,
+        title: properties.title,
+        rect: CANVAS_MIND_MAP_CREATION_TOOL.rootRect,
+        properties
+      })
+    )
+
+    if (created) {
+      recordUndoBoundary('scene')
+    }
+
+    return created
+  }, [placePrimitiveObject, recordUndoBoundary])
+
   const createExternalReference = useCallback(
     (url?: string): boolean => {
       const candidate = (
@@ -1541,7 +1562,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }, [])
 
   const handleCreateObject = useCallback(
-    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => {
+    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame' | 'mind-map') => {
       if (kind === 'page') {
         onCreatePage?.()
         return
@@ -1562,9 +1583,14 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         return
       }
 
+      if (kind === 'mind-map') {
+        createMindMap()
+        return
+      }
+
       onCreateNote?.()
     },
-    [createFrame, createShape, onCreateDatabase, onCreateNote, onCreatePage]
+    [createFrame, createMindMap, createShape, onCreateDatabase, onCreateNote, onCreatePage]
   )
 
   useEffect(() => {
@@ -1608,6 +1634,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       connectSelection,
       createShape,
       createFrame,
+      createMindMap,
       createExternalReference,
       createMediaFile,
       wrapSelectionInFrame,
@@ -1622,6 +1649,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       clearCanvasSelection,
       createExternalReference,
       createFrame,
+      createMindMap,
       createMediaFile,
       createShape,
       connectSelection,
@@ -2177,7 +2205,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
             <div className="mt-4 grid gap-2 text-sm text-foreground">
               {[
-                ['P / D / N', 'Create page, database, or note'],
+                ['P / D / N / M', 'Create page, database, note, or mind map'],
                 ['R / F', 'Create a rectangle or an empty frame'],
                 ['Drag handle', 'Pull from a selected card to connect objects'],
                 ['Tab', 'Step through canvas objects'],

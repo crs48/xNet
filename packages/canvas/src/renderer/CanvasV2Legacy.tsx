@@ -47,7 +47,7 @@ import {
 } from '../edges/bindings'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
-import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
+import { useCanvasKeyboard, type CanvasCreationShortcut } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
 import { CanvasPrimitiveNodeContent } from '../nodes/CanvasPrimitiveNodeContent'
@@ -226,7 +226,7 @@ export interface CanvasProps {
   /** Callback when the canvas selection changes */
   onSelectionChange?: (selection: CanvasSelectionSnapshot) => void
   /** Callback when the user triggers a canvas creation shortcut */
-  onCreateObject?: (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => void
+  onCreateObject?: (kind: CanvasCreationShortcut) => void
   /** Callback when the user triggers a selection open/peek shortcut */
   onOpenSelection?: (mode: 'peek' | 'focus' | 'split') => void
   /** Callback when the user toggles canvas shortcut help */

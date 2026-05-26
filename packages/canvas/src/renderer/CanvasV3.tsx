@@ -42,6 +42,10 @@ import { NavigationTools } from '../components/NavigationTools'
 import { getCanvasEdgeNodeIds } from '../edges/bindings'
 import { createCanvasPrimitiveNode } from '../ingestion'
 import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../layers'
+import {
+  CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasMindMapRootProperties
+} from '../mind-map/creation'
 import { calculateLOD } from '../nodes/CanvasNodeComponent'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { readCanvasV3MigrationSceneFromFlatDoc } from '../scene/flat-doc-v3-migration'
@@ -153,6 +157,7 @@ export type CanvasHandle = {
   deleteSelection: () => boolean
   createShape: (shapeType?: ShapeType) => boolean
   createFrame: () => boolean
+  createMindMap: () => boolean
   undo: () => boolean
   redo: () => boolean
   screenToCanvas: (clientX: number, clientY: number) => Point
@@ -168,7 +173,7 @@ export type CanvasProps = {
   onNodeDoubleClick?: (id: string) => void
   onBackgroundClick?: () => void
   onSelectionChange?: (selection: CanvasSelectionSnapshot) => void
-  onCreateObject?: (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => void
+  onCreateObject?: (kind: 'page' | 'database' | 'note' | 'shape' | 'frame' | 'mind-map') => void
   onOpenSelection?: (mode: 'peek' | 'focus' | 'split') => void
   onToggleShortcutHelp?: () => void
   onEditSelectionAlias?: () => void
@@ -1346,6 +1351,27 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     return true
   }, [doc, onSceneMutation, viewport])
 
+  const createMindMap = useCallback((): boolean => {
+    const properties = createCanvasMindMapRootProperties()
+    const object = createCanvasPrimitiveNode({
+      objectKind: CANVAS_MIND_MAP_CREATION_TOOL.objectKind,
+      viewport,
+      title: properties.title,
+      rect: CANVAS_MIND_MAP_CREATION_TOOL.rootRect,
+      properties
+    })
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+
+    doc.transact(() => {
+      objects.set(object.id, object)
+    })
+    setSelectedNodeIds(new Set([object.id]))
+    setFocusedNodeId(object.id)
+    onSceneMutation?.()
+
+    return true
+  }, [doc, onSceneMutation, viewport])
+
   const connectSelection = useCallback((): boolean => {
     const selectedNodes = getSelectedNodes()
     if (selectedNodes.length !== 2) {
@@ -2014,6 +2040,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       deleteSelection,
       createShape,
       createFrame,
+      createMindMap,
       undo: () => onUndoRedoShortcut?.('undo') ?? false,
       redo: () => onUndoRedoShortcut?.('redo') ?? false,
       screenToCanvas: screenToCanvasPoint,
@@ -2025,6 +2052,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       alignSelection,
       connectSelection,
       createFrame,
+      createMindMap,
       createShape,
       deleteSelection,
       distributeSelection,
@@ -2588,6 +2616,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         return
       }
 
+      if (key === 'm' && selectedNodeIds.size === 0) {
+        event.preventDefault()
+        if (onCreateObject) {
+          onCreateObject('mind-map')
+        } else {
+          createMindMap()
+        }
+        return
+      }
+
       if (key === 'e' && selectedNodeIds.size === 1) {
         event.preventDefault()
         onEditSelectionAlias?.()
@@ -2605,6 +2643,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       config.gridSize,
       connectSelection,
       createFrame,
+      createMindMap,
       createShape,
       deleteSelection,
       duplicateSelection,

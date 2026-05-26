@@ -318,6 +318,23 @@ export type {
   CanvasSnapState,
   CanvasUndoGroupCommand
 } from './interaction/controller'
+export {
+  CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasMindMapBranchProperties,
+  createCanvasMindMapRootProperties,
+  getCanvasMindMapKeyboardIntent
+} from './mind-map/creation'
+export type {
+  CanvasMindMapBranchDirection,
+  CanvasMindMapCreationTool,
+  CanvasMindMapKeyboardEventLike,
+  CanvasMindMapKeyboardIntent,
+  CanvasMindMapNodeMetadata,
+  CanvasMindMapNodeProperties,
+  CanvasMindMapNodeRole,
+  CreateCanvasMindMapBranchPropertiesInput,
+  CreateCanvasMindMapRootPropertiesInput
+} from './mind-map/creation'
 
 export {
   DEFAULT_CANVAS_TILE_SIZE,
@@ -670,7 +687,7 @@ export type { UseCursorTrackingOptions } from './hooks/useCursorTracking'
 
 // Navigation hooks
 export { useCanvasKeyboard } from './hooks/useCanvasKeyboard'
-export type { UseCanvasKeyboardOptions } from './hooks/useCanvasKeyboard'
+export type { CanvasCreationShortcut, UseCanvasKeyboardOptions } from './hooks/useCanvasKeyboard'
 
 export { useCanvasObjectIngestion } from './hooks/useCanvasObjectIngestion'
 export type {
