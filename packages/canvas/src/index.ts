@@ -133,6 +133,10 @@ export {
   getCanvasThumbnailOutputCacheKey
 } from './preview/thumbnail-output'
 export {
+  createCanvasPreviewSourceFingerprint,
+  shouldInvalidateCanvasPreviewCache
+} from './preview/cache-invalidation'
+export {
   createCanvasStoragePolicyPrompt,
   createCanvasStoragePolicyDecision,
   getCanvasStoragePolicies,
@@ -167,6 +171,7 @@ export type {
   CanvasThumbnailOutputKind,
   CreateCanvasThumbnailOutputInput
 } from './preview/thumbnail-output'
+export type { CanvasPreviewSourceFingerprintInput } from './preview/cache-invalidation'
 export type {
   CanvasStoragePolicy,
   CanvasStoragePolicyCapability,

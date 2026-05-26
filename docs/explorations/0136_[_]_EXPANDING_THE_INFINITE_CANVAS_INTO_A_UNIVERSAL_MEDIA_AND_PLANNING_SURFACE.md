@@ -1457,7 +1457,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Define `CanvasPreviewModel` with summary, thumbnail, shell, live, anchors, and actions.
 - [x] Add preview worker queue keyed by source node version and content hash.
 - [x] Add deterministic thumbnail outputs for image, PDF, generic file, URL card, video poster, and audio card.
-- [ ] Add preview cache invalidation when source node fields or blob hashes change.
+- [x] Add preview cache invalidation when source node fields or blob hashes change.
 - [ ] Add tile summary update path from preview metadata.
 - [ ] Add offline fallback behavior.
 - [ ] Add benchmark coverage for preview generation under large boards.
