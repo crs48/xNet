@@ -13,6 +13,7 @@ export type CanvasContextPopoverKind =
   | 'alias'
   | 'references'
   | 'comments'
+  | 'source-bulk'
   | 'plugin-fields'
 
 export type CanvasContextPopoverDefinition = {
@@ -28,6 +29,7 @@ export type CreateCanvasContextPopoverDefinitionsInput = {
   hasAliasHandler?: boolean
   hasReferencesPanel?: boolean
   hasCommentHandler?: boolean
+  hasSourceBulkActions?: boolean
   pluginFieldCount?: number
 }
 
@@ -40,6 +42,7 @@ const CONTEXT_POPOVER_LABELS: Record<CanvasContextPopoverKind, string> = {
   alias: 'Alias',
   references: 'References',
   comments: 'Comments',
+  'source-bulk': 'Bulk Actions',
   'plugin-fields': 'Plugin Fields'
 }
 
@@ -53,6 +56,10 @@ function isSingleUnlockedNode(nodes: readonly CanvasNode[]): boolean {
 
 function hasSourceBackedNode(nodes: readonly CanvasNode[]): boolean {
   return nodes.some((node) => Boolean(node.sourceNodeId ?? node.linkedNodeId))
+}
+
+function hasMultipleSourceBackedNodes(nodes: readonly CanvasNode[]): boolean {
+  return nodes.filter((node) => Boolean(node.sourceNodeId ?? node.linkedNodeId)).length > 1
 }
 
 function isMediaNode(node: CanvasNode | undefined): boolean {
@@ -142,6 +149,11 @@ export function createCanvasContextPopoverDefinitions(
       'comments',
       selected && input.hasCommentHandler === true,
       'Select an object or edge.'
+    ),
+    createDefinition(
+      'source-bulk',
+      hasMultipleSourceBackedNodes(input.nodes) && input.hasSourceBulkActions === true,
+      'Select two or more source-backed objects.'
     ),
     createDefinition(
       'plugin-fields',

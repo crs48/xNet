@@ -72,6 +72,25 @@ describe('contextual popovers', () => {
     ).toBe(true)
   })
 
+  it('enables source bulk actions for multi-source selections', () => {
+    const first = createNode({ id: 'page-1', type: 'page', sourceNodeId: 'source-1' })
+    const second = createNode({ id: 'page-2', type: 'page', sourceNodeId: 'source-2' })
+    const shape = createNode({ id: 'shape-1', type: 'shape' })
+
+    expect(
+      getEnabledCanvasContextPopovers({
+        nodes: [first, second, shape],
+        hasSourceBulkActions: true
+      }).some((definition) => definition.kind === 'source-bulk')
+    ).toBe(true)
+    expect(
+      getEnabledCanvasContextPopovers({
+        nodes: [first, shape],
+        hasSourceBulkActions: true
+      }).some((definition) => definition.kind === 'source-bulk')
+    ).toBe(false)
+  })
+
   it('detects plugin field popovers from explicit counts or node metadata', () => {
     const pluginNode = createNode({
       id: 'plugin-1',

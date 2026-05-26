@@ -512,6 +512,13 @@ export {
   getEnabledCanvasContextPopovers
 } from './selection/contextual-popovers'
 export {
+  createCanvasSourceBulkOperationDefinitions,
+  createCanvasSourceBulkOperationPlan,
+  getCanvasSourceBackedCardRef,
+  getCanvasSourceBackedSelection,
+  isCanvasSourceBackedNode
+} from './selection/source-bulk-operations'
+export {
   CANVAS_FRAME_VARIANT_DEFINITIONS,
   applyCanvasFrameVariant,
   createCanvasFrameVariantNode,
@@ -596,6 +603,17 @@ export type {
   CanvasContextPopoverKind,
   CreateCanvasContextPopoverDefinitionsInput
 } from './selection/contextual-popovers'
+export type {
+  CanvasSourceBackedCardRef,
+  CanvasSourceBulkExternalAction,
+  CanvasSourceBulkNodeUpdate,
+  CanvasSourceBulkOperation,
+  CanvasSourceBulkOperationDefinition,
+  CanvasSourceBulkOperationKind,
+  CanvasSourceBulkOperationPlan,
+  CreateCanvasSourceBulkOperationDefinitionsInput,
+  CreateCanvasSourceBulkOperationPlanOptions
+} from './selection/source-bulk-operations'
 export type { CanvasResizePolicy } from './selection/resize-policy'
 export type { CanvasSmartSnapResult, CanvasSnapGuideSegment } from './selection/snap-guides'
 
