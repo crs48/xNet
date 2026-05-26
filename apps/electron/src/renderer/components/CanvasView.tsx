@@ -30,7 +30,11 @@ import {
   encodeAnchor,
   type CanvasObjectAnchor
 } from '@xnetjs/data'
-import { CanvasExternalReferenceCard, useBlobService } from '@xnetjs/editor/react'
+import {
+  CanvasExternalReferenceCard,
+  CanvasLifecycleStatusBadge,
+  useBlobService
+} from '@xnetjs/editor/react'
 import { useComments, useDatabaseDoc, useIdentity, useNode, useUndo } from '@xnetjs/react'
 import { useUndoScope } from '@xnetjs/react/internal'
 import {
@@ -328,11 +332,9 @@ function renderNodeCard(
           <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Open
           </span>
-        ) : status ? (
-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {status}
-          </span>
-        ) : null}
+        ) : (
+          <CanvasLifecycleStatusBadge status={status} />
+        )}
       </div>
 
       <div className="space-y-2">

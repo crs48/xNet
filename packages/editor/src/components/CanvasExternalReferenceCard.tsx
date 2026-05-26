@@ -17,6 +17,14 @@ export interface CanvasExternalReferenceCardProps {
   status?: string | null
 }
 
+type CanvasLifecycleTone = 'neutral' | 'progress' | 'success' | 'danger'
+
+type CanvasLifecycleStatusConfig = {
+  status: string
+  label: string
+  tone: CanvasLifecycleTone
+}
+
 function getProvider(name: string | null | undefined): EmbedProvider | null {
   if (!name) {
     return null
@@ -32,6 +40,66 @@ function normalizeValue(value: string | null | undefined): string | null {
 
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function normalizeLifecycleStatus(
+  status: string | null | undefined
+): CanvasLifecycleStatusConfig | null {
+  const normalized = normalizeValue(status)?.toLowerCase()
+  if (!normalized) {
+    return null
+  }
+
+  switch (normalized) {
+    case 'resolving':
+      return { status: normalized, label: 'Resolving', tone: 'progress' }
+    case 'uploading':
+      return { status: normalized, label: 'Uploading', tone: 'progress' }
+    case 'ready':
+      return { status: normalized, label: 'Ready', tone: 'success' }
+    case 'error':
+      return { status: normalized, label: 'Error', tone: 'danger' }
+    default:
+      return { status: normalized, label: normalized, tone: 'neutral' }
+  }
+}
+
+export function CanvasLifecycleStatusBadge({
+  status
+}: {
+  status?: string | null
+}): JSX.Element | null {
+  const config = normalizeLifecycleStatus(status)
+  if (!config) {
+    return null
+  }
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium uppercase tracking-[0.18em]',
+        config.tone === 'progress'
+          ? 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200'
+          : '',
+        config.tone === 'success'
+          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
+          : '',
+        config.tone === 'danger'
+          ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-200'
+          : '',
+        config.tone === 'neutral' ? 'border-border/70 bg-muted text-muted-foreground' : ''
+      )}
+      data-canvas-lifecycle-status={config.status}
+      data-canvas-lifecycle-tone={config.tone}
+    >
+      <span
+        aria-hidden="true"
+        className="h-1.5 w-1.5 rounded-full bg-current"
+        data-canvas-lifecycle-marker="true"
+      />
+      {config.label}
+    </span>
+  )
 }
 
 type ExternalReferenceMetadata = {
@@ -199,11 +267,7 @@ export function CanvasExternalReferenceCard({
         <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           {resolvedEmbedUrl ? `${providerLabel} embed` : providerLabel}
         </span>
-        {status ? (
-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {status}
-          </span>
-        ) : null}
+        <CanvasLifecycleStatusBadge status={status} />
       </div>
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">

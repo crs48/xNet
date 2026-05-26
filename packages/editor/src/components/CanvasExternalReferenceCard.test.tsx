@@ -62,4 +62,24 @@ describe('CanvasExternalReferenceCard', () => {
     expect(screen.getByText('Post from @storybookjs')).toBeInTheDocument()
     expect(screen.getByText('X')).toBeInTheDocument()
   })
+
+  it('renders lifecycle status badges with semantic state attributes', () => {
+    render(
+      <CanvasExternalReferenceCard
+        title="Design brief"
+        url="https://example.com/brief"
+        provider="generic"
+        subtitle="Example"
+        status="resolving"
+        themeMode="light"
+      />
+    )
+
+    const badge = screen
+      .getByText('Resolving')
+      .closest('[data-canvas-lifecycle-status="resolving"]')
+
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveAttribute('data-canvas-lifecycle-tone', 'progress')
+  })
 })

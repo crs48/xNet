@@ -21,6 +21,7 @@
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
 export {
   CanvasExternalReferenceCard,
+  CanvasLifecycleStatusBadge,
   type CanvasExternalReferenceCardProps
 } from './components/CanvasExternalReferenceCard'
 export {

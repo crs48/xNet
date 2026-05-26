@@ -21,7 +21,11 @@ import {
   encodeAnchor,
   type CanvasObjectAnchor
 } from '@xnetjs/data'
-import { CanvasExternalReferenceCard, useBlobService } from '@xnetjs/editor/react'
+import {
+  CanvasExternalReferenceCard,
+  CanvasLifecycleStatusBadge,
+  useBlobService
+} from '@xnetjs/editor/react'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
 import {
   FileImage,
@@ -99,11 +103,7 @@ function getNodeCard(node: CanvasNode, themeMode: 'light' | 'dark'): JSX.Element
             <FileImage size={12} />
             Media asset
           </span>
-          {status ? (
-            <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {status}
-            </span>
-          ) : null}
+          <CanvasLifecycleStatusBadge status={status} />
         </div>
         <div className="space-y-2">
           <div className="text-lg font-semibold leading-tight text-foreground">{title}</div>

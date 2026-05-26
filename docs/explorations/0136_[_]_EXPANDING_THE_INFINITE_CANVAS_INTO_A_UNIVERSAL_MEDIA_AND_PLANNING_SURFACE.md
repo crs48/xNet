@@ -1394,7 +1394,7 @@ gantt
 - [x] Define `CanvasIngestor` and `CanvasIngestResult` types.
 - [x] Convert current internal-node, URL, file, and text ingestion into first-party ingestors.
 - [x] Add payload matching priority and conflict resolution.
-- [ ] Add visible object lifecycle states to canvas cards.
+- [x] Add visible object lifecycle states to canvas cards.
 - [ ] Add retry, replace source, open source, and copy link actions for failed cards.
 - [ ] Add local-only versus copied/synced file policy prompts.
 - [ ] Add tests for file kinds, provider parsing, deduplication, errors, and cancellation.
