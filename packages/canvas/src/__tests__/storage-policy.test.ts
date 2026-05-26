@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createCanvasStoragePolicyDecision,
+  createCanvasStoragePolicyPrompt,
   getCanvasStoragePolicies,
   getCanvasStoragePolicyCapability,
   isCanvasStoragePolicy,
@@ -91,6 +92,84 @@ describe('canvas storage policy model', () => {
     ).toEqual({
       policy: 'remote-only',
       sourceKind: 'remote-url'
+    })
+  })
+
+  it('should create local file consent prompts for local-only, copied, and synced choices', () => {
+    const prompt = createCanvasStoragePolicyPrompt({
+      sourceKind: 'local-file',
+      fileName: 'planning.pdf',
+      mimeType: 'application/pdf',
+      sizeBytes: 1024,
+      workspaceCanSyncBytes: false
+    })
+
+    expect(prompt).toMatchObject({
+      intent: 'local-file-ingestion',
+      title: 'Choose how to add this file',
+      sourceLabel: 'planning.pdf',
+      defaultPolicy: 'reference-only'
+    })
+    expect(prompt.options.map((option) => option.policy)).toEqual([
+      'reference-only',
+      'copied-blob',
+      'synced-blob'
+    ])
+    expect(prompt.options[0]).toMatchObject({
+      label: 'Keep local-only',
+      recommended: true,
+      copiesBytes: false,
+      syncsBytes: false
+    })
+    expect(prompt.options[1]).toMatchObject({
+      requiresConsent: true,
+      copiesBytes: true,
+      syncsBytes: false,
+      consentLabel: 'Copy file bytes to this device'
+    })
+    expect(prompt.options[2]).toMatchObject({
+      requiresConsent: true,
+      copiesBytes: true,
+      syncsBytes: true,
+      disabled: true,
+      disabledReason: 'Workspace policy does not currently allow syncing file bytes.'
+    })
+  })
+
+  it('should create remote and blocked storage prompts', () => {
+    expect(
+      createCanvasStoragePolicyPrompt({
+        sourceKind: 'remote-url',
+        url: 'https://example.com/report.pdf'
+      })
+    ).toMatchObject({
+      intent: 'remote-reference',
+      defaultPolicy: 'remote-only',
+      options: [
+        expect.objectContaining({
+          policy: 'remote-only',
+          recommended: true
+        })
+      ]
+    })
+
+    expect(
+      createCanvasStoragePolicyPrompt({
+        sourceKind: 'local-file',
+        fileName: 'installer.exe',
+        blockedReason: 'Executable files cannot be previewed.'
+      })
+    ).toMatchObject({
+      intent: 'blocked-source',
+      defaultPolicy: 'blocked',
+      options: [
+        expect.objectContaining({
+          policy: 'blocked',
+          disabled: true,
+          allowsPreview: false,
+          recommended: true
+        })
+      ]
     })
   })
 })

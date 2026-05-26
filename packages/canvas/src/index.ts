@@ -120,6 +120,7 @@ export type {
 export { createMinimapSummaryFromCanvasScene } from './scene/minimap-summary'
 export { createCanvasPreviewModel, getCanvasPreviewCacheKey } from './preview/model'
 export {
+  createCanvasStoragePolicyPrompt,
   createCanvasStoragePolicyDecision,
   getCanvasStoragePolicies,
   getCanvasStoragePolicyCapability,
@@ -144,8 +145,12 @@ export type {
   CanvasStoragePolicy,
   CanvasStoragePolicyCapability,
   CanvasStoragePolicyDecision,
+  CanvasStoragePolicyPrompt,
+  CanvasStoragePolicyPromptIntent,
+  CanvasStoragePolicyPromptOption,
   CanvasStorageSourceKind,
-  CreateCanvasStoragePolicyDecisionInput
+  CreateCanvasStoragePolicyDecisionInput,
+  CreateCanvasStoragePolicyPromptInput
 } from './storage-policy'
 export {
   createCanvasInteractionController,

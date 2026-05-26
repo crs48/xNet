@@ -1449,7 +1449,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add payload matching priority and conflict resolution.
 - [x] Add visible object lifecycle states to canvas cards.
 - [x] Add retry, replace source, open source, and copy link actions for failed cards.
-- [ ] Add local-only versus copied/synced file policy prompts.
+- [x] Add local-only versus copied/synced file policy prompts.
 - [ ] Add tests for file kinds, provider parsing, deduplication, errors, and cancellation.
 
 ### Preview Pipeline
