@@ -95,6 +95,13 @@ export type CanvasRemoteUser = {
   viewport?: { x: number; y: number; zoom: number }
   activity?: string
   editingNodeId?: string
+  interaction?: CanvasRemoteInteraction
+}
+
+export type CanvasRemoteInteraction = {
+  type: 'dragging' | 'resizing'
+  nodeIds: string[]
+  bounds: Rect
 }
 
 export type CanvasPresenceIntent = {
@@ -649,6 +656,42 @@ function CanvasSelectionDimensionsPopover({
   )
 }
 
+function isFiniteRect(value: unknown): value is Rect {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const rect = value as Partial<Rect>
+
+  return [rect.x, rect.y, rect.width, rect.height].every(Number.isFinite)
+}
+
+function readCanvasRemoteInteraction(value: unknown): CanvasRemoteInteraction | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined
+  }
+
+  const interaction = value as Partial<CanvasRemoteInteraction>
+  const type = interaction.type
+  const nodeIds = Array.isArray(interaction.nodeIds)
+    ? interaction.nodeIds.filter((id): id is string => typeof id === 'string')
+    : []
+
+  if ((type !== 'dragging' && type !== 'resizing') || nodeIds.length === 0) {
+    return undefined
+  }
+
+  if (!isFiniteRect(interaction.bounds)) {
+    return undefined
+  }
+
+  return {
+    type,
+    nodeIds,
+    bounds: interaction.bounds
+  }
+}
+
 function readRemoteUsers(awareness: AwarenessLike | null | undefined): CanvasRemoteUser[] {
   if (!awareness) {
     return []
@@ -663,6 +706,7 @@ function readRemoteUsers(awareness: AwarenessLike | null | undefined): CanvasRem
       const selectedNodes = Array.isArray(state.canvasSelection)
         ? state.canvasSelection.filter((id): id is string => typeof id === 'string')
         : undefined
+      const interaction = readCanvasRemoteInteraction(state.canvasInteraction)
 
       return {
         clientId,
@@ -681,7 +725,8 @@ function readRemoteUsers(awareness: AwarenessLike | null | undefined): CanvasRem
             ? { x: viewport.x, y: viewport.y, zoom: viewport.zoom }
             : undefined,
         activity: typeof state.activity === 'string' ? state.activity : undefined,
-        editingNodeId: typeof state.editingNodeId === 'string' ? state.editingNodeId : undefined
+        editingNodeId: typeof state.editingNodeId === 'string' ? state.editingNodeId : undefined,
+        interaction
       }
     })
 }
@@ -1402,6 +1447,72 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     []
   )
 
+  const createDragInteraction = useCallback(
+    (dragState: NodeDragState): CanvasRemoteInteraction | null => {
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const deltaCanvas = {
+        x: dragState.screenDelta.x / viewport.zoom,
+        y: dragState.screenDelta.y / viewport.zoom
+      }
+      const movingNodes = getUnlockedSelection(
+        dragState.nodeIds
+          .map((id) => objects.get(id))
+          .filter((node): node is CanvasNode => node !== undefined)
+      )
+        .map((node): CanvasNode | null => {
+          const origin = dragState.originPositions.get(node.id)
+
+          if (!origin) {
+            return null
+          }
+
+          return {
+            ...node,
+            position: {
+              ...node.position,
+              x: Math.round(origin.x + deltaCanvas.x),
+              y: Math.round(origin.y + deltaCanvas.y)
+            }
+          }
+        })
+        .filter((node): node is CanvasNode => node !== null)
+      const bounds = getSelectionBounds(movingNodes)
+
+      if (!bounds) {
+        return null
+      }
+
+      return {
+        type: 'dragging',
+        nodeIds: movingNodes.map((node) => node.id),
+        bounds
+      }
+    },
+    [doc, viewport.zoom]
+  )
+
+  const createResizeInteraction = useCallback(
+    (nodeId: string): CanvasRemoteInteraction | null => {
+      const node = getCanvasObjectsMap<CanvasNode>(doc).get(nodeId)
+
+      if (!node) {
+        return null
+      }
+
+      return {
+        type: 'resizing',
+        nodeIds: [node.id],
+        bounds: {
+          x: node.position.x,
+          y: node.position.y,
+          width: node.position.width,
+          height: node.position.height
+        }
+      }
+    },
+    [doc]
+  )
+
   const getDragPreviewDeltaForObject = useCallback(
     (objectId: string): Point | null => {
       if (!dragPreview?.nodeIds.has(objectId)) {
@@ -1778,6 +1889,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }
       containerRef.current?.setPointerCapture?.(event.pointerId)
       awareness?.setLocalStateField('activity', 'resizing')
+      awareness?.setLocalStateField('canvasInteraction', {
+        type: 'resizing',
+        nodeIds: [objectId],
+        bounds: {
+          x: node.position.x,
+          y: node.position.y,
+          width: node.position.width,
+          height: node.position.height
+        }
+      } satisfies CanvasRemoteInteraction)
     },
     [awareness, doc]
   )
@@ -1811,6 +1932,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
         if (resizeNodeByScreenDelta(nodeResize.nodeId, nodeResize.handle, delta)) {
           awareness?.setLocalStateField('activity', 'resizing')
+          const interaction = createResizeInteraction(nodeResize.nodeId)
+
+          if (interaction) {
+            awareness?.setLocalStateField('canvasInteraction', interaction)
+          }
         }
 
         nodeResizeRef.current = {
@@ -1834,6 +1960,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         }
         setDragPreview(createDragPreview(nodeDrag.nodeIds, screenDelta))
         awareness?.setLocalStateField('activity', 'dragging')
+        const interaction = createDragInteraction({ ...nodeDrag, screenDelta })
+
+        if (interaction) {
+          awareness?.setLocalStateField('canvasInteraction', interaction)
+        }
         return
       }
 
@@ -1853,7 +1984,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     },
     [
       awareness,
+      createDragInteraction,
       createDragPreview,
+      createResizeInteraction,
       createSnappedDragScreenDelta,
       resizeNodeByScreenDelta,
       screenToCanvasPoint,
@@ -1866,6 +1999,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       if (nodeResizeRef.current?.pointerId === event.pointerId) {
         nodeResizeRef.current = null
         awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
+        awareness?.setLocalStateField('canvasInteraction', null)
       }
 
       const nodeDrag = nodeDragRef.current
@@ -1877,6 +2011,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         nodeDragRef.current = null
         setDragPreview(null)
         awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
+        awareness?.setLocalStateField('canvasInteraction', null)
       }
 
       if (lastPointerRef.current || event.currentTarget.hasPointerCapture?.(event.pointerId)) {
@@ -2516,6 +2651,37 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         />
       ) : null}
 
+      {remoteUsers.map((user) => {
+        if (!user.interaction) {
+          return null
+        }
+
+        const interactionRect = getScreenRectForCanvasRect(
+          user.interaction.bounds,
+          viewport,
+          viewportSize
+        )
+
+        return (
+          <div
+            key={`${user.clientId}:interaction`}
+            style={{
+              ...styles.remoteInteraction,
+              left: interactionRect.x,
+              top: interactionRect.y,
+              width: Math.max(2, interactionRect.width),
+              height: Math.max(2, interactionRect.height),
+              borderColor: user.color,
+              boxShadow: `0 0 0 1px ${user.color}33`
+            }}
+            aria-hidden="true"
+            data-canvas-v3-remote-interaction="true"
+            data-canvas-remote-client-id={user.clientId}
+            data-canvas-remote-interaction-type={user.interaction.type}
+          />
+        )
+      })}
+
       {remoteUsers.map((user) =>
         user.cursor ? (
           <div
@@ -2767,5 +2933,12 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: 'none',
     transform: 'translate(-50%, -50%)',
     zIndex: 20
+  },
+  remoteInteraction: {
+    position: 'absolute',
+    border: '2px dashed',
+    borderRadius: 8,
+    pointerEvents: 'none',
+    zIndex: 17
   }
 }

@@ -41,6 +41,49 @@ class PointerEventStub extends MouseEvent {
   }
 }
 
+function createMockAwareness() {
+  let localState: Record<string, unknown> = {
+    user: {
+      did: 'did:key:local',
+      name: 'Local',
+      color: '#3b82f6'
+    }
+  }
+  const states = new Map<number, Record<string, unknown>>([[1, localState]])
+  const listeners = new Set<() => void>()
+
+  const emitChange = () => {
+    listeners.forEach((listener) => {
+      listener()
+    })
+  }
+
+  return {
+    clientID: 1,
+    getStates: () => states,
+    setLocalStateField: vi.fn((field: string, value: unknown) => {
+      const nextState = {
+        ...localState,
+        [field]: value
+      }
+
+      localState = nextState
+      states.set(1, nextState)
+      emitChange()
+    }),
+    on: (_event: string, handler: () => void) => {
+      listeners.add(handler)
+    },
+    off: (_event: string, handler: () => void) => {
+      listeners.delete(handler)
+    },
+    setRemoteState: (clientId: number, state: Record<string, unknown>) => {
+      states.set(clientId, state)
+      emitChange()
+    }
+  }
+}
+
 function createCanvasTestDoc(): Y.Doc {
   const doc = new Y.Doc()
   const nodes = getCanvasObjectsMap<CanvasNode>(doc)
@@ -627,6 +670,95 @@ describe('Canvas v3 active renderer', () => {
     expect(moved?.position.x).toBe(initialX + 40)
     expect(moved?.position.y).toBe(initialY + 30)
     expect(onSceneMutation).toHaveBeenCalled()
+  })
+
+  it('shares v3 drag interactions through awareness without committing intermediate positions', () => {
+    const doc = createCanvasTestDoc()
+    const awareness = createMockAwareness()
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        awareness={awareness}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!pageIsland) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    fireEvent.pointerDown(pageIsland, {
+      button: 0,
+      pointerId: 8,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 8,
+      clientX: 520,
+      clientY: 350
+    })
+
+    expect(awareness.setLocalStateField).toHaveBeenCalledWith(
+      'canvasInteraction',
+      expect.objectContaining({
+        type: 'dragging',
+        nodeIds: [page.id],
+        bounds: expect.objectContaining({
+          x: page.position.x + 40,
+          y: page.position.y + 30,
+          width: page.position.width,
+          height: page.position.height
+        })
+      })
+    )
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(page.id)?.position.x).toBe(page.position.x)
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 8,
+      clientX: 520,
+      clientY: 350
+    })
+
+    expect(awareness.setLocalStateField).toHaveBeenCalledWith('canvasInteraction', null)
+  })
+
+  it('renders remote v3 interaction outlines from awareness', () => {
+    const doc = createCanvasTestDoc()
+    const awareness = createMockAwareness()
+    const page = getNodeByTitle(doc, 'Research Page')
+
+    awareness.setRemoteState(2, {
+      user: {
+        did: 'did:key:remote',
+        name: 'Remote',
+        color: '#ef4444'
+      },
+      canvasInteraction: {
+        type: 'dragging',
+        nodeIds: [page.id],
+        bounds: {
+          x: page.position.x + 40,
+          y: page.position.y + 30,
+          width: page.position.width,
+          height: page.position.height
+        }
+      }
+    })
+
+    render(<Canvas doc={doc} awareness={awareness} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const remoteInteraction = surface.querySelector('[data-canvas-v3-remote-interaction="true"]')
+
+    expect(remoteInteraction?.getAttribute('data-canvas-remote-client-id')).toBe('2')
+    expect(remoteInteraction?.getAttribute('data-canvas-remote-interaction-type')).toBe('dragging')
   })
 
   it('snaps v3 drag previews and commits to the configured grid', () => {
