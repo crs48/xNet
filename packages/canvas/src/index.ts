@@ -537,6 +537,23 @@ export type {
   CreateCanvasQueryFramePropertiesInput
 } from './frames/query-frames'
 export {
+  CANVAS_SAVED_LAYOUT_DEFINITIONS,
+  createCanvasSavedLayoutFrameProperties,
+  createCanvasSavedLayoutPlan,
+  createCanvasSavedLayoutState,
+  getCanvasSavedLayoutDefinition,
+  isCanvasSavedLayoutKind
+} from './layout/saved-layouts'
+export type {
+  CanvasSavedLayoutDefinition,
+  CanvasSavedLayoutDirection,
+  CanvasSavedLayoutKind,
+  CanvasSavedLayoutOptions,
+  CanvasSavedLayoutPlan,
+  CanvasSavedLayoutState,
+  CreateCanvasSavedLayoutPlanInput
+} from './layout/saved-layouts'
+export {
   CANVAS_PLANNING_TEMPLATE_DEFINITIONS,
   createCanvasPlanningTemplateInstance,
   getCanvasPlanningTemplateDefinition
