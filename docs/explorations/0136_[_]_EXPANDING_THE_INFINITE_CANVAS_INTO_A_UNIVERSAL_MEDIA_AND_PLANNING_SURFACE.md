@@ -1356,7 +1356,7 @@ gantt
 
 - [ ] Audit all `CanvasViewHandle` methods expected by Electron and confirm whether `CanvasV3` implements them.
 - [x] Wire v3 imperative handles for lock, align, distribute, tidy, layer, connect, and frame wrap to existing scene operation helpers.
-- [ ] Wire v3 shape and frame creation through renderer-level imperative handles if the existing Electron callbacks are not sufficient.
+- [x] Wire v3 shape and frame creation through renderer-level imperative handles if the existing Electron callbacks are not sufficient.
 - [x] Add focused tests for v3 selection operations.
 - [ ] Ensure v3 create menus expose page, database, note, media/reference, shape, and frame creation consistently.
 - [x] Validate minimap summaries for all current object kinds.
@@ -1496,6 +1496,7 @@ gantt
 - [x] Test v3 keyboard editing shortcuts for nudge, lock, group, connect, frame wrap, open, clear, and layer movement.
 - [x] Test v3 duplicate and delete behavior from keyboard shortcuts and contextual toolbar actions.
 - [x] Test v3 connector handles, handle endpoint bindings, and multi-select bounds rendering.
+- [x] Test v3 renderer-level shape and frame creation through imperative handles.
 
 ### Performance
 

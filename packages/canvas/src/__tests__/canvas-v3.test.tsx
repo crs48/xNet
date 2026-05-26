@@ -210,6 +210,42 @@ describe('Canvas v3 active renderer', () => {
     expect(ref.current?.getViewportSnapshot().zoom).toBeGreaterThan(0)
   })
 
+  it('creates primitive shapes and frames through the v3 imperative handle', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const onSceneMutation = vi.fn()
+
+    render(<Canvas ref={ref} doc={doc} onSceneMutation={onSceneMutation} />)
+
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const initialObjectCount = objects.size
+
+    act(() => {
+      expect(ref.current?.createShape('diamond')).toBe(true)
+    })
+
+    const diamond = Array.from(objects.values()).find(
+      (node) => node.type === 'shape' && node.properties.shapeType === 'diamond'
+    )
+
+    expect(diamond?.properties.title).toBe('Diamond')
+    expect(diamond?.position.width).toBeGreaterThan(0)
+
+    act(() => {
+      expect(ref.current?.createFrame()).toBe(true)
+    })
+
+    const frame = Array.from(objects.values()).find(
+      (node) => node.type === 'group' && node.properties.containerRole === 'frame'
+    )
+
+    expect(objects.size).toBe(initialObjectCount + 2)
+    expect(frame?.properties.title).toBe('Frame')
+    expect(frame?.position.width).toBe(640)
+    expect(frame?.position.height).toBe(420)
+    expect(onSceneMutation).toHaveBeenCalledTimes(2)
+  })
+
   it('applies v3 selection handle operations to the flat canvas document', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()

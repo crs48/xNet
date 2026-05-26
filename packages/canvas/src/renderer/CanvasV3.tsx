@@ -14,7 +14,8 @@ import type {
   CanvasObjectAnchorPlacement,
   Point,
   Rect,
-  ResizeHandle
+  ResizeHandle,
+  ShapeType
 } from '../types'
 import type { CanvasObjectRecord, CanvasTileSummary } from '@xnetjs/canvas-core'
 import {
@@ -39,6 +40,7 @@ import { CommentOverlay } from '../comments/CommentOverlay'
 import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
 import { getCanvasEdgeNodeIds } from '../edges/bindings'
+import { createCanvasPrimitiveNode } from '../ingestion'
 import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../layers'
 import { calculateLOD } from '../nodes/CanvasNodeComponent'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
@@ -146,6 +148,8 @@ export type CanvasHandle = {
   connectSelection: () => boolean
   duplicateSelection: () => boolean
   deleteSelection: () => boolean
+  createShape: (shapeType?: ShapeType) => boolean
+  createFrame: () => boolean
   undo: () => boolean
   redo: () => boolean
   screenToCanvas: (clientX: number, clientY: number) => Point
@@ -284,6 +288,18 @@ const DIMENSION_LABELS: Record<DimensionField, string> = {
   y: 'Y',
   width: 'Width',
   height: 'Height'
+}
+const SHAPE_LABELS: Record<ShapeType, string> = {
+  rectangle: 'Rectangle',
+  'rounded-rectangle': 'Rounded Rectangle',
+  ellipse: 'Ellipse',
+  diamond: 'Diamond',
+  triangle: 'Triangle',
+  hexagon: 'Hexagon',
+  star: 'Star',
+  arrow: 'Arrow',
+  cylinder: 'Cylinder',
+  cloud: 'Cloud'
 }
 const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
@@ -1220,6 +1236,61 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     return true
   }, [doc, getSelectedNodes, onSceneMutation])
 
+  const createShape = useCallback(
+    (shapeType: ShapeType = 'rectangle'): boolean => {
+      const title = SHAPE_LABELS[shapeType]
+      const object = createCanvasPrimitiveNode({
+        objectKind: 'shape',
+        viewport,
+        title,
+        properties: {
+          title,
+          label: title,
+          shapeType
+        }
+      })
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+
+      doc.transact(() => {
+        objects.set(object.id, object)
+      })
+      setSelectedNodeIds(new Set([object.id]))
+      setFocusedNodeId(object.id)
+      onSceneMutation?.()
+
+      return true
+    },
+    [doc, onSceneMutation, viewport]
+  )
+
+  const createFrame = useCallback((): boolean => {
+    const object = createCanvasPrimitiveNode({
+      objectKind: 'group',
+      viewport,
+      title: 'Frame',
+      rect: {
+        width: 640,
+        height: 420
+      },
+      properties: {
+        title: 'Frame',
+        containerRole: 'frame',
+        memberIds: [],
+        memberCount: 0
+      }
+    })
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+
+    doc.transact(() => {
+      objects.set(object.id, object)
+    })
+    setSelectedNodeIds(new Set([object.id]))
+    setFocusedNodeId(object.id)
+    onSceneMutation?.()
+
+    return true
+  }, [doc, onSceneMutation, viewport])
+
   const connectSelection = useCallback((): boolean => {
     const selectedNodes = getSelectedNodes()
     if (selectedNodes.length !== 2) {
@@ -1816,6 +1887,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       connectSelection,
       duplicateSelection,
       deleteSelection,
+      createShape,
+      createFrame,
       undo: () => onUndoRedoShortcut?.('undo') ?? false,
       redo: () => onUndoRedoShortcut?.('redo') ?? false,
       screenToCanvas: screenToCanvasPoint,
@@ -1826,6 +1899,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       clearSelection,
       alignSelection,
       connectSelection,
+      createFrame,
+      createShape,
       deleteSelection,
       distributeSelection,
       duplicateSelection,
@@ -2343,13 +2418,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       if (key === 'r') {
         event.preventDefault()
-        onCreateObject?.('shape')
+        if (onCreateObject) {
+          onCreateObject('shape')
+        } else {
+          createShape()
+        }
         return
       }
 
       if (key === 'f') {
         event.preventDefault()
-        onCreateObject?.('frame')
+        if (onCreateObject) {
+          onCreateObject('frame')
+        } else {
+          createFrame()
+        }
         return
       }
 
@@ -2375,6 +2458,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       clearSelection,
       config.gridSize,
       connectSelection,
+      createFrame,
+      createShape,
       deleteSelection,
       duplicateSelection,
       fitToRect,
