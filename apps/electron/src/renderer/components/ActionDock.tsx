@@ -7,7 +7,9 @@ import {
   ArrowLeft,
   Database,
   FileText,
+  FileImage,
   Layout,
+  Link2,
   Minus,
   Plus,
   RotateCcw,
@@ -27,6 +29,8 @@ interface ActionDockProps {
   onCreateNote: () => void
   onCreateShape: () => void
   onCreateFrame: () => void
+  onCreateReference: () => void
+  onCreateMedia: () => void
   onOpenSearch: () => void
   onReturnHome: () => void
   onZoomOut?: () => void
@@ -80,6 +84,8 @@ export function ActionDock({
   onCreateNote,
   onCreateShape,
   onCreateFrame,
+  onCreateReference,
+  onCreateMedia,
   onOpenSearch,
   onReturnHome,
   onZoomOut,
@@ -154,6 +160,18 @@ export function ActionDock({
               label="Frame"
               shortcut="F"
               onClick={onCreateFrame}
+            />
+            <DockButton
+              id="reference"
+              icon={<Link2 size={16} />}
+              label="Link"
+              onClick={onCreateReference}
+            />
+            <DockButton
+              id="media"
+              icon={<FileImage size={16} />}
+              label="File"
+              onClick={onCreateMedia}
             />
           </>
         )}

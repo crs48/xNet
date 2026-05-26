@@ -3,6 +3,7 @@
  */
 
 import type { CanvasHandle, CanvasNode, CanvasSelectionSnapshot, ShapeType } from '@xnetjs/canvas'
+import type { ChangeEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
@@ -26,6 +27,7 @@ import {
   FileImage,
   FileText,
   Layout,
+  Link2,
   Maximize2,
   MessageSquare,
   Square,
@@ -191,6 +193,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   )
   const aliasInputRef = useRef<HTMLInputElement | null>(null)
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const mediaFileInputRef = useRef<HTMLInputElement | null>(null)
   const [canvasReady, setCanvasReady] = useState(false)
   const [hasNodes, setHasNodes] = useState(false)
   const [sceneRevision, setSceneRevision] = useState(0)
@@ -202,11 +205,12 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   const [aliasDraft, setAliasDraft] = useState('')
   const [commentEditorOpen, setCommentEditorOpen] = useState(false)
   const [commentDraft, setCommentDraft] = useState('')
-  const { placeSourceObject, placePrimitiveObject, ingestDataTransfer } = useCanvasObjectIngestion({
-    doc,
-    blobService,
-    getViewportSnapshot: () => canvasRef.current?.getViewportSnapshot() ?? { x: 0, y: 0, zoom: 1 }
-  })
+  const { placeSourceObject, placePrimitiveObject, ingestPayload, ingestDataTransfer } =
+    useCanvasObjectIngestion({
+      doc,
+      blobService,
+      getViewportSnapshot: () => canvasRef.current?.getViewportSnapshot() ?? { x: 0, y: 0, zoom: 1 }
+    })
   const { threads: canvasObjectCommentThreads, addComment: addCanvasComment } = useComments({
     nodeId: docId,
     anchorType: 'canvas-object'
@@ -406,6 +410,36 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       }
     })
   }, [placePrimitiveObject])
+
+  const handleCreateReference = useCallback((): void => {
+    const candidate = window.prompt('Paste a URL to add to the canvas', 'https://')?.trim()
+
+    if (!candidate) {
+      return
+    }
+
+    void ingestPayload({ kind: 'text', text: candidate })
+  }, [ingestPayload])
+
+  const handleCreateMedia = useCallback((): void => {
+    mediaFileInputRef.current?.click()
+  }, [])
+
+  const handleMediaFileInputChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>): void => {
+      const files = Array.from(event.currentTarget.files ?? [])
+      event.currentTarget.value = ''
+
+      if (files.length === 0) {
+        return
+      }
+
+      void Promise.all(
+        files.map((file, index) => ingestPayload({ kind: 'file', file }, { spreadIndex: index }))
+      )
+    },
+    [ingestPayload]
+  )
 
   const handleCreateObject = useCallback(
     (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => {
@@ -694,6 +728,30 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       }
     },
     {
+      id: 'reference',
+      title: 'Create link',
+      label: 'Create link',
+      onClick: () => {
+        handleCreateReference()
+      },
+      icon: <Link2 size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-reference': 'true'
+      }
+    },
+    {
+      id: 'media',
+      title: 'Create file',
+      label: 'Create file',
+      onClick: () => {
+        handleCreateMedia()
+      },
+      icon: <FileImage size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-media': 'true'
+      }
+    },
+    {
       id: 'fit',
       title: 'Fit to content (Ctrl/Cmd 1)',
       label: 'Fit to content',
@@ -712,6 +770,16 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       className="flex h-full flex-1 flex-col overflow-hidden -m-6"
       data-canvas-theme={theme.mode}
     >
+      <input
+        ref={mediaFileInputRef}
+        type="file"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        data-web-canvas-media-file-input="true"
+        onChange={handleMediaFileInputChange}
+      />
       <div className="flex items-center gap-3 border-b border-border bg-secondary px-4 py-2.5">
         <input
           type="text"

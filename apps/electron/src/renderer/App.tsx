@@ -974,6 +974,12 @@ export function App(): React.ReactElement {
           onCreateFrame={() => {
             canvasViewRef.current?.createFrame()
           }}
+          onCreateReference={() => {
+            canvasViewRef.current?.createExternalReference()
+          }}
+          onCreateMedia={() => {
+            canvasViewRef.current?.createMediaFile()
+          }}
           onOpenSearch={showPalette}
           onReturnHome={handleReturnHome}
           onZoomOut={() => {
