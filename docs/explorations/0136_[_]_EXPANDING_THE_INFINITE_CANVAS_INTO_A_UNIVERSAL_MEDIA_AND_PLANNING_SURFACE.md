@@ -1499,7 +1499,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add frame variants: presentation, query, swimlane, kanban, timeline.
 - [x] Add selection commands: cluster, stack, tidy, distribute, align, wrap, convert.
 - [x] Add templates for research synthesis, product roadmap, incident review, and planning board.
-- [ ] Add freehand stroke persistence and export behavior if not already complete.
+- [x] Add freehand stroke persistence and export behavior if not already complete.
 
 ### Canvas Plugin Platform
 

@@ -883,17 +883,32 @@ export {
 // Drawing tools
 export {
   DrawingToolController,
+  CANVAS_DRAWING_EXPORT_SCHEMA_VERSION,
+  CANVAS_DRAWING_PATHS_MAP_KEY,
+  clearCanvasDrawingPaths,
+  createCanvasDrawingExportDocument,
+  createCanvasDrawingSvgPathData,
   drawPath,
   drawPaths,
   DrawingLayer,
   DrawingToolbar,
   DEFAULT_DRAWING_TOOL,
+  exportCanvasDrawingPathsAsSvg,
+  getCanvasDrawingPathsBounds,
+  getCanvasDrawingPathsMap,
+  persistCanvasDrawingPath,
+  persistCanvasDrawingPaths,
+  readCanvasDrawingPaths,
+  removeCanvasDrawingPath,
   STROKE_COLORS,
   STROKE_SIZES
 } from './drawing/index'
 export type {
   Point as DrawingPoint,
   PressurePoint,
+  CanvasDrawingBounds,
+  CanvasDrawingExportDocument,
+  CanvasDrawingSvgExportOptions,
   DrawingPath,
   DrawingTool,
   DrawingLayerProps,
