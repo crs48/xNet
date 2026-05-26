@@ -20,8 +20,11 @@
  */
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
 export {
+  CanvasFailedCardActions,
   CanvasExternalReferenceCard,
   CanvasLifecycleStatusBadge,
+  type CanvasFailedCardActionKind,
+  type CanvasFailedCardActionsProps,
   type CanvasExternalReferenceCardProps
 } from './components/CanvasExternalReferenceCard'
 export {

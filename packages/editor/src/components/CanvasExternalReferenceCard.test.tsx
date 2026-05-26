@@ -2,7 +2,7 @@
  * CanvasExternalReferenceCard tests.
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CanvasExternalReferenceCard } from './CanvasExternalReferenceCard'
@@ -81,5 +81,33 @@ describe('CanvasExternalReferenceCard', () => {
 
     expect(badge).toBeInTheDocument()
     expect(badge).toHaveAttribute('data-canvas-lifecycle-tone', 'progress')
+  })
+
+  it('renders failed-card recovery actions and routes action callbacks', () => {
+    const onFailedAction = vi.fn()
+
+    render(
+      <CanvasExternalReferenceCard
+        title="Broken brief"
+        url="https://example.com/brief"
+        provider="generic"
+        subtitle="Example"
+        status="error"
+        themeMode="light"
+        onFailedAction={onFailedAction}
+      />
+    )
+
+    const actions = document.querySelector('[data-canvas-failed-card-actions="true"]')
+
+    expect(actions).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry failed card' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Replace source failed card' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open source failed card' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy link failed card' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry failed card' }))
+
+    expect(onFailedAction).toHaveBeenCalledWith('retry')
   })
 })

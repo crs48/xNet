@@ -15,6 +15,7 @@ export interface CanvasExternalReferenceCardProps {
   embedUrl?: string | null
   subtitle?: string | null
   status?: string | null
+  onFailedAction?: (action: CanvasFailedCardActionKind) => void
 }
 
 type CanvasLifecycleTone = 'neutral' | 'progress' | 'success' | 'danger'
@@ -24,6 +25,27 @@ type CanvasLifecycleStatusConfig = {
   label: string
   tone: CanvasLifecycleTone
 }
+
+export type CanvasFailedCardActionKind = 'retry' | 'replace-source' | 'open-source' | 'copy-link'
+
+export type CanvasFailedCardActionsProps = {
+  url?: string | null
+  themeMode: 'light' | 'dark'
+  onAction?: (action: CanvasFailedCardActionKind) => void
+}
+
+type CanvasFailedCardActionConfig = {
+  kind: CanvasFailedCardActionKind
+  label: string
+  ariaLabel: string
+}
+
+const FAILED_CARD_ACTIONS: readonly CanvasFailedCardActionConfig[] = [
+  { kind: 'retry', label: 'Retry', ariaLabel: 'Retry failed card' },
+  { kind: 'replace-source', label: 'Replace', ariaLabel: 'Replace source failed card' },
+  { kind: 'open-source', label: 'Open', ariaLabel: 'Open source failed card' },
+  { kind: 'copy-link', label: 'Copy', ariaLabel: 'Copy link failed card' }
+]
 
 function getProvider(name: string | null | undefined): EmbedProvider | null {
   if (!name) {
@@ -99,6 +121,65 @@ export function CanvasLifecycleStatusBadge({
       />
       {config.label}
     </span>
+  )
+}
+
+export function CanvasFailedCardActions({
+  url,
+  themeMode,
+  onAction
+}: CanvasFailedCardActionsProps): JSX.Element {
+  const normalizedUrl = normalizeValue(url)
+
+  const handleAction = (action: CanvasFailedCardActionKind) => {
+    onAction?.(action)
+
+    if (action === 'open-source' && normalizedUrl) {
+      window.open(normalizedUrl, '_blank', 'noopener,noreferrer')
+    }
+
+    if (action === 'copy-link' && normalizedUrl && navigator.clipboard) {
+      void navigator.clipboard.writeText(normalizedUrl).catch(() => undefined)
+    }
+  }
+
+  return (
+    <div
+      className="grid grid-cols-4 gap-1.5"
+      data-canvas-failed-card-actions="true"
+      data-canvas-failed-card-theme={themeMode}
+    >
+      {FAILED_CARD_ACTIONS.map((action) => {
+        const requiresUrl = action.kind === 'open-source' || action.kind === 'copy-link'
+        const disabled = requiresUrl && !normalizedUrl
+
+        return (
+          <button
+            key={action.kind}
+            type="button"
+            className={cn(
+              'min-w-0 rounded-md border px-1.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors',
+              themeMode === 'dark'
+                ? 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'
+                : 'border-border/70 bg-muted/40 text-muted-foreground hover:bg-muted',
+              disabled
+                ? 'cursor-not-allowed opacity-45 hover:bg-muted/40 dark:hover:bg-white/5'
+                : ''
+            )}
+            aria-label={action.ariaLabel}
+            disabled={disabled}
+            data-canvas-failed-card-action={action.kind}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation()
+              handleAction(action.kind)
+            }}
+          >
+            {action.label}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -184,7 +265,8 @@ export function CanvasExternalReferenceCard({
   provider,
   embedUrl,
   subtitle,
-  status
+  status,
+  onFailedAction
 }: CanvasExternalReferenceCardProps): JSX.Element {
   const parsedEmbed = parseEmbedUrl(url)
   const resolvedProvider = getProvider(provider) ?? parsedEmbed?.provider ?? null
@@ -249,6 +331,7 @@ export function CanvasExternalReferenceCard({
 
   const resolvedTitle = resolvedMetadata?.title ?? title
   const resolvedSubtitle = resolvedMetadata?.subtitle ?? fallbackSubtitle
+  const lifecycle = normalizeLifecycleStatus(status)
   const embedFrameTitle = useMemo(
     () => `${providerLabel} embed for ${resolvedTitle}`,
     [providerLabel, resolvedTitle]
@@ -318,6 +401,10 @@ export function CanvasExternalReferenceCard({
             <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{url}</p>
           </div>
         )}
+
+        {lifecycle?.status === 'error' ? (
+          <CanvasFailedCardActions url={url} themeMode={themeMode} onAction={onFailedAction} />
+        ) : null}
 
         <p className="truncate text-xs text-muted-foreground">{url}</p>
       </div>

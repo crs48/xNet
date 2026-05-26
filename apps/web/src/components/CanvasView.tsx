@@ -23,6 +23,7 @@ import {
 } from '@xnetjs/data'
 import {
   CanvasExternalReferenceCard,
+  CanvasFailedCardActions,
   CanvasLifecycleStatusBadge,
   useBlobService
 } from '@xnetjs/editor/react'
@@ -112,6 +113,12 @@ function getNodeCard(node: CanvasNode, themeMode: 'light' | 'dark'): JSX.Element
               ? `${String(node.properties.kind ?? 'file')} · ${node.properties.mimeType}`
               : 'Dropped media or file'}
           </p>
+          {status === 'error' ? (
+            <CanvasFailedCardActions
+              url={typeof node.properties.url === 'string' ? node.properties.url : null}
+              themeMode={themeMode}
+            />
+          ) : null}
         </div>
       </div>
     )

@@ -32,6 +32,7 @@ import {
 } from '@xnetjs/data'
 import {
   CanvasExternalReferenceCard,
+  CanvasFailedCardActions,
   CanvasLifecycleStatusBadge,
   useBlobService
 } from '@xnetjs/editor/react'
@@ -340,6 +341,12 @@ function renderNodeCard(
       <div className="space-y-2">
         <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
         <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
+        {status === 'error' ? (
+          <CanvasFailedCardActions
+            url={typeof node.properties.url === 'string' ? node.properties.url : null}
+            themeMode={themeMode}
+          />
+        ) : null}
       </div>
     </div>
   )
