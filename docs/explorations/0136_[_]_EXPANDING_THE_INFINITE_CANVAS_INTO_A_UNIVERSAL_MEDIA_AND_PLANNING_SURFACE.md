@@ -1528,12 +1528,12 @@ controllers, object toolbars, and plugin command routing.
 - [x] Test `CanvasIngestor` matching priority and fallback behavior.
 - [x] Test file/media kind inference for images, videos, audio, PDFs, documents, and generic files.
 - [x] Test provider parsing for YouTube, Spotify, Figma, GitHub, Loom, Vimeo, and generic URLs.
-- [ ] Test preview cache invalidation by source version and content hash.
-- [ ] Test semantic edge creation, endpoint anchors, and cross-tile storage plans.
-- [ ] Test plugin contribution validation and permission enforcement.
+- [x] Test preview cache invalidation by source version and content hash.
+- [x] Test semantic edge creation, endpoint anchors, and cross-tile storage plans.
+- [x] Test plugin contribution validation and permission enforcement.
 - [ ] Test JSON Canvas import/export once implemented.
 - [ ] Test selection hit targets, marquee selection, multi-select bounds, drag thresholds, and locked-object behavior.
-- [ ] Test resize handles, minimum dimensions, aspect-ratio constraints, and object-specific resize policies.
+- [x] Test resize handles, minimum dimensions, aspect-ratio constraints, and object-specific resize policies.
 - [ ] Test contextual toolbar action availability for single-select, multi-select, locked selection, media, PDF, embed, shape, frame, and plugin cards.
 - [x] Test v3 imperative handle behavior for lock, align, layer, connect, and frame-wrap operations.
 - [x] Test v3 DOM-island dragging updates canvas object positions.
