@@ -1473,8 +1473,8 @@ gantt
 ### Unit And Integration Tests
 
 - [x] Test `CanvasIngestor` matching priority and fallback behavior.
-- [ ] Test file/media kind inference for images, videos, audio, PDFs, documents, and generic files.
-- [ ] Test provider parsing for YouTube, Spotify, Figma, GitHub, Loom, Vimeo, and generic URLs.
+- [x] Test file/media kind inference for images, videos, audio, PDFs, documents, and generic files.
+- [x] Test provider parsing for YouTube, Spotify, Figma, GitHub, Loom, Vimeo, and generic URLs.
 - [ ] Test preview cache invalidation by source version and content hash.
 - [ ] Test semantic edge creation, endpoint anchors, and cross-tile storage plans.
 - [ ] Test plugin contribution validation and permission enforcement.
