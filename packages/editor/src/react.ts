@@ -36,6 +36,13 @@ export {
   type CreateCanvasExternalReferenceCardRendererInput
 } from './components/canvasExternalReferenceCardRenderers'
 export {
+  createCanvasExternalReferenceEmbedFallback,
+  type CanvasExternalReferenceEmbedFallback,
+  type CanvasExternalReferenceEmbedFallbackReason,
+  type CanvasExternalReferenceEmbedFallbackTone,
+  type CreateCanvasExternalReferenceEmbedFallbackInput
+} from './components/canvasExternalReferenceEmbedFallbacks'
+export {
   FloatingToolbar,
   type FloatingToolbarProps,
   type ToolbarMode,

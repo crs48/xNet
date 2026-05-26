@@ -7,7 +7,7 @@ import {
   evaluateExternalReferenceEmbedPolicy,
   resolveExternalReferenceMetadata,
   type ExternalReferenceEmbedPolicy,
-  type ExternalReferenceResolvedMetadata
+  type ExternalReferenceMetadataResult
 } from '@xnetjs/data'
 import React, { useEffect, useMemo, useState } from 'react'
 import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from '../extensions/embed'
@@ -16,6 +16,7 @@ import {
   createCanvasExternalReferenceCardRenderer,
   type CanvasExternalReferenceCardAccent
 } from './canvasExternalReferenceCardRenderers'
+import { createCanvasExternalReferenceEmbedFallback } from './canvasExternalReferenceEmbedFallbacks'
 
 export interface CanvasExternalReferenceCardProps {
   title: string
@@ -160,6 +161,12 @@ function normalizeLifecycleStatus(
       return { status: normalized, label: 'Uploading', tone: 'progress' }
     case 'ready':
       return { status: normalized, label: 'Ready', tone: 'success' }
+    case 'offline':
+      return { status: normalized, label: 'Offline', tone: 'neutral' }
+    case 'blocked':
+      return { status: normalized, label: 'Blocked', tone: 'danger' }
+    case 'provider-denied':
+      return { status: normalized, label: 'Provider denied', tone: 'danger' }
     case 'error':
       return { status: normalized, label: 'Error', tone: 'danger' }
     default:
@@ -264,10 +271,7 @@ export function CanvasFailedCardActions({
   )
 }
 
-const EXTERNAL_REFERENCE_METADATA_CACHE = new Map<
-  string,
-  ExternalReferenceResolvedMetadata | null
->()
+const EXTERNAL_REFERENCE_METADATA_CACHE = new Map<string, ExternalReferenceMetadataResult | null>()
 
 export function CanvasExternalReferenceCard({
   title,
@@ -312,8 +316,7 @@ export function CanvasExternalReferenceCard({
   const allowedEmbedUrl = allowedEmbedPolicy?.embedUrl ?? null
   const accentClasses = PROVIDER_ACCENT_CLASSES[cardRenderer.accent]
   const fallbackSubtitle = normalizeValue(subtitle)
-  const [resolvedMetadata, setResolvedMetadata] =
-    useState<ExternalReferenceResolvedMetadata | null>(null)
+  const [metadataResult, setMetadataResult] = useState<ExternalReferenceMetadataResult | null>(null)
   const [isEmbedActivated, setIsEmbedActivated] = useState(defaultEmbedActivated)
 
   const setEmbedActivated = (activated: boolean) => {
@@ -324,7 +327,7 @@ export function CanvasExternalReferenceCard({
   useEffect(() => {
     const cacheKey = `${providerId}:${url}`
     if (EXTERNAL_REFERENCE_METADATA_CACHE.has(cacheKey)) {
-      setResolvedMetadata(EXTERNAL_REFERENCE_METADATA_CACHE.get(cacheKey) ?? null)
+      setMetadataResult(EXTERNAL_REFERENCE_METADATA_CACHE.get(cacheKey) ?? null)
       return
     }
 
@@ -338,9 +341,8 @@ export function CanvasExternalReferenceCard({
       signal: controller.signal
     })
       .then((result) => {
-        const metadata = result.status === 'resolved' ? result.metadata : null
-        EXTERNAL_REFERENCE_METADATA_CACHE.set(cacheKey, metadata)
-        setResolvedMetadata(metadata)
+        EXTERNAL_REFERENCE_METADATA_CACHE.set(cacheKey, result)
+        setMetadataResult(result)
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -348,7 +350,7 @@ export function CanvasExternalReferenceCard({
         }
 
         EXTERNAL_REFERENCE_METADATA_CACHE.set(cacheKey, null)
-        setResolvedMetadata(null)
+        setMetadataResult(null)
       })
 
     return () => {
@@ -360,9 +362,19 @@ export function CanvasExternalReferenceCard({
     setIsEmbedActivated(defaultEmbedActivated)
   }, [allowedEmbedUrl, defaultEmbedActivated])
 
+  const resolvedMetadata = metadataResult?.status === 'resolved' ? metadataResult.metadata : null
   const resolvedTitle = resolvedMetadata?.title ?? title
   const resolvedSubtitle = resolvedMetadata?.subtitle ?? fallbackSubtitle
   const lifecycle = normalizeLifecycleStatus(status)
+  const embedFallback = createCanvasExternalReferenceEmbedFallback({
+    policyDecision: embedPolicyDecision,
+    metadataResult,
+    lifecycleStatus: lifecycle?.status,
+    providerLabel,
+    emptyStateLabel: cardRenderer.emptyStateLabel
+  })
+  const shouldRenderLiveEmbed =
+    Boolean(allowedEmbedUrl && allowedEmbedPolicy) && embedFallback?.disablesLiveEmbed !== true
   const embedFrameTitle = useMemo(
     () => `${providerLabel} embed for ${resolvedTitle}`,
     [providerLabel, resolvedTitle]
@@ -375,11 +387,12 @@ export function CanvasExternalReferenceCard({
       data-canvas-card-kind="external-reference"
       data-canvas-theme={themeMode}
       data-canvas-embed-provider={providerId}
-      data-canvas-embed-active={allowedEmbedUrl ? 'true' : 'false'}
+      data-canvas-embed-active={shouldRenderLiveEmbed ? 'true' : 'false'}
       data-canvas-embed-policy={embedPolicyDecision.allowed ? 'allowed' : 'blocked'}
       data-canvas-embed-policy-reason={
         embedPolicyDecision.allowed ? undefined : embedPolicyDecision.reason
       }
+      data-canvas-embed-fallback-reason={shouldRenderLiveEmbed ? undefined : embedFallback?.reason}
       data-canvas-provider-renderer={cardRenderer.kind}
       data-canvas-provider-accent={cardRenderer.accent}
     >
@@ -440,7 +453,7 @@ export function CanvasExternalReferenceCard({
           </dl>
         ) : null}
 
-        {allowedEmbedUrl && allowedEmbedPolicy ? (
+        {shouldRenderLiveEmbed && allowedEmbedUrl && allowedEmbedPolicy ? (
           <div
             className={cn(
               'relative min-h-[116px] flex-1 overflow-hidden rounded-[18px] border',
@@ -515,15 +528,35 @@ export function CanvasExternalReferenceCard({
           </div>
         ) : (
           <div
-            className="flex flex-1 flex-col justify-center gap-2 rounded-[18px] border border-dashed border-border/60 bg-muted/30 px-3 py-4"
+            className={cn(
+              'flex flex-1 flex-col justify-center gap-2 rounded-[18px] border border-dashed px-3 py-4',
+              embedFallback?.tone === 'danger'
+                ? 'border-red-500/35 bg-red-500/10'
+                : 'border-border/60 bg-muted/30',
+              embedFallback?.tone === 'warning' ? 'border-amber-500/35 bg-amber-500/10' : ''
+            )}
             data-canvas-provider-fallback="true"
+            data-canvas-embed-fallback="true"
+            data-canvas-embed-fallback-reason={embedFallback?.reason ?? 'metadata-unavailable'}
+            data-canvas-embed-fallback-tone={embedFallback?.tone ?? 'neutral'}
           >
             <span className="text-[11px] font-semibold uppercase text-muted-foreground">
-              {resolvedEmbedUrl && !embedPolicyDecision.allowed
-                ? 'Embed blocked'
-                : cardRenderer.emptyStateLabel}
+              {embedFallback?.label ?? cardRenderer.emptyStateLabel}
             </span>
-            <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{url}</p>
+            <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+              {embedFallback?.description ?? url}
+            </p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="w-fit rounded-md border border-border/60 bg-background/70 px-2 py-1 text-[11px] font-semibold uppercase text-muted-foreground hover:bg-background"
+              data-canvas-embed-fallback-open="true"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            >
+              Open source
+            </a>
           </div>
         )}
 

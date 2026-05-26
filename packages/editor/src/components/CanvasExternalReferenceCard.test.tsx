@@ -199,8 +199,71 @@ describe('CanvasExternalReferenceCard', () => {
 
     expect(blockedCard).toHaveAttribute('data-canvas-embed-policy', 'blocked')
     expect(blockedCard).toHaveAttribute('data-canvas-embed-policy-reason', 'provider-blocked')
+    expect(blockedCard).toHaveAttribute('data-canvas-embed-fallback-reason', 'provider-blocked')
     expect(document.querySelector('[data-canvas-embed-iframe="true"]')).not.toBeInTheDocument()
+    expect(document.querySelector('[data-canvas-embed-fallback="true"]')).toHaveAttribute(
+      'data-canvas-embed-fallback-tone',
+      'danger'
+    )
     expect(screen.getByText('Embed blocked')).toBeInTheDocument()
+    expect(
+      screen.getByText('Workspace policy does not allow live embeds from YouTube.')
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute(
+      'href',
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+    )
+  })
+
+  it('renders an offline fallback instead of a live iframe when embed status is offline', () => {
+    render(
+      <CanvasExternalReferenceCard
+        title="Planning playlist"
+        url="https://open.spotify.com/playlist/abc123"
+        provider="spotify"
+        embedUrl="https://open.spotify.com/embed/playlist/abc123"
+        subtitle="Spotify"
+        status="offline"
+        themeMode="light"
+      />
+    )
+
+    const card = document.querySelector('[data-canvas-node-card="true"]')
+
+    expect(card).toHaveAttribute('data-canvas-embed-active', 'false')
+    expect(card).toHaveAttribute('data-canvas-embed-fallback-reason', 'offline')
+    expect(document.querySelector('[data-canvas-embed-iframe="true"]')).not.toBeInTheDocument()
+    expect(screen.getByText('Offline')).toBeInTheDocument()
+    expect(screen.getByText('Embed offline')).toBeInTheDocument()
+    expect(
+      screen.getByText('Showing a safe Spotify link card until the provider reconnects.')
+    ).toBeInTheDocument()
+  })
+
+  it('renders provider-denied embed fallbacks with recoverable source links', () => {
+    render(
+      <CanvasExternalReferenceCard
+        title="Private video"
+        url="https://vimeo.com/12345"
+        provider="vimeo"
+        embedUrl="https://player.vimeo.com/video/12345"
+        subtitle="Vimeo"
+        status="provider-denied"
+        themeMode="dark"
+      />
+    )
+
+    const fallback = document.querySelector('[data-canvas-embed-fallback="true"]')
+
+    expect(document.querySelector('[data-canvas-embed-iframe="true"]')).not.toBeInTheDocument()
+    expect(fallback).toHaveAttribute('data-canvas-embed-fallback-reason', 'provider-denied')
+    expect(fallback).toHaveAttribute('data-canvas-embed-fallback-tone', 'danger')
+    expect(fallback).toHaveTextContent('Provider denied')
+    expect(
+      screen.getByText(
+        'Vimeo denied the live embed. The source link is preserved so the object remains recoverable.'
+      )
+    ).toBeInTheDocument()
   })
 
   it('renders failed-card recovery actions and routes action callbacks', () => {

@@ -1479,7 +1479,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add iframe activation mode with pointer-event state handling.
 - [x] Add workspace embed policy and arbitrary iframe restrictions.
 - [x] Add live iframe budget separate from live DOM document budget.
-- [ ] Add fallback rendering for blocked/offline/provider-denied embeds.
+- [x] Add fallback rendering for blocked/offline/provider-denied embeds.
 - [ ] Add export/thumbnail placeholder behavior for iframes.
 
 ### Mind Maps And Edges
