@@ -63,6 +63,9 @@ export type {
   CanvasEdgeEndpoint,
   CanvasConnectorEndpoint,
   CanvasEdge,
+  CanvasEdgeRelationship,
+  CanvasEdgeRelationshipDirection,
+  CanvasEdgeRelationshipKind,
   CanvasConnector,
   EdgeStyle,
   ViewportState,
@@ -94,6 +97,19 @@ export {
   isFrameLikeCanvasNode
 } from './scene/node-kind'
 export type { CanvasResolvedNodeKind } from './scene/node-kind'
+
+export {
+  applyCanvasEdgeRelationship,
+  createCanvasEdgeRelationship,
+  createCanvasSemanticRelationshipRecord,
+  getCanvasConnectorKindForRelationship,
+  normalizeCanvasEdgeRelationship
+} from './edges/relationships'
+export type {
+  CanvasConnectorRecordKind,
+  CanvasSemanticRelationshipRecord,
+  CreateCanvasEdgeRelationshipInput
+} from './edges/relationships'
 
 export {
   CANVAS_TILE_CONNECTORS_MAP_KEY,

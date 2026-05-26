@@ -15,6 +15,7 @@ import type {
 import { DEFAULT_CANVAS_TILE_SIZE, createTileId, getTileCoverageForRect } from '@xnetjs/canvas-core'
 import * as Y from 'yjs'
 import { getCanvasEdgeNodeIds, resolveCanvasAnchorPoint } from '../edges/bindings'
+import { getCanvasConnectorKindForRelationship } from '../edges/relationships'
 import { applyCanvasPreviewTileSummaryUpdate } from '../preview/tile-summary'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from './doc-layout'
 import { isCanvasObjectKind } from './node-kind'
@@ -249,7 +250,7 @@ export function canvasEdgeToConnectorRecord(input: {
         otherNode: sourceNode
       })
     },
-    kind: 'line'
+    kind: getCanvasConnectorKindForRelationship(input.edge.relationship)
   }
 }
 

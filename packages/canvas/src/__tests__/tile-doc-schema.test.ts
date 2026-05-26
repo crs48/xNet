@@ -5,6 +5,7 @@
 import type { CanvasEdge, CanvasNode } from '../types'
 import * as Y from 'yjs'
 import { createCanvasEdgeEndpoint } from '../edges/bindings'
+import { createCanvasEdgeRelationship } from '../edges/relationships'
 import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import {
   CANVAS_TILE_SCHEMA_VERSION,
@@ -180,6 +181,28 @@ describe('Canvas tile Y.Doc schema', () => {
       target: { objectId: 'b', tileId: '0/1/0', anchor: { x: 400, y: 50 } },
       kind: 'line'
     })
+  })
+
+  it('maps semantic edge relationships into connector record kinds', () => {
+    const sourceNode = createNode('a', 0, 0)
+    const targetNode = createNode('b', 400, 0)
+    const connector = canvasEdgeToConnectorRecord({
+      edge: {
+        ...createEdge('edge-1', 'a', 'b'),
+        relationship: createCanvasEdgeRelationship({ kind: 'depends-on' })
+      },
+      nodesById: new Map([
+        ['a', sourceNode],
+        ['b', targetNode]
+      ]),
+      objectTileIds: new Map([
+        ['a', '0/0/0'],
+        ['b', '0/1/0']
+      ]),
+      fallbackTileId: '0/0/0'
+    })
+
+    expect(connector?.kind).toBe('dependency')
   })
 
   it('falls back to node centers for legacy edges without endpoint records', () => {

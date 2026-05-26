@@ -623,6 +623,10 @@ describe('Canvas v3 active renderer', () => {
     expect(createdConnector?.source?.placement).toBe('right')
     expect(createdConnector?.target?.objectId).toBe(shape.id)
     expect(createdConnector?.target?.placement).toBe('left')
+    expect(createdConnector?.relationship).toEqual({
+      kind: 'relates-to',
+      direction: 'undirected'
+    })
     expect(onSceneMutation).toHaveBeenCalledOnce()
   })
 

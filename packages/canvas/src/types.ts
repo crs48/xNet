@@ -246,6 +246,28 @@ export interface CanvasEdgeEndpoint {
   blockAnchorId?: string
 }
 
+export type CanvasEdgeRelationshipKind =
+  | 'relates-to'
+  | 'parent-child'
+  | 'depends-on'
+  | 'blocks'
+  | 'references'
+  | 'duplicates'
+  | 'contains'
+  | 'custom'
+
+export type CanvasEdgeRelationshipDirection = 'directed' | 'undirected'
+
+export type CanvasEdgeRelationship = {
+  kind: CanvasEdgeRelationshipKind
+  direction?: CanvasEdgeRelationshipDirection
+  label?: string
+  sourceRole?: string
+  targetRole?: string
+  schemaId?: string
+  properties?: Record<string, unknown>
+}
+
 /**
  * Edge/connection between canvas nodes
  */
@@ -263,6 +285,8 @@ export interface CanvasEdge {
   source?: CanvasEdgeEndpoint
   /** Durable target endpoint binding */
   target?: CanvasEdgeEndpoint
+  /** Semantic relationship represented by this connector */
+  relationship?: CanvasEdgeRelationship
   label?: string
   style?: EdgeStyle
 }

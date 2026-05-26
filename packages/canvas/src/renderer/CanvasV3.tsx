@@ -40,6 +40,7 @@ import { CommentOverlay } from '../comments/CommentOverlay'
 import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
 import { getCanvasEdgeNodeIds } from '../edges/bindings'
+import { createCanvasEdgeRelationship } from '../edges/relationships'
 import { createCanvasPrimitiveNode } from '../ingestion'
 import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../layers'
 import {
@@ -1460,7 +1461,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     }
 
     const connectors = getCanvasConnectorsMap(doc)
-    const edge = createEdge(selectedNodes[0].id, selectedNodes[1].id)
+    const edge = createEdge(selectedNodes[0].id, selectedNodes[1].id, {
+      relationship: createCanvasEdgeRelationship({ kind: 'relates-to' })
+    })
 
     doc.transact(() => {
       connectors.set(edge.id, edge)
@@ -1501,6 +1504,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       const connectors = getCanvasConnectorsMap(doc)
       const edge = createEdge(connectorStart.nodeId, nodeId, {
+        relationship: createCanvasEdgeRelationship({ kind: 'relates-to' }),
         source: {
           objectId: connectorStart.nodeId,
           placement: connectorStart.placement
