@@ -80,7 +80,8 @@ const EMPTY_FRAME_STATS: FrameStats = {
 
 const DEFAULT_DOM_BUDGETS = {
   maxLiveDom: 32,
-  maxShellDom: 160
+  maxShellDom: 160,
+  maxLiveIframes: 8
 }
 
 type AwarenessLike = {
@@ -343,6 +344,14 @@ function getCanvasObjectHitTargetRect(rect: Rect): Rect {
 
 function getObjectTitle(object: CanvasObjectRecord): string {
   return object.preview.title ?? object.kind.replace('-', ' ')
+}
+
+function hasLiveIframeSurface(node: CanvasNode): boolean {
+  return (
+    node.type === 'external-reference' &&
+    typeof node.properties.embedUrl === 'string' &&
+    node.properties.embedUrl.length > 0
+  )
 }
 
 function createSelectionCapabilities(input: {
@@ -2087,6 +2096,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         selected: selectedNodeIds.has(item.object.id),
         focused: focusedNodeId === item.object.id,
         editing: presenceIntent?.editingNodeId === item.object.id,
+        liveIframe: hasLiveIframeSurface(item.node),
         distanceToViewportCenterPx: Math.hypot(
           item.rect.x + item.rect.width / 2 - viewportSize.width / 2,
           item.rect.y + item.rect.height / 2 - viewportSize.height / 2
@@ -2098,6 +2108,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const domIslandIds = useMemo(
     () => new Set(islandPlan.assignments.map((assignment) => assignment.objectId)),
     [islandPlan.assignments]
+  )
+  const liveIframeObjectIds = useMemo(
+    () => new Set(islandPlan.liveIframeAssignments.map((assignment) => assignment.objectId)),
+    [islandPlan.liveIframeAssignments]
   )
   const domIslandTierById = useMemo(
     () =>
@@ -2698,6 +2712,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       data-canvas-object-count={scene.objects.length}
       data-canvas-dom-live-count={islandPlan.budgets.liveUsed}
       data-canvas-dom-shell-count={islandPlan.budgets.shellUsed}
+      data-canvas-dom-live-iframe-count={islandPlan.budgets.liveIframeUsed}
       data-canvas-vector-layer={vectorLayerAvailable ? 'webgl2' : 'css-fallback'}
       onPointerDown={handleBackgroundPointerDown}
       onPointerMove={handlePointerMove}
@@ -2835,6 +2850,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               data-canvas-v3-object="true"
               data-canvas-object-id={item.object.id}
               data-canvas-dom-island-tier={tier}
+              data-canvas-live-iframe={liveIframeObjectIds.has(item.object.id) ? 'true' : 'false'}
               data-canvas-object-locked={locked ? 'true' : 'false'}
               data-selected={selected ? 'true' : 'false'}
               onPointerDown={(event) => handleNodePointerDown(event, item.object.id)}

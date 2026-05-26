@@ -78,7 +78,9 @@ describe('DOM island pool', () => {
       liveUsed: 1,
       liveRemaining: 0,
       shellUsed: 2,
-      shellRemaining: 0
+      shellRemaining: 0,
+      liveIframeUsed: 0,
+      liveIframeRemaining: 0
     })
   })
 
@@ -150,7 +152,56 @@ describe('DOM island pool', () => {
       liveUsed: 2,
       liveRemaining: 0,
       shellUsed: 3,
-      shellRemaining: 0
+      shellRemaining: 0,
+      liveIframeUsed: 0,
+      liveIframeRemaining: 0
+    })
+  })
+
+  it('budgets live iframes separately from live DOM documents', () => {
+    const plan = planDomIslandPool({
+      candidates: [
+        createCandidate('page', {
+          object: createObject('page', 'Focused page', 'page'),
+          focused: true
+        }),
+        createCandidate('youtube', {
+          object: createObject('youtube', 'YouTube', 'external-reference'),
+          selected: true,
+          liveIframe: true,
+          screenRect: { x: 0, y: 0, width: 420, height: 280 }
+        }),
+        createCandidate('spotify', {
+          object: createObject('spotify', 'Spotify', 'external-reference'),
+          selected: true,
+          liveIframe: true,
+          screenRect: { x: 0, y: 0, width: 360, height: 300 }
+        }),
+        createCandidate('figma', {
+          object: createObject('figma', 'Figma', 'external-reference'),
+          selected: true,
+          liveIframe: true,
+          screenRect: { x: 0, y: 0, width: 320, height: 220 }
+        })
+      ],
+      budgets: { maxLiveDom: 1, maxShellDom: 3, maxLiveIframes: 2 },
+      nowMs: 1_000
+    })
+
+    expect(plan.liveObjects.map((object) => object.id)).toEqual(['page'])
+    expect(plan.shellObjects.map((object) => object.id)).toEqual(['youtube', 'spotify', 'figma'])
+    expect(plan.liveIframeObjects.map((object) => object.id)).toEqual(['youtube', 'spotify'])
+    expect(plan.liveIframeAssignments.map((assignment) => assignment.reasons)).toEqual([
+      ['live-iframe', 'selected'],
+      ['live-iframe', 'selected']
+    ])
+    expect(plan.budgets).toEqual({
+      liveUsed: 1,
+      liveRemaining: 0,
+      shellUsed: 3,
+      shellRemaining: 0,
+      liveIframeUsed: 2,
+      liveIframeRemaining: 0
     })
   })
 

@@ -1294,6 +1294,38 @@ describe('Canvas v3 active renderer', () => {
     expect((pageIsland as HTMLElement).style.transform).toBe('scale(0.5)')
   })
 
+  it('tracks live iframe budget separately from live DOM document budget', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+
+    Array.from({ length: 10 }, (_, index) => {
+      const node = createNode(
+        'external-reference',
+        { x: index * 36 - 180, y: index * 12 - 60, width: 360, height: 180 },
+        {
+          title: `Video ${index}`,
+          url: `https://www.youtube.com/watch?v=video${index}`,
+          provider: 'youtube',
+          embedUrl: `https://www.youtube.com/embed/video${index}`
+        }
+      )
+
+      nodes.set(node.id, node)
+      return node
+    })
+
+    render(
+      <Canvas doc={doc} renderNode={(node) => <span>{node.properties.title as string}</span>} />
+    )
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const liveIframeIslands = document.querySelectorAll('[data-canvas-live-iframe="true"]')
+
+    expect(surface.getAttribute('data-canvas-dom-live-count')).toBe('0')
+    expect(surface.getAttribute('data-canvas-dom-live-iframe-count')).toBe('8')
+    expect(liveIframeIslands).toHaveLength(8)
+  })
+
   it('creates tile summaries from the temporary flat-doc migration adapter', () => {
     const scene = readCanvasV3MigrationSceneFromFlatDoc(createCanvasTestDoc())
 

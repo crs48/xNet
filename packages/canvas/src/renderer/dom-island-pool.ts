@@ -13,6 +13,7 @@ export type DomIslandCandidate = {
   focused?: boolean
   sourceOpen?: boolean
   editing?: boolean
+  liveIframe?: boolean
   distanceToViewportCenterPx?: number
   lastInteractionAtMs?: number
 }
@@ -20,6 +21,7 @@ export type DomIslandCandidate = {
 export type DomIslandPoolBudgets = {
   maxLiveDom: number
   maxShellDom: number
+  maxLiveIframes?: number
 }
 
 export type DomIslandAssignment = {
@@ -30,16 +32,27 @@ export type DomIslandAssignment = {
   reasons: readonly string[]
 }
 
+export type DomIslandIframeAssignment = {
+  objectId: string
+  object: CanvasObjectRecord
+  priority: number
+  reasons: readonly string[]
+}
+
 export type DomIslandPoolPlan = {
   liveObjects: readonly CanvasObjectRecord[]
   shellObjects: readonly CanvasObjectRecord[]
+  liveIframeObjects: readonly CanvasObjectRecord[]
   assignments: readonly DomIslandAssignment[]
+  liveIframeAssignments: readonly DomIslandIframeAssignment[]
   parkedObjectIds: readonly string[]
   budgets: {
     liveUsed: number
     liveRemaining: number
     shellUsed: number
     shellRemaining: number
+    liveIframeUsed: number
+    liveIframeRemaining: number
   }
 }
 
@@ -60,8 +73,10 @@ type ScoredDomIslandCandidate = {
   candidate: DomIslandCandidate
   livePriority: number
   shellPriority: number
+  liveIframePriority: number
   liveReasons: readonly string[]
   shellReasons: readonly string[]
+  liveIframeReasons: readonly string[]
 }
 
 const LIVE_AREA_THRESHOLD = 96_000
@@ -101,9 +116,19 @@ function getLiveReasons(candidate: DomIslandCandidate, area: number): string[] {
 
 function getShellReasons(candidate: DomIslandCandidate, area: number): string[] {
   return [
+    candidate.liveIframe ? 'iframe-shell' : null,
     candidate.selected ? 'selected' : null,
     area >= SHELL_AREA_THRESHOLD ? 'readable-screen-area' : null,
     candidate.object.preview.title ? 'has-title' : null
+  ].filter((reason): reason is string => reason !== null)
+}
+
+function getLiveIframeReasons(candidate: DomIslandCandidate): string[] {
+  return [
+    candidate.liveIframe ? 'live-iframe' : null,
+    candidate.focused ? 'focused' : null,
+    candidate.selected ? 'selected' : null,
+    candidate.editing ? 'editing' : null
   ].filter((reason): reason is string => reason !== null)
 }
 
@@ -147,17 +172,40 @@ function scoreShellCandidate(
   )
 }
 
+function scoreLiveIframeCandidate(
+  candidate: DomIslandCandidate,
+  reasons: readonly string[],
+  area: number,
+  nowMs: number
+): number {
+  if (reasons.length === 0 || candidate.liveIframe !== true) {
+    return 0
+  }
+
+  return (
+    (candidate.focused ? 70_000 : 0) +
+    (candidate.selected ? 45_000 : 0) +
+    (candidate.editing ? 35_000 : 0) +
+    Math.min(area / 10, 18_000) +
+    getRecencyBoost(candidate, nowMs) -
+    getDistancePenalty(candidate)
+  )
+}
+
 function scoreCandidate(candidate: DomIslandCandidate, nowMs: number): ScoredDomIslandCandidate {
   const area = getArea(candidate.screenRect)
   const liveReasons = getLiveReasons(candidate, area)
   const shellReasons = getShellReasons(candidate, area)
+  const liveIframeReasons = getLiveIframeReasons(candidate)
 
   return {
     candidate,
     livePriority: scoreLiveCandidate(candidate, liveReasons, area, nowMs),
     shellPriority: scoreShellCandidate(candidate, shellReasons, area, nowMs),
+    liveIframePriority: scoreLiveIframeCandidate(candidate, liveIframeReasons, area, nowMs),
     liveReasons,
-    shellReasons
+    shellReasons,
+    liveIframeReasons
   }
 }
 
@@ -179,6 +227,7 @@ export function planDomIslandPool(input: PlanDomIslandPoolInput): DomIslandPoolP
   const nowMs = input.nowMs ?? performance.now()
   const maxLiveDom = Math.max(0, input.budgets.maxLiveDom)
   const maxShellDom = Math.max(0, input.budgets.maxShellDom)
+  const maxLiveIframes = Math.max(0, input.budgets.maxLiveIframes ?? 0)
   const scoredCandidates = input.candidates.map((candidate) => scoreCandidate(candidate, nowMs))
   const liveAssignments = sortScoredCandidates(
     scoredCandidates.filter((candidate) => candidate.livePriority > 0),
@@ -215,11 +264,29 @@ export function planDomIslandPool(input: PlanDomIslandPoolInput): DomIslandPoolP
   const assignedObjectIds = new Set(
     [...liveAssignments, ...shellAssignments].map((assignment) => assignment.objectId)
   )
+  const liveIframeAssignments = sortScoredCandidates(
+    scoredCandidates.filter(
+      (candidate) =>
+        candidate.liveIframePriority > 0 && assignedObjectIds.has(candidate.candidate.object.id)
+    ),
+    (candidate) => candidate.liveIframePriority
+  )
+    .slice(0, maxLiveIframes)
+    .map(
+      (candidate): DomIslandIframeAssignment => ({
+        objectId: candidate.candidate.object.id,
+        object: candidate.candidate.object,
+        priority: candidate.liveIframePriority,
+        reasons: candidate.liveIframeReasons
+      })
+    )
 
   return {
     liveObjects: liveAssignments.map((assignment) => assignment.object),
     shellObjects: shellAssignments.map((assignment) => assignment.object),
+    liveIframeObjects: liveIframeAssignments.map((assignment) => assignment.object),
     assignments: [...liveAssignments, ...shellAssignments],
+    liveIframeAssignments,
     parkedObjectIds: input.candidates
       .map((candidate) => candidate.object.id)
       .filter((objectId) => !assignedObjectIds.has(objectId)),
@@ -227,7 +294,9 @@ export function planDomIslandPool(input: PlanDomIslandPoolInput): DomIslandPoolP
       liveUsed: liveAssignments.length,
       liveRemaining: maxLiveDom - liveAssignments.length,
       shellUsed: shellAssignments.length,
-      shellRemaining: maxShellDom - shellAssignments.length
+      shellRemaining: maxShellDom - shellAssignments.length,
+      liveIframeUsed: liveIframeAssignments.length,
+      liveIframeRemaining: maxLiveIframes - liveIframeAssignments.length
     }
   }
 }

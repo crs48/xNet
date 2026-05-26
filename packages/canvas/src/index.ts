@@ -511,6 +511,7 @@ export { DomIslandPool, planDomIslandPool } from './renderer/dom-island-pool'
 export type {
   DomIslandAssignment,
   DomIslandCandidate,
+  DomIslandIframeAssignment,
   DomIslandPoolBudgets,
   DomIslandPoolPlan,
   DomIslandPoolUpdate,
