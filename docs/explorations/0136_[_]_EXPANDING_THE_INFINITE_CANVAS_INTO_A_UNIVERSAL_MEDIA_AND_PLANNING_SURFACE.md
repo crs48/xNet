@@ -1373,6 +1373,7 @@ gantt
 - [ ] Resize objects with minimum dimensions, aspect-ratio constraints for media, and object-specific resize policies for docs, databases, PDFs, frames, and embeds.
 - [x] Add first-pass Canvas v3 media corner-resize aspect-ratio preservation through centralized resize policies.
 - [ ] Add grid snapping, smart guides, equal-spacing guides, frame-edge snapping, and a temporary modifier to disable snapping.
+- [x] Add first-pass Canvas v3 grid snapping for drag previews and drag commits with Alt to temporarily disable snapping.
 - [ ] Add keyboard nudge, large-step nudge, duplicate, delete, lock, group, frame, layer, open, and clear shortcuts.
 - [x] Add first-pass Canvas v3 keyboard shortcuts for nudge, large-step nudge, lock, connect, frame wrap, and layer movement.
 - [x] Add first-pass Canvas v3 keyboard duplicate and delete shortcuts for unlocked selections.
@@ -1477,6 +1478,7 @@ gantt
 - [x] Test v3 imperative handle behavior for lock, align, layer, connect, and frame-wrap operations.
 - [x] Test v3 DOM-island dragging updates canvas object positions.
 - [x] Test v3 drag previews leave Yjs positions unchanged until pointer release.
+- [x] Test v3 drag preview and commit snapping with temporary Alt-disable behavior.
 - [x] Test v3 resize handles update canvas object dimensions.
 - [x] Test v3 media corner-resize aspect-ratio policy from pure helpers and renderer behavior.
 - [x] Test v3 contextual toolbar action routing for single and multi-selection.

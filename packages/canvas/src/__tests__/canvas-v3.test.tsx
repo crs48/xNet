@@ -433,6 +433,7 @@ describe('Canvas v3 active renderer', () => {
     render(
       <Canvas
         doc={doc}
+        config={{ gridSize: 0 }}
         onSceneMutation={onSceneMutation}
         renderNode={(node) => <span>{node.properties.title as string}</span>}
       />
@@ -480,6 +481,79 @@ describe('Canvas v3 active renderer', () => {
     expect(moved?.position.x).toBe(initialX + 40)
     expect(moved?.position.y).toBe(initialY + 30)
     expect(onSceneMutation).toHaveBeenCalled()
+  })
+
+  it('snaps v3 drag previews and commits to the configured grid', () => {
+    const doc = createCanvasTestDoc()
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 20 }}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const initialX = page.position.x
+    const initialY = page.position.y
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!pageIsland) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    const initialScreenLeft = Number.parseFloat((pageIsland as HTMLElement).style.left)
+    const initialScreenTop = Number.parseFloat((pageIsland as HTMLElement).style.top)
+
+    fireEvent.pointerDown(pageIsland, {
+      button: 0,
+      pointerId: 11,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 11,
+      clientX: 507,
+      clientY: 351
+    })
+
+    expect(Number.parseFloat((pageIsland as HTMLElement).style.left)).toBe(initialScreenLeft + 20)
+    expect(Number.parseFloat((pageIsland as HTMLElement).style.top)).toBe(initialScreenTop + 40)
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 11,
+      clientX: 507,
+      clientY: 351
+    })
+
+    let moved = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(moved?.position.x).toBe(initialX + 20)
+    expect(moved?.position.y).toBe(initialY + 40)
+
+    fireEvent.pointerDown(pageIsland, {
+      button: 0,
+      pointerId: 12,
+      clientX: 507,
+      clientY: 351
+    })
+    fireEvent.pointerMove(surface, {
+      altKey: true,
+      pointerId: 12,
+      clientX: 520,
+      clientY: 362
+    })
+    fireEvent.pointerUp(surface, {
+      altKey: true,
+      pointerId: 12,
+      clientX: 520,
+      clientY: 362
+    })
+
+    moved = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(moved?.position.x).toBe(initialX + 33)
+    expect(moved?.position.y).toBe(initialY + 51)
   })
 
   it('resizes a selected v3 object from a resize handle', () => {

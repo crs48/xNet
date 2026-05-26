@@ -240,6 +240,16 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
 }
 
+function snapCanvasValue(value: number, gridSize: number): number {
+  return Math.round(value / gridSize) * gridSize
+}
+
+function getActiveSnapGridSize(config: CanvasConfig): number | null {
+  const gridSize = config.gridSize ?? 20
+
+  return Number.isFinite(gridSize) && gridSize > 0 ? gridSize : null
+}
+
 function getObjectTitle(object: CanvasObjectRecord): string {
   return object.preview.title ?? object.kind.replace('-', ' ')
 }
@@ -722,6 +732,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const viewportSize = useElementSize(containerRef)
   const minZoom = config.minZoom ?? 0.1
   const maxZoom = config.maxZoom ?? 4
+  const snapGridSize = getActiveSnapGridSize(config)
   const [viewport, setViewport] = useState<ViewportState>({
     x: initialViewport?.x ?? 0,
     y: initialViewport?.y ?? 0,
@@ -1158,6 +1169,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [applySelectionPositionUpdates, doc, viewport.zoom]
   )
 
+  const createSnappedDragScreenDelta = useCallback(
+    (screenDelta: Point, snapDisabled: boolean): Point => {
+      if (snapDisabled || !snapGridSize) {
+        return screenDelta
+      }
+
+      return {
+        x: snapCanvasValue(screenDelta.x / viewport.zoom, snapGridSize) * viewport.zoom,
+        y: snapCanvasValue(screenDelta.y / viewport.zoom, snapGridSize) * viewport.zoom
+      }
+    },
+    [snapGridSize, viewport.zoom]
+  )
+
   const createDragPreview = useCallback(
     (nodeIds: string[], screenDelta: Point): DragPreviewState => {
       return {
@@ -1588,10 +1613,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       const nodeDrag = nodeDragRef.current
       if (nodeDrag && nodeDrag.pointerId === event.pointerId) {
-        const screenDelta = {
+        const rawScreenDelta = {
           x: event.clientX - nodeDrag.startClientPoint.x,
           y: event.clientY - nodeDrag.startClientPoint.y
         }
+        const screenDelta = createSnappedDragScreenDelta(rawScreenDelta, event.altKey)
 
         nodeDragRef.current = {
           ...nodeDrag,
@@ -1616,7 +1642,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         y: current.y - deltaY / current.zoom
       }))
     },
-    [awareness, createDragPreview, resizeNodeByScreenDelta, screenToCanvasPoint, setViewportClamped]
+    [
+      awareness,
+      createDragPreview,
+      createSnappedDragScreenDelta,
+      resizeNodeByScreenDelta,
+      screenToCanvasPoint,
+      setViewportClamped
+    ]
   )
 
   const handlePointerUp = useCallback(
