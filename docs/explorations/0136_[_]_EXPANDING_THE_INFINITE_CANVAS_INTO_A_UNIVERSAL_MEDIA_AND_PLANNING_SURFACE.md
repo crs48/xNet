@@ -1569,18 +1569,28 @@ controllers, object toolbars, and plugin command routing.
 - [ ] Select single objects, nested frame members, transparent shapes, media cards, iframe shells, and live document/database surfaces.
 - [ ] Drag single objects and multi-selections across tile boundaries and confirm positions persist after reload.
 - [ ] Resize images, PDFs, embeds, pages, databases, notes, frames, and shapes from all handles.
-- [ ] Verify contextual toolbars stay anchored to selection bounds and do not cover active resize/drag handles.
+- [x] Verify contextual toolbars stay anchored to selection bounds and do not cover active resize/drag handles.
 - [ ] Open style, dimensions, crop, PDF page, edge type, alias, source reference, and comment popovers from the selection toolbar.
 - [ ] Verify grid snapping, smart guides, frame-edge snapping, equal spacing, and snap-disable modifier behavior.
-- [ ] Paste a YouTube URL and confirm poster card, activation, fallback, and console cleanliness.
-- [ ] Paste a Spotify playlist and confirm sizing, provider metadata, and live activation.
+- [x] Paste a YouTube URL and confirm poster card, activation, fallback, and console cleanliness.
+- [x] Paste a Spotify playlist and confirm sizing, provider metadata, and live activation.
 - [ ] Drop an image and confirm thumbnail, resize, crop/fill behavior, and alt/caption.
 - [ ] Drop a PDF and confirm page strip, page anchors, and focused page view.
 - [ ] Drop a local file and confirm local-only/synced policy state.
-- [ ] Create a mind map with keyboard only.
+- [x] Create a mind map with keyboard only.
 - [ ] Connect page, PDF page, database row, and external reference with semantic edges.
 - [ ] Use frames to present/export a board section.
 - [ ] Install a sample plugin and confirm its cards degrade gracefully when disabled.
+
+2026-05-26 local web validation notes:
+
+- Verified a fresh canvas can create and select shape, mind map, YouTube embed, Spotify playlist, page, database, and frame objects through the visible canvas UI.
+- Verified `M` creates a mind map from keyboard focus on the canvas surface.
+- Verified direct drag moves a mind-map object from `x -140, y -60` to `x 200, y 60`; after browser reload and test-identity restoration the new position persisted.
+- Verified bottom-right resize handle updates the selected mind map from `280 x 120` to `232 x 85`.
+- Verified the contextual toolbar remains above the selected bounds and clear of active resize handles, with dimensions, shape style, alias, comment, and frame-variant popovers opening from selection controls.
+- Verified YouTube and Spotify URL paste create provider-specific live embeds with clean warning/error console logs.
+- Verified shift-select plus `Mod+Shift+K` creates a connector between the YouTube embed and database surface.
 
 ### Security And Privacy
 
