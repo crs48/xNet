@@ -142,6 +142,13 @@ export {
   measureCanvasPreviewGenerationBenchmark
 } from './preview/benchmarks'
 export {
+  createCanvasPdfAnnotation,
+  createCanvasPdfAnnotationOverlay,
+  getCanvasPdfAnnotationsForPage,
+  isCanvasPdfAnnotationSourceDetached,
+  updateCanvasPdfAnnotation
+} from './pdf/annotations'
+export {
   createCanvasPdfPageAnchorId,
   createCanvasPdfPageCommentAnchor,
   createCanvasPdfPageEdgeEndpoint,
@@ -201,6 +208,16 @@ export type {
   CanvasPreviewGenerationBenchmarkSource
 } from './preview/benchmarks'
 export type { CanvasPdfPageViewerProps, CanvasPdfPageViewerThemeMode } from './pdf/PdfPageViewer'
+export type {
+  CanvasPdfAnnotationKind,
+  CanvasPdfAnnotationOverlay,
+  CanvasPdfAnnotationPoint,
+  CanvasPdfAnnotationRecord,
+  CanvasPdfAnnotationRect,
+  CanvasPdfAnnotationStyle,
+  CreateCanvasPdfAnnotationInput,
+  CreateCanvasPdfAnnotationOverlayInput
+} from './pdf/annotations'
 export type {
   CanvasPdfPageAnchorLayout,
   CanvasPdfPageCommentAnchor,

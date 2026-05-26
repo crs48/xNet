@@ -1468,7 +1468,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add PDF.js-backed page thumbnail generation.
 - [x] Add focused PDF page viewer with page strip.
 - [x] Add page-level anchors for comments and edges.
-- [ ] Add annotation overlay model separate from source PDF bytes.
+- [x] Add annotation overlay model separate from source PDF bytes.
 - [ ] Add text extraction where feasible and permissioned.
 - [ ] Add "explode pages to canvas" and "collect selected pages into doc" commands.
 
