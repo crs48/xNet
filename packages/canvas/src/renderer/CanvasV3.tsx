@@ -303,6 +303,8 @@ const SHAPE_LABELS: Record<ShapeType, string> = {
 }
 const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
+const CANVAS_OBJECT_HIT_TARGET_PADDING = 8
+const CANVAS_OBJECT_MIN_HIT_TARGET_SIZE = 36
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -316,6 +318,24 @@ function getActiveSnapGridSize(config: CanvasConfig): number | null {
   const gridSize = config.gridSize ?? 20
 
   return Number.isFinite(gridSize) && gridSize > 0 ? gridSize : null
+}
+
+function getCanvasObjectHitTargetRect(rect: Rect): Rect {
+  const extraWidth = Math.max(
+    CANVAS_OBJECT_HIT_TARGET_PADDING * 2,
+    CANVAS_OBJECT_MIN_HIT_TARGET_SIZE - rect.width
+  )
+  const extraHeight = Math.max(
+    CANVAS_OBJECT_HIT_TARGET_PADDING * 2,
+    CANVAS_OBJECT_MIN_HIT_TARGET_SIZE - rect.height
+  )
+
+  return {
+    x: rect.x - extraWidth / 2,
+    y: rect.y - extraHeight / 2,
+    width: rect.width + extraWidth,
+    height: rect.height + extraHeight
+  }
 }
 
 function getObjectTitle(object: CanvasObjectRecord): string {
@@ -2620,6 +2640,34 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             })
         : null}
 
+      {screenObjects.map((item) => {
+        const previewDelta = getDragPreviewDeltaForObject(item.object.id)
+        const hitRect = getCanvasObjectHitTargetRect(item.rect)
+        const title = getObjectTitle(item.object)
+        const locked = item.node.locked === true
+
+        return (
+          <div
+            key={`hit-target:${item.object.id}`}
+            style={{
+              ...styles.objectHitTarget,
+              left: hitRect.x + (previewDelta?.x ?? 0),
+              top: hitRect.y + (previewDelta?.y ?? 0),
+              width: Math.max(2, hitRect.width),
+              height: Math.max(2, hitRect.height),
+              cursor: locked ? 'default' : 'grab'
+            }}
+            aria-hidden="true"
+            title={title}
+            data-canvas-v3-hit-target="true"
+            data-canvas-object-id={item.object.id}
+            data-canvas-hit-target-dom-island={domIslandIds.has(item.object.id) ? 'true' : 'false'}
+            onPointerDown={(event) => handleNodePointerDown(event, item.object.id)}
+            onDoubleClick={() => onNodeDoubleClick?.(item.object.id)}
+          />
+        )
+      })}
+
       {screenObjects
         .filter((item) => domIslandIds.has(item.object.id))
         .map((item) => {
@@ -3115,6 +3163,15 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 3,
     opacity: 0.72,
     pointerEvents: 'none'
+  },
+  objectHitTarget: {
+    position: 'absolute',
+    border: 0,
+    padding: 0,
+    margin: 0,
+    background: 'transparent',
+    pointerEvents: 'auto',
+    touchAction: 'none'
   },
   domIsland: {
     position: 'absolute',

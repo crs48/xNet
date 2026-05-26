@@ -177,6 +177,47 @@ describe('Canvas v3 active renderer', () => {
     })
   })
 
+  it('renders forgiving hit targets for selectable canvas objects', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const tinyShape = createNode(
+      'shape',
+      { x: 0, y: 0, width: 4, height: 4 },
+      {
+        title: 'Tiny Target'
+      }
+    )
+    const onSelectionChange = vi.fn()
+
+    nodes.set(tinyShape.id, tinyShape)
+
+    render(<Canvas doc={doc} onSelectionChange={onSelectionChange} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const hitTarget = surface.querySelector<HTMLElement>(
+      `[data-canvas-v3-hit-target="true"][data-canvas-object-id="${tinyShape.id}"]`
+    )
+
+    expect(hitTarget).toBeTruthy()
+    expect(hitTarget?.style.width).toBe('36px')
+    expect(hitTarget?.style.height).toBe('36px')
+
+    if (!hitTarget) {
+      throw new Error('Expected Tiny Target hit target')
+    }
+
+    fireEvent.pointerDown(hitTarget, {
+      button: 0,
+      clientX: 480,
+      clientY: 320
+    })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({
+      nodeIds: [tinyShape.id],
+      edgeIds: []
+    })
+  })
+
   it('routes creation shortcuts through app entry callbacks', () => {
     const doc = createCanvasTestDoc()
     const onCreateObject = vi.fn()

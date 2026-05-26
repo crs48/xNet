@@ -1374,32 +1374,32 @@ flowchart LR
   Shell --> Scene
 ```
 
-| Electron handle method      | Backing implementation in Canvas v3 path                                  | Audit result                   |
-| --------------------------- | -------------------------------------------------------------------------- | ------------------------------ |
-| `focusLinkedDocument`       | Wrapper lookup plus `getViewportSnapshot` and `fitToRect`                  | Covered by composed primitives |
-| `restoreViewport`           | `setViewportSnapshot`                                                       | Covered                        |
-| `zoomOut`, `zoomIn`         | Wrapper zoom math plus `getViewportSnapshot` and `setViewportSnapshot`     | Covered by composed primitives |
-| `fitCanvasContent`          | `fitToContent`                                                              | Covered                        |
-| `resetCanvasView`           | `resetView`                                                                 | Covered                        |
-| `clearSelection`            | Wrapper closes panels plus `clearSelection`                                | Covered by composed primitives |
-| `fitSelection`              | Wrapper selection bounds plus `fitToRect`                                  | Covered by composed primitives |
-| `openSelection`             | Wrapper opens peek, focus, or split document surfaces                      | Shell-owned                    |
-| `toggleSelectionLock`       | `toggleSelectionLock`                                                       | Covered                        |
-| `alignSelection`            | `alignSelection`                                                            | Covered                        |
-| `distributeSelection`       | `distributeSelection`                                                       | Covered                        |
-| `tidySelection`             | `tidySelection`                                                             | Covered                        |
-| `shiftSelectionLayer`       | `shiftSelectionLayer`                                                       | Covered                        |
-| `connectSelection`          | `connectSelection`                                                          | Covered                        |
-| `createShape`               | `createShape`                                                               | Covered                        |
-| `createFrame`               | `createFrame`                                                               | Covered                        |
-| `createExternalReference`   | Wrapper prompt and ingestion pipeline                                      | Shell-owned                    |
-| `createMediaFile`           | Wrapper file input and ingestion pipeline                                  | Shell-owned                    |
-| `wrapSelectionInFrame`      | `wrapSelectionInFrame`                                                      | Covered                        |
-| `openAliasEditor`           | Wrapper panel, also exposed to v3 via `onEditSelectionAlias`               | Shell-owned                    |
-| `openCommentComposer`       | Wrapper panel, also exposed to v3 via `onCreateSelectionComment`           | Shell-owned                    |
-| `clearSelectionAlias`       | Wrapper source alias mutation                                               | Shell-owned                    |
-| `toggleSourceReferences`    | Wrapper source reference panel                                              | Shell-owned                    |
-| `toggleShortcutHelp`        | Wrapper help state, also exposed to v3 via `onToggleShortcutHelp`          | Shell-owned                    |
+| Electron handle method    | Backing implementation in Canvas v3 path                               | Audit result                   |
+| ------------------------- | ---------------------------------------------------------------------- | ------------------------------ |
+| `focusLinkedDocument`     | Wrapper lookup plus `getViewportSnapshot` and `fitToRect`              | Covered by composed primitives |
+| `restoreViewport`         | `setViewportSnapshot`                                                  | Covered                        |
+| `zoomOut`, `zoomIn`       | Wrapper zoom math plus `getViewportSnapshot` and `setViewportSnapshot` | Covered by composed primitives |
+| `fitCanvasContent`        | `fitToContent`                                                         | Covered                        |
+| `resetCanvasView`         | `resetView`                                                            | Covered                        |
+| `clearSelection`          | Wrapper closes panels plus `clearSelection`                            | Covered by composed primitives |
+| `fitSelection`            | Wrapper selection bounds plus `fitToRect`                              | Covered by composed primitives |
+| `openSelection`           | Wrapper opens peek, focus, or split document surfaces                  | Shell-owned                    |
+| `toggleSelectionLock`     | `toggleSelectionLock`                                                  | Covered                        |
+| `alignSelection`          | `alignSelection`                                                       | Covered                        |
+| `distributeSelection`     | `distributeSelection`                                                  | Covered                        |
+| `tidySelection`           | `tidySelection`                                                        | Covered                        |
+| `shiftSelectionLayer`     | `shiftSelectionLayer`                                                  | Covered                        |
+| `connectSelection`        | `connectSelection`                                                     | Covered                        |
+| `createShape`             | `createShape`                                                          | Covered                        |
+| `createFrame`             | `createFrame`                                                          | Covered                        |
+| `createExternalReference` | Wrapper prompt and ingestion pipeline                                  | Shell-owned                    |
+| `createMediaFile`         | Wrapper file input and ingestion pipeline                              | Shell-owned                    |
+| `wrapSelectionInFrame`    | `wrapSelectionInFrame`                                                 | Covered                        |
+| `openAliasEditor`         | Wrapper panel, also exposed to v3 via `onEditSelectionAlias`           | Shell-owned                    |
+| `openCommentComposer`     | Wrapper panel, also exposed to v3 via `onCreateSelectionComment`       | Shell-owned                    |
+| `clearSelectionAlias`     | Wrapper source alias mutation                                          | Shell-owned                    |
+| `toggleSourceReferences`  | Wrapper source reference panel                                         | Shell-owned                    |
+| `toggleShortcutHelp`      | Wrapper help state, also exposed to v3 via `onToggleShortcutHelp`      | Shell-owned                    |
 
 Audit conclusion: no current Electron command requires an unimplemented `CanvasV3` imperative method.
 The remaining gap is not parity; it is productizing the same operations into richer interaction
@@ -1421,7 +1421,7 @@ controllers, object toolbars, and plugin command routing.
 
 - [ ] Define a first-class `CanvasInteractionController` boundary for selection, move, resize, connect, snapping, keyboard nudging, and undo grouping.
 - [x] Render selection outlines, eight resize handles, connector handles, lock indicators, and multi-select bounds consistently across object kinds.
-- [ ] Add forgiving hit targets for sparse shapes, transparent media, iframe shells, and source-backed cards.
+- [x] Add forgiving hit targets for sparse shapes, transparent media, iframe shells, and source-backed cards.
 - [x] Add first-pass Canvas v3 DOM-island dragging that repositions unlocked selected objects through Yjs.
 - [x] Add first-pass Canvas v3 resize handles that update object dimensions through Yjs.
 - [x] Move selected objects with smooth transform previews and commit coalesced position patches at drag end.
