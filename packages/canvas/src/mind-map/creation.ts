@@ -45,6 +45,11 @@ export type CanvasMindMapNodeProperties = {
   title: string
   label: string
   shapeType: Extract<ShapeType, 'rounded-rectangle'>
+  fill?: string
+  stroke?: string
+  labelColor?: string
+  strokeWidth?: number
+  cornerRadius?: number
   mindMap: CanvasMindMapNodeMetadata
 }
 

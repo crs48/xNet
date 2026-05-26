@@ -10,6 +10,8 @@ import * as Y from 'yjs'
 import {
   Canvas,
   createEdge,
+  createCanvasMindMapBranchProperties,
+  createCanvasMindMapRootProperties,
   createNode,
   getCanvasConnectorsMap,
   getCanvasObjectsMap
@@ -464,6 +466,99 @@ describe('Canvas v3 active renderer', () => {
           node.properties.memberIds.includes(shape.id)
       )
     ).toBe(true)
+  })
+
+  it('collapses mind map branches from the selection toolbar', () => {
+    const doc = new Y.Doc()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const ref = React.createRef<CanvasHandle>()
+    const rootProperties = {
+      ...createCanvasMindMapRootProperties({
+        title: 'Roadmap',
+        mapId: 'mindmap-roadmap'
+      }),
+      fill: '#fef3c7',
+      stroke: '#d97706'
+    }
+    const root = {
+      ...createNode('shape', { x: 0, y: 0, width: 280, height: 120 }, rootProperties),
+      id: 'mindmap-root'
+    }
+    const branch = {
+      ...createNode(
+        'shape',
+        { x: 320, y: 0, width: 220, height: 88 },
+        createCanvasMindMapBranchProperties({
+          title: 'Launch',
+          mapId: rootProperties.mindMap.mapId,
+          parentId: root.id,
+          depth: 1,
+          index: 0
+        })
+      ),
+      id: 'mindmap-branch'
+    }
+    const leaf = {
+      ...createNode(
+        'shape',
+        { x: 620, y: 0, width: 220, height: 88 },
+        createCanvasMindMapBranchProperties({
+          title: 'Checklist',
+          mapId: rootProperties.mindMap.mapId,
+          parentId: branch.id,
+          depth: 2,
+          index: 0
+        })
+      ),
+      id: 'mindmap-leaf'
+    }
+
+    objects.set(root.id, root)
+    objects.set(branch.id, branch)
+    objects.set(leaf.id, leaf)
+
+    render(
+      <Canvas
+        ref={ref}
+        doc={doc}
+        renderNode={(node) => (
+          <span data-testid={`node-${node.id}`} data-fill={String(node.properties.fill ?? '')}>
+            {node.properties.title as string}
+          </span>
+        )}
+      />
+    )
+
+    expect(screen.getByText('Checklist')).toBeTruthy()
+    expect(screen.getByTestId(`node-${branch.id}`).getAttribute('data-fill')).toBe('#fef3c7')
+
+    act(() => {
+      ref.current?.selectNodes([branch.id])
+    })
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Collapse mind map branch' }))
+
+    expect(
+      (objects.get(branch.id)?.properties.mindMap as { collapsed?: boolean } | undefined)?.collapsed
+    ).toBe(true)
+    expect(screen.queryByText('Checklist')).toBeNull()
+    expect(
+      screen
+        .getByTestId(`node-${branch.id}`)
+        .closest('[data-canvas-v3-object="true"]')
+        ?.getAttribute('data-canvas-mind-map-collapsed')
+    ).toBe('true')
+
+    const collapsedToolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    fireEvent.click(
+      within(collapsedToolbar).getByRole('button', { name: 'Expand mind map branch' })
+    )
+
+    expect(
+      (objects.get(branch.id)?.properties.mindMap as { collapsed?: boolean } | undefined)?.collapsed
+    ).toBe(false)
+    expect(screen.getByText('Checklist')).toBeTruthy()
   })
 
   it('renders v3 connector handles, multi-select bounds, and connects handle endpoints', () => {

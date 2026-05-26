@@ -325,11 +325,26 @@ export {
   getCanvasMindMapKeyboardIntent
 } from './mind-map/creation'
 export {
+  createCanvasMindMapCollapseUpdates,
+  createCanvasMindMapInheritedStyleMap,
+  createCanvasMindMapInheritedStyleUpdates,
+  createCanvasMindMapVisibilityState,
+  getCanvasMindMapDescendantIds,
+  getCanvasMindMapMetadata,
+  isCanvasMindMapNode,
+  resolveCanvasMindMapBranchStyle
+} from './mind-map/branches'
+export {
   CANVAS_MIND_MAP_TREE_LAYOUT_DEFAULTS,
   createCanvasMindMapTreeLayoutRequest,
   createCanvasMindMapTreePositionUpdates,
   layoutCanvasMindMapTree
 } from './mind-map/tree-layout'
+export type {
+  CanvasMindMapBranchStyle,
+  CanvasMindMapNodePropertiesUpdate,
+  CanvasMindMapVisibilityState
+} from './mind-map/branches'
 export type {
   CanvasMindMapBranchDirection,
   CanvasMindMapCreationTool,

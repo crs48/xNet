@@ -43,6 +43,15 @@ import { getCanvasEdgeNodeIds } from '../edges/bindings'
 import { createCanvasPrimitiveNode } from '../ingestion'
 import { createWebGLVectorTileRenderer, type WebGLVectorTileRenderer } from '../layers'
 import {
+  createCanvasMindMapCollapseUpdates,
+  createCanvasMindMapInheritedStyleMap,
+  createCanvasMindMapVisibilityState,
+  getCanvasMindMapMetadata,
+  isCanvasMindMapNode,
+  type CanvasMindMapBranchStyle,
+  type CanvasMindMapNodePropertiesUpdate
+} from '../mind-map/branches'
+import {
   CANVAS_MIND_MAP_CREATION_TOOL,
   createCanvasMindMapRootProperties
 } from '../mind-map/creation'
@@ -265,6 +274,7 @@ type CanvasSelectionCapabilities = {
   canEditAlias: boolean
   canComment: boolean
   canEditDimensions: boolean
+  canToggleMindMapCollapse: boolean
   canDuplicate: boolean
   canToggleLock: boolean
   canConnect: boolean
@@ -376,6 +386,11 @@ function createSelectionCapabilities(input: {
     canEditAlias: selectionCount === 1 && Boolean(firstNode?.sourceNodeId) && input.hasAliasHandler,
     canComment: hasSelection && input.hasCommentHandler,
     canEditDimensions: selectionCount === 1 && hasUnlockedSelection,
+    canToggleMindMapCollapse:
+      selectionCount === 1 &&
+      unlockedCount === 1 &&
+      firstNode !== null &&
+      isCanvasMindMapNode(firstNode),
     canDuplicate: hasUnlockedSelection,
     canToggleLock: hasSelection,
     canConnect: selectionCount === 2 && unlockedCount === 2,
@@ -444,6 +459,23 @@ function createFallbackCanvasNode(object: CanvasObjectRecord): CanvasNode {
       subtitle: object.preview.subtitle,
       sourceVersion: object.preview.sourceVersion,
       thumbnailHash: object.preview.thumbnailHash
+    }
+  }
+}
+
+function applyMindMapInheritedStyle(
+  node: CanvasNode,
+  style: CanvasMindMapBranchStyle | undefined
+): CanvasNode {
+  if (!style) {
+    return node
+  }
+
+  return {
+    ...node,
+    properties: {
+      ...node.properties,
+      ...style
     }
   }
 }
@@ -1182,6 +1214,42 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [doc, onSceneMutation]
   )
 
+  const applyNodePropertiesUpdates = useCallback(
+    (updates: CanvasMindMapNodePropertiesUpdate[]): boolean => {
+      if (updates.length === 0) {
+        return false
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      let changed = false
+
+      doc.transact(() => {
+        for (const update of updates) {
+          const node = objects.get(update.id)
+          if (!node) {
+            continue
+          }
+
+          objects.set(update.id, {
+            ...node,
+            properties: {
+              ...node.properties,
+              ...update.properties
+            }
+          })
+          changed = true
+        }
+      })
+
+      if (changed) {
+        onSceneMutation?.()
+      }
+
+      return changed
+    },
+    [doc, onSceneMutation]
+  )
+
   const applySelectionPositionUpdates = useCallback(
     (updates: CanvasPositionUpdate[]): boolean => {
       const objects = getCanvasObjectsMap<CanvasNode>(doc)
@@ -1223,6 +1291,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const toggleSelectionLock = useCallback((): boolean => {
     return applyLockUpdates(createLockUpdates(getSelectedNodes()))
   }, [applyLockUpdates, getSelectedNodes])
+
+  const toggleMindMapBranchCollapse = useCallback((): boolean => {
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const selectedNodes = getSelectedNodes()
+    const selectedNode = selectedNodes[0] ?? null
+    if (selectedNodes.length !== 1 || !selectedNode || selectedNode.locked) {
+      return false
+    }
+
+    return applyNodePropertiesUpdates(
+      createCanvasMindMapCollapseUpdates(Array.from(objects.values()), selectedNode.id)
+    )
+  }, [applyNodePropertiesUpdates, doc, getSelectedNodes])
 
   const alignSelection = useCallback(
     (alignment: CanvasAlignment): boolean => {
@@ -1582,6 +1663,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [selectionCapabilities.canEditDimensions])
 
   const firstSelectedNode = selectedNodes[0] ?? null
+  const firstSelectedMindMapMetadata = firstSelectedNode
+    ? getCanvasMindMapMetadata(firstSelectedNode)
+    : null
   const selectionToolbarTitle =
     selectedNodes.length === 1 && firstSelectedNode
       ? String(
@@ -2107,11 +2191,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [awareness])
 
   const screenObjects = useMemo<ScreenObject[]>(() => {
-    return scene.objects
-      .map((object) => ({
-        object,
-        node: scene.sourceNodesById.get(object.id) ?? createFallbackCanvasNode(object),
-        rect: getScreenRectForObject(object, viewport, viewportSize)
+    const candidates = scene.objects.map((object) => ({
+      object,
+      node: scene.sourceNodesById.get(object.id) ?? createFallbackCanvasNode(object),
+      rect: getScreenRectForObject(object, viewport, viewportSize)
+    }))
+    const visibility = createCanvasMindMapVisibilityState(candidates.map((item) => item.node))
+    const inheritedStyles = createCanvasMindMapInheritedStyleMap(
+      candidates.map((item) => item.node)
+    )
+
+    return candidates
+      .filter((item) => !visibility.hiddenNodeIds.has(item.object.id))
+      .map((item) => ({
+        ...item,
+        node: applyMindMapInheritedStyle(item.node, inheritedStyles.get(item.object.id))
       }))
       .filter((item) => intersectsViewport(item.rect, viewportSize))
   }, [scene.objects, scene.sourceNodesById, viewport, viewportSize])
@@ -2868,6 +2962,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           const previewDelta = getDragPreviewDeltaForObject(item.object.id)
           const locked = item.node.locked === true
           const showConnectorHandles = !locked && (selected || connectorStart !== null)
+          const mindMapMetadata = getCanvasMindMapMetadata(item.node)
 
           return (
             <div
@@ -2890,6 +2985,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               data-canvas-object-id={item.object.id}
               data-canvas-dom-island-tier={tier}
               data-canvas-live-iframe={liveIframeObjectIds.has(item.object.id) ? 'true' : 'false'}
+              data-canvas-mind-map-node={mindMapMetadata ? 'true' : undefined}
+              data-canvas-mind-map-collapsed={
+                mindMapMetadata ? (mindMapMetadata.collapsed ? 'true' : 'false') : undefined
+              }
               data-canvas-object-locked={locked ? 'true' : 'false'}
               data-selected={selected ? 'true' : 'false'}
               onPointerDown={(event) => handleNodePointerDown(event, item.object.id)}
@@ -3080,6 +3179,22 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
                 setActiveSelectionPopover((current) =>
                   current === 'dimensions' ? null : 'dimensions'
                 )
+              }}
+            />
+          ) : null}
+
+          {selectionCapabilities.canToggleMindMapCollapse ? (
+            <CanvasSelectionToolbarButton
+              action="mind-map-collapse"
+              label={firstSelectedMindMapMetadata?.collapsed ? 'Expand' : 'Collapse'}
+              title={
+                firstSelectedMindMapMetadata?.collapsed
+                  ? 'Expand mind map branch'
+                  : 'Collapse mind map branch'
+              }
+              theme={theme}
+              onClick={() => {
+                toggleMindMapBranchCollapse()
               }}
             />
           ) : null}
