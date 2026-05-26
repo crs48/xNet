@@ -512,6 +512,31 @@ export type {
   CanvasFrameVariantProperties
 } from './frames/frame-variants'
 export {
+  createCanvasQueryFrameDefinition,
+  createCanvasQueryFrameNode,
+  createCanvasQueryFrameProperties,
+  createCanvasQueryFrameResultSummary,
+  getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultSummary,
+  isCanvasQueryFrameDefinition,
+  isCanvasQueryFrameNode,
+  updateCanvasQueryFrameResultSummary
+} from './frames/query-frames'
+export type {
+  CanvasQueryFrameDefinition,
+  CanvasQueryFrameFilter,
+  CanvasQueryFrameFilterOperator,
+  CanvasQueryFrameMaterialization,
+  CanvasQueryFrameProperties,
+  CanvasQueryFrameRefreshMode,
+  CanvasQueryFrameResultSummary,
+  CanvasQueryFrameSort,
+  CanvasQueryFrameSource,
+  CreateCanvasQueryFrameDefinitionInput,
+  CreateCanvasQueryFrameNodeInput,
+  CreateCanvasQueryFramePropertiesInput
+} from './frames/query-frames'
+export {
   CANVAS_PLANNING_TEMPLATE_DEFINITIONS,
   createCanvasPlanningTemplateInstance,
   getCanvasPlanningTemplateDefinition

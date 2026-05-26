@@ -1513,7 +1513,7 @@ controllers, object toolbars, and plugin command routing.
 
 ### ERP And Query Grids
 
-- [ ] Add query-backed canvas frames.
+- [x] Add query-backed canvas frames.
 - [ ] Add saved layouts: grid, swimlane, kanban, timeline, dependency map, org chart.
 - [ ] Add semantic edge queries and filters.
 - [ ] Add bulk operations on selected source-backed cards.

@@ -171,6 +171,8 @@ const FRAME_VARIANT_PROPERTY_KEYS = new Set([
   'aspectRatio',
   'queryMode',
   'queryText',
+  'queryDefinition',
+  'queryResultSummary',
   'laneAxis',
   'lanes',
   'swimlaneGrouping',

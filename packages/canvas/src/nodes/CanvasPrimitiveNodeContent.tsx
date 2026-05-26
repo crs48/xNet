@@ -9,6 +9,10 @@ import {
   getCanvasFrameVariantDefinition,
   type CanvasFrameVariant
 } from '../frames/frame-variants'
+import {
+  getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultSummary
+} from '../frames/query-frames'
 import { getCanvasContainerMemberIds, getCanvasContainerRole } from '../selection/scene-operations'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 import { ShapeNodeComponent, type ShapeNodeData } from './shape-node'
@@ -216,9 +220,19 @@ function CanvasFrameVariantPreview({
   }
 
   if (variant === 'query') {
+    const queryDefinition = getCanvasQueryFrameDefinition(node)
+    const querySummary = getCanvasQueryFrameResultSummary(node)
+    const countLabel =
+      querySummary.totalCount > 0
+        ? `${querySummary.visibleCount}/${querySummary.totalCount} results`
+        : 'No results'
+
     return (
       <div
         data-canvas-frame-variant-preview="query"
+        data-canvas-query-frame-preview="true"
+        data-canvas-query-frame-id={queryDefinition?.id}
+        data-canvas-query-frame-stale={querySummary.stale ? 'true' : 'false'}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -226,7 +240,41 @@ function CanvasFrameVariantPreview({
           height: '100%'
         }}
       >
-        <div style={{ height: 18, borderRadius: 999, background: accentFill }} />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            minHeight: 20,
+            borderRadius: 999,
+            background: accentFill,
+            padding: '0 8px',
+            color: theme.panelMutedText,
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase'
+          }}
+        >
+          <span
+            data-canvas-query-frame-label="true"
+            style={{
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {queryDefinition?.label ?? 'Saved query'}
+          </span>
+          <span
+            data-canvas-query-frame-count="true"
+            style={{ flexShrink: 0, color: querySummary.stale ? accentLine : theme.panelMutedText }}
+          >
+            {countLabel}
+          </span>
+        </div>
         {[0, 1, 2].map((index) => (
           <div
             key={index}
