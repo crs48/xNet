@@ -118,6 +118,8 @@ export interface UseCanvasCommentsResult {
 export interface CanvasObjectCommentOptions {
   placement?: NonNullable<CanvasObjectAnchor['placement']>
   anchorId?: string
+  pageNumber?: number
+  pageId?: string
   xRatio?: number
   yRatio?: number
   offsetX?: number
@@ -307,11 +309,15 @@ export function useCanvasComments({
           options.anchorId ??
           createCanvasObjectAnchorId({
             objectId,
+            pageNumber: options.pageNumber,
+            pageId: options.pageId,
             placement: options.placement ?? 'right',
             xRatio: options.xRatio,
             yRatio: options.yRatio,
             blockAnchorId: options.blockAnchorId
           }),
+        pageNumber: options.pageNumber,
+        pageId: options.pageId,
         placement: options.placement ?? 'right',
         xRatio: options.xRatio,
         yRatio: options.yRatio,

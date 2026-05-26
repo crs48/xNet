@@ -31,6 +31,8 @@ export type CanvasInteractionConnectorEndpoint = {
   nodeId: string
   placement?: CanvasObjectAnchorPlacement
   anchorId?: string
+  pageNumber?: number
+  pageId?: string
 }
 
 export type CanvasSelectCommand = {

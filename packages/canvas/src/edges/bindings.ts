@@ -55,6 +55,20 @@ function isFiniteRatio(value: number | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
+function getPositiveInteger(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null
+}
+
+function getPageAnchorSegment(endpoint: Pick<CanvasEdgeEndpoint, 'pageNumber' | 'pageId'>): string {
+  const pageNumber = getPositiveInteger(endpoint.pageNumber)
+
+  if (pageNumber !== null) {
+    return `page:${pageNumber}`
+  }
+
+  return endpoint.pageId ? `page:${encodeURIComponent(endpoint.pageId)}` : ''
+}
+
 export function getCanvasEdgeSourceObjectId(edge: CanvasEdge): string | null {
   return edge.source?.objectId ?? edge.sourceId ?? null
 }
@@ -70,7 +84,14 @@ export function getCanvasEdgeNodeIds(edge: CanvasEdge): [string | null, string |
 export function createCanvasObjectAnchorId(
   endpoint: Pick<
     CanvasEdgeEndpoint,
-    'objectId' | 'anchorId' | 'placement' | 'xRatio' | 'yRatio' | 'blockAnchorId'
+    | 'objectId'
+    | 'anchorId'
+    | 'pageNumber'
+    | 'pageId'
+    | 'placement'
+    | 'xRatio'
+    | 'yRatio'
+    | 'blockAnchorId'
   >
 ): string {
   if (endpoint.anchorId) {
@@ -81,10 +102,12 @@ export function createCanvasObjectAnchorId(
     isFiniteRatio(endpoint.xRatio) && isFiniteRatio(endpoint.yRatio)
       ? `ratio:${formatRatio(endpoint.xRatio)},${formatRatio(endpoint.yRatio)}`
       : `placement:${endpoint.placement ?? 'auto'}`
+  const pageSegment = getPageAnchorSegment(endpoint)
+  const anchorSegments = pageSegment ? [pageSegment, placementSegment] : [placementSegment]
 
   return endpoint.blockAnchorId
-    ? `${endpoint.objectId}#${placementSegment}#block:${endpoint.blockAnchorId}`
-    : `${endpoint.objectId}#${placementSegment}`
+    ? `${endpoint.objectId}#${anchorSegments.join('#')}#block:${endpoint.blockAnchorId}`
+    : `${endpoint.objectId}#${anchorSegments.join('#')}`
 }
 
 export function createCanvasEdgeEndpoint(

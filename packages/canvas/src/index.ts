@@ -141,6 +141,13 @@ export {
   createCanvasPreviewGenerationBenchmarkSources,
   measureCanvasPreviewGenerationBenchmark
 } from './preview/benchmarks'
+export {
+  createCanvasPdfPageAnchorId,
+  createCanvasPdfPageCommentAnchor,
+  createCanvasPdfPageEdgeEndpoint,
+  getCanvasPdfPageAnchorRect,
+  resolveCanvasPdfPageAnchorPoint
+} from './pdf/page-anchors'
 export { CanvasPdfPageViewer } from './pdf/PdfPageViewer'
 export { createCanvasPdfPageThumbnails } from './pdf/page-thumbnails'
 export {
@@ -194,6 +201,11 @@ export type {
   CanvasPreviewGenerationBenchmarkSource
 } from './preview/benchmarks'
 export type { CanvasPdfPageViewerProps, CanvasPdfPageViewerThemeMode } from './pdf/PdfPageViewer'
+export type {
+  CanvasPdfPageAnchorLayout,
+  CanvasPdfPageCommentAnchor,
+  CreateCanvasPdfPageAnchorInput
+} from './pdf/page-anchors'
 export type {
   CanvasPdfJsAdapter,
   CanvasPdfJsDocument,

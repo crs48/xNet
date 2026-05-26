@@ -230,6 +230,10 @@ export interface CanvasEdgeEndpoint {
   objectId: string
   /** Stable anchor ID for comment/deep-link reuse */
   anchorId?: string
+  /** 1-based page number for paged object targets such as PDFs */
+  pageNumber?: number
+  /** Optional provider/source page ID when a page has a stable identity */
+  pageId?: string
   /** Logical attachment placement on the object */
   placement?: CanvasObjectAnchorPlacement
   /** Optional custom normalized anchor ratios (0..1) */
