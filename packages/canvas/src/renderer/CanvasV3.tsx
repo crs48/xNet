@@ -207,8 +207,10 @@ type ScreenObject = {
 
 type NodeDragState = {
   pointerId: number
-  lastClientPoint: Point
   nodeIds: string[]
+  originPositions: ReadonlyMap<string, Point>
+  screenDelta: Point
+  startClientPoint: Point
 }
 
 type NodeResizeState = {
@@ -216,6 +218,11 @@ type NodeResizeState = {
   lastClientPoint: Point
   nodeId: string
   handle: ResizeHandle
+}
+
+type DragPreviewState = {
+  nodeIds: ReadonlySet<string>
+  screenDelta: Point
 }
 
 const RESIZE_HANDLES: ResizeHandle[] = [
@@ -709,6 +716,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   })
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
+  const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null)
   const [remoteUsers, setRemoteUsers] = useState<CanvasRemoteUser[]>(() =>
     readRemoteUsers(awareness)
   )
@@ -1052,6 +1060,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
     return getScreenRectForCanvasRect(selectionBounds, viewport, viewportSize)
   }, [selectionBounds, viewport, viewportSize])
+  const selectionToolbarPreviewDelta = useMemo((): Point | null => {
+    if (!dragPreview || selectedNodeIds.size === 0) {
+      return null
+    }
+
+    return Array.from(selectedNodeIds).every((id) => dragPreview.nodeIds.has(id))
+      ? dragPreview.screenDelta
+      : null
+  }, [dragPreview, selectedNodeIds])
   const selectionToolbarStyle = useMemo<React.CSSProperties | null>(() => {
     if (!selectionToolbarRect) {
       return null
@@ -1068,8 +1085,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
     return {
       ...styles.selectionToolbar,
-      left: clamp(selectionCenter, 168, Math.max(168, viewportSize.width - 168)),
-      top: Math.max(12, top),
+      left: clamp(
+        selectionCenter + (selectionToolbarPreviewDelta?.x ?? 0),
+        168,
+        Math.max(168, viewportSize.width - 168)
+      ),
+      top: Math.max(12, top + (selectionToolbarPreviewDelta?.y ?? 0)),
       color: theme.panelText,
       background: theme.panelBackground,
       borderColor: theme.panelBorder,
@@ -1077,6 +1098,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     }
   }, [
     selectionToolbarRect,
+    selectionToolbarPreviewDelta,
     theme.panelBackground,
     theme.panelBorder,
     theme.panelShadow,
@@ -1085,31 +1107,98 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     viewportSize.width
   ])
 
-  const moveSelectionByScreenDelta = useCallback(
-    (nodeIds: string[], delta: Point): boolean => {
-      if (nodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
+  const commitSelectionDragByScreenDelta = useCallback(
+    (dragState: NodeDragState): boolean => {
+      const delta = dragState.screenDelta
+      if (dragState.nodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
         return false
       }
 
       const objects = getCanvasObjectsMap<CanvasNode>(doc)
-      const selectedNodes = nodeIds
+      const selectedNodes = dragState.nodeIds
         .map((id) => objects.get(id))
         .filter((node): node is CanvasNode => node !== undefined)
       const deltaCanvas = {
         x: delta.x / viewport.zoom,
         y: delta.y / viewport.zoom
       }
-      const updates = getUnlockedSelection(selectedNodes).map((node) => ({
-        id: node.id,
-        position: {
-          x: Math.round(node.position.x + deltaCanvas.x),
-          y: Math.round(node.position.y + deltaCanvas.y)
-        }
-      }))
+
+      const updates = getUnlockedSelection(selectedNodes)
+        .map((node): CanvasPositionUpdate | null => {
+          const origin = dragState.originPositions.get(node.id)
+          if (!origin) {
+            return null
+          }
+
+          return {
+            id: node.id,
+            position: {
+              x: Math.round(origin.x + deltaCanvas.x),
+              y: Math.round(origin.y + deltaCanvas.y)
+            }
+          }
+        })
+        .filter((update): update is CanvasPositionUpdate => update !== null)
 
       return applySelectionPositionUpdates(updates)
     },
     [applySelectionPositionUpdates, doc, viewport.zoom]
+  )
+
+  const createDragPreview = useCallback(
+    (nodeIds: string[], screenDelta: Point): DragPreviewState => {
+      return {
+        nodeIds: new Set(nodeIds),
+        screenDelta
+      }
+    },
+    []
+  )
+
+  const getDragPreviewDeltaForObject = useCallback(
+    (objectId: string): Point | null => {
+      if (!dragPreview?.nodeIds.has(objectId)) {
+        return null
+      }
+
+      return dragPreview.screenDelta
+    },
+    [dragPreview]
+  )
+
+  const getDragPreviewDeltaForConnectorEndpoint = useCallback(
+    (objectId: string): Point => {
+      return getDragPreviewDeltaForObject(objectId) ?? { x: 0, y: 0 }
+    },
+    [getDragPreviewDeltaForObject]
+  )
+
+  const createNodeDragState = useCallback(
+    (pointerId: number, nodeIds: string[], startClientPoint: Point): NodeDragState => {
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const originPositions = new Map<string, Point>()
+
+      for (const id of nodeIds) {
+        const node = objects.get(id)
+        if (!node) {
+          continue
+        }
+
+        originPositions.set(id, {
+          x: node.position.x,
+          y: node.position.y
+        })
+      }
+
+      return {
+        pointerId,
+        nodeIds,
+        originPositions,
+        screenDelta: { x: 0, y: 0 },
+        startClientPoint
+      }
+    },
+    [doc]
   )
 
   const nudgeSelectionByCanvasDelta = useCallback(
@@ -1356,14 +1445,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
         return {
           id: connector.id,
-          x1: sourceRect.x,
-          y1: sourceRect.y,
-          x2: targetRect.x,
-          y2: targetRect.y
+          x1: sourceRect.x + getDragPreviewDeltaForConnectorEndpoint(connector.source.objectId).x,
+          y1: sourceRect.y + getDragPreviewDeltaForConnectorEndpoint(connector.source.objectId).y,
+          x2: targetRect.x + getDragPreviewDeltaForConnectorEndpoint(connector.target.objectId).x,
+          y2: targetRect.y + getDragPreviewDeltaForConnectorEndpoint(connector.target.objectId).y
         }
       })
       .filter((line) => [line.x1, line.y1, line.x2, line.y2].every(Number.isFinite))
-  }, [scene.connectors, viewport, viewportSize])
+  }, [getDragPreviewDeltaForConnectorEndpoint, scene.connectors, viewport, viewportSize])
 
   const createSurfaceEventContext = useCallback(
     (): CanvasSurfaceEventContext => ({
@@ -1401,15 +1490,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       })
 
       if (!additive) {
-        nodeDragRef.current = {
-          pointerId: event.pointerId,
-          lastClientPoint: { x: event.clientX, y: event.clientY },
-          nodeIds: dragNodeIds
-        }
+        nodeDragRef.current = createNodeDragState(event.pointerId, dragNodeIds, {
+          x: event.clientX,
+          y: event.clientY
+        })
+        setDragPreview(null)
         containerRef.current?.setPointerCapture?.(event.pointerId)
       }
     },
-    [selectedNodeIds]
+    [createNodeDragState, selectedNodeIds]
   )
 
   const handleResizePointerDown = useCallback(
@@ -1479,19 +1568,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       const nodeDrag = nodeDragRef.current
       if (nodeDrag && nodeDrag.pointerId === event.pointerId) {
-        const delta = {
-          x: event.clientX - nodeDrag.lastClientPoint.x,
-          y: event.clientY - nodeDrag.lastClientPoint.y
-        }
-
-        if (moveSelectionByScreenDelta(nodeDrag.nodeIds, delta)) {
-          awareness?.setLocalStateField('activity', 'dragging')
+        const screenDelta = {
+          x: event.clientX - nodeDrag.startClientPoint.x,
+          y: event.clientY - nodeDrag.startClientPoint.y
         }
 
         nodeDragRef.current = {
           ...nodeDrag,
-          lastClientPoint: { x: event.clientX, y: event.clientY }
+          screenDelta
         }
+        setDragPreview(createDragPreview(nodeDrag.nodeIds, screenDelta))
+        awareness?.setLocalStateField('activity', 'dragging')
         return
       }
 
@@ -1509,13 +1596,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         y: current.y - deltaY / current.zoom
       }))
     },
-    [
-      awareness,
-      moveSelectionByScreenDelta,
-      resizeNodeByScreenDelta,
-      screenToCanvasPoint,
-      setViewportClamped
-    ]
+    [awareness, createDragPreview, resizeNodeByScreenDelta, screenToCanvasPoint, setViewportClamped]
   )
 
   const handlePointerUp = useCallback(
@@ -1525,8 +1606,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
       }
 
-      if (nodeDragRef.current?.pointerId === event.pointerId) {
+      const nodeDrag = nodeDragRef.current
+      if (nodeDrag?.pointerId === event.pointerId) {
+        if (event.type !== 'pointercancel') {
+          commitSelectionDragByScreenDelta(nodeDrag)
+        }
+
         nodeDragRef.current = null
+        setDragPreview(null)
         awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
       }
 
@@ -1535,7 +1622,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }
       lastPointerRef.current = null
     },
-    [awareness, presenceIntent?.activity]
+    [awareness, commitSelectionDragByScreenDelta, presenceIntent?.activity]
   )
 
   const handleWheel = useCallback(
@@ -1854,22 +1941,26 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       {!vectorLayerAvailable
         ? screenObjects
             .filter((item) => !domIslandIds.has(item.object.id))
-            .map((item) => (
-              <div
-                key={item.object.id}
-                style={{
-                  ...styles.vectorFallbackObject,
-                  left: item.rect.x,
-                  top: item.rect.y,
-                  width: Math.max(2, item.rect.width),
-                  height: Math.max(2, item.rect.height),
-                  borderColor: getObjectColor(item.object.kind),
-                  background: `${getObjectColor(item.object.kind)}22`
-                }}
-                data-canvas-v3-vector-fallback="true"
-                data-canvas-object-id={item.object.id}
-              />
-            ))
+            .map((item) => {
+              const previewDelta = getDragPreviewDeltaForObject(item.object.id)
+
+              return (
+                <div
+                  key={item.object.id}
+                  style={{
+                    ...styles.vectorFallbackObject,
+                    left: item.rect.x + (previewDelta?.x ?? 0),
+                    top: item.rect.y + (previewDelta?.y ?? 0),
+                    width: Math.max(2, item.rect.width),
+                    height: Math.max(2, item.rect.height),
+                    borderColor: getObjectColor(item.object.kind),
+                    background: `${getObjectColor(item.object.kind)}22`
+                  }}
+                  data-canvas-v3-vector-fallback="true"
+                  data-canvas-object-id={item.object.id}
+                />
+              )
+            })
         : null}
 
       {screenObjects
@@ -1878,14 +1969,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           const selected = selectedNodeIds.has(item.object.id)
           const tier = domIslandTierById.get(item.object.id) ?? 'shell-dom'
           const title = getObjectTitle(item.object)
+          const previewDelta = getDragPreviewDeltaForObject(item.object.id)
 
           return (
             <div
               key={item.object.id}
               style={{
                 ...styles.domIsland,
-                left: item.rect.x,
-                top: item.rect.y,
+                left: item.rect.x + (previewDelta?.x ?? 0),
+                top: item.rect.y + (previewDelta?.y ?? 0),
                 width: item.object.position.width,
                 height: item.object.position.height,
                 transform: `scale(${viewport.zoom})`,

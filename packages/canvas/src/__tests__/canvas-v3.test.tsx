@@ -448,6 +448,9 @@ describe('Canvas v3 active renderer', () => {
       throw new Error('Expected Research Page DOM island')
     }
 
+    const initialScreenLeft = Number.parseFloat((pageIsland as HTMLElement).style.left)
+    const initialScreenTop = Number.parseFloat((pageIsland as HTMLElement).style.top)
+
     fireEvent.pointerDown(pageIsland, {
       button: 0,
       pointerId: 7,
@@ -459,6 +462,14 @@ describe('Canvas v3 active renderer', () => {
       clientX: 520,
       clientY: 350
     })
+
+    const previewed = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(previewed?.position.x).toBe(initialX)
+    expect(previewed?.position.y).toBe(initialY)
+    expect(Number.parseFloat((pageIsland as HTMLElement).style.left)).toBe(initialScreenLeft + 40)
+    expect(Number.parseFloat((pageIsland as HTMLElement).style.top)).toBe(initialScreenTop + 30)
+    expect(onSceneMutation).not.toHaveBeenCalled()
+
     fireEvent.pointerUp(surface, {
       pointerId: 7,
       clientX: 520,
