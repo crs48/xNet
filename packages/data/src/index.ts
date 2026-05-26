@@ -173,6 +173,15 @@ export {
   type ExternalReferenceResolvedMetadata,
   type ResolveExternalReferenceMetadataInput
 } from './external-reference-metadata'
+export {
+  DEFAULT_EXTERNAL_REFERENCE_IFRAME_ALLOW,
+  evaluateExternalReferenceEmbedPolicy,
+  type EvaluateExternalReferenceEmbedPolicyInput,
+  type ExternalReferenceEmbedBlockReason,
+  type ExternalReferenceEmbedPolicy,
+  type ExternalReferenceEmbedPolicyDecision,
+  type ExternalReferenceIframeSandboxToken
+} from './external-reference-embed-policy'
 
 // Update handling
 export {

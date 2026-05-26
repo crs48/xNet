@@ -4,7 +4,9 @@
 
 import type { JSX } from 'react'
 import {
+  evaluateExternalReferenceEmbedPolicy,
   resolveExternalReferenceMetadata,
+  type ExternalReferenceEmbedPolicy,
   type ExternalReferenceResolvedMetadata
 } from '@xnetjs/data'
 import React, { useEffect, useMemo, useState } from 'react'
@@ -23,6 +25,7 @@ export interface CanvasExternalReferenceCardProps {
   embedUrl?: string | null
   subtitle?: string | null
   status?: string | null
+  embedPolicy?: ExternalReferenceEmbedPolicy | null
   defaultEmbedActivated?: boolean
   onEmbedActivationChange?: (activated: boolean) => void
   onFailedAction?: (action: CanvasFailedCardActionKind) => void
@@ -274,6 +277,7 @@ export function CanvasExternalReferenceCard({
   embedUrl,
   subtitle,
   status,
+  embedPolicy,
   defaultEmbedActivated = false,
   onEmbedActivationChange,
   onFailedAction
@@ -294,6 +298,18 @@ export function CanvasExternalReferenceCard({
   )
   const providerLabel = resolvedProvider?.displayName ?? cardRenderer.providerLabel
   const providerId = resolvedProvider?.name ?? cardRenderer.providerId
+  const embedPolicyDecision = useMemo(
+    () =>
+      evaluateExternalReferenceEmbedPolicy({
+        sourceUrl: url,
+        embedUrl: resolvedEmbedUrl,
+        provider: providerId,
+        policy: embedPolicy
+      }),
+    [embedPolicy, providerId, resolvedEmbedUrl, url]
+  )
+  const allowedEmbedPolicy = embedPolicyDecision.allowed ? embedPolicyDecision : null
+  const allowedEmbedUrl = allowedEmbedPolicy?.embedUrl ?? null
   const accentClasses = PROVIDER_ACCENT_CLASSES[cardRenderer.accent]
   const fallbackSubtitle = normalizeValue(subtitle)
   const [resolvedMetadata, setResolvedMetadata] =
@@ -342,7 +358,7 @@ export function CanvasExternalReferenceCard({
 
   useEffect(() => {
     setIsEmbedActivated(defaultEmbedActivated)
-  }, [defaultEmbedActivated, resolvedEmbedUrl])
+  }, [allowedEmbedUrl, defaultEmbedActivated])
 
   const resolvedTitle = resolvedMetadata?.title ?? title
   const resolvedSubtitle = resolvedMetadata?.subtitle ?? fallbackSubtitle
@@ -359,7 +375,11 @@ export function CanvasExternalReferenceCard({
       data-canvas-card-kind="external-reference"
       data-canvas-theme={themeMode}
       data-canvas-embed-provider={providerId}
-      data-canvas-embed-active={resolvedEmbedUrl ? 'true' : 'false'}
+      data-canvas-embed-active={allowedEmbedUrl ? 'true' : 'false'}
+      data-canvas-embed-policy={embedPolicyDecision.allowed ? 'allowed' : 'blocked'}
+      data-canvas-embed-policy-reason={
+        embedPolicyDecision.allowed ? undefined : embedPolicyDecision.reason
+      }
       data-canvas-provider-renderer={cardRenderer.kind}
       data-canvas-provider-accent={cardRenderer.accent}
     >
@@ -380,7 +400,7 @@ export function CanvasExternalReferenceCard({
           >
             {cardRenderer.iconLabel}
           </span>
-          {resolvedEmbedUrl ? cardRenderer.liveBadgeLabel : cardRenderer.badgeLabel}
+          {allowedEmbedUrl ? cardRenderer.liveBadgeLabel : cardRenderer.badgeLabel}
         </span>
         <CanvasLifecycleStatusBadge status={status} />
       </div>
@@ -420,7 +440,7 @@ export function CanvasExternalReferenceCard({
           </dl>
         ) : null}
 
-        {resolvedEmbedUrl ? (
+        {allowedEmbedUrl && allowedEmbedPolicy ? (
           <div
             className={cn(
               'relative min-h-[116px] flex-1 overflow-hidden rounded-[18px] border',
@@ -440,11 +460,12 @@ export function CanvasExternalReferenceCard({
           >
             <iframe
               title={embedFrameTitle}
-              src={resolvedEmbedUrl}
+              src={allowedEmbedUrl}
               loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allow={allowedEmbedPolicy.allow}
               allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
+              sandbox={allowedEmbedPolicy.sandbox}
+              referrerPolicy={allowedEmbedPolicy.referrerPolicy}
               tabIndex={isEmbedActivated ? 0 : -1}
               className={cn(
                 'absolute inset-0 h-full w-full border-0 bg-transparent',
@@ -498,7 +519,9 @@ export function CanvasExternalReferenceCard({
             data-canvas-provider-fallback="true"
           >
             <span className="text-[11px] font-semibold uppercase text-muted-foreground">
-              {cardRenderer.emptyStateLabel}
+              {resolvedEmbedUrl && !embedPolicyDecision.allowed
+                ? 'Embed blocked'
+                : cardRenderer.emptyStateLabel}
             </span>
             <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{url}</p>
           </div>

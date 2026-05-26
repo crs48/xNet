@@ -1477,7 +1477,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add provider-specific card renderers for known external reference providers.
 - [x] Add Open Graph/oEmbed metadata resolution pipeline.
 - [x] Add iframe activation mode with pointer-event state handling.
-- [ ] Add workspace embed policy and arbitrary iframe restrictions.
+- [x] Add workspace embed policy and arbitrary iframe restrictions.
 - [ ] Add live iframe budget separate from live DOM document budget.
 - [ ] Add fallback rendering for blocked/offline/provider-denied embeds.
 - [ ] Add export/thumbnail placeholder behavior for iframes.

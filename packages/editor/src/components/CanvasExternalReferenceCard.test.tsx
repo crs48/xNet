@@ -162,6 +162,47 @@ describe('CanvasExternalReferenceCard', () => {
     expect(onEmbedActivationChange).toHaveBeenCalledWith(false)
   })
 
+  it('applies workspace embed policy before rendering live iframes', () => {
+    const { rerender } = render(
+      <CanvasExternalReferenceCard
+        title="YouTube video"
+        url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        provider="youtube"
+        embedUrl="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        subtitle="YouTube"
+        themeMode="dark"
+      />
+    )
+
+    const allowedCard = document.querySelector('[data-canvas-node-card="true"]')
+    const iframe = document.querySelector('[data-canvas-embed-iframe="true"]')
+
+    expect(allowedCard).toHaveAttribute('data-canvas-embed-policy', 'allowed')
+    expect(iframe).toHaveAttribute(
+      'sandbox',
+      'allow-scripts allow-same-origin allow-popups allow-forms allow-presentation'
+    )
+
+    rerender(
+      <CanvasExternalReferenceCard
+        title="YouTube video"
+        url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        provider="youtube"
+        embedUrl="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        subtitle="YouTube"
+        themeMode="dark"
+        embedPolicy={{ allowedProviders: ['spotify'] }}
+      />
+    )
+
+    const blockedCard = document.querySelector('[data-canvas-node-card="true"]')
+
+    expect(blockedCard).toHaveAttribute('data-canvas-embed-policy', 'blocked')
+    expect(blockedCard).toHaveAttribute('data-canvas-embed-policy-reason', 'provider-blocked')
+    expect(document.querySelector('[data-canvas-embed-iframe="true"]')).not.toBeInTheDocument()
+    expect(screen.getByText('Embed blocked')).toBeInTheDocument()
+  })
+
   it('renders failed-card recovery actions and routes action callbacks', () => {
     const onFailedAction = vi.fn()
 
