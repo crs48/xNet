@@ -883,6 +883,7 @@ describe('Canvas v3 active renderer', () => {
     expect(line?.getAttribute('stroke')).toBe('#dc2626')
     expect(line?.getAttribute('marker-end')).toBe(`url(#canvas-v3-edge-arrow-${edge.id})`)
     expect(label?.textContent).toBe('Needs')
+    expect(edgeGroup?.getAttribute('aria-label')).toBe('Connector label Needs')
   })
 
   it('derives v3 selection toolbar actions from selection capabilities', () => {
@@ -1305,6 +1306,88 @@ describe('Canvas v3 active renderer', () => {
 
     fireEvent.keyDown(surface, { key: 'Escape' })
     expect(screen.queryByRole('toolbar', { name: 'Canvas selection actions' })).toBeNull()
+  })
+
+  it('selects and resizes v3 objects from the keyboard with accessible dimensions', () => {
+    const doc = createCanvasTestDoc()
+    const onSelectionChange = vi.fn()
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 24 }}
+        onSelectionChange={onSelectionChange}
+        renderNode={(node) => <span>{node.properties.title as string}</span>}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    fireEvent.keyDown(surface, { key: 'Tab' })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({
+      nodeIds: [page.id],
+      edgeIds: []
+    })
+
+    fireEvent.keyDown(surface, { key: 'ArrowRight', altKey: true })
+    fireEvent.keyDown(surface, { key: 'ArrowDown', altKey: true, shiftKey: true })
+
+    expect(objects.get(page.id)?.position.width).toBe(261)
+    expect(objects.get(page.id)?.position.height).toBe(184)
+
+    const resizedPageIsland = screen.getByRole('group', {
+      name: /Selected, Document, Research Page/
+    })
+
+    expect(resizedPageIsland?.getAttribute('aria-label')).toContain('Selected')
+    expect(resizedPageIsland?.getAttribute('aria-label')).toContain('261 by 184')
+    expect(resizedPageIsland?.getAttribute('aria-keyshortcuts')).toContain('Alt+ArrowRight')
+
+    fireEvent.keyDown(surface, { key: 'Tab' })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({
+      nodeIds: [shape.id],
+      edgeIds: []
+    })
+    expect(
+      screen
+        .getByRole('group', { name: /Selected, Shape, Decision Box/ })
+        .getAttribute('aria-roledescription')
+    ).toBe('canvas shape')
+  })
+
+  it('keeps v3 selection toolbar popovers keyboard navigable without modal focus traps', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const onSelectionChange = vi.fn()
+
+    render(<Canvas ref={ref} doc={doc} onSelectionChange={onSelectionChange} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Canvas selection actions' })
+    const sizeButton = within(toolbar).getByRole('button', { name: 'Edit selection dimensions' })
+    fireEvent.click(sizeButton)
+
+    const popover = screen.getByRole('dialog', { name: 'Selection dimensions' })
+
+    expect(popover.getAttribute('aria-modal')).toBeNull()
+    expect(within(popover).getByRole('spinbutton', { name: 'Width' })).toBeTruthy()
+    expect(within(popover).getByRole('spinbutton', { name: 'Height' })).toBeTruthy()
+
+    onSelectionChange.mockClear()
+    sizeButton.focus()
+    fireEvent.keyDown(sizeButton, { key: 'Tab' })
+
+    expect(onSelectionChange).not.toHaveBeenCalled()
   })
 
   it('moves a v3 object by dragging its DOM island', () => {
@@ -2131,6 +2214,59 @@ describe('Canvas v3 active renderer', () => {
     expect(surface.getAttribute('data-canvas-dom-live-iframe-count')).toBe('1')
     expect(liveIframeIslands).toHaveLength(1)
     expect(liveIframeIslands[0]?.textContent).toContain('Allowed video')
+  })
+
+  it('exposes media, live embed, status, and connector labels to assistive technology', () => {
+    const doc = new Y.Doc()
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+    const media = createNode(
+      'media',
+      { x: -220, y: -120, width: 240, height: 160 },
+      {
+        title: 'Blocked file',
+        kind: 'file',
+        status: 'blocked'
+      }
+    )
+    const embed = createNode(
+      'external-reference',
+      { x: 160, y: -120, width: 360, height: 180 },
+      {
+        title: 'Launch video',
+        provider: 'youtube',
+        embedUrl: 'https://www.youtube.com/embed/launch'
+      }
+    )
+    const edge = {
+      ...createEdge(media.id, embed.id),
+      relationship: createCanvasEdgeRelationship({
+        kind: 'references',
+        label: 'Opens'
+      })
+    }
+
+    nodes.set(media.id, media)
+    nodes.set(embed.id, embed)
+    connectors.set(edge.id, edge)
+
+    render(<Canvas doc={doc} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const mediaIsland = screen.getByRole('group', { name: /Media card, Blocked file/ })
+    const embedIsland = screen.getByRole('group', { name: /Live embed/ }) as HTMLElement
+
+    expect(mediaIsland.getAttribute('aria-roledescription')).toBe('canvas media card')
+    expect(mediaIsland.getAttribute('aria-label')).toContain('Status: Blocked')
+    expect(screen.getByText('Blocked')).toBeTruthy()
+    expect(embedIsland.getAttribute('aria-roledescription')).toBe('canvas embed')
+    expect(embedIsland.getAttribute('aria-describedby')).toContain('canvas-v3-live-iframe-help')
+    expect(screen.getByRole('img', { name: 'Connector label Opens' })).toBeTruthy()
+
+    embedIsland.focus()
+    fireEvent.keyDown(embedIsland, { key: 'Escape' })
+
+    expect(document.activeElement).toBe(surface)
   })
 
   it('uses vector summaries instead of React card shells at placeholder zoom', () => {

@@ -1594,13 +1594,13 @@ controllers, object toolbars, and plugin command routing.
 
 ### Accessibility
 
-- [ ] Keyboard-create, select, move, connect, and edit common objects.
-- [ ] Keyboard-resize objects and expose current dimensions to assistive technology.
-- [ ] Navigate contextual toolbar and popovers without trapping focus.
-- [ ] Provide accessible names for media cards, embeds, shapes, and connector labels.
-- [ ] Ensure live iframe mode has clear escape/focus behavior.
-- [ ] Ensure zoomed cards have readable text without overlap.
-- [ ] Ensure color-coded statuses also have non-color indicators.
+- [x] Keyboard-create, select, move, connect, and edit common objects.
+- [x] Keyboard-resize objects and expose current dimensions to assistive technology.
+- [x] Navigate contextual toolbar and popovers without trapping focus.
+- [x] Provide accessible names for media cards, embeds, shapes, and connector labels.
+- [x] Ensure live iframe mode has clear escape/focus behavior.
+- [x] Ensure zoomed cards have readable text without overlap.
+- [x] Ensure color-coded statuses also have non-color indicators.
 
 ## Options And Tradeoffs
 

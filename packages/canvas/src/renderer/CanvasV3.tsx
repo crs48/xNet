@@ -96,6 +96,7 @@ import {
   getSelectionBounds,
   getSelectionLockState,
   getUnlockedSelection,
+  sortNodesByVisualOrder,
   type CanvasLockUpdate,
   type CanvasPositionUpdate
 } from '../selection/scene-operations'
@@ -520,6 +521,90 @@ function getNodeTitle(node: CanvasNode, fallback: string): string {
   return title.trim().length > 0 ? title : fallback
 }
 
+function getCanvasObjectKindLabel(node: CanvasNode): string {
+  const containerRole = getCanvasContainerRole(node)
+
+  if (containerRole === 'frame') return 'Frame'
+  if (containerRole === 'group') return 'Group'
+
+  switch (node.type) {
+    case 'page':
+      return 'Document'
+    case 'database':
+      return 'Database'
+    case 'note':
+      return 'Note'
+    case 'external-reference':
+      return 'Embed'
+    case 'media':
+      return 'Media card'
+    case 'shape':
+      return 'Shape'
+    default:
+      return node.type.replace(/-/g, ' ')
+  }
+}
+
+function getCanvasObjectRoleDescription(node: CanvasNode): string {
+  const containerRole = getCanvasContainerRole(node)
+
+  if (containerRole === 'frame') return 'canvas frame'
+  if (containerRole === 'group') return 'canvas group'
+
+  switch (node.type) {
+    case 'external-reference':
+      return 'canvas embed'
+    case 'media':
+      return 'canvas media card'
+    case 'shape':
+      return 'canvas shape'
+    default:
+      return 'canvas object'
+  }
+}
+
+function formatStatusLabel(status: string): string {
+  return status
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ')
+}
+
+function getCanvasObjectStatusLabel(node: CanvasNode): string | null {
+  const status = typeof node.properties.status === 'string' ? node.properties.status.trim() : ''
+
+  if (!status || status === 'ready') {
+    return null
+  }
+
+  return formatStatusLabel(status)
+}
+
+function getCanvasObjectAccessibleLabel(input: {
+  node: CanvasNode
+  selected: boolean
+  liveIframe: boolean
+  rect: Rect
+}): string {
+  const { node, selected, liveIframe, rect } = input
+  const title = getNodeTitle(node, getCanvasObjectKindLabel(node))
+  const status = getCanvasObjectStatusLabel(node)
+  const parts = [
+    selected ? 'Selected' : null,
+    node.locked ? 'Locked' : null,
+    getCanvasObjectKindLabel(node),
+    title,
+    status ? `Status: ${status}` : null,
+    `${Math.round(rect.width)} by ${Math.round(rect.height)}`,
+    `at x ${Math.round(rect.x)}, y ${Math.round(rect.y)}`,
+    selected ? 'Use arrow keys to move. Use Option+Arrow keys to resize.' : null,
+    liveIframe ? 'Live embed. Press Escape to return focus to the canvas.' : null
+  ]
+
+  return parts.filter(Boolean).join(', ')
+}
+
 function hasLiveIframeSurface(node: CanvasNode): boolean {
   const embedUrl = typeof node.properties.embedUrl === 'string' ? node.properties.embedUrl : null
   const provider = typeof node.properties.provider === 'string' ? node.properties.provider : null
@@ -866,6 +951,9 @@ function isTextInputLikeElement(target: EventTarget | null): boolean {
     target.tagName === 'INPUT' ||
     target.tagName === 'TEXTAREA' ||
     target.tagName === 'SELECT' ||
+    target.tagName === 'BUTTON' ||
+    target.tagName === 'A' ||
+    Boolean(target.closest('[role="toolbar"], [role="dialog"]')) ||
     target.isContentEditable
   )
 }
@@ -3043,6 +3131,32 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [applySelectionPositionUpdates, doc]
   )
 
+  const resizeSelectionByKeyboardDelta = useCallback(
+    (nodeIds: string[], delta: Point): boolean => {
+      if (nodeIds.length === 0 || (delta.x === 0 && delta.y === 0)) {
+        return false
+      }
+
+      const handle: ResizeHandle = delta.x !== 0 ? 'right' : 'bottom'
+      const nodes = getUnlockedSelection(
+        nodeIds
+          .map((id) => getCanvasObjectsMap<CanvasNode>(doc).get(id))
+          .filter((node): node is CanvasNode => node !== undefined)
+      )
+
+      if (nodes.length === 0) {
+        return false
+      }
+
+      const updates = nodes.map((node) =>
+        createResizeUpdate(node, handle, delta, getCanvasResizePolicy(node, handle))
+      )
+
+      return applyPositionUpdates(updates)
+    },
+    [applyPositionUpdates, doc]
+  )
+
   const commitResizeState = useCallback(
     (resizeState: NodeResizeState): boolean => {
       const updates = createResizeUpdatesFromOriginals({
@@ -3578,6 +3692,35 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [maxZoom, minZoom, setViewportClamped, viewportSize]
   )
 
+  const selectNextVisibleObject = useCallback(
+    (reverse: boolean): boolean => {
+      const ordered = sortNodesByVisualOrder(screenObjects.map((item) => item.node))
+
+      if (ordered.length === 0) {
+        return false
+      }
+
+      const anchorId = focusedNodeId ?? Array.from(selectedNodeIds)[0] ?? null
+      const currentIndex = anchorId ? ordered.findIndex((node) => node.id === anchorId) : -1
+      const nextIndex =
+        currentIndex < 0
+          ? reverse
+            ? ordered.length - 1
+            : 0
+          : (currentIndex + (reverse ? -1 : 1) + ordered.length) % ordered.length
+      const nextNode = ordered[nextIndex]
+
+      if (!nextNode) {
+        return false
+      }
+
+      setFocusedNodeId(nextNode.id)
+      setSelectedNodeIds(new Set([nextNode.id]))
+      return true
+    },
+    [focusedNodeId, screenObjects, selectedNodeIds]
+  )
+
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (isTextInputLikeElement(event.target)) {
@@ -3586,6 +3729,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
       const key = event.key.toLowerCase()
       const mod = event.metaKey || event.ctrlKey
+
+      if (!mod && key === 'tab' && selectNextVisibleObject(event.shiftKey)) {
+        event.preventDefault()
+        return
+      }
 
       if (key === 'escape') {
         if (onDismissTransientUi?.()) {
@@ -3637,6 +3785,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       if (!mod && selectedIds.length > 0 && (key === 'delete' || key === 'backspace')) {
         event.preventDefault()
         deleteSelection()
+        return
+      }
+
+      if (!mod && event.altKey && selectedIds.length > 0 && nudgeDelta) {
+        event.preventDefault()
+        if (resizeSelectionByKeyboardDelta(selectedIds, nudgeDelta)) {
+          awareness?.setLocalStateField('activity', 'resizing')
+        }
         return
       }
 
@@ -3768,8 +3924,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       onOpenSelection,
       onToggleShortcutHelp,
       onUndoRedoShortcut,
+      resizeSelectionByKeyboardDelta,
       scene.bounds,
       selectedNodeIds,
+      selectNextVisibleObject,
       setViewportClamped,
       shiftSelectionLayer,
       toggleSelectionLock,
@@ -3864,6 +4022,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         <div style={styles.builtinNodeText}>
           <span style={styles.builtinTitle}>{getObjectTitle(item.object)}</span>
           <span style={styles.builtinSubtitle}>{item.object.kind}</span>
+          {getCanvasObjectStatusLabel(item.node) ? (
+            <span
+              style={{
+                ...styles.statusBadge,
+                color: theme.panelText,
+                background: theme.minimapViewportFill,
+                borderColor: theme.panelBorder
+              }}
+              data-canvas-v3-status-badge="true"
+            >
+              {getCanvasObjectStatusLabel(item.node)}
+            </span>
+          ) : null}
         </div>
       </div>
     )
@@ -3914,7 +4085,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     >
       <div ref={vectorLayerRef} style={styles.vectorLayer} aria-hidden="true" />
 
-      <svg style={styles.edgeLayer} aria-hidden="true" data-canvas-v3-edge-layer="true">
+      <svg
+        style={styles.edgeLayer}
+        role="group"
+        aria-label="Canvas connectors"
+        data-canvas-v3-edge-layer="true"
+      >
         <defs>
           {visibleConnectorLines
             .filter((line) => line.markerEnd === 'arrow')
@@ -3937,8 +4113,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           const midX = (line.x1 + line.x2) / 2
           const midY = (line.y1 + line.y2) / 2
 
+          const connectorAccessibleLabel = line.label
+            ? `Connector label ${line.label}`
+            : 'Canvas connector'
+
           return (
-            <g key={line.id} data-canvas-v3-edge-id={line.id}>
+            <g
+              key={line.id}
+              role="img"
+              aria-label={connectorAccessibleLabel}
+              data-canvas-v3-edge-id={line.id}
+            >
               <line
                 x1={line.x1}
                 y1={line.y1}
@@ -4071,8 +4256,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             ? getScreenRectForCanvasRect(resizeRect, viewport, viewportSize)
             : item.rect
           const locked = item.node.locked === true
+          const liveIframe = liveIframeObjectIds.has(item.object.id)
           const showConnectorHandles = !locked && (selected || connectorStart !== null)
           const mindMapMetadata = getCanvasMindMapMetadata(item.node)
+          const liveIframeDescriptionId = `canvas-v3-live-iframe-help-${item.object.id}`
+          const accessibleLabel = getCanvasObjectAccessibleLabel({
+            node: item.node,
+            selected,
+            liveIframe,
+            rect: resizeRect ?? item.object.position
+          })
 
           return (
             <div
@@ -4094,17 +4287,40 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               data-canvas-v3-object="true"
               data-canvas-object-id={item.object.id}
               data-canvas-dom-island-tier={tier}
-              data-canvas-live-iframe={liveIframeObjectIds.has(item.object.id) ? 'true' : 'false'}
+              data-canvas-live-iframe={liveIframe ? 'true' : 'false'}
               data-canvas-mind-map-node={mindMapMetadata ? 'true' : undefined}
               data-canvas-mind-map-collapsed={
                 mindMapMetadata ? (mindMapMetadata.collapsed ? 'true' : 'false') : undefined
               }
               data-canvas-object-locked={locked ? 'true' : 'false'}
               data-selected={selected ? 'true' : 'false'}
+              role="group"
+              aria-roledescription={getCanvasObjectRoleDescription(item.node)}
+              aria-label={accessibleLabel}
+              aria-describedby={liveIframe ? liveIframeDescriptionId : undefined}
+              aria-keyshortcuts={
+                selected
+                  ? 'ArrowUp ArrowDown ArrowLeft ArrowRight Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight'
+                  : undefined
+              }
+              tabIndex={selected || focusedNodeId === item.object.id || liveIframe ? 0 : -1}
               onPointerDown={(event) => handleNodePointerDown(event, item.object.id)}
               onDoubleClick={() => onNodeDoubleClick?.(item.object.id)}
+              onKeyDown={(event) => {
+                if (liveIframe && event.key === 'Escape') {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setFocusedNodeId(item.object.id)
+                  containerRef.current?.focus()
+                }
+              }}
             >
               {renderObjectContent(item, tier)}
+              {liveIframe ? (
+                <span id={liveIframeDescriptionId} style={styles.screenReaderOnly}>
+                  Live embed mode. Press Escape to return focus to the canvas.
+                </span>
+              ) : null}
               {locked ? (
                 <div
                   style={{
@@ -5013,6 +5229,30 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.68,
     lineHeight: 1.2,
     textTransform: 'capitalize'
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    padding: '2px 6px',
+    border: '1px solid',
+    borderRadius: 999,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: 10,
+    fontWeight: 700,
+    lineHeight: 1.2
+  },
+  screenReaderOnly: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    padding: 0,
+    margin: -1,
+    overflow: 'hidden',
+    clip: 'rect(0 0 0 0)',
+    whiteSpace: 'nowrap',
+    border: 0
   },
   remoteCursor: {
     position: 'absolute',
