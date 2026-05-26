@@ -1485,7 +1485,7 @@ controllers, object toolbars, and plugin command routing.
 ### Mind Maps And Edges
 
 - [x] Add mind map creation tool and keyboard workflow.
-- [ ] Add tree layout worker using existing layout infrastructure where possible.
+- [x] Add tree layout worker using existing layout infrastructure where possible.
 - [ ] Add collapsible branches and inherited branch styling.
 - [ ] Add conversion commands between notes, tasks, pages, database rows, and mind map branches.
 - [ ] Add semantic relationship records for edges.

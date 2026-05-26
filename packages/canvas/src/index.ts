@@ -324,6 +324,12 @@ export {
   createCanvasMindMapRootProperties,
   getCanvasMindMapKeyboardIntent
 } from './mind-map/creation'
+export {
+  CANVAS_MIND_MAP_TREE_LAYOUT_DEFAULTS,
+  createCanvasMindMapTreeLayoutRequest,
+  createCanvasMindMapTreePositionUpdates,
+  layoutCanvasMindMapTree
+} from './mind-map/tree-layout'
 export type {
   CanvasMindMapBranchDirection,
   CanvasMindMapCreationTool,
@@ -335,6 +341,14 @@ export type {
   CreateCanvasMindMapBranchPropertiesInput,
   CreateCanvasMindMapRootPropertiesInput
 } from './mind-map/creation'
+export type {
+  CanvasMindMapTreeLayoutDirection,
+  CanvasMindMapTreeLayoutInput,
+  CanvasMindMapTreeLayoutOptions,
+  CanvasMindMapTreeLayoutResult,
+  CanvasMindMapTreePositionUpdatesInput,
+  LayoutCanvasMindMapTreeInput
+} from './mind-map/tree-layout'
 
 export {
   DEFAULT_CANVAS_TILE_SIZE,
