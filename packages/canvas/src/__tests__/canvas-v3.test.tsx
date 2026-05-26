@@ -1303,6 +1303,51 @@ describe('Canvas v3 active renderer', () => {
     ).toBeTruthy()
   })
 
+  it('renders fallback cards when plugin contributions are disabled or missing', () => {
+    const doc = new Y.Doc()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const disabledPluginCard = createNode(
+      'external-reference',
+      { x: -240, y: -80, width: 320, height: 180 },
+      {
+        title: 'ERP Purchase Order',
+        pluginId: 'com.xnet.fixtures.erp',
+        pluginContributionId: 'erp.purchase-order-card',
+        pluginEnabled: false,
+        pluginFallbackLabel: 'Purchase order',
+        pluginFields: ['poNumber', 'vendor', 'status']
+      }
+    )
+    const missingPluginCard = createNode(
+      'external-reference',
+      { x: 140, y: -80, width: 320, height: 180 },
+      {
+        title: 'CRM Account',
+        pluginId: 'com.xnet.fixtures.crm',
+        pluginContributionId: 'crm.account-card',
+        pluginStatus: 'missing',
+        fallbackLabel: 'CRM account',
+        pluginFields: [{ label: 'Health' }, { key: 'renewalDate' }]
+      }
+    )
+
+    objects.set(disabledPluginCard.id, disabledPluginCard)
+    objects.set(missingPluginCard.id, missingPluginCard)
+
+    render(<Canvas doc={doc} />)
+
+    const fallbacks = document.querySelectorAll('[data-canvas-v3-plugin-fallback="true"]')
+    expect(fallbacks).toHaveLength(2)
+    expect(fallbacks[0]?.getAttribute('data-canvas-plugin-state')).toBe('disabled')
+    expect(fallbacks[0]?.textContent).toContain('Plugin disabled')
+    expect(fallbacks[0]?.textContent).toContain('Purchase order')
+    expect(fallbacks[0]?.textContent).toContain('poNumber')
+    expect(fallbacks[1]?.getAttribute('data-canvas-plugin-state')).toBe('missing')
+    expect(fallbacks[1]?.textContent).toContain('Plugin missing')
+    expect(fallbacks[1]?.textContent).toContain('CRM account')
+    expect(fallbacks[1]?.textContent).toContain('Health')
+  })
+
   it('duplicates and deletes v3 selections from toolbar and keyboard shortcuts', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()

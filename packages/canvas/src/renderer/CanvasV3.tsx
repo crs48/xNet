@@ -717,6 +717,47 @@ function hasCanvasPluginMetadata(node: CanvasNode | null | undefined): boolean {
   )
 }
 
+type CanvasPluginFallbackState = 'disabled' | 'missing' | 'unavailable'
+
+function getCanvasPluginFallbackState(node: CanvasNode): CanvasPluginFallbackState | null {
+  if (!hasCanvasPluginMetadata(node)) {
+    return null
+  }
+
+  if (node.properties.pluginEnabled === false || node.properties.pluginStatus === 'disabled') {
+    return 'disabled'
+  }
+
+  if (node.properties.pluginMissing === true || node.properties.pluginStatus === 'missing') {
+    return 'missing'
+  }
+
+  return 'unavailable'
+}
+
+function getCanvasPluginFallbackLabel(node: CanvasNode): string {
+  const fallbackLabel =
+    typeof node.properties.pluginFallbackLabel === 'string'
+      ? node.properties.pluginFallbackLabel
+      : typeof node.properties.fallbackLabel === 'string'
+        ? node.properties.fallbackLabel
+        : null
+
+  return fallbackLabel?.trim() || getNodeTitle(node, 'Plugin card')
+}
+
+function getCanvasPluginStateLabel(state: CanvasPluginFallbackState): string {
+  switch (state) {
+    case 'disabled':
+      return 'Plugin disabled'
+    case 'missing':
+      return 'Plugin missing'
+    case 'unavailable':
+    default:
+      return 'Plugin unavailable'
+  }
+}
+
 function countSourceBackedNodes(nodes: readonly CanvasNode[]): number {
   return nodes.filter(isCanvasSourceBackedNode).length
 }
@@ -2172,6 +2213,83 @@ function CanvasSelectionPluginFieldsPopover({
           )}
         </div>
       </CanvasShapePopoverSection>
+    </div>
+  )
+}
+
+function CanvasPluginFallbackContent({
+  node,
+  theme
+}: {
+  node: CanvasNode
+  theme: CanvasThemeTokens
+}) {
+  const state = getCanvasPluginFallbackState(node)
+  const pluginId = typeof node.properties.pluginId === 'string' ? node.properties.pluginId : null
+  const contributionId =
+    typeof node.properties.pluginContributionId === 'string'
+      ? node.properties.pluginContributionId
+      : null
+  const fields = getCanvasPluginFieldEntries(node)
+
+  if (!state) {
+    return null
+  }
+
+  return (
+    <div
+      style={{
+        ...styles.pluginFallbackContent,
+        borderColor: theme.panelBorder,
+        background: theme.mode === 'dark' ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.94)',
+        color: theme.panelText
+      }}
+      data-canvas-v3-plugin-fallback="true"
+      data-canvas-plugin-state={state}
+      data-canvas-plugin-id={pluginId ?? undefined}
+      data-canvas-plugin-contribution-id={contributionId ?? undefined}
+    >
+      <div style={styles.pluginFallbackHeader}>
+        <span
+          style={{
+            ...styles.pluginFallbackState,
+            color: theme.panelMutedText,
+            background: theme.minimapViewportFill,
+            borderColor: theme.panelBorder
+          }}
+        >
+          {getCanvasPluginStateLabel(state)}
+        </span>
+        <span style={{ ...styles.pluginFallbackTitle, color: theme.panelText }}>
+          {getCanvasPluginFallbackLabel(node)}
+        </span>
+      </div>
+
+      <div style={styles.pluginFallbackMeta}>
+        <span style={{ ...styles.popoverCodeValue, color: theme.panelText }}>
+          {pluginId ?? 'unknown-plugin'}
+        </span>
+        <span style={{ ...styles.popoverCodeValue, color: theme.panelText }}>
+          {contributionId ?? 'default-card'}
+        </span>
+      </div>
+
+      {fields.length > 0 ? (
+        <div style={styles.pluginFallbackFields}>
+          {fields.slice(0, 4).map((field) => (
+            <span
+              key={field}
+              style={{
+                ...styles.pluginFallbackField,
+                color: theme.panelMutedText,
+                borderColor: theme.panelBorder
+              }}
+            >
+              {field}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -4658,6 +4776,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       return customContent
     }
 
+    if (getCanvasPluginFallbackState(item.node)) {
+      return <CanvasPluginFallbackContent node={item.node} theme={theme} />
+    }
+
     if (isCanvasStickyNoteNode(item.node)) {
       const fill =
         typeof item.node.properties.fill === 'string'
@@ -6110,6 +6232,72 @@ const styles: Record<string, React.CSSProperties> = {
     display: '-webkit-box',
     WebkitBoxOrient: 'vertical',
     WebkitLineClamp: 5
+  },
+  pluginFallbackContent: {
+    width: '100%',
+    height: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    border: '1px solid',
+    borderRadius: 8,
+    padding: 12,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    gap: 10
+  },
+  pluginFallbackHeader: {
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8
+  },
+  pluginFallbackState: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    padding: '3px 8px',
+    border: '1px solid',
+    borderRadius: 999,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: 10,
+    fontWeight: 800,
+    lineHeight: 1.1,
+    textTransform: 'uppercase'
+  },
+  pluginFallbackTitle: {
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: 15,
+    fontWeight: 800,
+    lineHeight: 1.2
+  },
+  pluginFallbackMeta: {
+    minWidth: 0,
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: 5
+  },
+  pluginFallbackFields: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+    minWidth: 0
+  },
+  pluginFallbackField: {
+    maxWidth: '100%',
+    border: '1px solid',
+    borderRadius: 999,
+    padding: '2px 7px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: 10,
+    fontWeight: 700,
+    lineHeight: 1.2
   },
   builtinNodeContent: {
     width: '100%',

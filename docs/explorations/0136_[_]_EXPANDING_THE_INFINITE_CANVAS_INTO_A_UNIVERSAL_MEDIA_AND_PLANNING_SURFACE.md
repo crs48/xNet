@@ -1580,7 +1580,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Create a mind map with keyboard only.
 - [x] Connect page, PDF page, database row, and external reference with semantic edges.
 - [x] Use frames to present/export a board section.
-- [ ] Install a sample plugin and confirm its cards degrade gracefully when disabled.
+- [x] Install a sample plugin and confirm its cards degrade gracefully when disabled.
 
 2026-05-26 local web validation notes:
 
@@ -1600,6 +1600,7 @@ controllers, object toolbars, and plugin command routing.
 - Fixed blob storage adapter startup and serialized multi-file ingestion so image and PDF uploads do not race nested SQLite transactions.
 - Verified selecting a frame exposes Present and Export actions; Present fits the viewport to the frame and Export downloads a JSON Canvas section containing the frame, enclosed objects, and internal connectors.
 - Verified source-aware semantic edge drafts infer page, PDF page, database row, and external reference roles, attach PDF page anchors, and preserve source IDs/schema IDs in relationship properties.
+- Verified plugin-backed canvas cards render explicit disabled and missing-plugin fallback cards with plugin IDs, contribution IDs, fallback labels, and advertised fields.
 
 ### Security And Privacy
 
