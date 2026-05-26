@@ -1459,7 +1459,7 @@ controllers, object toolbars, and plugin command routing.
 - [x] Add deterministic thumbnail outputs for image, PDF, generic file, URL card, video poster, and audio card.
 - [x] Add preview cache invalidation when source node fields or blob hashes change.
 - [x] Add tile summary update path from preview metadata.
-- [ ] Add offline fallback behavior.
+- [x] Add offline fallback behavior.
 - [ ] Add benchmark coverage for preview generation under large boards.
 
 ### Files And PDFs
