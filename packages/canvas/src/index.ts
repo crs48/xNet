@@ -138,6 +138,10 @@ export {
   shouldInvalidateCanvasPreviewCache
 } from './preview/cache-invalidation'
 export {
+  createCanvasPreviewGenerationBenchmarkSources,
+  measureCanvasPreviewGenerationBenchmark
+} from './preview/benchmarks'
+export {
   createCanvasOfflinePreviewFallback,
   isCanvasOfflinePreviewFallback
 } from './preview/offline-fallback'
@@ -182,6 +186,11 @@ export type {
   CanvasThumbnailOutputKind,
   CreateCanvasThumbnailOutputInput
 } from './preview/thumbnail-output'
+export type {
+  CanvasPreviewGenerationBenchmarkInput,
+  CanvasPreviewGenerationBenchmarkMeasurement,
+  CanvasPreviewGenerationBenchmarkSource
+} from './preview/benchmarks'
 export type { CanvasPreviewSourceFingerprintInput } from './preview/cache-invalidation'
 export type {
   CanvasPreviewOfflineFallbackReason,
