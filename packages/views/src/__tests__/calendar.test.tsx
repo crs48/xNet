@@ -211,14 +211,15 @@ describe('useCalendarState', () => {
       result.current.setViewMode('week')
     })
 
-    const initialDate = result.current.currentDate.getDate()
+    const expectedDate = new Date(result.current.currentDate)
+    expectedDate.setDate(expectedDate.getDate() + 7)
 
     act(() => {
       result.current.navigateNext()
     })
 
     // Should go forward 7 days
-    expect(result.current.currentDate.getDate()).toBe(initialDate + 7)
+    expect(isSameDay(result.current.currentDate, expectedDate)).toBe(true)
   })
 
   it('should navigate by day when in day mode', () => {
@@ -234,14 +235,15 @@ describe('useCalendarState', () => {
       result.current.setViewMode('day')
     })
 
-    const initialDate = result.current.currentDate.getDate()
+    const expectedDate = new Date(result.current.currentDate)
+    expectedDate.setDate(expectedDate.getDate() + 1)
 
     act(() => {
       result.current.navigateNext()
     })
 
     // Should go forward 1 day
-    expect(result.current.currentDate.getDate()).toBe(initialDate + 1)
+    expect(isSameDay(result.current.currentDate, expectedDate)).toBe(true)
   })
 
   it('should navigate to today', () => {
