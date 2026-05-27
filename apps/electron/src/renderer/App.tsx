@@ -4,6 +4,7 @@
 
 import type { LinkedDocumentItem } from './lib/canvas-shell'
 import type { PaletteCommand } from '@xnetjs/ui'
+import { CANVAS_PLANNING_TEMPLATE_DEFINITIONS } from '@xnetjs/canvas'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useDevTools } from '@xnetjs/devtools'
 import { useQuery, useMutate } from '@xnetjs/react'
@@ -435,6 +436,18 @@ export function App(): React.ReactElement {
           canvasViewRef.current?.createFrame()
         }
       },
+      ...CANVAS_PLANNING_TEMPLATE_DEFINITIONS.map<PaletteCommand>((template) => ({
+        id: `create-canvas-template-${template.id}`,
+        name: `Create ${template.name}`,
+        description: template.description,
+        icon: 'layout',
+        group: 'Canvas',
+        keywords: ['template', template.category, template.name, 'canvas', 'planning'],
+        when: () => isCanvasInteractiveShell,
+        execute: () => {
+          canvasViewRef.current?.createPlanningTemplate(template.id)
+        }
+      })),
       {
         id: 'frame-selection',
         name: 'Frame Selection',
@@ -694,6 +707,42 @@ export function App(): React.ReactElement {
         when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
         execute: () => {
           canvasViewRef.current?.tidySelection()
+        }
+      },
+      {
+        id: 'canvas-cluster-selection',
+        name: 'Cluster Selection',
+        description: 'Pull selected objects into a compact planning cluster',
+        icon: 'sparkles',
+        group: 'Canvas',
+        keywords: ['cluster', 'arrange', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.clusterSelection()
+        }
+      },
+      {
+        id: 'canvas-stack-selection',
+        name: 'Stack Selection',
+        description: 'Stack selected objects into an offset pile',
+        icon: 'layers',
+        group: 'Canvas',
+        keywords: ['stack', 'pile', 'arrange', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.stackSelection()
+        }
+      },
+      {
+        id: 'canvas-convert-selection-mind-map',
+        name: 'Convert Selection To Mind Map',
+        description: 'Create a mind-map root and convert the selected objects into branches',
+        icon: 'git-branch',
+        group: 'Canvas',
+        keywords: ['convert', 'mind map', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
+        execute: () => {
+          canvasViewRef.current?.convertSelectionToMindMap()
         }
       },
       {
@@ -968,6 +1017,18 @@ export function App(): React.ReactElement {
           onCreatePage={() => void handleCreateLinkedDocument('page')}
           onCreateDatabase={() => void handleCreateLinkedDocument('database')}
           onCreateNote={handleCreateCanvasNote}
+          onCreateShape={() => {
+            canvasViewRef.current?.createShape('rectangle')
+          }}
+          onCreateFrame={() => {
+            canvasViewRef.current?.createFrame()
+          }}
+          onCreateReference={() => {
+            canvasViewRef.current?.createExternalReference()
+          }}
+          onCreateMedia={() => {
+            canvasViewRef.current?.createMediaFile()
+          }}
           onOpenSearch={showPalette}
           onReturnHome={handleReturnHome}
           onZoomOut={() => {

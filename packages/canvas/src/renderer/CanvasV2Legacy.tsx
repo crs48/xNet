@@ -1,7 +1,8 @@
 /**
- * Canvas Component
+ * Legacy Canvas V2 Component
  *
- * Main infinite canvas component with pan, zoom, and node rendering.
+ * Archived flat-array renderer retained only for legacy stories and focused tests.
+ * Public app entry points use CanvasV3.
  */
 
 import type {
@@ -45,8 +46,12 @@ import {
   resolveCanvasAnchorPoint
 } from '../edges/bindings'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
+import {
+  createCanvasFarZoomEdgeSummaries,
+  createCanvasMinimapRelationshipHints
+} from '../edges/summaries'
 import { useCanvas } from '../hooks/useCanvas'
-import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
+import { useCanvasKeyboard, type CanvasCreationShortcut } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
 import { CanvasPrimitiveNodeContent } from '../nodes/CanvasPrimitiveNodeContent'
@@ -57,6 +62,7 @@ import {
   type CanvasActivity
 } from '../presence'
 import { ensureCanvasDocMaps } from '../scene/doc-layout'
+import { createMinimapSummaryFromCanvasScene } from '../scene/minimap-summary'
 import { getCanvasResolvedNodeKind } from '../scene/node-kind'
 import {
   createAlignmentUpdates,
@@ -224,7 +230,7 @@ export interface CanvasProps {
   /** Callback when the canvas selection changes */
   onSelectionChange?: (selection: CanvasSelectionSnapshot) => void
   /** Callback when the user triggers a canvas creation shortcut */
-  onCreateObject?: (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => void
+  onCreateObject?: (kind: CanvasCreationShortcut) => void
   /** Callback when the user triggers a selection open/peek shortcut */
   onOpenSelection?: (mode: 'peek' | 'focus' | 'split') => void
   /** Callback when the user toggles canvas shortcut help */
@@ -1695,6 +1701,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [canvas.store, renderEdges, renderNodes, selectedNodeIds, viewport]
   )
   const { nodeMap, visibleNodes, visibleEdges, domNodes, overviewNodes } = displayList
+  const minimapSummary = useMemo(
+    () =>
+      createMinimapSummaryFromCanvasScene({
+        nodes,
+        edges
+      }),
+    [edges, nodes]
+  )
+  const minimapRelationshipHints = useMemo(
+    () =>
+      createCanvasMinimapRelationshipHints({
+        summaries: createCanvasFarZoomEdgeSummaries({ nodes, edges })
+      }),
+    [edges, nodes]
+  )
   const shouldUseCanvasEdgeLayer =
     overviewNodes.length > 0 || edges.length > CANVAS_EDGE_LAYER_THRESHOLD
   const canvasEdges = useMemo(
@@ -2341,13 +2362,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
       {showMinimap && (
         <CollapsibleMinimap
-          nodes={nodes}
-          edges={edges}
+          summary={minimapSummary}
+          relationshipHints={minimapRelationshipHints}
           viewport={viewport}
           width={minimapWidth}
           height={minimapHeight}
           onViewportChange={handleNavigationViewportChange}
-          showEdges={minimapShowEdges}
+          showTileBoundaries={minimapShowEdges}
           className={minimapClassName}
           defaultExpanded={minimapDefaultExpanded}
         />

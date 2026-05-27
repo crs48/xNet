@@ -17,6 +17,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@xnetjs/canvas-core": "workspace:*",
     "@xnetjs/core": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/react": "workspace:*",

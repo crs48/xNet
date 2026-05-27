@@ -107,6 +107,25 @@ describe('Comment Anchors', () => {
       expect(decoded.offsetY).toBe(20)
     })
 
+    it('decodes canvas object anchors with page metadata', () => {
+      const pageAnchor: CanvasObjectAnchor = {
+        objectId: 'pdf-123',
+        anchorId: 'pdf-123#page:4#ratio:0.5,0.25',
+        pageNumber: 4,
+        pageId: 'source-page-4',
+        xRatio: 0.5,
+        yRatio: 0.25
+      }
+      const decoded = decodeAnchor<CanvasObjectAnchor>(JSON.stringify(pageAnchor))
+
+      expect(decoded.objectId).toBe('pdf-123')
+      expect(decoded.anchorId).toBe('pdf-123#page:4#ratio:0.5,0.25')
+      expect(decoded.pageNumber).toBe(4)
+      expect(decoded.pageId).toBe('source-page-4')
+      expect(decoded.xRatio).toBe(0.5)
+      expect(decoded.yRatio).toBe(0.25)
+    })
+
     it('decodes canvas object anchor without optional fields', () => {
       const minimal: CanvasObjectAnchor = { objectId: 'shape-123' }
       const encoded = JSON.stringify(minimal)

@@ -12,7 +12,14 @@ import type {
   PropertyHandlerContribution,
   BlockContribution,
   SettingContribution,
-  SchemaContribution
+  SchemaContribution,
+  CanvasCardContribution,
+  CanvasIngestorContribution,
+  CanvasToolContribution,
+  CanvasLayoutContribution,
+  CanvasEdgeContribution,
+  CanvasInspectorContribution,
+  CanvasTemplateContribution
 } from './contributions'
 import type { Platform, PluginPermissions } from './types'
 
@@ -61,6 +68,32 @@ export interface PluginContributions {
   settings?: SettingContribution[]
   sidebarItems?: SidebarContribution[]
   slashCommands?: SlashCommandContribution[]
+  canvasCards?: CanvasCardContribution[]
+  canvasIngestors?: CanvasIngestorContribution[]
+  canvasTools?: CanvasToolContribution[]
+  canvasLayouts?: CanvasLayoutContribution[]
+  canvasEdges?: CanvasEdgeContribution[]
+  canvasInspectors?: CanvasInspectorContribution[]
+  canvasTemplates?: CanvasTemplateContribution[]
+}
+
+type CanvasContributionArrayKey =
+  | 'canvasCards'
+  | 'canvasIngestors'
+  | 'canvasTools'
+  | 'canvasLayouts'
+  | 'canvasEdges'
+  | 'canvasInspectors'
+  | 'canvasTemplates'
+
+const CANVAS_CONTRIBUTION_TYPES: Record<CanvasContributionArrayKey, string> = {
+  canvasCards: 'canvas.card',
+  canvasIngestors: 'canvas.ingestor',
+  canvasTools: 'canvas.tool',
+  canvasLayouts: 'canvas.layout',
+  canvasEdges: 'canvas.edge',
+  canvasInspectors: 'canvas.inspector',
+  canvasTemplates: 'canvas.template'
 }
 
 // ─── Validation ────────────────────────────────────────────────────────────
@@ -135,6 +168,8 @@ export function validateManifest(manifest: unknown): XNetExtension {
     issues.push('deactivate must be a function')
   }
 
+  validateContributions(m.contributes, issues)
+
   if (issues.length > 0) {
     throw new PluginValidationError(
       `Plugin manifest validation failed: ${issues.join('; ')}`,
@@ -143,6 +178,167 @@ export function validateManifest(manifest: unknown): XNetExtension {
   }
 
   return manifest as XNetExtension
+}
+
+function validateContributions(contributes: unknown, issues: string[]): void {
+  if (contributes === undefined) return
+
+  if (!contributes || typeof contributes !== 'object' || Array.isArray(contributes)) {
+    issues.push('contributes must be an object')
+    return
+  }
+
+  const c = contributes as Record<string, unknown>
+
+  for (const [field, contributionType] of Object.entries(CANVAS_CONTRIBUTION_TYPES) as Array<
+    [CanvasContributionArrayKey, string]
+  >) {
+    const value = c[field]
+    if (value === undefined) continue
+
+    if (!Array.isArray(value)) {
+      issues.push(`contributes.${field} must be an array`)
+      continue
+    }
+
+    value.forEach((contribution, index) => {
+      validateCanvasContributionDescriptor({
+        contribution,
+        contributionType,
+        field,
+        index,
+        issues
+      })
+    })
+  }
+}
+
+function validateCanvasContributionDescriptor(input: {
+  contribution: unknown
+  contributionType: string
+  field: CanvasContributionArrayKey
+  index: number
+  issues: string[]
+}): void {
+  const { contribution, contributionType, field, index, issues } = input
+  const path = `contributes.${field}[${index}]`
+
+  if (!contribution || typeof contribution !== 'object' || Array.isArray(contribution)) {
+    issues.push(`${path} must be an object`)
+    return
+  }
+
+  const descriptor = contribution as Record<string, unknown>
+
+  if (typeof descriptor.id !== 'string' || !descriptor.id) {
+    issues.push(`${path}.id is required and must be a non-empty string`)
+  }
+
+  if (descriptor.type !== contributionType) {
+    issues.push(`${path}.type must be '${contributionType}'`)
+  }
+
+  validateOptionalString(descriptor.name, `${path}.name`, issues)
+  validateOptionalString(descriptor.description, `${path}.description`, issues)
+  validateOptionalString(descriptor.icon, `${path}.icon`, issues)
+  validateOptionalNumber(descriptor.priority, `${path}.priority`, issues)
+  validateOptionalStringArray(descriptor.permissions, `${path}.permissions`, issues)
+
+  switch (field) {
+    case 'canvasCards':
+      validateRequiredString(descriptor.rendererEntrypoint, `${path}.rendererEntrypoint`, issues)
+      validateOptionalString(descriptor.previewEntrypoint, `${path}.previewEntrypoint`, issues)
+      validateOptionalStringArray(descriptor.previewTiers, `${path}.previewTiers`, issues)
+      break
+    case 'canvasIngestors':
+      validateRequiredString(descriptor.input, `${path}.input`, issues)
+      validateRequiredString(descriptor.matchEntrypoint, `${path}.matchEntrypoint`, issues)
+      validateRequiredString(descriptor.ingestEntrypoint, `${path}.ingestEntrypoint`, issues)
+      validateOptionalStringArray(descriptor.mimeTypes, `${path}.mimeTypes`, issues)
+      validateOptionalStringArray(descriptor.fileExtensions, `${path}.fileExtensions`, issues)
+      validateOptionalStringArray(descriptor.urlPatterns, `${path}.urlPatterns`, issues)
+      break
+    case 'canvasTools':
+      validateRequiredString(
+        descriptor.activationEntrypoint,
+        `${path}.activationEntrypoint`,
+        issues
+      )
+      validateOptionalString(descriptor.group, `${path}.group`, issues)
+      validateOptionalString(descriptor.keybinding, `${path}.keybinding`, issues)
+      validateOptionalString(descriptor.cursor, `${path}.cursor`, issues)
+      break
+    case 'canvasLayouts':
+      validateRequiredString(descriptor.scope, `${path}.scope`, issues)
+      validateRequiredString(descriptor.applyEntrypoint, `${path}.applyEntrypoint`, issues)
+      validateOptionalStringArray(descriptor.supportedKinds, `${path}.supportedKinds`, issues)
+      validateOptionalStringArray(descriptor.supportedSchemas, `${path}.supportedSchemas`, issues)
+      break
+    case 'canvasEdges':
+      validateRequiredString(descriptor.label, `${path}.label`, issues)
+      if (typeof descriptor.directed !== 'boolean') {
+        issues.push(`${path}.directed is required and must be a boolean`)
+      }
+      validateOptionalStringArray(
+        descriptor.allowedSourceSchemas,
+        `${path}.allowedSourceSchemas`,
+        issues
+      )
+      validateOptionalStringArray(
+        descriptor.allowedTargetSchemas,
+        `${path}.allowedTargetSchemas`,
+        issues
+      )
+      validateOptionalString(descriptor.style, `${path}.style`, issues)
+      break
+    case 'canvasInspectors':
+      validateRequiredString(descriptor.placement, `${path}.placement`, issues)
+      validateRequiredString(descriptor.panelEntrypoint, `${path}.panelEntrypoint`, issues)
+      validateOptionalStringArray(descriptor.supportedKinds, `${path}.supportedKinds`, issues)
+      validateOptionalStringArray(descriptor.supportedSchemas, `${path}.supportedSchemas`, issues)
+      validateOptionalStringArray(
+        descriptor.supportedProviders,
+        `${path}.supportedProviders`,
+        issues
+      )
+      break
+    case 'canvasTemplates':
+      validateRequiredString(descriptor.category, `${path}.category`, issues)
+      validateRequiredString(
+        descriptor.instantiateEntrypoint,
+        `${path}.instantiateEntrypoint`,
+        issues
+      )
+      validateOptionalString(descriptor.previewEntrypoint, `${path}.previewEntrypoint`, issues)
+      validateOptionalStringArray(descriptor.tags, `${path}.tags`, issues)
+      break
+  }
+}
+
+function validateRequiredString(value: unknown, path: string, issues: string[]): void {
+  if (typeof value !== 'string' || !value) {
+    issues.push(`${path} is required and must be a non-empty string`)
+  }
+}
+
+function validateOptionalString(value: unknown, path: string, issues: string[]): void {
+  if (value !== undefined && typeof value !== 'string') {
+    issues.push(`${path} must be a string`)
+  }
+}
+
+function validateOptionalNumber(value: unknown, path: string, issues: string[]): void {
+  if (value !== undefined && typeof value !== 'number') {
+    issues.push(`${path} must be a number`)
+  }
+}
+
+function validateOptionalStringArray(value: unknown, path: string, issues: string[]): void {
+  if (value === undefined) return
+
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    issues.push(`${path} must be an array of strings`)
+  }
 }
 
 // ─── Helper ────────────────────────────────────────────────────────────────

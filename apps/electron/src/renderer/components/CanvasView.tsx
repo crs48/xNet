@@ -9,12 +9,16 @@ import type {
   CanvasLayerDirection,
   CanvasNode,
   CanvasNodeRenderContext,
+  CanvasPlanningTemplateId,
   CanvasSelectionSnapshot,
   Rect,
   ShapeType
 } from '@xnetjs/canvas'
 import {
   Canvas,
+  CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasFrameVariantProperties,
+  createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
   getCanvasObjectsMap,
@@ -30,7 +34,12 @@ import {
   encodeAnchor,
   type CanvasObjectAnchor
 } from '@xnetjs/data'
-import { CanvasExternalReferenceCard, useBlobService } from '@xnetjs/editor/react'
+import {
+  CanvasExternalReferenceCard,
+  CanvasFailedCardActions,
+  CanvasLifecycleStatusBadge,
+  useBlobService
+} from '@xnetjs/editor/react'
 import { useComments, useDatabaseDoc, useIdentity, useNode, useUndo } from '@xnetjs/react'
 import { useUndoScope } from '@xnetjs/react/internal'
 import {
@@ -157,10 +166,17 @@ export type CanvasViewHandle = {
   ) => boolean
   distributeSelection: (axis: CanvasDistributionAxis) => boolean
   tidySelection: () => boolean
+  clusterSelection: () => boolean
+  stackSelection: () => boolean
+  convertSelectionToMindMap: () => boolean
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
   connectSelection: () => boolean
   createShape: (shapeType?: ShapeType) => boolean
   createFrame: () => boolean
+  createMindMap: () => boolean
+  createPlanningTemplate: (templateId: CanvasPlanningTemplateId) => boolean
+  createExternalReference: (url?: string) => boolean
+  createMediaFile: () => boolean
   wrapSelectionInFrame: () => boolean
   openAliasEditor: () => boolean
   openCommentComposer: () => boolean
@@ -326,16 +342,20 @@ function renderNodeCard(
           <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Open
           </span>
-        ) : status ? (
-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {status}
-          </span>
-        ) : null}
+        ) : (
+          <CanvasLifecycleStatusBadge status={status} />
+        )}
       </div>
 
       <div className="space-y-2">
         <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
         <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
+        {status === 'error' ? (
+          <CanvasFailedCardActions
+            url={typeof node.properties.url === 'string' ? node.properties.url : null}
+            themeMode={themeMode}
+          />
+        ) : null}
       </div>
     </div>
   )
@@ -449,6 +469,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   const aliasInputRef = useRef<HTMLInputElement | null>(null)
   const [commentDraft, setCommentDraft] = useState('')
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const mediaFileInputRef = useRef<HTMLInputElement | null>(null)
   const selectedDatabaseUndoManagerRef = useRef<Y.UndoManager | null>(null)
   const undoOrderSequenceRef = useRef(0)
   const undoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
@@ -468,12 +489,13 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         })),
     [documents]
   )
-  const { placeSourceObject, placePrimitiveObject, ingestDataTransfer } = useCanvasObjectIngestion({
-    doc,
-    blobService,
-    getViewportSnapshot: () =>
-      canvasRef.current?.getViewportSnapshot() ?? lastViewportSnapshotRef.current
-  })
+  const { placeSourceObject, placePrimitiveObject, ingestPayload, ingestDataTransfer } =
+    useCanvasObjectIngestion({
+      doc,
+      blobService,
+      getViewportSnapshot: () =>
+        canvasRef.current?.getViewportSnapshot() ?? lastViewportSnapshotRef.current
+    })
   const { threads: canvasObjectCommentThreads, addComment: addCanvasComment } = useComments({
     nodeId: docId,
     anchorType: 'canvas-object'
@@ -985,6 +1007,18 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return canvasRef.current?.tidySelection() ?? false
   }, [])
 
+  const clusterSelection = useCallback((): boolean => {
+    return canvasRef.current?.clusterSelection() ?? false
+  }, [])
+
+  const stackSelection = useCallback((): boolean => {
+    return canvasRef.current?.stackSelection() ?? false
+  }, [])
+
+  const convertSelectionToMindMap = useCallback((): boolean => {
+    return canvasRef.current?.convertSelectionToMindMap() ?? false
+  }, [])
+
   const shiftSelectionLayer = useCallback((direction: CanvasLayerDirection): boolean => {
     return canvasRef.current?.shiftSelectionLayer(direction) ?? false
   }, [])
@@ -1456,12 +1490,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           width: 640,
           height: 420
         },
-        properties: {
-          title: 'Frame',
-          containerRole: 'frame',
-          memberIds: [],
-          memberCount: 0
-        }
+        properties: createCanvasFrameVariantProperties('standard', {
+          title: 'Frame'
+        })
       })
     )
 
@@ -1472,12 +1503,94 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return created
   }, [placePrimitiveObject, recordUndoBoundary])
 
+  const createMindMap = useCallback((): boolean => {
+    const properties = createCanvasMindMapRootProperties()
+    const created = Boolean(
+      placePrimitiveObject({
+        objectKind: CANVAS_MIND_MAP_CREATION_TOOL.objectKind,
+        title: properties.title,
+        rect: CANVAS_MIND_MAP_CREATION_TOOL.rootRect,
+        properties
+      })
+    )
+
+    if (created) {
+      recordUndoBoundary('scene')
+    }
+
+    return created
+  }, [placePrimitiveObject, recordUndoBoundary])
+
+  const createPlanningTemplate = useCallback(
+    (templateId: CanvasPlanningTemplateId): boolean => {
+      const created = canvasRef.current?.createPlanningTemplate(templateId) ?? false
+
+      if (created) {
+        recordUndoBoundary('scene')
+      }
+
+      return created
+    },
+    [recordUndoBoundary]
+  )
+
+  const createExternalReference = useCallback(
+    (url?: string): boolean => {
+      const candidate = (
+        url ?? window.prompt('Paste a URL to add to the canvas', 'https://')
+      )?.trim()
+
+      if (!candidate) {
+        return false
+      }
+
+      void ingestPayload({ kind: 'text', text: candidate }).then((result) => {
+        if (result) {
+          recordUndoBoundary('scene')
+        }
+      })
+
+      return true
+    },
+    [ingestPayload, recordUndoBoundary]
+  )
+
+  const createMediaFile = useCallback((): boolean => {
+    const input = mediaFileInputRef.current
+    if (!input) {
+      return false
+    }
+
+    input.click()
+    return true
+  }, [])
+
+  const handleMediaFileInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>): void => {
+      const files = Array.from(event.currentTarget.files ?? [])
+      event.currentTarget.value = ''
+
+      if (files.length === 0) {
+        return
+      }
+
+      void Promise.all(
+        files.map((file, index) => ingestPayload({ kind: 'file', file }, { spreadIndex: index }))
+      ).then((results) => {
+        if (results.some(Boolean)) {
+          recordUndoBoundary('scene')
+        }
+      })
+    },
+    [ingestPayload, recordUndoBoundary]
+  )
+
   const wrapSelectionInFrame = useCallback((): boolean => {
     return canvasRef.current?.wrapSelectionInFrame() ?? false
   }, [])
 
   const handleCreateObject = useCallback(
-    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => {
+    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame' | 'mind-map') => {
       if (kind === 'page') {
         onCreatePage?.()
         return
@@ -1498,9 +1611,14 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         return
       }
 
+      if (kind === 'mind-map') {
+        createMindMap()
+        return
+      }
+
       onCreateNote?.()
     },
-    [createFrame, createShape, onCreateDatabase, onCreateNote, onCreatePage]
+    [createFrame, createMindMap, createShape, onCreateDatabase, onCreateNote, onCreatePage]
   )
 
   useEffect(() => {
@@ -1540,10 +1658,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       alignSelection,
       distributeSelection,
       tidySelection,
+      clusterSelection,
+      stackSelection,
+      convertSelectionToMindMap,
       shiftSelectionLayer,
       connectSelection,
       createShape,
       createFrame,
+      createMindMap,
+      createPlanningTemplate,
+      createExternalReference,
+      createMediaFile,
       wrapSelectionInFrame,
       openAliasEditor,
       openCommentComposer,
@@ -1554,7 +1679,13 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     [
       alignSelection,
       clearCanvasSelection,
+      clusterSelection,
+      convertSelectionToMindMap,
+      createExternalReference,
       createFrame,
+      createMindMap,
+      createPlanningTemplate,
+      createMediaFile,
       createShape,
       connectSelection,
       clearSelectionAlias,
@@ -1568,6 +1699,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       resetCanvasView,
       restoreViewport,
       shiftSelectionLayer,
+      stackSelection,
       tidySelection,
       toggleSourceReferences,
       toggleSelectionLock,
@@ -1600,6 +1732,16 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       data-canvas-theme={theme.mode}
       data-canvas-undo-domain={activeUndoDomain}
     >
+      <input
+        ref={mediaFileInputRef}
+        type="file"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        data-canvas-media-file-input="true"
+        onChange={handleMediaFileInputChange}
+      />
       <div
         className="pointer-events-none absolute left-6 top-6 z-20 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl"
         data-canvas-home-badge="true"
@@ -2099,7 +2241,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
             <div className="mt-4 grid gap-2 text-sm text-foreground">
               {[
-                ['P / D / N', 'Create page, database, or note'],
+                ['P / D / N / M', 'Create page, database, note, or mind map'],
                 ['R / F', 'Create a rectangle or an empty frame'],
                 ['Drag handle', 'Pull from a selected card to connect objects'],
                 ['Tab', 'Step through canvas objects'],

@@ -18,6 +18,22 @@ export type {
 } from './types'
 export { getPlatformCapabilities, createExtensionStorage } from './types'
 
+// Canvas plugin permission policy
+export {
+  createCanvasPluginPermissionPrompt,
+  evaluateCanvasPluginPermissionGate,
+  normalizeCanvasPluginWorkspacePolicy
+} from './canvas-permissions'
+export type {
+  CanvasPluginPermissionDecisionStatus,
+  CanvasPluginPermissionGateDecision,
+  CanvasPluginPermissionGateInput,
+  CanvasPluginPermissionPrompt,
+  CanvasPluginPermissionPromptOption,
+  CanvasPluginPromptMode,
+  CanvasPluginWorkspacePolicy
+} from './canvas-permissions'
+
 // Manifest
 export type { XNetExtension, PluginContributions } from './manifest'
 export { validateManifest, defineExtension, PluginValidationError } from './manifest'
@@ -38,11 +54,66 @@ export type {
   PropertyEditorProps,
   BlockContribution,
   BlockProps,
+  CanvasCardContribution,
+  CanvasContribution,
+  CanvasContributionBase,
+  CanvasContributionPermission,
+  CanvasEdgeContribution,
+  CanvasIngestInputKind,
+  CanvasIngestorContribution,
+  CanvasInspectorContribution,
+  CanvasInspectorPlacement,
+  CanvasLayoutContribution,
+  CanvasLayoutScope,
+  CanvasPreviewTier,
+  CanvasTemplateCategory,
+  CanvasTemplateContribution,
+  CanvasToolContribution,
+  CanvasToolGroup,
   SettingContribution,
   SettingsPanelProps,
   SchemaContribution
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
+
+// Canvas plugin fixtures
+export {
+  CANVAS_PLUGIN_FIXTURES,
+  CRM_CANVAS_PLUGIN_FIXTURE,
+  ERP_CANVAS_PLUGIN_FIXTURE,
+  MEDIA_PROVIDER_CANVAS_PLUGIN_FIXTURE,
+  createCanvasPluginFixtureCards,
+  createCanvasPluginFixtureManifests,
+  getCanvasPluginFixture
+} from './fixtures/canvas'
+export type {
+  CanvasPluginFixture,
+  CanvasPluginFixtureCardSample,
+  CanvasPluginFixtureKind
+} from './fixtures/canvas'
+export {
+  createCanvasErpPrototypeRiskSummary,
+  createCanvasErpPrototypeScenario,
+  getCanvasErpPrototypeAuditEntriesForCard,
+  getCanvasErpPrototypeCardsForFrame
+} from './fixtures/erp-prototype'
+export type {
+  CanvasErpPrototypeAuditEntry,
+  CanvasErpPrototypeAuditOperation,
+  CanvasErpPrototypeAuditSource,
+  CanvasErpPrototypeCard,
+  CanvasErpPrototypeCommand,
+  CanvasErpPrototypeEdge,
+  CanvasErpPrototypeEntityKind,
+  CanvasErpPrototypeLayoutKind,
+  CanvasErpPrototypeQueryFrame,
+  CanvasErpPrototypeQueryPredicate,
+  CanvasErpPrototypeRect,
+  CanvasErpPrototypeRisk,
+  CanvasErpPrototypeRiskSummary,
+  CanvasErpPrototypeScenario,
+  CanvasErpPrototypeStatus
+} from './fixtures/erp-prototype'
 
 // Shortcuts
 export { ShortcutManager, getShortcutManager, installShortcutHandler } from './shortcuts'
@@ -85,7 +156,13 @@ export {
   executeScript,
   validateScript,
   // Runner
-  ScriptRunner
+  ScriptRunner,
+  // Canvas sandbox policies
+  createCanvasPluginSandboxPolicy,
+  createCanvasPreviewSandboxRequest,
+  createCanvasRendererSandboxRequest,
+  evaluateCanvasPluginSandboxRequest,
+  validateCanvasPluginSandboxOutput
 } from './sandbox'
 export type {
   // Context types
@@ -104,7 +181,19 @@ export type {
   ScriptStore,
   ScriptNodeChangeEvent,
   ScriptRunnerOptions,
-  ScriptExecutionResult
+  ScriptExecutionResult,
+  // Canvas sandbox types
+  CanvasPluginSandboxDecision,
+  CanvasPluginSandboxDomAccess,
+  CanvasPluginSandboxKind,
+  CanvasPluginSandboxMutationAccess,
+  CanvasPluginSandboxNetworkAccess,
+  CanvasPluginSandboxOutput,
+  CanvasPluginSandboxOutputKind,
+  CanvasPluginSandboxOutputValidation,
+  CanvasPluginSandboxPolicy,
+  CanvasPluginSandboxRequest,
+  CanvasRendererSandboxContribution
 } from './sandbox'
 
 // AI (Script generation from natural language)

@@ -20,9 +20,63 @@
  */
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
 export {
+  CanvasFailedCardActions,
   CanvasExternalReferenceCard,
+  CanvasLifecycleStatusBadge,
+  type CanvasFailedCardActionKind,
+  type CanvasFailedCardActionsProps,
   type CanvasExternalReferenceCardProps
 } from './components/CanvasExternalReferenceCard'
+export {
+  CanvasCardAuditTrail,
+  createCanvasCardAuditSummary,
+  formatCanvasCardAuditTimestamp,
+  getCanvasCardAuditOperationLabel,
+  normalizeCanvasCardAuditEntries,
+  type CanvasCardAuditEntry,
+  type CanvasCardAuditOperation,
+  type CanvasCardAuditSource,
+  type CanvasCardAuditSummary,
+  type CanvasCardAuditTrailProps,
+  type CanvasNormalizedCardAuditEntry
+} from './components/CanvasCardAuditTrail'
+export {
+  createCanvasExternalReferenceCardRenderer,
+  type CanvasExternalReferenceCardAccent,
+  type CanvasExternalReferenceCardMetadata,
+  type CanvasExternalReferenceCardRenderer,
+  type CanvasExternalReferenceCardRendererKind,
+  type CreateCanvasExternalReferenceCardRendererInput
+} from './components/canvasExternalReferenceCardRenderers'
+export {
+  createCanvasCardFieldId,
+  createCanvasPermissionedCardField,
+  createCanvasPermissionedCardFields,
+  type CanvasCardField,
+  type CanvasPermissionedCardField,
+  type CanvasRestrictedCardField,
+  type CanvasRestrictedCardFieldReason
+} from './components/canvasPermissionedCardFields'
+export {
+  createCanvasExternalReferenceEmbedFallback,
+  type CanvasExternalReferenceEmbedFallback,
+  type CanvasExternalReferenceEmbedFallbackReason,
+  type CanvasExternalReferenceEmbedFallbackTone,
+  type CreateCanvasExternalReferenceEmbedFallbackInput
+} from './components/canvasExternalReferenceEmbedFallbacks'
+export {
+  CanvasPluginFallbackCard,
+  type CanvasPluginFallbackCardProps
+} from './components/CanvasPluginFallbackCard'
+export {
+  createCanvasMissingPluginFallback,
+  type CanvasMissingPluginFallback,
+  type CanvasMissingPluginFallbackAction,
+  type CanvasMissingPluginFallbackActionKind,
+  type CanvasMissingPluginFallbackReason,
+  type CanvasMissingPluginFallbackTone,
+  type CreateCanvasMissingPluginFallbackInput
+} from './components/canvasPluginFallbacks'
 export {
   FloatingToolbar,
   type FloatingToolbarProps,

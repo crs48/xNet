@@ -5,11 +5,18 @@
 import type {
   CanvasExternalReferenceDescriptor,
   CanvasIngressPayload,
+  CanvasMediaKind,
   CanvasPrimitiveObjectKind,
   CanvasViewportSnapshot
 } from '../ingestion'
+import type {
+  CanvasIngestBatchOptions,
+  CanvasIngestOptions,
+  CanvasIngestResult,
+  CanvasIngestor
+} from '../ingestors'
 import type { CanvasNode, Point } from '../types'
-import type { BlobService, ExternalReference } from '@xnetjs/data'
+import type { BlobService, ExternalReference, FileRef } from '@xnetjs/data'
 import type * as Y from 'yjs'
 import { ExternalReferenceSchema, MediaAssetSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
@@ -24,7 +31,17 @@ import {
   inferMediaKind,
   readImageDimensions
 } from '../ingestion'
+import {
+  ingestCanvasPayloadBatch,
+  resolveCanvasIngestOptions,
+  selectCanvasIngestor
+} from '../ingestors'
 import { getCanvasObjectsMap } from '../scene/doc-layout'
+import {
+  createCanvasStoragePolicyDecision,
+  getCanvasBlockedPreviewReason,
+  getCanvasStoragePolicyCapability
+} from '../storage-policy'
 
 export interface UseCanvasObjectIngestionOptions {
   doc: Y.Doc | null
@@ -53,10 +70,7 @@ export interface PlaceCanvasPrimitiveObjectInput {
   properties?: Record<string, unknown>
 }
 
-export interface CanvasIngestionResult {
-  canvasNodeId: string
-  sourceNodeId?: string
-}
+export type CanvasIngestionResult = CanvasIngestResult
 
 function getNodesMap(doc: Y.Doc | null): Y.Map<CanvasNode> | null {
   if (!doc) {
@@ -92,8 +106,10 @@ function toMediaProperties(input: {
   size: number
   width?: number
   height?: number
-  status: 'uploading' | 'ready' | 'error'
+  file?: FileRef
+  status: 'uploading' | 'ready' | 'error' | 'blocked'
   error?: string
+  extra?: Record<string, unknown>
 }): Record<string, unknown> {
   return {
     title: input.title,
@@ -102,9 +118,62 @@ function toMediaProperties(input: {
     size: input.size,
     width: input.width,
     height: input.height,
+    ...(input.file ? { file: input.file } : {}),
     status: input.status,
-    ...(input.error ? { error: input.error } : {})
+    ...(input.error ? { error: input.error } : {}),
+    ...(input.extra ?? {})
   }
+}
+
+function getLocalFileStorageProperties(blocked: boolean): Record<string, unknown> {
+  const decision = createCanvasStoragePolicyDecision({
+    policy: blocked ? 'blocked' : 'copied-blob',
+    sourceKind: 'local-file'
+  })
+  const capability = getCanvasStoragePolicyCapability(decision.policy)
+
+  return {
+    storagePolicy: decision.policy,
+    storageSourceKind: decision.sourceKind,
+    copiesBytes: capability.copiesBytes,
+    syncsBytes: capability.syncsBytes,
+    availableToCollaborators: capability.availableToCollaborators,
+    availableOfflineOnCurrentDevice: capability.availableOfflineOnCurrentDevice
+  }
+}
+
+function getLocalFileMediaMetadata(input: {
+  nodeId: string
+  fileName: string
+  mimeType: string
+  mediaKind: string
+  blocked: boolean
+  localPreviewUrl?: string
+}): Record<string, unknown> {
+  const isImage = input.mediaKind === 'image'
+  const isPdf = input.mimeType === 'application/pdf'
+
+  return {
+    ...getLocalFileStorageProperties(input.blocked),
+    objectFit: 'contain',
+    ...(input.localPreviewUrl ? { localPreviewUrl: input.localPreviewUrl } : {}),
+    ...(isImage ? { alt: input.fileName, caption: '' } : {}),
+    ...(isPdf
+      ? {
+          pageNumber: 1,
+          pageCount: 1,
+          pageAnchorId: `${input.nodeId}:page:1`
+        }
+      : {})
+  }
+}
+
+function inferLocalFileMediaKind(file: File, mimeType: string): CanvasMediaKind {
+  if (mimeType === 'application/pdf') {
+    return 'document'
+  }
+
+  return inferMediaKind(file)
 }
 
 function toExternalReferenceCreateInput(descriptor: CanvasExternalReferenceDescriptor) {
@@ -325,7 +394,18 @@ export function useCanvasObjectIngestion({
         return null
       }
 
-      const mediaKind = inferMediaKind(file)
+      const mimeType =
+        file.type ||
+        (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream')
+      const mediaKind = inferLocalFileMediaKind(file, mimeType)
+      const blockedReason = getCanvasBlockedPreviewReason({
+        fileName: file.name,
+        mimeType
+      })
+      const localPreviewUrl =
+        !blockedReason && mediaKind === 'image' && typeof URL.createObjectURL === 'function'
+          ? URL.createObjectURL(file)
+          : undefined
       const pendingNode = createSourceBackedCanvasNode({
         objectKind: 'media',
         viewport: getViewportSnapshot(),
@@ -334,16 +414,37 @@ export function useCanvasObjectIngestion({
         spreadIndex,
         properties: toMediaProperties({
           title: file.name,
-          mimeType: file.type || 'application/octet-stream',
+          mimeType,
           kind: mediaKind,
           size: file.size,
-          status: 'uploading'
+          status: blockedReason ? 'blocked' : 'uploading',
+          error: blockedReason ?? undefined
         })
       })
+      const pendingNodeWithStorageState = {
+        ...pendingNode,
+        properties: {
+          ...pendingNode.properties,
+          ...getLocalFileMediaMetadata({
+            nodeId: pendingNode.id,
+            fileName: file.name,
+            mimeType,
+            mediaKind,
+            blocked: Boolean(blockedReason),
+            localPreviewUrl
+          })
+        }
+      }
 
       doc.transact(() => {
-        nodes.set(pendingNode.id, pendingNode)
+        nodes.set(pendingNodeWithStorageState.id, pendingNodeWithStorageState)
       })
+
+      if (blockedReason) {
+        return {
+          canvasNodeId: pendingNode.id
+        }
+      }
 
       try {
         const dimensions = await readImageDimensions(file)
@@ -372,12 +473,21 @@ export function useCanvasObjectIngestion({
           },
           properties: toMediaProperties({
             title: file.name,
-            mimeType: file.type || 'application/octet-stream',
+            mimeType,
             kind: mediaKind,
             size: file.size,
             width: dimensions?.width,
             height: dimensions?.height,
-            status: 'ready'
+            file: fileRef,
+            status: 'ready',
+            extra: getLocalFileMediaMetadata({
+              nodeId: pendingNode.id,
+              fileName: file.name,
+              mimeType,
+              mediaKind,
+              blocked: false,
+              localPreviewUrl
+            })
           })
         }))
 
@@ -391,11 +501,19 @@ export function useCanvasObjectIngestion({
           ...node,
           properties: toMediaProperties({
             title: file.name,
-            mimeType: file.type || 'application/octet-stream',
+            mimeType,
             kind: mediaKind,
             size: file.size,
             status: 'error',
-            error: message
+            error: message,
+            extra: getLocalFileMediaMetadata({
+              nodeId: pendingNode.id,
+              fileName: file.name,
+              mimeType,
+              mediaKind,
+              blocked: false,
+              localPreviewUrl
+            })
           })
         }))
         return {
@@ -406,87 +524,137 @@ export function useCanvasObjectIngestion({
     [blobService, create, doc, getViewportSnapshot]
   )
 
+  const builtInIngestors = useMemo<CanvasIngestor[]>(
+    () => [
+      {
+        id: 'internal-node',
+        priority: 1000,
+        matches: (payload) =>
+          payload.kind === 'internal-node' &&
+          getCanvasObjectKindFromSchema(payload.data.schemaId, payload.data.canvasKind) !== null,
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'internal-node') {
+            return null
+          }
+
+          const objectKind = getCanvasObjectKindFromSchema(
+            payload.data.schemaId,
+            payload.data.canvasKind
+          )
+          if (!objectKind) {
+            return null
+          }
+
+          return placeSourceObject({
+            objectKind,
+            sourceNodeId: payload.data.nodeId,
+            sourceSchemaId: payload.data.schemaId,
+            title: payload.data.title,
+            canvasPoint: options.canvasPoint,
+            spreadIndex: options.spreadIndex,
+            properties:
+              objectKind === 'external-reference'
+                ? (() => {
+                    const externalReference = externalReferenceById.get(payload.data.nodeId)
+                    return externalReference
+                      ? toStoredExternalReferenceProperties(externalReference)
+                      : undefined
+                  })()
+                : undefined
+          })
+        }
+      },
+      {
+        id: 'file',
+        priority: 900,
+        matches: (payload) => payload.kind === 'file',
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'file') {
+            return null
+          }
+
+          return await ingestFilePayload(payload.file, options.canvasPoint, options.spreadIndex)
+        }
+      },
+      {
+        id: 'url',
+        priority: 800,
+        matches: (payload) =>
+          payload.kind === 'url' && describeExternalReference(payload.url) !== null,
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'url') {
+            return null
+          }
+
+          return await ingestUrlPayload(payload.url, options.canvasPoint, options.spreadIndex)
+        }
+      },
+      {
+        id: 'text-url',
+        priority: 700,
+        matches: (payload) =>
+          payload.kind === 'text' && describeExternalReference(payload.text) !== null,
+        ingest: async (payload, options) => {
+          if (payload.kind !== 'text') {
+            return null
+          }
+
+          const descriptor = describeExternalReference(payload.text)
+          if (!descriptor) {
+            return null
+          }
+
+          return await ingestUrlPayload(
+            descriptor.normalizedUrl,
+            options.canvasPoint,
+            options.spreadIndex
+          )
+        }
+      }
+    ],
+    [externalReferenceById, ingestFilePayload, ingestUrlPayload, placeSourceObject]
+  )
+
   const ingestPayload = useCallback(
     async (
       payload: CanvasIngressPayload,
-      options: { canvasPoint?: Point | null; spreadIndex?: number } = {}
+      options: CanvasIngestOptions = {}
     ): Promise<CanvasIngestionResult | null> => {
-      const spreadIndex = options.spreadIndex ?? 0
-
-      if (payload.kind === 'internal-node') {
-        const objectKind = getCanvasObjectKindFromSchema(
-          payload.data.schemaId,
-          payload.data.canvasKind
-        )
-        if (!objectKind) {
-          return null
-        }
-
-        return placeSourceObject({
-          objectKind,
-          sourceNodeId: payload.data.nodeId,
-          sourceSchemaId: payload.data.schemaId,
-          title: payload.data.title,
-          canvasPoint: options.canvasPoint,
-          spreadIndex,
-          properties:
-            objectKind === 'external-reference'
-              ? (() => {
-                  const externalReference = externalReferenceById.get(payload.data.nodeId)
-                  return externalReference
-                    ? toStoredExternalReferenceProperties(externalReference)
-                    : undefined
-                })()
-              : undefined
-        })
-      }
-
-      if (payload.kind === 'url') {
-        return await ingestUrlPayload(payload.url, options.canvasPoint, spreadIndex)
-      }
-
-      if (payload.kind === 'file') {
-        return await ingestFilePayload(payload.file, options.canvasPoint, spreadIndex)
-      }
-
-      const descriptor = describeExternalReference(payload.text)
-      if (!descriptor) {
+      if (options.signal?.aborted) {
         return null
       }
 
-      return await ingestUrlPayload(descriptor.normalizedUrl, options.canvasPoint, spreadIndex)
+      const ingestor = selectCanvasIngestor(payload, builtInIngestors)
+      if (!ingestor) {
+        return null
+      }
+
+      return await ingestor.ingest(payload, resolveCanvasIngestOptions(options))
     },
-    [externalReferenceById, ingestFilePayload, ingestUrlPayload, placeSourceObject]
+    [builtInIngestors]
   )
 
   const ingestDataTransfer = useCallback(
     async (
       dataTransfer: DataTransfer,
-      options: { canvasPoint?: Point | null } = {}
+      options: Pick<CanvasIngestBatchOptions, 'canvasPoint' | 'dedupe' | 'signal'> = {}
     ): Promise<CanvasIngestionResult[]> => {
       const payloads = extractCanvasIngressPayloads(dataTransfer)
-      const results: CanvasIngestionResult[] = []
+      const batch = await ingestCanvasPayloadBatch(payloads, builtInIngestors, {
+        canvasPoint: options.canvasPoint,
+        dedupe: options.dedupe,
+        signal: options.signal
+      })
 
-      for (const [index, payload] of payloads.entries()) {
-        const result = await ingestPayload(payload, {
-          canvasPoint: options.canvasPoint,
-          spreadIndex: index
-        })
-
-        if (result) {
-          results.push(result)
-        }
-      }
-
-      return results
+      return batch.results
     },
-    [ingestPayload]
+    [builtInIngestors]
   )
 
   const ingestText = useCallback(
     async (
       text: string,
-      options: { canvasPoint?: Point | null } = {}
+      options: CanvasIngestOptions = {}
     ): Promise<CanvasIngestionResult | null> => {
       return await ingestPayload({ kind: 'text', text }, options)
     },

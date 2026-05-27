@@ -162,6 +162,26 @@ export {
   parseEmbedUrl,
   parseExternalReferenceUrl
 } from './external-references'
+export {
+  getExternalReferenceOEmbedEndpoint,
+  parseOpenGraphMetadata,
+  resolveExternalReferenceMetadata,
+  type ExternalReferenceMetadataFetcher,
+  type ExternalReferenceMetadataResult,
+  type ExternalReferenceMetadataSource,
+  type ExternalReferenceMetadataStatus,
+  type ExternalReferenceResolvedMetadata,
+  type ResolveExternalReferenceMetadataInput
+} from './external-reference-metadata'
+export {
+  DEFAULT_EXTERNAL_REFERENCE_IFRAME_ALLOW,
+  evaluateExternalReferenceEmbedPolicy,
+  type EvaluateExternalReferenceEmbedPolicyInput,
+  type ExternalReferenceEmbedBlockReason,
+  type ExternalReferenceEmbedPolicy,
+  type ExternalReferenceEmbedPolicyDecision,
+  type ExternalReferenceIframeSandboxToken
+} from './external-reference-embed-policy'
 
 // Update handling
 export {

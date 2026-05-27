@@ -24,6 +24,13 @@ export type CanvasLockUpdate = {
   locked: boolean
 }
 
+export type CanvasResizeUpdateOptions = {
+  minWidth?: number
+  minHeight?: number
+  preserveAspectRatio?: boolean
+  aspectRatio?: number
+}
+
 export type CanvasContainerRole = 'frame' | 'group'
 
 export interface CreateFrameSelectionNodeOptions {
@@ -31,8 +38,15 @@ export interface CreateFrameSelectionNodeOptions {
   padding?: number
 }
 
+export interface CreateGroupSelectionNodeOptions {
+  title?: string
+  padding?: number
+}
+
 const DEFAULT_FRAME_PADDING = 48
+const DEFAULT_GROUP_PADDING = 12
 const DEFAULT_FRAME_TITLE = 'Frame'
+const DEFAULT_GROUP_TITLE = 'Group'
 const DEFAULT_MIN_NODE_WIDTH = 96
 const DEFAULT_MIN_NODE_HEIGHT = 72
 
@@ -42,6 +56,10 @@ function isStringArray(value: unknown): value is string[] {
 
 function roundPosition(value: number): number {
   return Math.round(value)
+}
+
+function isFinitePositive(value: number): boolean {
+  return Number.isFinite(value) && value > 0
 }
 
 function getNodeCenter(node: CanvasNode): { x: number; y: number } {
@@ -281,6 +299,67 @@ export function createTidySelectionUpdates(
   })
 }
 
+export function createClusterSelectionUpdates(
+  nodes: CanvasNode[],
+  spacing = 28
+): CanvasPositionUpdate[] {
+  if (nodes.length < 2) {
+    return []
+  }
+
+  const bounds = getSelectionBounds(nodes)
+  if (!bounds) {
+    return []
+  }
+
+  const ordered = sortNodesByVisualOrder(nodes)
+  const centerX = bounds.x + bounds.width / 2
+  const centerY = bounds.y + bounds.height / 2
+  const maxWidth = Math.max(...ordered.map((node) => node.position.width))
+  const maxHeight = Math.max(...ordered.map((node) => node.position.height))
+  const radius = Math.max(maxWidth, maxHeight) * 0.72 + spacing
+
+  return ordered.map((node, index) => {
+    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / ordered.length
+
+    return {
+      id: node.id,
+      position: {
+        x: roundPosition(centerX + Math.cos(angle) * radius - node.position.width / 2),
+        y: roundPosition(centerY + Math.sin(angle) * radius - node.position.height / 2)
+      }
+    }
+  })
+}
+
+export function createStackSelectionUpdates(
+  nodes: CanvasNode[],
+  offset: { x?: number; y?: number } = {}
+): CanvasPositionUpdate[] {
+  if (nodes.length < 2) {
+    return []
+  }
+
+  const bounds = getSelectionBounds(nodes)
+  if (!bounds) {
+    return []
+  }
+
+  const ordered = sortNodesByVisualOrder(nodes)
+  const offsetX = offset.x ?? 32
+  const offsetY = offset.y ?? 32
+  const minZIndex = Math.min(...ordered.map((node) => node.position.zIndex ?? 0))
+
+  return ordered.map((node, index) => ({
+    id: node.id,
+    position: {
+      x: roundPosition(bounds.x + index * offsetX),
+      y: roundPosition(bounds.y + index * offsetY),
+      zIndex: minZIndex + index
+    }
+  }))
+}
+
 export function createLayerShiftUpdates(
   nodes: CanvasNode[],
   direction: CanvasLayerDirection
@@ -306,14 +385,13 @@ export function createResizeUpdate(
   node: CanvasNode,
   handle: ResizeHandle,
   delta: { x: number; y: number },
-  options: {
-    minWidth?: number
-    minHeight?: number
-  } = {}
+  options: CanvasResizeUpdateOptions = {}
 ): CanvasPositionUpdate {
   const minWidth = options.minWidth ?? DEFAULT_MIN_NODE_WIDTH
   const minHeight = options.minHeight ?? DEFAULT_MIN_NODE_HEIGHT
   const initial = node.position
+  const initialAspectRatio = initial.width / initial.height
+  const aspectRatio = options.aspectRatio ?? initialAspectRatio
 
   let nextX = initial.x
   let nextY = initial.y
@@ -337,6 +415,31 @@ export function createResizeUpdate(
     nextY = roundPosition(initial.y + (initial.height - nextHeight))
   } else if (touchesBottom) {
     nextHeight = Math.max(minHeight, initial.height + delta.y)
+  }
+
+  if (
+    options.preserveAspectRatio === true &&
+    isFinitePositive(aspectRatio) &&
+    (touchesLeft || touchesRight) &&
+    (touchesTop || touchesBottom)
+  ) {
+    const horizontalDriven = Math.abs(delta.x) >= Math.abs(delta.y)
+
+    if (horizontalDriven) {
+      nextWidth = Math.max(nextWidth, minWidth, minHeight * aspectRatio)
+      nextHeight = nextWidth / aspectRatio
+    } else {
+      nextHeight = Math.max(nextHeight, minHeight, minWidth / aspectRatio)
+      nextWidth = nextHeight * aspectRatio
+    }
+
+    if (touchesLeft) {
+      nextX = roundPosition(initial.x + (initial.width - nextWidth))
+    }
+
+    if (touchesTop) {
+      nextY = roundPosition(initial.y + (initial.height - nextHeight))
+    }
   }
 
   return {
@@ -430,19 +533,22 @@ export function expandContainerPositionUpdates(
   return Array.from(resolved.values())
 }
 
-export function createFrameSelectionNode(
+function createContainerSelectionNode(
   nodes: CanvasNode[],
-  options: CreateFrameSelectionNodeOptions = {}
+  role: CanvasContainerRole,
+  options: CreateFrameSelectionNodeOptions | CreateGroupSelectionNodeOptions = {}
 ): CanvasNode | null {
   const bounds = getSelectionBounds(nodes)
   if (!bounds) {
     return null
   }
 
-  const padding = options.padding ?? DEFAULT_FRAME_PADDING
+  const padding =
+    options.padding ?? (role === 'frame' ? DEFAULT_FRAME_PADDING : DEFAULT_GROUP_PADDING)
   const memberIds = Array.from(new Set(nodes.map((node) => node.id)))
   const minZIndex = Math.min(...nodes.map((node) => node.position.zIndex ?? 0))
-  const title = options.title?.trim() || DEFAULT_FRAME_TITLE
+  const title =
+    options.title?.trim() || (role === 'frame' ? DEFAULT_FRAME_TITLE : DEFAULT_GROUP_TITLE)
 
   return createNode(
     'group',
@@ -455,11 +561,25 @@ export function createFrameSelectionNode(
     },
     {
       title,
-      containerRole: 'frame',
+      containerRole: role,
       memberIds,
       memberCount: memberIds.length
     }
   )
+}
+
+export function createFrameSelectionNode(
+  nodes: CanvasNode[],
+  options: CreateFrameSelectionNodeOptions = {}
+): CanvasNode | null {
+  return createContainerSelectionNode(nodes, 'frame', options)
+}
+
+export function createGroupSelectionNode(
+  nodes: CanvasNode[],
+  options: CreateGroupSelectionNodeOptions = {}
+): CanvasNode | null {
+  return createContainerSelectionNode(nodes, 'group', options)
 }
 
 export function createAnchorSummary(nodes: CanvasNode[]): {

@@ -2,11 +2,14 @@ import type { CanvasNode } from '../types'
 import { describe, expect, it } from 'vitest'
 import {
   createFrameSelectionNode,
+  createGroupSelectionNode,
   createAlignmentUpdates,
+  createClusterSelectionUpdates,
   createDistributionUpdates,
   createLayerShiftUpdates,
   createLockUpdates,
   createResizeUpdate,
+  createStackSelectionUpdates,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
   getCanvasContainerMemberIds,
@@ -116,6 +119,36 @@ describe('scene operations', () => {
     ])
   })
 
+  it('clusters selections around their shared center', () => {
+    const nodes = [
+      createNode('a', { x: 0, y: 0, width: 100, height: 100 }),
+      createNode('b', { x: 200, y: 0, width: 100, height: 100 }),
+      createNode('c', { x: 0, y: 200, width: 100, height: 100 }),
+      createNode('d', { x: 200, y: 200, width: 100, height: 100 })
+    ]
+
+    expect(createClusterSelectionUpdates(nodes, 28)).toEqual([
+      { id: 'a', position: { x: 100, y: 0 } },
+      { id: 'b', position: { x: 200, y: 100 } },
+      { id: 'c', position: { x: 100, y: 200 } },
+      { id: 'd', position: { x: 0, y: 100 } }
+    ])
+  })
+
+  it('stacks selections from the shared top-left corner', () => {
+    const nodes = [
+      createNode('a', { x: 300, y: 220, width: 100, height: 80, zIndex: 4 }),
+      createNode('b', { x: 40, y: 20, width: 100, height: 80, zIndex: 2 }),
+      createNode('c', { x: 180, y: 120, width: 100, height: 80, zIndex: 7 })
+    ]
+
+    expect(createStackSelectionUpdates(nodes, { x: 24, y: 18 })).toEqual([
+      { id: 'b', position: { x: 40, y: 20, zIndex: 2 } },
+      { id: 'c', position: { x: 64, y: 38, zIndex: 3 } },
+      { id: 'a', position: { x: 88, y: 56, zIndex: 4 } }
+    ])
+  })
+
   it('moves selections forward and backward through z-order', () => {
     const nodes = [
       createNode('a', { x: 40, y: 20, zIndex: 2 }),
@@ -180,6 +213,34 @@ describe('scene operations', () => {
     })
   })
 
+  it('preserves aspect ratio for corner resize updates when requested', () => {
+    const node = createNode('media-1', { x: 80, y: 60, width: 320, height: 160 })
+
+    expect(
+      createResizeUpdate(node, 'bottom-right', { x: 20, y: 50 }, { preserveAspectRatio: true })
+    ).toEqual({
+      id: 'media-1',
+      position: {
+        x: 80,
+        y: 60,
+        width: 420,
+        height: 210
+      }
+    })
+
+    expect(
+      createResizeUpdate(node, 'top-left', { x: 80, y: 20 }, { preserveAspectRatio: true })
+    ).toEqual({
+      id: 'media-1',
+      position: {
+        x: 160,
+        y: 100,
+        width: 240,
+        height: 120
+      }
+    })
+  })
+
   it('creates a frame container around the current selection', () => {
     const frame = createFrameSelectionNode([
       createNode('a', { x: 40, y: 30, width: 100, height: 80, zIndex: 4 }),
@@ -195,6 +256,26 @@ describe('scene operations', () => {
       y: -18,
       width: 416,
       height: 346,
+      zIndex: 3
+    })
+  })
+
+  it('creates a group container around the current selection', () => {
+    const group = createGroupSelectionNode([
+      createNode('a', { x: 40, y: 30, width: 100, height: 80, zIndex: 4 }),
+      createNode('b', { x: 220, y: 160, width: 140, height: 120, zIndex: 7 })
+    ])
+
+    expect(group).not.toBeNull()
+    expect(group?.type).toBe('group')
+    expect(getCanvasContainerRole(group!)).toBe('group')
+    expect(getCanvasContainerMemberIds(group!)).toEqual(['a', 'b'])
+    expect(group?.properties.title).toBe('Group')
+    expect(group?.position).toMatchObject({
+      x: 28,
+      y: 18,
+      width: 344,
+      height: 274,
       zIndex: 3
     })
   })

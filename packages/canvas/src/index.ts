@@ -63,6 +63,9 @@ export type {
   CanvasEdgeEndpoint,
   CanvasConnectorEndpoint,
   CanvasEdge,
+  CanvasEdgeRelationship,
+  CanvasEdgeRelationshipDirection,
+  CanvasEdgeRelationshipKind,
   CanvasConnector,
   EdgeStyle,
   ViewportState,
@@ -96,11 +99,446 @@ export {
 export type { CanvasResolvedNodeKind } from './scene/node-kind'
 
 export {
+  applyCanvasEdgeRelationship,
+  createCanvasEdgeRelationship,
+  createCanvasSemanticRelationshipRecord,
+  getCanvasConnectorKindForRelationship,
+  normalizeCanvasEdgeRelationship
+} from './edges/relationships'
+export {
+  createCanvasSemanticEdgeDraft,
+  createCanvasSemanticEdgeRelationshipForNodes,
+  getCanvasSemanticEndpointRole
+} from './edges/source-semantics'
+export {
+  canvasEdgeMatchesFilter,
+  filterCanvasEdges,
+  getCanvasEdgePresentation,
+  pickCanvasEdgeEndpointAnchor
+} from './edges/presentation'
+export {
+  canvasEdgeMatchesSemanticQuery,
+  createCanvasSemanticEdgeQuery,
+  createCanvasSemanticEdgeQueryRows,
+  filterCanvasEdgesBySemanticQuery,
+  runCanvasSemanticEdgeQuery
+} from './edges/queries'
+export {
+  createCanvasFarZoomEdgeSummaries,
+  createCanvasMinimapRelationshipHints
+} from './edges/summaries'
+export type {
+  CanvasConnectorRecordKind,
+  CanvasSemanticRelationshipRecord,
+  CreateCanvasEdgeRelationshipInput
+} from './edges/relationships'
+export type {
+  CanvasSemanticEdgeDraft,
+  CanvasSemanticEndpointRole,
+  CreateCanvasSemanticEdgeDraftInput
+} from './edges/source-semantics'
+export type {
+  CanvasEdgeEndpointAnchorPickMode,
+  CanvasEdgeFilter,
+  CanvasEdgePresentation,
+  PickCanvasEdgeEndpointAnchorInput
+} from './edges/presentation'
+export type {
+  CanvasSemanticEdgeEndpointFilter,
+  CanvasSemanticEdgeQuery,
+  CanvasSemanticEdgeQueryFilter,
+  CanvasSemanticEdgeQueryResult,
+  CanvasSemanticEdgeQueryRow,
+  CanvasSemanticEdgeQuerySort,
+  CanvasSemanticEdgeQuerySortField,
+  CreateCanvasSemanticEdgeQueryInput
+} from './edges/queries'
+export type {
+  CanvasFarZoomEdgeSummary,
+  CanvasMinimapRelationshipHint,
+  CreateCanvasFarZoomEdgeSummariesInput,
+  CreateCanvasMinimapRelationshipHintsInput
+} from './edges/summaries'
+
+export {
+  CANVAS_TILE_CONNECTORS_MAP_KEY,
+  CANVAS_TILE_METADATA_MAP_KEY,
+  CANVAS_TILE_OBJECTS_MAP_KEY,
+  CANVAS_TILE_SCHEMA_VERSION,
+  CANVAS_TILE_TOMBSTONES_MAP_KEY,
+  canvasEdgeToConnectorRecord,
+  canvasNodeToObjectRecord,
+  convertFlatCanvasDocToTileDocs,
+  createCanvasTileDoc,
+  ensureCanvasTileDocMaps,
+  applyCanvasPreviewTileSummaryUpdateToTileDoc,
+  readCanvasTileDocSnapshot,
+  writeCanvasTileDocSnapshot
+} from './scene/tile-doc-schema'
+export type {
+  CanvasTileDocMaps,
+  CanvasTileDocSnapshot,
+  CreateCanvasTileDocInput,
+  FlatCanvasDocTileConversionInput,
+  FlatCanvasDocTileConversionResult
+} from './scene/tile-doc-schema'
+
+export { createMinimapSummaryFromCanvasScene } from './scene/minimap-summary'
+export { createCanvasPreviewModel, getCanvasPreviewCacheKey } from './preview/model'
+export {
+  cancelCanvasPreviewJob,
+  claimNextCanvasPreviewJob,
+  completeCanvasPreviewJob,
+  createCanvasPreviewQueueState,
+  enqueueCanvasPreviewJob,
+  failCanvasPreviewJob,
+  getCanvasPreviewJobKey
+} from './preview/queue'
+export {
+  createCanvasThumbnailOutput,
+  getCanvasThumbnailOutputCacheKey
+} from './preview/thumbnail-output'
+export {
+  createCanvasIframeExportPreview,
+  createCanvasIframePlaceholderThumbnail,
+  isCanvasIframePlaceholderPreview
+} from './preview/iframe-placeholder'
+export type {
+  CanvasIframePlaceholderReason,
+  CreateCanvasIframePlaceholderInput
+} from './preview/iframe-placeholder'
+export {
+  evaluateCanvasEmbedPolicy,
+  getCanvasEmbedProviderPolicies,
+  getCanvasEmbedProviderPolicy
+} from './preview/embed-policy'
+export type {
+  CanvasEmbedPolicyDecision,
+  CanvasEmbedProvider,
+  CanvasEmbedProviderPolicy,
+  CanvasIframeSecurityAttributes
+} from './preview/embed-policy'
+export {
+  createCanvasPreviewSourceFingerprint,
+  shouldInvalidateCanvasPreviewCache
+} from './preview/cache-invalidation'
+export {
+  createCanvasPreviewGenerationBenchmarkSources,
+  measureCanvasPreviewGenerationBenchmark
+} from './preview/benchmarks'
+export { exportCanvasToJsonCanvas, importCanvasFromJsonCanvas } from './interop/json-canvas'
+export type {
+  ExportCanvasToJsonCanvasInput,
+  ImportCanvasFromJsonCanvasResult,
+  JsonCanvasDocument,
+  JsonCanvasEdge,
+  JsonCanvasEdgeEnd,
+  JsonCanvasFileNode,
+  JsonCanvasGroupNode,
+  JsonCanvasLinkNode,
+  JsonCanvasNode,
+  JsonCanvasNodeBase,
+  JsonCanvasNodeType,
+  JsonCanvasSide,
+  JsonCanvasTextNode,
+  JsonCanvasXNetEdgeMetadata,
+  JsonCanvasXNetNodeMetadata
+} from './interop/json-canvas'
+export {
+  createCanvasPdfAnnotation,
+  createCanvasPdfAnnotationOverlay,
+  getCanvasPdfAnnotationsForPage,
+  isCanvasPdfAnnotationSourceDetached,
+  updateCanvasPdfAnnotation
+} from './pdf/annotations'
+export {
+  createCanvasPdfCollectPagesCommand,
+  createCanvasPdfExplodePagesCommand
+} from './pdf/page-commands'
+export {
+  CANVAS_STICKY_NOTE_COLOR_PRESETS,
+  CANVAS_STICKY_NOTE_ROLE,
+  createCanvasStickyNoteNode,
+  createCanvasStickyNoteProperties,
+  createCanvasStickyNotePromotionDraft,
+  isCanvasStickyNoteNode,
+  promoteCanvasStickyNoteNode
+} from './notes/sticky-notes'
+export type {
+  CanvasStickyNoteColor,
+  CanvasStickyNotePromotionDraft,
+  CanvasStickyNotePromotionTarget,
+  CreateCanvasStickyNoteNodeInput,
+  CreateCanvasStickyNotePropertiesInput
+} from './notes/sticky-notes'
+export { extractCanvasPdfText } from './pdf/text-extraction'
+export {
+  createCanvasPdfPageAnchorId,
+  createCanvasPdfPageCommentAnchor,
+  createCanvasPdfPageEdgeEndpoint,
+  getCanvasPdfPageAnchorRect,
+  resolveCanvasPdfPageAnchorPoint
+} from './pdf/page-anchors'
+export { CanvasPdfPageViewer } from './pdf/PdfPageViewer'
+export { createCanvasPdfPageThumbnails } from './pdf/page-thumbnails'
+export {
+  createCanvasOfflinePreviewFallback,
+  isCanvasOfflinePreviewFallback
+} from './preview/offline-fallback'
+export {
+  applyCanvasPreviewTileSummaryUpdate,
+  createCanvasPreviewTileSummaryMetadata,
+  createCanvasPreviewTileSummaryUpdate,
+  hasCanvasPreviewTileSummaryChanged
+} from './preview/tile-summary'
+export {
+  createCanvasStoragePolicyPrompt,
+  createCanvasStoragePolicyDecision,
+  getCanvasBlockedPreviewReason,
+  getCanvasStoragePolicies,
+  getCanvasStoragePolicyCapability,
+  isCanvasStoragePolicy,
+  normalizeCanvasStoragePolicy
+} from './storage-policy'
+export type {
+  CanvasPreviewAction,
+  CanvasPreviewActionKind,
+  CanvasPreviewAnchor,
+  CanvasPreviewLifecycleStatus,
+  CanvasPreviewLiveSurface,
+  CanvasPreviewModel,
+  CanvasPreviewShell,
+  CanvasPreviewSourceRef,
+  CanvasPreviewSummary,
+  CanvasPreviewThumbnail,
+  CanvasPreviewTier,
+  CreateCanvasPreviewModelInput
+} from './preview/model'
+export type {
+  CanvasPreviewQueueClaimResult,
+  CanvasPreviewQueueFailureOptions,
+  CanvasPreviewQueueJob,
+  CanvasPreviewQueueJobInput,
+  CanvasPreviewQueueJobStatus,
+  CanvasPreviewQueueState
+} from './preview/queue'
+export type {
+  CanvasThumbnailOutput,
+  CanvasThumbnailOutputKind,
+  CreateCanvasThumbnailOutputInput
+} from './preview/thumbnail-output'
+export type {
+  CanvasPreviewGenerationBenchmarkInput,
+  CanvasPreviewGenerationBenchmarkMeasurement,
+  CanvasPreviewGenerationBenchmarkSource
+} from './preview/benchmarks'
+export type { CanvasPdfPageViewerProps, CanvasPdfPageViewerThemeMode } from './pdf/PdfPageViewer'
+export type {
+  CanvasPdfAnnotationKind,
+  CanvasPdfAnnotationOverlay,
+  CanvasPdfAnnotationPoint,
+  CanvasPdfAnnotationRecord,
+  CanvasPdfAnnotationRect,
+  CanvasPdfAnnotationStyle,
+  CreateCanvasPdfAnnotationInput,
+  CreateCanvasPdfAnnotationOverlayInput
+} from './pdf/annotations'
+export type {
+  CanvasPdfCollectedPageBlock,
+  CanvasPdfCollectPagesCommand,
+  CanvasPdfExplodePageLayout,
+  CanvasPdfExplodePagesCommand,
+  CanvasPdfSelectedPage,
+  CreateCanvasPdfCollectPagesCommandInput,
+  CreateCanvasPdfExplodePagesCommandInput
+} from './pdf/page-commands'
+export type {
+  CanvasPdfPageText,
+  CanvasPdfTextAdapter,
+  CanvasPdfTextContent,
+  CanvasPdfTextDocument,
+  CanvasPdfTextExtractionResult,
+  CanvasPdfTextExtractionStatus,
+  CanvasPdfTextItem,
+  CanvasPdfTextLoadingTask,
+  CanvasPdfTextPage,
+  CanvasPdfTextRun,
+  ExtractCanvasPdfTextInput
+} from './pdf/text-extraction'
+export type {
+  CanvasPdfPageAnchorLayout,
+  CanvasPdfPageCommentAnchor,
+  CreateCanvasPdfPageAnchorInput
+} from './pdf/page-anchors'
+export type {
+  CanvasPdfJsAdapter,
+  CanvasPdfJsDocument,
+  CanvasPdfJsLoadingTask,
+  CanvasPdfJsPage,
+  CanvasPdfPageThumbnail,
+  CanvasPdfRenderTask,
+  CanvasPdfThumbnailCanvas,
+  CanvasPdfThumbnailCanvasFactory,
+  CanvasPdfThumbnailMimeType,
+  CanvasPdfViewport,
+  CreateCanvasPdfPageThumbnailsInput
+} from './pdf/page-thumbnails'
+export type { CanvasPreviewSourceFingerprintInput } from './preview/cache-invalidation'
+export type {
+  CanvasPreviewOfflineFallbackReason,
+  CreateCanvasOfflinePreviewFallbackInput
+} from './preview/offline-fallback'
+export type {
+  CanvasPreviewTileSummaryMetadata,
+  CanvasPreviewTileSummaryUpdate
+} from './preview/tile-summary'
+export type {
+  CanvasBlockedPreviewInput,
+  CanvasStoragePolicy,
+  CanvasStoragePolicyCapability,
+  CanvasStoragePolicyDecision,
+  CanvasStoragePolicyPrompt,
+  CanvasStoragePolicyPromptIntent,
+  CanvasStoragePolicyPromptOption,
+  CanvasStorageSourceKind,
+  CreateCanvasStoragePolicyDecisionInput,
+  CreateCanvasStoragePolicyPromptInput
+} from './storage-policy'
+export {
+  createCanvasInteractionController,
+  createCanvasInteractionResult,
+  getCanvasInteractionUndoGroupId
+} from './interaction/controller'
+export type {
+  CanvasConnectCommand,
+  CanvasInteractionCommand,
+  CanvasInteractionCommandKind,
+  CanvasInteractionConnectorEndpoint,
+  CanvasInteractionController,
+  CanvasInteractionHandlerMap,
+  CanvasInteractionPhase,
+  CanvasInteractionResult,
+  CanvasInteractionUndoScope,
+  CanvasMoveCommand,
+  CanvasNudgeCommand,
+  CanvasResizeCommand,
+  CanvasSelectCommand,
+  CanvasSelectionInteractionMode,
+  CanvasSnapCommand,
+  CanvasSnapGuide,
+  CanvasSnapGuideSource,
+  CanvasSnapState,
+  CanvasUndoGroupCommand
+} from './interaction/controller'
+export {
+  CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasMindMapBranchProperties,
+  createCanvasMindMapRootProperties,
+  getCanvasMindMapKeyboardIntent
+} from './mind-map/creation'
+export {
+  createCanvasMindMapCollapseUpdates,
+  createCanvasMindMapInheritedStyleMap,
+  createCanvasMindMapInheritedStyleUpdates,
+  createCanvasMindMapVisibilityState,
+  getCanvasMindMapDescendantIds,
+  getCanvasMindMapMetadata,
+  isCanvasMindMapNode,
+  resolveCanvasMindMapBranchStyle
+} from './mind-map/branches'
+export {
+  createCanvasMindMapBranchToObjectConversionCommand,
+  createCanvasNodeToMindMapBranchConversionCommand,
+  getCanvasMindMapConvertibleKind
+} from './mind-map/conversion'
+export {
+  CANVAS_MIND_MAP_TREE_LAYOUT_DEFAULTS,
+  createCanvasMindMapTreeLayoutRequest,
+  createCanvasMindMapTreePositionUpdates,
+  layoutCanvasMindMapTree
+} from './mind-map/tree-layout'
+export type {
+  CanvasMindMapBranchStyle,
+  CanvasMindMapNodePropertiesUpdate,
+  CanvasMindMapVisibilityState
+} from './mind-map/branches'
+export type {
+  CanvasMindMapConversionCommand,
+  CanvasMindMapConversionNodeUpdate,
+  CanvasMindMapConversionTrace,
+  CanvasMindMapConversionValidation,
+  CanvasMindMapConvertibleKind,
+  CanvasMindMapObjectConversionTarget,
+  CanvasMindMapSourceNodeDraft,
+  CreateCanvasMindMapBranchToObjectConversionInput,
+  CreateCanvasNodeToMindMapBranchConversionInput
+} from './mind-map/conversion'
+export type {
+  CanvasMindMapBranchDirection,
+  CanvasMindMapCreationTool,
+  CanvasMindMapKeyboardEventLike,
+  CanvasMindMapKeyboardIntent,
+  CanvasMindMapNodeMetadata,
+  CanvasMindMapNodeProperties,
+  CanvasMindMapNodeRole,
+  CreateCanvasMindMapBranchPropertiesInput,
+  CreateCanvasMindMapRootPropertiesInput
+} from './mind-map/creation'
+export type {
+  CanvasMindMapTreeLayoutDirection,
+  CanvasMindMapTreeLayoutInput,
+  CanvasMindMapTreeLayoutOptions,
+  CanvasMindMapTreeLayoutResult,
+  CanvasMindMapTreePositionUpdatesInput,
+  LayoutCanvasMindMapTreeInput
+} from './mind-map/tree-layout'
+
+export {
+  DEFAULT_CANVAS_TILE_SIZE,
+  anchorLocalToWorldPoint,
+  chooseObjectLod,
+  createCanvasCamera,
+  createEmptyMinimapSummary,
+  createMinimapSummaryFromTileSummaries,
+  createSyntheticCanvasScene,
+  createTileId,
+  createWorldPointFromCanvasPoint,
+  getCameraVisibleTileCoverage,
+  getDominantCanvasObjectKind,
+  getMinimapSummaryMode,
+  getTileBounds,
+  getTileCoverageForRect,
+  normalizeWorldPoint,
+  parseTileId,
+  screenToWorldPoint,
+  worldPointToAnchorLocal,
+  worldToScreenPoint
+} from '@xnetjs/canvas-core'
+export type {
+  CanvasCameraState,
+  CanvasDensityGrid,
+  CanvasLodTier,
+  CanvasObjectRecord,
+  CanvasSceneProvider,
+  CanvasSceneSnapshot,
+  CanvasTileSummary,
+  MinimapSummary,
+  MinimapSummaryMode,
+  TileAddress,
+  TileCoord,
+  ViewportInterest,
+  WorldPoint
+} from '@xnetjs/canvas-core'
+
+export {
   createAlignmentUpdates,
+  createClusterSelectionUpdates,
   createDistributionUpdates,
   createFrameSelectionNode,
+  createGroupSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
+  createStackSelectionUpdates,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
   getCanvasContainerMemberIds,
@@ -110,12 +548,126 @@ export {
   isCanvasContainerNode,
   getUnlockedSelection
 } from './selection/scene-operations'
+export {
+  createCanvasContextPopoverDefinitions,
+  getEnabledCanvasContextPopovers
+} from './selection/contextual-popovers'
+export {
+  createCanvasSourceBulkOperationDefinitions,
+  createCanvasSourceBulkOperationPlan,
+  getCanvasSourceBackedCardRef,
+  getCanvasSourceBackedSelection,
+  isCanvasSourceBackedNode
+} from './selection/source-bulk-operations'
+export {
+  CANVAS_FRAME_VARIANT_DEFINITIONS,
+  applyCanvasFrameVariant,
+  createCanvasFrameVariantNode,
+  createCanvasFrameVariantProperties,
+  getCanvasFrameVariant,
+  getCanvasFrameVariantDefinition,
+  isCanvasFrameVariant,
+  isCanvasFrameVariantNode
+} from './frames/frame-variants'
+export {
+  createCanvasFrameExportDocument,
+  getCanvasFrameExportEdges,
+  getCanvasFrameExportMembers,
+  isCanvasNodeInsideFrameExportBounds
+} from './frames/frame-export'
+export type {
+  CanvasFrameLaneAxis,
+  CanvasFrameVariant,
+  CanvasFrameVariantDefinition,
+  CanvasFrameVariantNodeInput,
+  CanvasFrameVariantProperties
+} from './frames/frame-variants'
+export type {
+  CanvasFrameExportDocument,
+  CanvasFrameExportFormat,
+  CreateCanvasFrameExportDocumentInput
+} from './frames/frame-export'
+export {
+  createCanvasQueryFrameDefinition,
+  createCanvasQueryFrameNode,
+  createCanvasQueryFrameProperties,
+  createCanvasQueryFrameResultSummary,
+  getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultSummary,
+  isCanvasQueryFrameDefinition,
+  isCanvasQueryFrameNode,
+  updateCanvasQueryFrameResultSummary
+} from './frames/query-frames'
+export type {
+  CanvasQueryFrameDefinition,
+  CanvasQueryFrameFilter,
+  CanvasQueryFrameFilterOperator,
+  CanvasQueryFrameMaterialization,
+  CanvasQueryFrameProperties,
+  CanvasQueryFrameRefreshMode,
+  CanvasQueryFrameResultSummary,
+  CanvasQueryFrameSort,
+  CanvasQueryFrameSource,
+  CreateCanvasQueryFrameDefinitionInput,
+  CreateCanvasQueryFrameNodeInput,
+  CreateCanvasQueryFramePropertiesInput
+} from './frames/query-frames'
+export {
+  CANVAS_SAVED_LAYOUT_DEFINITIONS,
+  createCanvasSavedLayoutFrameProperties,
+  createCanvasSavedLayoutPlan,
+  createCanvasSavedLayoutState,
+  getCanvasSavedLayoutDefinition,
+  isCanvasSavedLayoutKind
+} from './layout/saved-layouts'
+export type {
+  CanvasSavedLayoutDefinition,
+  CanvasSavedLayoutDirection,
+  CanvasSavedLayoutKind,
+  CanvasSavedLayoutOptions,
+  CanvasSavedLayoutPlan,
+  CanvasSavedLayoutState,
+  CreateCanvasSavedLayoutPlanInput
+} from './layout/saved-layouts'
+export {
+  CANVAS_PLANNING_TEMPLATE_DEFINITIONS,
+  createCanvasPlanningTemplateInstance,
+  getCanvasPlanningTemplateDefinition
+} from './templates/planning-templates'
+export type {
+  CanvasPlanningTemplateCategory,
+  CanvasPlanningTemplateDefinition,
+  CanvasPlanningTemplateId,
+  CanvasPlanningTemplateInstance,
+  CreateCanvasPlanningTemplateInstanceInput
+} from './templates/planning-templates'
+export { getCanvasResizePolicy } from './selection/resize-policy'
+export { createCanvasSmartSnap } from './selection/snap-guides'
 export type {
   CanvasContainerRole,
   CanvasLockUpdate,
   CanvasPositionUpdate,
-  CreateFrameSelectionNodeOptions
+  CreateFrameSelectionNodeOptions,
+  CreateGroupSelectionNodeOptions
 } from './selection/scene-operations'
+export type {
+  CanvasContextPopoverDefinition,
+  CanvasContextPopoverKind,
+  CreateCanvasContextPopoverDefinitionsInput
+} from './selection/contextual-popovers'
+export type {
+  CanvasSourceBackedCardRef,
+  CanvasSourceBulkExternalAction,
+  CanvasSourceBulkNodeUpdate,
+  CanvasSourceBulkOperation,
+  CanvasSourceBulkOperationDefinition,
+  CanvasSourceBulkOperationKind,
+  CanvasSourceBulkOperationPlan,
+  CreateCanvasSourceBulkOperationDefinitionsInput,
+  CreateCanvasSourceBulkOperationPlanOptions
+} from './selection/source-bulk-operations'
+export type { CanvasResizePolicy } from './selection/resize-policy'
+export type { CanvasSmartSnapResult, CanvasSnapGuideSegment } from './selection/snap-guides'
 
 export {
   CANVAS_INTERNAL_NODE_MIME,
@@ -156,9 +708,52 @@ export {
   DEFAULT_GRID_CONFIG,
   EdgeRenderer,
   createEdgeRenderer,
+  WebGLVectorTileRenderer,
+  createVectorTileInstances,
+  createWebGLVectorTileRenderer,
+  createRasterTileDrawPlan,
+  createThumbnailInvalidationKey,
+  createThumbnailSpriteInstances,
+  createWebGLRasterTileRenderer,
+  createWebGLThumbnailSpriteRenderer,
+  isWebGL2Available,
+  measureRasterTileTexturePressure,
+  packThumbnailAtlases,
+  packThumbnailSpriteInstances,
+  packVectorTileInstances,
+  RasterTileTextureLru,
+  THUMBNAIL_SPRITE_INSTANCE_FLOATS,
+  VECTOR_TILE_INSTANCE_FLOATS,
+  WebGLRasterTileRenderer,
+  WebGLThumbnailSpriteRenderer,
+  type PackedThumbnailAtlas,
   type GridLayer,
   type WebGLGridConfig,
-  type EdgeRendererViewport
+  type EdgeRendererViewport,
+  type RasterTileDrawItem,
+  type RasterTileDrawPlan,
+  type RasterTileDrawPlanInput,
+  type MeasureRasterTileTexturePressureInput,
+  type RasterTileTextureResolver,
+  type RasterTileTexturePressureMeasurement,
+  type RasterTileTexturePressureRecord,
+  type RasterTileTexturePressureSample,
+  type RasterTileTextureSource,
+  type RasterTileTransitionEntry,
+  type RasterTileTransitionState,
+  type RetiringRasterTileTransitionEntry,
+  type ThumbnailAtlasPackingOptions,
+  type ThumbnailAtlasPackingResult,
+  type ThumbnailAtlasTextureResolver,
+  type ThumbnailAtlasTextureSource,
+  type ThumbnailSpriteInstance,
+  type ThumbnailSpriteSource,
+  type VectorTileInstance,
+  type WebGLRasterTileConfig,
+  type WebGLRasterTileViewport,
+  type WebGLThumbnailSpriteViewport,
+  type WebGLVectorTileConfig,
+  type WebGLVectorTileViewport
 } from './layers/index'
 
 // Spatial indexing
@@ -197,6 +792,30 @@ export {
   type CanvasPerformanceSceneSeedResult
 } from './fixtures/performance-scene'
 
+export { DomIslandPool, planDomIslandPool } from './renderer/dom-island-pool'
+export type {
+  DomIslandAssignment,
+  DomIslandCandidate,
+  DomIslandIframeAssignment,
+  DomIslandPoolBudgets,
+  DomIslandPoolPlan,
+  DomIslandPoolUpdate,
+  DomIslandTier,
+  PlanDomIslandPoolInput
+} from './renderer/dom-island-pool'
+
+export {
+  createCanvasDebugOverlayCommands,
+  renderCanvasDebugOverlay
+} from './renderer/debug-overlays'
+export type {
+  CanvasDebugCacheStatus,
+  CanvasDebugOverlayCommand,
+  CanvasDebugOverlayInput,
+  CanvasDebugOverlayViewport,
+  CanvasDebugTileOverlay
+} from './renderer/debug-overlays'
+
 // Chunked storage (for infinite canvases)
 export {
   // Configuration
@@ -234,7 +853,7 @@ export {
 } from './chunks/index'
 
 // React components
-export { Canvas } from './renderer/Canvas'
+export { Canvas } from './renderer/CanvasV3'
 export type {
   CanvasProps,
   CanvasHandle,
@@ -242,7 +861,7 @@ export type {
   CanvasSurfaceEventContext,
   CanvasRemoteUser,
   CanvasNodeRenderContext
-} from './renderer/Canvas'
+} from './renderer/CanvasV3'
 export {
   useCanvasThemeTokens,
   resolveCanvasThemeMode,
@@ -327,7 +946,7 @@ export type { UseCursorTrackingOptions } from './hooks/useCursorTracking'
 
 // Navigation hooks
 export { useCanvasKeyboard } from './hooks/useCanvasKeyboard'
-export type { UseCanvasKeyboardOptions } from './hooks/useCanvasKeyboard'
+export type { CanvasCreationShortcut, UseCanvasKeyboardOptions } from './hooks/useCanvasKeyboard'
 
 export { useCanvasObjectIngestion } from './hooks/useCanvasObjectIngestion'
 export type {
@@ -336,6 +955,24 @@ export type {
   PlaceCanvasSourceObjectInput,
   CanvasIngestionResult
 } from './hooks/useCanvasObjectIngestion'
+export {
+  dedupeCanvasIngressPayloads,
+  getCanvasIngressPayloadDedupeKey,
+  ingestCanvasPayloadBatch,
+  resolveCanvasIngestOptions,
+  selectCanvasIngestor
+} from './ingestors'
+export type {
+  CanvasIngestBatchError,
+  CanvasIngestBatchOptions,
+  CanvasIngestBatchResult,
+  CanvasIngestBatchSkippedPayload,
+  CanvasIngestBatchSkippedReason,
+  CanvasIngestOptions,
+  CanvasResolvedIngestOptions,
+  CanvasIngestResult,
+  CanvasIngestor
+} from './ingestors'
 
 export { useSpacePan } from './hooks/useSpacePan'
 export type { UseSpacePanOptions } from './hooks/useSpacePan'
@@ -375,17 +1012,32 @@ export {
 // Drawing tools
 export {
   DrawingToolController,
+  CANVAS_DRAWING_EXPORT_SCHEMA_VERSION,
+  CANVAS_DRAWING_PATHS_MAP_KEY,
+  clearCanvasDrawingPaths,
+  createCanvasDrawingExportDocument,
+  createCanvasDrawingSvgPathData,
   drawPath,
   drawPaths,
   DrawingLayer,
   DrawingToolbar,
   DEFAULT_DRAWING_TOOL,
+  exportCanvasDrawingPathsAsSvg,
+  getCanvasDrawingPathsBounds,
+  getCanvasDrawingPathsMap,
+  persistCanvasDrawingPath,
+  persistCanvasDrawingPaths,
+  readCanvasDrawingPaths,
+  removeCanvasDrawingPath,
   STROKE_COLORS,
   STROKE_SIZES
 } from './drawing/index'
 export type {
   Point as DrawingPoint,
   PressurePoint,
+  CanvasDrawingBounds,
+  CanvasDrawingExportDocument,
+  CanvasDrawingSvgExportOptions,
   DrawingPath,
   DrawingTool,
   DrawingLayerProps,

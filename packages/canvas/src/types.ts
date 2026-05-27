@@ -230,6 +230,10 @@ export interface CanvasEdgeEndpoint {
   objectId: string
   /** Stable anchor ID for comment/deep-link reuse */
   anchorId?: string
+  /** 1-based page number for paged object targets such as PDFs */
+  pageNumber?: number
+  /** Optional provider/source page ID when a page has a stable identity */
+  pageId?: string
   /** Logical attachment placement on the object */
   placement?: CanvasObjectAnchorPlacement
   /** Optional custom normalized anchor ratios (0..1) */
@@ -240,6 +244,28 @@ export interface CanvasEdgeEndpoint {
   offsetY?: number
   /** Future block/deep-link target within the source content */
   blockAnchorId?: string
+}
+
+export type CanvasEdgeRelationshipKind =
+  | 'relates-to'
+  | 'parent-child'
+  | 'depends-on'
+  | 'blocks'
+  | 'references'
+  | 'duplicates'
+  | 'contains'
+  | 'custom'
+
+export type CanvasEdgeRelationshipDirection = 'directed' | 'undirected'
+
+export type CanvasEdgeRelationship = {
+  kind: CanvasEdgeRelationshipKind
+  direction?: CanvasEdgeRelationshipDirection
+  label?: string
+  sourceRole?: string
+  targetRole?: string
+  schemaId?: string
+  properties?: Record<string, unknown>
 }
 
 /**
@@ -259,6 +285,8 @@ export interface CanvasEdge {
   source?: CanvasEdgeEndpoint
   /** Durable target endpoint binding */
   target?: CanvasEdgeEndpoint
+  /** Semantic relationship represented by this connector */
+  relationship?: CanvasEdgeRelationship
   label?: string
   style?: EdgeStyle
 }

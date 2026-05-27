@@ -2,9 +2,83 @@
  * Tests for PluginRegistry
  */
 
+import type { PluginContributions } from '../manifest'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ContributionRegistry, TypedRegistry } from '../contributions'
 import { PluginRegistry } from '../registry'
+
+function createCanvasContributions(): PluginContributions {
+  return {
+    canvasCards: [
+      {
+        id: 'crm.account-card',
+        type: 'canvas.card',
+        name: 'Account Card',
+        provider: 'crm',
+        previewTiers: ['summary', 'thumbnail', 'shell'],
+        rendererEntrypoint: 'canvas/cards/account.render',
+        previewEntrypoint: 'canvas/cards/account.preview'
+      }
+    ],
+    canvasIngestors: [
+      {
+        id: 'crm.account-url-ingestor',
+        type: 'canvas.ingestor',
+        name: 'Account URL Ingestor',
+        input: 'url',
+        urlPatterns: ['https://crm.example.com/accounts/*'],
+        matchEntrypoint: 'canvas/ingestors/account.match',
+        ingestEntrypoint: 'canvas/ingestors/account.ingest'
+      }
+    ],
+    canvasTools: [
+      {
+        id: 'crm.account-link-tool',
+        type: 'canvas.tool',
+        name: 'Link Accounts',
+        group: 'connect',
+        activationEntrypoint: 'canvas/tools/link-accounts.activate'
+      }
+    ],
+    canvasLayouts: [
+      {
+        id: 'crm.pipeline-layout',
+        type: 'canvas.layout',
+        name: 'Pipeline Layout',
+        scope: 'selection',
+        applyEntrypoint: 'canvas/layouts/pipeline.apply'
+      }
+    ],
+    canvasEdges: [
+      {
+        id: 'crm.owns',
+        type: 'canvas.edge',
+        name: 'Owns',
+        label: 'owns',
+        directed: true,
+        style: 'solid'
+      }
+    ],
+    canvasInspectors: [
+      {
+        id: 'crm.account-inspector',
+        type: 'canvas.inspector',
+        name: 'Account Inspector',
+        placement: 'side-panel',
+        panelEntrypoint: 'canvas/inspectors/account.render'
+      }
+    ],
+    canvasTemplates: [
+      {
+        id: 'crm.account-plan',
+        type: 'canvas.template',
+        name: 'Account Plan',
+        category: 'planning',
+        instantiateEntrypoint: 'canvas/templates/account-plan.instantiate'
+      }
+    ]
+  }
+}
 
 // Mock NodeStore
 function createMockStore() {
@@ -250,6 +324,28 @@ describe('PluginRegistry', () => {
       expect(commands[0].id).toBe('test.command')
     })
 
+    it('registers canvas contributions from manifest', async () => {
+      await registry.install({
+        id: 'com.test.canvas',
+        name: 'Canvas Plugin',
+        version: '1.0.0',
+        contributes: createCanvasContributions()
+      })
+
+      const contributions = registry.getContributions()
+      expect(contributions.canvasCards.get('crm.account-card')?.rendererEntrypoint).toBe(
+        'canvas/cards/account.render'
+      )
+      expect(contributions.canvasIngestors.get('crm.account-url-ingestor')?.input).toBe('url')
+      expect(contributions.canvasTools.get('crm.account-link-tool')?.group).toBe('connect')
+      expect(contributions.canvasLayouts.get('crm.pipeline-layout')?.scope).toBe('selection')
+      expect(contributions.canvasEdges.get('crm.owns')?.directed).toBe(true)
+      expect(contributions.canvasInspectors.get('crm.account-inspector')?.placement).toBe(
+        'side-panel'
+      )
+      expect(contributions.canvasTemplates.get('crm.account-plan')?.category).toBe('planning')
+    })
+
     it('cleans up contributions on deactivate', async () => {
       await registry.install({
         id: 'com.test.plugin',
@@ -271,6 +367,42 @@ describe('PluginRegistry', () => {
       await registry.deactivate('com.test.plugin')
 
       expect(registry.getContributions().commands.getAll()).toHaveLength(0)
+    })
+
+    it('cleans up canvas contributions on deactivate', async () => {
+      await registry.install({
+        id: 'com.test.canvas',
+        name: 'Canvas Plugin',
+        version: '1.0.0',
+        contributes: createCanvasContributions()
+      })
+
+      expect(registry.getContributions().canvasCards.getAll()).toHaveLength(1)
+
+      await registry.deactivate('com.test.canvas')
+
+      expect(registry.getContributions().canvasCards.getAll()).toHaveLength(0)
+      expect(registry.getContributions().canvasTemplates.getAll()).toHaveLength(0)
+    })
+
+    it('rejects invalid canvas contribution descriptors', async () => {
+      const invalidContributions = {
+        canvasCards: [
+          {
+            id: 'broken-card',
+            type: 'canvas.card'
+          }
+        ]
+      } as unknown as PluginContributions
+
+      await expect(
+        registry.install({
+          id: 'com.test.canvas',
+          name: 'Canvas Plugin',
+          version: '1.0.0',
+          contributes: invalidContributions
+        })
+      ).rejects.toThrow('rendererEntrypoint is required')
     })
   })
 
@@ -300,9 +432,15 @@ describe('ContributionRegistry', () => {
   it('registers and retrieves items', () => {
     const registry = new ContributionRegistry()
     registry.commands.register({ id: 'test', name: 'Test', execute: () => {} })
+    registry.canvasCards.register({
+      id: 'canvas-card',
+      type: 'canvas.card',
+      rendererEntrypoint: 'canvas/cards/render'
+    })
 
     expect(registry.commands.getAll()).toHaveLength(1)
     expect(registry.commands.get('test')).toBeDefined()
+    expect(registry.canvasCards.get('canvas-card')).toBeDefined()
   })
 
   it('disposes items correctly', () => {

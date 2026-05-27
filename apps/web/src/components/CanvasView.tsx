@@ -2,12 +2,27 @@
  * Canvas View - Web canvas surface with source-backed drops.
  */
 
-import type { CanvasHandle, CanvasNode, CanvasSelectionSnapshot, ShapeType } from '@xnetjs/canvas'
+import type {
+  CanvasEdge,
+  CanvasHandle,
+  CanvasNode,
+  CanvasPdfPageThumbnail,
+  CanvasSelectionSnapshot,
+  ShapeType
+} from '@xnetjs/canvas'
+import type { ChangeEvent, CSSProperties } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
+  CanvasPdfPageViewer,
+  CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasFrameExportDocument,
+  createCanvasPdfPageAnchorId,
+  createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
+  getCanvasConnectorsMap,
+  getCanvasContainerRole,
   getCanvasObjectsMap,
   useCanvasObjectIngestion,
   useCanvasThemeTokens
@@ -18,11 +33,31 @@ import {
   PageSchema,
   decodeAnchor,
   encodeAnchor,
-  type CanvasObjectAnchor
+  type BlobService,
+  type CanvasObjectAnchor,
+  type FileRef
 } from '@xnetjs/data'
-import { CanvasExternalReferenceCard, useBlobService } from '@xnetjs/editor/react'
+import {
+  CanvasExternalReferenceCard,
+  CanvasFailedCardActions,
+  CanvasLifecycleStatusBadge,
+  useBlobService
+} from '@xnetjs/editor/react'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
-import { FileImage, FileText, Maximize2, MessageSquare, StickyNote, Table2 } from 'lucide-react'
+import {
+  Download,
+  FileImage,
+  FileText,
+  GitFork,
+  Layout,
+  Link2,
+  Maximize2,
+  MessageSquare,
+  Presentation,
+  Square,
+  StickyNote,
+  Table2
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -57,7 +92,357 @@ function getShapeLabel(shapeType: ShapeType): string {
   }
 }
 
-function getNodeCard(node: CanvasNode, themeMode: 'light' | 'dark'): JSX.Element {
+type UpdateCanvasNodeProperties = (nodeId: string, properties: Record<string, unknown>) => void
+
+function getStringProperty(node: CanvasNode, key: string): string | null {
+  const value = node.properties[key]
+
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
+
+function getNumberProperty(node: CanvasNode, key: string): number | null {
+  const value = node.properties[key]
+
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function isFileRef(value: unknown): value is FileRef {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const record = value as Record<string, unknown>
+
+  return (
+    typeof record.cid === 'string' &&
+    typeof record.name === 'string' &&
+    typeof record.mimeType === 'string' &&
+    typeof record.size === 'number'
+  )
+}
+
+function getMediaFileRef(node: CanvasNode): FileRef | null {
+  const file = node.properties.file
+
+  return isFileRef(file) ? file : null
+}
+
+function getMediaObjectFit(node: CanvasNode): CSSProperties['objectFit'] {
+  const objectFit = node.properties.objectFit
+
+  return objectFit === 'cover' || objectFit === 'fill' ? objectFit : 'contain'
+}
+
+function isPdfMediaNode(node: CanvasNode): boolean {
+  return getStringProperty(node, 'mimeType') === 'application/pdf'
+}
+
+function formatFileSize(size: number | null): string | null {
+  if (size === null || size <= 0) {
+    return null
+  }
+
+  if (size < 1024) {
+    return `${size} B`
+  }
+
+  if (size < 1024 * 1024) {
+    return `${Math.round(size / 102.4) / 10} KB`
+  }
+
+  return `${Math.round(size / 1024 / 102.4) / 10} MB`
+}
+
+function getStoragePolicyLabel(node: CanvasNode): string {
+  const storagePolicy = getStringProperty(node, 'storagePolicy')
+  const syncsBytes = node.properties.syncsBytes === true
+
+  if (storagePolicy === 'synced-blob' || syncsBytes) {
+    return 'Synced'
+  }
+
+  if (storagePolicy === 'blocked') {
+    return 'Blocked'
+  }
+
+  if (storagePolicy === 'copied-blob') {
+    return 'Local copy'
+  }
+
+  if (storagePolicy === 'reference-only') {
+    return 'Local-only'
+  }
+
+  return 'Not synced'
+}
+
+function sanitizeCanvasExportFileName(value: string): string {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return normalized.length > 0 ? normalized : 'canvas-frame'
+}
+
+function downloadJsonFile(input: { fileName: string; data: unknown }): void {
+  const blob = new Blob([JSON.stringify(input.data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+
+  anchor.href = url
+  anchor.download = input.fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
+function getPdfPageCount(node: CanvasNode): number {
+  const pageCount = getNumberProperty(node, 'pageCount')
+
+  return Math.max(1, Math.min(12, Math.round(pageCount ?? 1)))
+}
+
+function getPdfPageNumber(node: CanvasNode): number {
+  const pageNumber = getNumberProperty(node, 'pageNumber')
+
+  return Math.max(1, Math.min(getPdfPageCount(node), Math.round(pageNumber ?? 1)))
+}
+
+function escapeSvgText(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function createPdfPlaceholderThumbnail(input: {
+  title: string
+  pageNumber: number
+  themeMode: 'light' | 'dark'
+}): CanvasPdfPageThumbnail {
+  const background = input.themeMode === 'dark' ? '#111827' : '#f8fafc'
+  const foreground = input.themeMode === 'dark' ? '#f8fafc' : '#0f172a'
+  const muted = input.themeMode === 'dark' ? '#64748b' : '#94a3b8'
+  const title = escapeSvgText(input.title)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
+<rect width="240" height="320" rx="14" fill="${background}"/>
+<rect x="28" y="36" width="184" height="22" rx="4" fill="${muted}"/>
+<rect x="28" y="78" width="132" height="12" rx="3" fill="${muted}" opacity="0.72"/>
+<rect x="28" y="104" width="168" height="12" rx="3" fill="${muted}" opacity="0.5"/>
+<rect x="28" y="130" width="148" height="12" rx="3" fill="${muted}" opacity="0.5"/>
+<text x="120" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="${foreground}">${input.pageNumber}</text>
+<text x="120" y="284" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="${muted}">${title}</text>
+</svg>`
+
+  return {
+    pageNumber: input.pageNumber,
+    width: 240,
+    height: 320,
+    dataUrl: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`,
+    mimeType: 'image/png'
+  }
+}
+
+function getPdfThumbnails(
+  node: CanvasNode,
+  title: string,
+  themeMode: 'light' | 'dark'
+): CanvasPdfPageThumbnail[] {
+  const thumbnailDataUrl = getStringProperty(node, 'thumbnailDataUrl')
+  const thumbnailWidth = getNumberProperty(node, 'thumbnailWidth') ?? 240
+  const thumbnailHeight = getNumberProperty(node, 'thumbnailHeight') ?? 320
+
+  if (thumbnailDataUrl) {
+    return [
+      {
+        pageNumber: getPdfPageNumber(node),
+        width: thumbnailWidth,
+        height: thumbnailHeight,
+        dataUrl: thumbnailDataUrl,
+        mimeType: 'image/png'
+      }
+    ]
+  }
+
+  return Array.from({ length: getPdfPageCount(node) }, (_, index) =>
+    createPdfPlaceholderThumbnail({
+      title,
+      pageNumber: index + 1,
+      themeMode
+    })
+  )
+}
+
+function CanvasMediaCard({
+  node,
+  title,
+  status,
+  themeMode,
+  blobService,
+  onUpdateNodeProperties
+}: {
+  node: CanvasNode
+  title: string
+  status: string | null
+  themeMode: 'light' | 'dark'
+  blobService: BlobService | null
+  onUpdateNodeProperties: UpdateCanvasNodeProperties
+}): JSX.Element {
+  const fileRef = getMediaFileRef(node)
+  const mimeType = getStringProperty(node, 'mimeType')
+  const mediaKind = getStringProperty(node, 'kind') ?? 'file'
+  const fileSize = formatFileSize(getNumberProperty(node, 'size'))
+  const storageLabel = getStoragePolicyLabel(node)
+  const errorMessage = getStringProperty(node, 'error')
+  const localPreviewUrl = getStringProperty(node, 'localPreviewUrl')
+  const thumbnailDataUrl = getStringProperty(node, 'thumbnailDataUrl')
+  const [fileUrl, setFileUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    setFileUrl(null)
+    if (!blobService || !fileRef || mediaKind !== 'image') {
+      return () => {
+        cancelled = true
+      }
+    }
+
+    void blobService
+      .getUrl(fileRef)
+      .then((url) => {
+        if (!cancelled) {
+          setFileUrl(url)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFileUrl(null)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [blobService, fileRef, mediaKind])
+
+  if (isPdfMediaNode(node)) {
+    return (
+      <div
+        className="flex h-full flex-col gap-3 overflow-hidden rounded-[22px] border border-border/70 bg-background p-3 shadow-lg shadow-black/5"
+        data-canvas-node-card="true"
+        data-canvas-card-kind="media"
+        data-canvas-media-kind="pdf"
+        data-canvas-storage-policy={getStringProperty(node, 'storagePolicy') ?? 'unknown'}
+        data-canvas-theme={themeMode}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <FileText size={12} />
+            PDF
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {storageLabel}
+            </span>
+            <CanvasLifecycleStatusBadge status={status} />
+          </div>
+        </div>
+        <div className="min-h-0 flex-1">
+          <CanvasPdfPageViewer
+            title={title}
+            thumbnails={getPdfThumbnails(node, title, themeMode)}
+            selectedPageNumber={getPdfPageNumber(node)}
+            themeMode={themeMode}
+            onSelectPage={(pageNumber) =>
+              onUpdateNodeProperties(node.id, {
+                pageNumber,
+                pageAnchorId: createCanvasPdfPageAnchorId({
+                  objectId: node.id,
+                  pageNumber,
+                  placement: 'center'
+                })
+              })
+            }
+          />
+        </div>
+        {status === 'error' && errorMessage ? (
+          <p className="text-xs leading-relaxed text-destructive">{errorMessage}</p>
+        ) : null}
+      </div>
+    )
+  }
+
+  const alt = getStringProperty(node, 'alt') ?? title
+  const caption = getStringProperty(node, 'caption')
+  const imagePreviewUrl = fileUrl ?? localPreviewUrl ?? thumbnailDataUrl
+
+  return (
+    <div
+      className="flex h-full flex-col justify-between gap-3 overflow-hidden rounded-[22px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
+      data-canvas-node-card="true"
+      data-canvas-card-kind="media"
+      data-canvas-media-kind={mediaKind}
+      data-canvas-storage-policy={getStringProperty(node, 'storagePolicy') ?? 'unknown'}
+      data-canvas-theme={themeMode}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <FileImage size={12} />
+          {mediaKind === 'image' ? 'Image' : 'File'}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {storageLabel}
+          </span>
+          <CanvasLifecycleStatusBadge status={status} />
+        </div>
+      </div>
+
+      {mediaKind === 'image' && imagePreviewUrl ? (
+        <div className="min-h-0 flex-1 overflow-hidden rounded-xl bg-muted/40">
+          <img
+            src={imagePreviewUrl}
+            alt={alt}
+            className="h-full w-full"
+            style={{ objectFit: getMediaObjectFit(node) }}
+            data-canvas-media-thumbnail="true"
+          />
+        </div>
+      ) : null}
+
+      <div className="space-y-2">
+        <div className="text-lg font-semibold leading-tight text-foreground">{title}</div>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {[mediaKind, mimeType, fileSize].filter(Boolean).join(' · ') || 'Dropped media or file'}
+        </p>
+        {caption ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">{caption}</p>
+        ) : null}
+        {status === 'error' && errorMessage ? (
+          <p className="text-xs leading-relaxed text-destructive">{errorMessage}</p>
+        ) : null}
+        {status === 'error' ? (
+          <CanvasFailedCardActions
+            url={typeof node.properties.url === 'string' ? node.properties.url : null}
+            themeMode={themeMode}
+          />
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function getNodeCard(
+  node: CanvasNode,
+  themeMode: 'light' | 'dark',
+  blobService: BlobService | null,
+  onUpdateNodeProperties: UpdateCanvasNodeProperties
+): JSX.Element {
   const title = node.alias ?? (node.properties.title as string) ?? 'Untitled'
   const status = typeof node.properties.status === 'string' ? node.properties.status : null
 
@@ -77,32 +462,14 @@ function getNodeCard(node: CanvasNode, themeMode: 'light' | 'dark'): JSX.Element
 
   if (node.type === 'media') {
     return (
-      <div
-        className="flex h-full flex-col justify-between rounded-[22px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
-        data-canvas-node-card="true"
-        data-canvas-card-kind="media"
-        data-canvas-theme={themeMode}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <FileImage size={12} />
-            Media asset
-          </span>
-          {status ? (
-            <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {status}
-            </span>
-          ) : null}
-        </div>
-        <div className="space-y-2">
-          <div className="text-lg font-semibold leading-tight text-foreground">{title}</div>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {typeof node.properties.mimeType === 'string'
-              ? `${String(node.properties.kind ?? 'file')} · ${node.properties.mimeType}`
-              : 'Dropped media or file'}
-          </p>
-        </div>
-      </div>
+      <CanvasMediaCard
+        node={node}
+        title={title}
+        status={status}
+        themeMode={themeMode}
+        blobService={blobService}
+        onUpdateNodeProperties={onUpdateNodeProperties}
+      />
     )
   }
 
@@ -182,6 +549,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   )
   const aliasInputRef = useRef<HTMLInputElement | null>(null)
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const mediaFileInputRef = useRef<HTMLInputElement | null>(null)
   const [canvasReady, setCanvasReady] = useState(false)
   const [hasNodes, setHasNodes] = useState(false)
   const [sceneRevision, setSceneRevision] = useState(0)
@@ -193,11 +561,12 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   const [aliasDraft, setAliasDraft] = useState('')
   const [commentEditorOpen, setCommentEditorOpen] = useState(false)
   const [commentDraft, setCommentDraft] = useState('')
-  const { placeSourceObject, placePrimitiveObject, ingestDataTransfer } = useCanvasObjectIngestion({
-    doc,
-    blobService,
-    getViewportSnapshot: () => canvasRef.current?.getViewportSnapshot() ?? { x: 0, y: 0, zoom: 1 }
-  })
+  const { placeSourceObject, placePrimitiveObject, ingestPayload, ingestDataTransfer } =
+    useCanvasObjectIngestion({
+      doc,
+      blobService,
+      getViewportSnapshot: () => canvasRef.current?.getViewportSnapshot() ?? { x: 0, y: 0, zoom: 1 }
+    })
   const { threads: canvasObjectCommentThreads, addComment: addCanvasComment } = useComments({
     nodeId: docId,
     anchorType: 'canvas-object'
@@ -237,6 +606,13 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       sourceNodeId,
       title: selectedCanvasNode.title
     }
+  }, [selectedCanvasNode])
+  const selectedCanvasFrame = useMemo(() => {
+    if (!selectedCanvasNode || getCanvasContainerRole(selectedCanvasNode.node) !== 'frame') {
+      return null
+    }
+
+    return selectedCanvasNode
   }, [selectedCanvasNode])
   const selectedObjectCommentCount = useMemo(() => {
     if (!selectedCanvasNode) {
@@ -398,8 +774,51 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     })
   }, [placePrimitiveObject])
 
+  const handleCreateMindMap = useCallback((): void => {
+    const properties = createCanvasMindMapRootProperties()
+
+    placePrimitiveObject({
+      objectKind: CANVAS_MIND_MAP_CREATION_TOOL.objectKind,
+      title: properties.title,
+      rect: CANVAS_MIND_MAP_CREATION_TOOL.rootRect,
+      properties
+    })
+  }, [placePrimitiveObject])
+
+  const handleCreateReference = useCallback((): void => {
+    const candidate = window.prompt('Paste a URL to add to the canvas', 'https://')?.trim()
+
+    if (!candidate) {
+      return
+    }
+
+    void ingestPayload({ kind: 'text', text: candidate })
+  }, [ingestPayload])
+
+  const handleCreateMedia = useCallback((): void => {
+    mediaFileInputRef.current?.click()
+  }, [])
+
+  const handleMediaFileInputChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>): void => {
+      const files = Array.from(event.currentTarget.files ?? [])
+      event.currentTarget.value = ''
+
+      if (files.length === 0) {
+        return
+      }
+
+      void (async () => {
+        for (const [index, file] of files.entries()) {
+          await ingestPayload({ kind: 'file', file }, { spreadIndex: index })
+        }
+      })()
+    },
+    [ingestPayload]
+  )
+
   const handleCreateObject = useCallback(
-    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => {
+    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame' | 'mind-map') => {
       if (kind === 'page') {
         void handleCreatePage()
         return
@@ -420,11 +839,23 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         return
       }
 
+      if (kind === 'mind-map') {
+        handleCreateMindMap()
+        return
+      }
+
       if (kind === 'note') {
         void handleCreateNote()
       }
     },
-    [handleCreateDatabase, handleCreateFrame, handleCreateNote, handleCreatePage, handleCreateShape]
+    [
+      handleCreateDatabase,
+      handleCreateFrame,
+      handleCreateMindMap,
+      handleCreateNote,
+      handleCreatePage,
+      handleCreateShape
+    ]
   )
 
   const handleSurfaceDrop = useCallback(
@@ -538,6 +969,67 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     },
     [closeAliasEditor, doc, selectedCanvasObject]
   )
+
+  const updateCanvasNodeProperties = useCallback<UpdateCanvasNodeProperties>(
+    (nodeId, properties) => {
+      if (!doc) {
+        return
+      }
+
+      const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
+      const current = nodesMap.get(nodeId)
+      if (!current) {
+        return
+      }
+
+      doc.transact(() => {
+        nodesMap.set(nodeId, {
+          ...current,
+          properties: {
+            ...current.properties,
+            ...properties
+          }
+        })
+      })
+    },
+    [doc]
+  )
+
+  const presentSelectedFrame = useCallback(() => {
+    if (!selectedCanvasFrame) {
+      return
+    }
+
+    canvasRef.current?.fitToRect(
+      {
+        x: selectedCanvasFrame.node.position.x,
+        y: selectedCanvasFrame.node.position.y,
+        width: selectedCanvasFrame.node.position.width,
+        height: selectedCanvasFrame.node.position.height
+      },
+      48
+    )
+  }, [selectedCanvasFrame])
+
+  const exportSelectedFrame = useCallback(() => {
+    if (!doc || !selectedCanvasFrame) {
+      return
+    }
+
+    const nodes = Array.from(getCanvasObjectsMap<CanvasNode>(doc).values())
+    const edges = Array.from(getCanvasConnectorsMap<CanvasEdge>(doc).values())
+    const frameExport = createCanvasFrameExportDocument({
+      frame: selectedCanvasFrame.node,
+      nodes,
+      edges
+    })
+    const fileName = `${sanitizeCanvasExportFileName(selectedCanvasFrame.title)}.canvas-section.json`
+
+    downloadJsonFile({
+      fileName,
+      data: frameExport
+    })
+  }, [doc, selectedCanvasFrame])
 
   const submitSelectedComment = useCallback(async () => {
     if (!selectedCanvasNode) {
@@ -661,6 +1153,66 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       }
     },
     {
+      id: 'shape',
+      title: 'Create shape (R)',
+      label: 'Create shape',
+      onClick: () => {
+        handleCreateShape()
+      },
+      icon: <Square size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-shape': 'true'
+      }
+    },
+    {
+      id: 'frame',
+      title: 'Create frame (F)',
+      label: 'Create frame',
+      onClick: () => {
+        handleCreateFrame()
+      },
+      icon: <Layout size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-frame': 'true'
+      }
+    },
+    {
+      id: 'mind-map',
+      title: 'Create mind map (M)',
+      label: 'Create mind map',
+      onClick: () => {
+        handleCreateMindMap()
+      },
+      icon: <GitFork size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-mind-map': 'true'
+      }
+    },
+    {
+      id: 'reference',
+      title: 'Create link',
+      label: 'Create link',
+      onClick: () => {
+        handleCreateReference()
+      },
+      icon: <Link2 size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-reference': 'true'
+      }
+    },
+    {
+      id: 'media',
+      title: 'Create file',
+      label: 'Create file',
+      onClick: () => {
+        handleCreateMedia()
+      },
+      icon: <FileImage size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-media': 'true'
+      }
+    },
+    {
       id: 'fit',
       title: 'Fit to content (Ctrl/Cmd 1)',
       label: 'Fit to content',
@@ -679,6 +1231,16 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       className="flex h-full flex-1 flex-col overflow-hidden -m-6"
       data-canvas-theme={theme.mode}
     >
+      <input
+        ref={mediaFileInputRef}
+        type="file"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        data-web-canvas-media-file-input="true"
+        onChange={handleMediaFileInputChange}
+      />
       <div className="flex items-center gap-3 border-b border-border bg-secondary px-4 py-2.5">
         <input
           type="text"
@@ -755,6 +1317,28 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
                 <MessageSquare size={12} />
                 Comment{selectedObjectCommentCount > 0 ? ` ${selectedObjectCommentCount}` : ''}
               </button>
+              {selectedCanvasFrame ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={presentSelectedFrame}
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                    data-web-canvas-selection-action="present-frame"
+                  >
+                    <Presentation size={12} />
+                    Present
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exportSelectedFrame}
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                    data-web-canvas-selection-action="export-frame"
+                  >
+                    <Download size={12} />
+                    Export
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -912,7 +1496,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
               <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Drop a URL for a link card, drag in a page or database from the sidebar, or press
-                `R`, `F`, or `N` to build directly on the board.
+                `R`, `F`, `N`, or `M` to build directly on the board.
               </p>
             </div>
           </div>
@@ -963,7 +1547,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
               node.type === 'external-reference' ||
               node.type === 'media'
             ) {
-              return getNodeCard(node, theme.mode)
+              return getNodeCard(node, theme.mode, blobService, updateCanvasNodeProperties)
             }
 
             return undefined

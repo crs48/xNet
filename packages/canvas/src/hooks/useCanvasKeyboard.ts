@@ -8,7 +8,7 @@
  * - Ctrl/Cmd + 1: Fit to content
  * - Arrow keys: Pan viewport or nudge selection
  * - Tab / Shift+Tab: Step selection
- * - P / D / N / R / F: Create page, database, note, rectangle, frame
+ * - P / D / N / R / F / M: Create page, database, note, rectangle, frame, mind map
  * - Enter / Alt+Enter / Ctrl+Enter: Peek, split, or open selection
  * - Ctrl/Cmd + Shift + F: Wrap the selection in a frame
  * - Ctrl/Cmd + Shift + A: Edit the selection alias
@@ -25,7 +25,7 @@ import { Viewport } from '../spatial/index'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type CanvasCreationShortcut = 'page' | 'database' | 'note' | 'shape' | 'frame'
+export type CanvasCreationShortcut = 'page' | 'database' | 'note' | 'shape' | 'frame' | 'mind-map'
 
 export type CanvasOpenShortcutMode = 'peek' | 'focus' | 'split'
 
@@ -281,6 +281,12 @@ export function useCanvasKeyboard({
         if (normalizedKey === 'f') {
           e.preventDefault()
           onCreateObject?.('frame')
+          return
+        }
+
+        if (normalizedKey === 'm') {
+          e.preventDefault()
+          onCreateObject?.('mind-map')
           return
         }
       }

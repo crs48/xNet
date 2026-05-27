@@ -9,7 +9,8 @@
     },
     "read": {
       "tmp/*": "allow"
-    }
+    },
+    "websearch": "allow"
   },
   "plugin": ["cc-safety-net", "opencode-agent-memory", "@nick-vi/opencode-type-inject"],
   "mcp": {

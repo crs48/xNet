@@ -11,6 +11,7 @@ export default defineConfig({
     alias: {
       // Mock mermaid for tests (optional peer dependency)
       mermaid: path.resolve(__dirname, 'src/__mocks__/mermaid.ts'),
+      '@xnetjs/canvas-core': path.resolve(__dirname, '../canvas-core/src/index.ts'),
       '@xnetjs/data': path.resolve(__dirname, '../data/src/index.ts'),
       '@xnetjs/react/internal': path.resolve(__dirname, '../react/src/internal.ts'),
       '@xnetjs/react': path.resolve(__dirname, '../react/src/index.ts')

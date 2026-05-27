@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { PageSchema, MemoryNodeStorageAdapter, NodeStore, type DID } from '@xnetjs/data'
+import { createMainThreadBridge, type DataBridge } from '@xnetjs/data-bridge'
 import React, { type ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { XNetProvider } from '../context'
@@ -23,6 +24,7 @@ interface WrapperConfig {
   storage: MemoryNodeStorageAdapter
   authorDID: DID
   signingKey: Uint8Array
+  dataBridge?: DataBridge
 }
 
 function createWrapper(config: WrapperConfig) {
@@ -31,7 +33,8 @@ function createWrapper(config: WrapperConfig) {
       config: {
         nodeStorage: config.storage,
         authorDID: config.authorDID,
-        signingKey: config.signingKey
+        signingKey: config.signingKey,
+        dataBridge: config.dataBridge
       },
       children
     })
@@ -144,6 +147,35 @@ describe('useNode', () => {
 
     // Y.Doc should have a guid matching the node id
     expect(result.current.doc?.guid).toBe(page.id)
+  })
+
+  it('should wire a provided main-thread data bridge before acquiring a Y.Doc', async () => {
+    const page = await store.create({
+      schemaId: PageSchema._schemaId,
+      properties: { title: 'Bridge Page' }
+    })
+    const dataBridge = createMainThreadBridge(store)
+    const setSyncManagerSpy = vi.spyOn(dataBridge, 'setSyncManager')
+
+    const { result } = renderHook(() => useNode(PageSchema, page.id), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY,
+        dataBridge
+      })
+    })
+
+    await waitFor(
+      () => {
+        expect(result.current.loading).toBe(false)
+        expect(result.current.error).toBeNull()
+        expect(result.current.doc?.guid).toBe(page.id)
+      },
+      { timeout: 2000 }
+    )
+
+    expect(setSyncManagerSpy).toHaveBeenCalled()
   })
 
   it('should provide save function', async () => {

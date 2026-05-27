@@ -2,39 +2,26 @@
  * Minimap Component
  *
  * Canvas-based minimap for navigation on large canvases.
- * Shows a simplified overview of all nodes and edges with a viewport indicator.
+ * Renders fixed-budget Canvas v3 summary tiles instead of raw scene objects.
  */
 
-import type { CanvasNode, CanvasEdge } from '../types'
+import type { CanvasMinimapRelationshipHint } from '../edges/summaries'
+import type { CanvasNode } from '../types'
+import type { CanvasObjectKind, CanvasTileSummary, MinimapSummary } from '@xnetjs/canvas-core'
+import { getDominantCanvasObjectKind } from '@xnetjs/canvas-core'
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
-import { getCanvasEdgeSourceObjectId, getCanvasEdgeTargetObjectId } from '../edges/bindings'
-import { getCanvasResolvedNodeKind, isFrameLikeCanvasNode } from '../scene/node-kind'
+import { getCanvasResolvedNodeKind } from '../scene/node-kind'
 import { Viewport } from '../spatial/index'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-const MAX_DIRECT_MINIMAP_NODES = 1200
-const MINIMAP_BUCKET_SIZE_PX = 6
-
-type MinimapRenderNode = {
-  id: string
-  type: CanvasNode['type']
-  properties?: CanvasNode['properties']
-  position: {
-    x: number
-    y: number
-    width: number
-    height: number
-    zIndex?: number
-  }
-}
+const MIN_DENSITY_ALPHA = 0.12
+const MAX_DENSITY_ALPHA = 0.72
 
 export interface MinimapProps {
-  /** All canvas nodes */
-  nodes: CanvasNode[]
-  /** All canvas edges */
-  edges: CanvasEdge[]
+  /** Fixed-budget summary of the canvas scene */
+  summary: MinimapSummary
   /** Current viewport state */
   viewport: Viewport
   /** Minimap width in pixels */
@@ -47,8 +34,10 @@ export interface MinimapProps {
   className?: string
   /** Background color */
   backgroundColor?: string
-  /** Show edge lines */
-  showEdges?: boolean
+  /** Show tile boundary diagnostics */
+  showTileBoundaries?: boolean
+  /** Far-zoom semantic relationship hints rendered without live edge DOM */
+  relationshipHints?: readonly CanvasMinimapRelationshipHint[]
 }
 
 // ─── Color Helpers ────────────────────────────────────────────────────────────
@@ -78,52 +67,58 @@ export function getNodeMinimapColor(
   }
 }
 
+export function getCanvasObjectKindMinimapColor(kind: CanvasObjectKind): string {
+  switch (kind) {
+    case 'page':
+      return 'rgba(59, 130, 246, 0.7)'
+    case 'database':
+      return 'rgba(16, 185, 129, 0.7)'
+    case 'external-reference':
+      return 'rgba(236, 72, 153, 0.7)'
+    case 'media':
+      return 'rgba(139, 92, 246, 0.7)'
+    case 'note':
+    case 'shape':
+      return 'rgba(245, 158, 11, 0.7)'
+    case 'group':
+      return 'rgba(107, 114, 128, 0.35)'
+  }
+}
+
+function getTileDominantColor(tile: CanvasTileSummary): string {
+  return getCanvasObjectKindMinimapColor(getDominantCanvasObjectKind(tile.typeCounts))
+}
+
+function parseStrokeDasharray(strokeDasharray: string | undefined): number[] {
+  if (!strokeDasharray) {
+    return []
+  }
+
+  return strokeDasharray
+    .split(/[,\s]+/u)
+    .map((part) => Number(part))
+    .filter((value) => Number.isFinite(value) && value > 0)
+}
+
 // ─── Minimap Component ────────────────────────────────────────────────────────
 
 export function Minimap({
-  nodes,
-  edges,
+  summary,
   viewport,
   width = 200,
   height = 150,
   onViewportChange,
   className,
   backgroundColor,
-  showEdges = true
+  showTileBoundaries = false,
+  relationshipHints = []
 }: MinimapProps) {
   const theme = useCanvasThemeTokens()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDraggingRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const resolvedBackgroundColor = backgroundColor ?? theme.minimapBackground
-
-  // Calculate bounds of all content
-  const canvasBounds = useMemo(() => {
-    if (nodes.length === 0) {
-      return { x: -500, y: -500, width: 1000, height: 1000 }
-    }
-
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-
-    for (const node of nodes) {
-      minX = Math.min(minX, node.position.x)
-      minY = Math.min(minY, node.position.y)
-      maxX = Math.max(maxX, node.position.x + node.position.width)
-      maxY = Math.max(maxY, node.position.y + node.position.height)
-    }
-
-    // Add padding
-    const padding = Math.max(100, (maxX - minX) * 0.1, (maxY - minY) * 0.1)
-    return {
-      x: minX - padding,
-      y: minY - padding,
-      width: maxX - minX + padding * 2,
-      height: maxY - minY + padding * 2
-    }
-  }, [nodes])
+  const canvasBounds = summary.bounds
 
   // Calculate scale to fit canvas bounds in minimap
   const scale = useMemo(() => {
@@ -142,77 +137,12 @@ export function Minimap({
     }
   }, [canvasBounds, scale, width, height])
 
-  const { renderNodes, renderMode } = useMemo(() => {
-    if (nodes.length <= MAX_DIRECT_MINIMAP_NODES) {
-      return {
-        renderNodes: nodes as MinimapRenderNode[],
-        renderMode: 'full' as const
-      }
-    }
-
-    const buckets = new Map<
-      string,
-      {
-        id: string
-        minX: number
-        minY: number
-        maxX: number
-        maxY: number
-        typeCounts: Map<CanvasNode['type'], number>
-      }
-    >()
-
-    for (const node of nodes) {
-      const centerX = (node.position.x + node.position.width / 2) * scale + offset.x
-      const centerY = (node.position.y + node.position.height / 2) * scale + offset.y
-      const bucketX = Math.floor(centerX / MINIMAP_BUCKET_SIZE_PX)
-      const bucketY = Math.floor(centerY / MINIMAP_BUCKET_SIZE_PX)
-      const bucketKey = `${bucketX}:${bucketY}`
-      const bucket = buckets.get(bucketKey)
-
-      if (bucket) {
-        bucket.minX = Math.min(bucket.minX, node.position.x)
-        bucket.minY = Math.min(bucket.minY, node.position.y)
-        bucket.maxX = Math.max(bucket.maxX, node.position.x + node.position.width)
-        bucket.maxY = Math.max(bucket.maxY, node.position.y + node.position.height)
-        bucket.typeCounts.set(node.type, (bucket.typeCounts.get(node.type) ?? 0) + 1)
-      } else {
-        buckets.set(bucketKey, {
-          id: `bucket:${bucketKey}`,
-          minX: node.position.x,
-          minY: node.position.y,
-          maxX: node.position.x + node.position.width,
-          maxY: node.position.y + node.position.height,
-          typeCounts: new Map([[node.type, 1]])
-        })
-      }
-    }
-
-    const aggregatedNodes = Array.from(buckets.values()).map((bucket) => {
-      const dominantType =
-        Array.from(bucket.typeCounts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ??
-        'group'
-
-      return {
-        id: bucket.id,
-        type: dominantType,
-        position: {
-          x: bucket.minX,
-          y: bucket.minY,
-          width: Math.max(bucket.maxX - bucket.minX, 40),
-          height: Math.max(bucket.maxY - bucket.minY, 30),
-          zIndex: 0
-        }
-      } satisfies MinimapRenderNode
-    })
-
-    return {
-      renderNodes: aggregatedNodes,
-      renderMode: 'aggregated' as const
-    }
-  }, [nodes, offset.x, offset.y, scale])
-
-  const shouldRenderEdges = showEdges && renderMode === 'full'
+  const maxDensityValue = useMemo(() => {
+    return Math.max(
+      1,
+      ...summary.tiles.flatMap((tile) => tile.density.values.filter((value) => value > 0))
+    )
+  }, [summary.tiles])
 
   // Render minimap
   useEffect(() => {
@@ -235,60 +165,77 @@ export function Minimap({
     ctx.fillStyle = resolvedBackgroundColor
     ctx.fillRect(0, 0, width, height)
 
-    // Draw edges
-    if (shouldRenderEdges && edges.length > 0) {
-      ctx.strokeStyle = theme.minimapEdge
-      ctx.lineWidth = 1
-      ctx.beginPath()
+    for (const tile of summary.tiles) {
+      const tileColor = getTileDominantColor(tile)
+      const cellWidth = tile.bounds.width / tile.density.columns
+      const cellHeight = tile.bounds.height / tile.density.rows
 
-      // Build node lookup for efficiency
-      const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+      for (let index = 0; index < tile.density.values.length; index += 1) {
+        const value = tile.density.values[index] ?? 0
+        if (value <= 0) {
+          continue
+        }
 
-      for (const edge of edges) {
-        const sourceId = getCanvasEdgeSourceObjectId(edge)
-        const targetId = getCanvasEdgeTargetObjectId(edge)
-        const source = sourceId ? nodeMap.get(sourceId) : undefined
-        const target = targetId ? nodeMap.get(targetId) : undefined
-        if (!source || !target) continue
+        const column = index % tile.density.columns
+        const row = Math.floor(index / tile.density.columns)
+        const alpha =
+          MIN_DENSITY_ALPHA +
+          Math.min(value / maxDensityValue, 1) * (MAX_DENSITY_ALPHA - MIN_DENSITY_ALPHA)
+        const x = (tile.bounds.x + column * cellWidth) * scale + offset.x
+        const y = (tile.bounds.y + row * cellHeight) * scale + offset.y
+        const w = Math.max(cellWidth * scale, 1)
+        const h = Math.max(cellHeight * scale, 1)
 
-        const sx = (source.position.x + source.position.width / 2) * scale + offset.x
-        const sy = (source.position.y + source.position.height / 2) * scale + offset.y
-        const tx = (target.position.x + target.position.width / 2) * scale + offset.x
-        const ty = (target.position.y + target.position.height / 2) * scale + offset.y
-
-        ctx.moveTo(sx, sy)
-        ctx.lineTo(tx, ty)
-      }
-      ctx.stroke()
-    }
-
-    // Draw nodes (frames/groups first, then regular nodes on top)
-    const sortedNodes = [...renderNodes].sort((a, b) => {
-      const aKind = getCanvasResolvedNodeKind(a)
-      const bKind = getCanvasResolvedNodeKind(b)
-      const aIsContainer = aKind === 'frame' || aKind === 'group'
-      const bIsContainer = bKind === 'frame' || bKind === 'group'
-      if (aIsContainer && !bIsContainer) return -1
-      if (!aIsContainer && bIsContainer) return 1
-      return (a.position.zIndex ?? 0) - (b.position.zIndex ?? 0)
-    })
-
-    for (const node of sortedNodes) {
-      const x = node.position.x * scale + offset.x
-      const y = node.position.y * scale + offset.y
-      const w = Math.max(node.position.width * scale, 3)
-      const h = Math.max(node.position.height * scale, 2)
-
-      ctx.fillStyle = getNodeMinimapColor(node)
-
-      // Frames get a border instead of fill
-      if (isFrameLikeCanvasNode(node)) {
-        ctx.strokeStyle = getNodeMinimapColor(node)
-        ctx.lineWidth = 1
-        ctx.strokeRect(x, y, w, h)
-      } else {
+        ctx.fillStyle = tileColor.replace(/[\d.]+\)$/u, `${alpha})`)
         ctx.fillRect(x, y, w, h)
       }
+
+      if (showTileBoundaries) {
+        ctx.strokeStyle = tile.dirty ? 'rgba(239, 68, 68, 0.7)' : theme.minimapBorder
+        ctx.lineWidth = 1
+        ctx.strokeRect(
+          tile.bounds.x * scale + offset.x,
+          tile.bounds.y * scale + offset.y,
+          tile.bounds.width * scale,
+          tile.bounds.height * scale
+        )
+      }
+    }
+
+    for (const hint of relationshipHints) {
+      const sourceX = hint.source.x * scale + offset.x
+      const sourceY = hint.source.y * scale + offset.y
+      const targetX = hint.target.x * scale + offset.x
+      const targetY = hint.target.y * scale + offset.y
+
+      if (![sourceX, sourceY, targetX, targetY].every(Number.isFinite)) {
+        continue
+      }
+
+      ctx.globalAlpha = hint.opacity
+      ctx.strokeStyle = hint.stroke
+      ctx.lineWidth = Math.max(hint.strokeWidth, hint.edgeCount > 1 ? 1.5 : 1)
+      if (typeof ctx.setLineDash === 'function') {
+        ctx.setLineDash(parseStrokeDasharray(hint.strokeDasharray))
+      }
+      ctx.beginPath()
+      ctx.moveTo(sourceX, sourceY)
+      ctx.lineTo(targetX, targetY)
+      ctx.stroke()
+      if (typeof ctx.setLineDash === 'function') {
+        ctx.setLineDash([])
+      }
+      ctx.globalAlpha = 1
+    }
+
+    for (const cluster of summary.tiles.flatMap((tile) => tile.clusters)) {
+      const x = cluster.bounds.x * scale + offset.x
+      const y = cluster.bounds.y * scale + offset.y
+      const w = Math.max(cluster.bounds.width * scale, summary.mode === 'small-scene' ? 3 : 2)
+      const h = Math.max(cluster.bounds.height * scale, summary.mode === 'small-scene' ? 2 : 2)
+
+      ctx.fillStyle = getCanvasObjectKindMinimapColor(cluster.dominantKind)
+      ctx.fillRect(x, y, w, h)
     }
 
     // Draw viewport rectangle
@@ -312,21 +259,20 @@ export function Minimap({
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
   }, [
-    edges,
-    nodes,
+    summary,
     viewport,
     canvasBounds,
     scale,
     offset,
-    renderNodes,
     width,
     height,
+    maxDensityValue,
     resolvedBackgroundColor,
+    relationshipHints,
     theme.minimapBorder,
-    theme.minimapEdge,
     theme.minimapViewportFill,
     theme.minimapViewportStroke,
-    shouldRenderEdges
+    showTileBoundaries
   ])
 
   // Convert minimap coordinates to canvas coordinates
@@ -404,12 +350,12 @@ export function Minimap({
       }}
       data-canvas-minimap="true"
       data-canvas-theme={theme.mode}
-      data-canvas-minimap-node-count={nodes.length}
-      data-canvas-minimap-rendered-node-count={renderNodes.length}
-      data-canvas-minimap-edge-count={edges.length}
-      data-canvas-minimap-show-edges={showEdges ? 'true' : 'false'}
-      data-canvas-minimap-render-mode={renderMode}
-      data-canvas-minimap-edge-mode={shouldRenderEdges ? 'full' : 'hidden'}
+      data-canvas-minimap-node-count={summary.totalObjectCount}
+      data-canvas-minimap-rendered-tile-count={summary.tiles.length}
+      data-canvas-minimap-edge-count={summary.totalEdgeCount}
+      data-canvas-minimap-relationship-hint-count={relationshipHints.length}
+      data-canvas-minimap-render-mode={summary.mode}
+      data-canvas-minimap-edge-mode="summary"
     >
       <canvas
         ref={canvasRef}

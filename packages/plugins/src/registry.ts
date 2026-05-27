@@ -325,6 +325,41 @@ export class PluginRegistry {
         ctx.registerBlockType(block)
       }
     }
+    if (c.canvasCards) {
+      for (const card of c.canvasCards) {
+        ctx.registerCanvasCard(card)
+      }
+    }
+    if (c.canvasIngestors) {
+      for (const ingestor of c.canvasIngestors) {
+        ctx.registerCanvasIngestor(ingestor)
+      }
+    }
+    if (c.canvasTools) {
+      for (const tool of c.canvasTools) {
+        ctx.registerCanvasTool(tool)
+      }
+    }
+    if (c.canvasLayouts) {
+      for (const layout of c.canvasLayouts) {
+        ctx.registerCanvasLayout(layout)
+      }
+    }
+    if (c.canvasEdges) {
+      for (const edge of c.canvasEdges) {
+        ctx.registerCanvasEdge(edge)
+      }
+    }
+    if (c.canvasInspectors) {
+      for (const inspector of c.canvasInspectors) {
+        ctx.registerCanvasInspector(inspector)
+      }
+    }
+    if (c.canvasTemplates) {
+      for (const template of c.canvasTemplates) {
+        ctx.registerCanvasTemplate(template)
+      }
+    }
   }
 
   // ─── Load from Store ───────────────────────────────────────────────────

@@ -21,6 +21,58 @@ export { CSSGridFallback, getViewportOriginOffset, normalizeGridOffset } from '.
 
 export { EdgeRenderer, createEdgeRenderer, type EdgeRendererViewport } from './edge-renderer'
 
+export {
+  WebGLVectorTileRenderer,
+  createVectorTileInstances,
+  createWebGLVectorTileRenderer,
+  isWebGL2Available,
+  packVectorTileInstances,
+  VECTOR_TILE_INSTANCE_FLOATS,
+  type VectorTileInstance,
+  type WebGLVectorTileConfig,
+  type WebGLVectorTileViewport
+} from './webgl-vector-tiles'
+
+export {
+  RasterTileTextureLru,
+  WebGLRasterTileRenderer,
+  createRasterTileDrawPlan,
+  createWebGLRasterTileRenderer,
+  measureRasterTileTexturePressure,
+  type MeasureRasterTileTexturePressureInput,
+  type RasterTileDrawItem,
+  type RasterTileDrawPlan,
+  type RasterTileDrawPlanInput,
+  type RasterTileTextureResolver,
+  type RasterTileTexturePressureMeasurement,
+  type RasterTileTexturePressureRecord,
+  type RasterTileTexturePressureSample,
+  type RasterTileTextureSource,
+  type RasterTileTransitionEntry,
+  type RasterTileTransitionState,
+  type RetiringRasterTileTransitionEntry,
+  type WebGLRasterTileConfig,
+  type WebGLRasterTileViewport
+} from './webgl-raster-tiles'
+
+export {
+  WebGLThumbnailSpriteRenderer,
+  createThumbnailInvalidationKey,
+  createThumbnailSpriteInstances,
+  createWebGLThumbnailSpriteRenderer,
+  packThumbnailAtlases,
+  packThumbnailSpriteInstances,
+  THUMBNAIL_SPRITE_INSTANCE_FLOATS,
+  type PackedThumbnailAtlas,
+  type ThumbnailAtlasPackingOptions,
+  type ThumbnailAtlasPackingResult,
+  type ThumbnailAtlasTextureResolver,
+  type ThumbnailAtlasTextureSource,
+  type ThumbnailSpriteInstance,
+  type ThumbnailSpriteSource,
+  type WebGLThumbnailSpriteViewport
+} from './webgl-thumbnail-sprites'
+
 // ─── Grid Layer Factory ─────────────────────────────────────────────────────
 
 import { CSSGridFallback } from './css-grid-fallback'
