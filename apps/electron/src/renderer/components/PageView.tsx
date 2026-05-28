@@ -36,6 +36,7 @@ import {
 } from '@xnetjs/ui'
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { DocumentHeader } from './DocumentHeader'
+import { resolvePageEditorFocusPosition } from './page-editor-focus'
 import { PageTasksPanel } from './PageTasksPanel'
 import { PresenceAvatars } from './PresenceAvatars'
 
@@ -172,7 +173,11 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     }
 
     event.preventDefault()
-    editorRef.current.commands.focus('end')
+    const focusPosition = resolvePageEditorFocusPosition(
+      event.clientY,
+      editorRef.current.view.dom.getBoundingClientRect()
+    )
+    editorRef.current.commands.focus(focusPosition)
   }, [])
 
   // Restore comment marks when editor is ready and threads are loaded.

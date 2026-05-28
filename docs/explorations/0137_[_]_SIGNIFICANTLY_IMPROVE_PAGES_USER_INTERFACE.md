@@ -1002,7 +1002,7 @@ Decision gate:
 - [ ] Move page body layout responsibility out of raw `PageView` padding.
 - [x] Add full-surface click-to-focus behavior.
 - [x] Add readable writing column with responsive max width.
-- [ ] Add explicit first-block and end-of-document focus targets.
+- [x] Add explicit first-block and end-of-document focus targets.
 - [ ] Create `ToolbarPolicy` as a pure function.
 - [x] Restore desktop selection toolbar with command tests.
 - [ ] Add compact canvas toolbar instead of disabling toolbar entirely.
