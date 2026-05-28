@@ -88,3 +88,43 @@ describe('MarkdownStructuralEditing', () => {
     })
   })
 })
+
+describe('HeadingWithSyntax commands', () => {
+  let editor: Editor
+
+  beforeEach(() => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit.configure({ heading: false }), HeadingWithSyntax],
+      content: '<p>Heading command text</p>'
+    })
+  })
+
+  afterEach(() => {
+    editor.destroy()
+  })
+
+  it('replaces built-in setHeading for custom heading nodes', () => {
+    expect(editor.commands.setHeading({ level: 2 })).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level: 2 },
+      content: [{ type: 'text', text: 'Heading command text' }]
+    })
+  })
+
+  it('replaces built-in toggleHeading for toolbar and slash commands', () => {
+    expect(editor.commands.toggleHeading({ level: 3 })).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level: 3 },
+      content: [{ type: 'text', text: 'Heading command text' }]
+    })
+
+    expect(editor.commands.toggleHeading({ level: 3 })).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Heading command text' }]
+    })
+  })
+})

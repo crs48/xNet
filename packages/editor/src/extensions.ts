@@ -159,6 +159,33 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
     )
   },
 
+  addCommands() {
+    return {
+      setHeading:
+        (attributes: { level: number }) =>
+        ({ commands }) => {
+          if (!this.options.levels.includes(attributes.level)) {
+            return false
+          }
+
+          return commands.setNode(this.name, { level: attributes.level })
+        },
+      toggleHeading:
+        (attributes: { level: number }) =>
+        ({ editor, commands }) => {
+          if (!this.options.levels.includes(attributes.level)) {
+            return false
+          }
+
+          if (editor.isActive(this.name, { level: attributes.level })) {
+            return commands.setParagraph()
+          }
+
+          return commands.setNode(this.name, { level: attributes.level })
+        }
+    }
+  },
+
   addKeyboardShortcuts() {
     return {
       ...this.options.levels.reduce(
