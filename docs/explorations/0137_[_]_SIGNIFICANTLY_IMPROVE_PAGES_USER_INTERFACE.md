@@ -1004,7 +1004,7 @@ Decision gate:
 - [x] Add readable writing column with responsive max width.
 - [ ] Add explicit first-block and end-of-document focus targets.
 - [ ] Create `ToolbarPolicy` as a pure function.
-- [ ] Restore desktop selection toolbar with command tests.
+- [x] Restore desktop selection toolbar with command tests.
 - [ ] Add compact canvas toolbar instead of disabling toolbar entirely.
 - [ ] Use icon buttons and accessible labels for toolbar controls.
 

@@ -1,5 +1,5 @@
 import type { Editor } from '@tiptap/react'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { FloatingToolbar } from './FloatingToolbar'
 
@@ -17,6 +17,10 @@ type MockEditor = {
   off: ReturnType<typeof vi.fn>
   can: ReturnType<typeof vi.fn>
   chain: ReturnType<typeof vi.fn>
+  _commands: {
+    toggleBlockquote: ReturnType<typeof vi.fn>
+    toggleCodeBlock: ReturnType<typeof vi.fn>
+  }
   _emit: (event: string) => void
 }
 
@@ -54,6 +58,23 @@ vi.mock('@tiptap/react/menus', () => {
 
 function createMockEditor() {
   const listeners: Record<string, Set<() => void>> = {}
+  const commands = {
+    toggleBold: vi.fn(() => ({ run: vi.fn() })),
+    toggleItalic: vi.fn(() => ({ run: vi.fn() })),
+    toggleStrike: vi.fn(() => ({ run: vi.fn() })),
+    toggleCode: vi.fn(() => ({ run: vi.fn() })),
+    toggleHeading: vi.fn(() => ({ run: vi.fn() })),
+    toggleBulletList: vi.fn(() => ({ run: vi.fn() })),
+    toggleOrderedList: vi.fn(() => ({ run: vi.fn() })),
+    toggleTaskList: vi.fn(() => ({ run: vi.fn() })),
+    toggleBlockquote: vi.fn(() => ({ run: vi.fn() })),
+    toggleCodeBlock: vi.fn(() => ({ run: vi.fn() })),
+    setHorizontalRule: vi.fn(() => ({ run: vi.fn() })),
+    liftListItem: vi.fn(() => ({ run: vi.fn() })),
+    sinkListItem: vi.fn(() => ({ run: vi.fn() })),
+    setParagraph: vi.fn(() => ({ run: vi.fn() })),
+    insertContent: vi.fn(() => ({ run: vi.fn() }))
+  }
   const editor = {
     state: {
       selection: {
@@ -76,24 +97,9 @@ function createMockEditor() {
       sinkListItem: () => false
     })),
     chain: vi.fn(() => ({
-      focus: () => ({
-        toggleBold: () => ({ run: () => {} }),
-        toggleItalic: () => ({ run: () => {} }),
-        toggleStrike: () => ({ run: () => {} }),
-        toggleCode: () => ({ run: () => {} }),
-        toggleHeading: () => ({ run: () => {} }),
-        toggleBulletList: () => ({ run: () => {} }),
-        toggleOrderedList: () => ({ run: () => {} }),
-        toggleTaskList: () => ({ run: () => {} }),
-        toggleBlockquote: () => ({ run: () => {} }),
-        toggleCodeBlock: () => ({ run: () => {} }),
-        setHorizontalRule: () => ({ run: () => {} }),
-        liftListItem: () => ({ run: () => {} }),
-        sinkListItem: () => ({ run: () => {} }),
-        setParagraph: () => ({ run: () => {} }),
-        insertContent: () => ({ run: () => {} })
-      })
+      focus: () => commands
     })),
+    _commands: commands,
     _emit(event: string) {
       listeners[event]?.forEach((handler) => handler())
     }
@@ -127,6 +133,19 @@ describe('FloatingToolbar', () => {
 
     render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
     expect(screen.queryByTestId('editor-desktop-toolbar')).not.toBeInTheDocument()
+  })
+
+  it('routes desktop block buttons through editor block commands', () => {
+    const editor = createMockEditor()
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByTitle('Quote'))
+    expect(editor._commands.toggleBlockquote).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByTitle('Code Block'))
+    expect(editor._commands.toggleCodeBlock).toHaveBeenCalledTimes(1)
   })
 
   it('shows mobile toolbar on focus in mobile mode', () => {

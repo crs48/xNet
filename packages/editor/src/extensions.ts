@@ -289,6 +289,19 @@ export const CodeBlockWithSyntax = Node.create<CodeBlockWithSyntaxOptions>({
     return ReactNodeViewRenderer(CodeBlockView)
   },
 
+  addCommands() {
+    return {
+      setCodeBlock:
+        (attributes?: { language: string }) =>
+        ({ commands }) =>
+          commands.setNode(this.name, attributes),
+      toggleCodeBlock:
+        (attributes?: { language: string }) =>
+        ({ commands }) =>
+          commands.toggleNode(this.name, 'paragraph', attributes)
+    }
+  },
+
   addKeyboardShortcuts() {
     return {
       'Mod-Alt-c': () => this.editor.commands.toggleCodeBlock(),
@@ -361,6 +374,23 @@ export const BlockquoteWithSyntax = Node.create<BlockquoteWithSyntaxOptions>({
 
   addNodeView() {
     return ReactNodeViewRenderer(BlockquoteView)
+  },
+
+  addCommands() {
+    return {
+      setBlockquote:
+        () =>
+        ({ commands }) =>
+          commands.wrapIn(this.name),
+      toggleBlockquote:
+        () =>
+        ({ commands }) =>
+          commands.toggleWrap(this.name),
+      unsetBlockquote:
+        () =>
+        ({ commands }) =>
+          commands.lift(this.name)
+    }
   },
 
   addKeyboardShortcuts() {

@@ -1,7 +1,12 @@
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { HeadingWithSyntax, MarkdownStructuralEditing } from '../extensions'
+import {
+  BlockquoteWithSyntax,
+  CodeBlockWithSyntax,
+  HeadingWithSyntax,
+  MarkdownStructuralEditing
+} from '../extensions'
 import { runMarkdownStructuralBackspace } from './markdown-structural-editing'
 
 function pressBackspace(editor: Editor): boolean {
@@ -125,6 +130,94 @@ describe('HeadingWithSyntax commands', () => {
     expect(firstBlock(editor)).toMatchObject({
       type: 'paragraph',
       content: [{ type: 'text', text: 'Heading command text' }]
+    })
+  })
+})
+
+describe('CodeBlockWithSyntax commands', () => {
+  let editor: Editor
+
+  beforeEach(() => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit.configure({ codeBlock: false }), CodeBlockWithSyntax],
+      content: '<p>Code command text</p>'
+    })
+  })
+
+  afterEach(() => {
+    editor.destroy()
+  })
+
+  it('replaces built-in setCodeBlock for custom code block nodes', () => {
+    expect(editor.commands.setCodeBlock({ language: 'typescript' })).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'codeBlock',
+      attrs: { language: 'typescript' },
+      content: [{ type: 'text', text: 'Code command text' }]
+    })
+  })
+
+  it('replaces built-in toggleCodeBlock for toolbar and slash commands', () => {
+    expect(editor.commands.toggleCodeBlock({ language: 'javascript' })).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'codeBlock',
+      attrs: { language: 'javascript' },
+      content: [{ type: 'text', text: 'Code command text' }]
+    })
+
+    expect(editor.commands.toggleCodeBlock()).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Code command text' }]
+    })
+  })
+})
+
+describe('BlockquoteWithSyntax commands', () => {
+  let editor: Editor
+
+  beforeEach(() => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit.configure({ blockquote: false }), BlockquoteWithSyntax],
+      content: '<p>Quote command text</p>'
+    })
+  })
+
+  afterEach(() => {
+    editor.destroy()
+  })
+
+  it('replaces built-in setBlockquote for custom blockquote nodes', () => {
+    expect(editor.commands.setBlockquote()).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'blockquote',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Quote command text' }]
+        }
+      ]
+    })
+  })
+
+  it('replaces built-in toggleBlockquote and unsetBlockquote for toolbar and slash commands', () => {
+    expect(editor.commands.toggleBlockquote()).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'blockquote',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Quote command text' }]
+        }
+      ]
+    })
+
+    expect(editor.commands.unsetBlockquote()).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Quote command text' }]
     })
   })
 })
