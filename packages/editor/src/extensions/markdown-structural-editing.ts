@@ -1,3 +1,4 @@
+import type { ResolvedPos } from '@tiptap/pm/model'
 import { Extension, type Editor } from '@tiptap/core'
 
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
@@ -15,6 +16,11 @@ function previousHeadingLevel(level: HeadingLevel): HeadingLevel | null {
   return level > MIN_HEADING_LEVEL ? ((level - 1) as HeadingLevel) : null
 }
 
+function isDirectChildOfBlockquote($from: ResolvedPos): boolean {
+  if ($from.depth < 2) return false
+  return $from.node($from.depth - 1).type.name === 'blockquote'
+}
+
 /**
  * Handle structural Markdown Backspace behavior for rendered Markdown blocks.
  *
@@ -29,16 +35,24 @@ export function runMarkdownStructuralBackspace(editor: Editor): boolean {
   }
 
   const { $from } = selection
-  if ($from.parentOffset !== 0 || $from.parent.type.name !== 'heading') {
+  if ($from.parentOffset !== 0) {
     return false
   }
 
-  const nextLevel = previousHeadingLevel(toHeadingLevel($from.parent.attrs.level))
-  if (nextLevel) {
-    return editor.commands.setNode('heading', { level: nextLevel })
+  if ($from.parent.type.name === 'heading') {
+    const nextLevel = previousHeadingLevel(toHeadingLevel($from.parent.attrs.level))
+    if (nextLevel) {
+      return editor.commands.setNode('heading', { level: nextLevel })
+    }
+
+    return editor.commands.setParagraph()
   }
 
-  return editor.commands.setParagraph()
+  if (isDirectChildOfBlockquote($from)) {
+    return editor.commands.lift('blockquote')
+  }
+
+  return false
 }
 
 export const MarkdownStructuralEditing = Extension.create({

@@ -94,6 +94,103 @@ describe('MarkdownStructuralEditing', () => {
   })
 })
 
+describe('MarkdownStructuralEditing blockquote Backspace', () => {
+  let editor: Editor
+
+  afterEach(() => {
+    editor.destroy()
+  })
+
+  it('unwraps a blockquote from the start of its first text block', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ blockquote: false }),
+        BlockquoteWithSyntax,
+        MarkdownStructuralEditing
+      ],
+      content: '<blockquote><p>Quote text</p></blockquote>'
+    })
+
+    editor.commands.setTextSelection(2)
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Quote text' }]
+    })
+  })
+
+  it('demotes heading syntax inside blockquotes before unwrapping the quote token', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ heading: false, blockquote: false }),
+        HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+        BlockquoteWithSyntax,
+        MarkdownStructuralEditing
+      ],
+      content: '<blockquote><h2>Quoted heading</h2></blockquote>'
+    })
+
+    editor.commands.setTextSelection(2)
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'blockquote',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 1 },
+          content: [{ type: 'text', text: 'Quoted heading' }]
+        }
+      ]
+    })
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'blockquote',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Quoted heading' }]
+        }
+      ]
+    })
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Quoted heading' }]
+    })
+  })
+
+  it('does not intercept Backspace inside blockquote text', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ blockquote: false }),
+        BlockquoteWithSyntax,
+        MarkdownStructuralEditing
+      ],
+      content: '<blockquote><p>Quote text</p></blockquote>'
+    })
+
+    editor.commands.setTextSelection(5)
+
+    expect(runMarkdownStructuralBackspace(editor)).toBe(false)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'blockquote',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Quote text' }]
+        }
+      ]
+    })
+  })
+})
+
 describe('HeadingWithSyntax commands', () => {
   let editor: Editor
 

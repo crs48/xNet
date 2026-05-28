@@ -1012,7 +1012,7 @@ Decision gate:
 
 - [ ] Define `MarkdownTokenContract` docs and test matrix.
 - [x] Implement heading source-token behavior.
-- [ ] Implement blockquote source-token behavior.
+- [x] Implement blockquote source-token behavior.
 - [ ] Implement list and task-list marker behavior.
 - [ ] Implement code fence active-block behavior.
 - [ ] Define inline mark reveal and boundary behavior.
