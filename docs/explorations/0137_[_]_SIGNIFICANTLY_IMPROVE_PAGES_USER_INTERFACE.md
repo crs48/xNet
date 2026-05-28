@@ -1000,8 +1000,8 @@ Decision gate:
 
 - [ ] Introduce `EditorSurface` with `surfaceMode: 'page' | 'canvas-inline' | 'canvas-preview' | 'read'`.
 - [ ] Move page body layout responsibility out of raw `PageView` padding.
-- [ ] Add full-surface click-to-focus behavior.
-- [ ] Add readable writing column with responsive max width.
+- [x] Add full-surface click-to-focus behavior.
+- [x] Add readable writing column with responsive max width.
 - [ ] Add explicit first-block and end-of-document focus targets.
 - [ ] Create `ToolbarPolicy` as a pure function.
 - [ ] Restore desktop selection toolbar with command tests.
