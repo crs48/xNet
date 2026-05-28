@@ -379,6 +379,7 @@ export function RichTextEditor({
   const cursorPluginRegisteredRef = useRef(false)
   const pageTaskSignatureRef = useRef<string>('')
   const mentionSuggestionsRef = useRef<TaskMentionSuggestion[]>(mentionSuggestions)
+  const notifiedReadyEditorRef = useRef<Editor | null>(null)
 
   useEffect(() => {
     mentionSuggestionsRef.current = mentionSuggestions
@@ -495,9 +496,10 @@ export function RichTextEditor({
 
   // Notify parent when editor is ready
   useEffect(() => {
-    if (editor && onEditorReady) {
-      onEditorReady(editor)
-    }
+    if (!editor || !onEditorReady || notifiedReadyEditorRef.current === editor) return
+
+    notifiedReadyEditorRef.current = editor
+    onEditorReady(editor)
   }, [editor, onEditorReady])
 
   useEffect(() => {

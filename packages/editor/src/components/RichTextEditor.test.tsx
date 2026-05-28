@@ -2,6 +2,7 @@
  * Tests for RichTextEditor component
  */
 import { render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // import userEvent from '@testing-library/user-event'
 import * as Y from 'yjs'
@@ -170,6 +171,35 @@ describe('RichTextEditor', () => {
       await waitFor(() => {
         expect(document.querySelector('.ProseMirror')).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('ready callback', () => {
+    it('notifies once per editor instance when parent re-renders with a new callback', async () => {
+      const onReady = vi.fn()
+
+      function Harness() {
+        const [, setRevision] = useState(0)
+
+        return (
+          <RichTextEditor
+            ydoc={ydoc}
+            onEditorReady={(editor) => {
+              onReady(editor)
+              setRevision((revision) => revision + 1)
+            }}
+          />
+        )
+      }
+
+      render(<Harness />)
+
+      await waitFor(() => {
+        expect(onReady).toHaveBeenCalledTimes(1)
+      })
+
+      await new Promise((resolve) => window.setTimeout(resolve, 50))
+      expect(onReady).toHaveBeenCalledTimes(1)
     })
   })
 
