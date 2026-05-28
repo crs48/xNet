@@ -1006,7 +1006,7 @@ Decision gate:
 - [x] Create `ToolbarPolicy` as a pure function.
 - [x] Restore desktop selection toolbar with command tests.
 - [x] Add compact canvas toolbar instead of disabling toolbar entirely.
-- [ ] Use icon buttons and accessible labels for toolbar controls.
+- [x] Use icon buttons and accessible labels for toolbar controls.
 
 ### Phase 2: Markdown Structural Editing
 

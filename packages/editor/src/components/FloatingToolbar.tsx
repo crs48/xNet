@@ -6,6 +6,27 @@
  */
 import type { Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
+import {
+  AtSign,
+  Bold,
+  Braces,
+  CalendarDays,
+  Code2,
+  Heading,
+  Heading1,
+  Heading2,
+  Heading3,
+  Indent,
+  Italic,
+  List,
+  ListOrdered,
+  ListTodo,
+  MessageSquare,
+  Minus,
+  Outdent,
+  Strikethrough,
+  TextQuote
+} from 'lucide-react'
 import { useRef, useCallback, type JSX } from 'react'
 import { captureTextAnchor } from '../extensions/comment'
 import { getCurrentTaskDueDate } from '../extensions/task-metadata'
@@ -152,6 +173,7 @@ function ToolbarButton({
         onClick()
       }}
       onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
+      aria-label={title}
       className={cn(
         'flex-shrink-0 flex items-center justify-center rounded text-sm font-medium',
         'transition-colors duration-100',
@@ -262,7 +284,7 @@ function ToolbarContent({
         title="Bold"
         isMobile={isMobile}
       >
-        <strong>B</strong>
+        <Bold size={16} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -270,7 +292,7 @@ function ToolbarContent({
         title="Italic"
         isMobile={isMobile}
       >
-        <em>I</em>
+        <Italic size={16} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -278,7 +300,7 @@ function ToolbarContent({
         title="Strikethrough"
         isMobile={isMobile}
       >
-        <s>S</s>
+        <Strikethrough size={16} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCode().run()}
@@ -286,7 +308,7 @@ function ToolbarContent({
         title="Code"
         isMobile={isMobile}
       >
-        {'</>'}
+        <Code2 size={16} aria-hidden="true" />
       </ToolbarButton>
       {/* Comment button - only show when handler is provided */}
       {onCreateComment && (
@@ -296,19 +318,7 @@ function ToolbarContent({
           title="Add Comment"
           isMobile={isMobile}
         >
-          {/* Comment icon - speech bubble outline */}
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
+          <MessageSquare size={16} aria-hidden="true" />
         </ToolbarButton>
       )}
       {/* Plugin format buttons */}
@@ -325,7 +335,7 @@ function ToolbarContent({
         title="Heading 1"
         isMobile={isMobile}
       >
-        H1
+        <Heading1 size={17} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
@@ -333,7 +343,7 @@ function ToolbarContent({
         title="Heading 2"
         isMobile={isMobile}
       >
-        H2
+        <Heading2 size={17} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
@@ -341,7 +351,7 @@ function ToolbarContent({
         title="Heading 3"
         isMobile={isMobile}
       >
-        H3
+        <Heading3 size={17} aria-hidden="true" />
       </ToolbarButton>
 
       <ToolbarDivider isMobile={isMobile} />
@@ -353,7 +363,7 @@ function ToolbarContent({
         title="Bullet List"
         isMobile={isMobile}
       >
-        •
+        <List size={16} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -361,7 +371,7 @@ function ToolbarContent({
         title="Numbered List"
         isMobile={isMobile}
       >
-        1.
+        <ListOrdered size={16} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleTaskList().run()}
@@ -369,7 +379,7 @@ function ToolbarContent({
         title="Task List"
         isMobile={isMobile}
       >
-        ☐
+        <ListTodo size={16} aria-hidden="true" />
       </ToolbarButton>
       {showTaskButtons && (
         <ToolbarButton
@@ -378,7 +388,7 @@ function ToolbarContent({
           title="Mention Assignee"
           isMobile={isMobile}
         >
-          @
+          <AtSign size={16} aria-hidden="true" />
         </ToolbarButton>
       )}
       {showTaskButtons && (
@@ -390,7 +400,7 @@ function ToolbarContent({
           title="Set Due Date"
           isMobile={isMobile}
         >
-          📅
+          <CalendarDays size={16} aria-hidden="true" />
         </ToolbarButton>
       )}
 
@@ -403,7 +413,7 @@ function ToolbarContent({
         title="Quote"
         isMobile={isMobile}
       >
-        "
+        <TextQuote size={16} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -411,7 +421,7 @@ function ToolbarContent({
         title="Code Block"
         isMobile={isMobile}
       >
-        {'{}'}
+        <Braces size={16} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
@@ -419,7 +429,7 @@ function ToolbarContent({
         title="Divider"
         isMobile={isMobile}
       >
-        —
+        <Minus size={16} aria-hidden="true" />
       </ToolbarButton>
       {/* Plugin block buttons */}
       {blockItems.map((item) => (
@@ -453,7 +463,7 @@ function ToolbarContent({
         mobileOnly
         isMobile={isMobile}
       >
-        ←
+        <Outdent size={18} aria-hidden="true" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => {
@@ -468,7 +478,7 @@ function ToolbarContent({
         mobileOnly
         isMobile={isMobile}
       >
-        →
+        <Indent size={18} aria-hidden="true" />
       </ToolbarButton>
 
       {/* Quick heading toggle - mobile only */}
@@ -490,7 +500,7 @@ function ToolbarContent({
         mobileOnly
         isMobile={isMobile}
       >
-        #
+        <Heading size={18} aria-hidden="true" />
       </ToolbarButton>
 
       {/* Mention/Link - mobile only (placeholder for future) */}
@@ -501,7 +511,7 @@ function ToolbarContent({
         mobileOnly
         isMobile={isMobile}
       >
-        @
+        <AtSign size={18} aria-hidden="true" />
       </ToolbarButton>
     </>
   )
