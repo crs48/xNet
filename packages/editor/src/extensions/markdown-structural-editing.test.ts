@@ -1,11 +1,13 @@
 import { Editor } from '@tiptap/core'
+import TaskList from '@tiptap/extension-task-list'
 import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   BlockquoteWithSyntax,
   CodeBlockWithSyntax,
   HeadingWithSyntax,
-  MarkdownStructuralEditing
+  MarkdownStructuralEditing,
+  PageTaskItemExtension
 } from '../extensions'
 import { runMarkdownStructuralBackspace } from './markdown-structural-editing'
 
@@ -26,6 +28,26 @@ function pressBackspace(editor: Editor): boolean {
 
 function firstBlock(editor: Editor) {
   return editor.getJSON().content?.[0]
+}
+
+function findTextStart(editor: Editor, text: string): number {
+  let position: number | null = null
+
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isText || typeof node.text !== 'string') return true
+
+    const index = node.text.indexOf(text)
+    if (index === -1) return true
+
+    position = pos + index
+    return false
+  })
+
+  if (position === null) {
+    throw new Error(`Could not find text "${text}"`)
+  }
+
+  return position
 }
 
 describe('MarkdownStructuralEditing', () => {
@@ -90,6 +112,204 @@ describe('MarkdownStructuralEditing', () => {
       type: 'heading',
       attrs: { level: 3 },
       content: [{ type: 'text', text: 'Heading text' }]
+    })
+  })
+})
+
+describe('MarkdownStructuralEditing list Backspace', () => {
+  let editor: Editor
+
+  afterEach(() => {
+    editor.destroy()
+  })
+
+  it('exits a top-level bullet list item from the start of its first text block', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit, MarkdownStructuralEditing],
+      content: '<ul><li><p>Bullet text</p></li></ul>'
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'Bullet text'))
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Bullet text' }]
+    })
+  })
+
+  it('exits a top-level ordered list item from the start of its first text block', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit, MarkdownStructuralEditing],
+      content: '<ol><li><p>Ordered text</p></li></ol>'
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'Ordered text'))
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Ordered text' }]
+    })
+  })
+
+  it('lifts a nested bullet list item one list level at a time', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit, MarkdownStructuralEditing],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Parent item' }]
+                  },
+                  {
+                    type: 'bulletList',
+                    content: [
+                      {
+                        type: 'listItem',
+                        content: [
+                          {
+                            type: 'paragraph',
+                            content: [{ type: 'text', text: 'Child item' }]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'Child item'))
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'bulletList',
+      content: [
+        {
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Parent item' }]
+            }
+          ]
+        },
+        {
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Child item' }]
+            }
+          ]
+        }
+      ]
+    })
+  })
+
+  it('exits a top-level task item while preserving task text', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit, TaskList, PageTaskItemExtension, MarkdownStructuralEditing],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'taskList',
+            content: [
+              {
+                type: 'taskItem',
+                attrs: { checked: false },
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Task text' }]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'Task text'))
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Task text' }]
+    })
+  })
+
+  it('does not intercept Backspace inside list item text', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit, MarkdownStructuralEditing],
+      content: '<ul><li><p>Bullet text</p></li></ul>'
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'Bullet text') + 3)
+
+    expect(runMarkdownStructuralBackspace(editor)).toBe(false)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'bulletList',
+      content: [
+        {
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Bullet text' }]
+            }
+          ]
+        }
+      ]
+    })
+  })
+
+  it('does not intercept Backspace from later blocks inside the same list item', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit, MarkdownStructuralEditing],
+      content: '<ul><li><p>First line</p><p>Second line</p></li></ul>'
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'Second line'))
+
+    expect(runMarkdownStructuralBackspace(editor)).toBe(false)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'bulletList',
+      content: [
+        {
+          type: 'listItem',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'First line' }]
+            },
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Second line' }]
+            }
+          ]
+        }
+      ]
     })
   })
 })
