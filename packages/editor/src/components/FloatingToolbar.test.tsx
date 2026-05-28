@@ -32,12 +32,13 @@ interface BubbleMenuMockProps {
     state: MockEditor['state']
   }) => boolean
   editor: MockEditor
+  className?: string
   children: React.ReactNode
 }
 
 vi.mock('@tiptap/react/menus', () => {
   return {
-    BubbleMenu: ({ shouldShow, editor, children }: BubbleMenuMockProps) => {
+    BubbleMenu: ({ shouldShow, editor, className, children }: BubbleMenuMockProps) => {
       const selection = editor.state.selection
       const visible =
         shouldShow?.({
@@ -51,7 +52,11 @@ vi.mock('@tiptap/react/menus', () => {
         return null
       }
 
-      return <div data-testid="editor-desktop-toolbar">{children}</div>
+      return (
+        <div data-testid="editor-desktop-toolbar" className={className}>
+          {children}
+        </div>
+      )
     }
   }
 })
@@ -146,6 +151,36 @@ describe('FloatingToolbar', () => {
 
     fireEvent.click(screen.getByTitle('Code Block'))
     expect(editor._commands.toggleCodeBlock).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses compact desktop toolbar policy for canvas inline selections', () => {
+    const editor = createMockEditor()
+    const { rerender } = render(
+      <FloatingToolbar
+        editor={editor as unknown as Editor}
+        mode="desktop"
+        surface="canvas-inline"
+      />
+    )
+
+    expect(screen.queryByTestId('editor-desktop-toolbar')).not.toBeInTheDocument()
+
+    act(() => {
+      editor.state.selection = { from: 2, to: 8, empty: false }
+      editor._emit('selectionUpdate')
+    })
+
+    rerender(
+      <FloatingToolbar
+        editor={editor as unknown as Editor}
+        mode="desktop"
+        surface="canvas-inline"
+      />
+    )
+
+    expect(screen.getByTestId('editor-desktop-toolbar')).toHaveClass(
+      'max-w-[min(360px,calc(100vw-24px))]'
+    )
   })
 
   it('shows mobile toolbar on focus in mobile mode', () => {

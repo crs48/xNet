@@ -4,6 +4,8 @@ import { NodeSelection } from '@tiptap/pm/state'
 import { useEffect, useMemo, useState } from 'react'
 
 export type ToolbarMode = 'auto' | 'desktop' | 'mobile'
+export type ToolbarSurface = 'page' | 'canvas-inline' | 'canvas-preview' | 'read'
+export type ToolbarPresentation = 'hidden' | 'desktop-floating' | 'mobile-fixed' | 'canvas-compact'
 export type SelectionShape = 'collapsed' | 'range' | 'node'
 
 export interface KeyboardThresholds {
@@ -29,6 +31,21 @@ export interface EditorUxState {
   isFocused: boolean
   selectionShape: SelectionShape
   keyboard: KeyboardState
+}
+
+export interface ToolbarPolicyInput {
+  surface?: ToolbarSurface
+  isMobile: boolean
+  isFocused: boolean
+  selectionShape: SelectionShape
+  inCodeBlock: boolean
+  inTaskItem?: boolean
+  readOnly?: boolean
+}
+
+export interface ToolbarPolicy {
+  presentation: ToolbarPresentation
+  isCompact: boolean
 }
 
 export const DEFAULT_KEYBOARD_THRESHOLDS: KeyboardThresholds = {
@@ -173,8 +190,46 @@ export function shouldShowDesktopToolbar(opts: {
   inCodeBlock: boolean
   inTaskItem?: boolean
 }): boolean {
-  if (opts.inCodeBlock) return false
   return (
-    opts.selectionShape === 'range' || (opts.selectionShape === 'collapsed' && !!opts.inTaskItem)
+    resolveToolbarPolicy({
+      surface: 'page',
+      isMobile: false,
+      isFocused: true,
+      ...opts
+    }).presentation === 'desktop-floating'
   )
+}
+
+function hasCommandSelection(input: Pick<ToolbarPolicyInput, 'selectionShape' | 'inTaskItem'>) {
+  return (
+    input.selectionShape === 'range' || (input.selectionShape === 'collapsed' && !!input.inTaskItem)
+  )
+}
+
+export function resolveToolbarPolicy(input: ToolbarPolicyInput): ToolbarPolicy {
+  const surface = input.surface ?? 'page'
+
+  if (input.readOnly || surface === 'read' || surface === 'canvas-preview') {
+    return { presentation: 'hidden', isCompact: false }
+  }
+
+  if (input.inCodeBlock) {
+    return { presentation: 'hidden', isCompact: false }
+  }
+
+  if (surface === 'canvas-inline') {
+    return hasCommandSelection(input)
+      ? { presentation: 'canvas-compact', isCompact: true }
+      : { presentation: 'hidden', isCompact: true }
+  }
+
+  if (input.isMobile) {
+    return input.isFocused
+      ? { presentation: 'mobile-fixed', isCompact: false }
+      : { presentation: 'hidden', isCompact: false }
+  }
+
+  return hasCommandSelection(input)
+    ? { presentation: 'desktop-floating', isCompact: false }
+    : { presentation: 'hidden', isCompact: false }
 }

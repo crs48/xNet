@@ -12,13 +12,15 @@ import { getCurrentTaskDueDate } from '../extensions/task-metadata'
 import { cn } from '../utils'
 import {
   deriveSelectionShape,
+  resolveToolbarPolicy,
   shouldShowDesktopToolbar,
   type KeyboardThresholds,
   type ToolbarMode,
+  type ToolbarSurface,
   useEditorUxState
 } from './editor-ux-state'
 
-export type { ToolbarMode } from './editor-ux-state'
+export type { ToolbarMode, ToolbarSurface } from './editor-ux-state'
 
 /**
  * Toolbar item contribution from plugins
@@ -50,6 +52,10 @@ export interface FloatingToolbarProps {
    * - 'mobile': Always show fixed bottom toolbar (for mobile apps)
    */
   mode?: ToolbarMode
+  /**
+   * Product surface hosting the toolbar. Canvas inline pages use a compact policy.
+   */
+  surface?: ToolbarSurface
   /**
    * Optional keyboard visibility thresholds used in mobile mode.
    */
@@ -569,11 +575,13 @@ function MobileToolbar({
 function DesktopToolbar({
   editor,
   className,
+  compact = false,
   additionalItems = [],
   onCreateComment
 }: {
   editor: Editor
   className?: string
+  compact?: boolean
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element {
@@ -597,6 +605,7 @@ function DesktopToolbar({
         'bg-background rounded-lg',
         'shadow-xl shadow-black/15 dark:shadow-black/40',
         'border border-border/50',
+        compact && 'max-w-[min(360px,calc(100vw-24px))] overflow-x-auto',
         className
       )}
     >
@@ -620,6 +629,7 @@ export function FloatingToolbar({
   editor,
   className,
   mode = 'auto',
+  surface = 'page',
   keyboardThresholds,
   additionalItems = [],
   onCreateComment
@@ -628,9 +638,18 @@ export function FloatingToolbar({
 
   if (!editor) return null
 
-  const isMobile = ux.isMobile
+  const policy = resolveToolbarPolicy({
+    surface,
+    isMobile: ux.isMobile,
+    isFocused: ux.isFocused,
+    selectionShape: ux.selectionShape,
+    inCodeBlock: editor.isActive('codeBlock'),
+    inTaskItem: editor.isActive('taskItem')
+  })
 
-  if (isMobile) {
+  if (policy.presentation === 'hidden') return null
+
+  if (policy.presentation === 'mobile-fixed') {
     return (
       <MobileToolbar
         editor={editor}
@@ -647,6 +666,7 @@ export function FloatingToolbar({
     <DesktopToolbar
       editor={editor}
       className={className}
+      compact={policy.isCompact}
       additionalItems={additionalItems}
       onCreateComment={onCreateComment}
     />

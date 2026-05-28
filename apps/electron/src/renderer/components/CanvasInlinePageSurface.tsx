@@ -193,8 +193,9 @@ export function CanvasInlinePageSurface({
             ydoc={doc}
             field="content"
             placeholder={variant === 'note' ? 'Write a note...' : 'Start writing...'}
-            showToolbar={false}
+            showToolbar={true}
             toolbarMode="desktop"
+            toolbarSurface="canvas-inline"
             className="min-h-full [&_.ProseMirror]:select-text [&_[contenteditable='true']]:select-text"
             awareness={awareness ?? undefined}
             did={did ?? undefined}

@@ -1003,9 +1003,9 @@ Decision gate:
 - [x] Add full-surface click-to-focus behavior.
 - [x] Add readable writing column with responsive max width.
 - [x] Add explicit first-block and end-of-document focus targets.
-- [ ] Create `ToolbarPolicy` as a pure function.
+- [x] Create `ToolbarPolicy` as a pure function.
 - [x] Restore desktop selection toolbar with command tests.
-- [ ] Add compact canvas toolbar instead of disabling toolbar entirely.
+- [x] Add compact canvas toolbar instead of disabling toolbar entirely.
 - [ ] Use icon buttons and accessible labels for toolbar controls.
 
 ### Phase 2: Markdown Structural Editing

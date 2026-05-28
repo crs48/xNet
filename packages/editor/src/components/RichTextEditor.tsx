@@ -46,7 +46,7 @@ import {
   ensurePageTaskAttrs,
   getPageTasksSnapshot
 } from '../extensions'
-import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
+import { FloatingToolbar, type ToolbarMode, type ToolbarSurface } from './FloatingToolbar'
 import '../styles/editor.css'
 import { cn } from '../utils'
 
@@ -194,6 +194,8 @@ export interface RichTextEditorProps {
    * - 'mobile': Always fixed bottom bar (Expo)
    */
   toolbarMode?: ToolbarMode
+  /** Surface policy for toolbar visibility and density. */
+  toolbarSurface?: ToolbarSurface
   /** Callback when a wikilink is clicked */
   onNavigate?: (docId: string) => void
   /** Additional CSS class for the container */
@@ -355,6 +357,7 @@ export function RichTextEditor({
   placeholder = 'Start writing...',
   showToolbar = true,
   toolbarMode = 'auto',
+  toolbarSurface = 'page',
   onNavigate,
   className,
   readOnly = false,
@@ -788,6 +791,7 @@ export function RichTextEditor({
         <FloatingToolbar
           editor={editor}
           mode={toolbarMode}
+          surface={toolbarSurface}
           additionalItems={additionalToolbarItems}
           onCreateComment={onCreateComment}
         />
