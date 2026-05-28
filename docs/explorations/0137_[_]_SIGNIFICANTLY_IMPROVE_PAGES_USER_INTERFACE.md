@@ -1014,7 +1014,7 @@ Decision gate:
 - [x] Implement heading source-token behavior.
 - [x] Implement blockquote source-token behavior.
 - [x] Implement list and task-list marker behavior.
-- [ ] Implement code fence active-block behavior.
+- [x] Implement code fence active-block behavior.
 - [ ] Define inline mark reveal and boundary behavior.
 - [ ] Add undo/redo grouping tests.
 - [ ] Add IME/composition tests for no forced normalization mid-composition.

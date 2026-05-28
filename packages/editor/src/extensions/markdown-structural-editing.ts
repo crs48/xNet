@@ -1,5 +1,6 @@
-import type { ResolvedPos } from '@tiptap/pm/model'
 import { Extension, type Editor } from '@tiptap/core'
+import { Fragment, type ResolvedPos } from '@tiptap/pm/model'
+import { TextSelection } from '@tiptap/pm/state'
 
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
 
@@ -40,6 +41,41 @@ function isAtStartOfFirstListItemBlock($from: ResolvedPos, listItemDepth: number
   return true
 }
 
+function isPlainTextCodeLanguage(language: unknown): boolean {
+  return language === null || language === undefined || language === '' || language === 'plaintext'
+}
+
+function exitCodeBlock(editor: Editor, $from: ResolvedPos): boolean {
+  const paragraph = editor.state.schema.nodes.paragraph
+  if (!paragraph) return false
+
+  const codeBlockStart = $from.before()
+  const codeBlockEnd = $from.after()
+  const codeLines = $from.parent.textContent.split('\n')
+  while (codeLines.length > 1 && codeLines[codeLines.length - 1] === '') {
+    codeLines.pop()
+  }
+
+  const paragraphs = codeLines.map((line) => {
+    if (line.length === 0) {
+      return paragraph.create()
+    }
+
+    return paragraph.create(null, editor.state.schema.text(line))
+  })
+
+  return editor.commands.command(({ tr, dispatch }) => {
+    tr.replaceWith(codeBlockStart, codeBlockEnd, Fragment.fromArray(paragraphs))
+    tr.setSelection(TextSelection.create(tr.doc, codeBlockStart + 1))
+
+    if (dispatch) {
+      dispatch(tr)
+    }
+
+    return true
+  })
+}
+
 /**
  * Handle structural Markdown Backspace behavior for rendered Markdown blocks.
  *
@@ -65,6 +101,14 @@ export function runMarkdownStructuralBackspace(editor: Editor): boolean {
     }
 
     return editor.commands.setParagraph()
+  }
+
+  if ($from.parent.type.name === 'codeBlock') {
+    if (!isPlainTextCodeLanguage($from.parent.attrs.language)) {
+      return editor.commands.updateAttributes('codeBlock', { language: 'plaintext' })
+    }
+
+    return exitCodeBlock(editor, $from)
   }
 
   const listItemDepth = findListItemDepth($from)

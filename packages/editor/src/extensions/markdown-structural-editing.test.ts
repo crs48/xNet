@@ -314,6 +314,148 @@ describe('MarkdownStructuralEditing list Backspace', () => {
   })
 })
 
+describe('MarkdownStructuralEditing code fence Backspace', () => {
+  let editor: Editor
+
+  afterEach(() => {
+    editor.destroy()
+  })
+
+  it('clears the code fence language before exiting the code block', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ codeBlock: false }),
+        CodeBlockWithSyntax,
+        MarkdownStructuralEditing
+      ],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'codeBlock',
+            attrs: { language: 'typescript' },
+            content: [{ type: 'text', text: 'const value = 1' }]
+          }
+        ]
+      }
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'const value'))
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'codeBlock',
+      attrs: { language: 'plaintext' },
+      content: [{ type: 'text', text: 'const value = 1' }]
+    })
+  })
+
+  it('exits a plaintext code block from the start of its content', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ codeBlock: false }),
+        CodeBlockWithSyntax,
+        MarkdownStructuralEditing
+      ],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'codeBlock',
+            attrs: { language: 'plaintext' },
+            content: [{ type: 'text', text: 'plain code' }]
+          }
+        ]
+      }
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'plain code'))
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'plain code' }]
+    })
+  })
+
+  it('preserves multiline code content as paragraphs with a trailing insertion block', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ codeBlock: false }),
+        CodeBlockWithSyntax,
+        MarkdownStructuralEditing
+      ],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'codeBlock',
+            attrs: { language: 'plaintext' },
+            content: [{ type: 'text', text: 'first line\nsecond line\n\nfourth line' }]
+          }
+        ]
+      }
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'first line'))
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(editor.getJSON().content).toMatchObject([
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'first line' }]
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'second line' }]
+      },
+      {
+        type: 'paragraph'
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'fourth line' }]
+      },
+      {
+        type: 'paragraph'
+      }
+    ])
+  })
+
+  it('does not intercept Backspace inside code text', () => {
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ codeBlock: false }),
+        CodeBlockWithSyntax,
+        MarkdownStructuralEditing
+      ],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'codeBlock',
+            attrs: { language: 'typescript' },
+            content: [{ type: 'text', text: 'const value = 1' }]
+          }
+        ]
+      }
+    })
+
+    editor.commands.setTextSelection(findTextStart(editor, 'const value') + 3)
+
+    expect(runMarkdownStructuralBackspace(editor)).toBe(false)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'codeBlock',
+      attrs: { language: 'typescript' },
+      content: [{ type: 'text', text: 'const value = 1' }]
+    })
+  })
+})
+
 describe('MarkdownStructuralEditing blockquote Backspace', () => {
   let editor: Editor
 
