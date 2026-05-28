@@ -26,6 +26,7 @@ import {
   Wikilink,
   LivePreview,
   HeadingWithSyntax,
+  MarkdownStructuralEditing,
   CodeBlockWithSyntax,
   BlockquoteWithSyntax,
   SlashCommand,
@@ -400,6 +401,7 @@ export function RichTextEditor({
     }),
     // Custom block NodeViews with syntax preview
     HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+    MarkdownStructuralEditing,
     CodeBlockWithSyntax,
     BlockquoteWithSyntax,
     Typography,

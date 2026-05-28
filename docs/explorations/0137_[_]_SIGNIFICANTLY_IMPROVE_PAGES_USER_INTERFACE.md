@@ -982,9 +982,9 @@ gantt
 
 ### Phase 0: Decision Spike
 
-- [ ] Create a prototype branch for `RichTextEditorV2`.
+- [x] Create a prototype branch for `RichTextEditorV2`.
 - [ ] Add official `@tiptap/markdown` in a spike workspace or package branch.
-- [ ] Prototype heading token Backspace behavior in Tiptap with tests.
+- [x] Prototype heading token Backspace behavior in Tiptap with tests.
 - [ ] Prototype equivalent heading/list/code behavior in Milkdown.
 - [ ] Port one simple xNet embed into Milkdown or prove why it is too expensive.
 - [ ] Compare collaboration integration with existing Yjs content.
@@ -1011,7 +1011,7 @@ Decision gate:
 ### Phase 2: Markdown Structural Editing
 
 - [ ] Define `MarkdownTokenContract` docs and test matrix.
-- [ ] Implement heading source-token behavior.
+- [x] Implement heading source-token behavior.
 - [ ] Implement blockquote source-token behavior.
 - [ ] Implement list and task-list marker behavior.
 - [ ] Implement code fence active-block behavior.

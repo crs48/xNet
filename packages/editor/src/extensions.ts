@@ -164,7 +164,10 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
       ...this.options.levels.reduce(
         (shortcuts: Record<string, () => boolean>, level: number) => ({
           ...shortcuts,
-          [`Mod-Alt-${level}`]: () => this.editor.commands.toggleHeading({ level: level as any })
+          [`Mod-Alt-${level}`]: () =>
+            this.editor.isActive('heading', { level })
+              ? this.editor.commands.setParagraph()
+              : this.editor.commands.setNode('heading', { level })
         }),
         {}
       ),
@@ -181,7 +184,7 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
 
         if (currentLevel > 1) {
           // Demote: H2 → H1, H3 → H2, etc.
-          return this.editor.commands.setHeading({ level: (currentLevel - 1) as any })
+          return this.editor.commands.setNode('heading', { level: currentLevel - 1 })
         }
 
         // H1 → paragraph
@@ -353,6 +356,11 @@ export type {
   InlineMarksPluginOptions
 } from './extensions/live-preview'
 export { MARK_SYNTAX, getSyntax, getEnabledMarks } from './extensions/live-preview'
+export {
+  MarkdownStructuralEditing,
+  runMarkdownStructuralBackspace
+} from './extensions/markdown-structural-editing'
+export type { HeadingLevel } from './extensions/markdown-structural-editing'
 
 // SlashCommand - Notion-style command palette
 export { SlashCommand } from './extensions/slash-command'
