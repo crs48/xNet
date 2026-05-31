@@ -46,6 +46,7 @@ export {
   type CanvasExternalReferenceCardMetadata,
   type CanvasExternalReferenceCardRenderer,
   type CanvasExternalReferenceCardRendererKind,
+  type CanvasExternalReferenceRenderMode,
   type CreateCanvasExternalReferenceCardRendererInput
 } from './components/canvasExternalReferenceCardRenderers'
 export {

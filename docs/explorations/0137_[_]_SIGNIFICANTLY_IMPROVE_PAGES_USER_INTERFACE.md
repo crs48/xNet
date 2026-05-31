@@ -1036,7 +1036,7 @@ Decision gate:
 
 - [x] Create shared `EmbedRegistry` facade over `@xnetjs/data` providers and policies.
 - [x] Unify editor and canvas embed policy usage.
-- [ ] Define inline, block, compact, and read-only renderers per provider.
+- [x] Define inline, block, compact, and read-only renderers per provider.
 - [x] Add rich link preview card for generic URLs.
 - [ ] Add page embed block.
 - [ ] Improve database embed keyboard and selection behavior.

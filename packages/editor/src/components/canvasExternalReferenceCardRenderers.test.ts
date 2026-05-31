@@ -15,6 +15,7 @@ describe('createCanvasExternalReferenceCardRenderer', () => {
     ).toMatchObject({
       providerId: 'github',
       kind: 'github-record',
+      renderModes: ['inline', 'block', 'compact', 'read-only'],
       badgeLabel: 'GitHub issue',
       iconLabel: 'GH',
       metadata: [
@@ -43,6 +44,7 @@ describe('createCanvasExternalReferenceCardRenderer', () => {
     ).toMatchObject({
       providerId: 'youtube',
       kind: 'video',
+      renderModes: ['block', 'compact', 'read-only'],
       accent: 'red',
       badgeLabel: 'YouTube video',
       liveBadgeLabel: 'YouTube video embed',
@@ -72,6 +74,7 @@ describe('createCanvasExternalReferenceCardRenderer', () => {
     ).toMatchObject({
       providerId: 'spotify',
       kind: 'audio',
+      renderModes: ['block', 'compact', 'read-only'],
       badgeLabel: 'Spotify playlist',
       metadata: [
         { label: 'Type', value: 'playlist' },
@@ -87,8 +90,24 @@ describe('createCanvasExternalReferenceCardRenderer', () => {
     ).toMatchObject({
       providerId: 'figma',
       kind: 'design',
+      renderModes: ['block', 'compact', 'read-only'],
       badgeLabel: 'Figma design'
     })
+  })
+
+  it('declares inline rendering only for link-like providers', () => {
+    const genericRenderer = createCanvasExternalReferenceCardRenderer({
+      url: 'https://example.com/plans/roadmap',
+      provider: 'generic'
+    })
+    const videoRenderer = createCanvasExternalReferenceCardRenderer({
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      provider: 'youtube'
+    })
+
+    expect(genericRenderer.renderModes).toEqual(['inline', 'block', 'compact', 'read-only'])
+    expect(videoRenderer.renderModes).toEqual(['block', 'compact', 'read-only'])
+    expect(videoRenderer.renderModes).not.toContain('inline')
   })
 
   it('falls back to generic link rendering for unknown providers', () => {
@@ -100,6 +119,7 @@ describe('createCanvasExternalReferenceCardRenderer', () => {
     ).toMatchObject({
       providerId: 'generic',
       kind: 'link',
+      renderModes: ['inline', 'block', 'compact', 'read-only'],
       badgeLabel: 'Link preview',
       metadata: [
         { label: 'Host', value: 'example.com' },
