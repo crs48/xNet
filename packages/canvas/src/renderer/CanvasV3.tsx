@@ -1154,6 +1154,9 @@ function isTextInputLikeElement(target: EventTarget | null): boolean {
     target.tagName === 'BUTTON' ||
     target.tagName === 'A' ||
     Boolean(target.closest('[role="toolbar"], [role="dialog"]')) ||
+    Boolean(
+      target.closest('[data-canvas-interactive="true"], [data-canvas-editing-surface="true"]')
+    ) ||
     target.isContentEditable
   )
 }

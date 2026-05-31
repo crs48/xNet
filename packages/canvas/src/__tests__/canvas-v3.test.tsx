@@ -1783,6 +1783,60 @@ describe('Canvas v3 active renderer', () => {
     expect(onSceneMutation).toHaveBeenCalled()
   })
 
+  it('does not move v3 objects when an embedded editor surface handles the pointer', () => {
+    const doc = createCanvasTestDoc()
+    const onSceneMutation = vi.fn()
+    const onSelectionChange = vi.fn()
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        onSceneMutation={onSceneMutation}
+        onSelectionChange={onSelectionChange}
+        renderNode={(node) => (
+          <div data-canvas-interactive="true" data-testid={`editor-surface-${node.id}`}>
+            <div data-testid={`editor-whitespace-${node.id}`}>
+              {node.properties.title as string}
+            </div>
+          </div>
+        )}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const initialX = page.position.x
+    const initialY = page.position.y
+    const editorWhitespace = screen.getByTestId(`editor-whitespace-${page.id}`)
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    fireEvent.pointerDown(editorWhitespace, {
+      button: 0,
+      pointerId: 71,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 71,
+      clientX: 540,
+      clientY: 365
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 71,
+      clientX: 540,
+      clientY: 365
+    })
+
+    const moved = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(moved?.position.x).toBe(initialX)
+    expect(moved?.position.y).toBe(initialY)
+    expect(onSelectionChange).not.toHaveBeenCalledWith({
+      nodeIds: [page.id],
+      edgeIds: []
+    })
+    expect(onSceneMutation).not.toHaveBeenCalled()
+  })
+
   it('ignores v3 DOM island drag jitter below the movement threshold', () => {
     const doc = createCanvasTestDoc()
     const onSceneMutation = vi.fn()

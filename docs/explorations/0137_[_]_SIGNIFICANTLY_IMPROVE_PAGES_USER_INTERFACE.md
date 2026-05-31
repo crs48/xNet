@@ -1045,11 +1045,11 @@ Decision gate:
 
 ### Phase 5: Canvas Integration
 
-- [ ] Add low-zoom static preview for page nodes.
+- [x] Add low-zoom static preview for page nodes.
 - [ ] Add high-zoom inline editing with compact toolbar.
-- [ ] Add open-in-page and open-in-peek flows.
+- [x] Add open-in-page and open-in-peek flows.
 - [ ] Verify canvas drag/resize does not steal editor selection.
-- [ ] Verify editor selection does not move canvas nodes.
+- [x] Verify editor selection does not move canvas nodes.
 - [ ] Add performance budget for many page cards on one canvas.
 - [ ] Add screenshot checks at multiple zoom levels.
 
