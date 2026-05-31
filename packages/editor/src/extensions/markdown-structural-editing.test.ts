@@ -12,7 +12,12 @@ import {
   PageTaskItemExtension,
   getMarkdownTokenContract
 } from '../extensions'
+import { generateLargeDocument } from '../testing/benchmarks'
+import { measure } from '../utils/performance'
 import { runMarkdownStructuralBackspace } from './markdown-structural-editing'
+
+const LARGE_TYPING_DOCUMENT_BLOCKS = 1000
+const SINGLE_CHARACTER_TYPING_BUDGET_MS = 250
 
 function pressBackspace(editor: Editor): boolean {
   const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true })
@@ -288,6 +293,29 @@ describe('MarkdownStructuralEditing', () => {
       type: 'heading',
       attrs: { level: 2 }
     })
+  })
+})
+
+describe('MarkdownStructuralEditing performance', () => {
+  let editor: Editor
+
+  afterEach(() => {
+    editor.destroy()
+  })
+
+  it('keeps single-character typing bounded in a 1,000-block document', () => {
+    editor = createMarkdownEditor(
+      generateLargeDocument(LARGE_TYPING_DOCUMENT_BLOCKS, 16) as Content
+    )
+    editor.commands.setTextSelection(editor.state.doc.content.size - 1)
+    const textLengthBefore = editor.getText().length
+
+    const typed = measure(() => {
+      typeTextWithInputRules(editor, 'x')
+    })
+
+    expect(editor.getText()).toHaveLength(textLengthBefore + 1)
+    expect(typed.duration).toBeLessThan(SINGLE_CHARACTER_TYPING_BUDGET_MS)
   })
 })
 

@@ -1235,6 +1235,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/testing/benchmarks.test.ts src/extensions/markdown-io.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 typing latency checkpoint:
+
+- Added a 1,000-block document typing budget regression around the Markdown structural editing path.
+- The test inserts one character at the end of a mixed large document and enforces a 250ms command budget outside fixture construction.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/markdown-structural-editing.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1311,7 +1319,7 @@ Decision gate:
 
 ### Performance
 
-- [ ] Typing latency stays under the chosen budget in a 1,000-block document.
+- [x] Typing latency stays under the chosen budget in a 1,000-block document.
 - [ ] Selection changes do not recompute full-document decorations unnecessarily.
 - [ ] Initial editor mount remains within budget for typical pages.
 - [x] Canvas with many page cards uses preview mode instead of full editor mode.
