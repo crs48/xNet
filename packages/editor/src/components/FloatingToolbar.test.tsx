@@ -328,6 +328,22 @@ describe('FloatingToolbar', () => {
     ).toBeInTheDocument()
   })
 
+  it('hides canvas inline compact toolbar when focus leaves an existing range selection', () => {
+    const editor = createMockEditor()
+    editor.isFocused = false
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(
+      <FloatingToolbar
+        editor={editor as unknown as Editor}
+        mode="desktop"
+        surface="canvas-inline"
+      />
+    )
+
+    expect(screen.queryByTestId('editor-desktop-toolbar')).not.toBeInTheDocument()
+  })
+
   it('shows mobile toolbar on focus in mobile mode', () => {
     const editor = createMockEditor()
     render(<FloatingToolbar editor={editor as unknown as Editor} mode="mobile" />)

@@ -1144,6 +1144,13 @@ Decision gate:
   - `pnpm --filter xnet-desktop exec vitest run src/renderer/components/DocumentHeader.test.tsx src/renderer/components/page-editor-focus.test.ts`
   - `pnpm --filter xnet-desktop exec tsc --noEmit`
 
+2026-05-31 browser smoke checkpoint:
+
+- Re-ran the Storybook editor feature workbench in the in-app browser after the toolbar and Backspace changes.
+- Verified the story rendered three ProseMirror editor roots and three rich-link/card surfaces with no browser console errors.
+- Captured a Playwright CLI fallback screenshot after the in-app screenshot command timed out:
+  - `tmp/playwright/editor-smoke-after-backspace-toolbar.png`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1172,7 +1179,7 @@ Decision gate:
 - [x] Bold, italic, strike, code, link, comment commands mutate content correctly.
 - [x] Toolbar hides on valid blur.
 - [x] Mobile toolbar appears when editor is focused.
-- [ ] Canvas compact toolbar appears only in focused inline edit mode.
+- [x] Canvas compact toolbar appears only in focused inline edit mode.
 - [ ] Slash menu opens at `/` and filters command list.
 - [ ] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
 
