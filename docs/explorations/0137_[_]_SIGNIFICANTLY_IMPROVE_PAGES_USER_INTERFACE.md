@@ -1282,7 +1282,7 @@ Decision gate:
 - [ ] Undo/redo is local and predictable with Yjs collaboration.
 - [ ] Comments remain anchored after Markdown structural transforms.
 - [ ] Task extraction continues to work from structured ProseMirror docs.
-- [ ] Documents reload without losing custom embeds.
+- [x] Documents reload without losing custom embeds.
 
 ### Performance
 

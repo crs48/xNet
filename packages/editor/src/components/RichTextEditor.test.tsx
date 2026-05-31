@@ -161,6 +161,168 @@ describe('RichTextEditor', () => {
       const fragment = ydoc.getXmlFragment('content')
       expect(fragment).toBeDefined()
     })
+
+    it('reloads persisted custom embed nodes without losing their attributes', async () => {
+      let readyEditor: Editor | null = null
+      const { unmount } = render(
+        <RichTextEditor
+          ydoc={ydoc}
+          showToolbar={false}
+          onEditorReady={(editor) => {
+            readyEditor = editor
+          }}
+        />
+      )
+
+      await screen.findByRole('textbox', { name: 'Rich text editor' })
+      await waitFor(() => expect(readyEditor).not.toBeNull())
+
+      act(() => {
+        readyEditor?.commands.setContent({
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: 'Reference ' },
+                {
+                  type: 'smartReference',
+                  attrs: {
+                    url: 'https://github.com/xnetjs/xNet/issues/301',
+                    provider: 'github',
+                    kind: 'issue',
+                    refId: '301',
+                    title: 'Issue 301',
+                    subtitle: 'Editor polish',
+                    icon: 'GH',
+                    metadata: '{"repo":"xNet"}'
+                  }
+                }
+              ]
+            },
+            {
+              type: 'databaseEmbed',
+              attrs: {
+                databaseId: 'db-roadmap',
+                viewType: 'board',
+                viewConfig: { groupBy: 'status' },
+                showTitle: false,
+                maxHeight: 560
+              }
+            },
+            {
+              type: 'embed',
+              attrs: {
+                url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                provider: 'youtube',
+                embedId: 'dQw4w9WgXcQ',
+                embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                title: 'Launch demo',
+                width: 640,
+                alignment: 'center'
+              }
+            },
+            {
+              type: 'pageEmbed',
+              attrs: {
+                pageId: 'default/roadmap',
+                title: 'Roadmap',
+                subtitle: 'Planning page',
+                icon: 'RD',
+                preview: 'Launch milestones.'
+              }
+            }
+          ]
+        })
+      })
+
+      await waitFor(() => {
+        expect(
+          readyEditor
+            ?.getJSON()
+            .content?.slice(0, 4)
+            .map((node) => node.type)
+        ).toEqual(['paragraph', 'databaseEmbed', 'embed', 'pageEmbed'])
+      })
+
+      const persistedUpdate = Y.encodeStateAsUpdate(ydoc)
+      unmount()
+
+      const reloadedDoc = new Y.Doc()
+      Y.applyUpdate(reloadedDoc, persistedUpdate)
+      let reloadedEditor: Editor | null = null
+
+      try {
+        render(
+          <RichTextEditor
+            ydoc={reloadedDoc}
+            showToolbar={false}
+            onEditorReady={(editor) => {
+              reloadedEditor = editor
+            }}
+          />
+        )
+
+        await waitFor(() => expect(reloadedEditor).not.toBeNull())
+        await waitFor(() => {
+          expect(reloadedEditor?.getJSON().content?.slice(0, 4)).toMatchObject([
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: 'Reference ' },
+                {
+                  type: 'smartReference',
+                  attrs: {
+                    url: 'https://github.com/xnetjs/xNet/issues/301',
+                    provider: 'github',
+                    kind: 'issue',
+                    refId: '301',
+                    title: 'Issue 301',
+                    subtitle: 'Editor polish',
+                    icon: 'GH',
+                    metadata: '{"repo":"xNet"}'
+                  }
+                }
+              ]
+            },
+            {
+              type: 'databaseEmbed',
+              attrs: {
+                databaseId: 'db-roadmap',
+                viewType: 'board',
+                viewConfig: { groupBy: 'status' },
+                showTitle: false,
+                maxHeight: 560
+              }
+            },
+            {
+              type: 'embed',
+              attrs: {
+                url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                provider: 'youtube',
+                embedId: 'dQw4w9WgXcQ',
+                embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                title: 'Launch demo',
+                width: 640,
+                alignment: 'center'
+              }
+            },
+            {
+              type: 'pageEmbed',
+              attrs: {
+                pageId: 'default/roadmap',
+                title: 'Roadmap',
+                subtitle: 'Planning page',
+                icon: 'RD',
+                preview: 'Launch milestones.'
+              }
+            }
+          ])
+        })
+      } finally {
+        reloadedDoc.destroy()
+      }
+    })
   })
 
   describe('read-only mode', () => {
