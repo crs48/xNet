@@ -40,6 +40,7 @@ import {
   FileExtension,
   SmartReferenceExtension,
   EmbedExtension,
+  RichLinkExtension,
   DatabaseEmbedExtension,
   TaskViewEmbedExtension,
   PageTaskItemExtension,
@@ -484,6 +485,8 @@ export function RichTextEditor({
     SmartReferenceExtension,
     // Media embeds (YouTube, Spotify, Vimeo, etc.)
     EmbedExtension,
+    // Rich preview cards for generic pasted URLs
+    RichLinkExtension,
     // Database embeds (inline table/board/list views)
     DatabaseEmbedExtension.configure({
       onSelectDatabase,

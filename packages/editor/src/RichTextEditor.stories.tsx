@@ -10,6 +10,7 @@ import TaskList from '@tiptap/extension-task-list'
 import Typography from '@tiptap/extension-typography'
 import StarterKit from '@tiptap/starter-kit'
 import { prosemirrorJSONToYDoc } from '@tiptap/y-tiptap'
+import { parseExternalReferenceUrl } from '@xnetjs/data'
 import { Badge, Button } from '@xnetjs/ui'
 import {
   BoardView,
@@ -41,6 +42,7 @@ import {
   parseEmbedUrl,
   PageTaskItemExtension,
   SlashCommand,
+  RichLinkExtension,
   SmartReferenceExtension,
   TaskDueDateExtension,
   TaskMentionExtension,
@@ -466,6 +468,7 @@ function createStorySeedExtensions(): AnyExtension[] {
     }),
     SmartReferenceExtension,
     EmbedExtension,
+    RichLinkExtension,
     DatabaseEmbedExtension.configure({
       onSelectDatabase: async () => null,
       renderView: () => null,
@@ -590,6 +593,24 @@ function createSmartReferenceNode(url: string): JSONContent {
   }
 }
 
+function createRichLinkNode(url: string): JSONContent {
+  const parsed = parseExternalReferenceUrl(url)
+  if (!parsed || parsed.provider !== 'generic') {
+    throw new Error(`Unsupported rich link URL: ${url}`)
+  }
+
+  return {
+    type: 'richLink',
+    attrs: {
+      url: parsed.normalizedUrl,
+      provider: parsed.provider,
+      title: parsed.title,
+      subtitle: parsed.subtitle ?? null,
+      icon: parsed.icon ?? 'LINK'
+    }
+  }
+}
+
 function createTaskMentionNode(mention: TaskMentionSuggestion): JSONContent {
   return {
     type: 'taskMention',
@@ -656,6 +677,7 @@ function createFeatureDocument(imageSrc: string): JSONContent {
         ]),
         createText('.')
       ]),
+      createRichLinkNode('https://docs.example.com/pages/editor-preview?section=generic-links'),
       createHeading(2, [createText('Media And External Embeds')]),
       createParagraph([
         createText(

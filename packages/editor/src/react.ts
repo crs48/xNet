@@ -98,6 +98,7 @@ export { CalloutNodeView } from './extensions/callout'
 export { ToggleNodeView } from './extensions/toggle'
 export { FileNodeView } from './extensions/file'
 export { EmbedNodeView } from './extensions/embed'
+export { RichLinkNodeView } from './extensions/rich-link'
 export { DatabaseEmbedNodeView } from './extensions/database-embed'
 export { TaskViewEmbedNodeView } from './extensions/task-view-embed'
 

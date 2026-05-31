@@ -1037,7 +1037,7 @@ Decision gate:
 - [x] Create shared `EmbedRegistry` facade over `@xnetjs/data` providers and policies.
 - [x] Unify editor and canvas embed policy usage.
 - [ ] Define inline, block, compact, and read-only renderers per provider.
-- [ ] Add rich link preview card for generic URLs.
+- [x] Add rich link preview card for generic URLs.
 - [ ] Add page embed block.
 - [ ] Improve database embed keyboard and selection behavior.
 - [ ] Add YouTube/Vimeo/Loom/Figma/CodeSandbox Playwright smoke checks.
@@ -1111,7 +1111,7 @@ Decision gate:
 ### Embeds And References
 
 - [ ] YouTube paste creates a media embed.
-- [ ] Generic URL paste creates a rich link or link by policy.
+- [x] Generic URL paste creates a rich link or link by policy.
 - [ ] Figma/CodeSandbox/Loom embeds respect iframe policy.
 - [ ] Blocked providers render a safe placeholder.
 - [ ] Database embed inserts from slash command.
