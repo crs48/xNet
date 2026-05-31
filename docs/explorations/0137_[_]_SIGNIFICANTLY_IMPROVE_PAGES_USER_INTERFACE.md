@@ -1250,7 +1250,7 @@ Decision gate:
 - [x] Title Enter moves into first body block.
 - [x] Body Backspace at empty first block can return focus to title or no-op by explicit design.
 - [x] Long documents keep a stable writing measure.
-- [ ] Selection and caret remain visible in light/dark themes.
+- [x] Selection and caret remain visible in light/dark themes.
 - [x] Screen reader labels identify editor, title, toolbar, and embed controls.
 
 ### Embeds And References
