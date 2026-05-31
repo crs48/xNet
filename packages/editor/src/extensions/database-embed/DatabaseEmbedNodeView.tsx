@@ -183,7 +183,9 @@ export function DatabaseEmbedNodeView({
                 )}
                 aria-label="Change view type"
               >
-                <span>{VIEW_ICONS[viewType as DatabaseViewType] || VIEW_ICONS.table}</span>
+                <span aria-hidden="true">
+                  {VIEW_ICONS[viewType as DatabaseViewType] || VIEW_ICONS.table}
+                </span>
                 <span>{VIEW_LABELS[viewType as DatabaseViewType] || 'Table'}</span>
                 <svg
                   className="w-3 h-3"
@@ -229,7 +231,7 @@ export function DatabaseEmbedNodeView({
                           'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                       )}
                     >
-                      <span>{VIEW_ICONS[type]}</span>
+                      <span aria-hidden="true">{VIEW_ICONS[type]}</span>
                       <span>{VIEW_LABELS[type]}</span>
                     </button>
                   ))}

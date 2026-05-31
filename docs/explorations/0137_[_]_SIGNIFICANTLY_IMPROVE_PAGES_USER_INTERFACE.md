@@ -1177,6 +1177,15 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/embed/EmbedNodeView.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 database embed mode checkpoint:
+
+- Database embed node-view tests now verify table, board, list, calendar, gallery, and timeline picker options.
+- Picker icon glyphs are hidden from accessible names so mode controls are announced by label.
+- The host `renderView` callback is covered with selected `viewType` and `viewConfig` forwarding.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/database-embed/DatabaseEmbedNodeView.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1227,7 +1236,7 @@ Decision gate:
 - [x] Figma/CodeSandbox/Loom embeds respect iframe policy.
 - [x] Blocked providers render a safe placeholder.
 - [x] Database embed inserts from slash command.
-- [ ] Database embed supports table/board/calendar/gallery/list modes as applicable.
+- [x] Database embed supports table/board/calendar/gallery/list modes as applicable.
 - [ ] Page links and page embeds can be inserted and navigated.
 - [ ] Smart references remain compact and editable.
 - [x] Embed Markdown serialization round-trips.
