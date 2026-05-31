@@ -238,4 +238,39 @@ test.describe('Editor Markdown live editing', () => {
       page.locator('a[data-wikilink][href="default/launch-plan"]', { hasText: 'Launch Plan' })
     ).toBeVisible()
   })
+
+  test('database popover inserts database embeds with a selected view', async ({ page }) => {
+    const editor = await createBlankPage(page)
+
+    await editor.click()
+    await page.keyboard.type('database embed target')
+    await selectEditorText(page, 'database embed target', {
+      start: 'database '.length,
+      end: 'database embed'.length
+    })
+    await expect
+      .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ''))
+      .toBe('embed')
+
+    const toolbar = page.getByTestId('editor-desktop-toolbar')
+    await expect(toolbar).toBeVisible()
+
+    await toolbar.getByRole('button', { name: 'Database' }).click()
+    const databasePopover = page.getByTestId('editor-database-popover')
+    await expect(databasePopover).toBeVisible()
+    await expect(databasePopover).toHaveAttribute('role', 'dialog')
+    await expect(databasePopover).toHaveAttribute('aria-label', 'Insert database embed')
+    await databasePopover.getByRole('textbox', { name: 'Database ID' }).fill('db-roadmap')
+    await databasePopover.getByRole('radio', { name: 'Board view' }).click()
+    await databasePopover.getByRole('button', { name: 'Insert database embed' }).click()
+
+    const databaseEmbed = page.locator('[data-database-embed]', { hasText: 'db-roadmap' })
+    await expect(databaseEmbed).toBeVisible()
+    await expect(databaseEmbed.getByText('Board View')).toBeVisible()
+
+    await page.screenshot({
+      path: 'tmp/playwright/editor-markdown-database-popover.png',
+      fullPage: true
+    })
+  })
 })

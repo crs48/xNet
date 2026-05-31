@@ -925,6 +925,7 @@ Core requirements:
 
 - Keep the editor surface visually minimal: generous page whitespace, no permanent formatting chrome, no nested card framing around the writing area.
 - Prefer icon-only command buttons in toolbars, but every icon must have a stable accessible name, hover tooltip, and shortcut hint when a shortcut exists.
+- Keep the aesthetic quiet and functional: restrained borders, neutral surfaces, compact controls, and contextual UI instead of persistent panels or instructional chrome.
 - Show contextual hints only near the relevant action: selection toolbar for selected text, slash menu for insertion, embed popovers for embed options, canvas compact controls only during inline editing.
 - Use compact popovers for multi-step actions such as link editing, database view selection, embed provider settings, and page/database references.
 - Make hover and focus behavior symmetrical. Keyboard users should discover the same labels by tabbing through controls, pressing `/`, using Arrow keys, and dismissing with Escape.
@@ -943,7 +944,7 @@ flowchart LR
 
   Selection --> Toolbar["Minimal icon toolbar"]
   Toolbar --> Tooltip["Tooltip: action + shortcut"]
-  Toolbar --> Popover["Popover for link/comment/reference"]
+  Toolbar --> Popover["Popover for link/reference/database"]
 
   Slash --> Menu["Command menu"]
   Menu --> Descriptions["Names, descriptions, search terms"]
@@ -960,6 +961,7 @@ Validation criteria:
 - Escape closes the current popover/menu without changing document content.
 - The toolbar has no layout shift when labels or shortcut strings change.
 - Browser screenshots cover the clean idle surface, selection toolbar, slash menu, and at least one embed/reference popover.
+- Most-used learning flows have e2e coverage: Markdown heading editing, slash command insertion, link/reference popovers, and database embed insertion.
 
 ### Embed And Database Model
 
@@ -1057,7 +1059,7 @@ Decision gate:
   - [x] Add keyboard-discoverable toolbar popover for link editing.
   - [x] Add keyboard-discoverable toolbar popover for page references.
   - [ ] Add keyboard-discoverable toolbar popover for database references.
-  - [ ] Add keyboard-discoverable toolbar popover for database embeds.
+  - [x] Add keyboard-discoverable toolbar popover for database embeds.
   - [ ] Add keyboard-discoverable toolbar popover for rich media embeds.
 
 ### Phase 2: Markdown Structural Editing
@@ -1204,6 +1206,16 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
   - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts src/editor-ux.spec.ts --project=chromium`
+- In-app browser Storybook smoke loaded `core-editor-richtexteditor--playground`, found three ProseMirror editor roots, and reported no browser warnings or errors.
+
+2026-05-31 database toolbar popover checkpoint:
+
+- Added a toolbar Database popover for inserting database embed blocks with an explicit view mode.
+- The database popover validates empty IDs, closes on Escape without mutating content, keeps the selection toolbar visible while focused, and can use the configured `databaseEmbed.onSelectDatabase` picker when available.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+  - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
 - In-app browser Storybook smoke loaded `core-editor-richtexteditor--playground`, found three ProseMirror editor roots, and reported no browser warnings or errors.
 
 2026-05-31 page body/title Backspace checkpoint:
@@ -1400,14 +1412,22 @@ Decision gate:
 - [x] Link toolbar popover keeps the selection toolbar visible while URL input owns focus.
 - [x] Reference toolbar popover inserts page wikilinks from selected text.
 - [x] Reference toolbar popover keeps the selection toolbar visible while input owns focus.
+- [x] Database toolbar popover inserts database embeds with a selected view.
+- [x] Database toolbar popover keeps the selection toolbar visible while input owns focus.
+- [x] Database toolbar popover can use the configured database picker when available.
 - [x] Slash menu opens at `/` and filters command list.
 - [x] Slash menu descriptions are covered by e2e for common task-list insertion.
 - [x] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
 - [ ] Extend custom tooltip/popover coverage to embed, reference, and database controls.
+  - [x] Link controls use custom tooltip/popover coverage.
+  - [x] Reference controls use custom toolbar popover coverage.
+  - [x] Database embed controls use custom toolbar popover coverage.
+  - [ ] Rich media embed controls use custom toolbar popover coverage.
 - [ ] Escape closes open toolbar popovers and slash menus without mutating content.
   - [x] Escape closes the link toolbar popover without mutating content.
   - [x] Escape closes the reference toolbar popover without mutating content.
-  - [ ] Escape closes database, embed, and slash command popovers without mutating content.
+  - [x] Escape closes the database toolbar popover without mutating content.
+  - [ ] Escape closes rich embed and slash command popovers without mutating content.
 
 ### Page Surface
 

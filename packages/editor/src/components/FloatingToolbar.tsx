@@ -22,6 +22,7 @@ import {
   CalendarDays,
   Check,
   Code2,
+  Database,
   Heading,
   Heading1,
   Heading2,
@@ -322,6 +323,54 @@ function insertPageReference(editor: Editor, value: string): boolean {
   return true
 }
 
+type DatabaseToolbarViewType = 'table' | 'board' | 'list' | 'calendar' | 'gallery' | 'timeline'
+
+const DATABASE_TOOLBAR_VIEW_TYPES: DatabaseToolbarViewType[] = [
+  'table',
+  'board',
+  'list',
+  'calendar',
+  'gallery',
+  'timeline'
+]
+
+const DATABASE_TOOLBAR_VIEW_LABELS: Record<DatabaseToolbarViewType, string> = {
+  table: 'Table',
+  board: 'Board',
+  list: 'List',
+  calendar: 'Calendar',
+  gallery: 'Gallery',
+  timeline: 'Timeline'
+}
+
+type DatabasePickerExtension = {
+  options?: {
+    onSelectDatabase?: () => Promise<string | null>
+  }
+}
+
+function getDatabasePicker(editor: Editor): (() => Promise<string | null>) | null {
+  const extension = editor.extensionManager?.extensions.find(
+    (item) => item.name === 'databaseEmbed'
+  ) as DatabasePickerExtension | undefined
+
+  return extension?.options?.onSelectDatabase ?? null
+}
+
+function insertDatabaseEmbed(
+  editor: Editor,
+  databaseId: string,
+  viewType: DatabaseToolbarViewType
+): boolean {
+  const normalizedId = databaseId.trim()
+  if (!normalizedId) return false
+
+  return editor.commands.setDatabaseEmbed({
+    databaseId: normalizedId,
+    viewType
+  })
+}
+
 function LinkToolbarPopover({
   editor,
   open,
@@ -559,6 +608,185 @@ function ReferenceToolbarPopover({
   )
 }
 
+function DatabaseToolbarPopover({
+  editor,
+  open,
+  onOpenChange,
+  isMobile
+}: {
+  editor: Editor
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  isMobile: boolean
+}): JSX.Element | null {
+  const inputId = useId()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [databaseId, setDatabaseId] = useState('')
+  const [viewType, setViewType] = useState<DatabaseToolbarViewType>('table')
+  const [error, setError] = useState<string | null>(null)
+  const [picking, setPicking] = useState(false)
+
+  const picker = getDatabasePicker(editor)
+
+  useEffect(() => {
+    if (!open) return
+
+    setDatabaseId('')
+    setViewType('table')
+    setError(null)
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    })
+  }, [open])
+
+  const close = useCallback(() => {
+    editor.commands.focus()
+    onOpenChange(false)
+  }, [editor, onOpenChange])
+
+  const applyDatabaseEmbed = useCallback(() => {
+    if (!insertDatabaseEmbed(editor, databaseId, viewType)) {
+      setError('Enter a database ID')
+      inputRef.current?.focus()
+      return
+    }
+
+    onOpenChange(false)
+  }, [databaseId, editor, onOpenChange, viewType])
+
+  const pickDatabase = useCallback(async () => {
+    if (!picker) return
+
+    setPicking(true)
+    setError(null)
+    try {
+      const selectedDatabaseId = await picker()
+      if (selectedDatabaseId) {
+        setDatabaseId(selectedDatabaseId)
+      }
+    } finally {
+      setPicking(false)
+      requestAnimationFrame(() => inputRef.current?.focus())
+    }
+  }, [picker])
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLFormElement>) => {
+      if (event.key !== 'Escape') return
+
+      event.preventDefault()
+      event.stopPropagation()
+      close()
+    },
+    [close]
+  )
+
+  if (!open) return null
+
+  return (
+    <form
+      data-testid="editor-database-popover"
+      role="dialog"
+      aria-label="Insert database embed"
+      className={cn(
+        'absolute z-[60] w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-border/70',
+        'bg-popover p-3 text-popover-foreground shadow-xl shadow-black/15',
+        'dark:shadow-black/40',
+        isMobile ? 'bottom-full right-3 mb-2' : 'right-0 top-full mt-2'
+      )}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(event) => event.stopPropagation()}
+      onSubmit={(event) => {
+        event.preventDefault()
+        applyDatabaseEmbed()
+      }}
+    >
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-sm font-medium">Database</span>
+        <button
+          type="button"
+          aria-label="Close database popover"
+          className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+          onClick={close}
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      </div>
+      <label htmlFor={inputId} className="sr-only">
+        Database ID
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          id={inputId}
+          value={databaseId}
+          placeholder="Database ID"
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          className={cn(
+            'min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-2 text-sm',
+            'outline-none transition-colors',
+            'placeholder:text-muted-foreground',
+            'focus:border-primary focus:ring-2 focus:ring-primary/20',
+            error && 'border-destructive focus:border-destructive focus:ring-destructive/20'
+          )}
+          onChange={(event) => {
+            setDatabaseId(event.target.value)
+            setError(null)
+          }}
+        />
+        {picker && (
+          <button
+            type="button"
+            aria-label="Pick database"
+            className="h-9 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground disabled:opacity-60 dark:hover:bg-white/10"
+            disabled={picking}
+            onClick={() => {
+              void pickDatabase()
+            }}
+          >
+            Pick
+          </button>
+        )}
+        <button
+          type="submit"
+          aria-label="Insert database embed"
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+          title="Insert database embed"
+        >
+          <Database size={16} aria-hidden="true" />
+        </button>
+      </div>
+      {error && (
+        <p id={`${inputId}-error`} className="mt-2 text-xs text-destructive">
+          {error}
+        </p>
+      )}
+      <div className="mt-3 grid grid-cols-3 gap-1" role="radiogroup" aria-label="Database view">
+        {DATABASE_TOOLBAR_VIEW_TYPES.map((type) => (
+          <button
+            key={type}
+            type="button"
+            role="radio"
+            aria-checked={viewType === type}
+            aria-label={`${DATABASE_TOOLBAR_VIEW_LABELS[type]} view`}
+            className={cn(
+              'h-8 rounded-md border px-2 text-xs font-medium transition-colors',
+              viewType === type
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10'
+            )}
+            onClick={() => setViewType(type)}
+          >
+            {DATABASE_TOOLBAR_VIEW_LABELS[type]}
+          </button>
+        ))}
+      </div>
+    </form>
+  )
+}
+
 /**
  * Render a plugin-provided toolbar button
  */
@@ -595,8 +823,11 @@ interface ToolbarContentProps {
   onLinkPopoverOpenChange: (open: boolean) => void
   referencePopoverOpen: boolean
   onReferencePopoverOpenChange: (open: boolean) => void
+  databasePopoverOpen: boolean
+  onDatabasePopoverOpenChange: (open: boolean) => void
   renderLinkPopover?: boolean
   renderReferencePopover?: boolean
+  renderDatabasePopover?: boolean
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }
@@ -608,8 +839,11 @@ function ToolbarContent({
   onLinkPopoverOpenChange,
   referencePopoverOpen,
   onReferencePopoverOpenChange,
+  databasePopoverOpen,
+  onDatabasePopoverOpenChange,
   renderLinkPopover = true,
   renderReferencePopover = true,
+  renderDatabasePopover = true,
   additionalItems = [],
   onCreateComment
 }: ToolbarContentProps): JSX.Element {
@@ -649,6 +883,10 @@ function ToolbarContent({
   const handleReference = useCallback(() => {
     onReferencePopoverOpenChange(true)
   }, [onReferencePopoverOpenChange])
+
+  const handleDatabase = useCallback(() => {
+    onDatabasePopoverOpenChange(true)
+  }, [onDatabasePopoverOpenChange])
 
   const handlePickDueDate = useCallback(async () => {
     const selectedDate = await pickDate(getCurrentTaskDueDate(editor))
@@ -888,6 +1126,24 @@ function ToolbarContent({
       {insertItems.map((item) => (
         <PluginToolbarButton key={item.title} item={item} editor={editor} isMobile={isMobile} />
       ))}
+      <ToolbarDivider isMobile={isMobile} />
+      <ToolbarButton
+        onClick={handleDatabase}
+        active={editor.isActive('databaseEmbed')}
+        title="Database"
+        ariaLabel="Database"
+        isMobile={isMobile}
+      >
+        <Database size={16} aria-hidden="true" />
+      </ToolbarButton>
+      {renderDatabasePopover && (
+        <DatabaseToolbarPopover
+          editor={editor}
+          open={databasePopoverOpen}
+          onOpenChange={onDatabasePopoverOpenChange}
+          isMobile={isMobile}
+        />
+      )}
       {/* Plugin custom buttons */}
       {customItems.length > 0 && <ToolbarDivider isMobile={isMobile} />}
       {customItems.map((item) => (
@@ -982,6 +1238,8 @@ function MobileToolbar({
   onLinkPopoverOpenChange,
   referencePopoverOpen,
   onReferencePopoverOpenChange,
+  databasePopoverOpen,
+  onDatabasePopoverOpenChange,
   additionalItems = [],
   onCreateComment
 }: {
@@ -994,11 +1252,13 @@ function MobileToolbar({
   onLinkPopoverOpenChange: (open: boolean) => void
   referencePopoverOpen: boolean
   onReferencePopoverOpenChange: (open: boolean) => void
+  databasePopoverOpen: boolean
+  onDatabasePopoverOpenChange: (open: boolean) => void
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const popoverOpen = linkPopoverOpen || referencePopoverOpen
+  const popoverOpen = linkPopoverOpen || referencePopoverOpen || databasePopoverOpen
 
   // Only show when editor is focused
   if (!isFocused && !popoverOpen) return null
@@ -1042,8 +1302,11 @@ function MobileToolbar({
           onLinkPopoverOpenChange={onLinkPopoverOpenChange}
           referencePopoverOpen={referencePopoverOpen}
           onReferencePopoverOpenChange={onReferencePopoverOpenChange}
+          databasePopoverOpen={databasePopoverOpen}
+          onDatabasePopoverOpenChange={onDatabasePopoverOpenChange}
           renderLinkPopover={false}
           renderReferencePopover={false}
+          renderDatabasePopover={false}
           additionalItems={additionalItems}
           onCreateComment={onCreateComment}
         />
@@ -1058,6 +1321,12 @@ function MobileToolbar({
         editor={editor}
         open={referencePopoverOpen}
         onOpenChange={onReferencePopoverOpenChange}
+        isMobile={true}
+      />
+      <DatabaseToolbarPopover
+        editor={editor}
+        open={databasePopoverOpen}
+        onOpenChange={onDatabasePopoverOpenChange}
         isMobile={true}
       />
     </div>
@@ -1076,6 +1345,8 @@ function DesktopToolbar({
   onLinkPopoverOpenChange,
   referencePopoverOpen,
   onReferencePopoverOpenChange,
+  databasePopoverOpen,
+  onDatabasePopoverOpenChange,
   additionalItems = [],
   onCreateComment
 }: {
@@ -1087,10 +1358,12 @@ function DesktopToolbar({
   onLinkPopoverOpenChange: (open: boolean) => void
   referencePopoverOpen: boolean
   onReferencePopoverOpenChange: (open: boolean) => void
+  databasePopoverOpen: boolean
+  onDatabasePopoverOpenChange: (open: boolean) => void
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element {
-  const popoverOpen = linkPopoverOpen || referencePopoverOpen
+  const popoverOpen = linkPopoverOpen || referencePopoverOpen || databasePopoverOpen
 
   return (
     <BubbleMenu
@@ -1131,6 +1404,8 @@ function DesktopToolbar({
         onLinkPopoverOpenChange={onLinkPopoverOpenChange}
         referencePopoverOpen={referencePopoverOpen}
         onReferencePopoverOpenChange={onReferencePopoverOpenChange}
+        databasePopoverOpen={databasePopoverOpen}
+        onDatabasePopoverOpenChange={onDatabasePopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -1156,15 +1431,30 @@ export function FloatingToolbar({
   const ux = useEditorUxState(editor, mode, keyboardThresholds)
   const [linkPopoverOpen, setLinkPopoverOpen] = useState(false)
   const [referencePopoverOpen, setReferencePopoverOpen] = useState(false)
+  const [databasePopoverOpen, setDatabasePopoverOpen] = useState(false)
 
   const handleLinkPopoverOpenChange = useCallback((open: boolean) => {
     setLinkPopoverOpen(open)
-    if (open) setReferencePopoverOpen(false)
+    if (open) {
+      setReferencePopoverOpen(false)
+      setDatabasePopoverOpen(false)
+    }
   }, [])
 
   const handleReferencePopoverOpenChange = useCallback((open: boolean) => {
     setReferencePopoverOpen(open)
-    if (open) setLinkPopoverOpen(false)
+    if (open) {
+      setLinkPopoverOpen(false)
+      setDatabasePopoverOpen(false)
+    }
+  }, [])
+
+  const handleDatabasePopoverOpenChange = useCallback((open: boolean) => {
+    setDatabasePopoverOpen(open)
+    if (open) {
+      setLinkPopoverOpen(false)
+      setReferencePopoverOpen(false)
+    }
   }, [])
 
   if (!editor) return null
@@ -1195,6 +1485,8 @@ export function FloatingToolbar({
         onLinkPopoverOpenChange={handleLinkPopoverOpenChange}
         referencePopoverOpen={referencePopoverOpen}
         onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
+        databasePopoverOpen={databasePopoverOpen}
+        onDatabasePopoverOpenChange={handleDatabasePopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -1212,6 +1504,8 @@ export function FloatingToolbar({
         onLinkPopoverOpenChange={handleLinkPopoverOpenChange}
         referencePopoverOpen={referencePopoverOpen}
         onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
+        databasePopoverOpen={databasePopoverOpen}
+        onDatabasePopoverOpenChange={handleDatabasePopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -1230,6 +1524,8 @@ export function FloatingToolbar({
       onLinkPopoverOpenChange={handleLinkPopoverOpenChange}
       referencePopoverOpen={referencePopoverOpen}
       onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
+      databasePopoverOpen={databasePopoverOpen}
+      onDatabasePopoverOpenChange={handleDatabasePopoverOpenChange}
       additionalItems={additionalItems}
       onCreateComment={onCreateComment}
     />

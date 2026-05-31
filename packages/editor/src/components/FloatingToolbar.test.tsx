@@ -37,6 +37,15 @@ type MockEditor = {
   commands: {
     focus: ReturnType<typeof vi.fn>
     setComment: ReturnType<typeof vi.fn>
+    setDatabaseEmbed: ReturnType<typeof vi.fn>
+  }
+  extensionManager: {
+    extensions: Array<{
+      name: string
+      options?: {
+        onSelectDatabase?: () => Promise<string | null>
+      }
+    }>
   }
   getAttributes: ReturnType<typeof vi.fn>
   _commands: {
@@ -158,7 +167,11 @@ function createMockEditor() {
     })),
     commands: {
       focus: vi.fn(),
-      setComment: vi.fn()
+      setComment: vi.fn(),
+      setDatabaseEmbed: vi.fn(() => true)
+    },
+    extensionManager: {
+      extensions: []
     },
     getAttributes: vi.fn(() => ({})),
     _commands: commands,
@@ -387,6 +400,108 @@ describe('FloatingToolbar', () => {
 
     expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
     expect(screen.getByTestId('editor-reference-popover')).toBeInTheDocument()
+  })
+
+  it('inserts database embeds through the database popover', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Database' }))
+    expect(screen.getByTestId('editor-database-popover')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Database ID' }), {
+      target: { value: ' db-roadmap ' }
+    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Board view' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Insert database embed' }))
+
+    expect(editor.commands.setDatabaseEmbed).toHaveBeenCalledWith({
+      databaseId: 'db-roadmap',
+      viewType: 'board'
+    })
+    expect(screen.queryByTestId('editor-database-popover')).not.toBeInTheDocument()
+  })
+
+  it('keeps database popover open with an error when database ID is empty', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Database' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Insert database embed' }))
+
+    expect(editor.commands.setDatabaseEmbed).not.toHaveBeenCalled()
+    expect(screen.getByTestId('editor-database-popover')).toBeInTheDocument()
+    expect(screen.getByText('Enter a database ID')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Database ID' })).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    )
+  })
+
+  it('closes database popover on Escape without mutating the document', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Database' }))
+    expect(screen.getByTestId('editor-database-popover')).toBeInTheDocument()
+
+    fireEvent.keyDown(screen.getByTestId('editor-database-popover'), { key: 'Escape' })
+
+    expect(screen.queryByTestId('editor-database-popover')).not.toBeInTheDocument()
+    expect(editor.commands.setDatabaseEmbed).not.toHaveBeenCalled()
+    expect(editor.commands.focus).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps desktop toolbar visible while the database popover owns focus', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    const { rerender } = render(
+      <FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Database' }))
+    act(() => {
+      editor.isFocused = false
+      editor._emit('blur')
+    })
+    rerender(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
+    expect(screen.getByTestId('editor-database-popover')).toBeInTheDocument()
+  })
+
+  it('fills the database popover from the configured database picker', async () => {
+    const editor = createMockEditor()
+    const picker = vi.fn().mockResolvedValue('db-picked')
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+    editor.extensionManager.extensions = [
+      {
+        name: 'databaseEmbed',
+        options: { onSelectDatabase: picker }
+      }
+    ]
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Database' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Pick database' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Database ID' })).toHaveValue('db-picked')
+    })
+    expect(picker).toHaveBeenCalledTimes(1)
   })
 
   it('routes desktop comment button through anchor capture and comment commands', async () => {
