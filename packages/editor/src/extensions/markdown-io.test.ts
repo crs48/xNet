@@ -11,6 +11,7 @@ import {
   HeadingWithSyntax,
   isMarkdownClipboardCandidate,
   MarkdownClipboard,
+  PageEmbedExtension,
   PageTaskItemExtension,
   SmartReferenceExtension,
   TiptapMarkdown,
@@ -37,6 +38,7 @@ function createMarkdownEditor(markdown = ''): Editor {
       CodeBlockWithSyntax,
       DatabaseEmbedExtension,
       EmbedExtension,
+      PageEmbedExtension,
       SmartReferenceExtension,
       Wikilink.configure({ onNavigate: () => {}, HTMLAttributes: {} }),
       Link.configure({ openOnClick: false }),
@@ -250,6 +252,56 @@ describe('TiptapMarkdown integration', () => {
       }
     })
     expect(editor.getMarkdown().trimEnd()).toBe(authoredMarkdown)
+  })
+
+  it('round-trips xNet page embed blocks', () => {
+    const authoredMarkdown = [
+      ':::xnet-page',
+      '{"pageId":"default/roadmap","title":"Roadmap","subtitle":"Planning page","icon":"RD","preview":"Launch milestones and decision notes."}',
+      ':::'
+    ].join('\n')
+
+    editor = createMarkdownEditor(authoredMarkdown)
+
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: 'pageEmbed',
+      attrs: {
+        pageId: 'default/roadmap',
+        title: 'Roadmap',
+        subtitle: 'Planning page',
+        icon: 'RD',
+        preview: 'Launch milestones and decision notes.'
+      }
+    })
+    expect(editor.getMarkdown().trimEnd()).toBe(authoredMarkdown)
+  })
+
+  it('canonicalizes xNet page embed blocks after semantic edits', () => {
+    const authoredMarkdown = [
+      ':::xnet-page',
+      '{"pageId":"default/roadmap","title":"Roadmap"}',
+      ':::'
+    ].join('\n')
+
+    editor = createMarkdownEditor(authoredMarkdown)
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name !== 'pageEmbed') return true
+      editor?.commands.setNodeSelection(pos)
+      return false
+    })
+    editor.commands.updatePageEmbed({ title: 'Product Roadmap' })
+
+    expect(editor.getMarkdown().trimEnd()).toBe(
+      [
+        ':::xnet-page',
+        '{',
+        '  "pageId": "default/roadmap",',
+        '  "title": "Product Roadmap",',
+        '  "icon": "PG"',
+        '}',
+        ':::'
+      ].join('\n')
+    )
   })
 
   it('round-trips smart references and wikilinks', () => {

@@ -24,6 +24,18 @@ export interface SlashCommandGroup {
   items: SlashCommandItem[]
 }
 
+function createPageEmbedTarget(value: string): { pageId: string; title: string } | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  return {
+    pageId: trimmed.includes('/')
+      ? trimmed
+      : `default/${trimmed.toLowerCase().replace(/\s+/g, '-')}`,
+    title: trimmed
+  }
+}
+
 /**
  * All available slash commands, organized by group
  */
@@ -359,6 +371,24 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
   {
     name: 'Data',
     items: [
+      {
+        title: 'Page',
+        description: 'Embed a linked page preview',
+        icon: 'Pg',
+        searchTerms: ['page', 'document', 'reference', 'embed', 'wiki'],
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run()
+
+          const page = createPageEmbedTarget(window.prompt('Page title or ID:') ?? '')
+          if (!page) return
+
+          editor.commands.setPageEmbed({
+            pageId: page.pageId,
+            title: page.title,
+            subtitle: 'Embedded page'
+          })
+        }
+      },
       {
         title: 'Database',
         description: 'Embed a linked database view',

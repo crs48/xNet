@@ -655,6 +655,8 @@ export { EMBED_PROVIDERS, detectProvider, parseEmbedUrl } from './extensions/emb
 export type { EmbedProvider } from './extensions/embed'
 export { RichLinkExtension, RichLinkNodeView } from './extensions/rich-link'
 export type { RichLinkOptions } from './extensions/rich-link'
+export { PageEmbedExtension, PageEmbedNodeView } from './extensions/page-embed'
+export type { PageEmbedAttrs, PageEmbedOptions, SetPageEmbedOptions } from './extensions/page-embed'
 export { SmartReferenceExtension } from './extensions/smart-reference'
 export type { SmartReferenceOptions } from './extensions/smart-reference'
 export {

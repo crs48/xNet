@@ -1038,7 +1038,7 @@ Decision gate:
 - [x] Unify editor and canvas embed policy usage.
 - [x] Define inline, block, compact, and read-only renderers per provider.
 - [x] Add rich link preview card for generic URLs.
-- [ ] Add page embed block.
+- [x] Add page embed block.
 - [x] Improve database embed keyboard and selection behavior.
 - [ ] Add YouTube/Vimeo/Loom/Figma/CodeSandbox Playwright smoke checks.
 - [ ] Add blocked-origin and blocked-provider tests.

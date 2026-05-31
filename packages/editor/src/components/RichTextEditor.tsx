@@ -41,6 +41,7 @@ import {
   SmartReferenceExtension,
   EmbedExtension,
   RichLinkExtension,
+  PageEmbedExtension,
   DatabaseEmbedExtension,
   TaskViewEmbedExtension,
   PageTaskItemExtension,
@@ -487,6 +488,10 @@ export function RichTextEditor({
     EmbedExtension,
     // Rich preview cards for generic pasted URLs
     RichLinkExtension,
+    // Page embeds for block references to other documents
+    PageEmbedExtension.configure({
+      onNavigate
+    }),
     // Database embeds (inline table/board/list views)
     DatabaseEmbedExtension.configure({
       onSelectDatabase,

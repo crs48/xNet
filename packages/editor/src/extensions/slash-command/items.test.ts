@@ -23,6 +23,12 @@ describe('slash command items', () => {
         }
       }
     })
+
+    it('should include a page embed command in the data group', () => {
+      const dataGroup = COMMAND_GROUPS.find((group) => group.name === 'Data')
+
+      expect(dataGroup?.items.some((item) => item.title === 'Page')).toBe(true)
+    })
   })
 
   describe('getAllCommands', () => {
