@@ -1089,6 +1089,12 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor typecheck`
   - `pnpm --filter xnet-desktop exec tsc --noEmit`
 
+2026-05-31 toolbar regression checkpoint:
+
+- Added desktop toolbar tests for mark command routing and focus-preserving button mouse down.
+- Focused test passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1113,7 +1119,7 @@ Decision gate:
 ### Toolbar And Commands
 
 - [x] Desktop toolbar appears on range selection.
-- [ ] Toolbar remains usable when clicking buttons.
+- [x] Toolbar remains usable when clicking buttons.
 - [ ] Bold, italic, strike, code, link, comment commands mutate content correctly.
 - [ ] Toolbar hides on valid blur.
 - [x] Mobile toolbar appears when editor is focused.

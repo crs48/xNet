@@ -169,6 +169,39 @@ describe('FloatingToolbar', () => {
     expect(editor._commands.toggleCodeBlock).toHaveBeenCalledTimes(1)
   })
 
+  it('routes desktop mark buttons through editor mark commands', () => {
+    const editor = createMockEditor()
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByTitle('Bold'))
+    fireEvent.click(screen.getByTitle('Italic'))
+    fireEvent.click(screen.getByTitle('Strikethrough'))
+    fireEvent.click(screen.getByTitle('Code'))
+
+    expect(editor._commands.toggleBold).toHaveBeenCalledTimes(1)
+    expect(editor._commands.toggleItalic).toHaveBeenCalledTimes(1)
+    expect(editor._commands.toggleStrike).toHaveBeenCalledTimes(1)
+    expect(editor._commands.toggleCode).toHaveBeenCalledTimes(1)
+  })
+
+  it('prevents toolbar button mouse down from stealing editor focus', () => {
+    const editor = createMockEditor()
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    const event = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true
+    })
+
+    screen.getByTitle('Bold').dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+  })
+
   it('uses compact desktop toolbar policy for canvas inline selections', () => {
     const editor = createMockEditor()
     const { rerender } = render(
