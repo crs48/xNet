@@ -1015,7 +1015,7 @@ Decision gate:
 - [x] Implement blockquote source-token behavior.
 - [x] Implement list and task-list marker behavior.
 - [x] Implement code fence active-block behavior.
-- [ ] Define inline mark reveal and boundary behavior.
+- [x] Define inline mark reveal and boundary behavior.
 - [x] Add undo/redo grouping tests.
 - [x] Add IME/composition tests for no forced normalization mid-composition.
 - [x] Add copy/paste Markdown normalization tests.
@@ -1082,7 +1082,7 @@ Decision gate:
 - [x] `- [ ] ` creates task item and checkbox remains keyboard accessible.
 - [x] Triple backticks create code block.
 - [x] Code fences and language syntax have a tested edit path.
-- [ ] Inline bold/italic/strike/code syntax reveals without trapping caret.
+- [x] Inline bold/italic/strike/code syntax reveals without trapping caret.
 - [x] Pasted Markdown becomes expected structured content.
 - [x] Copied structured content can be copied as Markdown.
 

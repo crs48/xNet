@@ -21,6 +21,7 @@ export type MarkdownTokenRevealPolicy =
 
 export type MarkdownTokenBehavior =
   | 'inputRule'
+  | 'boundaryReveal'
   | 'backspaceStep'
   | 'undoableStep'
   | 'compositionSafe'
@@ -154,9 +155,9 @@ export const MARKDOWN_TOKEN_CONTRACTS = [
     syntax: ['**bold**', '*italic*', '~~strike~~', '`code`'],
     nodeNames: ['text', 'bold', 'italic', 'strike', 'code'],
     revealPolicy: 'inlineBoundaryReveal',
-    behaviors: ['inputRule', 'clipboardRoundTrip'],
-    backspaceSteps: ['planned delimiter-by-delimiter editing'],
-    testIds: ['inline-mark-reveal-planned']
+    behaviors: ['inputRule', 'boundaryReveal', 'clipboardRoundTrip'],
+    backspaceSteps: ['no delimiter Backspace interception in live mode'],
+    testIds: ['inline-mark-boundary-reveal', 'inline-mark-selection-policy']
   }
 ] as const satisfies readonly MarkdownTokenContract[]
 
@@ -267,12 +268,20 @@ export const MARKDOWN_TOKEN_TEST_MATRIX = [
     status: 'covered'
   },
   {
-    id: 'inline-mark-reveal-planned',
+    id: 'inline-mark-boundary-reveal',
+    token: 'inlineMark',
+    fixture: '**bold**, *italic*, ~~strike~~, `code`',
+    expectation:
+      'Inline delimiters reveal at both active mark boundaries for bold, italic, strike, and code.',
+    status: 'covered'
+  },
+  {
+    id: 'inline-mark-selection-policy',
     token: 'inlineMark',
     fixture: '**bold**',
     expectation:
-      'Inline delimiters reveal around active mark boundaries without trapping the caret.',
-    status: 'planned'
+      'Inline delimiter widgets opt out of selection syncing and allow relaxed caret sides.',
+    status: 'covered'
   }
 ] as const satisfies readonly MarkdownTokenTestCase[]
 

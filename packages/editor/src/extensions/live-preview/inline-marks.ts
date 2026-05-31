@@ -1,3 +1,4 @@
+import type { Mark, ResolvedPos } from '@tiptap/pm/model'
 import type { EditorState } from '@tiptap/pm/state'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
@@ -63,8 +64,8 @@ function computeDecorations(
   const decorations: Decoration[] = []
   const processedTypes = new Set<string>()
 
-  // Get marks at cursor position
-  const marks = $from.marks()
+  // Include adjacent marks so syntax reveals at both mark boundaries.
+  const marks = getMarksAroundPosition($from)
 
   for (const mark of marks) {
     const markType = mark.type.name
@@ -84,7 +85,12 @@ function computeDecorations(
       Decoration.widget(
         range.from,
         () => createSyntaxSpan(syntax.open, markType, 'open', syntaxClass),
-        { side: -1, key: `${markType}-open-${range.from}` }
+        {
+          side: -1,
+          key: `${markType}-open-${range.from}`,
+          relaxedSide: true,
+          ignoreSelection: true
+        }
       )
     )
 
@@ -93,12 +99,35 @@ function computeDecorations(
       Decoration.widget(
         range.to,
         () => createSyntaxSpan(syntax.close, markType, 'close', syntaxClass),
-        { side: 1, key: `${markType}-close-${range.to}` }
+        {
+          side: 1,
+          key: `${markType}-close-${range.to}`,
+          relaxedSide: true,
+          ignoreSelection: true
+        }
       )
     )
   }
 
   return DecorationSet.create(doc, decorations)
+}
+
+function getMarksAroundPosition($from: ResolvedPos): Mark[] {
+  const marksByType = new Map<string, Mark>()
+
+  for (const mark of $from.marks()) {
+    marksByType.set(mark.type.name, mark)
+  }
+
+  for (const mark of $from.nodeBefore?.marks ?? []) {
+    marksByType.set(mark.type.name, mark)
+  }
+
+  for (const mark of $from.nodeAfter?.marks ?? []) {
+    marksByType.set(mark.type.name, mark)
+  }
+
+  return [...marksByType.values()]
 }
 
 /**
