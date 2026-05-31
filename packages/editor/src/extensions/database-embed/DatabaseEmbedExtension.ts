@@ -9,11 +9,12 @@ import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import {
   booleanAttr,
+  createXNetAuthoredMarkdownAttrs,
   createXNetJsonBlockTokenizer,
   numberAttr,
   parseXNetJsonPayload,
   recordAttr,
-  renderXNetJsonBlock,
+  renderXNetJsonBlockPreservingSource,
   stringAttr
 } from '../markdown-xnet'
 import { DatabaseEmbedNodeView } from './DatabaseEmbedNodeView'
@@ -118,7 +119,9 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
         })
       },
       showTitle: { default: true },
-      maxHeight: { default: 400 }
+      maxHeight: { default: 400 },
+      sourceMarkdown: { default: null, rendered: false },
+      sourceCanonicalPayload: { default: null, rendered: false }
     }
   },
 
@@ -147,23 +150,32 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
     const databaseId = stringAttr(payload?.databaseId)
     if (!databaseId) return []
 
-    return helpers.createNode('databaseEmbed', {
+    const attrs = {
       databaseId,
       viewType: toDatabaseViewType(payload?.viewType),
       viewConfig: recordAttr(payload?.viewConfig),
       showTitle: booleanAttr(payload?.showTitle, true),
       maxHeight: numberAttr(payload?.maxHeight, 400)
+    }
+
+    return helpers.createNode('databaseEmbed', {
+      ...attrs,
+      ...createXNetAuthoredMarkdownAttrs(token, attrs)
     })
   },
 
   renderMarkdown: (node) =>
-    renderXNetJsonBlock(DATABASE_EMBED_MARKDOWN_DIRECTIVE, {
-      databaseId: node.attrs?.databaseId,
-      viewType: node.attrs?.viewType ?? 'table',
-      viewConfig: node.attrs?.viewConfig ?? {},
-      showTitle: node.attrs?.showTitle ?? true,
-      maxHeight: node.attrs?.maxHeight ?? 400
-    }),
+    renderXNetJsonBlockPreservingSource(
+      DATABASE_EMBED_MARKDOWN_DIRECTIVE,
+      {
+        databaseId: node.attrs?.databaseId,
+        viewType: node.attrs?.viewType ?? 'table',
+        viewConfig: node.attrs?.viewConfig ?? {},
+        showTitle: node.attrs?.showTitle ?? true,
+        maxHeight: node.attrs?.maxHeight ?? 400
+      },
+      node.attrs ?? {}
+    ),
 
   addNodeView() {
     return ReactNodeViewRenderer(DatabaseEmbedNodeView)

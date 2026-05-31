@@ -1,6 +1,10 @@
 import type { MarkdownToken, MarkdownTokenizer } from '@tiptap/core'
 
 export type XNetJsonPayload = Record<string, unknown>
+export type XNetAuthoredMarkdownAttrs = {
+  sourceMarkdown?: unknown
+  sourceCanonicalPayload?: unknown
+}
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -8,6 +12,26 @@ function escapeRegExp(value: string): string {
 
 function isRecord(value: unknown): value is XNetJsonPayload {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeJsonValue)
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+        .map(([key, nestedValue]) => [key, normalizeJsonValue(nestedValue)])
+    )
+  }
+
+  return value
+}
+
+function isEquivalentJsonPayload(left: unknown, right: unknown): boolean {
+  return JSON.stringify(normalizeJsonValue(left)) === JSON.stringify(normalizeJsonValue(right))
 }
 
 function findJsonPayloadEnd(src: string, startIndex: number): number | null {
@@ -136,6 +160,40 @@ export function renderXNetJsonBlock(directiveName: string, payload: XNetJsonPayl
 
 export function renderXNetJsonInline(directiveName: string, payload: XNetJsonPayload): string {
   return `{{${directiveName} ${JSON.stringify(payload)}}}`
+}
+
+export function createXNetAuthoredMarkdownAttrs(
+  token: MarkdownToken,
+  canonicalPayload: XNetJsonPayload
+): XNetAuthoredMarkdownAttrs {
+  return typeof token.raw === 'string'
+    ? {
+        sourceMarkdown: token.raw.trimEnd(),
+        sourceCanonicalPayload: canonicalPayload
+      }
+    : {}
+}
+
+export function renderXNetJsonBlockPreservingSource(
+  directiveName: string,
+  payload: XNetJsonPayload,
+  attrs: XNetAuthoredMarkdownAttrs
+): string {
+  return typeof attrs.sourceMarkdown === 'string' &&
+    isEquivalentJsonPayload(attrs.sourceCanonicalPayload, payload)
+    ? attrs.sourceMarkdown.trimEnd()
+    : renderXNetJsonBlock(directiveName, payload)
+}
+
+export function renderXNetJsonInlinePreservingSource(
+  directiveName: string,
+  payload: XNetJsonPayload,
+  attrs: XNetAuthoredMarkdownAttrs
+): string {
+  return typeof attrs.sourceMarkdown === 'string' &&
+    isEquivalentJsonPayload(attrs.sourceCanonicalPayload, payload)
+    ? attrs.sourceMarkdown.trimEnd()
+    : renderXNetJsonInline(directiveName, payload)
 }
 
 export function stringAttr(value: unknown, fallback: string | null = null): string | null {

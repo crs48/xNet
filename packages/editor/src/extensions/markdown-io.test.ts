@@ -176,13 +176,13 @@ describe('TiptapMarkdown integration', () => {
   })
 
   it('round-trips xNet database embed blocks', () => {
-    editor = createMarkdownEditor(
-      [
-        ':::xnet-database',
-        '{"databaseId":"db-roadmap","viewType":"board","viewConfig":{"groupBy":"status"},"showTitle":false,"maxHeight":560}',
-        ':::'
-      ].join('\n')
-    )
+    const authoredMarkdown = [
+      ':::xnet-database',
+      '{"databaseId":"db-roadmap","viewType":"board","viewConfig":{"groupBy":"status"},"showTitle":false,"maxHeight":560}',
+      ':::'
+    ].join('\n')
+
+    editor = createMarkdownEditor(authoredMarkdown)
 
     expect(editor.getJSON().content?.[0]).toMatchObject({
       type: 'databaseEmbed',
@@ -194,17 +194,34 @@ describe('TiptapMarkdown integration', () => {
         maxHeight: 560
       }
     })
+    expect(editor.getJSON().content?.[0]?.attrs?.sourceMarkdown).toBe(authoredMarkdown)
+    expect(editor.getMarkdown().trimEnd()).toBe(authoredMarkdown)
+  })
+
+  it('canonicalizes xNet database embed blocks after semantic edits', () => {
+    const authoredMarkdown = [
+      ':::xnet-database',
+      '{"databaseId":"db-roadmap","viewType":"board"}',
+      ':::'
+    ].join('\n')
+
+    editor = createMarkdownEditor(authoredMarkdown)
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name !== 'databaseEmbed') return true
+      editor?.commands.setNodeSelection(pos)
+      return false
+    })
+    editor.commands.updateDatabaseView({ viewType: 'table' })
+
     expect(editor.getMarkdown().trimEnd()).toBe(
       [
         ':::xnet-database',
         '{',
         '  "databaseId": "db-roadmap",',
-        '  "viewType": "board",',
-        '  "viewConfig": {',
-        '    "groupBy": "status"',
-        '  },',
-        '  "showTitle": false,',
-        '  "maxHeight": 560',
+        '  "viewType": "table",',
+        '  "viewConfig": {},',
+        '  "showTitle": true,',
+        '  "maxHeight": 400',
         '}',
         ':::'
       ].join('\n')
@@ -212,13 +229,13 @@ describe('TiptapMarkdown integration', () => {
   })
 
   it('round-trips xNet rich media embed blocks', () => {
-    editor = createMarkdownEditor(
-      [
-        ':::xnet-embed',
-        '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","provider":"youtube","embedId":"dQw4w9WgXcQ","embedUrl":"https://www.youtube.com/embed/dQw4w9WgXcQ","title":"Launch demo","width":640,"alignment":"center"}',
-        ':::'
-      ].join('\n')
-    )
+    const authoredMarkdown = [
+      ':::xnet-embed',
+      '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","provider":"youtube","embedId":"dQw4w9WgXcQ","embedUrl":"https://www.youtube.com/embed/dQw4w9WgXcQ","title":"Launch demo","width":640,"alignment":"center"}',
+      ':::'
+    ].join('\n')
+
+    editor = createMarkdownEditor(authoredMarkdown)
 
     expect(editor.getJSON().content?.[0]).toMatchObject({
       type: 'embed',
@@ -232,8 +249,7 @@ describe('TiptapMarkdown integration', () => {
         alignment: 'center'
       }
     })
-    expect(editor.getMarkdown()).toContain(':::xnet-embed')
-    expect(editor.getMarkdown()).toContain('"alignment": "center"')
+    expect(editor.getMarkdown().trimEnd()).toBe(authoredMarkdown)
   })
 
   it('round-trips smart references and wikilinks', () => {

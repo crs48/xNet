@@ -1030,7 +1030,7 @@ Decision gate:
 - [x] Add custom Markdown specs for smart references and page links.
 - [x] Add round-trip tests from Markdown -> ProseMirror -> Markdown.
 - [x] Add fallback xNet-flavored blocks for data that cannot be represented in plain CommonMark.
-- [ ] Preserve user-authored Markdown where possible when serializing.
+- [x] Preserve user-authored Markdown where possible when serializing.
 
 ### Phase 4: Embeds And References
 

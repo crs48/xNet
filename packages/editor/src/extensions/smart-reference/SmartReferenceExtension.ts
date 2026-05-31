@@ -7,10 +7,11 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import {
+  createXNetAuthoredMarkdownAttrs,
   createXNetJsonInlineTokenizer,
   parseXNetJsonPayload,
   recordAttr,
-  renderXNetJsonInline,
+  renderXNetJsonInlinePreservingSource,
   stringAttr
 } from '../markdown-xnet'
 import { parseSmartReferenceUrl } from './providers'
@@ -106,7 +107,9 @@ export const SmartReferenceExtension = Node.create<SmartReferenceOptions>({
       subtitle: { default: null },
       icon: { default: null },
       embedUrl: { default: null },
-      metadata: { default: '{}' }
+      metadata: { default: '{}' },
+      sourceMarkdown: { default: null, rendered: false },
+      sourceCanonicalPayload: { default: null, rendered: false }
     }
   },
 
@@ -140,7 +143,7 @@ export const SmartReferenceExtension = Node.create<SmartReferenceOptions>({
     const url = stringAttr(payload?.url)
     if (!url) return []
 
-    return helpers.createNode('smartReference', {
+    const attrs = {
       url,
       provider: stringAttr(payload?.provider),
       kind: stringAttr(payload?.kind),
@@ -150,21 +153,33 @@ export const SmartReferenceExtension = Node.create<SmartReferenceOptions>({
       icon: stringAttr(payload?.icon),
       embedUrl: stringAttr(payload?.embedUrl),
       metadata: metadataAttr(payload?.metadata)
+    }
+
+    return helpers.createNode('smartReference', {
+      ...attrs,
+      ...createXNetAuthoredMarkdownAttrs(token, {
+        ...attrs,
+        metadata: parseMetadata(attrs.metadata)
+      })
     })
   },
 
   renderMarkdown: (node) =>
-    renderXNetJsonInline(SMART_REFERENCE_MARKDOWN_DIRECTIVE, {
-      url: node.attrs?.url,
-      provider: node.attrs?.provider,
-      kind: node.attrs?.kind,
-      refId: node.attrs?.refId,
-      title: node.attrs?.title,
-      subtitle: node.attrs?.subtitle,
-      icon: node.attrs?.icon,
-      embedUrl: node.attrs?.embedUrl,
-      metadata: parseMetadata(node.attrs?.metadata)
-    }),
+    renderXNetJsonInlinePreservingSource(
+      SMART_REFERENCE_MARKDOWN_DIRECTIVE,
+      {
+        url: node.attrs?.url,
+        provider: node.attrs?.provider,
+        kind: node.attrs?.kind,
+        refId: node.attrs?.refId,
+        title: node.attrs?.title,
+        subtitle: node.attrs?.subtitle,
+        icon: node.attrs?.icon,
+        embedUrl: node.attrs?.embedUrl,
+        metadata: parseMetadata(node.attrs?.metadata)
+      },
+      node.attrs ?? {}
+    ),
 
   addCommands() {
     return {

@@ -7,10 +7,11 @@ import { Node, mergeAttributes } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import {
+  createXNetAuthoredMarkdownAttrs,
   createXNetJsonBlockTokenizer,
   numberAttr,
   parseXNetJsonPayload,
-  renderXNetJsonBlock,
+  renderXNetJsonBlockPreservingSource,
   stringAttr
 } from '../markdown-xnet'
 import { createEmbedLinkPlugin } from './EmbedLinkPlugin'
@@ -65,7 +66,9 @@ export const EmbedExtension = Node.create<EmbedOptions>({
       embedUrl: { default: null },
       title: { default: null },
       width: { default: 400 },
-      alignment: { default: 'left' }
+      alignment: { default: 'left' },
+      sourceMarkdown: { default: null, rendered: false },
+      sourceCanonicalPayload: { default: null, rendered: false }
     }
   },
 
@@ -92,7 +95,7 @@ export const EmbedExtension = Node.create<EmbedOptions>({
 
     const parsed = parseEmbedUrl(url)
 
-    return helpers.createNode('embed', {
+    const attrs = {
       url,
       provider: stringAttr(payload?.provider, parsed?.provider.name ?? null),
       embedId: stringAttr(payload?.embedId, parsed?.id ?? null),
@@ -100,19 +103,28 @@ export const EmbedExtension = Node.create<EmbedOptions>({
       title: stringAttr(payload?.title),
       width: numberAttr(payload?.width, 400),
       alignment: toEmbedAlignment(payload?.alignment)
+    }
+
+    return helpers.createNode('embed', {
+      ...attrs,
+      ...createXNetAuthoredMarkdownAttrs(token, attrs)
     })
   },
 
   renderMarkdown: (node) =>
-    renderXNetJsonBlock(EMBED_MARKDOWN_DIRECTIVE, {
-      url: node.attrs?.url,
-      provider: node.attrs?.provider,
-      embedId: node.attrs?.embedId,
-      embedUrl: node.attrs?.embedUrl,
-      title: node.attrs?.title,
-      width: node.attrs?.width ?? 400,
-      alignment: node.attrs?.alignment ?? 'left'
-    }),
+    renderXNetJsonBlockPreservingSource(
+      EMBED_MARKDOWN_DIRECTIVE,
+      {
+        url: node.attrs?.url,
+        provider: node.attrs?.provider,
+        embedId: node.attrs?.embedId,
+        embedUrl: node.attrs?.embedUrl,
+        title: node.attrs?.title,
+        width: node.attrs?.width ?? 400,
+        alignment: node.attrs?.alignment ?? 'left'
+      },
+      node.attrs ?? {}
+    ),
 
   addNodeView() {
     return ReactNodeViewRenderer(EmbedNodeView)
