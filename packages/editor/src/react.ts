@@ -20,10 +20,14 @@
  */
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
 export {
+  EDITOR_ROLLOUT_MODE_STORAGE_KEY,
   EditorSurface,
+  readEditorRolloutMode,
+  resolveEditorSurfaceContentMode,
   type EditorSurfaceDensity,
   type EditorSurfaceMode,
-  type EditorSurfaceProps
+  type EditorSurfaceProps,
+  type EditorRolloutMode
 } from './components/EditorSurface'
 export {
   CanvasFailedCardActions,

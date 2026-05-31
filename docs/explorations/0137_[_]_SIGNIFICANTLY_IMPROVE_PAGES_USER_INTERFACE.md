@@ -1055,7 +1055,7 @@ Decision gate:
 
 ### Phase 6: Hardening And Rollout
 
-- [ ] Keep the old editor behind a kill switch during rollout.
+- [x] Keep the old editor behind a kill switch during rollout.
 - [ ] Add one-way migration or compatibility loader if document schema changes.
 - [x] Add crash-safe fallback rendering for unknown nodes.
 - [x] Run full `pnpm --filter @xnetjs/editor test`.
@@ -1272,6 +1272,14 @@ Decision gate:
 - Performance validation passed across benchmark helper, Markdown import/export, Markdown structural typing, live-preview decoration scoping, and component mount/collaboration coverage:
   - `pnpm --filter @xnetjs/editor exec vitest run src/testing/benchmarks.test.ts src/extensions/markdown-io.test.ts src/extensions/markdown-structural-editing.test.ts src/extensions/live-preview/inline-marks.integration.test.ts src/components/RichTextEditor.test.tsx`
 - In-app browser Storybook smoke passed against `core-editor-richtexteditor--playground`: 3 editors rendered, first editor was editable, heading syntax was visible, 18 lazy media embeds were present, 3 iframes were mounted, and 15 below-fold placeholders remained deferred.
+
+2026-05-31 rollout kill-switch checkpoint:
+
+- `EditorSurface` now has a shared rollout fallback switch via `localStorage.setItem('xnet:pages:editor:rollout-mode', 'source')` or `'read'`.
+- The switch applies only to editable page and canvas-inline surfaces; read and canvas-preview surfaces remain read-only regardless of the stored value.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/EditorSurface.test.tsx src/components/editor-ux-state.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
 
 ## Validation Checklist
 

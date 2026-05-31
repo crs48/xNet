@@ -2,7 +2,12 @@ import { act, render, waitFor } from '@testing-library/react'
 import { createRef } from 'react'
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
-import { EditorSurface, EditorSurfaceErrorBoundary } from './EditorSurface'
+import {
+  EDITOR_ROLLOUT_MODE_STORAGE_KEY,
+  EditorSurface,
+  EditorSurfaceErrorBoundary,
+  resolveEditorSurfaceContentMode
+} from './EditorSurface'
 
 function createDoc(): Y.Doc {
   return new Y.Doc()
@@ -66,6 +71,48 @@ describe('EditorSurface', () => {
       expect(document.querySelector('.ProseMirror')).toBeInTheDocument()
       expect(document.querySelector('[data-testid="editor-source-mode"]')).not.toBeInTheDocument()
     })
+  })
+
+  it('resolves rollout fallback modes only for editable surfaces', () => {
+    expect(
+      resolveEditorSurfaceContentMode({
+        surfaceMode: 'page',
+        rolloutMode: 'source'
+      })
+    ).toBe('source')
+
+    expect(
+      resolveEditorSurfaceContentMode({
+        surfaceMode: 'canvas-inline',
+        rolloutMode: 'read'
+      })
+    ).toBe('read')
+
+    expect(
+      resolveEditorSurfaceContentMode({
+        surfaceMode: 'canvas-preview',
+        rolloutMode: 'source'
+      })
+    ).toBe('read')
+  })
+
+  it('uses the rollout storage kill switch for page source fallback', async () => {
+    window.localStorage.setItem(EDITOR_ROLLOUT_MODE_STORAGE_KEY, 'source')
+
+    try {
+      render(<EditorSurface ydoc={createDoc()} surfaceMode="page" />)
+
+      expect(document.querySelector('[data-editor-surface="true"]')).toHaveAttribute(
+        'data-editor-rollout-content-mode',
+        'source'
+      )
+      await waitFor(() => {
+        expect(document.querySelector('[data-testid="editor-source-mode"]')).toBeInTheDocument()
+        expect(document.querySelector('.ProseMirror')).not.toBeInTheDocument()
+      })
+    } finally {
+      window.localStorage.removeItem(EDITOR_ROLLOUT_MODE_STORAGE_KEY)
+    }
   })
 
   it('renders a crash-safe fallback when editor content rendering fails', () => {

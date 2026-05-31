@@ -9,6 +9,7 @@ import { RichTextEditor, type RichTextEditorProps } from './RichTextEditor'
 
 export type EditorSurfaceMode = ToolbarSurface
 export type EditorSurfaceDensity = 'default' | 'compact'
+export type EditorRolloutMode = Extract<EditorContentMode, 'live' | 'source' | 'read'>
 
 export type EditorSurfaceProps = Omit<RichTextEditorProps, 'toolbarSurface'> & {
   surfaceMode?: EditorSurfaceMode
@@ -18,6 +19,8 @@ export type EditorSurfaceProps = Omit<RichTextEditorProps, 'toolbarSurface'> & {
   onSurfaceMouseDown?: MouseEventHandler<HTMLDivElement>
   children?: ReactNode
 }
+
+export const EDITOR_ROLLOUT_MODE_STORAGE_KEY = 'xnet:pages:editor:rollout-mode'
 
 type EditorSurfaceErrorBoundaryProps = {
   surfaceMode: EditorSurfaceMode
@@ -111,6 +114,40 @@ function resolveSurfaceReadOnly(surfaceMode: EditorSurfaceMode, readOnly?: boole
   return readOnly === true || surfaceMode === 'read' || surfaceMode === 'canvas-preview'
 }
 
+function isEditorRolloutMode(value: string | null): value is EditorRolloutMode {
+  return value === 'live' || value === 'source' || value === 'read'
+}
+
+export function readEditorRolloutMode(): EditorRolloutMode | null {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const value = window.localStorage.getItem(EDITOR_ROLLOUT_MODE_STORAGE_KEY)
+    return isEditorRolloutMode(value) ? value : null
+  } catch {
+    return null
+  }
+}
+
+export function resolveEditorSurfaceContentMode(input: {
+  surfaceMode: EditorSurfaceMode
+  contentMode?: EditorContentMode
+  readOnly?: boolean
+  rolloutMode?: EditorRolloutMode | null
+}): EditorContentMode {
+  const baseMode = resolveSurfaceContentMode(input.surfaceMode, input.contentMode)
+
+  if (resolveSurfaceReadOnly(input.surfaceMode, input.readOnly)) {
+    return 'read'
+  }
+
+  if (input.rolloutMode === 'source' || input.rolloutMode === 'read') {
+    return input.rolloutMode
+  }
+
+  return baseMode
+}
+
 export function EditorSurface({
   surfaceMode = 'page',
   surfaceDensity = 'default',
@@ -125,6 +162,12 @@ export function EditorSurface({
   ...editorProps
 }: EditorSurfaceProps): JSX.Element {
   const config = SURFACE_CLASS_CONFIG[surfaceMode]
+  const resolvedContentMode = resolveEditorSurfaceContentMode({
+    surfaceMode,
+    contentMode,
+    readOnly,
+    rolloutMode: readEditorRolloutMode()
+  })
   const defaultRootClass =
     surfaceDensity === 'default' && config.defaultRoot ? config.defaultRoot : undefined
   const compactRootClass =
@@ -142,6 +185,7 @@ export function EditorSurface({
       data-editor-surface="true"
       data-editor-surface-mode={surfaceMode}
       data-editor-surface-density={surfaceDensity}
+      data-editor-rollout-content-mode={resolvedContentMode}
       data-canvas-editing-surface={surfaceMode === 'canvas-inline' ? 'true' : undefined}
       onMouseDown={onSurfaceMouseDown}
     >
@@ -150,7 +194,7 @@ export function EditorSurface({
           <RichTextEditor
             {...editorProps}
             className={className}
-            contentMode={resolveSurfaceContentMode(surfaceMode, contentMode)}
+            contentMode={resolvedContentMode}
             editorLabel={editorLabel ?? SURFACE_EDITOR_LABELS[surfaceMode]}
             readOnly={resolveSurfaceReadOnly(surfaceMode, readOnly)}
             toolbarSurface={surfaceMode}
