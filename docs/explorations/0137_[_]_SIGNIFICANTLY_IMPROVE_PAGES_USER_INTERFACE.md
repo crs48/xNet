@@ -1186,6 +1186,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/database-embed/DatabaseEmbedNodeView.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 embed policy browser smoke checkpoint:
+
+- Re-ran the Storybook editor feature workbench in the in-app browser after the embed policy and database mode changes.
+- Verified three editor roots, eighteen live media iframes, eighteen database mode controls, and zero browser console errors.
+- The live iframe sample included YouTube, Vimeo, Spotify, Figma, CodeSandbox, and Loom with provider-specific sandbox, allow, referrer policy, and lazy loading attributes.
+- Captured a Playwright CLI fallback screenshot after the in-app screenshot command timed out:
+  - `tmp/playwright/editor-embed-policy-smoke.png`
+
 ## Validation Checklist
 
 ### Markdown Behavior
