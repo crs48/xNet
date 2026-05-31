@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { useRef, useCallback, type JSX } from 'react'
 import { captureTextAnchor } from '../extensions/comment'
+import { getShortcutById, isMac } from '../extensions/keyboard-shortcuts'
 import { getCurrentTaskDueDate } from '../extensions/task-metadata'
 import { cn } from '../utils'
 import {
@@ -97,6 +98,8 @@ interface ToolbarButtonProps {
   onClick: () => void
   active?: boolean
   title: string
+  ariaLabel?: string
+  shortcut?: string
   children: React.ReactNode
   mobileOnly?: boolean
   isMobile: boolean
@@ -161,6 +164,8 @@ function ToolbarButton({
   onClick,
   active,
   title,
+  ariaLabel,
+  shortcut,
   children,
   mobileOnly,
   isMobile
@@ -174,7 +179,8 @@ function ToolbarButton({
         onClick()
       }}
       onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
-      aria-label={title}
+      aria-label={ariaLabel ?? title}
+      data-shortcut={shortcut}
       className={cn(
         'flex-shrink-0 flex items-center justify-center rounded text-sm font-medium',
         'transition-colors duration-100',
@@ -202,6 +208,20 @@ function getToolbarAriaLabel(surface: ToolbarSurface): string {
   return surface === 'canvas-inline'
     ? 'Canvas editor formatting toolbar'
     : 'Editor formatting toolbar'
+}
+
+function getShortcutDisplay(shortcutId: string): string | undefined {
+  const shortcut = getShortcutById(shortcutId)
+  if (!shortcut) return undefined
+
+  return isMac ? shortcut.display.mac : shortcut.display.windows
+}
+
+function getTooltipTitle(title: string, shortcutId?: string): string {
+  if (!shortcutId) return title
+
+  const shortcut = getShortcutDisplay(shortcutId)
+  return shortcut ? `${title} (${shortcut})` : title
 }
 
 function promptForLink(editor: Editor): void {
@@ -242,6 +262,8 @@ function PluginToolbarButton({
       onClick={() => item.action(editor)}
       active={isActive}
       title={title}
+      ariaLabel={item.title}
+      shortcut={item.shortcut}
       isMobile={isMobile}
     >
       {typeof item.icon === 'string' ? item.icon : <item.icon />}
@@ -310,7 +332,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive('bold')}
-        title="Bold"
+        title={getTooltipTitle('Bold', 'bold')}
+        ariaLabel="Bold"
+        shortcut={getShortcutDisplay('bold')}
         isMobile={isMobile}
       >
         <Bold size={16} aria-hidden="true" />
@@ -318,7 +342,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         active={editor.isActive('italic')}
-        title="Italic"
+        title={getTooltipTitle('Italic', 'italic')}
+        ariaLabel="Italic"
+        shortcut={getShortcutDisplay('italic')}
         isMobile={isMobile}
       >
         <Italic size={16} aria-hidden="true" />
@@ -326,7 +352,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
         active={editor.isActive('strike')}
-        title="Strikethrough"
+        title={getTooltipTitle('Strikethrough', 'strikethrough')}
+        ariaLabel="Strikethrough"
+        shortcut={getShortcutDisplay('strikethrough')}
         isMobile={isMobile}
       >
         <Strikethrough size={16} aria-hidden="true" />
@@ -334,7 +362,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCode().run()}
         active={editor.isActive('code')}
-        title="Code"
+        title={getTooltipTitle('Code', 'code')}
+        ariaLabel="Code"
+        shortcut={getShortcutDisplay('code')}
         isMobile={isMobile}
       >
         <Code2 size={16} aria-hidden="true" />
@@ -342,7 +372,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={handleLink}
         active={editor.isActive('link')}
-        title="Link"
+        title={getTooltipTitle('Link', 'link')}
+        ariaLabel="Link"
+        shortcut={getShortcutDisplay('link')}
         isMobile={isMobile}
       >
         <LinkIcon size={16} aria-hidden="true" />
@@ -353,6 +385,7 @@ function ToolbarContent({
           onClick={handleCreateComment}
           active={editor.isActive('comment')}
           title="Add Comment"
+          ariaLabel="Add Comment"
           isMobile={isMobile}
         >
           <MessageSquare size={16} aria-hidden="true" />
@@ -369,7 +402,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         active={editor.isActive('heading', { level: 1 })}
-        title="Heading 1"
+        title={getTooltipTitle('Heading 1', 'heading-1')}
+        ariaLabel="Heading 1"
+        shortcut={getShortcutDisplay('heading-1')}
         isMobile={isMobile}
       >
         <Heading1 size={17} aria-hidden="true" />
@@ -377,7 +412,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         active={editor.isActive('heading', { level: 2 })}
-        title="Heading 2"
+        title={getTooltipTitle('Heading 2', 'heading-2')}
+        ariaLabel="Heading 2"
+        shortcut={getShortcutDisplay('heading-2')}
         isMobile={isMobile}
       >
         <Heading2 size={17} aria-hidden="true" />
@@ -385,7 +422,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         active={editor.isActive('heading', { level: 3 })}
-        title="Heading 3"
+        title={getTooltipTitle('Heading 3', 'heading-3')}
+        ariaLabel="Heading 3"
+        shortcut={getShortcutDisplay('heading-3')}
         isMobile={isMobile}
       >
         <Heading3 size={17} aria-hidden="true" />
@@ -397,7 +436,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         active={editor.isActive('bulletList')}
-        title="Bullet List"
+        title={getTooltipTitle('Bullet List', 'bullet-list')}
+        ariaLabel="Bullet List"
+        shortcut={getShortcutDisplay('bullet-list')}
         isMobile={isMobile}
       >
         <List size={16} aria-hidden="true" />
@@ -405,7 +446,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         active={editor.isActive('orderedList')}
-        title="Numbered List"
+        title={getTooltipTitle('Numbered List', 'ordered-list')}
+        ariaLabel="Numbered List"
+        shortcut={getShortcutDisplay('ordered-list')}
         isMobile={isMobile}
       >
         <ListOrdered size={16} aria-hidden="true" />
@@ -413,7 +456,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleTaskList().run()}
         active={editor.isActive('taskList')}
-        title="Task List"
+        title={getTooltipTitle('Task List', 'task-list')}
+        ariaLabel="Task List"
+        shortcut={getShortcutDisplay('task-list')}
         isMobile={isMobile}
       >
         <ListTodo size={16} aria-hidden="true" />
@@ -423,6 +468,7 @@ function ToolbarContent({
           onClick={handleInsertMention}
           active={editor.isActive('taskMention')}
           title="Mention Assignee"
+          ariaLabel="Mention Assignee"
           isMobile={isMobile}
         >
           <AtSign size={16} aria-hidden="true" />
@@ -435,6 +481,7 @@ function ToolbarContent({
           }}
           active={getCurrentTaskDueDate(editor) !== null}
           title="Set Due Date"
+          ariaLabel="Set Due Date"
           isMobile={isMobile}
         >
           <CalendarDays size={16} aria-hidden="true" />
@@ -447,7 +494,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         active={editor.isActive('blockquote')}
-        title="Quote"
+        title={getTooltipTitle('Quote', 'blockquote')}
+        ariaLabel="Quote"
+        shortcut={getShortcutDisplay('blockquote')}
         isMobile={isMobile}
       >
         <TextQuote size={16} aria-hidden="true" />
@@ -455,7 +504,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         active={editor.isActive('codeBlock')}
-        title="Code Block"
+        title={getTooltipTitle('Code Block', 'code-block')}
+        ariaLabel="Code Block"
+        shortcut={getShortcutDisplay('code-block')}
         isMobile={isMobile}
       >
         <Braces size={16} aria-hidden="true" />
@@ -463,7 +514,9 @@ function ToolbarContent({
       <ToolbarButton
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
         active={false}
-        title="Divider"
+        title={getTooltipTitle('Divider', 'horizontal-rule')}
+        ariaLabel="Divider"
+        shortcut={getShortcutDisplay('horizontal-rule')}
         isMobile={isMobile}
       >
         <Minus size={16} aria-hidden="true" />
@@ -497,6 +550,7 @@ function ToolbarContent({
         }}
         active={false}
         title="Outdent"
+        ariaLabel="Outdent"
         mobileOnly
         isMobile={isMobile}
       >
@@ -512,6 +566,7 @@ function ToolbarContent({
         }}
         active={false}
         title="Indent"
+        ariaLabel="Indent"
         mobileOnly
         isMobile={isMobile}
       >
@@ -534,6 +589,7 @@ function ToolbarContent({
         }}
         active={editor.isActive('heading')}
         title="Toggle Heading"
+        ariaLabel="Toggle Heading"
         mobileOnly
         isMobile={isMobile}
       >
@@ -545,6 +601,7 @@ function ToolbarContent({
         onClick={handleInsertMention}
         active={false}
         title="Mention"
+        ariaLabel="Mention"
         mobileOnly
         isMobile={isMobile}
       >
@@ -653,6 +710,8 @@ function DesktopToolbar({
         offset: 8
       }}
       shouldShow={({ editor, state }) => {
+        if (!editor.isFocused) return false
+
         return shouldShowDesktopToolbar({
           selectionShape: deriveSelectionShape(state.selection),
           inCodeBlock: editor.isActive('codeBlock'),
@@ -697,6 +756,11 @@ export function FloatingToolbar({
 
   if (!editor) return null
 
+  const shouldMountDesktopToolbar =
+    (surface === 'canvas-inline' || !ux.isMobile) &&
+    surface !== 'read' &&
+    surface !== 'canvas-preview'
+
   const policy = resolveToolbarPolicy({
     surface,
     isMobile: ux.isMobile,
@@ -705,8 +769,6 @@ export function FloatingToolbar({
     inCodeBlock: editor.isActive('codeBlock'),
     inTaskItem: editor.isActive('taskItem')
   })
-
-  if (policy.presentation === 'hidden') return null
 
   if (policy.presentation === 'mobile-fixed') {
     return (
@@ -721,6 +783,21 @@ export function FloatingToolbar({
       />
     )
   }
+
+  if (shouldMountDesktopToolbar) {
+    return (
+      <DesktopToolbar
+        editor={editor}
+        className={className}
+        compact={policy.isCompact || surface === 'canvas-inline'}
+        surface={surface}
+        additionalItems={additionalItems}
+        onCreateComment={onCreateComment}
+      />
+    )
+  }
+
+  if (policy.presentation === 'hidden') return null
 
   return (
     <DesktopToolbar

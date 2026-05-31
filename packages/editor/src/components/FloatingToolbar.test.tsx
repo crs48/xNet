@@ -205,11 +205,27 @@ describe('FloatingToolbar', () => {
 
     render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
 
-    fireEvent.click(screen.getByTitle('Quote'))
+    fireEvent.click(screen.getByRole('button', { name: 'Quote' }))
     expect(editor._commands.toggleBlockquote).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByTitle('Code Block'))
+    fireEvent.click(screen.getByRole('button', { name: 'Code Block' }))
     expect(editor._commands.toggleCodeBlock).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps icon button names short while exposing shortcut tooltip hints', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    const boldButton = screen.getByRole('button', { name: 'Bold' })
+    expect(boldButton.getAttribute('title')).toMatch(/^Bold \((⌘B|Ctrl\+B)\)$/)
+    expect(boldButton.getAttribute('data-shortcut')).toMatch(/^(⌘B|Ctrl\+B)$/)
+
+    const linkButton = screen.getByRole('button', { name: 'Link' })
+    expect(linkButton.getAttribute('title')).toMatch(/^Link \((⌘K|Ctrl\+K)\)$/)
+    expect(linkButton.getAttribute('data-shortcut')).toMatch(/^(⌘K|Ctrl\+K)$/)
   })
 
   it('routes desktop mark and link buttons through editor mark commands', () => {
@@ -220,11 +236,11 @@ describe('FloatingToolbar', () => {
 
     render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
 
-    fireEvent.click(screen.getByTitle('Bold'))
-    fireEvent.click(screen.getByTitle('Italic'))
-    fireEvent.click(screen.getByTitle('Strikethrough'))
-    fireEvent.click(screen.getByTitle('Code'))
-    fireEvent.click(screen.getByTitle('Link'))
+    fireEvent.click(screen.getByRole('button', { name: 'Bold' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Italic' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Strikethrough' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Code' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
 
     expect(editor._commands.toggleBold).toHaveBeenCalledTimes(1)
     expect(editor._commands.toggleItalic).toHaveBeenCalledTimes(1)
@@ -249,7 +265,7 @@ describe('FloatingToolbar', () => {
       />
     )
 
-    fireEvent.click(screen.getByTitle('Add Comment'))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Comment' }))
 
     await waitFor(() => {
       expect(onCreateComment).toHaveBeenCalledWith(
@@ -281,7 +297,7 @@ describe('FloatingToolbar', () => {
       cancelable: true
     })
 
-    screen.getByTitle('Bold').dispatchEvent(event)
+    screen.getByRole('button', { name: 'Bold' }).dispatchEvent(event)
 
     expect(event.defaultPrevented).toBe(true)
   })

@@ -917,6 +917,50 @@ stateDiagram-v2
   CompactCard --> LowZoomPreview: zoom < 0.3
 ```
 
+### Minimal Discoverability Requirements
+
+The target experience should feel clean and quiet by default, but it cannot hide power so deeply that users need documentation. The page should read like a document until the user selects text, hovers an embed, opens `/`, or focuses a canvas page card. At those moments, the UI should teach itself with short labels, shortcut hints, popovers, and keyboard affordances.
+
+Core requirements:
+
+- Keep the editor surface visually minimal: generous page whitespace, no permanent formatting chrome, no nested card framing around the writing area.
+- Prefer icon-only command buttons in toolbars, but every icon must have a stable accessible name, hover tooltip, and shortcut hint when a shortcut exists.
+- Show contextual hints only near the relevant action: selection toolbar for selected text, slash menu for insertion, embed popovers for embed options, canvas compact controls only during inline editing.
+- Use compact popovers for multi-step actions such as link editing, database view selection, embed provider settings, and page/database references.
+- Make hover and focus behavior symmetrical. Keyboard users should discover the same labels by tabbing through controls, pressing `/`, using Arrow keys, and dismissing with Escape.
+- Keep command copy instructional but terse: verb first, one-line description, shortcut label, and no long explanatory panels inside the editor.
+- Preserve text selection and caret position when users move from document text into toolbar or popover controls.
+- In canvas mode, prioritize predictable editing boundaries: page card hover can reveal open/edit controls, but text selection and toolbar usage must never start a canvas drag.
+- Treat keyboard shortcuts as first-class UI. The shortcut registry should drive toolbar tooltip labels, help popovers, and e2e expectations so hints do not drift from actual commands.
+- Test the common learning loop: type Markdown, see live formatting, backspace through Markdown tokens, hover/inspect toolbar controls, open slash menu, read descriptions, choose a command, and recover with Escape.
+
+```mermaid
+flowchart LR
+  Idle["Quiet document surface"] --> Selection["Text selected"]
+  Idle --> Slash["User types /"]
+  Idle --> EmbedHover["Embed hovered/focused"]
+  Idle --> CanvasFocus["Canvas page focused"]
+
+  Selection --> Toolbar["Minimal icon toolbar"]
+  Toolbar --> Tooltip["Tooltip: action + shortcut"]
+  Toolbar --> Popover["Popover for link/comment/reference"]
+
+  Slash --> Menu["Command menu"]
+  Menu --> Descriptions["Names, descriptions, search terms"]
+
+  EmbedHover --> EmbedControls["Compact embed controls"]
+  CanvasFocus --> CanvasToolbar["Canvas-safe compact toolbar"]
+```
+
+Validation criteria:
+
+- Tooltip and popover labels fit in narrow editor/canvas contexts without occluding selected text.
+- Tooltip content is available through hover and keyboard focus.
+- Slash commands remain searchable by title, description, and common terms.
+- Escape closes the current popover/menu without changing document content.
+- The toolbar has no layout shift when labels or shortcut strings change.
+- Browser screenshots cover the clean idle surface, selection toolbar, slash menu, and at least one embed/reference popover.
+
 ### Embed And Database Model
 
 Embeds should be block registry entries with consistent lifecycle:
@@ -1007,6 +1051,9 @@ Decision gate:
 - [x] Restore desktop selection toolbar with command tests.
 - [x] Add compact canvas toolbar instead of disabling toolbar entirely.
 - [x] Use icon buttons and accessible labels for toolbar controls.
+- [x] Add shortcut-aware tooltip/title hints to primary toolbar controls.
+- [ ] Replace native title hints with custom hover/focus tooltip popovers where the design system supports it.
+- [ ] Add keyboard-discoverable popovers for link, reference, database, and embed controls.
 
 ### Phase 2: Markdown Structural Editing
 
@@ -1281,6 +1328,16 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/EditorSurface.test.tsx src/components/editor-ux-state.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 minimalist discoverability checkpoint:
+
+- Primary floating toolbar buttons now keep short accessible names while exposing shortcut-aware `title` and `data-shortcut` hints from the shared keyboard shortcut registry.
+- The desktop BubbleMenu now stays registered on editable desktop/page surfaces and lets its `shouldShow` policy hide or reveal the toolbar, which fixes selection paths where the toolbar plugin previously missed browser selection changes.
+- Added Playwright e2e coverage for the common learning loop: type `###`, backspace through heading markers one level at a time, search `/task`, read the slash command description, insert a task list, and verify toolbar shortcut hints.
+- In-app browser Storybook smoke against `core-editor-richtexteditor--playground` loaded successfully with zero console errors after these changes.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx`
+  - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts src/editor-ux.spec.ts --project=chromium`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1310,8 +1367,13 @@ Decision gate:
 - [x] Toolbar hides on valid blur.
 - [x] Mobile toolbar appears when editor is focused.
 - [x] Canvas compact toolbar appears only in focused inline edit mode.
+- [x] Toolbar icon buttons expose shortcut-aware title hints without lengthening accessible names.
+- [x] Desktop BubbleMenu remains registered so selection-driven toolbar display works in the app shell.
 - [x] Slash menu opens at `/` and filters command list.
+- [x] Slash menu descriptions are covered by e2e for common task-list insertion.
 - [x] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
+- [ ] Custom hover/focus tooltip popovers replace native `title` once the design system supports them.
+- [ ] Escape closes open toolbar popovers and slash menus without mutating content.
 
 ### Page Surface
 
@@ -1386,6 +1448,7 @@ Recommended test files:
 - `packages/editor/src/components/EditorSurface.test.tsx`
 - `packages/editor/src/components/FloatingToolbar.commands.test.tsx`
 - `packages/editor/src/extensions/embed/EmbedRegistry.test.ts`
+- `tests/e2e/src/editor-markdown.spec.ts`
 - `tests/e2e/src/editor-markdown-live-preview.spec.ts`
 - `tests/e2e/src/editor-canvas-page-surface.spec.ts`
 - `tests/e2e/src/editor-embeds.spec.ts`
