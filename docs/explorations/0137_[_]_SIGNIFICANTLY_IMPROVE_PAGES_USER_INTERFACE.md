@@ -1102,6 +1102,14 @@ Decision gate:
 - Captured a fallback Playwright CLI screenshot after the in-app screenshot command timed out:
   - `tmp/playwright/editor-surface-smoke-after-wrapper.png`
 
+2026-05-31 page title handoff checkpoint:
+
+- Pressing plain Enter in `DocumentHeader` now calls `onTitleSubmit`; `PageView` uses that to focus the first editor block.
+- Title inputs now expose an explicit `${docType} title` accessible label.
+- Focused tests passed:
+  - `pnpm --filter xnet-desktop exec vitest run src/renderer/components/DocumentHeader.test.tsx src/renderer/components/page-editor-focus.test.ts`
+  - `pnpm --filter xnet-desktop exec tsc --noEmit`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1136,10 +1144,10 @@ Decision gate:
 
 ### Page Surface
 
-- [ ] Empty page shows clear first-line placeholder.
-- [ ] Clicking blank body focuses first block.
-- [ ] Clicking below content focuses document end.
-- [ ] Title Enter moves into first body block.
+- [x] Empty page shows clear first-line placeholder.
+- [x] Clicking blank body focuses first block.
+- [x] Clicking below content focuses document end.
+- [x] Title Enter moves into first body block.
 - [ ] Body Backspace at empty first block can return focus to title or no-op by explicit design.
 - [x] Long documents keep a stable writing measure.
 - [ ] Selection and caret remain visible in light/dark themes.

@@ -180,6 +180,10 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     editorRef.current.commands.focus(focusPosition)
   }, [])
 
+  const handleTitleSubmit = useCallback(() => {
+    editorRef.current?.commands.focus('start')
+  }, [])
+
   // Restore comment marks when editor is ready and threads are loaded.
   // Both editorReady and threads are in the dependency array so the effect
   // fires regardless of which one becomes available first.
@@ -759,6 +763,7 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
         placeholder="Untitled Page"
         compact={minimalChrome}
         showShareButton={!minimalChrome}
+        onTitleSubmit={handleTitleSubmit}
       >
         {!minimalChrome && <SyncIndicator status={syncStatus} peerCount={peerCount} />}
         {!minimalChrome && unresolvedCount > 0 && (

@@ -16,6 +16,7 @@ interface DocumentHeaderProps {
   children?: React.ReactNode
   compact?: boolean
   showShareButton?: boolean
+  onTitleSubmit?: () => void
 }
 
 export function DocumentHeader({
@@ -26,7 +27,8 @@ export function DocumentHeader({
   placeholder = 'Untitled',
   children,
   compact = false,
-  showShareButton = true
+  showShareButton = true,
+  onTitleSubmit
 }: DocumentHeaderProps) {
   // Local state for the input to prevent cursor jumping
   const [localTitle, setLocalTitle] = useState(title)
@@ -59,6 +61,24 @@ export function DocumentHeader({
     setLocalTitle(title)
   }, [title])
 
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (
+        event.key !== 'Enter' ||
+        event.shiftKey ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      onTitleSubmit?.()
+    },
+    [onTitleSubmit]
+  )
+
   return (
     <div
       className={[
@@ -77,6 +97,8 @@ export function DocumentHeader({
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        aria-label={`${docType} title`}
         placeholder={placeholder}
       />
       <div className={compact ? 'flex items-center gap-2' : 'flex items-center gap-3'}>
