@@ -483,6 +483,11 @@ export {
   runMarkdownStructuralBackspace
 } from './extensions/markdown-structural-editing'
 export type { HeadingLevel } from './extensions/markdown-structural-editing'
+export {
+  MarkdownClipboard,
+  isMarkdownClipboardCandidate,
+  markdownClipboardPluginKey
+} from './extensions/markdown-clipboard'
 
 // SlashCommand - Notion-style command palette
 export { SlashCommand } from './extensions/slash-command'

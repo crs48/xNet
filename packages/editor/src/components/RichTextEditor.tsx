@@ -27,6 +27,7 @@ import {
   Wikilink,
   LivePreview,
   HeadingWithSyntax,
+  MarkdownClipboard,
   MarkdownStructuralEditing,
   CodeBlockWithSyntax,
   BlockquoteWithSyntax,
@@ -408,6 +409,7 @@ export function RichTextEditor({
       indentation: { style: 'space', size: 2 },
       markedOptions: { gfm: true, breaks: false }
     }),
+    MarkdownClipboard,
     // Custom block NodeViews with syntax preview
     HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
     MarkdownStructuralEditing,

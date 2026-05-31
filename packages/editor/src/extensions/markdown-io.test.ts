@@ -2,11 +2,13 @@ import { Editor } from '@tiptap/core'
 import Link from '@tiptap/extension-link'
 import TaskList from '@tiptap/extension-task-list'
 import StarterKit from '@tiptap/starter-kit'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   BlockquoteWithSyntax,
   CodeBlockWithSyntax,
   HeadingWithSyntax,
+  isMarkdownClipboardCandidate,
+  MarkdownClipboard,
   PageTaskItemExtension,
   TiptapMarkdown
 } from '../extensions'
@@ -25,6 +27,7 @@ function createMarkdownEditor(markdown = ''): Editor {
         indentation: { style: 'space', size: 2 },
         markedOptions: { gfm: true, breaks: false }
       }),
+      MarkdownClipboard,
       HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
       BlockquoteWithSyntax,
       CodeBlockWithSyntax,
@@ -162,5 +165,105 @@ describe('TiptapMarkdown integration', () => {
 
     expect(editor.commands.insertContent('\n\nPlain text', { contentType: 'markdown' })).toBe(true)
     expect(editor.getMarkdown()).toContain('Plain text')
+  })
+})
+
+describe('MarkdownClipboard', () => {
+  let editor: Editor | null = null
+
+  afterEach(() => {
+    editor?.destroy()
+    editor = null
+  })
+
+  function pastePlainText(
+    text: string,
+    html = ''
+  ): { handled: boolean; preventDefault: () => void } {
+    if (!editor) throw new Error('Editor not initialized')
+
+    let handled = false
+    const preventDefault = vi.fn()
+    const event = {
+      clipboardData: {
+        getData: (type: string) => {
+          if (type === 'text/plain') return text
+          if (type === 'text/html') return html
+          return ''
+        }
+      },
+      preventDefault
+    } as unknown as ClipboardEvent
+
+    editor.view.someProp('handlePaste', (handler) => {
+      if (handled) return
+      handled = handler(editor!.view, event, null as never) === true
+    })
+
+    return { handled, preventDefault }
+  }
+
+  function serializeSelectionAsText(): string {
+    if (!editor) throw new Error('Editor not initialized')
+
+    let serialized = ''
+    const slice = editor.state.doc.slice(0, editor.state.doc.content.size)
+
+    editor.view.someProp('clipboardTextSerializer', (serializer) => {
+      serialized = serializer(slice, editor!.view)
+      return true
+    })
+
+    return serialized
+  }
+
+  it('detects markdown-looking clipboard text without stealing plain URLs', () => {
+    expect(isMarkdownClipboardCandidate('### Heading')).toBe(true)
+    expect(isMarkdownClipboardCandidate('- [ ] Task item')).toBe(true)
+    expect(isMarkdownClipboardCandidate('A plain sentence')).toBe(false)
+    expect(isMarkdownClipboardCandidate('https://youtu.be/dQw4w9WgXcQ')).toBe(false)
+  })
+
+  it('pastes markdown-looking plain text as structured content', () => {
+    editor = createMarkdownEditor('')
+
+    const { handled, preventDefault } = pastePlainText(['## Pasted', '', '- Item'].join('\n'))
+
+    expect(handled).toBe(true)
+    expect(preventDefault).toHaveBeenCalled()
+    expect(editor.getJSON().content?.slice(0, 2)).toMatchObject([
+      {
+        type: 'heading',
+        attrs: { level: 2 },
+        content: [{ type: 'text', text: 'Pasted' }]
+      },
+      {
+        type: 'bulletList',
+        content: [
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Item' }]
+              }
+            ]
+          }
+        ]
+      }
+    ])
+  })
+
+  it('passes through rich HTML clipboard payloads and plain URLs', () => {
+    editor = createMarkdownEditor('')
+
+    expect(pastePlainText('## Heading', '<h2>Heading</h2>').handled).toBe(false)
+    expect(pastePlainText('https://example.com/watch').handled).toBe(false)
+  })
+
+  it('serializes copied structural content as markdown text', () => {
+    editor = createMarkdownEditor('### Copied heading\n\n```ts\nconst value = 1\n```')
+
+    expect(serializeSelectionAsText()).toBe('### Copied heading\n\n```ts\nconst value = 1\n```')
   })
 })

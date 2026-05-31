@@ -1018,7 +1018,7 @@ Decision gate:
 - [ ] Define inline mark reveal and boundary behavior.
 - [ ] Add undo/redo grouping tests.
 - [ ] Add IME/composition tests for no forced normalization mid-composition.
-- [ ] Add copy/paste Markdown normalization tests.
+- [x] Add copy/paste Markdown normalization tests.
 - [ ] Add source mode placeholder route or internal abstraction.
 
 ### Phase 3: Markdown Import/Export
@@ -1083,8 +1083,8 @@ Decision gate:
 - [ ] Triple backticks create code block.
 - [ ] Code fences and language syntax have a tested edit path.
 - [ ] Inline bold/italic/strike/code syntax reveals without trapping caret.
-- [ ] Pasted Markdown becomes expected structured content.
-- [ ] Copied structured content can be copied as Markdown.
+- [x] Pasted Markdown becomes expected structured content.
+- [x] Copied structured content can be copied as Markdown.
 
 ### Toolbar And Commands
 
