@@ -1,5 +1,5 @@
-import type { Editor } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
+import { wrappingInputRule, type Editor } from '@tiptap/core'
 import TaskItem from '@tiptap/extension-task-item'
 
 export interface PageTaskReferenceSnapshot {
@@ -32,6 +32,19 @@ type TaskAttrUpdate = {
 }
 
 export const PageTaskItemExtension = TaskItem.extend({
+  addInputRules() {
+    return [
+      ...(this.parent?.() ?? []),
+      wrappingInputRule({
+        find: /^\s*[-+*]\s+\[([ xX])\]\s$/,
+        type: this.type,
+        getAttributes: (match) => ({
+          checked: match[1]?.toLowerCase() === 'x'
+        })
+      })
+    ]
+  },
+
   addAttributes() {
     const parent = this.parent?.() ?? {}
 

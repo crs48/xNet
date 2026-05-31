@@ -3,7 +3,14 @@
  *
  * Custom extensions for the xNet editor.
  */
-import { Mark, Node, mergeAttributes, markInputRule, textblockTypeInputRule } from '@tiptap/core'
+import {
+  Mark,
+  Node,
+  mergeAttributes,
+  markInputRule,
+  textblockTypeInputRule,
+  wrappingInputRule
+} from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { BlockquoteView } from './nodeviews/BlockquoteView'
 import { CodeBlockView } from './nodeviews/CodeBlockView'
@@ -345,6 +352,18 @@ export const CodeBlockWithSyntax = Node.create<CodeBlockWithSyntaxOptions>({
     }
   },
 
+  addInputRules() {
+    return [
+      textblockTypeInputRule({
+        find: /^```([A-Za-z0-9_-]+)?\s$/,
+        type: this.type,
+        getAttributes: (match) => ({
+          language: match[1] || this.options.defaultLanguage
+        })
+      })
+    ]
+  },
+
   addKeyboardShortcuts() {
     return {
       'Mod-Alt-c': () => this.editor.commands.toggleCodeBlock(),
@@ -455,6 +474,15 @@ export const BlockquoteWithSyntax = Node.create<BlockquoteWithSyntaxOptions>({
     }
   },
 
+  addInputRules() {
+    return [
+      wrappingInputRule({
+        find: /^\s*>\s$/,
+        type: this.type
+      })
+    ]
+  },
+
   addKeyboardShortcuts() {
     return {
       'Mod-Shift-b': () => this.editor.commands.toggleBlockquote()
@@ -488,6 +516,18 @@ export {
   isMarkdownClipboardCandidate,
   markdownClipboardPluginKey
 } from './extensions/markdown-clipboard'
+export {
+  MARKDOWN_TOKEN_CONTRACTS,
+  MARKDOWN_TOKEN_TEST_MATRIX,
+  getMarkdownTokenContract
+} from './extensions/markdown-token-contract'
+export type {
+  MarkdownTokenBehavior,
+  MarkdownTokenContract,
+  MarkdownTokenKind,
+  MarkdownTokenRevealPolicy,
+  MarkdownTokenTestCase
+} from './extensions/markdown-token-contract'
 
 // SlashCommand - Notion-style command palette
 export { SlashCommand } from './extensions/slash-command'

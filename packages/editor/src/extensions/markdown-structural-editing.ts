@@ -1,4 +1,5 @@
 import { Extension, type Editor } from '@tiptap/core'
+import { closeHistory } from '@tiptap/pm/history'
 import { Fragment, type ResolvedPos } from '@tiptap/pm/model'
 import { TextSelection } from '@tiptap/pm/state'
 
@@ -45,6 +46,13 @@ function isPlainTextCodeLanguage(language: unknown): boolean {
   return language === null || language === undefined || language === '' || language === 'plaintext'
 }
 
+function closeMarkdownHistoryStep(editor: Editor) {
+  return editor.chain().command(({ tr }) => {
+    closeHistory(tr)
+    return true
+  })
+}
+
 function exitCodeBlock(editor: Editor, $from: ResolvedPos): boolean {
   const paragraph = editor.state.schema.nodes.paragraph
   if (!paragraph) return false
@@ -65,6 +73,7 @@ function exitCodeBlock(editor: Editor, $from: ResolvedPos): boolean {
   })
 
   return editor.commands.command(({ tr, dispatch }) => {
+    closeHistory(tr)
     tr.replaceWith(codeBlockStart, codeBlockEnd, Fragment.fromArray(paragraphs))
     tr.setSelection(TextSelection.create(tr.doc, codeBlockStart + 1))
 
@@ -83,6 +92,10 @@ function exitCodeBlock(editor: Editor, $from: ResolvedPos): boolean {
  * the literal `#` characters in the ProseMirror document.
  */
 export function runMarkdownStructuralBackspace(editor: Editor): boolean {
+  if (editor.view.composing) {
+    return false
+  }
+
   const { selection } = editor.state
 
   if (!selection.empty) {
@@ -97,15 +110,17 @@ export function runMarkdownStructuralBackspace(editor: Editor): boolean {
   if ($from.parent.type.name === 'heading') {
     const nextLevel = previousHeadingLevel(toHeadingLevel($from.parent.attrs.level))
     if (nextLevel) {
-      return editor.commands.setNode('heading', { level: nextLevel })
+      return closeMarkdownHistoryStep(editor).setNode('heading', { level: nextLevel }).run()
     }
 
-    return editor.commands.setParagraph()
+    return closeMarkdownHistoryStep(editor).setParagraph().run()
   }
 
   if ($from.parent.type.name === 'codeBlock') {
     if (!isPlainTextCodeLanguage($from.parent.attrs.language)) {
-      return editor.commands.updateAttributes('codeBlock', { language: 'plaintext' })
+      return closeMarkdownHistoryStep(editor)
+        .updateAttributes('codeBlock', { language: 'plaintext' })
+        .run()
     }
 
     return exitCodeBlock(editor, $from)
@@ -113,11 +128,11 @@ export function runMarkdownStructuralBackspace(editor: Editor): boolean {
 
   const listItemDepth = findListItemDepth($from)
   if (listItemDepth !== null && isAtStartOfFirstListItemBlock($from, listItemDepth)) {
-    return editor.commands.liftListItem($from.node(listItemDepth).type.name)
+    return closeMarkdownHistoryStep(editor).liftListItem($from.node(listItemDepth).type.name).run()
   }
 
   if (isDirectChildOfBlockquote($from)) {
-    return editor.commands.lift('blockquote')
+    return closeMarkdownHistoryStep(editor).lift('blockquote').run()
   }
 
   return false

@@ -1010,14 +1010,14 @@ Decision gate:
 
 ### Phase 2: Markdown Structural Editing
 
-- [ ] Define `MarkdownTokenContract` docs and test matrix.
+- [x] Define `MarkdownTokenContract` docs and test matrix.
 - [x] Implement heading source-token behavior.
 - [x] Implement blockquote source-token behavior.
 - [x] Implement list and task-list marker behavior.
 - [x] Implement code fence active-block behavior.
 - [ ] Define inline mark reveal and boundary behavior.
-- [ ] Add undo/redo grouping tests.
-- [ ] Add IME/composition tests for no forced normalization mid-composition.
+- [x] Add undo/redo grouping tests.
+- [x] Add IME/composition tests for no forced normalization mid-composition.
 - [x] Add copy/paste Markdown normalization tests.
 - [ ] Add source mode placeholder route or internal abstraction.
 
@@ -1069,19 +1069,19 @@ Decision gate:
 
 ### Markdown Behavior
 
-- [ ] `# ` creates H1.
-- [ ] `## ` creates H2.
-- [ ] `### ` creates H3.
-- [ ] Backspace at H3 prefix changes to H2 without deleting content.
-- [ ] Backspace at H2 prefix changes to H1 without deleting content.
-- [ ] Backspace at H1 prefix changes to paragraph without deleting content.
-- [ ] Undo restores each heading level step.
-- [ ] `> ` creates blockquote and Backspace exits predictably.
-- [ ] `- ` creates bullet list and Backspace/lift behavior is predictable.
-- [ ] `1. ` creates ordered list and numbering survives edits.
-- [ ] `- [ ] ` creates task item and checkbox remains keyboard accessible.
-- [ ] Triple backticks create code block.
-- [ ] Code fences and language syntax have a tested edit path.
+- [x] `# ` creates H1.
+- [x] `## ` creates H2.
+- [x] `### ` creates H3.
+- [x] Backspace at H3 prefix changes to H2 without deleting content.
+- [x] Backspace at H2 prefix changes to H1 without deleting content.
+- [x] Backspace at H1 prefix changes to paragraph without deleting content.
+- [x] Undo restores each heading level step.
+- [x] `> ` creates blockquote and Backspace exits predictably.
+- [x] `- ` creates bullet list and Backspace/lift behavior is predictable.
+- [x] `1. ` creates ordered list and numbering survives edits.
+- [x] `- [ ] ` creates task item and checkbox remains keyboard accessible.
+- [x] Triple backticks create code block.
+- [x] Code fences and language syntax have a tested edit path.
 - [ ] Inline bold/italic/strike/code syntax reveals without trapping caret.
 - [x] Pasted Markdown becomes expected structured content.
 - [x] Copied structured content can be copied as Markdown.

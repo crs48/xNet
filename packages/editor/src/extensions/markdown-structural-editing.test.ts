@@ -1,4 +1,4 @@
-import { Editor } from '@tiptap/core'
+import { Editor, type Content } from '@tiptap/core'
 import TaskList from '@tiptap/extension-task-list'
 import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -6,8 +6,11 @@ import {
   BlockquoteWithSyntax,
   CodeBlockWithSyntax,
   HeadingWithSyntax,
+  MARKDOWN_TOKEN_CONTRACTS,
+  MARKDOWN_TOKEN_TEST_MATRIX,
   MarkdownStructuralEditing,
-  PageTaskItemExtension
+  PageTaskItemExtension,
+  getMarkdownTokenContract
 } from '../extensions'
 import { runMarkdownStructuralBackspace } from './markdown-structural-editing'
 
@@ -30,6 +33,41 @@ function firstBlock(editor: Editor) {
   return editor.getJSON().content?.[0]
 }
 
+function createMarkdownEditor(content: Content = '<p></p>'): Editor {
+  return new Editor({
+    element: document.createElement('div'),
+    extensions: [
+      StarterKit.configure({ heading: false, blockquote: false, codeBlock: false }),
+      TaskList,
+      PageTaskItemExtension,
+      HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+      BlockquoteWithSyntax,
+      CodeBlockWithSyntax,
+      MarkdownStructuralEditing
+    ],
+    content
+  })
+}
+
+function typeTextWithInputRules(editor: Editor, text: string): boolean {
+  const { from, to } = editor.state.selection
+  let handled = false
+
+  editor.view.someProp('handleTextInput', (handler) => {
+    if (handled) {
+      return
+    }
+
+    handled = handler(editor.view, from, to, text) === true
+  })
+
+  if (!handled) {
+    editor.commands.insertContent(text)
+  }
+
+  return handled
+}
+
 function findTextStart(editor: Editor, text: string): number {
   let position: number | null = null
 
@@ -49,6 +87,93 @@ function findTextStart(editor: Editor, text: string): number {
 
   return position
 }
+
+describe('Markdown token contract', () => {
+  it('keeps structural token contracts connected to the test matrix', () => {
+    const testIds = new Set(MARKDOWN_TOKEN_TEST_MATRIX.map((testCase) => testCase.id))
+
+    for (const contract of MARKDOWN_TOKEN_CONTRACTS) {
+      expect(contract.syntax.length).toBeGreaterThan(0)
+      expect(contract.nodeNames.length).toBeGreaterThan(0)
+      expect(contract.testIds.every((testId) => testIds.has(testId))).toBe(true)
+    }
+
+    expect(getMarkdownTokenContract('heading')).toMatchObject({
+      revealPolicy: 'virtualPrefix',
+      behaviors: expect.arrayContaining(['backspaceStep', 'undoableStep', 'compositionSafe'])
+    })
+  })
+})
+
+describe('MarkdownStructuralEditing input rules', () => {
+  let editor: Editor
+
+  afterEach(() => {
+    editor.destroy()
+  })
+
+  it.each([
+    ['# ', 1],
+    ['## ', 2],
+    ['### ', 3]
+  ])('creates heading level %s from typed Markdown', (markdown, level) => {
+    editor = createMarkdownEditor()
+    editor.commands.setTextSelection(1)
+
+    expect(typeTextWithInputRules(editor, markdown)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level }
+    })
+  })
+
+  it('creates blockquotes from the typed > token', () => {
+    editor = createMarkdownEditor()
+    editor.commands.setTextSelection(1)
+
+    expect(typeTextWithInputRules(editor, '> ')).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'blockquote',
+      content: [{ type: 'paragraph' }]
+    })
+  })
+
+  it.each([
+    ['- ', 'bulletList'],
+    ['1. ', 'orderedList']
+  ])('creates %s list blocks from typed Markdown', (markdown, type) => {
+    editor = createMarkdownEditor()
+    editor.commands.setTextSelection(1)
+
+    expect(typeTextWithInputRules(editor, markdown)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type,
+      content: [{ type: 'listItem' }]
+    })
+  })
+
+  it('creates task lists from typed Markdown', () => {
+    editor = createMarkdownEditor()
+    editor.commands.setTextSelection(1)
+
+    expect(typeTextWithInputRules(editor, '- [ ] ')).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'taskList',
+      content: [{ type: 'taskItem', attrs: { checked: false } }]
+    })
+  })
+
+  it('creates code blocks from typed code fences with language metadata', () => {
+    editor = createMarkdownEditor()
+    editor.commands.setTextSelection(1)
+
+    expect(typeTextWithInputRules(editor, '```ts ')).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'codeBlock',
+      attrs: { language: 'ts' }
+    })
+  })
+})
 
 describe('MarkdownStructuralEditing', () => {
   let editor: Editor
@@ -112,6 +237,56 @@ describe('MarkdownStructuralEditing', () => {
       type: 'heading',
       attrs: { level: 3 },
       content: [{ type: 'text', text: 'Heading text' }]
+    })
+  })
+
+  it('lets composition own Backspace without normalizing structural tokens', () => {
+    Object.defineProperty(editor.view, 'composing', {
+      configurable: true,
+      value: true
+    })
+
+    editor.commands.setTextSelection(1)
+
+    expect(runMarkdownStructuralBackspace(editor)).toBe(false)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level: 3 },
+      content: [{ type: 'text', text: 'Heading text' }]
+    })
+  })
+
+  it('groups each heading token Backspace as one undoable history step', () => {
+    editor.commands.setTextSelection(1)
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level: 2 }
+    })
+
+    expect(pressBackspace(editor)).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level: 1 }
+    })
+
+    expect(editor.commands.undo()).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level: 2 }
+    })
+
+    expect(editor.commands.undo()).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level: 3 }
+    })
+
+    expect(editor.commands.redo()).toBe(true)
+    expect(firstBlock(editor)).toMatchObject({
+      type: 'heading',
+      attrs: { level: 2 }
     })
   })
 })
