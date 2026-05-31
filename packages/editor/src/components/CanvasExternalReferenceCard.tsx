@@ -14,7 +14,8 @@ import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from '../extension
 import { cn } from '../utils'
 import {
   createCanvasExternalReferenceCardRenderer,
-  type CanvasExternalReferenceCardAccent
+  type CanvasExternalReferenceCardAccent,
+  type CanvasExternalReferenceRenderMode
 } from './canvasExternalReferenceCardRenderers'
 import { createCanvasExternalReferenceEmbedFallback } from './canvasExternalReferenceEmbedFallbacks'
 import {
@@ -32,6 +33,7 @@ export interface CanvasExternalReferenceCardProps {
   subtitle?: string | null
   status?: string | null
   embedPolicy?: ExternalReferenceEmbedPolicy | null
+  renderMode?: CanvasExternalReferenceRenderMode
   defaultEmbedActivated?: boolean
   restrictedFields?: readonly CanvasRestrictedCardField[] | null
   onEmbedActivationChange?: (activated: boolean) => void
@@ -180,6 +182,21 @@ function normalizeLifecycleStatus(
   }
 }
 
+function resolveCanvasExternalReferenceRenderMode(
+  requestedMode: CanvasExternalReferenceRenderMode,
+  supportedModes: readonly CanvasExternalReferenceRenderMode[]
+): CanvasExternalReferenceRenderMode {
+  if (supportedModes.includes(requestedMode)) {
+    return requestedMode
+  }
+
+  if (supportedModes.includes('compact')) {
+    return 'compact'
+  }
+
+  return supportedModes[0] ?? 'read-only'
+}
+
 export function CanvasLifecycleStatusBadge({
   status
 }: {
@@ -288,6 +305,7 @@ export function CanvasExternalReferenceCard({
   subtitle,
   status,
   embedPolicy,
+  renderMode = 'compact',
   defaultEmbedActivated = false,
   restrictedFields,
   onEmbedActivationChange,
@@ -322,6 +340,10 @@ export function CanvasExternalReferenceCard({
   const allowedEmbedPolicy = embedPolicyDecision.allowed ? embedPolicyDecision : null
   const allowedEmbedUrl = allowedEmbedPolicy?.embedUrl ?? null
   const accentClasses = PROVIDER_ACCENT_CLASSES[cardRenderer.accent]
+  const resolvedRenderMode = resolveCanvasExternalReferenceRenderMode(
+    renderMode,
+    cardRenderer.renderModes
+  )
   const fallbackSubtitle = normalizeValue(subtitle)
   const [metadataResult, setMetadataResult] = useState<ExternalReferenceMetadataResult | null>(null)
   const [isEmbedActivated, setIsEmbedActivated] = useState(defaultEmbedActivated)
@@ -394,8 +416,10 @@ export function CanvasExternalReferenceCard({
     providerLabel,
     emptyStateLabel: cardRenderer.emptyStateLabel
   })
-  const shouldRenderLiveEmbed =
+  const canRenderLiveEmbed =
     Boolean(allowedEmbedUrl && allowedEmbedPolicy) && embedFallback?.disablesLiveEmbed !== true
+  const shouldMountLiveEmbed =
+    canRenderLiveEmbed && (resolvedRenderMode !== 'compact' || isEmbedActivated)
   const embedFrameTitle = useMemo(
     () => `${providerLabel} embed for ${permissionedTitle.displayValue}`,
     [permissionedTitle.displayValue, providerLabel]
@@ -408,12 +432,14 @@ export function CanvasExternalReferenceCard({
       data-canvas-card-kind="external-reference"
       data-canvas-theme={themeMode}
       data-canvas-embed-provider={providerId}
-      data-canvas-embed-active={shouldRenderLiveEmbed ? 'true' : 'false'}
+      data-canvas-embed-active={canRenderLiveEmbed ? 'true' : 'false'}
+      data-canvas-embed-render-mode={resolvedRenderMode}
+      data-canvas-embed-iframe-mounted={shouldMountLiveEmbed ? 'true' : 'false'}
       data-canvas-embed-policy={embedPolicyDecision.allowed ? 'allowed' : 'blocked'}
       data-canvas-embed-policy-reason={
         embedPolicyDecision.allowed ? undefined : embedPolicyDecision.reason
       }
-      data-canvas-embed-fallback-reason={shouldRenderLiveEmbed ? undefined : embedFallback?.reason}
+      data-canvas-embed-fallback-reason={canRenderLiveEmbed ? undefined : embedFallback?.reason}
       data-canvas-provider-renderer={cardRenderer.kind}
       data-canvas-provider-accent={cardRenderer.accent}
       data-canvas-card-has-restricted-fields={
@@ -500,7 +526,7 @@ export function CanvasExternalReferenceCard({
           </dl>
         ) : null}
 
-        {shouldRenderLiveEmbed && allowedEmbedUrl && allowedEmbedPolicy ? (
+        {canRenderLiveEmbed && allowedEmbedUrl && allowedEmbedPolicy ? (
           <div
             className={cn(
               'relative min-h-[116px] flex-1 overflow-hidden rounded-[18px] border',
@@ -518,21 +544,43 @@ export function CanvasExternalReferenceCard({
               }
             }}
           >
-            <iframe
-              title={embedFrameTitle}
-              src={allowedEmbedUrl}
-              loading="lazy"
-              allow={allowedEmbedPolicy.allow}
-              allowFullScreen
-              sandbox={allowedEmbedPolicy.sandbox}
-              referrerPolicy={allowedEmbedPolicy.referrerPolicy}
-              tabIndex={isEmbedActivated ? 0 : -1}
-              className={cn(
-                'absolute inset-0 h-full w-full border-0 bg-transparent',
-                isEmbedActivated ? 'pointer-events-auto' : 'pointer-events-none'
-              )}
-              data-canvas-embed-iframe="true"
-            />
+            {shouldMountLiveEmbed ? (
+              <iframe
+                title={embedFrameTitle}
+                src={allowedEmbedUrl}
+                loading="lazy"
+                allow={allowedEmbedPolicy.allow}
+                allowFullScreen
+                sandbox={allowedEmbedPolicy.sandbox}
+                referrerPolicy={allowedEmbedPolicy.referrerPolicy}
+                tabIndex={isEmbedActivated ? 0 : -1}
+                className={cn(
+                  'absolute inset-0 h-full w-full border-0 bg-transparent',
+                  isEmbedActivated ? 'pointer-events-auto' : 'pointer-events-none'
+                )}
+                data-canvas-embed-iframe="true"
+              />
+            ) : (
+              <div
+                className="absolute inset-0 grid place-items-center px-4 text-center"
+                data-canvas-embed-compact-preview="true"
+              >
+                <div>
+                  <div
+                    className={cn(
+                      'mx-auto grid h-12 w-12 place-items-center rounded-2xl text-sm font-bold shadow-sm',
+                      accentClasses.icon
+                    )}
+                    aria-hidden="true"
+                  >
+                    {cardRenderer.iconLabel}
+                  </div>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    {cardRenderer.previewLabel}
+                  </p>
+                </div>
+              </div>
+            )}
             {isEmbedActivated ? (
               <button
                 type="button"

@@ -454,6 +454,7 @@ function renderNodeCard(
         subtitle={typeof node.properties.subtitle === 'string' ? node.properties.subtitle : null}
         status={status}
         themeMode={themeMode}
+        renderMode="compact"
       />
     )
   }
@@ -475,6 +476,8 @@ function renderNodeCard(
       data-canvas-node-card="true"
       data-canvas-card-kind={displayType}
       data-canvas-theme={themeMode}
+      data-canvas-card-render-mode={displayType === 'database' ? 'compact' : undefined}
+      data-canvas-database-compact-renderer={displayType === 'database' ? 'true' : undefined}
     >
       <div className="flex items-start justify-between gap-3">
         <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">

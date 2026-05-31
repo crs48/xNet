@@ -1271,7 +1271,7 @@ Decision gate:
 - [x] Page cards allow inline text selection at edit zoom.
 - [x] Canvas drag/resize handles do not conflict with editor selection.
 - [x] Editor toolbars do not trigger canvas drags.
-- [ ] Database and media embeds use compact renderers in canvas cards.
+- [x] Database and media embeds use compact renderers in canvas cards.
 - [x] Opening a page from canvas preserves selection/context where practical.
 - [x] Multiple page cards do not create unacceptable typing or pan/zoom latency.
 
