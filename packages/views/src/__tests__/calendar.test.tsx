@@ -198,6 +198,36 @@ describe('useCalendarState', () => {
     expect(result.current.currentDate.getMonth()).toBe(expectedMonth)
   })
 
+  it('should clamp month navigation on month-end dates', () => {
+    const { result } = renderHook(() =>
+      useCalendarState({
+        schema: mockSchema,
+        view: mockView,
+        data: mockData
+      })
+    )
+
+    act(() => {
+      result.current.setCurrentDate(new Date(2026, 4, 31))
+    })
+
+    act(() => {
+      result.current.navigatePrev()
+    })
+
+    expect(result.current.currentDate).toEqual(new Date(2026, 3, 30))
+
+    act(() => {
+      result.current.setCurrentDate(new Date(2026, 4, 31))
+    })
+
+    act(() => {
+      result.current.navigateNext()
+    })
+
+    expect(result.current.currentDate).toEqual(new Date(2026, 5, 30))
+  })
+
   it('should navigate by week when in week mode', () => {
     const { result } = renderHook(() =>
       useCalendarState({

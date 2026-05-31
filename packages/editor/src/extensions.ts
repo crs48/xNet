@@ -102,6 +102,13 @@ export interface HeadingWithSyntaxOptions {
   HTMLAttributes: Record<string, any>
 }
 
+function toBoundedHeadingLevel(value: unknown): number {
+  const numeric = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(numeric)) return 1
+
+  return Math.min(Math.max(Math.trunc(numeric), 1), 6)
+}
+
 /**
  * Custom Heading extension that uses HeadingView for live preview.
  * Shows `#` characters when the cursor is inside the heading.
@@ -141,6 +148,21 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
   renderHTML({ node, HTMLAttributes }) {
     const level = node.attrs.level as number
     return [`h${level}`, mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
+  },
+
+  parseMarkdown: (token, helpers) =>
+    helpers.createNode(
+      'heading',
+      { level: token.depth || 1 },
+      helpers.parseInline(token.tokens || [])
+    ),
+
+  renderMarkdown: (node, helpers) => {
+    const level = toBoundedHeadingLevel(node.attrs?.level)
+    const prefix = '#'.repeat(level)
+    const content = node.content ? helpers.renderChildren(node.content) : ''
+
+    return `${prefix} ${content}`.trimEnd()
   },
 
   addNodeView() {
@@ -285,6 +307,27 @@ export const CodeBlockWithSyntax = Node.create<CodeBlockWithSyntaxOptions>({
     ]
   },
 
+  markdownTokenName: 'code',
+
+  parseMarkdown: (token, helpers) => {
+    if (token.raw?.startsWith('```') === false && token.codeBlockStyle !== 'indented') {
+      return []
+    }
+
+    return helpers.createNode(
+      'codeBlock',
+      { language: token.lang || 'plaintext' },
+      token.text ? [helpers.createTextNode(token.text)] : []
+    )
+  },
+
+  renderMarkdown: (node, helpers) => {
+    const language = node.attrs?.language === 'plaintext' ? '' : node.attrs?.language || ''
+    const content = node.content ? helpers.renderChildren(node.content) : ''
+
+    return [`\`\`\`${language}`, content, '```'].join('\n')
+  },
+
   addNodeView() {
     return ReactNodeViewRenderer(CodeBlockView)
   },
@@ -372,6 +415,25 @@ export const BlockquoteWithSyntax = Node.create<BlockquoteWithSyntaxOptions>({
     return ['blockquote', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
   },
 
+  parseMarkdown: (token, helpers) =>
+    helpers.createNode('blockquote', undefined, helpers.parseChildren(token.tokens || [])),
+
+  renderMarkdown: (node, helpers) => {
+    if (!node.content) {
+      return ''
+    }
+
+    return node.content
+      .map((child) =>
+        helpers
+          .renderChildren([child])
+          .split('\n')
+          .map((line) => (line.trim() === '' ? '>' : `> ${line}`))
+          .join('\n')
+      )
+      .join('\n>\n')
+  },
+
   addNodeView() {
     return ReactNodeViewRenderer(BlockquoteView)
   },
@@ -403,6 +465,9 @@ export const BlockquoteWithSyntax = Node.create<BlockquoteWithSyntaxOptions>({
 // ============================================================================
 // Re-exports
 // ============================================================================
+
+// Markdown import/export bridge
+export { Markdown as TiptapMarkdown } from '@tiptap/markdown'
 
 // LivePreview - Obsidian-style inline syntax preview
 export { LivePreview } from './extensions/live-preview'

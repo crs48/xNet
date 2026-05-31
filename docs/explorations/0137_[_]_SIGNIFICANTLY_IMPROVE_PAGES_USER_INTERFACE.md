@@ -1023,12 +1023,12 @@ Decision gate:
 
 ### Phase 3: Markdown Import/Export
 
-- [ ] Add official Tiptap Markdown extension.
-- [ ] Configure GFM behavior.
+- [x] Add official Tiptap Markdown extension.
+- [x] Configure GFM behavior.
 - [ ] Add custom Markdown specs for database embeds.
 - [ ] Add custom Markdown specs for rich media embeds.
 - [ ] Add custom Markdown specs for smart references and page links.
-- [ ] Add round-trip tests from Markdown -> ProseMirror -> Markdown.
+- [x] Add round-trip tests from Markdown -> ProseMirror -> Markdown.
 - [ ] Add fallback xNet-flavored blocks for data that cannot be represented in plain CommonMark.
 - [ ] Preserve user-authored Markdown where possible when serializing.
 

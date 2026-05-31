@@ -17,6 +17,7 @@ import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
 import Typography from '@tiptap/extension-typography'
+import { Markdown } from '@tiptap/markdown'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from '@tiptap/y-tiptap'
@@ -402,6 +403,10 @@ export function RichTextEditor({
       blockquote: false,
       // Disable default dropcursor - we use our own drop indicator
       dropcursor: false
+    }),
+    Markdown.configure({
+      indentation: { style: 'space', size: 2 },
+      markedOptions: { gfm: true, breaks: false }
     }),
     // Custom block NodeViews with syntax preview
     HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
