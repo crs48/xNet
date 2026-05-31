@@ -17,6 +17,7 @@ import {
 import {
   AtSign,
   Bold,
+  BookOpen,
   Braces,
   CalendarDays,
   Check,
@@ -274,6 +275,53 @@ function getCurrentLinkHref(editor: Editor): string {
   return typeof href === 'string' ? href : ''
 }
 
+function normalizeReferenceText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+function createPageReferenceTarget(value: string): { pageId: string; title: string } | null {
+  const title = normalizeReferenceText(value)
+  if (!title) return null
+
+  return {
+    pageId: title.includes('/') ? title : `default/${title.toLowerCase().replace(/\s+/g, '-')}`,
+    title
+  }
+}
+
+function getSelectedText(editor: Editor): string {
+  const { selection, doc } = editor.state
+  if (selection.empty) return ''
+
+  return doc.textBetween(selection.from, selection.to, ' ').trim()
+}
+
+function insertPageReference(editor: Editor, value: string): boolean {
+  const target = createPageReferenceTarget(value)
+  if (!target) return false
+
+  editor
+    .chain()
+    .focus()
+    .insertContent({
+      type: 'text',
+      text: target.title,
+      marks: [
+        {
+          type: 'wikilink',
+          attrs: {
+            href: target.pageId,
+            title: target.title
+          }
+        }
+      ]
+    })
+    .run()
+
+  return true
+}
+
 function LinkToolbarPopover({
   editor,
   open,
@@ -403,6 +451,114 @@ function LinkToolbarPopover({
   )
 }
 
+function ReferenceToolbarPopover({
+  editor,
+  open,
+  onOpenChange,
+  isMobile
+}: {
+  editor: Editor
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  isMobile: boolean
+}): JSX.Element | null {
+  const inputId = useId()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+
+    setValue(getSelectedText(editor))
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    })
+  }, [editor, open])
+
+  const close = useCallback(() => {
+    editor.commands.focus()
+    onOpenChange(false)
+  }, [editor, onOpenChange])
+
+  const applyReference = useCallback(() => {
+    if (!insertPageReference(editor, value)) return
+
+    onOpenChange(false)
+  }, [editor, onOpenChange, value])
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLFormElement>) => {
+      if (event.key !== 'Escape') return
+
+      event.preventDefault()
+      event.stopPropagation()
+      close()
+    },
+    [close]
+  )
+
+  if (!open) return null
+
+  return (
+    <form
+      data-testid="editor-reference-popover"
+      role="dialog"
+      aria-label="Insert reference"
+      className={cn(
+        'absolute z-[60] w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border border-border/70',
+        'bg-popover p-3 text-popover-foreground shadow-xl shadow-black/15',
+        'dark:shadow-black/40',
+        isMobile ? 'bottom-full right-3 mb-2' : 'right-0 top-full mt-2'
+      )}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(event) => event.stopPropagation()}
+      onSubmit={(event) => {
+        event.preventDefault()
+        applyReference()
+      }}
+    >
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-sm font-medium">Reference</span>
+        <button
+          type="button"
+          aria-label="Close reference popover"
+          className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+          onClick={close}
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      </div>
+      <label htmlFor={inputId} className="sr-only">
+        Page reference
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          id={inputId}
+          value={value}
+          placeholder="Page title or ID"
+          className={cn(
+            'min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-2 text-sm',
+            'outline-none transition-colors',
+            'placeholder:text-muted-foreground',
+            'focus:border-primary focus:ring-2 focus:ring-primary/20'
+          )}
+          onChange={(event) => setValue(event.target.value)}
+        />
+        <button
+          type="submit"
+          aria-label="Insert page reference"
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+          title="Insert page reference"
+        >
+          <BookOpen size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </form>
+  )
+}
+
 /**
  * Render a plugin-provided toolbar button
  */
@@ -437,7 +593,10 @@ interface ToolbarContentProps {
   isMobile: boolean
   linkPopoverOpen: boolean
   onLinkPopoverOpenChange: (open: boolean) => void
+  referencePopoverOpen: boolean
+  onReferencePopoverOpenChange: (open: boolean) => void
   renderLinkPopover?: boolean
+  renderReferencePopover?: boolean
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }
@@ -447,7 +606,10 @@ function ToolbarContent({
   isMobile,
   linkPopoverOpen,
   onLinkPopoverOpenChange,
+  referencePopoverOpen,
+  onReferencePopoverOpenChange,
   renderLinkPopover = true,
+  renderReferencePopover = true,
   additionalItems = [],
   onCreateComment
 }: ToolbarContentProps): JSX.Element {
@@ -483,6 +645,10 @@ function ToolbarContent({
   const handleLink = useCallback(() => {
     onLinkPopoverOpenChange(true)
   }, [onLinkPopoverOpenChange])
+
+  const handleReference = useCallback(() => {
+    onReferencePopoverOpenChange(true)
+  }, [onReferencePopoverOpenChange])
 
   const handlePickDueDate = useCallback(async () => {
     const selectedDate = await pickDate(getCurrentTaskDueDate(editor))
@@ -551,6 +717,23 @@ function ToolbarContent({
           editor={editor}
           open={linkPopoverOpen}
           onOpenChange={onLinkPopoverOpenChange}
+          isMobile={isMobile}
+        />
+      )}
+      <ToolbarButton
+        onClick={handleReference}
+        active={editor.isActive('wikilink') || editor.isActive('smartReference')}
+        title="Reference"
+        ariaLabel="Reference"
+        isMobile={isMobile}
+      >
+        <BookOpen size={16} aria-hidden="true" />
+      </ToolbarButton>
+      {renderReferencePopover && (
+        <ReferenceToolbarPopover
+          editor={editor}
+          open={referencePopoverOpen}
+          onOpenChange={onReferencePopoverOpenChange}
           isMobile={isMobile}
         />
       )}
@@ -797,6 +980,8 @@ function MobileToolbar({
   surface,
   linkPopoverOpen,
   onLinkPopoverOpenChange,
+  referencePopoverOpen,
+  onReferencePopoverOpenChange,
   additionalItems = [],
   onCreateComment
 }: {
@@ -807,13 +992,16 @@ function MobileToolbar({
   surface: ToolbarSurface
   linkPopoverOpen: boolean
   onLinkPopoverOpenChange: (open: boolean) => void
+  referencePopoverOpen: boolean
+  onReferencePopoverOpenChange: (open: boolean) => void
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const popoverOpen = linkPopoverOpen || referencePopoverOpen
 
   // Only show when editor is focused
-  if (!isFocused && !linkPopoverOpen) return null
+  if (!isFocused && !popoverOpen) return null
 
   return (
     <div
@@ -852,7 +1040,10 @@ function MobileToolbar({
           isMobile={true}
           linkPopoverOpen={linkPopoverOpen}
           onLinkPopoverOpenChange={onLinkPopoverOpenChange}
+          referencePopoverOpen={referencePopoverOpen}
+          onReferencePopoverOpenChange={onReferencePopoverOpenChange}
           renderLinkPopover={false}
+          renderReferencePopover={false}
           additionalItems={additionalItems}
           onCreateComment={onCreateComment}
         />
@@ -861,6 +1052,12 @@ function MobileToolbar({
         editor={editor}
         open={linkPopoverOpen}
         onOpenChange={onLinkPopoverOpenChange}
+        isMobile={true}
+      />
+      <ReferenceToolbarPopover
+        editor={editor}
+        open={referencePopoverOpen}
+        onOpenChange={onReferencePopoverOpenChange}
         isMobile={true}
       />
     </div>
@@ -877,6 +1074,8 @@ function DesktopToolbar({
   surface,
   linkPopoverOpen,
   onLinkPopoverOpenChange,
+  referencePopoverOpen,
+  onReferencePopoverOpenChange,
   additionalItems = [],
   onCreateComment
 }: {
@@ -886,9 +1085,13 @@ function DesktopToolbar({
   surface: ToolbarSurface
   linkPopoverOpen: boolean
   onLinkPopoverOpenChange: (open: boolean) => void
+  referencePopoverOpen: boolean
+  onReferencePopoverOpenChange: (open: boolean) => void
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element {
+  const popoverOpen = linkPopoverOpen || referencePopoverOpen
+
   return (
     <BubbleMenu
       editor={editor}
@@ -902,7 +1105,7 @@ function DesktopToolbar({
         offset: 8
       }}
       shouldShow={({ editor, state }) => {
-        if (linkPopoverOpen) return true
+        if (popoverOpen) return true
         if (!editor.isFocused) return false
 
         return shouldShowDesktopToolbar({
@@ -917,7 +1120,7 @@ function DesktopToolbar({
         'shadow-xl shadow-black/15 dark:shadow-black/40',
         'border border-border/50',
         compact && 'max-w-[min(360px,calc(100vw-24px))]',
-        compact && !linkPopoverOpen && 'overflow-x-auto',
+        compact && !popoverOpen && 'overflow-x-auto',
         className
       )}
     >
@@ -926,6 +1129,8 @@ function DesktopToolbar({
         isMobile={false}
         linkPopoverOpen={linkPopoverOpen}
         onLinkPopoverOpenChange={onLinkPopoverOpenChange}
+        referencePopoverOpen={referencePopoverOpen}
+        onReferencePopoverOpenChange={onReferencePopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -950,6 +1155,17 @@ export function FloatingToolbar({
 }: FloatingToolbarProps): JSX.Element | null {
   const ux = useEditorUxState(editor, mode, keyboardThresholds)
   const [linkPopoverOpen, setLinkPopoverOpen] = useState(false)
+  const [referencePopoverOpen, setReferencePopoverOpen] = useState(false)
+
+  const handleLinkPopoverOpenChange = useCallback((open: boolean) => {
+    setLinkPopoverOpen(open)
+    if (open) setReferencePopoverOpen(false)
+  }, [])
+
+  const handleReferencePopoverOpenChange = useCallback((open: boolean) => {
+    setReferencePopoverOpen(open)
+    if (open) setLinkPopoverOpen(false)
+  }, [])
 
   if (!editor) return null
 
@@ -976,7 +1192,9 @@ export function FloatingToolbar({
         className={className}
         surface={surface}
         linkPopoverOpen={linkPopoverOpen}
-        onLinkPopoverOpenChange={setLinkPopoverOpen}
+        onLinkPopoverOpenChange={handleLinkPopoverOpenChange}
+        referencePopoverOpen={referencePopoverOpen}
+        onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -991,7 +1209,9 @@ export function FloatingToolbar({
         compact={policy.isCompact || surface === 'canvas-inline'}
         surface={surface}
         linkPopoverOpen={linkPopoverOpen}
-        onLinkPopoverOpenChange={setLinkPopoverOpen}
+        onLinkPopoverOpenChange={handleLinkPopoverOpenChange}
+        referencePopoverOpen={referencePopoverOpen}
+        onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -1007,7 +1227,9 @@ export function FloatingToolbar({
       compact={policy.isCompact}
       surface={surface}
       linkPopoverOpen={linkPopoverOpen}
-      onLinkPopoverOpenChange={setLinkPopoverOpen}
+      onLinkPopoverOpenChange={handleLinkPopoverOpenChange}
+      referencePopoverOpen={referencePopoverOpen}
+      onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
       additionalItems={additionalItems}
       onCreateComment={onCreateComment}
     />

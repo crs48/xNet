@@ -24,6 +24,9 @@ type MockEditor = {
       to: number
       empty: boolean
     }
+    doc: {
+      textBetween: ReturnType<typeof vi.fn>
+    }
   }
   isFocused: boolean
   isActive: ReturnType<typeof vi.fn>
@@ -40,6 +43,7 @@ type MockEditor = {
     toggleBlockquote: ReturnType<typeof vi.fn>
     toggleCodeBlock: ReturnType<typeof vi.fn>
     setLink: ReturnType<typeof vi.fn>
+    insertContent: ReturnType<typeof vi.fn>
     unsetLink: ReturnType<typeof vi.fn>
   }
   _emit: (event: string) => void
@@ -131,6 +135,9 @@ function createMockEditor() {
         from: 1,
         to: 1,
         empty: true
+      },
+      doc: {
+        textBetween: vi.fn(() => '')
       }
     },
     isFocused: false,
@@ -309,6 +316,77 @@ describe('FloatingToolbar', () => {
 
     expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
     expect(screen.getByTestId('editor-link-popover')).toBeInTheDocument()
+  })
+
+  it('inserts page references through the reference popover', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+    editor.state.doc.textBetween.mockReturnValue('Existing Selection')
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reference' }))
+    expect(screen.getByRole('textbox', { name: 'Page reference' })).toHaveValue(
+      'Existing Selection'
+    )
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Page reference' }), {
+      target: { value: 'Launch Plan' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Insert page reference' }))
+
+    expect(editor._commands.insertContent).toHaveBeenCalledWith({
+      type: 'text',
+      text: 'Launch Plan',
+      marks: [
+        {
+          type: 'wikilink',
+          attrs: {
+            href: 'default/launch-plan',
+            title: 'Launch Plan'
+          }
+        }
+      ]
+    })
+    expect(screen.queryByTestId('editor-reference-popover')).not.toBeInTheDocument()
+  })
+
+  it('closes reference popover on Escape without mutating the document', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reference' }))
+    expect(screen.getByTestId('editor-reference-popover')).toBeInTheDocument()
+
+    fireEvent.keyDown(screen.getByTestId('editor-reference-popover'), { key: 'Escape' })
+
+    expect(screen.queryByTestId('editor-reference-popover')).not.toBeInTheDocument()
+    expect(editor._commands.insertContent).not.toHaveBeenCalled()
+    expect(editor.commands.focus).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps desktop toolbar visible while the reference popover owns focus', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    const { rerender } = render(
+      <FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reference' }))
+    act(() => {
+      editor.isFocused = false
+      editor._emit('blur')
+    })
+    rerender(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
+    expect(screen.getByTestId('editor-reference-popover')).toBeInTheDocument()
   })
 
   it('routes desktop comment button through anchor capture and comment commands', async () => {

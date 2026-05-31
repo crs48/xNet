@@ -209,4 +209,33 @@ test.describe('Editor Markdown live editing', () => {
       fullPage: true
     })
   })
+
+  test('reference popover inserts page wikilinks from selected text', async ({ page }) => {
+    const editor = await createBlankPage(page)
+
+    await editor.click()
+    await page.keyboard.type('reference target')
+    await selectEditorText(page, 'reference target', {
+      start: 'reference '.length,
+      end: 'reference target'.length
+    })
+    await expect
+      .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ''))
+      .toBe('target')
+
+    const toolbar = page.getByTestId('editor-desktop-toolbar')
+    await expect(toolbar).toBeVisible()
+
+    await toolbar.getByRole('button', { name: 'Reference' }).click()
+    const referencePopover = page.getByTestId('editor-reference-popover')
+    await expect(referencePopover).toBeVisible()
+    await expect(referencePopover).toHaveAttribute('role', 'dialog')
+    await expect(referencePopover).toHaveAttribute('aria-label', 'Insert reference')
+    await referencePopover.getByRole('textbox', { name: 'Page reference' }).fill('Launch Plan')
+    await referencePopover.getByRole('button', { name: 'Insert page reference' }).click()
+
+    await expect(
+      page.locator('a[data-wikilink][href="default/launch-plan"]', { hasText: 'Launch Plan' })
+    ).toBeVisible()
+  })
 })
