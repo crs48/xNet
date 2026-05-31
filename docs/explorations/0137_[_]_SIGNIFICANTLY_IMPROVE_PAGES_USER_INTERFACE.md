@@ -1025,11 +1025,11 @@ Decision gate:
 
 - [x] Add official Tiptap Markdown extension.
 - [x] Configure GFM behavior.
-- [ ] Add custom Markdown specs for database embeds.
-- [ ] Add custom Markdown specs for rich media embeds.
-- [ ] Add custom Markdown specs for smart references and page links.
+- [x] Add custom Markdown specs for database embeds.
+- [x] Add custom Markdown specs for rich media embeds.
+- [x] Add custom Markdown specs for smart references and page links.
 - [x] Add round-trip tests from Markdown -> ProseMirror -> Markdown.
-- [ ] Add fallback xNet-flavored blocks for data that cannot be represented in plain CommonMark.
+- [x] Add fallback xNet-flavored blocks for data that cannot be represented in plain CommonMark.
 - [ ] Preserve user-authored Markdown where possible when serializing.
 
 ### Phase 4: Embeds And References
@@ -1118,7 +1118,7 @@ Decision gate:
 - [ ] Database embed supports table/board/calendar/gallery/list modes as applicable.
 - [ ] Page links and page embeds can be inserted and navigated.
 - [ ] Smart references remain compact and editable.
-- [ ] Embed Markdown serialization round-trips.
+- [x] Embed Markdown serialization round-trips.
 
 ### Canvas
 

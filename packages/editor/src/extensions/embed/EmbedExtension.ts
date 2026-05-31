@@ -6,11 +6,23 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer } from '@tiptap/react'
+import {
+  createXNetJsonBlockTokenizer,
+  numberAttr,
+  parseXNetJsonPayload,
+  renderXNetJsonBlock,
+  stringAttr
+} from '../markdown-xnet'
 import { createEmbedLinkPlugin } from './EmbedLinkPlugin'
 import { EmbedNodeView } from './EmbedNodeView'
 import { parseEmbedUrl } from './providers'
 
 const EmbedPastePluginKey = new PluginKey('embedPaste')
+const EMBED_MARKDOWN_DIRECTIVE = 'xnet-embed'
+
+function toEmbedAlignment(value: unknown): 'left' | 'center' | 'right' {
+  return value === 'center' || value === 'right' ? value : 'left'
+}
 
 export interface EmbedOptions {
   /** Enable auto-detection of pasted URLs */
@@ -70,6 +82,37 @@ export const EmbedExtension = Node.create<EmbedOptions>({
       })
     ]
   },
+
+  markdownTokenizer: createXNetJsonBlockTokenizer('embed', EMBED_MARKDOWN_DIRECTIVE),
+
+  parseMarkdown: (token, helpers) => {
+    const payload = parseXNetJsonPayload(token)
+    const url = stringAttr(payload?.url)
+    if (!url) return []
+
+    const parsed = parseEmbedUrl(url)
+
+    return helpers.createNode('embed', {
+      url,
+      provider: stringAttr(payload?.provider, parsed?.provider.name ?? null),
+      embedId: stringAttr(payload?.embedId, parsed?.id ?? null),
+      embedUrl: stringAttr(payload?.embedUrl, parsed?.embedUrl ?? null),
+      title: stringAttr(payload?.title),
+      width: numberAttr(payload?.width, 400),
+      alignment: toEmbedAlignment(payload?.alignment)
+    })
+  },
+
+  renderMarkdown: (node) =>
+    renderXNetJsonBlock(EMBED_MARKDOWN_DIRECTIVE, {
+      url: node.attrs?.url,
+      provider: node.attrs?.provider,
+      embedId: node.attrs?.embedId,
+      embedUrl: node.attrs?.embedUrl,
+      title: node.attrs?.title,
+      width: node.attrs?.width ?? 400,
+      alignment: node.attrs?.alignment ?? 'left'
+    }),
 
   addNodeView() {
     return ReactNodeViewRenderer(EmbedNodeView)

@@ -39,6 +39,10 @@ function generatePageId(title: string): string {
  */
 const wikilinkInputRegex = /\[\[([^\]]+)\]\]$/
 
+function getWikilinkTitle(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
 /**
  * Wikilink extension for Tiptap
  *
@@ -83,6 +87,41 @@ export const Wikilink = Mark.create<WikilinkOptions>({
       }),
       0
     ]
+  },
+
+  markdownTokenizer: {
+    name: 'wikilink',
+    level: 'inline' as const,
+    start: (src: string) => src.indexOf('[['),
+    tokenize: (src: string) => {
+      const match = src.match(/^\[\[([^\]\n]+)\]\]/)
+      if (!match) return undefined
+
+      const title = getWikilinkTitle(match[1])
+      if (!title) return undefined
+
+      return {
+        type: 'wikilink',
+        raw: match[0],
+        text: title,
+        tokens: [{ type: 'text', raw: title, text: title }]
+      }
+    }
+  },
+
+  parseMarkdown: (token, helpers) => {
+    const title = getWikilinkTitle(token.text)
+    if (!title) return []
+
+    return helpers.applyMark('wikilink', [helpers.createTextNode(title)], {
+      href: generatePageId(title),
+      title
+    })
+  },
+
+  renderMarkdown: (node, helpers) => {
+    const title = helpers.renderChildren(node) || getWikilinkTitle(node.attrs?.title)
+    return `[[${title}]]`
   },
 
   addInputRules() {

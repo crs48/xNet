@@ -7,9 +7,34 @@
  */
 import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
+import {
+  booleanAttr,
+  createXNetJsonBlockTokenizer,
+  numberAttr,
+  parseXNetJsonPayload,
+  recordAttr,
+  renderXNetJsonBlock,
+  stringAttr
+} from '../markdown-xnet'
 import { DatabaseEmbedNodeView } from './DatabaseEmbedNodeView'
 
 export type DatabaseViewType = 'table' | 'board' | 'list' | 'calendar' | 'gallery' | 'timeline'
+
+const DATABASE_EMBED_MARKDOWN_DIRECTIVE = 'xnet-database'
+const DATABASE_VIEW_TYPES = new Set<DatabaseViewType>([
+  'table',
+  'board',
+  'list',
+  'calendar',
+  'gallery',
+  'timeline'
+])
+
+function toDatabaseViewType(value: unknown): DatabaseViewType {
+  return typeof value === 'string' && DATABASE_VIEW_TYPES.has(value as DatabaseViewType)
+    ? (value as DatabaseViewType)
+    : 'table'
+}
 
 export interface DatabaseEmbedOptions {
   /**
@@ -111,6 +136,34 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
       })
     ]
   },
+
+  markdownTokenizer: createXNetJsonBlockTokenizer(
+    'databaseEmbed',
+    DATABASE_EMBED_MARKDOWN_DIRECTIVE
+  ),
+
+  parseMarkdown: (token, helpers) => {
+    const payload = parseXNetJsonPayload(token)
+    const databaseId = stringAttr(payload?.databaseId)
+    if (!databaseId) return []
+
+    return helpers.createNode('databaseEmbed', {
+      databaseId,
+      viewType: toDatabaseViewType(payload?.viewType),
+      viewConfig: recordAttr(payload?.viewConfig),
+      showTitle: booleanAttr(payload?.showTitle, true),
+      maxHeight: numberAttr(payload?.maxHeight, 400)
+    })
+  },
+
+  renderMarkdown: (node) =>
+    renderXNetJsonBlock(DATABASE_EMBED_MARKDOWN_DIRECTIVE, {
+      databaseId: node.attrs?.databaseId,
+      viewType: node.attrs?.viewType ?? 'table',
+      viewConfig: node.attrs?.viewConfig ?? {},
+      showTitle: node.attrs?.showTitle ?? true,
+      maxHeight: node.attrs?.maxHeight ?? 400
+    }),
 
   addNodeView() {
     return ReactNodeViewRenderer(DatabaseEmbedNodeView)

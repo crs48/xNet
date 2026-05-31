@@ -6,9 +6,17 @@
  */
 import { Node, mergeAttributes } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
+import {
+  createXNetJsonInlineTokenizer,
+  parseXNetJsonPayload,
+  recordAttr,
+  renderXNetJsonInline,
+  stringAttr
+} from '../markdown-xnet'
 import { parseSmartReferenceUrl } from './providers'
 
 const SmartReferencePastePluginKey = new PluginKey('smartReferencePaste')
+const SMART_REFERENCE_MARKDOWN_DIRECTIVE = 'xnet-ref'
 
 function isTaskItemSelection(editor: import('@tiptap/core').Editor): boolean {
   const { $from } = editor.state.selection
@@ -38,6 +46,22 @@ function buildReferenceChip(reference: ReturnType<typeof parseSmartReferenceUrl>
       embedUrl: reference.embedUrl ?? null,
       metadata: JSON.stringify(reference.metadata)
     }
+  }
+}
+
+function metadataAttr(value: unknown): string {
+  if (typeof value === 'string' && value.length > 0) return value
+  return JSON.stringify(recordAttr(value))
+}
+
+function parseMetadata(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'string') return recordAttr(value)
+
+  try {
+    const parsed = JSON.parse(value)
+    return recordAttr(parsed)
+  } catch {
+    return {}
   }
 }
 
@@ -105,6 +129,42 @@ export const SmartReferenceExtension = Node.create<SmartReferenceOptions>({
       label
     ]
   },
+
+  markdownTokenizer: createXNetJsonInlineTokenizer(
+    'smartReference',
+    SMART_REFERENCE_MARKDOWN_DIRECTIVE
+  ),
+
+  parseMarkdown: (token, helpers) => {
+    const payload = parseXNetJsonPayload(token)
+    const url = stringAttr(payload?.url)
+    if (!url) return []
+
+    return helpers.createNode('smartReference', {
+      url,
+      provider: stringAttr(payload?.provider),
+      kind: stringAttr(payload?.kind),
+      refId: stringAttr(payload?.refId),
+      title: stringAttr(payload?.title, url),
+      subtitle: stringAttr(payload?.subtitle),
+      icon: stringAttr(payload?.icon),
+      embedUrl: stringAttr(payload?.embedUrl),
+      metadata: metadataAttr(payload?.metadata)
+    })
+  },
+
+  renderMarkdown: (node) =>
+    renderXNetJsonInline(SMART_REFERENCE_MARKDOWN_DIRECTIVE, {
+      url: node.attrs?.url,
+      provider: node.attrs?.provider,
+      kind: node.attrs?.kind,
+      refId: node.attrs?.refId,
+      title: node.attrs?.title,
+      subtitle: node.attrs?.subtitle,
+      icon: node.attrs?.icon,
+      embedUrl: node.attrs?.embedUrl,
+      metadata: parseMetadata(node.attrs?.metadata)
+    }),
 
   addCommands() {
     return {

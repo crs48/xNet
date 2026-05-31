@@ -6,11 +6,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   BlockquoteWithSyntax,
   CodeBlockWithSyntax,
+  DatabaseEmbedExtension,
+  EmbedExtension,
   HeadingWithSyntax,
   isMarkdownClipboardCandidate,
   MarkdownClipboard,
   PageTaskItemExtension,
-  TiptapMarkdown
+  SmartReferenceExtension,
+  TiptapMarkdown,
+  Wikilink
 } from '../extensions'
 
 function createMarkdownEditor(markdown = ''): Editor {
@@ -31,6 +35,10 @@ function createMarkdownEditor(markdown = ''): Editor {
       HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
       BlockquoteWithSyntax,
       CodeBlockWithSyntax,
+      DatabaseEmbedExtension,
+      EmbedExtension,
+      SmartReferenceExtension,
+      Wikilink.configure({ onNavigate: () => {}, HTMLAttributes: {} }),
       Link.configure({ openOnClick: false }),
       TaskList,
       PageTaskItemExtension.configure({ nested: true })
@@ -165,6 +173,112 @@ describe('TiptapMarkdown integration', () => {
 
     expect(editor.commands.insertContent('\n\nPlain text', { contentType: 'markdown' })).toBe(true)
     expect(editor.getMarkdown()).toContain('Plain text')
+  })
+
+  it('round-trips xNet database embed blocks', () => {
+    editor = createMarkdownEditor(
+      [
+        ':::xnet-database',
+        '{"databaseId":"db-roadmap","viewType":"board","viewConfig":{"groupBy":"status"},"showTitle":false,"maxHeight":560}',
+        ':::'
+      ].join('\n')
+    )
+
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: 'databaseEmbed',
+      attrs: {
+        databaseId: 'db-roadmap',
+        viewType: 'board',
+        viewConfig: { groupBy: 'status' },
+        showTitle: false,
+        maxHeight: 560
+      }
+    })
+    expect(editor.getMarkdown().trimEnd()).toBe(
+      [
+        ':::xnet-database',
+        '{',
+        '  "databaseId": "db-roadmap",',
+        '  "viewType": "board",',
+        '  "viewConfig": {',
+        '    "groupBy": "status"',
+        '  },',
+        '  "showTitle": false,',
+        '  "maxHeight": 560',
+        '}',
+        ':::'
+      ].join('\n')
+    )
+  })
+
+  it('round-trips xNet rich media embed blocks', () => {
+    editor = createMarkdownEditor(
+      [
+        ':::xnet-embed',
+        '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ","provider":"youtube","embedId":"dQw4w9WgXcQ","embedUrl":"https://www.youtube.com/embed/dQw4w9WgXcQ","title":"Launch demo","width":640,"alignment":"center"}',
+        ':::'
+      ].join('\n')
+    )
+
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: 'embed',
+      attrs: {
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        provider: 'youtube',
+        embedId: 'dQw4w9WgXcQ',
+        embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        title: 'Launch demo',
+        width: 640,
+        alignment: 'center'
+      }
+    })
+    expect(editor.getMarkdown()).toContain(':::xnet-embed')
+    expect(editor.getMarkdown()).toContain('"alignment": "center"')
+  })
+
+  it('round-trips smart references and wikilinks', () => {
+    editor = createMarkdownEditor(
+      [
+        'Issue {{xnet-ref {"url":"https://github.com/xnetjs/xNet/issues/301","provider":"github","kind":"issue","refId":"301","title":"Issue 301","icon":"GH","metadata":{"repo":"xNet"}}}} and [[Roadmap Page]]'
+      ].join('\n')
+    )
+
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: 'Issue ' },
+        {
+          type: 'smartReference',
+          attrs: {
+            url: 'https://github.com/xnetjs/xNet/issues/301',
+            provider: 'github',
+            kind: 'issue',
+            refId: '301',
+            title: 'Issue 301',
+            icon: 'GH',
+            metadata: '{"repo":"xNet"}'
+          }
+        },
+        { type: 'text', text: ' and ' },
+        {
+          type: 'text',
+          text: 'Roadmap Page',
+          marks: [
+            {
+              type: 'wikilink',
+              attrs: {
+                href: 'default/roadmap-page',
+                title: 'Roadmap Page'
+              }
+            }
+          ]
+        }
+      ]
+    })
+    expect(editor.getMarkdown()).toContain(
+      '{{xnet-ref {"url":"https://github.com/xnetjs/xNet/issues/301"'
+    )
+    expect(editor.getMarkdown()).toContain('[[Roadmap Page]]')
   })
 })
 
