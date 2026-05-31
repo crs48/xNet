@@ -1058,7 +1058,7 @@ Decision gate:
 - [ ] Keep the old editor behind a kill switch during rollout.
 - [ ] Add one-way migration or compatibility loader if document schema changes.
 - [ ] Add crash-safe fallback rendering for unknown nodes.
-- [ ] Run full `pnpm --filter @xnetjs/editor test`.
+- [x] Run full `pnpm --filter @xnetjs/editor test`.
 - [ ] Run relevant Electron Playwright checks with auth bypass.
 - [ ] Run performance benchmarks before enabling by default.
 - [ ] Enable for new pages first.
