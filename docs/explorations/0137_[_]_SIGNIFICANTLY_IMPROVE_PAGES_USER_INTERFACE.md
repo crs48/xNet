@@ -1243,6 +1243,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/markdown-structural-editing.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 selection decoration checkpoint:
+
+- Added a 1,000-block live-preview regression proving collapsed selection moves inside inline marks do not call `doc.descendants()`.
+- The inline syntax widgets remain deterministic while decoration recomputation stays scoped to the current marked block.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/live-preview/inline-marks.integration.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1320,7 +1328,7 @@ Decision gate:
 ### Performance
 
 - [x] Typing latency stays under the chosen budget in a 1,000-block document.
-- [ ] Selection changes do not recompute full-document decorations unnecessarily.
+- [x] Selection changes do not recompute full-document decorations unnecessarily.
 - [ ] Initial editor mount remains within budget for typical pages.
 - [x] Canvas with many page cards uses preview mode instead of full editor mode.
 - [x] Heavy embeds lazy-render below the fold.

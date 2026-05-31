@@ -1,8 +1,10 @@
 import type { Decoration } from '@tiptap/pm/view'
-import { Editor } from '@tiptap/core'
+import { Editor, type Content } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
-import { describe, expect, it, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import { createInlineMarksPlugin, inlineMarksPluginKey } from './inline-marks'
+
+const LARGE_SELECTION_DOCUMENT_BLOCKS = 1000
 
 function findTextStart(editor: Editor, text: string): number {
   let position: number | null = null
@@ -22,6 +24,24 @@ function findTextStart(editor: Editor, text: string): number {
   }
 
   return position
+}
+
+function createLargeMarkedDocument(blocks = LARGE_SELECTION_DOCUMENT_BLOCKS): Content {
+  return {
+    type: 'doc',
+    content: Array.from({ length: blocks }, (_, index) => ({
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: `Plain prefix ${index} ` },
+        {
+          type: 'text',
+          text: `marked block ${index}`,
+          marks: [{ type: 'bold' }]
+        },
+        { type: 'text', text: ` plain suffix ${index}` }
+      ]
+    }))
+  }
 }
 
 describe('inline marks live preview integration', () => {
@@ -44,6 +64,7 @@ describe('inline marks live preview integration', () => {
   afterEach(() => {
     editor.destroy()
     container.remove()
+    vi.restoreAllMocks()
   })
 
   it('keeps stable decoration count for nested marks', () => {
@@ -71,6 +92,22 @@ describe('inline marks live preview integration', () => {
 
     expect(decorations).toHaveLength(4)
     expect(new Set(decorations.map((decoration: Decoration) => decoration.spec.key)).size).toBe(4)
+  })
+
+  it('does not traverse the full document for selection-only decoration updates', () => {
+    editor.commands.setContent(createLargeMarkedDocument(), { emitUpdate: false })
+    const markedTextStart = findTextStart(editor, 'marked block 999')
+    const descendantsSpy = vi.spyOn(editor.state.doc, 'descendants')
+
+    editor.commands.setTextSelection(markedTextStart + 3)
+    editor.commands.setTextSelection(markedTextStart + 4)
+
+    const decorations = inlineMarksPluginKey.getState(editor.state).find()
+    expect(descendantsSpy).not.toHaveBeenCalled()
+    expect(decorations.map((decoration: Decoration) => decoration.spec.key)).toEqual([
+      `bold-open-${markedTextStart}`,
+      `bold-close-${markedTextStart + 'marked block 999'.length}`
+    ])
   })
 
   it('uses selection-relaxed syntax widgets so mark delimiters do not trap the caret', () => {
