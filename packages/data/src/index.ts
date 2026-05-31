@@ -182,6 +182,16 @@ export {
   type ExternalReferenceEmbedPolicyDecision,
   type ExternalReferenceIframeSandboxToken
 } from './external-reference-embed-policy'
+export {
+  evaluateEmbedRegistryPolicy,
+  getEmbedRegistryProviderPolicies,
+  getEmbedRegistryProviderPolicy,
+  type EmbedRegistryIframeSecurityAttributes,
+  type EmbedRegistryPolicyDecision,
+  type EmbedRegistryProvider,
+  type EmbedRegistryProviderPolicy,
+  type EvaluateEmbedRegistryPolicyInput
+} from './embed-registry'
 
 // Update handling
 export {

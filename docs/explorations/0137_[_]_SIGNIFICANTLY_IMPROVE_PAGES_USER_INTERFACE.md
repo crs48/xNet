@@ -1034,8 +1034,8 @@ Decision gate:
 
 ### Phase 4: Embeds And References
 
-- [ ] Create shared `EmbedRegistry` facade over `@xnetjs/data` providers and policies.
-- [ ] Unify editor and canvas embed policy usage.
+- [x] Create shared `EmbedRegistry` facade over `@xnetjs/data` providers and policies.
+- [x] Unify editor and canvas embed policy usage.
 - [ ] Define inline, block, compact, and read-only renderers per provider.
 - [ ] Add rich link preview card for generic URLs.
 - [ ] Add page embed block.
