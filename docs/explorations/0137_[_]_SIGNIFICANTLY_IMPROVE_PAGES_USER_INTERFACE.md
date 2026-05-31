@@ -1210,6 +1210,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/smart-reference/SmartReferenceExtension.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 structured task extraction checkpoint:
+
+- `RichTextEditor` now has component-level regression coverage for publishing normalized page task snapshots from structured ProseMirror task-list docs.
+- The coverage exercises nested task parentage, stable generated task/block IDs, assignees, due dates, smart references, and sort keys through the public `onPageTasksChange` callback.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/RichTextEditor.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1281,7 +1289,7 @@ Decision gate:
 - [ ] Remote cursors render correctly around revealed Markdown syntax.
 - [ ] Undo/redo is local and predictable with Yjs collaboration.
 - [ ] Comments remain anchored after Markdown structural transforms.
-- [ ] Task extraction continues to work from structured ProseMirror docs.
+- [x] Task extraction continues to work from structured ProseMirror docs.
 - [x] Documents reload without losing custom embeds.
 
 ### Performance

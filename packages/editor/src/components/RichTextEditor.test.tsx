@@ -1,6 +1,7 @@
 /**
  * Tests for RichTextEditor component
  */
+import type { PageTaskSnapshot } from '../extensions/page-tasks'
 import type { Editor } from '@tiptap/react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
@@ -160,6 +161,128 @@ describe('RichTextEditor', () => {
 
       const fragment = ydoc.getXmlFragment('content')
       expect(fragment).toBeDefined()
+    })
+
+    it('publishes page task snapshots from structured ProseMirror docs', async () => {
+      let readyEditor: Editor | null = null
+      const onPageTasksChange = vi.fn<(tasks: PageTaskSnapshot[]) => void>()
+      const aliceDid = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'
+
+      render(
+        <RichTextEditor
+          ydoc={ydoc}
+          showToolbar={false}
+          onPageTasksChange={onPageTasksChange}
+          onEditorReady={(editor) => {
+            readyEditor = editor
+          }}
+        />
+      )
+
+      await screen.findByRole('textbox', { name: 'Rich text editor' })
+      await waitFor(() => expect(readyEditor).not.toBeNull())
+
+      act(() => {
+        readyEditor?.commands.setContent({
+          type: 'doc',
+          content: [
+            {
+              type: 'taskList',
+              content: [
+                {
+                  type: 'taskItem',
+                  attrs: { checked: false },
+                  content: [
+                    {
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Ship editor polish' }]
+                    },
+                    {
+                      type: 'taskList',
+                      content: [
+                        {
+                          type: 'taskItem',
+                          attrs: { checked: true },
+                          content: [
+                            {
+                              type: 'paragraph',
+                              content: [
+                                { type: 'text', text: 'Verify task extraction ' },
+                                {
+                                  type: 'taskMention',
+                                  attrs: {
+                                    id: aliceDid,
+                                    label: 'alice'
+                                  }
+                                },
+                                {
+                                  type: 'taskDueDate',
+                                  attrs: {
+                                    date: '2026-06-15'
+                                  }
+                                },
+                                {
+                                  type: 'smartReference',
+                                  attrs: {
+                                    url: 'https://github.com/xnetjs/xNet/issues/137',
+                                    provider: 'github',
+                                    kind: 'issue',
+                                    refId: 'xnetjs/xNet#137',
+                                    title: 'Improve pages editor',
+                                    subtitle: 'xnetjs/xNet',
+                                    icon: 'GH',
+                                    embedUrl: null,
+                                    metadata: '{"repo":"xnetjs/xNet"}'
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        })
+      })
+
+      const getStructuredTaskUpdate = (): PageTaskSnapshot[] | undefined =>
+        [...onPageTasksChange.mock.calls]
+          .reverse()
+          .map(([tasks]) => tasks)
+          .find((tasks) => tasks.length === 2)
+
+      await waitFor(() => {
+        expect(getStructuredTaskUpdate()).toBeDefined()
+      })
+
+      const tasks = getStructuredTaskUpdate()
+      expect(tasks?.[0]).toMatchObject({
+        title: 'Ship editor polish',
+        completed: false,
+        parentTaskId: null,
+        sortKey: '0000'
+      })
+      expect(tasks?.[0].taskId).toEqual(expect.any(String))
+      expect(tasks?.[0].blockId).toEqual(expect.any(String))
+      expect(tasks?.[1]).toMatchObject({
+        title: 'Verify task extraction',
+        completed: true,
+        parentTaskId: tasks?.[0].taskId,
+        sortKey: '0000.0000',
+        assignees: [aliceDid],
+        dueDate: '2026-06-15'
+      })
+      expect(tasks?.[1].references).toEqual([
+        expect.objectContaining({
+          provider: 'github',
+          kind: 'issue',
+          refId: 'xnetjs/xNet#137'
+        })
+      ])
     })
 
     it('reloads persisted custom embed nodes without losing their attributes', async () => {
