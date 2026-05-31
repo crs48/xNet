@@ -1,7 +1,21 @@
 import type { Editor } from '@tiptap/react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { captureTextAnchor } from '../extensions/comment'
 import { FloatingToolbar } from './FloatingToolbar'
+
+vi.mock('../extensions/comment', () => ({
+  captureTextAnchor: vi.fn(() => ({
+    exact: 'selected text',
+    prefix: '',
+    suffix: '',
+    position: {
+      type: 'relative',
+      anchor: 'anchor',
+      head: 'head'
+    }
+  }))
+}))
 
 type MockEditor = {
   state: {
@@ -17,9 +31,15 @@ type MockEditor = {
   off: ReturnType<typeof vi.fn>
   can: ReturnType<typeof vi.fn>
   chain: ReturnType<typeof vi.fn>
+  commands: {
+    setComment: ReturnType<typeof vi.fn>
+  }
+  getAttributes: ReturnType<typeof vi.fn>
   _commands: {
     toggleBlockquote: ReturnType<typeof vi.fn>
     toggleCodeBlock: ReturnType<typeof vi.fn>
+    setLink: ReturnType<typeof vi.fn>
+    unsetLink: ReturnType<typeof vi.fn>
   }
   _emit: (event: string) => void
 }
@@ -90,6 +110,8 @@ function createMockEditor() {
     toggleItalic: vi.fn(() => ({ run: vi.fn() })),
     toggleStrike: vi.fn(() => ({ run: vi.fn() })),
     toggleCode: vi.fn(() => ({ run: vi.fn() })),
+    setLink: vi.fn(() => ({ run: vi.fn() })),
+    unsetLink: vi.fn(() => ({ run: vi.fn() })),
     toggleHeading: vi.fn(() => ({ run: vi.fn() })),
     toggleBulletList: vi.fn(() => ({ run: vi.fn() })),
     toggleOrderedList: vi.fn(() => ({ run: vi.fn() })),
@@ -126,6 +148,10 @@ function createMockEditor() {
     chain: vi.fn(() => ({
       focus: () => commands
     })),
+    commands: {
+      setComment: vi.fn()
+    },
+    getAttributes: vi.fn(() => ({})),
     _commands: commands,
     _emit(event: string) {
       listeners[event]?.forEach((handler) => handler())
@@ -138,6 +164,7 @@ function createMockEditor() {
 describe('FloatingToolbar', () => {
   it('shows desktop toolbar only for range selection', () => {
     const editor = createMockEditor()
+    editor.isFocused = true
     const { rerender } = render(
       <FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />
     )
@@ -152,10 +179,18 @@ describe('FloatingToolbar', () => {
     rerender(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
     expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
     expect(screen.getByRole('toolbar', { name: 'Editor formatting toolbar' })).toBeInTheDocument()
+
+    act(() => {
+      editor.isFocused = false
+      editor._emit('blur')
+    })
+
+    expect(screen.queryByTestId('editor-desktop-toolbar')).not.toBeInTheDocument()
   })
 
   it('hides desktop toolbar in code blocks', () => {
     const editor = createMockEditor()
+    editor.isFocused = true
     editor.state.selection = { from: 2, to: 8, empty: false }
     editor.isActive.mockImplementation((name: string) => name === 'codeBlock')
 
@@ -165,6 +200,7 @@ describe('FloatingToolbar', () => {
 
   it('routes desktop block buttons through editor block commands', () => {
     const editor = createMockEditor()
+    editor.isFocused = true
     editor.state.selection = { from: 2, to: 8, empty: false }
 
     render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
@@ -176,9 +212,11 @@ describe('FloatingToolbar', () => {
     expect(editor._commands.toggleCodeBlock).toHaveBeenCalledTimes(1)
   })
 
-  it('routes desktop mark buttons through editor mark commands', () => {
+  it('routes desktop mark and link buttons through editor mark commands', () => {
     const editor = createMockEditor()
+    editor.isFocused = true
     editor.state.selection = { from: 2, to: 8, empty: false }
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(' https://xnet.fyi/docs ')
 
     render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
 
@@ -186,15 +224,54 @@ describe('FloatingToolbar', () => {
     fireEvent.click(screen.getByTitle('Italic'))
     fireEvent.click(screen.getByTitle('Strikethrough'))
     fireEvent.click(screen.getByTitle('Code'))
+    fireEvent.click(screen.getByTitle('Link'))
 
     expect(editor._commands.toggleBold).toHaveBeenCalledTimes(1)
     expect(editor._commands.toggleItalic).toHaveBeenCalledTimes(1)
     expect(editor._commands.toggleStrike).toHaveBeenCalledTimes(1)
     expect(editor._commands.toggleCode).toHaveBeenCalledTimes(1)
+    expect(editor._commands.setLink).toHaveBeenCalledWith({ href: 'https://xnet.fyi/docs' })
+
+    promptSpy.mockRestore()
+  })
+
+  it('routes desktop comment button through anchor capture and comment commands', async () => {
+    const editor = createMockEditor()
+    const onCreateComment = vi.fn().mockResolvedValue('comment-1')
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(
+      <FloatingToolbar
+        editor={editor as unknown as Editor}
+        mode="desktop"
+        onCreateComment={onCreateComment}
+      />
+    )
+
+    fireEvent.click(screen.getByTitle('Add Comment'))
+
+    await waitFor(() => {
+      expect(onCreateComment).toHaveBeenCalledWith(
+        JSON.stringify({
+          exact: 'selected text',
+          prefix: '',
+          suffix: '',
+          position: {
+            type: 'relative',
+            anchor: 'anchor',
+            head: 'head'
+          }
+        })
+      )
+    })
+    expect(captureTextAnchor).toHaveBeenCalledWith(editor)
+    expect(editor.commands.setComment).toHaveBeenCalledWith('comment-1')
   })
 
   it('prevents toolbar button mouse down from stealing editor focus', () => {
     const editor = createMockEditor()
+    editor.isFocused = true
     editor.state.selection = { from: 2, to: 8, empty: false }
 
     render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
@@ -211,6 +288,7 @@ describe('FloatingToolbar', () => {
 
   it('uses compact desktop toolbar policy for canvas inline selections', () => {
     const editor = createMockEditor()
+    editor.isFocused = true
     const { rerender } = render(
       <FloatingToolbar
         editor={editor as unknown as Editor}
@@ -262,6 +340,13 @@ describe('FloatingToolbar', () => {
 
     expect(screen.getByTestId('editor-mobile-toolbar')).toBeInTheDocument()
     expect(screen.getByRole('toolbar', { name: 'Editor formatting toolbar' })).toBeInTheDocument()
+
+    act(() => {
+      editor.isFocused = false
+      editor._emit('blur')
+    })
+
+    expect(screen.queryByTestId('editor-mobile-toolbar')).not.toBeInTheDocument()
   })
 
   it('keeps canvas inline toolbar canvas-interactive when mobile mode is requested', () => {

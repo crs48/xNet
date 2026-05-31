@@ -231,6 +231,10 @@ export function resolveToolbarPolicy(input: ToolbarPolicyInput): ToolbarPolicy {
     return { presentation: 'hidden', isCompact: false }
   }
 
+  if (!input.isFocused) {
+    return { presentation: 'hidden', isCompact: surface === 'canvas-inline' }
+  }
+
   if (surface === 'canvas-inline') {
     return hasCommandSelection(input)
       ? { presentation: 'canvas-compact', isCompact: true }

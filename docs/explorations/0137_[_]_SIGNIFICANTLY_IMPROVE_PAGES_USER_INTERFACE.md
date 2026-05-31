@@ -1126,6 +1126,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/EditorSurface.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 toolbar command checkpoint:
+
+- The floating toolbar now includes an explicit Link command and reuses focused editor command chains for mark, link, and comment actions.
+- Desktop and canvas-inline toolbar policy now hides command surfaces after a valid editor blur instead of keeping the old range selection visible.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx src/components/editor-ux-state.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1151,8 +1159,8 @@ Decision gate:
 
 - [x] Desktop toolbar appears on range selection.
 - [x] Toolbar remains usable when clicking buttons.
-- [ ] Bold, italic, strike, code, link, comment commands mutate content correctly.
-- [ ] Toolbar hides on valid blur.
+- [x] Bold, italic, strike, code, link, comment commands mutate content correctly.
+- [x] Toolbar hides on valid blur.
 - [x] Mobile toolbar appears when editor is focused.
 - [ ] Canvas compact toolbar appears only in focused inline edit mode.
 - [ ] Slash menu opens at `/` and filters command list.

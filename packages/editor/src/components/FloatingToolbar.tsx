@@ -18,6 +18,7 @@ import {
   Heading3,
   Indent,
   Italic,
+  Link as LinkIcon,
   List,
   ListOrdered,
   ListTodo,
@@ -203,6 +204,24 @@ function getToolbarAriaLabel(surface: ToolbarSurface): string {
     : 'Editor formatting toolbar'
 }
 
+function promptForLink(editor: Editor): void {
+  const previousUrl = editor.getAttributes('link').href
+  const url =
+    typeof window !== 'undefined'
+      ? window.prompt('URL', typeof previousUrl === 'string' ? previousUrl : '')
+      : null
+
+  if (url === null) return
+
+  const href = url.trim()
+  if (!href) {
+    editor.chain().focus().unsetLink().run()
+    return
+  }
+
+  editor.chain().focus().setLink({ href }).run()
+}
+
 /**
  * Render a plugin-provided toolbar button
  */
@@ -272,6 +291,10 @@ function ToolbarContent({
     editor.chain().focus().insertContent('@').run()
   }, [editor])
 
+  const handleLink = useCallback(() => {
+    promptForLink(editor)
+  }, [editor])
+
   const handlePickDueDate = useCallback(async () => {
     const selectedDate = await pickDate(getCurrentTaskDueDate(editor))
     if (!selectedDate) return
@@ -315,6 +338,14 @@ function ToolbarContent({
         isMobile={isMobile}
       >
         <Code2 size={16} aria-hidden="true" />
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={handleLink}
+        active={editor.isActive('link')}
+        title="Link"
+        isMobile={isMobile}
+      >
+        <LinkIcon size={16} aria-hidden="true" />
       </ToolbarButton>
       {/* Comment button - only show when handler is provided */}
       {onCreateComment && (

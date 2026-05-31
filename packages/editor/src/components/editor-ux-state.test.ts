@@ -117,6 +117,24 @@ describe('editor UX state helpers', () => {
       ).toEqual({ presentation: 'canvas-compact', isCompact: true })
     })
 
+    it('hides desktop and canvas toolbars when editor focus leaves the surface', () => {
+      const base = {
+        isMobile: false,
+        isFocused: false,
+        selectionShape: 'range' as const,
+        inCodeBlock: false
+      }
+
+      expect(resolveToolbarPolicy({ ...base, surface: 'page' })).toEqual({
+        presentation: 'hidden',
+        isCompact: false
+      })
+      expect(resolveToolbarPolicy({ ...base, surface: 'canvas-inline' })).toEqual({
+        presentation: 'hidden',
+        isCompact: true
+      })
+    })
+
     it('hides toolbar for canvas previews and read surfaces', () => {
       const base = {
         isMobile: false,
