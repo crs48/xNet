@@ -32,6 +32,31 @@ describe('createCanvasExternalReferenceEmbedFallback', () => {
     expect(fallback?.description).toBe('Workspace policy does not allow live embeds from YouTube.')
   })
 
+  it('describes blocked provider origins as non-live fallback cards', () => {
+    const policyDecision = evaluateExternalReferenceEmbedPolicy({
+      sourceUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      embedUrl: 'https://evil.example.com/embed/dQw4w9WgXcQ',
+      provider: 'youtube',
+      policy: {
+        allowArbitraryIframes: true
+      }
+    })
+
+    const fallback = createCanvasExternalReferenceEmbedFallback({
+      policyDecision,
+      providerLabel: 'YouTube',
+      emptyStateLabel: 'YouTube source'
+    })
+
+    expect(fallback).toMatchObject({
+      reason: 'origin-blocked',
+      label: 'Embed blocked',
+      tone: 'danger',
+      disablesLiveEmbed: true
+    })
+    expect(fallback?.description).toBe('This embed uses an origin that is not allowed for YouTube.')
+  })
+
   it('turns offline lifecycle state into a live-embed fallback', () => {
     const policyDecision = evaluateExternalReferenceEmbedPolicy({
       sourceUrl: 'https://open.spotify.com/playlist/abc123',

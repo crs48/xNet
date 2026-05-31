@@ -254,6 +254,33 @@ describe('CanvasExternalReferenceCard', () => {
     )
   })
 
+  it('renders origin-blocked fallbacks for spoofed provider embed URLs', () => {
+    render(
+      <CanvasExternalReferenceCard
+        title="YouTube video"
+        url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        provider="youtube"
+        embedUrl="https://evil.example.com/embed/dQw4w9WgXcQ"
+        subtitle="YouTube"
+        themeMode="dark"
+        embedPolicy={{ allowArbitraryIframes: true }}
+      />
+    )
+
+    const card = document.querySelector('[data-canvas-node-card="true"]')
+    const fallback = document.querySelector('[data-canvas-embed-fallback="true"]')
+
+    expect(card).toHaveAttribute('data-canvas-embed-policy', 'blocked')
+    expect(card).toHaveAttribute('data-canvas-embed-policy-reason', 'origin-blocked')
+    expect(card).toHaveAttribute('data-canvas-embed-fallback-reason', 'origin-blocked')
+    expect(document.querySelector('[data-canvas-embed-iframe="true"]')).not.toBeInTheDocument()
+    expect(fallback).toHaveAttribute('data-canvas-embed-fallback-tone', 'danger')
+    expect(screen.getByText('Embed blocked')).toBeInTheDocument()
+    expect(
+      screen.getByText('This embed uses an origin that is not allowed for YouTube.')
+    ).toBeInTheDocument()
+  })
+
   it('renders an offline fallback instead of a live iframe when embed status is offline', () => {
     render(
       <CanvasExternalReferenceCard

@@ -1041,7 +1041,7 @@ Decision gate:
 - [x] Add page embed block.
 - [x] Improve database embed keyboard and selection behavior.
 - [ ] Add YouTube/Vimeo/Loom/Figma/CodeSandbox Playwright smoke checks.
-- [ ] Add blocked-origin and blocked-provider tests.
+- [x] Add blocked-origin and blocked-provider tests.
 
 ### Phase 5: Canvas Integration
 
