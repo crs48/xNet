@@ -71,10 +71,18 @@ export interface SmartReferenceOptions {
   HTMLAttributes: Record<string, string>
 }
 
+export type UpdateSmartReferenceOptions = {
+  title?: string | null
+  subtitle?: string | null
+  icon?: string | null
+  metadata?: Record<string, unknown> | string | null
+}
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     smartReference: {
       setSmartReference: (url: string) => ReturnType
+      updateSmartReference: (options: UpdateSmartReferenceOptions) => ReturnType
     }
   }
 }
@@ -118,7 +126,10 @@ export const SmartReferenceExtension = Node.create<SmartReferenceOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const label = [HTMLAttributes.icon, HTMLAttributes.title].filter(Boolean).join(' ')
+    const title = stringAttr(HTMLAttributes.title, HTMLAttributes.refId ?? HTMLAttributes.url)
+    const subtitle = stringAttr(HTMLAttributes.subtitle)
+    const label = [HTMLAttributes.icon, title].filter(Boolean).join(' ')
+    const accessibleLabel = [title, subtitle].filter(Boolean).join(', ')
 
     return [
       'a',
@@ -126,7 +137,12 @@ export const SmartReferenceExtension = Node.create<SmartReferenceOptions>({
         'data-smart-reference': '',
         'data-provider': HTMLAttributes.provider,
         'data-kind': HTMLAttributes.kind,
+        'data-ref-id': HTMLAttributes.refId,
+        'data-title': title,
+        ...(subtitle ? { 'data-subtitle': subtitle } : {}),
+        'aria-label': accessibleLabel || 'Smart reference',
         href: HTMLAttributes.url,
+        title: accessibleLabel || title || undefined,
         class: `smart-reference smart-reference--${HTMLAttributes.provider || 'generic'}`
       }),
       label
@@ -193,7 +209,17 @@ export const SmartReferenceExtension = Node.create<SmartReferenceOptions>({
           if (!chip) return false
 
           return commands.insertContent(chip)
-        }
+        },
+
+      updateSmartReference:
+        (options) =>
+        ({ commands }) =>
+          commands.updateAttributes(this.name, {
+            ...(options.title !== undefined && { title: stringAttr(options.title) }),
+            ...(options.subtitle !== undefined && { subtitle: stringAttr(options.subtitle) }),
+            ...(options.icon !== undefined && { icon: stringAttr(options.icon) }),
+            ...(options.metadata !== undefined && { metadata: metadataAttr(options.metadata) })
+          })
     }
   },
 

@@ -1202,6 +1202,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions.test.ts src/extensions/page-embed/PageEmbedExtension.test.ts src/extensions/page-embed/PageEmbedNodeView.test.tsx src/extensions/slash-command/items.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 smart reference checkpoint:
+
+- Smart references now expose an `updateSmartReference` command for selected-chip display metadata edits.
+- HTML rendering is covered as a single compact inline chip with provider/kind/ref ID data attributes and no iframe output.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/smart-reference/SmartReferenceExtension.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1254,7 +1262,7 @@ Decision gate:
 - [x] Database embed inserts from slash command.
 - [x] Database embed supports table/board/calendar/gallery/list modes as applicable.
 - [x] Page links and page embeds can be inserted and navigated.
-- [ ] Smart references remain compact and editable.
+- [x] Smart references remain compact and editable.
 - [x] Embed Markdown serialization round-trips.
 
 ### Canvas
