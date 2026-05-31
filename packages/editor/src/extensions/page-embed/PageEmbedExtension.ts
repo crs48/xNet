@@ -209,7 +209,7 @@ export const PageEmbedExtension = Node.create<PageEmbedOptions>({
     return [
       new InputRule({
         find: PAGE_EMBED_INPUT_REGEX,
-        handler: ({ state, range, match }) => {
+        handler: ({ commands, range, match }) => {
           const title = normalizeText(match[1])
           if (!title) return
 
@@ -220,7 +220,10 @@ export const PageEmbedExtension = Node.create<PageEmbedOptions>({
           })
           if (!attrs) return
 
-          state.tr.replaceWith(range.from, range.to, state.schema.nodes.pageEmbed.create(attrs))
+          commands.insertContentAt(range, {
+            type: this.name,
+            attrs
+          })
         }
       })
     ]

@@ -120,6 +120,36 @@ describe('Wikilink Extension', () => {
       editor.destroy()
     })
   })
+
+  describe('navigation', () => {
+    it('calls onNavigate when a wikilink is clicked', () => {
+      const onNavigate = vi.fn()
+      const editor = createTestEditor({
+        onNavigate,
+        content:
+          '<p><a data-wikilink href="default/launch-plan" title="Launch Plan">Launch Plan</a></p>'
+      })
+      const anchor = editor.view.dom.querySelector('a[data-wikilink]')
+      const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+      expect(anchor).toBeInstanceOf(HTMLAnchorElement)
+      Object.defineProperty(event, 'target', { value: anchor })
+      let handled = false
+
+      editor.view.someProp('handleClick', (handler) => {
+        if (handled) {
+          return
+        }
+
+        handled = handler(editor.view, 1, event) === true
+      })
+
+      expect(handled).toBe(true)
+      expect(event.defaultPrevented).toBe(true)
+      expect(onNavigate).toHaveBeenCalledWith('default/launch-plan')
+
+      editor.destroy()
+    })
+  })
 })
 
 describe('LivePreview Extension', () => {

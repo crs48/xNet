@@ -8,6 +8,7 @@ type CommandRecorder = {
   payloads: Map<string, unknown[]>
   commands: {
     setDatabaseEmbed: ReturnType<typeof vi.fn>
+    setPageEmbed: ReturnType<typeof vi.fn>
   }
   extensions: Array<{
     name: string
@@ -28,7 +29,8 @@ function createCommandRecorder(): CommandRecorder {
   const payloads = new Map<string, unknown[]>()
   const extensions: CommandRecorder['extensions'] = []
   const commands = {
-    setDatabaseEmbed: vi.fn()
+    setDatabaseEmbed: vi.fn(),
+    setPageEmbed: vi.fn()
   }
 
   const record = (name: string, ...args: unknown[]) => {
@@ -97,7 +99,7 @@ describe('slash command items', () => {
 
     it('should include the expected editor insert targets', () => {
       expect(getAllCommands().map((item) => item.title)).toEqual(
-        expect.arrayContaining(['Database', 'Embed', 'Info', 'Toggle', 'Code Block'])
+        expect.arrayContaining(['Page', 'Database', 'Embed', 'Info', 'Toggle', 'Code Block'])
       )
     })
   })
@@ -189,6 +191,22 @@ describe('slash command items', () => {
       expect(recorder.commands.setDatabaseEmbed).toHaveBeenCalledWith({
         databaseId: 'db-selected'
       })
+    })
+
+    it('inserts a prompted page from the page slash command', () => {
+      const recorder = createCommandRecorder()
+      const prompt = vi.spyOn(window, 'prompt').mockReturnValue('Launch Plan')
+
+      getCommand('Page').command({ editor: recorder.editor, range })
+
+      expect(prompt).toHaveBeenCalledWith('Page title or ID:')
+      expect(recorder.commands.setPageEmbed).toHaveBeenCalledWith({
+        pageId: 'default/launch-plan',
+        title: 'Launch Plan',
+        subtitle: 'Embedded page'
+      })
+
+      prompt.mockRestore()
     })
   })
 })

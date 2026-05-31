@@ -11,6 +11,7 @@ import {
   textblockTypeInputRule,
   wrappingInputRule
 } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { BlockquoteView } from './nodeviews/BlockquoteView'
 import { CodeBlockView } from './nodeviews/CodeBlockView'
@@ -38,9 +39,17 @@ function generatePageId(title: string): string {
  * Regex pattern to match [[text]]
  */
 const wikilinkInputRegex = /\[\[([^\]]+)\]\]$/
+const wikilinkClickPluginKey = new PluginKey('wikilinkClick')
 
 function getWikilinkTitle(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function findWikilinkAnchor(target: EventTarget | null): HTMLAnchorElement | null {
+  if (!(target instanceof Element)) return null
+
+  const anchor = target.closest('a[data-wikilink]')
+  return anchor instanceof HTMLAnchorElement ? anchor : null
 }
 
 /**
@@ -51,6 +60,8 @@ function getWikilinkTitle(value: unknown): string {
  */
 export const Wikilink = Mark.create<WikilinkOptions>({
   name: 'wikilink',
+
+  priority: 1100,
 
   addOptions() {
     return {
@@ -133,6 +144,25 @@ export const Wikilink = Mark.create<WikilinkOptions>({
           const title = match[1]
           const pageId = generatePageId(title)
           return { href: pageId, title }
+        }
+      })
+    ]
+  },
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: wikilinkClickPluginKey,
+        props: {
+          handleClick: (_view, _pos, event) => {
+            const anchor = findWikilinkAnchor(event.target)
+            const href = anchor?.getAttribute('href')?.trim()
+            if (!href) return false
+
+            event.preventDefault()
+            this.options.onNavigate(href)
+            return true
+          }
         }
       })
     ]

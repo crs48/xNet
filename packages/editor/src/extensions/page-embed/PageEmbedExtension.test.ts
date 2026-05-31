@@ -3,6 +3,25 @@ import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { PageEmbedExtension } from './PageEmbedExtension'
 
+function typeTextWithInputRules(editor: Editor, text: string): boolean {
+  const { from, to } = editor.state.selection
+  let handled = false
+
+  editor.view.someProp('handleTextInput', (handler) => {
+    if (handled) {
+      return
+    }
+
+    handled = handler(editor.view, from, to, text) === true
+  })
+
+  if (!handled) {
+    editor.commands.insertContent(text)
+  }
+
+  return handled
+}
+
 describe('PageEmbedExtension', () => {
   let editor: Editor
 
@@ -76,6 +95,22 @@ describe('PageEmbedExtension', () => {
     it('rejects blank page ids', () => {
       expect(editor.commands.setPageEmbed({ pageId: '   ' })).toBe(false)
       expect(editor.getJSON().content?.some((node) => node.type === 'pageEmbed')).toBe(false)
+    })
+  })
+
+  describe('input rules', () => {
+    it('inserts a page embed from typed ![[Page]] syntax', () => {
+      expect(typeTextWithInputRules(editor, '![[Launch Plan]] ')).toBe(true)
+
+      expect(editor.getJSON().content?.[0]).toMatchObject({
+        type: 'pageEmbed',
+        attrs: {
+          pageId: 'default/launch-plan',
+          title: 'Launch Plan',
+          subtitle: 'Embedded page',
+          icon: 'PG'
+        }
+      })
     })
   })
 

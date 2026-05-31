@@ -1194,6 +1194,14 @@ Decision gate:
 - Captured a Playwright CLI fallback screenshot after the in-app screenshot command timed out:
   - `tmp/playwright/editor-embed-policy-smoke.png`
 
+2026-05-31 page reference checkpoint:
+
+- Wikilink clicks now route through the editor `onNavigate` callback before the generic link click handler can open a browser URL.
+- Page embeds are covered through slash command insertion, `![[Page]]` input-rule insertion, open button navigation, and double-click navigation.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions.test.ts src/extensions/page-embed/PageEmbedExtension.test.ts src/extensions/page-embed/PageEmbedNodeView.test.tsx src/extensions/slash-command/items.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1245,7 +1253,7 @@ Decision gate:
 - [x] Blocked providers render a safe placeholder.
 - [x] Database embed inserts from slash command.
 - [x] Database embed supports table/board/calendar/gallery/list modes as applicable.
-- [ ] Page links and page embeds can be inserted and navigated.
+- [x] Page links and page embeds can be inserted and navigated.
 - [ ] Smart references remain compact and editable.
 - [x] Embed Markdown serialization round-trips.
 
