@@ -1,6 +1,6 @@
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { EmbedExtension } from './EmbedExtension'
 
 describe('EmbedExtension', () => {
@@ -16,6 +16,23 @@ describe('EmbedExtension', () => {
   afterEach(() => {
     editor.destroy()
   })
+
+  function pastePlainText(text: string): { handled: boolean; preventDefault: () => void } {
+    const preventDefault = vi.fn()
+    const event = {
+      clipboardData: {
+        getData: (type: string) => (type === 'text/plain' ? text : '')
+      },
+      preventDefault
+    } as unknown as ClipboardEvent
+
+    const pastePlugin = editor.state.plugins.find((plugin) =>
+      String((plugin as { key?: string }).key).includes('embedPaste')
+    )
+    const handled = pastePlugin?.props.handlePaste?.(editor.view, event, null as never) === true
+
+    return { handled, preventDefault }
+  }
 
   describe('schema', () => {
     it('should register the embed node type', () => {
@@ -105,6 +122,29 @@ describe('EmbedExtension', () => {
       const json = editor.getJSON()
       const embedNode = json.content?.find((n) => n.type === 'embed')
       expect(embedNode?.attrs?.url).toBe(originalUrl)
+    })
+  })
+
+  describe('paste handling', () => {
+    it('pastes a YouTube URL as a media embed', () => {
+      editor.commands.setContent('<p></p>')
+      editor.commands.setTextSelection(1)
+
+      const { handled, preventDefault } = pastePlainText(
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+      )
+
+      expect(handled).toBe(true)
+      expect(preventDefault).toHaveBeenCalledTimes(1)
+      expect(editor.getJSON().content?.[0]).toMatchObject({
+        type: 'embed',
+        attrs: {
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          provider: 'youtube',
+          embedId: 'dQw4w9WgXcQ',
+          embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+        }
+      })
     })
   })
 

@@ -1159,6 +1159,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/slash-command/items.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 media paste checkpoint:
+
+- `EmbedExtension` now has explicit regression coverage for pasting a YouTube URL through the auto-embed paste plugin.
+- The test verifies paste prevention and inserted embed attributes including provider, embed ID, and embed URL.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/embed/EmbedExtension.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1204,7 +1212,7 @@ Decision gate:
 
 ### Embeds And References
 
-- [ ] YouTube paste creates a media embed.
+- [x] YouTube paste creates a media embed.
 - [x] Generic URL paste creates a rich link or link by policy.
 - [ ] Figma/CodeSandbox/Loom embeds respect iframe policy.
 - [ ] Blocked providers render a safe placeholder.
