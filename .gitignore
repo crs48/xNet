@@ -6,6 +6,7 @@
 .vscode/
 *.swp
 *.swo
+.playwright-cli/
 .playwright-mcp/
 
 # Build artifacts

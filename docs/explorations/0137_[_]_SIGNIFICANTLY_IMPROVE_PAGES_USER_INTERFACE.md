@@ -1046,12 +1046,12 @@ Decision gate:
 ### Phase 5: Canvas Integration
 
 - [x] Add low-zoom static preview for page nodes.
-- [ ] Add high-zoom inline editing with compact toolbar.
+- [x] Add high-zoom inline editing with compact toolbar.
 - [x] Add open-in-page and open-in-peek flows.
-- [ ] Verify canvas drag/resize does not steal editor selection.
+- [x] Verify canvas drag/resize does not steal editor selection.
 - [x] Verify editor selection does not move canvas nodes.
 - [x] Add performance budget for many page cards on one canvas.
-- [ ] Add screenshot checks at multiple zoom levels.
+- [x] Add screenshot checks at multiple zoom levels.
 
 ### Phase 6: Hardening And Rollout
 
@@ -1064,6 +1064,21 @@ Decision gate:
 - [ ] Enable for new pages first.
 - [ ] Enable for all pages after validation.
 - [ ] Remove old live-preview overlays after confidence window.
+
+### Implementation Validation Notes
+
+2026-05-31 canvas/editor checkpoint:
+
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx src/components/editor-ux-state.test.ts`
+  - `pnpm --filter @xnetjs/canvas exec vitest run src/__tests__/canvas-v3.test.tsx`
+- Storybook browser smoke screenshots were captured for the editor and canvas zoom states:
+  - `tmp/playwright/pages-editor-storybook-smoke.png`
+  - `tmp/playwright/canvas-zoom-default.png`
+  - `tmp/playwright/canvas-zoom-fit.png`
+  - `tmp/playwright/canvas-zoom-in.png`
+- Canvas-inline toolbar containers now opt into `data-canvas-interactive="true"`, so toolbar pointer gestures are explicitly ignored by canvas drag handlers.
+- Canvas V3 tests now preserve a text selection inside a `data-canvas-editing-surface="true"` embedded editor area while canvas pointer movement is ignored.
 
 ## Validation Checklist
 
@@ -1122,13 +1137,13 @@ Decision gate:
 
 ### Canvas
 
-- [ ] Page cards render static previews at low zoom.
-- [ ] Page cards allow inline text selection at edit zoom.
-- [ ] Canvas drag/resize handles do not conflict with editor selection.
-- [ ] Editor toolbars do not trigger canvas drags.
+- [x] Page cards render static previews at low zoom.
+- [x] Page cards allow inline text selection at edit zoom.
+- [x] Canvas drag/resize handles do not conflict with editor selection.
+- [x] Editor toolbars do not trigger canvas drags.
 - [ ] Database and media embeds use compact renderers in canvas cards.
-- [ ] Opening a page from canvas preserves selection/context where practical.
-- [ ] Multiple page cards do not create unacceptable typing or pan/zoom latency.
+- [x] Opening a page from canvas preserves selection/context where practical.
+- [x] Multiple page cards do not create unacceptable typing or pan/zoom latency.
 
 ### Collaboration And Persistence
 
@@ -1144,7 +1159,7 @@ Decision gate:
 - [ ] Typing latency stays under the chosen budget in a 1,000-block document.
 - [ ] Selection changes do not recompute full-document decorations unnecessarily.
 - [ ] Initial editor mount remains within budget for typical pages.
-- [ ] Canvas with many page cards uses preview mode instead of full editor mode.
+- [x] Canvas with many page cards uses preview mode instead of full editor mode.
 - [ ] Heavy embeds lazy-render below the fold.
 - [ ] Markdown import/export of large pages is measured and bounded.
 

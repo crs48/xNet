@@ -34,11 +34,22 @@ interface BubbleMenuMockProps {
   editor: MockEditor
   className?: string
   children: React.ReactNode
+  'data-canvas-interactive'?: string
+  'data-editor-toolbar-surface'?: string
+  'data-testid'?: string
 }
 
 vi.mock('@tiptap/react/menus', () => {
   return {
-    BubbleMenu: ({ shouldShow, editor, className, children }: BubbleMenuMockProps) => {
+    BubbleMenu: ({
+      shouldShow,
+      editor,
+      className,
+      children,
+      'data-canvas-interactive': dataCanvasInteractive,
+      'data-editor-toolbar-surface': dataEditorToolbarSurface,
+      'data-testid': testId = 'editor-desktop-toolbar'
+    }: BubbleMenuMockProps) => {
       const selection = editor.state.selection
       const visible =
         shouldShow?.({
@@ -53,7 +64,12 @@ vi.mock('@tiptap/react/menus', () => {
       }
 
       return (
-        <div data-testid="editor-desktop-toolbar" className={className}>
+        <div
+          data-testid={testId}
+          className={className}
+          data-canvas-interactive={dataCanvasInteractive}
+          data-editor-toolbar-surface={dataEditorToolbarSurface}
+        >
           {children}
         </div>
       )
@@ -181,6 +197,14 @@ describe('FloatingToolbar', () => {
     expect(screen.getByTestId('editor-desktop-toolbar')).toHaveClass(
       'max-w-[min(360px,calc(100vw-24px))]'
     )
+    expect(screen.getByTestId('editor-desktop-toolbar')).toHaveAttribute(
+      'data-canvas-interactive',
+      'true'
+    )
+    expect(screen.getByTestId('editor-desktop-toolbar')).toHaveAttribute(
+      'data-editor-toolbar-surface',
+      'canvas-inline'
+    )
   })
 
   it('shows mobile toolbar on focus in mobile mode', () => {
@@ -194,5 +218,24 @@ describe('FloatingToolbar', () => {
     })
 
     expect(screen.getByTestId('editor-mobile-toolbar')).toBeInTheDocument()
+  })
+
+  it('keeps canvas inline toolbar canvas-interactive when mobile mode is requested', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(
+      <FloatingToolbar editor={editor as unknown as Editor} mode="mobile" surface="canvas-inline" />
+    )
+
+    expect(screen.getByTestId('editor-desktop-toolbar')).toHaveAttribute(
+      'data-canvas-interactive',
+      'true'
+    )
+    expect(screen.getByTestId('editor-desktop-toolbar')).toHaveAttribute(
+      'data-editor-toolbar-surface',
+      'canvas-inline'
+    )
   })
 })

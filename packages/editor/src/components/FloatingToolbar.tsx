@@ -525,6 +525,7 @@ function MobileToolbar({
   isFocused,
   keyboard,
   className,
+  surface,
   additionalItems = [],
   onCreateComment
 }: {
@@ -532,6 +533,7 @@ function MobileToolbar({
   isFocused: boolean
   keyboard: { visible: boolean; height: number }
   className?: string
+  surface: ToolbarSurface
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
@@ -543,6 +545,8 @@ function MobileToolbar({
   return (
     <div
       data-testid="editor-mobile-toolbar"
+      data-editor-toolbar-surface={surface}
+      data-canvas-interactive={surface === 'canvas-inline' ? 'true' : undefined}
       className={cn(
         'fixed left-0 right-0 z-50',
         'bg-background/95 backdrop-blur-sm border-t border-border',
@@ -586,12 +590,14 @@ function DesktopToolbar({
   editor,
   className,
   compact = false,
+  surface,
   additionalItems = [],
   onCreateComment
 }: {
   editor: Editor
   className?: string
   compact?: boolean
+  surface: ToolbarSurface
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element {
@@ -599,6 +605,8 @@ function DesktopToolbar({
     <BubbleMenu
       editor={editor}
       data-testid="editor-desktop-toolbar"
+      data-editor-toolbar-surface={surface}
+      data-canvas-interactive={surface === 'canvas-inline' ? 'true' : undefined}
       options={{
         placement: 'top',
         offset: 8
@@ -666,6 +674,7 @@ export function FloatingToolbar({
         isFocused={ux.isFocused}
         keyboard={ux.keyboard}
         className={className}
+        surface={surface}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -677,6 +686,7 @@ export function FloatingToolbar({
       editor={editor}
       className={className}
       compact={policy.isCompact}
+      surface={surface}
       additionalItems={additionalItems}
       onCreateComment={onCreateComment}
     />
