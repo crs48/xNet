@@ -17,6 +17,12 @@ import {
   TiptapMarkdown,
   Wikilink
 } from '../extensions'
+import { generateLargeMarkdownDocument } from '../testing/benchmarks'
+import { measure } from '../utils/performance'
+
+const LARGE_MARKDOWN_BLOCK_COUNT = 1000
+const LARGE_MARKDOWN_IMPORT_BUDGET_MS = 5000
+const LARGE_MARKDOWN_EXPORT_BUDGET_MS = 3000
 
 function createMarkdownEditor(markdown = ''): Editor {
   return new Editor({
@@ -347,6 +353,23 @@ describe('TiptapMarkdown integration', () => {
       '{{xnet-ref {"url":"https://github.com/xnetjs/xNet/issues/301"'
     )
     expect(editor.getMarkdown()).toContain('[[Roadmap Page]]')
+  })
+
+  it('keeps large page markdown import and export within bounded budgets', () => {
+    const markdown = generateLargeMarkdownDocument({
+      blocks: LARGE_MARKDOWN_BLOCK_COUNT,
+      wordsPerParagraph: 16,
+      includeEmbeds: true
+    })
+    const imported = measure(() => createMarkdownEditor(markdown))
+    editor = imported.result
+
+    const exported = measure(() => editor!.getMarkdown())
+
+    expect(editor.getJSON().content?.length).toBeGreaterThan(900)
+    expect(exported.result).toContain('Paragraph 999')
+    expect(imported.duration).toBeLessThan(LARGE_MARKDOWN_IMPORT_BUDGET_MS)
+    expect(exported.duration).toBeLessThan(LARGE_MARKDOWN_EXPORT_BUDGET_MS)
   })
 })
 

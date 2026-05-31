@@ -1227,6 +1227,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor typecheck`
 - In-app browser Storybook smoke verified 18 lazy media embed nodes, 3 mounted visible iframes after scroll, and 15 still-deferred placeholders.
 
+2026-05-31 large Markdown performance checkpoint:
+
+- Added a deterministic `generateLargeMarkdownDocument` helper for import/export performance coverage.
+- Added a 1,000-block Markdown integration budget test covering Tiptap Markdown import and export with xNet-flavored embed fallback blocks.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/testing/benchmarks.test.ts src/extensions/markdown-io.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1308,7 +1316,7 @@ Decision gate:
 - [ ] Initial editor mount remains within budget for typical pages.
 - [x] Canvas with many page cards uses preview mode instead of full editor mode.
 - [x] Heavy embeds lazy-render below the fold.
-- [ ] Markdown import/export of large pages is measured and bounded.
+- [x] Markdown import/export of large pages is measured and bounded.
 
 ## Test Strategy
 
