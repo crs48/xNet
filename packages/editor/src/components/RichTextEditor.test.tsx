@@ -1,7 +1,7 @@
 /**
  * Tests for RichTextEditor component
  */
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // import userEvent from '@testing-library/user-event'
@@ -90,6 +90,20 @@ describe('RichTextEditor', () => {
       // The editor should still work, but toolbar is disabled
       const editor = container.querySelector('.ProseMirror')
       expect(editor).toBeInTheDocument()
+    })
+  })
+
+  describe('content modes', () => {
+    it('renders Markdown source mode without the rich editor surface', async () => {
+      render(<RichTextEditor ydoc={ydoc} contentMode="source" placeholder="Write source..." />)
+
+      const sourceEditor = await screen.findByTestId('editor-source-mode')
+      expect(sourceEditor).toHaveAttribute('placeholder', 'Write source...')
+      expect(document.querySelector('.ProseMirror')).not.toBeInTheDocument()
+
+      fireEvent.change(sourceEditor, { target: { value: '## Source heading' } })
+      expect(sourceEditor).toHaveValue('## Source heading')
+      expect(screen.queryByTestId('editor-desktop-toolbar')).not.toBeInTheDocument()
     })
   })
 

@@ -22,7 +22,7 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from '@tiptap/y-tiptap'
 import * as React from 'react'
-import { useEffect, useRef, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 import {
   Wikilink,
   LivePreview,
@@ -48,6 +48,7 @@ import {
   ensurePageTaskAttrs,
   getPageTasksSnapshot
 } from '../extensions'
+import { resolveEditorModePolicy, type EditorContentMode } from './editor-ux-state'
 import { FloatingToolbar, type ToolbarMode, type ToolbarSurface } from './FloatingToolbar'
 import '../styles/editor.css'
 import { cn } from '../utils'
@@ -204,6 +205,8 @@ export interface RichTextEditorProps {
   className?: string
   /** Whether the editor is read-only */
   readOnly?: boolean
+  /** Editing mode for live rich text, Markdown source, or read surfaces. */
+  contentMode?: EditorContentMode
   /** Yjs Awareness instance for cursor presence (optional) */
   awareness?: Awareness
   /** Local user's DID for cursor color/label (optional) */
@@ -363,6 +366,7 @@ export function RichTextEditor({
   onNavigate,
   className,
   readOnly = false,
+  contentMode = 'live',
   awareness,
   did,
   onImageUpload,
@@ -385,6 +389,13 @@ export function RichTextEditor({
   const pageTaskSignatureRef = useRef<string>('')
   const mentionSuggestionsRef = useRef<TaskMentionSuggestion[]>(mentionSuggestions)
   const notifiedReadyEditorRef = useRef<Editor | null>(null)
+  const [sourceValue, setSourceValue] = useState('')
+
+  const editorModePolicy = resolveEditorModePolicy({
+    requestedMode: contentMode,
+    surface: toolbarSurface,
+    readOnly
+  })
 
   useEffect(() => {
     mentionSuggestionsRef.current = mentionSuggestions
@@ -451,8 +462,8 @@ export function RichTextEditor({
     }),
     // Drag handle with block drag-and-drop
     DragHandleExtension.configure({
-      enableDragDrop: !readOnly,
-      showDropIndicator: !readOnly
+      enableDragDrop: editorModePolicy.isEditable,
+      showDropIndicator: editorModePolicy.isEditable
     }),
     // Extra keyboard shortcuts (Mod-e, Mod-k, Mod-\, etc.)
     KeyboardShortcutsExtension,
@@ -494,15 +505,26 @@ export function RichTextEditor({
         class: 'outline-none h-full min-h-full'
       }
     },
-    editable: !readOnly
+    editable: editorModePolicy.isEditable
   })
 
-  // Update editable state when readOnly changes
+  // Update editable state when mode policy changes.
   useEffect(() => {
     if (editor) {
-      editor.setEditable(!readOnly)
+      editor.setEditable(editorModePolicy.isEditable)
     }
-  }, [editor, readOnly])
+  }, [editor, editorModePolicy.isEditable])
+
+  useEffect(() => {
+    if (!editor || editorModePolicy.contentMode !== 'source') return
+    setSourceValue(editor.getMarkdown())
+  }, [editor, editorModePolicy.contentMode])
+
+  const handleSourceChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const nextValue = event.currentTarget.value
+    setSourceValue(nextValue)
+    editor?.commands.setContent(nextValue, { contentType: 'markdown' })
+  }
 
   // Notify parent when editor is ready
   useEffect(() => {
@@ -780,21 +802,37 @@ export function RichTextEditor({
 
   return (
     <div className={cn('relative h-full flex flex-col', className)}>
-      <EditorContent
-        editor={editor}
-        className={cn(
-          'flex-1 h-full',
-          // ProseMirror sizing
-          '[&_.ProseMirror]:h-full [&_.ProseMirror]:px-1 [&_.ProseMirror]:pl-8',
-          // Remove all focus outlines
-          '[&_.ProseMirror]:outline-none [&_.ProseMirror:focus]:outline-none',
-          '[&_.tiptap]:outline-none [&_.tiptap:focus]:outline-none',
-          '[&_[contenteditable]]:outline-none [&_[contenteditable]:focus]:outline-none',
-          // Placeholder class - styles defined in editor.css
-          'xnet-editor'
-        )}
-      />
-      {showToolbar && (
+      {editorModePolicy.rendersRichEditor ? (
+        <EditorContent
+          editor={editor}
+          data-content-mode={editorModePolicy.contentMode}
+          className={cn(
+            'flex-1 h-full',
+            // ProseMirror sizing
+            '[&_.ProseMirror]:h-full [&_.ProseMirror]:px-1 [&_.ProseMirror]:pl-8',
+            // Remove all focus outlines
+            '[&_.ProseMirror]:outline-none [&_.ProseMirror:focus]:outline-none',
+            '[&_.tiptap]:outline-none [&_.tiptap:focus]:outline-none',
+            '[&_[contenteditable]]:outline-none [&_[contenteditable]:focus]:outline-none',
+            // Placeholder class - styles defined in editor.css
+            'xnet-editor'
+          )}
+        />
+      ) : (
+        <textarea
+          aria-label="Markdown source"
+          data-testid="editor-source-mode"
+          className={cn(
+            'flex-1 h-full min-h-full resize-none border-none bg-transparent px-8 py-4 font-mono text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground',
+            'xnet-editor-source'
+          )}
+          placeholder={placeholder}
+          readOnly={!editor || readOnly}
+          value={sourceValue}
+          onChange={handleSourceChange}
+        />
+      )}
+      {showToolbar && editorModePolicy.allowsToolbar && (
         <FloatingToolbar
           editor={editor}
           mode={toolbarMode}

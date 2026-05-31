@@ -1019,7 +1019,7 @@ Decision gate:
 - [x] Add undo/redo grouping tests.
 - [x] Add IME/composition tests for no forced normalization mid-composition.
 - [x] Add copy/paste Markdown normalization tests.
-- [ ] Add source mode placeholder route or internal abstraction.
+- [x] Add source mode placeholder route or internal abstraction.
 
 ### Phase 3: Markdown Import/Export
 

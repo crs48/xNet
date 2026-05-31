@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   deriveKeyboardState,
   DEFAULT_KEYBOARD_THRESHOLDS,
+  resolveEditorModePolicy,
   resolveToolbarPolicy,
   shouldShowDesktopToolbar
 } from './editor-ux-state'
@@ -144,6 +145,64 @@ describe('editor UX state helpers', () => {
           inCodeBlock: true
         })
       ).toEqual({ presentation: 'hidden', isCompact: false })
+    })
+  })
+
+  describe('resolveEditorModePolicy', () => {
+    it('keeps live page editors editable with toolbar support', () => {
+      expect(
+        resolveEditorModePolicy({
+          requestedMode: 'live',
+          surface: 'page',
+          readOnly: false
+        })
+      ).toEqual({
+        contentMode: 'live',
+        isEditable: true,
+        rendersRichEditor: true,
+        allowsToolbar: true
+      })
+    })
+
+    it('reserves source mode as a non-rich editing surface', () => {
+      expect(
+        resolveEditorModePolicy({
+          requestedMode: 'source',
+          surface: 'page',
+          readOnly: false
+        })
+      ).toEqual({
+        contentMode: 'source',
+        isEditable: false,
+        rendersRichEditor: false,
+        allowsToolbar: false
+      })
+    })
+
+    it('forces read mode for read-only and preview surfaces', () => {
+      expect(
+        resolveEditorModePolicy({
+          requestedMode: 'live',
+          surface: 'canvas-preview',
+          readOnly: false
+        })
+      ).toMatchObject({
+        contentMode: 'read',
+        isEditable: false,
+        allowsToolbar: false
+      })
+
+      expect(
+        resolveEditorModePolicy({
+          requestedMode: 'source',
+          surface: 'page',
+          readOnly: true
+        })
+      ).toMatchObject({
+        contentMode: 'read',
+        isEditable: false,
+        allowsToolbar: false
+      })
     })
   })
 })

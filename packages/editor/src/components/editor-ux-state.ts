@@ -7,6 +7,7 @@ export type ToolbarMode = 'auto' | 'desktop' | 'mobile'
 export type ToolbarSurface = 'page' | 'canvas-inline' | 'canvas-preview' | 'read'
 export type ToolbarPresentation = 'hidden' | 'desktop-floating' | 'mobile-fixed' | 'canvas-compact'
 export type SelectionShape = 'collapsed' | 'range' | 'node'
+export type EditorContentMode = 'live' | 'source' | 'read'
 
 export interface KeyboardThresholds {
   openRatio: number
@@ -46,6 +47,19 @@ export interface ToolbarPolicyInput {
 export interface ToolbarPolicy {
   presentation: ToolbarPresentation
   isCompact: boolean
+}
+
+export interface EditorModePolicyInput {
+  requestedMode?: EditorContentMode
+  surface?: ToolbarSurface
+  readOnly?: boolean
+}
+
+export interface EditorModePolicy {
+  contentMode: EditorContentMode
+  isEditable: boolean
+  rendersRichEditor: boolean
+  allowsToolbar: boolean
 }
 
 export const DEFAULT_KEYBOARD_THRESHOLDS: KeyboardThresholds = {
@@ -232,4 +246,36 @@ export function resolveToolbarPolicy(input: ToolbarPolicyInput): ToolbarPolicy {
   return hasCommandSelection(input)
     ? { presentation: 'desktop-floating', isCompact: false }
     : { presentation: 'hidden', isCompact: false }
+}
+
+export function resolveEditorModePolicy(input: EditorModePolicyInput): EditorModePolicy {
+  const surface = input.surface ?? 'page'
+  const requestedMode = input.requestedMode ?? 'live'
+  const readMode = input.readOnly || surface === 'read' || surface === 'canvas-preview'
+  const contentMode: EditorContentMode = readMode ? 'read' : requestedMode
+
+  if (contentMode === 'source') {
+    return {
+      contentMode,
+      isEditable: false,
+      rendersRichEditor: false,
+      allowsToolbar: false
+    }
+  }
+
+  if (contentMode === 'read') {
+    return {
+      contentMode,
+      isEditable: false,
+      rendersRichEditor: true,
+      allowsToolbar: false
+    }
+  }
+
+  return {
+    contentMode,
+    isEditable: true,
+    rendersRichEditor: true,
+    allowsToolbar: true
+  }
 }
