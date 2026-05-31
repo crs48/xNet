@@ -1052,7 +1052,7 @@ Decision gate:
 - [x] Add compact canvas toolbar instead of disabling toolbar entirely.
 - [x] Use icon buttons and accessible labels for toolbar controls.
 - [x] Add shortcut-aware tooltip/title hints to primary toolbar controls.
-- [ ] Replace native title hints with custom hover/focus tooltip popovers where the design system supports it.
+- [x] Add custom hover/focus tooltip popovers to primary toolbar controls.
 - [ ] Add keyboard-discoverable popovers for link, reference, database, and embed controls.
 
 ### Phase 2: Markdown Structural Editing
@@ -1331,6 +1331,7 @@ Decision gate:
 2026-05-31 minimalist discoverability checkpoint:
 
 - Primary floating toolbar buttons now keep short accessible names while exposing shortcut-aware `title` and `data-shortcut` hints from the shared keyboard shortcut registry.
+- Toolbar buttons now use the shared `@xnetjs/ui` Tooltip primitive so shortcut hints are visible on hover/focus rather than relying only on browser-native title chrome.
 - The desktop BubbleMenu now stays registered on editable desktop/page surfaces and lets its `shouldShow` policy hide or reveal the toolbar, which fixes selection paths where the toolbar plugin previously missed browser selection changes.
 - Added Playwright e2e coverage for the common learning loop: type `###`, backspace through heading markers one level at a time, search `/task`, read the slash command description, insert a task list, and verify toolbar shortcut hints.
 - In-app browser Storybook smoke against `core-editor-richtexteditor--playground` loaded successfully with zero console errors after these changes.
@@ -1368,11 +1369,12 @@ Decision gate:
 - [x] Mobile toolbar appears when editor is focused.
 - [x] Canvas compact toolbar appears only in focused inline edit mode.
 - [x] Toolbar icon buttons expose shortcut-aware title hints without lengthening accessible names.
+- [x] Toolbar shortcut hints render as visible hover/focus tooltips through the design-system tooltip primitive.
 - [x] Desktop BubbleMenu remains registered so selection-driven toolbar display works in the app shell.
 - [x] Slash menu opens at `/` and filters command list.
 - [x] Slash menu descriptions are covered by e2e for common task-list insertion.
 - [x] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
-- [ ] Custom hover/focus tooltip popovers replace native `title` once the design system supports them.
+- [ ] Extend custom tooltip/popover coverage to embed, reference, and database controls.
 - [ ] Escape closes open toolbar popovers and slash menus without mutating content.
 
 ### Page Surface

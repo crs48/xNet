@@ -189,6 +189,9 @@ test.describe('Editor Markdown live editing', () => {
     await expect(linkButton).toHaveAttribute('data-shortcut', /^(⌘K|Ctrl\+K)$/)
 
     await boldButton.hover()
+    await expect(
+      page.getByTestId('editor-toolbar-tooltip').filter({ hasText: 'Bold' })
+    ).toBeVisible()
     await page.screenshot({
       path: 'tmp/playwright/editor-markdown-toolbar-hints.png',
       fullPage: true

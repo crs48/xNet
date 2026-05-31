@@ -7,6 +7,14 @@
 import type { Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import {
+  TooltipPopup,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger
+} from '@xnetjs/ui'
+import {
   AtSign,
   Bold,
   Braces,
@@ -172,7 +180,8 @@ function ToolbarButton({
 }: ToolbarButtonProps): JSX.Element | null {
   if (mobileOnly && !isMobile) return null
 
-  return (
+  const label = ariaLabel ?? title
+  const button = (
     <button
       onClick={(e) => {
         e.preventDefault()
@@ -195,6 +204,31 @@ function ToolbarButton({
     >
       {children}
     </button>
+  )
+
+  return (
+    <TooltipRoot>
+      <TooltipTrigger render={button} />
+      <TooltipPortal>
+        <TooltipPositioner side="top" sideOffset={isMobile ? 10 : 8}>
+          <TooltipPopup
+            data-testid="editor-toolbar-tooltip"
+            className={cn(
+              'flex items-center gap-2 rounded-md border border-border',
+              'bg-popover px-2 py-1.5 text-xs text-popover-foreground',
+              'shadow-lg'
+            )}
+          >
+            <span className="font-medium">{label}</span>
+            {shortcut && (
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground">
+                {shortcut}
+              </kbd>
+            )}
+          </TooltipPopup>
+        </TooltipPositioner>
+      </TooltipPortal>
+    </TooltipRoot>
   )
 }
 
@@ -327,7 +361,7 @@ function ToolbarContent({
   const showTaskButtons = isInTaskItem(editor)
 
   return (
-    <>
+    <TooltipProvider delayDuration={150}>
       {/* Text formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -607,7 +641,7 @@ function ToolbarContent({
       >
         <AtSign size={18} aria-hidden="true" />
       </ToolbarButton>
-    </>
+    </TooltipProvider>
   )
 }
 
