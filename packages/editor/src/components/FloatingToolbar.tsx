@@ -52,7 +52,12 @@ import {
   type KeyboardEvent
 } from 'react'
 import { captureTextAnchor } from '../extensions/comment'
-import { getShortcutById, isMac } from '../extensions/keyboard-shortcuts'
+import {
+  getShortcutById,
+  isMac,
+  OPEN_LINK_POPOVER_EVENT,
+  type OpenLinkPopoverEventDetail
+} from '../extensions/keyboard-shortcuts'
 import { getCurrentTaskDueDate } from '../extensions/task-metadata'
 import { cn } from '../utils'
 import {
@@ -1650,6 +1655,20 @@ export function FloatingToolbar({
       setDatabasePopoverOpen(false)
     }
   }, [])
+
+  useEffect(() => {
+    if (!editor) return
+
+    const handleOpenLinkPopover = (event: Event) => {
+      const detail = (event as CustomEvent<OpenLinkPopoverEventDetail>).detail
+      if (detail.editor !== editor) return
+
+      handleLinkPopoverOpenChange(true)
+    }
+
+    window.addEventListener(OPEN_LINK_POPOVER_EVENT, handleOpenLinkPopover)
+    return () => window.removeEventListener(OPEN_LINK_POPOVER_EVENT, handleOpenLinkPopover)
+  }, [editor, handleLinkPopoverOpenChange])
 
   if (!editor) return null
 

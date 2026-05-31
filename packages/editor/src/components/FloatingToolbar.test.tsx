@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { captureTextAnchor } from '../extensions/comment'
+import { OPEN_LINK_POPOVER_EVENT } from '../extensions/keyboard-shortcuts'
 import { FloatingToolbar } from './FloatingToolbar'
 
 vi.mock('../extensions/comment', () => ({
@@ -331,6 +332,44 @@ describe('FloatingToolbar', () => {
 
     expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
     expect(screen.getByTestId('editor-link-popover')).toBeInTheDocument()
+  })
+
+  it('opens link popover from the keyboard shortcut event for the active editor', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(OPEN_LINK_POPOVER_EVENT, {
+          detail: { editor }
+        })
+      )
+    })
+
+    expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
+    expect(screen.getByTestId('editor-link-popover')).toBeInTheDocument()
+  })
+
+  it('ignores link popover shortcut events for other editor instances', () => {
+    const editor = createMockEditor()
+    const otherEditor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(OPEN_LINK_POPOVER_EVENT, {
+          detail: { editor: otherEditor }
+        })
+      )
+    })
+
+    expect(screen.queryByTestId('editor-link-popover')).not.toBeInTheDocument()
   })
 
   it('inserts page references through the reference popover', () => {

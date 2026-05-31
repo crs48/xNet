@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest'
+import type { Editor } from '@tiptap/core'
+import { describe, it, expect, vi } from 'vitest'
 import {
   KEYBOARD_SHORTCUTS,
+  OPEN_LINK_POPOVER_EVENT,
   getShortcutsByCategory,
   getShortcutById,
   getShortcutsMap
@@ -97,6 +99,24 @@ describe('keyboard shortcuts', () => {
     it('should return undefined for unknown ID', () => {
       const result = getShortcutById('nonexistent')
       expect(result).toBeUndefined()
+    })
+
+    it('should route link shortcut through the toolbar popover event', () => {
+      const link = getShortcutById('link')
+      const editor = {} as Editor
+      const dispatch = vi.spyOn(window, 'dispatchEvent')
+      const prompt = vi.spyOn(window, 'prompt')
+
+      expect(link?.command(editor)).toBe(true)
+
+      expect(prompt).not.toHaveBeenCalled()
+      expect(dispatch).toHaveBeenCalledTimes(1)
+      const event = dispatch.mock.calls[0]?.[0] as CustomEvent
+      expect(event.type).toBe(OPEN_LINK_POPOVER_EVENT)
+      expect(event.detail).toEqual({ editor })
+
+      dispatch.mockRestore()
+      prompt.mockRestore()
     })
   })
 

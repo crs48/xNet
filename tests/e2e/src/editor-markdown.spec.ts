@@ -226,6 +226,38 @@ test.describe('Editor Markdown live editing', () => {
     })
   })
 
+  test('link keyboard shortcut opens the toolbar popover without a prompt', async ({ page }) => {
+    const editor = await createBlankPage(page)
+    const dialogs: string[] = []
+    page.on('dialog', async (dialog) => {
+      dialogs.push(dialog.type())
+      await dialog.dismiss()
+    })
+
+    await editor.click()
+    await page.keyboard.type('keyboard link target')
+    await selectEditorText(page, 'keyboard link target', {
+      start: 'keyboard '.length,
+      end: 'keyboard link'.length
+    })
+    await expect
+      .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ''))
+      .toBe('link')
+
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K')
+
+    const linkPopover = page.getByTestId('editor-link-popover')
+    await expect(linkPopover).toBeVisible()
+    await expect.poll(() => dialogs).toEqual([])
+
+    await linkPopover.getByRole('textbox', { name: 'Link URL' }).fill('https://xnet.fyi/keyboard')
+    await linkPopover.getByRole('button', { name: 'Apply link' }).click()
+
+    await expect(
+      page.locator('a[href="https://xnet.fyi/keyboard"]', { hasText: 'link' })
+    ).toBeVisible()
+  })
+
   test('reference popover inserts page wikilinks from selected text', async ({ page }) => {
     const editor = await createBlankPage(page)
 

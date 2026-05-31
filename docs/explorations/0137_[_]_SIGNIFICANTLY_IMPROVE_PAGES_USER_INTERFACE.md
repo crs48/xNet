@@ -1234,6 +1234,15 @@ Decision gate:
 - Focused test passed:
   - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
 
+2026-05-31 link shortcut popover checkpoint:
+
+- Replaced the `Mod-K` shortcut prompt path with a scoped toolbar-popover event so keyboard users get the same compact Link popover as pointer users.
+- The shortcut event targets the matching editor instance, so canvas/page editors do not open each other's toolbar popovers.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/keyboard-shortcuts/shortcuts.test.ts src/components/FloatingToolbar.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+  - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
+
 2026-05-31 page body/title Backspace checkpoint:
 
 - `RichTextEditor` now exposes an `onBackspaceAtStart` host callback and only invokes it for plain Backspace at an empty first text block.
@@ -1426,6 +1435,7 @@ Decision gate:
 - [x] Desktop BubbleMenu remains registered so selection-driven toolbar display works in the app shell.
 - [x] Link toolbar popover applies, removes, and dismisses links without `window.prompt`.
 - [x] Link toolbar popover keeps the selection toolbar visible while URL input owns focus.
+- [x] Link keyboard shortcut opens the same toolbar popover without `window.prompt`.
 - [x] Reference toolbar popover inserts page wikilinks from selected text.
 - [x] Reference toolbar popover keeps the selection toolbar visible while input owns focus.
 - [x] Database toolbar popover inserts database embeds with a selected view.
