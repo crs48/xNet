@@ -1050,7 +1050,7 @@ Decision gate:
 - [x] Add open-in-page and open-in-peek flows.
 - [ ] Verify canvas drag/resize does not steal editor selection.
 - [x] Verify editor selection does not move canvas nodes.
-- [ ] Add performance budget for many page cards on one canvas.
+- [x] Add performance budget for many page cards on one canvas.
 - [ ] Add screenshot checks at multiple zoom levels.
 
 ### Phase 6: Hardening And Rollout

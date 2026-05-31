@@ -158,6 +158,54 @@ describe('DOM island pool', () => {
     })
   })
 
+  it('keeps many page cards inside the explicit DOM performance budget', () => {
+    const candidates = Array.from({ length: 500 }, (_, index) =>
+      createCandidate(`page-${index.toString().padStart(3, '0')}`, {
+        object: createObject(
+          `page-${index.toString().padStart(3, '0')}`,
+          `Project page ${index + 1}`,
+          'page'
+        ),
+        focused: index === 42,
+        selected: index % 19 === 0,
+        sourceOpen: index === 7,
+        editing: index === 42,
+        screenRect: {
+          x: (index % 25) * 220,
+          y: Math.floor(index / 25) * 150,
+          width: 360,
+          height: 280
+        },
+        distanceToViewportCenterPx: index * 12,
+        lastInteractionAtMs: index === 42 ? 995 : undefined
+      })
+    )
+    const plan = planDomIslandPool({
+      candidates,
+      budgets: {
+        maxLiveDom: 12,
+        maxShellDom: 80,
+        maxLiveIframes: 0
+      },
+      nowMs: 1_000
+    })
+
+    expect(plan.liveObjects).toHaveLength(12)
+    expect(plan.shellObjects).toHaveLength(80)
+    expect(plan.liveIframeObjects).toHaveLength(0)
+    expect(plan.parkedObjectIds).toHaveLength(408)
+    expect(plan.budgets).toEqual({
+      liveUsed: 12,
+      liveRemaining: 0,
+      shellUsed: 80,
+      shellRemaining: 0,
+      liveIframeUsed: 0,
+      liveIframeRemaining: 0
+    })
+    expect(plan.liveObjects.map((object) => object.id)).toContain('page-042')
+    expect(plan.liveObjects.map((object) => object.id)).toContain('page-007')
+  })
+
   it('budgets live iframes separately from live DOM documents', () => {
     const plan = planDomIslandPool({
       candidates: [
