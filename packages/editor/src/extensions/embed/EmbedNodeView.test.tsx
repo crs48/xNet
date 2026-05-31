@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EmbedNodeView } from './EmbedNodeView'
 
@@ -59,6 +59,7 @@ function createProps(attrs: Partial<EmbedNodeAttrs> = {}): EmbedNodeViewProps {
 describe('EmbedNodeView', () => {
   afterEach(() => {
     cleanup()
+    vi.unstubAllGlobals()
   })
 
   it('labels empty embed controls for screen readers', () => {
@@ -114,6 +115,59 @@ describe('EmbedNodeView', () => {
     }
   )
 
+  it('does not mount heavy iframes until the embed is near the viewport', async () => {
+    const observers: MockIntersectionObserver[] = []
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root: Element | Document | null = null
+      readonly rootMargin = '600px 0px'
+      readonly thresholds = [0.01]
+      readonly observe = vi.fn()
+      readonly unobserve = vi.fn()
+      readonly disconnect = vi.fn()
+      readonly takeRecords = vi.fn((): IntersectionObserverEntry[] => [])
+
+      constructor(private readonly callback: IntersectionObserverCallback) {
+        observers.push(this)
+      }
+
+      trigger(entries: Partial<IntersectionObserverEntry>[]): void {
+        this.callback(
+          entries.map((entry) => createIntersectionObserverEntry(entry)),
+          this
+        )
+      }
+    }
+
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+
+    const { container } = render(
+      <EmbedNodeView
+        {...createProps({
+          provider: 'youtube',
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+          title: 'Demo'
+        })}
+      />
+    )
+
+    expect(container.querySelector('iframe')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-embed-lazy-placeholder="true"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-embed-iframe-mounted="false"]')).toBeInTheDocument()
+    expect(observers).toHaveLength(1)
+
+    act(() => {
+      observers[0].trigger([{ isIntersecting: true, intersectionRatio: 1 }])
+    })
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-embed-iframe="true"]')).toBeInTheDocument()
+    })
+    expect(container.querySelector('[data-embed-iframe-mounted="true"]')).toBeInTheDocument()
+    expect(observers[0].disconnect).toHaveBeenCalled()
+  })
+
   it('renders a non-live placeholder for spoofed provider embed URLs', () => {
     const { container } = render(
       <EmbedNodeView
@@ -137,3 +191,18 @@ describe('EmbedNodeView', () => {
     ).toBeInTheDocument()
   })
 })
+
+function createIntersectionObserverEntry(
+  entry: Partial<IntersectionObserverEntry>
+): IntersectionObserverEntry {
+  return {
+    boundingClientRect: DOMRectReadOnly.fromRect(),
+    intersectionRatio: 0,
+    intersectionRect: DOMRectReadOnly.fromRect(),
+    isIntersecting: false,
+    rootBounds: null,
+    target: document.createElement('div'),
+    time: 0,
+    ...entry
+  }
+}

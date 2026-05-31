@@ -84,6 +84,9 @@ export function EmbedNodeView({
 }: NodeViewProps) {
   const { url, provider: providerName, embedUrl, title, width, alignment } = node.attrs
   const [loading, setLoading] = React.useState(true)
+  const [iframeVisible, setIframeVisible] = React.useState(
+    () => typeof globalThis.IntersectionObserver !== 'function'
+  )
   const [inputValue, setInputValue] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
   const [resizeWidth, setResizeWidth] = React.useState<number | null>(null)
@@ -99,11 +102,56 @@ export function EmbedNodeView({
   const aspectRatio = provider?.aspectRatio || 16 / 9
   const paddingBottom = `${(1 / aspectRatio) * 100}%`
   const isResizing = resizeWidth !== null
+  const shouldMountIframe = selected || iframeVisible
 
   // Keep ref in sync with state
   React.useEffect(() => {
     resizeWidthRef.current = resizeWidth
   }, [resizeWidth])
+
+  React.useEffect(() => {
+    setLoading(true)
+  }, [embedUrl])
+
+  React.useEffect(() => {
+    if (selected) {
+      setIframeVisible(true)
+    }
+  }, [selected])
+
+  React.useEffect(() => {
+    if (!embedUrl || !embedPolicyDecision.allowed || shouldMountIframe) return
+
+    const IntersectionObserverCtor = globalThis.IntersectionObserver
+    if (typeof IntersectionObserverCtor !== 'function') {
+      setIframeVisible(true)
+      return
+    }
+
+    const target = containerRef.current
+    if (!target) return
+
+    let observer: IntersectionObserver | null = new IntersectionObserverCtor(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) return
+
+        setIframeVisible(true)
+        observer?.disconnect()
+        observer = null
+      },
+      {
+        root: null,
+        rootMargin: '600px 0px',
+        threshold: 0.01
+      }
+    )
+
+    observer.observe(target)
+
+    return () => {
+      observer?.disconnect()
+    }
+  }, [embedUrl, embedPolicyDecision.allowed, shouldMountIframe])
 
   // Handle resize via mouse drag
   const handleResizeStart = React.useCallback(
@@ -287,6 +335,7 @@ export function EmbedNodeView({
         )}
         style={{ width: isResizing ? resizeWidth : width || 400, maxWidth: '100%' }}
         data-drag-handle
+        data-embed-iframe-mounted={shouldMountIframe ? 'true' : 'false'}
       >
         {/* Responsive iframe container */}
         <div
@@ -294,7 +343,7 @@ export function EmbedNodeView({
           style={{ paddingBottom }}
         >
           {/* Loading state */}
-          {loading && (
+          {shouldMountIframe && loading && (
             <div
               className={cn(
                 'absolute inset-0 flex items-center justify-center',
@@ -325,19 +374,36 @@ export function EmbedNodeView({
           )}
 
           {/* Iframe */}
-          <iframe
-            src={embedUrl}
-            title={title || `${provider?.displayName || 'Embedded'} content`}
-            className="absolute inset-0 w-full h-full"
-            style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
-            frameBorder="0"
-            sandbox={embedPolicyDecision.iframeAttributes.sandbox}
-            allow={embedPolicyDecision.iframeAttributes.allow}
-            referrerPolicy={embedPolicyDecision.iframeAttributes.referrerPolicy}
-            allowFullScreen
-            loading={embedPolicyDecision.iframeAttributes.loading}
-            onLoad={() => setLoading(false)}
-          />
+          {shouldMountIframe ? (
+            <iframe
+              src={embedUrl}
+              title={title || `${provider?.displayName || 'Embedded'} content`}
+              className="absolute inset-0 w-full h-full"
+              style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
+              frameBorder="0"
+              sandbox={embedPolicyDecision.iframeAttributes.sandbox}
+              allow={embedPolicyDecision.iframeAttributes.allow}
+              referrerPolicy={embedPolicyDecision.iframeAttributes.referrerPolicy}
+              allowFullScreen
+              loading={embedPolicyDecision.iframeAttributes.loading}
+              data-embed-iframe="true"
+              onLoad={() => setLoading(false)}
+            />
+          ) : (
+            <div
+              className={cn(
+                'absolute inset-0 flex items-center justify-center',
+                'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+              )}
+              data-embed-lazy-placeholder="true"
+              role="status"
+              aria-label="Embed preview will load when visible"
+            >
+              <p className="px-4 text-center text-xs">
+                {provider?.displayName || 'Embed'} preview loads when visible.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Provider badge (top-left, visible on hover) */}

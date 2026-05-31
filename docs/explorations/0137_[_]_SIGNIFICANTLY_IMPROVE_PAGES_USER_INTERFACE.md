@@ -1218,6 +1218,14 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/RichTextEditor.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 lazy media embed checkpoint:
+
+- Media embed node views now defer iframe creation with `IntersectionObserver` and a 600px preload margin instead of mounting every live provider iframe at document render time.
+- Embeds still fall back to immediate iframe mounting where `IntersectionObserver` is unavailable, and selected embeds mount immediately for direct interaction.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/embed/EmbedNodeView.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1298,7 +1306,7 @@ Decision gate:
 - [ ] Selection changes do not recompute full-document decorations unnecessarily.
 - [ ] Initial editor mount remains within budget for typical pages.
 - [x] Canvas with many page cards uses preview mode instead of full editor mode.
-- [ ] Heavy embeds lazy-render below the fold.
+- [x] Heavy embeds lazy-render below the fold.
 - [ ] Markdown import/export of large pages is measured and bounded.
 
 ## Test Strategy
