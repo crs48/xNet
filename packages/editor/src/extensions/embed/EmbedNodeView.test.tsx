@@ -59,6 +59,7 @@ function createProps(attrs: Partial<EmbedNodeAttrs> = {}): EmbedNodeViewProps {
 describe('EmbedNodeView', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })
 
@@ -166,6 +167,46 @@ describe('EmbedNodeView', () => {
     })
     expect(container.querySelector('[data-embed-iframe-mounted="true"]')).toBeInTheDocument()
     expect(observers[0].disconnect).toHaveBeenCalled()
+  })
+
+  it('mounts observer-supported embeds immediately when they already start near viewport', async () => {
+    const observers: MockIntersectionObserver[] = []
+
+    class MockIntersectionObserver implements IntersectionObserver {
+      readonly root: Element | Document | null = null
+      readonly rootMargin = '600px 0px'
+      readonly thresholds = [0.01]
+      readonly observe = vi.fn()
+      readonly unobserve = vi.fn()
+      readonly disconnect = vi.fn()
+      readonly takeRecords = vi.fn((): IntersectionObserverEntry[] => [])
+
+      constructor(_callback: IntersectionObserverCallback) {
+        observers.push(this)
+      }
+    }
+
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+      DOMRect.fromRect({ x: 0, y: 100, width: 560, height: 315 })
+    )
+
+    const { container } = render(
+      <EmbedNodeView
+        {...createProps({
+          provider: 'youtube',
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+          title: 'Demo'
+        })}
+      />
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-embed-iframe="true"]')).toBeInTheDocument()
+    })
+    expect(container.querySelector('[data-embed-lazy-placeholder="true"]')).not.toBeInTheDocument()
+    expect(observers).toHaveLength(0)
   })
 
   it('renders a non-live placeholder for spoofed provider embed URLs', () => {

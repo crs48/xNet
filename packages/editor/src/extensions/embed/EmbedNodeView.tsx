@@ -28,6 +28,16 @@ const ALIGNMENTS: Record<string, string> = {
   center: 'mx-auto',
   right: 'ml-auto'
 }
+const LAZY_EMBED_PRELOAD_MARGIN_PX = 600
+
+function isElementNearViewport(element: HTMLElement, marginPx: number): boolean {
+  if (typeof window === 'undefined') return false
+
+  const rect = element.getBoundingClientRect()
+  if (rect.width === 0 && rect.height === 0) return false
+
+  return rect.bottom >= -marginPx && rect.top <= window.innerHeight + marginPx
+}
 
 function EmbedUnavailablePlaceholder({
   url,
@@ -131,6 +141,11 @@ export function EmbedNodeView({
     const target = containerRef.current
     if (!target) return
 
+    if (isElementNearViewport(target, LAZY_EMBED_PRELOAD_MARGIN_PX)) {
+      setIframeVisible(true)
+      return
+    }
+
     let observer: IntersectionObserver | null = new IntersectionObserverCtor(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) return
@@ -141,7 +156,7 @@ export function EmbedNodeView({
       },
       {
         root: null,
-        rootMargin: '600px 0px',
+        rootMargin: `${LAZY_EMBED_PRELOAD_MARGIN_PX}px 0px`,
         threshold: 0.01
       }
     )

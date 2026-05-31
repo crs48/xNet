@@ -1225,6 +1225,7 @@ Decision gate:
 - Focused tests passed:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/embed/EmbedNodeView.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
+- In-app browser Storybook smoke verified 18 lazy media embed nodes, 3 mounted visible iframes after scroll, and 15 still-deferred placeholders.
 
 ## Validation Checklist
 
