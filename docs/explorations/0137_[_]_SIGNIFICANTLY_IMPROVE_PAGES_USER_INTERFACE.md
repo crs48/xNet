@@ -983,16 +983,16 @@ gantt
 ### Phase 0: Decision Spike
 
 - [x] Create a prototype branch for `RichTextEditorV2`.
-- [ ] Add official `@tiptap/markdown` in a spike workspace or package branch.
+- [x] Add official `@tiptap/markdown` in a spike workspace or package branch.
 - [x] Prototype heading token Backspace behavior in Tiptap with tests.
 - [ ] Prototype equivalent heading/list/code behavior in Milkdown.
 - [ ] Port one simple xNet embed into Milkdown or prove why it is too expensive.
-- [ ] Compare collaboration integration with existing Yjs content.
-- [ ] Decide whether to continue Tiptap rewrite or switch to Milkdown.
+- [x] Compare collaboration integration with existing Yjs content.
+- [x] Decide whether to continue Tiptap rewrite or switch to Milkdown.
 
 Decision gate:
 
-- [ ] Tiptap path wins if heading/list/source-token behavior is testable without DOM hacks that will break IME, selection, or collaboration.
+- [x] Tiptap path wins if heading/list/source-token behavior is testable without DOM hacks that will break IME, selection, or collaboration.
 - [ ] Milkdown path wins if it gives materially better Markdown editing with acceptable embed/Yjs integration cost.
 - [ ] CodeMirror path is revisited only if both fail.
 
@@ -1060,7 +1060,7 @@ Decision gate:
 - [x] Add crash-safe fallback rendering for unknown nodes.
 - [x] Run full `pnpm --filter @xnetjs/editor test`.
 - [ ] Run relevant Electron Playwright checks with auth bypass.
-- [ ] Run performance benchmarks before enabling by default.
+- [x] Run performance benchmarks before enabling by default.
 - [ ] Enable for new pages first.
 - [ ] Enable for all pages after validation.
 - [ ] Remove old live-preview overlays after confidence window.
@@ -1265,6 +1265,13 @@ Decision gate:
 - The remote cursor coverage publishes a real awareness update with Yjs relative positions and verifies Tiptap cursor decorations inside a focused heading node view.
 - Focused tests passed:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/RichTextEditor.test.tsx`
+
+2026-05-31 rollout validation checkpoint:
+
+- The Tiptap path is now the implementation path: official `@tiptap/markdown` is integrated, xNet embed Markdown specs round-trip, and Yjs collaboration/undo/cursor behavior has focused coverage.
+- Performance validation passed across benchmark helper, Markdown import/export, Markdown structural typing, live-preview decoration scoping, and component mount/collaboration coverage:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/testing/benchmarks.test.ts src/extensions/markdown-io.test.ts src/extensions/markdown-structural-editing.test.ts src/extensions/live-preview/inline-marks.integration.test.ts src/components/RichTextEditor.test.tsx`
+- In-app browser Storybook smoke passed against `core-editor-richtexteditor--playground`: 3 editors rendered, first editor was editable, heading syntax was visible, 18 lazy media embeds were present, 3 iframes were mounted, and 15 below-fold placeholders remained deferred.
 
 ## Validation Checklist
 
