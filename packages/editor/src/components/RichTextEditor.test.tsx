@@ -8,7 +8,12 @@ import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // import userEvent from '@testing-library/user-event'
 import * as Y from 'yjs'
+import { generateLargeDocument } from '../testing/benchmarks'
+import { measureAsync } from '../utils/performance'
 import { RichTextEditor } from './RichTextEditor'
+
+const TYPICAL_PAGE_BLOCKS = 120
+const INITIAL_MOUNT_READY_BUDGET_MS = 3000
 
 describe('RichTextEditor', () => {
   let ydoc: Y.Doc
@@ -444,6 +449,59 @@ describe('RichTextEditor', () => {
         })
       } finally {
         reloadedDoc.destroy()
+      }
+    })
+
+    it('mounts a typical persisted page within the ready budget', async () => {
+      const seedDoc = new Y.Doc()
+      let seedEditor: Editor | null = null
+      const { unmount } = render(
+        <RichTextEditor
+          ydoc={seedDoc}
+          showToolbar={false}
+          onEditorReady={(editor) => {
+            seedEditor = editor
+          }}
+        />
+      )
+
+      await waitFor(() => expect(seedEditor).not.toBeNull())
+
+      act(() => {
+        seedEditor?.commands.setContent(generateLargeDocument(TYPICAL_PAGE_BLOCKS, 16))
+      })
+
+      await waitFor(() => {
+        expect(seedEditor?.getJSON().content?.length).toBeGreaterThan(100)
+      })
+
+      const persistedUpdate = Y.encodeStateAsUpdate(seedDoc)
+      unmount()
+      seedDoc.destroy()
+
+      const persistedDoc = new Y.Doc()
+      Y.applyUpdate(persistedDoc, persistedUpdate)
+      let mountedEditor: Editor | null = null
+
+      try {
+        const mounted = await measureAsync(async () => {
+          render(
+            <RichTextEditor
+              ydoc={persistedDoc}
+              showToolbar={false}
+              onEditorReady={(editor) => {
+                mountedEditor = editor
+              }}
+            />
+          )
+
+          await waitFor(() => expect(mountedEditor).not.toBeNull())
+        })
+
+        expect(mountedEditor?.getJSON().content?.length).toBeGreaterThan(100)
+        expect(mounted.duration).toBeLessThan(INITIAL_MOUNT_READY_BUDGET_MS)
+      } finally {
+        persistedDoc.destroy()
       }
     })
   })
