@@ -998,8 +998,8 @@ Decision gate:
 
 ### Phase 1: EditorSurface And Command Surfaces
 
-- [ ] Introduce `EditorSurface` with `surfaceMode: 'page' | 'canvas-inline' | 'canvas-preview' | 'read'`.
-- [ ] Move page body layout responsibility out of raw `PageView` padding.
+- [x] Introduce `EditorSurface` with `surfaceMode: 'page' | 'canvas-inline' | 'canvas-preview' | 'read'`.
+- [x] Move page body layout responsibility out of raw `PageView` padding.
 - [x] Add full-surface click-to-focus behavior.
 - [x] Add readable writing column with responsive max width.
 - [x] Add explicit first-block and end-of-document focus targets.
@@ -1080,6 +1080,15 @@ Decision gate:
 - Canvas-inline toolbar containers now opt into `data-canvas-interactive="true"`, so toolbar pointer gestures are explicitly ignored by canvas drag handlers.
 - Canvas V3 tests now preserve a text selection inside a `data-canvas-editing-surface="true"` embedded editor area while canvas pointer movement is ignored.
 
+2026-05-31 `EditorSurface` checkpoint:
+
+- Added `EditorSurface` as the shared wrapper for page, canvas-inline, canvas-preview, and read editor surfaces.
+- Routed Electron `PageView` and `CanvasInlinePageSurface` through the shared wrapper so layout and surface policy are not duplicated in host components.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/EditorSurface.test.tsx src/components/RichTextEditor.test.tsx src/components/FloatingToolbar.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+  - `pnpm --filter xnet-desktop exec tsc --noEmit`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1103,11 +1112,11 @@ Decision gate:
 
 ### Toolbar And Commands
 
-- [ ] Desktop toolbar appears on range selection.
+- [x] Desktop toolbar appears on range selection.
 - [ ] Toolbar remains usable when clicking buttons.
 - [ ] Bold, italic, strike, code, link, comment commands mutate content correctly.
 - [ ] Toolbar hides on valid blur.
-- [ ] Mobile toolbar appears when editor is focused.
+- [x] Mobile toolbar appears when editor is focused.
 - [ ] Canvas compact toolbar appears only in focused inline edit mode.
 - [ ] Slash menu opens at `/` and filters command list.
 - [ ] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
@@ -1119,7 +1128,7 @@ Decision gate:
 - [ ] Clicking below content focuses document end.
 - [ ] Title Enter moves into first body block.
 - [ ] Body Backspace at empty first block can return focus to title or no-op by explicit design.
-- [ ] Long documents keep a stable writing measure.
+- [x] Long documents keep a stable writing measure.
 - [ ] Selection and caret remain visible in light/dark themes.
 - [ ] Screen reader labels identify editor, title, toolbar, and embed controls.
 

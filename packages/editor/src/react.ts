@@ -20,6 +20,12 @@
  */
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
 export {
+  EditorSurface,
+  type EditorSurfaceDensity,
+  type EditorSurfaceMode,
+  type EditorSurfaceProps
+} from './components/EditorSurface'
+export {
   CanvasFailedCardActions,
   CanvasExternalReferenceCard,
   CanvasLifecycleStatusBadge,

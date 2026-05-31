@@ -3,7 +3,7 @@ import type { TaskMentionSuggestion } from '@xnetjs/editor/react'
 import { useCanvasThemeTokens } from '@xnetjs/canvas'
 import { PageSchema } from '@xnetjs/data'
 import {
-  RichTextEditor,
+  EditorSurface,
   buildTaskMentionSuggestions,
   useFileDownload,
   useFileUpload,
@@ -28,7 +28,7 @@ type CanvasInlinePageSurfaceProps = {
   onSourceNodeMutated?: () => void
 }
 
-type EditorExtensions = NonNullable<React.ComponentProps<typeof RichTextEditor>['extensions']>
+type EditorExtensions = NonNullable<React.ComponentProps<typeof EditorSurface>['extensions']>
 
 function useStableTitle(
   initialTitle: string,
@@ -189,13 +189,13 @@ export function CanvasInlinePageSurface({
             Loading page surface...
           </div>
         ) : (
-          <RichTextEditor
+          <EditorSurface
+            surfaceMode="canvas-inline"
             ydoc={doc}
             field="content"
             placeholder={variant === 'note' ? 'Write a note...' : 'Start writing...'}
             showToolbar={true}
             toolbarMode="desktop"
-            toolbarSurface="canvas-inline"
             className="min-h-full [&_.ProseMirror]:select-text [&_[contenteditable='true']]:select-text"
             awareness={awareness ?? undefined}
             did={did ?? undefined}

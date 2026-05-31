@@ -11,7 +11,7 @@ import type { SyncStatus } from '@xnetjs/react'
 import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
 import {
-  RichTextEditor,
+  EditorSurface,
   buildTaskMentionSuggestions,
   useImageUpload,
   useFileUpload,
@@ -45,7 +45,7 @@ interface PageViewProps {
   minimalChrome?: boolean
 }
 
-type EditorExtensions = NonNullable<React.ComponentProps<typeof RichTextEditor>['extensions']>
+type EditorExtensions = NonNullable<React.ComponentProps<typeof EditorSurface>['extensions']>
 
 // ─── Comment Popover State ──────────────────────────────────────────────────────
 
@@ -777,62 +777,55 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
       {/* Editor + Sidebar horizontal layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor */}
-        <div
-          onMouseDown={handleEditorSurfaceMouseDown}
-          data-page-editor-focus-surface="true"
-          className={
-            minimalChrome ? 'flex-1 overflow-auto px-4 py-4' : 'flex-1 overflow-auto px-6 py-6'
-          }
-        >
-          <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col pb-24">
-            <RichTextEditor
-              ydoc={doc}
-              field="content"
-              placeholder="Start typing..."
-              showToolbar={true}
-              toolbarMode="desktop"
-              awareness={awareness ?? undefined}
-              did={did ?? undefined}
-              onImageUpload={onImageUpload ?? undefined}
-              onFileUpload={onFileUpload ?? undefined}
-              onFileDownload={onFileDownload ?? undefined}
-              extensions={allExtensions}
-              onCreateComment={handleCreateComment}
-              onEditorReady={handleEditorReady}
-              mentionSuggestions={mentionSuggestions}
-              onPageTasksChange={handleTasksChange}
-              taskViewPageId={docId}
-              className="min-h-[480px]"
-              renderTaskView={({ viewConfig, currentPageId }) => (
-                <TaskCollectionEmbed
-                  currentPageId={currentPageId}
-                  currentDid={did ?? null}
-                  scope={viewConfig.scope}
-                  assignee={viewConfig.assignee}
-                  dueDate={viewConfig.dueDate}
-                  status={viewConfig.status}
-                  showHierarchy={viewConfig.showHierarchy}
-                />
-              )}
+        <EditorSurface
+          surfaceMode="page"
+          surfaceDensity={minimalChrome ? 'compact' : 'default'}
+          onSurfaceMouseDown={handleEditorSurfaceMouseDown}
+          ydoc={doc}
+          field="content"
+          placeholder="Start typing..."
+          showToolbar={true}
+          toolbarMode="desktop"
+          awareness={awareness ?? undefined}
+          did={did ?? undefined}
+          onImageUpload={onImageUpload ?? undefined}
+          onFileUpload={onFileUpload ?? undefined}
+          onFileDownload={onFileDownload ?? undefined}
+          extensions={allExtensions}
+          onCreateComment={handleCreateComment}
+          onEditorReady={handleEditorReady}
+          mentionSuggestions={mentionSuggestions}
+          onPageTasksChange={handleTasksChange}
+          taskViewPageId={docId}
+          className="min-h-[480px]"
+          renderTaskView={({ viewConfig, currentPageId }) => (
+            <TaskCollectionEmbed
+              currentPageId={currentPageId}
+              currentDid={did ?? null}
+              scope={viewConfig.scope}
+              assignee={viewConfig.assignee}
+              dueDate={viewConfig.dueDate}
+              status={viewConfig.status}
+              showHierarchy={viewConfig.showHierarchy}
             />
+          )}
+        >
+          {/* Orphaned Comments Section */}
+          {orphanedThreads.length > 0 && (
+            <div className="mt-6" data-page-editor-ignore-focus="true">
+              <OrphanedThreadList
+                orphanedThreads={orphanedThreads}
+                collapsed={orphanedCollapsed}
+                onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
+                onDismiss={handleDismissOrphaned}
+                onReattach={handleReattachOrphaned}
+                onSelect={handleSelectOrphaned}
+              />
+            </div>
+          )}
 
-            {/* Orphaned Comments Section */}
-            {orphanedThreads.length > 0 && (
-              <div className="mt-6" data-page-editor-ignore-focus="true">
-                <OrphanedThreadList
-                  orphanedThreads={orphanedThreads}
-                  collapsed={orphanedCollapsed}
-                  onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
-                  onDismiss={handleDismissOrphaned}
-                  onReattach={handleReattachOrphaned}
-                  onSelect={handleSelectOrphaned}
-                />
-              </div>
-            )}
-
-            <PageTasksPanel pageId={docId} />
-          </div>
-        </div>
+          <PageTasksPanel pageId={docId} />
+        </EditorSurface>
 
         {/* Comments Sidebar */}
         <CommentsSidebar
