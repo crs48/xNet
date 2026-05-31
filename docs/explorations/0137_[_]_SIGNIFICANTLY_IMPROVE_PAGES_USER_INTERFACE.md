@@ -1040,7 +1040,7 @@ Decision gate:
 - [x] Add rich link preview card for generic URLs.
 - [x] Add page embed block.
 - [x] Improve database embed keyboard and selection behavior.
-- [ ] Add YouTube/Vimeo/Loom/Figma/CodeSandbox Playwright smoke checks.
+- [x] Add YouTube/Vimeo/Loom/Figma/CodeSandbox Playwright smoke checks.
 - [x] Add blocked-origin and blocked-provider tests.
 
 ### Phase 5: Canvas Integration
