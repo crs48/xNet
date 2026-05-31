@@ -1095,6 +1095,13 @@ Decision gate:
 - Focused test passed:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx`
 
+2026-05-31 browser smoke checkpoint:
+
+- Re-ran the Storybook editor feature workbench in the in-app browser after introducing `EditorSurface`.
+- Verified the story rendered three ProseMirror editor roots and three rich-link/card surfaces with no browser console errors.
+- Captured a fallback Playwright CLI screenshot after the in-app screenshot command timed out:
+  - `tmp/playwright/editor-surface-smoke-after-wrapper.png`
+
 ## Validation Checklist
 
 ### Markdown Behavior
