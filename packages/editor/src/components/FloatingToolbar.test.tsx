@@ -32,6 +32,7 @@ type MockEditor = {
   can: ReturnType<typeof vi.fn>
   chain: ReturnType<typeof vi.fn>
   commands: {
+    focus: ReturnType<typeof vi.fn>
     setComment: ReturnType<typeof vi.fn>
   }
   getAttributes: ReturnType<typeof vi.fn>
@@ -149,6 +150,7 @@ function createMockEditor() {
       focus: () => commands
     })),
     commands: {
+      focus: vi.fn(),
       setComment: vi.fn()
     },
     getAttributes: vi.fn(() => ({})),
@@ -232,7 +234,6 @@ describe('FloatingToolbar', () => {
     const editor = createMockEditor()
     editor.isFocused = true
     editor.state.selection = { from: 2, to: 8, empty: false }
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(' https://xnet.fyi/docs ')
 
     render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
 
@@ -241,14 +242,73 @@ describe('FloatingToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Strikethrough' }))
     fireEvent.click(screen.getByRole('button', { name: 'Code' }))
     fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Link URL' }), {
+      target: { value: ' https://xnet.fyi/docs ' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Apply link' }))
 
     expect(editor._commands.toggleBold).toHaveBeenCalledTimes(1)
     expect(editor._commands.toggleItalic).toHaveBeenCalledTimes(1)
     expect(editor._commands.toggleStrike).toHaveBeenCalledTimes(1)
     expect(editor._commands.toggleCode).toHaveBeenCalledTimes(1)
     expect(editor._commands.setLink).toHaveBeenCalledWith({ href: 'https://xnet.fyi/docs' })
+  })
 
-    promptSpy.mockRestore()
+  it('closes link popover on Escape without mutating the document', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+    expect(screen.getByTestId('editor-link-popover')).toBeInTheDocument()
+
+    fireEvent.keyDown(screen.getByTestId('editor-link-popover'), { key: 'Escape' })
+
+    expect(screen.queryByTestId('editor-link-popover')).not.toBeInTheDocument()
+    expect(editor._commands.setLink).not.toHaveBeenCalled()
+    expect(editor._commands.unsetLink).not.toHaveBeenCalled()
+    expect(editor.commands.focus).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes an existing link through the link popover', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+    editor.getAttributes.mockImplementation((name: string) =>
+      name === 'link' ? { href: 'https://xnet.fyi/old' } : {}
+    )
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+    expect(screen.getByRole('textbox', { name: 'Link URL' })).toHaveValue('https://xnet.fyi/old')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove link' }))
+
+    expect(editor._commands.unsetLink).toHaveBeenCalledTimes(1)
+    expect(screen.queryByTestId('editor-link-popover')).not.toBeInTheDocument()
+  })
+
+  it('keeps desktop toolbar visible while the link popover owns focus', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    const { rerender } = render(
+      <FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+    act(() => {
+      editor.isFocused = false
+      editor._emit('blur')
+    })
+    rerender(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
+    expect(screen.getByTestId('editor-link-popover')).toBeInTheDocument()
   })
 
   it('routes desktop comment button through anchor capture and comment commands', async () => {

@@ -1054,6 +1054,10 @@ Decision gate:
 - [x] Add shortcut-aware tooltip/title hints to primary toolbar controls.
 - [x] Add custom hover/focus tooltip popovers to primary toolbar controls.
 - [ ] Add keyboard-discoverable popovers for link, reference, database, and embed controls.
+  - [x] Add keyboard-discoverable toolbar popover for link editing.
+  - [ ] Add keyboard-discoverable toolbar popover for page/database references.
+  - [ ] Add keyboard-discoverable toolbar popover for database embeds.
+  - [ ] Add keyboard-discoverable toolbar popover for rich media embeds.
 
 ### Phase 2: Markdown Structural Editing
 
@@ -1180,6 +1184,16 @@ Decision gate:
 - Focused tests passed:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx src/components/editor-ux-state.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
+
+2026-05-31 link popover checkpoint:
+
+- Replaced the toolbar Link `window.prompt` flow with a compact contextual popover that keeps the BubbleMenu visible while the URL input owns focus.
+- The link popover supports URL apply, link removal, and Escape dismissal without mutating selected content.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+  - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts src/editor-ux.spec.ts --project=chromium`
+- In-app browser Storybook smoke loaded `core-editor-richtexteditor--playground`, found three ProseMirror editor roots, and reported no browser warnings or errors.
 
 2026-05-31 page body/title Backspace checkpoint:
 
@@ -1371,11 +1385,15 @@ Decision gate:
 - [x] Toolbar icon buttons expose shortcut-aware title hints without lengthening accessible names.
 - [x] Toolbar shortcut hints render as visible hover/focus tooltips through the design-system tooltip primitive.
 - [x] Desktop BubbleMenu remains registered so selection-driven toolbar display works in the app shell.
+- [x] Link toolbar popover applies, removes, and dismisses links without `window.prompt`.
+- [x] Link toolbar popover keeps the selection toolbar visible while URL input owns focus.
 - [x] Slash menu opens at `/` and filters command list.
 - [x] Slash menu descriptions are covered by e2e for common task-list insertion.
 - [x] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
 - [ ] Extend custom tooltip/popover coverage to embed, reference, and database controls.
 - [ ] Escape closes open toolbar popovers and slash menus without mutating content.
+  - [x] Escape closes the link toolbar popover without mutating content.
+  - [ ] Escape closes reference, database, embed, and slash command popovers without mutating content.
 
 ### Page Surface
 

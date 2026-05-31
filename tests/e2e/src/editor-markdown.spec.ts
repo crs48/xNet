@@ -192,6 +192,18 @@ test.describe('Editor Markdown live editing', () => {
     await expect(
       page.getByTestId('editor-toolbar-tooltip').filter({ hasText: 'Bold' })
     ).toBeVisible()
+
+    await linkButton.click()
+    const linkPopover = page.getByTestId('editor-link-popover')
+    await expect(linkPopover).toBeVisible()
+    await expect(linkPopover).toHaveAttribute('role', 'dialog')
+    await expect(linkPopover).toHaveAttribute('aria-label', 'Edit link')
+    await linkPopover.getByRole('textbox', { name: 'Link URL' }).fill('https://xnet.fyi/docs')
+    await linkPopover.getByRole('button', { name: 'Apply link' }).click()
+    await expect(
+      page.locator('a[href="https://xnet.fyi/docs"]', { hasText: 'hints' })
+    ).toBeVisible()
+
     await page.screenshot({
       path: 'tmp/playwright/editor-markdown-toolbar-hints.png',
       fullPage: true

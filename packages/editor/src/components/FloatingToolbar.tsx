@@ -19,6 +19,7 @@ import {
   Bold,
   Braces,
   CalendarDays,
+  Check,
   Code2,
   Heading,
   Heading1,
@@ -34,9 +35,19 @@ import {
   Minus,
   Outdent,
   Strikethrough,
-  TextQuote
+  TextQuote,
+  Unlink,
+  X
 } from 'lucide-react'
-import { useRef, useCallback, type JSX } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type JSX,
+  type KeyboardEvent
+} from 'react'
 import { captureTextAnchor } from '../extensions/comment'
 import { getShortcutById, isMac } from '../extensions/keyboard-shortcuts'
 import { getCurrentTaskDueDate } from '../extensions/task-metadata'
@@ -258,22 +269,138 @@ function getTooltipTitle(title: string, shortcutId?: string): string {
   return shortcut ? `${title} (${shortcut})` : title
 }
 
-function promptForLink(editor: Editor): void {
-  const previousUrl = editor.getAttributes('link').href
-  const url =
-    typeof window !== 'undefined'
-      ? window.prompt('URL', typeof previousUrl === 'string' ? previousUrl : '')
-      : null
+function getCurrentLinkHref(editor: Editor): string {
+  const href = editor.getAttributes('link').href
+  return typeof href === 'string' ? href : ''
+}
 
-  if (url === null) return
+function LinkToolbarPopover({
+  editor,
+  open,
+  onOpenChange,
+  isMobile
+}: {
+  editor: Editor
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  isMobile: boolean
+}): JSX.Element | null {
+  const inputId = useId()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState('')
 
-  const href = url.trim()
-  if (!href) {
+  useEffect(() => {
+    if (!open) return
+
+    setValue(getCurrentLinkHref(editor))
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    })
+  }, [editor, open])
+
+  const close = useCallback(() => {
+    editor.commands.focus()
+    onOpenChange(false)
+  }, [editor, onOpenChange])
+
+  const applyLink = useCallback(() => {
+    const href = value.trim()
+
+    if (!href) {
+      editor.chain().focus().unsetLink().run()
+      onOpenChange(false)
+      return
+    }
+
+    editor.chain().focus().setLink({ href }).run()
+    onOpenChange(false)
+  }, [editor, onOpenChange, value])
+
+  const removeLink = useCallback(() => {
     editor.chain().focus().unsetLink().run()
-    return
-  }
+    onOpenChange(false)
+  }, [editor, onOpenChange])
 
-  editor.chain().focus().setLink({ href }).run()
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLFormElement>) => {
+      if (event.key !== 'Escape') return
+
+      event.preventDefault()
+      event.stopPropagation()
+      close()
+    },
+    [close]
+  )
+
+  if (!open) return null
+
+  return (
+    <form
+      data-testid="editor-link-popover"
+      role="dialog"
+      aria-label="Edit link"
+      className={cn(
+        'absolute z-[60] w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border border-border/70',
+        'bg-popover p-3 text-popover-foreground shadow-xl shadow-black/15',
+        'dark:shadow-black/40',
+        isMobile ? 'bottom-full right-3 mb-2' : 'right-0 top-full mt-2'
+      )}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(event) => event.stopPropagation()}
+      onSubmit={(event) => {
+        event.preventDefault()
+        applyLink()
+      }}
+    >
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-sm font-medium">Link</span>
+        <button
+          type="button"
+          aria-label="Close link popover"
+          className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+          onClick={close}
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      </div>
+      <label htmlFor={inputId} className="sr-only">
+        Link URL
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          id={inputId}
+          value={value}
+          placeholder="Paste or type URL"
+          className={cn(
+            'min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-2 text-sm',
+            'outline-none transition-colors',
+            'placeholder:text-muted-foreground',
+            'focus:border-primary focus:ring-2 focus:ring-primary/20'
+          )}
+          onChange={(event) => setValue(event.target.value)}
+        />
+        <button
+          type="submit"
+          aria-label="Apply link"
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+          title="Apply link"
+        >
+          <Check size={16} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label="Remove link"
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+          title="Remove link"
+          onClick={removeLink}
+        >
+          <Unlink size={15} aria-hidden="true" />
+        </button>
+      </div>
+    </form>
+  )
 }
 
 /**
@@ -308,6 +435,9 @@ function PluginToolbarButton({
 interface ToolbarContentProps {
   editor: Editor
   isMobile: boolean
+  linkPopoverOpen: boolean
+  onLinkPopoverOpenChange: (open: boolean) => void
+  renderLinkPopover?: boolean
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }
@@ -315,6 +445,9 @@ interface ToolbarContentProps {
 function ToolbarContent({
   editor,
   isMobile,
+  linkPopoverOpen,
+  onLinkPopoverOpenChange,
+  renderLinkPopover = true,
   additionalItems = [],
   onCreateComment
 }: ToolbarContentProps): JSX.Element {
@@ -348,8 +481,8 @@ function ToolbarContent({
   }, [editor])
 
   const handleLink = useCallback(() => {
-    promptForLink(editor)
-  }, [editor])
+    onLinkPopoverOpenChange(true)
+  }, [onLinkPopoverOpenChange])
 
   const handlePickDueDate = useCallback(async () => {
     const selectedDate = await pickDate(getCurrentTaskDueDate(editor))
@@ -413,6 +546,14 @@ function ToolbarContent({
       >
         <LinkIcon size={16} aria-hidden="true" />
       </ToolbarButton>
+      {renderLinkPopover && (
+        <LinkToolbarPopover
+          editor={editor}
+          open={linkPopoverOpen}
+          onOpenChange={onLinkPopoverOpenChange}
+          isMobile={isMobile}
+        />
+      )}
       {/* Comment button - only show when handler is provided */}
       {onCreateComment && (
         <ToolbarButton
@@ -654,6 +795,8 @@ function MobileToolbar({
   keyboard,
   className,
   surface,
+  linkPopoverOpen,
+  onLinkPopoverOpenChange,
   additionalItems = [],
   onCreateComment
 }: {
@@ -662,13 +805,15 @@ function MobileToolbar({
   keyboard: { visible: boolean; height: number }
   className?: string
   surface: ToolbarSurface
+  linkPopoverOpen: boolean
+  onLinkPopoverOpenChange: (open: boolean) => void
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Only show when editor is focused
-  if (!isFocused) return null
+  if (!isFocused && !linkPopoverOpen) return null
 
   return (
     <div
@@ -694,7 +839,7 @@ function MobileToolbar({
     >
       <div
         ref={scrollRef}
-        className="flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-none"
+        className="relative flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-none"
         style={{
           // Hide scrollbar but allow scrolling
           scrollbarWidth: 'none',
@@ -705,10 +850,19 @@ function MobileToolbar({
         <ToolbarContent
           editor={editor}
           isMobile={true}
+          linkPopoverOpen={linkPopoverOpen}
+          onLinkPopoverOpenChange={onLinkPopoverOpenChange}
+          renderLinkPopover={false}
           additionalItems={additionalItems}
           onCreateComment={onCreateComment}
         />
       </div>
+      <LinkToolbarPopover
+        editor={editor}
+        open={linkPopoverOpen}
+        onOpenChange={onLinkPopoverOpenChange}
+        isMobile={true}
+      />
     </div>
   )
 }
@@ -721,6 +875,8 @@ function DesktopToolbar({
   className,
   compact = false,
   surface,
+  linkPopoverOpen,
+  onLinkPopoverOpenChange,
   additionalItems = [],
   onCreateComment
 }: {
@@ -728,6 +884,8 @@ function DesktopToolbar({
   className?: string
   compact?: boolean
   surface: ToolbarSurface
+  linkPopoverOpen: boolean
+  onLinkPopoverOpenChange: (open: boolean) => void
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element {
@@ -744,6 +902,7 @@ function DesktopToolbar({
         offset: 8
       }}
       shouldShow={({ editor, state }) => {
+        if (linkPopoverOpen) return true
         if (!editor.isFocused) return false
 
         return shouldShowDesktopToolbar({
@@ -753,17 +912,20 @@ function DesktopToolbar({
         })
       }}
       className={cn(
-        'flex items-center gap-0.5 px-1 py-1',
+        'relative flex items-center gap-0.5 px-1 py-1',
         'bg-background rounded-lg',
         'shadow-xl shadow-black/15 dark:shadow-black/40',
         'border border-border/50',
-        compact && 'max-w-[min(360px,calc(100vw-24px))] overflow-x-auto',
+        compact && 'max-w-[min(360px,calc(100vw-24px))]',
+        compact && !linkPopoverOpen && 'overflow-x-auto',
         className
       )}
     >
       <ToolbarContent
         editor={editor}
         isMobile={false}
+        linkPopoverOpen={linkPopoverOpen}
+        onLinkPopoverOpenChange={onLinkPopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -787,6 +949,7 @@ export function FloatingToolbar({
   onCreateComment
 }: FloatingToolbarProps): JSX.Element | null {
   const ux = useEditorUxState(editor, mode, keyboardThresholds)
+  const [linkPopoverOpen, setLinkPopoverOpen] = useState(false)
 
   if (!editor) return null
 
@@ -812,6 +975,8 @@ export function FloatingToolbar({
         keyboard={ux.keyboard}
         className={className}
         surface={surface}
+        linkPopoverOpen={linkPopoverOpen}
+        onLinkPopoverOpenChange={setLinkPopoverOpen}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -825,6 +990,8 @@ export function FloatingToolbar({
         className={className}
         compact={policy.isCompact || surface === 'canvas-inline'}
         surface={surface}
+        linkPopoverOpen={linkPopoverOpen}
+        onLinkPopoverOpenChange={setLinkPopoverOpen}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -839,6 +1006,8 @@ export function FloatingToolbar({
       className={className}
       compact={policy.isCompact}
       surface={surface}
+      linkPopoverOpen={linkPopoverOpen}
+      onLinkPopoverOpenChange={setLinkPopoverOpen}
       additionalItems={additionalItems}
       onCreateComment={onCreateComment}
     />
