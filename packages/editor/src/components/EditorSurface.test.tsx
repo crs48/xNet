@@ -18,6 +18,14 @@ describe('EditorSurface', () => {
     expect(document.querySelector('[data-editor-surface-content="true"]')).toHaveClass('max-w-3xl')
   })
 
+  it('provides a page body label by default', async () => {
+    render(<EditorSurface ydoc={createDoc()} surfaceMode="page" />)
+
+    await waitFor(() => {
+      expect(document.querySelector('[aria-label="Page body"]')).toBeInTheDocument()
+    })
+  })
+
   it('marks canvas inline surfaces as canvas editing surfaces', async () => {
     render(
       <EditorSurface

@@ -66,6 +66,14 @@ describe('RichTextEditor', () => {
         expect(placeholder?.getAttribute('data-placeholder')).toBe('Start writing...')
       })
     })
+
+    it('should expose an accessible body label', async () => {
+      render(<RichTextEditor ydoc={ydoc} editorLabel="Page body" />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: 'Page body' })).toBeInTheDocument()
+      })
+    })
   })
 
   describe('toolbar visibility', () => {
@@ -99,6 +107,7 @@ describe('RichTextEditor', () => {
 
       const sourceEditor = await screen.findByTestId('editor-source-mode')
       expect(sourceEditor).toHaveAttribute('placeholder', 'Write source...')
+      expect(sourceEditor).toHaveAccessibleName('Rich text editor Markdown source')
       expect(document.querySelector('.ProseMirror')).not.toBeInTheDocument()
 
       fireEvent.change(sourceEditor, { target: { value: '## Source heading' } })

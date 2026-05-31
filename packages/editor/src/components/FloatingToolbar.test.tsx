@@ -37,6 +37,8 @@ interface BubbleMenuMockProps {
   'data-canvas-interactive'?: string
   'data-editor-toolbar-surface'?: string
   'data-testid'?: string
+  'aria-label'?: string
+  role?: string
 }
 
 vi.mock('@tiptap/react/menus', () => {
@@ -48,7 +50,9 @@ vi.mock('@tiptap/react/menus', () => {
       children,
       'data-canvas-interactive': dataCanvasInteractive,
       'data-editor-toolbar-surface': dataEditorToolbarSurface,
-      'data-testid': testId = 'editor-desktop-toolbar'
+      'data-testid': testId = 'editor-desktop-toolbar',
+      'aria-label': ariaLabel,
+      role
     }: BubbleMenuMockProps) => {
       const selection = editor.state.selection
       const visible =
@@ -69,6 +73,8 @@ vi.mock('@tiptap/react/menus', () => {
           className={className}
           data-canvas-interactive={dataCanvasInteractive}
           data-editor-toolbar-surface={dataEditorToolbarSurface}
+          role={role}
+          aria-label={ariaLabel}
         >
           {children}
         </div>
@@ -145,6 +151,7 @@ describe('FloatingToolbar', () => {
 
     rerender(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
     expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
+    expect(screen.getByRole('toolbar', { name: 'Editor formatting toolbar' })).toBeInTheDocument()
   })
 
   it('hides desktop toolbar in code blocks', () => {
@@ -238,6 +245,9 @@ describe('FloatingToolbar', () => {
       'data-editor-toolbar-surface',
       'canvas-inline'
     )
+    expect(
+      screen.getByRole('toolbar', { name: 'Canvas editor formatting toolbar' })
+    ).toBeInTheDocument()
   })
 
   it('shows mobile toolbar on focus in mobile mode', () => {
@@ -251,6 +261,7 @@ describe('FloatingToolbar', () => {
     })
 
     expect(screen.getByTestId('editor-mobile-toolbar')).toBeInTheDocument()
+    expect(screen.getByRole('toolbar', { name: 'Editor formatting toolbar' })).toBeInTheDocument()
   })
 
   it('keeps canvas inline toolbar canvas-interactive when mobile mode is requested', () => {

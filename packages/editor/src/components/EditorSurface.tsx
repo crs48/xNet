@@ -46,6 +46,13 @@ const SURFACE_CLASS_CONFIG: Record<EditorSurfaceMode, SurfaceClassConfig> = {
   }
 }
 
+const SURFACE_EDITOR_LABELS: Record<EditorSurfaceMode, string> = {
+  page: 'Page body',
+  'canvas-inline': 'Canvas page body',
+  'canvas-preview': 'Canvas page preview',
+  read: 'Read-only page body'
+}
+
 function resolveSurfaceContentMode(
   surfaceMode: EditorSurfaceMode,
   contentMode?: EditorContentMode
@@ -68,6 +75,7 @@ export function EditorSurface({
   children,
   className,
   contentMode,
+  editorLabel,
   readOnly,
   ...editorProps
 }: EditorSurfaceProps): JSX.Element {
@@ -97,6 +105,7 @@ export function EditorSurface({
           {...editorProps}
           className={className}
           contentMode={resolveSurfaceContentMode(surfaceMode, contentMode)}
+          editorLabel={editorLabel ?? SURFACE_EDITOR_LABELS[surfaceMode]}
           readOnly={resolveSurfaceReadOnly(surfaceMode, readOnly)}
           toolbarSurface={surfaceMode}
         />

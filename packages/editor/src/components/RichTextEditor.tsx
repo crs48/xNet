@@ -205,6 +205,8 @@ export interface RichTextEditorProps {
   onNavigate?: (docId: string) => void
   /** Additional CSS class for the container */
   className?: string
+  /** Accessible label for the rich editor body */
+  editorLabel?: string
   /** Whether the editor is read-only */
   readOnly?: boolean
   /** Editing mode for live rich text, Markdown source, or read surfaces. */
@@ -367,6 +369,7 @@ export function RichTextEditor({
   toolbarSurface = 'page',
   onNavigate,
   className,
+  editorLabel = 'Rich text editor',
   readOnly = false,
   contentMode = 'live',
   awareness,
@@ -813,6 +816,9 @@ export function RichTextEditor({
       {editorModePolicy.rendersRichEditor ? (
         <EditorContent
           editor={editor}
+          role="textbox"
+          aria-label={editorLabel}
+          aria-multiline="true"
           data-content-mode={editorModePolicy.contentMode}
           className={cn(
             'flex-1 h-full',
@@ -828,13 +834,13 @@ export function RichTextEditor({
         />
       ) : (
         <textarea
-          aria-label="Markdown source"
           data-testid="editor-source-mode"
           className={cn(
             'flex-1 h-full min-h-full resize-none border-none bg-transparent px-8 py-4 font-mono text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground',
             'xnet-editor-source'
           )}
           placeholder={placeholder}
+          aria-label={`${editorLabel} Markdown source`}
           readOnly={!editor || readOnly}
           value={sourceValue}
           onChange={handleSourceChange}

@@ -1110,6 +1110,15 @@ Decision gate:
   - `pnpm --filter xnet-desktop exec vitest run src/renderer/components/DocumentHeader.test.tsx src/renderer/components/page-editor-focus.test.ts`
   - `pnpm --filter xnet-desktop exec tsc --noEmit`
 
+2026-05-31 editor accessibility checkpoint:
+
+- `RichTextEditor` now exposes a named rich-text body and named Markdown source textarea.
+- `EditorSurface` supplies surface-specific default labels such as `Page body` and `Canvas page body`.
+- Floating toolbars now render as named `toolbar` regions for page and canvas-inline contexts.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/RichTextEditor.test.tsx src/components/FloatingToolbar.test.tsx src/components/EditorSurface.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior

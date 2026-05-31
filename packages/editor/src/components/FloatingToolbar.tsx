@@ -197,6 +197,12 @@ function ToolbarDivider({ isMobile }: { isMobile: boolean }): JSX.Element {
   )
 }
 
+function getToolbarAriaLabel(surface: ToolbarSurface): string {
+  return surface === 'canvas-inline'
+    ? 'Canvas editor formatting toolbar'
+    : 'Editor formatting toolbar'
+}
+
 /**
  * Render a plugin-provided toolbar button
  */
@@ -547,6 +553,8 @@ function MobileToolbar({
       data-testid="editor-mobile-toolbar"
       data-editor-toolbar-surface={surface}
       data-canvas-interactive={surface === 'canvas-inline' ? 'true' : undefined}
+      role="toolbar"
+      aria-label={getToolbarAriaLabel(surface)}
       className={cn(
         'fixed left-0 right-0 z-50',
         'bg-background/95 backdrop-blur-sm border-t border-border',
@@ -607,6 +615,8 @@ function DesktopToolbar({
       data-testid="editor-desktop-toolbar"
       data-editor-toolbar-surface={surface}
       data-canvas-interactive={surface === 'canvas-inline' ? 'true' : undefined}
+      role="toolbar"
+      aria-label={getToolbarAriaLabel(surface)}
       options={{
         placement: 'top',
         offset: 8
