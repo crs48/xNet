@@ -38,6 +38,7 @@ type MockEditor = {
     focus: ReturnType<typeof vi.fn>
     setComment: ReturnType<typeof vi.fn>
     setDatabaseEmbed: ReturnType<typeof vi.fn>
+    setEmbed: ReturnType<typeof vi.fn>
   }
   extensionManager: {
     extensions: Array<{
@@ -168,7 +169,8 @@ function createMockEditor() {
     commands: {
       focus: vi.fn(),
       setComment: vi.fn(),
-      setDatabaseEmbed: vi.fn(() => true)
+      setDatabaseEmbed: vi.fn(() => true),
+      setEmbed: vi.fn(() => true)
     },
     extensionManager: {
       extensions: []
@@ -502,6 +504,102 @@ describe('FloatingToolbar', () => {
       expect(screen.getByRole('textbox', { name: 'Database ID' })).toHaveValue('db-picked')
     })
     expect(picker).toHaveBeenCalledTimes(1)
+  })
+
+  it('inserts media embeds through the media popover', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Media' }))
+    expect(screen.getByTestId('editor-media-popover')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Media URL' }), {
+      target: { value: ' https://www.youtube.com/watch?v=dQw4w9WgXcQ ' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Insert media embed' }))
+
+    expect(editor.commands.setEmbed).toHaveBeenCalledWith(
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+    )
+    expect(screen.queryByTestId('editor-media-popover')).not.toBeInTheDocument()
+  })
+
+  it('keeps media popover open with an error when media URL is empty', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Media' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Insert media embed' }))
+
+    expect(editor.commands.setEmbed).not.toHaveBeenCalled()
+    expect(screen.getByTestId('editor-media-popover')).toBeInTheDocument()
+    expect(screen.getByText('Enter a supported media URL')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Media URL' })).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    )
+  })
+
+  it('keeps media popover open with an error when media URL is unsupported', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+    editor.commands.setEmbed.mockReturnValue(false)
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Media' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Media URL' }), {
+      target: { value: 'https://example.com/not-media' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Insert media embed' }))
+
+    expect(editor.commands.setEmbed).toHaveBeenCalledWith('https://example.com/not-media')
+    expect(screen.getByTestId('editor-media-popover')).toBeInTheDocument()
+    expect(screen.getByText('Enter a supported media URL')).toBeInTheDocument()
+  })
+
+  it('closes media popover on Escape without mutating the document', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Media' }))
+    expect(screen.getByTestId('editor-media-popover')).toBeInTheDocument()
+
+    fireEvent.keyDown(screen.getByTestId('editor-media-popover'), { key: 'Escape' })
+
+    expect(screen.queryByTestId('editor-media-popover')).not.toBeInTheDocument()
+    expect(editor.commands.setEmbed).not.toHaveBeenCalled()
+    expect(editor.commands.focus).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps desktop toolbar visible while the media popover owns focus', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+
+    const { rerender } = render(
+      <FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Media' }))
+    act(() => {
+      editor.isFocused = false
+      editor._emit('blur')
+    })
+    rerender(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    expect(screen.getByTestId('editor-desktop-toolbar')).toBeInTheDocument()
+    expect(screen.getByTestId('editor-media-popover')).toBeInTheDocument()
   })
 
   it('routes desktop comment button through anchor capture and comment commands', async () => {

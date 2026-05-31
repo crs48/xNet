@@ -1060,7 +1060,7 @@ Decision gate:
   - [x] Add keyboard-discoverable toolbar popover for page references.
   - [ ] Add keyboard-discoverable toolbar popover for database references.
   - [x] Add keyboard-discoverable toolbar popover for database embeds.
-  - [ ] Add keyboard-discoverable toolbar popover for rich media embeds.
+  - [x] Add keyboard-discoverable toolbar popover for rich media embeds.
 
 ### Phase 2: Markdown Structural Editing
 
@@ -1217,6 +1217,16 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor typecheck`
   - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
 - In-app browser Storybook smoke loaded `core-editor-richtexteditor--playground`, found three ProseMirror editor roots, and reported no browser warnings or errors.
+
+2026-05-31 media toolbar popover checkpoint:
+
+- Added a toolbar Media popover for inserting supported rich media embeds from URL without relying on paste-only behavior.
+- The media popover validates empty and unsupported URLs, closes on Escape without mutating content, and keeps the selection toolbar visible while focused.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+  - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
+- In-app browser Storybook smoke loaded `core-editor-richtexteditor--playground`, found three ProseMirror editor roots, three mounted media iframes, and reported no browser warnings or errors.
 
 2026-05-31 page body/title Backspace checkpoint:
 
@@ -1415,19 +1425,22 @@ Decision gate:
 - [x] Database toolbar popover inserts database embeds with a selected view.
 - [x] Database toolbar popover keeps the selection toolbar visible while input owns focus.
 - [x] Database toolbar popover can use the configured database picker when available.
+- [x] Media toolbar popover inserts supported rich media embeds from URL.
+- [x] Media toolbar popover keeps the selection toolbar visible while input owns focus.
 - [x] Slash menu opens at `/` and filters command list.
 - [x] Slash menu descriptions are covered by e2e for common task-list insertion.
 - [x] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
-- [ ] Extend custom tooltip/popover coverage to embed, reference, and database controls.
+- [x] Extend custom tooltip/popover coverage to embed, reference, and database controls.
   - [x] Link controls use custom tooltip/popover coverage.
   - [x] Reference controls use custom toolbar popover coverage.
   - [x] Database embed controls use custom toolbar popover coverage.
-  - [ ] Rich media embed controls use custom toolbar popover coverage.
+  - [x] Rich media embed controls use custom toolbar popover coverage.
 - [ ] Escape closes open toolbar popovers and slash menus without mutating content.
   - [x] Escape closes the link toolbar popover without mutating content.
   - [x] Escape closes the reference toolbar popover without mutating content.
   - [x] Escape closes the database toolbar popover without mutating content.
-  - [ ] Escape closes rich embed and slash command popovers without mutating content.
+  - [x] Escape closes the rich media toolbar popover without mutating content.
+  - [ ] Escape closes slash command popovers without mutating content.
 
 ### Page Surface
 

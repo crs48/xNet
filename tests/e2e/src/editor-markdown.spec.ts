@@ -273,4 +273,43 @@ test.describe('Editor Markdown live editing', () => {
       fullPage: true
     })
   })
+
+  test('media popover inserts supported rich media embeds', async ({ page }) => {
+    const editor = await createBlankPage(page)
+
+    await editor.click()
+    await page.keyboard.type('media embed target')
+    await selectEditorText(page, 'media embed target', {
+      start: 'media '.length,
+      end: 'media embed'.length
+    })
+    await expect
+      .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ''))
+      .toBe('embed')
+
+    const toolbar = page.getByTestId('editor-desktop-toolbar')
+    await expect(toolbar).toBeVisible()
+
+    await toolbar.getByRole('button', { name: 'Media' }).click()
+    const mediaPopover = page.getByTestId('editor-media-popover')
+    await expect(mediaPopover).toBeVisible()
+    await expect(mediaPopover).toHaveAttribute('role', 'dialog')
+    await expect(mediaPopover).toHaveAttribute('aria-label', 'Insert media embed')
+    await mediaPopover
+      .getByRole('textbox', { name: 'Media URL' })
+      .fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    await mediaPopover.getByRole('button', { name: 'Insert media embed' }).click()
+
+    const mediaEmbed = page.locator('[data-embed-iframe-mounted]')
+    await expect(mediaEmbed).toHaveCount(1)
+    await expect(mediaEmbed).toBeVisible()
+    const embedFrame = page.locator('iframe[data-embed-iframe="true"]')
+    await expect(embedFrame).toHaveCount(1)
+    await expect(embedFrame).toBeVisible()
+
+    await page.screenshot({
+      path: 'tmp/playwright/editor-markdown-media-popover.png',
+      fullPage: true
+    })
+  })
 })

@@ -21,6 +21,7 @@ import {
   Braces,
   CalendarDays,
   Check,
+  Clapperboard,
   Code2,
   Database,
   Heading,
@@ -369,6 +370,13 @@ function insertDatabaseEmbed(
     databaseId: normalizedId,
     viewType
   })
+}
+
+function insertMediaEmbed(editor: Editor, url: string): boolean {
+  const normalizedUrl = url.trim()
+  if (!normalizedUrl) return false
+
+  return editor.commands.setEmbed(normalizedUrl)
 }
 
 function LinkToolbarPopover({
@@ -787,6 +795,131 @@ function DatabaseToolbarPopover({
   )
 }
 
+function MediaToolbarPopover({
+  editor,
+  open,
+  onOpenChange,
+  isMobile
+}: {
+  editor: Editor
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  isMobile: boolean
+}): JSX.Element | null {
+  const inputId = useId()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [url, setUrl] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    setUrl('')
+    setError(null)
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    })
+  }, [open])
+
+  const close = useCallback(() => {
+    editor.commands.focus()
+    onOpenChange(false)
+  }, [editor, onOpenChange])
+
+  const applyMediaEmbed = useCallback(() => {
+    if (!insertMediaEmbed(editor, url)) {
+      setError('Enter a supported media URL')
+      inputRef.current?.focus()
+      return
+    }
+
+    onOpenChange(false)
+  }, [editor, onOpenChange, url])
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLFormElement>) => {
+      if (event.key !== 'Escape') return
+
+      event.preventDefault()
+      event.stopPropagation()
+      close()
+    },
+    [close]
+  )
+
+  if (!open) return null
+
+  return (
+    <form
+      data-testid="editor-media-popover"
+      role="dialog"
+      aria-label="Insert media embed"
+      className={cn(
+        'absolute z-[60] w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-border/70',
+        'bg-popover p-3 text-popover-foreground shadow-xl shadow-black/15',
+        'dark:shadow-black/40',
+        isMobile ? 'bottom-full right-3 mb-2' : 'right-0 top-full mt-2'
+      )}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(event) => event.stopPropagation()}
+      onSubmit={(event) => {
+        event.preventDefault()
+        applyMediaEmbed()
+      }}
+    >
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-sm font-medium">Media</span>
+        <button
+          type="button"
+          aria-label="Close media popover"
+          className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+          onClick={close}
+        >
+          <X size={14} aria-hidden="true" />
+        </button>
+      </div>
+      <label htmlFor={inputId} className="sr-only">
+        Media URL
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          id={inputId}
+          value={url}
+          placeholder="Paste media URL"
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          className={cn(
+            'min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-2 text-sm',
+            'outline-none transition-colors',
+            'placeholder:text-muted-foreground',
+            'focus:border-primary focus:ring-2 focus:ring-primary/20',
+            error && 'border-destructive focus:border-destructive focus:ring-destructive/20'
+          )}
+          onChange={(event) => {
+            setUrl(event.target.value)
+            setError(null)
+          }}
+        />
+        <button
+          type="submit"
+          aria-label="Insert media embed"
+          className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+          title="Insert media embed"
+        >
+          <Clapperboard size={16} aria-hidden="true" />
+        </button>
+      </div>
+      {error && (
+        <p id={`${inputId}-error`} className="mt-2 text-xs text-destructive">
+          {error}
+        </p>
+      )}
+    </form>
+  )
+}
+
 /**
  * Render a plugin-provided toolbar button
  */
@@ -825,9 +958,12 @@ interface ToolbarContentProps {
   onReferencePopoverOpenChange: (open: boolean) => void
   databasePopoverOpen: boolean
   onDatabasePopoverOpenChange: (open: boolean) => void
+  mediaPopoverOpen: boolean
+  onMediaPopoverOpenChange: (open: boolean) => void
   renderLinkPopover?: boolean
   renderReferencePopover?: boolean
   renderDatabasePopover?: boolean
+  renderMediaPopover?: boolean
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }
@@ -841,9 +977,12 @@ function ToolbarContent({
   onReferencePopoverOpenChange,
   databasePopoverOpen,
   onDatabasePopoverOpenChange,
+  mediaPopoverOpen,
+  onMediaPopoverOpenChange,
   renderLinkPopover = true,
   renderReferencePopover = true,
   renderDatabasePopover = true,
+  renderMediaPopover = true,
   additionalItems = [],
   onCreateComment
 }: ToolbarContentProps): JSX.Element {
@@ -887,6 +1026,10 @@ function ToolbarContent({
   const handleDatabase = useCallback(() => {
     onDatabasePopoverOpenChange(true)
   }, [onDatabasePopoverOpenChange])
+
+  const handleMedia = useCallback(() => {
+    onMediaPopoverOpenChange(true)
+  }, [onMediaPopoverOpenChange])
 
   const handlePickDueDate = useCallback(async () => {
     const selectedDate = await pickDate(getCurrentTaskDueDate(editor))
@@ -1144,6 +1287,23 @@ function ToolbarContent({
           isMobile={isMobile}
         />
       )}
+      <ToolbarButton
+        onClick={handleMedia}
+        active={editor.isActive('embed')}
+        title="Media"
+        ariaLabel="Media"
+        isMobile={isMobile}
+      >
+        <Clapperboard size={16} aria-hidden="true" />
+      </ToolbarButton>
+      {renderMediaPopover && (
+        <MediaToolbarPopover
+          editor={editor}
+          open={mediaPopoverOpen}
+          onOpenChange={onMediaPopoverOpenChange}
+          isMobile={isMobile}
+        />
+      )}
       {/* Plugin custom buttons */}
       {customItems.length > 0 && <ToolbarDivider isMobile={isMobile} />}
       {customItems.map((item) => (
@@ -1240,6 +1400,8 @@ function MobileToolbar({
   onReferencePopoverOpenChange,
   databasePopoverOpen,
   onDatabasePopoverOpenChange,
+  mediaPopoverOpen,
+  onMediaPopoverOpenChange,
   additionalItems = [],
   onCreateComment
 }: {
@@ -1254,11 +1416,14 @@ function MobileToolbar({
   onReferencePopoverOpenChange: (open: boolean) => void
   databasePopoverOpen: boolean
   onDatabasePopoverOpenChange: (open: boolean) => void
+  mediaPopoverOpen: boolean
+  onMediaPopoverOpenChange: (open: boolean) => void
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const popoverOpen = linkPopoverOpen || referencePopoverOpen || databasePopoverOpen
+  const popoverOpen =
+    linkPopoverOpen || referencePopoverOpen || databasePopoverOpen || mediaPopoverOpen
 
   // Only show when editor is focused
   if (!isFocused && !popoverOpen) return null
@@ -1304,9 +1469,12 @@ function MobileToolbar({
           onReferencePopoverOpenChange={onReferencePopoverOpenChange}
           databasePopoverOpen={databasePopoverOpen}
           onDatabasePopoverOpenChange={onDatabasePopoverOpenChange}
+          mediaPopoverOpen={mediaPopoverOpen}
+          onMediaPopoverOpenChange={onMediaPopoverOpenChange}
           renderLinkPopover={false}
           renderReferencePopover={false}
           renderDatabasePopover={false}
+          renderMediaPopover={false}
           additionalItems={additionalItems}
           onCreateComment={onCreateComment}
         />
@@ -1329,6 +1497,12 @@ function MobileToolbar({
         onOpenChange={onDatabasePopoverOpenChange}
         isMobile={true}
       />
+      <MediaToolbarPopover
+        editor={editor}
+        open={mediaPopoverOpen}
+        onOpenChange={onMediaPopoverOpenChange}
+        isMobile={true}
+      />
     </div>
   )
 }
@@ -1347,6 +1521,8 @@ function DesktopToolbar({
   onReferencePopoverOpenChange,
   databasePopoverOpen,
   onDatabasePopoverOpenChange,
+  mediaPopoverOpen,
+  onMediaPopoverOpenChange,
   additionalItems = [],
   onCreateComment
 }: {
@@ -1360,10 +1536,13 @@ function DesktopToolbar({
   onReferencePopoverOpenChange: (open: boolean) => void
   databasePopoverOpen: boolean
   onDatabasePopoverOpenChange: (open: boolean) => void
+  mediaPopoverOpen: boolean
+  onMediaPopoverOpenChange: (open: boolean) => void
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element {
-  const popoverOpen = linkPopoverOpen || referencePopoverOpen || databasePopoverOpen
+  const popoverOpen =
+    linkPopoverOpen || referencePopoverOpen || databasePopoverOpen || mediaPopoverOpen
 
   return (
     <BubbleMenu
@@ -1406,6 +1585,8 @@ function DesktopToolbar({
         onReferencePopoverOpenChange={onReferencePopoverOpenChange}
         databasePopoverOpen={databasePopoverOpen}
         onDatabasePopoverOpenChange={onDatabasePopoverOpenChange}
+        mediaPopoverOpen={mediaPopoverOpen}
+        onMediaPopoverOpenChange={onMediaPopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -1432,12 +1613,14 @@ export function FloatingToolbar({
   const [linkPopoverOpen, setLinkPopoverOpen] = useState(false)
   const [referencePopoverOpen, setReferencePopoverOpen] = useState(false)
   const [databasePopoverOpen, setDatabasePopoverOpen] = useState(false)
+  const [mediaPopoverOpen, setMediaPopoverOpen] = useState(false)
 
   const handleLinkPopoverOpenChange = useCallback((open: boolean) => {
     setLinkPopoverOpen(open)
     if (open) {
       setReferencePopoverOpen(false)
       setDatabasePopoverOpen(false)
+      setMediaPopoverOpen(false)
     }
   }, [])
 
@@ -1446,6 +1629,7 @@ export function FloatingToolbar({
     if (open) {
       setLinkPopoverOpen(false)
       setDatabasePopoverOpen(false)
+      setMediaPopoverOpen(false)
     }
   }, [])
 
@@ -1454,6 +1638,16 @@ export function FloatingToolbar({
     if (open) {
       setLinkPopoverOpen(false)
       setReferencePopoverOpen(false)
+      setMediaPopoverOpen(false)
+    }
+  }, [])
+
+  const handleMediaPopoverOpenChange = useCallback((open: boolean) => {
+    setMediaPopoverOpen(open)
+    if (open) {
+      setLinkPopoverOpen(false)
+      setReferencePopoverOpen(false)
+      setDatabasePopoverOpen(false)
     }
   }, [])
 
@@ -1487,6 +1681,8 @@ export function FloatingToolbar({
         onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
         databasePopoverOpen={databasePopoverOpen}
         onDatabasePopoverOpenChange={handleDatabasePopoverOpenChange}
+        mediaPopoverOpen={mediaPopoverOpen}
+        onMediaPopoverOpenChange={handleMediaPopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -1506,6 +1702,8 @@ export function FloatingToolbar({
         onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
         databasePopoverOpen={databasePopoverOpen}
         onDatabasePopoverOpenChange={handleDatabasePopoverOpenChange}
+        mediaPopoverOpen={mediaPopoverOpen}
+        onMediaPopoverOpenChange={handleMediaPopoverOpenChange}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
       />
@@ -1526,6 +1724,8 @@ export function FloatingToolbar({
       onReferencePopoverOpenChange={handleReferencePopoverOpenChange}
       databasePopoverOpen={databasePopoverOpen}
       onDatabasePopoverOpenChange={handleDatabasePopoverOpenChange}
+      mediaPopoverOpen={mediaPopoverOpen}
+      onMediaPopoverOpenChange={handleMediaPopoverOpenChange}
       additionalItems={additionalItems}
       onCreateComment={onCreateComment}
     />
