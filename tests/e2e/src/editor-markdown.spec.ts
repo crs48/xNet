@@ -159,6 +159,22 @@ test.describe('Editor Markdown live editing', () => {
     ).toBeVisible()
   })
 
+  test('slash command menu closes with Escape without running a command', async ({ page }) => {
+    const editor = await createBlankPage(page)
+
+    await editor.click()
+    await page.keyboard.type('/task')
+
+    const menu = page.getByTestId('slash-menu')
+    await expect(menu).toBeVisible()
+
+    await page.keyboard.press('Escape')
+
+    await expect(menu).not.toBeVisible()
+    await expect(page.getByRole('checkbox')).toHaveCount(0)
+    await expect(editor).toContainText('/task')
+  })
+
   test('selection toolbar exposes minimalist buttons with shortcut hints', async ({ page }) => {
     const editor = await createBlankPage(page)
 

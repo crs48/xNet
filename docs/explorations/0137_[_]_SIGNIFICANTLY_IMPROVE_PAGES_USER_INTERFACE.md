@@ -1228,6 +1228,12 @@ Decision gate:
   - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
 - In-app browser Storybook smoke loaded `core-editor-richtexteditor--playground`, found three ProseMirror editor roots, three mounted media iframes, and reported no browser warnings or errors.
 
+2026-05-31 slash Escape checkpoint:
+
+- Added e2e coverage for closing the slash command menu with Escape without selecting or running a block command.
+- Focused test passed:
+  - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
+
 2026-05-31 page body/title Backspace checkpoint:
 
 - `RichTextEditor` now exposes an `onBackspaceAtStart` host callback and only invokes it for plain Backspace at an empty first text block.
@@ -1435,12 +1441,12 @@ Decision gate:
   - [x] Reference controls use custom toolbar popover coverage.
   - [x] Database embed controls use custom toolbar popover coverage.
   - [x] Rich media embed controls use custom toolbar popover coverage.
-- [ ] Escape closes open toolbar popovers and slash menus without mutating content.
+- [x] Escape closes open toolbar popovers and slash menus without mutating content.
   - [x] Escape closes the link toolbar popover without mutating content.
   - [x] Escape closes the reference toolbar popover without mutating content.
   - [x] Escape closes the database toolbar popover without mutating content.
   - [x] Escape closes the rich media toolbar popover without mutating content.
-  - [ ] Escape closes slash command popovers without mutating content.
+  - [x] Escape closes slash command popovers without mutating content.
 
 ### Page Surface
 
