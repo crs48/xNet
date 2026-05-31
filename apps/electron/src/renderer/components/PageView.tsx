@@ -135,6 +135,7 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dismissTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const editorRef = useRef<Editor | null>(null)
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
   const marksRestoredRef = useRef(false)
   const [editorReady, setEditorReady] = useState(false)
 
@@ -182,6 +183,16 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
 
   const handleTitleSubmit = useCallback(() => {
     editorRef.current?.commands.focus('start')
+  }, [])
+
+  const handleBodyBackspaceAtStart = useCallback(() => {
+    const titleInput = titleInputRef.current
+    if (!titleInput) return false
+
+    titleInput.focus()
+    const titleEnd = titleInput.value.length
+    titleInput.setSelectionRange(titleEnd, titleEnd)
+    return true
   }, [])
 
   // Restore comment marks when editor is ready and threads are loaded.
@@ -764,6 +775,7 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
         compact={minimalChrome}
         showShareButton={!minimalChrome}
         onTitleSubmit={handleTitleSubmit}
+        titleInputRef={titleInputRef}
       >
         {!minimalChrome && <SyncIndicator status={syncStatus} peerCount={peerCount} />}
         {!minimalChrome && unresolvedCount > 0 && (
@@ -799,6 +811,7 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
           extensions={allExtensions}
           onCreateComment={handleCreateComment}
           onEditorReady={handleEditorReady}
+          onBackspaceAtStart={handleBodyBackspaceAtStart}
           mentionSuggestions={mentionSuggestions}
           onPageTasksChange={handleTasksChange}
           taskViewPageId={docId}

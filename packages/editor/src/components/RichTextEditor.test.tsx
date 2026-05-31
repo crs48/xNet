@@ -1,7 +1,8 @@
 /**
  * Tests for RichTextEditor component
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { Editor } from '@tiptap/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // import userEvent from '@testing-library/user-event'
@@ -223,6 +224,67 @@ describe('RichTextEditor', () => {
 
       await new Promise((resolve) => window.setTimeout(resolve, 50))
       expect(onReady).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('empty first block Backspace handoff', () => {
+    it('calls the host callback and prevents default Backspace at an empty first block', async () => {
+      const onBackspaceAtStart = vi.fn(() => true)
+      let readyEditor: Editor | null = null
+
+      render(
+        <RichTextEditor
+          ydoc={ydoc}
+          showToolbar={false}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onEditorReady={(editor) => {
+            readyEditor = editor
+          }}
+        />
+      )
+
+      await screen.findByRole('textbox', { name: 'Rich text editor' })
+      await waitFor(() => expect(readyEditor).not.toBeNull())
+      const editorDom = document.querySelector('.ProseMirror') as HTMLElement
+
+      act(() => {
+        readyEditor?.commands.focus('start')
+      })
+
+      const eventAllowed = fireEvent.keyDown(editorDom, { key: 'Backspace' })
+
+      expect(eventAllowed).toBe(false)
+      expect(onBackspaceAtStart).toHaveBeenCalledTimes(1)
+    })
+
+    it('lets ProseMirror handle Backspace when the first block has text', async () => {
+      const onBackspaceAtStart = vi.fn(() => true)
+      let readyEditor: Editor | null = null
+
+      render(
+        <RichTextEditor
+          ydoc={ydoc}
+          showToolbar={false}
+          onBackspaceAtStart={onBackspaceAtStart}
+          onEditorReady={(editor) => {
+            readyEditor = editor
+          }}
+        />
+      )
+
+      await screen.findByRole('textbox', { name: 'Rich text editor' })
+      await waitFor(() => expect(readyEditor).not.toBeNull())
+      const editorDom = document.querySelector('.ProseMirror') as HTMLElement
+
+      act(() => {
+        readyEditor?.commands.setContent('<p>Body</p>')
+        readyEditor?.commands.focus('start')
+      })
+
+      const eventAllowed = fireEvent.keyDown(editorDom, { key: 'Backspace' })
+
+      expect(eventAllowed).toBe(true)
+      expect(onBackspaceAtStart).not.toHaveBeenCalled()
     })
   })
 

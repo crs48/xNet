@@ -10,6 +10,7 @@ import type {
   TaskViewEmbedType
 } from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
+import type { EditorState } from '@tiptap/pm/state'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
 import Collaboration from '@tiptap/extension-collaboration'
@@ -165,6 +166,19 @@ function generateAvatarDataURI(did: string, size: number): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
+export function isBackspaceAtEmptyFirstBlock(state: EditorState): boolean {
+  const { selection, doc } = state
+  const firstNode = doc.firstChild
+
+  return (
+    selection.empty &&
+    selection.from === 1 &&
+    !!firstNode &&
+    firstNode.isTextblock &&
+    firstNode.content.size === 0
+  )
+}
+
 /**
  * Toolbar item contribution from plugins
  */
@@ -298,6 +312,11 @@ export interface RichTextEditorProps {
    */
   onEditorReady?: (editor: Editor) => void
   /**
+   * Optional host callback for page-level focus restoration when Backspace is
+   * pressed in an empty first body block.
+   */
+  onBackspaceAtStart?: () => boolean | void
+  /**
    * People that can be inserted as inline rich-text mentions.
    */
   mentionSuggestions?: TaskMentionSuggestion[]
@@ -386,6 +405,7 @@ export function RichTextEditor({
   toolbarItems: additionalToolbarItems = [],
   slashCommands,
   onEditorReady,
+  onBackspaceAtStart,
   mentionSuggestions = [],
   onPageTasksChange,
   onCreateComment
@@ -514,6 +534,31 @@ export function RichTextEditor({
       attributes: {
         // Full height, no outline on focus, proper typography
         class: 'outline-none h-full min-h-full'
+      },
+      handleKeyDown: (_view, event) => {
+        if (
+          !editorModePolicy.isEditable ||
+          !onBackspaceAtStart ||
+          event.key !== 'Backspace' ||
+          event.shiftKey ||
+          event.altKey ||
+          event.ctrlKey ||
+          event.metaKey
+        ) {
+          return false
+        }
+
+        if (!isBackspaceAtEmptyFirstBlock(_view.state)) {
+          return false
+        }
+
+        const handled = onBackspaceAtStart()
+        if (handled === false) {
+          return false
+        }
+
+        event.preventDefault()
+        return true
       }
     },
     editable: editorModePolicy.isEditable

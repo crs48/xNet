@@ -49,6 +49,23 @@ describe('DocumentHeader', () => {
     expect(onTitleSubmit).toHaveBeenCalledTimes(1)
   })
 
+  it('exposes the title input ref for body-to-title focus handoff', () => {
+    const titleInputRef = React.createRef<HTMLInputElement>()
+
+    render(
+      <DocumentHeader
+        docId="page-1"
+        docType="page"
+        title="Draft"
+        onTitleChange={vi.fn()}
+        titleInputRef={titleInputRef}
+        showShareButton={false}
+      />
+    )
+
+    expect(titleInputRef.current).toBe(screen.getByLabelText('page title'))
+  })
+
   it('does not submit the title for modified Enter shortcuts', () => {
     const onTitleSubmit = vi.fn()
 

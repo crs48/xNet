@@ -1134,6 +1134,16 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/FloatingToolbar.test.tsx src/components/editor-ux-state.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 page body/title Backspace checkpoint:
+
+- `RichTextEditor` now exposes an `onBackspaceAtStart` host callback and only invokes it for plain Backspace at an empty first text block.
+- Electron `PageView` uses that callback to move focus from an empty first body block back to the page title, with the title caret placed at the end.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/RichTextEditor.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+  - `pnpm --filter xnet-desktop exec vitest run src/renderer/components/DocumentHeader.test.tsx src/renderer/components/page-editor-focus.test.ts`
+  - `pnpm --filter xnet-desktop exec tsc --noEmit`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1172,7 +1182,7 @@ Decision gate:
 - [x] Clicking blank body focuses first block.
 - [x] Clicking below content focuses document end.
 - [x] Title Enter moves into first body block.
-- [ ] Body Backspace at empty first block can return focus to title or no-op by explicit design.
+- [x] Body Backspace at empty first block can return focus to title or no-op by explicit design.
 - [x] Long documents keep a stable writing measure.
 - [ ] Selection and caret remain visible in light/dark themes.
 - [ ] Screen reader labels identify editor, title, toolbar, and embed controls.

@@ -17,6 +17,19 @@ interface DocumentHeaderProps {
   compact?: boolean
   showShareButton?: boolean
   onTitleSubmit?: () => void
+  titleInputRef?: React.Ref<HTMLInputElement>
+}
+
+function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null): void {
+  if (!ref) return
+
+  if (typeof ref === 'function') {
+    ref(value)
+    return
+  }
+
+  const mutableRef = ref as React.MutableRefObject<T | null>
+  mutableRef.current = value
 }
 
 export function DocumentHeader({
@@ -28,7 +41,8 @@ export function DocumentHeader({
   children,
   compact = false,
   showShareButton = true,
-  onTitleSubmit
+  onTitleSubmit,
+  titleInputRef
 }: DocumentHeaderProps) {
   // Local state for the input to prevent cursor jumping
   const [localTitle, setLocalTitle] = useState(title)
@@ -79,6 +93,14 @@ export function DocumentHeader({
     [onTitleSubmit]
   )
 
+  const handleInputRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      inputRef.current = node
+      assignRef(titleInputRef, node)
+    },
+    [titleInputRef]
+  )
+
   return (
     <div
       className={[
@@ -87,7 +109,7 @@ export function DocumentHeader({
       ].join(' ')}
     >
       <input
-        ref={inputRef}
+        ref={handleInputRef}
         type="text"
         className={[
           'w-full flex-1 border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground',
