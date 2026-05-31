@@ -4,16 +4,127 @@
 import type { PageTaskSnapshot } from '../extensions/page-tasks'
 import type { Editor } from '@tiptap/react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { TextSelection } from '@tiptap/pm/state'
+import {
+  absolutePositionToRelativePosition,
+  relativePositionToAbsolutePosition,
+  yCursorPluginKey,
+  ySyncPluginKey,
+  yUndoPluginKey
+} from '@tiptap/y-tiptap'
 import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // import userEvent from '@testing-library/user-event'
+import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
+import { CommentMark, captureTextAnchor, resolveTextAnchor } from '../extensions/comment'
 import { generateLargeDocument } from '../testing/benchmarks'
 import { measureAsync } from '../utils/performance'
 import { RichTextEditor } from './RichTextEditor'
 
 const TYPICAL_PAGE_BLOCKS = 120
 const INITIAL_MOUNT_READY_BUDGET_MS = 3000
+const ALICE_DID = 'did:key:z6MkhAliceEditorClient'
+const BOB_DID = 'did:key:z6MkhBobEditorClient'
+
+function pressBackspace(editor: Editor): boolean {
+  const event = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true })
+  let handled = false
+
+  editor.view.someProp('handleKeyDown', (handler) => {
+    if (handled) {
+      return
+    }
+
+    handled = handler(editor.view, event)
+  })
+
+  return handled
+}
+
+function firstBlock(editor: Editor) {
+  return editor.getJSON().content?.[0]
+}
+
+function findTextStart(editor: Editor, text: string): number {
+  let position: number | null = null
+
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isText || typeof node.text !== 'string') return true
+
+    const index = node.text.indexOf(text)
+    if (index === -1) return true
+
+    position = pos + index
+    return false
+  })
+
+  if (position === null) {
+    throw new Error(`Could not find text "${text}"`)
+  }
+
+  return position
+}
+
+function setEditorSelection(editor: Editor, from: number, to = from) {
+  editor.view.dispatch(
+    editor.state.tr.setSelection(TextSelection.create(editor.state.doc, from, to))
+  )
+}
+
+function clearCollaborationUndo(editor: Editor) {
+  yUndoPluginKey.getState(editor.state)?.undoManager?.clear()
+}
+
+function publishAwarenessSelection(editor: Editor, awareness: Awareness, from: number, to = from) {
+  const ystate = ySyncPluginKey.getState(editor.state)
+  const anchor = absolutePositionToRelativePosition(from, ystate.type, ystate.binding.mapping)
+  const head = absolutePositionToRelativePosition(to, ystate.type, ystate.binding.mapping)
+
+  awareness.setLocalStateField('cursor', { anchor, head })
+}
+
+function refreshCursorDecorations(editor: Editor) {
+  editor.view.dispatch(editor.state.tr.setMeta(yCursorPluginKey, { awarenessUpdated: true }))
+}
+
+function waitForSyncedContent(editor: Editor | null, content: unknown) {
+  return waitFor(() => {
+    expect(editor?.getJSON().content).toEqual(content)
+  })
+}
+
+function exchangeYjsUpdates(
+  docA: Y.Doc,
+  docB: Y.Doc,
+  stateVectorA: Uint8Array,
+  stateVectorB: Uint8Array
+) {
+  const updateA = Y.encodeStateAsUpdate(docA, stateVectorA)
+  const updateB = Y.encodeStateAsUpdate(docB, stateVectorB)
+
+  Y.applyUpdate(docA, updateB, docB)
+  Y.applyUpdate(docB, updateA, docA)
+}
+
+function connectYDocs(docA: Y.Doc, docB: Y.Doc): () => void {
+  const forwardA = (update: Uint8Array, origin: unknown) => {
+    if (origin === docB) return
+    Y.applyUpdate(docB, update, docA)
+  }
+  const forwardB = (update: Uint8Array, origin: unknown) => {
+    if (origin === docA) return
+    Y.applyUpdate(docA, update, docB)
+  }
+
+  docA.on('update', forwardA)
+  docB.on('update', forwardB)
+
+  return () => {
+    docA.off('update', forwardA)
+    docB.off('update', forwardB)
+  }
+}
 
 describe('RichTextEditor', () => {
   let ydoc: Y.Doc
@@ -503,6 +614,373 @@ describe('RichTextEditor', () => {
       } finally {
         persistedDoc.destroy()
       }
+    })
+
+    it('keeps heading token behavior deterministic after concurrent client edits', async () => {
+      const aliceDoc = new Y.Doc()
+      const bobDoc = new Y.Doc()
+      let aliceEditor: Editor | null = null
+      let bobEditor: Editor | null = null
+
+      try {
+        render(
+          <RichTextEditor
+            ydoc={aliceDoc}
+            showToolbar={false}
+            editorLabel="Alice editor"
+            onEditorReady={(editor) => {
+              aliceEditor = editor
+            }}
+          />
+        )
+
+        await waitFor(() => expect(aliceEditor).not.toBeNull())
+
+        act(() => {
+          aliceEditor?.commands.setContent({
+            type: 'doc',
+            content: [
+              {
+                type: 'heading',
+                attrs: { level: 3 },
+                content: [{ type: 'text', text: 'Launch plan' }]
+              }
+            ]
+          })
+        })
+
+        Y.applyUpdate(bobDoc, Y.encodeStateAsUpdate(aliceDoc), aliceDoc)
+
+        render(
+          <RichTextEditor
+            ydoc={bobDoc}
+            showToolbar={false}
+            editorLabel="Bob editor"
+            onEditorReady={(editor) => {
+              bobEditor = editor
+            }}
+          />
+        )
+
+        await waitFor(() => expect(bobEditor).not.toBeNull())
+        await waitForSyncedContent(bobEditor, aliceEditor?.getJSON().content)
+
+        const aliceStateVector = Y.encodeStateVector(aliceDoc)
+        const bobStateVector = Y.encodeStateVector(bobDoc)
+
+        act(() => {
+          aliceEditor?.commands.setTextSelection(1)
+          expect(aliceEditor && pressBackspace(aliceEditor)).toBe(true)
+        })
+
+        act(() => {
+          if (!bobEditor) return
+          const insertAt = findTextStart(bobEditor, 'Launch plan') + 'Launch plan'.length
+          bobEditor.commands.setTextSelection(insertAt)
+          bobEditor.commands.insertContent(' from Bob')
+        })
+
+        act(() => {
+          exchangeYjsUpdates(aliceDoc, bobDoc, aliceStateVector, bobStateVector)
+        })
+
+        await waitFor(() => {
+          expect(firstBlock(aliceEditor!)).toMatchObject({
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Launch plan from Bob' }]
+          })
+          expect(firstBlock(bobEditor!)).toMatchObject({
+            type: 'heading',
+            attrs: { level: 2 },
+            content: [{ type: 'text', text: 'Launch plan from Bob' }]
+          })
+        })
+      } finally {
+        aliceDoc.destroy()
+        bobDoc.destroy()
+      }
+    })
+
+    it('keeps undo and redo local while syncing remote collaboration edits', async () => {
+      const aliceDoc = new Y.Doc()
+      const bobDoc = new Y.Doc()
+      const disconnect = connectYDocs(aliceDoc, bobDoc)
+      let aliceEditor: Editor | null = null
+      let bobEditor: Editor | null = null
+
+      try {
+        render(
+          <>
+            <RichTextEditor
+              ydoc={aliceDoc}
+              showToolbar={false}
+              editorLabel="Alice editor"
+              onEditorReady={(editor) => {
+                aliceEditor = editor
+              }}
+            />
+            <RichTextEditor
+              ydoc={bobDoc}
+              showToolbar={false}
+              editorLabel="Bob editor"
+              onEditorReady={(editor) => {
+                bobEditor = editor
+              }}
+            />
+          </>
+        )
+
+        await waitFor(() => expect(aliceEditor).not.toBeNull())
+        await waitFor(() => expect(bobEditor).not.toBeNull())
+
+        act(() => {
+          aliceEditor?.commands.setContent({
+            type: 'doc',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Draft' }] }]
+          })
+        })
+
+        await waitForSyncedContent(bobEditor, aliceEditor?.getJSON().content)
+        clearCollaborationUndo(aliceEditor!)
+        clearCollaborationUndo(bobEditor!)
+
+        act(() => {
+          if (!aliceEditor) return
+          const insertAt = findTextStart(aliceEditor, 'Draft') + 'Draft'.length
+          aliceEditor.commands.setTextSelection(insertAt)
+          aliceEditor.commands.insertContent(' from Alice')
+        })
+
+        await waitFor(() => {
+          expect(bobEditor?.state.doc.textContent).toBe('Draft from Alice')
+        })
+
+        act(() => {
+          if (!bobEditor) return
+          const insertAt = findTextStart(bobEditor, 'Draft from Alice') + 'Draft from Alice'.length
+          bobEditor.commands.setTextSelection(insertAt)
+          bobEditor.commands.insertContent(' from Bob')
+        })
+
+        await waitFor(() => {
+          expect(aliceEditor?.state.doc.textContent).toBe('Draft from Alice from Bob')
+        })
+
+        act(() => {
+          expect(aliceEditor?.commands.undo()).toBe(true)
+        })
+
+        await waitFor(() => {
+          expect(aliceEditor?.state.doc.textContent).toBe('Draft from Bob')
+          expect(bobEditor?.state.doc.textContent).toBe('Draft from Bob')
+        })
+
+        act(() => {
+          expect(aliceEditor?.commands.redo()).toBe(true)
+        })
+
+        await waitFor(() => {
+          expect(aliceEditor?.state.doc.textContent).toBe('Draft from Alice from Bob')
+          expect(bobEditor?.state.doc.textContent).toBe('Draft from Alice from Bob')
+        })
+      } finally {
+        disconnect()
+        aliceDoc.destroy()
+        bobDoc.destroy()
+      }
+    })
+
+    it('renders remote cursors inside headings with revealed markdown syntax', async () => {
+      const aliceDoc = new Y.Doc()
+      const bobDoc = new Y.Doc()
+      const aliceAwareness = new Awareness(aliceDoc)
+      const bobAwareness = new Awareness(bobDoc)
+      const disconnectDocs = connectYDocs(aliceDoc, bobDoc)
+      let aliceEditor: Editor | null = null
+      let bobEditor: Editor | null = null
+
+      try {
+        render(
+          <>
+            <RichTextEditor
+              ydoc={aliceDoc}
+              showToolbar={false}
+              editorLabel="Alice editor"
+              onEditorReady={(editor) => {
+                aliceEditor = editor
+              }}
+            />
+            <RichTextEditor
+              ydoc={bobDoc}
+              awareness={bobAwareness}
+              did={BOB_DID}
+              showToolbar={false}
+              editorLabel="Bob editor"
+              onEditorReady={(editor) => {
+                bobEditor = editor
+              }}
+            />
+          </>
+        )
+
+        await waitFor(() => expect(aliceEditor).not.toBeNull())
+        await waitFor(() => expect(bobEditor).not.toBeNull())
+
+        act(() => {
+          aliceEditor?.commands.setContent({
+            type: 'doc',
+            content: [
+              {
+                type: 'heading',
+                attrs: { level: 3 },
+                content: [{ type: 'text', text: 'Cursor heading' }]
+              }
+            ]
+          })
+        })
+
+        await waitForSyncedContent(bobEditor, aliceEditor?.getJSON().content)
+
+        await waitFor(() => {
+          expect(bobAwareness.getLocalState()?.user).toBeDefined()
+        })
+
+        act(() => {
+          if (!bobEditor) return
+          setEditorSelection(bobEditor, 1)
+        })
+
+        await waitFor(() => {
+          expect(document.querySelector('.heading-syntax')?.textContent.trim()).toBe('###')
+        })
+
+        act(() => {
+          if (!aliceEditor) return
+          const from = findTextStart(aliceEditor, 'Cursor')
+          const to = from + 'Cursor'.length
+          aliceAwareness.setLocalStateField('user', {
+            did: ALICE_DID,
+            name: `${ALICE_DID.slice(8, 16)}...`,
+            color: '#2563eb'
+          })
+          publishAwarenessSelection(aliceEditor, aliceAwareness, from, to)
+          applyAwarenessUpdate(
+            bobAwareness,
+            encodeAwarenessUpdate(aliceAwareness, [aliceAwareness.clientID]),
+            aliceAwareness
+          )
+        })
+
+        await waitFor(() => {
+          expect(bobAwareness.getStates().get(aliceAwareness.clientID)?.cursor).toBeDefined()
+        })
+        await waitFor(() => {
+          expect(ySyncPluginKey.getState(bobEditor!.state)?.binding.mapping.size).toBeGreaterThan(0)
+        })
+        await waitFor(() => {
+          const cursor = bobAwareness.getStates().get(aliceAwareness.clientID)?.cursor
+          const ystate = ySyncPluginKey.getState(bobEditor!.state)
+          const anchor = relativePositionToAbsolutePosition(
+            ystate.doc,
+            ystate.type,
+            Y.createRelativePositionFromJSON(cursor.anchor),
+            ystate.binding.mapping
+          )
+
+          expect(anchor).not.toBeNull()
+        })
+
+        act(() => {
+          refreshCursorDecorations(bobEditor!)
+        })
+
+        await waitFor(() => {
+          expect(yCursorPluginKey.getState(bobEditor!.state)?.find()).toHaveLength(2)
+          expect(
+            document.querySelector(
+              `.collaboration-cursor__caret[data-client-id="${aliceAwareness.clientID}"]`
+            )
+          ).toBeInTheDocument()
+          expect(
+            document.querySelector(
+              `.ProseMirror-yjs-selection[data-client-id="${aliceAwareness.clientID}"]`
+            )
+          ).toBeInTheDocument()
+        })
+      } finally {
+        disconnectDocs()
+        aliceAwareness.destroy()
+        bobAwareness.destroy()
+        aliceDoc.destroy()
+        bobDoc.destroy()
+      }
+    })
+
+    it('keeps comment anchors attached when markdown structural tokens change', async () => {
+      let readyEditor: Editor | null = null
+
+      render(
+        <RichTextEditor
+          ydoc={ydoc}
+          showToolbar={false}
+          extensions={[CommentMark]}
+          onEditorReady={(editor) => {
+            readyEditor = editor
+          }}
+        />
+      )
+
+      await waitFor(() => expect(readyEditor).not.toBeNull())
+
+      act(() => {
+        readyEditor?.commands.setContent({
+          type: 'doc',
+          content: [
+            {
+              type: 'heading',
+              attrs: { level: 3 },
+              content: [{ type: 'text', text: 'Anchored heading' }]
+            }
+          ]
+        })
+      })
+
+      let anchor: ReturnType<typeof captureTextAnchor> = null
+
+      act(() => {
+        if (!readyEditor) return
+        const from = findTextStart(readyEditor, 'Anchored')
+        readyEditor.commands.setTextSelection({ from, to: from + 'Anchored'.length })
+        anchor = captureTextAnchor(readyEditor)
+        readyEditor.commands.setComment('comment-1')
+      })
+
+      expect(anchor).not.toBeNull()
+
+      act(() => {
+        readyEditor?.commands.setTextSelection(1)
+        expect(readyEditor && pressBackspace(readyEditor)).toBe(true)
+      })
+
+      const resolvedAnchor = resolveTextAnchor(readyEditor!, anchor!)
+      expect(resolvedAnchor).not.toBeNull()
+      expect(
+        readyEditor!.state.doc.textBetween(resolvedAnchor!.from, resolvedAnchor!.to, ' ')
+      ).toBe('Anchored')
+      expect(firstBlock(readyEditor!)).toMatchObject({
+        type: 'heading',
+        attrs: { level: 2 }
+      })
+
+      let hasCommentMark = false
+      readyEditor!.state.doc.descendants((node) => {
+        hasCommentMark ||= node.marks.some(
+          (mark) => mark.type.name === 'comment' && mark.attrs.commentId === 'comment-1'
+        )
+      })
+
+      expect(hasCommentMark).toBe(true)
     })
   })
 

@@ -1259,6 +1259,13 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/RichTextEditor.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 collaboration checkpoint:
+
+- Added multi-client Yjs regressions for concurrent heading edits, local collaboration undo/redo, remote cursor rendering around revealed heading syntax, and comment anchors through Markdown structural transforms.
+- The remote cursor coverage publishes a real awareness update with Yjs relative positions and verifies Tiptap cursor decorations inside a focused heading node view.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/RichTextEditor.test.tsx`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1326,10 +1333,10 @@ Decision gate:
 
 ### Collaboration And Persistence
 
-- [ ] Two clients can edit the same heading while token behavior remains deterministic.
-- [ ] Remote cursors render correctly around revealed Markdown syntax.
-- [ ] Undo/redo is local and predictable with Yjs collaboration.
-- [ ] Comments remain anchored after Markdown structural transforms.
+- [x] Two clients can edit the same heading while token behavior remains deterministic.
+- [x] Remote cursors render correctly around revealed Markdown syntax.
+- [x] Undo/redo is local and predictable with Yjs collaboration.
+- [x] Comments remain anchored after Markdown structural transforms.
 - [x] Task extraction continues to work from structured ProseMirror docs.
 - [x] Documents reload without losing custom embeds.
 
