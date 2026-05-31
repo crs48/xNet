@@ -7,4 +7,8 @@
  */
 
 export { EMBED_PROVIDERS, type EmbedProvider, parseEmbedUrl } from '@xnetjs/data'
-export { detectEmbedProvider as detectProvider } from '@xnetjs/data'
+export {
+  detectEmbedProvider as detectProvider,
+  evaluateEmbedRegistryPolicy,
+  type EmbedRegistryPolicyDecision
+} from '@xnetjs/data'

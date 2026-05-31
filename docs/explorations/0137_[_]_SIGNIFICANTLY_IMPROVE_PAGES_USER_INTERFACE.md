@@ -1167,6 +1167,16 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/embed/EmbedExtension.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
 
+2026-05-31 embed policy checkpoint:
+
+- Document media embeds now use the shared embed registry policy before rendering a live iframe.
+- Figma, CodeSandbox, and Loom node-view tests assert sandbox, allow, referrer policy, and lazy-loading attributes.
+- Spoofed provider hosts now render a non-live `Embed unavailable` placeholder instead of an iframe.
+- Empty embed controls now expose named URL and action controls for assistive tech.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/embed/EmbedNodeView.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1208,14 +1218,14 @@ Decision gate:
 - [x] Body Backspace at empty first block can return focus to title or no-op by explicit design.
 - [x] Long documents keep a stable writing measure.
 - [ ] Selection and caret remain visible in light/dark themes.
-- [ ] Screen reader labels identify editor, title, toolbar, and embed controls.
+- [x] Screen reader labels identify editor, title, toolbar, and embed controls.
 
 ### Embeds And References
 
 - [x] YouTube paste creates a media embed.
 - [x] Generic URL paste creates a rich link or link by policy.
-- [ ] Figma/CodeSandbox/Loom embeds respect iframe policy.
-- [ ] Blocked providers render a safe placeholder.
+- [x] Figma/CodeSandbox/Loom embeds respect iframe policy.
+- [x] Blocked providers render a safe placeholder.
 - [x] Database embed inserts from slash command.
 - [ ] Database embed supports table/board/calendar/gallery/list modes as applicable.
 - [ ] Page links and page embeds can be inserted and navigated.

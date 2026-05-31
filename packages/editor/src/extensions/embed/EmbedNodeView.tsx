@@ -10,7 +10,13 @@
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import * as React from 'react'
 import { cn } from '../../utils'
-import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from './providers'
+import {
+  EMBED_PROVIDERS,
+  evaluateEmbedRegistryPolicy,
+  parseEmbedUrl,
+  type EmbedProvider,
+  type EmbedRegistryPolicyDecision
+} from './providers'
 
 /** Get provider config by name */
 function getProvider(name: string): EmbedProvider | undefined {
@@ -21,6 +27,51 @@ const ALIGNMENTS: Record<string, string> = {
   left: 'mr-auto',
   center: 'mx-auto',
   right: 'ml-auto'
+}
+
+function EmbedUnavailablePlaceholder({
+  url,
+  reason,
+  selected
+}: {
+  url: string | null
+  reason: string
+  selected: boolean
+}) {
+  return (
+    <NodeViewWrapper contentEditable={false}>
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center gap-1 p-6 rounded-lg my-2',
+          'bg-gray-50 dark:bg-gray-800',
+          'border border-gray-200 dark:border-gray-700',
+          'text-gray-500 dark:text-gray-400',
+          selected && 'ring-2 ring-blue-500 ring-offset-2'
+        )}
+        data-drag-handle
+        data-embed-policy="blocked"
+        data-embed-policy-reason={reason}
+        role="status"
+        aria-label="Embed unavailable"
+      >
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+          Embed unavailable
+        </span>
+        {url && <span className="max-w-full truncate text-xs">{url}</span>}
+        <span className="text-xs">{reason}</span>
+      </div>
+    </NodeViewWrapper>
+  )
+}
+
+function getAllowedEmbedPolicy(input: {
+  provider: string | null
+  embedUrl: string | null
+}): EmbedRegistryPolicyDecision {
+  return evaluateEmbedRegistryPolicy({
+    provider: input.provider,
+    embedUrl: input.embedUrl
+  })
 }
 
 export function EmbedNodeView({
@@ -40,6 +91,10 @@ export function EmbedNodeView({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const provider = getProvider(providerName)
+  const embedPolicyDecision = React.useMemo(
+    () => getAllowedEmbedPolicy({ provider: providerName, embedUrl }),
+    [providerName, embedUrl]
+  )
 
   const aspectRatio = provider?.aspectRatio || 16 / 9
   const paddingBottom = `${(1 / aspectRatio) * 100}%`
@@ -167,6 +222,7 @@ export function EmbedNodeView({
             <input
               ref={inputRef}
               type="url"
+              aria-label="Embed URL"
               placeholder="Paste YouTube, Vimeo, Spotify URL..."
               value={inputValue}
               onChange={(e) => {
@@ -189,6 +245,7 @@ export function EmbedNodeView({
             />
             <button
               type="button"
+              aria-label="Create embed"
               onClick={handleSubmit}
               className={cn(
                 'px-3 py-2 text-sm font-medium rounded-md',
@@ -208,23 +265,14 @@ export function EmbedNodeView({
     )
   }
 
-  // Has URL but failed to parse - show error state
-  if (!embedUrl) {
+  // Has URL but cannot safely render live iframe content.
+  if (!embedUrl || !embedPolicyDecision.allowed) {
     return (
-      <NodeViewWrapper>
-        <div
-          className={cn(
-            'flex items-center justify-center p-6 rounded-lg my-2',
-            'bg-gray-50 dark:bg-gray-800',
-            'border border-gray-200 dark:border-gray-700',
-            'text-gray-500 dark:text-gray-400',
-            selected && 'ring-2 ring-blue-500 ring-offset-2'
-          )}
-          data-drag-handle
-        >
-          <span className="text-sm">Unable to embed: {url}</span>
-        </div>
-      </NodeViewWrapper>
+      <EmbedUnavailablePlaceholder
+        url={url}
+        selected={selected}
+        reason={embedPolicyDecision.reason ?? 'Embed URL is missing or invalid.'}
+      />
     )
   }
 
@@ -283,9 +331,11 @@ export function EmbedNodeView({
             className="absolute inset-0 w-full h-full"
             style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
             frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            sandbox={embedPolicyDecision.iframeAttributes.sandbox}
+            allow={embedPolicyDecision.iframeAttributes.allow}
+            referrerPolicy={embedPolicyDecision.iframeAttributes.referrerPolicy}
             allowFullScreen
-            loading="lazy"
+            loading={embedPolicyDecision.iframeAttributes.loading}
             onLoad={() => setLoading(false)}
           />
         </div>
