@@ -37,6 +37,15 @@ export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(function Slash
 
   useImperativeHandle(ref, () => ({
     onKeyDown: (event: KeyboardEvent) => {
+      if (items.length === 0) {
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'Enter') {
+          event.preventDefault()
+          return true
+        }
+
+        return false
+      }
+
       if (event.key === 'ArrowUp') {
         event.preventDefault()
         setSelectedIndex((prev) => (prev - 1 + items.length) % items.length)
@@ -78,6 +87,8 @@ export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(function Slash
   return (
     <div
       data-testid="slash-menu"
+      role="listbox"
+      aria-label="Slash commands"
       className={cn(
         'slash-menu',
         'w-72 max-h-80 overflow-y-auto',
@@ -111,6 +122,9 @@ function SlashMenuItem({ item, isSelected, onClick, onMouseEnter }: SlashMenuIte
   return (
     <button
       type="button"
+      role="option"
+      aria-selected={isSelected}
+      aria-label={item.title}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       className={cn(

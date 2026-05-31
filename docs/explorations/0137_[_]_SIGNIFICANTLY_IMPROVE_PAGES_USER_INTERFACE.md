@@ -1239,7 +1239,7 @@ Decision gate:
 - [x] Toolbar hides on valid blur.
 - [x] Mobile toolbar appears when editor is focused.
 - [x] Canvas compact toolbar appears only in focused inline edit mode.
-- [ ] Slash menu opens at `/` and filters command list.
+- [x] Slash menu opens at `/` and filters command list.
 - [x] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
 
 ### Page Surface

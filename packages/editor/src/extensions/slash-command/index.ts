@@ -57,7 +57,7 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
 
         return customCommands.filter((item) => {
           if (item.title.toLowerCase().includes(search)) return true
-          if (item.searchTerms?.some((term) => term.includes(search))) return true
+          if (item.searchTerms?.some((term) => term.toLowerCase().includes(search))) return true
           if (item.description.toLowerCase().includes(search)) return true
           return false
         })

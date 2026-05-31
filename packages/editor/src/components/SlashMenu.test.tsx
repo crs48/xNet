@@ -13,9 +13,24 @@ function createItem(title: string) {
 
 describe('SlashMenu', () => {
   it('renders empty state when there are no items', () => {
-    render(<SlashMenu items={[]} command={vi.fn()} />)
+    const ref = { current: null as SlashMenuRef | null }
+    const command = vi.fn()
+
+    render(<SlashMenu ref={ref} items={[]} command={command} />)
+
     expect(screen.getByTestId('slash-menu-empty')).toBeInTheDocument()
     expect(screen.getByText('No results found')).toBeInTheDocument()
+
+    const down = new KeyboardEvent('keydown', { key: 'ArrowDown' })
+    const enter = new KeyboardEvent('keydown', { key: 'Enter' })
+
+    act(() => {
+      expect(ref.current?.onKeyDown(down)).toBe(true)
+    })
+    act(() => {
+      expect(ref.current?.onKeyDown(enter)).toBe(true)
+    })
+    expect(command).not.toHaveBeenCalled()
   })
 
   it('navigates deterministically with arrow keys and enter', () => {
@@ -67,7 +82,7 @@ describe('SlashMenu', () => {
     const items = [createItem('Paragraph')]
     render(<SlashMenu items={items} command={command} />)
 
-    fireEvent.click(screen.getByRole('button', { name: /Paragraph/i }))
+    fireEvent.click(screen.getByRole('option', { name: 'Paragraph' }))
     expect(command).toHaveBeenCalledWith(items[0])
   })
 })
