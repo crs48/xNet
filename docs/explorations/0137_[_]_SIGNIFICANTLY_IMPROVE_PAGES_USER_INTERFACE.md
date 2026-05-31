@@ -1057,7 +1057,7 @@ Decision gate:
 
 - [ ] Keep the old editor behind a kill switch during rollout.
 - [ ] Add one-way migration or compatibility loader if document schema changes.
-- [ ] Add crash-safe fallback rendering for unknown nodes.
+- [x] Add crash-safe fallback rendering for unknown nodes.
 - [x] Run full `pnpm --filter @xnetjs/editor test`.
 - [ ] Run relevant Electron Playwright checks with auth bypass.
 - [ ] Run performance benchmarks before enabling by default.
@@ -1117,6 +1117,13 @@ Decision gate:
 - Floating toolbars now render as named `toolbar` regions for page and canvas-inline contexts.
 - Focused tests passed:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/RichTextEditor.test.tsx src/components/FloatingToolbar.test.tsx src/components/EditorSurface.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
+2026-05-31 editor fallback checkpoint:
+
+- `EditorSurface` now wraps the rich editor in a crash-safe boundary and renders a controlled alert fallback when content rendering fails because part of the document is unsupported.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/EditorSurface.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
 
 ## Validation Checklist

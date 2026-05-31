@@ -2,7 +2,8 @@
  * EditorSurface - product surface wrapper for RichTextEditor.
  */
 import type { EditorContentMode, ToolbarSurface } from './editor-ux-state'
-import type { JSX, MouseEventHandler, ReactNode } from 'react'
+import type { ErrorInfo, JSX, MouseEventHandler, ReactNode } from 'react'
+import { Component } from 'react'
 import { cn } from '../utils'
 import { RichTextEditor, type RichTextEditorProps } from './RichTextEditor'
 
@@ -18,11 +19,55 @@ export type EditorSurfaceProps = Omit<RichTextEditorProps, 'toolbarSurface'> & {
   children?: ReactNode
 }
 
+type EditorSurfaceErrorBoundaryProps = {
+  surfaceMode: EditorSurfaceMode
+  children: ReactNode
+}
+
+type EditorSurfaceErrorBoundaryState = {
+  error: Error | null
+}
+
 type SurfaceClassConfig = {
   root: string
   defaultRoot?: string
   compactRoot?: string
   content: string
+}
+
+export class EditorSurfaceErrorBoundary extends Component<
+  EditorSurfaceErrorBoundaryProps,
+  EditorSurfaceErrorBoundaryState
+> {
+  state: EditorSurfaceErrorBoundaryState = { error: null }
+
+  static getDerivedStateFromError(error: Error): EditorSurfaceErrorBoundaryState {
+    return { error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    if (typeof console !== 'undefined') {
+      console.error('[EditorSurface] Failed to render editor content', error, errorInfo)
+    }
+  }
+
+  render(): ReactNode {
+    if (this.state.error) {
+      return (
+        <div
+          className="flex min-h-[160px] flex-1 items-center justify-center rounded-lg border border-dashed border-border/70 bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground"
+          data-editor-surface-fallback="true"
+          data-editor-surface-fallback-mode={this.props.surfaceMode}
+          role="alert"
+        >
+          This content cannot be displayed because this editor surface is missing support for part
+          of the document.
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
 }
 
 const SURFACE_CLASS_CONFIG: Record<EditorSurfaceMode, SurfaceClassConfig> = {
@@ -101,14 +146,16 @@ export function EditorSurface({
       onMouseDown={onSurfaceMouseDown}
     >
       <div className={cn(config.content, contentClassName)} data-editor-surface-content="true">
-        <RichTextEditor
-          {...editorProps}
-          className={className}
-          contentMode={resolveSurfaceContentMode(surfaceMode, contentMode)}
-          editorLabel={editorLabel ?? SURFACE_EDITOR_LABELS[surfaceMode]}
-          readOnly={resolveSurfaceReadOnly(surfaceMode, readOnly)}
-          toolbarSurface={surfaceMode}
-        />
+        <EditorSurfaceErrorBoundary surfaceMode={surfaceMode}>
+          <RichTextEditor
+            {...editorProps}
+            className={className}
+            contentMode={resolveSurfaceContentMode(surfaceMode, contentMode)}
+            editorLabel={editorLabel ?? SURFACE_EDITOR_LABELS[surfaceMode]}
+            readOnly={resolveSurfaceReadOnly(surfaceMode, readOnly)}
+            toolbarSurface={surfaceMode}
+          />
+        </EditorSurfaceErrorBoundary>
         {children}
       </div>
     </div>

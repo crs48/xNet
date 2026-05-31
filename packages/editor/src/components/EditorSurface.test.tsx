@@ -1,7 +1,8 @@
-import { render, waitFor } from '@testing-library/react'
+import { act, render, waitFor } from '@testing-library/react'
+import { createRef } from 'react'
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
-import { EditorSurface } from './EditorSurface'
+import { EditorSurface, EditorSurfaceErrorBoundary } from './EditorSurface'
 
 function createDoc(): Y.Doc {
   return new Y.Doc()
@@ -65,5 +66,27 @@ describe('EditorSurface', () => {
       expect(document.querySelector('.ProseMirror')).toBeInTheDocument()
       expect(document.querySelector('[data-testid="editor-source-mode"]')).not.toBeInTheDocument()
     })
+  })
+
+  it('renders a crash-safe fallback when editor content rendering fails', () => {
+    const boundaryRef = createRef<EditorSurfaceErrorBoundary>()
+
+    render(
+      <EditorSurfaceErrorBoundary ref={boundaryRef} surfaceMode="page">
+        <div>Editor content</div>
+      </EditorSurfaceErrorBoundary>
+    )
+
+    act(() => {
+      boundaryRef.current?.setState({ error: new Error('Missing extension') })
+    })
+
+    expect(document.querySelector('[data-editor-surface-fallback="true"]')).toHaveAttribute(
+      'data-editor-surface-fallback-mode',
+      'page'
+    )
+    expect(document.querySelector('[role="alert"]')).toHaveTextContent(
+      'This content cannot be displayed'
+    )
   })
 })
