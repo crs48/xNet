@@ -1151,6 +1151,14 @@ Decision gate:
 - Captured a Playwright CLI fallback screenshot after the in-app screenshot command timed out:
   - `tmp/playwright/editor-smoke-after-backspace-toolbar.png`
 
+2026-05-31 slash command checkpoint:
+
+- Slash command handler tests now execute the code block, media embed, callout, toggle, task view, and database commands instead of only asserting that labels exist.
+- The database command is covered through the async `onSelectDatabase` path and verifies that the selected database ID becomes a `setDatabaseEmbed` command.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/slash-command/items.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
+
 ## Validation Checklist
 
 ### Markdown Behavior
@@ -1181,7 +1189,7 @@ Decision gate:
 - [x] Mobile toolbar appears when editor is focused.
 - [x] Canvas compact toolbar appears only in focused inline edit mode.
 - [ ] Slash menu opens at `/` and filters command list.
-- [ ] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
+- [x] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.
 
 ### Page Surface
 
@@ -1200,7 +1208,7 @@ Decision gate:
 - [x] Generic URL paste creates a rich link or link by policy.
 - [ ] Figma/CodeSandbox/Loom embeds respect iframe policy.
 - [ ] Blocked providers render a safe placeholder.
-- [ ] Database embed inserts from slash command.
+- [x] Database embed inserts from slash command.
 - [ ] Database embed supports table/board/calendar/gallery/list modes as applicable.
 - [ ] Page links and page embeds can be inserted and navigated.
 - [ ] Smart references remain compact and editable.
