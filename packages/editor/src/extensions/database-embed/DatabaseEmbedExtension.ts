@@ -5,7 +5,9 @@
  * architecture. The consuming app provides the actual view rendering via the
  * `renderView` option, keeping @xnetjs/views out of the editor package's dependencies.
  */
+import type { Editor } from '@tiptap/core'
 import { Node, mergeAttributes } from '@tiptap/core'
+import { NodeSelection, Selection, TextSelection } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import {
   booleanAttr,
@@ -31,10 +33,72 @@ const DATABASE_VIEW_TYPES = new Set<DatabaseViewType>([
   'timeline'
 ])
 
+type DatabaseEmbedSelectionRange = {
+  from: number
+  to: number
+}
+
 function toDatabaseViewType(value: unknown): DatabaseViewType {
   return typeof value === 'string' && DATABASE_VIEW_TYPES.has(value as DatabaseViewType)
     ? (value as DatabaseViewType)
     : 'table'
+}
+
+function getSelectedDatabaseEmbedRange(
+  editor: Editor,
+  nodeName: string
+): DatabaseEmbedSelectionRange | null {
+  const { selection } = editor.state
+
+  if (!(selection instanceof NodeSelection)) {
+    return null
+  }
+
+  if (selection.node.type.name !== nodeName) {
+    return null
+  }
+
+  return { from: selection.from, to: selection.to }
+}
+
+function moveSelectionAroundDatabaseEmbed(
+  editor: Editor,
+  nodeName: string,
+  direction: 'before' | 'after'
+): boolean {
+  const range = getSelectedDatabaseEmbedRange(editor, nodeName)
+  if (!range) return false
+
+  const { state, view } = editor
+  const position = direction === 'after' ? range.to : range.from
+  const bias = direction === 'after' ? 1 : -1
+  const selection = Selection.near(state.doc.resolve(position), bias)
+
+  if (selection.eq(state.selection)) {
+    return false
+  }
+
+  view.dispatch(state.tr.setSelection(selection).scrollIntoView())
+  return true
+}
+
+function insertParagraphAroundDatabaseEmbed(
+  editor: Editor,
+  nodeName: string,
+  direction: 'before' | 'after'
+): boolean {
+  const range = getSelectedDatabaseEmbedRange(editor, nodeName)
+  if (!range) return false
+
+  const paragraph = editor.state.schema.nodes.paragraph?.createAndFill()
+  if (!paragraph) return false
+
+  const insertionPosition = direction === 'after' ? range.to : range.from
+  const tr = editor.state.tr.insert(insertionPosition, paragraph)
+  const selection = TextSelection.create(tr.doc, insertionPosition + 1)
+
+  editor.view.dispatch(tr.setSelection(selection).scrollIntoView())
+  return true
 }
 
 export interface DatabaseEmbedOptions {
@@ -97,6 +161,10 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
   group: 'block',
 
   draggable: true,
+
+  selectable: true,
+
+  isolating: true,
 
   atom: true,
 
@@ -206,6 +274,17 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
             ...(options.viewConfig !== undefined && { viewConfig: options.viewConfig })
           })
         }
+    }
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => insertParagraphAroundDatabaseEmbed(this.editor, this.name, 'after'),
+      'Shift-Enter': () => insertParagraphAroundDatabaseEmbed(this.editor, this.name, 'before'),
+      ArrowDown: () => moveSelectionAroundDatabaseEmbed(this.editor, this.name, 'after'),
+      ArrowRight: () => moveSelectionAroundDatabaseEmbed(this.editor, this.name, 'after'),
+      ArrowUp: () => moveSelectionAroundDatabaseEmbed(this.editor, this.name, 'before'),
+      ArrowLeft: () => moveSelectionAroundDatabaseEmbed(this.editor, this.name, 'before')
     }
   }
 })

@@ -1,4 +1,5 @@
 import { Editor } from '@tiptap/core'
+import { NodeSelection } from '@tiptap/pm/state'
 import StarterKit from '@tiptap/starter-kit'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { DatabaseEmbedExtension } from './DatabaseEmbedExtension'
@@ -44,6 +45,12 @@ describe('DatabaseEmbedExtension', () => {
     it('should be an atom node', () => {
       const spec = editor.schema.nodes.databaseEmbed.spec
       expect(spec.atom).toBe(true)
+    })
+
+    it('should be selectable and isolating for predictable block selection', () => {
+      const spec = editor.schema.nodes.databaseEmbed.spec
+      expect(spec.selectable).toBe(true)
+      expect(spec.isolating).toBe(true)
     })
   })
 
@@ -153,6 +160,85 @@ describe('DatabaseEmbedExtension', () => {
     })
   })
 
+  describe('keyboard and selection behavior', () => {
+    it('moves from selected embed to the following text block with ArrowDown', () => {
+      const keyboardEditor = createEditorWithEmbeddedDatabase()
+      const embedPosition = findDbEmbedPos(keyboardEditor)
+      keyboardEditor.commands.setNodeSelection(embedPosition)
+
+      const handled = triggerKeyDown(keyboardEditor, 'ArrowDown')
+
+      expect(handled).toBe(true)
+      expect(keyboardEditor.state.selection).not.toBeInstanceOf(NodeSelection)
+      expect(keyboardEditor.state.selection.$from.parent.textContent).toBe('After')
+
+      keyboardEditor.destroy()
+    })
+
+    it('moves from selected embed to the previous text block with ArrowUp', () => {
+      const keyboardEditor = createEditorWithEmbeddedDatabase()
+      const embedPosition = findDbEmbedPos(keyboardEditor)
+      keyboardEditor.commands.setNodeSelection(embedPosition)
+
+      const handled = triggerKeyDown(keyboardEditor, 'ArrowUp')
+
+      expect(handled).toBe(true)
+      expect(keyboardEditor.state.selection).not.toBeInstanceOf(NodeSelection)
+      expect(keyboardEditor.state.selection.$from.parent.textContent).toBe('Before')
+
+      keyboardEditor.destroy()
+    })
+
+    it('inserts an empty paragraph after a selected embed with Enter', () => {
+      const keyboardEditor = createEditorWithEmbeddedDatabase()
+      const embedPosition = findDbEmbedPos(keyboardEditor)
+      keyboardEditor.commands.setNodeSelection(embedPosition)
+
+      const handled = triggerKeyDown(keyboardEditor, 'Enter')
+
+      expect(handled).toBe(true)
+      expect(keyboardEditor.getJSON().content?.map((node) => node.type)).toEqual([
+        'paragraph',
+        'databaseEmbed',
+        'paragraph',
+        'paragraph'
+      ])
+      expect(keyboardEditor.state.selection.$from.parent.type.name).toBe('paragraph')
+      expect(keyboardEditor.state.selection.$from.parent.textContent).toBe('')
+
+      keyboardEditor.destroy()
+    })
+
+    it('inserts an empty paragraph before a selected embed with Shift-Enter', () => {
+      const keyboardEditor = createEditorWithEmbeddedDatabase()
+      const embedPosition = findDbEmbedPos(keyboardEditor)
+      keyboardEditor.commands.setNodeSelection(embedPosition)
+
+      const handled = triggerKeyDown(keyboardEditor, 'Enter', { shiftKey: true })
+
+      expect(handled).toBe(true)
+      expect(keyboardEditor.getJSON().content?.map((node) => node.type)).toEqual([
+        'paragraph',
+        'paragraph',
+        'databaseEmbed',
+        'paragraph'
+      ])
+      expect(keyboardEditor.state.selection.$from.parent.type.name).toBe('paragraph')
+      expect(keyboardEditor.state.selection.$from.parent.textContent).toBe('')
+
+      keyboardEditor.destroy()
+    })
+
+    it('does not intercept keyboard shortcuts when the embed is not selected', () => {
+      const keyboardEditor = createEditorWithEmbeddedDatabase()
+      keyboardEditor.commands.setTextSelection(2)
+
+      expect(triggerKeyDown(keyboardEditor, 'ArrowDown')).toBe(false)
+
+      keyboardEditor.destroy()
+    })
+  })
+
   describe('parseHTML', () => {
     it('should parse div[data-database-id]', () => {
       const editorWithEmbed = new Editor({
@@ -235,4 +321,60 @@ function findDbEmbedPos(editor: Editor): number {
     }
   })
   return pos
+}
+
+function createEditorWithEmbeddedDatabase(): Editor {
+  return new Editor({
+    extensions: [StarterKit, DatabaseEmbedExtension],
+    content: {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Before' }]
+        },
+        {
+          type: 'databaseEmbed',
+          attrs: { databaseId: 'db-123', viewType: 'table' }
+        },
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'After' }]
+        }
+      ]
+    }
+  })
+}
+
+function triggerKeyDown(
+  editor: Editor,
+  key: string,
+  options: { shiftKey?: boolean } = {}
+): boolean {
+  const event = new KeyboardEvent('keydown', {
+    key,
+    shiftKey: options.shiftKey ?? false,
+    bubbles: true,
+    cancelable: true
+  })
+  let handled = false
+
+  editor.view.someProp('handleKeyDown', (handler) => {
+    if (handled) return true
+
+    try {
+      handled = handler(editor.view, event)
+    } catch (error) {
+      if (isMissingJsdomLayoutError(error)) return true
+      throw error
+    }
+
+    return handled
+  })
+
+  return handled
+}
+
+function isMissingJsdomLayoutError(error: unknown): boolean {
+  return error instanceof TypeError && error.message.includes('getClientRects')
 }

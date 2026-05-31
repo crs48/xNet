@@ -35,6 +35,11 @@ const VIEW_LABELS: Record<DatabaseViewType, string> = {
 
 const ALL_VIEWS: DatabaseViewType[] = ['table', 'board', 'list', 'calendar', 'gallery', 'timeline']
 
+function stopEditorMouseDown(event: React.MouseEvent<HTMLElement>): void {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
 export function DatabaseEmbedNodeView({
   node,
   selected,
@@ -94,7 +99,12 @@ export function DatabaseEmbedNodeView({
   // No database ID
   if (!databaseId) {
     return (
-      <NodeViewWrapper>
+      <NodeViewWrapper
+        contentEditable={false}
+        data-database-embed=""
+        data-database-embed-empty="true"
+        data-database-embed-selected={selected ? 'true' : 'false'}
+      >
         <div
           className={cn(
             'flex items-center justify-center p-6 rounded-lg my-2',
@@ -112,7 +122,11 @@ export function DatabaseEmbedNodeView({
   }
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper
+      contentEditable={false}
+      data-database-embed=""
+      data-database-embed-selected={selected ? 'true' : 'false'}
+    >
       <div
         className={cn(
           'rounded-lg my-2 overflow-hidden',
@@ -120,7 +134,7 @@ export function DatabaseEmbedNodeView({
           'bg-white dark:bg-gray-900',
           selected && 'ring-2 ring-blue-500 ring-offset-2'
         )}
-        data-drag-handle
+        data-database-embed-card=""
       >
         {/* Header */}
         <div
@@ -129,6 +143,8 @@ export function DatabaseEmbedNodeView({
             'border-b border-gray-200 dark:border-gray-700',
             'bg-gray-50 dark:bg-gray-800'
           )}
+          data-drag-handle
+          data-database-embed-header=""
         >
           <div className="flex items-center gap-2">
             {/* Database title */}
@@ -156,7 +172,9 @@ export function DatabaseEmbedNodeView({
             <div className="relative" ref={pickerRef}>
               <button
                 type="button"
+                data-database-embed-control="view-type"
                 onClick={() => setShowViewPicker(!showViewPicker)}
+                onMouseDown={stopEditorMouseDown}
                 className={cn(
                   'flex items-center gap-1 px-2 py-1 rounded',
                   'text-xs text-gray-600 dark:text-gray-400',
@@ -191,15 +209,18 @@ export function DatabaseEmbedNodeView({
                     'border border-gray-200 dark:border-gray-700',
                     'py-1 min-w-[130px]'
                   )}
+                  data-database-embed-menu="view-type"
                 >
                   {ALL_VIEWS.map((type) => (
                     <button
                       key={type}
                       type="button"
+                      data-database-embed-control={`view-type-${type}`}
                       onClick={() => {
                         updateAttributes({ viewType: type })
                         setShowViewPicker(false)
                       }}
+                      onMouseDown={stopEditorMouseDown}
                       className={cn(
                         'w-full flex items-center gap-2 px-3 py-1.5',
                         'text-sm text-left',
@@ -220,12 +241,14 @@ export function DatabaseEmbedNodeView({
           {/* Open externally button */}
           <button
             type="button"
+            data-database-embed-control="open"
             onClick={() => {
               // Dispatch a custom event that the app can listen to
               window.dispatchEvent(
                 new CustomEvent('xnet:open-database', { detail: { databaseId } })
               )
             }}
+            onMouseDown={stopEditorMouseDown}
             className={cn(
               'p-1.5 rounded',
               'text-gray-500 hover:text-gray-700',
@@ -253,7 +276,11 @@ export function DatabaseEmbedNodeView({
         </div>
 
         {/* Database view content */}
-        <div className="overflow-auto" style={{ maxHeight: maxHeight || 400 }}>
+        <div
+          className="overflow-auto"
+          data-database-embed-content=""
+          style={{ maxHeight: maxHeight || 400 }}
+        >
           {options.renderView ? (
             options.renderView({
               databaseId,
