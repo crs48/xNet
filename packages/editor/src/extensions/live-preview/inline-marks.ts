@@ -170,7 +170,7 @@ function handleInlineMarkBoundaryKeyDown(
     return moveAcrossInlineDelimiter(view, context, key)
   }
 
-  return deleteInlineDelimiter(view, context, key)
+  return deleteInlineDelimiter(view, context)
 }
 
 function findInlineMarkBoundaryContext(
@@ -241,28 +241,9 @@ function moveAcrossInlineDelimiter(
   return false
 }
 
-function deleteInlineDelimiter(
-  view: EditorView,
-  context: InlineMarkBoundaryContext,
-  key: 'Backspace' | 'Delete'
-): boolean {
-  const active = isMarkActiveForTyping(view.state, context.mark)
-
-  if (context.side === 'open') {
-    if ((key === 'Backspace' && active) || (key === 'Delete' && !active)) {
-      removeInlineMark(view, context)
-      return true
-    }
-  }
-
-  if (context.side === 'close') {
-    if ((key === 'Delete' && active) || (key === 'Backspace' && !active)) {
-      removeInlineMark(view, context)
-      return true
-    }
-  }
-
-  return false
+function deleteInlineDelimiter(view: EditorView, context: InlineMarkBoundaryContext): boolean {
+  removeInlineMark(view, context)
+  return true
 }
 
 function isMarkActiveForTyping(state: EditorState, mark: Mark): boolean {

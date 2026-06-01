@@ -277,11 +277,14 @@ describe('inline marks live preview integration', () => {
   })
 
   it.each([
-    ['bold', 'Backspace'],
-    ['strike', 'Delete'],
-    ['italic', 'Delete'],
-    ['code', 'Delete']
-  ])('removes %s when deleting virtual %s delimiter syntax', (markType, key) => {
+    ['bold', 'opening', 'Backspace'],
+    ['bold', 'opening', 'Delete'],
+    ['bold', 'closing', 'Backspace'],
+    ['bold', 'closing', 'Delete'],
+    ['italic', 'opening', 'Delete'],
+    ['strike', 'closing', 'Backspace'],
+    ['code', 'closing', 'Delete']
+  ])('removes %s when deleting virtual %s %s delimiter syntax', (markType, side, key) => {
     editor.commands.setContent(
       {
         type: 'doc',
@@ -302,7 +305,7 @@ describe('inline marks live preview integration', () => {
     )
 
     const textStart = findTextStart(editor, 'marked')
-    const position = key === 'Backspace' ? textStart : textStart + 'marked'.length
+    const position = side === 'opening' ? textStart : textStart + 'marked'.length
     editor.commands.setTextSelection(position)
 
     expect(pressKey(editor, key)).toBe(true)

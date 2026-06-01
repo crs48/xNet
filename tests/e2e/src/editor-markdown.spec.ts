@@ -159,6 +159,37 @@ test.describe('Editor Markdown live editing', () => {
     await expect(editor).toContainText('bold plain')
   })
 
+  test('Backspace and Delete unwrap inline marks at visible delimiter boundaries', async ({
+    page
+  }) => {
+    const editor = await createBlankPage(page)
+    const modKey = process.platform === 'darwin' ? 'Meta' : 'Control'
+
+    await editor.click()
+    await page.keyboard.type('bold')
+    await selectEditorText(page, 'bold', { start: 0, end: 'bold'.length })
+    await page.keyboard.press(`${modKey}+B`)
+    await expect(page.locator('strong', { hasText: 'bold' })).toBeVisible()
+
+    await selectEditorText(page, 'bold', { start: 'bold'.length, end: 'bold'.length })
+    await page.keyboard.press('Backspace')
+    await expect(page.locator('strong', { hasText: 'bold' })).toHaveCount(0)
+    await expect(editor).toContainText('bold')
+
+    await editor.click()
+    await page.keyboard.press(`${modKey}+A`)
+    await page.keyboard.press('Backspace')
+    await page.keyboard.type('strike')
+    await selectEditorText(page, 'strike', { start: 0, end: 'strike'.length })
+    await page.keyboard.press(`${modKey}+Shift+S`)
+    await expect(page.locator('s', { hasText: 'strike' })).toBeVisible()
+
+    await selectEditorText(page, 'strike', { start: 0, end: 0 })
+    await page.keyboard.press('Delete')
+    await expect(page.locator('s', { hasText: 'strike' })).toHaveCount(0)
+    await expect(editor).toContainText('strike')
+  })
+
   test('slash command menu teaches common block commands before inserting them', async ({
     page
   }) => {
