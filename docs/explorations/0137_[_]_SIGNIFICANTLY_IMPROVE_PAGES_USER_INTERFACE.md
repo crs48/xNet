@@ -1055,6 +1055,7 @@ Decision gate:
 - [x] Use icon buttons and accessible labels for toolbar controls.
 - [x] Add shortcut-aware tooltip/title hints to primary toolbar controls.
 - [x] Add custom hover/focus tooltip popovers to primary toolbar controls.
+- [x] Replace prompt-based slash Page and Database insertions with inline setup cards.
 - [ ] Add keyboard-discoverable popovers for link, reference, database, and embed controls.
   - [x] Add keyboard-discoverable toolbar popover for link editing.
   - [x] Add keyboard-discoverable toolbar popover for page references.
@@ -1242,6 +1243,17 @@ Decision gate:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/keyboard-shortcuts/shortcuts.test.ts src/components/FloatingToolbar.test.tsx`
   - `pnpm --filter @xnetjs/editor typecheck`
   - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
+
+2026-05-31 slash promptless setup checkpoint:
+
+- Replaced the remaining editor-side `window.prompt` fallbacks for slash Page and Database insertion with inline setup cards.
+- Page setup cards collect a title or page ID, derive the page target, and update the card in place.
+- Database setup cards collect a database ID, expose the same view choices as the toolbar popover, and can reuse the configured database picker when available.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/slash-command/items.test.ts src/extensions/page-embed/PageEmbedNodeView.test.tsx src/extensions/database-embed/DatabaseEmbedNodeView.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+  - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5174 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
+- In-app browser Storybook render smoke passed against `core-editor-richtexteditor--playground`: three editor roots rendered, database embeds rendered, and no warning/error console logs were reported.
 
 2026-05-31 page body/title Backspace checkpoint:
 
@@ -1443,6 +1455,7 @@ Decision gate:
 - [x] Database toolbar popover can use the configured database picker when available.
 - [x] Media toolbar popover inserts supported rich media embeds from URL.
 - [x] Media toolbar popover keeps the selection toolbar visible while input owns focus.
+- [x] Slash Page and Database commands avoid `window.prompt` and show inline setup cards.
 - [x] Slash menu opens at `/` and filters command list.
 - [x] Slash menu descriptions are covered by e2e for common task-list insertion.
 - [x] Slash menu can insert database embeds, media embeds, callouts, toggles, and code blocks.

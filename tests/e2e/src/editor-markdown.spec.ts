@@ -175,6 +175,65 @@ test.describe('Editor Markdown live editing', () => {
     await expect(editor).toContainText('/task')
   })
 
+  test('slash page setup avoids prompt dialogs and creates a page embed', async ({ page }) => {
+    const editor = await createBlankPage(page)
+    const dialogs: string[] = []
+    page.on('dialog', async (dialog) => {
+      dialogs.push(dialog.type())
+      await dialog.dismiss()
+    })
+
+    await editor.click()
+    await page.keyboard.type('/page')
+
+    const menu = page.getByTestId('slash-menu')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('option', { name: 'Page' }).click()
+
+    const setupCard = page.getByTestId('page-embed-setup')
+    await expect(setupCard).toBeVisible()
+    await expect.poll(() => dialogs).toEqual([])
+
+    await setupCard.getByRole('textbox', { name: 'Page title or ID' }).fill('Project Brief')
+    await setupCard.getByRole('button', { name: 'Create' }).click()
+
+    await expect(
+      page.locator('[data-page-embed-card][data-page-id="default/project-brief"]', {
+        hasText: 'Project Brief'
+      })
+    ).toBeVisible()
+  })
+
+  test('slash database setup avoids prompt dialogs and creates a selected view', async ({
+    page
+  }) => {
+    const editor = await createBlankPage(page)
+    const dialogs: string[] = []
+    page.on('dialog', async (dialog) => {
+      dialogs.push(dialog.type())
+      await dialog.dismiss()
+    })
+
+    await editor.click()
+    await page.keyboard.type('/database')
+
+    const menu = page.getByTestId('slash-menu')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('option', { name: 'Database' }).click()
+
+    const setupCard = page.getByTestId('database-embed-setup')
+    await expect(setupCard).toBeVisible()
+    await expect.poll(() => dialogs).toEqual([])
+
+    await setupCard.getByRole('textbox', { name: 'Database ID' }).fill('db-planning')
+    await setupCard.getByRole('radio', { name: 'Calendar view' }).click()
+    await setupCard.getByRole('button', { name: 'Insert' }).click()
+
+    const databaseEmbed = page.locator('[data-database-embed]', { hasText: 'db-planning' })
+    await expect(databaseEmbed).toBeVisible()
+    await expect(databaseEmbed.getByText('Calendar View')).toBeVisible()
+  })
+
   test('selection toolbar exposes minimalist buttons with shortcut hints', async ({ page }) => {
     const editor = await createBlankPage(page)
 

@@ -7,6 +7,7 @@ type CommandRecorder = {
   calls: string[]
   payloads: Map<string, unknown[]>
   commands: {
+    insertContent: ReturnType<typeof vi.fn>
     setDatabaseEmbed: ReturnType<typeof vi.fn>
     setPageEmbed: ReturnType<typeof vi.fn>
   }
@@ -28,7 +29,13 @@ function createCommandRecorder(): CommandRecorder {
   const calls: string[] = []
   const payloads = new Map<string, unknown[]>()
   const extensions: CommandRecorder['extensions'] = []
+  const recordCommand = (name: string, ...args: unknown[]) => {
+    calls.push(`commands.${name}`)
+    payloads.set(`commands.${name}`, args)
+    return true
+  }
   const commands = {
+    insertContent: vi.fn((...args: unknown[]) => recordCommand('insertContent', ...args)),
     setDatabaseEmbed: vi.fn(),
     setPageEmbed: vi.fn()
   }
@@ -193,18 +200,44 @@ describe('slash command items', () => {
       })
     })
 
-    it('inserts a prompted page from the page slash command', () => {
+    it('inserts a page setup card from the page slash command without prompting', () => {
       const recorder = createCommandRecorder()
-      const prompt = vi.spyOn(window, 'prompt').mockReturnValue('Launch Plan')
+      const prompt = vi.spyOn(window, 'prompt')
 
       getCommand('Page').command({ editor: recorder.editor, range })
 
-      expect(prompt).toHaveBeenCalledWith('Page title or ID:')
-      expect(recorder.commands.setPageEmbed).toHaveBeenCalledWith({
-        pageId: 'default/launch-plan',
-        title: 'Launch Plan',
-        subtitle: 'Embedded page'
+      expect(prompt).not.toHaveBeenCalled()
+      expect(recorder.payloads.get('commands.insertContent')?.[0]).toMatchObject({
+        type: 'pageEmbed',
+        attrs: {
+          pageId: null,
+          title: null,
+          subtitle: 'Embedded page',
+          icon: 'PG',
+          preview: null
+        }
       })
+      expect(recorder.commands.setPageEmbed).not.toHaveBeenCalled()
+
+      prompt.mockRestore()
+    })
+
+    it('inserts a database setup card from the database slash command without prompting', () => {
+      const recorder = createCommandRecorder()
+      const prompt = vi.spyOn(window, 'prompt')
+
+      getCommand('Database').command({ editor: recorder.editor, range })
+
+      expect(prompt).not.toHaveBeenCalled()
+      expect(recorder.payloads.get('commands.insertContent')?.[0]).toMatchObject({
+        type: 'databaseEmbed',
+        attrs: {
+          databaseId: null,
+          viewType: 'table',
+          viewConfig: {}
+        }
+      })
+      expect(recorder.commands.setDatabaseEmbed).not.toHaveBeenCalled()
 
       prompt.mockRestore()
     })

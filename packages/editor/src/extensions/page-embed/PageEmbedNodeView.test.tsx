@@ -23,7 +23,8 @@ type PageEmbedNodeAttrs = {
 
 function createProps(
   attrs: Partial<PageEmbedNodeAttrs> = {},
-  onNavigate = vi.fn()
+  onNavigate = vi.fn(),
+  updateAttributes = vi.fn()
 ): PageEmbedNodeViewProps {
   return {
     node: {
@@ -37,6 +38,7 @@ function createProps(
       }
     },
     selected: false,
+    updateAttributes,
     extension: {
       options: { onNavigate }
     }
@@ -66,12 +68,44 @@ describe('PageEmbedNodeView', () => {
     expect(onNavigate).toHaveBeenCalledWith('default/roadmap')
   })
 
-  it('does not navigate without a page id', () => {
+  it('shows an inline setup card when no page id exists', () => {
     const onNavigate = vi.fn()
+    const updateAttributes = vi.fn()
 
-    render(<PageEmbedNodeView {...createProps({ pageId: null }, onNavigate)} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Open Roadmap' }))
+    render(
+      <PageEmbedNodeView
+        {...createProps({ pageId: null, title: null }, onNavigate, updateAttributes)}
+      />
+    )
+
+    expect(screen.getByTestId('page-embed-setup')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Open/i })).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Page title or ID' }), {
+      target: { value: 'Launch Plan' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
     expect(onNavigate).not.toHaveBeenCalled()
+    expect(updateAttributes).toHaveBeenCalledWith({
+      pageId: 'default/launch-plan',
+      title: 'Launch Plan',
+      subtitle: 'Embedded page',
+      icon: 'LP'
+    })
+  })
+
+  it('keeps the page setup card open until a title or ID is entered', () => {
+    const updateAttributes = vi.fn()
+
+    render(
+      <PageEmbedNodeView
+        {...createProps({ pageId: null, title: null }, vi.fn(), updateAttributes)}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    expect(updateAttributes).not.toHaveBeenCalled()
+    expect(screen.getByText('Enter a page title or ID')).toBeInTheDocument()
   })
 })

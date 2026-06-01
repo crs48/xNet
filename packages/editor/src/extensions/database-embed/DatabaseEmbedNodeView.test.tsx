@@ -100,4 +100,33 @@ describe('DatabaseEmbedNodeView', () => {
       viewConfig
     })
   })
+
+  it('shows an inline setup card when no database id exists', () => {
+    const props = createProps({ databaseId: null })
+    render(<DatabaseEmbedNodeView {...props} />)
+
+    expect(screen.getByTestId('database-embed-setup')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Database ID' }), {
+      target: { value: 'db-launch' }
+    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Board view' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Insert' }))
+
+    expect(props.updateAttributes).toHaveBeenCalledWith({
+      databaseId: 'db-launch',
+      viewType: 'board',
+      viewConfig: {}
+    })
+  })
+
+  it('keeps the database setup card open until an id is entered', () => {
+    const props = createProps({ databaseId: null })
+    render(<DatabaseEmbedNodeView {...props} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Insert' }))
+
+    expect(props.updateAttributes).not.toHaveBeenCalled()
+    expect(screen.getByText('Enter a database ID')).toBeInTheDocument()
+  })
 })

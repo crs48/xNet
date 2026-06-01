@@ -24,16 +24,28 @@ export interface SlashCommandGroup {
   items: SlashCommandItem[]
 }
 
-function createPageEmbedTarget(value: string): { pageId: string; title: string } | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
+function insertPageEmbedSetup(editor: Editor): boolean {
+  return editor.commands.insertContent({
+    type: 'pageEmbed',
+    attrs: {
+      pageId: null,
+      title: null,
+      subtitle: 'Embedded page',
+      icon: 'PG',
+      preview: null
+    }
+  })
+}
 
-  return {
-    pageId: trimmed.includes('/')
-      ? trimmed
-      : `default/${trimmed.toLowerCase().replace(/\s+/g, '-')}`,
-    title: trimmed
-  }
+function insertDatabaseEmbedSetup(editor: Editor): boolean {
+  return editor.commands.insertContent({
+    type: 'databaseEmbed',
+    attrs: {
+      databaseId: null,
+      viewType: 'table',
+      viewConfig: {}
+    }
+  })
 }
 
 /**
@@ -378,15 +390,7 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
         searchTerms: ['page', 'document', 'reference', 'embed', 'wiki'],
         command: ({ editor, range }) => {
           editor.chain().focus().deleteRange(range).run()
-
-          const page = createPageEmbedTarget(window.prompt('Page title or ID:') ?? '')
-          if (!page) return
-
-          editor.commands.setPageEmbed({
-            pageId: page.pageId,
-            title: page.title,
-            subtitle: 'Embedded page'
-          })
+          insertPageEmbedSetup(editor)
         }
       },
       {
@@ -411,11 +415,7 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
               }
             })
           } else {
-            // Fallback: prompt for database ID
-            const databaseId = window.prompt('Database ID:')
-            if (databaseId?.trim()) {
-              editor.commands.setDatabaseEmbed({ databaseId: databaseId.trim() })
-            }
+            insertDatabaseEmbedSetup(editor)
           }
         }
       },
