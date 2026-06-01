@@ -641,7 +641,9 @@ Updated on 2026-06-01:
 - Adaptive indexes now track estimated footprint and indexed row counts, skip candidates that exceed per-schema disk/write budgets, drop stale or least-recently-used indexes when over budget, and emit opt-in query/adaptive-index debug logs via `xnet:query:debug`.
 - Auth-sensitive `NodeStore.query` reads now bypass storage pushdown, apply read authorization before descriptor pagination, and redact plan counts to visible nodes only so hidden rows cannot be inferred.
 - `@xnetjs/sqlite` now probes runtime FTS5 and R-Tree virtual-table support. SQLite-backed NodeStore query plans include those capabilities, and existing FTS helpers no-op when FTS5 is unavailable.
-- R-Tree/FTS query pushdown, large synthetic performance tests, mutation benchmarks, and hot view materialization remain future work.
+- SQLite NodeStore synthetic benchmarks now cover 1k, 10k, 100k, and 1M node scales in `packages/data/benchmarks/sqlite-node-store.bench.ts`; 100k and 1M runs are opt-in via `XNET_SQLITE_BENCH_MAX_NODES`.
+- Mutation benchmarks now measure scalar sidecar replacement, adaptive-index maintenance, and an explicit write-amplification budget model.
+- R-Tree/FTS query pushdown and hot view materialization remain future work.
 
 ## Validation Checklist
 
@@ -659,8 +661,8 @@ Updated on 2026-06-01:
 - [x] `PRAGMA optimize` or diagnostics flow runs after adaptive index changes.
 - [x] Adaptive indexes are dropped when unused or over budget.
 - [x] SQLite capability detection disables FTS/R-Tree paths where unavailable.
-- [ ] Performance tests cover 1k, 10k, 100k, and 1M node synthetic datasets where feasible.
-- [ ] Mutation benchmarks measure write amplification from scalar and adaptive indexes.
+- [x] Performance tests cover 1k, 10k, 100k, and 1M node synthetic datasets where feasible.
+- [x] Mutation benchmarks measure write amplification from scalar and adaptive indexes.
 - [x] Electron IPC path avoids serializing full schema results for paginated reads.
 - [x] Query diagnostics are visible enough to debug slow user workspaces.
 
