@@ -19,7 +19,15 @@ import type {
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
 import type { SQLiteAdapter, SQLValue, PreparedStatement } from '@xnetjs/sqlite'
-import { updateNodeFTS, deleteNodeFTS, extractSearchableContent } from '@xnetjs/sqlite'
+import {
+  updateNodeFTS,
+  deleteNodeFTS,
+  extractSearchableContent,
+  analyzeQuery,
+  getIndexInfo,
+  runAnalyze,
+  timeQuery
+} from '@xnetjs/sqlite'
 import {
   applyNodeQueryDescriptor,
   withoutNodeQueryPagination,
@@ -150,6 +158,15 @@ interface QueryDescriptorStatsRow {
   avg_duration_ms: number
   avg_candidates: number
   [key: string]: SQLValue
+}
+
+interface CompiledQueryDiagnostics {
+  usedIndexNames?: string[]
+  fullTableScan?: boolean
+  queryPlanDetails?: string[]
+  availableIndexCount?: number
+  adaptiveIndexCount?: number
+  diagnosticsError?: string
 }
 
 const DEFAULT_ADAPTIVE_INDEXING: AdaptiveIndexingConfig = {
@@ -569,7 +586,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return result
     }
 
-    const idRows = await this.db.query<{ id: string }>(compiled.sql, compiled.params)
+    const [queryDiagnostics, idQuery] = await Promise.all([
+      this.collectCompiledQueryDiagnostics(compiled),
+      timeQuery<{ id: string }>(this.db, compiled.sql, compiled.params)
+    ])
+    const idRows = idQuery.result
     const ids = idRows.map((row) => row.id)
     const candidates = await this.hydrateNodesByIds(ids)
     const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
@@ -583,7 +604,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         durationMs: Date.now() - start,
         sql: compiled.sql,
         params: compiled.params,
-        postFilterReason: compiled.postFilterReason
+        postFilterReason: compiled.postFilterReason,
+        candidateQueryDurationMs: idQuery.durationMs,
+        ...queryDiagnostics
       }
     }
     result.plan.parityCheck = await this.auditQueryParity(descriptor, result)
@@ -1078,6 +1101,32 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return { descriptorHash, adaptiveIndexNames }
   }
 
+  private async collectCompiledQueryDiagnostics(
+    compiled: CompiledNodeQuery
+  ): Promise<CompiledQueryDiagnostics> {
+    try {
+      const [analysis, indexes] = await Promise.all([
+        analyzeQuery(this.db, compiled.sql, compiled.params),
+        getIndexInfo(this.db)
+      ])
+      const adaptiveIndexCount = indexes.filter((index) =>
+        index.name.startsWith('idx_auto_prop_')
+      ).length
+
+      return {
+        usedIndexNames: analysis.usedIndexes,
+        fullTableScan: analysis.fullTableScan,
+        queryPlanDetails: analysis.plan.map((step) => step.detail),
+        availableIndexCount: indexes.length,
+        adaptiveIndexCount
+      }
+    } catch (err) {
+      return {
+        diagnosticsError: err instanceof Error ? err.message : String(err)
+      }
+    }
+  }
+
   private async auditQueryParity(
     descriptor: NodeQueryDescriptor,
     result: NodeQueryResult
@@ -1281,6 +1330,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     if (createdIndex) {
+      await runAnalyze(this.db, 'node_property_scalars')
       await this.db.exec('PRAGMA optimize')
     }
 

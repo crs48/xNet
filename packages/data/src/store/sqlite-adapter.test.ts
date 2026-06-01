@@ -548,6 +548,14 @@ describe('SQLiteNodeStorageAdapter', () => {
         comparedNodeCount: 4,
         expectedNodeCount: 1
       })
+      expect(result.plan.candidateQueryDurationMs).toEqual(expect.any(Number))
+      expect(result.plan.usedIndexNames).toContain('idx_prop_scalars_text')
+      expect(
+        result.plan.queryPlanDetails?.some((detail) => detail.includes('idx_prop_scalars_text'))
+      ).toBe(true)
+      expect(result.plan.availableIndexCount).toBeGreaterThan(0)
+      expect(result.plan.adaptiveIndexCount).toBe(0)
+      expect(result.plan.diagnosticsError).toBeUndefined()
     })
 
     it('matches null and boolean scalar equality without matching missing values', async () => {

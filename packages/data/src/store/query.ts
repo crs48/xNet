@@ -80,6 +80,13 @@ export interface NodeQueryPlanMetadata {
   postFilterReason?: string
   descriptorHash?: string
   adaptiveIndexNames?: string[]
+  candidateQueryDurationMs?: number
+  usedIndexNames?: string[]
+  fullTableScan?: boolean
+  queryPlanDetails?: string[]
+  availableIndexCount?: number
+  adaptiveIndexCount?: number
+  diagnosticsError?: string
   parityCheck?: NodeQueryParityCheckMetadata
 }
 
