@@ -793,8 +793,10 @@ describe('SQLiteNodeStorageAdapter', () => {
         property_key: string
         value_type: string
         ddl: string
+        estimated_bytes: number
+        estimated_rows: number
       }>(
-        `SELECT index_name, property_key, value_type, ddl
+        `SELECT index_name, property_key, value_type, ddl, estimated_bytes, estimated_rows
          FROM query_index_candidates
          ORDER BY index_name ASC`
       )
@@ -810,6 +812,8 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(candidates[0].property_key).toBe('status')
       expect(candidates[0].value_type).toBe('text')
       expect(candidates[0].ddl).toContain("property_key = 'status'")
+      expect(candidates[0].estimated_bytes).toBeGreaterThan(0)
+      expect(candidates[0].estimated_rows).toBe(2)
       expect(adaptiveIndexes.map((row) => row.name)).toEqual([candidates[0].index_name])
     })
 
@@ -844,6 +848,157 @@ describe('SQLiteNodeStorageAdapter', () => {
       )
 
       expect(budgetedIndexes).toHaveLength(1)
+    })
+
+    it('replaces the least-recently-used adaptive index when the count budget is full', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 1
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open', priority: 1 }
+        })
+      ])
+
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { priority: 1 }
+      })
+      const candidates = await db.query<{ property_key: string }>(
+        `SELECT property_key
+         FROM query_index_candidates
+         WHERE schema_id = ?
+         ORDER BY property_key ASC`,
+        [taskSchemaId]
+      )
+
+      expect(candidates).toEqual([{ property_key: 'priority' }])
+    })
+
+    it('drops stale adaptive indexes before creating new ones', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 8,
+          dropUnusedAfterMs: 1
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open', priority: 1 }
+        })
+      ])
+
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      await db.run('UPDATE query_index_candidates SET last_used_at = 0')
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { priority: 1 }
+      })
+      const candidates = await db.query<{ property_key: string }>(
+        `SELECT property_key
+         FROM query_index_candidates
+         WHERE schema_id = ?
+         ORDER BY property_key ASC`,
+        [taskSchemaId]
+      )
+
+      expect(candidates).toEqual([{ property_key: 'priority' }])
+    })
+
+    it('skips adaptive indexes that exceed the estimated byte budget', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 8,
+          maxEstimatedBytesPerSchema: 1,
+          maxIndexedRowsPerSchema: 10_000
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      const candidates = await db.query<{ index_name: string }>(
+        'SELECT index_name FROM query_index_candidates'
+      )
+
+      expect(result.plan.adaptiveIndexNames).toBeUndefined()
+      expect(candidates).toEqual([])
+    })
+
+    it('skips adaptive indexes that exceed the indexed-row write budget', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 8,
+          maxEstimatedBytesPerSchema: 10_000,
+          maxIndexedRowsPerSchema: 1
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        }),
+        createTestNode({
+          id: 'task-done',
+          schemaId: taskSchemaId,
+          properties: { status: 'done' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      const candidates = await db.query<{ index_name: string }>(
+        'SELECT index_name FROM query_index_candidates'
+      )
+
+      expect(result.plan.adaptiveIndexNames).toBeUndefined()
+      expect(candidates).toEqual([])
     })
   })
 

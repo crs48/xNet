@@ -108,6 +108,9 @@ interface AdaptiveIndexingConfig {
   minDurationMs: number
   minCandidates: number
   maxIndexesPerSchema: number
+  maxEstimatedBytesPerSchema: number
+  maxIndexedRowsPerSchema: number
+  dropUnusedAfterMs: number
 }
 
 interface QueryVerificationConfig {
@@ -122,6 +125,9 @@ export interface SQLiteAdaptiveIndexingOptions {
   minDurationMs?: number
   minCandidates?: number
   maxIndexesPerSchema?: number
+  maxEstimatedBytesPerSchema?: number
+  maxIndexedRowsPerSchema?: number
+  dropUnusedAfterMs?: number
 }
 
 export interface SQLiteQueryVerificationOptions {
@@ -160,6 +166,17 @@ interface QueryDescriptorStatsRow {
   [key: string]: SQLValue
 }
 
+interface AdaptiveIndexBudgetEstimate {
+  rowCount: number
+  estimatedBytes: number
+}
+
+interface AdaptiveIndexBudgetUsage {
+  count: number
+  estimatedBytes: number
+  indexedRows: number
+}
+
 interface CompiledQueryDiagnostics {
   usedIndexNames?: string[]
   fullTableScan?: boolean
@@ -174,7 +191,10 @@ const DEFAULT_ADAPTIVE_INDEXING: AdaptiveIndexingConfig = {
   minHits: 20,
   minDurationMs: 16,
   minCandidates: 2000,
-  maxIndexesPerSchema: 8
+  maxIndexesPerSchema: 8,
+  maxEstimatedBytesPerSchema: 16 * 1024 * 1024,
+  maxIndexedRowsPerSchema: 250_000,
+  dropUnusedAfterMs: 30 * 24 * 60 * 60 * 1000
 }
 
 const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
@@ -212,6 +232,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private adaptiveIndexing: AdaptiveIndexingConfig
 
   private queryVerification: QueryVerificationConfig
+
+  private adaptiveIndexBudgetColumnsReady = false
 
   constructor(
     private db: SQLiteAdapter,
@@ -582,6 +604,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       if (telemetry.adaptiveIndexNames.length > 0) {
         result.plan.adaptiveIndexNames = telemetry.adaptiveIndexNames
       }
+      this.debugQueryPlan(descriptor, result)
 
       return result
     }
@@ -619,6 +642,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     if (telemetry.adaptiveIndexNames.length > 0) {
       result.plan.adaptiveIndexNames = telemetry.adaptiveIndexNames
     }
+    this.debugQueryPlan(descriptor, result)
 
     return result
   }
@@ -1127,6 +1151,34 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
   }
 
+  private debugQueryPlan(descriptor: NodeQueryDescriptor, result: NodeQueryResult): void {
+    if (!this.isQueryDebugEnabled()) {
+      return
+    }
+
+    console.debug('[SQLiteNodeStorageAdapter] query plan', {
+      descriptor,
+      plan: result.plan
+    })
+  }
+
+  private isQueryDebugEnabled(): boolean {
+    try {
+      const storage = (
+        globalThis as {
+          localStorage?: { getItem: (key: string) => string | null }
+        }
+      ).localStorage
+
+      return (
+        storage?.getItem('xnet:query:debug') === 'true' ||
+        storage?.getItem('xnet:sync:debug') === 'true'
+      )
+    } catch {
+      return false
+    }
+  }
+
   private async auditQueryParity(
     descriptor: NodeQueryDescriptor,
     result: NodeQueryResult
@@ -1242,6 +1294,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     hints: AdaptiveIndexHint[]
     now: number
   }): Promise<string[]> {
+    await this.ensureAdaptiveIndexBudgetColumns()
+
     const uniqueHints = Array.from(
       new Map(
         input.hints.map((hint) => [`${hint.propertyKey}:${hint.scalar.valueType}`, hint])
@@ -1252,21 +1306,18 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return []
     }
 
-    const indexCount = await this.db.queryOne<{ count: number }>(
-      `SELECT COUNT(*) as count
-       FROM query_index_candidates
-       WHERE schema_id = ?`,
-      [input.schemaId]
-    )
-    let remainingNewIndexes = Math.max(
-      0,
-      this.adaptiveIndexing.maxIndexesPerSchema - (indexCount?.count ?? 0)
-    )
+    await this.pruneAdaptiveIndexes(input.schemaId, input.now, [])
+
     const touchedIndexNames: string[] = []
     let createdIndex = false
 
     for (const hint of uniqueHints) {
       const indexName = this.buildAdaptiveIndexName(
+        input.schemaId,
+        hint.propertyKey,
+        hint.scalar.valueType
+      )
+      const estimate = await this.estimateAdaptiveIndexBudget(
         input.schemaId,
         hint.propertyKey,
         hint.scalar.valueType
@@ -1281,15 +1332,24 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       if (existing) {
         await this.db.run(
           `UPDATE query_index_candidates
-           SET descriptor_hash = ?, last_used_at = ?
+           SET descriptor_hash = ?,
+               last_used_at = ?,
+               estimated_bytes = ?,
+               estimated_rows = ?
            WHERE index_name = ?`,
-          [input.descriptorHash, input.now, indexName]
+          [input.descriptorHash, input.now, estimate.estimatedBytes, estimate.rowCount, indexName]
         )
         touchedIndexNames.push(indexName)
         continue
       }
 
-      if (remainingNewIndexes <= 0) {
+      const hasBudget = await this.makeAdaptiveIndexBudgetRoom({
+        schemaId: input.schemaId,
+        estimate,
+        protectedIndexNames: touchedIndexNames,
+        now: input.now
+      })
+      if (!hasBudget) {
         continue
       }
 
@@ -1310,9 +1370,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
             value_type,
             ddl,
             created_at,
-            last_used_at
+            last_used_at,
+            estimated_bytes,
+            estimated_rows
           )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           indexName,
           input.descriptorHash,
@@ -1321,11 +1383,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           hint.scalar.valueType,
           ddl,
           input.now,
-          input.now
+          input.now,
+          estimate.estimatedBytes,
+          estimate.rowCount
         ]
       )
       touchedIndexNames.push(indexName)
-      remainingNewIndexes -= 1
       createdIndex = true
     }
 
@@ -1335,6 +1398,243 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     return touchedIndexNames
+  }
+
+  private async ensureAdaptiveIndexBudgetColumns(): Promise<void> {
+    if (this.adaptiveIndexBudgetColumnsReady) {
+      return
+    }
+
+    const columns = await this.db.query<{ name: string }>(
+      'PRAGMA table_info(query_index_candidates)'
+    )
+    const columnNames = new Set(columns.map((column) => column.name))
+    let changed = false
+
+    if (!columnNames.has('estimated_bytes')) {
+      await this.db.exec(
+        'ALTER TABLE query_index_candidates ADD COLUMN estimated_bytes INTEGER NOT NULL DEFAULT 0'
+      )
+      changed = true
+    }
+
+    if (!columnNames.has('estimated_rows')) {
+      await this.db.exec(
+        'ALTER TABLE query_index_candidates ADD COLUMN estimated_rows INTEGER NOT NULL DEFAULT 0'
+      )
+      changed = true
+    }
+
+    if (changed && (await this.db.getSchemaVersion()) < 4) {
+      await this.db.setSchemaVersion(4)
+    }
+
+    this.adaptiveIndexBudgetColumnsReady = true
+  }
+
+  private async estimateAdaptiveIndexBudget(
+    schemaId: SchemaIRI,
+    propertyKey: string,
+    valueType: ScalarValueType
+  ): Promise<AdaptiveIndexBudgetEstimate> {
+    const valueBytesExpression = this.getAdaptiveIndexValueBytesExpression(valueType)
+    const row = await this.db.queryOne<{
+      row_count: number
+      estimated_bytes: number
+    }>(
+      `SELECT
+         COUNT(*) as row_count,
+         COALESCE(SUM(LENGTH(node_id) + ${valueBytesExpression} + 32), 0) as estimated_bytes
+       FROM node_property_scalars
+       WHERE schema_id = ?
+         AND property_key = ?
+         AND value_type = ?`,
+      [schemaId, propertyKey, valueType]
+    )
+
+    return {
+      rowCount: Number(row?.row_count ?? 0),
+      estimatedBytes: Number(row?.estimated_bytes ?? 0)
+    }
+  }
+
+  private getAdaptiveIndexValueBytesExpression(valueType: ScalarValueType): string {
+    switch (valueType) {
+      case 'text':
+        return 'COALESCE(LENGTH(value_text), 0)'
+      case 'number':
+        return '8'
+      case 'boolean':
+        return '1'
+      case 'null':
+        return '0'
+    }
+  }
+
+  private async makeAdaptiveIndexBudgetRoom(input: {
+    schemaId: SchemaIRI
+    estimate: AdaptiveIndexBudgetEstimate
+    protectedIndexNames: string[]
+    now: number
+  }): Promise<boolean> {
+    await this.pruneAdaptiveIndexes(input.schemaId, input.now, input.protectedIndexNames)
+
+    let droppedIndex = true
+    while (droppedIndex) {
+      const usage = await this.getAdaptiveIndexBudgetUsage(input.schemaId)
+      const withinBudget =
+        usage.count + 1 <= this.adaptiveIndexing.maxIndexesPerSchema &&
+        usage.estimatedBytes + input.estimate.estimatedBytes <=
+          this.adaptiveIndexing.maxEstimatedBytesPerSchema &&
+        usage.indexedRows + input.estimate.rowCount <= this.adaptiveIndexing.maxIndexedRowsPerSchema
+
+      if (withinBudget) {
+        return true
+      }
+
+      droppedIndex = await this.dropLeastUsefulAdaptiveIndex(
+        input.schemaId,
+        input.protectedIndexNames,
+        'over-budget'
+      )
+
+      if (!droppedIndex) {
+        return false
+      }
+    }
+
+    return false
+  }
+
+  private async pruneAdaptiveIndexes(
+    schemaId: SchemaIRI,
+    now: number,
+    protectedIndexNames: string[]
+  ): Promise<void> {
+    if (this.adaptiveIndexing.dropUnusedAfterMs >= 0) {
+      const cutoff = now - this.adaptiveIndexing.dropUnusedAfterMs
+      const protectedFilter = this.buildProtectedIndexFilter(protectedIndexNames)
+      const staleIndexes = await this.db.query<{ index_name: string }>(
+        `SELECT index_name
+         FROM query_index_candidates
+         WHERE schema_id = ?
+           AND last_used_at < ?
+           ${protectedFilter.clause}
+         ORDER BY last_used_at ASC, created_at ASC, index_name ASC`,
+        [schemaId, cutoff, ...protectedFilter.params]
+      )
+
+      for (const row of staleIndexes) {
+        await this.dropAdaptiveIndex(row.index_name, 'unused')
+      }
+    }
+
+    let droppedIndex = true
+    while (droppedIndex) {
+      const usage = await this.getAdaptiveIndexBudgetUsage(schemaId)
+      const withinBudget =
+        usage.count <= this.adaptiveIndexing.maxIndexesPerSchema &&
+        usage.estimatedBytes <= this.adaptiveIndexing.maxEstimatedBytesPerSchema &&
+        usage.indexedRows <= this.adaptiveIndexing.maxIndexedRowsPerSchema
+
+      if (withinBudget) {
+        return
+      }
+
+      droppedIndex = await this.dropLeastUsefulAdaptiveIndex(
+        schemaId,
+        protectedIndexNames,
+        'over-budget'
+      )
+
+      if (!droppedIndex) {
+        return
+      }
+    }
+  }
+
+  private async getAdaptiveIndexBudgetUsage(
+    schemaId: SchemaIRI
+  ): Promise<AdaptiveIndexBudgetUsage> {
+    const row = await this.db.queryOne<{
+      count: number
+      estimated_bytes: number
+      indexed_rows: number
+    }>(
+      `SELECT
+         COUNT(*) as count,
+         COALESCE(SUM(estimated_bytes), 0) as estimated_bytes,
+         COALESCE(SUM(estimated_rows), 0) as indexed_rows
+       FROM query_index_candidates
+       WHERE schema_id = ?`,
+      [schemaId]
+    )
+
+    return {
+      count: Number(row?.count ?? 0),
+      estimatedBytes: Number(row?.estimated_bytes ?? 0),
+      indexedRows: Number(row?.indexed_rows ?? 0)
+    }
+  }
+
+  private async dropLeastUsefulAdaptiveIndex(
+    schemaId: SchemaIRI,
+    protectedIndexNames: string[],
+    reason: 'unused' | 'over-budget'
+  ): Promise<boolean> {
+    const protectedFilter = this.buildProtectedIndexFilter(protectedIndexNames)
+    const row = await this.db.queryOne<{ index_name: string }>(
+      `SELECT index_name
+       FROM query_index_candidates
+       WHERE schema_id = ?
+         ${protectedFilter.clause}
+       ORDER BY last_used_at ASC, created_at ASC, index_name ASC
+       LIMIT 1`,
+      [schemaId, ...protectedFilter.params]
+    )
+
+    if (!row) {
+      return false
+    }
+
+    await this.dropAdaptiveIndex(row.index_name, reason)
+    return true
+  }
+
+  private async dropAdaptiveIndex(
+    indexName: string,
+    reason: 'unused' | 'over-budget'
+  ): Promise<void> {
+    await this.db.exec(`DROP INDEX IF EXISTS ${this.quoteSqlIdentifier(indexName)}`)
+    await this.db.run('DELETE FROM query_index_candidates WHERE index_name = ?', [indexName])
+    this.debugAdaptiveIndex('drop', { indexName, reason })
+  }
+
+  private debugAdaptiveIndex(action: 'drop', details: Record<string, unknown>): void {
+    if (!this.isQueryDebugEnabled()) {
+      return
+    }
+
+    console.debug('[SQLiteNodeStorageAdapter] adaptive index', {
+      action,
+      ...details
+    })
+  }
+
+  private buildProtectedIndexFilter(protectedIndexNames: string[]): {
+    clause: string
+    params: SQLValue[]
+  } {
+    const uniqueNames = Array.from(new Set(protectedIndexNames))
+
+    if (uniqueNames.length === 0) {
+      return { clause: '', params: [] }
+    }
+
+    return {
+      clause: `AND index_name NOT IN (${uniqueNames.map(() => '?').join(', ')})`,
+      params: uniqueNames
+    }
   }
 
   private buildAdaptiveIndexName(

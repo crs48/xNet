@@ -6,7 +6,7 @@
  * Current schema version.
  * Increment this when making schema changes.
  */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 /**
  * Core SQLite schema for xNet (without FTS5).
@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS query_index_candidates (
     ddl TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     last_used_at INTEGER NOT NULL,
+    estimated_bytes INTEGER NOT NULL DEFAULT 0,
+    estimated_rows INTEGER NOT NULL DEFAULT 0,
 
     FOREIGN KEY (descriptor_hash) REFERENCES query_descriptor_stats(descriptor_hash)
         ON DELETE CASCADE
@@ -327,6 +329,8 @@ CREATE TABLE IF NOT EXISTS query_index_candidates (
     ddl TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     last_used_at INTEGER NOT NULL,
+    estimated_bytes INTEGER NOT NULL DEFAULT 0,
+    estimated_rows INTEGER NOT NULL DEFAULT 0,
 
     FOREIGN KEY (descriptor_hash) REFERENCES query_descriptor_stats(descriptor_hash)
         ON DELETE CASCADE
@@ -336,6 +340,13 @@ CREATE INDEX IF NOT EXISTS idx_query_stats_schema_seen
     ON query_descriptor_stats(schema_id, last_seen_at DESC);
 CREATE INDEX IF NOT EXISTS idx_query_indexes_schema_property
     ON query_index_candidates(schema_id, property_key, value_type);
+`,
+
+  4: `
+ALTER TABLE query_index_candidates
+    ADD COLUMN estimated_bytes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE query_index_candidates
+    ADD COLUMN estimated_rows INTEGER NOT NULL DEFAULT 0;
 `
 }
 

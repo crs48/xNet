@@ -600,8 +600,8 @@ Expected impact: `useQuery` remains API-compatible while SQLite becomes the firs
 - [x] Use `getIndexInfo`, `analyzeQuery`, `timeQuery`, and `runAnalyze` from `@xnetjs/sqlite` diagnostics.
 - [x] Generate safe per-schema/per-property partial indexes for hot descriptors.
 - [x] Enforce per-schema adaptive index count budgets.
-- [ ] Enforce disk and write-amplification budgets.
-- [ ] Add a devtools panel or debug log for query plans and adaptive indexes.
+- [x] Enforce disk and write-amplification budgets.
+- [x] Add a devtools panel or debug log for query plans and adaptive indexes.
 
 Expected impact: users get automatic read scaling as their actual workspace grows.
 
@@ -637,7 +637,8 @@ Updated on 2026-06-01:
 - Backwards compatibility was intentionally not preserved where it conflicted with the cleaner read-scaling API: `setNode` is treated as a full materialized state replacement for property rows, `ListNodesOptions` now accepts system-field ordering, and NodeStore query semantics are centralized in `@xnetjs/data`.
 - Phase 3 now has a bounded opt-in scalar index advisor: SQLite records descriptor hashes and observed costs by default, and callers can enable thresholded partial-index creation with a per-schema cap. The advisor stores generated DDL for diagnostics and runs `PRAGMA optimize` after creating indexes.
 - SQLite query plans now include diagnostics from `@xnetjs/sqlite`: candidate query timing, used index names, full-scan detection, raw query-plan details, and current index inventory counts. Adaptive index creation also runs `ANALYZE node_property_scalars` before `PRAGMA optimize`.
-- Adaptive index aging/drop policies, disk/write-amplification budgets, R-Tree/FTS query pushdown, and hot view materialization remain future work.
+- Adaptive indexes now track estimated footprint and indexed row counts, skip candidates that exceed per-schema disk/write budgets, drop stale or least-recently-used indexes when over budget, and emit opt-in query/adaptive-index debug logs via `xnet:query:debug`.
+- R-Tree/FTS query pushdown, dedicated auth-leak tests, large synthetic performance tests, mutation benchmarks, and hot view materialization remain future work.
 
 ## Validation Checklist
 
@@ -653,7 +654,7 @@ Updated on 2026-06-01:
 - [ ] Auth-sensitive reads do not expose unauthorized counts or IDs.
 - [x] `EXPLAIN QUERY PLAN` shows expected indexes for default list and hot property filters.
 - [x] `PRAGMA optimize` or diagnostics flow runs after adaptive index changes.
-- [ ] Adaptive indexes are dropped when unused or over budget.
+- [x] Adaptive indexes are dropped when unused or over budget.
 - [ ] SQLite capability detection disables FTS/R-Tree paths where unavailable.
 - [ ] Performance tests cover 1k, 10k, 100k, and 1M node synthetic datasets where feasible.
 - [ ] Mutation benchmarks measure write amplification from scalar and adaptive indexes.
