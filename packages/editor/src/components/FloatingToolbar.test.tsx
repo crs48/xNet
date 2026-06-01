@@ -39,6 +39,7 @@ type MockEditor = {
     focus: ReturnType<typeof vi.fn>
     setComment: ReturnType<typeof vi.fn>
     setDatabaseEmbed: ReturnType<typeof vi.fn>
+    setDatabaseReference: ReturnType<typeof vi.fn>
     setEmbed: ReturnType<typeof vi.fn>
   }
   extensionManager: {
@@ -171,6 +172,7 @@ function createMockEditor() {
       focus: vi.fn(),
       setComment: vi.fn(),
       setDatabaseEmbed: vi.fn(() => true),
+      setDatabaseReference: vi.fn(() => true),
       setEmbed: vi.fn(() => true)
     },
     extensionManager: {
@@ -421,6 +423,32 @@ describe('FloatingToolbar', () => {
     expect(screen.queryByTestId('editor-reference-popover')).not.toBeInTheDocument()
     expect(editor._commands.insertContent).not.toHaveBeenCalled()
     expect(editor.commands.focus).toHaveBeenCalledTimes(1)
+  })
+
+  it('inserts database references through the reference popover', () => {
+    const editor = createMockEditor()
+    editor.isFocused = true
+    editor.state.selection = { from: 2, to: 8, empty: false }
+    editor.state.doc.textBetween.mockReturnValue('Roadmap DB')
+
+    render(<FloatingToolbar editor={editor as unknown as Editor} mode="desktop" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reference' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Database' }))
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Database ID' }), {
+      target: { value: ' db-roadmap ' }
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Database label' }), {
+      target: { value: 'Roadmap Database' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Insert database reference' }))
+
+    expect(editor.commands.setDatabaseReference).toHaveBeenCalledWith({
+      databaseId: 'db-roadmap',
+      title: 'Roadmap Database'
+    })
+    expect(screen.queryByTestId('editor-reference-popover')).not.toBeInTheDocument()
   })
 
   it('keeps desktop toolbar visible while the reference popover owns focus', () => {

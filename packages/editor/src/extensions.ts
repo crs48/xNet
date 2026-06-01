@@ -697,6 +697,12 @@ export {
   type SmartReference,
   type SmartReferenceKind
 } from './extensions/smart-reference'
+export { DatabaseReferenceExtension } from './extensions/database-reference'
+export type {
+  DatabaseReferenceAttrs,
+  DatabaseReferenceOptions,
+  SetDatabaseReferenceOptions
+} from './extensions/database-reference'
 export {
   PageTaskItemExtension,
   collectPageTasks,

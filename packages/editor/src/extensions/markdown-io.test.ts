@@ -7,6 +7,7 @@ import {
   BlockquoteWithSyntax,
   CodeBlockWithSyntax,
   DatabaseEmbedExtension,
+  DatabaseReferenceExtension,
   EmbedExtension,
   HeadingWithSyntax,
   isMarkdownClipboardCandidate,
@@ -43,6 +44,7 @@ function createMarkdownEditor(markdown = ''): Editor {
       BlockquoteWithSyntax,
       CodeBlockWithSyntax,
       DatabaseEmbedExtension,
+      DatabaseReferenceExtension,
       EmbedExtension,
       PageEmbedExtension,
       SmartReferenceExtension,
@@ -310,10 +312,10 @@ describe('TiptapMarkdown integration', () => {
     )
   })
 
-  it('round-trips smart references and wikilinks', () => {
+  it('round-trips smart references, database references, and wikilinks', () => {
     editor = createMarkdownEditor(
       [
-        'Issue {{xnet-ref {"url":"https://github.com/xnetjs/xNet/issues/301","provider":"github","kind":"issue","refId":"301","title":"Issue 301","icon":"GH","metadata":{"repo":"xNet"}}}} and [[Roadmap Page]]'
+        'Issue {{xnet-ref {"url":"https://github.com/xnetjs/xNet/issues/301","provider":"github","kind":"issue","refId":"301","title":"Issue 301","icon":"GH","metadata":{"repo":"xNet"}}}}, {{xnet-db-ref {"databaseId":"db-roadmap","title":"Roadmap DB","icon":"DB"}}}, and [[Roadmap Page]]'
       ].join('\n')
     )
 
@@ -333,7 +335,16 @@ describe('TiptapMarkdown integration', () => {
             metadata: '{"repo":"xNet"}'
           }
         },
-        { type: 'text', text: ' and ' },
+        { type: 'text', text: ', ' },
+        {
+          type: 'databaseReference',
+          attrs: {
+            databaseId: 'db-roadmap',
+            title: 'Roadmap DB',
+            icon: 'DB'
+          }
+        },
+        { type: 'text', text: ', and ' },
         {
           type: 'text',
           text: 'Roadmap Page',
@@ -351,6 +362,9 @@ describe('TiptapMarkdown integration', () => {
     })
     expect(editor.getMarkdown()).toContain(
       '{{xnet-ref {"url":"https://github.com/xnetjs/xNet/issues/301"'
+    )
+    expect(editor.getMarkdown()).toContain(
+      '{{xnet-db-ref {"databaseId":"db-roadmap","title":"Roadmap DB","icon":"DB"}}}'
     )
     expect(editor.getMarkdown()).toContain('[[Roadmap Page]]')
   })

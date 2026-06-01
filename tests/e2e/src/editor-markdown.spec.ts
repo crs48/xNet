@@ -346,6 +346,37 @@ test.describe('Editor Markdown live editing', () => {
     ).toBeVisible()
   })
 
+  test('reference popover inserts database reference chips', async ({ page }) => {
+    const editor = await createBlankPage(page)
+
+    await editor.click()
+    await page.keyboard.type('database reference target')
+    await selectEditorText(page, 'database reference target', {
+      start: 'database '.length,
+      end: 'database reference'.length
+    })
+    await expect
+      .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ''))
+      .toBe('reference')
+
+    const toolbar = page.getByTestId('editor-desktop-toolbar')
+    await expect(toolbar).toBeVisible()
+
+    await toolbar.getByRole('button', { name: 'Reference' }).click()
+    const referencePopover = page.getByTestId('editor-reference-popover')
+    await expect(referencePopover).toBeVisible()
+    await referencePopover.getByRole('tab', { name: 'Database' }).click()
+    await referencePopover.getByRole('textbox', { name: 'Database ID' }).fill('db-roadmap')
+    await referencePopover.getByRole('textbox', { name: 'Database label' }).fill('Roadmap Database')
+    await referencePopover.getByRole('button', { name: 'Insert database reference' }).click()
+
+    await expect(
+      page.locator('a[data-database-reference][data-database-id="db-roadmap"]', {
+        hasText: 'Roadmap Database'
+      })
+    ).toBeVisible()
+  })
+
   test('database popover inserts database embeds with a selected view', async ({ page }) => {
     const editor = await createBlankPage(page)
 

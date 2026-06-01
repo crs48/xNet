@@ -48,6 +48,7 @@ import {
   useId,
   useRef,
   useState,
+  type FormEvent,
   type JSX,
   type KeyboardEvent
 } from 'react'
@@ -297,6 +298,8 @@ function createPageReferenceTarget(value: string): { pageId: string; title: stri
   }
 }
 
+type ReferencePopoverMode = 'page' | 'database'
+
 function getSelectedText(editor: Editor): string {
   const { selection, doc } = editor.state
   if (selection.empty) return ''
@@ -327,6 +330,22 @@ function insertPageReference(editor: Editor, value: string): boolean {
     .run()
 
   return true
+}
+
+function insertDatabaseReference(
+  editor: Editor,
+  databaseId: string,
+  title: string | null | undefined
+): boolean {
+  const normalizedId = normalizeReferenceText(databaseId)
+  if (!normalizedId) return false
+
+  const normalizedTitle = normalizeReferenceText(title) ?? normalizedId
+
+  return editor.commands.setDatabaseReference({
+    databaseId: normalizedId,
+    title: normalizedTitle
+  })
 }
 
 type DatabaseToolbarViewType = 'table' | 'board' | 'list' | 'calendar' | 'gallery' | 'timeline'
@@ -524,14 +543,28 @@ function ReferenceToolbarPopover({
   onOpenChange: (open: boolean) => void
   isMobile: boolean
 }): JSX.Element | null {
-  const inputId = useId()
+  const pageInputId = useId()
+  const databaseInputId = useId()
+  const databaseTitleInputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
-  const [value, setValue] = useState('')
+  const [mode, setMode] = useState<ReferencePopoverMode>('page')
+  const [pageValue, setPageValue] = useState('')
+  const [databaseId, setDatabaseId] = useState('')
+  const [databaseTitle, setDatabaseTitle] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [picking, setPicking] = useState(false)
+
+  const picker = getDatabasePicker(editor)
 
   useEffect(() => {
     if (!open) return
 
-    setValue(getSelectedText(editor))
+    const selectedText = getSelectedText(editor)
+    setMode('page')
+    setPageValue(selectedText)
+    setDatabaseId('')
+    setDatabaseTitle(selectedText)
+    setError(null)
     requestAnimationFrame(() => {
       inputRef.current?.focus()
       inputRef.current?.select()
@@ -543,11 +576,56 @@ function ReferenceToolbarPopover({
     onOpenChange(false)
   }, [editor, onOpenChange])
 
-  const applyReference = useCallback(() => {
-    if (!insertPageReference(editor, value)) return
+  const applyReference = useCallback(
+    (event?: FormEvent<HTMLFormElement>) => {
+      event?.preventDefault()
 
-    onOpenChange(false)
-  }, [editor, onOpenChange, value])
+      if (mode === 'database') {
+        if (!insertDatabaseReference(editor, databaseId, databaseTitle)) {
+          setError('Enter a database ID')
+          inputRef.current?.focus()
+          return
+        }
+
+        onOpenChange(false)
+        return
+      }
+
+      if (!insertPageReference(editor, pageValue)) {
+        setError('Enter a page title or ID')
+        inputRef.current?.focus()
+        return
+      }
+
+      onOpenChange(false)
+    },
+    [databaseId, databaseTitle, editor, mode, onOpenChange, pageValue]
+  )
+
+  const pickDatabase = useCallback(async () => {
+    if (!picker) return
+
+    setPicking(true)
+    setError(null)
+    try {
+      const selectedDatabaseId = await picker()
+      if (selectedDatabaseId) {
+        setDatabaseId(selectedDatabaseId)
+      }
+    } finally {
+      setPicking(false)
+      requestAnimationFrame(() => inputRef.current?.focus())
+    }
+  }, [picker])
+
+  const setReferenceMode = useCallback((nextMode: ReferencePopoverMode) => {
+    setMode(nextMode)
+    setError(null)
+    requestAnimationFrame(() => {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    })
+  }, [])
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLFormElement>) => {
@@ -568,17 +646,14 @@ function ReferenceToolbarPopover({
       role="dialog"
       aria-label="Insert reference"
       className={cn(
-        'absolute z-[60] w-[min(20rem,calc(100vw-1.5rem))] rounded-lg border border-border/70',
+        'absolute z-[60] w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-border/70',
         'bg-popover p-3 text-popover-foreground shadow-xl shadow-black/15',
         'dark:shadow-black/40',
         isMobile ? 'bottom-full right-3 mb-2' : 'right-0 top-full mt-2'
       )}
       onKeyDown={handleKeyDown}
       onMouseDown={(event) => event.stopPropagation()}
-      onSubmit={(event) => {
-        event.preventDefault()
-        applyReference()
-      }}
+      onSubmit={applyReference}
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <span className="text-sm font-medium">Reference</span>
@@ -591,32 +666,138 @@ function ReferenceToolbarPopover({
           <X size={14} aria-hidden="true" />
         </button>
       </div>
-      <label htmlFor={inputId} className="sr-only">
-        Page reference
-      </label>
-      <div className="flex items-center gap-2">
-        <input
-          ref={inputRef}
-          id={inputId}
-          value={value}
-          placeholder="Page title or ID"
-          className={cn(
-            'min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-2 text-sm',
-            'outline-none transition-colors',
-            'placeholder:text-muted-foreground',
-            'focus:border-primary focus:ring-2 focus:ring-primary/20'
-          )}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <button
-          type="submit"
-          aria-label="Insert page reference"
-          className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
-          title="Insert page reference"
-        >
-          <BookOpen size={16} aria-hidden="true" />
-        </button>
+      <div
+        className="mb-3 grid grid-cols-2 rounded-md border border-border bg-muted/40 p-0.5"
+        role="tablist"
+        aria-label="Reference type"
+      >
+        {(['page', 'database'] as const).map((item) => (
+          <button
+            key={item}
+            type="button"
+            role="tab"
+            aria-selected={mode === item}
+            className={cn(
+              'h-7 rounded px-2 text-xs font-medium transition-colors',
+              mode === item
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setReferenceMode(item)}
+          >
+            {item === 'page' ? 'Page' : 'Database'}
+          </button>
+        ))}
       </div>
+      {mode === 'database' ? (
+        <>
+          <label htmlFor={databaseInputId} className="sr-only">
+            Database ID
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              id={databaseInputId}
+              value={databaseId}
+              placeholder="Database ID"
+              aria-invalid={error ? 'true' : undefined}
+              aria-describedby={error ? `${databaseInputId}-error` : undefined}
+              className={cn(
+                'min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-2 text-sm',
+                'outline-none transition-colors',
+                'placeholder:text-muted-foreground',
+                'focus:border-primary focus:ring-2 focus:ring-primary/20',
+                error && 'border-destructive focus:border-destructive focus:ring-destructive/20'
+              )}
+              onChange={(event) => {
+                setDatabaseId(event.target.value)
+                setError(null)
+              }}
+            />
+            {picker && (
+              <button
+                type="button"
+                aria-label="Pick database reference"
+                className="h-9 rounded-md border border-border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground disabled:opacity-60 dark:hover:bg-white/10"
+                disabled={picking}
+                onClick={() => {
+                  void pickDatabase()
+                }}
+              >
+                Pick
+              </button>
+            )}
+            <button
+              type="submit"
+              aria-label="Insert database reference"
+              className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+              title="Insert database reference"
+            >
+              <Database size={16} aria-hidden="true" />
+            </button>
+          </div>
+          <label htmlFor={databaseTitleInputId} className="sr-only">
+            Database label
+          </label>
+          <input
+            id={databaseTitleInputId}
+            value={databaseTitle}
+            placeholder="Optional label"
+            className={cn(
+              'mt-2 w-full rounded-md border border-border bg-background px-2.5 py-2 text-sm',
+              'outline-none transition-colors',
+              'placeholder:text-muted-foreground',
+              'focus:border-primary focus:ring-2 focus:ring-primary/20'
+            )}
+            onChange={(event) => setDatabaseTitle(event.target.value)}
+          />
+          {error && (
+            <p id={`${databaseInputId}-error`} className="mt-2 text-xs text-destructive">
+              {error}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <label htmlFor={pageInputId} className="sr-only">
+            Page reference
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              id={pageInputId}
+              value={pageValue}
+              placeholder="Page title or ID"
+              aria-invalid={error ? 'true' : undefined}
+              aria-describedby={error ? `${pageInputId}-error` : undefined}
+              className={cn(
+                'min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-2 text-sm',
+                'outline-none transition-colors',
+                'placeholder:text-muted-foreground',
+                'focus:border-primary focus:ring-2 focus:ring-primary/20',
+                error && 'border-destructive focus:border-destructive focus:ring-destructive/20'
+              )}
+              onChange={(event) => {
+                setPageValue(event.target.value)
+                setError(null)
+              }}
+            />
+            <button
+              type="submit"
+              aria-label="Insert page reference"
+              className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
+              title="Insert page reference"
+            >
+              <BookOpen size={16} aria-hidden="true" />
+            </button>
+          </div>
+          {error && (
+            <p id={`${pageInputId}-error`} className="mt-2 text-xs text-destructive">
+              {error}
+            </p>
+          )}
+        </>
+      )}
     </form>
   )
 }
@@ -1108,7 +1289,11 @@ function ToolbarContent({
       )}
       <ToolbarButton
         onClick={handleReference}
-        active={editor.isActive('wikilink') || editor.isActive('smartReference')}
+        active={
+          editor.isActive('wikilink') ||
+          editor.isActive('smartReference') ||
+          editor.isActive('databaseReference')
+        }
         title="Reference"
         ariaLabel="Reference"
         isMobile={isMobile}

@@ -40,6 +40,7 @@ import {
   ToggleExtension,
   FileExtension,
   SmartReferenceExtension,
+  DatabaseReferenceExtension,
   EmbedExtension,
   RichLinkExtension,
   PageEmbedExtension,
@@ -507,6 +508,8 @@ export function RichTextEditor({
     }),
     // Compact inline references for URLs pasted inside tasks
     SmartReferenceExtension,
+    // Compact inline references to internal databases
+    DatabaseReferenceExtension,
     // Media embeds (YouTube, Spotify, Vimeo, etc.)
     EmbedExtension,
     // Rich preview cards for generic pasted URLs

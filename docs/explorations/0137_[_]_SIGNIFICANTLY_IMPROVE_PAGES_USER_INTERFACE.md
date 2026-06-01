@@ -1056,10 +1056,10 @@ Decision gate:
 - [x] Add shortcut-aware tooltip/title hints to primary toolbar controls.
 - [x] Add custom hover/focus tooltip popovers to primary toolbar controls.
 - [x] Replace prompt-based slash Page and Database insertions with inline setup cards.
-- [ ] Add keyboard-discoverable popovers for link, reference, database, and embed controls.
+- [x] Add keyboard-discoverable popovers for link, reference, database, and embed controls.
   - [x] Add keyboard-discoverable toolbar popover for link editing.
   - [x] Add keyboard-discoverable toolbar popover for page references.
-  - [ ] Add keyboard-discoverable toolbar popover for database references.
+  - [x] Add keyboard-discoverable toolbar popover for database references.
   - [x] Add keyboard-discoverable toolbar popover for database embeds.
   - [x] Add keyboard-discoverable toolbar popover for rich media embeds.
 
@@ -1082,7 +1082,7 @@ Decision gate:
 - [x] Configure GFM behavior.
 - [x] Add custom Markdown specs for database embeds.
 - [x] Add custom Markdown specs for rich media embeds.
-- [x] Add custom Markdown specs for smart references and page links.
+- [x] Add custom Markdown specs for smart references, database references, and page links.
 - [x] Add round-trip tests from Markdown -> ProseMirror -> Markdown.
 - [x] Add fallback xNet-flavored blocks for data that cannot be represented in plain CommonMark.
 - [x] Preserve user-authored Markdown where possible when serializing.
@@ -1251,6 +1251,16 @@ Decision gate:
 - Database setup cards collect a database ID, expose the same view choices as the toolbar popover, and can reuse the configured database picker when available.
 - Focused tests passed:
   - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/slash-command/items.test.ts src/extensions/page-embed/PageEmbedNodeView.test.tsx src/extensions/database-embed/DatabaseEmbedNodeView.test.tsx`
+  - `pnpm --filter @xnetjs/editor typecheck`
+  - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5174 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
+- In-app browser Storybook render smoke passed against `core-editor-richtexteditor--playground`: three editor roots rendered, database embeds rendered, and no warning/error console logs were reported.
+
+2026-05-31 database reference popover checkpoint:
+
+- Added a compact inline `databaseReference` node so database mentions are separate from full database embeds and page wikilinks.
+- The Reference toolbar popover now has Page and Database modes; Database mode inserts a chip with an internal database ID, optional label, and Markdown round-trip support.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/extensions/database-reference/DatabaseReferenceExtension.test.ts src/components/FloatingToolbar.test.tsx src/extensions/markdown-io.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
   - `PLAYWRIGHT_TEST_BASE_URL=http://localhost:5174 pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-markdown.spec.ts --project=chromium`
 - In-app browser Storybook render smoke passed against `core-editor-richtexteditor--playground`: three editor roots rendered, database embeds rendered, and no warning/error console logs were reported.
@@ -1449,6 +1459,7 @@ Decision gate:
 - [x] Link toolbar popover keeps the selection toolbar visible while URL input owns focus.
 - [x] Link keyboard shortcut opens the same toolbar popover without `window.prompt`.
 - [x] Reference toolbar popover inserts page wikilinks from selected text.
+- [x] Reference toolbar popover inserts database reference chips.
 - [x] Reference toolbar popover keeps the selection toolbar visible while input owns focus.
 - [x] Database toolbar popover inserts database embeds with a selected view.
 - [x] Database toolbar popover keeps the selection toolbar visible while input owns focus.

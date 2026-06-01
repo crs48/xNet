@@ -237,6 +237,22 @@
   background: rgb(239 68 68 / 0.08);
 }
 
+/* Database references */
+.ProseMirror a[data-database-reference] {
+  @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 no-underline;
+  background: rgb(var(--editor-success) / 0.08);
+  border: 1px solid rgb(var(--editor-success) / 0.24);
+  color: rgb(var(--editor-foreground));
+  font-size: 0.875em;
+  line-height: 1.2;
+  vertical-align: baseline;
+}
+
+.ProseMirror a[data-database-reference]:hover {
+  background: rgb(var(--editor-success) / 0.12);
+  border-color: rgb(var(--editor-success) / 0.4);
+}
+
 /* Task metadata chips */
 .ProseMirror span[data-task-mention],
 .ProseMirror time[data-task-due-date] {
