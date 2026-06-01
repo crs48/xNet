@@ -67,6 +67,8 @@ export type {
   NodeQuerySpatialWindow,
   NodeQuerySpatialRadius,
   NodeQuerySpatialFilter,
+  NodeQuerySearchField,
+  NodeQuerySearchFilter,
   NodeQueryOptions,
   NodeQueryDescriptor,
   NodeQueryPlanMetadata,
@@ -81,6 +83,7 @@ export {
   filterNodeQueryResults,
   sortNodeQueryResults,
   applyNodeQueryDescriptor,
+  getNodeQuerySearchTokens,
   nodeQueryDescriptorNeedsBoundedReload,
   withoutNodeQueryPagination
 } from './query'

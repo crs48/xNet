@@ -65,6 +65,13 @@ export type QuerySpatialRadius = {
 
 export type QuerySpatialFilter = QuerySpatialWindow | QuerySpatialRadius
 
+export type QuerySearchField = 'title' | 'content'
+
+export type QuerySearchFilter = {
+  text: string
+  fields?: QuerySearchField[]
+}
+
 /**
  * Options for querying nodes via the DataBridge.
  * Maps to the filter options used by useQuery.
@@ -86,6 +93,8 @@ export interface QueryOptions<
   offset?: number
   /** Spatial filtering for viewport windows, canvases, or geo-style proximity queries */
   spatial?: QuerySpatialFilter
+  /** Tokenized full-text search over searchable node fields */
+  search?: string | QuerySearchFilter
 }
 
 /**
@@ -109,6 +118,8 @@ export interface QueryDescriptor {
   offset?: number
   /** Optional spatial filter metadata used by canvas-style queries */
   spatial?: QuerySpatialFilter
+  /** Optional full-text filter metadata */
+  search?: QuerySearchFilter
 }
 
 /**

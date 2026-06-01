@@ -46,6 +46,13 @@ export type NodeQuerySpatialRadius = {
 
 export type NodeQuerySpatialFilter = NodeQuerySpatialWindow | NodeQuerySpatialRadius
 
+export type NodeQuerySearchField = 'title' | 'content'
+
+export type NodeQuerySearchFilter = {
+  text: string
+  fields?: NodeQuerySearchField[]
+}
+
 export interface NodeQueryOptions<
   P extends Record<string, PropertyBuilder> = Record<string, PropertyBuilder>
 > {
@@ -56,6 +63,7 @@ export interface NodeQueryOptions<
   limit?: number
   offset?: number
   spatial?: NodeQuerySpatialFilter
+  search?: string | NodeQuerySearchFilter
 }
 
 export interface NodeQueryDescriptor {
@@ -67,6 +75,7 @@ export interface NodeQueryDescriptor {
   limit?: number
   offset?: number
   spatial?: NodeQuerySpatialFilter
+  search?: NodeQuerySearchFilter
 }
 
 export interface NodeQueryPlanMetadata {
@@ -90,6 +99,7 @@ export interface NodeQueryPlanMetadata {
   storageCapabilities?: NodeQueryStorageCapabilitiesMetadata
   candidateAccelerators?: string[]
   spatialIndexKey?: string
+  fullTextSearchQuery?: string
   parityCheck?: NodeQueryParityCheckMetadata
 }
 
@@ -173,6 +183,97 @@ function normalizeSpatialFilter(
   }
 }
 
+function normalizeSearchFilter(
+  search?: string | NodeQuerySearchFilter
+): NodeQuerySearchFilter | undefined {
+  if (typeof search === 'string') {
+    const text = search.trim()
+    return text.length > 0 ? { text } : undefined
+  }
+
+  if (!search) {
+    return undefined
+  }
+
+  const text = search.text.trim()
+  if (text.length === 0) {
+    return undefined
+  }
+
+  const fields = search.fields
+    ? [...new Set(search.fields)].filter((field) => field === 'title' || field === 'content').sort()
+    : undefined
+
+  return {
+    text,
+    ...(fields && fields.length > 0 ? { fields } : {})
+  }
+}
+
+export function getNodeQuerySearchTokens(search: NodeQuerySearchFilter): string[] {
+  return tokenizeSearchText(search.text)
+}
+
+function tokenizeSearchText(text: string): string[] {
+  const tokens = text.toLocaleLowerCase().match(/[\p{L}\p{N}_]+/gu)
+
+  return [...new Set(tokens ?? [])]
+}
+
+function extractTipTapText(value: unknown): string {
+  if (!value || typeof value !== 'object') {
+    return ''
+  }
+
+  const node = value as { text?: unknown; content?: unknown }
+  const parts: string[] = []
+
+  if (typeof node.text === 'string') {
+    parts.push(node.text)
+  }
+
+  if (Array.isArray(node.content)) {
+    parts.push(...node.content.map(extractTipTapText))
+  }
+
+  return parts.join(' ').trim()
+}
+
+function getSearchableText(
+  node: NodeState,
+  fields: readonly NodeQuerySearchField[] = ['title', 'content']
+): string {
+  const parts: string[] = []
+
+  if (fields.includes('title') && typeof node.properties.title === 'string') {
+    parts.push(node.properties.title)
+  }
+
+  if (fields.includes('content')) {
+    const content = node.properties.content
+    if (typeof content === 'string') {
+      parts.push(content)
+    } else {
+      const richText = extractTipTapText(content)
+      if (richText.length > 0) {
+        parts.push(richText)
+      }
+    }
+
+    const description = node.properties.description
+    if (typeof description === 'string') {
+      parts.push(description)
+    }
+
+    const body = node.properties.body
+    if (typeof body === 'string') {
+      parts.push(body)
+    }
+  }
+
+  return parts.join(' ')
+}
+
 function getNumericProperty(
   properties: NodeState['properties'],
   key: string | undefined
@@ -225,6 +326,29 @@ function matchesSpatialFilter(descriptor: NodeQueryDescriptor, node: NodeState):
   return nodeRight >= left && nodeLeft <= right && nodeBottom >= top && nodeTop <= bottom
 }
 
+function matchesSearchFilter(descriptor: NodeQueryDescriptor, node: NodeState): boolean {
+  const search = descriptor.search
+  if (!search) {
+    return true
+  }
+
+  const queryTokens = getNodeQuerySearchTokens(search)
+  if (queryTokens.length === 0) {
+    return false
+  }
+
+  const searchableTokens = tokenizeSearchText(
+    getSearchableText(node, search.fields ?? ['title', 'content'])
+  )
+  if (searchableTokens.length === 0) {
+    return false
+  }
+
+  return queryTokens.every((queryToken) =>
+    searchableTokens.some((searchableToken) => searchableToken.startsWith(queryToken))
+  )
+}
+
 export function createNodeQueryDescriptor<P extends Record<string, PropertyBuilder>>(
   schemaId: SchemaIRI,
   options?: NodeQueryOptions<P>
@@ -237,7 +361,8 @@ export function createNodeQueryDescriptor<P extends Record<string, PropertyBuild
     orderBy: sortRecord(options?.orderBy as Record<string, SortDirection> | undefined),
     limit: options?.limit,
     offset: options?.offset,
-    spatial: normalizeSpatialFilter(options?.spatial)
+    spatial: normalizeSpatialFilter(options?.spatial),
+    search: normalizeSearchFilter(options?.search)
   }
 }
 
@@ -274,6 +399,10 @@ export function nodeQueryDescriptorToOptions<
     options.spatial = descriptor.spatial
   }
 
+  if (descriptor.search) {
+    options.search = descriptor.search
+  }
+
   return options
 }
 
@@ -298,7 +427,7 @@ export function matchesNodeQueryDescriptor(
     }
   }
 
-  return matchesSpatialFilter(descriptor, node)
+  return matchesSpatialFilter(descriptor, node) && matchesSearchFilter(descriptor, node)
 }
 
 export function filterNodeQueryResults(

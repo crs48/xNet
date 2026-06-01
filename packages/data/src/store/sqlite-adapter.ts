@@ -31,6 +31,7 @@ import {
 } from '@xnetjs/sqlite'
 import {
   applyNodeQueryDescriptor,
+  getNodeQuerySearchTokens,
   withoutNodeQueryPagination,
   type NodeQueryDescriptor,
   type NodeQueryParityCheckMetadata,
@@ -156,6 +157,7 @@ interface CompiledNodeQuery {
   postFilterReason: string
   adaptiveIndexHints: AdaptiveIndexHint[]
   spatialIndexKey?: string
+  fullTextSearchQuery?: string
 }
 
 interface QueryTelemetry {
@@ -182,6 +184,7 @@ interface AdaptiveIndexBudgetUsage {
 }
 
 type SpatialTablesState = 'unknown' | 'absent' | 'ready'
+type FullTextSearchTablesState = 'unknown' | 'absent' | 'ready'
 
 interface SpatialIndexConfigRow {
   spatial_key: string
@@ -203,6 +206,10 @@ interface SpatialBoundingBox {
 interface SpatialQueryPlan {
   spatialKey: string
   bounds: SpatialBoundingBox
+}
+
+interface FullTextSearchQueryPlan {
+  matchExpression: string
 }
 
 interface CompiledQueryDiagnostics {
@@ -267,6 +274,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private storageCapabilitiesPromise?: Promise<NodeQueryStorageCapabilitiesMetadata>
 
   private spatialTablesState: SpatialTablesState = 'unknown'
+
+  private fullTextSearchTablesState: FullTextSearchTablesState = 'unknown'
 
   constructor(
     private db: SQLiteAdapter,
@@ -617,7 +626,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   async queryNodes(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
     const start = Date.now()
     const spatialPlan = await this.prepareSpatialQueryPlan(descriptor)
-    const compiled = this.compileNodeQuery(descriptor, spatialPlan)
+    const fullTextSearchPlan = await this.prepareFullTextSearchQueryPlan(descriptor)
+    const compiled = this.compileNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
 
     if (!compiled) {
       const storageCapabilities = await this.getStorageCapabilities()
@@ -656,6 +666,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const ids = idRows.map((row) => row.id)
     const candidates = await this.hydrateNodesByIds(ids)
     const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
+    const candidateAccelerators = [
+      ...(compiled.fullTextSearchQuery ? ['fts'] : []),
+      ...(compiled.spatialIndexKey ? ['rtree'] : [])
+    ]
     const result: NodeQueryResult = {
       nodes,
       plan: {
@@ -668,11 +682,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         params: compiled.params,
         postFilterReason: compiled.postFilterReason,
         candidateQueryDurationMs: idQuery.durationMs,
-        ...(compiled.spatialIndexKey
+        ...(candidateAccelerators.length > 0
           ? {
-              candidateAccelerators: ['rtree'],
-              spatialIndexKey: compiled.spatialIndexKey
+              candidateAccelerators
             }
+          : {}),
+        ...(compiled.spatialIndexKey ? { spatialIndexKey: compiled.spatialIndexKey } : {}),
+        ...(compiled.fullTextSearchQuery
+          ? { fullTextSearchQuery: compiled.fullTextSearchQuery }
           : {}),
         ...queryDiagnostics
       }
@@ -1010,6 +1027,45 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     return rowsWritten
+  }
+
+  private async prepareFullTextSearchQueryPlan(
+    descriptor: NodeQueryDescriptor
+  ): Promise<FullTextSearchQueryPlan | null> {
+    if (!descriptor.search) {
+      return null
+    }
+
+    const tokens = getNodeQuerySearchTokens(descriptor.search)
+    if (tokens.length === 0) {
+      return null
+    }
+
+    const capabilities = await this.getStorageCapabilities()
+    if (!capabilities.fullTextSearch || !(await this.hasFullTextSearchTable())) {
+      return null
+    }
+
+    return {
+      matchExpression: tokens.map((token) => `${token}*`).join(' AND ')
+    }
+  }
+
+  private async hasFullTextSearchTable(): Promise<boolean> {
+    if (this.fullTextSearchTablesState === 'ready') {
+      return true
+    }
+
+    if (this.fullTextSearchTablesState === 'absent') {
+      return false
+    }
+
+    const table = await this.db.queryOne<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'nodes_fts'"
+    )
+
+    this.fullTextSearchTablesState = table ? 'ready' : 'absent'
+    return table !== null
   }
 
   private async prepareSpatialQueryPlan(
@@ -2057,13 +2113,15 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
 
   private compileNodeQuery(
     descriptor: NodeQueryDescriptor,
-    spatialPlan: SpatialQueryPlan | null = null
+    spatialPlan: SpatialQueryPlan | null = null,
+    fullTextSearchPlan: FullTextSearchQueryPlan | null = null
   ): CompiledNodeQuery | null {
     if (descriptor.nodeId) {
       return this.compileSqlQuery(descriptor, {
         whereEntries: [],
         canUseSqlPagination: true,
-        spatialPlan
+        spatialPlan,
+        fullTextSearchPlan
       })
     }
 
@@ -2083,6 +2141,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     const hasSqlCandidateBenefit =
       scalarWhere.length > 0 ||
       spatialPlan !== null ||
+      fullTextSearchPlan !== null ||
       !descriptor.spatial ||
       this.hasOnlySystemOrdering(descriptor.orderBy)
 
@@ -2092,8 +2151,9 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
 
     return this.compileSqlQuery(descriptor, {
       whereEntries: scalarWhere as Array<{ key: string; scalar: ScalarIndexValue }>,
-      canUseSqlPagination: !hasPropertySort && !descriptor.spatial,
-      spatialPlan
+      canUseSqlPagination: !hasPropertySort && !descriptor.spatial && !descriptor.search,
+      spatialPlan,
+      fullTextSearchPlan
     })
   }
 
@@ -2103,6 +2163,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       whereEntries: Array<{ key: string; scalar: ScalarIndexValue }>
       canUseSqlPagination: boolean
       spatialPlan?: SpatialQueryPlan | null
+      fullTextSearchPlan?: FullTextSearchQueryPlan | null
     }
   ): CompiledNodeQuery {
     const joins: string[] = []
@@ -2132,6 +2193,12 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       )
       this.appendScalarPredicate(where, whereParams, alias, entry.scalar)
     })
+
+    if (options.fullTextSearchPlan) {
+      joins.push('JOIN nodes_fts ON nodes_fts.node_id = n.id')
+      where.push('nodes_fts MATCH ?')
+      whereParams.push(options.fullTextSearchPlan.matchExpression)
+    }
 
     if (options.spatialPlan) {
       joins.push(
@@ -2180,17 +2247,43 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       sql,
       params: whereParams,
       postFilterDescriptor: useSqlPagination ? withoutNodeQueryPagination(descriptor) : descriptor,
-      postFilterReason: useSqlPagination
-        ? 'pagination-pushed-down'
-        : options.spatialPlan
-          ? 'spatial-rtree-verified-in-js'
-          : 'verified-in-js',
+      postFilterReason: this.getCompiledPostFilterReason({
+        useSqlPagination,
+        hasFullTextSearchPlan:
+          options.fullTextSearchPlan !== null && options.fullTextSearchPlan !== undefined,
+        hasSpatialPlan: options.spatialPlan !== null && options.spatialPlan !== undefined
+      }),
       adaptiveIndexHints: options.whereEntries.map((entry) => ({
         propertyKey: entry.key,
         scalar: entry.scalar
       })),
-      spatialIndexKey: options.spatialPlan?.spatialKey
+      spatialIndexKey: options.spatialPlan?.spatialKey,
+      fullTextSearchQuery: options.fullTextSearchPlan?.matchExpression
     }
+  }
+
+  private getCompiledPostFilterReason(input: {
+    useSqlPagination: boolean
+    hasFullTextSearchPlan: boolean
+    hasSpatialPlan: boolean
+  }): string {
+    if (input.useSqlPagination) {
+      return 'pagination-pushed-down'
+    }
+
+    if (input.hasFullTextSearchPlan && input.hasSpatialPlan) {
+      return 'fts-rtree-verified-in-js'
+    }
+
+    if (input.hasFullTextSearchPlan) {
+      return 'fts-verified-in-js'
+    }
+
+    if (input.hasSpatialPlan) {
+      return 'spatial-rtree-verified-in-js'
+    }
+
+    return 'verified-in-js'
   }
 
   private appendScalarPredicate(

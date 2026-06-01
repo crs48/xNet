@@ -597,6 +597,7 @@ export class NodeStore {
 
   private canPushSystemListQuery(descriptor: NodeQueryDescriptor): boolean {
     if (descriptor.spatial) return false
+    if (descriptor.search) return false
     if (descriptor.where && Object.keys(descriptor.where).length > 0) return false
 
     return Object.keys(descriptor.orderBy ?? {}).every(

@@ -648,6 +648,22 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(byUpdatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
     })
 
+    it('keeps search queries on the JS-verified path when FTS is unavailable', async () => {
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 1,
+        search: { text: 'open' }
+      })
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(result.plan.storageCapabilities?.fullTextSearch).toBe(false)
+      expect(result.plan.candidateAccelerators).toBeUndefined()
+      expect(result.plan.fullTextSearchQuery).toBeUndefined()
+      expect(result.plan.postFilterReason).toBe('verified-in-js')
+    })
+
     it('keeps spatial queries on the JS-verified path when R-Tree is unavailable', async () => {
       await adapter.importNodes([
         createTestNode({
@@ -769,6 +785,90 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(propertyFilterPlan.some((row) => row.detail.includes('idx_prop_scalars_text'))).toBe(
         true
       )
+    })
+
+    it('uses FTS candidates for search queries when SQLite supports it', async () => {
+      const dbPath = getTestDbPath()
+      const nativeDb = await createElectronSQLiteAdapter({ path: dbPath })
+      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
+      const now = Date.now()
+
+      try {
+        await nativeAdapter.importNodes([
+          createTestNode({
+            id: 'fts-content-match',
+            schemaId: taskSchemaId,
+            properties: { title: 'Notes', body: 'Project roadmap details' },
+            updatedAt: now + 3
+          }),
+          createTestNode({
+            id: 'fts-title-match',
+            schemaId: taskSchemaId,
+            properties: { title: 'Project roadmap', description: 'Kickoff' },
+            updatedAt: now + 2
+          }),
+          createTestNode({
+            id: 'fts-miss',
+            schemaId: taskSchemaId,
+            properties: { title: 'Project status', description: 'Weekly update' },
+            updatedAt: now + 1
+          })
+        ])
+
+        const result = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          search: { text: 'proj road' }
+        })
+
+        expect(result.nodes.map((node) => node.id)).toEqual([
+          'fts-content-match',
+          'fts-title-match'
+        ])
+        expect(result.plan.strategy).toBe('storage-query')
+        expect(result.plan.postFilterReason).toBe('fts-verified-in-js')
+        expect(result.plan.candidateAccelerators).toEqual(['fts'])
+        expect(result.plan.fullTextSearchQuery).toBe('proj* AND road*')
+        expect(result.plan.sql).toContain('nodes_fts')
+        expect(result.plan.candidateNodeCount).toBe(2)
+        expect(result.plan.parityCheck).toMatchObject({
+          strategy: 'exact',
+          valid: true,
+          expectedNodeCount: 2
+        })
+
+        const titleOnly = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          search: { text: 'proj road', fields: ['title'] }
+        })
+        expect(titleOnly.nodes.map((node) => node.id)).toEqual(['fts-title-match'])
+        expect(titleOnly.plan.candidateNodeCount).toBe(2)
+
+        const updatedContentMatch = createTestNode({
+          id: 'fts-content-match',
+          schemaId: taskSchemaId,
+          properties: { title: 'Notes', body: 'Archive details' },
+          updatedAt: now + 4
+        })
+        updatedContentMatch.timestamps.title.lamport.time = 10
+        updatedContentMatch.timestamps.body.lamport.time = 11
+        await nativeAdapter.setNode(updatedContentMatch)
+
+        const afterUpdate = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          search: { text: 'proj road' }
+        })
+        expect(afterUpdate.nodes.map((node) => node.id)).toEqual(['fts-title-match'])
+      } finally {
+        if (nativeDb.isOpen()) {
+          await nativeDb.close()
+        }
+        cleanupDb(dbPath)
+      }
     })
 
     it('uses R-Tree candidates for spatial queries when SQLite supports it', async () => {

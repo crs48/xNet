@@ -612,7 +612,7 @@ Expected impact: users get automatic read scaling as their actual workspace grow
 - [x] Map text node IDs to integer R-Tree IDs with `node_spatial_ids`.
 - [x] Maintain bounding boxes from configured spatial fields.
 - [x] Use R-Tree as candidate selection only; keep JS exact spatial verification.
-- Integrate FTS candidate IDs for text search descriptors when the query API formalizes search semantics.
+- [x] Integrate FTS candidate IDs for text search descriptors with token-prefix semantics.
 
 Expected impact: large canvases and search-heavy views become practical without caller changes.
 
@@ -644,7 +644,8 @@ Updated on 2026-06-01:
 - SQLite NodeStore synthetic benchmarks now cover 1k, 10k, 100k, and 1M node scales in `packages/data/benchmarks/sqlite-node-store.bench.ts`; 100k and 1M runs are opt-in via `XNET_SQLITE_BENCH_MAX_NODES`.
 - Mutation benchmarks now measure scalar sidecar replacement, adaptive-index maintenance, and an explicit write-amplification budget model.
 - SQLite-backed spatial queries now lazily create R-Tree indexes per schema/field mapping when the runtime supports R-Tree. SQL uses the R-Tree only for candidate IDs and still applies the shared JS spatial predicate for exact results.
-- FTS query pushdown and hot view materialization remain future work.
+- Query descriptors now include tokenized full-text search semantics. SQLite uses `nodes_fts` for candidate IDs when FTS5 is available, and the shared JS descriptor matcher still verifies exact title/content token-prefix behavior after hydration.
+- Hot view materialization remains future work.
 
 ## Validation Checklist
 
@@ -662,6 +663,7 @@ Updated on 2026-06-01:
 - [x] `PRAGMA optimize` or diagnostics flow runs after adaptive index changes.
 - [x] Adaptive indexes are dropped when unused or over budget.
 - [x] SQLite capability detection disables FTS/R-Tree paths where unavailable.
+- [x] FTS-backed search descriptors use SQLite only for candidate IDs and keep exact JS verification.
 - [x] Performance tests cover 1k, 10k, 100k, and 1M node synthetic datasets where feasible.
 - [x] Mutation benchmarks measure write amplification from scalar and adaptive indexes.
 - [x] Electron IPC path avoids serializing full schema results for paginated reads.
