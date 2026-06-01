@@ -179,6 +179,8 @@ describe('Canvas v3 active renderer', () => {
 
     expect(surface.getAttribute('data-canvas-renderer-version')).toBe('3')
     expect(surface.getAttribute('data-canvas-object-count')).toBe('2')
+    expect(pageIsland?.classList.contains('canvas-node')).toBe(true)
+    expect(pageIsland?.getAttribute('data-node-type')).toBe('page')
     expect(pageIsland?.getAttribute('data-canvas-dom-island-tier')).toBeTruthy()
     if (!pageIsland) {
       throw new Error('Expected Research Page DOM island')
@@ -194,6 +196,20 @@ describe('Canvas v3 active renderer', () => {
       nodeIds: [expect.any(String)],
       edgeIds: []
     })
+  })
+
+  it('annotates the v3 surface with the resolved canvas theme', () => {
+    document.documentElement.classList.add('dark')
+
+    try {
+      render(<Canvas doc={createCanvasTestDoc()} />)
+
+      const surface = screen.getByRole('application', { name: 'Canvas' })
+
+      expect(surface.getAttribute('data-canvas-theme')).toBe('dark')
+    } finally {
+      document.documentElement.classList.remove('dark')
+    }
   })
 
   it('renders forgiving hit targets for selectable canvas objects', () => {

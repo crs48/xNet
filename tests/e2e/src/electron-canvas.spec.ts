@@ -717,8 +717,16 @@ async function selectCanvasNode(
         clientY,
         shiftKey: eventOptions.additive
       }
+      const pointerEventInit = {
+        ...eventInit,
+        pointerId: 1,
+        pointerType: 'mouse'
+      }
+      const PointerEventCtor = window.PointerEvent ?? MouseEvent
 
+      element.dispatchEvent(new PointerEventCtor('pointerdown', pointerEventInit))
       element.dispatchEvent(new MouseEvent('mousedown', eventInit))
+      element.dispatchEvent(new PointerEventCtor('pointerup', pointerEventInit))
       element.dispatchEvent(new MouseEvent('mouseup', eventInit))
       element.dispatchEvent(new MouseEvent('click', eventInit))
     },

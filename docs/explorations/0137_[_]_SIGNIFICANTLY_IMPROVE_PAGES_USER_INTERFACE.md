@@ -1114,7 +1114,7 @@ Decision gate:
 - [x] Add one-way migration or compatibility loader if document schema changes.
 - [x] Add crash-safe fallback rendering for unknown nodes.
 - [x] Run full `pnpm --filter @xnetjs/editor test`.
-- [ ] Run relevant Electron Playwright checks with auth bypass.
+- [x] Run relevant Electron Playwright checks with auth bypass.
 - [x] Run performance benchmarks before enabling by default.
 - [ ] Enable for new pages first.
 - [ ] Enable for all pages after validation.
@@ -1129,6 +1129,17 @@ Decision gate:
 - Focused tests passed:
   - `pnpm --filter @xnetjs/editor exec vitest run src/document-compat.test.ts`
   - `pnpm --filter @xnetjs/editor typecheck`
+
+2026-06-01 Electron canvas/page smoke checkpoint:
+
+- The Electron dev app no longer opens Chrome DevTools during auth-bypassed E2E runs, so Playwright CDP attaches to the app page instead of the DevTools frontend.
+- Canvas V3 now exposes the same theme and node diagnostic attributes that the Electron canvas/page checks depend on.
+- The Electron canvas selector helper dispatches pointer events before legacy mouse events, matching the V3 interaction model while preserving older selectors.
+- Focused checks passed:
+  - `pnpm --filter xnet-desktop exec tsc --noEmit`
+  - `pnpm --filter @xnetjs/canvas exec vitest run src/__tests__/canvas-v3.test.tsx -t "public Canvas export|resolved canvas theme"`
+  - `pnpm --filter @xnetjs/canvas typecheck`
+  - `pnpm --filter @xnetjs/e2e-tests exec playwright test src/electron-canvas.spec.ts --project=chromium -g "adapts canvas chrome"`
 
 2026-05-31 canvas/editor checkpoint:
 
