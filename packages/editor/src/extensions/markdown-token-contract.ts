@@ -155,9 +155,17 @@ export const MARKDOWN_TOKEN_CONTRACTS = [
     syntax: ['**bold**', '*italic*', '~~strike~~', '`code`'],
     nodeNames: ['text', 'bold', 'italic', 'strike', 'code'],
     revealPolicy: 'inlineBoundaryReveal',
-    behaviors: ['inputRule', 'boundaryReveal', 'clipboardRoundTrip'],
-    backspaceSteps: ['no delimiter Backspace interception in live mode'],
-    testIds: ['inline-mark-boundary-reveal', 'inline-mark-selection-policy']
+    behaviors: ['inputRule', 'boundaryReveal', 'backspaceStep', 'clipboardRoundTrip'],
+    backspaceSteps: [
+      'Arrow keys cross virtual delimiters without forcing toolbar use',
+      'Backspace/Delete at delimiter boundaries removes the mark without deleting text'
+    ],
+    testIds: [
+      'inline-mark-boundary-reveal',
+      'inline-mark-selection-policy',
+      'inline-mark-boundary-cursor',
+      'inline-mark-boundary-delete'
+    ]
   }
 ] as const satisfies readonly MarkdownTokenContract[]
 
@@ -281,6 +289,22 @@ export const MARKDOWN_TOKEN_TEST_MATRIX = [
     fixture: '**bold**',
     expectation:
       'Inline delimiter widgets opt out of selection syncing and allow relaxed caret sides.',
+    status: 'covered'
+  },
+  {
+    id: 'inline-mark-boundary-cursor',
+    token: 'inlineMark',
+    fixture: '**bold** plain',
+    expectation:
+      'Arrow keys at inline delimiter boundaries move typing context inside and outside the mark.',
+    status: 'covered'
+  },
+  {
+    id: 'inline-mark-boundary-delete',
+    token: 'inlineMark',
+    fixture: '**bold**',
+    expectation:
+      'Backspace/Delete at virtual delimiter boundaries unwraps the mark while preserving text.',
     status: 'covered'
   }
 ] as const satisfies readonly MarkdownTokenTestCase[]

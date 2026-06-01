@@ -1,11 +1,25 @@
 import type { Mark, ResolvedPos } from '@tiptap/pm/model'
-import type { EditorState } from '@tiptap/pm/state'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
+import type { EditorState, Transaction } from '@tiptap/pm/state'
+import type { EditorView } from '@tiptap/pm/view'
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { findMarkRange } from './mark-range'
 import { getSyntax, getEnabledMarks } from './syntax'
 
 export const inlineMarksPluginKey = new PluginKey('inlineMarks')
+
+type InlineMarkBoundarySide = 'open' | 'close'
+type InlineMarkBoundaryKey = 'ArrowLeft' | 'ArrowRight' | 'Backspace' | 'Delete'
+
+interface InlineMarkBoundaryContext {
+  mark: Mark
+  markType: string
+  range: {
+    from: number
+    to: number
+  }
+  side: InlineMarkBoundarySide
+}
 
 export interface InlineMarksPluginOptions {
   /** Which mark types to show syntax for */
@@ -40,6 +54,10 @@ export function createInlineMarksPlugin(options: InlineMarksPluginOptions = {}) 
     props: {
       decorations(state) {
         return this.getState(state)
+      },
+
+      handleKeyDown(view, event) {
+        return handleInlineMarkBoundaryKeyDown(view, event, enabledMarks)
       }
     }
   })
@@ -128,6 +146,163 @@ function getMarksAroundPosition($from: ResolvedPos): Mark[] {
   }
 
   return [...marksByType.values()]
+}
+
+function handleInlineMarkBoundaryKeyDown(
+  view: EditorView,
+  event: KeyboardEvent,
+  enabledMarks: string[]
+): boolean {
+  if (view.composing) return false
+
+  const { state } = view
+  if (!state.selection.empty) return false
+
+  const key = event.key
+  if (!isInlineMarkBoundaryKey(key)) {
+    return false
+  }
+
+  const context = findInlineMarkBoundaryContext(state, enabledMarks)
+  if (!context) return false
+
+  if (key === 'ArrowLeft' || key === 'ArrowRight') {
+    return moveAcrossInlineDelimiter(view, context, key)
+  }
+
+  return deleteInlineDelimiter(view, context, key)
+}
+
+function findInlineMarkBoundaryContext(
+  state: EditorState,
+  enabledMarks: string[]
+): InlineMarkBoundaryContext | null {
+  const { $from } = state.selection
+  const beforeMarks = $from.nodeBefore?.marks ?? []
+  const afterMarks = $from.nodeAfter?.marks ?? []
+
+  for (const markType of enabledMarks) {
+    const beforeMark = beforeMarks.find((mark) => mark.type.name === markType) ?? null
+    const afterMark = afterMarks.find((mark) => mark.type.name === markType) ?? null
+
+    if (beforeMark && !afterMark) {
+      const range = findMarkRange(state.doc, $from.pos, markType)
+      if (!range) continue
+
+      return { mark: beforeMark, markType, range, side: 'close' }
+    }
+
+    if (afterMark && !beforeMark) {
+      const range = findMarkRange(state.doc, $from.pos, markType)
+      if (!range) continue
+
+      return { mark: afterMark, markType, range, side: 'open' }
+    }
+  }
+
+  return null
+}
+
+function isInlineMarkBoundaryKey(key: string): key is InlineMarkBoundaryKey {
+  return key === 'ArrowLeft' || key === 'ArrowRight' || key === 'Backspace' || key === 'Delete'
+}
+
+function moveAcrossInlineDelimiter(
+  view: EditorView,
+  context: InlineMarkBoundaryContext,
+  key: 'ArrowLeft' | 'ArrowRight'
+): boolean {
+  const active = isMarkActiveForTyping(view.state, context.mark)
+
+  if (context.side === 'open') {
+    if (key === 'ArrowLeft' && active) {
+      dispatchStoredMarks(view, removeMarkFromStoredMarks(view.state, context.mark))
+      return true
+    }
+
+    if (key === 'ArrowRight' && !active) {
+      dispatchStoredMarks(view, addMarkToStoredMarks(view.state, context.mark))
+      return true
+    }
+  }
+
+  if (context.side === 'close') {
+    if (key === 'ArrowRight' && active) {
+      dispatchStoredMarks(view, removeMarkFromStoredMarks(view.state, context.mark))
+      return true
+    }
+
+    if (key === 'ArrowLeft' && !active) {
+      dispatchStoredMarks(view, addMarkToStoredMarks(view.state, context.mark))
+      return true
+    }
+  }
+
+  return false
+}
+
+function deleteInlineDelimiter(
+  view: EditorView,
+  context: InlineMarkBoundaryContext,
+  key: 'Backspace' | 'Delete'
+): boolean {
+  const active = isMarkActiveForTyping(view.state, context.mark)
+
+  if (context.side === 'open') {
+    if ((key === 'Backspace' && active) || (key === 'Delete' && !active)) {
+      removeInlineMark(view, context)
+      return true
+    }
+  }
+
+  if (context.side === 'close') {
+    if ((key === 'Delete' && active) || (key === 'Backspace' && !active)) {
+      removeInlineMark(view, context)
+      return true
+    }
+  }
+
+  return false
+}
+
+function isMarkActiveForTyping(state: EditorState, mark: Mark): boolean {
+  const activeMarks = state.storedMarks ?? state.selection.$from.marks()
+  return activeMarks.some((activeMark) => activeMark.eq(mark))
+}
+
+function getBaseStoredMarks(state: EditorState): Mark[] {
+  return [...(state.storedMarks ?? state.selection.$from.marks())]
+}
+
+function addMarkToStoredMarks(state: EditorState, mark: Mark): Mark[] {
+  return [...removeMarkFromStoredMarks(state, mark), mark]
+}
+
+function removeMarkFromStoredMarks(state: EditorState, mark: Mark): Mark[] {
+  return getBaseStoredMarks(state).filter((activeMark) => !activeMark.eq(mark))
+}
+
+function dispatchStoredMarks(view: EditorView, marks: Mark[]): void {
+  view.dispatch(view.state.tr.setStoredMarks(marks))
+}
+
+function removeInlineMark(view: EditorView, context: InlineMarkBoundaryContext): void {
+  const { state } = view
+  const position = state.selection.from
+  const tr = state.tr
+
+  tr.removeMark(context.range.from, context.range.to, context.mark.type)
+  preserveBoundarySelection(tr, position)
+  tr.setStoredMarks(removeMarkFromStoredMarks(state, context.mark))
+
+  view.dispatch(tr)
+}
+
+function preserveBoundarySelection(tr: Transaction, position: number): void {
+  const mappedPosition = tr.mapping.map(position)
+  const boundedPosition = Math.max(0, Math.min(mappedPosition, tr.doc.content.size))
+
+  tr.setSelection(TextSelection.create(tr.doc, boundedPosition))
 }
 
 /**

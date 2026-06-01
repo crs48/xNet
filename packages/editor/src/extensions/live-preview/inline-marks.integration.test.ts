@@ -26,6 +26,26 @@ function findTextStart(editor: Editor, text: string): number {
   return position
 }
 
+function pressKey(editor: Editor, key: string): boolean {
+  const event = new KeyboardEvent('keydown', { key, bubbles: true })
+  let handled = false
+
+  editor.view.someProp('handleKeyDown', (handler) => {
+    if (handled) {
+      return
+    }
+
+    handled = handler(editor.view, event)
+  })
+
+  return handled
+}
+
+function textSegments(editor: Editor) {
+  const firstBlock = editor.getJSON().content?.[0]
+  return firstBlock?.content ?? []
+}
+
 function createLargeMarkedDocument(blocks = LARGE_SELECTION_DOCUMENT_BLOCKS): Content {
   return {
     type: 'doc',
@@ -158,5 +178,142 @@ describe('inline marks live preview integration', () => {
         .find()
         .map((decoration: Decoration) => decoration.spec.key)
     ).toEqual([`${markType}-open-${textStart}`, `${markType}-close-${textEnd}`])
+  })
+
+  it('moves outside closing syntax so following text is not marked', () => {
+    editor.commands.setContent(
+      {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'bold',
+                marks: [{ type: 'bold' }]
+              }
+            ]
+          }
+        ]
+      },
+      { emitUpdate: false }
+    )
+
+    const textEnd = findTextStart(editor, 'bold') + 'bold'.length
+    editor.commands.setTextSelection(textEnd)
+
+    expect(pressKey(editor, 'ArrowRight')).toBe(true)
+    editor.commands.insertContent(' plain')
+
+    expect(textSegments(editor)).toEqual([
+      { type: 'text', text: 'bold', marks: [{ type: 'bold' }] },
+      { type: 'text', text: ' plain' }
+    ])
+  })
+
+  it('moves back inside closing syntax so following text keeps the mark', () => {
+    editor.commands.setContent(
+      {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'bold',
+                marks: [{ type: 'bold' }]
+              }
+            ]
+          }
+        ]
+      },
+      { emitUpdate: false }
+    )
+
+    const textEnd = findTextStart(editor, 'bold') + 'bold'.length
+    editor.commands.setTextSelection(textEnd)
+
+    expect(pressKey(editor, 'ArrowRight')).toBe(true)
+    expect(pressKey(editor, 'ArrowLeft')).toBe(true)
+    editor.commands.insertContent('!')
+
+    expect(textSegments(editor)).toEqual([
+      { type: 'text', text: 'bold!', marks: [{ type: 'bold' }] }
+    ])
+  })
+
+  it('moves outside opening syntax so inserted text before a mark is plain', () => {
+    editor.commands.setContent(
+      {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'bold',
+                marks: [{ type: 'bold' }]
+              }
+            ]
+          }
+        ]
+      },
+      { emitUpdate: false }
+    )
+
+    const textStart = findTextStart(editor, 'bold')
+    editor.commands.setTextSelection(textStart)
+
+    expect(pressKey(editor, 'ArrowLeft')).toBe(true)
+    editor.commands.insertContent('plain ')
+
+    expect(textSegments(editor)).toEqual([
+      { type: 'text', text: 'plain ' },
+      { type: 'text', text: 'bold', marks: [{ type: 'bold' }] }
+    ])
+  })
+
+  it.each([
+    ['bold', 'Backspace'],
+    ['strike', 'Delete'],
+    ['italic', 'Delete'],
+    ['code', 'Delete']
+  ])('removes %s when deleting virtual %s delimiter syntax', (markType, key) => {
+    editor.commands.setContent(
+      {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'marked',
+                marks: [{ type: markType }]
+              }
+            ]
+          }
+        ]
+      },
+      { emitUpdate: false }
+    )
+
+    const textStart = findTextStart(editor, 'marked')
+    const position = key === 'Backspace' ? textStart : textStart + 'marked'.length
+    editor.commands.setTextSelection(position)
+
+    expect(pressKey(editor, key)).toBe(true)
+    expect(textSegments(editor)).toEqual([{ type: 'text', text: 'marked' }])
+  })
+
+  it('does not intercept inline mark keys away from syntax boundaries', () => {
+    const textStart = findTextStart(editor, 'hello')
+    editor.commands.setTextSelection(textStart + 2)
+
+    expect(pressKey(editor, 'ArrowRight')).toBe(false)
+    expect(pressKey(editor, 'Backspace')).toBe(false)
   })
 })

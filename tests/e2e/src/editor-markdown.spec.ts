@@ -135,6 +135,30 @@ test.describe('Editor Markdown live editing', () => {
     })
   })
 
+  test('arrow keys move inline mark typing context in and out', async ({ page }) => {
+    const editor = await createBlankPage(page)
+
+    await editor.click()
+    await page.keyboard.type('bold')
+    await selectEditorText(page, 'bold', { start: 0, end: 'bold'.length })
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+B' : 'Control+B')
+
+    await expect(page.locator('strong', { hasText: 'bold' })).toBeVisible()
+
+    await selectEditorText(page, 'bold', { start: 'bold'.length, end: 'bold'.length })
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.type(' plain')
+
+    await expect(page.locator('strong').first()).toHaveText('bold')
+    await expect(editor).toContainText('bold plain')
+
+    await selectEditorText(page, 'bold', { start: 'bold'.length, end: 'bold'.length })
+    await page.keyboard.press('Delete')
+
+    await expect(page.locator('strong', { hasText: 'bold' })).toHaveCount(0)
+    await expect(editor).toContainText('bold plain')
+  })
+
   test('slash command menu teaches common block commands before inserting them', async ({
     page
   }) => {

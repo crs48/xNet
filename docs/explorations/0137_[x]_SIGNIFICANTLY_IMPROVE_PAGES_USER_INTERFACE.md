@@ -1566,6 +1566,26 @@ Decision gate:
 - [x] Heavy embeds lazy-render below the fold.
 - [x] Markdown import/export of large pages is measured and bounded.
 
+### Inline Mark Cursor Checkpoint
+
+2026-05-31 inline delimiter cursor checkpoint:
+
+- [x] Arrow keys at inline mark boundaries can move the typing context outside or back inside bold, italic, strike, and code marks.
+- [x] Backspace/Delete at virtual inline delimiter boundaries unwraps the mark without deleting the marked text.
+- [x] Inline mark delimiter behavior is covered by focused integration tests so users do not need to know toolbar buttons or shortcuts to exit a mark.
+
+```mermaid
+stateDiagram-v2
+  [*] --> PlainBefore: "Caret before **"
+  PlainBefore --> InsideMark: "ArrowRight across opening delimiter"
+  InsideMark --> PlainBefore: "ArrowLeft across opening delimiter"
+  InsideMark --> PlainAfter: "ArrowRight across closing delimiter"
+  PlainAfter --> InsideMark: "ArrowLeft across closing delimiter"
+  InsideMark --> PlainText: "Backspace/Delete delimiter"
+  PlainBefore --> PlainText: "Delete opening delimiter"
+  PlainAfter --> PlainText: "Backspace closing delimiter"
+```
+
 ## Test Strategy
 
 ```mermaid
