@@ -608,10 +608,10 @@ Expected impact: users get automatic read scaling as their actual workspace grow
 ### Phase 4: Spatial And Text Search Pushdown
 
 - [x] Add runtime FTS5/R-Tree capability detection and expose those capabilities in SQLite-backed query plans.
-- Add optional R-Tree candidate selection behind capability detection.
-- Map text node IDs to integer R-Tree IDs with `node_spatial_ids`.
-- Maintain bounding boxes from configured spatial fields.
-- Use R-Tree as candidate selection only; keep JS exact spatial verification.
+- [x] Add optional R-Tree candidate selection behind capability detection.
+- [x] Map text node IDs to integer R-Tree IDs with `node_spatial_ids`.
+- [x] Maintain bounding boxes from configured spatial fields.
+- [x] Use R-Tree as candidate selection only; keep JS exact spatial verification.
 - Integrate FTS candidate IDs for text search descriptors when the query API formalizes search semantics.
 
 Expected impact: large canvases and search-heavy views become practical without caller changes.
@@ -643,7 +643,8 @@ Updated on 2026-06-01:
 - `@xnetjs/sqlite` now probes runtime FTS5 and R-Tree virtual-table support. SQLite-backed NodeStore query plans include those capabilities, and existing FTS helpers no-op when FTS5 is unavailable.
 - SQLite NodeStore synthetic benchmarks now cover 1k, 10k, 100k, and 1M node scales in `packages/data/benchmarks/sqlite-node-store.bench.ts`; 100k and 1M runs are opt-in via `XNET_SQLITE_BENCH_MAX_NODES`.
 - Mutation benchmarks now measure scalar sidecar replacement, adaptive-index maintenance, and an explicit write-amplification budget model.
-- R-Tree/FTS query pushdown and hot view materialization remain future work.
+- SQLite-backed spatial queries now lazily create R-Tree indexes per schema/field mapping when the runtime supports R-Tree. SQL uses the R-Tree only for candidate IDs and still applies the shared JS spatial predicate for exact results.
+- FTS query pushdown and hot view materialization remain future work.
 
 ## Validation Checklist
 

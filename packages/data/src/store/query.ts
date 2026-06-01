@@ -88,6 +88,8 @@ export interface NodeQueryPlanMetadata {
   adaptiveIndexCount?: number
   diagnosticsError?: string
   storageCapabilities?: NodeQueryStorageCapabilitiesMetadata
+  candidateAccelerators?: string[]
+  spatialIndexKey?: string
   parityCheck?: NodeQueryParityCheckMetadata
 }
 

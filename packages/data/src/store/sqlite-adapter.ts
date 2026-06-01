@@ -35,6 +35,7 @@ import {
   type NodeQueryDescriptor,
   type NodeQueryParityCheckMetadata,
   type NodeQueryResult,
+  type NodeQuerySpatialFilter,
   type NodeQueryStorageCapabilitiesMetadata,
   type SortDirection
 } from './query'
@@ -154,6 +155,7 @@ interface CompiledNodeQuery {
   postFilterDescriptor: NodeQueryDescriptor
   postFilterReason: string
   adaptiveIndexHints: AdaptiveIndexHint[]
+  spatialIndexKey?: string
 }
 
 interface QueryTelemetry {
@@ -177,6 +179,30 @@ interface AdaptiveIndexBudgetUsage {
   count: number
   estimatedBytes: number
   indexedRows: number
+}
+
+type SpatialTablesState = 'unknown' | 'absent' | 'ready'
+
+interface SpatialIndexConfigRow {
+  spatial_key: string
+  schema_id: string
+  x_key: string
+  y_key: string
+  width_key: string | null
+  height_key: string | null
+  [key: string]: SQLValue
+}
+
+interface SpatialBoundingBox {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
+interface SpatialQueryPlan {
+  spatialKey: string
+  bounds: SpatialBoundingBox
 }
 
 interface CompiledQueryDiagnostics {
@@ -239,6 +265,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private adaptiveIndexBudgetColumnsReady = false
 
   private storageCapabilitiesPromise?: Promise<NodeQueryStorageCapabilitiesMetadata>
+
+  private spatialTablesState: SpatialTablesState = 'unknown'
 
   constructor(
     private db: SQLiteAdapter,
@@ -485,7 +513,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     const indexedNode = await this.getNode(node.id)
     if (indexedNode) {
-      await this.syncScalarRowsForNode(indexedNode, options?.indexProperties ?? true)
+      const indexProperties = options?.indexProperties ?? true
+      await this.syncScalarRowsForNode(indexedNode, indexProperties)
+      await this.syncSpatialRowsForNode(indexedNode, indexProperties)
     }
 
     // Update FTS index for searchable content
@@ -499,6 +529,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   async deleteNode(id: NodeId): Promise<void> {
     // Delete from FTS index first (no-op if FTS5 not supported)
     await deleteNodeFTS(this.db, id)
+    await this.deleteSpatialRowsForNode(id)
     // Delete node (cascades to properties via FK)
     await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
   }
@@ -585,7 +616,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   async queryNodes(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
     const start = Date.now()
-    const compiled = this.compileNodeQuery(descriptor)
+    const spatialPlan = await this.prepareSpatialQueryPlan(descriptor)
+    const compiled = this.compileNodeQuery(descriptor, spatialPlan)
 
     if (!compiled) {
       const storageCapabilities = await this.getStorageCapabilities()
@@ -636,6 +668,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         params: compiled.params,
         postFilterReason: compiled.postFilterReason,
         candidateQueryDurationMs: idQuery.durationMs,
+        ...(compiled.spatialIndexKey
+          ? {
+              candidateAccelerators: ['rtree'],
+              spatialIndexKey: compiled.spatialIndexKey
+            }
+          : {}),
         ...queryDiagnostics
       }
     }
@@ -825,6 +863,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       await this.db.run('DELETE FROM yjs_updates')
       await this.db.run('DELETE FROM yjs_state')
       await this.db.run('DELETE FROM changes')
+      await this.clearSpatialRows()
       await this.db.run('DELETE FROM node_property_scalars')
       await this.db.run('DELETE FROM node_properties')
       await this.db.run('DELETE FROM nodes')
@@ -971,6 +1010,320 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     return rowsWritten
+  }
+
+  private async prepareSpatialQueryPlan(
+    descriptor: NodeQueryDescriptor
+  ): Promise<SpatialQueryPlan | null> {
+    if (!descriptor.spatial) {
+      return null
+    }
+
+    const capabilities = await this.getStorageCapabilities()
+    if (!capabilities.rtree) {
+      return null
+    }
+
+    await this.ensureSpatialTables()
+    const spatialKey = this.buildSpatialIndexKey(descriptor.schemaId, descriptor.spatial)
+    const existing = await this.db.queryOne<SpatialIndexConfigRow>(
+      `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
+       FROM node_spatial_indexes
+       WHERE spatial_key = ?`,
+      [spatialKey]
+    )
+
+    if (!existing) {
+      await this.createSpatialIndexConfig(descriptor.schemaId, descriptor.spatial, spatialKey)
+    }
+
+    return {
+      spatialKey,
+      bounds: this.getSpatialSearchBounds(descriptor.spatial)
+    }
+  }
+
+  private async ensureSpatialTables(): Promise<void> {
+    const capabilities = await this.getStorageCapabilities()
+    if (!capabilities.rtree) {
+      this.spatialTablesState = 'absent'
+      return
+    }
+
+    await this.db.exec(`
+CREATE TABLE IF NOT EXISTS node_spatial_indexes (
+  spatial_key TEXT PRIMARY KEY,
+  schema_id TEXT NOT NULL,
+  x_key TEXT NOT NULL,
+  y_key TEXT NOT NULL,
+  width_key TEXT,
+  height_key TEXT,
+  created_at INTEGER NOT NULL,
+  last_built_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS node_spatial_ids (
+  spatial_id INTEGER PRIMARY KEY,
+  spatial_key TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  schema_id TEXT NOT NULL,
+  UNIQUE(spatial_key, node_id),
+  FOREIGN KEY (spatial_key) REFERENCES node_spatial_indexes(spatial_key) ON DELETE CASCADE,
+  FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS node_spatial_rtree USING rtree(
+  spatial_id,
+  min_x,
+  max_x,
+  min_y,
+  max_y
+);
+
+CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
+  ON node_spatial_ids(schema_id, spatial_key, node_id);
+`)
+    this.spatialTablesState = 'ready'
+  }
+
+  private async hasSpatialTables(): Promise<boolean> {
+    if (this.spatialTablesState === 'ready') {
+      return true
+    }
+
+    if (this.spatialTablesState === 'absent') {
+      return false
+    }
+
+    const table = await this.db.queryOne<{ count: number }>(
+      `SELECT COUNT(*) as count
+       FROM sqlite_master
+       WHERE type IN ('table', 'virtual table')
+         AND name IN ('node_spatial_ids', 'node_spatial_rtree')`
+    )
+    const ready = Number(table?.count ?? 0) === 2
+    this.spatialTablesState = ready ? 'ready' : 'absent'
+
+    return ready
+  }
+
+  private async createSpatialIndexConfig(
+    schemaId: SchemaIRI,
+    spatial: NodeQuerySpatialFilter,
+    spatialKey: string
+  ): Promise<void> {
+    const fields = this.getSpatialFieldConfig(spatial)
+    const now = Date.now()
+
+    await this.db.beginTransaction()
+    try {
+      await this.db.run(
+        `INSERT INTO node_spatial_indexes
+          (spatial_key, schema_id, x_key, y_key, width_key, height_key, created_at, last_built_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          spatialKey,
+          schemaId,
+          fields.xKey,
+          fields.yKey,
+          fields.widthKey,
+          fields.heightKey,
+          now,
+          now
+        ]
+      )
+
+      const nodes = await this.listNodesOptimized({ schemaId, includeDeleted: true })
+      const config: SpatialIndexConfigRow = {
+        spatial_key: spatialKey,
+        schema_id: schemaId,
+        x_key: fields.xKey,
+        y_key: fields.yKey,
+        width_key: fields.widthKey,
+        height_key: fields.heightKey
+      }
+
+      for (const node of nodes) {
+        await this.replaceSpatialRowForConfig(node, config, true)
+      }
+
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
+  }
+
+  private async syncSpatialRowsForNode(node: NodeState, indexProperties: boolean): Promise<void> {
+    if (!(await this.hasSpatialTables())) {
+      return
+    }
+
+    const configs = await this.db.query<SpatialIndexConfigRow>(
+      `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
+       FROM node_spatial_indexes
+       WHERE schema_id = ?`,
+      [node.schemaId]
+    )
+
+    for (const config of configs) {
+      await this.replaceSpatialRowForConfig(node, config, indexProperties)
+    }
+  }
+
+  private async replaceSpatialRowForConfig(
+    node: NodeState,
+    config: SpatialIndexConfigRow,
+    indexProperties: boolean
+  ): Promise<void> {
+    await this.deleteSpatialRow(config.spatial_key, node.id)
+
+    if (!indexProperties) {
+      return
+    }
+
+    const bounds = this.getNodeSpatialBounds(node, config)
+    if (!bounds) {
+      return
+    }
+
+    const result = await this.db.run(
+      `INSERT INTO node_spatial_ids (spatial_key, node_id, schema_id)
+       VALUES (?, ?, ?)`,
+      [config.spatial_key, node.id, node.schemaId]
+    )
+    const spatialId = Number(result.lastInsertRowid)
+    await this.db.run(
+      `INSERT INTO node_spatial_rtree (spatial_id, min_x, max_x, min_y, max_y)
+       VALUES (?, ?, ?, ?, ?)`,
+      [spatialId, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY]
+    )
+  }
+
+  private async deleteSpatialRowsForNode(nodeId: NodeId): Promise<void> {
+    if (!(await this.hasSpatialTables())) {
+      return
+    }
+
+    const rows = await this.db.query<{ spatial_key: string }>(
+      `SELECT spatial_key
+       FROM node_spatial_ids
+       WHERE node_id = ?`,
+      [nodeId]
+    )
+
+    for (const row of rows) {
+      await this.deleteSpatialRow(row.spatial_key, nodeId)
+    }
+  }
+
+  private async deleteSpatialRow(spatialKey: string, nodeId: NodeId): Promise<void> {
+    const existing = await this.db.queryOne<{ spatial_id: number }>(
+      `SELECT spatial_id
+       FROM node_spatial_ids
+       WHERE spatial_key = ? AND node_id = ?`,
+      [spatialKey, nodeId]
+    )
+
+    if (!existing) {
+      return
+    }
+
+    await this.db.run('DELETE FROM node_spatial_rtree WHERE spatial_id = ?', [existing.spatial_id])
+    await this.db.run('DELETE FROM node_spatial_ids WHERE spatial_id = ?', [existing.spatial_id])
+  }
+
+  private async clearSpatialRows(): Promise<void> {
+    if (!(await this.hasSpatialTables())) {
+      return
+    }
+
+    await this.db.run('DELETE FROM node_spatial_rtree')
+    await this.db.run('DELETE FROM node_spatial_ids')
+    await this.db.run('DELETE FROM node_spatial_indexes')
+  }
+
+  private buildSpatialIndexKey(schemaId: SchemaIRI, spatial: NodeQuerySpatialFilter): string {
+    const fields = this.getSpatialFieldConfig(spatial)
+    return this.hashScalarValue(
+      this.stringifyStable({
+        schemaId,
+        x: fields.xKey,
+        y: fields.yKey,
+        width: fields.widthKey,
+        height: fields.heightKey
+      })
+    )
+  }
+
+  private getSpatialFieldConfig(spatial: NodeQuerySpatialFilter): {
+    xKey: string
+    yKey: string
+    widthKey: string | null
+    heightKey: string | null
+  } {
+    return {
+      xKey: spatial.fields.x,
+      yKey: spatial.fields.y,
+      widthKey: spatial.kind === 'window' ? (spatial.fields.width ?? null) : null,
+      heightKey: spatial.kind === 'window' ? (spatial.fields.height ?? null) : null
+    }
+  }
+
+  private getSpatialSearchBounds(spatial: NodeQuerySpatialFilter): SpatialBoundingBox {
+    if (spatial.kind === 'radius') {
+      const radius = Math.abs(spatial.radius)
+      return {
+        minX: spatial.center.x - radius,
+        maxX: spatial.center.x + radius,
+        minY: spatial.center.y - radius,
+        maxY: spatial.center.y + radius
+      }
+    }
+
+    const overscan = spatial.overscan ?? 0
+    const left = spatial.rect.x - overscan
+    const right = spatial.rect.x + spatial.rect.width + overscan
+    const top = spatial.rect.y - overscan
+    const bottom = spatial.rect.y + spatial.rect.height + overscan
+
+    return {
+      minX: Math.min(left, right),
+      maxX: Math.max(left, right),
+      minY: Math.min(top, bottom),
+      maxY: Math.max(top, bottom)
+    }
+  }
+
+  private getNodeSpatialBounds(
+    node: NodeState,
+    config: SpatialIndexConfigRow
+  ): SpatialBoundingBox | null {
+    const x = this.getFiniteNumberProperty(node, config.x_key)
+    const y = this.getFiniteNumberProperty(node, config.y_key)
+
+    if (x === null || y === null) {
+      return null
+    }
+
+    const width = this.getFiniteNumberProperty(node, config.width_key) ?? 0
+    const height = this.getFiniteNumberProperty(node, config.height_key) ?? 0
+
+    return {
+      minX: Math.min(x, x + width),
+      maxX: Math.max(x, x + width),
+      minY: Math.min(y, y + height),
+      maxY: Math.max(y, y + height)
+    }
+  }
+
+  private getFiniteNumberProperty(node: NodeState, key: string | null): number | null {
+    if (!key) {
+      return null
+    }
+
+    const value = node.properties[key]
+    return typeof value === 'number' && Number.isFinite(value) ? value : null
   }
 
   private toScalarIndexValue(value: unknown): ScalarIndexValue | null {
@@ -1702,11 +2055,15 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     }
   }
 
-  private compileNodeQuery(descriptor: NodeQueryDescriptor): CompiledNodeQuery | null {
+  private compileNodeQuery(
+    descriptor: NodeQueryDescriptor,
+    spatialPlan: SpatialQueryPlan | null = null
+  ): CompiledNodeQuery | null {
     if (descriptor.nodeId) {
       return this.compileSqlQuery(descriptor, {
         whereEntries: [],
-        canUseSqlPagination: true
+        canUseSqlPagination: true,
+        spatialPlan
       })
     }
 
@@ -1725,6 +2082,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     )
     const hasSqlCandidateBenefit =
       scalarWhere.length > 0 ||
+      spatialPlan !== null ||
       !descriptor.spatial ||
       this.hasOnlySystemOrdering(descriptor.orderBy)
 
@@ -1734,7 +2092,8 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
 
     return this.compileSqlQuery(descriptor, {
       whereEntries: scalarWhere as Array<{ key: string; scalar: ScalarIndexValue }>,
-      canUseSqlPagination: !hasPropertySort && !descriptor.spatial
+      canUseSqlPagination: !hasPropertySort && !descriptor.spatial,
+      spatialPlan
     })
   }
 
@@ -1743,6 +2102,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     options: {
       whereEntries: Array<{ key: string; scalar: ScalarIndexValue }>
       canUseSqlPagination: boolean
+      spatialPlan?: SpatialQueryPlan | null
     }
   ): CompiledNodeQuery {
     const joins: string[] = []
@@ -1773,6 +2133,31 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       this.appendScalarPredicate(where, whereParams, alias, entry.scalar)
     })
 
+    if (options.spatialPlan) {
+      joins.push(
+        `JOIN node_spatial_ids spatial_ids
+          ON spatial_ids.node_id = n.id
+         AND spatial_ids.schema_id = n.schema_id
+         AND spatial_ids.spatial_key = ${this.quoteSqlLiteral(options.spatialPlan.spatialKey)}`
+      )
+      joins.push(
+        `JOIN node_spatial_rtree spatial_rtree
+          ON spatial_rtree.spatial_id = spatial_ids.spatial_id`
+      )
+      where.push(
+        `spatial_rtree.max_x >= ?`,
+        `spatial_rtree.min_x <= ?`,
+        `spatial_rtree.max_y >= ?`,
+        `spatial_rtree.min_y <= ?`
+      )
+      whereParams.push(
+        options.spatialPlan.bounds.minX,
+        options.spatialPlan.bounds.maxX,
+        options.spatialPlan.bounds.minY,
+        options.spatialPlan.bounds.maxY
+      )
+    }
+
     const orderBy = this.buildSqlOrderBy(descriptor.orderBy)
     const useSqlPagination =
       options.canUseSqlPagination &&
@@ -1795,11 +2180,16 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       sql,
       params: whereParams,
       postFilterDescriptor: useSqlPagination ? withoutNodeQueryPagination(descriptor) : descriptor,
-      postFilterReason: useSqlPagination ? 'pagination-pushed-down' : 'verified-in-js',
+      postFilterReason: useSqlPagination
+        ? 'pagination-pushed-down'
+        : options.spatialPlan
+          ? 'spatial-rtree-verified-in-js'
+          : 'verified-in-js',
       adaptiveIndexHints: options.whereEntries.map((entry) => ({
         propertyKey: entry.key,
         scalar: entry.scalar
-      }))
+      })),
+      spatialIndexKey: options.spatialPlan?.spatialKey
     }
   }
 

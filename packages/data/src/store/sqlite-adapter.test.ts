@@ -7,9 +7,28 @@ import type { NodeState, NodeChange, NodePayload } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { DID, ContentId } from '@xnetjs/core'
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import { randomUUID } from 'crypto'
+import { existsSync, unlinkSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
+
+function getTestDbPath(): string {
+  return join(tmpdir(), `xnet-data-spatial-${randomUUID()}.db`)
+}
+
+function cleanupDb(path: string): void {
+  for (const file of [path, `${path}-wal`, `${path}-shm`]) {
+    try {
+      if (existsSync(file)) unlinkSync(file)
+    } catch {
+      // Ignore cleanup errors.
+    }
+  }
+}
 
 describe('SQLiteNodeStorageAdapter', () => {
   let db: SQLiteAdapter
@@ -629,6 +648,37 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(byUpdatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
     })
 
+    it('keeps spatial queries on the JS-verified path when R-Tree is unavailable', async () => {
+      await adapter.importNodes([
+        createTestNode({
+          id: 'spatial-near',
+          schemaId: taskSchemaId,
+          properties: { title: 'Near', x: 10, y: 10, width: 20, height: 20 }
+        }),
+        createTestNode({
+          id: 'spatial-far',
+          schemaId: taskSchemaId,
+          properties: { title: 'Far', x: 500, y: 500, width: 20, height: 20 }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        spatial: {
+          kind: 'window',
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          fields: { x: 'x', y: 'y', width: 'width', height: 'height' }
+        }
+      })
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['spatial-near'])
+      expect(result.plan.storageCapabilities?.rtree).toBe(false)
+      expect(result.plan.candidateAccelerators).toBeUndefined()
+      expect(result.plan.spatialIndexKey).toBeUndefined()
+      expect(result.plan.postFilterReason).toBe('verified-in-js')
+    })
+
     it('skips parity checks when the descriptor scope exceeds the configured cap', async () => {
       adapter = new SQLiteNodeStorageAdapter(db, {
         queryVerification: { maxNodes: 1 }
@@ -719,6 +769,99 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(propertyFilterPlan.some((row) => row.detail.includes('idx_prop_scalars_text'))).toBe(
         true
       )
+    })
+
+    it('uses R-Tree candidates for spatial queries when SQLite supports it', async () => {
+      const dbPath = getTestDbPath()
+      const nativeDb = await createElectronSQLiteAdapter({ path: dbPath })
+      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
+      const now = Date.now()
+
+      try {
+        await nativeAdapter.importNodes([
+          createTestNode({
+            id: 'rtree-near-large',
+            schemaId: taskSchemaId,
+            properties: { title: 'Near large', x: 10, y: 10, width: 20, height: 20 },
+            updatedAt: now + 1
+          }),
+          createTestNode({
+            id: 'rtree-near-point',
+            schemaId: taskSchemaId,
+            properties: { title: 'Near point', x: 40, y: 40 },
+            updatedAt: now + 2
+          }),
+          createTestNode({
+            id: 'rtree-far',
+            schemaId: taskSchemaId,
+            properties: { title: 'Far', x: 500, y: 500, width: 20, height: 20 },
+            updatedAt: now + 3
+          })
+        ])
+
+        const spatial = {
+          kind: 'window' as const,
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          fields: { x: 'x', y: 'y', width: 'width', height: 'height' }
+        }
+        const initial = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          spatial
+        })
+
+        expect(initial.nodes.map((node) => node.id)).toEqual([
+          'rtree-near-point',
+          'rtree-near-large'
+        ])
+        expect(initial.plan.strategy).toBe('storage-query')
+        expect(initial.plan.postFilterReason).toBe('spatial-rtree-verified-in-js')
+        expect(initial.plan.candidateAccelerators).toEqual(['rtree'])
+        expect(initial.plan.spatialIndexKey).toEqual(expect.any(String))
+        expect(initial.plan.sql).toContain('node_spatial_rtree')
+        expect(initial.plan.candidateNodeCount).toBe(2)
+        expect(initial.plan.parityCheck).toMatchObject({
+          strategy: 'exact',
+          valid: true,
+          expectedNodeCount: 2
+        })
+
+        await nativeAdapter.setNode(
+          createTestNode({
+            id: 'rtree-new',
+            schemaId: taskSchemaId,
+            properties: { title: 'New', x: 12, y: 12, width: 4, height: 4 },
+            updatedAt: now + 4
+          })
+        )
+
+        const afterInsert = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          spatial
+        })
+        expect(afterInsert.nodes.map((node) => node.id)).toEqual([
+          'rtree-new',
+          'rtree-near-point',
+          'rtree-near-large'
+        ])
+
+        await nativeAdapter.deleteNode('rtree-near-point')
+        const afterDelete = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          spatial
+        })
+        expect(afterDelete.nodes.map((node) => node.id)).toEqual(['rtree-new', 'rtree-near-large'])
+      } finally {
+        if (nativeDb.isOpen()) {
+          await nativeDb.close()
+        }
+        cleanupDb(dbPath)
+      }
     })
   })
 
