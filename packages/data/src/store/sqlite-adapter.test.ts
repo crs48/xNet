@@ -650,6 +650,135 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  describe('adaptive index advisor', () => {
+    it('records query descriptor stats without creating indexes by default', async () => {
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        }),
+        createTestNode({
+          id: 'task-done',
+          schemaId: taskSchemaId,
+          properties: { status: 'done' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      const stats = await db.queryOne<{
+        descriptor_hash: string
+        hits: number
+        descriptor_json: string
+      }>(
+        `SELECT descriptor_hash, hits, descriptor_json
+         FROM query_descriptor_stats
+         WHERE schema_id = ?`,
+        [taskSchemaId]
+      )
+      const adaptiveIndexes = await db.query<{ name: string }>(
+        `SELECT name
+         FROM sqlite_master
+         WHERE type = 'index' AND name LIKE 'idx_auto_prop_%'`
+      )
+
+      expect(result.plan.descriptorHash).toBe(stats?.descriptor_hash)
+      expect(stats?.hits).toBe(1)
+      expect(stats?.descriptor_json).toContain('"where":{"status":"open"}')
+      expect(adaptiveIndexes).toEqual([])
+    })
+
+    it('creates bounded partial scalar indexes for hot descriptors when enabled', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 8
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        }),
+        createTestNode({
+          id: 'task-done',
+          schemaId: taskSchemaId,
+          properties: { status: 'done' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      const candidates = await db.query<{
+        index_name: string
+        property_key: string
+        value_type: string
+        ddl: string
+      }>(
+        `SELECT index_name, property_key, value_type, ddl
+         FROM query_index_candidates
+         ORDER BY index_name ASC`
+      )
+      const adaptiveIndexes = await db.query<{ name: string }>(
+        `SELECT name
+         FROM sqlite_master
+         WHERE type = 'index' AND name LIKE 'idx_auto_prop_%'
+         ORDER BY name ASC`
+      )
+
+      expect(result.plan.adaptiveIndexNames).toEqual([candidates[0]?.index_name])
+      expect(candidates).toHaveLength(1)
+      expect(candidates[0].property_key).toBe('status')
+      expect(candidates[0].value_type).toBe('text')
+      expect(candidates[0].ddl).toContain("property_key = 'status'")
+      expect(adaptiveIndexes.map((row) => row.name)).toEqual([candidates[0].index_name])
+    })
+
+    it('enforces the per-schema adaptive index budget', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 1
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open', priority: 1 }
+        })
+      ])
+
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open', priority: 1 }
+      })
+      const budgetedIndexes = await db.query<{ index_name: string }>(
+        `SELECT index_name
+         FROM query_index_candidates
+         WHERE schema_id = ?`,
+        [taskSchemaId]
+      )
+
+      expect(budgetedIndexes).toHaveLength(1)
+    })
+  })
+
   // ─── Change Operations ───────────────────────────────────────────────────────
 
   describe('Changes', () => {

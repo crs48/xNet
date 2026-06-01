@@ -101,4 +101,9 @@ export {
 
 // Adapters
 export { MemoryNodeStorageAdapter } from './memory-adapter'
-export { SQLiteNodeStorageAdapter, createNodeStorageAdapter } from './sqlite-adapter'
+export {
+  SQLiteNodeStorageAdapter,
+  createNodeStorageAdapter,
+  type SQLiteAdaptiveIndexingOptions,
+  type SQLiteNodeStorageAdapterOptions
+} from './sqlite-adapter'

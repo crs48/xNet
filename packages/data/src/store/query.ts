@@ -78,6 +78,8 @@ export interface NodeQueryPlanMetadata {
   sql?: string
   params?: unknown[]
   postFilterReason?: string
+  descriptorHash?: string
+  adaptiveIndexNames?: string[]
 }
 
 export interface NodeQueryResult {

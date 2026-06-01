@@ -596,11 +596,12 @@ Expected impact: `useQuery` remains API-compatible while SQLite becomes the firs
 
 ### Phase 3: Adaptive Index Advisor
 
-- Add a small persistent stats table for descriptor hashes and observed cost.
-- Use `getIndexInfo`, `analyzeQuery`, `timeQuery`, and `runAnalyze` from `@xnetjs/sqlite` diagnostics.
-- Generate safe per-schema/per-property partial indexes for hot descriptors.
-- Enforce index count, disk, and write-amplification budgets.
-- Add a devtools panel or debug log for query plans and adaptive indexes.
+- [x] Add a small persistent stats table for descriptor hashes and observed cost.
+- [ ] Use `getIndexInfo`, `analyzeQuery`, `timeQuery`, and `runAnalyze` from `@xnetjs/sqlite` diagnostics.
+- [x] Generate safe per-schema/per-property partial indexes for hot descriptors.
+- [x] Enforce per-schema adaptive index count budgets.
+- [ ] Enforce disk and write-amplification budgets.
+- [ ] Add a devtools panel or debug log for query plans and adaptive indexes.
 
 Expected impact: users get automatic read scaling as their actual workspace grows.
 
@@ -633,7 +634,8 @@ Updated on 2026-06-01:
 - The generic `NodeStore.query` API now returns plan metadata and falls back to safe list-based evaluation when storage does not support `queryNodes`.
 - Electron IPC storage now carries safe system-order `limit`/`offset` pushdown through `listNodes` and maintains the scalar sidecar in the data process.
 - Backwards compatibility was intentionally not preserved where it conflicted with the cleaner read-scaling API: `setNode` is treated as a full materialized state replacement for property rows, `ListNodesOptions` now accepts system-field ordering, and NodeStore query semantics are centralized in `@xnetjs/data`.
-- Adaptive indexes, R-Tree/FTS query pushdown, and hot view materialization remain future work.
+- Phase 3 now has a bounded opt-in scalar index advisor: SQLite records descriptor hashes and observed costs by default, and callers can enable thresholded partial-index creation with a per-schema cap. The advisor stores generated DDL for diagnostics and runs `PRAGMA optimize` after creating indexes.
+- Adaptive index aging/drop policies, disk/write-amplification budgets, R-Tree/FTS query pushdown, and hot view materialization remain future work.
 
 ## Validation Checklist
 
@@ -648,7 +650,7 @@ Updated on 2026-06-01:
 - [x] Encrypted node properties are not indexed in plaintext by accident.
 - [ ] Auth-sensitive reads do not expose unauthorized counts or IDs.
 - [x] `EXPLAIN QUERY PLAN` shows expected indexes for default list and hot property filters.
-- [ ] `PRAGMA optimize` or diagnostics flow runs after adaptive index changes.
+- [x] `PRAGMA optimize` or diagnostics flow runs after adaptive index changes.
 - [ ] Adaptive indexes are dropped when unused or over budget.
 - [ ] SQLite capability detection disables FTS/R-Tree paths where unavailable.
 - [ ] Performance tests cover 1k, 10k, 100k, and 1M node synthetic datasets where feasible.

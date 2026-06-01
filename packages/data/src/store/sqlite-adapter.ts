@@ -93,11 +93,57 @@ interface ScalarIndexValue {
   valueHash: string
 }
 
+interface AdaptiveIndexingConfig {
+  enabled: boolean
+  minHits: number
+  minDurationMs: number
+  minCandidates: number
+  maxIndexesPerSchema: number
+}
+
+export interface SQLiteAdaptiveIndexingOptions {
+  enabled?: boolean
+  minHits?: number
+  minDurationMs?: number
+  minCandidates?: number
+  maxIndexesPerSchema?: number
+}
+
+export interface SQLiteNodeStorageAdapterOptions {
+  adaptiveIndexing?: SQLiteAdaptiveIndexingOptions
+}
+
+interface AdaptiveIndexHint {
+  propertyKey: string
+  scalar: ScalarIndexValue
+}
+
 interface CompiledNodeQuery {
   sql: string
   params: SQLValue[]
   postFilterDescriptor: NodeQueryDescriptor
   postFilterReason: string
+  adaptiveIndexHints: AdaptiveIndexHint[]
+}
+
+interface QueryTelemetry {
+  descriptorHash: string
+  adaptiveIndexNames: string[]
+}
+
+interface QueryDescriptorStatsRow {
+  hits: number
+  avg_duration_ms: number
+  avg_candidates: number
+  [key: string]: SQLValue
+}
+
+const DEFAULT_ADAPTIVE_INDEXING: AdaptiveIndexingConfig = {
+  enabled: false,
+  minHits: 20,
+  minDurationMs: 16,
+  minCandidates: 2000,
+  maxIndexesPerSchema: 8
 }
 
 // ─── SQLiteNodeStorageAdapter ───────────────────────────────────────────────
@@ -126,7 +172,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   // Prepared statement cache for hot paths
   private stmtCache = new Map<string, PreparedStatement>()
 
-  constructor(private db: SQLiteAdapter) {}
+  private adaptiveIndexing: AdaptiveIndexingConfig
+
+  constructor(
+    private db: SQLiteAdapter,
+    options: SQLiteNodeStorageAdapterOptions = {}
+  ) {
+    this.adaptiveIndexing = {
+      ...DEFAULT_ADAPTIVE_INDEXING,
+      ...options.adaptiveIndexing
+    }
+  }
 
   getSQLiteAdapter(): SQLiteAdapter {
     return this.db
@@ -467,8 +523,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         includeDeleted: descriptor.includeDeleted
       })
       const nodes = applyNodeQueryDescriptor(candidates, descriptor)
-
-      return {
+      const result: NodeQueryResult = {
         nodes,
         plan: {
           strategy: 'list-fallback',
@@ -479,14 +534,20 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           postFilterReason: 'unsupported-descriptor'
         }
       }
+      const telemetry = await this.recordQueryTelemetry(descriptor, result, [])
+      result.plan.descriptorHash = telemetry.descriptorHash
+      if (telemetry.adaptiveIndexNames.length > 0) {
+        result.plan.adaptiveIndexNames = telemetry.adaptiveIndexNames
+      }
+
+      return result
     }
 
     const idRows = await this.db.query<{ id: string }>(compiled.sql, compiled.params)
     const ids = idRows.map((row) => row.id)
     const candidates = await this.hydrateNodesByIds(ids)
     const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
-
-    return {
+    const result: NodeQueryResult = {
       nodes,
       plan: {
         strategy: 'storage-query',
@@ -499,6 +560,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         postFilterReason: compiled.postFilterReason
       }
     }
+    const telemetry = await this.recordQueryTelemetry(
+      descriptor,
+      result,
+      compiled.adaptiveIndexHints
+    )
+    result.plan.descriptorHash = telemetry.descriptorHash
+    if (telemetry.adaptiveIndexNames.length > 0) {
+      result.plan.adaptiveIndexNames = telemetry.adaptiveIndexNames
+    }
+
+    return result
   }
 
   // ─── Sync State ───────────────────────────────────────────────────────────
@@ -873,6 +945,262 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return (hash >>> 0).toString(16).padStart(8, '0')
   }
 
+  private stringifyStable(value: unknown): string {
+    if (value === undefined) {
+      return 'null'
+    }
+
+    if (value === null || typeof value !== 'object') {
+      return JSON.stringify(value)
+    }
+
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => this.stringifyStable(item)).join(',')}]`
+    }
+
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+
+    return `{${entries
+      .map(([key, entryValue]) => `${JSON.stringify(key)}:${this.stringifyStable(entryValue)}`)
+      .join(',')}}`
+  }
+
+  private quoteSqlLiteral(value: string): string {
+    return `'${value.replaceAll("'", "''")}'`
+  }
+
+  private quoteSqlIdentifier(identifier: string): string {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
+      throw new Error(`Unsafe SQLite identifier: ${identifier}`)
+    }
+
+    return `"${identifier}"`
+  }
+
+  private async recordQueryTelemetry(
+    descriptor: NodeQueryDescriptor,
+    result: NodeQueryResult,
+    adaptiveIndexHints: AdaptiveIndexHint[]
+  ): Promise<QueryTelemetry> {
+    const descriptorJson = this.stringifyStable(descriptor)
+    const descriptorHash = this.hashScalarValue(descriptorJson)
+    const now = Date.now()
+
+    await this.db.run(
+      `INSERT INTO query_descriptor_stats
+        (
+          descriptor_hash,
+          schema_id,
+          descriptor_json,
+          hits,
+          total_duration_ms,
+          avg_duration_ms,
+          avg_candidates,
+          last_seen_at
+        )
+       VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+       ON CONFLICT(descriptor_hash) DO UPDATE SET
+         schema_id = excluded.schema_id,
+         descriptor_json = excluded.descriptor_json,
+         hits = query_descriptor_stats.hits + 1,
+         total_duration_ms =
+           query_descriptor_stats.total_duration_ms + excluded.total_duration_ms,
+         avg_duration_ms =
+           (query_descriptor_stats.total_duration_ms + excluded.total_duration_ms) /
+           (query_descriptor_stats.hits + 1),
+         avg_candidates =
+           ((query_descriptor_stats.avg_candidates * query_descriptor_stats.hits) +
+            excluded.avg_candidates) /
+           (query_descriptor_stats.hits + 1),
+         last_seen_at = excluded.last_seen_at`,
+      [
+        descriptorHash,
+        descriptor.schemaId,
+        descriptorJson,
+        result.plan.durationMs,
+        result.plan.durationMs,
+        result.plan.candidateNodeCount,
+        now
+      ]
+    )
+
+    if (!this.adaptiveIndexing.enabled || adaptiveIndexHints.length === 0) {
+      return { descriptorHash, adaptiveIndexNames: [] }
+    }
+
+    const stats = await this.db.queryOne<QueryDescriptorStatsRow>(
+      `SELECT hits, avg_duration_ms, avg_candidates
+       FROM query_descriptor_stats
+       WHERE descriptor_hash = ?`,
+      [descriptorHash]
+    )
+
+    if (!stats || !this.shouldCreateAdaptiveIndexes(stats)) {
+      return { descriptorHash, adaptiveIndexNames: [] }
+    }
+
+    const adaptiveIndexNames = await this.ensureAdaptiveIndexes({
+      descriptorHash,
+      schemaId: descriptor.schemaId,
+      hints: adaptiveIndexHints,
+      now
+    })
+
+    return { descriptorHash, adaptiveIndexNames }
+  }
+
+  private shouldCreateAdaptiveIndexes(stats: QueryDescriptorStatsRow): boolean {
+    return (
+      stats.hits >= this.adaptiveIndexing.minHits &&
+      stats.avg_duration_ms >= this.adaptiveIndexing.minDurationMs &&
+      stats.avg_candidates >= this.adaptiveIndexing.minCandidates
+    )
+  }
+
+  private async ensureAdaptiveIndexes(input: {
+    descriptorHash: string
+    schemaId: SchemaIRI
+    hints: AdaptiveIndexHint[]
+    now: number
+  }): Promise<string[]> {
+    const uniqueHints = Array.from(
+      new Map(
+        input.hints.map((hint) => [`${hint.propertyKey}:${hint.scalar.valueType}`, hint])
+      ).values()
+    )
+
+    if (uniqueHints.length === 0) {
+      return []
+    }
+
+    const indexCount = await this.db.queryOne<{ count: number }>(
+      `SELECT COUNT(*) as count
+       FROM query_index_candidates
+       WHERE schema_id = ?`,
+      [input.schemaId]
+    )
+    let remainingNewIndexes = Math.max(
+      0,
+      this.adaptiveIndexing.maxIndexesPerSchema - (indexCount?.count ?? 0)
+    )
+    const touchedIndexNames: string[] = []
+    let createdIndex = false
+
+    for (const hint of uniqueHints) {
+      const indexName = this.buildAdaptiveIndexName(
+        input.schemaId,
+        hint.propertyKey,
+        hint.scalar.valueType
+      )
+      const existing = await this.db.queryOne<{ index_name: string }>(
+        `SELECT index_name
+         FROM query_index_candidates
+         WHERE index_name = ?`,
+        [indexName]
+      )
+
+      if (existing) {
+        await this.db.run(
+          `UPDATE query_index_candidates
+           SET descriptor_hash = ?, last_used_at = ?
+           WHERE index_name = ?`,
+          [input.descriptorHash, input.now, indexName]
+        )
+        touchedIndexNames.push(indexName)
+        continue
+      }
+
+      if (remainingNewIndexes <= 0) {
+        continue
+      }
+
+      const ddl = this.buildAdaptiveIndexDDL(
+        indexName,
+        input.schemaId,
+        hint.propertyKey,
+        hint.scalar.valueType
+      )
+      await this.db.exec(ddl)
+      await this.db.run(
+        `INSERT INTO query_index_candidates
+          (
+            index_name,
+            descriptor_hash,
+            schema_id,
+            property_key,
+            value_type,
+            ddl,
+            created_at,
+            last_used_at
+          )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          indexName,
+          input.descriptorHash,
+          input.schemaId,
+          hint.propertyKey,
+          hint.scalar.valueType,
+          ddl,
+          input.now,
+          input.now
+        ]
+      )
+      touchedIndexNames.push(indexName)
+      remainingNewIndexes -= 1
+      createdIndex = true
+    }
+
+    if (createdIndex) {
+      await this.db.exec('PRAGMA optimize')
+    }
+
+    return touchedIndexNames
+  }
+
+  private buildAdaptiveIndexName(
+    schemaId: SchemaIRI,
+    propertyKey: string,
+    valueType: ScalarValueType
+  ): string {
+    return [
+      'idx_auto_prop',
+      this.hashScalarValue(schemaId),
+      this.hashScalarValue(propertyKey),
+      valueType
+    ].join('_')
+  }
+
+  private buildAdaptiveIndexDDL(
+    indexName: string,
+    schemaId: SchemaIRI,
+    propertyKey: string,
+    valueType: ScalarValueType
+  ): string {
+    const columns = this.getAdaptiveIndexColumns(valueType)
+    const indexIdentifier = this.quoteSqlIdentifier(indexName)
+
+    return `CREATE INDEX IF NOT EXISTS ${indexIdentifier}
+ON node_property_scalars(${columns})
+WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
+  AND property_key = ${this.quoteSqlLiteral(propertyKey)}
+  AND value_type = ${this.quoteSqlLiteral(valueType)}`
+  }
+
+  private getAdaptiveIndexColumns(valueType: ScalarValueType): string {
+    switch (valueType) {
+      case 'text':
+        return 'value_text, node_id'
+      case 'number':
+        return 'value_number, node_id'
+      case 'boolean':
+        return 'value_boolean, node_id'
+      case 'null':
+        return 'node_id'
+    }
+  }
+
   private compileNodeQuery(descriptor: NodeQueryDescriptor): CompiledNodeQuery | null {
     if (descriptor.nodeId) {
       return this.compileSqlQuery(descriptor, {
@@ -918,7 +1246,6 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   ): CompiledNodeQuery {
     const joins: string[] = []
     const where: string[] = ['n.schema_id = ?']
-    const joinParams: SQLValue[] = []
     const whereParams: SQLValue[] = [descriptor.schemaId]
 
     if (descriptor.nodeId) {
@@ -932,14 +1259,16 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     options.whereEntries.forEach((entry, index) => {
       const alias = `p${index}`
+      const schemaId = this.quoteSqlLiteral(descriptor.schemaId)
+      const propertyKey = this.quoteSqlLiteral(entry.key)
+      const valueType = this.quoteSqlLiteral(entry.scalar.valueType)
       joins.push(
         `JOIN node_property_scalars ${alias}
           ON ${alias}.node_id = n.id
-         AND ${alias}.schema_id = n.schema_id
-         AND ${alias}.property_key = ?
-         AND ${alias}.value_type = ?`
+         AND ${alias}.schema_id = ${schemaId}
+         AND ${alias}.property_key = ${propertyKey}
+         AND ${alias}.value_type = ${valueType}`
       )
-      joinParams.push(entry.key, entry.scalar.valueType)
       this.appendScalarPredicate(where, whereParams, alias, entry.scalar)
     })
 
@@ -963,9 +1292,13 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     return {
       sql,
-      params: [...joinParams, ...whereParams],
+      params: whereParams,
       postFilterDescriptor: useSqlPagination ? withoutNodeQueryPagination(descriptor) : descriptor,
-      postFilterReason: useSqlPagination ? 'pagination-pushed-down' : 'verified-in-js'
+      postFilterReason: useSqlPagination ? 'pagination-pushed-down' : 'verified-in-js',
+      adaptiveIndexHints: options.whereEntries.map((entry) => ({
+        propertyKey: entry.key,
+        scalar: entry.scalar
+      }))
     }
   }
 
@@ -1068,6 +1401,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
  * const storage = createNodeStorageAdapter(db)
  * ```
  */
-export function createNodeStorageAdapter(db: SQLiteAdapter): SQLiteNodeStorageAdapter {
-  return new SQLiteNodeStorageAdapter(db)
+export function createNodeStorageAdapter(
+  db: SQLiteAdapter,
+  options?: SQLiteNodeStorageAdapterOptions
+): SQLiteNodeStorageAdapter {
+  return new SQLiteNodeStorageAdapter(db, options)
 }

@@ -6,7 +6,7 @@
  * Current schema version.
  * Increment this when making schema changes.
  */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 /**
  * Core SQLite schema for xNet (without FTS5).
@@ -64,6 +64,32 @@ CREATE TABLE IF NOT EXISTS node_property_scalars (
 
     PRIMARY KEY (schema_id, property_key, node_id),
     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+);
+
+-- Query planner telemetry for adaptive read indexes.
+CREATE TABLE IF NOT EXISTS query_descriptor_stats (
+    descriptor_hash TEXT PRIMARY KEY,
+    schema_id TEXT NOT NULL,
+    descriptor_json TEXT NOT NULL,
+    hits INTEGER NOT NULL,
+    total_duration_ms REAL NOT NULL,
+    avg_duration_ms REAL NOT NULL,
+    avg_candidates REAL NOT NULL,
+    last_seen_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS query_index_candidates (
+    index_name TEXT PRIMARY KEY,
+    descriptor_hash TEXT NOT NULL,
+    schema_id TEXT NOT NULL,
+    property_key TEXT NOT NULL,
+    value_type TEXT NOT NULL,
+    ddl TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    last_used_at INTEGER NOT NULL,
+
+    FOREIGN KEY (descriptor_hash) REFERENCES query_descriptor_stats(descriptor_hash)
+        ON DELETE CASCADE
 );
 
 -- Change log (event sourcing)
@@ -188,6 +214,11 @@ CREATE INDEX IF NOT EXISTS idx_prop_scalars_null
     ON node_property_scalars(schema_id, property_key, node_id)
     WHERE value_type = 'null';
 
+CREATE INDEX IF NOT EXISTS idx_query_stats_schema_seen
+    ON query_descriptor_stats(schema_id, last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_query_indexes_schema_property
+    ON query_index_candidates(schema_id, property_key, value_type);
+
 CREATE INDEX IF NOT EXISTS idx_changes_node ON changes(node_id);
 CREATE INDEX IF NOT EXISTS idx_changes_lamport ON changes(lamport_time);
 CREATE INDEX IF NOT EXISTS idx_changes_wall_time ON changes(wall_time);
@@ -273,6 +304,38 @@ CREATE INDEX IF NOT EXISTS idx_prop_scalars_boolean
 CREATE INDEX IF NOT EXISTS idx_prop_scalars_null
     ON node_property_scalars(schema_id, property_key, node_id)
     WHERE value_type = 'null';
+`,
+
+  3: `
+CREATE TABLE IF NOT EXISTS query_descriptor_stats (
+    descriptor_hash TEXT PRIMARY KEY,
+    schema_id TEXT NOT NULL,
+    descriptor_json TEXT NOT NULL,
+    hits INTEGER NOT NULL,
+    total_duration_ms REAL NOT NULL,
+    avg_duration_ms REAL NOT NULL,
+    avg_candidates REAL NOT NULL,
+    last_seen_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS query_index_candidates (
+    index_name TEXT PRIMARY KEY,
+    descriptor_hash TEXT NOT NULL,
+    schema_id TEXT NOT NULL,
+    property_key TEXT NOT NULL,
+    value_type TEXT NOT NULL,
+    ddl TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    last_used_at INTEGER NOT NULL,
+
+    FOREIGN KEY (descriptor_hash) REFERENCES query_descriptor_stats(descriptor_hash)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_query_stats_schema_seen
+    ON query_descriptor_stats(schema_id, last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_query_indexes_schema_property
+    ON query_index_candidates(schema_id, property_key, value_type);
 `
 }
 
