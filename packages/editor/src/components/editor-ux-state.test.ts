@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   deriveKeyboardState,
   DEFAULT_KEYBOARD_THRESHOLDS,
+  resolveEditorModePolicy,
+  resolveToolbarPolicy,
   shouldShowDesktopToolbar
 } from './editor-ux-state'
 
@@ -75,6 +77,150 @@ describe('editor UX state helpers', () => {
           inCodeBlock: true
         })
       ).toBe(false)
+    })
+  })
+
+  describe('resolveToolbarPolicy', () => {
+    it('uses desktop floating toolbar for page range selections', () => {
+      expect(
+        resolveToolbarPolicy({
+          surface: 'page',
+          isMobile: false,
+          isFocused: true,
+          selectionShape: 'range',
+          inCodeBlock: false
+        })
+      ).toEqual({ presentation: 'desktop-floating', isCompact: false })
+    })
+
+    it('uses fixed mobile toolbar while focused on mobile page surfaces', () => {
+      expect(
+        resolveToolbarPolicy({
+          surface: 'page',
+          isMobile: true,
+          isFocused: true,
+          selectionShape: 'collapsed',
+          inCodeBlock: false
+        })
+      ).toEqual({ presentation: 'mobile-fixed', isCompact: false })
+    })
+
+    it('uses compact toolbar for canvas inline range selections', () => {
+      expect(
+        resolveToolbarPolicy({
+          surface: 'canvas-inline',
+          isMobile: false,
+          isFocused: true,
+          selectionShape: 'range',
+          inCodeBlock: false
+        })
+      ).toEqual({ presentation: 'canvas-compact', isCompact: true })
+    })
+
+    it('hides desktop and canvas toolbars when editor focus leaves the surface', () => {
+      const base = {
+        isMobile: false,
+        isFocused: false,
+        selectionShape: 'range' as const,
+        inCodeBlock: false
+      }
+
+      expect(resolveToolbarPolicy({ ...base, surface: 'page' })).toEqual({
+        presentation: 'hidden',
+        isCompact: false
+      })
+      expect(resolveToolbarPolicy({ ...base, surface: 'canvas-inline' })).toEqual({
+        presentation: 'hidden',
+        isCompact: true
+      })
+    })
+
+    it('hides toolbar for canvas previews and read surfaces', () => {
+      const base = {
+        isMobile: false,
+        isFocused: true,
+        selectionShape: 'range' as const,
+        inCodeBlock: false
+      }
+
+      expect(resolveToolbarPolicy({ ...base, surface: 'canvas-preview' })).toEqual({
+        presentation: 'hidden',
+        isCompact: false
+      })
+      expect(resolveToolbarPolicy({ ...base, surface: 'read' })).toEqual({
+        presentation: 'hidden',
+        isCompact: false
+      })
+    })
+
+    it('hides toolbar inside code blocks on every surface', () => {
+      expect(
+        resolveToolbarPolicy({
+          surface: 'canvas-inline',
+          isMobile: false,
+          isFocused: true,
+          selectionShape: 'range',
+          inCodeBlock: true
+        })
+      ).toEqual({ presentation: 'hidden', isCompact: false })
+    })
+  })
+
+  describe('resolveEditorModePolicy', () => {
+    it('keeps live page editors editable with toolbar support', () => {
+      expect(
+        resolveEditorModePolicy({
+          requestedMode: 'live',
+          surface: 'page',
+          readOnly: false
+        })
+      ).toEqual({
+        contentMode: 'live',
+        isEditable: true,
+        rendersRichEditor: true,
+        allowsToolbar: true
+      })
+    })
+
+    it('reserves source mode as a non-rich editing surface', () => {
+      expect(
+        resolveEditorModePolicy({
+          requestedMode: 'source',
+          surface: 'page',
+          readOnly: false
+        })
+      ).toEqual({
+        contentMode: 'source',
+        isEditable: false,
+        rendersRichEditor: false,
+        allowsToolbar: false
+      })
+    })
+
+    it('forces read mode for read-only and preview surfaces', () => {
+      expect(
+        resolveEditorModePolicy({
+          requestedMode: 'live',
+          surface: 'canvas-preview',
+          readOnly: false
+        })
+      ).toMatchObject({
+        contentMode: 'read',
+        isEditable: false,
+        allowsToolbar: false
+      })
+
+      expect(
+        resolveEditorModePolicy({
+          requestedMode: 'source',
+          surface: 'page',
+          readOnly: true
+        })
+      ).toMatchObject({
+        contentMode: 'read',
+        isEditable: false,
+        allowsToolbar: false
+      })
     })
   })
 })

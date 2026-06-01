@@ -55,9 +55,11 @@ export const KeyboardShortcutsExtension = Extension.create<KeyboardShortcutsOpti
 // Re-export everything
 export {
   KEYBOARD_SHORTCUTS,
+  OPEN_LINK_POPOVER_EVENT,
   getShortcutsByCategory,
   getShortcutById,
   getShortcutsMap
 } from './shortcuts'
+export type { OpenLinkPopoverEventDetail } from './shortcuts'
 export { formatShortcut, isMac } from './types'
 export type { KeyboardShortcut } from './types'

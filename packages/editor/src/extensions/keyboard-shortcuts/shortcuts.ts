@@ -1,5 +1,23 @@
 import type { KeyboardShortcut } from './types'
+import type { Editor } from '@tiptap/core'
 import { formatShortcut } from './types'
+
+export const OPEN_LINK_POPOVER_EVENT = 'xnet:editor:open-link-popover'
+
+export type OpenLinkPopoverEventDetail = {
+  editor: Editor
+}
+
+function requestLinkPopover(editor: Editor): boolean {
+  if (typeof window === 'undefined') return false
+
+  window.dispatchEvent(
+    new CustomEvent<OpenLinkPopoverEventDetail>(OPEN_LINK_POPOVER_EVENT, {
+      detail: { editor }
+    })
+  )
+  return true
+}
 
 /**
  * All keyboard shortcuts organized by category.
@@ -51,15 +69,7 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
     keys: 'Mod-k',
     display: formatShortcut('Mod-k'),
     category: 'formatting',
-    command: (editor) => {
-      const previousUrl = editor.getAttributes('link').href
-      const url = typeof window !== 'undefined' ? window.prompt('URL', previousUrl) : null
-      if (url === null) return false
-      if (url === '') {
-        return editor.chain().focus().unsetLink().run()
-      }
-      return editor.chain().focus().setLink({ href: url }).run()
-    }
+    command: requestLinkPopover
   },
   {
     id: 'clear-formatting',

@@ -5,11 +5,101 @@
  * architecture. The consuming app provides the actual view rendering via the
  * `renderView` option, keeping @xnetjs/views out of the editor package's dependencies.
  */
+import type { Editor } from '@tiptap/core'
 import { Node, mergeAttributes } from '@tiptap/core'
+import { NodeSelection, Selection, TextSelection } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer } from '@tiptap/react'
+import {
+  booleanAttr,
+  createXNetAuthoredMarkdownAttrs,
+  createXNetJsonBlockTokenizer,
+  numberAttr,
+  parseXNetJsonPayload,
+  recordAttr,
+  renderXNetJsonBlockPreservingSource,
+  stringAttr
+} from '../markdown-xnet'
 import { DatabaseEmbedNodeView } from './DatabaseEmbedNodeView'
 
 export type DatabaseViewType = 'table' | 'board' | 'list' | 'calendar' | 'gallery' | 'timeline'
+
+const DATABASE_EMBED_MARKDOWN_DIRECTIVE = 'xnet-database'
+const DATABASE_VIEW_TYPES = new Set<DatabaseViewType>([
+  'table',
+  'board',
+  'list',
+  'calendar',
+  'gallery',
+  'timeline'
+])
+
+type DatabaseEmbedSelectionRange = {
+  from: number
+  to: number
+}
+
+function toDatabaseViewType(value: unknown): DatabaseViewType {
+  return typeof value === 'string' && DATABASE_VIEW_TYPES.has(value as DatabaseViewType)
+    ? (value as DatabaseViewType)
+    : 'table'
+}
+
+function getSelectedDatabaseEmbedRange(
+  editor: Editor,
+  nodeName: string
+): DatabaseEmbedSelectionRange | null {
+  const { selection } = editor.state
+
+  if (!(selection instanceof NodeSelection)) {
+    return null
+  }
+
+  if (selection.node.type.name !== nodeName) {
+    return null
+  }
+
+  return { from: selection.from, to: selection.to }
+}
+
+function moveSelectionAroundDatabaseEmbed(
+  editor: Editor,
+  nodeName: string,
+  direction: 'before' | 'after'
+): boolean {
+  const range = getSelectedDatabaseEmbedRange(editor, nodeName)
+  if (!range) return false
+
+  const { state, view } = editor
+  const position = direction === 'after' ? range.to : range.from
+  const bias = direction === 'after' ? 1 : -1
+  const selection = Selection.near(state.doc.resolve(position), bias)
+
+  if (selection.eq(state.selection)) {
+    return false
+  }
+
+  view.dispatch(state.tr.setSelection(selection).scrollIntoView())
+  return true
+}
+
+function insertParagraphAroundDatabaseEmbed(
+  editor: Editor,
+  nodeName: string,
+  direction: 'before' | 'after'
+): boolean {
+  const range = getSelectedDatabaseEmbedRange(editor, nodeName)
+  if (!range) return false
+
+  const paragraph = editor.state.schema.nodes.paragraph?.createAndFill()
+  if (!paragraph) return false
+
+  const insertionPosition = direction === 'after' ? range.to : range.from
+  const tr = editor.state.tr.insert(insertionPosition, paragraph)
+  const selection = TextSelection.create(tr.doc, insertionPosition + 1)
+
+  editor.view.dispatch(tr.setSelection(selection).scrollIntoView())
+  return true
+}
 
 export interface DatabaseEmbedOptions {
   /**
@@ -72,6 +162,10 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
 
   draggable: true,
 
+  selectable: true,
+
+  isolating: true,
+
   atom: true,
 
   addAttributes() {
@@ -93,7 +187,9 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
         })
       },
       showTitle: { default: true },
-      maxHeight: { default: 400 }
+      maxHeight: { default: 400 },
+      sourceMarkdown: { default: null, rendered: false },
+      sourceCanonicalPayload: { default: null, rendered: false }
     }
   },
 
@@ -111,6 +207,43 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
       })
     ]
   },
+
+  markdownTokenizer: createXNetJsonBlockTokenizer(
+    'databaseEmbed',
+    DATABASE_EMBED_MARKDOWN_DIRECTIVE
+  ),
+
+  parseMarkdown: (token, helpers) => {
+    const payload = parseXNetJsonPayload(token)
+    const databaseId = stringAttr(payload?.databaseId)
+    if (!databaseId) return []
+
+    const attrs = {
+      databaseId,
+      viewType: toDatabaseViewType(payload?.viewType),
+      viewConfig: recordAttr(payload?.viewConfig),
+      showTitle: booleanAttr(payload?.showTitle, true),
+      maxHeight: numberAttr(payload?.maxHeight, 400)
+    }
+
+    return helpers.createNode('databaseEmbed', {
+      ...attrs,
+      ...createXNetAuthoredMarkdownAttrs(token, attrs)
+    })
+  },
+
+  renderMarkdown: (node) =>
+    renderXNetJsonBlockPreservingSource(
+      DATABASE_EMBED_MARKDOWN_DIRECTIVE,
+      {
+        databaseId: node.attrs?.databaseId,
+        viewType: node.attrs?.viewType ?? 'table',
+        viewConfig: node.attrs?.viewConfig ?? {},
+        showTitle: node.attrs?.showTitle ?? true,
+        maxHeight: node.attrs?.maxHeight ?? 400
+      },
+      node.attrs ?? {}
+    ),
 
   addNodeView() {
     return ReactNodeViewRenderer(DatabaseEmbedNodeView)
@@ -141,6 +274,17 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
             ...(options.viewConfig !== undefined && { viewConfig: options.viewConfig })
           })
         }
+    }
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => insertParagraphAroundDatabaseEmbed(this.editor, this.name, 'after'),
+      'Shift-Enter': () => insertParagraphAroundDatabaseEmbed(this.editor, this.name, 'before'),
+      ArrowDown: () => moveSelectionAroundDatabaseEmbed(this.editor, this.name, 'after'),
+      ArrowRight: () => moveSelectionAroundDatabaseEmbed(this.editor, this.name, 'after'),
+      ArrowUp: () => moveSelectionAroundDatabaseEmbed(this.editor, this.name, 'before'),
+      ArrowLeft: () => moveSelectionAroundDatabaseEmbed(this.editor, this.name, 'before')
     }
   }
 })

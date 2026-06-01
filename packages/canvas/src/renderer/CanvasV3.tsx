@@ -1154,6 +1154,9 @@ function isTextInputLikeElement(target: EventTarget | null): boolean {
     target.tagName === 'BUTTON' ||
     target.tagName === 'A' ||
     Boolean(target.closest('[role="toolbar"], [role="dialog"]')) ||
+    Boolean(
+      target.closest('[data-canvas-interactive="true"], [data-canvas-editing-surface="true"]')
+    ) ||
     target.isContentEditable
   )
 }
@@ -4871,6 +4874,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       role="application"
       aria-label="Canvas"
       data-canvas-surface="true"
+      data-canvas-theme={theme.mode}
       data-canvas-renderer-version="3"
       data-canvas-v3-surface="true"
       data-canvas-object-count={scene.objects.length}
@@ -5076,6 +5080,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           return (
             <div
               key={item.object.id}
+              className="canvas-node canvas-node--v3"
               style={{
                 ...styles.domIsland,
                 left: renderRect.x + (previewDelta?.x ?? 0),
@@ -5092,6 +5097,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               }}
               data-canvas-v3-object="true"
               data-canvas-object-id={item.object.id}
+              data-node-id={item.object.id}
+              data-node-type={item.node.type}
               data-canvas-dom-island-tier={tier}
               data-canvas-live-iframe={liveIframe ? 'true' : 'false'}
               data-canvas-mind-map-node={mindMapMetadata ? 'true' : undefined}

@@ -19,9 +19,10 @@ export function findMarkRange(
 ): MarkRange | null {
   const $pos = doc.resolve(pos)
 
-  // Get the mark at this position
-  const marks = $pos.marks()
-  const targetMark = marks.find((m) => m.type.name === markType)
+  const targetMark =
+    $pos.marks().find((m) => m.type.name === markType) ??
+    $pos.nodeBefore?.marks.find((m) => m.type.name === markType) ??
+    $pos.nodeAfter?.marks.find((m) => m.type.name === markType)
 
   if (!targetMark) return null
 

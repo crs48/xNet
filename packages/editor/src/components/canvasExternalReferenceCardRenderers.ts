@@ -15,6 +15,8 @@ export type CanvasExternalReferenceCardRendererKind =
   | 'social'
   | 'link'
 
+export type CanvasExternalReferenceRenderMode = 'inline' | 'block' | 'compact' | 'read-only'
+
 export type CanvasExternalReferenceCardAccent =
   | 'neutral'
   | 'blue'
@@ -35,6 +37,7 @@ export type CanvasExternalReferenceCardRenderer = {
   providerId: ExternalReferenceProvider
   providerLabel: string
   kind: CanvasExternalReferenceCardRendererKind
+  renderModes: readonly CanvasExternalReferenceRenderMode[]
   accent: CanvasExternalReferenceCardAccent
   iconLabel: string
   badgeLabel: string
@@ -56,6 +59,7 @@ type CanvasExternalReferenceCardRendererDefinition = {
   providerId: ExternalReferenceProvider
   providerLabel: string
   kind: CanvasExternalReferenceCardRendererKind
+  renderModes: readonly CanvasExternalReferenceRenderMode[]
   accent: CanvasExternalReferenceCardAccent
   iconLabel: string
   previewLabel: string
@@ -66,6 +70,19 @@ type CanvasExternalReferenceCardRendererDefinition = {
   ) => readonly CanvasExternalReferenceCardMetadata[]
 }
 
+const LINK_RENDER_MODES: readonly CanvasExternalReferenceRenderMode[] = [
+  'inline',
+  'block',
+  'compact',
+  'read-only'
+]
+
+const EMBED_RENDER_MODES: readonly CanvasExternalReferenceRenderMode[] = [
+  'block',
+  'compact',
+  'read-only'
+]
+
 const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
   ExternalReferenceProvider,
   CanvasExternalReferenceCardRendererDefinition
@@ -74,6 +91,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'github',
     providerLabel: 'GitHub',
     kind: 'github-record',
+    renderModes: LINK_RENDER_MODES,
     accent: 'slate',
     iconLabel: 'GH',
     previewLabel: 'Repository reference',
@@ -102,6 +120,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'figma',
     providerLabel: 'Figma',
     kind: 'design',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'purple',
     iconLabel: 'FG',
     previewLabel: 'Design file',
@@ -117,6 +136,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'youtube',
     providerLabel: 'YouTube',
     kind: 'video',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'red',
     iconLabel: 'YT',
     previewLabel: 'Video player',
@@ -129,6 +149,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'loom',
     providerLabel: 'Loom',
     kind: 'video',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'blue',
     iconLabel: 'LO',
     previewLabel: 'Recording player',
@@ -141,6 +162,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'vimeo',
     providerLabel: 'Vimeo',
     kind: 'video',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'blue',
     iconLabel: 'VI',
     previewLabel: 'Video player',
@@ -153,6 +175,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'codesandbox',
     providerLabel: 'CodeSandbox',
     kind: 'sandbox',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'slate',
     iconLabel: 'CS',
     previewLabel: 'Live sandbox',
@@ -165,6 +188,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'spotify',
     providerLabel: 'Spotify',
     kind: 'audio',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'green',
     iconLabel: 'SP',
     previewLabel: 'Audio player',
@@ -183,6 +207,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'twitter',
     providerLabel: 'X',
     kind: 'social',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'slate',
     iconLabel: 'X',
     previewLabel: 'Social post',
@@ -198,6 +223,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'instagram',
     providerLabel: 'Instagram',
     kind: 'social',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'pink',
     iconLabel: 'IG',
     previewLabel: 'Social post',
@@ -216,6 +242,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'tiktok',
     providerLabel: 'TikTok',
     kind: 'social',
+    renderModes: EMBED_RENDER_MODES,
     accent: 'pink',
     iconLabel: 'TT',
     previewLabel: 'Social video',
@@ -231,6 +258,7 @@ const EXTERNAL_REFERENCE_CARD_RENDERERS: Record<
     providerId: 'generic',
     providerLabel: 'Link',
     kind: 'link',
+    renderModes: LINK_RENDER_MODES,
     accent: 'neutral',
     iconLabel: 'LN',
     previewLabel: 'Link preview',
@@ -301,6 +329,7 @@ export function createCanvasExternalReferenceCardRenderer(
     providerId,
     providerLabel: definition.providerLabel,
     kind: definition.kind,
+    renderModes: [...definition.renderModes],
     accent: definition.accent,
     iconLabel: definition.iconLabel,
     badgeLabel,

@@ -3,6 +3,7 @@ import {
   benchmark,
   benchmarkAsync,
   generateLargeDocument,
+  generateLargeMarkdownDocument,
   formatBenchmarkResults,
   type BenchmarkResult
 } from './benchmarks'
@@ -145,6 +146,30 @@ describe('generateLargeDocument', () => {
     expect(levels).toContain(1)
     expect(levels).toContain(2)
     expect(levels).toContain(3)
+  })
+})
+
+describe('generateLargeMarkdownDocument', () => {
+  it('generates the requested number of top-level blocks', () => {
+    const markdown = generateLargeMarkdownDocument({
+      blocks: 20,
+      wordsPerParagraph: 8,
+      includeEmbeds: false
+    })
+
+    expect(markdown.split('\n\n')).toHaveLength(20)
+    expect(markdown).toContain('Paragraph 0')
+    expect(markdown).toContain('> Quote 15')
+  })
+
+  it('can include xNet-flavored embed fallback blocks', () => {
+    const markdown = generateLargeMarkdownDocument({
+      blocks: 130,
+      includeEmbeds: true
+    })
+
+    expect(markdown).toContain(':::xnet-embed')
+    expect(markdown).toContain('"provider":"youtube"')
   })
 })
 

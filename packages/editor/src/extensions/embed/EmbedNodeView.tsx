@@ -10,7 +10,13 @@
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import * as React from 'react'
 import { cn } from '../../utils'
-import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from './providers'
+import {
+  EMBED_PROVIDERS,
+  evaluateEmbedRegistryPolicy,
+  parseEmbedUrl,
+  type EmbedProvider,
+  type EmbedRegistryPolicyDecision
+} from './providers'
 
 /** Get provider config by name */
 function getProvider(name: string): EmbedProvider | undefined {
@@ -21,6 +27,61 @@ const ALIGNMENTS: Record<string, string> = {
   left: 'mr-auto',
   center: 'mx-auto',
   right: 'ml-auto'
+}
+const LAZY_EMBED_PRELOAD_MARGIN_PX = 600
+
+function isElementNearViewport(element: HTMLElement, marginPx: number): boolean {
+  if (typeof window === 'undefined') return false
+
+  const rect = element.getBoundingClientRect()
+  if (rect.width === 0 && rect.height === 0) return false
+
+  return rect.bottom >= -marginPx && rect.top <= window.innerHeight + marginPx
+}
+
+function EmbedUnavailablePlaceholder({
+  url,
+  reason,
+  selected
+}: {
+  url: string | null
+  reason: string
+  selected: boolean
+}) {
+  return (
+    <NodeViewWrapper contentEditable={false}>
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center gap-1 p-6 rounded-lg my-2',
+          'bg-gray-50 dark:bg-gray-800',
+          'border border-gray-200 dark:border-gray-700',
+          'text-gray-500 dark:text-gray-400',
+          selected && 'ring-2 ring-blue-500 ring-offset-2'
+        )}
+        data-drag-handle
+        data-embed-policy="blocked"
+        data-embed-policy-reason={reason}
+        role="status"
+        aria-label="Embed unavailable"
+      >
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+          Embed unavailable
+        </span>
+        {url && <span className="max-w-full truncate text-xs">{url}</span>}
+        <span className="text-xs">{reason}</span>
+      </div>
+    </NodeViewWrapper>
+  )
+}
+
+function getAllowedEmbedPolicy(input: {
+  provider: string | null
+  embedUrl: string | null
+}): EmbedRegistryPolicyDecision {
+  return evaluateEmbedRegistryPolicy({
+    provider: input.provider,
+    embedUrl: input.embedUrl
+  })
 }
 
 export function EmbedNodeView({
@@ -33,6 +94,9 @@ export function EmbedNodeView({
 }: NodeViewProps) {
   const { url, provider: providerName, embedUrl, title, width, alignment } = node.attrs
   const [loading, setLoading] = React.useState(true)
+  const [iframeVisible, setIframeVisible] = React.useState(
+    () => typeof globalThis.IntersectionObserver !== 'function'
+  )
   const [inputValue, setInputValue] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
   const [resizeWidth, setResizeWidth] = React.useState<number | null>(null)
@@ -40,15 +104,69 @@ export function EmbedNodeView({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const provider = getProvider(providerName)
+  const embedPolicyDecision = React.useMemo(
+    () => getAllowedEmbedPolicy({ provider: providerName, embedUrl }),
+    [providerName, embedUrl]
+  )
 
   const aspectRatio = provider?.aspectRatio || 16 / 9
   const paddingBottom = `${(1 / aspectRatio) * 100}%`
   const isResizing = resizeWidth !== null
+  const shouldMountIframe = selected || iframeVisible
 
   // Keep ref in sync with state
   React.useEffect(() => {
     resizeWidthRef.current = resizeWidth
   }, [resizeWidth])
+
+  React.useEffect(() => {
+    setLoading(true)
+  }, [embedUrl])
+
+  React.useEffect(() => {
+    if (selected) {
+      setIframeVisible(true)
+    }
+  }, [selected])
+
+  React.useEffect(() => {
+    if (!embedUrl || !embedPolicyDecision.allowed || shouldMountIframe) return
+
+    const IntersectionObserverCtor = globalThis.IntersectionObserver
+    if (typeof IntersectionObserverCtor !== 'function') {
+      setIframeVisible(true)
+      return
+    }
+
+    const target = containerRef.current
+    if (!target) return
+
+    if (isElementNearViewport(target, LAZY_EMBED_PRELOAD_MARGIN_PX)) {
+      setIframeVisible(true)
+      return
+    }
+
+    let observer: IntersectionObserver | null = new IntersectionObserverCtor(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) return
+
+        setIframeVisible(true)
+        observer?.disconnect()
+        observer = null
+      },
+      {
+        root: null,
+        rootMargin: `${LAZY_EMBED_PRELOAD_MARGIN_PX}px 0px`,
+        threshold: 0.01
+      }
+    )
+
+    observer.observe(target)
+
+    return () => {
+      observer?.disconnect()
+    }
+  }, [embedUrl, embedPolicyDecision.allowed, shouldMountIframe])
 
   // Handle resize via mouse drag
   const handleResizeStart = React.useCallback(
@@ -167,6 +285,7 @@ export function EmbedNodeView({
             <input
               ref={inputRef}
               type="url"
+              aria-label="Embed URL"
               placeholder="Paste YouTube, Vimeo, Spotify URL..."
               value={inputValue}
               onChange={(e) => {
@@ -189,6 +308,7 @@ export function EmbedNodeView({
             />
             <button
               type="button"
+              aria-label="Create embed"
               onClick={handleSubmit}
               className={cn(
                 'px-3 py-2 text-sm font-medium rounded-md',
@@ -208,23 +328,14 @@ export function EmbedNodeView({
     )
   }
 
-  // Has URL but failed to parse - show error state
-  if (!embedUrl) {
+  // Has URL but cannot safely render live iframe content.
+  if (!embedUrl || !embedPolicyDecision.allowed) {
     return (
-      <NodeViewWrapper>
-        <div
-          className={cn(
-            'flex items-center justify-center p-6 rounded-lg my-2',
-            'bg-gray-50 dark:bg-gray-800',
-            'border border-gray-200 dark:border-gray-700',
-            'text-gray-500 dark:text-gray-400',
-            selected && 'ring-2 ring-blue-500 ring-offset-2'
-          )}
-          data-drag-handle
-        >
-          <span className="text-sm">Unable to embed: {url}</span>
-        </div>
-      </NodeViewWrapper>
+      <EmbedUnavailablePlaceholder
+        url={url}
+        selected={selected}
+        reason={embedPolicyDecision.reason ?? 'Embed URL is missing or invalid.'}
+      />
     )
   }
 
@@ -239,6 +350,7 @@ export function EmbedNodeView({
         )}
         style={{ width: isResizing ? resizeWidth : width || 400, maxWidth: '100%' }}
         data-drag-handle
+        data-embed-iframe-mounted={shouldMountIframe ? 'true' : 'false'}
       >
         {/* Responsive iframe container */}
         <div
@@ -246,7 +358,7 @@ export function EmbedNodeView({
           style={{ paddingBottom }}
         >
           {/* Loading state */}
-          {loading && (
+          {shouldMountIframe && loading && (
             <div
               className={cn(
                 'absolute inset-0 flex items-center justify-center',
@@ -277,17 +389,36 @@ export function EmbedNodeView({
           )}
 
           {/* Iframe */}
-          <iframe
-            src={embedUrl}
-            title={title || `${provider?.displayName || 'Embedded'} content`}
-            className="absolute inset-0 w-full h-full"
-            style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            loading="lazy"
-            onLoad={() => setLoading(false)}
-          />
+          {shouldMountIframe ? (
+            <iframe
+              src={embedUrl}
+              title={title || `${provider?.displayName || 'Embedded'} content`}
+              className="absolute inset-0 w-full h-full"
+              style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
+              frameBorder="0"
+              sandbox={embedPolicyDecision.iframeAttributes.sandbox}
+              allow={embedPolicyDecision.iframeAttributes.allow}
+              referrerPolicy={embedPolicyDecision.iframeAttributes.referrerPolicy}
+              allowFullScreen
+              loading={embedPolicyDecision.iframeAttributes.loading}
+              data-embed-iframe="true"
+              onLoad={() => setLoading(false)}
+            />
+          ) : (
+            <div
+              className={cn(
+                'absolute inset-0 flex items-center justify-center',
+                'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+              )}
+              data-embed-lazy-placeholder="true"
+              role="status"
+              aria-label="Embed preview will load when visible"
+            >
+              <p className="px-4 text-center text-xs">
+                {provider?.displayName || 'Embed'} preview loads when visible.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Provider badge (top-left, visible on hover) */}

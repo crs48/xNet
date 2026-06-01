@@ -106,6 +106,23 @@ function getEventColor(
   return option?.color || '#3b82f6'
 }
 
+function getLastDayOfMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+function addMonthsClamped(date: Date, delta: number): Date {
+  const nextDate = new Date(date)
+  const targetDay = nextDate.getDate()
+
+  nextDate.setDate(1)
+  nextDate.setMonth(nextDate.getMonth() + delta)
+  nextDate.setDate(
+    Math.min(targetDay, getLastDayOfMonth(nextDate.getFullYear(), nextDate.getMonth()))
+  )
+
+  return nextDate
+}
+
 /**
  * Hook for managing calendar state
  */
@@ -165,28 +182,24 @@ export function useCalendarState({
   // Navigation
   const navigatePrev = useCallback(() => {
     setCurrentDate((prev) => {
-      const date = new Date(prev)
       if (viewMode === 'month') {
-        date.setMonth(date.getMonth() - 1)
-      } else if (viewMode === 'week') {
-        date.setDate(date.getDate() - 7)
-      } else {
-        date.setDate(date.getDate() - 1)
+        return addMonthsClamped(prev, -1)
       }
+
+      const date = new Date(prev)
+      date.setDate(date.getDate() + (viewMode === 'week' ? -7 : -1))
       return date
     })
   }, [viewMode])
 
   const navigateNext = useCallback(() => {
     setCurrentDate((prev) => {
-      const date = new Date(prev)
       if (viewMode === 'month') {
-        date.setMonth(date.getMonth() + 1)
-      } else if (viewMode === 'week') {
-        date.setDate(date.getDate() + 7)
-      } else {
-        date.setDate(date.getDate() + 1)
+        return addMonthsClamped(prev, 1)
       }
+
+      const date = new Date(prev)
+      date.setDate(date.getDate() + (viewMode === 'week' ? 7 : 1))
       return date
     })
   }, [viewMode])

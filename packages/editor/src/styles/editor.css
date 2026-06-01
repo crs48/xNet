@@ -19,6 +19,9 @@
   --editor-warning: 245 158 11;
   --editor-destructive: 220 38 38;
   --editor-destructive-foreground: 255 255 255;
+  --editor-caret: 37 99 235;
+  --editor-selection-background: 191 219 254;
+  --editor-selection-foreground: 24 24 27;
   --editor-rhythm-1: 0.25rem;
   --editor-rhythm-2: 0.5rem;
   --editor-rhythm-3: 0.75rem;
@@ -42,6 +45,9 @@
   --editor-warning: 251 191 36;
   --editor-destructive: 239 68 68;
   --editor-destructive-foreground: 255 255 255;
+  --editor-caret: 96 165 250;
+  --editor-selection-background: 30 64 175;
+  --editor-selection-foreground: 250 250 250;
 }
 
 /* Base editor styles */
@@ -49,6 +55,8 @@
 /* Editor container */
 .ProseMirror {
   @apply outline-none min-h-full;
+  caret-color: rgb(var(--editor-caret));
+  color: rgb(var(--editor-foreground));
 }
 
 /* ─── Typography: Headings ─── */
@@ -138,12 +146,14 @@
 
 /* Selection highlight */
 .ProseMirror ::selection {
-  background: rgb(var(--editor-primary) / 0.2);
+  background: rgb(var(--editor-selection-background));
+  color: rgb(var(--editor-selection-foreground));
+  text-shadow: none;
 }
 
 /* Node selection (images, etc.) */
 .ProseMirror .ProseMirror-selectednode {
-  outline: 2px solid rgb(var(--editor-primary) / 0.5);
+  outline: 2px solid rgb(var(--editor-caret));
   outline-offset: 2px;
 }
 
@@ -225,6 +235,22 @@
 .ProseMirror a[data-smart-reference][data-provider='loom'],
 .ProseMirror a[data-smart-reference][data-provider='vimeo'] {
   background: rgb(239 68 68 / 0.08);
+}
+
+/* Database references */
+.ProseMirror a[data-database-reference] {
+  @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 no-underline;
+  background: rgb(var(--editor-success) / 0.08);
+  border: 1px solid rgb(var(--editor-success) / 0.24);
+  color: rgb(var(--editor-foreground));
+  font-size: 0.875em;
+  line-height: 1.2;
+  vertical-align: baseline;
+}
+
+.ProseMirror a[data-database-reference]:hover {
+  background: rgb(var(--editor-success) / 0.12);
+  border-color: rgb(var(--editor-success) / 0.4);
 }
 
 /* Task metadata chips */

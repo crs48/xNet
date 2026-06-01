@@ -70,6 +70,7 @@ import {
 import {
   createCanvasShellNoteProperties,
   getCanvasShellDisplayType,
+  getCanvasShellPreviewModel,
   getCanvasShellSourceId,
   getCanvasShellSourceType,
   shouldRenderCanvasShellCard,
@@ -91,6 +92,14 @@ type CanvasPeekState = {
   nodeId: string
   sourceId: string
   displayType: PeekableCanvasDisplayType
+}
+
+type CanvasResolvedObject = {
+  node: CanvasNode
+  sourceId: string | null
+  sourceType: Exclude<LinkedDocType, 'canvas'> | null
+  displayType: LinkedDocType | 'note' | 'external-reference' | 'media' | 'shape' | 'frame'
+  title: string
 }
 
 type CanvasSelectionPanel = 'alias' | 'references' | 'comment' | null
@@ -266,10 +275,132 @@ function isPeekableCanvasDisplayType(
   return displayType === 'page' || displayType === 'database' || displayType === 'note'
 }
 
+type CanvasNodeCardActions = {
+  onOpen?: () => void
+  onPeek?: () => void
+}
+
+function stopCanvasCardAction(event: React.MouseEvent<HTMLButtonElement>): void {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+function CanvasPageStaticPreviewCard({
+  node,
+  document,
+  themeMode,
+  context,
+  actions
+}: {
+  node: CanvasNode
+  document: LinkedDocumentItem | undefined
+  themeMode: 'light' | 'dark'
+  context?: CanvasNodeRenderContext
+  actions?: CanvasNodeCardActions
+}): React.ReactElement {
+  const model = getCanvasShellPreviewModel(node, document)
+  const previewMode =
+    context && (context.lod !== 'full' || context.viewportZoom < 0.9) ? 'low-zoom' : 'static'
+  const isNote = model?.displayType === 'note'
+  const title =
+    model?.title ??
+    node.alias ??
+    document?.title ??
+    (node.properties.title as string) ??
+    (isNote ? 'Untitled Note' : 'Untitled Page')
+  const badge = model?.badge ?? (isNote ? 'Note' : 'Page')
+  const previewLines = model?.previewLines ?? []
+  const accentClass = isNote
+    ? 'border-amber-300/70 bg-amber-50/80 text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100'
+    : 'border-sky-300/70 bg-sky-50/80 text-sky-950 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-100'
+
+  return (
+    <div
+      className="flex h-full flex-col overflow-hidden rounded-[24px] border border-border/70 bg-background shadow-lg shadow-black/5"
+      data-canvas-page-preview="true"
+      data-canvas-page-preview-mode={previewMode}
+      data-canvas-page-preview-kind={isNote ? 'note' : 'page'}
+      data-canvas-theme={themeMode}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] ${accentClass}`}
+        >
+          {isNote ? <StickyNote size={12} /> : <FileText size={12} />}
+          {badge}
+        </span>
+
+        <div className="flex items-center gap-1.5">
+          {actions?.onPeek ? (
+            <button
+              type="button"
+              className="inline-flex h-7 items-center gap-1 rounded-full border border-border/60 bg-background px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={(event) => {
+                stopCanvasCardAction(event)
+                actions.onPeek?.()
+              }}
+              aria-label={`Peek ${title}`}
+              title={`Peek ${title}`}
+              data-canvas-interactive="true"
+              data-canvas-page-peek="true"
+            >
+              <Eye size={13} />
+              Peek
+            </button>
+          ) : null}
+          {actions?.onOpen ? (
+            <button
+              type="button"
+              className="inline-flex h-7 items-center gap-1 rounded-full border border-border/60 bg-background px-2 text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
+              onClick={(event) => {
+                stopCanvasCardAction(event)
+                actions.onOpen?.()
+              }}
+              aria-label={`Open ${title}`}
+              title={`Open ${title}`}
+              data-canvas-interactive="true"
+              data-canvas-page-open="true"
+            >
+              <FileText size={13} />
+              Open
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col px-4 py-3">
+        <div className="mb-3 line-clamp-2 text-lg font-semibold leading-tight text-foreground">
+          {title}
+        </div>
+
+        <div className="min-h-0 flex-1 rounded-2xl border border-border/55 bg-muted/20 p-3">
+          {previewLines.length > 0 ? (
+            <div className="space-y-2 text-sm leading-6 text-muted-foreground">
+              {previewLines.map((line, index) => (
+                <p key={`${line}:${index}`} className="line-clamp-1">
+                  {line}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2" aria-hidden="true">
+              <div className="h-2.5 w-11/12 rounded-full bg-muted-foreground/18" />
+              <div className="h-2.5 w-4/5 rounded-full bg-muted-foreground/14" />
+              <div className="h-2.5 w-2/3 rounded-full bg-muted-foreground/10" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function renderNodeCard(
   node: CanvasNode,
   document: LinkedDocumentItem | undefined,
-  themeMode: 'light' | 'dark'
+  themeMode: 'light' | 'dark',
+  context?: CanvasNodeRenderContext,
+  actions?: CanvasNodeCardActions
 ): React.ReactElement {
   const displayType = getCanvasViewDisplayType(node, document)
   const sourceId = getCanvasShellSourceId(node)
@@ -301,6 +432,18 @@ function renderNodeCard(
   )
   const status = typeof node.properties.status === 'string' ? node.properties.status : null
 
+  if (displayType === 'page' || displayType === 'note') {
+    return (
+      <CanvasPageStaticPreviewCard
+        node={node}
+        document={document}
+        themeMode={themeMode}
+        context={context}
+        actions={actions}
+      />
+    )
+  }
+
   if (displayType === 'external-reference') {
     return (
       <CanvasExternalReferenceCard
@@ -311,6 +454,7 @@ function renderNodeCard(
         subtitle={typeof node.properties.subtitle === 'string' ? node.properties.subtitle : null}
         status={status}
         themeMode={themeMode}
+        renderMode="compact"
       />
     )
   }
@@ -332,6 +476,8 @@ function renderNodeCard(
       data-canvas-node-card="true"
       data-canvas-card-kind={displayType}
       data-canvas-theme={themeMode}
+      data-canvas-card-render-mode={displayType === 'database' ? 'compact' : undefined}
+      data-canvas-database-compact-renderer={displayType === 'database' ? 'true' : undefined}
     >
       <div className="flex items-start justify-between gap-3">
         <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -500,7 +646,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     nodeId: docId,
     anchorType: 'canvas-object'
   })
-  const selectedCanvasObject = useMemo(() => {
+  const selectedCanvasObject = useMemo<CanvasResolvedObject | null>(() => {
     void sceneRevision
 
     if (!doc || selection.nodeIds.length !== 1) {
@@ -721,17 +867,40 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return null
   }, [peekState, selectedCanvasObject, selectionPanel])
 
-  const peekedCanvasObject = useMemo(() => {
-    if (!peekState || !selectedCanvasObject) {
+  const peekedCanvasObject = useMemo<CanvasResolvedObject | null>(() => {
+    if (!peekState || !doc) {
       return null
     }
 
-    return selectedCanvasObject.node.id === peekState.nodeId &&
+    if (
+      selectedCanvasObject?.node.id === peekState.nodeId &&
       selectedCanvasObject.sourceId === peekState.sourceId &&
       selectedCanvasObject.displayType === peekState.displayType
-      ? selectedCanvasObject
-      : null
-  }, [peekState, selectedCanvasObject])
+    ) {
+      return selectedCanvasObject
+    }
+
+    const node = getCanvasObjectsMap<CanvasNode>(doc).get(peekState.nodeId)
+    if (!node) {
+      return null
+    }
+
+    const sourceId = getCanvasShellSourceId(node)
+    const linkedDocument = sourceId ? documentMap.get(sourceId) : undefined
+    const displayType = getCanvasViewDisplayType(node, linkedDocument)
+
+    if (sourceId !== peekState.sourceId || displayType !== peekState.displayType) {
+      return null
+    }
+
+    return {
+      node,
+      sourceId,
+      sourceType: getCanvasShellSourceType(node, linkedDocument),
+      displayType,
+      title: node.alias ?? linkedDocument?.title ?? (node.properties.title as string) ?? 'Untitled'
+    }
+  }, [doc, documentMap, peekState, selectedCanvasObject])
 
   useEffect(() => {
     if (!selectedDatabaseDoc) {
@@ -766,15 +935,19 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       return
     }
 
-    if (
-      !selectedCanvasObject ||
-      selectedCanvasObject.node.id !== peekState.nodeId ||
-      selectedCanvasObject.sourceId !== peekState.sourceId ||
-      selectedCanvasObject.displayType !== peekState.displayType
-    ) {
+    if (!doc) {
+      return
+    }
+
+    const node = getCanvasObjectsMap<CanvasNode>(doc).get(peekState.nodeId)
+    const sourceId = node ? getCanvasShellSourceId(node) : undefined
+    const linkedDocument = sourceId ? documentMap.get(sourceId) : undefined
+    const displayType = node ? getCanvasViewDisplayType(node, linkedDocument) : null
+
+    if (!node || sourceId !== peekState.sourceId || displayType !== peekState.displayType) {
       setPeekState(null)
     }
-  }, [peekState, selectedCanvasObject])
+  }, [doc, documentMap, peekState])
 
   useEffect(() => {
     if (!selectedCanvasObject) {
@@ -1119,6 +1292,44 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       onOpenDocument,
       selectedCanvasObject
     ]
+  )
+
+  const openCanvasObjectSource = useCallback(
+    ({
+      node,
+      sourceId,
+      sourceType,
+      displayType,
+      mode
+    }: {
+      node: CanvasNode
+      sourceId: string
+      sourceType: Exclude<LinkedDocType, 'canvas'> | null
+      displayType: PeekableCanvasDisplayType
+      mode: 'peek' | 'focus'
+    }): boolean => {
+      canvasRef.current?.selectNodes([node.id])
+      setSelectionPanel(null)
+
+      if (mode === 'peek') {
+        setPeekState({
+          nodeId: node.id,
+          sourceId,
+          displayType
+        })
+        focusSelectionSurface(sourceId, displayType, 'peek')
+        return true
+      }
+
+      if (!sourceType) {
+        return false
+      }
+
+      closePeekSurface()
+      onOpenDocument?.(sourceId, sourceType)
+      return true
+    },
+    [closePeekSurface, focusSelectionSurface, onOpenDocument]
   )
 
   const handleSurfaceDrop = useCallback(
@@ -2403,7 +2614,39 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             const sourceNodeId = getCanvasShellSourceId(node)
             const linkedDocument = sourceNodeId ? documentMap.get(sourceNodeId) : undefined
             const displayType = getCanvasViewDisplayType(node, linkedDocument)
+            const sourceType = getCanvasShellSourceType(node, linkedDocument)
             const isPeekedNode = peekedCanvasObject?.node.id === node.id
+            const peekableDisplayType = isPeekableCanvasDisplayType(displayType)
+              ? displayType
+              : null
+            const cardActions: CanvasNodeCardActions = {}
+
+            if (sourceNodeId && peekableDisplayType) {
+              cardActions.onPeek = () => {
+                void openCanvasObjectSource({
+                  node,
+                  sourceId: sourceNodeId,
+                  sourceType,
+                  displayType: peekableDisplayType,
+                  mode: 'peek'
+                })
+              }
+            }
+
+            if (sourceNodeId && sourceType) {
+              cardActions.onOpen = () => {
+                void openCanvasObjectSource({
+                  node,
+                  sourceId: sourceNodeId,
+                  sourceType,
+                  displayType: peekableDisplayType ?? 'page',
+                  mode: 'focus'
+                })
+              }
+            }
+
+            const resolvedCardActions =
+              cardActions.onOpen || cardActions.onPeek ? cardActions : undefined
 
             if (
               sourceNodeId &&
@@ -2449,7 +2692,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
               node.type === 'media' ||
               shouldRenderCanvasShellCard(node, linkedDocument)
             ) {
-              return renderNodeCard(node, linkedDocument, theme.mode)
+              return renderNodeCard(node, linkedDocument, theme.mode, context, resolvedCardActions)
             }
             return undefined
           }}

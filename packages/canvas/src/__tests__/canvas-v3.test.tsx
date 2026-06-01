@@ -179,6 +179,8 @@ describe('Canvas v3 active renderer', () => {
 
     expect(surface.getAttribute('data-canvas-renderer-version')).toBe('3')
     expect(surface.getAttribute('data-canvas-object-count')).toBe('2')
+    expect(pageIsland?.classList.contains('canvas-node')).toBe(true)
+    expect(pageIsland?.getAttribute('data-node-type')).toBe('page')
     expect(pageIsland?.getAttribute('data-canvas-dom-island-tier')).toBeTruthy()
     if (!pageIsland) {
       throw new Error('Expected Research Page DOM island')
@@ -194,6 +196,20 @@ describe('Canvas v3 active renderer', () => {
       nodeIds: [expect.any(String)],
       edgeIds: []
     })
+  })
+
+  it('annotates the v3 surface with the resolved canvas theme', () => {
+    document.documentElement.classList.add('dark')
+
+    try {
+      render(<Canvas doc={createCanvasTestDoc()} />)
+
+      const surface = screen.getByRole('application', { name: 'Canvas' })
+
+      expect(surface.getAttribute('data-canvas-theme')).toBe('dark')
+    } finally {
+      document.documentElement.classList.remove('dark')
+    }
   })
 
   it('renders forgiving hit targets for selectable canvas objects', () => {
@@ -1781,6 +1797,131 @@ describe('Canvas v3 active renderer', () => {
     expect(moved?.position.x).toBe(initialX + 40)
     expect(moved?.position.y).toBe(initialY + 30)
     expect(onSceneMutation).toHaveBeenCalled()
+  })
+
+  it('does not move v3 objects when an embedded editor surface handles the pointer', () => {
+    const doc = createCanvasTestDoc()
+    const onSceneMutation = vi.fn()
+    const onSelectionChange = vi.fn()
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        onSceneMutation={onSceneMutation}
+        onSelectionChange={onSelectionChange}
+        renderNode={(node) => (
+          <div data-canvas-interactive="true" data-testid={`editor-surface-${node.id}`}>
+            <div data-testid={`editor-whitespace-${node.id}`}>
+              {node.properties.title as string}
+            </div>
+          </div>
+        )}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const initialX = page.position.x
+    const initialY = page.position.y
+    const editorWhitespace = screen.getByTestId(`editor-whitespace-${page.id}`)
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    fireEvent.pointerDown(editorWhitespace, {
+      button: 0,
+      pointerId: 71,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 71,
+      clientX: 540,
+      clientY: 365
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 71,
+      clientX: 540,
+      clientY: 365
+    })
+
+    const moved = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(moved?.position.x).toBe(initialX)
+    expect(moved?.position.y).toBe(initialY)
+    expect(onSelectionChange).not.toHaveBeenCalledWith({
+      nodeIds: [page.id],
+      edgeIds: []
+    })
+    expect(onSceneMutation).not.toHaveBeenCalled()
+  })
+
+  it('preserves embedded editor text selection when an editing surface handles the pointer', () => {
+    const doc = createCanvasTestDoc()
+    const onSceneMutation = vi.fn()
+    const onSelectionChange = vi.fn()
+
+    render(
+      <Canvas
+        doc={doc}
+        config={{ gridSize: 0 }}
+        onSceneMutation={onSceneMutation}
+        onSelectionChange={onSelectionChange}
+        renderNode={(node) => (
+          <div data-canvas-editing-surface="true" data-testid={`editor-surface-${node.id}`}>
+            <div data-testid={`editor-text-${node.id}`}>
+              {node.properties.title as string} editable body
+            </div>
+          </div>
+        )}
+      />
+    )
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const initialX = page.position.x
+    const initialY = page.position.y
+    const editorText = screen.getByTestId(`editor-text-${page.id}`)
+    const textNode = editorText.firstChild
+    const selection = window.getSelection()
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+
+    if (!textNode || !selection) {
+      throw new Error('Expected selectable editor text')
+    }
+
+    const range = document.createRange()
+    range.setStart(textNode, 0)
+    range.setEnd(textNode, 'Research'.length)
+    selection.removeAllRanges()
+    selection.addRange(range)
+
+    expect(selection.toString()).toBe('Research')
+
+    fireEvent.pointerDown(editorText, {
+      button: 0,
+      pointerId: 75,
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 75,
+      clientX: 545,
+      clientY: 365
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 75,
+      clientX: 545,
+      clientY: 365
+    })
+
+    const moved = getCanvasObjectsMap<CanvasNode>(doc).get(page.id)
+    expect(window.getSelection()?.toString()).toBe('Research')
+    expect(moved?.position.x).toBe(initialX)
+    expect(moved?.position.y).toBe(initialY)
+    expect(onSelectionChange).not.toHaveBeenCalledWith({
+      nodeIds: [page.id],
+      edgeIds: []
+    })
+    expect(onSceneMutation).not.toHaveBeenCalled()
+
+    selection.removeAllRanges()
   })
 
   it('ignores v3 DOM island drag jitter below the movement threshold', () => {

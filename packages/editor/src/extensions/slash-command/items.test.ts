@@ -1,7 +1,81 @@
-import { describe, it, expect } from 'vitest'
+import type { Editor } from '@tiptap/core'
+import { describe, it, expect, vi } from 'vitest'
 import { filterCommands, getAllCommands, COMMAND_GROUPS } from './items'
 
+type CommandRecorder = {
+  editor: Editor
+  calls: string[]
+  payloads: Map<string, unknown[]>
+  commands: {
+    insertContent: ReturnType<typeof vi.fn>
+    setDatabaseEmbed: ReturnType<typeof vi.fn>
+    setPageEmbed: ReturnType<typeof vi.fn>
+  }
+  extensions: Array<{
+    name: string
+    options: Record<string, unknown>
+  }>
+}
+
+function getCommand(title: string) {
+  const command = getAllCommands().find((item) => item.title === title)
+  if (!command) {
+    throw new Error(`Missing slash command: ${title}`)
+  }
+  return command
+}
+
+function createCommandRecorder(): CommandRecorder {
+  const calls: string[] = []
+  const payloads = new Map<string, unknown[]>()
+  const extensions: CommandRecorder['extensions'] = []
+  const recordCommand = (name: string, ...args: unknown[]) => {
+    calls.push(`commands.${name}`)
+    payloads.set(`commands.${name}`, args)
+    return true
+  }
+  const commands = {
+    insertContent: vi.fn((...args: unknown[]) => recordCommand('insertContent', ...args)),
+    setDatabaseEmbed: vi.fn(),
+    setPageEmbed: vi.fn()
+  }
+
+  const record = (name: string, ...args: unknown[]) => {
+    calls.push(name)
+    payloads.set(name, args)
+    return chain
+  }
+
+  const chain = {
+    focus: () => record('focus'),
+    deleteRange: (...args: unknown[]) => record('deleteRange', ...args),
+    toggleCodeBlock: (...args: unknown[]) => record('toggleCodeBlock', ...args),
+    insertContent: (...args: unknown[]) => record('insertContent', ...args),
+    setCallout: (...args: unknown[]) => record('setCallout', ...args),
+    setToggle: (...args: unknown[]) => record('setToggle', ...args),
+    setTaskViewEmbed: (...args: unknown[]) => record('setTaskViewEmbed', ...args),
+    run: () => {
+      calls.push('run')
+      return true
+    }
+  }
+
+  return {
+    calls,
+    commands,
+    extensions,
+    payloads,
+    editor: {
+      chain: () => chain,
+      commands,
+      extensionManager: { extensions }
+    } as unknown as Editor
+  }
+}
+
 describe('slash command items', () => {
+  const range = { from: 1, to: 2 }
+
   describe('COMMAND_GROUPS', () => {
     it('should have at least one group', () => {
       expect(COMMAND_GROUPS.length).toBeGreaterThan(0)
@@ -22,6 +96,18 @@ describe('slash command items', () => {
           expect(typeof item.command).toBe('function')
         }
       }
+    })
+
+    it('should include a page embed command in the data group', () => {
+      const dataGroup = COMMAND_GROUPS.find((group) => group.name === 'Data')
+
+      expect(dataGroup?.items.some((item) => item.title === 'Page')).toBe(true)
+    })
+
+    it('should include the expected editor insert targets', () => {
+      expect(getAllCommands().map((item) => item.title)).toEqual(
+        expect.arrayContaining(['Page', 'Database', 'Embed', 'Info', 'Toggle', 'Code Block'])
+      )
     })
   })
 
@@ -71,6 +157,89 @@ describe('slash command items', () => {
     it('should filter by description', () => {
       const result = filterCommands('separator')
       expect(result.some((item) => item.title === 'Divider')).toBe(true)
+    })
+  })
+
+  describe('command handlers', () => {
+    it('inserts media embeds, callouts, toggles, code blocks, and task views from slash commands', () => {
+      const recorder = createCommandRecorder()
+
+      getCommand('Embed').command({ editor: recorder.editor, range })
+      expect(recorder.payloads.get('insertContent')?.[0]).toMatchObject({
+        type: 'embed',
+        attrs: { url: null, provider: null, embedId: null, embedUrl: null }
+      })
+
+      getCommand('Info').command({ editor: recorder.editor, range })
+      expect(recorder.payloads.get('setCallout')).toEqual(['info'])
+
+      getCommand('Toggle').command({ editor: recorder.editor, range })
+      expect(recorder.calls).toContain('setToggle')
+
+      getCommand('Code Block').command({ editor: recorder.editor, range })
+      expect(recorder.calls).toContain('toggleCodeBlock')
+
+      getCommand('Task View').command({ editor: recorder.editor, range })
+      expect(recorder.calls).toContain('setTaskViewEmbed')
+    })
+
+    it('inserts a selected database from the database slash command', async () => {
+      const recorder = createCommandRecorder()
+      const onSelectDatabase = vi.fn().mockResolvedValue('db-selected')
+      recorder.extensions.push({
+        name: 'databaseEmbed',
+        options: { onSelectDatabase }
+      })
+
+      getCommand('Database').command({ editor: recorder.editor, range })
+      await Promise.resolve()
+
+      expect(onSelectDatabase).toHaveBeenCalledTimes(1)
+      expect(recorder.commands.setDatabaseEmbed).toHaveBeenCalledWith({
+        databaseId: 'db-selected'
+      })
+    })
+
+    it('inserts a page setup card from the page slash command without prompting', () => {
+      const recorder = createCommandRecorder()
+      const prompt = vi.spyOn(window, 'prompt')
+
+      getCommand('Page').command({ editor: recorder.editor, range })
+
+      expect(prompt).not.toHaveBeenCalled()
+      expect(recorder.payloads.get('commands.insertContent')?.[0]).toMatchObject({
+        type: 'pageEmbed',
+        attrs: {
+          pageId: null,
+          title: null,
+          subtitle: 'Embedded page',
+          icon: 'PG',
+          preview: null
+        }
+      })
+      expect(recorder.commands.setPageEmbed).not.toHaveBeenCalled()
+
+      prompt.mockRestore()
+    })
+
+    it('inserts a database setup card from the database slash command without prompting', () => {
+      const recorder = createCommandRecorder()
+      const prompt = vi.spyOn(window, 'prompt')
+
+      getCommand('Database').command({ editor: recorder.editor, range })
+
+      expect(prompt).not.toHaveBeenCalled()
+      expect(recorder.payloads.get('commands.insertContent')?.[0]).toMatchObject({
+        type: 'databaseEmbed',
+        attrs: {
+          databaseId: null,
+          viewType: 'table',
+          viewConfig: {}
+        }
+      })
+      expect(recorder.commands.setDatabaseEmbed).not.toHaveBeenCalled()
+
+      prompt.mockRestore()
     })
   })
 })

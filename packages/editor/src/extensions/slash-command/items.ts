@@ -24,6 +24,30 @@ export interface SlashCommandGroup {
   items: SlashCommandItem[]
 }
 
+function insertPageEmbedSetup(editor: Editor): boolean {
+  return editor.commands.insertContent({
+    type: 'pageEmbed',
+    attrs: {
+      pageId: null,
+      title: null,
+      subtitle: 'Embedded page',
+      icon: 'PG',
+      preview: null
+    }
+  })
+}
+
+function insertDatabaseEmbedSetup(editor: Editor): boolean {
+  return editor.commands.insertContent({
+    type: 'databaseEmbed',
+    attrs: {
+      databaseId: null,
+      viewType: 'table',
+      viewConfig: {}
+    }
+  })
+}
+
 /**
  * All available slash commands, organized by group
  */
@@ -360,6 +384,16 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
     name: 'Data',
     items: [
       {
+        title: 'Page',
+        description: 'Embed a linked page preview',
+        icon: 'Pg',
+        searchTerms: ['page', 'document', 'reference', 'embed', 'wiki'],
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run()
+          insertPageEmbedSetup(editor)
+        }
+      },
+      {
         title: 'Database',
         description: 'Embed a linked database view',
         icon: '\uD83D\uDCCA',
@@ -381,11 +415,7 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
               }
             })
           } else {
-            // Fallback: prompt for database ID
-            const databaseId = window.prompt('Database ID:')
-            if (databaseId?.trim()) {
-              editor.commands.setDatabaseEmbed({ databaseId: databaseId.trim() })
-            }
+            insertDatabaseEmbedSetup(editor)
           }
         }
       },

@@ -10,6 +10,7 @@ import type {
   TaskViewEmbedType
 } from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
+import type { EditorState } from '@tiptap/pm/state'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
 import Collaboration from '@tiptap/extension-collaboration'
@@ -17,15 +18,18 @@ import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
 import Typography from '@tiptap/extension-typography'
+import { Markdown } from '@tiptap/markdown'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from '@tiptap/y-tiptap'
 import * as React from 'react'
-import { useEffect, useRef, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 import {
   Wikilink,
   LivePreview,
   HeadingWithSyntax,
+  MarkdownClipboard,
+  MarkdownStructuralEditing,
   CodeBlockWithSyntax,
   BlockquoteWithSyntax,
   SlashCommand,
@@ -36,7 +40,10 @@ import {
   ToggleExtension,
   FileExtension,
   SmartReferenceExtension,
+  DatabaseReferenceExtension,
   EmbedExtension,
+  RichLinkExtension,
+  PageEmbedExtension,
   DatabaseEmbedExtension,
   TaskViewEmbedExtension,
   PageTaskItemExtension,
@@ -45,7 +52,8 @@ import {
   ensurePageTaskAttrs,
   getPageTasksSnapshot
 } from '../extensions'
-import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
+import { resolveEditorModePolicy, type EditorContentMode } from './editor-ux-state'
+import { FloatingToolbar, type ToolbarMode, type ToolbarSurface } from './FloatingToolbar'
 import '../styles/editor.css'
 import { cn } from '../utils'
 
@@ -159,6 +167,19 @@ function generateAvatarDataURI(did: string, size: number): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
+export function isBackspaceAtEmptyFirstBlock(state: EditorState): boolean {
+  const { selection, doc } = state
+  const firstNode = doc.firstChild
+
+  return (
+    selection.empty &&
+    selection.from === 1 &&
+    !!firstNode &&
+    firstNode.isTextblock &&
+    firstNode.content.size === 0
+  )
+}
+
 /**
  * Toolbar item contribution from plugins
  */
@@ -193,12 +214,18 @@ export interface RichTextEditorProps {
    * - 'mobile': Always fixed bottom bar (Expo)
    */
   toolbarMode?: ToolbarMode
+  /** Surface policy for toolbar visibility and density. */
+  toolbarSurface?: ToolbarSurface
   /** Callback when a wikilink is clicked */
   onNavigate?: (docId: string) => void
   /** Additional CSS class for the container */
   className?: string
+  /** Accessible label for the rich editor body */
+  editorLabel?: string
   /** Whether the editor is read-only */
   readOnly?: boolean
+  /** Editing mode for live rich text, Markdown source, or read surfaces. */
+  contentMode?: EditorContentMode
   /** Yjs Awareness instance for cursor presence (optional) */
   awareness?: Awareness
   /** Local user's DID for cursor color/label (optional) */
@@ -286,6 +313,11 @@ export interface RichTextEditorProps {
    */
   onEditorReady?: (editor: Editor) => void
   /**
+   * Optional host callback for page-level focus restoration when Backspace is
+   * pressed in an empty first body block.
+   */
+  onBackspaceAtStart?: () => boolean | void
+  /**
    * People that can be inserted as inline rich-text mentions.
    */
   mentionSuggestions?: TaskMentionSuggestion[]
@@ -354,9 +386,12 @@ export function RichTextEditor({
   placeholder = 'Start writing...',
   showToolbar = true,
   toolbarMode = 'auto',
+  toolbarSurface = 'page',
   onNavigate,
   className,
+  editorLabel = 'Rich text editor',
   readOnly = false,
+  contentMode = 'live',
   awareness,
   did,
   onImageUpload,
@@ -371,6 +406,7 @@ export function RichTextEditor({
   toolbarItems: additionalToolbarItems = [],
   slashCommands,
   onEditorReady,
+  onBackspaceAtStart,
   mentionSuggestions = [],
   onPageTasksChange,
   onCreateComment
@@ -378,6 +414,14 @@ export function RichTextEditor({
   const cursorPluginRegisteredRef = useRef(false)
   const pageTaskSignatureRef = useRef<string>('')
   const mentionSuggestionsRef = useRef<TaskMentionSuggestion[]>(mentionSuggestions)
+  const notifiedReadyEditorRef = useRef<Editor | null>(null)
+  const [sourceValue, setSourceValue] = useState('')
+
+  const editorModePolicy = resolveEditorModePolicy({
+    requestedMode: contentMode,
+    surface: toolbarSurface,
+    readOnly
+  })
 
   useEffect(() => {
     mentionSuggestionsRef.current = mentionSuggestions
@@ -398,8 +442,14 @@ export function RichTextEditor({
       // Disable default dropcursor - we use our own drop indicator
       dropcursor: false
     }),
+    Markdown.configure({
+      indentation: { style: 'space', size: 2 },
+      markedOptions: { gfm: true, breaks: false }
+    }),
+    MarkdownClipboard,
     // Custom block NodeViews with syntax preview
     HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+    MarkdownStructuralEditing,
     CodeBlockWithSyntax,
     BlockquoteWithSyntax,
     Typography,
@@ -438,8 +488,8 @@ export function RichTextEditor({
     }),
     // Drag handle with block drag-and-drop
     DragHandleExtension.configure({
-      enableDragDrop: !readOnly,
-      showDropIndicator: !readOnly
+      enableDragDrop: editorModePolicy.isEditable,
+      showDropIndicator: editorModePolicy.isEditable
     }),
     // Extra keyboard shortcuts (Mod-e, Mod-k, Mod-\, etc.)
     KeyboardShortcutsExtension,
@@ -458,8 +508,16 @@ export function RichTextEditor({
     }),
     // Compact inline references for URLs pasted inside tasks
     SmartReferenceExtension,
+    // Compact inline references to internal databases
+    DatabaseReferenceExtension,
     // Media embeds (YouTube, Spotify, Vimeo, etc.)
     EmbedExtension,
+    // Rich preview cards for generic pasted URLs
+    RichLinkExtension,
+    // Page embeds for block references to other documents
+    PageEmbedExtension.configure({
+      onNavigate
+    }),
     // Database embeds (inline table/board/list views)
     DatabaseEmbedExtension.configure({
       onSelectDatabase,
@@ -479,23 +537,60 @@ export function RichTextEditor({
       attributes: {
         // Full height, no outline on focus, proper typography
         class: 'outline-none h-full min-h-full'
+      },
+      handleKeyDown: (_view, event) => {
+        if (
+          !editorModePolicy.isEditable ||
+          !onBackspaceAtStart ||
+          event.key !== 'Backspace' ||
+          event.shiftKey ||
+          event.altKey ||
+          event.ctrlKey ||
+          event.metaKey
+        ) {
+          return false
+        }
+
+        if (!isBackspaceAtEmptyFirstBlock(_view.state)) {
+          return false
+        }
+
+        const handled = onBackspaceAtStart()
+        if (handled === false) {
+          return false
+        }
+
+        event.preventDefault()
+        return true
       }
     },
-    editable: !readOnly
+    editable: editorModePolicy.isEditable
   })
 
-  // Update editable state when readOnly changes
+  // Update editable state when mode policy changes.
   useEffect(() => {
     if (editor) {
-      editor.setEditable(!readOnly)
+      editor.setEditable(editorModePolicy.isEditable)
     }
-  }, [editor, readOnly])
+  }, [editor, editorModePolicy.isEditable])
+
+  useEffect(() => {
+    if (!editor || editorModePolicy.contentMode !== 'source') return
+    setSourceValue(editor.getMarkdown())
+  }, [editor, editorModePolicy.contentMode])
+
+  const handleSourceChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const nextValue = event.currentTarget.value
+    setSourceValue(nextValue)
+    editor?.commands.setContent(nextValue, { contentType: 'markdown' })
+  }
 
   // Notify parent when editor is ready
   useEffect(() => {
-    if (editor && onEditorReady) {
-      onEditorReady(editor)
-    }
+    if (!editor || !onEditorReady || notifiedReadyEditorRef.current === editor) return
+
+    notifiedReadyEditorRef.current = editor
+    onEditorReady(editor)
   }, [editor, onEditorReady])
 
   useEffect(() => {
@@ -766,24 +861,44 @@ export function RichTextEditor({
 
   return (
     <div className={cn('relative h-full flex flex-col', className)}>
-      <EditorContent
-        editor={editor}
-        className={cn(
-          'flex-1 h-full',
-          // ProseMirror sizing
-          '[&_.ProseMirror]:h-full [&_.ProseMirror]:px-1 [&_.ProseMirror]:pl-8',
-          // Remove all focus outlines
-          '[&_.ProseMirror]:outline-none [&_.ProseMirror:focus]:outline-none',
-          '[&_.tiptap]:outline-none [&_.tiptap:focus]:outline-none',
-          '[&_[contenteditable]]:outline-none [&_[contenteditable]:focus]:outline-none',
-          // Placeholder class - styles defined in editor.css
-          'xnet-editor'
-        )}
-      />
-      {showToolbar && (
+      {editorModePolicy.rendersRichEditor ? (
+        <EditorContent
+          editor={editor}
+          role="textbox"
+          aria-label={editorLabel}
+          aria-multiline="true"
+          data-content-mode={editorModePolicy.contentMode}
+          className={cn(
+            'flex-1 h-full',
+            // ProseMirror sizing
+            '[&_.ProseMirror]:h-full [&_.ProseMirror]:px-1 [&_.ProseMirror]:pl-8',
+            // Remove all focus outlines
+            '[&_.ProseMirror]:outline-none [&_.ProseMirror:focus]:outline-none',
+            '[&_.tiptap]:outline-none [&_.tiptap:focus]:outline-none',
+            '[&_[contenteditable]]:outline-none [&_[contenteditable]:focus]:outline-none',
+            // Placeholder class - styles defined in editor.css
+            'xnet-editor'
+          )}
+        />
+      ) : (
+        <textarea
+          data-testid="editor-source-mode"
+          className={cn(
+            'flex-1 h-full min-h-full resize-none border-none bg-transparent px-8 py-4 font-mono text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground',
+            'xnet-editor-source'
+          )}
+          placeholder={placeholder}
+          aria-label={`${editorLabel} Markdown source`}
+          readOnly={!editor || readOnly}
+          value={sourceValue}
+          onChange={handleSourceChange}
+        />
+      )}
+      {showToolbar && editorModePolicy.allowsToolbar && (
         <FloatingToolbar
           editor={editor}
           mode={toolbarMode}
+          surface={toolbarSurface}
           additionalItems={additionalToolbarItems}
           onCreateComment={onCreateComment}
         />

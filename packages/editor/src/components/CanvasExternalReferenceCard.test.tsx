@@ -164,7 +164,7 @@ describe('CanvasExternalReferenceCard', () => {
     expect(card).toHaveAttribute('data-canvas-provider-renderer', 'video')
     expect(card).toHaveAttribute('data-canvas-provider-accent', 'red')
     expect(screen.getByText('YouTube video embed')).toBeInTheDocument()
-    expect(screen.getByText('Video player')).toBeInTheDocument()
+    expect(screen.getAllByText('Video player').length).toBeGreaterThan(0)
   })
 
   it('activates and deactivates iframe pointer events explicitly', () => {
@@ -183,22 +183,50 @@ describe('CanvasExternalReferenceCard', () => {
     )
 
     const embedShell = document.querySelector('[data-canvas-embed-node="true"]')
-    const iframe = document.querySelector('[data-canvas-embed-iframe="true"]')
+    const card = document.querySelector('[data-canvas-node-card="true"]')
 
+    expect(card).toHaveAttribute('data-canvas-embed-render-mode', 'compact')
+    expect(card).toHaveAttribute('data-canvas-embed-iframe-mounted', 'false')
     expect(embedShell).toHaveAttribute('data-canvas-embed-activation', 'shell')
-    expect(iframe).toHaveClass('pointer-events-none')
+    expect(document.querySelector('[data-canvas-embed-compact-preview="true"]')).toBeInTheDocument()
+    expect(document.querySelector('[data-canvas-embed-iframe="true"]')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Activate YouTube embed' }))
 
+    const iframe = document.querySelector('[data-canvas-embed-iframe="true"]')
+
+    expect(card).toHaveAttribute('data-canvas-embed-iframe-mounted', 'true')
     expect(embedShell).toHaveAttribute('data-canvas-embed-activation', 'interactive')
     expect(iframe).toHaveClass('pointer-events-auto')
     expect(onEmbedActivationChange).toHaveBeenCalledWith(true)
 
     fireEvent.keyDown(embedShell as Element, { key: 'Escape' })
 
+    expect(card).toHaveAttribute('data-canvas-embed-iframe-mounted', 'false')
     expect(embedShell).toHaveAttribute('data-canvas-embed-activation', 'shell')
-    expect(iframe).toHaveClass('pointer-events-none')
+    expect(document.querySelector('[data-canvas-embed-iframe="true"]')).not.toBeInTheDocument()
     expect(onEmbedActivationChange).toHaveBeenCalledWith(false)
+  })
+
+  it('supports block render mode for eager iframe previews when explicitly requested', () => {
+    render(
+      <CanvasExternalReferenceCard
+        title="YouTube video"
+        url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        provider="youtube"
+        embedUrl="https://www.youtube.com/embed/dQw4w9WgXcQ"
+        subtitle="YouTube"
+        themeMode="dark"
+        renderMode="block"
+      />
+    )
+
+    const card = document.querySelector('[data-canvas-node-card="true"]')
+    const iframe = document.querySelector('[data-canvas-embed-iframe="true"]')
+
+    expect(card).toHaveAttribute('data-canvas-embed-render-mode', 'block')
+    expect(card).toHaveAttribute('data-canvas-embed-iframe-mounted', 'true')
+    expect(iframe).toHaveClass('pointer-events-none')
   })
 
   it('applies workspace embed policy before rendering live iframes', () => {
@@ -210,6 +238,7 @@ describe('CanvasExternalReferenceCard', () => {
         embedUrl="https://www.youtube.com/embed/dQw4w9WgXcQ"
         subtitle="YouTube"
         themeMode="dark"
+        renderMode="block"
       />
     )
 
@@ -230,6 +259,7 @@ describe('CanvasExternalReferenceCard', () => {
         embedUrl="https://www.youtube.com/embed/dQw4w9WgXcQ"
         subtitle="YouTube"
         themeMode="dark"
+        renderMode="block"
         embedPolicy={{ allowedProviders: ['spotify'] }}
       />
     )
@@ -252,6 +282,33 @@ describe('CanvasExternalReferenceCard', () => {
       'href',
       'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
     )
+  })
+
+  it('renders origin-blocked fallbacks for spoofed provider embed URLs', () => {
+    render(
+      <CanvasExternalReferenceCard
+        title="YouTube video"
+        url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        provider="youtube"
+        embedUrl="https://evil.example.com/embed/dQw4w9WgXcQ"
+        subtitle="YouTube"
+        themeMode="dark"
+        embedPolicy={{ allowArbitraryIframes: true }}
+      />
+    )
+
+    const card = document.querySelector('[data-canvas-node-card="true"]')
+    const fallback = document.querySelector('[data-canvas-embed-fallback="true"]')
+
+    expect(card).toHaveAttribute('data-canvas-embed-policy', 'blocked')
+    expect(card).toHaveAttribute('data-canvas-embed-policy-reason', 'origin-blocked')
+    expect(card).toHaveAttribute('data-canvas-embed-fallback-reason', 'origin-blocked')
+    expect(document.querySelector('[data-canvas-embed-iframe="true"]')).not.toBeInTheDocument()
+    expect(fallback).toHaveAttribute('data-canvas-embed-fallback-tone', 'danger')
+    expect(screen.getByText('Embed blocked')).toBeInTheDocument()
+    expect(
+      screen.getByText('This embed uses an origin that is not allowed for YouTube.')
+    ).toBeInTheDocument()
   })
 
   it('renders an offline fallback instead of a live iframe when embed status is offline', () => {

@@ -3,7 +3,15 @@
  *
  * Custom extensions for the xNet editor.
  */
-import { Mark, Node, mergeAttributes, markInputRule, textblockTypeInputRule } from '@tiptap/core'
+import {
+  Mark,
+  Node,
+  mergeAttributes,
+  markInputRule,
+  textblockTypeInputRule,
+  wrappingInputRule
+} from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { BlockquoteView } from './nodeviews/BlockquoteView'
 import { CodeBlockView } from './nodeviews/CodeBlockView'
@@ -31,6 +39,18 @@ function generatePageId(title: string): string {
  * Regex pattern to match [[text]]
  */
 const wikilinkInputRegex = /\[\[([^\]]+)\]\]$/
+const wikilinkClickPluginKey = new PluginKey('wikilinkClick')
+
+function getWikilinkTitle(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function findWikilinkAnchor(target: EventTarget | null): HTMLAnchorElement | null {
+  if (!(target instanceof Element)) return null
+
+  const anchor = target.closest('a[data-wikilink]')
+  return anchor instanceof HTMLAnchorElement ? anchor : null
+}
 
 /**
  * Wikilink extension for Tiptap
@@ -40,6 +60,8 @@ const wikilinkInputRegex = /\[\[([^\]]+)\]\]$/
  */
 export const Wikilink = Mark.create<WikilinkOptions>({
   name: 'wikilink',
+
+  priority: 1100,
 
   addOptions() {
     return {
@@ -78,6 +100,41 @@ export const Wikilink = Mark.create<WikilinkOptions>({
     ]
   },
 
+  markdownTokenizer: {
+    name: 'wikilink',
+    level: 'inline' as const,
+    start: (src: string) => src.indexOf('[['),
+    tokenize: (src: string) => {
+      const match = src.match(/^\[\[([^\]\n]+)\]\]/)
+      if (!match) return undefined
+
+      const title = getWikilinkTitle(match[1])
+      if (!title) return undefined
+
+      return {
+        type: 'wikilink',
+        raw: match[0],
+        text: title,
+        tokens: [{ type: 'text', raw: title, text: title }]
+      }
+    }
+  },
+
+  parseMarkdown: (token, helpers) => {
+    const title = getWikilinkTitle(token.text)
+    if (!title) return []
+
+    return helpers.applyMark('wikilink', [helpers.createTextNode(title)], {
+      href: generatePageId(title),
+      title
+    })
+  },
+
+  renderMarkdown: (node, helpers) => {
+    const title = helpers.renderChildren(node) || getWikilinkTitle(node.attrs?.title)
+    return `[[${title}]]`
+  },
+
   addInputRules() {
     return [
       markInputRule({
@@ -87,6 +144,25 @@ export const Wikilink = Mark.create<WikilinkOptions>({
           const title = match[1]
           const pageId = generatePageId(title)
           return { href: pageId, title }
+        }
+      })
+    ]
+  },
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: wikilinkClickPluginKey,
+        props: {
+          handleClick: (_view, _pos, event) => {
+            const anchor = findWikilinkAnchor(event.target)
+            const href = anchor?.getAttribute('href')?.trim()
+            if (!href) return false
+
+            event.preventDefault()
+            this.options.onNavigate(href)
+            return true
+          }
         }
       })
     ]
@@ -100,6 +176,13 @@ export const Wikilink = Mark.create<WikilinkOptions>({
 export interface HeadingWithSyntaxOptions {
   levels: number[]
   HTMLAttributes: Record<string, any>
+}
+
+function toBoundedHeadingLevel(value: unknown): number {
+  const numeric = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(numeric)) return 1
+
+  return Math.min(Math.max(Math.trunc(numeric), 1), 6)
 }
 
 /**
@@ -143,6 +226,21 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
     return [`h${level}`, mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
   },
 
+  parseMarkdown: (token, helpers) =>
+    helpers.createNode(
+      'heading',
+      { level: token.depth || 1 },
+      helpers.parseInline(token.tokens || [])
+    ),
+
+  renderMarkdown: (node, helpers) => {
+    const level = toBoundedHeadingLevel(node.attrs?.level)
+    const prefix = '#'.repeat(level)
+    const content = node.content ? helpers.renderChildren(node.content) : ''
+
+    return `${prefix} ${content}`.trimEnd()
+  },
+
   addNodeView() {
     return ReactNodeViewRenderer(HeadingView)
   },
@@ -159,12 +257,42 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
     )
   },
 
+  addCommands() {
+    return {
+      setHeading:
+        (attributes: { level: number }) =>
+        ({ commands }) => {
+          if (!this.options.levels.includes(attributes.level)) {
+            return false
+          }
+
+          return commands.setNode(this.name, { level: attributes.level })
+        },
+      toggleHeading:
+        (attributes: { level: number }) =>
+        ({ editor, commands }) => {
+          if (!this.options.levels.includes(attributes.level)) {
+            return false
+          }
+
+          if (editor.isActive(this.name, { level: attributes.level })) {
+            return commands.setParagraph()
+          }
+
+          return commands.setNode(this.name, { level: attributes.level })
+        }
+    }
+  },
+
   addKeyboardShortcuts() {
     return {
       ...this.options.levels.reduce(
         (shortcuts: Record<string, () => boolean>, level: number) => ({
           ...shortcuts,
-          [`Mod-Alt-${level}`]: () => this.editor.commands.toggleHeading({ level: level as any })
+          [`Mod-Alt-${level}`]: () =>
+            this.editor.isActive('heading', { level })
+              ? this.editor.commands.setParagraph()
+              : this.editor.commands.setNode('heading', { level })
         }),
         {}
       ),
@@ -181,7 +309,7 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
 
         if (currentLevel > 1) {
           // Demote: H2 → H1, H3 → H2, etc.
-          return this.editor.commands.setHeading({ level: (currentLevel - 1) as any })
+          return this.editor.commands.setNode('heading', { level: currentLevel - 1 })
         }
 
         // H1 → paragraph
@@ -255,8 +383,54 @@ export const CodeBlockWithSyntax = Node.create<CodeBlockWithSyntaxOptions>({
     ]
   },
 
+  markdownTokenName: 'code',
+
+  parseMarkdown: (token, helpers) => {
+    if (token.raw?.startsWith('```') === false && token.codeBlockStyle !== 'indented') {
+      return []
+    }
+
+    return helpers.createNode(
+      'codeBlock',
+      { language: token.lang || 'plaintext' },
+      token.text ? [helpers.createTextNode(token.text)] : []
+    )
+  },
+
+  renderMarkdown: (node, helpers) => {
+    const language = node.attrs?.language === 'plaintext' ? '' : node.attrs?.language || ''
+    const content = node.content ? helpers.renderChildren(node.content) : ''
+
+    return [`\`\`\`${language}`, content, '```'].join('\n')
+  },
+
   addNodeView() {
     return ReactNodeViewRenderer(CodeBlockView)
+  },
+
+  addCommands() {
+    return {
+      setCodeBlock:
+        (attributes?: { language: string }) =>
+        ({ commands }) =>
+          commands.setNode(this.name, attributes),
+      toggleCodeBlock:
+        (attributes?: { language: string }) =>
+        ({ commands }) =>
+          commands.toggleNode(this.name, 'paragraph', attributes)
+    }
+  },
+
+  addInputRules() {
+    return [
+      textblockTypeInputRule({
+        find: /^```([A-Za-z0-9_-]+)?\s$/,
+        type: this.type,
+        getAttributes: (match) => ({
+          language: match[1] || this.options.defaultLanguage
+        })
+      })
+    ]
   },
 
   addKeyboardShortcuts() {
@@ -329,8 +503,53 @@ export const BlockquoteWithSyntax = Node.create<BlockquoteWithSyntaxOptions>({
     return ['blockquote', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
   },
 
+  parseMarkdown: (token, helpers) =>
+    helpers.createNode('blockquote', undefined, helpers.parseChildren(token.tokens || [])),
+
+  renderMarkdown: (node, helpers) => {
+    if (!node.content) {
+      return ''
+    }
+
+    return node.content
+      .map((child) =>
+        helpers
+          .renderChildren([child])
+          .split('\n')
+          .map((line) => (line.trim() === '' ? '>' : `> ${line}`))
+          .join('\n')
+      )
+      .join('\n>\n')
+  },
+
   addNodeView() {
     return ReactNodeViewRenderer(BlockquoteView)
+  },
+
+  addCommands() {
+    return {
+      setBlockquote:
+        () =>
+        ({ commands }) =>
+          commands.wrapIn(this.name),
+      toggleBlockquote:
+        () =>
+        ({ commands }) =>
+          commands.toggleWrap(this.name),
+      unsetBlockquote:
+        () =>
+        ({ commands }) =>
+          commands.lift(this.name)
+    }
+  },
+
+  addInputRules() {
+    return [
+      wrappingInputRule({
+        find: /^\s*>\s$/,
+        type: this.type
+      })
+    ]
   },
 
   addKeyboardShortcuts() {
@@ -344,6 +563,9 @@ export const BlockquoteWithSyntax = Node.create<BlockquoteWithSyntaxOptions>({
 // Re-exports
 // ============================================================================
 
+// Markdown import/export bridge
+export { Markdown as TiptapMarkdown } from '@tiptap/markdown'
+
 // LivePreview - Obsidian-style inline syntax preview
 export { LivePreview } from './extensions/live-preview'
 export type {
@@ -353,6 +575,28 @@ export type {
   InlineMarksPluginOptions
 } from './extensions/live-preview'
 export { MARK_SYNTAX, getSyntax, getEnabledMarks } from './extensions/live-preview'
+export {
+  MarkdownStructuralEditing,
+  runMarkdownStructuralBackspace
+} from './extensions/markdown-structural-editing'
+export type { HeadingLevel } from './extensions/markdown-structural-editing'
+export {
+  MarkdownClipboard,
+  isMarkdownClipboardCandidate,
+  markdownClipboardPluginKey
+} from './extensions/markdown-clipboard'
+export {
+  MARKDOWN_TOKEN_CONTRACTS,
+  MARKDOWN_TOKEN_TEST_MATRIX,
+  getMarkdownTokenContract
+} from './extensions/markdown-token-contract'
+export type {
+  MarkdownTokenBehavior,
+  MarkdownTokenContract,
+  MarkdownTokenKind,
+  MarkdownTokenRevealPolicy,
+  MarkdownTokenTestCase
+} from './extensions/markdown-token-contract'
 
 // SlashCommand - Notion-style command palette
 export { SlashCommand } from './extensions/slash-command'
@@ -439,13 +683,26 @@ export { EmbedExtension } from './extensions/embed'
 export type { EmbedOptions } from './extensions/embed'
 export { EMBED_PROVIDERS, detectProvider, parseEmbedUrl } from './extensions/embed'
 export type { EmbedProvider } from './extensions/embed'
+export { RichLinkExtension, RichLinkNodeView } from './extensions/rich-link'
+export type { RichLinkOptions } from './extensions/rich-link'
+export { PageEmbedExtension, PageEmbedNodeView } from './extensions/page-embed'
+export type { PageEmbedAttrs, PageEmbedOptions, SetPageEmbedOptions } from './extensions/page-embed'
 export { SmartReferenceExtension } from './extensions/smart-reference'
-export type { SmartReferenceOptions } from './extensions/smart-reference'
+export type {
+  SmartReferenceOptions,
+  UpdateSmartReferenceOptions
+} from './extensions/smart-reference'
 export {
   parseSmartReferenceUrl,
   type SmartReference,
   type SmartReferenceKind
 } from './extensions/smart-reference'
+export { DatabaseReferenceExtension } from './extensions/database-reference'
+export type {
+  DatabaseReferenceAttrs,
+  DatabaseReferenceOptions,
+  SetDatabaseReferenceOptions
+} from './extensions/database-reference'
 export {
   PageTaskItemExtension,
   collectPageTasks,

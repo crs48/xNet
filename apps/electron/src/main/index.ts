@@ -150,7 +150,9 @@ async function createWindow() {
   if (process.env.NODE_ENV === 'development') {
     const port = process.env.VITE_PORT || '5177'
     mainWindow.loadURL(`http://localhost:${port}`)
-    mainWindow.webContents.openDevTools()
+    if (process.env.XNET_TEST_BYPASS !== 'true') {
+      mainWindow.webContents.openDevTools()
+    }
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }

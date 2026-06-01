@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createCanvasShellNoteProperties,
   getCanvasShellDisplayType,
+  getCanvasShellPreviewModel,
   getCanvasShellSourceId,
   getCanvasShellSourceType,
   getCanvasShellNotePlacement,
@@ -106,6 +107,58 @@ describe('canvas-shell', () => {
 
       expect(getCanvasShellSourceId(node)).toBe('page-legacy')
       expect(getCanvasShellSourceType(node)).toBe('page')
+    })
+  })
+
+  describe('preview model', () => {
+    it('builds a static page preview from aliases and summary text', () => {
+      const node = {
+        type: 'page',
+        alias: 'Canvas alias',
+        sourceNodeId: 'page-1',
+        properties: {
+          title: 'Stored page',
+          summary:
+            'A focused writing surface with enough text to wrap into several static preview lines.'
+        }
+      }
+
+      expect(
+        getCanvasShellPreviewModel(node, { id: 'page-1', title: 'Linked page', type: 'page' })
+      ).toEqual({
+        title: 'Canvas alias',
+        displayType: 'page',
+        badge: 'Page',
+        previewLines: [
+          'A focused writing surface with enough text to wrap into several',
+          'static preview lines.'
+        ]
+      })
+    })
+
+    it('returns skeleton-ready note previews when no excerpt text is available', () => {
+      const node = {
+        type: 'note',
+        sourceNodeId: 'page-1',
+        sourceSchemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: createCanvasShellNoteProperties()
+      }
+
+      expect(getCanvasShellPreviewModel(node)).toEqual({
+        title: 'Untitled Note',
+        displayType: 'note',
+        badge: 'Note',
+        previewLines: []
+      })
+    })
+
+    it('does not create page previews for database cards', () => {
+      const node = {
+        type: 'database',
+        properties: { title: 'Roadmap' }
+      }
+
+      expect(getCanvasShellPreviewModel(node)).toBeNull()
     })
   })
 

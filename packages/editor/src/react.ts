@@ -20,6 +20,16 @@
  */
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
 export {
+  EDITOR_ROLLOUT_MODE_STORAGE_KEY,
+  EditorSurface,
+  readEditorRolloutMode,
+  resolveEditorSurfaceContentMode,
+  type EditorSurfaceDensity,
+  type EditorSurfaceMode,
+  type EditorSurfaceProps,
+  type EditorRolloutMode
+} from './components/EditorSurface'
+export {
   CanvasFailedCardActions,
   CanvasExternalReferenceCard,
   CanvasLifecycleStatusBadge,
@@ -46,6 +56,7 @@ export {
   type CanvasExternalReferenceCardMetadata,
   type CanvasExternalReferenceCardRenderer,
   type CanvasExternalReferenceCardRendererKind,
+  type CanvasExternalReferenceRenderMode,
   type CreateCanvasExternalReferenceCardRendererInput
 } from './components/canvasExternalReferenceCardRenderers'
 export {
@@ -98,6 +109,8 @@ export { CalloutNodeView } from './extensions/callout'
 export { ToggleNodeView } from './extensions/toggle'
 export { FileNodeView } from './extensions/file'
 export { EmbedNodeView } from './extensions/embed'
+export { RichLinkNodeView } from './extensions/rich-link'
+export { PageEmbedNodeView } from './extensions/page-embed'
 export { DatabaseEmbedNodeView } from './extensions/database-embed'
 export { TaskViewEmbedNodeView } from './extensions/task-view-embed'
 
@@ -155,6 +168,13 @@ export type {
   TaskViewDueDateFilter,
   TaskViewStatusFilter
 } from './extensions/task-view-embed'
+export {
+  EDITOR_DOCUMENT_SCHEMA_VERSION,
+  normalizeEditorDocumentJson,
+  type EditorDocumentCompatibilityResult,
+  type EditorDocumentMigration,
+  type EditorDocumentMigrationKind
+} from './document-compat'
 
 // Re-export hooks from @tiptap/react for convenience
 export { useEditor, EditorContent } from '@tiptap/react'
