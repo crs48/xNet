@@ -32,6 +32,13 @@
 
 // Core editor
 export { Editor, createEditor } from './core'
+export {
+  EDITOR_DOCUMENT_SCHEMA_VERSION,
+  normalizeEditorDocumentJson,
+  type EditorDocumentCompatibilityResult,
+  type EditorDocumentMigration,
+  type EditorDocumentMigrationKind
+} from './document-compat'
 
 // Types
 export type {

@@ -1111,7 +1111,7 @@ Decision gate:
 ### Phase 6: Hardening And Rollout
 
 - [x] Keep the old editor behind a kill switch during rollout.
-- [ ] Add one-way migration or compatibility loader if document schema changes.
+- [x] Add one-way migration or compatibility loader if document schema changes.
 - [x] Add crash-safe fallback rendering for unknown nodes.
 - [x] Run full `pnpm --filter @xnetjs/editor test`.
 - [ ] Run relevant Electron Playwright checks with auth bypass.
@@ -1121,6 +1121,14 @@ Decision gate:
 - [ ] Remove old live-preview overlays after confidence window.
 
 ### Implementation Validation Notes
+
+2026-06-01 document compatibility checkpoint:
+
+- Added an explicit ProseMirror JSON compatibility loader for app-level document import and migration flows.
+- The loader converts legacy database view, page reference, media embed, and inline database link nodes into the current editor schema while falling unsupported nodes back to editable text.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/document-compat.test.ts`
+  - `pnpm --filter @xnetjs/editor typecheck`
 
 2026-05-31 canvas/editor checkpoint:
 

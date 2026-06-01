@@ -168,6 +168,13 @@ export type {
   TaskViewDueDateFilter,
   TaskViewStatusFilter
 } from './extensions/task-view-embed'
+export {
+  EDITOR_DOCUMENT_SCHEMA_VERSION,
+  normalizeEditorDocumentJson,
+  type EditorDocumentCompatibilityResult,
+  type EditorDocumentMigration,
+  type EditorDocumentMigrationKind
+} from './document-compat'
 
 // Re-export hooks from @tiptap/react for convenience
 export { useEditor, EditorContent } from '@tiptap/react'
