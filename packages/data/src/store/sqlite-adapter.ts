@@ -24,6 +24,7 @@ import {
   applyNodeQueryDescriptor,
   withoutNodeQueryPagination,
   type NodeQueryDescriptor,
+  type NodeQueryParityCheckMetadata,
   type NodeQueryResult,
   type SortDirection
 } from './query'
@@ -101,6 +102,12 @@ interface AdaptiveIndexingConfig {
   maxIndexesPerSchema: number
 }
 
+interface QueryVerificationConfig {
+  enabled: boolean
+  maxNodes: number
+  logFailures: boolean
+}
+
 export interface SQLiteAdaptiveIndexingOptions {
   enabled?: boolean
   minHits?: number
@@ -109,8 +116,15 @@ export interface SQLiteAdaptiveIndexingOptions {
   maxIndexesPerSchema?: number
 }
 
+export interface SQLiteQueryVerificationOptions {
+  enabled?: boolean
+  maxNodes?: number
+  logFailures?: boolean
+}
+
 export interface SQLiteNodeStorageAdapterOptions {
   adaptiveIndexing?: SQLiteAdaptiveIndexingOptions
+  queryVerification?: SQLiteQueryVerificationOptions
 }
 
 interface AdaptiveIndexHint {
@@ -146,6 +160,12 @@ const DEFAULT_ADAPTIVE_INDEXING: AdaptiveIndexingConfig = {
   maxIndexesPerSchema: 8
 }
 
+const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
+  enabled: true,
+  maxNodes: 1000,
+  logFailures: true
+}
+
 // ─── SQLiteNodeStorageAdapter ───────────────────────────────────────────────
 
 /**
@@ -174,6 +194,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   private adaptiveIndexing: AdaptiveIndexingConfig
 
+  private queryVerification: QueryVerificationConfig
+
   constructor(
     private db: SQLiteAdapter,
     options: SQLiteNodeStorageAdapterOptions = {}
@@ -181,6 +203,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     this.adaptiveIndexing = {
       ...DEFAULT_ADAPTIVE_INDEXING,
       ...options.adaptiveIndexing
+    }
+    this.queryVerification = {
+      ...DEFAULT_QUERY_VERIFICATION,
+      ...options.queryVerification
     }
   }
 
@@ -560,6 +586,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         postFilterReason: compiled.postFilterReason
       }
     }
+    result.plan.parityCheck = await this.auditQueryParity(descriptor, result)
     const telemetry = await this.recordQueryTelemetry(
       descriptor,
       result,
@@ -1049,6 +1076,107 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     })
 
     return { descriptorHash, adaptiveIndexNames }
+  }
+
+  private async auditQueryParity(
+    descriptor: NodeQueryDescriptor,
+    result: NodeQueryResult
+  ): Promise<NodeQueryParityCheckMetadata> {
+    if (!this.queryVerification.enabled) {
+      return { strategy: 'skipped', reason: 'disabled' }
+    }
+
+    const candidateScopeCount = descriptor.nodeId
+      ? 1
+      : await this.countNodes({
+          schemaId: descriptor.schemaId,
+          includeDeleted: descriptor.includeDeleted
+        })
+
+    if (candidateScopeCount > this.queryVerification.maxNodes) {
+      return {
+        strategy: 'skipped',
+        reason: 'scope-too-large',
+        comparedNodeCount: candidateScopeCount
+      }
+    }
+
+    const parityCandidates = descriptor.nodeId
+      ? await this.getNodeParityCandidates(descriptor)
+      : await this.listNodesOptimized({
+          schemaId: descriptor.schemaId,
+          includeDeleted: descriptor.includeDeleted
+        })
+    const expected = applyNodeQueryDescriptor(parityCandidates, descriptor)
+    const parityCheck = this.compareQueryResults(expected, result.nodes, parityCandidates.length)
+
+    if (parityCheck.valid === false && this.queryVerification.logFailures) {
+      console.error('[SQLiteNodeStorageAdapter] Node query parity failure', {
+        descriptor,
+        plan: {
+          strategy: result.plan.strategy,
+          candidateNodeCount: result.plan.candidateNodeCount,
+          hydratedNodeCount: result.plan.hydratedNodeCount,
+          returnedNodeCount: result.plan.returnedNodeCount,
+          postFilterReason: result.plan.postFilterReason,
+          sql: result.plan.sql,
+          params: result.plan.params
+        },
+        parityCheck
+      })
+    }
+
+    return parityCheck
+  }
+
+  private async getNodeParityCandidates(descriptor: NodeQueryDescriptor): Promise<NodeState[]> {
+    if (!descriptor.nodeId) {
+      return []
+    }
+
+    const node = await this.getNode(descriptor.nodeId)
+    if (!node) {
+      return []
+    }
+
+    if (node.schemaId !== descriptor.schemaId) {
+      return []
+    }
+
+    if (!descriptor.includeDeleted && node.deleted) {
+      return []
+    }
+
+    return [node]
+  }
+
+  private compareQueryResults(
+    expected: NodeState[],
+    actual: NodeState[],
+    comparedNodeCount: number
+  ): NodeQueryParityCheckMetadata {
+    const expectedIds = expected.map((node) => node.id)
+    const actualIds = actual.map((node) => node.id)
+    const expectedIdSet = new Set(expectedIds)
+    const actualIdSet = new Set(actualIds)
+    const missingNodeIds = expectedIds.filter((id) => !actualIdSet.has(id))
+    const extraNodeIds = actualIds.filter((id) => !expectedIdSet.has(id))
+    const orderMismatch =
+      missingNodeIds.length === 0 &&
+      extraNodeIds.length === 0 &&
+      (expectedIds.length !== actualIds.length ||
+        expectedIds.some((id, index) => actualIds[index] !== id))
+    const valid = missingNodeIds.length === 0 && extraNodeIds.length === 0 && !orderMismatch
+
+    return {
+      strategy: 'exact',
+      valid,
+      comparedNodeCount,
+      expectedNodeCount: expectedIds.length,
+      ...(missingNodeIds.length > 0 ? { missingNodeIds } : {}),
+      ...(extraNodeIds.length > 0 ? { extraNodeIds } : {}),
+      ...(orderMismatch ? { orderMismatch } : {})
+    }
   }
 
   private shouldCreateAdaptiveIndexes(stats: QueryDescriptorStatsRow): boolean {

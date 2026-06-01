@@ -80,6 +80,18 @@ export interface NodeQueryPlanMetadata {
   postFilterReason?: string
   descriptorHash?: string
   adaptiveIndexNames?: string[]
+  parityCheck?: NodeQueryParityCheckMetadata
+}
+
+export interface NodeQueryParityCheckMetadata {
+  strategy: 'exact' | 'skipped'
+  valid?: boolean
+  reason?: string
+  comparedNodeCount?: number
+  expectedNodeCount?: number
+  missingNodeIds?: string[]
+  extraNodeIds?: string[]
+  orderMismatch?: boolean
 }
 
 export interface NodeQueryResult {

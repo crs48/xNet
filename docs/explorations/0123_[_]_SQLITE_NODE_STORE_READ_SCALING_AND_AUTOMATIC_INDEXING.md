@@ -590,7 +590,7 @@ Expected impact: SQL can find candidate IDs for common equality filters and prop
 - [x] Let `NodeStore` or `DataBridge` detect the capability and fall back to `list` when absent.
 - [x] Compile supported descriptors into candidate SQL plus batch hydration SQL.
 - [x] Return plan metadata: rows scanned, IDs returned, SQL used, indexes detected, post-filter reason.
-- [ ] Keep JS verification on by default and log parity failures as high-severity diagnostics.
+- [x] Keep JS verification on by default and log parity failures as high-severity diagnostics.
 
 Expected impact: `useQuery` remains API-compatible while SQLite becomes the first-stage read engine.
 
@@ -631,6 +631,7 @@ Updated on 2026-06-01:
 
 - Phases 0 and 1 are implemented.
 - Phase 2 is implemented for conservative SQLite candidate plans: node/schema/deleted predicates, scalar equality filters, system-field ordering, SQL pagination where safe, batch hydration by candidate IDs, and JS descriptor verification over hydrated candidates.
+- SQLite candidate plans now run a bounded exact parity audit by default for small descriptor scopes. The audit compares SQL-backed results to the shared JS descriptor implementation, records metadata in the query plan, skips large scopes, and logs parity failures with `console.error`.
 - The generic `NodeStore.query` API now returns plan metadata and falls back to safe list-based evaluation when storage does not support `queryNodes`.
 - Electron IPC storage now carries safe system-order `limit`/`offset` pushdown through `listNodes` and maintains the scalar sidecar in the data process.
 - Backwards compatibility was intentionally not preserved where it conflicted with the cleaner read-scaling API: `setNode` is treated as a full materialized state replacement for property rows, `ListNodesOptions` now accepts system-field ordering, and NodeStore query semantics are centralized in `@xnetjs/data`.

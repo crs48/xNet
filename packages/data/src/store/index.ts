@@ -70,6 +70,7 @@ export type {
   NodeQueryOptions,
   NodeQueryDescriptor,
   NodeQueryPlanMetadata,
+  NodeQueryParityCheckMetadata,
   NodeQueryResult
 } from './query'
 export {
@@ -105,5 +106,6 @@ export {
   SQLiteNodeStorageAdapter,
   createNodeStorageAdapter,
   type SQLiteAdaptiveIndexingOptions,
+  type SQLiteQueryVerificationOptions,
   type SQLiteNodeStorageAdapterOptions
 } from './sqlite-adapter'

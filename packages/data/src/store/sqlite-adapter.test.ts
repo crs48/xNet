@@ -8,7 +8,7 @@ import type { SchemaIRI } from '../schema/node'
 import type { DID, ContentId } from '@xnetjs/core'
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
 
 describe('SQLiteNodeStorageAdapter', () => {
@@ -542,6 +542,12 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(result.plan.strategy).toBe('storage-query')
       expect(result.plan.candidateNodeCount).toBe(1)
       expect(result.plan.postFilterReason).toBe('pagination-pushed-down')
+      expect(result.plan.parityCheck).toMatchObject({
+        strategy: 'exact',
+        valid: true,
+        comparedNodeCount: 4,
+        expectedNodeCount: 1
+      })
     })
 
     it('matches null and boolean scalar equality without matching missing values', async () => {
@@ -609,6 +615,60 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(byUpdatedAt.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
       expect(byCreatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
       expect(byUpdatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
+    })
+
+    it('skips parity checks when the descriptor scope exceeds the configured cap', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        queryVerification: { maxNodes: 1 }
+      })
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+
+      expect(result.plan.parityCheck).toEqual({
+        strategy: 'skipped',
+        reason: 'scope-too-large',
+        comparedNodeCount: 4
+      })
+    })
+
+    it('logs high-severity diagnostics when SQL candidates miss JS descriptor results', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+      try {
+        await db.run('DELETE FROM node_property_scalars WHERE node_id = ?', ['task-open-high'])
+
+        const result = await adapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          where: { status: 'open' },
+          orderBy: { updatedAt: 'desc' }
+        })
+
+        expect(result.nodes.map((node) => node.id)).toEqual(['task-open-low'])
+        expect(result.plan.parityCheck).toMatchObject({
+          strategy: 'exact',
+          valid: false,
+          comparedNodeCount: 4,
+          expectedNodeCount: 2,
+          missingNodeIds: ['task-open-high']
+        })
+        expect(consoleError).toHaveBeenCalledWith(
+          '[SQLiteNodeStorageAdapter] Node query parity failure',
+          expect.objectContaining({
+            descriptor: expect.objectContaining({ where: { status: 'open' } }),
+            parityCheck: expect.objectContaining({
+              valid: false,
+              missingNodeIds: ['task-open-high']
+            })
+          })
+        )
+      } finally {
+        consoleError.mockRestore()
+      }
     })
 
     it('uses composite node and scalar indexes in query plans', async () => {
