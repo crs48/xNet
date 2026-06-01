@@ -87,7 +87,13 @@ export interface NodeQueryPlanMetadata {
   availableIndexCount?: number
   adaptiveIndexCount?: number
   diagnosticsError?: string
+  storageCapabilities?: NodeQueryStorageCapabilitiesMetadata
   parityCheck?: NodeQueryParityCheckMetadata
+}
+
+export interface NodeQueryStorageCapabilitiesMetadata {
+  fullTextSearch: boolean
+  rtree: boolean
 }
 
 export interface NodeQueryParityCheckMetadata {

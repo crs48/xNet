@@ -607,7 +607,8 @@ Expected impact: users get automatic read scaling as their actual workspace grow
 
 ### Phase 4: Spatial And Text Search Pushdown
 
-- Add optional R-Tree support behind capability detection.
+- [x] Add runtime FTS5/R-Tree capability detection and expose those capabilities in SQLite-backed query plans.
+- Add optional R-Tree candidate selection behind capability detection.
 - Map text node IDs to integer R-Tree IDs with `node_spatial_ids`.
 - Maintain bounding boxes from configured spatial fields.
 - Use R-Tree as candidate selection only; keep JS exact spatial verification.
@@ -639,6 +640,7 @@ Updated on 2026-06-01:
 - SQLite query plans now include diagnostics from `@xnetjs/sqlite`: candidate query timing, used index names, full-scan detection, raw query-plan details, and current index inventory counts. Adaptive index creation also runs `ANALYZE node_property_scalars` before `PRAGMA optimize`.
 - Adaptive indexes now track estimated footprint and indexed row counts, skip candidates that exceed per-schema disk/write budgets, drop stale or least-recently-used indexes when over budget, and emit opt-in query/adaptive-index debug logs via `xnet:query:debug`.
 - Auth-sensitive `NodeStore.query` reads now bypass storage pushdown, apply read authorization before descriptor pagination, and redact plan counts to visible nodes only so hidden rows cannot be inferred.
+- `@xnetjs/sqlite` now probes runtime FTS5 and R-Tree virtual-table support. SQLite-backed NodeStore query plans include those capabilities, and existing FTS helpers no-op when FTS5 is unavailable.
 - R-Tree/FTS query pushdown, large synthetic performance tests, mutation benchmarks, and hot view materialization remain future work.
 
 ## Validation Checklist
@@ -656,7 +658,7 @@ Updated on 2026-06-01:
 - [x] `EXPLAIN QUERY PLAN` shows expected indexes for default list and hot property filters.
 - [x] `PRAGMA optimize` or diagnostics flow runs after adaptive index changes.
 - [x] Adaptive indexes are dropped when unused or over budget.
-- [ ] SQLite capability detection disables FTS/R-Tree paths where unavailable.
+- [x] SQLite capability detection disables FTS/R-Tree paths where unavailable.
 - [ ] Performance tests cover 1k, 10k, 100k, and 1M node synthetic datasets where feasible.
 - [ ] Mutation benchmarks measure write amplification from scalar and adaptive indexes.
 - [x] Electron IPC path avoids serializing full schema results for paginated reads.

@@ -7,6 +7,7 @@
  */
 
 import type { SQLiteAdapter } from './adapter'
+import { detectSQLiteCapabilities } from './diagnostics'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -260,6 +261,12 @@ async function checkFTSSupport(db: SQLiteAdapter): Promise<boolean> {
   }
 
   try {
+    const capabilities = await detectSQLiteCapabilities(db)
+    if (!capabilities.fts5) {
+      ftsSupport.set(db, false)
+      return false
+    }
+
     // Check if nodes_fts table exists
     const result = await db.queryOne<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='nodes_fts'"

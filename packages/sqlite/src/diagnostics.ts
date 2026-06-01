@@ -40,6 +40,11 @@ export interface DatabaseStats {
   foreignKeys: boolean
 }
 
+export interface SQLiteRuntimeCapabilities {
+  fts5: boolean
+  rtree: boolean
+}
+
 // ─── Index Analysis ──────────────────────────────────────────────────────────
 
 /**
@@ -219,6 +224,62 @@ export async function getDatabaseStats(db: SQLiteAdapter): Promise<DatabaseStats
     schemaVersion: Number(schemaVersion?.schema_version ?? 0),
     walMode: String(walMode?.journal_mode ?? '').toLowerCase() === 'wal',
     foreignKeys: Boolean(foreignKeys?.foreign_keys)
+  }
+}
+
+// ─── Capability Detection ───────────────────────────────────────────────────
+
+const sqliteRuntimeCapabilities = new WeakMap<SQLiteAdapter, SQLiteRuntimeCapabilities>()
+
+/**
+ * Detect optional SQLite virtual table modules for the active runtime.
+ *
+ * xNet runs against multiple SQLite implementations, so feature availability
+ * must be probed at runtime rather than inferred from platform.
+ */
+export async function detectSQLiteCapabilities(
+  db: SQLiteAdapter
+): Promise<SQLiteRuntimeCapabilities> {
+  const cached = sqliteRuntimeCapabilities.get(db)
+  if (cached) {
+    return cached
+  }
+
+  const capabilities: SQLiteRuntimeCapabilities = {
+    fts5: await canCreateVirtualTable(db, 'temp.__xnet_capability_fts5_probe', 'fts5(content)'),
+    rtree: await canCreateVirtualTable(
+      db,
+      'temp.__xnet_capability_rtree_probe',
+      'rtree(id, min_x, max_x, min_y, max_y)'
+    )
+  }
+  sqliteRuntimeCapabilities.set(db, capabilities)
+
+  return capabilities
+}
+
+async function canCreateVirtualTable(
+  db: SQLiteAdapter,
+  tableName: string,
+  moduleDefinition: string
+): Promise<boolean> {
+  await dropProbeTable(db, tableName)
+
+  try {
+    await db.exec(`CREATE VIRTUAL TABLE ${tableName} USING ${moduleDefinition}`)
+    return true
+  } catch {
+    return false
+  } finally {
+    await dropProbeTable(db, tableName)
+  }
+}
+
+async function dropProbeTable(db: SQLiteAdapter, tableName: string): Promise<void> {
+  try {
+    await db.exec(`DROP TABLE IF EXISTS ${tableName}`)
+  } catch {
+    // Best-effort cleanup for runtimes that failed while loading the module.
   }
 }
 

@@ -556,6 +556,10 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(result.plan.availableIndexCount).toBeGreaterThan(0)
       expect(result.plan.adaptiveIndexCount).toBe(0)
       expect(result.plan.diagnosticsError).toBeUndefined()
+      expect(result.plan.storageCapabilities).toEqual({
+        fullTextSearch: expect.any(Boolean),
+        rtree: expect.any(Boolean)
+      })
     })
 
     it('matches null and boolean scalar equality without matching missing values', async () => {

@@ -24,6 +24,7 @@ import {
   deleteNodeFTS,
   extractSearchableContent,
   analyzeQuery,
+  detectSQLiteCapabilities,
   getIndexInfo,
   runAnalyze,
   timeQuery
@@ -34,6 +35,7 @@ import {
   type NodeQueryDescriptor,
   type NodeQueryParityCheckMetadata,
   type NodeQueryResult,
+  type NodeQueryStorageCapabilitiesMetadata,
   type SortDirection
 } from './query'
 
@@ -183,6 +185,7 @@ interface CompiledQueryDiagnostics {
   queryPlanDetails?: string[]
   availableIndexCount?: number
   adaptiveIndexCount?: number
+  storageCapabilities?: NodeQueryStorageCapabilitiesMetadata
   diagnosticsError?: string
 }
 
@@ -234,6 +237,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private queryVerification: QueryVerificationConfig
 
   private adaptiveIndexBudgetColumnsReady = false
+
+  private storageCapabilitiesPromise?: Promise<NodeQueryStorageCapabilitiesMetadata>
 
   constructor(
     private db: SQLiteAdapter,
@@ -583,6 +588,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const compiled = this.compileNodeQuery(descriptor)
 
     if (!compiled) {
+      const storageCapabilities = await this.getStorageCapabilities()
       const candidates = await this.listNodesOptimized({
         schemaId: descriptor.schemaId,
         includeDeleted: descriptor.includeDeleted
@@ -596,7 +602,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           hydratedNodeCount: candidates.length,
           returnedNodeCount: nodes.length,
           durationMs: Date.now() - start,
-          postFilterReason: 'unsupported-descriptor'
+          postFilterReason: 'unsupported-descriptor',
+          storageCapabilities
         }
       }
       const telemetry = await this.recordQueryTelemetry(descriptor, result, [])
@@ -1129,9 +1136,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     compiled: CompiledNodeQuery
   ): Promise<CompiledQueryDiagnostics> {
     try {
-      const [analysis, indexes] = await Promise.all([
+      const [analysis, indexes, storageCapabilities] = await Promise.all([
         analyzeQuery(this.db, compiled.sql, compiled.params),
-        getIndexInfo(this.db)
+        getIndexInfo(this.db),
+        this.getStorageCapabilities()
       ])
       const adaptiveIndexCount = indexes.filter((index) =>
         index.name.startsWith('idx_auto_prop_')
@@ -1142,13 +1150,28 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         fullTableScan: analysis.fullTableScan,
         queryPlanDetails: analysis.plan.map((step) => step.detail),
         availableIndexCount: indexes.length,
-        adaptiveIndexCount
+        adaptiveIndexCount,
+        storageCapabilities
       }
     } catch (err) {
       return {
         diagnosticsError: err instanceof Error ? err.message : String(err)
       }
     }
+  }
+
+  private getStorageCapabilities(): Promise<NodeQueryStorageCapabilitiesMetadata> {
+    if (this.storageCapabilitiesPromise) {
+      return this.storageCapabilitiesPromise
+    }
+
+    const storageCapabilitiesPromise = detectSQLiteCapabilities(this.db).then((capabilities) => ({
+      fullTextSearch: capabilities.fts5,
+      rtree: capabilities.rtree
+    }))
+    this.storageCapabilitiesPromise = storageCapabilitiesPromise
+
+    return storageCapabilitiesPromise
   }
 
   private debugQueryPlan(descriptor: NodeQueryDescriptor, result: NodeQueryResult): void {

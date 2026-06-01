@@ -7,6 +7,7 @@
 import type { SQLiteAdapter } from './adapter'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createMemorySQLiteAdapter } from './adapters/memory'
+import { detectSQLiteCapabilities } from './diagnostics'
 import {
   buildInsert,
   buildUpdate,
@@ -67,6 +68,19 @@ describe('SQLiteAdapter Interface', () => {
     it('throws when accessing closed database', async () => {
       await db.close()
       await expect(db.query('SELECT 1')).rejects.toThrow('Database not open')
+    })
+  })
+
+  describe('Runtime Capabilities', () => {
+    it('detects optional virtual table support without throwing', async () => {
+      const capabilities = await detectSQLiteCapabilities(db)
+      const cached = await detectSQLiteCapabilities(db)
+
+      expect(capabilities).toEqual({
+        fts5: expect.any(Boolean),
+        rtree: expect.any(Boolean)
+      })
+      expect(cached).toEqual(capabilities)
     })
   })
 
