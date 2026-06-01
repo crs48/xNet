@@ -1116,7 +1116,7 @@ Decision gate:
 - [x] Run full `pnpm --filter @xnetjs/editor test`.
 - [x] Run relevant Electron Playwright checks with auth bypass.
 - [x] Run performance benchmarks before enabling by default.
-- [ ] Enable for new pages first.
+- [x] Enable for new pages first.
 - [ ] Enable for all pages after validation.
 - [ ] Remove old live-preview overlays after confidence window.
 
@@ -1140,6 +1140,13 @@ Decision gate:
   - `pnpm --filter @xnetjs/canvas exec vitest run src/__tests__/canvas-v3.test.tsx -t "public Canvas export|resolved canvas theme"`
   - `pnpm --filter @xnetjs/canvas typecheck`
   - `pnpm --filter @xnetjs/e2e-tests exec playwright test src/electron-canvas.spec.ts --project=chromium -g "adapts canvas chrome"`
+
+2026-06-01 new-page rollout checkpoint:
+
+- `EditorSurface` now has explicit regression coverage that editable page surfaces default to live rich editing when the rollout kill switch is not set.
+- Electron `PageView` routes page creation through that default `EditorSurface` path, so new pages receive the improved editor while the `xnet:pages:editor:rollout-mode` kill switch can still force source/read fallback.
+- Focused tests passed:
+  - `pnpm --filter @xnetjs/editor exec vitest run src/components/EditorSurface.test.tsx -t "live editing"`
 
 2026-05-31 canvas/editor checkpoint:
 

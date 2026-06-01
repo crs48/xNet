@@ -32,6 +32,23 @@ describe('EditorSurface', () => {
     })
   })
 
+  it('enables live editing for page surfaces by default', async () => {
+    render(<EditorSurface ydoc={createDoc()} surfaceMode="page" />)
+
+    expect(document.querySelector('[data-editor-surface="true"]')).toHaveAttribute(
+      'data-editor-rollout-content-mode',
+      'live'
+    )
+    await waitFor(() => {
+      expect(document.querySelector('[role="textbox"]')).toHaveAttribute(
+        'data-content-mode',
+        'live'
+      )
+      expect(document.querySelector('.ProseMirror')).toBeInTheDocument()
+      expect(document.querySelector('[data-testid="editor-source-mode"]')).not.toBeInTheDocument()
+    })
+  })
+
   it('marks canvas inline surfaces as canvas editing surfaces', async () => {
     render(
       <EditorSurface
