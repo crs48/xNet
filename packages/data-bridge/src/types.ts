@@ -72,6 +72,12 @@ export type QuerySearchFilter = {
   fields?: QuerySearchField[]
 }
 
+export type QueryMaterializedViewOptions = {
+  viewId: string
+  maxAgeMs?: number
+  forceRefresh?: boolean
+}
+
 /**
  * Options for querying nodes via the DataBridge.
  * Maps to the filter options used by useQuery.
@@ -95,6 +101,8 @@ export interface QueryOptions<
   spatial?: QuerySpatialFilter
   /** Tokenized full-text search over searchable node fields */
   search?: string | QuerySearchFilter
+  /** Stable database view cache key for JIT materialized result sets */
+  materializedView?: string | QueryMaterializedViewOptions
 }
 
 /**
@@ -120,6 +128,8 @@ export interface QueryDescriptor {
   spatial?: QuerySpatialFilter
   /** Optional full-text filter metadata */
   search?: QuerySearchFilter
+  /** Optional stable view cache key for storage-backed materialization */
+  materializedView?: QueryMaterializedViewOptions
 }
 
 /**

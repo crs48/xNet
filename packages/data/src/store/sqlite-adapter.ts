@@ -32,6 +32,7 @@ import {
 import {
   applyNodeQueryDescriptor,
   getNodeQuerySearchTokens,
+  withoutNodeQueryMaterializedView,
   withoutNodeQueryPagination,
   type NodeQueryDescriptor,
   type NodeQueryParityCheckMetadata,
@@ -210,6 +211,26 @@ interface SpatialQueryPlan {
 
 interface FullTextSearchQueryPlan {
   matchExpression: string
+}
+
+interface MaterializedQueryRow {
+  view_id: string
+  descriptor_hash: string
+  schema_id: string
+  descriptor_json: string
+  generated_at: number
+  invalidated_at: number | null
+  row_count: number
+  [key: string]: SQLValue
+}
+
+interface MaterializedQueryReadPlan {
+  viewId: string
+  descriptorHash: string
+  generatedAt: number
+  invalidatedAt: number | null
+  rowCount: number
+  cacheHit: boolean
 }
 
 interface CompiledQueryDiagnostics {
@@ -533,14 +554,20 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const title = typeof searchableProperties.title === 'string' ? searchableProperties.title : null
     const content = extractSearchableContent(searchableProperties)
     await updateNodeFTS(this.db, node.id, title, content)
+
+    await this.invalidateMaterializedViewsForSchema(node.schemaId)
   }
 
   async deleteNode(id: NodeId): Promise<void> {
+    const existing = await this.getNode(id)
     // Delete from FTS index first (no-op if FTS5 not supported)
     await deleteNodeFTS(this.db, id)
     await this.deleteSpatialRowsForNode(id)
     // Delete node (cascades to properties via FK)
     await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
+    if (existing) {
+      await this.invalidateMaterializedViewsForSchema(existing.schemaId)
+    }
   }
 
   async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {
@@ -625,6 +652,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   async queryNodes(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
     const start = Date.now()
+    if (descriptor.materializedView) {
+      return this.queryMaterializedView(descriptor, start)
+    }
+
     const spatialPlan = await this.prepareSpatialQueryPlan(descriptor)
     const fullTextSearchPlan = await this.prepareFullTextSearchQueryPlan(descriptor)
     const compiled = this.compileNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
@@ -881,6 +912,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       await this.db.run('DELETE FROM yjs_state')
       await this.db.run('DELETE FROM changes')
       await this.clearSpatialRows()
+      await this.clearMaterializedViewRows()
       await this.db.run('DELETE FROM node_property_scalars')
       await this.db.run('DELETE FROM node_properties')
       await this.db.run('DELETE FROM nodes')
@@ -965,6 +997,189 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     const rows = await this.db.query<JoinedNodePropertyRow>(sql, params)
     return this.hydrateJoinedRows(rows)
+  }
+
+  private async queryMaterializedView(
+    descriptor: NodeQueryDescriptor,
+    start: number
+  ): Promise<NodeQueryResult> {
+    const materializedView = descriptor.materializedView
+    if (!materializedView) {
+      throw new Error('Materialized view query requires descriptor.materializedView')
+    }
+
+    const baseDescriptor = withoutNodeQueryMaterializedView(withoutNodeQueryPagination(descriptor))
+    const descriptorJson = this.stringifyStable(baseDescriptor)
+    const descriptorHash = this.hashScalarValue(descriptorJson)
+    const cached = await this.getMaterializedView(materializedView.viewId)
+    const cacheExpired =
+      materializedView.maxAgeMs !== undefined &&
+      cached !== null &&
+      Date.now() - cached.generated_at > materializedView.maxAgeMs
+    const canUseCache =
+      cached !== null &&
+      cached.descriptor_hash === descriptorHash &&
+      cached.invalidated_at === null &&
+      !cacheExpired &&
+      !materializedView.forceRefresh
+    const readPlan = canUseCache
+      ? {
+          viewId: materializedView.viewId,
+          descriptorHash,
+          generatedAt: cached.generated_at,
+          invalidatedAt: cached.invalidated_at,
+          rowCount: cached.row_count,
+          cacheHit: true
+        }
+      : await this.refreshMaterializedView({
+          viewId: materializedView.viewId,
+          descriptor: baseDescriptor,
+          descriptorHash,
+          descriptorJson
+        })
+
+    const result = await this.readMaterializedViewPage(descriptor, readPlan, start)
+    result.plan.parityCheck = await this.auditQueryParity(descriptor, result)
+
+    return result
+  }
+
+  private async getMaterializedView(viewId: string): Promise<MaterializedQueryRow | null> {
+    return this.db.queryOne<MaterializedQueryRow>(
+      `SELECT
+         view_id,
+         descriptor_hash,
+         schema_id,
+         descriptor_json,
+         generated_at,
+         invalidated_at,
+         row_count
+       FROM node_query_materializations
+       WHERE view_id = ?`,
+      [viewId]
+    )
+  }
+
+  private async refreshMaterializedView(input: {
+    viewId: string
+    descriptor: NodeQueryDescriptor
+    descriptorHash: string
+    descriptorJson: string
+  }): Promise<MaterializedQueryReadPlan> {
+    const refreshed = await this.queryNodes(input.descriptor)
+    const generatedAt = Date.now()
+
+    await this.db.beginTransaction()
+    try {
+      await this.db.run('DELETE FROM node_query_materialized_ids WHERE view_id = ?', [input.viewId])
+      await this.db.run(
+        `INSERT INTO node_query_materializations
+          (
+            view_id,
+            descriptor_hash,
+            schema_id,
+            descriptor_json,
+            generated_at,
+            invalidated_at,
+            row_count
+          )
+         VALUES (?, ?, ?, ?, ?, NULL, ?)
+         ON CONFLICT(view_id) DO UPDATE SET
+           descriptor_hash = excluded.descriptor_hash,
+           schema_id = excluded.schema_id,
+           descriptor_json = excluded.descriptor_json,
+           generated_at = excluded.generated_at,
+           invalidated_at = NULL,
+           row_count = excluded.row_count`,
+        [
+          input.viewId,
+          input.descriptorHash,
+          input.descriptor.schemaId,
+          input.descriptorJson,
+          generatedAt,
+          refreshed.nodes.length
+        ]
+      )
+
+      for (const [ordinal, node] of refreshed.nodes.entries()) {
+        await this.db.run(
+          `INSERT INTO node_query_materialized_ids (view_id, ordinal, node_id)
+           VALUES (?, ?, ?)`,
+          [input.viewId, ordinal, node.id]
+        )
+      }
+
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
+
+    return {
+      viewId: input.viewId,
+      descriptorHash: input.descriptorHash,
+      generatedAt,
+      invalidatedAt: null,
+      rowCount: refreshed.nodes.length,
+      cacheHit: false
+    }
+  }
+
+  private async readMaterializedViewPage(
+    descriptor: NodeQueryDescriptor,
+    readPlan: MaterializedQueryReadPlan,
+    start: number
+  ): Promise<NodeQueryResult> {
+    const sql = `
+      SELECT node_id
+      FROM node_query_materialized_ids
+      WHERE view_id = ?
+      ORDER BY ordinal ASC
+      LIMIT ? OFFSET ?
+    `
+    const limit = descriptor.limit ?? -1
+    const offset = descriptor.offset ?? 0
+    const idRows = await this.db.query<{ node_id: string }>(sql, [readPlan.viewId, limit, offset])
+    const ids = idRows.map((row) => row.node_id)
+    const nodes = await this.hydrateNodesByIds(ids)
+
+    return {
+      nodes,
+      plan: {
+        strategy: 'storage-query',
+        candidateNodeCount: readPlan.rowCount,
+        hydratedNodeCount: nodes.length,
+        returnedNodeCount: nodes.length,
+        durationMs: Date.now() - start,
+        sql,
+        params: [readPlan.viewId, limit, offset],
+        postFilterReason: readPlan.cacheHit
+          ? 'materialized-view-cache-hit'
+          : 'materialized-view-refreshed',
+        descriptorHash: readPlan.descriptorHash,
+        materializedViewId: readPlan.viewId,
+        materializedCacheHit: readPlan.cacheHit,
+        materializedGeneratedAt: readPlan.generatedAt,
+        ...(readPlan.invalidatedAt !== null
+          ? { materializedInvalidatedAt: readPlan.invalidatedAt }
+          : {}),
+        materializedRowCount: readPlan.rowCount
+      }
+    }
+  }
+
+  private async invalidateMaterializedViewsForSchema(schemaId: SchemaIRI): Promise<void> {
+    await this.db.run(
+      `UPDATE node_query_materializations
+       SET invalidated_at = ?
+       WHERE schema_id = ? AND invalidated_at IS NULL`,
+      [Date.now(), schemaId]
+    )
+  }
+
+  private async clearMaterializedViewRows(): Promise<void> {
+    await this.db.run('DELETE FROM node_query_materialized_ids')
+    await this.db.run('DELETE FROM node_query_materializations')
   }
 
   private async deleteRemovedProperties(node: NodeState): Promise<void> {

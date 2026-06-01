@@ -6,7 +6,7 @@
  * Current schema version.
  * Increment this when making schema changes.
  */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 /**
  * Core SQLite schema for xNet (without FTS5).
@@ -91,6 +91,29 @@ CREATE TABLE IF NOT EXISTS query_index_candidates (
     estimated_rows INTEGER NOT NULL DEFAULT 0,
 
     FOREIGN KEY (descriptor_hash) REFERENCES query_descriptor_stats(descriptor_hash)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS node_query_materializations (
+    view_id TEXT PRIMARY KEY,
+    descriptor_hash TEXT NOT NULL,
+    schema_id TEXT NOT NULL,
+    descriptor_json TEXT NOT NULL,
+    generated_at INTEGER NOT NULL,
+    invalidated_at INTEGER,
+    row_count INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS node_query_materialized_ids (
+    view_id TEXT NOT NULL,
+    ordinal INTEGER NOT NULL,
+    node_id TEXT NOT NULL,
+
+    PRIMARY KEY (view_id, ordinal),
+    UNIQUE (view_id, node_id),
+    FOREIGN KEY (view_id) REFERENCES node_query_materializations(view_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (node_id) REFERENCES nodes(id)
         ON DELETE CASCADE
 );
 
@@ -220,6 +243,10 @@ CREATE INDEX IF NOT EXISTS idx_query_stats_schema_seen
     ON query_descriptor_stats(schema_id, last_seen_at DESC);
 CREATE INDEX IF NOT EXISTS idx_query_indexes_schema_property
     ON query_index_candidates(schema_id, property_key, value_type);
+CREATE INDEX IF NOT EXISTS idx_query_materializations_schema
+    ON node_query_materializations(schema_id, invalidated_at);
+CREATE INDEX IF NOT EXISTS idx_query_materialized_ids_node
+    ON node_query_materialized_ids(node_id);
 
 CREATE INDEX IF NOT EXISTS idx_changes_node ON changes(node_id);
 CREATE INDEX IF NOT EXISTS idx_changes_lamport ON changes(lamport_time);
@@ -347,6 +374,36 @@ ALTER TABLE query_index_candidates
     ADD COLUMN estimated_bytes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE query_index_candidates
     ADD COLUMN estimated_rows INTEGER NOT NULL DEFAULT 0;
+`,
+
+  5: `
+CREATE TABLE IF NOT EXISTS node_query_materializations (
+    view_id TEXT PRIMARY KEY,
+    descriptor_hash TEXT NOT NULL,
+    schema_id TEXT NOT NULL,
+    descriptor_json TEXT NOT NULL,
+    generated_at INTEGER NOT NULL,
+    invalidated_at INTEGER,
+    row_count INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS node_query_materialized_ids (
+    view_id TEXT NOT NULL,
+    ordinal INTEGER NOT NULL,
+    node_id TEXT NOT NULL,
+
+    PRIMARY KEY (view_id, ordinal),
+    UNIQUE (view_id, node_id),
+    FOREIGN KEY (view_id) REFERENCES node_query_materializations(view_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (node_id) REFERENCES nodes(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_query_materializations_schema
+    ON node_query_materializations(schema_id, invalidated_at);
+CREATE INDEX IF NOT EXISTS idx_query_materialized_ids_node
+    ON node_query_materialized_ids(node_id);
 `
 }
 

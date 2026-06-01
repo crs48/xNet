@@ -618,11 +618,11 @@ Expected impact: large canvases and search-heavy views become practical without 
 
 ### Phase 5: Hot View Materialization
 
-- Add JIT materialized result sets for stable, high-fanout views.
-- Use change events to invalidate or incrementally repair result sets.
-- Start with database views, not arbitrary `useQuery`, because view identity is stable and user-visible.
-- Store only node IDs and ordinals; hydrate current NodeState on read.
-- Treat materialized results as disposable cache.
+- [x] Add JIT materialized result sets for stable, high-fanout views.
+- [x] Use change events to invalidate or incrementally repair result sets.
+- [x] Start with database views, not arbitrary `useQuery`, because view identity is stable and user-visible.
+- [x] Store only node IDs and ordinals; hydrate current NodeState on read.
+- [x] Treat materialized results as disposable cache.
 
 Expected impact: large databases can open common views quickly and update incrementally.
 
@@ -645,7 +645,7 @@ Updated on 2026-06-01:
 - Mutation benchmarks now measure scalar sidecar replacement, adaptive-index maintenance, and an explicit write-amplification budget model.
 - SQLite-backed spatial queries now lazily create R-Tree indexes per schema/field mapping when the runtime supports R-Tree. SQL uses the R-Tree only for candidate IDs and still applies the shared JS spatial predicate for exact results.
 - Query descriptors now include tokenized full-text search semantics. SQLite uses `nodes_fts` for candidate IDs when FTS5 is available, and the shared JS descriptor matcher still verifies exact title/content token-prefix behavior after hydration.
-- Hot view materialization remains future work.
+- Phase 5 now has explicit `materializedView` query options keyed by stable database view IDs. SQLite stores unpaginated materialized node IDs and ordinals in disposable cache tables, hydrates current `NodeState` pages on read, and invalidates cached views by schema after node writes/deletes.
 
 ## Validation Checklist
 
@@ -668,6 +668,7 @@ Updated on 2026-06-01:
 - [x] Mutation benchmarks measure write amplification from scalar and adaptive indexes.
 - [x] Electron IPC path avoids serializing full schema results for paginated reads.
 - [x] Query diagnostics are visible enough to debug slow user workspaces.
+- [x] Materialized view result sets store only node IDs/ordinals and rebuild after invalidation.
 
 ## Benchmark Plan
 

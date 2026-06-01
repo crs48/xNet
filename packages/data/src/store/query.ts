@@ -53,6 +53,12 @@ export type NodeQuerySearchFilter = {
   fields?: NodeQuerySearchField[]
 }
 
+export type NodeQueryMaterializedViewOptions = {
+  viewId: string
+  maxAgeMs?: number
+  forceRefresh?: boolean
+}
+
 export interface NodeQueryOptions<
   P extends Record<string, PropertyBuilder> = Record<string, PropertyBuilder>
 > {
@@ -64,6 +70,7 @@ export interface NodeQueryOptions<
   offset?: number
   spatial?: NodeQuerySpatialFilter
   search?: string | NodeQuerySearchFilter
+  materializedView?: string | NodeQueryMaterializedViewOptions
 }
 
 export interface NodeQueryDescriptor {
@@ -76,6 +83,7 @@ export interface NodeQueryDescriptor {
   offset?: number
   spatial?: NodeQuerySpatialFilter
   search?: NodeQuerySearchFilter
+  materializedView?: NodeQueryMaterializedViewOptions
 }
 
 export interface NodeQueryPlanMetadata {
@@ -100,6 +108,11 @@ export interface NodeQueryPlanMetadata {
   candidateAccelerators?: string[]
   spatialIndexKey?: string
   fullTextSearchQuery?: string
+  materializedViewId?: string
+  materializedCacheHit?: boolean
+  materializedGeneratedAt?: number
+  materializedInvalidatedAt?: number
+  materializedRowCount?: number
   parityCheck?: NodeQueryParityCheckMetadata
 }
 
@@ -207,6 +220,37 @@ function normalizeSearchFilter(
   return {
     text,
     ...(fields && fields.length > 0 ? { fields } : {})
+  }
+}
+
+function normalizeMaterializedViewOptions(
+  materializedView?: string | NodeQueryMaterializedViewOptions
+): NodeQueryMaterializedViewOptions | undefined {
+  if (typeof materializedView === 'string') {
+    const viewId = materializedView.trim()
+    return viewId.length > 0 ? { viewId } : undefined
+  }
+
+  if (!materializedView) {
+    return undefined
+  }
+
+  const viewId = materializedView.viewId.trim()
+  if (viewId.length === 0) {
+    return undefined
+  }
+
+  const maxAgeMs =
+    materializedView.maxAgeMs !== undefined &&
+    Number.isFinite(materializedView.maxAgeMs) &&
+    materializedView.maxAgeMs >= 0
+      ? materializedView.maxAgeMs
+      : undefined
+
+  return {
+    viewId,
+    ...(maxAgeMs !== undefined ? { maxAgeMs } : {}),
+    ...(materializedView.forceRefresh ? { forceRefresh: true } : {})
   }
 }
 
@@ -362,7 +406,8 @@ export function createNodeQueryDescriptor<P extends Record<string, PropertyBuild
     limit: options?.limit,
     offset: options?.offset,
     spatial: normalizeSpatialFilter(options?.spatial),
-    search: normalizeSearchFilter(options?.search)
+    search: normalizeSearchFilter(options?.search),
+    materializedView: normalizeMaterializedViewOptions(options?.materializedView)
   }
 }
 
@@ -401,6 +446,10 @@ export function nodeQueryDescriptorToOptions<
 
   if (descriptor.search) {
     options.search = descriptor.search
+  }
+
+  if (descriptor.materializedView) {
+    options.materializedView = descriptor.materializedView
   }
 
   return options
@@ -498,5 +547,13 @@ export function withoutNodeQueryPagination(descriptor: NodeQueryDescriptor): Nod
   const next = { ...descriptor }
   delete next.limit
   delete next.offset
+  return next
+}
+
+export function withoutNodeQueryMaterializedView(
+  descriptor: NodeQueryDescriptor
+): NodeQueryDescriptor {
+  const next = { ...descriptor }
+  delete next.materializedView
   return next
 }

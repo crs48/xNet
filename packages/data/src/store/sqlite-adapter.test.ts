@@ -664,6 +664,72 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(result.plan.postFilterReason).toBe('verified-in-js')
     })
 
+    it('materializes stable view result IDs and refreshes after invalidation', async () => {
+      const firstPage = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 1,
+        materializedView: { viewId: 'task-table-open' }
+      })
+      const secondPage = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 2,
+        materializedView: { viewId: 'task-table-open' }
+      })
+
+      expect(firstPage.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(firstPage.plan.postFilterReason).toBe('materialized-view-refreshed')
+      expect(firstPage.plan.materializedCacheHit).toBe(false)
+      expect(firstPage.plan.materializedViewId).toBe('task-table-open')
+      expect(firstPage.plan.materializedRowCount).toBe(2)
+      expect(secondPage.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+      expect(secondPage.plan.postFilterReason).toBe('materialized-view-cache-hit')
+      expect(secondPage.plan.materializedCacheHit).toBe(true)
+
+      const updatedLow = createTestNode({
+        id: 'task-open-low',
+        schemaId: taskSchemaId,
+        properties: { title: 'Open low', status: 'done', priority: 1, done: false },
+        updatedAt: Date.now() + 10_000
+      })
+      Object.values(updatedLow.timestamps).forEach((timestamp, index) => {
+        timestamp.lamport.time = 100 + index
+      })
+      await adapter.setNode(updatedLow)
+
+      const invalidated = await db.queryOne<{ invalidated_at: number | null }>(
+        `SELECT invalidated_at
+         FROM node_query_materializations
+         WHERE view_id = ?`,
+        ['task-table-open']
+      )
+      expect(invalidated?.invalidated_at).toEqual(expect.any(Number))
+
+      const afterInvalidation = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 2,
+        materializedView: { viewId: 'task-table-open' }
+      })
+
+      expect(afterInvalidation.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(afterInvalidation.plan.postFilterReason).toBe('materialized-view-refreshed')
+      expect(afterInvalidation.plan.materializedCacheHit).toBe(false)
+      expect(afterInvalidation.plan.materializedRowCount).toBe(1)
+      expect(afterInvalidation.plan.parityCheck).toMatchObject({
+        strategy: 'exact',
+        valid: true,
+        expectedNodeCount: 1
+      })
+    })
+
     it('keeps spatial queries on the JS-verified path when R-Tree is unavailable', async () => {
       await adapter.importNodes([
         createTestNode({

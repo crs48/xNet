@@ -86,6 +86,18 @@ describe('query-descriptor', () => {
       expect(left).toEqual(right)
       expect(serializeQueryDescriptor(left)).toBe(serializeQueryDescriptor(right))
     })
+
+    it('should canonicalize equivalent materialized view options to the same key', () => {
+      const left = createQueryDescriptor(TEST_SCHEMA_ID, {
+        materializedView: { viewId: '  view-table  ', maxAgeMs: 60_000 }
+      })
+      const right = createQueryDescriptor(TEST_SCHEMA_ID, {
+        materializedView: { viewId: 'view-table', maxAgeMs: 60_000 }
+      })
+
+      expect(left).toEqual(right)
+      expect(serializeQueryDescriptor(left)).toBe(serializeQueryDescriptor(right))
+    })
   })
 
   describe('applyNodeChangeToQueryResult', () => {

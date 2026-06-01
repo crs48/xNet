@@ -69,6 +69,7 @@ export type {
   NodeQuerySpatialFilter,
   NodeQuerySearchField,
   NodeQuerySearchFilter,
+  NodeQueryMaterializedViewOptions,
   NodeQueryOptions,
   NodeQueryDescriptor,
   NodeQueryPlanMetadata,
@@ -85,7 +86,8 @@ export {
   applyNodeQueryDescriptor,
   getNodeQuerySearchTokens,
   nodeQueryDescriptorNeedsBoundedReload,
-  withoutNodeQueryPagination
+  withoutNodeQueryPagination,
+  withoutNodeQueryMaterializedView
 } from './query'
 
 // NodeStore
