@@ -1117,7 +1117,7 @@ Decision gate:
 - [x] Run relevant Electron Playwright checks with auth bypass.
 - [x] Run performance benchmarks before enabling by default.
 - [x] Enable for new pages first.
-- [ ] Enable for all pages after validation.
+- [x] Enable for all pages after validation.
 - [ ] Remove old live-preview overlays after confidence window.
 
 ### Implementation Validation Notes
@@ -1147,6 +1147,13 @@ Decision gate:
 - Electron `PageView` routes page creation through that default `EditorSurface` path, so new pages receive the improved editor while the `xnet:pages:editor:rollout-mode` kill switch can still force source/read fallback.
 - Focused tests passed:
   - `pnpm --filter @xnetjs/editor exec vitest run src/components/EditorSurface.test.tsx -t "live editing"`
+
+2026-06-01 all-pages rollout checkpoint:
+
+- The shared `PageView` path mounts every page through `EditorSurface`, so the live editor rollout applies to existing and newly created page surfaces unless the rollout kill switch is set.
+- Browser CRUD validation with auth bypass created and edited a real page through the app shell without SQLite/OPFS errors.
+- Focused checks passed:
+  - `PLAYWRIGHT_TEST_BASE_URL=http://127.0.0.1:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/pages-crud.spec.ts --project=chromium`
 
 2026-05-31 canvas/editor checkpoint:
 
