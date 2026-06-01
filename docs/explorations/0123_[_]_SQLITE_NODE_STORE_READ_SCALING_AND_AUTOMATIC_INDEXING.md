@@ -646,6 +646,7 @@ Updated on 2026-06-01:
 - SQLite-backed spatial queries now lazily create R-Tree indexes per schema/field mapping when the runtime supports R-Tree. SQL uses the R-Tree only for candidate IDs and still applies the shared JS spatial predicate for exact results.
 - Query descriptors now include tokenized full-text search semantics. SQLite uses `nodes_fts` for candidate IDs when FTS5 is available, and the shared JS descriptor matcher still verifies exact title/content token-prefix behavior after hydration.
 - Phase 5 now has explicit `materializedView` query options keyed by stable database view IDs. SQLite stores unpaginated materialized node IDs and ordinals in disposable cache tables, hydrates current `NodeState` pages on read, and invalidates cached views by schema after node writes/deletes.
+- Existing Electron and web database surfaces now opt into materialized row lists for stable persisted table/board view IDs. `useDatabase` forwards the visible view ID into `queryRows`, and canonical database-row pagination now runs through `NodeStore.query` so SQLite can use materialized IDs before React flattens rows for the shared view components.
 
 ## Validation Checklist
 
@@ -669,6 +670,7 @@ Updated on 2026-06-01:
 - [x] Electron IPC path avoids serializing full schema results for paginated reads.
 - [x] Query diagnostics are visible enough to debug slow user workspaces.
 - [x] Materialized view result sets store only node IDs/ordinals and rebuild after invalidation.
+- [x] Existing database UI passes stable table/board view IDs into materialized row queries.
 
 ## Benchmark Plan
 

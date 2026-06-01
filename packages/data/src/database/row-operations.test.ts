@@ -5,8 +5,9 @@
 import type { DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DatabaseSchema } from '../schema/schemas/database'
+import { DatabaseRowSchema } from '../schema/schemas/database-row'
 import { MemoryNodeStorageAdapter } from '../store/memory-adapter'
 import { NodeStore } from '../store/store'
 import { cellKey } from './cell-types'
@@ -262,6 +263,32 @@ describe('Row Operations', () => {
       })
       expect(page2.rows).toHaveLength(3)
       expect(page2.hasMore).toBe(true)
+    })
+
+    it('queries through NodeStore descriptors for offset and materialized views', async () => {
+      for (let i = 0; i < 5; i++) {
+        await createRow(store, { databaseId, cells: { num: i } })
+      }
+
+      const querySpy = vi.spyOn(store, 'query')
+      const page = await queryRows(store, databaseId, {
+        limit: 2,
+        offset: 1,
+        materializedView: { viewId: 'database:db:view:table' }
+      })
+
+      expect(page.rows.map((row) => row.cells.num)).toEqual([1, 2])
+      expect(page.hasMore).toBe(true)
+      expect(querySpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          schemaId: DatabaseRowSchema.schema['@id'],
+          where: { database: databaseId },
+          orderBy: { sortKey: 'asc' },
+          limit: 3,
+          offset: 1,
+          materializedView: { viewId: 'database:db:view:table' }
+        })
+      )
     })
 
     it('should sort by sortKey ascending by default', async () => {

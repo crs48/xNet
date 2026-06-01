@@ -328,4 +328,21 @@ describe('DatabaseView minimal chrome', () => {
     expect(screen.getByTestId('share-button')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /open database actions/i })).toBeNull()
   })
+
+  it('keys row queries to the visible materialized database view', async () => {
+    render(<DatabaseView docId="db-1" />)
+
+    expect(await screen.findByDisplayValue('Focus DB')).toBeTruthy()
+    expect(mockUseDatabase).toHaveBeenLastCalledWith('db-1', {
+      view: 'table-view',
+      materializedView: { viewId: 'database:db-1:view:table-view' }
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /board/i }))
+
+    expect(mockUseDatabase).toHaveBeenLastCalledWith('db-1', {
+      view: 'board-view',
+      materializedView: { viewId: 'database:db-1:view:board-view' }
+    })
+  })
 })
