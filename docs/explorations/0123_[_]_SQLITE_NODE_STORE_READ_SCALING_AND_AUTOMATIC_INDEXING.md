@@ -638,7 +638,8 @@ Updated on 2026-06-01:
 - Phase 3 now has a bounded opt-in scalar index advisor: SQLite records descriptor hashes and observed costs by default, and callers can enable thresholded partial-index creation with a per-schema cap. The advisor stores generated DDL for diagnostics and runs `PRAGMA optimize` after creating indexes.
 - SQLite query plans now include diagnostics from `@xnetjs/sqlite`: candidate query timing, used index names, full-scan detection, raw query-plan details, and current index inventory counts. Adaptive index creation also runs `ANALYZE node_property_scalars` before `PRAGMA optimize`.
 - Adaptive indexes now track estimated footprint and indexed row counts, skip candidates that exceed per-schema disk/write budgets, drop stale or least-recently-used indexes when over budget, and emit opt-in query/adaptive-index debug logs via `xnet:query:debug`.
-- R-Tree/FTS query pushdown, dedicated auth-leak tests, large synthetic performance tests, mutation benchmarks, and hot view materialization remain future work.
+- Auth-sensitive `NodeStore.query` reads now bypass storage pushdown, apply read authorization before descriptor pagination, and redact plan counts to visible nodes only so hidden rows cannot be inferred.
+- R-Tree/FTS query pushdown, large synthetic performance tests, mutation benchmarks, and hot view materialization remain future work.
 
 ## Validation Checklist
 
@@ -651,7 +652,7 @@ Updated on 2026-06-01:
 - [x] Scalar sidecar rebuild produces byte-for-byte equivalent query results before and after rebuild.
 - [x] Import, remote sync, restore, and transaction paths update sidecar rows.
 - [x] Encrypted node properties are not indexed in plaintext by accident.
-- [ ] Auth-sensitive reads do not expose unauthorized counts or IDs.
+- [x] Auth-sensitive reads do not expose unauthorized counts or IDs.
 - [x] `EXPLAIN QUERY PLAN` shows expected indexes for default list and hot property filters.
 - [x] `PRAGMA optimize` or diagnostics flow runs after adaptive index changes.
 - [x] Adaptive indexes are dropped when unused or over budget.
