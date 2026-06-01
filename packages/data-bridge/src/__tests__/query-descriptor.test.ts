@@ -74,6 +74,30 @@ describe('query-descriptor', () => {
       expect(left).toEqual(right)
       expect(serializeQueryDescriptor(left)).toBe(serializeQueryDescriptor(right))
     })
+
+    it('should canonicalize equivalent search filters to the same key', () => {
+      const left = createQueryDescriptor(TEST_SCHEMA_ID, {
+        search: { text: '  Project Plan  ', fields: ['content', 'title', 'title'] }
+      })
+      const right = createQueryDescriptor(TEST_SCHEMA_ID, {
+        search: { text: 'Project Plan', fields: ['title', 'content'] }
+      })
+
+      expect(left).toEqual(right)
+      expect(serializeQueryDescriptor(left)).toBe(serializeQueryDescriptor(right))
+    })
+
+    it('should canonicalize equivalent materialized view options to the same key', () => {
+      const left = createQueryDescriptor(TEST_SCHEMA_ID, {
+        materializedView: { viewId: '  view-table  ', maxAgeMs: 60_000 }
+      })
+      const right = createQueryDescriptor(TEST_SCHEMA_ID, {
+        materializedView: { viewId: 'view-table', maxAgeMs: 60_000 }
+      })
+
+      expect(left).toEqual(right)
+      expect(serializeQueryDescriptor(left)).toBe(serializeQueryDescriptor(right))
+    })
   })
 
   describe('applyNodeChangeToQueryResult', () => {
@@ -178,6 +202,44 @@ describe('query-descriptor', () => {
       expect(applyQueryDescriptor(nodes, descriptor).map((node) => node.id)).toEqual(['nearby'])
     })
 
+    it('should filter full-text search queries by token prefixes', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        search: 'proj road'
+      })
+      const nodes = [
+        createMockNode('matching', {
+          title: 'Project plan',
+          description: 'Roadmap kickoff'
+        }),
+        createMockNode('partial', {
+          title: 'Project plan',
+          description: 'Status update'
+        })
+      ]
+
+      expect(applyQueryDescriptor(nodes, descriptor).map((node) => node.id)).toEqual(['matching'])
+    })
+
+    it('should honor search field selection', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        search: { text: 'road', fields: ['title'] }
+      })
+      const nodes = [
+        createMockNode('title-match', {
+          title: 'Roadmap',
+          description: 'No relevant body'
+        }),
+        createMockNode('content-match', {
+          title: 'Plan',
+          description: 'Roadmap details'
+        })
+      ]
+
+      expect(applyQueryDescriptor(nodes, descriptor).map((node) => node.id)).toEqual([
+        'title-match'
+      ])
+    })
+
     it('should remove nodes that move outside a spatial window', () => {
       const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
         spatial: {
@@ -199,6 +261,32 @@ describe('query-descriptor', () => {
         y: 420,
         width: 40,
         height: 40
+      })
+
+      const delta = applyNodeChangeToQueryResult({
+        descriptor,
+        currentData: [existing],
+        nodeId: existing.id,
+        nextNode: updated
+      })
+
+      expect(delta).toEqual({
+        kind: 'set',
+        data: []
+      })
+    })
+
+    it('should remove nodes that stop matching a search query', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        search: 'road'
+      })
+      const existing = createMockNode('task-1', {
+        title: 'Project',
+        description: 'Roadmap'
+      })
+      const updated = createMockNode('task-1', {
+        title: 'Project',
+        description: 'Status'
       })
 
       const delta = applyNodeChangeToQueryResult({

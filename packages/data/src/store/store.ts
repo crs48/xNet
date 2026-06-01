@@ -50,6 +50,12 @@ import {
 import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
 import { PermissionError } from './permission-error'
+import {
+  applyNodeQueryDescriptor,
+  withoutNodeQueryPagination,
+  type NodeQueryDescriptor,
+  type NodeQueryResult
+} from './query'
 import { resolveTempIds, type SchemaLookup } from './tempids'
 
 /** Maximum number of conflicts to retain before trimming */
@@ -218,7 +224,8 @@ export class NodeStore {
    */
   async get(id: NodeId): Promise<NodeState | null> {
     const node = await this.storage.getNode(id)
-    return this.decryptNodeSnapshotIfPresent(node)
+    const decrypted = await this.decryptNodeSnapshotIfPresent(node)
+    return (await this.canReadNode(decrypted)) ? decrypted : null
   }
 
   /**
@@ -251,8 +258,7 @@ export class NodeStore {
     id: NodeId,
     options: GetWithMigrationOptions
   ): Promise<MigratedNodeState | null> {
-    const storedNode = await this.storage.getNode(id)
-    const node = await this.decryptNodeSnapshotIfPresent(storedNode)
+    const node = await this.get(id)
     if (!node) return null
 
     // Determine stored schema version
@@ -479,11 +485,22 @@ export class NodeStore {
     const start = this.telemetry ? Date.now() : 0
 
     try {
-      const nodes = await this.storage.listNodes(options)
+      const nodes = await this.storage.listNodes(
+        this.authEvaluator
+          ? {
+              ...options,
+              limit: undefined,
+              offset: undefined
+            }
+          : options
+      )
       const decrypted = await Promise.all(
         nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
       )
-      const result = decrypted.filter((node): node is NodeState => node !== null)
+      const readable = await this.filterReadableNodes(
+        decrypted.filter((node): node is NodeState => node !== null)
+      )
+      const result = this.authEvaluator ? this.applyListPagination(readable, options) : readable
 
       // Track performance
       if (this.telemetry) {
@@ -499,6 +516,93 @@ export class NodeStore {
       })
       throw err
     }
+  }
+
+  /**
+   * Query nodes with descriptor semantics and storage-level pushdown when available.
+   */
+  async query(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
+    const start = Date.now()
+
+    try {
+      if (this.storage.queryNodes && !this.nodeContentCipher && !this.authEvaluator) {
+        const result = await this.storage.queryNodes(descriptor)
+        return {
+          nodes: result.nodes,
+          plan: {
+            ...result.plan,
+            durationMs: Date.now() - start
+          }
+        }
+      }
+
+      const fallback = await this.loadQueryFallbackCandidates(descriptor)
+      const nodes = fallback.nodes
+      const decrypted = await Promise.all(
+        nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
+      )
+      const readable = await this.filterReadableNodes(
+        decrypted.filter((node): node is NodeState => node !== null)
+      )
+      const result = applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+
+      return {
+        nodes: result,
+        plan: {
+          strategy: 'list-fallback',
+          candidateNodeCount: readable.length,
+          hydratedNodeCount: readable.length,
+          returnedNodeCount: result.length,
+          durationMs: Date.now() - start,
+          postFilterReason: this.getQueryFallbackReason()
+        }
+      }
+    } catch (err) {
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'data.NodeStore.query'
+      })
+      throw err
+    }
+  }
+
+  private async loadQueryFallbackCandidates(descriptor: NodeQueryDescriptor): Promise<{
+    nodes: NodeState[]
+    postFilterDescriptor: NodeQueryDescriptor
+  }> {
+    if (descriptor.nodeId) {
+      const node = await this.storage.getNode(descriptor.nodeId)
+      return {
+        nodes: node ? [node] : [],
+        postFilterDescriptor: descriptor
+      }
+    }
+
+    const canPushSystemList = this.canPushSystemListQuery(descriptor)
+    const canPushPagination = canPushSystemList && !this.authEvaluator
+    const hasPagination = descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0
+    const nodes = await this.storage.listNodes({
+      schemaId: descriptor.schemaId,
+      includeDeleted: descriptor.includeDeleted,
+      ...(canPushSystemList && descriptor.orderBy ? { orderBy: descriptor.orderBy } : {}),
+      ...(canPushPagination && descriptor.limit !== undefined ? { limit: descriptor.limit } : {}),
+      ...(canPushPagination && descriptor.offset !== undefined ? { offset: descriptor.offset } : {})
+    })
+
+    return {
+      nodes,
+      postFilterDescriptor:
+        canPushPagination && hasPagination ? withoutNodeQueryPagination(descriptor) : descriptor
+    }
+  }
+
+  private canPushSystemListQuery(descriptor: NodeQueryDescriptor): boolean {
+    if (descriptor.spatial) return false
+    if (descriptor.search) return false
+    if (descriptor.where && Object.keys(descriptor.where).length > 0) return false
+
+    return Object.keys(descriptor.orderBy ?? {}).every(
+      (key) => key === 'createdAt' || key === 'updatedAt'
+    )
   }
 
   // ==========================================================================
@@ -963,7 +1067,7 @@ export class NodeStore {
       }
 
       // Persist the node record BEFORE appending change (FK constraint)
-      await this.storage.setNode(node)
+      await this.storage.setNode(node, { indexProperties: !this.nodeContentCipher })
     }
 
     // Now append to change log (node exists, FK constraint satisfied)
@@ -1054,7 +1158,7 @@ export class NodeStore {
     node.updatedBy = change.authorDID
 
     // Persist
-    await this.storage.setNode(node)
+    await this.storage.setNode(node, { indexProperties: !this.nodeContentCipher })
   }
 
   /**
@@ -1089,6 +1193,52 @@ export class NodeStore {
     if (!decision.allowed) {
       throw new PermissionError(decision)
     }
+  }
+
+  private async canReadNode(node: NodeState | null): Promise<boolean> {
+    if (!node || !this.authEvaluator) {
+      return node !== null
+    }
+
+    const decision = await this.authEvaluator.can({
+      subject: this.authorDID,
+      action: 'read',
+      nodeId: node.id,
+      node: {
+        schemaId: node.schemaId,
+        createdBy: node.createdBy,
+        properties: node.properties
+      }
+    })
+
+    return decision.allowed
+  }
+
+  private async filterReadableNodes(nodes: NodeState[]): Promise<NodeState[]> {
+    if (!this.authEvaluator) {
+      return nodes
+    }
+
+    const decisions = await Promise.all(nodes.map((node) => this.canReadNode(node)))
+    return nodes.filter((_, index) => decisions[index])
+  }
+
+  private applyListPagination(nodes: NodeState[], options?: ListNodesOptions): NodeState[] {
+    const offset = options?.offset ?? 0
+    const limit = options?.limit ?? nodes.length
+    return nodes.slice(offset, offset + limit)
+  }
+
+  private getQueryFallbackReason(): string {
+    if (this.authEvaluator) {
+      return 'read-authorization-filtered'
+    }
+
+    if (this.nodeContentCipher) {
+      return 'encrypted-node-content'
+    }
+
+    return 'storage-query-unavailable'
   }
 
   private async assertAuthorizedBatch(operations: TransactionOperation[]): Promise<void> {

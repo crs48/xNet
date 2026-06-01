@@ -46,12 +46,19 @@ export {
   analyzeTable,
   getAllTableStats,
   getDatabaseStats,
+  detectSQLiteCapabilities,
   runAnalyze,
   checkIntegrity,
   explainQuery,
   timeQuery
 } from './diagnostics'
-export type { IndexInfo, TableStats, QueryPlanStep, DatabaseStats } from './diagnostics'
+export type {
+  IndexInfo,
+  TableStats,
+  QueryPlanStep,
+  DatabaseStats,
+  SQLiteRuntimeCapabilities
+} from './diagnostics'
 
 // Browser support detection
 export {

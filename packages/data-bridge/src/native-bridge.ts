@@ -35,7 +35,6 @@ import type {
 import { QueryCache } from './query-cache'
 import {
   applyNodeChangeToQueryResult,
-  applyQueryDescriptor,
   createQueryDescriptor,
   serializeQueryDescriptor
 } from './query-descriptor'
@@ -141,22 +140,10 @@ export class NativeBridge implements DataBridge {
     if (this.destroyed) return
 
     try {
-      let nodes: NodeState[]
-
-      if (descriptor.nodeId) {
-        // Single node query
-        const node = await this.store.get(descriptor.nodeId)
-        nodes = node ? [node] : []
-      } else {
-        // List query
-        nodes = await this.store.list({
-          schemaId: descriptor.schemaId,
-          includeDeleted: descriptor.includeDeleted
-        })
-      }
+      const result = await this.store.query(descriptor)
 
       if (!this.destroyed) {
-        this.cache.set(queryId, applyQueryDescriptor(nodes, descriptor), descriptor)
+        this.cache.set(queryId, result.nodes, descriptor)
       }
     } catch (err) {
       console.error('[NativeBridge] Failed to load query:', err)

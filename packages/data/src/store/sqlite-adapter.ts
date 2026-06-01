@@ -13,12 +13,34 @@ import type {
   NodeStorageAdapter,
   ListNodesOptions,
   CountNodesOptions,
-  PropertyTimestamp
+  PropertyTimestamp,
+  SetNodeOptions
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
 import type { SQLiteAdapter, SQLValue, PreparedStatement } from '@xnetjs/sqlite'
-import { updateNodeFTS, deleteNodeFTS, extractSearchableContent } from '@xnetjs/sqlite'
+import {
+  updateNodeFTS,
+  deleteNodeFTS,
+  extractSearchableContent,
+  analyzeQuery,
+  detectSQLiteCapabilities,
+  getIndexInfo,
+  runAnalyze,
+  timeQuery
+} from '@xnetjs/sqlite'
+import {
+  applyNodeQueryDescriptor,
+  getNodeQuerySearchTokens,
+  withoutNodeQueryMaterializedView,
+  withoutNodeQueryPagination,
+  type NodeQueryDescriptor,
+  type NodeQueryParityCheckMetadata,
+  type NodeQueryResult,
+  type NodeQuerySpatialFilter,
+  type NodeQueryStorageCapabilitiesMetadata,
+  type SortDirection
+} from './query'
 
 // ─── Row Types ──────────────────────────────────────────────────────────────
 
@@ -59,6 +81,185 @@ interface ChangeRow {
   [key: string]: SQLValue
 }
 
+interface JoinedNodePropertyRow {
+  id: string
+  schema_id: string
+  created_at: number
+  updated_at: number
+  created_by: string
+  deleted_at: number | null
+  property_key: string | null
+  value: Uint8Array | null
+  lamport_time: number | null
+  updated_by: string | null
+  prop_updated_at: number | null
+  ordinal: number | null
+  [key: string]: SQLValue
+}
+
+type ScalarValueType = 'text' | 'number' | 'boolean' | 'null'
+
+interface ScalarIndexValue {
+  valueType: ScalarValueType
+  valueText: string | null
+  valueNumber: number | null
+  valueBoolean: number | null
+  valueHash: string
+}
+
+interface AdaptiveIndexingConfig {
+  enabled: boolean
+  minHits: number
+  minDurationMs: number
+  minCandidates: number
+  maxIndexesPerSchema: number
+  maxEstimatedBytesPerSchema: number
+  maxIndexedRowsPerSchema: number
+  dropUnusedAfterMs: number
+}
+
+interface QueryVerificationConfig {
+  enabled: boolean
+  maxNodes: number
+  logFailures: boolean
+}
+
+export interface SQLiteAdaptiveIndexingOptions {
+  enabled?: boolean
+  minHits?: number
+  minDurationMs?: number
+  minCandidates?: number
+  maxIndexesPerSchema?: number
+  maxEstimatedBytesPerSchema?: number
+  maxIndexedRowsPerSchema?: number
+  dropUnusedAfterMs?: number
+}
+
+export interface SQLiteQueryVerificationOptions {
+  enabled?: boolean
+  maxNodes?: number
+  logFailures?: boolean
+}
+
+export interface SQLiteNodeStorageAdapterOptions {
+  adaptiveIndexing?: SQLiteAdaptiveIndexingOptions
+  queryVerification?: SQLiteQueryVerificationOptions
+}
+
+interface AdaptiveIndexHint {
+  propertyKey: string
+  scalar: ScalarIndexValue
+}
+
+interface CompiledNodeQuery {
+  sql: string
+  params: SQLValue[]
+  postFilterDescriptor: NodeQueryDescriptor
+  postFilterReason: string
+  adaptiveIndexHints: AdaptiveIndexHint[]
+  spatialIndexKey?: string
+  fullTextSearchQuery?: string
+}
+
+interface QueryTelemetry {
+  descriptorHash: string
+  adaptiveIndexNames: string[]
+}
+
+interface QueryDescriptorStatsRow {
+  hits: number
+  avg_duration_ms: number
+  avg_candidates: number
+  [key: string]: SQLValue
+}
+
+interface AdaptiveIndexBudgetEstimate {
+  rowCount: number
+  estimatedBytes: number
+}
+
+interface AdaptiveIndexBudgetUsage {
+  count: number
+  estimatedBytes: number
+  indexedRows: number
+}
+
+type SpatialTablesState = 'unknown' | 'absent' | 'ready'
+type FullTextSearchTablesState = 'unknown' | 'absent' | 'ready'
+
+interface SpatialIndexConfigRow {
+  spatial_key: string
+  schema_id: string
+  x_key: string
+  y_key: string
+  width_key: string | null
+  height_key: string | null
+  [key: string]: SQLValue
+}
+
+interface SpatialBoundingBox {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
+interface SpatialQueryPlan {
+  spatialKey: string
+  bounds: SpatialBoundingBox
+}
+
+interface FullTextSearchQueryPlan {
+  matchExpression: string
+}
+
+interface MaterializedQueryRow {
+  view_id: string
+  descriptor_hash: string
+  schema_id: string
+  descriptor_json: string
+  generated_at: number
+  invalidated_at: number | null
+  row_count: number
+  [key: string]: SQLValue
+}
+
+interface MaterializedQueryReadPlan {
+  viewId: string
+  descriptorHash: string
+  generatedAt: number
+  invalidatedAt: number | null
+  rowCount: number
+  cacheHit: boolean
+}
+
+interface CompiledQueryDiagnostics {
+  usedIndexNames?: string[]
+  fullTableScan?: boolean
+  queryPlanDetails?: string[]
+  availableIndexCount?: number
+  adaptiveIndexCount?: number
+  storageCapabilities?: NodeQueryStorageCapabilitiesMetadata
+  diagnosticsError?: string
+}
+
+const DEFAULT_ADAPTIVE_INDEXING: AdaptiveIndexingConfig = {
+  enabled: false,
+  minHits: 20,
+  minDurationMs: 16,
+  minCandidates: 2000,
+  maxIndexesPerSchema: 8,
+  maxEstimatedBytesPerSchema: 16 * 1024 * 1024,
+  maxIndexedRowsPerSchema: 250_000,
+  dropUnusedAfterMs: 30 * 24 * 60 * 60 * 1000
+}
+
+const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
+  enabled: true,
+  maxNodes: 1000,
+  logFailures: true
+}
+
 // ─── SQLiteNodeStorageAdapter ───────────────────────────────────────────────
 
 /**
@@ -85,7 +286,31 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   // Prepared statement cache for hot paths
   private stmtCache = new Map<string, PreparedStatement>()
 
-  constructor(private db: SQLiteAdapter) {}
+  private adaptiveIndexing: AdaptiveIndexingConfig
+
+  private queryVerification: QueryVerificationConfig
+
+  private adaptiveIndexBudgetColumnsReady = false
+
+  private storageCapabilitiesPromise?: Promise<NodeQueryStorageCapabilitiesMetadata>
+
+  private spatialTablesState: SpatialTablesState = 'unknown'
+
+  private fullTextSearchTablesState: FullTextSearchTablesState = 'unknown'
+
+  constructor(
+    private db: SQLiteAdapter,
+    options: SQLiteNodeStorageAdapterOptions = {}
+  ) {
+    this.adaptiveIndexing = {
+      ...DEFAULT_ADAPTIVE_INDEXING,
+      ...options.adaptiveIndexing
+    }
+    this.queryVerification = {
+      ...DEFAULT_QUERY_VERIFICATION,
+      ...options.queryVerification
+    }
+  }
 
   getSQLiteAdapter(): SQLiteAdapter {
     return this.db
@@ -254,11 +479,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
   }
 
-  async setNode(node: NodeState): Promise<void> {
+  async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
     // Use manual transaction control for web proxy compatibility
     await this.db.beginTransaction()
     try {
-      await this._setNodeInternal(node)
+      await this._setNodeInternal(node, options)
       await this.db.commit()
     } catch (err) {
       await this.db.rollback()
@@ -270,7 +495,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Internal method for setting a node without starting a new transaction.
    * Used by importNodes to avoid nested transactions.
    */
-  private async _setNodeInternal(node: NodeState): Promise<void> {
+  private async _setNodeInternal(node: NodeState, options?: SetNodeOptions): Promise<void> {
     // Upsert node
     await this.db.run(
       `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
@@ -288,6 +513,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         node.deleted && node.deletedAt ? node.deletedAt.wallTime : null
       ]
     )
+
+    await this.deleteRemovedProperties(node)
 
     // Upsert properties
     for (const [key, value] of Object.entries(node.properties)) {
@@ -314,55 +541,37 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       )
     }
 
+    const indexedNode = await this.getNode(node.id)
+    if (indexedNode) {
+      const indexProperties = options?.indexProperties ?? true
+      await this.syncScalarRowsForNode(indexedNode, indexProperties)
+      await this.syncSpatialRowsForNode(indexedNode, indexProperties)
+    }
+
     // Update FTS index for searchable content
     // This is a no-op if FTS5 is not supported (e.g., sql.js)
-    const title = typeof node.properties.title === 'string' ? node.properties.title : null
-    const content = extractSearchableContent(node.properties)
+    const searchableProperties = indexedNode?.properties ?? node.properties
+    const title = typeof searchableProperties.title === 'string' ? searchableProperties.title : null
+    const content = extractSearchableContent(searchableProperties)
     await updateNodeFTS(this.db, node.id, title, content)
+
+    await this.invalidateMaterializedViewsForSchema(node.schemaId)
   }
 
   async deleteNode(id: NodeId): Promise<void> {
+    const existing = await this.getNode(id)
     // Delete from FTS index first (no-op if FTS5 not supported)
     await deleteNodeFTS(this.db, id)
+    await this.deleteSpatialRowsForNode(id)
     // Delete node (cascades to properties via FK)
     await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
+    if (existing) {
+      await this.invalidateMaterializedViewsForSchema(existing.schemaId)
+    }
   }
 
   async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {
-    let sql = `SELECT id FROM nodes WHERE 1=1`
-    const params: unknown[] = []
-
-    if (options?.schemaId) {
-      sql += ` AND schema_id = ?`
-      params.push(options.schemaId)
-    }
-
-    if (!options?.includeDeleted) {
-      sql += ` AND deleted_at IS NULL`
-    }
-
-    sql += ` ORDER BY updated_at DESC`
-
-    if (options?.limit) {
-      sql += ` LIMIT ?`
-      params.push(options.limit)
-    }
-
-    if (options?.offset) {
-      sql += ` OFFSET ?`
-      params.push(options.offset)
-    }
-
-    const rows = await this.db.query<{ id: string }>(sql, params as never)
-
-    // Batch fetch full node states
-    const nodes: NodeState[] = []
-    for (const row of rows) {
-      const node = await this.getNode(row.id)
-      if (node) nodes.push(node)
-    }
-
-    return nodes
+    return this.listNodesOptimized(options)
   }
 
   /**
@@ -372,7 +581,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   async listNodesOptimized(options?: ListNodesOptions): Promise<NodeState[]> {
     // Build the base query with JOIN
     let whereClause = '1=1'
-    const params: unknown[] = []
+    const params: SQLValue[] = []
 
     if (options?.schemaId) {
       whereClause += ` AND n.schema_id = ?`
@@ -383,98 +592,50 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       whereClause += ` AND n.deleted_at IS NULL`
     }
 
+    const orderBy = this.buildSqlOrderBy(options?.orderBy)
+    const outerOrderBy = orderBy.replaceAll('n.', 'ln.')
+
     // Use CTE for pagination, then join properties
     let sql: string
-    if (options?.limit) {
+    if (options?.limit !== undefined || options?.offset !== undefined) {
       sql = `
         WITH limited_nodes AS (
           SELECT id, schema_id, created_at, updated_at, created_by, deleted_at
           FROM nodes n
           WHERE ${whereClause}
-          ORDER BY updated_at DESC
+          ORDER BY ${orderBy}
           LIMIT ? OFFSET ?
         )
         SELECT 
           ln.id, ln.schema_id, ln.created_at, ln.updated_at, ln.created_by, ln.deleted_at,
-          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at
+          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at,
+          NULL as ordinal
         FROM limited_nodes ln
         LEFT JOIN node_properties p ON ln.id = p.node_id
-        ORDER BY ln.updated_at DESC, ln.id, p.property_key
+        ORDER BY ${outerOrderBy}, ln.id, p.property_key
       `
-      params.push(options.limit)
+      params.push(options.limit ?? -1)
       params.push(options.offset ?? 0)
     } else {
       sql = `
         SELECT 
           n.id, n.schema_id, n.created_at, n.updated_at, n.created_by, n.deleted_at,
-          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at
+          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at,
+          NULL as ordinal
         FROM nodes n
         LEFT JOIN node_properties p ON n.id = p.node_id
         WHERE ${whereClause}
-        ORDER BY n.updated_at DESC, n.id, p.property_key
+        ORDER BY ${orderBy}, n.id, p.property_key
       `
     }
 
-    interface JoinedRow {
-      id: string
-      schema_id: string
-      created_at: number
-      updated_at: number
-      created_by: string
-      deleted_at: number | null
-      property_key: string | null
-      value: Uint8Array | null
-      lamport_time: number | null
-      updated_by: string | null
-      prop_updated_at: number | null
-      [key: string]: SQLValue
-    }
-
-    const rows = await this.db.query<JoinedRow>(sql, params as never)
-
-    // Group rows by node ID
-    const nodeMap = new Map<string, NodeState>()
-
-    for (const row of rows) {
-      let node = nodeMap.get(row.id)
-
-      if (!node) {
-        node = {
-          id: row.id,
-          schemaId: row.schema_id as SchemaIRI,
-          properties: {},
-          timestamps: {},
-          deleted: row.deleted_at !== null,
-          deletedAt: row.deleted_at
-            ? { lamport: { time: 0, author: '' as DID }, wallTime: row.deleted_at }
-            : undefined,
-          createdAt: row.created_at,
-          createdBy: row.created_by as DID,
-          updatedAt: row.updated_at,
-          updatedBy: row.created_by as DID
-        }
-        nodeMap.set(row.id, node)
-      }
-
-      if (row.property_key && row.value !== null) {
-        node.properties[row.property_key] = this.deserializeValue(row.value)
-        node.timestamps[row.property_key] = {
-          lamport: { time: row.lamport_time ?? 0, author: (row.updated_by ?? '') as DID },
-          wallTime: row.prop_updated_at ?? 0
-        }
-        // Track the most recent updater
-        if ((row.prop_updated_at ?? 0) >= node.updatedAt) {
-          node.updatedBy = (row.updated_by ?? node.createdBy) as DID
-        }
-      }
-    }
-
-    return Array.from(nodeMap.values())
+    const rows = await this.db.query<JoinedNodePropertyRow>(sql, params)
+    return this.hydrateJoinedRows(rows)
   }
 
   async countNodes(options?: CountNodesOptions): Promise<number> {
     let sql = `SELECT COUNT(*) as count FROM nodes WHERE 1=1`
-    const params: unknown[] = []
+    const params: SQLValue[] = []
 
     if (options?.schemaId) {
       sql += ` AND schema_id = ?`
@@ -485,8 +646,98 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       sql += ` AND deleted_at IS NULL`
     }
 
-    const row = await this.db.queryOne<{ count: number }>(sql, params as never)
+    const row = await this.db.queryOne<{ count: number }>(sql, params)
     return row?.count ?? 0
+  }
+
+  async queryNodes(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
+    const start = Date.now()
+    if (descriptor.materializedView) {
+      return this.queryMaterializedView(descriptor, start)
+    }
+
+    const spatialPlan = await this.prepareSpatialQueryPlan(descriptor)
+    const fullTextSearchPlan = await this.prepareFullTextSearchQueryPlan(descriptor)
+    const compiled = this.compileNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
+
+    if (!compiled) {
+      const storageCapabilities = await this.getStorageCapabilities()
+      const candidates = await this.listNodesOptimized({
+        schemaId: descriptor.schemaId,
+        includeDeleted: descriptor.includeDeleted
+      })
+      const nodes = applyNodeQueryDescriptor(candidates, descriptor)
+      const result: NodeQueryResult = {
+        nodes,
+        plan: {
+          strategy: 'list-fallback',
+          candidateNodeCount: candidates.length,
+          hydratedNodeCount: candidates.length,
+          returnedNodeCount: nodes.length,
+          durationMs: Date.now() - start,
+          postFilterReason: 'unsupported-descriptor',
+          storageCapabilities
+        }
+      }
+      const telemetry = await this.recordQueryTelemetry(descriptor, result, [])
+      result.plan.descriptorHash = telemetry.descriptorHash
+      if (telemetry.adaptiveIndexNames.length > 0) {
+        result.plan.adaptiveIndexNames = telemetry.adaptiveIndexNames
+      }
+      this.debugQueryPlan(descriptor, result)
+
+      return result
+    }
+
+    const [queryDiagnostics, idQuery] = await Promise.all([
+      this.collectCompiledQueryDiagnostics(compiled),
+      timeQuery<{ id: string }>(this.db, compiled.sql, compiled.params)
+    ])
+    const idRows = idQuery.result
+    const ids = idRows.map((row) => row.id)
+    const candidates = await this.hydrateNodesByIds(ids)
+    const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
+    const candidateAccelerators = [
+      ...(compiled.fullTextSearchQuery ? ['fts'] : []),
+      ...(compiled.spatialIndexKey ? ['rtree'] : [])
+    ]
+    const result: NodeQueryResult = {
+      nodes,
+      plan: {
+        strategy: 'storage-query',
+        candidateNodeCount: ids.length,
+        hydratedNodeCount: candidates.length,
+        returnedNodeCount: nodes.length,
+        durationMs: Date.now() - start,
+        sql: compiled.sql,
+        params: compiled.params,
+        postFilterReason: compiled.postFilterReason,
+        candidateQueryDurationMs: idQuery.durationMs,
+        ...(candidateAccelerators.length > 0
+          ? {
+              candidateAccelerators
+            }
+          : {}),
+        ...(compiled.spatialIndexKey ? { spatialIndexKey: compiled.spatialIndexKey } : {}),
+        ...(compiled.fullTextSearchQuery
+          ? { fullTextSearchQuery: compiled.fullTextSearchQuery }
+          : {}),
+        ...queryDiagnostics
+      }
+    }
+    result.plan.parityCheck = await this.auditQueryParity(descriptor, result)
+    const telemetry = await this.recordQueryTelemetry(
+      descriptor,
+      result,
+      compiled.adaptiveIndexHints
+    )
+    result.plan.descriptorHash = telemetry.descriptorHash
+    if (telemetry.adaptiveIndexNames.length > 0) {
+      result.plan.adaptiveIndexNames = telemetry.adaptiveIndexNames
+    }
+    this.debugQueryPlan(descriptor, result)
+
+    return result
   }
 
   // ─── Sync State ───────────────────────────────────────────────────────────
@@ -605,6 +856,34 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   /**
+   * Rebuild the scalar sidecar from materialized node_properties.
+   */
+  async rebuildScalarIndex(): Promise<{ nodesScanned: number; scalarRowsWritten: number }> {
+    await this.db.beginTransaction()
+    try {
+      await this.db.run('DELETE FROM node_property_scalars')
+      const rows = await this.db.query<{ id: string }>('SELECT id FROM nodes ORDER BY id ASC')
+      let scalarRowsWritten = 0
+
+      for (const row of rows) {
+        const node = await this.getNode(row.id)
+        if (!node) continue
+
+        scalarRowsWritten += await this.syncScalarRowsForNode(node, true)
+      }
+
+      await this.db.commit()
+      return {
+        nodesScanned: rows.length,
+        scalarRowsWritten
+      }
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
+  }
+
+  /**
    * Import multiple changes in a single transaction.
    */
   async importChanges(changes: NodeChange[]): Promise<void> {
@@ -632,6 +911,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       await this.db.run('DELETE FROM yjs_updates')
       await this.db.run('DELETE FROM yjs_state')
       await this.db.run('DELETE FROM changes')
+      await this.clearSpatialRows()
+      await this.clearMaterializedViewRows()
+      await this.db.run('DELETE FROM node_property_scalars')
       await this.db.run('DELETE FROM node_properties')
       await this.db.run('DELETE FROM nodes')
       await this.db.run("DELETE FROM sync_state WHERE key = 'lastLamportTime'")
@@ -643,6 +925,1627 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────────
+
+  private hydrateJoinedRows(rows: JoinedNodePropertyRow[]): NodeState[] {
+    const nodeMap = new Map<string, NodeState>()
+
+    for (const row of rows) {
+      let node = nodeMap.get(row.id)
+
+      if (!node) {
+        node = {
+          id: row.id,
+          schemaId: row.schema_id as SchemaIRI,
+          properties: {},
+          timestamps: {},
+          deleted: row.deleted_at !== null,
+          deletedAt: row.deleted_at
+            ? { lamport: { time: 0, author: '' as DID }, wallTime: row.deleted_at }
+            : undefined,
+          createdAt: row.created_at,
+          createdBy: row.created_by as DID,
+          updatedAt: row.updated_at,
+          updatedBy: row.created_by as DID
+        }
+        nodeMap.set(row.id, node)
+      }
+
+      if (row.property_key && row.value !== null) {
+        node.properties[row.property_key] = this.deserializeValue(row.value)
+        node.timestamps[row.property_key] = {
+          lamport: { time: row.lamport_time ?? 0, author: (row.updated_by ?? '') as DID },
+          wallTime: row.prop_updated_at ?? 0
+        }
+        if ((row.prop_updated_at ?? 0) >= node.updatedAt) {
+          node.updatedBy = (row.updated_by ?? node.createdBy) as DID
+        }
+      }
+    }
+
+    return Array.from(nodeMap.values())
+  }
+
+  private async hydrateNodesByIds(ids: string[]): Promise<NodeState[]> {
+    if (ids.length === 0) {
+      return []
+    }
+
+    const values = ids.map(() => '(?, ?)').join(', ')
+    const params: SQLValue[] = ids.flatMap((id, ordinal) => [id, ordinal])
+    const sql = `
+      WITH wanted(id, ordinal) AS (
+        VALUES ${values}
+      )
+      SELECT
+        n.id,
+        n.schema_id,
+        n.created_at,
+        n.updated_at,
+        n.created_by,
+        n.deleted_at,
+        p.property_key,
+        p.value,
+        p.lamport_time,
+        p.updated_by,
+        p.updated_at AS prop_updated_at,
+        wanted.ordinal
+      FROM wanted
+      JOIN nodes n ON n.id = wanted.id
+      LEFT JOIN node_properties p ON p.node_id = n.id
+      ORDER BY wanted.ordinal ASC, p.property_key ASC
+    `
+
+    const rows = await this.db.query<JoinedNodePropertyRow>(sql, params)
+    return this.hydrateJoinedRows(rows)
+  }
+
+  private async queryMaterializedView(
+    descriptor: NodeQueryDescriptor,
+    start: number
+  ): Promise<NodeQueryResult> {
+    const materializedView = descriptor.materializedView
+    if (!materializedView) {
+      throw new Error('Materialized view query requires descriptor.materializedView')
+    }
+
+    const baseDescriptor = withoutNodeQueryMaterializedView(withoutNodeQueryPagination(descriptor))
+    const descriptorJson = this.stringifyStable(baseDescriptor)
+    const descriptorHash = this.hashScalarValue(descriptorJson)
+    const cached = await this.getMaterializedView(materializedView.viewId)
+    const cacheExpired =
+      materializedView.maxAgeMs !== undefined &&
+      cached !== null &&
+      Date.now() - cached.generated_at > materializedView.maxAgeMs
+    const canUseCache =
+      cached !== null &&
+      cached.descriptor_hash === descriptorHash &&
+      cached.invalidated_at === null &&
+      !cacheExpired &&
+      !materializedView.forceRefresh
+    const readPlan = canUseCache
+      ? {
+          viewId: materializedView.viewId,
+          descriptorHash,
+          generatedAt: cached.generated_at,
+          invalidatedAt: cached.invalidated_at,
+          rowCount: cached.row_count,
+          cacheHit: true
+        }
+      : await this.refreshMaterializedView({
+          viewId: materializedView.viewId,
+          descriptor: baseDescriptor,
+          descriptorHash,
+          descriptorJson
+        })
+
+    const result = await this.readMaterializedViewPage(descriptor, readPlan, start)
+    result.plan.parityCheck = await this.auditQueryParity(descriptor, result)
+
+    return result
+  }
+
+  private async getMaterializedView(viewId: string): Promise<MaterializedQueryRow | null> {
+    return this.db.queryOne<MaterializedQueryRow>(
+      `SELECT
+         view_id,
+         descriptor_hash,
+         schema_id,
+         descriptor_json,
+         generated_at,
+         invalidated_at,
+         row_count
+       FROM node_query_materializations
+       WHERE view_id = ?`,
+      [viewId]
+    )
+  }
+
+  private async refreshMaterializedView(input: {
+    viewId: string
+    descriptor: NodeQueryDescriptor
+    descriptorHash: string
+    descriptorJson: string
+  }): Promise<MaterializedQueryReadPlan> {
+    const refreshed = await this.queryNodes(input.descriptor)
+    const generatedAt = Date.now()
+
+    await this.db.beginTransaction()
+    try {
+      await this.db.run('DELETE FROM node_query_materialized_ids WHERE view_id = ?', [input.viewId])
+      await this.db.run(
+        `INSERT INTO node_query_materializations
+          (
+            view_id,
+            descriptor_hash,
+            schema_id,
+            descriptor_json,
+            generated_at,
+            invalidated_at,
+            row_count
+          )
+         VALUES (?, ?, ?, ?, ?, NULL, ?)
+         ON CONFLICT(view_id) DO UPDATE SET
+           descriptor_hash = excluded.descriptor_hash,
+           schema_id = excluded.schema_id,
+           descriptor_json = excluded.descriptor_json,
+           generated_at = excluded.generated_at,
+           invalidated_at = NULL,
+           row_count = excluded.row_count`,
+        [
+          input.viewId,
+          input.descriptorHash,
+          input.descriptor.schemaId,
+          input.descriptorJson,
+          generatedAt,
+          refreshed.nodes.length
+        ]
+      )
+
+      for (const [ordinal, node] of refreshed.nodes.entries()) {
+        await this.db.run(
+          `INSERT INTO node_query_materialized_ids (view_id, ordinal, node_id)
+           VALUES (?, ?, ?)`,
+          [input.viewId, ordinal, node.id]
+        )
+      }
+
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
+
+    return {
+      viewId: input.viewId,
+      descriptorHash: input.descriptorHash,
+      generatedAt,
+      invalidatedAt: null,
+      rowCount: refreshed.nodes.length,
+      cacheHit: false
+    }
+  }
+
+  private async readMaterializedViewPage(
+    descriptor: NodeQueryDescriptor,
+    readPlan: MaterializedQueryReadPlan,
+    start: number
+  ): Promise<NodeQueryResult> {
+    const sql = `
+      SELECT node_id
+      FROM node_query_materialized_ids
+      WHERE view_id = ?
+      ORDER BY ordinal ASC
+      LIMIT ? OFFSET ?
+    `
+    const limit = descriptor.limit ?? -1
+    const offset = descriptor.offset ?? 0
+    const idRows = await this.db.query<{ node_id: string }>(sql, [readPlan.viewId, limit, offset])
+    const ids = idRows.map((row) => row.node_id)
+    const nodes = await this.hydrateNodesByIds(ids)
+
+    return {
+      nodes,
+      plan: {
+        strategy: 'storage-query',
+        candidateNodeCount: readPlan.rowCount,
+        hydratedNodeCount: nodes.length,
+        returnedNodeCount: nodes.length,
+        durationMs: Date.now() - start,
+        sql,
+        params: [readPlan.viewId, limit, offset],
+        postFilterReason: readPlan.cacheHit
+          ? 'materialized-view-cache-hit'
+          : 'materialized-view-refreshed',
+        descriptorHash: readPlan.descriptorHash,
+        materializedViewId: readPlan.viewId,
+        materializedCacheHit: readPlan.cacheHit,
+        materializedGeneratedAt: readPlan.generatedAt,
+        ...(readPlan.invalidatedAt !== null
+          ? { materializedInvalidatedAt: readPlan.invalidatedAt }
+          : {}),
+        materializedRowCount: readPlan.rowCount
+      }
+    }
+  }
+
+  private async invalidateMaterializedViewsForSchema(schemaId: SchemaIRI): Promise<void> {
+    await this.db.run(
+      `UPDATE node_query_materializations
+       SET invalidated_at = ?
+       WHERE schema_id = ? AND invalidated_at IS NULL`,
+      [Date.now(), schemaId]
+    )
+  }
+
+  private async clearMaterializedViewRows(): Promise<void> {
+    await this.db.run('DELETE FROM node_query_materialized_ids')
+    await this.db.run('DELETE FROM node_query_materializations')
+  }
+
+  private async deleteRemovedProperties(node: NodeState): Promise<void> {
+    const keys = Object.keys(node.properties)
+
+    if (keys.length === 0) {
+      await this.db.run('DELETE FROM node_properties WHERE node_id = ?', [node.id])
+      return
+    }
+
+    const placeholders = keys.map(() => '?').join(', ')
+    await this.db.run(
+      `DELETE FROM node_properties WHERE node_id = ? AND property_key NOT IN (${placeholders})`,
+      [node.id, ...keys]
+    )
+  }
+
+  private async syncScalarRowsForNode(node: NodeState, indexProperties: boolean): Promise<number> {
+    await this.db.run('DELETE FROM node_property_scalars WHERE node_id = ?', [node.id])
+
+    if (!indexProperties) {
+      return 0
+    }
+
+    let rowsWritten = 0
+    for (const [key, value] of Object.entries(node.properties)) {
+      const timestamp = node.timestamps[key]
+      const scalar = this.toScalarIndexValue(value)
+      if (!timestamp || !scalar) continue
+
+      await this.db.run(
+        `INSERT INTO node_property_scalars
+          (
+            node_id,
+            schema_id,
+            property_key,
+            value_type,
+            value_text,
+            value_number,
+            value_boolean,
+            value_hash,
+            updated_at,
+            lamport_time
+          )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          node.id,
+          node.schemaId,
+          key,
+          scalar.valueType,
+          scalar.valueText,
+          scalar.valueNumber,
+          scalar.valueBoolean,
+          scalar.valueHash,
+          timestamp.wallTime,
+          timestamp.lamport.time
+        ]
+      )
+      rowsWritten += 1
+    }
+
+    return rowsWritten
+  }
+
+  private async prepareFullTextSearchQueryPlan(
+    descriptor: NodeQueryDescriptor
+  ): Promise<FullTextSearchQueryPlan | null> {
+    if (!descriptor.search) {
+      return null
+    }
+
+    const tokens = getNodeQuerySearchTokens(descriptor.search)
+    if (tokens.length === 0) {
+      return null
+    }
+
+    const capabilities = await this.getStorageCapabilities()
+    if (!capabilities.fullTextSearch || !(await this.hasFullTextSearchTable())) {
+      return null
+    }
+
+    return {
+      matchExpression: tokens.map((token) => `${token}*`).join(' AND ')
+    }
+  }
+
+  private async hasFullTextSearchTable(): Promise<boolean> {
+    if (this.fullTextSearchTablesState === 'ready') {
+      return true
+    }
+
+    if (this.fullTextSearchTablesState === 'absent') {
+      return false
+    }
+
+    const table = await this.db.queryOne<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'nodes_fts'"
+    )
+
+    this.fullTextSearchTablesState = table ? 'ready' : 'absent'
+    return table !== null
+  }
+
+  private async prepareSpatialQueryPlan(
+    descriptor: NodeQueryDescriptor
+  ): Promise<SpatialQueryPlan | null> {
+    if (!descriptor.spatial) {
+      return null
+    }
+
+    const capabilities = await this.getStorageCapabilities()
+    if (!capabilities.rtree) {
+      return null
+    }
+
+    await this.ensureSpatialTables()
+    const spatialKey = this.buildSpatialIndexKey(descriptor.schemaId, descriptor.spatial)
+    const existing = await this.db.queryOne<SpatialIndexConfigRow>(
+      `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
+       FROM node_spatial_indexes
+       WHERE spatial_key = ?`,
+      [spatialKey]
+    )
+
+    if (!existing) {
+      await this.createSpatialIndexConfig(descriptor.schemaId, descriptor.spatial, spatialKey)
+    }
+
+    return {
+      spatialKey,
+      bounds: this.getSpatialSearchBounds(descriptor.spatial)
+    }
+  }
+
+  private async ensureSpatialTables(): Promise<void> {
+    const capabilities = await this.getStorageCapabilities()
+    if (!capabilities.rtree) {
+      this.spatialTablesState = 'absent'
+      return
+    }
+
+    await this.db.exec(`
+CREATE TABLE IF NOT EXISTS node_spatial_indexes (
+  spatial_key TEXT PRIMARY KEY,
+  schema_id TEXT NOT NULL,
+  x_key TEXT NOT NULL,
+  y_key TEXT NOT NULL,
+  width_key TEXT,
+  height_key TEXT,
+  created_at INTEGER NOT NULL,
+  last_built_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS node_spatial_ids (
+  spatial_id INTEGER PRIMARY KEY,
+  spatial_key TEXT NOT NULL,
+  node_id TEXT NOT NULL,
+  schema_id TEXT NOT NULL,
+  UNIQUE(spatial_key, node_id),
+  FOREIGN KEY (spatial_key) REFERENCES node_spatial_indexes(spatial_key) ON DELETE CASCADE,
+  FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS node_spatial_rtree USING rtree(
+  spatial_id,
+  min_x,
+  max_x,
+  min_y,
+  max_y
+);
+
+CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
+  ON node_spatial_ids(schema_id, spatial_key, node_id);
+`)
+    this.spatialTablesState = 'ready'
+  }
+
+  private async hasSpatialTables(): Promise<boolean> {
+    if (this.spatialTablesState === 'ready') {
+      return true
+    }
+
+    if (this.spatialTablesState === 'absent') {
+      return false
+    }
+
+    const table = await this.db.queryOne<{ count: number }>(
+      `SELECT COUNT(*) as count
+       FROM sqlite_master
+       WHERE type IN ('table', 'virtual table')
+         AND name IN ('node_spatial_ids', 'node_spatial_rtree')`
+    )
+    const ready = Number(table?.count ?? 0) === 2
+    this.spatialTablesState = ready ? 'ready' : 'absent'
+
+    return ready
+  }
+
+  private async createSpatialIndexConfig(
+    schemaId: SchemaIRI,
+    spatial: NodeQuerySpatialFilter,
+    spatialKey: string
+  ): Promise<void> {
+    const fields = this.getSpatialFieldConfig(spatial)
+    const now = Date.now()
+
+    await this.db.beginTransaction()
+    try {
+      await this.db.run(
+        `INSERT INTO node_spatial_indexes
+          (spatial_key, schema_id, x_key, y_key, width_key, height_key, created_at, last_built_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          spatialKey,
+          schemaId,
+          fields.xKey,
+          fields.yKey,
+          fields.widthKey,
+          fields.heightKey,
+          now,
+          now
+        ]
+      )
+
+      const nodes = await this.listNodesOptimized({ schemaId, includeDeleted: true })
+      const config: SpatialIndexConfigRow = {
+        spatial_key: spatialKey,
+        schema_id: schemaId,
+        x_key: fields.xKey,
+        y_key: fields.yKey,
+        width_key: fields.widthKey,
+        height_key: fields.heightKey
+      }
+
+      for (const node of nodes) {
+        await this.replaceSpatialRowForConfig(node, config, true)
+      }
+
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
+  }
+
+  private async syncSpatialRowsForNode(node: NodeState, indexProperties: boolean): Promise<void> {
+    if (!(await this.hasSpatialTables())) {
+      return
+    }
+
+    const configs = await this.db.query<SpatialIndexConfigRow>(
+      `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
+       FROM node_spatial_indexes
+       WHERE schema_id = ?`,
+      [node.schemaId]
+    )
+
+    for (const config of configs) {
+      await this.replaceSpatialRowForConfig(node, config, indexProperties)
+    }
+  }
+
+  private async replaceSpatialRowForConfig(
+    node: NodeState,
+    config: SpatialIndexConfigRow,
+    indexProperties: boolean
+  ): Promise<void> {
+    await this.deleteSpatialRow(config.spatial_key, node.id)
+
+    if (!indexProperties) {
+      return
+    }
+
+    const bounds = this.getNodeSpatialBounds(node, config)
+    if (!bounds) {
+      return
+    }
+
+    const result = await this.db.run(
+      `INSERT INTO node_spatial_ids (spatial_key, node_id, schema_id)
+       VALUES (?, ?, ?)`,
+      [config.spatial_key, node.id, node.schemaId]
+    )
+    const spatialId = Number(result.lastInsertRowid)
+    await this.db.run(
+      `INSERT INTO node_spatial_rtree (spatial_id, min_x, max_x, min_y, max_y)
+       VALUES (?, ?, ?, ?, ?)`,
+      [spatialId, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY]
+    )
+  }
+
+  private async deleteSpatialRowsForNode(nodeId: NodeId): Promise<void> {
+    if (!(await this.hasSpatialTables())) {
+      return
+    }
+
+    const rows = await this.db.query<{ spatial_key: string }>(
+      `SELECT spatial_key
+       FROM node_spatial_ids
+       WHERE node_id = ?`,
+      [nodeId]
+    )
+
+    for (const row of rows) {
+      await this.deleteSpatialRow(row.spatial_key, nodeId)
+    }
+  }
+
+  private async deleteSpatialRow(spatialKey: string, nodeId: NodeId): Promise<void> {
+    const existing = await this.db.queryOne<{ spatial_id: number }>(
+      `SELECT spatial_id
+       FROM node_spatial_ids
+       WHERE spatial_key = ? AND node_id = ?`,
+      [spatialKey, nodeId]
+    )
+
+    if (!existing) {
+      return
+    }
+
+    await this.db.run('DELETE FROM node_spatial_rtree WHERE spatial_id = ?', [existing.spatial_id])
+    await this.db.run('DELETE FROM node_spatial_ids WHERE spatial_id = ?', [existing.spatial_id])
+  }
+
+  private async clearSpatialRows(): Promise<void> {
+    if (!(await this.hasSpatialTables())) {
+      return
+    }
+
+    await this.db.run('DELETE FROM node_spatial_rtree')
+    await this.db.run('DELETE FROM node_spatial_ids')
+    await this.db.run('DELETE FROM node_spatial_indexes')
+  }
+
+  private buildSpatialIndexKey(schemaId: SchemaIRI, spatial: NodeQuerySpatialFilter): string {
+    const fields = this.getSpatialFieldConfig(spatial)
+    return this.hashScalarValue(
+      this.stringifyStable({
+        schemaId,
+        x: fields.xKey,
+        y: fields.yKey,
+        width: fields.widthKey,
+        height: fields.heightKey
+      })
+    )
+  }
+
+  private getSpatialFieldConfig(spatial: NodeQuerySpatialFilter): {
+    xKey: string
+    yKey: string
+    widthKey: string | null
+    heightKey: string | null
+  } {
+    return {
+      xKey: spatial.fields.x,
+      yKey: spatial.fields.y,
+      widthKey: spatial.kind === 'window' ? (spatial.fields.width ?? null) : null,
+      heightKey: spatial.kind === 'window' ? (spatial.fields.height ?? null) : null
+    }
+  }
+
+  private getSpatialSearchBounds(spatial: NodeQuerySpatialFilter): SpatialBoundingBox {
+    if (spatial.kind === 'radius') {
+      const radius = Math.abs(spatial.radius)
+      return {
+        minX: spatial.center.x - radius,
+        maxX: spatial.center.x + radius,
+        minY: spatial.center.y - radius,
+        maxY: spatial.center.y + radius
+      }
+    }
+
+    const overscan = spatial.overscan ?? 0
+    const left = spatial.rect.x - overscan
+    const right = spatial.rect.x + spatial.rect.width + overscan
+    const top = spatial.rect.y - overscan
+    const bottom = spatial.rect.y + spatial.rect.height + overscan
+
+    return {
+      minX: Math.min(left, right),
+      maxX: Math.max(left, right),
+      minY: Math.min(top, bottom),
+      maxY: Math.max(top, bottom)
+    }
+  }
+
+  private getNodeSpatialBounds(
+    node: NodeState,
+    config: SpatialIndexConfigRow
+  ): SpatialBoundingBox | null {
+    const x = this.getFiniteNumberProperty(node, config.x_key)
+    const y = this.getFiniteNumberProperty(node, config.y_key)
+
+    if (x === null || y === null) {
+      return null
+    }
+
+    const width = this.getFiniteNumberProperty(node, config.width_key) ?? 0
+    const height = this.getFiniteNumberProperty(node, config.height_key) ?? 0
+
+    return {
+      minX: Math.min(x, x + width),
+      maxX: Math.max(x, x + width),
+      minY: Math.min(y, y + height),
+      maxY: Math.max(y, y + height)
+    }
+  }
+
+  private getFiniteNumberProperty(node: NodeState, key: string | null): number | null {
+    if (!key) {
+      return null
+    }
+
+    const value = node.properties[key]
+    return typeof value === 'number' && Number.isFinite(value) ? value : null
+  }
+
+  private toScalarIndexValue(value: unknown): ScalarIndexValue | null {
+    if (value === null) {
+      return {
+        valueType: 'null',
+        valueText: null,
+        valueNumber: null,
+        valueBoolean: null,
+        valueHash: 'null'
+      }
+    }
+
+    if (typeof value === 'string') {
+      return {
+        valueType: 'text',
+        valueText: value,
+        valueNumber: null,
+        valueBoolean: null,
+        valueHash: this.hashScalarValue(value)
+      }
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return {
+        valueType: 'number',
+        valueText: null,
+        valueNumber: value,
+        valueBoolean: null,
+        valueHash: this.hashScalarValue(String(value))
+      }
+    }
+
+    if (typeof value === 'boolean') {
+      return {
+        valueType: 'boolean',
+        valueText: null,
+        valueNumber: null,
+        valueBoolean: value ? 1 : 0,
+        valueHash: value ? 'true' : 'false'
+      }
+    }
+
+    return null
+  }
+
+  private hashScalarValue(value: string): string {
+    let hash = 2166136261
+    for (let i = 0; i < value.length; i++) {
+      hash ^= value.charCodeAt(i)
+      hash = Math.imul(hash, 16777619)
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0')
+  }
+
+  private stringifyStable(value: unknown): string {
+    if (value === undefined) {
+      return 'null'
+    }
+
+    if (value === null || typeof value !== 'object') {
+      return JSON.stringify(value)
+    }
+
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => this.stringifyStable(item)).join(',')}]`
+    }
+
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+
+    return `{${entries
+      .map(([key, entryValue]) => `${JSON.stringify(key)}:${this.stringifyStable(entryValue)}`)
+      .join(',')}}`
+  }
+
+  private quoteSqlLiteral(value: string): string {
+    return `'${value.replaceAll("'", "''")}'`
+  }
+
+  private quoteSqlIdentifier(identifier: string): string {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
+      throw new Error(`Unsafe SQLite identifier: ${identifier}`)
+    }
+
+    return `"${identifier}"`
+  }
+
+  private async recordQueryTelemetry(
+    descriptor: NodeQueryDescriptor,
+    result: NodeQueryResult,
+    adaptiveIndexHints: AdaptiveIndexHint[]
+  ): Promise<QueryTelemetry> {
+    const descriptorJson = this.stringifyStable(descriptor)
+    const descriptorHash = this.hashScalarValue(descriptorJson)
+    const now = Date.now()
+
+    await this.db.run(
+      `INSERT INTO query_descriptor_stats
+        (
+          descriptor_hash,
+          schema_id,
+          descriptor_json,
+          hits,
+          total_duration_ms,
+          avg_duration_ms,
+          avg_candidates,
+          last_seen_at
+        )
+       VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+       ON CONFLICT(descriptor_hash) DO UPDATE SET
+         schema_id = excluded.schema_id,
+         descriptor_json = excluded.descriptor_json,
+         hits = query_descriptor_stats.hits + 1,
+         total_duration_ms =
+           query_descriptor_stats.total_duration_ms + excluded.total_duration_ms,
+         avg_duration_ms =
+           (query_descriptor_stats.total_duration_ms + excluded.total_duration_ms) /
+           (query_descriptor_stats.hits + 1),
+         avg_candidates =
+           ((query_descriptor_stats.avg_candidates * query_descriptor_stats.hits) +
+            excluded.avg_candidates) /
+           (query_descriptor_stats.hits + 1),
+         last_seen_at = excluded.last_seen_at`,
+      [
+        descriptorHash,
+        descriptor.schemaId,
+        descriptorJson,
+        result.plan.durationMs,
+        result.plan.durationMs,
+        result.plan.candidateNodeCount,
+        now
+      ]
+    )
+
+    if (!this.adaptiveIndexing.enabled || adaptiveIndexHints.length === 0) {
+      return { descriptorHash, adaptiveIndexNames: [] }
+    }
+
+    const stats = await this.db.queryOne<QueryDescriptorStatsRow>(
+      `SELECT hits, avg_duration_ms, avg_candidates
+       FROM query_descriptor_stats
+       WHERE descriptor_hash = ?`,
+      [descriptorHash]
+    )
+
+    if (!stats || !this.shouldCreateAdaptiveIndexes(stats)) {
+      return { descriptorHash, adaptiveIndexNames: [] }
+    }
+
+    const adaptiveIndexNames = await this.ensureAdaptiveIndexes({
+      descriptorHash,
+      schemaId: descriptor.schemaId,
+      hints: adaptiveIndexHints,
+      now
+    })
+
+    return { descriptorHash, adaptiveIndexNames }
+  }
+
+  private async collectCompiledQueryDiagnostics(
+    compiled: CompiledNodeQuery
+  ): Promise<CompiledQueryDiagnostics> {
+    try {
+      const [analysis, indexes, storageCapabilities] = await Promise.all([
+        analyzeQuery(this.db, compiled.sql, compiled.params),
+        getIndexInfo(this.db),
+        this.getStorageCapabilities()
+      ])
+      const adaptiveIndexCount = indexes.filter((index) =>
+        index.name.startsWith('idx_auto_prop_')
+      ).length
+
+      return {
+        usedIndexNames: analysis.usedIndexes,
+        fullTableScan: analysis.fullTableScan,
+        queryPlanDetails: analysis.plan.map((step) => step.detail),
+        availableIndexCount: indexes.length,
+        adaptiveIndexCount,
+        storageCapabilities
+      }
+    } catch (err) {
+      return {
+        diagnosticsError: err instanceof Error ? err.message : String(err)
+      }
+    }
+  }
+
+  private getStorageCapabilities(): Promise<NodeQueryStorageCapabilitiesMetadata> {
+    if (this.storageCapabilitiesPromise) {
+      return this.storageCapabilitiesPromise
+    }
+
+    const storageCapabilitiesPromise = detectSQLiteCapabilities(this.db).then((capabilities) => ({
+      fullTextSearch: capabilities.fts5,
+      rtree: capabilities.rtree
+    }))
+    this.storageCapabilitiesPromise = storageCapabilitiesPromise
+
+    return storageCapabilitiesPromise
+  }
+
+  private debugQueryPlan(descriptor: NodeQueryDescriptor, result: NodeQueryResult): void {
+    if (!this.isQueryDebugEnabled()) {
+      return
+    }
+
+    console.debug('[SQLiteNodeStorageAdapter] query plan', {
+      descriptor,
+      plan: result.plan
+    })
+  }
+
+  private isQueryDebugEnabled(): boolean {
+    try {
+      const storage = (
+        globalThis as {
+          localStorage?: { getItem: (key: string) => string | null }
+        }
+      ).localStorage
+
+      return (
+        storage?.getItem('xnet:query:debug') === 'true' ||
+        storage?.getItem('xnet:sync:debug') === 'true'
+      )
+    } catch {
+      return false
+    }
+  }
+
+  private async auditQueryParity(
+    descriptor: NodeQueryDescriptor,
+    result: NodeQueryResult
+  ): Promise<NodeQueryParityCheckMetadata> {
+    if (!this.queryVerification.enabled) {
+      return { strategy: 'skipped', reason: 'disabled' }
+    }
+
+    const candidateScopeCount = descriptor.nodeId
+      ? 1
+      : await this.countNodes({
+          schemaId: descriptor.schemaId,
+          includeDeleted: descriptor.includeDeleted
+        })
+
+    if (candidateScopeCount > this.queryVerification.maxNodes) {
+      return {
+        strategy: 'skipped',
+        reason: 'scope-too-large',
+        comparedNodeCount: candidateScopeCount
+      }
+    }
+
+    const parityCandidates = descriptor.nodeId
+      ? await this.getNodeParityCandidates(descriptor)
+      : await this.listNodesOptimized({
+          schemaId: descriptor.schemaId,
+          includeDeleted: descriptor.includeDeleted
+        })
+    const expected = applyNodeQueryDescriptor(parityCandidates, descriptor)
+    const parityCheck = this.compareQueryResults(expected, result.nodes, parityCandidates.length)
+
+    if (parityCheck.valid === false && this.queryVerification.logFailures) {
+      console.error('[SQLiteNodeStorageAdapter] Node query parity failure', {
+        descriptor,
+        plan: {
+          strategy: result.plan.strategy,
+          candidateNodeCount: result.plan.candidateNodeCount,
+          hydratedNodeCount: result.plan.hydratedNodeCount,
+          returnedNodeCount: result.plan.returnedNodeCount,
+          postFilterReason: result.plan.postFilterReason,
+          sql: result.plan.sql,
+          params: result.plan.params
+        },
+        parityCheck
+      })
+    }
+
+    return parityCheck
+  }
+
+  private async getNodeParityCandidates(descriptor: NodeQueryDescriptor): Promise<NodeState[]> {
+    if (!descriptor.nodeId) {
+      return []
+    }
+
+    const node = await this.getNode(descriptor.nodeId)
+    if (!node) {
+      return []
+    }
+
+    if (node.schemaId !== descriptor.schemaId) {
+      return []
+    }
+
+    if (!descriptor.includeDeleted && node.deleted) {
+      return []
+    }
+
+    return [node]
+  }
+
+  private compareQueryResults(
+    expected: NodeState[],
+    actual: NodeState[],
+    comparedNodeCount: number
+  ): NodeQueryParityCheckMetadata {
+    const expectedIds = expected.map((node) => node.id)
+    const actualIds = actual.map((node) => node.id)
+    const expectedIdSet = new Set(expectedIds)
+    const actualIdSet = new Set(actualIds)
+    const missingNodeIds = expectedIds.filter((id) => !actualIdSet.has(id))
+    const extraNodeIds = actualIds.filter((id) => !expectedIdSet.has(id))
+    const orderMismatch =
+      missingNodeIds.length === 0 &&
+      extraNodeIds.length === 0 &&
+      (expectedIds.length !== actualIds.length ||
+        expectedIds.some((id, index) => actualIds[index] !== id))
+    const valid = missingNodeIds.length === 0 && extraNodeIds.length === 0 && !orderMismatch
+
+    return {
+      strategy: 'exact',
+      valid,
+      comparedNodeCount,
+      expectedNodeCount: expectedIds.length,
+      ...(missingNodeIds.length > 0 ? { missingNodeIds } : {}),
+      ...(extraNodeIds.length > 0 ? { extraNodeIds } : {}),
+      ...(orderMismatch ? { orderMismatch } : {})
+    }
+  }
+
+  private shouldCreateAdaptiveIndexes(stats: QueryDescriptorStatsRow): boolean {
+    return (
+      stats.hits >= this.adaptiveIndexing.minHits &&
+      stats.avg_duration_ms >= this.adaptiveIndexing.minDurationMs &&
+      stats.avg_candidates >= this.adaptiveIndexing.minCandidates
+    )
+  }
+
+  private async ensureAdaptiveIndexes(input: {
+    descriptorHash: string
+    schemaId: SchemaIRI
+    hints: AdaptiveIndexHint[]
+    now: number
+  }): Promise<string[]> {
+    await this.ensureAdaptiveIndexBudgetColumns()
+
+    const uniqueHints = Array.from(
+      new Map(
+        input.hints.map((hint) => [`${hint.propertyKey}:${hint.scalar.valueType}`, hint])
+      ).values()
+    )
+
+    if (uniqueHints.length === 0) {
+      return []
+    }
+
+    await this.pruneAdaptiveIndexes(input.schemaId, input.now, [])
+
+    const touchedIndexNames: string[] = []
+    let createdIndex = false
+
+    for (const hint of uniqueHints) {
+      const indexName = this.buildAdaptiveIndexName(
+        input.schemaId,
+        hint.propertyKey,
+        hint.scalar.valueType
+      )
+      const estimate = await this.estimateAdaptiveIndexBudget(
+        input.schemaId,
+        hint.propertyKey,
+        hint.scalar.valueType
+      )
+      const existing = await this.db.queryOne<{ index_name: string }>(
+        `SELECT index_name
+         FROM query_index_candidates
+         WHERE index_name = ?`,
+        [indexName]
+      )
+
+      if (existing) {
+        await this.db.run(
+          `UPDATE query_index_candidates
+           SET descriptor_hash = ?,
+               last_used_at = ?,
+               estimated_bytes = ?,
+               estimated_rows = ?
+           WHERE index_name = ?`,
+          [input.descriptorHash, input.now, estimate.estimatedBytes, estimate.rowCount, indexName]
+        )
+        touchedIndexNames.push(indexName)
+        continue
+      }
+
+      const hasBudget = await this.makeAdaptiveIndexBudgetRoom({
+        schemaId: input.schemaId,
+        estimate,
+        protectedIndexNames: touchedIndexNames,
+        now: input.now
+      })
+      if (!hasBudget) {
+        continue
+      }
+
+      const ddl = this.buildAdaptiveIndexDDL(
+        indexName,
+        input.schemaId,
+        hint.propertyKey,
+        hint.scalar.valueType
+      )
+      await this.db.exec(ddl)
+      await this.db.run(
+        `INSERT INTO query_index_candidates
+          (
+            index_name,
+            descriptor_hash,
+            schema_id,
+            property_key,
+            value_type,
+            ddl,
+            created_at,
+            last_used_at,
+            estimated_bytes,
+            estimated_rows
+          )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          indexName,
+          input.descriptorHash,
+          input.schemaId,
+          hint.propertyKey,
+          hint.scalar.valueType,
+          ddl,
+          input.now,
+          input.now,
+          estimate.estimatedBytes,
+          estimate.rowCount
+        ]
+      )
+      touchedIndexNames.push(indexName)
+      createdIndex = true
+    }
+
+    if (createdIndex) {
+      await runAnalyze(this.db, 'node_property_scalars')
+      await this.db.exec('PRAGMA optimize')
+    }
+
+    return touchedIndexNames
+  }
+
+  private async ensureAdaptiveIndexBudgetColumns(): Promise<void> {
+    if (this.adaptiveIndexBudgetColumnsReady) {
+      return
+    }
+
+    const columns = await this.db.query<{ name: string }>(
+      'PRAGMA table_info(query_index_candidates)'
+    )
+    const columnNames = new Set(columns.map((column) => column.name))
+    let changed = false
+
+    if (!columnNames.has('estimated_bytes')) {
+      await this.db.exec(
+        'ALTER TABLE query_index_candidates ADD COLUMN estimated_bytes INTEGER NOT NULL DEFAULT 0'
+      )
+      changed = true
+    }
+
+    if (!columnNames.has('estimated_rows')) {
+      await this.db.exec(
+        'ALTER TABLE query_index_candidates ADD COLUMN estimated_rows INTEGER NOT NULL DEFAULT 0'
+      )
+      changed = true
+    }
+
+    if (changed && (await this.db.getSchemaVersion()) < 4) {
+      await this.db.setSchemaVersion(4)
+    }
+
+    this.adaptiveIndexBudgetColumnsReady = true
+  }
+
+  private async estimateAdaptiveIndexBudget(
+    schemaId: SchemaIRI,
+    propertyKey: string,
+    valueType: ScalarValueType
+  ): Promise<AdaptiveIndexBudgetEstimate> {
+    const valueBytesExpression = this.getAdaptiveIndexValueBytesExpression(valueType)
+    const row = await this.db.queryOne<{
+      row_count: number
+      estimated_bytes: number
+    }>(
+      `SELECT
+         COUNT(*) as row_count,
+         COALESCE(SUM(LENGTH(node_id) + ${valueBytesExpression} + 32), 0) as estimated_bytes
+       FROM node_property_scalars
+       WHERE schema_id = ?
+         AND property_key = ?
+         AND value_type = ?`,
+      [schemaId, propertyKey, valueType]
+    )
+
+    return {
+      rowCount: Number(row?.row_count ?? 0),
+      estimatedBytes: Number(row?.estimated_bytes ?? 0)
+    }
+  }
+
+  private getAdaptiveIndexValueBytesExpression(valueType: ScalarValueType): string {
+    switch (valueType) {
+      case 'text':
+        return 'COALESCE(LENGTH(value_text), 0)'
+      case 'number':
+        return '8'
+      case 'boolean':
+        return '1'
+      case 'null':
+        return '0'
+    }
+  }
+
+  private async makeAdaptiveIndexBudgetRoom(input: {
+    schemaId: SchemaIRI
+    estimate: AdaptiveIndexBudgetEstimate
+    protectedIndexNames: string[]
+    now: number
+  }): Promise<boolean> {
+    await this.pruneAdaptiveIndexes(input.schemaId, input.now, input.protectedIndexNames)
+
+    let droppedIndex = true
+    while (droppedIndex) {
+      const usage = await this.getAdaptiveIndexBudgetUsage(input.schemaId)
+      const withinBudget =
+        usage.count + 1 <= this.adaptiveIndexing.maxIndexesPerSchema &&
+        usage.estimatedBytes + input.estimate.estimatedBytes <=
+          this.adaptiveIndexing.maxEstimatedBytesPerSchema &&
+        usage.indexedRows + input.estimate.rowCount <= this.adaptiveIndexing.maxIndexedRowsPerSchema
+
+      if (withinBudget) {
+        return true
+      }
+
+      droppedIndex = await this.dropLeastUsefulAdaptiveIndex(
+        input.schemaId,
+        input.protectedIndexNames,
+        'over-budget'
+      )
+
+      if (!droppedIndex) {
+        return false
+      }
+    }
+
+    return false
+  }
+
+  private async pruneAdaptiveIndexes(
+    schemaId: SchemaIRI,
+    now: number,
+    protectedIndexNames: string[]
+  ): Promise<void> {
+    if (this.adaptiveIndexing.dropUnusedAfterMs >= 0) {
+      const cutoff = now - this.adaptiveIndexing.dropUnusedAfterMs
+      const protectedFilter = this.buildProtectedIndexFilter(protectedIndexNames)
+      const staleIndexes = await this.db.query<{ index_name: string }>(
+        `SELECT index_name
+         FROM query_index_candidates
+         WHERE schema_id = ?
+           AND last_used_at < ?
+           ${protectedFilter.clause}
+         ORDER BY last_used_at ASC, created_at ASC, index_name ASC`,
+        [schemaId, cutoff, ...protectedFilter.params]
+      )
+
+      for (const row of staleIndexes) {
+        await this.dropAdaptiveIndex(row.index_name, 'unused')
+      }
+    }
+
+    let droppedIndex = true
+    while (droppedIndex) {
+      const usage = await this.getAdaptiveIndexBudgetUsage(schemaId)
+      const withinBudget =
+        usage.count <= this.adaptiveIndexing.maxIndexesPerSchema &&
+        usage.estimatedBytes <= this.adaptiveIndexing.maxEstimatedBytesPerSchema &&
+        usage.indexedRows <= this.adaptiveIndexing.maxIndexedRowsPerSchema
+
+      if (withinBudget) {
+        return
+      }
+
+      droppedIndex = await this.dropLeastUsefulAdaptiveIndex(
+        schemaId,
+        protectedIndexNames,
+        'over-budget'
+      )
+
+      if (!droppedIndex) {
+        return
+      }
+    }
+  }
+
+  private async getAdaptiveIndexBudgetUsage(
+    schemaId: SchemaIRI
+  ): Promise<AdaptiveIndexBudgetUsage> {
+    const row = await this.db.queryOne<{
+      count: number
+      estimated_bytes: number
+      indexed_rows: number
+    }>(
+      `SELECT
+         COUNT(*) as count,
+         COALESCE(SUM(estimated_bytes), 0) as estimated_bytes,
+         COALESCE(SUM(estimated_rows), 0) as indexed_rows
+       FROM query_index_candidates
+       WHERE schema_id = ?`,
+      [schemaId]
+    )
+
+    return {
+      count: Number(row?.count ?? 0),
+      estimatedBytes: Number(row?.estimated_bytes ?? 0),
+      indexedRows: Number(row?.indexed_rows ?? 0)
+    }
+  }
+
+  private async dropLeastUsefulAdaptiveIndex(
+    schemaId: SchemaIRI,
+    protectedIndexNames: string[],
+    reason: 'unused' | 'over-budget'
+  ): Promise<boolean> {
+    const protectedFilter = this.buildProtectedIndexFilter(protectedIndexNames)
+    const row = await this.db.queryOne<{ index_name: string }>(
+      `SELECT index_name
+       FROM query_index_candidates
+       WHERE schema_id = ?
+         ${protectedFilter.clause}
+       ORDER BY last_used_at ASC, created_at ASC, index_name ASC
+       LIMIT 1`,
+      [schemaId, ...protectedFilter.params]
+    )
+
+    if (!row) {
+      return false
+    }
+
+    await this.dropAdaptiveIndex(row.index_name, reason)
+    return true
+  }
+
+  private async dropAdaptiveIndex(
+    indexName: string,
+    reason: 'unused' | 'over-budget'
+  ): Promise<void> {
+    await this.db.exec(`DROP INDEX IF EXISTS ${this.quoteSqlIdentifier(indexName)}`)
+    await this.db.run('DELETE FROM query_index_candidates WHERE index_name = ?', [indexName])
+    this.debugAdaptiveIndex('drop', { indexName, reason })
+  }
+
+  private debugAdaptiveIndex(action: 'drop', details: Record<string, unknown>): void {
+    if (!this.isQueryDebugEnabled()) {
+      return
+    }
+
+    console.debug('[SQLiteNodeStorageAdapter] adaptive index', {
+      action,
+      ...details
+    })
+  }
+
+  private buildProtectedIndexFilter(protectedIndexNames: string[]): {
+    clause: string
+    params: SQLValue[]
+  } {
+    const uniqueNames = Array.from(new Set(protectedIndexNames))
+
+    if (uniqueNames.length === 0) {
+      return { clause: '', params: [] }
+    }
+
+    return {
+      clause: `AND index_name NOT IN (${uniqueNames.map(() => '?').join(', ')})`,
+      params: uniqueNames
+    }
+  }
+
+  private buildAdaptiveIndexName(
+    schemaId: SchemaIRI,
+    propertyKey: string,
+    valueType: ScalarValueType
+  ): string {
+    return [
+      'idx_auto_prop',
+      this.hashScalarValue(schemaId),
+      this.hashScalarValue(propertyKey),
+      valueType
+    ].join('_')
+  }
+
+  private buildAdaptiveIndexDDL(
+    indexName: string,
+    schemaId: SchemaIRI,
+    propertyKey: string,
+    valueType: ScalarValueType
+  ): string {
+    const columns = this.getAdaptiveIndexColumns(valueType)
+    const indexIdentifier = this.quoteSqlIdentifier(indexName)
+
+    return `CREATE INDEX IF NOT EXISTS ${indexIdentifier}
+ON node_property_scalars(${columns})
+WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
+  AND property_key = ${this.quoteSqlLiteral(propertyKey)}
+  AND value_type = ${this.quoteSqlLiteral(valueType)}`
+  }
+
+  private getAdaptiveIndexColumns(valueType: ScalarValueType): string {
+    switch (valueType) {
+      case 'text':
+        return 'value_text, node_id'
+      case 'number':
+        return 'value_number, node_id'
+      case 'boolean':
+        return 'value_boolean, node_id'
+      case 'null':
+        return 'node_id'
+    }
+  }
+
+  private compileNodeQuery(
+    descriptor: NodeQueryDescriptor,
+    spatialPlan: SpatialQueryPlan | null = null,
+    fullTextSearchPlan: FullTextSearchQueryPlan | null = null
+  ): CompiledNodeQuery | null {
+    if (descriptor.nodeId) {
+      return this.compileSqlQuery(descriptor, {
+        whereEntries: [],
+        canUseSqlPagination: true,
+        spatialPlan,
+        fullTextSearchPlan
+      })
+    }
+
+    const whereEntries = Object.entries(descriptor.where ?? {})
+    const scalarWhere = whereEntries.map(([key, value]) => ({
+      key,
+      scalar: this.toScalarIndexValue(value)
+    }))
+
+    if (scalarWhere.some((entry) => entry.scalar === null)) {
+      return null
+    }
+
+    const hasPropertySort = Object.keys(descriptor.orderBy ?? {}).some(
+      (key) => key !== 'createdAt' && key !== 'updatedAt'
+    )
+    const hasSqlCandidateBenefit =
+      scalarWhere.length > 0 ||
+      spatialPlan !== null ||
+      fullTextSearchPlan !== null ||
+      !descriptor.spatial ||
+      this.hasOnlySystemOrdering(descriptor.orderBy)
+
+    if (!hasSqlCandidateBenefit) {
+      return null
+    }
+
+    return this.compileSqlQuery(descriptor, {
+      whereEntries: scalarWhere as Array<{ key: string; scalar: ScalarIndexValue }>,
+      canUseSqlPagination: !hasPropertySort && !descriptor.spatial && !descriptor.search,
+      spatialPlan,
+      fullTextSearchPlan
+    })
+  }
+
+  private compileSqlQuery(
+    descriptor: NodeQueryDescriptor,
+    options: {
+      whereEntries: Array<{ key: string; scalar: ScalarIndexValue }>
+      canUseSqlPagination: boolean
+      spatialPlan?: SpatialQueryPlan | null
+      fullTextSearchPlan?: FullTextSearchQueryPlan | null
+    }
+  ): CompiledNodeQuery {
+    const joins: string[] = []
+    const where: string[] = ['n.schema_id = ?']
+    const whereParams: SQLValue[] = [descriptor.schemaId]
+
+    if (descriptor.nodeId) {
+      where.push('n.id = ?')
+      whereParams.push(descriptor.nodeId)
+    }
+
+    if (!descriptor.includeDeleted) {
+      where.push('n.deleted_at IS NULL')
+    }
+
+    options.whereEntries.forEach((entry, index) => {
+      const alias = `p${index}`
+      const schemaId = this.quoteSqlLiteral(descriptor.schemaId)
+      const propertyKey = this.quoteSqlLiteral(entry.key)
+      const valueType = this.quoteSqlLiteral(entry.scalar.valueType)
+      joins.push(
+        `JOIN node_property_scalars ${alias}
+          ON ${alias}.node_id = n.id
+         AND ${alias}.schema_id = ${schemaId}
+         AND ${alias}.property_key = ${propertyKey}
+         AND ${alias}.value_type = ${valueType}`
+      )
+      this.appendScalarPredicate(where, whereParams, alias, entry.scalar)
+    })
+
+    if (options.fullTextSearchPlan) {
+      joins.push('JOIN nodes_fts ON nodes_fts.node_id = n.id')
+      where.push('nodes_fts MATCH ?')
+      whereParams.push(options.fullTextSearchPlan.matchExpression)
+    }
+
+    if (options.spatialPlan) {
+      joins.push(
+        `JOIN node_spatial_ids spatial_ids
+          ON spatial_ids.node_id = n.id
+         AND spatial_ids.schema_id = n.schema_id
+         AND spatial_ids.spatial_key = ${this.quoteSqlLiteral(options.spatialPlan.spatialKey)}`
+      )
+      joins.push(
+        `JOIN node_spatial_rtree spatial_rtree
+          ON spatial_rtree.spatial_id = spatial_ids.spatial_id`
+      )
+      where.push(
+        `spatial_rtree.max_x >= ?`,
+        `spatial_rtree.min_x <= ?`,
+        `spatial_rtree.max_y >= ?`,
+        `spatial_rtree.min_y <= ?`
+      )
+      whereParams.push(
+        options.spatialPlan.bounds.minX,
+        options.spatialPlan.bounds.maxX,
+        options.spatialPlan.bounds.minY,
+        options.spatialPlan.bounds.maxY
+      )
+    }
+
+    const orderBy = this.buildSqlOrderBy(descriptor.orderBy)
+    const useSqlPagination =
+      options.canUseSqlPagination &&
+      (descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0)
+
+    let sql = `
+      SELECT n.id
+      FROM nodes n
+      ${joins.join('\n')}
+      WHERE ${where.join(' AND ')}
+      ORDER BY ${orderBy}
+    `
+
+    if (useSqlPagination) {
+      sql += '\nLIMIT ? OFFSET ?'
+      whereParams.push(descriptor.limit ?? -1, descriptor.offset ?? 0)
+    }
+
+    return {
+      sql,
+      params: whereParams,
+      postFilterDescriptor: useSqlPagination ? withoutNodeQueryPagination(descriptor) : descriptor,
+      postFilterReason: this.getCompiledPostFilterReason({
+        useSqlPagination,
+        hasFullTextSearchPlan:
+          options.fullTextSearchPlan !== null && options.fullTextSearchPlan !== undefined,
+        hasSpatialPlan: options.spatialPlan !== null && options.spatialPlan !== undefined
+      }),
+      adaptiveIndexHints: options.whereEntries.map((entry) => ({
+        propertyKey: entry.key,
+        scalar: entry.scalar
+      })),
+      spatialIndexKey: options.spatialPlan?.spatialKey,
+      fullTextSearchQuery: options.fullTextSearchPlan?.matchExpression
+    }
+  }
+
+  private getCompiledPostFilterReason(input: {
+    useSqlPagination: boolean
+    hasFullTextSearchPlan: boolean
+    hasSpatialPlan: boolean
+  }): string {
+    if (input.useSqlPagination) {
+      return 'pagination-pushed-down'
+    }
+
+    if (input.hasFullTextSearchPlan && input.hasSpatialPlan) {
+      return 'fts-rtree-verified-in-js'
+    }
+
+    if (input.hasFullTextSearchPlan) {
+      return 'fts-verified-in-js'
+    }
+
+    if (input.hasSpatialPlan) {
+      return 'spatial-rtree-verified-in-js'
+    }
+
+    return 'verified-in-js'
+  }
+
+  private appendScalarPredicate(
+    where: string[],
+    params: SQLValue[],
+    alias: string,
+    scalar: ScalarIndexValue
+  ): void {
+    switch (scalar.valueType) {
+      case 'text':
+        where.push(`${alias}.value_text = ?`)
+        params.push(scalar.valueText)
+        return
+      case 'number':
+        where.push(`${alias}.value_number = ?`)
+        params.push(scalar.valueNumber)
+        return
+      case 'boolean':
+        where.push(`${alias}.value_boolean = ?`)
+        params.push(scalar.valueBoolean)
+        return
+      case 'null':
+        return
+    }
+  }
+
+  private buildSqlOrderBy(orderBy?: Partial<Record<string, SortDirection>>): string {
+    const entries = Object.entries(orderBy ?? {}).filter(
+      (entry): entry is [string, SortDirection] => entry[1] === 'asc' || entry[1] === 'desc'
+    )
+    if (entries.length === 0) {
+      return 'n.updated_at DESC'
+    }
+
+    const clauses = entries
+      .filter(([key]) => key === 'createdAt' || key === 'updatedAt')
+      .map(([key, direction]) => {
+        const column = key === 'createdAt' ? 'n.created_at' : 'n.updated_at'
+        return `${column} ${direction.toUpperCase()}`
+      })
+
+    return clauses.length > 0 ? clauses.join(', ') : 'n.updated_at DESC'
+  }
+
+  private hasOnlySystemOrdering(orderBy?: Record<string, SortDirection>): boolean {
+    return Object.keys(orderBy ?? {}).every((key) => key === 'createdAt' || key === 'updatedAt')
+  }
 
   private serializePayload(payload: NodePayload): Uint8Array {
     return new TextEncoder().encode(JSON.stringify(payload))
@@ -697,6 +2600,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
  * const storage = createNodeStorageAdapter(db)
  * ```
  */
-export function createNodeStorageAdapter(db: SQLiteAdapter): SQLiteNodeStorageAdapter {
-  return new SQLiteNodeStorageAdapter(db)
+export function createNodeStorageAdapter(
+  db: SQLiteAdapter,
+  options?: SQLiteNodeStorageAdapterOptions
+): SQLiteNodeStorageAdapter {
+  return new SQLiteNodeStorageAdapter(db, options)
 }

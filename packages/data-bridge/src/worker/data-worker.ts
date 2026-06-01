@@ -43,7 +43,6 @@ import { expose, proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
 import {
   applyNodeChangeToQueryResult,
-  applyQueryDescriptor,
   createQueryDescriptor,
   matchesQueryDescriptor
 } from '../query-descriptor'
@@ -354,21 +353,8 @@ class DataWorker implements DataWorkerAPI {
   private async loadQuery(descriptor: WorkerSubscription['descriptor']): Promise<NodeState[]> {
     if (!this.store) return []
 
-    let nodes: NodeState[]
-
-    if (descriptor.nodeId) {
-      // Single node query
-      const node = await this.store.get(descriptor.nodeId)
-      nodes = node ? [node] : []
-    } else {
-      // List query
-      nodes = await this.store.list({
-        schemaId: descriptor.schemaId,
-        includeDeleted: descriptor.includeDeleted
-      })
-    }
-
-    return applyQueryDescriptor(nodes, descriptor)
+    const result = await this.store.query(descriptor)
+    return result.nodes
   }
 
   private handleStoreChange(event: NodeChangeEvent): void {

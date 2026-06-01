@@ -2,6 +2,7 @@
  * Tests for NodeStore
  */
 
+import type { NodeQueryDescriptor, NodeQueryResult } from './query'
 import type { ContentKeyCache, NodeContentCipher } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
@@ -60,6 +61,14 @@ function createAuthEvaluator(canResult: (input: AuthCheckInput) => boolean): Pol
     invalidate: vi.fn(),
     invalidateSubject: vi.fn()
   }
+}
+
+class QueryCapableMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
+  readonly queryNodes = vi.fn(
+    async (_descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> => {
+      throw new Error('storage query should not run while read authorization is active')
+    }
+  )
 }
 
 function createMockNodeContentCipher() {
@@ -765,6 +774,58 @@ describe('authorization enforcement', () => {
     expect(await store.get(node.id)).toBeNull()
     expect(await store.list({ includeDeleted: true })).toHaveLength(0)
     expect(callback).toHaveBeenCalledTimes(2)
+  })
+
+  it('filters auth-sensitive reads without exposing hidden query counts', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new QueryCapableMemoryNodeStorageAdapter()
+    const visibleId = 'visible-task'
+    const hiddenId = 'hidden-task'
+    const evaluator = createAuthEvaluator(
+      (input) => input.action !== 'read' || input.nodeId === visibleId
+    )
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      authEvaluator: evaluator
+    })
+    await store.initialize()
+
+    await store.create({
+      id: visibleId,
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Visible', status: 'open' }
+    })
+    await store.create({
+      id: hiddenId,
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Hidden', status: 'open' }
+    })
+
+    await expect(store.get(hiddenId)).resolves.toBeNull()
+    await expect(store.list({ schemaId: TEST_SCHEMA })).resolves.toMatchObject([{ id: visibleId }])
+
+    const result = await store.query({
+      schemaId: TEST_SCHEMA,
+      includeDeleted: false,
+      where: { status: 'open' },
+      limit: 1,
+      offset: 0
+    })
+
+    expect(adapter.queryNodes).not.toHaveBeenCalled()
+    expect(result.nodes.map((node) => node.id)).toEqual([visibleId])
+    expect(result.plan).toMatchObject({
+      strategy: 'list-fallback',
+      candidateNodeCount: 1,
+      hydratedNodeCount: 1,
+      returnedNodeCount: 1,
+      postFilterReason: 'read-authorization-filtered'
+    })
+    expect(result.plan.sql).toBeUndefined()
+    expect(result.plan.params).toBeUndefined()
   })
 
   it('should deny entire transaction when one operation is unauthorized', async () => {

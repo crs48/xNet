@@ -247,12 +247,32 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     createView,
     updateView
   } = useDatabaseDoc(docId)
-  const { rows, loading: rowsLoading, createRow, updateRow, deleteRow } = useDatabase(docId)
 
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
   const bootstrappedRef = useRef(false)
+  const activeDatabaseViewId = useMemo(
+    () => views.find((view) => view.type === viewMode)?.id,
+    [views, viewMode]
+  )
+  const rowQueryOptions = useMemo(
+    () =>
+      activeDatabaseViewId
+        ? {
+            view: activeDatabaseViewId,
+            materializedView: { viewId: `database:${docId}:view:${activeDatabaseViewId}` }
+          }
+        : { materializedView: false as const },
+    [activeDatabaseViewId, docId]
+  )
+  const {
+    rows,
+    loading: rowsLoading,
+    createRow,
+    updateRow,
+    deleteRow
+  } = useDatabase(docId, rowQueryOptions)
 
   useEffect(() => {
     if (database?.defaultView === 'board') {

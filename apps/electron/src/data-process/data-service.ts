@@ -118,6 +118,7 @@ interface SerializedNodeState {
 interface ListNodesOptions {
   schemaId?: string
   includeDeleted?: boolean
+  orderBy?: Partial<Record<'createdAt' | 'updatedAt', 'asc' | 'desc'>>
   limit?: number
   offset?: number
 }
@@ -125,6 +126,10 @@ interface ListNodesOptions {
 interface CountNodesOptions {
   schemaId?: string
   includeDeleted?: boolean
+}
+
+interface SetNodeOptions {
+  indexProperties?: boolean
 }
 
 export interface DataService {
@@ -160,7 +165,7 @@ export interface DataService {
   getChangeByHash(hash: string): Promise<SerializedNodeChange | null>
   getLastChange(nodeId: string): Promise<SerializedNodeChange | null>
   getNode(id: string): Promise<SerializedNodeState | null>
-  setNode(node: SerializedNodeState): Promise<void>
+  setNode(node: SerializedNodeState, options?: SetNodeOptions): Promise<void>
   deleteNode(id: string): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<SerializedNodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
@@ -263,6 +268,134 @@ const BLOB_SYNC_ROOM = 'xnet-blob-sync'
 const PEER_TIMEOUT_MS = 4444
 const PEER_CHECK_INTERVAL_MS = 1111
 const HEARTBEAT_INTERVAL_MS = 1111
+
+type ScalarIndexValue = {
+  valueType: 'text' | 'number' | 'boolean' | 'null'
+  valueText: string | null
+  valueNumber: number | null
+  valueBoolean: number | null
+  valueHash: string
+}
+
+function hashScalarValue(value: string): string {
+  let hash = 2166136261
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0')
+}
+
+function toScalarIndexValue(value: unknown): ScalarIndexValue | null {
+  if (value === null) {
+    return {
+      valueType: 'null',
+      valueText: null,
+      valueNumber: null,
+      valueBoolean: null,
+      valueHash: 'null'
+    }
+  }
+
+  if (typeof value === 'string') {
+    return {
+      valueType: 'text',
+      valueText: value,
+      valueNumber: null,
+      valueBoolean: null,
+      valueHash: hashScalarValue(value)
+    }
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return {
+      valueType: 'number',
+      valueText: null,
+      valueNumber: value,
+      valueBoolean: null,
+      valueHash: hashScalarValue(String(value))
+    }
+  }
+
+  if (typeof value === 'boolean') {
+    return {
+      valueType: 'boolean',
+      valueText: null,
+      valueNumber: null,
+      valueBoolean: value ? 1 : 0,
+      valueHash: value ? 'true' : 'false'
+    }
+  }
+
+  return null
+}
+
+function buildNodeListOrderBy(
+  orderBy?: Partial<Record<'createdAt' | 'updatedAt', 'asc' | 'desc'>>
+): string {
+  const entries = Object.entries(orderBy ?? {}).filter(
+    (entry): entry is ['createdAt' | 'updatedAt', 'asc' | 'desc'] =>
+      entry[1] === 'asc' || entry[1] === 'desc'
+  )
+
+  if (entries.length === 0) {
+    return 'updated_at DESC'
+  }
+
+  return entries
+    .map(([field, direction]) => {
+      const column = field === 'createdAt' ? 'created_at' : 'updated_at'
+      return `${column} ${direction.toUpperCase()}`
+    })
+    .join(', ')
+}
+
+async function syncScalarRowsForNode(
+  adapter: ElectronSQLiteAdapter,
+  node: SerializedNodeState,
+  indexProperties: boolean
+): Promise<void> {
+  await adapter.run('DELETE FROM node_property_scalars WHERE node_id = ?', [node.id])
+
+  if (!indexProperties) {
+    return
+  }
+
+  for (const [key, value] of Object.entries(node.properties)) {
+    const timestamp = node.timestamps[key]
+    const scalar = toScalarIndexValue(value)
+    if (!timestamp || !scalar) continue
+
+    await adapter.run(
+      `INSERT INTO node_property_scalars
+        (
+          node_id,
+          schema_id,
+          property_key,
+          value_type,
+          value_text,
+          value_number,
+          value_boolean,
+          value_hash,
+          updated_at,
+          lamport_time
+        )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        node.id,
+        node.schemaId,
+        key,
+        scalar.valueType,
+        scalar.valueText,
+        scalar.valueNumber,
+        scalar.valueBoolean,
+        scalar.valueHash,
+        timestamp.wallTime,
+        timestamp.lamport.time
+      ]
+    )
+  }
+}
 
 // ─── Data Service Factory ───────────────────────────────────────────────────
 
@@ -1406,7 +1539,7 @@ export function createDataService(config: DataServiceConfig): DataService {
       }
     },
 
-    async setNode(node: SerializedNodeState): Promise<void> {
+    async setNode(node: SerializedNodeState, options?: SetNodeOptions): Promise<void> {
       if (!adapter) throw new Error('Database not initialized')
 
       // Upsert node
@@ -1422,6 +1555,17 @@ export function createDataService(config: DataServiceConfig): DataService {
           node.deleted ? (node.deletedAt?.wallTime ?? Date.now()) : null
         ]
       )
+
+      const propertyKeys = Object.keys(node.properties)
+      if (propertyKeys.length === 0) {
+        await adapter.run('DELETE FROM node_properties WHERE node_id = ?', [node.id])
+      } else {
+        const placeholders = propertyKeys.map(() => '?').join(', ')
+        await adapter.run(
+          `DELETE FROM node_properties WHERE node_id = ? AND property_key NOT IN (${placeholders})`,
+          [node.id, ...propertyKeys]
+        )
+      }
 
       // Upsert properties
       for (const [key, value] of Object.entries(node.properties)) {
@@ -1440,6 +1584,8 @@ export function createDataService(config: DataServiceConfig): DataService {
         )
       }
 
+      await syncScalarRowsForNode(adapter, node, options?.indexProperties ?? true)
+
       // Store document content if present
       if (node.documentContent) {
         await adapter.run(
@@ -1456,6 +1602,7 @@ export function createDataService(config: DataServiceConfig): DataService {
       if (!adapter) throw new Error('Database not initialized')
 
       // Delete in order to respect foreign keys
+      await adapter.run('DELETE FROM node_property_scalars WHERE node_id = ?', [id])
       await adapter.run('DELETE FROM node_properties WHERE node_id = ?', [id])
       await adapter.run('DELETE FROM yjs_state WHERE node_id = ?', [id])
       await adapter.run('DELETE FROM changes WHERE node_id = ?', [id])
@@ -1479,14 +1626,17 @@ export function createDataService(config: DataServiceConfig): DataService {
         sql += ' AND deleted_at IS NULL'
       }
 
-      sql += ' ORDER BY updated_at DESC'
+      sql += ` ORDER BY ${buildNodeListOrderBy(options?.orderBy)}`
 
-      if (options?.limit) {
+      if (options?.limit !== undefined) {
         sql += ' LIMIT ?'
         params.push(options.limit)
       }
 
-      if (options?.offset) {
+      if (options?.offset !== undefined) {
+        if (options.limit === undefined) {
+          sql += ' LIMIT -1'
+        }
         sql += ' OFFSET ?'
         params.push(options.offset)
       }

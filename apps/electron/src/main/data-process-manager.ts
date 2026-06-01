@@ -510,9 +510,12 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
     return result.node
   })
 
-  ipcMain.handle('xnet:nodes:setNode', async (_event, opts: { node: unknown }) => {
-    await sendRequest('nodes:setNode', opts)
-  })
+  ipcMain.handle(
+    'xnet:nodes:setNode',
+    async (_event, opts: { node: unknown; options?: unknown }) => {
+      await sendRequest('nodes:setNode', opts)
+    }
+  )
 
   ipcMain.handle('xnet:nodes:deleteNode', async (_event, opts: { id: string }) => {
     await sendRequest('nodes:deleteNode', opts)

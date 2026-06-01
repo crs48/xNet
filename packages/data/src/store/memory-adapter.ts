@@ -105,8 +105,24 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
       nodes = nodes.filter((n) => !n.deleted)
     }
 
-    // Sort by creation time (newest first)
-    nodes.sort((a, b) => b.createdAt - a.createdAt)
+    const orderEntries = Object.entries(options?.orderBy ?? {})
+
+    if (orderEntries.length === 0) {
+      nodes.sort((a, b) => b.updatedAt - a.updatedAt)
+    } else {
+      nodes.sort((left, right) => {
+        for (const [field, direction] of orderEntries) {
+          const leftValue = field === 'createdAt' ? left.createdAt : left.updatedAt
+          const rightValue = field === 'createdAt' ? right.createdAt : right.updatedAt
+          if (leftValue === rightValue) continue
+
+          const comparison = leftValue < rightValue ? -1 : 1
+          return direction === 'asc' ? comparison : -comparison
+        }
+
+        return 0
+      })
+    }
 
     // Pagination
     const offset = options?.offset ?? 0

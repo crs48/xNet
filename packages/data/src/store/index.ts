@@ -37,6 +37,7 @@ export type {
   PropertyTimestamp,
   NodeState,
   NodeStorageAdapter,
+  SetNodeOptions,
   ListNodesOptions,
   CountNodesOptions,
   ConflictResult,
@@ -56,6 +57,39 @@ export type {
   MigratedNodeState
 } from './types'
 
+export type {
+  SortDirection,
+  SystemOrderField,
+  NodeQuerySpatialPoint,
+  NodeQuerySpatialRect,
+  NodeQuerySpatialPointFields,
+  NodeQuerySpatialRectFields,
+  NodeQuerySpatialWindow,
+  NodeQuerySpatialRadius,
+  NodeQuerySpatialFilter,
+  NodeQuerySearchField,
+  NodeQuerySearchFilter,
+  NodeQueryMaterializedViewOptions,
+  NodeQueryOptions,
+  NodeQueryDescriptor,
+  NodeQueryPlanMetadata,
+  NodeQueryParityCheckMetadata,
+  NodeQueryResult
+} from './query'
+export {
+  createNodeQueryDescriptor,
+  nodeQueryDescriptorToOptions,
+  serializeNodeQueryDescriptor,
+  matchesNodeQueryDescriptor,
+  filterNodeQueryResults,
+  sortNodeQueryResults,
+  applyNodeQueryDescriptor,
+  getNodeQuerySearchTokens,
+  nodeQueryDescriptorNeedsBoundedReload,
+  withoutNodeQueryPagination,
+  withoutNodeQueryMaterializedView
+} from './query'
+
 // NodeStore
 export { NodeStore } from './store'
 export { PermissionError } from './permission-error'
@@ -73,4 +107,10 @@ export {
 
 // Adapters
 export { MemoryNodeStorageAdapter } from './memory-adapter'
-export { SQLiteNodeStorageAdapter, createNodeStorageAdapter } from './sqlite-adapter'
+export {
+  SQLiteNodeStorageAdapter,
+  createNodeStorageAdapter,
+  type SQLiteAdaptiveIndexingOptions,
+  type SQLiteQueryVerificationOptions,
+  type SQLiteNodeStorageAdapterOptions
+} from './sqlite-adapter'

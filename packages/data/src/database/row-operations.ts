@@ -9,9 +9,11 @@
  */
 
 import type { CellValue } from './cell-types'
+import type { NodeQueryMaterializedViewOptions } from '../store/query'
 import type { NodeStore } from '../store/store'
 import type { NodeState, TransactionOperation } from '../store/types'
 import { DatabaseRowSchema } from '../schema/schemas/database-row'
+import { createNodeQueryDescriptor } from '../store/query'
 import { cellKey, toCellProperties, fromCellProperties } from './cell-types'
 import {
   generateSortKey,
@@ -53,6 +55,9 @@ export interface QueryRowsOptions {
   /** Maximum number of rows to return */
   limit?: number
 
+  /** Offset for page-based pagination */
+  offset?: number
+
   /** Cursor for pagination (sortKey of last row from previous page) */
   cursor?: string
 
@@ -61,6 +66,9 @@ export interface QueryRowsOptions {
 
   /** Sort direction (default: 'asc') */
   sortDirection?: 'asc' | 'desc'
+
+  /** Stable materialized row-list cache for persisted database views */
+  materializedView?: string | NodeQueryMaterializedViewOptions
 }
 
 /**
@@ -279,17 +287,21 @@ export async function queryRows(
   databaseId: string,
   options?: QueryRowsOptions
 ): Promise<QueryRowsResult> {
-  const { limit = 50, cursor, sortDirection = 'asc' } = options ?? {}
+  const { limit = 50, offset = 0, cursor, sortDirection = 'asc' } = options ?? {}
+  const queryLimit = Math.max(0, limit) + 1
+  const descriptorUsesPagination = cursor === undefined
 
-  // Get all rows for this database
-  const allRows = await store.list({
-    schemaId: DatabaseRowSchema.schema['@id']
+  const descriptor = createNodeQueryDescriptor(DatabaseRowSchema.schema['@id'], {
+    where: { database: databaseId },
+    orderBy: { sortKey: sortDirection },
+    ...(descriptorUsesPagination ? { limit: queryLimit, offset } : {}),
+    materializedView: options?.materializedView
   })
 
-  // Filter by database ID
-  let rows = allRows.filter((row) => row.properties.database === databaseId)
+  const result = await store.query(descriptor)
+  let rows = result.nodes
 
-  // Sort by sortKey using consistent string comparison
+  // Keep the established fractional-index comparator as the final authority.
   rows.sort((a, b) => {
     const aKey = a.properties.sortKey as string
     const bKey = b.properties.sortKey as string
@@ -297,7 +309,6 @@ export async function queryRows(
     return sortDirection === 'asc' ? cmp : -cmp
   })
 
-  // Apply cursor (pagination)
   if (cursor) {
     const cursorIndex = rows.findIndex((row) => row.properties.sortKey === cursor)
     if (cursorIndex !== -1) {
@@ -305,17 +316,18 @@ export async function queryRows(
     }
   }
 
-  // Check if there are more rows
+  if (!descriptorUsesPagination && offset > 0) {
+    rows = rows.slice(offset)
+  }
+
   const hasMore = rows.length > limit
   if (hasMore) {
     rows = rows.slice(0, limit)
   }
 
-  // Get next cursor
   const nextCursor =
     hasMore && rows.length > 0 ? (rows[rows.length - 1].properties.sortKey as string) : undefined
 
-  // Convert to DatabaseRowNode with extracted cells
   const rowNodes: DatabaseRowNode[] = rows.map((row) => ({
     ...row,
     cells: fromCellProperties(row.properties)

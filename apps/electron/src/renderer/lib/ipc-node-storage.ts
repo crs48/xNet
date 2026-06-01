@@ -15,6 +15,7 @@ import type {
   NodeId,
   ListNodesOptions,
   CountNodesOptions,
+  SetNodeOptions,
   SchemaIRI
 } from '@xnetjs/data'
 import type { LamportTimestamp } from '@xnetjs/sync'
@@ -59,31 +60,31 @@ export class IPCNodeStorageAdapter implements NodeStorageAdapter {
   async getChanges(nodeId: NodeId): Promise<NodeChange[]> {
     log('getChanges()', nodeId)
     const changes = await window.xnetNodes.getChanges(nodeId)
-    return changes.map(deserializeChange)
+    return changes.map((change) => deserializeChange(change as SerializedNodeChange))
   }
 
   async getAllChanges(): Promise<NodeChange[]> {
     log('getAllChanges()')
     const changes = await window.xnetNodes.getAllChanges()
-    return changes.map(deserializeChange)
+    return changes.map((change) => deserializeChange(change as SerializedNodeChange))
   }
 
   async getChangesSince(sinceLamport: number): Promise<NodeChange[]> {
     log('getChangesSince()', sinceLamport)
     const changes = await window.xnetNodes.getChangesSince(sinceLamport)
-    return changes.map(deserializeChange)
+    return changes.map((change) => deserializeChange(change as SerializedNodeChange))
   }
 
   async getChangeByHash(hash: ContentId): Promise<NodeChange | null> {
     log('getChangeByHash()', hash)
     const change = await window.xnetNodes.getChangeByHash(hash)
-    return change ? deserializeChange(change) : null
+    return change ? deserializeChange(change as SerializedNodeChange) : null
   }
 
   async getLastChange(nodeId: NodeId): Promise<NodeChange | null> {
     log('getLastChange()', nodeId)
     const change = await window.xnetNodes.getLastChange(nodeId)
-    return change ? deserializeChange(change) : null
+    return change ? deserializeChange(change as SerializedNodeChange) : null
   }
 
   // ==========================================================================
@@ -93,12 +94,12 @@ export class IPCNodeStorageAdapter implements NodeStorageAdapter {
   async getNode(id: NodeId): Promise<NodeState | null> {
     log('getNode()', id)
     const node = await window.xnetNodes.getNode(id)
-    return node ? deserializeNodeState(node) : null
+    return node ? deserializeNodeState(node as SerializedNodeState) : null
   }
 
-  async setNode(node: NodeState): Promise<void> {
+  async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
     log('setNode()', node.id)
-    await window.xnetNodes.setNode(serializeNodeState(node))
+    await window.xnetNodes.setNode(serializeNodeState(node), options)
   }
 
   async deleteNode(id: NodeId): Promise<void> {
@@ -109,7 +110,7 @@ export class IPCNodeStorageAdapter implements NodeStorageAdapter {
   async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {
     log('listNodes()', options)
     const nodes = await window.xnetNodes.listNodes(options)
-    return nodes.map(deserializeNodeState)
+    return nodes.map((node) => deserializeNodeState(node as SerializedNodeState))
   }
 
   async countNodes(options?: CountNodesOptions): Promise<number> {
@@ -343,19 +344,19 @@ declare global {
 
 export interface XNetNodesAPI {
   // Change log operations
-  appendChange(change: SerializedNodeChange): Promise<void>
-  getChanges(nodeId: string): Promise<SerializedNodeChange[]>
-  getAllChanges(): Promise<SerializedNodeChange[]>
-  getChangesSince(sinceLamport: number): Promise<SerializedNodeChange[]>
-  getChangeByHash(hash: string): Promise<SerializedNodeChange | null>
-  getLastChange(nodeId: string): Promise<SerializedNodeChange | null>
+  appendChange(change: unknown): Promise<void>
+  getChanges(nodeId: string): Promise<unknown[]>
+  getAllChanges(): Promise<unknown[]>
+  getChangesSince(sinceLamport: number): Promise<unknown[]>
+  getChangeByHash(hash: string): Promise<unknown | null>
+  getLastChange(nodeId: string): Promise<unknown | null>
 
   // Materialized state operations
-  getNode(id: string): Promise<SerializedNodeState | null>
-  setNode(node: SerializedNodeState): Promise<void>
+  getNode(id: string): Promise<unknown | null>
+  setNode(node: unknown, options?: unknown): Promise<void>
   deleteNode(id: string): Promise<void>
-  listNodes(options?: ListNodesOptions): Promise<SerializedNodeState[]>
-  countNodes(options?: CountNodesOptions): Promise<number>
+  listNodes(options?: unknown): Promise<unknown[]>
+  countNodes(options?: unknown): Promise<number>
 
   // Sync state
   getLastLamportTime(): Promise<number>
@@ -366,5 +367,5 @@ export interface XNetNodesAPI {
   setDocumentContent(nodeId: string, content: number[]): Promise<void>
 
   // Change subscription
-  onChange(callback: (event: { changes: SerializedNodeChange[] }) => void): () => void
+  onChange(callback: (event: { changes: unknown[] }) => void): () => void
 }

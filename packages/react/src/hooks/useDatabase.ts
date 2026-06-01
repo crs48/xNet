@@ -28,7 +28,8 @@ import type {
   FilterGroup,
   SortConfig,
   CellValue,
-  DatabaseDocumentModel
+  DatabaseDocumentModel,
+  NodeQueryMaterializedViewOptions
 } from '@xnetjs/data'
 import {
   queryRows,
@@ -68,6 +69,12 @@ export interface UseDatabaseOptions {
 
   /** Page size (default: 50) */
   pageSize?: number
+
+  /**
+   * Opt into SQLite materialized row lists for stable persisted views.
+   * Pass true to derive a database/view cache key, or pass explicit options.
+   */
+  materializedView?: boolean | string | NodeQueryMaterializedViewOptions
 }
 
 export interface DatabaseRow {
@@ -166,6 +173,7 @@ export function useDatabase(
   const [rows, setRows] = useState<DatabaseRow[]>([])
   const [total, setTotal] = useState(0)
   const [cursor, setCursor] = useState<string | undefined>()
+  const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -186,12 +194,13 @@ export function useDatabase(
   rowsRef.current = rows
 
   // Get active view config
+  const resolvedActiveViewId = options.view ?? activeViewId
   const activeView = useMemo(() => {
-    if (activeViewId) {
-      return views.find((v) => v.id === activeViewId) ?? null
+    if (resolvedActiveViewId) {
+      return views.find((v) => v.id === resolvedActiveViewId) ?? null
     }
     return views[0] ?? null
-  }, [views, activeViewId])
+  }, [views, resolvedActiveViewId])
 
   // Merge options with view config
   const effectiveFilters = useMemo(
@@ -199,6 +208,14 @@ export function useDatabase(
     [filters, activeView]
   )
   const effectiveSorts = useMemo(() => sorts ?? activeView?.sorts ?? [], [sorts, activeView])
+  const materializedView = useMemo(
+    () => resolveDatabaseMaterializedView(databaseId, activeView, options.materializedView),
+    [activeView, databaseId, options.materializedView]
+  )
+
+  useEffect(() => {
+    setActiveViewId(options.view)
+  }, [options.view])
 
   // Query rows
   const fetchRows = useCallback(
@@ -209,15 +226,18 @@ export function useDatabase(
         if (reset) {
           setLoading(true)
           setCursor(undefined)
+          setOffset(0)
         } else {
           setLoadingMore(true)
         }
 
         const currentDoc = docRef.current
         const currentStorageMode = storageModeRef.current
+        const queryOffset = reset ? 0 : offset
         const canonicalResult = await queryRows(store, databaseId, {
           limit: pageSize * 10,
-          cursor: reset ? undefined : cursor
+          offset: queryOffset,
+          materializedView
         })
 
         const useLegacyRows =
@@ -261,10 +281,12 @@ export function useDatabase(
           })
           rowSourceRef.current = 'legacy'
           setCursor(legacyPage.cursor)
+          setOffset(0)
           setHasMore(legacyPage.hasMore)
         } else {
           rowSourceRef.current = 'canonical'
-          setCursor(canonicalResult.cursor)
+          setCursor(undefined)
+          setOffset(queryOffset + canonicalResult.rows.length)
           setHasMore(canonicalResult.hasMore)
         }
         setError(null)
@@ -275,7 +297,18 @@ export function useDatabase(
         setLoadingMore(false)
       }
     },
-    [store, isReady, databaseId, pageSize, cursor, columns, effectiveFilters, effectiveSorts]
+    [
+      store,
+      isReady,
+      databaseId,
+      pageSize,
+      cursor,
+      offset,
+      columns,
+      effectiveFilters,
+      effectiveSorts,
+      materializedView
+    ]
   )
 
   // Initial fetch when columns are loaded
@@ -292,6 +325,7 @@ export function useDatabase(
     setRows([])
     setTotal(0)
     setCursor(undefined)
+    setOffset(0)
     setHasMore(false)
     setError(null)
     setLoading(false)
@@ -305,7 +339,15 @@ export function useDatabase(
       void fetchRows(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [databaseDocLoading, effectiveFilters, effectiveSorts, search, doc, storageMode])
+  }, [
+    databaseDocLoading,
+    effectiveFilters,
+    effectiveSorts,
+    search,
+    doc,
+    storageMode,
+    materializedView
+  ])
 
   // Subscribe to row changes
   useEffect(() => {
@@ -448,6 +490,22 @@ export function useDatabase(
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function resolveDatabaseMaterializedView(
+  databaseId: string,
+  activeView: ViewConfig | null,
+  option: UseDatabaseOptions['materializedView']
+): string | NodeQueryMaterializedViewOptions | undefined {
+  if (!option) {
+    return undefined
+  }
+
+  if (option === true) {
+    return activeView ? { viewId: `database:${databaseId}:view:${activeView.id}` } : undefined
+  }
+
+  return option
+}
 
 /**
  * Convert a NodeState to a DatabaseRow.

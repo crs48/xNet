@@ -433,6 +433,21 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     createView,
     updateView
   } = useDatabaseDoc(docId)
+  const [viewMode, setViewMode] = useState<ViewMode>('table')
+  const activeDatabaseViewId = useMemo(
+    () => views.find((view) => view.type === viewMode)?.id,
+    [views, viewMode]
+  )
+  const rowQueryOptions = useMemo(
+    () =>
+      activeDatabaseViewId
+        ? {
+            view: activeDatabaseViewId,
+            materializedView: { viewId: `database:${docId}:view:${activeDatabaseViewId}` }
+          }
+        : { materializedView: false as const },
+    [activeDatabaseViewId, docId]
+  )
   const {
     rows,
     loading: rowsLoading,
@@ -440,7 +455,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     updateRow,
     deleteRow,
     reorderRow
-  } = useDatabase(docId)
+  } = useDatabase(docId, rowQueryOptions)
   const undoScope = useMemo(() => [docId, ...rows.map((row) => row.id)], [docId, rows])
   const {
     undo: undoStructured,
@@ -451,7 +466,6 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     localDID: did ?? null
   })
 
-  const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)

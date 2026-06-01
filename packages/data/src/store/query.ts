@@ -1,0 +1,559 @@
+/**
+ * Shared NodeStore query descriptor semantics.
+ */
+
+import type { NodeState } from './types'
+import type { SchemaIRI } from '../schema/node'
+import type { InferCreateProps, PropertyBuilder } from '../schema/types'
+
+export type SortDirection = 'asc' | 'desc'
+
+export type SystemOrderField = 'createdAt' | 'updatedAt'
+
+export type NodeQuerySpatialPoint = {
+  x: number
+  y: number
+}
+
+export type NodeQuerySpatialRect = NodeQuerySpatialPoint & {
+  width: number
+  height: number
+}
+
+export type NodeQuerySpatialPointFields = {
+  x: string
+  y: string
+}
+
+export type NodeQuerySpatialRectFields = NodeQuerySpatialPointFields & {
+  width?: string
+  height?: string
+}
+
+export type NodeQuerySpatialWindow = {
+  kind: 'window'
+  rect: NodeQuerySpatialRect
+  fields: NodeQuerySpatialRectFields
+  overscan?: number
+}
+
+export type NodeQuerySpatialRadius = {
+  kind: 'radius'
+  center: NodeQuerySpatialPoint
+  radius: number
+  fields: NodeQuerySpatialPointFields
+}
+
+export type NodeQuerySpatialFilter = NodeQuerySpatialWindow | NodeQuerySpatialRadius
+
+export type NodeQuerySearchField = 'title' | 'content'
+
+export type NodeQuerySearchFilter = {
+  text: string
+  fields?: NodeQuerySearchField[]
+}
+
+export type NodeQueryMaterializedViewOptions = {
+  viewId: string
+  maxAgeMs?: number
+  forceRefresh?: boolean
+}
+
+export interface NodeQueryOptions<
+  P extends Record<string, PropertyBuilder> = Record<string, PropertyBuilder>
+> {
+  nodeId?: string
+  where?: Partial<InferCreateProps<P>>
+  includeDeleted?: boolean
+  orderBy?: { [K in keyof InferCreateProps<P> | SystemOrderField]?: SortDirection }
+  limit?: number
+  offset?: number
+  spatial?: NodeQuerySpatialFilter
+  search?: string | NodeQuerySearchFilter
+  materializedView?: string | NodeQueryMaterializedViewOptions
+}
+
+export interface NodeQueryDescriptor {
+  schemaId: SchemaIRI
+  nodeId?: string
+  where?: Record<string, unknown>
+  includeDeleted: boolean
+  orderBy?: Record<string, SortDirection>
+  limit?: number
+  offset?: number
+  spatial?: NodeQuerySpatialFilter
+  search?: NodeQuerySearchFilter
+  materializedView?: NodeQueryMaterializedViewOptions
+}
+
+export interface NodeQueryPlanMetadata {
+  strategy: 'storage-query' | 'list-fallback'
+  candidateNodeCount: number
+  hydratedNodeCount: number
+  returnedNodeCount: number
+  durationMs: number
+  sql?: string
+  params?: unknown[]
+  postFilterReason?: string
+  descriptorHash?: string
+  adaptiveIndexNames?: string[]
+  candidateQueryDurationMs?: number
+  usedIndexNames?: string[]
+  fullTableScan?: boolean
+  queryPlanDetails?: string[]
+  availableIndexCount?: number
+  adaptiveIndexCount?: number
+  diagnosticsError?: string
+  storageCapabilities?: NodeQueryStorageCapabilitiesMetadata
+  candidateAccelerators?: string[]
+  spatialIndexKey?: string
+  fullTextSearchQuery?: string
+  materializedViewId?: string
+  materializedCacheHit?: boolean
+  materializedGeneratedAt?: number
+  materializedInvalidatedAt?: number
+  materializedRowCount?: number
+  parityCheck?: NodeQueryParityCheckMetadata
+}
+
+export interface NodeQueryStorageCapabilitiesMetadata {
+  fullTextSearch: boolean
+  rtree: boolean
+}
+
+export interface NodeQueryParityCheckMetadata {
+  strategy: 'exact' | 'skipped'
+  valid?: boolean
+  reason?: string
+  comparedNodeCount?: number
+  expectedNodeCount?: number
+  missingNodeIds?: string[]
+  extraNodeIds?: string[]
+  orderMismatch?: boolean
+}
+
+export interface NodeQueryResult {
+  nodes: NodeState[]
+  plan: NodeQueryPlanMetadata
+}
+
+function sortRecord<T>(record?: Record<string, T>): Record<string, T> | undefined {
+  if (!record) return undefined
+
+  const entries = Object.entries(record).sort(([left], [right]) => left.localeCompare(right))
+  if (entries.length === 0) return undefined
+
+  return Object.fromEntries(entries)
+}
+
+function normalizeSpatialPoint(point: NodeQuerySpatialPoint): NodeQuerySpatialPoint {
+  return {
+    x: point.x,
+    y: point.y
+  }
+}
+
+function normalizeSpatialRect(rect: NodeQuerySpatialRect): NodeQuerySpatialRect {
+  return {
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height
+  }
+}
+
+function normalizeSpatialFilter(
+  spatial?: NodeQuerySpatialFilter
+): NodeQuerySpatialFilter | undefined {
+  if (!spatial) {
+    return undefined
+  }
+
+  if (spatial.kind === 'window') {
+    const overscan = spatial.overscan ?? 0
+
+    return {
+      kind: 'window',
+      rect: normalizeSpatialRect(spatial.rect),
+      fields: {
+        x: spatial.fields.x,
+        y: spatial.fields.y,
+        width: spatial.fields.width,
+        height: spatial.fields.height
+      },
+      ...(overscan !== 0 ? { overscan } : {})
+    }
+  }
+
+  return {
+    kind: 'radius',
+    center: normalizeSpatialPoint(spatial.center),
+    radius: spatial.radius,
+    fields: {
+      x: spatial.fields.x,
+      y: spatial.fields.y
+    }
+  }
+}
+
+function normalizeSearchFilter(
+  search?: string | NodeQuerySearchFilter
+): NodeQuerySearchFilter | undefined {
+  if (typeof search === 'string') {
+    const text = search.trim()
+    return text.length > 0 ? { text } : undefined
+  }
+
+  if (!search) {
+    return undefined
+  }
+
+  const text = search.text.trim()
+  if (text.length === 0) {
+    return undefined
+  }
+
+  const fields = search.fields
+    ? [...new Set(search.fields)].filter((field) => field === 'title' || field === 'content').sort()
+    : undefined
+
+  return {
+    text,
+    ...(fields && fields.length > 0 ? { fields } : {})
+  }
+}
+
+function normalizeMaterializedViewOptions(
+  materializedView?: string | NodeQueryMaterializedViewOptions
+): NodeQueryMaterializedViewOptions | undefined {
+  if (typeof materializedView === 'string') {
+    const viewId = materializedView.trim()
+    return viewId.length > 0 ? { viewId } : undefined
+  }
+
+  if (!materializedView) {
+    return undefined
+  }
+
+  const viewId = materializedView.viewId.trim()
+  if (viewId.length === 0) {
+    return undefined
+  }
+
+  const maxAgeMs =
+    materializedView.maxAgeMs !== undefined &&
+    Number.isFinite(materializedView.maxAgeMs) &&
+    materializedView.maxAgeMs >= 0
+      ? materializedView.maxAgeMs
+      : undefined
+
+  return {
+    viewId,
+    ...(maxAgeMs !== undefined ? { maxAgeMs } : {}),
+    ...(materializedView.forceRefresh ? { forceRefresh: true } : {})
+  }
+}
+
+export function getNodeQuerySearchTokens(search: NodeQuerySearchFilter): string[] {
+  return tokenizeSearchText(search.text)
+}
+
+function tokenizeSearchText(text: string): string[] {
+  const tokens = text.toLocaleLowerCase().match(/[\p{L}\p{N}_]+/gu)
+
+  return [...new Set(tokens ?? [])]
+}
+
+function extractTipTapText(value: unknown): string {
+  if (!value || typeof value !== 'object') {
+    return ''
+  }
+
+  const node = value as { text?: unknown; content?: unknown }
+  const parts: string[] = []
+
+  if (typeof node.text === 'string') {
+    parts.push(node.text)
+  }
+
+  if (Array.isArray(node.content)) {
+    parts.push(...node.content.map(extractTipTapText))
+  }
+
+  return parts.join(' ').trim()
+}
+
+function getSearchableText(
+  node: NodeState,
+  fields: readonly NodeQuerySearchField[] = ['title', 'content']
+): string {
+  const parts: string[] = []
+
+  if (fields.includes('title') && typeof node.properties.title === 'string') {
+    parts.push(node.properties.title)
+  }
+
+  if (fields.includes('content')) {
+    const content = node.properties.content
+    if (typeof content === 'string') {
+      parts.push(content)
+    } else {
+      const richText = extractTipTapText(content)
+      if (richText.length > 0) {
+        parts.push(richText)
+      }
+    }
+
+    const description = node.properties.description
+    if (typeof description === 'string') {
+      parts.push(description)
+    }
+
+    const body = node.properties.body
+    if (typeof body === 'string') {
+      parts.push(body)
+    }
+  }
+
+  return parts.join(' ')
+}
+
+function getNumericProperty(
+  properties: NodeState['properties'],
+  key: string | undefined
+): number | null {
+  if (!key) {
+    return null
+  }
+
+  const value = properties[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function matchesSpatialFilter(descriptor: NodeQueryDescriptor, node: NodeState): boolean {
+  const spatial = descriptor.spatial
+  if (!spatial) {
+    return true
+  }
+
+  const x = getNumericProperty(node.properties, spatial.fields.x)
+  const y = getNumericProperty(node.properties, spatial.fields.y)
+
+  if (x === null || y === null) {
+    return false
+  }
+
+  if (spatial.kind === 'radius') {
+    const dx = x - spatial.center.x
+    const dy = y - spatial.center.y
+
+    return dx * dx + dy * dy <= spatial.radius * spatial.radius
+  }
+
+  const overscan = spatial.overscan ?? 0
+  const left = spatial.rect.x - overscan
+  const top = spatial.rect.y - overscan
+  const right = spatial.rect.x + spatial.rect.width + overscan
+  const bottom = spatial.rect.y + spatial.rect.height + overscan
+  const width = getNumericProperty(node.properties, spatial.fields.width) ?? 0
+  const height = getNumericProperty(node.properties, spatial.fields.height) ?? 0
+  const nodeLeft = Math.min(x, x + width)
+  const nodeTop = Math.min(y, y + height)
+  const nodeRight = Math.max(x, x + width)
+  const nodeBottom = Math.max(y, y + height)
+  const isPointLike = width === 0 && height === 0
+
+  if (isPointLike) {
+    return x >= left && x <= right && y >= top && y <= bottom
+  }
+
+  return nodeRight >= left && nodeLeft <= right && nodeBottom >= top && nodeTop <= bottom
+}
+
+function matchesSearchFilter(descriptor: NodeQueryDescriptor, node: NodeState): boolean {
+  const search = descriptor.search
+  if (!search) {
+    return true
+  }
+
+  const queryTokens = getNodeQuerySearchTokens(search)
+  if (queryTokens.length === 0) {
+    return false
+  }
+
+  const searchableTokens = tokenizeSearchText(
+    getSearchableText(node, search.fields ?? ['title', 'content'])
+  )
+  if (searchableTokens.length === 0) {
+    return false
+  }
+
+  return queryTokens.every((queryToken) =>
+    searchableTokens.some((searchableToken) => searchableToken.startsWith(queryToken))
+  )
+}
+
+export function createNodeQueryDescriptor<P extends Record<string, PropertyBuilder>>(
+  schemaId: SchemaIRI,
+  options?: NodeQueryOptions<P>
+): NodeQueryDescriptor {
+  return {
+    schemaId,
+    nodeId: options?.nodeId,
+    where: sortRecord(options?.where as Record<string, unknown> | undefined),
+    includeDeleted: options?.includeDeleted ?? false,
+    orderBy: sortRecord(options?.orderBy as Record<string, SortDirection> | undefined),
+    limit: options?.limit,
+    offset: options?.offset,
+    spatial: normalizeSpatialFilter(options?.spatial),
+    search: normalizeSearchFilter(options?.search),
+    materializedView: normalizeMaterializedViewOptions(options?.materializedView)
+  }
+}
+
+export function nodeQueryDescriptorToOptions<
+  P extends Record<string, PropertyBuilder> = Record<string, PropertyBuilder>
+>(descriptor: NodeQueryDescriptor): NodeQueryOptions<P> {
+  const options: NodeQueryOptions<P> = {}
+
+  if (descriptor.nodeId) {
+    options.nodeId = descriptor.nodeId
+  }
+
+  if (descriptor.where) {
+    options.where = descriptor.where as Partial<InferCreateProps<P>>
+  }
+
+  if (descriptor.includeDeleted) {
+    options.includeDeleted = true
+  }
+
+  if (descriptor.orderBy) {
+    options.orderBy = descriptor.orderBy as NodeQueryOptions<P>['orderBy']
+  }
+
+  if (descriptor.limit !== undefined) {
+    options.limit = descriptor.limit
+  }
+
+  if (descriptor.offset !== undefined) {
+    options.offset = descriptor.offset
+  }
+
+  if (descriptor.spatial) {
+    options.spatial = descriptor.spatial
+  }
+
+  if (descriptor.search) {
+    options.search = descriptor.search
+  }
+
+  if (descriptor.materializedView) {
+    options.materializedView = descriptor.materializedView
+  }
+
+  return options
+}
+
+export function serializeNodeQueryDescriptor(descriptor: NodeQueryDescriptor): string {
+  return JSON.stringify(descriptor)
+}
+
+export function matchesNodeQueryDescriptor(
+  descriptor: NodeQueryDescriptor,
+  node: NodeState | null | undefined
+): boolean {
+  if (!node) return false
+  if (node.schemaId !== descriptor.schemaId) return false
+  if (descriptor.nodeId && node.id !== descriptor.nodeId) return false
+  if (!descriptor.includeDeleted && node.deleted) return false
+
+  if (descriptor.where) {
+    for (const [key, value] of Object.entries(descriptor.where)) {
+      if (node.properties[key] !== value) {
+        return false
+      }
+    }
+  }
+
+  return matchesSpatialFilter(descriptor, node) && matchesSearchFilter(descriptor, node)
+}
+
+export function filterNodeQueryResults(
+  nodes: NodeState[],
+  descriptor: NodeQueryDescriptor
+): NodeState[] {
+  return nodes.filter((node) => matchesNodeQueryDescriptor(descriptor, node))
+}
+
+export function sortNodeQueryResults(
+  nodes: NodeState[],
+  descriptor: NodeQueryDescriptor
+): NodeState[] {
+  if (!descriptor.orderBy) return nodes
+
+  const entries = Object.entries(descriptor.orderBy) as [
+    keyof NodeState['properties'] | SystemOrderField,
+    SortDirection
+  ][]
+  if (entries.length === 0) return nodes
+
+  return [...nodes].sort((left, right) => {
+    for (const [key, direction] of entries) {
+      const keyName = key as string
+      let leftValue: unknown
+      let rightValue: unknown
+
+      if (keyName === 'createdAt' || keyName === 'updatedAt') {
+        leftValue = left[keyName]
+        rightValue = right[keyName]
+      } else {
+        leftValue = left.properties[keyName]
+        rightValue = right.properties[keyName]
+      }
+
+      if (leftValue === rightValue) continue
+      if (leftValue == null) return direction === 'asc' ? 1 : -1
+      if (rightValue == null) return direction === 'asc' ? -1 : 1
+
+      const comparison = leftValue < rightValue ? -1 : 1
+      return direction === 'asc' ? comparison : -comparison
+    }
+
+    return 0
+  })
+}
+
+export function applyNodeQueryDescriptor(
+  nodes: NodeState[],
+  descriptor: NodeQueryDescriptor
+): NodeState[] {
+  const filtered = filterNodeQueryResults(nodes, descriptor)
+  const sorted = sortNodeQueryResults(filtered, descriptor)
+  const offset = descriptor.offset ?? 0
+
+  if (descriptor.limit === undefined) {
+    return sorted.slice(offset)
+  }
+
+  return sorted.slice(offset, offset + descriptor.limit)
+}
+
+export function nodeQueryDescriptorNeedsBoundedReload(descriptor: NodeQueryDescriptor): boolean {
+  return descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0
+}
+
+export function withoutNodeQueryPagination(descriptor: NodeQueryDescriptor): NodeQueryDescriptor {
+  const next = { ...descriptor }
+  delete next.limit
+  delete next.offset
+  return next
+}
+
+export function withoutNodeQueryMaterializedView(
+  descriptor: NodeQueryDescriptor
+): NodeQueryDescriptor {
+  const next = { ...descriptor }
+  delete next.materializedView
+  return next
+}

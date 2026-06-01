@@ -7,6 +7,7 @@
 import type { SQLiteAdapter } from './adapter'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createMemorySQLiteAdapter } from './adapters/memory'
+import { detectSQLiteCapabilities } from './diagnostics'
 import {
   buildInsert,
   buildUpdate,
@@ -49,6 +50,9 @@ describe('SQLiteAdapter Interface', () => {
 
       expect(tableNames).toContain('nodes')
       expect(tableNames).toContain('node_properties')
+      expect(tableNames).toContain('node_property_scalars')
+      expect(tableNames).toContain('query_descriptor_stats')
+      expect(tableNames).toContain('query_index_candidates')
       expect(tableNames).toContain('changes')
       expect(tableNames).toContain('yjs_state')
       expect(tableNames).toContain('yjs_updates')
@@ -64,6 +68,19 @@ describe('SQLiteAdapter Interface', () => {
     it('throws when accessing closed database', async () => {
       await db.close()
       await expect(db.query('SELECT 1')).rejects.toThrow('Database not open')
+    })
+  })
+
+  describe('Runtime Capabilities', () => {
+    it('detects optional virtual table support without throwing', async () => {
+      const capabilities = await detectSQLiteCapabilities(db)
+      const cached = await detectSQLiteCapabilities(db)
+
+      expect(capabilities).toEqual({
+        fts5: expect.any(Boolean),
+        rtree: expect.any(Boolean)
+      })
+      expect(cached).toEqual(capabilities)
     })
   })
 

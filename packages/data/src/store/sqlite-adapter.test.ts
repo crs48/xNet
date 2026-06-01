@@ -2,13 +2,33 @@
  * Tests for SQLiteNodeStorageAdapter
  */
 
+import type { NodeQueryDescriptor } from './query'
 import type { NodeState, NodeChange, NodePayload } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { DID, ContentId } from '@xnetjs/core'
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import { randomUUID } from 'crypto'
+import { existsSync, unlinkSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
+
+function getTestDbPath(): string {
+  return join(tmpdir(), `xnet-data-spatial-${randomUUID()}.db`)
+}
+
+function cleanupDb(path: string): void {
+  for (const file of [path, `${path}-wal`, `${path}-shm`]) {
+    try {
+      if (existsSync(file)) unlinkSync(file)
+    } catch {
+      // Ignore cleanup errors.
+    }
+  }
+}
 
 describe('SQLiteNodeStorageAdapter', () => {
   let db: SQLiteAdapter
@@ -16,6 +36,42 @@ describe('SQLiteNodeStorageAdapter', () => {
 
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5LZnkwPDYr4E4Nfy5sQk5YJqRhEjLRs' as DID
   const testSchemaId = 'xnet://xnet.fyi/Page' as SchemaIRI
+  const taskSchemaId = 'xnet://xnet.fyi/Task' as SchemaIRI
+
+  function createTestNode(input: {
+    id: string
+    schemaId?: SchemaIRI
+    properties?: Record<string, unknown>
+    deleted?: boolean
+    createdAt?: number
+    updatedAt?: number
+  }): NodeState {
+    const now = input.createdAt ?? Date.now()
+    const properties = input.properties ?? {}
+
+    return {
+      id: input.id,
+      schemaId: input.schemaId ?? testSchemaId,
+      properties,
+      timestamps: Object.fromEntries(
+        Object.keys(properties).map((key, index) => [
+          key,
+          {
+            lamport: { time: index + 1, author: testDID },
+            wallTime: input.updatedAt ?? now
+          }
+        ])
+      ),
+      deleted: input.deleted ?? false,
+      deletedAt: input.deleted
+        ? { lamport: { time: 99, author: testDID }, wallTime: input.updatedAt ?? now }
+        : undefined,
+      createdAt: now,
+      createdBy: testDID,
+      updatedAt: input.updatedAt ?? now,
+      updatedBy: testDID
+    }
+  }
 
   beforeEach(async () => {
     db = await createMemorySQLiteAdapter()
@@ -315,6 +371,947 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('counts nodes by schema', async () => {
       const count = await adapter.countNodes({ schemaId: testSchemaId })
       expect(count).toBe(2) // 0, 2 (4 is deleted)
+    })
+  })
+
+  // ─── Scalar Property Index And Query Planning ──────────────────────────────
+
+  describe('scalar property index', () => {
+    it('indexes text, number, boolean, and null scalar values', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-1',
+          schemaId: taskSchemaId,
+          properties: {
+            title: 'Indexed task',
+            priority: 3,
+            done: false,
+            dueDate: null,
+            tags: ['not-indexed']
+          }
+        })
+      )
+
+      const rows = await db.query<{
+        property_key: string
+        value_type: string
+        value_text: string | null
+        value_number: number | null
+        value_boolean: number | null
+      }>(
+        `SELECT property_key, value_type, value_text, value_number, value_boolean
+         FROM node_property_scalars
+         WHERE node_id = ?
+         ORDER BY property_key ASC`,
+        ['task-1']
+      )
+
+      expect(rows).toEqual([
+        {
+          property_key: 'done',
+          value_type: 'boolean',
+          value_text: null,
+          value_number: null,
+          value_boolean: 0
+        },
+        {
+          property_key: 'dueDate',
+          value_type: 'null',
+          value_text: null,
+          value_number: null,
+          value_boolean: null
+        },
+        {
+          property_key: 'priority',
+          value_type: 'number',
+          value_text: null,
+          value_number: 3,
+          value_boolean: null
+        },
+        {
+          property_key: 'title',
+          value_type: 'text',
+          value_text: 'Indexed task',
+          value_number: null,
+          value_boolean: null
+        }
+      ])
+    })
+
+    it('removes stale property and scalar rows when materialized properties are deleted', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-1',
+          schemaId: taskSchemaId,
+          properties: { title: 'Task', status: 'open' }
+        })
+      )
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-1',
+          schemaId: taskSchemaId,
+          properties: { title: 'Task' }
+        })
+      )
+
+      const node = await adapter.getNode('task-1')
+      const scalarRows = await db.query<{ property_key: string }>(
+        `SELECT property_key FROM node_property_scalars WHERE node_id = ? ORDER BY property_key`,
+        ['task-1']
+      )
+
+      expect(node?.properties).toEqual({ title: 'Task' })
+      expect(scalarRows.map((row) => row.property_key)).toEqual(['title'])
+    })
+
+    it('can rebuild scalar rows from materialized node properties', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-1',
+          schemaId: taskSchemaId,
+          properties: { title: 'Task', priority: 4, done: true }
+        })
+      )
+      await db.run('DELETE FROM node_property_scalars')
+
+      const result = await adapter.rebuildScalarIndex()
+      const scalarRows = await db.query<{ property_key: string }>(
+        `SELECT property_key FROM node_property_scalars WHERE node_id = ? ORDER BY property_key`,
+        ['task-1']
+      )
+
+      expect(result).toEqual({ nodesScanned: 1, scalarRowsWritten: 3 })
+      expect(scalarRows.map((row) => row.property_key)).toEqual(['done', 'priority', 'title'])
+    })
+
+    it('skips plaintext scalar rows when indexing is disabled', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'encrypted-task',
+          schemaId: taskSchemaId,
+          properties: { title: 'Encrypted task', status: 'open' }
+        }),
+        { indexProperties: false }
+      )
+
+      const count = await db.queryOne<{ count: number }>(
+        `SELECT COUNT(*) as count FROM node_property_scalars WHERE node_id = ?`,
+        ['encrypted-task']
+      )
+
+      expect(count?.count).toBe(0)
+    })
+  })
+
+  describe('queryNodes', () => {
+    beforeEach(async () => {
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open-high',
+          schemaId: taskSchemaId,
+          properties: { title: 'Open high', status: 'open', priority: 10, done: false },
+          createdAt: now,
+          updatedAt: now + 3000
+        }),
+        createTestNode({
+          id: 'task-open-low',
+          schemaId: taskSchemaId,
+          properties: { title: 'Open low', status: 'open', priority: 1, done: false },
+          createdAt: now + 100,
+          updatedAt: now + 2000
+        }),
+        createTestNode({
+          id: 'task-done',
+          schemaId: taskSchemaId,
+          properties: { title: 'Done', status: 'done', priority: 4, done: true },
+          createdAt: now + 200,
+          updatedAt: now + 1000
+        }),
+        createTestNode({
+          id: 'task-null-status',
+          schemaId: taskSchemaId,
+          properties: { title: 'No status', status: null, done: false },
+          createdAt: now + 300,
+          updatedAt: now + 500
+        }),
+        createTestNode({
+          id: 'task-deleted',
+          schemaId: taskSchemaId,
+          properties: { title: 'Deleted', status: 'open', done: false },
+          deleted: true,
+          createdAt: now + 400,
+          updatedAt: now + 4000
+        })
+      ])
+    })
+
+    it('pushes down scalar equality while preserving descriptor results', async () => {
+      const descriptor: NodeQueryDescriptor = {
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 1
+      }
+
+      const result = await adapter.queryNodes(descriptor)
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(result.plan.strategy).toBe('storage-query')
+      expect(result.plan.candidateNodeCount).toBe(1)
+      expect(result.plan.postFilterReason).toBe('pagination-pushed-down')
+      expect(result.plan.parityCheck).toMatchObject({
+        strategy: 'exact',
+        valid: true,
+        comparedNodeCount: 4,
+        expectedNodeCount: 1
+      })
+      expect(result.plan.candidateQueryDurationMs).toEqual(expect.any(Number))
+      expect(result.plan.usedIndexNames).toContain('idx_prop_scalars_text')
+      expect(
+        result.plan.queryPlanDetails?.some((detail) => detail.includes('idx_prop_scalars_text'))
+      ).toBe(true)
+      expect(result.plan.availableIndexCount).toBeGreaterThan(0)
+      expect(result.plan.adaptiveIndexCount).toBe(0)
+      expect(result.plan.diagnosticsError).toBeUndefined()
+      expect(result.plan.storageCapabilities).toEqual({
+        fullTextSearch: expect.any(Boolean),
+        rtree: expect.any(Boolean)
+      })
+    })
+
+    it('matches null and boolean scalar equality without matching missing values', async () => {
+      const nullStatus = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: null }
+      })
+      const priority = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { priority: 10 }
+      })
+      const unchecked = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { done: false },
+        orderBy: { updatedAt: 'desc' }
+      })
+
+      expect(nullStatus.nodes.map((node) => node.id)).toEqual(['task-null-status'])
+      expect(priority.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(unchecked.nodes.map((node) => node.id)).toEqual([
+        'task-open-high',
+        'task-open-low',
+        'task-null-status'
+      ])
+    })
+
+    it('falls back to full list semantics for unsupported object equality', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-object',
+          schemaId: taskSchemaId,
+          properties: { title: 'Object', metadata: { nested: true } }
+        })
+      )
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { metadata: { nested: true } }
+      })
+
+      expect(result.nodes).toEqual([])
+      expect(result.plan.strategy).toBe('list-fallback')
+    })
+
+    it('pushes down limit and offset for system-field ordering', async () => {
+      const byCreatedAt = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { createdAt: 'asc' },
+        limit: 2,
+        offset: 1
+      })
+      const byUpdatedAt = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 2
+      })
+
+      expect(byCreatedAt.nodes.map((node) => node.id)).toEqual(['task-open-low', 'task-done'])
+      expect(byUpdatedAt.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+      expect(byCreatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
+      expect(byUpdatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
+    })
+
+    it('keeps search queries on the JS-verified path when FTS is unavailable', async () => {
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 1,
+        search: { text: 'open' }
+      })
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(result.plan.storageCapabilities?.fullTextSearch).toBe(false)
+      expect(result.plan.candidateAccelerators).toBeUndefined()
+      expect(result.plan.fullTextSearchQuery).toBeUndefined()
+      expect(result.plan.postFilterReason).toBe('verified-in-js')
+    })
+
+    it('materializes stable view result IDs and refreshes after invalidation', async () => {
+      const firstPage = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 1,
+        materializedView: { viewId: 'task-table-open' }
+      })
+      const secondPage = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 2,
+        materializedView: { viewId: 'task-table-open' }
+      })
+
+      expect(firstPage.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(firstPage.plan.postFilterReason).toBe('materialized-view-refreshed')
+      expect(firstPage.plan.materializedCacheHit).toBe(false)
+      expect(firstPage.plan.materializedViewId).toBe('task-table-open')
+      expect(firstPage.plan.materializedRowCount).toBe(2)
+      expect(secondPage.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+      expect(secondPage.plan.postFilterReason).toBe('materialized-view-cache-hit')
+      expect(secondPage.plan.materializedCacheHit).toBe(true)
+
+      const updatedLow = createTestNode({
+        id: 'task-open-low',
+        schemaId: taskSchemaId,
+        properties: { title: 'Open low', status: 'done', priority: 1, done: false },
+        updatedAt: Date.now() + 10_000
+      })
+      Object.values(updatedLow.timestamps).forEach((timestamp, index) => {
+        timestamp.lamport.time = 100 + index
+      })
+      await adapter.setNode(updatedLow)
+
+      const invalidated = await db.queryOne<{ invalidated_at: number | null }>(
+        `SELECT invalidated_at
+         FROM node_query_materializations
+         WHERE view_id = ?`,
+        ['task-table-open']
+      )
+      expect(invalidated?.invalidated_at).toEqual(expect.any(Number))
+
+      const afterInvalidation = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 2,
+        materializedView: { viewId: 'task-table-open' }
+      })
+
+      expect(afterInvalidation.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(afterInvalidation.plan.postFilterReason).toBe('materialized-view-refreshed')
+      expect(afterInvalidation.plan.materializedCacheHit).toBe(false)
+      expect(afterInvalidation.plan.materializedRowCount).toBe(1)
+      expect(afterInvalidation.plan.parityCheck).toMatchObject({
+        strategy: 'exact',
+        valid: true,
+        expectedNodeCount: 1
+      })
+    })
+
+    it('keeps spatial queries on the JS-verified path when R-Tree is unavailable', async () => {
+      await adapter.importNodes([
+        createTestNode({
+          id: 'spatial-near',
+          schemaId: taskSchemaId,
+          properties: { title: 'Near', x: 10, y: 10, width: 20, height: 20 }
+        }),
+        createTestNode({
+          id: 'spatial-far',
+          schemaId: taskSchemaId,
+          properties: { title: 'Far', x: 500, y: 500, width: 20, height: 20 }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        spatial: {
+          kind: 'window',
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          fields: { x: 'x', y: 'y', width: 'width', height: 'height' }
+        }
+      })
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['spatial-near'])
+      expect(result.plan.storageCapabilities?.rtree).toBe(false)
+      expect(result.plan.candidateAccelerators).toBeUndefined()
+      expect(result.plan.spatialIndexKey).toBeUndefined()
+      expect(result.plan.postFilterReason).toBe('verified-in-js')
+    })
+
+    it('skips parity checks when the descriptor scope exceeds the configured cap', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        queryVerification: { maxNodes: 1 }
+      })
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+
+      expect(result.plan.parityCheck).toEqual({
+        strategy: 'skipped',
+        reason: 'scope-too-large',
+        comparedNodeCount: 4
+      })
+    })
+
+    it('logs high-severity diagnostics when SQL candidates miss JS descriptor results', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+      try {
+        await db.run('DELETE FROM node_property_scalars WHERE node_id = ?', ['task-open-high'])
+
+        const result = await adapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          where: { status: 'open' },
+          orderBy: { updatedAt: 'desc' }
+        })
+
+        expect(result.nodes.map((node) => node.id)).toEqual(['task-open-low'])
+        expect(result.plan.parityCheck).toMatchObject({
+          strategy: 'exact',
+          valid: false,
+          comparedNodeCount: 4,
+          expectedNodeCount: 2,
+          missingNodeIds: ['task-open-high']
+        })
+        expect(consoleError).toHaveBeenCalledWith(
+          '[SQLiteNodeStorageAdapter] Node query parity failure',
+          expect.objectContaining({
+            descriptor: expect.objectContaining({ where: { status: 'open' } }),
+            parityCheck: expect.objectContaining({
+              valid: false,
+              missingNodeIds: ['task-open-high']
+            })
+          })
+        )
+      } finally {
+        consoleError.mockRestore()
+      }
+    })
+
+    it('uses composite node and scalar indexes in query plans', async () => {
+      const defaultListPlan = await db.query<{ detail: string }>(
+        `EXPLAIN QUERY PLAN
+         SELECT id FROM nodes
+         WHERE schema_id = ? AND deleted_at IS NULL
+         ORDER BY updated_at DESC
+         LIMIT 2`,
+        [taskSchemaId]
+      )
+      const propertyFilterPlan = await db.query<{ detail: string }>(
+        `EXPLAIN QUERY PLAN
+         SELECT n.id
+         FROM nodes n
+         JOIN node_property_scalars p0
+           ON p0.node_id = n.id
+          AND p0.schema_id = n.schema_id
+          AND p0.property_key = ?
+          AND p0.value_type = ?
+         WHERE n.schema_id = ?
+           AND n.deleted_at IS NULL
+           AND p0.value_text = ?
+         ORDER BY n.updated_at DESC
+         LIMIT 2`,
+        ['status', 'text', taskSchemaId, 'open']
+      )
+
+      expect(
+        defaultListPlan.some(
+          (row) =>
+            row.detail.includes('idx_nodes_live_schema_updated') ||
+            row.detail.includes('idx_nodes_all_schema_updated')
+        )
+      ).toBe(true)
+      expect(propertyFilterPlan.some((row) => row.detail.includes('idx_prop_scalars_text'))).toBe(
+        true
+      )
+    })
+
+    it('uses FTS candidates for search queries when SQLite supports it', async () => {
+      const dbPath = getTestDbPath()
+      const nativeDb = await createElectronSQLiteAdapter({ path: dbPath })
+      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
+      const now = Date.now()
+
+      try {
+        await nativeAdapter.importNodes([
+          createTestNode({
+            id: 'fts-content-match',
+            schemaId: taskSchemaId,
+            properties: { title: 'Notes', body: 'Project roadmap details' },
+            updatedAt: now + 3
+          }),
+          createTestNode({
+            id: 'fts-title-match',
+            schemaId: taskSchemaId,
+            properties: { title: 'Project roadmap', description: 'Kickoff' },
+            updatedAt: now + 2
+          }),
+          createTestNode({
+            id: 'fts-miss',
+            schemaId: taskSchemaId,
+            properties: { title: 'Project status', description: 'Weekly update' },
+            updatedAt: now + 1
+          })
+        ])
+
+        const result = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          search: { text: 'proj road' }
+        })
+
+        expect(result.nodes.map((node) => node.id)).toEqual([
+          'fts-content-match',
+          'fts-title-match'
+        ])
+        expect(result.plan.strategy).toBe('storage-query')
+        expect(result.plan.postFilterReason).toBe('fts-verified-in-js')
+        expect(result.plan.candidateAccelerators).toEqual(['fts'])
+        expect(result.plan.fullTextSearchQuery).toBe('proj* AND road*')
+        expect(result.plan.sql).toContain('nodes_fts')
+        expect(result.plan.candidateNodeCount).toBe(2)
+        expect(result.plan.parityCheck).toMatchObject({
+          strategy: 'exact',
+          valid: true,
+          expectedNodeCount: 2
+        })
+
+        const titleOnly = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          search: { text: 'proj road', fields: ['title'] }
+        })
+        expect(titleOnly.nodes.map((node) => node.id)).toEqual(['fts-title-match'])
+        expect(titleOnly.plan.candidateNodeCount).toBe(2)
+
+        const updatedContentMatch = createTestNode({
+          id: 'fts-content-match',
+          schemaId: taskSchemaId,
+          properties: { title: 'Notes', body: 'Archive details' },
+          updatedAt: now + 4
+        })
+        updatedContentMatch.timestamps.title.lamport.time = 10
+        updatedContentMatch.timestamps.body.lamport.time = 11
+        await nativeAdapter.setNode(updatedContentMatch)
+
+        const afterUpdate = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          search: { text: 'proj road' }
+        })
+        expect(afterUpdate.nodes.map((node) => node.id)).toEqual(['fts-title-match'])
+      } finally {
+        if (nativeDb.isOpen()) {
+          await nativeDb.close()
+        }
+        cleanupDb(dbPath)
+      }
+    })
+
+    it('uses R-Tree candidates for spatial queries when SQLite supports it', async () => {
+      const dbPath = getTestDbPath()
+      const nativeDb = await createElectronSQLiteAdapter({ path: dbPath })
+      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
+      const now = Date.now()
+
+      try {
+        await nativeAdapter.importNodes([
+          createTestNode({
+            id: 'rtree-near-large',
+            schemaId: taskSchemaId,
+            properties: { title: 'Near large', x: 10, y: 10, width: 20, height: 20 },
+            updatedAt: now + 1
+          }),
+          createTestNode({
+            id: 'rtree-near-point',
+            schemaId: taskSchemaId,
+            properties: { title: 'Near point', x: 40, y: 40 },
+            updatedAt: now + 2
+          }),
+          createTestNode({
+            id: 'rtree-far',
+            schemaId: taskSchemaId,
+            properties: { title: 'Far', x: 500, y: 500, width: 20, height: 20 },
+            updatedAt: now + 3
+          })
+        ])
+
+        const spatial = {
+          kind: 'window' as const,
+          rect: { x: 0, y: 0, width: 100, height: 100 },
+          fields: { x: 'x', y: 'y', width: 'width', height: 'height' }
+        }
+        const initial = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          spatial
+        })
+
+        expect(initial.nodes.map((node) => node.id)).toEqual([
+          'rtree-near-point',
+          'rtree-near-large'
+        ])
+        expect(initial.plan.strategy).toBe('storage-query')
+        expect(initial.plan.postFilterReason).toBe('spatial-rtree-verified-in-js')
+        expect(initial.plan.candidateAccelerators).toEqual(['rtree'])
+        expect(initial.plan.spatialIndexKey).toEqual(expect.any(String))
+        expect(initial.plan.sql).toContain('node_spatial_rtree')
+        expect(initial.plan.candidateNodeCount).toBe(2)
+        expect(initial.plan.parityCheck).toMatchObject({
+          strategy: 'exact',
+          valid: true,
+          expectedNodeCount: 2
+        })
+
+        await nativeAdapter.setNode(
+          createTestNode({
+            id: 'rtree-new',
+            schemaId: taskSchemaId,
+            properties: { title: 'New', x: 12, y: 12, width: 4, height: 4 },
+            updatedAt: now + 4
+          })
+        )
+
+        const afterInsert = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          spatial
+        })
+        expect(afterInsert.nodes.map((node) => node.id)).toEqual([
+          'rtree-new',
+          'rtree-near-point',
+          'rtree-near-large'
+        ])
+
+        await nativeAdapter.deleteNode('rtree-near-point')
+        const afterDelete = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          orderBy: { updatedAt: 'desc' },
+          spatial
+        })
+        expect(afterDelete.nodes.map((node) => node.id)).toEqual(['rtree-new', 'rtree-near-large'])
+      } finally {
+        if (nativeDb.isOpen()) {
+          await nativeDb.close()
+        }
+        cleanupDb(dbPath)
+      }
+    })
+  })
+
+  describe('adaptive index advisor', () => {
+    it('records query descriptor stats without creating indexes by default', async () => {
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        }),
+        createTestNode({
+          id: 'task-done',
+          schemaId: taskSchemaId,
+          properties: { status: 'done' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      const stats = await db.queryOne<{
+        descriptor_hash: string
+        hits: number
+        descriptor_json: string
+      }>(
+        `SELECT descriptor_hash, hits, descriptor_json
+         FROM query_descriptor_stats
+         WHERE schema_id = ?`,
+        [taskSchemaId]
+      )
+      const adaptiveIndexes = await db.query<{ name: string }>(
+        `SELECT name
+         FROM sqlite_master
+         WHERE type = 'index' AND name LIKE 'idx_auto_prop_%'`
+      )
+
+      expect(result.plan.descriptorHash).toBe(stats?.descriptor_hash)
+      expect(stats?.hits).toBe(1)
+      expect(stats?.descriptor_json).toContain('"where":{"status":"open"}')
+      expect(adaptiveIndexes).toEqual([])
+    })
+
+    it('creates bounded partial scalar indexes for hot descriptors when enabled', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 8
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        }),
+        createTestNode({
+          id: 'task-done',
+          schemaId: taskSchemaId,
+          properties: { status: 'done' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      const candidates = await db.query<{
+        index_name: string
+        property_key: string
+        value_type: string
+        ddl: string
+        estimated_bytes: number
+        estimated_rows: number
+      }>(
+        `SELECT index_name, property_key, value_type, ddl, estimated_bytes, estimated_rows
+         FROM query_index_candidates
+         ORDER BY index_name ASC`
+      )
+      const adaptiveIndexes = await db.query<{ name: string }>(
+        `SELECT name
+         FROM sqlite_master
+         WHERE type = 'index' AND name LIKE 'idx_auto_prop_%'
+         ORDER BY name ASC`
+      )
+
+      expect(result.plan.adaptiveIndexNames).toEqual([candidates[0]?.index_name])
+      expect(candidates).toHaveLength(1)
+      expect(candidates[0].property_key).toBe('status')
+      expect(candidates[0].value_type).toBe('text')
+      expect(candidates[0].ddl).toContain("property_key = 'status'")
+      expect(candidates[0].estimated_bytes).toBeGreaterThan(0)
+      expect(candidates[0].estimated_rows).toBe(2)
+      expect(adaptiveIndexes.map((row) => row.name)).toEqual([candidates[0].index_name])
+    })
+
+    it('enforces the per-schema adaptive index budget', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 1
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open', priority: 1 }
+        })
+      ])
+
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open', priority: 1 }
+      })
+      const budgetedIndexes = await db.query<{ index_name: string }>(
+        `SELECT index_name
+         FROM query_index_candidates
+         WHERE schema_id = ?`,
+        [taskSchemaId]
+      )
+
+      expect(budgetedIndexes).toHaveLength(1)
+    })
+
+    it('replaces the least-recently-used adaptive index when the count budget is full', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 1
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open', priority: 1 }
+        })
+      ])
+
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { priority: 1 }
+      })
+      const candidates = await db.query<{ property_key: string }>(
+        `SELECT property_key
+         FROM query_index_candidates
+         WHERE schema_id = ?
+         ORDER BY property_key ASC`,
+        [taskSchemaId]
+      )
+
+      expect(candidates).toEqual([{ property_key: 'priority' }])
+    })
+
+    it('drops stale adaptive indexes before creating new ones', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 8,
+          dropUnusedAfterMs: 1
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open', priority: 1 }
+        })
+      ])
+
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      await db.run('UPDATE query_index_candidates SET last_used_at = 0')
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { priority: 1 }
+      })
+      const candidates = await db.query<{ property_key: string }>(
+        `SELECT property_key
+         FROM query_index_candidates
+         WHERE schema_id = ?
+         ORDER BY property_key ASC`,
+        [taskSchemaId]
+      )
+
+      expect(candidates).toEqual([{ property_key: 'priority' }])
+    })
+
+    it('skips adaptive indexes that exceed the estimated byte budget', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 8,
+          maxEstimatedBytesPerSchema: 1,
+          maxIndexedRowsPerSchema: 10_000
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      const candidates = await db.query<{ index_name: string }>(
+        'SELECT index_name FROM query_index_candidates'
+      )
+
+      expect(result.plan.adaptiveIndexNames).toBeUndefined()
+      expect(candidates).toEqual([])
+    })
+
+    it('skips adaptive indexes that exceed the indexed-row write budget', async () => {
+      adapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: {
+          enabled: true,
+          minHits: 1,
+          minDurationMs: 0,
+          minCandidates: 0,
+          maxIndexesPerSchema: 8,
+          maxEstimatedBytesPerSchema: 10_000,
+          maxIndexedRowsPerSchema: 1
+        }
+      })
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        }),
+        createTestNode({
+          id: 'task-done',
+          schemaId: taskSchemaId,
+          properties: { status: 'done' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+      const candidates = await db.query<{ index_name: string }>(
+        'SELECT index_name FROM query_index_candidates'
+      )
+
+      expect(result.plan.adaptiveIndexNames).toBeUndefined()
+      expect(candidates).toEqual([])
     })
   })
 
