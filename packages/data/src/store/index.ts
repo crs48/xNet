@@ -37,6 +37,7 @@ export type {
   PropertyTimestamp,
   NodeState,
   NodeStorageAdapter,
+  SetNodeOptions,
   ListNodesOptions,
   CountNodesOptions,
   ConflictResult,
@@ -55,6 +56,33 @@ export type {
   MigrationInfo,
   MigratedNodeState
 } from './types'
+
+export type {
+  SortDirection,
+  SystemOrderField,
+  NodeQuerySpatialPoint,
+  NodeQuerySpatialRect,
+  NodeQuerySpatialPointFields,
+  NodeQuerySpatialRectFields,
+  NodeQuerySpatialWindow,
+  NodeQuerySpatialRadius,
+  NodeQuerySpatialFilter,
+  NodeQueryOptions,
+  NodeQueryDescriptor,
+  NodeQueryPlanMetadata,
+  NodeQueryResult
+} from './query'
+export {
+  createNodeQueryDescriptor,
+  nodeQueryDescriptorToOptions,
+  serializeNodeQueryDescriptor,
+  matchesNodeQueryDescriptor,
+  filterNodeQueryResults,
+  sortNodeQueryResults,
+  applyNodeQueryDescriptor,
+  nodeQueryDescriptorNeedsBoundedReload,
+  withoutNodeQueryPagination
+} from './query'
 
 // NodeStore
 export { NodeStore } from './store'

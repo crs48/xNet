@@ -11,6 +11,7 @@
  * - Materialized state computed by replaying Changes
  */
 
+import type { NodeQueryDescriptor, NodeQueryResult, SortDirection, SystemOrderField } from './query'
 import type { SchemaLookup } from './tempids'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
@@ -153,10 +154,11 @@ export interface NodeStorageAdapter {
 
   // Materialized state operations
   getNode(id: NodeId): Promise<NodeState | null>
-  setNode(node: NodeState): Promise<void>
+  setNode(node: NodeState, options?: SetNodeOptions): Promise<void>
   deleteNode(id: NodeId): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<NodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
+  queryNodes?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
 
   // Sync state
   getLastLamportTime(): Promise<number>
@@ -167,11 +169,22 @@ export interface NodeStorageAdapter {
   setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>
 }
 
+export interface SetNodeOptions {
+  /**
+   * Whether storage may maintain plaintext property read indexes for this node.
+   * Encrypted NodeStore instances pass false and must rely on post-decryption
+   * query evaluation instead.
+   */
+  indexProperties?: boolean
+}
+
 export interface ListNodesOptions {
   /** Filter by schema IRI */
   schemaId?: SchemaIRI
   /** Include soft-deleted nodes */
   includeDeleted?: boolean
+  /** Sort by system metadata fields */
+  orderBy?: Partial<Record<SystemOrderField, SortDirection>>
   /** Limit results */
   limit?: number
   /** Offset for pagination */

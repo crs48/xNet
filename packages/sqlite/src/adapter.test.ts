@@ -49,6 +49,7 @@ describe('SQLiteAdapter Interface', () => {
 
       expect(tableNames).toContain('nodes')
       expect(tableNames).toContain('node_properties')
+      expect(tableNames).toContain('node_property_scalars')
       expect(tableNames).toContain('changes')
       expect(tableNames).toContain('yjs_state')
       expect(tableNames).toContain('yjs_updates')

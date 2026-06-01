@@ -2,6 +2,7 @@
  * Tests for SQLiteNodeStorageAdapter
  */
 
+import type { NodeQueryDescriptor } from './query'
 import type { NodeState, NodeChange, NodePayload } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { DID, ContentId } from '@xnetjs/core'
@@ -16,6 +17,42 @@ describe('SQLiteNodeStorageAdapter', () => {
 
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5LZnkwPDYr4E4Nfy5sQk5YJqRhEjLRs' as DID
   const testSchemaId = 'xnet://xnet.fyi/Page' as SchemaIRI
+  const taskSchemaId = 'xnet://xnet.fyi/Task' as SchemaIRI
+
+  function createTestNode(input: {
+    id: string
+    schemaId?: SchemaIRI
+    properties?: Record<string, unknown>
+    deleted?: boolean
+    createdAt?: number
+    updatedAt?: number
+  }): NodeState {
+    const now = input.createdAt ?? Date.now()
+    const properties = input.properties ?? {}
+
+    return {
+      id: input.id,
+      schemaId: input.schemaId ?? testSchemaId,
+      properties,
+      timestamps: Object.fromEntries(
+        Object.keys(properties).map((key, index) => [
+          key,
+          {
+            lamport: { time: index + 1, author: testDID },
+            wallTime: input.updatedAt ?? now
+          }
+        ])
+      ),
+      deleted: input.deleted ?? false,
+      deletedAt: input.deleted
+        ? { lamport: { time: 99, author: testDID }, wallTime: input.updatedAt ?? now }
+        : undefined,
+      createdAt: now,
+      createdBy: testDID,
+      updatedAt: input.updatedAt ?? now,
+      updatedBy: testDID
+    }
+  }
 
   beforeEach(async () => {
     db = await createMemorySQLiteAdapter()
@@ -315,6 +352,301 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('counts nodes by schema', async () => {
       const count = await adapter.countNodes({ schemaId: testSchemaId })
       expect(count).toBe(2) // 0, 2 (4 is deleted)
+    })
+  })
+
+  // ─── Scalar Property Index And Query Planning ──────────────────────────────
+
+  describe('scalar property index', () => {
+    it('indexes text, number, boolean, and null scalar values', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-1',
+          schemaId: taskSchemaId,
+          properties: {
+            title: 'Indexed task',
+            priority: 3,
+            done: false,
+            dueDate: null,
+            tags: ['not-indexed']
+          }
+        })
+      )
+
+      const rows = await db.query<{
+        property_key: string
+        value_type: string
+        value_text: string | null
+        value_number: number | null
+        value_boolean: number | null
+      }>(
+        `SELECT property_key, value_type, value_text, value_number, value_boolean
+         FROM node_property_scalars
+         WHERE node_id = ?
+         ORDER BY property_key ASC`,
+        ['task-1']
+      )
+
+      expect(rows).toEqual([
+        {
+          property_key: 'done',
+          value_type: 'boolean',
+          value_text: null,
+          value_number: null,
+          value_boolean: 0
+        },
+        {
+          property_key: 'dueDate',
+          value_type: 'null',
+          value_text: null,
+          value_number: null,
+          value_boolean: null
+        },
+        {
+          property_key: 'priority',
+          value_type: 'number',
+          value_text: null,
+          value_number: 3,
+          value_boolean: null
+        },
+        {
+          property_key: 'title',
+          value_type: 'text',
+          value_text: 'Indexed task',
+          value_number: null,
+          value_boolean: null
+        }
+      ])
+    })
+
+    it('removes stale property and scalar rows when materialized properties are deleted', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-1',
+          schemaId: taskSchemaId,
+          properties: { title: 'Task', status: 'open' }
+        })
+      )
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-1',
+          schemaId: taskSchemaId,
+          properties: { title: 'Task' }
+        })
+      )
+
+      const node = await adapter.getNode('task-1')
+      const scalarRows = await db.query<{ property_key: string }>(
+        `SELECT property_key FROM node_property_scalars WHERE node_id = ? ORDER BY property_key`,
+        ['task-1']
+      )
+
+      expect(node?.properties).toEqual({ title: 'Task' })
+      expect(scalarRows.map((row) => row.property_key)).toEqual(['title'])
+    })
+
+    it('can rebuild scalar rows from materialized node properties', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-1',
+          schemaId: taskSchemaId,
+          properties: { title: 'Task', priority: 4, done: true }
+        })
+      )
+      await db.run('DELETE FROM node_property_scalars')
+
+      const result = await adapter.rebuildScalarIndex()
+      const scalarRows = await db.query<{ property_key: string }>(
+        `SELECT property_key FROM node_property_scalars WHERE node_id = ? ORDER BY property_key`,
+        ['task-1']
+      )
+
+      expect(result).toEqual({ nodesScanned: 1, scalarRowsWritten: 3 })
+      expect(scalarRows.map((row) => row.property_key)).toEqual(['done', 'priority', 'title'])
+    })
+
+    it('skips plaintext scalar rows when indexing is disabled', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'encrypted-task',
+          schemaId: taskSchemaId,
+          properties: { title: 'Encrypted task', status: 'open' }
+        }),
+        { indexProperties: false }
+      )
+
+      const count = await db.queryOne<{ count: number }>(
+        `SELECT COUNT(*) as count FROM node_property_scalars WHERE node_id = ?`,
+        ['encrypted-task']
+      )
+
+      expect(count?.count).toBe(0)
+    })
+  })
+
+  describe('queryNodes', () => {
+    beforeEach(async () => {
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'task-open-high',
+          schemaId: taskSchemaId,
+          properties: { title: 'Open high', status: 'open', priority: 10, done: false },
+          createdAt: now,
+          updatedAt: now + 3000
+        }),
+        createTestNode({
+          id: 'task-open-low',
+          schemaId: taskSchemaId,
+          properties: { title: 'Open low', status: 'open', priority: 1, done: false },
+          createdAt: now + 100,
+          updatedAt: now + 2000
+        }),
+        createTestNode({
+          id: 'task-done',
+          schemaId: taskSchemaId,
+          properties: { title: 'Done', status: 'done', priority: 4, done: true },
+          createdAt: now + 200,
+          updatedAt: now + 1000
+        }),
+        createTestNode({
+          id: 'task-null-status',
+          schemaId: taskSchemaId,
+          properties: { title: 'No status', status: null, done: false },
+          createdAt: now + 300,
+          updatedAt: now + 500
+        }),
+        createTestNode({
+          id: 'task-deleted',
+          schemaId: taskSchemaId,
+          properties: { title: 'Deleted', status: 'open', done: false },
+          deleted: true,
+          createdAt: now + 400,
+          updatedAt: now + 4000
+        })
+      ])
+    })
+
+    it('pushes down scalar equality while preserving descriptor results', async () => {
+      const descriptor: NodeQueryDescriptor = {
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 1
+      }
+
+      const result = await adapter.queryNodes(descriptor)
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(result.plan.strategy).toBe('storage-query')
+      expect(result.plan.candidateNodeCount).toBe(1)
+      expect(result.plan.postFilterReason).toBe('pagination-pushed-down')
+    })
+
+    it('matches null and boolean scalar equality without matching missing values', async () => {
+      const nullStatus = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: null }
+      })
+      const priority = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { priority: 10 }
+      })
+      const unchecked = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { done: false },
+        orderBy: { updatedAt: 'desc' }
+      })
+
+      expect(nullStatus.nodes.map((node) => node.id)).toEqual(['task-null-status'])
+      expect(priority.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(unchecked.nodes.map((node) => node.id)).toEqual([
+        'task-open-high',
+        'task-open-low',
+        'task-null-status'
+      ])
+    })
+
+    it('falls back to full list semantics for unsupported object equality', async () => {
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-object',
+          schemaId: taskSchemaId,
+          properties: { title: 'Object', metadata: { nested: true } }
+        })
+      )
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { metadata: { nested: true } }
+      })
+
+      expect(result.nodes).toEqual([])
+      expect(result.plan.strategy).toBe('list-fallback')
+    })
+
+    it('pushes down limit and offset for system-field ordering', async () => {
+      const byCreatedAt = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { createdAt: 'asc' },
+        limit: 2,
+        offset: 1
+      })
+      const byUpdatedAt = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 2
+      })
+
+      expect(byCreatedAt.nodes.map((node) => node.id)).toEqual(['task-open-low', 'task-done'])
+      expect(byUpdatedAt.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+      expect(byCreatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
+      expect(byUpdatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
+    })
+
+    it('uses composite node and scalar indexes in query plans', async () => {
+      const defaultListPlan = await db.query<{ detail: string }>(
+        `EXPLAIN QUERY PLAN
+         SELECT id FROM nodes
+         WHERE schema_id = ? AND deleted_at IS NULL
+         ORDER BY updated_at DESC
+         LIMIT 2`,
+        [taskSchemaId]
+      )
+      const propertyFilterPlan = await db.query<{ detail: string }>(
+        `EXPLAIN QUERY PLAN
+         SELECT n.id
+         FROM nodes n
+         JOIN node_property_scalars p0
+           ON p0.node_id = n.id
+          AND p0.schema_id = n.schema_id
+          AND p0.property_key = ?
+          AND p0.value_type = ?
+         WHERE n.schema_id = ?
+           AND n.deleted_at IS NULL
+           AND p0.value_text = ?
+         ORDER BY n.updated_at DESC
+         LIMIT 2`,
+        ['status', 'text', taskSchemaId, 'open']
+      )
+
+      expect(
+        defaultListPlan.some(
+          (row) =>
+            row.detail.includes('idx_nodes_live_schema_updated') ||
+            row.detail.includes('idx_nodes_all_schema_updated')
+        )
+      ).toBe(true)
+      expect(propertyFilterPlan.some((row) => row.detail.includes('idx_prop_scalars_text'))).toBe(
+        true
+      )
     })
   })
 

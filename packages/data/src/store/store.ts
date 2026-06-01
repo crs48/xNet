@@ -50,6 +50,12 @@ import {
 import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
 import { PermissionError } from './permission-error'
+import {
+  applyNodeQueryDescriptor,
+  withoutNodeQueryPagination,
+  type NodeQueryDescriptor,
+  type NodeQueryResult
+} from './query'
 import { resolveTempIds, type SchemaLookup } from './tempids'
 
 /** Maximum number of conflicts to retain before trimming */
@@ -499,6 +505,91 @@ export class NodeStore {
       })
       throw err
     }
+  }
+
+  /**
+   * Query nodes with descriptor semantics and storage-level pushdown when available.
+   */
+  async query(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
+    const start = Date.now()
+
+    try {
+      if (this.storage.queryNodes && !this.nodeContentCipher) {
+        const result = await this.storage.queryNodes(descriptor)
+        return {
+          nodes: result.nodes,
+          plan: {
+            ...result.plan,
+            durationMs: Date.now() - start
+          }
+        }
+      }
+
+      const fallback = await this.loadQueryFallbackCandidates(descriptor)
+      const nodes = fallback.nodes
+      const decrypted = await Promise.all(
+        nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
+      )
+      const visible = decrypted.filter((node): node is NodeState => node !== null)
+      const result = applyNodeQueryDescriptor(visible, fallback.postFilterDescriptor)
+
+      return {
+        nodes: result,
+        plan: {
+          strategy: 'list-fallback',
+          candidateNodeCount: nodes.length,
+          hydratedNodeCount: nodes.length,
+          returnedNodeCount: result.length,
+          durationMs: Date.now() - start,
+          postFilterReason: this.nodeContentCipher
+            ? 'encrypted-node-content'
+            : 'storage-query-unavailable'
+        }
+      }
+    } catch (err) {
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'data.NodeStore.query'
+      })
+      throw err
+    }
+  }
+
+  private async loadQueryFallbackCandidates(descriptor: NodeQueryDescriptor): Promise<{
+    nodes: NodeState[]
+    postFilterDescriptor: NodeQueryDescriptor
+  }> {
+    if (descriptor.nodeId) {
+      const node = await this.storage.getNode(descriptor.nodeId)
+      return {
+        nodes: node ? [node] : [],
+        postFilterDescriptor: descriptor
+      }
+    }
+
+    const canPushSystemList = this.canPushSystemListQuery(descriptor)
+    const hasPagination = descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0
+    const nodes = await this.storage.listNodes({
+      schemaId: descriptor.schemaId,
+      includeDeleted: descriptor.includeDeleted,
+      ...(canPushSystemList && descriptor.orderBy ? { orderBy: descriptor.orderBy } : {}),
+      ...(canPushSystemList && descriptor.limit !== undefined ? { limit: descriptor.limit } : {}),
+      ...(canPushSystemList && descriptor.offset !== undefined ? { offset: descriptor.offset } : {})
+    })
+
+    return {
+      nodes,
+      postFilterDescriptor:
+        canPushSystemList && hasPagination ? withoutNodeQueryPagination(descriptor) : descriptor
+    }
+  }
+
+  private canPushSystemListQuery(descriptor: NodeQueryDescriptor): boolean {
+    if (descriptor.spatial) return false
+    if (descriptor.where && Object.keys(descriptor.where).length > 0) return false
+
+    return Object.keys(descriptor.orderBy ?? {}).every(
+      (key) => key === 'createdAt' || key === 'updatedAt'
+    )
   }
 
   // ==========================================================================
@@ -963,7 +1054,7 @@ export class NodeStore {
       }
 
       // Persist the node record BEFORE appending change (FK constraint)
-      await this.storage.setNode(node)
+      await this.storage.setNode(node, { indexProperties: !this.nodeContentCipher })
     }
 
     // Now append to change log (node exists, FK constraint satisfied)
@@ -1054,7 +1145,7 @@ export class NodeStore {
     node.updatedBy = change.authorDID
 
     // Persist
-    await this.storage.setNode(node)
+    await this.storage.setNode(node, { indexProperties: !this.nodeContentCipher })
   }
 
   /**

@@ -13,12 +13,20 @@ import type {
   NodeStorageAdapter,
   ListNodesOptions,
   CountNodesOptions,
-  PropertyTimestamp
+  PropertyTimestamp,
+  SetNodeOptions
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
 import type { SQLiteAdapter, SQLValue, PreparedStatement } from '@xnetjs/sqlite'
 import { updateNodeFTS, deleteNodeFTS, extractSearchableContent } from '@xnetjs/sqlite'
+import {
+  applyNodeQueryDescriptor,
+  withoutNodeQueryPagination,
+  type NodeQueryDescriptor,
+  type NodeQueryResult,
+  type SortDirection
+} from './query'
 
 // ─── Row Types ──────────────────────────────────────────────────────────────
 
@@ -57,6 +65,39 @@ interface ChangeRow {
   signature: Uint8Array
   // Index signature for SQLRow compatibility
   [key: string]: SQLValue
+}
+
+interface JoinedNodePropertyRow {
+  id: string
+  schema_id: string
+  created_at: number
+  updated_at: number
+  created_by: string
+  deleted_at: number | null
+  property_key: string | null
+  value: Uint8Array | null
+  lamport_time: number | null
+  updated_by: string | null
+  prop_updated_at: number | null
+  ordinal: number | null
+  [key: string]: SQLValue
+}
+
+type ScalarValueType = 'text' | 'number' | 'boolean' | 'null'
+
+interface ScalarIndexValue {
+  valueType: ScalarValueType
+  valueText: string | null
+  valueNumber: number | null
+  valueBoolean: number | null
+  valueHash: string
+}
+
+interface CompiledNodeQuery {
+  sql: string
+  params: SQLValue[]
+  postFilterDescriptor: NodeQueryDescriptor
+  postFilterReason: string
 }
 
 // ─── SQLiteNodeStorageAdapter ───────────────────────────────────────────────
@@ -254,11 +295,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
   }
 
-  async setNode(node: NodeState): Promise<void> {
+  async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
     // Use manual transaction control for web proxy compatibility
     await this.db.beginTransaction()
     try {
-      await this._setNodeInternal(node)
+      await this._setNodeInternal(node, options)
       await this.db.commit()
     } catch (err) {
       await this.db.rollback()
@@ -270,7 +311,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Internal method for setting a node without starting a new transaction.
    * Used by importNodes to avoid nested transactions.
    */
-  private async _setNodeInternal(node: NodeState): Promise<void> {
+  private async _setNodeInternal(node: NodeState, options?: SetNodeOptions): Promise<void> {
     // Upsert node
     await this.db.run(
       `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
@@ -288,6 +329,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         node.deleted && node.deletedAt ? node.deletedAt.wallTime : null
       ]
     )
+
+    await this.deleteRemovedProperties(node)
 
     // Upsert properties
     for (const [key, value] of Object.entries(node.properties)) {
@@ -314,10 +357,16 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       )
     }
 
+    const indexedNode = await this.getNode(node.id)
+    if (indexedNode) {
+      await this.syncScalarRowsForNode(indexedNode, options?.indexProperties ?? true)
+    }
+
     // Update FTS index for searchable content
     // This is a no-op if FTS5 is not supported (e.g., sql.js)
-    const title = typeof node.properties.title === 'string' ? node.properties.title : null
-    const content = extractSearchableContent(node.properties)
+    const searchableProperties = indexedNode?.properties ?? node.properties
+    const title = typeof searchableProperties.title === 'string' ? searchableProperties.title : null
+    const content = extractSearchableContent(searchableProperties)
     await updateNodeFTS(this.db, node.id, title, content)
   }
 
@@ -329,40 +378,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {
-    let sql = `SELECT id FROM nodes WHERE 1=1`
-    const params: unknown[] = []
-
-    if (options?.schemaId) {
-      sql += ` AND schema_id = ?`
-      params.push(options.schemaId)
-    }
-
-    if (!options?.includeDeleted) {
-      sql += ` AND deleted_at IS NULL`
-    }
-
-    sql += ` ORDER BY updated_at DESC`
-
-    if (options?.limit) {
-      sql += ` LIMIT ?`
-      params.push(options.limit)
-    }
-
-    if (options?.offset) {
-      sql += ` OFFSET ?`
-      params.push(options.offset)
-    }
-
-    const rows = await this.db.query<{ id: string }>(sql, params as never)
-
-    // Batch fetch full node states
-    const nodes: NodeState[] = []
-    for (const row of rows) {
-      const node = await this.getNode(row.id)
-      if (node) nodes.push(node)
-    }
-
-    return nodes
+    return this.listNodesOptimized(options)
   }
 
   /**
@@ -372,7 +388,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   async listNodesOptimized(options?: ListNodesOptions): Promise<NodeState[]> {
     // Build the base query with JOIN
     let whereClause = '1=1'
-    const params: unknown[] = []
+    const params: SQLValue[] = []
 
     if (options?.schemaId) {
       whereClause += ` AND n.schema_id = ?`
@@ -383,98 +399,50 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       whereClause += ` AND n.deleted_at IS NULL`
     }
 
+    const orderBy = this.buildSqlOrderBy(options?.orderBy)
+    const outerOrderBy = orderBy.replaceAll('n.', 'ln.')
+
     // Use CTE for pagination, then join properties
     let sql: string
-    if (options?.limit) {
+    if (options?.limit !== undefined || options?.offset !== undefined) {
       sql = `
         WITH limited_nodes AS (
           SELECT id, schema_id, created_at, updated_at, created_by, deleted_at
           FROM nodes n
           WHERE ${whereClause}
-          ORDER BY updated_at DESC
+          ORDER BY ${orderBy}
           LIMIT ? OFFSET ?
         )
         SELECT 
           ln.id, ln.schema_id, ln.created_at, ln.updated_at, ln.created_by, ln.deleted_at,
-          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at
+          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at,
+          NULL as ordinal
         FROM limited_nodes ln
         LEFT JOIN node_properties p ON ln.id = p.node_id
-        ORDER BY ln.updated_at DESC, ln.id, p.property_key
+        ORDER BY ${outerOrderBy}, ln.id, p.property_key
       `
-      params.push(options.limit)
+      params.push(options.limit ?? -1)
       params.push(options.offset ?? 0)
     } else {
       sql = `
         SELECT 
           n.id, n.schema_id, n.created_at, n.updated_at, n.created_by, n.deleted_at,
-          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at
+          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at,
+          NULL as ordinal
         FROM nodes n
         LEFT JOIN node_properties p ON n.id = p.node_id
         WHERE ${whereClause}
-        ORDER BY n.updated_at DESC, n.id, p.property_key
+        ORDER BY ${orderBy}, n.id, p.property_key
       `
     }
 
-    interface JoinedRow {
-      id: string
-      schema_id: string
-      created_at: number
-      updated_at: number
-      created_by: string
-      deleted_at: number | null
-      property_key: string | null
-      value: Uint8Array | null
-      lamport_time: number | null
-      updated_by: string | null
-      prop_updated_at: number | null
-      [key: string]: SQLValue
-    }
-
-    const rows = await this.db.query<JoinedRow>(sql, params as never)
-
-    // Group rows by node ID
-    const nodeMap = new Map<string, NodeState>()
-
-    for (const row of rows) {
-      let node = nodeMap.get(row.id)
-
-      if (!node) {
-        node = {
-          id: row.id,
-          schemaId: row.schema_id as SchemaIRI,
-          properties: {},
-          timestamps: {},
-          deleted: row.deleted_at !== null,
-          deletedAt: row.deleted_at
-            ? { lamport: { time: 0, author: '' as DID }, wallTime: row.deleted_at }
-            : undefined,
-          createdAt: row.created_at,
-          createdBy: row.created_by as DID,
-          updatedAt: row.updated_at,
-          updatedBy: row.created_by as DID
-        }
-        nodeMap.set(row.id, node)
-      }
-
-      if (row.property_key && row.value !== null) {
-        node.properties[row.property_key] = this.deserializeValue(row.value)
-        node.timestamps[row.property_key] = {
-          lamport: { time: row.lamport_time ?? 0, author: (row.updated_by ?? '') as DID },
-          wallTime: row.prop_updated_at ?? 0
-        }
-        // Track the most recent updater
-        if ((row.prop_updated_at ?? 0) >= node.updatedAt) {
-          node.updatedBy = (row.updated_by ?? node.createdBy) as DID
-        }
-      }
-    }
-
-    return Array.from(nodeMap.values())
+    const rows = await this.db.query<JoinedNodePropertyRow>(sql, params)
+    return this.hydrateJoinedRows(rows)
   }
 
   async countNodes(options?: CountNodesOptions): Promise<number> {
     let sql = `SELECT COUNT(*) as count FROM nodes WHERE 1=1`
-    const params: unknown[] = []
+    const params: SQLValue[] = []
 
     if (options?.schemaId) {
       sql += ` AND schema_id = ?`
@@ -485,8 +453,52 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       sql += ` AND deleted_at IS NULL`
     }
 
-    const row = await this.db.queryOne<{ count: number }>(sql, params as never)
+    const row = await this.db.queryOne<{ count: number }>(sql, params)
     return row?.count ?? 0
+  }
+
+  async queryNodes(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
+    const start = Date.now()
+    const compiled = this.compileNodeQuery(descriptor)
+
+    if (!compiled) {
+      const candidates = await this.listNodesOptimized({
+        schemaId: descriptor.schemaId,
+        includeDeleted: descriptor.includeDeleted
+      })
+      const nodes = applyNodeQueryDescriptor(candidates, descriptor)
+
+      return {
+        nodes,
+        plan: {
+          strategy: 'list-fallback',
+          candidateNodeCount: candidates.length,
+          hydratedNodeCount: candidates.length,
+          returnedNodeCount: nodes.length,
+          durationMs: Date.now() - start,
+          postFilterReason: 'unsupported-descriptor'
+        }
+      }
+    }
+
+    const idRows = await this.db.query<{ id: string }>(compiled.sql, compiled.params)
+    const ids = idRows.map((row) => row.id)
+    const candidates = await this.hydrateNodesByIds(ids)
+    const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
+
+    return {
+      nodes,
+      plan: {
+        strategy: 'storage-query',
+        candidateNodeCount: ids.length,
+        hydratedNodeCount: candidates.length,
+        returnedNodeCount: nodes.length,
+        durationMs: Date.now() - start,
+        sql: compiled.sql,
+        params: compiled.params,
+        postFilterReason: compiled.postFilterReason
+      }
+    }
   }
 
   // ─── Sync State ───────────────────────────────────────────────────────────
@@ -605,6 +617,34 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   /**
+   * Rebuild the scalar sidecar from materialized node_properties.
+   */
+  async rebuildScalarIndex(): Promise<{ nodesScanned: number; scalarRowsWritten: number }> {
+    await this.db.beginTransaction()
+    try {
+      await this.db.run('DELETE FROM node_property_scalars')
+      const rows = await this.db.query<{ id: string }>('SELECT id FROM nodes ORDER BY id ASC')
+      let scalarRowsWritten = 0
+
+      for (const row of rows) {
+        const node = await this.getNode(row.id)
+        if (!node) continue
+
+        scalarRowsWritten += await this.syncScalarRowsForNode(node, true)
+      }
+
+      await this.db.commit()
+      return {
+        nodesScanned: rows.length,
+        scalarRowsWritten
+      }
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
+  }
+
+  /**
    * Import multiple changes in a single transaction.
    */
   async importChanges(changes: NodeChange[]): Promise<void> {
@@ -632,6 +672,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       await this.db.run('DELETE FROM yjs_updates')
       await this.db.run('DELETE FROM yjs_state')
       await this.db.run('DELETE FROM changes')
+      await this.db.run('DELETE FROM node_property_scalars')
       await this.db.run('DELETE FROM node_properties')
       await this.db.run('DELETE FROM nodes')
       await this.db.run("DELETE FROM sync_state WHERE key = 'lastLamportTime'")
@@ -643,6 +684,336 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────────
+
+  private hydrateJoinedRows(rows: JoinedNodePropertyRow[]): NodeState[] {
+    const nodeMap = new Map<string, NodeState>()
+
+    for (const row of rows) {
+      let node = nodeMap.get(row.id)
+
+      if (!node) {
+        node = {
+          id: row.id,
+          schemaId: row.schema_id as SchemaIRI,
+          properties: {},
+          timestamps: {},
+          deleted: row.deleted_at !== null,
+          deletedAt: row.deleted_at
+            ? { lamport: { time: 0, author: '' as DID }, wallTime: row.deleted_at }
+            : undefined,
+          createdAt: row.created_at,
+          createdBy: row.created_by as DID,
+          updatedAt: row.updated_at,
+          updatedBy: row.created_by as DID
+        }
+        nodeMap.set(row.id, node)
+      }
+
+      if (row.property_key && row.value !== null) {
+        node.properties[row.property_key] = this.deserializeValue(row.value)
+        node.timestamps[row.property_key] = {
+          lamport: { time: row.lamport_time ?? 0, author: (row.updated_by ?? '') as DID },
+          wallTime: row.prop_updated_at ?? 0
+        }
+        if ((row.prop_updated_at ?? 0) >= node.updatedAt) {
+          node.updatedBy = (row.updated_by ?? node.createdBy) as DID
+        }
+      }
+    }
+
+    return Array.from(nodeMap.values())
+  }
+
+  private async hydrateNodesByIds(ids: string[]): Promise<NodeState[]> {
+    if (ids.length === 0) {
+      return []
+    }
+
+    const values = ids.map(() => '(?, ?)').join(', ')
+    const params: SQLValue[] = ids.flatMap((id, ordinal) => [id, ordinal])
+    const sql = `
+      WITH wanted(id, ordinal) AS (
+        VALUES ${values}
+      )
+      SELECT
+        n.id,
+        n.schema_id,
+        n.created_at,
+        n.updated_at,
+        n.created_by,
+        n.deleted_at,
+        p.property_key,
+        p.value,
+        p.lamport_time,
+        p.updated_by,
+        p.updated_at AS prop_updated_at,
+        wanted.ordinal
+      FROM wanted
+      JOIN nodes n ON n.id = wanted.id
+      LEFT JOIN node_properties p ON p.node_id = n.id
+      ORDER BY wanted.ordinal ASC, p.property_key ASC
+    `
+
+    const rows = await this.db.query<JoinedNodePropertyRow>(sql, params)
+    return this.hydrateJoinedRows(rows)
+  }
+
+  private async deleteRemovedProperties(node: NodeState): Promise<void> {
+    const keys = Object.keys(node.properties)
+
+    if (keys.length === 0) {
+      await this.db.run('DELETE FROM node_properties WHERE node_id = ?', [node.id])
+      return
+    }
+
+    const placeholders = keys.map(() => '?').join(', ')
+    await this.db.run(
+      `DELETE FROM node_properties WHERE node_id = ? AND property_key NOT IN (${placeholders})`,
+      [node.id, ...keys]
+    )
+  }
+
+  private async syncScalarRowsForNode(node: NodeState, indexProperties: boolean): Promise<number> {
+    await this.db.run('DELETE FROM node_property_scalars WHERE node_id = ?', [node.id])
+
+    if (!indexProperties) {
+      return 0
+    }
+
+    let rowsWritten = 0
+    for (const [key, value] of Object.entries(node.properties)) {
+      const timestamp = node.timestamps[key]
+      const scalar = this.toScalarIndexValue(value)
+      if (!timestamp || !scalar) continue
+
+      await this.db.run(
+        `INSERT INTO node_property_scalars
+          (
+            node_id,
+            schema_id,
+            property_key,
+            value_type,
+            value_text,
+            value_number,
+            value_boolean,
+            value_hash,
+            updated_at,
+            lamport_time
+          )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          node.id,
+          node.schemaId,
+          key,
+          scalar.valueType,
+          scalar.valueText,
+          scalar.valueNumber,
+          scalar.valueBoolean,
+          scalar.valueHash,
+          timestamp.wallTime,
+          timestamp.lamport.time
+        ]
+      )
+      rowsWritten += 1
+    }
+
+    return rowsWritten
+  }
+
+  private toScalarIndexValue(value: unknown): ScalarIndexValue | null {
+    if (value === null) {
+      return {
+        valueType: 'null',
+        valueText: null,
+        valueNumber: null,
+        valueBoolean: null,
+        valueHash: 'null'
+      }
+    }
+
+    if (typeof value === 'string') {
+      return {
+        valueType: 'text',
+        valueText: value,
+        valueNumber: null,
+        valueBoolean: null,
+        valueHash: this.hashScalarValue(value)
+      }
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return {
+        valueType: 'number',
+        valueText: null,
+        valueNumber: value,
+        valueBoolean: null,
+        valueHash: this.hashScalarValue(String(value))
+      }
+    }
+
+    if (typeof value === 'boolean') {
+      return {
+        valueType: 'boolean',
+        valueText: null,
+        valueNumber: null,
+        valueBoolean: value ? 1 : 0,
+        valueHash: value ? 'true' : 'false'
+      }
+    }
+
+    return null
+  }
+
+  private hashScalarValue(value: string): string {
+    let hash = 2166136261
+    for (let i = 0; i < value.length; i++) {
+      hash ^= value.charCodeAt(i)
+      hash = Math.imul(hash, 16777619)
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0')
+  }
+
+  private compileNodeQuery(descriptor: NodeQueryDescriptor): CompiledNodeQuery | null {
+    if (descriptor.nodeId) {
+      return this.compileSqlQuery(descriptor, {
+        whereEntries: [],
+        canUseSqlPagination: true
+      })
+    }
+
+    const whereEntries = Object.entries(descriptor.where ?? {})
+    const scalarWhere = whereEntries.map(([key, value]) => ({
+      key,
+      scalar: this.toScalarIndexValue(value)
+    }))
+
+    if (scalarWhere.some((entry) => entry.scalar === null)) {
+      return null
+    }
+
+    const hasPropertySort = Object.keys(descriptor.orderBy ?? {}).some(
+      (key) => key !== 'createdAt' && key !== 'updatedAt'
+    )
+    const hasSqlCandidateBenefit =
+      scalarWhere.length > 0 ||
+      !descriptor.spatial ||
+      this.hasOnlySystemOrdering(descriptor.orderBy)
+
+    if (!hasSqlCandidateBenefit) {
+      return null
+    }
+
+    return this.compileSqlQuery(descriptor, {
+      whereEntries: scalarWhere as Array<{ key: string; scalar: ScalarIndexValue }>,
+      canUseSqlPagination: !hasPropertySort && !descriptor.spatial
+    })
+  }
+
+  private compileSqlQuery(
+    descriptor: NodeQueryDescriptor,
+    options: {
+      whereEntries: Array<{ key: string; scalar: ScalarIndexValue }>
+      canUseSqlPagination: boolean
+    }
+  ): CompiledNodeQuery {
+    const joins: string[] = []
+    const where: string[] = ['n.schema_id = ?']
+    const joinParams: SQLValue[] = []
+    const whereParams: SQLValue[] = [descriptor.schemaId]
+
+    if (descriptor.nodeId) {
+      where.push('n.id = ?')
+      whereParams.push(descriptor.nodeId)
+    }
+
+    if (!descriptor.includeDeleted) {
+      where.push('n.deleted_at IS NULL')
+    }
+
+    options.whereEntries.forEach((entry, index) => {
+      const alias = `p${index}`
+      joins.push(
+        `JOIN node_property_scalars ${alias}
+          ON ${alias}.node_id = n.id
+         AND ${alias}.schema_id = n.schema_id
+         AND ${alias}.property_key = ?
+         AND ${alias}.value_type = ?`
+      )
+      joinParams.push(entry.key, entry.scalar.valueType)
+      this.appendScalarPredicate(where, whereParams, alias, entry.scalar)
+    })
+
+    const orderBy = this.buildSqlOrderBy(descriptor.orderBy)
+    const useSqlPagination =
+      options.canUseSqlPagination &&
+      (descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0)
+
+    let sql = `
+      SELECT n.id
+      FROM nodes n
+      ${joins.join('\n')}
+      WHERE ${where.join(' AND ')}
+      ORDER BY ${orderBy}
+    `
+
+    if (useSqlPagination) {
+      sql += '\nLIMIT ? OFFSET ?'
+      whereParams.push(descriptor.limit ?? -1, descriptor.offset ?? 0)
+    }
+
+    return {
+      sql,
+      params: [...joinParams, ...whereParams],
+      postFilterDescriptor: useSqlPagination ? withoutNodeQueryPagination(descriptor) : descriptor,
+      postFilterReason: useSqlPagination ? 'pagination-pushed-down' : 'verified-in-js'
+    }
+  }
+
+  private appendScalarPredicate(
+    where: string[],
+    params: SQLValue[],
+    alias: string,
+    scalar: ScalarIndexValue
+  ): void {
+    switch (scalar.valueType) {
+      case 'text':
+        where.push(`${alias}.value_text = ?`)
+        params.push(scalar.valueText)
+        return
+      case 'number':
+        where.push(`${alias}.value_number = ?`)
+        params.push(scalar.valueNumber)
+        return
+      case 'boolean':
+        where.push(`${alias}.value_boolean = ?`)
+        params.push(scalar.valueBoolean)
+        return
+      case 'null':
+        return
+    }
+  }
+
+  private buildSqlOrderBy(orderBy?: Partial<Record<string, SortDirection>>): string {
+    const entries = Object.entries(orderBy ?? {}).filter(
+      (entry): entry is [string, SortDirection] => entry[1] === 'asc' || entry[1] === 'desc'
+    )
+    if (entries.length === 0) {
+      return 'n.updated_at DESC'
+    }
+
+    const clauses = entries
+      .filter(([key]) => key === 'createdAt' || key === 'updatedAt')
+      .map(([key, direction]) => {
+        const column = key === 'createdAt' ? 'n.created_at' : 'n.updated_at'
+        return `${column} ${direction.toUpperCase()}`
+      })
+
+    return clauses.length > 0 ? clauses.join(', ') : 'n.updated_at DESC'
+  }
+
+  private hasOnlySystemOrdering(orderBy?: Record<string, SortDirection>): boolean {
+    return Object.keys(orderBy ?? {}).every((key) => key === 'createdAt' || key === 'updatedAt')
+  }
 
   private serializePayload(payload: NodePayload): Uint8Array {
     return new TextEncoder().encode(JSON.stringify(payload))

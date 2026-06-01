@@ -33,7 +33,6 @@ import type { Doc as YDoc } from 'yjs'
 import { QueryCache } from './query-cache'
 import {
   applyNodeChangeToQueryResult,
-  applyQueryDescriptor,
   createQueryDescriptor,
   serializeQueryDescriptor
 } from './query-descriptor'
@@ -116,26 +115,28 @@ export class MainThreadBridge implements DataBridge {
    */
   private async loadQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
     try {
-      let nodes: NodeState[]
-
-      if (descriptor.nodeId) {
-        // Single node query
-        const node = await this.store.get(descriptor.nodeId)
-        nodes = node ? [node] : []
-      } else {
-        // List query
-        nodes = await this.store.list({
-          schemaId: descriptor.schemaId,
-          includeDeleted: descriptor.includeDeleted
-        })
-      }
-
-      this.cache.set(queryId, applyQueryDescriptor(nodes, descriptor), descriptor)
+      const result = await this.store.query(descriptor)
+      this.debugQueryPlan(queryId, result.plan)
+      this.cache.set(queryId, result.nodes, descriptor)
     } catch (err) {
       console.error('[MainThreadBridge] Failed to load query:', err)
       // Set empty array on error so we don't keep retrying
       this.cache.set(queryId, [], descriptor)
     }
+  }
+
+  private debugQueryPlan(
+    queryId: string,
+    plan: { durationMs: number; hydratedNodeCount: number }
+  ): void {
+    if (typeof localStorage === 'undefined') return
+    if (localStorage.getItem('xnet:sync:debug') !== 'true') return
+
+    console.debug('[MainThreadBridge] query', {
+      queryId,
+      durationMs: plan.durationMs,
+      hydratedNodeCount: plan.hydratedNodeCount
+    })
   }
 
   /**

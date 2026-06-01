@@ -375,9 +375,12 @@ process.parentPort?.on('message', async (event) => {
       }
 
       case 'nodes:setNode': {
-        const { node } = payload as { node: unknown }
+        const { node, options } = payload as { node: unknown; options?: unknown }
         if (dataService) {
-          await dataService.setNode(node as Parameters<typeof dataService.setNode>[0])
+          await dataService.setNode(
+            node as Parameters<typeof dataService.setNode>[0],
+            options as Parameters<typeof dataService.setNode>[1]
+          )
         }
         sendResponse(requestId, { success: true })
         break
