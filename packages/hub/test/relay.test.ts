@@ -1,10 +1,12 @@
 import type { HubInstance } from '../src/index'
 import { createKeyBundle, generateIdentity } from '@xnetjs/identity'
 import {
+  MAX_YJS_STATE_VECTOR_SIZE,
   serializeYjsEnvelope,
   signYjsUpdate,
   signYjsUpdateV2,
-  verifyYjsEnvelopeV2
+  verifyYjsEnvelopeV2,
+  type YjsRateLimiterOptions
 } from '@xnetjs/sync'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
@@ -255,7 +257,7 @@ describe('Sync Relay compatibility mode', () => {
   })
 })
 
-describe('Sync Relay V2 envelope admission', () => {
+describe('Sync Relay direct admission', () => {
   const createUpdate = (content: string): { clientId: number; update: Uint8Array } => {
     const doc = new Y.Doc()
     doc.getText('content').insert(0, content)
@@ -265,11 +267,15 @@ describe('Sync Relay V2 envelope admission', () => {
     }
   }
 
-  const createRelay = (verifyV2Envelope?: YjsEnvelopeV2Verifier) => {
+  const createRelay = (
+    verifyV2Envelope?: YjsEnvelopeV2Verifier,
+    rateLimit?: YjsRateLimiterOptions
+  ) => {
     const identity = generateIdentity()
     const pool = new NodePool(createMemoryStorage())
     const relay = new RelayService(pool, {
       verifyV2Envelope,
+      rateLimit,
       signing: {
         authorDID: identity.identity.did,
         signingKey: identity.privateKey
@@ -346,5 +352,53 @@ describe('Sync Relay V2 envelope admission', () => {
 
     const stored = await pool.get(docId)
     expect(stored.getText('content').toString()).toBe('verified v2')
+  })
+
+  it('rejects oversized state-vector requests before fanout', async () => {
+    const docId = 'test-relay-oversized-sv'
+    const { relay } = createRelay()
+    const sent: object[] = []
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-step1',
+        from: 'clientSV',
+        sv: Buffer.from(new Uint8Array(MAX_YJS_STATE_VECTOR_SIZE + 1)).toString('base64')
+      },
+      (_topic, data) => {
+        sent.push(data)
+      }
+    )
+
+    expect(sent).toHaveLength(0)
+  })
+
+  it('rate-limits repeated state-vector requests by peer', async () => {
+    const docId = 'test-relay-rate-limited-sv'
+    const emptyStateVector = Buffer.from(Y.encodeStateVector(new Y.Doc())).toString('base64')
+    const { relay } = createRelay(undefined, {
+      maxPerSecond: 1,
+      maxPerMinute: 10,
+      burstAllowance: 0,
+      cleanupIntervalMs: 0
+    })
+    const sent: object[] = []
+    const send = (_topic: string, data: object): void => {
+      sent.push(data)
+    }
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      { type: 'sync-step1', from: 'clientSV', sv: emptyStateVector },
+      send
+    )
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      { type: 'sync-step1', from: 'clientSV', sv: emptyStateVector },
+      send
+    )
+
+    expect(sent).toHaveLength(1)
   })
 })

@@ -5,9 +5,12 @@
 import type { NodePool } from '../pool/node-pool'
 import {
   MAX_YJS_UPDATE_SIZE,
+  MAX_YJS_STATE_VECTOR_SIZE,
   YjsPeerScorer,
   YjsRateLimiter,
   deserializeYjsEnvelope,
+  isBase64PayloadTooLarge,
+  isStateVectorTooLarge,
   isUpdateTooLarge,
   resolveSyncReplicationPolicy,
   signYjsUpdate,
@@ -18,7 +21,8 @@ import {
   type SignedYjsEnvelopeV1,
   type SignedYjsEnvelopeV2,
   type SignedYjsEnvelopeWire,
-  type SyncReplicationConfig
+  type SyncReplicationConfig,
+  type YjsRateLimiterOptions
 } from '@xnetjs/sync'
 import * as Y from 'yjs'
 
@@ -51,6 +55,7 @@ export type YjsEnvelopeV2Verifier = (
 
 type RelayOptions = {
   replication?: SyncReplicationConfig
+  rateLimit?: YjsRateLimiterOptions
   signing: {
     authorDID: string
     signingKey: Uint8Array
@@ -63,6 +68,14 @@ type UpdateResult = {
   peerId: string
 }
 
+type SignedYjsEnvelopeV1Wire = {
+  update: string
+  authorDID: string
+  signature: string
+  timestamp: number
+  clientId: number
+}
+
 const HUB_PEER_ID = 'hub-relay'
 
 const toBase64 = (data: Uint8Array): string => Buffer.from(data).toString('base64')
@@ -72,7 +85,7 @@ const fromBase64 = (value: string): Uint8Array => new Uint8Array(Buffer.from(val
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object')
 
-const isV1EnvelopeWire = (value: unknown): value is Record<string, unknown> =>
+const isV1EnvelopeWire = (value: unknown): value is SignedYjsEnvelopeV1Wire =>
   isRecord(value) &&
   typeof value.update === 'string' &&
   typeof value.authorDID === 'string' &&
@@ -91,14 +104,14 @@ const isV2EnvelopeWire = (value: unknown): value is SignedYjsEnvelopeWire =>
   typeof value.m.d === 'string' &&
   isRecord(value.s)
 
-const deserializeV1Envelope = (data: Record<string, unknown>): SignedYjsEnvelopeV1 | null => {
+const deserializeV1Envelope = (data: SignedYjsEnvelopeV1Wire): SignedYjsEnvelopeV1 | null => {
   try {
     return {
-      update: fromBase64(data.update as string),
-      authorDID: data.authorDID as string,
-      signature: fromBase64(data.signature as string),
-      timestamp: data.timestamp as number,
-      clientId: data.clientId as number
+      update: fromBase64(data.update),
+      authorDID: data.authorDID,
+      signature: fromBase64(data.signature),
+      timestamp: data.timestamp,
+      clientId: data.clientId
     }
   } catch {
     return null
@@ -107,6 +120,7 @@ const deserializeV1Envelope = (data: Record<string, unknown>): SignedYjsEnvelope
 
 const deserializeEnvelope = (value: unknown): SignedYjsEnvelope | null => {
   if (isV2EnvelopeWire(value)) {
+    if (isBase64PayloadTooLarge(value.u, MAX_YJS_UPDATE_SIZE)) return null
     try {
       return deserializeYjsEnvelope(value)
     } catch {
@@ -115,6 +129,7 @@ const deserializeEnvelope = (value: unknown): SignedYjsEnvelope | null => {
   }
 
   if (isV1EnvelopeWire(value)) {
+    if (isBase64PayloadTooLarge(value.update, MAX_YJS_UPDATE_SIZE)) return null
     return deserializeV1Envelope(value)
   }
 
@@ -142,7 +157,7 @@ const isSyncMessage = (data: unknown): data is SyncMessage => {
 }
 
 export class RelayService {
-  private rateLimiter = new YjsRateLimiter()
+  private rateLimiter: YjsRateLimiter
   private peerScorer = new YjsPeerScorer()
   private replicationPolicy: ReturnType<typeof resolveSyncReplicationPolicy>
 
@@ -151,6 +166,7 @@ export class RelayService {
     private options: RelayOptions
   ) {
     this.replicationPolicy = resolveSyncReplicationPolicy(options.replication)
+    this.rateLimiter = new YjsRateLimiter(options.rateLimit)
   }
 
   async handleSyncMessage(
@@ -167,7 +183,17 @@ export class RelayService {
     switch (data.type) {
       case 'sync-step1': {
         if (!data.sv || !hasPeerId(data)) return
+        const peerId = data.from
+        if (!this.allowPeerMessage(peerId)) return
+        if (isBase64PayloadTooLarge(data.sv, MAX_YJS_STATE_VECTOR_SIZE)) {
+          this.peerScorer.penalize(peerId, 'oversizedUpdate')
+          return
+        }
         const remoteSV = fromBase64(data.sv)
+        if (isStateVectorTooLarge(remoteSV)) {
+          this.peerScorer.penalize(peerId, 'oversizedUpdate')
+          return
+        }
         const doc = await this.pool.get(docId)
         const diff = Y.encodeStateAsUpdate(doc, remoteSV)
 
@@ -266,10 +292,7 @@ export class RelayService {
 
     const peerId = data.from
 
-    if (!this.rateLimiter.allow(peerId)) {
-      this.peerScorer.penalize(peerId, 'rateExceeded')
-      return null
-    }
+    if (!this.allowPeerMessage(peerId)) return null
 
     const rawEnvelope = getEnvelope(data)
     if (rawEnvelope) {
@@ -304,6 +327,10 @@ export class RelayService {
     }
 
     if (!data.update) return null
+    if (isBase64PayloadTooLarge(data.update, MAX_YJS_UPDATE_SIZE)) {
+      this.peerScorer.penalize(peerId, 'oversizedUpdate')
+      return null
+    }
     const update = fromBase64(data.update)
     if (isUpdateTooLarge(update)) {
       this.peerScorer.penalize(peerId, 'oversizedUpdate')
@@ -312,6 +339,12 @@ export class RelayService {
 
     this.peerScorer.recordValid(peerId)
     return { update, peerId }
+  }
+
+  private allowPeerMessage(peerId: string): boolean {
+    if (this.rateLimiter.allow(peerId)) return true
+    this.peerScorer.penalize(peerId, 'rateExceeded')
+    return false
   }
 
   private async verifyEnvelope(

@@ -7,6 +7,7 @@ const resetEnv = () => {
   delete process.env.RAILWAY_VOLUME_MOUNT_PATH
   delete process.env.HUB_DATA_DIR
   delete process.env.RAILWAY_GRACE_MS
+  delete process.env.HUB_AWARENESS_MAX_UPDATE_SIZE
   delete process.env.FLY_REGION
   delete process.env.FLY_MACHINE_ID
 }
@@ -37,5 +38,12 @@ describe('resolveConfig', () => {
     expect(config.runtime?.region).toBe('ams')
     expect(config.runtime?.machineId).toBe('fly-123')
     expect(config.shutdownGraceMs).toBe(4000)
+  })
+
+  it('resolves awareness max update size from env', () => {
+    process.env.HUB_AWARENESS_MAX_UPDATE_SIZE = '2048'
+
+    const config = resolveConfig({ awarenessMaxUpdateSize: 1024 })
+    expect(config.awarenessMaxUpdateSize).toBe(2048)
   })
 })

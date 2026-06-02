@@ -7,6 +7,12 @@
 /** Maximum size of a single Yjs update (1MB) */
 export const MAX_YJS_UPDATE_SIZE = 1_048_576
 
+/** Maximum size of a Yjs state-vector request (64KB) */
+export const MAX_YJS_STATE_VECTOR_SIZE = 65_536
+
+/** Maximum size of a Yjs awareness update or direct awareness state (64KB) */
+export const MAX_YJS_AWARENESS_UPDATE_SIZE = 65_536
+
 /** Maximum updates per second per connection */
 export const MAX_YJS_UPDATES_PER_SECOND = 30
 
@@ -221,6 +227,44 @@ export class YjsRateLimiter {
  * Check if an update exceeds the size limit.
  */
 export function isUpdateTooLarge(update: Uint8Array, maxSize = MAX_YJS_UPDATE_SIZE): boolean {
+  return update.length > maxSize
+}
+
+/**
+ * Estimate decoded byte length for a base64 payload.
+ */
+export function estimateBase64DecodedLength(value: string): number {
+  const trimmed = value.trim()
+  if (trimmed.length === 0) return 0
+
+  const padding = trimmed.endsWith('==') ? 2 : trimmed.endsWith('=') ? 1 : 0
+  return Math.max(0, Math.floor((trimmed.length * 3) / 4) - padding)
+}
+
+/**
+ * Check if a base64 payload would exceed a decoded size limit.
+ */
+export function isBase64PayloadTooLarge(value: string, maxSize: number): boolean {
+  return estimateBase64DecodedLength(value) > maxSize
+}
+
+/**
+ * Check if a state-vector request exceeds the size limit.
+ */
+export function isStateVectorTooLarge(
+  stateVector: Uint8Array,
+  maxSize = MAX_YJS_STATE_VECTOR_SIZE
+): boolean {
+  return stateVector.length > maxSize
+}
+
+/**
+ * Check if an awareness update exceeds the size limit.
+ */
+export function isAwarenessUpdateTooLarge(
+  update: Uint8Array,
+  maxSize = MAX_YJS_AWARENESS_UPDATE_SIZE
+): boolean {
   return update.length > maxSize
 }
 

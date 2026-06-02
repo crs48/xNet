@@ -54,6 +54,11 @@ const run = async (): Promise<void> => {
       String(DEFAULT_CONFIG.awarenessMaxUsers)
     )
     .option(
+      '--awareness-max-update-size <number>',
+      'max awareness update or state size in bytes',
+      String(DEFAULT_CONFIG.awarenessMaxUpdateSize)
+    )
+    .option(
       '--discovery-ttl <number>',
       'peer discovery TTL in ms',
       String(DEFAULT_CONFIG.discoveryStaleTtlMs)
@@ -88,6 +93,10 @@ const run = async (): Promise<void> => {
           DEFAULT_CONFIG.awarenessCleanupIntervalMs
         ),
         awarenessMaxUsers: parseNumber(opts.awarenessMaxUsers, DEFAULT_CONFIG.awarenessMaxUsers),
+        awarenessMaxUpdateSize: parseNumber(
+          opts.awarenessMaxUpdateSize,
+          DEFAULT_CONFIG.awarenessMaxUpdateSize
+        ),
         discoveryStaleTtlMs: parseNumber(opts.discoveryTtl, DEFAULT_CONFIG.discoveryStaleTtlMs),
         discoveryCleanupIntervalMs: parseNumber(
           opts.discoveryCleanup,

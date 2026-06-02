@@ -3,6 +3,13 @@
  */
 
 import type { AwarenessEntry, HubStorage } from '../storage/interface'
+import {
+  MAX_YJS_AWARENESS_UPDATE_SIZE,
+  YjsRateLimiter,
+  isAwarenessUpdateTooLarge,
+  isBase64PayloadTooLarge,
+  type YjsRateLimiterOptions
+} from '@xnetjs/sync'
 import { Awareness, applyAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { isRecord } from '../utils/validation'
@@ -14,12 +21,17 @@ export type AwarenessConfig = {
   cleanupIntervalMs: number
   /** Max users tracked per room (default: 100) */
   maxUsersPerRoom: number
+  /** Max awareness update or state size in bytes */
+  maxUpdateSize: number
+  /** Per-peer awareness message rate limits */
+  rateLimit?: YjsRateLimiterOptions
 }
 
 const DEFAULT_CONFIG: AwarenessConfig = {
   ttlMs: 24 * 60 * 60 * 1000,
   cleanupIntervalMs: 60 * 60 * 1000,
-  maxUsersPerRoom: 100
+  maxUsersPerRoom: 100,
+  maxUpdateSize: MAX_YJS_AWARENESS_UPDATE_SIZE
 }
 
 type AwarenessRoomState = {
@@ -60,12 +72,14 @@ export class AwarenessService {
   private config: AwarenessConfig
   private cleanupTimer: ReturnType<typeof setInterval> | null = null
   private rooms = new Map<string, AwarenessRoomState>()
+  private rateLimiter: YjsRateLimiter
 
   constructor(
     private storage: HubStorage,
     config?: Partial<AwarenessConfig>
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config }
+    this.rateLimiter = new YjsRateLimiter(config?.rateLimit)
   }
 
   /**
@@ -86,6 +100,7 @@ export class AwarenessService {
       clearInterval(this.cleanupTimer)
       this.cleanupTimer = null
     }
+    this.rateLimiter.destroy()
   }
 
   /**
@@ -95,16 +110,24 @@ export class AwarenessService {
     room: string,
     userDid: string | null,
     data: Record<string, unknown>
-  ): Promise<void> {
+  ): Promise<boolean> {
+    const peerId = this.resolvePeerId(room, userDid, data)
+    if (!this.rateLimiter.allow(peerId)) return false
+
     if (typeof data.update === 'string') {
-      await this.handleAwarenessUpdate(room, userDid, toBytes(data.update))
-      return
+      if (isBase64PayloadTooLarge(data.update, this.config.maxUpdateSize)) return false
+      const update = toBytes(data.update)
+      if (isAwarenessUpdateTooLarge(update, this.config.maxUpdateSize)) return false
+
+      return this.handleAwarenessUpdate(room, userDid, update)
     }
 
     if (isRecord(data.state)) {
       const state = data.state
+      if (this.isStateTooLarge(state)) return false
+
       const resolvedDid = this.resolveUserDid(state, userDid)
-      if (!resolvedDid) return
+      if (!resolvedDid) return false
       const entry: AwarenessEntry = {
         room,
         userDid: resolvedDid,
@@ -112,7 +135,10 @@ export class AwarenessService {
         lastSeen: Date.now()
       }
       await this.storage.setAwareness(entry)
+      return true
     }
+
+    return false
   }
 
   /**
@@ -162,7 +188,7 @@ export class AwarenessService {
     room: string,
     userDid: string | null,
     update: Uint8Array
-  ): Promise<void> {
+  ): Promise<boolean> {
     const roomState = this.getRoomState(room)
     roomState.lastActivity = Date.now()
     const { awareness, clientUserMap } = roomState
@@ -177,10 +203,15 @@ export class AwarenessService {
     }
 
     awareness.on('update', handler)
-    applyAwarenessUpdate(awareness, update, 'hub')
-    awareness.off('update', handler)
+    try {
+      applyAwarenessUpdate(awareness, update, 'hub')
+    } catch {
+      return false
+    } finally {
+      awareness.off('update', handler)
+    }
 
-    if (!change) return
+    if (!change) return true
 
     const now = Date.now()
     const states = awareness.getStates()
@@ -208,6 +239,8 @@ export class AwarenessService {
         await this.handleDisconnect(room, removedDid)
       }
     }
+
+    return true
   }
 
   private resolveUserDid(state: Record<string, unknown>, fallback: string | null): string | null {
@@ -216,6 +249,23 @@ export class AwarenessService {
       return fallback
     }
     return fromState ?? fallback
+  }
+
+  private resolvePeerId(
+    room: string,
+    userDid: string | null,
+    data: Record<string, unknown>
+  ): string {
+    if (userDid && userDid !== 'did:key:anonymous') return userDid
+    return typeof data.from === 'string' && data.from.length > 0 ? data.from : `${room}:anonymous`
+  }
+
+  private isStateTooLarge(state: Record<string, unknown>): boolean {
+    try {
+      return new TextEncoder().encode(JSON.stringify(state)).length > this.config.maxUpdateSize
+    } catch {
+      return true
+    }
   }
 
   private async cleanup(): Promise<void> {

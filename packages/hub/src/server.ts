@@ -473,7 +473,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
     cleanupIntervalMs: config.awarenessCleanupIntervalMs ?? 60 * 60 * 1000,
-    maxUsersPerRoom: config.awarenessMaxUsers ?? 100
+    maxUsersPerRoom: config.awarenessMaxUsers ?? 100,
+    maxUpdateSize: config.awarenessMaxUpdateSize ?? 65_536
   })
   const discovery = new DiscoveryService(storage, {
     staleTtlMs: config.discoveryStaleTtlMs ?? 7 * 24 * 60 * 60 * 1000,
@@ -1230,7 +1231,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               typeof payload.topic === 'string' &&
               isAwarenessMessage(payload.data)
             ) {
-              await awareness.handleAwarenessMessage(payload.topic, authContext.did, payload.data)
+              const accepted = await awareness.handleAwarenessMessage(
+                payload.topic,
+                authContext.did,
+                payload.data
+              )
+              if (!accepted) {
+                metrics.increment(HUB_METRICS.WS_MESSAGES_REJECTED)
+                return
+              }
             }
 
             signaling.handleMessage(ws, payload)
