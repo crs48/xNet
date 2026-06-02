@@ -974,7 +974,7 @@ Every hub should publish:
 - [ ] Require V2 Yjs envelope verification for hub relay where signed replication is required.
 - [ ] Reject unknown V2 envelopes at hubs unless a verifier is configured.
 - [ ] Apply size and rate limits to awareness messages and state-vector messages.
-- [ ] Connect `YjsPeerScorer` actions to network `AutoBlocker` where possible.
+- [x] Connect `YjsPeerScorer` actions to network `AutoBlocker` where possible.
 - [ ] Persist local and workspace blocks as signed policy data, not only in-memory helpers.
 - [ ] Add telemetry events for remote mutation rejection reasons with peer hashes and score buckets.
 
