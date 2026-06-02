@@ -3,6 +3,7 @@ import {
   TRUSTED_SPAM_LABEL,
   abuseFixtures,
   createBaseFacts,
+  createRemoteAdmissionPipeline,
   decidePublicInteraction,
   decideReach,
   decideRemoteMutation,
@@ -166,6 +167,63 @@ describe('@xnetjs/abuse decision engine', () => {
 
       expect(result.resource).toBe('block-peer')
       expect(result.reasons).toContain('peer-score-block')
+    })
+  })
+
+  describe('createRemoteAdmissionPipeline', () => {
+    it('adapts protocol events into admission decisions', () => {
+      type RemoteUpdate = {
+        updateBytes: number
+        verified: boolean
+        peerScore: number
+      }
+
+      const pipeline = createRemoteAdmissionPipeline<RemoteUpdate>({
+        adapt: (input) =>
+          createBaseFacts({
+            surface: 'remoteMutation',
+            crypto: {
+              hashValid: input.verified,
+              signatureValid: input.verified,
+              authorized: input.verified
+            },
+            resource: {
+              overSizeLimit: input.updateBytes > 1_048_576
+            },
+            actor: {
+              peerScore: input.peerScore
+            }
+          })
+      })
+
+      const result = pipeline.evaluate({
+        updateBytes: 42,
+        verified: false,
+        peerScore: 100
+      })
+
+      expect(result.facts.surface).toBe('remoteMutation')
+      expect(result.decision.reasons).toContain('invalid-signature')
+      expect(result.accepted).toBe(false)
+      expect(result.shouldMutate).toBe(false)
+      expect(result.shouldRelay).toBe(false)
+    })
+
+    it('exposes throttle hints for callers that own transport state', () => {
+      const pipeline = createRemoteAdmissionPipeline({
+        adapt: () =>
+          createBaseFacts({
+            surface: 'remoteMutation',
+            actor: { peerScore: 25 }
+          })
+      })
+
+      const result = pipeline.evaluate(undefined)
+
+      expect(result.accepted).toBe(false)
+      expect(result.shouldMutate).toBe(false)
+      expect(result.shouldRelay).toBe(false)
+      expect(result.shouldThrottle).toBe(true)
     })
   })
 

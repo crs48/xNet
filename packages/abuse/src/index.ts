@@ -16,8 +16,22 @@ export {
   shouldThrottle,
   weightedLabelScore
 } from './decision'
+export {
+  createAbuseDecisionAdapter,
+  createAbuseFactAdapter,
+  createRemoteAdmissionPipeline,
+  decideWithAdapter
+} from './adapters'
 export { explainDecision, getReasonDetail } from './explain'
 export { TRUSTED_SPAM_LABEL, WARNING_SLOP_LABEL, abuseFixtures, createBaseFacts } from './fixtures'
+export type {
+  AbuseAdapterResult,
+  AbuseDecisionFunction,
+  AbuseFactAdapter,
+  RemoteAdmissionPipeline,
+  RemoteAdmissionPipelineOptions,
+  RemoteAdmissionResult
+} from './adapters'
 export type {
   AbuseActorFacts,
   AbuseAdmission,
