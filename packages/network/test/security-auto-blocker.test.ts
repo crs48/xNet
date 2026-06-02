@@ -1,3 +1,4 @@
+import { YjsPeerScorer } from '@xnetjs/sync'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { AutoBlocker } from '../src/security/auto-blocker'
 import { DefaultConnectionGater } from '../src/security/gater'
@@ -172,6 +173,45 @@ describe('AutoBlocker', () => {
 
       scorer.destroy()
       blockerWithScorer.destroy()
+    })
+  })
+
+  describe('integration with YjsPeerScorer', () => {
+    it('blocks when Yjs scorer returns a block action', () => {
+      const yjsScorer = new YjsPeerScorer()
+      const blockerWithYjsScorer = new AutoBlocker(gater, undefined, {
+        yjsPeerScorer: yjsScorer,
+        yjsBlockDuration: 30_000
+      })
+
+      yjsScorer.penalize('bad-yjs-peer', 'invalidSignature')
+      yjsScorer.penalize('bad-yjs-peer', 'invalidSignature')
+      yjsScorer.penalize('bad-yjs-peer', 'invalidSignature')
+
+      expect(blockerWithYjsScorer.isBlocked('bad-yjs-peer')).toBe(true)
+      expect(blockerWithYjsScorer.getBlockInfo('bad-yjs-peer')).toEqual(
+        expect.objectContaining({
+          reason: 'yjs_invalidSignature',
+          autoBlock: true
+        })
+      )
+
+      vi.advanceTimersByTime(30_001)
+      expect(blockerWithYjsScorer.isBlocked('bad-yjs-peer')).toBe(false)
+
+      blockerWithYjsScorer.destroy()
+    })
+
+    it('detaches Yjs scorer listener on destroy', () => {
+      const yjsScorer = new YjsPeerScorer({ instantBlockAfter: 1 })
+      const blockerWithYjsScorer = new AutoBlocker(gater, undefined, {
+        yjsPeerScorer: yjsScorer
+      })
+
+      blockerWithYjsScorer.destroy()
+      yjsScorer.penalize('detached-peer', 'invalidSignature')
+
+      expect(blockerWithYjsScorer.isBlocked('detached-peer')).toBe(false)
     })
   })
 

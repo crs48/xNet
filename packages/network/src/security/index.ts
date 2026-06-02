@@ -33,7 +33,12 @@ export type { PeerMetrics, PeerScore, ScoreThresholds, ScoreWeights } from './pe
 export { PeerScorer, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS } from './peer-scorer'
 
 // Auto Blocker
-export type { BlockInfo, BlockThresholds } from './auto-blocker'
+export type {
+  BlockInfo,
+  BlockThresholds,
+  YjsPeerActionBridgeEvent,
+  YjsPeerScorerBridge
+} from './auto-blocker'
 export { AutoBlocker, DEFAULT_BLOCK_THRESHOLDS } from './auto-blocker'
 
 // Access List

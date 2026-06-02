@@ -85,6 +85,8 @@ export {
   // Auto Blocker
   type BlockInfo,
   type BlockThresholds,
+  type YjsPeerActionBridgeEvent,
+  type YjsPeerScorerBridge,
   AutoBlocker,
   DEFAULT_BLOCK_THRESHOLDS,
   // Access List

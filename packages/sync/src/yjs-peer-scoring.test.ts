@@ -124,6 +124,35 @@ describe('YjsPeerScorer', () => {
     })
   })
 
+  describe('onAction', () => {
+    it('emits peer actions caused by violations', () => {
+      const scorer = new YjsPeerScorer()
+      const listener = vi.fn()
+
+      scorer.onAction(listener)
+      scorer.penalize('peer-1', 'rateExceeded')
+
+      expect(listener).toHaveBeenCalledWith({
+        peerId: 'peer-1',
+        reason: 'rateExceeded',
+        action: 'allow',
+        score: 95,
+        metrics: expect.objectContaining({ rateExceeded: 1 })
+      })
+    })
+
+    it('returns an unsubscribe function', () => {
+      const scorer = new YjsPeerScorer()
+      const listener = vi.fn()
+      const unsubscribe = scorer.onAction(listener)
+
+      unsubscribe()
+      scorer.penalize('peer-1', 'rateExceeded')
+
+      expect(listener).not.toHaveBeenCalled()
+    })
+  })
+
   describe('action thresholds', () => {
     it('returns block at score <= 10', () => {
       const scorer = new YjsPeerScorer()

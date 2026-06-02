@@ -146,6 +146,8 @@ export type {
   YjsPeerMetrics,
   YjsViolationType,
   PeerAction,
+  YjsPeerActionEvent,
+  YjsPeerActionListener,
   YjsScoringConfig
 } from './yjs-peer-scoring'
 export { YjsPeerScorer, DEFAULT_YJS_SCORING_CONFIG } from './yjs-peer-scoring'

@@ -25,6 +25,17 @@ export interface BlockThresholds {
   duration: number
 }
 
+export interface YjsPeerActionBridgeEvent {
+  peerId: string
+  reason: string
+  action: string
+  score: number
+}
+
+export interface YjsPeerScorerBridge {
+  onAction(listener: (event: YjsPeerActionBridgeEvent) => void): () => void
+}
+
 export const DEFAULT_BLOCK_THRESHOLDS: Record<SecurityEventType, BlockThresholds> = {
   invalid_signature: { count: 3, window: 60_000, duration: 24 * 60 * 60_000 },
   rate_limit_exceeded: { count: 10, window: 60_000, duration: 60 * 60_000 },
@@ -42,12 +53,15 @@ export class AutoBlocker {
   private eventCounts = new Map<string, Map<SecurityEventType, number[]>>()
   private thresholds: Record<SecurityEventType, BlockThresholds>
   private cleanupTimer: ReturnType<typeof setInterval> | null = null
+  private unsubscribeYjsScorer: (() => void) | null = null
 
   constructor(
     private gater: DefaultConnectionGater,
     private scorer?: PeerScorer,
     options: {
       thresholds?: Partial<Record<SecurityEventType, Partial<BlockThresholds>>>
+      yjsPeerScorer?: YjsPeerScorerBridge
+      yjsBlockDuration?: number
     } = {}
   ) {
     this.thresholds = { ...DEFAULT_BLOCK_THRESHOLDS }
@@ -66,10 +80,20 @@ export class AutoBlocker {
       })
     }
 
+    if (options.yjsPeerScorer) {
+      const blockDuration = options.yjsBlockDuration ?? 60 * 60_000
+      this.unsubscribeYjsScorer = options.yjsPeerScorer.onAction((event) =>
+        this.handleYjsPeerAction(event, blockDuration)
+      )
+    }
+
     this.cleanupTimer = setInterval(() => this.cleanupExpiredBlocks(), 60_000)
   }
 
   destroy(): void {
+    this.unsubscribeYjsScorer?.()
+    this.unsubscribeYjsScorer = null
+
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer)
       this.cleanupTimer = null
@@ -200,6 +224,19 @@ export class AutoBlocker {
       reason: 'low_peer_score',
       evidence: `Score dropped to ${score}`,
       duration: 60 * 60_000,
+      autoBlock: true
+    })
+  }
+
+  private handleYjsPeerAction(event: YjsPeerActionBridgeEvent, duration: number): void {
+    if (event.action !== 'block' || this.isBlocked(event.peerId)) {
+      return
+    }
+
+    this.blockPeer(event.peerId, {
+      reason: `yjs_${event.reason}`,
+      evidence: `Yjs peer scorer returned block at score ${event.score}`,
+      duration,
       autoBlock: true
     })
   }
