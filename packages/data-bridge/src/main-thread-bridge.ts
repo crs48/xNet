@@ -10,10 +10,14 @@
  * - For testing/development
  */
 
-import type { RemoteNodeQueryClient } from './remote-query-protocol'
+import type {
+  RemoteNodeQueryClient,
+  RemoteNodeQueryStreamSubscription
+} from './remote-query-protocol'
 import type {
   DataBridge,
   QueryDescriptor,
+  QueryMetadata,
   QuerySubscription,
   QueryOptions,
   SyncStatus,
@@ -39,6 +43,12 @@ import {
   serializeQueryDescriptor
 } from './query-descriptor'
 import { createQueryErrorMetadata, createQueryMetadata } from './query-metadata'
+import {
+  createQueryStreamState,
+  reduceQueryStreamEvent,
+  type QueryStreamEvent,
+  type QueryStreamState
+} from './query-stream'
 import {
   createRemoteFallbackMetadata,
   createRemoteSuccessMetadata,
@@ -70,6 +80,13 @@ export interface MainThreadBridgeOptions {
   remoteNodeQueryClient?: RemoteNodeQueryClient
 }
 
+type RemoteStreamRuntime = {
+  state: QueryStreamState
+  unsubscribe: (() => void) | null
+  cancelled: boolean
+  start: Promise<void>
+}
+
 // ─── MainThreadBridge Class ──────────────────────────────────────────────────
 
 /**
@@ -87,6 +104,7 @@ export class MainThreadBridge implements DataBridge {
   private _syncManager: SyncManagerLike | null = null
   private remoteNodeQueryClient: RemoteNodeQueryClient | null
   private remoteLoads = new Map<string, Promise<void>>()
+  private remoteStreams = new Map<string, RemoteStreamRuntime>()
 
   constructor(store: NodeStore, options?: MainThreadBridgeOptions) {
     this.store = store
@@ -127,7 +145,23 @@ export class MainThreadBridge implements DataBridge {
     return {
       getSnapshot: () => this.cache.get(queryId),
       getMetadata: () => this.cache.getMetadata(queryId),
-      subscribe: (callback) => this.cache.subscribe(queryId, callback)
+      subscribe: (callback) => this.subscribeToQuery(queryId, descriptor, callback)
+    }
+  }
+
+  private subscribeToQuery(
+    queryId: string,
+    descriptor: QueryDescriptor,
+    callback: () => void
+  ): () => void {
+    const unsubscribe = this.cache.subscribe(queryId, callback)
+    this.startRemoteQueryStream(queryId, descriptor)
+
+    return () => {
+      unsubscribe()
+      if (this.cache.getSubscriberCount(queryId) === 0) {
+        this.stopRemoteQueryStream(queryId)
+      }
     }
   }
 
@@ -199,6 +233,148 @@ export class MainThreadBridge implements DataBridge {
     await load
   }
 
+  private shouldUseRemoteStream(descriptor: QueryDescriptor): boolean {
+    const mode = getRemoteQueryMode(descriptor)
+    return descriptor.source !== 'local' && (mode === 'live' || mode === 'stream')
+  }
+
+  private startRemoteQueryStream(queryId: string, descriptor: QueryDescriptor): void {
+    if (!this.shouldUseRemoteStream(descriptor)) return
+    if (this.remoteStreams.has(queryId)) return
+
+    if (!this.remoteNodeQueryClient) {
+      this.handleRemoteQueryError(queryId, descriptor, new Error('Remote query client unavailable'))
+      return
+    }
+
+    if (!this.remoteNodeQueryClient.stream) {
+      void this.loadRemoteQuery(queryId, descriptor)
+      return
+    }
+
+    const localSnapshot = this.cache.get(queryId)
+    const runtime: RemoteStreamRuntime = {
+      state: createQueryStreamState({
+        data: localSnapshot,
+        metadata: this.cache.getMetadata(queryId),
+        status: localSnapshot === null ? 'loading' : 'ready'
+      }),
+      unsubscribe: null,
+      cancelled: false,
+      start: Promise.resolve()
+    }
+    const mode = getRemoteQueryMode(descriptor)
+    if (!mode) return
+
+    this.remoteStreams.set(queryId, runtime)
+
+    const request = createRemoteNodeQueryRequest({
+      requestId: queryId,
+      descriptor,
+      mode,
+      source: getRemoteQuerySource(descriptor),
+      client: {
+        knownNodeIds: localSnapshot?.map((node) => node.id) ?? []
+      }
+    })
+
+    runtime.start = Promise.resolve(
+      this.remoteNodeQueryClient.stream(request, {
+        next: (event) => {
+          if (this.remoteStreams.get(queryId) !== runtime || runtime.cancelled) return
+          this.applyRemoteStreamEvent(queryId, descriptor, event)
+        },
+        error: (error) => {
+          if (this.remoteStreams.get(queryId) !== runtime || runtime.cancelled) return
+          this.applyRemoteStreamEvent(queryId, descriptor, {
+            type: 'error',
+            error: error.message
+          })
+          this.stopRemoteQueryStream(queryId)
+        },
+        complete: () => {
+          if (this.remoteStreams.get(queryId) !== runtime || runtime.cancelled) return
+          this.applyRemoteStreamEvent(queryId, descriptor, {
+            type: 'progress',
+            progress: { phase: 'complete' }
+          })
+          this.stopRemoteQueryStream(queryId)
+        }
+      })
+    )
+      .then((subscription) => {
+        const unsubscribe = this.normalizeRemoteStreamSubscription(subscription)
+        if (runtime.cancelled) {
+          unsubscribe?.()
+          return
+        }
+        runtime.unsubscribe = unsubscribe
+      })
+      .catch((err) => {
+        if (runtime.cancelled) return
+        const error = err instanceof Error ? err : new Error(String(err))
+        this.handleRemoteQueryError(queryId, descriptor, error)
+        this.remoteStreams.delete(queryId)
+      })
+  }
+
+  private stopRemoteQueryStream(queryId: string): void {
+    const runtime = this.remoteStreams.get(queryId)
+    if (!runtime) return
+
+    runtime.cancelled = true
+    this.remoteStreams.delete(queryId)
+    runtime.unsubscribe?.()
+  }
+
+  private normalizeRemoteStreamSubscription(
+    subscription: RemoteNodeQueryStreamSubscription
+  ): (() => void) | null {
+    if (!subscription) return null
+    if (typeof subscription === 'function') return subscription
+    return () => {
+      subscription.unsubscribe()
+    }
+  }
+
+  private applyRemoteStreamEvent(
+    queryId: string,
+    descriptor: QueryDescriptor,
+    event: QueryStreamEvent
+  ): void {
+    const runtime = this.remoteStreams.get(queryId)
+    if (!runtime) return
+
+    const eventWithMetadata =
+      event.type === 'error' && event.metadata === undefined
+        ? { ...event, metadata: this.createStreamErrorMetadata(descriptor, runtime.state, event) }
+        : event
+    const nextState = reduceQueryStreamEvent(runtime.state, eventWithMetadata)
+    runtime.state = nextState
+    this.cache.set(queryId, nextState.data, descriptor, undefined, nextState.metadata)
+  }
+
+  private createStreamErrorMetadata(
+    descriptor: QueryDescriptor,
+    state: QueryStreamState,
+    event: Extract<QueryStreamEvent, { type: 'error' }>
+  ): QueryMetadata {
+    const currentMetadata =
+      state.metadata ?? this.cache.getMetadata(serializeQueryDescriptor(descriptor))
+    if (currentMetadata && state.data !== null) {
+      return createRemoteFallbackMetadata({
+        localMetadata: currentMetadata,
+        error: new Error(event.error)
+      })
+    }
+
+    return createQueryErrorMetadata({
+      descriptor,
+      source: getRemoteQuerySource(descriptor),
+      error: new Error(event.error)
+    })
+  }
+
   private async executeRemoteQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
     const mode = getRemoteQueryMode(descriptor)
     if (!mode) return
@@ -254,7 +430,13 @@ export class MainThreadBridge implements DataBridge {
     const localSnapshot = this.cache.get(queryId)
     const localMetadata = this.cache.getMetadata(queryId)
 
-    if (descriptor.mode === 'local-then-remote' && localSnapshot && localMetadata) {
+    if (
+      (descriptor.mode === 'local-then-remote' ||
+        descriptor.mode === 'live' ||
+        descriptor.mode === 'stream') &&
+      localSnapshot &&
+      localMetadata
+    ) {
       this.cache.set(
         queryId,
         localSnapshot,
@@ -398,6 +580,9 @@ export class MainThreadBridge implements DataBridge {
   }
 
   destroy(): void {
+    for (const queryId of this.remoteStreams.keys()) {
+      this.stopRemoteQueryStream(queryId)
+    }
     if (this.storeUnsubscribe) {
       this.storeUnsubscribe()
       this.storeUnsubscribe = null

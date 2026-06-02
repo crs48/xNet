@@ -2,6 +2,7 @@
  * Versioned protocol types for future remote Node descriptor reads.
  */
 
+import type { QueryStreamEvent } from './query-stream'
 import type {
   QueryDescriptor,
   QueryCompletenessMetadata,
@@ -76,8 +77,27 @@ export type RemoteNodeQueryErrorResponse = {
 
 export type RemoteNodeQueryResponse = RemoteNodeQuerySuccessResponse | RemoteNodeQueryErrorResponse
 
+export type RemoteNodeQueryStreamObserver = {
+  next(event: QueryStreamEvent): void
+  error?(error: Error): void
+  complete?(): void
+}
+
+export type RemoteNodeQueryStreamController = {
+  unsubscribe(): void
+}
+
+export type RemoteNodeQueryStreamSubscription =
+  | RemoteNodeQueryStreamController
+  | (() => void)
+  | void
+
 export type RemoteNodeQueryClient = {
   query(request: RemoteNodeQueryRequest): Promise<RemoteNodeQueryResponse>
+  stream?(
+    request: RemoteNodeQueryRequest,
+    observer: RemoteNodeQueryStreamObserver
+  ): RemoteNodeQueryStreamSubscription | Promise<RemoteNodeQueryStreamSubscription>
 }
 
 export function isRemoteNodeQuerySource(

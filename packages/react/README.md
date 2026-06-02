@@ -237,13 +237,30 @@ const { data, source, completeness, staleness, verification, error } = useQuery(
 
 `mode: 'local-then-remote'` renders the local snapshot first, then merges hub or federated results by node ID while preserving the newest `updatedAt` version. Remote failures keep the local snapshot and expose `error`, `source: 'hybrid'`, and partial `completeness` metadata. `mode: 'remote'` uses the remote client as the primary source and does not hydrate local results first.
 
+`mode: 'stream'` keeps the same React API while allowing a remote client to push `snapshot`, `insert`, `update`, `delete`, `reset`, `progress`, and `error` events into the bridge cache. The main-thread bridge starts a remote stream when the query is subscribed, stops it when the last subscriber unmounts, and falls back to a one-shot remote query when a client exposes `query()` but not `stream()`.
+
+```ts
+const hubQueryClient = {
+  async query(request) {
+    return hub.fetchNodeQuery(request)
+  },
+  stream(request, observer) {
+    const stream = hub.openNodeQueryStream(request)
+    stream.on('event', (event) => observer.next(event))
+    stream.on('error', (error) => observer.error?.(error))
+    stream.on('close', () => observer.complete?.())
+    return () => stream.close()
+  }
+}
+```
+
 Remote metadata is surfaced on the hook result:
 
 - `completeness` explains whether remote data is complete, partial, or unknown.
 - `staleness` reports whether the remote source is fresh, stale, or unknown.
 - `verification` reports whether remote nodes were verified, unverified, failed, or mixed.
 
-Worker remote transport, live remote subscriptions, and stream events are still roadmap items tracked in the exploration.
+Worker remote transport, stream event devtools timelines, and hub-side authorization enforcement are still roadmap items tracked in the exploration.
 
 **Query API roadmap:**
 

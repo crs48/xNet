@@ -168,7 +168,7 @@ export class QueryCache {
    */
   set(
     queryId: string,
-    data: NodeState[],
+    data: NodeState[] | null,
     schemaIdOrDescriptor?: SchemaIRI | QueryDescriptor,
     options?: QueryOptions,
     metadata?: QueryMetadata | null
