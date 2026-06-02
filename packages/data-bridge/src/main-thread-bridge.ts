@@ -36,6 +36,7 @@ import {
   createQueryDescriptor,
   serializeQueryDescriptor
 } from './query-descriptor'
+import { createQueryErrorMetadata, createQueryMetadata } from './query-metadata'
 
 // ─── SyncManager Interface ───────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ export class MainThreadBridge implements DataBridge {
 
     return {
       getSnapshot: () => this.cache.get(queryId),
+      getMetadata: () => this.cache.getMetadata(queryId),
       subscribe: (callback) => this.cache.subscribe(queryId, callback)
     }
   }
@@ -117,11 +119,21 @@ export class MainThreadBridge implements DataBridge {
     try {
       const result = await this.store.query(descriptor)
       this.debugQueryPlan(queryId, result.plan)
-      this.cache.set(queryId, result.nodes, descriptor)
+      this.cache.set(queryId, result.nodes, descriptor, undefined, {
+        ...createQueryMetadata({ descriptor, result, source: 'local' }),
+        source: 'local'
+      })
     } catch (err) {
-      console.error('[MainThreadBridge] Failed to load query:', err)
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error('[MainThreadBridge] Failed to load query:', error)
       // Set empty array on error so we don't keep retrying
-      this.cache.set(queryId, [], descriptor)
+      this.cache.set(
+        queryId,
+        [],
+        descriptor,
+        undefined,
+        createQueryErrorMetadata({ descriptor, source: 'local', error })
+      )
     }
   }
 

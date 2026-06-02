@@ -62,6 +62,8 @@ export interface SerializedQueryOptions {
   limit?: number
   offset?: number
   spatial?: QueryDescriptor['spatial']
+  search?: string | QueryDescriptor['search']
+  materializedView?: string | QueryDescriptor['materializedView']
 }
 
 /**

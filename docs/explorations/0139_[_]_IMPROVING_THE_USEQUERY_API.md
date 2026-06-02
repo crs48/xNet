@@ -1242,29 +1242,29 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Phase 0 Docs
 
-- [ ] Add roadmap pointer in `packages/react/README.md`.
+- [x] Add roadmap pointer in `packages/react/README.md`.
 - [ ] Add an implementation issue or plan linking this exploration.
 - [ ] Audit public docs for stale `useQuery` references.
-- [ ] Keep future API examples in exploration/plan docs until implemented.
+- [x] Keep future API examples in exploration/plan docs until implemented.
 
 ### Phase 1 Existing Capability Promotion
 
-- [ ] Add `search` to `QueryFilter<P>` in `packages/react/src/hooks/useQuery.ts`.
-- [ ] Add `materializedView` to `QueryFilter<P>`.
-- [ ] Route public filter options through `createQueryDescriptor()` without losing fields.
-- [ ] Use the serialized descriptor as the only query dependency key.
-- [ ] Extend `QuerySubscription` or add `QuerySnapshot` to include metadata.
-- [ ] Preserve old `NodeState[] | null` compatibility during migration.
+- [x] Add `search` to `QueryFilter<P>` in `packages/react/src/hooks/useQuery.ts`.
+- [x] Add `materializedView` to `QueryFilter<P>`.
+- [x] Route public filter options through `createQueryDescriptor()` without losing fields.
+- [x] Use the serialized descriptor as the only query dependency key.
+- [x] Extend `QuerySubscription` or add `QuerySnapshot` to include metadata.
+- [x] Preserve old `NodeState[] | null` compatibility during migration.
 - [ ] Surface materialized plan info in devtools query tracker.
-- [ ] Add unit tests for hook-level `search` descriptor forwarding.
-- [ ] Add unit tests for hook-level `materializedView` descriptor forwarding.
+- [x] Add unit tests for hook-level `search` descriptor forwarding.
+- [x] Add unit tests for hook-level `materializedView` descriptor forwarding.
 - [ ] Add unit tests proving equivalent option objects do not reload unnecessarily.
 
 ### Phase 2 Pagination
 
-- [ ] Define `PageInfo`.
+- [x] Define `PageInfo`.
 - [ ] Add `page` options while preserving `limit` / `offset`.
-- [ ] Add `totalCount` and `hasMore` aliases on list results.
+- [x] Add `totalCount` and `hasMore` aliases on list results.
 - [ ] Add exact count support for descriptor subsets where storage can answer.
 - [ ] Add estimate mode for hub/federated/search results.
 - [ ] Add cursor encode/decode utilities with versioning.

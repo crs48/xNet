@@ -2,7 +2,7 @@
  * Tests for useQuery hook
  */
 import type { DID } from '@xnetjs/core'
-import type { DataBridge, QueryDescriptor } from '@xnetjs/data-bridge'
+import type { DataBridge, QueryDescriptor, QueryMetadata } from '@xnetjs/data-bridge'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import {
   defineSchema,
@@ -104,6 +104,7 @@ describe('useQuery', () => {
 
   function createMockBridge() {
     const snapshots = new Map<string, NodeState[] | null>()
+    const metadata = new Map<string, QueryMetadata | null>()
     const listeners = new Map<string, Set<() => void>>()
     const pendingReloads = new Map<string, NodeState[]>()
 
@@ -147,6 +148,7 @@ describe('useQuery', () => {
 
         return {
           getSnapshot: () => snapshots.get(queryId) ?? null,
+          getMetadata: () => metadata.get(queryId) ?? null,
           subscribe: (listener) => {
             const queryListeners = listeners.get(queryId) ?? new Set()
             queryListeners.add(listener)
@@ -197,6 +199,13 @@ describe('useQuery', () => {
         data: NodeState[]
       ) {
         pendingReloads.set(getQueryId(schema, filter), data)
+      },
+      setMetadata<P extends Record<string, PropertyBuilder>>(
+        schema: DefinedSchema<P>,
+        filter: string | Record<string, unknown> | undefined,
+        value: QueryMetadata | null
+      ) {
+        metadata.set(getQueryId(schema, filter), value)
       }
     }
   }
@@ -465,6 +474,96 @@ describe('useQuery', () => {
         })
       )
       expect(result.current.data[0]?.title).toBe('Done Task')
+    })
+
+    it('should forward search and materialized view options through the canonical descriptor', async () => {
+      const mock = createMockBridge()
+      mock.setSnapshot(TaskSchema, { search: 'proj road', materializedView: 'task-view-open' }, [])
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(
+        () =>
+          useQuery(TaskSchema, {
+            search: 'proj road',
+            materializedView: 'task-view-open'
+          }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      act(() => {
+        result.current.reload()
+      })
+
+      expect(mock.reloadQuery).toHaveBeenCalledWith(
+        createQueryDescriptor(TaskSchema._schemaId, {
+          search: 'proj road',
+          materializedView: 'task-view-open'
+        })
+      )
+    })
+
+    it('should expose bridge-provided pagination, materialized, and plan metadata', async () => {
+      const mock = createMockBridge()
+      const doneNode = createTaskNode('done-1', 'Done Task', 'done')
+      const filter = {
+        where: { status: 'done' as const },
+        limit: 1,
+        materializedView: 'task-view-done'
+      }
+
+      mock.setSnapshot(TaskSchema, filter, [doneNode])
+      mock.setMetadata(TaskSchema, filter, {
+        source: 'local',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 3,
+          hasMore: true,
+          hasNextPage: true,
+          hasPreviousPage: false,
+          loadedCount: 1
+        },
+        plan: {
+          strategy: 'storage-query',
+          candidateNodeCount: 1,
+          hydratedNodeCount: 1,
+          returnedNodeCount: 1,
+          durationMs: 2,
+          materializedViewId: 'task-view-done',
+          materializedCacheHit: true
+        },
+        materialized: {
+          viewId: 'task-view-done',
+          cacheHit: true,
+          generatedAt: Date.now(),
+          rowCount: 3
+        }
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, filter), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.status).toBe('success')
+      expect(result.current.totalCount).toBe(3)
+      expect(result.current.hasMore).toBe(true)
+      expect(result.current.pageInfo.loadedCount).toBe(1)
+      expect(result.current.materialized?.viewId).toBe('task-view-done')
+      expect(result.current.materialized?.cacheHit).toBe(true)
+      expect(result.current.plan?.strategy).toBe('storage-query')
+      expect(result.current.source).toBe('local')
     })
   })
 })

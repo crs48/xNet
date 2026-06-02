@@ -12,7 +12,8 @@ import type {
   InferCreateProps,
   NodeState,
   NodeChangeEvent,
-  ListNodesOptions
+  ListNodesOptions,
+  NodeQueryPlanMetadata
 } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
@@ -132,6 +133,35 @@ export interface QueryDescriptor {
   materializedView?: QueryMaterializedViewOptions
 }
 
+export type QuerySource = 'local' | 'memory' | 'hub' | 'federated' | 'hybrid'
+
+export interface QueryPageInfo {
+  totalCount: number | null
+  hasMore: boolean
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+  startCursor?: string
+  endCursor?: string
+  loadedCount: number
+}
+
+export interface QueryMaterializedMetadata {
+  viewId: string
+  cacheHit: boolean
+  generatedAt: number
+  invalidatedAt?: number
+  rowCount: number
+}
+
+export interface QueryMetadata {
+  source: QuerySource
+  updatedAt: number
+  pageInfo: QueryPageInfo
+  plan?: NodeQueryPlanMetadata
+  materialized?: QueryMaterializedMetadata
+  error?: string
+}
+
 /**
  * A subscription to a query result.
  * Compatible with React's useSyncExternalStore pattern.
@@ -144,6 +174,9 @@ export interface QuerySubscription<
 > {
   /** Get current snapshot (synchronous - reads from cache). Returns null if loading. */
   getSnapshot(): NodeState[] | null
+
+  /** Get current query metadata, if the bridge can provide it. */
+  getMetadata?(): QueryMetadata | null
 
   /** Subscribe to updates (React will call this) */
   subscribe(callback: () => void): () => void

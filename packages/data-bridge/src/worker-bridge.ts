@@ -31,6 +31,7 @@ import {
   queryDescriptorToOptions,
   serializeQueryDescriptor
 } from './query-descriptor'
+import { createQuerySnapshotMetadata } from './query-metadata'
 import { createUpdateBatcher, type UpdateBatcher } from './utils/debounce'
 
 // ─── Update Batcher Configuration ─────────────────────────────────────────────
@@ -131,6 +132,7 @@ export class WorkerBridge implements DataBridge {
 
     return {
       getSnapshot: () => this.cache.get(queryId),
+      getMetadata: () => this.cache.getMetadata(queryId),
       subscribe: (callback) => {
         // Add to local subscribers
         const subs = this.subscriptions.get(queryId) ?? new Set()
@@ -169,7 +171,13 @@ export class WorkerBridge implements DataBridge {
     }
 
     const data = await this.remote.reloadQuery(queryId)
-    this.cache.set(queryId, data, descriptor)
+    this.cache.set(
+      queryId,
+      data,
+      descriptor,
+      undefined,
+      createQuerySnapshotMetadata({ descriptor, nodes: data, source: 'memory' })
+    )
   }
 
   private async startWorkerSubscription(
@@ -187,12 +195,24 @@ export class WorkerBridge implements DataBridge {
       )
 
       // Update cache with initial data
-      this.cache.set(queryId, initial, descriptor)
+      this.cache.set(
+        queryId,
+        initial,
+        descriptor,
+        undefined,
+        createQuerySnapshotMetadata({ descriptor, nodes: initial, source: 'memory' })
+      )
     } catch (err) {
       console.error('[WorkerBridge] Failed to subscribe:', err)
       this.activeRemoteSubscriptions.delete(queryId)
       // Set empty result on error
-      this.cache.set(queryId, [], descriptor)
+      this.cache.set(
+        queryId,
+        [],
+        descriptor,
+        undefined,
+        createQuerySnapshotMetadata({ descriptor, nodes: [], source: 'memory' })
+      )
     }
   }
 
@@ -236,7 +256,9 @@ export class WorkerBridge implements DataBridge {
       orderBy: options.orderBy as Record<string, 'asc' | 'desc'> | undefined,
       limit: options.limit,
       offset: options.offset,
-      spatial: options.spatial
+      spatial: options.spatial,
+      search: options.search,
+      materializedView: options.materializedView
     }
   }
 

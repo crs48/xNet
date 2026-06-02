@@ -17,8 +17,15 @@
 export type {
   DataBridge,
   QueryDescriptor,
+  QueryMaterializedMetadata,
+  QueryMaterializedViewOptions,
+  QueryMetadata,
+  QueryPageInfo,
+  QuerySearchField,
+  QuerySearchFilter,
   QuerySubscription,
   QueryOptions,
+  QuerySource,
   QuerySpatialFilter,
   QuerySpatialPoint,
   QuerySpatialPointFields,
@@ -87,6 +94,11 @@ export {
   applyNodeChangeToQueryResult,
   type QueryResultDelta
 } from './query-descriptor'
+export {
+  createQueryMetadata,
+  createQueryErrorMetadata,
+  createQuerySnapshotMetadata
+} from './query-metadata'
 export {
   debounce,
   createUpdateBatcher,

@@ -29,7 +29,16 @@
  * ```
  */
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
-import type { QueryOptions, QuerySpatialFilter } from '@xnetjs/data-bridge'
+import type {
+  QueryMaterializedMetadata,
+  QueryMaterializedViewOptions,
+  QueryMetadata,
+  QueryOptions,
+  QueryPageInfo,
+  QuerySearchFilter,
+  QuerySource,
+  QuerySpatialFilter
+} from '@xnetjs/data-bridge'
 import {
   createQueryDescriptor,
   queryDescriptorToOptions,
@@ -73,6 +82,47 @@ export interface QueryFilter<
   offset?: number
   /** Spatial filtering for viewport windows or radius-based 2D queries */
   spatial?: QuerySpatialFilter
+  /** Tokenized full-text search over searchable node fields */
+  search?: string | QuerySearchFilter
+  /** Stable view cache key for storage-backed materialized result sets */
+  materializedView?: string | QueryMaterializedViewOptions
+}
+
+export type QueryStatus = 'loading' | 'success' | 'error'
+
+export interface QueryPlanSummary {
+  strategy?: string
+  candidateNodeCount?: number
+  hydratedNodeCount?: number
+  returnedNodeCount?: number
+  durationMs?: number
+  descriptorHash?: string
+  candidateAccelerators?: string[]
+  materializedViewId?: string
+  materializedCacheHit?: boolean
+}
+
+export interface QueryBaseResult {
+  /** Query lifecycle status */
+  status: QueryStatus
+  /** Whether currently loading */
+  loading: boolean
+  /** Alias for loading */
+  isLoading: boolean
+  /** Whether a fetch/reload is currently active */
+  isFetching: boolean
+  /** Whether the query is backed by a live subscription */
+  isLive: boolean
+  /** Source that produced the current snapshot */
+  source: QuerySource
+  /** Any error that occurred */
+  error: Error | null
+  /** Reload the query */
+  reload: () => void
+  /** Optional bridge/runtime plan summary */
+  plan: QueryPlanSummary | null
+  /** Optional materialized view metadata */
+  materialized: QueryMaterializedMetadata | null
 }
 
 /**
@@ -92,15 +142,17 @@ export interface MigrationWarning {
 /**
  * Result when querying a list of nodes
  */
-export interface QueryListResult<P extends Record<string, PropertyBuilder>> {
+export interface QueryListResult<
+  P extends Record<string, PropertyBuilder>
+> extends QueryBaseResult {
   /** The queried nodes (flattened - access properties directly) */
   data: FlatNode<P>[]
-  /** Whether currently loading */
-  loading: boolean
-  /** Any error that occurred */
-  error: Error | null
-  /** Reload the query */
-  reload: () => void
+  /** Pagination and count metadata */
+  pageInfo: QueryPageInfo
+  /** Total matching count when known. Null means unavailable or intentionally not counted. */
+  totalCount: number | null
+  /** Whether more results may be available. Exact when totalCount is known. */
+  hasMore: boolean
   /**
    * Migration warnings for nodes that were migrated from different schema versions.
    * Only populated if nodes required migration and the migration was lossy.
@@ -111,20 +163,75 @@ export interface QueryListResult<P extends Record<string, PropertyBuilder>> {
 /**
  * Result when querying a single node
  */
-export interface QuerySingleResult<P extends Record<string, PropertyBuilder>> {
+export interface QuerySingleResult<
+  P extends Record<string, PropertyBuilder>
+> extends QueryBaseResult {
   /** The queried node (flattened - access properties directly), null if not found */
   data: FlatNode<P> | null
-  /** Whether currently loading */
-  loading: boolean
-  /** Any error that occurred */
-  error: Error | null
-  /** Reload the query */
-  reload: () => void
   /**
    * Migration warnings if the node was migrated from a different schema version.
    * Only populated if the node required migration and the migration was lossy.
    */
   migrationWarnings: MigrationWarning[]
+}
+
+const EMPTY_PAGE_INFO: QueryPageInfo = {
+  totalCount: null,
+  hasMore: false,
+  hasNextPage: false,
+  hasPreviousPage: false,
+  loadedCount: 0
+}
+
+function getFallbackPageInfo(input: {
+  metadata: QueryMetadata | null
+  loading: boolean
+  isSingleQuery: boolean
+  data: unknown
+  filter: QueryFilter
+}): QueryPageInfo {
+  if (input.metadata?.pageInfo) {
+    return input.metadata.pageInfo
+  }
+
+  if (input.loading || input.isSingleQuery || !Array.isArray(input.data)) {
+    return EMPTY_PAGE_INFO
+  }
+
+  const loadedCount = input.data.length
+  const offset = input.filter.offset ?? 0
+  const totalCount = input.filter.limit === undefined && offset === 0 ? loadedCount : null
+  const hasMore =
+    input.filter.limit !== undefined
+      ? totalCount === null
+        ? loadedCount >= input.filter.limit
+        : offset + loadedCount < totalCount
+      : false
+
+  return {
+    totalCount,
+    hasMore,
+    hasNextPage: hasMore,
+    hasPreviousPage: offset > 0,
+    loadedCount
+  }
+}
+
+function summarizePlan(metadata: QueryMetadata | null): QueryPlanSummary | null {
+  const plan = metadata?.plan
+  if (!plan) return null
+
+  return {
+    strategy: plan.strategy,
+    candidateNodeCount: plan.candidateNodeCount,
+    hydratedNodeCount: plan.hydratedNodeCount,
+    returnedNodeCount: plan.returnedNodeCount,
+    durationMs: plan.durationMs,
+    descriptorHash: plan.descriptorHash,
+    candidateAccelerators: plan.candidateAccelerators,
+    materializedViewId: plan.materializedViewId,
+    materializedCacheHit: plan.materializedCacheHit
+  }
 }
 
 // =============================================================================
@@ -173,27 +280,11 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const filter: QueryFilter<P> = typeof idOrFilter === 'object' ? idOrFilter : {}
   const nodeId = isSingleQuery ? idOrFilter : null
 
-  // Memoize stringified where/orderBy for stable dependency comparison
-  const whereKey = useMemo(() => JSON.stringify(filter.where), [filter.where])
-  const orderByKey = useMemo(() => JSON.stringify(filter.orderBy), [filter.orderBy])
-  const spatialKey = useMemo(() => JSON.stringify(filter.spatial), [filter.spatial])
-
   // Create a canonical descriptor for stable cache keys and reload semantics.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- whereKey/orderByKey are stable string representations
   const descriptor = useMemo(() => {
     const options: QueryOptions<P> = isSingleQuery && nodeId ? { nodeId } : filter
     return createQueryDescriptor(schemaId, options)
-  }, [
-    schemaId,
-    isSingleQuery,
-    nodeId,
-    whereKey,
-    filter.includeDeleted,
-    orderByKey,
-    filter.limit,
-    filter.offset,
-    spatialKey
-  ])
+  }, [schemaId, isSingleQuery, nodeId, filter])
   const queryKey = useMemo(() => serializeQueryDescriptor(descriptor), [descriptor])
 
   // Create subscription via DataBridge (memoized by schema + options)
@@ -203,11 +294,12 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       // Return a dummy subscription while bridge is initializing
       return {
         getSnapshot: () => null,
+        getMetadata: () => null,
         subscribe: () => () => {}
       }
     }
     return bridge.query(schema, queryDescriptorToOptions<P>(descriptor))
-  }, [bridge, schema, descriptor, queryKey])
+  }, [bridge, schema, queryKey]) // eslint-disable-line react-hooks/exhaustive-deps -- queryKey is the canonical descriptor identity
 
   // Reload function - delegates to the bridge for the active canonical descriptor.
   const reload = useCallback(() => {
@@ -221,6 +313,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     subscription.getSnapshot,
     subscription.getSnapshot // Server snapshot (same as client for now)
   )
+  const metadata = subscription.getMetadata?.() ?? null
 
   // Transform raw NodeState[] to FlatNode[]
   const { data, migrationWarnings } = useMemo(() => {
@@ -271,6 +364,18 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
   // Loading state: rawData is null
   const loading = rawData === null
+  const pageInfo = useMemo(
+    () => getFallbackPageInfo({ metadata, loading, isSingleQuery, data, filter }),
+    [metadata, loading, isSingleQuery, data, filter]
+  )
+  const error = useMemo(
+    () => (metadata?.error ? new Error(metadata.error) : null),
+    [metadata?.error]
+  )
+  const status: QueryStatus = error ? 'error' : loading ? 'loading' : 'success'
+  const source = metadata?.source ?? 'local'
+  const plan = useMemo(() => summarizePlan(metadata), [metadata])
+  const materialized = metadata?.materialized ?? null
 
   // Query tracking for devtools
   const queryIdRef = useRef(
@@ -278,7 +383,11 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   )
   useEffect(() => {
     if (!instrumentation?.queryTracker) return
-    const mode = isSingleQuery ? 'single' : filter.where || filter.spatial ? 'filtered' : 'list'
+    const mode = isSingleQuery
+      ? 'single'
+      : filter.where || filter.spatial || filter.search
+        ? 'filtered'
+        : 'list'
     const queryId = queryIdRef.current
     instrumentation.queryTracker.register(queryId, {
       type: 'useQuery',
@@ -288,7 +397,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
         filter.where || filter.spatial
           ? {
               ...(filter.where ? { where: filter.where } : {}),
-              ...(filter.spatial ? { spatial: filter.spatial } : {})
+              ...(filter.spatial ? { spatial: filter.spatial } : {}),
+              ...(filter.search ? { search: filter.search } : {})
             }
           : undefined,
       descriptorKey: queryKey,
@@ -297,7 +407,16 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     return () => {
       instrumentation.queryTracker.unregister(queryId)
     }
-  }, [instrumentation, schemaId, isSingleQuery, nodeId, filter.where, filter.spatial, queryKey])
+  }, [
+    instrumentation,
+    schemaId,
+    isSingleQuery,
+    nodeId,
+    filter.where,
+    filter.spatial,
+    filter.search,
+    queryKey
+  ])
 
   // Report updates to devtools
   useEffect(() => {
@@ -337,10 +456,20 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
   return {
     data,
+    status,
     loading,
-    error: null, // Errors are handled by the bridge
+    isLoading: loading,
+    isFetching: loading,
+    isLive: bridge !== null,
+    source,
+    error,
     reload,
-    migrationWarnings
+    migrationWarnings,
+    pageInfo,
+    totalCount: pageInfo.totalCount,
+    hasMore: pageInfo.hasMore,
+    plan,
+    materialized
   } as QueryListResult<P> | QuerySingleResult<P>
 }
 
