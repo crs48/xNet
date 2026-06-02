@@ -541,7 +541,8 @@ describe('useQuery', () => {
           returnedNodeCount: 1,
           durationMs: 2,
           materializedViewId: 'task-view-done',
-          materializedCacheHit: true
+          materializedCacheHit: true,
+          materializedRefreshReason: 'invalidated'
         },
         materialized: {
           viewId: 'task-view-done',
@@ -568,6 +569,7 @@ describe('useQuery', () => {
       expect(result.current.materialized?.viewId).toBe('task-view-done')
       expect(result.current.materialized?.cacheHit).toBe(true)
       expect(result.current.plan?.strategy).toBe('storage-query')
+      expect(result.current.plan?.materializedRefreshReason).toBe('invalidated')
       expect(result.current.source).toBe('local')
     })
 

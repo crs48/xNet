@@ -726,6 +726,7 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(firstPage.nodes.map((node) => node.id)).toEqual(['task-open-high'])
       expect(firstPage.plan.postFilterReason).toBe('materialized-view-refreshed')
       expect(firstPage.plan.materializedCacheHit).toBe(false)
+      expect(firstPage.plan.materializedRefreshReason).toBe('missing')
       expect(firstPage.plan.materializedViewId).toBe('task-table-open')
       expect(firstPage.plan.materializedRowCount).toBe(2)
       expect(secondPage.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
@@ -763,12 +764,101 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(afterInvalidation.nodes.map((node) => node.id)).toEqual(['task-open-high'])
       expect(afterInvalidation.plan.postFilterReason).toBe('materialized-view-refreshed')
       expect(afterInvalidation.plan.materializedCacheHit).toBe(false)
+      expect(afterInvalidation.plan.materializedRefreshReason).toBe('invalidated')
+      expect(afterInvalidation.plan.materializedInvalidatedAt).toBe(invalidated?.invalidated_at)
       expect(afterInvalidation.plan.materializedRowCount).toBe(1)
       expect(afterInvalidation.plan.parityCheck).toMatchObject({
         strategy: 'exact',
         valid: true,
         expectedNodeCount: 1
       })
+    })
+
+    it('refreshes materialized views when maxAgeMs expires or forceRefresh is requested', async () => {
+      await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        materializedView: { viewId: 'task-table-expiring' }
+      })
+      await db.run(
+        `UPDATE node_query_materializations
+         SET generated_at = ?
+         WHERE view_id = ?`,
+        [Date.now() - 10_000, 'task-table-expiring']
+      )
+
+      const expired = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        materializedView: { viewId: 'task-table-expiring', maxAgeMs: 1 }
+      })
+      const forced = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        materializedView: { viewId: 'task-table-expiring', forceRefresh: true }
+      })
+
+      expect(expired.plan.materializedCacheHit).toBe(false)
+      expect(expired.plan.materializedRefreshReason).toBe('expired')
+      expect(forced.plan.materializedCacheHit).toBe(false)
+      expect(forced.plan.materializedRefreshReason).toBe('force-refresh')
+    })
+
+    it('supports materialized offset and cursor pages across reloads', async () => {
+      const baseDescriptor: NodeQueryDescriptor = {
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        materializedView: { viewId: 'task-table-pages' }
+      }
+      const offsetPage = await adapter.queryNodes({
+        ...baseDescriptor,
+        limit: 1,
+        offset: 1
+      })
+      const firstPage = await adapter.queryNodes({
+        ...baseDescriptor,
+        limit: 1
+      })
+      const cursor = encodeNodeQueryCursor(baseDescriptor, firstPage.nodes[0]!)
+      const cursorPage = await adapter.queryNodes({
+        ...baseDescriptor,
+        limit: 1,
+        after: cursor
+      })
+
+      expect(offsetPage.nodes.map((node) => node.id)).toEqual(['task-open-low'])
+      expect(offsetPage.plan.materializedRefreshReason).toBe('missing')
+      expect(firstPage.plan.materializedCacheHit).toBe(true)
+      expect(cursorPage.nodes.map((node) => node.id)).toEqual(['task-open-low'])
+      expect(cursorPage.plan.materializedCacheHit).toBe(true)
+
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-open-new-top',
+          schemaId: taskSchemaId,
+          properties: { title: 'Open newest', status: 'open', priority: 99, done: false },
+          updatedAt: Date.now() + 50_000
+        })
+      )
+
+      const shiftedOffsetPage = await adapter.queryNodes({
+        ...baseDescriptor,
+        limit: 1,
+        offset: 1
+      })
+
+      expect(shiftedOffsetPage.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(shiftedOffsetPage.plan.materializedCacheHit).toBe(false)
+      expect(shiftedOffsetPage.plan.materializedRefreshReason).toBe('invalidated')
+      expect(shiftedOffsetPage.totalCount).toBe(3)
     })
 
     it('keeps spatial queries on the JS-verified path when R-Tree is unavailable', async () => {

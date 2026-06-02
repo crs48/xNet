@@ -103,6 +103,7 @@ export interface QueryPlanSummary {
   candidateAccelerators?: string[]
   materializedViewId?: string
   materializedCacheHit?: boolean
+  materializedRefreshReason?: string
 }
 
 export interface QueryBaseResult {
@@ -237,7 +238,8 @@ function summarizePlan(metadata: QueryMetadata | null): QueryPlanSummary | null 
     descriptorHash: plan.descriptorHash,
     candidateAccelerators: plan.candidateAccelerators,
     materializedViewId: plan.materializedViewId,
-    materializedCacheHit: plan.materializedCacheHit
+    materializedCacheHit: plan.materializedCacheHit,
+    materializedRefreshReason: plan.materializedRefreshReason
   }
 }
 

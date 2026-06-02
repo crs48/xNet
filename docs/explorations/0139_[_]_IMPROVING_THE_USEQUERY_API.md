@@ -782,6 +782,9 @@ result.materialized
 //   invalidatedAt?,
 //   rowCount
 // }
+
+result.plan?.materializedRefreshReason
+// 'missing' | 'descriptor-changed' | 'invalidated' | 'expired' | 'force-refresh'
 ```
 
 ### Storage Model
@@ -833,7 +836,7 @@ erDiagram
 - Materialized views cache ordered node IDs, not full node snapshots.
 - Materialized views must be invalidated by relevant node changes.
 - `maxAgeMs` is a freshness hint, not a correctness guarantee.
-- Encrypted/auth-filtered stores may need per-subject materialized view IDs.
+- Encrypted/auth-filtered stores bypass storage materialization until there is a per-subject encrypted materialization design.
 - View IDs must be caller-controlled but namespaced to avoid collisions.
 
 ---
@@ -1246,7 +1249,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 - [x] Add roadmap pointer in `packages/react/README.md`.
 - [ ] Add an implementation issue or plan linking this exploration.
-- [ ] Audit public docs for stale `useQuery` references.
+- [x] Audit public docs for stale `useQuery` references.
 - [x] Keep future API examples in exploration/plan docs until implemented.
 
 ### Phase 1 Existing Capability Promotion
@@ -1280,11 +1283,11 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 - [x] Add public result metadata for materialized view reads.
 - [x] Expose materialized cache hit/miss in query devtools.
-- [ ] Add invalidation telemetry for materialized views.
-- [ ] Add docs for `viewId`, `maxAgeMs`, and `forceRefresh`.
-- [ ] Add tests for stale materialized view refresh.
-- [ ] Add tests for materialized pagination and reload.
-- [ ] Add auth/encryption caveat tests or guardrails.
+- [x] Add invalidation telemetry for materialized views.
+- [x] Add docs for `viewId`, `maxAgeMs`, and `forceRefresh`.
+- [x] Add tests for stale materialized view refresh.
+- [x] Add tests for materialized pagination and reload.
+- [x] Add auth/encryption caveat tests or guardrails.
 
 ### Phase 4 Remote Reads
 
@@ -1328,10 +1331,10 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Compatibility
 
-- [ ] Existing `useQuery(Schema)` call sites compile unchanged.
-- [ ] Existing `useQuery(Schema, id)` call sites compile unchanged.
-- [ ] Existing `useQuery(Schema, { where, orderBy, limit, offset })` call sites compile unchanged.
-- [ ] Existing tests in `packages/react/src/hooks/useQuery.test.tsx` pass.
+- [x] Existing `useQuery(Schema)` call sites compile unchanged.
+- [x] Existing `useQuery(Schema, id)` call sites compile unchanged.
+- [x] Existing `useQuery(Schema, { where, orderBy, limit, offset })` call sites compile unchanged.
+- [x] Existing tests in `packages/react/src/hooks/useQuery.test.tsx` pass.
 - [ ] Existing database hook tests pass.
 
 ### Correctness
@@ -1340,8 +1343,8 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [ ] SQL pushdown results match `applyNodeQueryDescriptor()` parity checks.
 - [ ] FTS candidate queries still JS-verify field selection.
 - [ ] R-Tree candidate queries still JS-verify geometry.
-- [ ] Materialized views refresh after relevant invalidation.
-- [ ] Auth-filtered and encrypted stores do not leak indexed data.
+- [x] Materialized views refresh after relevant invalidation.
+- [x] Auth-filtered and encrypted stores do not leak indexed data.
 - [ ] Remote reads never surface unauthorized results.
 
 ### Performance
@@ -1350,7 +1353,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [ ] Scalar equality queries use `node_property_scalars` on SQLite where available.
 - [ ] Search queries use FTS candidates where available.
 - [ ] Spatial queries use R-Tree candidates where available.
-- [ ] Repeated materialized view pages are cache hits.
+- [x] Repeated materialized view pages are cache hits.
 - [ ] QueryCache does not notify unrelated descriptors.
 - [ ] Devtools can show candidate counts and plan duration.
 
@@ -1358,20 +1361,20 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 - [ ] Unbounded queries apply insert/update/delete deltas without reload.
 - [ ] Bounded queries reload or repair when membership/order boundaries shift.
-- [ ] Materialized views invalidate on relevant node changes.
+- [x] Materialized views invalidate on relevant node changes.
 - [ ] Remote poke/invalidation triggers refresh without losing local data.
 - [ ] Stream events reduce deterministically.
 
 ### Documentation
 
-- [ ] React README documents current stable API.
-- [ ] React README links to this exploration until implementation lands.
+- [x] React README documents current stable API.
+- [x] React README links to this exploration until implementation lands.
 - [ ] Public docs explain local vs remote reads.
-- [ ] Public docs explain pagination and infinite scroll.
-- [ ] Public docs explain materialized views.
+- [x] Public docs explain pagination and infinite scroll.
+- [x] Public docs explain materialized views.
 - [ ] Public docs explain streaming.
 - [ ] Public docs explain debug plan metadata.
-- [ ] Public docs include migration notes from `limit` / `offset` to `page`.
+- [x] Public docs include migration notes from `limit` / `offset` to `page`.
 
 ---
 

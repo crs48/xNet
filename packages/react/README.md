@@ -183,6 +183,32 @@ const { pageInfo } = useQuery(TaskSchema, {
 console.log(pageInfo.totalCount, pageInfo.countMode) // number | null, exact | estimate | none
 ```
 
+**Materialized views:**
+
+Use `materializedView` for hot saved views that should reuse a storage-backed result ID list across renders and pages.
+
+```tsx
+const {
+  data: openTasks,
+  materialized,
+  plan
+} = useQuery(TaskSchema, {
+  where: { status: 'todo' },
+  orderBy: { updatedAt: 'desc' },
+  page: { first: 50 },
+  materializedView: {
+    viewId: 'tasks.todo.by-updated-desc',
+    maxAgeMs: 30_000
+  }
+})
+
+console.log(materialized?.cacheHit, plan?.materializedRefreshReason)
+```
+
+`viewId` should be stable, descriptive, and scoped to the view semantics, such as `tasks.todo.by-updated-desc`. Use `maxAgeMs` when a cached view may be reused for a bounded time even if no writes invalidate it. Set `forceRefresh: true` for explicit refresh actions; the query result exposes `materialized.cacheHit`, `materialized.rowCount`, and diagnostic `plan.materializedRefreshReason`.
+
+Materialized views are an optimization for plaintext, storage-queryable local data. Stores with read authorization or encrypted node content bypass storage materialization and evaluate after auth/decryption so hidden or encrypted properties are not leaked through index counts, SQL, or materialized row IDs.
+
 **Query API roadmap:**
 
 `useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md).

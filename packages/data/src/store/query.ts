@@ -134,6 +134,12 @@ export interface NodeQueryPlanMetadata {
   fullTextSearchQuery?: string
   materializedViewId?: string
   materializedCacheHit?: boolean
+  materializedRefreshReason?:
+    | 'missing'
+    | 'descriptor-changed'
+    | 'invalidated'
+    | 'expired'
+    | 'force-refresh'
   materializedGeneratedAt?: number
   materializedInvalidatedAt?: number
   materializedRowCount?: number

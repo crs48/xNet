@@ -189,6 +189,7 @@ export interface QueryPlanInfo {
   candidateAccelerators?: string[]
   materializedViewId?: string
   materializedCacheHit?: boolean
+  materializedRefreshReason?: string
 }
 
 export interface QueryMaterializedInfo {

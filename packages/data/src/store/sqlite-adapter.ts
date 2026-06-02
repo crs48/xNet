@@ -232,6 +232,7 @@ interface MaterializedQueryReadPlan {
   invalidatedAt: number | null
   rowCount: number
   cacheHit: boolean
+  refreshReason?: MaterializedQueryRefreshReason
 }
 
 interface CompiledQueryDiagnostics {
@@ -243,6 +244,13 @@ interface CompiledQueryDiagnostics {
   storageCapabilities?: NodeQueryStorageCapabilitiesMetadata
   diagnosticsError?: string
 }
+
+type MaterializedQueryRefreshReason =
+  | 'missing'
+  | 'descriptor-changed'
+  | 'invalidated'
+  | 'expired'
+  | 'force-refresh'
 
 const DEFAULT_ADAPTIVE_INDEXING: AdaptiveIndexingConfig = {
   enabled: false,
@@ -259,6 +267,35 @@ const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
   enabled: true,
   maxNodes: 1000,
   logFailures: true
+}
+
+function getMaterializedQueryRefreshReason(input: {
+  cached: MaterializedQueryRow | null
+  descriptorHash: string
+  cacheExpired: boolean
+  forceRefresh: boolean
+}): MaterializedQueryRefreshReason | undefined {
+  if (!input.cached) {
+    return 'missing'
+  }
+
+  if (input.forceRefresh) {
+    return 'force-refresh'
+  }
+
+  if (input.cached.descriptor_hash !== input.descriptorHash) {
+    return 'descriptor-changed'
+  }
+
+  if (input.cached.invalidated_at !== null) {
+    return 'invalidated'
+  }
+
+  if (input.cacheExpired) {
+    return 'expired'
+  }
+
+  return undefined
 }
 
 // ─── SQLiteNodeStorageAdapter ───────────────────────────────────────────────
@@ -1026,6 +1063,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       materializedView.maxAgeMs !== undefined &&
       cached !== null &&
       Date.now() - cached.generated_at > materializedView.maxAgeMs
+    const refreshReason = getMaterializedQueryRefreshReason({
+      cached,
+      descriptorHash,
+      cacheExpired,
+      forceRefresh: materializedView.forceRefresh ?? false
+    })
     const canUseCache =
       cached !== null &&
       cached.descriptor_hash === descriptorHash &&
@@ -1045,7 +1088,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           viewId: materializedView.viewId,
           descriptor: baseDescriptor,
           descriptorHash,
-          descriptorJson
+          descriptorJson,
+          refreshReason: refreshReason ?? 'missing',
+          invalidatedAt: cached?.invalidated_at ?? null
         })
 
     const result = await this.readMaterializedViewPage(descriptor, readPlan, start)
@@ -1075,6 +1120,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     descriptor: NodeQueryDescriptor
     descriptorHash: string
     descriptorJson: string
+    refreshReason: MaterializedQueryRefreshReason
+    invalidatedAt: number | null
   }): Promise<MaterializedQueryReadPlan> {
     const refreshed = await this.queryNodes(input.descriptor)
     const generatedAt = Date.now()
@@ -1129,9 +1176,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       viewId: input.viewId,
       descriptorHash: input.descriptorHash,
       generatedAt,
-      invalidatedAt: null,
+      invalidatedAt: input.invalidatedAt,
       rowCount: refreshed.nodes.length,
-      cacheHit: false
+      cacheHit: false,
+      refreshReason: input.refreshReason
     }
   }
 
@@ -1172,6 +1220,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         descriptorHash: readPlan.descriptorHash,
         materializedViewId: readPlan.viewId,
         materializedCacheHit: readPlan.cacheHit,
+        ...(readPlan.refreshReason ? { materializedRefreshReason: readPlan.refreshReason } : {}),
         materializedGeneratedAt: readPlan.generatedAt,
         ...(readPlan.invalidatedAt !== null
           ? { materializedInvalidatedAt: readPlan.invalidatedAt }

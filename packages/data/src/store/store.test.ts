@@ -966,6 +966,44 @@ describe('transparent encryption', () => {
     const secondDecryptInput = decrypt.mock.calls[1]?.[0]
     expect(secondDecryptInput?.cachedContentKey).toEqual(new Uint8Array([1, 2, 3, 4]))
   })
+
+  it('bypasses materialized storage queries for encrypted node content', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new QueryCapableMemoryNodeStorageAdapter()
+    const { cipher } = createMockNodeContentCipher()
+    const cache = createInMemoryContentKeyCache()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      nodeContentCipher: cipher,
+      contentKeyCache: cache
+    })
+    await store.initialize()
+
+    await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Encrypted task', status: 'open' }
+    })
+
+    const result = await store.query({
+      schemaId: TEST_SCHEMA,
+      includeDeleted: false,
+      where: { status: 'open' },
+      materializedView: { viewId: 'encrypted-task-view' }
+    })
+
+    expect(adapter.queryNodes).not.toHaveBeenCalled()
+    expect(result.nodes.map((node) => node.properties.title)).toEqual(['Encrypted task'])
+    expect(result.plan).toMatchObject({
+      strategy: 'list-fallback',
+      returnedNodeCount: 1,
+      postFilterReason: 'encrypted-node-content'
+    })
+    expect(result.plan.sql).toBeUndefined()
+    expect(result.plan.params).toBeUndefined()
+  })
 })
 
 describe('MemoryNodeStorageAdapter', () => {

@@ -21,6 +21,7 @@ export interface QueryTrackerPlanInfo {
   candidateAccelerators?: string[]
   materializedViewId?: string
   materializedCacheHit?: boolean
+  materializedRefreshReason?: string
 }
 
 export interface QueryTrackerMaterializedInfo {
