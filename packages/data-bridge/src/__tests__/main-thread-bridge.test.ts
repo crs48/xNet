@@ -158,6 +158,32 @@ describe('MainThreadBridge', () => {
       expect(snapshot![0].properties.title).toBe('Task 2')
     })
 
+    it('should expose exact totalCount metadata for bounded queries', async () => {
+      await bridge.create(TestTaskSchema, { title: 'Task 1', done: false })
+      await bridge.create(TestTaskSchema, { title: 'Task 2', done: false })
+      await bridge.create(TestTaskSchema, { title: 'Task 3', done: true })
+
+      const subscription = bridge.query(TestTaskSchema, {
+        where: { done: false },
+        limit: 1
+      })
+
+      await vi.waitFor(() => {
+        const snapshot = subscription.getSnapshot()
+        if (snapshot === null || snapshot.length !== 1) {
+          throw new Error('Waiting for bounded snapshot')
+        }
+      })
+
+      expect(subscription.getMetadata()?.pageInfo).toMatchObject({
+        totalCount: 2,
+        hasMore: true,
+        hasNextPage: true,
+        hasPreviousPage: false,
+        loadedCount: 1
+      })
+    })
+
     it('should avoid notifying filtered queries for unrelated changes', async () => {
       const subscription = bridge.query(TestTaskSchema, {
         where: { done: true }

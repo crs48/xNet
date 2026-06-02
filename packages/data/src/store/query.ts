@@ -140,6 +140,7 @@ export interface NodeQueryParityCheckMetadata {
 export interface NodeQueryResult {
   nodes: NodeState[]
   plan: NodeQueryPlanMetadata
+  totalCount?: number
 }
 
 function sortRecord<T>(record?: Record<string, T>): Record<string, T> | undefined {

@@ -529,6 +529,7 @@ export class NodeStore {
         const result = await this.storage.queryNodes(descriptor)
         return {
           nodes: result.nodes,
+          totalCount: result.totalCount,
           plan: {
             ...result.plan,
             durationMs: Date.now() - start
@@ -545,9 +546,16 @@ export class NodeStore {
         decrypted.filter((node): node is NodeState => node !== null)
       )
       const result = applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+      const totalCount =
+        fallback.totalCount ??
+        applyNodeQueryDescriptor(
+          readable,
+          withoutNodeQueryPagination(fallback.postFilterDescriptor)
+        ).length
 
       return {
         nodes: result,
+        totalCount,
         plan: {
           strategy: 'list-fallback',
           candidateNodeCount: readable.length,
@@ -568,6 +576,7 @@ export class NodeStore {
   private async loadQueryFallbackCandidates(descriptor: NodeQueryDescriptor): Promise<{
     nodes: NodeState[]
     postFilterDescriptor: NodeQueryDescriptor
+    totalCount?: number
   }> {
     if (descriptor.nodeId) {
       const node = await this.storage.getNode(descriptor.nodeId)
@@ -580,6 +589,13 @@ export class NodeStore {
     const canPushSystemList = this.canPushSystemListQuery(descriptor)
     const canPushPagination = canPushSystemList && !this.authEvaluator
     const hasPagination = descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0
+    const totalCount =
+      canPushPagination && hasPagination
+        ? await this.storage.countNodes({
+            schemaId: descriptor.schemaId,
+            includeDeleted: descriptor.includeDeleted
+          })
+        : undefined
     const nodes = await this.storage.listNodes({
       schemaId: descriptor.schemaId,
       includeDeleted: descriptor.includeDeleted,
@@ -590,6 +606,7 @@ export class NodeStore {
 
     return {
       nodes,
+      totalCount,
       postFilterDescriptor:
         canPushPagination && hasPagination ? withoutNodeQueryPagination(descriptor) : descriptor
     }

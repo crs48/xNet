@@ -1265,7 +1265,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Define `PageInfo`.
 - [x] Add `page` options while preserving `limit` / `offset`.
 - [x] Add `totalCount` and `hasMore` aliases on list results.
-- [ ] Add exact count support for descriptor subsets where storage can answer.
+- [x] Add exact count support for descriptor subsets where storage can answer.
 - [ ] Add estimate mode for hub/federated/search results.
 - [ ] Add cursor encode/decode utilities with versioning.
 - [ ] Add stable node ID tie-breaker to cursor order.

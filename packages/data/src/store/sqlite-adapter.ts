@@ -156,6 +156,7 @@ interface CompiledNodeQuery {
   params: SQLValue[]
   postFilterDescriptor: NodeQueryDescriptor
   postFilterReason: string
+  sqlPagination: boolean
   adaptiveIndexHints: AdaptiveIndexHint[]
   spatialIndexKey?: string
   fullTextSearchQuery?: string
@@ -669,6 +670,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       const nodes = applyNodeQueryDescriptor(candidates, descriptor)
       const result: NodeQueryResult = {
         nodes,
+        totalCount: applyNodeQueryDescriptor(candidates, withoutNodeQueryPagination(descriptor))
+          .length,
         plan: {
           strategy: 'list-fallback',
           candidateNodeCount: candidates.length,
@@ -697,12 +700,19 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const ids = idRows.map((row) => row.id)
     const candidates = await this.hydrateNodesByIds(ids)
     const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
+    const totalCount = compiled.sqlPagination
+      ? await this.countCompiledNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
+      : applyNodeQueryDescriptor(
+          candidates,
+          withoutNodeQueryPagination(compiled.postFilterDescriptor)
+        ).length
     const candidateAccelerators = [
       ...(compiled.fullTextSearchQuery ? ['fts'] : []),
       ...(compiled.spatialIndexKey ? ['rtree'] : [])
     ]
     const result: NodeQueryResult = {
       nodes,
+      totalCount,
       plan: {
         strategy: 'storage-query',
         candidateNodeCount: ids.length,
@@ -2326,6 +2336,26 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     }
   }
 
+  private async countCompiledNodeQuery(
+    descriptor: NodeQueryDescriptor,
+    spatialPlan: SpatialQueryPlan | null,
+    fullTextSearchPlan: FullTextSearchQueryPlan | null
+  ): Promise<number> {
+    const compiled = this.compileNodeQuery(
+      withoutNodeQueryPagination(descriptor),
+      spatialPlan,
+      fullTextSearchPlan
+    )
+    if (!compiled) return 0
+
+    const row = await this.db.queryOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM (${compiled.sql}) counted_nodes`,
+      compiled.params
+    )
+
+    return Number(row?.count ?? 0)
+  }
+
   private compileNodeQuery(
     descriptor: NodeQueryDescriptor,
     spatialPlan: SpatialQueryPlan | null = null,
@@ -2468,6 +2498,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
           options.fullTextSearchPlan !== null && options.fullTextSearchPlan !== undefined,
         hasSpatialPlan: options.spatialPlan !== null && options.spatialPlan !== undefined
       }),
+      sqlPagination: useSqlPagination,
       adaptiveIndexHints: options.whereEntries.map((entry) => ({
         propertyKey: entry.key,
         scalar: entry.scalar

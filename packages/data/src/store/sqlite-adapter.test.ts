@@ -558,6 +558,7 @@ describe('SQLiteNodeStorageAdapter', () => {
       const result = await adapter.queryNodes(descriptor)
 
       expect(result.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(result.totalCount).toBe(2)
       expect(result.plan.strategy).toBe('storage-query')
       expect(result.plan.candidateNodeCount).toBe(1)
       expect(result.plan.postFilterReason).toBe('pagination-pushed-down')
@@ -644,6 +645,8 @@ describe('SQLiteNodeStorageAdapter', () => {
 
       expect(byCreatedAt.nodes.map((node) => node.id)).toEqual(['task-open-low', 'task-done'])
       expect(byUpdatedAt.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+      expect(byCreatedAt.totalCount).toBe(4)
+      expect(byUpdatedAt.totalCount).toBe(4)
       expect(byCreatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
       expect(byUpdatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
     })
@@ -658,6 +661,7 @@ describe('SQLiteNodeStorageAdapter', () => {
       })
 
       expect(result.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(result.totalCount).toBe(2)
       expect(result.plan.storageCapabilities?.fullTextSearch).toBe(false)
       expect(result.plan.candidateAccelerators).toBeUndefined()
       expect(result.plan.fullTextSearchQuery).toBeUndefined()

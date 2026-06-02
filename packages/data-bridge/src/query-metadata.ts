@@ -38,6 +38,10 @@ function getUnboundedTotalCount(
     return result.plan.materializedRowCount
   }
 
+  if (result?.totalCount !== undefined) {
+    return result.totalCount
+  }
+
   const isUnbounded = descriptor.limit === undefined && getOffset(descriptor) === 0
   return isUnbounded ? nodes.length : null
 }
