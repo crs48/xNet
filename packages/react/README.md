@@ -312,7 +312,7 @@ Use `useFind` for saved or shared AST descriptors that should pass planner valid
 
 **Query API roadmap:**
 
-`useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md), with execution follow-up tracked in the [useQuery API roadmap implementation plan](../../docs/plans/usequery-api-roadmap/README.md).
+`useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[x]_IMPROVING_THE_USEQUERY_API.md), with execution follow-up tracked in the [useQuery API roadmap implementation plan](../../docs/plans/usequery-api-roadmap/README.md).
 
 ### `useMutate` -- Write Data
 

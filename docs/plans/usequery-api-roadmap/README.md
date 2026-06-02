@@ -1,6 +1,6 @@
 # useQuery API Roadmap Implementation Plan
 
-Source exploration: [0139 Improving The useQuery API](../../explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md)
+Source exploration: [0139 Improving The useQuery API](../../explorations/0139_[x]_IMPROVING_THE_USEQUERY_API.md)
 
 ## Goal
 
