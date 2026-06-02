@@ -20,7 +20,7 @@ import React, { type ReactNode, useMemo } from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DataBridgeContext, XNetProvider } from '../context'
 import { useMutate } from './useMutate'
-import { useQuery } from './useQuery'
+import { useQuery, type QueryFilter } from './useQuery'
 
 // Test schema
 const TaskSchema = defineSchema({
@@ -107,6 +107,7 @@ describe('useQuery', () => {
     const metadata = new Map<string, QueryMetadata | null>()
     const listeners = new Map<string, Set<() => void>>()
     const pendingReloads = new Map<string, NodeState[]>()
+    let queryCount = 0
 
     const notify = (queryId: string) => {
       for (const listener of listeners.get(queryId) ?? []) {
@@ -116,7 +117,7 @@ describe('useQuery', () => {
 
     const getQueryId = <P extends Record<string, PropertyBuilder>>(
       schema: DefinedSchema<P>,
-      filter?: string | Record<string, unknown>
+      filter?: string | QueryFilter<P> | Record<string, unknown>
     ) => {
       const options =
         typeof filter === 'string'
@@ -139,6 +140,7 @@ describe('useQuery', () => {
 
     const bridge: DataBridge = {
       query(schema, options) {
+        queryCount += 1
         const descriptor = createQueryDescriptor(schema._schemaId, options)
         const queryId = serializeQueryDescriptor(descriptor)
 
@@ -186,23 +188,24 @@ describe('useQuery', () => {
     return {
       bridge,
       reloadQuery,
+      getQueryCount: () => queryCount,
       setSnapshot<P extends Record<string, PropertyBuilder>>(
         schema: DefinedSchema<P>,
-        filter: string | Record<string, unknown> | undefined,
+        filter: string | QueryFilter<P> | Record<string, unknown> | undefined,
         data: NodeState[] | null
       ) {
         snapshots.set(getQueryId(schema, filter), data)
       },
       setReloadResult<P extends Record<string, PropertyBuilder>>(
         schema: DefinedSchema<P>,
-        filter: string | Record<string, unknown> | undefined,
+        filter: string | QueryFilter<P> | Record<string, unknown> | undefined,
         data: NodeState[]
       ) {
         pendingReloads.set(getQueryId(schema, filter), data)
       },
       setMetadata<P extends Record<string, PropertyBuilder>>(
         schema: DefinedSchema<P>,
-        filter: string | Record<string, unknown> | undefined,
+        filter: string | QueryFilter<P> | Record<string, unknown> | undefined,
         value: QueryMetadata | null
       ) {
         metadata.set(getQueryId(schema, filter), value)
@@ -564,6 +567,46 @@ describe('useQuery', () => {
       expect(result.current.materialized?.cacheHit).toBe(true)
       expect(result.current.plan?.strategy).toBe('storage-query')
       expect(result.current.source).toBe('local')
+    })
+
+    it('should keep the subscription stable for equivalent option objects', async () => {
+      const mock = createMockBridge()
+      const doneNode = createTaskNode('done-1', 'Done Task', 'done')
+      const firstFilter: QueryFilter<typeof TaskSchema._properties> = {
+        where: { status: 'done', title: 'Done Task' },
+        orderBy: { title: 'asc', createdAt: 'desc' },
+        limit: 20
+      }
+      const equivalentFilter: QueryFilter<typeof TaskSchema._properties> = {
+        limit: 20,
+        orderBy: { createdAt: 'desc', title: 'asc' },
+        where: { title: 'Done Task', status: 'done' }
+      }
+
+      mock.setSnapshot(TaskSchema, firstFilter, [doneNode])
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result, rerender } = renderHook(({ filter }) => useQuery(TaskSchema, filter), {
+        initialProps: { filter: firstFilter },
+        wrapper
+      })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(mock.getQueryCount()).toBe(1)
+
+      rerender({ filter: equivalentFilter })
+
+      await waitFor(() => {
+        expect(result.current.data[0]?.title).toBe('Done Task')
+      })
+
+      expect(mock.getQueryCount()).toBe(1)
     })
   })
 })

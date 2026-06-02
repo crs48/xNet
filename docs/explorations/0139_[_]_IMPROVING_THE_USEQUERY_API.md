@@ -1258,7 +1258,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [ ] Surface materialized plan info in devtools query tracker.
 - [x] Add unit tests for hook-level `search` descriptor forwarding.
 - [x] Add unit tests for hook-level `materializedView` descriptor forwarding.
-- [ ] Add unit tests proving equivalent option objects do not reload unnecessarily.
+- [x] Add unit tests proving equivalent option objects do not reload unnecessarily.
 
 ### Phase 2 Pagination
 
