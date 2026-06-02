@@ -139,6 +139,17 @@ export {
   shouldUseRemoteOnlyQuery
 } from './remote-query-execution'
 export {
+  createQueryStreamState,
+  reduceQueryStreamEvent,
+  reduceQueryStreamEvents,
+  type QueryStreamEvent,
+  type QueryStreamProgress,
+  type QueryStreamProgressPhase,
+  type QueryStreamResetReason,
+  type QueryStreamState,
+  type QueryStreamStatus
+} from './query-stream'
+export {
   debounce,
   createUpdateBatcher,
   createDeltaBatcher,

@@ -858,6 +858,8 @@ type QueryStreamEvent<T> =
   | { type: 'error'; error: string }
 ```
 
+The first Phase 5 implementation now exports `QueryStreamEvent`, `QueryStreamState`, and pure reducer helpers from `@xnetjs/data-bridge`. The reducer contract uses Node snapshots, insert/update/delete deltas, reset events, progress events, and recoverable/non-recoverable errors. Bridge subscription lifecycle, unmount cancellation, reconnect orchestration, and devtools timelines remain open.
+
 ### Reducer Modes
 
 | Reducer        | Behavior                                        |
@@ -1342,13 +1344,13 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Phase 5 Streaming
 
-- [ ] Define `QueryStreamEvent`.
+- [x] Define `QueryStreamEvent`.
 - [ ] Add bridge stream subscription lifecycle.
-- [ ] Add stream reducers.
+- [x] Add stream reducers.
 - [ ] Add cancellation on unmount.
 - [ ] Add reconnect/reset behavior.
-- [ ] Add progress events.
-- [ ] Add tests for snapshot, insert, update, delete, reset, progress, and error events.
+- [x] Add progress events.
+- [x] Add tests for snapshot, insert, update, delete, reset, progress, and error events.
 - [ ] Add devtools stream event timeline.
 
 ### Phase 6 AST And Advanced Queries
