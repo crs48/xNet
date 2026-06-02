@@ -8,6 +8,11 @@
  * When no devtools provider is present, the context is null and hooks skip reporting.
  */
 
+import type {
+  QueryCompletenessMetadata,
+  QueryStalenessMetadata,
+  QueryVerificationMetadata
+} from '@xnetjs/data-bridge'
 import type * as Y from 'yjs'
 import { createContext, useContext } from 'react'
 
@@ -36,6 +41,9 @@ export interface QueryTrackerUpdateMetadata {
   source?: string
   plan?: QueryTrackerPlanInfo | null
   materialized?: QueryTrackerMaterializedInfo | null
+  completeness?: QueryCompletenessMetadata | null
+  staleness?: QueryStalenessMetadata | null
+  verification?: QueryVerificationMetadata | null
 }
 
 /**

@@ -201,6 +201,9 @@ export function useInfiniteQuery<P extends Record<string, PropertyBuilder>>(
     totalCount: pageInfo.totalCount,
     hasMore: pageInfo.hasMore,
     plan: current.plan as QueryPlanSummary | null,
-    materialized: current.materialized as QueryMaterializedMetadata | null
+    materialized: current.materialized as QueryMaterializedMetadata | null,
+    completeness: current.completeness,
+    staleness: current.staleness,
+    verification: current.verification
   }
 }

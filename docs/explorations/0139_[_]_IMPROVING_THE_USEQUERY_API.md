@@ -963,7 +963,7 @@ flowchart TD
 
 ### Versioned Remote Node Query Protocol
 
-The Phase 4 foundation now starts with a typed, versioned protocol in `@xnetjs/data-bridge`. Runtime hub execution is still a later step, but the shape is explicit:
+The Phase 4 foundation now starts with a typed, versioned protocol in `@xnetjs/data-bridge`. Main-thread bridge execution can use an injected `remoteNodeQueryClient` for `mode: 'local-then-remote'` and `mode: 'remote'`; first-party hub transport is still a later step.
 
 ```ts
 type RemoteNodeQueryRequest = {
@@ -1331,14 +1331,14 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 - [x] Define Node descriptor request/response protocol for hub reads.
 - [x] Add `mode` and `source` query options.
-- [ ] Add local-then-remote bridge execution.
-- [ ] Add `completeness` metadata.
-- [ ] Add `staleness` metadata.
+- [x] Add local-then-remote bridge execution.
+- [x] Add `completeness` metadata.
+- [x] Add `staleness` metadata.
 - [ ] Add remote auth filtering and verification status.
-- [ ] Add federated dedupe and merge policy.
+- [x] Add federated dedupe and merge policy.
 - [ ] Add query router thresholds for Node queries.
-- [ ] Add tests for local fallback when remote is unavailable.
-- [ ] Add tests for remote errors preserving local snapshots.
+- [x] Add tests for local fallback when remote is unavailable.
+- [x] Add tests for remote errors preserving local snapshots.
 
 ### Phase 5 Streaming
 
@@ -1407,7 +1407,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 - [x] React README documents current stable API.
 - [x] React README links to this exploration until implementation lands.
-- [ ] Public docs explain local vs remote reads.
+- [x] Public docs explain local vs remote reads.
 - [x] Public docs explain pagination and infinite scroll.
 - [x] Public docs explain materialized views.
 - [ ] Public docs explain streaming.

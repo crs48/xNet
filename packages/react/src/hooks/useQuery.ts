@@ -31,6 +31,7 @@
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
 import type {
   QueryExecutionMode,
+  QueryCompletenessMetadata,
   QueryMaterializedMetadata,
   QueryMaterializedViewOptions,
   QueryMetadata,
@@ -40,7 +41,9 @@ import type {
   QuerySearchFilter,
   QuerySource,
   QuerySourcePreference,
-  QuerySpatialFilter
+  QuerySpatialFilter,
+  QueryStalenessMetadata,
+  QueryVerificationMetadata
 } from '@xnetjs/data-bridge'
 import {
   createQueryDescriptor,
@@ -133,6 +136,12 @@ export interface QueryBaseResult {
   plan: QueryPlanSummary | null
   /** Optional materialized view metadata */
   materialized: QueryMaterializedMetadata | null
+  /** Remote/federated completeness metadata when available */
+  completeness: QueryCompletenessMetadata | null
+  /** Remote/federated staleness metadata when available */
+  staleness: QueryStalenessMetadata | null
+  /** Remote/federated verification metadata when available */
+  verification: QueryVerificationMetadata | null
 }
 
 /**
@@ -391,6 +400,9 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const source = metadata?.source ?? 'local'
   const plan = useMemo(() => summarizePlan(metadata), [metadata])
   const materialized = metadata?.materialized ?? null
+  const completeness = metadata?.completeness ?? null
+  const staleness = metadata?.staleness ?? null
+  const verification = metadata?.verification ?? null
   const trackedFilter = useMemo(
     () => {
       const next = {
@@ -445,9 +457,23 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0, {
       source,
       plan,
-      materialized
+      materialized,
+      completeness,
+      staleness,
+      verification
     })
-  }, [data, instrumentation, isSingleQuery, loading, source, plan, materialized])
+  }, [
+    data,
+    instrumentation,
+    isSingleQuery,
+    loading,
+    source,
+    plan,
+    materialized,
+    completeness,
+    staleness,
+    verification
+  ])
 
   // ─── Telemetry: Subscription churn (mount/unmount tracking) ───────────────
   useEffect(() => {
@@ -493,7 +519,10 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     totalCount: pageInfo.totalCount,
     hasMore: pageInfo.hasMore,
     plan,
-    materialized
+    materialized,
+    completeness,
+    staleness,
+    verification
   } as QueryListResult<P> | QuerySingleResult<P>
 }
 

@@ -20,6 +20,7 @@ import {
   MainThreadBridge,
   WorkerBridge,
   type DataBridge,
+  type RemoteNodeQueryClient,
   type SyncManagerLike
 } from '@xnetjs/data-bridge'
 import { createUCAN } from '@xnetjs/identity'
@@ -146,9 +147,19 @@ async function resolveRuntimeBridge(input: {
   signingKey: Uint8Array
   signalingUrl?: string
   dataBridge?: DataBridge
+  remoteNodeQueryClient?: RemoteNodeQueryClient
   syncManager?: SyncManager
 }): Promise<RuntimeResolution> {
-  const { runtime, nodeStore, authorDID, signingKey, signalingUrl, dataBridge, syncManager } = input
+  const {
+    runtime,
+    nodeStore,
+    authorDID,
+    signingKey,
+    signalingUrl,
+    dataBridge,
+    remoteNodeQueryClient,
+    syncManager
+  } = input
 
   if (runtime.mode === 'ipc') {
     if (!syncManager) {
@@ -196,7 +207,8 @@ async function resolveRuntimeBridge(input: {
           dbName: runtime.worker?.dbName,
           authorDID,
           signingKey,
-          signalingUrl: runtime.worker?.signalingUrl ?? signalingUrl
+          signalingUrl: runtime.worker?.signalingUrl ?? signalingUrl,
+          remoteNodeQueryClient
         },
         workerUrl: runtime.worker?.url,
         mode: 'worker'
@@ -224,7 +236,8 @@ async function resolveRuntimeBridge(input: {
     config: {
       authorDID,
       signingKey,
-      signalingUrl
+      signalingUrl,
+      remoteNodeQueryClient
     },
     mode: 'main-thread'
   })
@@ -315,6 +328,15 @@ export interface XNetConfig {
    * ```
    */
   dataBridge?: DataBridge
+  /**
+   * Optional remote Node query client for progressive `useQuery` reads.
+   *
+   * When provided with the main-thread bridge, queries using
+   * `mode: 'local-then-remote'` render the local snapshot first and then merge
+   * hub/federated results. Queries using `mode: 'remote'` use this client as
+   * their primary source.
+   */
+  remoteNodeQueryClient?: RemoteNodeQueryClient
   /**
    * Security configuration for multi-level cryptography.
    */
@@ -549,6 +571,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         signingKey,
         signalingUrl: hubUrl ?? config.signalingServers?.[0],
         dataBridge: config.dataBridge,
+        remoteNodeQueryClient: config.remoteNodeQueryClient,
         syncManager: config.syncManager
       })
 
@@ -621,6 +644,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     config.dataBridge,
     config.signalingServers,
     config.syncManager,
+    config.remoteNodeQueryClient,
     config.telemetry,
     hubUrl,
     runtimeConfig,

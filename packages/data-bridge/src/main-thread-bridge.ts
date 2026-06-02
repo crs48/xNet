@@ -10,13 +10,15 @@
  * - For testing/development
  */
 
+import type { RemoteNodeQueryClient } from './remote-query-protocol'
 import type {
   DataBridge,
   QueryDescriptor,
   QuerySubscription,
   QueryOptions,
   SyncStatus,
-  AcquiredDoc
+  AcquiredDoc,
+  DataBridgeConfig
 } from './types'
 import type {
   NodeStore,
@@ -37,6 +39,20 @@ import {
   serializeQueryDescriptor
 } from './query-descriptor'
 import { createQueryErrorMetadata, createQueryMetadata } from './query-metadata'
+import {
+  createRemoteFallbackMetadata,
+  createRemoteSuccessMetadata,
+  getRemoteQueryMode,
+  getRemoteQuerySource,
+  mergeRemoteNodeSnapshots,
+  shouldRunRemoteQuery,
+  shouldUseRemoteOnlyQuery
+} from './remote-query-execution'
+import {
+  createRemoteNodeQueryRequest,
+  isRemoteNodeQueryError,
+  isRemoteNodeQuerySuccess
+} from './remote-query-protocol'
 
 // ─── SyncManager Interface ───────────────────────────────────────────────────
 
@@ -48,6 +64,10 @@ export interface SyncManagerLike {
   acquire(nodeId: string): Promise<YDoc>
   release(nodeId: string): void
   getAwareness(nodeId: string): Awareness | null
+}
+
+export interface MainThreadBridgeOptions {
+  remoteNodeQueryClient?: RemoteNodeQueryClient
 }
 
 // ─── MainThreadBridge Class ──────────────────────────────────────────────────
@@ -65,10 +85,13 @@ export class MainThreadBridge implements DataBridge {
   private statusListeners = new Set<(status: SyncStatus) => void>()
   private storeUnsubscribe: (() => void) | null = null
   private _syncManager: SyncManagerLike | null = null
+  private remoteNodeQueryClient: RemoteNodeQueryClient | null
+  private remoteLoads = new Map<string, Promise<void>>()
 
-  constructor(store: NodeStore) {
+  constructor(store: NodeStore, options?: MainThreadBridgeOptions) {
     this.store = store
     this.cache = new QueryCache()
+    this.remoteNodeQueryClient = options?.remoteNodeQueryClient ?? null
 
     // Subscribe to store changes for cache invalidation
     this.storeUnsubscribe = this.store.subscribe((event) => {
@@ -98,7 +121,7 @@ export class MainThreadBridge implements DataBridge {
 
     // Start loading data if not cached
     if (this.cache.get(queryId) === null) {
-      void this.loadQuery(queryId, descriptor)
+      void this.loadInitialQuery(queryId, descriptor)
     }
 
     return {
@@ -109,13 +132,29 @@ export class MainThreadBridge implements DataBridge {
   }
 
   async reloadQuery(descriptor: QueryDescriptor): Promise<void> {
-    await this.loadQuery(serializeQueryDescriptor(descriptor), descriptor)
+    await this.loadInitialQuery(serializeQueryDescriptor(descriptor), descriptor)
   }
 
   /**
-   * Load query data from the store and update cache.
+   * Load query data according to the descriptor's local/remote execution mode.
    */
-  private async loadQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
+  private async loadInitialQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
+    if (shouldUseRemoteOnlyQuery(descriptor)) {
+      await this.loadRemoteQuery(queryId, descriptor)
+      return
+    }
+
+    await this.loadLocalQuery(queryId, descriptor)
+
+    if (descriptor.mode === 'local-then-remote') {
+      await this.loadRemoteQuery(queryId, descriptor)
+    }
+  }
+
+  /**
+   * Load query data from the local store and update cache.
+   */
+  private async loadLocalQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
     try {
       const result = await this.store.query(descriptor)
       this.debugQueryPlan(queryId, result.plan)
@@ -135,6 +174,110 @@ export class MainThreadBridge implements DataBridge {
         createQueryErrorMetadata({ descriptor, source: 'local', error })
       )
     }
+  }
+
+  /**
+   * Load query data from the configured remote query client.
+   */
+  private async loadRemoteQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
+    if (!shouldRunRemoteQuery(descriptor)) return
+    if (!this.remoteNodeQueryClient) {
+      this.handleRemoteQueryError(queryId, descriptor, new Error('Remote query client unavailable'))
+      return
+    }
+
+    const existingLoad = this.remoteLoads.get(queryId)
+    if (existingLoad) {
+      await existingLoad
+      return
+    }
+
+    const load = this.executeRemoteQuery(queryId, descriptor).finally(() => {
+      this.remoteLoads.delete(queryId)
+    })
+    this.remoteLoads.set(queryId, load)
+    await load
+  }
+
+  private async executeRemoteQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
+    const mode = getRemoteQueryMode(descriptor)
+    if (!mode) return
+
+    const source = getRemoteQuerySource(descriptor)
+    const localSnapshot = this.cache.get(queryId) ?? []
+
+    try {
+      const response = await this.remoteNodeQueryClient!.query(
+        createRemoteNodeQueryRequest({
+          requestId: queryId,
+          descriptor,
+          mode,
+          source,
+          client: {
+            knownNodeIds: localSnapshot.map((node) => node.id)
+          }
+        })
+      )
+
+      if (isRemoteNodeQueryError(response)) {
+        this.handleRemoteQueryError(queryId, descriptor, response)
+        return
+      }
+
+      if (!isRemoteNodeQuerySuccess(response)) return
+
+      const nodes =
+        descriptor.mode === 'local-then-remote'
+          ? mergeRemoteNodeSnapshots(localSnapshot, response.nodes)
+          : response.nodes
+      const metadata = createRemoteSuccessMetadata({
+        response,
+        source: descriptor.mode === 'local-then-remote' ? 'hybrid' : response.source,
+        loadedCount: nodes.length
+      })
+
+      this.cache.set(queryId, nodes, descriptor, undefined, metadata)
+    } catch (err) {
+      this.handleRemoteQueryError(
+        queryId,
+        descriptor,
+        err instanceof Error ? err : new Error(String(err))
+      )
+    }
+  }
+
+  private handleRemoteQueryError(
+    queryId: string,
+    descriptor: QueryDescriptor,
+    error: Parameters<typeof createRemoteFallbackMetadata>[0]['error']
+  ): void {
+    const localSnapshot = this.cache.get(queryId)
+    const localMetadata = this.cache.getMetadata(queryId)
+
+    if (descriptor.mode === 'local-then-remote' && localSnapshot && localMetadata) {
+      this.cache.set(
+        queryId,
+        localSnapshot,
+        descriptor,
+        undefined,
+        createRemoteFallbackMetadata({ localMetadata, error })
+      )
+      return
+    }
+
+    const fallbackSource = getRemoteQuerySource(descriptor)
+    const message = error instanceof Error ? error.message : error.message
+    this.cache.set(
+      queryId,
+      [],
+      descriptor,
+      undefined,
+      createQueryErrorMetadata({
+        descriptor,
+        source: fallbackSource,
+        error: new Error(message)
+      })
+    )
   }
 
   private debugQueryPlan(
@@ -162,8 +305,10 @@ export class MainThreadBridge implements DataBridge {
     if (!schemaId) return
 
     for (const entry of this.cache.getEntriesForSchema(schemaId)) {
+      if (entry.descriptor.mode === 'remote') continue
+
       if (entry.data === null) {
-        void this.loadQuery(entry.queryId, entry.descriptor)
+        void this.loadInitialQuery(entry.queryId, entry.descriptor)
         continue
       }
 
@@ -175,7 +320,7 @@ export class MainThreadBridge implements DataBridge {
       })
 
       if (delta.kind === 'reload') {
-        void this.loadQuery(entry.queryId, entry.descriptor)
+        void this.loadInitialQuery(entry.queryId, entry.descriptor)
         continue
       }
 
@@ -248,6 +393,10 @@ export class MainThreadBridge implements DataBridge {
 
   // ─── Lifecycle ──────────────────────────────────────────
 
+  async initialize(config: DataBridgeConfig): Promise<void> {
+    this.remoteNodeQueryClient = config.remoteNodeQueryClient ?? this.remoteNodeQueryClient
+  }
+
   destroy(): void {
     if (this.storeUnsubscribe) {
       this.storeUnsubscribe()
@@ -255,6 +404,7 @@ export class MainThreadBridge implements DataBridge {
     }
     this.cache.clear()
     this.statusListeners.clear()
+    this.remoteLoads.clear()
   }
 
   // ─── Status ─────────────────────────────────────────────
@@ -298,6 +448,9 @@ export class MainThreadBridge implements DataBridge {
 /**
  * Create a MainThreadBridge from a NodeStore.
  */
-export function createMainThreadBridge(store: NodeStore): MainThreadBridge {
-  return new MainThreadBridge(store)
+export function createMainThreadBridge(
+  store: NodeStore,
+  options?: MainThreadBridgeOptions
+): MainThreadBridge {
+  return new MainThreadBridge(store, options)
 }

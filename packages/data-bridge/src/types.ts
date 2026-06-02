@@ -6,6 +6,7 @@
  * sync, and crypto off the main thread while keeping the React API unchanged.
  */
 
+import type { RemoteNodeQueryClient } from './remote-query-protocol'
 import type {
   DefinedSchema,
   PropertyBuilder,
@@ -181,12 +182,38 @@ export interface QueryMaterializedMetadata {
   rowCount: number
 }
 
+export type QueryCompletenessMetadata = {
+  level: 'complete' | 'partial' | 'unknown'
+  reason?:
+    | 'auth-filtered'
+    | 'federation-partial'
+    | 'page-limited'
+    | 'remote-unavailable'
+    | 'source-timeout'
+  sourceCount?: number
+}
+
+export type QueryStalenessMetadata = {
+  level: 'fresh' | 'stale' | 'unknown'
+  asOf?: number
+  maxAgeMs?: number
+}
+
+export type QueryVerificationMetadata = {
+  status: 'verified' | 'unverified' | 'failed' | 'mixed'
+  verifiedNodeIds?: string[]
+  failedNodeIds?: string[]
+}
+
 export interface QueryMetadata {
   source: QuerySource
   updatedAt: number
   pageInfo: QueryPageInfo
   plan?: NodeQueryPlanMetadata
   materialized?: QueryMaterializedMetadata
+  completeness?: QueryCompletenessMetadata
+  staleness?: QueryStalenessMetadata
+  verification?: QueryVerificationMetadata
   error?: string
 }
 
@@ -260,6 +287,8 @@ export interface DataBridgeConfig {
   signingKey: Uint8Array
   /** Signaling server URL for sync */
   signalingUrl?: string
+  /** Optional main-thread remote Node query client for progressive hub/federated reads. */
+  remoteNodeQueryClient?: RemoteNodeQueryClient
 }
 
 // ─── DataBridge Interface ────────────────────────────────────────────────────

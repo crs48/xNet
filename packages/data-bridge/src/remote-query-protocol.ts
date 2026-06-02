@@ -4,9 +4,12 @@
 
 import type {
   QueryDescriptor,
+  QueryCompletenessMetadata,
   QueryExecutionMode,
   QueryMetadata,
   QueryPageInfo,
+  QueryStalenessMetadata,
+  QueryVerificationMetadata,
   QuerySourcePreference
 } from './types'
 import type { NodeState } from '@xnetjs/data'
@@ -32,28 +35,11 @@ export type RemoteNodeQueryClientState = {
   knownNodeIds?: string[]
 }
 
-export type RemoteQueryCompleteness = {
-  level: 'complete' | 'partial' | 'unknown'
-  reason?:
-    | 'auth-filtered'
-    | 'federation-partial'
-    | 'page-limited'
-    | 'remote-unavailable'
-    | 'source-timeout'
-  sourceCount?: number
-}
+export type RemoteQueryCompleteness = QueryCompletenessMetadata
 
-export type RemoteQueryStaleness = {
-  level: 'fresh' | 'stale' | 'unknown'
-  asOf?: number
-  maxAgeMs?: number
-}
+export type RemoteQueryStaleness = QueryStalenessMetadata
 
-export type RemoteQueryVerification = {
-  status: 'verified' | 'unverified' | 'failed' | 'mixed'
-  verifiedNodeIds?: string[]
-  failedNodeIds?: string[]
-}
+export type RemoteQueryVerification = QueryVerificationMetadata
 
 export type RemoteNodeQueryRequest = {
   protocol: typeof REMOTE_NODE_QUERY_PROTOCOL
@@ -89,6 +75,10 @@ export type RemoteNodeQueryErrorResponse = {
 }
 
 export type RemoteNodeQueryResponse = RemoteNodeQuerySuccessResponse | RemoteNodeQueryErrorResponse
+
+export type RemoteNodeQueryClient = {
+  query(request: RemoteNodeQueryRequest): Promise<RemoteNodeQueryResponse>
+}
 
 export function isRemoteNodeQuerySource(
   source: QuerySourcePreference | undefined

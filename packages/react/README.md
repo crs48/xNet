@@ -209,6 +209,42 @@ console.log(materialized?.cacheHit, plan?.materializedRefreshReason)
 
 Materialized views are an optimization for plaintext, storage-queryable local data. Stores with read authorization or encrypted node content bypass storage materialization and evaluate after auth/decryption so hidden or encrypted properties are not leaked through index counts, SQL, or materialized row IDs.
 
+**Local and remote reads:**
+
+`useQuery` defaults to local reads. Main-thread runtimes can opt into progressive remote reads by supplying a `remoteNodeQueryClient` to `XNetProvider` and requesting a remote execution mode.
+
+```tsx
+<XNetProvider
+  config={{
+    nodeStorage,
+    authorDID,
+    signingKey,
+    remoteNodeQueryClient: hubQueryClient
+  }}
+>
+  <App />
+</XNetProvider>
+```
+
+```tsx
+const { data, source, completeness, staleness, verification, error } = useQuery(TaskSchema, {
+  where: { status: 'todo' },
+  page: { first: 50, count: 'estimate' },
+  mode: 'local-then-remote',
+  source: 'hub'
+})
+```
+
+`mode: 'local-then-remote'` renders the local snapshot first, then merges hub or federated results by node ID while preserving the newest `updatedAt` version. Remote failures keep the local snapshot and expose `error`, `source: 'hybrid'`, and partial `completeness` metadata. `mode: 'remote'` uses the remote client as the primary source and does not hydrate local results first.
+
+Remote metadata is surfaced on the hook result:
+
+- `completeness` explains whether remote data is complete, partial, or unknown.
+- `staleness` reports whether the remote source is fresh, stale, or unknown.
+- `verification` reports whether remote nodes were verified, unverified, failed, or mixed.
+
+Worker remote transport, live remote subscriptions, and stream events are still roadmap items tracked in the exploration.
+
 **Query API roadmap:**
 
 `useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md).

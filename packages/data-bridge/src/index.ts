@@ -16,6 +16,7 @@
 
 export type {
   DataBridge,
+  QueryCompletenessMetadata,
   QueryDescriptor,
   QueryExecutionMode,
   QueryMaterializedMetadata,
@@ -37,6 +38,8 @@ export type {
   QuerySpatialRect,
   QuerySpatialRectFields,
   QuerySpatialWindow,
+  QueryStalenessMetadata,
+  QueryVerificationMetadata,
   SortDirection,
   SystemOrderField,
   CreateResult,
@@ -60,6 +63,7 @@ export type {
 export {
   MainThreadBridge,
   createMainThreadBridge,
+  type MainThreadBridgeOptions,
   type SyncManagerLike
 } from './main-thread-bridge'
 export { WorkerBridge, createWorkerBridge } from './worker-bridge'
@@ -113,6 +117,7 @@ export {
   isRemoteNodeQuerySource,
   isRemoteNodeQuerySuccess,
   type RemoteNodeQueryAuth,
+  type RemoteNodeQueryClient,
   type RemoteNodeQueryClientState,
   type RemoteNodeQueryErrorResponse,
   type RemoteNodeQueryMode,
@@ -124,6 +129,15 @@ export {
   type RemoteQueryStaleness,
   type RemoteQueryVerification
 } from './remote-query-protocol'
+export {
+  createRemoteFallbackMetadata,
+  createRemoteSuccessMetadata,
+  getRemoteQueryMode,
+  getRemoteQuerySource,
+  mergeRemoteNodeSnapshots,
+  shouldRunRemoteQuery,
+  shouldUseRemoteOnlyQuery
+} from './remote-query-execution'
 export {
   debounce,
   createUpdateBatcher,

@@ -573,6 +573,58 @@ describe('useQuery', () => {
       expect(result.current.source).toBe('local')
     })
 
+    it('should expose remote completeness, staleness, and verification metadata', async () => {
+      const mock = createMockBridge()
+      const remoteNode = createTaskNode('remote-1', 'Remote Task', 'todo')
+      const filter: QueryFilter<typeof TaskSchema._properties> = {
+        mode: 'local-then-remote',
+        source: 'hub',
+        page: { first: 1 }
+      }
+
+      mock.setSnapshot(TaskSchema, filter, [remoteNode])
+      mock.setMetadata(TaskSchema, filter, {
+        source: 'hybrid',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: null,
+          countMode: 'estimate',
+          hasMore: true,
+          hasNextPage: true,
+          hasPreviousPage: false,
+          loadedCount: 1
+        },
+        completeness: { level: 'partial', reason: 'auth-filtered' },
+        staleness: { level: 'stale', asOf: 123, maxAgeMs: 1000 },
+        verification: { status: 'mixed', verifiedNodeIds: ['remote-1'] }
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, filter), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.source).toBe('hybrid')
+      expect(result.current.completeness).toEqual({
+        level: 'partial',
+        reason: 'auth-filtered'
+      })
+      expect(result.current.staleness).toEqual({
+        level: 'stale',
+        asOf: 123,
+        maxAgeMs: 1000
+      })
+      expect(result.current.verification).toEqual({
+        status: 'mixed',
+        verifiedNodeIds: ['remote-1']
+      })
+    })
+
     it('should forward page.first and derive fallback pageInfo from it', async () => {
       const mock = createMockBridge()
       const firstNode = createTaskNode('done-1', 'Done Task 1', 'done')
