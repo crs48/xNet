@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config'
 const skipThresholds = process.env.CI === 'true'
 
 const workspaceAliases = {
+  '@xnetjs/abuse': new URL('./packages/abuse/src/index.ts', import.meta.url).pathname,
   '@xnetjs/canvas': new URL('./packages/canvas/src/index.ts', import.meta.url).pathname,
   '@xnetjs/canvas-core': new URL('./packages/canvas-core/src/index.ts', import.meta.url).pathname,
   '@xnetjs/cli': new URL('./packages/cli/src/index.ts', import.meta.url).pathname,
@@ -69,8 +70,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{canvas-core,cli,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
-            'packages/{canvas-core,cli,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts'
+            'packages/{abuse,canvas-core,cli,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
+            'packages/{abuse,canvas-core,cli,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread
