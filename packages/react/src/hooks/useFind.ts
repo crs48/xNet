@@ -7,12 +7,13 @@ import type {
   InferCreateProps,
   PropertyBuilder,
   QueryAST,
+  QueryASTAggregateExecution,
   QueryASTNodeQuery,
   QueryASTPage,
   QueryASTPlannerGate,
   QueryASTPredicate
 } from '@xnetjs/data'
-import { evaluateQueryASTPlannerGate } from '@xnetjs/data'
+import { evaluateQueryASTPlannerGate, executeQueryASTLoadedAggregates } from '@xnetjs/data'
 import { useMemo } from 'react'
 import { useQuery, type QueryFilter, type QueryListResult } from './useQuery'
 
@@ -32,6 +33,8 @@ export type UseFindResult<P extends Record<string, PropertyBuilder>> = QueryList
   blockers: string[]
   /** Whether the AST was compiled and subscribed through the current query runtime. */
   canExecute: boolean
+  /** Aggregate results computed over the loaded query snapshot. */
+  aggregates: QueryASTAggregateExecution | null
 }
 
 const EMPTY_FIND_OPTIONS: UseFindOptions = {}
@@ -132,10 +135,6 @@ function compileNodeQuery<P extends Record<string, PropertyBuilder>>(
     addBlocker(blockers, 'usefind-relation-includes-not-executable')
   }
 
-  if (ast.aggregates && ast.aggregates.length > 0) {
-    addBlocker(blockers, 'usefind-aggregates-not-executable')
-  }
-
   const compiledPredicate = compilePredicate(ast.predicate)
   compiledPredicate.blockers.forEach((blocker) => addBlocker(blockers, blocker))
 
@@ -198,6 +197,13 @@ export function useFind<P extends Record<string, PropertyBuilder>>(
     () => (canExecute ? result.error : plannerError(blockers)),
     [blockers, canExecute, result.error]
   )
+  const aggregates = useMemo(
+    () =>
+      canExecute && ast.kind === 'node' && ast.aggregates && ast.aggregates.length > 0
+        ? executeQueryASTLoadedAggregates(ast, result.data)
+        : null,
+    [ast, canExecute, result.data]
+  )
 
   return {
     ...result,
@@ -208,6 +214,7 @@ export function useFind<P extends Record<string, PropertyBuilder>>(
     error,
     plannerGate,
     blockers,
-    canExecute
+    canExecute,
+    aggregates
   }
 }

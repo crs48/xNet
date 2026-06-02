@@ -121,6 +121,9 @@ export type {
   QueryASTValidationResult,
   QueryASTRelationIndexRequirement,
   QueryASTAggregatePlan,
+  QueryASTAggregateGroup,
+  QueryASTAggregateResult,
+  QueryASTAggregateExecution,
   QueryASTPlannerGate,
   SavedViewDescriptor
 } from './query-ast'
@@ -160,6 +163,7 @@ export {
   validateQueryAST,
   validateSavedViewDescriptor,
   planQueryASTAggregates,
+  executeQueryASTLoadedAggregates,
   getQueryASTRelationIndexRequirements,
   evaluateQueryASTPlannerGate
 } from './query-ast'

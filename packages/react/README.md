@@ -291,10 +291,10 @@ Remote invalidation pokes refresh matching active remote-capable queries without
 
 **Advanced AST reads:**
 
-`useFind` is the guarded bridge between the canonical `QueryAST` in `@xnetjs/data` and the current React read runtime. Today it executes node-query ASTs that lower cleanly to `useQuery` descriptors: schema match, `eq` predicates, `and` conjunctions, ordering, and pagination. Relation includes, aggregates, query sets, and non-equality predicates return a planner error with `blockers` instead of silently running a partial query.
+`useFind` is the guarded bridge between the canonical `QueryAST` in `@xnetjs/data` and the current React read runtime. Today it executes node-query ASTs that lower cleanly to `useQuery` descriptors: schema match, `eq` predicates, `and` conjunctions, ordering, pagination, and loaded-snapshot aggregates. Relation includes, query sets, and non-equality predicates return a planner error with `blockers` instead of silently running a partial query.
 
 ```tsx
-import { defineNodeQueryAST, queryOperators } from '@xnetjs/data'
+import { count, defineNodeQueryAST, queryOperators } from '@xnetjs/data'
 import { useFind } from '@xnetjs/react'
 
 const task = queryOperators<(typeof TaskSchema)['_properties']>()
@@ -302,13 +302,14 @@ const task = queryOperators<(typeof TaskSchema)['_properties']>()
 const openTaskQuery = defineNodeQueryAST(TaskSchema, {
   where: task.eq('status', 'todo'),
   orderBy: { updatedAt: 'desc' },
-  page: { first: 50, count: 'estimate' }
+  page: { first: 50, count: 'estimate' },
+  aggregates: [count('visibleTasks')]
 })
 
-const { data, canExecute, blockers, plannerGate } = useFind(TaskSchema, openTaskQuery)
+const { data, aggregates, canExecute, blockers, plannerGate } = useFind(TaskSchema, openTaskQuery)
 ```
 
-Use `useFind` for saved or shared AST descriptors that should pass planner validation before React subscribes. Keep relation, aggregate, and dashboard execution behind the canonical AST planner until the dedicated executors land.
+`aggregates.scope` is currently `loaded-snapshot`, so grouped and scalar aggregates are computed from the rows loaded into the hook result. Use this for visible summaries and saved/shared descriptors that should pass planner validation before React subscribes. Keep relation includes, query sets, and storage/hub aggregate pushdown behind the canonical AST planner until the dedicated executors land.
 
 **Query API roadmap:**
 

@@ -207,6 +207,7 @@ const EMPTY_PAGE_INFO: QueryPageInfo = {
   hasPreviousPage: false,
   loadedCount: 0
 }
+const EMPTY_QUERY_FILTER: QueryFilter = Object.freeze({})
 const DISABLED_QUERY_SNAPSHOT: never[] = []
 
 function getFallbackPageInfo(input: {
@@ -307,7 +308,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
   // Determine query mode
   const isSingleQuery = typeof idOrFilter === 'string'
-  const filter: QueryFilter<P> = typeof idOrFilter === 'object' ? idOrFilter : {}
+  const filter: QueryFilter<P> =
+    typeof idOrFilter === 'object' ? idOrFilter : (EMPTY_QUERY_FILTER as QueryFilter<P>)
   const nodeId = isSingleQuery ? idOrFilter : null
   const enabled = filter.enabled ?? true
 

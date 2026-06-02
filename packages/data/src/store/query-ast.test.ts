@@ -10,11 +10,18 @@ import {
   dashboardQuerySet,
   defineNodeQueryAST,
   defineSavedViewDescriptor,
+  executeQueryASTLoadedAggregates,
   evaluateQueryASTPlannerGate,
   from,
+  avg,
+  groupBy,
+  having,
+  max,
+  min,
   planQueryASTAggregates,
   queryOperators,
   querySetCount,
+  sum,
   validateQueryAST,
   validateSavedViewDescriptor
 } from './query-ast'
@@ -94,6 +101,48 @@ describe('query AST', () => {
     ])
     expect(SavedViewSchema.schema['@id']).toBe('xnet://xnet.fyi/SavedView@1.0.0')
     expect(JSON.parse(JSON.stringify(descriptor))).toEqual(descriptor)
+  })
+
+  it('executes loaded aggregate snapshots with grouping and having predicates', () => {
+    const ast = defineNodeQueryAST(TaskSchema, {
+      aggregates: [
+        count('visibleTasks'),
+        countDistinct('status', 'statusKinds'),
+        sum('estimate', 'estimateSum'),
+        avg('estimate', 'estimateAvg'),
+        min('estimate', 'estimateMin'),
+        max('estimate', 'estimateMax'),
+        having(groupBy(count('statusCount'), 'status'), {
+          kind: 'comparison',
+          field: 'statusCount',
+          op: 'gt',
+          value: 1
+        })
+      ]
+    })
+
+    const execution = executeQueryASTLoadedAggregates(ast, [
+      { properties: { status: 'todo', estimate: 2 } },
+      { properties: { status: 'todo', estimate: 3 } },
+      { properties: { status: 'done', estimate: '5' } },
+      { properties: { status: null, estimate: 'not numeric' } }
+    ])
+
+    expect(execution.scope).toBe('loaded-snapshot')
+    expect(execution.rowCount).toBe(4)
+    expect(execution.results.visibleTasks.value).toBe(4)
+    expect(execution.results.statusKinds.value).toBe(2)
+    expect(execution.results.estimateSum.value).toBe(10)
+    expect(execution.results.estimateAvg.value).toBe(10 / 3)
+    expect(execution.results.estimateMin.value).toBe(2)
+    expect(execution.results.estimateMax.value).toBe(5)
+    expect(execution.results.statusCount.groups).toEqual([
+      {
+        key: { status: 'todo' },
+        rowCount: 2,
+        value: 2
+      }
+    ])
   })
 
   it('returns validation errors for unsafe persisted descriptors', () => {

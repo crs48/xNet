@@ -1010,20 +1010,19 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     [authorDID, config.signingKey, config.sync]
   )
 
-  // Wrap children with PluginRegistryContext if plugins are enabled
-  let content = pluginRegistry
-    ? React.createElement(PluginRegistryContext.Provider, { value: pluginRegistry }, children)
-    : children
+  let content: ReactNode = React.createElement(
+    PluginRegistryContext.Provider,
+    { value: pluginRegistry },
+    children
+  )
 
-  // Wrap with DataBridgeContext (Phase 0: MainThreadBridge)
-  if (dataBridge) {
-    content = React.createElement(DataBridgeContext.Provider, { value: dataBridge }, content)
-  }
+  content = React.createElement(DataBridgeContext.Provider, { value: dataBridge }, content)
 
-  // Wrap with TelemetryContext if telemetry is configured
-  if (config.telemetry) {
-    content = React.createElement(TelemetryContext.Provider, { value: config.telemetry }, content)
-  }
+  content = React.createElement(
+    TelemetryContext.Provider,
+    { value: config.telemetry ?? null },
+    content
+  )
 
   // Wrap with SecurityProvider for multi-level crypto support
   content = React.createElement(SecurityProvider, {

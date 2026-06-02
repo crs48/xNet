@@ -54,7 +54,8 @@ sequenceDiagram
 ## Remaining Work
 
 - [ ] Add relation include execution after reverse relation indexes and auth checks are validated end-to-end.
-- [ ] Add aggregate execution and result metadata for `count`, `countDistinct`, `sum`, `avg`, `min`, `max`, `groupBy`, and `having`.
+- [x] Add loaded-snapshot aggregate execution and result metadata for `count`, `countDistinct`, `sum`, `avg`, `min`, `max`, `groupBy`, and `having`.
+- [ ] Add storage and hub aggregate pushdown for arbitrary-scale aggregate reads.
 - [ ] Add query-set/dashboard execution for multi-query pages and dashboards.
 - [ ] Add worker remote transport and hub-side authorization enforcement for remote Node queries.
 - [ ] Add encrypted-search and encrypted-materialized-view strategy before promoting those paths for encrypted node stores.
@@ -62,8 +63,8 @@ sequenceDiagram
 
 ## Validation Checklist
 
-- [ ] Existing `useQuery(Schema)`, `useQuery(Schema, id)`, and `useQuery(Schema, filter)` call sites compile unchanged after every slice.
-- [ ] `pnpm --filter @xnetjs/react typecheck` passes.
-- [ ] `pnpm --filter @xnetjs/data-bridge typecheck` passes when bridge behavior changes.
-- [ ] Focused hook and bridge tests cover every new descriptor or metadata path.
-- [ ] Full `pnpm typecheck && pnpm test` passes before push.
+- [x] Existing `useQuery(Schema)`, `useQuery(Schema, id)`, and `useQuery(Schema, filter)` call sites compile unchanged after every slice.
+- [x] `pnpm --filter @xnetjs/react typecheck` passes.
+- [x] `pnpm --filter @xnetjs/data-bridge typecheck` passes when bridge behavior changes.
+- [x] Focused hook and data tests cover every new descriptor or metadata path.
+- [x] Full `pnpm typecheck && pnpm test` passes before push.

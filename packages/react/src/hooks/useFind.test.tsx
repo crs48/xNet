@@ -8,8 +8,11 @@ import { renderHook, waitFor } from '@testing-library/react'
 import {
   count,
   defineNodeQueryAST,
+  defineQuerySetAST,
   defineSchema,
   queryOperators,
+  sum,
+  number,
   select,
   text,
   type DefinedSchema,
@@ -27,6 +30,7 @@ const TaskSchema = defineSchema({
   namespace: 'xnet://test/',
   properties: {
     title: text({ required: true }),
+    estimate: number({}),
     status: select({
       options: [
         { id: 'todo', name: 'To Do' },
@@ -36,13 +40,18 @@ const TaskSchema = defineSchema({
   }
 })
 
-function createTaskNode(id: string, title: string, status: 'todo' | 'done'): NodeState {
+function createTaskNode(
+  id: string,
+  title: string,
+  status: 'todo' | 'done',
+  estimate = 1
+): NodeState {
   const now = Date.now()
 
   return {
     id,
     schemaId: TaskSchema._schemaId,
-    properties: { title, status },
+    properties: { title, status, estimate },
     timestamps: {},
     createdAt: now,
     createdBy: 'did:key:test',
@@ -159,10 +168,40 @@ describe('useFind', () => {
     expect(mock.getQueryCount()).toBe(1)
   })
 
+  it('executes aggregate metadata over the loaded query snapshot', async () => {
+    const mock = createMockBridge()
+    mock.setSnapshot(TaskSchema, {}, [
+      createTaskNode('task-1', 'First task', 'todo', 2),
+      createTaskNode('task-2', 'Second task', 'todo', 3)
+    ])
+    const ast = defineNodeQueryAST(TaskSchema, {
+      aggregates: [count('visibleTasks'), sum('estimate', 'estimateSum')]
+    })
+
+    const { result } = renderHook(() => useFind(TaskSchema, ast), {
+      wrapper: wrapperFor(mock.bridge)
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.canExecute).toBe(true)
+    expect(result.current.status).toBe('success')
+    expect(result.current.error).toBeNull()
+    expect(result.current.plannerGate.validation.valid).toBe(true)
+    expect(result.current.aggregates?.scope).toBe('loaded-snapshot')
+    expect(result.current.aggregates?.results.visibleTasks.value).toBe(2)
+    expect(result.current.aggregates?.results.estimateSum.value).toBe(5)
+    expect(mock.getQueryCount()).toBe(1)
+  })
+
   it('blocks AST features that do not have a React executor yet', async () => {
     const mock = createMockBridge()
-    const ast = defineNodeQueryAST(TaskSchema, {
-      aggregates: [count()]
+    const ast = defineQuerySetAST({
+      openTasks: defineNodeQueryAST(TaskSchema, {
+        aggregates: [count()]
+      })
     })
 
     const { result } = renderHook(() => useFind(TaskSchema, ast), {
@@ -175,9 +214,9 @@ describe('useFind', () => {
 
     expect(result.current.canExecute).toBe(false)
     expect(result.current.status).toBe('error')
-    expect(result.current.error?.message).toContain('usefind-aggregates-not-executable')
-    expect(result.current.plannerGate.validation.valid).toBe(true)
+    expect(result.current.error?.message).toContain('usefind-query-sets-not-executable')
     expect(result.current.data).toEqual([])
+    expect(result.current.aggregates).toBeNull()
     expect(mock.getQueryCount()).toBe(0)
   })
 })

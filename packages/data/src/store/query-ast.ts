@@ -172,6 +172,28 @@ export type QueryASTAggregatePlan = {
   canUseScalarIndex: boolean
 }
 
+export type QueryASTAggregateGroup = {
+  key: Record<string, unknown>
+  rowCount: number
+  value: unknown
+}
+
+export type QueryASTAggregateResult = {
+  alias: string
+  function: QueryASTAggregateFunction
+  field?: string
+  groupBy: string[]
+  rowCount: number
+  value: unknown
+  groups?: QueryASTAggregateGroup[]
+}
+
+export type QueryASTAggregateExecution = {
+  scope: 'loaded-snapshot'
+  rowCount: number
+  results: Record<string, QueryASTAggregateResult>
+}
+
 export type QueryASTPlannerGate = {
   validation: QueryASTValidationResult
   relationIndexRequirements: QueryASTRelationIndexRequirement[]
@@ -467,6 +489,229 @@ export function defineSavedViewDescriptor(
   return {
     version: QUERY_AST_VERSION,
     ...descriptor
+  }
+}
+
+function getQueryASTRowValue(row: unknown, field: string): unknown {
+  const record = objectValue(row)
+  if (!record) return undefined
+
+  if (Object.prototype.hasOwnProperty.call(record, field)) {
+    return record[field]
+  }
+
+  return objectValue(record.properties)?.[field]
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  return null
+}
+
+function stableValueKey(value: unknown): string {
+  if (value === null) return 'null'
+  if (value === undefined) return 'undefined'
+  if (typeof value !== 'object') return `${typeof value}:${String(value)}`
+  if (Array.isArray(value)) return `[${value.map(stableValueKey).join(',')}]`
+
+  const record = objectValue(value)
+  if (!record) return String(value)
+
+  return `{${Object.entries(record)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, next]) => `${key}:${stableValueKey(next)}`)
+    .join(',')}}`
+}
+
+function valuesEqual(left: unknown, right: unknown): boolean {
+  return stableValueKey(left) === stableValueKey(right)
+}
+
+function compareValues(left: unknown, right: unknown): number | null {
+  const leftNumber = toFiniteNumber(left)
+  const rightNumber = toFiniteNumber(right)
+
+  if (leftNumber !== null && rightNumber !== null) {
+    return leftNumber - rightNumber
+  }
+
+  if (typeof left === 'string' && typeof right === 'string') {
+    return left.localeCompare(right)
+  }
+
+  return null
+}
+
+function matchesQueryASTPredicate(row: unknown, predicate: QueryASTPredicate): boolean {
+  if (predicate.kind === 'and') {
+    return predicate.predicates.every((next) => matchesQueryASTPredicate(row, next))
+  }
+
+  if (predicate.kind === 'or') {
+    return predicate.predicates.some((next) => matchesQueryASTPredicate(row, next))
+  }
+
+  if (predicate.kind === 'not') {
+    return !matchesQueryASTPredicate(row, predicate.predicate)
+  }
+
+  if (predicate.kind !== 'comparison') {
+    return false
+  }
+
+  const value = getQueryASTRowValue(row, predicate.field)
+
+  if (predicate.op === 'eq') return valuesEqual(value, predicate.value)
+  if (predicate.op === 'neq') return !valuesEqual(value, predicate.value)
+  if (predicate.op === 'isNull') return value === null || value === undefined
+  if (predicate.op === 'isNotNull') return value !== null && value !== undefined
+  if (predicate.op === 'in') {
+    return (predicate.values ?? []).some((next) => valuesEqual(value, next))
+  }
+  if (predicate.op === 'contains') {
+    if (typeof value === 'string') return value.includes(String(predicate.value ?? ''))
+    if (Array.isArray(value)) return value.some((next) => valuesEqual(next, predicate.value))
+    return false
+  }
+  if (predicate.op === 'startsWith') {
+    return typeof value === 'string' && value.startsWith(String(predicate.value ?? ''))
+  }
+
+  if (predicate.op === 'between') {
+    const [from, to] = predicate.values ?? []
+    const fromComparison = compareValues(value, from)
+    const toComparison = compareValues(value, to)
+    return (
+      fromComparison !== null && toComparison !== null && fromComparison >= 0 && toComparison <= 0
+    )
+  }
+
+  const comparison = compareValues(value, predicate.value)
+  if (comparison === null) return false
+  if (predicate.op === 'gt') return comparison > 0
+  if (predicate.op === 'gte') return comparison >= 0
+  if (predicate.op === 'lt') return comparison < 0
+  if (predicate.op === 'lte') return comparison <= 0
+
+  return false
+}
+
+function aggregateValue(aggregate: QueryASTAggregate, rows: readonly unknown[]): unknown {
+  if (aggregate.function === 'count') {
+    return rows.length
+  }
+
+  const values = rows
+    .map((row) => (aggregate.field ? getQueryASTRowValue(row, aggregate.field) : undefined))
+    .filter((value) => value !== null && value !== undefined)
+
+  if (aggregate.function === 'countDistinct') {
+    return new Set(values.map(stableValueKey)).size
+  }
+
+  const numbers = values.flatMap((value) => {
+    const numberValue = toFiniteNumber(value)
+    return numberValue === null ? [] : [numberValue]
+  })
+
+  if (aggregate.function === 'sum') {
+    return numbers.reduce((total, next) => total + next, 0)
+  }
+
+  if (numbers.length === 0) {
+    return null
+  }
+
+  if (aggregate.function === 'avg') {
+    return numbers.reduce((total, next) => total + next, 0) / numbers.length
+  }
+
+  if (aggregate.function === 'min') {
+    return Math.min(...numbers)
+  }
+
+  if (aggregate.function === 'max') {
+    return Math.max(...numbers)
+  }
+
+  return null
+}
+
+function aggregateGroups(
+  aggregate: QueryASTAggregate,
+  rows: readonly unknown[]
+): QueryASTAggregateGroup[] | undefined {
+  const groupByFields = aggregate.groupBy ?? []
+  if (groupByFields.length === 0) return undefined
+
+  const groups = rows.reduce<Map<string, { key: Record<string, unknown>; rows: unknown[] }>>(
+    (map, row) => {
+      const key = Object.fromEntries(
+        groupByFields.map((field) => [field, getQueryASTRowValue(row, field)])
+      )
+      const groupKey = stableValueKey(key)
+      const group = map.get(groupKey) ?? { key, rows: [] }
+      group.rows.push(row)
+      map.set(groupKey, group)
+      return map
+    },
+    new Map()
+  )
+
+  const results = [...groups.values()].map<QueryASTAggregateGroup>((group) => ({
+    key: group.key,
+    rowCount: group.rows.length,
+    value: aggregateValue(aggregate, group.rows)
+  }))
+
+  if (!aggregate.having) {
+    return results
+  }
+
+  const havingPredicate = aggregate.having
+  return results.filter((group) =>
+    matchesQueryASTPredicate({ ...group.key, [aggregate.alias]: group.value }, havingPredicate)
+  )
+}
+
+function executeLoadedAggregate(
+  aggregate: QueryASTAggregate,
+  rows: readonly unknown[]
+): QueryASTAggregateResult {
+  const groups = aggregateGroups(aggregate, rows)
+
+  return {
+    alias: aggregate.alias,
+    function: aggregate.function,
+    ...(aggregate.field ? { field: aggregate.field } : {}),
+    groupBy: aggregate.groupBy ?? [],
+    rowCount: rows.length,
+    value: aggregateValue(aggregate, rows),
+    ...(groups ? { groups } : {})
+  }
+}
+
+export function executeQueryASTLoadedAggregates(
+  query: QueryASTNodeQuery,
+  rows: readonly unknown[]
+): QueryASTAggregateExecution {
+  return {
+    scope: 'loaded-snapshot',
+    rowCount: rows.length,
+    results: Object.fromEntries(
+      (query.aggregates ?? []).map((aggregate) => [
+        aggregate.alias,
+        executeLoadedAggregate(aggregate, rows)
+      ])
+    )
   }
 }
 
