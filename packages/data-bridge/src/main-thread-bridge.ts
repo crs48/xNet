@@ -42,7 +42,11 @@ import {
   createQueryDescriptor,
   serializeQueryDescriptor
 } from './query-descriptor'
-import { createQueryErrorMetadata, createQueryMetadata } from './query-metadata'
+import {
+  createQueryErrorMetadata,
+  createQueryMetadata,
+  createQuerySnapshotMetadata
+} from './query-metadata'
 import {
   createQueryStreamState,
   reduceQueryStreamEvent,
@@ -351,7 +355,45 @@ export class MainThreadBridge implements DataBridge {
         : event
     const nextState = reduceQueryStreamEvent(runtime.state, eventWithMetadata)
     runtime.state = nextState
-    this.cache.set(queryId, nextState.data, descriptor, undefined, nextState.metadata)
+    this.cache.set(
+      queryId,
+      nextState.data,
+      descriptor,
+      undefined,
+      this.withStreamMetadata(descriptor, nextState, eventWithMetadata)
+    )
+  }
+
+  private withStreamMetadata(
+    descriptor: QueryDescriptor,
+    state: QueryStreamState,
+    event: QueryStreamEvent
+  ): QueryMetadata {
+    const base =
+      state.metadata ??
+      createQuerySnapshotMetadata({
+        descriptor,
+        nodes: state.data ?? [],
+        source: getRemoteQuerySource(descriptor)
+      })
+    const metadata = { ...base }
+    if (!state.error) {
+      delete metadata.error
+    }
+
+    return {
+      ...metadata,
+      updatedAt: Date.now(),
+      stream: {
+        status: state.status,
+        lastEvent: event.type,
+        lastEventAt: Date.now(),
+        ...(state.progress ? { progress: state.progress } : {}),
+        ...(state.error ? { error: state.error } : {}),
+        ...(event.type === 'reset' ? { resetReason: event.reason } : {})
+      },
+      ...(state.error ? { error: state.error } : {})
+    }
   }
 
   private createStreamErrorMetadata(

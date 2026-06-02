@@ -7,7 +7,9 @@ import type {
   QueryMaterializedInfo,
   QueryPlanInfo,
   QuerySubscribeEvent,
-  QueryResultEvent
+  QueryResultEvent,
+  QueryStreamInfo,
+  QueryStreamTimelineEvent
 } from '../../core/types'
 import { useState, useEffect, useCallback } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
@@ -23,6 +25,8 @@ export interface QueryStats {
   source?: string
   plan?: QueryPlanInfo | null
   materialized?: QueryMaterializedInfo | null
+  stream?: QueryStreamInfo | null
+  streamTimeline: QueryStreamInfo[]
 
   registeredAt: number
   lastUpdateAt: number | null
@@ -41,7 +45,8 @@ const QUERY_EVENT_TYPES = new Set([
   'query:subscribe',
   'query:unsubscribe',
   'query:result',
-  'query:error'
+  'query:error',
+  'query:stream-event'
 ])
 
 export function useQueryDebugger() {
@@ -116,6 +121,8 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
         source: undefined,
         plan: null,
         materialized: null,
+        stream: null,
+        streamTimeline: [],
         registeredAt: e.wallTime,
         lastUpdateAt: null,
         active: true,
@@ -150,7 +157,23 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
           peakRenderTime: Math.max(existing.peakRenderTime, e.duration),
           source: e.source ?? existing.source,
           plan: 'plan' in e ? (e.plan ?? null) : existing.plan,
-          materialized: 'materialized' in e ? (e.materialized ?? null) : existing.materialized
+          materialized: 'materialized' in e ? (e.materialized ?? null) : existing.materialized,
+          stream: 'stream' in e ? (e.stream ?? existing.stream) : existing.stream
+        })
+      }
+      break
+    }
+    case 'query:stream-event': {
+      const e = event as QueryStreamTimelineEvent
+      const existing = map.get(e.queryId)
+      if (existing) {
+        map.set(existing.id, {
+          ...existing,
+          lastUpdateAt: e.wallTime,
+          resultCount: e.resultCount,
+          source: e.source ?? existing.source,
+          stream: e.stream,
+          streamTimeline: [...existing.streamTimeline.slice(-49), e.stream]
         })
       }
       break

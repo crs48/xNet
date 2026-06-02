@@ -204,6 +204,7 @@ export function useInfiniteQuery<P extends Record<string, PropertyBuilder>>(
     materialized: current.materialized as QueryMaterializedMetadata | null,
     completeness: current.completeness,
     staleness: current.staleness,
-    verification: current.verification
+    verification: current.verification,
+    stream: current.stream
   }
 }

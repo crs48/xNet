@@ -237,7 +237,17 @@ const { data, source, completeness, staleness, verification, error } = useQuery(
 
 `mode: 'local-then-remote'` renders the local snapshot first, then merges hub or federated results by node ID while preserving the newest `updatedAt` version. Remote failures keep the local snapshot and expose `error`, `source: 'hybrid'`, and partial `completeness` metadata. `mode: 'remote'` uses the remote client as the primary source and does not hydrate local results first.
 
-`mode: 'stream'` keeps the same React API while allowing a remote client to push `snapshot`, `insert`, `update`, `delete`, `reset`, `progress`, and `error` events into the bridge cache. The main-thread bridge starts a remote stream when the query is subscribed, stops it when the last subscriber unmounts, and falls back to a one-shot remote query when a client exposes `query()` but not `stream()`.
+`mode: 'stream'` keeps the same React API while allowing a remote client to push `snapshot`, `insert`, `update`, `delete`, `reset`, `progress`, and `error` events into the bridge cache. The main-thread bridge starts a remote stream when the query is subscribed, stops it when the last subscriber unmounts, and falls back to a one-shot remote query when a client exposes `query()` but not `stream()`. Stream queries expose `stream` metadata on the hook result and appear in the Query Debugger stream timeline when devtools are mounted.
+
+```tsx
+const { data, stream } = useQuery(TaskSchema, {
+  where: { status: 'todo' },
+  mode: 'stream',
+  source: 'hub'
+})
+
+console.log(stream?.lastEvent, stream?.status, stream?.progress?.phase)
+```
 
 ```ts
 const hubQueryClient = {
@@ -260,7 +270,7 @@ Remote metadata is surfaced on the hook result:
 - `staleness` reports whether the remote source is fresh, stale, or unknown.
 - `verification` reports whether remote nodes were verified, unverified, failed, or mixed.
 
-Worker remote transport, stream event devtools timelines, and hub-side authorization enforcement are still roadmap items tracked in the exploration.
+Worker remote transport and hub-side authorization enforcement are still roadmap items tracked in the exploration.
 
 **Query API roadmap:**
 

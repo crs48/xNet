@@ -93,6 +93,12 @@ export function QueryDebugger() {
                   })`}
                 />
               )}
+              {selectedQuery.stream && (
+                <DetailRow
+                  label="Stream"
+                  value={`${selectedQuery.stream.lastEvent} / ${selectedQuery.stream.status}`}
+                />
+              )}
               <DetailRow label="Updates" value={String(selectedQuery.updateCount)} />
               <DetailRow label="Results" value={String(selectedQuery.resultCount)} />
               <DetailRow label="Avg Render" value={`${selectedQuery.avgRenderTime.toFixed(2)}ms`} />
@@ -126,6 +132,30 @@ export function QueryDebugger() {
                   <pre className="text-zinc-400 mt-0.5 bg-zinc-900 p-1 rounded text-[9px] overflow-x-auto">
                     {JSON.stringify(selectedQuery.materialized, null, 2)}
                   </pre>
+                </div>
+              )}
+              {selectedQuery.streamTimeline.length > 0 && (
+                <div>
+                  <div className="text-zinc-500">Stream Timeline:</div>
+                  <div className="mt-0.5 space-y-1">
+                    {selectedQuery.streamTimeline.slice(-8).map((event, index) => (
+                      <div
+                        key={`${event.lastEventAt}-${index}`}
+                        className="bg-zinc-900 rounded px-1 py-0.5"
+                      >
+                        <div className="flex justify-between gap-2">
+                          <span className="text-zinc-300 font-mono">{event.lastEvent}</span>
+                          <span className="text-zinc-500">{relativeTime(event.lastEventAt)}</span>
+                        </div>
+                        <div className="text-zinc-500">
+                          {event.status}
+                          {event.progress?.phase ? ` / ${event.progress.phase}` : ''}
+                          {event.resetReason ? ` / ${event.resetReason}` : ''}
+                        </div>
+                        {event.error && <div className="text-red-400">{event.error}</div>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -198,6 +228,11 @@ function QueryEntry({
         <span>Results: {query.resultCount}</span>
         <span>Avg: {query.avgRenderTime.toFixed(1)}ms</span>
         {query.source && <span>Source: {query.source}</span>}
+        {query.stream && (
+          <span>
+            Stream: {query.stream.lastEvent}/{query.stream.status}
+          </span>
+        )}
         {query.peakRenderTime > 16 && (
           <span className="text-amber-400">Peak: {query.peakRenderTime.toFixed(0)}ms</span>
         )}

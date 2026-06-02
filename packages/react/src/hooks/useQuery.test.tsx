@@ -625,6 +625,52 @@ describe('useQuery', () => {
       })
     })
 
+    it('should expose stream metadata for stream queries', async () => {
+      const mock = createMockBridge()
+      const streamNode = createTaskNode('stream-1', 'Stream Task', 'todo')
+      const filter: QueryFilter<typeof TaskSchema._properties> = {
+        mode: 'stream',
+        source: 'hub'
+      }
+
+      mock.setSnapshot(TaskSchema, filter, [streamNode])
+      mock.setMetadata(TaskSchema, filter, {
+        source: 'hub',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 1,
+          countMode: 'exact',
+          hasMore: false,
+          hasNextPage: false,
+          hasPreviousPage: false,
+          loadedCount: 1
+        },
+        stream: {
+          status: 'ready',
+          lastEvent: 'snapshot',
+          lastEventAt: 123,
+          progress: { phase: 'live' }
+        }
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, filter), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.stream).toEqual({
+        status: 'ready',
+        lastEvent: 'snapshot',
+        lastEventAt: 123,
+        progress: { phase: 'live' }
+      })
+    })
+
     it('should forward page.first and derive fallback pageInfo from it', async () => {
       const mock = createMockBridge()
       const firstNode = createTaskNode('done-1', 'Done Task 1', 'done')

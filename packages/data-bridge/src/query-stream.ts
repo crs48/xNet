@@ -2,29 +2,20 @@
  * Query stream event types and deterministic reducers.
  */
 
-import type { QueryMetadata } from './types'
+import type {
+  QueryMetadata,
+  QueryStreamProgress,
+  QueryStreamResetReason,
+  QueryStreamStatus
+} from './types'
 import type { NodeState } from '@xnetjs/data'
 
-export type QueryStreamProgressPhase =
-  | 'connecting'
-  | 'snapshot'
-  | 'catching-up'
-  | 'live'
-  | 'reconnecting'
-  | 'complete'
-
-export type QueryStreamProgress = {
-  phase: QueryStreamProgressPhase
-  loaded?: number
-  total?: number | null
-  message?: string
-}
-
-export type QueryStreamResetReason =
-  | 'descriptor-changed'
-  | 'reconnect'
-  | 'server-reset'
-  | 'client-reset'
+export type {
+  QueryStreamProgress,
+  QueryStreamProgressPhase,
+  QueryStreamResetReason,
+  QueryStreamStatus
+} from './types'
 
 export type QueryStreamEvent =
   | {
@@ -67,8 +58,6 @@ export type QueryStreamEvent =
       recoverable?: boolean
       metadata?: QueryMetadata | null
     }
-
-export type QueryStreamStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export type QueryStreamState = {
   data: NodeState[] | null

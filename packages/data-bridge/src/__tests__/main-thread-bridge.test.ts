@@ -634,7 +634,13 @@ describe('MainThreadBridge', () => {
       })
 
       expect(callback).toHaveBeenCalled()
-      expect(subscription.getMetadata()).toMatchObject({ source: 'hub' })
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hub',
+        stream: {
+          status: 'ready',
+          lastEvent: 'insert'
+        }
+      })
 
       unsubscribe()
       expect(cleanup).toHaveBeenCalledTimes(1)
@@ -679,6 +685,11 @@ describe('MainThreadBridge', () => {
 
       await vi.waitFor(() => {
         expect(subscription.getSnapshot()).toBeNull()
+      })
+      expect(subscription.getMetadata()?.stream).toMatchObject({
+        status: 'loading',
+        lastEvent: 'reset',
+        resetReason: 'reconnect'
       })
 
       unsubscribe()

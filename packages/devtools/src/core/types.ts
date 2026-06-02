@@ -171,12 +171,21 @@ export interface QueryResultEvent extends DevToolsEventBase {
   source?: string
   plan?: QueryPlanInfo | null
   materialized?: QueryMaterializedInfo | null
+  stream?: QueryStreamInfo | null
 }
 
 export interface QueryErrorEvent extends DevToolsEventBase {
   type: 'query:error'
   queryId: string
   error: string
+}
+
+export interface QueryStreamTimelineEvent extends DevToolsEventBase {
+  type: 'query:stream-event'
+  queryId: string
+  stream: QueryStreamInfo
+  resultCount: number
+  source?: string
 }
 
 export interface QueryPlanInfo {
@@ -200,10 +209,27 @@ export interface QueryMaterializedInfo {
   rowCount: number
 }
 
+export interface QueryStreamProgressInfo {
+  phase: string
+  loaded?: number
+  total?: number | null
+  message?: string
+}
+
+export interface QueryStreamInfo {
+  status: string
+  lastEvent: string
+  lastEventAt: number
+  progress?: QueryStreamProgressInfo | null
+  error?: string | null
+  resetReason?: string
+}
+
 export interface QueryResultMetadata {
   source?: string
   plan?: QueryPlanInfo | null
   materialized?: QueryMaterializedInfo | null
+  stream?: QueryStreamInfo | null
 }
 
 export interface MutateStartEvent extends DevToolsEventBase {
@@ -301,6 +327,7 @@ export type DevToolsEvent =
   | QueryUnsubscribeEvent
   | QueryResultEvent
   | QueryErrorEvent
+  | QueryStreamTimelineEvent
   | MutateStartEvent
   | MutateCompleteEvent
   | MutateErrorEvent

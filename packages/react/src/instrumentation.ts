@@ -10,6 +10,7 @@
 
 import type {
   QueryCompletenessMetadata,
+  QueryStreamMetadata,
   QueryStalenessMetadata,
   QueryVerificationMetadata
 } from '@xnetjs/data-bridge'
@@ -44,6 +45,7 @@ export interface QueryTrackerUpdateMetadata {
   completeness?: QueryCompletenessMetadata | null
   staleness?: QueryStalenessMetadata | null
   verification?: QueryVerificationMetadata | null
+  stream?: QueryStreamMetadata | null
 }
 
 /**
@@ -67,6 +69,12 @@ export interface QueryTrackerLike {
     resultCount: number,
     renderTime: number,
     metadata?: QueryTrackerUpdateMetadata
+  ): void
+  recordStreamEvent?(
+    id: string,
+    stream: QueryStreamMetadata,
+    resultCount: number,
+    metadata?: Pick<QueryTrackerUpdateMetadata, 'source'>
   ): void
   recordError(id: string, error: string): void
   unregister(id: string): void

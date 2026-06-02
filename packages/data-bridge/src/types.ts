@@ -205,6 +205,47 @@ export type QueryVerificationMetadata = {
   failedNodeIds?: string[]
 }
 
+export type QueryStreamProgressPhase =
+  | 'connecting'
+  | 'snapshot'
+  | 'catching-up'
+  | 'live'
+  | 'reconnecting'
+  | 'complete'
+
+export type QueryStreamProgress = {
+  phase: QueryStreamProgressPhase
+  loaded?: number
+  total?: number | null
+  message?: string
+}
+
+export type QueryStreamResetReason =
+  | 'descriptor-changed'
+  | 'reconnect'
+  | 'server-reset'
+  | 'client-reset'
+
+export type QueryStreamStatus = 'idle' | 'loading' | 'ready' | 'error'
+
+export type QueryStreamEventType =
+  | 'snapshot'
+  | 'insert'
+  | 'update'
+  | 'delete'
+  | 'reset'
+  | 'progress'
+  | 'error'
+
+export type QueryStreamMetadata = {
+  status: QueryStreamStatus
+  lastEvent: QueryStreamEventType
+  lastEventAt: number
+  progress?: QueryStreamProgress | null
+  error?: string | null
+  resetReason?: QueryStreamResetReason
+}
+
 export interface QueryMetadata {
   source: QuerySource
   updatedAt: number
@@ -214,6 +255,7 @@ export interface QueryMetadata {
   completeness?: QueryCompletenessMetadata
   staleness?: QueryStalenessMetadata
   verification?: QueryVerificationMetadata
+  stream?: QueryStreamMetadata
   error?: string
 }
 

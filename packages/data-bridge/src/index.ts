@@ -38,6 +38,8 @@ export type {
   QuerySpatialRect,
   QuerySpatialRectFields,
   QuerySpatialWindow,
+  QueryStreamEventType,
+  QueryStreamMetadata,
   QueryStalenessMetadata,
   QueryVerificationMetadata,
   SortDirection,

@@ -42,6 +42,7 @@ import type {
   QuerySource,
   QuerySourcePreference,
   QuerySpatialFilter,
+  QueryStreamMetadata,
   QueryStalenessMetadata,
   QueryVerificationMetadata
 } from '@xnetjs/data-bridge'
@@ -142,6 +143,8 @@ export interface QueryBaseResult {
   staleness: QueryStalenessMetadata | null
   /** Remote/federated verification metadata when available */
   verification: QueryVerificationMetadata | null
+  /** Streaming lifecycle metadata when a live or stream query is active */
+  stream: QueryStreamMetadata | null
 }
 
 /**
@@ -403,6 +406,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const completeness = metadata?.completeness ?? null
   const staleness = metadata?.staleness ?? null
   const verification = metadata?.verification ?? null
+  const stream = metadata?.stream ?? null
   const trackedFilter = useMemo(
     () => {
       const next = {
@@ -460,7 +464,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       materialized,
       completeness,
       staleness,
-      verification
+      verification,
+      stream
     })
   }, [
     data,
@@ -472,8 +477,21 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     materialized,
     completeness,
     staleness,
-    verification
+    verification,
+    stream
   ])
+
+  const lastRecordedStreamEventAtRef = useRef(0)
+  useEffect(() => {
+    if (!instrumentation?.queryTracker.recordStreamEvent || !stream) return
+    if (lastRecordedStreamEventAtRef.current === stream.lastEventAt) return
+
+    lastRecordedStreamEventAtRef.current = stream.lastEventAt
+    const count = isSingleQuery ? (data ? 1 : 0) : Array.isArray(data) ? data.length : 0
+    instrumentation.queryTracker.recordStreamEvent(queryIdRef.current, stream, count, {
+      source
+    })
+  }, [data, instrumentation, isSingleQuery, source, stream])
 
   // ─── Telemetry: Subscription churn (mount/unmount tracking) ───────────────
   useEffect(() => {
@@ -522,7 +540,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     materialized,
     completeness,
     staleness,
-    verification
+    verification,
+    stream
   } as QueryListResult<P> | QuerySingleResult<P>
 }
 
