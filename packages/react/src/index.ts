@@ -38,6 +38,12 @@ export {
   type SortDirection,
   type MigrationWarning
 } from './hooks/useQuery'
+export {
+  useInfiniteQuery,
+  type InfiniteQueryFilter,
+  type InfiniteQueryPage,
+  type InfiniteQueryResult
+} from './hooks/useInfiniteQuery'
 
 /**
  * useMutate - Write operations for nodes

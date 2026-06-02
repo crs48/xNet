@@ -1269,8 +1269,8 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [ ] Add estimate mode for hub/federated/search results.
 - [x] Add cursor encode/decode utilities with versioning.
 - [x] Add stable node ID tie-breaker to cursor order.
-- [ ] Add `fetchNextPage()` for cursor pages.
-- [ ] Add `useInfiniteQuery()` wrapper.
+- [x] Add `fetchNextPage()` for cursor pages.
+- [x] Add `useInfiniteQuery()` wrapper.
 - [ ] Add tests for insert/delete shifts in bounded windows.
 - [x] Add tests for cursor pagination with duplicate sort values.
 

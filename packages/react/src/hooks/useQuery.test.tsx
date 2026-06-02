@@ -19,6 +19,7 @@ import { generateIdentity, type Identity } from '@xnetjs/identity'
 import React, { type ReactNode, useMemo } from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DataBridgeContext, XNetProvider } from '../context'
+import { useInfiniteQuery } from './useInfiniteQuery'
 import { useMutate } from './useMutate'
 import { useQuery, type QueryFilter } from './useQuery'
 
@@ -648,6 +649,73 @@ describe('useQuery', () => {
       })
 
       expect(mock.getQueryCount()).toBe(1)
+    })
+
+    it('should fetch and flatten cursor pages with useInfiniteQuery', async () => {
+      const mock = createMockBridge()
+      const firstNode = createTaskNode('task-1', 'First Task', 'todo')
+      const secondNode = createTaskNode('task-2', 'Second Task', 'todo')
+      const firstFilter: QueryFilter<typeof TaskSchema._properties> = {
+        orderBy: { updatedAt: 'desc' },
+        page: { first: 1 }
+      }
+      const secondFilter: QueryFilter<typeof TaskSchema._properties> = {
+        orderBy: { updatedAt: 'desc' },
+        page: { first: 1, after: 'cursor-1' }
+      }
+
+      mock.setSnapshot(TaskSchema, firstFilter, [firstNode])
+      mock.setMetadata(TaskSchema, firstFilter, {
+        source: 'local',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 2,
+          hasMore: true,
+          hasNextPage: true,
+          hasPreviousPage: false,
+          endCursor: 'cursor-1',
+          loadedCount: 1
+        }
+      })
+      mock.setSnapshot(TaskSchema, secondFilter, [secondNode])
+      mock.setMetadata(TaskSchema, secondFilter, {
+        source: 'local',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 2,
+          hasMore: false,
+          hasNextPage: false,
+          hasPreviousPage: true,
+          startCursor: 'cursor-1',
+          endCursor: 'cursor-2',
+          loadedCount: 1
+        }
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useInfiniteQuery(TaskSchema, { pageSize: 1 }), {
+        wrapper
+      })
+
+      await waitFor(() => {
+        expect(result.current.data.map((task) => task.id)).toEqual(['task-1'])
+      })
+
+      await act(async () => {
+        await result.current.fetchNextPage()
+      })
+
+      await waitFor(() => {
+        expect(result.current.data.map((task) => task.id)).toEqual(['task-1', 'task-2'])
+      })
+
+      expect(result.current.pages).toHaveLength(2)
+      expect(result.current.pageInfo.loadedCount).toBe(2)
+      expect(result.current.hasMore).toBe(false)
+      expect(result.current.isFetchingNextPage).toBe(false)
     })
   })
 })

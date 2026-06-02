@@ -153,6 +153,25 @@ const { data: todoTasks } = useQuery(TaskSchema, {
 
 Legacy `limit` and `offset` options remain supported. Prefer `page.first` for new bounded reads; it lowers to the same descriptor as `limit` until cursor pagination lands.
 
+**Cursor pagination:**
+
+```tsx
+const {
+  data: tasks,
+  fetchNextPage,
+  hasMore,
+  isFetchingNextPage
+} = useInfiniteQuery(TaskSchema, {
+  where: { status: 'todo' },
+  orderBy: { updatedAt: 'desc' },
+  pageSize: 50
+})
+
+await fetchNextPage()
+```
+
+`useInfiniteQuery` is a convenience wrapper over the same `useQuery` descriptor runtime. It requests pages with `page.after`, accumulates loaded pages, and returns both flattened `data` and per-page `pages`.
+
 **Query API roadmap:**
 
 `useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md).
