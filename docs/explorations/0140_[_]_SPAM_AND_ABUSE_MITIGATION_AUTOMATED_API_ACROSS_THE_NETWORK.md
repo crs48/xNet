@@ -980,11 +980,11 @@ Every hub should publish:
 
 ### Phase 2 - Core Abuse Package
 
-- [ ] Create `@xnetjs/abuse`.
-- [ ] Add `AbuseFacts`, `AbuseDecision`, `PolicyScope`, `InteractionPolicy`, and `ReachPolicy` types.
-- [ ] Add pure `decideRemoteMutation`, `decidePublicInteraction`, and `decideReach` functions.
-- [ ] Add deterministic explainability with stable reason codes.
-- [ ] Add fixtures for common abuse, false-positive, and override scenarios.
+- [x] Create `@xnetjs/abuse`.
+- [x] Add `AbuseFacts`, `AbuseDecision`, `PolicyScope`, `InteractionPolicy`, and `ReachPolicy` types.
+- [x] Add pure `decideRemoteMutation`, `decidePublicInteraction`, and `decideReach` functions.
+- [x] Add deterministic explainability with stable reason codes.
+- [x] Add fixtures for common abuse, false-positive, and override scenarios.
 - [ ] Re-export adapters from package-specific entrypoints instead of creating circular deps.
 
 ### Phase 3 - Signed Moderation Data
