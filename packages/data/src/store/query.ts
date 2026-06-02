@@ -59,8 +59,25 @@ export type NodeQueryMaterializedViewOptions = {
   forceRefresh?: boolean
 }
 
+export type NodeQueryPageCountMode = 'exact' | 'estimate' | 'none'
+
 export type NodeQueryPageOptions = {
   first: number
+  after?: string
+  count?: NodeQueryPageCountMode
+}
+
+export type NodeQueryCursorOrderEntry = {
+  field: string
+  direction: SortDirection
+  value: unknown
+}
+
+export type NodeQueryCursor = {
+  version: 1
+  schemaId: SchemaIRI
+  order: NodeQueryCursorOrderEntry[]
+  nodeId: string
 }
 
 export interface NodeQueryOptions<
@@ -86,6 +103,8 @@ export interface NodeQueryDescriptor {
   orderBy?: Record<string, SortDirection>
   limit?: number
   offset?: number
+  after?: string
+  count?: NodeQueryPageCountMode
   spatial?: NodeQuerySpatialFilter
   search?: NodeQuerySearchFilter
   materializedView?: NodeQueryMaterializedViewOptions
@@ -260,6 +279,146 @@ function normalizeMaterializedViewOptions(
   }
 }
 
+const NODE_QUERY_CURSOR_PREFIX = 'xnet-query-cursor:'
+
+type NodeQueryOrderEntry = {
+  field: string
+  direction: SortDirection
+}
+
+function encodeBase64Url(value: string): string {
+  const bytes = new TextEncoder().encode(value)
+  let binary = ''
+
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte)
+  })
+
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+}
+
+function decodeBase64Url(value: string): string {
+  const base64 = value.replaceAll('-', '+').replaceAll('_', '/')
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')
+  const binary = atob(padded)
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+
+  return new TextDecoder().decode(bytes)
+}
+
+function isSortDirection(value: unknown): value is SortDirection {
+  return value === 'asc' || value === 'desc'
+}
+
+function isNodeQueryCursor(value: unknown): value is NodeQueryCursor {
+  if (!value || typeof value !== 'object') return false
+
+  const cursor = value as Partial<NodeQueryCursor>
+  return (
+    cursor.version === 1 &&
+    typeof cursor.schemaId === 'string' &&
+    typeof cursor.nodeId === 'string' &&
+    Array.isArray(cursor.order) &&
+    cursor.order.every(
+      (entry) =>
+        entry &&
+        typeof entry === 'object' &&
+        typeof entry.field === 'string' &&
+        isSortDirection(entry.direction)
+    )
+  )
+}
+
+function getExplicitOrderEntries(descriptor: NodeQueryDescriptor): NodeQueryOrderEntry[] {
+  return Object.entries(descriptor.orderBy ?? {})
+    .filter((entry): entry is [string, SortDirection] => isSortDirection(entry[1]))
+    .map(([field, direction]) => ({ field, direction }))
+}
+
+function getCursorOrderEntries(descriptor: NodeQueryDescriptor): NodeQueryOrderEntry[] {
+  const entries = getExplicitOrderEntries(descriptor)
+  return entries.length > 0 ? entries : [{ field: 'updatedAt', direction: 'desc' }]
+}
+
+function getSortOrderEntries(descriptor: NodeQueryDescriptor): NodeQueryOrderEntry[] {
+  const entries = getExplicitOrderEntries(descriptor)
+  if (entries.length === 0) {
+    return descriptor.after
+      ? [...getCursorOrderEntries(descriptor), { field: 'nodeId', direction: 'asc' }]
+      : []
+  }
+
+  return [...entries, { field: 'nodeId', direction: 'asc' }]
+}
+
+function getOrderValue(node: NodeState, field: string): unknown {
+  if (field === 'nodeId') return node.id
+  if (field === 'createdAt' || field === 'updatedAt') return node[field]
+
+  return node.properties[field]
+}
+
+function compareOrderValues(
+  leftValue: unknown,
+  rightValue: unknown,
+  direction: SortDirection
+): number {
+  if (leftValue === rightValue) return 0
+  if (leftValue == null) return direction === 'asc' ? 1 : -1
+  if (rightValue == null) return direction === 'asc' ? -1 : 1
+
+  const comparison = leftValue < rightValue ? -1 : 1
+  return direction === 'asc' ? comparison : -comparison
+}
+
+function compareNodeToCursor(node: NodeState, cursor: NodeQueryCursor): number {
+  for (const entry of cursor.order) {
+    const comparison = compareOrderValues(
+      getOrderValue(node, entry.field),
+      entry.value,
+      entry.direction
+    )
+    if (comparison !== 0) return comparison
+  }
+
+  return compareOrderValues(node.id, cursor.nodeId, 'asc')
+}
+
+function filterAfterCursor(nodes: NodeState[], descriptor: NodeQueryDescriptor): NodeState[] {
+  if (!descriptor.after) return nodes
+
+  const cursor = decodeNodeQueryCursor(descriptor.after)
+  if (!cursor || cursor.schemaId !== descriptor.schemaId) return nodes
+
+  return nodes.filter((node) => compareNodeToCursor(node, cursor) > 0)
+}
+
+export function encodeNodeQueryCursor(descriptor: NodeQueryDescriptor, node: NodeState): string {
+  const cursor: NodeQueryCursor = {
+    version: 1,
+    schemaId: descriptor.schemaId,
+    order: getCursorOrderEntries(descriptor).map((entry) => ({
+      field: entry.field,
+      direction: entry.direction,
+      value: getOrderValue(node, entry.field)
+    })),
+    nodeId: node.id
+  }
+
+  return `${NODE_QUERY_CURSOR_PREFIX}${encodeBase64Url(JSON.stringify(cursor))}`
+}
+
+export function decodeNodeQueryCursor(cursor: string): NodeQueryCursor | null {
+  if (!cursor.startsWith(NODE_QUERY_CURSOR_PREFIX)) return null
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(cursor.slice(NODE_QUERY_CURSOR_PREFIX.length)))
+    return isNodeQueryCursor(payload) ? payload : null
+  } catch {
+    return null
+  }
+}
+
 export function getNodeQuerySearchTokens(search: NodeQuerySearchFilter): string[] {
   return tokenizeSearchText(search.text)
 }
@@ -411,6 +570,8 @@ export function createNodeQueryDescriptor<P extends Record<string, PropertyBuild
     orderBy: sortRecord(options?.orderBy as Record<string, SortDirection> | undefined),
     limit: options?.limit ?? options?.page?.first,
     offset: options?.offset,
+    after: options?.page?.after,
+    count: options?.page?.count,
     spatial: normalizeSpatialFilter(options?.spatial),
     search: normalizeSearchFilter(options?.search),
     materializedView: normalizeMaterializedViewOptions(options?.materializedView)
@@ -444,6 +605,14 @@ export function nodeQueryDescriptorToOptions<
 
   if (descriptor.offset !== undefined) {
     options.offset = descriptor.offset
+  }
+
+  if (descriptor.after || descriptor.count) {
+    options.page = {
+      first: descriptor.limit ?? 0,
+      ...(descriptor.after ? { after: descriptor.after } : {}),
+      ...(descriptor.count ? { count: descriptor.count } : {})
+    }
   }
 
   if (descriptor.spatial) {
@@ -496,34 +665,19 @@ export function sortNodeQueryResults(
   nodes: NodeState[],
   descriptor: NodeQueryDescriptor
 ): NodeState[] {
-  if (!descriptor.orderBy) return nodes
-
-  const entries = Object.entries(descriptor.orderBy) as [
-    keyof NodeState['properties'] | SystemOrderField,
-    SortDirection
-  ][]
+  const entries = getSortOrderEntries(descriptor)
   if (entries.length === 0) return nodes
 
   return [...nodes].sort((left, right) => {
-    for (const [key, direction] of entries) {
-      const keyName = key as string
-      let leftValue: unknown
-      let rightValue: unknown
-
-      if (keyName === 'createdAt' || keyName === 'updatedAt') {
-        leftValue = left[keyName]
-        rightValue = right[keyName]
-      } else {
-        leftValue = left.properties[keyName]
-        rightValue = right.properties[keyName]
+    for (const entry of entries) {
+      const comparison = compareOrderValues(
+        getOrderValue(left, entry.field),
+        getOrderValue(right, entry.field),
+        entry.direction
+      )
+      if (comparison !== 0) {
+        return comparison
       }
-
-      if (leftValue === rightValue) continue
-      if (leftValue == null) return direction === 'asc' ? 1 : -1
-      if (rightValue == null) return direction === 'asc' ? -1 : 1
-
-      const comparison = leftValue < rightValue ? -1 : 1
-      return direction === 'asc' ? comparison : -comparison
     }
 
     return 0
@@ -536,23 +690,28 @@ export function applyNodeQueryDescriptor(
 ): NodeState[] {
   const filtered = filterNodeQueryResults(nodes, descriptor)
   const sorted = sortNodeQueryResults(filtered, descriptor)
+  const afterCursor = filterAfterCursor(sorted, descriptor)
   const offset = descriptor.offset ?? 0
 
   if (descriptor.limit === undefined) {
-    return sorted.slice(offset)
+    return afterCursor.slice(offset)
   }
 
-  return sorted.slice(offset, offset + descriptor.limit)
+  return afterCursor.slice(offset, offset + descriptor.limit)
 }
 
 export function nodeQueryDescriptorNeedsBoundedReload(descriptor: NodeQueryDescriptor): boolean {
-  return descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0
+  return (
+    descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0 || descriptor.after !== undefined
+  )
 }
 
 export function withoutNodeQueryPagination(descriptor: NodeQueryDescriptor): NodeQueryDescriptor {
   const next = { ...descriptor }
   delete next.limit
   delete next.offset
+  delete next.after
+  delete next.count
   return next
 }
 

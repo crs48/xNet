@@ -3,7 +3,12 @@
  */
 
 import type { QueryDescriptor, QueryMetadata, QuerySource } from './types'
-import type { NodeQueryResult, NodeState } from '@xnetjs/data'
+import {
+  encodeNodeQueryCursor,
+  type NodeQueryDescriptor,
+  type NodeQueryResult,
+  type NodeState
+} from '@xnetjs/data'
 
 function getOffset(descriptor: QueryDescriptor): number {
   return descriptor.offset ?? 0
@@ -12,10 +17,19 @@ function getOffset(descriptor: QueryDescriptor): number {
 function getPageInfo(descriptor: QueryDescriptor, nodes: NodeState[], totalCount: number | null) {
   const loadedCount = nodes.length
   const offset = getOffset(descriptor)
-  const hasPreviousPage = offset > 0
+  const hasCursor = descriptor.after !== undefined
+  const startCursor =
+    loadedCount > 0
+      ? encodeNodeQueryCursor(descriptor as NodeQueryDescriptor, nodes[0]!)
+      : undefined
+  const endCursor =
+    loadedCount > 0
+      ? encodeNodeQueryCursor(descriptor as NodeQueryDescriptor, nodes[loadedCount - 1]!)
+      : undefined
+  const hasPreviousPage = offset > 0 || hasCursor
   const hasMore =
     descriptor.limit !== undefined
-      ? totalCount === null
+      ? totalCount === null || hasCursor
         ? loadedCount >= descriptor.limit
         : offset + loadedCount < totalCount
       : false
@@ -25,6 +39,8 @@ function getPageInfo(descriptor: QueryDescriptor, nodes: NodeState[], totalCount
     hasMore,
     hasNextPage: hasMore,
     hasPreviousPage,
+    ...(startCursor ? { startCursor } : {}),
+    ...(endCursor ? { endCursor } : {}),
     loadedCount
   }
 }
@@ -42,7 +58,8 @@ function getUnboundedTotalCount(
     return result.totalCount
   }
 
-  const isUnbounded = descriptor.limit === undefined && getOffset(descriptor) === 0
+  const isUnbounded =
+    descriptor.limit === undefined && getOffset(descriptor) === 0 && descriptor.after === undefined
   return isUnbounded ? nodes.length : null
 }
 

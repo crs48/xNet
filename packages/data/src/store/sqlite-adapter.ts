@@ -1147,14 +1147,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       ORDER BY ordinal ASC
       LIMIT ? OFFSET ?
     `
-    const limit = descriptor.limit ?? -1
-    const offset = descriptor.offset ?? 0
+    const usesCursor = descriptor.after !== undefined
+    const limit = usesCursor ? -1 : (descriptor.limit ?? -1)
+    const offset = usesCursor ? 0 : (descriptor.offset ?? 0)
     const idRows = await this.db.query<{ node_id: string }>(sql, [readPlan.viewId, limit, offset])
     const ids = idRows.map((row) => row.node_id)
-    const nodes = await this.hydrateNodesByIds(ids)
+    const hydrated = await this.hydrateNodesByIds(ids)
+    const nodes = usesCursor ? applyNodeQueryDescriptor(hydrated, descriptor) : hydrated
 
     return {
       nodes,
+      totalCount: readPlan.rowCount,
       plan: {
         strategy: 'storage-query',
         candidateNodeCount: readPlan.rowCount,
@@ -2473,6 +2476,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     const orderBy = this.buildSqlOrderBy(descriptor.orderBy)
     const useSqlPagination =
       options.canUseSqlPagination &&
+      descriptor.after === undefined &&
       (descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0)
 
     let sql = `
@@ -2561,7 +2565,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       (entry): entry is [string, SortDirection] => entry[1] === 'asc' || entry[1] === 'desc'
     )
     if (entries.length === 0) {
-      return 'n.updated_at DESC'
+      return 'n.updated_at DESC, n.id ASC'
     }
 
     const clauses = entries
@@ -2571,7 +2575,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
         return `${column} ${direction.toUpperCase()}`
       })
 
-    return clauses.length > 0 ? clauses.join(', ') : 'n.updated_at DESC'
+    return clauses.length > 0 ? [...clauses, 'n.id ASC'].join(', ') : 'n.updated_at DESC, n.id ASC'
   }
 
   private hasOnlySystemOrdering(orderBy?: Record<string, SortDirection>): boolean {

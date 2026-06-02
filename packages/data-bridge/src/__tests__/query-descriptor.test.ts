@@ -8,6 +8,8 @@ import {
   applyNodeChangeToQueryResult,
   applyQueryDescriptor,
   createQueryDescriptor,
+  decodeQueryCursor,
+  encodeQueryCursor,
   queryDescriptorToOptions,
   serializeQueryDescriptor
 } from '../query-descriptor'
@@ -123,6 +125,75 @@ describe('query-descriptor', () => {
       expect(descriptor.limit).toBe(10)
       expect(descriptor.offset).toBe(20)
       expect(queryDescriptorToOptions(descriptor)).toEqual({ limit: 10, offset: 20 })
+    })
+
+    it('should preserve cursor page options in the canonical descriptor', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        page: { first: 25, after: 'cursor-1', count: 'estimate' }
+      })
+
+      expect(descriptor.limit).toBe(25)
+      expect(descriptor.after).toBe('cursor-1')
+      expect(descriptor.count).toBe('estimate')
+      expect(queryDescriptorToOptions(descriptor)).toEqual({
+        limit: 25,
+        page: { first: 25, after: 'cursor-1', count: 'estimate' }
+      })
+    })
+  })
+
+  describe('query cursors', () => {
+    it('should encode versioned opaque cursors from ordered descriptors', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { updatedAt: 'desc' }
+      })
+      const node = {
+        ...createMockNode('task-a', { title: 'Task A' }),
+        updatedAt: 10
+      }
+
+      const cursor = encodeQueryCursor(descriptor, node)
+      const decoded = decodeQueryCursor(cursor)
+
+      expect(cursor).toMatch(/^xnet-query-cursor:/)
+      expect(decoded).toEqual({
+        version: 1,
+        schemaId: TEST_SCHEMA_ID,
+        order: [{ field: 'updatedAt', direction: 'desc', value: 10 }],
+        nodeId: 'task-a'
+      })
+      expect(decodeQueryCursor('not-a-cursor')).toBeNull()
+    })
+
+    it('should use node ID as the stable tie-breaker for duplicate sort values', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { updatedAt: 'desc' },
+        page: { first: 10 }
+      })
+      const first = {
+        ...createMockNode('task-a', { title: 'Task A' }),
+        updatedAt: 20
+      }
+      const second = {
+        ...createMockNode('task-b', { title: 'Task B' }),
+        updatedAt: 20
+      }
+      const newer = {
+        ...createMockNode('task-c', { title: 'Task C' }),
+        updatedAt: 30
+      }
+      const cursor = encodeQueryCursor(descriptor, first)
+      const nextPageDescriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { updatedAt: 'desc' },
+        page: { first: 10, after: cursor }
+      })
+
+      expect(
+        applyQueryDescriptor([second, newer, first], descriptor).map((node) => node.id)
+      ).toEqual(['task-c', 'task-a', 'task-b'])
+      expect(
+        applyQueryDescriptor([second, newer, first], nextPageDescriptor).map((node) => node.id)
+      ).toEqual(['task-b'])
     })
   })
 

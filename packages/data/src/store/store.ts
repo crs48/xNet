@@ -587,8 +587,12 @@ export class NodeStore {
     }
 
     const canPushSystemList = this.canPushSystemListQuery(descriptor)
-    const canPushPagination = canPushSystemList && !this.authEvaluator
-    const hasPagination = descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0
+    const canPushPagination =
+      canPushSystemList && !this.authEvaluator && descriptor.after === undefined
+    const hasPagination =
+      descriptor.limit !== undefined ||
+      (descriptor.offset ?? 0) > 0 ||
+      descriptor.after !== undefined
     const totalCount =
       canPushPagination && hasPagination
         ? await this.storage.countNodes({

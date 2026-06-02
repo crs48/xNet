@@ -70,7 +70,10 @@ export type {
   NodeQuerySearchField,
   NodeQuerySearchFilter,
   NodeQueryMaterializedViewOptions,
+  NodeQueryPageCountMode,
   NodeQueryPageOptions,
+  NodeQueryCursorOrderEntry,
+  NodeQueryCursor,
   NodeQueryOptions,
   NodeQueryDescriptor,
   NodeQueryPlanMetadata,
@@ -79,6 +82,8 @@ export type {
 } from './query'
 export {
   createNodeQueryDescriptor,
+  encodeNodeQueryCursor,
+  decodeNodeQueryCursor,
   nodeQueryDescriptorToOptions,
   serializeNodeQueryDescriptor,
   matchesNodeQueryDescriptor,

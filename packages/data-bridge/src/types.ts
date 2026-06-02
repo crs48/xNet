@@ -13,7 +13,8 @@ import type {
   NodeState,
   NodeChangeEvent,
   ListNodesOptions,
-  NodeQueryPlanMetadata
+  NodeQueryPlanMetadata,
+  NodeQueryPageCountMode
 } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
@@ -79,8 +80,12 @@ export type QueryMaterializedViewOptions = {
   forceRefresh?: boolean
 }
 
+export type QueryPageCountMode = NodeQueryPageCountMode
+
 export type QueryPageOptions = {
   first: number
+  after?: string
+  count?: NodeQueryPageCountMode
 }
 
 /**
@@ -131,6 +136,10 @@ export interface QueryDescriptor {
   limit?: number
   /** Offset applied after filtering and sorting */
   offset?: number
+  /** Cursor applied after filtering and sorting */
+  after?: string
+  /** Count strategy requested by the page options */
+  count?: NodeQueryPageCountMode
   /** Optional spatial filter metadata used by canvas-style queries */
   spatial?: QuerySpatialFilter
   /** Optional full-text filter metadata */

@@ -21,6 +21,7 @@ export type {
   QueryMaterializedViewOptions,
   QueryMetadata,
   QueryPageInfo,
+  QueryPageCountMode,
   QueryPageOptions,
   QuerySearchField,
   QuerySearchFilter,
@@ -85,6 +86,8 @@ export {
 export { QueryCache } from './query-cache'
 export {
   createQueryDescriptor,
+  encodeQueryCursor,
+  decodeQueryCursor,
   queryDescriptorToOptions,
   serializeQueryDescriptor,
   matchesQueryDescriptor,

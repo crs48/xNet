@@ -14,6 +14,7 @@ import { join } from 'path'
 import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { encodeNodeQueryCursor } from './query'
 import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
 
 function getTestDbPath(): string {
@@ -649,6 +650,42 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(byUpdatedAt.totalCount).toBe(4)
       expect(byCreatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
       expect(byUpdatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
+    })
+
+    it('uses node ID as the cursor tie-breaker for duplicate sort values', async () => {
+      const tieUpdatedAt = Date.now() + 20_000
+      const cursorSource = createTestNode({
+        id: 'task-open-low',
+        schemaId: taskSchemaId,
+        properties: { title: 'Open low', status: 'open', priority: 1, done: false },
+        updatedAt: tieUpdatedAt
+      })
+      const descriptor: NodeQueryDescriptor = {
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { done: false },
+        orderBy: { updatedAt: 'desc' },
+        limit: 2
+      }
+      const cursor = encodeNodeQueryCursor(descriptor, cursorSource)
+
+      await adapter.setNode(cursorSource)
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-open-mid',
+          schemaId: taskSchemaId,
+          properties: { title: 'Open mid', status: 'open', priority: 2, done: false },
+          updatedAt: tieUpdatedAt
+        })
+      )
+
+      const result = await adapter.queryNodes({
+        ...descriptor,
+        after: cursor
+      })
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['task-open-mid', 'task-open-high'])
+      expect(result.plan.postFilterReason).toBe('verified-in-js')
     })
 
     it('keeps search queries on the JS-verified path when FTS is unavailable', async () => {

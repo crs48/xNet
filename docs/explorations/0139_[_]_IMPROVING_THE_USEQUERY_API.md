@@ -1267,12 +1267,12 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Add `totalCount` and `hasMore` aliases on list results.
 - [x] Add exact count support for descriptor subsets where storage can answer.
 - [ ] Add estimate mode for hub/federated/search results.
-- [ ] Add cursor encode/decode utilities with versioning.
-- [ ] Add stable node ID tie-breaker to cursor order.
+- [x] Add cursor encode/decode utilities with versioning.
+- [x] Add stable node ID tie-breaker to cursor order.
 - [ ] Add `fetchNextPage()` for cursor pages.
 - [ ] Add `useInfiniteQuery()` wrapper.
 - [ ] Add tests for insert/delete shifts in bounded windows.
-- [ ] Add tests for cursor pagination with duplicate sort values.
+- [x] Add tests for cursor pagination with duplicate sort values.
 
 ### Phase 3 Materialized Views
 

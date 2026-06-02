@@ -256,6 +256,7 @@ export class WorkerBridge implements DataBridge {
       orderBy: options.orderBy as Record<string, 'asc' | 'desc'> | undefined,
       limit: options.limit,
       offset: options.offset,
+      page: options.page,
       spatial: options.spatial,
       search: options.search,
       materializedView: options.materializedView

@@ -8,11 +8,14 @@ import type {
   NodeQueryOptions,
   NodeState,
   PropertyBuilder,
-  SchemaIRI
+  SchemaIRI,
+  NodeQueryCursor
 } from '@xnetjs/data'
 import {
   applyNodeQueryDescriptor,
   createNodeQueryDescriptor,
+  decodeNodeQueryCursor,
+  encodeNodeQueryCursor,
   matchesNodeQueryDescriptor,
   nodeQueryDescriptorNeedsBoundedReload,
   nodeQueryDescriptorToOptions,
@@ -47,6 +50,14 @@ export function queryDescriptorToOptions<
 
 export function serializeQueryDescriptor(descriptor: QueryDescriptor): string {
   return serializeNodeQueryDescriptor(toNodeDescriptor(descriptor))
+}
+
+export function encodeQueryCursor(descriptor: QueryDescriptor, node: NodeState): string {
+  return encodeNodeQueryCursor(toNodeDescriptor(descriptor), node)
+}
+
+export function decodeQueryCursor(cursor: string): NodeQueryCursor | null {
+  return decodeNodeQueryCursor(cursor)
 }
 
 export function matchesQueryDescriptor(
