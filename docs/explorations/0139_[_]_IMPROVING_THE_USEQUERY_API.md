@@ -961,6 +961,44 @@ flowchart TD
 - Federated results need stable merge ordering.
 - Remote errors should not erase valid local snapshots unless `mode: 'remote'` requires remote completion.
 
+### Versioned Remote Node Query Protocol
+
+The Phase 4 foundation now starts with a typed, versioned protocol in `@xnetjs/data-bridge`. Runtime hub execution is still a later step, but the shape is explicit:
+
+```ts
+type RemoteNodeQueryRequest = {
+  protocol: 'xnet.node-query'
+  version: 1
+  requestId: string
+  descriptor: QueryDescriptor
+  mode: 'local-then-remote' | 'remote' | 'live' | 'stream'
+  source: 'hub' | 'federated'
+  requestedAt: number
+  auth?: { bearerToken?: string; ucan?: string; capabilities?: string[] }
+  client?: { localSnapshotAt?: number; knownNodeIds?: string[] }
+}
+
+type RemoteNodeQueryResponse =
+  | {
+      type: 'node-query/result'
+      requestId: string
+      source: 'hub' | 'federated'
+      nodes: NodeState[]
+      pageInfo: QueryPageInfo
+      metadata: QueryMetadata
+      completeness: { level: 'complete' | 'partial' | 'unknown'; reason?: string }
+      staleness: { level: 'fresh' | 'stale' | 'unknown'; asOf?: number }
+      verification: { status: 'verified' | 'unverified' | 'failed' | 'mixed' }
+    }
+  | {
+      type: 'node-query/error'
+      requestId: string
+      source: 'hub' | 'federated'
+      code: 'AUTH_DENIED' | 'REMOTE_UNAVAILABLE' | 'QUERY_UNSUPPORTED' | 'TIMEOUT' | 'UNKNOWN'
+      message: string
+    }
+```
+
 ---
 
 ## Relation And Aggregate Queries
@@ -1291,8 +1329,8 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Phase 4 Remote Reads
 
-- [ ] Define Node descriptor request/response protocol for hub reads.
-- [ ] Add `mode` and `source` query options.
+- [x] Define Node descriptor request/response protocol for hub reads.
+- [x] Add `mode` and `source` query options.
 - [ ] Add local-then-remote bridge execution.
 - [ ] Add `completeness` metadata.
 - [ ] Add `staleness` metadata.

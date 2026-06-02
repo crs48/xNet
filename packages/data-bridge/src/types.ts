@@ -82,6 +82,10 @@ export type QueryMaterializedViewOptions = {
 
 export type QueryPageCountMode = NodeQueryPageCountMode
 
+export type QueryExecutionMode = 'local' | 'local-then-remote' | 'remote' | 'live' | 'stream'
+
+export type QuerySourcePreference = 'auto' | 'local' | 'hub' | 'federated'
+
 export type QueryPageOptions = {
   first: number
   after?: string
@@ -115,6 +119,10 @@ export interface QueryOptions<
   search?: string | QuerySearchFilter
   /** Stable database view cache key for JIT materialized result sets */
   materializedView?: string | QueryMaterializedViewOptions
+  /** Future execution mode hint. Local execution remains the only active runtime today. */
+  mode?: QueryExecutionMode
+  /** Future source preference hint for hub or federated reads. */
+  source?: QuerySourcePreference
 }
 
 /**
@@ -146,6 +154,10 @@ export interface QueryDescriptor {
   search?: QuerySearchFilter
   /** Optional stable view cache key for storage-backed materialization */
   materializedView?: QueryMaterializedViewOptions
+  /** Execution mode hint for routing local, remote, live, or streamed reads */
+  mode?: QueryExecutionMode
+  /** Preferred read source for future hub/federated execution */
+  source?: QuerySourcePreference
 }
 
 export type QuerySource = 'local' | 'memory' | 'hub' | 'federated' | 'hybrid'

@@ -140,6 +140,24 @@ describe('query-descriptor', () => {
         page: { first: 25, after: 'cursor-1', count: 'estimate' }
       })
     })
+
+    it('should preserve remote execution hints in the canonical descriptor', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        where: { status: 'open' },
+        mode: 'local-then-remote',
+        source: 'hub'
+      })
+
+      expect(descriptor.mode).toBe('local-then-remote')
+      expect(descriptor.source).toBe('hub')
+      expect(queryDescriptorToOptions(descriptor)).toMatchObject({
+        where: { status: 'open' },
+        mode: 'local-then-remote',
+        source: 'hub'
+      })
+      expect(serializeQueryDescriptor(descriptor)).toContain('"mode":"local-then-remote"')
+      expect(serializeQueryDescriptor(descriptor)).toContain('"source":"hub"')
+    })
   })
 
   describe('query cursors', () => {

@@ -259,7 +259,9 @@ export class WorkerBridge implements DataBridge {
       page: options.page,
       spatial: options.spatial,
       search: options.search,
-      materializedView: options.materializedView
+      materializedView: options.materializedView,
+      mode: options.mode,
+      source: options.source
     }
   }
 

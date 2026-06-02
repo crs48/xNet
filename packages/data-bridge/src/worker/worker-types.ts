@@ -65,6 +65,8 @@ export interface SerializedQueryOptions {
   spatial?: QueryDescriptor['spatial']
   search?: string | QueryDescriptor['search']
   materializedView?: string | QueryDescriptor['materializedView']
+  mode?: QueryDescriptor['mode']
+  source?: QueryDescriptor['source']
 }
 
 /**

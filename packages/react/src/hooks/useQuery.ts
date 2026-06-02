@@ -30,6 +30,7 @@
  */
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
 import type {
+  QueryExecutionMode,
   QueryMaterializedMetadata,
   QueryMaterializedViewOptions,
   QueryMetadata,
@@ -38,6 +39,7 @@ import type {
   QueryPageOptions,
   QuerySearchFilter,
   QuerySource,
+  QuerySourcePreference,
   QuerySpatialFilter
 } from '@xnetjs/data-bridge'
 import {
@@ -89,6 +91,10 @@ export interface QueryFilter<
   search?: string | QuerySearchFilter
   /** Stable view cache key for storage-backed materialized result sets */
   materializedView?: string | QueryMaterializedViewOptions
+  /** Future execution mode hint. Current runtimes execute locally. */
+  mode?: QueryExecutionMode
+  /** Future source preference hint for hub or federated reads. */
+  source?: QuerySourcePreference
 }
 
 export type QueryStatus = 'loading' | 'success' | 'error'

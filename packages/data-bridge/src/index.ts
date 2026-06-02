@@ -17,6 +17,7 @@
 export type {
   DataBridge,
   QueryDescriptor,
+  QueryExecutionMode,
   QueryMaterializedMetadata,
   QueryMaterializedViewOptions,
   QueryMetadata,
@@ -28,6 +29,7 @@ export type {
   QuerySubscription,
   QueryOptions,
   QuerySource,
+  QuerySourcePreference,
   QuerySpatialFilter,
   QuerySpatialPoint,
   QuerySpatialPointFields,
@@ -103,6 +105,25 @@ export {
   createQueryErrorMetadata,
   createQuerySnapshotMetadata
 } from './query-metadata'
+export {
+  REMOTE_NODE_QUERY_PROTOCOL,
+  REMOTE_NODE_QUERY_PROTOCOL_VERSION,
+  createRemoteNodeQueryRequest,
+  isRemoteNodeQueryError,
+  isRemoteNodeQuerySource,
+  isRemoteNodeQuerySuccess,
+  type RemoteNodeQueryAuth,
+  type RemoteNodeQueryClientState,
+  type RemoteNodeQueryErrorResponse,
+  type RemoteNodeQueryMode,
+  type RemoteNodeQueryRequest,
+  type RemoteNodeQueryResponse,
+  type RemoteNodeQuerySource,
+  type RemoteNodeQuerySuccessResponse,
+  type RemoteQueryCompleteness,
+  type RemoteQueryStaleness,
+  type RemoteQueryVerification
+} from './remote-query-protocol'
 export {
   debounce,
   createUpdateBatcher,
