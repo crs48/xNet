@@ -376,6 +376,32 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const source = metadata?.source ?? 'local'
   const plan = useMemo(() => summarizePlan(metadata), [metadata])
   const materialized = metadata?.materialized ?? null
+  const trackedFilter = useMemo(
+    () => {
+      const next = {
+        ...(descriptor.where ? { where: descriptor.where } : {}),
+        ...(descriptor.spatial ? { spatial: descriptor.spatial } : {}),
+        ...(descriptor.search ? { search: descriptor.search } : {}),
+        ...(descriptor.materializedView ? { materializedView: descriptor.materializedView } : {})
+      }
+
+      return Object.keys(next).length > 0 ? next : undefined
+    },
+    // queryKey is the canonical descriptor identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryKey]
+  )
+  const trackedMode = useMemo(
+    () =>
+      isSingleQuery
+        ? 'single'
+        : descriptor.where || descriptor.spatial || descriptor.search
+          ? 'filtered'
+          : 'list',
+    // queryKey is the canonical descriptor identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isSingleQuery, queryKey]
+  )
 
   // Query tracking for devtools
   const queryIdRef = useRef(
@@ -383,47 +409,30 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   )
   useEffect(() => {
     if (!instrumentation?.queryTracker) return
-    const mode = isSingleQuery
-      ? 'single'
-      : filter.where || filter.spatial || filter.search
-        ? 'filtered'
-        : 'list'
     const queryId = queryIdRef.current
     instrumentation.queryTracker.register(queryId, {
       type: 'useQuery',
       schemaId,
-      mode,
-      filter:
-        filter.where || filter.spatial
-          ? {
-              ...(filter.where ? { where: filter.where } : {}),
-              ...(filter.spatial ? { spatial: filter.spatial } : {}),
-              ...(filter.search ? { search: filter.search } : {})
-            }
-          : undefined,
+      mode: trackedMode,
+      filter: trackedFilter,
       descriptorKey: queryKey,
       nodeId: nodeId || undefined
     })
     return () => {
       instrumentation.queryTracker.unregister(queryId)
     }
-  }, [
-    instrumentation,
-    schemaId,
-    isSingleQuery,
-    nodeId,
-    filter.where,
-    filter.spatial,
-    filter.search,
-    queryKey
-  ])
+  }, [instrumentation, schemaId, nodeId, trackedMode, trackedFilter, queryKey])
 
   // Report updates to devtools
   useEffect(() => {
     if (!instrumentation?.queryTracker || loading) return
     const count = isSingleQuery ? (data ? 1 : 0) : Array.isArray(data) ? data.length : 0
-    instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0)
-  }, [data, instrumentation, isSingleQuery, loading])
+    instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0, {
+      source,
+      plan,
+      materialized
+    })
+  }, [data, instrumentation, isSingleQuery, loading, source, plan, materialized])
 
   // ─── Telemetry: Subscription churn (mount/unmount tracking) ───────────────
   useEffect(() => {

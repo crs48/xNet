@@ -2,7 +2,13 @@
  * Hook for the Query Debugger panel
  */
 
-import type { DevToolsEvent, QuerySubscribeEvent, QueryResultEvent } from '../../core/types'
+import type {
+  DevToolsEvent,
+  QueryMaterializedInfo,
+  QueryPlanInfo,
+  QuerySubscribeEvent,
+  QueryResultEvent
+} from '../../core/types'
 import { useState, useEffect, useCallback } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 
@@ -14,6 +20,9 @@ export interface QueryStats {
   filter?: Record<string, unknown>
   descriptorKey?: string
   callerInfo?: string
+  source?: string
+  plan?: QueryPlanInfo | null
+  materialized?: QueryMaterializedInfo | null
 
   registeredAt: number
   lastUpdateAt: number | null
@@ -104,6 +113,9 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
         filter: e.filter,
         descriptorKey: e.descriptorKey,
         callerInfo: e.callerInfo,
+        source: undefined,
+        plan: null,
+        materialized: null,
         registeredAt: e.wallTime,
         lastUpdateAt: null,
         active: true,
@@ -135,7 +147,10 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
           lastUpdateAt: e.wallTime,
           totalRenderTime,
           avgRenderTime: totalRenderTime / updateCount,
-          peakRenderTime: Math.max(existing.peakRenderTime, e.duration)
+          peakRenderTime: Math.max(existing.peakRenderTime, e.duration),
+          source: e.source ?? existing.source,
+          plan: 'plan' in e ? (e.plan ?? null) : existing.plan,
+          materialized: 'materialized' in e ? (e.materialized ?? null) : existing.materialized
         })
       }
       break

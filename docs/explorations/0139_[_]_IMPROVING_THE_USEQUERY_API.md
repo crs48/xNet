@@ -1255,7 +1255,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Use the serialized descriptor as the only query dependency key.
 - [x] Extend `QuerySubscription` or add `QuerySnapshot` to include metadata.
 - [x] Preserve old `NodeState[] | null` compatibility during migration.
-- [ ] Surface materialized plan info in devtools query tracker.
+- [x] Surface materialized plan info in devtools query tracker.
 - [x] Add unit tests for hook-level `search` descriptor forwarding.
 - [x] Add unit tests for hook-level `materializedView` descriptor forwarding.
 - [x] Add unit tests proving equivalent option objects do not reload unnecessarily.

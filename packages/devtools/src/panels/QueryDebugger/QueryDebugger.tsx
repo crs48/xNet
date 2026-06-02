@@ -81,6 +81,18 @@ export function QueryDebugger() {
               {selectedQuery.callerInfo && (
                 <DetailRow label="Source" value={selectedQuery.callerInfo} />
               )}
+              {selectedQuery.source && <DetailRow label="Read From" value={selectedQuery.source} />}
+              {selectedQuery.plan?.strategy && (
+                <DetailRow label="Plan" value={selectedQuery.plan.strategy} />
+              )}
+              {selectedQuery.materialized && (
+                <DetailRow
+                  label="View"
+                  value={`${selectedQuery.materialized.viewId} (${
+                    selectedQuery.materialized.cacheHit ? 'hit' : 'miss'
+                  })`}
+                />
+              )}
               <DetailRow label="Updates" value={String(selectedQuery.updateCount)} />
               <DetailRow label="Results" value={String(selectedQuery.resultCount)} />
               <DetailRow label="Avg Render" value={`${selectedQuery.avgRenderTime.toFixed(2)}ms`} />
@@ -97,6 +109,22 @@ export function QueryDebugger() {
                   <div className="text-zinc-500">Filter:</div>
                   <pre className="text-zinc-400 mt-0.5 bg-zinc-900 p-1 rounded text-[9px] overflow-x-auto">
                     {JSON.stringify(selectedQuery.filter, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {selectedQuery.plan && (
+                <div>
+                  <div className="text-zinc-500">Plan:</div>
+                  <pre className="text-zinc-400 mt-0.5 bg-zinc-900 p-1 rounded text-[9px] overflow-x-auto">
+                    {JSON.stringify(selectedQuery.plan, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {selectedQuery.materialized && (
+                <div>
+                  <div className="text-zinc-500">Materialized:</div>
+                  <pre className="text-zinc-400 mt-0.5 bg-zinc-900 p-1 rounded text-[9px] overflow-x-auto">
+                    {JSON.stringify(selectedQuery.materialized, null, 2)}
                   </pre>
                 </div>
               )}
@@ -169,6 +197,7 @@ function QueryEntry({
         <span>Updates: {query.updateCount}</span>
         <span>Results: {query.resultCount}</span>
         <span>Avg: {query.avgRenderTime.toFixed(1)}ms</span>
+        {query.source && <span>Source: {query.source}</span>}
         {query.peakRenderTime > 16 && (
           <span className="text-amber-400">Peak: {query.peakRenderTime.toFixed(0)}ms</span>
         )}
@@ -177,6 +206,16 @@ function QueryEntry({
       {query.descriptorKey && (
         <div className="text-[8px] text-zinc-600 mt-1 font-mono truncate">
           {query.descriptorKey}
+        </div>
+      )}
+      {(query.plan?.strategy || query.materialized) && (
+        <div className="flex items-center gap-2 mt-1 text-[8px] text-zinc-600">
+          {query.plan?.strategy && <span>Plan: {query.plan.strategy}</span>}
+          {query.materialized && (
+            <span>
+              View: {query.materialized.viewId} ({query.materialized.cacheHit ? 'hit' : 'miss'})
+            </span>
+          )}
         </div>
       )}
     </div>

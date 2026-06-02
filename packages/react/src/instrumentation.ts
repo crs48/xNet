@@ -11,6 +11,32 @@
 import type * as Y from 'yjs'
 import { createContext, useContext } from 'react'
 
+export interface QueryTrackerPlanInfo {
+  strategy?: string
+  candidateNodeCount?: number
+  hydratedNodeCount?: number
+  returnedNodeCount?: number
+  durationMs?: number
+  descriptorHash?: string
+  candidateAccelerators?: string[]
+  materializedViewId?: string
+  materializedCacheHit?: boolean
+}
+
+export interface QueryTrackerMaterializedInfo {
+  viewId: string
+  cacheHit: boolean
+  generatedAt: number
+  invalidatedAt?: number
+  rowCount: number
+}
+
+export interface QueryTrackerUpdateMetadata {
+  source?: string
+  plan?: QueryTrackerPlanInfo | null
+  materialized?: QueryTrackerMaterializedInfo | null
+}
+
 /**
  * Query tracker interface (implemented by @xnetjs/devtools QueryTracker)
  */
@@ -27,7 +53,12 @@ export interface QueryTrackerLike {
       callerInfo?: string
     }
   ): void
-  recordUpdate(id: string, resultCount: number, renderTime: number): void
+  recordUpdate(
+    id: string,
+    resultCount: number,
+    renderTime: number,
+    metadata?: QueryTrackerUpdateMetadata
+  ): void
   recordError(id: string, error: string): void
   unregister(id: string): void
 }

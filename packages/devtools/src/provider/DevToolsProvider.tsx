@@ -5,6 +5,7 @@
  * and provides context to all devtools panels.
  */
 
+import type { QueryMaterializedInfo, QueryPlanInfo } from '../core/types'
 import type * as Y from 'yjs'
 import { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from '@xnetjs/history'
 import {
@@ -220,6 +221,9 @@ declare global {
         mode: string
         descriptorKey?: string
         nodeId?: string
+        source?: string
+        plan?: QueryPlanInfo | null
+        materialized?: QueryMaterializedInfo | null
         updateCount: number
         resultCount: number
       }>
@@ -409,6 +413,9 @@ export function XNetDevToolsProvider({
           mode: query.mode,
           descriptorKey: query.descriptorKey,
           nodeId: query.nodeId,
+          source: query.source,
+          plan: query.plan,
+          materialized: query.materialized,
           updateCount: query.updateCount,
           resultCount: query.resultCount
         }))

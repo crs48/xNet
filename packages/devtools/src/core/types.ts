@@ -168,12 +168,41 @@ export interface QueryResultEvent extends DevToolsEventBase {
   queryId: string
   resultCount: number
   duration: number
+  source?: string
+  plan?: QueryPlanInfo | null
+  materialized?: QueryMaterializedInfo | null
 }
 
 export interface QueryErrorEvent extends DevToolsEventBase {
   type: 'query:error'
   queryId: string
   error: string
+}
+
+export interface QueryPlanInfo {
+  strategy?: string
+  candidateNodeCount?: number
+  hydratedNodeCount?: number
+  returnedNodeCount?: number
+  durationMs?: number
+  descriptorHash?: string
+  candidateAccelerators?: string[]
+  materializedViewId?: string
+  materializedCacheHit?: boolean
+}
+
+export interface QueryMaterializedInfo {
+  viewId: string
+  cacheHit: boolean
+  generatedAt: number
+  invalidatedAt?: number
+  rowCount: number
+}
+
+export interface QueryResultMetadata {
+  source?: string
+  plan?: QueryPlanInfo | null
+  materialized?: QueryMaterializedInfo | null
 }
 
 export interface MutateStartEvent extends DevToolsEventBase {
