@@ -989,13 +989,13 @@ Every hub should publish:
 
 ### Phase 3 - Signed Moderation Data
 
-- [ ] Add `AbuseReportSchema`.
-- [ ] Add `ModerationLabelSchema` with expiration, negation, source DID, confidence, evidence refs.
-- [ ] Add `PolicyListSchema` and `PolicySubscriptionSchema`.
-- [ ] Add `CommunityNoteSchema` and `NoteRatingSchema`.
-- [ ] Add `QualitySignalSchema`.
-- [ ] Add `ContentProvenanceSchema` for source, AI generation, C2PA-like credentials, and tool chain.
-- [ ] Add `AppealSchema` and `ReviewTaskSchema`.
+- [x] Add `AbuseReportSchema`.
+- [x] Add `ModerationLabelSchema` with expiration, negation, source DID, confidence, evidence refs.
+- [x] Add `PolicyListSchema` and `PolicySubscriptionSchema`.
+- [x] Add `CommunityNoteSchema` and `NoteRatingSchema`.
+- [x] Add `QualitySignalSchema`.
+- [x] Add `ContentProvenanceSchema` for source, AI generation, C2PA-like credentials, and tool chain.
+- [x] Add `AppealSchema` and `ReviewTaskSchema`.
 - [ ] Add schema permissions for who may label, review, appeal, or publish policy lists.
 
 ### Phase 4 - Public Surface Integration
