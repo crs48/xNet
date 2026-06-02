@@ -970,7 +970,7 @@ Every hub should publish:
 
 ### Phase 1 - Remote Admission Hardening
 
-- [ ] Define a `RemoteAdmissionPipeline` interface shared by sync/network/hub paths.
+- [x] Define a `RemoteAdmissionPipeline` interface shared by sync/network/hub paths.
 - [ ] Require V2 Yjs envelope verification for hub relay where signed replication is required.
 - [ ] Reject unknown V2 envelopes at hubs unless a verifier is configured.
 - [ ] Apply size and rate limits to awareness messages and state-vector messages.
@@ -985,7 +985,7 @@ Every hub should publish:
 - [x] Add pure `decideRemoteMutation`, `decidePublicInteraction`, and `decideReach` functions.
 - [x] Add deterministic explainability with stable reason codes.
 - [x] Add fixtures for common abuse, false-positive, and override scenarios.
-- [ ] Re-export adapters from package-specific entrypoints instead of creating circular deps.
+- [x] Re-export adapters from package-specific entrypoints instead of creating circular deps.
 
 ### Phase 3 - Signed Moderation Data
 
