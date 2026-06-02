@@ -56,11 +56,15 @@ import {
 import {
   createRemoteFallbackMetadata,
   createRemoteSuccessMetadata,
+  createRemoteVerificationError,
+  filterRemoteNodesByVerification,
   getRemoteQueryMode,
   getRemoteQuerySource,
+  isRemoteVerificationFailed,
   mergeRemoteNodeSnapshots,
   shouldRunRemoteQuery,
-  shouldUseRemoteOnlyQuery
+  shouldUseRemoteOnlyQuery,
+  withRemoteErrorVerificationMetadata
 } from './remote-query-execution'
 import {
   createRemoteNodeQueryRequest,
@@ -349,10 +353,18 @@ export class MainThreadBridge implements DataBridge {
     const runtime = this.remoteStreams.get(queryId)
     if (!runtime) return
 
+    const normalizedEvent = this.normalizeRemoteStreamEvent(descriptor, runtime.state, event)
     const eventWithMetadata =
       event.type === 'error' && event.metadata === undefined
-        ? { ...event, metadata: this.createStreamErrorMetadata(descriptor, runtime.state, event) }
-        : event
+        ? {
+            ...normalizedEvent,
+            metadata: this.createStreamErrorMetadata(
+              descriptor,
+              runtime.state,
+              normalizedEvent as Extract<QueryStreamEvent, { type: 'error' }>
+            )
+          }
+        : normalizedEvent
     const nextState = reduceQueryStreamEvent(runtime.state, eventWithMetadata)
     runtime.state = nextState
     this.cache.set(
@@ -362,6 +374,63 @@ export class MainThreadBridge implements DataBridge {
       undefined,
       this.withStreamMetadata(descriptor, nextState, eventWithMetadata)
     )
+  }
+
+  private normalizeRemoteStreamEvent(
+    descriptor: QueryDescriptor,
+    state: QueryStreamState,
+    event: QueryStreamEvent
+  ): QueryStreamEvent {
+    const verification = event.metadata?.verification
+    if (isRemoteVerificationFailed(verification)) {
+      return {
+        type: 'error',
+        code: 'VERIFICATION_FAILED',
+        error: 'Remote stream event verification failed',
+        metadata: this.createStreamErrorMetadata(descriptor, state, {
+          type: 'error',
+          code: 'VERIFICATION_FAILED',
+          error: 'Remote stream event verification failed'
+        })
+      }
+    }
+
+    if (!verification || verification.status !== 'mixed') {
+      return event
+    }
+
+    switch (event.type) {
+      case 'snapshot':
+        return {
+          ...event,
+          nodes: filterRemoteNodesByVerification(event.nodes, verification)
+        }
+      case 'reset':
+        return event.nodes
+          ? {
+              ...event,
+              nodes: filterRemoteNodesByVerification(event.nodes, verification)
+            }
+          : event
+      case 'insert':
+        return filterRemoteNodesByVerification([event.node], verification).length > 0
+          ? event
+          : {
+              type: 'delete',
+              nodeId: event.node.id,
+              metadata: event.metadata
+            }
+      case 'update':
+        return filterRemoteNodesByVerification([event.node], verification).length > 0
+          ? event
+          : {
+              type: 'delete',
+              nodeId: event.nodeId,
+              metadata: event.metadata
+            }
+      default:
+        return event
+    }
   }
 
   private withStreamMetadata(
@@ -403,18 +472,29 @@ export class MainThreadBridge implements DataBridge {
   ): QueryMetadata {
     const currentMetadata =
       state.metadata ?? this.cache.getMetadata(serializeQueryDescriptor(descriptor))
+    const error =
+      event.code === 'VERIFICATION_FAILED'
+        ? createRemoteVerificationError({
+            requestId: serializeQueryDescriptor(descriptor),
+            source: getRemoteQuerySource(descriptor),
+            message: event.error
+          })
+        : new Error(event.error)
     if (currentMetadata && state.data !== null) {
       return createRemoteFallbackMetadata({
         localMetadata: currentMetadata,
-        error: new Error(event.error)
+        error
       })
     }
 
-    return createQueryErrorMetadata({
-      descriptor,
-      source: getRemoteQuerySource(descriptor),
-      error: new Error(event.error)
-    })
+    return withRemoteErrorVerificationMetadata(
+      createQueryErrorMetadata({
+        descriptor,
+        source: getRemoteQuerySource(descriptor),
+        error: new Error(event.error)
+      }),
+      error
+    )
   }
 
   private async executeRemoteQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
@@ -444,10 +524,27 @@ export class MainThreadBridge implements DataBridge {
 
       if (!isRemoteNodeQuerySuccess(response)) return
 
+      if (isRemoteVerificationFailed(response.verification)) {
+        this.handleRemoteQueryError(
+          queryId,
+          descriptor,
+          createRemoteVerificationError({
+            requestId: response.requestId,
+            source: response.source
+          })
+        )
+        return
+      }
+
+      const verifiedRemoteNodes = filterRemoteNodesByVerification(
+        response.nodes,
+        response.verification
+      )
+
       const nodes =
         descriptor.mode === 'local-then-remote'
-          ? mergeRemoteNodeSnapshots(localSnapshot, response.nodes)
-          : response.nodes
+          ? mergeRemoteNodeSnapshots(localSnapshot, verifiedRemoteNodes)
+          : verifiedRemoteNodes
       const metadata = createRemoteSuccessMetadata({
         response,
         source: descriptor.mode === 'local-then-remote' ? 'hybrid' : response.source,
@@ -491,16 +588,17 @@ export class MainThreadBridge implements DataBridge {
 
     const fallbackSource = getRemoteQuerySource(descriptor)
     const message = error instanceof Error ? error.message : error.message
+    const metadata = createQueryErrorMetadata({
+      descriptor,
+      source: fallbackSource,
+      error: new Error(message)
+    })
     this.cache.set(
       queryId,
       [],
       descriptor,
       undefined,
-      createQueryErrorMetadata({
-        descriptor,
-        source: fallbackSource,
-        error: new Error(message)
-      })
+      withRemoteErrorVerificationMetadata(metadata, error)
     )
   }
 

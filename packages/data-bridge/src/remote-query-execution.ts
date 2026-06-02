@@ -8,7 +8,13 @@ import type {
   RemoteNodeQuerySource,
   RemoteNodeQuerySuccessResponse
 } from './remote-query-protocol'
-import type { QueryDescriptor, QueryMetadata, QueryPageInfo, QuerySource } from './types'
+import type {
+  QueryDescriptor,
+  QueryMetadata,
+  QueryPageInfo,
+  QuerySource,
+  QueryVerificationMetadata
+} from './types'
 import type { NodeState } from '@xnetjs/data'
 import { isRemoteNodeQuerySource } from './remote-query-protocol'
 
@@ -62,6 +68,49 @@ export function mergeRemoteNodeSnapshots(
   return [...merged.values()]
 }
 
+export function isRemoteVerificationFailed(
+  verification: QueryVerificationMetadata | undefined
+): boolean {
+  return verification?.status === 'failed'
+}
+
+export function filterRemoteNodesByVerification(
+  nodes: readonly NodeState[],
+  verification: QueryVerificationMetadata | undefined
+): NodeState[] {
+  if (!verification || verification.status === 'verified' || verification.status === 'unverified') {
+    return [...nodes]
+  }
+
+  if (verification.status === 'failed') {
+    return []
+  }
+
+  const verifiedNodeIds = verification.verifiedNodeIds
+    ? new Set(verification.verifiedNodeIds)
+    : null
+  const failedNodeIds = new Set(verification.failedNodeIds ?? [])
+
+  return nodes.filter((node) => {
+    if (failedNodeIds.has(node.id)) return false
+    return verifiedNodeIds ? verifiedNodeIds.has(node.id) : true
+  })
+}
+
+export function createRemoteVerificationError(input: {
+  requestId: string
+  source: RemoteNodeQuerySource
+  message?: string
+}): RemoteNodeQueryErrorResponse {
+  return {
+    type: 'node-query/error',
+    requestId: input.requestId,
+    source: input.source,
+    code: 'VERIFICATION_FAILED',
+    message: input.message ?? 'Remote query result verification failed'
+  }
+}
+
 export function createRemoteSuccessMetadata(input: {
   response: RemoteNodeQuerySuccessResponse
   source: QuerySource
@@ -91,7 +140,15 @@ export function createRemoteFallbackMetadata(input: {
   const { localMetadata, error } = input
   const message = error instanceof Error ? error.message : error.message
   const reason =
-    !(error instanceof Error) && error.code === 'TIMEOUT' ? 'source-timeout' : 'remote-unavailable'
+    !(error instanceof Error) && error.code === 'TIMEOUT'
+      ? 'source-timeout'
+      : !(error instanceof Error) && error.code === 'VERIFICATION_FAILED'
+        ? 'verification-failed'
+        : 'remote-unavailable'
+  const verification =
+    !(error instanceof Error) && error.code === 'VERIFICATION_FAILED'
+      ? ({ status: 'failed' } satisfies QueryVerificationMetadata)
+      : (localMetadata.verification ?? { status: 'unverified' as const })
 
   return {
     ...localMetadata,
@@ -105,9 +162,23 @@ export function createRemoteFallbackMetadata(input: {
       level: 'stale',
       asOf: localMetadata.updatedAt
     },
-    verification: localMetadata.verification ?? {
-      status: 'unverified'
-    },
+    verification,
     error: message
+  }
+}
+
+export function withRemoteErrorVerificationMetadata(
+  metadata: QueryMetadata,
+  error: RemoteNodeQueryErrorResponse | Error
+): QueryMetadata {
+  if (error instanceof Error || error.code !== 'VERIFICATION_FAILED') {
+    return metadata
+  }
+
+  return {
+    ...metadata,
+    verification: {
+      status: 'failed'
+    }
   }
 }

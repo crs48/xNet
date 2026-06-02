@@ -540,6 +540,84 @@ describe('MainThreadBridge', () => {
       })
     })
 
+    it('should reject remote-only reads when remote verification fails', async () => {
+      bridge.destroy()
+
+      const forbidden = createRemoteNode('forbidden-task', 'Forbidden Task')
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () =>
+          createRemoteSuccess({
+            nodes: [forbidden],
+            verification: {
+              status: 'failed',
+              failedNodeIds: ['forbidden-task']
+            }
+          })
+        )
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'remote',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getMetadata()?.error).toBe('Remote query result verification failed')
+      })
+
+      expect(subscription.getSnapshot()).toEqual([])
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hub',
+        verification: { status: 'failed' },
+        error: 'Remote query result verification failed'
+      })
+    })
+
+    it('should filter mixed remote verification before caching snapshots', async () => {
+      bridge.destroy()
+
+      const verified = createRemoteNode('verified-task', 'Verified Task')
+      const failed = createRemoteNode('failed-task', 'Failed Task')
+      const unlisted = createRemoteNode('unlisted-task', 'Unlisted Task')
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () =>
+          createRemoteSuccess({
+            nodes: [verified, failed, unlisted],
+            verification: {
+              status: 'mixed',
+              verifiedNodeIds: ['verified-task'],
+              failedNodeIds: ['failed-task']
+            }
+          })
+        )
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'remote',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Verified Task'
+        ])
+      })
+
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hub',
+        pageInfo: {
+          loadedCount: 1
+        },
+        verification: {
+          status: 'mixed',
+          verifiedNodeIds: ['verified-task'],
+          failedNodeIds: ['failed-task']
+        }
+      })
+    })
+
     it('should dedupe federated local and remote results by newest update time', async () => {
       bridge.destroy()
 
@@ -751,6 +829,140 @@ describe('MainThreadBridge', () => {
       expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
         'Still Streaming'
       ])
+    })
+
+    it('should filter mixed verification stream snapshots before reducing them', async () => {
+      bridge.destroy()
+
+      let observer: RemoteNodeQueryStreamObserver | null = null
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] })),
+        stream: vi.fn((_request, nextObserver) => {
+          observer = nextObserver
+          return vi.fn()
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'stream',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(vi.fn())
+
+      await vi.waitFor(() => {
+        expect(remoteClient.stream).toHaveBeenCalledTimes(1)
+      })
+
+      const verified = createRemoteNode('verified-stream-task', 'Verified Stream Task')
+      const failed = createRemoteNode('failed-stream-task', 'Failed Stream Task')
+      const metadata = {
+        ...createRemoteSuccess({ nodes: [verified, failed] }).metadata,
+        verification: {
+          status: 'mixed' as const,
+          verifiedNodeIds: ['verified-stream-task'],
+          failedNodeIds: ['failed-stream-task']
+        }
+      }
+
+      observer!.next({
+        type: 'snapshot',
+        nodes: [verified, failed],
+        metadata
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Verified Stream Task'
+        ])
+      })
+
+      observer!.next({
+        type: 'insert',
+        node: failed,
+        metadata
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 25))
+
+      expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+        'Verified Stream Task'
+      ])
+      expect(subscription.getMetadata()).toMatchObject({
+        verification: {
+          status: 'mixed',
+          verifiedNodeIds: ['verified-stream-task'],
+          failedNodeIds: ['failed-stream-task']
+        },
+        stream: {
+          status: 'ready'
+        }
+      })
+
+      unsubscribe()
+    })
+
+    it('should turn failed verification stream events into terminal stream errors', async () => {
+      bridge.destroy()
+
+      let observer: RemoteNodeQueryStreamObserver | null = null
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] })),
+        stream: vi.fn((_request, nextObserver) => {
+          observer = nextObserver
+          return vi.fn()
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'stream',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(vi.fn())
+
+      await vi.waitFor(() => {
+        expect(remoteClient.stream).toHaveBeenCalledTimes(1)
+      })
+
+      const forbidden = createRemoteNode('forbidden-stream-task', 'Forbidden Stream Task')
+      observer!.next({
+        type: 'snapshot',
+        nodes: [forbidden],
+        metadata: {
+          ...createRemoteSuccess({ nodes: [forbidden] }).metadata,
+          verification: {
+            status: 'failed',
+            failedNodeIds: ['forbidden-stream-task']
+          }
+        }
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getMetadata()?.error).toBe('Remote stream event verification failed')
+      })
+
+      expect(subscription.getSnapshot()).toEqual([])
+      expect(subscription.getMetadata()).toMatchObject({
+        verification: { status: 'failed' },
+        stream: {
+          status: 'error',
+          lastEvent: 'error',
+          error: 'Remote stream event verification failed'
+        }
+      })
+
+      unsubscribe()
     })
 
     it('should fall back to one-shot remote reads when stream transport is unavailable', async () => {

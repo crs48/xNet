@@ -969,6 +969,13 @@ flowchart TD
 
 The Phase 4 foundation now starts with a typed, versioned protocol in `@xnetjs/data-bridge`. Main-thread bridge execution can use an injected `remoteNodeQueryClient` for `mode: 'local-then-remote'` and `mode: 'remote'`; first-party hub transport is still a later step.
 
+The bridge now normalizes remote trust metadata before updating `QueryCache`:
+
+- `verification.status: 'failed'` is treated as a terminal remote verification error and remote nodes are not surfaced.
+- `verification.status: 'mixed'` filters result nodes by `verifiedNodeIds` and `failedNodeIds` before one-shot snapshots or stream events reach subscribers.
+- Stream `snapshot`, `reset`, `insert`, and `update` events apply the same filter before the stream reducer runs.
+- Failed remote verification is reflected back through `QueryMetadata.verification.status: 'failed'` and `completeness.reason: 'verification-failed'`, so UI and devtools can explain why a remote read is empty or partial.
+
 ```ts
 type RemoteNodeQueryRequest = {
   protocol: 'xnet.node-query'
@@ -992,13 +999,23 @@ type RemoteNodeQueryResponse =
       metadata: QueryMetadata
       completeness: { level: 'complete' | 'partial' | 'unknown'; reason?: string }
       staleness: { level: 'fresh' | 'stale' | 'unknown'; asOf?: number }
-      verification: { status: 'verified' | 'unverified' | 'failed' | 'mixed' }
+      verification: {
+        status: 'verified' | 'unverified' | 'failed' | 'mixed'
+        verifiedNodeIds?: string[]
+        failedNodeIds?: string[]
+      }
     }
   | {
       type: 'node-query/error'
       requestId: string
       source: 'hub' | 'federated'
-      code: 'AUTH_DENIED' | 'REMOTE_UNAVAILABLE' | 'QUERY_UNSUPPORTED' | 'TIMEOUT' | 'UNKNOWN'
+      code:
+        | 'AUTH_DENIED'
+        | 'REMOTE_UNAVAILABLE'
+        | 'QUERY_UNSUPPORTED'
+        | 'TIMEOUT'
+        | 'VERIFICATION_FAILED'
+        | 'UNKNOWN'
       message: string
     }
 ```
@@ -1338,7 +1355,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Add local-then-remote bridge execution.
 - [x] Add `completeness` metadata.
 - [x] Add `staleness` metadata.
-- [ ] Add remote auth filtering and verification status.
+- [x] Add remote auth filtering and verification status.
 - [x] Add federated dedupe and merge policy.
 - [ ] Add query router thresholds for Node queries.
 - [x] Add tests for local fallback when remote is unavailable.
@@ -1387,7 +1404,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] R-Tree candidate queries still JS-verify geometry.
 - [x] Materialized views refresh after relevant invalidation.
 - [x] Auth-filtered and encrypted stores do not leak indexed data.
-- [ ] Remote reads never surface unauthorized results.
+- [x] Remote reads never surface unauthorized results.
 
 ### Performance
 

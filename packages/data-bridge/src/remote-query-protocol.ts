@@ -70,7 +70,13 @@ export type RemoteNodeQueryErrorResponse = {
   type: 'node-query/error'
   requestId: string
   source: RemoteNodeQuerySource
-  code: 'AUTH_DENIED' | 'REMOTE_UNAVAILABLE' | 'QUERY_UNSUPPORTED' | 'TIMEOUT' | 'UNKNOWN'
+  code:
+    | 'AUTH_DENIED'
+    | 'REMOTE_UNAVAILABLE'
+    | 'QUERY_UNSUPPORTED'
+    | 'TIMEOUT'
+    | 'VERIFICATION_FAILED'
+    | 'UNKNOWN'
   message: string
   retryAfterMs?: number
 }

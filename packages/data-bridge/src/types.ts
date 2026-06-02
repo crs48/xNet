@@ -190,6 +190,7 @@ export type QueryCompletenessMetadata = {
     | 'page-limited'
     | 'remote-unavailable'
     | 'source-timeout'
+    | 'verification-failed'
   sourceCount?: number
 }
 
