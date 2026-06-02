@@ -1377,14 +1377,14 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Existing `useQuery(Schema, id)` call sites compile unchanged.
 - [x] Existing `useQuery(Schema, { where, orderBy, limit, offset })` call sites compile unchanged.
 - [x] Existing tests in `packages/react/src/hooks/useQuery.test.tsx` pass.
-- [ ] Existing database hook tests pass.
+- [x] Existing database hook tests pass.
 
 ### Correctness
 
-- [ ] Query descriptor serialization is canonical for semantically identical options.
-- [ ] SQL pushdown results match `applyNodeQueryDescriptor()` parity checks.
-- [ ] FTS candidate queries still JS-verify field selection.
-- [ ] R-Tree candidate queries still JS-verify geometry.
+- [x] Query descriptor serialization is canonical for semantically identical options.
+- [x] SQL pushdown results match `applyNodeQueryDescriptor()` parity checks.
+- [x] FTS candidate queries still JS-verify field selection.
+- [x] R-Tree candidate queries still JS-verify geometry.
 - [x] Materialized views refresh after relevant invalidation.
 - [x] Auth-filtered and encrypted stores do not leak indexed data.
 - [ ] Remote reads never surface unauthorized results.
@@ -1396,16 +1396,16 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [ ] Search queries use FTS candidates where available.
 - [ ] Spatial queries use R-Tree candidates where available.
 - [x] Repeated materialized view pages are cache hits.
-- [ ] QueryCache does not notify unrelated descriptors.
-- [ ] Devtools can show candidate counts and plan duration.
+- [x] QueryCache does not notify unrelated descriptors.
+- [x] Devtools can show candidate counts and plan duration.
 
 ### Realtime
 
-- [ ] Unbounded queries apply insert/update/delete deltas without reload.
-- [ ] Bounded queries reload or repair when membership/order boundaries shift.
+- [x] Unbounded queries apply insert/update/delete deltas without reload.
+- [x] Bounded queries reload or repair when membership/order boundaries shift.
 - [x] Materialized views invalidate on relevant node changes.
 - [ ] Remote poke/invalidation triggers refresh without losing local data.
-- [ ] Stream events reduce deterministically.
+- [x] Stream events reduce deterministically.
 
 ### Documentation
 
@@ -1414,8 +1414,8 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Public docs explain local vs remote reads.
 - [x] Public docs explain pagination and infinite scroll.
 - [x] Public docs explain materialized views.
-- [ ] Public docs explain streaming.
-- [ ] Public docs explain debug plan metadata.
+- [x] Public docs explain streaming.
+- [x] Public docs explain debug plan metadata.
 - [x] Public docs include migration notes from `limit` / `offset` to `page`.
 
 ---
