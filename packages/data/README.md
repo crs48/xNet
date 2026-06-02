@@ -24,6 +24,7 @@ pnpm add @xnetjs/data
 - **Blob service** -- File upload/download with content addressing
 - **Storage adapters** -- SQLite and in-memory NodeStore adapters
 - **Temp ID mapping** -- Optimistic creates with server-assigned IDs
+- **Query AST** -- Validated relation, aggregate, query-set, and saved-view descriptors
 
 ## Usage
 
@@ -126,6 +127,62 @@ applySignedUpdate(docB, signed)
 mergeDocuments(docA, docB)
 ```
 
+### Canonical Query AST
+
+`useQuery()` remains the stable React read API. Advanced relation includes, aggregate reads, dashboards, and saved views are represented in `@xnetjs/data` as a canonical AST before they become public hook shortcuts.
+
+```mermaid
+flowchart LR
+    Helpers["queryOperators(), from(), count()"]
+    AST["QueryAST"]
+    Validate["validateQueryAST()"]
+    Plan["planQueryASTAggregates()"]
+    Indexes["getQueryASTRelationIndexRequirements()"]
+    Saved["SavedViewDescriptor / SavedViewSchema"]
+
+    Helpers --> AST
+    AST --> Validate
+    Validate --> Plan
+    Validate --> Indexes
+    AST --> Saved
+```
+
+```typescript
+import {
+  PageSchema,
+  TaskSchema,
+  count,
+  countDistinct,
+  defineNodeQueryAST,
+  defineSavedViewDescriptor,
+  from,
+  queryOperators,
+  validateSavedViewDescriptor
+} from '@xnetjs/data'
+
+const task = queryOperators<(typeof TaskSchema)['_properties']>()
+
+const query = defineNodeQueryAST(PageSchema, {
+  include: {
+    tasks: from(TaskSchema, 'page', {
+      where: task.neq('status', 'done'),
+      page: { first: 25, count: 'exact' },
+      aggregates: [count(), countDistinct('assignee', 'assigneeCount')]
+    })
+  }
+})
+
+const saved = defineSavedViewDescriptor({
+  title: 'Open task dashboard',
+  scope: 'workspace',
+  query
+})
+
+const validation = validateSavedViewDescriptor(saved)
+```
+
+The AST helpers only construct and validate descriptors. Execution of relation expansion, aggregate pushdown, and future `useFind()` pattern queries should go through planner gates before becoming stable public APIs.
+
 ## Architecture
 
 ```mermaid
@@ -212,6 +269,7 @@ All telemetry respects user consent settings and privacy buckets (no exact value
 | `schema/node.ts`          | FlatNode type (flattened properties)   |
 | `schema/registry.ts`      | Schema registry                        |
 | `store/store.ts`          | NodeStore engine                       |
+| `store/query-ast.ts`      | Canonical query AST and planner gates  |
 | `store/sqlite-adapter.ts` | SQLite NodeStore adapter (recommended) |
 | `store/memory-adapter.ts` | In-memory NodeStore adapter            |
 | `store/tempids.ts`        | Temp ID mapping for optimistic creates |

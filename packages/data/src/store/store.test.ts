@@ -828,6 +828,56 @@ describe('authorization enforcement', () => {
     expect(result.plan.params).toBeUndefined()
   })
 
+  it('pushes unfiltered paginated system-order queries through fallback storage', async () => {
+    const { adapter, did, store } = createTestStore()
+    await store.initialize()
+
+    for (let index = 1; index <= 5; index++) {
+      await adapter.setNode({
+        id: `task-${index}`,
+        schemaId: TEST_SCHEMA,
+        properties: { title: `Task ${index}` },
+        timestamps: {},
+        deleted: false,
+        createdAt: 1_000 + index,
+        createdBy: did,
+        updatedAt: 2_000 + index,
+        updatedBy: did
+      })
+    }
+
+    const listNodes = vi.spyOn(adapter, 'listNodes')
+    const countNodes = vi.spyOn(adapter, 'countNodes')
+
+    const result = await store.query({
+      schemaId: TEST_SCHEMA,
+      includeDeleted: false,
+      orderBy: { updatedAt: 'desc' },
+      limit: 2,
+      offset: 1
+    })
+
+    expect(listNodes).toHaveBeenCalledWith({
+      schemaId: TEST_SCHEMA,
+      includeDeleted: false,
+      orderBy: { updatedAt: 'desc' },
+      limit: 2,
+      offset: 1
+    })
+    expect(countNodes).toHaveBeenCalledWith({
+      schemaId: TEST_SCHEMA,
+      includeDeleted: false
+    })
+    expect(result.nodes.map((node) => node.id)).toEqual(['task-4', 'task-3'])
+    expect(result.totalCount).toBe(5)
+    expect(result.plan).toMatchObject({
+      strategy: 'list-fallback',
+      candidateNodeCount: 2,
+      hydratedNodeCount: 2,
+      returnedNodeCount: 2
+    })
+  })
+
   it('should deny entire transaction when one operation is unauthorized', async () => {
     const { adapter, did, privateKey } = createTestStore()
     const evaluator = createAuthEvaluator((input) => input.action !== 'delete')

@@ -1385,14 +1385,14 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Phase 6 AST And Advanced Queries
 
-- [ ] Define canonical query AST package boundary.
-- [ ] Add runtime validator for persisted/shared queries.
-- [ ] Add type-safe operator helpers.
-- [ ] Add relation include helpers.
-- [ ] Add reverse relation index requirements.
-- [ ] Add aggregate planning.
-- [ ] Add query-set / dashboard aggregate mode.
-- [ ] Add `SavedView` node schema.
+- [x] Define canonical query AST package boundary.
+- [x] Add runtime validator for persisted/shared queries.
+- [x] Add type-safe operator helpers.
+- [x] Add relation include helpers.
+- [x] Add reverse relation index requirements.
+- [x] Add aggregate planning.
+- [x] Add query-set / dashboard aggregate mode.
+- [x] Add `SavedView` node schema.
 - [ ] Add `useFind` only after planner validation gates pass.
 
 ---
@@ -1419,10 +1419,10 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Performance
 
-- [ ] Unfiltered list query does not hydrate more than needed for paginated system-order pages.
-- [ ] Scalar equality queries use `node_property_scalars` on SQLite where available.
-- [ ] Search queries use FTS candidates where available.
-- [ ] Spatial queries use R-Tree candidates where available.
+- [x] Unfiltered list query does not hydrate more than needed for paginated system-order pages.
+- [x] Scalar equality queries use `node_property_scalars` on SQLite where available.
+- [x] Search queries use FTS candidates where available.
+- [x] Spatial queries use R-Tree candidates where available.
 - [x] Repeated materialized view pages are cache hits.
 - [x] QueryCache does not notify unrelated descriptors.
 - [x] Devtools can show candidate counts and plan duration.
