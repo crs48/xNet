@@ -289,9 +289,30 @@ Remote metadata is surfaced on the hook result:
 
 Remote invalidation pokes refresh matching active remote-capable queries without clearing their current local or hybrid snapshot. Worker remote transport and hub-side authorization enforcement are still roadmap items tracked in the exploration.
 
+**Advanced AST reads:**
+
+`useFind` is the guarded bridge between the canonical `QueryAST` in `@xnetjs/data` and the current React read runtime. Today it executes node-query ASTs that lower cleanly to `useQuery` descriptors: schema match, `eq` predicates, `and` conjunctions, ordering, and pagination. Relation includes, aggregates, query sets, and non-equality predicates return a planner error with `blockers` instead of silently running a partial query.
+
+```tsx
+import { defineNodeQueryAST, queryOperators } from '@xnetjs/data'
+import { useFind } from '@xnetjs/react'
+
+const task = queryOperators<(typeof TaskSchema)['_properties']>()
+
+const openTaskQuery = defineNodeQueryAST(TaskSchema, {
+  where: task.eq('status', 'todo'),
+  orderBy: { updatedAt: 'desc' },
+  page: { first: 50, count: 'estimate' }
+})
+
+const { data, canExecute, blockers, plannerGate } = useFind(TaskSchema, openTaskQuery)
+```
+
+Use `useFind` for saved or shared AST descriptors that should pass planner validation before React subscribes. Keep relation, aggregate, and dashboard execution behind the canonical AST planner until the dedicated executors land.
+
 **Query API roadmap:**
 
-`useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md).
+`useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md), with execution follow-up tracked in the [useQuery API roadmap implementation plan](../../docs/plans/usequery-api-roadmap/README.md).
 
 ### `useMutate` -- Write Data
 

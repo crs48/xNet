@@ -99,6 +99,8 @@ export interface QueryFilter<
   mode?: QueryExecutionMode
   /** Future source preference hint for hub or federated reads. */
   source?: QuerySourcePreference
+  /** Disable bridge subscription while preserving a typed empty result. */
+  enabled?: boolean
 }
 
 export type QueryStatus = 'loading' | 'success' | 'error'
@@ -205,6 +207,7 @@ const EMPTY_PAGE_INFO: QueryPageInfo = {
   hasPreviousPage: false,
   loadedCount: 0
 }
+const DISABLED_QUERY_SNAPSHOT: never[] = []
 
 function getFallbackPageInfo(input: {
   metadata: QueryMetadata | null
@@ -306,6 +309,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const isSingleQuery = typeof idOrFilter === 'string'
   const filter: QueryFilter<P> = typeof idOrFilter === 'object' ? idOrFilter : {}
   const nodeId = isSingleQuery ? idOrFilter : null
+  const enabled = filter.enabled ?? true
 
   // Create a canonical descriptor for stable cache keys and reload semantics.
   const descriptor = useMemo(() => {
@@ -317,6 +321,14 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   // Create subscription via DataBridge (memoized by schema + options)
   // When bridge is null (initializing), use a dummy subscription that returns loading state
   const subscription = useMemo(() => {
+    if (!enabled) {
+      return {
+        getSnapshot: () => DISABLED_QUERY_SNAPSHOT,
+        getMetadata: () => null,
+        subscribe: () => () => {}
+      }
+    }
+
     if (!bridge) {
       // Return a dummy subscription while bridge is initializing
       return {
@@ -326,13 +338,13 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       }
     }
     return bridge.query(schema, queryDescriptorToOptions<P>(descriptor))
-  }, [bridge, schema, queryKey]) // eslint-disable-line react-hooks/exhaustive-deps -- queryKey is the canonical descriptor identity
+  }, [bridge, enabled, schema, queryKey]) // eslint-disable-line react-hooks/exhaustive-deps -- queryKey is the canonical descriptor identity
 
   // Reload function - delegates to the bridge for the active canonical descriptor.
   const reload = useCallback(() => {
-    if (!bridge?.reloadQuery) return
+    if (!enabled || !bridge?.reloadQuery) return
     void bridge.reloadQuery(descriptor)
-  }, [bridge, descriptor])
+  }, [bridge, descriptor, enabled])
 
   // Use React's useSyncExternalStore for concurrent-safe subscriptions
   const rawData = useSyncExternalStore(

@@ -1329,9 +1329,11 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 ### Phase 0 Docs
 
 - [x] Add roadmap pointer in `packages/react/README.md`.
-- [ ] Add an implementation issue or plan linking this exploration.
+- [x] Add an implementation issue or plan linking this exploration.
 - [x] Audit public docs for stale `useQuery` references.
 - [x] Keep future API examples in exploration/plan docs until implemented.
+
+Implementation follow-up is tracked in [docs/plans/usequery-api-roadmap/README.md](../plans/usequery-api-roadmap/README.md).
 
 ### Phase 1 Existing Capability Promotion
 
@@ -1404,7 +1406,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Add aggregate planning.
 - [x] Add query-set / dashboard aggregate mode.
 - [x] Add `SavedView` node schema.
-- [ ] Add `useFind` only after planner validation gates pass.
+- [x] Add `useFind` only after planner validation gates pass.
 
 ---
 

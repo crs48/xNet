@@ -1,8 +1,9 @@
 /**
  * @xnetjs/react - React hooks for xNet
  *
- * Core API (3 hooks):
+ * Core API:
  * - useQuery: Read nodes (list, single, filtered)
+ * - useFind: Guarded advanced AST reads
  * - useMutate: Write nodes (create, update, remove, transactions)
  * - useNode: Load a Node with Y.Doc, sync, presence, and mutations
  */
@@ -44,6 +45,7 @@ export {
   type InfiniteQueryPage,
   type InfiniteQueryResult
 } from './hooks/useInfiniteQuery'
+export { useFind, type UseFindOptions, type UseFindResult } from './hooks/useFind'
 
 /**
  * useMutate - Write operations for nodes
