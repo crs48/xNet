@@ -111,6 +111,7 @@ export { MediaAssetSchema, type MediaAsset } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export { CommentSchema, type Comment } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
+export { SavedViewSchema, type SavedView } from './schemas'
 export { builtInSchemas, type BuiltInSchemaIRI } from './schemas'
 
 // Comment anchor types

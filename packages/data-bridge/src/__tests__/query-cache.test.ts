@@ -1,6 +1,7 @@
 /**
  * Tests for QueryCache with LRU eviction and weak references
  */
+import type { QueryMetadata } from '../types'
 import type { NodeState, SchemaIRI } from '@xnetjs/data'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { QueryCache } from '../query-cache'
@@ -79,6 +80,28 @@ describe('QueryCache', () => {
 
       cache.set(queryId, [createMockNode('1', 'Task 1')], TEST_SCHEMA_ID, {})
       expect(callback).toHaveBeenCalledTimes(1)
+    })
+
+    it('should store query metadata separately from data snapshots', () => {
+      const queryId = 'test-query'
+      const nodes = [createMockNode('1', 'Task 1')]
+      const metadata: QueryMetadata = {
+        source: 'local',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 1,
+          countMode: 'exact',
+          hasMore: false,
+          hasNextPage: false,
+          hasPreviousPage: false,
+          loadedCount: 1
+        }
+      }
+
+      cache.set(queryId, nodes, TEST_SCHEMA_ID, {}, metadata)
+
+      expect(cache.get(queryId)).toEqual(nodes)
+      expect(cache.getMetadata(queryId)).toEqual(metadata)
     })
   })
 

@@ -20,6 +20,9 @@ import {
   MainThreadBridge,
   WorkerBridge,
   type DataBridge,
+  type MainThreadBridgeOptions,
+  type NodeQueryRouterThresholds,
+  type RemoteNodeQueryClient,
   type SyncManagerLike
 } from '@xnetjs/data-bridge'
 import { createUCAN } from '@xnetjs/identity'
@@ -113,11 +116,12 @@ function logRuntimeStatus(runtime: XNetRuntimeConfig, status: XNetRuntimeStatus)
 function resolveRuntimeFailure(
   runtime: XNetRuntimeConfig,
   nodeStore: NodeStore,
-  reason: string
+  reason: string,
+  bridgeOptions?: MainThreadBridgeOptions
 ): RuntimeResolution {
   if (runtime.fallback === 'main-thread') {
     return {
-      bridge: createMainThreadBridge(nodeStore),
+      bridge: createMainThreadBridge(nodeStore, bridgeOptions),
       createdInternally: true,
       status: createRuntimeStatus(runtime, {
         activeMode: 'main-thread',
@@ -146,21 +150,39 @@ async function resolveRuntimeBridge(input: {
   signingKey: Uint8Array
   signalingUrl?: string
   dataBridge?: DataBridge
+  remoteNodeQueryClient?: RemoteNodeQueryClient
+  remoteNodeQueryRouting?: Partial<NodeQueryRouterThresholds>
   syncManager?: SyncManager
 }): Promise<RuntimeResolution> {
-  const { runtime, nodeStore, authorDID, signingKey, signalingUrl, dataBridge, syncManager } = input
+  const {
+    runtime,
+    nodeStore,
+    authorDID,
+    signingKey,
+    signalingUrl,
+    dataBridge,
+    remoteNodeQueryClient,
+    remoteNodeQueryRouting,
+    syncManager
+  } = input
 
   if (runtime.mode === 'ipc') {
     if (!syncManager) {
       return resolveRuntimeFailure(
         runtime,
         nodeStore,
-        'IPC runtime requires config.syncManager to be provided explicitly.'
+        'IPC runtime requires config.syncManager to be provided explicitly.',
+        { remoteNodeQueryClient, remoteNodeQueryRouting }
       )
     }
 
     return {
-      bridge: dataBridge ?? createMainThreadBridge(nodeStore),
+      bridge:
+        dataBridge ??
+        createMainThreadBridge(nodeStore, {
+          remoteNodeQueryClient,
+          remoteNodeQueryRouting
+        }),
       createdInternally: !dataBridge,
       status: createRuntimeStatus(runtime, {
         activeMode: 'ipc',
@@ -196,7 +218,9 @@ async function resolveRuntimeBridge(input: {
           dbName: runtime.worker?.dbName,
           authorDID,
           signingKey,
-          signalingUrl: runtime.worker?.signalingUrl ?? signalingUrl
+          signalingUrl: runtime.worker?.signalingUrl ?? signalingUrl,
+          remoteNodeQueryClient,
+          remoteNodeQueryRouting
         },
         workerUrl: runtime.worker?.url,
         mode: 'worker'
@@ -214,7 +238,8 @@ async function resolveRuntimeBridge(input: {
       return resolveRuntimeFailure(
         runtime,
         nodeStore,
-        `Worker runtime unavailable: ${getRuntimeErrorMessage(err)}`
+        `Worker runtime unavailable: ${getRuntimeErrorMessage(err)}`,
+        { remoteNodeQueryClient, remoteNodeQueryRouting }
       )
     }
   }
@@ -224,7 +249,9 @@ async function resolveRuntimeBridge(input: {
     config: {
       authorDID,
       signingKey,
-      signalingUrl
+      signalingUrl,
+      remoteNodeQueryClient,
+      remoteNodeQueryRouting
     },
     mode: 'main-thread'
   })
@@ -315,6 +342,22 @@ export interface XNetConfig {
    * ```
    */
   dataBridge?: DataBridge
+  /**
+   * Optional remote Node query client for progressive `useQuery` reads.
+   *
+   * When provided with the main-thread bridge, queries using
+   * `mode: 'local-then-remote'` render the local snapshot first and then merge
+   * hub/federated results. Queries using `mode: 'remote'` use this client as
+   * their primary source.
+   */
+  remoteNodeQueryClient?: RemoteNodeQueryClient
+  /**
+   * Optional routing thresholds for `source: "auto"` Node descriptor reads.
+   *
+   * These thresholds are used by the main-thread bridge after the first local
+   * snapshot to decide whether a remote client should refresh the same query.
+   */
+  remoteNodeQueryRouting?: Partial<NodeQueryRouterThresholds>
   /**
    * Security configuration for multi-level cryptography.
    */
@@ -549,6 +592,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         signingKey,
         signalingUrl: hubUrl ?? config.signalingServers?.[0],
         dataBridge: config.dataBridge,
+        remoteNodeQueryClient: config.remoteNodeQueryClient,
+        remoteNodeQueryRouting: config.remoteNodeQueryRouting,
         syncManager: config.syncManager
       })
 
@@ -621,6 +666,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     config.dataBridge,
     config.signalingServers,
     config.syncManager,
+    config.remoteNodeQueryClient,
+    config.remoteNodeQueryRouting,
     config.telemetry,
     hubUrl,
     runtimeConfig,
@@ -963,20 +1010,19 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     [authorDID, config.signingKey, config.sync]
   )
 
-  // Wrap children with PluginRegistryContext if plugins are enabled
-  let content = pluginRegistry
-    ? React.createElement(PluginRegistryContext.Provider, { value: pluginRegistry }, children)
-    : children
+  let content: ReactNode = React.createElement(
+    PluginRegistryContext.Provider,
+    { value: pluginRegistry },
+    children
+  )
 
-  // Wrap with DataBridgeContext (Phase 0: MainThreadBridge)
-  if (dataBridge) {
-    content = React.createElement(DataBridgeContext.Provider, { value: dataBridge }, content)
-  }
+  content = React.createElement(DataBridgeContext.Provider, { value: dataBridge }, content)
 
-  // Wrap with TelemetryContext if telemetry is configured
-  if (config.telemetry) {
-    content = React.createElement(TelemetryContext.Provider, { value: config.telemetry }, content)
-  }
+  content = React.createElement(
+    TelemetryContext.Provider,
+    { value: config.telemetry ?? null },
+    content
+  )
 
   // Wrap with SecurityProvider for multi-level crypto support
   content = React.createElement(SecurityProvider, {

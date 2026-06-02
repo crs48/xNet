@@ -12,6 +12,12 @@ export {
   type MigrationWarning
 } from './hooks/useQuery'
 export {
+  useInfiniteQuery,
+  type InfiniteQueryFilter,
+  type InfiniteQueryPage,
+  type InfiniteQueryResult
+} from './hooks/useInfiniteQuery'
+export {
   useMutate,
   type UseMutateResult,
   type MutateOp,

@@ -2,17 +2,25 @@
  * Shared query descriptor helpers for @xnetjs/data-bridge
  */
 
-import type { QueryDescriptor, QueryOptions } from './types'
+import type {
+  QueryDescriptor,
+  QueryExecutionMode,
+  QueryOptions,
+  QuerySourcePreference
+} from './types'
 import type {
   NodeQueryDescriptor,
   NodeQueryOptions,
   NodeState,
   PropertyBuilder,
-  SchemaIRI
+  SchemaIRI,
+  NodeQueryCursor
 } from '@xnetjs/data'
 import {
   applyNodeQueryDescriptor,
   createNodeQueryDescriptor,
+  decodeNodeQueryCursor,
+  encodeNodeQueryCursor,
   matchesNodeQueryDescriptor,
   nodeQueryDescriptorNeedsBoundedReload,
   nodeQueryDescriptorToOptions,
@@ -25,28 +33,73 @@ export type QueryResultDelta =
   | { kind: 'reload' }
   | { kind: 'set'; data: NodeState[] }
 
+const QUERY_EXECUTION_MODES = new Set<QueryExecutionMode>([
+  'local',
+  'local-then-remote',
+  'remote',
+  'live',
+  'stream'
+])
+
+const QUERY_SOURCE_PREFERENCES = new Set<QuerySourcePreference>([
+  'auto',
+  'local',
+  'hub',
+  'federated'
+])
+
 function toNodeDescriptor(descriptor: QueryDescriptor): NodeQueryDescriptor {
   return descriptor as NodeQueryDescriptor
+}
+
+function normalizeQueryExecutionMode(mode: QueryOptions['mode']): QueryExecutionMode | undefined {
+  return mode && QUERY_EXECUTION_MODES.has(mode) ? mode : undefined
+}
+
+function normalizeQuerySourcePreference(
+  source: QueryOptions['source']
+): QuerySourcePreference | undefined {
+  return source && QUERY_SOURCE_PREFERENCES.has(source) ? source : undefined
 }
 
 export function createQueryDescriptor<P extends Record<string, PropertyBuilder>>(
   schemaId: SchemaIRI,
   options?: QueryOptions<P>
 ): QueryDescriptor {
-  return createNodeQueryDescriptor(
+  const descriptor = createNodeQueryDescriptor(
     schemaId,
     options as NodeQueryOptions<P> | undefined
   ) as QueryDescriptor
+  const mode = normalizeQueryExecutionMode(options?.mode)
+  const source = normalizeQuerySourcePreference(options?.source)
+
+  return {
+    ...descriptor,
+    ...(mode ? { mode } : {}),
+    ...(source ? { source } : {})
+  }
 }
 
 export function queryDescriptorToOptions<
   P extends Record<string, PropertyBuilder> = Record<string, PropertyBuilder>
 >(descriptor: QueryDescriptor): QueryOptions<P> {
-  return nodeQueryDescriptorToOptions<P>(toNodeDescriptor(descriptor)) as QueryOptions<P>
+  return {
+    ...(nodeQueryDescriptorToOptions<P>(toNodeDescriptor(descriptor)) as QueryOptions<P>),
+    ...(descriptor.mode ? { mode: descriptor.mode } : {}),
+    ...(descriptor.source ? { source: descriptor.source } : {})
+  }
 }
 
 export function serializeQueryDescriptor(descriptor: QueryDescriptor): string {
   return serializeNodeQueryDescriptor(toNodeDescriptor(descriptor))
+}
+
+export function encodeQueryCursor(descriptor: QueryDescriptor, node: NodeState): string {
+  return encodeNodeQueryCursor(toNodeDescriptor(descriptor), node)
+}
+
+export function decodeQueryCursor(cursor: string): NodeQueryCursor | null {
+  return decodeNodeQueryCursor(cursor)
 }
 
 export function matchesQueryDescriptor(

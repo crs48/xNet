@@ -147,13 +147,173 @@ const { data: task } = useQuery(TaskSchema, taskId)
 const { data: todoTasks } = useQuery(TaskSchema, {
   where: { status: 'todo' },
   orderBy: { createdAt: 'desc' },
-  limit: 20
+  page: { first: 20 }
 })
 ```
 
+Legacy `limit` and `offset` options remain supported. Prefer `page.first` for new bounded reads; it lowers to the same descriptor as `limit` until cursor pagination lands.
+
+**Cursor pagination:**
+
+```tsx
+const {
+  data: tasks,
+  fetchNextPage,
+  hasMore,
+  isFetchingNextPage
+} = useInfiniteQuery(TaskSchema, {
+  where: { status: 'todo' },
+  orderBy: { updatedAt: 'desc' },
+  pageSize: 50
+})
+
+await fetchNextPage()
+```
+
+`useInfiniteQuery` is a convenience wrapper over the same `useQuery` descriptor runtime. It requests pages with `page.after`, accumulates loaded pages, and returns both flattened `data` and per-page `pages`.
+
+Use `page.count` to control count work when a source cannot answer exact totals cheaply:
+
+```tsx
+const { pageInfo } = useQuery(TaskSchema, {
+  orderBy: { updatedAt: 'desc' },
+  page: { first: 50, count: 'estimate' }
+})
+
+console.log(pageInfo.totalCount, pageInfo.countMode) // number | null, exact | estimate | none
+```
+
+**Materialized views:**
+
+Use `materializedView` for hot saved views that should reuse a storage-backed result ID list across renders and pages.
+
+```tsx
+const {
+  data: openTasks,
+  materialized,
+  plan
+} = useQuery(TaskSchema, {
+  where: { status: 'todo' },
+  orderBy: { updatedAt: 'desc' },
+  page: { first: 50 },
+  materializedView: {
+    viewId: 'tasks.todo.by-updated-desc',
+    maxAgeMs: 30_000
+  }
+})
+
+console.log(materialized?.cacheHit, plan?.materializedRefreshReason)
+```
+
+`viewId` should be stable, descriptive, and scoped to the view semantics, such as `tasks.todo.by-updated-desc`. Use `maxAgeMs` when a cached view may be reused for a bounded time even if no writes invalidate it. Set `forceRefresh: true` for explicit refresh actions; the query result exposes `materialized.cacheHit`, `materialized.rowCount`, and diagnostic `plan.materializedRefreshReason`.
+
+Materialized views are an optimization for plaintext, storage-queryable local data. Stores with read authorization or encrypted node content bypass storage materialization and evaluate after auth/decryption so hidden or encrypted properties are not leaked through index counts, SQL, or materialized row IDs.
+
+**Local and remote reads:**
+
+`useQuery` defaults to local reads. Main-thread runtimes can opt into progressive remote reads by supplying a `remoteNodeQueryClient` to `XNetProvider` and requesting a remote execution mode.
+
+```tsx
+<XNetProvider
+  config={{
+    nodeStorage,
+    authorDID,
+    signingKey,
+    remoteNodeQueryClient: hubQueryClient,
+    remoteNodeQueryRouting: {
+      localRowThreshold: 10_000,
+      hybridRowThreshold: 100_000
+    }
+  }}
+>
+  <App />
+</XNetProvider>
+```
+
+```tsx
+const { data, source, completeness, staleness, verification, error } = useQuery(TaskSchema, {
+  where: { status: 'todo' },
+  page: { first: 50, count: 'estimate' },
+  mode: 'local-then-remote',
+  source: 'hub'
+})
+```
+
+`mode: 'local-then-remote'` renders the local snapshot first, then merges hub or federated results by node ID while preserving the newest `updatedAt` version. Remote failures keep the local snapshot and expose `error`, `source: 'hybrid'`, and partial `completeness` metadata. `mode: 'remote'` uses the remote client as the primary source and does not hydrate local results first.
+
+`source: 'auto'` keeps the read local by default, then lets the main-thread bridge request a `local-then-remote` refresh when a configured `remoteNodeQueryClient` exists and the first local result crosses `remoteNodeQueryRouting` thresholds. Search and spatial descriptors can also opt into remote completion through the same threshold config.
+
+`mode: 'stream'` keeps the same React API while allowing a remote client to push `snapshot`, `insert`, `update`, `delete`, `reset`, `progress`, and `error` events into the bridge cache. The main-thread bridge starts a remote stream when the query is subscribed, stops it when the last subscriber unmounts, and falls back to a one-shot remote query when a client exposes `query()` but not `stream()`. Stream queries expose `stream` metadata on the hook result and appear in the Query Debugger stream timeline when devtools are mounted.
+
+```tsx
+const { data, stream } = useQuery(TaskSchema, {
+  where: { status: 'todo' },
+  mode: 'stream',
+  source: 'hub'
+})
+
+console.log(stream?.lastEvent, stream?.status, stream?.progress?.phase)
+```
+
+```ts
+const hubQueryClient = {
+  async query(request) {
+    return hub.fetchNodeQuery(request)
+  },
+  stream(request, observer) {
+    const stream = hub.openNodeQueryStream(request)
+    stream.on('event', (event) => observer.next(event))
+    stream.on('error', (error) => observer.error?.(error))
+    stream.on('close', () => observer.complete?.())
+    return () => stream.close()
+  },
+  subscribeInvalidations(observer) {
+    const unsubscribe = hub.onNodeQueryInvalidation((event) => {
+      observer.next({
+        type: 'node-query/invalidate',
+        schemaId: event.schemaId,
+        nodeIds: event.nodeIds,
+        reason: 'poke'
+      })
+    })
+    return unsubscribe
+  }
+}
+```
+
+Remote metadata is surfaced on the hook result:
+
+- `completeness` explains whether remote data is complete, partial, or unknown.
+- `staleness` reports whether the remote source is fresh, stale, or unknown.
+- `verification` reports whether remote nodes were verified, unverified, failed, or mixed.
+
+Remote invalidation pokes refresh matching active remote-capable queries without clearing their current local or hybrid snapshot. Worker remote transport and hub-side authorization enforcement are still roadmap items tracked in the exploration.
+
+**Advanced AST reads:**
+
+`useFind` is the guarded bridge between the canonical `QueryAST` in `@xnetjs/data` and the current React read runtime. Today it executes node-query ASTs that lower cleanly to `useQuery` descriptors: schema match, `eq` predicates, `and` conjunctions, ordering, pagination, and loaded-snapshot aggregates. Relation includes, query sets, and non-equality predicates return a planner error with `blockers` instead of silently running a partial query.
+
+```tsx
+import { count, defineNodeQueryAST, queryOperators } from '@xnetjs/data'
+import { useFind } from '@xnetjs/react'
+
+const task = queryOperators<(typeof TaskSchema)['_properties']>()
+
+const openTaskQuery = defineNodeQueryAST(TaskSchema, {
+  where: task.eq('status', 'todo'),
+  orderBy: { updatedAt: 'desc' },
+  page: { first: 50, count: 'estimate' },
+  aggregates: [count('visibleTasks')]
+})
+
+const { data, aggregates, canExecute, blockers, plannerGate } = useFind(TaskSchema, openTaskQuery)
+```
+
+`aggregates.scope` is currently `loaded-snapshot`, so grouped and scalar aggregates are computed from the rows loaded into the hook result. Use this for visible summaries and saved/shared descriptors that should pass planner validation before React subscribes. Keep relation includes, query sets, and storage/hub aggregate pushdown behind the canonical AST planner until the dedicated executors land.
+
 **Query API roadmap:**
 
-`useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md).
+`useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[x]_IMPROVING_THE_USEQUERY_API.md), with execution follow-up tracked in the [useQuery API roadmap implementation plan](../../docs/plans/usequery-api-roadmap/README.md).
 
 ### `useMutate` -- Write Data
 

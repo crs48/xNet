@@ -9,7 +9,13 @@
  * - Weak references for inactive subscriptions (automatic cleanup)
  */
 
-import type { QueryDescriptor, QueryOptions, SortDirection, SystemOrderField } from './types'
+import type {
+  QueryDescriptor,
+  QueryMetadata,
+  QueryOptions,
+  SortDirection,
+  SystemOrderField
+} from './types'
 import type { NodeState, PropertyBuilder, InferCreateProps, SchemaIRI } from '@xnetjs/data'
 import {
   createQueryDescriptor,
@@ -41,6 +47,8 @@ interface CacheEntry {
   descriptor: QueryDescriptor
   /** Query options */
   options: QueryOptions
+  /** Query metadata surfaced by the bridge/runtime */
+  metadata: QueryMetadata | null
   /** Last update timestamp */
   lastUpdated: number
   /** Last access timestamp (for LRU) */
@@ -160,9 +168,10 @@ export class QueryCache {
    */
   set(
     queryId: string,
-    data: NodeState[],
+    data: NodeState[] | null,
     schemaIdOrDescriptor?: SchemaIRI | QueryDescriptor,
-    options?: QueryOptions
+    options?: QueryOptions,
+    metadata?: QueryMetadata | null
   ): void {
     const entry = this.cache.get(queryId)
     const now = Date.now()
@@ -177,6 +186,9 @@ export class QueryCache {
         entry.schemaId = descriptor.schemaId
         entry.descriptor = descriptor
         entry.options = queryDescriptorToOptions(descriptor)
+      }
+      if (metadata !== undefined) {
+        entry.metadata = metadata
       }
       entry.lastUpdated = now
       entry.lastAccessed = now
@@ -196,6 +208,7 @@ export class QueryCache {
         schemaId: descriptor.schemaId,
         descriptor,
         options: queryDescriptorToOptions(descriptor),
+        metadata: metadata ?? null,
         lastUpdated: now,
         lastAccessed: now
       })
@@ -224,6 +237,7 @@ export class QueryCache {
         schemaId: descriptor.schemaId,
         descriptor,
         options: queryDescriptorToOptions(descriptor),
+        metadata: null,
         lastUpdated: 0,
         lastAccessed: now
       })
@@ -377,6 +391,21 @@ export class QueryCache {
   }
 
   /**
+   * Get all cached entries.
+   */
+  getEntries(): Array<{
+    queryId: string
+    descriptor: QueryDescriptor
+    data: NodeState[] | null
+  }> {
+    return Array.from(this.cache.entries()).map(([queryId, entry]) => ({
+      queryId,
+      descriptor: entry.descriptor,
+      data: entry.data
+    }))
+  }
+
+  /**
    * Get the schema IRI for a cached query.
    */
   getSchemaId(queryId: string): SchemaIRI | undefined {
@@ -395,6 +424,25 @@ export class QueryCache {
    */
   getOptions(queryId: string): QueryOptions | undefined {
     return this.cache.get(queryId)?.options
+  }
+
+  /**
+   * Get the latest metadata for a cached query.
+   */
+  getMetadata(queryId: string): QueryMetadata | null {
+    return this.cache.get(queryId)?.metadata ?? null
+  }
+
+  /**
+   * Set metadata without replacing query data.
+   */
+  setMetadata(queryId: string, metadata: QueryMetadata | null): void {
+    const entry = this.cache.get(queryId)
+    if (!entry) return
+
+    entry.metadata = metadata
+    entry.lastUpdated = Date.now()
+    this.notifySubscribers(queryId)
   }
 
   /**

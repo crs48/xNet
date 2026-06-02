@@ -472,6 +472,7 @@ type UseQueryResult<TData> = {
 
   pageInfo?: {
     totalCount: number | null
+    countMode: 'exact' | 'estimate' | 'none'
     hasMore: boolean
     hasNextPage: boolean
     hasPreviousPage: boolean
@@ -725,6 +726,7 @@ The final tie-breaker should always be `nodeId`, even when the developer does no
 ```ts
 type PageInfo = {
   totalCount: number | null
+  countMode: 'exact' | 'estimate' | 'none'
   hasMore: boolean
   hasNextPage: boolean
   hasPreviousPage: boolean
@@ -780,6 +782,9 @@ result.materialized
 //   invalidatedAt?,
 //   rowCount
 // }
+
+result.plan?.materializedRefreshReason
+// 'missing' | 'descriptor-changed' | 'invalidated' | 'expired' | 'force-refresh'
 ```
 
 ### Storage Model
@@ -831,7 +836,7 @@ erDiagram
 - Materialized views cache ordered node IDs, not full node snapshots.
 - Materialized views must be invalidated by relevant node changes.
 - `maxAgeMs` is a freshness hint, not a correctness guarantee.
-- Encrypted/auth-filtered stores may need per-subject materialized view IDs.
+- Encrypted/auth-filtered stores bypass storage materialization until there is a per-subject encrypted materialization design.
 - View IDs must be caller-controlled but namespaced to avoid collisions.
 
 ---
@@ -852,6 +857,10 @@ type QueryStreamEvent<T> =
   | { type: 'reset'; reason: string }
   | { type: 'error'; error: string }
 ```
+
+The first Phase 5 implementation exports `QueryStreamEvent`, `QueryStreamState`, and pure reducer helpers from `@xnetjs/data-bridge`. The reducer contract uses Node snapshots, insert/update/delete deltas, reset events, progress events, and recoverable/non-recoverable errors.
+
+The follow-up bridge implementation adds optional `remoteNodeQueryClient.stream(request, observer)` and `remoteNodeQueryClient.subscribeInvalidations(observer)` contracts. `MainThreadBridge` starts streams when `mode: "stream"` or `mode: "live"` queries gain subscribers, reduces incoming stream events into `QueryCache`, resets snapshots to loading on reconnect resets, stops the stream when the final subscriber unsubscribes, and falls back to one-shot remote `query()` when the client does not expose a stream transport. Remote invalidation pokes match active cache entries by request, descriptor, schema, or node ID, then refresh matching remote-capable queries without clearing the current local or hybrid snapshot. Stream state is exposed through `QueryMetadata.stream`, `useQuery().stream`, and a Query Debugger stream timeline.
 
 ### Reducer Modes
 
@@ -927,6 +936,17 @@ type QueryRoutingContext = {
 }
 ```
 
+The main-thread bridge now includes a Node descriptor threshold router for `source: 'auto'` reads. The first local snapshot remains the baseline; if a remote client exists and the local result count crosses `localRowThreshold` or `hybridRowThreshold`, the bridge sends a routed `local-then-remote` request to the hub/federated source. Search and spatial descriptors can also request remote completion through `searchToRemote` and `spatialToRemote`.
+
+Default thresholds:
+
+| Threshold            | Default | Behavior                                                                        |
+| -------------------- | ------: | ------------------------------------------------------------------------------- |
+| `localRowThreshold`  |  10,000 | Below this count, `source: 'auto'` remains local                                |
+| `hybridRowThreshold` | 100,000 | At or above this count, `source: 'auto'` is treated as a large remote candidate |
+| `searchToRemote`     |  `true` | Search descriptors can request remote completion                                |
+| `spatialToRemote`    |  `true` | Spatial descriptors can request remote completion                               |
+
 ### Remote Read Flow
 
 ```mermaid
@@ -955,6 +975,72 @@ flowchart TD
 - Local and remote results must dedupe by node ID and schema.
 - Federated results need stable merge ordering.
 - Remote errors should not erase valid local snapshots unless `mode: 'remote'` requires remote completion.
+
+### Versioned Remote Node Query Protocol
+
+The Phase 4 foundation now starts with a typed, versioned protocol in `@xnetjs/data-bridge`. Main-thread bridge execution can use an injected `remoteNodeQueryClient` for `mode: 'local-then-remote'`, `mode: 'remote'`, and routed `source: 'auto'` refreshes; first-party hub transport is still a later step.
+
+The bridge now normalizes remote trust metadata before updating `QueryCache`:
+
+- `verification.status: 'failed'` is treated as a terminal remote verification error and remote nodes are not surfaced.
+- `verification.status: 'mixed'` filters result nodes by `verifiedNodeIds` and `failedNodeIds` before one-shot snapshots or stream events reach subscribers.
+- Stream `snapshot`, `reset`, `insert`, and `update` events apply the same filter before the stream reducer runs.
+- Failed remote verification is reflected back through `QueryMetadata.verification.status: 'failed'` and `completeness.reason: 'verification-failed'`, so UI and devtools can explain why a remote read is empty or partial.
+
+```ts
+type RemoteNodeQueryRequest = {
+  protocol: 'xnet.node-query'
+  version: 1
+  requestId: string
+  descriptor: QueryDescriptor
+  mode: 'local-then-remote' | 'remote' | 'live' | 'stream'
+  source: 'hub' | 'federated'
+  requestedAt: number
+  auth?: { bearerToken?: string; ucan?: string; capabilities?: string[] }
+  client?: { localSnapshotAt?: number; knownNodeIds?: string[] }
+}
+
+type RemoteNodeQueryResponse =
+  | {
+      type: 'node-query/result'
+      requestId: string
+      source: 'hub' | 'federated'
+      nodes: NodeState[]
+      pageInfo: QueryPageInfo
+      metadata: QueryMetadata
+      completeness: { level: 'complete' | 'partial' | 'unknown'; reason?: string }
+      staleness: { level: 'fresh' | 'stale' | 'unknown'; asOf?: number }
+      verification: {
+        status: 'verified' | 'unverified' | 'failed' | 'mixed'
+        verifiedNodeIds?: string[]
+        failedNodeIds?: string[]
+      }
+    }
+  | {
+      type: 'node-query/error'
+      requestId: string
+      source: 'hub' | 'federated'
+      code:
+        | 'AUTH_DENIED'
+        | 'REMOTE_UNAVAILABLE'
+        | 'QUERY_UNSUPPORTED'
+        | 'TIMEOUT'
+        | 'VERIFICATION_FAILED'
+        | 'UNKNOWN'
+      message: string
+    }
+
+type RemoteNodeQueryInvalidation = {
+  type: 'node-query/invalidate'
+  source?: 'hub' | 'federated'
+  requestId?: string
+  descriptor?: QueryDescriptor
+  schemaId?: SchemaIRI
+  nodeIds?: string[]
+  reason?: 'poke' | 'descriptor-invalidated' | 'schema-invalidated' | 'node-invalidated'
+  invalidatedAt?: number
+}
+```
 
 ---
 
@@ -1242,83 +1328,85 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Phase 0 Docs
 
-- [ ] Add roadmap pointer in `packages/react/README.md`.
-- [ ] Add an implementation issue or plan linking this exploration.
-- [ ] Audit public docs for stale `useQuery` references.
-- [ ] Keep future API examples in exploration/plan docs until implemented.
+- [x] Add roadmap pointer in `packages/react/README.md`.
+- [x] Add an implementation issue or plan linking this exploration.
+- [x] Audit public docs for stale `useQuery` references.
+- [x] Keep future API examples in exploration/plan docs until implemented.
+
+Implementation follow-up is tracked in [docs/plans/usequery-api-roadmap/README.md](../plans/usequery-api-roadmap/README.md).
 
 ### Phase 1 Existing Capability Promotion
 
-- [ ] Add `search` to `QueryFilter<P>` in `packages/react/src/hooks/useQuery.ts`.
-- [ ] Add `materializedView` to `QueryFilter<P>`.
-- [ ] Route public filter options through `createQueryDescriptor()` without losing fields.
-- [ ] Use the serialized descriptor as the only query dependency key.
-- [ ] Extend `QuerySubscription` or add `QuerySnapshot` to include metadata.
-- [ ] Preserve old `NodeState[] | null` compatibility during migration.
-- [ ] Surface materialized plan info in devtools query tracker.
-- [ ] Add unit tests for hook-level `search` descriptor forwarding.
-- [ ] Add unit tests for hook-level `materializedView` descriptor forwarding.
-- [ ] Add unit tests proving equivalent option objects do not reload unnecessarily.
+- [x] Add `search` to `QueryFilter<P>` in `packages/react/src/hooks/useQuery.ts`.
+- [x] Add `materializedView` to `QueryFilter<P>`.
+- [x] Route public filter options through `createQueryDescriptor()` without losing fields.
+- [x] Use the serialized descriptor as the only query dependency key.
+- [x] Extend `QuerySubscription` or add `QuerySnapshot` to include metadata.
+- [x] Preserve old `NodeState[] | null` compatibility during migration.
+- [x] Surface materialized plan info in devtools query tracker.
+- [x] Add unit tests for hook-level `search` descriptor forwarding.
+- [x] Add unit tests for hook-level `materializedView` descriptor forwarding.
+- [x] Add unit tests proving equivalent option objects do not reload unnecessarily.
 
 ### Phase 2 Pagination
 
-- [ ] Define `PageInfo`.
-- [ ] Add `page` options while preserving `limit` / `offset`.
-- [ ] Add `totalCount` and `hasMore` aliases on list results.
-- [ ] Add exact count support for descriptor subsets where storage can answer.
-- [ ] Add estimate mode for hub/federated/search results.
-- [ ] Add cursor encode/decode utilities with versioning.
-- [ ] Add stable node ID tie-breaker to cursor order.
-- [ ] Add `fetchNextPage()` for cursor pages.
-- [ ] Add `useInfiniteQuery()` wrapper.
-- [ ] Add tests for insert/delete shifts in bounded windows.
-- [ ] Add tests for cursor pagination with duplicate sort values.
+- [x] Define `PageInfo`.
+- [x] Add `page` options while preserving `limit` / `offset`.
+- [x] Add `totalCount` and `hasMore` aliases on list results.
+- [x] Add exact count support for descriptor subsets where storage can answer.
+- [x] Add estimate mode for hub/federated/search results.
+- [x] Add cursor encode/decode utilities with versioning.
+- [x] Add stable node ID tie-breaker to cursor order.
+- [x] Add `fetchNextPage()` for cursor pages.
+- [x] Add `useInfiniteQuery()` wrapper.
+- [x] Add tests for insert/delete shifts in bounded windows.
+- [x] Add tests for cursor pagination with duplicate sort values.
 
 ### Phase 3 Materialized Views
 
-- [ ] Add public result metadata for materialized view reads.
-- [ ] Expose materialized cache hit/miss in query devtools.
-- [ ] Add invalidation telemetry for materialized views.
-- [ ] Add docs for `viewId`, `maxAgeMs`, and `forceRefresh`.
-- [ ] Add tests for stale materialized view refresh.
-- [ ] Add tests for materialized pagination and reload.
-- [ ] Add auth/encryption caveat tests or guardrails.
+- [x] Add public result metadata for materialized view reads.
+- [x] Expose materialized cache hit/miss in query devtools.
+- [x] Add invalidation telemetry for materialized views.
+- [x] Add docs for `viewId`, `maxAgeMs`, and `forceRefresh`.
+- [x] Add tests for stale materialized view refresh.
+- [x] Add tests for materialized pagination and reload.
+- [x] Add auth/encryption caveat tests or guardrails.
 
 ### Phase 4 Remote Reads
 
-- [ ] Define Node descriptor request/response protocol for hub reads.
-- [ ] Add `mode` and `source` query options.
-- [ ] Add local-then-remote bridge execution.
-- [ ] Add `completeness` metadata.
-- [ ] Add `staleness` metadata.
-- [ ] Add remote auth filtering and verification status.
-- [ ] Add federated dedupe and merge policy.
-- [ ] Add query router thresholds for Node queries.
-- [ ] Add tests for local fallback when remote is unavailable.
-- [ ] Add tests for remote errors preserving local snapshots.
+- [x] Define Node descriptor request/response protocol for hub reads.
+- [x] Add `mode` and `source` query options.
+- [x] Add local-then-remote bridge execution.
+- [x] Add `completeness` metadata.
+- [x] Add `staleness` metadata.
+- [x] Add remote auth filtering and verification status.
+- [x] Add federated dedupe and merge policy.
+- [x] Add query router thresholds for Node queries.
+- [x] Add tests for local fallback when remote is unavailable.
+- [x] Add tests for remote errors preserving local snapshots.
 
 ### Phase 5 Streaming
 
-- [ ] Define `QueryStreamEvent`.
-- [ ] Add bridge stream subscription lifecycle.
-- [ ] Add stream reducers.
-- [ ] Add cancellation on unmount.
-- [ ] Add reconnect/reset behavior.
-- [ ] Add progress events.
-- [ ] Add tests for snapshot, insert, update, delete, reset, progress, and error events.
-- [ ] Add devtools stream event timeline.
+- [x] Define `QueryStreamEvent`.
+- [x] Add bridge stream subscription lifecycle.
+- [x] Add stream reducers.
+- [x] Add cancellation on unmount.
+- [x] Add reconnect/reset behavior.
+- [x] Add progress events.
+- [x] Add tests for snapshot, insert, update, delete, reset, progress, and error events.
+- [x] Add devtools stream event timeline.
 
 ### Phase 6 AST And Advanced Queries
 
-- [ ] Define canonical query AST package boundary.
-- [ ] Add runtime validator for persisted/shared queries.
-- [ ] Add type-safe operator helpers.
-- [ ] Add relation include helpers.
-- [ ] Add reverse relation index requirements.
-- [ ] Add aggregate planning.
-- [ ] Add query-set / dashboard aggregate mode.
-- [ ] Add `SavedView` node schema.
-- [ ] Add `useFind` only after planner validation gates pass.
+- [x] Define canonical query AST package boundary.
+- [x] Add runtime validator for persisted/shared queries.
+- [x] Add type-safe operator helpers.
+- [x] Add relation include helpers.
+- [x] Add reverse relation index requirements.
+- [x] Add aggregate planning.
+- [x] Add query-set / dashboard aggregate mode.
+- [x] Add `SavedView` node schema.
+- [x] Add `useFind` only after planner validation gates pass.
 
 ---
 
@@ -1326,50 +1414,50 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Compatibility
 
-- [ ] Existing `useQuery(Schema)` call sites compile unchanged.
-- [ ] Existing `useQuery(Schema, id)` call sites compile unchanged.
-- [ ] Existing `useQuery(Schema, { where, orderBy, limit, offset })` call sites compile unchanged.
-- [ ] Existing tests in `packages/react/src/hooks/useQuery.test.tsx` pass.
-- [ ] Existing database hook tests pass.
+- [x] Existing `useQuery(Schema)` call sites compile unchanged.
+- [x] Existing `useQuery(Schema, id)` call sites compile unchanged.
+- [x] Existing `useQuery(Schema, { where, orderBy, limit, offset })` call sites compile unchanged.
+- [x] Existing tests in `packages/react/src/hooks/useQuery.test.tsx` pass.
+- [x] Existing database hook tests pass.
 
 ### Correctness
 
-- [ ] Query descriptor serialization is canonical for semantically identical options.
-- [ ] SQL pushdown results match `applyNodeQueryDescriptor()` parity checks.
-- [ ] FTS candidate queries still JS-verify field selection.
-- [ ] R-Tree candidate queries still JS-verify geometry.
-- [ ] Materialized views refresh after relevant invalidation.
-- [ ] Auth-filtered and encrypted stores do not leak indexed data.
-- [ ] Remote reads never surface unauthorized results.
+- [x] Query descriptor serialization is canonical for semantically identical options.
+- [x] SQL pushdown results match `applyNodeQueryDescriptor()` parity checks.
+- [x] FTS candidate queries still JS-verify field selection.
+- [x] R-Tree candidate queries still JS-verify geometry.
+- [x] Materialized views refresh after relevant invalidation.
+- [x] Auth-filtered and encrypted stores do not leak indexed data.
+- [x] Remote reads never surface unauthorized results.
 
 ### Performance
 
-- [ ] Unfiltered list query does not hydrate more than needed for paginated system-order pages.
-- [ ] Scalar equality queries use `node_property_scalars` on SQLite where available.
-- [ ] Search queries use FTS candidates where available.
-- [ ] Spatial queries use R-Tree candidates where available.
-- [ ] Repeated materialized view pages are cache hits.
-- [ ] QueryCache does not notify unrelated descriptors.
-- [ ] Devtools can show candidate counts and plan duration.
+- [x] Unfiltered list query does not hydrate more than needed for paginated system-order pages.
+- [x] Scalar equality queries use `node_property_scalars` on SQLite where available.
+- [x] Search queries use FTS candidates where available.
+- [x] Spatial queries use R-Tree candidates where available.
+- [x] Repeated materialized view pages are cache hits.
+- [x] QueryCache does not notify unrelated descriptors.
+- [x] Devtools can show candidate counts and plan duration.
 
 ### Realtime
 
-- [ ] Unbounded queries apply insert/update/delete deltas without reload.
-- [ ] Bounded queries reload or repair when membership/order boundaries shift.
-- [ ] Materialized views invalidate on relevant node changes.
-- [ ] Remote poke/invalidation triggers refresh without losing local data.
-- [ ] Stream events reduce deterministically.
+- [x] Unbounded queries apply insert/update/delete deltas without reload.
+- [x] Bounded queries reload or repair when membership/order boundaries shift.
+- [x] Materialized views invalidate on relevant node changes.
+- [x] Remote poke/invalidation triggers refresh without losing local data.
+- [x] Stream events reduce deterministically.
 
 ### Documentation
 
-- [ ] React README documents current stable API.
-- [ ] React README links to this exploration until implementation lands.
-- [ ] Public docs explain local vs remote reads.
-- [ ] Public docs explain pagination and infinite scroll.
-- [ ] Public docs explain materialized views.
-- [ ] Public docs explain streaming.
-- [ ] Public docs explain debug plan metadata.
-- [ ] Public docs include migration notes from `limit` / `offset` to `page`.
+- [x] React README documents current stable API.
+- [x] React README links to this exploration until implementation lands.
+- [x] Public docs explain local vs remote reads.
+- [x] Public docs explain pagination and infinite scroll.
+- [x] Public docs explain materialized views.
+- [x] Public docs explain streaming.
+- [x] Public docs explain debug plan metadata.
+- [x] Public docs include migration notes from `limit` / `offset` to `page`.
 
 ---
 

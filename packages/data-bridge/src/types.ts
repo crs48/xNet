@@ -6,13 +6,16 @@
  * sync, and crypto off the main thread while keeping the React API unchanged.
  */
 
+import type { RemoteNodeQueryClient } from './remote-query-protocol'
 import type {
   DefinedSchema,
   PropertyBuilder,
   InferCreateProps,
   NodeState,
   NodeChangeEvent,
-  ListNodesOptions
+  ListNodesOptions,
+  NodeQueryPlanMetadata,
+  NodeQueryPageCountMode
 } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
@@ -78,6 +81,18 @@ export type QueryMaterializedViewOptions = {
   forceRefresh?: boolean
 }
 
+export type QueryPageCountMode = NodeQueryPageCountMode
+
+export type QueryExecutionMode = 'local' | 'local-then-remote' | 'remote' | 'live' | 'stream'
+
+export type QuerySourcePreference = 'auto' | 'local' | 'hub' | 'federated'
+
+export type QueryPageOptions = {
+  first: number
+  after?: string
+  count?: NodeQueryPageCountMode
+}
+
 /**
  * Options for querying nodes via the DataBridge.
  * Maps to the filter options used by useQuery.
@@ -97,12 +112,18 @@ export interface QueryOptions<
   limit?: number
   /** Offset for pagination */
   offset?: number
+  /** Recommended forward-compatible pagination shape. `first` lowers to `limit`. */
+  page?: QueryPageOptions
   /** Spatial filtering for viewport windows, canvases, or geo-style proximity queries */
   spatial?: QuerySpatialFilter
   /** Tokenized full-text search over searchable node fields */
   search?: string | QuerySearchFilter
   /** Stable database view cache key for JIT materialized result sets */
   materializedView?: string | QueryMaterializedViewOptions
+  /** Future execution mode hint. Local execution remains the only active runtime today. */
+  mode?: QueryExecutionMode
+  /** Future source preference hint for hub or federated reads. */
+  source?: QuerySourcePreference
 }
 
 /**
@@ -124,12 +145,138 @@ export interface QueryDescriptor {
   limit?: number
   /** Offset applied after filtering and sorting */
   offset?: number
+  /** Cursor applied after filtering and sorting */
+  after?: string
+  /** Count strategy requested by the page options */
+  count?: NodeQueryPageCountMode
   /** Optional spatial filter metadata used by canvas-style queries */
   spatial?: QuerySpatialFilter
   /** Optional full-text filter metadata */
   search?: QuerySearchFilter
   /** Optional stable view cache key for storage-backed materialization */
   materializedView?: QueryMaterializedViewOptions
+  /** Execution mode hint for routing local, remote, live, or streamed reads */
+  mode?: QueryExecutionMode
+  /** Preferred read source for future hub/federated execution */
+  source?: QuerySourcePreference
+}
+
+export type QuerySource = 'local' | 'memory' | 'hub' | 'federated' | 'hybrid'
+
+export type NodeQueryRouterThresholds = {
+  /** Local row counts below this value stay local for `source: "auto"` reads. */
+  localRowThreshold: number
+  /** Local row counts at or above this value prefer a hub refresh for `source: "auto"` reads. */
+  hybridRowThreshold: number
+  /** Full-text descriptors request remote completion when a remote client exists. */
+  searchToRemote: boolean
+  /** Spatial descriptors request remote completion when a remote client exists. */
+  spatialToRemote: boolean
+}
+
+export type QueryRoutingMetadata = {
+  source: QuerySource
+  reason: string
+  localRowCount?: number
+  thresholds: Pick<NodeQueryRouterThresholds, 'localRowThreshold' | 'hybridRowThreshold'>
+}
+
+export interface QueryPageInfo {
+  totalCount: number | null
+  countMode: QueryPageCountMode
+  hasMore: boolean
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+  startCursor?: string
+  endCursor?: string
+  loadedCount: number
+}
+
+export interface QueryMaterializedMetadata {
+  viewId: string
+  cacheHit: boolean
+  generatedAt: number
+  invalidatedAt?: number
+  rowCount: number
+}
+
+export type QueryCompletenessMetadata = {
+  level: 'complete' | 'partial' | 'unknown'
+  reason?:
+    | 'auth-filtered'
+    | 'federation-partial'
+    | 'page-limited'
+    | 'remote-unavailable'
+    | 'source-timeout'
+    | 'verification-failed'
+  sourceCount?: number
+}
+
+export type QueryStalenessMetadata = {
+  level: 'fresh' | 'stale' | 'unknown'
+  asOf?: number
+  maxAgeMs?: number
+}
+
+export type QueryVerificationMetadata = {
+  status: 'verified' | 'unverified' | 'failed' | 'mixed'
+  verifiedNodeIds?: string[]
+  failedNodeIds?: string[]
+}
+
+export type QueryStreamProgressPhase =
+  | 'connecting'
+  | 'snapshot'
+  | 'catching-up'
+  | 'live'
+  | 'reconnecting'
+  | 'complete'
+
+export type QueryStreamProgress = {
+  phase: QueryStreamProgressPhase
+  loaded?: number
+  total?: number | null
+  message?: string
+}
+
+export type QueryStreamResetReason =
+  | 'descriptor-changed'
+  | 'reconnect'
+  | 'server-reset'
+  | 'client-reset'
+
+export type QueryStreamStatus = 'idle' | 'loading' | 'ready' | 'error'
+
+export type QueryStreamEventType =
+  | 'snapshot'
+  | 'insert'
+  | 'update'
+  | 'delete'
+  | 'reset'
+  | 'progress'
+  | 'error'
+
+export type QueryStreamMetadata = {
+  status: QueryStreamStatus
+  lastEvent: QueryStreamEventType
+  lastEventAt: number
+  progress?: QueryStreamProgress | null
+  error?: string | null
+  resetReason?: QueryStreamResetReason
+}
+
+export interface QueryMetadata {
+  source: QuerySource
+  updatedAt: number
+  pageInfo: QueryPageInfo
+  plan?: NodeQueryPlanMetadata
+  materialized?: QueryMaterializedMetadata
+  routing?: QueryRoutingMetadata
+  completeness?: QueryCompletenessMetadata
+  staleness?: QueryStalenessMetadata
+  verification?: QueryVerificationMetadata
+  stream?: QueryStreamMetadata
+  error?: string
 }
 
 /**
@@ -144,6 +291,9 @@ export interface QuerySubscription<
 > {
   /** Get current snapshot (synchronous - reads from cache). Returns null if loading. */
   getSnapshot(): NodeState[] | null
+
+  /** Get current query metadata, if the bridge can provide it. */
+  getMetadata?(): QueryMetadata | null
 
   /** Subscribe to updates (React will call this) */
   subscribe(callback: () => void): () => void
@@ -199,6 +349,10 @@ export interface DataBridgeConfig {
   signingKey: Uint8Array
   /** Signaling server URL for sync */
   signalingUrl?: string
+  /** Optional main-thread remote Node query client for progressive hub/federated reads. */
+  remoteNodeQueryClient?: RemoteNodeQueryClient
+  /** Optional source:auto routing thresholds for main-thread Node descriptor reads. */
+  remoteNodeQueryRouting?: Partial<NodeQueryRouterThresholds>
 }
 
 // ─── DataBridge Interface ────────────────────────────────────────────────────

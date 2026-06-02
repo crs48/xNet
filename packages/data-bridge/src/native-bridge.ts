@@ -38,6 +38,7 @@ import {
   createQueryDescriptor,
   serializeQueryDescriptor
 } from './query-descriptor'
+import { createQueryErrorMetadata, createQueryMetadata } from './query-metadata'
 
 // ─── Native Storage Interface ─────────────────────────────────────────────────
 
@@ -125,6 +126,7 @@ export class NativeBridge implements DataBridge {
 
     return {
       getSnapshot: () => this.cache.get(queryId),
+      getMetadata: () => this.cache.getMetadata(queryId),
       subscribe: (callback) => this.cache.subscribe(queryId, callback)
     }
   }
@@ -143,13 +145,26 @@ export class NativeBridge implements DataBridge {
       const result = await this.store.query(descriptor)
 
       if (!this.destroyed) {
-        this.cache.set(queryId, result.nodes, descriptor)
+        this.cache.set(
+          queryId,
+          result.nodes,
+          descriptor,
+          undefined,
+          createQueryMetadata({ descriptor, result, source: 'local' })
+        )
       }
     } catch (err) {
-      console.error('[NativeBridge] Failed to load query:', err)
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error('[NativeBridge] Failed to load query:', error)
       if (!this.destroyed) {
         // Set empty array on error so we don't keep retrying
-        this.cache.set(queryId, [], descriptor)
+        this.cache.set(
+          queryId,
+          [],
+          descriptor,
+          undefined,
+          createQueryErrorMetadata({ descriptor, source: 'local', error })
+        )
       }
     }
   }

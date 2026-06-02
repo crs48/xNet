@@ -96,6 +96,7 @@ describe('UCAN', () => {
     })
 
     it('should validate proof chain and attenuation', () => {
+      const expiresAt = Math.floor(Date.now() / 1000) + 3600
       const { identity: delegator, privateKey: delegatorKey } = generateIdentity()
       const { identity: delegate, privateKey: delegateKey } = generateIdentity()
       const { identity: audience } = generateIdentity()
@@ -104,7 +105,8 @@ describe('UCAN', () => {
         issuer: delegator.did,
         issuerKey: delegatorKey,
         audience: delegate.did,
-        capabilities: [{ with: 'xnet://doc/123', can: 'write' }]
+        capabilities: [{ with: 'xnet://doc/123', can: 'write' }],
+        expiration: expiresAt
       })
 
       const child = createUCAN({
@@ -112,7 +114,8 @@ describe('UCAN', () => {
         issuerKey: delegateKey,
         audience: audience.did,
         capabilities: [{ with: 'xnet://doc/123', can: 'write' }],
-        proofs: [parent]
+        proofs: [parent],
+        expiration: expiresAt
       })
 
       const childResult = verifyUCAN(child)
@@ -123,7 +126,8 @@ describe('UCAN', () => {
         issuerKey: delegateKey,
         audience: audience.did,
         capabilities: [{ with: 'xnet://doc/123', can: 'admin' }],
-        proofs: [parent]
+        proofs: [parent],
+        expiration: expiresAt
       })
 
       const invalidResult = verifyUCAN(invalidChild)

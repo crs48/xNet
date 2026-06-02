@@ -2,7 +2,18 @@
  * Tests for MainThreadBridge
  */
 
+import type {
+  RemoteNodeQueryClient,
+  RemoteNodeQueryInvalidationObserver,
+  RemoteNodeQuerySource,
+  RemoteNodeQueryStreamObserver,
+  RemoteNodeQuerySuccessResponse,
+  RemoteQueryCompleteness,
+  RemoteQueryStaleness,
+  RemoteQueryVerification
+} from '../remote-query-protocol'
 import type { DID } from '@xnetjs/core'
+import type { NodeState } from '@xnetjs/data'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import {
   MemoryNodeStorageAdapter,
@@ -58,6 +69,72 @@ function createTestStore(): {
     signingKey: keyPair.privateKey
   })
   return { store, adapter, did, privateKey: keyPair.privateKey }
+}
+
+function createDeferred<T>(): {
+  promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (error: Error) => void
+} {
+  let resolve: (value: T) => void = () => {}
+  let reject: (error: Error) => void = () => {}
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+
+  return { promise, resolve, reject }
+}
+
+function createRemoteNode(id: string, title: string, updatedAt = Date.now()): NodeState {
+  return {
+    id,
+    schemaId: TestTaskSchema._schemaId,
+    properties: { title, done: false },
+    timestamps: {
+      title: { lamport: { time: 1, author: 'did:key:remote' }, wallTime: updatedAt }
+    },
+    createdAt: updatedAt,
+    createdBy: 'did:key:remote',
+    updatedAt,
+    updatedBy: 'did:key:remote',
+    deleted: false
+  }
+}
+
+function createRemoteSuccess(input: {
+  nodes: NodeState[]
+  source?: RemoteNodeQuerySource
+  completeness?: RemoteQueryCompleteness
+  staleness?: RemoteQueryStaleness
+  verification?: RemoteQueryVerification
+}): RemoteNodeQuerySuccessResponse {
+  const now = Date.now()
+  const source = input.source ?? 'hub'
+  const pageInfo = {
+    totalCount: input.nodes.length,
+    countMode: 'exact' as const,
+    hasMore: false,
+    hasNextPage: false,
+    hasPreviousPage: false,
+    loadedCount: input.nodes.length
+  }
+
+  return {
+    type: 'node-query/result',
+    requestId: 'query-1',
+    source,
+    nodes: input.nodes,
+    pageInfo,
+    metadata: {
+      source,
+      updatedAt: now,
+      pageInfo
+    },
+    completeness: input.completeness ?? { level: 'complete' },
+    staleness: input.staleness ?? { level: 'fresh', asOf: now },
+    verification: input.verification ?? { status: 'verified' }
+  }
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -156,6 +233,32 @@ describe('MainThreadBridge', () => {
       const snapshot = subscription.getSnapshot()
       expect(snapshot).toHaveLength(1)
       expect(snapshot![0].properties.title).toBe('Task 2')
+    })
+
+    it('should expose exact totalCount metadata for bounded queries', async () => {
+      await bridge.create(TestTaskSchema, { title: 'Task 1', done: false })
+      await bridge.create(TestTaskSchema, { title: 'Task 2', done: false })
+      await bridge.create(TestTaskSchema, { title: 'Task 3', done: true })
+
+      const subscription = bridge.query(TestTaskSchema, {
+        where: { done: false },
+        limit: 1
+      })
+
+      await vi.waitFor(() => {
+        const snapshot = subscription.getSnapshot()
+        if (snapshot === null || snapshot.length !== 1) {
+          throw new Error('Waiting for bounded snapshot')
+        }
+      })
+
+      expect(subscription.getMetadata()?.pageInfo).toMatchObject({
+        totalCount: 2,
+        hasMore: true,
+        hasNextPage: true,
+        hasPreviousPage: false,
+        loadedCount: 1
+      })
     })
 
     it('should avoid notifying filtered queries for unrelated changes', async () => {
@@ -313,6 +416,749 @@ describe('MainThreadBridge', () => {
       })
 
       expect(callback).toHaveBeenCalled()
+
+      unsubscribe()
+    })
+
+    it('should render local data before merging local-then-remote results', async () => {
+      bridge.destroy()
+
+      const local = await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Local Task', done: false }
+      })
+      const remote = createRemoteNode('remote-task', 'Remote Task', local.updatedAt + 1)
+      const remoteResponse = createDeferred<RemoteNodeQuerySuccessResponse>()
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async (request) => {
+          expect(request.mode).toBe('local-then-remote')
+          expect(request.source).toBe('hub')
+          expect(request.client?.knownNodeIds).toContain(local.id)
+          return remoteResponse.promise
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'local-then-remote',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Local Task'
+        ])
+      })
+
+      remoteResponse.resolve(createRemoteSuccess({ nodes: [remote] }))
+
+      await vi.waitFor(() => {
+        expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+          new Set(['Local Task', 'Remote Task'])
+        )
+      })
+
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hybrid',
+        completeness: { level: 'complete' },
+        staleness: { level: 'fresh' },
+        verification: { status: 'verified' }
+      })
+    })
+
+    it('should preserve local snapshots when local-then-remote reads fail', async () => {
+      bridge.destroy()
+
+      await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Local Task', done: false }
+      })
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => {
+          throw new Error('Hub offline')
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'local-then-remote',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getMetadata()?.error).toBe('Hub offline')
+      })
+
+      expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+        'Local Task'
+      ])
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hybrid',
+        completeness: { level: 'partial', reason: 'remote-unavailable' },
+        staleness: { level: 'stale' },
+        verification: { status: 'unverified' }
+      })
+    })
+
+    it('should use remote results for remote-only reads', async () => {
+      bridge.destroy()
+
+      await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Hidden Local Task', done: false }
+      })
+      const remote = createRemoteNode('remote-task', 'Remote Task')
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async (request) => {
+          expect(request.mode).toBe('remote')
+          expect(request.client?.knownNodeIds).toEqual([])
+          return createRemoteSuccess({
+            nodes: [remote],
+            completeness: { level: 'partial', reason: 'auth-filtered' },
+            staleness: { level: 'stale', asOf: 123, maxAgeMs: 1000 },
+            verification: { status: 'mixed', verifiedNodeIds: ['remote-task'] }
+          })
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'remote',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Remote Task'
+        ])
+      })
+
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hub',
+        completeness: { level: 'partial', reason: 'auth-filtered' },
+        staleness: { level: 'stale', asOf: 123, maxAgeMs: 1000 },
+        verification: { status: 'mixed', verifiedNodeIds: ['remote-task'] }
+      })
+    })
+
+    it('should reject remote-only reads when remote verification fails', async () => {
+      bridge.destroy()
+
+      const forbidden = createRemoteNode('forbidden-task', 'Forbidden Task')
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () =>
+          createRemoteSuccess({
+            nodes: [forbidden],
+            verification: {
+              status: 'failed',
+              failedNodeIds: ['forbidden-task']
+            }
+          })
+        )
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'remote',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getMetadata()?.error).toBe('Remote query result verification failed')
+      })
+
+      expect(subscription.getSnapshot()).toEqual([])
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hub',
+        verification: { status: 'failed' },
+        error: 'Remote query result verification failed'
+      })
+    })
+
+    it('should filter mixed remote verification before caching snapshots', async () => {
+      bridge.destroy()
+
+      const verified = createRemoteNode('verified-task', 'Verified Task')
+      const failed = createRemoteNode('failed-task', 'Failed Task')
+      const unlisted = createRemoteNode('unlisted-task', 'Unlisted Task')
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () =>
+          createRemoteSuccess({
+            nodes: [verified, failed, unlisted],
+            verification: {
+              status: 'mixed',
+              verifiedNodeIds: ['verified-task'],
+              failedNodeIds: ['failed-task']
+            }
+          })
+        )
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'remote',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Verified Task'
+        ])
+      })
+
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hub',
+        pageInfo: {
+          loadedCount: 1
+        },
+        verification: {
+          status: 'mixed',
+          verifiedNodeIds: ['verified-task'],
+          failedNodeIds: ['failed-task']
+        }
+      })
+    })
+
+    it('should keep source auto queries local below the routing threshold', async () => {
+      bridge.destroy()
+
+      await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Small Local Task', done: false }
+      })
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] }))
+      }
+
+      bridge = new MainThreadBridge(store, {
+        remoteNodeQueryClient: remoteClient,
+        remoteNodeQueryRouting: {
+          localRowThreshold: 10,
+          hybridRowThreshold: 100
+        }
+      })
+      const subscription = bridge.query(TestTaskSchema, {
+        source: 'auto'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Small Local Task'
+        ])
+      })
+      await new Promise((resolve) => setTimeout(resolve, 25))
+
+      expect(remoteClient.query).not.toHaveBeenCalled()
+    })
+
+    it('should route source auto queries over threshold through remote refresh', async () => {
+      bridge.destroy()
+
+      const local = await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Auto Local Task', done: false }
+      })
+      const remote = createRemoteNode('auto-remote-task', 'Auto Remote Task', local.updatedAt + 1)
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async (request) => {
+          expect(request.mode).toBe('local-then-remote')
+          expect(request.source).toBe('hub')
+          expect(request.descriptor.mode).toBe('local-then-remote')
+          expect(request.descriptor.source).toBe('hub')
+          expect(request.client?.knownNodeIds).toContain(local.id)
+          return createRemoteSuccess({ nodes: [remote] })
+        })
+      }
+
+      bridge = new MainThreadBridge(store, {
+        remoteNodeQueryClient: remoteClient,
+        remoteNodeQueryRouting: {
+          localRowThreshold: 1,
+          hybridRowThreshold: 100
+        }
+      })
+      const subscription = bridge.query(TestTaskSchema, {
+        source: 'auto'
+      })
+
+      await vi.waitFor(() => {
+        expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+          new Set(['Auto Local Task', 'Auto Remote Task'])
+        )
+      })
+
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hybrid',
+        routing: {
+          source: 'hub',
+          reason: 'auto-medium-result',
+          localRowCount: 1,
+          thresholds: {
+            localRowThreshold: 1,
+            hybridRowThreshold: 100
+          }
+        }
+      })
+    })
+
+    it('should dedupe federated local and remote results by newest update time', async () => {
+      bridge.destroy()
+
+      const local = await store.create({
+        id: 'shared-task',
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Local Newer Task', done: false }
+      })
+      const olderRemote = createRemoteNode('shared-task', 'Remote Older Task', local.updatedAt - 1)
+      const federatedRemote = createRemoteNode('federated-task', 'Federated Task')
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () =>
+          createRemoteSuccess({
+            nodes: [olderRemote, federatedRemote],
+            source: 'federated',
+            completeness: { level: 'partial', reason: 'federation-partial', sourceCount: 2 }
+          })
+        )
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'local-then-remote',
+        source: 'federated'
+      })
+
+      await vi.waitFor(() => {
+        expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+          new Set(['Local Newer Task', 'Federated Task'])
+        )
+      })
+
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hybrid',
+        completeness: { level: 'partial', reason: 'federation-partial', sourceCount: 2 }
+      })
+    })
+
+    it('should refresh remote invalidations without dropping local snapshots', async () => {
+      bridge.destroy()
+
+      const local = await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Local Task', done: false }
+      })
+      const initialRemote = createRemoteNode(
+        'remote-task',
+        'Initial Remote Task',
+        local.updatedAt + 1
+      )
+      const updatedRemote = createRemoteNode(
+        'remote-task',
+        'Updated Remote Task',
+        local.updatedAt + 2
+      )
+      const firstRemoteResponse = createDeferred<RemoteNodeQuerySuccessResponse>()
+      const secondRemoteResponse = createDeferred<RemoteNodeQuerySuccessResponse>()
+      let invalidationObserver: RemoteNodeQueryInvalidationObserver | null = null
+      const unsubscribeInvalidations = vi.fn()
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi
+          .fn()
+          .mockImplementationOnce(async () => firstRemoteResponse.promise)
+          .mockImplementationOnce(async () => secondRemoteResponse.promise),
+        subscribeInvalidations: vi.fn((observer) => {
+          invalidationObserver = observer
+          return unsubscribeInvalidations
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'local-then-remote',
+        source: 'hub'
+      })
+      const callback = vi.fn()
+      const unsubscribe = subscription.subscribe(callback)
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Local Task'
+        ])
+      })
+
+      firstRemoteResponse.resolve(createRemoteSuccess({ nodes: [initialRemote] }))
+
+      await vi.waitFor(() => {
+        expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+          new Set(['Local Task', 'Initial Remote Task'])
+        )
+      })
+
+      invalidationObserver!.next({
+        type: 'node-query/invalidate',
+        schemaId: TestTaskSchema._schemaId,
+        reason: 'poke'
+      })
+
+      await vi.waitFor(() => {
+        expect(remoteClient.query).toHaveBeenCalledTimes(2)
+      })
+      expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+        new Set(['Local Task', 'Initial Remote Task'])
+      )
+
+      secondRemoteResponse.resolve(createRemoteSuccess({ nodes: [updatedRemote] }))
+
+      await vi.waitFor(() => {
+        expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+          new Set(['Local Task', 'Updated Remote Task'])
+        )
+      })
+
+      expect(callback).toHaveBeenCalled()
+      unsubscribe()
+      bridge.destroy()
+      expect(unsubscribeInvalidations).toHaveBeenCalledTimes(1)
+    })
+
+    it('should reduce remote stream events into active stream queries', async () => {
+      bridge.destroy()
+
+      let observer: RemoteNodeQueryStreamObserver | null = null
+      const cleanup = vi.fn()
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] })),
+        stream: vi.fn((request, nextObserver) => {
+          expect(request.mode).toBe('stream')
+          expect(request.source).toBe('hub')
+          observer = nextObserver
+          return cleanup
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'stream',
+        source: 'hub'
+      })
+      const callback = vi.fn()
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(callback)
+
+      await vi.waitFor(() => {
+        expect(remoteClient.stream).toHaveBeenCalledTimes(1)
+      })
+
+      const first = createRemoteNode('stream-task-1', 'Stream Task 1')
+      const second = createRemoteNode('stream-task-2', 'Stream Task 2')
+      observer!.next({
+        type: 'snapshot',
+        nodes: [first],
+        metadata: createRemoteSuccess({ nodes: [first] }).metadata
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Stream Task 1'
+        ])
+      })
+
+      observer!.next({ type: 'insert', node: second, index: 0 })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Stream Task 2',
+          'Stream Task 1'
+        ])
+      })
+
+      expect(callback).toHaveBeenCalled()
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hub',
+        stream: {
+          status: 'ready',
+          lastEvent: 'insert'
+        }
+      })
+
+      unsubscribe()
+      expect(cleanup).toHaveBeenCalledTimes(1)
+    })
+
+    it('should reset stream queries to loading on reconnect resets', async () => {
+      bridge.destroy()
+
+      let observer: RemoteNodeQueryStreamObserver | null = null
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] })),
+        stream: vi.fn((_request, nextObserver) => {
+          observer = nextObserver
+          return vi.fn()
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'stream',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(vi.fn())
+
+      await vi.waitFor(() => {
+        expect(remoteClient.stream).toHaveBeenCalledTimes(1)
+      })
+
+      const first = createRemoteNode('stream-task-1', 'Stream Task 1')
+      observer!.next({ type: 'snapshot', nodes: [first] })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(1)
+      })
+
+      observer!.next({ type: 'reset', reason: 'reconnect' })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toBeNull()
+      })
+      expect(subscription.getMetadata()?.stream).toMatchObject({
+        status: 'loading',
+        lastEvent: 'reset',
+        resetReason: 'reconnect'
+      })
+
+      unsubscribe()
+    })
+
+    it('should keep remote streams alive until the last subscriber unsubscribes', async () => {
+      bridge.destroy()
+
+      let observer: RemoteNodeQueryStreamObserver | null = null
+      const cleanup = vi.fn()
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] })),
+        stream: vi.fn((_request, nextObserver) => {
+          observer = nextObserver
+          return { unsubscribe: cleanup }
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'stream',
+        source: 'hub'
+      })
+      const firstCallback = vi.fn()
+      const secondCallback = vi.fn()
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribeFirst = subscription.subscribe(firstCallback)
+      const unsubscribeSecond = subscription.subscribe(secondCallback)
+
+      await vi.waitFor(() => {
+        expect(remoteClient.stream).toHaveBeenCalledTimes(1)
+      })
+
+      unsubscribeFirst()
+      expect(cleanup).not.toHaveBeenCalled()
+
+      const streamed = createRemoteNode('stream-task', 'Still Streaming')
+      observer!.next({ type: 'snapshot', nodes: [streamed] })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Still Streaming'
+        ])
+      })
+      expect(secondCallback).toHaveBeenCalled()
+
+      unsubscribeSecond()
+      expect(cleanup).toHaveBeenCalledTimes(1)
+
+      observer!.next({
+        type: 'insert',
+        node: createRemoteNode('late-task', 'Ignored After Unsubscribe')
+      })
+
+      expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+        'Still Streaming'
+      ])
+    })
+
+    it('should filter mixed verification stream snapshots before reducing them', async () => {
+      bridge.destroy()
+
+      let observer: RemoteNodeQueryStreamObserver | null = null
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] })),
+        stream: vi.fn((_request, nextObserver) => {
+          observer = nextObserver
+          return vi.fn()
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'stream',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(vi.fn())
+
+      await vi.waitFor(() => {
+        expect(remoteClient.stream).toHaveBeenCalledTimes(1)
+      })
+
+      const verified = createRemoteNode('verified-stream-task', 'Verified Stream Task')
+      const failed = createRemoteNode('failed-stream-task', 'Failed Stream Task')
+      const metadata = {
+        ...createRemoteSuccess({ nodes: [verified, failed] }).metadata,
+        verification: {
+          status: 'mixed' as const,
+          verifiedNodeIds: ['verified-stream-task'],
+          failedNodeIds: ['failed-stream-task']
+        }
+      }
+
+      observer!.next({
+        type: 'snapshot',
+        nodes: [verified, failed],
+        metadata
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Verified Stream Task'
+        ])
+      })
+
+      observer!.next({
+        type: 'insert',
+        node: failed,
+        metadata
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 25))
+
+      expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+        'Verified Stream Task'
+      ])
+      expect(subscription.getMetadata()).toMatchObject({
+        verification: {
+          status: 'mixed',
+          verifiedNodeIds: ['verified-stream-task'],
+          failedNodeIds: ['failed-stream-task']
+        },
+        stream: {
+          status: 'ready'
+        }
+      })
+
+      unsubscribe()
+    })
+
+    it('should turn failed verification stream events into terminal stream errors', async () => {
+      bridge.destroy()
+
+      let observer: RemoteNodeQueryStreamObserver | null = null
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] })),
+        stream: vi.fn((_request, nextObserver) => {
+          observer = nextObserver
+          return vi.fn()
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'stream',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(vi.fn())
+
+      await vi.waitFor(() => {
+        expect(remoteClient.stream).toHaveBeenCalledTimes(1)
+      })
+
+      const forbidden = createRemoteNode('forbidden-stream-task', 'Forbidden Stream Task')
+      observer!.next({
+        type: 'snapshot',
+        nodes: [forbidden],
+        metadata: {
+          ...createRemoteSuccess({ nodes: [forbidden] }).metadata,
+          verification: {
+            status: 'failed',
+            failedNodeIds: ['forbidden-stream-task']
+          }
+        }
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getMetadata()?.error).toBe('Remote stream event verification failed')
+      })
+
+      expect(subscription.getSnapshot()).toEqual([])
+      expect(subscription.getMetadata()).toMatchObject({
+        verification: { status: 'failed' },
+        stream: {
+          status: 'error',
+          lastEvent: 'error',
+          error: 'Remote stream event verification failed'
+        }
+      })
+
+      unsubscribe()
+    })
+
+    it('should fall back to one-shot remote reads when stream transport is unavailable', async () => {
+      bridge.destroy()
+
+      const remote = createRemoteNode('remote-stream-fallback', 'Remote Snapshot Fallback')
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async (request) => {
+          expect(request.mode).toBe('stream')
+          return createRemoteSuccess({ nodes: [remote] })
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'stream',
+        source: 'hub'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(vi.fn())
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Remote Snapshot Fallback'
+        ])
+      })
+
+      expect(remoteClient.query).toHaveBeenCalledTimes(1)
 
       unsubscribe()
     })

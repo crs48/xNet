@@ -14,6 +14,7 @@ export { MediaAssetSchema, type MediaAsset } from './media-asset'
 export { CanvasSchema, type Canvas } from './canvas'
 export { CommentSchema, type Comment } from './comment'
 export { GrantSchema, type Grant } from './grant'
+export { SavedViewSchema, type SavedView } from './saved-view'
 
 // Comment anchor types
 export {
@@ -83,6 +84,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
+  'xnet://xnet.fyi/SavedView@1.0.0': () => import('./saved-view').then((m) => m.SavedViewSchema),
 
   // Legacy unversioned IRIs (aliases for @1.0.0)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
@@ -94,7 +96,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
-  'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema)
+  'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema),
+  'xnet://xnet.fyi/SavedView': () => import('./saved-view').then((m) => m.SavedViewSchema)
 } as const
 
 /**

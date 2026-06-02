@@ -5,7 +5,7 @@
  * Web Worker and the WorkerBridge on the main thread.
  */
 
-import type { QueryDescriptor, SyncStatus } from '../types'
+import type { QueryDescriptor, QueryPageOptions, SyncStatus } from '../types'
 import type { NodeState, SchemaIRI } from '@xnetjs/data'
 
 // ─── Document Types ──────────────────────────────────────────────────────────
@@ -61,7 +61,12 @@ export interface SerializedQueryOptions {
   orderBy?: Record<string, 'asc' | 'desc'>
   limit?: number
   offset?: number
+  page?: QueryPageOptions
   spatial?: QueryDescriptor['spatial']
+  search?: string | QueryDescriptor['search']
+  materializedView?: string | QueryDescriptor['materializedView']
+  mode?: QueryDescriptor['mode']
+  source?: QueryDescriptor['source']
 }
 
 /**

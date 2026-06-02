@@ -8,8 +8,45 @@
  * When no devtools provider is present, the context is null and hooks skip reporting.
  */
 
+import type {
+  QueryCompletenessMetadata,
+  QueryStreamMetadata,
+  QueryStalenessMetadata,
+  QueryVerificationMetadata
+} from '@xnetjs/data-bridge'
 import type * as Y from 'yjs'
 import { createContext, useContext } from 'react'
+
+export interface QueryTrackerPlanInfo {
+  strategy?: string
+  candidateNodeCount?: number
+  hydratedNodeCount?: number
+  returnedNodeCount?: number
+  durationMs?: number
+  descriptorHash?: string
+  candidateAccelerators?: string[]
+  materializedViewId?: string
+  materializedCacheHit?: boolean
+  materializedRefreshReason?: string
+}
+
+export interface QueryTrackerMaterializedInfo {
+  viewId: string
+  cacheHit: boolean
+  generatedAt: number
+  invalidatedAt?: number
+  rowCount: number
+}
+
+export interface QueryTrackerUpdateMetadata {
+  source?: string
+  plan?: QueryTrackerPlanInfo | null
+  materialized?: QueryTrackerMaterializedInfo | null
+  completeness?: QueryCompletenessMetadata | null
+  staleness?: QueryStalenessMetadata | null
+  verification?: QueryVerificationMetadata | null
+  stream?: QueryStreamMetadata | null
+}
 
 /**
  * Query tracker interface (implemented by @xnetjs/devtools QueryTracker)
@@ -27,7 +64,18 @@ export interface QueryTrackerLike {
       callerInfo?: string
     }
   ): void
-  recordUpdate(id: string, resultCount: number, renderTime: number): void
+  recordUpdate(
+    id: string,
+    resultCount: number,
+    renderTime: number,
+    metadata?: QueryTrackerUpdateMetadata
+  ): void
+  recordStreamEvent?(
+    id: string,
+    stream: QueryStreamMetadata,
+    resultCount: number,
+    metadata?: Pick<QueryTrackerUpdateMetadata, 'source'>
+  ): void
   recordError(id: string, error: string): void
   unregister(id: string): void
 }

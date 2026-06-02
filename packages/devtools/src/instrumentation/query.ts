@@ -6,6 +6,12 @@
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
+import type {
+  QueryMaterializedInfo,
+  QueryPlanInfo,
+  QueryResultMetadata,
+  QueryStreamInfo
+} from '../core/types'
 
 /**
  * Capture the caller's source location from a stack trace.
@@ -68,6 +74,11 @@ export interface TrackedQuery {
   filter?: Record<string, unknown>
   descriptorKey?: string
   nodeId?: string
+  source?: string
+  plan?: QueryPlanInfo | null
+  materialized?: QueryMaterializedInfo | null
+  stream?: QueryStreamInfo | null
+  streamTimeline: QueryStreamInfo[]
   /** Source location where the hook was called (component name + file:line) */
   callerInfo?: string
 
@@ -109,7 +120,8 @@ export class QueryTracker {
       resultCount: 0,
       totalRenderTime: 0,
       avgRenderTime: 0,
-      peakRenderTime: 0
+      peakRenderTime: 0,
+      streamTimeline: []
     })
 
     this.bus.emit({
@@ -123,7 +135,12 @@ export class QueryTracker {
     })
   }
 
-  recordUpdate(id: string, resultCount: number, renderTime: number): void {
+  recordUpdate(
+    id: string,
+    resultCount: number,
+    renderTime: number,
+    metadata: QueryResultMetadata = {}
+  ): void {
     const query = this.queries.get(id)
     if (!query) return
 
@@ -133,12 +150,50 @@ export class QueryTracker {
     query.totalRenderTime += renderTime
     query.avgRenderTime = query.totalRenderTime / query.updateCount
     query.peakRenderTime = Math.max(query.peakRenderTime, renderTime)
+    query.source = metadata.source ?? query.source
+    if ('plan' in metadata) {
+      query.plan = metadata.plan ?? null
+    }
+    if ('materialized' in metadata) {
+      query.materialized = metadata.materialized ?? null
+    }
+    if ('stream' in metadata) {
+      query.stream = metadata.stream ?? null
+    }
 
     this.bus.emit({
       type: 'query:result',
       queryId: id,
       resultCount,
-      duration: renderTime
+      duration: renderTime,
+      source: query.source,
+      plan: query.plan,
+      materialized: query.materialized,
+      stream: query.stream
+    })
+  }
+
+  recordStreamEvent(
+    id: string,
+    stream: QueryStreamInfo,
+    resultCount: number,
+    metadata: Pick<QueryResultMetadata, 'source'> = {}
+  ): void {
+    const query = this.queries.get(id)
+    if (!query) return
+
+    query.stream = stream
+    query.source = metadata.source ?? query.source
+    query.resultCount = resultCount
+    query.lastUpdateAt = Date.now()
+    query.streamTimeline = [...query.streamTimeline.slice(-49), stream]
+
+    this.bus.emit({
+      type: 'query:stream-event',
+      queryId: id,
+      stream,
+      resultCount,
+      source: query.source
     })
   }
 
