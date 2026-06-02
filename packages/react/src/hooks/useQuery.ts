@@ -180,6 +180,7 @@ export interface QuerySingleResult<
 
 const EMPTY_PAGE_INFO: QueryPageInfo = {
   totalCount: null,
+  countMode: 'none',
   hasMore: false,
   hasNextPage: false,
   hasPreviousPage: false,
@@ -205,6 +206,7 @@ function getFallbackPageInfo(input: {
   const offset = input.filter.offset ?? 0
   const limit = input.filter.limit ?? input.filter.page?.first
   const totalCount = limit === undefined && offset === 0 ? loadedCount : null
+  const countMode = totalCount === null ? 'none' : 'exact'
   const hasMore =
     limit !== undefined
       ? totalCount === null
@@ -214,6 +216,7 @@ function getFallbackPageInfo(input: {
 
   return {
     totalCount,
+    countMode,
     hasMore,
     hasNextPage: hasMore,
     hasPreviousPage: offset > 0,

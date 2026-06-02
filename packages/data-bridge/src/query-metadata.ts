@@ -2,7 +2,7 @@
  * Shared query metadata helpers for bridge implementations.
  */
 
-import type { QueryDescriptor, QueryMetadata, QuerySource } from './types'
+import type { QueryDescriptor, QueryMetadata, QueryPageCountMode, QuerySource } from './types'
 import {
   encodeNodeQueryCursor,
   type NodeQueryDescriptor,
@@ -14,7 +14,13 @@ function getOffset(descriptor: QueryDescriptor): number {
   return descriptor.offset ?? 0
 }
 
-function getPageInfo(descriptor: QueryDescriptor, nodes: NodeState[], totalCount: number | null) {
+function getPageInfo(input: {
+  descriptor: QueryDescriptor
+  nodes: NodeState[]
+  totalCount: number | null
+  countMode: QueryPageCountMode
+}) {
+  const { descriptor, nodes, totalCount, countMode } = input
   const loadedCount = nodes.length
   const offset = getOffset(descriptor)
   const hasCursor = descriptor.after !== undefined
@@ -36,6 +42,7 @@ function getPageInfo(descriptor: QueryDescriptor, nodes: NodeState[], totalCount
 
   return {
     totalCount,
+    countMode,
     hasMore,
     hasNextPage: hasMore,
     hasPreviousPage,
@@ -45,22 +52,35 @@ function getPageInfo(descriptor: QueryDescriptor, nodes: NodeState[], totalCount
   }
 }
 
-function getUnboundedTotalCount(
+function getCountMetadata(
   descriptor: QueryDescriptor,
   nodes: NodeState[],
   result?: NodeQueryResult
-): number | null {
+): { totalCount: number | null; countMode: QueryPageCountMode } {
+  if (descriptor.count === 'none') {
+    return { totalCount: null, countMode: 'none' }
+  }
+
   if (result?.plan.materializedRowCount !== undefined) {
-    return result.plan.materializedRowCount
+    return { totalCount: result.plan.materializedRowCount, countMode: 'exact' }
   }
 
   if (result?.totalCount !== undefined) {
-    return result.totalCount
+    return { totalCount: result.totalCount, countMode: 'exact' }
+  }
+
+  if (descriptor.count === 'estimate') {
+    return {
+      totalCount: result?.plan.candidateNodeCount ?? nodes.length,
+      countMode: 'estimate'
+    }
   }
 
   const isUnbounded =
     descriptor.limit === undefined && getOffset(descriptor) === 0 && descriptor.after === undefined
-  return isUnbounded ? nodes.length : null
+  return isUnbounded
+    ? { totalCount: nodes.length, countMode: 'exact' }
+    : { totalCount: null, countMode: 'none' }
 }
 
 export function createQueryMetadata(input: {
@@ -69,13 +89,13 @@ export function createQueryMetadata(input: {
   source: QuerySource
 }): QueryMetadata {
   const { descriptor, result, source } = input
-  const totalCount = getUnboundedTotalCount(descriptor, result.nodes, result)
+  const count = getCountMetadata(descriptor, result.nodes, result)
   const materializedViewId = result.plan.materializedViewId
 
   return {
     source,
     updatedAt: Date.now(),
-    pageInfo: getPageInfo(descriptor, result.nodes, totalCount),
+    pageInfo: getPageInfo({ descriptor, nodes: result.nodes, ...count }),
     plan: result.plan,
     ...(materializedViewId
       ? {
@@ -101,7 +121,12 @@ export function createQueryErrorMetadata(input: {
   return {
     source: input.source,
     updatedAt: Date.now(),
-    pageInfo: getPageInfo(input.descriptor, [], 0),
+    pageInfo: getPageInfo({
+      descriptor: input.descriptor,
+      nodes: [],
+      totalCount: 0,
+      countMode: 'exact'
+    }),
     error: input.error.message
   }
 }
@@ -114,10 +139,10 @@ export function createQuerySnapshotMetadata(input: {
   return {
     source: input.source,
     updatedAt: Date.now(),
-    pageInfo: getPageInfo(
-      input.descriptor,
-      input.nodes,
-      getUnboundedTotalCount(input.descriptor, input.nodes)
-    )
+    pageInfo: getPageInfo({
+      descriptor: input.descriptor,
+      nodes: input.nodes,
+      ...getCountMetadata(input.descriptor, input.nodes)
+    })
   }
 }

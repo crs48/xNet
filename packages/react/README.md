@@ -172,6 +172,17 @@ await fetchNextPage()
 
 `useInfiniteQuery` is a convenience wrapper over the same `useQuery` descriptor runtime. It requests pages with `page.after`, accumulates loaded pages, and returns both flattened `data` and per-page `pages`.
 
+Use `page.count` to control count work when a source cannot answer exact totals cheaply:
+
+```tsx
+const { pageInfo } = useQuery(TaskSchema, {
+  orderBy: { updatedAt: 'desc' },
+  page: { first: 50, count: 'estimate' }
+})
+
+console.log(pageInfo.totalCount, pageInfo.countMode) // number | null, exact | estimate | none
+```
+
 **Query API roadmap:**
 
 `useQuery` is the stable read hook for xNet applications today. The consolidated roadmap for richer local and remote reads, pagination metadata, streaming, realtime sync, materialized views, search, spatial queries, and future relation-aware planning is documented in [0139 Improving The useQuery API](../../docs/explorations/0139_[_]_IMPROVING_THE_USEQUERY_API.md).

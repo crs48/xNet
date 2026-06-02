@@ -528,6 +528,7 @@ describe('useQuery', () => {
         updatedAt: Date.now(),
         pageInfo: {
           totalCount: 3,
+          countMode: 'exact',
           hasMore: true,
           hasNextPage: true,
           hasPreviousPage: false,
@@ -670,6 +671,7 @@ describe('useQuery', () => {
         updatedAt: Date.now(),
         pageInfo: {
           totalCount: 2,
+          countMode: 'exact',
           hasMore: true,
           hasNextPage: true,
           hasPreviousPage: false,
@@ -683,6 +685,7 @@ describe('useQuery', () => {
         updatedAt: Date.now(),
         pageInfo: {
           totalCount: 2,
+          countMode: 'exact',
           hasMore: false,
           hasNextPage: false,
           hasPreviousPage: true,

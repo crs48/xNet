@@ -152,6 +152,7 @@ export type QuerySource = 'local' | 'memory' | 'hub' | 'federated' | 'hybrid'
 
 export interface QueryPageInfo {
   totalCount: number | null
+  countMode: QueryPageCountMode
   hasMore: boolean
   hasNextPage: boolean
   hasPreviousPage: boolean

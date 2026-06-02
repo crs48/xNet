@@ -472,6 +472,7 @@ type UseQueryResult<TData> = {
 
   pageInfo?: {
     totalCount: number | null
+    countMode: 'exact' | 'estimate' | 'none'
     hasMore: boolean
     hasNextPage: boolean
     hasPreviousPage: boolean
@@ -725,6 +726,7 @@ The final tie-breaker should always be `nodeId`, even when the developer does no
 ```ts
 type PageInfo = {
   totalCount: number | null
+  countMode: 'exact' | 'estimate' | 'none'
   hasMore: boolean
   hasNextPage: boolean
   hasPreviousPage: boolean
@@ -1266,7 +1268,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Add `page` options while preserving `limit` / `offset`.
 - [x] Add `totalCount` and `hasMore` aliases on list results.
 - [x] Add exact count support for descriptor subsets where storage can answer.
-- [ ] Add estimate mode for hub/federated/search results.
+- [x] Add estimate mode for hub/federated/search results.
 - [x] Add cursor encode/decode utilities with versioning.
 - [x] Add stable node ID tie-breaker to cursor order.
 - [x] Add `fetchNextPage()` for cursor pages.

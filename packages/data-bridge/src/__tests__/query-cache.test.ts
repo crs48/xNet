@@ -90,6 +90,7 @@ describe('QueryCache', () => {
         updatedAt: Date.now(),
         pageInfo: {
           totalCount: 1,
+          countMode: 'exact',
           hasMore: false,
           hasNextPage: false,
           hasPreviousPage: false,
