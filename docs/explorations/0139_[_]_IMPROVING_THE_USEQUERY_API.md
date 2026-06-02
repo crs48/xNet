@@ -1271,7 +1271,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Add stable node ID tie-breaker to cursor order.
 - [x] Add `fetchNextPage()` for cursor pages.
 - [x] Add `useInfiniteQuery()` wrapper.
-- [ ] Add tests for insert/delete shifts in bounded windows.
+- [x] Add tests for insert/delete shifts in bounded windows.
 - [x] Add tests for cursor pagination with duplicate sort values.
 
 ### Phase 3 Materialized Views

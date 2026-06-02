@@ -256,6 +256,41 @@ describe('query-descriptor', () => {
       expect(delta).toEqual({ kind: 'reload' })
     })
 
+    it('should request a bounded reload when an insert can shift the visible window', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { title: 'asc' },
+        limit: 1
+      })
+      const visible = createMockNode('task-visible', { title: 'B visible' })
+      const insertedBefore = createMockNode('task-inserted', { title: 'A inserted' })
+
+      const delta = applyNodeChangeToQueryResult({
+        descriptor,
+        currentData: [visible],
+        nodeId: insertedBefore.id,
+        nextNode: insertedBefore
+      })
+
+      expect(delta).toEqual({ kind: 'reload' })
+    })
+
+    it('should request a bounded reload when a visible row is deleted', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { title: 'asc' },
+        limit: 1
+      })
+      const visible = createMockNode('task-visible', { title: 'A visible' })
+
+      const delta = applyNodeChangeToQueryResult({
+        descriptor,
+        currentData: [visible],
+        nodeId: visible.id,
+        nextNode: null
+      })
+
+      expect(delta).toEqual({ kind: 'reload' })
+    })
+
     it('should filter spatial window queries by intersecting geometry', () => {
       const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
         spatial: {
