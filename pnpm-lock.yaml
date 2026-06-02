@@ -418,6 +418,8 @@ importers:
         specifier: ^0.20.0
         version: 0.20.5(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.27.0)(terser@5.46.0))(workbox-build@7.4.0(@types/babel__core@7.20.5))(workbox-window@7.4.0)
 
+  packages/abuse: {}
+
   packages/canvas:
     dependencies:
       '@xnetjs/canvas-core':
