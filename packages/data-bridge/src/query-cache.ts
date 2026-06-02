@@ -391,6 +391,21 @@ export class QueryCache {
   }
 
   /**
+   * Get all cached entries.
+   */
+  getEntries(): Array<{
+    queryId: string
+    descriptor: QueryDescriptor
+    data: NodeState[] | null
+  }> {
+    return Array.from(this.cache.entries()).map(([queryId, entry]) => ({
+      queryId,
+      descriptor: entry.descriptor,
+      data: entry.data
+    }))
+  }
+
+  /**
    * Get the schema IRI for a cached query.
    */
   getSchemaId(queryId: string): SchemaIRI | undefined {

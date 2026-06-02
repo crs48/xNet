@@ -13,7 +13,7 @@ import type {
   QueryVerificationMetadata,
   QuerySourcePreference
 } from './types'
-import type { NodeState } from '@xnetjs/data'
+import type { NodeState, SchemaIRI } from '@xnetjs/data'
 
 export const REMOTE_NODE_QUERY_PROTOCOL = 'xnet.node-query'
 export const REMOTE_NODE_QUERY_PROTOCOL_VERSION = 1
@@ -98,12 +98,47 @@ export type RemoteNodeQueryStreamSubscription =
   | (() => void)
   | void
 
+export type RemoteNodeQueryInvalidationReason =
+  | 'poke'
+  | 'descriptor-invalidated'
+  | 'schema-invalidated'
+  | 'node-invalidated'
+
+export type RemoteNodeQueryInvalidation = {
+  type: 'node-query/invalidate'
+  source?: RemoteNodeQuerySource
+  requestId?: string
+  descriptor?: QueryDescriptor
+  schemaId?: SchemaIRI
+  nodeIds?: string[]
+  reason?: RemoteNodeQueryInvalidationReason
+  invalidatedAt?: number
+}
+
+export type RemoteNodeQueryInvalidationObserver = {
+  next(event: RemoteNodeQueryInvalidation): void
+  error?(error: Error): void
+  complete?(): void
+}
+
+export type RemoteNodeQueryInvalidationController = {
+  unsubscribe(): void
+}
+
+export type RemoteNodeQueryInvalidationSubscription =
+  | RemoteNodeQueryInvalidationController
+  | (() => void)
+  | void
+
 export type RemoteNodeQueryClient = {
   query(request: RemoteNodeQueryRequest): Promise<RemoteNodeQueryResponse>
   stream?(
     request: RemoteNodeQueryRequest,
     observer: RemoteNodeQueryStreamObserver
   ): RemoteNodeQueryStreamSubscription | Promise<RemoteNodeQueryStreamSubscription>
+  subscribeInvalidations?(
+    observer: RemoteNodeQueryInvalidationObserver
+  ): RemoteNodeQueryInvalidationSubscription | Promise<RemoteNodeQueryInvalidationSubscription>
 }
 
 export function isRemoteNodeQuerySource(

@@ -266,6 +266,17 @@ const hubQueryClient = {
     stream.on('error', (error) => observer.error?.(error))
     stream.on('close', () => observer.complete?.())
     return () => stream.close()
+  },
+  subscribeInvalidations(observer) {
+    const unsubscribe = hub.onNodeQueryInvalidation((event) => {
+      observer.next({
+        type: 'node-query/invalidate',
+        schemaId: event.schemaId,
+        nodeIds: event.nodeIds,
+        reason: 'poke'
+      })
+    })
+    return unsubscribe
   }
 }
 ```
@@ -276,7 +287,7 @@ Remote metadata is surfaced on the hook result:
 - `staleness` reports whether the remote source is fresh, stale, or unknown.
 - `verification` reports whether remote nodes were verified, unverified, failed, or mixed.
 
-Worker remote transport and hub-side authorization enforcement are still roadmap items tracked in the exploration.
+Remote invalidation pokes refresh matching active remote-capable queries without clearing their current local or hybrid snapshot. Worker remote transport and hub-side authorization enforcement are still roadmap items tracked in the exploration.
 
 **Query API roadmap:**
 

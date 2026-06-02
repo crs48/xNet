@@ -860,7 +860,7 @@ type QueryStreamEvent<T> =
 
 The first Phase 5 implementation exports `QueryStreamEvent`, `QueryStreamState`, and pure reducer helpers from `@xnetjs/data-bridge`. The reducer contract uses Node snapshots, insert/update/delete deltas, reset events, progress events, and recoverable/non-recoverable errors.
 
-The follow-up bridge implementation adds an optional `remoteNodeQueryClient.stream(request, observer)` contract. `MainThreadBridge` starts streams when `mode: "stream"` or `mode: "live"` queries gain subscribers, reduces incoming stream events into `QueryCache`, resets snapshots to loading on reconnect resets, stops the stream when the final subscriber unsubscribes, and falls back to one-shot remote `query()` when the client does not expose a stream transport. Stream state is exposed through `QueryMetadata.stream`, `useQuery().stream`, and a Query Debugger stream timeline. Hub-side auth/verification enforcement remains open.
+The follow-up bridge implementation adds optional `remoteNodeQueryClient.stream(request, observer)` and `remoteNodeQueryClient.subscribeInvalidations(observer)` contracts. `MainThreadBridge` starts streams when `mode: "stream"` or `mode: "live"` queries gain subscribers, reduces incoming stream events into `QueryCache`, resets snapshots to loading on reconnect resets, stops the stream when the final subscriber unsubscribes, and falls back to one-shot remote `query()` when the client does not expose a stream transport. Remote invalidation pokes match active cache entries by request, descriptor, schema, or node ID, then refresh matching remote-capable queries without clearing the current local or hybrid snapshot. Stream state is exposed through `QueryMetadata.stream`, `useQuery().stream`, and a Query Debugger stream timeline.
 
 ### Reducer Modes
 
@@ -1029,6 +1029,17 @@ type RemoteNodeQueryResponse =
         | 'UNKNOWN'
       message: string
     }
+
+type RemoteNodeQueryInvalidation = {
+  type: 'node-query/invalidate'
+  source?: 'hub' | 'federated'
+  requestId?: string
+  descriptor?: QueryDescriptor
+  schemaId?: SchemaIRI
+  nodeIds?: string[]
+  reason?: 'poke' | 'descriptor-invalidated' | 'schema-invalidated' | 'node-invalidated'
+  invalidatedAt?: number
+}
 ```
 
 ---
@@ -1432,7 +1443,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Unbounded queries apply insert/update/delete deltas without reload.
 - [x] Bounded queries reload or repair when membership/order boundaries shift.
 - [x] Materialized views invalidate on relevant node changes.
-- [ ] Remote poke/invalidation triggers refresh without losing local data.
+- [x] Remote poke/invalidation triggers refresh without losing local data.
 - [x] Stream events reduce deterministically.
 
 ### Documentation

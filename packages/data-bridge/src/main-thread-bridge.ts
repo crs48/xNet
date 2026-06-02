@@ -11,6 +11,8 @@
  */
 
 import type {
+  RemoteNodeQueryInvalidation,
+  RemoteNodeQueryInvalidationSubscription,
   RemoteNodeQueryClient,
   RemoteNodeQueryStreamSubscription
 } from './remote-query-protocol'
@@ -100,6 +102,12 @@ type RemoteStreamRuntime = {
   start: Promise<void>
 }
 
+type RemoteInvalidationRuntime = {
+  unsubscribe: (() => void) | null
+  cancelled: boolean
+  start: Promise<void>
+}
+
 // ─── MainThreadBridge Class ──────────────────────────────────────────────────
 
 /**
@@ -119,6 +127,7 @@ export class MainThreadBridge implements DataBridge {
   private remoteNodeQueryRouting: Partial<NodeQueryRouterThresholds> | undefined
   private remoteLoads = new Map<string, Promise<void>>()
   private remoteStreams = new Map<string, RemoteStreamRuntime>()
+  private remoteInvalidations: RemoteInvalidationRuntime | null = null
 
   constructor(store: NodeStore, options?: MainThreadBridgeOptions) {
     this.store = store
@@ -130,6 +139,7 @@ export class MainThreadBridge implements DataBridge {
     this.storeUnsubscribe = this.store.subscribe((event) => {
       this.handleStoreChange(event)
     })
+    this.startRemoteInvalidationSubscription()
   }
 
   /**
@@ -366,11 +376,163 @@ export class MainThreadBridge implements DataBridge {
   private normalizeRemoteStreamSubscription(
     subscription: RemoteNodeQueryStreamSubscription
   ): (() => void) | null {
+    return this.normalizeRemoteSubscription(subscription)
+  }
+
+  private normalizeRemoteInvalidationSubscription(
+    subscription: RemoteNodeQueryInvalidationSubscription
+  ): (() => void) | null {
+    return this.normalizeRemoteSubscription(subscription)
+  }
+
+  private normalizeRemoteSubscription(
+    subscription: RemoteNodeQueryStreamSubscription | RemoteNodeQueryInvalidationSubscription
+  ): (() => void) | null {
     if (!subscription) return null
     if (typeof subscription === 'function') return subscription
     return () => {
       subscription.unsubscribe()
     }
+  }
+
+  private startRemoteInvalidationSubscription(): void {
+    if (this.remoteInvalidations) return
+    if (!this.remoteNodeQueryClient?.subscribeInvalidations) return
+
+    const runtime: RemoteInvalidationRuntime = {
+      unsubscribe: null,
+      cancelled: false,
+      start: Promise.resolve()
+    }
+    this.remoteInvalidations = runtime
+
+    runtime.start = Promise.resolve(
+      this.remoteNodeQueryClient.subscribeInvalidations({
+        next: (event) => {
+          if (this.remoteInvalidations !== runtime || runtime.cancelled) return
+          this.handleRemoteQueryInvalidation(event)
+        },
+        error: (error) => {
+          if (this.remoteInvalidations !== runtime || runtime.cancelled) return
+          console.error('[MainThreadBridge] Remote query invalidation subscription failed:', error)
+          this.stopRemoteInvalidationSubscription()
+        },
+        complete: () => {
+          if (this.remoteInvalidations !== runtime || runtime.cancelled) return
+          this.stopRemoteInvalidationSubscription()
+        }
+      })
+    )
+      .then((subscription) => {
+        const unsubscribe = this.normalizeRemoteInvalidationSubscription(subscription)
+        if (runtime.cancelled) {
+          unsubscribe?.()
+          return
+        }
+        runtime.unsubscribe = unsubscribe
+      })
+      .catch((err) => {
+        if (runtime.cancelled) return
+        const error = err instanceof Error ? err : new Error(String(err))
+        console.error('[MainThreadBridge] Failed to subscribe to remote invalidations:', error)
+        this.remoteInvalidations = null
+      })
+  }
+
+  private stopRemoteInvalidationSubscription(): void {
+    const runtime = this.remoteInvalidations
+    if (!runtime) return
+
+    runtime.cancelled = true
+    this.remoteInvalidations = null
+    runtime.unsubscribe?.()
+  }
+
+  private handleRemoteQueryInvalidation(event: RemoteNodeQueryInvalidation): void {
+    for (const entry of this.getRemoteInvalidationEntries(event)) {
+      if (this.cache.getSubscriberCount(entry.queryId) === 0) continue
+
+      const route = routeRemoteNodeQuery({
+        descriptor: entry.descriptor,
+        hasRemoteClient: this.remoteNodeQueryClient !== null,
+        localRowCount: this.getRemoteInvalidationRouteRowCount(entry.queryId, entry.data),
+        thresholds: this.remoteNodeQueryRouting
+      })
+
+      if (route.shouldRunRemote) {
+        void this.loadRemoteQuery(entry.queryId, entry.descriptor, route)
+        continue
+      }
+
+      if (shouldRunRemoteQuery(entry.descriptor)) {
+        void this.loadRemoteQuery(entry.queryId, entry.descriptor)
+      }
+    }
+  }
+
+  private getRemoteInvalidationRouteRowCount(
+    queryId: string,
+    data: NodeState[] | null
+  ): number | undefined {
+    const totalCount = this.cache.getMetadata(queryId)?.pageInfo?.totalCount
+    return typeof totalCount === 'number' ? totalCount : (data?.length ?? undefined)
+  }
+
+  private getRemoteInvalidationEntries(event: RemoteNodeQueryInvalidation): Array<{
+    queryId: string
+    descriptor: QueryDescriptor
+    data: NodeState[] | null
+  }> {
+    const matches = new Map<
+      string,
+      {
+        queryId: string
+        descriptor: QueryDescriptor
+        data: NodeState[] | null
+      }
+    >()
+    const addEntry = (entry: {
+      queryId: string
+      descriptor: QueryDescriptor
+      data: NodeState[] | null
+    }) => {
+      matches.set(entry.queryId, entry)
+    }
+    const addQueryId = (queryId: string | undefined) => {
+      if (!queryId || !this.cache.has(queryId)) return
+      const descriptor = this.cache.getDescriptor(queryId)
+      if (!descriptor) return
+      addEntry({ queryId, descriptor, data: this.cache.get(queryId) })
+    }
+
+    addQueryId(event.requestId)
+    if (event.descriptor) {
+      addQueryId(serializeQueryDescriptor(event.descriptor))
+    }
+
+    const schemaEntries =
+      event.schemaId !== undefined
+        ? this.cache.getEntriesForSchema(event.schemaId)
+        : event.requestId || event.descriptor || event.nodeIds
+          ? []
+          : this.cache.getEntries()
+    schemaEntries.forEach(addEntry)
+
+    if (event.nodeIds && event.nodeIds.length > 0) {
+      const nodeIds = new Set(event.nodeIds)
+      const candidates =
+        event.schemaId !== undefined
+          ? this.cache.getEntriesForSchema(event.schemaId)
+          : this.cache.getEntries()
+      candidates
+        .filter((entry) => {
+          if (entry.descriptor.nodeId && nodeIds.has(entry.descriptor.nodeId)) return true
+          return (entry.data ?? []).some((node) => nodeIds.has(node.id))
+        })
+        .forEach(addEntry)
+    }
+
+    return Array.from(matches.values())
   }
 
   private applyRemoteStreamEvent(
@@ -756,11 +918,17 @@ export class MainThreadBridge implements DataBridge {
   // ─── Lifecycle ──────────────────────────────────────────
 
   async initialize(config: DataBridgeConfig): Promise<void> {
-    this.remoteNodeQueryClient = config.remoteNodeQueryClient ?? this.remoteNodeQueryClient
+    const nextRemoteNodeQueryClient = config.remoteNodeQueryClient ?? this.remoteNodeQueryClient
+    if (nextRemoteNodeQueryClient !== this.remoteNodeQueryClient) {
+      this.stopRemoteInvalidationSubscription()
+    }
+    this.remoteNodeQueryClient = nextRemoteNodeQueryClient
     this.remoteNodeQueryRouting = config.remoteNodeQueryRouting ?? this.remoteNodeQueryRouting
+    this.startRemoteInvalidationSubscription()
   }
 
   destroy(): void {
+    this.stopRemoteInvalidationSubscription()
     for (const queryId of this.remoteStreams.keys()) {
       this.stopRemoteQueryStream(queryId)
     }

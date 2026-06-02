@@ -4,6 +4,7 @@
 
 import type {
   RemoteNodeQueryClient,
+  RemoteNodeQueryInvalidationObserver,
   RemoteNodeQuerySource,
   RemoteNodeQueryStreamObserver,
   RemoteNodeQuerySuccessResponse,
@@ -736,6 +737,87 @@ describe('MainThreadBridge', () => {
         source: 'hybrid',
         completeness: { level: 'partial', reason: 'federation-partial', sourceCount: 2 }
       })
+    })
+
+    it('should refresh remote invalidations without dropping local snapshots', async () => {
+      bridge.destroy()
+
+      const local = await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Local Task', done: false }
+      })
+      const initialRemote = createRemoteNode(
+        'remote-task',
+        'Initial Remote Task',
+        local.updatedAt + 1
+      )
+      const updatedRemote = createRemoteNode(
+        'remote-task',
+        'Updated Remote Task',
+        local.updatedAt + 2
+      )
+      const firstRemoteResponse = createDeferred<RemoteNodeQuerySuccessResponse>()
+      const secondRemoteResponse = createDeferred<RemoteNodeQuerySuccessResponse>()
+      let invalidationObserver: RemoteNodeQueryInvalidationObserver | null = null
+      const unsubscribeInvalidations = vi.fn()
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi
+          .fn()
+          .mockImplementationOnce(async () => firstRemoteResponse.promise)
+          .mockImplementationOnce(async () => secondRemoteResponse.promise),
+        subscribeInvalidations: vi.fn((observer) => {
+          invalidationObserver = observer
+          return unsubscribeInvalidations
+        })
+      }
+
+      bridge = new MainThreadBridge(store, { remoteNodeQueryClient: remoteClient })
+      const subscription = bridge.query(TestTaskSchema, {
+        mode: 'local-then-remote',
+        source: 'hub'
+      })
+      const callback = vi.fn()
+      const unsubscribe = subscription.subscribe(callback)
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Local Task'
+        ])
+      })
+
+      firstRemoteResponse.resolve(createRemoteSuccess({ nodes: [initialRemote] }))
+
+      await vi.waitFor(() => {
+        expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+          new Set(['Local Task', 'Initial Remote Task'])
+        )
+      })
+
+      invalidationObserver!.next({
+        type: 'node-query/invalidate',
+        schemaId: TestTaskSchema._schemaId,
+        reason: 'poke'
+      })
+
+      await vi.waitFor(() => {
+        expect(remoteClient.query).toHaveBeenCalledTimes(2)
+      })
+      expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+        new Set(['Local Task', 'Initial Remote Task'])
+      )
+
+      secondRemoteResponse.resolve(createRemoteSuccess({ nodes: [updatedRemote] }))
+
+      await vi.waitFor(() => {
+        expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+          new Set(['Local Task', 'Updated Remote Task'])
+        )
+      })
+
+      expect(callback).toHaveBeenCalled()
+      unsubscribe()
+      bridge.destroy()
+      expect(unsubscribeInvalidations).toHaveBeenCalledTimes(1)
     })
 
     it('should reduce remote stream events into active stream queries', async () => {
