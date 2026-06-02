@@ -936,6 +936,17 @@ type QueryRoutingContext = {
 }
 ```
 
+The main-thread bridge now includes a Node descriptor threshold router for `source: 'auto'` reads. The first local snapshot remains the baseline; if a remote client exists and the local result count crosses `localRowThreshold` or `hybridRowThreshold`, the bridge sends a routed `local-then-remote` request to the hub/federated source. Search and spatial descriptors can also request remote completion through `searchToRemote` and `spatialToRemote`.
+
+Default thresholds:
+
+| Threshold            | Default | Behavior                                                                        |
+| -------------------- | ------: | ------------------------------------------------------------------------------- |
+| `localRowThreshold`  |  10,000 | Below this count, `source: 'auto'` remains local                                |
+| `hybridRowThreshold` | 100,000 | At or above this count, `source: 'auto'` is treated as a large remote candidate |
+| `searchToRemote`     |  `true` | Search descriptors can request remote completion                                |
+| `spatialToRemote`    |  `true` | Spatial descriptors can request remote completion                               |
+
 ### Remote Read Flow
 
 ```mermaid
@@ -967,7 +978,7 @@ flowchart TD
 
 ### Versioned Remote Node Query Protocol
 
-The Phase 4 foundation now starts with a typed, versioned protocol in `@xnetjs/data-bridge`. Main-thread bridge execution can use an injected `remoteNodeQueryClient` for `mode: 'local-then-remote'` and `mode: 'remote'`; first-party hub transport is still a later step.
+The Phase 4 foundation now starts with a typed, versioned protocol in `@xnetjs/data-bridge`. Main-thread bridge execution can use an injected `remoteNodeQueryClient` for `mode: 'local-then-remote'`, `mode: 'remote'`, and routed `source: 'auto'` refreshes; first-party hub transport is still a later step.
 
 The bridge now normalizes remote trust metadata before updating `QueryCache`:
 
@@ -1357,7 +1368,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 - [x] Add `staleness` metadata.
 - [x] Add remote auth filtering and verification status.
 - [x] Add federated dedupe and merge policy.
-- [ ] Add query router thresholds for Node queries.
+- [x] Add query router thresholds for Node queries.
 - [x] Add tests for local fallback when remote is unavailable.
 - [x] Add tests for remote errors preserving local snapshots.
 

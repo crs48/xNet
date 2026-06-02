@@ -111,7 +111,8 @@ export async function createDataBridge(options: CreateBridgeOptions): Promise<Da
 
   // Fall back to MainThreadBridge
   const bridge = new MainThreadBridge(nodeStore, {
-    remoteNodeQueryClient: config.remoteNodeQueryClient
+    remoteNodeQueryClient: config.remoteNodeQueryClient,
+    remoteNodeQueryRouting: config.remoteNodeQueryRouting
   })
   await bridge.initialize(config)
   return bridge

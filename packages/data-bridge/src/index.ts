@@ -16,6 +16,7 @@
 
 export type {
   DataBridge,
+  NodeQueryRouterThresholds,
   QueryCompletenessMetadata,
   QueryDescriptor,
   QueryExecutionMode,
@@ -25,6 +26,7 @@ export type {
   QueryPageInfo,
   QueryPageCountMode,
   QueryPageOptions,
+  QueryRoutingMetadata,
   QuerySearchField,
   QuerySearchFilter,
   QuerySubscription,
@@ -135,13 +137,21 @@ export {
   type RemoteQueryVerification
 } from './remote-query-protocol'
 export {
+  DEFAULT_NODE_QUERY_ROUTER_THRESHOLDS,
+  createQueryRoutingMetadata,
   createRemoteFallbackMetadata,
   createRemoteSuccessMetadata,
+  filterRemoteNodesByVerification,
   getRemoteQueryMode,
   getRemoteQuerySource,
+  isRemoteVerificationFailed,
   mergeRemoteNodeSnapshots,
+  normalizeNodeQueryRouterThresholds,
+  routeRemoteNodeQuery,
+  type RemoteNodeQueryRouteDecision,
   shouldRunRemoteQuery,
-  shouldUseRemoteOnlyQuery
+  shouldUseRemoteOnlyQuery,
+  withRemoteErrorVerificationMetadata
 } from './remote-query-execution'
 export {
   createQueryStreamState,

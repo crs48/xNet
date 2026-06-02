@@ -219,7 +219,11 @@ Materialized views are an optimization for plaintext, storage-queryable local da
     nodeStorage,
     authorDID,
     signingKey,
-    remoteNodeQueryClient: hubQueryClient
+    remoteNodeQueryClient: hubQueryClient,
+    remoteNodeQueryRouting: {
+      localRowThreshold: 10_000,
+      hybridRowThreshold: 100_000
+    }
   }}
 >
   <App />
@@ -236,6 +240,8 @@ const { data, source, completeness, staleness, verification, error } = useQuery(
 ```
 
 `mode: 'local-then-remote'` renders the local snapshot first, then merges hub or federated results by node ID while preserving the newest `updatedAt` version. Remote failures keep the local snapshot and expose `error`, `source: 'hybrid'`, and partial `completeness` metadata. `mode: 'remote'` uses the remote client as the primary source and does not hydrate local results first.
+
+`source: 'auto'` keeps the read local by default, then lets the main-thread bridge request a `local-then-remote` refresh when a configured `remoteNodeQueryClient` exists and the first local result crosses `remoteNodeQueryRouting` thresholds. Search and spatial descriptors can also opt into remote completion through the same threshold config.
 
 `mode: 'stream'` keeps the same React API while allowing a remote client to push `snapshot`, `insert`, `update`, `delete`, `reset`, `progress`, and `error` events into the bridge cache. The main-thread bridge starts a remote stream when the query is subscribed, stops it when the last subscriber unmounts, and falls back to a one-shot remote query when a client exposes `query()` but not `stream()`. Stream queries expose `stream` metadata on the hook result and appear in the Query Debugger stream timeline when devtools are mounted.
 

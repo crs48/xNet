@@ -20,6 +20,8 @@ import {
   MainThreadBridge,
   WorkerBridge,
   type DataBridge,
+  type MainThreadBridgeOptions,
+  type NodeQueryRouterThresholds,
   type RemoteNodeQueryClient,
   type SyncManagerLike
 } from '@xnetjs/data-bridge'
@@ -114,11 +116,12 @@ function logRuntimeStatus(runtime: XNetRuntimeConfig, status: XNetRuntimeStatus)
 function resolveRuntimeFailure(
   runtime: XNetRuntimeConfig,
   nodeStore: NodeStore,
-  reason: string
+  reason: string,
+  bridgeOptions?: MainThreadBridgeOptions
 ): RuntimeResolution {
   if (runtime.fallback === 'main-thread') {
     return {
-      bridge: createMainThreadBridge(nodeStore),
+      bridge: createMainThreadBridge(nodeStore, bridgeOptions),
       createdInternally: true,
       status: createRuntimeStatus(runtime, {
         activeMode: 'main-thread',
@@ -148,6 +151,7 @@ async function resolveRuntimeBridge(input: {
   signalingUrl?: string
   dataBridge?: DataBridge
   remoteNodeQueryClient?: RemoteNodeQueryClient
+  remoteNodeQueryRouting?: Partial<NodeQueryRouterThresholds>
   syncManager?: SyncManager
 }): Promise<RuntimeResolution> {
   const {
@@ -158,6 +162,7 @@ async function resolveRuntimeBridge(input: {
     signalingUrl,
     dataBridge,
     remoteNodeQueryClient,
+    remoteNodeQueryRouting,
     syncManager
   } = input
 
@@ -166,12 +171,18 @@ async function resolveRuntimeBridge(input: {
       return resolveRuntimeFailure(
         runtime,
         nodeStore,
-        'IPC runtime requires config.syncManager to be provided explicitly.'
+        'IPC runtime requires config.syncManager to be provided explicitly.',
+        { remoteNodeQueryClient, remoteNodeQueryRouting }
       )
     }
 
     return {
-      bridge: dataBridge ?? createMainThreadBridge(nodeStore),
+      bridge:
+        dataBridge ??
+        createMainThreadBridge(nodeStore, {
+          remoteNodeQueryClient,
+          remoteNodeQueryRouting
+        }),
       createdInternally: !dataBridge,
       status: createRuntimeStatus(runtime, {
         activeMode: 'ipc',
@@ -208,7 +219,8 @@ async function resolveRuntimeBridge(input: {
           authorDID,
           signingKey,
           signalingUrl: runtime.worker?.signalingUrl ?? signalingUrl,
-          remoteNodeQueryClient
+          remoteNodeQueryClient,
+          remoteNodeQueryRouting
         },
         workerUrl: runtime.worker?.url,
         mode: 'worker'
@@ -226,7 +238,8 @@ async function resolveRuntimeBridge(input: {
       return resolveRuntimeFailure(
         runtime,
         nodeStore,
-        `Worker runtime unavailable: ${getRuntimeErrorMessage(err)}`
+        `Worker runtime unavailable: ${getRuntimeErrorMessage(err)}`,
+        { remoteNodeQueryClient, remoteNodeQueryRouting }
       )
     }
   }
@@ -237,7 +250,8 @@ async function resolveRuntimeBridge(input: {
       authorDID,
       signingKey,
       signalingUrl,
-      remoteNodeQueryClient
+      remoteNodeQueryClient,
+      remoteNodeQueryRouting
     },
     mode: 'main-thread'
   })
@@ -337,6 +351,13 @@ export interface XNetConfig {
    * their primary source.
    */
   remoteNodeQueryClient?: RemoteNodeQueryClient
+  /**
+   * Optional routing thresholds for `source: "auto"` Node descriptor reads.
+   *
+   * These thresholds are used by the main-thread bridge after the first local
+   * snapshot to decide whether a remote client should refresh the same query.
+   */
+  remoteNodeQueryRouting?: Partial<NodeQueryRouterThresholds>
   /**
    * Security configuration for multi-level cryptography.
    */
@@ -572,6 +593,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         signalingUrl: hubUrl ?? config.signalingServers?.[0],
         dataBridge: config.dataBridge,
         remoteNodeQueryClient: config.remoteNodeQueryClient,
+        remoteNodeQueryRouting: config.remoteNodeQueryRouting,
         syncManager: config.syncManager
       })
 
@@ -645,6 +667,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     config.signalingServers,
     config.syncManager,
     config.remoteNodeQueryClient,
+    config.remoteNodeQueryRouting,
     config.telemetry,
     hubUrl,
     runtimeConfig,

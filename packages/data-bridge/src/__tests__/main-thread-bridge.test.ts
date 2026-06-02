@@ -618,6 +618,88 @@ describe('MainThreadBridge', () => {
       })
     })
 
+    it('should keep source auto queries local below the routing threshold', async () => {
+      bridge.destroy()
+
+      await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Small Local Task', done: false }
+      })
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async () => createRemoteSuccess({ nodes: [] }))
+      }
+
+      bridge = new MainThreadBridge(store, {
+        remoteNodeQueryClient: remoteClient,
+        remoteNodeQueryRouting: {
+          localRowThreshold: 10,
+          hybridRowThreshold: 100
+        }
+      })
+      const subscription = bridge.query(TestTaskSchema, {
+        source: 'auto'
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Small Local Task'
+        ])
+      })
+      await new Promise((resolve) => setTimeout(resolve, 25))
+
+      expect(remoteClient.query).not.toHaveBeenCalled()
+    })
+
+    it('should route source auto queries over threshold through remote refresh', async () => {
+      bridge.destroy()
+
+      const local = await store.create({
+        schemaId: TestTaskSchema._schemaId,
+        properties: { title: 'Auto Local Task', done: false }
+      })
+      const remote = createRemoteNode('auto-remote-task', 'Auto Remote Task', local.updatedAt + 1)
+      const remoteClient: RemoteNodeQueryClient = {
+        query: vi.fn(async (request) => {
+          expect(request.mode).toBe('local-then-remote')
+          expect(request.source).toBe('hub')
+          expect(request.descriptor.mode).toBe('local-then-remote')
+          expect(request.descriptor.source).toBe('hub')
+          expect(request.client?.knownNodeIds).toContain(local.id)
+          return createRemoteSuccess({ nodes: [remote] })
+        })
+      }
+
+      bridge = new MainThreadBridge(store, {
+        remoteNodeQueryClient: remoteClient,
+        remoteNodeQueryRouting: {
+          localRowThreshold: 1,
+          hybridRowThreshold: 100
+        }
+      })
+      const subscription = bridge.query(TestTaskSchema, {
+        source: 'auto'
+      })
+
+      await vi.waitFor(() => {
+        expect(new Set(subscription.getSnapshot()?.map((node) => node.properties.title))).toEqual(
+          new Set(['Auto Local Task', 'Auto Remote Task'])
+        )
+      })
+
+      expect(subscription.getMetadata()).toMatchObject({
+        source: 'hybrid',
+        routing: {
+          source: 'hub',
+          reason: 'auto-medium-result',
+          localRowCount: 1,
+          thresholds: {
+            localRowThreshold: 1,
+            hybridRowThreshold: 100
+          }
+        }
+      })
+    })
+
     it('should dedupe federated local and remote results by newest update time', async () => {
       bridge.destroy()
 

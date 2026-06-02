@@ -163,6 +163,24 @@ export interface QueryDescriptor {
 
 export type QuerySource = 'local' | 'memory' | 'hub' | 'federated' | 'hybrid'
 
+export type NodeQueryRouterThresholds = {
+  /** Local row counts below this value stay local for `source: "auto"` reads. */
+  localRowThreshold: number
+  /** Local row counts at or above this value prefer a hub refresh for `source: "auto"` reads. */
+  hybridRowThreshold: number
+  /** Full-text descriptors request remote completion when a remote client exists. */
+  searchToRemote: boolean
+  /** Spatial descriptors request remote completion when a remote client exists. */
+  spatialToRemote: boolean
+}
+
+export type QueryRoutingMetadata = {
+  source: QuerySource
+  reason: string
+  localRowCount?: number
+  thresholds: Pick<NodeQueryRouterThresholds, 'localRowThreshold' | 'hybridRowThreshold'>
+}
+
 export interface QueryPageInfo {
   totalCount: number | null
   countMode: QueryPageCountMode
@@ -253,6 +271,7 @@ export interface QueryMetadata {
   pageInfo: QueryPageInfo
   plan?: NodeQueryPlanMetadata
   materialized?: QueryMaterializedMetadata
+  routing?: QueryRoutingMetadata
   completeness?: QueryCompletenessMetadata
   staleness?: QueryStalenessMetadata
   verification?: QueryVerificationMetadata
@@ -332,6 +351,8 @@ export interface DataBridgeConfig {
   signalingUrl?: string
   /** Optional main-thread remote Node query client for progressive hub/federated reads. */
   remoteNodeQueryClient?: RemoteNodeQueryClient
+  /** Optional source:auto routing thresholds for main-thread Node descriptor reads. */
+  remoteNodeQueryRouting?: Partial<NodeQueryRouterThresholds>
 }
 
 // ─── DataBridge Interface ────────────────────────────────────────────────────
