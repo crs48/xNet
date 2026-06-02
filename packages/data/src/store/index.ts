@@ -70,6 +70,7 @@ export type {
   NodeQuerySearchField,
   NodeQuerySearchFilter,
   NodeQueryMaterializedViewOptions,
+  NodeQueryPageOptions,
   NodeQueryOptions,
   NodeQueryDescriptor,
   NodeQueryPlanMetadata,

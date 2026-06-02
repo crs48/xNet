@@ -569,6 +569,47 @@ describe('useQuery', () => {
       expect(result.current.source).toBe('local')
     })
 
+    it('should forward page.first and derive fallback pageInfo from it', async () => {
+      const mock = createMockBridge()
+      const firstNode = createTaskNode('done-1', 'Done Task 1', 'done')
+      const secondNode = createTaskNode('done-2', 'Done Task 2', 'done')
+      const filter: QueryFilter<typeof TaskSchema._properties> = {
+        page: { first: 2 },
+        offset: 2,
+        where: { status: 'done' }
+      }
+
+      mock.setSnapshot(TaskSchema, filter, [firstNode, secondNode])
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, filter), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.data).toHaveLength(2)
+      expect(result.current.totalCount).toBeNull()
+      expect(result.current.hasMore).toBe(true)
+      expect(result.current.pageInfo.loadedCount).toBe(2)
+      expect(result.current.pageInfo.hasPreviousPage).toBe(true)
+
+      act(() => {
+        result.current.reload()
+      })
+
+      expect(mock.reloadQuery).toHaveBeenCalledWith(
+        createQueryDescriptor(TaskSchema._schemaId, {
+          page: { first: 2 },
+          offset: 2,
+          where: { status: 'done' }
+        })
+      )
+    })
+
     it('should keep the subscription stable for equivalent option objects', async () => {
       const mock = createMockBridge()
       const doneNode = createTaskNode('done-1', 'Done Task', 'done')

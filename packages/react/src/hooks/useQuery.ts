@@ -35,6 +35,7 @@ import type {
   QueryMetadata,
   QueryOptions,
   QueryPageInfo,
+  QueryPageOptions,
   QuerySearchFilter,
   QuerySource,
   QuerySpatialFilter
@@ -80,6 +81,8 @@ export interface QueryFilter<
   limit?: number
   /** Offset for pagination */
   offset?: number
+  /** Recommended pagination option. `page.first` maps to the current bounded read limit. */
+  page?: QueryPageOptions
   /** Spatial filtering for viewport windows or radius-based 2D queries */
   spatial?: QuerySpatialFilter
   /** Tokenized full-text search over searchable node fields */
@@ -200,11 +203,12 @@ function getFallbackPageInfo(input: {
 
   const loadedCount = input.data.length
   const offset = input.filter.offset ?? 0
-  const totalCount = input.filter.limit === undefined && offset === 0 ? loadedCount : null
+  const limit = input.filter.limit ?? input.filter.page?.first
+  const totalCount = limit === undefined && offset === 0 ? loadedCount : null
   const hasMore =
-    input.filter.limit !== undefined
+    limit !== undefined
       ? totalCount === null
-        ? loadedCount >= input.filter.limit
+        ? loadedCount >= limit
         : offset + loadedCount < totalCount
       : false
 

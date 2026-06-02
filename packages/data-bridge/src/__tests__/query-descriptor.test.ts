@@ -8,6 +8,7 @@ import {
   applyNodeChangeToQueryResult,
   applyQueryDescriptor,
   createQueryDescriptor,
+  queryDescriptorToOptions,
   serializeQueryDescriptor
 } from '../query-descriptor'
 
@@ -97,6 +98,31 @@ describe('query-descriptor', () => {
 
       expect(left).toEqual(right)
       expect(serializeQueryDescriptor(left)).toBe(serializeQueryDescriptor(right))
+    })
+
+    it('should lower page.first to the existing limit descriptor', () => {
+      const paged = createQueryDescriptor(TEST_SCHEMA_ID, {
+        page: { first: 25 }
+      })
+      const limited = createQueryDescriptor(TEST_SCHEMA_ID, {
+        limit: 25
+      })
+
+      expect(paged).toEqual(limited)
+      expect(queryDescriptorToOptions(paged)).toEqual({ limit: 25 })
+      expect(serializeQueryDescriptor(paged)).toBe(serializeQueryDescriptor(limited))
+    })
+
+    it('should preserve explicit limit and offset when page is also provided', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        page: { first: 25 },
+        limit: 10,
+        offset: 20
+      })
+
+      expect(descriptor.limit).toBe(10)
+      expect(descriptor.offset).toBe(20)
+      expect(queryDescriptorToOptions(descriptor)).toEqual({ limit: 10, offset: 20 })
     })
   })
 

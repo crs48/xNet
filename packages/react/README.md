@@ -147,9 +147,11 @@ const { data: task } = useQuery(TaskSchema, taskId)
 const { data: todoTasks } = useQuery(TaskSchema, {
   where: { status: 'todo' },
   orderBy: { createdAt: 'desc' },
-  limit: 20
+  page: { first: 20 }
 })
 ```
+
+Legacy `limit` and `offset` options remain supported. Prefer `page.first` for new bounded reads; it lowers to the same descriptor as `limit` until cursor pagination lands.
 
 **Query API roadmap:**
 

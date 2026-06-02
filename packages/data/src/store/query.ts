@@ -59,6 +59,10 @@ export type NodeQueryMaterializedViewOptions = {
   forceRefresh?: boolean
 }
 
+export type NodeQueryPageOptions = {
+  first: number
+}
+
 export interface NodeQueryOptions<
   P extends Record<string, PropertyBuilder> = Record<string, PropertyBuilder>
 > {
@@ -68,6 +72,7 @@ export interface NodeQueryOptions<
   orderBy?: { [K in keyof InferCreateProps<P> | SystemOrderField]?: SortDirection }
   limit?: number
   offset?: number
+  page?: NodeQueryPageOptions
   spatial?: NodeQuerySpatialFilter
   search?: string | NodeQuerySearchFilter
   materializedView?: string | NodeQueryMaterializedViewOptions
@@ -403,7 +408,7 @@ export function createNodeQueryDescriptor<P extends Record<string, PropertyBuild
     where: sortRecord(options?.where as Record<string, unknown> | undefined),
     includeDeleted: options?.includeDeleted ?? false,
     orderBy: sortRecord(options?.orderBy as Record<string, SortDirection> | undefined),
-    limit: options?.limit,
+    limit: options?.limit ?? options?.page?.first,
     offset: options?.offset,
     spatial: normalizeSpatialFilter(options?.spatial),
     search: normalizeSearchFilter(options?.search),

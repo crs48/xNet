@@ -21,6 +21,7 @@ export type {
   QueryMaterializedViewOptions,
   QueryMetadata,
   QueryPageInfo,
+  QueryPageOptions,
   QuerySearchField,
   QuerySearchFilter,
   QuerySubscription,

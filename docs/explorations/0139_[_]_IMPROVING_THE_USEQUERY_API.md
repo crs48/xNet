@@ -1263,7 +1263,7 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 ### Phase 2 Pagination
 
 - [x] Define `PageInfo`.
-- [ ] Add `page` options while preserving `limit` / `offset`.
+- [x] Add `page` options while preserving `limit` / `offset`.
 - [x] Add `totalCount` and `hasMore` aliases on list results.
 - [ ] Add exact count support for descriptor subsets where storage can answer.
 - [ ] Add estimate mode for hub/federated/search results.
@@ -1276,8 +1276,8 @@ Goal: land the 0042/0106 vision without destabilizing the current hook.
 
 ### Phase 3 Materialized Views
 
-- [ ] Add public result metadata for materialized view reads.
-- [ ] Expose materialized cache hit/miss in query devtools.
+- [x] Add public result metadata for materialized view reads.
+- [x] Expose materialized cache hit/miss in query devtools.
 - [ ] Add invalidation telemetry for materialized views.
 - [ ] Add docs for `viewId`, `maxAgeMs`, and `forceRefresh`.
 - [ ] Add tests for stale materialized view refresh.

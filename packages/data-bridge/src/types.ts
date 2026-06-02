@@ -79,6 +79,10 @@ export type QueryMaterializedViewOptions = {
   forceRefresh?: boolean
 }
 
+export type QueryPageOptions = {
+  first: number
+}
+
 /**
  * Options for querying nodes via the DataBridge.
  * Maps to the filter options used by useQuery.
@@ -98,6 +102,8 @@ export interface QueryOptions<
   limit?: number
   /** Offset for pagination */
   offset?: number
+  /** Recommended forward-compatible pagination shape. `first` lowers to `limit`. */
+  page?: QueryPageOptions
   /** Spatial filtering for viewport windows, canvases, or geo-style proximity queries */
   spatial?: QuerySpatialFilter
   /** Tokenized full-text search over searchable node fields */
