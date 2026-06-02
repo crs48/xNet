@@ -5,6 +5,7 @@
 import type { CrawlConfig } from './services/crawl'
 import type { FederationConfig } from './services/federation'
 import type { ShardConfig } from './services/index-shards'
+import type { YjsEnvelopeV2Verifier } from './services/relay'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 
 export type HubConfig = {
@@ -32,6 +33,10 @@ export type HubConfig = {
   awarenessMaxUsers: number
   /** Document replication policy. */
   sync?: SyncReplicationConfig
+  /** Programmatic sync envelope verification hooks. */
+  syncVerification?: {
+    verifyV2Envelope?: YjsEnvelopeV2Verifier
+  }
   /** Hub's own DID for UCAN audience verification (optional). */
   hubDid?: string
   /** Public hub URL for peer discovery (optional). */

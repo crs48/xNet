@@ -1,10 +1,18 @@
 import type { HubInstance } from '../src/index'
-import { generateIdentity } from '@xnetjs/identity'
-import { signYjsUpdate } from '@xnetjs/sync'
+import { createKeyBundle, generateIdentity } from '@xnetjs/identity'
+import {
+  serializeYjsEnvelope,
+  signYjsUpdate,
+  signYjsUpdateV2,
+  verifyYjsEnvelopeV2
+} from '@xnetjs/sync'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { createHub } from '../src/index'
+import { NodePool } from '../src/pool/node-pool'
+import { RelayService, type YjsEnvelopeV2Verifier } from '../src/services/relay'
+import { createMemoryStorage } from '../src/storage/memory'
 
 describe('Sync Relay', () => {
   let hub: HubInstance
@@ -244,5 +252,99 @@ describe('Sync Relay compatibility mode', () => {
     expect(emptyDoc.getText('content').toString()).toBe('legacy compatibility')
 
     wsB.close()
+  })
+})
+
+describe('Sync Relay V2 envelope admission', () => {
+  const createUpdate = (content: string): { clientId: number; update: Uint8Array } => {
+    const doc = new Y.Doc()
+    doc.getText('content').insert(0, content)
+    return {
+      clientId: doc.clientID,
+      update: Y.encodeStateAsUpdate(doc)
+    }
+  }
+
+  const createRelay = (verifyV2Envelope?: YjsEnvelopeV2Verifier) => {
+    const identity = generateIdentity()
+    const pool = new NodePool(createMemoryStorage())
+    const relay = new RelayService(pool, {
+      verifyV2Envelope,
+      signing: {
+        authorDID: identity.identity.did,
+        signingKey: identity.privateKey
+      }
+    })
+
+    return { pool, relay }
+  }
+
+  it('rejects V2 envelopes when no verifier is configured', async () => {
+    const docId = 'test-relay-v2-no-verifier'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('unverified v2')
+    const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+    const { pool, relay } = createRelay()
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientV2',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('')
+  })
+
+  it('rejects V2 envelopes bound to a different document', async () => {
+    const docId = 'test-relay-v2-doc-binding'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('wrong doc v2')
+    const envelope = signYjsUpdateV2(update, 'other-doc', clientId, bundle, { level: 0 })
+    const { pool, relay } = createRelay(async () => true)
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientV2',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('')
+  })
+
+  it('accepts V2 envelopes only after verifier approval', async () => {
+    const docId = 'test-relay-v2-verified'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('verified v2')
+    const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+    const { pool, relay } = createRelay(async (candidate, context) => {
+      const result = await verifyYjsEnvelopeV2(candidate, { expectedDocId: context.docId })
+      return {
+        valid: result.valid,
+        errors: result.errors
+      }
+    })
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientV2',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('verified v2')
   })
 })

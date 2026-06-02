@@ -7,12 +7,17 @@ import {
   MAX_YJS_UPDATE_SIZE,
   YjsPeerScorer,
   YjsRateLimiter,
+  deserializeYjsEnvelope,
   isUpdateTooLarge,
   resolveSyncReplicationPolicy,
   signYjsUpdate,
   verifyYjsEnvelopeV1,
   isV1Envelope,
+  isV2Envelope,
   type SignedYjsEnvelope,
+  type SignedYjsEnvelopeV1,
+  type SignedYjsEnvelopeV2,
+  type SignedYjsEnvelopeWire,
   type SyncReplicationConfig
 } from '@xnetjs/sync'
 import * as Y from 'yjs'
@@ -26,12 +31,31 @@ export type SyncMessage = {
   envelope?: Record<string, unknown>
 }
 
+export type YjsEnvelopeV2VerifierResult =
+  | boolean
+  | {
+      valid: boolean
+      errors?: readonly string[]
+    }
+
+export type YjsEnvelopeV2VerifierContext = {
+  docId: string
+  peerId: string
+  messageType: SyncMessage['type']
+}
+
+export type YjsEnvelopeV2Verifier = (
+  envelope: SignedYjsEnvelopeV2,
+  context: YjsEnvelopeV2VerifierContext
+) => YjsEnvelopeV2VerifierResult | Promise<YjsEnvelopeV2VerifierResult>
+
 type RelayOptions = {
   replication?: SyncReplicationConfig
   signing: {
     authorDID: string
     signingKey: Uint8Array
   }
+  verifyV2Envelope?: YjsEnvelopeV2Verifier
 }
 
 type UpdateResult = {
@@ -45,7 +69,29 @@ const toBase64 = (data: Uint8Array): string => Buffer.from(data).toString('base6
 
 const fromBase64 = (value: string): Uint8Array => new Uint8Array(Buffer.from(value, 'base64'))
 
-const deserializeEnvelope = (data: Record<string, unknown>): SignedYjsEnvelope | null => {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === 'object')
+
+const isV1EnvelopeWire = (value: unknown): value is Record<string, unknown> =>
+  isRecord(value) &&
+  typeof value.update === 'string' &&
+  typeof value.authorDID === 'string' &&
+  typeof value.signature === 'string' &&
+  typeof value.timestamp === 'number' &&
+  typeof value.clientId === 'number'
+
+const isV2EnvelopeWire = (value: unknown): value is SignedYjsEnvelopeWire =>
+  isRecord(value) &&
+  value.v === 2 &&
+  typeof value.u === 'string' &&
+  isRecord(value.m) &&
+  typeof value.m.a === 'string' &&
+  typeof value.m.c === 'number' &&
+  typeof value.m.t === 'number' &&
+  typeof value.m.d === 'string' &&
+  isRecord(value.s)
+
+const deserializeV1Envelope = (data: Record<string, unknown>): SignedYjsEnvelopeV1 | null => {
   try {
     return {
       update: fromBase64(data.update as string),
@@ -59,12 +105,27 @@ const deserializeEnvelope = (data: Record<string, unknown>): SignedYjsEnvelope |
   }
 }
 
-const hasEnvelope = (data: Record<string, unknown>): boolean =>
-  typeof data.envelope === 'object' &&
-  data.envelope !== null &&
-  'update' in (data.envelope as object) &&
-  'authorDID' in (data.envelope as object) &&
-  'signature' in (data.envelope as object)
+const deserializeEnvelope = (value: unknown): SignedYjsEnvelope | null => {
+  if (isV2EnvelopeWire(value)) {
+    try {
+      return deserializeYjsEnvelope(value)
+    } catch {
+      return null
+    }
+  }
+
+  if (isV1EnvelopeWire(value)) {
+    return deserializeV1Envelope(value)
+  }
+
+  return null
+}
+
+const getEnvelope = (data: SyncMessage): unknown | null =>
+  'envelope' in data ? data.envelope : null
+
+const verifierResultIsValid = (result: YjsEnvelopeV2VerifierResult): boolean =>
+  typeof result === 'boolean' ? result : result.valid
 
 const hasPeerId = (data: SyncMessage): data is SyncMessage & { from: string } =>
   typeof data.from === 'string' && data.from.length > 0
@@ -142,7 +203,7 @@ export class RelayService {
 
       case 'sync-step2': {
         if (data.to && data.to !== HUB_PEER_ID) return
-        const updateResult = this.extractUpdate(data)
+        const updateResult = await this.extractUpdate(docId, data)
         if (!updateResult) return
         const doc = await this.pool.get(docId)
         Y.applyUpdate(doc, updateResult.update, 'relay')
@@ -151,7 +212,7 @@ export class RelayService {
       }
 
       case 'sync-update': {
-        const updateResult = this.extractUpdate(data)
+        const updateResult = await this.extractUpdate(docId, data)
         if (!updateResult) return
         const doc = await this.pool.get(docId)
         Y.applyUpdate(doc, updateResult.update, 'relay')
@@ -200,7 +261,7 @@ export class RelayService {
     return topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : null
   }
 
-  private extractUpdate(data: SyncMessage): UpdateResult | null {
+  private async extractUpdate(docId: string, data: SyncMessage): Promise<UpdateResult | null> {
     if (!hasPeerId(data)) return null
 
     const peerId = data.from
@@ -210,10 +271,9 @@ export class RelayService {
       return null
     }
 
-    if (data && hasEnvelope(data as Record<string, unknown>)) {
-      const envelope = deserializeEnvelope(
-        (data as Record<string, unknown>).envelope as Record<string, unknown>
-      )
+    const rawEnvelope = getEnvelope(data)
+    if (rawEnvelope) {
+      const envelope = deserializeEnvelope(rawEnvelope)
       if (!envelope) {
         this.peerScorer.penalize(peerId, 'invalidSignature')
         return null
@@ -224,7 +284,11 @@ export class RelayService {
         return null
       }
 
-      const result = envelope ? this.verifyEnvelope(envelope) : null
+      const result = await this.verifyEnvelope(envelope, {
+        docId,
+        peerId,
+        messageType: data.type
+      })
       if (!result) {
         this.peerScorer.penalize(peerId, 'invalidSignature')
         return null
@@ -250,22 +314,28 @@ export class RelayService {
     return { update, peerId }
   }
 
-  private verifyEnvelope(envelope: SignedYjsEnvelope): boolean {
+  private async verifyEnvelope(
+    envelope: SignedYjsEnvelope,
+    context: YjsEnvelopeV2VerifierContext
+  ): Promise<boolean> {
     if (isUpdateTooLarge(envelope.update, MAX_YJS_UPDATE_SIZE)) {
       return false
     }
 
-    // Hub relay only handles V1 envelopes for now (legacy format)
-    // V2 envelopes with multi-level signatures require async verification
-    // which will be handled in a future update
-    if (!isV1Envelope(envelope)) {
-      // For V2 envelopes, we'd need async verification with a PQ registry
-      // For now, accept them on the wire but skip cryptographic verification
-      // The receiving client will verify with their local registry
-      return true
+    if (isV1Envelope(envelope)) {
+      const result = verifyYjsEnvelopeV1(envelope)
+      return result.valid
     }
 
-    const result = verifyYjsEnvelopeV1(envelope)
-    return result.valid
+    if (isV2Envelope(envelope)) {
+      if (envelope.meta.docId !== context.docId || !this.options.verifyV2Envelope) {
+        return false
+      }
+
+      const result = await this.options.verifyV2Envelope(envelope, context)
+      return verifierResultIsValid(result)
+    }
+
+    return false
   }
 }

@@ -11,6 +11,11 @@ export { resolveConfig } from './config'
 export type { HubConfig, HubInstance, DemoOverrides } from './types'
 export { DEMO_DEFAULTS } from './types'
 export { getDemoOverrides } from './config'
+export type {
+  YjsEnvelopeV2Verifier,
+  YjsEnvelopeV2VerifierContext,
+  YjsEnvelopeV2VerifierResult
+} from './services/relay'
 export { EvictionService, type EvictionStorage } from './services/eviction'
 export {
   HUB_ACTION_MAP,

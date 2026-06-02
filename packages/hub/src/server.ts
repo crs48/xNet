@@ -381,6 +381,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const relayIdentity = generateIdentity()
   const relay = new RelayService(pool, {
     replication: config.sync,
+    verifyV2Envelope: config.syncVerification?.verifyV2Envelope,
     signing: {
       authorDID: relayIdentity.identity.did,
       signingKey: relayIdentity.privateKey
