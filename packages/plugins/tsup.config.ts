@@ -20,6 +20,6 @@ export default defineConfig([
     outDir: 'dist/services',
     splitting: false,
     // Mark Node.js built-ins as external
-    external: ['http', 'child_process', 'net', 'readline', 'url']
+    external: ['http', 'child_process', 'net', 'readline', 'url', 'crypto', 'fs/promises', 'path']
   }
 ])

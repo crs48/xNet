@@ -1321,16 +1321,16 @@ Workspace:
 
 ### Phase 3: AI Workspace Folder Projection
 
-- [ ] Add export job for scoped AI workspace folders.
-- [ ] Generate `AGENTS.md` with xNet editing rules.
-- [ ] Generate `.mcp.json` for Claude Code and `.codex/config.toml` guidance for Codex.
-- [ ] Export pages as Markdown.
-- [ ] Export databases as schema/views/rows JSON files.
-- [ ] Export canvases as JSON Canvas plus xNet sidecars.
-- [ ] Write `.xnet/manifest.jsonl` with ids, paths, hashes, and revisions.
+- [x] Add export job for scoped AI workspace folders.
+- [x] Generate `AGENTS.md` with xNet editing rules.
+- [x] Generate `.mcp.json` for Claude Code and `.codex/config.toml` guidance for Codex.
+- [x] Export pages as Markdown.
+- [x] Export databases as schema/views/rows JSON files.
+- [x] Export canvases as JSON Canvas plus xNet sidecars.
+- [x] Write `.xnet/manifest.jsonl` with ids, paths, hashes, and revisions.
 - [ ] Add watcher that converts changed files into mutation plans.
 - [ ] Add conflict handling folder and UI review.
-- [ ] Add tests for export/import id stability and title rename behavior.
+- [x] Add tests for export/import id stability and title rename behavior.
 
 ### Phase 4: Database AI Tools
 

@@ -27,6 +27,17 @@ export type {
 } from './mcp-server'
 export { MCPServer, createMCPServer } from './mcp-server'
 
+// AI workspace exporter (uses Node.js fs/path/crypto modules)
+export type {
+  AiWorkspaceExporterConfig,
+  AiWorkspaceExportKind,
+  AiWorkspaceExportOptions,
+  AiWorkspaceExportResult,
+  AiWorkspaceExportScope,
+  AiWorkspaceManifestEntry
+} from './ai-workspace-exporter'
+export { AiWorkspaceExporter, createAiWorkspaceExporter } from './ai-workspace-exporter'
+
 // AI surface contract
 export type {
   AiAuditEvent,
