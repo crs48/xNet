@@ -1063,7 +1063,7 @@ Every hub should publish:
 
 - [x] A small self-hosted hub can run with AI review disabled and still resist common floods.
 - [x] A community hub can subscribe to shared policy lists without surrendering local override.
-- [ ] A public search hub can publish its crawl/index/review budgets.
+- [x] A public search hub can publish its crawl/index/review budgets.
 - [x] Usage events distinguish free, paid, sponsored, reciprocal, and abuse-blocked work.
 - [ ] Abuse queues remain bounded under report spam and crawler spam.
 - [ ] Metrics allow operators to see whether automation is saving cost or creating appeal load.
