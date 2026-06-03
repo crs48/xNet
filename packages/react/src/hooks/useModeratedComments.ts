@@ -52,6 +52,7 @@ export interface ModerationLabelSummary {
   sourceDID?: string
   evidenceRefs?: string
   expiresAt?: number
+  negates?: string
   createdAt: number
 }
 
@@ -229,6 +230,7 @@ export function summarizeModerationLabel(
     sourceDID: asString(node.properties.sourceDID),
     evidenceRefs: asString(node.properties.evidenceRefs),
     expiresAt,
+    negates: asString(node.properties.negates),
     createdAt: node.createdAt
   }
 }
@@ -733,8 +735,12 @@ function filterActiveLabels(
 ): ModerationLabelSummary[] {
   const activeLabels = new Set(policy?.activeLabels ?? [])
   const minimumConfidence = minimumLabelConfidence ?? 0
+  const negatedLabelIds = new Set(
+    labels.flatMap((label) => (label.negates !== undefined ? [label.negates] : []))
+  )
 
   return labels.filter((label) => {
+    if (negatedLabelIds.has(label.id)) return false
     if (label.confidence < minimumConfidence) return false
     return activeLabels.size === 0 || activeLabels.has(label.value)
   })

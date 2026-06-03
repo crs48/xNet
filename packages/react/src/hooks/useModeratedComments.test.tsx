@@ -3,6 +3,7 @@ import type {
   ModerationLabelSummary,
   PublicInteractionPolicySnapshot
 } from './useModeratedComments'
+import type { DID, NodeState, SchemaIRI } from '@xnetjs/data'
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import {
@@ -12,6 +13,7 @@ import {
   moderateThread,
   selectActiveInteractionPolicy,
   selectPublicInteractionMode,
+  summarizeModerationLabel,
   useModeratedThread
 } from './useModeratedComments'
 
@@ -39,7 +41,8 @@ const createComment = (id: string, inReplyTo?: string): CommentNode => ({
 const createLabel = (
   target: string,
   value: string,
-  confidence: number
+  confidence: number,
+  overrides: Partial<ModerationLabelSummary> = {}
 ): ModerationLabelSummary => ({
   id: `${target}-${value}`,
   target,
@@ -47,7 +50,8 @@ const createLabel = (
   confidence,
   sourceWeight: 1,
   sourceType: 'policy-list',
-  createdAt: 1
+  createdAt: 1,
+  ...overrides
 })
 
 const createPolicy = (
@@ -116,6 +120,63 @@ describe('moderated comment helpers', () => {
 
     expect(moderated.visibility).toBe('visible')
     expect(moderated.visible).toBe(true)
+  })
+
+  it('summarizes traceable labels and filters expired labels', () => {
+    const node: NodeState = {
+      id: 'label-1',
+      schemaId: 'xnet://xnet.fyi/ModerationLabel@1.0.0' as SchemaIRI,
+      properties: {
+        target: 'comment-1',
+        value: 'safe',
+        confidence: 0.8,
+        sourceWeight: 1,
+        sourceType: 'user',
+        sourceDID: testDID,
+        evidenceRefs: 'appeal:1',
+        expiresAt: 2_000,
+        negates: 'label-spam'
+      },
+      timestamps: {},
+      deleted: false,
+      createdAt: 1,
+      createdBy: testDID as DID,
+      updatedAt: 1,
+      updatedBy: testDID as DID
+    }
+
+    expect(summarizeModerationLabel(node, 1_000)).toMatchObject({
+      id: 'label-1',
+      target: 'comment-1',
+      value: 'safe',
+      sourceDID: testDID,
+      evidenceRefs: 'appeal:1',
+      expiresAt: 2_000,
+      negates: 'label-spam'
+    })
+    expect(summarizeModerationLabel(node, 2_000)).toBeNull()
+  })
+
+  it('lets active negation labels suppress the label they reference', () => {
+    const comment = createComment('comment-1')
+    const spamLabel = createLabel(comment.id, 'spam', 0.95, {
+      id: 'label-spam',
+      sourceDID: 'did:key:spam-labeler'
+    })
+    const appealLabel = createLabel(comment.id, 'safe', 0.8, {
+      id: 'label-appeal',
+      sourceDID: testDID,
+      negates: spamLabel.id
+    })
+
+    const moderated = evaluateCommentModeration(comment, {
+      labels: [spamLabel, appealLabel],
+      policy: createPolicy()
+    })
+
+    expect(moderated.visibility).toBe('visible')
+    expect(moderated.visible).toBe(true)
+    expect(moderated.labels.map((label) => label.id)).toEqual(['label-appeal'])
   })
 
   it('filters hidden replies from moderated threads', () => {
