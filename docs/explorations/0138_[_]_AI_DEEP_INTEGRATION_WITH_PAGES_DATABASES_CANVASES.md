@@ -1365,13 +1365,13 @@ Workspace:
 
 ### Phase 7: Provider Router
 
-- [ ] Replace simple provider `generate(prompt)` flows with a tool-capable model adapter.
-- [ ] Support OpenAI-compatible endpoints for OpenRouter, Ollama, LM Studio, vLLM, and LiteLLM.
-- [ ] Support streaming and structured JSON schema outputs.
-- [ ] Add model capability metadata: tools, structured outputs, context window, local/cloud, cost, privacy.
-- [ ] Route low-risk local tasks to local models when available.
-- [ ] Route high-complexity write plans to stronger configured models.
-- [ ] Add per-provider usage/cost tracking.
+- [x] Replace simple provider `generate(prompt)` flows with a tool-capable model adapter.
+- [x] Support OpenAI-compatible endpoints for OpenRouter, Ollama, LM Studio, vLLM, and LiteLLM.
+- [x] Support streaming and structured JSON schema outputs.
+- [x] Add model capability metadata: tools, structured outputs, context window, local/cloud, cost, privacy.
+- [x] Route low-risk local tasks to local models when available.
+- [x] Route high-complexity write plans to stronger configured models.
+- [x] Add per-provider usage/cost tracking.
 
 ### Phase 8: Hardening and Evals
 
