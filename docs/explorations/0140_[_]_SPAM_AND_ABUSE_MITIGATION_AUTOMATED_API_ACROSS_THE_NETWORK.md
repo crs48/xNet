@@ -1048,7 +1048,7 @@ Every hub should publish:
 - [x] Labels can expire, be negated, be overridden locally, and be traced to a source DID.
 - [x] Reports cannot directly hide content unless a policy says the reporter/labeler is trusted.
 - [x] Hidden content is excluded from counters and ranking when policy requires it.
-- [ ] Appeals can reverse or annotate automated decisions.
+- [x] Appeals can reverse or annotate automated decisions.
 
 ### AI And Quality Validation
 
