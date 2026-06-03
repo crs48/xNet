@@ -44,6 +44,7 @@ export type StagedModerationWritePolicy = {
   autoCommitConfidence?: number
   autoCommitSources?: readonly StagedModerationSourceType[]
   requireReviewSources?: readonly StagedModerationSourceType[]
+  allowCrawlerAutoCommit?: boolean
   reviewQueueByKind?: Partial<Record<StagedModerationWriteKind, AbuseReviewQueue>>
   defaultSourceWeight?: number
   stagedExpiresInMs?: number
@@ -267,6 +268,10 @@ function requiresReview(
   candidate: StagedModerationWriteCandidate,
   policy: StagedModerationWritePolicy
 ): boolean {
+  if (candidate.sourceType === 'crawler' && policy.allowCrawlerAutoCommit !== true) {
+    return true
+  }
+
   const reviewSources = new Set(policy.requireReviewSources ?? DEFAULT_REVIEW_SOURCES)
   return reviewSources.has(candidate.sourceType)
 }
@@ -300,6 +305,7 @@ function reviewPriority(write: StagedModerationWrite, now: number): number {
 function reviewReasons(write: StagedModerationWrite): string[] {
   return [
     write.sourceType === 'local-ai' || write.sourceType === 'cloud-ai' ? 'ai-generated' : null,
+    write.sourceType === 'crawler' ? 'untrusted-crawl' : null,
     write.kind === 'quality-signal' ? 'quality-signal' : 'moderation-label',
     `source:${write.sourceType}`,
     `confidence:${write.confidence.toFixed(2)}`
