@@ -1057,7 +1057,7 @@ Every hub should publish:
 - [x] Cloud AI review is not called for every low-risk event.
 - [x] Prompt-injection text in crawled pages cannot issue graph writes.
 - [x] Claim/citation mismatch scoring is treated as review evidence, not absolute truth.
-- [ ] False positives can be overridden by user, workspace, or reviewer policy.
+- [x] False positives can be overridden by user, workspace, or reviewer policy.
 
 ### Operational And Economic Validation
 
