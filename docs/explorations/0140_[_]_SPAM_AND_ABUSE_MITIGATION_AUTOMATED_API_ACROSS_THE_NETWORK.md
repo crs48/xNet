@@ -1015,7 +1015,7 @@ Every hub should publish:
 - [x] Add optional cloud moderation/classification adapter with explicit budget and privacy policy.
 - [x] Add claim extraction and citation coverage scoring for published knowledge pages.
 - [x] Add community-note-style rating and diversity agreement experiments.
-- [ ] Add staged write flow for AI-generated moderation or quality labels.
+- [x] Add staged write flow for AI-generated moderation or quality labels.
 - [ ] Add model/provider provenance to every AI-generated signal.
 
 ### Phase 6 - Economic And Operator Controls
