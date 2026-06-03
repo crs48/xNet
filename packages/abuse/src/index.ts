@@ -80,6 +80,7 @@ export {
   verifySignedPolicyBlockList
 } from './policy-blocks'
 export { createPublicWriteBudgetKey, evaluatePublicWriteBudget } from './public-write-budget'
+export { createQueryCostBudgetKey, evaluateQueryCostBudget } from './query-cost-budget'
 export {
   bucketAbusePeerScore,
   createRemoteMutationRejectionTelemetry,
@@ -210,3 +211,13 @@ export type {
   PublicWriteBudgetScope,
   PublicWriteBudgetUsage
 } from './public-write-budget'
+export type {
+  QueryCostBudgetCharge,
+  QueryCostBudgetDecision,
+  QueryCostBudgetInput,
+  QueryCostBudgetLimit,
+  QueryCostBudgetPolicy,
+  QueryCostBudgetScope,
+  QueryCostBudgetUsage,
+  QueryCostBudgetWorkType
+} from './query-cost-budget'
