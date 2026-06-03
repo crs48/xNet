@@ -11,6 +11,8 @@ import type {
   AbusePolicyDecisionEvent,
   AbuseQueueSnapshot,
   AbuseQueueStateEvent,
+  AbuseUsageSummaryEvent,
+  AbuseUsageSummarySnapshot,
   DevToolsEvent,
   PeerScoreSnapshot,
   TelemetryPeerScoresEvent
@@ -20,7 +22,7 @@ import { useDevTools } from '../../provider/useDevTools'
 
 // ─── Types ─────────────────────────────────────────────────
 
-export type AbuseSubTab = 'decisions' | 'peers' | 'labels' | 'queues'
+export type AbuseSubTab = 'decisions' | 'peers' | 'labels' | 'queues' | 'usage'
 
 export type PolicyDecisionEntry = {
   id: string
@@ -65,6 +67,16 @@ export type AbusePanelState = {
   labels: LabelEntry[]
   peerScores: PeerScoreSnapshot[]
   queues: AbuseQueueSnapshot[]
+  usageSummaries: UsageSummaryEntry[]
+}
+
+export type UsageSummaryEntry = {
+  id: string
+  timestamp: number
+  period?: string
+  hubId?: string
+  workspaceId?: string
+  summary: AbuseUsageSummarySnapshot
 }
 
 export type AbusePanelSummary = {
@@ -78,6 +90,11 @@ export type AbusePanelSummary = {
   labels: number
   pendingQueueItems: number
   riskyPeers: number
+  usageSnapshots: number
+  automationSavedUnits: number
+  automationSavedCostMicroUsd: number
+  appealLoadRatio: number
+  reviewLoadRatio: number
 }
 
 const ABUSE_EVENT_TYPES = new Set<DevToolsEvent['type']>([
@@ -85,17 +102,20 @@ const ABUSE_EVENT_TYPES = new Set<DevToolsEvent['type']>([
   'abuse:label',
   'abuse:queue-state',
   'abuse:peer-scores',
+  'abuse:usage-summary',
   'telemetry:peer-scores'
 ])
 
 const MAX_DECISIONS = 500
 const MAX_LABELS = 500
+const MAX_USAGE_SUMMARIES = 100
 
 const EMPTY_STATE: AbusePanelState = {
   decisions: [],
   labels: [],
   peerScores: [],
-  queues: []
+  queues: [],
+  usageSummaries: []
 }
 
 // ─── Hook ──────────────────────────────────────────────────
@@ -125,6 +145,7 @@ export function useAbusePanel() {
     labels: [...state.labels].reverse(),
     peerScores: state.peerScores,
     queues: state.queues,
+    usageSummaries: [...state.usageSummaries].reverse(),
     summary: summarizeAbusePanelState(state)
   }
 }
@@ -215,10 +236,30 @@ export function reduceAbusePanelState(
         ...state,
         peerScores: event.scores.map((score) => ({ ...score }))
       }
+    case 'abuse:usage-summary':
+      return {
+        ...state,
+        usageSummaries: trim(
+          [
+            ...state.usageSummaries,
+            {
+              id: event.id,
+              timestamp: event.wallTime,
+              period: event.period,
+              hubId: event.hubId,
+              workspaceId: event.workspaceId,
+              summary: cloneUsageSummary(event.summary)
+            }
+          ],
+          MAX_USAGE_SUMMARIES
+        )
+      }
   }
 }
 
 export function summarizeAbusePanelState(state: AbusePanelState): AbusePanelSummary {
+  const latestUsage = state.usageSummaries.at(-1)?.summary
+
   return {
     totalDecisions: state.decisions.length,
     accepted: state.decisions.filter((decision) => decision.admission === 'accept').length,
@@ -231,7 +272,12 @@ export function summarizeAbusePanelState(state: AbusePanelState): AbusePanelSumm
     searchExcluded: state.decisions.filter((decision) => !decision.includeInSearch).length,
     labels: state.labels.length,
     pendingQueueItems: state.queues.reduce((total, queue) => total + queue.pending, 0),
-    riskyPeers: state.peerScores.filter((peer) => peer.score <= 30).length
+    riskyPeers: state.peerScores.filter((peer) => peer.score <= 30).length,
+    usageSnapshots: state.usageSummaries.length,
+    automationSavedUnits: latestUsage?.automationSavedUnits ?? 0,
+    automationSavedCostMicroUsd: latestUsage?.automationSavedCostMicroUsd ?? 0,
+    appealLoadRatio: latestUsage?.appealLoadRatio ?? 0,
+    reviewLoadRatio: latestUsage?.reviewLoadRatio ?? 0
   }
 }
 
@@ -244,8 +290,21 @@ type AbusePanelEvent =
   | AbuseLabelEvent
   | AbuseQueueStateEvent
   | AbusePeerScoresEvent
+  | AbuseUsageSummaryEvent
   | TelemetryPeerScoresEvent
 
 function trim<T>(items: T[], maxLength: number): T[] {
   return items.length > maxLength ? items.slice(-maxLength) : items
+}
+
+function cloneUsageSummary(summary: AbuseUsageSummarySnapshot): AbuseUsageSummarySnapshot {
+  return {
+    ...summary,
+    kindCounts: summary.kindCounts ? { ...summary.kindCounts } : undefined,
+    settlementCounts: summary.settlementCounts ? { ...summary.settlementCounts } : undefined,
+    unitsByKind: summary.unitsByKind ? { ...summary.unitsByKind } : undefined,
+    unitsBySettlement: summary.unitsBySettlement ? { ...summary.unitsBySettlement } : undefined,
+    eventsBySurface: summary.eventsBySurface ? { ...summary.eventsBySurface } : undefined,
+    eventsByWorkType: summary.eventsByWorkType ? { ...summary.eventsByWorkType } : undefined
+  }
 }

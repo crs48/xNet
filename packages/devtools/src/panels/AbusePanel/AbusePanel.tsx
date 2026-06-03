@@ -6,7 +6,8 @@ import type {
   AbusePanelSummary,
   AbuseSubTab,
   LabelEntry,
-  PolicyDecisionEntry
+  PolicyDecisionEntry,
+  UsageSummaryEntry
 } from './useAbusePanel'
 import type { PeerScoreSnapshot } from '../../core/types'
 import { useCallback, useState } from 'react'
@@ -23,9 +24,17 @@ export function AbusePanel() {
       labels: state.labels,
       peerScores: state.peerScores,
       queues: state.queues,
+      usageSummaries: state.usageSummaries,
       summary: state.summary
     }),
-    [state.decisions, state.labels, state.peerScores, state.queues, state.summary]
+    [
+      state.decisions,
+      state.labels,
+      state.peerScores,
+      state.queues,
+      state.usageSummaries,
+      state.summary
+    ]
   )
 
   return (
@@ -66,6 +75,13 @@ export function AbusePanel() {
           label="Queues"
           count={state.queues.length}
         />
+        <TabButton
+          id="usage"
+          active={state.subTab}
+          onClick={state.setSubTab}
+          label="Usage"
+          count={state.usageSummaries.length}
+        />
       </div>
 
       <div className="flex-1 overflow-hidden">
@@ -73,6 +89,7 @@ export function AbusePanel() {
         {state.subTab === 'peers' && <PeerScorePane scores={state.peerScores} />}
         {state.subTab === 'labels' && <LabelsPane labels={state.labels} />}
         {state.subTab === 'queues' && <QueuesPane queues={state.queues} />}
+        {state.subTab === 'usage' && <UsagePane summaries={state.usageSummaries} />}
       </div>
     </div>
   )
@@ -107,6 +124,16 @@ function SummaryStrip({ summary }: { summary: AbusePanelSummary }) {
         value={summary.riskyPeers}
         tone={summary.riskyPeers > 0 ? 'red' : 'zinc'}
       />
+      <SummaryPill
+        label="Saved"
+        value={summary.automationSavedUnits}
+        tone={summary.automationSavedUnits > 0 ? 'green' : 'zinc'}
+      />
+      <SummaryPill
+        label="Appeal"
+        value={formatPercent(summary.appealLoadRatio)}
+        tone={summary.appealLoadRatio > 0.2 ? 'yellow' : 'zinc'}
+      />
     </div>
   )
 }
@@ -117,12 +144,13 @@ function SummaryPill({
   tone = 'zinc'
 }: {
   label: string
-  value: number
-  tone?: 'zinc' | 'blue' | 'yellow' | 'red'
+  value: number | string
+  tone?: 'zinc' | 'blue' | 'green' | 'yellow' | 'red'
 }) {
   const toneClass: Record<typeof tone, string> = {
     zinc: 'border-zinc-800 text-zinc-400',
     blue: 'border-blue-900/70 text-blue-300',
+    green: 'border-green-900/70 text-green-300',
     yellow: 'border-yellow-900/70 text-yellow-300',
     red: 'border-red-900/70 text-red-300'
   }
@@ -404,6 +432,114 @@ function QueuesPane({ queues }: { queues: ReturnType<typeof useAbusePanel>['queu
   )
 }
 
+function UsagePane({ summaries }: { summaries: UsageSummaryEntry[] }) {
+  const latest = summaries[0] ?? null
+
+  if (!latest) {
+    return <EmptyState text="No abuse usage summaries recorded" />
+  }
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="p-3 border-b border-zinc-800">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h4 className="text-[11px] font-semibold text-zinc-200">Latest Usage Summary</h4>
+            <div className="text-[9px] text-zinc-600 mt-0.5">
+              {latest.period ?? 'current period'} / {relativeTime(latest.timestamp)}
+            </div>
+          </div>
+          <Badge value={`${summaries.length} snapshots`} className="bg-zinc-900 text-zinc-400" />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+          <MetricTile label="Total Units" value={formatNumber(latest.summary.totalUnits)} />
+          <MetricTile
+            label="Automation Saved"
+            value={formatNumber(latest.summary.automationSavedUnits)}
+            tone={latest.summary.automationSavedUnits > 0 ? 'green' : 'zinc'}
+          />
+          <MetricTile
+            label="Saved Cost"
+            value={formatMicroUsd(latest.summary.automationSavedCostMicroUsd)}
+            tone={latest.summary.automationSavedCostMicroUsd > 0 ? 'green' : 'zinc'}
+          />
+          <MetricTile
+            label="Appeal Load"
+            value={formatPercent(latest.summary.appealLoadRatio)}
+            tone={latest.summary.appealLoadRatio > 0.2 ? 'yellow' : 'zinc'}
+          />
+          <MetricTile label="Review Load" value={formatPercent(latest.summary.reviewLoadRatio)} />
+          <MetricTile
+            label="Blocked"
+            value={formatNumber(latest.summary.blockedUnits)}
+            tone={latest.summary.blockedUnits > 0 ? 'red' : 'zinc'}
+          />
+          <MetricTile
+            label="Throttled"
+            value={formatNumber(latest.summary.throttledUnits)}
+            tone={latest.summary.throttledUnits > 0 ? 'yellow' : 'zinc'}
+          />
+          <MetricTile
+            label="Appeal Cost"
+            value={formatMicroUsd(latest.summary.appealCostMicroUsd)}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[120px_1fr_90px_90px_90px_90px] gap-2 px-3 py-1.5 border-b border-zinc-800 text-[9px] uppercase text-zinc-500 font-semibold sticky top-0 bg-zinc-950">
+        <span>When</span>
+        <span>Scope</span>
+        <span>Saved</span>
+        <span>Appeal</span>
+        <span>Review</span>
+        <span>Cost</span>
+      </div>
+      {summaries.map((entry) => (
+        <div
+          key={entry.id}
+          className="grid grid-cols-[120px_1fr_90px_90px_90px_90px] gap-2 px-3 py-2 border-b border-zinc-800/50 text-[10px]"
+        >
+          <span className="text-zinc-600">{relativeTime(entry.timestamp)}</span>
+          <span className="text-zinc-300 truncate">
+            {[entry.hubId, entry.workspaceId, entry.period].filter(Boolean).join(' / ') || 'local'}
+          </span>
+          <span className="text-green-300">{formatNumber(entry.summary.automationSavedUnits)}</span>
+          <span className="text-zinc-400">{formatPercent(entry.summary.appealLoadRatio)}</span>
+          <span className="text-zinc-400">{formatPercent(entry.summary.reviewLoadRatio)}</span>
+          <span className="text-zinc-500">
+            {formatMicroUsd(entry.summary.automationSavedCostMicroUsd)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function MetricTile({
+  label,
+  value,
+  tone = 'zinc'
+}: {
+  label: string
+  value: string
+  tone?: 'zinc' | 'green' | 'yellow' | 'red'
+}) {
+  const valueClass: Record<typeof tone, string> = {
+    zinc: 'text-zinc-200',
+    green: 'text-green-300',
+    yellow: 'text-yellow-300',
+    red: 'text-red-300'
+  }
+
+  return (
+    <div className="border border-zinc-800 rounded p-2 min-w-0">
+      <div className="text-[9px] text-zinc-500 uppercase">{label}</div>
+      <div className={`text-[13px] font-mono mt-1 truncate ${valueClass[tone]}`}>{value}</div>
+    </div>
+  )
+}
+
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-2 min-w-0">
@@ -476,4 +612,16 @@ function getPeerScoreClass(score: number): string {
   if (score <= 30) return 'text-orange-300'
   if (score <= 50) return 'text-yellow-300'
   return 'text-green-300'
+}
+
+function formatNumber(value: number): string {
+  return Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value)
+}
+
+function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`
+}
+
+function formatMicroUsd(value: number): string {
+  return `$${(value / 1_000_000).toFixed(value >= 100_000 ? 2 : 4)}`
 }

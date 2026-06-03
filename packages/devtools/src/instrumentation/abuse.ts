@@ -10,7 +10,8 @@ import type {
   AbuseLabelEvent,
   AbusePeerScoresEvent,
   AbusePolicyDecisionEvent,
-  AbuseQueueStateEvent
+  AbuseQueueStateEvent,
+  AbuseUsageSummaryEvent
 } from '../core/types'
 
 export type AbusePolicyDecisionInput = Omit<
@@ -32,6 +33,11 @@ export type AbuseQueueStateInput = Omit<
 
 export type AbusePeerScoresInput = Omit<
   AbusePeerScoresEvent,
+  'id' | 'timestamp' | 'wallTime' | 'type'
+>
+
+export type AbuseUsageSummaryInput = Omit<
+  AbuseUsageSummaryEvent,
   'id' | 'timestamp' | 'wallTime' | 'type'
 >
 
@@ -75,5 +81,31 @@ export function emitAbusePeerScores(bus: DevToolsEventBus, state: AbusePeerScore
   bus.emit({
     type: 'abuse:peer-scores',
     scores: state.scores.map((score) => ({ ...score }))
+  })
+}
+
+export function emitAbuseUsageSummary(bus: DevToolsEventBus, state: AbuseUsageSummaryInput): void {
+  bus.emit({
+    type: 'abuse:usage-summary',
+    period: state.period,
+    hubId: state.hubId,
+    workspaceId: state.workspaceId,
+    summary: {
+      ...state.summary,
+      kindCounts: state.summary.kindCounts ? { ...state.summary.kindCounts } : undefined,
+      settlementCounts: state.summary.settlementCounts
+        ? { ...state.summary.settlementCounts }
+        : undefined,
+      unitsByKind: state.summary.unitsByKind ? { ...state.summary.unitsByKind } : undefined,
+      unitsBySettlement: state.summary.unitsBySettlement
+        ? { ...state.summary.unitsBySettlement }
+        : undefined,
+      eventsBySurface: state.summary.eventsBySurface
+        ? { ...state.summary.eventsBySurface }
+        : undefined,
+      eventsByWorkType: state.summary.eventsByWorkType
+        ? { ...state.summary.eventsByWorkType }
+        : undefined
+    }
   })
 }

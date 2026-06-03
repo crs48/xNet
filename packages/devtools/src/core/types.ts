@@ -311,6 +311,39 @@ export interface AbusePeerScoresEvent extends DevToolsEventBase {
   scores: PeerScoreSnapshot[]
 }
 
+export interface AbuseUsageSummaryEvent extends DevToolsEventBase {
+  type: 'abuse:usage-summary'
+  summary: AbuseUsageSummarySnapshot
+  period?: string
+  hubId?: string
+  workspaceId?: string
+}
+
+export interface AbuseUsageSummarySnapshot {
+  totalEvents: number
+  totalUnits: number
+  kindCounts?: Record<string, number>
+  settlementCounts?: Record<string, number>
+  unitsByKind?: Record<string, number>
+  unitsBySettlement?: Record<string, number>
+  eventsBySurface?: Record<string, number>
+  eventsByWorkType?: Record<string, number>
+  costMicroUsd: number
+  billableMicroUsd: number
+  sponsoredMicroUsd: number
+  reciprocalCreditUnits: number
+  blockedUnits: number
+  throttledUnits: number
+  reviewedUnits: number
+  automationSavedUnits: number
+  automationSavedCostMicroUsd: number
+  appealUnits: number
+  appealCostMicroUsd: number
+  automationSavingsRatio: number
+  reviewLoadRatio: number
+  appealLoadRatio: number
+}
+
 // ─── Union Type ────────────────────────────────────────────
 
 export type DevToolsEvent =
@@ -348,6 +381,7 @@ export type DevToolsEvent =
   | AbuseLabelEvent
   | AbuseQueueStateEvent
   | AbusePeerScoresEvent
+  | AbuseUsageSummaryEvent
 
 export type DevToolsEventType = DevToolsEvent['type']
 

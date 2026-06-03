@@ -4,7 +4,8 @@ import {
   emitAbuseLabel,
   emitAbusePeerScores,
   emitAbusePolicyDecision,
-  emitAbuseQueueState
+  emitAbuseQueueState,
+  emitAbuseUsageSummary
 } from '../instrumentation/abuse'
 import { rebuildAbusePanelState, summarizeAbusePanelState } from './AbusePanel/useAbusePanel'
 import { DEVTOOLS_PANELS } from './panel-registry'
@@ -75,6 +76,29 @@ describe('Abuse panel wiring', () => {
       ]
     })
 
+    emitAbuseUsageSummary(bus, {
+      period: 'last-hour',
+      hubId: 'hub-a',
+      summary: {
+        totalEvents: 5,
+        totalUnits: 24,
+        costMicroUsd: 780,
+        billableMicroUsd: 50,
+        sponsoredMicroUsd: 0,
+        reciprocalCreditUnits: 0,
+        blockedUnits: 10,
+        throttledUnits: 4,
+        reviewedUnits: 5,
+        automationSavedUnits: 14,
+        automationSavedCostMicroUsd: 600,
+        appealUnits: 3,
+        appealCostMicroUsd: 90,
+        automationSavingsRatio: 14 / 24,
+        reviewLoadRatio: 5 / 24,
+        appealLoadRatio: 3 / 24
+      }
+    })
+
     const state = rebuildAbusePanelState(bus.getEvents())
     const summary = summarizeAbusePanelState(state)
 
@@ -88,6 +112,15 @@ describe('Abuse panel wiring', () => {
     expect(state.labels[0]).toMatchObject({ value: 'spam', action: 'applied' })
     expect(state.queues[0]).toMatchObject({ queue: 'safety', pending: 2 })
     expect(state.peerScores[0]).toMatchObject({ peerId: 'peer-1', score: 8 })
+    expect(state.usageSummaries[0]).toMatchObject({
+      period: 'last-hour',
+      hubId: 'hub-a',
+      summary: {
+        automationSavedUnits: 14,
+        automationSavedCostMicroUsd: 600,
+        appealLoadRatio: 3 / 24
+      }
+    })
     expect(summary).toMatchObject({
       totalDecisions: 1,
       rejected: 1,
@@ -95,7 +128,11 @@ describe('Abuse panel wiring', () => {
       searchExcluded: 1,
       labels: 1,
       pendingQueueItems: 2,
-      riskyPeers: 1
+      riskyPeers: 1,
+      usageSnapshots: 1,
+      automationSavedUnits: 14,
+      automationSavedCostMicroUsd: 600,
+      appealLoadRatio: 3 / 24
     })
   })
 })
