@@ -103,6 +103,8 @@ export {
   type CommunityNote,
   ContentProvenanceSchema,
   type ContentProvenance,
+  MessageRequestSchema,
+  type MessageRequest,
   ModerationLabelSchema,
   type ModerationLabel,
   NoteRatingSchema,

@@ -20,6 +20,7 @@ export {
   AppealSchema,
   CommunityNoteSchema,
   ContentProvenanceSchema,
+  MessageRequestSchema,
   ModerationLabelSchema,
   NoteRatingSchema,
   PolicyListSchema,
@@ -31,6 +32,7 @@ export {
   type Appeal,
   type CommunityNote,
   type ContentProvenance,
+  type MessageRequest,
   type ModerationLabel,
   type NoteRating,
   type PolicyList,
@@ -118,6 +120,8 @@ export const builtInSchemas = {
     import('./moderation').then((m) => m.PolicySubscriptionSchema),
   'xnet://xnet.fyi/PublicInteractionPolicy@1.0.0': () =>
     import('./moderation').then((m) => m.PublicInteractionPolicySchema),
+  'xnet://xnet.fyi/MessageRequest@1.0.0': () =>
+    import('./moderation').then((m) => m.MessageRequestSchema),
   'xnet://xnet.fyi/CommunityNote@1.0.0': () =>
     import('./moderation').then((m) => m.CommunityNoteSchema),
   'xnet://xnet.fyi/NoteRating@1.0.0': () => import('./moderation').then((m) => m.NoteRatingSchema),
@@ -148,6 +152,8 @@ export const builtInSchemas = {
     import('./moderation').then((m) => m.PolicySubscriptionSchema),
   'xnet://xnet.fyi/PublicInteractionPolicy': () =>
     import('./moderation').then((m) => m.PublicInteractionPolicySchema),
+  'xnet://xnet.fyi/MessageRequest': () =>
+    import('./moderation').then((m) => m.MessageRequestSchema),
   'xnet://xnet.fyi/CommunityNote': () => import('./moderation').then((m) => m.CommunityNoteSchema),
   'xnet://xnet.fyi/NoteRating': () => import('./moderation').then((m) => m.NoteRatingSchema),
   'xnet://xnet.fyi/QualitySignal': () => import('./moderation').then((m) => m.QualitySignalSchema),

@@ -141,6 +141,18 @@ const publicInteractionPolicyAuthorization = createModerationAuthorization({
   ]
 })
 
+const messageRequestAuthorization = createModerationAuthorization({
+  roles: {
+    sender: role.property('sender'),
+    recipient: role.property('recipient'),
+    reviewer: role.property('reviewers')
+  },
+  read: ['sender', 'recipient', 'reviewer'],
+  write: ['sender', 'recipient', 'reviewer'],
+  share: ['recipient', 'reviewer'],
+  admin: ['recipient', 'reviewer']
+})
+
 const communityNoteAuthorization = createModerationAuthorization({
   roles: {
     author: role.property('author'),
@@ -287,6 +299,38 @@ const defaultVisibilityModes = [
   { id: 'collapsed', name: 'Collapsed', color: 'yellow' },
   { id: 'quarantined', name: 'Quarantined', color: 'purple' },
   { id: 'hidden', name: 'Hidden', color: 'red' }
+] as const
+
+const messageRequestStatuses = [
+  { id: 'pending', name: 'Pending', color: 'yellow' },
+  { id: 'accepted', name: 'Accepted', color: 'green' },
+  { id: 'declined', name: 'Declined', color: 'gray' },
+  { id: 'quarantined', name: 'Quarantined', color: 'purple' },
+  { id: 'blocked', name: 'Blocked', color: 'red' },
+  { id: 'expired', name: 'Expired', color: 'gray' }
+] as const
+
+const firstContactAdmissionModes = [
+  { id: 'allow', name: 'Allow', color: 'green' },
+  { id: 'message-request', name: 'Message Request', color: 'blue' },
+  { id: 'quarantine', name: 'Quarantine', color: 'purple' },
+  { id: 'review', name: 'Review', color: 'yellow' },
+  { id: 'block', name: 'Block', color: 'red' }
+] as const
+
+const firstContactReasonCodes = [
+  { id: 'first-contact', name: 'First Contact', color: 'blue' },
+  { id: 'trusted-sender', name: 'Trusted Sender', color: 'green' },
+  { id: 'known-contact', name: 'Known Contact', color: 'green' },
+  { id: 'sender-muted', name: 'Sender Muted', color: 'yellow' },
+  { id: 'sender-blocked', name: 'Sender Blocked', color: 'red' },
+  { id: 'review-required', name: 'Review Required', color: 'orange' },
+  { id: 'verified-identity-required', name: 'Verified Identity Required', color: 'purple' },
+  { id: 'policy-allow', name: 'Policy Allow', color: 'green' },
+  { id: 'policy-slow-mode', name: 'Policy Slow Mode', color: 'blue' },
+  { id: 'policy-quarantine', name: 'Policy Quarantine', color: 'purple' },
+  { id: 'policy-review', name: 'Policy Review', color: 'yellow' },
+  { id: 'policy-block', name: 'Policy Block', color: 'red' }
 ] as const
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
@@ -484,6 +528,45 @@ export const PublicInteractionPolicySchema = defineSchema({
   authorization: publicInteractionPolicyAuthorization
 })
 
+export const MessageRequestSchema = defineSchema({
+  name: 'MessageRequest',
+  namespace: 'xnet://xnet.fyi/',
+  properties: {
+    conversationKey: text({ required: true, maxLength: 500 }),
+    sender: person({ required: true }),
+    recipient: person({ required: true }),
+    target: relation({}),
+    targetSchema: text({}),
+    firstMessageRef: relation({}),
+    firstMessagePreview: text({ maxLength: 1000 }),
+    status: select({
+      options: messageRequestStatuses,
+      default: 'pending'
+    }),
+    admission: select({
+      options: firstContactAdmissionModes,
+      default: 'message-request'
+    }),
+    reasonCodes: multiSelect({
+      options: firstContactReasonCodes
+    }),
+    confidence: number({ min: 0, max: 1 }),
+    policy: relation({}),
+    policyMode: select({
+      options: firstContactModes
+    }),
+    quarantineUntil: date({ includeTime: true }),
+    expiresAt: date({ includeTime: true }),
+    respondedAt: date({ includeTime: true }),
+    respondedBy: person({}),
+    reviewers: person({ multiple: true }),
+    notes: text({ maxLength: 4000 }),
+    signedEnvelope: text({}),
+    ...commonModerationMetadata
+  },
+  authorization: messageRequestAuthorization
+})
+
 export const CommunityNoteSchema = defineSchema({
   name: 'CommunityNote',
   namespace: 'xnet://xnet.fyi/',
@@ -665,6 +748,7 @@ export type PolicySubscription = InferNode<(typeof PolicySubscriptionSchema)['_p
 export type PublicInteractionPolicy = InferNode<
   (typeof PublicInteractionPolicySchema)['_properties']
 >
+export type MessageRequest = InferNode<(typeof MessageRequestSchema)['_properties']>
 export type CommunityNote = InferNode<(typeof CommunityNoteSchema)['_properties']>
 export type NoteRating = InferNode<(typeof NoteRatingSchema)['_properties']>
 export type QualitySignal = InferNode<(typeof QualitySignalSchema)['_properties']>

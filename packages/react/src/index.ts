@@ -282,6 +282,29 @@ export {
 } from './hooks/useReactionCounters'
 
 /**
+ * useMessageRequests - First-contact requests and quarantine queues
+ */
+export {
+  useMessageRequests,
+  createConversationKey,
+  createMessageRequestProperties,
+  evaluateFirstContactDecision,
+  findLatestMessageRequest,
+  hasAcceptedContact,
+  summarizeMessageRequest,
+  type CreateMessageRequestOptions,
+  type FirstContactAdmission,
+  type FirstContactDecision,
+  type FirstContactDecisionInput,
+  type FirstContactVisibility,
+  type MessageRequestNode,
+  type MessageRequestProperties,
+  type MessageRequestStatus,
+  type UseMessageRequestsOptions,
+  type UseMessageRequestsResult
+} from './hooks/useMessageRequests'
+
+/**
  * useCommentCount - Get unresolved comment count for a Node
  *
  * @example

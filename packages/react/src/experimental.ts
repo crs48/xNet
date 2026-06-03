@@ -61,6 +61,25 @@ export {
   type UsePolicyFilteredReactionCountersOptions,
   type UsePolicyFilteredReactionCountersResult
 } from './hooks/useReactionCounters'
+export {
+  useMessageRequests,
+  createConversationKey,
+  createMessageRequestProperties,
+  evaluateFirstContactDecision,
+  findLatestMessageRequest,
+  hasAcceptedContact,
+  summarizeMessageRequest,
+  type CreateMessageRequestOptions,
+  type FirstContactAdmission,
+  type FirstContactDecision,
+  type FirstContactDecisionInput,
+  type FirstContactVisibility,
+  type MessageRequestNode,
+  type MessageRequestProperties,
+  type MessageRequestStatus,
+  type UseMessageRequestsOptions,
+  type UseMessageRequestsResult
+} from './hooks/useMessageRequests'
 export { useCommentCount, useCommentCounts } from './hooks/useCommentCount'
 export { useHistory, type UseHistoryResult } from './hooks/useHistory'
 export { useUndo, type UseUndoResult, type UseUndoOptions } from './hooks/useUndo'

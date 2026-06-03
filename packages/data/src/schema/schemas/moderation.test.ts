@@ -5,6 +5,7 @@ import {
   AppealSchema,
   CommunityNoteSchema,
   ContentProvenanceSchema,
+  MessageRequestSchema,
   ModerationLabelSchema,
   NoteRatingSchema,
   PolicyListSchema,
@@ -129,6 +130,28 @@ describe('moderation schemas', () => {
           { createdBy: testDID }
         ),
       validate: PublicInteractionPolicySchema.validate
+    },
+    {
+      name: 'MessageRequest',
+      versionedIri: 'xnet://xnet.fyi/MessageRequest@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/MessageRequest',
+      create: () =>
+        MessageRequestSchema.create(
+          {
+            conversationKey: 'did:key:sender::did:key:recipient',
+            sender: testDID,
+            recipient: 'did:key:z6MkwPn7YjgojZ7ErSJfugcA5mNYG6PzhFGFbXuSfRJQPjDf' as DID,
+            firstMessagePreview: 'Hello, can I ask a question?',
+            status: 'quarantined',
+            admission: 'quarantine',
+            reasonCodes: ['first-contact', 'policy-quarantine'],
+            confidence: 0.7,
+            policy: 'policy-1',
+            policyMode: 'quarantine'
+          },
+          { createdBy: testDID }
+        ),
+      validate: MessageRequestSchema.validate
     },
     {
       name: 'CommunityNote',
@@ -361,6 +384,17 @@ describe('moderation schemas', () => {
     )
     expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).not.toContain(
       'blockedDIDs'
+    )
+    expect(MessageRequestSchema.schema.authorization?.roles.sender).toEqual({
+      _tag: 'property',
+      propertyName: 'sender'
+    })
+    expect(MessageRequestSchema.schema.authorization?.roles.recipient).toEqual({
+      _tag: 'property',
+      propertyName: 'recipient'
+    })
+    expect(allowRoles(MessageRequestSchema.schema.authorization?.actions.write)).toContain(
+      'recipient'
     )
   })
 })
