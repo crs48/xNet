@@ -107,6 +107,7 @@ export type AbuseDecisionUsageInput = Omit<
 
 export type AbuseUsageEventSummary = {
   totalEvents: number
+  totalUnits: number
   kindCounts: Record<AbuseUsageEventKind, number>
   settlementCounts: Record<AbuseUsageSettlement, number>
   unitsByKind: Record<AbuseUsageEventKind, number>
@@ -120,6 +121,13 @@ export type AbuseUsageEventSummary = {
   blockedUnits: number
   throttledUnits: number
   reviewedUnits: number
+  automationSavedUnits: number
+  automationSavedCostMicroUsd: number
+  appealUnits: number
+  appealCostMicroUsd: number
+  automationSavingsRatio: number
+  reviewLoadRatio: number
+  appealLoadRatio: number
 }
 
 type StableJson =
@@ -242,8 +250,16 @@ export function createAbuseUsageEventId(
 export function summarizeAbuseUsageEvents(
   events: readonly AbuseUsageEvent[]
 ): AbuseUsageEventSummary {
+  const totalUnits = sumEvents(events, 'units')
+  const blockedUnits = sumUnitsForKind(events, 'blocked')
+  const throttledUnits = sumUnitsForKind(events, 'throttled')
+  const reviewedUnits = sumUnitsForKind(events, 'reviewed')
+  const automationSavedUnits = blockedUnits + throttledUnits
+  const appealUnits = sumUnitsForWorkType(events, 'appeal')
+
   return {
     totalEvents: events.length,
+    totalUnits,
     kindCounts: countBy(
       ABUSE_USAGE_EVENT_KINDS,
       events.map((event) => event.kind)
@@ -265,9 +281,16 @@ export function summarizeAbuseUsageEvents(
     billableMicroUsd: sumEvents(events, 'billableMicroUsd'),
     sponsoredMicroUsd: sumEvents(events, 'sponsoredMicroUsd'),
     reciprocalCreditUnits: sumEvents(events, 'reciprocalCreditUnits'),
-    blockedUnits: sumUnitsForKind(events, 'blocked'),
-    throttledUnits: sumUnitsForKind(events, 'throttled'),
-    reviewedUnits: sumUnitsForKind(events, 'reviewed')
+    blockedUnits,
+    throttledUnits,
+    reviewedUnits,
+    automationSavedUnits,
+    automationSavedCostMicroUsd: sumCostForKinds(events, ['blocked', 'throttled']),
+    appealUnits,
+    appealCostMicroUsd: sumCostForWorkType(events, 'appeal'),
+    automationSavingsRatio: ratio(automationSavedUnits, totalUnits),
+    reviewLoadRatio: ratio(reviewedUnits, totalUnits),
+    appealLoadRatio: ratio(appealUnits, totalUnits)
   }
 }
 
@@ -387,7 +410,7 @@ function sumByKey<T extends string>(
 
 function sumEvents(
   events: readonly AbuseUsageEvent[],
-  key: 'costMicroUsd' | 'billableMicroUsd' | 'sponsoredMicroUsd' | 'reciprocalCreditUnits'
+  key: 'units' | 'costMicroUsd' | 'billableMicroUsd' | 'sponsoredMicroUsd' | 'reciprocalCreditUnits'
 ): number {
   return events.reduce((total, event) => total + event[key], 0)
 }
@@ -396,6 +419,37 @@ function sumUnitsForKind(events: readonly AbuseUsageEvent[], kind: AbuseUsageEve
   return events
     .filter((event) => event.kind === kind)
     .reduce((total, event) => total + event.units, 0)
+}
+
+function sumUnitsForWorkType(
+  events: readonly AbuseUsageEvent[],
+  workType: AbuseUsageWorkType
+): number {
+  return events
+    .filter((event) => event.workType === workType)
+    .reduce((total, event) => total + event.units, 0)
+}
+
+function sumCostForWorkType(
+  events: readonly AbuseUsageEvent[],
+  workType: AbuseUsageWorkType
+): number {
+  return events
+    .filter((event) => event.workType === workType)
+    .reduce((total, event) => total + event.costMicroUsd, 0)
+}
+
+function sumCostForKinds(
+  events: readonly AbuseUsageEvent[],
+  kinds: readonly AbuseUsageEventKind[]
+): number {
+  return events
+    .filter((event) => kinds.includes(event.kind))
+    .reduce((total, event) => total + event.costMicroUsd, 0)
+}
+
+function ratio(numerator: number, denominator: number): number {
+  return denominator > 0 ? numerator / denominator : 0
 }
 
 function toStableEventPayload(event: Omit<AbuseUsageEvent, 'id'>): StableJson {

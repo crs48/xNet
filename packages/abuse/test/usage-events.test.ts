@@ -86,6 +86,7 @@ describe('abuse usage events', () => {
     const summary = summarizeAbuseUsageEvents(events)
 
     expect(summary.totalEvents).toBe(5)
+    expect(summary.totalUnits).toBe(15)
     expect(summary.kindCounts).toMatchObject({
       billable: 1,
       sponsored: 1,
@@ -107,6 +108,67 @@ describe('abuse usage events', () => {
     expect(summary.blockedUnits).toBe(5)
     expect(summary.reviewedUnits).toBe(1)
     expect(summary.eventsByWorkType['federation-query']).toBe(2)
+  })
+
+  it('summarizes automation savings and appeal load for operators', () => {
+    const events = [
+      createAbuseUsageEvent({
+        kind: 'blocked',
+        surface: 'remoteMutation',
+        workType: 'remote-mutation',
+        actorDID: 'did:key:blocked',
+        units: 10,
+        costMicroUsd: 500,
+        occurredAt: 1_000
+      }),
+      createAbuseUsageEvent({
+        kind: 'throttled',
+        surface: 'crawl',
+        workType: 'crawl',
+        actorDID: 'did:key:throttled',
+        units: 4,
+        costMicroUsd: 100,
+        occurredAt: 1_001
+      }),
+      createAbuseUsageEvent({
+        kind: 'reviewed',
+        surface: 'commentThread',
+        workType: 'appeal',
+        actorDID: 'did:key:appeal',
+        units: 3,
+        costMicroUsd: 90,
+        occurredAt: 1_002
+      }),
+      createAbuseUsageEvent({
+        kind: 'reviewed',
+        surface: 'publicWrite',
+        workType: 'public-write',
+        actorDID: 'did:key:reviewed',
+        units: 2,
+        costMicroUsd: 40,
+        occurredAt: 1_003
+      }),
+      createAbuseUsageEvent({
+        kind: 'billable',
+        surface: 'searchIndex',
+        workType: 'federation-query',
+        actorDID: 'did:key:query',
+        units: 5,
+        costMicroUsd: 50,
+        occurredAt: 1_004
+      })
+    ]
+
+    const summary = summarizeAbuseUsageEvents(events)
+
+    expect(summary.totalUnits).toBe(24)
+    expect(summary.automationSavedUnits).toBe(14)
+    expect(summary.automationSavedCostMicroUsd).toBe(600)
+    expect(summary.appealUnits).toBe(3)
+    expect(summary.appealCostMicroUsd).toBe(90)
+    expect(summary.automationSavingsRatio).toBeCloseTo(14 / 24)
+    expect(summary.reviewLoadRatio).toBeCloseTo(5 / 24)
+    expect(summary.appealLoadRatio).toBeCloseTo(3 / 24)
   })
 
   it('derives blocked and throttled usage from abuse decisions', () => {
