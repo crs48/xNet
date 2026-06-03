@@ -1301,13 +1301,13 @@ Workspace:
 
 ### Phase 1: Upgrade MCP and Local API to Use the Contract
 
-- [ ] Refactor `packages/plugins/src/services/mcp-server.ts` around the shared AI surface service.
-- [ ] Add resource reads for workspace summary, page Markdown, database schema/views, and canvas viewport.
-- [ ] Add search and context-pack tools.
-- [ ] Add plan-only mutation tools before apply tools.
-- [ ] Add token/output limits and pagination.
-- [ ] Add Local API endpoints that mirror the MCP service.
-- [ ] Add integration tests for MCP resources/tools.
+- [x] Refactor `packages/plugins/src/services/mcp-server.ts` around the shared AI surface service.
+- [x] Add resource reads for workspace summary, page Markdown, database schema/views, and canvas viewport.
+- [x] Add search and context-pack tools.
+- [x] Add plan-only mutation tools before apply tools.
+- [x] Add token/output limits and pagination.
+- [x] Add Local API endpoints that mirror the MCP service.
+- [x] Add integration tests for MCP resources/tools.
 
 ### Phase 2: Page Markdown Patch Pipeline
 

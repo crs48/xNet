@@ -159,6 +159,9 @@ describe('MCPServer', () => {
       expect(toolNames).toContain('xnet_update')
       expect(toolNames).toContain('xnet_delete')
       expect(toolNames).toContain('xnet_schemas')
+      expect(toolNames).toContain('xnet_search')
+      expect(toolNames).toContain('xnet_create_context_pack')
+      expect(toolNames).toContain('xnet_plan_page_patch')
     })
 
     it('tools have proper schema', () => {
@@ -180,6 +183,8 @@ describe('MCPServer', () => {
       const uris = resources.map((r) => r.uri)
       expect(uris).toContain('xnet://nodes')
       expect(uris).toContain('xnet://schemas')
+      expect(uris).toContain('xnet://workspace/summary')
+      expect(uris).toContain('xnet://page/{pageId}.md')
     })
   })
 
@@ -383,6 +388,77 @@ describe('MCPServer', () => {
       })
     })
 
+    describe('tools/call - AI surface tools', () => {
+      it('searches workspace nodes', async () => {
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: { title: 'Roadmap task', notes: 'AI integration' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_search',
+            arguments: { query: 'roadmap' }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.results).toHaveLength(1)
+        expect(data.results[0].title).toBe('Roadmap task')
+      })
+
+      it('creates a context pack from page seeds', async () => {
+        const page = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'AI Plan', markdown: '## Goals\nShip MCP integration.' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_create_context_pack',
+            arguments: { seeds: [{ kind: 'page', id: page.id }] }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.resources).toHaveLength(1)
+        expect(data.resources[0].uri).toContain('xnet://page/')
+        expect(data.resources[0].text).toContain('Ship MCP integration')
+      })
+
+      it('plans page Markdown patches without applying them', async () => {
+        const page = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Draft', markdown: 'Original' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_page_patch',
+            arguments: {
+              pageId: page.id,
+              baseRevision: `updatedAt:${page.updatedAt}`,
+              markdown: '# Draft\n\nUpdated'
+            }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.status).toBe('validated')
+        expect(data.validation.valid).toBe(true)
+        expect(data.changes[0].operations[0].op).toBe('replaceMarkdown')
+
+        const unchanged = await mockStore.get(page.id)
+        expect(unchanged?.properties.markdown).toBe('Original')
+      })
+    })
+
     describe('tools/call - unknown tool', () => {
       it('returns error for unknown tool', async () => {
         const response = await server.handleRequest(
@@ -442,6 +518,47 @@ describe('MCPServer', () => {
 
         const data = JSON.parse(result.contents[0].text)
         expect(data.schemas).toBeDefined()
+      })
+
+      it('reads xnet://workspace/summary resource', async () => {
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: { title: 'Summary Task' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('resources/read', {
+            uri: 'xnet://workspace/summary'
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { contents: Array<{ uri: string; text: string }> }
+        expect(result.contents[0].uri).toBe('xnet://workspace/summary')
+
+        const data = JSON.parse(result.contents[0].text)
+        expect(data.schemaCount).toBe(2)
+        expect(data.recentNodes[0].title).toBe('Summary Task')
+      })
+
+      it('reads page Markdown resources with frontmatter identity', async () => {
+        const page = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Product Roadmap', markdown: 'AI surface notes' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('resources/read', {
+            uri: `xnet://page/${page.id}.md`
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { contents: Array<{ mimeType: string; text: string }> }
+        expect(result.contents[0].mimeType).toBe('text/markdown')
+        expect(result.contents[0].text).toContain(`id: "${page.id}"`)
+        expect(result.contents[0].text).toContain('# Product Roadmap')
+        expect(result.contents[0].text).toContain('AI surface notes')
       })
 
       it('returns error for unknown resource', async () => {

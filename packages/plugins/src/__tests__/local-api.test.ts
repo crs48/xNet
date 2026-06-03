@@ -319,6 +319,87 @@ describe('LocalAPIServer', () => {
     })
   })
 
+  describe('AI surface', () => {
+    it('lists AI resources', async () => {
+      const response = await fetch(`${baseUrl}/api/v1/ai/resources`)
+
+      expect(response.status).toBe(200)
+      const data = await response.json()
+      const uris = data.resources.map((resource: { uri: string }) => resource.uri)
+      expect(uris).toContain('xnet://workspace/summary')
+      expect(uris).toContain('xnet://page/{pageId}.md')
+    })
+
+    it('reads AI resources by URI', async () => {
+      await mockStore.create({
+        schemaId: 'xnet://xnet.dev/Task',
+        properties: { title: 'API Summary Task' }
+      })
+
+      const response = await fetch(
+        `${baseUrl}/api/v1/ai/resource?uri=${encodeURIComponent('xnet://workspace/summary')}`
+      )
+
+      expect(response.status).toBe(200)
+      const data = await response.json()
+      expect(data.contents[0].uri).toBe('xnet://workspace/summary')
+      const summary = JSON.parse(data.contents[0].text)
+      expect(summary.recentNodes[0].title).toBe('API Summary Task')
+    })
+
+    it('searches workspace nodes', async () => {
+      await mockStore.create({
+        schemaId: 'xnet://xnet.dev/Task',
+        properties: { title: 'Agent workspace export' }
+      })
+
+      const response = await fetch(`${baseUrl}/api/v1/ai/search?q=workspace`)
+
+      expect(response.status).toBe(200)
+      const data = await response.json()
+      expect(data.results).toHaveLength(1)
+      expect(data.results[0].title).toBe('Agent workspace export')
+    })
+
+    it('calls plan-only AI tools', async () => {
+      const page = await mockStore.create({
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'API Page', markdown: 'Original' }
+      })
+
+      const response = await fetch(`${baseUrl}/api/v1/ai/tools/xnet_plan_page_patch`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          pageId: page.id,
+          baseRevision: `updatedAt:${page.updatedAt}`,
+          markdown: '# API Page\n\nUpdated'
+        })
+      })
+
+      expect(response.status).toBe(200)
+      const plan = await response.json()
+      expect(plan.validation.valid).toBe(true)
+      expect(plan.changes[0].targetKind).toBe('page')
+
+      const unchanged = await mockStore.get(page.id)
+      expect(unchanged?.properties.markdown).toBe('Original')
+    })
+
+    it('validates mutation plans', async () => {
+      const response = await fetch(`${baseUrl}/api/v1/ai/mutation-plans/validate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: 'missing-fields' })
+      })
+
+      expect(response.status).toBe(200)
+      const data = await response.json()
+      expect(data.validation.valid).toBe(false)
+      expect(data.validation.errors).toContain('actor must be a non-empty string')
+    })
+  })
+
   describe('authentication', () => {
     it('requires token when configured', async () => {
       await server.stop()

@@ -247,7 +247,12 @@ export type {
   AiTargetKind,
   AiToolCallResult,
   AiToolDefinition,
-  AiValidationResult
+  AiValidationResult,
+  AiResourceContent,
+  AiSearchOptions,
+  AiSearchResult,
+  AiSurfaceLimits,
+  AiSurfaceServiceConfig
 } from './ai-surface'
 export {
   AI_RISK_LEVELS,
@@ -262,7 +267,9 @@ export {
   isAiTargetKind,
   parseAiMutationPlan,
   serializeAiMutationPlan,
-  validateAiMutationPlan
+  validateAiMutationPlan,
+  AiSurfaceService,
+  createAiSurfaceService
 } from './ai-surface'
 
 // Services (Background process management)

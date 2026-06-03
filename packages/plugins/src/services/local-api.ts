@@ -10,6 +10,7 @@
 import { timingSafeEqual } from 'crypto'
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'http'
 import { URL } from 'url'
+import { AiSurfaceService, createAiSurfaceService, type AiSurfaceLimits } from '../ai-surface'
 
 /**
  * Constant-time string comparison to prevent timing attacks on token validation.
@@ -20,6 +21,12 @@ function constantTimeCompare(a: string, b: string): boolean {
   const bufA = Buffer.from(a)
   const bufB = Buffer.from(b)
   return timingSafeEqual(bufA, bufB)
+}
+
+function parseOptionalNumber(value: string | null): number | undefined {
+  if (value === null) return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -95,6 +102,10 @@ export interface LocalAPIConfig {
   store: NodeStoreAPI
   /** SchemaRegistry instance */
   schemas: SchemaRegistryAPI
+  /** Shared AI surface service. A default service is created when omitted. */
+  aiSurface?: AiSurfaceService
+  /** Optional output and pagination limits for the default AI surface. */
+  aiLimits?: Partial<AiSurfaceLimits>
 }
 
 /**
@@ -143,18 +154,32 @@ class EventBuffer {
  */
 export class LocalAPIServer {
   private server: Server | null = null
-  private config: Required<Omit<LocalAPIConfig, 'token'>> & { token?: string }
+  private config: Required<Omit<LocalAPIConfig, 'token' | 'aiSurface' | 'aiLimits'>> & {
+    token?: string
+    aiSurface: AiSurfaceService
+    aiLimits?: Partial<AiSurfaceLimits>
+  }
   private eventBuffer: EventBuffer
   private unsubscribe?: () => void
 
   constructor(config: LocalAPIConfig) {
+    const aiSurface =
+      config.aiSurface ??
+      createAiSurfaceService({
+        store: config.store,
+        schemas: config.schemas,
+        limits: config.aiLimits
+      })
+
     this.config = {
       port: config.port ?? 31415,
       host: config.host ?? '127.0.0.1',
       token: config.token,
       allowedOrigins: config.allowedOrigins ?? [],
       store: config.store,
-      schemas: config.schemas
+      schemas: config.schemas,
+      aiSurface,
+      aiLimits: config.aiLimits
     }
     this.eventBuffer = new EventBuffer()
   }
@@ -311,6 +336,27 @@ export class LocalAPIServer {
         // Events endpoint (for polling)
         if (path === '/events' && method === 'GET') {
           return this.handleGetEvents(url, res)
+        }
+
+        // AI surface endpoints
+        if (path === '/ai/resources' && method === 'GET') {
+          return this.handleListAIResources(res)
+        }
+        if (path === '/ai/resource' && method === 'GET') {
+          return await this.handleReadAIResource(url, res)
+        }
+        if (path.match(/^\/ai\/tools\/[^/]+$/) && method === 'POST') {
+          const name = decodeURIComponent(path.slice('/ai/tools/'.length))
+          return await this.handleCallAITool(name, req, res)
+        }
+        if (path === '/ai/search' && method === 'GET') {
+          return await this.handleAISearch(url, res)
+        }
+        if (path === '/ai/context-pack' && method === 'POST') {
+          return await this.handleAIContextPack(req, res)
+        }
+        if (path === '/ai/mutation-plans/validate' && method === 'POST') {
+          return await this.handleAIPlanValidation(req, res)
         }
 
         // Schemas endpoint
@@ -479,6 +525,65 @@ export class LocalAPIServer {
     }
 
     this.sendJSON(res, 200, schema)
+  }
+
+  // ─── AI Surface ─────────────────────────────────────────────────────────────
+
+  private handleListAIResources(res: ServerResponse): void {
+    this.sendJSON(res, 200, {
+      resources: this.config.aiSurface.getResources()
+    })
+  }
+
+  private async handleReadAIResource(url: URL, res: ServerResponse): Promise<void> {
+    const uri = url.searchParams.get('uri')
+    if (!uri) {
+      this.sendError(res, 400, 'Missing required query parameter: uri')
+      return
+    }
+
+    const content = await this.config.aiSurface.readResource(uri)
+    this.sendJSON(res, 200, { contents: [content] })
+  }
+
+  private async handleCallAITool(
+    name: string,
+    req: IncomingMessage,
+    res: ServerResponse
+  ): Promise<void> {
+    const body = await this.parseBody(req)
+    const result = await this.config.aiSurface.callTool(name, body)
+    this.sendJSON(res, 200, result)
+  }
+
+  private async handleAISearch(url: URL, res: ServerResponse): Promise<void> {
+    const query = url.searchParams.get('q') ?? url.searchParams.get('query')
+    if (!query) {
+      this.sendError(res, 400, 'Missing required query parameter: q')
+      return
+    }
+
+    const result = await this.config.aiSurface.search({
+      query,
+      schemaId: url.searchParams.get('schemaId') ?? url.searchParams.get('schema') ?? undefined,
+      limit: parseOptionalNumber(url.searchParams.get('limit')),
+      offset: parseOptionalNumber(url.searchParams.get('offset'))
+    })
+    this.sendJSON(res, 200, result)
+  }
+
+  private async handleAIContextPack(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const body = await this.parseBody(req)
+    const result = await this.config.aiSurface.callTool('xnet_create_context_pack', body)
+    this.sendJSON(res, 200, result)
+  }
+
+  private async handleAIPlanValidation(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const body = await this.parseBody(req)
+    const result = await this.config.aiSurface.callTool('xnet_validate_mutation_plan', {
+      plan: body.plan ?? body
+    })
+    this.sendJSON(res, 200, result)
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────

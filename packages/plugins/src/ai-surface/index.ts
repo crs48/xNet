@@ -39,3 +39,11 @@ export {
   validateAiMutationPlan,
   type AiValidator
 } from './validation'
+export { AiSurfaceService, createAiSurfaceService } from './service'
+export type {
+  AiResourceContent,
+  AiSearchOptions,
+  AiSearchResult,
+  AiSurfaceLimits,
+  AiSurfaceServiceConfig
+} from './service'
