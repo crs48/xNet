@@ -1010,7 +1010,7 @@ Every hub should publish:
 
 ### Phase 5 - AI And Quality Automation
 
-- [ ] Add deterministic duplicate and near-duplicate detection for public/crawled content.
+- [x] Add deterministic duplicate and near-duplicate detection for public/crawled content.
 - [ ] Add local classifier adapter interface.
 - [ ] Add optional cloud moderation/classification adapter with explicit budget and privacy policy.
 - [ ] Add claim extraction and citation coverage scoring for published knowledge pages.
