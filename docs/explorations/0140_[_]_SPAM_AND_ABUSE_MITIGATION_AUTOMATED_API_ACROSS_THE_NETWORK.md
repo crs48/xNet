@@ -996,7 +996,7 @@ Every hub should publish:
 - [x] Add `QualitySignalSchema`.
 - [x] Add `ContentProvenanceSchema` for source, AI generation, C2PA-like credentials, and tool chain.
 - [x] Add `AppealSchema` and `ReviewTaskSchema`.
-- [ ] Add schema permissions for who may label, review, appeal, or publish policy lists.
+- [x] Add schema permissions for who may label, review, appeal, or publish policy lists.
 
 ### Phase 4 - Public Surface Integration
 
