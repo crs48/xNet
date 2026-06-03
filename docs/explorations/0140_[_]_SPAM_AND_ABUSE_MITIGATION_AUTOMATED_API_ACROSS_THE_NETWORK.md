@@ -1023,7 +1023,7 @@ Every hub should publish:
 - [x] Add public write budgets by DID, hub, workspace, and surface.
 - [x] Add crawl and federation query cost budgets.
 - [x] Add usage events for blocked, throttled, reviewed, billable, sponsored, and reciprocal work.
-- [ ] Add signed hub policy/service offer documents with moderation settings.
+- [x] Add signed hub policy/service offer documents with moderation settings.
 - [ ] Add labeler trust settings and subscription limits per workspace/hub.
 - [ ] Add appeal/contact metadata for public operators.
 
