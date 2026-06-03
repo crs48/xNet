@@ -976,7 +976,7 @@ Every hub should publish:
 - [x] Apply size and rate limits to awareness messages and state-vector messages.
 - [x] Connect `YjsPeerScorer` actions to network `AutoBlocker` where possible.
 - [x] Persist local and workspace blocks as signed policy data, not only in-memory helpers.
-- [ ] Add telemetry events for remote mutation rejection reasons with peer hashes and score buckets.
+- [x] Add telemetry events for remote mutation rejection reasons with peer hashes and score buckets.
 
 ### Phase 2 - Core Abuse Package
 
