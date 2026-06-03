@@ -58,6 +58,8 @@
     "multiformats": "^13.4.2"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.0.0",
+    "nid-webauthn-emulator": "^0.2.9",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0"
   }

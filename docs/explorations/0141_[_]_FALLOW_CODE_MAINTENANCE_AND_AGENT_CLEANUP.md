@@ -134,42 +134,43 @@ After adding `fallow` as a pinned root dev dependency and running with installed
 
 Calibration changed the baseline in three small steps:
 
-| Step                             | Fallow result | What changed                                                                                  |
-| -------------------------------- | ------------: | --------------------------------------------------------------------------------------------- |
-| First installed run              |    `40` total | Dependencies resolved, but config files were still ignored by the starter config.             |
-| Config files included            |    `36` total | `@astrojs/tailwind`, `vite-plugin-pwa`, `workbox-window`, and `tailwindcss-animate` resolved. |
-| E2E harness marked dynamic       |    `33` total | `tests/e2e/harness/*.tsx` is now treated as Vite/HTML-loaded runtime code.                    |
-| E2E helper exports made internal |    `31` total | `enableTestBypass` and `waitForAuthenticated` are no longer exported dead API.                |
-| Site cleanup batch               |    `19` total | Deleted unreferenced site components; marked Starlight string-path assets as dynamic.         |
-| Stale dependency cleanup         |    `12` total | Removed unused dependency entries from Electron, Web, editor, storage, and data manifests.    |
+| Step                             | Fallow result | What changed                                                                                                                                                   |
+| -------------------------------- | ------------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| First installed run              |    `40` total | Dependencies resolved, but config files were still ignored by the starter config.                                                                              |
+| Config files included            |    `36` total | `@astrojs/tailwind`, `vite-plugin-pwa`, `workbox-window`, and `tailwindcss-animate` resolved.                                                                  |
+| E2E harness marked dynamic       |    `33` total | `tests/e2e/harness/*.tsx` is now treated as Vite/HTML-loaded runtime code.                                                                                     |
+| E2E helper exports made internal |    `31` total | `enableTestBypass` and `waitForAuthenticated` are no longer exported dead API.                                                                                 |
+| Site cleanup batch               |    `19` total | Deleted unreferenced site components; marked Starlight string-path assets as dynamic.                                                                          |
+| Stale dependency cleanup         |    `12` total | Removed unused dependency entries from Electron, Web, editor, storage, and data manifests.                                                                     |
+| Final cleanup batch              |     `0` total | Declared package-local test/story/config dependencies, handled Expo platform deps, preserved the benchmark script as an entrypoint, and broke Electron cycles. |
 
-Current calibrated summary from `fallow dead-code --summary --no-cache` after the dependency cleanup batch:
+Current calibrated summary from `fallow dead-code --summary --no-cache` after the final cleanup batch:
 
 | Signal                  | Installed result | Classification                                                                 |
 | ----------------------- | ---------------: | ------------------------------------------------------------------------------ |
-| Unused files            |              `1` | One root script candidate remains.                                             |
+| Unused files            |              `0` | The core-platform benchmark script is now an explicit root script entrypoint.  |
 | Unused exports          |              `0` | Low-risk E2E helper export cleanup is complete.                                |
-| Unused dependencies     |              `3` | Expo platform dependencies remain for explicit validation or suppression.      |
+| Unused dependencies     |              `0` | One unused Expo dependency was removed; platform dependencies are documented.  |
 | Unused dev dependencies |              `0` | Stale Web router devtools dependency cleanup is complete.                      |
-| Unlisted dependencies   |              `6` | Mostly package-local test/story dependencies that should move from root scope. |
-| Circular dependencies   |              `2` | Electron import cycles; defer to focused refactors.                            |
-| Total dead-code issues  |             `12` | Suitable for report-only CI, not a blocking gate yet.                          |
+| Unlisted dependencies   |              `0` | Storybook, test, Tailwind, and mock-only deps now live in owning packages.     |
+| Circular dependencies   |              `0` | Electron data-process and main-process cycles were split through leaf modules. |
+| Total dead-code issues  |              `0` | Local Fallow dead-code is clean in the installed workspace.                    |
 
 Initial classification:
 
 | Finding group                                                         | Action class | Next action                                                                                      |
 | --------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
 | `site/src/components/**/*.astro` and `site/src/styles/docs.css`       | Done         | Deleted unreferenced landing components; kept Starlight config-string assets as dynamic entries. |
-| `scripts/collect-core-platform-baselines.ts`                          | Defer        | Confirm whether it is still a manual benchmark utility before deletion.                          |
+| `scripts/collect-core-platform-baselines.ts`                          | Done         | Preserved as `bench:core-platform` because release-gate docs and plans reference it.             |
 | `electron-store`, `use-debounce`, `pako`, `@tanstack/router-devtools` | Done         | Removed stale manifest entries and verified focused package checks.                              |
 | `clsx` and `tailwind-merge` in `packages/editor`                      | Done         | Removed stale editor manifest entries; `packages/ui` still owns these dependencies.              |
-| `expo-file-system`, `expo-splash-screen`, `expo-sqlite`               | Suppress     | Treat as Expo/platform dependencies unless mobile package validation proves otherwise.           |
+| `expo-file-system`, `expo-splash-screen`, `expo-sqlite`               | Done         | Removed unused `expo-file-system`; kept and ignored the splash/SQLite platform dependencies.     |
 | `lib0` in `packages/data`                                             | Done         | Removed from data; integration tests keep their own `lib0` dependency.                           |
-| `fake-indexeddb`, `nid-webauthn-emulator` in `packages/identity`      | Move         | Add as `@xnetjs/identity` dev dependencies or test-scoped manifest entries.                      |
-| `@testing-library/react`, `@storybook/react-vite` in Electron         | Move         | Add package-local dev dependencies only where tests/stories import them.                         |
-| `@tailwindcss/typography` in editor                                   | Move         | Add to `packages/editor` dev dependencies because `tailwind.config.js` imports it.               |
-| `y-webrtc` in `packages/react`                                        | Defer        | Check whether this is a mock-only dependency or should be declared where the mock/test imports.  |
-| Electron cycles in `data-process` and `main`                          | Refactor     | Split shared types/factories from index modules in a focused Electron architecture cleanup.      |
+| `fake-indexeddb`, `nid-webauthn-emulator` in `packages/identity`      | Done         | Moved into `@xnetjs/identity` dev dependencies and removed from the root manifest.               |
+| `@testing-library/react`, `@storybook/react-vite` in apps/packages    | Done         | Added package-local dev dependencies where tests or stories import them.                         |
+| `@tailwindcss/typography` in editor                                   | Done         | Added to `packages/editor` dev dependencies because `tailwind.config.js` imports it.             |
+| `y-webrtc` in `packages/react`                                        | Done         | Added to `packages/react` dev dependencies for its mock-only test import.                        |
+| Electron cycles in `data-process` and `main`                          | Done         | Extracted a data-process event relay and a main-process profile/path module.                     |
 
 Notable health findings from `fallow health --score --hotspots --targets --file-scores`:
 
@@ -720,7 +721,7 @@ flowchart LR
 - [x] Rerun `fallow dead-code --group-by package` after dependencies are installed.
 - [x] Classify every initial finding as delete, move, suppress, refactor, or defer.
 - [x] Add a report-only Fallow CI workflow.
-- [ ] Burn down low-risk findings package-by-package.
+- [x] Burn down low-risk findings package-by-package.
 - [ ] Add a regression baseline once the initial finding set is understood.
 - [ ] Promote `fallow audit` to a changed-code PR gate.
 - [ ] Consider dependency-cruiser only after package boundary rules are written down explicitly.
@@ -730,13 +731,13 @@ flowchart LR
 
 - [ ] Fallow output is stable across two clean installs.
 - [x] `node_modules` absence no longer contributes unresolved import noise.
-- [ ] Astro and Expo tsconfig warnings are resolved or intentionally suppressed.
+- [x] Astro and Expo tsconfig warnings are resolved or intentionally suppressed.
 - [x] Fallow does not report E2E harnesses or Storybook-only files as accidental dead code after configuration.
-- [ ] Intentional public exports are documented with config or suppressions.
-- [ ] `fallow fix --dry-run --format json` reports only understood auto-fix candidates.
+- [x] Intentional dynamic/config entrypoints are documented with config or suppressions.
+- [x] `fallow fix --dry-run --format json` reports only understood auto-fix candidates.
 - [ ] CI report-only workflow posts useful summaries without excessive comment noise.
 - [x] Low-risk cleanup commits reduce Fallow issue count.
-- [ ] Targeted package tests pass after each cleanup batch.
+- [x] Targeted package tests pass after each cleanup batch.
 - [ ] Root `pnpm lint`, `pnpm typecheck`, and relevant tests pass before merging.
 - [ ] Any public package export deletion is treated as an API change and reviewed accordingly.
 - [ ] Hook additions are measured for runtime before enabling.

@@ -27,7 +27,7 @@ import {
 } from '@xnetjs/sync'
 import WebSocket from 'ws'
 import * as Y from 'yjs'
-import { sendEvent } from './index'
+import { sendEvent } from './events'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

@@ -14,6 +14,7 @@ import {
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { createMenu } from './menu'
+import { dataPath, profile } from './profile'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
 import { setupStorybookIPC, stopStorybook } from './storybook-ipc'
 import { initAutoUpdater } from './updater'
@@ -28,19 +29,6 @@ if (process.env.NODE_ENV === 'development') {
 // ESM __dirname shim (electron-vite outputs ESM)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-
-// Profile support for running multiple instances with separate data
-// Usage: XNET_PROFILE=user2 pnpm dev:electron
-export const profile = process.env.XNET_PROFILE || 'default'
-
-// Set separate user data path for each profile BEFORE app is ready
-// This isolates local app storage, localStorage, cookies, etc. between profiles
-if (profile !== 'default') {
-  const userDataPath = join(app.getPath('userData'), '..', `xnet-desktop-${profile}`)
-  app.setPath('userData', userDataPath)
-}
-
-export const dataPath = join(app.getPath('userData'), 'xnet-data')
 
 let mainWindow: BrowserWindow | null = null
 let pendingSharePayload: string | null = null
@@ -124,7 +112,7 @@ app.on('open-url', (event, url) => {
 })
 
 // Database path for utility process
-const dbPath = join(app.getPath('userData'), 'xnet-data', 'data.db')
+const dbPath = join(dataPath, 'data.db')
 
 async function createWindow() {
   // Show profile in title for multi-instance testing

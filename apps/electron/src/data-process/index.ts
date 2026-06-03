@@ -478,14 +478,6 @@ function sendResponse(requestId: string | undefined, data: unknown): void {
   process.parentPort?.postMessage({ type: 'response', requestId, ...(payload as object) })
 }
 
-/**
- * Send an event to the main process (for forwarding to renderer)
- */
-export function sendEvent(eventType: string, data: unknown): void {
-  const payload = typeof data === 'object' && data !== null ? data : { value: data }
-  process.parentPort?.postMessage({ type: 'event', eventType, ...(payload as object) })
-}
-
 // Signal ready to main process
 process.parentPort?.postMessage({ type: 'ready' })
 log('Data process started')

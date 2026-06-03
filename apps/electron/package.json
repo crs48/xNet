@@ -52,6 +52,8 @@
     "yjs": "^13.6.24"
   },
   "devDependencies": {
+    "@storybook/react-vite": "^10.2.16",
+    "@testing-library/react": "^16.2.0",
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
