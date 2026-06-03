@@ -25,6 +25,14 @@ export {
 export { explainDecision, getReasonDetail } from './explain'
 export { TRUSTED_SPAM_LABEL, WARNING_SLOP_LABEL, abuseFixtures, createBaseFacts } from './fixtures'
 export {
+  assessDuplicateContent,
+  canonicalizeContentText,
+  compareContentFingerprints,
+  compareSimHash64,
+  createContentFingerprint,
+  tokenizeContent
+} from './content-fingerprint'
+export {
   activePolicyBlockEntries,
   canonicalizePolicyBlockList,
   createPolicyBlockList,
@@ -41,6 +49,13 @@ export {
   hashAbusePeerIdentifier,
   reportRemoteMutationRejection
 } from './telemetry'
+export type {
+  ContentFingerprint,
+  ContentFingerprintInput,
+  ContentFingerprintOptions,
+  DuplicateContentAssessment,
+  DuplicateContentOptions
+} from './content-fingerprint'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
