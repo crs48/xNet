@@ -25,6 +25,14 @@ export {
 export { explainDecision, getReasonDetail } from './explain'
 export { TRUSTED_SPAM_LABEL, WARNING_SLOP_LABEL, abuseFixtures, createBaseFacts } from './fixtures'
 export {
+  classifyWithCloudAdapter,
+  createCloudClassifierAdapter,
+  createCloudClassifierRequestBase,
+  estimateCloudClassifierCost,
+  getCloudClassificationSkipReason,
+  redactCloudClassifierText
+} from './cloud-classifier'
+export {
   assessDuplicateContent,
   canonicalizeContentText,
   compareContentFingerprints,
@@ -72,6 +80,22 @@ export type {
   LocalClassifierProvenance,
   LocalClassifierSignal
 } from './local-classifier'
+export type {
+  CloudClassificationOptions,
+  CloudClassificationResult,
+  CloudClassificationSkipReason,
+  CloudClassificationUsage,
+  CloudClassifierAdapter,
+  CloudClassifierBudgetPolicy,
+  CloudClassifierInput,
+  CloudClassifierPrivacyPolicy,
+  CloudClassifierProvenance,
+  CloudClassifierProviderResult,
+  CloudClassifierProviderSignal,
+  CloudClassifierRequest,
+  CloudClassifierSignal,
+  CloudPrivacyMode
+} from './cloud-classifier'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
