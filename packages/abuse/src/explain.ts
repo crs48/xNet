@@ -22,7 +22,7 @@ const REASON_DETAILS: Record<AbuseReasonCode, ReasonDetail> = {
   },
   'blocked-by-policy': {
     severity: 'high',
-    message: 'A user, workspace, or hub policy block matched this actor or subject.'
+    message: 'A user, workspace, hub, or app-view policy block matched this actor or subject.'
   },
   'budget-required': {
     severity: 'medium',

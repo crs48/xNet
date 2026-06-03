@@ -323,6 +323,45 @@ describe('@xnetjs/abuse decision engine', () => {
       })
       expect(isVisible(decision)).toBe(false)
     })
+
+    it('explains policy block decisions across user, workspace, hub, and app-view scopes', () => {
+      const cases = [
+        { scope: 'user', actor: { localBlocked: true }, evidenceRef: 'policy-scope:user' },
+        {
+          scope: 'workspace',
+          actor: { workspaceBlocked: true },
+          evidenceRef: 'policy-scope:workspace'
+        },
+        { scope: 'hub', actor: { hubBlocked: true }, evidenceRef: 'policy-scope:hub' },
+        {
+          scope: 'app-view',
+          actor: { appViewBlocked: true },
+          evidenceRef: 'policy-scope:appView'
+        }
+      ] as const
+
+      for (const { actor, evidenceRef, scope } of cases) {
+        const decision = decidePublicInteraction(
+          createBaseFacts({
+            surface: 'commentThread',
+            actor
+          })
+        )
+        const explanation = explainDecision(decision)
+
+        expect(decision.admission, scope).toBe('accept')
+        expect(decision.visibility, scope).toBe('hide')
+        expect(decision.includeInCounters, scope).toBe(false)
+        expect(decision.includeInSearch, scope).toBe(false)
+        expect(decision.evidenceRefs, scope).toContain(evidenceRef)
+        expect(explanation.summary, scope).toBe('Accepted but hidden by policy.')
+        expect(explanation.reasons[0], scope).toEqual({
+          code: 'blocked-by-policy',
+          severity: 'high',
+          message: 'A user, workspace, hub, or app-view policy block matched this actor or subject.'
+        })
+      }
+    })
   })
 
   describe('qualityRiskScore', () => {

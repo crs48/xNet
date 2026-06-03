@@ -79,6 +79,7 @@ export type AbuseActorFacts = {
   localBlocked: boolean
   workspaceBlocked: boolean
   hubBlocked: boolean
+  appViewBlocked: boolean
 }
 
 export type AbuseQualitySignals = {

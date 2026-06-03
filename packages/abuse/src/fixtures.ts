@@ -46,6 +46,7 @@ export function createBaseFacts(overrides: Partial<AbuseFacts> = {}): AbuseFacts
       localBlocked: false,
       workspaceBlocked: false,
       hubBlocked: false,
+      appViewBlocked: false,
       ...overrides.actor
     },
     labels: overrides.labels ?? [],

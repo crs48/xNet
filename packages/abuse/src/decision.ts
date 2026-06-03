@@ -35,7 +35,8 @@ const DEFAULT_ACTOR = {
   peerScore: 100,
   localBlocked: false,
   workspaceBlocked: false,
-  hubBlocked: false
+  hubBlocked: false,
+  appViewBlocked: false
 } as const
 
 const DEFAULT_QUALITY = {
@@ -167,7 +168,8 @@ function decideHardAdmission(facts: NormalizedAbuseFacts): AbuseDecision | null 
     })
   }
 
-  if (isBlockedByPolicy(facts)) {
+  const policyBlockEvidenceRefs = getPolicyBlockEvidenceRefs(facts)
+  if (policyBlockEvidenceRefs.length > 0) {
     return createDecision({
       admission: isMutationSurface(facts) ? 'reject' : 'accept',
       visibility: 'hide',
@@ -175,7 +177,8 @@ function decideHardAdmission(facts: NormalizedAbuseFacts): AbuseDecision | null 
       notify: false,
       includeInCounters: false,
       includeInSearch: false,
-      reasons: ['blocked-by-policy']
+      reasons: ['blocked-by-policy'],
+      evidenceRefs: policyBlockEvidenceRefs
     })
   }
 
@@ -357,8 +360,13 @@ function getInvalidCryptoReasons(facts: NormalizedAbuseFacts): AbuseReasonCode[]
   ].filter((reason): reason is AbuseReasonCode => reason !== null)
 }
 
-function isBlockedByPolicy(facts: NormalizedAbuseFacts): boolean {
-  return facts.actor.localBlocked || facts.actor.workspaceBlocked || facts.actor.hubBlocked
+function getPolicyBlockEvidenceRefs(facts: NormalizedAbuseFacts): AbuseDecision['evidenceRefs'] {
+  return [
+    facts.actor.localBlocked ? 'policy-scope:user' : null,
+    facts.actor.workspaceBlocked ? 'policy-scope:workspace' : null,
+    facts.actor.hubBlocked ? 'policy-scope:hub' : null,
+    facts.actor.appViewBlocked ? 'policy-scope:appView' : null
+  ].filter((scope): scope is string => scope !== null)
 }
 
 function isMutationSurface(facts: NormalizedAbuseFacts): boolean {
