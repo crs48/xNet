@@ -24,6 +24,30 @@ export {
   type AddCommentOptions,
   type ReplyContext
 } from './hooks/useComments'
+export {
+  useVisibleComments,
+  useModeratedThread,
+  createModerationLabelIndex,
+  evaluateCommentModeration,
+  evaluateInteractionPermission,
+  moderateThread,
+  selectActiveInteractionPolicy,
+  summarizeModerationLabel,
+  summarizePublicInteractionPolicy,
+  type CommentVisibility,
+  type FirstContactMode,
+  type InteractionPermission,
+  type ModeratedCommentNode,
+  type ModeratedCommentThread,
+  type ModerationFilterOptions,
+  type ModerationLabelSummary,
+  type PublicInteractionMode,
+  type PublicInteractionPolicySnapshot,
+  type PublicModerationMode,
+  type UseModeratedThreadOptions,
+  type UseVisibleCommentsOptions,
+  type UseVisibleCommentsResult
+} from './hooks/useModeratedComments'
 export { useCommentCount, useCommentCounts } from './hooks/useCommentCount'
 export { useHistory, type UseHistoryResult } from './hooks/useHistory'
 export { useUndo, type UseUndoResult, type UseUndoOptions } from './hooks/useUndo'

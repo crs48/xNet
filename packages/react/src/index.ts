@@ -229,6 +229,42 @@ export {
 } from './hooks/useComments'
 
 /**
+ * useVisibleComments - Moderated comment visibility for public surfaces
+ *
+ * @example
+ * ```tsx
+ * const { threads, hiddenCount, canAddRootComment } = useVisibleComments({
+ *   nodeId: pageId,
+ *   viewerDID
+ * })
+ * ```
+ */
+export {
+  useVisibleComments,
+  useModeratedThread,
+  createModerationLabelIndex,
+  evaluateCommentModeration,
+  evaluateInteractionPermission,
+  moderateThread,
+  selectActiveInteractionPolicy,
+  summarizeModerationLabel,
+  summarizePublicInteractionPolicy,
+  type CommentVisibility,
+  type FirstContactMode,
+  type InteractionPermission,
+  type ModeratedCommentNode,
+  type ModeratedCommentThread,
+  type ModerationFilterOptions,
+  type ModerationLabelSummary,
+  type PublicInteractionMode,
+  type PublicInteractionPolicySnapshot,
+  type PublicModerationMode,
+  type UseModeratedThreadOptions,
+  type UseVisibleCommentsOptions,
+  type UseVisibleCommentsResult
+} from './hooks/useModeratedComments'
+
+/**
  * useCommentCount - Get unresolved comment count for a Node
  *
  * @example

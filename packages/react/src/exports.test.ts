@@ -30,6 +30,8 @@ describe('@xnetjs/react package exports', () => {
 
   it('exposes experimental surfaces from ./experimental', () => {
     expect(experimental.useComments).toBeTypeOf('function')
+    expect(experimental.useVisibleComments).toBeTypeOf('function')
+    expect(experimental.useModeratedThread).toBeTypeOf('function')
     expect(experimental.useHistory).toBeTypeOf('function')
     expect(experimental.OnboardingProvider).toBeTypeOf('function')
     expect(experimental.createSyncManager).toBeTypeOf('function')
