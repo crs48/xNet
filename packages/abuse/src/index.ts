@@ -79,6 +79,17 @@ export {
   unsignedPolicyBlockList,
   verifySignedPolicyBlockList
 } from './policy-blocks'
+export {
+  activeHubPolicyServices,
+  canonicalizeHubPolicyServiceOffer,
+  createHubPolicyServiceOffer,
+  hubPolicyServiceOfferSigningBytes,
+  isSignedHubPolicyServiceOffer,
+  signHubPolicyServiceOffer,
+  unsignedHubPolicyServiceOffer,
+  validateHubPolicyServiceOffer,
+  verifySignedHubPolicyServiceOffer
+} from './hub-policy-offer'
 export { createPublicWriteBudgetKey, evaluatePublicWriteBudget } from './public-write-budget'
 export { createQueryCostBudgetKey, evaluateQueryCostBudget } from './query-cost-budget'
 export {
@@ -162,6 +173,20 @@ export type {
   AISignalProvenanceValidation,
   AISignalSourceType
 } from './ai-provenance'
+export type {
+  HubModerationMode,
+  HubPolicyAIReviewSettings,
+  HubPolicyBudgetHint,
+  HubPolicyLabelSettings,
+  HubPolicyModerationSettings,
+  HubPolicyServiceKind,
+  HubPolicyServiceOfferEntry,
+  HubPolicyServiceOfferSignature,
+  HubPolicyServiceOfferVerificationResult,
+  HubPolicySettlementMode,
+  SignedHubPolicyServiceOffer,
+  UnsignedHubPolicyServiceOffer
+} from './hub-policy-offer'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
