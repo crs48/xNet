@@ -159,4 +159,35 @@ describe('SystemSchemaIndex', () => {
       'contentHash'
     )
   })
+
+  it('rebuilds to the same records as incremental change events', async () => {
+    const { node: nodeV1 } = createRemoteSchemaFixture('Rebuildable', '1.0.0', {
+      title: text({ required: true })
+    })
+    const { node: nodeV2 } = createRemoteSchemaFixture('Rebuildable', '2.0.0', {
+      title: text({ required: true }),
+      summary: text({})
+    })
+    const liveStore = createTestStore([nodeV1])
+    const liveIndex = new SystemSchemaIndex(liveStore)
+
+    await liveIndex.initialize()
+    liveStore.nodes.push(nodeV2)
+    liveStore.listener?.({
+      change: {} as NodeChangeEvent['change'],
+      previousNode: null,
+      node: nodeV2,
+      isRemote: true
+    })
+
+    const rebuiltIndex = new SystemSchemaIndex(createTestStore([nodeV1, nodeV2]))
+    await rebuiltIndex.initialize()
+
+    expect(liveIndex.listDefinitions().map((record) => record.nodeId)).toEqual(
+      rebuiltIndex.listDefinitions().map((record) => record.nodeId)
+    )
+    expect(liveIndex.listDefinitions().map((record) => record.schemaIri)).toEqual(
+      rebuiltIndex.listDefinitions().map((record) => record.schemaIri)
+    )
+  })
 })

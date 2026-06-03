@@ -403,7 +403,7 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 - [x] Route all control-plane mutations through `store.auth.can`.
 - [x] Standardize grant lifecycle on `store.auth.grant/revoke`.
-- [ ] Surface `store.auth.explain` traces in developer and consent UX.
+- [x] Surface `store.auth.explain` traces in developer and consent UX.
 - [x] Enforce grant attenuation and proof-depth limits consistently.
 
 ### Phase 3 - Relay and federation hardening
@@ -429,10 +429,10 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Phase 6 - Developer experience and docs
 
-- [ ] Publish "one primitive" architecture guide for app teams.
-- [ ] Provide reference SDK flow for schema publish/discover/access request.
-- [ ] Ship error taxonomy (`missing_scope`, `policy_denied`, `invalid_signature`, `replay_rejected`).
-- [ ] Add end-to-end sample app demonstrating system-schema federation.
+- [x] Publish "one primitive" architecture guide for app teams.
+- [x] Provide reference SDK flow for schema publish/discover/access request.
+- [x] Ship error taxonomy (`missing_scope`, `policy_denied`, `invalid_signature`, `replay_rejected`).
+- [x] Add end-to-end sample app demonstrating system-schema federation.
 
 ---
 
@@ -440,7 +440,7 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Functional validation
 
-- [ ] Publishing `SchemaDefinition` nodes propagates to allowed peers.
+- [x] Publishing `SchemaDefinition` nodes propagates to allowed peers.
 - [x] Schema resolution by IRI/version works from replicated node graph.
 - [x] Presence summaries stay consistent under create/update/delete churn.
 - [x] Policy revisions deterministically alter replication destinations.
@@ -462,16 +462,16 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 ### Resilience validation
 
 - [x] Offline mutations replay correctly on reconnect.
-- [ ] Partitioned hubs converge after healing.
-- [ ] Duplicate/out-of-order deliveries converge deterministically.
-- [ ] Full index rebuild from change log reproduces live indexes.
+- [x] Partitioned hubs converge after healing.
+- [x] Duplicate/out-of-order deliveries converge deterministically.
+- [x] Full index rebuild from change log reproduces live indexes.
 
 ### UX/DX validation
 
-- [ ] Consent UI clearly presents what/where/how-long for access grants.
-- [ ] Developers can integrate node-native discovery + auth flow quickly.
-- [ ] Errors distinguish auth denial, data absence, and network failures.
-- [ ] Debug tooling exposes policy traces and replication decisions.
+- [x] Consent UI clearly presents what/where/how-long for access grants.
+- [x] Developers can integrate node-native discovery + auth flow quickly.
+- [x] Errors distinguish auth denial, data absence, and network failures.
+- [x] Debug tooling exposes policy traces and replication decisions.
 
 ---
 

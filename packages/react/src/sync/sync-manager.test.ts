@@ -291,6 +291,35 @@ describe('createSyncManager', () => {
     })
   })
 
+  it('repairs tracked rooms when a partition heals', async () => {
+    mockPool.has.mockReturnValue(true)
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+
+    await manager.start()
+    await manager.acquire('node-1')
+    mockConnection.publish.mockClear()
+
+    emitConnectionStatus('error')
+    emitConnectionStatus('connected')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(manager.lastReconciliationReport).toMatchObject({
+      reason: 'reconnect',
+      repairedNodeIds: ['node-1'],
+      skippedNodeIds: []
+    })
+    expect(mockConnection.publish).toHaveBeenCalledWith('xnet-doc-node-1', {
+      type: 'sync-step1',
+      from: expect.any(String),
+      sv: expect.any(String)
+    })
+  })
+
   it('clears remote awareness when the connection drops', async () => {
     const manager = createSyncManager({
       nodeStore: {} as NodeStore,
@@ -428,5 +457,51 @@ describe('createSyncManager', () => {
     })
 
     expect(sharedDoc.getText('content').toString()).toBe('remote')
+  })
+
+  it('converges after duplicate and out-of-order signed updates', async () => {
+    const identity = generateIdentity()
+    const sourceDoc = new Y.Doc()
+    const initialStateVector = Y.encodeStateVector(sourceDoc)
+    sourceDoc.getText('content').insert(0, 'A')
+    const updateA = Y.encodeStateAsUpdate(sourceDoc, initialStateVector)
+    const afterAStateVector = Y.encodeStateVector(sourceDoc)
+    sourceDoc.getText('content').insert(1, 'B')
+    const updateB = Y.encodeStateAsUpdate(sourceDoc, afterAStateVector)
+    const envelopeA = signYjsUpdate(updateA, identity.identity.did, identity.privateKey, 7)
+    const envelopeB = signYjsUpdate(updateB, identity.identity.did, identity.privateKey, 7)
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+    const toWireEnvelope = (envelope: typeof envelopeA) => ({
+      update: btoa(String.fromCharCode(...envelope.update)),
+      authorDID: envelope.authorDID,
+      signature: btoa(String.fromCharCode(...envelope.signature)),
+      timestamp: envelope.timestamp,
+      clientId: envelope.clientId
+    })
+
+    await manager.start()
+    await manager.acquire('node-1')
+
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-signed',
+      envelope: toWireEnvelope(envelopeB)
+    })
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-signed',
+      envelope: toWireEnvelope(envelopeA)
+    })
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-signed',
+      envelope: toWireEnvelope(envelopeA)
+    })
+
+    expect(sharedDoc.getText('content').toString()).toBe('AB')
   })
 })
