@@ -6,6 +6,7 @@ import type { FirstContactMode, PublicInteractionPolicySnapshot } from './useMod
 import type { NodeChangeEvent, NodeState } from '@xnetjs/data'
 import { MessageRequestSchema } from '@xnetjs/data'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { evaluateInteractionPermission, selectPublicInteractionMode } from './useModeratedComments'
 import { useNodeStore } from './useNodeStore'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -224,7 +225,7 @@ export function evaluateFirstContactDecision({
   recipientDID,
   policy,
   existingRequests = [],
-  isAuthenticated = true,
+  isAuthenticated,
   isVerified = false,
   now = Date.now()
 }: FirstContactDecisionInput): FirstContactDecision {
@@ -245,16 +246,38 @@ export function evaluateFirstContactDecision({
     return createFirstContactDecision('block', ['sender-blocked'], 1)
   }
 
-  if (policy?.trustedDIDs.includes(senderDID)) {
-    return createFirstContactDecision('allow', ['trusted-sender'], 0.95)
-  }
-
   if (policy?.mutedDIDs.includes(senderDID)) {
     return createFirstContactDecision('quarantine', ['sender-muted'], 0.9)
   }
 
   if ((policy?.requiresVerifiedIdentity ?? false) && (!isAuthenticated || !isVerified)) {
     return createFirstContactDecision('review', ['verified-identity-required'], 0.8)
+  }
+
+  const messagePermission = evaluateInteractionPermission(
+    selectPublicInteractionMode(policy ?? null, 'message'),
+    policy ?? null,
+    {
+      viewerDID: senderDID,
+      isAuthenticated: isAuthenticated ?? Boolean(senderDID),
+      isVerified
+    }
+  )
+
+  if (!messagePermission.allowed) {
+    return createFirstContactDecision(
+      'block',
+      ['message-policy-denied', ...messagePermission.reasons],
+      0.95
+    )
+  }
+
+  if (messagePermission.requiresReview) {
+    return createFirstContactDecision('review', ['message-review-required'], 0.75)
+  }
+
+  if (policy?.trustedDIDs.includes(senderDID)) {
+    return createFirstContactDecision('allow', ['trusted-sender'], 0.95)
   }
 
   const mode = policy?.firstContactMode ?? 'slow-mode'

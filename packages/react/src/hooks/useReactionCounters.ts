@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createModerationLabelIndex,
   evaluateInteractionPermission,
+  selectPublicInteractionMode,
   summarizeModerationLabel,
   useVisibleComments
 } from './useModeratedComments'
@@ -287,7 +288,7 @@ export function usePolicyFilteredReactionCounters({
 
   const canReact = useMemo(
     () =>
-      evaluateInteractionPermission(policy?.reactionMode ?? 'open', policy, {
+      evaluateInteractionPermission(selectPublicInteractionMode(policy, 'reaction'), policy, {
         viewerDID,
         isAuthenticated,
         isVerified
@@ -296,7 +297,7 @@ export function usePolicyFilteredReactionCounters({
   )
   const canRepost = useMemo(
     () =>
-      evaluateInteractionPermission(policy?.quoteMode ?? 'open', policy, {
+      evaluateInteractionPermission(selectPublicInteractionMode(policy, 'quote'), policy, {
         viewerDID,
         isAuthenticated,
         isVerified

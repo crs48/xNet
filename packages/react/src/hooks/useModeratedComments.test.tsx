@@ -11,6 +11,7 @@ import {
   evaluateInteractionPermission,
   moderateThread,
   selectActiveInteractionPolicy,
+  selectPublicInteractionMode,
   useModeratedThread
 } from './useModeratedComments'
 
@@ -61,6 +62,9 @@ const createPolicy = (
   quoteMode: 'trusted',
   mentionMode: 'trusted',
   communityNoteMode: 'reviewed',
+  messageMode: 'authenticated',
+  crawlMode: 'closed',
+  indexMode: 'reviewed',
   defaultVisibility: 'visible',
   firstContactMode: 'slow-mode',
   moderationMode: 'post-review',
@@ -153,6 +157,64 @@ describe('moderated comment helpers', () => {
     ).toMatchObject({
       allowed: false,
       reasons: ['viewer-blocked']
+    })
+  })
+
+  it('does not treat missing public-read policy as open interaction permission', () => {
+    const anonymousSurfaces = ['comment', 'reaction', 'message', 'crawl', 'index'] as const
+
+    expect(selectPublicInteractionMode(null, 'comment')).toBe('authenticated')
+    expect(selectPublicInteractionMode(null, 'reaction')).toBe('authenticated')
+    expect(selectPublicInteractionMode(null, 'message')).toBe('authenticated')
+    expect(selectPublicInteractionMode(null, 'crawl')).toBe('closed')
+    expect(selectPublicInteractionMode(null, 'index')).toBe('reviewed')
+
+    expect(
+      anonymousSurfaces.map((surface) =>
+        evaluateInteractionPermission(selectPublicInteractionMode(null, surface), null)
+      )
+    ).toEqual([
+      {
+        allowed: false,
+        requiresReview: false,
+        mode: 'authenticated',
+        reasons: ['authentication-required']
+      },
+      {
+        allowed: false,
+        requiresReview: false,
+        mode: 'authenticated',
+        reasons: ['authentication-required']
+      },
+      {
+        allowed: false,
+        requiresReview: false,
+        mode: 'authenticated',
+        reasons: ['authentication-required']
+      },
+      {
+        allowed: false,
+        requiresReview: false,
+        mode: 'closed',
+        reasons: ['interaction-closed']
+      },
+      {
+        allowed: false,
+        requiresReview: true,
+        mode: 'reviewed',
+        reasons: ['authentication-required']
+      }
+    ])
+    expect(
+      evaluateInteractionPermission(selectPublicInteractionMode(null, 'index'), null, {
+        viewerDID: testDID,
+        isAuthenticated: true
+      })
+    ).toEqual({
+      allowed: true,
+      requiresReview: true,
+      mode: 'reviewed',
+      reasons: []
     })
   })
 })

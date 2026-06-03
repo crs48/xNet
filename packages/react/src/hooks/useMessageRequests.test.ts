@@ -26,6 +26,9 @@ const createPolicy = (
   quoteMode: 'trusted',
   mentionMode: 'trusted',
   communityNoteMode: 'reviewed',
+  messageMode: 'authenticated',
+  crawlMode: 'closed',
+  indexMode: 'reviewed',
   defaultVisibility: 'visible',
   firstContactMode: 'slow-mode',
   moderationMode: 'post-review',
@@ -147,6 +150,39 @@ describe('message request helpers', () => {
     ).toMatchObject({
       admission: 'quarantine',
       reasonCodes: ['first-contact', 'policy-quarantine']
+    })
+  })
+
+  it('blocks first-contact messages when the target message policy is closed', () => {
+    expect(
+      evaluateFirstContactDecision({
+        senderDID,
+        recipientDID,
+        policy: createPolicy({ messageMode: 'closed' })
+      })
+    ).toMatchObject({
+      admission: 'block',
+      status: 'blocked',
+      visibility: 'hidden',
+      shouldCreateRequest: false,
+      reasonCodes: ['message-policy-denied', 'interaction-closed']
+    })
+  })
+
+  it('routes reviewed message policies to review before request delivery', () => {
+    expect(
+      evaluateFirstContactDecision({
+        senderDID,
+        recipientDID,
+        policy: createPolicy({ messageMode: 'reviewed' })
+      })
+    ).toMatchObject({
+      admission: 'review',
+      status: 'pending',
+      visibility: 'requests',
+      requiresReview: true,
+      shouldCreateRequest: true,
+      reasonCodes: ['message-review-required']
     })
   })
 

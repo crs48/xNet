@@ -121,6 +121,9 @@ const publicInteractionPolicyAuthorization = createModerationAuthorization({
     'quoteMode',
     'mentionMode',
     'communityNoteMode',
+    'messageMode',
+    'crawlMode',
+    'indexMode',
     'defaultVisibility',
     'firstContactMode',
     'moderationMode',
@@ -485,6 +488,18 @@ export const PublicInteractionPolicySchema = defineSchema({
       default: 'trusted'
     }),
     communityNoteMode: select({
+      options: interactionModes,
+      default: 'reviewed'
+    }),
+    messageMode: select({
+      options: interactionModes,
+      default: 'authenticated'
+    }),
+    crawlMode: select({
+      options: interactionModes,
+      default: 'closed'
+    }),
+    indexMode: select({
       options: interactionModes,
       default: 'reviewed'
     }),

@@ -317,6 +317,9 @@ describe('moderation schemas', () => {
     expect(policy.quoteMode).toBe('trusted')
     expect(policy.mentionMode).toBe('trusted')
     expect(policy.communityNoteMode).toBe('reviewed')
+    expect(policy.messageMode).toBe('authenticated')
+    expect(policy.crawlMode).toBe('closed')
+    expect(policy.indexMode).toBe('reviewed')
     expect(policy.defaultVisibility).toBe('visible')
     expect(policy.firstContactMode).toBe('slow-mode')
     expect(policy.moderationMode).toBe('post-review')
@@ -382,6 +385,9 @@ describe('moderation schemas', () => {
     expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain(
       'firstContactMode'
     )
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain('messageMode')
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain('crawlMode')
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain('indexMode')
     expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).not.toContain(
       'blockedDIDs'
     )

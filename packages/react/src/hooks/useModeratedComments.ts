@@ -22,6 +22,17 @@ export type CommentVisibility = 'visible' | 'collapsed' | 'quarantined' | 'hidde
 
 export type PublicInteractionMode = 'open' | 'authenticated' | 'trusted' | 'reviewed' | 'closed'
 
+export type PublicInteractionSurface =
+  | 'comment'
+  | 'reply'
+  | 'reaction'
+  | 'quote'
+  | 'mention'
+  | 'communityNote'
+  | 'message'
+  | 'crawl'
+  | 'index'
+
 export type FirstContactMode = 'allow' | 'slow-mode' | 'quarantine' | 'review' | 'block'
 
 export type PublicModerationMode =
@@ -55,6 +66,9 @@ export interface PublicInteractionPolicySnapshot {
   quoteMode: PublicInteractionMode
   mentionMode: PublicInteractionMode
   communityNoteMode: PublicInteractionMode
+  messageMode: PublicInteractionMode
+  crawlMode: PublicInteractionMode
+  indexMode: PublicInteractionMode
   defaultVisibility: CommentVisibility
   firstContactMode: FirstContactMode
   moderationMode: PublicModerationMode
@@ -178,6 +192,17 @@ export const DEFAULT_COLLAPSED_COMMENT_LABELS = [
 
 const DEFAULT_HIDE_CONFIDENCE = 0.85
 const DEFAULT_COLLAPSE_CONFIDENCE = 0.65
+const DEFAULT_PUBLIC_INTERACTION_MODES: Record<PublicInteractionSurface, PublicInteractionMode> = {
+  comment: 'authenticated',
+  reply: 'authenticated',
+  reaction: 'authenticated',
+  quote: 'trusted',
+  mention: 'trusted',
+  communityNote: 'reviewed',
+  message: 'authenticated',
+  crawl: 'closed',
+  index: 'reviewed'
+}
 
 // ─── Pure Helpers ───────────────────────────────────────────────────────────
 
@@ -227,6 +252,9 @@ export function summarizePublicInteractionPolicy(
     quoteMode: asInteractionMode(node.properties.quoteMode, 'trusted'),
     mentionMode: asInteractionMode(node.properties.mentionMode, 'trusted'),
     communityNoteMode: asInteractionMode(node.properties.communityNoteMode, 'reviewed'),
+    messageMode: asInteractionMode(node.properties.messageMode, 'authenticated'),
+    crawlMode: asInteractionMode(node.properties.crawlMode, 'closed'),
+    indexMode: asInteractionMode(node.properties.indexMode, 'reviewed'),
     defaultVisibility: asVisibility(node.properties.defaultVisibility, 'visible'),
     firstContactMode: asFirstContactMode(node.properties.firstContactMode, 'slow-mode'),
     moderationMode: asModerationMode(node.properties.moderationMode, 'post-review'),
@@ -264,6 +292,23 @@ export function selectActiveInteractionPolicy(
       return updatedDelta !== 0 ? updatedDelta : right.createdAt - left.createdAt
     })[0] ?? null
   )
+}
+
+export function selectPublicInteractionMode(
+  policy: PublicInteractionPolicySnapshot | null,
+  surface: PublicInteractionSurface
+): PublicInteractionMode {
+  if (!policy) return DEFAULT_PUBLIC_INTERACTION_MODES[surface]
+
+  if (surface === 'comment') return policy.commentMode
+  if (surface === 'reply') return policy.replyMode
+  if (surface === 'reaction') return policy.reactionMode
+  if (surface === 'quote') return policy.quoteMode
+  if (surface === 'mention') return policy.mentionMode
+  if (surface === 'communityNote') return policy.communityNoteMode
+  if (surface === 'message') return policy.messageMode
+  if (surface === 'crawl') return policy.crawlMode
+  return policy.indexMode
 }
 
 export function createModerationLabelIndex(
@@ -609,7 +654,7 @@ export function useVisibleComments(options: UseVisibleCommentsOptions): UseVisib
 
   const canAddRootComment = useMemo(
     () =>
-      evaluateInteractionPermission(policy?.commentMode ?? 'open', policy, {
+      evaluateInteractionPermission(selectPublicInteractionMode(policy, 'comment'), policy, {
         viewerDID,
         isAuthenticated,
         isVerified
@@ -619,7 +664,7 @@ export function useVisibleComments(options: UseVisibleCommentsOptions): UseVisib
 
   const canReply = useMemo(
     () =>
-      evaluateInteractionPermission(policy?.replyMode ?? 'open', policy, {
+      evaluateInteractionPermission(selectPublicInteractionMode(policy, 'reply'), policy, {
         viewerDID,
         isAuthenticated,
         isVerified
