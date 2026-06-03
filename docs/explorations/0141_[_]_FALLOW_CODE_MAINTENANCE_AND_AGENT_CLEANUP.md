@@ -462,9 +462,9 @@ Suggested starter config:
     "**/coverage/**",
     "**/storybook-static/**",
     "**/*.generated.ts",
-    "**/*.config.{js,cjs,mjs,ts}",
     "patches/**"
   ],
+  "dynamicallyLoaded": ["tests/e2e/harness/*.tsx"],
   "rules": {
     "unused-files": "warn",
     "unused-exports": "warn",
@@ -521,7 +521,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
   security-events: write
 
 jobs:
@@ -532,13 +531,16 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      - uses: fallow-rs/fallow@v2
-        continue-on-error: true
         with:
-          command: audit
-          format: sarif
-          annotations: true
-          fail-on-issues: false
+          turbo-cache: 'false'
+      - name: Run Fallow audit
+        continue-on-error: true
+        run: pnpm exec fallow audit --changed-since origin/${{ github.base_ref }} --format sarif --quiet > fallow-audit.sarif
+      - name: Upload Fallow SARIF
+        if: always() && hashFiles('fallow-audit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: fallow-audit.sarif
 ```
 
 After the baseline is stable:
@@ -715,7 +717,7 @@ flowchart LR
 - [x] Tune entrypoints and ignore patterns for site, apps, stories, tests, E2E harnesses, generated files, and published package exports.
 - [x] Rerun `fallow dead-code --group-by package` after dependencies are installed.
 - [x] Classify every initial finding as delete, move, suppress, refactor, or defer.
-- [ ] Add a report-only Fallow CI workflow.
+- [x] Add a report-only Fallow CI workflow.
 - [ ] Burn down low-risk findings package-by-package.
 - [ ] Add a regression baseline once the initial finding set is understood.
 - [ ] Promote `fallow audit` to a changed-code PR gate.
