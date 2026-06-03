@@ -408,10 +408,10 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Phase 3 - Relay and federation hardening
 
-- [ ] Ensure relay path validates hash/signature before persistence.
-- [ ] Enforce hub capability scope for all system namespace operations.
-- [ ] Apply federation exposure filters to system namespaces.
-- [ ] Add replay cache and anti-duplication checks for control-plane changes.
+- [x] Ensure relay path validates hash/signature before persistence.
+- [x] Enforce hub capability scope for all system namespace operations.
+- [x] Apply federation exposure filters to system namespaces.
+- [x] Add replay cache and anti-duplication checks for control-plane changes.
 
 ### Phase 4 - Presence + discovery
 
@@ -448,15 +448,15 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 ### Authorization validation
 
 - [ ] Unauthorized local system mutations are blocked by `store.auth.can`.
-- [ ] Unauthorized relay/query traffic is rejected at hub ingress.
+- [x] Unauthorized relay/query traffic is rejected at hub ingress.
 - [ ] Delegation attenuation violations are rejected.
 - [ ] Revocations take effect within one policy refresh cycle.
 
 ### Security validation
 
-- [ ] Invalid signatures/hashes are rejected pre-apply.
-- [ ] Replay attempts with seen change hashes are rejected.
-- [ ] Cross-namespace escalation attempts are denied and audited.
+- [x] Invalid signatures/hashes are rejected pre-apply.
+- [x] Replay attempts with seen change hashes are rejected.
+- [x] Cross-namespace escalation attempts are denied and audited.
 - [x] Presence outputs do not leak raw resource identifiers.
 
 ### Resilience validation

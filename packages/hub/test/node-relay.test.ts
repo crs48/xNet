@@ -10,6 +10,8 @@ import { createHub, type HubInstance } from '../src'
 const PORT = 14461
 const AUTH_PORT = 14561
 const ROOM = 'workspace-test-1'
+const SYSTEM_NODE_ID = 'xnet://did:key:z6MkSystemAuthority/sys/schema/remote-note'
+const SYSTEM_SCHEMA_IRI = 'xnet://xnet.fyi/SchemaDefinition@1.0.0'
 
 const connect = (port: number): Promise<WebSocket> =>
   new Promise((resolve) => {
@@ -46,14 +48,15 @@ const makeSerializedChange = (
 ): SerializedNodeChange => {
   const { privateKey } = generateSigningKeyPair()
   const identity = identityFromPrivateKey(privateKey)
+  const payload = overrides.payload ?? {
+    nodeId: 'node-1',
+    schemaId: 'xnet://xnet.dev/Task',
+    properties: { title: 'Test Task', status: 'todo' }
+  }
   const unsigned = createUnsignedChange({
     id: createChangeId(),
     type: 'node-change',
-    payload: {
-      nodeId: 'node-1',
-      schemaId: 'xnet://xnet.dev/Task',
-      properties: { title: 'Test Task', status: 'todo' }
-    },
+    payload,
     parentHash: null,
     authorDID: identity.did as DID,
     wallTime: Date.now(),
@@ -66,9 +69,9 @@ const makeSerializedChange = (
     id: signed.id,
     type: signed.type,
     hash: signed.hash,
-    room: ROOM,
-    nodeId: signed.payload.nodeId,
-    schemaId: signed.payload.schemaId,
+    room: overrides.room ?? ROOM,
+    nodeId: payload.nodeId,
+    schemaId: payload.schemaId,
     lamportTime: signed.lamport.time,
     lamportAuthor: signed.lamport.author,
     authorDid: signed.authorDID,
@@ -83,6 +86,23 @@ const makeSerializedChange = (
     ...overrides
   }
 }
+
+const makeSerializedSystemChange = (
+  overrides: Partial<SerializedNodeChange> = {}
+): SerializedNodeChange =>
+  makeSerializedChange({
+    nodeId: SYSTEM_NODE_ID,
+    schemaId: SYSTEM_SCHEMA_IRI,
+    payload: {
+      nodeId: SYSTEM_NODE_ID,
+      schemaId: SYSTEM_SCHEMA_IRI,
+      properties: {
+        schemaIri: 'xnet://xnet.dev/RemoteNote@1.0.0',
+        version: '1.0.0'
+      }
+    },
+    ...overrides
+  })
 
 describe('Node Sync Relay', () => {
   let hub: HubInstance
@@ -208,6 +228,94 @@ describe('Node Sync Relay', () => {
 
     ws.close()
   })
+
+  it('rejects invalid hashes without appending node changes', async () => {
+    const room = 'workspace-invalid-hash'
+    const ws = await connect(PORT)
+    const change = makeSerializedChange({
+      room,
+      hash: 'cid:blake3:0000000000000000000000000000000000000000000000000000000000000000'
+    })
+
+    ws.send(
+      JSON.stringify({
+        type: 'publish',
+        topic: room,
+        data: {
+          type: 'node-change',
+          room,
+          change
+        }
+      })
+    )
+
+    const error = (await waitForMessage(ws)) as {
+      type: string
+      code?: string
+    }
+
+    expect(error).toMatchObject({
+      type: 'node-error',
+      code: 'INVALID_HASH'
+    })
+
+    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
+
+    const response = (await waitForMessage(ws)) as {
+      type: string
+      changes?: SerializedNodeChange[]
+    }
+
+    expect(response.type).toBe('node-sync-response')
+    expect(response.changes).toEqual([])
+
+    ws.close()
+  })
+
+  it('rejects duplicate system namespace changes as replay attempts', async () => {
+    const room = 'workspace-system-replay'
+    const ws = await connect(PORT)
+    const change = makeSerializedSystemChange({ room })
+    const publish = {
+      type: 'publish',
+      topic: room,
+      data: {
+        type: 'node-change',
+        room,
+        change
+      }
+    }
+
+    ws.send(JSON.stringify(publish))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    ws.send(JSON.stringify(publish))
+
+    const error = (await waitForMessage(ws)) as {
+      type: string
+      code?: string
+      action?: string
+      resource?: string
+    }
+
+    expect(error).toMatchObject({
+      type: 'node-error',
+      code: 'REPLAY_REJECTED',
+      action: 'hub/relay',
+      resource: SYSTEM_NODE_ID
+    })
+
+    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
+
+    const response = (await waitForMessage(ws)) as {
+      type: string
+      changes?: SerializedNodeChange[]
+    }
+
+    expect(response.type).toBe('node-sync-response')
+    expect(response.changes?.filter((entry) => entry.hash === change.hash)).toHaveLength(1)
+
+    ws.close()
+  })
 })
 
 describe('Node Sync Relay authorization', () => {
@@ -311,6 +419,74 @@ describe('Node Sync Relay authorization', () => {
 
     expect(response.type).toBe('node-sync-response')
     expect(response.changes).toEqual([])
+
+    deniedWs.close()
+    allowedWs.close()
+  })
+
+  it('requires system namespace relay scope in addition to room scope', async () => {
+    telemetry.reportSecurityEvent.mockClear()
+    telemetry.reportUsage.mockClear()
+
+    const room = 'workspace-system-scope'
+    const roomOnlyToken = createToken([{ with: room, can: 'hub/relay' }])
+    const allowedToken = createToken([
+      { with: room, can: 'hub/relay' },
+      { with: SYSTEM_NODE_ID, can: 'hub/relay' }
+    ])
+    const deniedWs = await connectWithToken(AUTH_PORT, roomOnlyToken.token)
+    const change = makeSerializedSystemChange({ room })
+
+    deniedWs.send(
+      JSON.stringify({
+        type: 'publish',
+        topic: room,
+        data: {
+          type: 'node-change',
+          room,
+          change
+        }
+      })
+    )
+
+    const error = (await waitForMessage(deniedWs)) as {
+      type: string
+      code?: string
+      action?: string
+      resource?: string
+    }
+
+    expect(error).toMatchObject({
+      type: 'node-error',
+      code: 'MISSING_SCOPE',
+      action: 'hub/relay',
+      resource: SYSTEM_NODE_ID
+    })
+    expect(telemetry.reportSecurityEvent).toHaveBeenCalledTimes(1)
+
+    const allowedWs = await connectWithToken(AUTH_PORT, allowedToken.token)
+    allowedWs.send(
+      JSON.stringify({
+        type: 'publish',
+        topic: room,
+        data: {
+          type: 'node-change',
+          room,
+          change
+        }
+      })
+    )
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    allowedWs.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
+
+    const response = (await waitForMessage(allowedWs)) as {
+      type: string
+      changes?: SerializedNodeChange[]
+    }
+
+    expect(response.type).toBe('node-sync-response')
+    expect(response.changes?.map((entry) => entry.hash)).toContain(change.hash)
 
     deniedWs.close()
     allowedWs.close()
