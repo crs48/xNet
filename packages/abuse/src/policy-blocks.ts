@@ -50,6 +50,11 @@ export type PolicyBlockListVerificationResult = {
   errors: readonly string[]
 }
 
+export type PolicyBlockAuditEntry = PolicyBlockEntry & {
+  active: boolean
+  expired: boolean
+}
+
 type JsonPrimitive = string | number | boolean | null
 type JsonValue = JsonPrimitive | readonly JsonValue[] | { readonly [key: string]: JsonValue }
 
@@ -169,11 +174,37 @@ export const verifySignedPolicyBlockList = (
   }
 }
 
+export const policyBlockEntryIsActive = (entry: PolicyBlockEntry, now = Date.now()): boolean =>
+  typeof entry.expiresAt !== 'number' || entry.expiresAt > now
+
+export const auditPolicyBlockEntries = (
+  list: SignedPolicyBlockList | UnsignedPolicyBlockList,
+  now = Date.now()
+): readonly PolicyBlockAuditEntry[] =>
+  list.entries.map((entry) => {
+    const active = policyBlockEntryIsActive(entry, now)
+    return {
+      ...entry,
+      active,
+      expired: !active
+    }
+  })
+
+export const findPolicyBlockAuditEntry = (
+  list: SignedPolicyBlockList | UnsignedPolicyBlockList,
+  subject: string,
+  subjectType: PolicyBlockSubjectType,
+  now = Date.now()
+): PolicyBlockAuditEntry | null =>
+  auditPolicyBlockEntries(list, now).find(
+    (entry) => entry.subject === subject && entry.subjectType === subjectType
+  ) ?? null
+
 export const activePolicyBlockEntries = (
   list: SignedPolicyBlockList | UnsignedPolicyBlockList,
   now = Date.now()
 ): readonly PolicyBlockEntry[] =>
-  list.entries.filter((entry) => typeof entry.expiresAt !== 'number' || entry.expiresAt > now)
+  list.entries.filter((entry) => policyBlockEntryIsActive(entry, now))
 
 export const findPolicyBlockEntry = (
   list: SignedPolicyBlockList | UnsignedPolicyBlockList,

@@ -76,11 +76,14 @@ export {
 } from './local-classifier'
 export {
   activePolicyBlockEntries,
+  auditPolicyBlockEntries,
   canonicalizePolicyBlockList,
   createPolicyBlockList,
+  findPolicyBlockAuditEntry,
   findPolicyBlockEntry,
   isSignedPolicyBlockList,
   policyBlockListSigningBytes,
+  policyBlockEntryIsActive,
   signPolicyBlockList,
   unsignedPolicyBlockList,
   verifySignedPolicyBlockList
@@ -250,6 +253,7 @@ export type {
 } from './types'
 export type {
   PolicyBlockAction,
+  PolicyBlockAuditEntry,
   PolicyBlockEntry,
   PolicyBlockListSignature,
   PolicyBlockListVerificationResult,
