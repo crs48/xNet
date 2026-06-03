@@ -46,6 +46,7 @@ import { KeyRegistryService } from './services/key-registry'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
+import { reportUnauthorizedRemoteWrite } from './services/remote-mutation-telemetry'
 import { SchemaRegistryService } from './services/schemas'
 import { ShardIngestRouter } from './services/shard-ingest'
 import { ShardRebalancer } from './services/shard-rebalancer'
@@ -471,7 +472,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     crawlConfig,
     robots ?? undefined
   )
-  const nodeRelay = new NodeRelayService(storage)
+  const remoteMutationTelemetry = {
+    telemetry: config.telemetry,
+    telemetryPeerHashSalt: config.telemetryPeerHashSalt
+  }
+  const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
     cleanupIntervalMs: config.awarenessCleanupIntervalMs ?? 60 * 60 * 1000,
@@ -1187,6 +1192,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 topic: payload.topic
               })
               if (!publishDecision.allowed) {
+                reportUnauthorizedRemoteWrite(remoteMutationTelemetry, session.did)
                 denyAndCloseSocket(ws, publishDecision, 'hub/signal', payload.topic)
                 return
               }
@@ -1200,6 +1206,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 topic: payload.data.room
               })
               if (!roomDecision.allowed) {
+                reportUnauthorizedRemoteWrite(remoteMutationTelemetry, session.did)
                 ws.send(
                   JSON.stringify({
                     type: 'node-error',

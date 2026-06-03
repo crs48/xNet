@@ -1,12 +1,14 @@
 /**
  * @xnetjs/hub - Node change relay service.
  */
+import type { RemoteMutationTelemetryOptions } from './remote-mutation-telemetry'
 import type { AuthContext } from '../auth/ucan'
 import type { HubStorage, SerializedNodeChange } from '../storage/interface'
 import type { ContentId, DID } from '@xnetjs/core'
 import { base64ToBytes } from '@xnetjs/crypto'
 import { parseDID } from '@xnetjs/identity'
 import { verifyChange, verifyChangeHash, type Change } from '@xnetjs/sync'
+import { reportUnauthorizedRemoteWrite } from './remote-mutation-telemetry'
 
 type NodePayload = SerializedNodeChange['payload']
 
@@ -40,10 +42,14 @@ export class NodeRelayError extends Error {
 }
 
 export class NodeRelayService {
-  constructor(private storage: HubStorage) {}
+  constructor(
+    private storage: HubStorage,
+    private telemetryOptions: RemoteMutationTelemetryOptions = {}
+  ) {}
 
   async handleNodeChange(msg: NodeChangeMessage, auth: AuthContext): Promise<boolean> {
     if (!auth.can('hub/relay', msg.room)) {
+      reportUnauthorizedRemoteWrite(this.telemetryOptions, auth.did)
       throw new NodeRelayError('UNAUTHORIZED', 'Insufficient capabilities for node relay')
     }
 
