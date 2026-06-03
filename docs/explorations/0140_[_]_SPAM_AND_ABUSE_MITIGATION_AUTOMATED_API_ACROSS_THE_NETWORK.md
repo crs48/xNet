@@ -1036,7 +1036,7 @@ Every hub should publish:
       expensive parsing.
 - [x] Unauthorized remote writes are rejected before mutation and produce telemetry.
 - [x] Hub relay never fans out a sync update before required validation.
-- [ ] V2 envelopes are rejected when doc ID, timestamp, author, or signature verification fails.
+- [x] V2 envelopes are rejected when doc ID, timestamp, author, or signature verification fails.
 - [ ] Peer scores recover only after quiet periods and do not grow unbounded.
 - [ ] Blocks expire when configured and remain auditable.
 
