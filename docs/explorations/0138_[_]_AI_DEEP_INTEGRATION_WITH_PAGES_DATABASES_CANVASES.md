@@ -1313,11 +1313,11 @@ Workspace:
 
 - [x] Add `page_read_markdown` with frontmatter identity and revision.
 - [x] Add `page_plan_patch` that accepts full Markdown replacement or structured patch.
-- [ ] Parse Markdown through existing xNet Markdown specs.
+- [x] Parse Markdown through existing xNet Markdown specs.
 - [x] Validate xNet directives and unsupported constructs.
-- [ ] Apply through TipTap/Yjs document paths.
+- [x] Apply through TipTap/Yjs document paths.
 - [ ] Render Markdown diffs in the UI.
-- [ ] Add round-trip tests for AI-edited pages with database/page/embed directives.
+- [x] Add round-trip tests for AI-edited pages with database/page/embed directives.
 
 ### Phase 3: AI Workspace Folder Projection
 

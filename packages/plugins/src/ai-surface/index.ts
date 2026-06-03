@@ -41,6 +41,10 @@ export {
 } from './validation'
 export { AiSurfaceService, createAiSurfaceService } from './service'
 export type {
+  AiPageMarkdownApplyAdapter,
+  AiPageMarkdownApplyAdapterInput,
+  AiPageMarkdownApplyAdapterResult,
+  AiPageMarkdownApplyResult,
   AiResourceContent,
   AiSearchOptions,
   AiSearchResult,
@@ -48,13 +52,16 @@ export type {
   AiSurfaceServiceConfig
 } from './service'
 export {
+  getXNetMarkdownDirectiveSpecs,
   parseXNetPageFrontmatter,
   renderMarkdownLineDiff,
   stripXNetPageFrontmatter,
+  XNET_MARKDOWN_DIRECTIVE_SPECS,
   validateXNetPageMarkdown
 } from './page-markdown'
 export type {
   XNetMarkdownDirective,
+  XNetMarkdownDirectiveSpec,
   XNetPageMarkdownFrontmatter,
   XNetPageMarkdownValidation,
   XNetPageMarkdownValidationOptions

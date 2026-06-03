@@ -63,6 +63,10 @@ export type {
   AiMutationPlan,
   AiMutationPlanStatus,
   AiOperation,
+  AiPageMarkdownApplyAdapter,
+  AiPageMarkdownApplyAdapterInput,
+  AiPageMarkdownApplyAdapterResult,
+  AiPageMarkdownApplyResult,
   AiResource,
   AiRiskLevel,
   AiScope,
@@ -76,6 +80,7 @@ export type {
   AiSurfaceLimits,
   AiSurfaceServiceConfig,
   XNetMarkdownDirective,
+  XNetMarkdownDirectiveSpec,
   XNetPageMarkdownFrontmatter,
   XNetPageMarkdownValidation,
   XNetPageMarkdownValidationOptions
@@ -96,9 +101,11 @@ export {
   validateAiMutationPlan,
   AiSurfaceService,
   createAiSurfaceService,
+  getXNetMarkdownDirectiveSpecs,
   parseXNetPageFrontmatter,
   renderMarkdownLineDiff,
   stripXNetPageFrontmatter,
+  XNET_MARKDOWN_DIRECTIVE_SPECS,
   validateXNetPageMarkdown
 } from '../ai-surface'
 

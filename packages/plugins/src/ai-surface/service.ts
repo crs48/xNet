@@ -24,7 +24,11 @@ import type {
   NodeQuerySearchFilter,
   SortDirection
 } from '@xnetjs/data'
-import { renderMarkdownLineDiff, validateXNetPageMarkdown } from './page-markdown'
+import {
+  renderMarkdownLineDiff,
+  stripXNetPageFrontmatter,
+  validateXNetPageMarkdown
+} from './page-markdown'
 import { attachAiPlanValidation, createAiOperation, validateAiMutationPlan } from './validation'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -63,11 +67,50 @@ export type AiSurfaceLimits = {
   maxDatabaseRows: number
 }
 
+export type AiPageMarkdownApplyAdapterInput = {
+  pageId: string
+  markdown: string
+  bodyMarkdown: string
+  baseRevision: string
+  plan: AiMutationPlan
+  operation: AiOperation
+}
+
+export type AiPageMarkdownApplyAdapterResult = {
+  mode: 'tiptap-yjs' | 'yjs' | 'custom'
+  yjsField?: string
+  documentUpdate?: unknown
+  warnings?: string[]
+}
+
+export type AiPageMarkdownApplyAdapter = {
+  applyMarkdown(input: AiPageMarkdownApplyAdapterInput): Promise<AiPageMarkdownApplyAdapterResult>
+}
+
+export type AiPageMarkdownApplyResult = {
+  applied: boolean
+  pageId: string
+  planId: string
+  mode: 'tiptap-yjs' | 'yjs' | 'custom' | 'node-property'
+  baseRevision: string
+  liveRevision: string
+  markdownHash: string
+  bodyMarkdownHash: string
+  validation: {
+    valid: boolean
+    errors: string[]
+    warnings: string[]
+  }
+  yjsField?: string
+  documentUpdate?: unknown
+}
+
 export type AiSurfaceServiceConfig = {
   store: NodeStoreAPI
   schemas: SchemaRegistryAPI
   limits?: Partial<AiSurfaceLimits>
   clock?: () => Date
+  pageMarkdownAdapter?: AiPageMarkdownApplyAdapter
 }
 
 const DEFAULT_LIMITS: AiSurfaceLimits = {
@@ -306,6 +349,29 @@ export class AiSurfaceService {
             actor: { type: 'string', description: 'Agent or user creating the plan.' }
           },
           required: ['pageId', 'markdown']
+        }
+      },
+      {
+        name: 'xnet_apply_page_markdown',
+        title: 'Apply page Markdown plan',
+        description:
+          'Apply a validated page Markdown mutation plan through the configured TipTap/Yjs document adapter, with a node-property fallback.',
+        risk: 'high',
+        requiredScopes: ['page.read', 'page.write'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            plan: { type: 'object', description: 'Validated page Markdown mutation plan.' },
+            confirmApply: {
+              type: 'boolean',
+              description: 'Must be true to apply the page Markdown plan.'
+            },
+            allowStale: {
+              type: 'boolean',
+              description: 'Allow applying when the plan base revision differs from the live node.'
+            }
+          },
+          required: ['plan', 'confirmApply']
         }
       },
       {
@@ -618,6 +684,9 @@ export class AiSurfaceService {
 
       case 'xnet_plan_page_patch':
         return await this.planPagePatch(args)
+
+      case 'xnet_apply_page_markdown':
+        return await this.applyPageMarkdown(args)
 
       case 'xnet_database_describe':
         return await this.describeDatabase(readRequiredString(args, 'databaseId'), {
@@ -1061,6 +1130,132 @@ export class AiSurfaceService {
       warnings: [...warnings, ...markdownValidation.validation.warnings],
       errors: markdownValidation.validation.errors
     })
+  }
+
+  private async applyPageMarkdown(
+    args: Record<string, unknown>
+  ): Promise<AiPageMarkdownApplyResult> {
+    const confirmApply = readOptionalBoolean(args, 'confirmApply') ?? false
+    if (!confirmApply) {
+      throw new Error('confirmApply must be true to apply a page Markdown plan')
+    }
+
+    const plan = readRequiredRecord(args, 'plan') as unknown
+    const planValidation = validateAiMutationPlan(plan)
+    if (!planValidation.valid || !isMutationPlan(plan)) {
+      return invalidPageApplyResult(plan, planValidation)
+    }
+
+    const pagePatch = readPageMarkdownPatch(plan)
+    if (!pagePatch.valid) {
+      return {
+        applied: false,
+        pageId: pagePatch.pageId,
+        planId: plan.id,
+        mode: 'node-property',
+        baseRevision: pagePatch.baseRevision,
+        liveRevision: 'unknown',
+        markdownHash: pagePatch.markdown ? stableStringHash(pagePatch.markdown) : '',
+        bodyMarkdownHash: pagePatch.markdown
+          ? stableStringHash(stripXNetPageFrontmatter(pagePatch.markdown))
+          : '',
+        validation: {
+          valid: false,
+          errors: pagePatch.errors,
+          warnings: planValidation.warnings
+        }
+      }
+    }
+    const page = await this.getNodeOrThrow(pagePatch.pageId)
+    const liveRevision = revisionForNode(page)
+    const staleWarning =
+      pagePatch.baseRevision === liveRevision
+        ? null
+        : `baseRevision ${pagePatch.baseRevision} does not match live revision ${liveRevision}`
+
+    if (staleWarning && !(readOptionalBoolean(args, 'allowStale') ?? false)) {
+      return {
+        applied: false,
+        pageId: pagePatch.pageId,
+        planId: plan.id,
+        mode: 'node-property',
+        baseRevision: pagePatch.baseRevision,
+        liveRevision,
+        markdownHash: stableStringHash(pagePatch.markdown),
+        bodyMarkdownHash: stableStringHash(stripXNetPageFrontmatter(pagePatch.markdown)),
+        validation: {
+          valid: false,
+          errors: [staleWarning],
+          warnings: planValidation.warnings
+        }
+      }
+    }
+
+    const bodyMarkdown = stripXNetPageFrontmatter(pagePatch.markdown)
+    const markdownValidation = validateXNetPageMarkdown(pagePatch.markdown, {
+      pageId: pagePatch.pageId,
+      schemaId: page.schemaId,
+      baseRevision: pagePatch.baseRevision
+    })
+    if (!markdownValidation.validation.valid) {
+      return {
+        applied: false,
+        pageId: pagePatch.pageId,
+        planId: plan.id,
+        mode: 'node-property',
+        baseRevision: pagePatch.baseRevision,
+        liveRevision,
+        markdownHash: stableStringHash(pagePatch.markdown),
+        bodyMarkdownHash: stableStringHash(bodyMarkdown),
+        validation: markdownValidation.validation
+      }
+    }
+
+    const adapterResult = this.config.pageMarkdownAdapter
+      ? await this.config.pageMarkdownAdapter.applyMarkdown({
+          pageId: pagePatch.pageId,
+          markdown: pagePatch.markdown,
+          bodyMarkdown,
+          baseRevision: pagePatch.baseRevision,
+          plan,
+          operation: pagePatch.operation
+        })
+      : null
+
+    if (!adapterResult) {
+      await this.config.store.update(pagePatch.pageId, {
+        properties: {
+          markdown: bodyMarkdown,
+          aiLastAppliedPlanId: plan.id,
+          aiLastAppliedAt: this.nowIso()
+        }
+      })
+    }
+
+    return {
+      applied: true,
+      pageId: pagePatch.pageId,
+      planId: plan.id,
+      mode: adapterResult?.mode ?? 'node-property',
+      baseRevision: pagePatch.baseRevision,
+      liveRevision,
+      markdownHash: stableStringHash(pagePatch.markdown),
+      bodyMarkdownHash: stableStringHash(bodyMarkdown),
+      validation: {
+        valid: true,
+        errors: [],
+        warnings: [
+          ...planValidation.warnings,
+          ...markdownValidation.validation.warnings,
+          ...(staleWarning ? [staleWarning] : []),
+          ...(adapterResult?.warnings ?? [])
+        ]
+      },
+      ...(adapterResult?.yjsField ? { yjsField: adapterResult.yjsField } : {}),
+      ...(adapterResult?.documentUpdate !== undefined
+        ? { documentUpdate: adapterResult.documentUpdate }
+        : {})
+    }
   }
 
   // ─── Databases ────────────────────────────────────────────────────────────
@@ -1709,6 +1904,100 @@ export class AiSurfaceService {
 
 export function createAiSurfaceService(config: AiSurfaceServiceConfig): AiSurfaceService {
   return new AiSurfaceService(config)
+}
+
+// ─── Page Apply Helpers ────────────────────────────────────────────────────
+
+type PageMarkdownPatchReadResult =
+  | {
+      valid: true
+      pageId: string
+      baseRevision: string
+      markdown: string
+      operation: AiOperation
+      errors: []
+    }
+  | {
+      valid: false
+      pageId: string
+      baseRevision: string
+      markdown: string
+      errors: string[]
+    }
+
+function readPageMarkdownPatch(plan: AiMutationPlan): PageMarkdownPatchReadResult {
+  const pageChanges = plan.changes.filter((change) => change.targetKind === 'page')
+  const change = pageChanges[0]
+  const operation = change?.operations.find((candidate) => candidate.op === 'replaceMarkdown')
+  const markdown = operation ? readRecordString(operation.args, 'markdown') : undefined
+
+  if (pageChanges.length !== 1 || !change) {
+    return invalidPagePatch('', '', '', ['Plan must contain exactly one page change set'])
+  }
+
+  if (!operation) {
+    return invalidPagePatch(change.targetId, change.baseRevision, '', [
+      'Page change set must contain a replaceMarkdown operation'
+    ])
+  }
+
+  if (!markdown) {
+    return invalidPagePatch(change.targetId, change.baseRevision, '', [
+      'replaceMarkdown operation must include markdown'
+    ])
+  }
+
+  return {
+    valid: true,
+    pageId: change.targetId,
+    baseRevision: change.baseRevision,
+    markdown,
+    operation,
+    errors: []
+  }
+}
+
+function invalidPagePatch(
+  pageId: string,
+  baseRevision: string,
+  markdown: string,
+  errors: string[]
+): PageMarkdownPatchReadResult {
+  return {
+    valid: false,
+    pageId,
+    baseRevision,
+    markdown,
+    errors
+  }
+}
+
+function invalidPageApplyResult(
+  plan: unknown,
+  validation: AiPageMarkdownApplyResult['validation']
+): AiPageMarkdownApplyResult {
+  return {
+    applied: false,
+    pageId: 'unknown',
+    planId: isRecord(plan) && typeof plan.id === 'string' ? plan.id : 'unknown',
+    mode: 'node-property',
+    baseRevision: 'unknown',
+    liveRevision: 'unknown',
+    markdownHash: '',
+    bodyMarkdownHash: '',
+    validation
+  }
+}
+
+function isMutationPlan(value: unknown): value is AiMutationPlan {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.actor === 'string' &&
+    typeof value.intent === 'string' &&
+    Array.isArray(value.changes) &&
+    isRecord(value.validation)
+  )
 }
 
 // ─── Pure Helpers ───────────────────────────────────────────────────────────

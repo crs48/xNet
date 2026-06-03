@@ -21,6 +21,13 @@ export type XNetMarkdownDirective = {
   target?: string
 }
 
+export type XNetMarkdownDirectiveSpec = {
+  kind: 'block' | 'inline' | 'wikilink'
+  name: string
+  editorExtension: string
+  description: string
+}
+
 export type XNetPageMarkdownValidationOptions = {
   pageId?: string
   schemaId?: string
@@ -33,8 +40,51 @@ export type XNetPageMarkdownValidation = {
   validation: AiValidationResult
 }
 
-const SUPPORTED_BLOCK_DIRECTIVES = new Set(['xnet-database', 'xnet-page', 'xnet-embed'])
-const SUPPORTED_INLINE_DIRECTIVES = new Set(['xnet-ref', 'xnet-db-ref'])
+export const XNET_MARKDOWN_DIRECTIVE_SPECS = [
+  {
+    kind: 'block',
+    name: 'xnet-database',
+    editorExtension: 'DatabaseEmbedExtension',
+    description: 'Embeds a database view block with JSON view configuration.'
+  },
+  {
+    kind: 'block',
+    name: 'xnet-page',
+    editorExtension: 'PageEmbedExtension',
+    description: 'Embeds a page preview block with page identity and preview metadata.'
+  },
+  {
+    kind: 'block',
+    name: 'xnet-embed',
+    editorExtension: 'EmbedExtension',
+    description: 'Embeds rich external media with provider metadata.'
+  },
+  {
+    kind: 'inline',
+    name: 'xnet-ref',
+    editorExtension: 'SmartReferenceExtension',
+    description: 'Embeds an inline smart reference to an external or internal resource.'
+  },
+  {
+    kind: 'inline',
+    name: 'xnet-db-ref',
+    editorExtension: 'DatabaseReferenceExtension',
+    description: 'Embeds an inline database reference.'
+  },
+  {
+    kind: 'wikilink',
+    name: 'wikilink',
+    editorExtension: 'Wikilink',
+    description: 'Parses [[Page Title]] wikilinks into xNet page links.'
+  }
+] as const satisfies readonly XNetMarkdownDirectiveSpec[]
+
+const SUPPORTED_BLOCK_DIRECTIVES: ReadonlySet<string> = new Set(
+  XNET_MARKDOWN_DIRECTIVE_SPECS.filter((spec) => spec.kind === 'block').map((spec) => spec.name)
+)
+const SUPPORTED_INLINE_DIRECTIVES: ReadonlySet<string> = new Set(
+  XNET_MARKDOWN_DIRECTIVE_SPECS.filter((spec) => spec.kind === 'inline').map((spec) => spec.name)
+)
 
 // ─── Validation ─────────────────────────────────────────────────────────────
 
@@ -71,6 +121,10 @@ export function validateXNetPageMarkdown(
       warnings
     }
   }
+}
+
+export function getXNetMarkdownDirectiveSpecs(): readonly XNetMarkdownDirectiveSpec[] {
+  return XNET_MARKDOWN_DIRECTIVE_SPECS
 }
 
 export function parseXNetPageFrontmatter(markdown: string): XNetPageMarkdownFrontmatter | null {
