@@ -313,6 +313,35 @@ describe('Sync Relay direct admission', () => {
     expect(stored.getText('content').toString()).toBe('')
   })
 
+  it('rejects V1 envelopes with invalid signatures without mutating state', async () => {
+    const docId = 'test-relay-v1-invalid-signature'
+    const identity = generateIdentity()
+    const { clientId, update } = createUpdate('tampered v1')
+    const envelope = signYjsUpdate(update, identity.identity.did, identity.privateKey, clientId)
+    envelope.signature = new Uint8Array(envelope.signature)
+    envelope.signature[0] ^= 0xff
+    const { pool, relay } = createRelay()
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientTampered',
+        envelope: {
+          update: Buffer.from(envelope.update).toString('base64'),
+          authorDID: envelope.authorDID,
+          signature: Buffer.from(envelope.signature).toString('base64'),
+          timestamp: envelope.timestamp,
+          clientId: envelope.clientId
+        }
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('')
+  })
+
   it('reports hashed telemetry for rejected remote mutations', async () => {
     const docId = 'test-relay-rejection-telemetry'
     const bundle = createKeyBundle({ includePQ: false })

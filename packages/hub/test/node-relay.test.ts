@@ -153,4 +153,40 @@ describe('Node Sync Relay', () => {
 
     ws.close()
   })
+
+  it('rejects invalid signatures without appending node changes', async () => {
+    const room = 'workspace-invalid-signature'
+    const ws = await connect(PORT)
+
+    const change = makeSerializedChange({
+      room,
+      signatureB64: bytesToBase64(new Uint8Array(64).fill(0))
+    })
+
+    ws.send(
+      JSON.stringify({
+        type: 'publish',
+        topic: room,
+        data: {
+          type: 'node-change',
+          room,
+          change
+        }
+      })
+    )
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
+
+    const response = (await waitForMessage(ws)) as {
+      type: string
+      changes?: SerializedNodeChange[]
+    }
+
+    expect(response.type).toBe('node-sync-response')
+    expect(response.changes).toEqual([])
+
+    ws.close()
+  })
 })
