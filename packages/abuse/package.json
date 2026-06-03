@@ -1,0 +1,43 @@
+{
+  "name": "@xnetjs/abuse",
+  "version": "0.0.1",
+  "description": "Composable abuse, moderation, and reach policy decisions for xNet",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crs48/xNet"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./adapters": {
+      "import": "./dist/adapters.js",
+      "types": "./dist/adapters.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/adapters.ts --format esm --dts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/identity": "workspace:*"
+  }
+}

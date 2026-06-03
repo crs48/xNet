@@ -124,6 +124,35 @@ describe('YjsPeerScorer', () => {
     })
   })
 
+  describe('onAction', () => {
+    it('emits peer actions caused by violations', () => {
+      const scorer = new YjsPeerScorer()
+      const listener = vi.fn()
+
+      scorer.onAction(listener)
+      scorer.penalize('peer-1', 'rateExceeded')
+
+      expect(listener).toHaveBeenCalledWith({
+        peerId: 'peer-1',
+        reason: 'rateExceeded',
+        action: 'allow',
+        score: 95,
+        metrics: expect.objectContaining({ rateExceeded: 1 })
+      })
+    })
+
+    it('returns an unsubscribe function', () => {
+      const scorer = new YjsPeerScorer()
+      const listener = vi.fn()
+      const unsubscribe = scorer.onAction(listener)
+
+      unsubscribe()
+      scorer.penalize('peer-1', 'rateExceeded')
+
+      expect(listener).not.toHaveBeenCalled()
+    })
+  })
+
   describe('action thresholds', () => {
     it('returns block at score <= 10', () => {
       const scorer = new YjsPeerScorer()
@@ -227,6 +256,26 @@ describe('YjsPeerScorer', () => {
       scorer.tick()
       scorer.tick()
 
+      expect(scorer.getScore('peer-1')).toBe(100)
+    })
+
+    it('recovers only after the quiet window and remains capped after repeated ticks', () => {
+      const scorer = new YjsPeerScorer({ recoveryRate: 20 })
+      vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
+
+      scorer.penalize('peer-1', 'invalidSignature') // 70
+
+      vi.advanceTimersByTime(60_000)
+      scorer.tick(60_000)
+      expect(scorer.getScore('peer-1')).toBe(70)
+
+      vi.advanceTimersByTime(1)
+      scorer.tick(60_000)
+      expect(scorer.getScore('peer-1')).toBe(90)
+
+      for (let i = 0; i < 10; i++) {
+        scorer.tick(60_000)
+      }
       expect(scorer.getScore('peer-1')).toBe(100)
     })
 

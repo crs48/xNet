@@ -110,8 +110,35 @@ export { ExternalReferenceSchema, type ExternalReference } from './schemas'
 export { MediaAssetSchema, type MediaAsset } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export { CommentSchema, type Comment } from './schemas'
+export { ReactionSchema, type Reaction } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
+export {
+  AbuseReportSchema,
+  AppealSchema,
+  CommunityNoteSchema,
+  ContentProvenanceSchema,
+  MessageRequestSchema,
+  ModerationLabelSchema,
+  NoteRatingSchema,
+  PolicyListSchema,
+  PolicySubscriptionSchema,
+  PublicInteractionPolicySchema,
+  QualitySignalSchema,
+  ReviewTaskSchema,
+  type AbuseReport,
+  type Appeal,
+  type CommunityNote,
+  type ContentProvenance,
+  type MessageRequest,
+  type ModerationLabel,
+  type NoteRating,
+  type PolicyList,
+  type PolicySubscription,
+  type PublicInteractionPolicy,
+  type QualitySignal,
+  type ReviewTask
+} from './schemas'
 export { builtInSchemas, type BuiltInSchemaIRI } from './schemas'
 
 // Comment anchor types

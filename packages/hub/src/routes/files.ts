@@ -7,6 +7,12 @@ import { Hono } from 'hono'
 
 type Env = { Variables: { auth: AuthContext } }
 
+const parseContentLength = (value: string | undefined): number | null => {
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+}
+
 export const createFileRoutes = (fileService: FileService): Hono<Env> => {
   const app = new Hono<Env>()
 
@@ -18,6 +24,17 @@ export const createFileRoutes = (fileService: FileService): Hono<Env> => {
 
     if (!auth.can('files/write', '*')) {
       return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 403)
+    }
+
+    const declaredSize = parseContentLength(c.req.header('content-length'))
+    if (declaredSize !== null && declaredSize > fileService.getMaxFileSize()) {
+      return c.json(
+        {
+          error: `File exceeds max size of ${fileService.getMaxFileSize()} bytes`,
+          code: 'FILE_TOO_LARGE'
+        },
+        413
+      )
     }
 
     const body = await c.req.arrayBuffer()

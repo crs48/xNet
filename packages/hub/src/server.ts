@@ -46,6 +46,7 @@ import { KeyRegistryService } from './services/key-registry'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
+import { reportUnauthorizedRemoteWrite } from './services/remote-mutation-telemetry'
 import { SchemaRegistryService } from './services/schemas'
 import { ShardIngestRouter } from './services/shard-ingest'
 import { ShardRebalancer } from './services/shard-rebalancer'
@@ -168,6 +169,13 @@ const isAwarenessMessage = (
   )
 }
 
+const isSyncRelayMessage = (
+  value: unknown
+): value is { type: 'sync-step1' | 'sync-step2' | 'sync-update'; from?: unknown } => {
+  if (!isRecord(value)) return false
+  return value.type === 'sync-step1' || value.type === 'sync-step2' || value.type === 'sync-update'
+}
+
 const isClientHandshake = (
   value: unknown
 ): value is {
@@ -191,6 +199,11 @@ const isClientHandshake = (
 
 const topicToResource = (topic: string): string =>
   topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
+
+const getPublishPeerId = (payload: { data?: unknown }): string | null => {
+  if (!isRecord(payload.data)) return null
+  return typeof payload.data.from === 'string' ? payload.data.from : null
+}
 
 type AuthzCode = 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'TOKEN_REVOKED'
 
@@ -381,6 +394,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const relayIdentity = generateIdentity()
   const relay = new RelayService(pool, {
     replication: config.sync,
+    verifyV2Envelope: config.syncVerification?.verifyV2Envelope,
+    telemetry: config.telemetry,
+    telemetryPeerHashSalt: config.telemetryPeerHashSalt,
     signing: {
       authorDID: relayIdentity.identity.did,
       signingKey: relayIdentity.privateKey
@@ -468,11 +484,16 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     crawlConfig,
     robots ?? undefined
   )
-  const nodeRelay = new NodeRelayService(storage)
+  const remoteMutationTelemetry = {
+    telemetry: config.telemetry,
+    telemetryPeerHashSalt: config.telemetryPeerHashSalt
+  }
+  const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
     cleanupIntervalMs: config.awarenessCleanupIntervalMs ?? 60 * 60 * 1000,
-    maxUsersPerRoom: config.awarenessMaxUsers ?? 100
+    maxUsersPerRoom: config.awarenessMaxUsers ?? 100,
+    maxUpdateSize: config.awarenessMaxUpdateSize ?? 65_536
   })
   const discovery = new DiscoveryService(storage, {
     staleTtlMs: config.discoveryStaleTtlMs ?? 7 * 24 * 60 * 60 * 1000,
@@ -1183,6 +1204,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 topic: payload.topic
               })
               if (!publishDecision.allowed) {
+                reportUnauthorizedRemoteWrite(remoteMutationTelemetry, session.did)
                 denyAndCloseSocket(ws, publishDecision, 'hub/signal', payload.topic)
                 return
               }
@@ -1196,6 +1218,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 topic: payload.data.room
               })
               if (!roomDecision.allowed) {
+                reportUnauthorizedRemoteWrite(remoteMutationTelemetry, session.did)
                 ws.send(
                   JSON.stringify({
                     type: 'node-error',
@@ -1229,7 +1252,36 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               typeof payload.topic === 'string' &&
               isAwarenessMessage(payload.data)
             ) {
-              await awareness.handleAwarenessMessage(payload.topic, authContext.did, payload.data)
+              const accepted = await awareness.handleAwarenessMessage(
+                payload.topic,
+                authContext.did,
+                payload.data
+              )
+              if (!accepted) {
+                metrics.increment(HUB_METRICS.WS_MESSAGES_REJECTED)
+                return
+              }
+            }
+
+            if (isPublishMessage(payload) && typeof payload.topic === 'string') {
+              const peerId = getPublishPeerId(payload)
+              if (peerId) {
+                const peers = socketPeers.get(ws) ?? new Set<string>()
+                peers.add(peerId)
+                socketPeers.set(ws, peers)
+              }
+
+              if (payload.topic.startsWith('xnet-doc-') && isSyncRelayMessage(payload.data)) {
+                const accepted = await relay.handleSyncMessage(
+                  payload.topic,
+                  payload.data,
+                  signaling.publishFromHub
+                )
+                if (!accepted) {
+                  metrics.increment(HUB_METRICS.WS_MESSAGES_REJECTED)
+                  return
+                }
+              }
             }
 
             signaling.handleMessage(ws, payload)
@@ -1281,21 +1333,6 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                   socketTopics.delete(ws)
                 }
               }
-            }
-
-            if (isPublishMessage(payload) && typeof payload.topic === 'string') {
-              const peerId = (() => {
-                if (!payload.data || typeof payload.data !== 'object') return null
-                const data = payload.data as { from?: unknown }
-                return typeof data.from === 'string' ? data.from : null
-              })()
-              if (peerId) {
-                const peers = socketPeers.get(ws) ?? new Set<string>()
-                peers.add(peerId)
-                socketPeers.set(ws, peers)
-              }
-
-              void relay.handleSyncMessage(payload.topic, payload.data, signaling.publishFromHub)
             }
           })()
         })

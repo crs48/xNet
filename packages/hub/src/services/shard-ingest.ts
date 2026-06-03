@@ -16,6 +16,7 @@ export type IndexableDocument = {
   language?: string
   tags?: string[]
   indexedAt: number
+  searchScoreMultiplier?: number
 }
 
 export type IngestResult = {
@@ -105,7 +106,8 @@ export class ShardIngestRouter {
           schema: doc.schema,
           author: doc.author,
           language: doc.language,
-          indexedAt: doc.indexedAt
+          indexedAt: doc.indexedAt,
+          searchScoreMultiplier: doc.searchScoreMultiplier
         },
         terms,
         termFreqs: Object.fromEntries(termFreqs),
@@ -126,7 +128,7 @@ export class ShardIngestRouter {
         shardId,
         term,
         cid: doc.cid,
-        tf: termFreqs.get(term) ?? 1,
+        tf: (termFreqs.get(term) ?? 1) * normalizeSearchScoreMultiplier(doc.searchScoreMultiplier),
         title: doc.title,
         url: doc.url,
         schema: doc.schema,
@@ -141,4 +143,9 @@ export class ShardIngestRouter {
     const stats = await this.storage.getShardStats(shardId)
     await this.storage.updateShardDocCount(shardId, stats.totalDocs)
   }
+}
+
+function normalizeSearchScoreMultiplier(value: number | undefined): number {
+  if (value === undefined || !Number.isFinite(value)) return 1
+  return Math.max(0.15, Math.min(value, 1))
 }

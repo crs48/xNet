@@ -250,15 +250,21 @@ function loadStoredPanel(defaultPanel: PanelId): PanelId {
     stored &&
     [
       'nodes',
-      'queries',
+      'changes',
       'sync',
       'yjs',
-      'schemas',
-      'timeline',
+      'authz',
+      'abuse',
+      'queries',
       'telemetry',
-      'changes',
+      'schemas',
+      'schema-history',
+      'version',
+      'migration',
       'seed',
-      'history'
+      'history',
+      'security',
+      'sqlite'
     ].includes(stored)
   ) {
     return stored as PanelId

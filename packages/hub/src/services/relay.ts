@@ -3,17 +3,35 @@
  */
 
 import type { NodePool } from '../pool/node-pool'
+import type {
+  AbuseDecision,
+  AbuseReasonCode,
+  AbuseSeverity,
+  AbuseTelemetryReporter
+} from '@xnetjs/abuse'
+import { reportRemoteMutationRejection } from '@xnetjs/abuse'
 import {
   MAX_YJS_UPDATE_SIZE,
+  MAX_YJS_STATE_VECTOR_SIZE,
   YjsPeerScorer,
   YjsRateLimiter,
+  deserializeYjsEnvelope,
+  isBase64PayloadTooLarge,
+  isStateVectorTooLarge,
   isUpdateTooLarge,
   resolveSyncReplicationPolicy,
   signYjsUpdate,
   verifyYjsEnvelopeV1,
   isV1Envelope,
+  isV2Envelope,
   type SignedYjsEnvelope,
-  type SyncReplicationConfig
+  type SignedYjsEnvelopeV1,
+  type SignedYjsEnvelopeV2,
+  type SignedYjsEnvelopeWire,
+  type SyncReplicationConfig,
+  type PeerAction,
+  type YjsViolationType,
+  type YjsRateLimiterOptions
 } from '@xnetjs/sync'
 import * as Y from 'yjs'
 
@@ -26,17 +44,49 @@ export type SyncMessage = {
   envelope?: Record<string, unknown>
 }
 
+export type YjsEnvelopeV2VerifierResult =
+  | boolean
+  | {
+      valid: boolean
+      errors?: readonly string[]
+    }
+
+export type YjsEnvelopeV2VerifierContext = {
+  docId: string
+  peerId: string
+  messageType: SyncMessage['type']
+}
+
+export type YjsEnvelopeV2Verifier = (
+  envelope: SignedYjsEnvelopeV2,
+  context: YjsEnvelopeV2VerifierContext
+) => YjsEnvelopeV2VerifierResult | Promise<YjsEnvelopeV2VerifierResult>
+
 type RelayOptions = {
   replication?: SyncReplicationConfig
+  rateLimit?: YjsRateLimiterOptions
   signing: {
     authorDID: string
     signingKey: Uint8Array
   }
+  verifyV2Envelope?: YjsEnvelopeV2Verifier
+  telemetry?: AbuseTelemetryReporter
+  telemetryPeerHashSalt?: string
 }
 
 type UpdateResult = {
   update: Uint8Array
   peerId: string
+}
+
+type EnvelopeVerificationResult = { valid: true } | { valid: false; reason: AbuseReasonCode }
+
+type SignedYjsEnvelopeV1Wire = {
+  update: string
+  authorDID: string
+  signature: string
+  timestamp: number
+  clientId: number
 }
 
 const HUB_PEER_ID = 'hub-relay'
@@ -45,26 +95,65 @@ const toBase64 = (data: Uint8Array): string => Buffer.from(data).toString('base6
 
 const fromBase64 = (value: string): Uint8Array => new Uint8Array(Buffer.from(value, 'base64'))
 
-const deserializeEnvelope = (data: Record<string, unknown>): SignedYjsEnvelope | null => {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === 'object')
+
+const isV1EnvelopeWire = (value: unknown): value is SignedYjsEnvelopeV1Wire =>
+  isRecord(value) &&
+  typeof value.update === 'string' &&
+  typeof value.authorDID === 'string' &&
+  typeof value.signature === 'string' &&
+  typeof value.timestamp === 'number' &&
+  typeof value.clientId === 'number'
+
+const isV2EnvelopeWire = (value: unknown): value is SignedYjsEnvelopeWire =>
+  isRecord(value) &&
+  value.v === 2 &&
+  typeof value.u === 'string' &&
+  isRecord(value.m) &&
+  typeof value.m.a === 'string' &&
+  typeof value.m.c === 'number' &&
+  typeof value.m.t === 'number' &&
+  typeof value.m.d === 'string' &&
+  isRecord(value.s)
+
+const deserializeV1Envelope = (data: SignedYjsEnvelopeV1Wire): SignedYjsEnvelopeV1 | null => {
   try {
     return {
-      update: fromBase64(data.update as string),
-      authorDID: data.authorDID as string,
-      signature: fromBase64(data.signature as string),
-      timestamp: data.timestamp as number,
-      clientId: data.clientId as number
+      update: fromBase64(data.update),
+      authorDID: data.authorDID,
+      signature: fromBase64(data.signature),
+      timestamp: data.timestamp,
+      clientId: data.clientId
     }
   } catch {
     return null
   }
 }
 
-const hasEnvelope = (data: Record<string, unknown>): boolean =>
-  typeof data.envelope === 'object' &&
-  data.envelope !== null &&
-  'update' in (data.envelope as object) &&
-  'authorDID' in (data.envelope as object) &&
-  'signature' in (data.envelope as object)
+const deserializeEnvelope = (value: unknown): SignedYjsEnvelope | null => {
+  if (isV2EnvelopeWire(value)) {
+    if (isBase64PayloadTooLarge(value.u, MAX_YJS_UPDATE_SIZE)) return null
+    try {
+      return deserializeYjsEnvelope(value)
+    } catch {
+      return null
+    }
+  }
+
+  if (isV1EnvelopeWire(value)) {
+    if (isBase64PayloadTooLarge(value.update, MAX_YJS_UPDATE_SIZE)) return null
+    return deserializeV1Envelope(value)
+  }
+
+  return null
+}
+
+const getEnvelope = (data: SyncMessage): unknown | null =>
+  'envelope' in data ? data.envelope : null
+
+const verifierResultIsValid = (result: YjsEnvelopeV2VerifierResult): boolean =>
+  typeof result === 'boolean' ? result : result.valid
 
 const hasPeerId = (data: SyncMessage): data is SyncMessage & { from: string } =>
   typeof data.from === 'string' && data.from.length > 0
@@ -81,7 +170,7 @@ const isSyncMessage = (data: unknown): data is SyncMessage => {
 }
 
 export class RelayService {
-  private rateLimiter = new YjsRateLimiter()
+  private rateLimiter: YjsRateLimiter
   private peerScorer = new YjsPeerScorer()
   private replicationPolicy: ReturnType<typeof resolveSyncReplicationPolicy>
 
@@ -90,23 +179,34 @@ export class RelayService {
     private options: RelayOptions
   ) {
     this.replicationPolicy = resolveSyncReplicationPolicy(options.replication)
+    this.rateLimiter = new YjsRateLimiter(options.rateLimit)
   }
 
   async handleSyncMessage(
     topic: string,
     data: unknown,
     sendToRoom: (topic: string, data: object) => void
-  ): Promise<void> {
-    if (!isSyncMessage(data)) return
-    if (data.from === HUB_PEER_ID) return
+  ): Promise<boolean> {
+    if (!isSyncMessage(data)) return false
+    if (data.from === HUB_PEER_ID) return false
 
     const docId = this.extractDocId(topic)
-    if (!docId) return
+    if (!docId) return false
 
     switch (data.type) {
       case 'sync-step1': {
-        if (!data.sv || !hasPeerId(data)) return
+        if (!data.sv || !hasPeerId(data)) return false
+        const peerId = data.from
+        if (!this.allowPeerMessage(peerId)) return false
+        if (isBase64PayloadTooLarge(data.sv, MAX_YJS_STATE_VECTOR_SIZE)) {
+          this.peerScorer.penalize(peerId, 'oversizedUpdate')
+          return false
+        }
         const remoteSV = fromBase64(data.sv)
+        if (isStateVectorTooLarge(remoteSV)) {
+          this.peerScorer.penalize(peerId, 'oversizedUpdate')
+          return false
+        }
         const doc = await this.pool.get(docId)
         const diff = Y.encodeStateAsUpdate(doc, remoteSV)
 
@@ -137,30 +237,30 @@ export class RelayService {
           from: HUB_PEER_ID,
           sv: toBase64(sv)
         })
-        break
+        return true
       }
 
       case 'sync-step2': {
-        if (data.to && data.to !== HUB_PEER_ID) return
-        const updateResult = this.extractUpdate(data)
-        if (!updateResult) return
+        const updateResult = await this.extractUpdate(docId, data)
+        if (!updateResult) return false
+        if (data.to && data.to !== HUB_PEER_ID) return true
         const doc = await this.pool.get(docId)
         Y.applyUpdate(doc, updateResult.update, 'relay')
         this.pool.markDirty(docId)
-        break
+        return true
       }
 
       case 'sync-update': {
-        const updateResult = this.extractUpdate(data)
-        if (!updateResult) return
+        const updateResult = await this.extractUpdate(docId, data)
+        if (!updateResult) return false
         const doc = await this.pool.get(docId)
         Y.applyUpdate(doc, updateResult.update, 'relay')
         this.pool.markDirty(docId)
-        break
+        return true
       }
 
       case 'awareness':
-        break
+        return true
     }
   }
 
@@ -200,33 +300,33 @@ export class RelayService {
     return topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : null
   }
 
-  private extractUpdate(data: SyncMessage): UpdateResult | null {
+  private async extractUpdate(docId: string, data: SyncMessage): Promise<UpdateResult | null> {
     if (!hasPeerId(data)) return null
 
     const peerId = data.from
 
-    if (!this.rateLimiter.allow(peerId)) {
-      this.peerScorer.penalize(peerId, 'rateExceeded')
-      return null
-    }
+    if (!this.allowPeerMessage(peerId, 'over-rate-limit')) return null
 
-    if (data && hasEnvelope(data as Record<string, unknown>)) {
-      const envelope = deserializeEnvelope(
-        (data as Record<string, unknown>).envelope as Record<string, unknown>
-      )
+    const rawEnvelope = getEnvelope(data)
+    if (rawEnvelope) {
+      const envelope = deserializeEnvelope(rawEnvelope)
       if (!envelope) {
-        this.peerScorer.penalize(peerId, 'invalidSignature')
+        this.rejectRemoteMutation(peerId, 'invalid-signature', 'invalidSignature')
         return null
       }
 
       if (isUpdateTooLarge(envelope.update)) {
-        this.peerScorer.penalize(peerId, 'oversizedUpdate')
+        this.rejectRemoteMutation(peerId, 'over-size-limit', 'oversizedUpdate')
         return null
       }
 
-      const result = envelope ? this.verifyEnvelope(envelope) : null
-      if (!result) {
-        this.peerScorer.penalize(peerId, 'invalidSignature')
+      const result = await this.verifyEnvelope(envelope, {
+        docId,
+        peerId,
+        messageType: data.type
+      })
+      if (!result.valid) {
+        this.rejectRemoteMutation(peerId, result.reason, 'invalidSignature')
         return null
       }
 
@@ -235,14 +335,18 @@ export class RelayService {
     }
 
     if (this.replicationPolicy.requireSignedReplication) {
-      this.peerScorer.penalize(peerId, 'unsignedUpdate')
+      this.rejectRemoteMutation(peerId, 'unsigned-update', 'unsignedUpdate')
       return null
     }
 
     if (!data.update) return null
+    if (isBase64PayloadTooLarge(data.update, MAX_YJS_UPDATE_SIZE)) {
+      this.rejectRemoteMutation(peerId, 'over-size-limit', 'oversizedUpdate')
+      return null
+    }
     const update = fromBase64(data.update)
     if (isUpdateTooLarge(update)) {
-      this.peerScorer.penalize(peerId, 'oversizedUpdate')
+      this.rejectRemoteMutation(peerId, 'over-size-limit', 'oversizedUpdate')
       return null
     }
 
@@ -250,22 +354,122 @@ export class RelayService {
     return { update, peerId }
   }
 
-  private verifyEnvelope(envelope: SignedYjsEnvelope): boolean {
-    if (isUpdateTooLarge(envelope.update, MAX_YJS_UPDATE_SIZE)) {
-      return false
+  private allowPeerMessage(peerId: string, remoteMutationReason?: AbuseReasonCode): boolean {
+    if (this.rateLimiter.allow(peerId)) return true
+    const action = this.peerScorer.penalize(peerId, 'rateExceeded')
+    if (remoteMutationReason) {
+      this.reportRejectedRemoteMutation(peerId, remoteMutationReason, action)
     }
-
-    // Hub relay only handles V1 envelopes for now (legacy format)
-    // V2 envelopes with multi-level signatures require async verification
-    // which will be handled in a future update
-    if (!isV1Envelope(envelope)) {
-      // For V2 envelopes, we'd need async verification with a PQ registry
-      // For now, accept them on the wire but skip cryptographic verification
-      // The receiving client will verify with their local registry
-      return true
-    }
-
-    const result = verifyYjsEnvelopeV1(envelope)
-    return result.valid
+    return false
   }
+
+  private async verifyEnvelope(
+    envelope: SignedYjsEnvelope,
+    context: YjsEnvelopeV2VerifierContext
+  ): Promise<EnvelopeVerificationResult> {
+    if (isUpdateTooLarge(envelope.update, MAX_YJS_UPDATE_SIZE)) {
+      return { valid: false, reason: 'over-size-limit' }
+    }
+
+    if (isV1Envelope(envelope)) {
+      const result = verifyYjsEnvelopeV1(envelope)
+      return result.valid ? { valid: true } : { valid: false, reason: 'invalid-signature' }
+    }
+
+    if (isV2Envelope(envelope)) {
+      if (envelope.meta.docId !== context.docId) {
+        return { valid: false, reason: 'invalid-doc-binding' }
+      }
+
+      if (!this.options.verifyV2Envelope) {
+        return { valid: false, reason: 'failed-admission' }
+      }
+
+      const result = await this.options.verifyV2Envelope(envelope, context)
+      return verifierResultIsValid(result)
+        ? { valid: true }
+        : { valid: false, reason: 'invalid-signature' }
+    }
+
+    return { valid: false, reason: 'failed-admission' }
+  }
+
+  private rejectRemoteMutation(
+    peerId: string,
+    reason: AbuseReasonCode,
+    violation: YjsViolationType
+  ): void {
+    const action = this.peerScorer.penalize(peerId, violation)
+    this.reportRejectedRemoteMutation(peerId, reason, action)
+  }
+
+  private reportRejectedRemoteMutation(
+    peerId: string,
+    reason: AbuseReasonCode,
+    action: PeerAction
+  ): void {
+    reportRemoteMutationRejection(this.options.telemetry, {
+      facts: {
+        surface: 'remoteMutation',
+        actor: {
+          peerId,
+          peerScore: this.peerScorer.getScore(peerId)
+        }
+      },
+      decision: relayRejectionDecision(reason, action),
+      peerHashSalt: this.options.telemetryPeerHashSalt
+    })
+  }
+}
+
+const relayRejectionDecision = (reason: AbuseReasonCode, action: PeerAction): AbuseDecision => ({
+  admission: 'reject',
+  visibility: 'hide',
+  reach: 'exclude',
+  resource: action === 'block' ? 'block-peer' : action === 'throttle' ? 'throttle' : 'normal',
+  notify: false,
+  includeInCounters: false,
+  includeInSearch: false,
+  review: { required: false },
+  reasons: relayRejectionReasons(reason),
+  evidenceRefs: [],
+  labelsToEmit: [],
+  telemetry: [
+    {
+      eventName: 'xnet.security.remote_mutation_rejected',
+      severity: relayRejectionSeverity(reason),
+      reason
+    }
+  ]
+})
+
+const relayRejectionReasons = (reason: AbuseReasonCode): readonly AbuseReasonCode[] => {
+  if (
+    reason === 'invalid-doc-binding' ||
+    reason === 'invalid-signature' ||
+    reason === 'unauthorized' ||
+    reason === 'unsigned-update'
+  ) {
+    return ['failed-admission', reason]
+  }
+
+  return [reason]
+}
+
+const relayRejectionSeverity = (reason: AbuseReasonCode): AbuseSeverity => {
+  if (
+    reason === 'failed-admission' ||
+    reason === 'invalid-doc-binding' ||
+    reason === 'invalid-signature' ||
+    reason === 'unauthorized' ||
+    reason === 'unsigned-update'
+  ) {
+    return 'high'
+  }
+
+  if (reason === 'over-rate-limit' || reason === 'over-size-limit') {
+    return 'medium'
+  }
+
+  return 'low'
 }

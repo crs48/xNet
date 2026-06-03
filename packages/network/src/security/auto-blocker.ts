@@ -6,6 +6,16 @@
 
 import type { DefaultConnectionGater } from './gater'
 import type { PeerScorer } from './peer-scorer'
+import {
+  activePolicyBlockEntries,
+  createPolicyBlockList,
+  isSignedPolicyBlockList,
+  type PolicyBlockEntry,
+  type PolicyBlockScope,
+  type SignedPolicyBlockList,
+  type UnsignedPolicyBlockList,
+  verifySignedPolicyBlockList
+} from '@xnetjs/abuse'
 import { logSecurityEvent, type SecurityEventType } from './logging'
 
 export interface BlockInfo {
@@ -25,6 +35,25 @@ export interface BlockThresholds {
   duration: number
 }
 
+export interface YjsPeerActionBridgeEvent {
+  peerId: string
+  reason: string
+  action: string
+  score: number
+}
+
+export interface YjsPeerScorerBridge {
+  onAction(listener: (event: YjsPeerActionBridgeEvent) => void): () => void
+}
+
+export type BlockPolicyListOptions = {
+  id: string
+  scope: PolicyBlockScope
+  issuerDID: string
+  title?: string
+  now?: number
+}
+
 export const DEFAULT_BLOCK_THRESHOLDS: Record<SecurityEventType, BlockThresholds> = {
   invalid_signature: { count: 3, window: 60_000, duration: 24 * 60 * 60_000 },
   rate_limit_exceeded: { count: 10, window: 60_000, duration: 60 * 60_000 },
@@ -42,12 +71,15 @@ export class AutoBlocker {
   private eventCounts = new Map<string, Map<SecurityEventType, number[]>>()
   private thresholds: Record<SecurityEventType, BlockThresholds>
   private cleanupTimer: ReturnType<typeof setInterval> | null = null
+  private unsubscribeYjsScorer: (() => void) | null = null
 
   constructor(
     private gater: DefaultConnectionGater,
     private scorer?: PeerScorer,
     options: {
       thresholds?: Partial<Record<SecurityEventType, Partial<BlockThresholds>>>
+      yjsPeerScorer?: YjsPeerScorerBridge
+      yjsBlockDuration?: number
     } = {}
   ) {
     this.thresholds = { ...DEFAULT_BLOCK_THRESHOLDS }
@@ -66,10 +98,20 @@ export class AutoBlocker {
       })
     }
 
+    if (options.yjsPeerScorer) {
+      const blockDuration = options.yjsBlockDuration ?? 60 * 60_000
+      this.unsubscribeYjsScorer = options.yjsPeerScorer.onAction((event) =>
+        this.handleYjsPeerAction(event, blockDuration)
+      )
+    }
+
     this.cleanupTimer = setInterval(() => this.cleanupExpiredBlocks(), 60_000)
   }
 
   destroy(): void {
+    this.unsubscribeYjsScorer?.()
+    this.unsubscribeYjsScorer = null
+
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer)
       this.cleanupTimer = null
@@ -178,6 +220,61 @@ export class AutoBlocker {
     return result
   }
 
+  /** Convert active peer blocks into signed-policy-list-compatible entries. */
+  toPolicyBlockEntries(): PolicyBlockEntry[] {
+    return this.getBlockedPeers().map(({ peerId, info }) => ({
+      subject: peerId,
+      subjectType: 'peerId',
+      action: 'block-peer',
+      reason: info.reason,
+      evidenceRefs: info.evidence ? [info.evidence] : undefined,
+      createdAt: info.blockedAt,
+      expiresAt: info.expiresAt,
+      autoBlock: info.autoBlock
+    }))
+  }
+
+  /** Export current blocks as unsigned policy data ready for signing and persistence. */
+  toPolicyBlockList(options: BlockPolicyListOptions): UnsignedPolicyBlockList {
+    const now = options.now ?? Date.now()
+    return createPolicyBlockList({
+      id: options.id,
+      title: options.title,
+      scope: options.scope,
+      issuerDID: options.issuerDID,
+      createdAt: now,
+      updatedAt: now,
+      entries: this.toPolicyBlockEntries()
+    })
+  }
+
+  /** Apply active peer block entries from persisted policy data. */
+  applyPolicyBlockList(
+    list: SignedPolicyBlockList | UnsignedPolicyBlockList,
+    now = Date.now()
+  ): number {
+    if (isSignedPolicyBlockList(list) && !verifySignedPolicyBlockList(list).valid) {
+      return 0
+    }
+
+    let applied = 0
+    for (const entry of activePolicyBlockEntries(list, now)) {
+      if (entry.subjectType !== 'peerId' || entry.action !== 'block-peer') continue
+      const duration = entry.expiresAt ? Math.max(0, entry.expiresAt - now) : undefined
+      if (duration === 0) continue
+
+      this.blockPeer(entry.subject, {
+        reason: entry.reason,
+        evidence: entry.evidenceRefs?.join('\n'),
+        duration,
+        autoBlock: entry.autoBlock ?? false
+      })
+      applied++
+    }
+
+    return applied
+  }
+
   // ============ Stats ============
 
   getStats(): {
@@ -200,6 +297,19 @@ export class AutoBlocker {
       reason: 'low_peer_score',
       evidence: `Score dropped to ${score}`,
       duration: 60 * 60_000,
+      autoBlock: true
+    })
+  }
+
+  private handleYjsPeerAction(event: YjsPeerActionBridgeEvent, duration: number): void {
+    if (event.action !== 'block' || this.isBlocked(event.peerId)) {
+      return
+    }
+
+    this.blockPeer(event.peerId, {
+      reason: `yjs_${event.reason}`,
+      evidence: `Yjs peer scorer returned block at score ${event.score}`,
+      duration,
       autoBlock: true
     })
   }

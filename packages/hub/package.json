@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.0.0",
+    "@xnetjs/abuse": "workspace:*",
     "@xnetjs/core": "workspace:*",
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",

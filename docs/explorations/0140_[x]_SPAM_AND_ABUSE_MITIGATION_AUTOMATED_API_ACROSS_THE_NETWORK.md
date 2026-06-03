@@ -970,103 +970,104 @@ Every hub should publish:
 
 ### Phase 1 - Remote Admission Hardening
 
-- [ ] Define a `RemoteAdmissionPipeline` interface shared by sync/network/hub paths.
-- [ ] Require V2 Yjs envelope verification for hub relay where signed replication is required.
-- [ ] Reject unknown V2 envelopes at hubs unless a verifier is configured.
-- [ ] Apply size and rate limits to awareness messages and state-vector messages.
-- [ ] Connect `YjsPeerScorer` actions to network `AutoBlocker` where possible.
-- [ ] Persist local and workspace blocks as signed policy data, not only in-memory helpers.
-- [ ] Add telemetry events for remote mutation rejection reasons with peer hashes and score buckets.
+- [x] Define a `RemoteAdmissionPipeline` interface shared by sync/network/hub paths.
+- [x] Require V2 Yjs envelope verification for hub relay where signed replication is required.
+- [x] Reject unknown V2 envelopes at hubs unless a verifier is configured.
+- [x] Apply size and rate limits to awareness messages and state-vector messages.
+- [x] Connect `YjsPeerScorer` actions to network `AutoBlocker` where possible.
+- [x] Persist local and workspace blocks as signed policy data, not only in-memory helpers.
+- [x] Add telemetry events for remote mutation rejection reasons with peer hashes and score buckets.
 
 ### Phase 2 - Core Abuse Package
 
-- [ ] Create `@xnetjs/abuse`.
-- [ ] Add `AbuseFacts`, `AbuseDecision`, `PolicyScope`, `InteractionPolicy`, and `ReachPolicy` types.
-- [ ] Add pure `decideRemoteMutation`, `decidePublicInteraction`, and `decideReach` functions.
-- [ ] Add deterministic explainability with stable reason codes.
-- [ ] Add fixtures for common abuse, false-positive, and override scenarios.
-- [ ] Re-export adapters from package-specific entrypoints instead of creating circular deps.
+- [x] Create `@xnetjs/abuse`.
+- [x] Add `AbuseFacts`, `AbuseDecision`, `PolicyScope`, `InteractionPolicy`, and `ReachPolicy` types.
+- [x] Add pure `decideRemoteMutation`, `decidePublicInteraction`, and `decideReach` functions.
+- [x] Add deterministic explainability with stable reason codes.
+- [x] Add fixtures for common abuse, false-positive, and override scenarios.
+- [x] Re-export adapters from package-specific entrypoints instead of creating circular deps.
 
 ### Phase 3 - Signed Moderation Data
 
-- [ ] Add `AbuseReportSchema`.
-- [ ] Add `ModerationLabelSchema` with expiration, negation, source DID, confidence, evidence refs.
-- [ ] Add `PolicyListSchema` and `PolicySubscriptionSchema`.
-- [ ] Add `CommunityNoteSchema` and `NoteRatingSchema`.
-- [ ] Add `QualitySignalSchema`.
-- [ ] Add `ContentProvenanceSchema` for source, AI generation, C2PA-like credentials, and tool chain.
-- [ ] Add `AppealSchema` and `ReviewTaskSchema`.
-- [ ] Add schema permissions for who may label, review, appeal, or publish policy lists.
+- [x] Add `AbuseReportSchema`.
+- [x] Add `ModerationLabelSchema` with expiration, negation, source DID, confidence, evidence refs.
+- [x] Add `PolicyListSchema` and `PolicySubscriptionSchema`.
+- [x] Add `CommunityNoteSchema` and `NoteRatingSchema`.
+- [x] Add `QualitySignalSchema`.
+- [x] Add `ContentProvenanceSchema` for source, AI generation, C2PA-like credentials, and tool chain.
+- [x] Add `AppealSchema` and `ReviewTaskSchema`.
+- [x] Add schema permissions for who may label, review, appeal, or publish policy lists.
 
 ### Phase 4 - Public Surface Integration
 
-- [ ] Extend target nodes or adjacent policy nodes with public interaction policy.
-- [ ] Implement `useVisibleComments` and `useModeratedThread`.
-- [ ] Add policy-filtered reaction and counter APIs.
-- [ ] Add message request and first-contact quarantine semantics.
-- [ ] Make search indexing consume labels and quality signals.
-- [ ] Make crawl ingestion consume domain policy, duplicate signals, source reputation, and slop scores.
-- [ ] Add devtools panes for policy decisions, peer score, labels, and queue state.
+- [x] Extend target nodes or adjacent policy nodes with public interaction policy.
+- [x] Implement `useVisibleComments` and `useModeratedThread`.
+- [x] Add policy-filtered reaction and counter APIs.
+- [x] Add message request and first-contact quarantine semantics.
+- [x] Make search indexing consume labels and quality signals.
+- [x] Make crawl ingestion consume domain policy, duplicate signals, source reputation, and slop scores.
+- [x] Add devtools panes for policy decisions, peer score, labels, and queue state.
 
 ### Phase 5 - AI And Quality Automation
 
-- [ ] Add deterministic duplicate and near-duplicate detection for public/crawled content.
-- [ ] Add local classifier adapter interface.
-- [ ] Add optional cloud moderation/classification adapter with explicit budget and privacy policy.
-- [ ] Add claim extraction and citation coverage scoring for published knowledge pages.
-- [ ] Add community-note-style rating and diversity agreement experiments.
-- [ ] Add staged write flow for AI-generated moderation or quality labels.
-- [ ] Add model/provider provenance to every AI-generated signal.
+- [x] Add deterministic duplicate and near-duplicate detection for public/crawled content.
+- [x] Add local classifier adapter interface.
+- [x] Add optional cloud moderation/classification adapter with explicit budget and privacy policy.
+- [x] Add claim extraction and citation coverage scoring for published knowledge pages.
+- [x] Add community-note-style rating and diversity agreement experiments.
+- [x] Add staged write flow for AI-generated moderation or quality labels.
+- [x] Add model/provider provenance to every AI-generated signal.
 
 ### Phase 6 - Economic And Operator Controls
 
-- [ ] Add public write budgets by DID, hub, workspace, and surface.
-- [ ] Add crawl and federation query cost budgets.
-- [ ] Add usage events for blocked, throttled, reviewed, billable, sponsored, and reciprocal work.
-- [ ] Add signed hub policy/service offer documents with moderation settings.
-- [ ] Add labeler trust settings and subscription limits per workspace/hub.
-- [ ] Add appeal/contact metadata for public operators.
+- [x] Add public write budgets by DID, hub, workspace, and surface.
+- [x] Add crawl and federation query cost budgets.
+- [x] Add usage events for blocked, throttled, reviewed, billable, sponsored, and reciprocal work.
+- [x] Add signed hub policy/service offer documents with moderation settings.
+- [x] Add labeler trust settings and subscription limits per workspace/hub.
+- [x] Add appeal/contact metadata for public operators.
+- [x] Expose abuse usage and economics snapshots in DevTools.
 
 ## 🧪 Validation Checklist
 
 ### Security And Protocol Validation
 
-- [ ] Invalid signatures never mutate Yjs or NodeStore state.
-- [ ] Oversized Yjs updates, awareness messages, blobs, and query requests are rejected before
+- [x] Invalid signatures never mutate Yjs or NodeStore state.
+- [x] Oversized Yjs updates, awareness messages, blobs, and query requests are rejected before
       expensive parsing.
-- [ ] Unauthorized remote writes are rejected before mutation and produce telemetry.
-- [ ] Hub relay never fans out a sync update before required validation.
-- [ ] V2 envelopes are rejected when doc ID, timestamp, author, or signature verification fails.
-- [ ] Peer scores recover only after quiet periods and do not grow unbounded.
-- [ ] Blocks expire when configured and remain auditable.
+- [x] Unauthorized remote writes are rejected before mutation and produce telemetry.
+- [x] Hub relay never fans out a sync update before required validation.
+- [x] V2 envelopes are rejected when doc ID, timestamp, author, or signature verification fails.
+- [x] Peer scores recover only after quiet periods and do not grow unbounded.
+- [x] Blocks expire when configured and remain auditable.
 
 ### Moderation And Reach Validation
 
-- [ ] Public-read nodes do not automatically permit comments, reactions, messages, crawling, or
+- [x] Public-read nodes do not automatically permit comments, reactions, messages, crawling, or
       indexing.
-- [ ] User, workspace, hub, and app-view policy produce explainable decisions.
-- [ ] Labels can expire, be negated, be overridden locally, and be traced to a source DID.
-- [ ] Reports cannot directly hide content unless a policy says the reporter/labeler is trusted.
-- [ ] Hidden content is excluded from counters and ranking when policy requires it.
-- [ ] Appeals can reverse or annotate automated decisions.
+- [x] User, workspace, hub, and app-view policy produce explainable decisions.
+- [x] Labels can expire, be negated, be overridden locally, and be traced to a source DID.
+- [x] Reports cannot directly hide content unless a policy says the reporter/labeler is trusted.
+- [x] Hidden content is excluded from counters and ranking when policy requires it.
+- [x] Appeals can reverse or annotate automated decisions.
 
 ### AI And Quality Validation
 
-- [ ] AI-generated moderation labels include model/provider provenance.
-- [ ] Local deterministic gates still work when AI providers are unavailable.
-- [ ] Cloud AI review is not called for every low-risk event.
-- [ ] Prompt-injection text in crawled pages cannot issue graph writes.
-- [ ] Claim/citation mismatch scoring is treated as review evidence, not absolute truth.
-- [ ] False positives can be overridden by user, workspace, or reviewer policy.
+- [x] AI-generated moderation labels include model/provider provenance.
+- [x] Local deterministic gates still work when AI providers are unavailable.
+- [x] Cloud AI review is not called for every low-risk event.
+- [x] Prompt-injection text in crawled pages cannot issue graph writes.
+- [x] Claim/citation mismatch scoring is treated as review evidence, not absolute truth.
+- [x] False positives can be overridden by user, workspace, or reviewer policy.
 
 ### Operational And Economic Validation
 
-- [ ] A small self-hosted hub can run with AI review disabled and still resist common floods.
-- [ ] A community hub can subscribe to shared policy lists without surrendering local override.
-- [ ] A public search hub can publish its crawl/index/review budgets.
-- [ ] Usage events distinguish free, paid, sponsored, reciprocal, and abuse-blocked work.
-- [ ] Abuse queues remain bounded under report spam and crawler spam.
-- [ ] Metrics allow operators to see whether automation is saving cost or creating appeal load.
+- [x] A small self-hosted hub can run with AI review disabled and still resist common floods.
+- [x] A community hub can subscribe to shared policy lists without surrendering local override.
+- [x] A public search hub can publish its crawl/index/review budgets.
+- [x] Usage events distinguish free, paid, sponsored, reciprocal, and abuse-blocked work.
+- [x] Abuse queues remain bounded under report spam and crawler spam.
+- [x] Metrics allow operators to see whether automation is saving cost or creating appeal load.
 
 ## 🚀 Next Actions
 

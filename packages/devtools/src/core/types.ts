@@ -303,6 +303,103 @@ export interface PeerScoreSnapshot {
   lastSeen: number
 }
 
+// ─── Abuse Events ─────────────────────────────────────────
+
+export interface AbusePolicyDecisionEvent extends DevToolsEventBase {
+  type: 'abuse:policy-decision'
+  surface: string
+  subjectId?: string
+  actorDid?: string
+  peerId?: string
+  peerScore?: number
+  scope?: string
+  policyId?: string
+  admission: string
+  visibility: string
+  reach: string
+  resource: string
+  reasons: string[]
+  evidenceRefs: string[]
+  includeInCounters: boolean
+  includeInSearch: boolean
+  reviewQueue?: string
+  reviewPriority?: number
+  labelsToEmit: AbusePendingLabelSnapshot[]
+}
+
+export interface AbusePendingLabelSnapshot {
+  value: string
+  confidence: number
+  reason: string
+  evidenceRefs: string[]
+}
+
+export interface AbuseLabelEvent extends DevToolsEventBase {
+  type: 'abuse:label'
+  subjectId: string
+  value: string
+  action: 'proposed' | 'applied' | 'removed' | 'expired'
+  confidence: number
+  sourceDid?: string
+  sourceWeight?: number
+  surface?: string
+  reason?: string
+  evidenceRefs: string[]
+  expiresAt?: number
+}
+
+export interface AbuseQueueStateEvent extends DevToolsEventBase {
+  type: 'abuse:queue-state'
+  queues: AbuseQueueSnapshot[]
+}
+
+export interface AbuseQueueSnapshot {
+  queue: string
+  pending: number
+  active?: number
+  oldestQueuedAt?: number
+  highestPriority?: number
+  sampleSubjectIds?: string[]
+}
+
+export interface AbusePeerScoresEvent extends DevToolsEventBase {
+  type: 'abuse:peer-scores'
+  scores: PeerScoreSnapshot[]
+}
+
+export interface AbuseUsageSummaryEvent extends DevToolsEventBase {
+  type: 'abuse:usage-summary'
+  summary: AbuseUsageSummarySnapshot
+  period?: string
+  hubId?: string
+  workspaceId?: string
+}
+
+export interface AbuseUsageSummarySnapshot {
+  totalEvents: number
+  totalUnits: number
+  kindCounts?: Record<string, number>
+  settlementCounts?: Record<string, number>
+  unitsByKind?: Record<string, number>
+  unitsBySettlement?: Record<string, number>
+  eventsBySurface?: Record<string, number>
+  eventsByWorkType?: Record<string, number>
+  costMicroUsd: number
+  billableMicroUsd: number
+  sponsoredMicroUsd: number
+  reciprocalCreditUnits: number
+  blockedUnits: number
+  throttledUnits: number
+  reviewedUnits: number
+  automationSavedUnits: number
+  automationSavedCostMicroUsd: number
+  appealUnits: number
+  appealCostMicroUsd: number
+  automationSavingsRatio: number
+  reviewLoadRatio: number
+  appealLoadRatio: number
+}
+
 // ─── Union Type ────────────────────────────────────────────
 
 export type DevToolsEvent =
@@ -337,6 +434,11 @@ export type DevToolsEvent =
   | TelemetryPerformanceEvent
   | TelemetryConsentEvent
   | TelemetryPeerScoresEvent
+  | AbusePolicyDecisionEvent
+  | AbuseLabelEvent
+  | AbuseQueueStateEvent
+  | AbusePeerScoresEvent
+  | AbuseUsageSummaryEvent
 
 export type DevToolsEventType = DevToolsEvent['type']
 

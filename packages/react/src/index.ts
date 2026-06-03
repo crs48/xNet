@@ -237,6 +237,84 @@ export {
 } from './hooks/useComments'
 
 /**
+ * useVisibleComments - Moderated comment visibility for public surfaces
+ *
+ * @example
+ * ```tsx
+ * const { threads, hiddenCount, canAddRootComment } = useVisibleComments({
+ *   nodeId: pageId,
+ *   viewerDID
+ * })
+ * ```
+ */
+export {
+  useVisibleComments,
+  useModeratedThread,
+  createModerationLabelIndex,
+  evaluateCommentModeration,
+  evaluateInteractionPermission,
+  moderateThread,
+  selectActiveInteractionPolicy,
+  selectPublicInteractionMode,
+  summarizeModerationLabel,
+  summarizePublicInteractionPolicy,
+  type CommentVisibility,
+  type FirstContactMode,
+  type InteractionPermission,
+  type ModeratedCommentNode,
+  type ModeratedCommentThread,
+  type ModerationFilterOptions,
+  type ModerationLabelSummary,
+  type PublicInteractionMode,
+  type PublicInteractionPolicySnapshot,
+  type PublicInteractionSurface,
+  type PublicModerationMode,
+  type UseModeratedThreadOptions,
+  type UseVisibleCommentsOptions,
+  type UseVisibleCommentsResult
+} from './hooks/useModeratedComments'
+
+/**
+ * usePolicyFilteredReactionCounters - Moderated likes, reposts, and reply counts
+ */
+export {
+  usePolicyFilteredReactionCounters,
+  createReactionCounterSnapshot,
+  dedupeReactions,
+  isReactionVisible,
+  summarizeReactionNode,
+  type AddReactionOptions,
+  type ReactionCounterSnapshot,
+  type ReactionNode,
+  type ReactionType,
+  type UsePolicyFilteredReactionCountersOptions,
+  type UsePolicyFilteredReactionCountersResult
+} from './hooks/useReactionCounters'
+
+/**
+ * useMessageRequests - First-contact requests and quarantine queues
+ */
+export {
+  useMessageRequests,
+  createConversationKey,
+  createMessageRequestProperties,
+  evaluateFirstContactDecision,
+  findLatestMessageRequest,
+  hasAcceptedContact,
+  summarizeMessageRequest,
+  type CreateMessageRequestOptions,
+  type FirstContactAdmission,
+  type FirstContactDecision,
+  type FirstContactDecisionInput,
+  type FirstContactVisibility,
+  type MessageRequestNode,
+  type MessageRequestProperties,
+  type MessageRequestStatus,
+  type UseMessageRequestsOptions,
+  type UseMessageRequestsResult
+} from './hooks/useMessageRequests'
+
+/**
  * useCommentCount - Get unresolved comment count for a Node
  *
  * @example

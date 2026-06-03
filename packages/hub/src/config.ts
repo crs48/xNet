@@ -92,6 +92,10 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
   const shutdownGraceMs =
     toNumber(process.env.RAILWAY_GRACE_MS) ??
     (runtime?.platform === 'fly' ? 4000 : (DEFAULT_CONFIG.shutdownGraceMs ?? 8000))
+  const awarenessMaxUpdateSize =
+    toNumber(process.env.HUB_AWARENESS_MAX_UPDATE_SIZE) ??
+    cliOptions.awarenessMaxUpdateSize ??
+    DEFAULT_CONFIG.awarenessMaxUpdateSize
 
   const demo = cliOptions.demo ?? process.env.HUB_MODE === 'demo'
   const demoOverrides = getDemoOverrides(demo) ?? undefined
@@ -104,6 +108,7 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     auth,
     storage,
     logLevel,
+    awarenessMaxUpdateSize,
     sync: allowUnsignedReplication
       ? { compatibility: { allowUnsignedReplication: true } }
       : cliOptions.sync,

@@ -12,6 +12,7 @@
       "@xnetjs/storage",
       "@xnetjs/sqlite",
       "@xnetjs/sync",
+      "@xnetjs/abuse",
       "@xnetjs/identity",
       "@xnetjs/crypto",
       "@xnetjs/core"

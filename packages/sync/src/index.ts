@@ -110,9 +110,11 @@ export {
 } from './yjs-envelope'
 
 // Yjs security: size and rate limits (Step 03)
-export type { RateLimiterConfig } from './yjs-limits'
+export type { RateLimiterConfig, YjsRateLimiterOptions } from './yjs-limits'
 export {
   MAX_YJS_UPDATE_SIZE,
+  MAX_YJS_STATE_VECTOR_SIZE,
+  MAX_YJS_AWARENESS_UPDATE_SIZE,
   MAX_YJS_UPDATES_PER_SECOND,
   MAX_YJS_UPDATES_PER_MINUTE,
   MAX_YJS_DOC_SIZE,
@@ -120,7 +122,11 @@ export {
   YJS_RATE_BURST_ALLOWANCE,
   DEFAULT_RATE_LIMITER_CONFIG,
   YjsRateLimiter,
+  estimateBase64DecodedLength,
+  isBase64PayloadTooLarge,
   isUpdateTooLarge,
+  isStateVectorTooLarge,
+  isAwarenessUpdateTooLarge,
   isDocumentTooLarge,
   calculateChunkCount,
   chunkUpdate,
@@ -146,6 +152,8 @@ export type {
   YjsPeerMetrics,
   YjsViolationType,
   PeerAction,
+  YjsPeerActionEvent,
+  YjsPeerActionListener,
   YjsScoringConfig
 } from './yjs-peer-scoring'
 export { YjsPeerScorer, DEFAULT_YJS_SCORING_CONFIG } from './yjs-peer-scoring'

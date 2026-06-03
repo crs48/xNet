@@ -1,0 +1,406 @@
+import type { DID } from '../node'
+import { describe, expect, it } from 'vitest'
+import {
+  AbuseReportSchema,
+  AppealSchema,
+  CommunityNoteSchema,
+  ContentProvenanceSchema,
+  MessageRequestSchema,
+  ModerationLabelSchema,
+  NoteRatingSchema,
+  PolicyListSchema,
+  PolicySubscriptionSchema,
+  PublicInteractionPolicySchema,
+  QualitySignalSchema,
+  ReviewTaskSchema
+} from './moderation'
+import { builtInSchemas } from './index'
+
+describe('moderation schemas', () => {
+  const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
+  const target = 'page-abc123'
+  const allowRoles = (expr: unknown): readonly string[] => {
+    expect(expr).toMatchObject({ _tag: 'allow' })
+    return (expr as { _tag: 'allow'; roles: readonly string[] }).roles
+  }
+
+  const examples = [
+    {
+      name: 'AbuseReport',
+      versionedIri: 'xnet://xnet.fyi/AbuseReport@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/AbuseReport',
+      create: () =>
+        AbuseReportSchema.create(
+          {
+            target,
+            reporter: testDID,
+            category: 'spam',
+            reason: 'Repeated promotional replies',
+            evidenceRefs: JSON.stringify(['comment-1'])
+          },
+          { createdBy: testDID }
+        ),
+      validate: AbuseReportSchema.validate
+    },
+    {
+      name: 'ModerationLabel',
+      versionedIri: 'xnet://xnet.fyi/ModerationLabel@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/ModerationLabel',
+      create: () =>
+        ModerationLabelSchema.create(
+          {
+            target,
+            value: 'spam',
+            sourceDID: testDID,
+            sourceType: 'policy-list',
+            confidence: 0.92,
+            sourceWeight: 2,
+            evidenceRefs: JSON.stringify(['report-1']),
+            signedEnvelope: 'signed-label-envelope'
+          },
+          { createdBy: testDID }
+        ),
+      validate: ModerationLabelSchema.validate
+    },
+    {
+      name: 'PolicyList',
+      versionedIri: 'xnet://xnet.fyi/PolicyList@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/PolicyList',
+      create: () =>
+        PolicyListSchema.create(
+          {
+            title: 'Local spam denylist',
+            publisher: testDID,
+            scope: 'hub',
+            entries: JSON.stringify([{ value: 'spam', action: 'hide' }]),
+            labelers: [testDID],
+            reviewers: [testDID],
+            operators: [testDID]
+          },
+          { createdBy: testDID }
+        ),
+      validate: PolicyListSchema.validate
+    },
+    {
+      name: 'PolicySubscription',
+      versionedIri: 'xnet://xnet.fyi/PolicySubscription@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/PolicySubscription',
+      create: () =>
+        PolicySubscriptionSchema.create(
+          {
+            policyList: 'policy-list-1',
+            subscriber: testDID,
+            scope: 'workspace',
+            trust: 0.7,
+            maxLabelsPerHour: 500
+          },
+          { createdBy: testDID }
+        ),
+      validate: PolicySubscriptionSchema.validate
+    },
+    {
+      name: 'PublicInteractionPolicy',
+      versionedIri: 'xnet://xnet.fyi/PublicInteractionPolicy@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/PublicInteractionPolicy',
+      create: () =>
+        PublicInteractionPolicySchema.create(
+          {
+            target,
+            targetSchema: 'xnet://xnet.fyi/Page',
+            scope: 'workspace',
+            commentMode: 'authenticated',
+            replyMode: 'trusted',
+            reactionMode: 'authenticated',
+            quoteMode: 'reviewed',
+            mentionMode: 'trusted',
+            communityNoteMode: 'reviewed',
+            firstContactMode: 'quarantine',
+            moderationMode: 'pre-filter',
+            slowModeSeconds: 30,
+            maxRootCommentsPerHour: 12,
+            maxRepliesPerHour: 30,
+            maxReactionsPerHour: 120,
+            maxMentionsPerComment: 5,
+            trustThreshold: 0.6,
+            policyLists: ['policy-list-1'],
+            activeLabels: ['spam', 'slop'],
+            maintainers: [testDID],
+            moderators: [testDID]
+          },
+          { createdBy: testDID }
+        ),
+      validate: PublicInteractionPolicySchema.validate
+    },
+    {
+      name: 'MessageRequest',
+      versionedIri: 'xnet://xnet.fyi/MessageRequest@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/MessageRequest',
+      create: () =>
+        MessageRequestSchema.create(
+          {
+            conversationKey: 'did:key:sender::did:key:recipient',
+            sender: testDID,
+            recipient: 'did:key:z6MkwPn7YjgojZ7ErSJfugcA5mNYG6PzhFGFbXuSfRJQPjDf' as DID,
+            firstMessagePreview: 'Hello, can I ask a question?',
+            status: 'quarantined',
+            admission: 'quarantine',
+            reasonCodes: ['first-contact', 'policy-quarantine'],
+            confidence: 0.7,
+            policy: 'policy-1',
+            policyMode: 'quarantine'
+          },
+          { createdBy: testDID }
+        ),
+      validate: MessageRequestSchema.validate
+    },
+    {
+      name: 'CommunityNote',
+      versionedIri: 'xnet://xnet.fyi/CommunityNote@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/CommunityNote',
+      create: () =>
+        CommunityNoteSchema.create(
+          {
+            target,
+            author: testDID,
+            body: 'This claim needs more context.',
+            claim: 'The cited source does not support the headline.',
+            citations: JSON.stringify(['https://example.com/source'])
+          },
+          { createdBy: testDID }
+        ),
+      validate: CommunityNoteSchema.validate
+    },
+    {
+      name: 'NoteRating',
+      versionedIri: 'xnet://xnet.fyi/NoteRating@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/NoteRating',
+      create: () =>
+        NoteRatingSchema.create(
+          {
+            note: 'note-1',
+            rater: testDID,
+            helpfulness: 'helpful',
+            confidence: 0.8,
+            reason: 'The citation directly addresses the claim.'
+          },
+          { createdBy: testDID }
+        ),
+      validate: NoteRatingSchema.validate
+    },
+    {
+      name: 'QualitySignal',
+      versionedIri: 'xnet://xnet.fyi/QualitySignal@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/QualitySignal',
+      create: () =>
+        QualitySignalSchema.create(
+          {
+            target,
+            sourceDID: testDID,
+            sourceType: 'local-ai',
+            signal: 'citation-coverage',
+            score: 0.35,
+            confidence: 0.75,
+            modelProvider: 'local',
+            modelName: 'deterministic-citation-checker'
+          },
+          { createdBy: testDID }
+        ),
+      validate: QualitySignalSchema.validate
+    },
+    {
+      name: 'ContentProvenance',
+      versionedIri: 'xnet://xnet.fyi/ContentProvenance@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/ContentProvenance',
+      create: () =>
+        ContentProvenanceSchema.create(
+          {
+            target,
+            sourceUrl: 'https://example.com/article',
+            sourceDID: testDID,
+            sourceType: 'mixed',
+            aiGenerated: true,
+            modelProvider: 'example-provider',
+            modelName: 'summarizer',
+            toolchain: JSON.stringify(['crawler', 'summarizer'])
+          },
+          { createdBy: testDID }
+        ),
+      validate: ContentProvenanceSchema.validate
+    },
+    {
+      name: 'Appeal',
+      versionedIri: 'xnet://xnet.fyi/Appeal@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/Appeal',
+      create: () =>
+        AppealSchema.create(
+          {
+            target,
+            decision: 'label-1',
+            appellant: testDID,
+            reason: 'This is a false positive.'
+          },
+          { createdBy: testDID }
+        ),
+      validate: AppealSchema.validate
+    },
+    {
+      name: 'ReviewTask',
+      versionedIri: 'xnet://xnet.fyi/ReviewTask@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/ReviewTask',
+      create: () =>
+        ReviewTaskSchema.create(
+          {
+            target,
+            decision: 'label-1',
+            queue: 'safety',
+            priority: 80,
+            reasonCodes: JSON.stringify(['trusted-abuse-label'])
+          },
+          { createdBy: testDID }
+        ),
+      validate: ReviewTaskSchema.validate
+    }
+  ] as const
+
+  it.each(examples)('creates and validates $name nodes', ({ create, validate, versionedIri }) => {
+    const node = create()
+
+    expect(node.schemaId).toBe(versionedIri)
+    expect(validate(node)).toEqual({ valid: true, errors: [] })
+  })
+
+  it.each(examples)(
+    'registers $name in built-in schema aliases',
+    async ({ legacyIri, versionedIri }) => {
+      const versioned = await builtInSchemas[versionedIri]()
+      const legacy = await builtInSchemas[legacyIri]()
+
+      expect(versioned.schema['@id']).toBe(versionedIri)
+      expect(legacy.schema['@id']).toBe(versionedIri)
+    }
+  )
+
+  it('bounds label confidence between zero and one', () => {
+    const invalid = {
+      ...ModerationLabelSchema.create(
+        {
+          target,
+          value: 'spam',
+          sourceDID: testDID,
+          sourceType: 'user',
+          confidence: 0.5,
+          sourceWeight: 1
+        },
+        { createdBy: testDID }
+      ),
+      confidence: 1.1
+    }
+
+    const result = ModerationLabelSchema.validate(invalid)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors.map((error) => error.path)).toContain('confidence')
+  })
+
+  it('creates public interaction policies with conservative defaults', () => {
+    const policy = PublicInteractionPolicySchema.create(
+      {
+        target,
+        scope: 'workspace'
+      },
+      { createdBy: testDID }
+    )
+
+    expect(policy.commentMode).toBe('authenticated')
+    expect(policy.replyMode).toBe('authenticated')
+    expect(policy.reactionMode).toBe('authenticated')
+    expect(policy.quoteMode).toBe('trusted')
+    expect(policy.mentionMode).toBe('trusted')
+    expect(policy.communityNoteMode).toBe('reviewed')
+    expect(policy.messageMode).toBe('authenticated')
+    expect(policy.crawlMode).toBe('closed')
+    expect(policy.indexMode).toBe('reviewed')
+    expect(policy.defaultVisibility).toBe('visible')
+    expect(policy.firstContactMode).toBe('slow-mode')
+    expect(policy.moderationMode).toBe('post-review')
+    expect(policy.requiresVerifiedIdentity).toBe(false)
+    expect(policy.acceptsPolicySubscriptions).toBe(true)
+    expect(policy.policyLists).toEqual([])
+    expect(policy.activeLabels).toEqual([])
+  })
+
+  it('defines role-specific authorization for moderation workflows', () => {
+    expect(ModerationLabelSchema.schema.authorization?.roles.operator).toEqual({
+      _tag: 'property',
+      propertyName: 'operators'
+    })
+    expect(ModerationLabelSchema.schema.authorization?.roles.labeler).toEqual({
+      _tag: 'property',
+      propertyName: 'labelers'
+    })
+    expect(allowRoles(ModerationLabelSchema.schema.authorization?.actions.write)).toEqual([
+      'owner',
+      'operator',
+      'labeler',
+      'reviewer',
+      'source'
+    ])
+    expect(PolicyListSchema.schema.authorization?.roles.publisher).toEqual({
+      _tag: 'property',
+      propertyName: 'publisher'
+    })
+    expect(PolicyListSchema.schema.authorization?.roles.policyPublisher).toEqual({
+      _tag: 'property',
+      propertyName: 'publishers'
+    })
+    expect(allowRoles(PolicyListSchema.schema.authorization?.actions.share)).toContain('publisher')
+    expect(allowRoles(PolicyListSchema.schema.authorization?.actions.share)).toContain(
+      'policyPublisher'
+    )
+    expect(AppealSchema.schema.authorization?.roles.appellant).toEqual({
+      _tag: 'property',
+      propertyName: 'appellant'
+    })
+    expect(allowRoles(AppealSchema.schema.authorization?.actions.write)).toContain('appellant')
+    expect(allowRoles(AppealSchema.schema.authorization?.actions.write)).toContain('reviewer')
+    expect(ReviewTaskSchema.schema.authorization?.roles.assignee).toEqual({
+      _tag: 'property',
+      propertyName: 'assignedTo'
+    })
+    expect(allowRoles(ReviewTaskSchema.schema.authorization?.actions.write)).toContain('assignee')
+    expect(allowRoles(ReviewTaskSchema.schema.authorization?.actions.write)).toContain('reviewer')
+    expect(PublicInteractionPolicySchema.schema.authorization?.roles.maintainer).toEqual({
+      _tag: 'property',
+      propertyName: 'maintainers'
+    })
+    expect(PublicInteractionPolicySchema.schema.authorization?.roles.targetOwner).toEqual({
+      _tag: 'relation',
+      relationName: 'target',
+      targetRole: 'owner'
+    })
+    expect(allowRoles(PublicInteractionPolicySchema.schema.authorization?.actions.write)).toContain(
+      'targetOwner'
+    )
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain('commentMode')
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain(
+      'firstContactMode'
+    )
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain('messageMode')
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain('crawlMode')
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain('indexMode')
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).not.toContain(
+      'blockedDIDs'
+    )
+    expect(MessageRequestSchema.schema.authorization?.roles.sender).toEqual({
+      _tag: 'property',
+      propertyName: 'sender'
+    })
+    expect(MessageRequestSchema.schema.authorization?.roles.recipient).toEqual({
+      _tag: 'property',
+      propertyName: 'recipient'
+    })
+    expect(allowRoles(MessageRequestSchema.schema.authorization?.actions.write)).toContain(
+      'recipient'
+    )
+  })
+})

@@ -5,6 +5,8 @@
 import type { CrawlConfig } from './services/crawl'
 import type { FederationConfig } from './services/federation'
 import type { ShardConfig } from './services/index-shards'
+import type { YjsEnvelopeV2Verifier } from './services/relay'
+import type { AbuseTelemetryReporter } from '@xnetjs/abuse'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 
 export type HubConfig = {
@@ -30,8 +32,18 @@ export type HubConfig = {
   awarenessCleanupIntervalMs: number
   /** Max awareness users stored per room (default: 100). */
   awarenessMaxUsers: number
+  /** Max awareness update or state payload size in bytes (default: 64KB). */
+  awarenessMaxUpdateSize: number
   /** Document replication policy. */
   sync?: SyncReplicationConfig
+  /** Programmatic sync envelope verification hooks. */
+  syncVerification?: {
+    verifyV2Envelope?: YjsEnvelopeV2Verifier
+  }
+  /** Optional privacy-preserving abuse telemetry collector. */
+  telemetry?: AbuseTelemetryReporter
+  /** Optional deployment-local salt for hashing peer identifiers in telemetry. */
+  telemetryPeerHashSalt?: string
   /** Hub's own DID for UCAN audience verification (optional). */
   hubDid?: string
   /** Public hub URL for peer discovery (optional). */
@@ -83,6 +95,7 @@ export const DEFAULT_CONFIG: HubConfig = {
   awarenessTtlMs: 24 * 60 * 60 * 1000,
   awarenessCleanupIntervalMs: 60 * 60 * 1000,
   awarenessMaxUsers: 100,
+  awarenessMaxUpdateSize: 65_536,
   discoveryStaleTtlMs: 7 * 24 * 60 * 60 * 1000,
   discoveryCleanupIntervalMs: 6 * 60 * 60 * 1000,
   discoveryMaxPeers: 10000,

@@ -5,12 +5,18 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import {
   YjsRateLimiter,
+  estimateBase64DecodedLength,
+  isBase64PayloadTooLarge,
   isUpdateTooLarge,
+  isStateVectorTooLarge,
+  isAwarenessUpdateTooLarge,
   isDocumentTooLarge,
   calculateChunkCount,
   chunkUpdate,
   reassembleChunks,
   MAX_YJS_UPDATE_SIZE,
+  MAX_YJS_STATE_VECTOR_SIZE,
+  MAX_YJS_AWARENESS_UPDATE_SIZE,
   MAX_YJS_DOC_SIZE,
   YJS_SYNC_CHUNK_SIZE
 } from './yjs-limits'
@@ -264,6 +270,44 @@ describe('isUpdateTooLarge', () => {
     const update = new Uint8Array(100)
     expect(isUpdateTooLarge(update, 50)).toBe(true)
     expect(isUpdateTooLarge(update, 200)).toBe(false)
+  })
+})
+
+describe('base64 size estimation', () => {
+  it('estimates decoded length with padding', () => {
+    expect(estimateBase64DecodedLength(Buffer.from(new Uint8Array(1)).toString('base64'))).toBe(1)
+    expect(estimateBase64DecodedLength(Buffer.from(new Uint8Array(2)).toString('base64'))).toBe(2)
+    expect(estimateBase64DecodedLength(Buffer.from(new Uint8Array(3)).toString('base64'))).toBe(3)
+  })
+
+  it('rejects base64 payloads above decoded size limit', () => {
+    const encoded = Buffer.from(new Uint8Array(11)).toString('base64')
+    expect(isBase64PayloadTooLarge(encoded, 10)).toBe(true)
+    expect(isBase64PayloadTooLarge(encoded, 11)).toBe(false)
+  })
+})
+
+describe('isStateVectorTooLarge', () => {
+  it('returns false for state vector at exact limit', () => {
+    const stateVector = new Uint8Array(MAX_YJS_STATE_VECTOR_SIZE)
+    expect(isStateVectorTooLarge(stateVector)).toBe(false)
+  })
+
+  it('returns true for state vector exceeding limit', () => {
+    const stateVector = new Uint8Array(MAX_YJS_STATE_VECTOR_SIZE + 1)
+    expect(isStateVectorTooLarge(stateVector)).toBe(true)
+  })
+})
+
+describe('isAwarenessUpdateTooLarge', () => {
+  it('returns false for awareness update at exact limit', () => {
+    const update = new Uint8Array(MAX_YJS_AWARENESS_UPDATE_SIZE)
+    expect(isAwarenessUpdateTooLarge(update)).toBe(false)
+  })
+
+  it('returns true for awareness update exceeding limit', () => {
+    const update = new Uint8Array(MAX_YJS_AWARENESS_UPDATE_SIZE + 1)
+    expect(isAwarenessUpdateTooLarge(update)).toBe(true)
   })
 })
 

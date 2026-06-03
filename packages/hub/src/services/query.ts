@@ -44,11 +44,28 @@ export type IndexAck = {
   indexed: boolean
 }
 
+export const MAX_QUERY_TEXT_LENGTH = 512
+
+export const isQueryRequestTooLarge = (
+  request: Pick<QueryRequest, 'query'>,
+  maxLength = MAX_QUERY_TEXT_LENGTH
+): boolean => request.query.length > maxLength
+
 export class QueryService {
   constructor(private storage: HubStorage) {}
 
   async handleQuery(request: QueryRequest, subjectDid?: string): Promise<QueryResponse> {
     const start = Date.now()
+
+    if (isQueryRequestTooLarge(request)) {
+      return {
+        type: 'query-response',
+        id: request.id,
+        results: [],
+        total: 0,
+        took: Date.now() - start
+      }
+    }
 
     const options: SearchOptions = {
       schemaIri: request.filters?.schemaIri,

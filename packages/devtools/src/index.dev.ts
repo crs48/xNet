@@ -18,4 +18,18 @@ export { instrumentSync } from './instrumentation/sync'
 export { instrumentYDoc } from './instrumentation/yjs'
 export { instrumentTelemetry } from './instrumentation/telemetry'
 export type { InstrumentTelemetryOptions } from './instrumentation/telemetry'
+export {
+  emitAbuseLabel,
+  emitAbusePeerScores,
+  emitAbusePolicyDecision,
+  emitAbuseQueueState,
+  emitAbuseUsageSummary
+} from './instrumentation/abuse'
+export type {
+  AbuseLabelInput,
+  AbusePeerScoresInput,
+  AbusePolicyDecisionInput,
+  AbuseQueueStateInput,
+  AbuseUsageSummaryInput
+} from './instrumentation/abuse'
 export { QueryTracker, captureCallerInfo } from './instrumentation/query'

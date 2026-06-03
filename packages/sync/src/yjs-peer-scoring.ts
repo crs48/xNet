@@ -47,6 +47,19 @@ export type YjsViolationType =
 export type PeerAction = 'allow' | 'warn' | 'throttle' | 'block'
 
 /**
+ * Emitted whenever a violation produces a peer action.
+ */
+export interface YjsPeerActionEvent {
+  peerId: string
+  reason: YjsViolationType
+  action: PeerAction
+  score: number
+  metrics: YjsPeerMetrics
+}
+
+export type YjsPeerActionListener = (event: YjsPeerActionEvent) => void
+
+/**
  * Optional telemetry collector interface for sync operations.
  * Compatible with @xnetjs/telemetry TelemetryCollector.
  */
@@ -139,6 +152,7 @@ export class YjsPeerScorer {
   private scores = new Map<string, number>()
   readonly config: YjsScoringConfig
   private telemetry?: SyncTelemetry
+  private actionListeners = new Set<YjsPeerActionListener>()
 
   constructor(config?: Partial<YjsScoringConfig>) {
     this.config = {
@@ -172,6 +186,7 @@ export class YjsPeerScorer {
           this.scores.set(peerId, 0)
           this.telemetry?.reportSecurityEvent('sync.yjs.peer_auto_blocked', 'critical')
           this.telemetry?.reportUsage('sync.yjs.peer_action.block', 1)
+          this.emitAction({ peerId, reason, action: 'block', score: 0, metrics })
           return 'block'
         }
         break
@@ -210,6 +225,8 @@ export class YjsPeerScorer {
     if (action !== 'allow') {
       this.telemetry?.reportUsage(`sync.yjs.peer_action.${action}`, 1)
     }
+
+    this.emitAction({ peerId, reason, action, score: newScore, metrics })
 
     return action
   }
@@ -292,11 +309,33 @@ export class YjsPeerScorer {
   }
 
   /**
+   * Listen for peer actions caused by violations.
+   *
+   * Returns an unsubscribe callback so owning packages can cleanly detach bridges.
+   */
+  onAction(listener: YjsPeerActionListener): () => void {
+    this.actionListeners.add(listener)
+    return () => {
+      this.actionListeners.delete(listener)
+    }
+  }
+
+  /**
    * Remove all state for a disconnected peer.
    */
   remove(peerId: string): void {
     this.metrics.delete(peerId)
     this.scores.delete(peerId)
+  }
+
+  private emitAction(event: YjsPeerActionEvent): void {
+    for (const listener of this.actionListeners) {
+      try {
+        listener(event)
+      } catch {
+        /* listener errors don't break scoring */
+      }
+    }
   }
 
   /**

@@ -1,10 +1,23 @@
 import type { HubInstance } from '../src/index'
-import { generateIdentity } from '@xnetjs/identity'
-import { signYjsUpdate } from '@xnetjs/sync'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createKeyBundle, generateIdentity } from '@xnetjs/identity'
+import {
+  MAX_YJS_UPDATE_SIZE,
+  MAX_YJS_STATE_VECTOR_SIZE,
+  serializeYjsEnvelope,
+  signYjsUpdate,
+  signYjsUpdateV2,
+  verifyYjsEnvelopeV2,
+  type SignedYjsEnvelopeV2,
+  type SyncReplicationConfig,
+  type YjsRateLimiterOptions
+} from '@xnetjs/sync'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { createHub } from '../src/index'
+import { NodePool } from '../src/pool/node-pool'
+import { RelayService, type YjsEnvelopeV2Verifier } from '../src/services/relay'
+import { createMemoryStorage } from '../src/storage/memory'
 
 describe('Sync Relay', () => {
   let hub: HubInstance
@@ -155,6 +168,79 @@ describe('Sync Relay', () => {
     expect(received).toBe(false)
     wsB.close()
   })
+
+  it('does not fan out invalid signed sync updates before admission', async () => {
+    const docId = 'test-relay-invalid-fanout'
+    const room = `xnet-doc-${docId}`
+
+    const wsA = await connect()
+    const wsB = await connect()
+    wsA.send(JSON.stringify({ type: 'subscribe', topics: [room] }))
+    wsB.send(JSON.stringify({ type: 'subscribe', topics: [room] }))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const docA = new Y.Doc()
+    docA.getText('content').insert(0, 'invalid fanout')
+    const update = Y.encodeStateAsUpdate(docA)
+    const identity = generateIdentity()
+    const envelope = signYjsUpdate(
+      update,
+      identity.identity.did,
+      identity.privateKey,
+      docA.clientID
+    )
+    envelope.signature = new Uint8Array(envelope.signature)
+    envelope.signature[0] ^= 0xff
+
+    const received = new Promise<boolean>((resolve) => {
+      const onMessage = (raw: unknown) => {
+        const asString = typeof raw === 'string' ? raw : raw instanceof Buffer ? raw.toString() : ''
+        const parsed = JSON.parse(asString) as {
+          type?: string
+          topic?: string
+          data?: { type?: string; from?: string }
+        }
+        if (
+          parsed.type === 'publish' &&
+          parsed.topic === room &&
+          parsed.data?.type === 'sync-update' &&
+          parsed.data.from === 'clientInvalidFanout'
+        ) {
+          clearTimeout(timer)
+          wsB.off('message', onMessage)
+          resolve(true)
+        }
+      }
+      const timer = setTimeout(() => {
+        wsB.off('message', onMessage)
+        resolve(false)
+      }, 250)
+      wsB.on('message', onMessage)
+    })
+
+    wsA.send(
+      JSON.stringify({
+        type: 'publish',
+        topic: room,
+        data: {
+          type: 'sync-update',
+          from: 'clientInvalidFanout',
+          envelope: {
+            update: Buffer.from(envelope.update).toString('base64'),
+            authorDID: envelope.authorDID,
+            signature: Buffer.from(envelope.signature).toString('base64'),
+            timestamp: envelope.timestamp,
+            clientId: envelope.clientId
+          }
+        }
+      })
+    )
+
+    expect(await received).toBe(false)
+
+    wsA.close()
+    wsB.close()
+  })
 })
 
 describe('Sync Relay compatibility mode', () => {
@@ -244,5 +330,310 @@ describe('Sync Relay compatibility mode', () => {
     expect(emptyDoc.getText('content').toString()).toBe('legacy compatibility')
 
     wsB.close()
+  })
+})
+
+describe('Sync Relay direct admission', () => {
+  const createUpdate = (content: string): { clientId: number; update: Uint8Array } => {
+    const doc = new Y.Doc()
+    doc.getText('content').insert(0, content)
+    return {
+      clientId: doc.clientID,
+      update: Y.encodeStateAsUpdate(doc)
+    }
+  }
+
+  const createRelay = (
+    verifyV2Envelope?: YjsEnvelopeV2Verifier,
+    rateLimit?: YjsRateLimiterOptions,
+    telemetry?: {
+      reportSecurityEvent: ReturnType<typeof vi.fn>
+      reportUsage?: ReturnType<typeof vi.fn>
+    },
+    telemetryPeerHashSalt?: string,
+    replication?: SyncReplicationConfig
+  ) => {
+    const identity = generateIdentity()
+    const pool = new NodePool(createMemoryStorage())
+    const relay = new RelayService(pool, {
+      verifyV2Envelope,
+      replication,
+      rateLimit,
+      telemetry,
+      telemetryPeerHashSalt,
+      signing: {
+        authorDID: identity.identity.did,
+        signingKey: identity.privateKey
+      }
+    })
+
+    return { pool, relay }
+  }
+
+  const createStrictV2Verifier =
+    (maxAge = 5_000): YjsEnvelopeV2Verifier =>
+    async (candidate, context) => {
+      const result = await verifyYjsEnvelopeV2(candidate, {
+        expectedDocId: context.docId,
+        maxAge
+      })
+      return {
+        valid: result.valid,
+        errors: result.errors
+      }
+    }
+
+  const expectRejectedV2Envelope = async (
+    docId: string,
+    envelope: SignedYjsEnvelopeV2
+  ): Promise<void> => {
+    const { pool, relay } = createRelay(createStrictV2Verifier())
+    const accepted = await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientV2Rejected',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(accepted).toBe(false)
+    expect(stored.getText('content').toString()).toBe('')
+  }
+
+  it('rejects V2 envelopes when no verifier is configured', async () => {
+    const docId = 'test-relay-v2-no-verifier'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('unverified v2')
+    const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+    const { pool, relay } = createRelay()
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientV2',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('')
+  })
+
+  it('rejects V1 envelopes with invalid signatures without mutating state', async () => {
+    const docId = 'test-relay-v1-invalid-signature'
+    const identity = generateIdentity()
+    const { clientId, update } = createUpdate('tampered v1')
+    const envelope = signYjsUpdate(update, identity.identity.did, identity.privateKey, clientId)
+    envelope.signature = new Uint8Array(envelope.signature)
+    envelope.signature[0] ^= 0xff
+    const { pool, relay } = createRelay()
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientTampered',
+        envelope: {
+          update: Buffer.from(envelope.update).toString('base64'),
+          authorDID: envelope.authorDID,
+          signature: Buffer.from(envelope.signature).toString('base64'),
+          timestamp: envelope.timestamp,
+          clientId: envelope.clientId
+        }
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('')
+  })
+
+  it('reports hashed telemetry for rejected remote mutations', async () => {
+    const docId = 'test-relay-rejection-telemetry'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('rejected telemetry')
+    const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+    const telemetry = {
+      reportSecurityEvent: vi.fn(),
+      reportUsage: vi.fn()
+    }
+    const { relay } = createRelay(undefined, undefined, telemetry, 'test-hub-salt')
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientTelemetry',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    expect(telemetry.reportSecurityEvent).toHaveBeenCalledTimes(1)
+    const [eventName, severity, details] = telemetry.reportSecurityEvent.mock.calls[0]
+    expect(eventName).toBe('xnet.security.remote_mutation_rejected')
+    expect(severity).toBe('high')
+    expect(details).toMatchObject({
+      actionTaken: 'remote_mutation_rejected',
+      primaryReason: 'failed-admission',
+      reasons: ['failed-admission'],
+      peerScoreBucket: '51-80',
+      surface: 'remoteMutation'
+    })
+    expect(details.peerHash).toMatch(/^p_/)
+    expect(JSON.stringify(details)).not.toContain('clientTelemetry')
+    expect(telemetry.reportUsage).toHaveBeenCalledWith(
+      'xnet.security.remote_mutation_rejections',
+      1
+    )
+  })
+
+  it('rejects V2 envelopes bound to a different document', async () => {
+    const docId = 'test-relay-v2-doc-binding'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('wrong doc v2')
+    const envelope = signYjsUpdateV2(update, 'other-doc', clientId, bundle, { level: 0 })
+
+    await expectRejectedV2Envelope(docId, envelope)
+  })
+
+  it('rejects stale V2 envelopes when the verifier enforces max age', async () => {
+    const docId = 'test-relay-v2-stale'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('stale v2')
+    const now = Date.now()
+
+    const envelope = (() => {
+      vi.useFakeTimers()
+      try {
+        vi.setSystemTime(now - 10_000)
+        return signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+      } finally {
+        vi.useRealTimers()
+      }
+    })()
+
+    await expectRejectedV2Envelope(docId, envelope)
+  })
+
+  it('rejects V2 envelopes whose claimed author does not match the signer', async () => {
+    const docId = 'test-relay-v2-author'
+    const signer = createKeyBundle({ includePQ: false })
+    const claimedAuthor = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('wrong author v2')
+    const envelope = signYjsUpdateV2(update, docId, clientId, signer, { level: 0 })
+    envelope.meta.authorDID = claimedAuthor.identity.did
+
+    await expectRejectedV2Envelope(docId, envelope)
+  })
+
+  it('rejects V2 envelopes with corrupt signatures', async () => {
+    const docId = 'test-relay-v2-signature'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('bad signature v2')
+    const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+    const signature = new Uint8Array(envelope.signature.ed25519 ?? [])
+    signature[0] ^= 0xff
+    envelope.signature.ed25519 = signature
+
+    await expectRejectedV2Envelope(docId, envelope)
+  })
+
+  it('accepts V2 envelopes only after verifier approval', async () => {
+    const docId = 'test-relay-v2-verified'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('verified v2')
+    const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+    const { pool, relay } = createRelay(createStrictV2Verifier())
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientV2',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('verified v2')
+  })
+
+  it('rejects oversized state-vector requests before fanout', async () => {
+    const docId = 'test-relay-oversized-sv'
+    const { relay } = createRelay()
+    const sent: object[] = []
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-step1',
+        from: 'clientSV',
+        sv: Buffer.from(new Uint8Array(MAX_YJS_STATE_VECTOR_SIZE + 1)).toString('base64')
+      },
+      (_topic, data) => {
+        sent.push(data)
+      }
+    )
+
+    expect(sent).toHaveLength(0)
+  })
+
+  it('rejects oversized unsigned updates before applying them', async () => {
+    const docId = 'test-relay-oversized-update'
+    const { pool, relay } = createRelay(undefined, undefined, undefined, undefined, {
+      compatibility: { allowUnsignedReplication: true }
+    })
+    const sent: object[] = []
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientOversizedUpdate',
+        update: Buffer.from(new Uint8Array(MAX_YJS_UPDATE_SIZE + 1)).toString('base64')
+      },
+      (_topic, data) => {
+        sent.push(data)
+      }
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('')
+    expect(sent).toHaveLength(0)
+  })
+
+  it('rate-limits repeated state-vector requests by peer', async () => {
+    const docId = 'test-relay-rate-limited-sv'
+    const emptyStateVector = Buffer.from(Y.encodeStateVector(new Y.Doc())).toString('base64')
+    const { relay } = createRelay(undefined, {
+      maxPerSecond: 1,
+      maxPerMinute: 10,
+      burstAllowance: 0,
+      cleanupIntervalMs: 0
+    })
+    const sent: object[] = []
+    const send = (_topic: string, data: object): void => {
+      sent.push(data)
+    }
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      { type: 'sync-step1', from: 'clientSV', sv: emptyStateVector },
+      send
+    )
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      { type: 'sync-step1', from: 'clientSV', sv: emptyStateVector },
+      send
+    )
+
+    expect(sent).toHaveLength(1)
   })
 })
