@@ -88,6 +88,10 @@ const REASON_DETAILS: Record<AbuseReasonCode, ReasonDetail> = {
     severity: 'critical',
     message: 'The claimed actor is not authorized to perform this action.'
   },
+  'unsigned-update': {
+    severity: 'high',
+    message: 'The remote mutation was unsigned on a surface that requires signed replication.'
+  },
   'user-override': {
     severity: 'low',
     message: 'A local override changed the display or reach decision.'

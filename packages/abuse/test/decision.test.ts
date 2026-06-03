@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   TRUSTED_SPAM_LABEL,
   abuseFixtures,
+  bucketAbusePeerScore,
   createBaseFacts,
   createRemoteAdmissionPipeline,
   decidePublicInteraction,
@@ -9,6 +10,7 @@ import {
   decideRemoteMutation,
   decideTransport,
   explainDecision,
+  hashAbusePeerIdentifier,
   isRejected,
   isVisible,
   normalizeAbuseFacts,
@@ -224,6 +226,84 @@ describe('@xnetjs/abuse decision engine', () => {
       expect(result.shouldMutate).toBe(false)
       expect(result.shouldRelay).toBe(false)
       expect(result.shouldThrottle).toBe(true)
+    })
+
+    it('emits hashed and bucketed telemetry for rejected remote mutations', () => {
+      const telemetry = {
+        reportSecurityEvent: vi.fn(),
+        reportUsage: vi.fn()
+      }
+      const pipeline = createRemoteAdmissionPipeline({
+        telemetry,
+        adapt: () =>
+          createBaseFacts({
+            surface: 'remoteMutation',
+            crypto: { signatureValid: false },
+            actor: {
+              peerId: 'raw-peer-id',
+              peerScore: 27
+            }
+          })
+      })
+
+      pipeline.evaluate(undefined)
+
+      expect(telemetry.reportSecurityEvent).toHaveBeenCalledTimes(1)
+      const [eventName, severity, details] = telemetry.reportSecurityEvent.mock.calls[0]
+      expect(eventName).toBe('xnet.security.remote_mutation_rejected')
+      expect(severity).toBe('high')
+      expect(details).toMatchObject({
+        actionTaken: 'remote_mutation_rejected',
+        surface: 'remoteMutation',
+        primaryReason: 'failed-admission',
+        reasons: ['failed-admission', 'invalid-signature'],
+        peerScoreBucket: '11-30',
+        resourceAction: 'normal',
+        shouldThrottle: false
+      })
+      expect(details.peerHash).toMatch(/^p_/)
+      expect(JSON.stringify(details)).not.toContain('raw-peer-id')
+      expect(telemetry.reportUsage).toHaveBeenCalledWith(
+        'xnet.security.remote_mutation_rejections',
+        1
+      )
+    })
+
+    it('does not emit rejection telemetry for accepted remote mutations', () => {
+      const telemetry = {
+        reportSecurityEvent: vi.fn()
+      }
+      const pipeline = createRemoteAdmissionPipeline({
+        telemetry,
+        adapt: () => abuseFixtures.validRemoteMutation
+      })
+
+      pipeline.evaluate(undefined)
+
+      expect(telemetry.reportSecurityEvent).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('telemetry helpers', () => {
+    it('hashes peer identifiers with caller-provided salt', () => {
+      const first = hashAbusePeerIdentifier('peer-1', 'workspace-a')
+      const second = hashAbusePeerIdentifier('peer-1', 'workspace-a')
+      const differentSalt = hashAbusePeerIdentifier('peer-1', 'workspace-b')
+
+      expect(first).toBe(second)
+      expect(first).toMatch(/^p_/)
+      expect(first).not.toBe(differentSalt)
+      expect(first).not.toContain('peer-1')
+    })
+
+    it('buckets abuse peer scores without exposing exact values', () => {
+      expect(bucketAbusePeerScore(undefined)).toBe('unknown')
+      expect(bucketAbusePeerScore(10)).toBe('<=10')
+      expect(bucketAbusePeerScore(30)).toBe('11-30')
+      expect(bucketAbusePeerScore(50)).toBe('31-50')
+      expect(bucketAbusePeerScore(80)).toBe('51-80')
+      expect(bucketAbusePeerScore(100)).toBe('81-100')
+      expect(bucketAbusePeerScore(101)).toBe('>100')
     })
   })
 

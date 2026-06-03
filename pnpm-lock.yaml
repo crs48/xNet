@@ -837,6 +837,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.0.0
         version: 1.19.9(hono@4.11.7)
+      '@xnetjs/abuse':
+        specifier: workspace:*
+        version: link:../abuse
       '@xnetjs/core':
         specifier: workspace:*
         version: link:../core

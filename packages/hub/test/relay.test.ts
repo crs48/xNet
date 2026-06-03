@@ -8,7 +8,7 @@ import {
   verifyYjsEnvelopeV2,
   type YjsRateLimiterOptions
 } from '@xnetjs/sync'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WebSocket } from 'ws'
 import * as Y from 'yjs'
 import { createHub } from '../src/index'
@@ -269,13 +269,20 @@ describe('Sync Relay direct admission', () => {
 
   const createRelay = (
     verifyV2Envelope?: YjsEnvelopeV2Verifier,
-    rateLimit?: YjsRateLimiterOptions
+    rateLimit?: YjsRateLimiterOptions,
+    telemetry?: {
+      reportSecurityEvent: ReturnType<typeof vi.fn>
+      reportUsage?: ReturnType<typeof vi.fn>
+    },
+    telemetryPeerHashSalt?: string
   ) => {
     const identity = generateIdentity()
     const pool = new NodePool(createMemoryStorage())
     const relay = new RelayService(pool, {
       verifyV2Envelope,
       rateLimit,
+      telemetry,
+      telemetryPeerHashSalt,
       signing: {
         authorDID: identity.identity.did,
         signingKey: identity.privateKey
@@ -304,6 +311,46 @@ describe('Sync Relay direct admission', () => {
 
     const stored = await pool.get(docId)
     expect(stored.getText('content').toString()).toBe('')
+  })
+
+  it('reports hashed telemetry for rejected remote mutations', async () => {
+    const docId = 'test-relay-rejection-telemetry'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('rejected telemetry')
+    const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+    const telemetry = {
+      reportSecurityEvent: vi.fn(),
+      reportUsage: vi.fn()
+    }
+    const { relay } = createRelay(undefined, undefined, telemetry, 'test-hub-salt')
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientTelemetry',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    expect(telemetry.reportSecurityEvent).toHaveBeenCalledTimes(1)
+    const [eventName, severity, details] = telemetry.reportSecurityEvent.mock.calls[0]
+    expect(eventName).toBe('xnet.security.remote_mutation_rejected')
+    expect(severity).toBe('high')
+    expect(details).toMatchObject({
+      actionTaken: 'remote_mutation_rejected',
+      primaryReason: 'failed-admission',
+      reasons: ['failed-admission'],
+      peerScoreBucket: '51-80',
+      surface: 'remoteMutation'
+    })
+    expect(details.peerHash).toMatch(/^p_/)
+    expect(JSON.stringify(details)).not.toContain('clientTelemetry')
+    expect(telemetry.reportUsage).toHaveBeenCalledWith(
+      'xnet.security.remote_mutation_rejections',
+      1
+    )
   })
 
   it('rejects V2 envelopes bound to a different document', async () => {

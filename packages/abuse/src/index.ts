@@ -35,6 +35,12 @@ export {
   unsignedPolicyBlockList,
   verifySignedPolicyBlockList
 } from './policy-blocks'
+export {
+  bucketAbusePeerScore,
+  createRemoteMutationRejectionTelemetry,
+  hashAbusePeerIdentifier,
+  reportRemoteMutationRejection
+} from './telemetry'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
@@ -43,6 +49,12 @@ export type {
   RemoteAdmissionPipelineOptions,
   RemoteAdmissionResult
 } from './adapters'
+export type {
+  AbusePeerScoreBucket,
+  AbuseTelemetryReporter,
+  RemoteMutationRejectionTelemetry,
+  RemoteMutationRejectionTelemetryInput
+} from './telemetry'
 export type {
   AbuseActorFacts,
   AbuseAdmission,

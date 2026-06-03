@@ -3,6 +3,13 @@
  */
 
 import type { NodePool } from '../pool/node-pool'
+import type {
+  AbuseDecision,
+  AbuseReasonCode,
+  AbuseSeverity,
+  AbuseTelemetryReporter
+} from '@xnetjs/abuse'
+import { reportRemoteMutationRejection } from '@xnetjs/abuse'
 import {
   MAX_YJS_UPDATE_SIZE,
   MAX_YJS_STATE_VECTOR_SIZE,
@@ -22,6 +29,8 @@ import {
   type SignedYjsEnvelopeV2,
   type SignedYjsEnvelopeWire,
   type SyncReplicationConfig,
+  type PeerAction,
+  type YjsViolationType,
   type YjsRateLimiterOptions
 } from '@xnetjs/sync'
 import * as Y from 'yjs'
@@ -61,12 +70,16 @@ type RelayOptions = {
     signingKey: Uint8Array
   }
   verifyV2Envelope?: YjsEnvelopeV2Verifier
+  telemetry?: AbuseTelemetryReporter
+  telemetryPeerHashSalt?: string
 }
 
 type UpdateResult = {
   update: Uint8Array
   peerId: string
 }
+
+type EnvelopeVerificationResult = { valid: true } | { valid: false; reason: AbuseReasonCode }
 
 type SignedYjsEnvelopeV1Wire = {
   update: string
@@ -292,18 +305,18 @@ export class RelayService {
 
     const peerId = data.from
 
-    if (!this.allowPeerMessage(peerId)) return null
+    if (!this.allowPeerMessage(peerId, 'over-rate-limit')) return null
 
     const rawEnvelope = getEnvelope(data)
     if (rawEnvelope) {
       const envelope = deserializeEnvelope(rawEnvelope)
       if (!envelope) {
-        this.peerScorer.penalize(peerId, 'invalidSignature')
+        this.rejectRemoteMutation(peerId, 'invalid-signature', 'invalidSignature')
         return null
       }
 
       if (isUpdateTooLarge(envelope.update)) {
-        this.peerScorer.penalize(peerId, 'oversizedUpdate')
+        this.rejectRemoteMutation(peerId, 'over-size-limit', 'oversizedUpdate')
         return null
       }
 
@@ -312,8 +325,8 @@ export class RelayService {
         peerId,
         messageType: data.type
       })
-      if (!result) {
-        this.peerScorer.penalize(peerId, 'invalidSignature')
+      if (!result.valid) {
+        this.rejectRemoteMutation(peerId, result.reason, 'invalidSignature')
         return null
       }
 
@@ -322,18 +335,18 @@ export class RelayService {
     }
 
     if (this.replicationPolicy.requireSignedReplication) {
-      this.peerScorer.penalize(peerId, 'unsignedUpdate')
+      this.rejectRemoteMutation(peerId, 'unsigned-update', 'unsignedUpdate')
       return null
     }
 
     if (!data.update) return null
     if (isBase64PayloadTooLarge(data.update, MAX_YJS_UPDATE_SIZE)) {
-      this.peerScorer.penalize(peerId, 'oversizedUpdate')
+      this.rejectRemoteMutation(peerId, 'over-size-limit', 'oversizedUpdate')
       return null
     }
     const update = fromBase64(data.update)
     if (isUpdateTooLarge(update)) {
-      this.peerScorer.penalize(peerId, 'oversizedUpdate')
+      this.rejectRemoteMutation(peerId, 'over-size-limit', 'oversizedUpdate')
       return null
     }
 
@@ -341,34 +354,122 @@ export class RelayService {
     return { update, peerId }
   }
 
-  private allowPeerMessage(peerId: string): boolean {
+  private allowPeerMessage(peerId: string, remoteMutationReason?: AbuseReasonCode): boolean {
     if (this.rateLimiter.allow(peerId)) return true
-    this.peerScorer.penalize(peerId, 'rateExceeded')
+    const action = this.peerScorer.penalize(peerId, 'rateExceeded')
+    if (remoteMutationReason) {
+      this.reportRejectedRemoteMutation(peerId, remoteMutationReason, action)
+    }
     return false
   }
 
   private async verifyEnvelope(
     envelope: SignedYjsEnvelope,
     context: YjsEnvelopeV2VerifierContext
-  ): Promise<boolean> {
+  ): Promise<EnvelopeVerificationResult> {
     if (isUpdateTooLarge(envelope.update, MAX_YJS_UPDATE_SIZE)) {
-      return false
+      return { valid: false, reason: 'over-size-limit' }
     }
 
     if (isV1Envelope(envelope)) {
       const result = verifyYjsEnvelopeV1(envelope)
-      return result.valid
+      return result.valid ? { valid: true } : { valid: false, reason: 'invalid-signature' }
     }
 
     if (isV2Envelope(envelope)) {
-      if (envelope.meta.docId !== context.docId || !this.options.verifyV2Envelope) {
-        return false
+      if (envelope.meta.docId !== context.docId) {
+        return { valid: false, reason: 'invalid-doc-binding' }
+      }
+
+      if (!this.options.verifyV2Envelope) {
+        return { valid: false, reason: 'failed-admission' }
       }
 
       const result = await this.options.verifyV2Envelope(envelope, context)
       return verifierResultIsValid(result)
+        ? { valid: true }
+        : { valid: false, reason: 'invalid-signature' }
     }
 
-    return false
+    return { valid: false, reason: 'failed-admission' }
   }
+
+  private rejectRemoteMutation(
+    peerId: string,
+    reason: AbuseReasonCode,
+    violation: YjsViolationType
+  ): void {
+    const action = this.peerScorer.penalize(peerId, violation)
+    this.reportRejectedRemoteMutation(peerId, reason, action)
+  }
+
+  private reportRejectedRemoteMutation(
+    peerId: string,
+    reason: AbuseReasonCode,
+    action: PeerAction
+  ): void {
+    reportRemoteMutationRejection(this.options.telemetry, {
+      facts: {
+        surface: 'remoteMutation',
+        actor: {
+          peerId,
+          peerScore: this.peerScorer.getScore(peerId)
+        }
+      },
+      decision: relayRejectionDecision(reason, action),
+      peerHashSalt: this.options.telemetryPeerHashSalt
+    })
+  }
+}
+
+const relayRejectionDecision = (reason: AbuseReasonCode, action: PeerAction): AbuseDecision => ({
+  admission: 'reject',
+  visibility: 'hide',
+  reach: 'exclude',
+  resource: action === 'block' ? 'block-peer' : action === 'throttle' ? 'throttle' : 'normal',
+  notify: false,
+  includeInCounters: false,
+  includeInSearch: false,
+  review: { required: false },
+  reasons: relayRejectionReasons(reason),
+  evidenceRefs: [],
+  labelsToEmit: [],
+  telemetry: [
+    {
+      eventName: 'xnet.security.remote_mutation_rejected',
+      severity: relayRejectionSeverity(reason),
+      reason
+    }
+  ]
+})
+
+const relayRejectionReasons = (reason: AbuseReasonCode): readonly AbuseReasonCode[] => {
+  if (
+    reason === 'invalid-doc-binding' ||
+    reason === 'invalid-signature' ||
+    reason === 'unauthorized' ||
+    reason === 'unsigned-update'
+  ) {
+    return ['failed-admission', reason]
+  }
+
+  return [reason]
+}
+
+const relayRejectionSeverity = (reason: AbuseReasonCode): AbuseSeverity => {
+  if (
+    reason === 'failed-admission' ||
+    reason === 'invalid-doc-binding' ||
+    reason === 'invalid-signature' ||
+    reason === 'unauthorized' ||
+    reason === 'unsigned-update'
+  ) {
+    return 'high'
+  }
+
+  if (reason === 'over-rate-limit' || reason === 'over-size-limit') {
+    return 'medium'
+  }
+
+  return 'low'
 }

@@ -42,6 +42,7 @@ export type AbuseReasonCode =
   | 'trusted-abuse-label'
   | 'trusted-warning-label'
   | 'unauthorized'
+  | 'unsigned-update'
   | 'user-override'
 
 // ─── Fact Model ──────────────────────────────────────────────────────────────

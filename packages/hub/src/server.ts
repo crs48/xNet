@@ -382,6 +382,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const relay = new RelayService(pool, {
     replication: config.sync,
     verifyV2Envelope: config.syncVerification?.verifyV2Envelope,
+    telemetry: config.telemetry,
+    telemetryPeerHashSalt: config.telemetryPeerHashSalt,
     signing: {
       authorDID: relayIdentity.identity.did,
       signingKey: relayIdentity.privateKey

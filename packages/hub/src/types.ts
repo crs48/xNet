@@ -6,6 +6,7 @@ import type { CrawlConfig } from './services/crawl'
 import type { FederationConfig } from './services/federation'
 import type { ShardConfig } from './services/index-shards'
 import type { YjsEnvelopeV2Verifier } from './services/relay'
+import type { AbuseTelemetryReporter } from '@xnetjs/abuse'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 
 export type HubConfig = {
@@ -39,6 +40,10 @@ export type HubConfig = {
   syncVerification?: {
     verifyV2Envelope?: YjsEnvelopeV2Verifier
   }
+  /** Optional privacy-preserving abuse telemetry collector. */
+  telemetry?: AbuseTelemetryReporter
+  /** Optional deployment-local salt for hashing peer identifiers in telemetry. */
+  telemetryPeerHashSalt?: string
   /** Hub's own DID for UCAN audience verification (optional). */
   hubDid?: string
   /** Public hub URL for peer discovery (optional). */

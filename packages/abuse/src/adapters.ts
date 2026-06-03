@@ -4,6 +4,7 @@
 
 import type { AbuseDecision, AbuseFacts } from './types'
 import { decideAbuse, decideRemoteMutation, isRejected, shouldThrottle } from './decision'
+import { reportRemoteMutationRejection, type AbuseTelemetryReporter } from './telemetry'
 
 // ─── Generic Adapters ───────────────────────────────────────────────────────
 
@@ -56,6 +57,9 @@ export type RemoteAdmissionPipeline<TInput> = {
 export type RemoteAdmissionPipelineOptions<TInput> = {
   adapt: AbuseFactAdapter<TInput>
   decide?: AbuseDecisionFunction
+  telemetry?: AbuseTelemetryReporter
+  telemetryEventName?: string
+  telemetryPeerHashSalt?: string
 }
 
 export function createRemoteAdmissionPipeline<TInput>(
@@ -67,14 +71,25 @@ export function createRemoteAdmissionPipeline<TInput>(
     evaluate(input) {
       const result = decideWithAdapter(input, options.adapt, decide)
       const accepted = result.decision.admission === 'accept'
-      const shouldMutate = !isRejected(result.decision)
+      const rejected = isRejected(result.decision)
+      const shouldMutate = !rejected
+      const throttle = shouldThrottle(result.decision)
+
+      if (rejected) {
+        reportRemoteMutationRejection(options.telemetry, {
+          facts: result.facts,
+          decision: result.decision,
+          eventName: options.telemetryEventName,
+          peerHashSalt: options.telemetryPeerHashSalt
+        })
+      }
 
       return {
         ...result,
         accepted,
         shouldMutate,
         shouldRelay: accepted && result.decision.reach !== 'exclude',
-        shouldThrottle: shouldThrottle(result.decision)
+        shouldThrottle: throttle
       }
     }
   }
