@@ -141,18 +141,19 @@ Calibration changed the baseline in three small steps:
 | E2E harness marked dynamic       |    `33` total | `tests/e2e/harness/*.tsx` is now treated as Vite/HTML-loaded runtime code.                    |
 | E2E helper exports made internal |    `31` total | `enableTestBypass` and `waitForAuthenticated` are no longer exported dead API.                |
 | Site cleanup batch               |    `19` total | Deleted unreferenced site components; marked Starlight string-path assets as dynamic.         |
+| Stale dependency cleanup         |    `12` total | Removed unused dependency entries from Electron, Web, editor, storage, and data manifests.    |
 
-Current calibrated summary from `fallow dead-code --summary --no-cache` after the site cleanup batch:
+Current calibrated summary from `fallow dead-code --summary --no-cache` after the dependency cleanup batch:
 
-| Signal                  | Installed result | Classification                                                                   |
-| ----------------------- | ---------------: | -------------------------------------------------------------------------------- |
-| Unused files            |              `1` | One root script candidate remains.                                               |
-| Unused exports          |              `0` | Low-risk E2E helper export cleanup is complete.                                  |
-| Unused dependencies     |              `9` | Mix of likely removals, platform dependencies, and cross-package manifest drift. |
-| Unused dev dependencies |              `1` | `@tanstack/router-devtools` in `apps/web`; verify before removing.               |
-| Unlisted dependencies   |              `6` | Mostly package-local test/story dependencies that should move from root scope.   |
-| Circular dependencies   |              `2` | Electron import cycles; defer to focused refactors.                              |
-| Total dead-code issues  |             `19` | Suitable for report-only CI, not a blocking gate yet.                            |
+| Signal                  | Installed result | Classification                                                                 |
+| ----------------------- | ---------------: | ------------------------------------------------------------------------------ |
+| Unused files            |              `1` | One root script candidate remains.                                             |
+| Unused exports          |              `0` | Low-risk E2E helper export cleanup is complete.                                |
+| Unused dependencies     |              `3` | Expo platform dependencies remain for explicit validation or suppression.      |
+| Unused dev dependencies |              `0` | Stale Web router devtools dependency cleanup is complete.                      |
+| Unlisted dependencies   |              `6` | Mostly package-local test/story dependencies that should move from root scope. |
+| Circular dependencies   |              `2` | Electron import cycles; defer to focused refactors.                            |
+| Total dead-code issues  |             `12` | Suitable for report-only CI, not a blocking gate yet.                          |
 
 Initial classification:
 
@@ -160,10 +161,10 @@ Initial classification:
 | --------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
 | `site/src/components/**/*.astro` and `site/src/styles/docs.css`       | Done         | Deleted unreferenced landing components; kept Starlight config-string assets as dynamic entries. |
 | `scripts/collect-core-platform-baselines.ts`                          | Defer        | Confirm whether it is still a manual benchmark utility before deletion.                          |
-| `electron-store`, `use-debounce`, `pako`, `@tanstack/router-devtools` | Delete       | Verify package builds/tests, then remove from the owning package manifests.                      |
-| `clsx` and `tailwind-merge` in `packages/editor`                      | Delete       | Likely remove from editor; these are used by `packages/ui`, which already declares them.         |
+| `electron-store`, `use-debounce`, `pako`, `@tanstack/router-devtools` | Done         | Removed stale manifest entries and verified focused package checks.                              |
+| `clsx` and `tailwind-merge` in `packages/editor`                      | Done         | Removed stale editor manifest entries; `packages/ui` still owns these dependencies.              |
 | `expo-file-system`, `expo-splash-screen`, `expo-sqlite`               | Suppress     | Treat as Expo/platform dependencies unless mobile package validation proves otherwise.           |
-| `lib0` in `packages/data`                                             | Move/defer   | The observed imports are integration tests; move only after checking package-local test intent.  |
+| `lib0` in `packages/data`                                             | Done         | Removed from data; integration tests keep their own `lib0` dependency.                           |
 | `fake-indexeddb`, `nid-webauthn-emulator` in `packages/identity`      | Move         | Add as `@xnetjs/identity` dev dependencies or test-scoped manifest entries.                      |
 | `@testing-library/react`, `@storybook/react-vite` in Electron         | Move         | Add package-local dev dependencies only where tests/stories import them.                         |
 | `@tailwindcss/typography` in editor                                   | Move         | Add to `packages/editor` dev dependencies because `tailwind.config.js` imports it.               |

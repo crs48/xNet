@@ -41,10 +41,8 @@
     "@tiptap/y-tiptap": "^3.0.1",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/ui": "workspace:*",
-    "clsx": "^2.1.0",
     "lucide-react": "^0.563.0",
     "mermaid": "^11.12.2",
-    "tailwind-merge": "^2.6.0",
     "tippy.js": "^6.3.7",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.24"
