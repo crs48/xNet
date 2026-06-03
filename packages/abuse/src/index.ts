@@ -88,6 +88,8 @@ export {
   isSignedPolicyBlockList,
   policyBlockListSigningBytes,
   policyBlockEntryIsActive,
+  policyBlockOverrideEntryIsActive,
+  resolveSubscribedPolicyBlockLists,
   signPolicyBlockList,
   unsignedPolicyBlockList,
   verifySignedPolicyBlockList
@@ -285,9 +287,14 @@ export type {
   PolicyBlockAuditEntry,
   PolicyBlockEntry,
   PolicyBlockListSignature,
+  PolicyBlockOverrideEntry,
+  PolicyBlockOverrideScope,
   PolicyBlockListVerificationResult,
   PolicyBlockScope,
   PolicyBlockSubjectType,
+  PolicyBlockSubscriptionResolution,
+  PolicyBlockSubscriptionResolutionInput,
+  ResolvedPolicyBlockEntry,
   SignedPolicyBlockList,
   UnsignedPolicyBlockList
 } from './policy-blocks'

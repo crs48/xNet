@@ -99,8 +99,10 @@ describe('@xnetjs/abuse hub policy service offers', () => {
       errors: []
     })
     expect(signed.moderation.requireSignedWrites).toBe(true)
+    expect(signed.moderation.allowLocalOverride).toBe(true)
     expect(signed.moderation.aiReview.localModelsEnabled).toBe(true)
     expect(signed.moderation.aiReview.cloudModelsEnabled).toBe(true)
+    expect(signed.moderation.labels.subscribedPolicyListIds).toEqual(['policy:blocklist:v1'])
     expect(publicAppealChannels(signed)).toHaveLength(2)
     expect(unsignedHubPolicyServiceOffer(signed)).not.toHaveProperty('signature')
   })

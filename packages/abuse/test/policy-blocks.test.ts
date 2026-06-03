@@ -7,6 +7,7 @@ import {
   findPolicyBlockAuditEntry,
   findPolicyBlockEntry,
   policyBlockEntryIsActive,
+  resolveSubscribedPolicyBlockLists,
   signPolicyBlockList,
   unsignedPolicyBlockList,
   verifySignedPolicyBlockList
@@ -177,5 +178,75 @@ describe('@xnetjs/abuse policy block lists', () => {
     expect(findPolicyBlockAuditEntry(signed, 'expired-peer', 'peerId', 2_000)).toEqual(
       auditEntries[0]
     )
+  })
+
+  it('keeps local overrides authoritative over subscribed shared policy lists', () => {
+    const issuer = generateIdentity()
+    const signed = signPolicyBlockList(
+      createPolicyBlockList({
+        id: 'community-shared-blocks',
+        title: 'Community shared blocks',
+        scope: 'community',
+        issuerDID: issuer.identity.did,
+        createdAt: 1_000,
+        entries: [
+          {
+            id: 'shared-false-positive',
+            subject: 'did:key:z6MkFalsePositive',
+            subjectType: 'did',
+            action: 'hide',
+            reason: 'shared list report',
+            evidenceRefs: ['report:shared-1'],
+            createdAt: 1_000
+          },
+          {
+            id: 'shared-active-spam',
+            subject: 'did:key:z6MkSpam',
+            subjectType: 'did',
+            action: 'reject',
+            reason: 'confirmed spammer',
+            evidenceRefs: ['report:shared-2'],
+            createdAt: 1_000
+          }
+        ]
+      }),
+      issuer.privateKey
+    )
+
+    const resolution = resolveSubscribedPolicyBlockLists({
+      lists: [signed],
+      localOverrides: [
+        {
+          id: 'allow-known-neighbor',
+          subject: 'did:key:z6MkFalsePositive',
+          subjectType: 'did',
+          scope: 'user',
+          reason: 'known local collaborator',
+          evidenceRefs: ['local-note:neighbor'],
+          createdAt: 1_500
+        }
+      ],
+      now: 2_000
+    })
+
+    expect(verifySignedPolicyBlockList(signed)).toEqual({ valid: true, errors: [] })
+    expect(resolution.enforcedEntries.map((entry) => entry.subject)).toEqual(['did:key:z6MkSpam'])
+    expect(resolution.overriddenEntries).toEqual([
+      {
+        id: 'shared-false-positive',
+        subject: 'did:key:z6MkFalsePositive',
+        subjectType: 'did',
+        action: 'hide',
+        reason: 'shared list report',
+        evidenceRefs: ['report:shared-1'],
+        createdAt: 1_000,
+        listId: 'community-shared-blocks',
+        listScope: 'community',
+        issuerDID: issuer.identity.did,
+        overridden: true,
+        overrideRefs: ['policy-override:user:allow-known-neighbor']
+      }
+    ])
+    expect(resolution.activeOverrides).toHaveLength(1)
   })
 })

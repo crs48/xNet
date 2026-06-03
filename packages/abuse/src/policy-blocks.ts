@@ -55,6 +55,39 @@ export type PolicyBlockAuditEntry = PolicyBlockEntry & {
   expired: boolean
 }
 
+export type PolicyBlockOverrideScope = Extract<PolicyBlockScope, 'user' | 'workspace'>
+
+export type PolicyBlockOverrideEntry = {
+  id?: string
+  subject: string
+  subjectType: PolicyBlockSubjectType
+  scope: PolicyBlockOverrideScope
+  reason: string
+  evidenceRefs?: readonly string[]
+  createdAt: number
+  expiresAt?: number
+}
+
+export type ResolvedPolicyBlockEntry = PolicyBlockEntry & {
+  listId: string
+  listScope: PolicyBlockScope
+  issuerDID: string
+  overridden: boolean
+  overrideRefs: readonly string[]
+}
+
+export type PolicyBlockSubscriptionResolutionInput = {
+  lists: readonly (SignedPolicyBlockList | UnsignedPolicyBlockList)[]
+  localOverrides?: readonly PolicyBlockOverrideEntry[]
+  now?: number
+}
+
+export type PolicyBlockSubscriptionResolution = {
+  enforcedEntries: readonly ResolvedPolicyBlockEntry[]
+  overriddenEntries: readonly ResolvedPolicyBlockEntry[]
+  activeOverrides: readonly PolicyBlockOverrideEntry[]
+}
+
 type JsonPrimitive = string | number | boolean | null
 type JsonValue = JsonPrimitive | readonly JsonValue[] | { readonly [key: string]: JsonValue }
 
@@ -215,3 +248,53 @@ export const findPolicyBlockEntry = (
   activePolicyBlockEntries(list, now).find(
     (entry) => entry.subject === subject && entry.subjectType === subjectType
   ) ?? null
+
+export const policyBlockOverrideEntryIsActive = (
+  entry: PolicyBlockOverrideEntry,
+  now = Date.now()
+): boolean => typeof entry.expiresAt !== 'number' || entry.expiresAt > now
+
+export const resolveSubscribedPolicyBlockLists = (
+  input: PolicyBlockSubscriptionResolutionInput
+): PolicyBlockSubscriptionResolution => {
+  const now = input.now ?? Date.now()
+  const activeOverrides = (input.localOverrides ?? []).filter((entry) =>
+    policyBlockOverrideEntryIsActive(entry, now)
+  )
+  const resolvedEntries = input.lists.flatMap((list) =>
+    activePolicyBlockEntries(list, now).map((entry) =>
+      resolvePolicyBlockEntry(list, entry, activeOverrides)
+    )
+  )
+
+  return {
+    enforcedEntries: resolvedEntries.filter((entry) => !entry.overridden),
+    overriddenEntries: resolvedEntries.filter((entry) => entry.overridden),
+    activeOverrides
+  }
+}
+
+function resolvePolicyBlockEntry(
+  list: SignedPolicyBlockList | UnsignedPolicyBlockList,
+  entry: PolicyBlockEntry,
+  overrides: readonly PolicyBlockOverrideEntry[]
+): ResolvedPolicyBlockEntry {
+  const matchingOverrides = overrides.filter(
+    (override) => override.subject === entry.subject && override.subjectType === entry.subjectType
+  )
+
+  return {
+    ...entry,
+    listId: list.id,
+    listScope: list.scope,
+    issuerDID: list.issuerDID,
+    overridden: matchingOverrides.length > 0,
+    overrideRefs: matchingOverrides.map(policyBlockOverrideRef)
+  }
+}
+
+function policyBlockOverrideRef(entry: PolicyBlockOverrideEntry): string {
+  return entry.id
+    ? `policy-override:${entry.scope}:${entry.id}`
+    : `policy-override:${entry.scope}:${entry.subjectType}:${entry.subject}`
+}
