@@ -1000,7 +1000,7 @@ Every hub should publish:
 
 ### Phase 4 - Public Surface Integration
 
-- [ ] Extend target nodes or adjacent policy nodes with public interaction policy.
+- [x] Extend target nodes or adjacent policy nodes with public interaction policy.
 - [ ] Implement `useVisibleComments` and `useModeratedThread`.
 - [ ] Add policy-filtered reaction and counter APIs.
 - [ ] Add message request and first-contact quarantine semantics.
