@@ -51,3 +51,39 @@ export type {
   MCPServerConfig
 } from './mcp-server'
 export { MCPServer, createMCPServer } from './mcp-server'
+
+// AI surface contract
+export type {
+  AiAuditEvent,
+  AiChangeSet,
+  AiContextPack,
+  AiContextPackResource,
+  AiContextSeed,
+  AiJsonSchema,
+  AiJsonSchemaType,
+  AiMutationPlan,
+  AiMutationPlanStatus,
+  AiOperation,
+  AiResource,
+  AiRiskLevel,
+  AiScope,
+  AiTargetKind,
+  AiToolCallResult,
+  AiToolDefinition,
+  AiValidationResult
+} from '../ai-surface'
+export {
+  AI_RISK_LEVELS,
+  AI_SCOPES,
+  AI_TARGET_KINDS,
+  attachAiPlanValidation,
+  createAiChangeSet,
+  createAiOperation,
+  createAiValidationResult,
+  isAiRiskLevel,
+  isAiScope,
+  isAiTargetKind,
+  parseAiMutationPlan,
+  serializeAiMutationPlan,
+  validateAiMutationPlan
+} from '../ai-surface'

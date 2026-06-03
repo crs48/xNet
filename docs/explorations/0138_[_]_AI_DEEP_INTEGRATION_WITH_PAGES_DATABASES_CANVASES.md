@@ -1292,12 +1292,12 @@ Workspace:
 
 ### Phase 0: Define the AI Surface Contract
 
-- [ ] Create `packages/ai` or `packages/plugins/src/ai-surface` for shared resource/tool/plan types.
-- [ ] Define `AiResource`, `AiTool`, `AiMutationPlan`, `AiChangeSet`, `AiOperation`, `AiValidationResult`, and `AiAuditEvent`.
-- [ ] Add risk levels and required scopes to every tool.
-- [ ] Add a shared validator interface with `{ valid, errors, warnings }`.
-- [ ] Add tests for serialization and plan validation.
-- [ ] Document the contract in `docs/`.
+- [x] Create `packages/ai` or `packages/plugins/src/ai-surface` for shared resource/tool/plan types.
+- [x] Define `AiResource`, `AiTool`, `AiMutationPlan`, `AiChangeSet`, `AiOperation`, `AiValidationResult`, and `AiAuditEvent`.
+- [x] Add risk levels and required scopes to every tool.
+- [x] Add a shared validator interface with `{ valid, errors, warnings }`.
+- [x] Add tests for serialization and plan validation.
+- [x] Document the contract in `docs/`.
 
 ### Phase 1: Upgrade MCP and Local API to Use the Contract
 

@@ -229,6 +229,42 @@ export type {
   ScriptGeneratorOptions
 } from './ai'
 
+// AI surface contract (resources, tools, mutation plans, validation)
+export type {
+  AiAuditEvent,
+  AiChangeSet,
+  AiContextPack,
+  AiContextPackResource,
+  AiContextSeed,
+  AiJsonSchema,
+  AiJsonSchemaType,
+  AiMutationPlan,
+  AiMutationPlanStatus,
+  AiOperation,
+  AiResource,
+  AiRiskLevel,
+  AiScope,
+  AiTargetKind,
+  AiToolCallResult,
+  AiToolDefinition,
+  AiValidationResult
+} from './ai-surface'
+export {
+  AI_RISK_LEVELS,
+  AI_SCOPES,
+  AI_TARGET_KINDS,
+  attachAiPlanValidation,
+  createAiChangeSet,
+  createAiOperation,
+  createAiValidationResult,
+  isAiRiskLevel,
+  isAiScope,
+  isAiTargetKind,
+  parseAiMutationPlan,
+  serializeAiMutationPlan,
+  validateAiMutationPlan
+} from './ai-surface'
+
 // Services (Background process management)
 // Note: Node.js-only modules (LocalAPIServer, MCPServer, ProcessManager) are
 // available via '@xnetjs/plugins/node' to avoid bundling Node.js APIs in browser builds.
