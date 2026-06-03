@@ -1035,7 +1035,7 @@ Every hub should publish:
 - [x] Oversized Yjs updates, awareness messages, blobs, and query requests are rejected before
       expensive parsing.
 - [x] Unauthorized remote writes are rejected before mutation and produce telemetry.
-- [ ] Hub relay never fans out a sync update before required validation.
+- [x] Hub relay never fans out a sync update before required validation.
 - [ ] V2 envelopes are rejected when doc ID, timestamp, author, or signature verification fails.
 - [ ] Peer scores recover only after quiet periods and do not grow unbounded.
 - [ ] Blocks expire when configured and remain auditable.
