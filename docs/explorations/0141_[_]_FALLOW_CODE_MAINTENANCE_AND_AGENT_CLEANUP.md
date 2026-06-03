@@ -99,20 +99,20 @@ Important caveat: this worktree did not have `node_modules`, so Fallow warned th
 
 Summary from `fallow --summary`:
 
-| Signal | Local result | Interpretation |
-| --- | ---: | --- |
-| Unused files | `16` | Some likely real, especially docs site and E2E harness candidates. |
-| Unused exports | `2` | Low dead public API count, but entry exports are protected by default. |
-| Unused dependencies | `12` | Needs rerun with `node_modules`; still useful for manifest triage. |
-| Unused dev dependencies | `7` | Mostly `react-dom` in UI packages, likely peer/test setup nuance. |
-| Unresolved imports | `154` | Mostly because `node_modules` is missing. |
-| Unlisted dependencies | `5` | Worth checking package-local manifests. |
-| Circular dependencies | `2` | Both reported in Electron. |
-| Total dead-code issues | `198` | Baseline, not immediate fail gate. |
-| Clone groups | `999` | Needs triage by package and cross-app duplication. |
-| Duplicated lines | `31,291` | `8.2%` duplication rate. |
-| Health score | `72 B` | Good enough to adopt as trend signal, not immediate blocker. |
-| Maintainability | `91.6` | Overall maintainability is still strong. |
+| Signal                  | Local result | Interpretation                                                         |
+| ----------------------- | -----------: | ---------------------------------------------------------------------- |
+| Unused files            |         `16` | Some likely real, especially docs site and E2E harness candidates.     |
+| Unused exports          |          `2` | Low dead public API count, but entry exports are protected by default. |
+| Unused dependencies     |         `12` | Needs rerun with `node_modules`; still useful for manifest triage.     |
+| Unused dev dependencies |          `7` | Mostly `react-dom` in UI packages, likely peer/test setup nuance.      |
+| Unresolved imports      |        `154` | Mostly because `node_modules` is missing.                              |
+| Unlisted dependencies   |          `5` | Worth checking package-local manifests.                                |
+| Circular dependencies   |          `2` | Both reported in Electron.                                             |
+| Total dead-code issues  |        `198` | Baseline, not immediate fail gate.                                     |
+| Clone groups            |        `999` | Needs triage by package and cross-app duplication.                     |
+| Duplicated lines        |     `31,291` | `8.2%` duplication rate.                                               |
+| Health score            |       `72 B` | Good enough to adopt as trend signal, not immediate blocker.           |
+| Maintainability         |       `91.6` | Overall maintainability is still strong.                               |
 
 Notable dead-code/dependency findings from `fallow dead-code --group-by package`:
 
@@ -511,11 +511,7 @@ Do not add a full blocking `fallow` run to pre-commit. If hooks are added later,
 ```json
 {
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write",
-      "fallow dead-code --file --format compact"
-    ]
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write", "fallow dead-code --file --format compact"]
   }
 }
 ```
@@ -644,17 +640,17 @@ Biome and Oxlint are worth tracking for speed, but they solve a different proble
 
 ## CI And Hook Decision
 
-| Location | Recommendation | Reason |
-| --- | --- | --- |
-| Local ad-hoc command | Yes immediately | Best feedback for agents and maintainers. |
-| `package.json` scripts | Yes | Pins workflow names and avoids one-off `dlx` drift. |
-| Pre-commit | Not full repo | Current hook is already busy; full graph checks are too broad. |
-| Pre-commit changed-file scope | Maybe later | Useful after config is stable and `--file` behavior is tested with lint-staged. |
-| Pre-push | Not initially | Pre-push already runs expensive typecheck/test gates. |
-| CI report-only | Yes after config | Makes findings visible without blocking. |
-| CI PR audit gate | Yes later | Good once baseline and suppressions are stable. |
-| CI full backlog fail | No | Would block unrelated changes until cleanup is complete. |
-| Scheduled maintenance workflow | Yes | Good place for full `fallow` and `fallow health --trend`. |
+| Location                       | Recommendation   | Reason                                                                          |
+| ------------------------------ | ---------------- | ------------------------------------------------------------------------------- |
+| Local ad-hoc command           | Yes immediately  | Best feedback for agents and maintainers.                                       |
+| `package.json` scripts         | Yes              | Pins workflow names and avoids one-off `dlx` drift.                             |
+| Pre-commit                     | Not full repo    | Current hook is already busy; full graph checks are too broad.                  |
+| Pre-commit changed-file scope  | Maybe later      | Useful after config is stable and `--file` behavior is tested with lint-staged. |
+| Pre-push                       | Not initially    | Pre-push already runs expensive typecheck/test gates.                           |
+| CI report-only                 | Yes after config | Makes findings visible without blocking.                                        |
+| CI PR audit gate               | Yes later        | Good once baseline and suppressions are stable.                                 |
+| CI full backlog fail           | No               | Would block unrelated changes until cleanup is complete.                        |
+| Scheduled maintenance workflow | Yes              | Good place for full `fallow` and `fallow health --trend`.                       |
 
 Recommended CI maturity path:
 
@@ -670,11 +666,11 @@ flowchart LR
 
 ## Implementation Checklist
 
-- [ ] Run `pnpm install --frozen-lockfile` in a clean worktree.
-- [ ] Add `fallow` as a root dev dependency.
-- [ ] Add `.fallow/` to root `.gitignore`.
-- [ ] Add root scripts for `code:dead`, `code:dupes`, `code:health`, `code:audit`, and `code:fix:preview`.
-- [ ] Run `fallow init` or create `.fallowrc.json`.
+- [x] Run `pnpm install --frozen-lockfile` in a clean worktree.
+- [x] Add `fallow` as a root dev dependency.
+- [x] Add `.fallow/` to root `.gitignore`.
+- [x] Add root scripts for `code:dead`, `code:dupes`, `code:health`, `code:audit`, and `code:fix:preview`.
+- [x] Run `fallow init` or create `.fallowrc.json`.
 - [ ] Tune entrypoints and ignore patterns for site, apps, stories, tests, E2E harnesses, generated files, and published package exports.
 - [ ] Rerun `fallow dead-code --group-by package` after dependencies are installed.
 - [ ] Classify every initial finding as delete, move, suppress, refactor, or defer.
