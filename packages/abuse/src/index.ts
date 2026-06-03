@@ -79,6 +79,7 @@ export {
   unsignedPolicyBlockList,
   verifySignedPolicyBlockList
 } from './policy-blocks'
+export { createPublicWriteBudgetKey, evaluatePublicWriteBudget } from './public-write-budget'
 export {
   bucketAbusePeerScore,
   createRemoteMutationRejectionTelemetry,
@@ -200,3 +201,12 @@ export type {
   SignedPolicyBlockList,
   UnsignedPolicyBlockList
 } from './policy-blocks'
+export type {
+  PublicWriteBudgetCharge,
+  PublicWriteBudgetDecision,
+  PublicWriteBudgetInput,
+  PublicWriteBudgetLimit,
+  PublicWriteBudgetPolicy,
+  PublicWriteBudgetScope,
+  PublicWriteBudgetUsage
+} from './public-write-budget'
