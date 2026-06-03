@@ -1037,7 +1037,7 @@ Every hub should publish:
 - [x] Unauthorized remote writes are rejected before mutation and produce telemetry.
 - [x] Hub relay never fans out a sync update before required validation.
 - [x] V2 envelopes are rejected when doc ID, timestamp, author, or signature verification fails.
-- [ ] Peer scores recover only after quiet periods and do not grow unbounded.
+- [x] Peer scores recover only after quiet periods and do not grow unbounded.
 - [ ] Blocks expire when configured and remain auditable.
 
 ### Moderation And Reach Validation
