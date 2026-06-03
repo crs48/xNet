@@ -77,6 +77,7 @@ export type AiWorkspacePendingPlan = {
 
 export type AiWorkspaceConflictKind =
   | 'missing-file'
+  | 'stale-export'
   | 'invalid-json'
   | 'invalid-jsonl'
   | 'invalid-plan'
@@ -448,6 +449,12 @@ export class AiWorkspaceWatcher {
       })
 
       try {
+        const staleConflict = await this.createStaleExportConflict(options, entry, scannedAt)
+        if (staleConflict) {
+          conflicts.push(staleConflict)
+          continue
+        }
+
         const plan = await this.planChangedFile(entry, content, currentSha256, {
           actor: options.actor ?? 'ai-workspace-watcher'
         })
@@ -567,6 +574,26 @@ export class AiWorkspaceWatcher {
         content,
         contentHash: currentSha256
       })
+    })
+  }
+
+  private async createStaleExportConflict(
+    options: AiWorkspaceWatcherScanOptions,
+    entry: AiWorkspaceManifestEntry,
+    detectedAt: string
+  ): Promise<AiWorkspaceConflict | null> {
+    const node = await this.config.store.get(entry.id)
+    if (!node || node.deleted) return null
+
+    const liveRevision = `updatedAt:${node.updatedAt}`
+    if (liveRevision === entry.revision) return null
+
+    return await this.createConflict(options, {
+      kind: 'stale-export',
+      path: entry.path,
+      id: entry.id,
+      message: `Exported ${entry.kind} projection is based on ${entry.revision}, but the live node is ${liveRevision}. Re-export before applying edits.`,
+      detectedAt
     })
   }
 

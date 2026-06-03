@@ -434,6 +434,78 @@ describe('LocalAPIServer', () => {
         await authServer.stop()
       }
     })
+
+    it('supports scoped local tokens and token rotation for AI tools', async () => {
+      await server.stop()
+
+      const port = 30000 + Math.floor(Math.random() * 1000)
+      const authServer = createLocalAPI({
+        port,
+        tokens: [
+          {
+            token: 'read-token',
+            label: 'read only',
+            scopes: ['health.read', 'ai.write'],
+            aiScopes: ['page.read', 'page.propose']
+          }
+        ],
+        store: mockStore,
+        schemas: mockSchemas
+      })
+
+      await authServer.start()
+
+      try {
+        const denied = await fetch(
+          `http://127.0.0.1:${port}/api/v1/ai/tools/xnet_apply_page_markdown`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer read-token',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ confirmApply: true, plan: {} })
+          }
+        )
+        expect(denied.status).toBe(403)
+        expect(await denied.json()).toMatchObject({
+          error: expect.stringContaining('page.write')
+        })
+
+        const summary = authServer.rotateToken('rotated-token', {
+          label: 'writer',
+          scopes: ['health.read', 'ai.write'],
+          aiScopes: ['workspace.read', 'page.read', 'page.write'],
+          createdAt: '2026-06-02T12:00:00.000Z'
+        })
+        expect(summary).toEqual({
+          label: 'writer',
+          scopes: ['health.read', 'ai.write'],
+          aiScopes: ['workspace.read', 'page.read', 'page.write'],
+          createdAt: '2026-06-02T12:00:00.000Z'
+        })
+
+        const oldToken = await fetch(`http://127.0.0.1:${port}/health`, {
+          headers: { Authorization: 'Bearer read-token' }
+        })
+        expect(oldToken.status).toBe(401)
+
+        const auditLog = await fetch(
+          `http://127.0.0.1:${port}/api/v1/ai/tools/xnet_get_audit_log`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer rotated-token',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+          }
+        )
+        expect(auditLog.status).toBe(200)
+      } finally {
+        await authServer.stop()
+      }
+    })
   })
 
   describe('CORS', () => {

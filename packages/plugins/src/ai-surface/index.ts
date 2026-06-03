@@ -45,6 +45,7 @@ export type {
   AiPageMarkdownApplyAdapterInput,
   AiPageMarkdownApplyAdapterResult,
   AiPageMarkdownApplyResult,
+  AiPageMarkdownRollbackResult,
   AiResourceContent,
   AiSearchOptions,
   AiSearchResult,

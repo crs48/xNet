@@ -170,6 +170,10 @@ export type AiContextPackResource = {
   uri: string
   mimeType: string
   text: string
+  trust: {
+    level: 'workspace' | 'external-untrusted'
+    instructionBoundary: string
+  }
   citation: {
     kind: AiTargetKind
     id: string

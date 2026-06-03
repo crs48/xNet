@@ -25,7 +25,10 @@ export type {
   NodeData,
   SchemaData,
   NodeChangeEventData,
-  LocalAPIConfig
+  LocalAPIConfig,
+  LocalAPITokenConfig,
+  LocalAPITokenScope,
+  LocalAPITokenSummary
 } from './local-api'
 
 // Process Manager (Node.js/Electron main process only)

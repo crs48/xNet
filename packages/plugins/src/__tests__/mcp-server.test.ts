@@ -164,6 +164,8 @@ describe('MCPServer', () => {
       expect(toolNames).toContain('xnet_validate_page_markdown')
       expect(toolNames).toContain('xnet_plan_page_patch')
       expect(toolNames).toContain('xnet_apply_page_markdown')
+      expect(toolNames).toContain('xnet_get_audit_log')
+      expect(toolNames).toContain('xnet_rollback_page_markdown')
       expect(toolNames).toContain('xnet_database_describe')
       expect(toolNames).toContain('xnet_database_sample')
       expect(toolNames).toContain('xnet_database_explain_query')

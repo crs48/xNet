@@ -294,6 +294,7 @@ export type {
   AiPageMarkdownApplyAdapterInput,
   AiPageMarkdownApplyAdapterResult,
   AiPageMarkdownApplyResult,
+  AiPageMarkdownRollbackResult,
   AiResource,
   AiRiskLevel,
   AiScope,
@@ -376,6 +377,9 @@ export type {
   SchemaData,
   NodeChangeEventData,
   LocalAPIConfig,
+  LocalAPITokenConfig,
+  LocalAPITokenScope,
+  LocalAPITokenSummary,
   // Webhook types
   WebhookConfig,
   WebhookPayload,

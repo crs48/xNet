@@ -12,7 +12,10 @@ export type {
   NodeData,
   SchemaData,
   NodeChangeEventData,
-  LocalAPIConfig
+  LocalAPIConfig,
+  LocalAPITokenConfig,
+  LocalAPITokenScope,
+  LocalAPITokenSummary
 } from './local-api'
 export { LocalAPIServer, createLocalAPI } from './local-api'
 
@@ -72,6 +75,7 @@ export type {
   AiPageMarkdownApplyAdapterInput,
   AiPageMarkdownApplyAdapterResult,
   AiPageMarkdownApplyResult,
+  AiPageMarkdownRollbackResult,
   AiResource,
   AiRiskLevel,
   AiScope,

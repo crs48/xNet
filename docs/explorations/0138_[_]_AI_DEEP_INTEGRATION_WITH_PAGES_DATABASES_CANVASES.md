@@ -1375,56 +1375,56 @@ Workspace:
 
 ### Phase 8: Hardening and Evals
 
-- [ ] Add prompt-injection tests with malicious page content.
-- [ ] Add stale-export conflict tests.
-- [ ] Add bulk-delete prevention tests.
-- [ ] Add large database and large canvas performance tests.
-- [ ] Add end-to-end local agent workflow test with MCP or file projection.
-- [ ] Add audit log and rollback tests.
-- [ ] Add user-facing permission and token rotation flows.
+- [x] Add prompt-injection tests with malicious page content.
+- [x] Add stale-export conflict tests.
+- [x] Add bulk-delete prevention tests.
+- [x] Add large database and large canvas performance tests.
+- [x] Add end-to-end local agent workflow test with MCP or file projection.
+- [x] Add audit log and rollback tests.
+- [x] Add user-facing permission and token rotation flows.
 
 ## Validation Checklist
 
 ### Functional Validation
 
-- [ ] Codex can connect to xNet MCP and read workspace summary.
-- [ ] Claude Code can connect to xNet MCP through project `.mcp.json`.
-- [ ] A page can be exported as Markdown, edited by an external agent, parsed, reviewed, and applied.
+- [x] Codex can connect to xNet MCP and read workspace summary.
+- [x] Claude Code can connect to xNet MCP through project `.mcp.json`.
+- [x] A page can be exported as Markdown, edited by an external agent, parsed, reviewed, and applied.
 - [ ] A database schema/view change can be proposed and applied without corrupting rows.
 - [ ] A database row bulk update can be previewed and applied transactionally.
-- [ ] A canvas viewport can be read by an agent without exporting the whole canvas.
-- [ ] A canvas layout/change plan can be previewed and applied.
-- [ ] JSON Canvas export/import preserves xNet source metadata.
+- [x] A canvas viewport can be read by an agent without exporting the whole canvas.
+- [x] A canvas layout/change plan can be previewed and applied.
+- [x] JSON Canvas export/import preserves xNet source metadata.
 - [ ] Rejected changes leave the live workspace untouched.
-- [ ] Applied changes are visible in audit history.
+- [x] Applied changes are visible in audit history.
 
 ### Performance Validation
 
 - [ ] Workspace summary stays under the target latency budget.
 - [ ] Page Markdown export/import handles large docs within existing Markdown IO budgets.
 - [ ] Database queries use query descriptors and avoid in-memory full-list scans.
-- [ ] Large database tools paginate and sample correctly.
-- [ ] Canvas reads use viewport/tile/spatial scoping.
+- [x] Large database tools paginate and sample correctly.
+- [x] Canvas reads use viewport/tile/spatial scoping.
 - [ ] Full workspace export runs as a background incremental job.
 - [ ] MCP tool outputs stay below configured token/character limits.
 
 ### Safety Validation
 
-- [ ] Prompt injection in a page cannot silently escalate permissions.
+- [x] Prompt injection in a page cannot silently escalate permissions.
 - [ ] Externally fetched web content is marked untrusted in context packs.
-- [ ] AI cannot apply writes without the required write scope.
-- [ ] Bulk deletes require explicit deletion markers and approval.
-- [ ] Raw SQL/admin recovery tools are unavailable in normal sessions.
-- [ ] Tokens are local-only, scoped, and rotatable.
-- [ ] Stale exported files produce conflicts instead of overwriting live changes.
-- [ ] Audit logs include actor, scopes, plan, validation result, and applied change ids.
+- [x] AI cannot apply writes without the required write scope.
+- [x] Bulk deletes require explicit deletion markers and approval.
+- [x] Raw SQL/admin recovery tools are unavailable in normal sessions.
+- [x] Tokens are local-only, scoped, and rotatable.
+- [x] Stale exported files produce conflicts instead of overwriting live changes.
+- [x] Audit logs include actor, scopes, plan, validation result, and applied change ids.
 
 ### UX Validation
 
-- [ ] Users can create an AI workspace folder from a page/project/database/canvas.
-- [ ] Generated `AGENTS.md` explains file conventions clearly.
-- [ ] Pending file edits show as native diffs in xNet.
-- [ ] Users can approve, reject, or request revision.
+- [x] Users can create an AI workspace folder from a page/project/database/canvas.
+- [x] Generated `AGENTS.md` explains file conventions clearly.
+- [x] Pending file edits show as native diffs in xNet.
+- [x] Users can approve, reject, or request revision.
 - [ ] In-app AI can operate on the current selection without extra setup.
 - [ ] The UI clearly distinguishes read-only answers, proposed changes, and applied changes.
 

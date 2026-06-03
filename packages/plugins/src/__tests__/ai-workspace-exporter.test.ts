@@ -423,4 +423,45 @@ describe('AiWorkspaceExporter', () => {
       conflictPath: result.conflicts[0].conflictPath
     })
   })
+
+  it('turns stale exported edits into conflicts instead of pending plans', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      }
+    ])
+    const clock = () => new Date('2026-06-02T12:00:00.000Z')
+    const schemas = createMockSchemas()
+    const exporter = createAiWorkspaceExporter({ store, schemas, clock })
+    await exporter.exportWorkspace({
+      rootDir,
+      scope: { nodeIds: ['page_1'] }
+    })
+
+    store.setNode('page_1', { markdown: 'Live edit' })
+    const pagePath = join(rootDir, 'Pages/Product-Roadmap--page_1.md')
+    const page = await readFile(pagePath, 'utf8')
+    await writeFile(pagePath, page.replace('Roadmap body', 'External edit'), 'utf8')
+
+    const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
+    const result = await watcher.scanChangedFiles({ rootDir })
+
+    expect(result.pendingPlans).toEqual([])
+    expect(result.conflicts).toHaveLength(1)
+    expect(result.conflicts[0]).toMatchObject({
+      kind: 'stale-export',
+      path: 'Pages/Product-Roadmap--page_1.md',
+      id: 'page_1'
+    })
+    expect(result.conflicts[0].message).toContain('live node is updatedAt:11')
+    expect(result.review.entries[0]).toMatchObject({
+      kind: 'conflict',
+      conflictKind: 'stale-export'
+    })
+  })
 })
