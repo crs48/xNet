@@ -1066,7 +1066,7 @@ Every hub should publish:
 - [x] A public search hub can publish its crawl/index/review budgets.
 - [x] Usage events distinguish free, paid, sponsored, reciprocal, and abuse-blocked work.
 - [x] Abuse queues remain bounded under report spam and crawler spam.
-- [ ] Metrics allow operators to see whether automation is saving cost or creating appeal load.
+- [x] Metrics allow operators to see whether automation is saving cost or creating appeal load.
 
 ## 🚀 Next Actions
 
