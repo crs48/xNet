@@ -1003,7 +1003,7 @@ Every hub should publish:
 - [x] Extend target nodes or adjacent policy nodes with public interaction policy.
 - [x] Implement `useVisibleComments` and `useModeratedThread`.
 - [x] Add policy-filtered reaction and counter APIs.
-- [ ] Add message request and first-contact quarantine semantics.
+- [x] Add message request and first-contact quarantine semantics.
 - [ ] Make search indexing consume labels and quality signals.
 - [ ] Make crawl ingestion consume domain policy, duplicate signals, source reputation, and slop scores.
 - [ ] Add devtools panes for policy decisions, peer score, labels, and queue state.
