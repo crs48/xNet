@@ -7,6 +7,7 @@ import {
   signYjsUpdate,
   signYjsUpdateV2,
   verifyYjsEnvelopeV2,
+  type SignedYjsEnvelopeV2,
   type SyncReplicationConfig,
   type YjsRateLimiterOptions
 } from '@xnetjs/sync'
@@ -369,6 +370,39 @@ describe('Sync Relay direct admission', () => {
     return { pool, relay }
   }
 
+  const createStrictV2Verifier =
+    (maxAge = 5_000): YjsEnvelopeV2Verifier =>
+    async (candidate, context) => {
+      const result = await verifyYjsEnvelopeV2(candidate, {
+        expectedDocId: context.docId,
+        maxAge
+      })
+      return {
+        valid: result.valid,
+        errors: result.errors
+      }
+    }
+
+  const expectRejectedV2Envelope = async (
+    docId: string,
+    envelope: SignedYjsEnvelopeV2
+  ): Promise<void> => {
+    const { pool, relay } = createRelay(createStrictV2Verifier())
+    const accepted = await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientV2Rejected',
+        envelope: serializeYjsEnvelope(envelope)
+      },
+      () => {}
+    )
+
+    const stored = await pool.get(docId)
+    expect(accepted).toBe(false)
+    expect(stored.getText('content').toString()).toBe('')
+  }
+
   it('rejects V2 envelopes when no verifier is configured', async () => {
     const docId = 'test-relay-v2-no-verifier'
     const bundle = createKeyBundle({ includePQ: false })
@@ -464,20 +498,50 @@ describe('Sync Relay direct admission', () => {
     const bundle = createKeyBundle({ includePQ: false })
     const { clientId, update } = createUpdate('wrong doc v2')
     const envelope = signYjsUpdateV2(update, 'other-doc', clientId, bundle, { level: 0 })
-    const { pool, relay } = createRelay(async () => true)
 
-    await relay.handleSyncMessage(
-      `xnet-doc-${docId}`,
-      {
-        type: 'sync-update',
-        from: 'clientV2',
-        envelope: serializeYjsEnvelope(envelope)
-      },
-      () => {}
-    )
+    await expectRejectedV2Envelope(docId, envelope)
+  })
 
-    const stored = await pool.get(docId)
-    expect(stored.getText('content').toString()).toBe('')
+  it('rejects stale V2 envelopes when the verifier enforces max age', async () => {
+    const docId = 'test-relay-v2-stale'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('stale v2')
+    const now = Date.now()
+
+    const envelope = (() => {
+      vi.useFakeTimers()
+      try {
+        vi.setSystemTime(now - 10_000)
+        return signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+      } finally {
+        vi.useRealTimers()
+      }
+    })()
+
+    await expectRejectedV2Envelope(docId, envelope)
+  })
+
+  it('rejects V2 envelopes whose claimed author does not match the signer', async () => {
+    const docId = 'test-relay-v2-author'
+    const signer = createKeyBundle({ includePQ: false })
+    const claimedAuthor = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('wrong author v2')
+    const envelope = signYjsUpdateV2(update, docId, clientId, signer, { level: 0 })
+    envelope.meta.authorDID = claimedAuthor.identity.did
+
+    await expectRejectedV2Envelope(docId, envelope)
+  })
+
+  it('rejects V2 envelopes with corrupt signatures', async () => {
+    const docId = 'test-relay-v2-signature'
+    const bundle = createKeyBundle({ includePQ: false })
+    const { clientId, update } = createUpdate('bad signature v2')
+    const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
+    const signature = new Uint8Array(envelope.signature.ed25519 ?? [])
+    signature[0] ^= 0xff
+    envelope.signature.ed25519 = signature
+
+    await expectRejectedV2Envelope(docId, envelope)
   })
 
   it('accepts V2 envelopes only after verifier approval', async () => {
@@ -485,13 +549,7 @@ describe('Sync Relay direct admission', () => {
     const bundle = createKeyBundle({ includePQ: false })
     const { clientId, update } = createUpdate('verified v2')
     const envelope = signYjsUpdateV2(update, docId, clientId, bundle, { level: 0 })
-    const { pool, relay } = createRelay(async (candidate, context) => {
-      const result = await verifyYjsEnvelopeV2(candidate, { expectedDocId: context.docId })
-      return {
-        valid: result.valid,
-        errors: result.errors
-      }
-    })
+    const { pool, relay } = createRelay(createStrictV2Verifier())
 
     await relay.handleSyncMessage(
       `xnet-doc-${docId}`,
