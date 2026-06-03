@@ -22,12 +22,14 @@ export {
   emitAbuseLabel,
   emitAbusePeerScores,
   emitAbusePolicyDecision,
-  emitAbuseQueueState
+  emitAbuseQueueState,
+  emitAbuseUsageSummary
 } from './instrumentation/abuse'
 export type {
   AbuseLabelInput,
   AbusePeerScoresInput,
   AbusePolicyDecisionInput,
-  AbuseQueueStateInput
+  AbuseQueueStateInput,
+  AbuseUsageSummaryInput
 } from './instrumentation/abuse'
 export { QueryTracker, captureCallerInfo } from './instrumentation/query'
