@@ -1020,7 +1020,7 @@ Every hub should publish:
 
 ### Phase 6 - Economic And Operator Controls
 
-- [ ] Add public write budgets by DID, hub, workspace, and surface.
+- [x] Add public write budgets by DID, hub, workspace, and surface.
 - [ ] Add crawl and federation query cost budgets.
 - [ ] Add usage events for blocked, throttled, reviewed, billable, sponsored, and reciprocal work.
 - [ ] Add signed hub policy/service offer documents with moderation settings.
