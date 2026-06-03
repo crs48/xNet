@@ -1055,7 +1055,7 @@ Every hub should publish:
 - [x] AI-generated moderation labels include model/provider provenance.
 - [x] Local deterministic gates still work when AI providers are unavailable.
 - [x] Cloud AI review is not called for every low-risk event.
-- [ ] Prompt-injection text in crawled pages cannot issue graph writes.
+- [x] Prompt-injection text in crawled pages cannot issue graph writes.
 - [ ] Claim/citation mismatch scoring is treated as review evidence, not absolute truth.
 - [ ] False positives can be overridden by user, workspace, or reviewer policy.
 
