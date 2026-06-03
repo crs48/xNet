@@ -110,15 +110,23 @@ export async function createDataBridge(options: CreateBridgeOptions): Promise<Da
   }
 
   // Fall back to MainThreadBridge
-  return new MainThreadBridge(nodeStore)
+  const bridge = new MainThreadBridge(nodeStore, {
+    remoteNodeQueryClient: config.remoteNodeQueryClient,
+    remoteNodeQueryRouting: config.remoteNodeQueryRouting
+  })
+  await bridge.initialize(config)
+  return bridge
 }
 
 /**
  * Create a MainThreadBridge directly.
  * Use this when you don't need off-main-thread support.
  */
-export function createMainThreadBridgeSync(nodeStore: NodeStore): MainThreadBridge {
-  return new MainThreadBridge(nodeStore)
+export function createMainThreadBridgeSync(
+  nodeStore: NodeStore,
+  options?: ConstructorParameters<typeof MainThreadBridge>[1]
+): MainThreadBridge {
+  return new MainThreadBridge(nodeStore, options)
 }
 
 /**

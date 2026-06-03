@@ -156,6 +156,7 @@ interface CompiledNodeQuery {
   params: SQLValue[]
   postFilterDescriptor: NodeQueryDescriptor
   postFilterReason: string
+  sqlPagination: boolean
   adaptiveIndexHints: AdaptiveIndexHint[]
   spatialIndexKey?: string
   fullTextSearchQuery?: string
@@ -231,6 +232,7 @@ interface MaterializedQueryReadPlan {
   invalidatedAt: number | null
   rowCount: number
   cacheHit: boolean
+  refreshReason?: MaterializedQueryRefreshReason
 }
 
 interface CompiledQueryDiagnostics {
@@ -242,6 +244,13 @@ interface CompiledQueryDiagnostics {
   storageCapabilities?: NodeQueryStorageCapabilitiesMetadata
   diagnosticsError?: string
 }
+
+type MaterializedQueryRefreshReason =
+  | 'missing'
+  | 'descriptor-changed'
+  | 'invalidated'
+  | 'expired'
+  | 'force-refresh'
 
 const DEFAULT_ADAPTIVE_INDEXING: AdaptiveIndexingConfig = {
   enabled: false,
@@ -258,6 +267,35 @@ const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
   enabled: true,
   maxNodes: 1000,
   logFailures: true
+}
+
+function getMaterializedQueryRefreshReason(input: {
+  cached: MaterializedQueryRow | null
+  descriptorHash: string
+  cacheExpired: boolean
+  forceRefresh: boolean
+}): MaterializedQueryRefreshReason | undefined {
+  if (!input.cached) {
+    return 'missing'
+  }
+
+  if (input.forceRefresh) {
+    return 'force-refresh'
+  }
+
+  if (input.cached.descriptor_hash !== input.descriptorHash) {
+    return 'descriptor-changed'
+  }
+
+  if (input.cached.invalidated_at !== null) {
+    return 'invalidated'
+  }
+
+  if (input.cacheExpired) {
+    return 'expired'
+  }
+
+  return undefined
 }
 
 // ─── SQLiteNodeStorageAdapter ───────────────────────────────────────────────
@@ -669,6 +707,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       const nodes = applyNodeQueryDescriptor(candidates, descriptor)
       const result: NodeQueryResult = {
         nodes,
+        totalCount: applyNodeQueryDescriptor(candidates, withoutNodeQueryPagination(descriptor))
+          .length,
         plan: {
           strategy: 'list-fallback',
           candidateNodeCount: candidates.length,
@@ -697,12 +737,19 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const ids = idRows.map((row) => row.id)
     const candidates = await this.hydrateNodesByIds(ids)
     const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
+    const totalCount = compiled.sqlPagination
+      ? await this.countCompiledNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
+      : applyNodeQueryDescriptor(
+          candidates,
+          withoutNodeQueryPagination(compiled.postFilterDescriptor)
+        ).length
     const candidateAccelerators = [
       ...(compiled.fullTextSearchQuery ? ['fts'] : []),
       ...(compiled.spatialIndexKey ? ['rtree'] : [])
     ]
     const result: NodeQueryResult = {
       nodes,
+      totalCount,
       plan: {
         strategy: 'storage-query',
         candidateNodeCount: ids.length,
@@ -1016,6 +1063,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       materializedView.maxAgeMs !== undefined &&
       cached !== null &&
       Date.now() - cached.generated_at > materializedView.maxAgeMs
+    const refreshReason = getMaterializedQueryRefreshReason({
+      cached,
+      descriptorHash,
+      cacheExpired,
+      forceRefresh: materializedView.forceRefresh ?? false
+    })
     const canUseCache =
       cached !== null &&
       cached.descriptor_hash === descriptorHash &&
@@ -1035,7 +1088,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           viewId: materializedView.viewId,
           descriptor: baseDescriptor,
           descriptorHash,
-          descriptorJson
+          descriptorJson,
+          refreshReason: refreshReason ?? 'missing',
+          invalidatedAt: cached?.invalidated_at ?? null
         })
 
     const result = await this.readMaterializedViewPage(descriptor, readPlan, start)
@@ -1065,6 +1120,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     descriptor: NodeQueryDescriptor
     descriptorHash: string
     descriptorJson: string
+    refreshReason: MaterializedQueryRefreshReason
+    invalidatedAt: number | null
   }): Promise<MaterializedQueryReadPlan> {
     const refreshed = await this.queryNodes(input.descriptor)
     const generatedAt = Date.now()
@@ -1119,9 +1176,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       viewId: input.viewId,
       descriptorHash: input.descriptorHash,
       generatedAt,
-      invalidatedAt: null,
+      invalidatedAt: input.invalidatedAt,
       rowCount: refreshed.nodes.length,
-      cacheHit: false
+      cacheHit: false,
+      refreshReason: input.refreshReason
     }
   }
 
@@ -1137,14 +1195,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       ORDER BY ordinal ASC
       LIMIT ? OFFSET ?
     `
-    const limit = descriptor.limit ?? -1
-    const offset = descriptor.offset ?? 0
+    const usesCursor = descriptor.after !== undefined
+    const limit = usesCursor ? -1 : (descriptor.limit ?? -1)
+    const offset = usesCursor ? 0 : (descriptor.offset ?? 0)
     const idRows = await this.db.query<{ node_id: string }>(sql, [readPlan.viewId, limit, offset])
     const ids = idRows.map((row) => row.node_id)
-    const nodes = await this.hydrateNodesByIds(ids)
+    const hydrated = await this.hydrateNodesByIds(ids)
+    const nodes = usesCursor ? applyNodeQueryDescriptor(hydrated, descriptor) : hydrated
 
     return {
       nodes,
+      totalCount: readPlan.rowCount,
       plan: {
         strategy: 'storage-query',
         candidateNodeCount: readPlan.rowCount,
@@ -1159,6 +1220,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         descriptorHash: readPlan.descriptorHash,
         materializedViewId: readPlan.viewId,
         materializedCacheHit: readPlan.cacheHit,
+        ...(readPlan.refreshReason ? { materializedRefreshReason: readPlan.refreshReason } : {}),
         materializedGeneratedAt: readPlan.generatedAt,
         ...(readPlan.invalidatedAt !== null
           ? { materializedInvalidatedAt: readPlan.invalidatedAt }
@@ -2326,6 +2388,26 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     }
   }
 
+  private async countCompiledNodeQuery(
+    descriptor: NodeQueryDescriptor,
+    spatialPlan: SpatialQueryPlan | null,
+    fullTextSearchPlan: FullTextSearchQueryPlan | null
+  ): Promise<number> {
+    const compiled = this.compileNodeQuery(
+      withoutNodeQueryPagination(descriptor),
+      spatialPlan,
+      fullTextSearchPlan
+    )
+    if (!compiled) return 0
+
+    const row = await this.db.queryOne<{ count: number }>(
+      `SELECT COUNT(*) as count FROM (${compiled.sql}) counted_nodes`,
+      compiled.params
+    )
+
+    return Number(row?.count ?? 0)
+  }
+
   private compileNodeQuery(
     descriptor: NodeQueryDescriptor,
     spatialPlan: SpatialQueryPlan | null = null,
@@ -2443,6 +2525,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     const orderBy = this.buildSqlOrderBy(descriptor.orderBy)
     const useSqlPagination =
       options.canUseSqlPagination &&
+      descriptor.after === undefined &&
       (descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0)
 
     let sql = `
@@ -2468,6 +2551,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
           options.fullTextSearchPlan !== null && options.fullTextSearchPlan !== undefined,
         hasSpatialPlan: options.spatialPlan !== null && options.spatialPlan !== undefined
       }),
+      sqlPagination: useSqlPagination,
       adaptiveIndexHints: options.whereEntries.map((entry) => ({
         propertyKey: entry.key,
         scalar: entry.scalar
@@ -2530,7 +2614,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       (entry): entry is [string, SortDirection] => entry[1] === 'asc' || entry[1] === 'desc'
     )
     if (entries.length === 0) {
-      return 'n.updated_at DESC'
+      return 'n.updated_at DESC, n.id ASC'
     }
 
     const clauses = entries
@@ -2540,7 +2624,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
         return `${column} ${direction.toUpperCase()}`
       })
 
-    return clauses.length > 0 ? clauses.join(', ') : 'n.updated_at DESC'
+    return clauses.length > 0 ? [...clauses, 'n.id ASC'].join(', ') : 'n.updated_at DESC, n.id ASC'
   }
 
   private hasOnlySystemOrdering(orderBy?: Record<string, SortDirection>): boolean {

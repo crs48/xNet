@@ -15,6 +15,7 @@ export { CanvasSchema, type Canvas } from './canvas'
 export { CommentSchema, type Comment } from './comment'
 export { ReactionSchema, type Reaction } from './reaction'
 export { GrantSchema, type Grant } from './grant'
+export { SavedViewSchema, type SavedView } from './saved-view'
 export {
   AbuseReportSchema,
   AppealSchema,
@@ -111,6 +112,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
+  'xnet://xnet.fyi/SavedView@1.0.0': () => import('./saved-view').then((m) => m.SavedViewSchema),
   'xnet://xnet.fyi/AbuseReport@1.0.0': () =>
     import('./moderation').then((m) => m.AbuseReportSchema),
   'xnet://xnet.fyi/ModerationLabel@1.0.0': () =>
@@ -144,6 +146,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema),
+  'xnet://xnet.fyi/SavedView': () => import('./saved-view').then((m) => m.SavedViewSchema),
   'xnet://xnet.fyi/AbuseReport': () => import('./moderation').then((m) => m.AbuseReportSchema),
   'xnet://xnet.fyi/ModerationLabel': () =>
     import('./moderation').then((m) => m.ModerationLabelSchema),

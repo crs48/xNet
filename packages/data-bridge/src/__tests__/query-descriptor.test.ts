@@ -8,6 +8,9 @@ import {
   applyNodeChangeToQueryResult,
   applyQueryDescriptor,
   createQueryDescriptor,
+  decodeQueryCursor,
+  encodeQueryCursor,
+  queryDescriptorToOptions,
   serializeQueryDescriptor
 } from '../query-descriptor'
 
@@ -98,6 +101,118 @@ describe('query-descriptor', () => {
       expect(left).toEqual(right)
       expect(serializeQueryDescriptor(left)).toBe(serializeQueryDescriptor(right))
     })
+
+    it('should lower page.first to the existing limit descriptor', () => {
+      const paged = createQueryDescriptor(TEST_SCHEMA_ID, {
+        page: { first: 25 }
+      })
+      const limited = createQueryDescriptor(TEST_SCHEMA_ID, {
+        limit: 25
+      })
+
+      expect(paged).toEqual(limited)
+      expect(queryDescriptorToOptions(paged)).toEqual({ limit: 25 })
+      expect(serializeQueryDescriptor(paged)).toBe(serializeQueryDescriptor(limited))
+    })
+
+    it('should preserve explicit limit and offset when page is also provided', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        page: { first: 25 },
+        limit: 10,
+        offset: 20
+      })
+
+      expect(descriptor.limit).toBe(10)
+      expect(descriptor.offset).toBe(20)
+      expect(queryDescriptorToOptions(descriptor)).toEqual({ limit: 10, offset: 20 })
+    })
+
+    it('should preserve cursor page options in the canonical descriptor', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        page: { first: 25, after: 'cursor-1', count: 'estimate' }
+      })
+
+      expect(descriptor.limit).toBe(25)
+      expect(descriptor.after).toBe('cursor-1')
+      expect(descriptor.count).toBe('estimate')
+      expect(queryDescriptorToOptions(descriptor)).toEqual({
+        limit: 25,
+        page: { first: 25, after: 'cursor-1', count: 'estimate' }
+      })
+    })
+
+    it('should preserve remote execution hints in the canonical descriptor', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        where: { status: 'open' },
+        mode: 'local-then-remote',
+        source: 'hub'
+      })
+
+      expect(descriptor.mode).toBe('local-then-remote')
+      expect(descriptor.source).toBe('hub')
+      expect(queryDescriptorToOptions(descriptor)).toMatchObject({
+        where: { status: 'open' },
+        mode: 'local-then-remote',
+        source: 'hub'
+      })
+      expect(serializeQueryDescriptor(descriptor)).toContain('"mode":"local-then-remote"')
+      expect(serializeQueryDescriptor(descriptor)).toContain('"source":"hub"')
+    })
+  })
+
+  describe('query cursors', () => {
+    it('should encode versioned opaque cursors from ordered descriptors', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { updatedAt: 'desc' }
+      })
+      const node = {
+        ...createMockNode('task-a', { title: 'Task A' }),
+        updatedAt: 10
+      }
+
+      const cursor = encodeQueryCursor(descriptor, node)
+      const decoded = decodeQueryCursor(cursor)
+
+      expect(cursor).toMatch(/^xnet-query-cursor:/)
+      expect(decoded).toEqual({
+        version: 1,
+        schemaId: TEST_SCHEMA_ID,
+        order: [{ field: 'updatedAt', direction: 'desc', value: 10 }],
+        nodeId: 'task-a'
+      })
+      expect(decodeQueryCursor('not-a-cursor')).toBeNull()
+    })
+
+    it('should use node ID as the stable tie-breaker for duplicate sort values', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { updatedAt: 'desc' },
+        page: { first: 10 }
+      })
+      const first = {
+        ...createMockNode('task-a', { title: 'Task A' }),
+        updatedAt: 20
+      }
+      const second = {
+        ...createMockNode('task-b', { title: 'Task B' }),
+        updatedAt: 20
+      }
+      const newer = {
+        ...createMockNode('task-c', { title: 'Task C' }),
+        updatedAt: 30
+      }
+      const cursor = encodeQueryCursor(descriptor, first)
+      const nextPageDescriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { updatedAt: 'desc' },
+        page: { first: 10, after: cursor }
+      })
+
+      expect(
+        applyQueryDescriptor([second, newer, first], descriptor).map((node) => node.id)
+      ).toEqual(['task-c', 'task-a', 'task-b'])
+      expect(
+        applyQueryDescriptor([second, newer, first], nextPageDescriptor).map((node) => node.id)
+      ).toEqual(['task-b'])
+    })
   })
 
   describe('applyNodeChangeToQueryResult', () => {
@@ -154,6 +269,41 @@ describe('query-descriptor', () => {
         currentData: [existing],
         nodeId: inserted.id,
         nextNode: inserted
+      })
+
+      expect(delta).toEqual({ kind: 'reload' })
+    })
+
+    it('should request a bounded reload when an insert can shift the visible window', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { title: 'asc' },
+        limit: 1
+      })
+      const visible = createMockNode('task-visible', { title: 'B visible' })
+      const insertedBefore = createMockNode('task-inserted', { title: 'A inserted' })
+
+      const delta = applyNodeChangeToQueryResult({
+        descriptor,
+        currentData: [visible],
+        nodeId: insertedBefore.id,
+        nextNode: insertedBefore
+      })
+
+      expect(delta).toEqual({ kind: 'reload' })
+    })
+
+    it('should request a bounded reload when a visible row is deleted', () => {
+      const descriptor = createQueryDescriptor(TEST_SCHEMA_ID, {
+        orderBy: { title: 'asc' },
+        limit: 1
+      })
+      const visible = createMockNode('task-visible', { title: 'A visible' })
+
+      const delta = applyNodeChangeToQueryResult({
+        descriptor,
+        currentData: [visible],
+        nodeId: visible.id,
+        nextNode: null
       })
 
       expect(delta).toEqual({ kind: 'reload' })

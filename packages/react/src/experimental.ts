@@ -9,6 +9,7 @@ export {
   type UsePageTaskSyncOptions,
   type UsePageTaskSyncResult
 } from './hooks/usePageTaskSync'
+export { useFind, type UseFindOptions, type UseFindResult } from './hooks/useFind'
 export {
   useTasks,
   type UseTasksOptions,

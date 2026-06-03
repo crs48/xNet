@@ -2,7 +2,7 @@
  * Tests for useQuery hook
  */
 import type { DID } from '@xnetjs/core'
-import type { DataBridge, QueryDescriptor } from '@xnetjs/data-bridge'
+import type { DataBridge, QueryDescriptor, QueryMetadata } from '@xnetjs/data-bridge'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import {
   defineSchema,
@@ -19,8 +19,9 @@ import { generateIdentity, type Identity } from '@xnetjs/identity'
 import React, { type ReactNode, useMemo } from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DataBridgeContext, XNetProvider } from '../context'
+import { useInfiniteQuery } from './useInfiniteQuery'
 import { useMutate } from './useMutate'
-import { useQuery } from './useQuery'
+import { useQuery, type QueryFilter } from './useQuery'
 
 // Test schema
 const TaskSchema = defineSchema({
@@ -104,8 +105,10 @@ describe('useQuery', () => {
 
   function createMockBridge() {
     const snapshots = new Map<string, NodeState[] | null>()
+    const metadata = new Map<string, QueryMetadata | null>()
     const listeners = new Map<string, Set<() => void>>()
     const pendingReloads = new Map<string, NodeState[]>()
+    let queryCount = 0
 
     const notify = (queryId: string) => {
       for (const listener of listeners.get(queryId) ?? []) {
@@ -115,7 +118,7 @@ describe('useQuery', () => {
 
     const getQueryId = <P extends Record<string, PropertyBuilder>>(
       schema: DefinedSchema<P>,
-      filter?: string | Record<string, unknown>
+      filter?: string | QueryFilter<P> | Record<string, unknown>
     ) => {
       const options =
         typeof filter === 'string'
@@ -138,6 +141,7 @@ describe('useQuery', () => {
 
     const bridge: DataBridge = {
       query(schema, options) {
+        queryCount += 1
         const descriptor = createQueryDescriptor(schema._schemaId, options)
         const queryId = serializeQueryDescriptor(descriptor)
 
@@ -147,6 +151,7 @@ describe('useQuery', () => {
 
         return {
           getSnapshot: () => snapshots.get(queryId) ?? null,
+          getMetadata: () => metadata.get(queryId) ?? null,
           subscribe: (listener) => {
             const queryListeners = listeners.get(queryId) ?? new Set()
             queryListeners.add(listener)
@@ -184,19 +189,27 @@ describe('useQuery', () => {
     return {
       bridge,
       reloadQuery,
+      getQueryCount: () => queryCount,
       setSnapshot<P extends Record<string, PropertyBuilder>>(
         schema: DefinedSchema<P>,
-        filter: string | Record<string, unknown> | undefined,
+        filter: string | QueryFilter<P> | Record<string, unknown> | undefined,
         data: NodeState[] | null
       ) {
         snapshots.set(getQueryId(schema, filter), data)
       },
       setReloadResult<P extends Record<string, PropertyBuilder>>(
         schema: DefinedSchema<P>,
-        filter: string | Record<string, unknown> | undefined,
+        filter: string | QueryFilter<P> | Record<string, unknown> | undefined,
         data: NodeState[]
       ) {
         pendingReloads.set(getQueryId(schema, filter), data)
+      },
+      setMetadata<P extends Record<string, PropertyBuilder>>(
+        schema: DefinedSchema<P>,
+        filter: string | QueryFilter<P> | Record<string, unknown> | undefined,
+        value: QueryMetadata | null
+      ) {
+        metadata.set(getQueryId(schema, filter), value)
       }
     }
   }
@@ -465,6 +478,347 @@ describe('useQuery', () => {
         })
       )
       expect(result.current.data[0]?.title).toBe('Done Task')
+    })
+
+    it('should forward search and materialized view options through the canonical descriptor', async () => {
+      const mock = createMockBridge()
+      mock.setSnapshot(TaskSchema, { search: 'proj road', materializedView: 'task-view-open' }, [])
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(
+        () =>
+          useQuery(TaskSchema, {
+            search: 'proj road',
+            materializedView: 'task-view-open'
+          }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      act(() => {
+        result.current.reload()
+      })
+
+      expect(mock.reloadQuery).toHaveBeenCalledWith(
+        createQueryDescriptor(TaskSchema._schemaId, {
+          search: 'proj road',
+          materializedView: 'task-view-open'
+        })
+      )
+    })
+
+    it('should expose bridge-provided pagination, materialized, and plan metadata', async () => {
+      const mock = createMockBridge()
+      const doneNode = createTaskNode('done-1', 'Done Task', 'done')
+      const filter = {
+        where: { status: 'done' as const },
+        limit: 1,
+        materializedView: 'task-view-done'
+      }
+
+      mock.setSnapshot(TaskSchema, filter, [doneNode])
+      mock.setMetadata(TaskSchema, filter, {
+        source: 'local',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 3,
+          countMode: 'exact',
+          hasMore: true,
+          hasNextPage: true,
+          hasPreviousPage: false,
+          loadedCount: 1
+        },
+        plan: {
+          strategy: 'storage-query',
+          candidateNodeCount: 1,
+          hydratedNodeCount: 1,
+          returnedNodeCount: 1,
+          durationMs: 2,
+          materializedViewId: 'task-view-done',
+          materializedCacheHit: true,
+          materializedRefreshReason: 'invalidated'
+        },
+        materialized: {
+          viewId: 'task-view-done',
+          cacheHit: true,
+          generatedAt: Date.now(),
+          rowCount: 3
+        }
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, filter), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.status).toBe('success')
+      expect(result.current.totalCount).toBe(3)
+      expect(result.current.hasMore).toBe(true)
+      expect(result.current.pageInfo.loadedCount).toBe(1)
+      expect(result.current.materialized?.viewId).toBe('task-view-done')
+      expect(result.current.materialized?.cacheHit).toBe(true)
+      expect(result.current.plan?.strategy).toBe('storage-query')
+      expect(result.current.plan?.materializedRefreshReason).toBe('invalidated')
+      expect(result.current.source).toBe('local')
+    })
+
+    it('should expose remote completeness, staleness, and verification metadata', async () => {
+      const mock = createMockBridge()
+      const remoteNode = createTaskNode('remote-1', 'Remote Task', 'todo')
+      const filter: QueryFilter<typeof TaskSchema._properties> = {
+        mode: 'local-then-remote',
+        source: 'hub',
+        page: { first: 1 }
+      }
+
+      mock.setSnapshot(TaskSchema, filter, [remoteNode])
+      mock.setMetadata(TaskSchema, filter, {
+        source: 'hybrid',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: null,
+          countMode: 'estimate',
+          hasMore: true,
+          hasNextPage: true,
+          hasPreviousPage: false,
+          loadedCount: 1
+        },
+        completeness: { level: 'partial', reason: 'auth-filtered' },
+        staleness: { level: 'stale', asOf: 123, maxAgeMs: 1000 },
+        verification: { status: 'mixed', verifiedNodeIds: ['remote-1'] }
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, filter), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.source).toBe('hybrid')
+      expect(result.current.completeness).toEqual({
+        level: 'partial',
+        reason: 'auth-filtered'
+      })
+      expect(result.current.staleness).toEqual({
+        level: 'stale',
+        asOf: 123,
+        maxAgeMs: 1000
+      })
+      expect(result.current.verification).toEqual({
+        status: 'mixed',
+        verifiedNodeIds: ['remote-1']
+      })
+    })
+
+    it('should expose stream metadata for stream queries', async () => {
+      const mock = createMockBridge()
+      const streamNode = createTaskNode('stream-1', 'Stream Task', 'todo')
+      const filter: QueryFilter<typeof TaskSchema._properties> = {
+        mode: 'stream',
+        source: 'hub'
+      }
+
+      mock.setSnapshot(TaskSchema, filter, [streamNode])
+      mock.setMetadata(TaskSchema, filter, {
+        source: 'hub',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 1,
+          countMode: 'exact',
+          hasMore: false,
+          hasNextPage: false,
+          hasPreviousPage: false,
+          loadedCount: 1
+        },
+        stream: {
+          status: 'ready',
+          lastEvent: 'snapshot',
+          lastEventAt: 123,
+          progress: { phase: 'live' }
+        }
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, filter), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.stream).toEqual({
+        status: 'ready',
+        lastEvent: 'snapshot',
+        lastEventAt: 123,
+        progress: { phase: 'live' }
+      })
+    })
+
+    it('should forward page.first and derive fallback pageInfo from it', async () => {
+      const mock = createMockBridge()
+      const firstNode = createTaskNode('done-1', 'Done Task 1', 'done')
+      const secondNode = createTaskNode('done-2', 'Done Task 2', 'done')
+      const filter: QueryFilter<typeof TaskSchema._properties> = {
+        page: { first: 2 },
+        offset: 2,
+        where: { status: 'done' }
+      }
+
+      mock.setSnapshot(TaskSchema, filter, [firstNode, secondNode])
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, filter), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(result.current.data).toHaveLength(2)
+      expect(result.current.totalCount).toBeNull()
+      expect(result.current.hasMore).toBe(true)
+      expect(result.current.pageInfo.loadedCount).toBe(2)
+      expect(result.current.pageInfo.hasPreviousPage).toBe(true)
+
+      act(() => {
+        result.current.reload()
+      })
+
+      expect(mock.reloadQuery).toHaveBeenCalledWith(
+        createQueryDescriptor(TaskSchema._schemaId, {
+          page: { first: 2 },
+          offset: 2,
+          where: { status: 'done' }
+        })
+      )
+    })
+
+    it('should keep the subscription stable for equivalent option objects', async () => {
+      const mock = createMockBridge()
+      const doneNode = createTaskNode('done-1', 'Done Task', 'done')
+      const firstFilter: QueryFilter<typeof TaskSchema._properties> = {
+        where: { status: 'done', title: 'Done Task' },
+        orderBy: { title: 'asc', createdAt: 'desc' },
+        limit: 20
+      }
+      const equivalentFilter: QueryFilter<typeof TaskSchema._properties> = {
+        limit: 20,
+        orderBy: { createdAt: 'desc', title: 'asc' },
+        where: { title: 'Done Task', status: 'done' }
+      }
+
+      mock.setSnapshot(TaskSchema, firstFilter, [doneNode])
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result, rerender } = renderHook(({ filter }) => useQuery(TaskSchema, filter), {
+        initialProps: { filter: firstFilter },
+        wrapper
+      })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      expect(mock.getQueryCount()).toBe(1)
+
+      rerender({ filter: equivalentFilter })
+
+      await waitFor(() => {
+        expect(result.current.data[0]?.title).toBe('Done Task')
+      })
+
+      expect(mock.getQueryCount()).toBe(1)
+    })
+
+    it('should fetch and flatten cursor pages with useInfiniteQuery', async () => {
+      const mock = createMockBridge()
+      const firstNode = createTaskNode('task-1', 'First Task', 'todo')
+      const secondNode = createTaskNode('task-2', 'Second Task', 'todo')
+      const firstFilter: QueryFilter<typeof TaskSchema._properties> = {
+        orderBy: { updatedAt: 'desc' },
+        page: { first: 1 }
+      }
+      const secondFilter: QueryFilter<typeof TaskSchema._properties> = {
+        orderBy: { updatedAt: 'desc' },
+        page: { first: 1, after: 'cursor-1' }
+      }
+
+      mock.setSnapshot(TaskSchema, firstFilter, [firstNode])
+      mock.setMetadata(TaskSchema, firstFilter, {
+        source: 'local',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 2,
+          countMode: 'exact',
+          hasMore: true,
+          hasNextPage: true,
+          hasPreviousPage: false,
+          endCursor: 'cursor-1',
+          loadedCount: 1
+        }
+      })
+      mock.setSnapshot(TaskSchema, secondFilter, [secondNode])
+      mock.setMetadata(TaskSchema, secondFilter, {
+        source: 'local',
+        updatedAt: Date.now(),
+        pageInfo: {
+          totalCount: 2,
+          countMode: 'exact',
+          hasMore: false,
+          hasNextPage: false,
+          hasPreviousPage: true,
+          startCursor: 'cursor-1',
+          endCursor: 'cursor-2',
+          loadedCount: 1
+        }
+      })
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useInfiniteQuery(TaskSchema, { pageSize: 1 }), {
+        wrapper
+      })
+
+      await waitFor(() => {
+        expect(result.current.data.map((task) => task.id)).toEqual(['task-1'])
+      })
+
+      await act(async () => {
+        await result.current.fetchNextPage()
+      })
+
+      await waitFor(() => {
+        expect(result.current.data.map((task) => task.id)).toEqual(['task-1', 'task-2'])
+      })
+
+      expect(result.current.pages).toHaveLength(2)
+      expect(result.current.pageInfo.loadedCount).toBe(2)
+      expect(result.current.hasMore).toBe(false)
+      expect(result.current.isFetchingNextPage).toBe(false)
     })
   })
 })

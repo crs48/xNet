@@ -112,6 +112,7 @@ export { CanvasSchema, type Canvas } from './schemas'
 export { CommentSchema, type Comment } from './schemas'
 export { ReactionSchema, type Reaction } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
+export { SavedViewSchema, type SavedView } from './schemas'
 export {
   AbuseReportSchema,
   AppealSchema,

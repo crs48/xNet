@@ -2,7 +2,15 @@
  * Hook for the Query Debugger panel
  */
 
-import type { DevToolsEvent, QuerySubscribeEvent, QueryResultEvent } from '../../core/types'
+import type {
+  DevToolsEvent,
+  QueryMaterializedInfo,
+  QueryPlanInfo,
+  QuerySubscribeEvent,
+  QueryResultEvent,
+  QueryStreamInfo,
+  QueryStreamTimelineEvent
+} from '../../core/types'
 import { useState, useEffect, useCallback } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 
@@ -14,6 +22,11 @@ export interface QueryStats {
   filter?: Record<string, unknown>
   descriptorKey?: string
   callerInfo?: string
+  source?: string
+  plan?: QueryPlanInfo | null
+  materialized?: QueryMaterializedInfo | null
+  stream?: QueryStreamInfo | null
+  streamTimeline: QueryStreamInfo[]
 
   registeredAt: number
   lastUpdateAt: number | null
@@ -32,7 +45,8 @@ const QUERY_EVENT_TYPES = new Set([
   'query:subscribe',
   'query:unsubscribe',
   'query:result',
-  'query:error'
+  'query:error',
+  'query:stream-event'
 ])
 
 export function useQueryDebugger() {
@@ -104,6 +118,11 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
         filter: e.filter,
         descriptorKey: e.descriptorKey,
         callerInfo: e.callerInfo,
+        source: undefined,
+        plan: null,
+        materialized: null,
+        stream: null,
+        streamTimeline: [],
         registeredAt: e.wallTime,
         lastUpdateAt: null,
         active: true,
@@ -135,7 +154,26 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
           lastUpdateAt: e.wallTime,
           totalRenderTime,
           avgRenderTime: totalRenderTime / updateCount,
-          peakRenderTime: Math.max(existing.peakRenderTime, e.duration)
+          peakRenderTime: Math.max(existing.peakRenderTime, e.duration),
+          source: e.source ?? existing.source,
+          plan: 'plan' in e ? (e.plan ?? null) : existing.plan,
+          materialized: 'materialized' in e ? (e.materialized ?? null) : existing.materialized,
+          stream: 'stream' in e ? (e.stream ?? existing.stream) : existing.stream
+        })
+      }
+      break
+    }
+    case 'query:stream-event': {
+      const e = event as QueryStreamTimelineEvent
+      const existing = map.get(e.queryId)
+      if (existing) {
+        map.set(existing.id, {
+          ...existing,
+          lastUpdateAt: e.wallTime,
+          resultCount: e.resultCount,
+          source: e.source ?? existing.source,
+          stream: e.stream,
+          streamTimeline: [...existing.streamTimeline.slice(-49), e.stream]
         })
       }
       break
