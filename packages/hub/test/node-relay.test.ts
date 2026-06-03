@@ -186,7 +186,15 @@ describe('Node Sync Relay', () => {
       })
     )
 
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    const error = (await waitForMessage(ws)) as {
+      type: string
+      code?: string
+    }
+
+    expect(error).toMatchObject({
+      type: 'node-error',
+      code: 'INVALID_SIGNATURE'
+    })
 
     ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
 
