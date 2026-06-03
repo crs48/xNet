@@ -120,6 +120,7 @@ export {
   NoteRatingSchema,
   PolicyListSchema,
   PolicySubscriptionSchema,
+  PublicInteractionPolicySchema,
   QualitySignalSchema,
   ReviewTaskSchema,
   type AbuseReport,
@@ -130,6 +131,7 @@ export {
   type NoteRating,
   type PolicyList,
   type PolicySubscription,
+  type PublicInteractionPolicy,
   type QualitySignal,
   type ReviewTask
 } from './schemas'

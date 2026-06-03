@@ -11,6 +11,7 @@ import {
   created,
   createdBy,
   date,
+  multiSelect,
   number,
   person,
   relation,
@@ -29,6 +30,7 @@ type ModerationAuthorizationOptions = {
   delete?: readonly string[]
   share?: readonly string[]
   admin?: readonly string[]
+  publicProps?: readonly string[]
 }
 
 const withOperators = (roles: readonly string[] = []): string[] => [
@@ -50,7 +52,8 @@ const createModerationAuthorization = (options: ModerationAuthorizationOptions =
       delete: allow(...withOwners(options.delete)),
       share: allow(...withOperators(options.share)),
       admin: allow(...withOwners(options.admin))
-    }
+    },
+    ...(options.publicProps !== undefined ? { publicProps: [...options.publicProps] } : {})
   }) as const
 
 const reportAuthorization = createModerationAuthorization({
@@ -94,6 +97,48 @@ const subscriptionAuthorization = createModerationAuthorization({
   },
   read: ['subscriber'],
   write: ['subscriber']
+})
+
+const publicInteractionPolicyAuthorization = createModerationAuthorization({
+  roles: {
+    maintainer: role.property('maintainers'),
+    moderator: role.property('moderators'),
+    policyPublisher: role.property('policyPublishers'),
+    targetOwner: role.relation('target', 'owner'),
+    targetAdmin: role.relation('target', 'admin')
+  },
+  read: ['maintainer', 'moderator', 'policyPublisher', 'targetOwner', 'targetAdmin'],
+  write: ['maintainer', 'moderator', 'targetOwner', 'targetAdmin'],
+  share: ['maintainer', 'policyPublisher', 'targetOwner', 'targetAdmin'],
+  admin: ['maintainer', 'targetOwner', 'targetAdmin'],
+  publicProps: [
+    'target',
+    'targetSchema',
+    'scope',
+    'commentMode',
+    'replyMode',
+    'reactionMode',
+    'quoteMode',
+    'mentionMode',
+    'communityNoteMode',
+    'defaultVisibility',
+    'firstContactMode',
+    'moderationMode',
+    'slowModeSeconds',
+    'maxRootCommentsPerHour',
+    'maxRepliesPerHour',
+    'maxReactionsPerHour',
+    'maxMentionsPerComment',
+    'minimumAccountAgeHours',
+    'minimumReputation',
+    'trustThreshold',
+    'quarantineConfidenceThreshold',
+    'hideConfidenceThreshold',
+    'requiresVerifiedIdentity',
+    'acceptsPolicySubscriptions',
+    'policyLists',
+    'updatedAt'
+  ]
 })
 
 const communityNoteAuthorization = createModerationAuthorization({
@@ -211,6 +256,37 @@ const reviewStatuses = [
   { id: 'resolved', name: 'Resolved', color: 'green' },
   { id: 'escalated', name: 'Escalated', color: 'orange' },
   { id: 'closed', name: 'Closed', color: 'gray' }
+] as const
+
+const interactionModes = [
+  { id: 'open', name: 'Open', color: 'green' },
+  { id: 'authenticated', name: 'Authenticated', color: 'blue' },
+  { id: 'trusted', name: 'Trusted', color: 'purple' },
+  { id: 'reviewed', name: 'Reviewed', color: 'yellow' },
+  { id: 'closed', name: 'Closed', color: 'red' }
+] as const
+
+const firstContactModes = [
+  { id: 'allow', name: 'Allow', color: 'green' },
+  { id: 'slow-mode', name: 'Slow Mode', color: 'blue' },
+  { id: 'quarantine', name: 'Quarantine', color: 'purple' },
+  { id: 'review', name: 'Review', color: 'yellow' },
+  { id: 'block', name: 'Block', color: 'red' }
+] as const
+
+const moderationModes = [
+  { id: 'off', name: 'Off', color: 'gray' },
+  { id: 'label-only', name: 'Label Only', color: 'blue' },
+  { id: 'post-review', name: 'Post Review', color: 'yellow' },
+  { id: 'pre-filter', name: 'Pre Filter', color: 'orange' },
+  { id: 'pre-review', name: 'Pre Review', color: 'red' }
+] as const
+
+const defaultVisibilityModes = [
+  { id: 'visible', name: 'Visible', color: 'green' },
+  { id: 'collapsed', name: 'Collapsed', color: 'yellow' },
+  { id: 'quarantined', name: 'Quarantined', color: 'purple' },
+  { id: 'hidden', name: 'Hidden', color: 'red' }
 ] as const
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
@@ -332,6 +408,80 @@ export const PolicySubscriptionSchema = defineSchema({
     ...commonModerationMetadata
   },
   authorization: subscriptionAuthorization
+})
+
+export const PublicInteractionPolicySchema = defineSchema({
+  name: 'PublicInteractionPolicy',
+  namespace: 'xnet://xnet.fyi/',
+  properties: {
+    target: relation({ required: true }),
+    targetSchema: text({}),
+    scope: select({
+      options: policyScopes,
+      required: true
+    }),
+    commentMode: select({
+      options: interactionModes,
+      default: 'authenticated'
+    }),
+    replyMode: select({
+      options: interactionModes,
+      default: 'authenticated'
+    }),
+    reactionMode: select({
+      options: interactionModes,
+      default: 'authenticated'
+    }),
+    quoteMode: select({
+      options: interactionModes,
+      default: 'trusted'
+    }),
+    mentionMode: select({
+      options: interactionModes,
+      default: 'trusted'
+    }),
+    communityNoteMode: select({
+      options: interactionModes,
+      default: 'reviewed'
+    }),
+    defaultVisibility: select({
+      options: defaultVisibilityModes,
+      default: 'visible'
+    }),
+    firstContactMode: select({
+      options: firstContactModes,
+      default: 'slow-mode'
+    }),
+    moderationMode: select({
+      options: moderationModes,
+      default: 'post-review'
+    }),
+    slowModeSeconds: number({ min: 0, integer: true }),
+    maxRootCommentsPerHour: number({ min: 0, integer: true }),
+    maxRepliesPerHour: number({ min: 0, integer: true }),
+    maxReactionsPerHour: number({ min: 0, integer: true }),
+    maxMentionsPerComment: number({ min: 0, integer: true }),
+    minimumAccountAgeHours: number({ min: 0, integer: true }),
+    minimumReputation: number({ min: 0 }),
+    trustThreshold: number({ min: 0, max: 1 }),
+    quarantineConfidenceThreshold: number({ min: 0, max: 1 }),
+    hideConfidenceThreshold: number({ min: 0, max: 1 }),
+    requiresVerifiedIdentity: checkbox({ default: false }),
+    acceptsPolicySubscriptions: checkbox({ default: true }),
+    policyLists: relation({ multiple: true }),
+    activeLabels: multiSelect({
+      options: labelValues
+    }),
+    maintainers: person({ multiple: true }),
+    moderators: person({ multiple: true }),
+    policyPublishers: person({ multiple: true }),
+    trustedDIDs: person({ multiple: true }),
+    mutedDIDs: person({ multiple: true }),
+    blockedDIDs: person({ multiple: true }),
+    rationale: text({ maxLength: 4000 }),
+    ...commonModerationMetadata
+  },
+  authorization: publicInteractionPolicyAuthorization
 })
 
 export const CommunityNoteSchema = defineSchema({
@@ -512,6 +662,9 @@ export type AbuseReport = InferNode<(typeof AbuseReportSchema)['_properties']>
 export type ModerationLabel = InferNode<(typeof ModerationLabelSchema)['_properties']>
 export type PolicyList = InferNode<(typeof PolicyListSchema)['_properties']>
 export type PolicySubscription = InferNode<(typeof PolicySubscriptionSchema)['_properties']>
+export type PublicInteractionPolicy = InferNode<
+  (typeof PublicInteractionPolicySchema)['_properties']
+>
 export type CommunityNote = InferNode<(typeof CommunityNoteSchema)['_properties']>
 export type NoteRating = InferNode<(typeof NoteRatingSchema)['_properties']>
 export type QualitySignal = InferNode<(typeof QualitySignalSchema)['_properties']>

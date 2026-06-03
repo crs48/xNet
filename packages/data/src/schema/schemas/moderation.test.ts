@@ -9,6 +9,7 @@ import {
   NoteRatingSchema,
   PolicyListSchema,
   PolicySubscriptionSchema,
+  PublicInteractionPolicySchema,
   QualitySignalSchema,
   ReviewTaskSchema
 } from './moderation'
@@ -95,6 +96,39 @@ describe('moderation schemas', () => {
           { createdBy: testDID }
         ),
       validate: PolicySubscriptionSchema.validate
+    },
+    {
+      name: 'PublicInteractionPolicy',
+      versionedIri: 'xnet://xnet.fyi/PublicInteractionPolicy@1.0.0',
+      legacyIri: 'xnet://xnet.fyi/PublicInteractionPolicy',
+      create: () =>
+        PublicInteractionPolicySchema.create(
+          {
+            target,
+            targetSchema: 'xnet://xnet.fyi/Page',
+            scope: 'workspace',
+            commentMode: 'authenticated',
+            replyMode: 'trusted',
+            reactionMode: 'authenticated',
+            quoteMode: 'reviewed',
+            mentionMode: 'trusted',
+            communityNoteMode: 'reviewed',
+            firstContactMode: 'quarantine',
+            moderationMode: 'pre-filter',
+            slowModeSeconds: 30,
+            maxRootCommentsPerHour: 12,
+            maxRepliesPerHour: 30,
+            maxReactionsPerHour: 120,
+            maxMentionsPerComment: 5,
+            trustThreshold: 0.6,
+            policyLists: ['policy-list-1'],
+            activeLabels: ['spam', 'slop'],
+            maintainers: [testDID],
+            moderators: [testDID]
+          },
+          { createdBy: testDID }
+        ),
+      validate: PublicInteractionPolicySchema.validate
     },
     {
       name: 'CommunityNote',
@@ -245,6 +279,30 @@ describe('moderation schemas', () => {
     expect(result.errors.map((error) => error.path)).toContain('confidence')
   })
 
+  it('creates public interaction policies with conservative defaults', () => {
+    const policy = PublicInteractionPolicySchema.create(
+      {
+        target,
+        scope: 'workspace'
+      },
+      { createdBy: testDID }
+    )
+
+    expect(policy.commentMode).toBe('authenticated')
+    expect(policy.replyMode).toBe('authenticated')
+    expect(policy.reactionMode).toBe('authenticated')
+    expect(policy.quoteMode).toBe('trusted')
+    expect(policy.mentionMode).toBe('trusted')
+    expect(policy.communityNoteMode).toBe('reviewed')
+    expect(policy.defaultVisibility).toBe('visible')
+    expect(policy.firstContactMode).toBe('slow-mode')
+    expect(policy.moderationMode).toBe('post-review')
+    expect(policy.requiresVerifiedIdentity).toBe(false)
+    expect(policy.acceptsPolicySubscriptions).toBe(true)
+    expect(policy.policyLists).toEqual([])
+    expect(policy.activeLabels).toEqual([])
+  })
+
   it('defines role-specific authorization for moderation workflows', () => {
     expect(ModerationLabelSchema.schema.authorization?.roles.operator).toEqual({
       _tag: 'property',
@@ -285,5 +343,24 @@ describe('moderation schemas', () => {
     })
     expect(allowRoles(ReviewTaskSchema.schema.authorization?.actions.write)).toContain('assignee')
     expect(allowRoles(ReviewTaskSchema.schema.authorization?.actions.write)).toContain('reviewer')
+    expect(PublicInteractionPolicySchema.schema.authorization?.roles.maintainer).toEqual({
+      _tag: 'property',
+      propertyName: 'maintainers'
+    })
+    expect(PublicInteractionPolicySchema.schema.authorization?.roles.targetOwner).toEqual({
+      _tag: 'relation',
+      relationName: 'target',
+      targetRole: 'owner'
+    })
+    expect(allowRoles(PublicInteractionPolicySchema.schema.authorization?.actions.write)).toContain(
+      'targetOwner'
+    )
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain('commentMode')
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).toContain(
+      'firstContactMode'
+    )
+    expect(PublicInteractionPolicySchema.schema.authorization?.publicProps).not.toContain(
+      'blockedDIDs'
+    )
   })
 })
