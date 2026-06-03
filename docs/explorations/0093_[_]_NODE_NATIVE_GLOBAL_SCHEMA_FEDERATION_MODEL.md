@@ -401,10 +401,10 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Phase 2 - Node-native authorization wiring
 
-- [ ] Route all control-plane mutations through `store.auth.can`.
-- [ ] Standardize grant lifecycle on `store.auth.grant/revoke`.
+- [x] Route all control-plane mutations through `store.auth.can`.
+- [x] Standardize grant lifecycle on `store.auth.grant/revoke`.
 - [ ] Surface `store.auth.explain` traces in developer and consent UX.
-- [ ] Enforce grant attenuation and proof-depth limits consistently.
+- [x] Enforce grant attenuation and proof-depth limits consistently.
 
 ### Phase 3 - Relay and federation hardening
 
@@ -447,10 +447,10 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Authorization validation
 
-- [ ] Unauthorized local system mutations are blocked by `store.auth.can`.
+- [x] Unauthorized local system mutations are blocked by `store.auth.can`.
 - [x] Unauthorized relay/query traffic is rejected at hub ingress.
-- [ ] Delegation attenuation violations are rejected.
-- [ ] Revocations take effect within one policy refresh cycle.
+- [x] Delegation attenuation violations are rejected.
+- [x] Revocations take effect within one policy refresh cycle.
 
 ### Security validation
 

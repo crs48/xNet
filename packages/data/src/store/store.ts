@@ -49,6 +49,7 @@ import {
 } from '@xnetjs/sync'
 import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
+import { isSystemNamespaceResource, isSystemSchemaIri } from '../schema/schemas/system'
 import { PermissionError } from './permission-error'
 import {
   applyNodeQueryDescriptor,
@@ -167,6 +168,7 @@ export class NodeStore {
         subject: this.authorDID,
         action: 'write',
         nodeId: id,
+        patch: options.properties,
         node: {
           schemaId: options.schemaId,
           createdBy: this.authorDID,
@@ -319,7 +321,12 @@ export class NodeStore {
         subject: this.authorDID,
         action: 'write',
         nodeId: id,
-        patch: options.properties
+        patch: options.properties,
+        node: {
+          schemaId: existing.schemaId,
+          createdBy: existing.createdBy,
+          properties: existing.properties
+        }
       })
 
       const now = Date.now()
@@ -389,7 +396,12 @@ export class NodeStore {
       await this.assertAuthorized({
         subject: this.authorDID,
         action: 'delete',
-        nodeId: id
+        nodeId: id,
+        node: {
+          schemaId: existing.schemaId,
+          createdBy: existing.createdBy,
+          properties: existing.properties
+        }
       })
 
       const now = Date.now()
@@ -443,7 +455,12 @@ export class NodeStore {
     await this.assertAuthorized({
       subject: this.authorDID,
       action: 'write',
-      nodeId: id
+      nodeId: id,
+      node: {
+        schemaId: existing.schemaId,
+        createdBy: existing.createdBy,
+        properties: existing.properties
+      }
     })
 
     const now = Date.now()
@@ -1206,6 +1223,18 @@ export class NodeStore {
     node?: { schemaId: SchemaIRI; createdBy: DID; properties?: Record<string, unknown> }
     patch?: Record<string, unknown>
   }): Promise<void> {
+    if (this.auth && isControlPlaneMutation(input.nodeId, input.node?.schemaId)) {
+      const decision = await this.auth.can({
+        action: input.action,
+        nodeId: input.nodeId,
+        patch: input.patch
+      })
+      if (!decision.allowed) {
+        throw new PermissionError(decision)
+      }
+      return
+    }
+
     if (!this.authEvaluator) {
       return
     }
@@ -1263,7 +1292,7 @@ export class NodeStore {
   }
 
   private async assertAuthorizedBatch(operations: TransactionOperation[]): Promise<void> {
-    if (!this.authEvaluator) {
+    if (!this.authEvaluator && !this.auth) {
       return
     }
 
@@ -1426,4 +1455,8 @@ export class NodeStore {
       return null
     }
   }
+}
+
+function isControlPlaneMutation(nodeId: string, schemaId?: SchemaIRI): boolean {
+  return isSystemNamespaceResource(nodeId) || Boolean(schemaId && isSystemSchemaIri(schemaId))
 }

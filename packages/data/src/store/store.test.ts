@@ -4,12 +4,20 @@
 
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
 import type { ContentKeyCache, NodeContentCipher } from './types'
+import type { StoreAuthAPI } from '../auth/store-auth'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, vi } from 'vitest'
-import { LensRegistry, composeLens, rename, addDefault, convert } from '../schema'
+import {
+  LensRegistry,
+  SchemaDefinitionSchema,
+  composeLens,
+  rename,
+  addDefault,
+  convert
+} from '../schema'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
 import { PermissionError } from './permission-error'
 import { NodeStore } from './store'
@@ -60,6 +68,43 @@ function createAuthEvaluator(canResult: (input: AuthCheckInput) => boolean): Pol
     })),
     invalidate: vi.fn(),
     invalidateSubject: vi.fn()
+  }
+}
+
+function createMockStoreAuth(actorDid: DID, allowed: boolean): StoreAuthAPI {
+  const createDecision = (action: AuthDecision['action'], nodeId: string): AuthDecision => ({
+    allowed,
+    action,
+    subject: actorDid,
+    resource: nodeId,
+    roles: allowed ? ['owner'] : [],
+    grants: [],
+    reasons: allowed ? [] : ['DENY_NO_ROLE_MATCH'],
+    cached: false,
+    evaluatedAt: Date.now(),
+    duration: 0
+  })
+
+  return {
+    can: vi.fn(async (input) => createDecision(input.action, input.nodeId)),
+    explain: vi.fn(async (input) => ({
+      ...createDecision(input.action, input.nodeId),
+      steps: []
+    })),
+    grant: vi.fn(async () => {
+      throw new Error('not implemented')
+    }),
+    revoke: vi.fn(async () => undefined),
+    listGrants: vi.fn(async () => []),
+    listIssuedGrants: vi.fn(async () => []),
+    listReceivedGrants: vi.fn(async () => []),
+    getOfflinePolicy: vi.fn(() => ({
+      decisionCacheTTL: 0,
+      maxStaleness: 0,
+      revalidation: 'hybrid' as const,
+      allowOfflineGrants: true
+    })),
+    setOfflinePolicy: vi.fn()
   }
 }
 
@@ -707,10 +752,47 @@ describe('authorization enforcement', () => {
 
     const canSpy = evaluator.can as ReturnType<typeof vi.fn>
     const updateCall = canSpy.mock.calls.find(
-      (args) => (args[0] as AuthCheckInput).nodeId === node.id && args[0].patch
+      (args) =>
+        (args[0] as AuthCheckInput).nodeId === node.id &&
+        (args[0] as AuthCheckInput).patch?.status === 'done'
     )
     expect(updateCall).toBeDefined()
     expect((updateCall?.[0] as AuthCheckInput).patch).toEqual({ status: 'done' })
+  })
+
+  it('routes local system schema mutations through store.auth.can', async () => {
+    const { adapter, did, privateKey } = createTestStore()
+    const evaluator = createAuthEvaluator(() => true)
+    const auth = createMockStoreAuth(did, false)
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: privateKey,
+      authEvaluator: evaluator,
+      auth
+    })
+    await store.initialize()
+
+    const nodeId = `xnet://${did}/sys/schema/blocked-schema`
+    const properties = {
+      schemaIri: `xnet://${did}/Blocked@1.0.0`,
+      version: '1.0.0'
+    }
+
+    await expect(
+      store.create({
+        id: nodeId,
+        schemaId: SchemaDefinitionSchema.schema['@id'],
+        properties
+      })
+    ).rejects.toThrow(PermissionError)
+
+    expect(auth.can).toHaveBeenCalledWith({
+      action: 'write',
+      nodeId,
+      patch: properties
+    })
+    expect(evaluator.can).not.toHaveBeenCalled()
   })
 
   it('should silently reject unauthorized remote changes', async () => {
