@@ -40,6 +40,23 @@ export interface CrawlResult {
   robotsAllowed: boolean
   crawlerDid: string
   crawledAt: number
+  quality?: CrawlQualitySignals
+}
+
+export type CrawlQualitySignals = {
+  duplicateScore?: number
+  slopScore?: number
+  provenanceScore?: number
+  sourceReputation?: number
+}
+
+export type CrawlDomainPolicy = {
+  domain: string
+  action?: 'allow' | 'skip' | 'quarantine' | 'block'
+  cooldownMs?: number
+  minCrawlerReputation?: number
+  maxDuplicateScoreForIndex?: number
+  maxSlopScoreForIndex?: number
 }
 
 export type CrawlConfig = {
@@ -52,6 +69,103 @@ export type CrawlConfig = {
   userAgent: string
   seedUrls?: string[]
   deadlineCheckIntervalMs?: number
+  domainPolicies?: CrawlDomainPolicy[]
+  minCrawlerReputation?: number
+  maxDuplicateScoreForIndex?: number
+  maxSlopScoreForIndex?: number
+}
+
+export type CrawlIngestionDecision = {
+  admission: 'index' | 'skip' | 'quarantine'
+  reasons: string[]
+  searchScoreMultiplier: number
+  duplicateScore: number
+  slopScore: number
+  provenanceScore: number
+  sourceReputation: number
+}
+
+export function evaluateCrawlIngestion(input: {
+  result: CrawlResult
+  task: CrawlTask
+  lastHistory?: CrawlHistoryEntry | null
+  crawler?: CrawlerProfile | null
+  domainState?: { blocked: boolean }
+  domainPolicy?: CrawlDomainPolicy | null
+  config?: Pick<
+    CrawlConfig,
+    'minCrawlerReputation' | 'maxDuplicateScoreForIndex' | 'maxSlopScoreForIndex'
+  >
+}): CrawlIngestionDecision {
+  const duplicateScore =
+    input.lastHistory?.cid === input.result.cid ? 1 : clamp01(input.result.quality?.duplicateScore)
+  const slopScore = clamp01(input.result.quality?.slopScore)
+  const provenanceScore = clamp01(input.result.quality?.provenanceScore ?? 1)
+  const sourceReputation = normalizeReputation(
+    input.result.quality?.sourceReputation ?? input.crawler?.reputation ?? 0
+  )
+  const minCrawlerReputation =
+    input.domainPolicy?.minCrawlerReputation ?? input.config?.minCrawlerReputation ?? 0
+  const maxDuplicateScore =
+    input.domainPolicy?.maxDuplicateScoreForIndex ?? input.config?.maxDuplicateScoreForIndex ?? 0.98
+  const maxSlopScore =
+    input.domainPolicy?.maxSlopScoreForIndex ?? input.config?.maxSlopScoreForIndex ?? 0.92
+  const reasons: string[] = []
+
+  if (input.domainState?.blocked || input.domainPolicy?.action === 'block') {
+    return createCrawlDecision('skip', ['domain-blocked'], {
+      duplicateScore,
+      slopScore,
+      provenanceScore,
+      sourceReputation
+    })
+  }
+
+  if (input.domainPolicy?.action === 'skip') {
+    return createCrawlDecision('skip', ['domain-policy-skip'], {
+      duplicateScore,
+      slopScore,
+      provenanceScore,
+      sourceReputation
+    })
+  }
+
+  if (!input.result.robotsAllowed) reasons.push('robots-disallowed')
+  if (input.result.statusCode < 200 || input.result.statusCode >= 300) reasons.push('bad-status')
+  if (duplicateScore >= maxDuplicateScore) reasons.push('duplicate-content')
+  if (sourceReputation * 100 < minCrawlerReputation) reasons.push('low-source-reputation')
+  if (slopScore >= maxSlopScore) reasons.push('slop-score')
+
+  if (
+    reasons.includes('robots-disallowed') ||
+    reasons.includes('bad-status') ||
+    reasons.includes('duplicate-content')
+  ) {
+    return createCrawlDecision('skip', reasons, {
+      duplicateScore,
+      slopScore,
+      provenanceScore,
+      sourceReputation
+    })
+  }
+
+  if (input.domainPolicy?.action === 'quarantine') reasons.push('domain-policy-quarantine')
+
+  if (reasons.length > 0) {
+    return createCrawlDecision('quarantine', reasons, {
+      duplicateScore,
+      slopScore,
+      provenanceScore,
+      sourceReputation
+    })
+  }
+
+  return createCrawlDecision('index', ['accepted'], {
+    duplicateScore,
+    slopScore,
+    provenanceScore,
+    sourceReputation
+  })
 }
 
 export class CrawlCoordinator {
@@ -90,6 +204,7 @@ export class CrawlCoordinator {
       if (!validateExternalUrl(normalized).valid) continue
       const domain = new URL(normalized).hostname
       if (this.isBlockedDomain(domain)) continue
+      if (this.getDomainPolicy(domain)?.action === 'skip') continue
       const entry: CrawlQueueEntry = {
         url: normalized,
         domain,
@@ -120,6 +235,7 @@ export class CrawlCoordinator {
       if (tasks.length >= batchSize) break
       if (this.activeUrls.has(candidate.url)) continue
       if (this.isBlockedDomain(candidate.domain)) continue
+      if (this.getDomainPolicy(candidate.domain)?.action === 'skip') continue
       if (this.robots && !(await this.robots.isAllowed(candidate.url))) continue
 
       const domainState = await this.getDomainState(candidate.domain)
@@ -151,10 +267,12 @@ export class CrawlCoordinator {
     processed: number
     indexed: number
     skipped: number
+    quarantined: number
     errors: number
   }> {
     let indexed = 0
     let skipped = 0
+    let quarantined = 0
     let errors = 0
 
     for (const result of results) {
@@ -168,18 +286,34 @@ export class CrawlCoordinator {
       this.activeUrls.delete(task.url)
 
       const lastHistory = await this.storage.getCrawlHistory(result.url)
-      const isDuplicate = lastHistory?.cid === result.cid
+      const crawler = await this.storage.getCrawler(result.crawlerDid)
+      const domainState = await this.getDomainState(task.domain)
+      const domainPolicy = this.getDomainPolicy(task.domain)
+      const decision = evaluateCrawlIngestion({
+        result,
+        task,
+        lastHistory,
+        crawler,
+        domainState,
+        domainPolicy,
+        config: this.config
+      })
 
-      if (isDuplicate) {
+      if (decision.admission === 'skip') {
         skipped += 1
-      } else if (result.robotsAllowed && result.statusCode >= 200 && result.statusCode < 300) {
+      } else if (decision.admission === 'quarantine') {
+        skipped += 1
+        quarantined += 1
+      } else {
         await this.shardIngest.ingest({
           cid: result.cid,
           url: result.url,
           title: result.title,
           body: result.body,
           language: result.language,
-          indexedAt: result.crawledAt
+          indexedAt: result.crawledAt,
+          tags: decision.reasons,
+          searchScoreMultiplier: decision.searchScoreMultiplier
         })
         indexed += 1
       }
@@ -205,6 +339,7 @@ export class CrawlCoordinator {
       processed: results.length,
       indexed,
       skipped,
+      quarantined,
       errors
     }
   }
@@ -231,11 +366,12 @@ export class CrawlCoordinator {
   }
 
   private async updateDomainState(domain: string, crawledAt: number): Promise<void> {
+    const domainPolicy = this.getDomainPolicy(domain)
     const state: CrawlDomainState = {
       domain,
       lastCrawledAt: crawledAt,
-      cooldownMs: this.config.domainCooldownMs,
-      blocked: false
+      cooldownMs: domainPolicy?.cooldownMs ?? this.config.domainCooldownMs,
+      blocked: domainPolicy?.action === 'block'
     }
     await this.storage.upsertCrawlDomainState(state)
   }
@@ -245,23 +381,35 @@ export class CrawlCoordinator {
     lastCrawledAt: number | null
     blocked: boolean
   }> {
+    const domainPolicy = this.getDomainPolicy(domain)
     const state = await this.storage.getCrawlDomainState(domain)
     if (!state) {
       return {
-        cooldownMs: this.config.domainCooldownMs,
+        cooldownMs: domainPolicy?.cooldownMs ?? this.config.domainCooldownMs,
         lastCrawledAt: null,
-        blocked: false
+        blocked: domainPolicy?.action === 'block'
       }
     }
     return {
-      cooldownMs: state.cooldownMs,
+      cooldownMs: domainPolicy?.cooldownMs ?? state.cooldownMs,
       lastCrawledAt: state.lastCrawledAt ?? null,
-      blocked: state.blocked
+      blocked: state.blocked || domainPolicy?.action === 'block'
     }
   }
 
   private isBlockedDomain(domain: string): boolean {
-    return this.config.blocklist.some((blocked) => domain.endsWith(blocked))
+    return (
+      this.config.blocklist.some((blocked) => domain.endsWith(blocked)) ||
+      this.getDomainPolicy(domain)?.action === 'block'
+    )
+  }
+
+  private getDomainPolicy(domain: string): CrawlDomainPolicy | null {
+    return (
+      this.config.domainPolicies?.find((policy) => {
+        return domain === policy.domain || domain.endsWith(`.${policy.domain}`)
+      }) ?? null
+    )
   }
 
   private normalizeUrl(url: string): string | null {
@@ -307,4 +455,45 @@ export class CrawlCoordinator {
       }
     }
   }
+}
+
+function createCrawlDecision(
+  admission: CrawlIngestionDecision['admission'],
+  reasons: readonly string[],
+  signals: Pick<
+    CrawlIngestionDecision,
+    'duplicateScore' | 'slopScore' | 'provenanceScore' | 'sourceReputation'
+  >
+): CrawlIngestionDecision {
+  const searchScoreMultiplier =
+    admission === 'index'
+      ? clamp(
+          1 -
+            signals.duplicateScore * 0.35 -
+            signals.slopScore * 0.45 -
+            (1 - signals.provenanceScore) * 0.15 -
+            (1 - signals.sourceReputation) * 0.2,
+          0.15,
+          1
+        )
+      : 0
+
+  return {
+    admission,
+    reasons: [...reasons],
+    searchScoreMultiplier,
+    ...signals
+  }
+}
+
+function clamp01(value: number | undefined): number {
+  return clamp(value ?? 0, 0, 1)
+}
+
+function normalizeReputation(value: number): number {
+  return value > 1 ? clamp(value / 100, 0, 1) : clamp(value, 0, 1)
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
 }

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CrawlCoordinator, type CrawlConfig } from '../src/services/crawl'
+import {
+  CrawlCoordinator,
+  evaluateCrawlIngestion,
+  type CrawlConfig,
+  type CrawlResult,
+  type CrawlTask
+} from '../src/services/crawl'
 import { ShardRegistry, type ShardConfig } from '../src/services/index-shards'
 import { ShardIngestRouter } from '../src/services/shard-ingest'
 import { createMemoryStorage } from '../src/storage'
@@ -42,6 +48,35 @@ const baseCrawlConfig: CrawlConfig = {
   blocklist: ['blocked.com'],
   userAgent: 'xNetCrawler/1.0'
 }
+
+const createTask = (overrides: Partial<CrawlTask> = {}): CrawlTask => ({
+  taskId: 'task-1',
+  url: 'https://example.com/page',
+  domain: 'example.com',
+  priority: 1,
+  assignedAt: Date.now(),
+  assignedTo: 'did:key:crawler1',
+  deadlineMs: 2000,
+  crawlCount: 0,
+  ...overrides
+})
+
+const createResult = (task: CrawlTask, overrides: Partial<CrawlResult> = {}): CrawlResult => ({
+  taskId: task.taskId,
+  url: task.url,
+  cid: 'cid:blake3:page',
+  title: 'Crawled Page',
+  body: 'Crawled page body',
+  outLinks: [],
+  language: 'en',
+  statusCode: 200,
+  contentType: 'text/html',
+  crawlTimeMs: 100,
+  robotsAllowed: true,
+  crawlerDid: task.assignedTo,
+  crawledAt: Date.now(),
+  ...overrides
+})
 
 describe('Crawl Coordinator', () => {
   beforeEach(() => {
@@ -213,6 +248,125 @@ describe('Crawl Coordinator', () => {
 
     expect(summary2.skipped).toBe(1)
     expect(summary2.indexed).toBe(0)
+  })
+
+  it('evaluates crawl admission from domain policy and quality signals', () => {
+    const task = createTask()
+
+    expect(
+      evaluateCrawlIngestion({
+        task,
+        result: createResult(task),
+        domainPolicy: { domain: 'example.com', action: 'skip' }
+      })
+    ).toMatchObject({
+      admission: 'skip',
+      reasons: ['domain-policy-skip']
+    })
+
+    expect(
+      evaluateCrawlIngestion({
+        task,
+        result: createResult(task, { quality: { slopScore: 0.95 } }),
+        config: { maxSlopScoreForIndex: 0.9 }
+      })
+    ).toMatchObject({
+      admission: 'quarantine',
+      reasons: ['slop-score']
+    })
+  })
+
+  it('quarantines crawl results blocked by domain policy', async () => {
+    const { storage, ingest } = await createShardSetup()
+    const coordinator = new CrawlCoordinator(
+      storage,
+      ingest,
+      {
+        ...baseCrawlConfig,
+        domainCooldownMs: 0,
+        domainPolicies: [{ domain: 'policy.com', action: 'quarantine' }]
+      },
+      { isAllowed: async () => true } as any
+    )
+
+    await coordinator.registerCrawler({
+      did: 'did:key:crawler1',
+      type: 'desktop',
+      capacity: 1,
+      languages: ['en'],
+      reputation: 80,
+      totalCrawled: 0,
+      registeredAt: Date.now()
+    })
+
+    await coordinator.seedUrls(['https://policy.com/page'])
+    const tasks = await coordinator.getNextTasks('did:key:crawler1', 1)
+    const summary = await coordinator.submitResults([createResult(tasks[0]!)])
+
+    expect(summary.indexed).toBe(0)
+    expect(summary.skipped).toBe(1)
+    expect(summary.quarantined).toBe(1)
+  })
+
+  it('quarantines low-reputation crawler results', async () => {
+    const { storage, ingest } = await createShardSetup()
+    const coordinator = new CrawlCoordinator(
+      storage,
+      ingest,
+      { ...baseCrawlConfig, domainCooldownMs: 0, minCrawlerReputation: 80 },
+      { isAllowed: async () => true } as any
+    )
+
+    await coordinator.registerCrawler({
+      did: 'did:key:crawler1',
+      type: 'desktop',
+      capacity: 1,
+      languages: ['en'],
+      reputation: 20,
+      totalCrawled: 0,
+      registeredAt: Date.now()
+    })
+
+    await coordinator.seedUrls(['https://reputation.com/page'])
+    const tasks = await coordinator.getNextTasks('did:key:crawler1', 1)
+    const summary = await coordinator.submitResults([createResult(tasks[0]!)])
+
+    expect(summary.indexed).toBe(0)
+    expect(summary.quarantined).toBe(1)
+  })
+
+  it('indexes lower-quality crawl results with a ranking multiplier', async () => {
+    const { storage, ingest } = await createShardSetup()
+    const coordinator = new CrawlCoordinator(
+      storage,
+      ingest,
+      { ...baseCrawlConfig, domainCooldownMs: 0, maxSlopScoreForIndex: 0.9 },
+      { isAllowed: async () => true } as any
+    )
+
+    await coordinator.registerCrawler({
+      did: 'did:key:crawler1',
+      type: 'desktop',
+      capacity: 1,
+      languages: ['en'],
+      reputation: 50,
+      totalCrawled: 0,
+      registeredAt: Date.now()
+    })
+
+    await coordinator.seedUrls(['https://ranking.com/page'])
+    const tasks = await coordinator.getNextTasks('did:key:crawler1', 1)
+    const summary = await coordinator.submitResults([
+      createResult(tasks[0]!, {
+        body: 'garden garden',
+        quality: { slopScore: 0.4, provenanceScore: 0.6 }
+      })
+    ])
+    const postings = await storage.listShardPostings(0, ['garden'])
+
+    expect(summary.indexed).toBe(1)
+    expect(postings[0]?.tf).toBeGreaterThan(0)
+    expect(postings[0]?.tf).toBeLessThan(2)
   })
 
   it('adds outlinks to the queue', async () => {
