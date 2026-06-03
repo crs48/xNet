@@ -14,6 +14,7 @@ export type PanelId =
   | 'sync'
   | 'yjs'
   | 'authz'
+  | 'abuse'
   | 'queries'
   | 'telemetry'
   | 'schemas'

@@ -9,6 +9,7 @@ import { Tooltip } from '@xnetjs/ui'
 import { useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { DEFAULTS } from '../core/constants'
 import { useDevTools } from '../provider/useDevTools'
+import { AbusePanel } from './AbusePanel/AbusePanel'
 import { AuthZPanel } from './AuthZPanel/AuthZPanel'
 import { ChangeTimeline } from './ChangeTimeline/ChangeTimeline'
 import { HistoryPanel } from './HistoryPanel/HistoryPanel'
@@ -141,6 +142,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <QueryDebugger />
     case 'authz':
       return <AuthZPanel />
+    case 'abuse':
+      return <AbusePanel />
     case 'telemetry':
       return <TelemetryPanel />
     case 'schemas':

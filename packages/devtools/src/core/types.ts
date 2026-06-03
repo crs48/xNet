@@ -247,6 +247,70 @@ export interface PeerScoreSnapshot {
   lastSeen: number
 }
 
+// ─── Abuse Events ─────────────────────────────────────────
+
+export interface AbusePolicyDecisionEvent extends DevToolsEventBase {
+  type: 'abuse:policy-decision'
+  surface: string
+  subjectId?: string
+  actorDid?: string
+  peerId?: string
+  peerScore?: number
+  scope?: string
+  policyId?: string
+  admission: string
+  visibility: string
+  reach: string
+  resource: string
+  reasons: string[]
+  evidenceRefs: string[]
+  includeInCounters: boolean
+  includeInSearch: boolean
+  reviewQueue?: string
+  reviewPriority?: number
+  labelsToEmit: AbusePendingLabelSnapshot[]
+}
+
+export interface AbusePendingLabelSnapshot {
+  value: string
+  confidence: number
+  reason: string
+  evidenceRefs: string[]
+}
+
+export interface AbuseLabelEvent extends DevToolsEventBase {
+  type: 'abuse:label'
+  subjectId: string
+  value: string
+  action: 'proposed' | 'applied' | 'removed' | 'expired'
+  confidence: number
+  sourceDid?: string
+  sourceWeight?: number
+  surface?: string
+  reason?: string
+  evidenceRefs: string[]
+  expiresAt?: number
+}
+
+export interface AbuseQueueStateEvent extends DevToolsEventBase {
+  type: 'abuse:queue-state'
+  queues: AbuseQueueSnapshot[]
+}
+
+export interface AbuseQueueSnapshot {
+  queue: string
+  pending: number
+  active?: number
+  oldestQueuedAt?: number
+  highestPriority?: number
+  sampleSubjectIds?: string[]
+}
+
+export interface AbusePeerScoresEvent extends DevToolsEventBase {
+  type: 'abuse:peer-scores'
+  scores: PeerScoreSnapshot[]
+}
+
 // ─── Union Type ────────────────────────────────────────────
 
 export type DevToolsEvent =
@@ -280,6 +344,10 @@ export type DevToolsEvent =
   | TelemetryPerformanceEvent
   | TelemetryConsentEvent
   | TelemetryPeerScoresEvent
+  | AbusePolicyDecisionEvent
+  | AbuseLabelEvent
+  | AbuseQueueStateEvent
+  | AbusePeerScoresEvent
 
 export type DevToolsEventType = DevToolsEvent['type']
 

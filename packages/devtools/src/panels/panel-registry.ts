@@ -6,6 +6,7 @@ export const DEVTOOLS_PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'sync', label: 'Sync' },
   { id: 'yjs', label: 'Yjs' },
   { id: 'authz', label: 'AuthZ' },
+  { id: 'abuse', label: 'Abuse' },
   { id: 'queries', label: 'Queries' },
   { id: 'telemetry', label: 'Telemetry' },
   { id: 'schemas', label: 'Schemas' },
