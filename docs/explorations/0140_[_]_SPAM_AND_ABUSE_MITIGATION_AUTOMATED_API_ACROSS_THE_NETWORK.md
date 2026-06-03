@@ -1038,7 +1038,7 @@ Every hub should publish:
 - [x] Hub relay never fans out a sync update before required validation.
 - [x] V2 envelopes are rejected when doc ID, timestamp, author, or signature verification fails.
 - [x] Peer scores recover only after quiet periods and do not grow unbounded.
-- [ ] Blocks expire when configured and remain auditable.
+- [x] Blocks expire when configured and remain auditable.
 
 ### Moderation And Reach Validation
 
