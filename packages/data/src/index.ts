@@ -188,6 +188,21 @@ export {
   // Schema registry
   SchemaRegistry,
   schemaRegistry,
+  SystemSchemaIndex,
+  createNodeGraphSchemaResolver,
+  isSchemaDefinitionNode,
+  type SystemSchemaDefinitionRecord,
+  type SystemSchemaIndexDiagnostic,
+  type SystemSchemaIndexOptions,
+  type SystemSchemaIndexStore,
+  PresenceAggregator,
+  bucketPresenceCount,
+  getPresenceNoisePolicy,
+  summarizePresenceNodes,
+  type PresenceAggregatorOptions,
+  type PresenceAggregatorStore,
+  type PresenceSummaryDescriptor,
+  type PresenceVisibilityResolver,
 
   // Schema lens system (migrations)
   type SchemaLens,

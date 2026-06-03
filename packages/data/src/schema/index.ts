@@ -210,6 +210,25 @@ export {
 
 // Schema registry
 export { SchemaRegistry, schemaRegistry } from './registry'
+export {
+  SystemSchemaIndex,
+  createNodeGraphSchemaResolver,
+  isSchemaDefinitionNode,
+  type SystemSchemaDefinitionRecord,
+  type SystemSchemaIndexDiagnostic,
+  type SystemSchemaIndexOptions,
+  type SystemSchemaIndexStore
+} from './system-index'
+export {
+  PresenceAggregator,
+  bucketPresenceCount,
+  getPresenceNoisePolicy,
+  summarizePresenceNodes,
+  type PresenceAggregatorOptions,
+  type PresenceAggregatorStore,
+  type PresenceSummaryDescriptor,
+  type PresenceVisibilityResolver
+} from './presence'
 
 // Schema lens system (migrations)
 export {

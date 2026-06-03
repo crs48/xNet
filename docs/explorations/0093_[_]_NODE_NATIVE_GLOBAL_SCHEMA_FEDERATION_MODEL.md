@@ -415,9 +415,9 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Phase 4 - Presence + discovery
 
-- [ ] Build incremental presence aggregator from NodeStore change stream.
-- [ ] Emit/maintain `PresenceSummary` nodes by visibility class.
-- [ ] Implement bucket/noise policy for publishable summaries.
+- [x] Build incremental presence aggregator from NodeStore change stream.
+- [x] Emit/maintain `PresenceSummary` nodes by visibility class.
+- [x] Implement bucket/noise policy for publishable summaries.
 - [ ] Add SDK discovery APIs backed by node-derived indexes.
 
 ### Phase 5 - Multi-hub orchestration
@@ -441,8 +441,8 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 ### Functional validation
 
 - [ ] Publishing `SchemaDefinition` nodes propagates to allowed peers.
-- [ ] Schema resolution by IRI/version works from replicated node graph.
-- [ ] Presence summaries stay consistent under create/update/delete churn.
+- [x] Schema resolution by IRI/version works from replicated node graph.
+- [x] Presence summaries stay consistent under create/update/delete churn.
 - [ ] Policy revisions deterministically alter replication destinations.
 
 ### Authorization validation
@@ -457,7 +457,7 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 - [ ] Invalid signatures/hashes are rejected pre-apply.
 - [ ] Replay attempts with seen change hashes are rejected.
 - [ ] Cross-namespace escalation attempts are denied and audited.
-- [ ] Presence outputs do not leak raw resource identifiers.
+- [x] Presence outputs do not leak raw resource identifiers.
 
 ### Resilience validation
 
