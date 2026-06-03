@@ -1022,7 +1022,7 @@ Every hub should publish:
 
 - [x] Add public write budgets by DID, hub, workspace, and surface.
 - [x] Add crawl and federation query cost budgets.
-- [ ] Add usage events for blocked, throttled, reviewed, billable, sponsored, and reciprocal work.
+- [x] Add usage events for blocked, throttled, reviewed, billable, sponsored, and reciprocal work.
 - [ ] Add signed hub policy/service offer documents with moderation settings.
 - [ ] Add labeler trust settings and subscription limits per workspace/hub.
 - [ ] Add appeal/contact metadata for public operators.
@@ -1064,7 +1064,7 @@ Every hub should publish:
 - [ ] A small self-hosted hub can run with AI review disabled and still resist common floods.
 - [ ] A community hub can subscribe to shared policy lists without surrendering local override.
 - [ ] A public search hub can publish its crawl/index/review budgets.
-- [ ] Usage events distinguish free, paid, sponsored, reciprocal, and abuse-blocked work.
+- [x] Usage events distinguish free, paid, sponsored, reciprocal, and abuse-blocked work.
 - [ ] Abuse queues remain bounded under report spam and crawler spam.
 - [ ] Metrics allow operators to see whether automation is saving cost or creating appeal load.
 
