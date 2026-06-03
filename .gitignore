@@ -14,6 +14,7 @@ dist/
 storybook-static/
 *.tsbuildinfo
 .turbo/
+.fallow/
 
 # Dependencies
 node_modules/

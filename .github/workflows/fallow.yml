@@ -1,0 +1,102 @@
+name: Fallow
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/*.md'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 13 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: fallow-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache: 'false'
+
+      - name: Fetch Fallow base
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch --no-tags origin "${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+          else
+            git fetch --no-tags origin "main:refs/remotes/origin/main"
+          fi
+
+      - name: Select Fallow base
+        id: base
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "ref=origin/${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=origin/main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Fallow audit
+        shell: bash
+        run: |
+          pnpm exec fallow audit \
+            --changed-since "${{ steps.base.outputs.ref }}" \
+            --format sarif \
+            --fail-on-issues \
+            --quiet > fallow-audit.sarif
+
+      - name: Upload Fallow SARIF
+        if: always() && hashFiles('fallow-audit.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: fallow-audit.sarif
+          category: fallow-audit
+
+      - name: Run Fallow dead-code regression
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          pnpm exec fallow dead-code \
+            --fail-on-regression \
+            --regression-baseline docs/reference/fallow-dead-code-regression-baseline.json \
+            --summary \
+            --no-cache
+
+      - name: Append Fallow summaries
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Fallow report"
+            echo ""
+            echo "### Dead code"
+            echo '```text'
+            pnpm exec fallow dead-code --summary --no-cache || true
+            echo '```'
+            echo ""
+            echo "### Duplication"
+            echo '```text'
+            pnpm exec fallow dupes --summary --no-cache || true
+            echo '```'
+            echo ""
+            echo "### Health"
+            echo '```text'
+            pnpm exec fallow health --score --hotspots --targets --top 10 --no-cache || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

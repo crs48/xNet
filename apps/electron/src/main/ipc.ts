@@ -1,9 +1,9 @@
 import { mkdirSync } from 'fs'
 import { join } from 'path'
 import { ipcMain, safeStorage } from 'electron'
+import { dataPath, profile } from './profile'
 import { clearSeedPhrase, loadSeedPhrase, storeSeedPhrase } from './secure-seed'
 import { SQLiteAdapter } from './storage'
-import { dataPath, profile } from './index'
 
 let storage: SQLiteAdapter | null = null
 

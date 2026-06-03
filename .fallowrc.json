@@ -1,0 +1,43 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/coverage/**",
+    "**/storybook-static/**",
+    "**/*.generated.ts",
+    "patches/**"
+  ],
+  "ignoreDependencies": ["expo-splash-screen", "expo-sqlite"],
+  "dynamicallyLoaded": [
+    "site/src/components/docs/*.astro",
+    "site/src/styles/docs.css",
+    "tests/e2e/harness/*.tsx"
+  ],
+  "rules": {
+    "unused-files": "warn",
+    "unused-exports": "warn",
+    "unused-types": "warn",
+    "private-type-leaks": "off",
+    "unused-dependencies": "warn",
+    "unused-dev-dependencies": "warn",
+    "unused-optional-dependencies": "warn",
+    "unlisted-dependencies": "warn",
+    "circular-dependencies": "warn",
+    "re-export-cycle": "warn",
+    "boundary-violation": "warn",
+    "type-only-dependencies": "warn",
+    "test-only-dependencies": "warn",
+    "stale-suppressions": "error"
+  },
+  "duplicates": {
+    "mode": "mild",
+    "minTokens": 80,
+    "minLines": 12,
+    "threshold": 0
+  },
+  "production": {
+    "deadCode": false,
+    "dupes": false,
+    "health": true
+  }
+}
