@@ -33,6 +33,11 @@ export {
   redactCloudClassifierText
 } from './cloud-classifier'
 export {
+  extractCitationReferences,
+  extractKnowledgeClaims,
+  scoreClaimCitationCoverage
+} from './citation-coverage'
+export {
   assessDuplicateContent,
   canonicalizeContentText,
   compareContentFingerprints,
@@ -96,6 +101,14 @@ export type {
   CloudClassifierSignal,
   CloudPrivacyMode
 } from './cloud-classifier'
+export type {
+  CitationKind,
+  CitationReference,
+  ClaimCitationCoverageAssessment,
+  ClaimCitationCoverageInput,
+  ClaimCitationCoverageOptions,
+  ExtractedClaim
+} from './citation-coverage'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
