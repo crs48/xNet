@@ -1025,7 +1025,7 @@ Every hub should publish:
 - [x] Add usage events for blocked, throttled, reviewed, billable, sponsored, and reciprocal work.
 - [x] Add signed hub policy/service offer documents with moderation settings.
 - [x] Add labeler trust settings and subscription limits per workspace/hub.
-- [ ] Add appeal/contact metadata for public operators.
+- [x] Add appeal/contact metadata for public operators.
 
 ## 🧪 Validation Checklist
 
