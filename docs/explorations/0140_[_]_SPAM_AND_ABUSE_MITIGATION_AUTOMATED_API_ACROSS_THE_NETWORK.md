@@ -1045,7 +1045,7 @@ Every hub should publish:
 - [x] Public-read nodes do not automatically permit comments, reactions, messages, crawling, or
       indexing.
 - [x] User, workspace, hub, and app-view policy produce explainable decisions.
-- [ ] Labels can expire, be negated, be overridden locally, and be traced to a source DID.
+- [x] Labels can expire, be negated, be overridden locally, and be traced to a source DID.
 - [ ] Reports cannot directly hide content unless a policy says the reporter/labeler is trusted.
 - [ ] Hidden content is excluded from counters and ranking when policy requires it.
 - [ ] Appeals can reverse or annotate automated decisions.
