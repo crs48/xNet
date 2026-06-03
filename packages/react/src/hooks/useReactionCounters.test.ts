@@ -136,4 +136,40 @@ describe('reaction counter helpers', () => {
       )
     ).toBe(false)
   })
+
+  it('excludes hidden reactions from public counters while retaining raw counters', () => {
+    const visibleReaction = createReaction('like-visible', 'like', testDID, 1)
+    const hiddenReaction = createReaction('like-hidden', 'like', otherDID, 2)
+    const reactions = [visibleReaction, hiddenReaction]
+    const labels = new Map([
+      [
+        hiddenReaction.id,
+        [
+          {
+            id: 'label-1',
+            target: hiddenReaction.id,
+            value: 'spam',
+            confidence: 0.94,
+            sourceWeight: 1,
+            createdAt: 1
+          }
+        ]
+      ]
+    ])
+    const policy = createPolicy()
+    const visibleReactions = reactions.filter((reaction) =>
+      isReactionVisible(reaction, labels.get(reaction.id) ?? [], policy)
+    )
+
+    expect(createReactionCounterSnapshot(visibleReactions, 0)).toMatchObject({
+      likes: 1,
+      totalReactions: 1,
+      total: 1
+    })
+    expect(createReactionCounterSnapshot(reactions, 0)).toMatchObject({
+      likes: 2,
+      totalReactions: 2,
+      total: 2
+    })
+  })
 })

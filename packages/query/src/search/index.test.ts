@@ -140,6 +140,21 @@ describe('SearchIndex', () => {
       expect(index.search({ text: 'fraud' })).toHaveLength(0)
     })
 
+    it('excludes hidden documents before ranking and result limits', () => {
+      index.add(
+        createTestDoc('hidden', 'page', 'Research Brief', 'research brief repeated repeated', {
+          moderation: {
+            labels: [{ value: 'spam', confidence: 0.96, sourceWeight: 2 }]
+          }
+        })
+      )
+      index.add(createTestDoc('visible', 'page', 'Research Brief', 'research brief'))
+
+      expect(index.search({ text: 'research', limit: 1 }).map((result) => result.id)).toEqual([
+        'visible'
+      ])
+    })
+
     it('lets stronger safe labels override abuse labels', () => {
       index.add(
         createTestDoc('doc-1', 'page', 'Appeal Notes', 'appeal notes', {
