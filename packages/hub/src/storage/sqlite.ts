@@ -238,9 +238,13 @@ const SCHEMA_SQL = `
     language TEXT,
     crawler_did TEXT,
     crawl_time_ms INTEGER,
+    content_fingerprint_json TEXT,
+    content_fingerprint_hash TEXT,
+    content_simhash64 TEXT,
     crawled_at INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_crawl_history_url ON crawl_history(url, crawled_at);
+  CREATE INDEX IF NOT EXISTS idx_crawl_history_fingerprint ON crawl_history(content_fingerprint_hash);
 
   CREATE TABLE IF NOT EXISTS crawl_domains (
     domain TEXT PRIMARY KEY,
@@ -508,6 +512,9 @@ type CrawlHistoryRow = {
   language: string | null
   crawler_did: string | null
   crawl_time_ms: number | null
+  content_fingerprint_json: string | null
+  content_fingerprint_hash: string | null
+  content_simhash64: string | null
   crawled_at: number
 }
 
@@ -607,6 +614,23 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
   if (!existingColumns.has('batch_size')) {
     db.exec('ALTER TABLE node_changes ADD COLUMN batch_size INTEGER')
   }
+
+  const crawlHistoryInfo = db.prepare('PRAGMA table_info(crawl_history)').all() as {
+    name: string
+  }[]
+  const crawlHistoryColumns = new Set(crawlHistoryInfo.map((col) => col.name))
+  if (!crawlHistoryColumns.has('content_fingerprint_json')) {
+    db.exec('ALTER TABLE crawl_history ADD COLUMN content_fingerprint_json TEXT')
+  }
+  if (!crawlHistoryColumns.has('content_fingerprint_hash')) {
+    db.exec('ALTER TABLE crawl_history ADD COLUMN content_fingerprint_hash TEXT')
+  }
+  if (!crawlHistoryColumns.has('content_simhash64')) {
+    db.exec('ALTER TABLE crawl_history ADD COLUMN content_simhash64 TEXT')
+  }
+  db.exec(
+    'CREATE INDEX IF NOT EXISTS idx_crawl_history_fingerprint ON crawl_history(content_fingerprint_hash)'
+  )
 
   const stmts = {
     getDocState: db.prepare('SELECT state FROM doc_state WHERE doc_id = ?'),
@@ -777,10 +801,14 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     getCrawlHistory: db.prepare(`
       SELECT * FROM crawl_history WHERE url = ? ORDER BY crawled_at DESC LIMIT 1
     `),
+    listRecentCrawlHistory: db.prepare(`
+      SELECT * FROM crawl_history ORDER BY crawled_at DESC LIMIT ?
+    `),
     insertCrawlHistory: db.prepare(`
       INSERT INTO crawl_history
-        (url, cid, title, status_code, content_type, language, crawler_did, crawl_time_ms, crawled_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (url, cid, title, status_code, content_type, language, crawler_did, crawl_time_ms,
+         content_fingerprint_json, content_fingerprint_hash, content_simhash64, crawled_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     upsertCrawlDomain: db.prepare(`
       INSERT OR REPLACE INTO crawl_domains
@@ -1481,23 +1509,55 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       .filter((entry) => (domainSet ? domainSet.has(entry.domain) : true))
   }
 
+  const parseCrawlContentFingerprint = (
+    value: string | null
+  ): CrawlHistoryEntry['contentFingerprint'] => {
+    if (!value) return null
+    try {
+      const parsed = JSON.parse(value) as unknown
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        'kind' in parsed &&
+        parsed.kind === 'xnet.content-fingerprint.v1'
+      ) {
+        return parsed as NonNullable<CrawlHistoryEntry['contentFingerprint']>
+      }
+    } catch {
+      return null
+    }
+    return null
+  }
+
+  const rowToCrawlHistory = (row: CrawlHistoryRow): CrawlHistoryEntry => ({
+    url: row.url,
+    cid: row.cid,
+    title: row.title ?? '',
+    statusCode: row.status_code ?? 0,
+    contentType: row.content_type ?? '',
+    language: row.language ?? '',
+    crawlerDid: row.crawler_did ?? '',
+    crawlTimeMs: row.crawl_time_ms ?? 0,
+    crawledAt: row.crawled_at,
+    contentFingerprint: parseCrawlContentFingerprint(row.content_fingerprint_json)
+  })
+
   const getCrawlHistory = async (url: string): Promise<CrawlHistoryEntry | null> => {
     const row = stmts.getCrawlHistory.get(url) as CrawlHistoryRow | undefined
-    if (!row) return null
-    return {
-      url: row.url,
-      cid: row.cid,
-      title: row.title ?? '',
-      statusCode: row.status_code ?? 0,
-      contentType: row.content_type ?? '',
-      language: row.language ?? '',
-      crawlerDid: row.crawler_did ?? '',
-      crawlTimeMs: row.crawl_time_ms ?? 0,
-      crawledAt: row.crawled_at
-    }
+    return row ? rowToCrawlHistory(row) : null
+  }
+
+  const listRecentCrawlHistory = async (options?: {
+    limit?: number
+  }): Promise<CrawlHistoryEntry[]> => {
+    const rows = stmts.listRecentCrawlHistory.all(options?.limit ?? 100) as CrawlHistoryRow[]
+    return rows.map(rowToCrawlHistory)
   }
 
   const appendCrawlHistory = async (entry: CrawlHistoryEntry): Promise<void> => {
+    const fingerprintJson = entry.contentFingerprint
+      ? JSON.stringify(entry.contentFingerprint)
+      : null
     stmts.insertCrawlHistory.run(
       entry.url,
       entry.cid,
@@ -1507,6 +1567,9 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       entry.language,
       entry.crawlerDid,
       entry.crawlTimeMs,
+      fingerprintJson,
+      entry.contentFingerprint?.textHash ?? null,
+      entry.contentFingerprint?.simHash64 ?? null,
       entry.crawledAt
     )
   }
@@ -2053,6 +2116,7 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     upsertCrawlQueue,
     getQueuedUrls,
     getCrawlHistory,
+    listRecentCrawlHistory,
     appendCrawlHistory,
     upsertCrawlDomainState,
     getCrawlDomainState,

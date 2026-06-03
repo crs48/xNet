@@ -440,6 +440,15 @@ export const createMemoryStorage = (): HubStorage => {
   const getCrawlHistory = async (url: string): Promise<CrawlHistoryEntry | null> =>
     crawlHistory.get(url) ?? null
 
+  const listRecentCrawlHistory = async (options?: {
+    limit?: number
+  }): Promise<CrawlHistoryEntry[]> => {
+    const limit = options?.limit ?? 100
+    return Array.from(crawlHistory.values())
+      .sort((a, b) => b.crawledAt - a.crawledAt)
+      .slice(0, limit)
+  }
+
   const appendCrawlHistory = async (entry: CrawlHistoryEntry): Promise<void> => {
     crawlHistory.set(entry.url, entry)
   }
@@ -807,6 +816,7 @@ export const createMemoryStorage = (): HubStorage => {
     upsertCrawlQueue,
     getQueuedUrls,
     getCrawlHistory,
+    listRecentCrawlHistory,
     appendCrawlHistory,
     upsertCrawlDomainState,
     getCrawlDomainState,

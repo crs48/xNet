@@ -2,6 +2,8 @@
  * @xnetjs/hub - Storage interface for hub persistence.
  */
 
+import type { ContentFingerprint } from '@xnetjs/abuse'
+
 export type BlobMeta = {
   key: string
   docId: string
@@ -200,6 +202,7 @@ export type CrawlHistoryEntry = {
   crawlerDid: string
   crawlTimeMs: number
   crawledAt: number
+  contentFingerprint?: ContentFingerprint | null
 }
 
 export type CrawlDomainState = {
@@ -389,6 +392,7 @@ export type HubStorage = {
     domains?: string[]
   }) => Promise<CrawlQueueEntry[]>
   getCrawlHistory: (url: string) => Promise<CrawlHistoryEntry | null>
+  listRecentCrawlHistory: (options?: { limit?: number }) => Promise<CrawlHistoryEntry[]>
   appendCrawlHistory: (entry: CrawlHistoryEntry) => Promise<void>
   upsertCrawlDomainState: (state: CrawlDomainState) => Promise<void>
   getCrawlDomainState: (domain: string) => Promise<CrawlDomainState | null>

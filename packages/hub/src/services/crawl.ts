@@ -11,7 +11,9 @@ import type {
   CrawlerProfile,
   HubStorage
 } from '../storage/interface'
+import type { ContentFingerprint, DuplicateContentOptions } from '@xnetjs/abuse'
 import { randomUUID } from 'node:crypto'
+import { assessDuplicateContent, createContentFingerprint } from '@xnetjs/abuse'
 import { validateExternalUrl } from '../utils/url'
 
 export interface CrawlTask {
@@ -48,6 +50,7 @@ export type CrawlQualitySignals = {
   slopScore?: number
   provenanceScore?: number
   sourceReputation?: number
+  contentFingerprint?: ContentFingerprint
 }
 
 export type CrawlDomainPolicy = {
@@ -73,6 +76,8 @@ export type CrawlConfig = {
   minCrawlerReputation?: number
   maxDuplicateScoreForIndex?: number
   maxSlopScoreForIndex?: number
+  duplicateReferenceLimit?: number
+  duplicateDetection?: DuplicateContentOptions
 }
 
 export type CrawlIngestionDecision = {
@@ -97,8 +102,10 @@ export function evaluateCrawlIngestion(input: {
     'minCrawlerReputation' | 'maxDuplicateScoreForIndex' | 'maxSlopScoreForIndex'
   >
 }): CrawlIngestionDecision {
-  const duplicateScore =
-    input.lastHistory?.cid === input.result.cid ? 1 : clamp01(input.result.quality?.duplicateScore)
+  const duplicateScore = Math.max(
+    input.lastHistory?.cid === input.result.cid ? 1 : 0,
+    clamp01(input.result.quality?.duplicateScore)
+  )
   const slopScore = clamp01(input.result.quality?.slopScore)
   const provenanceScore = clamp01(input.result.quality?.provenanceScore ?? 1)
   const sourceReputation = normalizeReputation(
@@ -286,11 +293,36 @@ export class CrawlCoordinator {
       this.activeUrls.delete(task.url)
 
       const lastHistory = await this.storage.getCrawlHistory(result.url)
+      const recentHistory = await this.storage.listRecentCrawlHistory({
+        limit: this.config.duplicateReferenceLimit ?? 50
+      })
+      const contentFingerprint =
+        result.quality?.contentFingerprint ??
+        createContentFingerprint(
+          { title: result.title, body: result.body },
+          this.config.duplicateDetection
+        )
+      const duplicateAssessment = assessDuplicateContent(
+        contentFingerprint,
+        crawlReferenceFingerprints(recentHistory, lastHistory),
+        this.config.duplicateDetection
+      )
+      const evaluatedResult: CrawlResult = {
+        ...result,
+        quality: {
+          ...result.quality,
+          contentFingerprint,
+          duplicateScore: Math.max(
+            clamp01(result.quality?.duplicateScore),
+            duplicateAssessment.duplicateScore
+          )
+        }
+      }
       const crawler = await this.storage.getCrawler(result.crawlerDid)
       const domainState = await this.getDomainState(task.domain)
       const domainPolicy = this.getDomainPolicy(task.domain)
       const decision = evaluateCrawlIngestion({
-        result,
+        result: evaluatedResult,
         task,
         lastHistory,
         crawler,
@@ -306,33 +338,35 @@ export class CrawlCoordinator {
         quarantined += 1
       } else {
         await this.shardIngest.ingest({
-          cid: result.cid,
-          url: result.url,
-          title: result.title,
-          body: result.body,
-          language: result.language,
-          indexedAt: result.crawledAt,
+          cid: evaluatedResult.cid,
+          url: evaluatedResult.url,
+          title: evaluatedResult.title,
+          body: evaluatedResult.body,
+          language: evaluatedResult.language,
+          indexedAt: evaluatedResult.crawledAt,
           tags: decision.reasons,
           searchScoreMultiplier: decision.searchScoreMultiplier
         })
         indexed += 1
       }
 
-      await this.storage.appendCrawlHistory(this.toHistoryEntry(result))
+      await this.storage.appendCrawlHistory(
+        this.toHistoryEntry(evaluatedResult, contentFingerprint)
+      )
       await this.storage.upsertCrawlQueue({
-        url: result.url,
+        url: evaluatedResult.url,
         domain: task.domain,
         priority: task.priority,
-        language: result.language,
+        language: evaluatedResult.language,
         crawlCount: task.crawlCount + 1,
-        lastCid: result.cid,
-        lastCrawledAt: result.crawledAt,
+        lastCid: evaluatedResult.cid,
+        lastCrawledAt: evaluatedResult.crawledAt,
         enqueuedAt: Date.now()
       })
 
-      await this.seedUrls(result.outLinks, Math.max(task.priority - 1, 1))
-      await this.updateCrawlerStats(result.crawlerDid, result.statusCode)
-      await this.updateDomainState(task.domain, result.crawledAt)
+      await this.seedUrls(evaluatedResult.outLinks, Math.max(task.priority - 1, 1))
+      await this.updateCrawlerStats(evaluatedResult.crawlerDid, evaluatedResult.statusCode)
+      await this.updateDomainState(task.domain, evaluatedResult.crawledAt)
     }
 
     return {
@@ -421,7 +455,10 @@ export class CrawlCoordinator {
     }
   }
 
-  private toHistoryEntry(result: CrawlResult): CrawlHistoryEntry {
+  private toHistoryEntry(
+    result: CrawlResult,
+    contentFingerprint: ContentFingerprint
+  ): CrawlHistoryEntry {
     return {
       url: result.url,
       cid: result.cid,
@@ -431,7 +468,8 @@ export class CrawlCoordinator {
       language: result.language,
       crawlerDid: result.crawlerDid,
       crawlTimeMs: result.crawlTimeMs,
-      crawledAt: result.crawledAt
+      crawledAt: result.crawledAt,
+      contentFingerprint
     }
   }
 
@@ -455,6 +493,19 @@ export class CrawlCoordinator {
       }
     }
   }
+}
+
+function crawlReferenceFingerprints(
+  recentHistory: readonly CrawlHistoryEntry[],
+  lastHistory: CrawlHistoryEntry | null
+): ContentFingerprint[] {
+  const byHash = new Map<string, ContentFingerprint>()
+  for (const entry of [...recentHistory, ...(lastHistory ? [lastHistory] : [])]) {
+    if (entry.contentFingerprint) {
+      byHash.set(entry.contentFingerprint.textHash, entry.contentFingerprint)
+    }
+  }
+  return Array.from(byHash.values())
 }
 
 function createCrawlDecision(

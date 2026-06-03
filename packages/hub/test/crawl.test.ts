@@ -250,6 +250,55 @@ describe('Crawl Coordinator', () => {
     expect(summary2.indexed).toBe(0)
   })
 
+  it('deduplicates near-duplicate crawled content by fingerprint', async () => {
+    const { storage, ingest } = await createShardSetup()
+    const coordinator = new CrawlCoordinator(
+      storage,
+      ingest,
+      { ...baseCrawlConfig, domainCooldownMs: 0, maxDuplicateScoreForIndex: 0.7 },
+      { isAllowed: async () => true } as any
+    )
+
+    await coordinator.registerCrawler({
+      did: 'did:key:crawler1',
+      type: 'desktop',
+      capacity: 2,
+      languages: ['en'],
+      reputation: 50,
+      totalCrawled: 0,
+      registeredAt: Date.now()
+    })
+
+    await coordinator.seedUrls(['https://near.com/original'])
+    const originalTasks = await coordinator.getNextTasks('did:key:crawler1', 1)
+    const originalSummary = await coordinator.submitResults([
+      createResult(originalTasks[0]!, {
+        url: 'https://near.com/original',
+        cid: 'cid:blake3:original',
+        title: 'Crawler Abuse Controls',
+        body: 'Local-first networks should rate limit public writes, verify signatures, and quarantine first-contact messages.'
+      })
+    ])
+
+    await coordinator.seedUrls(['https://near.com/repost'])
+    const repostTasks = await coordinator.getNextTasks('did:key:crawler1', 2)
+    const repostTask = repostTasks.find((task) => task.url === 'https://near.com/repost')
+    const repostSummary = await coordinator.submitResults([
+      createResult(repostTask!, {
+        url: 'https://near.com/repost',
+        cid: 'cid:blake3:repost',
+        title: 'Crawler Abuse Controls',
+        body: 'Local-first networks should rate limit public writes, verify signatures, and quarantine first-contact messages. Operators can review appeals.'
+      })
+    ])
+    const repostHistory = await storage.getCrawlHistory('https://near.com/repost')
+
+    expect(originalSummary.indexed).toBe(1)
+    expect(repostSummary.indexed).toBe(0)
+    expect(repostSummary.skipped).toBe(1)
+    expect(repostHistory?.contentFingerprint?.kind).toBe('xnet.content-fingerprint.v1')
+  })
+
   it('evaluates crawl admission from domain policy and quality signals', () => {
     const task = createTask()
 
