@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createConnectionManager } from './connection-manager'
+import { createConnectionManager, createMultiHubConnectionManager } from './connection-manager'
 
 type SocketHandler<T> = ((event: T) => void) | null
 
@@ -139,5 +139,112 @@ describe('createConnectionManager', () => {
 
     await readyPromise
     expect(ready).toBe(true)
+  })
+})
+
+describe('createMultiHubConnectionManager', () => {
+  const originalWebSocket = globalThis.WebSocket
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    MockWebSocket.instances = []
+    globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket
+  })
+
+  afterEach(() => {
+    globalThis.WebSocket = originalWebSocket
+    vi.useRealTimers()
+  })
+
+  it('fans out subscriptions and publishes across hubs', async () => {
+    const manager = createMultiHubConnectionManager({
+      hubs: [{ url: 'ws://hub-a.example.net' }, { url: 'ws://hub-b.example.net' }]
+    })
+    const statuses: string[] = []
+    const handler = vi.fn()
+
+    manager.onStatus((status) => {
+      statuses.push(status)
+    })
+    manager.connect()
+    await Promise.resolve()
+
+    const [hubA, hubB] = MockWebSocket.instances
+    expect(hubA?.url).toBe('ws://hub-a.example.net')
+    expect(hubB?.url).toBe('ws://hub-b.example.net')
+
+    hubA.emitOpen()
+    hubB.emitOpen()
+    expect(statuses.at(-1)).toBe('connected')
+
+    const subscription = manager.joinRoomAsync('xnet-doc-node-1', handler)
+    expect(parseMessages(hubA)).toContainEqual({
+      type: 'subscribe',
+      topics: ['xnet-doc-node-1']
+    })
+    expect(parseMessages(hubB)).toContainEqual({
+      type: 'subscribe',
+      topics: ['xnet-doc-node-1']
+    })
+
+    hubA.emitMessage({
+      type: 'subscribed',
+      topics: ['xnet-doc-node-1']
+    })
+    hubB.emitMessage({
+      type: 'subscribed',
+      topics: ['xnet-doc-node-1']
+    })
+    await subscription.ready
+
+    hubA.emitMessage({
+      type: 'publish',
+      topic: 'xnet-doc-node-1',
+      data: { type: 'sync-step1', from: 'peer-a' }
+    })
+
+    expect(handler).toHaveBeenCalledWith({ type: 'sync-step1', from: 'peer-a' })
+
+    manager.publish('xnet-doc-node-1', { type: 'sync-update', from: 'local' })
+    expect(parseMessages(hubA)).toContainEqual({
+      type: 'publish',
+      topic: 'xnet-doc-node-1',
+      data: { type: 'sync-update', from: 'local' }
+    })
+    expect(parseMessages(hubB)).toContainEqual({
+      type: 'publish',
+      topic: 'xnet-doc-node-1',
+      data: { type: 'sync-update', from: 'local' }
+    })
+
+    expect(manager.roomCount).toBe(1)
+    subscription.unsubscribe()
+    expect(manager.roomCount).toBe(0)
+  })
+
+  it('stays logically connected while any hub remains connected', async () => {
+    const manager = createMultiHubConnectionManager({
+      hubs: [{ url: 'ws://hub-a.example.net' }, { url: 'ws://hub-b.example.net' }]
+    })
+    const statuses: string[] = []
+
+    manager.onStatus((status) => {
+      statuses.push(status)
+    })
+    manager.connect()
+    await Promise.resolve()
+
+    const [hubA, hubB] = MockWebSocket.instances
+    hubA.emitOpen()
+    hubB.emitOpen()
+    expect(manager.status).toBe('connected')
+
+    hubA.emitClose()
+    expect(manager.status).toBe('connected')
+    expect(statuses.at(-1)).toBe('connected')
+
+    hubB.emitClose()
+    expect(manager.status).toBe('disconnected')
+    expect(statuses.at(-1)).toBe('disconnected')
   })
 })

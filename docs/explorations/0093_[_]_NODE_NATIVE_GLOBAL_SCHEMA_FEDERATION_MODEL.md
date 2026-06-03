@@ -422,10 +422,10 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Phase 5 - Multi-hub orchestration
 
-- [ ] Add first-class multi-hub sync orchestration (not single-server fallback selection).
+- [x] Add first-class multi-hub sync orchestration (not single-server fallback selection).
 - [x] Implement policy planner for system and user namespace destinations.
 - [x] Add simulation endpoint/tooling for policy revisions.
-- [ ] Add reconciliation and repair workflow for partition recovery.
+- [x] Add reconciliation and repair workflow for partition recovery.
 
 ### Phase 6 - Developer experience and docs
 
@@ -461,7 +461,7 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Resilience validation
 
-- [ ] Offline mutations replay correctly on reconnect.
+- [x] Offline mutations replay correctly on reconnect.
 - [ ] Partitioned hubs converge after healing.
 - [ ] Duplicate/out-of-order deliveries converge deterministically.
 - [ ] Full index rebuild from change log reproduces live indexes.

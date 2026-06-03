@@ -476,6 +476,8 @@ export {
   createSyncManager,
   type SyncManager,
   type SyncManagerConfig,
+  type SyncReconciliationOptions,
+  type SyncReconciliationReport,
   type SyncStatus as SyncManagerStatus
 } from './sync/sync-manager'
 
@@ -490,8 +492,10 @@ export {
 
 export {
   createConnectionManager,
+  createMultiHubConnectionManager,
   type ConnectionManager,
   type ConnectionManagerConfig,
+  type MultiHubConnectionManagerConfig,
   type ConnectionStatus
 } from './sync/connection-manager'
 

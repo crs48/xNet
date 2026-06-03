@@ -36,6 +36,13 @@ function createSyncManagerStub(): SyncManager {
     onAwarenessSnapshot: vi.fn(() => () => {}),
     requestBlobs: vi.fn(async () => undefined),
     announceBlobs: vi.fn(),
+    reconcile: vi.fn(async () => ({
+      reason: 'manual' as const,
+      replayedOfflineChanges: 0,
+      repairedNodeIds: [],
+      skippedNodeIds: [],
+      at: 0
+    })),
     status: 'connected',
     lifecycle: CONNECTED_LIFECYCLE,
     poolSize: 0,
@@ -43,6 +50,7 @@ function createSyncManagerStub(): SyncManager {
     queueSize: 0,
     pendingBlobCount: 0,
     lastVerificationFailure: null,
+    lastReconciliationReport: null,
     on: vi.fn(() => () => {})
   }
 }

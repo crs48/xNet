@@ -12,7 +12,11 @@
  * which broadcasts it over WebSocket to other peers.
  */
 
-import type { SyncManager } from '@xnetjs/react'
+import type {
+  SyncManager,
+  SyncReconciliationOptions,
+  SyncReconciliationReport
+} from '@xnetjs/react'
 import type { SyncLifecycleInput, SyncLifecycleState, SyncReplicationConfig } from '@xnetjs/sync'
 import { createYWebRTCProvider, type YWebRTCProvider } from '@xnetjs/network'
 import { createSyncLifecycleState } from '@xnetjs/sync'
@@ -27,6 +31,7 @@ import * as Y from 'yjs'
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type StatusHandler = (status: ConnectionStatus) => void
 type LifecycleHandler = (state: SyncLifecycleState) => void
+type ReconciliationHandler = (report: SyncReconciliationReport) => void
 type AwarenessSnapshotHandler = Parameters<SyncManager['onAwarenessSnapshot']>[1]
 type AwarenessSnapshotUsers = Parameters<AwarenessSnapshotHandler>[0]
 type DocType = 'page' | 'database' | 'canvas'
@@ -80,6 +85,7 @@ export function createIPCSyncManager(): IPCSyncManager {
   let previousStatus: ConnectionStatus = 'disconnected'
   const statusListeners = new Set<StatusHandler>()
   const lifecycleListeners = new Set<LifecycleHandler>()
+  const reconciliationListeners = new Set<ReconciliationHandler>()
   let lifecycleInput: SyncLifecycleInput = {
     started: false,
     stopped: false,
@@ -90,6 +96,7 @@ export function createIPCSyncManager(): IPCSyncManager {
   }
   let lifecycle = createSyncLifecycleState(lifecycleInput)
   let statusCleanup: (() => void) | null = null
+  let lastReconciliationReport: SyncReconciliationReport | null = null
   let instrumentedEventBus: DevToolsEventBus | null = null
   let statusPollInterval: ReturnType<typeof setInterval> | null = null
   let bsmStartOptions: {
@@ -260,6 +267,16 @@ export function createIPCSyncManager(): IPCSyncManager {
         handler(users)
       } catch {
         // Listener errors don't break the manager
+      }
+    }
+  }
+
+  function emitReconciliationReport(report: SyncReconciliationReport): void {
+    for (const handler of reconciliationListeners) {
+      try {
+        handler(report)
+      } catch {
+        // Listener errors don't break reconciliation reporting.
       }
     }
   }
@@ -543,6 +560,27 @@ export function createIPCSyncManager(): IPCSyncManager {
       window.xnetBSM.announceBlobs(cids)
     },
 
+    async reconcile(options: SyncReconciliationOptions = {}) {
+      const nodeIds = options.nodeIds ?? Array.from(trackedSchemas.keys())
+      for (const nodeId of nodeIds) {
+        const schemaId = trackedSchemas.get(nodeId)
+        if (schemaId) {
+          window.xnetBSM.track(nodeId, schemaId)
+        }
+      }
+
+      lastReconciliationReport = {
+        reason: options.reason ?? 'manual',
+        replayedOfflineChanges: 0,
+        repairedNodeIds: nodeIds.filter((nodeId) => trackedSchemas.has(nodeId)),
+        skippedNodeIds: nodeIds.filter((nodeId) => !trackedSchemas.has(nodeId)),
+        at: Date.now()
+      }
+      emitReconciliationReport(lastReconciliationReport)
+
+      return lastReconciliationReport
+    },
+
     get status() {
       return currentStatus
     },
@@ -561,6 +599,12 @@ export function createIPCSyncManager(): IPCSyncManager {
     get pendingBlobCount() {
       return 0 // Managed by main process
     },
+    get lastVerificationFailure() {
+      return null
+    },
+    get lastReconciliationReport() {
+      return lastReconciliationReport
+    },
 
     on(event, handler) {
       if (event === 'status') {
@@ -572,6 +616,11 @@ export function createIPCSyncManager(): IPCSyncManager {
         const lifecycleHandler = handler as (state: SyncLifecycleState) => void
         lifecycleListeners.add(lifecycleHandler)
         return () => lifecycleListeners.delete(lifecycleHandler)
+      }
+      if (event === 'reconciliation') {
+        const reconciliationHandler = handler as ReconciliationHandler
+        reconciliationListeners.add(reconciliationHandler)
+        return () => reconciliationListeners.delete(reconciliationHandler)
       }
       return () => {}
     },
