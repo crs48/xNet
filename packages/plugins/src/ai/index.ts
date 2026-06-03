@@ -48,7 +48,13 @@ export { ScriptGenerator, ScriptGenerationError, generateScript } from './genera
 export type { AIScriptResponse, ScriptGeneratorOptions } from './generator'
 
 // Agent runtime
-export { AiAgentRuntime, createAiAgentRuntime, createMemoryAiAgentRuntimeStorage } from './runtime'
+export {
+  AiAgentRuntime,
+  classifyAiAgentDisplayState,
+  createAiAgentRuntime,
+  createMemoryAiAgentRuntimeStorage,
+  renderSelectionPrompt
+} from './runtime'
 export type {
   AiAgentApproval,
   AiAgentApprovalRequestInput,
@@ -58,15 +64,20 @@ export type {
   AiAgentBackgroundJobInput,
   AiAgentBackgroundJobRunner,
   AiAgentBackgroundJobStatus,
+  AiAgentDisplayState,
+  AiAgentDisplayStateKind,
   AiAgentEvent,
   AiAgentEventType,
   AiAgentOrchestratorMode,
+  AiAgentRunSelectionTurnInput,
   AiAgentRunTurnInput,
   AiAgentRunTurnResult,
   AiAgentRuntimeConfig,
   AiAgentRuntimeListener,
   AiAgentRuntimeSnapshot,
   AiAgentRuntimeStorage,
+  AiAgentSelectionContext,
+  AiAgentSelectionKind,
   AiAgentTelemetrySnapshot,
   AiAgentThread,
   AiAgentThreadCreateInput,

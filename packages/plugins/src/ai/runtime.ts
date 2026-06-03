@@ -157,6 +157,26 @@ export type AiAgentRunTurnInput = {
   metadata?: Record<string, unknown>
 }
 
+export type AiAgentSelectionKind = 'page-text' | 'database-rows' | 'canvas-objects' | 'nodes'
+
+export type AiAgentSelectionContext = {
+  kind: AiAgentSelectionKind
+  label?: string
+  pageId?: string
+  databaseId?: string
+  canvasId?: string
+  nodeIds?: string[]
+  rowIds?: string[]
+  objectIds?: string[]
+  text?: string
+  range?: { from: number; to: number }
+}
+
+export type AiAgentRunSelectionTurnInput = Omit<AiAgentRunTurnInput, 'content'> & {
+  instruction: string
+  selection: AiAgentSelectionContext
+}
+
 export type AiAgentRunTurnResult = {
   runId: string
   userTurn: AiAgentTurn
@@ -184,6 +204,16 @@ export type AiAgentBackgroundJobInput = {
 export type AiAgentBackgroundJobRunner = (signal: AbortSignal) => Promise<unknown>
 
 export type AiAgentRuntimeListener = (event: AiAgentEvent, snapshot: AiAgentRuntimeSnapshot) => void
+
+export type AiAgentDisplayStateKind = 'read-only-answer' | 'proposed-change' | 'applied-change'
+
+export type AiAgentDisplayState = {
+  kind: AiAgentDisplayStateKind
+  label: string
+  planId?: string
+  approvalId?: string
+  auditEventId?: string
+}
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -317,6 +347,19 @@ export class AiAgentRuntime {
     })
 
     return { runId, userTurn, assistantTurn }
+  }
+
+  async runSelectionTurn(input: AiAgentRunSelectionTurnInput): Promise<AiAgentRunTurnResult> {
+    return await this.runTurn({
+      threadId: input.threadId,
+      content: renderSelectionPrompt(input.instruction, input.selection),
+      request: input.request,
+      metadata: {
+        ...input.metadata,
+        selection: input.selection,
+        entryPoint: 'current-selection'
+      }
+    })
   }
 
   async cancelRun(runId: string): Promise<boolean> {
@@ -813,6 +856,59 @@ export function createMemoryAiAgentRuntimeStorage(
 }
 
 // ─── Pure Helpers ───────────────────────────────────────────────────────────
+
+export function renderSelectionPrompt(
+  instruction: string,
+  selection: AiAgentSelectionContext
+): string {
+  const lines = [
+    instruction.trim(),
+    '',
+    'Current xNet selection:',
+    `- kind: ${selection.kind}`,
+    ...(selection.label ? [`- label: ${selection.label}`] : []),
+    ...(selection.pageId ? [`- pageId: ${selection.pageId}`] : []),
+    ...(selection.databaseId ? [`- databaseId: ${selection.databaseId}`] : []),
+    ...(selection.canvasId ? [`- canvasId: ${selection.canvasId}`] : []),
+    ...(selection.nodeIds?.length ? [`- nodeIds: ${selection.nodeIds.join(', ')}`] : []),
+    ...(selection.rowIds?.length ? [`- rowIds: ${selection.rowIds.join(', ')}`] : []),
+    ...(selection.objectIds?.length ? [`- objectIds: ${selection.objectIds.join(', ')}`] : []),
+    ...(selection.range ? [`- range: ${selection.range.from}-${selection.range.to}`] : []),
+    ...(selection.text ? ['', 'Selected text:', selection.text] : [])
+  ]
+
+  return lines.join('\n')
+}
+
+export function classifyAiAgentDisplayState(input: {
+  plan?: AiMutationPlan
+  approval?: AiAgentApproval
+  auditEventId?: string
+}): AiAgentDisplayState {
+  if (input.auditEventId || input.plan?.status === 'applied') {
+    return {
+      kind: 'applied-change',
+      label: 'Applied change',
+      ...(input.plan?.id ? { planId: input.plan.id } : {}),
+      ...(input.approval?.id ? { approvalId: input.approval.id } : {}),
+      ...(input.auditEventId ? { auditEventId: input.auditEventId } : {})
+    }
+  }
+
+  if (input.plan || input.approval) {
+    return {
+      kind: 'proposed-change',
+      label: 'Proposed change',
+      ...(input.plan?.id ? { planId: input.plan.id } : {}),
+      ...(input.approval?.id ? { approvalId: input.approval.id } : {})
+    }
+  }
+
+  return {
+    kind: 'read-only-answer',
+    label: 'Read-only answer'
+  }
+}
 
 function createGenerateRequest(
   content: string,

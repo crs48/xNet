@@ -2,11 +2,13 @@
  * Tests for the AI workspace exporter.
  */
 
+import type { AIProvider } from '../ai/providers'
 import type { NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
 import { mkdtemp, readFile, rm, unlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { createAiAgentRuntime } from '../ai/runtime'
 import {
   createAiWorkspaceExporter,
   createAiWorkspaceWatcher
@@ -113,6 +115,28 @@ function createMockSchemas(): SchemaRegistryAPI {
     getAllIRIs: () => Array.from(schemas.keys()),
     get: async (iri) => schemas.get(iri) ?? null
   }
+}
+
+const noopProvider: AIProvider = {
+  name: 'NoopProvider',
+  getCapabilities: () => ({
+    tools: false,
+    structuredOutputs: false,
+    streaming: false,
+    contextWindow: 8_000,
+    local: true,
+    privacy: 'local',
+    quality: 'local'
+  }),
+  generate: async () => ''
+}
+
+async function waitFor(predicate: () => boolean): Promise<void> {
+  for (let index = 0; index < 20; index += 1) {
+    if (predicate()) return
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  throw new Error('Timed out waiting for async export job')
 }
 
 describe('AiWorkspaceExporter', () => {
@@ -243,6 +267,74 @@ describe('AiWorkspaceExporter', () => {
     expect(first.manifestEntries[0].path).toContain('page_1')
     expect(second.manifestEntries[0].path).toContain('page_1')
     expect(second.manifestEntries[0].path).toBe('Pages/New-Title--page_1.md')
+  })
+
+  it('runs full workspace export as a background incremental job', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Page One', markdown: 'Body one' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      },
+      {
+        id: 'page_2',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Page Two', markdown: 'Body two' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 20
+      }
+    ])
+    const exporter = createAiWorkspaceExporter({
+      store,
+      schemas: createMockSchemas(),
+      clock: () => new Date('2026-06-02T12:00:00.000Z')
+    })
+    await exporter.exportWorkspace({
+      rootDir,
+      scope: { nodeIds: ['page_1', 'page_2'] }
+    })
+    store.setNode('page_2', { markdown: 'Updated body two' })
+    const runtime = createAiAgentRuntime({
+      provider: noopProvider,
+      clock: () => new Date('2026-06-02T12:00:00.000Z')
+    })
+
+    const job = await runtime.startBackgroundJob(
+      {
+        kind: 'export',
+        title: 'Incremental AI workspace export',
+        metadata: { incremental: true, rootDir }
+      },
+      async () =>
+        exporter.exportWorkspaceIncremental({
+          rootDir,
+          scope: { nodeIds: ['page_1', 'page_2'] }
+        })
+    )
+
+    await waitFor(() => runtime.getSnapshot().telemetry.backgroundJobsCompleted === 1)
+    const completed = runtime
+      .getSnapshot()
+      .backgroundJobs.find((candidate) => candidate.id === job.id)
+    const result = completed?.result as {
+      incremental: boolean
+      skippedNodeIds: string[]
+      manifestEntries: Array<{ id: string; revision: string }>
+    }
+
+    expect(completed).toMatchObject({ status: 'completed' })
+    expect(result.incremental).toBe(true)
+    expect(result.skippedNodeIds).toEqual(['page_1'])
+    expect(result.manifestEntries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'page_1', revision: 'updatedAt:10' }),
+        expect.objectContaining({ id: 'page_2', revision: 'updatedAt:21' })
+      ])
+    )
   })
 
   it('turns changed page, database, and canvas projection files into pending mutation plans', async () => {

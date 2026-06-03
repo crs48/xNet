@@ -1400,13 +1400,13 @@ Workspace:
 
 ### Performance Validation
 
-- [ ] Workspace summary stays under the target latency budget.
-- [ ] Page Markdown export/import handles large docs within existing Markdown IO budgets.
-- [ ] Database queries use query descriptors and avoid in-memory full-list scans.
+- [x] Workspace summary stays under the target latency budget.
+- [x] Page Markdown export/import handles large docs within existing Markdown IO budgets.
+- [x] Database queries use query descriptors and avoid in-memory full-list scans.
 - [x] Large database tools paginate and sample correctly.
 - [x] Canvas reads use viewport/tile/spatial scoping.
-- [ ] Full workspace export runs as a background incremental job.
-- [ ] MCP tool outputs stay below configured token/character limits.
+- [x] Full workspace export runs as a background incremental job.
+- [x] MCP tool outputs stay below configured token/character limits.
 
 ### Safety Validation
 
@@ -1425,8 +1425,8 @@ Workspace:
 - [x] Generated `AGENTS.md` explains file conventions clearly.
 - [x] Pending file edits show as native diffs in xNet.
 - [x] Users can approve, reject, or request revision.
-- [ ] In-app AI can operate on the current selection without extra setup.
-- [ ] The UI clearly distinguishes read-only answers, proposed changes, and applied changes.
+- [x] In-app AI can operate on the current selection without extra setup.
+- [x] The UI clearly distinguishes read-only answers, proposed changes, and applied changes.
 
 ## Example Contracts
 

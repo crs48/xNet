@@ -5,8 +5,10 @@
 import type { AIGenerateRequest, AIProvider, AIStreamChunk } from '../ai/providers'
 import { describe, expect, it } from 'vitest'
 import {
+  classifyAiAgentDisplayState,
   createAiAgentRuntime,
   createMemoryAiAgentRuntimeStorage,
+  renderSelectionPrompt,
   type AiAgentRuntimeSnapshot
 } from '../ai/runtime'
 import { createAiOperation, type AiMutationPlan } from '../ai-surface'
@@ -211,5 +213,79 @@ describe('AiAgentRuntime', () => {
       result: { files: 4 }
     })
     expect(snapshot.events.some((event) => event.type === 'background.completed')).toBe(true)
+  })
+
+  it('runs in-app turns against the current selection without extra setup', async () => {
+    const runtime = createAiAgentRuntime({
+      provider: new StreamingProvider([
+        {
+          type: 'text',
+          text: 'Selection handled',
+          provider: 'StreamingMock',
+          model: 'mock-stream'
+        },
+        { type: 'done', provider: 'StreamingMock', model: 'mock-stream' }
+      ]),
+      clock: () => new Date('2026-06-02T12:00:00.000Z')
+    })
+    const thread = await runtime.createThread({ title: 'Inline action' })
+
+    const { userTurn } = await runtime.runSelectionTurn({
+      threadId: thread.id,
+      instruction: 'Rewrite this selection',
+      selection: {
+        kind: 'canvas-objects',
+        canvasId: 'canvas_1',
+        objectIds: ['obj_a', 'obj_b'],
+        label: 'Two planning cards'
+      }
+    })
+
+    await waitFor(() => runtime.getSnapshot().telemetry.runsCompleted === 1)
+    const snapshot = runtime.getSnapshot()
+    const assistantTurn = snapshot.turns.find((turn) => turn.role === 'assistant')
+
+    expect(userTurn.content).toContain('Current xNet selection')
+    expect(userTurn.metadata).toMatchObject({
+      entryPoint: 'current-selection',
+      selection: { canvasId: 'canvas_1', objectIds: ['obj_a', 'obj_b'] }
+    })
+    expect(assistantTurn?.content).toBe('Selection handled')
+  })
+
+  it('classifies read-only, proposed, and applied AI display states for UI surfaces', () => {
+    const plan = createPlan()
+    const approval = {
+      id: 'approval_1',
+      threadId: 'thread_1',
+      planId: plan.id,
+      risk: plan.risk,
+      requiredScopes: plan.requiredScopes,
+      status: 'pending' as const,
+      createdAt: '2026-06-02T12:00:00.000Z',
+      plan
+    }
+
+    expect(renderSelectionPrompt('Summarize', { kind: 'page-text', pageId: 'page_1' })).toContain(
+      'pageId: page_1'
+    )
+    expect(classifyAiAgentDisplayState({})).toMatchObject({ kind: 'read-only-answer' })
+    expect(classifyAiAgentDisplayState({ plan, approval })).toMatchObject({
+      kind: 'proposed-change',
+      planId: plan.id,
+      approvalId: approval.id
+    })
+    expect(
+      classifyAiAgentDisplayState({
+        plan: { ...plan, status: 'applied' },
+        approval: { ...approval, status: 'approved' },
+        auditEventId: 'audit_1'
+      })
+    ).toMatchObject({
+      kind: 'applied-change',
+      planId: plan.id,
+      approvalId: approval.id,
+      auditEventId: 'audit_1'
+    })
   })
 })

@@ -218,8 +218,10 @@ export {
   generateScript,
   // Agent runtime
   AiAgentRuntime,
+  classifyAiAgentDisplayState,
   createAiAgentRuntime,
-  createMemoryAiAgentRuntimeStorage
+  createMemoryAiAgentRuntimeStorage,
+  renderSelectionPrompt
 } from './ai'
 export type {
   // Prompt types
@@ -260,15 +262,20 @@ export type {
   AiAgentBackgroundJobInput,
   AiAgentBackgroundJobRunner,
   AiAgentBackgroundJobStatus,
+  AiAgentDisplayState,
+  AiAgentDisplayStateKind,
   AiAgentEvent,
   AiAgentEventType,
   AiAgentOrchestratorMode,
+  AiAgentRunSelectionTurnInput,
   AiAgentRunTurnInput,
   AiAgentRunTurnResult,
   AiAgentRuntimeConfig,
   AiAgentRuntimeListener,
   AiAgentRuntimeSnapshot,
   AiAgentRuntimeStorage,
+  AiAgentSelectionContext,
+  AiAgentSelectionKind,
   AiAgentTelemetrySnapshot,
   AiAgentThread,
   AiAgentThreadCreateInput,
@@ -285,6 +292,7 @@ export type {
   AiContextPack,
   AiContextPackResource,
   AiContextSeed,
+  AiDatabaseMutationApplyResult,
   AiJsonSchema,
   AiJsonSchemaType,
   AiMutationPlan,

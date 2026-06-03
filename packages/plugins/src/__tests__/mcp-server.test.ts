@@ -444,6 +444,42 @@ describe('MCPServer', () => {
         expect(data.resources[0].text).toContain('Ship MCP integration')
       })
 
+      it('keeps AI tool responses within configured MCP output limits', async () => {
+        const boundedServer = new MCPServer({
+          store: mockStore,
+          schemas: mockSchemas,
+          aiLimits: { maxJsonCharacters: 480 }
+        })
+        const database = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+          properties: {
+            title: 'Large DB',
+            rowSchemaId: 'xnet://xnet.dev/Task'
+          }
+        })
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: {
+            database: database.id,
+            title: 'Large row',
+            notes: 'A'.repeat(5_000)
+          }
+        })
+
+        const response = await boundedServer.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_query',
+            arguments: { databaseId: database.id }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const text = result.content[0].text
+        const data = JSON.parse(text)
+        expect(text.length).toBeLessThanOrEqual(480)
+        expect(data.truncated).toBe(true)
+      })
+
       it('plans page Markdown patches without applying them', async () => {
         const page = await mockStore.create({
           schemaId: 'xnet://xnet.fyi/Page@1.0.0',

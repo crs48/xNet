@@ -582,6 +582,137 @@ describe('AI surface contract', () => {
     })
   })
 
+  describe('performance validation', () => {
+    it('reports workspace summary latency against the target budget', async () => {
+      const store = createMockStore([
+        {
+          id: 'page_1',
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Roadmap', markdown: 'Body' },
+          deleted: false,
+          createdAt: 1,
+          updatedAt: 10
+        }
+      ])
+      const service = createAiSurfaceService({ store, schemas: createMockSchemas() })
+
+      const resource = await service.readResource('xnet://workspace/summary')
+      const summary = JSON.parse(resource.text)
+
+      expect(summary.performance).toMatchObject({
+        targetMs: 100,
+        withinBudget: true,
+        sampledNodeLimit: 100
+      })
+      expect(typeof summary.performance.durationMs).toBe('number')
+    })
+
+    it('keeps large page Markdown reads within configured resource budgets', async () => {
+      const largeBody = `# Long Page\n\n${'A'.repeat(5_000)}`
+      const store = createMockStore([
+        {
+          id: 'page_1',
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Long Page', markdown: largeBody },
+          deleted: false,
+          createdAt: 1,
+          updatedAt: 10
+        }
+      ])
+      const service = createAiSurfaceService({
+        store,
+        schemas: createMockSchemas(),
+        limits: { maxCharactersPerResource: 240 }
+      })
+
+      const read = (await service.callTool('xnet_read_page_markdown', {
+        pageId: 'page_1'
+      })) as { markdown: string }
+      const plan = (await service.callTool('xnet_plan_page_patch', {
+        pageId: 'page_1',
+        baseRevision: 'updatedAt:10',
+        markdown: `# Long Page\n\n${'B'.repeat(5_000)}`
+      })) as AiMutationPlan
+
+      expect(read.markdown.length).toBeLessThanOrEqual(240)
+      expect(read.markdown).toContain('[truncated')
+      expect(plan.validation.valid).toBe(true)
+      expect(plan.changes[0].operations[0].args.markdownLength).toBeGreaterThan(5_000)
+    })
+
+    it('uses NodeQueryDescriptor pushdown for database queries when the store supports query', async () => {
+      const database = {
+        id: 'db_1',
+        schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+        properties: {
+          title: 'Projects',
+          rowSchemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0'
+        },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      }
+      const row = {
+        id: 'row_1',
+        schemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+        properties: { database: 'db_1', title: 'Alpha' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 11
+      }
+      const queryCalls: unknown[] = []
+      const query: NonNullable<NodeStoreAPI['query']> = async (descriptor) => {
+        queryCalls.push(descriptor)
+        return {
+          nodes: [row],
+          totalCount: 1,
+          plan: {
+            strategy: 'indexed-query',
+            candidateNodeCount: 1,
+            hydratedNodeCount: 1,
+            returnedNodeCount: 1,
+            durationMs: 1,
+            fullTableScan: false
+          },
+          descriptor
+        } as unknown as Awaited<ReturnType<NonNullable<NodeStoreAPI['query']>>>
+      }
+      const store: NodeStoreAPI = {
+        get: async (id) => (id === 'db_1' ? database : id === 'row_1' ? row : null),
+        list: vi.fn(async () => {
+          throw new Error('list fallback should not run when query is available')
+        }),
+        query,
+        create: async () => {
+          throw new Error('not used')
+        },
+        update: async () => {
+          throw new Error('not used')
+        },
+        delete: async () => {},
+        subscribe: () => () => {}
+      }
+      const service = createAiSurfaceService({ store, schemas: createMockSchemas() })
+
+      const result = (await service.callTool('xnet_database_query', {
+        databaseId: 'db_1',
+        descriptor: { where: { title: 'Alpha' } },
+        limit: 10
+      })) as { queryPlan: { strategy: string; fullTableScan: boolean } }
+
+      expect(queryCalls[0]).toEqual(
+        expect.objectContaining({
+          schemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+          where: { title: 'Alpha' }
+        })
+      )
+      expect(result.queryPlan).toMatchObject({
+        strategy: 'indexed-query',
+        fullTableScan: false
+      })
+    })
+  })
+
   describe('context trust boundaries', () => {
     it('marks externally fetched content as untrusted source material', async () => {
       const service = createAiSurfaceService({

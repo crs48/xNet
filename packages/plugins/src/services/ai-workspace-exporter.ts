@@ -48,6 +48,8 @@ export type AiWorkspaceExportResult = {
   files: string[]
   manifestEntries: AiWorkspaceManifestEntry[]
   exportedAt: string
+  incremental: boolean
+  skippedNodeIds: string[]
 }
 
 export type AiWorkspaceExporterConfig = {
@@ -162,10 +164,25 @@ export class AiWorkspaceExporter {
   }
 
   async exportWorkspace(options: AiWorkspaceExportOptions): Promise<AiWorkspaceExportResult> {
+    return await this.exportWorkspaceProjection(options, { incremental: false })
+  }
+
+  async exportWorkspaceIncremental(
+    options: AiWorkspaceExportOptions
+  ): Promise<AiWorkspaceExportResult> {
+    return await this.exportWorkspaceProjection(options, { incremental: true })
+  }
+
+  private async exportWorkspaceProjection(
+    options: AiWorkspaceExportOptions,
+    mode: { incremental: boolean }
+  ): Promise<AiWorkspaceExportResult> {
     const exportedAt = this.clock().toISOString()
     const nodes = await this.resolveNodes(options.scope)
     const files: string[] = []
     const manifestEntries: AiWorkspaceManifestEntry[] = []
+    const previousManifest = mode.incremental ? await readManifest(options.rootDir) : []
+    const skippedNodeIds: string[] = []
 
     await this.ensureBaseFolders(options.rootDir)
 
@@ -176,6 +193,17 @@ export class AiWorkspaceExporter {
     )
 
     for (const node of nodes) {
+      const previousEntries = previousManifest.filter((entry) => entry.id === node.id)
+      if (
+        mode.incremental &&
+        previousEntries.length > 0 &&
+        previousEntries.every((entry) => entry.revision === nodeRevision(node))
+      ) {
+        manifestEntries.push(...previousEntries)
+        skippedNodeIds.push(node.id)
+        continue
+      }
+
       const kind = inferExportKind(node)
       if (kind === 'page') {
         const entry = await this.exportPage(options.rootDir, node, exportedAt, files)
@@ -198,7 +226,9 @@ export class AiWorkspaceExporter {
       rootDir: options.rootDir,
       files,
       manifestEntries,
-      exportedAt
+      exportedAt,
+      incremental: mode.incremental,
+      skippedNodeIds
     }
   }
 
@@ -880,10 +910,14 @@ function manifestEntry(
     kind,
     id: node.id,
     schemaId: node.schemaId,
-    revision: `updatedAt:${node.updatedAt}`,
+    revision: nodeRevision(node),
     sha256: sha256(content),
     exportedAt
   }
+}
+
+function nodeRevision(node: NodeData): string {
+  return `updatedAt:${node.updatedAt}`
 }
 
 function sha256(value: string): string {

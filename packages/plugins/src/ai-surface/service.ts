@@ -1060,6 +1060,7 @@ export class AiSurfaceService {
   // ─── Workspace And Search ─────────────────────────────────────────────────
 
   private async getWorkspaceSummary(): Promise<Record<string, unknown>> {
+    const startedAt = Date.now()
     const [nodes, schemas] = await Promise.all([
       this.config.store.list({ limit: this.limits.maxListLimit }),
       this.getSchemaSummaries(true)
@@ -1069,6 +1070,7 @@ export class AiSurfaceService {
       counts[node.schemaId] = (counts[node.schemaId] ?? 0) + 1
       return counts
     }, {})
+    const durationMs = Date.now() - startedAt
 
     return {
       generatedAt: this.nowIso(),
@@ -1092,7 +1094,13 @@ export class AiSurfaceService {
         title,
         risk,
         requiredScopes
-      }))
+      })),
+      performance: {
+        durationMs,
+        targetMs: 100,
+        withinBudget: durationMs <= 100,
+        sampledNodeLimit: this.limits.maxListLimit
+      }
     }
   }
 
@@ -2452,15 +2460,7 @@ export class AiSurfaceService {
     const text = JSON.stringify(value, null, 2)
     if (text.length <= this.limits.maxJsonCharacters) return text
 
-    return JSON.stringify(
-      {
-        truncated: true,
-        originalCharLength: text.length,
-        preview: text.slice(0, this.limits.maxJsonCharacters)
-      },
-      null,
-      2
-    )
+    return stringifyTruncatedJson(text, this.limits.maxJsonCharacters)
   }
 
   private nextId(prefix: string): string {
@@ -4101,7 +4101,36 @@ function clampLimit(value: number | undefined, max: number): number {
 
 function limitText(value: string, maxCharacters: number): string {
   if (value.length <= maxCharacters) return value
-  return `${value.slice(0, maxCharacters)}\n...[truncated ${value.length - maxCharacters} characters]`
+  const suffix = `\n...[truncated ${value.length - maxCharacters} characters]`
+  if (suffix.length >= maxCharacters) return suffix.slice(0, maxCharacters)
+  return `${value.slice(0, maxCharacters - suffix.length)}${suffix}`
+}
+
+function stringifyTruncatedJson(text: string, maxCharacters: number): string {
+  const withoutPreview = JSON.stringify(
+    { truncated: true, originalCharLength: text.length, preview: '' },
+    null,
+    2
+  )
+  let previewLength = Math.max(0, maxCharacters - withoutPreview.length)
+  let result = ''
+
+  do {
+    result = JSON.stringify(
+      {
+        truncated: true,
+        originalCharLength: text.length,
+        preview: text.slice(0, previewLength)
+      },
+      null,
+      2
+    )
+    if (result.length <= maxCharacters) return result
+    previewLength = Math.max(0, previewLength - (result.length - maxCharacters) - 1)
+  } while (previewLength > 0)
+
+  const minimal = JSON.stringify({ truncated: true, originalCharLength: text.length }, null, 2)
+  return minimal.length <= maxCharacters ? minimal : minimal.slice(0, maxCharacters)
 }
 
 function quoteYaml(value: string): string {
