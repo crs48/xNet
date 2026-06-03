@@ -37,6 +37,7 @@ export {
   getCloudClassificationSkipReason,
   redactCloudClassifierText
 } from './cloud-classifier'
+export { classifyWithModerationCascade, decideCloudReviewRoute } from './classifier-cascade'
 export {
   extractCitationReferences,
   extractKnowledgeClaims,
@@ -150,6 +151,15 @@ export type {
   ReportEscalationDecision,
   ReportEscalationInput
 } from './labeler-trust'
+export type {
+  CloudReviewCallPolicy,
+  CloudReviewCallReason,
+  CloudReviewRouteDecision,
+  CloudReviewSkipReason,
+  ModerationCascadeCloudConfig,
+  ModerationCascadeOptions,
+  ModerationCascadeResult
+} from './classifier-cascade'
 export type {
   CloudClassificationOptions,
   CloudClassificationResult,
