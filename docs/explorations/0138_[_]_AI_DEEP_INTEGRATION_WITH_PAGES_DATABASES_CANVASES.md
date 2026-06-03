@@ -1344,14 +1344,14 @@ Workspace:
 
 ### Phase 5: Canvas AI Tools
 
-- [ ] Add canvas list/read viewport/read selection tools.
-- [ ] Add source preview hydration for page/database/media cards.
-- [ ] Add canvas mutation planner for add/move/connect/group/frame/layout.
-- [ ] Reuse pure scene operations for deterministic layout tools.
-- [ ] Add JSON Canvas import/export through the AI surface.
-- [ ] Add tile/viewport scoping for large canvases.
-- [ ] Add visual diff overlays for pending canvas changes.
-- [ ] Add tests for source-backed object identity preservation.
+- [x] Add canvas list/read viewport/read selection tools.
+- [x] Add source preview hydration for page/database/media cards.
+- [x] Add canvas mutation planner for add/move/connect/group/frame/layout.
+- [x] Reuse pure scene operations for deterministic layout tools.
+- [x] Add JSON Canvas import/export through the AI surface.
+- [x] Add tile/viewport scoping for large canvases.
+- [x] Add visual diff overlays for pending canvas changes.
+- [x] Add tests for source-backed object identity preservation.
 
 ### Phase 6: In-App Agent Runtime
 

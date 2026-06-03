@@ -166,6 +166,11 @@ describe('MCPServer', () => {
       expect(toolNames).toContain('xnet_database_describe')
       expect(toolNames).toContain('xnet_database_sample')
       expect(toolNames).toContain('xnet_database_explain_query')
+      expect(toolNames).toContain('xnet_canvas_list')
+      expect(toolNames).toContain('xnet_canvas_read_selection')
+      expect(toolNames).toContain('xnet_canvas_search')
+      expect(toolNames).toContain('xnet_canvas_export_json_canvas')
+      expect(toolNames).toContain('xnet_canvas_plan_json_canvas_import')
     })
 
     it('tools have proper schema', () => {
@@ -651,6 +656,201 @@ describe('MCPServer', () => {
         expect(plan.validation.errors).toContain(
           'operations[0] delete/drop/remove operations require confirmDelete true or deletionMarker "DELETE"'
         )
+      })
+
+      it('reads scoped canvas selections and exports source-backed JSON Canvas', async () => {
+        const source = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Source Page', markdown: 'Source body' }
+        })
+        const canvas = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Canvas@1.0.0',
+          properties: {
+            title: 'AI Canvas',
+            objects: [
+              {
+                id: 'obj-page',
+                type: 'page',
+                sourceNodeId: source.id,
+                x: 40,
+                y: 80,
+                width: 240,
+                height: 160,
+                properties: { title: 'Page Card', url: 'xnet://page/source' }
+              },
+              {
+                id: 'obj-note',
+                type: 'note',
+                x: 360,
+                y: 80,
+                width: 220,
+                height: 140,
+                properties: { title: 'Note Card', text: 'Follow up' }
+              },
+              {
+                id: 'obj-far',
+                type: 'note',
+                x: 2400,
+                y: 80,
+                width: 220,
+                height: 140,
+                properties: { title: 'Far Card' }
+              }
+            ],
+            edges: [{ id: 'edge-1', from: 'obj-page', to: 'obj-note', label: 'references' }]
+          }
+        })
+
+        const listResponse = await server.handleRequest(
+          createRequest('tools/call', { name: 'xnet_canvas_list', arguments: {} })
+        )
+        const listResult = listResponse.result as { content: Array<{ type: string; text: string }> }
+        const list = JSON.parse(listResult.content[0].text)
+        expect(list.canvases.map((item: { id: string }) => item.id)).toContain(canvas.id)
+
+        const viewportResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_read_viewport',
+            arguments: {
+              canvasId: canvas.id,
+              x: 0,
+              y: 0,
+              w: 1000,
+              h: 600,
+              tileSize: 1000,
+              tileIds: ['0/0/0'],
+              includeSourcePreviews: true
+            }
+          })
+        )
+        const viewportResult = viewportResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const viewport = JSON.parse(viewportResult.content[0].text)
+        expect(viewport.objects.map((object: { id: string }) => object.id)).toEqual([
+          'obj-page',
+          'obj-note'
+        ])
+        expect(viewport.sourcePreviews[0].id).toBe(source.id)
+        expect(viewport.scope.tileIds).toEqual(['0/0/0'])
+
+        const selectionResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_read_selection',
+            arguments: {
+              canvasId: canvas.id,
+              objectIds: ['obj-page'],
+              includeSourcePreviews: true
+            }
+          })
+        )
+        const selectionResult = selectionResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const selection = JSON.parse(selectionResult.content[0].text)
+        expect(selection.objects).toHaveLength(1)
+        expect(selection.edges[0].id).toBe('edge-1')
+        expect(selection.sourcePreviews[0].id).toBe(source.id)
+
+        const searchResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_search',
+            arguments: { canvasId: canvas.id, query: 'page card' }
+          })
+        )
+        const searchResult = searchResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const search = JSON.parse(searchResult.content[0].text)
+        expect(search.results[0].objectId).toBe('obj-page')
+
+        const exportResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_export_json_canvas',
+            arguments: { canvasId: canvas.id }
+          })
+        )
+        const exportResult = exportResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const exported = JSON.parse(exportResult.content[0].text)
+        const pageNode = exported.document.nodes.find(
+          (node: { id: string }) => node.id === 'obj-page'
+        )
+        expect(pageNode).toMatchObject({
+          type: 'link',
+          xnet: { sourceNodeId: source.id }
+        })
+        expect(exported.document.edges[0]).toMatchObject({
+          fromNode: 'obj-page',
+          toNode: 'obj-note'
+        })
+
+        const importResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_plan_json_canvas_import',
+            arguments: { canvasId: canvas.id, document: exported.document }
+          })
+        )
+        const importResult = importResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const importPlan = JSON.parse(importResult.content[0].text)
+        expect(importPlan.validation.valid).toBe(true)
+        expect(importPlan.changes[0].operations[0].args.object.sourceNodeId).toBe(source.id)
+      })
+
+      it('plans deterministic canvas layout mutations with visual diffs', async () => {
+        const canvas = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Canvas@1.0.0',
+          properties: {
+            title: 'Layout Canvas',
+            objects: [
+              { id: 'a', type: 'note', x: 10, y: 20, width: 100, height: 80 },
+              { id: 'b', type: 'note', x: 300, y: 20, width: 100, height: 80 }
+            ],
+            edges: []
+          }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_canvas_mutation',
+            arguments: {
+              canvasId: canvas.id,
+              operations: [
+                {
+                  op: 'layoutObjects',
+                  args: {
+                    objectIds: ['a', 'b'],
+                    algorithm: 'horizontal',
+                    startX: 0,
+                    startY: 0,
+                    gap: 50
+                  }
+                },
+                {
+                  op: 'moveObject',
+                  args: { objectId: 'a', x: 20, y: 30 }
+                }
+              ]
+            }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const plan = JSON.parse(result.content[0].text)
+        expect(plan.validation.valid).toBe(true)
+        expect(plan.changes[0].operations[0].args.generatedOperations).toHaveLength(2)
+        expect(plan.changes[0].operations[0].args.visualDiff).toMatchObject({
+          kind: 'layout'
+        })
+        expect(plan.changes[0].operations[1].args.visualDiff).toMatchObject({
+          kind: 'move',
+          objectId: 'a',
+          before: { x: 10, y: 20, width: 100, height: 80 },
+          after: { x: 20, y: 30, width: 100, height: 80 }
+        })
       })
     })
 

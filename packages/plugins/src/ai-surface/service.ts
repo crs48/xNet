@@ -180,6 +180,33 @@ export class AiSurfaceService {
         'low',
         ['canvas.read'],
         true
+      ),
+      createResource(
+        'xnet://canvas/{canvasId}/objects',
+        'Canvas Objects',
+        'Bounded list of canvas objects and connectors.',
+        'application/json',
+        'low',
+        ['canvas.read'],
+        true
+      ),
+      createResource(
+        'xnet://canvas/{canvasId}/selection?ids=object-1,object-2',
+        'Canvas Selection',
+        'Selection-scoped canvas objects, edges, and source previews.',
+        'application/json',
+        'low',
+        ['canvas.read'],
+        true
+      ),
+      createResource(
+        'xnet://canvas/{canvasId}/json-canvas',
+        'Canvas JSON Canvas',
+        'JSON Canvas projection with xNet source metadata sidecars.',
+        'application/json',
+        'low',
+        ['canvas.read'],
+        true
       )
     ]
   }
@@ -399,6 +426,20 @@ export class AiSurfaceService {
         }
       },
       {
+        name: 'xnet_canvas_list',
+        title: 'List canvases',
+        description: 'List canvas nodes visible to the AI surface.',
+        risk: 'low',
+        requiredScopes: ['canvas.read'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            limit: { type: 'number', description: 'Maximum canvas count.' },
+            offset: { type: 'number', description: 'Canvas offset.' }
+          }
+        }
+      },
+      {
         name: 'xnet_canvas_read_viewport',
         title: 'Read canvas viewport',
         description: 'Read canvas objects and edges intersecting a viewport.',
@@ -415,9 +456,94 @@ export class AiSurfaceService {
             includeSourcePreviews: {
               type: 'boolean',
               description: 'Include previews for source-backed objects.'
+            },
+            tileSize: { type: 'number', description: 'Optional tile size for tile scoping.' },
+            tileIds: {
+              type: 'array',
+              description: 'Optional tile ids such as 0/1/-2 to constrain the read.',
+              items: { type: 'string' }
             }
           },
           required: ['canvasId']
+        }
+      },
+      {
+        name: 'xnet_canvas_read_selection',
+        title: 'Read canvas selection',
+        description: 'Read selected canvas objects, connected edges, and optional source previews.',
+        risk: 'low',
+        requiredScopes: ['canvas.read'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            canvasId: { type: 'string', description: 'Canvas node id.' },
+            objectIds: {
+              type: 'array',
+              description: 'Selected object ids.',
+              items: { type: 'string' }
+            },
+            includeSourcePreviews: {
+              type: 'boolean',
+              description: 'Include previews for source-backed objects.'
+            }
+          },
+          required: ['canvasId', 'objectIds']
+        }
+      },
+      {
+        name: 'xnet_canvas_search',
+        title: 'Search canvas',
+        description: 'Search canvas object text, labels, ids, and source metadata.',
+        risk: 'low',
+        requiredScopes: ['canvas.read'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            canvasId: { type: 'string', description: 'Canvas node id.' },
+            query: { type: 'string', description: 'Search text.' },
+            limit: { type: 'number', description: 'Maximum result count.' }
+          },
+          required: ['canvasId', 'query']
+        }
+      },
+      {
+        name: 'xnet_canvas_export_json_canvas',
+        title: 'Export canvas as JSON Canvas',
+        description: 'Export a canvas or viewport as JSON Canvas with xNet source metadata.',
+        risk: 'low',
+        requiredScopes: ['canvas.read'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            canvasId: { type: 'string', description: 'Canvas node id.' },
+            includeXNetMetadata: {
+              type: 'boolean',
+              description: 'Include xNet source metadata. Defaults to true.'
+            },
+            x: { type: 'number', description: 'Optional viewport x.' },
+            y: { type: 'number', description: 'Optional viewport y.' },
+            w: { type: 'number', description: 'Optional viewport width.' },
+            h: { type: 'number', description: 'Optional viewport height.' }
+          },
+          required: ['canvasId']
+        }
+      },
+      {
+        name: 'xnet_canvas_plan_json_canvas_import',
+        title: 'Plan JSON Canvas import',
+        description: 'Convert a JSON Canvas document into a plan-only canvas mutation.',
+        risk: 'medium',
+        requiredScopes: ['canvas.read', 'canvas.propose'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            canvasId: { type: 'string', description: 'Canvas node id.' },
+            document: { type: 'object', description: 'JSON Canvas document.' },
+            baseRevision: { type: 'string', description: 'Revision the import was based on.' },
+            actor: { type: 'string', description: 'Agent or user creating the plan.' },
+            intent: { type: 'string', description: 'User or agent intent for the import.' }
+          },
+          required: ['canvasId', 'document']
         }
       },
       {
@@ -532,6 +658,12 @@ export class AiSurfaceService {
       case 'xnet_plan_database_mutation':
         return await this.planDatabaseMutation(args)
 
+      case 'xnet_canvas_list':
+        return await this.listCanvases({
+          limit: readOptionalNumber(args, 'limit'),
+          offset: readOptionalNumber(args, 'offset')
+        })
+
       case 'xnet_canvas_read_viewport':
         return await this.readCanvasViewport({
           canvasId: readRequiredString(args, 'canvasId'),
@@ -539,19 +671,40 @@ export class AiSurfaceService {
           y: readOptionalNumber(args, 'y'),
           w: readOptionalNumber(args, 'w'),
           h: readOptionalNumber(args, 'h'),
+          tileSize: readOptionalNumber(args, 'tileSize'),
+          tileIds: readStringArray(args.tileIds),
           includeSourcePreviews: readOptionalBoolean(args, 'includeSourcePreviews') ?? false
         })
 
-      case 'xnet_plan_canvas_mutation':
-        return await this.planSurfaceMutation({
-          targetKind: 'canvas',
-          targetId: readRequiredString(args, 'canvasId'),
-          baseRevision: readOptionalString(args, 'baseRevision'),
-          operations: readOperations(args.operations),
-          actor: readOptionalString(args, 'actor') ?? 'ai-agent',
-          intent: readOptionalString(args, 'intent') ?? 'Plan canvas mutation',
-          requiredScopes: ['canvas.read', 'canvas.propose']
+      case 'xnet_canvas_read_selection':
+        return await this.readCanvasSelection({
+          canvasId: readRequiredString(args, 'canvasId'),
+          objectIds: readRequiredStringArray(args.objectIds, 'objectIds'),
+          includeSourcePreviews: readOptionalBoolean(args, 'includeSourcePreviews') ?? false
         })
+
+      case 'xnet_canvas_search':
+        return await this.searchCanvas({
+          canvasId: readRequiredString(args, 'canvasId'),
+          query: readRequiredString(args, 'query'),
+          limit: readOptionalNumber(args, 'limit')
+        })
+
+      case 'xnet_canvas_export_json_canvas':
+        return await this.exportCanvasJsonCanvas({
+          canvasId: readRequiredString(args, 'canvasId'),
+          includeXNetMetadata: readOptionalBoolean(args, 'includeXNetMetadata') ?? true,
+          x: readOptionalNumber(args, 'x'),
+          y: readOptionalNumber(args, 'y'),
+          w: readOptionalNumber(args, 'w'),
+          h: readOptionalNumber(args, 'h')
+        })
+
+      case 'xnet_canvas_plan_json_canvas_import':
+        return await this.planCanvasJsonCanvasImport(args)
+
+      case 'xnet_plan_canvas_mutation':
+        return await this.planCanvasMutation(args)
 
       case 'xnet_validate_mutation_plan': {
         const validation = validateAiMutationPlan(args.plan)
@@ -662,7 +815,31 @@ export class AiSurfaceService {
             y: readUrlNumber(parsed.searchParams, 'y'),
             w: readUrlNumber(parsed.searchParams, 'w'),
             h: readUrlNumber(parsed.searchParams, 'h'),
+            tileSize: readUrlNumber(parsed.searchParams, 'tileSize'),
+            tileIds: readCsvStringArray(parsed.searchParams.get('tileIds')),
             includeSourcePreviews: parsed.searchParams.get('includeSourcePreviews') === 'true'
+          })
+        )
+      }
+      if (parsed.parts[1] === 'objects') {
+        return this.jsonResource(uri, await this.readCanvasObjects(canvasId))
+      }
+      if (parsed.parts[1] === 'selection') {
+        return this.jsonResource(
+          uri,
+          await this.readCanvasSelection({
+            canvasId,
+            objectIds: readCsvStringArray(parsed.searchParams.get('ids')),
+            includeSourcePreviews: parsed.searchParams.get('includeSourcePreviews') !== 'false'
+          })
+        )
+      }
+      if (parsed.parts[1] === 'json-canvas') {
+        return this.jsonResource(
+          uri,
+          await this.exportCanvasJsonCanvas({
+            canvasId,
+            includeXNetMetadata: parsed.searchParams.get('includeXNetMetadata') !== 'false'
           })
         )
       }
@@ -1091,43 +1268,187 @@ export class AiSurfaceService {
 
   // ─── Canvases ─────────────────────────────────────────────────────────────
 
+  private async listCanvases(options: {
+    limit?: number
+    offset?: number
+  }): Promise<Record<string, unknown>> {
+    const limit = clampLimit(options.limit, this.limits.maxListLimit)
+    const offset = Math.max(0, options.offset ?? 0)
+    const nodes = await this.config.store.list({ limit: this.limits.maxListLimit, offset: 0 })
+    const canvases = nodes.filter(isCanvasNode).slice(offset, offset + limit)
+
+    return {
+      count: canvases.length,
+      limit,
+      offset,
+      canvases: summarizeNodes(canvases)
+    }
+  }
+
+  private async readCanvasObjects(canvasId: string): Promise<Record<string, unknown>> {
+    const canvas = await this.getNodeOrThrow(canvasId)
+    const scene = readCanvasScene(canvas)
+
+    return {
+      canvasId,
+      revision: revisionForNode(canvas),
+      objects: scene.objects.slice(0, this.limits.maxCanvasObjects),
+      edges: scene.edges,
+      count: scene.objects.length,
+      truncated: scene.objects.length > this.limits.maxCanvasObjects
+    }
+  }
+
   private async readCanvasViewport(options: {
     canvasId: string
     x?: number
     y?: number
     w?: number
     h?: number
+    tileSize?: number
+    tileIds?: string[]
     includeSourcePreviews: boolean
   }): Promise<Record<string, unknown>> {
     const canvas = await this.getNodeOrThrow(options.canvasId)
     const bounds = normalizeBounds(options)
-    const objects = (
-      readArrayProperty(canvas, 'objects') ??
-      readArrayProperty(canvas, 'nodes') ??
-      []
-    )
-      .filter(isRecord)
+    const tileScope = normalizeTileScope(options.tileIds, options.tileSize)
+    const scene = readCanvasScene(canvas)
+    const objects = scene.objects
       .filter((object) => !bounds || intersectsBounds(object, bounds))
+      .filter(
+        (object) =>
+          !tileScope || tileScope.tileIds.has(tileIdForCanvasObject(object, tileScope.tileSize))
+      )
       .slice(0, this.limits.maxCanvasObjects)
     const objectIds = new Set(
       objects.map((object) => readRecordString(object, 'id')).filter(Boolean)
     )
-    const edges = (
-      readArrayProperty(canvas, 'edges') ??
-      readArrayProperty(canvas, 'connectors') ??
-      []
-    )
-      .filter(isRecord)
-      .filter((edge) => edgeTouchesVisibleObjects(edge, objectIds))
+    const edges = scene.edges.filter((edge) => edgeTouchesVisibleObjects(edge, objectIds))
 
     return {
       canvasId: options.canvasId,
       revision: revisionForNode(canvas),
-      bounds,
+      scope: {
+        bounds,
+        tileIds: tileScope ? Array.from(tileScope.tileIds) : undefined,
+        tileSize: tileScope?.tileSize
+      },
       objects,
       edges,
+      count: objects.length,
+      truncated:
+        scene.objects.length > objects.length && objects.length >= this.limits.maxCanvasObjects,
       sourcePreviews: options.includeSourcePreviews ? await this.hydrateSourcePreviews(objects) : []
     }
+  }
+
+  private async readCanvasSelection(options: {
+    canvasId: string
+    objectIds: string[]
+    includeSourcePreviews: boolean
+  }): Promise<Record<string, unknown>> {
+    const canvas = await this.getNodeOrThrow(options.canvasId)
+    const scene = readCanvasScene(canvas)
+    const selection = new Set(options.objectIds)
+    const objects = scene.objects.filter((object) => {
+      const objectId = readRecordString(object, 'id')
+      return objectId ? selection.has(objectId) : false
+    })
+    const objectIds = new Set(
+      objects.map((object) => readRecordString(object, 'id')).filter(Boolean)
+    )
+    const edges = scene.edges.filter((edge) => edgeTouchesVisibleObjects(edge, objectIds))
+
+    return {
+      canvasId: options.canvasId,
+      revision: revisionForNode(canvas),
+      selectedObjectIds: options.objectIds,
+      objects,
+      edges,
+      missingObjectIds: options.objectIds.filter((id) => !objectIds.has(id)),
+      sourcePreviews: options.includeSourcePreviews ? await this.hydrateSourcePreviews(objects) : []
+    }
+  }
+
+  private async searchCanvas(options: {
+    canvasId: string
+    query: string
+    limit?: number
+  }): Promise<Record<string, unknown>> {
+    const canvas = await this.getNodeOrThrow(options.canvasId)
+    const limit = clampLimit(options.limit, this.limits.maxSearchResults)
+    const normalizedQuery = options.query.trim().toLocaleLowerCase()
+    const results = readCanvasScene(canvas)
+      .objects.map((object) => scoreCanvasObject(object, normalizedQuery))
+      .filter((result): result is Record<string, unknown> => result !== null)
+      .slice(0, limit)
+
+    return {
+      canvasId: options.canvasId,
+      query: options.query,
+      count: results.length,
+      limit,
+      results
+    }
+  }
+
+  private async exportCanvasJsonCanvas(options: {
+    canvasId: string
+    includeXNetMetadata: boolean
+    x?: number
+    y?: number
+    w?: number
+    h?: number
+  }): Promise<Record<string, unknown>> {
+    const viewport = await this.readCanvasViewport({
+      canvasId: options.canvasId,
+      x: options.x,
+      y: options.y,
+      w: options.w,
+      h: options.h,
+      includeSourcePreviews: false
+    })
+    const objects = Array.isArray(viewport.objects) ? viewport.objects.filter(isRecord) : []
+    const edges = Array.isArray(viewport.edges) ? viewport.edges.filter(isRecord) : []
+
+    return {
+      canvasId: options.canvasId,
+      revision: viewport.revision,
+      document: toJsonCanvasDocument(objects, edges, options.includeXNetMetadata),
+      sidecar: {
+        objectCount: objects.length,
+        edgeCount: edges.length,
+        sourceBackedObjectIds: objects
+          .filter((object) => getCanvasObjectSourceNodeId(object))
+          .map((object) => readRecordString(object, 'id'))
+          .filter(Boolean)
+      }
+    }
+  }
+
+  private async planCanvasJsonCanvasImport(args: Record<string, unknown>): Promise<AiMutationPlan> {
+    const canvasId = readRequiredString(args, 'canvasId')
+    const canvas = await this.getNodeOrThrow(canvasId)
+    const document = readRequiredRecord(args, 'document')
+    const baseRevision = readOptionalString(args, 'baseRevision') ?? revisionForNode(canvas)
+    const imported = jsonCanvasDocumentToCanvasOperations(document)
+
+    return this.validatedPlan({
+      actor: readOptionalString(args, 'actor') ?? 'ai-agent',
+      intent: readOptionalString(args, 'intent') ?? 'Plan JSON Canvas import',
+      risk: 'medium',
+      requiredScopes: ['canvas.read', 'canvas.propose', 'canvas.write'],
+      changes: [
+        {
+          targetKind: 'canvas',
+          targetId: canvasId,
+          baseRevision,
+          operations: imported.operations
+        }
+      ],
+      warnings: imported.warnings,
+      errors: imported.errors
+    })
   }
 
   private async readCanvasObject(
@@ -1164,6 +1485,36 @@ export class AiSurfaceService {
       }
     }
     return previews
+  }
+
+  private async planCanvasMutation(args: Record<string, unknown>): Promise<AiMutationPlan> {
+    const canvasId = readRequiredString(args, 'canvasId')
+    const canvas = await this.getNodeOrThrow(canvasId)
+    const operations = readOperations(args.operations)
+    const baseRevision = readOptionalString(args, 'baseRevision') ?? revisionForNode(canvas)
+    const scene = readCanvasScene(canvas)
+    const planned = planCanvasOperations(scene, operations)
+    const staleWarnings =
+      baseRevision === revisionForNode(canvas)
+        ? []
+        : ['baseRevision does not match the live node revision']
+
+    return this.validatedPlan({
+      actor: readOptionalString(args, 'actor') ?? 'ai-agent',
+      intent: readOptionalString(args, 'intent') ?? 'Plan canvas mutation',
+      risk: riskForOperations(planned.operations),
+      requiredScopes: ['canvas.read', 'canvas.propose', 'canvas.write'],
+      changes: [
+        {
+          targetKind: 'canvas',
+          targetId: canvasId,
+          baseRevision,
+          operations: planned.operations
+        }
+      ],
+      warnings: [...staleWarnings, ...planned.warnings],
+      errors: planned.errors
+    })
   }
 
   private async planDatabaseMutation(args: Record<string, unknown>): Promise<AiMutationPlan> {
@@ -1983,6 +2334,502 @@ function databaseMutationChangeSets(input: {
   ]
 }
 
+type CanvasScene = {
+  objects: Record<string, unknown>[]
+  edges: Record<string, unknown>[]
+}
+
+function isCanvasNode(node: NodeData): boolean {
+  return (
+    node.schemaId.includes('/Canvas') ||
+    node.schemaId.includes('Canvas@') ||
+    Array.isArray(node.properties.objects) ||
+    Array.isArray(node.properties.nodes)
+  )
+}
+
+function readCanvasScene(canvas: NodeData): CanvasScene {
+  return {
+    objects: (readArrayProperty(canvas, 'objects') ?? readArrayProperty(canvas, 'nodes') ?? [])
+      .filter(isRecord)
+      .map(normalizeCanvasObject),
+    edges: (readArrayProperty(canvas, 'edges') ?? readArrayProperty(canvas, 'connectors') ?? [])
+      .filter(isRecord)
+      .map(normalizeCanvasEdge)
+  }
+}
+
+function normalizeCanvasObject(object: Record<string, unknown>): Record<string, unknown> {
+  const position = readRecord(object, 'position')
+  return {
+    ...object,
+    id: readRecordString(object, 'id') ?? stableStringHash(JSON.stringify(object)),
+    type: readRecordString(object, 'type') ?? readRecordString(object, 'kind') ?? 'note',
+    x: readRecordNumber(object, 'x') ?? readRecordNumber(position ?? {}, 'x') ?? 0,
+    y: readRecordNumber(object, 'y') ?? readRecordNumber(position ?? {}, 'y') ?? 0,
+    width:
+      readRecordNumber(object, 'width') ??
+      readRecordNumber(object, 'w') ??
+      readRecordNumber(position ?? {}, 'width') ??
+      240,
+    height:
+      readRecordNumber(object, 'height') ??
+      readRecordNumber(object, 'h') ??
+      readRecordNumber(position ?? {}, 'height') ??
+      160
+  }
+}
+
+function normalizeCanvasEdge(edge: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...edge,
+    id: readRecordString(edge, 'id') ?? stableStringHash(JSON.stringify(edge)),
+    from:
+      readRecordString(edge, 'from') ??
+      readRecordString(edge, 'fromObjectId') ??
+      readRecordString(edge, 'sourceId') ??
+      readRecordString(edge, 'fromNode'),
+    to:
+      readRecordString(edge, 'to') ??
+      readRecordString(edge, 'toObjectId') ??
+      readRecordString(edge, 'targetId') ??
+      readRecordString(edge, 'toNode')
+  }
+}
+
+function normalizeTileScope(
+  tileIds: string[] | undefined,
+  tileSize: number | undefined
+): { tileIds: Set<string>; tileSize: number } | null {
+  if (!tileIds || tileIds.length === 0) return null
+  return {
+    tileIds: new Set(tileIds),
+    tileSize: tileSize && tileSize > 0 ? tileSize : 1000
+  }
+}
+
+function tileIdForCanvasObject(object: Record<string, unknown>, tileSize: number): string {
+  const x = readRecordNumber(object, 'x') ?? 0
+  const y = readRecordNumber(object, 'y') ?? 0
+  return `0/${Math.floor(x / tileSize)}/${Math.floor(y / tileSize)}`
+}
+
+function scoreCanvasObject(
+  object: Record<string, unknown>,
+  normalizedQuery: string
+): Record<string, unknown> | null {
+  if (!normalizedQuery) return null
+  const searchable = searchableCanvasObjectText(object).toLocaleLowerCase()
+  const index = searchable.indexOf(normalizedQuery)
+  if (index === -1) return null
+
+  return {
+    objectId: readRecordString(object, 'id'),
+    sourceNodeId: getCanvasObjectSourceNodeId(object),
+    type: readRecordString(object, 'type'),
+    title: canvasObjectTitle(object),
+    snippet: createSnippet(searchableCanvasObjectText(object), index, normalizedQuery.length),
+    score: canvasObjectTitle(object).toLocaleLowerCase().includes(normalizedQuery) ? 10 : 1
+  }
+}
+
+function searchableCanvasObjectText(object: Record<string, unknown>): string {
+  return [
+    readRecordString(object, 'id'),
+    readRecordString(object, 'type'),
+    getCanvasObjectSourceNodeId(object),
+    canvasObjectTitle(object),
+    ...Object.values(readRecord(object, 'properties') ?? object).map((value) =>
+      typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+        ? String(value)
+        : ''
+    )
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+function canvasObjectTitle(object: Record<string, unknown>): string {
+  const properties = readRecord(object, 'properties')
+  return (
+    readRecordString(object, 'title') ??
+    readRecordString(object, 'label') ??
+    readRecordString(object, 'alias') ??
+    readRecordString(properties ?? {}, 'title') ??
+    readRecordString(properties ?? {}, 'text') ??
+    readRecordString(object, 'id') ??
+    'Untitled object'
+  )
+}
+
+function getCanvasObjectSourceNodeId(object: Record<string, unknown>): string | undefined {
+  const metadata = readRecord(object, 'xnet')
+  return (
+    readRecordString(object, 'sourceNodeId') ??
+    readRecordString(object, 'nodeId') ??
+    readRecordString(object, 'fileNodeId') ??
+    readRecordString(metadata ?? {}, 'sourceNodeId')
+  )
+}
+
+function toJsonCanvasDocument(
+  objects: Record<string, unknown>[],
+  edges: Record<string, unknown>[],
+  includeXNetMetadata: boolean
+): Record<string, unknown> {
+  return {
+    nodes: objects.map((object) => toJsonCanvasNode(object, includeXNetMetadata)),
+    edges: edges.map((edge) => toJsonCanvasEdge(edge, includeXNetMetadata))
+  }
+}
+
+function toJsonCanvasNode(
+  object: Record<string, unknown>,
+  includeXNetMetadata: boolean
+): Record<string, unknown> {
+  const type = normalizeJsonCanvasNodeType(readRecordString(object, 'type'))
+  const base = {
+    id: readRecordString(object, 'id') ?? stableStringHash(JSON.stringify(object)),
+    type,
+    x: readRecordNumber(object, 'x') ?? 0,
+    y: readRecordNumber(object, 'y') ?? 0,
+    width: readRecordNumber(object, 'width') ?? 240,
+    height: readRecordNumber(object, 'height') ?? 160,
+    ...(includeXNetMetadata ? { xnet: canvasObjectXNetMetadata(object) } : {})
+  }
+
+  if (type === 'link') {
+    return { ...base, url: canvasObjectUrl(object) ?? '' }
+  }
+
+  if (type === 'file') {
+    return { ...base, file: canvasObjectFile(object) ?? '' }
+  }
+
+  if (type === 'group') {
+    return { ...base, label: canvasObjectTitle(object) }
+  }
+
+  return { ...base, text: canvasObjectText(object) }
+}
+
+function toJsonCanvasEdge(
+  edge: Record<string, unknown>,
+  includeXNetMetadata: boolean
+): Record<string, unknown> {
+  return {
+    id: readRecordString(edge, 'id') ?? stableStringHash(JSON.stringify(edge)),
+    fromNode: readRecordString(edge, 'from') ?? '',
+    toNode: readRecordString(edge, 'to') ?? '',
+    ...(readRecordString(edge, 'label') ? { label: readRecordString(edge, 'label') } : {}),
+    ...(includeXNetMetadata
+      ? {
+          xnet: {
+            originalId: readRecordString(edge, 'id'),
+            relationship: readRecord(edge, 'relationship')
+          }
+        }
+      : {})
+  }
+}
+
+function normalizeJsonCanvasNodeType(type: string | undefined): 'text' | 'file' | 'link' | 'group' {
+  if (type === 'media' || type === 'file') return 'file'
+  if (type === 'external-reference' || type === 'link' || type === 'database' || type === 'page') {
+    return 'link'
+  }
+  if (type === 'group' || type === 'frame') return 'group'
+  return 'text'
+}
+
+function canvasObjectXNetMetadata(object: Record<string, unknown>): Record<string, unknown> {
+  return {
+    originalId: readRecordString(object, 'id'),
+    type: readRecordString(object, 'type'),
+    sourceNodeId: getCanvasObjectSourceNodeId(object),
+    sourceSchemaId: readRecordString(object, 'sourceSchemaId')
+  }
+}
+
+function canvasObjectText(object: Record<string, unknown>): string {
+  const properties = readRecord(object, 'properties')
+  return [
+    canvasObjectTitle(object),
+    readRecordString(object, 'text') ?? readRecordString(properties ?? {}, 'text'),
+    readRecordString(object, 'description') ?? readRecordString(properties ?? {}, 'description')
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+function canvasObjectUrl(object: Record<string, unknown>): string | undefined {
+  const properties = readRecord(object, 'properties')
+  return readRecordString(object, 'url') ?? readRecordString(properties ?? {}, 'url')
+}
+
+function canvasObjectFile(object: Record<string, unknown>): string | undefined {
+  const properties = readRecord(object, 'properties')
+  return (
+    readRecordString(object, 'file') ??
+    readRecordString(object, 'filePath') ??
+    readRecordString(properties ?? {}, 'file') ??
+    readRecordString(properties ?? {}, 'filePath')
+  )
+}
+
+function jsonCanvasDocumentToCanvasOperations(document: Record<string, unknown>): {
+  operations: AiOperation[]
+  warnings: string[]
+  errors: string[]
+} {
+  const nodes = Array.isArray(document.nodes) ? document.nodes.filter(isRecord) : []
+  const edges = Array.isArray(document.edges) ? document.edges.filter(isRecord) : []
+  const nodeIds = new Set(nodes.map((node) => readRecordString(node, 'id')).filter(Boolean))
+  const warnings = edges.flatMap((edge) => {
+    const fromNode = readRecordString(edge, 'fromNode')
+    const toNode = readRecordString(edge, 'toNode')
+    return fromNode && toNode && nodeIds.has(fromNode) && nodeIds.has(toNode)
+      ? []
+      : [
+          `JSON Canvas edge ${readRecordString(edge, 'id') ?? '<unknown>'} references a missing node.`
+        ]
+  })
+
+  return {
+    operations: [
+      ...nodes.map((node) =>
+        createAiOperation('addObject', {
+          object: jsonCanvasNodeToCanvasObject(node),
+          visualDiff: { kind: 'add', after: jsonCanvasNodeToCanvasObject(node) }
+        })
+      ),
+      ...edges.map((edge) =>
+        createAiOperation('connectObjects', {
+          edge: jsonCanvasEdgeToCanvasEdge(edge),
+          visualDiff: { kind: 'connect', after: jsonCanvasEdgeToCanvasEdge(edge) }
+        })
+      )
+    ],
+    warnings,
+    errors: Array.isArray(document.nodes) ? [] : ['document.nodes must be an array']
+  }
+}
+
+function jsonCanvasNodeToCanvasObject(node: Record<string, unknown>): Record<string, unknown> {
+  const metadata = readRecord(node, 'xnet')
+  const type = readRecordString(node, 'type') ?? 'text'
+  return {
+    id: readRecordString(node, 'id') ?? stableStringHash(JSON.stringify(node)),
+    type: jsonCanvasTypeToCanvasType(type),
+    x: readRecordNumber(node, 'x') ?? 0,
+    y: readRecordNumber(node, 'y') ?? 0,
+    width: readRecordNumber(node, 'width') ?? 240,
+    height: readRecordNumber(node, 'height') ?? 160,
+    ...(readRecordString(metadata ?? {}, 'sourceNodeId')
+      ? { sourceNodeId: readRecordString(metadata ?? {}, 'sourceNodeId') }
+      : {}),
+    properties: {
+      title:
+        readRecordString(node, 'label') ?? firstLine(readRecordString(node, 'text')) ?? node.id,
+      text: readRecordString(node, 'text'),
+      url: readRecordString(node, 'url'),
+      file: readRecordString(node, 'file')
+    }
+  }
+}
+
+function jsonCanvasEdgeToCanvasEdge(edge: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: readRecordString(edge, 'id') ?? stableStringHash(JSON.stringify(edge)),
+    from: readRecordString(edge, 'fromNode'),
+    to: readRecordString(edge, 'toNode'),
+    label: readRecordString(edge, 'label')
+  }
+}
+
+function jsonCanvasTypeToCanvasType(type: string): string {
+  if (type === 'link') return 'external-reference'
+  if (type === 'file') return 'media'
+  if (type === 'group') return 'group'
+  return 'note'
+}
+
+function firstLine(value: string | undefined): string | undefined {
+  return value?.split('\n')[0]?.trim() || undefined
+}
+
+function planCanvasOperations(
+  scene: CanvasScene,
+  operations: AiOperation[]
+): { operations: AiOperation[]; warnings: string[]; errors: string[] } {
+  return operations.reduce(
+    (planned, operation) => {
+      if (operation.op.toLocaleLowerCase().includes('layout')) {
+        const layout = createDeterministicLayoutPlan(scene, operation)
+        planned.operations.push(
+          createAiOperation(
+            operation.op,
+            {
+              ...operation.args,
+              generatedOperations: layout.operations,
+              visualDiff: { kind: 'layout', overlays: layout.visualDiffs }
+            },
+            operation.rationale
+          )
+        )
+        planned.warnings.push(...layout.warnings)
+        return planned
+      }
+
+      planned.operations.push(enrichCanvasOperationWithDiff(scene, operation))
+      planned.warnings.push(...canvasOperationWarnings(scene, operation))
+      return planned
+    },
+    { operations: [] as AiOperation[], warnings: [] as string[], errors: [] as string[] }
+  )
+}
+
+function enrichCanvasOperationWithDiff(scene: CanvasScene, operation: AiOperation): AiOperation {
+  return createAiOperation(
+    operation.op,
+    {
+      ...operation.args,
+      visualDiff: canvasVisualDiffForOperation(scene, operation)
+    },
+    operation.rationale
+  )
+}
+
+function canvasVisualDiffForOperation(
+  scene: CanvasScene,
+  operation: AiOperation
+): Record<string, unknown> {
+  const op = operation.op.toLocaleLowerCase()
+  const objectId =
+    readRecordString(operation.args, 'objectId') ?? readRecordString(operation.args, 'id')
+  const object = objectId ? findCanvasObject(scene, objectId) : null
+
+  if (op.includes('add')) return { kind: 'add', after: operation.args.object ?? operation.args }
+  if (op.includes('move') || op.includes('resize')) {
+    return {
+      kind: op.includes('resize') ? 'resize' : 'move',
+      objectId,
+      before: object ? canvasObjectRect(object) : null,
+      after: {
+        ...canvasObjectRect(object ?? {}),
+        ...readRecord(operation.args, 'position'),
+        ...(readRecordNumber(operation.args, 'x') !== undefined
+          ? { x: readRecordNumber(operation.args, 'x') }
+          : {}),
+        ...(readRecordNumber(operation.args, 'y') !== undefined
+          ? { y: readRecordNumber(operation.args, 'y') }
+          : {})
+      }
+    }
+  }
+  if (op.includes('connect'))
+    return { kind: 'connect', after: operation.args.edge ?? operation.args }
+  if (op.includes('group') || op.includes('frame')) {
+    return {
+      kind: op.includes('frame') ? 'frame' : 'group',
+      bounds: boundsForCanvasObjects(scene.objects)
+    }
+  }
+  if (op.includes('delete') || op.includes('remove')) return { kind: 'remove', before: object }
+
+  return { kind: 'update', objectId, before: object, after: operation.args }
+}
+
+function canvasOperationWarnings(scene: CanvasScene, operation: AiOperation): string[] {
+  const objectId =
+    readRecordString(operation.args, 'objectId') ?? readRecordString(operation.args, 'id')
+  if (
+    objectId &&
+    !findCanvasObject(scene, objectId) &&
+    !operation.op.toLocaleLowerCase().includes('add')
+  ) {
+    return [`Canvas object ${objectId} was not found in the current canvas projection.`]
+  }
+  return []
+}
+
+function createDeterministicLayoutPlan(
+  scene: CanvasScene,
+  operation: AiOperation
+): { operations: AiOperation[]; visualDiffs: unknown[]; warnings: string[] } {
+  const objectIds = readStringArray(operation.args.objectIds)
+  const selectedObjects = scene.objects.filter((object) => {
+    const id = readRecordString(object, 'id')
+    return id && objectIds.includes(id)
+  })
+  const algorithm = readRecordString(operation.args, 'algorithm') ?? 'grid'
+  const startX = readRecordNumber(operation.args, 'startX') ?? 0
+  const startY = readRecordNumber(operation.args, 'startY') ?? 0
+  const gap = readRecordNumber(operation.args, 'gap') ?? 40
+  const columns = Math.max(1, Math.floor(readRecordNumber(operation.args, 'columns') ?? 3))
+  const positions = selectedObjects.map((object, index) => {
+    const width = readRecordNumber(object, 'width') ?? 240
+    const height = readRecordNumber(object, 'height') ?? 160
+    const row = algorithm === 'horizontal' ? 0 : Math.floor(index / columns)
+    const column =
+      algorithm === 'vertical' ? 0 : algorithm === 'horizontal' ? index : index % columns
+    return {
+      object,
+      rect: {
+        x: startX + column * (width + gap),
+        y: startY + row * (height + gap),
+        width,
+        height
+      }
+    }
+  })
+
+  return {
+    operations: positions.map(({ object, rect }) =>
+      createAiOperation('moveObject', {
+        objectId: readRecordString(object, 'id'),
+        position: rect,
+        deterministicLayout: { algorithm, gap, columns }
+      })
+    ),
+    visualDiffs: positions.map(({ object, rect }) => ({
+      kind: 'move',
+      objectId: readRecordString(object, 'id'),
+      before: canvasObjectRect(object),
+      after: rect
+    })),
+    warnings:
+      selectedObjects.length === objectIds.length
+        ? []
+        : [`Layout skipped ${objectIds.length - selectedObjects.length} missing object ids.`]
+  }
+}
+
+function findCanvasObject(scene: CanvasScene, objectId: string): Record<string, unknown> | null {
+  return scene.objects.find((object) => readRecordString(object, 'id') === objectId) ?? null
+}
+
+function canvasObjectRect(object: Record<string, unknown>): Record<string, unknown> {
+  return {
+    x: readRecordNumber(object, 'x') ?? 0,
+    y: readRecordNumber(object, 'y') ?? 0,
+    width: readRecordNumber(object, 'width') ?? 0,
+    height: readRecordNumber(object, 'height') ?? 0
+  }
+}
+
+function boundsForCanvasObjects(
+  objects: Record<string, unknown>[]
+): Record<string, unknown> | null {
+  if (objects.length === 0) return null
+  const rects = objects.map(canvasObjectRect)
+  const left = Math.min(...rects.map((rect) => Number(rect.x)))
+  const top = Math.min(...rects.map((rect) => Number(rect.y)))
+  const right = Math.max(...rects.map((rect) => Number(rect.x) + Number(rect.width)))
+  const bottom = Math.max(...rects.map((rect) => Number(rect.y) + Number(rect.height)))
+  return { x: left, y: top, width: right - left, height: bottom - top }
+}
+
 function normalizeBounds(options: {
   x?: number
   y?: number
@@ -2016,8 +2863,16 @@ function edgeTouchesVisibleObjects(
   objectIds: Set<string | undefined>
 ): boolean {
   if (objectIds.size === 0) return true
-  const from = readRecordString(edge, 'from') ?? readRecordString(edge, 'fromObjectId')
-  const to = readRecordString(edge, 'to') ?? readRecordString(edge, 'toObjectId')
+  const from =
+    readRecordString(edge, 'from') ??
+    readRecordString(edge, 'fromObjectId') ??
+    readRecordString(edge, 'sourceId') ??
+    readRecordString(edge, 'fromNode')
+  const to =
+    readRecordString(edge, 'to') ??
+    readRecordString(edge, 'toObjectId') ??
+    readRecordString(edge, 'targetId') ??
+    readRecordString(edge, 'toNode')
   return objectIds.has(from) || objectIds.has(to)
 }
 
@@ -2107,6 +2962,35 @@ function readRequiredString(record: Record<string, unknown>, key: string): strin
     throw new Error(`${key} must be a non-empty string`)
   }
   return value
+}
+
+function readRequiredRecord(record: Record<string, unknown>, key: string): Record<string, unknown> {
+  const value = record[key]
+  if (!isRecord(value)) {
+    throw new Error(`${key} must be an object`)
+  }
+  return value
+}
+
+function readRequiredStringArray(value: unknown, key: string): string[] {
+  const result = readStringArray(value)
+  if (result.length === 0) {
+    throw new Error(`${key} must contain at least one string`)
+  }
+  return result
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.trim() !== '')
+}
+
+function readCsvStringArray(value: string | null): string[] {
+  if (!value) return []
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function readOptionalString(record: Record<string, unknown>, key: string): string | undefined {
