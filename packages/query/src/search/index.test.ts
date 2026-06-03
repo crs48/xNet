@@ -1,14 +1,25 @@
 import { YDoc } from '@xnetjs/data'
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
-import { createSearchIndex, type SearchIndex, type SearchableDocument } from './index'
+import {
+  createSearchIndex,
+  type SearchIndex,
+  type SearchableDocument,
+  type SearchIndexOptions
+} from './index'
 
-function createTestDoc(id: string, type: string, title: string, body = title): SearchableDocument {
+function createTestDoc(
+  id: string,
+  type: string,
+  title: string,
+  body = title,
+  options: Partial<SearchableDocument> = {}
+): SearchableDocument {
   const ydoc = new YDoc({ guid: id, gc: false })
   const paragraph = new Y.XmlElement('paragraph')
   paragraph.insert(0, [new Y.XmlText(body)])
   ydoc.getXmlFragment('content').insert(0, [paragraph])
-  return { id, ydoc, type, workspace: 'ws-1', metadata: { title } }
+  return { id, ydoc, type, workspace: 'ws-1', metadata: { title }, ...options }
 }
 
 describe('SearchIndex', () => {
@@ -113,6 +124,82 @@ describe('SearchIndex', () => {
       index.clear()
       const results = index.search({ text: 'document' })
       expect(results).toHaveLength(0)
+    })
+  })
+
+  describe('moderation signals', () => {
+    it('excludes high-confidence abuse labels from search by default', () => {
+      index.add(
+        createTestDoc('doc-1', 'page', 'Fraud Campaign', 'fraud campaign details', {
+          moderation: {
+            labels: [{ value: 'spam', confidence: 0.94, sourceWeight: 2 }]
+          }
+        })
+      )
+
+      expect(index.search({ text: 'fraud' })).toHaveLength(0)
+    })
+
+    it('lets stronger safe labels override abuse labels', () => {
+      index.add(
+        createTestDoc('doc-1', 'page', 'Appeal Notes', 'appeal notes', {
+          moderation: {
+            labels: [
+              { value: 'spam', confidence: 0.88, sourceWeight: 1 },
+              { value: 'safe', confidence: 0.92, sourceWeight: 1 }
+            ]
+          }
+        })
+      )
+
+      expect(index.search({ text: 'appeal' })).toHaveLength(1)
+    })
+
+    it('demotes slop labels without removing the document', () => {
+      index.add(createTestDoc('clean', 'page', 'Research Brief', 'research brief'))
+      index.add(
+        createTestDoc('slop', 'page', 'Research Brief', 'research brief', {
+          moderation: {
+            labels: [{ value: 'slop', confidence: 0.9, sourceWeight: 2 }]
+          }
+        })
+      )
+
+      const results = index.search({ text: 'research' })
+
+      expect(results.map((result) => result.id)).toEqual(['clean', 'slop'])
+      expect(results[0].score).toBeGreaterThan(results[1].score)
+    })
+
+    it('demotes low-support quality signals in ranking', () => {
+      index.add(createTestDoc('sourced', 'page', 'Policy Memo', 'policy memo'))
+      index.add(
+        createTestDoc('unsupported', 'page', 'Policy Memo', 'policy memo', {
+          moderation: {
+            qualitySignals: [{ signal: 'citation-coverage', score: 0.1, confidence: 0.9 }]
+          }
+        })
+      )
+
+      expect(index.search({ text: 'policy' }).map((result) => result.id)).toEqual([
+        'sourced',
+        'unsupported'
+      ])
+    })
+
+    it('can include hidden documents for review search indexes', () => {
+      const reviewIndex = createSearchIndex({
+        moderation: { includeHidden: true }
+      } satisfies SearchIndexOptions)
+      reviewIndex.add(
+        createTestDoc('doc-1', 'page', 'Review Queue', 'review queue', {
+          moderation: {
+            labels: [{ value: 'spam', confidence: 0.94, sourceWeight: 2 }]
+          }
+        })
+      )
+
+      expect(reviewIndex.search({ text: 'review' })).toHaveLength(1)
     })
   })
 })

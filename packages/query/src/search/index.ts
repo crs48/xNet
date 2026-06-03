@@ -5,6 +5,11 @@ import type { SearchQuery, SearchResult } from '../types'
 import type { YDoc } from '@xnetjs/data'
 import MiniSearch from 'minisearch'
 import { createSearchSnippet, extractDocumentText } from './document'
+import {
+  summarizeSearchModeration,
+  type SearchModerationPolicy,
+  type SearchModerationSignals
+} from './moderation'
 
 export interface SearchableDocument {
   id: string
@@ -12,6 +17,7 @@ export interface SearchableDocument {
   type: string
   workspace: string
   metadata: { title: string }
+  moderation?: SearchModerationSignals
 }
 
 export interface SearchIndex {
@@ -20,6 +26,10 @@ export interface SearchIndex {
   update(doc: SearchableDocument): void
   search(query: SearchQuery): SearchResult[]
   clear(): void
+}
+
+export type SearchIndexOptions = {
+  moderation?: SearchModerationPolicy
 }
 
 /**
@@ -31,15 +41,27 @@ interface IndexedDoc {
   title: string
   content: string
   workspace: string
+  includeInSearch: boolean
+  moderationScore: number
+  moderationReasons: string
 }
 
 /**
  * Create a full-text search index
  */
-export function createSearchIndex(): SearchIndex {
+export function createSearchIndex(options: SearchIndexOptions = {}): SearchIndex {
   const miniSearch = new MiniSearch<IndexedDoc>({
     fields: ['title', 'content'],
-    storeFields: ['id', 'type', 'title', 'workspace', 'content'],
+    storeFields: [
+      'id',
+      'type',
+      'title',
+      'workspace',
+      'content',
+      'includeInSearch',
+      'moderationScore',
+      'moderationReasons'
+    ],
     searchOptions: {
       boost: { title: 2 },
       fuzzy: 0.2,
@@ -49,12 +71,16 @@ export function createSearchIndex(): SearchIndex {
 
   return {
     add(doc: SearchableDocument): void {
+      const moderation = summarizeSearchModeration(doc.moderation, options.moderation)
       const indexed: IndexedDoc = {
         id: doc.id,
         type: doc.type,
         title: doc.metadata.title,
         content: extractDocumentText(doc.ydoc),
-        workspace: doc.workspace
+        workspace: doc.workspace,
+        includeInSearch: moderation.includeInSearch,
+        moderationScore: moderation.scoreMultiplier,
+        moderationReasons: moderation.reasons.join(',')
       }
       miniSearch.add(indexed)
     },
@@ -78,17 +104,25 @@ export function createSearchIndex(): SearchIndex {
           : undefined
       })
 
-      return results.slice(0, query.limit ?? 20).map((result) => ({
-        id: result.id,
-        type: result.type as string,
-        title: result.title as string,
-        snippet: createSearchSnippet(String(result.content ?? ''), query.text),
-        score: result.score
-      }))
+      return results
+        .filter((result) => result.includeInSearch !== false)
+        .map((result) => ({
+          id: result.id,
+          type: result.type as string,
+          title: result.title as string,
+          snippet: createSearchSnippet(String(result.content ?? ''), query.text),
+          score: result.score * asNumber(result.moderationScore, 1)
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, query.limit ?? 20)
     },
 
     clear(): void {
       miniSearch.removeAll()
     }
   }
+}
+
+function asNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
