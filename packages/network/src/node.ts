@@ -10,7 +10,10 @@ import { identify } from '@libp2p/identify'
 import { kadDHT } from '@libp2p/kad-dht'
 import { webSockets } from '@libp2p/websockets'
 import { createLibp2p } from 'libp2p'
+import { ensurePromiseWithResolvers } from './compat'
 import { DEFAULT_CONFIG } from './types'
+
+ensurePromiseWithResolvers()
 
 // ─── Telemetry Interface ──────────────────────────────────
 
