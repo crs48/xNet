@@ -43,6 +43,12 @@ export {
   scoreClaimCitationCoverage
 } from './citation-coverage'
 export {
+  createLabelerSubscription,
+  createTrustedLabelFromSetting,
+  evaluateLabelerSubscriptionLimit,
+  evaluateLabelerTrust
+} from './labeler-trust'
+export {
   groupCommunityNoteRatingsByPerspective,
   isCommunityNoteAgreementVisible,
   scoreCommunityNotePerspectiveDiversity,
@@ -123,6 +129,19 @@ export type {
   LocalClassifierProvenance,
   LocalClassifierSignal
 } from './local-classifier'
+export type {
+  LabelerSubscription,
+  LabelerSubscriptionLimitDecision,
+  LabelerSubscriptionLimitInput,
+  LabelerSubscriptionLimitPolicy,
+  LabelerSubscriptionStatus,
+  LabelerTrustAction,
+  LabelerTrustDecision,
+  LabelerTrustEvaluationInput,
+  LabelerTrustLevel,
+  LabelerTrustScope,
+  LabelerTrustSetting
+} from './labeler-trust'
 export type {
   CloudClassificationOptions,
   CloudClassificationResult,
