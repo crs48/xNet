@@ -7,7 +7,9 @@ import {
   attachAiPlanValidation,
   createAiOperation,
   parseAiMutationPlan,
+  renderMarkdownLineDiff,
   serializeAiMutationPlan,
+  validateXNetPageMarkdown,
   validateAiMutationPlan,
   type AiMutationPlan
 } from '../ai-surface'
@@ -122,6 +124,73 @@ describe('AI surface contract', () => {
 
       expect(plan.status).toBe('validated')
       expect(plan.validation.valid).toBe(true)
+    })
+  })
+
+  describe('page Markdown validation', () => {
+    it('validates xNet frontmatter and supported directives', () => {
+      const markdown = [
+        '---',
+        'xnet:',
+        '  id: "page_1"',
+        '  schemaId: "xnet://xnet.fyi/Page@1.0.0"',
+        '  revision: "updatedAt:1"',
+        '  exportedAt: "2026-06-02T12:00:00.000Z"',
+        '---',
+        '',
+        '# Product Roadmap',
+        '',
+        ':::xnet-database',
+        '{"databaseId":"db-roadmap","viewType":"board"}',
+        ':::',
+        '',
+        'Related {{xnet-ref {"nodeId":"task_1","label":"Launch beta"}}} and [[Planning]].'
+      ].join('\n')
+
+      const result = validateXNetPageMarkdown(markdown, {
+        pageId: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        baseRevision: 'updatedAt:1'
+      })
+
+      expect(result.validation.valid).toBe(true)
+      expect(result.frontmatter?.id).toBe('page_1')
+      expect(result.directives.map((directive) => directive.name)).toEqual([
+        'xnet-database',
+        'xnet-ref',
+        'wikilink'
+      ])
+    })
+
+    it('rejects mismatched identity and malformed xNet directive JSON', () => {
+      const markdown = [
+        '---',
+        'xnet:',
+        '  id: "wrong_page"',
+        '  schemaId: "xnet://xnet.fyi/Page@1.0.0"',
+        '---',
+        '',
+        ':::xnet-page',
+        '{"pageId":',
+        ':::'
+      ].join('\n')
+
+      const result = validateXNetPageMarkdown(markdown, {
+        pageId: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0'
+      })
+
+      expect(result.validation.valid).toBe(false)
+      expect(result.validation.errors).toContain(
+        'Frontmatter page id wrong_page does not match target page page_1'
+      )
+      expect(result.validation.errors).toContain(
+        'xnet-page block directive payload must be valid JSON'
+      )
+    })
+
+    it('renders simple line diffs for Markdown review payloads', () => {
+      expect(renderMarkdownLineDiff('# A\nold', '# A\nnew')).toBe(' # A\n-old\n+new')
     })
   })
 })

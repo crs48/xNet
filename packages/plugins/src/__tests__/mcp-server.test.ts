@@ -161,6 +161,7 @@ describe('MCPServer', () => {
       expect(toolNames).toContain('xnet_schemas')
       expect(toolNames).toContain('xnet_search')
       expect(toolNames).toContain('xnet_create_context_pack')
+      expect(toolNames).toContain('xnet_validate_page_markdown')
       expect(toolNames).toContain('xnet_plan_page_patch')
     })
 
@@ -453,9 +454,37 @@ describe('MCPServer', () => {
         expect(data.status).toBe('validated')
         expect(data.validation.valid).toBe(true)
         expect(data.changes[0].operations[0].op).toBe('replaceMarkdown')
+        expect(data.changes[0].operations[0].args.directiveCount).toBe(0)
+        expect(data.changes[0].operations[0].args.diff).toContain('+Updated')
 
         const unchanged = await mockStore.get(page.id)
         expect(unchanged?.properties.markdown).toBe('Original')
+      })
+
+      it('returns invalid page patch plans for malformed xNet directives', async () => {
+        const page = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Draft', markdown: 'Original' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_page_patch',
+            arguments: {
+              pageId: page.id,
+              markdown: ['# Draft', '', ':::xnet-database', '{"databaseId":', ':::'].join('\n')
+            }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.status).toBe('proposed')
+        expect(data.validation.valid).toBe(false)
+        expect(data.validation.errors).toContain(
+          'xnet-database block directive payload must be valid JSON'
+        )
       })
     })
 

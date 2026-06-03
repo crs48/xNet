@@ -50,7 +50,11 @@ export type {
   AiSearchOptions,
   AiSearchResult,
   AiSurfaceLimits,
-  AiSurfaceServiceConfig
+  AiSurfaceServiceConfig,
+  XNetMarkdownDirective,
+  XNetPageMarkdownFrontmatter,
+  XNetPageMarkdownValidation,
+  XNetPageMarkdownValidationOptions
 } from '../ai-surface'
 export {
   AI_RISK_LEVELS,
@@ -67,7 +71,11 @@ export {
   serializeAiMutationPlan,
   validateAiMutationPlan,
   AiSurfaceService,
-  createAiSurfaceService
+  createAiSurfaceService,
+  parseXNetPageFrontmatter,
+  renderMarkdownLineDiff,
+  stripXNetPageFrontmatter,
+  validateXNetPageMarkdown
 } from '../ai-surface'
 
 // Process Manager (uses Node.js child_process module)

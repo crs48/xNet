@@ -1311,10 +1311,10 @@ Workspace:
 
 ### Phase 2: Page Markdown Patch Pipeline
 
-- [ ] Add `page_read_markdown` with frontmatter identity and revision.
-- [ ] Add `page_plan_patch` that accepts full Markdown replacement or structured patch.
+- [x] Add `page_read_markdown` with frontmatter identity and revision.
+- [x] Add `page_plan_patch` that accepts full Markdown replacement or structured patch.
 - [ ] Parse Markdown through existing xNet Markdown specs.
-- [ ] Validate xNet directives and unsupported constructs.
+- [x] Validate xNet directives and unsupported constructs.
 - [ ] Apply through TipTap/Yjs document paths.
 - [ ] Render Markdown diffs in the UI.
 - [ ] Add round-trip tests for AI-edited pages with database/page/embed directives.

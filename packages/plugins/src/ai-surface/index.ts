@@ -47,3 +47,15 @@ export type {
   AiSurfaceLimits,
   AiSurfaceServiceConfig
 } from './service'
+export {
+  parseXNetPageFrontmatter,
+  renderMarkdownLineDiff,
+  stripXNetPageFrontmatter,
+  validateXNetPageMarkdown
+} from './page-markdown'
+export type {
+  XNetMarkdownDirective,
+  XNetPageMarkdownFrontmatter,
+  XNetPageMarkdownValidation,
+  XNetPageMarkdownValidationOptions
+} from './page-markdown'

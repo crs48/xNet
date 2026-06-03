@@ -16,6 +16,7 @@ import type {
   AiToolDefinition
 } from './types'
 import type { NodeData, NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
+import { renderMarkdownLineDiff, validateXNetPageMarkdown } from './page-markdown'
 import { attachAiPlanValidation, createAiOperation, validateAiMutationPlan } from './validation'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -229,6 +230,22 @@ export class AiSurfaceService {
         }
       },
       {
+        name: 'xnet_validate_page_markdown',
+        title: 'Validate page Markdown',
+        description: 'Validate xNet page frontmatter and supported xNet Markdown directives.',
+        risk: 'low',
+        requiredScopes: ['page.read'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pageId: { type: 'string', description: 'Optional target page node id.' },
+            baseRevision: { type: 'string', description: 'Optional expected base revision.' },
+            markdown: { type: 'string', description: 'Markdown to validate.' }
+          },
+          required: ['markdown']
+        }
+      },
+      {
         name: 'xnet_plan_page_patch',
         title: 'Plan page Markdown patch',
         description:
@@ -362,6 +379,16 @@ export class AiSurfaceService {
           readOptionalBoolean(args, 'includeFrontmatter') ?? true
         )
         return { markdown: content.text, mimeType: content.mimeType, uri: content.uri }
+      }
+
+      case 'xnet_validate_page_markdown': {
+        const pageId = readOptionalString(args, 'pageId')
+        const node = pageId ? await this.getNodeOrThrow(pageId) : null
+        return validateXNetPageMarkdown(readRequiredString(args, 'markdown'), {
+          pageId,
+          schemaId: node?.schemaId,
+          baseRevision: readOptionalString(args, 'baseRevision')
+        })
       }
 
       case 'xnet_plan_page_patch':
@@ -689,6 +716,12 @@ export class AiSurfaceService {
     const node = await this.getNodeOrThrow(pageId)
     const markdown = readRequiredString(args, 'markdown')
     const baseRevision = readOptionalString(args, 'baseRevision') ?? revisionForNode(node)
+    const currentMarkdown = renderPageMarkdown(node, true, this.nowIso())
+    const markdownValidation = validateXNetPageMarkdown(markdown, {
+      pageId,
+      schemaId: node.schemaId,
+      baseRevision
+    })
     const warnings =
       baseRevision === revisionForNode(node)
         ? []
@@ -708,12 +741,15 @@ export class AiSurfaceService {
             createAiOperation('replaceMarkdown', {
               markdown,
               markdownHash: stableStringHash(markdown),
-              markdownLength: markdown.length
+              markdownLength: markdown.length,
+              directiveCount: markdownValidation.directives.length,
+              diff: renderMarkdownLineDiff(currentMarkdown, markdown)
             })
           ]
         }
       ],
-      warnings
+      warnings: [...warnings, ...markdownValidation.validation.warnings],
+      errors: markdownValidation.validation.errors
     })
   }
 
@@ -877,7 +913,8 @@ export class AiSurfaceService {
       warnings:
         input.baseRevision && input.baseRevision !== revisionForNode(target)
           ? ['baseRevision does not match the live node revision']
-          : []
+          : [],
+      errors: []
     })
   }
 
@@ -888,6 +925,7 @@ export class AiSurfaceService {
     requiredScopes: AiScope[]
     changes: AiChangeSet[]
     warnings: string[]
+    errors: string[]
   }): AiMutationPlan {
     const plan = attachAiPlanValidation({
       id: this.nextId('plan'),
@@ -903,8 +941,11 @@ export class AiSurfaceService {
 
     return {
       ...plan,
+      status: plan.validation.valid && input.errors.length === 0 ? plan.status : 'proposed',
       validation: {
         ...plan.validation,
+        valid: plan.validation.valid && input.errors.length === 0,
+        errors: [...plan.validation.errors, ...input.errors],
         warnings: [...plan.validation.warnings, ...input.warnings]
       }
     }
