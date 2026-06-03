@@ -33,6 +33,12 @@ export {
   tokenizeContent
 } from './content-fingerprint'
 export {
+  classifyWithLocalAdapters,
+  createKeywordLocalClassifier,
+  createLocalClassificationResult,
+  mergeLocalClassificationResults
+} from './local-classifier'
+export {
   activePolicyBlockEntries,
   canonicalizePolicyBlockList,
   createPolicyBlockList,
@@ -56,6 +62,16 @@ export type {
   DuplicateContentAssessment,
   DuplicateContentOptions
 } from './content-fingerprint'
+export type {
+  KeywordClassifierRule,
+  KeywordLocalClassifierOptions,
+  LocalClassificationResult,
+  LocalClassifierAdapter,
+  LocalClassifierInput,
+  LocalClassifierOptions,
+  LocalClassifierProvenance,
+  LocalClassifierSignal
+} from './local-classifier'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
