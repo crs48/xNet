@@ -4,6 +4,7 @@ import {
   activeHubPolicyServices,
   createHubPolicyServiceOffer,
   isSignedHubPolicyServiceOffer,
+  publicAppealChannels,
   signHubPolicyServiceOffer,
   unsignedHubPolicyServiceOffer,
   validateHubPolicyServiceOffer,
@@ -45,6 +46,37 @@ describe('@xnetjs/abuse hub policy service offers', () => {
           authenticated: true,
           settlement: 'reciprocal',
           reciprocalCreditRatio: 1
+        },
+        {
+          service: 'appeal',
+          enabled: true,
+          endpoint: 'https://hub.example/xnet/appeals',
+          authenticated: true,
+          settlement: 'sponsored',
+          sponsoredBy: 'hub-operator'
+        }
+      ],
+      operatorContact: {
+        displayName: 'Example Hub',
+        homepageUrl: 'https://hub.example',
+        email: 'moderation@hub.example',
+        abuseReportUrl: 'https://hub.example/abuse',
+        responseTimeHours: 48
+      },
+      appealChannels: [
+        {
+          kind: 'web-form',
+          authenticated: true,
+          url: 'https://hub.example/appeals',
+          languages: ['en'],
+          maxResponseTimeHours: 72
+        },
+        {
+          kind: 'xnet-message',
+          authenticated: true,
+          recipientDID: hub.identity.did,
+          minResponseTimeHours: 4,
+          maxResponseTimeHours: 72
         }
       ],
       budgetHints: [
@@ -69,6 +101,7 @@ describe('@xnetjs/abuse hub policy service offers', () => {
     expect(signed.moderation.requireSignedWrites).toBe(true)
     expect(signed.moderation.aiReview.localModelsEnabled).toBe(true)
     expect(signed.moderation.aiReview.cloudModelsEnabled).toBe(true)
+    expect(publicAppealChannels(signed)).toHaveLength(2)
     expect(unsignedHubPolicyServiceOffer(signed)).not.toHaveProperty('signature')
   })
 
@@ -181,5 +214,64 @@ describe('@xnetjs/abuse hub policy service offers', () => {
       valid: false,
       errors: ['expired']
     })
+  })
+
+  it('requires usable appeal metadata when an appeal service is public', () => {
+    const hub = generateIdentity()
+    const missingChannelOffer = createHubPolicyServiceOffer({
+      id: 'appeals-policy',
+      hubDID: hub.identity.did,
+      issuerDID: hub.identity.did,
+      createdAt: 1_000,
+      expiresAt: 90_000,
+      services: [
+        {
+          service: 'appeal',
+          enabled: true,
+          authenticated: true,
+          settlement: 'free'
+        }
+      ]
+    })
+    const invalidChannelOffer = createHubPolicyServiceOffer({
+      id: 'appeals-policy',
+      hubDID: hub.identity.did,
+      issuerDID: hub.identity.did,
+      createdAt: 1_000,
+      expiresAt: 90_000,
+      operatorContact: {
+        email: 'not-an-email',
+        responseTimeHours: 0
+      },
+      services: [
+        {
+          service: 'appeal',
+          enabled: true,
+          authenticated: true,
+          settlement: 'free'
+        }
+      ],
+      appealChannels: [
+        {
+          kind: 'email',
+          authenticated: false,
+          email: 'invalid'
+        },
+        {
+          kind: 'web-form',
+          authenticated: true
+        }
+      ]
+    })
+
+    expect(validateHubPolicyServiceOffer(missingChannelOffer, 2_000).errors).toContain(
+      'appeal-channel-required'
+    )
+    expect(validateHubPolicyServiceOffer(invalidChannelOffer, 2_000).errors).toEqual([
+      'operator-response-time-invalid',
+      'operator-email-invalid',
+      'appeal-email-invalid',
+      'appeal-web-form-url-required'
+    ])
   })
 })

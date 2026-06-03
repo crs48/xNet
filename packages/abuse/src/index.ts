@@ -94,6 +94,7 @@ export {
   signHubPolicyServiceOffer,
   unsignedHubPolicyServiceOffer,
   validateHubPolicyServiceOffer,
+  publicAppealChannels,
   verifySignedHubPolicyServiceOffer
 } from './hub-policy-offer'
 export { createPublicWriteBudgetKey, evaluatePublicWriteBudget } from './public-write-budget'
@@ -194,10 +195,13 @@ export type {
 } from './ai-provenance'
 export type {
   HubModerationMode,
+  HubPolicyAppealChannel,
+  HubPolicyAppealChannelKind,
   HubPolicyAIReviewSettings,
   HubPolicyBudgetHint,
   HubPolicyLabelSettings,
   HubPolicyModerationSettings,
+  HubPolicyOperatorContact,
   HubPolicyServiceKind,
   HubPolicyServiceOfferEntry,
   HubPolicyServiceOfferSignature,

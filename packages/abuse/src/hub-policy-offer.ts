@@ -75,6 +75,29 @@ export type HubPolicyServiceOfferEntry = {
   sponsoredBy?: string
 }
 
+export type HubPolicyOperatorContact = {
+  displayName?: string
+  homepageUrl?: string
+  email?: string
+  abuseReportUrl?: string
+  securityContactUrl?: string
+  jurisdiction?: string
+  responseTimeHours?: number
+}
+
+export type HubPolicyAppealChannelKind = 'web-form' | 'email' | 'xnet-message' | 'external-ticket'
+
+export type HubPolicyAppealChannel = {
+  kind: HubPolicyAppealChannelKind
+  authenticated: boolean
+  url?: string
+  email?: string
+  recipientDID?: string
+  languages?: readonly string[]
+  minResponseTimeHours?: number
+  maxResponseTimeHours?: number
+}
+
 export type UnsignedHubPolicyServiceOffer = {
   v: 1
   kind: 'xnet.hub.policy-service-offer'
@@ -89,6 +112,8 @@ export type UnsignedHubPolicyServiceOffer = {
   services: readonly HubPolicyServiceOfferEntry[]
   budgetHints: readonly HubPolicyBudgetHint[]
   policyRefs: readonly string[]
+  operatorContact?: HubPolicyOperatorContact
+  appealChannels: readonly HubPolicyAppealChannel[]
 }
 
 export type HubPolicyServiceOfferSignature = {
@@ -140,7 +165,15 @@ const DEFAULT_MODERATION_SETTINGS: HubPolicyModerationSettings = {
 export const createHubPolicyServiceOffer = (
   input: Omit<
     UnsignedHubPolicyServiceOffer,
-    'v' | 'kind' | 'createdAt' | 'updatedAt' | 'moderation' | 'budgetHints' | 'policyRefs'
+    | 'v'
+    | 'kind'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'moderation'
+    | 'budgetHints'
+    | 'policyRefs'
+    | 'operatorContact'
+    | 'appealChannels'
   > & {
     createdAt?: number
     updatedAt?: number
@@ -150,6 +183,8 @@ export const createHubPolicyServiceOffer = (
     }
     budgetHints?: readonly HubPolicyBudgetHint[]
     policyRefs?: readonly string[]
+    operatorContact?: HubPolicyOperatorContact
+    appealChannels?: readonly HubPolicyAppealChannel[]
   }
 ): UnsignedHubPolicyServiceOffer => {
   const now = Date.now()
@@ -169,7 +204,9 @@ export const createHubPolicyServiceOffer = (
     moderation,
     services: input.services,
     budgetHints: input.budgetHints ?? [],
-    policyRefs: input.policyRefs ?? []
+    policyRefs: input.policyRefs ?? [],
+    operatorContact: input.operatorContact,
+    appealChannels: input.appealChannels ?? []
   }
 }
 
@@ -206,7 +243,9 @@ export const unsignedHubPolicyServiceOffer = (
   moderation: offer.moderation,
   services: offer.services,
   budgetHints: offer.budgetHints,
-  policyRefs: offer.policyRefs
+  policyRefs: offer.policyRefs,
+  operatorContact: offer.operatorContact,
+  appealChannels: offer.appealChannels
 })
 
 export const isSignedHubPolicyServiceOffer = (
@@ -230,7 +269,9 @@ export const validateHubPolicyServiceOffer = (
     ...validateTimestamps(offer, now),
     ...validateModerationSettings(offer.moderation),
     ...(offer.services.length === 0 ? ['services-required'] : []),
-    ...offer.budgetHints.flatMap(validateBudgetHint)
+    ...offer.budgetHints.flatMap(validateBudgetHint),
+    ...validateOperatorContact(offer.operatorContact),
+    ...validateAppealChannels(offer)
   ]
 
   return { valid: errors.length === 0, errors }
@@ -263,6 +304,13 @@ export const verifySignedHubPolicyServiceOffer = (
 export const activeHubPolicyServices = (
   offer: SignedHubPolicyServiceOffer | UnsignedHubPolicyServiceOffer
 ): readonly HubPolicyServiceOfferEntry[] => offer.services.filter((service) => service.enabled)
+
+export const publicAppealChannels = (
+  offer: SignedHubPolicyServiceOffer | UnsignedHubPolicyServiceOffer
+): readonly HubPolicyAppealChannel[] =>
+  offer.appealChannels.filter((channel) =>
+    ['email', 'web-form', 'xnet-message', 'external-ticket'].includes(channel.kind)
+  )
 
 // ─── Helpers ───────────────────────────────────────────────
 
@@ -348,5 +396,47 @@ function validateBudgetHint(hint: HubPolicyBudgetHint): readonly string[] {
     hint.scope.trim().length === 0 ? 'budget-scope-required' : null,
     hint.unitsPerWindow <= 0 ? 'budget-units-invalid' : null,
     hint.windowMs <= 0 ? 'budget-window-invalid' : null
+  ].filter((error): error is string => error !== null)
+}
+
+function validateOperatorContact(contact: HubPolicyOperatorContact | undefined): readonly string[] {
+  if (!contact) return []
+
+  return [
+    contact.responseTimeHours !== undefined && contact.responseTimeHours <= 0
+      ? 'operator-response-time-invalid'
+      : null,
+    contact.email !== undefined && !contact.email.includes('@') ? 'operator-email-invalid' : null
+  ].filter((error): error is string => error !== null)
+}
+
+function validateAppealChannels(offer: UnsignedHubPolicyServiceOffer): readonly string[] {
+  const appealServiceEnabled = offer.services.some(
+    (service) => service.service === 'appeal' && service.enabled
+  )
+
+  return [
+    appealServiceEnabled && offer.appealChannels.length === 0 ? 'appeal-channel-required' : null,
+    ...offer.appealChannels.flatMap(validateAppealChannel)
+  ].filter((error): error is string => error !== null)
+}
+
+function validateAppealChannel(channel: HubPolicyAppealChannel): readonly string[] {
+  return [
+    channel.kind === 'web-form' && !channel.url ? 'appeal-web-form-url-required' : null,
+    channel.kind === 'external-ticket' && !channel.url ? 'appeal-ticket-url-required' : null,
+    channel.kind === 'email' && !channel.email ? 'appeal-email-required' : null,
+    channel.kind === 'xnet-message' && !channel.recipientDID
+      ? 'appeal-recipient-did-required'
+      : null,
+    channel.email !== undefined && !channel.email.includes('@') ? 'appeal-email-invalid' : null,
+    channel.maxResponseTimeHours !== undefined && channel.maxResponseTimeHours <= 0
+      ? 'appeal-response-time-invalid'
+      : null,
+    channel.minResponseTimeHours !== undefined &&
+    channel.maxResponseTimeHours !== undefined &&
+    channel.minResponseTimeHours > channel.maxResponseTimeHours
+      ? 'appeal-response-window-invalid'
+      : null
   ].filter((error): error is string => error !== null)
 }
