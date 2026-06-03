@@ -215,7 +215,11 @@ export {
   // Generator
   ScriptGenerator,
   ScriptGenerationError,
-  generateScript
+  generateScript,
+  // Agent runtime
+  AiAgentRuntime,
+  createAiAgentRuntime,
+  createMemoryAiAgentRuntimeStorage
 } from './ai'
 export type {
   // Prompt types
@@ -246,7 +250,32 @@ export type {
   OpenAICompatibleProviderOptions,
   // Generator types
   AIScriptResponse,
-  ScriptGeneratorOptions
+  ScriptGeneratorOptions,
+  // Agent runtime types
+  AiAgentApproval,
+  AiAgentApprovalRequestInput,
+  AiAgentApprovalResolveInput,
+  AiAgentApprovalStatus,
+  AiAgentBackgroundJob,
+  AiAgentBackgroundJobInput,
+  AiAgentBackgroundJobRunner,
+  AiAgentBackgroundJobStatus,
+  AiAgentEvent,
+  AiAgentEventType,
+  AiAgentOrchestratorMode,
+  AiAgentRunTurnInput,
+  AiAgentRunTurnResult,
+  AiAgentRuntimeConfig,
+  AiAgentRuntimeListener,
+  AiAgentRuntimeSnapshot,
+  AiAgentRuntimeStorage,
+  AiAgentTelemetrySnapshot,
+  AiAgentThread,
+  AiAgentThreadCreateInput,
+  AiAgentThreadStatus,
+  AiAgentTurn,
+  AiAgentTurnRole,
+  AiAgentTurnStatus
 } from './ai'
 
 // AI surface contract (resources, tools, mutation plans, validation)

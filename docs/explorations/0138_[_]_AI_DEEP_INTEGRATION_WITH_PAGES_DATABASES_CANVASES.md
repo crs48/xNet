@@ -1355,13 +1355,13 @@ Workspace:
 
 ### Phase 6: In-App Agent Runtime
 
-- [ ] Decide whether to embed Codex app-server, build a custom orchestrator, or support both.
-- [ ] Add persistent agent threads and turns.
-- [ ] Stream tool events and model output into the UI.
-- [ ] Add approval controls tied to mutation plan ids.
-- [ ] Add cancellation and steering.
-- [ ] Add background job support for exports and long-running analysis.
-- [ ] Add telemetry for latency, accepted changes, rejected changes, and tool failures.
+- [x] Decide whether to embed Codex app-server, build a custom orchestrator, or support both.
+- [x] Add persistent agent threads and turns.
+- [x] Stream tool events and model output into the UI.
+- [x] Add approval controls tied to mutation plan ids.
+- [x] Add cancellation and steering.
+- [x] Add background job support for exports and long-running analysis.
+- [x] Add telemetry for latency, accepted changes, rejected changes, and tool failures.
 
 ### Phase 7: Provider Router
 
