@@ -1026,6 +1026,7 @@ Every hub should publish:
 - [x] Add signed hub policy/service offer documents with moderation settings.
 - [x] Add labeler trust settings and subscription limits per workspace/hub.
 - [x] Add appeal/contact metadata for public operators.
+- [x] Expose abuse usage and economics snapshots in DevTools.
 
 ## 🧪 Validation Checklist
 
