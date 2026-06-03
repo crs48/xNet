@@ -3,6 +3,7 @@
  */
 
 import type { AbuseReviewQueue } from './types'
+import { createAISignalProvenanceEvidenceRef, validateAISignalProvenance } from './ai-provenance'
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -193,15 +194,18 @@ function createStagedModerationWrite(
 ): StagedModerationWrite {
   const confidence = clamp(candidate.confidence, 0, 1)
   const minStageConfidence = policy.minStageConfidence ?? DEFAULT_MIN_STAGE_CONFIDENCE
+  const provenanceValidation = validateAISignalProvenance(candidate)
   const reviewRequired = requiresReview(candidate, policy)
   const status = resolveInitialStatus(candidate, confidence, reviewRequired, policy)
-  const finalStatus = confidence < minStageConfidence ? 'rejected' : status
+  const finalStatus =
+    confidence < minStageConfidence || !provenanceValidation.valid ? 'rejected' : status
   const id = candidate.id ?? `staged-write-${index + 1}`
 
   return {
     ...candidate,
     id,
     confidence,
+    evidenceRefs: createEvidenceRefsWithProvenance(candidate),
     sourceWeight: candidate.sourceWeight ?? policy.defaultSourceWeight ?? 1,
     status: finalStatus,
     createdAt: now,
@@ -212,12 +216,37 @@ function createStagedModerationWrite(
       finalStatus === 'staged'
         ? (policy.reviewQueueByKind?.[candidate.kind] ?? defaultQueue(candidate))
         : undefined,
+    rejectedAt: finalStatus === 'rejected' ? now : undefined,
+    rejectionReason: createRejectionReason(
+      confidence,
+      minStageConfidence,
+      provenanceValidation.errors
+    ),
     expiresAt:
       candidate.expiresAt ??
       (finalStatus === 'staged' && policy.stagedExpiresInMs
         ? now + policy.stagedExpiresInMs
         : undefined)
   }
+}
+
+function createEvidenceRefsWithProvenance(
+  candidate: StagedModerationWriteCandidate
+): readonly string[] {
+  const provenanceRef = createAISignalProvenanceEvidenceRef(candidate)
+  return provenanceRef
+    ? [...new Set([...(candidate.evidenceRefs ?? []), provenanceRef])]
+    : [...(candidate.evidenceRefs ?? [])]
+}
+
+function createRejectionReason(
+  confidence: number,
+  minStageConfidence: number,
+  provenanceErrors: readonly string[]
+): string | undefined {
+  if (provenanceErrors.length > 0) return `missing-ai-provenance:${provenanceErrors.join(',')}`
+  if (confidence < minStageConfidence) return 'below-min-stage-confidence'
+  return undefined
 }
 
 function resolveInitialStatus(

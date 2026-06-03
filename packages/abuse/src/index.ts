@@ -25,6 +25,11 @@ export {
 export { explainDecision, getReasonDetail } from './explain'
 export { TRUSTED_SPAM_LABEL, WARNING_SLOP_LABEL, abuseFixtures, createBaseFacts } from './fixtures'
 export {
+  createAISignalProvenanceEvidenceRef,
+  isAISignalSourceType,
+  validateAISignalProvenance
+} from './ai-provenance'
+export {
   classifyWithCloudAdapter,
   createCloudClassifierAdapter,
   createCloudClassifierRequestBase,
@@ -141,6 +146,12 @@ export type {
   StagedModerationWritePolicy,
   StagedModerationWriteStatus
 } from './staged-writes'
+export type {
+  AISignalProvenance,
+  AISignalProvenanceInput,
+  AISignalProvenanceValidation,
+  AISignalSourceType
+} from './ai-provenance'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,

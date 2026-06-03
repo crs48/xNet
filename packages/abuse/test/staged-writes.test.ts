@@ -36,7 +36,11 @@ describe('staged moderation writes', () => {
       status: 'staged',
       reviewRequired: true,
       reviewQueue: 'safety',
-      stagedAt: 1_000
+      stagedAt: 1_000,
+      evidenceRefs: [
+        'claim:claim-1:unsupported',
+        'ai-provenance:cloud-ai:example-ai:safety-small:2026-01'
+      ]
     })
     expect(plan.reviewTasks).toEqual([
       {
@@ -116,7 +120,25 @@ describe('staged moderation writes', () => {
     expect(plan.reviewTasks).toEqual([])
     expect(plan.rejected[0]).toMatchObject({
       status: 'rejected',
-      reviewRequired: false
+      reviewRequired: false,
+      rejectionReason: 'below-min-stage-confidence'
+    })
+  })
+
+  it('rejects AI-generated candidates that are missing model provenance', () => {
+    const plan = planStagedModerationWrites([
+      candidate({
+        modelProvider: undefined,
+        modelName: undefined,
+        modelVersion: undefined
+      })
+    ])
+
+    expect(plan.staged).toEqual([])
+    expect(plan.reviewTasks).toEqual([])
+    expect(plan.rejected[0]).toMatchObject({
+      status: 'rejected',
+      rejectionReason: 'missing-ai-provenance:missing-model-provider,missing-model-name'
     })
   })
 
