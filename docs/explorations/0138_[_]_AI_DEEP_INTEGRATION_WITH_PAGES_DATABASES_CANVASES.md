@@ -1328,7 +1328,7 @@ Workspace:
 - [x] Export databases as schema/views/rows JSON files.
 - [x] Export canvases as JSON Canvas plus xNet sidecars.
 - [x] Write `.xnet/manifest.jsonl` with ids, paths, hashes, and revisions.
-- [ ] Add watcher that converts changed files into mutation plans.
+- [x] Add watcher that converts changed files into mutation plans.
 - [ ] Add conflict handling folder and UI review.
 - [x] Add tests for export/import id stability and title rename behavior.
 

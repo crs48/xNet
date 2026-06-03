@@ -2,11 +2,20 @@
  * Node-only AI workspace folder exporter.
  */
 
+import type {
+  AiMutationPlan,
+  AiOperation,
+  AiRiskLevel,
+  AiScope,
+  AiSurfaceService,
+  AiTargetKind
+} from '../ai-surface'
 import type { NodeData, NodeStoreAPI, SchemaRegistryAPI } from './local-api'
 import { createHash } from 'crypto'
+import { watch as watchFs, type FSWatcher } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
-import { AiSurfaceService, createAiSurfaceService } from '../ai-surface'
+import { attachAiPlanValidation, createAiOperation, createAiSurfaceService } from '../ai-surface'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -46,6 +55,60 @@ export type AiWorkspaceExporterConfig = {
   schemas: SchemaRegistryAPI
   aiSurface?: AiSurfaceService
   clock?: () => Date
+}
+
+export type AiWorkspaceChangedFileStatus = 'modified' | 'missing'
+
+export type AiWorkspaceChangedFile = {
+  path: string
+  kind: AiWorkspaceExportKind
+  id: string
+  status: AiWorkspaceChangedFileStatus
+  previousSha256: string
+  currentSha256?: string
+}
+
+export type AiWorkspacePendingPlan = {
+  path: string
+  planPath: string
+  plan: AiMutationPlan
+  currentSha256: string
+}
+
+export type AiWorkspaceConflictKind =
+  | 'missing-file'
+  | 'invalid-json'
+  | 'invalid-jsonl'
+  | 'invalid-plan'
+  | 'unsupported-change'
+  | 'tool-error'
+
+export type AiWorkspaceConflict = {
+  kind: AiWorkspaceConflictKind
+  path: string
+  id?: string
+  message: string
+  conflictPath?: string
+  detectedAt: string
+}
+
+export type AiWorkspaceWatcherScanOptions = {
+  rootDir: string
+  actor?: string
+  writePendingPlans?: boolean
+  writeConflicts?: boolean
+}
+
+export type AiWorkspaceWatcherScanResult = {
+  rootDir: string
+  scannedAt: string
+  changedFiles: AiWorkspaceChangedFile[]
+  pendingPlans: AiWorkspacePendingPlan[]
+  conflicts: AiWorkspaceConflict[]
+}
+
+export type AiWorkspaceWatchHandle = {
+  close(): void
 }
 
 // ─── Exporter ───────────────────────────────────────────────────────────────
@@ -292,10 +355,320 @@ export class AiWorkspaceExporter {
   }
 }
 
+// ─── Watcher ───────────────────────────────────────────────────────────────
+
+export class AiWorkspaceWatcher {
+  private readonly aiSurface: AiSurfaceService
+  private readonly clock: () => Date
+
+  constructor(private readonly config: AiWorkspaceExporterConfig) {
+    this.aiSurface =
+      config.aiSurface ??
+      createAiSurfaceService({
+        store: config.store,
+        schemas: config.schemas,
+        clock: config.clock
+      })
+    this.clock = config.clock ?? (() => new Date())
+  }
+
+  async scanChangedFiles(
+    options: AiWorkspaceWatcherScanOptions
+  ): Promise<AiWorkspaceWatcherScanResult> {
+    const scannedAt = this.clock().toISOString()
+    const manifest = await readManifest(options.rootDir)
+    const changedFiles: AiWorkspaceChangedFile[] = []
+    const pendingPlans: AiWorkspacePendingPlan[] = []
+    const conflicts: AiWorkspaceConflict[] = []
+
+    for (const entry of manifest) {
+      const content = await readOptionalText(join(options.rootDir, entry.path))
+      if (content === null) {
+        const conflict = await this.createConflict(options, {
+          kind: 'missing-file',
+          path: entry.path,
+          id: entry.id,
+          message: `Exported ${entry.kind} projection is missing from the AI workspace.`,
+          detectedAt: scannedAt
+        })
+        changedFiles.push({
+          path: entry.path,
+          kind: entry.kind,
+          id: entry.id,
+          status: 'missing',
+          previousSha256: entry.sha256
+        })
+        conflicts.push(conflict)
+        continue
+      }
+
+      const currentSha256 = sha256(content)
+      if (currentSha256 === entry.sha256) continue
+
+      changedFiles.push({
+        path: entry.path,
+        kind: entry.kind,
+        id: entry.id,
+        status: 'modified',
+        previousSha256: entry.sha256,
+        currentSha256
+      })
+
+      try {
+        const plan = await this.planChangedFile(entry, content, currentSha256, {
+          actor: options.actor ?? 'ai-workspace-watcher'
+        })
+        if (!plan.validation.valid) {
+          conflicts.push(
+            await this.createConflict(options, {
+              kind: 'invalid-plan',
+              path: entry.path,
+              id: entry.id,
+              message: plan.validation.errors.join('; ') || 'Generated mutation plan is invalid.',
+              detectedAt: scannedAt
+            })
+          )
+        }
+        pendingPlans.push(await this.writePendingPlan(options, entry, currentSha256, plan))
+      } catch (err) {
+        conflicts.push(
+          await this.createConflict(options, {
+            kind: errorKindForChangedFile(err),
+            path: entry.path,
+            id: entry.id,
+            message: err instanceof Error ? err.message : String(err),
+            detectedAt: scannedAt
+          })
+        )
+      }
+    }
+
+    return {
+      rootDir: options.rootDir,
+      scannedAt,
+      changedFiles,
+      pendingPlans,
+      conflicts
+    }
+  }
+
+  watchWorkspace(
+    options: AiWorkspaceWatcherScanOptions,
+    onScan: (result: AiWorkspaceWatcherScanResult) => void | Promise<void>
+  ): AiWorkspaceWatchHandle {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let watcher: FSWatcher | null = null
+
+    const scheduleScan = (): void => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        void this.scanChangedFiles(options).then(onScan)
+      }, 250)
+    }
+
+    watcher = watchFs(options.rootDir, { recursive: true }, (_event, filename) => {
+      if (!filename) {
+        scheduleScan()
+        return
+      }
+      const relativePath = String(filename)
+      if (
+        relativePath.startsWith('.xnet/pending/') ||
+        relativePath.startsWith('.xnet/conflicts/')
+      ) {
+        return
+      }
+      scheduleScan()
+    })
+
+    return {
+      close: () => {
+        if (timer) clearTimeout(timer)
+        watcher?.close()
+      }
+    }
+  }
+
+  private async planChangedFile(
+    entry: AiWorkspaceManifestEntry,
+    content: string,
+    currentSha256: string,
+    context: { actor: string }
+  ): Promise<AiMutationPlan> {
+    if (entry.kind === 'page') {
+      return this.expectPlan(
+        await this.aiSurface.callTool('xnet_plan_page_patch', {
+          pageId: entry.id,
+          markdown: content,
+          baseRevision: entry.revision,
+          actor: context.actor,
+          intent: `Import edited page Markdown from ${entry.path}`
+        })
+      )
+    }
+
+    if (entry.kind === 'database') {
+      return this.planDatabaseProjection(entry, content, currentSha256, context.actor)
+    }
+
+    if (entry.kind === 'canvas') {
+      return this.planCanvasProjection(entry, content, currentSha256, context.actor)
+    }
+
+    return this.createGenericProjectionPlan({
+      entry,
+      content,
+      currentSha256,
+      actor: context.actor,
+      intent: `Import edited node projection from ${entry.path}`,
+      targetKind: 'node',
+      requiredScopes: ['agent.workspace.import'],
+      risk: 'medium',
+      operation: createAiOperation('replaceNodeProjection', {
+        projectionPath: entry.path,
+        content,
+        contentHash: currentSha256
+      })
+    })
+  }
+
+  private async planDatabaseProjection(
+    entry: AiWorkspaceManifestEntry,
+    content: string,
+    currentSha256: string,
+    actor: string
+  ): Promise<AiMutationPlan> {
+    const operation = databaseProjectionOperation(entry.path, content, currentSha256)
+    return this.expectPlan(
+      await this.aiSurface.callTool('xnet_plan_database_mutation', {
+        databaseId: entry.id,
+        baseRevision: entry.revision,
+        actor,
+        intent: `Import edited database projection from ${entry.path}`,
+        operations: [operation]
+      })
+    )
+  }
+
+  private async planCanvasProjection(
+    entry: AiWorkspaceManifestEntry,
+    content: string,
+    currentSha256: string,
+    actor: string
+  ): Promise<AiMutationPlan> {
+    if (entry.path.endsWith('.canvas')) {
+      return this.expectPlan(
+        await this.aiSurface.callTool('xnet_canvas_plan_json_canvas_import', {
+          canvasId: entry.id,
+          document: parseJsonObjectFile(content, entry.path),
+          baseRevision: entry.revision,
+          actor,
+          intent: `Import edited JSON Canvas projection from ${entry.path}`
+        })
+      )
+    }
+
+    const objects = parseJsonlObjects(content, entry.path)
+    return this.expectPlan(
+      await this.aiSurface.callTool('xnet_plan_canvas_mutation', {
+        canvasId: entry.id,
+        baseRevision: entry.revision,
+        actor,
+        intent: `Import edited canvas sidecar from ${entry.path}`,
+        operations: [
+          createAiOperation('replaceObjectsSidecarProjection', {
+            projectionPath: entry.path,
+            contentHash: currentSha256,
+            objects,
+            objectCount: objects.length
+          })
+        ]
+      })
+    )
+  }
+
+  private createGenericProjectionPlan(input: {
+    entry: AiWorkspaceManifestEntry
+    content: string
+    currentSha256: string
+    actor: string
+    intent: string
+    targetKind: AiTargetKind
+    requiredScopes: AiScope[]
+    risk: AiRiskLevel
+    operation: AiOperation
+  }): AiMutationPlan {
+    return attachAiPlanValidation({
+      id: `plan_${shortHash(`${input.entry.path}:${input.entry.revision}:${input.currentSha256}`)}`,
+      actor: input.actor,
+      intent: input.intent,
+      risk: input.risk,
+      requiredScopes: input.requiredScopes,
+      changes: [
+        {
+          targetKind: input.targetKind,
+          targetId: input.entry.id,
+          baseRevision: input.entry.revision,
+          operations: [input.operation]
+        }
+      ],
+      validation: { valid: true, warnings: [], errors: [] },
+      createdAt: this.clock().toISOString(),
+      status: 'proposed'
+    })
+  }
+
+  private expectPlan(value: unknown): AiMutationPlan {
+    if (isMutationPlan(value)) return value
+    throw new Error('AI surface did not return a mutation plan')
+  }
+
+  private async writePendingPlan(
+    options: AiWorkspaceWatcherScanOptions,
+    entry: AiWorkspaceManifestEntry,
+    currentSha256: string,
+    plan: AiMutationPlan
+  ): Promise<AiWorkspacePendingPlan> {
+    const planPath = `.xnet/pending/${planFileName(this.clock(), entry.path, currentSha256)}`
+    if (options.writePendingPlans !== false) {
+      await writeManagedJson(options.rootDir, planPath, plan)
+    }
+    return {
+      path: entry.path,
+      planPath,
+      plan,
+      currentSha256
+    }
+  }
+
+  private async createConflict(
+    options: AiWorkspaceWatcherScanOptions,
+    conflict: AiWorkspaceConflict
+  ): Promise<AiWorkspaceConflict> {
+    const conflictPath = `.xnet/conflicts/${conflictFileName(
+      this.clock(),
+      conflict.path,
+      conflict.kind
+    )}`
+    const nextConflict = {
+      ...conflict,
+      conflictPath
+    }
+    if (options.writeConflicts !== false) {
+      await writeManagedJson(options.rootDir, conflictPath, nextConflict)
+    }
+    return nextConflict
+  }
+}
+
 // ─── Factory ────────────────────────────────────────────────────────────────
 
 export function createAiWorkspaceExporter(config: AiWorkspaceExporterConfig): AiWorkspaceExporter {
   return new AiWorkspaceExporter(config)
+}
+
+export function createAiWorkspaceWatcher(config: AiWorkspaceExporterConfig): AiWorkspaceWatcher {
+  return new AiWorkspaceWatcher(config)
 }
 
 // ─── Render Helpers ────────────────────────────────────────────────────────
@@ -400,6 +773,139 @@ async function readOptionalText(path: string): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+async function readManifest(rootDir: string): Promise<AiWorkspaceManifestEntry[]> {
+  const manifest = await readOptionalText(join(rootDir, '.xnet/manifest.jsonl'))
+  if (!manifest?.trim()) return []
+
+  return manifest
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line) as unknown)
+    .filter(isManifestEntry)
+}
+
+async function writeManagedJson(
+  rootDir: string,
+  relativePath: string,
+  value: unknown
+): Promise<void> {
+  const fullPath = join(rootDir, relativePath)
+  await mkdir(dirname(fullPath), { recursive: true })
+  await writeFile(fullPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
+}
+
+function databaseProjectionOperation(
+  path: string,
+  content: string,
+  contentHash: string
+): AiOperation {
+  if (path.endsWith('.schema.json')) {
+    return createAiOperation('replaceSchemaProjection', {
+      projectionPath: path,
+      contentHash,
+      schema: parseJsonObjectFile(content, path)
+    })
+  }
+
+  if (path.endsWith('.views.json')) {
+    return createAiOperation('replaceViewsProjection', {
+      projectionPath: path,
+      contentHash,
+      views: parseJsonObjectFile(content, path)
+    })
+  }
+
+  if (path.endsWith('.rows.jsonl')) {
+    const rows = parseJsonlObjects(content, path)
+    return createAiOperation('replaceRowsProjection', {
+      projectionPath: path,
+      contentHash,
+      rows,
+      rowCount: rows.length
+    })
+  }
+
+  throw new Error(`Unsupported database projection file: ${path}`)
+}
+
+function parseJsonObjectFile(content: string, path: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(content) as unknown
+    if (isRecord(parsed)) return parsed
+    throw new Error('JSON root must be an object')
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(`Invalid JSON in ${path}: ${message}`)
+  }
+}
+
+function parseJsonlObjects(content: string, path: string): Record<string, unknown>[] {
+  const lines = content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  return lines.map((line, index) => {
+    try {
+      const parsed = JSON.parse(line) as unknown
+      if (isRecord(parsed)) return parsed
+      throw new Error('line must be a JSON object')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new Error(`Invalid JSONL in ${path} at line ${index + 1}: ${message}`)
+    }
+  })
+}
+
+function isManifestEntry(value: unknown): value is AiWorkspaceManifestEntry {
+  return (
+    isRecord(value) &&
+    typeof value.path === 'string' &&
+    typeof value.kind === 'string' &&
+    typeof value.id === 'string' &&
+    typeof value.schemaId === 'string' &&
+    typeof value.revision === 'string' &&
+    typeof value.sha256 === 'string' &&
+    typeof value.exportedAt === 'string'
+  )
+}
+
+function isMutationPlan(value: unknown): value is AiMutationPlan {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.actor === 'string' &&
+    typeof value.intent === 'string' &&
+    Array.isArray(value.changes) &&
+    isRecord(value.validation)
+  )
+}
+
+function errorKindForChangedFile(err: unknown): AiWorkspaceConflictKind {
+  const message = err instanceof Error ? err.message : String(err)
+  if (message.includes('Invalid JSONL')) return 'invalid-jsonl'
+  if (message.includes('Invalid JSON')) return 'invalid-json'
+  if (message.includes('Unsupported')) return 'unsupported-change'
+  if (message.includes('mutation plan')) return 'invalid-plan'
+  return 'tool-error'
+}
+
+function planFileName(clock: Date, path: string, contentHash: string): string {
+  return `${timestampForPath(clock)}-${slugify(path)}-${shortHash(contentHash)}.plan.json`
+}
+
+function conflictFileName(clock: Date, path: string, kind: AiWorkspaceConflictKind): string {
+  return `${timestampForPath(clock)}-${slugify(path)}-${kind}.json`
+}
+
+function timestampForPath(clock: Date): string {
+  return clock.toISOString().replace(/[:.]/g, '-')
+}
+
+function shortHash(value: string): string {
+  return sha256(value).slice(0, 12)
 }
 
 function toJsonCanvasNode(object: Record<string, unknown>): Record<string, unknown> {

@@ -3,11 +3,14 @@
  */
 
 import type { NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
-import { mkdtemp, readFile, rm } from 'fs/promises'
+import { mkdtemp, readFile, rm, unlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createAiWorkspaceExporter } from '../services/ai-workspace-exporter'
+import {
+  createAiWorkspaceExporter,
+  createAiWorkspaceWatcher
+} from '../services/ai-workspace-exporter'
 
 type MockNode = {
   id: string
@@ -240,5 +243,156 @@ describe('AiWorkspaceExporter', () => {
     expect(first.manifestEntries[0].path).toContain('page_1')
     expect(second.manifestEntries[0].path).toContain('page_1')
     expect(second.manifestEntries[0].path).toBe('Pages/New-Title--page_1.md')
+  })
+
+  it('turns changed page, database, and canvas projection files into pending mutation plans', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      },
+      {
+        id: 'db_projects',
+        schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+        properties: {
+          title: 'Projects',
+          rowSchemaId: 'xnet://xnet.fyi/db/projects@1.0.0',
+          columns: [{ id: 'title', name: 'Title' }],
+          views: []
+        },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 11
+      },
+      {
+        id: 'row_1',
+        schemaId: 'xnet://xnet.fyi/db/projects@1.0.0',
+        properties: { databaseId: 'db_projects', title: 'MCP v2' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 12
+      },
+      {
+        id: 'canvas_1',
+        schemaId: 'xnet://xnet.fyi/Canvas@1.0.0',
+        properties: {
+          title: 'Planning Canvas',
+          objects: [{ id: 'obj_1', type: 'page', x: 10, y: 20, width: 320, height: 200 }],
+          edges: []
+        },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 13
+      }
+    ])
+    const clock = () => new Date('2026-06-02T12:00:00.000Z')
+    const schemas = createMockSchemas()
+    const exporter = createAiWorkspaceExporter({ store, schemas, clock })
+    await exporter.exportWorkspace({
+      rootDir,
+      scope: { nodeIds: ['page_1', 'db_projects', 'canvas_1'] }
+    })
+
+    const pagePath = join(rootDir, 'Pages/Product-Roadmap--page_1.md')
+    const rowsPath = join(rootDir, 'Databases/Projects--db_projects.rows.jsonl')
+    const canvasPath = join(rootDir, 'Canvases/Planning-Canvas--canvas_1.canvas')
+    const page = await readFile(pagePath, 'utf8')
+    const canvas = JSON.parse(await readFile(canvasPath, 'utf8'))
+    canvas.nodes.push({
+      id: 'obj_2',
+      type: 'text',
+      x: 80,
+      y: 100,
+      width: 240,
+      height: 160,
+      text: 'New note'
+    })
+
+    await writeFile(
+      pagePath,
+      page.replace('Roadmap body', 'Roadmap body\n\nUpdated by agent'),
+      'utf8'
+    )
+    await writeFile(
+      rowsPath,
+      `${JSON.stringify({ id: 'row_1', title: 'MCP v2' })}\n${JSON.stringify({
+        id: 'row_2',
+        title: 'Local agent'
+      })}\n`,
+      'utf8'
+    )
+    await writeFile(canvasPath, `${JSON.stringify(canvas, null, 2)}\n`, 'utf8')
+
+    const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
+    const result = await watcher.scanChangedFiles({ rootDir })
+
+    expect(result.conflicts).toEqual([])
+    expect(result.changedFiles.map((file) => file.path).sort()).toEqual([
+      'Canvases/Planning-Canvas--canvas_1.canvas',
+      'Databases/Projects--db_projects.rows.jsonl',
+      'Pages/Product-Roadmap--page_1.md'
+    ])
+    expect(result.pendingPlans).toHaveLength(3)
+
+    const pagePlan = result.pendingPlans.find((pending) => pending.path.endsWith('.md'))?.plan
+    const rowsPlan = result.pendingPlans.find((pending) =>
+      pending.path.endsWith('.rows.jsonl')
+    )?.plan
+    const canvasPlan = result.pendingPlans.find((pending) => pending.path.endsWith('.canvas'))?.plan
+
+    expect(pagePlan?.changes[0].operations[0].op).toBe('replaceMarkdown')
+    expect(rowsPlan?.changes[0].targetKind).toBe('databaseRows')
+    expect(rowsPlan?.changes[0].operations[0].op).toBe('replaceRowsProjection')
+    expect(canvasPlan?.changes[0].targetKind).toBe('canvas')
+    expect(
+      canvasPlan?.changes[0].operations.some((operation) => operation.op === 'addObject')
+    ).toBe(true)
+
+    const persistedPlan = JSON.parse(
+      await readFile(join(rootDir, result.pendingPlans[0].planPath), 'utf8')
+    )
+    expect(persistedPlan.id).toBe(result.pendingPlans[0].plan.id)
+  })
+
+  it('writes conflict records for missing exported files', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      }
+    ])
+    const clock = () => new Date('2026-06-02T12:00:00.000Z')
+    const schemas = createMockSchemas()
+    const exporter = createAiWorkspaceExporter({ store, schemas, clock })
+    await exporter.exportWorkspace({
+      rootDir,
+      scope: { nodeIds: ['page_1'] }
+    })
+
+    await unlink(join(rootDir, 'Pages/Product-Roadmap--page_1.md'))
+
+    const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
+    const result = await watcher.scanChangedFiles({ rootDir })
+
+    expect(result.pendingPlans).toEqual([])
+    expect(result.conflicts).toHaveLength(1)
+    expect(result.conflicts[0]).toMatchObject({
+      kind: 'missing-file',
+      path: 'Pages/Product-Roadmap--page_1.md',
+      id: 'page_1'
+    })
+
+    const persistedConflict = JSON.parse(
+      await readFile(join(rootDir, result.conflicts[0].conflictPath ?? ''), 'utf8')
+    )
+    expect(persistedConflict.kind).toBe('missing-file')
   })
 })

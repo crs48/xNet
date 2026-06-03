@@ -29,14 +29,27 @@ export { MCPServer, createMCPServer } from './mcp-server'
 
 // AI workspace exporter (uses Node.js fs/path/crypto modules)
 export type {
+  AiWorkspaceChangedFile,
+  AiWorkspaceChangedFileStatus,
+  AiWorkspaceConflict,
+  AiWorkspaceConflictKind,
   AiWorkspaceExporterConfig,
   AiWorkspaceExportKind,
   AiWorkspaceExportOptions,
   AiWorkspaceExportResult,
   AiWorkspaceExportScope,
-  AiWorkspaceManifestEntry
+  AiWorkspaceManifestEntry,
+  AiWorkspacePendingPlan,
+  AiWorkspaceWatcherScanOptions,
+  AiWorkspaceWatcherScanResult,
+  AiWorkspaceWatchHandle
 } from './ai-workspace-exporter'
-export { AiWorkspaceExporter, createAiWorkspaceExporter } from './ai-workspace-exporter'
+export {
+  AiWorkspaceExporter,
+  AiWorkspaceWatcher,
+  createAiWorkspaceExporter,
+  createAiWorkspaceWatcher
+} from './ai-workspace-exporter'
 
 // AI surface contract
 export type {
