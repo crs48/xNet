@@ -50,6 +50,8 @@ export type ClaimCitationCoverageAssessment = {
   claimCount: number
   quality: Partial<AbuseQualitySignals>
   evidenceRefs: string[]
+  reviewEvidenceRefs: string[]
+  treatment: 'review-evidence'
 }
 
 // ─── Public API ────────────────────────────────────────────
@@ -97,7 +99,9 @@ export function scoreClaimCitationCoverage(
     quality: {
       citationCoverage
     },
-    evidenceRefs: unsupportedEvidence
+    evidenceRefs: unsupportedEvidence,
+    reviewEvidenceRefs: unsupportedEvidence,
+    treatment: 'review-evidence'
   }
 }
 

@@ -20,6 +20,8 @@ describe('claim citation coverage', () => {
     expect(assessment.unsupportedClaimCount).toBe(1)
     expect(assessment.citationCoverage).toBe(0.5)
     expect(assessment.quality).toEqual({ citationCoverage: 0.5 })
+    expect(assessment.reviewEvidenceRefs).toEqual(['claim:claim-2:unsupported'])
+    expect(assessment.treatment).toBe('review-evidence')
     expect(assessment.claims[0]?.citationRefs).toEqual(['md-1'])
     expect(assessment.claims[1]?.evidenceRefs).toEqual(['claim:claim-2:unsupported'])
     expect(assessment.citations[0]).toMatchObject({

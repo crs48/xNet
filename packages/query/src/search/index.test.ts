@@ -202,6 +202,22 @@ describe('SearchIndex', () => {
       ])
     })
 
+    it('treats claim mismatch signals as ranking evidence rather than removal', () => {
+      index.add(createTestDoc('reviewed', 'page', 'Health Claim', 'health claim'))
+      index.add(
+        createTestDoc('mismatch', 'page', 'Health Claim', 'health claim', {
+          moderation: {
+            qualitySignals: [{ signal: 'claim-mismatch', score: 1, confidence: 0.95 }]
+          }
+        })
+      )
+
+      const results = index.search({ text: 'health' })
+
+      expect(results.map((result) => result.id)).toEqual(['reviewed', 'mismatch'])
+      expect(results[0].score).toBeGreaterThan(results[1].score)
+    })
+
     it('can include hidden documents for review search indexes', () => {
       const reviewIndex = createSearchIndex({
         moderation: { includeHidden: true }
