@@ -722,8 +722,8 @@ flowchart LR
 - [x] Classify every initial finding as delete, move, suppress, refactor, or defer.
 - [x] Add a report-only Fallow CI workflow.
 - [x] Burn down low-risk findings package-by-package.
-- [ ] Add a regression baseline once the initial finding set is understood.
-- [ ] Promote `fallow audit` to a changed-code PR gate.
+- [x] Add a regression baseline once the initial finding set is understood.
+- [x] Promote `fallow audit` to a changed-code PR gate.
 - [ ] Consider dependency-cruiser only after package boundary rules are written down explicitly.
 - [ ] Add `publint` and `@arethetypeswrong/cli` for publish-managed packages in a separate packaging-quality lane.
 
@@ -738,8 +738,8 @@ flowchart LR
 - [ ] CI report-only workflow posts useful summaries without excessive comment noise.
 - [x] Low-risk cleanup commits reduce Fallow issue count.
 - [x] Targeted package tests pass after each cleanup batch.
-- [ ] Root `pnpm lint`, `pnpm typecheck`, and relevant tests pass before merging.
-- [ ] Any public package export deletion is treated as an API change and reviewed accordingly.
+- [x] Root `pnpm lint`, `pnpm typecheck`, and relevant tests pass before merging.
+- [x] Any public package export deletion is treated as an API change and reviewed accordingly.
 - [ ] Hook additions are measured for runtime before enabling.
 
 ## Example Code

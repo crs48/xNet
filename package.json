@@ -21,6 +21,7 @@
     "format:check": "prettier --check \"packages/**/*.{ts,tsx}\" \"apps/**/*.{ts,tsx}\"",
     "code:audit": "fallow audit --changed-since origin/main --format json --quiet",
     "code:dead": "fallow dead-code --group-by package",
+    "code:dead:regression": "fallow dead-code --fail-on-regression --regression-baseline docs/reference/fallow-dead-code-regression-baseline.json --summary --no-cache",
     "code:dupes": "fallow dupes --group-by package",
     "code:fix:preview": "fallow fix --dry-run --format json",
     "code:health": "fallow health --score --hotspots --targets --file-scores",

@@ -53,12 +53,12 @@ jobs:
           fi
 
       - name: Run Fallow audit
-        continue-on-error: true
         shell: bash
         run: |
           pnpm exec fallow audit \
             --changed-since "${{ steps.base.outputs.ref }}" \
             --format sarif \
+            --fail-on-issues \
             --quiet > fallow-audit.sarif
 
       - name: Upload Fallow SARIF
@@ -67,6 +67,16 @@ jobs:
         with:
           sarif_file: fallow-audit.sarif
           category: fallow-audit
+
+      - name: Run Fallow dead-code regression
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          pnpm exec fallow dead-code \
+            --fail-on-regression \
+            --regression-baseline docs/reference/fallow-dead-code-regression-baseline.json \
+            --summary \
+            --no-cache
 
       - name: Append Fallow summaries
         if: always()
