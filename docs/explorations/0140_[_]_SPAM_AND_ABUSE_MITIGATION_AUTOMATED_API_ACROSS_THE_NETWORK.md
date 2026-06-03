@@ -1014,7 +1014,7 @@ Every hub should publish:
 - [x] Add local classifier adapter interface.
 - [x] Add optional cloud moderation/classification adapter with explicit budget and privacy policy.
 - [x] Add claim extraction and citation coverage scoring for published knowledge pages.
-- [ ] Add community-note-style rating and diversity agreement experiments.
+- [x] Add community-note-style rating and diversity agreement experiments.
 - [ ] Add staged write flow for AI-generated moderation or quality labels.
 - [ ] Add model/provider provenance to every AI-generated signal.
 
