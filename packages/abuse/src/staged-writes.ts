@@ -15,6 +15,7 @@ export type StagedModerationSourceType =
   | 'community-note'
   | 'policy-list'
   | 'hub'
+  | 'report'
   | 'crawler'
 
 export type StagedModerationWriteKind = 'moderation-label' | 'quality-signal'
@@ -45,6 +46,8 @@ export type StagedModerationWritePolicy = {
   autoCommitSources?: readonly StagedModerationSourceType[]
   requireReviewSources?: readonly StagedModerationSourceType[]
   allowCrawlerAutoCommit?: boolean
+  maxReviewTasks?: number
+  maxReviewTasksBySource?: Partial<Record<StagedModerationSourceType, number>>
   reviewQueueByKind?: Partial<Record<StagedModerationWriteKind, AbuseReviewQueue>>
   defaultSourceWeight?: number
   stagedExpiresInMs?: number
@@ -102,6 +105,11 @@ export type StagedModerationWriteOptions = {
   now?: number
 }
 
+type BoundedReviewQueuePlan = {
+  staged: StagedModerationWrite[]
+  rejected: StagedModerationWrite[]
+}
+
 // ─── Public API ────────────────────────────────────────────
 
 export function planStagedModerationWrites(
@@ -113,16 +121,20 @@ export function planStagedModerationWrites(
   const writes = candidates.map((candidate, index) =>
     createStagedModerationWrite(candidate, policy, now, index)
   )
-  const staged = writes.filter((write) => write.status === 'staged')
+  const staged = boundReviewQueue(
+    writes.filter((write) => write.status === 'staged'),
+    policy,
+    now
+  )
   const committed = writes.filter((write) => write.status === 'committed')
   const rejected = writes.filter((write) => write.status === 'rejected')
 
   return {
-    staged,
+    staged: staged.staged,
     committed,
-    rejected,
+    rejected: [...rejected, ...staged.rejected],
     materialized: committed.flatMap((write) => materializeStagedModerationWrite(write) ?? []),
-    reviewTasks: staged.map((write) => createReviewTaskForStagedWrite(write, now))
+    reviewTasks: staged.staged.map((write) => createReviewTaskForStagedWrite(write, now))
   }
 }
 
@@ -185,7 +197,55 @@ export function materializeStagedModerationWrite(
 const DEFAULT_MIN_STAGE_CONFIDENCE = 0.15
 const DEFAULT_AUTO_COMMIT_CONFIDENCE = 0.9
 const DEFAULT_AUTO_COMMIT_SOURCES = ['deterministic', 'human', 'policy-list'] as const
-const DEFAULT_REVIEW_SOURCES = ['local-ai', 'cloud-ai'] as const
+const DEFAULT_REVIEW_SOURCES = ['local-ai', 'cloud-ai', 'report'] as const
+
+function boundReviewQueue(
+  staged: readonly StagedModerationWrite[],
+  policy: StagedModerationWritePolicy,
+  now: number
+): BoundedReviewQueuePlan {
+  if (policy.maxReviewTasks === undefined && policy.maxReviewTasksBySource === undefined) {
+    return { staged: [...staged], rejected: [] }
+  }
+
+  const maxReviewTasks = Math.max(0, policy.maxReviewTasks ?? Number.POSITIVE_INFINITY)
+  const sourceCounts = new Map<StagedModerationSourceType, number>()
+  const acceptedIds = new Set<string>()
+
+  const ranked = [...staged].sort(
+    (left, right) =>
+      reviewPriority(right, now) - reviewPriority(left, now) ||
+      left.createdAt - right.createdAt ||
+      left.id.localeCompare(right.id)
+  )
+
+  for (const write of ranked) {
+    const sourceLimit = policy.maxReviewTasksBySource?.[write.sourceType]
+    const currentSourceCount = sourceCounts.get(write.sourceType) ?? 0
+    if (acceptedIds.size >= maxReviewTasks) continue
+    if (sourceLimit !== undefined && currentSourceCount >= Math.max(0, sourceLimit)) continue
+
+    acceptedIds.add(write.id)
+    sourceCounts.set(write.sourceType, currentSourceCount + 1)
+  }
+
+  return {
+    staged: staged.filter((write) => acceptedIds.has(write.id)),
+    rejected: staged
+      .filter((write) => !acceptedIds.has(write.id))
+      .map((write) => rejectReviewOverflow(write, now))
+  }
+}
+
+function rejectReviewOverflow(write: StagedModerationWrite, now: number): StagedModerationWrite {
+  return {
+    ...write,
+    status: 'rejected',
+    reviewRequired: false,
+    rejectedAt: now,
+    rejectionReason: `review-queue-overflow:${write.sourceType}`
+  }
+}
 
 function createStagedModerationWrite(
   candidate: StagedModerationWriteCandidate,

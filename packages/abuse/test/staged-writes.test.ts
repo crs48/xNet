@@ -151,6 +151,51 @@ describe('staged moderation writes', () => {
     ])
   })
 
+  it('bounds report and crawler review queues under spam bursts', () => {
+    const reports = Array.from({ length: 3 }, (_, index) =>
+      candidate({
+        id: `report-${index + 1}`,
+        sourceType: 'report',
+        confidence: 0.7 + index * 0.01,
+        evidenceRefs: [`abuse-report:report-${index + 1}`],
+        modelProvider: undefined,
+        modelName: undefined,
+        modelVersion: undefined
+      })
+    )
+    const crawls = Array.from({ length: 3 }, (_, index) =>
+      candidate({
+        id: `crawl-${index + 1}`,
+        sourceType: 'crawler',
+        confidence: 0.8 + index * 0.01,
+        evidenceRefs: [`crawl:https://example.test/${index + 1}`],
+        modelProvider: undefined,
+        modelName: undefined,
+        modelVersion: undefined
+      })
+    )
+
+    const plan = planStagedModerationWrites(
+      [...reports, ...crawls],
+      {
+        maxReviewTasks: 2,
+        maxReviewTasksBySource: {
+          report: 1,
+          crawler: 1
+        }
+      },
+      { now: 3_750 }
+    )
+
+    expect(plan.staged.map((write) => write.sourceType).sort()).toEqual(['crawler', 'report'])
+    expect(plan.reviewTasks).toHaveLength(2)
+    expect(plan.rejected).toHaveLength(4)
+    expect(plan.rejected.map((write) => write.rejectionReason)).toEqual(
+      expect.arrayContaining(['review-queue-overflow:report', 'review-queue-overflow:crawler'])
+    )
+    expect(plan.rejected.every((write) => write.reviewRequired === false)).toBe(true)
+  })
+
   it('rejects very low-confidence candidates before review task creation', () => {
     const plan = planStagedModerationWrites(
       [candidate({ confidence: 0.05 })],
