@@ -38,6 +38,7 @@ export {
   redactCloudClassifierText
 } from './cloud-classifier'
 export { classifyWithModerationCascade, decideCloudReviewRoute } from './classifier-cascade'
+export { createSmallSelfHostedAbuseProfile } from './deployment-profile'
 export {
   extractCitationReferences,
   extractKnowledgeClaims,
@@ -160,6 +161,11 @@ export type {
   ModerationCascadeOptions,
   ModerationCascadeResult
 } from './classifier-cascade'
+export type {
+  AbuseDeploymentProfile,
+  AbuseDeploymentProfileInput,
+  AbuseDeploymentProfileKind
+} from './deployment-profile'
 export type {
   CloudClassificationOptions,
   CloudClassificationResult,
