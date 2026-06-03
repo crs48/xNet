@@ -259,6 +259,26 @@ describe('YjsPeerScorer', () => {
       expect(scorer.getScore('peer-1')).toBe(100)
     })
 
+    it('recovers only after the quiet window and remains capped after repeated ticks', () => {
+      const scorer = new YjsPeerScorer({ recoveryRate: 20 })
+      vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
+
+      scorer.penalize('peer-1', 'invalidSignature') // 70
+
+      vi.advanceTimersByTime(60_000)
+      scorer.tick(60_000)
+      expect(scorer.getScore('peer-1')).toBe(70)
+
+      vi.advanceTimersByTime(1)
+      scorer.tick(60_000)
+      expect(scorer.getScore('peer-1')).toBe(90)
+
+      for (let i = 0; i < 10; i++) {
+        scorer.tick(60_000)
+      }
+      expect(scorer.getScore('peer-1')).toBe(100)
+    })
+
     it('recovers multiple peers', () => {
       const scorer = new YjsPeerScorer({ recoveryRate: 5 })
       vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
