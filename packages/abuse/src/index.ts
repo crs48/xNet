@@ -87,6 +87,14 @@ export {
   hashAbusePeerIdentifier,
   reportRemoteMutationRejection
 } from './telemetry'
+export {
+  ABUSE_USAGE_EVENT_KINDS,
+  ABUSE_USAGE_SETTLEMENTS,
+  createAbuseUsageEvent,
+  createAbuseUsageEventId,
+  createAbuseUsageEventsFromDecision,
+  summarizeAbuseUsageEvents
+} from './usage-events'
 export type {
   ContentFingerprint,
   ContentFingerprintInput,
@@ -221,3 +229,12 @@ export type {
   QueryCostBudgetUsage,
   QueryCostBudgetWorkType
 } from './query-cost-budget'
+export type {
+  AbuseDecisionUsageInput,
+  AbuseUsageEvent,
+  AbuseUsageEventInput,
+  AbuseUsageEventKind,
+  AbuseUsageEventSummary,
+  AbuseUsageSettlement,
+  AbuseUsageWorkType
+} from './usage-events'
