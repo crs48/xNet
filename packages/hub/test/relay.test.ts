@@ -1,11 +1,13 @@
 import type { HubInstance } from '../src/index'
 import { createKeyBundle, generateIdentity } from '@xnetjs/identity'
 import {
+  MAX_YJS_UPDATE_SIZE,
   MAX_YJS_STATE_VECTOR_SIZE,
   serializeYjsEnvelope,
   signYjsUpdate,
   signYjsUpdateV2,
   verifyYjsEnvelopeV2,
+  type SyncReplicationConfig,
   type YjsRateLimiterOptions
 } from '@xnetjs/sync'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -274,12 +276,14 @@ describe('Sync Relay direct admission', () => {
       reportSecurityEvent: ReturnType<typeof vi.fn>
       reportUsage?: ReturnType<typeof vi.fn>
     },
-    telemetryPeerHashSalt?: string
+    telemetryPeerHashSalt?: string,
+    replication?: SyncReplicationConfig
   ) => {
     const identity = generateIdentity()
     const pool = new NodePool(createMemoryStorage())
     const relay = new RelayService(pool, {
       verifyV2Envelope,
+      replication,
       rateLimit,
       telemetry,
       telemetryPeerHashSalt,
@@ -447,6 +451,30 @@ describe('Sync Relay direct admission', () => {
       }
     )
 
+    expect(sent).toHaveLength(0)
+  })
+
+  it('rejects oversized unsigned updates before applying them', async () => {
+    const docId = 'test-relay-oversized-update'
+    const { pool, relay } = createRelay(undefined, undefined, undefined, undefined, {
+      compatibility: { allowUnsignedReplication: true }
+    })
+    const sent: object[] = []
+
+    await relay.handleSyncMessage(
+      `xnet-doc-${docId}`,
+      {
+        type: 'sync-update',
+        from: 'clientOversizedUpdate',
+        update: Buffer.from(new Uint8Array(MAX_YJS_UPDATE_SIZE + 1)).toString('base64')
+      },
+      (_topic, data) => {
+        sent.push(data)
+      }
+    )
+
+    const stored = await pool.get(docId)
+    expect(stored.getText('content').toString()).toBe('')
     expect(sent).toHaveLength(0)
   })
 

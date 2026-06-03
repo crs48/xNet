@@ -26,6 +26,10 @@ export class FileService {
     this.config = { ...DEFAULT_CONFIG, ...config }
   }
 
+  getMaxFileSize(): number {
+    return this.config.maxFileSize
+  }
+
   async upload(
     declaredCid: string,
     data: Uint8Array,

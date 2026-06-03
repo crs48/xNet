@@ -1,7 +1,9 @@
 import type { HubInstance } from '../src/index'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { HubStorage } from '../src/storage/interface'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WebSocket } from 'ws'
 import { createHub } from '../src/index'
+import { MAX_QUERY_TEXT_LENGTH, QueryService } from '../src/services/query'
 
 describe('Query Engine', () => {
   let hub: HubInstance
@@ -199,5 +201,30 @@ describe('Query Engine', () => {
     expect(response.results.length).toBeLessThanOrEqual(2)
 
     ws.close()
+  })
+})
+
+describe('Query Engine admission limits', () => {
+  it('rejects oversized query text before searching storage', async () => {
+    const storage = {
+      search: vi.fn(async () => {
+        throw new Error('search should not run for oversized queries')
+      })
+    } as unknown as HubStorage
+    const service = new QueryService(storage)
+
+    const response = await service.handleQuery({
+      type: 'query-request',
+      id: 'q-too-large',
+      query: 'a'.repeat(MAX_QUERY_TEXT_LENGTH + 1)
+    })
+
+    expect(response).toMatchObject({
+      type: 'query-response',
+      id: 'q-too-large',
+      results: [],
+      total: 0
+    })
+    expect(storage.search).not.toHaveBeenCalled()
   })
 })

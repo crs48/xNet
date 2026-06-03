@@ -1,6 +1,11 @@
+import type { AuthContext } from '../src/auth/ucan'
 import { hashHex } from '@xnetjs/crypto'
+import { Hono } from 'hono'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createHub, type HubInstance } from '../src'
+import { createFileRoutes } from '../src/routes/files'
+import { FileService } from '../src/services/files'
+import { createMemoryStorage } from '../src/storage/memory'
 
 describe('File Storage API', () => {
   let hub: HubInstance
@@ -47,5 +52,31 @@ describe('File Storage API', () => {
     expect(listRes.status).toBe(200)
     const list = await listRes.json()
     expect(list.files.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('rejects oversized uploads from content-length before storage work', async () => {
+    const fileService = new FileService(createMemoryStorage(), { maxFileSize: 8 })
+    const app = new Hono<{ Variables: { auth: AuthContext } }>()
+    const cid = 'cid:blake3:not-used'
+
+    app.use('*', async (c, next) => {
+      c.set('auth', { did: 'did:key:tester', can: () => true })
+      await next()
+    })
+    app.route('/files', createFileRoutes(fileService))
+
+    const response = await app.request(`/files/${cid}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'text/plain',
+        'Content-Length': '9',
+        'X-File-Name': 'too-large.txt'
+      },
+      body: new Uint8Array(9)
+    })
+
+    expect(response.status).toBe(413)
+    expect(await response.json()).toMatchObject({ code: 'FILE_TOO_LARGE' })
+    expect(await fileService.getMeta(cid)).toBeNull()
   })
 })
