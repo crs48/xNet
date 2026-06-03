@@ -13,6 +13,7 @@ export { ExternalReferenceSchema, type ExternalReference } from './external-refe
 export { MediaAssetSchema, type MediaAsset } from './media-asset'
 export { CanvasSchema, type Canvas } from './canvas'
 export { CommentSchema, type Comment } from './comment'
+export { ReactionSchema, type Reaction } from './reaction'
 export { GrantSchema, type Grant } from './grant'
 export {
   AbuseReportSchema,
@@ -106,6 +107,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/MediaAsset@1.0.0': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
+  'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/AbuseReport@1.0.0': () =>
     import('./moderation').then((m) => m.AbuseReportSchema),
@@ -136,6 +138,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
+  'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/AbuseReport': () => import('./moderation').then((m) => m.AbuseReportSchema),
   'xnet://xnet.fyi/ModerationLabel': () =>

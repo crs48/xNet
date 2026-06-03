@@ -265,6 +265,23 @@ export {
 } from './hooks/useModeratedComments'
 
 /**
+ * usePolicyFilteredReactionCounters - Moderated likes, reposts, and reply counts
+ */
+export {
+  usePolicyFilteredReactionCounters,
+  createReactionCounterSnapshot,
+  dedupeReactions,
+  isReactionVisible,
+  summarizeReactionNode,
+  type AddReactionOptions,
+  type ReactionCounterSnapshot,
+  type ReactionNode,
+  type ReactionType,
+  type UsePolicyFilteredReactionCountersOptions,
+  type UsePolicyFilteredReactionCountersResult
+} from './hooks/useReactionCounters'
+
+/**
  * useCommentCount - Get unresolved comment count for a Node
  *
  * @example

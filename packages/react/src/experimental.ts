@@ -48,6 +48,19 @@ export {
   type UseVisibleCommentsOptions,
   type UseVisibleCommentsResult
 } from './hooks/useModeratedComments'
+export {
+  usePolicyFilteredReactionCounters,
+  createReactionCounterSnapshot,
+  dedupeReactions,
+  isReactionVisible,
+  summarizeReactionNode,
+  type AddReactionOptions,
+  type ReactionCounterSnapshot,
+  type ReactionNode,
+  type ReactionType,
+  type UsePolicyFilteredReactionCountersOptions,
+  type UsePolicyFilteredReactionCountersResult
+} from './hooks/useReactionCounters'
 export { useCommentCount, useCommentCounts } from './hooks/useCommentCount'
 export { useHistory, type UseHistoryResult } from './hooks/useHistory'
 export { useUndo, type UseUndoResult, type UseUndoOptions } from './hooks/useUndo'

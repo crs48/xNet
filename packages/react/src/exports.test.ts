@@ -32,6 +32,7 @@ describe('@xnetjs/react package exports', () => {
     expect(experimental.useComments).toBeTypeOf('function')
     expect(experimental.useVisibleComments).toBeTypeOf('function')
     expect(experimental.useModeratedThread).toBeTypeOf('function')
+    expect(experimental.usePolicyFilteredReactionCounters).toBeTypeOf('function')
     expect(experimental.useHistory).toBeTypeOf('function')
     expect(experimental.OnboardingProvider).toBeTypeOf('function')
     expect(experimental.createSyncManager).toBeTypeOf('function')

@@ -91,6 +91,8 @@ export {
   type Canvas,
   CommentSchema,
   type Comment,
+  ReactionSchema,
+  type Reaction,
   GrantSchema,
   type Grant,
   AbuseReportSchema,
