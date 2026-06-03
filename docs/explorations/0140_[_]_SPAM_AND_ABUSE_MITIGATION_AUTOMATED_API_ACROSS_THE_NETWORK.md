@@ -1013,7 +1013,7 @@ Every hub should publish:
 - [x] Add deterministic duplicate and near-duplicate detection for public/crawled content.
 - [x] Add local classifier adapter interface.
 - [x] Add optional cloud moderation/classification adapter with explicit budget and privacy policy.
-- [ ] Add claim extraction and citation coverage scoring for published knowledge pages.
+- [x] Add claim extraction and citation coverage scoring for published knowledge pages.
 - [ ] Add community-note-style rating and diversity agreement experiments.
 - [ ] Add staged write flow for AI-generated moderation or quality labels.
 - [ ] Add model/provider provenance to every AI-generated signal.
