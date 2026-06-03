@@ -418,7 +418,7 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 - [x] Build incremental presence aggregator from NodeStore change stream.
 - [x] Emit/maintain `PresenceSummary` nodes by visibility class.
 - [x] Implement bucket/noise policy for publishable summaries.
-- [ ] Add SDK discovery APIs backed by node-derived indexes.
+- [x] Add SDK discovery APIs backed by node-derived indexes.
 
 ### Phase 5 - Multi-hub orchestration
 
