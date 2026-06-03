@@ -330,9 +330,14 @@ function decideByQuality(facts: NormalizedAbuseFacts): AbuseDecision | null {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 export function activeLabels(facts: NormalizedAbuseFacts): readonly AbuseLabel[] {
-  return facts.labels.filter(
+  const active = facts.labels.filter(
     (label) => label.expiresAt === undefined || label.expiresAt > facts.now
   )
+  const negatedLabelIds = new Set(
+    active.flatMap((label) => (label.negates !== undefined ? [label.negates] : []))
+  )
+
+  return active.filter((label) => label.id === undefined || !negatedLabelIds.has(label.id))
 }
 
 export function weightedLabelScore(facts: NormalizedAbuseFacts, values: readonly string[]): number {

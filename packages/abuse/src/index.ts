@@ -61,6 +61,7 @@ export {
   planStagedModerationWrites,
   rejectStagedModerationWrite
 } from './staged-writes'
+export { createAppealEffect } from './appeals'
 export {
   assessDuplicateContent,
   canonicalizeContentText,
@@ -181,6 +182,14 @@ export type {
   CommunityNotePerspectiveSummary,
   CommunityNoteRatingInput
 } from './community-notes'
+export type {
+  AppealAnnotation,
+  AppealEffect,
+  AppealEffectAction,
+  AppealEffectInput,
+  AppealResolutionAction,
+  AppealStatus
+} from './appeals'
 export type {
   MaterializedModerationWrite,
   StagedModerationReviewTask,

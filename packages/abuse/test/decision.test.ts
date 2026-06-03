@@ -3,6 +3,7 @@ import {
   TRUSTED_SPAM_LABEL,
   abuseFixtures,
   bucketAbusePeerScore,
+  createAppealEffect,
   createBaseFacts,
   createRemoteAdmissionPipeline,
   decidePublicInteraction,
@@ -95,6 +96,93 @@ describe('@xnetjs/abuse decision engine', () => {
       expect(result.admission).toBe('accept')
       expect(result.visibility).toBe('show')
       expect(result.reasons).toContain('accepted')
+    })
+
+    it('lets accepted appeals reverse automated labels through explicit negation', () => {
+      const automatedLabel = {
+        ...TRUSTED_SPAM_LABEL,
+        id: 'label-ai-spam',
+        sourceDID: 'did:key:ai-labeler',
+        confidence: 1,
+        sourceWeight: 2
+      }
+      const appeal = createAppealEffect({
+        appealId: 'appeal-1',
+        targetId: 'comment-1',
+        appellantDID: 'did:key:author',
+        reviewerDID: 'did:key:reviewer',
+        decisionId: 'decision-1',
+        appealedLabelId: automatedLabel.id,
+        status: 'accepted',
+        action: 'reverse',
+        resolution: 'false positive'
+      })
+      const result = decidePublicInteraction({
+        labels: [automatedLabel, ...appeal.labelsToApply],
+        policy: {
+          abuseLabelHideThreshold: 0.5,
+          quarantineFirstContact: false
+        },
+        now: 1_000
+      })
+
+      expect(appeal).toMatchObject({
+        action: 'reverse',
+        labelsToApply: [
+          {
+            id: 'appeal-reversal:appeal-1',
+            value: 'safe',
+            sourceDID: 'did:key:reviewer',
+            negates: 'label-ai-spam',
+            evidenceRefs: ['appeal:appeal-1', 'decision:decision-1', 'label:label-ai-spam']
+          }
+        ],
+        reasons: ['appeal:accepted', 'appeal:reversal-label']
+      })
+      expect(result).toMatchObject({
+        visibility: 'show',
+        reach: 'normal',
+        includeInCounters: true,
+        includeInSearch: true,
+        reasons: ['accepted']
+      })
+    })
+
+    it('keeps annotation-only appeals auditable without changing automated decisions', () => {
+      const appeal = createAppealEffect({
+        appealId: 'appeal-2',
+        targetId: 'comment-2',
+        appellantDID: 'did:key:author',
+        reviewerDID: 'did:key:reviewer',
+        decisionId: 'decision-2',
+        status: 'accepted',
+        action: 'annotate',
+        resolution: 'policy still applies'
+      })
+      const result = decidePublicInteraction({
+        labels: [TRUSTED_SPAM_LABEL],
+        policy: {
+          abuseLabelHideThreshold: 0.5,
+          quarantineFirstContact: false
+        }
+      })
+
+      expect(appeal).toMatchObject({
+        action: 'annotate',
+        labelsToApply: [],
+        annotation: {
+          appealId: 'appeal-2',
+          status: 'accepted',
+          resolution: 'policy still applies',
+          evidenceRefs: ['appeal:appeal-2', 'decision:decision-2']
+        },
+        reasons: ['appeal:accepted', 'appeal:annotation-only']
+      })
+      expect(result).toMatchObject({
+        visibility: 'hide',
+        reach: 'exclude',
+        reasons: ['trusted-abuse-label']
+      })
     })
 
     it('applies safe local display overrides after reversible decisions', () => {

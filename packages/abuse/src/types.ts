@@ -48,12 +48,14 @@ export type AbuseReasonCode =
 // ─── Fact Model ──────────────────────────────────────────────────────────────
 
 export type AbuseLabel = {
+  id?: string
   value: string
   sourceDID?: string
   sourceWeight: number
   confidence: number
   expiresAt?: number
   evidenceRefs?: readonly string[]
+  negates?: string
 }
 
 export type AbuseCryptoFacts = {
