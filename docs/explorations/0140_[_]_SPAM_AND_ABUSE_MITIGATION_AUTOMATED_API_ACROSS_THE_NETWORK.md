@@ -1016,7 +1016,7 @@ Every hub should publish:
 - [x] Add claim extraction and citation coverage scoring for published knowledge pages.
 - [x] Add community-note-style rating and diversity agreement experiments.
 - [x] Add staged write flow for AI-generated moderation or quality labels.
-- [ ] Add model/provider provenance to every AI-generated signal.
+- [x] Add model/provider provenance to every AI-generated signal.
 
 ### Phase 6 - Economic And Operator Controls
 
@@ -1052,7 +1052,7 @@ Every hub should publish:
 
 ### AI And Quality Validation
 
-- [ ] AI-generated moderation labels include model/provider provenance.
+- [x] AI-generated moderation labels include model/provider provenance.
 - [ ] Local deterministic gates still work when AI providers are unavailable.
 - [ ] Cloud AI review is not called for every low-risk event.
 - [ ] Prompt-injection text in crawled pages cannot issue graph writes.
