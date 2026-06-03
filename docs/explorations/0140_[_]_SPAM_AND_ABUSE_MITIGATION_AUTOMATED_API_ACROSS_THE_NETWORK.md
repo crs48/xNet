@@ -1031,7 +1031,7 @@ Every hub should publish:
 
 ### Security And Protocol Validation
 
-- [ ] Invalid signatures never mutate Yjs or NodeStore state.
+- [x] Invalid signatures never mutate Yjs or NodeStore state.
 - [ ] Oversized Yjs updates, awareness messages, blobs, and query requests are rejected before
       expensive parsing.
 - [ ] Unauthorized remote writes are rejected before mutation and produce telemetry.
