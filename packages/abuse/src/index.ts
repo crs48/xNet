@@ -255,6 +255,7 @@ export type {
   AbuseCryptoFacts,
   AbuseDecision,
   AbuseDecisionOverride,
+  AbuseDecisionOverrideScope,
   AbuseFacts,
   AbuseLabel,
   AbuseQualitySignals,

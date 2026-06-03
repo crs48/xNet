@@ -43,6 +43,7 @@ export type AbuseReasonCode =
   | 'trusted-warning-label'
   | 'unauthorized'
   | 'unsigned-update'
+  | 'policy-override'
   | 'user-override'
 
 // ─── Fact Model ──────────────────────────────────────────────────────────────
@@ -101,9 +102,13 @@ export type AbusePolicyFacts = {
   quarantineFirstContact: boolean
 }
 
+export type AbuseDecisionOverrideScope = 'user' | 'workspace' | 'reviewer'
+
 export type AbuseDecisionOverride = Partial<
   Pick<AbuseDecision, 'visibility' | 'reach' | 'notify' | 'includeInCounters' | 'includeInSearch'>
 > & {
+  scope?: AbuseDecisionOverrideScope
+  sourceDID?: string
   reason?: string
 }
 

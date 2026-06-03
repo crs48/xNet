@@ -202,6 +202,62 @@ describe('@xnetjs/abuse decision engine', () => {
       expect(result.reasons).toContain('user-override')
       expect(result.evidenceRefs).toContain('user muted sender')
     })
+
+    it('lets user, workspace, and reviewer policy override false-positive restrictions', () => {
+      const overrideCases = [
+        {
+          expectedReason: 'user-override',
+          scope: 'user',
+          sourceDID: 'did:key:user'
+        },
+        {
+          expectedReason: 'policy-override',
+          scope: 'workspace',
+          sourceDID: 'did:key:workspace-policy'
+        },
+        {
+          expectedReason: 'policy-override',
+          scope: 'reviewer',
+          sourceDID: 'did:key:reviewer'
+        }
+      ] as const
+
+      for (const { expectedReason, scope, sourceDID } of overrideCases) {
+        const result = decidePublicInteraction({
+          labels: [{ ...TRUSTED_SPAM_LABEL, id: `label:${scope}`, confidence: 1, sourceWeight: 2 }],
+          override: {
+            scope,
+            sourceDID,
+            visibility: 'show',
+            reach: 'normal',
+            notify: true,
+            includeInCounters: true,
+            includeInSearch: true,
+            reason: `${scope} false-positive override`
+          },
+          policy: {
+            abuseLabelHideThreshold: 0.5,
+            quarantineFirstContact: false
+          }
+        })
+        const explanation = explainDecision(result)
+
+        expect(result.admission, scope).toBe('accept')
+        expect(result.visibility, scope).toBe('show')
+        expect(result.reach, scope).toBe('normal')
+        expect(result.includeInCounters, scope).toBe(true)
+        expect(result.includeInSearch, scope).toBe(true)
+        expect(result.reasons, scope).toContain('trusted-abuse-label')
+        expect(result.reasons, scope).toContain(expectedReason)
+        expect(result.evidenceRefs, scope).toContain(`override-scope:${scope}`)
+        expect(result.evidenceRefs, scope).toContain(`override-source:${sourceDID}`)
+        expect(result.evidenceRefs, scope).toContain(`${scope} false-positive override`)
+        expect(
+          explanation.reasons.some((reason) => reason.code === expectedReason),
+          scope
+        ).toBe(true)
+      }
+    })
   })
 
   describe('decideReach', () => {

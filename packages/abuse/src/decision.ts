@@ -383,6 +383,15 @@ function applySafeOverride(decision: AbuseDecision, facts: NormalizedAbuseFacts)
     return decision
   }
 
+  const scope = facts.override.scope ?? 'user'
+  const reason = scope === 'user' ? 'user-override' : 'policy-override'
+  const evidenceRefs = [
+    ...decision.evidenceRefs,
+    `override-scope:${scope}`,
+    facts.override.sourceDID ? `override-source:${facts.override.sourceDID}` : null,
+    facts.override.reason ?? null
+  ].filter((ref): ref is string => ref !== null)
+
   return {
     ...decision,
     visibility: facts.override.visibility ?? decision.visibility,
@@ -390,10 +399,8 @@ function applySafeOverride(decision: AbuseDecision, facts: NormalizedAbuseFacts)
     notify: facts.override.notify ?? decision.notify,
     includeInCounters: facts.override.includeInCounters ?? decision.includeInCounters,
     includeInSearch: facts.override.includeInSearch ?? decision.includeInSearch,
-    reasons: appendReason(decision.reasons, 'user-override'),
-    evidenceRefs: facts.override.reason
-      ? [...decision.evidenceRefs, facts.override.reason]
-      : decision.evidenceRefs
+    reasons: appendReason(decision.reasons, reason),
+    evidenceRefs
   }
 }
 

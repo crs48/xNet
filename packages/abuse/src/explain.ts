@@ -92,6 +92,10 @@ const REASON_DETAILS: Record<AbuseReasonCode, ReasonDetail> = {
     severity: 'high',
     message: 'The remote mutation was unsigned on a surface that requires signed replication.'
   },
+  'policy-override': {
+    severity: 'low',
+    message: 'A workspace or reviewer policy override changed the display or reach decision.'
+  },
   'user-override': {
     severity: 'low',
     message: 'A local override changed the display or reach decision.'
