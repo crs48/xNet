@@ -3,6 +3,7 @@
  */
 
 import type { InferNode } from '../types'
+import type { RoleResolver } from '@xnetjs/core'
 import { allow, role } from '../../auth'
 import { defineSchema } from '../define'
 import {
@@ -21,19 +22,141 @@ import {
 
 // ─── Shared Options ─────────────────────────────────────────────────────────
 
-const moderationAuthorization = {
+type ModerationAuthorizationOptions = {
+  roles?: Record<string, RoleResolver>
+  read?: readonly string[]
+  write?: readonly string[]
+  delete?: readonly string[]
+  share?: readonly string[]
+  admin?: readonly string[]
+}
+
+const withOperators = (roles: readonly string[] = []): string[] => [
+  ...new Set(['owner', 'operator', ...roles])
+]
+
+const withOwners = (roles: readonly string[] = []): string[] => [...new Set(['owner', ...roles])]
+
+const createModerationAuthorization = (options: ModerationAuthorizationOptions = {}) =>
+  ({
+    roles: {
+      owner: role.creator(),
+      operator: role.property('operators'),
+      ...options.roles
+    },
+    actions: {
+      read: allow(...withOperators(options.read)),
+      write: allow(...withOperators(options.write)),
+      delete: allow(...withOwners(options.delete)),
+      share: allow(...withOperators(options.share)),
+      admin: allow(...withOwners(options.admin))
+    }
+  }) as const
+
+const reportAuthorization = createModerationAuthorization({
   roles: {
-    owner: role.creator(),
-    operator: role.property('operators')
+    reporter: role.property('reporter'),
+    reviewer: role.property('reviewers')
   },
-  actions: {
-    read: allow('owner', 'operator'),
-    write: allow('owner', 'operator'),
-    delete: allow('owner'),
-    share: allow('owner', 'operator'),
-    admin: allow('owner')
-  }
-} as const
+  read: ['reporter', 'reviewer'],
+  write: ['reviewer'],
+  share: ['reviewer'],
+  admin: ['reviewer']
+})
+
+const labelAuthorization = createModerationAuthorization({
+  roles: {
+    labeler: role.property('labelers'),
+    reviewer: role.property('reviewers'),
+    source: role.property('sourceDID')
+  },
+  read: ['labeler', 'reviewer', 'source'],
+  write: ['labeler', 'reviewer', 'source'],
+  share: ['reviewer']
+})
+
+const policyListAuthorization = createModerationAuthorization({
+  roles: {
+    publisher: role.property('publisher'),
+    policyPublisher: role.property('publishers'),
+    labeler: role.property('labelers'),
+    reviewer: role.property('reviewers')
+  },
+  read: ['publisher', 'policyPublisher', 'labeler', 'reviewer'],
+  write: ['publisher', 'policyPublisher'],
+  share: ['publisher', 'policyPublisher'],
+  admin: ['publisher', 'policyPublisher']
+})
+
+const subscriptionAuthorization = createModerationAuthorization({
+  roles: {
+    subscriber: role.property('subscriber')
+  },
+  read: ['subscriber'],
+  write: ['subscriber']
+})
+
+const communityNoteAuthorization = createModerationAuthorization({
+  roles: {
+    author: role.property('author'),
+    reviewer: role.property('reviewers')
+  },
+  read: ['author', 'reviewer'],
+  write: ['author', 'reviewer'],
+  share: ['author', 'reviewer']
+})
+
+const noteRatingAuthorization = createModerationAuthorization({
+  roles: {
+    rater: role.property('rater'),
+    reviewer: role.property('reviewers')
+  },
+  read: ['rater', 'reviewer'],
+  write: ['rater', 'reviewer']
+})
+
+const signalAuthorization = createModerationAuthorization({
+  roles: {
+    source: role.property('sourceDID'),
+    reviewer: role.property('reviewers')
+  },
+  read: ['source', 'reviewer'],
+  write: ['source', 'reviewer'],
+  share: ['reviewer']
+})
+
+const provenanceAuthorization = createModerationAuthorization({
+  roles: {
+    source: role.property('sourceDID'),
+    reviewer: role.property('reviewers')
+  },
+  read: ['source', 'reviewer'],
+  write: ['source', 'reviewer'],
+  share: ['reviewer']
+})
+
+const appealAuthorization = createModerationAuthorization({
+  roles: {
+    appellant: role.property('appellant'),
+    reviewer: role.property('reviewers')
+  },
+  read: ['appellant', 'reviewer'],
+  write: ['appellant', 'reviewer'],
+  share: ['reviewer'],
+  admin: ['reviewer']
+})
+
+const reviewTaskAuthorization = createModerationAuthorization({
+  roles: {
+    reviewer: role.property('reviewers'),
+    assignee: role.property('assignedTo'),
+    resolver: role.property('resolvedBy')
+  },
+  read: ['reviewer', 'assignee', 'resolver'],
+  write: ['reviewer', 'assignee', 'resolver'],
+  share: ['reviewer'],
+  admin: ['reviewer']
+})
 
 const commonModerationMetadata = {
   operators: person({ multiple: true }),
@@ -119,9 +242,10 @@ export const AbuseReportSchema = defineSchema({
     reviewedBy: person({}),
     reviewedAt: date({ includeTime: true }),
     resolution: text({ maxLength: 4000 }),
+    reviewers: person({ multiple: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: reportAuthorization
 })
 
 export const ModerationLabelSchema = defineSchema({
@@ -149,9 +273,11 @@ export const ModerationLabelSchema = defineSchema({
     modelName: text({ maxLength: 200 }),
     modelVersion: text({ maxLength: 200 }),
     signedEnvelope: text({}),
+    labelers: person({ multiple: true }),
+    reviewers: person({ multiple: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: labelAuthorization
 })
 
 export const PolicyListSchema = defineSchema({
@@ -179,11 +305,12 @@ export const PolicyListSchema = defineSchema({
     entries: text({ required: true }),
     labelers: person({ multiple: true }),
     reviewers: person({ multiple: true }),
+    publishers: person({ multiple: true }),
     appealContact: text({ maxLength: 500 }),
     signedEnvelope: text({}),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: policyListAuthorization
 })
 
 export const PolicySubscriptionSchema = defineSchema({
@@ -204,7 +331,7 @@ export const PolicySubscriptionSchema = defineSchema({
     lastSyncedAt: date({ includeTime: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: subscriptionAuthorization
 })
 
 export const CommunityNoteSchema = defineSchema({
@@ -227,9 +354,10 @@ export const CommunityNoteSchema = defineSchema({
       default: 'draft'
     }),
     ratingSummary: text({}),
+    reviewers: person({ multiple: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: communityNoteAuthorization
 })
 
 export const NoteRatingSchema = defineSchema({
@@ -250,9 +378,10 @@ export const NoteRatingSchema = defineSchema({
     perspective: text({ maxLength: 500 }),
     confidence: number({ required: true, min: 0, max: 1 }),
     reason: text({ maxLength: 2000 }),
+    reviewers: person({ multiple: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: noteRatingAuthorization
 })
 
 export const QualitySignalSchema = defineSchema({
@@ -283,9 +412,10 @@ export const QualitySignalSchema = defineSchema({
     modelName: text({ maxLength: 200 }),
     modelVersion: text({ maxLength: 200 }),
     expiresAt: date({ includeTime: true }),
+    reviewers: person({ multiple: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: signalAuthorization
 })
 
 export const ContentProvenanceSchema = defineSchema({
@@ -315,9 +445,10 @@ export const ContentProvenanceSchema = defineSchema({
     c2paManifest: text({}),
     capturedAt: date({ includeTime: true }),
     license: text({ maxLength: 500 }),
+    reviewers: person({ multiple: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: provenanceAuthorization
 })
 
 export const AppealSchema = defineSchema({
@@ -341,9 +472,10 @@ export const AppealSchema = defineSchema({
     reviewer: person({}),
     reviewedAt: date({ includeTime: true }),
     resolution: text({ maxLength: 4000 }),
+    reviewers: person({ multiple: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: appealAuthorization
 })
 
 export const ReviewTaskSchema = defineSchema({
@@ -368,9 +500,10 @@ export const ReviewTaskSchema = defineSchema({
     resolvedBy: person({}),
     resolvedAt: date({ includeTime: true }),
     resolution: text({ maxLength: 4000 }),
+    reviewers: person({ multiple: true }),
     ...commonModerationMetadata
   },
-  authorization: moderationAuthorization
+  authorization: reviewTaskAuthorization
 })
 
 // ─── Types ──────────────────────────────────────────────────────────────────

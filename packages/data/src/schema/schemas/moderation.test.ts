@@ -17,6 +17,10 @@ import { builtInSchemas } from './index'
 describe('moderation schemas', () => {
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
   const target = 'page-abc123'
+  const allowRoles = (expr: unknown): readonly string[] => {
+    expect(expr).toMatchObject({ _tag: 'allow' })
+    return (expr as { _tag: 'allow'; roles: readonly string[] }).roles
+  }
 
   const examples = [
     {
@@ -241,14 +245,45 @@ describe('moderation schemas', () => {
     expect(result.errors.map((error) => error.path)).toContain('confidence')
   })
 
-  it('defines operator authorization for moderation workflows', () => {
+  it('defines role-specific authorization for moderation workflows', () => {
     expect(ModerationLabelSchema.schema.authorization?.roles.operator).toEqual({
       _tag: 'property',
       propertyName: 'operators'
     })
-    expect(ModerationLabelSchema.schema.authorization?.actions.write).toEqual({
-      _tag: 'allow',
-      roles: ['owner', 'operator']
+    expect(ModerationLabelSchema.schema.authorization?.roles.labeler).toEqual({
+      _tag: 'property',
+      propertyName: 'labelers'
     })
+    expect(allowRoles(ModerationLabelSchema.schema.authorization?.actions.write)).toEqual([
+      'owner',
+      'operator',
+      'labeler',
+      'reviewer',
+      'source'
+    ])
+    expect(PolicyListSchema.schema.authorization?.roles.publisher).toEqual({
+      _tag: 'property',
+      propertyName: 'publisher'
+    })
+    expect(PolicyListSchema.schema.authorization?.roles.policyPublisher).toEqual({
+      _tag: 'property',
+      propertyName: 'publishers'
+    })
+    expect(allowRoles(PolicyListSchema.schema.authorization?.actions.share)).toContain('publisher')
+    expect(allowRoles(PolicyListSchema.schema.authorization?.actions.share)).toContain(
+      'policyPublisher'
+    )
+    expect(AppealSchema.schema.authorization?.roles.appellant).toEqual({
+      _tag: 'property',
+      propertyName: 'appellant'
+    })
+    expect(allowRoles(AppealSchema.schema.authorization?.actions.write)).toContain('appellant')
+    expect(allowRoles(AppealSchema.schema.authorization?.actions.write)).toContain('reviewer')
+    expect(ReviewTaskSchema.schema.authorization?.roles.assignee).toEqual({
+      _tag: 'property',
+      propertyName: 'assignedTo'
+    })
+    expect(allowRoles(ReviewTaskSchema.schema.authorization?.actions.write)).toContain('assignee')
+    expect(allowRoles(ReviewTaskSchema.schema.authorization?.actions.write)).toContain('reviewer')
   })
 })
