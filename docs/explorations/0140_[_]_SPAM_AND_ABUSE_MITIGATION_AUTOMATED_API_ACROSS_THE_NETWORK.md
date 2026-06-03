@@ -975,7 +975,7 @@ Every hub should publish:
 - [x] Reject unknown V2 envelopes at hubs unless a verifier is configured.
 - [x] Apply size and rate limits to awareness messages and state-vector messages.
 - [x] Connect `YjsPeerScorer` actions to network `AutoBlocker` where possible.
-- [ ] Persist local and workspace blocks as signed policy data, not only in-memory helpers.
+- [x] Persist local and workspace blocks as signed policy data, not only in-memory helpers.
 - [ ] Add telemetry events for remote mutation rejection reasons with peer hashes and score buckets.
 
 ### Phase 2 - Core Abuse Package
