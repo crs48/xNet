@@ -38,7 +38,10 @@ export {
   redactCloudClassifierText
 } from './cloud-classifier'
 export { classifyWithModerationCascade, decideCloudReviewRoute } from './classifier-cascade'
-export { createSmallSelfHostedAbuseProfile } from './deployment-profile'
+export {
+  createPublicSearchHubAbuseProfile,
+  createSmallSelfHostedAbuseProfile
+} from './deployment-profile'
 export {
   extractCitationReferences,
   extractKnowledgeClaims,

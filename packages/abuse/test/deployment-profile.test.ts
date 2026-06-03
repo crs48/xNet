@@ -1,13 +1,18 @@
+import { generateIdentity } from '@xnetjs/identity'
 import { describe, expect, it, vi } from 'vitest'
 import {
   classifyWithModerationCascade,
   createCloudClassifierAdapter,
+  createHubPolicyServiceOffer,
   createKeywordLocalClassifier,
+  createPublicSearchHubAbuseProfile,
   createSmallSelfHostedAbuseProfile,
   evaluatePublicWriteBudget,
   evaluateQueryCostBudget,
+  signHubPolicyServiceOffer,
   type PublicWriteBudgetUsage,
-  type QueryCostBudgetUsage
+  type QueryCostBudgetUsage,
+  verifySignedHubPolicyServiceOffer
 } from '../src'
 
 describe('abuse deployment profiles', () => {
@@ -116,5 +121,78 @@ describe('abuse deployment profiles', () => {
     expect(crawlDecision.allowed).toBe(false)
     expect(crawlDecision.resource).toBe('require-budget')
     expect(crawlDecision.reasons).toContain('budget:domain-work-type:exceeded')
+  })
+
+  it('publishes crawl, index, and review budgets for public search hubs', () => {
+    const hub = generateIdentity()
+    const profile = createPublicSearchHubAbuseProfile({
+      hubId: 'hub.search',
+      windowMs: 3_600_000,
+      cloudReviewDailyMicroUsd: 123_000,
+      moderationReviewUnitsPerWindow: 7,
+      searchIndexUnitsPerWindow: 42
+    })
+    const offer = createHubPolicyServiceOffer({
+      id: 'public-search-policy',
+      hubDID: hub.identity.did,
+      issuerDID: hub.identity.did,
+      title: profile.title,
+      createdAt: 1_000,
+      expiresAt: 90_000,
+      moderation: profile.moderation,
+      services: [
+        {
+          service: 'crawl',
+          enabled: true,
+          authenticated: true,
+          settlement: 'reciprocal',
+          reciprocalCreditRatio: 1
+        },
+        {
+          service: 'search-index',
+          enabled: true,
+          authenticated: true,
+          settlement: 'sponsored',
+          sponsoredBy: 'hub-operator'
+        },
+        {
+          service: 'ai-review',
+          enabled: true,
+          authenticated: true,
+          settlement: 'paid',
+          costMicroUsdPerUnit: 25
+        }
+      ],
+      budgetHints: profile.budgetHints,
+      policyRefs: [profile.id]
+    })
+    const signed = signHubPolicyServiceOffer(offer, hub.privateKey)
+    const budgetWorkTypes = new Set(signed.budgetHints.map((hint) => hint.workType))
+
+    expect(verifySignedHubPolicyServiceOffer(signed, 2_000)).toEqual({ valid: true, errors: [] })
+    expect(budgetWorkTypes).toEqual(
+      new Set([
+        'public-write',
+        'crawl',
+        'federation-query',
+        'search-index',
+        'moderation-review',
+        'cloud-review'
+      ])
+    )
+    expect(signed.moderation.aiReview.maxCloudReviewMicroUsdPerDay).toBe(123_000)
+    expect(
+      signed.budgetHints.find((hint) => hint.name === 'public-search:search-index:domain')
+    ).toMatchObject({ workType: 'search-index', scope: 'domain', unitsPerWindow: 42 })
+    expect(
+      signed.budgetHints.find((hint) => hint.name === 'public-search:moderation-review:safety')
+    ).toMatchObject({
+      workType: 'moderation-review',
+      scope: 'review-queue:safety',
+      unitsPerWindow: 7
+    })
+    expect(
+      signed.budgetHints.find((hint) => hint.name === 'public-search:cloud-review:daily')
+    ).toMatchObject({ workType: 'cloud-review', scope: 'hub', unitsPerWindow: 123_000 })
   })
 })

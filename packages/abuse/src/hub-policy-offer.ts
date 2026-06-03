@@ -13,6 +13,7 @@ export type HubPolicyServiceKind =
   | 'node-relay'
   | 'public-write'
   | 'crawl'
+  | 'search-index'
   | 'federation-query'
   | 'labeler'
   | 'ai-review'
@@ -58,7 +59,14 @@ export type HubPolicyModerationSettings = {
 
 export type HubPolicyBudgetHint = {
   name: string
-  workType: 'public-write' | 'crawl' | 'federation-query' | 'cloud-review' | 'labeling'
+  workType:
+    | 'public-write'
+    | 'crawl'
+    | 'search-index'
+    | 'federation-query'
+    | 'cloud-review'
+    | 'moderation-review'
+    | 'labeling'
   scope: string
   unitsPerWindow: number
   windowMs: number
