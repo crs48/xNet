@@ -337,6 +337,13 @@ describe('AiWorkspaceExporter', () => {
       'Pages/Product-Roadmap--page_1.md'
     ])
     expect(result.pendingPlans).toHaveLength(3)
+    expect(result.review.entries).toHaveLength(3)
+    expect(result.review.entries.every((entry) => entry.kind === 'pending-plan')).toBe(true)
+    expect(result.review.entries[0].suggestedActions).toEqual([
+      'approve',
+      'reject',
+      'request-revision'
+    ])
 
     const pagePlan = result.pendingPlans.find((pending) => pending.path.endsWith('.md'))?.plan
     const rowsPlan = result.pendingPlans.find((pending) =>
@@ -356,6 +363,11 @@ describe('AiWorkspaceExporter', () => {
       await readFile(join(rootDir, result.pendingPlans[0].planPath), 'utf8')
     )
     expect(persistedPlan.id).toBe(result.pendingPlans[0].plan.id)
+
+    const reviewIndex = JSON.parse(await readFile(join(rootDir, '.xnet/review/index.json'), 'utf8'))
+    expect(reviewIndex.entries.map((entry: { planId: string }) => entry.planId).sort()).toEqual(
+      result.pendingPlans.map((pending) => pending.plan.id).sort()
+    )
   })
 
   it('writes conflict records for missing exported files', async () => {
@@ -394,5 +406,21 @@ describe('AiWorkspaceExporter', () => {
       await readFile(join(rootDir, result.conflicts[0].conflictPath ?? ''), 'utf8')
     )
     expect(persistedConflict.kind).toBe('missing-file')
+
+    expect(result.review.entries).toEqual([
+      expect.objectContaining({
+        kind: 'conflict',
+        status: 'needs-review',
+        path: 'Pages/Product-Roadmap--page_1.md',
+        conflictKind: 'missing-file',
+        suggestedActions: ['reject', 'request-revision']
+      })
+    ])
+
+    const reviewIndex = JSON.parse(await readFile(join(rootDir, '.xnet/review/index.json'), 'utf8'))
+    expect(reviewIndex.entries[0]).toMatchObject({
+      kind: 'conflict',
+      conflictPath: result.conflicts[0].conflictPath
+    })
   })
 })

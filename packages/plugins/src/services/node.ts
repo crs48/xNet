@@ -40,6 +40,11 @@ export type {
   AiWorkspaceExportScope,
   AiWorkspaceManifestEntry,
   AiWorkspacePendingPlan,
+  AiWorkspaceReviewAction,
+  AiWorkspaceReviewEntry,
+  AiWorkspaceReviewEntryKind,
+  AiWorkspaceReviewIndex,
+  AiWorkspaceReviewStatus,
   AiWorkspaceWatcherScanOptions,
   AiWorkspaceWatcherScanResult,
   AiWorkspaceWatchHandle
@@ -79,8 +84,11 @@ export type {
   AiSearchResult,
   AiSurfaceLimits,
   AiSurfaceServiceConfig,
+  XNetMarkdownDiffLine,
+  XNetMarkdownDiffLineKind,
   XNetMarkdownDirective,
   XNetMarkdownDirectiveSpec,
+  XNetMarkdownReviewDiff,
   XNetPageMarkdownFrontmatter,
   XNetPageMarkdownValidation,
   XNetPageMarkdownValidationOptions
@@ -104,6 +112,7 @@ export {
   getXNetMarkdownDirectiveSpecs,
   parseXNetPageFrontmatter,
   renderMarkdownLineDiff,
+  renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
   XNET_MARKDOWN_DIRECTIVE_SPECS,
   validateXNetPageMarkdown

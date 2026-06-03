@@ -40,6 +40,25 @@ export type XNetPageMarkdownValidation = {
   validation: AiValidationResult
 }
 
+export type XNetMarkdownDiffLineKind = 'context' | 'removed' | 'added'
+
+export type XNetMarkdownDiffLine = {
+  kind: XNetMarkdownDiffLineKind
+  text: string
+  beforeLine?: number
+  afterLine?: number
+}
+
+export type XNetMarkdownReviewDiff = {
+  kind: 'markdown-diff'
+  format: 'line'
+  beforeLineCount: number
+  afterLineCount: number
+  lineCount: number
+  unifiedDiff: string
+  lines: XNetMarkdownDiffLine[]
+}
+
 export const XNET_MARKDOWN_DIRECTIVE_SPECS = [
   {
     kind: 'block',
@@ -153,23 +172,47 @@ export function stripXNetPageFrontmatter(markdown: string): string {
 }
 
 export function renderMarkdownLineDiff(before: string, after: string): string {
+  return renderMarkdownReviewDiff(before, after).unifiedDiff
+}
+
+export function renderMarkdownReviewDiff(before: string, after: string): XNetMarkdownReviewDiff {
   const beforeLines = before.split('\n')
   const afterLines = after.split('\n')
   const maxLength = Math.max(beforeLines.length, afterLines.length)
-  const diff: string[] = []
+  const lines: XNetMarkdownDiffLine[] = []
+  let beforeLine = 1
+  let afterLine = 1
 
   for (let index = 0; index < maxLength; index++) {
     const left = beforeLines[index]
     const right = afterLines[index]
     if (left === right) {
-      if (left !== undefined) diff.push(` ${left}`)
+      if (left !== undefined) {
+        lines.push({ kind: 'context', text: left, beforeLine, afterLine })
+        beforeLine += 1
+        afterLine += 1
+      }
       continue
     }
-    if (left !== undefined) diff.push(`-${left}`)
-    if (right !== undefined) diff.push(`+${right}`)
+    if (left !== undefined) {
+      lines.push({ kind: 'removed', text: left, beforeLine })
+      beforeLine += 1
+    }
+    if (right !== undefined) {
+      lines.push({ kind: 'added', text: right, afterLine })
+      afterLine += 1
+    }
   }
 
-  return diff.join('\n')
+  return {
+    kind: 'markdown-diff',
+    format: 'line',
+    beforeLineCount: beforeLines.length,
+    afterLineCount: afterLines.length,
+    lineCount: lines.length,
+    unifiedDiff: lines.map((line) => `${markdownDiffPrefix(line.kind)}${line.text}`).join('\n'),
+    lines
+  }
 }
 
 // ─── Directive Parsing ─────────────────────────────────────────────────────
@@ -359,4 +402,10 @@ function unquoteYamlScalar(value: string): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function markdownDiffPrefix(kind: XNetMarkdownDiffLineKind): string {
+  if (kind === 'removed') return '-'
+  if (kind === 'added') return '+'
+  return ' '
 }

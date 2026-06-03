@@ -1316,7 +1316,7 @@ Workspace:
 - [x] Parse Markdown through existing xNet Markdown specs.
 - [x] Validate xNet directives and unsupported constructs.
 - [x] Apply through TipTap/Yjs document paths.
-- [ ] Render Markdown diffs in the UI.
+- [x] Render Markdown diffs in the UI.
 - [x] Add round-trip tests for AI-edited pages with database/page/embed directives.
 
 ### Phase 3: AI Workspace Folder Projection
@@ -1329,7 +1329,7 @@ Workspace:
 - [x] Export canvases as JSON Canvas plus xNet sidecars.
 - [x] Write `.xnet/manifest.jsonl` with ids, paths, hashes, and revisions.
 - [x] Add watcher that converts changed files into mutation plans.
-- [ ] Add conflict handling folder and UI review.
+- [x] Add conflict handling folder and UI review.
 - [x] Add tests for export/import id stability and title rename behavior.
 
 ### Phase 4: Database AI Tools

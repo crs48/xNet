@@ -25,7 +25,7 @@ import type {
   SortDirection
 } from '@xnetjs/data'
 import {
-  renderMarkdownLineDiff,
+  renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
   validateXNetPageMarkdown
 } from './page-markdown'
@@ -1096,6 +1096,7 @@ export class AiSurfaceService {
     const markdown = readRequiredString(args, 'markdown')
     const baseRevision = readOptionalString(args, 'baseRevision') ?? revisionForNode(node)
     const currentMarkdown = renderPageMarkdown(node, true, this.nowIso())
+    const reviewDiff = renderMarkdownReviewDiff(currentMarkdown, markdown)
     const markdownValidation = validateXNetPageMarkdown(markdown, {
       pageId,
       schemaId: node.schemaId,
@@ -1122,7 +1123,8 @@ export class AiSurfaceService {
               markdownHash: stableStringHash(markdown),
               markdownLength: markdown.length,
               directiveCount: markdownValidation.directives.length,
-              diff: renderMarkdownLineDiff(currentMarkdown, markdown)
+              diff: reviewDiff.unifiedDiff,
+              review: reviewDiff
             })
           ]
         }

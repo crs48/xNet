@@ -11,6 +11,7 @@ import {
   getXNetMarkdownDirectiveSpecs,
   parseAiMutationPlan,
   renderMarkdownLineDiff,
+  renderMarkdownReviewDiff,
   serializeAiMutationPlan,
   validateXNetPageMarkdown,
   type AiPageMarkdownApplyAdapterInput,
@@ -273,6 +274,18 @@ describe('AI surface contract', () => {
 
     it('renders simple line diffs for Markdown review payloads', () => {
       expect(renderMarkdownLineDiff('# A\nold', '# A\nnew')).toBe(' # A\n-old\n+new')
+      expect(renderMarkdownReviewDiff('# A\nold', '# A\nnew')).toMatchObject({
+        kind: 'markdown-diff',
+        format: 'line',
+        beforeLineCount: 2,
+        afterLineCount: 2,
+        lineCount: 3,
+        lines: [
+          { kind: 'context', text: '# A', beforeLine: 1, afterLine: 1 },
+          { kind: 'removed', text: 'old', beforeLine: 2 },
+          { kind: 'added', text: 'new', afterLine: 2 }
+        ]
+      })
     })
   })
 
@@ -316,7 +329,13 @@ describe('AI surface contract', () => {
         confirmApply: true
       })
       const updated = await store.get('page_1')
+      const operation = plan.changes[0].operations[0]
 
+      expect(operation.args.review).toMatchObject({
+        kind: 'markdown-diff',
+        format: 'line',
+        unifiedDiff: operation.args.diff
+      })
       expect(result).toMatchObject({
         applied: true,
         pageId: 'page_1',

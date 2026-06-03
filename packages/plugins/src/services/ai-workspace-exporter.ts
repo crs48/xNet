@@ -92,11 +92,42 @@ export type AiWorkspaceConflict = {
   detectedAt: string
 }
 
+export type AiWorkspaceReviewStatus = 'needs-review'
+
+export type AiWorkspaceReviewAction = 'approve' | 'reject' | 'request-revision'
+
+export type AiWorkspaceReviewEntryKind = 'pending-plan' | 'conflict'
+
+export type AiWorkspaceReviewEntry = {
+  kind: AiWorkspaceReviewEntryKind
+  status: AiWorkspaceReviewStatus
+  path: string
+  id?: string
+  title: string
+  message: string
+  artifactPath?: string
+  planId?: string
+  planPath?: string
+  conflictKind?: AiWorkspaceConflictKind
+  conflictPath?: string
+  risk?: AiRiskLevel
+  requiredScopes?: AiScope[]
+  suggestedActions: AiWorkspaceReviewAction[]
+  createdAt: string
+}
+
+export type AiWorkspaceReviewIndex = {
+  rootDir: string
+  generatedAt: string
+  entries: AiWorkspaceReviewEntry[]
+}
+
 export type AiWorkspaceWatcherScanOptions = {
   rootDir: string
   actor?: string
   writePendingPlans?: boolean
   writeConflicts?: boolean
+  writeReviewIndex?: boolean
 }
 
 export type AiWorkspaceWatcherScanResult = {
@@ -105,6 +136,7 @@ export type AiWorkspaceWatcherScanResult = {
   changedFiles: AiWorkspaceChangedFile[]
   pendingPlans: AiWorkspacePendingPlan[]
   conflicts: AiWorkspaceConflict[]
+  review: AiWorkspaceReviewIndex
 }
 
 export type AiWorkspaceWatchHandle = {
@@ -197,6 +229,7 @@ export class AiWorkspaceExporter {
         '.xnet/pending',
         '.xnet/applied',
         '.xnet/conflicts',
+        '.xnet/review',
         'Pages',
         'Databases',
         'Canvases',
@@ -443,12 +476,16 @@ export class AiWorkspaceWatcher {
       }
     }
 
+    const review = createWorkspaceReviewIndex(options.rootDir, scannedAt, pendingPlans, conflicts)
+    await this.writeReviewIndex(options, review)
+
     return {
       rootDir: options.rootDir,
       scannedAt,
       changedFiles,
       pendingPlans,
-      conflicts
+      conflicts,
+      review
     }
   }
 
@@ -474,7 +511,8 @@ export class AiWorkspaceWatcher {
       const relativePath = String(filename)
       if (
         relativePath.startsWith('.xnet/pending/') ||
-        relativePath.startsWith('.xnet/conflicts/')
+        relativePath.startsWith('.xnet/conflicts/') ||
+        relativePath.startsWith('.xnet/review/')
       ) {
         return
       }
@@ -659,6 +697,15 @@ export class AiWorkspaceWatcher {
     }
     return nextConflict
   }
+
+  private async writeReviewIndex(
+    options: AiWorkspaceWatcherScanOptions,
+    review: AiWorkspaceReviewIndex
+  ): Promise<void> {
+    if (options.writeReviewIndex !== false) {
+      await writeManagedJson(options.rootDir, '.xnet/review/index.json', review)
+    }
+  }
 }
 
 // ─── Factory ────────────────────────────────────────────────────────────────
@@ -714,6 +761,64 @@ function renderCodexConfig(): string {
 }
 
 // ─── Pure Helpers ───────────────────────────────────────────────────────────
+
+function createWorkspaceReviewIndex(
+  rootDir: string,
+  generatedAt: string,
+  pendingPlans: AiWorkspacePendingPlan[],
+  conflicts: AiWorkspaceConflict[]
+): AiWorkspaceReviewIndex {
+  return {
+    rootDir,
+    generatedAt,
+    entries: [
+      ...pendingPlans.map((pending) => reviewEntryForPendingPlan(pending, generatedAt)),
+      ...conflicts.map((conflict) => reviewEntryForConflict(conflict, generatedAt))
+    ]
+  }
+}
+
+function reviewEntryForPendingPlan(
+  pending: AiWorkspacePendingPlan,
+  createdAt: string
+): AiWorkspaceReviewEntry {
+  const firstChange = pending.plan.changes[0]
+
+  return {
+    kind: 'pending-plan',
+    status: 'needs-review',
+    path: pending.path,
+    ...(firstChange?.targetId ? { id: firstChange.targetId } : {}),
+    title: `Review proposed change for ${pending.path}`,
+    message: pending.plan.intent,
+    artifactPath: pending.planPath,
+    planId: pending.plan.id,
+    planPath: pending.planPath,
+    risk: pending.plan.risk,
+    requiredScopes: [...pending.plan.requiredScopes],
+    suggestedActions: ['approve', 'reject', 'request-revision'],
+    createdAt
+  }
+}
+
+function reviewEntryForConflict(
+  conflict: AiWorkspaceConflict,
+  createdAt: string
+): AiWorkspaceReviewEntry {
+  return {
+    kind: 'conflict',
+    status: 'needs-review',
+    path: conflict.path,
+    ...(conflict.id ? { id: conflict.id } : {}),
+    title: `Resolve ${conflict.kind} for ${conflict.path}`,
+    message: conflict.message,
+    ...(conflict.conflictPath ? { artifactPath: conflict.conflictPath } : {}),
+    conflictKind: conflict.kind,
+    ...(conflict.conflictPath ? { conflictPath: conflict.conflictPath } : {}),
+    suggestedActions: ['reject', 'request-revision'],
+    createdAt
+  }
+}
 
 function inferExportKind(node: NodeData): AiWorkspaceExportKind {
   const schemaId = node.schemaId.toLocaleLowerCase()

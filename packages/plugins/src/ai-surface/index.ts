@@ -55,13 +55,17 @@ export {
   getXNetMarkdownDirectiveSpecs,
   parseXNetPageFrontmatter,
   renderMarkdownLineDiff,
+  renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
   XNET_MARKDOWN_DIRECTIVE_SPECS,
   validateXNetPageMarkdown
 } from './page-markdown'
 export type {
+  XNetMarkdownDiffLine,
+  XNetMarkdownDiffLineKind,
   XNetMarkdownDirective,
   XNetMarkdownDirectiveSpec,
+  XNetMarkdownReviewDiff,
   XNetPageMarkdownFrontmatter,
   XNetPageMarkdownValidation,
   XNetPageMarkdownValidationOptions
