@@ -41,6 +41,7 @@ export {
 } from './validation'
 export { AiSurfaceService, createAiSurfaceService } from './service'
 export type {
+  AiDatabaseMutationApplyResult,
   AiPageMarkdownApplyAdapter,
   AiPageMarkdownApplyAdapterInput,
   AiPageMarkdownApplyAdapterResult,

@@ -1390,12 +1390,12 @@ Workspace:
 - [x] Codex can connect to xNet MCP and read workspace summary.
 - [x] Claude Code can connect to xNet MCP through project `.mcp.json`.
 - [x] A page can be exported as Markdown, edited by an external agent, parsed, reviewed, and applied.
-- [ ] A database schema/view change can be proposed and applied without corrupting rows.
-- [ ] A database row bulk update can be previewed and applied transactionally.
+- [x] A database schema/view change can be proposed and applied without corrupting rows.
+- [x] A database row bulk update can be previewed and applied transactionally.
 - [x] A canvas viewport can be read by an agent without exporting the whole canvas.
 - [x] A canvas layout/change plan can be previewed and applied.
 - [x] JSON Canvas export/import preserves xNet source metadata.
-- [ ] Rejected changes leave the live workspace untouched.
+- [x] Rejected changes leave the live workspace untouched.
 - [x] Applied changes are visible in audit history.
 
 ### Performance Validation
@@ -1411,7 +1411,7 @@ Workspace:
 ### Safety Validation
 
 - [x] Prompt injection in a page cannot silently escalate permissions.
-- [ ] Externally fetched web content is marked untrusted in context packs.
+- [x] Externally fetched web content is marked untrusted in context packs.
 - [x] AI cannot apply writes without the required write scope.
 - [x] Bulk deletes require explicit deletion markers and approval.
 - [x] Raw SQL/admin recovery tools are unavailable in normal sessions.
