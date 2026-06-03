@@ -1042,7 +1042,7 @@ Every hub should publish:
 
 ### Moderation And Reach Validation
 
-- [ ] Public-read nodes do not automatically permit comments, reactions, messages, crawling, or
+- [x] Public-read nodes do not automatically permit comments, reactions, messages, crawling, or
       indexing.
 - [ ] User, workspace, hub, and app-view policy produce explainable decisions.
 - [ ] Labels can expire, be negated, be overridden locally, and be traced to a source DID.
