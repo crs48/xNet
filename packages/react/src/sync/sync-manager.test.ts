@@ -13,6 +13,13 @@ type Deferred<T> = {
   reject: (reason?: unknown) => void
 }
 
+type MockQueueEntry = {
+  nodeId: string
+  update: string
+  clientId?: number
+  queuedAt: number
+}
+
 function createDeferred<T>(): Deferred<T> {
   let resolve!: (value: T) => void
   let reject!: (reason?: unknown) => void
@@ -67,7 +74,7 @@ const mockConnection = {
 
 const mockOfflineQueue = {
   enqueue: vi.fn(async () => undefined),
-  drain: vi.fn(async () => {
+  drain: vi.fn(async (_handler: (entry: MockQueueEntry) => Promise<void>) => {
     if (!drainDeferred) {
       return 0
     }
@@ -115,7 +122,8 @@ vi.mock('./blob-sync', () => ({
 }))
 
 vi.mock('./connection-manager', () => ({
-  createConnectionManager: vi.fn(() => mockConnection)
+  createConnectionManager: vi.fn(() => mockConnection),
+  createMultiHubConnectionManager: vi.fn(() => mockConnection)
 }))
 
 vi.mock('./meta-bridge', () => ({
@@ -141,6 +149,7 @@ vi.mock('./node-store-sync-provider', () => ({
   }))
 }))
 
+import { createConnectionManager, createMultiHubConnectionManager } from './connection-manager'
 import { createSyncManager } from './sync-manager'
 
 describe('createSyncManager', () => {
@@ -159,6 +168,8 @@ describe('createSyncManager', () => {
     mockConnection.joinRoomAsync.mockClear()
     mockConnection.publish.mockClear()
     mockConnection.onStatus.mockClear()
+    vi.mocked(createConnectionManager).mockClear()
+    vi.mocked(createMultiHubConnectionManager).mockClear()
     mockOfflineQueue.enqueue.mockClear()
     mockOfflineQueue.drain.mockClear()
     mockOfflineQueue.load.mockClear()
@@ -205,6 +216,108 @@ describe('createSyncManager', () => {
 
     await manager.stop()
     expect(manager.lifecycle.phase).toBe('stopped')
+  })
+
+  it('uses multi-hub orchestration when multiple signaling URLs are configured', () => {
+    createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://hub-a.example.net',
+      signalingUrls: ['ws://hub-a.example.net', 'ws://hub-b.example.net']
+    })
+
+    expect(createConnectionManager).not.toHaveBeenCalled()
+    expect(createMultiHubConnectionManager).toHaveBeenCalledWith({
+      hubs: [
+        { url: 'ws://hub-a.example.net', ucanToken: undefined, getUCANToken: undefined },
+        { url: 'ws://hub-b.example.net', ucanToken: undefined, getUCANToken: undefined }
+      ]
+    })
+  })
+
+  it('reports reconciliation after replaying offline updates and repairing rooms', async () => {
+    mockPool.has.mockReturnValue(true)
+    mockOfflineQueueSize = 1
+    mockOfflineQueue.drain.mockImplementationOnce(async (handler) => {
+      await handler({
+        nodeId: 'node-1',
+        update: btoa(String.fromCharCode(1, 2, 3)),
+        clientId: 7,
+        queuedAt: Date.now()
+      })
+      mockOfflineQueueSize = 0
+      return 1
+    })
+    const reports: unknown[] = []
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444',
+      replication: {
+        compatibility: {
+          allowUnsignedReplication: true
+        }
+      }
+    })
+
+    await manager.start()
+    await manager.acquire('node-1')
+    manager.on('reconciliation', (report) => {
+      reports.push(report)
+    })
+
+    const report = await manager.reconcile({
+      nodeIds: ['node-1'],
+      reason: 'partition-repair'
+    })
+
+    expect(report).toMatchObject({
+      reason: 'partition-repair',
+      replayedOfflineChanges: 1,
+      repairedNodeIds: ['node-1'],
+      skippedNodeIds: []
+    })
+    expect(manager.lastReconciliationReport).toBe(report)
+    expect(reports).toEqual([report])
+    expect(mockConnection.publish).toHaveBeenCalledWith('xnet-doc-node-1', {
+      type: 'sync-update',
+      from: expect.any(String),
+      update: btoa(String.fromCharCode(1, 2, 3))
+    })
+    expect(mockConnection.publish).toHaveBeenCalledWith('xnet-doc-node-1', {
+      type: 'sync-step1',
+      from: expect.any(String),
+      sv: expect.any(String)
+    })
+  })
+
+  it('repairs tracked rooms when a partition heals', async () => {
+    mockPool.has.mockReturnValue(true)
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+
+    await manager.start()
+    await manager.acquire('node-1')
+    mockConnection.publish.mockClear()
+
+    emitConnectionStatus('error')
+    emitConnectionStatus('connected')
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(manager.lastReconciliationReport).toMatchObject({
+      reason: 'reconnect',
+      repairedNodeIds: ['node-1'],
+      skippedNodeIds: []
+    })
+    expect(mockConnection.publish).toHaveBeenCalledWith('xnet-doc-node-1', {
+      type: 'sync-step1',
+      from: expect.any(String),
+      sv: expect.any(String)
+    })
   })
 
   it('clears remote awareness when the connection drops', async () => {
@@ -344,5 +457,51 @@ describe('createSyncManager', () => {
     })
 
     expect(sharedDoc.getText('content').toString()).toBe('remote')
+  })
+
+  it('converges after duplicate and out-of-order signed updates', async () => {
+    const identity = generateIdentity()
+    const sourceDoc = new Y.Doc()
+    const initialStateVector = Y.encodeStateVector(sourceDoc)
+    sourceDoc.getText('content').insert(0, 'A')
+    const updateA = Y.encodeStateAsUpdate(sourceDoc, initialStateVector)
+    const afterAStateVector = Y.encodeStateVector(sourceDoc)
+    sourceDoc.getText('content').insert(1, 'B')
+    const updateB = Y.encodeStateAsUpdate(sourceDoc, afterAStateVector)
+    const envelopeA = signYjsUpdate(updateA, identity.identity.did, identity.privateKey, 7)
+    const envelopeB = signYjsUpdate(updateB, identity.identity.did, identity.privateKey, 7)
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+    const toWireEnvelope = (envelope: typeof envelopeA) => ({
+      update: btoa(String.fromCharCode(...envelope.update)),
+      authorDID: envelope.authorDID,
+      signature: btoa(String.fromCharCode(...envelope.signature)),
+      timestamp: envelope.timestamp,
+      clientId: envelope.clientId
+    })
+
+    await manager.start()
+    await manager.acquire('node-1')
+
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-signed',
+      envelope: toWireEnvelope(envelopeB)
+    })
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-signed',
+      envelope: toWireEnvelope(envelopeA)
+    })
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-signed',
+      envelope: toWireEnvelope(envelopeA)
+    })
+
+    expect(sharedDoc.getText('content').toString()).toBe('AB')
   })
 })

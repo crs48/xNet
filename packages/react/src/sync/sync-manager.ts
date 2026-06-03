@@ -38,6 +38,7 @@ import * as Y from 'yjs'
 import { createBlobSyncProvider, type BlobSyncProvider, type BlobStoreForSync } from './blob-sync'
 import {
   createConnectionManager,
+  createMultiHubConnectionManager,
   type ConnectionManager,
   type ConnectionStatus
 } from './connection-manager'
@@ -64,6 +65,8 @@ export interface SyncManagerConfig {
   storage: NodeStorageAdapter
   /** Signaling/hub WebSocket URL */
   signalingUrl: string
+  /** Additional signaling/hub WebSocket URLs for multi-hub fan-out */
+  signalingUrls?: string[]
   /** Max Y.Docs in memory (default: 50) */
   poolSize?: number
   /** TTL for tracked Nodes in ms (default: 7 days) */
@@ -86,6 +89,21 @@ export interface SyncManagerConfig {
   onDocEvict?: (nodeId: string, doc: Y.Doc) => void
   /** Optional room for node-change relay (enables NodeStore sync via hub) */
   nodeSyncRoom?: string
+}
+
+export type SyncReconciliationOptions = {
+  /** Optional node subset. Defaults to all joined rooms. */
+  nodeIds?: string[]
+  /** Diagnostic reason included in reports and debug traces. */
+  reason?: 'manual' | 'reconnect' | 'partition-repair'
+}
+
+export type SyncReconciliationReport = {
+  reason: NonNullable<SyncReconciliationOptions['reason']>
+  replayedOfflineChanges: number
+  repairedNodeIds: string[]
+  skippedNodeIds: string[]
+  at: number
 }
 
 export interface SyncManager {
@@ -113,6 +131,8 @@ export interface SyncManager {
   requestBlobs(cids: string[]): Promise<void>
   /** Announce blob CIDs to peers (no-op if blob sync is disabled) */
   announceBlobs(cids: string[]): void
+  /** Explicitly drain queued updates and re-request state for tracked rooms. */
+  reconcile(options?: SyncReconciliationOptions): Promise<SyncReconciliationReport>
 
   /** Connection status */
   readonly status: SyncStatus
@@ -133,6 +153,8 @@ export interface SyncManager {
     reason: string
     at: number
   } | null
+  /** Last reconciliation/repair report, if any. */
+  readonly lastReconciliationReport: SyncReconciliationReport | null
 
   /** Listen for events */
   on(event: 'status', handler: (status: SyncStatus) => void): () => void
@@ -146,6 +168,7 @@ export interface SyncManager {
       at: number
     }) => void
   ): () => void
+  on(event: 'reconciliation', handler: (report: SyncReconciliationReport) => void): () => void
   /** Underlying ConnectionManager (if available) */
   readonly connection?: ConnectionManager
 }
@@ -313,6 +336,17 @@ function walkYMap(map: Y.Map<unknown>, visitor: (value: unknown) => void): void 
   })
 }
 
+function resolveSignalingUrls(primaryUrl: string, additionalUrls: string[] | undefined): string[] {
+  const seen = new Set<string>()
+  return [primaryUrl, ...(additionalUrls ?? [])]
+    .map((url) => url.trim())
+    .filter((url) => {
+      if (!url || seen.has(url)) return false
+      seen.add(url)
+      return true
+    })
+}
+
 export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const metaBridge = createMetaBridge(config.nodeStore)
   const pool = createNodePool({
@@ -330,11 +364,21 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     storage: createRegistryStorageAdapter(config.storage),
     trackTTL: config.trackTTL
   })
-  const connection = createConnectionManager({
-    url: config.signalingUrl,
-    ucanToken: config.ucanToken,
-    getUCANToken: config.getUCANToken
-  })
+  const signalingUrls = resolveSignalingUrls(config.signalingUrl, config.signalingUrls)
+  const connection =
+    signalingUrls.length > 1
+      ? createMultiHubConnectionManager({
+          hubs: signalingUrls.map((url) => ({
+            url,
+            ucanToken: config.ucanToken,
+            getUCANToken: config.getUCANToken
+          }))
+        })
+      : createConnectionManager({
+          url: signalingUrls[0] ?? config.signalingUrl,
+          ucanToken: config.ucanToken,
+          getUCANToken: config.getUCANToken
+        })
   const replicationPolicy = resolveSyncReplicationPolicy(config.replication)
   const offlineQueue = createOfflineQueue({
     storage: config.storage
@@ -382,6 +426,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const verificationFailureListeners = new Set<
     (failure: { nodeId: string; sender: string | null; reason: string; at: number }) => void
   >()
+  const reconciliationListeners = new Set<(report: SyncReconciliationReport) => void>()
   let status: SyncStatus = connection.status
   let lifecycleInput: SyncLifecycleInput = {
     started: false,
@@ -392,13 +437,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     replaying: false
   }
   let lifecycle = createSyncLifecycleState(lifecycleInput)
-  let connectedRecovery: Promise<void> | null = null
+  let connectedRecovery: Promise<SyncReconciliationReport> | null = null
   let lastVerificationFailure: {
     nodeId: string
     sender: string | null
     reason: string
     at: number
   } | null = null
+  let lastReconciliationReport: SyncReconciliationReport | null = null
 
   function toBase64(data: Uint8Array): string {
     let binary = ''
@@ -517,6 +563,16 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         handler(failure)
       } catch {
         // Listener errors don't break the manager.
+      }
+    }
+  }
+
+  function emitReconciliationReport(report: SyncReconciliationReport): void {
+    for (const handler of reconciliationListeners) {
+      try {
+        handler(report)
+      } catch {
+        // Listener errors don't break reconciliation.
       }
     }
   }
@@ -767,13 +823,13 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   }
 
   /** Drain the offline queue by broadcasting all queued updates */
-  async function drainOfflineQueue(): Promise<void> {
-    if (offlineQueue.size === 0) return
+  async function drainOfflineQueue(): Promise<number> {
+    if (offlineQueue.size === 0) return 0
 
     updateLifecycle({ replaying: true })
 
     try {
-      await offlineQueue.drain(async (entry) => {
+      return await offlineQueue.drain(async (entry) => {
         const room = `xnet-doc-${entry.nodeId}`
         if (replicationPolicy.requireSignedReplication) {
           const payload = createOutgoingSyncPayload(fromBase64(entry.update), entry.clientId ?? 0)
@@ -819,26 +875,48 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     })
   }
 
+  async function reconcileTrackedRooms(
+    options: SyncReconciliationOptions = {}
+  ): Promise<SyncReconciliationReport> {
+    const nodeIds = options.nodeIds ?? Array.from(roomCleanups.keys())
+    const replayedOfflineChanges = await drainOfflineQueue()
+    const repairedNodeIds: string[] = []
+    const skippedNodeIds: string[] = []
+
+    for (const nodeId of nodeIds) {
+      if (!pool.has(nodeId)) {
+        skippedNodeIds.push(nodeId)
+        continue
+      }
+
+      const doc = await pool.acquire(nodeId)
+      try {
+        sendSyncStep1(nodeId, doc)
+        repairedNodeIds.push(nodeId)
+      } finally {
+        pool.release(nodeId)
+      }
+    }
+
+    lastReconciliationReport = {
+      reason: options.reason ?? 'manual',
+      replayedOfflineChanges,
+      repairedNodeIds,
+      skippedNodeIds,
+      at: Date.now()
+    }
+    emitReconciliationReport(lastReconciliationReport)
+
+    return lastReconciliationReport
+  }
+
   async function handleConnected(): Promise<void> {
     if (connectedRecovery) {
       await connectedRecovery
       return
     }
 
-    connectedRecovery = (async () => {
-      await drainOfflineQueue()
-
-      for (const nodeId of roomCleanups.keys()) {
-        if (!pool.has(nodeId)) continue
-
-        const doc = await pool.acquire(nodeId)
-        try {
-          sendSyncStep1(nodeId, doc)
-        } finally {
-          pool.release(nodeId)
-        }
-      }
-    })().finally(() => {
+    connectedRecovery = reconcileTrackedRooms({ reason: 'reconnect' }).finally(() => {
       connectedRecovery = null
     })
 
@@ -1014,6 +1092,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       }
     },
 
+    reconcile(options) {
+      return reconcileTrackedRooms(options)
+    },
+
     get status() {
       return status
     },
@@ -1038,6 +1120,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     get lastVerificationFailure() {
       return lastVerificationFailure
     },
+    get lastReconciliationReport() {
+      return lastReconciliationReport
+    },
 
     on(event, handler) {
       if (event === 'status') {
@@ -1061,6 +1146,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         }) => void
         verificationFailureListeners.add(verificationHandler)
         return () => verificationFailureListeners.delete(verificationHandler)
+      }
+
+      if (event === 'reconciliation') {
+        const reconciliationHandler = handler as (report: SyncReconciliationReport) => void
+        reconciliationListeners.add(reconciliationHandler)
+        return () => reconciliationListeners.delete(reconciliationHandler)
       }
 
       return () => {}

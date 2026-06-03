@@ -6,6 +6,7 @@ import type { QueryRequest, QueryResponse } from './query'
 import type { HubStorage } from '../storage/interface'
 import { TextEncoder } from 'node:util'
 import { sign, verify } from '@xnetjs/crypto'
+import { isSystemNamespaceResource, isSystemSchemaIri } from '@xnetjs/data'
 import { createUCAN, hasCapability, verifyUCAN, parseDID } from '@xnetjs/identity'
 import { validateExternalUrl } from '../utils/url'
 import { QueryService } from './query'
@@ -26,6 +27,7 @@ export type FederationExpose = {
   requireAuth: boolean
   rateLimit: number
   maxResults: number
+  includeSystemNamespaces?: boolean
 }
 
 export type FederationConfig = {
@@ -218,10 +220,7 @@ export class FederationService {
       throw new Error('Rate limited')
     }
 
-    const schemaAllowed =
-      this.config.expose.schemas === '*' ||
-      !request.schema ||
-      this.config.expose.schemas.includes(request.schema)
+    const schemaAllowed = isSchemaExposed(request.schema, this.config.expose)
 
     let results: FederatedResult[] = []
     let totalEstimate = 0
@@ -236,8 +235,17 @@ export class FederationService {
       }
 
       const localResults = await this.queryService.handleQuery(queryRequest)
+      const exposedResults = localResults.results.filter((result) =>
+        isFederatedResultExposed(
+          {
+            nodeId: result.docId,
+            schema: result.schemaIri ?? ''
+          },
+          this.config.expose
+        )
+      )
 
-      results = localResults.results.map((result) => ({
+      results = exposedResults.map((result) => ({
         nodeId: result.docId,
         cid: result.docId,
         score: Number.isFinite(result.rank) ? result.rank : 0,
@@ -248,7 +256,7 @@ export class FederationService {
         updatedAt: Date.now(),
         sourceHub: this.config.hubDid
       }))
-      totalEstimate = localResults.total
+      totalEstimate = exposedResults.length
     }
 
     const response: FederationQueryResponse = {
@@ -485,4 +493,52 @@ export class FederationService {
       timestamp: Date.now()
     })
   }
+}
+
+function isSchemaExposed(schema: string | undefined, expose: FederationExpose): boolean {
+  if (!schema) {
+    return true
+  }
+
+  const allowedBySchemaList = isSchemaInExposeList(schema, expose.schemas)
+  if (isSystemSchemaIri(schema) && !allowsSystemFederation(schema, expose)) {
+    return false
+  }
+
+  return expose.schemas === '*' || allowedBySchemaList
+}
+
+function isFederatedResultExposed(
+  result: Pick<FederatedResult, 'nodeId' | 'schema'>,
+  expose: FederationExpose
+): boolean {
+  if (!isSchemaExposed(result.schema, expose)) {
+    return false
+  }
+
+  if (isSystemNamespaceResource(result.nodeId) && !allowsSystemFederation(result.schema, expose)) {
+    return false
+  }
+
+  return true
+}
+
+function allowsSystemFederation(schema: string | undefined, expose: FederationExpose): boolean {
+  return Boolean(
+    expose.includeSystemNamespaces ||
+    (schema && expose.schemas !== '*' && isSchemaInExposeList(schema, expose.schemas))
+  )
+}
+
+function isSchemaInExposeList(schema: string, schemas: string[] | '*'): boolean {
+  if (schemas === '*') {
+    return true
+  }
+
+  const baseSchema = getBaseSchemaIri(schema)
+  return schemas.includes(schema) || schemas.includes(baseSchema)
+}
+
+function getBaseSchemaIri(schema: string): string {
+  return schema.replace(/@\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/, '')
 }

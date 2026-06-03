@@ -6,6 +6,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
 import { createHub } from '../src'
 
+const SYSTEM_NODE_ID = 'xnet://did:key:z6MkSystemAuthority/sys/schema/federated-secret'
+const SYSTEM_SCHEMA_IRI = 'xnet://xnet.fyi/SchemaDefinition@1.0.0'
+
 const connect = (port: number): Promise<WebSocket> =>
   new Promise((resolve) => {
     const ws = new WebSocket(`ws://localhost:${port}`)
@@ -191,6 +194,40 @@ describe('Hub Federation', () => {
 
     expect(Array.isArray(response.results)).toBe(true)
     wsA.close()
+  })
+
+  it('filters system namespace records from federation exposure by default', async () => {
+    const wsB = await connect(PORT_B)
+
+    await sendAndWait(
+      wsB,
+      {
+        type: 'index-update',
+        docId: SYSTEM_NODE_ID,
+        meta: { schemaIri: SYSTEM_SCHEMA_IRI, title: 'System Federation Secret' },
+        text: 'system-control-plane-secret'
+      },
+      'index-ack'
+    )
+
+    const response = await fetch(`http://localhost:${PORT_B}/federation/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        queryId: 'q-system-filter',
+        text: 'system-control-plane-secret',
+        schema: SYSTEM_SCHEMA_IRI,
+        limit: 10,
+        auth: '',
+        fromHub: 'did:key:z6MkRequester'
+      })
+    })
+
+    expect(response.status).toBe(200)
+    const payload = await response.json()
+    expect(payload.results).toEqual([])
+
+    wsB.close()
   })
 
   it('exposes federation status endpoint', async () => {

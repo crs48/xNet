@@ -22,7 +22,7 @@ export function EditButton({ nodeId }: { nodeId: string }) {
 
 ```tsx
 import type { DID } from '@xnetjs/data'
-import { useCan, useGrants } from '@xnetjs/react'
+import { describeGrantConsent, useCan, useGrants } from '@xnetjs/react'
 
 export function SharePanel({ nodeId }: { nodeId: string }) {
   const { canShare } = useCan(nodeId)
@@ -33,6 +33,13 @@ export function SharePanel({ nodeId }: { nodeId: string }) {
   }
 
   const onGrant = async (to: DID, actions: Array<'read' | 'write' | 'delete' | 'share'>) => {
+    const summary = describeGrantConsent({ to, actions, resource: nodeId }, nodeId)
+    console.info('Grant consent preview', {
+      what: summary.what,
+      where: summary.where,
+      howLong: summary.howLong
+    })
+
     await grant({ to, actions, resource: nodeId })
   }
 
@@ -62,6 +69,22 @@ export function SharePanel({ nodeId }: { nodeId: string }) {
 }
 ```
 
+```mermaid
+sequenceDiagram
+  participant UI as Share UI
+  participant Hook as useGrants
+  participant Auth as store.auth
+  participant Node as Grant node
+
+  UI->>Hook: describeGrantConsent(input, nodeId)
+  Hook-->>UI: what / where / howLong
+  UI->>Hook: grant(input)
+  Hook->>Auth: store.auth.grant(input)
+  Auth->>Node: create xnet://xnet.fyi/Grant
+  Auth-->>Hook: AuthGrant
+  Hook-->>UI: refresh grants
+```
+
 ## Debugging Decisions with `store.auth.explain`
 
 ```ts
@@ -73,5 +96,28 @@ if (!trace.allowed) {
     roles: trace.roles,
     steps: trace.steps
   })
+}
+```
+
+## React Trace Surface with `useAuthTrace`
+
+```tsx
+import { useAuthTrace } from '@xnetjs/react'
+
+export function AuthDebugPanel({ nodeId }: { nodeId: string }) {
+  const { summary, loading, refresh } = useAuthTrace({ nodeId, action: 'write' })
+
+  if (loading || !summary) {
+    return null
+  }
+
+  return (
+    <section>
+      <button type="button" onClick={() => void refresh()}>
+        Refresh
+      </button>
+      <pre>{JSON.stringify(summary, null, 2)}</pre>
+    </section>
+  )
 }
 ```

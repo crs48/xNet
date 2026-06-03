@@ -401,7 +401,20 @@ export { useCan, type UseCanResult } from './hooks/useCan'
 
 export { useCanEdit, type UseCanEditResult } from './hooks/useCanEdit'
 
-export { useGrants, type GrantInput, type UseGrantsResult } from './hooks/useGrants'
+export {
+  describeGrantConsent,
+  useGrants,
+  type GrantConsentSummary,
+  type GrantInput,
+  type UseGrantsResult
+} from './hooks/useGrants'
+
+export {
+  summarizeAuthTrace,
+  useAuthTrace,
+  type AuthTraceSummary,
+  type UseAuthTraceResult
+} from './hooks/useAuthTrace'
 
 export { useBackup, type UseBackupReturn } from './hooks/useBackup'
 
@@ -476,6 +489,8 @@ export {
   createSyncManager,
   type SyncManager,
   type SyncManagerConfig,
+  type SyncReconciliationOptions,
+  type SyncReconciliationReport,
   type SyncStatus as SyncManagerStatus
 } from './sync/sync-manager'
 
@@ -490,8 +505,10 @@ export {
 
 export {
   createConnectionManager,
+  createMultiHubConnectionManager,
   type ConnectionManager,
   type ConnectionManagerConfig,
+  type MultiHubConnectionManagerConfig,
   type ConnectionStatus
 } from './sync/connection-manager'
 

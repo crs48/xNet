@@ -51,6 +51,23 @@ function log(...args: unknown[]): void {
   }
 }
 
+function resolveConfiguredSignalingUrls(
+  hubUrl: string | null,
+  signalingServers: string[] | undefined
+): string[] {
+  const seen = new Set<string>()
+  const configured = hubUrl ? [hubUrl, ...(signalingServers ?? [])] : (signalingServers ?? [])
+  const urls = configured
+    .map((url) => url.trim())
+    .filter((url) => {
+      if (!url || seen.has(url)) return false
+      seen.add(url)
+      return true
+    })
+
+  return urls.length > 0 ? urls : ['ws://localhost:4444']
+}
+
 const HUB_CAPABILITIES = [
   { with: '*', can: 'hub/*' },
   { with: '*', can: 'backup/*' },
@@ -500,6 +517,15 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const platform = config.platform ?? 'web'
   const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
   const hubUrl = config.hubUrl ?? null
+  const signalingServersKey = (config.signalingServers ?? []).join('\n')
+  const signalingServers = useMemo(
+    () => (signalingServersKey ? signalingServersKey.split('\n') : []),
+    [signalingServersKey]
+  )
+  const signalingUrls = useMemo(
+    () => resolveConfiguredSignalingUrls(hubUrl, signalingServers),
+    [hubUrl, signalingServers]
+  )
   const hubOptions = config.hubOptions
   const autoAuth = hubOptions?.autoAuth ?? true
   const staticHubAuthToken = hubOptions?.authToken?.trim() ?? ''
@@ -590,7 +616,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         nodeStore: ns,
         authorDID: authorDID as DID,
         signingKey,
-        signalingUrl: hubUrl ?? config.signalingServers?.[0],
+        signalingUrl: signalingUrls[0],
         dataBridge: config.dataBridge,
         remoteNodeQueryClient: config.remoteNodeQueryClient,
         remoteNodeQueryRouting: config.remoteNodeQueryRouting,
@@ -664,7 +690,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     config.nodeStorage,
     config.signingKey,
     config.dataBridge,
-    config.signalingServers,
+    signalingUrls,
     config.syncManager,
     config.remoteNodeQueryClient,
     config.remoteNodeQueryRouting,
@@ -723,7 +749,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       return
     }
 
-    const signalingUrl = hubUrl ?? config.signalingServers?.[0] ?? 'ws://localhost:4444'
+    const signalingUrl = signalingUrls[0] ?? 'ws://localhost:4444'
 
     if (autoAuth && hubUrl && (!authorDID || !config.signingKey)) {
       console.warn('[XNetProvider] Hub auth enabled but authorDID/signingKey missing')
@@ -733,8 +759,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       console.warn('[XNetProvider] Auto-backup requires hubUrl and encryptionKey')
     }
 
-    console.log('[XNetProvider] Creating SyncManager with signalingUrl:', signalingUrl)
-    log('Creating SyncManager with signalingUrl:', signalingUrl)
+    console.log('[XNetProvider] Creating SyncManager with signalingUrls:', signalingUrls)
+    log('Creating SyncManager with signalingUrls:', signalingUrls)
     let autoBackupManager: AutoBackup | null = null
     const enableAutoBackup = Boolean(autoBackup && hubUrl && encryptionKey)
 
@@ -742,6 +768,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       nodeStore,
       storage,
       signalingUrl,
+      signalingUrls,
       authorDID,
       signingKey: config.signingKey,
       replication: config.sync,
@@ -807,7 +834,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     nodeStoreReady,
     config.disableSyncManager,
     config.syncManager,
-    config.signalingServers,
+    signalingUrls,
     config.blobStore,
     config.sync,
     authorDID,

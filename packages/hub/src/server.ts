@@ -1123,7 +1123,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               } catch (err) {
                 if (err instanceof NodeRelayError) {
                   ws.send(
-                    JSON.stringify({ type: 'node-error', code: err.code, error: err.message })
+                    JSON.stringify({
+                      type: 'node-error',
+                      code: err.code,
+                      error: err.message,
+                      action: err.action,
+                      resource: err.resource
+                    })
                   )
                   metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
                   return
@@ -1161,7 +1167,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               } catch (err) {
                 if (err instanceof NodeRelayError) {
                   ws.send(
-                    JSON.stringify({ type: 'node-error', code: err.code, error: err.message })
+                    JSON.stringify({
+                      type: 'node-error',
+                      code: err.code,
+                      error: err.message,
+                      action: err.action,
+                      resource: err.resource
+                    })
                   )
                   metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
                   return
@@ -1238,7 +1250,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               } catch (err) {
                 if (err instanceof NodeRelayError) {
                   ws.send(
-                    JSON.stringify({ type: 'node-error', code: err.code, error: err.message })
+                    JSON.stringify({
+                      type: 'node-error',
+                      code: err.code,
+                      error: err.message,
+                      action: err.action,
+                      resource: err.resource
+                    })
                   )
                   metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
                   return

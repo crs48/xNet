@@ -6,6 +6,7 @@ import type { AuthContext } from '../auth/ucan'
 import type { HubStorage, SerializedNodeChange } from '../storage/interface'
 import type { ContentId, DID } from '@xnetjs/core'
 import { base64ToBytes } from '@xnetjs/crypto'
+import { isSystemNamespaceResource, isSystemSchemaIri } from '@xnetjs/data'
 import { parseDID } from '@xnetjs/identity'
 import { verifyChange, verifyChangeHash, type Change } from '@xnetjs/sync'
 import { reportUnauthorizedRemoteWrite } from './remote-mutation-telemetry'
@@ -33,8 +34,16 @@ export type NodeSyncResponse = {
 
 export class NodeRelayError extends Error {
   constructor(
-    public code: 'UNAUTHORIZED' | 'INVALID_CHANGE' | 'INVALID_SIGNATURE' | 'INVALID_HASH',
-    message: string
+    public code:
+      | 'UNAUTHORIZED'
+      | 'MISSING_SCOPE'
+      | 'INVALID_CHANGE'
+      | 'INVALID_SIGNATURE'
+      | 'INVALID_HASH'
+      | 'REPLAY_REJECTED',
+    message: string,
+    public action?: string,
+    public resource?: string
   ) {
     super(message)
     this.name = 'NodeRelayError'
@@ -54,6 +63,16 @@ export class NodeRelayService {
     }
 
     const change = this.deserializeChange(msg.change)
+    const systemResource = getSystemRelayResource(msg.change)
+    if (systemResource && !auth.can('hub/relay', systemResource)) {
+      reportUnauthorizedRemoteWrite(this.telemetryOptions, auth.did)
+      throw new NodeRelayError(
+        'MISSING_SCOPE',
+        'Missing hub/relay capability for system namespace resource',
+        'hub/relay',
+        systemResource
+      )
+    }
 
     if (!verifyChangeHash(change)) {
       throw new NodeRelayError('INVALID_HASH', 'Change hash is invalid')
@@ -71,6 +90,14 @@ export class NodeRelayService {
     }
 
     const exists = await this.storage.hasNodeChange(change.hash)
+    if (exists && systemResource) {
+      throw new NodeRelayError(
+        'REPLAY_REJECTED',
+        'Replay rejected for system control-plane change',
+        'hub/relay',
+        systemResource
+      )
+    }
     if (exists) return false
 
     await this.storage.appendNodeChange(msg.room, {
@@ -116,4 +143,18 @@ export class NodeRelayService {
       batchSize: serialized.batchSize
     }
   }
+}
+
+export function getSystemRelayResource(change: SerializedNodeChange): string | null {
+  const nodeId = change.payload.nodeId || change.nodeId
+  if (isSystemNamespaceResource(nodeId)) {
+    return nodeId
+  }
+
+  const schemaId = change.payload.schemaId ?? change.schemaId
+  if (schemaId && isSystemSchemaIri(schemaId)) {
+    return schemaId
+  }
+
+  return null
 }

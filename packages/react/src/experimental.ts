@@ -93,7 +93,19 @@ export { useVerification, type UseVerificationResult } from './hooks/useVerifica
 export { useHubStatus } from './hooks/useHubStatus'
 export { useCan, type UseCanResult } from './hooks/useCan'
 export { useCanEdit, type UseCanEditResult } from './hooks/useCanEdit'
-export { useGrants, type GrantInput, type UseGrantsResult } from './hooks/useGrants'
+export {
+  describeGrantConsent,
+  useGrants,
+  type GrantConsentSummary,
+  type GrantInput,
+  type UseGrantsResult
+} from './hooks/useGrants'
+export {
+  summarizeAuthTrace,
+  useAuthTrace,
+  type AuthTraceSummary,
+  type UseAuthTraceResult
+} from './hooks/useAuthTrace'
 export { useBackup, type UseBackupReturn } from './hooks/useBackup'
 export { useFileUpload, type FileRef, type UseFileUploadReturn } from './hooks/useFileUpload'
 export {

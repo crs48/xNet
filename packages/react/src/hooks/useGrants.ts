@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNodeStore } from './useNodeStore'
 
 const GRANT_SCHEMA_ID = 'xnet://xnet.fyi/Grant'
+const DEFAULT_GRANT_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface GrantInput {
   to: DID
@@ -25,8 +26,38 @@ export interface UseGrantsResult {
   revoke: (grantId: string) => Promise<void>
 }
 
+export type GrantConsentSummary = {
+  grantee: DID
+  resource: string
+  actions: AuthAction[]
+  expiresAt: number
+  what: string
+  where: string
+  howLong: string
+}
+
 type ChangeEventLike = {
   node?: { schemaId?: string; properties?: Record<string, unknown> }
+}
+
+export function describeGrantConsent(
+  input: GrantInput,
+  defaultResource: string,
+  now = Date.now()
+): GrantConsentSummary {
+  const resource = input.resource ?? defaultResource
+  const expiresAt = computeGrantExpiration(input.expiresIn, now)
+  const actions = [...input.actions]
+
+  return {
+    grantee: input.to,
+    resource,
+    actions,
+    expiresAt,
+    what: actions.join(', '),
+    where: resource,
+    howLong: formatGrantExpiration(expiresAt, now)
+  }
 }
 
 export function useGrants(nodeId: string): UseGrantsResult {
@@ -106,4 +137,68 @@ export function useGrants(nodeId: string): UseGrantsResult {
   )
 
   return { grants, loading, error, grant, revoke }
+}
+
+function computeGrantExpiration(expiresIn: string | number | undefined, now: number): number {
+  if (typeof expiresIn === 'number') {
+    return expiresIn
+  }
+
+  if (typeof expiresIn === 'string') {
+    const parsed = parseDuration(expiresIn)
+    if (parsed !== null) {
+      return now + parsed
+    }
+  }
+
+  return now + DEFAULT_GRANT_TTL_MS
+}
+
+function formatGrantExpiration(expiresAt: number, now: number): string {
+  const durationMs = Math.max(0, expiresAt - now)
+  const roundedDays = Math.round(durationMs / (24 * 60 * 60 * 1000))
+  const roundedHours = Math.round(durationMs / (60 * 60 * 1000))
+  const roundedMinutes = Math.round(durationMs / (60 * 1000))
+
+  if (roundedDays >= 1) {
+    return `${roundedDays}d`
+  }
+
+  if (roundedHours >= 1) {
+    return `${roundedHours}h`
+  }
+
+  if (roundedMinutes >= 1) {
+    return `${roundedMinutes}m`
+  }
+
+  return `${Math.round(durationMs / 1000)}s`
+}
+
+function parseDuration(value: string): number | null {
+  const match = value.match(/^(\d+)([smhdw])$/)
+  if (!match) {
+    return null
+  }
+
+  const amount = Number(match[1])
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null
+  }
+
+  const unit = match[2]
+  switch (unit) {
+    case 's':
+      return amount * 1000
+    case 'm':
+      return amount * 60 * 1000
+    case 'h':
+      return amount * 60 * 60 * 1000
+    case 'd':
+      return amount * 24 * 60 * 60 * 1000
+    case 'w':
+      return amount * 7 * 24 * 60 * 60 * 1000
+    default:
+      return null
+  }
 }

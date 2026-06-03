@@ -394,45 +394,45 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Phase 1 - System schema foundations
 
-- [ ] Define and publish system schemas (`SchemaDefinition`, `SchemaCompatibility`, `SyncPolicy`, `PresenceSummary`, `Grant`).
-- [ ] Reserve and document `sys/*` namespace conventions.
-- [ ] Add strict schema validation and signature requirements for `SchemaDefinition`.
-- [ ] Add schema authority resolution rules (DID and optional domain linkage policy).
+- [x] Define and publish system schemas (`SchemaDefinition`, `SchemaCompatibility`, `SyncPolicy`, `PresenceSummary`, `Grant`).
+- [x] Reserve and document `sys/*` namespace conventions.
+- [x] Add strict schema validation and signature requirements for `SchemaDefinition`.
+- [x] Add schema authority resolution rules (DID and optional domain linkage policy).
 
 ### Phase 2 - Node-native authorization wiring
 
-- [ ] Route all control-plane mutations through `store.auth.can`.
-- [ ] Standardize grant lifecycle on `store.auth.grant/revoke`.
-- [ ] Surface `store.auth.explain` traces in developer and consent UX.
-- [ ] Enforce grant attenuation and proof-depth limits consistently.
+- [x] Route all control-plane mutations through `store.auth.can`.
+- [x] Standardize grant lifecycle on `store.auth.grant/revoke`.
+- [x] Surface `store.auth.explain` traces in developer and consent UX.
+- [x] Enforce grant attenuation and proof-depth limits consistently.
 
 ### Phase 3 - Relay and federation hardening
 
-- [ ] Ensure relay path validates hash/signature before persistence.
-- [ ] Enforce hub capability scope for all system namespace operations.
-- [ ] Apply federation exposure filters to system namespaces.
-- [ ] Add replay cache and anti-duplication checks for control-plane changes.
+- [x] Ensure relay path validates hash/signature before persistence.
+- [x] Enforce hub capability scope for all system namespace operations.
+- [x] Apply federation exposure filters to system namespaces.
+- [x] Add replay cache and anti-duplication checks for control-plane changes.
 
 ### Phase 4 - Presence + discovery
 
-- [ ] Build incremental presence aggregator from NodeStore change stream.
-- [ ] Emit/maintain `PresenceSummary` nodes by visibility class.
-- [ ] Implement bucket/noise policy for publishable summaries.
-- [ ] Add SDK discovery APIs backed by node-derived indexes.
+- [x] Build incremental presence aggregator from NodeStore change stream.
+- [x] Emit/maintain `PresenceSummary` nodes by visibility class.
+- [x] Implement bucket/noise policy for publishable summaries.
+- [x] Add SDK discovery APIs backed by node-derived indexes.
 
 ### Phase 5 - Multi-hub orchestration
 
-- [ ] Add first-class multi-hub sync orchestration (not single-server fallback selection).
-- [ ] Implement policy planner for system and user namespace destinations.
-- [ ] Add simulation endpoint/tooling for policy revisions.
-- [ ] Add reconciliation and repair workflow for partition recovery.
+- [x] Add first-class multi-hub sync orchestration (not single-server fallback selection).
+- [x] Implement policy planner for system and user namespace destinations.
+- [x] Add simulation endpoint/tooling for policy revisions.
+- [x] Add reconciliation and repair workflow for partition recovery.
 
 ### Phase 6 - Developer experience and docs
 
-- [ ] Publish "one primitive" architecture guide for app teams.
-- [ ] Provide reference SDK flow for schema publish/discover/access request.
-- [ ] Ship error taxonomy (`missing_scope`, `policy_denied`, `invalid_signature`, `replay_rejected`).
-- [ ] Add end-to-end sample app demonstrating system-schema federation.
+- [x] Publish "one primitive" architecture guide for app teams.
+- [x] Provide reference SDK flow for schema publish/discover/access request.
+- [x] Ship error taxonomy (`missing_scope`, `policy_denied`, `invalid_signature`, `replay_rejected`).
+- [x] Add end-to-end sample app demonstrating system-schema federation.
 
 ---
 
@@ -440,38 +440,38 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Functional validation
 
-- [ ] Publishing `SchemaDefinition` nodes propagates to allowed peers.
-- [ ] Schema resolution by IRI/version works from replicated node graph.
-- [ ] Presence summaries stay consistent under create/update/delete churn.
-- [ ] Policy revisions deterministically alter replication destinations.
+- [x] Publishing `SchemaDefinition` nodes propagates to allowed peers.
+- [x] Schema resolution by IRI/version works from replicated node graph.
+- [x] Presence summaries stay consistent under create/update/delete churn.
+- [x] Policy revisions deterministically alter replication destinations.
 
 ### Authorization validation
 
-- [ ] Unauthorized local system mutations are blocked by `store.auth.can`.
-- [ ] Unauthorized relay/query traffic is rejected at hub ingress.
-- [ ] Delegation attenuation violations are rejected.
-- [ ] Revocations take effect within one policy refresh cycle.
+- [x] Unauthorized local system mutations are blocked by `store.auth.can`.
+- [x] Unauthorized relay/query traffic is rejected at hub ingress.
+- [x] Delegation attenuation violations are rejected.
+- [x] Revocations take effect within one policy refresh cycle.
 
 ### Security validation
 
-- [ ] Invalid signatures/hashes are rejected pre-apply.
-- [ ] Replay attempts with seen change hashes are rejected.
-- [ ] Cross-namespace escalation attempts are denied and audited.
-- [ ] Presence outputs do not leak raw resource identifiers.
+- [x] Invalid signatures/hashes are rejected pre-apply.
+- [x] Replay attempts with seen change hashes are rejected.
+- [x] Cross-namespace escalation attempts are denied and audited.
+- [x] Presence outputs do not leak raw resource identifiers.
 
 ### Resilience validation
 
-- [ ] Offline mutations replay correctly on reconnect.
-- [ ] Partitioned hubs converge after healing.
-- [ ] Duplicate/out-of-order deliveries converge deterministically.
-- [ ] Full index rebuild from change log reproduces live indexes.
+- [x] Offline mutations replay correctly on reconnect.
+- [x] Partitioned hubs converge after healing.
+- [x] Duplicate/out-of-order deliveries converge deterministically.
+- [x] Full index rebuild from change log reproduces live indexes.
 
 ### UX/DX validation
 
-- [ ] Consent UI clearly presents what/where/how-long for access grants.
-- [ ] Developers can integrate node-native discovery + auth flow quickly.
-- [ ] Errors distinguish auth denial, data absence, and network failures.
-- [ ] Debug tooling exposes policy traces and replication decisions.
+- [x] Consent UI clearly presents what/where/how-long for access grants.
+- [x] Developers can integrate node-native discovery + auth flow quickly.
+- [x] Errors distinguish auth denial, data absence, and network failures.
+- [x] Debug tooling exposes policy traces and replication decisions.
 
 ---
 

@@ -114,6 +114,41 @@ export { ReactionSchema, type Reaction } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
 export {
+  PresenceSummarySchema,
+  SchemaCompatibilitySchema,
+  SchemaDefinitionSchema,
+  SyncPolicySchema,
+  SYSTEM_NAMESPACE_KINDS,
+  SYSTEM_SCHEMA_BASE_IRIS,
+  SYSTEM_SCHEMA_IRIS,
+  buildSystemNamespace,
+  buildSystemNodeId,
+  computeSchemaDefinitionContentHash,
+  createSchemaDefinitionSigningPayload,
+  isSystemNamespaceResource,
+  isSystemSchemaIri,
+  parseSystemNamespaceResource,
+  resolveSchemaAuthority,
+  validateSchemaDefinitionNode,
+  type ParsedSystemNamespaceResource,
+  type PresenceCountBucket,
+  type PresenceSummary,
+  type PresenceVisibility,
+  type SchemaAuthorityResolution,
+  type SchemaAuthorityResolutionKind,
+  type SchemaAuthorityResolutionOptions,
+  type SchemaCompatibility,
+  type SchemaCompatibilityMode,
+  type SchemaDefinition,
+  type SchemaDefinitionSigningInput,
+  type SchemaDefinitionStatus,
+  type SyncPolicy,
+  type SyncPolicyStatus,
+  type SystemFederationErrorCode,
+  type SystemNamespaceKind,
+  type ValidateSchemaDefinitionNodeOptions
+} from './schemas'
+export {
   AbuseReportSchema,
   AppealSchema,
   CommunityNoteSchema,
@@ -175,6 +210,25 @@ export {
 
 // Schema registry
 export { SchemaRegistry, schemaRegistry } from './registry'
+export {
+  SystemSchemaIndex,
+  createNodeGraphSchemaResolver,
+  isSchemaDefinitionNode,
+  type SystemSchemaDefinitionRecord,
+  type SystemSchemaIndexDiagnostic,
+  type SystemSchemaIndexOptions,
+  type SystemSchemaIndexStore
+} from './system-index'
+export {
+  PresenceAggregator,
+  bucketPresenceCount,
+  getPresenceNoisePolicy,
+  summarizePresenceNodes,
+  type PresenceAggregatorOptions,
+  type PresenceAggregatorStore,
+  type PresenceSummaryDescriptor,
+  type PresenceVisibilityResolver
+} from './presence'
 
 // Schema lens system (migrations)
 export {

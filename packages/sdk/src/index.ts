@@ -35,3 +35,7 @@ export { hashContent, createContentId, verifyContent } from '@xnetjs/core'
 // Client initialization with telemetry
 export { createClient } from './client'
 export type { XNetClient, CreateClientOptions, SdkTelemetry } from './client'
+
+// Node-native schema discovery
+export { createSchemaDiscovery } from './discovery'
+export type { SchemaDiscovery, SchemaDiscoveryOptions } from './discovery'

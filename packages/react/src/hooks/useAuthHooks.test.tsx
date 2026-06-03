@@ -5,9 +5,10 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { XNetContext } from '../context'
+import { useAuthTrace } from './useAuthTrace'
 import { useCan } from './useCan'
 import { useCanEdit } from './useCanEdit'
-import { useGrants } from './useGrants'
+import { describeGrantConsent, useGrants } from './useGrants'
 
 const did = 'did:key:z6Mkfakesubject' as DID
 
@@ -43,7 +44,13 @@ function createWrapper(input?: {
     can: vi.fn(async ({ action }: { action: AuthDecision['action'] }) =>
       input?.can ? input.can(action) : decision(action, action !== 'delete')
     ),
-    explain: vi.fn(async () => trace),
+    explain: vi.fn(
+      async ({ action, nodeId }: { action: AuthDecision['action']; nodeId: string }) => ({
+        ...trace,
+        action,
+        resource: nodeId
+      })
+    ),
     grant: vi.fn(async () => ({
       id: 'grant-1',
       issuer: did,
@@ -166,6 +173,54 @@ describe('authorization hooks', () => {
       resource: 'node-1'
     })
     expect(setup.auth.revoke).toHaveBeenCalledWith({ grantId: 'grant-1' })
+  })
+
+  it('useAuthTrace surfaces explain traces and refreshes on grant changes', async () => {
+    const setup = createWrapper()
+    const { result } = renderHook(() => useAuthTrace({ nodeId: 'node-1', action: 'write' }), {
+      wrapper: setup.Wrapper
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+      expect(result.current.trace?.allowed).toBe(true)
+      expect(result.current.summary?.action).toBe('write')
+      expect(result.current.summary?.resource).toBe('node-1')
+    })
+
+    expect(setup.auth.explain).toHaveBeenCalledWith({ action: 'write', nodeId: 'node-1' })
+
+    act(() => {
+      setup.emit({
+        node: { schemaId: 'xnet://xnet.fyi/Grant', properties: { resource: 'node-1' } }
+      })
+    })
+
+    await waitFor(() => {
+      expect(setup.auth.explain).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('describeGrantConsent returns what where and how-long copy', () => {
+    expect(
+      describeGrantConsent(
+        {
+          to: 'did:key:z6Mkother' as DID,
+          actions: ['read', 'write'],
+          expiresIn: '2h'
+        },
+        'node-1',
+        1_000
+      )
+    ).toMatchObject({
+      grantee: 'did:key:z6Mkother',
+      resource: 'node-1',
+      actions: ['read', 'write'],
+      expiresAt: 1_000 + 2 * 60 * 60 * 1000,
+      what: 'read, write',
+      where: 'node-1',
+      howLong: '2h'
+    })
   })
 
   it('useCanEdit resolves edit/view mode and merged roles', async () => {

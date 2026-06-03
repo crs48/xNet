@@ -66,6 +66,11 @@ export interface ConnectionManager {
   readonly roomCount: number
 }
 
+export interface MultiHubConnectionManagerConfig {
+  /** Hub connections to orchestrate as one logical transport. */
+  hubs: readonly ConnectionManagerConfig[]
+}
+
 export function createConnectionManager(config: ConnectionManagerConfig): ConnectionManager {
   let ws: WebSocket | null = null
   let status: ConnectionStatus = 'disconnected'
@@ -378,4 +383,190 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
       return () => statusListeners.delete(handler)
     }
   }
+}
+
+export function createMultiHubConnectionManager(
+  config: MultiHubConnectionManagerConfig
+): ConnectionManager {
+  const managers = dedupeHubConfigs(config.hubs).map((hub) => createConnectionManager(hub))
+  const statusListeners = new Set<StatusHandler>()
+  const messageListeners = new Set<(message: Record<string, unknown>) => void>()
+  const rooms = new Map<
+    string,
+    {
+      handlers: Set<RoomHandler>
+      ready: Promise<void>
+      unsubscribe: () => void
+    }
+  >()
+  let status = aggregateConnectionStatus(managers.map((manager) => manager.status))
+
+  managers.forEach((manager) => {
+    manager.onStatus(() => {
+      emitAggregateStatus()
+    })
+
+    manager.onMessage((message) => {
+      for (const handler of messageListeners) {
+        try {
+          handler(message)
+        } catch {
+          // Listener errors don't break the message loop.
+        }
+      }
+    })
+  })
+
+  function emitAggregateStatus(): void {
+    const nextStatus = aggregateConnectionStatus(managers.map((manager) => manager.status))
+    if (nextStatus === status) return
+    status = nextStatus
+
+    for (const handler of statusListeners) {
+      try {
+        handler(nextStatus)
+      } catch {
+        // Listener errors don't break aggregate status updates.
+      }
+    }
+  }
+
+  function ensureRoom(room: string): { ready: Promise<void>; unsubscribe: () => void } {
+    const existing = rooms.get(room)
+    if (existing) {
+      return {
+        ready: existing.ready,
+        unsubscribe: existing.unsubscribe
+      }
+    }
+
+    const handlers = new Set<RoomHandler>()
+    const dispatch = (data: Record<string, unknown>): void => {
+      for (const handler of handlers) {
+        try {
+          handler(data)
+        } catch {
+          // Handler errors don't break other room subscribers.
+        }
+      }
+    }
+    const subscriptions = managers.map((manager) => manager.joinRoomAsync(room, dispatch))
+    const ready = Promise.all(subscriptions.map((subscription) => subscription.ready)).then(
+      () => undefined
+    )
+    const unsubscribe = (): void => {
+      for (const subscription of subscriptions) {
+        subscription.unsubscribe()
+      }
+      rooms.delete(room)
+    }
+
+    rooms.set(room, {
+      handlers,
+      ready,
+      unsubscribe
+    })
+
+    return { ready, unsubscribe }
+  }
+
+  return {
+    get status() {
+      return status
+    },
+    get roomCount() {
+      return rooms.size
+    },
+
+    connect() {
+      for (const manager of managers) {
+        manager.connect()
+      }
+      emitAggregateStatus()
+    },
+
+    disconnect() {
+      for (const manager of managers) {
+        manager.disconnect()
+      }
+      emitAggregateStatus()
+    },
+
+    joinRoom(room, handler) {
+      const { unsubscribe } = ensureRoom(room)
+      const current = rooms.get(room)
+      current?.handlers.add(handler)
+
+      return () => {
+        const latest = rooms.get(room)
+        if (!latest) return
+        latest.handlers.delete(handler)
+        if (latest.handlers.size === 0) {
+          unsubscribe()
+        }
+      }
+    },
+
+    joinRoomAsync(room, handler) {
+      const { ready, unsubscribe } = ensureRoom(room)
+      const current = rooms.get(room)
+      current?.handlers.add(handler)
+
+      return {
+        ready,
+        unsubscribe: () => {
+          const latest = rooms.get(room)
+          if (!latest) return
+          latest.handlers.delete(handler)
+          if (latest.handlers.size === 0) {
+            unsubscribe()
+          }
+        }
+      }
+    },
+
+    leaveRoom(room) {
+      const current = rooms.get(room)
+      current?.unsubscribe()
+    },
+
+    publish(room, data) {
+      for (const manager of managers) {
+        manager.publish(room, data)
+      }
+    },
+
+    sendRaw(message) {
+      for (const manager of managers) {
+        manager.sendRaw(message)
+      }
+    },
+
+    onMessage(handler) {
+      messageListeners.add(handler)
+      return () => messageListeners.delete(handler)
+    },
+
+    onStatus(handler) {
+      statusListeners.add(handler)
+      return () => statusListeners.delete(handler)
+    }
+  }
+}
+
+function dedupeHubConfigs(configs: readonly ConnectionManagerConfig[]): ConnectionManagerConfig[] {
+  const seen = new Set<string>()
+  return configs.filter((config) => {
+    if (!config.url || seen.has(config.url)) return false
+    seen.add(config.url)
+    return true
+  })
+}
+
+function aggregateConnectionStatus(statuses: readonly ConnectionStatus[]): ConnectionStatus {
+  if (statuses.includes('connected')) return 'connected'
+  if (statuses.includes('connecting')) return 'connecting'
+  if (statuses.length > 0 && statuses.every((status) => status === 'error')) return 'error'
+  if (statuses.includes('error')) return 'error'
+  return 'disconnected'
 }
