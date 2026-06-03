@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { decidePublicInteraction } from '../src/decision'
 import {
   createLabelerSubscription,
   createTrustedLabelFromSetting,
+  evaluateReportEscalation,
   evaluateLabelerSubscriptionLimit,
   evaluateLabelerTrust,
   type LabelerTrustSetting
@@ -149,6 +151,98 @@ describe('labeler trust settings', () => {
       action: 'reject',
       reasons: ['labeler:blocked'],
       effectiveWeight: 0
+    })
+  })
+
+  it('prevents untrusted reports from directly hiding content', () => {
+    const untrustedReport = evaluateReportEscalation(
+      {
+        scope: 'workspace',
+        scopeId: 'workspace-1',
+        reporterDID: 'did:key:untrusted-reporter',
+        reportId: 'report-1',
+        labelValue: 'spam',
+        confidence: 1,
+        evidenceRefs: ['comment:target-1'],
+        now: 1_000
+      },
+      settings
+    )
+    const untrustedDecision = decidePublicInteraction({
+      labels: untrustedReport.trustedLabel ? [untrustedReport.trustedLabel] : [],
+      policy: {
+        abuseLabelHideThreshold: 0.5,
+        quarantineFirstContact: false
+      }
+    })
+
+    expect(untrustedReport).toMatchObject({
+      canAffectVisibility: false,
+      trustedLabel: null,
+      trustDecision: {
+        action: 'ignore',
+        reasons: ['labeler:unconfigured']
+      },
+      evidenceRefs: ['abuse-report:report-1', 'comment:target-1']
+    })
+    expect(untrustedDecision).toMatchObject({
+      visibility: 'show',
+      reach: 'normal',
+      includeInCounters: true,
+      reasons: ['accepted']
+    })
+  })
+
+  it('allows trusted reporter policy to escalate reports into enforcing labels', () => {
+    const escalation = evaluateReportEscalation(
+      {
+        scope: 'workspace',
+        scopeId: 'workspace-1',
+        reporterDID: 'did:key:trusted-labeler',
+        reportId: 'report-2',
+        labelValue: 'spam',
+        confidence: 0.9,
+        evidenceRefs: ['comment:target-2'],
+        labelExpiresAt: 90_000,
+        now: 1_000
+      },
+      settings
+    )
+    const trustedLabel = escalation.trustedLabel
+    if (!trustedLabel) {
+      throw new Error('expected trusted reporter escalation to create a label')
+    }
+
+    const decision = decidePublicInteraction({
+      labels: [trustedLabel],
+      policy: {
+        abuseLabelHideThreshold: 0.5,
+        quarantineFirstContact: false
+      },
+      now: 1_000
+    })
+
+    expect(escalation).toMatchObject({
+      canAffectVisibility: true,
+      trustDecision: {
+        accepted: true,
+        action: 'accept',
+        reasons: ['labeler:trusted']
+      },
+      trustedLabel: {
+        value: 'spam',
+        sourceDID: 'did:key:trusted-labeler',
+        sourceWeight: 0.8,
+        confidence: 0.9,
+        expiresAt: 90_000,
+        evidenceRefs: ['abuse-report:report-2', 'comment:target-2']
+      }
+    })
+    expect(decision).toMatchObject({
+      visibility: 'hide',
+      reach: 'exclude',
+      includeInCounters: false,
+      reasons: ['trusted-abuse-label']
     })
   })
 })

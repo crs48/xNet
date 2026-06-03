@@ -34,6 +34,15 @@ export type LabelerTrustEvaluationInput = {
   now?: number
 }
 
+export type ReportEscalationInput = Omit<
+  LabelerTrustEvaluationInput,
+  'labelerDID' | 'evidenceRefs'
+> & {
+  reporterDID: string
+  reportId: string
+  evidenceRefs?: readonly string[]
+}
+
 export type LabelerTrustDecision = {
   accepted: boolean
   action: LabelerTrustAction
@@ -81,6 +90,13 @@ export type LabelerSubscriptionLimitDecision = {
     hubLabeler: number
   }
   nextSubscription?: LabelerSubscription
+}
+
+export type ReportEscalationDecision = {
+  canAffectVisibility: boolean
+  trustDecision: LabelerTrustDecision
+  trustedLabel: AbuseLabel | null
+  evidenceRefs: readonly string[]
 }
 
 // ─── Public API ────────────────────────────────────────────
@@ -147,6 +163,47 @@ export function createTrustedLabelFromSetting(
     confidence: clamp01(input.confidence),
     expiresAt: input.labelExpiresAt,
     evidenceRefs: input.evidenceRefs
+  }
+}
+
+export function evaluateReportEscalation(
+  input: ReportEscalationInput,
+  settings: readonly LabelerTrustSetting[]
+): ReportEscalationDecision {
+  const evidenceRefs = createReportEvidenceRefs(input)
+  const trustInput: LabelerTrustEvaluationInput = {
+    scope: input.scope,
+    scopeId: input.scopeId,
+    labelerDID: input.reporterDID,
+    labelValue: input.labelValue,
+    confidence: input.confidence,
+    evidenceRefs,
+    labelExpiresAt: input.labelExpiresAt,
+    now: input.now
+  }
+  const trustDecision = evaluateLabelerTrust(trustInput, settings)
+
+  if (!trustDecision.accepted) {
+    return {
+      canAffectVisibility: false,
+      trustDecision,
+      trustedLabel: null,
+      evidenceRefs
+    }
+  }
+
+  return {
+    canAffectVisibility: true,
+    trustDecision,
+    trustedLabel: {
+      value: input.labelValue,
+      sourceDID: input.reporterDID,
+      sourceWeight: trustDecision.effectiveWeight,
+      confidence: clamp01(input.confidence),
+      expiresAt: input.labelExpiresAt,
+      evidenceRefs
+    },
+    evidenceRefs
   }
 }
 
@@ -265,6 +322,10 @@ function createTrustDecision(
 
 function includesLabel(labels: readonly string[] | undefined, label: string): boolean {
   return Boolean(labels?.includes(label))
+}
+
+function createReportEvidenceRefs(input: ReportEscalationInput): readonly string[] {
+  return [`abuse-report:${input.reportId}`, ...(input.evidenceRefs ?? [])]
 }
 
 function countSubscriptions(

@@ -45,6 +45,7 @@ export {
 export {
   createLabelerSubscription,
   createTrustedLabelFromSetting,
+  evaluateReportEscalation,
   evaluateLabelerSubscriptionLimit,
   evaluateLabelerTrust
 } from './labeler-trust'
@@ -144,7 +145,9 @@ export type {
   LabelerTrustEvaluationInput,
   LabelerTrustLevel,
   LabelerTrustScope,
-  LabelerTrustSetting
+  LabelerTrustSetting,
+  ReportEscalationDecision,
+  ReportEscalationInput
 } from './labeler-trust'
 export type {
   CloudClassificationOptions,
