@@ -394,10 +394,10 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 
 ### Phase 1 - System schema foundations
 
-- [ ] Define and publish system schemas (`SchemaDefinition`, `SchemaCompatibility`, `SyncPolicy`, `PresenceSummary`, `Grant`).
-- [ ] Reserve and document `sys/*` namespace conventions.
-- [ ] Add strict schema validation and signature requirements for `SchemaDefinition`.
-- [ ] Add schema authority resolution rules (DID and optional domain linkage policy).
+- [x] Define and publish system schemas (`SchemaDefinition`, `SchemaCompatibility`, `SyncPolicy`, `PresenceSummary`, `Grant`).
+- [x] Reserve and document `sys/*` namespace conventions.
+- [x] Add strict schema validation and signature requirements for `SchemaDefinition`.
+- [x] Add schema authority resolution rules (DID and optional domain linkage policy).
 
 ### Phase 2 - Node-native authorization wiring
 

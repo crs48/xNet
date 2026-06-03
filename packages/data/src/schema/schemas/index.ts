@@ -17,6 +17,41 @@ export { ReactionSchema, type Reaction } from './reaction'
 export { GrantSchema, type Grant } from './grant'
 export { SavedViewSchema, type SavedView } from './saved-view'
 export {
+  PresenceSummarySchema,
+  SchemaCompatibilitySchema,
+  SchemaDefinitionSchema,
+  SyncPolicySchema,
+  SYSTEM_NAMESPACE_KINDS,
+  SYSTEM_SCHEMA_BASE_IRIS,
+  SYSTEM_SCHEMA_IRIS,
+  buildSystemNamespace,
+  buildSystemNodeId,
+  computeSchemaDefinitionContentHash,
+  createSchemaDefinitionSigningPayload,
+  isSystemNamespaceResource,
+  isSystemSchemaIri,
+  parseSystemNamespaceResource,
+  resolveSchemaAuthority,
+  validateSchemaDefinitionNode,
+  type ParsedSystemNamespaceResource,
+  type PresenceCountBucket,
+  type PresenceSummary,
+  type PresenceVisibility,
+  type SchemaAuthorityResolution,
+  type SchemaAuthorityResolutionKind,
+  type SchemaAuthorityResolutionOptions,
+  type SchemaCompatibility,
+  type SchemaCompatibilityMode,
+  type SchemaDefinition,
+  type SchemaDefinitionSigningInput,
+  type SchemaDefinitionStatus,
+  type SyncPolicy,
+  type SyncPolicyStatus,
+  type SystemFederationErrorCode,
+  type SystemNamespaceKind,
+  type ValidateSchemaDefinitionNodeOptions
+} from './system'
+export {
   AbuseReportSchema,
   AppealSchema,
   CommunityNoteSchema,
@@ -113,6 +148,13 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/SavedView@1.0.0': () => import('./saved-view').then((m) => m.SavedViewSchema),
+  'xnet://xnet.fyi/SchemaDefinition@1.0.0': () =>
+    import('./system').then((m) => m.SchemaDefinitionSchema),
+  'xnet://xnet.fyi/SchemaCompatibility@1.0.0': () =>
+    import('./system').then((m) => m.SchemaCompatibilitySchema),
+  'xnet://xnet.fyi/SyncPolicy@1.0.0': () => import('./system').then((m) => m.SyncPolicySchema),
+  'xnet://xnet.fyi/PresenceSummary@1.0.0': () =>
+    import('./system').then((m) => m.PresenceSummarySchema),
   'xnet://xnet.fyi/AbuseReport@1.0.0': () =>
     import('./moderation').then((m) => m.AbuseReportSchema),
   'xnet://xnet.fyi/ModerationLabel@1.0.0': () =>
@@ -147,6 +189,12 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/SavedView': () => import('./saved-view').then((m) => m.SavedViewSchema),
+  'xnet://xnet.fyi/SchemaDefinition': () =>
+    import('./system').then((m) => m.SchemaDefinitionSchema),
+  'xnet://xnet.fyi/SchemaCompatibility': () =>
+    import('./system').then((m) => m.SchemaCompatibilitySchema),
+  'xnet://xnet.fyi/SyncPolicy': () => import('./system').then((m) => m.SyncPolicySchema),
+  'xnet://xnet.fyi/PresenceSummary': () => import('./system').then((m) => m.PresenceSummarySchema),
   'xnet://xnet.fyi/AbuseReport': () => import('./moderation').then((m) => m.AbuseReportSchema),
   'xnet://xnet.fyi/ModerationLabel': () =>
     import('./moderation').then((m) => m.ModerationLabelSchema),
