@@ -169,6 +169,13 @@ const isAwarenessMessage = (
   )
 }
 
+const isSyncRelayMessage = (
+  value: unknown
+): value is { type: 'sync-step1' | 'sync-step2' | 'sync-update'; from?: unknown } => {
+  if (!isRecord(value)) return false
+  return value.type === 'sync-step1' || value.type === 'sync-step2' || value.type === 'sync-update'
+}
+
 const isClientHandshake = (
   value: unknown
 ): value is {
@@ -192,6 +199,11 @@ const isClientHandshake = (
 
 const topicToResource = (topic: string): string =>
   topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
+
+const getPublishPeerId = (payload: { data?: unknown }): string | null => {
+  if (!isRecord(payload.data)) return null
+  return typeof payload.data.from === 'string' ? payload.data.from : null
+}
 
 type AuthzCode = 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'TOKEN_REVOKED'
 
@@ -1251,6 +1263,27 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               }
             }
 
+            if (isPublishMessage(payload) && typeof payload.topic === 'string') {
+              const peerId = getPublishPeerId(payload)
+              if (peerId) {
+                const peers = socketPeers.get(ws) ?? new Set<string>()
+                peers.add(peerId)
+                socketPeers.set(ws, peers)
+              }
+
+              if (payload.topic.startsWith('xnet-doc-') && isSyncRelayMessage(payload.data)) {
+                const accepted = await relay.handleSyncMessage(
+                  payload.topic,
+                  payload.data,
+                  signaling.publishFromHub
+                )
+                if (!accepted) {
+                  metrics.increment(HUB_METRICS.WS_MESSAGES_REJECTED)
+                  return
+                }
+              }
+            }
+
             signaling.handleMessage(ws, payload)
 
             if (isSubscribeMessage(payload)) {
@@ -1300,21 +1333,6 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                   socketTopics.delete(ws)
                 }
               }
-            }
-
-            if (isPublishMessage(payload) && typeof payload.topic === 'string') {
-              const peerId = (() => {
-                if (!payload.data || typeof payload.data !== 'object') return null
-                const data = payload.data as { from?: unknown }
-                return typeof data.from === 'string' ? data.from : null
-              })()
-              if (peerId) {
-                const peers = socketPeers.get(ws) ?? new Set<string>()
-                peers.add(peerId)
-                socketPeers.set(ws, peers)
-              }
-
-              void relay.handleSyncMessage(payload.topic, payload.data, signaling.publishFromHub)
             }
           })()
         })

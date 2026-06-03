@@ -186,26 +186,26 @@ export class RelayService {
     topic: string,
     data: unknown,
     sendToRoom: (topic: string, data: object) => void
-  ): Promise<void> {
-    if (!isSyncMessage(data)) return
-    if (data.from === HUB_PEER_ID) return
+  ): Promise<boolean> {
+    if (!isSyncMessage(data)) return false
+    if (data.from === HUB_PEER_ID) return false
 
     const docId = this.extractDocId(topic)
-    if (!docId) return
+    if (!docId) return false
 
     switch (data.type) {
       case 'sync-step1': {
-        if (!data.sv || !hasPeerId(data)) return
+        if (!data.sv || !hasPeerId(data)) return false
         const peerId = data.from
-        if (!this.allowPeerMessage(peerId)) return
+        if (!this.allowPeerMessage(peerId)) return false
         if (isBase64PayloadTooLarge(data.sv, MAX_YJS_STATE_VECTOR_SIZE)) {
           this.peerScorer.penalize(peerId, 'oversizedUpdate')
-          return
+          return false
         }
         const remoteSV = fromBase64(data.sv)
         if (isStateVectorTooLarge(remoteSV)) {
           this.peerScorer.penalize(peerId, 'oversizedUpdate')
-          return
+          return false
         }
         const doc = await this.pool.get(docId)
         const diff = Y.encodeStateAsUpdate(doc, remoteSV)
@@ -237,30 +237,30 @@ export class RelayService {
           from: HUB_PEER_ID,
           sv: toBase64(sv)
         })
-        break
+        return true
       }
 
       case 'sync-step2': {
-        if (data.to && data.to !== HUB_PEER_ID) return
         const updateResult = await this.extractUpdate(docId, data)
-        if (!updateResult) return
+        if (!updateResult) return false
+        if (data.to && data.to !== HUB_PEER_ID) return true
         const doc = await this.pool.get(docId)
         Y.applyUpdate(doc, updateResult.update, 'relay')
         this.pool.markDirty(docId)
-        break
+        return true
       }
 
       case 'sync-update': {
         const updateResult = await this.extractUpdate(docId, data)
-        if (!updateResult) return
+        if (!updateResult) return false
         const doc = await this.pool.get(docId)
         Y.applyUpdate(doc, updateResult.update, 'relay')
         this.pool.markDirty(docId)
-        break
+        return true
       }
 
       case 'awareness':
-        break
+        return true
     }
   }
 

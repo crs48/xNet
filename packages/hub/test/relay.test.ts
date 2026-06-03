@@ -167,6 +167,79 @@ describe('Sync Relay', () => {
     expect(received).toBe(false)
     wsB.close()
   })
+
+  it('does not fan out invalid signed sync updates before admission', async () => {
+    const docId = 'test-relay-invalid-fanout'
+    const room = `xnet-doc-${docId}`
+
+    const wsA = await connect()
+    const wsB = await connect()
+    wsA.send(JSON.stringify({ type: 'subscribe', topics: [room] }))
+    wsB.send(JSON.stringify({ type: 'subscribe', topics: [room] }))
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    const docA = new Y.Doc()
+    docA.getText('content').insert(0, 'invalid fanout')
+    const update = Y.encodeStateAsUpdate(docA)
+    const identity = generateIdentity()
+    const envelope = signYjsUpdate(
+      update,
+      identity.identity.did,
+      identity.privateKey,
+      docA.clientID
+    )
+    envelope.signature = new Uint8Array(envelope.signature)
+    envelope.signature[0] ^= 0xff
+
+    const received = new Promise<boolean>((resolve) => {
+      const onMessage = (raw: unknown) => {
+        const asString = typeof raw === 'string' ? raw : raw instanceof Buffer ? raw.toString() : ''
+        const parsed = JSON.parse(asString) as {
+          type?: string
+          topic?: string
+          data?: { type?: string; from?: string }
+        }
+        if (
+          parsed.type === 'publish' &&
+          parsed.topic === room &&
+          parsed.data?.type === 'sync-update' &&
+          parsed.data.from === 'clientInvalidFanout'
+        ) {
+          clearTimeout(timer)
+          wsB.off('message', onMessage)
+          resolve(true)
+        }
+      }
+      const timer = setTimeout(() => {
+        wsB.off('message', onMessage)
+        resolve(false)
+      }, 250)
+      wsB.on('message', onMessage)
+    })
+
+    wsA.send(
+      JSON.stringify({
+        type: 'publish',
+        topic: room,
+        data: {
+          type: 'sync-update',
+          from: 'clientInvalidFanout',
+          envelope: {
+            update: Buffer.from(envelope.update).toString('base64'),
+            authorDID: envelope.authorDID,
+            signature: Buffer.from(envelope.signature).toString('base64'),
+            timestamp: envelope.timestamp,
+            clientId: envelope.clientId
+          }
+        }
+      })
+    )
+
+    expect(await received).toBe(false)
+
+    wsA.close()
+    wsB.close()
+  })
 })
 
 describe('Sync Relay compatibility mode', () => {
