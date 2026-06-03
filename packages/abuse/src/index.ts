@@ -44,6 +44,12 @@ export {
   summarizeCommunityNoteAgreement
 } from './community-notes'
 export {
+  approveStagedModerationWrite,
+  materializeStagedModerationWrite,
+  planStagedModerationWrites,
+  rejectStagedModerationWrite
+} from './staged-writes'
+export {
   assessDuplicateContent,
   canonicalizeContentText,
   compareContentFingerprints,
@@ -123,6 +129,18 @@ export type {
   CommunityNotePerspectiveSummary,
   CommunityNoteRatingInput
 } from './community-notes'
+export type {
+  MaterializedModerationWrite,
+  StagedModerationReviewTask,
+  StagedModerationSourceType,
+  StagedModerationWrite,
+  StagedModerationWriteCandidate,
+  StagedModerationWriteKind,
+  StagedModerationWriteOptions,
+  StagedModerationWritePlan,
+  StagedModerationWritePolicy,
+  StagedModerationWriteStatus
+} from './staged-writes'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
