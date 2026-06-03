@@ -38,6 +38,12 @@ export {
   scoreClaimCitationCoverage
 } from './citation-coverage'
 export {
+  groupCommunityNoteRatingsByPerspective,
+  isCommunityNoteAgreementVisible,
+  scoreCommunityNotePerspectiveDiversity,
+  summarizeCommunityNoteAgreement
+} from './community-notes'
+export {
   assessDuplicateContent,
   canonicalizeContentText,
   compareContentFingerprints,
@@ -109,6 +115,14 @@ export type {
   ClaimCitationCoverageOptions,
   ExtractedClaim
 } from './citation-coverage'
+export type {
+  CommunityNoteAgreementOptions,
+  CommunityNoteAgreementStatus,
+  CommunityNoteAgreementSummary,
+  CommunityNoteHelpfulness,
+  CommunityNotePerspectiveSummary,
+  CommunityNoteRatingInput
+} from './community-notes'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
