@@ -1005,7 +1005,7 @@ Every hub should publish:
 - [x] Add policy-filtered reaction and counter APIs.
 - [x] Add message request and first-contact quarantine semantics.
 - [x] Make search indexing consume labels and quality signals.
-- [ ] Make crawl ingestion consume domain policy, duplicate signals, source reputation, and slop scores.
+- [x] Make crawl ingestion consume domain policy, duplicate signals, source reputation, and slop scores.
 - [ ] Add devtools panes for policy decisions, peer score, labels, and queue state.
 
 ### Phase 5 - AI And Quality Automation
