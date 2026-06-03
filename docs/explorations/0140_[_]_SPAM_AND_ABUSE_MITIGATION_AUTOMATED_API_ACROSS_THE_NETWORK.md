@@ -1004,7 +1004,7 @@ Every hub should publish:
 - [x] Implement `useVisibleComments` and `useModeratedThread`.
 - [x] Add policy-filtered reaction and counter APIs.
 - [x] Add message request and first-contact quarantine semantics.
-- [ ] Make search indexing consume labels and quality signals.
+- [x] Make search indexing consume labels and quality signals.
 - [ ] Make crawl ingestion consume domain policy, duplicate signals, source reputation, and slop scores.
 - [ ] Add devtools panes for policy decisions, peer score, labels, and queue state.
 
