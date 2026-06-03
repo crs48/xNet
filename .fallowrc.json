@@ -5,9 +5,9 @@
     "**/coverage/**",
     "**/storybook-static/**",
     "**/*.generated.ts",
-    "**/*.config.{js,cjs,mjs,ts}",
     "patches/**"
   ],
+  "dynamicallyLoaded": ["tests/e2e/harness/*.tsx"],
   "rules": {
     "unused-files": "warn",
     "unused-exports": "warn",

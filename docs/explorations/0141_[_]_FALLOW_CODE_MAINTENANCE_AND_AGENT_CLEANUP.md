@@ -128,6 +128,47 @@ Notable dead-code/dependency findings from `fallow dead-code --group-by package`
 - `packages/identity`: `fake-indexeddb` and `nid-webauthn-emulator` reported as unlisted dependencies.
 - Many `@testing-library/react` unresolved imports appeared in test files due to missing `node_modules`; these should not drive cleanup until rerun in an installed workspace.
 
+### Installed workspace baseline after implementation
+
+After adding `fallow` as a pinned root dev dependency and running with installed dependencies, the first installed run reported `40` dead-code findings instead of the preliminary `198`. The remaining delta was mostly resolver context from the missing `node_modules` run.
+
+Calibration changed the baseline in three small steps:
+
+| Step                             | Fallow result | What changed                                                                                  |
+| -------------------------------- | ------------: | --------------------------------------------------------------------------------------------- |
+| First installed run              |    `40` total | Dependencies resolved, but config files were still ignored by the starter config.             |
+| Config files included            |    `36` total | `@astrojs/tailwind`, `vite-plugin-pwa`, `workbox-window`, and `tailwindcss-animate` resolved. |
+| E2E harness marked dynamic       |    `33` total | `tests/e2e/harness/*.tsx` is now treated as Vite/HTML-loaded runtime code.                    |
+| E2E helper exports made internal |    `31` total | `enableTestBypass` and `waitForAuthenticated` are no longer exported dead API.                |
+
+Current calibrated summary from `fallow dead-code --summary --no-cache`:
+
+| Signal                  | Installed result | Classification                                                                   |
+| ----------------------- | ---------------: | -------------------------------------------------------------------------------- |
+| Unused files            |             `13` | Site cleanup candidates plus one root script candidate.                          |
+| Unused exports          |              `0` | Low-risk E2E helper export cleanup is complete.                                  |
+| Unused dependencies     |              `9` | Mix of likely removals, platform dependencies, and cross-package manifest drift. |
+| Unused dev dependencies |              `1` | `@tanstack/router-devtools` in `apps/web`; verify before removing.               |
+| Unlisted dependencies   |              `6` | Mostly package-local test/story dependencies that should move from root scope.   |
+| Circular dependencies   |              `2` | Electron import cycles; defer to focused refactors.                              |
+| Total dead-code issues  |             `31` | Suitable for report-only CI, not a blocking gate yet.                            |
+
+Initial classification:
+
+| Finding group                                                         | Action class | Next action                                                                                     |
+| --------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
+| `site/src/components/**/*.astro` and `site/src/styles/docs.css`       | Delete       | Delete in a site cleanup batch after rendering the site locally.                                |
+| `scripts/collect-core-platform-baselines.ts`                          | Defer        | Confirm whether it is still a manual benchmark utility before deletion.                         |
+| `electron-store`, `use-debounce`, `pako`, `@tanstack/router-devtools` | Delete       | Verify package builds/tests, then remove from the owning package manifests.                     |
+| `clsx` and `tailwind-merge` in `packages/editor`                      | Delete       | Likely remove from editor; these are used by `packages/ui`, which already declares them.        |
+| `expo-file-system`, `expo-splash-screen`, `expo-sqlite`               | Suppress     | Treat as Expo/platform dependencies unless mobile package validation proves otherwise.          |
+| `lib0` in `packages/data`                                             | Move/defer   | The observed imports are integration tests; move only after checking package-local test intent. |
+| `fake-indexeddb`, `nid-webauthn-emulator` in `packages/identity`      | Move         | Add as `@xnetjs/identity` dev dependencies or test-scoped manifest entries.                     |
+| `@testing-library/react`, `@storybook/react-vite` in Electron         | Move         | Add package-local dev dependencies only where tests/stories import them.                        |
+| `@tailwindcss/typography` in editor                                   | Move         | Add to `packages/editor` dev dependencies because `tailwind.config.js` imports it.              |
+| `y-webrtc` in `packages/react`                                        | Defer        | Check whether this is a mock-only dependency or should be declared where the mock/test imports. |
+| Electron cycles in `data-process` and `main`                          | Refactor     | Split shared types/factories from index modules in a focused Electron architecture cleanup.     |
+
 Notable health findings from `fallow health --score --hotspots --targets --file-scores`:
 
 - Score: `72 B`.
@@ -671,9 +712,9 @@ flowchart LR
 - [x] Add `.fallow/` to root `.gitignore`.
 - [x] Add root scripts for `code:dead`, `code:dupes`, `code:health`, `code:audit`, and `code:fix:preview`.
 - [x] Run `fallow init` or create `.fallowrc.json`.
-- [ ] Tune entrypoints and ignore patterns for site, apps, stories, tests, E2E harnesses, generated files, and published package exports.
-- [ ] Rerun `fallow dead-code --group-by package` after dependencies are installed.
-- [ ] Classify every initial finding as delete, move, suppress, refactor, or defer.
+- [x] Tune entrypoints and ignore patterns for site, apps, stories, tests, E2E harnesses, generated files, and published package exports.
+- [x] Rerun `fallow dead-code --group-by package` after dependencies are installed.
+- [x] Classify every initial finding as delete, move, suppress, refactor, or defer.
 - [ ] Add a report-only Fallow CI workflow.
 - [ ] Burn down low-risk findings package-by-package.
 - [ ] Add a regression baseline once the initial finding set is understood.
@@ -684,13 +725,13 @@ flowchart LR
 ## Validation Checklist
 
 - [ ] Fallow output is stable across two clean installs.
-- [ ] `node_modules` absence no longer contributes unresolved import noise.
+- [x] `node_modules` absence no longer contributes unresolved import noise.
 - [ ] Astro and Expo tsconfig warnings are resolved or intentionally suppressed.
-- [ ] Fallow does not report E2E harnesses or Storybook-only files as accidental dead code after configuration.
+- [x] Fallow does not report E2E harnesses or Storybook-only files as accidental dead code after configuration.
 - [ ] Intentional public exports are documented with config or suppressions.
 - [ ] `fallow fix --dry-run --format json` reports only understood auto-fix candidates.
 - [ ] CI report-only workflow posts useful summaries without excessive comment noise.
-- [ ] Low-risk cleanup commits reduce Fallow issue count.
+- [x] Low-risk cleanup commits reduce Fallow issue count.
 - [ ] Targeted package tests pass after each cleanup batch.
 - [ ] Root `pnpm lint`, `pnpm typecheck`, and relevant tests pass before merging.
 - [ ] Any public package export deletion is treated as an API change and reviewed accordingly.

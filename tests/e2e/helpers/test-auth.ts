@@ -18,7 +18,7 @@ function isNavigationAbortError(error: unknown): boolean {
  * await page.goto('http://localhost:5173')
  * // App will skip WebAuthn and create a test identity
  */
-export async function enableTestBypass(page: Page): Promise<void> {
+async function enableTestBypass(page: Page): Promise<void> {
   await page.addInitScript(() => {
     localStorage.setItem('xnet:test:bypass', 'true')
   })
@@ -31,7 +31,7 @@ export async function enableTestBypass(page: Page): Promise<void> {
  * @param page - Playwright page instance
  * @param timeout - Maximum wait time in milliseconds (default: 15000)
  */
-export async function waitForAuthenticated(page: Page, timeout = 15000): Promise<void> {
+async function waitForAuthenticated(page: Page, timeout = 15000): Promise<void> {
   await page.waitForFunction(
     () => {
       const app = document.querySelector('#root')
