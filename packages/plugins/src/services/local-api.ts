@@ -7,9 +7,17 @@
  * This is designed to run in the Electron main process.
  */
 
+import type { NodeQueryDescriptor, NodeQueryResult } from '@xnetjs/data'
 import { timingSafeEqual } from 'crypto'
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'http'
 import { URL } from 'url'
+import {
+  AI_SCOPES,
+  AiSurfaceService,
+  createAiSurfaceService,
+  type AiScope,
+  type AiSurfaceLimits
+} from '../ai-surface'
 
 /**
  * Constant-time string comparison to prevent timing attacks on token validation.
@@ -22,7 +30,50 @@ function constantTimeCompare(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB)
 }
 
+function parseOptionalNumber(value: string | null): number | undefined {
+  if (value === null) return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+const LOCAL_API_TOKEN_SCOPES: readonly LocalAPITokenScope[] = [
+  'health.read',
+  'nodes.read',
+  'nodes.write',
+  'schemas.read',
+  'events.read',
+  'ai.read',
+  'ai.write',
+  'admin'
+]
+
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+export type LocalAPITokenScope =
+  | 'health.read'
+  | 'nodes.read'
+  | 'nodes.write'
+  | 'schemas.read'
+  | 'events.read'
+  | 'ai.read'
+  | 'ai.write'
+  | 'admin'
+
+export type LocalAPITokenConfig = {
+  token: string
+  label?: string
+  scopes: LocalAPITokenScope[]
+  aiScopes?: AiScope[]
+  createdAt?: string
+}
+
+export type LocalAPITokenSummary = Omit<LocalAPITokenConfig, 'token'>
+
+type LocalAPIAuthContext = {
+  label?: string
+  scopes: LocalAPITokenScope[]
+  aiScopes: AiScope[]
+}
 
 /**
  * Node store interface (minimal subset needed by API)
@@ -30,6 +81,7 @@ function constantTimeCompare(a: string, b: string): boolean {
 export interface NodeStoreAPI {
   get(id: string): Promise<NodeData | null>
   list(options?: { schemaId?: string; limit?: number; offset?: number }): Promise<NodeData[]>
+  query?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
   create(options: { schemaId: string; properties: Record<string, unknown> }): Promise<NodeData>
   update(id: string, options: { properties: Record<string, unknown> }): Promise<NodeData>
   delete(id: string): Promise<void>
@@ -84,6 +136,8 @@ export interface LocalAPIConfig {
   host?: string
   /** API token for authentication (optional) */
   token?: string
+  /** Scoped API tokens for local-only integrations. */
+  tokens?: LocalAPITokenConfig[]
   /**
    * Allowed CORS origins (default: none).
    * Set to specific origins like ['http://localhost:3000'] for local dev,
@@ -95,6 +149,10 @@ export interface LocalAPIConfig {
   store: NodeStoreAPI
   /** SchemaRegistry instance */
   schemas: SchemaRegistryAPI
+  /** Shared AI surface service. A default service is created when omitted. */
+  aiSurface?: AiSurfaceService
+  /** Optional output and pagination limits for the default AI surface. */
+  aiLimits?: Partial<AiSurfaceLimits>
 }
 
 /**
@@ -143,18 +201,34 @@ class EventBuffer {
  */
 export class LocalAPIServer {
   private server: Server | null = null
-  private config: Required<Omit<LocalAPIConfig, 'token'>> & { token?: string }
+  private config: Required<Omit<LocalAPIConfig, 'token' | 'tokens' | 'aiSurface' | 'aiLimits'>> & {
+    token?: string
+    tokens: LocalAPITokenConfig[]
+    aiSurface: AiSurfaceService
+    aiLimits?: Partial<AiSurfaceLimits>
+  }
   private eventBuffer: EventBuffer
   private unsubscribe?: () => void
 
   constructor(config: LocalAPIConfig) {
+    const aiSurface =
+      config.aiSurface ??
+      createAiSurfaceService({
+        store: config.store,
+        schemas: config.schemas,
+        limits: config.aiLimits
+      })
+
     this.config = {
       port: config.port ?? 31415,
       host: config.host ?? '127.0.0.1',
       token: config.token,
+      tokens: config.tokens ?? [],
       allowedOrigins: config.allowedOrigins ?? [],
       store: config.store,
-      schemas: config.schemas
+      schemas: config.schemas,
+      aiSurface,
+      aiLimits: config.aiLimits
     }
     this.eventBuffer = new EventBuffer()
   }
@@ -231,6 +305,41 @@ export class LocalAPIServer {
     return this.server !== null
   }
 
+  /**
+   * Return redacted token metadata for UI permission management.
+   */
+  getTokenSummaries(): LocalAPITokenSummary[] {
+    return this.config.tokens.map(summarizeToken)
+  }
+
+  /**
+   * Replace scoped local API tokens.
+   */
+  setTokens(tokens: LocalAPITokenConfig[]): LocalAPITokenSummary[] {
+    this.config.token = undefined
+    this.config.tokens = tokens.map(normalizeTokenConfig)
+    return this.getTokenSummaries()
+  }
+
+  /**
+   * Rotate to a new single scoped token.
+   */
+  rotateToken(
+    token: string,
+    options: Partial<Omit<LocalAPITokenConfig, 'token'>> = {}
+  ): LocalAPITokenSummary {
+    const nextToken = normalizeTokenConfig({
+      token,
+      label: options.label ?? 'rotated-token',
+      scopes: options.scopes ?? [...LOCAL_API_TOKEN_SCOPES],
+      aiScopes: options.aiScopes ?? [...AI_SCOPES],
+      createdAt: options.createdAt ?? new Date().toISOString()
+    })
+    this.config.token = undefined
+    this.config.tokens = [nextToken]
+    return summarizeToken(nextToken)
+  }
+
   // ─── Request Handling ────────────────────────────────────────────────────────
 
   private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -257,20 +366,21 @@ export class LocalAPIServer {
       return
     }
 
-    // Check authentication if token is configured (using constant-time comparison)
-    if (this.config.token) {
-      const auth = req.headers.authorization
-      const expected = `Bearer ${this.config.token}`
-      if (!auth || !constantTimeCompare(auth, expected)) {
-        this.sendError(res, 401, 'Unauthorized')
-        return
-      }
+    const auth = this.authenticateRequest(req)
+    if (!auth) {
+      this.sendError(res, 401, 'Unauthorized')
+      return
     }
 
     // Parse URL
     const url = new URL(req.url ?? '/', `http://${this.config.host}:${this.config.port}`)
     const pathname = url.pathname
     const method = req.method ?? 'GET'
+    const requiredScope = localScopeForRequest(method, pathname)
+    if (requiredScope && !hasLocalScope(auth, requiredScope)) {
+      this.sendError(res, 403, `Forbidden: missing local API scope ${requiredScope}`)
+      return
+    }
 
     // Route to handler
     try {
@@ -311,6 +421,27 @@ export class LocalAPIServer {
         // Events endpoint (for polling)
         if (path === '/events' && method === 'GET') {
           return this.handleGetEvents(url, res)
+        }
+
+        // AI surface endpoints
+        if (path === '/ai/resources' && method === 'GET') {
+          return this.handleListAIResources(res)
+        }
+        if (path === '/ai/resource' && method === 'GET') {
+          return await this.handleReadAIResource(url, res)
+        }
+        if (path.match(/^\/ai\/tools\/[^/]+$/) && method === 'POST') {
+          const name = decodeURIComponent(path.slice('/ai/tools/'.length))
+          return await this.handleCallAITool(name, req, res, auth)
+        }
+        if (path === '/ai/search' && method === 'GET') {
+          return await this.handleAISearch(url, res)
+        }
+        if (path === '/ai/context-pack' && method === 'POST') {
+          return await this.handleAIContextPack(req, res)
+        }
+        if (path === '/ai/mutation-plans/validate' && method === 'POST') {
+          return await this.handleAIPlanValidation(req, res)
         }
 
         // Schemas endpoint
@@ -481,7 +612,112 @@ export class LocalAPIServer {
     this.sendJSON(res, 200, schema)
   }
 
+  // ─── AI Surface ─────────────────────────────────────────────────────────────
+
+  private handleListAIResources(res: ServerResponse): void {
+    this.sendJSON(res, 200, {
+      resources: this.config.aiSurface.getResources()
+    })
+  }
+
+  private async handleReadAIResource(url: URL, res: ServerResponse): Promise<void> {
+    const uri = url.searchParams.get('uri')
+    if (!uri) {
+      this.sendError(res, 400, 'Missing required query parameter: uri')
+      return
+    }
+
+    const content = await this.config.aiSurface.readResource(uri)
+    this.sendJSON(res, 200, { contents: [content] })
+  }
+
+  private async handleCallAITool(
+    name: string,
+    req: IncomingMessage,
+    res: ServerResponse,
+    auth: LocalAPIAuthContext
+  ): Promise<void> {
+    const tool = this.config.aiSurface.getTools().find((definition) => definition.name === name)
+    if (tool && !hasAllAiScopes(auth, tool.requiredScopes)) {
+      this.sendError(
+        res,
+        403,
+        `Forbidden: missing AI scope ${tool.requiredScopes
+          .filter((scope) => !auth.aiScopes.includes(scope))
+          .join(', ')}`
+      )
+      return
+    }
+
+    const body = await this.parseBody(req)
+    const result = await this.config.aiSurface.callTool(name, body)
+    this.sendJSON(res, 200, result)
+  }
+
+  private async handleAISearch(url: URL, res: ServerResponse): Promise<void> {
+    const query = url.searchParams.get('q') ?? url.searchParams.get('query')
+    if (!query) {
+      this.sendError(res, 400, 'Missing required query parameter: q')
+      return
+    }
+
+    const result = await this.config.aiSurface.search({
+      query,
+      schemaId: url.searchParams.get('schemaId') ?? url.searchParams.get('schema') ?? undefined,
+      limit: parseOptionalNumber(url.searchParams.get('limit')),
+      offset: parseOptionalNumber(url.searchParams.get('offset'))
+    })
+    this.sendJSON(res, 200, result)
+  }
+
+  private async handleAIContextPack(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const body = await this.parseBody(req)
+    const result = await this.config.aiSurface.callTool('xnet_create_context_pack', body)
+    this.sendJSON(res, 200, result)
+  }
+
+  private async handleAIPlanValidation(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const body = await this.parseBody(req)
+    const result = await this.config.aiSurface.callTool('xnet_validate_mutation_plan', {
+      plan: body.plan ?? body
+    })
+    this.sendJSON(res, 200, result)
+  }
+
   // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  private authenticateRequest(req: IncomingMessage): LocalAPIAuthContext | null {
+    const configuredScopedTokens = this.config.tokens.length > 0
+    if (!this.config.token && !configuredScopedTokens) {
+      return {
+        scopes: [...LOCAL_API_TOKEN_SCOPES],
+        aiScopes: [...AI_SCOPES]
+      }
+    }
+
+    const auth = req.headers.authorization
+    if (!auth?.startsWith('Bearer ')) return null
+    const token = auth.slice('Bearer '.length)
+
+    if (this.config.token && constantTimeCompare(token, this.config.token)) {
+      return {
+        label: 'legacy-token',
+        scopes: [...LOCAL_API_TOKEN_SCOPES],
+        aiScopes: [...AI_SCOPES]
+      }
+    }
+
+    const scopedToken = this.config.tokens.find((candidate) =>
+      constantTimeCompare(token, candidate.token)
+    )
+    if (!scopedToken) return null
+
+    return {
+      ...(scopedToken.label ? { label: scopedToken.label } : {}),
+      scopes: [...scopedToken.scopes],
+      aiScopes: [...(scopedToken.aiScopes ?? [])]
+    }
+  }
 
   private async parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
@@ -518,6 +754,50 @@ export class LocalAPIServer {
     }
     return null
   }
+}
+
+// ─── Auth Helpers ───────────────────────────────────────────────────────────
+
+function normalizeTokenConfig(token: LocalAPITokenConfig): LocalAPITokenConfig {
+  return {
+    token: token.token,
+    ...(token.label ? { label: token.label } : {}),
+    scopes: token.scopes.length ? [...token.scopes] : [...LOCAL_API_TOKEN_SCOPES],
+    aiScopes: token.aiScopes ? [...token.aiScopes] : [],
+    ...(token.createdAt ? { createdAt: token.createdAt } : {})
+  }
+}
+
+function summarizeToken(token: LocalAPITokenConfig): LocalAPITokenSummary {
+  return {
+    ...(token.label ? { label: token.label } : {}),
+    scopes: [...token.scopes],
+    aiScopes: token.aiScopes ? [...token.aiScopes] : [],
+    ...(token.createdAt ? { createdAt: token.createdAt } : {})
+  }
+}
+
+function localScopeForRequest(method: string, pathname: string): LocalAPITokenScope | undefined {
+  if (pathname === '/health') return 'health.read'
+  if (!pathname.startsWith('/api/v1/')) return undefined
+
+  const path = pathname.slice('/api/v1'.length)
+  if (path.startsWith('/nodes')) return method === 'GET' ? 'nodes.read' : 'nodes.write'
+  if (path === '/query') return 'nodes.read'
+  if (path === '/events') return 'events.read'
+  if (path.startsWith('/schemas')) return 'schemas.read'
+  if (path.startsWith('/ai/tools/')) return 'ai.write'
+  if (path.startsWith('/ai')) return 'ai.read'
+  return undefined
+}
+
+function hasLocalScope(auth: LocalAPIAuthContext, scope: LocalAPITokenScope): boolean {
+  return auth.scopes.includes('admin') || auth.scopes.includes(scope)
+}
+
+function hasAllAiScopes(auth: LocalAPIAuthContext, requiredScopes: readonly AiScope[]): boolean {
+  if (auth.scopes.includes('admin')) return true
+  return requiredScopes.every((scope) => auth.aiScopes.includes(scope))
 }
 
 // ─── Factory Function ────────────────────────────────────────────────────────

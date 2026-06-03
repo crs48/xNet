@@ -11,10 +11,15 @@ import {
 } from '../ai/prompt'
 import {
   AnthropicProvider,
+  AIProviderRouter,
+  OpenAICompatibleProvider,
   OpenAIProvider,
   OllamaProvider,
   createAIProvider,
   AIGenerationError,
+  type AIGenerateRequest,
+  type AIGenerateResponse,
+  type AIModelCapabilities,
   type AIProvider
 } from '../ai/providers'
 
@@ -289,6 +294,145 @@ describe('OpenAIProvider', () => {
   })
 })
 
+describe('OpenAICompatibleProvider', () => {
+  it('sends tools and structured response schemas to chat completions', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [
+            {
+              message: {
+                content: '{"summary":"done"}',
+                tool_calls: [
+                  {
+                    id: 'call_1',
+                    type: 'function',
+                    function: {
+                      name: 'xnet_database_query',
+                      arguments: '{"databaseId":"db1","limit":10}'
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          usage: {
+            prompt_tokens: 1000,
+            completion_tokens: 500,
+            total_tokens: 1500
+          }
+        })
+    })
+    global.fetch = fetchMock
+
+    const provider = new OpenAICompatibleProvider({
+      providerName: 'OpenRouter',
+      baseUrl: 'https://openrouter.ai/api/',
+      apiKey: 'test-key',
+      model: 'openai/gpt-4o-mini',
+      capabilities: {
+        cost: {
+          inputPerMillion: 1,
+          outputPerMillion: 2,
+          currency: 'USD'
+        }
+      }
+    })
+
+    const result = await provider.generateWithTools({
+      messages: [{ role: 'user', content: 'Summarize invoices' }],
+      tools: [
+        {
+          name: 'xnet_database_query',
+          description: 'Query a database',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              databaseId: { type: 'string' }
+            },
+            required: ['databaseId']
+          }
+        }
+      ],
+      responseSchema: {
+        type: 'object',
+        properties: {
+          summary: { type: 'string' }
+        },
+        required: ['summary']
+      }
+    })
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const body = JSON.parse(String(init.body)) as {
+      tools: Array<{ function: { name: string; parameters: Record<string, unknown> } }>
+      response_format: { type: string; json_schema: { schema: Record<string, unknown> } }
+    }
+
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions')
+    expect(init.headers).toMatchObject({
+      authorization: 'Bearer test-key'
+    })
+    expect(body.tools[0].function.name).toBe('xnet_database_query')
+    expect(body.response_format.type).toBe('json_schema')
+    expect(result.provider).toBe('OpenRouter')
+    expect(result.toolCalls?.[0]).toMatchObject({
+      id: 'call_1',
+      name: 'xnet_database_query',
+      arguments: {
+        databaseId: 'db1',
+        limit: 10
+      }
+    })
+    expect(result.usage?.estimatedCostUsd).toBe(0.002)
+  })
+
+  it('streams text chunks from server-sent events', async () => {
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"hello"}}]}\n\n'))
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+        controller.close()
+      }
+    })
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: stream
+    })
+
+    const provider = new OpenAICompatibleProvider({
+      providerName: 'LM Studio',
+      baseUrl: 'http://localhost:1234',
+      model: 'local-model',
+      capabilities: {
+        local: true,
+        privacy: 'local',
+        cost: undefined
+      }
+    })
+
+    const chunks = []
+    for await (const chunk of provider.stream({ prompt: 'hello' })) {
+      chunks.push(chunk)
+    }
+
+    expect(chunks).toContainEqual({
+      type: 'text',
+      text: 'hello',
+      provider: 'LM Studio',
+      model: 'local-model'
+    })
+    expect(chunks.at(-1)).toEqual({
+      type: 'done',
+      provider: 'LM Studio',
+      model: 'local-model'
+    })
+  })
+})
+
 describe('OllamaProvider', () => {
   it('has default base URL', () => {
     const provider = new OllamaProvider()
@@ -348,6 +492,35 @@ describe('createAIProvider', () => {
     expect(provider.name).toBe('Ollama')
   })
 
+  it('creates OpenAI-compatible endpoint providers', () => {
+    const openRouter = createAIProvider({
+      type: 'openrouter',
+      options: { apiKey: 'test' }
+    })
+    const ollamaCompatible = createAIProvider({
+      type: 'ollama-openai',
+      options: {}
+    })
+    const lmStudio = createAIProvider({
+      type: 'lmstudio',
+      options: {}
+    })
+    const vllm = createAIProvider({
+      type: 'vllm',
+      options: {}
+    })
+    const liteLlm = createAIProvider({
+      type: 'litellm',
+      options: {}
+    })
+
+    expect(openRouter.name).toBe('OpenRouter')
+    expect(ollamaCompatible.name).toBe('Ollama')
+    expect(lmStudio.name).toBe('LM Studio')
+    expect(vllm.name).toBe('vLLM')
+    expect(liteLlm.name).toBe('LiteLLM')
+  })
+
   it('throws for custom type', () => {
     expect(() =>
       createAIProvider({
@@ -360,10 +533,112 @@ describe('createAIProvider', () => {
   it('throws for unknown type', () => {
     expect(() =>
       createAIProvider({
-        type: 'unknown' as any,
+        type: 'unknown' as never,
         options: {}
       })
     ).toThrow('Unknown AI provider')
+  })
+})
+
+describe('AIProviderRouter', () => {
+  class RoutingProvider implements AIProvider {
+    requests: AIGenerateRequest[] = []
+
+    constructor(
+      readonly name: string,
+      private readonly capabilities: AIModelCapabilities,
+      private readonly response: AIGenerateResponse
+    ) {}
+
+    async generate(prompt: string): Promise<string> {
+      this.requests.push({ prompt })
+      return this.response.text
+    }
+
+    async generateWithTools(request: AIGenerateRequest): Promise<AIGenerateResponse> {
+      this.requests.push(request)
+      return {
+        ...this.response,
+        provider: this.name
+      }
+    }
+
+    getCapabilities(): AIModelCapabilities {
+      return this.capabilities
+    }
+  }
+
+  const localCapabilities: AIModelCapabilities = {
+    tools: false,
+    structuredOutputs: false,
+    streaming: false,
+    contextWindow: 8192,
+    local: true,
+    privacy: 'local',
+    quality: 'local'
+  }
+
+  const strongCapabilities: AIModelCapabilities = {
+    tools: true,
+    structuredOutputs: true,
+    streaming: true,
+    contextWindow: 128000,
+    local: false,
+    privacy: 'cloud',
+    quality: 'strong',
+    cost: {
+      inputPerMillion: 2,
+      outputPerMillion: 6,
+      currency: 'USD'
+    }
+  }
+
+  it('routes low-risk prompts to local providers and high-complexity plans to strong providers', async () => {
+    const local = new RoutingProvider('Local', localCapabilities, {
+      text: 'local summary',
+      provider: 'Local',
+      model: 'local-model'
+    })
+    const strong = new RoutingProvider('Strong', strongCapabilities, {
+      text: '{"plan":[]}',
+      provider: 'Strong',
+      model: 'strong-model',
+      usage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        totalTokens: 150,
+        estimatedCostUsd: 0.0005
+      }
+    })
+    const router = new AIProviderRouter([local, strong])
+
+    const localResponse = await router.generateWithTools({
+      prompt: 'Summarize selected text',
+      risk: 'low',
+      complexity: 'low'
+    })
+    const strongResponse = await router.generateWithTools({
+      prompt: 'Plan database writes',
+      risk: 'high',
+      complexity: 'high',
+      tools: [{ name: 'xnet_database_plan_mutation' }],
+      responseSchema: { type: 'object' }
+    })
+
+    expect(localResponse.provider).toBe('Local')
+    expect(strongResponse.provider).toBe('Strong')
+    expect(local.requests).toHaveLength(1)
+    expect(strong.requests).toHaveLength(1)
+    expect(router.getUsage()).toMatchObject({
+      Local: { requests: 1 },
+      Strong: {
+        requests: 1,
+        inputTokens: 100,
+        outputTokens: 50,
+        totalTokens: 150,
+        estimatedCostUsd: 0.0005
+      }
+    })
   })
 })
 

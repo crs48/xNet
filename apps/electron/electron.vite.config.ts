@@ -56,6 +56,7 @@ export default defineConfig({
           'data-process/index': resolve(__dirname, 'src/data-process/index.ts')
         },
         external: [
+          '@xnetjs/plugins/node',
           // Use absolute path for better-sqlite3 so it loads from apps/electron/node_modules
           // which has the correctly rebuilt native binding for Electron
           betterSqlite3Path,

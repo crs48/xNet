@@ -319,6 +319,87 @@ describe('LocalAPIServer', () => {
     })
   })
 
+  describe('AI surface', () => {
+    it('lists AI resources', async () => {
+      const response = await fetch(`${baseUrl}/api/v1/ai/resources`)
+
+      expect(response.status).toBe(200)
+      const data = await response.json()
+      const uris = data.resources.map((resource: { uri: string }) => resource.uri)
+      expect(uris).toContain('xnet://workspace/summary')
+      expect(uris).toContain('xnet://page/{pageId}.md')
+    })
+
+    it('reads AI resources by URI', async () => {
+      await mockStore.create({
+        schemaId: 'xnet://xnet.dev/Task',
+        properties: { title: 'API Summary Task' }
+      })
+
+      const response = await fetch(
+        `${baseUrl}/api/v1/ai/resource?uri=${encodeURIComponent('xnet://workspace/summary')}`
+      )
+
+      expect(response.status).toBe(200)
+      const data = await response.json()
+      expect(data.contents[0].uri).toBe('xnet://workspace/summary')
+      const summary = JSON.parse(data.contents[0].text)
+      expect(summary.recentNodes[0].title).toBe('API Summary Task')
+    })
+
+    it('searches workspace nodes', async () => {
+      await mockStore.create({
+        schemaId: 'xnet://xnet.dev/Task',
+        properties: { title: 'Agent workspace export' }
+      })
+
+      const response = await fetch(`${baseUrl}/api/v1/ai/search?q=workspace`)
+
+      expect(response.status).toBe(200)
+      const data = await response.json()
+      expect(data.results).toHaveLength(1)
+      expect(data.results[0].title).toBe('Agent workspace export')
+    })
+
+    it('calls plan-only AI tools', async () => {
+      const page = await mockStore.create({
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'API Page', markdown: 'Original' }
+      })
+
+      const response = await fetch(`${baseUrl}/api/v1/ai/tools/xnet_plan_page_patch`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          pageId: page.id,
+          baseRevision: `updatedAt:${page.updatedAt}`,
+          markdown: '# API Page\n\nUpdated'
+        })
+      })
+
+      expect(response.status).toBe(200)
+      const plan = await response.json()
+      expect(plan.validation.valid).toBe(true)
+      expect(plan.changes[0].targetKind).toBe('page')
+
+      const unchanged = await mockStore.get(page.id)
+      expect(unchanged?.properties.markdown).toBe('Original')
+    })
+
+    it('validates mutation plans', async () => {
+      const response = await fetch(`${baseUrl}/api/v1/ai/mutation-plans/validate`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: 'missing-fields' })
+      })
+
+      expect(response.status).toBe(200)
+      const data = await response.json()
+      expect(data.validation.valid).toBe(false)
+      expect(data.validation.errors).toContain('actor must be a non-empty string')
+    })
+  })
+
   describe('authentication', () => {
     it('requires token when configured', async () => {
       await server.stop()
@@ -349,6 +430,78 @@ describe('LocalAPIServer', () => {
           headers: { Authorization: 'Bearer secret-token' }
         })
         expect(goodAuth.status).toBe(200)
+      } finally {
+        await authServer.stop()
+      }
+    })
+
+    it('supports scoped local tokens and token rotation for AI tools', async () => {
+      await server.stop()
+
+      const port = 30000 + Math.floor(Math.random() * 1000)
+      const authServer = createLocalAPI({
+        port,
+        tokens: [
+          {
+            token: 'read-token',
+            label: 'read only',
+            scopes: ['health.read', 'ai.write'],
+            aiScopes: ['page.read', 'page.propose']
+          }
+        ],
+        store: mockStore,
+        schemas: mockSchemas
+      })
+
+      await authServer.start()
+
+      try {
+        const denied = await fetch(
+          `http://127.0.0.1:${port}/api/v1/ai/tools/xnet_apply_page_markdown`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer read-token',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ confirmApply: true, plan: {} })
+          }
+        )
+        expect(denied.status).toBe(403)
+        expect(await denied.json()).toMatchObject({
+          error: expect.stringContaining('page.write')
+        })
+
+        const summary = authServer.rotateToken('rotated-token', {
+          label: 'writer',
+          scopes: ['health.read', 'ai.write'],
+          aiScopes: ['workspace.read', 'page.read', 'page.write'],
+          createdAt: '2026-06-02T12:00:00.000Z'
+        })
+        expect(summary).toEqual({
+          label: 'writer',
+          scopes: ['health.read', 'ai.write'],
+          aiScopes: ['workspace.read', 'page.read', 'page.write'],
+          createdAt: '2026-06-02T12:00:00.000Z'
+        })
+
+        const oldToken = await fetch(`http://127.0.0.1:${port}/health`, {
+          headers: { Authorization: 'Bearer read-token' }
+        })
+        expect(oldToken.status).toBe(401)
+
+        const auditLog = await fetch(
+          `http://127.0.0.1:${port}/api/v1/ai/tools/xnet_get_audit_log`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer rotated-token',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+          }
+        )
+        expect(auditLog.status).toBe(200)
       } finally {
         await authServer.stop()
       }

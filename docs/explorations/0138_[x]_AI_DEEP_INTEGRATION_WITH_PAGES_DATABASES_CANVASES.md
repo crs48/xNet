@@ -1292,141 +1292,141 @@ Workspace:
 
 ### Phase 0: Define the AI Surface Contract
 
-- [ ] Create `packages/ai` or `packages/plugins/src/ai-surface` for shared resource/tool/plan types.
-- [ ] Define `AiResource`, `AiTool`, `AiMutationPlan`, `AiChangeSet`, `AiOperation`, `AiValidationResult`, and `AiAuditEvent`.
-- [ ] Add risk levels and required scopes to every tool.
-- [ ] Add a shared validator interface with `{ valid, errors, warnings }`.
-- [ ] Add tests for serialization and plan validation.
-- [ ] Document the contract in `docs/`.
+- [x] Create `packages/ai` or `packages/plugins/src/ai-surface` for shared resource/tool/plan types.
+- [x] Define `AiResource`, `AiTool`, `AiMutationPlan`, `AiChangeSet`, `AiOperation`, `AiValidationResult`, and `AiAuditEvent`.
+- [x] Add risk levels and required scopes to every tool.
+- [x] Add a shared validator interface with `{ valid, errors, warnings }`.
+- [x] Add tests for serialization and plan validation.
+- [x] Document the contract in `docs/`.
 
 ### Phase 1: Upgrade MCP and Local API to Use the Contract
 
-- [ ] Refactor `packages/plugins/src/services/mcp-server.ts` around the shared AI surface service.
-- [ ] Add resource reads for workspace summary, page Markdown, database schema/views, and canvas viewport.
-- [ ] Add search and context-pack tools.
-- [ ] Add plan-only mutation tools before apply tools.
-- [ ] Add token/output limits and pagination.
-- [ ] Add Local API endpoints that mirror the MCP service.
-- [ ] Add integration tests for MCP resources/tools.
+- [x] Refactor `packages/plugins/src/services/mcp-server.ts` around the shared AI surface service.
+- [x] Add resource reads for workspace summary, page Markdown, database schema/views, and canvas viewport.
+- [x] Add search and context-pack tools.
+- [x] Add plan-only mutation tools before apply tools.
+- [x] Add token/output limits and pagination.
+- [x] Add Local API endpoints that mirror the MCP service.
+- [x] Add integration tests for MCP resources/tools.
 
 ### Phase 2: Page Markdown Patch Pipeline
 
-- [ ] Add `page_read_markdown` with frontmatter identity and revision.
-- [ ] Add `page_plan_patch` that accepts full Markdown replacement or structured patch.
-- [ ] Parse Markdown through existing xNet Markdown specs.
-- [ ] Validate xNet directives and unsupported constructs.
-- [ ] Apply through TipTap/Yjs document paths.
-- [ ] Render Markdown diffs in the UI.
-- [ ] Add round-trip tests for AI-edited pages with database/page/embed directives.
+- [x] Add `page_read_markdown` with frontmatter identity and revision.
+- [x] Add `page_plan_patch` that accepts full Markdown replacement or structured patch.
+- [x] Parse Markdown through existing xNet Markdown specs.
+- [x] Validate xNet directives and unsupported constructs.
+- [x] Apply through TipTap/Yjs document paths.
+- [x] Render Markdown diffs in the UI.
+- [x] Add round-trip tests for AI-edited pages with database/page/embed directives.
 
 ### Phase 3: AI Workspace Folder Projection
 
-- [ ] Add export job for scoped AI workspace folders.
-- [ ] Generate `AGENTS.md` with xNet editing rules.
-- [ ] Generate `.mcp.json` for Claude Code and `.codex/config.toml` guidance for Codex.
-- [ ] Export pages as Markdown.
-- [ ] Export databases as schema/views/rows JSON files.
-- [ ] Export canvases as JSON Canvas plus xNet sidecars.
-- [ ] Write `.xnet/manifest.jsonl` with ids, paths, hashes, and revisions.
-- [ ] Add watcher that converts changed files into mutation plans.
-- [ ] Add conflict handling folder and UI review.
-- [ ] Add tests for export/import id stability and title rename behavior.
+- [x] Add export job for scoped AI workspace folders.
+- [x] Generate `AGENTS.md` with xNet editing rules.
+- [x] Generate `.mcp.json` for Claude Code and `.codex/config.toml` guidance for Codex.
+- [x] Export pages as Markdown.
+- [x] Export databases as schema/views/rows JSON files.
+- [x] Export canvases as JSON Canvas plus xNet sidecars.
+- [x] Write `.xnet/manifest.jsonl` with ids, paths, hashes, and revisions.
+- [x] Add watcher that converts changed files into mutation plans.
+- [x] Add conflict handling folder and UI review.
+- [x] Add tests for export/import id stability and title rename behavior.
 
 ### Phase 4: Database AI Tools
 
-- [ ] Add database describe/query/sample tools using `NodeQueryDescriptor`.
-- [ ] Add row mutation plans using NodeStore transactions.
-- [ ] Add schema/view mutation plans using database Y.Doc helpers.
-- [ ] Add destructive-change detection.
-- [ ] Add explain/diagnostic tools for query plans and indexes.
-- [ ] Add large database pagination and materialized view support.
-- [ ] Add tests for mixed schema plus row mutations.
+- [x] Add database describe/query/sample tools using `NodeQueryDescriptor`.
+- [x] Add row mutation plans using NodeStore transactions.
+- [x] Add schema/view mutation plans using database Y.Doc helpers.
+- [x] Add destructive-change detection.
+- [x] Add explain/diagnostic tools for query plans and indexes.
+- [x] Add large database pagination and materialized view support.
+- [x] Add tests for mixed schema plus row mutations.
 
 ### Phase 5: Canvas AI Tools
 
-- [ ] Add canvas list/read viewport/read selection tools.
-- [ ] Add source preview hydration for page/database/media cards.
-- [ ] Add canvas mutation planner for add/move/connect/group/frame/layout.
-- [ ] Reuse pure scene operations for deterministic layout tools.
-- [ ] Add JSON Canvas import/export through the AI surface.
-- [ ] Add tile/viewport scoping for large canvases.
-- [ ] Add visual diff overlays for pending canvas changes.
-- [ ] Add tests for source-backed object identity preservation.
+- [x] Add canvas list/read viewport/read selection tools.
+- [x] Add source preview hydration for page/database/media cards.
+- [x] Add canvas mutation planner for add/move/connect/group/frame/layout.
+- [x] Reuse pure scene operations for deterministic layout tools.
+- [x] Add JSON Canvas import/export through the AI surface.
+- [x] Add tile/viewport scoping for large canvases.
+- [x] Add visual diff overlays for pending canvas changes.
+- [x] Add tests for source-backed object identity preservation.
 
 ### Phase 6: In-App Agent Runtime
 
-- [ ] Decide whether to embed Codex app-server, build a custom orchestrator, or support both.
-- [ ] Add persistent agent threads and turns.
-- [ ] Stream tool events and model output into the UI.
-- [ ] Add approval controls tied to mutation plan ids.
-- [ ] Add cancellation and steering.
-- [ ] Add background job support for exports and long-running analysis.
-- [ ] Add telemetry for latency, accepted changes, rejected changes, and tool failures.
+- [x] Decide whether to embed Codex app-server, build a custom orchestrator, or support both.
+- [x] Add persistent agent threads and turns.
+- [x] Stream tool events and model output into the UI.
+- [x] Add approval controls tied to mutation plan ids.
+- [x] Add cancellation and steering.
+- [x] Add background job support for exports and long-running analysis.
+- [x] Add telemetry for latency, accepted changes, rejected changes, and tool failures.
 
 ### Phase 7: Provider Router
 
-- [ ] Replace simple provider `generate(prompt)` flows with a tool-capable model adapter.
-- [ ] Support OpenAI-compatible endpoints for OpenRouter, Ollama, LM Studio, vLLM, and LiteLLM.
-- [ ] Support streaming and structured JSON schema outputs.
-- [ ] Add model capability metadata: tools, structured outputs, context window, local/cloud, cost, privacy.
-- [ ] Route low-risk local tasks to local models when available.
-- [ ] Route high-complexity write plans to stronger configured models.
-- [ ] Add per-provider usage/cost tracking.
+- [x] Replace simple provider `generate(prompt)` flows with a tool-capable model adapter.
+- [x] Support OpenAI-compatible endpoints for OpenRouter, Ollama, LM Studio, vLLM, and LiteLLM.
+- [x] Support streaming and structured JSON schema outputs.
+- [x] Add model capability metadata: tools, structured outputs, context window, local/cloud, cost, privacy.
+- [x] Route low-risk local tasks to local models when available.
+- [x] Route high-complexity write plans to stronger configured models.
+- [x] Add per-provider usage/cost tracking.
 
 ### Phase 8: Hardening and Evals
 
-- [ ] Add prompt-injection tests with malicious page content.
-- [ ] Add stale-export conflict tests.
-- [ ] Add bulk-delete prevention tests.
-- [ ] Add large database and large canvas performance tests.
-- [ ] Add end-to-end local agent workflow test with MCP or file projection.
-- [ ] Add audit log and rollback tests.
-- [ ] Add user-facing permission and token rotation flows.
+- [x] Add prompt-injection tests with malicious page content.
+- [x] Add stale-export conflict tests.
+- [x] Add bulk-delete prevention tests.
+- [x] Add large database and large canvas performance tests.
+- [x] Add end-to-end local agent workflow test with MCP or file projection.
+- [x] Add audit log and rollback tests.
+- [x] Add user-facing permission and token rotation flows.
 
 ## Validation Checklist
 
 ### Functional Validation
 
-- [ ] Codex can connect to xNet MCP and read workspace summary.
-- [ ] Claude Code can connect to xNet MCP through project `.mcp.json`.
-- [ ] A page can be exported as Markdown, edited by an external agent, parsed, reviewed, and applied.
-- [ ] A database schema/view change can be proposed and applied without corrupting rows.
-- [ ] A database row bulk update can be previewed and applied transactionally.
-- [ ] A canvas viewport can be read by an agent without exporting the whole canvas.
-- [ ] A canvas layout/change plan can be previewed and applied.
-- [ ] JSON Canvas export/import preserves xNet source metadata.
-- [ ] Rejected changes leave the live workspace untouched.
-- [ ] Applied changes are visible in audit history.
+- [x] Codex can connect to xNet MCP and read workspace summary.
+- [x] Claude Code can connect to xNet MCP through project `.mcp.json`.
+- [x] A page can be exported as Markdown, edited by an external agent, parsed, reviewed, and applied.
+- [x] A database schema/view change can be proposed and applied without corrupting rows.
+- [x] A database row bulk update can be previewed and applied transactionally.
+- [x] A canvas viewport can be read by an agent without exporting the whole canvas.
+- [x] A canvas layout/change plan can be previewed and applied.
+- [x] JSON Canvas export/import preserves xNet source metadata.
+- [x] Rejected changes leave the live workspace untouched.
+- [x] Applied changes are visible in audit history.
 
 ### Performance Validation
 
-- [ ] Workspace summary stays under the target latency budget.
-- [ ] Page Markdown export/import handles large docs within existing Markdown IO budgets.
-- [ ] Database queries use query descriptors and avoid in-memory full-list scans.
-- [ ] Large database tools paginate and sample correctly.
-- [ ] Canvas reads use viewport/tile/spatial scoping.
-- [ ] Full workspace export runs as a background incremental job.
-- [ ] MCP tool outputs stay below configured token/character limits.
+- [x] Workspace summary stays under the target latency budget.
+- [x] Page Markdown export/import handles large docs within existing Markdown IO budgets.
+- [x] Database queries use query descriptors and avoid in-memory full-list scans.
+- [x] Large database tools paginate and sample correctly.
+- [x] Canvas reads use viewport/tile/spatial scoping.
+- [x] Full workspace export runs as a background incremental job.
+- [x] MCP tool outputs stay below configured token/character limits.
 
 ### Safety Validation
 
-- [ ] Prompt injection in a page cannot silently escalate permissions.
-- [ ] Externally fetched web content is marked untrusted in context packs.
-- [ ] AI cannot apply writes without the required write scope.
-- [ ] Bulk deletes require explicit deletion markers and approval.
-- [ ] Raw SQL/admin recovery tools are unavailable in normal sessions.
-- [ ] Tokens are local-only, scoped, and rotatable.
-- [ ] Stale exported files produce conflicts instead of overwriting live changes.
-- [ ] Audit logs include actor, scopes, plan, validation result, and applied change ids.
+- [x] Prompt injection in a page cannot silently escalate permissions.
+- [x] Externally fetched web content is marked untrusted in context packs.
+- [x] AI cannot apply writes without the required write scope.
+- [x] Bulk deletes require explicit deletion markers and approval.
+- [x] Raw SQL/admin recovery tools are unavailable in normal sessions.
+- [x] Tokens are local-only, scoped, and rotatable.
+- [x] Stale exported files produce conflicts instead of overwriting live changes.
+- [x] Audit logs include actor, scopes, plan, validation result, and applied change ids.
 
 ### UX Validation
 
-- [ ] Users can create an AI workspace folder from a page/project/database/canvas.
-- [ ] Generated `AGENTS.md` explains file conventions clearly.
-- [ ] Pending file edits show as native diffs in xNet.
-- [ ] Users can approve, reject, or request revision.
-- [ ] In-app AI can operate on the current selection without extra setup.
-- [ ] The UI clearly distinguishes read-only answers, proposed changes, and applied changes.
+- [x] Users can create an AI workspace folder from a page/project/database/canvas.
+- [x] Generated `AGENTS.md` explains file conventions clearly.
+- [x] Pending file edits show as native diffs in xNet.
+- [x] Users can approve, reject, or request revision.
+- [x] In-app AI can operate on the current selection without extra setup.
+- [x] The UI clearly distinguishes read-only answers, proposed changes, and applied changes.
 
 ## Example Contracts
 

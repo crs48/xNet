@@ -159,6 +159,23 @@ describe('MCPServer', () => {
       expect(toolNames).toContain('xnet_update')
       expect(toolNames).toContain('xnet_delete')
       expect(toolNames).toContain('xnet_schemas')
+      expect(toolNames).toContain('xnet_search')
+      expect(toolNames).toContain('xnet_create_context_pack')
+      expect(toolNames).toContain('xnet_create_external_context_resource')
+      expect(toolNames).toContain('xnet_validate_page_markdown')
+      expect(toolNames).toContain('xnet_plan_page_patch')
+      expect(toolNames).toContain('xnet_apply_page_markdown')
+      expect(toolNames).toContain('xnet_get_audit_log')
+      expect(toolNames).toContain('xnet_rollback_page_markdown')
+      expect(toolNames).toContain('xnet_database_describe')
+      expect(toolNames).toContain('xnet_database_sample')
+      expect(toolNames).toContain('xnet_database_explain_query')
+      expect(toolNames).toContain('xnet_apply_database_mutation')
+      expect(toolNames).toContain('xnet_canvas_list')
+      expect(toolNames).toContain('xnet_canvas_read_selection')
+      expect(toolNames).toContain('xnet_canvas_search')
+      expect(toolNames).toContain('xnet_canvas_export_json_canvas')
+      expect(toolNames).toContain('xnet_canvas_plan_json_canvas_import')
     })
 
     it('tools have proper schema', () => {
@@ -180,6 +197,8 @@ describe('MCPServer', () => {
       const uris = resources.map((r) => r.uri)
       expect(uris).toContain('xnet://nodes')
       expect(uris).toContain('xnet://schemas')
+      expect(uris).toContain('xnet://workspace/summary')
+      expect(uris).toContain('xnet://page/{pageId}.md')
     })
   })
 
@@ -383,6 +402,499 @@ describe('MCPServer', () => {
       })
     })
 
+    describe('tools/call - AI surface tools', () => {
+      it('searches workspace nodes', async () => {
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: { title: 'Roadmap task', notes: 'AI integration' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_search',
+            arguments: { query: 'roadmap' }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.results).toHaveLength(1)
+        expect(data.results[0].title).toBe('Roadmap task')
+      })
+
+      it('creates a context pack from page seeds', async () => {
+        const page = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'AI Plan', markdown: '## Goals\nShip MCP integration.' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_create_context_pack',
+            arguments: { seeds: [{ kind: 'page', id: page.id }] }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.resources).toHaveLength(1)
+        expect(data.resources[0].uri).toContain('xnet://page/')
+        expect(data.resources[0].text).toContain('Ship MCP integration')
+      })
+
+      it('keeps AI tool responses within configured MCP output limits', async () => {
+        const boundedServer = new MCPServer({
+          store: mockStore,
+          schemas: mockSchemas,
+          aiLimits: { maxJsonCharacters: 480 }
+        })
+        const database = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+          properties: {
+            title: 'Large DB',
+            rowSchemaId: 'xnet://xnet.dev/Task'
+          }
+        })
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: {
+            database: database.id,
+            title: 'Large row',
+            notes: 'A'.repeat(5_000)
+          }
+        })
+
+        const response = await boundedServer.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_query',
+            arguments: { databaseId: database.id }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const text = result.content[0].text
+        const data = JSON.parse(text)
+        expect(text.length).toBeLessThanOrEqual(480)
+        expect(data.truncated).toBe(true)
+      })
+
+      it('plans page Markdown patches without applying them', async () => {
+        const page = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Draft', markdown: 'Original' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_page_patch',
+            arguments: {
+              pageId: page.id,
+              baseRevision: `updatedAt:${page.updatedAt}`,
+              markdown: '# Draft\n\nUpdated'
+            }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.status).toBe('validated')
+        expect(data.validation.valid).toBe(true)
+        expect(data.changes[0].operations[0].op).toBe('replaceMarkdown')
+        expect(data.changes[0].operations[0].args.directiveCount).toBe(0)
+        expect(data.changes[0].operations[0].args.diff).toContain('+Updated')
+
+        const unchanged = await mockStore.get(page.id)
+        expect(unchanged?.properties.markdown).toBe('Original')
+      })
+
+      it('returns invalid page patch plans for malformed xNet directives', async () => {
+        const page = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Draft', markdown: 'Original' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_page_patch',
+            arguments: {
+              pageId: page.id,
+              markdown: ['# Draft', '', ':::xnet-database', '{"databaseId":', ':::'].join('\n')
+            }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.status).toBe('proposed')
+        expect(data.validation.valid).toBe(false)
+        expect(data.validation.errors).toContain(
+          'xnet-database block directive payload must be valid JSON'
+        )
+      })
+
+      it('queries, samples, and explains database rows with descriptors', async () => {
+        const database = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+          properties: {
+            title: 'Projects',
+            rowSchemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+            columns: [{ id: 'title', name: 'Title', type: 'text' }],
+            views: [{ id: 'view-table', name: 'Table', type: 'table' }]
+          }
+        })
+        await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+          properties: { database: database.id, title: 'Alpha Launch', status: 'active' }
+        })
+        await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+          properties: { database: database.id, title: 'Beta Cleanup', status: 'later' }
+        })
+
+        const describeResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_describe',
+            arguments: { databaseId: database.id, includeSample: true }
+          })
+        )
+        const describeResult = describeResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const description = JSON.parse(describeResult.content[0].text)
+        expect(description.columns).toHaveLength(1)
+        expect(description.sample.rows).toHaveLength(2)
+
+        const queryResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_query',
+            arguments: {
+              databaseId: database.id,
+              descriptor: {
+                search: { text: 'alpha' },
+                orderBy: { title: 'asc' },
+                materializedView: { viewId: 'view-table' }
+              },
+              count: 'exact',
+              limit: 10
+            }
+          })
+        )
+        const queryResult = queryResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const query = JSON.parse(queryResult.content[0].text)
+        expect(query.descriptor.schemaId).toBe('xnet://xnet.fyi/ProjectRow@1.0.0')
+        expect(query.rows).toHaveLength(1)
+        expect(query.rows[0].properties.title).toBe('Alpha Launch')
+        expect(query.page.materializedView.viewId).toBe('view-table')
+        expect(query.queryPlan.strategy).toBe('list-fallback')
+
+        const explainResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_explain_query',
+            arguments: {
+              databaseId: database.id,
+              descriptor: { materializedView: { viewId: 'view-table' } }
+            }
+          })
+        )
+        const explainResult = explainResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const explanation = JSON.parse(explainResult.content[0].text)
+        expect(explanation.diagnostics.usesMaterializedView).toBe(true)
+        expect(explanation.diagnostics.storageQueryAvailable).toBe(false)
+
+        const sampleResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_sample',
+            arguments: { databaseId: database.id, sampleSize: 1 }
+          })
+        )
+        const sampleResult = sampleResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const sample = JSON.parse(sampleResult.content[0].text)
+        expect(sample.rows).toHaveLength(1)
+        expect(sample.strategy).toBe('deterministic-first-page')
+      })
+
+      it('plans mixed database row transactions and schema doc mutations', async () => {
+        const database = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+          properties: {
+            title: 'Projects',
+            rowSchemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0'
+          }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_database_mutation',
+            arguments: {
+              databaseId: database.id,
+              operations: [
+                {
+                  op: 'createRow',
+                  args: { properties: { title: 'New project' } }
+                },
+                {
+                  op: 'addColumn',
+                  args: { column: { id: 'status', name: 'Status', type: 'select' } }
+                }
+              ]
+            }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const plan = JSON.parse(result.content[0].text)
+        expect(plan.validation.valid).toBe(true)
+        expect(plan.requiredScopes).toContain('database.write.rows')
+        expect(plan.requiredScopes).toContain('database.write.schema')
+        expect(plan.changes.map((change: { targetKind: string }) => change.targetKind)).toEqual([
+          'databaseRows',
+          'database'
+        ])
+        expect(plan.changes[0].operations[0].args.transactionOperations[0]).toMatchObject({
+          type: 'create',
+          options: {
+            schemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+            properties: { database: database.id, title: 'New project' }
+          }
+        })
+        expect(plan.changes[1].operations[0].args.yDocMutation).toMatchObject({
+          document: 'database',
+          collection: 'columns',
+          helper: 'addColumn'
+        })
+      })
+
+      it('rejects destructive database plans without explicit delete markers', async () => {
+        const database = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+          properties: { title: 'Projects' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_database_mutation',
+            arguments: {
+              databaseId: database.id,
+              operations: [{ op: 'deleteRow', args: { rowId: 'row_1' } }]
+            }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const plan = JSON.parse(result.content[0].text)
+        expect(plan.risk).toBe('high')
+        expect(plan.validation.valid).toBe(false)
+        expect(plan.validation.errors).toContain(
+          'operations[0] delete/drop/remove operations require confirmDelete true or deletionMarker "DELETE"'
+        )
+      })
+
+      it('reads scoped canvas selections and exports source-backed JSON Canvas', async () => {
+        const source = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Source Page', markdown: 'Source body' }
+        })
+        const canvas = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Canvas@1.0.0',
+          properties: {
+            title: 'AI Canvas',
+            objects: [
+              {
+                id: 'obj-page',
+                type: 'page',
+                sourceNodeId: source.id,
+                x: 40,
+                y: 80,
+                width: 240,
+                height: 160,
+                properties: { title: 'Page Card', url: 'xnet://page/source' }
+              },
+              {
+                id: 'obj-note',
+                type: 'note',
+                x: 360,
+                y: 80,
+                width: 220,
+                height: 140,
+                properties: { title: 'Note Card', text: 'Follow up' }
+              },
+              {
+                id: 'obj-far',
+                type: 'note',
+                x: 2400,
+                y: 80,
+                width: 220,
+                height: 140,
+                properties: { title: 'Far Card' }
+              }
+            ],
+            edges: [{ id: 'edge-1', from: 'obj-page', to: 'obj-note', label: 'references' }]
+          }
+        })
+
+        const listResponse = await server.handleRequest(
+          createRequest('tools/call', { name: 'xnet_canvas_list', arguments: {} })
+        )
+        const listResult = listResponse.result as { content: Array<{ type: string; text: string }> }
+        const list = JSON.parse(listResult.content[0].text)
+        expect(list.canvases.map((item: { id: string }) => item.id)).toContain(canvas.id)
+
+        const viewportResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_read_viewport',
+            arguments: {
+              canvasId: canvas.id,
+              x: 0,
+              y: 0,
+              w: 1000,
+              h: 600,
+              tileSize: 1000,
+              tileIds: ['0/0/0'],
+              includeSourcePreviews: true
+            }
+          })
+        )
+        const viewportResult = viewportResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const viewport = JSON.parse(viewportResult.content[0].text)
+        expect(viewport.objects.map((object: { id: string }) => object.id)).toEqual([
+          'obj-page',
+          'obj-note'
+        ])
+        expect(viewport.sourcePreviews[0].id).toBe(source.id)
+        expect(viewport.scope.tileIds).toEqual(['0/0/0'])
+
+        const selectionResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_read_selection',
+            arguments: {
+              canvasId: canvas.id,
+              objectIds: ['obj-page'],
+              includeSourcePreviews: true
+            }
+          })
+        )
+        const selectionResult = selectionResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const selection = JSON.parse(selectionResult.content[0].text)
+        expect(selection.objects).toHaveLength(1)
+        expect(selection.edges[0].id).toBe('edge-1')
+        expect(selection.sourcePreviews[0].id).toBe(source.id)
+
+        const searchResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_search',
+            arguments: { canvasId: canvas.id, query: 'page card' }
+          })
+        )
+        const searchResult = searchResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const search = JSON.parse(searchResult.content[0].text)
+        expect(search.results[0].objectId).toBe('obj-page')
+
+        const exportResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_export_json_canvas',
+            arguments: { canvasId: canvas.id }
+          })
+        )
+        const exportResult = exportResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const exported = JSON.parse(exportResult.content[0].text)
+        const pageNode = exported.document.nodes.find(
+          (node: { id: string }) => node.id === 'obj-page'
+        )
+        expect(pageNode).toMatchObject({
+          type: 'link',
+          xnet: { sourceNodeId: source.id }
+        })
+        expect(exported.document.edges[0]).toMatchObject({
+          fromNode: 'obj-page',
+          toNode: 'obj-note'
+        })
+
+        const importResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_canvas_plan_json_canvas_import',
+            arguments: { canvasId: canvas.id, document: exported.document }
+          })
+        )
+        const importResult = importResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const importPlan = JSON.parse(importResult.content[0].text)
+        expect(importPlan.validation.valid).toBe(true)
+        expect(importPlan.changes[0].operations[0].args.object.sourceNodeId).toBe(source.id)
+      })
+
+      it('plans deterministic canvas layout mutations with visual diffs', async () => {
+        const canvas = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Canvas@1.0.0',
+          properties: {
+            title: 'Layout Canvas',
+            objects: [
+              { id: 'a', type: 'note', x: 10, y: 20, width: 100, height: 80 },
+              { id: 'b', type: 'note', x: 300, y: 20, width: 100, height: 80 }
+            ],
+            edges: []
+          }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_canvas_mutation',
+            arguments: {
+              canvasId: canvas.id,
+              operations: [
+                {
+                  op: 'layoutObjects',
+                  args: {
+                    objectIds: ['a', 'b'],
+                    algorithm: 'horizontal',
+                    startX: 0,
+                    startY: 0,
+                    gap: 50
+                  }
+                },
+                {
+                  op: 'moveObject',
+                  args: { objectId: 'a', x: 20, y: 30 }
+                }
+              ]
+            }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const plan = JSON.parse(result.content[0].text)
+        expect(plan.validation.valid).toBe(true)
+        expect(plan.changes[0].operations[0].args.generatedOperations).toHaveLength(2)
+        expect(plan.changes[0].operations[0].args.visualDiff).toMatchObject({
+          kind: 'layout'
+        })
+        expect(plan.changes[0].operations[1].args.visualDiff).toMatchObject({
+          kind: 'move',
+          objectId: 'a',
+          before: { x: 10, y: 20, width: 100, height: 80 },
+          after: { x: 20, y: 30, width: 100, height: 80 }
+        })
+      })
+    })
+
     describe('tools/call - unknown tool', () => {
       it('returns error for unknown tool', async () => {
         const response = await server.handleRequest(
@@ -442,6 +954,47 @@ describe('MCPServer', () => {
 
         const data = JSON.parse(result.contents[0].text)
         expect(data.schemas).toBeDefined()
+      })
+
+      it('reads xnet://workspace/summary resource', async () => {
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: { title: 'Summary Task' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('resources/read', {
+            uri: 'xnet://workspace/summary'
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { contents: Array<{ uri: string; text: string }> }
+        expect(result.contents[0].uri).toBe('xnet://workspace/summary')
+
+        const data = JSON.parse(result.contents[0].text)
+        expect(data.schemaCount).toBe(2)
+        expect(data.recentNodes[0].title).toBe('Summary Task')
+      })
+
+      it('reads page Markdown resources with frontmatter identity', async () => {
+        const page = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+          properties: { title: 'Product Roadmap', markdown: 'AI surface notes' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('resources/read', {
+            uri: `xnet://page/${page.id}.md`
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { contents: Array<{ mimeType: string; text: string }> }
+        expect(result.contents[0].mimeType).toBe('text/markdown')
+        expect(result.contents[0].text).toContain(`id: "${page.id}"`)
+        expect(result.contents[0].text).toContain('# Product Roadmap')
+        expect(result.contents[0].text).toContain('AI surface notes')
       })
 
       it('returns error for unknown resource', async () => {

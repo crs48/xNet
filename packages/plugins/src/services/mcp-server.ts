@@ -8,6 +8,14 @@
  */
 
 import type { NodeStoreAPI, SchemaRegistryAPI } from './local-api'
+import {
+  AiSurfaceService,
+  createAiSurfaceService,
+  type AiJsonSchema,
+  type AiResource,
+  type AiSurfaceLimits,
+  type AiToolDefinition
+} from '../ai-surface'
 
 // ─── MCP Protocol Types ──────────────────────────────────────────────────────
 
@@ -16,7 +24,10 @@ import type { NodeStoreAPI, SchemaRegistryAPI } from './local-api'
  */
 export interface MCPTool {
   name: string
+  title?: string
   description: string
+  risk?: string
+  requiredScopes?: string[]
   inputSchema: {
     type: 'object'
     properties: Record<string, MCPPropertySchema>
@@ -30,7 +41,11 @@ export interface MCPTool {
 export interface MCPPropertySchema {
   type: 'string' | 'number' | 'boolean' | 'object' | 'array'
   description?: string
+  enum?: readonly string[]
+  properties?: Record<string, MCPPropertySchema>
+  required?: string[]
   items?: MCPPropertySchema
+  additionalProperties?: boolean | MCPPropertySchema
 }
 
 /**
@@ -41,6 +56,9 @@ export interface MCPResource {
   name: string
   description?: string
   mimeType?: string
+  risk?: string
+  requiredScopes?: string[]
+  dynamic?: boolean
 }
 
 /**
@@ -69,6 +87,10 @@ export interface MCPResponse {
 export interface MCPServerConfig {
   store: NodeStoreAPI
   schemas: SchemaRegistryAPI
+  /** Shared AI surface service. A default service is created when omitted. */
+  aiSurface?: AiSurfaceService
+  /** Optional output and pagination limits for the default AI surface. */
+  aiLimits?: Partial<AiSurfaceLimits>
   /** Server name (default: 'xnet') */
   name?: string
   /** Server version (default: '1.0.0') */
@@ -100,14 +122,30 @@ export interface MCPServerConfig {
  * ```
  */
 export class MCPServer {
-  private config: Required<MCPServerConfig>
+  private config: {
+    store: NodeStoreAPI
+    schemas: SchemaRegistryAPI
+    aiSurface: AiSurfaceService
+    name: string
+    version: string
+  }
   private tools: Map<string, MCPTool> = new Map()
+  private aiToolNames: Set<string> = new Set()
   private running = false
 
   constructor(config: MCPServerConfig) {
+    const aiSurface =
+      config.aiSurface ??
+      createAiSurfaceService({
+        store: config.store,
+        schemas: config.schemas,
+        limits: config.aiLimits
+      })
+
     this.config = {
       store: config.store,
       schemas: config.schemas,
+      aiSurface,
       name: config.name ?? 'xnet',
       version: config.version ?? '1.0.0'
     }
@@ -145,20 +183,7 @@ export class MCPServer {
    * Get available resources
    */
   getResources(): MCPResource[] {
-    return [
-      {
-        uri: 'xnet://nodes',
-        name: 'All Nodes',
-        description: 'List of all nodes in the local store',
-        mimeType: 'application/json'
-      },
-      {
-        uri: 'xnet://schemas',
-        name: 'All Schemas',
-        description: 'List of all available schemas',
-        mimeType: 'application/json'
-      }
-    ]
+    return this.config.aiSurface.getResources().map(toMCPResource)
   }
 
   /**
@@ -371,6 +396,11 @@ export class MCPServer {
         properties: {}
       }
     })
+
+    for (const tool of this.config.aiSurface.getTools()) {
+      this.aiToolNames.add(tool.name)
+      this.tools.set(tool.name, toMCPTool(tool))
+    }
   }
 
   // ─── Tool Execution ────────────────────────────────────────────────────────
@@ -463,11 +493,15 @@ export class MCPServer {
       }
 
       default:
+        if (this.aiToolNames.has(name)) {
+          result = await this.config.aiSurface.callTool(name, toolArgs)
+          break
+        }
         throw new Error(`Unknown tool: ${name}`)
     }
 
     return {
-      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+      content: [{ type: 'text', text: this.config.aiSurface.toJsonText(result) }]
     }
   }
 
@@ -478,30 +512,14 @@ export class MCPServer {
   }): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> }> {
     const { uri } = params
 
-    let content: unknown
-
-    if (uri === 'xnet://nodes') {
-      const nodes = await this.config.store.list({ limit: 100 })
-      content = { nodes, count: nodes.length }
-    } else if (uri === 'xnet://schemas') {
-      const iris = this.config.schemas.getAllIRIs()
-      const schemas = await Promise.all(
-        iris.map(async (iri) => {
-          const schema = await this.config.schemas.get(iri)
-          return schema ? { iri, name: schema.name } : null
-        })
-      )
-      content = { schemas: schemas.filter(Boolean) }
-    } else {
-      throw new Error(`Resource not found: ${uri}`)
-    }
+    const content = await this.config.aiSurface.readResource(uri)
 
     return {
       contents: [
         {
-          uri,
-          mimeType: 'application/json',
-          text: JSON.stringify(content, null, 2)
+          uri: content.uri,
+          mimeType: content.mimeType,
+          text: content.text
         }
       ]
     }
@@ -529,4 +547,66 @@ export class MCPServer {
  */
 export function createMCPServer(config: MCPServerConfig): MCPServer {
   return new MCPServer(config)
+}
+
+// ─── Adapter Helpers ────────────────────────────────────────────────────────
+
+function toMCPTool(tool: AiToolDefinition): MCPTool {
+  return {
+    name: tool.name,
+    title: tool.title,
+    description: tool.description,
+    risk: tool.risk,
+    requiredScopes: [...tool.requiredScopes],
+    inputSchema: {
+      type: 'object',
+      properties: Object.fromEntries(
+        Object.entries(tool.inputSchema.properties).map(([name, schema]) => [
+          name,
+          toMCPPropertySchema(schema)
+        ])
+      ),
+      ...(tool.inputSchema.required ? { required: [...tool.inputSchema.required] } : {})
+    }
+  }
+}
+
+function toMCPPropertySchema(schema: AiJsonSchema): MCPPropertySchema {
+  return {
+    type: schema.type,
+    description: schema.description,
+    enum: schema.enum,
+    ...(schema.properties
+      ? {
+          properties: Object.fromEntries(
+            Object.entries(schema.properties).map(([name, property]) => [
+              name,
+              toMCPPropertySchema(property)
+            ])
+          )
+        }
+      : {}),
+    ...(schema.required ? { required: [...schema.required] } : {}),
+    ...(schema.items ? { items: toMCPPropertySchema(schema.items) } : {}),
+    ...(schema.additionalProperties !== undefined
+      ? {
+          additionalProperties:
+            typeof schema.additionalProperties === 'boolean'
+              ? schema.additionalProperties
+              : toMCPPropertySchema(schema.additionalProperties)
+        }
+      : {})
+  }
+}
+
+function toMCPResource(resource: AiResource): MCPResource {
+  return {
+    uri: resource.uri,
+    name: resource.name,
+    description: resource.description,
+    mimeType: resource.mimeType,
+    risk: resource.risk,
+    requiredScopes: [...resource.requiredScopes],
+    dynamic: resource.dynamic
+  }
 }
