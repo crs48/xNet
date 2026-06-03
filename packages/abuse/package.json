@@ -35,5 +35,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/identity": "workspace:*"
   }
 }

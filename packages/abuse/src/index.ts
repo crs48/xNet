@@ -24,6 +24,17 @@ export {
 } from './adapters'
 export { explainDecision, getReasonDetail } from './explain'
 export { TRUSTED_SPAM_LABEL, WARNING_SLOP_LABEL, abuseFixtures, createBaseFacts } from './fixtures'
+export {
+  activePolicyBlockEntries,
+  canonicalizePolicyBlockList,
+  createPolicyBlockList,
+  findPolicyBlockEntry,
+  isSignedPolicyBlockList,
+  policyBlockListSigningBytes,
+  signPolicyBlockList,
+  unsignedPolicyBlockList,
+  verifySignedPolicyBlockList
+} from './policy-blocks'
 export type {
   AbuseAdapterResult,
   AbuseDecisionFunction,
@@ -56,3 +67,13 @@ export type {
   PendingSecurityEvent,
   PolicyScope
 } from './types'
+export type {
+  PolicyBlockAction,
+  PolicyBlockEntry,
+  PolicyBlockListSignature,
+  PolicyBlockListVerificationResult,
+  PolicyBlockScope,
+  PolicyBlockSubjectType,
+  SignedPolicyBlockList,
+  UnsignedPolicyBlockList
+} from './policy-blocks'

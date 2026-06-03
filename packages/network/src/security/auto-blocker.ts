@@ -6,6 +6,16 @@
 
 import type { DefaultConnectionGater } from './gater'
 import type { PeerScorer } from './peer-scorer'
+import {
+  activePolicyBlockEntries,
+  createPolicyBlockList,
+  isSignedPolicyBlockList,
+  type PolicyBlockEntry,
+  type PolicyBlockScope,
+  type SignedPolicyBlockList,
+  type UnsignedPolicyBlockList,
+  verifySignedPolicyBlockList
+} from '@xnetjs/abuse'
 import { logSecurityEvent, type SecurityEventType } from './logging'
 
 export interface BlockInfo {
@@ -34,6 +44,14 @@ export interface YjsPeerActionBridgeEvent {
 
 export interface YjsPeerScorerBridge {
   onAction(listener: (event: YjsPeerActionBridgeEvent) => void): () => void
+}
+
+export type BlockPolicyListOptions = {
+  id: string
+  scope: PolicyBlockScope
+  issuerDID: string
+  title?: string
+  now?: number
 }
 
 export const DEFAULT_BLOCK_THRESHOLDS: Record<SecurityEventType, BlockThresholds> = {
@@ -200,6 +218,61 @@ export class AutoBlocker {
       }
     }
     return result
+  }
+
+  /** Convert active peer blocks into signed-policy-list-compatible entries. */
+  toPolicyBlockEntries(): PolicyBlockEntry[] {
+    return this.getBlockedPeers().map(({ peerId, info }) => ({
+      subject: peerId,
+      subjectType: 'peerId',
+      action: 'block-peer',
+      reason: info.reason,
+      evidenceRefs: info.evidence ? [info.evidence] : undefined,
+      createdAt: info.blockedAt,
+      expiresAt: info.expiresAt,
+      autoBlock: info.autoBlock
+    }))
+  }
+
+  /** Export current blocks as unsigned policy data ready for signing and persistence. */
+  toPolicyBlockList(options: BlockPolicyListOptions): UnsignedPolicyBlockList {
+    const now = options.now ?? Date.now()
+    return createPolicyBlockList({
+      id: options.id,
+      title: options.title,
+      scope: options.scope,
+      issuerDID: options.issuerDID,
+      createdAt: now,
+      updatedAt: now,
+      entries: this.toPolicyBlockEntries()
+    })
+  }
+
+  /** Apply active peer block entries from persisted policy data. */
+  applyPolicyBlockList(
+    list: SignedPolicyBlockList | UnsignedPolicyBlockList,
+    now = Date.now()
+  ): number {
+    if (isSignedPolicyBlockList(list) && !verifySignedPolicyBlockList(list).valid) {
+      return 0
+    }
+
+    let applied = 0
+    for (const entry of activePolicyBlockEntries(list, now)) {
+      if (entry.subjectType !== 'peerId' || entry.action !== 'block-peer') continue
+      const duration = entry.expiresAt ? Math.max(0, entry.expiresAt - now) : undefined
+      if (duration === 0) continue
+
+      this.blockPeer(entry.subject, {
+        reason: entry.reason,
+        evidence: entry.evidenceRefs?.join('\n'),
+        duration,
+        autoBlock: entry.autoBlock ?? false
+      })
+      applied++
+    }
+
+    return applied
   }
 
   // ============ Stats ============

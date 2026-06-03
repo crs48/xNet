@@ -36,6 +36,7 @@ export { PeerScorer, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS } from './peer-scorer'
 export type {
   BlockInfo,
   BlockThresholds,
+  BlockPolicyListOptions,
   YjsPeerActionBridgeEvent,
   YjsPeerScorerBridge
 } from './auto-blocker'

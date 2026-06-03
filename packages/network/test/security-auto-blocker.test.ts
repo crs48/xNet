@@ -1,3 +1,9 @@
+import {
+  createPolicyBlockList,
+  signPolicyBlockList,
+  verifySignedPolicyBlockList
+} from '@xnetjs/abuse'
+import { generateIdentity } from '@xnetjs/identity'
 import { YjsPeerScorer } from '@xnetjs/sync'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { AutoBlocker } from '../src/security/auto-blocker'
@@ -144,6 +150,136 @@ describe('AutoBlocker', () => {
       vi.advanceTimersByTime(1001)
 
       expect(blocker.getBlockedPeers()).toHaveLength(0)
+    })
+  })
+
+  describe('policy block list persistence', () => {
+    it('exports active blocks as signable policy data', () => {
+      const issuer = generateIdentity()
+      blocker.blockPeer('peer1', {
+        reason: 'manual workspace block',
+        evidence: 'operator review',
+        duration: 60_000,
+        autoBlock: false
+      })
+
+      const policy = blocker.toPolicyBlockList({
+        id: 'workspace-blocks',
+        title: 'Workspace blocks',
+        scope: 'workspace',
+        issuerDID: issuer.identity.did
+      })
+      const signed = signPolicyBlockList(policy, issuer.privateKey)
+
+      expect(policy.entries).toEqual([
+        expect.objectContaining({
+          subject: 'peer1',
+          subjectType: 'peerId',
+          action: 'block-peer',
+          reason: 'manual workspace block',
+          evidenceRefs: ['operator review'],
+          autoBlock: false
+        })
+      ])
+      expect(verifySignedPolicyBlockList(signed)).toEqual({ valid: true, errors: [] })
+    })
+
+    it('applies active peer blocks from persisted policy data', () => {
+      const policy = createPolicyBlockList({
+        id: 'local-blocks',
+        scope: 'user',
+        issuerDID: 'did:key:z6MkLocal',
+        createdAt: 1_000,
+        entries: [
+          {
+            subject: 'persisted-peer',
+            subjectType: 'peerId',
+            action: 'block-peer',
+            reason: 'persisted local block',
+            evidenceRefs: ['local review'],
+            createdAt: 1_000,
+            expiresAt: 2_000
+          }
+        ]
+      })
+
+      vi.setSystemTime(1_500)
+      const applied = blocker.applyPolicyBlockList(policy, 1_500)
+
+      expect(applied).toBe(1)
+      expect(blocker.isBlocked('persisted-peer')).toBe(true)
+      expect(blocker.getBlockInfo('persisted-peer')).toEqual(
+        expect.objectContaining({
+          reason: 'persisted local block',
+          evidence: 'local review'
+        })
+      )
+
+      vi.advanceTimersByTime(501)
+      expect(blocker.isBlocked('persisted-peer')).toBe(false)
+    })
+
+    it('does not apply tampered signed policy data', () => {
+      const issuer = generateIdentity()
+      const signed = signPolicyBlockList(
+        createPolicyBlockList({
+          id: 'workspace-blocks',
+          scope: 'workspace',
+          issuerDID: issuer.identity.did,
+          createdAt: 1_000,
+          entries: [
+            {
+              subject: 'trusted-peer',
+              subjectType: 'peerId',
+              action: 'block-peer',
+              reason: 'signed block',
+              createdAt: 1_000
+            }
+          ]
+        }),
+        issuer.privateKey
+      )
+      const tampered = {
+        ...signed,
+        entries: [{ ...signed.entries[0], subject: 'tampered-peer' }]
+      }
+
+      const applied = blocker.applyPolicyBlockList(tampered, 1_500)
+
+      expect(applied).toBe(0)
+      expect(blocker.isBlocked('tampered-peer')).toBe(false)
+    })
+
+    it('ignores expired or non-peer policy entries', () => {
+      const policy = createPolicyBlockList({
+        id: 'workspace-blocks',
+        scope: 'workspace',
+        issuerDID: 'did:key:z6MkWorkspace',
+        createdAt: 1_000,
+        entries: [
+          {
+            subject: 'expired-peer',
+            subjectType: 'peerId',
+            action: 'block-peer',
+            reason: 'expired',
+            createdAt: 1_000,
+            expiresAt: 1_200
+          },
+          {
+            subject: 'did:key:z6MkUser',
+            subjectType: 'did',
+            action: 'reject',
+            reason: 'handled by higher policy layer',
+            createdAt: 1_000
+          }
+        ]
+      })
+
+      const applied = blocker.applyPolicyBlockList(policy, 1_500)
+
+      expect(applied).toBe(0)
+      expect(blocker.isBlocked('expired-peer')).toBe(false)
+      expect(blocker.isBlocked('did:key:z6MkUser')).toBe(false)
     })
   })
 

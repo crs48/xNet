@@ -27,6 +27,7 @@
     "@libp2p/webrtc": "^5.2.5",
     "@libp2p/websockets": "^9.2.8",
     "@msgpack/msgpack": "^3.0.0",
+    "@xnetjs/abuse": "workspace:*",
     "@xnetjs/core": "workspace:*",
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",
