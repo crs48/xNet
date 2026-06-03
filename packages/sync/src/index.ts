@@ -74,11 +74,26 @@ export type {
 export { createSyncLifecycleState, deriveSyncLifecyclePhase } from './sync-runtime'
 
 export type {
+  PolicyRevisionSimulation,
+  ReplicationNamespaceKind,
+  ReplicationPlan,
+  ReplicationPlanDestination,
+  ReplicationPlanDiagnostic,
+  ReplicationPlanTraceStep,
   SyncCompatibilityConfig,
+  SyncFederationConfig,
+  SyncFederationHub,
+  SyncFederationNamespacePolicy,
   SyncReplicationConfig,
   ResolvedSyncReplicationPolicy
 } from './replication-policy'
-export { resolveSyncReplicationPolicy } from './replication-policy'
+export {
+  inferReplicationNamespaceKind,
+  normalizeSyncFederationHubs,
+  planReplicationDestinations,
+  resolveSyncReplicationPolicy,
+  simulateSyncPolicyRevision
+} from './replication-policy'
 
 // Yjs security: signed envelopes (Step 01 + Multi-level signatures)
 export type {

@@ -423,8 +423,8 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 ### Phase 5 - Multi-hub orchestration
 
 - [ ] Add first-class multi-hub sync orchestration (not single-server fallback selection).
-- [ ] Implement policy planner for system and user namespace destinations.
-- [ ] Add simulation endpoint/tooling for policy revisions.
+- [x] Implement policy planner for system and user namespace destinations.
+- [x] Add simulation endpoint/tooling for policy revisions.
 - [ ] Add reconciliation and repair workflow for partition recovery.
 
 ### Phase 6 - Developer experience and docs
@@ -443,7 +443,7 @@ xNet-specific stance: use these patterns through one substrate (nodes + signed c
 - [ ] Publishing `SchemaDefinition` nodes propagates to allowed peers.
 - [x] Schema resolution by IRI/version works from replicated node graph.
 - [x] Presence summaries stay consistent under create/update/delete churn.
-- [ ] Policy revisions deterministically alter replication destinations.
+- [x] Policy revisions deterministically alter replication destinations.
 
 ### Authorization validation
 
