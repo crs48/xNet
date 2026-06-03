@@ -163,6 +163,9 @@ describe('MCPServer', () => {
       expect(toolNames).toContain('xnet_create_context_pack')
       expect(toolNames).toContain('xnet_validate_page_markdown')
       expect(toolNames).toContain('xnet_plan_page_patch')
+      expect(toolNames).toContain('xnet_database_describe')
+      expect(toolNames).toContain('xnet_database_sample')
+      expect(toolNames).toContain('xnet_database_explain_query')
     })
 
     it('tools have proper schema', () => {
@@ -484,6 +487,169 @@ describe('MCPServer', () => {
         expect(data.validation.valid).toBe(false)
         expect(data.validation.errors).toContain(
           'xnet-database block directive payload must be valid JSON'
+        )
+      })
+
+      it('queries, samples, and explains database rows with descriptors', async () => {
+        const database = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+          properties: {
+            title: 'Projects',
+            rowSchemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+            columns: [{ id: 'title', name: 'Title', type: 'text' }],
+            views: [{ id: 'view-table', name: 'Table', type: 'table' }]
+          }
+        })
+        await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+          properties: { database: database.id, title: 'Alpha Launch', status: 'active' }
+        })
+        await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+          properties: { database: database.id, title: 'Beta Cleanup', status: 'later' }
+        })
+
+        const describeResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_describe',
+            arguments: { databaseId: database.id, includeSample: true }
+          })
+        )
+        const describeResult = describeResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const description = JSON.parse(describeResult.content[0].text)
+        expect(description.columns).toHaveLength(1)
+        expect(description.sample.rows).toHaveLength(2)
+
+        const queryResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_query',
+            arguments: {
+              databaseId: database.id,
+              descriptor: {
+                search: { text: 'alpha' },
+                orderBy: { title: 'asc' },
+                materializedView: { viewId: 'view-table' }
+              },
+              count: 'exact',
+              limit: 10
+            }
+          })
+        )
+        const queryResult = queryResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const query = JSON.parse(queryResult.content[0].text)
+        expect(query.descriptor.schemaId).toBe('xnet://xnet.fyi/ProjectRow@1.0.0')
+        expect(query.rows).toHaveLength(1)
+        expect(query.rows[0].properties.title).toBe('Alpha Launch')
+        expect(query.page.materializedView.viewId).toBe('view-table')
+        expect(query.queryPlan.strategy).toBe('list-fallback')
+
+        const explainResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_explain_query',
+            arguments: {
+              databaseId: database.id,
+              descriptor: { materializedView: { viewId: 'view-table' } }
+            }
+          })
+        )
+        const explainResult = explainResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const explanation = JSON.parse(explainResult.content[0].text)
+        expect(explanation.diagnostics.usesMaterializedView).toBe(true)
+        expect(explanation.diagnostics.storageQueryAvailable).toBe(false)
+
+        const sampleResponse = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_database_sample',
+            arguments: { databaseId: database.id, sampleSize: 1 }
+          })
+        )
+        const sampleResult = sampleResponse.result as {
+          content: Array<{ type: string; text: string }>
+        }
+        const sample = JSON.parse(sampleResult.content[0].text)
+        expect(sample.rows).toHaveLength(1)
+        expect(sample.strategy).toBe('deterministic-first-page')
+      })
+
+      it('plans mixed database row transactions and schema doc mutations', async () => {
+        const database = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+          properties: {
+            title: 'Projects',
+            rowSchemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0'
+          }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_database_mutation',
+            arguments: {
+              databaseId: database.id,
+              operations: [
+                {
+                  op: 'createRow',
+                  args: { properties: { title: 'New project' } }
+                },
+                {
+                  op: 'addColumn',
+                  args: { column: { id: 'status', name: 'Status', type: 'select' } }
+                }
+              ]
+            }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const plan = JSON.parse(result.content[0].text)
+        expect(plan.validation.valid).toBe(true)
+        expect(plan.requiredScopes).toContain('database.write.rows')
+        expect(plan.requiredScopes).toContain('database.write.schema')
+        expect(plan.changes.map((change: { targetKind: string }) => change.targetKind)).toEqual([
+          'databaseRows',
+          'database'
+        ])
+        expect(plan.changes[0].operations[0].args.transactionOperations[0]).toMatchObject({
+          type: 'create',
+          options: {
+            schemaId: 'xnet://xnet.fyi/ProjectRow@1.0.0',
+            properties: { database: database.id, title: 'New project' }
+          }
+        })
+        expect(plan.changes[1].operations[0].args.yDocMutation).toMatchObject({
+          document: 'database',
+          collection: 'columns',
+          helper: 'addColumn'
+        })
+      })
+
+      it('rejects destructive database plans without explicit delete markers', async () => {
+        const database = await mockStore.create({
+          schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+          properties: { title: 'Projects' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_plan_database_mutation',
+            arguments: {
+              databaseId: database.id,
+              operations: [{ op: 'deleteRow', args: { rowId: 'row_1' } }]
+            }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const plan = JSON.parse(result.content[0].text)
+        expect(plan.risk).toBe('high')
+        expect(plan.validation.valid).toBe(false)
+        expect(plan.validation.errors).toContain(
+          'operations[0] delete/drop/remove operations require confirmDelete true or deletionMarker "DELETE"'
         )
       })
     })

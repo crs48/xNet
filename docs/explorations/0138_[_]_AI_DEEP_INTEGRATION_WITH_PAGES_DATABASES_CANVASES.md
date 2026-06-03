@@ -1334,13 +1334,13 @@ Workspace:
 
 ### Phase 4: Database AI Tools
 
-- [ ] Add database describe/query/sample tools using `NodeQueryDescriptor`.
-- [ ] Add row mutation plans using NodeStore transactions.
-- [ ] Add schema/view mutation plans using database Y.Doc helpers.
-- [ ] Add destructive-change detection.
-- [ ] Add explain/diagnostic tools for query plans and indexes.
-- [ ] Add large database pagination and materialized view support.
-- [ ] Add tests for mixed schema plus row mutations.
+- [x] Add database describe/query/sample tools using `NodeQueryDescriptor`.
+- [x] Add row mutation plans using NodeStore transactions.
+- [x] Add schema/view mutation plans using database Y.Doc helpers.
+- [x] Add destructive-change detection.
+- [x] Add explain/diagnostic tools for query plans and indexes.
+- [x] Add large database pagination and materialized view support.
+- [x] Add tests for mixed schema plus row mutations.
 
 ### Phase 5: Canvas AI Tools
 

@@ -16,6 +16,14 @@ import type {
   AiToolDefinition
 } from './types'
 import type { NodeData, NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
+import type {
+  NodeQueryDescriptor,
+  NodeQueryMaterializedViewOptions,
+  NodeQueryPlanMetadata,
+  NodeQueryResult,
+  NodeQuerySearchFilter,
+  SortDirection
+} from '@xnetjs/data'
 import { renderMarkdownLineDiff, validateXNetPageMarkdown } from './page-markdown'
 import { attachAiPlanValidation, createAiOperation, validateAiMutationPlan } from './validation'
 
@@ -156,6 +164,15 @@ export class AiSurfaceService {
         true
       ),
       createResource(
+        'xnet://database/{databaseId}/sample?limit=10',
+        'Database Sample Rows',
+        'Bounded sample of rows for a database using NodeQueryDescriptor semantics.',
+        'application/json',
+        'low',
+        ['database.read', 'database.query'],
+        true
+      ),
+      createResource(
         'xnet://canvas/{canvasId}/viewport?x=0&y=0&w=1000&h=800',
         'Canvas Viewport',
         'Viewport-scoped canvas objects and edges.',
@@ -265,9 +282,28 @@ export class AiSurfaceService {
         }
       },
       {
+        name: 'xnet_database_describe',
+        title: 'Describe database',
+        description: 'Describe database schema, columns, views, row schema, and row counts.',
+        risk: 'low',
+        requiredScopes: ['database.read'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            databaseId: { type: 'string', description: 'Database node id.' },
+            includeSample: {
+              type: 'boolean',
+              description: 'Include a small descriptor-backed row sample.'
+            }
+          },
+          required: ['databaseId']
+        }
+      },
+      {
         name: 'xnet_database_query',
         title: 'Query database rows',
-        description: 'Read a bounded page of database rows by database id and optional row schema.',
+        description:
+          'Read a bounded page of database rows using NodeQueryDescriptor-compatible options.',
         risk: 'low',
         requiredScopes: ['database.read', 'database.query'],
         inputSchema: {
@@ -275,7 +311,70 @@ export class AiSurfaceService {
           properties: {
             databaseId: { type: 'string', description: 'Database node id.' },
             schemaId: { type: 'string', description: 'Optional row schema IRI.' },
+            descriptor: {
+              type: 'object',
+              description: 'Optional NodeQueryDescriptor-compatible query shape.'
+            },
+            where: {
+              type: 'object',
+              description: 'Optional exact property filters for row nodes.'
+            },
+            search: {
+              type: 'object',
+              description: 'Optional NodeQueryDescriptor search filter.'
+            },
+            orderBy: {
+              type: 'object',
+              description: 'Optional NodeQueryDescriptor order map.'
+            },
+            materializedView: {
+              type: 'object',
+              description: 'Optional materialized view query options.'
+            },
+            count: { type: 'string', description: 'Page count mode: exact, estimate, or none.' },
             limit: { type: 'number', description: 'Maximum row count.' },
+            offset: { type: 'number', description: 'Row offset.' }
+          },
+          required: ['databaseId']
+        }
+      },
+      {
+        name: 'xnet_database_sample',
+        title: 'Sample database rows',
+        description: 'Return a small deterministic sample for schema and content inspection.',
+        risk: 'low',
+        requiredScopes: ['database.read', 'database.query'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            databaseId: { type: 'string', description: 'Database node id.' },
+            schemaId: { type: 'string', description: 'Optional row schema IRI.' },
+            sampleSize: { type: 'number', description: 'Sample row count.' },
+            descriptor: {
+              type: 'object',
+              description: 'Optional NodeQueryDescriptor-compatible query shape.'
+            }
+          },
+          required: ['databaseId']
+        }
+      },
+      {
+        name: 'xnet_database_explain_query',
+        title: 'Explain database query',
+        description:
+          'Explain descriptor, pagination, materialized view, and storage plan metadata.',
+        risk: 'low',
+        requiredScopes: ['database.read', 'database.query', 'storage.diagnostics'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            databaseId: { type: 'string', description: 'Database node id.' },
+            schemaId: { type: 'string', description: 'Optional row schema IRI.' },
+            descriptor: {
+              type: 'object',
+              description: 'Optional NodeQueryDescriptor-compatible query shape.'
+            },
+            limit: { type: 'number', description: 'Maximum row count for the dry-run query.' },
             offset: { type: 'number', description: 'Row offset.' }
           },
           required: ['databaseId']
@@ -394,24 +493,44 @@ export class AiSurfaceService {
       case 'xnet_plan_page_patch':
         return await this.planPagePatch(args)
 
+      case 'xnet_database_describe':
+        return await this.describeDatabase(readRequiredString(args, 'databaseId'), {
+          includeSample: readOptionalBoolean(args, 'includeSample') ?? false
+        })
+
       case 'xnet_database_query':
         return await this.queryDatabase({
           databaseId: readRequiredString(args, 'databaseId'),
           schemaId: readOptionalString(args, 'schemaId'),
+          descriptor: readOptionalRecord(args, 'descriptor'),
+          where: readOptionalRecord(args, 'where'),
+          search: args.search,
+          orderBy: readOptionalRecord(args, 'orderBy'),
+          materializedView: args.materializedView,
+          count: readOptionalString(args, 'count'),
+          limit: readOptionalNumber(args, 'limit'),
+          offset: readOptionalNumber(args, 'offset')
+        })
+
+      case 'xnet_database_sample':
+        return await this.sampleDatabase({
+          databaseId: readRequiredString(args, 'databaseId'),
+          schemaId: readOptionalString(args, 'schemaId'),
+          descriptor: readOptionalRecord(args, 'descriptor'),
+          sampleSize: readOptionalNumber(args, 'sampleSize')
+        })
+
+      case 'xnet_database_explain_query':
+        return await this.explainDatabaseQuery({
+          databaseId: readRequiredString(args, 'databaseId'),
+          schemaId: readOptionalString(args, 'schemaId'),
+          descriptor: readOptionalRecord(args, 'descriptor'),
           limit: readOptionalNumber(args, 'limit'),
           offset: readOptionalNumber(args, 'offset')
         })
 
       case 'xnet_plan_database_mutation':
-        return await this.planSurfaceMutation({
-          targetKind: 'database',
-          targetId: readRequiredString(args, 'databaseId'),
-          baseRevision: readOptionalString(args, 'baseRevision'),
-          operations: readOperations(args.operations),
-          actor: readOptionalString(args, 'actor') ?? 'ai-agent',
-          intent: readOptionalString(args, 'intent') ?? 'Plan database mutation',
-          requiredScopes: ['database.read', 'database.propose']
-        })
+        return await this.planDatabaseMutation(args)
 
       case 'xnet_canvas_read_viewport':
         return await this.readCanvasViewport({
@@ -506,11 +625,25 @@ export class AiSurfaceService {
       if (parsed.parts[1] === 'views') {
         return this.jsonResource(uri, await this.readDatabaseViews(databaseId))
       }
+      if (parsed.parts[1] === 'sample') {
+        return this.jsonResource(
+          uri,
+          await this.sampleDatabase({
+            databaseId,
+            sampleSize: readUrlNumber(parsed.searchParams, 'limit')
+          })
+        )
+      }
       if (parsed.parts[1] === 'query') {
         return this.jsonResource(
           uri,
           await this.queryDatabase({
             databaseId,
+            schemaId: parsed.searchParams.get('schema') ?? undefined,
+            search: parsed.searchParams.get('q') ?? undefined,
+            materializedView: parsed.searchParams.get('view')
+              ? { viewId: parsed.searchParams.get('view') ?? '' }
+              : undefined,
             limit: readUrlNumber(parsed.searchParams, 'limit'),
             offset: readUrlNumber(parsed.searchParams, 'offset')
           })
@@ -755,10 +888,13 @@ export class AiSurfaceService {
 
   // ─── Databases ────────────────────────────────────────────────────────────
 
-  private async describeDatabase(databaseId: string): Promise<Record<string, unknown>> {
+  private async describeDatabase(
+    databaseId: string,
+    options: { includeSample?: boolean } = {}
+  ): Promise<Record<string, unknown>> {
     const database = await this.getNodeOrThrow(databaseId)
     const schema = await this.config.schemas.get(database.schemaId)
-    return {
+    const description: Record<string, unknown> = {
       database: summarizeNode(database),
       revision: revisionForNode(database),
       schema,
@@ -767,8 +903,20 @@ export class AiSurfaceService {
         readNestedArrayProperty(database, 'schema', 'columns') ??
         [],
       rowSchemaId: readStringProperty(database, 'rowSchemaId'),
-      rowCount: database.properties.rowCount
+      rowCount: database.properties.rowCount,
+      views: readArrayProperty(database, 'views') ?? [],
+      query: {
+        descriptorShape: 'NodeQueryDescriptor',
+        supportedFilters: ['where', 'search', 'orderBy', 'limit', 'offset', 'materializedView'],
+        databaseMembershipProperties: ['database', 'databaseId', 'parentDatabaseId']
+      }
     }
+
+    if (options.includeSample) {
+      description.sample = await this.sampleDatabase({ databaseId, sampleSize: 5 })
+    }
+
+    return description
   }
 
   private async readDatabaseViews(databaseId: string): Promise<Record<string, unknown>> {
@@ -784,27 +932,160 @@ export class AiSurfaceService {
   private async queryDatabase(options: {
     databaseId: string
     schemaId?: string
+    descriptor?: Record<string, unknown>
+    where?: Record<string, unknown>
+    search?: unknown
+    orderBy?: Record<string, unknown>
+    materializedView?: unknown
+    count?: string
     limit?: number
     offset?: number
   }): Promise<Record<string, unknown>> {
     const database = await this.getNodeOrThrow(options.databaseId)
-    const limit = clampLimit(options.limit, this.limits.maxDatabaseRows)
-    const offset = Math.max(0, options.offset ?? 0)
-    const schemaId = options.schemaId ?? readStringProperty(database, 'rowSchemaId')
-    const scanLimit = Math.max(limit + offset, this.limits.maxDatabaseRows)
-    const nodes = await this.config.store.list({ schemaId, limit: scanLimit, offset: 0 })
-    const rows = nodes
-      .filter((node) => !node.deleted && belongsToDatabase(node, options.databaseId))
-      .slice(offset, offset + limit)
+    const { descriptor, pageLimit, offset } = buildDatabaseQueryDescriptor(database, options, {
+      maxRows: this.limits.maxDatabaseRows
+    })
+    const queryResult = await this.executeDatabaseQueryDescriptor(descriptor, pageLimit, offset)
+    const filteredRows = queryResult.nodes.filter((node) =>
+      belongsToDatabase(node, options.databaseId)
+    )
+    const rows = filteredRows.slice(offset, offset + pageLimit)
+    const totalCount =
+      descriptor.count === 'none' ? undefined : (queryResult.totalCount ?? filteredRows.length)
 
     return {
       databaseId: options.databaseId,
       databaseRevision: revisionForNode(database),
-      schemaId,
-      limit,
+      schemaId: descriptor.schemaId,
+      descriptor,
+      limit: pageLimit,
       offset,
+      totalCount,
       count: rows.length,
-      rows
+      rows,
+      page: {
+        hasMore:
+          totalCount !== undefined ? offset + rows.length < totalCount : rows.length === pageLimit,
+        countMode: descriptor.count ?? 'none',
+        materializedView: descriptor.materializedView
+      },
+      queryPlan: queryResult.plan
+    }
+  }
+
+  private async sampleDatabase(options: {
+    databaseId: string
+    schemaId?: string
+    descriptor?: Record<string, unknown>
+    sampleSize?: number
+  }): Promise<Record<string, unknown>> {
+    const sampleSize = clampLimit(options.sampleSize, Math.min(10, this.limits.maxDatabaseRows))
+    const result = await this.queryDatabase({
+      databaseId: options.databaseId,
+      schemaId: options.schemaId,
+      descriptor: options.descriptor,
+      limit: sampleSize,
+      offset: 0,
+      count: 'estimate'
+    })
+
+    return {
+      databaseId: options.databaseId,
+      sampleSize,
+      descriptor: result.descriptor,
+      totalCount: result.totalCount,
+      rows: result.rows,
+      queryPlan: result.queryPlan,
+      strategy: 'deterministic-first-page'
+    }
+  }
+
+  private async explainDatabaseQuery(options: {
+    databaseId: string
+    schemaId?: string
+    descriptor?: Record<string, unknown>
+    limit?: number
+    offset?: number
+  }): Promise<Record<string, unknown>> {
+    const result = await this.queryDatabase({
+      databaseId: options.databaseId,
+      schemaId: options.schemaId,
+      descriptor: options.descriptor,
+      limit: options.limit,
+      offset: options.offset,
+      count: 'estimate'
+    })
+    const descriptor = result.descriptor as NodeQueryDescriptor
+    const queryPlan = result.queryPlan as NodeQueryPlanMetadata
+
+    return {
+      databaseId: options.databaseId,
+      descriptor,
+      queryPlan,
+      diagnostics: {
+        strategy: queryPlan.strategy,
+        storageQueryAvailable: typeof this.config.store.query === 'function',
+        usesMaterializedView: descriptor.materializedView !== undefined,
+        materializedView: descriptor.materializedView,
+        hasSearch: descriptor.search !== undefined,
+        hasWhere: descriptor.where !== undefined && Object.keys(descriptor.where).length > 0,
+        orderBy: descriptor.orderBy,
+        pagination: {
+          limit: descriptor.limit,
+          offset: descriptor.offset,
+          count: descriptor.count ?? 'none'
+        },
+        databaseMembershipFilter: {
+          postFiltered: true,
+          properties: ['database', 'databaseId', 'parentDatabaseId']
+        },
+        warnings: databaseQueryWarnings(descriptor, queryPlan)
+      }
+    }
+  }
+
+  private async executeDatabaseQueryDescriptor(
+    descriptor: NodeQueryDescriptor,
+    pageLimit: number,
+    offset: number
+  ): Promise<NodeQueryResult> {
+    const executionDescriptor = {
+      ...descriptor,
+      limit: Math.min(this.limits.maxDatabaseRows, Math.max(pageLimit + offset, pageLimit)),
+      offset: 0
+    }
+
+    if (this.config.store.query) {
+      return this.config.store.query(executionDescriptor)
+    }
+
+    const startedAt = Date.now()
+    const candidates = await this.config.store.list({
+      schemaId: executionDescriptor.schemaId,
+      limit: this.limits.maxDatabaseRows,
+      offset: 0
+    })
+    const nodes = applyDatabaseQueryDescriptorFallback(candidates, executionDescriptor)
+
+    return {
+      nodes: nodes as NodeQueryResult['nodes'],
+      totalCount:
+        descriptor.count === 'none'
+          ? undefined
+          : applyDatabaseQueryDescriptorFallback(candidates, {
+              ...executionDescriptor,
+              limit: undefined,
+              offset: undefined
+            }).length,
+      plan: {
+        strategy: 'list-fallback',
+        candidateNodeCount: candidates.length,
+        hydratedNodeCount: candidates.length,
+        returnedNodeCount: nodes.length,
+        durationMs: Date.now() - startedAt,
+        postFilterReason: 'AI surface store adapter does not expose NodeStore.query',
+        materializedViewId: executionDescriptor.materializedView?.viewId
+      }
     }
   }
 
@@ -883,6 +1164,33 @@ export class AiSurfaceService {
       }
     }
     return previews
+  }
+
+  private async planDatabaseMutation(args: Record<string, unknown>): Promise<AiMutationPlan> {
+    const databaseId = readRequiredString(args, 'databaseId')
+    const database = await this.getNodeOrThrow(databaseId)
+    const operations = readOperations(args.operations)
+    const baseRevision = readOptionalString(args, 'baseRevision') ?? revisionForNode(database)
+    const classified = classifyDatabaseOperations(database, operations)
+    const staleWarnings =
+      baseRevision === revisionForNode(database)
+        ? []
+        : ['baseRevision does not match the live node revision']
+
+    return this.validatedPlan({
+      actor: readOptionalString(args, 'actor') ?? 'ai-agent',
+      intent: readOptionalString(args, 'intent') ?? 'Plan database mutation',
+      risk: databaseMutationRisk(classified.operations),
+      requiredScopes: databaseMutationScopes(classified),
+      changes: databaseMutationChangeSets({
+        databaseId,
+        baseRevision,
+        rowOperations: classified.rowOperations,
+        schemaOperations: classified.schemaOperations
+      }),
+      warnings: [...staleWarnings, ...classified.warnings],
+      errors: classified.errors
+    })
   }
 
   // ─── Plan Helpers ─────────────────────────────────────────────────────────
@@ -1224,6 +1532,457 @@ function belongsToDatabase(node: NodeData, databaseId: string): boolean {
   )
 }
 
+const DEFAULT_DATABASE_ROW_SCHEMA_ID = 'xnet://xnet.fyi/DatabaseRow@1.0.0'
+
+function buildDatabaseQueryDescriptor(
+  database: NodeData,
+  options: {
+    schemaId?: string
+    descriptor?: Record<string, unknown>
+    where?: Record<string, unknown>
+    search?: unknown
+    orderBy?: Record<string, unknown>
+    materializedView?: unknown
+    count?: string
+    limit?: number
+    offset?: number
+  },
+  limits: { maxRows: number }
+): {
+  descriptor: NodeQueryDescriptor
+  pageLimit: number
+  offset: number
+} {
+  const source = options.descriptor ?? {}
+  const pageLimit = clampLimit(options.limit ?? readRecordNumber(source, 'limit'), limits.maxRows)
+  const offset = Math.max(0, options.offset ?? readRecordNumber(source, 'offset') ?? 0)
+  const schemaId =
+    options.schemaId ??
+    readRecordString(source, 'schemaId') ??
+    readStringProperty(database, 'rowSchemaId') ??
+    DEFAULT_DATABASE_ROW_SCHEMA_ID
+  const where = normalizeQueryWhere(options.where ?? readRecord(source, 'where'))
+  const orderBy = normalizeQueryOrderBy(options.orderBy ?? readRecord(source, 'orderBy'))
+  const search = normalizeQuerySearch(options.search ?? source.search)
+  const materializedView = normalizeQueryMaterializedView(
+    options.materializedView ?? source.materializedView
+  )
+  const count = normalizeQueryCountMode(options.count ?? readRecordString(source, 'count'))
+  const after = readRecordString(source, 'after')
+  const nodeId = readRecordString(source, 'nodeId')
+  const includeDeleted = readRecordBoolean(source, 'includeDeleted') ?? false
+
+  return {
+    pageLimit,
+    offset,
+    descriptor: {
+      schemaId: schemaId as NodeQueryDescriptor['schemaId'],
+      ...(nodeId ? { nodeId } : {}),
+      ...(where ? { where } : {}),
+      includeDeleted,
+      ...(orderBy ? { orderBy } : {}),
+      limit: pageLimit,
+      ...(offset > 0 ? { offset } : {}),
+      ...(after ? { after } : {}),
+      ...(count ? { count } : {}),
+      ...(search ? { search } : {}),
+      ...(materializedView ? { materializedView } : {})
+    }
+  }
+}
+
+function normalizeQueryWhere(
+  value: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined {
+  if (!value) return undefined
+  const entries = Object.entries(value).filter(([, item]) => item !== undefined)
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined
+}
+
+function normalizeQueryOrderBy(
+  value: Record<string, unknown> | undefined
+): Record<string, SortDirection> | undefined {
+  if (!value) return undefined
+  const entries = Object.entries(value).filter(
+    (entry): entry is [string, SortDirection] => entry[1] === 'asc' || entry[1] === 'desc'
+  )
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined
+}
+
+function normalizeQuerySearch(value: unknown): NodeQuerySearchFilter | undefined {
+  if (typeof value === 'string') {
+    const text = value.trim()
+    return text ? { text } : undefined
+  }
+
+  if (!isRecord(value) || typeof value.text !== 'string' || !value.text.trim()) {
+    return undefined
+  }
+
+  const fields = Array.isArray(value.fields)
+    ? value.fields.filter(
+        (field): field is 'title' | 'content' => field === 'title' || field === 'content'
+      )
+    : undefined
+
+  return {
+    text: value.text.trim(),
+    ...(fields && fields.length > 0 ? { fields: [...new Set(fields)] } : {})
+  }
+}
+
+function normalizeQueryMaterializedView(
+  value: unknown
+): NodeQueryMaterializedViewOptions | undefined {
+  if (typeof value === 'string') {
+    const viewId = value.trim()
+    return viewId ? { viewId } : undefined
+  }
+
+  if (!isRecord(value)) return undefined
+  const viewId = readRecordString(value, 'viewId')
+  if (!viewId) return undefined
+  const maxAgeMs = readRecordNumber(value, 'maxAgeMs')
+
+  return {
+    viewId,
+    ...(maxAgeMs !== undefined && maxAgeMs >= 0 ? { maxAgeMs } : {}),
+    ...(value.forceRefresh === true ? { forceRefresh: true } : {})
+  }
+}
+
+function normalizeQueryCountMode(
+  value: string | undefined
+): 'exact' | 'estimate' | 'none' | undefined {
+  return value === 'exact' || value === 'estimate' || value === 'none' ? value : undefined
+}
+
+function applyDatabaseQueryDescriptorFallback(
+  nodes: NodeData[],
+  descriptor: NodeQueryDescriptor
+): NodeData[] {
+  const filtered = nodes
+    .filter((node) => node.schemaId === descriptor.schemaId)
+    .filter((node) => descriptor.includeDeleted || !node.deleted)
+    .filter((node) => !descriptor.nodeId || node.id === descriptor.nodeId)
+    .filter((node) => matchesQueryWhere(node, descriptor.where))
+    .filter((node) => matchesQuerySearch(node, descriptor.search))
+  const sorted = sortDatabaseQueryRows(filtered, descriptor.orderBy)
+  const offset = descriptor.offset ?? 0
+
+  return descriptor.limit === undefined
+    ? sorted.slice(offset)
+    : sorted.slice(offset, offset + descriptor.limit)
+}
+
+function matchesQueryWhere(node: NodeData, where: Record<string, unknown> | undefined): boolean {
+  if (!where) return true
+  return Object.entries(where).every(([key, value]) => node.properties[key] === value)
+}
+
+function matchesQuerySearch(node: NodeData, search: NodeQuerySearchFilter | undefined): boolean {
+  if (!search) return true
+  const query = search.text.toLocaleLowerCase().trim()
+  if (!query) return true
+  const fields = search.fields ?? ['title', 'content']
+  const haystack = fields
+    .flatMap((field) =>
+      field === 'title'
+        ? [readStringProperty(node, 'title'), readStringProperty(node, 'name')]
+        : [
+            readStringProperty(node, 'content'),
+            readStringProperty(node, 'markdown'),
+            readStringProperty(node, 'body'),
+            readStringProperty(node, 'description'),
+            ...Object.values(node.properties).map((value) =>
+              typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+                ? String(value)
+                : ''
+            )
+          ]
+    )
+    .filter(Boolean)
+    .join('\n')
+    .toLocaleLowerCase()
+
+  return haystack.includes(query)
+}
+
+function sortDatabaseQueryRows(
+  rows: NodeData[],
+  orderBy: Record<string, SortDirection> | undefined
+): NodeData[] {
+  const entries = Object.entries(orderBy ?? {})
+  if (entries.length === 0) return rows
+
+  return [...rows].sort((left, right) => {
+    for (const [field, direction] of entries) {
+      const leftValue =
+        field === 'createdAt' || field === 'updatedAt' ? left[field] : left.properties[field]
+      const rightValue =
+        field === 'createdAt' || field === 'updatedAt' ? right[field] : right.properties[field]
+      const comparison = compareQueryValues(leftValue, rightValue, direction)
+      if (comparison !== 0) return comparison
+    }
+    return left.id.localeCompare(right.id)
+  })
+}
+
+function compareQueryValues(left: unknown, right: unknown, direction: SortDirection): number {
+  if (left === right) return 0
+  if (left == null) return direction === 'asc' ? 1 : -1
+  if (right == null) return direction === 'asc' ? -1 : 1
+  const comparison = left < right ? -1 : 1
+  return direction === 'asc' ? comparison : -comparison
+}
+
+function databaseQueryWarnings(
+  descriptor: NodeQueryDescriptor,
+  plan: NodeQueryPlanMetadata
+): string[] {
+  return [
+    ...(plan.strategy === 'list-fallback'
+      ? ['Storage adapter did not execute the query with pushdown; result was filtered in memory.']
+      : []),
+    ...(descriptor.materializedView && !plan.materializedViewId
+      ? ['Materialized view was requested but the query plan did not report a materialized view.']
+      : []),
+    ...(plan.fullTableScan ? ['Storage query reported a full table scan.'] : [])
+  ]
+}
+
+type ClassifiedDatabaseOperations = {
+  operations: AiOperation[]
+  rowOperations: AiOperation[]
+  schemaOperations: AiOperation[]
+  warnings: string[]
+  errors: string[]
+}
+
+function classifyDatabaseOperations(
+  database: NodeData,
+  operations: AiOperation[]
+): ClassifiedDatabaseOperations {
+  return operations.reduce<ClassifiedDatabaseOperations>(
+    (classified, operation, index) => {
+      const enriched = enrichDatabaseOperation(database, operation)
+      const target = isDatabaseRowOperation(operation.op)
+        ? 'rowOperations'
+        : isDatabaseSchemaOperation(operation.op)
+          ? 'schemaOperations'
+          : 'schemaOperations'
+
+      classified.operations.push(enriched)
+      classified[target].push(enriched)
+      classified.warnings.push(...databaseOperationWarnings(operation, index))
+      classified.errors.push(...databaseOperationErrors(operation, index))
+      return classified
+    },
+    { operations: [], rowOperations: [], schemaOperations: [], warnings: [], errors: [] }
+  )
+}
+
+function enrichDatabaseOperation(database: NodeData, operation: AiOperation): AiOperation {
+  if (isDatabaseRowOperation(operation.op)) {
+    return createAiOperation(
+      operation.op,
+      {
+        ...operation.args,
+        transactional: true,
+        transactionOperations: nodeStoreTransactionOperationsForRowMutation(database, operation)
+      },
+      operation.rationale
+    )
+  }
+
+  return createAiOperation(
+    operation.op,
+    {
+      ...operation.args,
+      yDocMutation: yDocMutationForDatabaseSchemaOperation(operation)
+    },
+    operation.rationale
+  )
+}
+
+function isDatabaseRowOperation(op: string): boolean {
+  const normalized = op.toLocaleLowerCase()
+  return normalized.includes('row') || normalized.includes('cell')
+}
+
+function isDatabaseSchemaOperation(op: string): boolean {
+  const normalized = op.toLocaleLowerCase()
+  return (
+    normalized.includes('schema') ||
+    normalized.includes('column') ||
+    normalized.includes('view') ||
+    normalized.includes('property')
+  )
+}
+
+function nodeStoreTransactionOperationsForRowMutation(
+  database: NodeData,
+  operation: AiOperation
+): unknown[] {
+  const op = operation.op.toLocaleLowerCase()
+  const rowSchemaId =
+    readRecordString(operation.args, 'schemaId') ??
+    readStringProperty(database, 'rowSchemaId') ??
+    DEFAULT_DATABASE_ROW_SCHEMA_ID
+
+  if (op.includes('create')) {
+    return [
+      {
+        type: 'create',
+        options: {
+          schemaId: rowSchemaId,
+          properties: {
+            database: database.id,
+            ...readRecord(operation.args, 'properties')
+          }
+        }
+      }
+    ]
+  }
+
+  if (op.includes('update') || op.includes('set')) {
+    const rowId =
+      readRecordString(operation.args, 'rowId') ?? readRecordString(operation.args, 'nodeId')
+    return rowId
+      ? [
+          {
+            type: 'update',
+            nodeId: rowId,
+            options: { properties: readRecord(operation.args, 'properties') ?? {} }
+          }
+        ]
+      : []
+  }
+
+  if (op.includes('delete') || op.includes('remove')) {
+    const rowIds = readRowIds(operation.args)
+    return rowIds.map((rowId) => ({ type: 'delete', nodeId: rowId }))
+  }
+
+  return []
+}
+
+function yDocMutationForDatabaseSchemaOperation(operation: AiOperation): Record<string, unknown> {
+  const op = operation.op.toLocaleLowerCase()
+  const collection = op.includes('view') ? 'views' : op.includes('column') ? 'columns' : 'meta'
+
+  return {
+    document: 'database',
+    collection,
+    helper: databaseYDocHelperForOperation(op, collection),
+    args: operation.args
+  }
+}
+
+function databaseYDocHelperForOperation(op: string, collection: string): string {
+  if (collection === 'views') {
+    if (op.includes('create') || op.includes('add')) return 'createView'
+    if (op.includes('delete') || op.includes('remove')) return 'deleteView'
+    return 'updateView'
+  }
+
+  if (collection === 'columns') {
+    if (op.includes('create') || op.includes('add')) return 'addColumn'
+    if (op.includes('delete') || op.includes('remove') || op.includes('drop')) return 'deleteColumn'
+    return 'updateColumn'
+  }
+
+  return 'updateDatabaseMetadata'
+}
+
+function databaseOperationWarnings(operation: AiOperation, index: number): string[] {
+  const op = operation.op.toLocaleLowerCase()
+  const rowIds = readRowIds(operation.args)
+  return [
+    ...(isDestructiveDatabaseOperation(operation)
+      ? [`operations[${index}] is destructive and requires explicit approval before apply.`]
+      : []),
+    ...(rowIds.length > 25 ? [`operations[${index}] targets ${rowIds.length} rows.`] : []),
+    ...(op.includes('schema') || op.includes('column')
+      ? [`operations[${index}] changes database schema and may affect existing views.`]
+      : [])
+  ]
+}
+
+function databaseOperationErrors(operation: AiOperation, index: number): string[] {
+  if (!isDestructiveDatabaseOperation(operation) || hasExplicitDeletionMarker(operation.args)) {
+    return []
+  }
+
+  return [
+    `operations[${index}] delete/drop/remove operations require confirmDelete true or deletionMarker "DELETE"`
+  ]
+}
+
+function isDestructiveDatabaseOperation(operation: AiOperation): boolean {
+  const op = operation.op.toLocaleLowerCase()
+  return op.includes('delete') || op.includes('remove') || op.includes('drop')
+}
+
+function hasExplicitDeletionMarker(args: Record<string, unknown>): boolean {
+  return args.confirmDelete === true || args.deletionMarker === 'DELETE'
+}
+
+function readRowIds(args: Record<string, unknown>): string[] {
+  const rowId = readRecordString(args, 'rowId') ?? readRecordString(args, 'nodeId')
+  const rowIds = Array.isArray(args.rowIds)
+    ? args.rowIds.filter(
+        (value): value is string => typeof value === 'string' && value.trim() !== ''
+      )
+    : []
+
+  return rowId ? [rowId, ...rowIds.filter((id) => id !== rowId)] : rowIds
+}
+
+function databaseMutationRisk(operations: AiOperation[]): AiRiskLevel {
+  if (operations.some(isDestructiveDatabaseOperation)) return 'high'
+  return riskForOperations(operations)
+}
+
+function databaseMutationScopes(classified: ClassifiedDatabaseOperations): AiScope[] {
+  return [
+    'database.read',
+    'database.propose',
+    ...(classified.rowOperations.length > 0 ? (['database.write.rows'] as const) : []),
+    ...(classified.schemaOperations.length > 0 ? (['database.write.schema'] as const) : [])
+  ]
+}
+
+function databaseMutationChangeSets(input: {
+  databaseId: string
+  baseRevision: string
+  rowOperations: AiOperation[]
+  schemaOperations: AiOperation[]
+}): AiChangeSet[] {
+  return [
+    ...(input.rowOperations.length > 0
+      ? [
+          {
+            targetKind: 'databaseRows' as const,
+            targetId: input.databaseId,
+            baseRevision: input.baseRevision,
+            operations: input.rowOperations
+          }
+        ]
+      : []),
+    ...(input.schemaOperations.length > 0
+      ? [
+          {
+            targetKind: 'database' as const,
+            targetId: input.databaseId,
+            baseRevision: input.baseRevision,
+            operations: input.schemaOperations
+          }
+        ]
+      : [])
+  ]
+}
+
 function normalizeBounds(options: {
   x?: number
   y?: number
@@ -1355,6 +2114,13 @@ function readOptionalString(record: Record<string, unknown>, key: string): strin
   return typeof value === 'string' && value.trim() ? value : undefined
 }
 
+function readOptionalRecord(
+  record: Record<string, unknown>,
+  key: string
+): Record<string, unknown> | undefined {
+  return readRecord(record, key)
+}
+
 function readOptionalNumber(record: Record<string, unknown>, key: string): number | undefined {
   const value = record[key]
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
@@ -1377,9 +2143,22 @@ function readRecordString(record: Record<string, unknown>, key: string): string 
   return typeof value === 'string' && value.trim() ? value : undefined
 }
 
+function readRecord(
+  record: Record<string, unknown>,
+  key: string
+): Record<string, unknown> | undefined {
+  const value = record[key]
+  return isRecord(value) ? value : undefined
+}
+
 function readRecordNumber(record: Record<string, unknown>, key: string): number | undefined {
   const value = record[key]
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function readRecordBoolean(record: Record<string, unknown>, key: string): boolean | undefined {
+  const value = record[key]
+  return typeof value === 'boolean' ? value : undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

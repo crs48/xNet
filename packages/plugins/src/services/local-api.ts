@@ -7,6 +7,7 @@
  * This is designed to run in the Electron main process.
  */
 
+import type { NodeQueryDescriptor, NodeQueryResult } from '@xnetjs/data'
 import { timingSafeEqual } from 'crypto'
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'http'
 import { URL } from 'url'
@@ -37,6 +38,7 @@ function parseOptionalNumber(value: string | null): number | undefined {
 export interface NodeStoreAPI {
   get(id: string): Promise<NodeData | null>
   list(options?: { schemaId?: string; limit?: number; offset?: number }): Promise<NodeData[]>
+  query?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
   create(options: { schemaId: string; properties: Record<string, unknown> }): Promise<NodeData>
   update(id: string, options: { properties: Record<string, unknown> }): Promise<NodeData>
   delete(id: string): Promise<void>
