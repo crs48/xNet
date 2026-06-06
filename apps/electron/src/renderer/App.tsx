@@ -21,6 +21,7 @@ import {
 import { DatabaseView } from './components/DatabaseView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
+import { SocialImportView } from './components/SocialImportView'
 import { StorybookView } from './components/StorybookView'
 import { SystemMenu } from './components/SystemMenu'
 
@@ -38,6 +39,7 @@ type ShellState =
   | { kind: 'database-focus'; docId: string; returnViewport: ViewportSnapshot | null }
   | { kind: 'database-split'; docId: string }
   | { kind: 'settings' }
+  | { kind: 'social-import' }
   | { kind: 'stories' }
 
 type DocumentItem = {
@@ -351,6 +353,7 @@ export function App(): React.ReactElement {
     if (shellState.kind === 'page-focus') return 'Document'
     if (shellState.kind === 'database-focus') return 'Database'
     if (shellState.kind === 'settings') return 'Settings'
+    if (shellState.kind === 'social-import') return 'Social Import'
     if (shellState.kind === 'stories') return 'Stories'
     return null
   }, [shellState.kind])
@@ -369,6 +372,11 @@ export function App(): React.ReactElement {
   const handleOpenSettings = useCallback(() => {
     clearTransitionTimer()
     setShellState({ kind: 'settings' })
+  }, [clearTransitionTimer])
+
+  const handleOpenSocialImport = useCallback(() => {
+    clearTransitionTimer()
+    setShellState({ kind: 'social-import' })
   }, [clearTransitionTimer])
 
   const handleOpenStories = useCallback(() => {
@@ -806,6 +814,15 @@ export function App(): React.ReactElement {
         icon: 'settings',
         execute: handleOpenSettings
       },
+      {
+        id: 'open-social-import',
+        name: 'Import Social Archive',
+        description: 'Open the social graph archive importer',
+        icon: 'upload',
+        group: 'Data',
+        keywords: ['social', 'archive', 'instagram', 'grok', 'import'],
+        execute: handleOpenSocialImport
+      },
       ...(STORIES_ENABLED
         ? [
             {
@@ -837,10 +854,12 @@ export function App(): React.ReactElement {
       handleCreateLinkedDocument,
       handleOpenDocument,
       handleOpenSettings,
+      handleOpenSocialImport,
       handleOpenStories,
       canvasCommandState,
       isCanvasInteractiveShell,
-      recentDocuments
+      recentDocuments,
+      shellState.kind
     ]
   )
 
@@ -869,6 +888,16 @@ export function App(): React.ReactElement {
         <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
           <div className={overlaySurfaceClassName}>
             <StorybookView />
+          </div>
+        </div>
+      )
+    }
+
+    if (shellState.kind === 'social-import') {
+      return (
+        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className={overlaySurfaceClassName}>
+            <SocialImportView onClose={handleReturnHome} />
           </div>
         </div>
       )
@@ -967,6 +996,7 @@ export function App(): React.ReactElement {
             recentDocuments={recentDocuments}
             onOpenDocument={handleOpenDocument}
             onOpenSettings={handleOpenSettings}
+            onOpenSocialImport={handleOpenSocialImport}
             onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
             onAddShared={() => {
               setPrefilledShareValue('')

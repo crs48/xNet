@@ -3,6 +3,8 @@
  */
 
 export {
+  createZipJsonEntryReader,
+  readZipJsonEntry,
   readZipArchiveManifest,
   type ZipArchiveManifestOptions,
   type ZipCentralDirectoryEntry

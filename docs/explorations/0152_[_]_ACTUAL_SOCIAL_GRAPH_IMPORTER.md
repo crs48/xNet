@@ -731,7 +731,7 @@ The full implementation should use schema validators, a deterministic hash-based
 - [x] Add commit logic that upserts deterministic nodes idempotently into `NodeStore`.
 - [x] Add default saved views for People, Content, Interactions, Messages, Collections, and Import Runs.
 - [x] Add starter graph lens builders for "people I follow", "saved content by creator", "conversation references", and "AI citations".
-- [ ] Integrate the importer into Electron first with a staging/review UI.
+- [x] Integrate the importer into Electron first with a staging/review UI.
 - [x] Add generated canvas projection command for a selected saved view or graph lens.
 - [x] Add fixture sanitization tools so tests can use structural samples without committing private export content.
 - [x] Add unit tests for each mapper with sanitized fixtures and malformed/partial records.
@@ -751,6 +751,8 @@ The full implementation should use schema validators, a deterministic hash-based
 - [x] Verify account security, billing, API key, session, and payment-like files are not imported into the social graph by default.
 - [x] Verify database views can query people, content, interactions, messages, and collections without platform-specific UI code.
 - [x] Verify a graph lens can create a bounded canvas projection with source-backed cards and provenance links.
+- [x] Run `pnpm --filter xnet-desktop build` after the Electron importer integration.
+- [ ] Re-run Electron CDP smoke once the local `better-sqlite3` native binding is rebuilt for arm64 Electron.
 - [x] Verify no raw private export fixture data is committed.
 
 ## Recommendation

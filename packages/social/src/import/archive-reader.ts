@@ -5,10 +5,11 @@
  * extracting archive contents into the repository.
  */
 
-import type { ArchiveEntryRef, ArchiveManifest } from './types'
+import type { ArchiveEntryRef, ArchiveManifest, JsonArchiveEntryReader } from './types'
 import { createHash } from 'node:crypto'
 import { createReadStream, promises as fs } from 'node:fs'
 import { basename } from 'node:path'
+import { Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createInflateRaw } from 'node:zlib'
 
@@ -47,6 +48,27 @@ export async function readZipArchiveManifest(
       ({ localHeaderOffset: _localHeaderOffset, crc32: _crc32, ...entry }) => entry
     )
   }
+}
+
+export async function createZipJsonEntryReader(
+  archivePath: string
+): Promise<JsonArchiveEntryReader> {
+  const stat = await fs.stat(archivePath)
+  const entries = await readCentralDirectory(archivePath, stat.size)
+  const entriesByPath = new Map(entries.map((entry) => [entry.path, entry]))
+
+  return async <T = unknown>(path: string): Promise<T> => {
+    const entry = entriesByPath.get(path)
+    if (!entry) throw new Error(`ZIP entry not found: ${path}`)
+
+    const payload = await readZipEntryBuffer(archivePath, entry)
+    return JSON.parse(stripJsonBom(payload.toString('utf8'))) as T
+  }
+}
+
+export async function readZipJsonEntry<T = unknown>(archivePath: string, path: string): Promise<T> {
+  const reader = await createZipJsonEntryReader(archivePath)
+  return reader<T>(path)
 }
 
 async function readCentralDirectory(
@@ -144,6 +166,37 @@ async function hashZipEntry(
   return { ...entry, sha256: hash.digest('hex') }
 }
 
+async function readZipEntryBuffer(
+  archivePath: string,
+  entry: ZipCentralDirectoryEntry
+): Promise<Buffer> {
+  const dataStart = await getEntryDataStart(archivePath, entry.localHeaderOffset)
+  const compressedByteSize = entry.compressedByteSize ?? 0
+  if (compressedByteSize <= 0) return Buffer.alloc(0)
+
+  const chunks: Buffer[] = []
+  const sink = new Writable({
+    write(chunk, _encoding, callback) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+      callback()
+    }
+  })
+  const compressed = createReadStream(archivePath, {
+    start: dataStart,
+    end: compressedByteSize > 0 ? dataStart + compressedByteSize - 1 : dataStart
+  })
+
+  if (entry.compressionMethod === 0) {
+    await pipeline(compressed, sink)
+  } else if (entry.compressionMethod === 8) {
+    await pipeline(compressed, createInflateRaw(), sink)
+  } else {
+    throw new Error(`Unsupported ZIP compression method ${entry.compressionMethod}`)
+  }
+
+  return Buffer.concat(chunks)
+}
+
 async function getEntryDataStart(archivePath: string, localHeaderOffset: number): Promise<number> {
   const handle = await fs.open(archivePath, 'r')
   try {
@@ -172,4 +225,8 @@ function dosDateToIso(date: number): string | undefined {
   const month = (date >> 5) & 0x0f
   const year = ((date >> 9) & 0x7f) + 1980
   return new Date(Date.UTC(year, month - 1, day)).toISOString()
+}
+
+function stripJsonBom(value: string): string {
+  return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value
 }

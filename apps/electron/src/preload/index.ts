@@ -1,6 +1,11 @@
 /**
  * Preload script - exposes xNet API to renderer
  */
+import type {
+  SocialImportArchivePreview,
+  SocialImportStageRequest,
+  SocialImportStageResult
+} from '../main/social-import-ipc'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
 
@@ -338,6 +343,13 @@ contextBridge.exposeInMainWorld('xnetTunnel', {
   }
 })
 
+contextBridge.exposeInMainWorld('xnetSocialImport', {
+  pickArchive: (): Promise<SocialImportArchivePreview | null> =>
+    ipcRenderer.invoke('xnet:social-import:pickArchive'),
+  stageArchive: (request: SocialImportStageRequest): Promise<SocialImportStageResult> =>
+    ipcRenderer.invoke('xnet:social-import:stageArchive', request)
+})
+
 // ─── Node Storage IPC API ────────────────────────────────────────────────────
 // Routes NodeStore operations to the data process SQLite database via IPC.
 // This enables persistent node storage in Electron (replacing MemoryNodeStorageAdapter).
@@ -389,6 +401,11 @@ export interface XNetAPI {
   onNewPage(callback: () => void): () => void
   onDevToolsToggle(callback: () => void): () => void
   onSharePayload(callback: (payload: string) => void): () => void
+}
+
+export interface XNetSocialImportAPI {
+  pickArchive(): Promise<SocialImportArchivePreview | null>
+  stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult>
 }
 
 export interface XNetStorybookStatus {
@@ -551,6 +568,7 @@ declare global {
     xnetServices: XNetServicesAPI
     xnetLocalAPI: XNetLocalAPIAPI
     xnetTunnel: XNetTunnelAPI
+    xnetSocialImport: XNetSocialImportAPI
     xnetNodes: XNetNodesAPI
   }
 }
