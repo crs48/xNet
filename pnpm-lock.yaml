@@ -350,6 +350,9 @@ importers:
       '@xnetjs/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@xnetjs/social':
+        specifier: workspace:*
+        version: link:../../packages/social
       '@xnetjs/sqlite':
         specifier: workspace:*
         version: link:../../packages/sqlite

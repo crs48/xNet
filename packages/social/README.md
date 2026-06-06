@@ -20,6 +20,7 @@ approved nodes through the local data store.
 ```ts
 import { socialSchemas } from '@xnetjs/social/schemas'
 import { detectSocialArchive, readZipArchiveManifest } from '@xnetjs/social/import'
+import { readBrowserZipArchiveManifest } from '@xnetjs/social/import/browser'
 import { grokAdapter, instagramAdapter, youtubeAdapter } from '@xnetjs/social/importers'
 import { createSocialGraphLenses } from '@xnetjs/social/lenses'
 import { createSocialCanvasProjectionPlan } from '@xnetjs/social/projection'
@@ -120,6 +121,13 @@ Committing staged records from a renderer or service layer should happen after r
 exports `buildSocialCommitOperations` and `commitStagedSocialNodes` for NodeStore-backed callers.
 Source records can be stored when provenance, replay, or auditability matters; they can also be
 omitted when the user wants only canonical graph data.
+
+## App Surfaces
+
+- [x] Shared staging lives in `@xnetjs/social/import/core` so adapters can run in Node and browsers.
+- [x] Electron uses `@xnetjs/social/import/node` for filesystem-backed ZIP archives.
+- [x] Web uses `@xnetjs/social/import/browser` for `File`/`Blob` ZIP archives and commits staged
+      graph nodes through the same NodeStore mutation path.
 
 ## Data Model
 
