@@ -407,7 +407,7 @@ The importer registry should treat every source as an adapter with detection, st
 | Platform            | Expected export route            | Likely V1 records                                                                                            | Special risks                                                                          |
 | ------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
 | X                   | X archive ZIP with HTML/JSON     | actors, posts, replies, likes, reposts, DMs, lists, media, inferred interests, ads                           | DMs, deleted/suspended account gaps, inferred demographics, huge media.                |
-| Google/YouTube      | Google Takeout                   | channels, subscriptions, liked videos, playlists, watch history, comments, uploaded videos                   | Watch history volume, brand account selection, Google account data mixed with YouTube. |
+| Google/YouTube      | Google Takeout                   | Implemented V1: channel, subscriptions, comments, playlists, music library, watch/search history             | Watch history volume, brand account selection, Google account data mixed with YouTube. |
 | Reddit              | Reddit data request ZIP/CSV/JSON | users, subreddits, posts, comments, votes, saved items, messages                                             | Vote privacy, deleted content, subreddit/community identity.                           |
 | OpenAI              | ChatGPT export ZIP               | conversations, messages, models, attachments, projects when available, memory/profile records when available | Export format changes, missing project mapping, private/prompt-sensitive data.         |
 | Claude              | Claude export ZIP                | conversations, messages, model/summary/memory metadata when present                                          | Team/enterprise ownership, incognito/export policies, private code.                    |
@@ -726,6 +726,7 @@ The full implementation should use schema validators, a deterministic hash-based
 - [x] Add source record staging with privacy classes, parse warnings, ignored-file reasons, adapter version, and source entry references.
 - [x] Add Instagram detector, probe, and V1 staged mappers for profile, follows/followers, likes, saves, comments, media, and messages.
 - [x] Add Grok detector, probe, and V1 staged mappers for conversations, responses, citations, media posts, asset references, projects, and tasks.
+- [x] Add YouTube detector, probe, and V1 staged mappers for channel, subscriptions, comments, playlists, music library, watch history, and search history.
 - [x] Exclude Instagram/Grok account-security, billing, auth, and ad/activity buckets from default import unless explicitly selected.
 - [x] Add per-bucket import selection and count summaries.
 - [x] Add commit logic that upserts deterministic nodes idempotently into `NodeStore`.
@@ -743,6 +744,7 @@ The full implementation should use schema validators, a deterministic hash-based
 - [x] Run `pnpm typecheck`.
 - [x] Run importer tests against sanitized Instagram fixtures for following, followers, messages, liked posts, saved posts, comments, reels, and media references.
 - [x] Run importer tests against sanitized Grok fixtures for conversations, responses, citations, media posts, and asset references.
+- [x] Run importer tests against sanitized YouTube fixtures for channel, subscriptions, comments, playlists, music library, watch history, and search history.
 - [x] Verify re-importing the same archive is idempotent and does not duplicate actors, content, messages, or interactions.
 - [x] Verify adapter version changes can re-stage without deleting the raw archive provenance.
 - [x] Verify the importer can process a 400 MB+ archive without exhausting memory.

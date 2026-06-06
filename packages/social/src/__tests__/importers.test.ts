@@ -15,11 +15,20 @@ import {
   mapInstagramProfile,
   mapInstagramReels,
   mapInstagramSavedPosts,
+  mapYouTubeChannel,
+  mapYouTubeComments,
+  mapYouTubeMusicLibrary,
+  mapYouTubePlaylists,
+  mapYouTubeSearchHistory,
+  mapYouTubeSubscriptions,
+  mapYouTubeWatchHistory,
+  parseYouTubeCsv,
   sanitizeStagedRecordsForFixture,
   type ArchiveEntryRef,
   type ArchiveManifest,
   type SocialImportContext,
-  type StagedSocialRecord
+  type StagedSocialRecord,
+  youtubeAdapter
 } from '..'
 
 const importedAt = '2026-06-06T00:00:00.000Z'
@@ -47,7 +56,8 @@ function manifest(entries: ArchiveEntryRef[]): ArchiveManifest {
 
 function context(
   archiveManifest: ArchiveManifest,
-  fixtures: Record<string, unknown>
+  fixtures: Record<string, unknown>,
+  textFixtures: Record<string, string> = {}
 ): SocialImportContext {
   return {
     manifest: archiveManifest,
@@ -55,7 +65,8 @@ function context(
     importRunId: 'social:import-run:test',
     observedBy: 'did:key:test',
     importedAt,
-    readJsonEntry: async <T>(path: string) => fixtures[path] as T
+    readJsonEntry: async <T>(path: string) => fixtures[path] as T,
+    readTextEntry: async (path: string) => textFixtures[path] ?? ''
   }
 }
 
@@ -115,13 +126,58 @@ describe('social import adapters', () => {
       const archiveManifest = manifest([entry(backendPath, 293_000_000)])
 
       expect(
-        detectSocialArchive([instagramAdapter, grokAdapter], archiveManifest)?.adapter.id
+        detectSocialArchive([instagramAdapter, grokAdapter, youtubeAdapter], archiveManifest)
+          ?.adapter.id
       ).toBe('grok')
 
       const probe = await grokAdapter.probe({ manifest: archiveManifest })
       expect(
         probe.buckets.find((bucket) => bucket.id === 'grok.conversations')?.defaultSelected
       ).toBe(false)
+    })
+
+    it('detects YouTube Takeout and keeps history disabled by default', async () => {
+      const subscriptionsPath = 'Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv'
+      const watchHistoryPath = 'Takeout/YouTube and YouTube Music/history/watch-history.json'
+      const archiveManifest = manifest([entry(subscriptionsPath), entry(watchHistoryPath)])
+
+      expect(
+        detectSocialArchive([instagramAdapter, grokAdapter, youtubeAdapter], archiveManifest)
+          ?.adapter.id
+      ).toBe('youtube')
+
+      const probe = await youtubeAdapter.probe({ manifest: archiveManifest })
+      expect(
+        probe.buckets.find((bucket) => bucket.id === 'youtube.subscriptions')?.defaultSelected
+      ).toBe(true)
+      expect(probe.buckets.find((bucket) => bucket.id === 'youtube.history')?.defaultSelected).toBe(
+        false
+      )
+
+      const records: StagedSocialRecord[] = []
+      for await (const record of youtubeAdapter.stage(
+        context(
+          archiveManifest,
+          {
+            [watchHistoryPath]: [
+              {
+                title: 'Watched Private video',
+                titleUrl: 'https://www.youtube.com/watch?v=private-video',
+                time: importedAt
+              }
+            ]
+          },
+          {
+            [subscriptionsPath]:
+              'Channel Id,Channel Url,Channel Title\nUC123,https://www.youtube.com/channel/UC123,Example Channel'
+          }
+        )
+      )) {
+        records.push(record)
+      }
+
+      expect(records.some((record) => record.bucketId === 'youtube.subscriptions')).toBe(true)
+      expect(records.some((record) => record.bucketId === 'youtube.history')).toBe(false)
     })
   })
 
@@ -417,6 +473,147 @@ describe('social import adapters', () => {
         'prompt',
         'ai-response'
       ])
+    })
+  })
+
+  describe('YouTube mappers', () => {
+    it('parses Takeout CSV rows and maps channel subscriptions into follow edges', () => {
+      const rows = parseYouTubeCsv(
+        'Channel Id,Channel Url,Channel Title\nUC123,https://www.youtube.com/channel/UC123,Example Channel'
+      )
+      const source = entry('Takeout/YouTube and YouTube Music/subscriptions/subscriptions.csv')
+      const selfActorId = createSocialNodeId('actor', ['youtube', 'self'])
+      const records = mapYouTubeSubscriptions({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        source,
+        selfActorId,
+        rows
+      })
+      const repeated = mapYouTubeSubscriptions({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        source,
+        selfActorId,
+        rows
+      })
+
+      expect(rows[0]['Channel Title']).toBe('Example Channel')
+      expect(byKind(records, 'actor')).toHaveLength(1)
+      expect(byKind(records, 'interaction')).toHaveLength(1)
+      expect(byKind(records, 'interaction')[0].properties.interactionKind).toBe('follow')
+      expect(records.map((record) => record.deterministicId)).toEqual(
+        repeated.map((record) => record.deterministicId)
+      )
+    })
+
+    it('maps channel, comments, playlists, music library, and history into canonical records', () => {
+      const common = {
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        selfActorId: createSocialNodeId('actor', ['youtube', 'self'])
+      }
+      const channelRecords = mapYouTubeChannel({
+        ...common,
+        source: entry('Takeout/YouTube and YouTube Music/channels/channel.csv'),
+        rows: [
+          {
+            'Channel ID': 'UCSELF',
+            'Channel Title (Original)': 'Self Channel',
+            'Channel Visibility': 'Public'
+          }
+        ]
+      })
+      const commentRecords = mapYouTubeComments({
+        ...common,
+        source: entry('Takeout/YouTube and YouTube Music/comments/comments.csv'),
+        rows: [
+          {
+            'Comment ID': 'comment-1',
+            'Channel ID': 'UCSELF',
+            'Comment Create Timestamp': importedAt,
+            'Video ID': 'video-1',
+            'Comment Text': '{"text":"Comment text"}'
+          }
+        ]
+      })
+      const playlistRecords = mapYouTubePlaylists({
+        ...common,
+        catalogSource: entry('Takeout/YouTube and YouTube Music/playlists/playlists.csv'),
+        catalogRows: [
+          {
+            'Playlist ID': 'PL123',
+            'Playlist Title (Original)': 'Watch Later',
+            'Playlist Visibility': 'Private',
+            'Playlist Update Timestamp': importedAt
+          }
+        ],
+        videoFiles: [
+          {
+            source: entry('Takeout/YouTube and YouTube Music/playlists/Watch Later-videos.csv'),
+            rows: [
+              {
+                'Video ID': 'video-1',
+                'Playlist Video Creation Timestamp': importedAt
+              }
+            ]
+          }
+        ]
+      })
+      const musicRecords = mapYouTubeMusicLibrary({
+        ...common,
+        source: entry(
+          'Takeout/YouTube and YouTube Music/music (library and uploads)/music library songs.csv'
+        ),
+        rows: [
+          {
+            'Video ID': 'song-1',
+            'Song Title': 'Song title',
+            'Album Title': 'Album title',
+            'Artist Name 1': 'Artist'
+          }
+        ]
+      })
+      const watchRecords = mapYouTubeWatchHistory({
+        ...common,
+        source: entry('Takeout/YouTube and YouTube Music/history/watch-history.json'),
+        records: [
+          {
+            title: 'Watched Video title',
+            titleUrl: 'https://www.youtube.com/watch?v=video-1',
+            subtitles: [{ name: 'Example Channel', url: 'https://www.youtube.com/channel/UC123' }],
+            time: importedAt
+          }
+        ]
+      })
+      const searchRecords = mapYouTubeSearchHistory({
+        ...common,
+        source: entry('Takeout/YouTube and YouTube Music/history/search-history.json'),
+        records: [{ title: 'Searched for repair bikes', time: importedAt }]
+      })
+
+      expect(byKind(channelRecords, 'actor')[0].properties.isSelf).toBe(true)
+      expect(
+        byKind(commentRecords, 'content').map((record) => record.properties.contentKind)
+      ).toEqual(['video', 'comment'])
+      expect(byKind(playlistRecords, 'collection')).toHaveLength(1)
+      expect(byKind(playlistRecords, 'collection-item')).toHaveLength(1)
+      expect(byKind(musicRecords, 'content')[0].properties.contentKind).toBe('audio')
+      expect(byKind(watchRecords, 'interaction')[0].properties.interactionKind).toBe('view')
+      expect(byKind(searchRecords, 'interaction')[0].properties.interactionKind).toBe('search')
+      expect(byKind(searchRecords, 'interaction')[0].privacyClass).toBe('private')
     })
   })
 

@@ -5,7 +5,12 @@
  * extracting archive contents into the repository.
  */
 
-import type { ArchiveEntryRef, ArchiveManifest, JsonArchiveEntryReader } from './types'
+import type {
+  ArchiveEntryRef,
+  ArchiveManifest,
+  JsonArchiveEntryReader,
+  TextArchiveEntryReader
+} from './types'
 import { createHash } from 'node:crypto'
 import { createReadStream, promises as fs } from 'node:fs'
 import { basename } from 'node:path'
@@ -53,22 +58,38 @@ export async function readZipArchiveManifest(
 export async function createZipJsonEntryReader(
   archivePath: string
 ): Promise<JsonArchiveEntryReader> {
+  const readTextEntry = await createZipTextEntryReader(archivePath)
+
+  return async <T = unknown>(path: string): Promise<T> => {
+    const payload = await readTextEntry(path)
+    return JSON.parse(payload) as T
+  }
+}
+
+export async function createZipTextEntryReader(
+  archivePath: string
+): Promise<TextArchiveEntryReader> {
   const stat = await fs.stat(archivePath)
   const entries = await readCentralDirectory(archivePath, stat.size)
   const entriesByPath = new Map(entries.map((entry) => [entry.path, entry]))
 
-  return async <T = unknown>(path: string): Promise<T> => {
+  return async (path: string): Promise<string> => {
     const entry = entriesByPath.get(path)
     if (!entry) throw new Error(`ZIP entry not found: ${path}`)
 
     const payload = await readZipEntryBuffer(archivePath, entry)
-    return JSON.parse(stripJsonBom(payload.toString('utf8'))) as T
+    return stripTextBom(payload.toString('utf8'))
   }
 }
 
 export async function readZipJsonEntry<T = unknown>(archivePath: string, path: string): Promise<T> {
   const reader = await createZipJsonEntryReader(archivePath)
   return reader<T>(path)
+}
+
+export async function readZipTextEntry(archivePath: string, path: string): Promise<string> {
+  const reader = await createZipTextEntryReader(archivePath)
+  return reader(path)
 }
 
 async function readCentralDirectory(
@@ -227,6 +248,6 @@ function dosDateToIso(date: number): string | undefined {
   return new Date(Date.UTC(year, month - 1, day)).toISOString()
 }
 
-function stripJsonBom(value: string): string {
+function stripTextBom(value: string): string {
   return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value
 }

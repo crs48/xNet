@@ -20,7 +20,7 @@ approved nodes through the local data store.
 ```ts
 import { socialSchemas } from '@xnetjs/social/schemas'
 import { detectSocialArchive, readZipArchiveManifest } from '@xnetjs/social/import'
-import { grokAdapter, instagramAdapter } from '@xnetjs/social/importers'
+import { grokAdapter, instagramAdapter, youtubeAdapter } from '@xnetjs/social/importers'
 import { createSocialGraphLenses } from '@xnetjs/social/lenses'
 import { createSocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 import { createDefaultSocialSavedViews } from '@xnetjs/social/views'
@@ -33,9 +33,11 @@ import {
   collectStagedRecords,
   createStagingSummary,
   createZipJsonEntryReader,
+  createZipTextEntryReader,
   detectSocialArchive,
   grokAdapter,
   instagramAdapter,
+  youtubeAdapter,
   socialSchemas
 } from '@xnetjs/social'
 ```
@@ -72,7 +74,7 @@ import {
   readZipArchiveManifest
 } from '@xnetjs/social'
 
-const adapters = [instagramAdapter, grokAdapter]
+const adapters = [instagramAdapter, grokAdapter, youtubeAdapter]
 
 export async function stageSocialArchive(archivePath: string) {
   const manifest = await readZipArchiveManifest(archivePath)
@@ -98,7 +100,8 @@ export async function stageSocialArchive(archivePath: string) {
         manifest,
         archiveId,
         importedAt,
-        readJsonEntry: await createZipJsonEntryReader(archivePath)
+        readJsonEntry: await createZipJsonEntryReader(archivePath),
+        readTextEntry: await createZipTextEntryReader(archivePath)
       },
       { buckets: selectedBuckets }
     )
@@ -196,6 +199,23 @@ The Grok adapter currently detects Grok export ZIPs and stages these buckets:
 The adapter maps exported backend records into self and assistant actors, conversations, messages,
 projects, tasks, generated-media content, and optional source records.
 
+### YouTube
+
+The YouTube adapter currently detects Google Takeout ZIPs for YouTube and YouTube Music and stages
+these buckets:
+
+- Channel
+- Subscriptions
+- Comments
+- Playlists, excluded by default
+- Music library, excluded by default
+- Watch and search history, excluded by default
+- Channel settings, excluded by default
+
+The adapter maps export records into channel actors, follow interactions, video/audio content,
+authored comments, playlist collections, collection items, watch interactions, search interactions,
+and optional source records.
+
 ## Privacy And Provenance
 
 Every import bucket and staged record carries a `privacyClass`. Sensitive buckets should not be
@@ -222,8 +242,8 @@ clear local-storage policy and user approval.
 - [ ] Export the adapter from `src/importers/index.ts`.
 - [ ] Add the adapter to the app surface that chooses supported importers.
 
-Good next candidates are X, Google/YouTube, Reddit, Claude, OpenAI, Spotify, Apple Music, and other
-services once representative export archives are available.
+Good next candidates are X, Reddit, Claude, OpenAI, Spotify, Apple Music, and other services once
+representative export archives are available.
 
 ## Validation
 

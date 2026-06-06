@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { deflateRawSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
-import { createZipJsonEntryReader, readZipArchiveManifest } from '../import'
+import {
+  createZipJsonEntryReader,
+  createZipTextEntryReader,
+  readZipArchiveManifest
+} from '../import'
 
 describe('ZIP archive reader', () => {
   it('reads central-directory metadata and parses compressed JSON entries', async () => {
@@ -21,10 +25,12 @@ describe('ZIP archive reader', () => {
 
       const manifest = await readZipArchiveManifest(archivePath, { hashEntries: false })
       const readJsonEntry = await createZipJsonEntryReader(archivePath)
+      const readTextEntry = await createZipTextEntryReader(archivePath)
 
       expect(manifest.filename).toBe('sample.zip')
       expect(manifest.entries).toHaveLength(1)
       expect(manifest.entries[0].path).toBe('nested/export.json')
+      await expect(readTextEntry('nested/export.json')).resolves.toBe('{"ok":true,"count":3}')
       await expect(readJsonEntry('nested/export.json')).resolves.toEqual({ ok: true, count: 3 })
     } finally {
       await rm(dir, { recursive: true, force: true })

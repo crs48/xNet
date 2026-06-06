@@ -51,6 +51,7 @@ export type ImportSelection = {
 }
 
 export type JsonArchiveEntryReader = <T = unknown>(path: string) => Promise<T>
+export type TextArchiveEntryReader = (path: string) => Promise<string>
 
 export type SocialImportContext = {
   manifest: ArchiveManifest
@@ -59,6 +60,7 @@ export type SocialImportContext = {
   observedBy?: string
   importedAt: string
   readJsonEntry: JsonArchiveEntryReader
+  readTextEntry?: TextArchiveEntryReader
 }
 
 export type StagedCanonicalNodeKind =

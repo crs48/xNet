@@ -19,10 +19,11 @@ import {
   createSocialNodeId,
   createStagingSummary,
   createZipJsonEntryReader,
+  createZipTextEntryReader,
   detectSocialArchive,
   readZipArchiveManifest
 } from '@xnetjs/social/import'
-import { grokAdapter, instagramAdapter } from '@xnetjs/social/importers'
+import { grokAdapter, instagramAdapter, youtubeAdapter } from '@xnetjs/social/importers'
 import { SocialImportArchiveSchema, SocialImportRunSchema } from '@xnetjs/social/schemas'
 import { dialog, ipcMain } from 'electron'
 
@@ -75,7 +76,7 @@ export type SocialImportStageResult = {
   stageDurationMs: number
 }
 
-const adapters = [instagramAdapter, grokAdapter] as const
+const adapters = [instagramAdapter, grokAdapter, youtubeAdapter] as const
 const approvedArchivePaths = new Set<string>()
 
 export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): void {
@@ -163,6 +164,7 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
     importedAt
   ])
   const readJsonEntry = await createZipJsonEntryReader(request.archivePath)
+  const readTextEntry = await createZipTextEntryReader(request.archivePath)
   const selection: ImportSelection = {
     buckets: selectedBuckets,
     includeSensitive: Boolean(request.includeSensitive)
@@ -174,7 +176,8 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
         archiveId,
         importRunId,
         importedAt,
-        readJsonEntry
+        readJsonEntry,
+        readTextEntry
       },
       selection
     )

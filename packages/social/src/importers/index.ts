@@ -16,3 +16,17 @@ export {
   mapInstagramSavedPosts
 } from './instagram'
 export { GROK_ADAPTER_ID, GROK_ADAPTER_VERSION, grokAdapter, mapGrokBackend } from './grok'
+export {
+  YOUTUBE_ADAPTER_ID,
+  YOUTUBE_ADAPTER_VERSION,
+  mapYouTubeChannel,
+  mapYouTubeComments,
+  mapYouTubeMusicLibrary,
+  mapYouTubePlaylists,
+  mapYouTubeSearchHistory,
+  mapYouTubeSubscriptions,
+  mapYouTubeWatchHistory,
+  parseYouTubeCsv,
+  youtubeAdapter,
+  type YouTubeCsvRow
+} from './youtube'

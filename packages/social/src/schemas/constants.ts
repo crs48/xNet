@@ -104,6 +104,7 @@ export const interactionKinds = [
   { id: 'comment', name: 'Comment' },
   { id: 'message', name: 'Message' },
   { id: 'view', name: 'View' },
+  { id: 'search', name: 'Search' },
   { id: 'vote', name: 'Vote' },
   { id: 'share', name: 'Share' },
   { id: 'repost', name: 'Repost' },

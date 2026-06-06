@@ -4,7 +4,9 @@
 
 export {
   createZipJsonEntryReader,
+  createZipTextEntryReader,
   readZipJsonEntry,
+  readZipTextEntry,
   readZipArchiveManifest,
   type ZipArchiveManifestOptions,
   type ZipCentralDirectoryEntry
@@ -66,6 +68,7 @@ export type {
   ImportProbe,
   ImportSelection,
   JsonArchiveEntryReader,
+  TextArchiveEntryReader,
   SocialImportAdapter,
   SocialImportContext,
   StagedCanonicalNodeKind,
