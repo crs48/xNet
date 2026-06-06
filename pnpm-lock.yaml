@@ -1165,6 +1165,9 @@ importers:
 
   packages/social:
     dependencies:
+      '@xnetjs/crypto':
+        specifier: workspace:*
+        version: link:../crypto
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data

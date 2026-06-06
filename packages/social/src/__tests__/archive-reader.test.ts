@@ -8,6 +8,11 @@ import {
   createZipTextEntryReader,
   readZipArchiveManifest
 } from '../import'
+import {
+  createBrowserZipJsonEntryReader,
+  createBrowserZipTextEntryReader,
+  readBrowserZipArchiveManifest
+} from '../import/browser'
 
 describe('ZIP archive reader', () => {
   it('reads central-directory metadata and parses compressed JSON entries', async () => {
@@ -35,6 +40,26 @@ describe('ZIP archive reader', () => {
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('browser ZIP archive reader', () => {
+  it('reads File-backed central-directory metadata and parses compressed JSON entries', async () => {
+    const archive = createSingleFileZip({
+      path: 'nested/export.json',
+      payload: JSON.stringify({ ok: true, count: 3 })
+    })
+    const file = new File([toArrayBuffer(archive)], 'sample.zip', { type: 'application/zip' })
+
+    const manifest = await readBrowserZipArchiveManifest(file, { hashEntries: false })
+    const readJsonEntry = await createBrowserZipJsonEntryReader(file)
+    const readTextEntry = await createBrowserZipTextEntryReader(file)
+
+    expect(manifest.filename).toBe('sample.zip')
+    expect(manifest.entries).toHaveLength(1)
+    expect(manifest.entries[0].path).toBe('nested/export.json')
+    await expect(readTextEntry('nested/export.json')).resolves.toBe('{"ok":true,"count":3}')
+    await expect(readJsonEntry('nested/export.json')).resolves.toEqual({ ok: true, count: 3 })
   })
 })
 
@@ -94,4 +119,10 @@ function createSingleFileZip(input: { path: string; payload: string }): Buffer {
     fileName,
     endOfCentralDirectory
   ])
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return copy.buffer
 }

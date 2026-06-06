@@ -10,10 +10,15 @@ import type {
   SocialImportAdapter,
   SocialImportContext,
   StagedSocialRecord
-} from '../import'
+} from '../import/core'
 import type { SocialPrivacyClass } from '../schemas'
 import { parseCSV } from '@xnetjs/data/database'
-import { createSocialNodeId, createSourceRecord, createStagedNode, normalizeUrl } from '../import'
+import {
+  createSocialNodeId,
+  createSourceRecord,
+  createStagedNode,
+  normalizeUrl
+} from '../import/core'
 
 export const YOUTUBE_ADAPTER_ID = 'youtube'
 export const YOUTUBE_ADAPTER_VERSION = '0.1.0'

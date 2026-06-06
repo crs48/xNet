@@ -10,14 +10,14 @@ import type {
   SocialImportAdapter,
   SocialImportContext,
   StagedSocialRecord
-} from '../import'
+} from '../import/core'
 import {
   classifySocialEntryPrivacy,
   createSocialNodeId,
   createSourceRecord,
   createStagedNode,
   getBucketDefaultSelected
-} from '../import'
+} from '../import/core'
 
 export const GROK_ADAPTER_ID = 'grok'
 export const GROK_ADAPTER_VERSION = '0.1.0'

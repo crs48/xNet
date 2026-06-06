@@ -10,7 +10,7 @@ import type {
   SocialImportAdapter,
   SocialImportContext,
   StagedSocialRecord
-} from '../import'
+} from '../import/core'
 import {
   classifySocialEntryPrivacy,
   createSocialNodeId,
@@ -19,7 +19,7 @@ import {
   getBucketDefaultSelected,
   normalizeHandle,
   normalizeUrl
-} from '../import'
+} from '../import/core'
 
 export const INSTAGRAM_ADAPTER_ID = 'instagram'
 export const INSTAGRAM_ADAPTER_VERSION = '0.1.0'

@@ -2,7 +2,7 @@
  * Deterministic identifiers for imported social records.
  */
 
-import { createHash } from 'node:crypto'
+import { hashHex } from '@xnetjs/crypto'
 
 export function normalizeToken(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -36,7 +36,8 @@ export function stableJsonStringify(value: unknown): string {
 }
 
 export function sha256Hex(value: string | Uint8Array): string {
-  return createHash('sha256').update(value).digest('hex')
+  const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value
+  return hashHex(bytes, 'sha256')
 }
 
 export function createSocialNodeId(kind: string, parts: readonly unknown[]): string {
