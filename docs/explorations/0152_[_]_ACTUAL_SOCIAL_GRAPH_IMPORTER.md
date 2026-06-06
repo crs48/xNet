@@ -718,40 +718,40 @@ The full implementation should use schema validators, a deterministic hash-based
 
 ## Implementation Checklist
 
-- [ ] Create `packages/social` with build/test/package exports wired into the monorepo.
-- [ ] Add social schema definitions for archive, run, source record, actor, identity claim, content, interaction, conversation, message, collection, and collection item.
-- [ ] Add deterministic ID helpers based on platform, source IDs, normalized URLs, source path, and source record hash.
-- [ ] Add ZIP archive manifest reader that streams entries and computes hashes without extracting whole archives to the repo.
-- [ ] Add large-file blob/import storage strategy that handles archives larger than the current 100 MB `BlobService` default.
-- [ ] Add source record staging with privacy classes, parse warnings, ignored-file reasons, adapter version, and source entry references.
-- [ ] Add Instagram detector, probe, and V1 staged mappers for profile, follows/followers, likes, saves, comments, media, and messages.
-- [ ] Add Grok detector, probe, and V1 staged mappers for conversations, responses, citations, media posts, asset references, projects, and tasks.
-- [ ] Exclude Instagram/Grok account-security, billing, auth, and ad/activity buckets from default import unless explicitly selected.
-- [ ] Add per-bucket import selection and count summaries.
-- [ ] Add commit logic that upserts deterministic nodes idempotently into `NodeStore`.
+- [x] Create `packages/social` with build/test/package exports wired into the monorepo.
+- [x] Add social schema definitions for archive, run, source record, actor, identity claim, content, interaction, conversation, message, collection, and collection item.
+- [x] Add deterministic ID helpers based on platform, source IDs, normalized URLs, source path, and source record hash.
+- [x] Add ZIP archive manifest reader that streams entries and computes hashes without extracting whole archives to the repo.
+- [x] Add large-file blob/import storage strategy that handles archives larger than the current 100 MB `BlobService` default.
+- [x] Add source record staging with privacy classes, parse warnings, ignored-file reasons, adapter version, and source entry references.
+- [x] Add Instagram detector, probe, and V1 staged mappers for profile, follows/followers, likes, saves, comments, media, and messages.
+- [x] Add Grok detector, probe, and V1 staged mappers for conversations, responses, citations, media posts, asset references, projects, and tasks.
+- [x] Exclude Instagram/Grok account-security, billing, auth, and ad/activity buckets from default import unless explicitly selected.
+- [x] Add per-bucket import selection and count summaries.
+- [x] Add commit logic that upserts deterministic nodes idempotently into `NodeStore`.
 - [ ] Add default saved views for People, Content, Interactions, Messages, Collections, and Import Runs.
 - [ ] Add starter graph lens builders for "people I follow", "saved content by creator", "conversation references", and "AI citations".
 - [ ] Integrate the importer into Electron first with a staging/review UI.
 - [ ] Add generated canvas projection command for a selected saved view or graph lens.
-- [ ] Add fixture sanitization tools so tests can use structural samples without committing private export content.
-- [ ] Add unit tests for each mapper with sanitized fixtures and malformed/partial records.
+- [x] Add fixture sanitization tools so tests can use structural samples without committing private export content.
+- [x] Add unit tests for each mapper with sanitized fixtures and malformed/partial records.
 - [ ] Add import telemetry only for local performance counters by default; never log raw content.
 
 ## Validation Checklist
 
-- [ ] Run `pnpm --filter @xnetjs/social test` once the package exists.
+- [x] Run `pnpm --filter @xnetjs/social test` once the package exists.
 - [ ] Run `pnpm typecheck`.
-- [ ] Run importer tests against sanitized Instagram fixtures for following, followers, messages, liked posts, saved posts, comments, reels, and media references.
-- [ ] Run importer tests against sanitized Grok fixtures for conversations, responses, citations, media posts, and asset references.
-- [ ] Verify re-importing the same archive is idempotent and does not duplicate actors, content, messages, or interactions.
+- [x] Run importer tests against sanitized Instagram fixtures for following, followers, messages, liked posts, saved posts, comments, reels, and media references.
+- [x] Run importer tests against sanitized Grok fixtures for conversations, responses, citations, media posts, and asset references.
+- [x] Verify re-importing the same archive is idempotent and does not duplicate actors, content, messages, or interactions.
 - [ ] Verify adapter version changes can re-stage without deleting the raw archive provenance.
 - [ ] Verify the importer can process a 400 MB+ archive without exhausting memory.
-- [ ] Verify malformed text/encoding anomalies are flagged and do not crash import.
-- [ ] Verify private-message buckets are disabled by default or clearly marked before commit.
-- [ ] Verify account security, billing, API key, session, and payment-like files are not imported into the social graph by default.
+- [x] Verify malformed text/encoding anomalies are flagged and do not crash import.
+- [x] Verify private-message buckets are disabled by default or clearly marked before commit.
+- [x] Verify account security, billing, API key, session, and payment-like files are not imported into the social graph by default.
 - [ ] Verify database views can query people, content, interactions, messages, and collections without platform-specific UI code.
 - [ ] Verify a graph lens can create a bounded canvas projection with source-backed cards and provenance links.
-- [ ] Verify no raw private export fixture data is committed.
+- [x] Verify no raw private export fixture data is committed.
 
 ## Recommendation
 
