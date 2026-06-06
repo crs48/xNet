@@ -36,6 +36,14 @@ export {
   type LargeArchiveStoragePolicy
 } from './storage'
 export {
+  createSocialImportTelemetryEvents,
+  type SocialImportTelemetryEvent,
+  type SocialImportTelemetryInput,
+  type SocialImportTelemetryMetric,
+  type SocialImportTelemetryTags,
+  type SocialImportTelemetryUnit
+} from './telemetry'
+export {
   collectStagedRecords,
   createIgnoredSourceRecord,
   createSourceRecord,

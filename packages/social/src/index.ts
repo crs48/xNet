@@ -4,4 +4,7 @@
 
 export * from './import'
 export * from './importers'
+export * from './lenses'
+export * from './projection'
 export * from './schemas'
+export * from './views'

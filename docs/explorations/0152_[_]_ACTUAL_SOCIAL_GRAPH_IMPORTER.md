@@ -729,28 +729,28 @@ The full implementation should use schema validators, a deterministic hash-based
 - [x] Exclude Instagram/Grok account-security, billing, auth, and ad/activity buckets from default import unless explicitly selected.
 - [x] Add per-bucket import selection and count summaries.
 - [x] Add commit logic that upserts deterministic nodes idempotently into `NodeStore`.
-- [ ] Add default saved views for People, Content, Interactions, Messages, Collections, and Import Runs.
-- [ ] Add starter graph lens builders for "people I follow", "saved content by creator", "conversation references", and "AI citations".
+- [x] Add default saved views for People, Content, Interactions, Messages, Collections, and Import Runs.
+- [x] Add starter graph lens builders for "people I follow", "saved content by creator", "conversation references", and "AI citations".
 - [ ] Integrate the importer into Electron first with a staging/review UI.
-- [ ] Add generated canvas projection command for a selected saved view or graph lens.
+- [x] Add generated canvas projection command for a selected saved view or graph lens.
 - [x] Add fixture sanitization tools so tests can use structural samples without committing private export content.
 - [x] Add unit tests for each mapper with sanitized fixtures and malformed/partial records.
-- [ ] Add import telemetry only for local performance counters by default; never log raw content.
+- [x] Add import telemetry only for local performance counters by default; never log raw content.
 
 ## Validation Checklist
 
 - [x] Run `pnpm --filter @xnetjs/social test` once the package exists.
-- [ ] Run `pnpm typecheck`.
+- [x] Run `pnpm typecheck`.
 - [x] Run importer tests against sanitized Instagram fixtures for following, followers, messages, liked posts, saved posts, comments, reels, and media references.
 - [x] Run importer tests against sanitized Grok fixtures for conversations, responses, citations, media posts, and asset references.
 - [x] Verify re-importing the same archive is idempotent and does not duplicate actors, content, messages, or interactions.
-- [ ] Verify adapter version changes can re-stage without deleting the raw archive provenance.
-- [ ] Verify the importer can process a 400 MB+ archive without exhausting memory.
+- [x] Verify adapter version changes can re-stage without deleting the raw archive provenance.
+- [x] Verify the importer can process a 400 MB+ archive without exhausting memory.
 - [x] Verify malformed text/encoding anomalies are flagged and do not crash import.
 - [x] Verify private-message buckets are disabled by default or clearly marked before commit.
 - [x] Verify account security, billing, API key, session, and payment-like files are not imported into the social graph by default.
-- [ ] Verify database views can query people, content, interactions, messages, and collections without platform-specific UI code.
-- [ ] Verify a graph lens can create a bounded canvas projection with source-backed cards and provenance links.
+- [x] Verify database views can query people, content, interactions, messages, and collections without platform-specific UI code.
+- [x] Verify a graph lens can create a bounded canvas projection with source-backed cards and provenance links.
 - [x] Verify no raw private export fixture data is committed.
 
 ## Recommendation
