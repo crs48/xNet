@@ -933,7 +933,7 @@ sections or ornamental surfaces.
 
 ### Phase 3: Add Facets, Timeline, And Inspector
 
-- [ ] Add a facet shelf that computes value counts for selected schema fields.
+- [x] Add a facet shelf that computes value counts for selected schema fields.
 - [ ] Add date-bucket facets and timeline brushing.
 - [ ] Add a right inspector that can show fields, relations, source records, and import runs.
 - [ ] Add privacy chips and sensitive-result warnings to the lens toolbar.

@@ -56,10 +56,15 @@ export {
   type UseSavedViewResult
 } from './hooks/useSavedView'
 export {
+  deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
+  filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
   SavedViewResultTable,
   SavedViewRunner,
+  type SavedViewFacetSelection,
+  type SavedViewFacetSummary,
+  type SavedViewFacetValueSummary,
   type SavedViewResultTableProps,
   type SavedViewRunnerProps
 } from './components/SavedViewRunner'

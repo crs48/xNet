@@ -14,11 +14,13 @@ import {
   ChevronDown,
   ChevronRight,
   Columns3,
+  Filter,
   Loader2,
   RefreshCw,
   Search,
   Shield,
-  Table
+  Table,
+  X
 } from 'lucide-react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useSavedView } from '../hooks/useSavedView'
@@ -51,10 +53,27 @@ export type SavedViewResultTableProps = {
   }) => ReactNode
 }
 
+export type SavedViewFacetSelection = Record<string, readonly string[]>
+
+export type SavedViewFacetValueSummary = {
+  valueKey: string
+  label: string
+  count: number
+}
+
+export type SavedViewFacetSummary = {
+  field: string
+  values: SavedViewFacetValueSummary[]
+  totalValues: number
+}
+
 type SortDirection = 'asc' | 'desc'
 
 const DEFAULT_PAGE_SIZE = 25
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const
+const MAX_FACET_FIELDS = 5
+const MAX_FACET_VALUES = 8
+const MAX_FACET_DISTINCT_VALUES = 16
 const SYSTEM_COLUMNS = new Set([
   'deleted',
   'createdBy',
@@ -84,6 +103,35 @@ const PREFERRED_COLUMNS = [
   'updatedAt',
   'id'
 ]
+const PREFERRED_FACET_COLUMNS = [
+  'platform',
+  'contentKind',
+  'interactionKind',
+  'messageKind',
+  'collectionKind',
+  'privacyClass',
+  'visibility',
+  'rowRole',
+  'schemaName'
+]
+const LOW_SIGNAL_FACET_COLUMNS = new Set([
+  'id',
+  'schemaId',
+  'title',
+  'body',
+  'text',
+  'content',
+  'url',
+  'uri',
+  'sourceUrl',
+  'externalId',
+  'createdAt',
+  'updatedAt',
+  'publishedAt',
+  'observedAt',
+  'sentAt',
+  'importedAt'
+])
 
 function classNames(values: readonly (string | false | null | undefined)[]): string {
   return values.filter(Boolean).join(' ')
@@ -134,6 +182,72 @@ export function formatSavedViewCellValue(column: string, value: unknown): string
   return String(value)
 }
 
+/**
+ * Compute low-cardinality facets over loaded schema query rows.
+ */
+export function deriveSavedViewFacetSummaries(
+  rows: readonly Record<string, unknown>[],
+  columns: readonly string[]
+): SavedViewFacetSummary[] {
+  const candidateColumns = columns
+    .filter((column) => !LOW_SIGNAL_FACET_COLUMNS.has(column))
+    .map((column) => ({
+      column,
+      score: PREFERRED_FACET_COLUMNS.includes(column)
+        ? PREFERRED_FACET_COLUMNS.indexOf(column)
+        : PREFERRED_FACET_COLUMNS.length + column.length
+    }))
+    .sort((left, right) => left.score - right.score || left.column.localeCompare(right.column))
+    .map((candidate) => candidate.column)
+
+  return candidateColumns
+    .flatMap((field) => {
+      const counts = rows.reduce<Map<string, SavedViewFacetValueSummary>>((current, row) => {
+        const value = row[field]
+        if (!isFacetScalarValue(value)) return current
+
+        const valueKey = facetValueKey(value)
+        const previous = current.get(valueKey)
+        current.set(valueKey, {
+          valueKey,
+          label: facetValueLabel(value),
+          count: (previous?.count ?? 0) + 1
+        })
+
+        return current
+      }, new Map())
+      const values = [...counts.values()].sort(
+        (left, right) => right.count - left.count || left.label.localeCompare(right.label)
+      )
+
+      if (values.length === 0 || values.length > MAX_FACET_DISTINCT_VALUES) return []
+
+      return [
+        {
+          field,
+          values: values.slice(0, MAX_FACET_VALUES),
+          totalValues: values.length
+        }
+      ]
+    })
+    .slice(0, MAX_FACET_FIELDS)
+}
+
+/**
+ * Filter loaded schema query rows by facet value keys.
+ */
+export function filterSavedViewRowsByFacets<T extends Record<string, unknown>>(
+  rows: readonly T[],
+  selection: SavedViewFacetSelection
+): T[] {
+  const activeEntries = Object.entries(selection).filter(([, values]) => values.length > 0)
+  if (activeEntries.length === 0) return [...rows]
+
+  return rows.filter((row) =>
+    activeEntries.every(([field, values]) => values.includes(facetValueKey(row[field])))
+  )
+}
+
 export function SavedViewRunner({
   descriptor,
   registry,
@@ -155,6 +269,7 @@ export function SavedViewRunner({
   const [pageSize, setPageSize] = useState(initialPageSize)
   const [visibleColumns, setVisibleColumns] = useState<string[]>([])
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
+  const [facetSelection, setFacetSelection] = useState<Record<string, string[]>>({})
   const descriptorKey = useMemo(() => descriptorKeyFor(descriptor), [descriptor])
   const orderBy = useMemo<QueryASTOrderBy[] | undefined>(
     () => (sortField ? [{ field: sortField, direction: sortDirection }] : undefined),
@@ -187,6 +302,30 @@ export function SavedViewRunner({
     () => deriveSavedViewColumns((activeQuery?.data ?? []) as Record<string, unknown>[]),
     [activeQuery?.data]
   )
+  const facetSummaries = useMemo(
+    () =>
+      deriveSavedViewFacetSummaries(
+        (activeQuery?.data ?? []) as Record<string, unknown>[],
+        availableColumns
+      ),
+    [activeQuery?.data, availableColumns]
+  )
+  const filteredRows = useMemo(
+    () =>
+      filterSavedViewRowsByFacets(
+        (activeQuery?.data ?? []) as Record<string, unknown>[],
+        facetSelection
+      ) as SavedViewQueryResult['data'],
+    [activeQuery?.data, facetSelection]
+  )
+  const displayedQuery = useMemo<SavedViewQueryResult | null>(
+    () => (activeQuery ? { ...activeQuery, data: filteredRows } : null),
+    [activeQuery, filteredRows]
+  )
+  const activeFacetCount = useMemo(
+    () => Object.values(facetSelection).reduce((sum, values) => sum + values.length, 0),
+    [facetSelection]
+  )
   const resetIdentity = resetKey ?? descriptorKey
 
   useEffect(() => {
@@ -198,6 +337,7 @@ export function SavedViewRunner({
     setPageSize(initialPageSize)
     setExpandedRowId(null)
     setVisibleColumns([])
+    setFacetSelection({})
   }, [initialPageSize, resetIdentity])
 
   useEffect(() => {
@@ -213,12 +353,38 @@ export function SavedViewRunner({
   }, [activeQueryId, pageSize, searchText, sortDirection, sortField])
 
   useEffect(() => {
+    setFacetSelection({})
+  }, [activeQueryId, searchText, sortDirection, sortField])
+
+  useEffect(() => {
     setVisibleColumns((current) => {
       const kept = current.filter((column) => availableColumns.includes(column))
       if (kept.length > 0) return kept
       return availableColumns.slice(0, Math.min(8, availableColumns.length))
     })
   }, [availableColumns])
+
+  useEffect(() => {
+    setFacetSelection((current) => {
+      const validFields = new Set(facetSummaries.map((facet) => facet.field))
+      const validValues = new Map(
+        facetSummaries.map((facet) => [
+          facet.field,
+          new Set(facet.values.map((value) => value.valueKey))
+        ])
+      )
+      const nextEntries = Object.entries(current)
+        .filter(([field]) => validFields.has(field))
+        .flatMap(([field, values]) => {
+          const allowedValues = validValues.get(field)
+          const kept = allowedValues ? values.filter((valueKey) => allowedValues.has(valueKey)) : []
+          return kept.length > 0 ? [[field, kept] as const] : []
+        })
+      const next = Object.fromEntries(nextEntries)
+
+      return sameFacetSelection(current, next) ? current : next
+    })
+  }, [facetSummaries])
 
   if (!descriptor) {
     return (
@@ -357,8 +523,20 @@ export function SavedViewRunner({
         </details>
       </div>
 
+      <SavedViewFacetShelf
+        summaries={facetSummaries}
+        selection={facetSelection}
+        onToggleValue={(field, valueKey) =>
+          setFacetSelection((current) => toggleFacetSelection(current, field, valueKey))
+        }
+        onClearField={(field) =>
+          setFacetSelection((current) => omitFacetSelectionField(current, field))
+        }
+        onClearAll={() => setFacetSelection({})}
+      />
+
       <SavedViewResultTable
-        query={activeQuery}
+        query={displayedQuery}
         columns={visibleColumns}
         expandedRowId={expandedRowId}
         onToggleRow={(rowId) => setExpandedRowId((current) => (current === rowId ? null : rowId))}
@@ -366,7 +544,11 @@ export function SavedViewRunner({
 
       <div className="flex items-center justify-between gap-3 text-sm">
         <div className="text-muted-foreground">
-          {activeQuery ? `${activeQuery.data.length.toLocaleString()} loaded` : '0 loaded'}
+          {activeQuery
+            ? activeFacetCount > 0
+              ? `${filteredRows.length.toLocaleString()} visible of ${activeQuery.data.length.toLocaleString()} loaded`
+              : `${activeQuery.data.length.toLocaleString()} loaded`
+            : '0 loaded'}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -389,6 +571,96 @@ export function SavedViewRunner({
         </div>
       </div>
     </section>
+  )
+}
+
+function SavedViewFacetShelf({
+  summaries,
+  selection,
+  onToggleValue,
+  onClearField,
+  onClearAll
+}: {
+  summaries: SavedViewFacetSummary[]
+  selection: SavedViewFacetSelection
+  onToggleValue: (field: string, valueKey: string) => void
+  onClearField: (field: string) => void
+  onClearAll: () => void
+}): JSX.Element | null {
+  const activeCount = Object.values(selection).reduce((sum, values) => sum + values.length, 0)
+
+  if (summaries.length === 0) return null
+
+  return (
+    <div className="rounded-md border border-border bg-secondary/20 p-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Filter size={14} className="text-muted-foreground" />
+          <span>Facets</span>
+          <span className="text-xs font-normal text-muted-foreground">loaded rows</span>
+        </div>
+        {activeCount > 0 ? (
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <X size={12} />
+            Clear facets
+          </button>
+        ) : null}
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {summaries.map((facet) => {
+          const selectedValues = selection[facet.field] ?? []
+
+          return (
+            <div key={facet.field} className="min-w-0">
+              <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+                <span className="min-w-0 truncate font-medium text-muted-foreground">
+                  {facet.field}
+                </span>
+                {selectedValues.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => onClearField(facet.field)}
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                ) : (
+                  <span className="text-muted-foreground">{facet.totalValues} values</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {facet.values.map((value) => {
+                  const selected = selectedValues.includes(value.valueKey)
+
+                  return (
+                    <button
+                      key={value.valueKey}
+                      type="button"
+                      onClick={() => onToggleValue(facet.field, value.valueKey)}
+                      className={classNames([
+                        'max-w-full rounded-md border px-2 py-1 text-xs transition-colors',
+                        selected
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'border-border bg-background hover:bg-accent'
+                      ])}
+                    >
+                      <span className="inline-block max-w-40 truncate align-bottom">
+                        {value.label}
+                      </span>
+                      <span className="ml-1 opacity-70">{value.count.toLocaleString()}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -555,4 +827,69 @@ function SavedViewStatusBanner({
 
 function shortSchemaId(schemaId: string): string {
   return schemaId.split('/').at(-1) ?? schemaId
+}
+
+function isFacetScalarValue(value: unknown): value is string | number | boolean | null | undefined {
+  return (
+    value === null ||
+    value === undefined ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  )
+}
+
+function facetValueKey(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '__empty__'
+  if (typeof value === 'number') return `number:${value}`
+  if (typeof value === 'boolean') return `boolean:${value}`
+  return `string:${String(value)}`
+}
+
+function facetValueLabel(value: unknown): string {
+  if (value === null || value === undefined || value === '') return 'Empty'
+  if (typeof value === 'boolean') return value ? 'True' : 'False'
+  return String(value)
+}
+
+function toggleFacetSelection(
+  selection: Record<string, string[]>,
+  field: string,
+  valueKey: string
+): Record<string, string[]> {
+  const currentValues = selection[field] ?? []
+  const nextValues = currentValues.includes(valueKey)
+    ? currentValues.filter((current) => current !== valueKey)
+    : [...currentValues, valueKey]
+
+  if (nextValues.length === 0) {
+    return omitFacetSelectionField(selection, field)
+  }
+
+  return { ...selection, [field]: nextValues }
+}
+
+function omitFacetSelectionField(
+  selection: Record<string, string[]>,
+  field: string
+): Record<string, string[]> {
+  return Object.fromEntries(Object.entries(selection).filter(([key]) => key !== field))
+}
+
+function sameFacetSelection(
+  left: Record<string, string[]>,
+  right: Record<string, string[]>
+): boolean {
+  const leftEntries = Object.entries(left)
+  const rightEntries = Object.entries(right)
+  if (leftEntries.length !== rightEntries.length) return false
+
+  return leftEntries.every(([field, values]) => {
+    const rightValues = right[field]
+    return (
+      rightValues !== undefined &&
+      values.length === rightValues.length &&
+      values.every((value, index) => value === rightValues[index])
+    )
+  })
 }

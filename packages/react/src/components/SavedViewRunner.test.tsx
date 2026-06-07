@@ -6,7 +6,9 @@ import type { SavedViewQueryResult } from '../hooks/useSavedView'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
+  filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
   SavedViewResultTable
 } from './SavedViewRunner'
@@ -84,6 +86,41 @@ describe('SavedViewRunner helpers', () => {
   it('formats complex values for read-only table cells', () => {
     expect(formatSavedViewCellValue('tags', ['a', 'b'])).toBe('2 items')
     expect(formatSavedViewCellValue('metadata', { source: 'archive' })).toBe('{"source":"archive"}')
+  })
+
+  it('derives loaded-row facet counts for low-cardinality fields', () => {
+    const facets = deriveSavedViewFacetSummaries(
+      [
+        { id: 'row-1', platform: 'instagram', privacyClass: 'public', title: 'One' },
+        { id: 'row-2', platform: 'instagram', privacyClass: 'public', title: 'Two' },
+        { id: 'row-3', platform: 'youtube', privacyClass: 'private', title: 'Three' }
+      ],
+      ['title', 'platform', 'privacyClass']
+    )
+
+    expect(facets[0]).toMatchObject({
+      field: 'platform',
+      values: [
+        { valueKey: 'string:instagram', label: 'instagram', count: 2 },
+        { valueKey: 'string:youtube', label: 'youtube', count: 1 }
+      ]
+    })
+    expect(facets.find((facet) => facet.field === 'title')).toBeUndefined()
+  })
+
+  it('filters loaded rows by selected facet value keys', () => {
+    const rows = [
+      { id: 'row-1', platform: 'instagram', privacyClass: 'public' },
+      { id: 'row-2', platform: 'youtube', privacyClass: 'public' },
+      { id: 'row-3', platform: 'youtube', privacyClass: 'private' }
+    ]
+
+    expect(
+      filterSavedViewRowsByFacets(rows, {
+        platform: ['string:youtube'],
+        privacyClass: ['string:public']
+      })
+    ).toEqual([{ id: 'row-2', platform: 'youtube', privacyClass: 'public' }])
   })
 })
 
