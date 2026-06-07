@@ -2,6 +2,10 @@
  * Social workspace pattern detection.
  */
 
+import type { SavedViewDescriptor } from '@xnetjs/data'
+import { defineSavedViewDescriptor, validateSavedViewDescriptor } from '@xnetjs/data'
+import { createSocialNodeId } from '../import/ids'
+
 export type SocialPatternKind =
   | 'repeated-creators'
   | 'bridge-actors'
@@ -48,6 +52,28 @@ export type SocialPatternDefinition = {
   detect: (input: NormalizedSocialPatternInput) => SocialPatternSuggestion[]
 }
 
+export type SocialPatternSavedViewDraft = {
+  deterministicId: string
+  title: string
+  description: string
+  descriptor: SavedViewDescriptor
+  descriptorJson: string
+  scope: NonNullable<SavedViewDescriptor['scope']>
+  savedViewProperties: {
+    title: string
+    description: string
+    descriptor: string
+    scope: NonNullable<SavedViewDescriptor['scope']>
+  }
+}
+
+export type SocialPatternSavedViewDraftInput = {
+  pattern: SocialPatternSuggestion
+  baseDescriptor: SavedViewDescriptor
+  workspaceId?: string | null
+  scope?: SavedViewDescriptor['scope'] | null
+}
+
 type NormalizedSocialPatternInput = {
   content: readonly SocialPatternRow[]
   interactions: readonly SocialPatternRow[]
@@ -62,6 +88,8 @@ type CountBucket = {
 }
 
 const DEFAULT_MAX_SUGGESTIONS = 8
+const DEFAULT_PATTERN_WORKSPACE_ID = 'social-data-workspace'
+const MAX_SAVED_VIEW_DESCRIPTION_LENGTH = 4000
 const PRIVATE_PRIVACY_CLASSES = new Set([
   'private',
   'third-party-private',
@@ -152,6 +180,39 @@ function suggestion(input: {
     privacyClasses: uniqueStrings(input.rows.map(privacyClassFor)),
     sourceImportRunIds: sourceImportRunIdsFor(input.rows, input.importRuns)
   }
+}
+
+function truncateDescription(value: string): string {
+  return value.length > MAX_SAVED_VIEW_DESCRIPTION_LENGTH
+    ? value.slice(0, MAX_SAVED_VIEW_DESCRIPTION_LENGTH - 1)
+    : value
+}
+
+function savedPatternDescription(pattern: SocialPatternSuggestion): string {
+  const evidence = pattern.evidence
+    .slice(0, 5)
+    .map((item) => `${item.label}: ${item.value} (${item.count})`)
+    .join('; ')
+  const platforms =
+    pattern.platforms.length > 0 ? `Platforms: ${pattern.platforms.join(', ')}.` : null
+  const privacy =
+    pattern.privacyClasses.length > 0 ? `Privacy: ${pattern.privacyClasses.join(', ')}.` : null
+  const importRuns =
+    pattern.sourceImportRunIds.length > 0
+      ? `Source import runs: ${pattern.sourceImportRunIds.length}.`
+      : null
+
+  return truncateDescription(
+    [
+      pattern.description,
+      `Evidence: ${evidence || `${pattern.evidenceCount} records`}.`,
+      platforms,
+      privacy,
+      importRuns
+    ]
+      .filter(Boolean)
+      .join(' ')
+  )
 }
 
 function topBuckets(
@@ -454,4 +515,47 @@ function severityRank(severity: SocialPatternSeverity): number {
   if (severity === 'warning') return 3
   if (severity === 'notice') return 2
   return 1
+}
+
+export function createSocialPatternSavedViewDraft({
+  pattern,
+  baseDescriptor,
+  workspaceId,
+  scope
+}: SocialPatternSavedViewDraftInput): SocialPatternSavedViewDraft | null {
+  const baseValidation = validateSavedViewDescriptor(baseDescriptor)
+  if (!baseValidation.valid) return null
+
+  const resolvedScope = scope ?? baseDescriptor.scope ?? 'workspace'
+  const title = `Pattern: ${pattern.title}`
+  const description = savedPatternDescription(pattern)
+  const descriptor = defineSavedViewDescriptor({
+    title,
+    description,
+    scope: resolvedScope,
+    query: baseDescriptor.query
+  })
+  const validation = validateSavedViewDescriptor(descriptor)
+  if (!validation.valid) return null
+
+  const descriptorJson = JSON.stringify(descriptor)
+
+  return {
+    deterministicId: createSocialNodeId('workspace-pattern-view', [
+      workspaceId ?? DEFAULT_PATTERN_WORKSPACE_ID,
+      pattern.id,
+      pattern.viewHint
+    ]),
+    title,
+    description,
+    descriptor,
+    descriptorJson,
+    scope: resolvedScope,
+    savedViewProperties: {
+      title,
+      description,
+      descriptor: descriptorJson,
+      scope: resolvedScope
+    }
+  }
 }

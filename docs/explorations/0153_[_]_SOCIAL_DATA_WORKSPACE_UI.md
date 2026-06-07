@@ -955,7 +955,7 @@ sections or ornamental surfaces.
       attention bursts, unrevisited saves, and privacy hotspots.
 - [x] Store pattern suggestions as dismissible workspace state.
 - [x] Show evidence counts, source import runs, and privacy envelope for every pattern.
-- [ ] Let users open, save, hide, or pin a pattern to canvas.
+- [x] Let users open, save, hide, or pin a pattern to canvas.
 
 ### Phase 6: Scale And Generalize
 

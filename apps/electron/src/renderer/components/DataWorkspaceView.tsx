@@ -4,10 +4,12 @@ import {
   SavedViewRunner,
   useMutate,
   useQuery,
+  type MutateOp,
   type SavedViewLensDraft,
   type SavedViewSchemaRegistry
 } from '@xnetjs/react'
 import {
+  createSocialPatternSavedViewDraft,
   detectSocialPatterns,
   type SocialPatternKind,
   type SocialPatternSuggestion
@@ -32,6 +34,7 @@ import {
   Loader2,
   MessageSquare,
   Network,
+  Save,
   Search,
   Shield,
   Table,
@@ -119,6 +122,17 @@ function parseSavedViewDescriptor(value: string | undefined): ParsedDescriptor {
       queryMode: null,
       primarySchemaId: null
     }
+  }
+}
+
+function parseSavedViewDescriptorObject(value: string | undefined): SavedViewDescriptor | null {
+  if (!value) return null
+
+  try {
+    const descriptor = JSON.parse(value) as SavedViewDescriptor
+    return validateSavedViewDescriptor(descriptor).valid ? descriptor : null
+  } catch {
+    return null
   }
 }
 
@@ -357,6 +371,64 @@ export function DataWorkspaceView({
     }
   }
 
+  async function upsertPatternSavedView(
+    pattern: SocialPatternSuggestion
+  ): Promise<SavedViewCanvasFrameInput | null> {
+    setSaveLensMessage(null)
+    setSaveLensError(null)
+
+    const baseView = socialWorkspaceViews.find((candidate) => candidate.title === pattern.viewHint)
+    const baseDescriptor = parseSavedViewDescriptorObject(baseView?.descriptor)
+
+    if (!baseView || !baseDescriptor) {
+      setSaveLensError(`Seed the ${pattern.viewHint} view before saving this pattern.`)
+      return null
+    }
+
+    const draft = createSocialPatternSavedViewDraft({ pattern, baseDescriptor })
+    if (!draft) {
+      setSaveLensError('Pattern lens could not be created from the base view.')
+      return null
+    }
+
+    const existing = allSavedViews.some((view) => view.id === draft.deterministicId)
+    const operation: MutateOp = existing
+      ? {
+          type: 'update',
+          id: draft.deterministicId,
+          data: draft.savedViewProperties
+        }
+      : {
+          type: 'create',
+          id: draft.deterministicId,
+          schema: SavedViewSchema,
+          data: draft.savedViewProperties
+        }
+
+    await mutate([operation])
+
+    const savedView = {
+      id: draft.deterministicId,
+      ...draft.savedViewProperties
+    }
+    setSelectedViewId(savedView.id)
+    setSaveLensMessage(`${existing ? 'Updated' : 'Saved'} pattern lens: ${draft.title}.`)
+    return savedView
+  }
+
+  async function handleSavePattern(pattern: SocialPatternSuggestion): Promise<void> {
+    await upsertPatternSavedView(pattern)
+  }
+
+  async function handlePinPattern(pattern: SocialPatternSuggestion): Promise<void> {
+    if (!onInsertSavedLensAsCanvasFrame) return
+
+    const savedView = await upsertPatternSavedView(pattern)
+    if (!savedView) return
+
+    onInsertSavedLensAsCanvasFrame(savedView)
+  }
+
   function handleDismissPattern(patternId: string): void {
     setDismissedPatternIds((current) => {
       const next = [...new Set([...current, patternId])]
@@ -459,6 +531,12 @@ export function DataWorkspaceView({
                           icon={patternIconFor(pattern.kind)}
                           pattern={pattern}
                           onOpen={handleOpenPattern}
+                          onSave={(nextPattern) => void handleSavePattern(nextPattern)}
+                          onPin={
+                            onInsertSavedLensAsCanvasFrame
+                              ? (nextPattern) => void handlePinPattern(nextPattern)
+                              : undefined
+                          }
                           onDismiss={handleDismissPattern}
                         />
                       ))
@@ -635,11 +713,15 @@ function PatternRow({
   icon: Icon,
   pattern,
   onOpen,
+  onSave,
+  onPin,
   onDismiss
 }: {
   icon: typeof BarChart3
   pattern: SocialPatternSuggestion
   onOpen: (pattern: SocialPatternSuggestion) => void
+  onSave: (pattern: SocialPatternSuggestion) => void
+  onPin?: (pattern: SocialPatternSuggestion) => void
   onDismiss: (patternId: string) => void
 }): React.ReactElement {
   return (
@@ -683,7 +765,7 @@ function PatternRow({
           ))}
         </div>
       ) : null}
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => onOpen(pattern)}
@@ -691,6 +773,24 @@ function PatternRow({
         >
           Open
         </button>
+        <button
+          type="button"
+          onClick={() => onSave(pattern)}
+          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-accent"
+        >
+          <Save size={12} />
+          Save
+        </button>
+        {onPin ? (
+          <button
+            type="button"
+            onClick={() => onPin(pattern)}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-accent"
+          >
+            <Layout size={12} />
+            Pin
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => onDismiss(pattern.id)}

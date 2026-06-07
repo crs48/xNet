@@ -1,5 +1,15 @@
+import {
+  defineNodeQueryAST,
+  defineSavedViewDescriptor,
+  validateSavedViewDescriptor
+} from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
-import { detectSocialPatterns } from '../patterns'
+import {
+  createSocialPatternSavedViewDraft,
+  detectSocialPatterns,
+  type SocialPatternSuggestion
+} from '../patterns'
+import { SocialContentSchema } from '../schemas'
 
 describe('social workspace patterns', () => {
   it('detects explainable social workspace patterns from loaded rows', () => {
@@ -152,5 +162,42 @@ describe('social workspace patterns', () => {
 
     expect(first).toHaveLength(1)
     expect(first[0]?.id).toBe(second[0]?.id)
+  })
+
+  it('creates deterministic saved view drafts from pattern suggestions', () => {
+    const pattern: SocialPatternSuggestion = {
+      id: 'social-pattern:privacy-hotspots:private',
+      kind: 'privacy-hotspots',
+      title: 'Privacy hotspots',
+      description: 'Imported records include private envelopes.',
+      severity: 'warning',
+      viewHint: 'Content',
+      evidenceCount: 3,
+      evidence: [{ label: 'Privacy', value: 'private', count: 3 }],
+      platforms: ['instagram'],
+      privacyClasses: ['private'],
+      sourceImportRunIds: ['run-1']
+    }
+    const baseDescriptor = defineSavedViewDescriptor({
+      title: 'Content',
+      scope: 'workspace',
+      query: defineNodeQueryAST(SocialContentSchema, {
+        orderBy: { importedAt: 'desc' },
+        page: { first: 25, count: 'estimate' }
+      })
+    })
+
+    const first = createSocialPatternSavedViewDraft({ pattern, baseDescriptor })
+    const second = createSocialPatternSavedViewDraft({ pattern, baseDescriptor })
+
+    expect(first?.deterministicId).toBe(second?.deterministicId)
+    expect(first?.title).toBe('Pattern: Privacy hotspots')
+    expect(first?.description).toContain('Privacy: private.')
+    expect(first?.savedViewProperties).toMatchObject({
+      title: 'Pattern: Privacy hotspots',
+      scope: 'workspace'
+    })
+    expect(first?.descriptor.query).toEqual(baseDescriptor.query)
+    expect(validateSavedViewDescriptor(first?.descriptor)).toEqual({ valid: true, errors: [] })
   })
 })
