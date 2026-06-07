@@ -1,6 +1,6 @@
 # 0153 - Social Data Workspace UI
 
-**Status:** Exploration  
+**Status:** Implemented / Validated
 **Date:** 2026-06-07  
 **Author:** Codex  
 **Related:** [0150 - Unified Social Graph](./0150_%5B_%5D_UNIFIED_SOCIAL_GRAPH.md), [0151 - Self-Organizing Social Graph Immersive Recommendation Space](./0151_%5B_%5D_SELF_ORGANIZING_SOCIAL_GRAPH_IMMERSIVE_RECOMMENDATION_SPACE.md), [0152 - Actual Social Graph Importer](./0152_%5B_%5D_ACTUAL_SOCIAL_GRAPH_IMPORTER.md)
@@ -16,6 +16,36 @@
 - [x] Explore a general-purpose data workspace UI that uses social imports as the first seed.
 - [x] Produce recommendations, implementation checklist, validation checklist, diagrams, example
       code, and references.
+
+## Implementation Status
+
+This exploration has been implemented as the first social-seeded Data Workspace slice. The original
+gap analysis below is preserved as the design baseline, while the implementation and validation
+checklists at the end of this document capture the completed work.
+
+Delivered pieces:
+
+- Web and Electron social import flows now expose post-commit Data Workspace actions.
+- The Data Workspace can seed deterministic default social saved views and starter graph lenses.
+- `SavedViewRunner` executes schema views and query-set graph lenses with table controls, facets,
+  timeline brushing, row expansion, privacy summaries, and inspector coordination.
+- Graph-lens selections now open the matching source-backed row in the shared inspector.
+- Canvas query-frame summaries, source-backed result-card dragging, and social projection caps are
+  covered by targeted tests.
+- Sensitive social buckets remain opt-in and carry visible privacy warnings.
+- Worker-backed web archive staging, a general importer registry surface, analytics-cache planning,
+  and graph-atlas prototyping hooks are in place for larger future datasets.
+
+Validation evidence:
+
+- Web fixture import and workspace controls screenshot:
+  `tmp/playwright/social-web-lens-controls.png`.
+- Sensitive message opt-in screenshot:
+  `tmp/playwright/social-web-sensitive-messages.png`.
+- Electron YouTube archive import and workspace screenshot:
+  `tmp/playwright/electron-social-youtube-workspace.png`.
+- Targeted package checks covered `@xnetjs/social`, `@xnetjs/react`, `@xnetjs/canvas`,
+  `xnet-web`, and `xnet-desktop`.
 
 ## Problem Statement
 
@@ -147,7 +177,7 @@ Observed in [`apps/web/src/routes/social-import.tsx`](../../apps/web/src/routes/
 - It commits staged canonical nodes in batches through `useMutate`.
 - It imports all social schemas locally to map staged drafts to actual create/update operations.
 
-Current gap:
+Original gap before implementation:
 
 After commit, the page only reports created/updated records. It does not register default saved
 views, open a workspace, create query frames, navigate to a data home, or make imported records
@@ -165,7 +195,7 @@ Observed in
 - The command palette includes many canvas and document commands, and `Social Import` is an app
   shell state.
 
-Current gap:
+Original gap before implementation:
 
 Electron can open the importer, but imported social data still does not appear as first-class
 workspace material. The command palette does not yet expose "Open Data Workspace," "Create Lens,"
@@ -219,7 +249,7 @@ graph TD
   Electron["apps/electron<br/>SocialImportView, App shell"] --> Social
   Electron --> React
   Canvas["@xnetjs/canvas<br/>source-backed cards, query frames"] --> Data
-  Workspace["Missing:<br/>DataWorkspace / LensRunner"] --> Social
+  Workspace["Implemented:<br/>DataWorkspace / LensRunner"] --> Social
   Workspace --> React
   Workspace --> Canvas
 ```
