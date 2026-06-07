@@ -977,7 +977,7 @@ sections or ornamental surfaces.
 - [ ] Verify a graph lens selection opens the same source record in the inspector.
 - [ ] Verify a canvas query frame updates result counts and stale state.
 - [ ] Verify dragging a result row creates a source-backed canvas card with the correct schema/source.
-- [ ] Verify generated canvas projection plans obey node/edge caps and privacy labeling.
+- [x] Verify generated canvas projection plans obey node/edge caps and privacy labeling.
 - [x] Run targeted unit tests for view descriptors, lens runtime, pattern definitions, and projection
       insertion.
 - [x] Run web and Electron type checks after UI integration.
@@ -988,6 +988,10 @@ Web validation evidence: imported `tmp/social-import-fixtures/instagram-small.zi
 web UI, opened the seeded Data Workspace, verified starter view row counts for People, Content,
 Interactions, Collections, and Import Runs, saved an Interactions facet lens, and captured
 `tmp/playwright/social-web-lens-controls.png`.
+
+Projection validation evidence: `packages/social/src/__tests__/views-lenses-projection.test.ts`
+now asserts node caps, edge caps, omitted edge counts, source-backed node fields, and privacy labels
+on generated social canvas projection plans.
 
 ## Example Code
 

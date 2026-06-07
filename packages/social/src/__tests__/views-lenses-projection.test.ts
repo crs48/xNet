@@ -159,14 +159,16 @@ describe('social canvas projections', () => {
           schemaId: SocialActorSchema._schemaId,
           kind: 'actor',
           title: 'Self',
-          platform: 'instagram'
+          platform: 'instagram',
+          privacyClass: 'third-party-private'
         },
         {
           id: 'actor:creator',
           schemaId: SocialActorSchema._schemaId,
           kind: 'actor',
           title: 'Creator',
-          platform: 'instagram'
+          platform: 'instagram',
+          privacyClass: 'public'
         },
         {
           id: 'content:ignored',
@@ -183,6 +185,11 @@ describe('social canvas projections', () => {
         },
         {
           sourceId: 'actor:creator',
+          targetId: 'actor:self',
+          relationshipKind: 'related'
+        },
+        {
+          sourceId: 'actor:creator',
           targetId: 'content:ignored',
           relationshipKind: 'authored'
         }
@@ -193,10 +200,12 @@ describe('social canvas projections', () => {
     expect(plan.nodeCount).toBe(2)
     expect(plan.edgeCount).toBe(1)
     expect(plan.omittedNodeCount).toBe(1)
+    expect(plan.omittedEdgeCount).toBe(1)
     expect(plan.nodes[0].type).toBe('external-reference')
     expect(plan.nodes[0].sourceNodeId).toBe('actor:self')
     expect(plan.nodes[0].sourceSchemaId).toBe(SocialActorSchema._schemaId)
     expect(plan.nodes[0].properties.sourceCardRole).toBe('social-projection')
+    expect(plan.nodes[0].properties.privacyClass).toBe('third-party-private')
     expect(plan.edges[0].relationship.properties.socialRelationshipKind).toBe('follows')
   })
 })
