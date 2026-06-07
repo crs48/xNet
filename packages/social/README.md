@@ -22,6 +22,7 @@ import { socialSchemas } from '@xnetjs/social/schemas'
 import { detectSocialArchive, readZipArchiveManifest } from '@xnetjs/social/import'
 import { readBrowserZipArchiveManifest } from '@xnetjs/social/import/browser'
 import {
+  claudeAdapter,
   grokAdapter,
   instagramAdapter,
   tiktokAdapter,
@@ -79,6 +80,7 @@ import {
   createZipJsonEntryReader,
   createZipTextEntryReader,
   detectSocialArchive,
+  claudeAdapter,
   grokAdapter,
   instagramAdapter,
   tiktokAdapter,
@@ -86,7 +88,14 @@ import {
   readZipArchiveManifest
 } from '@xnetjs/social'
 
-const adapters = [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter, tiktokAdapter]
+const adapters = [
+  instagramAdapter,
+  grokAdapter,
+  youtubeAdapter,
+  xAdapter,
+  tiktokAdapter,
+  claudeAdapter
+]
 
 export async function stageSocialArchive(archivePath: string) {
   const manifest = await readZipArchiveManifest(archivePath)
@@ -298,6 +307,29 @@ Implementation checklist:
 - [x] Cover adapter detection, default bucket selection, mappers, and platform constants with tests.
 - [x] Smoke-test staging against `.exports/tiktok.zip`.
 
+### Claude
+
+The Claude adapter currently detects ZIPs containing `users.json` and `conversations.json` and
+stages these buckets:
+
+- Profile, excluded by default
+- Conversations, excluded by default
+- Files and attachments, excluded by default
+- Projects, excluded by default
+
+The adapter maps export records into self and assistant actors, AI-chat conversations, prompt and
+assistant-response messages, cited link content, citation interactions, project collections, project
+document content, collection items, file metadata source records, and optional source records.
+
+Implementation checklist:
+
+- [x] Detect Claude archive ZIPs from `users.json` and `conversations.json` manifest entries.
+- [x] Stage canonical social records for private opt-in buckets.
+- [x] Export the adapter from `@xnetjs/social/importers`.
+- [x] Wire the adapter into Electron and web social import surfaces.
+- [x] Cover adapter detection, default bucket selection, profile, conversation, project, and file mappers with tests.
+- [x] Smoke-test staging against `.exports/claude.zip`.
+
 ## Privacy And Provenance
 
 Every import bucket and staged record carries a `privacyClass`. Sensitive buckets should not be
@@ -324,8 +356,8 @@ clear local-storage policy and user approval.
 - [ ] Export the adapter from `src/importers/index.ts`.
 - [ ] Add the adapter to the app surface that chooses supported importers.
 
-Good next candidates are Reddit, Claude, OpenAI, Spotify, Apple Music, and other services once
-representative export archives are available.
+Good next candidates are Reddit, OpenAI, Spotify, Apple Music, and other services once representative
+export archives are available.
 
 ## Validation
 

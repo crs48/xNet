@@ -3,6 +3,15 @@
  */
 
 export {
+  CLAUDE_ADAPTER_ID,
+  CLAUDE_ADAPTER_VERSION,
+  claudeAdapter,
+  mapClaudeConversations,
+  mapClaudeFiles,
+  mapClaudeProfile,
+  mapClaudeProject
+} from './claude'
+export {
   INSTAGRAM_ADAPTER_ID,
   INSTAGRAM_ADAPTER_VERSION,
   instagramAdapter,

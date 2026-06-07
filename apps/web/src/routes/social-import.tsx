@@ -22,6 +22,7 @@ import {
   type ArchiveManifest
 } from '@xnetjs/social/import/browser'
 import {
+  claudeAdapter,
   grokAdapter,
   instagramAdapter,
   tiktokAdapter,
@@ -72,7 +73,14 @@ type PickedArchive = {
 }
 
 const COMMIT_BATCH_SIZE = 500
-const adapters = [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter, tiktokAdapter] as const
+const adapters = [
+  instagramAdapter,
+  grokAdapter,
+  youtubeAdapter,
+  xAdapter,
+  tiktokAdapter,
+  claudeAdapter
+] as const
 
 const schemasById = Object.fromEntries(
   [

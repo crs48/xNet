@@ -16,6 +16,7 @@ import {
   stageSocialArchive
 } from '@xnetjs/social/import/node'
 import {
+  claudeAdapter,
   grokAdapter,
   instagramAdapter,
   tiktokAdapter,
@@ -40,7 +41,14 @@ export type SocialImportStageResult = Omit<SharedSocialImportStageResult, 'archi
   archive: SocialImportArchivePreview
 }
 
-const adapters = [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter, tiktokAdapter] as const
+const adapters = [
+  instagramAdapter,
+  grokAdapter,
+  youtubeAdapter,
+  xAdapter,
+  tiktokAdapter,
+  claudeAdapter
+] as const
 const approvedArchivePaths = new Set<string>()
 
 export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): void {

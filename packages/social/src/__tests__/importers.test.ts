@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  claudeAdapter,
   createLargeArchiveStoragePlan,
   createSocialNodeId,
   createStagingSummary,
@@ -15,6 +16,10 @@ import {
   mapInstagramProfile,
   mapInstagramReels,
   mapInstagramSavedPosts,
+  mapClaudeConversations,
+  mapClaudeFiles,
+  mapClaudeProfile,
+  mapClaudeProject,
   mapTikTokComments,
   mapTikTokContentInteractions,
   mapTikTokDirectMessages,
@@ -153,6 +158,48 @@ describe('social import adapters', () => {
       expect(
         probe.buckets.find((bucket) => bucket.id === 'grok.conversations')?.defaultSelected
       ).toBe(false)
+    })
+
+    it('detects Claude exports and keeps conversations disabled by default', async () => {
+      const usersPath = 'users.json'
+      const conversationsPath = 'conversations.json'
+      const archiveManifest = manifest([entry(usersPath), entry(conversationsPath)])
+
+      expect(
+        detectSocialArchive(
+          [instagramAdapter, grokAdapter, claudeAdapter, youtubeAdapter],
+          archiveManifest
+        )?.adapter.id
+      ).toBe('claude')
+
+      const probe = await claudeAdapter.probe({ manifest: archiveManifest })
+      expect(
+        probe.buckets.find((bucket) => bucket.id === 'claude.conversations')?.defaultSelected
+      ).toBe(false)
+
+      const records: StagedSocialRecord[] = []
+      for await (const record of claudeAdapter.stage(
+        context(archiveManifest, {
+          [usersPath]: [
+            {
+              uuid: 'user-1',
+              full_name: 'Example User',
+              email_address: 'private@example.invalid'
+            }
+          ],
+          [conversationsPath]: [
+            {
+              uuid: 'conversation-1',
+              name: 'Private conversation',
+              chat_messages: [{ uuid: 'message-1', sender: 'human', text: 'Private text' }]
+            }
+          ]
+        })
+      )) {
+        records.push(record)
+      }
+
+      expect(records).toEqual([])
     })
 
     it('detects YouTube Takeout and keeps history disabled by default', async () => {
@@ -926,6 +973,155 @@ describe('social import adapters', () => {
       expect(byKind(grokRecords, 'message').map((record) => record.properties.messageKind)).toEqual(
         ['prompt', 'ai-response']
       )
+    })
+  })
+
+  describe('Claude mappers', () => {
+    it('maps profile without copying email or phone into canonical actor properties', () => {
+      const records = mapClaudeProfile({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        source: entry('users.json'),
+        selfActorId: createSocialNodeId('actor', ['claude', 'self']),
+        users: [
+          {
+            uuid: 'user-1',
+            full_name: 'Example User',
+            email_address: 'private@example.invalid',
+            verified_phone_number: '+15555555555'
+          }
+        ]
+      })
+
+      expect(byKind(records, 'actor')[0].platform).toBe('claude')
+      expect(byKind(records, 'actor')[0].properties.displayName).toBe('Example User')
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain(
+        'private@example.invalid'
+      )
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain('+15555555555')
+    })
+
+    it('maps conversations, citations, projects, and files', () => {
+      const common = {
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        source: entry('conversations.json'),
+        selfActorId: createSocialNodeId('actor', ['claude', 'self']),
+        assistantActorId: createSocialNodeId('actor', ['claude', 'assistant'])
+      }
+      const conversationRecords = mapClaudeConversations({
+        ...common,
+        conversations: [
+          {
+            uuid: 'conversation-1',
+            name: 'Research chat',
+            created_at: importedAt,
+            updated_at: importedAt,
+            account: { uuid: 'user-1' },
+            chat_messages: [
+              {
+                uuid: 'message-1',
+                sender: 'human',
+                text: 'Prompt text',
+                created_at: importedAt,
+                content: [{ type: 'text', text: 'Prompt text', citations: [] }]
+              },
+              {
+                uuid: 'message-2',
+                sender: 'assistant',
+                text: 'Response text',
+                created_at: importedAt,
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Response text',
+                    citations: [
+                      {
+                        uuid: 'citation-1',
+                        details: { type: 'webpage', url: 'https://example.invalid/source' }
+                      }
+                    ]
+                  }
+                ],
+                parent_message_uuid: 'message-1'
+              }
+            ]
+          }
+        ]
+      })
+      const projectRecords = mapClaudeProject({
+        context: common.context,
+        source: entry('projects/project-1.json'),
+        selfActorId: common.selfActorId,
+        project: {
+          uuid: 'project-1',
+          name: 'Research Project',
+          description: 'Project description',
+          is_private: true,
+          created_at: importedAt,
+          updated_at: importedAt,
+          docs: [
+            {
+              uuid: 'doc-1',
+              filename: 'brief.md',
+              content: 'Document text',
+              created_at: importedAt
+            }
+          ]
+        }
+      })
+      const fileRecords = mapClaudeFiles({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run'
+        },
+        source: entry('conversations.json'),
+        conversations: [
+          {
+            uuid: 'conversation-1',
+            chat_messages: [
+              {
+                uuid: 'message-1',
+                attachments: [
+                  {
+                    file_name: 'secret.txt',
+                    file_size: 10,
+                    file_type: 'txt',
+                    extracted_content: 'raw private attachment text'
+                  }
+                ],
+                files: [{ file_uuid: 'file-1', file_name: 'linked.md' }]
+              }
+            ]
+          }
+        ]
+      })
+
+      expect(byKind(conversationRecords, 'conversation')[0].properties.conversationKind).toBe(
+        'ai-chat'
+      )
+      expect(
+        byKind(conversationRecords, 'message').map((record) => record.properties.messageKind)
+      ).toEqual(['prompt', 'ai-response'])
+      expect(
+        byKind(conversationRecords, 'interaction').some(
+          (record) => record.properties.interactionKind === 'cited'
+        )
+      ).toBe(true)
+      expect(byKind(projectRecords, 'collection')[0].properties.collectionKind).toBe('project')
+      expect(byKind(projectRecords, 'content')[0].properties.contentKind).toBe('transcript')
+      expect(byKind(projectRecords, 'collection-item')).toHaveLength(1)
+      expect(fileRecords).toHaveLength(2)
+      expect(fileRecords.every((record) => record.kind === 'source-record')).toBe(true)
+      expect(JSON.stringify(fileRecords)).not.toContain('raw private attachment text')
     })
   })
 
