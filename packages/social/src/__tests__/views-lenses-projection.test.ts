@@ -11,6 +11,7 @@ import {
   createSocialImportTelemetryEvents,
   createSourceRecord,
   createStagingSummary,
+  recommendSocialAnalyticsCache,
   SocialActorSchema,
   SocialContentSchema,
   type ArchiveEntryRef,
@@ -119,6 +120,26 @@ describe('social workspace seeds', () => {
       expect(seed.savedViewProperties.descriptor).toBe(seed.descriptorJson)
       expect(JSON.parse(seed.descriptorJson)).toMatchObject({ version: 1 })
     }
+  })
+})
+
+describe('social analytics cache recommendation', () => {
+  it('keeps small workspaces on materialized saved-view caches', () => {
+    expect(recommendSocialAnalyticsCache({ rowCount: 12_000 }).strategy).toBe(
+      'materialized-facet-cache'
+    )
+  })
+
+  it('recommends a worker columnar cache before DuckDB-Wasm', () => {
+    expect(recommendSocialAnalyticsCache({ rowCount: 70_000, columnCount: 12 }).strategy).toBe(
+      'columnar-worker-cache'
+    )
+  })
+
+  it('promotes very large local analytics to DuckDB-Wasm evaluation', () => {
+    expect(recommendSocialAnalyticsCache({ rowCount: 600_000, columnCount: 16 }).strategy).toBe(
+      'duckdb-wasm-candidate'
+    )
   })
 })
 

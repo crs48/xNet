@@ -10,3 +10,9 @@ export {
   type SocialWorkspaceSeedOptions,
   type SocialWorkspaceSeedPresentation
 } from './defaults'
+export {
+  recommendSocialAnalyticsCache,
+  type SocialAnalyticsCacheInput,
+  type SocialAnalyticsCacheRecommendation,
+  type SocialAnalyticsCacheStrategy
+} from './analytics-cache'

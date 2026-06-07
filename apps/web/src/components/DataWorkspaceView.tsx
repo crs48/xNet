@@ -27,6 +27,10 @@ import {
   socialSchemas
 } from '@xnetjs/social/schemas'
 import {
+  recommendSocialAnalyticsCache,
+  type SocialAnalyticsCacheRecommendation
+} from '@xnetjs/social/workspace'
+import {
   AlertTriangle,
   BarChart3,
   Database,
@@ -148,6 +152,10 @@ function primarySchemaIdForQuerySet(query: Record<string, unknown>): string | nu
 
 function metricValueLabel(value: number | null): string {
   return value === null ? '-' : value.toLocaleString()
+}
+
+function sumKnownCounts(values: readonly (number | null)[]): number {
+  return values.reduce<number>((total, value) => total + (value ?? 0), 0)
 }
 
 function descriptorKindLabel(descriptor: ParsedDescriptor): string {
@@ -297,6 +305,11 @@ export function DataWorkspaceView(): JSX.Element {
       icon: Import
     }
   ]
+  const analyticsCacheRecommendation = recommendSocialAnalyticsCache({
+    rowCount: sumKnownCounts(metrics.map((metric) => metric.value)),
+    columnCount: 12,
+    relationCount: getCount(interactionQuery) ?? 0
+  })
   const dismissedPatternIdSet = useMemo(() => new Set(dismissedPatternIds), [dismissedPatternIds])
   const patternSuggestions = useMemo(
     () =>
@@ -509,6 +522,7 @@ export function DataWorkspaceView(): JSX.Element {
                   label="Starter views"
                   value={`${socialWorkspaceViews.length}/${defaultSeeds.length}`}
                 />
+                <AnalyticsCacheRow recommendation={analyticsCacheRecommendation} />
               </div>
             </div>
             <div>
@@ -781,6 +795,30 @@ function SourceRow({ label, value }: { label: string; value: string }): JSX.Elem
     <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
       <span className="min-w-0 truncate text-sm">{label}</span>
       <span className="text-xs text-muted-foreground">{value}</span>
+    </div>
+  )
+}
+
+function AnalyticsCacheRow({
+  recommendation
+}: {
+  recommendation: SocialAnalyticsCacheRecommendation
+}): JSX.Element {
+  return (
+    <div className="rounded-md border border-border bg-background px-3 py-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-sm">Scale cache</span>
+        <span className="text-xs text-muted-foreground">{recommendation.label}</span>
+      </div>
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{recommendation.reason}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+        <span className="rounded border border-border px-1.5 py-0.5">
+          {recommendation.estimatedRows.toLocaleString()} rows
+        </span>
+        <span className="rounded border border-border px-1.5 py-0.5">
+          {recommendation.estimatedCells.toLocaleString()} cells
+        </span>
+      </div>
     </div>
   )
 }

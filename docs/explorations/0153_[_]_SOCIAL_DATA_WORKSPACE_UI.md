@@ -963,7 +963,7 @@ sections or ornamental surfaces.
 - [x] Add materialized facet/count caches for high-volume imports.
 - [x] Add a general importer registry UI so future packages can plug into the same flow.
 - [x] Add a graph atlas prototype only after table/facet/canvas lenses are useful.
-- [ ] Consider a derived DuckDB-Wasm or columnar analytics cache for large local datasets.
+- [x] Consider a derived DuckDB-Wasm or columnar analytics cache for large local datasets.
 
 ## Validation Checklist
 
