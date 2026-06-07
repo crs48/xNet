@@ -11,6 +11,7 @@ import type {
 import type { QueryASTOrderBy, SavedViewDescriptor } from '@xnetjs/data'
 import type { ReactNode, JSX } from 'react'
 import {
+  CalendarDays,
   ChevronDown,
   ChevronRight,
   Columns3,
@@ -67,6 +68,30 @@ export type SavedViewFacetSummary = {
   totalValues: number
 }
 
+export type SavedViewDateBucketInterval = 'day' | 'month' | 'year'
+
+export type SavedViewDateBucketSummary = {
+  bucketKey: string
+  label: string
+  startMs: number
+  endMs: number
+  count: number
+}
+
+export type SavedViewDateBucketFieldSummary = {
+  field: string
+  interval: SavedViewDateBucketInterval
+  buckets: SavedViewDateBucketSummary[]
+  minMs: number
+  maxMs: number
+  totalRows: number
+}
+
+export type SavedViewDateBrushSelection = {
+  field: string | null
+  bucketKeys: readonly string[]
+}
+
 type SortDirection = 'asc' | 'desc'
 
 const DEFAULT_PAGE_SIZE = 25
@@ -74,6 +99,9 @@ const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const
 const MAX_FACET_FIELDS = 5
 const MAX_FACET_VALUES = 8
 const MAX_FACET_DISTINCT_VALUES = 16
+const MAX_DATE_BUCKET_FIELDS = 4
+const MAX_DATE_BUCKETS = 18
+const DAY_MS = 86_400_000
 const SYSTEM_COLUMNS = new Set([
   'deleted',
   'createdBy',
@@ -113,6 +141,14 @@ const PREFERRED_FACET_COLUMNS = [
   'visibility',
   'rowRole',
   'schemaName'
+]
+const PREFERRED_DATE_COLUMNS = [
+  'publishedAt',
+  'observedAt',
+  'sentAt',
+  'importedAt',
+  'createdAt',
+  'updatedAt'
 ]
 const LOW_SIGNAL_FACET_COLUMNS = new Set([
   'id',
@@ -248,6 +284,90 @@ export function filterSavedViewRowsByFacets<T extends Record<string, unknown>>(
   )
 }
 
+/**
+ * Compute date buckets over loaded schema query rows.
+ */
+export function deriveSavedViewDateBucketSummaries(
+  rows: readonly Record<string, unknown>[],
+  columns: readonly string[]
+): SavedViewDateBucketFieldSummary[] {
+  const candidateColumns = columns
+    .filter((column) => isDateColumnName(column))
+    .map((column) => ({
+      column,
+      score: PREFERRED_DATE_COLUMNS.includes(column)
+        ? PREFERRED_DATE_COLUMNS.indexOf(column)
+        : PREFERRED_DATE_COLUMNS.length + column.length
+    }))
+    .sort((left, right) => left.score - right.score || left.column.localeCompare(right.column))
+    .map((candidate) => candidate.column)
+
+  return candidateColumns
+    .flatMap((field) => {
+      const timestamps = rows.flatMap((row) => {
+        const timestamp = parseSavedViewDateValue(row[field])
+        return timestamp === null ? [] : [timestamp]
+      })
+
+      if (timestamps.length === 0) return []
+
+      const minMs = Math.min(...timestamps)
+      const maxMs = Math.max(...timestamps)
+      const interval = intervalForDateRange(minMs, maxMs)
+      const counts = timestamps.reduce<Map<number, number>>((current, timestamp) => {
+        const bucketStart = dateBucketStartMs(timestamp, interval)
+        current.set(bucketStart, (current.get(bucketStart) ?? 0) + 1)
+        return current
+      }, new Map())
+      const buckets = [...counts.entries()]
+        .sort(([left], [right]) => left - right)
+        .slice(0, MAX_DATE_BUCKETS)
+        .map(([startMs, count]) => ({
+          bucketKey: dateBucketKey(interval, startMs),
+          label: dateBucketLabel(startMs, interval),
+          startMs,
+          endMs: dateBucketEndMs(startMs, interval),
+          count
+        }))
+
+      if (buckets.length === 0) return []
+
+      return [
+        {
+          field,
+          interval,
+          buckets,
+          minMs,
+          maxMs,
+          totalRows: timestamps.length
+        }
+      ]
+    })
+    .slice(0, MAX_DATE_BUCKET_FIELDS)
+}
+
+/**
+ * Filter loaded schema query rows by a selected date bucket brush.
+ */
+export function filterSavedViewRowsByDateBrush<T extends Record<string, unknown>>(
+  rows: readonly T[],
+  selection: SavedViewDateBrushSelection
+): T[] {
+  if (!selection.field || selection.bucketKeys.length === 0) return [...rows]
+
+  const interval = intervalFromDateBucketKey(selection.bucketKeys[0])
+  if (!interval) return [...rows]
+
+  return rows.filter((row) => {
+    const timestamp = parseSavedViewDateValue(row[selection.field ?? ''])
+    if (timestamp === null) return false
+
+    return selection.bucketKeys.includes(
+      dateBucketKey(interval, dateBucketStartMs(timestamp, interval))
+    )
+  })
+}
+
 export function SavedViewRunner({
   descriptor,
   registry,
@@ -270,6 +390,10 @@ export function SavedViewRunner({
   const [visibleColumns, setVisibleColumns] = useState<string[]>([])
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
   const [facetSelection, setFacetSelection] = useState<Record<string, string[]>>({})
+  const [dateBrushSelection, setDateBrushSelection] = useState<SavedViewDateBrushSelection>({
+    field: null,
+    bucketKeys: []
+  })
   const descriptorKey = useMemo(() => descriptorKeyFor(descriptor), [descriptor])
   const orderBy = useMemo<QueryASTOrderBy[] | undefined>(
     () => (sortField ? [{ field: sortField, direction: sortDirection }] : undefined),
@@ -310,13 +434,25 @@ export function SavedViewRunner({
       ),
     [activeQuery?.data, availableColumns]
   )
-  const filteredRows = useMemo(
+  const facetFilteredRows = useMemo(
     () =>
       filterSavedViewRowsByFacets(
         (activeQuery?.data ?? []) as Record<string, unknown>[],
         facetSelection
-      ) as SavedViewQueryResult['data'],
+      ),
     [activeQuery?.data, facetSelection]
+  )
+  const dateBucketSummaries = useMemo(
+    () => deriveSavedViewDateBucketSummaries(facetFilteredRows, availableColumns),
+    [availableColumns, facetFilteredRows]
+  )
+  const filteredRows = useMemo(
+    () =>
+      filterSavedViewRowsByDateBrush(
+        facetFilteredRows,
+        dateBrushSelection
+      ) as SavedViewQueryResult['data'],
+    [dateBrushSelection, facetFilteredRows]
   )
   const displayedQuery = useMemo<SavedViewQueryResult | null>(
     () => (activeQuery ? { ...activeQuery, data: filteredRows } : null),
@@ -326,6 +462,7 @@ export function SavedViewRunner({
     () => Object.values(facetSelection).reduce((sum, values) => sum + values.length, 0),
     [facetSelection]
   )
+  const activeDateBucketCount = dateBrushSelection.bucketKeys.length
   const resetIdentity = resetKey ?? descriptorKey
 
   useEffect(() => {
@@ -338,6 +475,7 @@ export function SavedViewRunner({
     setExpandedRowId(null)
     setVisibleColumns([])
     setFacetSelection({})
+    setDateBrushSelection({ field: null, bucketKeys: [] })
   }, [initialPageSize, resetIdentity])
 
   useEffect(() => {
@@ -354,6 +492,7 @@ export function SavedViewRunner({
 
   useEffect(() => {
     setFacetSelection({})
+    setDateBrushSelection({ field: null, bucketKeys: [] })
   }, [activeQueryId, searchText, sortDirection, sortField])
 
   useEffect(() => {
@@ -385,6 +524,26 @@ export function SavedViewRunner({
       return sameFacetSelection(current, next) ? current : next
     })
   }, [facetSummaries])
+
+  useEffect(() => {
+    setDateBrushSelection((current) => {
+      if (!current.field) return current
+
+      const summary = dateBucketSummaries.find((candidate) => candidate.field === current.field)
+      if (!summary) return { field: null, bucketKeys: [] }
+
+      const validBucketKeys = new Set(summary.buckets.map((bucket) => bucket.bucketKey))
+      const nextBucketKeys = current.bucketKeys.filter((bucketKey) =>
+        validBucketKeys.has(bucketKey)
+      )
+      const next = {
+        field: nextBucketKeys.length > 0 ? current.field : null,
+        bucketKeys: nextBucketKeys
+      }
+
+      return sameDateBrushSelection(current, next) ? current : next
+    })
+  }, [dateBucketSummaries])
 
   if (!descriptor) {
     return (
@@ -535,6 +694,16 @@ export function SavedViewRunner({
         onClearAll={() => setFacetSelection({})}
       />
 
+      <SavedViewTimelineBrush
+        summaries={dateBucketSummaries}
+        selection={dateBrushSelection}
+        onSelectField={(field) => setDateBrushSelection({ field, bucketKeys: [] })}
+        onToggleBucket={(field, bucketKey) =>
+          setDateBrushSelection((current) => toggleDateBrushSelection(current, field, bucketKey))
+        }
+        onClear={() => setDateBrushSelection({ field: null, bucketKeys: [] })}
+      />
+
       <SavedViewResultTable
         query={displayedQuery}
         columns={visibleColumns}
@@ -545,7 +714,7 @@ export function SavedViewRunner({
       <div className="flex items-center justify-between gap-3 text-sm">
         <div className="text-muted-foreground">
           {activeQuery
-            ? activeFacetCount > 0
+            ? activeFacetCount + activeDateBucketCount > 0
               ? `${filteredRows.length.toLocaleString()} visible of ${activeQuery.data.length.toLocaleString()} loaded`
               : `${activeQuery.data.length.toLocaleString()} loaded`
             : '0 loaded'}
@@ -659,6 +828,101 @@ function SavedViewFacetShelf({
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+function SavedViewTimelineBrush({
+  summaries,
+  selection,
+  onSelectField,
+  onToggleBucket,
+  onClear
+}: {
+  summaries: SavedViewDateBucketFieldSummary[]
+  selection: SavedViewDateBrushSelection
+  onSelectField: (field: string) => void
+  onToggleBucket: (field: string, bucketKey: string) => void
+  onClear: () => void
+}): JSX.Element | null {
+  if (summaries.length === 0) return null
+
+  const activeSummary =
+    summaries.find((summary) => summary.field === selection.field) ?? summaries[0]
+  const selectedBucketKeys = selection.field === activeSummary.field ? selection.bucketKeys : []
+  const maxCount = Math.max(...activeSummary.buckets.map((bucket) => bucket.count), 1)
+
+  return (
+    <div className="rounded-md border border-border bg-background p-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+          <CalendarDays size={14} className="text-muted-foreground" />
+          <span>Timeline</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {activeSummary.interval} buckets
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {summaries.length > 1 ? (
+            <select
+              value={activeSummary.field}
+              onChange={(event) => onSelectField(event.currentTarget.value)}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+            >
+              {summaries.map((summary) => (
+                <option key={summary.field} value={summary.field}>
+                  {summary.field}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-xs text-muted-foreground">{activeSummary.field}</span>
+          )}
+          {selectedBucketKeys.length > 0 ? (
+            <button
+              type="button"
+              onClick={onClear}
+              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <X size={12} />
+              Clear
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <div className="flex min-h-[92px] items-end gap-2">
+          {activeSummary.buckets.map((bucket) => {
+            const selected = selectedBucketKeys.includes(bucket.bucketKey)
+            const height = Math.max(10, Math.round((bucket.count / maxCount) * 56))
+
+            return (
+              <button
+                key={bucket.bucketKey}
+                type="button"
+                onClick={() => onToggleBucket(activeSummary.field, bucket.bucketKey)}
+                className={classNames([
+                  'flex min-w-[72px] flex-col items-center gap-1 rounded-md border px-2 py-2 text-xs transition-colors',
+                  selected
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border hover:bg-accent'
+                ])}
+              >
+                <span
+                  className={classNames([
+                    'block w-full rounded-sm',
+                    selected ? 'bg-background/80' : 'bg-foreground/70'
+                  ])}
+                  style={{ height }}
+                  aria-hidden="true"
+                />
+                <span className="w-full truncate text-center">{bucket.label}</span>
+                <span className="opacity-70">{bucket.count.toLocaleString()}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -892,4 +1156,114 @@ function sameFacetSelection(
       values.every((value, index) => value === rightValues[index])
     )
   })
+}
+
+function isDateColumnName(column: string): boolean {
+  return PREFERRED_DATE_COLUMNS.includes(column) || column.endsWith('At') || column.endsWith('Date')
+}
+
+function parseSavedViewDateValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    if (value > 1_000_000_000_000) return value
+    if (value > 1_000_000_000) return value * 1000
+    return null
+  }
+
+  if (typeof value !== 'string' || value.trim() === '') return null
+
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function intervalForDateRange(minMs: number, maxMs: number): SavedViewDateBucketInterval {
+  const range = Math.max(0, maxMs - minMs)
+  if (range <= DAY_MS * 45) return 'day'
+  if (range <= DAY_MS * 730) return 'month'
+  return 'year'
+}
+
+function dateBucketStartMs(timestamp: number, interval: SavedViewDateBucketInterval): number {
+  const date = new Date(timestamp)
+
+  if (interval === 'year') {
+    return Date.UTC(date.getUTCFullYear(), 0, 1)
+  }
+
+  if (interval === 'month') {
+    return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)
+  }
+
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}
+
+function dateBucketEndMs(startMs: number, interval: SavedViewDateBucketInterval): number {
+  const date = new Date(startMs)
+
+  if (interval === 'year') {
+    return Date.UTC(date.getUTCFullYear() + 1, 0, 1)
+  }
+
+  if (interval === 'month') {
+    return Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)
+  }
+
+  return startMs + DAY_MS
+}
+
+function dateBucketKey(interval: SavedViewDateBucketInterval, startMs: number): string {
+  return `${interval}:${startMs}`
+}
+
+function intervalFromDateBucketKey(value: string): SavedViewDateBucketInterval | null {
+  const [interval] = value.split(':')
+  return interval === 'day' || interval === 'month' || interval === 'year' ? interval : null
+}
+
+function dateBucketLabel(startMs: number, interval: SavedViewDateBucketInterval): string {
+  const date = new Date(startMs)
+
+  if (interval === 'year') {
+    return String(date.getUTCFullYear())
+  }
+
+  if (interval === 'month') {
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC'
+    })
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC'
+  })
+}
+
+function toggleDateBrushSelection(
+  selection: SavedViewDateBrushSelection,
+  field: string,
+  bucketKey: string
+): SavedViewDateBrushSelection {
+  const currentBucketKeys = selection.field === field ? selection.bucketKeys : []
+  const nextBucketKeys = currentBucketKeys.includes(bucketKey)
+    ? currentBucketKeys.filter((current) => current !== bucketKey)
+    : [...currentBucketKeys, bucketKey]
+
+  return {
+    field: nextBucketKeys.length > 0 ? field : null,
+    bucketKeys: nextBucketKeys
+  }
+}
+
+function sameDateBrushSelection(
+  left: SavedViewDateBrushSelection,
+  right: SavedViewDateBrushSelection
+): boolean {
+  return (
+    left.field === right.field &&
+    left.bucketKeys.length === right.bucketKeys.length &&
+    left.bucketKeys.every((bucketKey, index) => bucketKey === right.bucketKeys[index])
+  )
 }

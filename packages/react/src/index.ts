@@ -56,12 +56,18 @@ export {
   type UseSavedViewResult
 } from './hooks/useSavedView'
 export {
+  deriveSavedViewDateBucketSummaries,
   deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
+  filterSavedViewRowsByDateBrush,
   filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
   SavedViewResultTable,
   SavedViewRunner,
+  type SavedViewDateBrushSelection,
+  type SavedViewDateBucketFieldSummary,
+  type SavedViewDateBucketInterval,
+  type SavedViewDateBucketSummary,
   type SavedViewFacetSelection,
   type SavedViewFacetSummary,
   type SavedViewFacetValueSummary,

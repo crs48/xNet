@@ -6,8 +6,10 @@ import type { SavedViewQueryResult } from '../hooks/useSavedView'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  deriveSavedViewDateBucketSummaries,
   deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
+  filterSavedViewRowsByDateBrush,
   filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
   SavedViewResultTable
@@ -121,6 +123,44 @@ describe('SavedViewRunner helpers', () => {
         privacyClass: ['string:public']
       })
     ).toEqual([{ id: 'row-2', platform: 'youtube', privacyClass: 'public' }])
+  })
+
+  it('derives date buckets for date-like fields', () => {
+    const firstDay = Date.UTC(2024, 0, 1)
+    const secondDay = Date.UTC(2024, 0, 2)
+    const buckets = deriveSavedViewDateBucketSummaries(
+      [
+        { id: 'row-1', publishedAt: firstDay + 1000 },
+        { id: 'row-2', publishedAt: firstDay + 2000 },
+        { id: 'row-3', publishedAt: secondDay + 1000 }
+      ],
+      ['id', 'publishedAt']
+    )
+
+    expect(buckets[0]).toMatchObject({
+      field: 'publishedAt',
+      interval: 'day',
+      buckets: [
+        { bucketKey: `day:${firstDay}`, count: 2 },
+        { bucketKey: `day:${secondDay}`, count: 1 }
+      ]
+    })
+  })
+
+  it('filters loaded rows by selected date brush buckets', () => {
+    const firstDay = Date.UTC(2024, 0, 1)
+    const secondDay = Date.UTC(2024, 0, 2)
+    const rows = [
+      { id: 'row-1', publishedAt: firstDay + 1000 },
+      { id: 'row-2', publishedAt: secondDay + 1000 }
+    ]
+
+    expect(
+      filterSavedViewRowsByDateBrush(rows, {
+        field: 'publishedAt',
+        bucketKeys: [`day:${secondDay}`]
+      })
+    ).toEqual([{ id: 'row-2', publishedAt: secondDay + 1000 }])
   })
 })
 
