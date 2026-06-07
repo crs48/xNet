@@ -9,13 +9,17 @@ import type {
   UseSavedViewResult
 } from '../hooks/useSavedView'
 import type { QueryASTOrderBy, SavedViewDescriptor } from '@xnetjs/data'
+import type { LucideIcon } from 'lucide-react'
 import type { ReactNode, JSX } from 'react'
 import {
   CalendarDays,
   ChevronDown,
   ChevronRight,
   Columns3,
+  FileSearch,
   Filter,
+  GitBranch,
+  Info,
   Loader2,
   RefreshCw,
   Search,
@@ -90,6 +94,27 @@ export type SavedViewDateBucketFieldSummary = {
 export type SavedViewDateBrushSelection = {
   field: string | null
   bucketKeys: readonly string[]
+}
+
+export type SavedViewInspectorItemKind = 'field' | 'relation' | 'source' | 'import'
+
+export type SavedViewInspectorItem = {
+  key: string
+  label: string
+  value: unknown
+  formatted: string
+  kind: SavedViewInspectorItemKind
+}
+
+export type SavedViewRowInspectorModel = {
+  rowId: string
+  schemaId: string
+  rowRole: string | null
+  fields: SavedViewInspectorItem[]
+  relations: SavedViewInspectorItem[]
+  sourceRecords: SavedViewInspectorItem[]
+  importRuns: SavedViewInspectorItem[]
+  rawJson: string
 }
 
 type SortDirection = 'asc' | 'desc'
@@ -168,6 +193,19 @@ const LOW_SIGNAL_FACET_COLUMNS = new Set([
   'sentAt',
   'importedAt'
 ])
+const INSPECTOR_PRIMARY_FIELDS = [
+  'title',
+  'displayName',
+  'handle',
+  'platform',
+  'contentKind',
+  'interactionKind',
+  'messageKind',
+  'collectionKind',
+  'privacyClass',
+  'visibility'
+]
+const INSPECTOR_SYSTEM_FIELDS = new Set([...SYSTEM_COLUMNS, 'id', 'schemaId'])
 
 function classNames(values: readonly (string | false | null | undefined)[]): string {
   return values.filter(Boolean).join(' ')
@@ -368,6 +406,47 @@ export function filterSavedViewRowsByDateBrush<T extends Record<string, unknown>
   })
 }
 
+/**
+ * Build a generic row inspector model from a flattened saved-view result row.
+ */
+export function deriveSavedViewRowInspector(
+  row: Record<string, unknown>,
+  query?: SavedViewQueryResult | null
+): SavedViewRowInspectorModel {
+  const items = Object.entries(row).flatMap(([key, value]) => {
+    if (value === undefined || INSPECTOR_SYSTEM_FIELDS.has(key)) return []
+
+    const kind = inspectorItemKind(key)
+    return [
+      {
+        key,
+        label: key,
+        value,
+        formatted: formatSavedViewInspectorValue(key, value),
+        kind
+      }
+    ]
+  })
+
+  const sortItems = (values: SavedViewInspectorItem[]): SavedViewInspectorItem[] =>
+    [...values].sort((left, right) => {
+      const leftPriority = inspectorFieldPriority(left.key)
+      const rightPriority = inspectorFieldPriority(right.key)
+      return leftPriority - rightPriority || left.key.localeCompare(right.key)
+    })
+
+  return {
+    rowId: typeof row.id === 'string' ? row.id : '',
+    schemaId: typeof row.schemaId === 'string' ? row.schemaId : (query?.schemaId ?? ''),
+    rowRole: query?.rowRole ?? query?.schemaName ?? null,
+    fields: sortItems(items.filter((item) => item.kind === 'field')),
+    relations: sortItems(items.filter((item) => item.kind === 'relation')),
+    sourceRecords: sortItems(items.filter((item) => item.kind === 'source')),
+    importRuns: sortItems(items.filter((item) => item.kind === 'import')),
+    rawJson: JSON.stringify(row, null, 2)
+  }
+}
+
 export function SavedViewRunner({
   descriptor,
   registry,
@@ -458,6 +537,12 @@ export function SavedViewRunner({
     () => (activeQuery ? { ...activeQuery, data: filteredRows } : null),
     [activeQuery, filteredRows]
   )
+  const inspectedRow = useMemo<Record<string, unknown> | null>(() => {
+    if (!expandedRowId) return null
+
+    const row = displayedQuery?.data.find((candidate) => candidate.id === expandedRowId)
+    return row ? (row as Record<string, unknown>) : null
+  }, [displayedQuery?.data, expandedRowId])
   const activeFacetCount = useMemo(
     () => Object.values(facetSelection).reduce((sum, values) => sum + values.length, 0),
     [facetSelection]
@@ -544,6 +629,13 @@ export function SavedViewRunner({
       return sameDateBrushSelection(current, next) ? current : next
     })
   }, [dateBucketSummaries])
+
+  useEffect(() => {
+    if (!expandedRowId) return
+    if (!filteredRows.some((row) => row.id === expandedRowId)) {
+      setExpandedRowId(null)
+    }
+  }, [expandedRowId, filteredRows])
 
   if (!descriptor) {
     return (
@@ -704,12 +796,15 @@ export function SavedViewRunner({
         onClear={() => setDateBrushSelection({ field: null, bucketKeys: [] })}
       />
 
-      <SavedViewResultTable
-        query={displayedQuery}
-        columns={visibleColumns}
-        expandedRowId={expandedRowId}
-        onToggleRow={(rowId) => setExpandedRowId((current) => (current === rowId ? null : rowId))}
-      />
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <SavedViewResultTable
+          query={displayedQuery}
+          columns={visibleColumns}
+          expandedRowId={expandedRowId}
+          onToggleRow={(rowId) => setExpandedRowId((current) => (current === rowId ? null : rowId))}
+        />
+        <SavedViewRowInspector row={inspectedRow} query={activeQuery} />
+      </div>
 
       <div className="flex items-center justify-between gap-3 text-sm">
         <div className="text-muted-foreground">
@@ -925,6 +1020,114 @@ function SavedViewTimelineBrush({
         </div>
       </div>
     </div>
+  )
+}
+
+function SavedViewRowInspector({
+  row,
+  query
+}: {
+  row: Record<string, unknown> | null
+  query: SavedViewQueryResult | null
+}): JSX.Element {
+  if (!row) {
+    return (
+      <aside className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+        <div className="mb-2 flex items-center gap-2 font-medium text-foreground">
+          <Info size={14} />
+          Inspector
+        </div>
+        Expand a row to inspect its fields, relations, source records, and import metadata.
+      </aside>
+    )
+  }
+
+  const model = deriveSavedViewRowInspector(row, query)
+
+  return (
+    <aside className="min-w-0 rounded-md border border-border bg-secondary/20 p-4">
+      <div className="mb-4 min-w-0">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Info size={14} className="text-muted-foreground" />
+          <span>Inspector</span>
+        </div>
+        <div className="mt-2 min-w-0 space-y-1 text-xs text-muted-foreground">
+          {model.rowRole ? <div>{model.rowRole}</div> : null}
+          <div className="truncate">{shortSchemaId(model.schemaId)}</div>
+          <div className="truncate font-mono">{model.rowId}</div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <SavedViewInspectorSection
+          title="Fields"
+          icon={Table}
+          items={model.fields}
+          emptyLabel="No scalar fields."
+        />
+        <SavedViewInspectorSection
+          title="Relations"
+          icon={GitBranch}
+          items={model.relations}
+          emptyLabel="No relation-like fields."
+        />
+        <SavedViewInspectorSection
+          title="Source Records"
+          icon={FileSearch}
+          items={model.sourceRecords}
+          emptyLabel="No source metadata."
+        />
+        <SavedViewInspectorSection
+          title="Import Runs"
+          icon={RefreshCw}
+          items={model.importRuns}
+          emptyLabel="No import metadata."
+        />
+        <details className="rounded-md border border-border bg-background">
+          <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium">
+            Raw JSON
+          </summary>
+          <pre className="max-h-80 overflow-auto border-t border-border p-3 text-xs">
+            {model.rawJson}
+          </pre>
+        </details>
+      </div>
+    </aside>
+  )
+}
+
+function SavedViewInspectorSection({
+  title,
+  icon: Icon,
+  items,
+  emptyLabel
+}: {
+  title: string
+  icon: LucideIcon
+  items: SavedViewInspectorItem[]
+  emptyLabel: string
+}): JSX.Element {
+  return (
+    <section>
+      <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <Icon size={13} />
+        {title}
+      </div>
+      {items.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+          {emptyLabel}
+        </div>
+      ) : (
+        <dl className="space-y-2">
+          {items.map((item) => (
+            <div key={item.key} className="rounded-md border border-border bg-background p-2">
+              <dt className="truncate text-xs font-medium text-muted-foreground">{item.label}</dt>
+              <dd className="mt-1 break-words text-sm">{item.formatted}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
   )
 }
 
@@ -1266,4 +1469,88 @@ function sameDateBrushSelection(
     left.bucketKeys.length === right.bucketKeys.length &&
     left.bucketKeys.every((bucketKey, index) => bucketKey === right.bucketKeys[index])
   )
+}
+
+function inspectorItemKind(key: string): SavedViewInspectorItemKind {
+  if (isImportInspectorField(key)) return 'import'
+  if (isSourceInspectorField(key)) return 'source'
+  if (isRelationInspectorField(key)) return 'relation'
+  return 'field'
+}
+
+function isRelationInspectorField(key: string): boolean {
+  if (key === 'id' || key === 'schemaId') return false
+  const lower = key.toLowerCase()
+  return (
+    lower.endsWith('id') ||
+    lower.endsWith('ids') ||
+    lower.endsWith('did') ||
+    lower.endsWith('dids') ||
+    [
+      'actor',
+      'actors',
+      'authoractor',
+      'sourceactor',
+      'targetactor',
+      'conversation',
+      'content',
+      'collection',
+      'parent',
+      'replyto'
+    ].includes(lower)
+  )
+}
+
+function isSourceInspectorField(key: string): boolean {
+  const lower = key.toLowerCase()
+  return (
+    lower.includes('source') ||
+    lower.includes('external') ||
+    lower.includes('archive') ||
+    lower.includes('raw') ||
+    lower.includes('permalink') ||
+    lower.includes('url') ||
+    lower.includes('path') ||
+    lower === 'platform'
+  )
+}
+
+function isImportInspectorField(key: string): boolean {
+  const lower = key.toLowerCase()
+  return (
+    lower.includes('importrun') ||
+    lower.includes('imported') ||
+    lower === 'importid' ||
+    lower === 'importsource'
+  )
+}
+
+function inspectorFieldPriority(key: string): number {
+  const primaryIndex = INSPECTOR_PRIMARY_FIELDS.indexOf(key)
+  if (primaryIndex >= 0) return primaryIndex
+  if (key === 'sourceRecordId') return 0
+  if (key === 'sourceRecordKind') return 1
+  if (key === 'importRunId') return 0
+  if (key === 'importedAt') return 1
+  return INSPECTOR_PRIMARY_FIELDS.length + key.length
+}
+
+function formatSavedViewInspectorValue(key: string, value: unknown): string {
+  if (typeof value === 'number' && isDateColumnName(key)) {
+    return new Date(value > 1_000_000_000_000 ? value : value * 1000).toLocaleString()
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]'
+    if (value.every((item) => isFacetScalarValue(item))) {
+      return value.map((item) => facetValueLabel(item)).join(', ')
+    }
+    return JSON.stringify(value, null, 2)
+  }
+
+  if (value && typeof value === 'object') {
+    return JSON.stringify(value, null, 2)
+  }
+
+  return formatSavedViewCellValue(key, value)
 }

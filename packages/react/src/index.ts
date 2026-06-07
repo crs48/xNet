@@ -59,6 +59,7 @@ export {
   deriveSavedViewDateBucketSummaries,
   deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
+  deriveSavedViewRowInspector,
   filterSavedViewRowsByDateBrush,
   filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
@@ -71,7 +72,10 @@ export {
   type SavedViewFacetSelection,
   type SavedViewFacetSummary,
   type SavedViewFacetValueSummary,
+  type SavedViewInspectorItem,
+  type SavedViewInspectorItemKind,
   type SavedViewResultTableProps,
+  type SavedViewRowInspectorModel,
   type SavedViewRunnerProps
 } from './components/SavedViewRunner'
 

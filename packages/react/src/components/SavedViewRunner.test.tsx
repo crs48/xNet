@@ -9,6 +9,7 @@ import {
   deriveSavedViewDateBucketSummaries,
   deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
+  deriveSavedViewRowInspector,
   filterSavedViewRowsByDateBrush,
   filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
@@ -161,6 +162,36 @@ describe('SavedViewRunner helpers', () => {
         bucketKeys: [`day:${secondDay}`]
       })
     ).toEqual([{ id: 'row-2', publishedAt: secondDay + 1000 }])
+  })
+
+  it('builds row inspector sections for fields, relations, sources, and imports', () => {
+    const model = deriveSavedViewRowInspector(
+      {
+        id: 'row-1',
+        schemaId: 'xnet://schema/social/content',
+        title: 'Launch post',
+        contentKind: 'video',
+        actorId: 'actor-1',
+        conversation: 'conversation-1',
+        sourceRecordId: 'source-1',
+        externalRefsJson: '[{"url":"https://example.com"}]',
+        platform: 'youtube',
+        importRunId: 'run-1',
+        importedAt: Date.UTC(2024, 0, 1)
+      },
+      createQueryResult()
+    )
+
+    expect(model.rowRole).toBe('Social Content')
+    expect(model.fields.map((item) => item.key)).toEqual(['title', 'contentKind'])
+    expect(model.relations.map((item) => item.key)).toEqual(['actorId', 'conversation'])
+    expect(model.sourceRecords.map((item) => item.key)).toEqual([
+      'sourceRecordId',
+      'platform',
+      'externalRefsJson'
+    ])
+    expect(model.importRuns.map((item) => item.key)).toEqual(['importRunId', 'importedAt'])
+    expect(model.rawJson).toContain('"sourceRecordId": "source-1"')
   })
 })
 
