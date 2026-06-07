@@ -9,6 +9,7 @@ export const socialPlatforms = [
   { id: 'grok', name: 'Grok' },
   { id: 'x', name: 'X' },
   { id: 'youtube', name: 'YouTube' },
+  { id: 'tiktok', name: 'TikTok' },
   { id: 'reddit', name: 'Reddit' },
   { id: 'openai', name: 'OpenAI' },
   { id: 'claude', name: 'Claude' },

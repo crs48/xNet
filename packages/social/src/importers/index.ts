@@ -17,6 +17,23 @@ export {
 } from './instagram'
 export { GROK_ADAPTER_ID, GROK_ADAPTER_VERSION, grokAdapter, mapGrokBackend } from './grok'
 export {
+  TIKTOK_ADAPTER_ID,
+  TIKTOK_ADAPTER_VERSION,
+  mapTikTokActivityHistory,
+  mapTikTokComments,
+  mapTikTokContentInteractions,
+  mapTikTokDirectMessages,
+  mapTikTokFavoriteCollections,
+  mapTikTokFavorites,
+  mapTikTokHashtags,
+  mapTikTokPosts,
+  mapTikTokProfile,
+  mapTikTokRelationships,
+  mapTikTokSearches,
+  mapTikTokShares,
+  tiktokAdapter
+} from './tiktok'
+export {
   X_ADAPTER_ID,
   X_ADAPTER_VERSION,
   mapXDirectMessages,

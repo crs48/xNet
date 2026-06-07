@@ -21,7 +21,13 @@ import {
   stageSocialArchive,
   type ArchiveManifest
 } from '@xnetjs/social/import/browser'
-import { grokAdapter, instagramAdapter, xAdapter, youtubeAdapter } from '@xnetjs/social/importers'
+import {
+  grokAdapter,
+  instagramAdapter,
+  tiktokAdapter,
+  xAdapter,
+  youtubeAdapter
+} from '@xnetjs/social/importers'
 import {
   SocialActorSchema,
   SocialCollectionItemSchema,
@@ -66,7 +72,7 @@ type PickedArchive = {
 }
 
 const COMMIT_BATCH_SIZE = 500
-const adapters = [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter] as const
+const adapters = [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter, tiktokAdapter] as const
 
 const schemasById = Object.fromEntries(
   [

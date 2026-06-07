@@ -15,6 +15,15 @@ import {
   mapInstagramProfile,
   mapInstagramReels,
   mapInstagramSavedPosts,
+  mapTikTokComments,
+  mapTikTokContentInteractions,
+  mapTikTokDirectMessages,
+  mapTikTokFavoriteCollections,
+  mapTikTokHashtags,
+  mapTikTokProfile,
+  mapTikTokRelationships,
+  mapTikTokSearches,
+  mapTikTokShares,
   mapXDirectMessages,
   mapXGrokChatItems,
   mapXLikes,
@@ -32,6 +41,7 @@ import {
   parseTwitterArchiveJs,
   parseYouTubeCsv,
   sanitizeStagedRecordsForFixture,
+  tiktokAdapter,
   type ArchiveEntryRef,
   type ArchiveManifest,
   type SocialImportContext,
@@ -250,6 +260,53 @@ describe('social import adapters', () => {
 
       expect(records.some((record) => record.bucketId === 'x.following')).toBe(true)
       expect(records.some((record) => record.bucketId === 'x.direct-messages')).toBe(false)
+    })
+
+    it('detects TikTok archives and keeps sensitive buckets disabled by default', async () => {
+      const tiktokPath = 'user_data_tiktok.json'
+      const archiveManifest = manifest([entry(tiktokPath)])
+
+      expect(
+        detectSocialArchive(
+          [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter, tiktokAdapter],
+          archiveManifest
+        )?.adapter.id
+      ).toBe('tiktok')
+
+      const probe = await tiktokAdapter.probe({ manifest: archiveManifest })
+      expect(
+        probe.buckets.find((bucket) => bucket.id === 'tiktok.following')?.defaultSelected
+      ).toBe(true)
+      expect(
+        probe.buckets.find((bucket) => bucket.id === 'tiktok.direct-messages')?.defaultSelected
+      ).toBe(false)
+
+      const records: StagedSocialRecord[] = []
+      for await (const record of tiktokAdapter.stage(
+        context(archiveManifest, {
+          [tiktokPath]: {
+            'Profile And Settings': {
+              Following: {
+                Following: [{ Date: '2026-01-01 00:00:00', UserName: 'creator' }]
+              }
+            },
+            'Direct Message': {
+              'Direct Messages': {
+                ChatHistory: {
+                  'Chat History with creator:': [
+                    { Date: '2026-01-01 00:00:00', From: 'creator', Content: 'Private text' }
+                  ]
+                }
+              }
+            }
+          }
+        })
+      )) {
+        records.push(record)
+      }
+
+      expect(records.some((record) => record.bucketId === 'tiktok.following')).toBe(true)
+      expect(records.some((record) => record.bucketId === 'tiktok.direct-messages')).toBe(false)
     })
   })
 
@@ -869,6 +926,138 @@ describe('social import adapters', () => {
       expect(byKind(grokRecords, 'message').map((record) => record.properties.messageKind)).toEqual(
         ['prompt', 'ai-response']
       )
+    })
+  })
+
+  describe('TikTok mappers', () => {
+    it('maps profile without copying sensitive profile fields into canonical actor properties', () => {
+      const records = mapTikTokProfile({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        source: entry('user_data_tiktok.json'),
+        selfActorId: createSocialNodeId('actor', ['tiktok', 'self']),
+        profile: {
+          userName: 'SelfHandle',
+          displayName: 'Self Account',
+          bioDescription: 'Profile bio',
+          emailAddress: 'private@example.invalid',
+          telephoneNumber: '+15555555555',
+          birthDate: '2000-01-01',
+          followerCount: 3,
+          followingCount: 4,
+          profilePhoto: 'https://example.invalid/avatar.jpg'
+        }
+      })
+
+      expect(byKind(records, 'actor')[0].platform).toBe('tiktok')
+      expect(byKind(records, 'actor')[0].properties.handle).toBe('selfhandle')
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain(
+        'private@example.invalid'
+      )
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain('+15555555555')
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain('2000-01-01')
+    })
+
+    it('maps relationships, comments, interactions, collections, searches, shares, and DMs', () => {
+      const common = {
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        source: entry('user_data_tiktok.json'),
+        selfActorId: createSocialNodeId('actor', ['tiktok', 'self'])
+      }
+      const relationshipRecords = mapTikTokRelationships({
+        ...common,
+        relationshipKind: 'following',
+        records: [{ Date: '2026-01-02 03:04:05', UserName: 'Creator' }]
+      })
+      const commentRecords = mapTikTokComments({
+        ...common,
+        records: [
+          {
+            date: '2026-01-02 03:04:05 UTC',
+            comment: 'Comment text',
+            originalPostUrl: 'https://www.tiktok.com/@creator/video/123'
+          }
+        ]
+      })
+      const likeRecords = mapTikTokContentInteractions({
+        ...common,
+        bucketId: 'tiktok.likes',
+        privacyClass: 'public',
+        records: [
+          { date: '2026-01-02 03:04:05', link: 'https://www.tiktok.com/@creator/video/123' }
+        ],
+        interactionKind: 'like',
+        platformInteractionKind: 'like',
+        contentKind: 'video',
+        platformContentKind: 'video'
+      })
+      const searchRecords = mapTikTokSearches({
+        ...common,
+        records: [{ Date: '2026-01-02 03:04:05', SearchTerm: 'portable gardens' }]
+      })
+      const shareRecords = mapTikTokShares({
+        ...common,
+        records: [
+          {
+            Date: '2026-01-02 03:04:05',
+            SharedContent: 'video',
+            Link: 'https://www.tiktok.com/@creator/video/456',
+            Method: 'copy link'
+          }
+        ]
+      })
+      const favoriteCollectionRecords = mapTikTokFavoriteCollections({
+        ...common,
+        records: [{ Date: '2026-01-02 03:04:05', FavoriteCollection: 'Saved ideas' }]
+      })
+      const hashtagRecords = mapTikTokHashtags({
+        ...common,
+        bucketId: 'tiktok.favorites',
+        privacyClass: 'private',
+        records: [{ HashtagName: 'gardening', HashtagLink: 'https://www.tiktok.com/tag/gardening' }]
+      })
+      const dmRecords = mapTikTokDirectMessages({
+        ...common,
+        selfHandle: 'selfhandle',
+        chatHistory: {
+          'Chat History with creator:': [
+            { Date: '2026-01-02 03:04:05', From: 'creator', Content: 'Message text' },
+            {
+              Date: '2026-01-02 03:05:05',
+              From: 'selfhandle',
+              Content: 'https://www.tiktokv.com/share/video/789/'
+            }
+          ]
+        }
+      })
+
+      expect(byKind(relationshipRecords, 'interaction')[0].properties.interactionKind).toBe(
+        'follow'
+      )
+      expect(byKind(commentRecords, 'content')[0].properties.contentKind).toBe('video')
+      expect(
+        byKind(commentRecords, 'interaction').some(
+          (record) => record.properties.interactionKind === 'comment'
+        )
+      ).toBe(true)
+      expect(byKind(likeRecords, 'interaction')[0].properties.interactionKind).toBe('like')
+      expect(byKind(searchRecords, 'interaction')[0].properties.interactionKind).toBe('search')
+      expect(byKind(shareRecords, 'interaction')[0].properties.interactionKind).toBe('share')
+      expect(byKind(favoriteCollectionRecords, 'collection')[0].properties.collectionKind).toBe(
+        'folder'
+      )
+      expect(byKind(hashtagRecords, 'collection')[0].properties.collectionKind).toBe('topic')
+      expect(byKind(dmRecords, 'conversation')[0].privacyClass).toBe('third-party-private')
+      expect(byKind(dmRecords, 'message')).toHaveLength(2)
     })
   })
 

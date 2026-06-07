@@ -21,7 +21,13 @@ approved nodes through the local data store.
 import { socialSchemas } from '@xnetjs/social/schemas'
 import { detectSocialArchive, readZipArchiveManifest } from '@xnetjs/social/import'
 import { readBrowserZipArchiveManifest } from '@xnetjs/social/import/browser'
-import { grokAdapter, instagramAdapter, xAdapter, youtubeAdapter } from '@xnetjs/social/importers'
+import {
+  grokAdapter,
+  instagramAdapter,
+  tiktokAdapter,
+  xAdapter,
+  youtubeAdapter
+} from '@xnetjs/social/importers'
 import { createSocialGraphLenses } from '@xnetjs/social/lenses'
 import { createSocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 import { createDefaultSocialSavedViews } from '@xnetjs/social/views'
@@ -38,6 +44,7 @@ import {
   detectSocialArchive,
   grokAdapter,
   instagramAdapter,
+  tiktokAdapter,
   xAdapter,
   youtubeAdapter,
   socialSchemas
@@ -70,14 +77,16 @@ import {
   createSocialNodeId,
   createStagingSummary,
   createZipJsonEntryReader,
+  createZipTextEntryReader,
   detectSocialArchive,
   grokAdapter,
   instagramAdapter,
+  tiktokAdapter,
   xAdapter,
   readZipArchiveManifest
 } from '@xnetjs/social'
 
-const adapters = [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter]
+const adapters = [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter, tiktokAdapter]
 
 export async function stageSocialArchive(archivePath: string) {
   const manifest = await readZipArchiveManifest(archivePath)
@@ -254,6 +263,40 @@ Implementation checklist:
 - [x] Wire the adapter into Electron and web social import surfaces.
 - [x] Cover adapter detection, default bucket selection, mappers, and ZIP64 entry metadata with tests.
 - [x] Smoke-test staging against `.exports/twitter.zip`.
+
+### TikTok
+
+The TikTok adapter currently detects ZIPs containing `user_data_tiktok.json` and stages these
+buckets:
+
+- Profile, excluded by default
+- Following
+- Followers
+- Comments
+- Likes
+- Posts
+- Favorites, excluded by default
+- Activity history, excluded by default
+- Direct messages, excluded by default
+- Blocks, excluded by default
+- Ads and personalization, excluded by default
+- TikTok Live, excluded by default
+- TikTok Shop, excluded by default
+- Income+ Wallet, excluded by default
+- Account metadata, excluded by default
+
+The adapter maps export records into account actors, follow interactions, comments, video and audio
+content, like/bookmark/view/search/share interactions, saved/topic collections, direct message
+conversations, direct messages, and optional source records.
+
+Implementation checklist:
+
+- [x] Detect TikTok archive ZIPs from the `user_data_tiktok.json` manifest entry.
+- [x] Stage canonical social records for public buckets and sensitive opt-in buckets.
+- [x] Export the adapter from `@xnetjs/social/importers`.
+- [x] Wire the adapter into Electron and web social import surfaces.
+- [x] Cover adapter detection, default bucket selection, mappers, and platform constants with tests.
+- [x] Smoke-test staging against `.exports/tiktok.zip`.
 
 ## Privacy And Provenance
 
