@@ -20,6 +20,14 @@ import {
   mapClaudeFiles,
   mapClaudeProfile,
   mapClaudeProject,
+  mapRedditAuthoredContent,
+  mapRedditChatHistory,
+  mapRedditPrivateMessages,
+  mapRedditProfile,
+  mapRedditSavedAndHiddenItems,
+  mapRedditSubredditMemberships,
+  mapRedditVotes,
+  redditAdapter,
   mapTikTokComments,
   mapTikTokContentInteractions,
   mapTikTokDirectMessages,
@@ -43,6 +51,7 @@ import {
   mapYouTubeSearchHistory,
   mapYouTubeSubscriptions,
   mapYouTubeWatchHistory,
+  parseRedditCsv,
   parseTwitterArchiveJs,
   parseYouTubeCsv,
   sanitizeStagedRecordsForFixture,
@@ -200,6 +209,55 @@ describe('social import adapters', () => {
       }
 
       expect(records).toEqual([])
+    })
+
+    it('detects Reddit exports and keeps private activity disabled by default', async () => {
+      const postsPath = 'posts.csv'
+      const commentsPath = 'comments.csv'
+      const postVotesPath = 'post_votes.csv'
+      const checkfilePath = 'checkfile.csv'
+      const archiveManifest = manifest([
+        entry(postsPath),
+        entry(commentsPath),
+        entry(postVotesPath),
+        entry(checkfilePath)
+      ])
+
+      expect(
+        detectSocialArchive(
+          [instagramAdapter, grokAdapter, claudeAdapter, redditAdapter, youtubeAdapter],
+          archiveManifest
+        )?.adapter.id
+      ).toBe('reddit')
+
+      const probe = await redditAdapter.probe({ manifest: archiveManifest })
+      expect(
+        probe.buckets.find((bucket) => bucket.id === 'reddit.authored-content')?.defaultSelected
+      ).toBe(true)
+      expect(probe.buckets.find((bucket) => bucket.id === 'reddit.votes')?.defaultSelected).toBe(
+        false
+      )
+
+      const records: StagedSocialRecord[] = []
+      for await (const record of redditAdapter.stage(
+        context(
+          archiveManifest,
+          {},
+          {
+            [postsPath]:
+              'id,permalink,date,ip,subreddit,gildings,title,url,body\npost-1,/r/example/comments/post_1/title,2026-01-01T00:00:00Z,127.0.0.1,example,0,Post title,https://example.invalid,Post body',
+            [commentsPath]:
+              'id,permalink,date,ip,subreddit,gildings,gildings_silver,gildings_supergold,link,parent,body,media\ncomment-1,/r/example/comments/post_1/_/comment_1,2026-01-01T00:00:00Z,127.0.0.1,example,0,0,0,/r/example/comments/post_1,t3_post_1,Comment text,',
+            [postVotesPath]: 'id,permalink,direction\npost-1,/r/example/comments/post_1/title,up',
+            [checkfilePath]: 'filename,sha256\nposts.csv,hash'
+          }
+        )
+      )) {
+        records.push(record)
+      }
+
+      expect(records.some((record) => record.bucketId === 'reddit.authored-content')).toBe(true)
+      expect(records.some((record) => record.bucketId === 'reddit.votes')).toBe(false)
     })
 
     it('detects YouTube Takeout and keeps history disabled by default', async () => {
@@ -1122,6 +1180,180 @@ describe('social import adapters', () => {
       expect(fileRecords).toHaveLength(2)
       expect(fileRecords.every((record) => record.kind === 'source-record')).toBe(true)
       expect(JSON.stringify(fileRecords)).not.toContain('raw private attachment text')
+    })
+  })
+
+  describe('Reddit mappers', () => {
+    it('parses CSV rows with Reddit headers', () => {
+      expect(
+        parseRedditCsv('id,permalink,direction\npost-1,/r/example/comments/post_1,up')
+      ).toEqual([{ id: 'post-1', permalink: '/r/example/comments/post_1', direction: 'up' }])
+    })
+
+    it('maps profile without copying private demographic values into actor properties', () => {
+      const records = mapRedditProfile({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        selfActorId: createSocialNodeId('actor', ['reddit', 'self']),
+        files: [
+          {
+            source: entry('birthdate.csv'),
+            rows: [
+              {
+                birthdate: '2000-01-01',
+                verified_birthdate: '2000-01-01',
+                verification_state: 'verified'
+              }
+            ]
+          }
+        ]
+      })
+
+      expect(byKind(records, 'actor')[0].platform).toBe('reddit')
+      expect(byKind(records, 'actor')[0].properties.isSelf).toBe(true)
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain('2000-01-01')
+      expect(JSON.stringify(records.map((record) => record.properties))).not.toContain('2000-01-01')
+    })
+
+    it('maps authored content, votes, saves, subreddit memberships, and messages', () => {
+      const common = {
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        selfActorId: createSocialNodeId('actor', ['reddit', 'self'])
+      }
+      const authoredRecords = mapRedditAuthoredContent({
+        ...common,
+        files: [
+          {
+            source: entry('posts.csv'),
+            rows: [
+              {
+                id: 'post-1',
+                permalink: '/r/example/comments/post_1/title',
+                date: importedAt,
+                subreddit: 'example',
+                title: 'Post title',
+                body: 'Post body'
+              }
+            ]
+          },
+          {
+            source: entry('comments.csv'),
+            rows: [
+              {
+                id: 'comment-1',
+                permalink: '/r/example/comments/post_1/_/comment_1',
+                date: importedAt,
+                subreddit: 'example',
+                link: '/r/example/comments/post_1/title',
+                parent: 't3_post_1',
+                body: 'Comment text'
+              }
+            ]
+          }
+        ]
+      })
+      const voteRecords = mapRedditVotes({
+        ...common,
+        files: [
+          {
+            source: entry('post_votes.csv'),
+            rows: [{ id: 'post-1', permalink: '/r/example/comments/post_1/title', direction: 'up' }]
+          }
+        ]
+      })
+      const savedRecords = mapRedditSavedAndHiddenItems({
+        ...common,
+        files: [
+          {
+            source: entry('saved_comments.csv'),
+            rows: [{ id: 'comment-1', permalink: '/r/example/comments/post_1/_/comment_1' }]
+          }
+        ]
+      })
+      const subredditRecords = mapRedditSubredditMemberships({
+        ...common,
+        files: [
+          {
+            source: entry('subscribed_subreddits.csv'),
+            rows: [{ subreddit: 'example' }]
+          }
+        ]
+      })
+      const chatRecords = mapRedditChatHistory({
+        ...common,
+        selfHandle: 'self',
+        files: [
+          {
+            source: entry('chat_history.csv'),
+            rows: [
+              {
+                message_id: 'chat-message-1',
+                created_at: importedAt,
+                username: 'other-user',
+                message: 'Private chat text',
+                channel_url: 'https://chat.reddit.com/room/1',
+                conversation_type: 'direct'
+              }
+            ]
+          }
+        ]
+      })
+      const privateMessageRecords = mapRedditPrivateMessages({
+        ...common,
+        selfHandle: 'self',
+        files: [
+          {
+            source: entry('messages_archive.csv'),
+            rows: [
+              {
+                id: 'message-1',
+                thread_id: 'thread-1',
+                date: importedAt,
+                from: 'self',
+                to: 'other-user',
+                subject: 'Private subject',
+                body: 'Private message text'
+              }
+            ]
+          }
+        ]
+      })
+
+      expect(
+        byKind(authoredRecords, 'content').map((record) => record.properties.contentKind)
+      ).toEqual(expect.arrayContaining(['post', 'reply']))
+      expect(
+        byKind(authoredRecords, 'interaction').some(
+          (record) => record.properties.interactionKind === 'comment'
+        )
+      ).toBe(true)
+      expect(byKind(voteRecords, 'interaction')[0].properties.interactionKind).toBe('vote')
+      expect(byKind(savedRecords, 'interaction')[0].properties.interactionKind).toBe('save')
+      expect(
+        byKind(subredditRecords, 'actor').some(
+          (record) => record.properties.actorKind === 'community'
+        )
+      ).toBe(true)
+      expect(byKind(subredditRecords, 'interaction')[0].properties.interactionKind).toBe(
+        'membership'
+      )
+      expect(byKind(chatRecords, 'conversation')[0].properties.conversationKind).toBe('dm')
+      expect(byKind(chatRecords, 'message')[0].properties.searchText).toBe('Private chat text')
+      expect(byKind(privateMessageRecords, 'conversation')[0].properties.conversationKind).toBe(
+        'dm'
+      )
+      expect(byKind(privateMessageRecords, 'message')[0].properties.searchText).toBe(
+        'Private message text'
+      )
     })
   })
 

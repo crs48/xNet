@@ -19,6 +19,7 @@ import {
   claudeAdapter,
   grokAdapter,
   instagramAdapter,
+  redditAdapter,
   tiktokAdapter,
   xAdapter,
   youtubeAdapter
@@ -47,7 +48,8 @@ const adapters = [
   youtubeAdapter,
   xAdapter,
   tiktokAdapter,
-  claudeAdapter
+  claudeAdapter,
+  redditAdapter
 ] as const
 const approvedArchivePaths = new Set<string>()
 

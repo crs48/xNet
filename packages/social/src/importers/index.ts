@@ -12,6 +12,21 @@ export {
   mapClaudeProject
 } from './claude'
 export {
+  REDDIT_ADAPTER_ID,
+  REDDIT_ADAPTER_VERSION,
+  mapRedditAuthoredContent,
+  mapRedditChatHistory,
+  mapRedditPrivateMessages,
+  mapRedditProfile,
+  mapRedditSavedAndHiddenItems,
+  mapRedditSourceRecords,
+  mapRedditSubredditMemberships,
+  mapRedditVotes,
+  parseRedditCsv,
+  redditAdapter,
+  type RedditCsvRow
+} from './reddit'
+export {
   INSTAGRAM_ADAPTER_ID,
   INSTAGRAM_ADAPTER_VERSION,
   instagramAdapter,

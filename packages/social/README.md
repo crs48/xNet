@@ -25,6 +25,7 @@ import {
   claudeAdapter,
   grokAdapter,
   instagramAdapter,
+  redditAdapter,
   tiktokAdapter,
   xAdapter,
   youtubeAdapter
@@ -43,8 +44,10 @@ import {
   createZipJsonEntryReader,
   createZipTextEntryReader,
   detectSocialArchive,
+  claudeAdapter,
   grokAdapter,
   instagramAdapter,
+  redditAdapter,
   tiktokAdapter,
   xAdapter,
   youtubeAdapter,
@@ -94,7 +97,8 @@ const adapters = [
   youtubeAdapter,
   xAdapter,
   tiktokAdapter,
-  claudeAdapter
+  claudeAdapter,
+  redditAdapter
 ]
 
 export async function stageSocialArchive(archivePath: string) {
@@ -307,6 +311,36 @@ Implementation checklist:
 - [x] Cover adapter detection, default bucket selection, mappers, and platform constants with tests.
 - [x] Smoke-test staging against `.exports/tiktok.zip`.
 
+### Reddit
+
+The Reddit adapter currently detects ZIPs containing `checkfile.csv` plus Reddit activity CSVs and
+stages these buckets:
+
+- Profile, excluded by default
+- Posts and comments
+- Votes, excluded by default
+- Saved and hidden items, excluded by default
+- Subreddits, excluded by default
+- Chats and messages, excluded by default
+- Ad preferences, excluded by default
+- Billing, excluded by default
+- Account security, excluded by default
+- Other account metadata, excluded by default
+
+The adapter maps export records into account actors, subreddit community actors, authored posts,
+authored comments and replies, vote/save/membership interactions, subreddit collections, direct
+message conversations, chat conversations, messages, and optional source records for private account
+metadata.
+
+Implementation checklist:
+
+- [x] Detect Reddit archive ZIPs from `checkfile.csv` and Reddit CSV manifest signals.
+- [x] Stage canonical social records for public authored content and sensitive opt-in buckets.
+- [x] Export the adapter from `@xnetjs/social/importers`.
+- [x] Wire the adapter into Electron and web social import surfaces.
+- [x] Cover adapter detection, default bucket selection, profile, content, interaction, subreddit, and message mappers with tests.
+- [x] Smoke-test staging against `.exports/reddit.zip`.
+
 ### Claude
 
 The Claude adapter currently detects ZIPs containing `users.json` and `conversations.json` and
@@ -356,8 +390,8 @@ clear local-storage policy and user approval.
 - [ ] Export the adapter from `src/importers/index.ts`.
 - [ ] Add the adapter to the app surface that chooses supported importers.
 
-Good next candidates are Reddit, OpenAI, Spotify, Apple Music, and other services once representative
-export archives are available.
+Good next candidates are OpenAI, Spotify, Apple Music, and other services once representative export
+archives are available.
 
 ## Validation
 
