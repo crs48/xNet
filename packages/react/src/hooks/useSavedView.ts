@@ -79,6 +79,7 @@ export type UseSavedViewOptions = Pick<
 
 export type SavedViewQueryResult = {
   queryId: string
+  rowRole: string
   schemaId: string
   schemaName: string
   data: FlatNode<Record<string, PropertyBuilder>>[]
@@ -424,7 +425,14 @@ export function useSavedView(
   options?: UseSavedViewOptions
 ): UseSavedViewResult {
   const bridge = useDataBridge()
-  const resolvedOptions = options ?? EMPTY_SAVED_VIEW_OPTIONS
+  const optionsKey = JSON.stringify(options ?? EMPTY_SAVED_VIEW_OPTIONS)
+  const resolvedOptions = useMemo(
+    () => options ?? EMPTY_SAVED_VIEW_OPTIONS,
+    // The caller may pass an inline options object. The serialized key keeps
+    // equivalent option values from resetting bridge subscriptions every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [optionsKey]
+  )
   const { descriptor, parseError } = useMemo(() => parseDescriptor(input), [input])
   const validation = useMemo(
     () => (descriptor ? validateSavedViewDescriptor(descriptor) : EMPTY_VALIDATION),
@@ -516,6 +524,8 @@ export function useSavedView(
           query.queryId,
           {
             queryId: query.queryId,
+            rowRole:
+              query.queryId === 'default' ? (query.schema?.schema.name ?? 'row') : query.queryId,
             schemaId: query.ast.schemaId,
             schemaName: query.schema?.schema.name ?? query.ast.schemaId,
             data,

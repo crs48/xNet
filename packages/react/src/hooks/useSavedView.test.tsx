@@ -203,6 +203,7 @@ describe('useSavedView', () => {
 
     expect(result.current.kind).toBe('node')
     expect(result.current.primary?.canExecute).toBe(true)
+    expect(result.current.primary?.rowRole).toBe('Task')
     expect(result.current.primary?.data.map((node) => node.title)).toEqual(['Closed task'])
     expect(result.current.primary?.aggregates?.results.visibleTasks.value).toBe(1)
     expect(result.current.privacy.sensitiveCount).toBe(1)
