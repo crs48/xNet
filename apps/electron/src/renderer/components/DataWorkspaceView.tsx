@@ -1,7 +1,6 @@
 import type { SavedViewDescriptor } from '@xnetjs/data'
 import { SavedViewSchema, validateSavedViewDescriptor } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
-import { useNodeStore } from '@xnetjs/react/internal'
 import {
   SocialActorSchema,
   SocialCollectionSchema,
@@ -22,14 +21,19 @@ import {
   Search,
   Shield,
   Table,
-  UserRound
+  UserRound,
+  X
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   getDefaultSocialWorkspaceSeeds,
   upsertDefaultSocialWorkspace,
   type SocialWorkspaceSeedSummary
 } from '../lib/social-workspace'
+
+type DataWorkspaceViewProps = {
+  onClose: () => void
+}
 
 type SavedViewRow = {
   id: string
@@ -107,9 +111,8 @@ function descriptorKindLabel(descriptor: ParsedDescriptor): string {
   return descriptor.queryKind
 }
 
-export function DataWorkspaceView(): JSX.Element {
+export function DataWorkspaceView({ onClose }: DataWorkspaceViewProps): React.ReactElement {
   const { mutate } = useMutate()
-  const { store, isReady: storeReady } = useNodeStore()
   const [seedSummary, setSeedSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [seeding, setSeeding] = useState(false)
   const [seedError, setSeedError] = useState<string | null>(null)
@@ -189,16 +192,14 @@ export function DataWorkspaceView(): JSX.Element {
     }
   ]
 
-  async function handleSeedWorkspace() {
-    if (!store || !storeReady) return
-
+  async function handleSeedWorkspace(): Promise<void> {
     setSeeding(true)
     setSeedError(null)
 
     try {
       const summary = await upsertDefaultSocialWorkspace({
         mutate,
-        getExisting: (id) => store.get(id)
+        getExisting: (id) => window.xnetNodes.getNode(id)
       })
       setSeedSummary(summary)
     } catch (error) {
@@ -209,113 +210,132 @@ export function DataWorkspaceView(): JSX.Element {
   }
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col gap-5">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className="flex h-full flex-col bg-background">
+      <header className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Database size={15} />
             <span>Imported data</span>
           </div>
-          <h1 className="mt-1 text-2xl font-semibold">Data Workspace</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Saved views and starter graph lenses over typed xNet data, seeded by social imports.
-          </p>
+          <h1 className="mt-1 truncate text-lg font-semibold">Data Workspace</h1>
         </div>
-        <button
-          type="button"
-          disabled={!storeReady || seeding}
-          onClick={() => void handleSeedWorkspace()}
-          className="flex items-center gap-2 rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          {seeding ? <Loader2 size={15} className="animate-spin" /> : <Import size={15} />}
-          Seed Social Views
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={seeding}
+            onClick={() => void handleSeedWorkspace()}
+            className="flex items-center gap-2 rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {seeding ? <Loader2 size={15} className="animate-spin" /> : <Import size={15} />}
+            Seed Social Views
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Close data workspace"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </header>
 
-      {seedSummary ? (
-        <StatusBanner
-          tone="success"
-          message={`Workspace views ready: ${seedSummary.created} created, ${seedSummary.updated} updated.`}
-        />
-      ) : null}
-      {seedError ? <StatusBanner tone="error" message={seedError} /> : null}
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => {
-          const Icon = metric.icon
-
-          return (
-            <div key={metric.id} className="rounded-md border border-border p-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-muted-foreground">{metric.label}</span>
-                <Icon size={16} className="text-muted-foreground" />
-              </div>
-              <div className="mt-2 text-2xl font-semibold">{metricValueLabel(metric.value)}</div>
-            </div>
-          )
-        })}
-      </section>
-
-      <div className="grid min-h-[560px] grid-cols-1 overflow-hidden rounded-md border border-border lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="border-b border-border bg-secondary/40 p-4 lg:border-b-0 lg:border-r">
-          <div className="space-y-4">
-            <div>
-              <SectionLabel label="Sources" />
-              <div className="mt-2 space-y-2">
-                <SourceRow
-                  label="Social archive imports"
-                  value={metricValueLabel(getCount(importRunQuery))}
-                />
-                <SourceRow label="Saved views" value={String(savedViews.length)} />
-                <SourceRow
-                  label="Starter views"
-                  value={`${socialWorkspaceViews.length}/${defaultSeeds.length}`}
-                />
-              </div>
-            </div>
-            <div>
-              <SectionLabel label="Patterns" />
-              <div className="mt-2 space-y-2">
-                <PatternRow icon={BarChart3} label="Repeated creators" />
-                <PatternRow icon={Search} label="Cross-source overlap" />
-                <PatternRow icon={Shield} label="Privacy hotspots" />
-              </div>
-            </div>
+      <div className="min-h-0 flex-1 overflow-auto p-5">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+          <div>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Saved views and starter graph lenses over typed xNet data, seeded by social imports.
+            </p>
           </div>
-        </aside>
 
-        <main className="min-w-0 overflow-auto p-5">
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold">Social Starter Lenses</h2>
-                <p className="text-sm text-muted-foreground">
-                  Schema views and graph-lens query sets persisted as saved views.
-                </p>
-              </div>
-              {savedViewsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 size={14} className="animate-spin" />
-                  Loading
-                </div>
-              ) : null}
-            </div>
-            <SavedViewTable
-              views={socialWorkspaceViews}
-              emptyLabel="No social workspace views yet."
+          {seedSummary ? (
+            <StatusBanner
+              tone="success"
+              message={`Workspace views ready: ${seedSummary.created} created, ${seedSummary.updated} updated.`}
             />
+          ) : null}
+          {seedError ? <StatusBanner tone="error" message={seedError} /> : null}
+
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => {
+              const Icon = metric.icon
+
+              return (
+                <div key={metric.id} className="rounded-md border border-border p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-muted-foreground">{metric.label}</span>
+                    <Icon size={16} className="text-muted-foreground" />
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold">
+                    {metricValueLabel(metric.value)}
+                  </div>
+                </div>
+              )
+            })}
           </section>
 
-          <section className="mt-6 space-y-3">
-            <div>
-              <h2 className="text-base font-semibold">Other Saved Views</h2>
-              <p className="text-sm text-muted-foreground">
-                General saved views will use the same workspace surface as more importers land.
-              </p>
-            </div>
-            <SavedViewTable views={otherSavedViews} emptyLabel="No other saved views." />
-          </section>
-        </main>
+          <div className="grid min-h-[560px] grid-cols-1 overflow-hidden rounded-md border border-border lg:grid-cols-[280px_minmax(0,1fr)]">
+            <aside className="border-b border-border bg-secondary/40 p-4 lg:border-b-0 lg:border-r">
+              <div className="space-y-4">
+                <div>
+                  <SectionLabel label="Sources" />
+                  <div className="mt-2 space-y-2">
+                    <SourceRow
+                      label="Social archive imports"
+                      value={metricValueLabel(getCount(importRunQuery))}
+                    />
+                    <SourceRow label="Saved views" value={String(savedViews.length)} />
+                    <SourceRow
+                      label="Starter views"
+                      value={`${socialWorkspaceViews.length}/${defaultSeeds.length}`}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <SectionLabel label="Patterns" />
+                  <div className="mt-2 space-y-2">
+                    <PatternRow icon={BarChart3} label="Repeated creators" />
+                    <PatternRow icon={Search} label="Cross-source overlap" />
+                    <PatternRow icon={Shield} label="Privacy hotspots" />
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            <main className="min-w-0 overflow-auto p-5">
+              <section className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-base font-semibold">Social Starter Lenses</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Schema views and graph-lens query sets persisted as saved views.
+                    </p>
+                  </div>
+                  {savedViewsLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 size={14} className="animate-spin" />
+                      Loading
+                    </div>
+                  ) : null}
+                </div>
+                <SavedViewTable
+                  views={socialWorkspaceViews}
+                  emptyLabel="No social workspace views yet."
+                />
+              </section>
+
+              <section className="mt-6 space-y-3">
+                <div>
+                  <h2 className="text-base font-semibold">Other Saved Views</h2>
+                  <p className="text-sm text-muted-foreground">
+                    General saved views will use the same workspace surface as more importers land.
+                  </p>
+                </div>
+                <SavedViewTable views={otherSavedViews} emptyLabel="No other saved views." />
+              </section>
+            </main>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -327,7 +347,7 @@ function SavedViewTable({
 }: {
   views: SavedViewRow[]
   emptyLabel: string
-}): JSX.Element {
+}): React.ReactElement {
   if (views.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
@@ -375,13 +395,13 @@ function SavedViewTable({
   )
 }
 
-function SectionLabel({ label }: { label: string }): JSX.Element {
+function SectionLabel({ label }: { label: string }): React.ReactElement {
   return (
     <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
   )
 }
 
-function SourceRow({ label, value }: { label: string; value: string }): JSX.Element {
+function SourceRow({ label, value }: { label: string; value: string }): React.ReactElement {
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
       <span className="min-w-0 truncate text-sm">{label}</span>
@@ -390,7 +410,13 @@ function SourceRow({ label, value }: { label: string; value: string }): JSX.Elem
   )
 }
 
-function PatternRow({ icon: Icon, label }: { icon: typeof BarChart3; label: string }): JSX.Element {
+function PatternRow({
+  icon: Icon,
+  label
+}: {
+  icon: typeof BarChart3
+  label: string
+}): React.ReactElement {
   return (
     <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm">
       <Icon size={14} className="text-muted-foreground" />
@@ -405,7 +431,7 @@ function StatusBanner({
 }: {
   message: string
   tone: 'error' | 'success'
-}): JSX.Element {
+}): React.ReactElement {
   const toneClassName =
     tone === 'success'
       ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'

@@ -34,6 +34,10 @@ import {
   X
 } from 'lucide-react'
 import React, { useCallback, useMemo, useState } from 'react'
+import {
+  upsertDefaultSocialWorkspace,
+  type SocialWorkspaceSeedSummary
+} from '../lib/social-workspace'
 
 type ImportStatus = 'idle' | 'picked' | 'staging' | 'staged' | 'committing' | 'committed'
 
@@ -63,9 +67,13 @@ const schemasById = Object.fromEntries(
 
 interface SocialImportViewProps {
   onClose: () => void
+  onOpenDataWorkspace?: () => void
 }
 
-export function SocialImportView({ onClose }: SocialImportViewProps): React.ReactElement {
+export function SocialImportView({
+  onClose,
+  onOpenDataWorkspace
+}: SocialImportViewProps): React.ReactElement {
   const [archive, setArchive] = useState<SocialImportArchivePreview | null>(null)
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>([])
   const [includeSensitive, setIncludeSensitive] = useState(false)
@@ -74,6 +82,8 @@ export function SocialImportView({ onClose }: SocialImportViewProps): React.Reac
   const [status, setStatus] = useState<ImportStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [commitSummary, setCommitSummary] = useState<CommitSummary | null>(null)
+  const [workspaceSummary, setWorkspaceSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
+  const [workspaceSeeding, setWorkspaceSeeding] = useState(false)
   const { mutate } = useMutate()
 
   const stagedRecordCount = stageResult?.records.length ?? 0
@@ -95,6 +105,7 @@ export function SocialImportView({ onClose }: SocialImportViewProps): React.Reac
   const handlePickArchive = useCallback(async () => {
     setError(null)
     setCommitSummary(null)
+    setWorkspaceSummary(null)
 
     try {
       const preview = await window.xnetSocialImport.pickArchive()
@@ -124,6 +135,7 @@ export function SocialImportView({ onClose }: SocialImportViewProps): React.Reac
     )
     setStageResult(null)
     setCommitSummary(null)
+    setWorkspaceSummary(null)
   }, [])
 
   const handleStage = useCallback(async () => {
@@ -131,6 +143,7 @@ export function SocialImportView({ onClose }: SocialImportViewProps): React.Reac
 
     setError(null)
     setCommitSummary(null)
+    setWorkspaceSummary(null)
     setStatus('staging')
 
     try {
@@ -167,12 +180,31 @@ export function SocialImportView({ onClose }: SocialImportViewProps): React.Reac
       })
 
       setCommitSummary(summary)
+      setWorkspaceSummary(null)
       setStatus('committed')
     } catch (err) {
       setStatus('staged')
       setError(toErrorMessage(err))
     }
   }, [includeSourceRecords, mutate, stageResult])
+
+  const handleOpenWorkspace = useCallback(async () => {
+    setWorkspaceSeeding(true)
+    setError(null)
+
+    try {
+      const summary = await upsertDefaultSocialWorkspace({
+        mutate,
+        getExisting: (id) => window.xnetNodes.getNode(id)
+      })
+      setWorkspaceSummary(summary)
+      onOpenDataWorkspace?.()
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setWorkspaceSeeding(false)
+    }
+  }, [mutate, onOpenDataWorkspace])
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -287,6 +319,19 @@ export function SocialImportView({ onClose }: SocialImportViewProps): React.Reac
                 )}
                 Import
               </button>
+              <button
+                type="button"
+                onClick={() => void handleOpenWorkspace()}
+                disabled={status !== 'committed' || workspaceSeeding}
+                className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {workspaceSeeding ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Database size={14} />
+                )}
+                Open Data Workspace
+              </button>
             </div>
           </div>
 
@@ -297,6 +342,12 @@ export function SocialImportView({ onClose }: SocialImportViewProps): React.Reac
                 <StatusBanner
                   tone="success"
                   message={`${commitSummary.created} created, ${commitSummary.updated} updated`}
+                />
+              ) : null}
+              {workspaceSummary ? (
+                <StatusBanner
+                  tone="success"
+                  message={`Workspace views ready: ${workspaceSummary.created} created, ${workspaceSummary.updated} updated`}
                 />
               ) : null}
 

@@ -915,12 +915,12 @@ sections or ornamental surfaces.
 
 ### Phase 1: Make Imported Social Data Visible
 
-- [ ] Add a post-commit CTA in the web social import route to create/open a workspace.
-- [ ] Add the same post-commit CTA in Electron `SocialImportView`.
-- [ ] Upsert default social saved views from `createDefaultSocialSavedViews`.
-- [ ] Upsert starter social graph lenses from `createSocialGraphLenses`.
-- [ ] Add a "Data Workspace" entry to the web home page once saved views or import runs exist.
-- [ ] Add Electron command-palette actions for opening the data workspace and social starter views.
+- [x] Add a post-commit CTA in the web social import route to create/open a workspace.
+- [x] Add the same post-commit CTA in Electron `SocialImportView`.
+- [x] Upsert default social saved views from `createDefaultSocialSavedViews`.
+- [x] Upsert starter social graph lenses from `createSocialGraphLenses`.
+- [x] Add a "Data Workspace" entry to the web home page once saved views or import runs exist.
+- [x] Add Electron command-palette actions for opening the data workspace and social starter views.
 
 ### Phase 2: Build A Generic Saved View Runner
 
@@ -980,7 +980,7 @@ sections or ornamental surfaces.
 - [ ] Verify generated canvas projection plans obey node/edge caps and privacy labeling.
 - [ ] Run targeted unit tests for view descriptors, lens runtime, pattern definitions, and projection
       insertion.
-- [ ] Run web and Electron type checks after UI integration.
+- [x] Run web and Electron type checks after UI integration.
 - [ ] Manually verify the web and Electron flows with browser/Electron automation and then stop all
       dev servers.
 

@@ -19,6 +19,7 @@ import {
   type CanvasViewHandle
 } from './components/CanvasView'
 import { DatabaseView } from './components/DatabaseView'
+import { DataWorkspaceView } from './components/DataWorkspaceView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
 import { SocialImportView } from './components/SocialImportView'
@@ -39,6 +40,7 @@ type ShellState =
   | { kind: 'database-focus'; docId: string; returnViewport: ViewportSnapshot | null }
   | { kind: 'database-split'; docId: string }
   | { kind: 'settings' }
+  | { kind: 'data-workspace' }
   | { kind: 'social-import' }
   | { kind: 'stories' }
 
@@ -353,6 +355,7 @@ export function App(): React.ReactElement {
     if (shellState.kind === 'page-focus') return 'Document'
     if (shellState.kind === 'database-focus') return 'Database'
     if (shellState.kind === 'settings') return 'Settings'
+    if (shellState.kind === 'data-workspace') return 'Data Workspace'
     if (shellState.kind === 'social-import') return 'Social Import'
     if (shellState.kind === 'stories') return 'Stories'
     return null
@@ -377,6 +380,11 @@ export function App(): React.ReactElement {
   const handleOpenSocialImport = useCallback(() => {
     clearTransitionTimer()
     setShellState({ kind: 'social-import' })
+  }, [clearTransitionTimer])
+
+  const handleOpenDataWorkspace = useCallback(() => {
+    clearTransitionTimer()
+    setShellState({ kind: 'data-workspace' })
   }, [clearTransitionTimer])
 
   const handleOpenStories = useCallback(() => {
@@ -823,6 +831,15 @@ export function App(): React.ReactElement {
         keywords: ['social', 'archive', 'instagram', 'grok', 'import'],
         execute: handleOpenSocialImport
       },
+      {
+        id: 'open-data-workspace',
+        name: 'Open Data Workspace',
+        description: 'Explore saved views, graph lenses, and imported data counts',
+        icon: 'database',
+        group: 'Data',
+        keywords: ['data', 'workspace', 'social', 'saved views', 'lenses'],
+        execute: handleOpenDataWorkspace
+      },
       ...(STORIES_ENABLED
         ? [
             {
@@ -853,6 +870,7 @@ export function App(): React.ReactElement {
       handleCreateCanvasNote,
       handleCreateLinkedDocument,
       handleOpenDocument,
+      handleOpenDataWorkspace,
       handleOpenSettings,
       handleOpenSocialImport,
       handleOpenStories,
@@ -897,7 +915,20 @@ export function App(): React.ReactElement {
       return (
         <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
           <div className={overlaySurfaceClassName}>
-            <SocialImportView onClose={handleReturnHome} />
+            <SocialImportView
+              onClose={handleReturnHome}
+              onOpenDataWorkspace={handleOpenDataWorkspace}
+            />
+          </div>
+        </div>
+      )
+    }
+
+    if (shellState.kind === 'data-workspace') {
+      return (
+        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className={overlaySurfaceClassName}>
+            <DataWorkspaceView onClose={handleReturnHome} />
           </div>
         </div>
       )
@@ -996,6 +1027,7 @@ export function App(): React.ReactElement {
             recentDocuments={recentDocuments}
             onOpenDocument={handleOpenDocument}
             onOpenSettings={handleOpenSettings}
+            onOpenDataWorkspace={handleOpenDataWorkspace}
             onOpenSocialImport={handleOpenSocialImport}
             onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
             onAddShared={() => {
