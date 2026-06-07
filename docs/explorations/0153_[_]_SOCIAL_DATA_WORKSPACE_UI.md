@@ -978,7 +978,7 @@ sections or ornamental surfaces.
 - [ ] Verify a canvas query frame updates result counts and stale state.
 - [ ] Verify dragging a result row creates a source-backed canvas card with the correct schema/source.
 - [ ] Verify generated canvas projection plans obey node/edge caps and privacy labeling.
-- [ ] Run targeted unit tests for view descriptors, lens runtime, pattern definitions, and projection
+- [x] Run targeted unit tests for view descriptors, lens runtime, pattern definitions, and projection
       insertion.
 - [x] Run web and Electron type checks after UI integration.
 - [ ] Manually verify the web and Electron flows with browser/Electron automation and then stop all
