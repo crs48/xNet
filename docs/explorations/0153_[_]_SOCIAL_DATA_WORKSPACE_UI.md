@@ -968,7 +968,7 @@ sections or ornamental surfaces.
 ## Validation Checklist
 
 - [x] Import a small sanitized social fixture in the web UI and confirm the workspace CTA appears.
-- [ ] Import a larger archive in Electron and confirm saved views/lenses are upserted idempotently.
+- [x] Import a larger archive in Electron and confirm saved views/lenses are upserted idempotently.
 - [x] Verify default views show records for each imported social schema.
 - [x] Verify sensitive/message views remain opt-in and carry privacy indicators.
 - [x] Verify a saved lens can render in table mode with search, sort, and pagination.
@@ -981,7 +981,7 @@ sections or ornamental surfaces.
 - [x] Run targeted unit tests for view descriptors, lens runtime, pattern definitions, and projection
       insertion.
 - [x] Run web and Electron type checks after UI integration.
-- [ ] Manually verify the web and Electron flows with browser/Electron automation and then stop all
+- [x] Manually verify the web and Electron flows with browser/Electron automation and then stop all
       dev servers.
 
 Web validation evidence: imported `tmp/social-import-fixtures/instagram-small.zip` through the
@@ -1009,6 +1009,13 @@ external-reference canvas cards with the original schema/source IDs.
 Graph-lens validation evidence: `packages/react/src/components/SavedViewRunner.test.tsx` verifies
 query-set graph lens nodes are derived from source-backed rows and that selecting a graph node opens
 the same actor row, source record ID, and schema role in the shared inspector.
+
+Electron validation evidence: launched Electron with `XNET_TEST_BYPASS=true`, imported
+`.exports/youtube.zip` through the Social Import UI, staged 5,127 canonical records and 2,563 source
+records, committed 5,129 nodes, opened the Data Workspace, and reseeded starter views to verify
+idempotency: `0 created, 10 updated` with `10/10` starter views. Screenshot:
+`tmp/playwright/electron-social-youtube-workspace.png`. After the web and Electron automation runs,
+all test ports were stopped and verified clear.
 
 ## Example Code
 

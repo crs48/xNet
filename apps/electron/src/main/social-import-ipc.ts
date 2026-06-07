@@ -36,9 +36,17 @@ export type SocialImportStageResult = Omit<SharedSocialImportStageResult, 'archi
 
 const adapters = builtInSocialImportAdapters
 const approvedArchivePaths = new Set<string>()
+let queuedTestArchivePath: string | null = null
 
 export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('xnet:social-import:pickArchive', async () => {
+    if (process.env.XNET_TEST_BYPASS === 'true' && queuedTestArchivePath) {
+      const archivePath = queuedTestArchivePath
+      queuedTestArchivePath = null
+      approvedArchivePaths.add(archivePath)
+      return createArchivePreview(archivePath)
+    }
+
     const window = getWindow()
     const result = window
       ? await dialog.showOpenDialog(window, archiveDialogOptions)
@@ -50,6 +58,19 @@ export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): voi
     approvedArchivePaths.add(archivePath)
     return createArchivePreview(archivePath)
   })
+
+  ipcMain.handle(
+    'xnet:social-import:queueArchiveForTest',
+    async (_event, archivePath: string): Promise<SocialImportArchivePreview> => {
+      if (process.env.XNET_TEST_BYPASS !== 'true') {
+        throw new Error('Social import test queue is only available in test bypass mode')
+      }
+
+      queuedTestArchivePath = archivePath
+      approvedArchivePaths.add(archivePath)
+      return createArchivePreview(archivePath)
+    }
+  )
 
   ipcMain.handle(
     'xnet:social-import:stageArchive',

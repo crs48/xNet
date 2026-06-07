@@ -346,6 +346,8 @@ contextBridge.exposeInMainWorld('xnetTunnel', {
 contextBridge.exposeInMainWorld('xnetSocialImport', {
   pickArchive: (): Promise<SocialImportArchivePreview | null> =>
     ipcRenderer.invoke('xnet:social-import:pickArchive'),
+  queueArchiveForTest: (archivePath: string): Promise<SocialImportArchivePreview> =>
+    ipcRenderer.invoke('xnet:social-import:queueArchiveForTest', archivePath),
   stageArchive: (request: SocialImportStageRequest): Promise<SocialImportStageResult> =>
     ipcRenderer.invoke('xnet:social-import:stageArchive', request)
 })
@@ -405,6 +407,7 @@ export interface XNetAPI {
 
 export interface XNetSocialImportAPI {
   pickArchive(): Promise<SocialImportArchivePreview | null>
+  queueArchiveForTest(archivePath: string): Promise<SocialImportArchivePreview>
   stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult>
 }
 
