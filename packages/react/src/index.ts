@@ -61,6 +61,7 @@ export {
   deriveSavedViewColumns,
   deriveSavedViewPrivacyChips,
   deriveSavedViewRowInspector,
+  createSavedViewLensDraft,
   filterSavedViewRowsByDateBrush,
   filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
@@ -76,11 +77,13 @@ export {
   type SavedViewFacetValueSummary,
   type SavedViewInspectorItem,
   type SavedViewInspectorItemKind,
+  type SavedViewLensDraft,
   type SavedViewPrivacyChip,
   type SavedViewPrivacyChipTone,
   type SavedViewResultTableProps,
   type SavedViewRowInspectorModel,
-  type SavedViewRunnerProps
+  type SavedViewRunnerProps,
+  type SavedViewSortDirection
 } from './components/SavedViewRunner'
 
 /**

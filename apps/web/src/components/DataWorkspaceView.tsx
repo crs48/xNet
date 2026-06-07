@@ -1,6 +1,12 @@
 import type { SavedViewDescriptor } from '@xnetjs/data'
 import { SavedViewSchema, validateSavedViewDescriptor } from '@xnetjs/data'
-import { SavedViewRunner, useMutate, useQuery, type SavedViewSchemaRegistry } from '@xnetjs/react'
+import {
+  SavedViewRunner,
+  useMutate,
+  useQuery,
+  type SavedViewLensDraft,
+  type SavedViewSchemaRegistry
+} from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
 import {
   SocialActorSchema,
@@ -124,11 +130,13 @@ function descriptorKindLabel(descriptor: ParsedDescriptor): string {
 }
 
 export function DataWorkspaceView(): JSX.Element {
-  const { mutate } = useMutate()
+  const { create, mutate } = useMutate()
   const { store, isReady: storeReady } = useNodeStore()
   const [seedSummary, setSeedSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [seeding, setSeeding] = useState(false)
   const [seedError, setSeedError] = useState<string | null>(null)
+  const [saveLensMessage, setSaveLensMessage] = useState<string | null>(null)
+  const [saveLensError, setSaveLensError] = useState<string | null>(null)
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null)
   const { data: savedViews, loading: savedViewsLoading } = useQuery(SavedViewSchema, {
     orderBy: { title: 'asc' },
@@ -248,6 +256,30 @@ export function DataWorkspaceView(): JSX.Element {
     }
   }
 
+  async function handleSaveLens(draft: SavedViewLensDraft): Promise<void> {
+    setSaveLensMessage(null)
+    setSaveLensError(null)
+
+    try {
+      const savedView = await create(SavedViewSchema, {
+        title: draft.title,
+        description: draft.description,
+        descriptor: JSON.stringify(draft.descriptor),
+        scope: draft.descriptor.scope ?? 'workspace'
+      })
+
+      if (!savedView) {
+        throw new Error('Saved lens could not be created.')
+      }
+
+      setSelectedViewId(savedView.id)
+      setSaveLensMessage(`Saved lens: ${draft.title}.`)
+    } catch (error) {
+      setSaveLensError(error instanceof Error ? error.message : String(error))
+      throw error
+    }
+  }
+
   return (
     <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col gap-5">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -279,6 +311,8 @@ export function DataWorkspaceView(): JSX.Element {
         />
       ) : null}
       {seedError ? <StatusBanner tone="error" message={seedError} /> : null}
+      {saveLensMessage ? <StatusBanner tone="success" message={saveLensMessage} /> : null}
+      {saveLensError ? <StatusBanner tone="error" message={saveLensError} /> : null}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => {
@@ -355,6 +389,7 @@ export function DataWorkspaceView(): JSX.Element {
             description={selectedView?.description ?? null}
             fallbackId={selectedView?.id ?? null}
             resetKey={selectedView?.id ?? null}
+            onSaveLens={handleSaveLens}
           />
 
           <section className="mt-6 space-y-3">

@@ -8,7 +8,12 @@ import type {
   UseSavedViewOptions,
   UseSavedViewResult
 } from '../hooks/useSavedView'
-import type { QueryASTOrderBy, SavedViewDescriptor } from '@xnetjs/data'
+import type {
+  QueryASTNodeQuery,
+  QueryASTOrderBy,
+  QueryASTPredicate,
+  SavedViewDescriptor
+} from '@xnetjs/data'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode, JSX } from 'react'
 import {
@@ -23,6 +28,7 @@ import {
   Loader2,
   RefreshCw,
   Search,
+  Save,
   Shield,
   Table,
   X
@@ -42,6 +48,8 @@ export type SavedViewRunnerProps = {
   pageSizes?: readonly number[]
   initialPageSize?: number
   options?: Omit<UseSavedViewOptions, 'queryOverrides' | 'search'>
+  onSaveLens?: (draft: SavedViewLensDraft) => void | Promise<void>
+  saveLensLabel?: string
 }
 
 export type SavedViewResultTableProps = {
@@ -126,7 +134,25 @@ export type SavedViewPrivacyChip = {
   tone: SavedViewPrivacyChipTone
 }
 
-type SortDirection = 'asc' | 'desc'
+export type SavedViewSortDirection = 'asc' | 'desc'
+
+export type SavedViewLensDraft = {
+  title: string
+  description: string
+  descriptor: SavedViewDescriptor
+  queryId: string
+  sourceTitle: string
+  stateSummary: {
+    facetFields: string[]
+    dateField: string | null
+    dateBucketCount: number
+    sortField: string | null
+    sortDirection: SavedViewSortDirection | null
+    pageSize: number
+  }
+}
+
+type SortDirection = SavedViewSortDirection
 
 const DEFAULT_PAGE_SIZE = 25
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const
@@ -500,6 +526,87 @@ export function getSavedViewSensitiveResultWarning(
   )} include non-public privacy classes.`
 }
 
+/**
+ * Build a persisted saved-view descriptor from the current table control state.
+ */
+export function createSavedViewLensDraft(input: {
+  descriptor: SavedViewDescriptor
+  queryId: string
+  query: SavedViewQueryResult
+  facetSelection: SavedViewFacetSelection
+  dateBrushSelection: SavedViewDateBrushSelection
+  sortField: string
+  sortDirection: SavedViewSortDirection
+  pageSize: number
+  title?: string | null
+  description?: string | null
+}): SavedViewLensDraft | null {
+  const sourceQuery = nodeQueryForSavedLens(input.descriptor.query, input.queryId)
+  if (!sourceQuery) return null
+
+  const facetPredicates = facetPredicatesForSavedLens(input.query.data, input.facetSelection)
+  const datePredicate = datePredicateForSavedLens(input.dateBrushSelection)
+  const addedPredicates = [...facetPredicates, ...(datePredicate ? [datePredicate] : [])]
+  const predicate = mergeSavedViewPredicates(sourceQuery.predicate, addedPredicates)
+  const orderBy = input.sortField
+    ? [{ field: input.sortField, direction: input.sortDirection }]
+    : sourceQuery.orderBy
+  const nextQuery: QueryASTNodeQuery = {
+    ...sourceQuery,
+    ...(predicate ? { predicate } : {}),
+    ...(orderBy && orderBy.length > 0 ? { orderBy } : {}),
+    page: {
+      ...(sourceQuery.page ?? {}),
+      first: input.pageSize,
+      offset: 0,
+      count: sourceQuery.page?.count ?? 'estimate'
+    }
+  }
+  const sourceTitle = input.title ?? input.descriptor.title
+  const summary = savedLensSummary({
+    facetFields: Object.entries(input.facetSelection)
+      .filter(([, values]) => values.length > 0)
+      .map(([field]) => field),
+    dateBrushSelection: input.dateBrushSelection,
+    sortField: input.sortField,
+    pageSize: input.pageSize
+  })
+  const title = `${sourceTitle} Lens`
+  const sourceDescription = input.description ?? input.descriptor.description
+  const description =
+    summary.length > 0
+      ? `Saved from ${sourceTitle} with ${summary.join(', ')}.`
+      : `Saved from ${sourceTitle}.`
+  const fullDescription = sourceDescription
+    ? `${description} Source view: ${sourceDescription}`
+    : description
+  const descriptor: SavedViewDescriptor = {
+    version: input.descriptor.version,
+    title,
+    description: fullDescription,
+    scope: input.descriptor.scope ?? 'workspace',
+    query: nextQuery
+  }
+
+  return {
+    title,
+    description: fullDescription,
+    descriptor,
+    queryId: input.queryId,
+    sourceTitle,
+    stateSummary: {
+      facetFields: Object.entries(input.facetSelection)
+        .filter(([, values]) => values.length > 0)
+        .map(([field]) => field),
+      dateField: input.dateBrushSelection.field,
+      dateBucketCount: input.dateBrushSelection.bucketKeys.length,
+      sortField: input.sortField || null,
+      sortDirection: input.sortField ? input.sortDirection : null,
+      pageSize: input.pageSize
+    }
+  }
+}
+
 export function SavedViewRunner({
   descriptor,
   registry,
@@ -511,7 +618,9 @@ export function SavedViewRunner({
   emptyLabel = 'No saved view selected.',
   pageSizes = DEFAULT_PAGE_SIZES,
   initialPageSize = DEFAULT_PAGE_SIZE,
-  options: baseOptions
+  options: baseOptions,
+  onSaveLens,
+  saveLensLabel = 'Save lens'
 }: SavedViewRunnerProps): JSX.Element {
   const [activeQueryId, setActiveQueryId] = useState<string | null>(null)
   const [searchText, setSearchText] = useState('')
@@ -526,6 +635,8 @@ export function SavedViewRunner({
     field: null,
     bucketKeys: []
   })
+  const [saveLensState, setSaveLensState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveLensError, setSaveLensError] = useState<string | null>(null)
   const descriptorKey = useMemo(() => descriptorKeyFor(descriptor), [descriptor])
   const orderBy = useMemo<QueryASTOrderBy[] | undefined>(
     () => (sortField ? [{ field: sortField, direction: sortDirection }] : undefined),
@@ -602,6 +713,9 @@ export function SavedViewRunner({
   )
   const activeDateBucketCount = dateBrushSelection.bucketKeys.length
   const resetIdentity = resetKey ?? descriptorKey
+  const canSaveLens = Boolean(
+    onSaveLens && result.descriptor && activeQuery && resolvedActiveQueryId
+  )
 
   useEffect(() => {
     setActiveQueryId(null)
@@ -614,6 +728,8 @@ export function SavedViewRunner({
     setVisibleColumns([])
     setFacetSelection({})
     setDateBrushSelection({ field: null, bucketKeys: [] })
+    setSaveLensState('idle')
+    setSaveLensError(null)
   }, [initialPageSize, resetIdentity])
 
   useEffect(() => {
@@ -631,7 +747,14 @@ export function SavedViewRunner({
   useEffect(() => {
     setFacetSelection({})
     setDateBrushSelection({ field: null, bucketKeys: [] })
+    setSaveLensState('idle')
+    setSaveLensError(null)
   }, [activeQueryId, searchText, sortDirection, sortField])
+
+  useEffect(() => {
+    setSaveLensState('idle')
+    setSaveLensError(null)
+  }, [dateBrushSelection, facetSelection])
 
   useEffect(() => {
     setVisibleColumns((current) => {
@@ -690,6 +813,40 @@ export function SavedViewRunner({
     }
   }, [expandedRowId, filteredRows])
 
+  async function handleSaveLens(): Promise<void> {
+    if (!onSaveLens || !result.descriptor || !activeQuery || !resolvedActiveQueryId) return
+
+    const draft = createSavedViewLensDraft({
+      descriptor: result.descriptor,
+      queryId: resolvedActiveQueryId,
+      query: activeQuery,
+      facetSelection,
+      dateBrushSelection,
+      sortField,
+      sortDirection,
+      pageSize,
+      title: title ?? result.title,
+      description: description ?? result.description
+    })
+
+    if (!draft) {
+      setSaveLensState('error')
+      setSaveLensError('The active query cannot be saved as a lens.')
+      return
+    }
+
+    setSaveLensState('saving')
+    setSaveLensError(null)
+
+    try {
+      await onSaveLens(draft)
+      setSaveLensState('saved')
+    } catch (error) {
+      setSaveLensState('error')
+      setSaveLensError(error instanceof Error ? error.message : String(error))
+    }
+  }
+
   if (!descriptor) {
     return (
       <section
@@ -722,6 +879,21 @@ export function SavedViewRunner({
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <SavedViewPrivacyChips query={activeQuery} />
+          {onSaveLens ? (
+            <button
+              type="button"
+              disabled={!canSaveLens || saveLensState === 'saving'}
+              onClick={() => void handleSaveLens()}
+              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {saveLensState === 'saving' ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <Save size={13} />
+              )}
+              {saveLensLabel}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={result.reload}
@@ -735,6 +907,10 @@ export function SavedViewRunner({
 
       <SavedViewDiagnostics result={result} query={activeQuery} />
       <SavedViewSensitiveResultWarning query={activeQuery} />
+      {saveLensState === 'saved' ? (
+        <SavedViewStatusBanner tone="success" message="Lens saved." />
+      ) : null}
+      {saveLensError ? <SavedViewStatusBanner tone="error" message={saveLensError} /> : null}
 
       {result.queryIds.length > 1 ? (
         <div className="flex flex-wrap gap-2">
@@ -1358,10 +1534,11 @@ function SavedViewStatusBanner({
   tone
 }: {
   message: string
-  tone: 'error' | 'warning'
+  tone: 'error' | 'success' | 'warning'
 }): JSX.Element {
   const toneClassName = {
     error: 'border-destructive/40 bg-destructive/10 text-destructive',
+    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     warning: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
   }[tone]
 
@@ -1405,6 +1582,95 @@ function formatPrivacyClassLabel(privacyClass: string): string {
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return count === 1 ? singular : plural
+}
+
+function nodeQueryForSavedLens(
+  query: SavedViewDescriptor['query'],
+  queryId: string
+): QueryASTNodeQuery | null {
+  if (query.kind === 'node') return query
+  return query.queries[queryId] ?? null
+}
+
+function facetPredicatesForSavedLens(
+  rows: readonly Record<string, unknown>[],
+  selection: SavedViewFacetSelection
+): QueryASTPredicate[] {
+  return Object.entries(selection).flatMap(([field, valueKeys]) => {
+    if (valueKeys.length === 0) return []
+
+    const valuesByKey = rows.reduce<Map<string, unknown>>((current, row) => {
+      const value = row[field]
+      if (isFacetScalarValue(value) && !current.has(facetValueKey(value))) {
+        current.set(facetValueKey(value), value)
+      }
+      return current
+    }, new Map())
+    const values = valueKeys.flatMap((valueKey) =>
+      valuesByKey.has(valueKey) ? [valuesByKey.get(valueKey)] : []
+    )
+
+    return values.length > 0 ? [{ kind: 'comparison', field, op: 'in', values }] : []
+  })
+}
+
+function datePredicateForSavedLens(
+  selection: SavedViewDateBrushSelection
+): QueryASTPredicate | null {
+  if (!selection.field || selection.bucketKeys.length === 0) return null
+
+  const predicates = selection.bucketKeys.flatMap((bucketKey) => {
+    const [interval, start] = bucketKey.split(':')
+    const startMs = Number(start)
+    if (
+      !Number.isFinite(startMs) ||
+      (interval !== 'day' && interval !== 'month' && interval !== 'year')
+    ) {
+      return []
+    }
+
+    return [
+      {
+        kind: 'comparison',
+        field: selection.field ?? '',
+        op: 'between',
+        values: [startMs, dateBucketEndMs(startMs, interval) - 1]
+      } satisfies QueryASTPredicate
+    ]
+  })
+
+  if (predicates.length === 0) return null
+  return predicates.length === 1 ? predicates[0] : { kind: 'or', predicates }
+}
+
+function mergeSavedViewPredicates(
+  base: QueryASTPredicate | undefined,
+  added: readonly QueryASTPredicate[]
+): QueryASTPredicate | undefined {
+  const predicates = [base, ...added].filter((predicate): predicate is QueryASTPredicate =>
+    Boolean(predicate)
+  )
+
+  if (predicates.length === 0) return undefined
+  return predicates.length === 1 ? predicates[0] : { kind: 'and', predicates }
+}
+
+function savedLensSummary(input: {
+  facetFields: string[]
+  dateBrushSelection: SavedViewDateBrushSelection
+  sortField: string
+  pageSize: number
+}): string[] {
+  return [
+    ...input.facetFields.map((field) => `${field} facets`),
+    ...(input.dateBrushSelection.field && input.dateBrushSelection.bucketKeys.length > 0
+      ? [
+          `${input.dateBrushSelection.bucketKeys.length} timeline ${pluralize(input.dateBrushSelection.bucketKeys.length, 'bucket')}`
+        ]
+      : []),
+    ...(input.sortField ? [`${input.sortField} sort`] : []),
+    `${input.pageSize.toLocaleString()} rows per page`
+  ]
 }
 
 function isFacetScalarValue(value: unknown): value is string | number | boolean | null | undefined {

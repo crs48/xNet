@@ -1,6 +1,12 @@
 import type { SavedViewDescriptor } from '@xnetjs/data'
 import { SavedViewSchema, validateSavedViewDescriptor } from '@xnetjs/data'
-import { SavedViewRunner, useMutate, useQuery, type SavedViewSchemaRegistry } from '@xnetjs/react'
+import {
+  SavedViewRunner,
+  useMutate,
+  useQuery,
+  type SavedViewLensDraft,
+  type SavedViewSchemaRegistry
+} from '@xnetjs/react'
 import {
   SocialActorSchema,
   SocialCollectionSchema,
@@ -128,10 +134,12 @@ function descriptorKindLabel(descriptor: ParsedDescriptor): string {
 }
 
 export function DataWorkspaceView({ onClose }: DataWorkspaceViewProps): React.ReactElement {
-  const { mutate } = useMutate()
+  const { create, mutate } = useMutate()
   const [seedSummary, setSeedSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [seeding, setSeeding] = useState(false)
   const [seedError, setSeedError] = useState<string | null>(null)
+  const [saveLensMessage, setSaveLensMessage] = useState<string | null>(null)
+  const [saveLensError, setSaveLensError] = useState<string | null>(null)
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null)
   const { data: savedViews, loading: savedViewsLoading } = useQuery(SavedViewSchema, {
     orderBy: { title: 'asc' },
@@ -249,6 +257,30 @@ export function DataWorkspaceView({ onClose }: DataWorkspaceViewProps): React.Re
     }
   }
 
+  async function handleSaveLens(draft: SavedViewLensDraft): Promise<void> {
+    setSaveLensMessage(null)
+    setSaveLensError(null)
+
+    try {
+      const savedView = await create(SavedViewSchema, {
+        title: draft.title,
+        description: draft.description,
+        descriptor: JSON.stringify(draft.descriptor),
+        scope: draft.descriptor.scope ?? 'workspace'
+      })
+
+      if (!savedView) {
+        throw new Error('Saved lens could not be created.')
+      }
+
+      setSelectedViewId(savedView.id)
+      setSaveLensMessage(`Saved lens: ${draft.title}.`)
+    } catch (error) {
+      setSaveLensError(error instanceof Error ? error.message : String(error))
+      throw error
+    }
+  }
+
   return (
     <div className="flex h-full flex-col bg-background">
       <header className="flex items-center justify-between border-b border-border px-5 py-4">
@@ -295,6 +327,8 @@ export function DataWorkspaceView({ onClose }: DataWorkspaceViewProps): React.Re
             />
           ) : null}
           {seedError ? <StatusBanner tone="error" message={seedError} /> : null}
+          {saveLensMessage ? <StatusBanner tone="success" message={saveLensMessage} /> : null}
+          {saveLensError ? <StatusBanner tone="error" message={saveLensError} /> : null}
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => {
@@ -373,6 +407,7 @@ export function DataWorkspaceView({ onClose }: DataWorkspaceViewProps): React.Re
                 description={selectedView?.description ?? null}
                 fallbackId={selectedView?.id ?? null}
                 resetKey={selectedView?.id ?? null}
+                onSaveLens={handleSaveLens}
               />
 
               <section className="mt-6 space-y-3">

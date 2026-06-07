@@ -937,7 +937,7 @@ sections or ornamental surfaces.
 - [x] Add date-bucket facets and timeline brushing.
 - [x] Add a right inspector that can show fields, relations, source records, and import runs.
 - [x] Add privacy chips and sensitive-result warnings to the lens toolbar.
-- [ ] Add "save current filters as lens" from table/facet/timeline state.
+- [x] Add "save current filters as lens" from table/facet/timeline state.
 
 ### Phase 4: Wire Canvas Query Frames
 

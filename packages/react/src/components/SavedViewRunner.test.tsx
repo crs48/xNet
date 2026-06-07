@@ -3,9 +3,11 @@
  */
 
 import type { SavedViewQueryResult } from '../hooks/useSavedView'
+import type { QueryASTNodeQuery, SavedViewDescriptor } from '@xnetjs/data'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  createSavedViewLensDraft,
   deriveSavedViewDateBucketSummaries,
   deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
@@ -233,6 +235,75 @@ describe('SavedViewRunner helpers', () => {
       '3 loaded rows include non-public privacy classes.'
     )
     expect(getSavedViewSensitiveResultWarning(createQueryResult())).toBeNull()
+  })
+
+  it('creates saved lens descriptors from selected facets and timeline buckets', () => {
+    const firstDay = Date.UTC(2024, 0, 1)
+    const descriptor: SavedViewDescriptor = {
+      version: 1,
+      title: 'Content',
+      scope: 'workspace',
+      query: {
+        version: 1,
+        kind: 'node',
+        schemaId: 'xnet://schema/social/content',
+        page: { first: 100, count: 'estimate' }
+      }
+    }
+    const draft = createSavedViewLensDraft({
+      descriptor,
+      queryId: 'primary',
+      query: createQueryResult({
+        data: [
+          {
+            id: 'row-1',
+            schemaId: 'xnet://schema/social/content',
+            createdAt: 1,
+            createdBy: 'did:key:test',
+            updatedAt: 1,
+            updatedBy: 'did:key:test',
+            deleted: false,
+            title: 'Video',
+            platform: 'youtube',
+            publishedAt: firstDay + 1000
+          }
+        ]
+      }),
+      facetSelection: { platform: ['string:youtube'] },
+      dateBrushSelection: { field: 'publishedAt', bucketKeys: [`day:${firstDay}`] },
+      sortField: 'publishedAt',
+      sortDirection: 'desc',
+      pageSize: 50,
+      title: 'Content',
+      description: null
+    })
+
+    expect(draft?.title).toBe('Content Lens')
+    expect(draft?.description).toContain('platform facets')
+    expect(draft?.stateSummary).toMatchObject({
+      facetFields: ['platform'],
+      dateField: 'publishedAt',
+      dateBucketCount: 1,
+      sortField: 'publishedAt',
+      sortDirection: 'desc',
+      pageSize: 50
+    })
+
+    const query = draft?.descriptor.query as QueryASTNodeQuery
+    expect(query.orderBy).toEqual([{ field: 'publishedAt', direction: 'desc' }])
+    expect(query.page).toMatchObject({ first: 50, offset: 0, count: 'estimate' })
+    expect(query.predicate).toMatchObject({
+      kind: 'and',
+      predicates: [
+        { kind: 'comparison', field: 'platform', op: 'in', values: ['youtube'] },
+        {
+          kind: 'comparison',
+          field: 'publishedAt',
+          op: 'between',
+          values: [firstDay, firstDay + 86_400_000 - 1]
+        }
+      ]
+    })
   })
 })
 
