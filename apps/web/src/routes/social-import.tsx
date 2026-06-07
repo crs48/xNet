@@ -369,7 +369,10 @@ function SocialImportPage(): React.ReactElement {
                 {(archive?.preview.probe?.buckets ?? []).map((bucket) => {
                   const checked = selectedBuckets.includes(bucket.id)
                   const sensitive = isSensitivePrivacyClass(bucket.privacyClass)
-                  const disabled = Boolean(bucket.ignoredReason) || (sensitive && !includeSensitive)
+                  const ignored =
+                    Boolean(bucket.ignoredReason) &&
+                    !isDefaultDisabledBucketReason(bucket.ignoredReason)
+                  const disabled = ignored || (sensitive && !includeSensitive)
                   return (
                     <label
                       key={bucket.id}
@@ -763,4 +766,8 @@ function formatByteSize(bytes: number): string {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function isDefaultDisabledBucketReason(reason: string | undefined): boolean {
+  return reason?.startsWith('Disabled by default because this bucket is ') ?? false
 }

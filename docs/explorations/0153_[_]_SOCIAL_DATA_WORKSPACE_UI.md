@@ -970,7 +970,7 @@ sections or ornamental surfaces.
 - [x] Import a small sanitized social fixture in the web UI and confirm the workspace CTA appears.
 - [ ] Import a larger archive in Electron and confirm saved views/lenses are upserted idempotently.
 - [x] Verify default views show records for each imported social schema.
-- [ ] Verify sensitive/message views remain opt-in and carry privacy indicators.
+- [x] Verify sensitive/message views remain opt-in and carry privacy indicators.
 - [x] Verify a saved lens can render in table mode with search, sort, and pagination.
 - [x] Verify facet selections update the table and can be saved as a new lens.
 - [x] Verify a timeline brush filters the result set without losing selection state.
@@ -992,6 +992,13 @@ Interactions, Collections, and Import Runs, saved an Interactions facet lens, an
 Projection validation evidence: `packages/social/src/__tests__/views-lenses-projection.test.ts`
 now asserts node caps, edge caps, omitted edge counts, source-backed node fields, and privacy labels
 on generated social canvas projection plans.
+
+Sensitive-message validation evidence: imported
+`tmp/social-import-fixtures/instagram-message-sensitive.zip` through the web UI, confirmed the
+Messages bucket is disabled until `Include sensitive buckets` is checked, committed the opt-in
+message records, and verified the Messages saved view shows `Third Party Private: 1` plus the
+non-public privacy warning. Screenshot:
+`tmp/playwright/social-web-sensitive-messages.png`.
 
 ## Example Code
 
