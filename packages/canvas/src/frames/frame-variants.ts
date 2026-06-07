@@ -173,6 +173,7 @@ const FRAME_VARIANT_PROPERTY_KEYS = new Set([
   'queryText',
   'queryDefinition',
   'queryResultSummary',
+  'queryResultPreview',
   'savedLayout',
   'laneAxis',
   'lanes',

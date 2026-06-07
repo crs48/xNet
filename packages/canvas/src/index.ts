@@ -592,12 +592,16 @@ export {
   createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameNode,
   createCanvasQueryFrameProperties,
+  createCanvasQueryFrameResultPreview,
   createCanvasQueryFrameResultSummary,
   createCanvasQueryFrameResultSummaryFromExecution,
   getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary,
   isCanvasQueryFrameDefinition,
   isCanvasQueryFrameNode,
+  updateCanvasQueryFrameResultPreview,
+  updateCanvasQueryFrameResults,
   updateCanvasQueryFrameResultSummary
 } from './frames/query-frames'
 export type {
@@ -609,13 +613,16 @@ export type {
   CanvasQueryFrameMaterialization,
   CanvasQueryFrameProperties,
   CanvasQueryFrameRefreshMode,
+  CanvasQueryFrameResultCard,
+  CanvasQueryFrameResultPreview,
   CanvasQueryFrameResultSummary,
   CanvasQueryFrameSort,
   CanvasQueryFrameSource,
   CreateCanvasQueryFrameDefinitionFromSavedViewInput,
   CreateCanvasQueryFrameDefinitionInput,
   CreateCanvasQueryFrameNodeInput,
-  CreateCanvasQueryFramePropertiesInput
+  CreateCanvasQueryFramePropertiesInput,
+  CreateCanvasQueryFrameResultPreviewInput
 } from './frames/query-frames'
 export {
   CANVAS_SAVED_LAYOUT_DEFINITIONS,

@@ -11,6 +11,8 @@ import type {
   CanvasNodeRenderContext,
   CanvasPlanningTemplateId,
   CanvasQueryFrameExecutionSnapshot,
+  CanvasQueryFrameResultCard,
+  CanvasQueryFrameResultPreview,
   CanvasQueryFrameResultSummary,
   CanvasSelectionSnapshot,
   Rect,
@@ -27,11 +29,12 @@ import {
   createCanvasQueryFrameResultSummaryFromExecution,
   extractCanvasIngressPayloads,
   getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary,
   getCanvasObjectsMap,
   getSelectionBounds,
   isCanvasQueryFrameNode,
-  updateCanvasQueryFrameResultSummary,
+  updateCanvasQueryFrameResults,
   useCanvasThemeTokens,
   useCanvasObjectIngestion
 } from '@xnetjs/canvas'
@@ -150,6 +153,39 @@ type CanvasQueryFrameTarget = {
 }
 
 const SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY = socialSchemas as unknown as SavedViewSchemaRegistry
+const QUERY_RESULT_PREVIEW_LIMIT = 4
+const QUERY_RESULT_TITLE_FIELDS = [
+  'title',
+  'displayName',
+  'handle',
+  'name',
+  'username',
+  'url',
+  'sourceUrl',
+  'id'
+]
+const QUERY_RESULT_SUBTITLE_FIELDS = [
+  'platform',
+  'contentKind',
+  'interactionKind',
+  'messageKind',
+  'collectionKind',
+  'publishedAt',
+  'observedAt',
+  'sentAt',
+  'createdAt',
+  'updatedAt'
+]
+const QUERY_RESULT_DESCRIPTION_FIELDS = ['summary', 'description', 'text', 'body', 'content']
+const QUERY_RESULT_BADGE_FIELDS = [
+  'platform',
+  'privacyClass',
+  'visibility',
+  'contentKind',
+  'interactionKind',
+  'messageKind',
+  'collectionKind'
+]
 
 function getYjsStackDepth(manager: Y.UndoManager | null, stack: 'undoStack' | 'redoStack'): number {
   if (!manager) {
@@ -303,6 +339,87 @@ function savedViewExecutionSnapshots(
   ]
 }
 
+function savedViewResultPreview(result: UseSavedViewResult): CanvasQueryFrameResultPreview {
+  const queries = result.queryIds.map((queryId) => result.queries[queryId]).filter(Boolean)
+  const loadedCount = queries.reduce((total, query) => total + query.data.length, 0)
+  const cards = queries.flatMap((query) =>
+    query.data.map((row, index) => savedViewRowResultCard(query, row, index))
+  )
+
+  return {
+    cards: cards.slice(0, QUERY_RESULT_PREVIEW_LIMIT),
+    overflowCount: Math.max(0, loadedCount - QUERY_RESULT_PREVIEW_LIMIT)
+  }
+}
+
+function savedViewRowResultCard(
+  query: SavedViewQueryResult,
+  row: Record<string, unknown>,
+  index: number
+): CanvasQueryFrameResultCard {
+  const title = firstPreviewFieldValue(row, QUERY_RESULT_TITLE_FIELDS) ?? `${query.rowRole} result`
+  const subtitleParts = QUERY_RESULT_SUBTITLE_FIELDS.flatMap((field) => {
+    const value = previewValueLabel(field, row[field], 48)
+    return value ? [value] : []
+  })
+  const badges = QUERY_RESULT_BADGE_FIELDS.flatMap((field) => {
+    const value = previewValueLabel(field, row[field], 28)
+    return value ? [value] : []
+  })
+  const sourceNodeId = typeof row.id === 'string' ? row.id : null
+
+  return {
+    id: `${query.queryId}:${sourceNodeId ?? index}`,
+    title,
+    subtitle: subtitleParts.slice(0, 2).join(' / ') || undefined,
+    eyebrow: query.rowRole,
+    description: firstPreviewFieldValue(row, QUERY_RESULT_DESCRIPTION_FIELDS, 180) ?? undefined,
+    sourceNodeId: sourceNodeId ?? undefined,
+    schemaId: query.schemaId,
+    href: firstPreviewFieldValue(row, ['url', 'sourceUrl', 'uri'], 240) ?? undefined,
+    badges: [...new Set(badges)].slice(0, 4)
+  }
+}
+
+function firstPreviewFieldValue(
+  row: Record<string, unknown>,
+  fields: readonly string[],
+  maxLength = 120
+): string | null {
+  for (const field of fields) {
+    const value = previewValueLabel(field, row[field], maxLength)
+    if (value) return value
+  }
+
+  return null
+}
+
+function previewValueLabel(field: string, value: unknown, maxLength: number): string | null {
+  if (value === null || value === undefined || value === '') return null
+
+  if (typeof value === 'number' && field.endsWith('At') && value > 1_000_000_000_000) {
+    return new Date(value).toLocaleDateString()
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    return trimmed.length > maxLength
+      ? `${trimmed.slice(0, Math.max(0, maxLength - 3))}...`
+      : trimmed
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0 ? `${value.length} items` : null
+  }
+
+  return null
+}
+
 function queryFrameSummaryMatches(
   current: CanvasQueryFrameResultSummary,
   next: CanvasQueryFrameResultSummary
@@ -318,6 +435,13 @@ function queryFrameSummaryMatches(
   )
 }
 
+function queryFramePreviewMatches(
+  current: CanvasQueryFrameResultPreview,
+  next: CanvasQueryFrameResultPreview
+): boolean {
+  return JSON.stringify(current) === JSON.stringify(next)
+}
+
 function CanvasSavedViewQueryFrameExecutor({
   doc,
   nodeId,
@@ -329,7 +453,9 @@ function CanvasSavedViewQueryFrameExecutor({
 }): null {
   const result = useSavedView(descriptorJson, SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY)
   const snapshots = useMemo(() => savedViewExecutionSnapshots(result), [result])
+  const preview = useMemo(() => savedViewResultPreview(result), [result])
   const summaryKey = useMemo(() => JSON.stringify(snapshots), [snapshots])
+  const previewKey = useMemo(() => JSON.stringify(preview), [preview])
 
   useEffect(() => {
     if (!doc) return
@@ -340,24 +466,28 @@ function CanvasSavedViewQueryFrameExecutor({
 
     const nextBaseline = createCanvasQueryFrameResultSummaryFromExecution({ queries: snapshots })
     const current = getCanvasQueryFrameResultSummary(node)
-    if (queryFrameSummaryMatches(current, nextBaseline)) {
+    const currentPreview = getCanvasQueryFrameResultPreview(node)
+    if (
+      queryFrameSummaryMatches(current, nextBaseline) &&
+      queryFramePreviewMatches(currentPreview, preview)
+    ) {
       return
     }
 
-    const next = updateCanvasQueryFrameResultSummary(
-      node,
-      createCanvasQueryFrameResultSummaryFromExecution({
+    const next = updateCanvasQueryFrameResults(node, {
+      summary: createCanvasQueryFrameResultSummaryFromExecution({
         queries: snapshots,
         now: new Date().toISOString()
-      })
-    )
+      }),
+      preview
+    })
 
     if (next !== node) {
       objects.set(nodeId, next)
     }
-    // summaryKey is the stable execution signature; snapshots remain the source for the write.
+    // summaryKey/previewKey are stable execution signatures; the values remain the source for the write.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, nodeId, summaryKey])
+  }, [doc, nodeId, previewKey, summaryKey])
 
   return null
 }

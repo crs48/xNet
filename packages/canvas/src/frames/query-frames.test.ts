@@ -5,10 +5,13 @@ import {
   createCanvasQueryFrameDefinition,
   createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameNode,
+  createCanvasQueryFrameResultPreview,
   createCanvasQueryFrameResultSummaryFromExecution,
   getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary,
   isCanvasQueryFrameNode,
+  updateCanvasQueryFrameResults,
   updateCanvasQueryFrameResultSummary
 } from './query-frames'
 
@@ -128,6 +131,18 @@ describe('query frame helpers', () => {
         visibleCount: 8,
         stale: true,
         sourceVersion: 'v7'
+      },
+      resultPreview: {
+        cards: [
+          {
+            id: 'po-1',
+            title: 'PO-1001',
+            subtitle: 'Vendor A',
+            eyebrow: 'Purchase order',
+            badges: ['open', 'urgent']
+          }
+        ],
+        overflowCount: 3
       }
     })
 
@@ -152,6 +167,18 @@ describe('query frame helpers', () => {
       visibleCount: 8,
       stale: true,
       sourceVersion: 'v7'
+    })
+    expect(getCanvasQueryFrameResultPreview(frame)).toEqual({
+      cards: [
+        {
+          id: 'po-1',
+          title: 'PO-1001',
+          subtitle: 'Vendor A',
+          eyebrow: 'Purchase order',
+          badges: ['open', 'urgent']
+        }
+      ],
+      overflowCount: 3
     })
   })
 
@@ -199,6 +226,68 @@ describe('query frame helpers', () => {
     expect(updateCanvasQueryFrameResultSummary(standard, { totalCount: 2 })).toBe(standard)
     expect(standard.properties.queryDefinition).toBeUndefined()
     expect(standard.properties.queryResultSummary).toBeUndefined()
+  })
+
+  it('normalizes and updates query result previews', () => {
+    const preview = createCanvasQueryFrameResultPreview({
+      cards: [
+        {
+          id: ' row-1 ',
+          title: ' First row ',
+          subtitle: ' Social content ',
+          eyebrow: ' Content ',
+          description: 'Loaded from an imported archive',
+          sourceNodeId: ' social-content-1 ',
+          schemaId: ' xnet://xnet.fyi/SocialContent@1.0.0 ',
+          href: ' https://example.com/post ',
+          badges: [' instagram ', 'public', 'instagram']
+        },
+        {
+          id: 'missing-title',
+          title: '',
+          badges: ['ignored']
+        }
+      ],
+      overflowCount: 2
+    })
+    const frame = createCanvasQueryFrameNode({
+      viewport,
+      query: {
+        source: 'schema',
+        label: 'Social content'
+      }
+    })
+    const updated = updateCanvasQueryFrameResults(frame, {
+      summary: { totalCount: 3, visibleCount: 1, status: 'success' },
+      preview
+    })
+    const standard = applyCanvasFrameVariant(frame, 'standard')
+
+    expect(preview).toEqual({
+      cards: [
+        {
+          id: 'row-1',
+          title: 'First row',
+          subtitle: 'Social content',
+          eyebrow: 'Content',
+          description: 'Loaded from an imported archive',
+          sourceNodeId: 'social-content-1',
+          schemaId: 'xnet://xnet.fyi/SocialContent@1.0.0',
+          href: 'https://example.com/post',
+          badges: ['instagram', 'public']
+        }
+      ],
+      overflowCount: 2
+    })
+    expect(getCanvasQueryFrameResultSummary(updated)).toMatchObject({
+      totalCount: 3,
+      visibleCount: 1,
+      status: 'success'
+    })
+    expect(getCanvasQueryFrameResultPreview(updated)).toEqual(preview)
+    expect(updateCanvasQueryFrameResults(standard, { summary: { totalCount: 1 }, preview })).toBe(
+      standard
+    )
   })
 
   it('folds saved-view query execution snapshots into frame result summaries', () => {

@@ -11,6 +11,7 @@ import {
 } from '../frames/frame-variants'
 import {
   getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary
 } from '../frames/query-frames'
 import { getCanvasContainerMemberIds, getCanvasContainerRole } from '../selection/scene-operations'
@@ -222,6 +223,8 @@ function CanvasFrameVariantPreview({
   if (variant === 'query') {
     const queryDefinition = getCanvasQueryFrameDefinition(node)
     const querySummary = getCanvasQueryFrameResultSummary(node)
+    const queryPreview = getCanvasQueryFrameResultPreview(node)
+    const resultCards = queryPreview.cards.slice(0, 3)
     const countLabel =
       querySummary.status === 'loading'
         ? 'Loading'
@@ -279,20 +282,136 @@ function CanvasFrameVariantPreview({
             {countLabel}
           </span>
         </div>
-        {[0, 1, 2].map((index) => (
+        {resultCards.length > 0 ? (
           <div
-            key={index}
+            data-canvas-query-frame-result-cards="true"
             style={{
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr',
-              gap: 6
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              minHeight: 0,
+              overflow: 'hidden'
             }}
           >
-            {[0, 1, 2].map((cell) => (
-              <div key={cell} style={{ height: 14, borderRadius: 5, background: mutedLine }} />
+            {resultCards.map((card) => (
+              <div
+                key={card.id}
+                data-canvas-query-frame-result-card="true"
+                style={{
+                  minHeight: 48,
+                  borderRadius: 8,
+                  border: `1px solid ${mutedLine}`,
+                  background:
+                    theme.mode === 'dark' ? 'rgba(15, 23, 42, 0.42)' : 'rgba(255, 255, 255, 0.66)',
+                  padding: 8,
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8
+                  }}
+                >
+                  <span
+                    style={{
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      color: theme.panelText,
+                      fontSize: 12,
+                      fontWeight: 650
+                    }}
+                  >
+                    {card.title}
+                  </span>
+                  {card.eyebrow ? (
+                    <span
+                      style={{
+                        flexShrink: 0,
+                        borderRadius: 999,
+                        background: accentFill,
+                        color: theme.panelMutedText,
+                        fontSize: 9,
+                        fontWeight: 650,
+                        padding: '1px 5px'
+                      }}
+                    >
+                      {card.eyebrow}
+                    </span>
+                  ) : null}
+                </div>
+                {card.subtitle || card.description ? (
+                  <div
+                    style={{
+                      marginTop: 4,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      color: theme.panelMutedText,
+                      fontSize: 10
+                    }}
+                  >
+                    {card.subtitle ?? card.description}
+                  </div>
+                ) : null}
+                {card.badges.length > 0 ? (
+                  <div style={{ display: 'flex', gap: 4, marginTop: 6, overflow: 'hidden' }}>
+                    {card.badges.slice(0, 3).map((badge) => (
+                      <span
+                        key={badge}
+                        style={{
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          borderRadius: 999,
+                          background: mutedLine,
+                          color: theme.panelMutedText,
+                          fontSize: 9,
+                          padding: '1px 5px'
+                        }}
+                      >
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             ))}
           </div>
-        ))}
+        ) : querySummary.status === 'error' ? (
+          <div
+            data-canvas-query-frame-error="true"
+            style={{
+              borderRadius: 8,
+              border: `1px solid ${mutedLine}`,
+              color: theme.panelMutedText,
+              fontSize: 11,
+              padding: 10
+            }}
+          >
+            {querySummary.errorMessage ?? 'Query frame could not load results.'}
+          </div>
+        ) : (
+          [0, 1, 2].map((index) => (
+            <div
+              key={index}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr',
+                gap: 6
+              }}
+            >
+              {[0, 1, 2].map((cell) => (
+                <div key={cell} style={{ height: 14, borderRadius: 5, background: mutedLine }} />
+              ))}
+            </div>
+          ))
+        )}
       </div>
     )
   }
