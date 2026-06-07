@@ -550,17 +550,17 @@ function compareValues(left: unknown, right: unknown): number | null {
   return null
 }
 
-function matchesQueryASTPredicate(row: unknown, predicate: QueryASTPredicate): boolean {
+export function matchesQueryASTLoadedRow(row: unknown, predicate: QueryASTPredicate): boolean {
   if (predicate.kind === 'and') {
-    return predicate.predicates.every((next) => matchesQueryASTPredicate(row, next))
+    return predicate.predicates.every((next) => matchesQueryASTLoadedRow(row, next))
   }
 
   if (predicate.kind === 'or') {
-    return predicate.predicates.some((next) => matchesQueryASTPredicate(row, next))
+    return predicate.predicates.some((next) => matchesQueryASTLoadedRow(row, next))
   }
 
   if (predicate.kind === 'not') {
-    return !matchesQueryASTPredicate(row, predicate.predicate)
+    return !matchesQueryASTLoadedRow(row, predicate.predicate)
   }
 
   if (predicate.kind !== 'comparison') {
@@ -602,6 +602,15 @@ function matchesQueryASTPredicate(row: unknown, predicate: QueryASTPredicate): b
   if (predicate.op === 'lte') return comparison <= 0
 
   return false
+}
+
+export function filterQueryASTLoadedRows<T>(
+  rows: readonly T[],
+  predicate: QueryASTPredicate | undefined
+): T[] {
+  if (!predicate) return [...rows]
+
+  return rows.filter((row) => matchesQueryASTLoadedRow(row, predicate))
 }
 
 function aggregateValue(aggregate: QueryASTAggregate, rows: readonly unknown[]): unknown {
@@ -678,7 +687,7 @@ function aggregateGroups(
 
   const havingPredicate = aggregate.having
   return results.filter((group) =>
-    matchesQueryASTPredicate({ ...group.key, [aggregate.alias]: group.value }, havingPredicate)
+    matchesQueryASTLoadedRow({ ...group.key, [aggregate.alias]: group.value }, havingPredicate)
   )
 }
 

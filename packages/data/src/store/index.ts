@@ -164,7 +164,9 @@ export {
   validateSavedViewDescriptor,
   planQueryASTAggregates,
   executeQueryASTLoadedAggregates,
+  filterQueryASTLoadedRows,
   getQueryASTRelationIndexRequirements,
+  matchesQueryASTLoadedRow,
   evaluateQueryASTPlannerGate
 } from './query-ast'
 

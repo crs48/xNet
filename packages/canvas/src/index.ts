@@ -593,6 +593,7 @@ export {
   createCanvasQueryFrameNode,
   createCanvasQueryFrameProperties,
   createCanvasQueryFrameResultSummary,
+  createCanvasQueryFrameResultSummaryFromExecution,
   getCanvasQueryFrameDefinition,
   getCanvasQueryFrameResultSummary,
   isCanvasQueryFrameDefinition,
@@ -601,6 +602,8 @@ export {
 } from './frames/query-frames'
 export type {
   CanvasQueryFrameDefinition,
+  CanvasQueryFrameExecutionSnapshot,
+  CanvasQueryFrameExecutionStatus,
   CanvasQueryFrameFilter,
   CanvasQueryFrameFilterOperator,
   CanvasQueryFrameMaterialization,

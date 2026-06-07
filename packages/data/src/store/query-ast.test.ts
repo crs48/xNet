@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import { DatabaseSchema, PageSchema, SavedViewSchema, TaskSchema } from '../schema'
 import {
+  and,
   count,
   countDistinct,
   dashboardQuerySet,
@@ -12,6 +13,7 @@ import {
   defineSavedViewDescriptor,
   executeQueryASTLoadedAggregates,
   evaluateQueryASTPlannerGate,
+  filterQueryASTLoadedRows,
   from,
   avg,
   groupBy,
@@ -163,5 +165,36 @@ describe('query AST', () => {
       'QUERY_AST_PAGE_FIRST',
       'QUERY_AST_AGGREGATE_FIELD'
     ])
+  })
+
+  it('filters loaded row snapshots with non-equality predicates', () => {
+    const task = queryOperators<(typeof TaskSchema)['_properties']>()
+    const rows = [
+      { id: 'task-1', properties: { title: 'Alpha launch', estimate: 2, status: 'todo' } },
+      { id: 'task-2', properties: { title: 'Beta cleanup', estimate: 8, status: 'todo' } },
+      { id: 'task-3', properties: { title: 'Alpha done', estimate: 3, status: 'done' } },
+      { id: 'task-4', properties: { title: 'Alpha review', estimate: 5, status: 'todo' } }
+    ]
+
+    const filtered = filterQueryASTLoadedRows(
+      rows,
+      and(
+        task.includesAny('status', ['todo']),
+        {
+          kind: 'comparison',
+          field: 'estimate',
+          op: 'between',
+          values: [2, 5]
+        },
+        {
+          kind: 'comparison',
+          field: 'title',
+          op: 'contains',
+          value: 'Alpha'
+        }
+      )
+    )
+
+    expect(filtered.map((row) => row.id)).toEqual(['task-1', 'task-4'])
   })
 })

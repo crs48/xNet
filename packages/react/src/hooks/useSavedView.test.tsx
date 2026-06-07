@@ -243,13 +243,26 @@ describe('useSavedView', () => {
     expect(mock.getQueryCount()).toBe(2)
   })
 
-  it('reports diagnostics instead of executing unsupported predicates', async () => {
+  it('executes saved lenses with client-side predicates after equality pushdown', async () => {
     const task = queryOperators<(typeof TaskSchema)['_properties']>()
     const mock = createMockBridge()
+    const filter: QueryFilter<(typeof TaskSchema)['_properties']> = {
+      where: { status: 'todo' },
+      orderBy: { title: 'asc' }
+    }
+    mock.setSnapshot(TaskSchema, filter, [
+      createTaskNode('task-1', 'One point', 'todo', 1),
+      createTaskNode('task-2', 'Three points', 'todo', 3),
+      createTaskNode('task-3', 'Four points', 'todo', 4),
+      createTaskNode('task-4', 'Done task', 'done', 3)
+    ])
+
     const descriptor = defineSavedViewDescriptor({
-      title: 'Needs Lowering',
+      title: 'Estimated Todo Lens',
       query: defineNodeQueryAST(TaskSchema, {
-        where: task.isNotNull('title')
+        where: [task.eq('status', 'todo'), task.between('estimate', 2, 5)],
+        orderBy: { title: 'asc' },
+        page: { first: 1, count: 'exact' }
       })
     })
 
@@ -261,9 +274,12 @@ describe('useSavedView', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.status).toBe('error')
-    expect(result.current.primary?.canExecute).toBe(false)
-    expect(result.current.blockers).toContain('usesavedview-predicate-not-lowerable')
-    expect(mock.getQueryCount()).toBe(0)
+    expect(result.current.status).toBe('success')
+    expect(result.current.primary?.canExecute).toBe(true)
+    expect(result.current.primary?.data.map((node) => node.title)).toEqual(['Three points'])
+    expect(result.current.primary?.totalCount).toBe(2)
+    expect(result.current.primary?.hasMore).toBe(true)
+    expect(result.current.primary?.warnings).toContain('usesavedview-client-filter-applied')
+    expect(mock.getQueryCount()).toBe(1)
   })
 })

@@ -5,6 +5,7 @@ import {
   createCanvasQueryFrameDefinition,
   createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameNode,
+  createCanvasQueryFrameResultSummaryFromExecution,
   getCanvasQueryFrameDefinition,
   getCanvasQueryFrameResultSummary,
   isCanvasQueryFrameNode,
@@ -198,5 +199,53 @@ describe('query frame helpers', () => {
     expect(updateCanvasQueryFrameResultSummary(standard, { totalCount: 2 })).toBe(standard)
     expect(standard.properties.queryDefinition).toBeUndefined()
     expect(standard.properties.queryResultSummary).toBeUndefined()
+  })
+
+  it('folds saved-view query execution snapshots into frame result summaries', () => {
+    const summary = createCanvasQueryFrameResultSummaryFromExecution({
+      now: '2026-05-26T00:00:00.000Z',
+      queries: [
+        {
+          status: 'success',
+          totalCount: 10,
+          visibleCount: 4,
+          contentHash: 'hash-a'
+        },
+        {
+          status: 'success',
+          totalCount: 5,
+          visibleCount: 5,
+          contentHash: 'hash-b'
+        }
+      ]
+    })
+    const loading = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: [{ loading: true, visibleCount: 2 }]
+    })
+    const error = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: [{ status: 'error', errorMessage: 'Schema not registered' }]
+    })
+
+    expect(summary).toMatchObject({
+      totalCount: 15,
+      visibleCount: 9,
+      stale: false,
+      status: 'success',
+      contentHash: 'hash-a|hash-b',
+      lastUpdatedAt: '2026-05-26T00:00:00.000Z'
+    })
+    expect(loading).toMatchObject({
+      totalCount: 2,
+      visibleCount: 2,
+      stale: true,
+      status: 'loading'
+    })
+    expect(error).toMatchObject({
+      totalCount: 0,
+      visibleCount: 0,
+      stale: true,
+      status: 'error',
+      errorMessage: 'Schema not registered'
+    })
   })
 })

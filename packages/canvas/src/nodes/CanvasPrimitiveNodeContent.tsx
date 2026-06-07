@@ -223,9 +223,13 @@ function CanvasFrameVariantPreview({
     const queryDefinition = getCanvasQueryFrameDefinition(node)
     const querySummary = getCanvasQueryFrameResultSummary(node)
     const countLabel =
-      querySummary.totalCount > 0
-        ? `${querySummary.visibleCount}/${querySummary.totalCount} results`
-        : 'No results'
+      querySummary.status === 'loading'
+        ? 'Loading'
+        : querySummary.status === 'error'
+          ? 'Error'
+          : querySummary.totalCount > 0
+            ? `${querySummary.visibleCount}/${querySummary.totalCount} results`
+            : 'No results'
 
     return (
       <div

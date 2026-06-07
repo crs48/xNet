@@ -19,6 +19,8 @@ export type CanvasQueryFrameRefreshMode = 'manual' | 'on-open' | 'live'
 
 export type CanvasQueryFrameMaterialization = 'virtual' | 'pinned-cards' | 'synced-cards'
 
+export type CanvasQueryFrameExecutionStatus = 'idle' | 'loading' | 'success' | 'error'
+
 export type CanvasQueryFrameFilterOperator =
   | 'equals'
   | 'not-equals'
@@ -62,9 +64,21 @@ export type CanvasQueryFrameResultSummary = {
   totalCount: number
   visibleCount: number
   stale: boolean
+  status: CanvasQueryFrameExecutionStatus
   sourceVersion?: string
   contentHash?: string
   lastUpdatedAt?: string
+  errorMessage?: string
+}
+
+export type CanvasQueryFrameExecutionSnapshot = {
+  status?: CanvasQueryFrameExecutionStatus | null
+  loading?: boolean | null
+  totalCount?: number | null
+  visibleCount?: number | null
+  sourceVersion?: string | null
+  contentHash?: string | null
+  errorMessage?: string | null
 }
 
 export type CanvasQueryFrameProperties = CanvasNodeProperties & {
@@ -241,6 +255,12 @@ function readMaterialization(value: unknown): CanvasQueryFrameMaterialization | 
   return value === 'virtual' || value === 'pinned-cards' || value === 'synced-cards' ? value : null
 }
 
+function readExecutionStatus(value: unknown): CanvasQueryFrameExecutionStatus | null {
+  return value === 'idle' || value === 'loading' || value === 'success' || value === 'error'
+    ? value
+    : null
+}
+
 export function createCanvasQueryFrameDefinition(
   input: CreateCanvasQueryFrameDefinitionInput
 ): CanvasQueryFrameDefinition {
@@ -306,10 +326,73 @@ export function createCanvasQueryFrameResultSummary(
     totalCount,
     visibleCount: Math.min(visibleCount, totalCount),
     stale: input?.stale ?? false,
+    status: readExecutionStatus(input?.status) ?? 'idle',
     sourceVersion: normalizeString(input?.sourceVersion) ?? undefined,
     contentHash: normalizeString(input?.contentHash) ?? undefined,
-    lastUpdatedAt: normalizeString(input?.lastUpdatedAt) ?? undefined
+    lastUpdatedAt: normalizeString(input?.lastUpdatedAt) ?? undefined,
+    errorMessage: normalizeString(input?.errorMessage) ?? undefined
   }
+}
+
+export function createCanvasQueryFrameResultSummaryFromExecution(input: {
+  queries: readonly CanvasQueryFrameExecutionSnapshot[]
+  now?: string | null
+  sourceVersion?: string | null
+  contentHash?: string | null
+  errorMessage?: string | null
+}): CanvasQueryFrameResultSummary {
+  const status = queryExecutionStatus(input.queries)
+  const visibleCount = input.queries.reduce(
+    (total, query) => total + normalizeCount(query.visibleCount),
+    0
+  )
+  const totalCount = input.queries.every((query) => typeof query.totalCount === 'number')
+    ? input.queries.reduce((total, query) => total + normalizeCount(query.totalCount), 0)
+    : visibleCount
+
+  return createCanvasQueryFrameResultSummary({
+    totalCount,
+    visibleCount,
+    status,
+    stale: status === 'loading' || status === 'error',
+    sourceVersion:
+      normalizeString(input.sourceVersion) ??
+      normalizeJoinedStrings(input.queries.map((query) => query.sourceVersion)),
+    contentHash:
+      normalizeString(input.contentHash) ??
+      normalizeJoinedStrings(input.queries.map((query) => query.contentHash)),
+    lastUpdatedAt: normalizeString(input.now) ?? undefined,
+    errorMessage:
+      normalizeString(input.errorMessage) ??
+      normalizeString(
+        input.queries.find((query) => normalizeString(query.errorMessage))?.errorMessage
+      ) ??
+      undefined
+  })
+}
+
+function normalizeCount(value: number | null | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
+}
+
+function normalizeJoinedStrings(
+  values: readonly (string | null | undefined)[]
+): string | undefined {
+  const normalized = [...new Set(values.flatMap((value) => normalizeString(value) ?? []))]
+  return normalized.length > 0 ? normalized.join('|') : undefined
+}
+
+function queryExecutionStatus(
+  queries: readonly CanvasQueryFrameExecutionSnapshot[]
+): CanvasQueryFrameExecutionStatus {
+  if (queries.length === 0) return 'idle'
+  if (queries.some((query) => query.status === 'error' || normalizeString(query.errorMessage))) {
+    return 'error'
+  }
+  if (queries.some((query) => query.loading || query.status === 'loading')) {
+    return 'loading'
+  }
+  return 'success'
 }
 
 function nodeQueryForSavedView(
@@ -462,7 +545,9 @@ export function getCanvasQueryFrameResultSummary(node: CanvasNode): CanvasQueryF
     stale: typeof record?.stale === 'boolean' ? record.stale : undefined,
     sourceVersion: typeof record?.sourceVersion === 'string' ? record.sourceVersion : undefined,
     contentHash: typeof record?.contentHash === 'string' ? record.contentHash : undefined,
-    lastUpdatedAt: typeof record?.lastUpdatedAt === 'string' ? record.lastUpdatedAt : undefined
+    lastUpdatedAt: typeof record?.lastUpdatedAt === 'string' ? record.lastUpdatedAt : undefined,
+    status: readExecutionStatus(record?.status) ?? undefined,
+    errorMessage: typeof record?.errorMessage === 'string' ? record.errorMessage : undefined
   })
 }
 

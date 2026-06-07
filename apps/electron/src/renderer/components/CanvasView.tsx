@@ -10,6 +10,8 @@ import type {
   CanvasNode,
   CanvasNodeRenderContext,
   CanvasPlanningTemplateId,
+  CanvasQueryFrameExecutionSnapshot,
+  CanvasQueryFrameResultSummary,
   CanvasSelectionSnapshot,
   Rect,
   ShapeType
@@ -22,9 +24,14 @@ import {
   createCanvasObjectAnchorId,
   createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameProperties,
+  createCanvasQueryFrameResultSummaryFromExecution,
   extractCanvasIngressPayloads,
+  getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultSummary,
   getCanvasObjectsMap,
   getSelectionBounds,
+  isCanvasQueryFrameNode,
+  updateCanvasQueryFrameResultSummary,
   useCanvasThemeTokens,
   useCanvasObjectIngestion
 } from '@xnetjs/canvas'
@@ -44,8 +51,19 @@ import {
   CanvasLifecycleStatusBadge,
   useBlobService
 } from '@xnetjs/editor/react'
-import { useComments, useDatabaseDoc, useIdentity, useNode, useUndo } from '@xnetjs/react'
+import {
+  useComments,
+  useDatabaseDoc,
+  useIdentity,
+  useNode,
+  useSavedView,
+  useUndo,
+  type SavedViewQueryResult,
+  type SavedViewSchemaRegistry,
+  type UseSavedViewResult
+} from '@xnetjs/react'
 import { useUndoScope } from '@xnetjs/react/internal'
+import { socialSchemas } from '@xnetjs/social/schemas'
 import {
   Command,
   Database,
@@ -125,6 +143,13 @@ type CanvasViewProps = {
   onCreateNote?: () => void
   onCommandStateChange?: (state: CanvasViewCommandState) => void
 }
+
+type CanvasQueryFrameTarget = {
+  nodeId: string
+  descriptorJson: string
+}
+
+const SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY = socialSchemas as unknown as SavedViewSchemaRegistry
 
 function getYjsStackDepth(manager: Y.UndoManager | null, stack: 'undoStack' | 'redoStack'): number {
   if (!manager) {
@@ -225,6 +250,116 @@ function parseSavedViewDescriptorForCanvasFrame(
   } catch {
     return null
   }
+}
+
+function getCanvasQueryFrameTargets(doc: Y.Doc | null): CanvasQueryFrameTarget[] {
+  if (!doc) return []
+
+  return Array.from(getCanvasObjectsMap<CanvasNode>(doc).values()).flatMap((node) => {
+    if (!isCanvasQueryFrameNode(node)) return []
+
+    const definition = getCanvasQueryFrameDefinition(node)
+    if (!definition?.queryText) return []
+
+    return [
+      {
+        nodeId: node.id,
+        descriptorJson: definition.queryText
+      }
+    ]
+  })
+}
+
+function savedViewQueryExecutionSnapshot(
+  query: SavedViewQueryResult
+): CanvasQueryFrameExecutionSnapshot {
+  return {
+    status: query.status,
+    loading: query.loading,
+    totalCount: query.totalCount,
+    visibleCount: query.data.length,
+    sourceVersion: query.metadata?.updatedAt ? String(query.metadata.updatedAt) : null,
+    contentHash: query.plan?.descriptorHash ?? null,
+    errorMessage: query.error?.message ?? query.metadata?.error ?? null
+  }
+}
+
+function savedViewExecutionSnapshots(
+  result: UseSavedViewResult
+): CanvasQueryFrameExecutionSnapshot[] {
+  const queries = result.queryIds.map((queryId) => result.queries[queryId]).filter(Boolean)
+  if (queries.length > 0) {
+    return queries.map(savedViewQueryExecutionSnapshot)
+  }
+
+  return [
+    {
+      status: result.status,
+      loading: result.loading,
+      totalCount: 0,
+      visibleCount: 0,
+      errorMessage: result.error?.message ?? null
+    }
+  ]
+}
+
+function queryFrameSummaryMatches(
+  current: CanvasQueryFrameResultSummary,
+  next: CanvasQueryFrameResultSummary
+): boolean {
+  return (
+    current.totalCount === next.totalCount &&
+    current.visibleCount === next.visibleCount &&
+    current.stale === next.stale &&
+    current.status === next.status &&
+    current.sourceVersion === next.sourceVersion &&
+    current.contentHash === next.contentHash &&
+    current.errorMessage === next.errorMessage
+  )
+}
+
+function CanvasSavedViewQueryFrameExecutor({
+  doc,
+  nodeId,
+  descriptorJson
+}: {
+  doc: Y.Doc | null
+  nodeId: string
+  descriptorJson: string
+}): null {
+  const result = useSavedView(descriptorJson, SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY)
+  const snapshots = useMemo(() => savedViewExecutionSnapshots(result), [result])
+  const summaryKey = useMemo(() => JSON.stringify(snapshots), [snapshots])
+
+  useEffect(() => {
+    if (!doc) return
+
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const node = objects.get(nodeId)
+    if (!node) return
+
+    const nextBaseline = createCanvasQueryFrameResultSummaryFromExecution({ queries: snapshots })
+    const current = getCanvasQueryFrameResultSummary(node)
+    if (queryFrameSummaryMatches(current, nextBaseline)) {
+      return
+    }
+
+    const next = updateCanvasQueryFrameResultSummary(
+      node,
+      createCanvasQueryFrameResultSummaryFromExecution({
+        queries: snapshots,
+        now: new Date().toISOString()
+      })
+    )
+
+    if (next !== node) {
+      objects.set(nodeId, next)
+    }
+    // summaryKey is the stable execution signature; snapshots remain the source for the write.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, nodeId, summaryKey])
+
+  return null
 }
 
 function getCanvasViewDisplayType(
@@ -721,6 +856,10 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       .map((nodeId) => nodes.get(nodeId))
       .filter((node): node is CanvasNode => node !== undefined)
   }, [doc, sceneRevision, selection.nodeIds])
+  const queryFrameTargets = useMemo(() => {
+    void sceneRevision
+    return getCanvasQueryFrameTargets(doc)
+  }, [doc, sceneRevision])
 
   const selectionAllLocked = selectedNodes.length > 0 && selectedNodes.every((node) => node.locked)
   const selectionAnyLocked = selectedNodes.some((node) => node.locked)
@@ -2640,6 +2779,15 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           </div>
         </div>
       ) : null}
+
+      {queryFrameTargets.map((target) => (
+        <CanvasSavedViewQueryFrameExecutor
+          key={target.nodeId}
+          doc={doc}
+          nodeId={target.nodeId}
+          descriptorJson={target.descriptorJson}
+        />
+      ))}
 
       <div className="h-full">
         <Canvas

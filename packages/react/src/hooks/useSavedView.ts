@@ -28,6 +28,7 @@ import type {
 import {
   evaluateQueryASTPlannerGate,
   executeQueryASTLoadedAggregates,
+  filterQueryASTLoadedRows,
   validateSavedViewDescriptor
 } from '@xnetjs/data'
 import { createQueryDescriptor, serializeQueryDescriptor } from '@xnetjs/data-bridge'
@@ -42,6 +43,8 @@ type CompiledSavedViewQuery = {
   schema: RegistrySchema | null
   ast: QueryASTNodeQuery
   filter: QueryFilter<Record<string, PropertyBuilder>>
+  clientPredicate: QueryASTPredicate | null
+  clientPage: QueryASTPage | null
   plannerGate: QueryASTPlannerGate
   blockers: string[]
   warnings: string[]
@@ -169,24 +172,23 @@ function resolveSchema(registry: SavedViewSchemaRegistry, schemaId: string): Reg
 function predicateWhere(predicate: QueryASTPredicate | undefined): {
   where: Record<string, unknown>
   blockers: string[]
+  fullyLowered: boolean
 } {
   const where: Record<string, unknown> = {}
   const blockers: string[] = []
 
-  const visit = (next: QueryASTPredicate): void => {
+  const visit = (next: QueryASTPredicate): boolean => {
     if (next.kind === 'and') {
-      next.predicates.forEach(visit)
-      return
+      return next.predicates.map(visit).every(Boolean)
     }
 
     if (next.kind !== 'comparison' || next.op !== 'eq') {
-      addUnique(blockers, 'usesavedview-predicate-not-lowerable')
-      return
+      return false
     }
 
     if (!Object.prototype.hasOwnProperty.call(next, 'value')) {
       addUnique(blockers, 'usesavedview-eq-value-required')
-      return
+      return false
     }
 
     if (
@@ -194,17 +196,19 @@ function predicateWhere(predicate: QueryASTPredicate | undefined): {
       where[next.field] !== next.value
     ) {
       addUnique(blockers, 'usesavedview-conflicting-field-equality')
-      return
+      return false
     }
 
     where[next.field] = next.value
+    return true
   }
 
+  let fullyLowered = true
   if (predicate) {
-    visit(predicate)
+    fullyLowered = visit(predicate)
   }
 
-  return { where, blockers }
+  return { where, blockers, fullyLowered }
 }
 
 function orderByFilter(
@@ -245,6 +249,45 @@ function applyPage(
   }
 }
 
+function validateClientPage(page: QueryASTPage | undefined, blockers: string[]): void {
+  if (!page) return
+
+  if (page.after) {
+    addUnique(blockers, 'usesavedview-client-cursor-pagination-not-supported')
+  }
+}
+
+function applyClientPage<T>(rows: readonly T[], page: QueryASTPage | null): T[] {
+  if (!page) return [...rows]
+
+  const offset = Math.max(0, page.offset ?? 0)
+  const first =
+    typeof page.first === 'number' && Number.isFinite(page.first)
+      ? Math.max(0, Math.floor(page.first))
+      : rows.length
+
+  return rows.slice(offset, offset + first)
+}
+
+function clientFilteredPageInfo(input: {
+  totalRows: number
+  loadedRows: number
+  page: QueryASTPage | null
+}): QueryPageInfo {
+  const offset = Math.max(0, input.page?.offset ?? 0)
+  const first = input.page?.first
+  const hasMore = typeof first === 'number' ? offset + input.loadedRows < input.totalRows : false
+
+  return {
+    totalCount: input.page?.count === 'none' ? null : input.totalRows,
+    countMode: input.page?.count ?? 'exact',
+    hasMore,
+    hasNextPage: hasMore,
+    hasPreviousPage: offset > 0,
+    loadedCount: input.loadedRows
+  }
+}
+
 function compileSavedViewQuery(input: {
   queryId: string
   ast: QueryASTNodeQuery
@@ -270,7 +313,15 @@ function compileSavedViewQuery(input: {
   }
 
   const predicate = predicateWhere(input.ast.predicate)
+  const requestedPage = override?.page ?? input.ast.page
+  const clientPredicate =
+    input.ast.predicate && !predicate.fullyLowered ? input.ast.predicate : null
+  const clientPage = clientPredicate ? (requestedPage ?? null) : null
+  validateClientPage(clientPage ?? undefined, blockers)
   predicate.blockers.forEach((blocker) => addUnique(blockers, blocker))
+  if (clientPredicate) {
+    addUnique(warnings, 'usesavedview-client-filter-applied')
+  }
 
   const filter: QueryFilter<Record<string, PropertyBuilder>> = {
     ...(input.options.includeDeleted !== undefined
@@ -290,13 +341,17 @@ function compileSavedViewQuery(input: {
       : {})
   }
 
-  applyPage(override?.page ?? input.ast.page, filter, blockers)
+  if (!clientPredicate) {
+    applyPage(requestedPage, filter, blockers)
+  }
 
   return {
     queryId: input.queryId,
     schema,
     ast: input.ast,
     filter,
+    clientPredicate,
+    clientPage,
     plannerGate,
     blockers,
     warnings,
@@ -502,10 +557,14 @@ export function useSavedView(
         const state = queryStates[query.queryId]
         const raw = state?.raw ?? null
         const metadata = state?.metadata ?? null
-        const data =
+        const bridgeData =
           query.canExecute && raw
             ? flattenNodes<Record<string, PropertyBuilder>>(raw)
             : ([] as FlatNode<Record<string, PropertyBuilder>>[])
+        const filteredData = query.clientPredicate
+          ? filterQueryASTLoadedRows(bridgeData, query.clientPredicate)
+          : bridgeData
+        const data = applyClientPage(filteredData, query.clientPage)
         const loading = Boolean(bridge && query.canExecute && raw === null)
         const metadataError = metadata?.error ? new Error(metadata.error) : null
         const blockedError =
@@ -513,12 +572,20 @@ export function useSavedView(
             ? null
             : new Error(`Saved view query blocked: ${query.blockers.join(', ')}`)
         const error = metadataError ?? blockedError
-        const pageInfo = fallbackPageInfo({
-          metadata,
-          loading,
-          data,
-          filter: query.filter
-        })
+        const pageInfo = query.clientPredicate
+          ? loading
+            ? EMPTY_PAGE_INFO
+            : clientFilteredPageInfo({
+                totalRows: filteredData.length,
+                loadedRows: data.length,
+                page: query.clientPage
+              })
+          : fallbackPageInfo({
+              metadata,
+              loading,
+              data,
+              filter: query.filter
+            })
 
         return [
           query.queryId,
