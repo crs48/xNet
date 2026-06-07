@@ -941,7 +941,7 @@ sections or ornamental surfaces.
 
 ### Phase 4: Wire Canvas Query Frames
 
-- [ ] Add an app command to insert a saved lens as a canvas query frame.
+- [x] Add an app command to insert a saved lens as a canvas query frame.
 - [ ] Execute query frames and update `queryResultSummary`.
 - [ ] Render top result cards inside query frames or adjacent to them.
 - [ ] Let users drag virtual results out as pinned source-backed canvas cards.

@@ -4,6 +4,12 @@
 
 import type { CanvasViewportSnapshot } from '../ingestion'
 import type { CanvasNode, CanvasNodeProperties, Point } from '../types'
+import type {
+  QueryASTNodeQuery,
+  QueryASTOperator,
+  QueryASTPredicate,
+  SavedViewDescriptor
+} from '@xnetjs/data'
 import { getCanvasContainerRole } from '../selection/scene-operations'
 import { createCanvasFrameVariantNode, createCanvasFrameVariantProperties } from './frame-variants'
 
@@ -88,6 +94,14 @@ export type CreateCanvasQueryFrameDefinitionInput = {
   resultCardKind?: string | null
 }
 
+export type CreateCanvasQueryFrameDefinitionFromSavedViewInput = {
+  viewId: string
+  descriptor: SavedViewDescriptor
+  queryId?: string | null
+  label?: string | null
+  resultCardKind?: string | null
+}
+
 export type CreateCanvasQueryFramePropertiesInput = {
   query: CreateCanvasQueryFrameDefinitionInput
   title?: string | null
@@ -115,6 +129,21 @@ const FILTER_OPERATORS: readonly CanvasQueryFrameFilterOperator[] = [
   'in',
   'exists'
 ]
+const QUERY_AST_TO_FRAME_OPERATOR: Record<QueryASTOperator, CanvasQueryFrameFilterOperator | null> =
+  {
+    eq: 'equals',
+    neq: 'not-equals',
+    contains: 'contains',
+    gt: 'greater-than',
+    gte: 'greater-than-or-equal',
+    lt: 'less-than',
+    lte: 'less-than-or-equal',
+    in: 'in',
+    isNotNull: 'exists',
+    startsWith: 'contains',
+    between: null,
+    isNull: null
+  }
 
 function normalizeString(value: string | null | undefined): string | null {
   if (typeof value !== 'string') {
@@ -239,6 +268,28 @@ export function createCanvasQueryFrameDefinition(
   }
 }
 
+export function createCanvasQueryFrameDefinitionFromSavedView(
+  input: CreateCanvasQueryFrameDefinitionFromSavedViewInput
+): CanvasQueryFrameDefinition {
+  const nodeQuery = nodeQueryForSavedView(input.descriptor, input.queryId)
+  const label = normalizeString(input.label) ?? input.descriptor.title
+  const queryText = JSON.stringify(input.descriptor)
+
+  return createCanvasQueryFrameDefinition({
+    source: nodeQuery ? 'schema' : 'custom',
+    label,
+    viewId: input.viewId,
+    schemaId: nodeQuery?.schemaId,
+    queryText,
+    filters: nodeQuery ? queryAstPredicateToFrameFilters(nodeQuery.predicate) : [],
+    sorts: nodeQuery?.orderBy ?? [],
+    limit: nodeQuery?.page?.first,
+    refreshMode: 'manual',
+    materialization: 'virtual',
+    resultCardKind: normalizeString(input.resultCardKind) ?? 'saved-view.result-card'
+  })
+}
+
 export function createCanvasQueryFrameResultSummary(
   input: Partial<CanvasQueryFrameResultSummary> | null = null
 ): CanvasQueryFrameResultSummary {
@@ -259,6 +310,66 @@ export function createCanvasQueryFrameResultSummary(
     contentHash: normalizeString(input?.contentHash) ?? undefined,
     lastUpdatedAt: normalizeString(input?.lastUpdatedAt) ?? undefined
   }
+}
+
+function nodeQueryForSavedView(
+  descriptor: SavedViewDescriptor,
+  queryId: string | null | undefined
+): QueryASTNodeQuery | null {
+  if (descriptor.query.kind === 'node') return descriptor.query
+
+  if (queryId && descriptor.query.queries[queryId]) {
+    return descriptor.query.queries[queryId]
+  }
+
+  return Object.values(descriptor.query.queries)[0] ?? null
+}
+
+function queryAstPredicateToFrameFilters(
+  predicate: QueryASTPredicate | undefined
+): CanvasQueryFrameFilter[] {
+  if (!predicate) return []
+
+  if (predicate.kind === 'and') {
+    return predicate.predicates.flatMap(queryAstPredicateToFrameFilters)
+  }
+
+  if (predicate.kind !== 'comparison') {
+    return []
+  }
+
+  if (predicate.op === 'between') {
+    const [from, to] = predicate.values ?? []
+    return [
+      {
+        field: predicate.field,
+        operator: 'greater-than-or-equal',
+        value: from
+      },
+      {
+        field: predicate.field,
+        operator: 'less-than-or-equal',
+        value: to
+      }
+    ]
+  }
+
+  const operator = queryAstOperatorToFrameOperator(predicate.op)
+  if (!operator) return []
+
+  return [
+    {
+      field: predicate.field,
+      operator,
+      ...(predicate.op === 'in' ? { value: predicate.values ?? [] } : { value: predicate.value })
+    }
+  ]
+}
+
+function queryAstOperatorToFrameOperator(
+  operator: QueryASTOperator
+): CanvasQueryFrameFilterOperator | null {
+  return QUERY_AST_TO_FRAME_OPERATOR[operator]
 }
 
 export function createCanvasQueryFrameProperties({

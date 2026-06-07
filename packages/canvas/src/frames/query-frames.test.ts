@@ -1,7 +1,9 @@
+import type { SavedViewDescriptor } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import { applyCanvasFrameVariant, createCanvasFrameVariantNode } from './frame-variants'
 import {
   createCanvasQueryFrameDefinition,
+  createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameNode,
   getCanvasQueryFrameDefinition,
   getCanvasQueryFrameResultSummary,
@@ -51,6 +53,64 @@ describe('query frame helpers', () => {
     })
     expect(definition.filters).toEqual([{ field: 'status', operator: 'equals', value: 'at-risk' }])
     expect(definition.sorts).toEqual([{ field: 'closeDate', direction: 'asc' }])
+  })
+
+  it('creates query frame definitions from saved view descriptors', () => {
+    const descriptor: SavedViewDescriptor = {
+      version: 1,
+      title: 'YouTube Saves Lens',
+      scope: 'workspace',
+      query: {
+        version: 1,
+        kind: 'node',
+        schemaId: 'xnet://xnet.fyi/SocialContent@1.0.0',
+        predicate: {
+          kind: 'and',
+          predicates: [
+            { kind: 'comparison', field: 'platform', op: 'in', values: ['youtube'] },
+            {
+              kind: 'comparison',
+              field: 'publishedAt',
+              op: 'between',
+              values: [1704067200000, 1704153599999]
+            }
+          ]
+        },
+        orderBy: [{ field: 'publishedAt', direction: 'desc' }],
+        page: { first: 50, count: 'estimate' }
+      }
+    }
+
+    const definition = createCanvasQueryFrameDefinitionFromSavedView({
+      viewId: 'saved-view-1',
+      descriptor
+    })
+
+    expect(definition).toMatchObject({
+      source: 'schema',
+      label: 'YouTube Saves Lens',
+      viewId: 'saved-view-1',
+      schemaId: 'xnet://xnet.fyi/SocialContent@1.0.0',
+      limit: 50,
+      refreshMode: 'manual',
+      materialization: 'virtual',
+      resultCardKind: 'saved-view.result-card'
+    })
+    expect(definition.filters).toEqual([
+      { field: 'platform', operator: 'in', value: ['youtube'] },
+      {
+        field: 'publishedAt',
+        operator: 'greater-than-or-equal',
+        value: 1704067200000
+      },
+      {
+        field: 'publishedAt',
+        operator: 'less-than-or-equal',
+        value: 1704153599999
+      }
+    ])
+    expect(definition.sorts).toEqual([{ field: 'publishedAt', direction: 'desc' }])
+    expect(definition.queryText).toBe(JSON.stringify(descriptor))
   })
 
   it('creates query-backed frame nodes with result summaries', () => {

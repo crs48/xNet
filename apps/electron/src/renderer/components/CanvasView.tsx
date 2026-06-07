@@ -20,6 +20,8 @@ import {
   createCanvasFrameVariantProperties,
   createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
+  createCanvasQueryFrameDefinitionFromSavedView,
+  createCanvasQueryFrameProperties,
   extractCanvasIngressPayloads,
   getCanvasObjectsMap,
   getSelectionBounds,
@@ -32,6 +34,8 @@ import {
   PageSchema,
   decodeAnchor,
   encodeAnchor,
+  validateSavedViewDescriptor,
+  type SavedViewDescriptor,
   type CanvasObjectAnchor
 } from '@xnetjs/data'
 import {
@@ -184,6 +188,7 @@ export type CanvasViewHandle = {
   createFrame: () => boolean
   createMindMap: () => boolean
   createPlanningTemplate: (templateId: CanvasPlanningTemplateId) => boolean
+  createQueryFrameFromSavedView: (input: SavedViewCanvasQueryFrameInput) => boolean
   createExternalReference: (url?: string) => boolean
   createMediaFile: () => boolean
   wrapSelectionInFrame: () => boolean
@@ -194,12 +199,31 @@ export type CanvasViewHandle = {
   toggleShortcutHelp: (open?: boolean) => void
 }
 
+export type SavedViewCanvasQueryFrameInput = {
+  viewId: string
+  title?: string | null
+  descriptorJson?: string | null
+}
+
 function getNodeRect(node: CanvasNode): Rect {
   return {
     x: node.position.x,
     y: node.position.y,
     width: node.position.width,
     height: node.position.height
+  }
+}
+
+function parseSavedViewDescriptorForCanvasFrame(
+  value: string | null | undefined
+): SavedViewDescriptor | null {
+  if (!value) return null
+
+  try {
+    const descriptor = JSON.parse(value) as SavedViewDescriptor
+    return validateSavedViewDescriptor(descriptor).valid ? descriptor : null
+  } catch {
+    return null
   }
 }
 
@@ -1714,6 +1738,41 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return created
   }, [placePrimitiveObject, recordUndoBoundary])
 
+  const createQueryFrameFromSavedView = useCallback(
+    (input: SavedViewCanvasQueryFrameInput): boolean => {
+      const descriptor = parseSavedViewDescriptorForCanvasFrame(input.descriptorJson)
+      if (!descriptor) return false
+
+      const title = input.title?.trim() || descriptor.title || 'Saved lens'
+      const queryDefinition = createCanvasQueryFrameDefinitionFromSavedView({
+        viewId: input.viewId,
+        descriptor,
+        label: title
+      })
+      const created = Boolean(
+        placePrimitiveObject({
+          objectKind: 'group',
+          title,
+          rect: {
+            width: 720,
+            height: 460
+          },
+          properties: createCanvasQueryFrameProperties({
+            title,
+            query: queryDefinition
+          })
+        })
+      )
+
+      if (created) {
+        recordUndoBoundary('scene')
+      }
+
+      return created
+    },
+    [placePrimitiveObject, recordUndoBoundary]
+  )
+
   const createMindMap = useCallback((): boolean => {
     const properties = createCanvasMindMapRootProperties()
     const created = Boolean(
@@ -1878,6 +1937,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createFrame,
       createMindMap,
       createPlanningTemplate,
+      createQueryFrameFromSavedView,
       createExternalReference,
       createMediaFile,
       wrapSelectionInFrame,
@@ -1896,6 +1956,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createFrame,
       createMindMap,
       createPlanningTemplate,
+      createQueryFrameFromSavedView,
       createMediaFile,
       createShape,
       connectSelection,

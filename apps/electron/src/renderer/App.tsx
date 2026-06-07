@@ -19,7 +19,7 @@ import {
   type CanvasViewHandle
 } from './components/CanvasView'
 import { DatabaseView } from './components/DatabaseView'
-import { DataWorkspaceView } from './components/DataWorkspaceView'
+import { DataWorkspaceView, type SavedViewCanvasFrameInput } from './components/DataWorkspaceView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
 import { SocialImportView } from './components/SocialImportView'
@@ -386,6 +386,27 @@ export function App(): React.ReactElement {
     clearTransitionTimer()
     setShellState({ kind: 'data-workspace' })
   }, [clearTransitionTimer])
+
+  const handleInsertSavedLensAsCanvasFrame = useCallback(
+    (view: SavedViewCanvasFrameInput) => {
+      const inserted =
+        canvasViewRef.current?.createQueryFrameFromSavedView({
+          viewId: view.id,
+          title: view.title ?? 'Saved lens',
+          descriptorJson: view.descriptor ?? null
+        }) ?? false
+
+      if (!inserted) {
+        console.error('Failed to insert saved lens as a canvas query frame', view.id)
+        return
+      }
+
+      clearTransitionTimer()
+      setShellState({ kind: 'canvas-home' })
+      setActiveNodeId(homeCanvasId)
+    },
+    [clearTransitionTimer, homeCanvasId, setActiveNodeId]
+  )
 
   const handleOpenStories = useCallback(() => {
     if (!STORIES_ENABLED) return
@@ -928,7 +949,10 @@ export function App(): React.ReactElement {
       return (
         <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
           <div className={overlaySurfaceClassName}>
-            <DataWorkspaceView onClose={handleReturnHome} />
+            <DataWorkspaceView
+              onClose={handleReturnHome}
+              onInsertSavedLensAsCanvasFrame={handleInsertSavedLensAsCanvasFrame}
+            />
           </div>
         </div>
       )

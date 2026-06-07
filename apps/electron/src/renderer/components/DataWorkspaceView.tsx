@@ -23,6 +23,7 @@ import {
   Database,
   GitBranch,
   Import,
+  Layout,
   Loader2,
   MessageSquare,
   Network,
@@ -41,6 +42,14 @@ import {
 
 type DataWorkspaceViewProps = {
   onClose: () => void
+  onInsertSavedLensAsCanvasFrame?: (input: SavedViewCanvasFrameInput) => void
+}
+
+export type SavedViewCanvasFrameInput = {
+  id: string
+  title?: string
+  description?: string
+  descriptor?: string
 }
 
 type SavedViewRow = {
@@ -133,7 +142,10 @@ function descriptorKindLabel(descriptor: ParsedDescriptor): string {
   return descriptor.queryKind
 }
 
-export function DataWorkspaceView({ onClose }: DataWorkspaceViewProps): React.ReactElement {
+export function DataWorkspaceView({
+  onClose,
+  onInsertSavedLensAsCanvasFrame
+}: DataWorkspaceViewProps): React.ReactElement {
   const { create, mutate } = useMutate()
   const [seedSummary, setSeedSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [seeding, setSeeding] = useState(false)
@@ -397,6 +409,7 @@ export function DataWorkspaceView({ onClose }: DataWorkspaceViewProps): React.Re
                   selectedViewId={selectedView?.id ?? null}
                   emptyLabel="No social workspace views yet."
                   onSelect={setSelectedViewId}
+                  onInsertCanvasFrame={onInsertSavedLensAsCanvasFrame}
                 />
               </section>
 
@@ -422,6 +435,7 @@ export function DataWorkspaceView({ onClose }: DataWorkspaceViewProps): React.Re
                   selectedViewId={selectedView?.id ?? null}
                   emptyLabel="No other saved views."
                   onSelect={setSelectedViewId}
+                  onInsertCanvasFrame={onInsertSavedLensAsCanvasFrame}
                 />
               </section>
             </main>
@@ -436,12 +450,14 @@ function SavedViewTable({
   views,
   selectedViewId,
   emptyLabel,
-  onSelect
+  onSelect,
+  onInsertCanvasFrame
 }: {
   views: SavedViewRow[]
   selectedViewId: string | null
   emptyLabel: string
   onSelect: (viewId: string) => void
+  onInsertCanvasFrame?: (input: SavedViewCanvasFrameInput) => void
 }): React.ReactElement {
   if (views.length === 0) {
     return (
@@ -460,6 +476,7 @@ function SavedViewTable({
             <th className="px-3 py-2 font-medium">Kind</th>
             <th className="px-3 py-2 font-medium">Scope</th>
             <th className="px-3 py-2 font-medium">Schema</th>
+            {onInsertCanvasFrame ? <th className="px-3 py-2 font-medium">Canvas</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -493,6 +510,19 @@ function SavedViewTable({
                 <td className="max-w-[280px] truncate px-3 py-2 font-mono text-xs text-muted-foreground">
                   {descriptor.primarySchemaId ?? '-'}
                 </td>
+                {onInsertCanvasFrame ? (
+                  <td className="px-3 py-2">
+                    <button
+                      type="button"
+                      disabled={!view.descriptor}
+                      onClick={() => onInsertCanvasFrame(view)}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      <Layout size={13} />
+                      Frame
+                    </button>
+                  </td>
+                ) : null}
               </tr>
             )
           })}

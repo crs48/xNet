@@ -589,6 +589,7 @@ export type {
 } from './frames/frame-export'
 export {
   createCanvasQueryFrameDefinition,
+  createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameNode,
   createCanvasQueryFrameProperties,
   createCanvasQueryFrameResultSummary,
@@ -608,6 +609,7 @@ export type {
   CanvasQueryFrameResultSummary,
   CanvasQueryFrameSort,
   CanvasQueryFrameSource,
+  CreateCanvasQueryFrameDefinitionFromSavedViewInput,
   CreateCanvasQueryFrameDefinitionInput,
   CreateCanvasQueryFrameNodeInput,
   CreateCanvasQueryFramePropertiesInput
