@@ -928,7 +928,7 @@ sections or ornamental surfaces.
 - [x] Add query-set execution for multi-query dashboard lenses.
 - [x] Return row roles, schema IDs, page info, plan metadata, and privacy summaries.
 - [x] Validate descriptors before execution and show invalid-view diagnostics.
-- [ ] Add reusable table rendering for schema query results, separate from database-row CRUD.
+- [x] Add reusable table rendering for schema query results, separate from database-row CRUD.
 - [x] Support search, sort, pagination, column visibility, and row expansion.
 
 ### Phase 3: Add Facets, Timeline, And Inspector

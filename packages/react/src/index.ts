@@ -55,6 +55,14 @@ export {
   type UseSavedViewOptions,
   type UseSavedViewResult
 } from './hooks/useSavedView'
+export {
+  deriveSavedViewColumns,
+  formatSavedViewCellValue,
+  SavedViewResultTable,
+  SavedViewRunner,
+  type SavedViewResultTableProps,
+  type SavedViewRunnerProps
+} from './components/SavedViewRunner'
 
 /**
  * useMutate - Write operations for nodes
