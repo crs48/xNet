@@ -2,6 +2,7 @@ import { validateSavedViewDescriptor } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import {
   createDefaultSocialGraphLenses,
+  createDefaultSocialGraphAtlas,
   createDefaultSocialSavedViews,
   createDefaultSocialWorkspaceSavedViewSeeds,
   createIgnoredSourceRecord,
@@ -62,6 +63,25 @@ describe('social graph lenses', () => {
       expect(validateSavedViewDescriptor(lens.descriptor).valid).toBe(true)
       expect(lens.edgeRules.length).toBeGreaterThan(0)
     }
+  })
+
+  it('creates graph atlas metadata for starter lenses', () => {
+    const atlas = createDefaultSocialGraphAtlas({ pageSize: 50 })
+
+    expect(atlas.map((entry) => entry.id)).toEqual([
+      'social.lens.people-i-follow',
+      'social.lens.saved-content-by-creator',
+      'social.lens.conversation-references',
+      'social.lens.ai-citations'
+    ])
+    expect(atlas[0]).toMatchObject({
+      title: 'People I Follow',
+      primaryQueryId: 'follows',
+      queryCount: 2,
+      relationshipKinds: ['follows']
+    })
+    expect(atlas.every((entry) => entry.nodeRoles.length > 0)).toBe(true)
+    expect(atlas.every((entry) => entry.edgeRules.length > 0)).toBe(true)
   })
 })
 

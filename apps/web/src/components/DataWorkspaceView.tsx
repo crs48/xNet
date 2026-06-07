@@ -9,6 +9,7 @@ import {
   type SavedViewSchemaRegistry
 } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
+import { createDefaultSocialGraphAtlas, type SocialGraphAtlasEntry } from '@xnetjs/social/lenses'
 import {
   createSocialPatternSavedViewDraft,
   detectSocialPatterns,
@@ -67,6 +68,11 @@ type WorkspaceMetric = {
   label: string
   value: number | null
   icon: typeof UserRound
+}
+
+type GraphAtlasRow = {
+  entry: SocialGraphAtlasEntry
+  savedView: SavedViewRow | null
 }
 
 const SOCIAL_SCHEMA_REGISTRY = socialSchemas as unknown as SavedViewSchemaRegistry
@@ -222,6 +228,11 @@ export function DataWorkspaceView(): JSX.Element {
     () => new Set(defaultSeeds.map((seed) => seed.deterministicId)),
     [defaultSeeds]
   )
+  const defaultSeedBySourceId = useMemo(
+    () => new Map(defaultSeeds.map((seed) => [seed.id, seed])),
+    [defaultSeeds]
+  )
+  const graphAtlasEntries = useMemo(() => createDefaultSocialGraphAtlas({ pageSize: 100 }), [])
   const socialWorkspaceViews = useMemo(
     () => (savedViews as SavedViewRow[]).filter((view) => defaultSeedIds.has(view.id)),
     [defaultSeedIds, savedViews]
@@ -295,6 +306,18 @@ export function DataWorkspaceView(): JSX.Element {
         importRuns: toPatternRows(importRunQuery.data)
       }).filter((pattern) => !dismissedPatternIdSet.has(pattern.id)),
     [contentQuery.data, dismissedPatternIdSet, importRunQuery.data, interactionQuery.data]
+  )
+  const graphAtlasRows = useMemo<GraphAtlasRow[]>(
+    () =>
+      graphAtlasEntries.map((entry) => {
+        const seed = defaultSeedBySourceId.get(entry.id)
+        const savedView = seed
+          ? (socialWorkspaceViews.find((view) => view.id === seed.deterministicId) ?? null)
+          : null
+
+        return { entry, savedView }
+      }),
+    [defaultSeedBySourceId, graphAtlasEntries, socialWorkspaceViews]
   )
 
   useEffect(() => {
@@ -465,6 +488,12 @@ export function DataWorkspaceView(): JSX.Element {
         })}
       </section>
 
+      <GraphAtlasPanel
+        rows={graphAtlasRows}
+        selectedViewId={selectedView?.id ?? null}
+        onOpen={(view) => setSelectedViewId(view.id)}
+      />
+
       <div className="grid min-h-[820px] grid-cols-1 overflow-hidden rounded-md border border-border lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="border-b border-border bg-secondary/40 p-4 lg:border-b-0 lg:border-r">
           <div className="space-y-4">
@@ -626,6 +655,117 @@ function SavedViewTable({
           })}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+function GraphAtlasPanel({
+  rows,
+  selectedViewId,
+  onOpen
+}: {
+  rows: GraphAtlasRow[]
+  selectedViewId: string | null
+  onOpen: (view: SavedViewRow) => void
+}): JSX.Element {
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Graph Atlas</h2>
+          <p className="text-sm text-muted-foreground">
+            Starter graph lenses organized by node roles, relationship rules, and saved-view state.
+          </p>
+        </div>
+        <span className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground">
+          {rows.filter((row) => row.savedView).length}/{rows.length} seeded
+        </span>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {rows.map((row) => (
+          <GraphAtlasCard
+            key={row.entry.id}
+            row={row}
+            selected={row.savedView?.id === selectedViewId}
+            onOpen={onOpen}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function GraphAtlasCard({
+  row,
+  selected,
+  onOpen
+}: {
+  row: GraphAtlasRow
+  selected: boolean
+  onOpen: (view: SavedViewRow) => void
+}): JSX.Element {
+  const { entry, savedView } = row
+
+  return (
+    <div
+      className={[
+        'rounded-md border p-3',
+        selected ? 'border-primary/50 bg-primary/5' : 'border-border'
+      ].join(' ')}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Network size={15} className="text-muted-foreground" />
+            <h3 className="truncate text-sm font-medium">{entry.title}</h3>
+          </div>
+          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{entry.description}</p>
+        </div>
+        <span className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+          {savedView ? 'saved' : 'seed'}
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+        <GraphAtlasMetric label="Queries" value={entry.queryCount} />
+        <GraphAtlasMetric label="Roles" value={entry.nodeRoles.length} />
+        <GraphAtlasMetric label="Edges" value={entry.edgeRules.length} />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+        {entry.nodeRoles.slice(0, 3).map((role) => (
+          <span
+            key={`${entry.id}:${role.queryId}`}
+            className="rounded border border-border px-1.5 py-0.5"
+          >
+            {role.role}
+          </span>
+        ))}
+        {entry.relationshipKinds.slice(0, 3).map((kind) => (
+          <span key={`${entry.id}:${kind}`} className="rounded border border-border px-1.5 py-0.5">
+            {kind}
+          </span>
+        ))}
+      </div>
+      <div className="mt-3">
+        <button
+          type="button"
+          disabled={!savedView}
+          onClick={() => {
+            if (savedView) onOpen(savedView)
+          }}
+          className="rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          Open
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function GraphAtlasMetric({ label, value }: { label: string; value: number }): JSX.Element {
+  return (
+    <div className="rounded-md bg-secondary px-2 py-1">
+      <div className="text-[10px] uppercase tracking-wide">{label}</div>
+      <div className="mt-0.5 font-medium text-foreground">{value.toLocaleString()}</div>
     </div>
   )
 }

@@ -12,3 +12,8 @@ export {
   type SocialGraphLensQueryRole,
   type SocialGraphLensRelationshipKind
 } from './graph-lenses'
+export {
+  createDefaultSocialGraphAtlas,
+  type SocialGraphAtlasEntry,
+  type SocialGraphAtlasNodeRoleSummary
+} from './atlas'
