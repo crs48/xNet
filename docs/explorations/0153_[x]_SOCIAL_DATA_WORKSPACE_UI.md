@@ -3,7 +3,7 @@
 **Status:** Implemented / Validated
 **Date:** 2026-06-07  
 **Author:** Codex  
-**Related:** [0150 - Unified Social Graph](./0150_%5B_%5D_UNIFIED_SOCIAL_GRAPH.md), [0151 - Self-Organizing Social Graph Immersive Recommendation Space](./0151_%5B_%5D_SELF_ORGANIZING_SOCIAL_GRAPH_IMMERSIVE_RECOMMENDATION_SPACE.md), [0152 - Actual Social Graph Importer](./0152_%5B_%5D_ACTUAL_SOCIAL_GRAPH_IMPORTER.md)
+**Related:** [0150 - Unified Social Graph](./0150_%5B_%5D_UNIFIED_SOCIAL_GRAPH.md), [0151 - Self-Organizing Social Graph Immersive Recommendation Space](./0151_%5B_%5D_SELF_ORGANIZING_SOCIAL_GRAPH_IMMERSIVE_RECOMMENDATION_SPACE.md), [0152 - Actual Social Graph Importer](./0152_%5Bx%5D_ACTUAL_SOCIAL_GRAPH_IMPORTER.md)
 
 ## Exploration Checklist
 
@@ -1191,7 +1191,7 @@ function useLens<TRecord>(lens: DataLensDefinition): UseLensResult<TRecord> {
 
 - [0150 - Unified Social Graph](./0150_%5B_%5D_UNIFIED_SOCIAL_GRAPH.md)
 - [0151 - Self-Organizing Social Graph Immersive Recommendation Space](./0151_%5B_%5D_SELF_ORGANIZING_SOCIAL_GRAPH_IMMERSIVE_RECOMMENDATION_SPACE.md)
-- [0152 - Actual Social Graph Importer](./0152_%5B_%5D_ACTUAL_SOCIAL_GRAPH_IMPORTER.md)
+- [0152 - Actual Social Graph Importer](./0152_%5Bx%5D_ACTUAL_SOCIAL_GRAPH_IMPORTER.md)
 - [`packages/social/README.md`](../../packages/social/README.md)
 - [`packages/social/src/views/defaults.ts`](../../packages/social/src/views/defaults.ts)
 - [`packages/social/src/lenses/graph-lenses.ts`](../../packages/social/src/lenses/graph-lenses.ts)
