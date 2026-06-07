@@ -21,7 +21,7 @@ approved nodes through the local data store.
 import { socialSchemas } from '@xnetjs/social/schemas'
 import { detectSocialArchive, readZipArchiveManifest } from '@xnetjs/social/import'
 import { readBrowserZipArchiveManifest } from '@xnetjs/social/import/browser'
-import { grokAdapter, instagramAdapter, youtubeAdapter } from '@xnetjs/social/importers'
+import { grokAdapter, instagramAdapter, xAdapter, youtubeAdapter } from '@xnetjs/social/importers'
 import { createSocialGraphLenses } from '@xnetjs/social/lenses'
 import { createSocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 import { createDefaultSocialSavedViews } from '@xnetjs/social/views'
@@ -38,6 +38,7 @@ import {
   detectSocialArchive,
   grokAdapter,
   instagramAdapter,
+  xAdapter,
   youtubeAdapter,
   socialSchemas
 } from '@xnetjs/social'
@@ -72,10 +73,11 @@ import {
   detectSocialArchive,
   grokAdapter,
   instagramAdapter,
+  xAdapter,
   readZipArchiveManifest
 } from '@xnetjs/social'
 
-const adapters = [instagramAdapter, grokAdapter, youtubeAdapter]
+const adapters = [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter]
 
 export async function stageSocialArchive(archivePath: string) {
   const manifest = await readZipArchiveManifest(archivePath)
@@ -224,6 +226,35 @@ The adapter maps export records into channel actors, follow interactions, video/
 authored comments, playlist collections, collection items, watch interactions, search interactions,
 and optional source records.
 
+### X / Twitter
+
+The X adapter currently detects Twitter archive ZIPs and stages these buckets:
+
+- Profile, excluded by default
+- Following
+- Followers
+- Tweets
+- Likes
+- Lists
+- Direct messages, excluded by default
+- Grok chat, excluded by default
+- Blocks and mutes, excluded by default
+- Ads and personalization, excluded by default
+- Account metadata, excluded by default
+
+The adapter maps export records into account actors, posts, replies, mention interactions, follow
+interactions, like interactions, list collections, direct message conversations, direct messages,
+Grok chat conversations, Grok messages, and optional source records.
+
+Implementation checklist:
+
+- [x] Detect Twitter archive ZIPs from manifest and `data/*.js` path signals.
+- [x] Stage canonical social records for public buckets and sensitive opt-in buckets.
+- [x] Export the adapter from `@xnetjs/social/importers`.
+- [x] Wire the adapter into Electron and web social import surfaces.
+- [x] Cover adapter detection, default bucket selection, mappers, and ZIP64 entry metadata with tests.
+- [x] Smoke-test staging against `.exports/twitter.zip`.
+
 ## Privacy And Provenance
 
 Every import bucket and staged record carries a `privacyClass`. Sensitive buckets should not be
@@ -250,7 +281,7 @@ clear local-storage policy and user approval.
 - [ ] Export the adapter from `src/importers/index.ts`.
 - [ ] Add the adapter to the app surface that chooses supported importers.
 
-Good next candidates are X, Reddit, Claude, OpenAI, Spotify, Apple Music, and other services once
+Good next candidates are Reddit, Claude, OpenAI, Spotify, Apple Music, and other services once
 representative export archives are available.
 
 ## Validation

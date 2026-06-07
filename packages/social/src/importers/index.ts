@@ -17,6 +17,19 @@ export {
 } from './instagram'
 export { GROK_ADAPTER_ID, GROK_ADAPTER_VERSION, grokAdapter, mapGrokBackend } from './grok'
 export {
+  X_ADAPTER_ID,
+  X_ADAPTER_VERSION,
+  mapXDirectMessages,
+  mapXGrokChatItems,
+  mapXLikes,
+  mapXLists,
+  mapXProfile,
+  mapXRelationships,
+  mapXTweets,
+  parseTwitterArchiveJs,
+  xAdapter
+} from './x'
+export {
   YOUTUBE_ADAPTER_ID,
   YOUTUBE_ADAPTER_VERSION,
   mapYouTubeChannel,

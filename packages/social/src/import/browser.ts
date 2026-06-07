@@ -23,8 +23,15 @@ export type BrowserZipCentralDirectoryEntry = ArchiveEntryRef & {
 const EOCD_SIGNATURE = 0x06054b50
 const CENTRAL_DIRECTORY_SIGNATURE = 0x02014b50
 const LOCAL_FILE_HEADER_SIGNATURE = 0x04034b50
+const ZIP64_EXTRA_FIELD_ID = 0x0001
 const ZIP64_SENTINEL = 0xffffffff
 const TEXT_DECODER = new TextDecoder('utf-8')
+
+type Zip64CentralDirectoryValues = {
+  byteSize: number
+  compressedByteSize: number
+  localHeaderOffset: number
+}
 
 export async function readBrowserZipArchiveManifest(
   file: File,
@@ -119,12 +126,23 @@ function parseCentralDirectory(directory: Uint8Array): BrowserZipCentralDirector
     const compressionMethod = view.getUint16(offset + 10, true)
     const modifiedDate = view.getUint16(offset + 14, true)
     const crc32 = view.getUint32(offset + 16, true)
-    const compressedByteSize = view.getUint32(offset + 20, true)
-    const byteSize = view.getUint32(offset + 24, true)
+    const rawCompressedByteSize = view.getUint32(offset + 20, true)
+    const rawByteSize = view.getUint32(offset + 24, true)
     const fileNameLength = view.getUint16(offset + 28, true)
     const extraLength = view.getUint16(offset + 30, true)
     const commentLength = view.getUint16(offset + 32, true)
-    const localHeaderOffset = view.getUint32(offset + 42, true)
+    const rawLocalHeaderOffset = view.getUint32(offset + 42, true)
+    const extraStart = offset + 46 + fileNameLength
+    const { byteSize, compressedByteSize, localHeaderOffset } = readZip64CentralDirectoryExtra(
+      view,
+      extraStart,
+      extraLength,
+      {
+        byteSize: rawByteSize,
+        compressedByteSize: rawCompressedByteSize,
+        localHeaderOffset: rawLocalHeaderOffset
+      }
+    )
     const path = TEXT_DECODER.decode(directory.subarray(offset + 46, offset + 46 + fileNameLength))
 
     if (!path.endsWith('/')) {
@@ -143,6 +161,100 @@ function parseCentralDirectory(directory: Uint8Array): BrowserZipCentralDirector
   }
 
   return entries
+}
+
+function readZip64CentralDirectoryExtra(
+  view: DataView,
+  extraStart: number,
+  extraLength: number,
+  values: Zip64CentralDirectoryValues
+): Zip64CentralDirectoryValues {
+  if (!needsZip64CentralDirectoryExtra(values)) return values
+
+  const extraEnd = extraStart + extraLength
+  let offset = extraStart
+
+  while (offset + 4 <= extraEnd) {
+    const headerId = view.getUint16(offset, true)
+    const dataLength = view.getUint16(offset + 2, true)
+    const dataStart = offset + 4
+    const dataEnd = dataStart + dataLength
+    if (dataEnd > extraEnd) throw new Error('Malformed ZIP64 extra field in central directory')
+
+    if (headerId === ZIP64_EXTRA_FIELD_ID) {
+      return assertResolvedZip64Values(
+        readZip64CentralDirectoryValues(view, dataStart, dataEnd, values)
+      )
+    }
+
+    offset = dataEnd
+  }
+
+  return assertResolvedZip64Values(values)
+}
+
+function readZip64CentralDirectoryValues(
+  view: DataView,
+  dataStart: number,
+  dataEnd: number,
+  values: Zip64CentralDirectoryValues
+): Zip64CentralDirectoryValues {
+  let cursor = dataStart
+  let byteSize = values.byteSize
+  let compressedByteSize = values.compressedByteSize
+  let localHeaderOffset = values.localHeaderOffset
+
+  if (byteSize === ZIP64_SENTINEL) {
+    const result = readUint64LEAsNumber(view, cursor, dataEnd)
+    byteSize = result.value
+    cursor = result.nextOffset
+  }
+
+  if (compressedByteSize === ZIP64_SENTINEL) {
+    const result = readUint64LEAsNumber(view, cursor, dataEnd)
+    compressedByteSize = result.value
+    cursor = result.nextOffset
+  }
+
+  if (localHeaderOffset === ZIP64_SENTINEL) {
+    const result = readUint64LEAsNumber(view, cursor, dataEnd)
+    localHeaderOffset = result.value
+  }
+
+  return { byteSize, compressedByteSize, localHeaderOffset }
+}
+
+function readUint64LEAsNumber(
+  view: DataView,
+  offset: number,
+  dataEnd: number
+): { value: number; nextOffset: number } {
+  if (offset + 8 > dataEnd) throw new Error('Truncated ZIP64 extra field in central directory')
+
+  const value = Number(view.getBigUint64(offset, true))
+  if (!Number.isSafeInteger(value)) {
+    throw new Error('ZIP64 value exceeds JavaScript safe integer range')
+  }
+
+  return { value, nextOffset: offset + 8 }
+}
+
+function needsZip64CentralDirectoryExtra(values: Zip64CentralDirectoryValues): boolean {
+  return (
+    values.byteSize === ZIP64_SENTINEL ||
+    values.compressedByteSize === ZIP64_SENTINEL ||
+    values.localHeaderOffset === ZIP64_SENTINEL
+  )
+}
+
+function assertResolvedZip64Values(
+  values: Zip64CentralDirectoryValues
+): Zip64CentralDirectoryValues {
+  if (needsZip64CentralDirectoryExtra(values)) {
+    throw new Error('ZIP64 central-directory entry is missing required extended metadata')
+  }
+
+  return values
 }
 
 async function hashZipEntry(

@@ -15,6 +15,13 @@ import {
   mapInstagramProfile,
   mapInstagramReels,
   mapInstagramSavedPosts,
+  mapXDirectMessages,
+  mapXGrokChatItems,
+  mapXLikes,
+  mapXLists,
+  mapXProfile,
+  mapXRelationships,
+  mapXTweets,
   mapYouTubeChannel,
   mapYouTubeComments,
   mapYouTubeMusicLibrary,
@@ -22,12 +29,14 @@ import {
   mapYouTubeSearchHistory,
   mapYouTubeSubscriptions,
   mapYouTubeWatchHistory,
+  parseTwitterArchiveJs,
   parseYouTubeCsv,
   sanitizeStagedRecordsForFixture,
   type ArchiveEntryRef,
   type ArchiveManifest,
   type SocialImportContext,
   type StagedSocialRecord,
+  xAdapter,
   youtubeAdapter
 } from '..'
 
@@ -178,6 +187,69 @@ describe('social import adapters', () => {
 
       expect(records.some((record) => record.bucketId === 'youtube.subscriptions')).toBe(true)
       expect(records.some((record) => record.bucketId === 'youtube.history')).toBe(false)
+    })
+
+    it('detects X archives and keeps direct messages disabled by default', async () => {
+      const manifestPath = 'data/manifest.js'
+      const followingPath = 'data/following.js'
+      const dmPath = 'data/direct-messages.js'
+      const archiveManifest = manifest([entry(manifestPath), entry(followingPath), entry(dmPath)])
+
+      expect(
+        detectSocialArchive(
+          [instagramAdapter, grokAdapter, youtubeAdapter, xAdapter],
+          archiveManifest
+        )?.adapter.id
+      ).toBe('x')
+
+      const probe = await xAdapter.probe({ manifest: archiveManifest })
+      expect(probe.buckets.find((bucket) => bucket.id === 'x.following')?.defaultSelected).toBe(
+        true
+      )
+      expect(
+        probe.buckets.find((bucket) => bucket.id === 'x.direct-messages')?.defaultSelected
+      ).toBe(false)
+
+      const records: StagedSocialRecord[] = []
+      for await (const record of xAdapter.stage(
+        context(
+          archiveManifest,
+          {},
+          {
+            [followingPath]: twitterJs('following', [
+              {
+                following: {
+                  accountId: 'account-1',
+                  userLink: 'https://twitter.com/intent/user?user_id=account-1'
+                }
+              }
+            ]),
+            [dmPath]: twitterJs('direct_messages', [
+              {
+                dmConversation: {
+                  conversationId: 'account-1-self',
+                  messages: [
+                    {
+                      messageCreate: {
+                        id: 'message-1',
+                        senderId: 'account-1',
+                        recipientId: 'self',
+                        text: 'Private text',
+                        createdAt: importedAt
+                      }
+                    }
+                  ]
+                }
+              }
+            ])
+          }
+        )
+      )) {
+        records.push(record)
+      }
+
+      expect(records.some((record) => record.bucketId === 'x.following')).toBe(true)
+      expect(records.some((record) => record.bucketId === 'x.direct-messages')).toBe(false)
     })
   })
 
@@ -617,6 +689,189 @@ describe('social import adapters', () => {
     })
   })
 
+  describe('X mappers', () => {
+    it('parses Twitter archive JavaScript wrappers and maps profile without copying email', () => {
+      const parsed = parseTwitterArchiveJs<Array<{ like: { tweetId: string } }>>(
+        twitterJs('like', [{ like: { tweetId: 'tweet-1' } }])
+      )
+      const records = mapXProfile({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        source: entry('data/account.js'),
+        selfActorId: createSocialNodeId('actor', ['x', 'self']),
+        accountRecords: [
+          {
+            account: {
+              accountId: 'self-1',
+              username: 'SelfHandle',
+              accountDisplayName: 'Self Account',
+              createdAt: importedAt,
+              createdVia: 'web',
+              email: 'private@example.invalid'
+            }
+          }
+        ],
+        profileRecords: [
+          {
+            profile: {
+              description: { bio: 'Profile bio', website: 'https://example.invalid', location: '' },
+              avatarMediaUrl: 'https://example.invalid/avatar.jpg'
+            }
+          }
+        ]
+      })
+
+      expect(parsed[0].like.tweetId).toBe('tweet-1')
+      expect(byKind(records, 'actor')[0].properties.handle).toBe('selfhandle')
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain(
+        'private@example.invalid'
+      )
+    })
+
+    it('maps X relationships, tweets, likes, lists, DMs, and Grok chat records', () => {
+      const common = {
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        selfActorId: createSocialNodeId('actor', ['x', 'self'])
+      }
+      const relationshipRecords = mapXRelationships({
+        ...common,
+        source: entry('data/following.js'),
+        relationshipKey: 'following',
+        records: [
+          {
+            following: {
+              accountId: 'account-1',
+              userLink: 'https://twitter.com/intent/user?user_id=account-1'
+            }
+          }
+        ]
+      })
+      const tweetRecords = mapXTweets({
+        ...common,
+        source: entry('data/tweets.js'),
+        selfHandle: 'selfhandle',
+        records: [
+          {
+            tweet: {
+              id_str: 'tweet-1',
+              full_text: '@friend reply text https://t.co/example',
+              created_at: 'Sat Mar 07 02:37:43 +0000 2026',
+              in_reply_to_status_id_str: 'parent-1',
+              favorite_count: '3',
+              retweet_count: '1',
+              lang: 'en',
+              entities: {
+                user_mentions: [{ id_str: 'friend-1', screen_name: 'Friend', name: 'Friend' }],
+                urls: [
+                  {
+                    url: 'https://t.co/example',
+                    expanded_url: 'https://example.invalid/post',
+                    display_url: 'example.invalid/post'
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      })
+      const likeRecords = mapXLikes({
+        ...common,
+        source: entry('data/like.js'),
+        records: [
+          {
+            like: {
+              tweetId: 'liked-1',
+              fullText: 'Liked text',
+              expandedUrl: 'https://twitter.com/i/web/status/liked-1'
+            }
+          }
+        ]
+      })
+      const listRecords = mapXLists({
+        ...common,
+        source: entry('data/lists-subscribed.js'),
+        listKind: 'subscribed',
+        records: [{ userListInfo: { url: 'https://twitter.com/owner/lists/list-1' } }]
+      })
+      const dmRecords = mapXDirectMessages({
+        ...common,
+        source: entry('data/direct-messages.js'),
+        selfAccountId: 'self-1',
+        records: [
+          {
+            dmConversation: {
+              conversationId: 'other-1-self-1',
+              messages: [
+                {
+                  messageCreate: {
+                    id: 'message-1',
+                    senderId: 'other-1',
+                    recipientId: 'self-1',
+                    text: 'DM text',
+                    createdAt: importedAt,
+                    urls: [{ expanded: 'https://example.invalid/dm' }],
+                    mediaUrls: ['data/direct_messages_media/file.jpg']
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      })
+      const grokRecords = mapXGrokChatItems({
+        ...common,
+        source: entry('data/grok-chat-item.js'),
+        records: [
+          {
+            grokChatItem: {
+              chatId: 'chat-1',
+              createdAt: importedAt,
+              message: 'Prompt text',
+              sender: { name: 'User', originalName: 'USER' },
+              grokMode: { name: 'Fun', originalName: 'FUN' }
+            }
+          },
+          {
+            grokChatItem: {
+              chatId: 'chat-1',
+              createdAt: importedAt,
+              message: 'Answer text',
+              sender: { name: 'Agent', originalName: 'AGENT' },
+              grokMode: { name: 'Fun', originalName: 'FUN' }
+            }
+          }
+        ]
+      })
+
+      expect(byKind(relationshipRecords, 'interaction')[0].properties.interactionKind).toBe(
+        'follow'
+      )
+      expect(byKind(tweetRecords, 'content')[0].properties.contentKind).toBe('reply')
+      expect(
+        byKind(tweetRecords, 'interaction').some(
+          (record) => record.properties.interactionKind === 'mention'
+        )
+      ).toBe(true)
+      expect(byKind(likeRecords, 'interaction')[0].properties.interactionKind).toBe('like')
+      expect(byKind(listRecords, 'collection')[0].properties.collectionKind).toBe('list')
+      expect(byKind(dmRecords, 'conversation')[0].privacyClass).toBe('third-party-private')
+      expect(byKind(dmRecords, 'message')[0].properties.textPreview).toBe('DM text')
+      expect(byKind(grokRecords, 'conversation')[0].properties.conversationKind).toBe('ai-chat')
+      expect(byKind(grokRecords, 'message').map((record) => record.properties.messageKind)).toEqual(
+        ['prompt', 'ai-response']
+      )
+    })
+  })
+
   describe('staging utilities', () => {
     it('summarizes staged records and sanitizes fixture content', () => {
       const records = mapInstagramMessages({
@@ -661,3 +916,7 @@ describe('social import adapters', () => {
     })
   })
 })
+
+function twitterJs(globalName: string, payload: unknown): string {
+  return `window.YTD.${globalName}.part0 = ${JSON.stringify(payload)}`
+}
