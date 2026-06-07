@@ -974,7 +974,7 @@ sections or ornamental surfaces.
 - [x] Verify a saved lens can render in table mode with search, sort, and pagination.
 - [x] Verify facet selections update the table and can be saved as a new lens.
 - [x] Verify a timeline brush filters the result set without losing selection state.
-- [ ] Verify a graph lens selection opens the same source record in the inspector.
+- [x] Verify a graph lens selection opens the same source record in the inspector.
 - [x] Verify a canvas query frame updates result counts and stale state.
 - [x] Verify dragging a result row creates a source-backed canvas card with the correct schema/source.
 - [x] Verify generated canvas projection plans obey node/edge caps and privacy labeling.
@@ -1005,6 +1005,10 @@ summaries and stale states, `packages/canvas/src/nodes/CanvasPrimitiveNodeConten
 serializes source-backed result cards as internal canvas drags, and
 `packages/canvas/src/__tests__/ingestion.test.ts` verifies those drags can become source-backed
 external-reference canvas cards with the original schema/source IDs.
+
+Graph-lens validation evidence: `packages/react/src/components/SavedViewRunner.test.tsx` verifies
+query-set graph lens nodes are derived from source-backed rows and that selecting a graph node opens
+the same actor row, source record ID, and schema role in the shared inspector.
 
 ## Example Code
 

@@ -26,6 +26,7 @@ import {
   GitBranch,
   Info,
   Loader2,
+  Network,
   RefreshCw,
   Search,
   Save,
@@ -157,6 +158,20 @@ export type SavedViewLensDraft = {
   }
 }
 
+export type SavedViewGraphLensSelection = {
+  queryId: string
+  rowId: string
+}
+
+export type SavedViewGraphLensNode = SavedViewGraphLensSelection & {
+  label: string
+  detail: string
+  rowRole: string
+  schemaId: string
+  privacyClass: string | null
+  sourceRecordId: string | null
+}
+
 type SortDirection = SavedViewSortDirection
 
 const DEFAULT_PAGE_SIZE = 25
@@ -166,6 +181,7 @@ const MAX_FACET_VALUES = 8
 const MAX_FACET_DISTINCT_VALUES = 16
 const MAX_DATE_BUCKET_FIELDS = 4
 const MAX_DATE_BUCKETS = 18
+const MAX_GRAPH_LENS_NODES_PER_QUERY = 6
 const MAX_AGGREGATION_CACHE_ENTRIES = 48
 const DAY_MS = 86_400_000
 const SYSTEM_COLUMNS = new Set([
@@ -636,6 +652,32 @@ export function getSavedViewSensitiveResultWarning(
 }
 
 /**
+ * Derive selectable source-backed nodes for a query-set graph lens.
+ */
+export function deriveSavedViewGraphLensNodes(
+  query: SavedViewQueryResult,
+  queryId = query.queryId,
+  limit = MAX_GRAPH_LENS_NODES_PER_QUERY
+): SavedViewGraphLensNode[] {
+  return query.data.slice(0, limit).map((row) => {
+    const record = row as Record<string, unknown>
+    const label = graphLensNodeLabel(record)
+    const sourceRecordId = scalarString(record.sourceRecordId)
+
+    return {
+      queryId,
+      rowId: row.id,
+      label,
+      detail: graphLensNodeDetail(record, query, sourceRecordId),
+      rowRole: query.rowRole,
+      schemaId: row.schemaId,
+      privacyClass: scalarString(record.privacyClass),
+      sourceRecordId
+    }
+  })
+}
+
+/**
  * Build a persisted saved-view descriptor from the current table control state.
  */
 export function createSavedViewLensDraft(input: {
@@ -862,8 +904,11 @@ export function SavedViewRunner({
 
   useEffect(() => {
     setPageOffset(0)
-    setExpandedRowId(null)
   }, [activeQueryId, pageSize, searchText, sortDirection, sortField])
+
+  useEffect(() => {
+    setExpandedRowId(null)
+  }, [pageSize, searchText, sortDirection, sortField])
 
   useEffect(() => {
     setFacetSelection({})
@@ -1059,6 +1104,23 @@ export function SavedViewRunner({
         </div>
       ) : null}
 
+      {result.kind === 'query-set' ? (
+        <SavedViewGraphLensPanel
+          queries={result.queries}
+          queryIds={result.queryIds}
+          selected={
+            expandedRowId && resolvedActiveQueryId
+              ? { queryId: resolvedActiveQueryId, rowId: expandedRowId }
+              : null
+          }
+          onSelect={({ queryId, rowId }) => {
+            setActiveQueryId(queryId)
+            setPageOffset(0)
+            setExpandedRowId(rowId)
+          }}
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
           <Search size={14} className="text-muted-foreground" />
@@ -1186,6 +1248,87 @@ export function SavedViewRunner({
         </div>
       </div>
     </section>
+  )
+}
+
+export function SavedViewGraphLensPanel({
+  queries,
+  queryIds,
+  selected,
+  onSelect
+}: {
+  queries: Record<string, SavedViewQueryResult>
+  queryIds: readonly string[]
+  selected: SavedViewGraphLensSelection | null
+  onSelect: (selection: SavedViewGraphLensSelection) => void
+}): JSX.Element | null {
+  const groups = queryIds
+    .map((queryId) => {
+      const query = queries[queryId]
+      return query ? { query, nodes: deriveSavedViewGraphLensNodes(query, queryId) } : null
+    })
+    .filter((group): group is { query: SavedViewQueryResult; nodes: SavedViewGraphLensNode[] } =>
+      Boolean(group && group.nodes.length > 0)
+    )
+
+  if (groups.length === 0) return null
+
+  return (
+    <div className="rounded-md border border-border bg-secondary/20 p-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+          <Network size={14} className="text-muted-foreground" />
+          <span>Graph Lens</span>
+          <span className="text-xs font-normal text-muted-foreground">source records</span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {groups.length.toLocaleString()} roles
+        </span>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {groups.map(({ query, nodes }) => (
+          <section
+            key={query.queryId}
+            className="min-w-0 rounded-md border border-border bg-background p-3"
+          >
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <div className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {query.rowRole}
+                </div>
+                <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                  {shortSchemaId(query.schemaId)}
+                </div>
+              </div>
+              <span className="shrink-0 text-xs text-muted-foreground">{queryRowCount(query)}</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {nodes.map((node) => {
+                const active = selected?.queryId === node.queryId && selected.rowId === node.rowId
+
+                return (
+                  <button
+                    key={`${node.queryId}:${node.rowId}`}
+                    type="button"
+                    onClick={() => onSelect({ queryId: node.queryId, rowId: node.rowId })}
+                    aria-label={`Inspect ${node.label}`}
+                    className={classNames([
+                      'max-w-full rounded-md border px-2 py-1 text-left text-xs transition-colors',
+                      active
+                        ? 'border-foreground bg-foreground text-background'
+                        : 'border-border hover:bg-accent'
+                    ])}
+                  >
+                    <span className="block max-w-48 truncate font-medium">{node.label}</span>
+                    <span className="block max-w-48 truncate opacity-70">{node.detail}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -1762,6 +1905,35 @@ function datePredicateForSavedLens(
 
   if (predicates.length === 0) return null
   return predicates.length === 1 ? predicates[0] : { kind: 'or', predicates }
+}
+
+function scalarString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null
+}
+
+function graphLensNodeLabel(row: Record<string, unknown>): string {
+  return (
+    scalarString(row.displayName) ??
+    scalarString(row.title) ??
+    scalarString(row.handle) ??
+    scalarString(row.name) ??
+    scalarString(row.id) ??
+    'Untitled record'
+  )
+}
+
+function graphLensNodeDetail(
+  row: Record<string, unknown>,
+  query: SavedViewQueryResult,
+  sourceRecordId: string | null
+): string {
+  const parts = [
+    scalarString(row.platform),
+    scalarString(row.privacyClass),
+    sourceRecordId ? `source ${sourceRecordId}` : null
+  ].filter((part): part is string => Boolean(part))
+
+  return parts.length > 0 ? parts.join(' / ') : query.rowRole
 }
 
 function mergeSavedViewPredicates(

@@ -4,12 +4,14 @@
 
 import type { SavedViewQueryResult } from '../hooks/useSavedView'
 import type { QueryASTNodeQuery, SavedViewDescriptor } from '@xnetjs/data'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { useSavedView } from '../hooks/useSavedView'
 import {
   createSavedViewLensDraft,
   deriveCachedSavedViewDateBucketSummaries,
   deriveCachedSavedViewFacetSummaries,
+  deriveSavedViewGraphLensNodes,
   deriveSavedViewDateBucketSummaries,
   deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
@@ -19,8 +21,13 @@ import {
   filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
   getSavedViewSensitiveResultWarning,
+  SavedViewRunner,
   SavedViewResultTable
 } from './SavedViewRunner'
+
+vi.mock('../hooks/useSavedView', () => ({
+  useSavedView: vi.fn()
+}))
 
 function createQueryResult(overrides: Partial<SavedViewQueryResult> = {}): SavedViewQueryResult {
   return {
@@ -351,6 +358,151 @@ describe('SavedViewRunner helpers', () => {
         }
       ]
     })
+  })
+
+  it('derives graph lens nodes from source-backed rows', () => {
+    const query = createQueryResult({
+      queryId: 'actors',
+      rowRole: 'Social Actor',
+      schemaId: 'xnet://schema/social/actor',
+      schemaName: 'Social Actor',
+      data: [
+        {
+          id: 'actor-1',
+          schemaId: 'xnet://schema/social/actor',
+          createdAt: 1,
+          createdBy: 'did:key:test',
+          updatedAt: 1,
+          updatedBy: 'did:key:test',
+          deleted: false,
+          displayName: 'Ada Lovelace',
+          platform: 'instagram',
+          privacyClass: 'public',
+          sourceRecordId: 'source-actor-1'
+        }
+      ]
+    })
+
+    expect(deriveSavedViewGraphLensNodes(query)).toEqual([
+      {
+        queryId: 'actors',
+        rowId: 'actor-1',
+        label: 'Ada Lovelace',
+        detail: 'instagram / public / source source-actor-1',
+        rowRole: 'Social Actor',
+        schemaId: 'xnet://schema/social/actor',
+        privacyClass: 'public',
+        sourceRecordId: 'source-actor-1'
+      }
+    ])
+  })
+})
+
+describe('SavedViewRunner', () => {
+  it('opens a selected graph lens source record in the shared inspector', () => {
+    const descriptor: SavedViewDescriptor = {
+      version: 1,
+      title: 'People I Follow',
+      scope: 'workspace',
+      query: {
+        version: 1,
+        kind: 'query-set',
+        mode: 'dashboard',
+        queries: {
+          actors: {
+            version: 1,
+            kind: 'node',
+            schemaId: 'xnet://schema/social/actor',
+            page: { first: 25, count: 'estimate' }
+          },
+          content: {
+            version: 1,
+            kind: 'node',
+            schemaId: 'xnet://schema/social/content',
+            page: { first: 25, count: 'estimate' }
+          }
+        }
+      }
+    }
+    const actorQuery = createQueryResult({
+      queryId: 'actors',
+      rowRole: 'Social Actor',
+      schemaId: 'xnet://schema/social/actor',
+      schemaName: 'Social Actor',
+      data: [
+        {
+          id: 'actor-1',
+          schemaId: 'xnet://schema/social/actor',
+          createdAt: 1,
+          createdBy: 'did:key:test',
+          updatedAt: 1,
+          updatedBy: 'did:key:test',
+          deleted: false,
+          displayName: 'Ada Lovelace',
+          handle: '@ada',
+          platform: 'instagram',
+          privacyClass: 'public',
+          sourceRecordId: 'source-actor-1',
+          importRunId: 'run-1'
+        }
+      ]
+    })
+    const contentQuery = createQueryResult({
+      queryId: 'content',
+      rowRole: 'Social Content',
+      schemaId: 'xnet://schema/social/content',
+      schemaName: 'Social Content',
+      data: [
+        {
+          id: 'content-1',
+          schemaId: 'xnet://schema/social/content',
+          createdAt: 1,
+          createdBy: 'did:key:test',
+          updatedAt: 1,
+          updatedBy: 'did:key:test',
+          deleted: false,
+          title: 'Saved video',
+          platform: 'youtube',
+          privacyClass: 'private',
+          sourceRecordId: 'source-content-1'
+        }
+      ]
+    })
+
+    vi.mocked(useSavedView).mockReturnValue({
+      descriptor,
+      validation: { valid: true, errors: [] },
+      kind: 'query-set',
+      status: 'success',
+      loading: false,
+      error: null,
+      title: 'People I Follow',
+      description: 'Starter graph lens',
+      primaryQueryId: 'actors',
+      queryIds: ['actors', 'content'],
+      queries: {
+        actors: actorQuery,
+        content: contentQuery
+      },
+      primary: actorQuery,
+      blockers: [],
+      warnings: [],
+      privacy: {
+        counts: {},
+        sensitiveCount: 0
+      },
+      reload: vi.fn()
+    })
+
+    render(<SavedViewRunner descriptor={descriptor} registry={[]} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect Ada Lovelace' }))
+
+    const inspector = screen.getByText('Inspector').closest('aside')
+    expect(inspector).toBeTruthy()
+    expect(within(inspector as HTMLElement).getByText('Social Actor')).toBeTruthy()
+    expect(within(inspector as HTMLElement).getByText('actor-1')).toBeTruthy()
+    expect(within(inspector as HTMLElement).getByText('source-actor-1')).toBeTruthy()
   })
 })
 
