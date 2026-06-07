@@ -959,7 +959,7 @@ sections or ornamental surfaces.
 
 ### Phase 6: Scale And Generalize
 
-- [ ] Move expensive browser archive staging and lens aggregation into workers where needed.
+- [x] Move expensive browser archive staging and lens aggregation into workers where needed.
 - [ ] Add materialized facet/count caches for high-volume imports.
 - [ ] Add a general importer registry UI so future packages can plug into the same flow.
 - [ ] Add a graph atlas prototype only after table/facet/canvas lenses are useful.

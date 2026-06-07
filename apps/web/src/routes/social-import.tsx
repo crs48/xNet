@@ -12,24 +12,7 @@ import type {
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMutate } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
-import {
-  createBrowserZipJsonEntryReader,
-  createBrowserZipTextEntryReader,
-  createSocialArchivePreview,
-  isSensitivePrivacyClass,
-  readBrowserZipArchiveManifest,
-  stageSocialArchive,
-  type ArchiveManifest
-} from '@xnetjs/social/import/browser'
-import {
-  claudeAdapter,
-  grokAdapter,
-  instagramAdapter,
-  redditAdapter,
-  tiktokAdapter,
-  xAdapter,
-  youtubeAdapter
-} from '@xnetjs/social/importers'
+import { isSensitivePrivacyClass, type ArchiveManifest } from '@xnetjs/social/import/browser'
 import {
   SocialActorSchema,
   SocialCollectionItemSchema,
@@ -55,6 +38,10 @@ import {
 } from 'lucide-react'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
+  readBrowserSocialImportPreview,
+  stageBrowserSocialArchive
+} from '../lib/social-import-worker-client'
+import {
   upsertDefaultSocialWorkspace,
   type SocialWorkspaceSeedSummary
 } from '../lib/social-workspace'
@@ -78,16 +65,6 @@ type PickedArchive = {
 }
 
 const COMMIT_BATCH_SIZE = 500
-const adapters = [
-  instagramAdapter,
-  grokAdapter,
-  youtubeAdapter,
-  xAdapter,
-  tiktokAdapter,
-  claudeAdapter,
-  redditAdapter
-] as const
-
 const schemasById = Object.fromEntries(
   [
     SocialImportArchiveSchema,
@@ -143,8 +120,7 @@ function SocialImportPage(): React.ReactElement {
     setStageResult(null)
 
     try {
-      const manifest = await readBrowserZipArchiveManifest(file, { hashEntries: false })
-      const preview = await createSocialArchivePreview({ adapters, manifest })
+      const { manifest, preview } = await readBrowserSocialImportPreview(file)
       setArchive({ file, manifest, preview })
       setStatus('picked')
       setIncludeSensitive(false)
@@ -182,13 +158,9 @@ function SocialImportPage(): React.ReactElement {
     setStatus('staging')
 
     try {
-      const readJsonEntry = await createBrowserZipJsonEntryReader(archive.file)
-      const readTextEntry = await createBrowserZipTextEntryReader(archive.file)
-      const result = await stageSocialArchive({
+      const result = await stageBrowserSocialArchive({
+        file: archive.file,
         manifest: archive.manifest,
-        adapters,
-        readJsonEntry,
-        readTextEntry,
         buckets: selectedBuckets,
         includeSensitive
       })
