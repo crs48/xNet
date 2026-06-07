@@ -1,0 +1,412 @@
+import type { SavedViewDescriptor } from '@xnetjs/data'
+import { SavedViewSchema, validateSavedViewDescriptor } from '@xnetjs/data'
+import { useMutate, useQuery } from '@xnetjs/react'
+import { useNodeStore } from '@xnetjs/react/internal'
+import {
+  SocialActorSchema,
+  SocialCollectionSchema,
+  SocialContentSchema,
+  SocialConversationSchema,
+  SocialImportRunSchema,
+  SocialInteractionSchema,
+  SocialMessageSchema
+} from '@xnetjs/social/schemas'
+import {
+  BarChart3,
+  Database,
+  GitBranch,
+  Import,
+  Loader2,
+  MessageSquare,
+  Network,
+  Search,
+  Shield,
+  Table,
+  UserRound
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import {
+  getDefaultSocialWorkspaceSeeds,
+  upsertDefaultSocialWorkspace,
+  type SocialWorkspaceSeedSummary
+} from '../lib/social-workspace'
+
+type SavedViewRow = {
+  id: string
+  title?: string
+  description?: string
+  descriptor?: string
+  scope?: string
+}
+
+type ParsedDescriptor = {
+  valid: boolean
+  queryKind: string
+  queryMode: string | null
+  primarySchemaId: string | null
+}
+
+type WorkspaceMetric = {
+  id: string
+  label: string
+  value: number | null
+  icon: typeof UserRound
+}
+
+function getCount(input: { totalCount: number | null; data: unknown[] }): number | null {
+  return input.totalCount ?? (input.data.length > 0 ? input.data.length : null)
+}
+
+function parseSavedViewDescriptor(value: string | undefined): ParsedDescriptor {
+  if (!value) {
+    return {
+      valid: false,
+      queryKind: 'unknown',
+      queryMode: null,
+      primarySchemaId: null
+    }
+  }
+
+  try {
+    const descriptor = JSON.parse(value) as SavedViewDescriptor
+    const validation = validateSavedViewDescriptor(descriptor)
+    const query = descriptor.query as Record<string, unknown>
+    const queryKind = typeof query.kind === 'string' ? query.kind : 'unknown'
+    const queryMode = typeof query.mode === 'string' ? query.mode : null
+    const schema = query.schema as Record<string, unknown> | undefined
+    const primarySchemaId =
+      typeof schema?.id === 'string'
+        ? schema.id
+        : typeof schema?.['@id'] === 'string'
+          ? schema['@id']
+          : null
+
+    return {
+      valid: validation.valid,
+      queryKind,
+      queryMode,
+      primarySchemaId
+    }
+  } catch {
+    return {
+      valid: false,
+      queryKind: 'invalid-json',
+      queryMode: null,
+      primarySchemaId: null
+    }
+  }
+}
+
+function metricValueLabel(value: number | null): string {
+  return value === null ? '-' : value.toLocaleString()
+}
+
+function descriptorKindLabel(descriptor: ParsedDescriptor): string {
+  if (!descriptor.valid) return 'Invalid'
+  if (descriptor.queryKind === 'query-set') return descriptor.queryMode ?? 'query set'
+  return descriptor.queryKind
+}
+
+export function DataWorkspaceView(): JSX.Element {
+  const { mutate } = useMutate()
+  const { store, isReady: storeReady } = useNodeStore()
+  const [seedSummary, setSeedSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
+  const [seeding, setSeeding] = useState(false)
+  const [seedError, setSeedError] = useState<string | null>(null)
+  const { data: savedViews, loading: savedViewsLoading } = useQuery(SavedViewSchema, {
+    orderBy: { title: 'asc' },
+    limit: 200
+  })
+  const actorQuery = useQuery(SocialActorSchema, { page: { first: 1, count: 'estimate' } })
+  const contentQuery = useQuery(SocialContentSchema, { page: { first: 1, count: 'estimate' } })
+  const interactionQuery = useQuery(SocialInteractionSchema, {
+    page: { first: 1, count: 'estimate' }
+  })
+  const messageQuery = useQuery(SocialMessageSchema, { page: { first: 1, count: 'estimate' } })
+  const conversationQuery = useQuery(SocialConversationSchema, {
+    page: { first: 1, count: 'estimate' }
+  })
+  const collectionQuery = useQuery(SocialCollectionSchema, {
+    page: { first: 1, count: 'estimate' }
+  })
+  const importRunQuery = useQuery(SocialImportRunSchema, { page: { first: 1, count: 'estimate' } })
+
+  const defaultSeeds = useMemo(() => getDefaultSocialWorkspaceSeeds(), [])
+  const defaultSeedIds = useMemo(
+    () => new Set(defaultSeeds.map((seed) => seed.deterministicId)),
+    [defaultSeeds]
+  )
+  const socialWorkspaceViews = useMemo(
+    () => (savedViews as SavedViewRow[]).filter((view) => defaultSeedIds.has(view.id)),
+    [defaultSeedIds, savedViews]
+  )
+  const otherSavedViews = useMemo(
+    () => (savedViews as SavedViewRow[]).filter((view) => !defaultSeedIds.has(view.id)),
+    [defaultSeedIds, savedViews]
+  )
+  const metrics: WorkspaceMetric[] = [
+    {
+      id: 'actors',
+      label: 'People',
+      value: getCount(actorQuery),
+      icon: UserRound
+    },
+    {
+      id: 'content',
+      label: 'Content',
+      value: getCount(contentQuery),
+      icon: Table
+    },
+    {
+      id: 'interactions',
+      label: 'Interactions',
+      value: getCount(interactionQuery),
+      icon: Network
+    },
+    {
+      id: 'messages',
+      label: 'Messages',
+      value: getCount(messageQuery),
+      icon: MessageSquare
+    },
+    {
+      id: 'conversations',
+      label: 'Conversations',
+      value: getCount(conversationQuery),
+      icon: GitBranch
+    },
+    {
+      id: 'collections',
+      label: 'Collections',
+      value: getCount(collectionQuery),
+      icon: Database
+    },
+    {
+      id: 'import-runs',
+      label: 'Import Runs',
+      value: getCount(importRunQuery),
+      icon: Import
+    }
+  ]
+
+  async function handleSeedWorkspace() {
+    if (!store || !storeReady) return
+
+    setSeeding(true)
+    setSeedError(null)
+
+    try {
+      const summary = await upsertDefaultSocialWorkspace({
+        mutate,
+        getExisting: (id) => store.get(id)
+      })
+      setSeedSummary(summary)
+    } catch (error) {
+      setSeedError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSeeding(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col gap-5">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Database size={15} />
+            <span>Imported data</span>
+          </div>
+          <h1 className="mt-1 text-2xl font-semibold">Data Workspace</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Saved views and starter graph lenses over typed xNet data, seeded by social imports.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={!storeReady || seeding}
+          onClick={() => void handleSeedWorkspace()}
+          className="flex items-center gap-2 rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          {seeding ? <Loader2 size={15} className="animate-spin" /> : <Import size={15} />}
+          Seed Social Views
+        </button>
+      </header>
+
+      {seedSummary ? (
+        <StatusBanner
+          tone="success"
+          message={`Workspace views ready: ${seedSummary.created} created, ${seedSummary.updated} updated.`}
+        />
+      ) : null}
+      {seedError ? <StatusBanner tone="error" message={seedError} /> : null}
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric) => {
+          const Icon = metric.icon
+
+          return (
+            <div key={metric.id} className="rounded-md border border-border p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-muted-foreground">{metric.label}</span>
+                <Icon size={16} className="text-muted-foreground" />
+              </div>
+              <div className="mt-2 text-2xl font-semibold">{metricValueLabel(metric.value)}</div>
+            </div>
+          )
+        })}
+      </section>
+
+      <div className="grid min-h-[560px] grid-cols-1 overflow-hidden rounded-md border border-border lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="border-b border-border bg-secondary/40 p-4 lg:border-b-0 lg:border-r">
+          <div className="space-y-4">
+            <div>
+              <SectionLabel label="Sources" />
+              <div className="mt-2 space-y-2">
+                <SourceRow
+                  label="Social archive imports"
+                  value={metricValueLabel(getCount(importRunQuery))}
+                />
+                <SourceRow label="Saved views" value={String(savedViews.length)} />
+                <SourceRow label="Starter views" value={`${socialWorkspaceViews.length}/10`} />
+              </div>
+            </div>
+            <div>
+              <SectionLabel label="Patterns" />
+              <div className="mt-2 space-y-2">
+                <PatternRow icon={BarChart3} label="Repeated creators" />
+                <PatternRow icon={Search} label="Cross-source overlap" />
+                <PatternRow icon={Shield} label="Privacy hotspots" />
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <main className="min-w-0 overflow-auto p-5">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">Social Starter Lenses</h2>
+                <p className="text-sm text-muted-foreground">
+                  Schema views and graph-lens query sets persisted as saved views.
+                </p>
+              </div>
+              {savedViewsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 size={14} className="animate-spin" />
+                  Loading
+                </div>
+              ) : null}
+            </div>
+            <SavedViewTable
+              views={socialWorkspaceViews}
+              emptyLabel="No social workspace views yet."
+            />
+          </section>
+
+          <section className="mt-6 space-y-3">
+            <div>
+              <h2 className="text-base font-semibold">Other Saved Views</h2>
+              <p className="text-sm text-muted-foreground">
+                General saved views will use the same workspace surface as more importers land.
+              </p>
+            </div>
+            <SavedViewTable views={otherSavedViews} emptyLabel="No other saved views." />
+          </section>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function SavedViewTable({
+  views,
+  emptyLabel
+}: {
+  views: SavedViewRow[]
+  emptyLabel: string
+}): JSX.Element {
+  if (views.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+        {emptyLabel}
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border">
+      <table className="w-full border-collapse text-sm">
+        <thead className="bg-secondary text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 font-medium">View</th>
+            <th className="px-3 py-2 font-medium">Kind</th>
+            <th className="px-3 py-2 font-medium">Scope</th>
+            <th className="px-3 py-2 font-medium">Schema</th>
+          </tr>
+        </thead>
+        <tbody>
+          {views.map((view) => {
+            const descriptor = parseSavedViewDescriptor(view.descriptor)
+
+            return (
+              <tr key={view.id} className="border-t border-border">
+                <td className="min-w-0 px-3 py-2">
+                  <div className="truncate font-medium">{view.title ?? 'Untitled view'}</div>
+                  <div className="mt-1 truncate text-xs text-muted-foreground">
+                    {view.description ?? view.id}
+                  </div>
+                </td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">
+                  {descriptorKindLabel(descriptor)}
+                </td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{view.scope ?? '-'}</td>
+                <td className="max-w-[280px] truncate px-3 py-2 font-mono text-xs text-muted-foreground">
+                  {descriptor.primarySchemaId ?? '-'}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function SectionLabel({ label }: { label: string }): JSX.Element {
+  return (
+    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+  )
+}
+
+function SourceRow({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
+      <span className="min-w-0 truncate text-sm">{label}</span>
+      <span className="text-xs text-muted-foreground">{value}</span>
+    </div>
+  )
+}
+
+function PatternRow({ icon: Icon, label }: { icon: typeof BarChart3; label: string }): JSX.Element {
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm">
+      <Icon size={14} className="text-muted-foreground" />
+      <span className="min-w-0 truncate">{label}</span>
+    </div>
+  )
+}
+
+function StatusBanner({
+  message,
+  tone
+}: {
+  message: string
+  tone: 'error' | 'success'
+}): JSX.Element {
+  const toneClassName =
+    tone === 'success'
+      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+      : 'border-destructive/40 bg-destructive/10 text-destructive'
+
+  return <div className={`rounded-md border px-3 py-2 text-sm ${toneClassName}`}>{message}</div>
+}

@@ -9,7 +9,7 @@ import type {
   SocialImportNodeDraft,
   SocialImportStageResult
 } from '@xnetjs/social/import/core'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMutate } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
 import {
@@ -54,6 +54,10 @@ import {
   Upload
 } from 'lucide-react'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
+import {
+  upsertDefaultSocialWorkspace,
+  type SocialWorkspaceSeedSummary
+} from '../lib/social-workspace'
 
 export const Route = createFileRoute('/social-import')({
   component: SocialImportPage
@@ -101,6 +105,7 @@ const schemasById = Object.fromEntries(
 ) as Record<string, DefinedSchema<Record<string, PropertyBuilder>>>
 
 function SocialImportPage(): React.ReactElement {
+  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [archive, setArchive] = useState<PickedArchive | null>(null)
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>([])
@@ -110,6 +115,8 @@ function SocialImportPage(): React.ReactElement {
   const [status, setStatus] = useState<ImportStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [commitSummary, setCommitSummary] = useState<CommitSummary | null>(null)
+  const [workspaceSummary, setWorkspaceSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
+  const [workspaceSeeding, setWorkspaceSeeding] = useState(false)
   const { mutate } = useMutate()
   const { store, isReady: storeReady } = useNodeStore()
 
@@ -132,6 +139,7 @@ function SocialImportPage(): React.ReactElement {
   const handlePickFile = useCallback(async (file: File) => {
     setError(null)
     setCommitSummary(null)
+    setWorkspaceSummary(null)
     setStageResult(null)
 
     try {
@@ -162,6 +170,7 @@ function SocialImportPage(): React.ReactElement {
     )
     setStageResult(null)
     setCommitSummary(null)
+    setWorkspaceSummary(null)
   }, [])
 
   const handleStage = useCallback(async () => {
@@ -169,6 +178,7 @@ function SocialImportPage(): React.ReactElement {
 
     setError(null)
     setCommitSummary(null)
+    setWorkspaceSummary(null)
     setStatus('staging')
 
     try {
@@ -211,12 +221,33 @@ function SocialImportPage(): React.ReactElement {
       })
 
       setCommitSummary(summary)
+      setWorkspaceSummary(null)
       setStatus('committed')
     } catch (err) {
       setStatus('staged')
       setError(toErrorMessage(err))
     }
   }, [includeSourceRecords, mutate, stageResult, store, storeReady])
+
+  const handleOpenWorkspace = useCallback(async () => {
+    if (!store || !storeReady) return
+
+    setWorkspaceSeeding(true)
+    setError(null)
+
+    try {
+      const summary = await upsertDefaultSocialWorkspace({
+        mutate,
+        getExisting: (id) => store.get(id)
+      })
+      setWorkspaceSummary(summary)
+      await navigate({ to: '/data' })
+    } catch (err) {
+      setError(toErrorMessage(err))
+    } finally {
+      setWorkspaceSeeding(false)
+    }
+  }, [mutate, navigate, store, storeReady])
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col gap-5">
@@ -321,6 +352,12 @@ function SocialImportPage(): React.ReactElement {
               <StatusCallout
                 tone="success"
                 message={`Committed ${commitSummary.created} new and ${commitSummary.updated} existing records.`}
+              />
+            ) : null}
+            {workspaceSummary ? (
+              <StatusCallout
+                tone="success"
+                message={`Workspace views ready: ${workspaceSummary.created} created and ${workspaceSummary.updated} updated.`}
               />
             ) : null}
 
@@ -474,6 +511,19 @@ function SocialImportPage(): React.ReactElement {
                     <Database size={15} />
                   )}
                   Commit {commitRecordCount || ''}
+                </button>
+                <button
+                  type="button"
+                  disabled={status !== 'committed' || !storeReady || workspaceSeeding}
+                  onClick={() => void handleOpenWorkspace()}
+                  className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {workspaceSeeding ? (
+                    <Loader2 className="animate-spin" size={15} />
+                  ) : (
+                    <Database size={15} />
+                  )}
+                  Open Data Workspace
                 </button>
               </div>
 

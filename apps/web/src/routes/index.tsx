@@ -4,7 +4,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
-import { FileText, Database, Layout, Plus, ChevronDown } from 'lucide-react'
+import { FileText, Database, Layout, Plus, ChevronDown, Network } from 'lucide-react'
 import { useState } from 'react'
 
 export const Route = createFileRoute('/')({
@@ -98,17 +98,26 @@ function HomePage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">All Documents</h1>
         <div className="relative">
-          <button
-            onClick={() => setShowCreateMenu(!showCreateMenu)}
-            className="flex items-center gap-2 bg-primary text-white border-none px-4 py-2 rounded-md cursor-pointer text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Plus size={16} />
-            <span>New</span>
-            <ChevronDown
-              size={14}
-              className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`}
-            />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/data"
+              className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground no-underline transition-colors hover:bg-accent hover:no-underline"
+            >
+              <Network size={16} />
+              <span>Data Workspace</span>
+            </Link>
+            <button
+              onClick={() => setShowCreateMenu(!showCreateMenu)}
+              className="flex items-center gap-2 bg-primary text-white border-none px-4 py-2 rounded-md cursor-pointer text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Plus size={16} />
+              <span>New</span>
+              <ChevronDown
+                size={14}
+                className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
 
           {showCreateMenu && (
             <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-md shadow-lg z-10 py-1 min-w-[140px]">
