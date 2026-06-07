@@ -975,8 +975,8 @@ sections or ornamental surfaces.
 - [x] Verify facet selections update the table and can be saved as a new lens.
 - [x] Verify a timeline brush filters the result set without losing selection state.
 - [ ] Verify a graph lens selection opens the same source record in the inspector.
-- [ ] Verify a canvas query frame updates result counts and stale state.
-- [ ] Verify dragging a result row creates a source-backed canvas card with the correct schema/source.
+- [x] Verify a canvas query frame updates result counts and stale state.
+- [x] Verify dragging a result row creates a source-backed canvas card with the correct schema/source.
 - [x] Verify generated canvas projection plans obey node/edge caps and privacy labeling.
 - [x] Run targeted unit tests for view descriptors, lens runtime, pattern definitions, and projection
       insertion.
@@ -999,6 +999,12 @@ Messages bucket is disabled until `Include sensitive buckets` is checked, commit
 message records, and verified the Messages saved view shows `Third Party Private: 1` plus the
 non-public privacy warning. Screenshot:
 `tmp/playwright/social-web-sensitive-messages.png`.
+
+Canvas validation evidence: `packages/canvas/src/frames/query-frames.test.ts` verifies result-count
+summaries and stale states, `packages/canvas/src/nodes/CanvasPrimitiveNodeContent.test.tsx`
+serializes source-backed result cards as internal canvas drags, and
+`packages/canvas/src/__tests__/ingestion.test.ts` verifies those drags can become source-backed
+external-reference canvas cards with the original schema/source IDs.
 
 ## Example Code
 

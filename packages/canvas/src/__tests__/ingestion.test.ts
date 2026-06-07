@@ -212,6 +212,29 @@ describe('canvas ingestion utilities', () => {
     expect(node.position.height).toBe(220)
     expect(node.position.x).toBe(220)
     expect(node.position.y).toBe(190)
+
+    const socialCard = createSourceBackedCanvasNode({
+      objectKind: 'external-reference',
+      viewport: { x: 400, y: 300, zoom: 1 },
+      sourceNodeId: 'social-actor-1',
+      sourceSchemaId: 'xnet://xnet.fyi/SocialActor@1.0.0',
+      title: 'Dragged actor',
+      properties: {
+        provider: 'instagram',
+        kind: 'social',
+        url: 'https://instagram.com/example'
+      }
+    })
+
+    expect(socialCard.type).toBe('external-reference')
+    expect(socialCard.sourceNodeId).toBe('social-actor-1')
+    expect(socialCard.sourceSchemaId).toBe('xnet://xnet.fyi/SocialActor@1.0.0')
+    expect(socialCard.properties).toMatchObject({
+      title: 'Dragged actor',
+      provider: 'instagram',
+      kind: 'social',
+      url: 'https://instagram.com/example'
+    })
   })
 
   it('sizes embeddable external references using shared provider metadata', () => {
