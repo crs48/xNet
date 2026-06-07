@@ -117,6 +117,15 @@ export type SavedViewRowInspectorModel = {
   rawJson: string
 }
 
+export type SavedViewPrivacyChipTone = 'safe' | 'neutral' | 'warning'
+
+export type SavedViewPrivacyChip = {
+  privacyClass: string
+  label: string
+  count: number
+  tone: SavedViewPrivacyChipTone
+}
+
 type SortDirection = 'asc' | 'desc'
 
 const DEFAULT_PAGE_SIZE = 25
@@ -206,6 +215,7 @@ const INSPECTOR_PRIMARY_FIELDS = [
   'visibility'
 ]
 const INSPECTOR_SYSTEM_FIELDS = new Set([...SYSTEM_COLUMNS, 'id', 'schemaId'])
+const NON_SENSITIVE_PRIVACY_CLASSES = new Set(['public', 'unknown'])
 
 function classNames(values: readonly (string | false | null | undefined)[]): string {
   return values.filter(Boolean).join(' ')
@@ -447,6 +457,49 @@ export function deriveSavedViewRowInspector(
   }
 }
 
+/**
+ * Derive privacy class chips for the active saved-view result.
+ */
+export function deriveSavedViewPrivacyChips(
+  query: SavedViewQueryResult | null
+): SavedViewPrivacyChip[] {
+  if (!query) return []
+
+  return Object.entries(query.privacy.counts)
+    .filter(([, count]) => count > 0)
+    .sort(
+      ([leftClass, leftCount], [rightClass, rightCount]) =>
+        privacyClassPriority(leftClass) - privacyClassPriority(rightClass) ||
+        rightCount - leftCount ||
+        leftClass.localeCompare(rightClass)
+    )
+    .map(([privacyClass, count]) => ({
+      privacyClass,
+      label: formatPrivacyClassLabel(privacyClass),
+      count,
+      tone: isSensitivePrivacyClass(privacyClass)
+        ? 'warning'
+        : privacyClass === 'public'
+          ? 'safe'
+          : 'neutral'
+    }))
+}
+
+/**
+ * Return a user-facing warning when loaded rows contain non-public data.
+ */
+export function getSavedViewSensitiveResultWarning(
+  query: SavedViewQueryResult | null
+): string | null {
+  const sensitiveCount = query?.privacy.sensitiveCount ?? 0
+  if (sensitiveCount === 0) return null
+
+  return `${sensitiveCount.toLocaleString()} loaded ${pluralize(
+    sensitiveCount,
+    'row'
+  )} include non-public privacy classes.`
+}
+
 export function SavedViewRunner({
   descriptor,
   registry,
@@ -681,6 +734,7 @@ export function SavedViewRunner({
       </div>
 
       <SavedViewDiagnostics result={result} query={activeQuery} />
+      <SavedViewSensitiveResultWarning query={activeQuery} />
 
       {result.queryIds.length > 1 ? (
         <div className="flex flex-wrap gap-2">
@@ -1259,17 +1313,44 @@ function SavedViewPrivacyChips({
 }: {
   query: SavedViewQueryResult | null
 }): JSX.Element | null {
-  if (!query || Object.keys(query.privacy.counts).length === 0) return null
+  const chips = deriveSavedViewPrivacyChips(query)
+  const sensitiveCount = query?.privacy.sensitiveCount ?? 0
+  if (chips.length === 0) return null
 
   return (
     <>
-      {Object.entries(query.privacy.counts).map(([privacyClass, count]) => (
-        <span key={privacyClass} className="rounded-md border border-border px-2 py-1">
-          {privacyClass}: {count.toLocaleString()}
+      {sensitiveCount > 0 ? (
+        <span
+          className={classNames([
+            'flex items-center gap-1 rounded-md border px-2 py-1',
+            privacyChipClassName('warning')
+          ])}
+        >
+          <Shield size={13} />
+          {sensitiveCount.toLocaleString()} sensitive
+        </span>
+      ) : null}
+      {chips.map((chip) => (
+        <span
+          key={chip.privacyClass}
+          className={classNames(['rounded-md border px-2 py-1', privacyChipClassName(chip.tone)])}
+        >
+          {chip.label}: {chip.count.toLocaleString()}
         </span>
       ))}
     </>
   )
+}
+
+function SavedViewSensitiveResultWarning({
+  query
+}: {
+  query: SavedViewQueryResult | null
+}): JSX.Element | null {
+  const message = getSavedViewSensitiveResultWarning(query)
+  if (!message) return null
+
+  return <SavedViewStatusBanner tone="warning" message={message} />
 }
 
 function SavedViewStatusBanner({
@@ -1294,6 +1375,36 @@ function SavedViewStatusBanner({
 
 function shortSchemaId(schemaId: string): string {
   return schemaId.split('/').at(-1) ?? schemaId
+}
+
+function privacyChipClassName(tone: SavedViewPrivacyChipTone): string {
+  return {
+    safe: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    neutral: 'border-border bg-background text-muted-foreground',
+    warning: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+  }[tone]
+}
+
+function isSensitivePrivacyClass(privacyClass: string): boolean {
+  return !NON_SENSITIVE_PRIVACY_CLASSES.has(privacyClass)
+}
+
+function privacyClassPriority(privacyClass: string): number {
+  if (privacyClass === 'public') return 0
+  if (privacyClass === 'unknown') return 2
+  return 1
+}
+
+function formatPrivacyClassLabel(privacyClass: string): string {
+  return privacyClass
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return count === 1 ? singular : plural
 }
 
 function isFacetScalarValue(value: unknown): value is string | number | boolean | null | undefined {

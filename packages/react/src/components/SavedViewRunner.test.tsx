@@ -9,10 +9,12 @@ import {
   deriveSavedViewDateBucketSummaries,
   deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
+  deriveSavedViewPrivacyChips,
   deriveSavedViewRowInspector,
   filterSavedViewRowsByDateBrush,
   filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
+  getSavedViewSensitiveResultWarning,
   SavedViewResultTable
 } from './SavedViewRunner'
 
@@ -192,6 +194,45 @@ describe('SavedViewRunner helpers', () => {
     ])
     expect(model.importRuns.map((item) => item.key)).toEqual(['importRunId', 'importedAt'])
     expect(model.rawJson).toContain('"sourceRecordId": "source-1"')
+  })
+
+  it('derives privacy chips and sensitive result warning copy', () => {
+    const query = createQueryResult({
+      privacy: {
+        counts: {
+          public: 3,
+          private: 2,
+          'account-security': 1,
+          unknown: 1
+        },
+        sensitiveCount: 3
+      }
+    })
+
+    const chips = deriveSavedViewPrivacyChips(query)
+
+    expect(chips.map((chip) => chip.privacyClass)).toEqual([
+      'public',
+      'private',
+      'account-security',
+      'unknown'
+    ])
+    expect(chips.find((chip) => chip.privacyClass === 'public')).toMatchObject({
+      label: 'Public',
+      tone: 'safe'
+    })
+    expect(chips.find((chip) => chip.privacyClass === 'private')).toMatchObject({
+      label: 'Private',
+      tone: 'warning'
+    })
+    expect(chips.find((chip) => chip.privacyClass === 'unknown')).toMatchObject({
+      label: 'Unknown',
+      tone: 'neutral'
+    })
+    expect(getSavedViewSensitiveResultWarning(query)).toBe(
+      '3 loaded rows include non-public privacy classes.'
+    )
+    expect(getSavedViewSensitiveResultWarning(createQueryResult())).toBeNull()
   })
 })
 
