@@ -15,15 +15,7 @@ import {
   readZipArchiveManifest,
   stageSocialArchive
 } from '@xnetjs/social/import/node'
-import {
-  claudeAdapter,
-  grokAdapter,
-  instagramAdapter,
-  redditAdapter,
-  tiktokAdapter,
-  xAdapter,
-  youtubeAdapter
-} from '@xnetjs/social/importers'
+import { builtInSocialImportAdapters } from '@xnetjs/social/importers'
 import { dialog, ipcMain } from 'electron'
 
 export type SocialImportArchivePreview = Omit<SharedSocialImportArchivePreview, 'archivePath'> & {
@@ -42,15 +34,7 @@ export type SocialImportStageResult = Omit<SharedSocialImportStageResult, 'archi
   archive: SocialImportArchivePreview
 }
 
-const adapters = [
-  instagramAdapter,
-  grokAdapter,
-  youtubeAdapter,
-  xAdapter,
-  tiktokAdapter,
-  claudeAdapter,
-  redditAdapter
-] as const
+const adapters = builtInSocialImportAdapters
 const approvedArchivePaths = new Set<string>()
 
 export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): void {

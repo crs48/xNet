@@ -9,10 +9,12 @@ import type {
   SocialImportNodeDraft,
   SocialImportStageResult
 } from '@xnetjs/social/import/core'
+import type { SocialImporterRegistryEntry } from '@xnetjs/social/importers'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMutate } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
 import { isSensitivePrivacyClass, type ArchiveManifest } from '@xnetjs/social/import/browser'
+import { builtInSocialImporterRegistry } from '@xnetjs/social/importers'
 import {
   SocialActorSchema,
   SocialCollectionItemSchema,
@@ -283,6 +285,7 @@ function SocialImportPage(): React.ReactElement {
 
           <div className="space-y-4 px-4 pb-4">
             <MetricRows archive={archive?.preview ?? null} />
+            <ImporterRegistryPanel activeImporterId={archive?.preview.adapter?.id ?? null} />
 
             {archive?.preview.adapter ? (
               <div className="space-y-2">
@@ -569,10 +572,98 @@ function MetricRows({ archive }: { archive: SocialImportArchivePreview | null })
   )
 }
 
+function ImporterRegistryPanel({
+  activeImporterId
+}: {
+  activeImporterId: string | null
+}): React.ReactElement {
+  const availableCount = builtInSocialImporterRegistry.filter(
+    (entry) => entry.availability === 'available'
+  ).length
+  const plannedCount = builtInSocialImporterRegistry.length - availableCount
+
+  return (
+    <div className="space-y-2">
+      <SectionLabel label="Importers" />
+      <div className="overflow-hidden rounded-md border border-border">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+          <span className="text-sm font-medium">Registry</span>
+          <span className="text-xs text-muted-foreground">
+            {availableCount} live / {plannedCount} planned
+          </span>
+        </div>
+        <div className="max-h-[320px] divide-y divide-border overflow-auto">
+          {builtInSocialImporterRegistry.map((entry) => (
+            <ImporterRegistryRow
+              key={entry.id}
+              active={entry.id === activeImporterId}
+              entry={entry}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ImporterRegistryRow({
+  active,
+  entry
+}: {
+  active: boolean
+  entry: SocialImporterRegistryEntry
+}): React.ReactElement {
+  const available = entry.availability === 'available'
+
+  return (
+    <div
+      className={[
+        'px-3 py-2 text-sm',
+        active
+          ? 'bg-primary/10 text-foreground'
+          : available
+            ? 'text-foreground'
+            : 'text-muted-foreground'
+      ].join(' ')}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {available ? (
+            <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
+          ) : (
+            <Database size={14} className="shrink-0" />
+          )}
+          <span className="truncate font-medium">{entry.label}</span>
+        </div>
+        <span
+          className={[
+            'rounded-md border px-2 py-0.5 text-[11px] uppercase tracking-wide',
+            available
+              ? 'border-emerald-500/30 text-emerald-700'
+              : 'border-border text-muted-foreground'
+          ].join(' ')}
+        >
+          {active ? 'matched' : entry.availability}
+        </span>
+      </div>
+      <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{entry.description}</div>
+      <div className="mt-2 truncate text-xs text-muted-foreground">
+        {summarizeList(entry.recordTypes)}
+      </div>
+    </div>
+  )
+}
+
 function SectionLabel({ label }: { label: string }) {
   return (
     <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
   )
+}
+
+function summarizeList(items: readonly string[], limit = 4): string {
+  const visibleItems = items.slice(0, limit)
+  const hiddenCount = items.length - visibleItems.length
+  return hiddenCount > 0 ? `${visibleItems.join(', ')} +${hiddenCount}` : visibleItems.join(', ')
 }
 
 function SummaryCard({ label, value }: { label: string; value: number }) {

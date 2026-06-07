@@ -13,15 +13,7 @@ import {
   readBrowserZipArchiveManifest,
   stageSocialArchive
 } from '@xnetjs/social/import/browser'
-import {
-  claudeAdapter,
-  grokAdapter,
-  instagramAdapter,
-  redditAdapter,
-  tiktokAdapter,
-  xAdapter,
-  youtubeAdapter
-} from '@xnetjs/social/importers'
+import { builtInSocialImportAdapters } from '@xnetjs/social/importers'
 
 type WithoutRequestId<T> = T extends { requestId: string } ? Omit<T, 'requestId'> : never
 type SocialImportWorkerRequestInput = WithoutRequestId<SocialImportWorkerRequest>
@@ -48,15 +40,7 @@ class SocialImportWorkerUnavailableError extends Error {
   }
 }
 
-const adapters = [
-  instagramAdapter,
-  grokAdapter,
-  youtubeAdapter,
-  xAdapter,
-  tiktokAdapter,
-  claudeAdapter,
-  redditAdapter
-] as const
+const adapters = builtInSocialImportAdapters
 
 function nextRequestId(): string {
   return `social-import:${Date.now()}:${Math.random().toString(36).slice(2)}`

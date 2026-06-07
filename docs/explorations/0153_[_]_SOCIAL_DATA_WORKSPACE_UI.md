@@ -961,7 +961,7 @@ sections or ornamental surfaces.
 
 - [x] Move expensive browser archive staging and lens aggregation into workers where needed.
 - [x] Add materialized facet/count caches for high-volume imports.
-- [ ] Add a general importer registry UI so future packages can plug into the same flow.
+- [x] Add a general importer registry UI so future packages can plug into the same flow.
 - [ ] Add a graph atlas prototype only after table/facet/canvas lenses are useful.
 - [ ] Consider a derived DuckDB-Wasm or columnar analytics cache for large local datasets.
 

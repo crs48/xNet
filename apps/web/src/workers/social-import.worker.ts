@@ -9,30 +9,14 @@ import {
   readBrowserZipArchiveManifest,
   stageSocialArchive
 } from '@xnetjs/social/import/browser'
-import {
-  claudeAdapter,
-  grokAdapter,
-  instagramAdapter,
-  redditAdapter,
-  tiktokAdapter,
-  xAdapter,
-  youtubeAdapter
-} from '@xnetjs/social/importers'
+import { builtInSocialImportAdapters } from '@xnetjs/social/importers'
 
 type SocialImportWorkerScope = {
   onmessage: ((event: MessageEvent<SocialImportWorkerRequest>) => void) | null
   postMessage: (message: SocialImportWorkerResponse) => void
 }
 
-const adapters = [
-  instagramAdapter,
-  grokAdapter,
-  youtubeAdapter,
-  xAdapter,
-  tiktokAdapter,
-  claudeAdapter,
-  redditAdapter
-] as const
+const adapters = builtInSocialImportAdapters
 
 const workerScope = self as unknown as SocialImportWorkerScope
 

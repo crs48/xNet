@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
   claudeAdapter,
+  builtInSocialImportAdapters,
+  builtInSocialImporterRegistry,
   createLargeArchiveStoragePlan,
   createSocialNodeId,
   createStagingSummary,
   detectSocialArchive,
+  findSocialImporterRegistryEntry,
   grokAdapter,
   instagramAdapter,
+  listAvailableSocialImportAdapters,
   mapGrokBackend,
   mapInstagramFollowing,
   mapInstagramFollowers,
@@ -108,6 +112,33 @@ function byKind(records: readonly StagedSocialRecord[], kind: StagedSocialRecord
 }
 
 describe('social import adapters', () => {
+  describe('importer registry', () => {
+    it('exposes available adapters and planned importer metadata from one registry', () => {
+      const availableEntries = builtInSocialImporterRegistry.filter(
+        (entry) => entry.availability === 'available'
+      )
+      const plannedEntries = builtInSocialImporterRegistry.filter(
+        (entry) => entry.availability === 'planned'
+      )
+
+      expect(listAvailableSocialImportAdapters().map((adapter) => adapter.id)).toEqual(
+        availableEntries.map((entry) => entry.id)
+      )
+      expect(builtInSocialImportAdapters.map((adapter) => adapter.id)).toEqual([
+        'instagram',
+        'grok',
+        'youtube',
+        'x',
+        'tiktok',
+        'claude',
+        'reddit'
+      ])
+      expect(plannedEntries.map((entry) => entry.id)).toContain('openai')
+      expect(plannedEntries.every((entry) => entry.adapter === undefined)).toBe(true)
+      expect(findSocialImporterRegistryEntry('instagram')?.adapter?.id).toBe('instagram')
+    })
+  })
+
   describe('detection and selection', () => {
     it('detects Instagram and keeps private message buckets disabled by default', async () => {
       const followingPath = 'connections/followers_and_following/following.json'

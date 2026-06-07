@@ -84,3 +84,11 @@ export {
   youtubeAdapter,
   type YouTubeCsvRow
 } from './youtube'
+export {
+  builtInSocialImportAdapters,
+  builtInSocialImporterRegistry,
+  findSocialImporterRegistryEntry,
+  listAvailableSocialImportAdapters,
+  type SocialImporterAvailability,
+  type SocialImporterRegistryEntry
+} from './registry'
