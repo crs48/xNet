@@ -45,7 +45,7 @@ export type SocialProjectionEdgeInput = {
 
 export type SocialCanvasNodeDraft = {
   id: string
-  type: 'note'
+  type: 'external-reference'
   sourceNodeId: string
   sourceSchemaId: string
   locked: boolean
@@ -59,6 +59,9 @@ export type SocialCanvasNodeDraft = {
   properties: {
     title: string
     subtitle?: string
+    sourceCardRole: 'social-projection'
+    kind: 'source-record'
+    status: 'ready'
     socialKind: SocialProjectionNodeKind
     platform?: string
     privacyClass?: string
@@ -162,7 +165,7 @@ export function createSocialCanvasProjectionPlan(input: {
 
     return {
       id: createSocialNodeId('canvas-node', [input.options.lensId, node.id]),
-      type: 'note',
+      type: 'external-reference',
       sourceNodeId: node.id,
       sourceSchemaId: node.schemaId,
       locked: false,
@@ -176,6 +179,9 @@ export function createSocialCanvasProjectionPlan(input: {
       properties: {
         title: nodeTitle(node),
         ...(node.subtitle ? { subtitle: node.subtitle } : {}),
+        sourceCardRole: 'social-projection',
+        kind: 'source-record',
+        status: 'ready',
         socialKind: node.kind,
         ...(node.platform ? { platform: node.platform } : {}),
         ...(node.privacyClass ? { privacyClass: node.privacyClass } : {}),

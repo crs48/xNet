@@ -916,6 +916,14 @@ export {
   toLegacyEdgeAnchor
 } from './edges/bindings'
 
+export { materializeCanvasProjectionPlan } from './projection/materialize'
+export type {
+  CanvasProjectionEdgeDraft,
+  CanvasProjectionNodeDraft,
+  CanvasProjectionPlanLike,
+  MaterializedCanvasProjection
+} from './projection/materialize'
+
 // Minimap, navigation, and presence components
 export {
   Minimap,

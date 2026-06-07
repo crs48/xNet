@@ -531,8 +531,12 @@ function schemaIdLabel(schemaId: string | undefined): string {
   return lastSegment && lastSegment.trim().length > 0 ? lastSegment.trim() : schemaId
 }
 
-function isPinnedQueryResultSourceCard(node: CanvasNode): boolean {
-  return node.type === 'external-reference' && node.properties.sourceCardRole === 'query-result'
+function isPinnedSourceRecordCard(node: CanvasNode): boolean {
+  return (
+    node.type === 'external-reference' &&
+    (node.properties.sourceCardRole === 'query-result' ||
+      node.properties.sourceCardRole === 'social-projection')
+  )
 }
 
 function getShapeLabel(shapeType: ShapeType): string {
@@ -745,7 +749,7 @@ function renderNodeCard(
   )
   const status = typeof node.properties.status === 'string' ? node.properties.status : null
 
-  if (displayType === 'external-reference' && isPinnedQueryResultSourceCard(node)) {
+  if (displayType === 'external-reference' && isPinnedSourceRecordCard(node)) {
     const badges = readStringList(node.properties.badges)
     const description =
       typeof node.properties.description === 'string' ? node.properties.description : null

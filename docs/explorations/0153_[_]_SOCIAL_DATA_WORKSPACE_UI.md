@@ -945,7 +945,7 @@ sections or ornamental surfaces.
 - [x] Execute query frames and update `queryResultSummary`.
 - [x] Render top result cards inside query frames or adjacent to them.
 - [x] Let users drag virtual results out as pinned source-backed canvas cards.
-- [ ] Convert `createSocialCanvasProjectionPlan` output into actual canvas nodes and semantic edges.
+- [x] Convert `createSocialCanvasProjectionPlan` output into actual canvas nodes and semantic edges.
 - [ ] Add refresh behavior for manual, on-open, and live query frames.
 
 ### Phase 5: Pattern Surfacing
