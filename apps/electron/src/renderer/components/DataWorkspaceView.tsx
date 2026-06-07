@@ -8,6 +8,11 @@ import {
   type SavedViewSchemaRegistry
 } from '@xnetjs/react'
 import {
+  detectSocialPatterns,
+  type SocialPatternKind,
+  type SocialPatternSuggestion
+} from '@xnetjs/social/patterns'
+import {
   SocialActorSchema,
   SocialCollectionSchema,
   SocialContentSchema,
@@ -75,6 +80,8 @@ type WorkspaceMetric = {
 }
 
 const SOCIAL_SCHEMA_REGISTRY = socialSchemas as unknown as SavedViewSchemaRegistry
+const PATTERN_QUERY_LIMIT = 300
+const DISMISSED_PATTERN_STORAGE_KEY = 'xnet:data-workspace:dismissed-patterns'
 
 function getCount(input: { totalCount: number | null; data: unknown[] }): number | null {
   return input.totalCount ?? (input.data.length > 0 ? input.data.length : null)
@@ -142,6 +149,38 @@ function descriptorKindLabel(descriptor: ParsedDescriptor): string {
   return descriptor.queryKind
 }
 
+function readDismissedPatternIds(): string[] {
+  if (typeof localStorage === 'undefined') return []
+
+  try {
+    const value = JSON.parse(localStorage.getItem(DISMISSED_PATTERN_STORAGE_KEY) ?? '[]')
+    return Array.isArray(value)
+      ? value.flatMap((item) => (typeof item === 'string' ? [item] : []))
+      : []
+  } catch {
+    return []
+  }
+}
+
+function writeDismissedPatternIds(ids: readonly string[]): void {
+  if (typeof localStorage === 'undefined') return
+
+  localStorage.setItem(DISMISSED_PATTERN_STORAGE_KEY, JSON.stringify([...new Set(ids)].sort()))
+}
+
+function toPatternRows(rows: readonly unknown[]): Record<string, unknown>[] {
+  return rows as unknown as Record<string, unknown>[]
+}
+
+function patternIconFor(kind: SocialPatternKind): typeof BarChart3 {
+  if (kind === 'privacy-hotspots') return Shield
+  if (kind === 'cross-source-overlap') return Search
+  if (kind === 'bridge-actors') return Network
+  if (kind === 'unrevisited-saves') return Import
+  if (kind === 'attention-bursts') return BarChart3
+  return BarChart3
+}
+
 export function DataWorkspaceView({
   onClose,
   onInsertSavedLensAsCanvasFrame
@@ -153,14 +192,19 @@ export function DataWorkspaceView({
   const [saveLensMessage, setSaveLensMessage] = useState<string | null>(null)
   const [saveLensError, setSaveLensError] = useState<string | null>(null)
   const [selectedViewId, setSelectedViewId] = useState<string | null>(null)
+  const [dismissedPatternIds, setDismissedPatternIds] = useState<string[]>(readDismissedPatternIds)
   const { data: savedViews, loading: savedViewsLoading } = useQuery(SavedViewSchema, {
     orderBy: { title: 'asc' },
     limit: 200
   })
   const actorQuery = useQuery(SocialActorSchema, { page: { first: 1, count: 'estimate' } })
-  const contentQuery = useQuery(SocialContentSchema, { page: { first: 1, count: 'estimate' } })
+  const contentQuery = useQuery(SocialContentSchema, {
+    page: { first: PATTERN_QUERY_LIMIT, count: 'estimate' },
+    orderBy: { importedAt: 'desc' }
+  })
   const interactionQuery = useQuery(SocialInteractionSchema, {
-    page: { first: 1, count: 'estimate' }
+    page: { first: PATTERN_QUERY_LIMIT, count: 'estimate' },
+    orderBy: { importedAt: 'desc' }
   })
   const messageQuery = useQuery(SocialMessageSchema, { page: { first: 1, count: 'estimate' } })
   const conversationQuery = useQuery(SocialConversationSchema, {
@@ -169,7 +213,10 @@ export function DataWorkspaceView({
   const collectionQuery = useQuery(SocialCollectionSchema, {
     page: { first: 1, count: 'estimate' }
   })
-  const importRunQuery = useQuery(SocialImportRunSchema, { page: { first: 1, count: 'estimate' } })
+  const importRunQuery = useQuery(SocialImportRunSchema, {
+    page: { first: 50, count: 'estimate' },
+    orderBy: { startedAt: 'desc' }
+  })
 
   const defaultSeeds = useMemo(() => getDefaultSocialWorkspaceSeeds(), [])
   const defaultSeedIds = useMemo(
@@ -240,6 +287,16 @@ export function DataWorkspaceView({
       icon: Import
     }
   ]
+  const dismissedPatternIdSet = useMemo(() => new Set(dismissedPatternIds), [dismissedPatternIds])
+  const patternSuggestions = useMemo(
+    () =>
+      detectSocialPatterns({
+        content: toPatternRows(contentQuery.data),
+        interactions: toPatternRows(interactionQuery.data),
+        importRuns: toPatternRows(importRunQuery.data)
+      }).filter((pattern) => !dismissedPatternIdSet.has(pattern.id)),
+    [contentQuery.data, dismissedPatternIdSet, importRunQuery.data, interactionQuery.data]
+  )
 
   useEffect(() => {
     if (!selectedViewId && selectedView) {
@@ -291,6 +348,21 @@ export function DataWorkspaceView({
       setSaveLensError(error instanceof Error ? error.message : String(error))
       throw error
     }
+  }
+
+  function handleOpenPattern(pattern: SocialPatternSuggestion): void {
+    const view = socialWorkspaceViews.find((candidate) => candidate.title === pattern.viewHint)
+    if (view) {
+      setSelectedViewId(view.id)
+    }
+  }
+
+  function handleDismissPattern(patternId: string): void {
+    setDismissedPatternIds((current) => {
+      const next = [...new Set([...current, patternId])]
+      writeDismissedPatternIds(next)
+      return next
+    })
   }
 
   return (
@@ -380,9 +452,21 @@ export function DataWorkspaceView({
                 <div>
                   <SectionLabel label="Patterns" />
                   <div className="mt-2 space-y-2">
-                    <PatternRow icon={BarChart3} label="Repeated creators" />
-                    <PatternRow icon={Search} label="Cross-source overlap" />
-                    <PatternRow icon={Shield} label="Privacy hotspots" />
+                    {patternSuggestions.length > 0 ? (
+                      patternSuggestions.map((pattern) => (
+                        <PatternRow
+                          key={pattern.id}
+                          icon={patternIconFor(pattern.kind)}
+                          pattern={pattern}
+                          onOpen={handleOpenPattern}
+                          onDismiss={handleDismissPattern}
+                        />
+                      ))
+                    ) : (
+                      <div className="rounded-md border border-dashed border-border bg-background px-3 py-3 text-sm text-muted-foreground">
+                        No patterns surfaced from the loaded rows yet.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -549,15 +633,72 @@ function SourceRow({ label, value }: { label: string; value: string }): React.Re
 
 function PatternRow({
   icon: Icon,
-  label
+  pattern,
+  onOpen,
+  onDismiss
 }: {
   icon: typeof BarChart3
-  label: string
+  pattern: SocialPatternSuggestion
+  onOpen: (pattern: SocialPatternSuggestion) => void
+  onDismiss: (patternId: string) => void
 }): React.ReactElement {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm">
-      <Icon size={14} className="text-muted-foreground" />
-      <span className="min-w-0 truncate">{label}</span>
+    <div className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+      <div className="flex items-start gap-2">
+        <Icon size={14} className="mt-0.5 text-muted-foreground" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium">{pattern.title}</div>
+          <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+            {pattern.description}
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+        <span className="rounded border border-border px-1.5 py-0.5">
+          {pattern.evidenceCount.toLocaleString()} evidence
+        </span>
+        {pattern.platforms.slice(0, 2).map((platform) => (
+          <span key={platform} className="rounded border border-border px-1.5 py-0.5">
+            {platform}
+          </span>
+        ))}
+        {pattern.privacyClasses.slice(0, 2).map((privacyClass) => (
+          <span key={privacyClass} className="rounded border border-border px-1.5 py-0.5">
+            {privacyClass}
+          </span>
+        ))}
+        {pattern.sourceImportRunIds.length > 0 ? (
+          <span className="rounded border border-border px-1.5 py-0.5">
+            {pattern.sourceImportRunIds.length} runs
+          </span>
+        ) : null}
+      </div>
+      {pattern.evidence.length > 0 ? (
+        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+          {pattern.evidence.slice(0, 2).map((item) => (
+            <div key={`${item.label}:${item.value}`} className="flex justify-between gap-2">
+              <span className="min-w-0 truncate">{item.value}</span>
+              <span>{item.count.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => onOpen(pattern)}
+          className="rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-accent"
+        >
+          Open
+        </button>
+        <button
+          type="button"
+          onClick={() => onDismiss(pattern.id)}
+          className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          Hide
+        </button>
+      </div>
     </div>
   )
 }

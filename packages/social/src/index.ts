@@ -5,6 +5,7 @@
 export * from './import'
 export * from './importers'
 export * from './lenses'
+export * from './patterns'
 export * from './projection'
 export * from './schemas'
 export * from './views'

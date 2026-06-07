@@ -950,11 +950,11 @@ sections or ornamental surfaces.
 
 ### Phase 5: Pattern Surfacing
 
-- [ ] Add a small pattern-definition API over query results and relation counts.
-- [ ] Implement first social patterns: repeated creators, bridge actors, cross-source overlap,
+- [x] Add a small pattern-definition API over query results and relation counts.
+- [x] Implement first social patterns: repeated creators, bridge actors, cross-source overlap,
       attention bursts, unrevisited saves, and privacy hotspots.
-- [ ] Store pattern suggestions as dismissible workspace state.
-- [ ] Show evidence counts, source import runs, and privacy envelope for every pattern.
+- [x] Store pattern suggestions as dismissible workspace state.
+- [x] Show evidence counts, source import runs, and privacy envelope for every pattern.
 - [ ] Let users open, save, hide, or pin a pattern to canvas.
 
 ### Phase 6: Scale And Generalize
