@@ -11,9 +11,9 @@ import type {
   CanvasNodeRenderContext,
   CanvasPlanningTemplateId,
   CanvasQueryFrameExecutionSnapshot,
+  CanvasQueryFrameRefreshTrigger,
   CanvasQueryFrameResultCard,
   CanvasQueryFrameResultPreview,
-  CanvasQueryFrameResultSummary,
   CanvasSelectionSnapshot,
   Rect,
   ShapeType
@@ -34,6 +34,7 @@ import {
   getCanvasObjectsMap,
   getSelectionBounds,
   isCanvasQueryFrameNode,
+  shouldRefreshCanvasQueryFrameResult,
   updateCanvasQueryFrameResults,
   useCanvasThemeTokens,
   useCanvasObjectIngestion
@@ -75,6 +76,7 @@ import {
   FileText,
   Link2,
   MessageSquare,
+  RefreshCw,
   StickyNote,
   X
 } from 'lucide-react'
@@ -219,6 +221,7 @@ export type CanvasViewCommandState = {
     | 'frame'
     | null
   selectedTitle: string | null
+  selectedIsQueryFrame: boolean
   selectionAllLocked: boolean
   selectionAnyLocked: boolean
   shortcutHelpOpen: boolean
@@ -250,6 +253,7 @@ export type CanvasViewHandle = {
   createMindMap: () => boolean
   createPlanningTemplate: (templateId: CanvasPlanningTemplateId) => boolean
   createQueryFrameFromSavedView: (input: SavedViewCanvasQueryFrameInput) => boolean
+  refreshSelectedQueryFrame: () => boolean
   createExternalReference: (url?: string) => boolean
   createMediaFile: () => boolean
   wrapSelectionInFrame: () => boolean
@@ -420,42 +424,24 @@ function previewValueLabel(field: string, value: unknown, maxLength: number): st
   return null
 }
 
-function queryFrameSummaryMatches(
-  current: CanvasQueryFrameResultSummary,
-  next: CanvasQueryFrameResultSummary
-): boolean {
-  return (
-    current.totalCount === next.totalCount &&
-    current.visibleCount === next.visibleCount &&
-    current.stale === next.stale &&
-    current.status === next.status &&
-    current.sourceVersion === next.sourceVersion &&
-    current.contentHash === next.contentHash &&
-    current.errorMessage === next.errorMessage
-  )
-}
-
-function queryFramePreviewMatches(
-  current: CanvasQueryFrameResultPreview,
-  next: CanvasQueryFrameResultPreview
-): boolean {
-  return JSON.stringify(current) === JSON.stringify(next)
-}
-
 function CanvasSavedViewQueryFrameExecutor({
   doc,
   nodeId,
-  descriptorJson
+  descriptorJson,
+  manualRefreshRequestId
 }: {
   doc: Y.Doc | null
   nodeId: string
   descriptorJson: string
+  manualRefreshRequestId: string | null
 }): null {
   const result = useSavedView(descriptorJson, SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY)
   const snapshots = useMemo(() => savedViewExecutionSnapshots(result), [result])
   const preview = useMemo(() => savedViewResultPreview(result), [result])
   const summaryKey = useMemo(() => JSON.stringify(snapshots), [snapshots])
   const previewKey = useMemo(() => JSON.stringify(preview), [preview])
+  const lastManualRefreshRequestRef = useRef<string | null>(null)
+  const openRefreshPendingRef = useRef(true)
 
   useEffect(() => {
     if (!doc) return
@@ -464,30 +450,60 @@ function CanvasSavedViewQueryFrameExecutor({
     const node = objects.get(nodeId)
     if (!node) return
 
+    const definition = getCanvasQueryFrameDefinition(node)
+    if (!definition) return
+    if (definition.refreshMode === 'manual') {
+      openRefreshPendingRef.current = false
+    }
+
+    const manualRefreshRequested =
+      manualRefreshRequestId !== null &&
+      manualRefreshRequestId !== lastManualRefreshRequestRef.current
+    const trigger: CanvasQueryFrameRefreshTrigger = manualRefreshRequested
+      ? 'manual'
+      : openRefreshPendingRef.current
+        ? 'open'
+        : 'result-change'
     const nextBaseline = createCanvasQueryFrameResultSummaryFromExecution({ queries: snapshots })
     const current = getCanvasQueryFrameResultSummary(node)
     const currentPreview = getCanvasQueryFrameResultPreview(node)
-    if (
-      queryFrameSummaryMatches(current, nextBaseline) &&
-      queryFramePreviewMatches(currentPreview, preview)
-    ) {
+    const shouldRefresh = shouldRefreshCanvasQueryFrameResult({
+      refreshMode: definition.refreshMode,
+      trigger,
+      currentSummary: current,
+      nextSummary: nextBaseline,
+      currentPreview,
+      nextPreview: preview
+    })
+
+    if (manualRefreshRequested) {
+      lastManualRefreshRequestRef.current = manualRefreshRequestId
+    }
+    if (!shouldRefresh) {
+      if (trigger === 'open' && nextBaseline.status !== 'loading') {
+        openRefreshPendingRef.current = false
+      }
       return
     }
 
+    const nextSummary = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: snapshots,
+      now: new Date().toISOString()
+    })
     const next = updateCanvasQueryFrameResults(node, {
-      summary: createCanvasQueryFrameResultSummaryFromExecution({
-        queries: snapshots,
-        now: new Date().toISOString()
-      }),
+      summary: nextSummary,
       preview
     })
 
     if (next !== node) {
       objects.set(nodeId, next)
     }
+    if (trigger === 'open' && nextSummary.status !== 'loading') {
+      openRefreshPendingRef.current = false
+    }
     // summaryKey/previewKey are stable execution signatures; the values remain the source for the write.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, nodeId, previewKey, summaryKey])
+  }, [doc, manualRefreshRequestId, nodeId, previewKey, summaryKey])
 
   return null
 }
@@ -977,6 +993,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     nodeIds: [],
     edgeIds: []
   })
+  const [manualQueryFrameRefreshRequests, setManualQueryFrameRefreshRequests] = useState<
+    Record<string, string>
+  >({})
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
   const [peekState, setPeekState] = useState<CanvasPeekState | null>(null)
   const [selectionPanel, setSelectionPanel] = useState<CanvasSelectionPanel>(null)
@@ -1066,6 +1085,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       .map((nodeId) => nodes.get(nodeId))
       .filter((node): node is CanvasNode => node !== undefined)
   }, [doc, sceneRevision, selection.nodeIds])
+  const selectedQueryFrameNode = useMemo(
+    () =>
+      selectedNodes.length === 1 && isCanvasQueryFrameNode(selectedNodes[0])
+        ? selectedNodes[0]
+        : null,
+    [selectedNodes]
+  )
+  const selectedQueryFrameDefinition = useMemo(
+    () => (selectedQueryFrameNode ? getCanvasQueryFrameDefinition(selectedQueryFrameNode) : null),
+    [selectedQueryFrameNode]
+  )
   const queryFrameTargets = useMemo(() => {
     void sceneRevision
     return getCanvasQueryFrameTargets(doc)
@@ -2098,6 +2128,10 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         descriptor,
         label: title
       })
+      const insertedQueryDefinition = {
+        ...queryDefinition,
+        refreshMode: 'on-open' as const
+      }
       const created = Boolean(
         placePrimitiveObject({
           objectKind: 'group',
@@ -2108,7 +2142,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           },
           properties: createCanvasQueryFrameProperties({
             title,
-            query: queryDefinition
+            query: insertedQueryDefinition
           })
         })
       )
@@ -2121,6 +2155,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     },
     [placePrimitiveObject, recordUndoBoundary]
   )
+
+  const refreshSelectedQueryFrame = useCallback((): boolean => {
+    if (!selectedQueryFrameNode) return false
+
+    const requestId = `${Date.now()}:${Math.random().toString(36).slice(2)}`
+    setManualQueryFrameRefreshRequests((current) => ({
+      ...current,
+      [selectedQueryFrameNode.id]: requestId
+    }))
+    return true
+  }, [selectedQueryFrameNode])
 
   const createMindMap = useCallback((): boolean => {
     const properties = createCanvasMindMapRootProperties()
@@ -2248,6 +2293,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       selectedSourceType: selectedCanvasObject?.sourceType ?? null,
       selectedDisplayType: selectedCanvasObject?.displayType ?? null,
       selectedTitle: selectedCanvasObject?.title ?? null,
+      selectedIsQueryFrame: Boolean(selectedQueryFrameNode),
       selectionAllLocked,
       selectionAnyLocked,
       shortcutHelpOpen
@@ -2255,6 +2301,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }, [
     onCommandStateChange,
     selectedCanvasObject,
+    selectedQueryFrameNode,
     selection.nodeIds.length,
     selectionAllLocked,
     selectionAnyLocked,
@@ -2287,6 +2334,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createMindMap,
       createPlanningTemplate,
       createQueryFrameFromSavedView,
+      refreshSelectedQueryFrame,
       createExternalReference,
       createMediaFile,
       wrapSelectionInFrame,
@@ -2317,6 +2365,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       openAliasEditor,
       openCommentComposer,
       openSelection,
+      refreshSelectedQueryFrame,
       resetCanvasView,
       restoreViewport,
       shiftSelectionLayer,
@@ -2435,6 +2484,20 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                     <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                       Mod+Enter
                     </span>
+                  </button>
+                ) : null}
+                {selectedQueryFrameDefinition ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    onClick={() => {
+                      refreshSelectedQueryFrame()
+                    }}
+                    data-canvas-selection-action="refresh-query-frame"
+                    title={`Refresh ${selectedQueryFrameDefinition.refreshMode} query frame`}
+                  >
+                    <RefreshCw size={12} />
+                    Refresh
                   </button>
                 ) : null}
                 {selectedCanvasObject.displayType === 'database' &&
@@ -2996,6 +3059,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           doc={doc}
           nodeId={target.nodeId}
           descriptorJson={target.descriptorJson}
+          manualRefreshRequestId={manualQueryFrameRefreshRequests[target.nodeId] ?? null}
         />
       ))}
 

@@ -17,6 +17,8 @@ export type CanvasQueryFrameSource = 'database' | 'schema' | 'search' | 'plugin'
 
 export type CanvasQueryFrameRefreshMode = 'manual' | 'on-open' | 'live'
 
+export type CanvasQueryFrameRefreshTrigger = 'manual' | 'open' | 'result-change'
+
 export type CanvasQueryFrameMaterialization = 'virtual' | 'pinned-cards' | 'synced-cards'
 
 export type CanvasQueryFrameExecutionStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -96,6 +98,15 @@ export type CanvasQueryFrameResultCard = {
 export type CanvasQueryFrameResultPreview = {
   cards: readonly CanvasQueryFrameResultCard[]
   overflowCount: number
+}
+
+export type ShouldRefreshCanvasQueryFrameResultInput = {
+  refreshMode: CanvasQueryFrameRefreshMode
+  trigger: CanvasQueryFrameRefreshTrigger
+  currentSummary: CanvasQueryFrameResultSummary
+  nextSummary: CanvasQueryFrameResultSummary
+  currentPreview: CanvasQueryFrameResultPreview
+  nextPreview: CanvasQueryFrameResultPreview
 }
 
 export type CreateCanvasQueryFrameResultPreviewInput = {
@@ -462,6 +473,54 @@ function queryExecutionStatus(
     return 'loading'
   }
   return 'success'
+}
+
+export function canvasQueryFrameResultSummarySignatureMatches(
+  current: CanvasQueryFrameResultSummary,
+  next: CanvasQueryFrameResultSummary
+): boolean {
+  return (
+    current.totalCount === next.totalCount &&
+    current.visibleCount === next.visibleCount &&
+    current.stale === next.stale &&
+    current.status === next.status &&
+    current.sourceVersion === next.sourceVersion &&
+    current.contentHash === next.contentHash &&
+    current.errorMessage === next.errorMessage
+  )
+}
+
+export function canvasQueryFrameResultPreviewMatches(
+  current: CanvasQueryFrameResultPreview,
+  next: CanvasQueryFrameResultPreview
+): boolean {
+  return JSON.stringify(current) === JSON.stringify(next)
+}
+
+export function shouldRefreshCanvasQueryFrameResult({
+  refreshMode,
+  trigger,
+  currentSummary,
+  nextSummary,
+  currentPreview,
+  nextPreview
+}: ShouldRefreshCanvasQueryFrameResultInput): boolean {
+  if (trigger === 'manual') {
+    return true
+  }
+
+  if (trigger === 'open') {
+    return refreshMode === 'on-open' || refreshMode === 'live'
+  }
+
+  if (refreshMode !== 'live') {
+    return false
+  }
+
+  return (
+    !canvasQueryFrameResultSummarySignatureMatches(currentSummary, nextSummary) ||
+    !canvasQueryFrameResultPreviewMatches(currentPreview, nextPreview)
+  )
 }
 
 function nodeQueryForSavedView(

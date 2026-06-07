@@ -62,6 +62,7 @@ const EMPTY_CANVAS_COMMAND_STATE: CanvasViewCommandState = {
   selectedSourceType: null,
   selectedDisplayType: null,
   selectedTitle: null,
+  selectedIsQueryFrame: false,
   selectionAllLocked: false,
   selectionAnyLocked: false,
   shortcutHelpOpen: false
@@ -496,6 +497,21 @@ export function App(): React.ReactElement {
         when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
         execute: () => {
           canvasViewRef.current?.wrapSelectionInFrame()
+        }
+      },
+      {
+        id: 'canvas-refresh-query-frame',
+        name: 'Refresh Query Frame',
+        description:
+          canvasCommandState.selectedTitle && canvasCommandState.selectedIsQueryFrame
+            ? `Refresh ${canvasCommandState.selectedTitle}`
+            : 'Refresh the selected query frame',
+        icon: 'refresh-cw',
+        group: 'Canvas',
+        keywords: ['refresh', 'query', 'frame', 'lens', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectedIsQueryFrame,
+        execute: () => {
+          canvasViewRef.current?.refreshSelectedQueryFrame()
         }
       },
       {

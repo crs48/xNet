@@ -11,6 +11,7 @@ import {
   getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary,
   isCanvasQueryFrameNode,
+  shouldRefreshCanvasQueryFrameResult,
   updateCanvasQueryFrameResults,
   updateCanvasQueryFrameResultSummary
 } from './query-frames'
@@ -336,5 +337,81 @@ describe('query frame helpers', () => {
       status: 'error',
       errorMessage: 'Schema not registered'
     })
+  })
+
+  it('decides refresh behavior for manual, on-open, and live query frames', () => {
+    const currentSummary = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: [{ status: 'success', totalCount: 2, visibleCount: 2, contentHash: 'hash-a' }]
+    })
+    const nextSummary = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: [{ status: 'success', totalCount: 3, visibleCount: 3, contentHash: 'hash-b' }]
+    })
+    const currentPreview = createCanvasQueryFrameResultPreview({
+      cards: [{ id: 'row-1', title: 'First row' }]
+    })
+    const nextPreview = createCanvasQueryFrameResultPreview({
+      cards: [{ id: 'row-2', title: 'Second row' }]
+    })
+
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'manual',
+        trigger: 'result-change',
+        currentSummary,
+        nextSummary,
+        currentPreview,
+        nextPreview
+      })
+    ).toBe(false)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'manual',
+        trigger: 'manual',
+        currentSummary,
+        nextSummary: currentSummary,
+        currentPreview,
+        nextPreview: currentPreview
+      })
+    ).toBe(true)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'on-open',
+        trigger: 'open',
+        currentSummary,
+        nextSummary,
+        currentPreview,
+        nextPreview
+      })
+    ).toBe(true)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'on-open',
+        trigger: 'result-change',
+        currentSummary,
+        nextSummary,
+        currentPreview,
+        nextPreview
+      })
+    ).toBe(false)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'live',
+        trigger: 'result-change',
+        currentSummary,
+        nextSummary,
+        currentPreview,
+        nextPreview
+      })
+    ).toBe(true)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'live',
+        trigger: 'result-change',
+        currentSummary,
+        nextSummary: currentSummary,
+        currentPreview,
+        nextPreview: currentPreview
+      })
+    ).toBe(false)
   })
 })
