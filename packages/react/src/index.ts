@@ -46,6 +46,15 @@ export {
   type InfiniteQueryResult
 } from './hooks/useInfiniteQuery'
 export { useFind, type UseFindOptions, type UseFindResult } from './hooks/useFind'
+export {
+  useSavedView,
+  type SavedViewPrivacySummary,
+  type SavedViewQueryOverride,
+  type SavedViewQueryResult,
+  type SavedViewSchemaRegistry,
+  type UseSavedViewOptions,
+  type UseSavedViewResult
+} from './hooks/useSavedView'
 
 /**
  * useMutate - Write operations for nodes
