@@ -41,11 +41,47 @@ export type CanvasViewportSnapshot = {
   zoom: number
 }
 
+export type CanvasSourceBackedObjectKind = Extract<
+  CanvasObjectKind,
+  'page' | 'database' | 'external-reference' | 'media' | 'note'
+>
+
 export type CanvasInternalNodeDragData = {
   nodeId: string
   schemaId: string
   title: string
-  canvasKind?: Extract<CanvasObjectKind, 'page' | 'database' | 'note'>
+  canvasKind?: CanvasSourceBackedObjectKind
+  subtitle?: string
+  description?: string
+  href?: string
+  badges?: readonly string[]
+}
+
+function isCanvasSourceBackedObjectKind(value: unknown): value is CanvasSourceBackedObjectKind {
+  return (
+    value === 'page' ||
+    value === 'database' ||
+    value === 'external-reference' ||
+    value === 'media' ||
+    value === 'note'
+  )
+}
+
+function normalizeInternalNodeDragString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
+}
+
+function normalizeInternalNodeDragStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+
+  const values = value.flatMap((item) => {
+    const normalized = normalizeInternalNodeDragString(item)
+    return normalized ? [normalized] : []
+  })
+
+  return values.length > 0 ? [...new Set(values)].slice(0, 8) : undefined
 }
 
 export type CanvasIngressPayload =
@@ -61,10 +97,7 @@ export type CanvasExternalReferenceDescriptor = ExternalReferenceDescriptor
 export type CanvasMediaKind = 'image' | 'video' | 'audio' | 'document' | 'file'
 
 export type CanvasSourceBackedNodeInput = {
-  objectKind: Extract<
-    CanvasObjectKind,
-    'page' | 'database' | 'external-reference' | 'media' | 'note'
-  >
+  objectKind: CanvasSourceBackedObjectKind
   viewport: CanvasViewportSnapshot
   sourceNodeId?: string
   sourceSchemaId?: string
@@ -108,12 +141,7 @@ export function parseCanvasInternalNodeDragData(
       return null
     }
 
-    if (
-      parsed.canvasKind &&
-      parsed.canvasKind !== 'page' &&
-      parsed.canvasKind !== 'database' &&
-      parsed.canvasKind !== 'note'
-    ) {
+    if (parsed.canvasKind && !isCanvasSourceBackedObjectKind(parsed.canvasKind)) {
       return null
     }
 
@@ -121,7 +149,19 @@ export function parseCanvasInternalNodeDragData(
       nodeId: parsed.nodeId,
       schemaId: parsed.schemaId,
       title: parsed.title,
-      ...(parsed.canvasKind ? { canvasKind: parsed.canvasKind } : {})
+      ...(parsed.canvasKind ? { canvasKind: parsed.canvasKind } : {}),
+      ...(normalizeInternalNodeDragString(parsed.subtitle)
+        ? { subtitle: normalizeInternalNodeDragString(parsed.subtitle) }
+        : {}),
+      ...(normalizeInternalNodeDragString(parsed.description)
+        ? { description: normalizeInternalNodeDragString(parsed.description) }
+        : {}),
+      ...(normalizeInternalNodeDragString(parsed.href)
+        ? { href: normalizeInternalNodeDragString(parsed.href) }
+        : {}),
+      ...(normalizeInternalNodeDragStringArray(parsed.badges)
+        ? { badges: normalizeInternalNodeDragStringArray(parsed.badges) }
+        : {})
     }
   } catch {
     return null
@@ -285,10 +325,10 @@ export async function readImageDimensions(
 
 export function getCanvasObjectKindFromSchema(
   schemaId: string,
-  canvasKind?: Extract<CanvasObjectKind, 'page' | 'database' | 'note'>
-): Extract<CanvasObjectKind, 'page' | 'database' | 'external-reference' | 'media' | 'note'> | null {
-  if (canvasKind === 'note') {
-    return 'note'
+  canvasKind?: CanvasSourceBackedObjectKind
+): CanvasSourceBackedObjectKind | null {
+  if (canvasKind && isCanvasSourceBackedObjectKind(canvasKind)) {
+    return canvasKind
   }
 
   if (schemaId === PageSchema._schemaId) {
@@ -311,10 +351,7 @@ export function getCanvasObjectKindFromSchema(
 }
 
 export function resolveCanvasPlacementRect(input: {
-  objectKind: Extract<
-    CanvasObjectKind,
-    'page' | 'database' | 'external-reference' | 'media' | 'note'
-  >
+  objectKind: CanvasSourceBackedObjectKind
   viewport: CanvasViewportSnapshot
   canvasPoint?: Point | null
   spreadIndex?: number

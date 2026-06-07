@@ -4,6 +4,7 @@
 
 import type {
   CanvasExternalReferenceDescriptor,
+  CanvasInternalNodeDragData,
   CanvasIngressPayload,
   CanvasMediaKind,
   CanvasPrimitiveObjectKind,
@@ -209,6 +210,21 @@ function toStoredExternalReferenceProperties(
         ? reference.metadata
         : JSON.stringify(described?.metadata ?? {}),
     status: 'ready'
+  }
+}
+
+function toPinnedSourceRecordProperties(data: CanvasInternalNodeDragData): Record<string, unknown> {
+  return {
+    title: data.title,
+    sourceCardRole: 'query-result',
+    sourceSchemaId: data.schemaId,
+    sourceNodeId: data.nodeId,
+    kind: 'source-record',
+    status: 'ready',
+    ...(data.subtitle ? { subtitle: data.subtitle } : {}),
+    ...(data.description ? { description: data.description } : {}),
+    ...(data.href ? { href: data.href } : {}),
+    ...(data.badges && data.badges.length > 0 ? { badges: data.badges } : {})
   }
 }
 
@@ -558,7 +574,7 @@ export function useCanvasObjectIngestion({
                     const externalReference = externalReferenceById.get(payload.data.nodeId)
                     return externalReference
                       ? toStoredExternalReferenceProperties(externalReference)
-                      : undefined
+                      : toPinnedSourceRecordProperties(payload.data)
                   })()
                 : undefined
           })

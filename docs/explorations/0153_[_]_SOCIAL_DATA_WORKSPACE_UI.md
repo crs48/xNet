@@ -944,7 +944,7 @@ sections or ornamental surfaces.
 - [x] Add an app command to insert a saved lens as a canvas query frame.
 - [x] Execute query frames and update `queryResultSummary`.
 - [x] Render top result cards inside query frames or adjacent to them.
-- [ ] Let users drag virtual results out as pinned source-backed canvas cards.
+- [x] Let users drag virtual results out as pinned source-backed canvas cards.
 - [ ] Convert `createSocialCanvasProjectionPlan` output into actual canvas nodes and semantic edges.
 - [ ] Add refresh behavior for manual, on-open, and live query frames.
 

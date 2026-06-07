@@ -706,6 +706,7 @@ export type {
   CanvasExternalReferenceKind,
   CanvasExternalReferenceDescriptor,
   CanvasMediaKind,
+  CanvasSourceBackedObjectKind,
   CanvasSourceBackedNodeInput,
   CanvasPrimitiveObjectKind,
   CanvasPrimitiveNodeInput

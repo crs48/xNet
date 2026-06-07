@@ -160,9 +160,14 @@ describe('canvas ingestion utilities', () => {
       getData(type: string) {
         if (type === CANVAS_INTERNAL_NODE_MIME) {
           return serializeCanvasInternalNodeDragData({
-            nodeId: 'page-1',
-            schemaId: PageSchema._schemaId,
-            title: 'Dragged page'
+            nodeId: 'social-actor-1',
+            schemaId: 'xnet://xnet.fyi/SocialActor@1.0.0',
+            title: 'Dragged actor',
+            canvasKind: 'external-reference',
+            subtitle: 'instagram',
+            description: 'Imported profile',
+            href: 'https://instagram.com/example',
+            badges: ['instagram', 'actor', 'actor']
           })
         }
 
@@ -174,9 +179,14 @@ describe('canvas ingestion utilities', () => {
       {
         kind: 'internal-node',
         data: {
-          nodeId: 'page-1',
-          schemaId: PageSchema._schemaId,
-          title: 'Dragged page'
+          nodeId: 'social-actor-1',
+          schemaId: 'xnet://xnet.fyi/SocialActor@1.0.0',
+          title: 'Dragged actor',
+          canvasKind: 'external-reference',
+          subtitle: 'instagram',
+          description: 'Imported profile',
+          href: 'https://instagram.com/example',
+          badges: ['instagram', 'actor']
         }
       },
       {
@@ -301,6 +311,9 @@ describe('canvas ingestion utilities', () => {
   it('maps schemas and media sizing to canvas primitives', () => {
     expect(getCanvasObjectKindFromSchema(PageSchema._schemaId)).toBe('page')
     expect(getCanvasObjectKindFromSchema(DatabaseSchema._schemaId)).toBe('database')
+    expect(
+      getCanvasObjectKindFromSchema('xnet://xnet.fyi/SocialActor@1.0.0', 'external-reference')
+    ).toBe('external-reference')
     expect(getMediaRect({ width: 1920, height: 1080 })).toEqual({ width: 420, height: 236 })
   })
 

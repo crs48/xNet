@@ -511,6 +511,30 @@ function getCanvasViewDisplayType(
   return getCanvasShellDisplayType(node, document)
 }
 
+function readStringList(value: unknown, limit = 4): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .flatMap((item) => (typeof item === 'string' && item.trim() ? [item.trim()] : []))
+    .slice(0, limit)
+}
+
+function schemaIdLabel(schemaId: string | undefined): string {
+  if (!schemaId) {
+    return 'Source record'
+  }
+
+  const withoutVersion = schemaId.split('@')[0] ?? schemaId
+  const lastSegment = withoutVersion.split('/').pop()
+  return lastSegment && lastSegment.trim().length > 0 ? lastSegment.trim() : schemaId
+}
+
+function isPinnedQueryResultSourceCard(node: CanvasNode): boolean {
+  return node.type === 'external-reference' && node.properties.sourceCardRole === 'query-result'
+}
+
 function getShapeLabel(shapeType: ShapeType): string {
   switch (shapeType) {
     case 'ellipse':
@@ -720,6 +744,58 @@ function renderNodeCard(
     sourceId && (displayType === 'page' || displayType === 'database' || displayType === 'note')
   )
   const status = typeof node.properties.status === 'string' ? node.properties.status : null
+
+  if (displayType === 'external-reference' && isPinnedQueryResultSourceCard(node)) {
+    const badges = readStringList(node.properties.badges)
+    const description =
+      typeof node.properties.description === 'string' ? node.properties.description : null
+    const pinnedSubtitle =
+      typeof node.properties.subtitle === 'string' ? node.properties.subtitle : null
+    const href = typeof node.properties.href === 'string' ? node.properties.href : null
+
+    return (
+      <div
+        className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
+        data-canvas-node-card="true"
+        data-canvas-card-kind="source-record"
+        data-canvas-pinned-source-card="true"
+        data-canvas-source-node-id={sourceId}
+        data-canvas-source-schema-id={node.sourceSchemaId}
+        data-canvas-theme={themeMode}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <Database size={12} />
+            <span className="truncate">{schemaIdLabel(node.sourceSchemaId)}</span>
+          </span>
+          <CanvasLifecycleStatusBadge status={status} />
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
+          {pinnedSubtitle || description ? (
+            <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+              {description ?? pinnedSubtitle}
+            </p>
+          ) : null}
+          {href ? <p className="truncate text-xs text-muted-foreground">{href}</p> : null}
+        </div>
+
+        {badges.length > 0 ? (
+          <div className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">
+            {badges.map((badge) => (
+              <span
+                key={badge}
+                className="max-w-full truncate rounded-full border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   if (displayType === 'page' || displayType === 'note') {
     return (
