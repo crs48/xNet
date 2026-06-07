@@ -8,6 +8,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   createSavedViewLensDraft,
+  deriveCachedSavedViewDateBucketSummaries,
+  deriveCachedSavedViewFacetSummaries,
   deriveSavedViewDateBucketSummaries,
   deriveSavedViewFacetSummaries,
   deriveSavedViewColumns,
@@ -115,6 +117,28 @@ describe('SavedViewRunner helpers', () => {
     expect(facets.find((facet) => facet.field === 'title')).toBeUndefined()
   })
 
+  it('caches loaded-row facet counts and invalidates changed row versions', () => {
+    const rows = [
+      { id: 'row-1', updatedAt: 1, platform: 'instagram' },
+      { id: 'row-2', updatedAt: 1, platform: 'youtube' }
+    ]
+    const input = {
+      rows,
+      columns: ['platform'],
+      identity: { queryId: 'content', schemaId: 'xnet://schema/social/content' }
+    }
+
+    const first = deriveCachedSavedViewFacetSummaries(input)
+    const second = deriveCachedSavedViewFacetSummaries(input)
+    const changed = deriveCachedSavedViewFacetSummaries({
+      ...input,
+      rows: [{ id: 'row-1', updatedAt: 2, platform: 'instagram' }, rows[1]]
+    })
+
+    expect(second).toBe(first)
+    expect(changed).not.toBe(first)
+  })
+
   it('filters loaded rows by selected facet value keys', () => {
     const rows = [
       { id: 'row-1', platform: 'instagram', privacyClass: 'public' },
@@ -150,6 +174,29 @@ describe('SavedViewRunner helpers', () => {
         { bucketKey: `day:${secondDay}`, count: 1 }
       ]
     })
+  })
+
+  it('caches loaded-row date buckets and invalidates changed row versions', () => {
+    const firstDay = Date.UTC(2024, 0, 1)
+    const rows = [
+      { id: 'row-1', updatedAt: 1, publishedAt: firstDay + 1000 },
+      { id: 'row-2', updatedAt: 1, publishedAt: firstDay + 2000 }
+    ]
+    const input = {
+      rows,
+      columns: ['publishedAt'],
+      identity: { queryId: 'content', schemaId: 'xnet://schema/social/content' }
+    }
+
+    const first = deriveCachedSavedViewDateBucketSummaries(input)
+    const second = deriveCachedSavedViewDateBucketSummaries(input)
+    const changed = deriveCachedSavedViewDateBucketSummaries({
+      ...input,
+      rows: [{ id: 'row-1', updatedAt: 2, publishedAt: firstDay + 1000 }, rows[1]]
+    })
+
+    expect(second).toBe(first)
+    expect(changed).not.toBe(first)
   })
 
   it('filters loaded rows by selected date brush buckets', () => {

@@ -134,6 +134,11 @@ export type SavedViewPrivacyChip = {
   tone: SavedViewPrivacyChipTone
 }
 
+export type SavedViewAggregationCacheIdentity = {
+  queryId?: string | null
+  schemaId?: string | null
+}
+
 export type SavedViewSortDirection = 'asc' | 'desc'
 
 export type SavedViewLensDraft = {
@@ -161,6 +166,7 @@ const MAX_FACET_VALUES = 8
 const MAX_FACET_DISTINCT_VALUES = 16
 const MAX_DATE_BUCKET_FIELDS = 4
 const MAX_DATE_BUCKETS = 18
+const MAX_AGGREGATION_CACHE_ENTRIES = 48
 const DAY_MS = 86_400_000
 const SYSTEM_COLUMNS = new Set([
   'deleted',
@@ -242,6 +248,8 @@ const INSPECTOR_PRIMARY_FIELDS = [
 ]
 const INSPECTOR_SYSTEM_FIELDS = new Set([...SYSTEM_COLUMNS, 'id', 'schemaId'])
 const NON_SENSITIVE_PRIVACY_CLASSES = new Set(['public', 'unknown'])
+const savedViewFacetSummaryCache = new Map<string, SavedViewFacetSummary[]>()
+const savedViewDateBucketSummaryCache = new Map<string, SavedViewDateBucketFieldSummary[]>()
 
 function classNames(values: readonly (string | false | null | undefined)[]): string {
   return values.filter(Boolean).join(' ')
@@ -343,6 +351,86 @@ export function deriveSavedViewFacetSummaries(
     .slice(0, MAX_FACET_FIELDS)
 }
 
+function primitiveCacheValue(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+
+  return value === null || value === undefined ? '' : JSON.stringify(value)
+}
+
+function rowAggregationFingerprint(row: Record<string, unknown>, index: number): string {
+  const id = primitiveCacheValue(row.id)
+  const version =
+    primitiveCacheValue(row.updatedAt) ||
+    primitiveCacheValue(row.importedAt) ||
+    primitiveCacheValue(row.createdAt)
+
+  return id ? `${id}:${version}` : `${index}:${JSON.stringify(row)}`
+}
+
+export function createSavedViewAggregationCacheKey(input: {
+  rows: readonly Record<string, unknown>[]
+  columns: readonly string[]
+  identity?: SavedViewAggregationCacheIdentity | null
+  kind: 'facets' | 'date-buckets'
+}): string {
+  const rowFingerprint = input.rows
+    .map((row, index) => rowAggregationFingerprint(row, index))
+    .join('|')
+
+  return [
+    input.kind,
+    input.identity?.queryId ?? '',
+    input.identity?.schemaId ?? '',
+    input.columns.join(','),
+    input.rows.length,
+    rowFingerprint
+  ].join('::')
+}
+
+function readAggregationCache<T>(cache: Map<string, T>, key: string): T | null {
+  const cached = cache.get(key)
+  if (!cached) return null
+
+  cache.delete(key)
+  cache.set(key, cached)
+  return cached
+}
+
+function writeAggregationCache<T>(cache: Map<string, T>, key: string, value: T): T {
+  cache.set(key, value)
+
+  while (cache.size > MAX_AGGREGATION_CACHE_ENTRIES) {
+    const oldestKey = cache.keys().next().value
+    if (oldestKey === undefined) break
+    cache.delete(oldestKey)
+  }
+
+  return value
+}
+
+export function deriveCachedSavedViewFacetSummaries(input: {
+  rows: readonly Record<string, unknown>[]
+  columns: readonly string[]
+  identity?: SavedViewAggregationCacheIdentity | null
+}): SavedViewFacetSummary[] {
+  const key = createSavedViewAggregationCacheKey({
+    rows: input.rows,
+    columns: input.columns,
+    identity: input.identity,
+    kind: 'facets'
+  })
+  const cached = readAggregationCache(savedViewFacetSummaryCache, key)
+  if (cached) return cached
+
+  return writeAggregationCache(
+    savedViewFacetSummaryCache,
+    key,
+    deriveSavedViewFacetSummaries(input.rows, input.columns)
+  )
+}
+
 /**
  * Filter loaded schema query rows by facet value keys.
  */
@@ -418,6 +506,27 @@ export function deriveSavedViewDateBucketSummaries(
       ]
     })
     .slice(0, MAX_DATE_BUCKET_FIELDS)
+}
+
+export function deriveCachedSavedViewDateBucketSummaries(input: {
+  rows: readonly Record<string, unknown>[]
+  columns: readonly string[]
+  identity?: SavedViewAggregationCacheIdentity | null
+}): SavedViewDateBucketFieldSummary[] {
+  const key = createSavedViewAggregationCacheKey({
+    rows: input.rows,
+    columns: input.columns,
+    identity: input.identity,
+    kind: 'date-buckets'
+  })
+  const cached = readAggregationCache(savedViewDateBucketSummaryCache, key)
+  if (cached) return cached
+
+  return writeAggregationCache(
+    savedViewDateBucketSummaryCache,
+    key,
+    deriveSavedViewDateBucketSummaries(input.rows, input.columns)
+  )
 }
 
 /**
@@ -671,11 +780,15 @@ export function SavedViewRunner({
   )
   const facetSummaries = useMemo(
     () =>
-      deriveSavedViewFacetSummaries(
-        (activeQuery?.data ?? []) as Record<string, unknown>[],
-        availableColumns
-      ),
-    [activeQuery?.data, availableColumns]
+      deriveCachedSavedViewFacetSummaries({
+        rows: (activeQuery?.data ?? []) as Record<string, unknown>[],
+        columns: availableColumns,
+        identity: {
+          queryId: activeQuery?.queryId,
+          schemaId: activeQuery?.schemaId
+        }
+      }),
+    [activeQuery?.data, activeQuery?.queryId, activeQuery?.schemaId, availableColumns]
   )
   const facetFilteredRows = useMemo(
     () =>
@@ -686,8 +799,16 @@ export function SavedViewRunner({
     [activeQuery?.data, facetSelection]
   )
   const dateBucketSummaries = useMemo(
-    () => deriveSavedViewDateBucketSummaries(facetFilteredRows, availableColumns),
-    [availableColumns, facetFilteredRows]
+    () =>
+      deriveCachedSavedViewDateBucketSummaries({
+        rows: facetFilteredRows,
+        columns: availableColumns,
+        identity: {
+          queryId: activeQuery?.queryId,
+          schemaId: activeQuery?.schemaId
+        }
+      }),
+    [activeQuery?.queryId, activeQuery?.schemaId, availableColumns, facetFilteredRows]
   )
   const filteredRows = useMemo(
     () =>
