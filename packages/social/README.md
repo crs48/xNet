@@ -33,6 +33,7 @@ import {
 import { createSocialGraphLenses } from '@xnetjs/social/lenses'
 import { createSocialCanvasProjectionPlan } from '@xnetjs/social/projection'
 import { createDefaultSocialSavedViews } from '@xnetjs/social/views'
+import { createDefaultSocialWorkspaceSavedViewSeeds } from '@xnetjs/social/workspace'
 ```
 
 The root entry point re-exports all of these public APIs:
@@ -40,6 +41,7 @@ The root entry point re-exports all of these public APIs:
 ```ts
 import {
   collectStagedRecords,
+  createDefaultSocialWorkspaceSavedViewSeeds,
   createStagingSummary,
   createZipJsonEntryReader,
   createZipTextEntryReader,
@@ -145,6 +147,11 @@ Committing staged records from a renderer or service layer should happen after r
 exports `buildSocialCommitOperations` and `commitStagedSocialNodes` for NodeStore-backed callers.
 Source records can be stored when provenance, replay, or auditability matters; they can also be
 omitted when the user wants only canonical graph data.
+
+After a successful commit, app surfaces can call `createDefaultSocialWorkspaceSavedViewSeeds()` to
+upsert default social `SavedView` nodes. The seeds include both table-oriented schema views and
+graph-lens query sets, so web and Electron can open the same imported-data workspace without
+duplicating view definitions.
 
 ## App Surfaces
 

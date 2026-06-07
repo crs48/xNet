@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createDefaultSocialGraphLenses,
   createDefaultSocialSavedViews,
+  createDefaultSocialWorkspaceSavedViewSeeds,
   createIgnoredSourceRecord,
   createLargeArchiveStoragePlan,
   createSocialCanvasProjectionPlan,
@@ -60,6 +61,43 @@ describe('social graph lenses', () => {
       expect(lens.descriptor.query.mode).toBe('dashboard')
       expect(validateSavedViewDescriptor(lens.descriptor).valid).toBe(true)
       expect(lens.edgeRules.length).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('social workspace seeds', () => {
+  it('creates deterministic saved-view seeds for schema views and graph lenses', () => {
+    const seeds = createDefaultSocialWorkspaceSavedViewSeeds({
+      workspaceId: 'workspace-a',
+      pageSize: 20
+    })
+    const repeated = createDefaultSocialWorkspaceSavedViewSeeds({
+      workspaceId: 'workspace-a',
+      pageSize: 20
+    })
+
+    expect(seeds.map((seed) => seed.id)).toEqual([
+      'social.people',
+      'social.content',
+      'social.interactions',
+      'social.messages',
+      'social.collections',
+      'social.import-runs',
+      'social.lens.people-i-follow',
+      'social.lens.saved-content-by-creator',
+      'social.lens.conversation-references',
+      'social.lens.ai-citations'
+    ])
+    expect(seeds.map((seed) => seed.deterministicId)).toEqual(
+      repeated.map((seed) => seed.deterministicId)
+    )
+    expect(seeds.filter((seed) => seed.seedKind === 'schema-view')).toHaveLength(6)
+    expect(seeds.filter((seed) => seed.seedKind === 'graph-lens')).toHaveLength(4)
+
+    for (const seed of seeds) {
+      expect(validateSavedViewDescriptor(seed.descriptor).valid).toBe(true)
+      expect(seed.savedViewProperties.descriptor).toBe(seed.descriptorJson)
+      expect(JSON.parse(seed.descriptorJson)).toMatchObject({ version: 1 })
     }
   })
 })
