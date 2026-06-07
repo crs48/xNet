@@ -967,13 +967,13 @@ sections or ornamental surfaces.
 
 ## Validation Checklist
 
-- [ ] Import a small sanitized social fixture in the web UI and confirm the workspace CTA appears.
+- [x] Import a small sanitized social fixture in the web UI and confirm the workspace CTA appears.
 - [ ] Import a larger archive in Electron and confirm saved views/lenses are upserted idempotently.
-- [ ] Verify default views show records for each imported social schema.
+- [x] Verify default views show records for each imported social schema.
 - [ ] Verify sensitive/message views remain opt-in and carry privacy indicators.
-- [ ] Verify a saved lens can render in table mode with search, sort, and pagination.
-- [ ] Verify facet selections update the table and can be saved as a new lens.
-- [ ] Verify a timeline brush filters the result set without losing selection state.
+- [x] Verify a saved lens can render in table mode with search, sort, and pagination.
+- [x] Verify facet selections update the table and can be saved as a new lens.
+- [x] Verify a timeline brush filters the result set without losing selection state.
 - [ ] Verify a graph lens selection opens the same source record in the inspector.
 - [ ] Verify a canvas query frame updates result counts and stale state.
 - [ ] Verify dragging a result row creates a source-backed canvas card with the correct schema/source.
@@ -983,6 +983,11 @@ sections or ornamental surfaces.
 - [x] Run web and Electron type checks after UI integration.
 - [ ] Manually verify the web and Electron flows with browser/Electron automation and then stop all
       dev servers.
+
+Web validation evidence: imported `tmp/social-import-fixtures/instagram-small.zip` through the
+web UI, opened the seeded Data Workspace, verified starter view row counts for People, Content,
+Interactions, Collections, and Import Runs, saved an Interactions facet lens, and captured
+`tmp/playwright/social-web-lens-controls.png`.
 
 ## Example Code
 
