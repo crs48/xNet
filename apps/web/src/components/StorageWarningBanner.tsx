@@ -11,6 +11,11 @@ interface StorageWarningBannerProps {
   actionPendingLabel?: string
   actionPending?: boolean
   onAction?: () => void
+  secondaryActionLabel?: string
+  secondaryActionPendingLabel?: string
+  secondaryActionPending?: boolean
+  onSecondaryAction?: () => void
+  detailItems?: string[]
 }
 
 function formatBytes(bytes: number): string {
@@ -83,12 +88,18 @@ export function StorageWarningBanner({
   actionLabel,
   actionPendingLabel,
   actionPending = false,
-  onAction
+  onAction,
+  secondaryActionLabel,
+  secondaryActionPendingLabel,
+  secondaryActionPending = false,
+  onSecondaryAction,
+  detailItems
 }: StorageWarningBannerProps): JSX.Element | null {
   const [dismissed, setDismissed] = useState(false)
   const toneClasses = getToneClasses(tone)
   const Icon = toneClasses.actionIcon
   const showAction = Boolean(actionLabel && onAction)
+  const showSecondaryAction = Boolean(secondaryActionLabel && onSecondaryAction)
   const usageLabel =
     typeof usageBytes === 'number' && typeof quotaBytes === 'number' && quotaBytes > 0
       ? `${formatBytes(usageBytes)} used of ${formatBytes(quotaBytes)} available`
@@ -110,21 +121,50 @@ export function StorageWarningBanner({
               <p className="text-sm font-semibold">{title}</p>
               <p className="text-sm mt-0.5">{message}</p>
               {usageLabel && <p className="text-xs mt-1 opacity-80">{usageLabel}</p>}
+              {detailItems && detailItems.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs opacity-90">
+                  {detailItems.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
-          {showAction && (
-            <button
-              type="button"
-              onClick={onAction}
-              disabled={actionPending}
-              className={`pointer-events-auto inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-md border px-3 text-sm font-medium transition disabled:cursor-wait disabled:opacity-70 ${toneClasses.actionButton}`}
-            >
-              <ShieldCheck
-                className={`h-4 w-4 ${actionPending ? 'animate-pulse' : ''}`}
-                aria-hidden="true"
-              />
-              <span>{actionPending ? (actionPendingLabel ?? actionLabel) : actionLabel}</span>
-            </button>
+          {(showAction || showSecondaryAction) && (
+            <div className="pointer-events-auto flex flex-shrink-0 flex-wrap items-center gap-2">
+              {showSecondaryAction && (
+                <button
+                  type="button"
+                  onClick={onSecondaryAction}
+                  disabled={secondaryActionPending}
+                  className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition disabled:cursor-wait disabled:opacity-70 ${toneClasses.actionButton}`}
+                >
+                  <ShieldCheck
+                    className={`h-4 w-4 ${secondaryActionPending ? 'animate-pulse' : ''}`}
+                    aria-hidden="true"
+                  />
+                  <span>
+                    {secondaryActionPending
+                      ? (secondaryActionPendingLabel ?? secondaryActionLabel)
+                      : secondaryActionLabel}
+                  </span>
+                </button>
+              )}
+              {showAction && (
+                <button
+                  type="button"
+                  onClick={onAction}
+                  disabled={actionPending}
+                  className={`inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-medium transition disabled:cursor-wait disabled:opacity-70 ${toneClasses.actionButton}`}
+                >
+                  <ShieldCheck
+                    className={`h-4 w-4 ${actionPending ? 'animate-pulse' : ''}`}
+                    aria-hidden="true"
+                  />
+                  <span>{actionPending ? (actionPendingLabel ?? actionLabel) : actionLabel}</span>
+                </button>
+              )}
+            </div>
           )}
           <button
             onClick={() => setDismissed(true)}
