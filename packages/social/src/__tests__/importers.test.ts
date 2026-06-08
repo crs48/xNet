@@ -24,6 +24,11 @@ import {
   mapClaudeFiles,
   mapClaudeProfile,
   mapClaudeProject,
+  mapOpenAIAssets,
+  mapOpenAIConversations,
+  mapOpenAIFeedback,
+  mapOpenAIProfile,
+  mapOpenAISharedConversations,
   mapRedditAuthoredContent,
   mapRedditChatHistory,
   mapRedditPrivateMessages,
@@ -58,6 +63,7 @@ import {
   parseRedditCsv,
   parseTwitterArchiveJs,
   parseYouTubeCsv,
+  openaiAdapter,
   sanitizeStagedRecordsForFixture,
   tiktokAdapter,
   type ArchiveEntryRef,
@@ -131,11 +137,13 @@ describe('social import adapters', () => {
         'x',
         'tiktok',
         'claude',
-        'reddit'
+        'reddit',
+        'openai'
       ])
-      expect(plannedEntries.map((entry) => entry.id)).toContain('openai')
+      expect(availableEntries.map((entry) => entry.id)).toContain('openai')
       expect(plannedEntries.every((entry) => entry.adapter === undefined)).toBe(true)
       expect(findSocialImporterRegistryEntry('instagram')?.adapter?.id).toBe('instagram')
+      expect(findSocialImporterRegistryEntry('openai')?.adapter?.id).toBe('openai')
     })
   })
 
@@ -234,6 +242,64 @@ describe('social import adapters', () => {
               chat_messages: [{ uuid: 'message-1', sender: 'human', text: 'Private text' }]
             }
           ]
+        })
+      )) {
+        records.push(record)
+      }
+
+      expect(records).toEqual([])
+    })
+
+    it('detects ChatGPT exports and keeps conversations disabled by default', async () => {
+      const userPath = 'user.json'
+      const conversationsPath = 'conversations-000.json'
+      const feedbackPath = 'message_feedback.json'
+      const archiveManifest = manifest([
+        entry(userPath),
+        entry(conversationsPath),
+        entry(feedbackPath)
+      ])
+
+      expect(
+        detectSocialArchive(
+          [instagramAdapter, grokAdapter, claudeAdapter, openaiAdapter, youtubeAdapter],
+          archiveManifest
+        )?.adapter.id
+      ).toBe('openai')
+
+      const probe = await openaiAdapter.probe({ manifest: archiveManifest })
+      expect(
+        probe.buckets.find((bucket) => bucket.id === 'openai.conversations')?.defaultSelected
+      ).toBe(false)
+      expect(
+        probe.buckets.find((bucket) => bucket.id === 'openai.feedback-shares')?.defaultSelected
+      ).toBe(false)
+
+      const records: StagedSocialRecord[] = []
+      for await (const record of openaiAdapter.stage(
+        context(archiveManifest, {
+          [userPath]: {
+            id: 'user-1',
+            email: 'private@example.invalid',
+            phone_number: '+15555555555'
+          },
+          [conversationsPath]: [
+            {
+              id: 'conversation-1',
+              title: 'Private ChatGPT conversation',
+              mapping: {
+                'message-1': {
+                  id: 'message-1',
+                  message: {
+                    id: 'message-1',
+                    author: { role: 'user' },
+                    content: { content_type: 'text', parts: ['Private prompt'] }
+                  }
+                }
+              }
+            }
+          ],
+          [feedbackPath]: []
         })
       )) {
         records.push(record)
@@ -1211,6 +1277,182 @@ describe('social import adapters', () => {
       expect(fileRecords).toHaveLength(2)
       expect(fileRecords.every((record) => record.kind === 'source-record')).toBe(true)
       expect(JSON.stringify(fileRecords)).not.toContain('raw private attachment text')
+    })
+  })
+
+  describe('OpenAI mappers', () => {
+    it('maps profile without copying email, phone, or birth year into canonical actor properties', () => {
+      const records = mapOpenAIProfile({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        source: entry('user.json'),
+        selfActorId: createSocialNodeId('actor', ['openai', 'self']),
+        user: {
+          id: 'user-1',
+          email: 'private@example.invalid',
+          phone_number: '+15555555555',
+          birth_year: 2000,
+          chatgpt_plus_user: true
+        }
+      })
+
+      expect(byKind(records, 'actor')[0].platform).toBe('openai')
+      expect(byKind(records, 'actor')[0].properties.displayName).toBe('ChatGPT User')
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain(
+        'private@example.invalid'
+      )
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain('+15555555555')
+      expect(JSON.stringify(byKind(records, 'actor')[0].properties)).not.toContain('2000')
+    })
+
+    it('maps conversations, prompts, assistant responses, and web citations', () => {
+      const records = mapOpenAIConversations({
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        files: [
+          {
+            source: entry('conversations-000.json'),
+            conversations: [
+              {
+                id: 'conversation-1',
+                title: 'Research chat',
+                create_time: 1_760_000_000,
+                update_time: 1_760_000_060,
+                current_node: 'message-2',
+                default_model_slug: 'gpt-test',
+                is_starred: true,
+                mapping: {
+                  'message-1': {
+                    id: 'message-1',
+                    message: {
+                      id: 'message-1',
+                      author: { role: 'user' },
+                      create_time: 1_760_000_001,
+                      content: { content_type: 'text', parts: ['Prompt text'] },
+                      metadata: { model_slug: 'gpt-test' }
+                    }
+                  },
+                  'message-2': {
+                    id: 'message-2',
+                    parent: 'message-1',
+                    message: {
+                      id: 'message-2',
+                      author: { role: 'assistant' },
+                      create_time: 1_760_000_002,
+                      content: { content_type: 'text', parts: ['Answer text'] },
+                      metadata: {
+                        model_slug: 'gpt-test',
+                        content_references: [
+                          {
+                            type: 'webpage_extended',
+                            url: 'https://example.invalid/source?utm_source=chatgpt.com',
+                            title: 'Source title'
+                          }
+                        ],
+                        search_result_groups: [
+                          {
+                            domain: 'example.invalid',
+                            entries: [
+                              {
+                                url: 'https://example.invalid/other',
+                                title: 'Other source'
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        selfActorId: createSocialNodeId('actor', ['openai', 'self']),
+        assistantActorId: createSocialNodeId('actor', ['openai', 'assistant'])
+      })
+
+      expect(byKind(records, 'actor')).toHaveLength(2)
+      expect(byKind(records, 'conversation')[0].properties.conversationKind).toBe('ai-chat')
+      expect(byKind(records, 'conversation')[0].properties.starred).toBe(true)
+      expect(byKind(records, 'message').map((record) => record.properties.messageKind)).toEqual([
+        'prompt',
+        'ai-response'
+      ])
+      expect(byKind(records, 'message')[1].properties.parentMessage).toBe(
+        byKind(records, 'message')[0].deterministicId
+      )
+      expect(byKind(records, 'content')).toHaveLength(2)
+      expect(
+        byKind(records, 'interaction').every(
+          (record) => record.properties.platformInteractionKind === 'web_citation'
+        )
+      ).toBe(true)
+    })
+
+    it('maps feedback, shared conversations, and asset provenance', () => {
+      const common = {
+        context: {
+          archiveId: 'archive',
+          importRunId: 'run',
+          observedBy: 'did:key:test',
+          importedAt
+        },
+        selfActorId: createSocialNodeId('actor', ['openai', 'self'])
+      }
+      const feedbackRecords = mapOpenAIFeedback({
+        ...common,
+        source: entry('message_feedback.json'),
+        feedback: [
+          {
+            id: 'feedback-1',
+            conversation_id: 'conversation-1',
+            rating: 'thumbs_up',
+            create_time: importedAt,
+            content: '{"tags":[]}',
+            user_id: 'user-1'
+          }
+        ]
+      })
+      const shareRecords = mapOpenAISharedConversations({
+        ...common,
+        source: entry('shared_conversations.json'),
+        shares: [
+          {
+            id: 'share-1',
+            conversation_id: 'conversation-1',
+            title: 'Shared research chat',
+            is_anonymous: true
+          }
+        ]
+      })
+      const assetRecords = mapOpenAIAssets({
+        context: common.context,
+        sources: [
+          entry('conversation_asset_file_names.json'),
+          entry('file_00000000000000000000000000000000.dat')
+        ],
+        assetFileNames: {
+          'file_00000000000000000000000000000000.dat': 'example.jpg'
+        }
+      })
+
+      expect(byKind(feedbackRecords, 'interaction')[0].properties.interactionKind).toBe('reaction')
+      expect(byKind(feedbackRecords, 'interaction')[0].properties.value).toBe('thumbs_up')
+      expect(byKind(shareRecords, 'content')[0].properties.platformUrl).toBe(
+        'https://chatgpt.com/share/share-1'
+      )
+      expect(byKind(shareRecords, 'interaction')[0].properties.interactionKind).toBe('share')
+      expect(assetRecords).toHaveLength(2)
+      expect(assetRecords.every((record) => record.kind === 'source-record')).toBe(true)
     })
   })
 

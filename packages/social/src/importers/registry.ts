@@ -7,6 +7,7 @@ import type { SocialPlatform, SocialPrivacyClass } from '../schemas/constants'
 import { claudeAdapter } from './claude'
 import { grokAdapter } from './grok'
 import { instagramAdapter } from './instagram'
+import { openaiAdapter } from './openai'
 import { redditAdapter } from './reddit'
 import { tiktokAdapter } from './tiktok'
 import { xAdapter } from './x'
@@ -154,15 +155,14 @@ export const builtInSocialImporterRegistry = [
     recordTypes: ['profile', 'posts', 'comments', 'votes', 'saved items', 'subreddits', 'messages'],
     privacyClasses: ['public', 'private']
   }),
-  plannedImporter({
-    id: 'openai',
+  availableImporter({
+    adapter: openaiAdapter,
     label: 'OpenAI',
-    platform: 'openai',
     description:
-      'Planned support for ChatGPT data exports once representative archives are available.',
+      'OpenAI ChatGPT exports for profile, conversations, feedback, shared links, and files.',
     archiveFormats: ['ZIP export'],
-    recordTypes: ['profile', 'conversations', 'messages', 'files'],
-    privacyClasses: ['private']
+    recordTypes: ['profile', 'conversations', 'messages', 'feedback', 'shared links', 'files'],
+    privacyClasses: ['private', 'account-security']
   }),
   plannedImporter({
     id: 'spotify',

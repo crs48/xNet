@@ -25,6 +25,7 @@ import {
   claudeAdapter,
   grokAdapter,
   instagramAdapter,
+  openaiAdapter,
   redditAdapter,
   tiktokAdapter,
   xAdapter,
@@ -49,6 +50,7 @@ import {
   claudeAdapter,
   grokAdapter,
   instagramAdapter,
+  openaiAdapter,
   redditAdapter,
   tiktokAdapter,
   xAdapter,
@@ -88,6 +90,7 @@ import {
   claudeAdapter,
   grokAdapter,
   instagramAdapter,
+  openaiAdapter,
   tiktokAdapter,
   xAdapter,
   readZipArchiveManifest
@@ -100,7 +103,8 @@ const adapters = [
   xAdapter,
   tiktokAdapter,
   claudeAdapter,
-  redditAdapter
+  redditAdapter,
+  openaiAdapter
 ]
 
 export async function stageSocialArchive(archivePath: string) {
@@ -371,6 +375,33 @@ Implementation checklist:
 - [x] Cover adapter detection, default bucket selection, profile, conversation, project, and file mappers with tests.
 - [x] Smoke-test staging against `.exports/claude.zip`.
 
+### OpenAI / ChatGPT
+
+The OpenAI adapter currently detects ChatGPT export ZIPs containing `user.json` plus
+`conversations.json` or split `conversations-000.json` style shards and stages these buckets:
+
+- Profile, excluded by default
+- Conversations, excluded by default
+- Feedback and shared conversations, excluded by default
+- Files and assets, excluded by default
+- Rendered chat HTML, excluded by default
+- Account metadata, excluded by default
+
+The adapter maps export records into self and ChatGPT assistant actors, AI-chat conversations,
+prompt and assistant-response messages, cited link content, citation interactions, feedback
+reaction interactions, shared conversation link content, share interactions, and optional source
+records for asset and account-metadata provenance.
+
+Implementation checklist:
+
+- [x] Detect ChatGPT export ZIPs from `user.json` and conversation shard manifest entries.
+- [x] Stage canonical social records for private opt-in buckets.
+- [x] Export the adapter from `@xnetjs/social/importers`.
+- [x] Wire the adapter into Electron and web social import surfaces through the shared registry.
+- [x] Cover adapter detection, default bucket selection, profile, conversation, feedback, shared
+      link, and asset mappers with tests.
+- [x] Smoke-test staging against `.exports/chatgpt.zip`.
+
 ## Privacy And Provenance
 
 Every import bucket and staged record carries a `privacyClass`. Sensitive buckets should not be
@@ -397,7 +428,7 @@ clear local-storage policy and user approval.
 - [ ] Export the adapter from `src/importers/index.ts`.
 - [ ] Add the adapter to the app surface that chooses supported importers.
 
-Good next candidates are OpenAI, Spotify, Apple Music, and other services once representative export
+Good next candidates are Spotify, Apple Music, and other services once representative export
 archives are available.
 
 ## Validation

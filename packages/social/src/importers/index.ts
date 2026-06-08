@@ -12,6 +12,16 @@ export {
   mapClaudeProject
 } from './claude'
 export {
+  OPENAI_ADAPTER_ID,
+  OPENAI_ADAPTER_VERSION,
+  mapOpenAIAssets,
+  mapOpenAIConversations,
+  mapOpenAIFeedback,
+  mapOpenAIProfile,
+  mapOpenAISharedConversations,
+  openaiAdapter
+} from './openai'
+export {
   REDDIT_ADAPTER_ID,
   REDDIT_ADAPTER_VERSION,
   mapRedditAuthoredContent,
