@@ -6,6 +6,12 @@ import type {
 
 export type SocialImportWorkerExecutionMode = 'worker' | 'main-thread'
 
+export type SocialImportWorkerTimings = {
+  requestPostMessageMs?: number
+  workerDurationMs?: number
+  responsePostMessageMs?: number
+}
+
 export type SocialImportWorkerPreviewPayload = {
   manifest: ArchiveManifest
   preview: SocialImportArchivePreview
@@ -38,13 +44,22 @@ export type SocialImportWorkerSuccessResponse =
       requestId: string
       ok: true
       result: SocialImportWorkerPreviewPayload
+      timings?: SocialImportWorkerTimings
     }
   | {
       kind: 'stage'
       requestId: string
       ok: true
       result: SocialImportWorkerStagePayload
+      timings?: SocialImportWorkerTimings
     }
+
+export type SocialImportWorkerTimingResponse = {
+  kind: 'timing'
+  requestId: string
+  ok: true
+  timings: SocialImportWorkerTimings
+}
 
 export type SocialImportWorkerErrorResponse = {
   kind: SocialImportWorkerRequest['kind']
@@ -58,4 +73,5 @@ export type SocialImportWorkerErrorResponse = {
 
 export type SocialImportWorkerResponse =
   | SocialImportWorkerSuccessResponse
+  | SocialImportWorkerTimingResponse
   | SocialImportWorkerErrorResponse

@@ -14,7 +14,6 @@ import {
   updateSocialImportJob,
   type SocialImportArchivePreview,
   type SocialImportNodeDraft,
-  type SocialImportStageResult,
   type SocialImportJobPhase
 } from '@xnetjs/social/import/core'
 import { builtInSocialImporterRegistry } from '@xnetjs/social/importers'
@@ -44,7 +43,8 @@ import {
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
   readBrowserSocialImportPreview,
-  stageBrowserSocialArchive
+  stageBrowserSocialArchive,
+  type BrowserSocialImportStageResult
 } from '../lib/social-import-worker-client'
 import {
   upsertDefaultSocialWorkspace,
@@ -119,7 +119,7 @@ function SocialImportPage(): React.ReactElement {
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>([])
   const [includeSensitive, setIncludeSensitive] = useState(false)
   const [includeSourceRecords, setIncludeSourceRecords] = useState(false)
-  const [stageResult, setStageResult] = useState<SocialImportStageResult | null>(null)
+  const [stageResult, setStageResult] = useState<BrowserSocialImportStageResult | null>(null)
   const [status, setStatus] = useState<ImportStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [commitSummary, setCommitSummary] = useState<CommitSummary | null>(null)
@@ -590,11 +590,23 @@ function SocialImportPage(): React.ReactElement {
               {commitProgress ? <CommitProgressPanel progress={commitProgress} /> : null}
 
               {stageResult ? (
-                <div className="grid gap-3 md:grid-cols-4">
+                <div className="grid gap-3 md:grid-cols-6">
                   <SummaryCard label="Total" value={stageResult.summary.totalRecords} />
                   <SummaryCard label="Warnings" value={stageResult.summary.totalWarnings} />
                   <SummaryCard label="Ignored" value={stageResult.summary.totalIgnored} />
                   <SummaryCard label="Stage" value={formatDuration(stageResult.stageDurationMs)} />
+                  {stageResult.workerTimings?.requestPostMessageMs !== undefined ? (
+                    <SummaryCard
+                      label="Clone In"
+                      value={formatMilliseconds(stageResult.workerTimings.requestPostMessageMs)}
+                    />
+                  ) : null}
+                  {stageResult.workerTimings?.responsePostMessageMs !== undefined ? (
+                    <SummaryCard
+                      label="Clone Out"
+                      value={formatMilliseconds(stageResult.workerTimings.responsePostMessageMs)}
+                    />
+                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-md border border-border p-8 text-center text-sm text-muted-foreground">

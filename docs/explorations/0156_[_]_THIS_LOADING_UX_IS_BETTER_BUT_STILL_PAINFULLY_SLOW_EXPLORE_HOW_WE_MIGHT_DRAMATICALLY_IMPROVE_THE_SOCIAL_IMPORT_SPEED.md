@@ -565,7 +565,7 @@ Recommendation:
 ### Phase 1 - Measure and low-risk speedups
 
 - [x] Add timing telemetry for stage, existence checks, mutate/storage write/index bucket, and progress updates.
-- [ ] Add structured-clone timing for browser staging worker payloads.
+- [x] Add structured-clone timing for browser staging worker payloads.
 - [x] Add `getExistingNodeIds(ids)` or `getNodesById(ids)` to the renderer/web commit path.
 - [x] Replace per-draft existence checks in Electron and web with one bulk check per chunk.
 - [x] Raise or adapt `COMMIT_BATCH_SIZE` only after bulk existence checks land.

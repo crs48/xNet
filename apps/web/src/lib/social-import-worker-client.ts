@@ -3,7 +3,8 @@ import type {
   SocialImportWorkerPreviewPayload,
   SocialImportWorkerRequest,
   SocialImportWorkerResponse,
-  SocialImportWorkerStagePayload
+  SocialImportWorkerStagePayload,
+  SocialImportWorkerTimings
 } from './social-import-worker-protocol'
 import type { ArchiveManifest } from '@xnetjs/social/import/browser'
 import {
@@ -17,9 +18,14 @@ import { builtInSocialImportAdapters } from '@xnetjs/social/importers'
 
 type WithoutRequestId<T> = T extends { requestId: string } ? Omit<T, 'requestId'> : never
 type SocialImportWorkerRequestInput = WithoutRequestId<SocialImportWorkerRequest>
+type TimedWorkerResult<T> = {
+  result: T
+  timings: SocialImportWorkerTimings
+}
 
 export type BrowserSocialImportPreviewResult = SocialImportWorkerPreviewPayload & {
   executionMode: SocialImportWorkerExecutionMode
+  workerTimings?: SocialImportWorkerTimings
 }
 
 export type BrowserSocialImportStageInput = {
@@ -31,6 +37,7 @@ export type BrowserSocialImportStageInput = {
 
 export type BrowserSocialImportStageResult = SocialImportWorkerStagePayload & {
   executionMode: SocialImportWorkerExecutionMode
+  workerTimings?: SocialImportWorkerTimings
 }
 
 class SocialImportWorkerUnavailableError extends Error {
@@ -41,6 +48,7 @@ class SocialImportWorkerUnavailableError extends Error {
 }
 
 const adapters = builtInSocialImportAdapters
+const WORKER_TIMING_FALLBACK_MS = 250
 
 function nextRequestId(): string {
   return `social-import:${Date.now()}:${Math.random().toString(36).slice(2)}`
@@ -69,39 +77,91 @@ function requestWorker<T>(
     ok: true
     result: T
   }
-): Promise<T> {
+): Promise<TimedWorkerResult<T>> {
   const requestId = nextRequestId()
   const worker = createWorker()
 
   return new Promise((resolve, reject) => {
+    let requestPostMessageMs = 0
+    let pendingSuccess: TimedWorkerResult<T> | null = null
+    let pendingTimings: SocialImportWorkerTimings | null = null
+    let timingFallbackTimeout: ReturnType<typeof setTimeout> | null = null
+    let settled = false
+
     const cleanup = (): void => {
+      if (timingFallbackTimeout) {
+        clearTimeout(timingFallbackTimeout)
+        timingFallbackTimeout = null
+      }
       worker.onmessage = null
       worker.onerror = null
       worker.terminate()
+    }
+
+    const resolveTimedResult = (result: TimedWorkerResult<T>): void => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve({
+        result: result.result,
+        timings: {
+          ...result.timings,
+          ...(pendingTimings ?? {})
+        }
+      })
+    }
+
+    const rejectTimedResult = (error: Error): void => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(error)
     }
 
     worker.onmessage = (event: MessageEvent<SocialImportWorkerResponse>): void => {
       const response = event.data
       if (response.requestId !== requestId) return
 
-      cleanup()
+      if (response.kind === 'timing') {
+        pendingTimings = response.timings
+        if (pendingSuccess) {
+          resolveTimedResult(pendingSuccess)
+        }
+        return
+      }
 
       if (!response.ok) {
-        reject(new Error(response.error.message))
+        rejectTimedResult(new Error(response.error.message))
         return
       }
 
       if (!isExpectedResponse(response)) {
-        reject(new Error(`Unexpected social import worker response: ${response.kind}`))
+        rejectTimedResult(new Error(`Unexpected social import worker response: ${response.kind}`))
         return
       }
 
-      resolve(response.result)
+      pendingSuccess = {
+        result: response.result,
+        timings: {
+          requestPostMessageMs,
+          ...(response.timings ?? {})
+        }
+      }
+
+      if (pendingTimings) {
+        resolveTimedResult(pendingSuccess)
+        return
+      }
+
+      timingFallbackTimeout = setTimeout(() => {
+        if (pendingSuccess) {
+          resolveTimedResult(pendingSuccess)
+        }
+      }, WORKER_TIMING_FALLBACK_MS)
     }
 
     worker.onerror = (event): void => {
-      cleanup()
-      reject(
+      rejectTimedResult(
         new SocialImportWorkerUnavailableError(
           event instanceof ErrorEvent ? event.message : 'Social import worker failed.'
         )
@@ -109,11 +169,12 @@ function requestWorker<T>(
     }
 
     try {
+      const postMessageStartedAt = performance.now()
       worker.postMessage({ ...input, requestId } as SocialImportWorkerRequest)
+      requestPostMessageMs = performance.now() - postMessageStartedAt
     } catch (error) {
-      cleanup()
       const message = error instanceof Error ? error.message : String(error)
-      reject(new SocialImportWorkerUnavailableError(message))
+      rejectTimedResult(new SocialImportWorkerUnavailableError(message))
     }
   })
 }
@@ -179,8 +240,9 @@ export async function readBrowserSocialImportPreview(
     )
 
     return {
-      ...result,
-      executionMode: 'worker'
+      ...result.result,
+      executionMode: 'worker',
+      workerTimings: result.timings
     }
   } catch (error) {
     if (error instanceof SocialImportWorkerUnavailableError) {
@@ -207,8 +269,9 @@ export async function stageBrowserSocialArchive(
     )
 
     return {
-      ...result,
-      executionMode: 'worker'
+      ...result.result,
+      executionMode: 'worker',
+      workerTimings: result.timings
     }
   } catch (error) {
     if (error instanceof SocialImportWorkerUnavailableError) {

@@ -1,6 +1,7 @@
 import type {
   SocialImportWorkerRequest,
-  SocialImportWorkerResponse
+  SocialImportWorkerResponse,
+  SocialImportWorkerSuccessResponse
 } from '../lib/social-import-worker-protocol'
 import {
   createBrowserZipJsonEntryReader,
@@ -34,26 +35,50 @@ function errorPayload(error: unknown): { name: string; message: string } {
   }
 }
 
+function postSuccessResponse(response: SocialImportWorkerSuccessResponse, startedAt: number): void {
+  const responsePostStartedAt = performance.now()
+  workerScope.postMessage({
+    ...response,
+    timings: {
+      ...response.timings,
+      workerDurationMs: responsePostStartedAt - startedAt
+    }
+  })
+  workerScope.postMessage({
+    kind: 'timing',
+    requestId: response.requestId,
+    ok: true,
+    timings: {
+      responsePostMessageMs: performance.now() - responsePostStartedAt
+    }
+  })
+}
+
 async function handlePreview(
   request: Extract<SocialImportWorkerRequest, { kind: 'preview' }>
 ): Promise<void> {
+  const startedAt = performance.now()
   const manifest = await readBrowserZipArchiveManifest(request.file, { hashEntries: false })
   const preview = await createSocialArchivePreview({ adapters, manifest })
 
-  workerScope.postMessage({
-    kind: 'preview',
-    requestId: request.requestId,
-    ok: true,
-    result: {
-      manifest,
-      preview
-    }
-  })
+  postSuccessResponse(
+    {
+      kind: 'preview',
+      requestId: request.requestId,
+      ok: true,
+      result: {
+        manifest,
+        preview
+      }
+    },
+    startedAt
+  )
 }
 
 async function handleStage(
   request: Extract<SocialImportWorkerRequest, { kind: 'stage' }>
 ): Promise<void> {
+  const startedAt = performance.now()
   const readJsonEntry = await createBrowserZipJsonEntryReader(request.file)
   const readTextEntry = await createBrowserZipTextEntryReader(request.file)
   const result = await stageSocialArchive({
@@ -65,12 +90,15 @@ async function handleStage(
     includeSensitive: request.includeSensitive
   })
 
-  workerScope.postMessage({
-    kind: 'stage',
-    requestId: request.requestId,
-    ok: true,
-    result
-  })
+  postSuccessResponse(
+    {
+      kind: 'stage',
+      requestId: request.requestId,
+      ok: true,
+      result
+    },
+    startedAt
+  )
 }
 
 async function handleRequest(request: SocialImportWorkerRequest): Promise<void> {
