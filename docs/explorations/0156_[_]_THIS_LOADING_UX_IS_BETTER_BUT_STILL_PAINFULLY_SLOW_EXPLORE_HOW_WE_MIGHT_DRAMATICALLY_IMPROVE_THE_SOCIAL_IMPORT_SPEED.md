@@ -577,9 +577,9 @@ Recommendation:
 ### Phase 2 - Bulk NodeStore import primitive
 
 - [x] Add storage bulk methods for node lookup, last-change lookup, change append, and node import.
-- [ ] Add `NodeStore.importDeterministicNodes()` or equivalent package-level API.
-- [ ] Preserve signed `NodeChange` creation, parent hashes, Lamport behavior, and batch ids.
-- [ ] Bulk materialize node state in memory using existing LWW semantics.
+- [x] Add `NodeStore.importDeterministicNodes()` or equivalent package-level API.
+- [x] Preserve signed `NodeChange` creation, parent hashes, Lamport behavior, and batch ids.
+- [x] Bulk materialize node state in memory using existing LWW semantics.
 - [ ] Add `deferIndexes` / `rebuildIndexesForSchemas` support to SQLite node storage.
 - [ ] Emit compact import progress events and avoid per-node React invalidation until after chunk commit.
 - [ ] Add correctness tests comparing generic `transaction()` results against bulk import results for create, update, conflict/LWW, and source-record cases.

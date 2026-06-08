@@ -404,6 +404,34 @@ export interface UpdateNodeOptions {
   properties: Record<PropertyKey, unknown>
 }
 
+/**
+ * A deterministic node import draft.
+ *
+ * Intended for importers that already know stable node IDs and want one
+ * signed change per draft while avoiding per-node storage transactions.
+ */
+export interface DeterministicNodeImportDraft {
+  /** Stable node ID to create or update */
+  id: NodeId
+  /** Schema IRI used when the node does not already exist */
+  schemaId: SchemaIRI
+  /** Properties to merge with LWW semantics */
+  properties: Record<PropertyKey, unknown>
+}
+
+export interface ImportDeterministicNodesResult {
+  /** The batch ID shared by all imported changes */
+  batchId: string
+  /** Number of drafts that created a node at the time they were applied */
+  created: number
+  /** Number of drafts that updated a node at the time they were applied */
+  updated: number
+  /** Final materialized state for each changed node */
+  nodes: NodeState[]
+  /** All signed changes created for the import */
+  changes: NodeChange[]
+}
+
 // ============================================================================
 // Transaction Support
 // ============================================================================

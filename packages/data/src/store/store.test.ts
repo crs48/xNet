@@ -789,6 +789,123 @@ describe('bulk existence lookup', () => {
   })
 })
 
+describe('deterministic node import', () => {
+  it('imports deterministic nodes as signed batched changes', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const events: string[] = []
+    const unsubscribe = store.subscribe((event) => {
+      if (event.node) events.push(event.node.id)
+    })
+
+    const result = await store.importDeterministicNodes([
+      {
+        id: 'import-node-1',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Imported 1' }
+      },
+      {
+        id: 'import-node-2',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Imported 2' }
+      }
+    ])
+
+    unsubscribe()
+
+    expect(result.created).toBe(2)
+    expect(result.updated).toBe(0)
+    expect(result.nodes.map((node) => node.id)).toEqual(['import-node-1', 'import-node-2'])
+    expect(result.changes).toHaveLength(2)
+    expect(result.changes.map((change) => change.batchId)).toEqual([result.batchId, result.batchId])
+    expect(result.changes.map((change) => change.batchIndex)).toEqual([0, 1])
+    expect(result.changes.map((change) => change.batchSize)).toEqual([2, 2])
+    expect(result.changes.every((change) => change.parentHash === null)).toBe(true)
+    expect(events).toEqual(['import-node-1', 'import-node-2'])
+
+    await expect(store.get('import-node-1')).resolves.toMatchObject({
+      id: 'import-node-1',
+      properties: { title: 'Imported 1' }
+    })
+  })
+
+  it('updates existing deterministic nodes and links parent hashes', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const first = await store.importDeterministicNodes([
+      {
+        id: 'import-node-existing',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Before', status: 'open' }
+      }
+    ])
+    const second = await store.importDeterministicNodes([
+      {
+        id: 'import-node-existing',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'After' }
+      }
+    ])
+
+    expect(second.created).toBe(0)
+    expect(second.updated).toBe(1)
+    expect(second.changes[0].parentHash).toBe(first.changes[0].hash)
+    await expect(store.get('import-node-existing')).resolves.toMatchObject({
+      properties: { title: 'After', status: 'open' }
+    })
+  })
+
+  it('chains duplicate deterministic ids within the same import batch with existing LWW semantics', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const result = await store.importDeterministicNodes([
+      {
+        id: 'duplicate-import-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'First' }
+      },
+      {
+        id: 'duplicate-import-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Second' }
+      }
+    ])
+
+    expect(result.created).toBe(1)
+    expect(result.updated).toBe(1)
+    expect(result.nodes).toHaveLength(1)
+    expect(result.changes[1].parentHash).toBe(result.changes[0].hash)
+    await expect(store.get('duplicate-import-node')).resolves.toMatchObject({
+      properties: { title: 'First' }
+    })
+  })
+
+  it('delegates deterministic import writes to storage-owned transactions', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new TransactionTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    await store.importDeterministicNodes([
+      {
+        id: 'transaction-owned-import-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Transaction-owned' }
+      }
+    ])
+
+    expect(adapter.transactionCalls).toBe(1)
+  })
+})
+
 describe('authorization enforcement', () => {
   it('should throw PermissionError when create is denied', async () => {
     const { adapter, did, privateKey } = createTestStore()
