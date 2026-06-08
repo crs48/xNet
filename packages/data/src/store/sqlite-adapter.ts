@@ -393,6 +393,44 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return run
   }
 
+  async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
+    return this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+
+      try {
+        const result = await fn(this.createTransactionStorageAdapter())
+        await this.db.commit()
+        return result
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  private createTransactionStorageAdapter(): NodeStorageAdapter {
+    const storage: NodeStorageAdapter = {
+      appendChange: (change) => this.appendChangeInternal(change),
+      getChanges: (nodeId) => this.getChanges(nodeId),
+      getAllChanges: () => this.getAllChanges(),
+      getChangesSince: (sinceLamport) => this.getChangesSince(sinceLamport),
+      getChangeByHash: (hash) => this.getChangeByHash(hash),
+      getLastChange: (nodeId) => this.getLastChange(nodeId),
+      getNode: (id) => this.getNode(id),
+      setNode: (node, options) => this._setNodeInternal(node, options),
+      deleteNode: (id) => this.deleteNodeInternal(id),
+      listNodes: (options) => this.listNodes(options),
+      countNodes: (options) => this.countNodes(options),
+      getLastLamportTime: () => this.getLastLamportTime(),
+      setLastLamportTime: (time) => this.setLastLamportTimeInternal(time),
+      getDocumentContent: (nodeId) => this.getDocumentContent(nodeId),
+      setDocumentContent: (nodeId, content) => this.setDocumentContentInternal(nodeId, content)
+    }
+
+    storage.queryNodes = (descriptor) => this.queryNodes(descriptor)
+    return storage
+  }
+
   // ─── Change Log Operations ────────────────────────────────────────────────
 
   async appendChange(change: NodeChange): Promise<void> {
@@ -611,17 +649,19 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async deleteNode(id: NodeId): Promise<void> {
-    await this.enqueueWrite(async () => {
-      const existing = await this.getNode(id)
-      // Delete from FTS index first (no-op if FTS5 is not supported)
-      await deleteNodeFTS(this.db, id)
-      await this.deleteSpatialRowsForNode(id)
-      // Delete node (cascades to properties via FK)
-      await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
-      if (existing) {
-        await this.invalidateMaterializedViewsForSchema(existing.schemaId)
-      }
-    })
+    await this.enqueueWrite(() => this.deleteNodeInternal(id))
+  }
+
+  private async deleteNodeInternal(id: NodeId): Promise<void> {
+    const existing = await this.getNode(id)
+    // Delete from FTS index first (no-op if FTS5 is not supported)
+    await deleteNodeFTS(this.db, id)
+    await this.deleteSpatialRowsForNode(id)
+    // Delete node (cascades to properties via FK)
+    await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
+    if (existing) {
+      await this.invalidateMaterializedViewsForSchema(existing.schemaId)
+    }
   }
 
   async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {

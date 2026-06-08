@@ -3,7 +3,7 @@
  */
 
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
-import type { ContentKeyCache, NodeContentCipher } from './types'
+import type { ContentKeyCache, NodeContentCipher, NodeStorageAdapter } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
@@ -114,6 +114,15 @@ class QueryCapableMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
       throw new Error('storage query should not run while read authorization is active')
     }
   )
+}
+
+class TransactionTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
+  transactionCalls = 0
+
+  async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
+    this.transactionCalls += 1
+    return super.withTransaction(fn)
+  }
 }
 
 function createMockNodeContentCipher() {
@@ -600,6 +609,54 @@ describe('transaction support', () => {
     for (const change of result.changes) {
       expect(change.batchSize).toBe(3)
     }
+  })
+
+  it('should delegate non-empty transaction batches to storage transaction owner', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new TransactionTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    await store.transaction([
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 1' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 2' } } }
+    ])
+
+    expect(adapter.transactionCalls).toBe(1)
+  })
+
+  it('should roll back storage writes when a transaction operation fails', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new TransactionTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+    const timeBefore = store.getCurrentLamportTime()
+
+    await expect(
+      store.transaction([
+        { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Created' } } },
+        {
+          type: 'update',
+          nodeId: 'missing-node',
+          options: { properties: { title: 'Missing' } }
+        }
+      ])
+    ).rejects.toThrow('Node not found')
+
+    expect(adapter.transactionCalls).toBe(1)
+    expect(adapter.getNodeCount()).toBe(0)
+    expect(adapter.getChangeCount()).toBe(0)
+    expect(store.getCurrentLamportTime()).toBe(timeBefore)
   })
 
   it('should use the same Lamport timestamp for all operations in a batch', async () => {

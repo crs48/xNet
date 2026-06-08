@@ -142,6 +142,13 @@ export interface NodeStorageAdapter {
   open?(): Promise<void>
   /** Close the storage connection */
   close?(): Promise<void>
+  /**
+   * Execute a batch of storage operations as one adapter-owned transaction.
+   *
+   * Storage implementations pass a transaction-scoped adapter to `fn`; writes
+   * through that adapter must not start their own nested transaction.
+   */
+  withTransaction?<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T>
 
   // Change log operations
   appendChange(change: NodeChange): Promise<void>

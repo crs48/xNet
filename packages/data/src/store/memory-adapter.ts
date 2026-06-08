@@ -14,6 +14,21 @@ import type {
 } from './types'
 import type { ContentId } from '@xnetjs/core'
 
+type MemoryNodeStorageSnapshot = {
+  changes: Map<NodeId, NodeChange[]>
+  changesByHash: Map<ContentId, NodeChange>
+  nodes: Map<NodeId, NodeState>
+  documentContentStore: Map<NodeId, Uint8Array>
+  yjsSnapshotStore: {
+    nodeId: NodeId
+    timestamp: number
+    snapshot: Uint8Array
+    docState: Uint8Array
+    byteSize: number
+  }[]
+  lastLamportTime: number
+}
+
 /**
  * In-memory implementation of NodeStorageAdapter.
  */
@@ -30,6 +45,17 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     byteSize: number
   }[] = []
   private lastLamportTime = 0
+
+  async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
+    const snapshot = this.createSnapshot()
+
+    try {
+      return await fn(this)
+    } catch (err) {
+      this.restoreSnapshot(snapshot)
+      throw err
+    }
+  }
 
   // ==========================================================================
   // Change Log Operations
@@ -231,5 +257,42 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
    */
   getNodeCount(): number {
     return this.nodes.size
+  }
+
+  private createSnapshot(): MemoryNodeStorageSnapshot {
+    return {
+      changes: new Map(
+        Array.from(this.changes.entries(), ([nodeId, changes]) => [
+          nodeId,
+          structuredClone(changes)
+        ])
+      ),
+      changesByHash: new Map(
+        Array.from(this.changesByHash.entries(), ([hash, change]) => [
+          hash,
+          structuredClone(change)
+        ])
+      ),
+      nodes: new Map(
+        Array.from(this.nodes.entries(), ([nodeId, node]) => [nodeId, structuredClone(node)])
+      ),
+      documentContentStore: new Map(
+        Array.from(this.documentContentStore.entries(), ([nodeId, content]) => [
+          nodeId,
+          new Uint8Array(content)
+        ])
+      ),
+      yjsSnapshotStore: structuredClone(this.yjsSnapshotStore),
+      lastLamportTime: this.lastLamportTime
+    }
+  }
+
+  private restoreSnapshot(snapshot: MemoryNodeStorageSnapshot): void {
+    this.changes = snapshot.changes
+    this.changesByHash = snapshot.changesByHash
+    this.nodes = snapshot.nodes
+    this.documentContentStore = snapshot.documentContentStore
+    this.yjsSnapshotStore = snapshot.yjsSnapshotStore
+    this.lastLamportTime = snapshot.lastLamportTime
   }
 }

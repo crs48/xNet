@@ -73,6 +73,12 @@ type SerializedNodeSnapshot = {
   unknown?: Record<string, unknown>
 }
 
+type PendingTransactionEvent = {
+  change: NodeChange
+  result: NodeState | null
+  previousNode: NodeState | null
+}
+
 /**
  * NodeStore manages event-sourced Nodes with LWW conflict resolution.
  */
@@ -680,16 +686,56 @@ export class NodeStore {
     const batchId = createBatchId()
     const batchSize = resolvedOps.length
     const now = Date.now()
+    const previousClock = this.clock
 
     // Tick the clock once for the entire batch
     const [newClock, lamport] = tick(this.clock)
     this.clock = newClock
 
+    try {
+      const run = (storage: NodeStorageAdapter) =>
+        this.executeTransactionOperations({
+          operations: resolvedOps,
+          storage,
+          lamport,
+          now,
+          batchId,
+          batchSize
+        })
+      const result = this.storage.withTransaction
+        ? await this.storage.withTransaction(run)
+        : await run(this.storage)
+
+      for (const event of result.events) {
+        this.emit(event.change, event.result, event.previousNode, false)
+        this.authEvaluator?.invalidate(event.change.payload.nodeId)
+      }
+
+      return { batchId, results: result.results, changes: result.changes, tempIds }
+    } catch (err) {
+      this.clock = previousClock
+      throw err
+    }
+  }
+
+  private async executeTransactionOperations(input: {
+    operations: TransactionOperation[]
+    storage: NodeStorageAdapter
+    lamport: LamportTimestamp
+    now: number
+    batchId: string
+    batchSize: number
+  }): Promise<{
+    results: (NodeState | null)[]
+    changes: NodeChange[]
+    events: PendingTransactionEvent[]
+  }> {
     const results: (NodeState | null)[] = []
     const changes: NodeChange[] = []
+    const events: PendingTransactionEvent[] = []
 
-    for (let i = 0; i < resolvedOps.length; i++) {
-      const op = resolvedOps[i]
+    for (let i = 0; i < input.operations.length; i++) {
+      const op = input.operations[i]
       let change: NodeChange
       let result: NodeState | null = null
       let previousNode: NodeState | null = null
@@ -705,20 +751,21 @@ export class NodeStore {
           change = await this.createBatchedChange(
             'node-change',
             payload,
-            lamport,
-            now,
-            batchId,
+            input.lamport,
+            input.now,
+            input.batchId,
             i,
-            batchSize
+            input.batchSize,
+            input.storage
           )
-          await this.applyChange(change)
-          result = await this.storage.getNode(id)
-          await this.persistEncryptedNodeSnapshot(result)
+          await this.applyChange(change, input.storage)
+          result = await input.storage.getNode(id)
+          await this.persistEncryptedNodeSnapshot(result, input.storage)
           break
         }
 
         case 'update': {
-          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
+          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
@@ -730,20 +777,21 @@ export class NodeStore {
           change = await this.createBatchedChange(
             'node-change',
             payload,
-            lamport,
-            now,
-            batchId,
+            input.lamport,
+            input.now,
+            input.batchId,
             i,
-            batchSize
+            input.batchSize,
+            input.storage
           )
-          await this.applyChange(change)
-          result = await this.storage.getNode(op.nodeId)
-          await this.persistEncryptedNodeSnapshot(result)
+          await this.applyChange(change, input.storage)
+          result = await input.storage.getNode(op.nodeId)
+          await this.persistEncryptedNodeSnapshot(result, input.storage)
           break
         }
 
         case 'delete': {
-          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
+          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
@@ -756,19 +804,20 @@ export class NodeStore {
           change = await this.createBatchedChange(
             'node-change',
             payload,
-            lamport,
-            now,
-            batchId,
+            input.lamport,
+            input.now,
+            input.batchId,
             i,
-            batchSize
+            input.batchSize,
+            input.storage
           )
-          await this.applyChange(change)
+          await this.applyChange(change, input.storage)
           result = null
           break
         }
 
         case 'restore': {
-          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
+          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
@@ -781,28 +830,26 @@ export class NodeStore {
           change = await this.createBatchedChange(
             'node-change',
             payload,
-            lamport,
-            now,
-            batchId,
+            input.lamport,
+            input.now,
+            input.batchId,
             i,
-            batchSize
+            input.batchSize,
+            input.storage
           )
-          await this.applyChange(change)
-          result = await this.storage.getNode(op.nodeId)
-          await this.persistEncryptedNodeSnapshot(result)
+          await this.applyChange(change, input.storage)
+          result = await input.storage.getNode(op.nodeId)
+          await this.persistEncryptedNodeSnapshot(result, input.storage)
           break
         }
       }
 
       changes.push(change)
       results.push(result)
-
-      // Emit change event for subscribers
-      this.emit(change, result, previousNode, false)
-      this.authEvaluator?.invalidate(change.payload.nodeId)
+      events.push({ change, result, previousNode })
     }
 
-    return { batchId, results, changes, tempIds }
+    return { results, changes, events }
   }
 
   // ==========================================================================
@@ -1054,10 +1101,11 @@ export class NodeStore {
     wallTime: number,
     batchId: string,
     batchIndex: number,
-    batchSize: number
+    batchSize: number,
+    storage: NodeStorageAdapter = this.storage
   ): Promise<NodeChange> {
     // Get parent hash (last change for this node)
-    const lastChange = await this.storage.getLastChange(payload.nodeId)
+    const lastChange = await storage.getLastChange(payload.nodeId)
     const parentHash = lastChange?.hash ?? null
 
     // Create and sign the change with batch metadata
@@ -1080,11 +1128,14 @@ export class NodeStore {
   /**
    * Apply a change to storage and update materialized state.
    */
-  private async applyChange(change: NodeChange): Promise<void> {
+  private async applyChange(
+    change: NodeChange,
+    storage: NodeStorageAdapter = this.storage
+  ): Promise<void> {
     const { nodeId, schemaId, properties, deleted } = change.payload
 
     // Get or create materialized state FIRST (required for foreign key constraint)
-    let node = await this.storage.getNode(nodeId)
+    let node = await storage.getNode(nodeId)
 
     if (!node) {
       // First change for this node - create it
@@ -1105,14 +1156,14 @@ export class NodeStore {
       }
 
       // Persist the node record BEFORE appending change (FK constraint)
-      await this.storage.setNode(node, { indexProperties: !this.nodeContentCipher })
+      await storage.setNode(node, { indexProperties: !this.nodeContentCipher })
     }
 
     // Now append to change log (node exists, FK constraint satisfied)
-    await this.storage.appendChange(change)
+    await storage.appendChange(change)
 
     // Update Lamport time
-    await this.storage.setLastLamportTime(this.clock.time)
+    await storage.setLastLamportTime(this.clock.time)
 
     // Get known property names from schema (if available)
     const knownProps = this.propertyLookup?.(node.schemaId)
@@ -1196,7 +1247,7 @@ export class NodeStore {
     node.updatedBy = change.authorDID
 
     // Persist
-    await this.storage.setNode(node, { indexProperties: !this.nodeContentCipher })
+    await storage.setNode(node, { indexProperties: !this.nodeContentCipher })
   }
 
   /**
@@ -1346,7 +1397,10 @@ export class NodeStore {
     return Object.keys(patch).some((propertyName) => authRelevant.has(propertyName))
   }
 
-  private async persistEncryptedNodeSnapshot(node: NodeState | null): Promise<void> {
+  private async persistEncryptedNodeSnapshot(
+    node: NodeState | null,
+    storage: NodeStorageAdapter = this.storage
+  ): Promise<void> {
     if (!node || !this.nodeContentCipher) {
       return
     }
@@ -1370,7 +1424,7 @@ export class NodeStore {
     }
 
     const encodedWrapper = new TextEncoder().encode(JSON.stringify(wrappedSnapshot))
-    await this.storage.setDocumentContent(node.id, encodedWrapper)
+    await storage.setDocumentContent(node.id, encodedWrapper)
   }
 
   private async decryptNodeSnapshotIfPresent(node: NodeState | null): Promise<NodeState | null> {

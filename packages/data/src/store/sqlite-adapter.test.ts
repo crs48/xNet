@@ -186,6 +186,56 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(stored.map((node) => node?.id).sort()).toEqual(nodes.map((node) => node.id).sort())
     })
 
+    it('runs repeated transaction-scoped writes without nested transactions', async () => {
+      const now = Date.now()
+
+      await adapter.withTransaction(async (tx) => {
+        await tx.setNode(
+          createTestNode({
+            id: 'tx-node-1',
+            properties: { title: 'Transaction node 1' },
+            createdAt: now,
+            updatedAt: now
+          })
+        )
+        await tx.setNode(
+          createTestNode({
+            id: 'tx-node-2',
+            properties: { title: 'Transaction node 2' },
+            createdAt: now + 1,
+            updatedAt: now + 1
+          })
+        )
+        await tx.setLastLamportTime(42)
+      })
+
+      await expect(adapter.getNode('tx-node-1')).resolves.toMatchObject({
+        id: 'tx-node-1',
+        properties: { title: 'Transaction node 1' }
+      })
+      await expect(adapter.getNode('tx-node-2')).resolves.toMatchObject({
+        id: 'tx-node-2',
+        properties: { title: 'Transaction node 2' }
+      })
+      await expect(adapter.getLastLamportTime()).resolves.toBe(42)
+    })
+
+    it('rolls back transaction-scoped writes on failure', async () => {
+      await expect(
+        adapter.withTransaction(async (tx) => {
+          await tx.setNode(
+            createTestNode({
+              id: 'rolled-back-node',
+              properties: { title: 'Rolled back' }
+            })
+          )
+          throw new Error('rollback sentinel')
+        })
+      ).rejects.toThrow('rollback sentinel')
+
+      await expect(adapter.getNode('rolled-back-node')).resolves.toBeNull()
+    })
+
     it('respects LWW for concurrent updates - higher lamport wins', async () => {
       const now = Date.now()
 

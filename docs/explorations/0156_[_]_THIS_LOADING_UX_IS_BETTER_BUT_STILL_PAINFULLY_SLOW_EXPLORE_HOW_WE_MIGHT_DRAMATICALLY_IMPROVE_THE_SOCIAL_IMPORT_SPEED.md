@@ -572,7 +572,7 @@ Recommendation:
 - [x] Add import performance metrics to the progress UI: records/sec, write ms/chunk, check ms/chunk, indexing ms/chunk.
 - [ ] Add a true web storage/worker bulk existence backend instead of the current route-level grouped fallback.
 - [x] Add a benchmark fixture for 10k, 72k, 280k, and 1M social-node drafts.
-- [ ] Confirm the current nested transaction error cannot happen in the new path by having one transaction owner per chunk.
+- [x] Confirm the current nested transaction error cannot happen in the new path by having one transaction owner per chunk.
 
 ### Phase 2 - Bulk NodeStore import primitive
 
