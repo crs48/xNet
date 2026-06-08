@@ -15,7 +15,8 @@ import type {
   CountNodesOptions,
   PropertyTimestamp,
   SetNodeOptions,
-  ImportNodesOptions
+  ImportNodesOptions,
+  RebuildNodeIndexesOptions
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
@@ -426,6 +427,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       getExistingNodeIds: (ids) => this.getExistingNodeIds(ids),
       setNode: (node, options) => this._setNodeInternal(node, options),
       importNodes: (nodes, options) => this.importNodesInternal(nodes, options),
+      rebuildIndexesForSchemas: (schemaIds, options) =>
+        this.rebuildIndexesForSchemasInternal(schemaIds, options),
       deleteNode: (id) => this.deleteNodeInternal(id),
       listNodes: (options) => this.listNodes(options),
       countNodes: (options) => this.countNodes(options),
@@ -678,7 +681,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Internal method for setting a node without starting a new transaction.
    * Used by importNodes to avoid nested transactions.
    */
-  private async _setNodeInternal(node: NodeState, options?: SetNodeOptions): Promise<void> {
+  private async _setNodeInternal(
+    node: NodeState,
+    options?: SetNodeOptions | ImportNodesOptions
+  ): Promise<void> {
     // Upsert node
     await this.db.run(
       `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
@@ -722,6 +728,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           timestamp.wallTime
         ]
       )
+    }
+
+    const deferIndexes = options ? 'deferIndexes' in options && options.deferIndexes : false
+    if (deferIndexes) {
+      return
     }
 
     const indexedNode = await this.getNode(node.id)
@@ -1077,6 +1088,123 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   ): Promise<void> {
     for (const node of nodes) {
       await this._setNodeInternal(node, options)
+    }
+  }
+
+  async rebuildIndexesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    options?: RebuildNodeIndexesOptions
+  ): Promise<void> {
+    if (schemaIds.length === 0) return
+
+    await this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.rebuildIndexesForSchemasInternal(schemaIds, options)
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  private async rebuildIndexesForSchemasInternal(
+    schemaIds: readonly SchemaIRI[],
+    options?: RebuildNodeIndexesOptions
+  ): Promise<void> {
+    const uniqueSchemaIds = Array.from(new Set(schemaIds.filter(Boolean)))
+    if (uniqueSchemaIds.length === 0) return
+
+    const nodesBySchemaId = new Map<SchemaIRI, NodeState[]>()
+    for (const schemaId of uniqueSchemaIds) {
+      nodesBySchemaId.set(
+        schemaId,
+        await this.listNodesOptimized({ schemaId, includeDeleted: true })
+      )
+    }
+
+    const indexProperties = options?.indexProperties ?? true
+    await this.rebuildScalarIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
+    await this.rebuildSpatialIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
+    await this.rebuildFullTextIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId)
+
+    for (const schemaId of uniqueSchemaIds) {
+      await this.invalidateMaterializedViewsForSchema(schemaId)
+    }
+  }
+
+  private async rebuildScalarIndexesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>,
+    indexProperties: boolean
+  ): Promise<void> {
+    for (const schemaId of schemaIds) {
+      await this.db.run('DELETE FROM node_property_scalars WHERE schema_id = ?', [schemaId])
+
+      if (!indexProperties) {
+        continue
+      }
+
+      const nodes = nodesBySchemaId.get(schemaId) ?? []
+      for (const node of nodes) {
+        await this.syncScalarRowsForNode(node, true)
+      }
+    }
+  }
+
+  private async rebuildSpatialIndexesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>,
+    indexProperties: boolean
+  ): Promise<void> {
+    if (!(await this.hasSpatialTables())) {
+      return
+    }
+
+    for (const schemaId of schemaIds) {
+      const configs = await this.db.query<SpatialIndexConfigRow>(
+        `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
+         FROM node_spatial_indexes
+         WHERE schema_id = ?`,
+        [schemaId]
+      )
+
+      for (const config of configs) {
+        await this.clearSpatialRowsForConfig(config.spatial_key)
+
+        if (!indexProperties) {
+          continue
+        }
+
+        const nodes = nodesBySchemaId.get(schemaId) ?? []
+        for (const node of nodes) {
+          await this.replaceSpatialRowForConfig(node, config, true)
+        }
+      }
+    }
+  }
+
+  private async rebuildFullTextIndexesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>
+  ): Promise<void> {
+    if (!(await this.hasFullTextSearchTable())) {
+      return
+    }
+
+    for (const schemaId of schemaIds) {
+      const nodes = nodesBySchemaId.get(schemaId) ?? []
+      for (const node of nodes) {
+        if (node.deleted) {
+          await deleteNodeFTS(this.db, node.id)
+          continue
+        }
+
+        const title = typeof node.properties.title === 'string' ? node.properties.title : null
+        const content = extractSearchableContent(node.properties)
+        await updateNodeFTS(this.db, node.id, title, content)
+      }
     }
   }
 
@@ -1750,6 +1878,24 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
 
     await this.db.run('DELETE FROM node_spatial_rtree WHERE spatial_id = ?', [existing.spatial_id])
     await this.db.run('DELETE FROM node_spatial_ids WHERE spatial_id = ?', [existing.spatial_id])
+  }
+
+  private async clearSpatialRowsForConfig(spatialKey: string): Promise<void> {
+    const rows = await this.db.query<{ spatial_id: number }>(
+      `SELECT spatial_id
+       FROM node_spatial_ids
+       WHERE spatial_key = ?`,
+      [spatialKey]
+    )
+
+    for (const batch of chunkItems(rows, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
+      const placeholders = batch.map(() => '?').join(', ')
+      await this.db.run(`DELETE FROM node_spatial_rtree WHERE spatial_id IN (${placeholders})`, [
+        ...batch.map((row) => row.spatial_id)
+      ])
+    }
+
+    await this.db.run('DELETE FROM node_spatial_ids WHERE spatial_key = ?', [spatialKey])
   }
 
   private async clearSpatialRows(): Promise<void> {

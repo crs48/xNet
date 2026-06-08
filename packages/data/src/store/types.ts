@@ -172,6 +172,11 @@ export interface NodeStorageAdapter {
   setNode(node: NodeState, options?: SetNodeOptions): Promise<void>
   /** Import multiple materialized nodes in one storage-owned write when supported. */
   importNodes?(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void>
+  /** Rebuild secondary node indexes after an import that deferred index maintenance. */
+  rebuildIndexesForSchemas?(
+    schemaIds: readonly SchemaIRI[],
+    options?: RebuildNodeIndexesOptions
+  ): Promise<void>
   deleteNode(id: NodeId): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<NodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
@@ -195,7 +200,16 @@ export interface SetNodeOptions {
   indexProperties?: boolean
 }
 
-export type ImportNodesOptions = SetNodeOptions
+export interface ImportNodesOptions extends SetNodeOptions {
+  /**
+   * Skip secondary scalar/spatial/FTS/materialized maintenance for this write.
+   * Callers must rebuild affected schema indexes before relying on indexed
+   * queries again.
+   */
+  deferIndexes?: boolean
+}
+
+export type RebuildNodeIndexesOptions = SetNodeOptions
 
 export interface ListNodesOptions {
   /** Filter by schema IRI */

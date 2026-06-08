@@ -224,6 +224,75 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(nodes.map((node) => node.properties.title)).toEqual(['Bulk 2', 'Bulk 1'])
     })
 
+    it('defers scalar index writes until schema indexes are rebuilt', async () => {
+      await adapter.importNodes(
+        [
+          createTestNode({
+            id: 'deferred-node-1',
+            properties: { title: 'Deferred Node', status: 'queued' }
+          })
+        ],
+        { deferIndexes: true }
+      )
+
+      const beforeRebuild = await db.queryOne<{ count: number }>(
+        `SELECT COUNT(*) as count
+         FROM node_property_scalars
+         WHERE node_id = ?`,
+        ['deferred-node-1']
+      )
+      expect(beforeRebuild?.count).toBe(0)
+
+      await adapter.rebuildIndexesForSchemas([testSchemaId])
+
+      const afterRebuild = await db.query<{ property_key: string; value_text: string | null }>(
+        `SELECT property_key, value_text
+         FROM node_property_scalars
+         WHERE node_id = ?
+         ORDER BY property_key ASC`,
+        ['deferred-node-1']
+      )
+      expect(afterRebuild).toEqual([
+        { property_key: 'status', value_text: 'queued' },
+        { property_key: 'title', value_text: 'Deferred Node' }
+      ])
+    })
+
+    it('rebuilds stale scalar rows after deferred updates', async () => {
+      await adapter.importNodes([
+        createTestNode({
+          id: 'deferred-node-2',
+          properties: { title: 'Deferred Node', status: 'queued' }
+        })
+      ])
+
+      const updated = createTestNode({
+        id: 'deferred-node-2',
+        properties: { title: 'Deferred Node', status: 'done' },
+        updatedAt: Date.now() + 1000
+      })
+      updated.timestamps.status.lamport.time = 10
+      await adapter.importNodes([updated], { deferIndexes: true })
+
+      const beforeRebuild = await db.queryOne<{ value_text: string | null }>(
+        `SELECT value_text
+         FROM node_property_scalars
+         WHERE node_id = ? AND property_key = ?`,
+        ['deferred-node-2', 'status']
+      )
+      expect(beforeRebuild?.value_text).toBe('queued')
+
+      await adapter.rebuildIndexesForSchemas([testSchemaId])
+
+      const afterRebuild = await db.queryOne<{ value_text: string | null }>(
+        `SELECT value_text
+         FROM node_property_scalars
+         WHERE node_id = ? AND property_key = ?`,
+        ['deferred-node-2', 'status']
+      )
+      expect(afterRebuild?.value_text).toBe('done')
+    })
+
     it('serializes concurrent transaction-backed node writes', async () => {
       const now = Date.now()
       const nodes = Array.from({ length: 8 }, (_, index) =>

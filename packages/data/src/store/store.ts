@@ -964,13 +964,23 @@ export class NodeStore {
   ): Promise<void> {
     if (nodes.length === 0) return
 
+    const affectedSchemaIds = Array.from(new Set(nodes.map((node) => node.schemaId)))
+    const indexProperties = !this.nodeContentCipher
+    const canDeferIndexes = Boolean(storage.rebuildIndexesForSchemas)
+
     if (storage.importNodes) {
-      await storage.importNodes(nodes, { indexProperties: !this.nodeContentCipher })
+      await storage.importNodes(nodes, {
+        indexProperties,
+        deferIndexes: canDeferIndexes
+      })
+      if (canDeferIndexes) {
+        await storage.rebuildIndexesForSchemas?.(affectedSchemaIds, { indexProperties })
+      }
       return
     }
 
     for (const node of nodes) {
-      await storage.setNode(node, { indexProperties: !this.nodeContentCipher })
+      await storage.setNode(node, { indexProperties })
     }
   }
 

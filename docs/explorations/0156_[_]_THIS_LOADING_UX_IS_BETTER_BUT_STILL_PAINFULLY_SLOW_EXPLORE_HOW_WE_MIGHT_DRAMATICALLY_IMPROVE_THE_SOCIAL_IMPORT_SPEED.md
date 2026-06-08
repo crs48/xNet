@@ -580,7 +580,7 @@ Recommendation:
 - [x] Add `NodeStore.importDeterministicNodes()` or equivalent package-level API.
 - [x] Preserve signed `NodeChange` creation, parent hashes, Lamport behavior, and batch ids.
 - [x] Bulk materialize node state in memory using existing LWW semantics.
-- [ ] Add `deferIndexes` / `rebuildIndexesForSchemas` support to SQLite node storage.
+- [x] Add `deferIndexes` / `rebuildIndexesForSchemas` support to SQLite node storage.
 - [ ] Emit compact import progress events and avoid per-node React invalidation until after chunk commit.
 - [ ] Add correctness tests comparing generic `transaction()` results against bulk import results for create, update, conflict/LWW, and source-record cases.
 

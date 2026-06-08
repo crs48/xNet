@@ -38,6 +38,8 @@ export type {
   NodeState,
   NodeStorageAdapter,
   SetNodeOptions,
+  ImportNodesOptions,
+  RebuildNodeIndexesOptions,
   ListNodesOptions,
   CountNodesOptions,
   ConflictResult,

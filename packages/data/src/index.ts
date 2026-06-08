@@ -319,6 +319,8 @@ export {
   type NodeState,
   type NodeStorageAdapter,
   type SetNodeOptions,
+  type ImportNodesOptions,
+  type RebuildNodeIndexesOptions,
   type ListNodesOptions,
   type CountNodesOptions,
   type SortDirection,
