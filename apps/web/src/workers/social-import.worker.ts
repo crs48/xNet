@@ -4,13 +4,16 @@ import type {
   SocialImportWorkerStagePayload,
   SocialImportWorkerSuccessResponse
 } from '../lib/social-import-worker-protocol'
-import type { SocialImportNodeDraft, SocialImportStageResult } from '@xnetjs/social/import/browser'
+import type {
+  SocialImportNodeDraft,
+  SocialImportNodeDraftStreamResult
+} from '@xnetjs/social/import/browser'
 import {
   createBrowserZipJsonEntryReader,
   createBrowserZipTextEntryReader,
   createSocialArchivePreview,
   readBrowserZipArchiveManifest,
-  stageSocialArchive
+  streamSocialImportNodeDrafts
 } from '@xnetjs/social/import/browser'
 import { builtInSocialImportAdapters } from '@xnetjs/social/importers'
 
@@ -25,7 +28,7 @@ const workerScope = self as unknown as SocialImportWorkerScope
 const stagedResults = new Map<string, WorkerStagedResult>()
 
 type WorkerStagedResult = {
-  result: SocialImportStageResult
+  result: SocialImportNodeDraftStreamResult
   commitDraftsWithSourceRecords: SocialImportNodeDraft[] | null
   commitDraftsWithoutSourceRecords: SocialImportNodeDraft[] | null
 }
@@ -90,18 +93,28 @@ async function handleStage(
   const startedAt = performance.now()
   const readJsonEntry = await createBrowserZipJsonEntryReader(request.file)
   const readTextEntry = await createBrowserZipTextEntryReader(request.file)
-  const result = await stageSocialArchive({
+  const streamResults: SocialImportNodeDraftStreamResult[] = []
+  const drafts: SocialImportNodeDraft[] = []
+
+  for await (const draft of streamSocialImportNodeDrafts({
     manifest: request.manifest,
     adapters,
     readJsonEntry,
     readTextEntry,
     buckets: request.buckets,
-    includeSensitive: request.includeSensitive
-  })
+    includeSensitive: request.includeSensitive,
+    includeSourceRecords: true,
+    onComplete: (result) => {
+      streamResults.push(result)
+    }
+  })) {
+    drafts.push(draft)
+  }
+  const result = requireStreamResult(streamResults)
   const stageId = createStageId()
   stagedResults.set(stageId, {
     result,
-    commitDraftsWithSourceRecords: null,
+    commitDraftsWithSourceRecords: drafts,
     commitDraftsWithoutSourceRecords: null
   })
 
@@ -178,11 +191,8 @@ workerScope.onmessage = (event): void => {
 
 function createStagePayload(
   stageId: string,
-  result: SocialImportStageResult
+  result: SocialImportNodeDraftStreamResult
 ): SocialImportWorkerStagePayload {
-  const sourceRecordCount = result.records.filter(
-    (record) => record.kind === 'source-record'
-  ).length
   return {
     archive: result.archive,
     archiveNode: result.archiveNode,
@@ -191,9 +201,9 @@ function createStagePayload(
     telemetry: result.telemetry,
     stageDurationMs: result.stageDurationMs,
     stageId,
-    recordCount: result.records.length,
-    sourceRecordCount,
-    canonicalRecordCount: result.records.length - sourceRecordCount
+    recordCount: result.recordCount,
+    sourceRecordCount: result.sourceRecordCount,
+    canonicalRecordCount: result.canonicalRecordCount
   }
 }
 
@@ -201,21 +211,26 @@ function getCommitDrafts(
   stagedResult: WorkerStagedResult,
   includeSourceRecords: boolean
 ): SocialImportNodeDraft[] {
+  if (!stagedResult.commitDraftsWithSourceRecords) {
+    throw new Error('Staged social import is missing commit drafts.')
+  }
+
   if (includeSourceRecords) {
-    stagedResult.commitDraftsWithSourceRecords ??= [
-      stagedResult.result.archiveNode,
-      stagedResult.result.importRunNode,
-      ...stagedResult.result.records
-    ]
     return stagedResult.commitDraftsWithSourceRecords
   }
 
   stagedResult.commitDraftsWithoutSourceRecords ??= [
-    stagedResult.result.archiveNode,
-    stagedResult.result.importRunNode,
-    ...stagedResult.result.records.filter((record) => record.kind !== 'source-record')
+    ...getCommitDrafts(stagedResult, true).filter((draft) => draft.kind !== 'source-record')
   ]
   return stagedResult.commitDraftsWithoutSourceRecords
+}
+
+function requireStreamResult(
+  results: readonly SocialImportNodeDraftStreamResult[]
+): SocialImportNodeDraftStreamResult {
+  const [result] = results
+  if (!result) throw new Error('Social import stream did not complete.')
+  return result
 }
 
 function createStageId(): string {

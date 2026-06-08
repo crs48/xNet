@@ -2,7 +2,7 @@ import type {
   ArchiveManifest,
   SocialImportArchivePreview,
   SocialImportNodeDraft,
-  SocialImportStageResult
+  SocialImportNodeDraftStreamResult
 } from '@xnetjs/social/import/browser'
 
 export type SocialImportWorkerExecutionMode = 'worker' | 'main-thread'
@@ -18,11 +18,8 @@ export type SocialImportWorkerPreviewPayload = {
   preview: SocialImportArchivePreview
 }
 
-export type SocialImportWorkerStagePayload = Omit<SocialImportStageResult, 'records'> & {
+export type SocialImportWorkerStagePayload = SocialImportNodeDraftStreamResult & {
   stageId: string
-  recordCount: number
-  sourceRecordCount: number
-  canonicalRecordCount: number
 }
 
 export type SocialImportWorkerStageChunkPayload = {

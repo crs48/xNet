@@ -6,7 +6,7 @@ import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type {
   SocialImportArchivePreview as SharedSocialImportArchivePreview,
   SocialImportNodeDraft as SharedSocialImportNodeDraft,
-  SocialImportStageResult as SharedSocialImportStageResult,
+  SocialImportNodeDraftStreamResult,
   SocialImportJobMetrics,
   SocialImportJobPhase,
   SocialImportJobProgress
@@ -17,7 +17,7 @@ import {
   createZipJsonEntryReader,
   createZipTextEntryReader,
   readZipArchiveManifest,
-  stageSocialArchive
+  streamSocialImportNodeDrafts
 } from '@xnetjs/social/import/node'
 import { builtInSocialImportAdapters } from '@xnetjs/social/importers'
 import { dialog, ipcMain } from 'electron'
@@ -35,12 +35,9 @@ export type SocialImportStageRequest = {
   includeSensitive?: boolean
 }
 
-export type SocialImportStageResult = Omit<SharedSocialImportStageResult, 'archive' | 'records'> & {
+export type SocialImportStageResult = Omit<SocialImportNodeDraftStreamResult, 'archive'> & {
   archive: SocialImportArchivePreview
   stageId: string
-  recordCount: number
-  sourceRecordCount: number
-  canonicalRecordCount: number
 }
 
 export type SocialImportCommitJobRequest = {
@@ -68,7 +65,7 @@ const cancelledCommitJobIds = new Set<string>()
 let queuedTestArchivePath: string | null = null
 const COMMIT_BATCH_SIZE = 2500
 
-type ElectronStagedSocialImport = Omit<SharedSocialImportStageResult, 'archive'> & {
+type ElectronStagedSocialImport = Omit<SocialImportNodeDraftStreamResult, 'archive'> & {
   archive: SocialImportArchivePreview
   commitDraftsWithSourceRecords: SharedSocialImportNodeDraft[] | null
   commitDraftsWithoutSourceRecords: SharedSocialImportNodeDraft[] | null
@@ -159,25 +156,31 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
   const readJsonEntry = await createZipJsonEntryReader(request.archivePath)
   const readTextEntry = await createZipTextEntryReader(request.archivePath)
 
-  const result = await stageSocialArchive({
+  const streamResults: SocialImportNodeDraftStreamResult[] = []
+  const drafts: SharedSocialImportNodeDraft[] = []
+  for await (const draft of streamSocialImportNodeDrafts({
     manifest,
     adapters,
     readJsonEntry,
     readTextEntry,
     buckets: request.buckets,
-    includeSensitive: request.includeSensitive
-  })
+    includeSensitive: request.includeSensitive,
+    includeSourceRecords: true,
+    onComplete: (streamResult) => {
+      streamResults.push(streamResult)
+    }
+  })) {
+    drafts.push(draft)
+  }
+  const result = requireStreamResult(streamResults)
   const archive = requireArchivePath(result.archive, request.archivePath)
   const stageId = createStageId()
   stagedResults.set(stageId, {
     ...result,
     archive,
-    commitDraftsWithSourceRecords: null,
+    commitDraftsWithSourceRecords: drafts,
     commitDraftsWithoutSourceRecords: null
   })
-  const sourceRecordCount = result.records.filter(
-    (record) => record.kind === 'source-record'
-  ).length
 
   return {
     archive,
@@ -187,9 +190,9 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
     telemetry: result.telemetry,
     stageDurationMs: result.stageDurationMs,
     stageId,
-    recordCount: result.records.length,
-    sourceRecordCount,
-    canonicalRecordCount: result.records.length - sourceRecordCount
+    recordCount: result.recordCount,
+    sourceRecordCount: result.sourceRecordCount,
+    canonicalRecordCount: result.canonicalRecordCount
   }
 }
 
@@ -434,21 +437,26 @@ function getCommitDrafts(
   stagedResult: ElectronStagedSocialImport,
   includeSourceRecords: boolean
 ): SharedSocialImportNodeDraft[] {
+  if (!stagedResult.commitDraftsWithSourceRecords) {
+    throw new Error('Staged social import is missing commit drafts.')
+  }
+
   if (includeSourceRecords) {
-    stagedResult.commitDraftsWithSourceRecords ??= [
-      stagedResult.archiveNode,
-      stagedResult.importRunNode,
-      ...stagedResult.records
-    ]
     return stagedResult.commitDraftsWithSourceRecords
   }
 
   stagedResult.commitDraftsWithoutSourceRecords ??= [
-    stagedResult.archiveNode,
-    stagedResult.importRunNode,
-    ...stagedResult.records.filter((record) => record.kind !== 'source-record')
+    ...stagedResult.commitDraftsWithSourceRecords.filter((draft) => draft.kind !== 'source-record')
   ]
   return stagedResult.commitDraftsWithoutSourceRecords
+}
+
+function requireStreamResult(
+  results: readonly SocialImportNodeDraftStreamResult[]
+): SocialImportNodeDraftStreamResult {
+  const [result] = results
+  if (!result) throw new Error('Social import stream did not complete.')
+  return result
 }
 
 function toDeterministicNodeImportDraft(
