@@ -8,6 +8,7 @@ import type {
   ImportSelection,
   JsonArchiveEntryReader,
   SocialImportAdapter,
+  SocialImportStageProgress,
   StagedSocialRecord,
   StagingSummary,
   TextArchiveEntryReader
@@ -15,7 +16,7 @@ import type {
 import { SocialImportArchiveSchema, SocialImportRunSchema } from '../schemas'
 import { detectSocialArchive } from './detector'
 import { createSocialNodeId } from './ids'
-import { collectStagedRecords, createStagingSummary } from './staging'
+import { createStagingSummaryAccumulator } from './staging'
 import { createLargeArchiveStoragePlan } from './storage'
 import { createSocialImportTelemetryEvents, type SocialImportTelemetryEvent } from './telemetry'
 
@@ -61,6 +62,8 @@ export type SocialImportStageInput = {
   includeSensitive?: boolean
   importedAt?: string
   observedBy?: string
+  onProgress?: (progress: SocialImportStageProgress) => void
+  progressIntervalRecords?: number
 }
 
 export type SocialImportStageResult = {
@@ -132,21 +135,35 @@ export async function stageSocialArchive(
     buckets: selectedBuckets,
     includeSensitive: Boolean(input.includeSensitive)
   }
-  const stagedRecords = await collectStagedRecords(
-    detection.adapter.stage(
-      {
-        manifest: input.manifest,
-        archiveId,
-        importRunId,
-        importedAt,
-        observedBy: input.observedBy,
-        readJsonEntry: input.readJsonEntry,
-        readTextEntry: input.readTextEntry
-      },
-      selection
-    )
-  )
-  const summary = createStagingSummary(stagedRecords)
+  const stagedRecords: StagedSocialRecord[] = []
+  const summaryAccumulator = createStagingSummaryAccumulator()
+  const progressIntervalRecords = Math.max(1, Math.floor(input.progressIntervalRecords ?? 1000))
+
+  for await (const record of detection.adapter.stage(
+    {
+      manifest: input.manifest,
+      archiveId,
+      importRunId,
+      importedAt,
+      observedBy: input.observedBy,
+      readJsonEntry: input.readJsonEntry,
+      readTextEntry: input.readTextEntry
+    },
+    selection
+  )) {
+    stagedRecords.push(record)
+    summaryAccumulator.add(record)
+
+    if (input.onProgress && stagedRecords.length % progressIntervalRecords === 0) {
+      input.onProgress(summaryAccumulator.progress(record.bucketId))
+    }
+  }
+
+  const summary = summaryAccumulator.summary()
+  input.onProgress?.({
+    ...summary,
+    currentBucketId: null
+  })
   const stageDurationMs = Date.now() - stageStartedAt
 
   return {

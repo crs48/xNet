@@ -124,6 +124,10 @@ export type StagingSummary = {
   bucketSummaries: ImportBucketSummary[]
 }
 
+export type SocialImportStageProgress = StagingSummary & {
+  currentBucketId: string | null
+}
+
 export type SocialImportAdapter = {
   id: string
   version: string

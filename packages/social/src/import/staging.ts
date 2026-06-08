@@ -5,11 +5,13 @@
 import type { SocialPlatform, SocialPrivacyClass, SocialSourceRecordKind } from '../schemas'
 import type {
   ArchiveEntryRef,
+  ImportBucketSummary,
   ImportSelection,
   StagedCanonicalNodeKind,
   StagedIgnoredSourceRecord,
   StagedSocialNode,
   StagedSocialRecord,
+  SocialImportStageProgress,
   StagedSourceRecord,
   StagingSummary
 } from './types'
@@ -158,32 +160,82 @@ export function filterStagedRecordsBySelection(
 }
 
 export function createStagingSummary(records: readonly StagedSocialRecord[]): StagingSummary {
-  const bucketIds = [...new Set(records.map((record) => record.bucketId))].sort()
-  const bucketSummaries = bucketIds.map((bucketId) => {
-    const bucketRecords = records.filter((record) => record.bucketId === bucketId)
-    return {
+  const accumulator = createStagingSummaryAccumulator()
+  records.forEach(accumulator.add)
+  return accumulator.summary()
+}
+
+export type StagingSummaryAccumulator = {
+  add(record: StagedSocialRecord): void
+  progress(currentBucketId?: string | null): SocialImportStageProgress
+  summary(): StagingSummary
+}
+
+type MutableImportBucketSummary = ImportBucketSummary
+
+export function createStagingSummaryAccumulator(): StagingSummaryAccumulator {
+  let totalRecords = 0
+  let totalWarnings = 0
+  let totalIgnored = 0
+  const summariesByBucketId = new Map<string, MutableImportBucketSummary>()
+
+  const bucketSummary = (bucketId: string): MutableImportBucketSummary => {
+    const current = summariesByBucketId.get(bucketId)
+    if (current) return current
+
+    const next: MutableImportBucketSummary = {
       bucketId,
-      totalRecords: bucketRecords.length,
-      recordsByKind: countBy(bucketRecords, (record) => record.kind),
-      recordsByPrivacyClass: countBy(bucketRecords, (record) => record.privacyClass),
-      warningCount: bucketRecords.reduce((count, record) => count + record.warnings.length, 0),
-      ignoredCount: bucketRecords.filter((record) => 'ignored' in record && record.ignored).length
+      totalRecords: 0,
+      recordsByKind: {},
+      recordsByPrivacyClass: {},
+      warningCount: 0,
+      ignoredCount: 0
     }
+    summariesByBucketId.set(bucketId, next)
+    return next
+  }
+
+  const summary = (): StagingSummary => ({
+    totalRecords,
+    totalWarnings,
+    totalIgnored,
+    bucketSummaries: [...summariesByBucketId.values()]
+      .map((item) => ({
+        bucketId: item.bucketId,
+        totalRecords: item.totalRecords,
+        recordsByKind: { ...item.recordsByKind },
+        recordsByPrivacyClass: { ...item.recordsByPrivacyClass },
+        warningCount: item.warningCount,
+        ignoredCount: item.ignoredCount
+      }))
+      .sort((left, right) => left.bucketId.localeCompare(right.bucketId))
   })
 
   return {
-    totalRecords: records.length,
-    totalWarnings: records.reduce((count, record) => count + record.warnings.length, 0),
-    totalIgnored: records.filter((record) => 'ignored' in record && record.ignored).length,
-    bucketSummaries
-  }
-}
+    add(record) {
+      const warnings = record.warnings.length
+      const ignored = 'ignored' in record && record.ignored
+      const bucket = bucketSummary(record.bucketId)
 
-function countBy<T>(items: readonly T[], getKey: (item: T) => string): Record<string, number> {
-  return items.reduce<Record<string, number>>((counts, item) => {
-    const key = getKey(item)
-    return { ...counts, [key]: (counts[key] ?? 0) + 1 }
-  }, {})
+      totalRecords += 1
+      totalWarnings += warnings
+      totalIgnored += ignored ? 1 : 0
+
+      bucket.totalRecords += 1
+      bucket.recordsByKind[record.kind] = (bucket.recordsByKind[record.kind] ?? 0) + 1
+      bucket.recordsByPrivacyClass[record.privacyClass] =
+        (bucket.recordsByPrivacyClass[record.privacyClass] ?? 0) + 1
+      bucket.warningCount += warnings
+      bucket.ignoredCount += ignored ? 1 : 0
+    },
+    progress(currentBucketId = null) {
+      return {
+        ...summary(),
+        currentBucketId
+      }
+    },
+    summary
+  }
 }
 
 function describeJsonShape(value: unknown): unknown {

@@ -64,6 +64,7 @@ export {
   createIgnoredSourceRecord,
   createSourceRecord,
   createStagedNode,
+  createStagingSummaryAccumulator,
   createStagingSummary,
   filterStagedRecordsBySelection
 } from './staging'
@@ -96,6 +97,7 @@ export type {
   TextArchiveEntryReader,
   SocialImportAdapter,
   SocialImportContext,
+  SocialImportStageProgress,
   StagedCanonicalNodeKind,
   StagedIgnoredSourceRecord,
   StagedSocialNode,

@@ -4,7 +4,10 @@ import {
   builtInSocialImportAdapters,
   builtInSocialImporterRegistry,
   createLargeArchiveStoragePlan,
+  createSourceRecord,
+  createStagedNode,
   createSocialNodeId,
+  createStagingSummaryAccumulator,
   createStagingSummary,
   detectSocialArchive,
   findSocialImporterRegistryEntry,
@@ -65,9 +68,11 @@ import {
   parseYouTubeCsv,
   openaiAdapter,
   sanitizeStagedRecordsForFixture,
+  stageSocialArchive,
   tiktokAdapter,
   type ArchiveEntryRef,
   type ArchiveManifest,
+  type SocialImportAdapter,
   type SocialImportContext,
   type StagedSocialRecord,
   xAdapter,
@@ -1789,6 +1794,147 @@ describe('social import adapters', () => {
       ).toBeGreaterThan(0)
       expect(JSON.stringify(sanitized)).not.toContain('Secret')
       expect(JSON.stringify(sanitized)).not.toContain('Example Creator')
+    })
+
+    it('accumulates staging progress by bucket without rescanning all records', () => {
+      const records = [
+        createStagedNode({
+          kind: 'content',
+          deterministicId: 'content:one',
+          platform: 'instagram',
+          bucketId: 'instagram.posts',
+          source: entry('posts.json'),
+          sourceRecordId: 'post-one',
+          privacyClass: 'public',
+          properties: { contentKind: 'post' },
+          warnings: ['missing media']
+        }),
+        createSourceRecord({
+          archiveId: 'archive',
+          importRunId: 'run',
+          platform: 'instagram',
+          bucketId: 'instagram.raw',
+          source: entry('raw.json'),
+          sourceRecordKind: 'content',
+          sourceRecordId: 'raw-one',
+          payload: { id: 'raw-one' },
+          privacyClass: 'private'
+        })
+      ]
+      const accumulator = createStagingSummaryAccumulator()
+
+      accumulator.add(records[0])
+      expect(accumulator.progress('instagram.posts')).toMatchObject({
+        totalRecords: 1,
+        totalWarnings: 1,
+        totalIgnored: 0,
+        currentBucketId: 'instagram.posts',
+        bucketSummaries: [
+          {
+            bucketId: 'instagram.posts',
+            totalRecords: 1,
+            recordsByKind: { content: 1 },
+            recordsByPrivacyClass: { public: 1 },
+            warningCount: 1,
+            ignoredCount: 0
+          }
+        ]
+      })
+
+      accumulator.add(records[1])
+      expect(accumulator.summary()).toMatchObject({
+        totalRecords: 2,
+        totalWarnings: 1,
+        totalIgnored: 0,
+        bucketSummaries: [
+          { bucketId: 'instagram.posts', totalRecords: 1 },
+          { bucketId: 'instagram.raw', totalRecords: 1 }
+        ]
+      })
+    })
+
+    it('reports stage progress snapshots while adapter records stream', async () => {
+      const postsPath = 'posts.json'
+      const rawPath = 'raw.json'
+      const archiveManifest = manifest([entry(postsPath), entry(rawPath)])
+      const adapter: SocialImportAdapter = {
+        id: 'progress-fixture',
+        version: '1.0.0',
+        platform: 'instagram',
+        detect: () => 1,
+        probe: () => ({
+          adapterId: 'progress-fixture',
+          adapterVersion: '1.0.0',
+          platform: 'instagram',
+          confidence: 1,
+          warnings: [],
+          buckets: [
+            {
+              id: 'instagram.posts',
+              label: 'Posts',
+              entryPaths: [postsPath],
+              privacyClass: 'public',
+              defaultSelected: true
+            },
+            {
+              id: 'instagram.raw',
+              label: 'Raw records',
+              entryPaths: [rawPath],
+              privacyClass: 'private',
+              defaultSelected: true
+            }
+          ]
+        }),
+        async *stage(importContext) {
+          yield createStagedNode({
+            kind: 'content',
+            deterministicId: createSocialNodeId('content', ['fixture', 'one']),
+            platform: 'instagram',
+            bucketId: 'instagram.posts',
+            source: entry(postsPath),
+            sourceRecordId: 'post-one',
+            privacyClass: 'public',
+            properties: { contentKind: 'post' }
+          })
+          yield createSourceRecord({
+            archiveId: importContext.archiveId,
+            importRunId: importContext.importRunId,
+            platform: 'instagram',
+            bucketId: 'instagram.raw',
+            source: entry(rawPath),
+            sourceRecordKind: 'content',
+            sourceRecordId: 'raw-one',
+            payload: { id: 'raw-one' },
+            privacyClass: 'private'
+          })
+        }
+      }
+      const progressTotals: Array<{ totalRecords: number; currentBucketId: string | null }> = []
+
+      const result = await stageSocialArchive({
+        manifest: archiveManifest,
+        adapters: [adapter],
+        readJsonEntry: async <T>() => ({}) as T,
+        importedAt,
+        progressIntervalRecords: 1,
+        onProgress: (progress) => {
+          progressTotals.push({
+            totalRecords: progress.totalRecords,
+            currentBucketId: progress.currentBucketId
+          })
+        }
+      })
+
+      expect(progressTotals).toEqual([
+        { totalRecords: 1, currentBucketId: 'instagram.posts' },
+        { totalRecords: 2, currentBucketId: 'instagram.raw' },
+        { totalRecords: 2, currentBucketId: null }
+      ])
+      expect(result.summary.totalRecords).toBe(2)
+      expect(result.summary.bucketSummaries.map((bucket) => bucket.bucketId)).toEqual([
+        'instagram.posts',
+        'instagram.raw'
+      ])
     })
 
     it('plans entry-level blob storage for large archives', () => {

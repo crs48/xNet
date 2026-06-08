@@ -603,7 +603,7 @@ Recommendation:
 
 - [ ] Split `stageSocialArchive()` into preview, summary, and streaming commit paths.
 - [ ] Avoid returning `records[]` for large imports.
-- [ ] Add importer-level progress counts per bucket.
+- [x] Add importer-level progress counts per bucket.
 - [ ] Commit chunks as records stream from adapter stage iterables.
 - [ ] Persist per-bucket and per-source checkpoint metadata where possible.
 - [ ] Support "preview first N records" for UI inspection without materializing the full archive.
