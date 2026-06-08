@@ -283,6 +283,10 @@ async function commitBrowserSocialImportStage(input: {
     if (chunk.done) break
   }
 
+  if (offset !== input.totalRecords) {
+    throw new Error(`Social import streamed ${offset} records but expected ${input.totalRecords}`)
+  }
+
   return { created, updated, batches: completedBatches }
 }
 

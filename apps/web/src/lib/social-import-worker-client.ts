@@ -9,6 +9,7 @@ import type {
 } from './social-import-worker-protocol'
 import type {
   ArchiveManifest,
+  SocialImportNodeDraft,
   SocialImportNodeDraftStreamResult
 } from '@xnetjs/social/import/browser'
 import {
@@ -65,16 +66,26 @@ class SocialImportWorkerUnavailableError extends Error {
 
 const adapters = builtInSocialImportAdapters
 const WORKER_TIMING_FALLBACK_MS = 250
-const mainThreadStageDrafts = new Map<
-  string,
-  {
-    withSourceRecords: SocialImportWorkerStageChunkPayload['drafts'] | null
-    withoutSourceRecords: SocialImportWorkerStageChunkPayload['drafts'] | null
-    result: SocialImportNodeDraftStreamResult
-  }
->()
+const mainThreadStageDrafts = new Map<string, MainThreadStagedResult>()
 let sharedWorker: Worker | null = null
 const pendingWorkerRequests = new Map<string, PendingWorkerRequest<unknown>>()
+
+type MainThreadStagedResult = {
+  file: File
+  manifest: ArchiveManifest
+  buckets: string[]
+  includeSensitive: boolean
+  importedAt: string
+  result: SocialImportNodeDraftStreamResult
+  streams: Map<string, MainThreadStageDraftStream>
+}
+
+type MainThreadStageDraftStream = {
+  generator: AsyncGenerator<SocialImportNodeDraft, SocialImportNodeDraftStreamResult, void>
+  offset: number
+  totalRecords: number
+  done: boolean
+}
 
 type PendingWorkerRequest<T> = {
   isExpectedResponse: (response: SocialImportWorkerResponse) => boolean
@@ -296,7 +307,7 @@ async function stageOnMainThread(
   const readJsonEntry = await createBrowserZipJsonEntryReader(input.file)
   const readTextEntry = await createBrowserZipTextEntryReader(input.file)
   const streamResults: SocialImportNodeDraftStreamResult[] = []
-  const drafts: SocialImportWorkerStageChunkPayload['drafts'] = []
+  const importedAt = new Date().toISOString()
   for await (const draft of streamSocialImportNodeDrafts({
     manifest: input.manifest,
     adapters,
@@ -304,19 +315,24 @@ async function stageOnMainThread(
     readTextEntry,
     buckets: input.buckets,
     includeSensitive: input.includeSensitive,
+    importedAt,
     includeSourceRecords: true,
     onComplete: (result) => {
       streamResults.push(result)
     }
   })) {
-    drafts.push(draft)
+    void draft
   }
   const result = requireStreamResult(streamResults)
   const stageId = createStageId()
   mainThreadStageDrafts.set(stageId, {
+    file: input.file,
+    manifest: input.manifest,
+    buckets: input.buckets,
+    includeSensitive: input.includeSensitive,
+    importedAt,
     result,
-    withSourceRecords: drafts,
-    withoutSourceRecords: null
+    streams: new Map()
   })
 
   return {
@@ -380,7 +396,7 @@ export async function stageBrowserSocialArchive(
 export async function readBrowserSocialImportStageChunk(
   input: BrowserSocialImportStageChunkInput
 ): Promise<BrowserSocialImportStageChunkResult> {
-  const mainThreadResult = readStageChunkOnMainThread(input)
+  const mainThreadResult = await readStageChunkOnMainThread(input)
   if (mainThreadResult) return mainThreadResult
 
   const result = await requestWorker<SocialImportWorkerStageChunkPayload>(
@@ -401,25 +417,34 @@ export async function readBrowserSocialImportStageChunk(
   }
 }
 
-function readStageChunkOnMainThread(
+async function readStageChunkOnMainThread(
   input: BrowserSocialImportStageChunkInput
-): BrowserSocialImportStageChunkResult | null {
+): Promise<BrowserSocialImportStageChunkResult | null> {
   const stagedResult = mainThreadStageDrafts.get(input.stageId)
   if (!stagedResult) return null
 
-  const drafts = getMainThreadCommitDrafts(stagedResult, input.includeSourceRecords)
-  const offset = clampInteger(input.offset, 0, drafts.length)
+  let stream = await getMainThreadStageDraftStream(stagedResult, input.includeSourceRecords)
+  const offset = clampInteger(input.offset, 0, stream.totalRecords)
+  if (offset === 0 && stream.offset !== 0) {
+    stream = await getMainThreadStageDraftStream(stagedResult, input.includeSourceRecords, true)
+  }
+  if (offset !== stream.offset) {
+    throw new Error(
+      `Social import stage stream expected offset ${stream.offset} but received ${offset}`
+    )
+  }
+
   const limit = Math.max(0, Math.floor(input.limit))
-  const nextOffset = Math.min(offset + limit, drafts.length)
+  const drafts = await readMainThreadStageDraftStream(stream, limit)
 
   return {
     stageId: input.stageId,
-    drafts: drafts.slice(offset, nextOffset),
+    drafts,
     offset,
     limit,
-    totalRecords: drafts.length,
-    nextOffset,
-    done: nextOffset >= drafts.length,
+    totalRecords: stream.totalRecords,
+    nextOffset: stream.offset,
+    done: stream.done || stream.offset >= stream.totalRecords,
     executionMode: 'main-thread'
   }
 }
@@ -442,28 +467,59 @@ function createStagePayload(
   }
 }
 
-function getMainThreadCommitDrafts(
-  stagedResult: {
-    withSourceRecords: SocialImportWorkerStageChunkPayload['drafts'] | null
-    withoutSourceRecords: SocialImportWorkerStageChunkPayload['drafts'] | null
-    result: SocialImportNodeDraftStreamResult
-  },
+async function getMainThreadStageDraftStream(
+  stagedResult: MainThreadStagedResult,
+  includeSourceRecords: boolean,
+  reset = false
+): Promise<MainThreadStageDraftStream> {
+  const streamKey = includeSourceRecords ? 'with-source-records' : 'without-source-records'
+  const existing = stagedResult.streams.get(streamKey)
+  if (existing && !reset) return existing
+
+  const readJsonEntry = await createBrowserZipJsonEntryReader(stagedResult.file)
+  const readTextEntry = await createBrowserZipTextEntryReader(stagedResult.file)
+  const totalRecords = getCommitRecordCount(stagedResult.result, includeSourceRecords)
+  const stream: MainThreadStageDraftStream = {
+    generator: streamSocialImportNodeDrafts({
+      manifest: stagedResult.manifest,
+      adapters,
+      readJsonEntry,
+      readTextEntry,
+      buckets: stagedResult.buckets,
+      includeSensitive: stagedResult.includeSensitive,
+      importedAt: stagedResult.importedAt,
+      includeSourceRecords
+    }),
+    offset: 0,
+    totalRecords,
+    done: false
+  }
+  stagedResult.streams.set(streamKey, stream)
+  return stream
+}
+
+async function readMainThreadStageDraftStream(
+  stream: MainThreadStageDraftStream,
+  limit: number
+): Promise<SocialImportWorkerStageChunkPayload['drafts']> {
+  const drafts: SocialImportWorkerStageChunkPayload['drafts'] = []
+  while (drafts.length < limit && !stream.done) {
+    const next = await stream.generator.next()
+    if (next.done) {
+      stream.done = true
+      break
+    }
+    drafts.push(next.value)
+  }
+  stream.offset += drafts.length
+  return drafts
+}
+
+function getCommitRecordCount(
+  result: Pick<SocialImportNodeDraftStreamResult, 'canonicalRecordCount' | 'recordCount'>,
   includeSourceRecords: boolean
-): SocialImportWorkerStageChunkPayload['drafts'] {
-  if (!stagedResult.withSourceRecords) {
-    throw new Error('Staged social import is missing commit drafts.')
-  }
-
-  if (includeSourceRecords) {
-    return stagedResult.withSourceRecords
-  }
-
-  stagedResult.withoutSourceRecords ??= [
-    ...getMainThreadCommitDrafts(stagedResult, true).filter(
-      (draft) => draft.kind !== 'source-record'
-    )
-  ]
-  return stagedResult.withoutSourceRecords
+): number {
+  return 2 + (includeSourceRecords ? result.recordCount : result.canonicalRecordCount)
 }
 
 function requireStreamResult(

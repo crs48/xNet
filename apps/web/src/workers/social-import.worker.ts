@@ -29,8 +29,19 @@ const stagedResults = new Map<string, WorkerStagedResult>()
 
 type WorkerStagedResult = {
   result: SocialImportNodeDraftStreamResult
-  commitDraftsWithSourceRecords: SocialImportNodeDraft[] | null
-  commitDraftsWithoutSourceRecords: SocialImportNodeDraft[] | null
+  file: File
+  manifest: Extract<SocialImportWorkerRequest, { kind: 'stage' }>['manifest']
+  buckets: string[]
+  includeSensitive: boolean
+  importedAt: string
+  streams: Map<string, WorkerStageDraftStream>
+}
+
+type WorkerStageDraftStream = {
+  generator: AsyncGenerator<SocialImportNodeDraft, SocialImportNodeDraftStreamResult, void>
+  offset: number
+  totalRecords: number
+  done: boolean
 }
 
 function errorPayload(error: unknown): { name: string; message: string } {
@@ -94,7 +105,7 @@ async function handleStage(
   const readJsonEntry = await createBrowserZipJsonEntryReader(request.file)
   const readTextEntry = await createBrowserZipTextEntryReader(request.file)
   const streamResults: SocialImportNodeDraftStreamResult[] = []
-  const drafts: SocialImportNodeDraft[] = []
+  const importedAt = new Date().toISOString()
 
   for await (const draft of streamSocialImportNodeDrafts({
     manifest: request.manifest,
@@ -103,19 +114,24 @@ async function handleStage(
     readTextEntry,
     buckets: request.buckets,
     includeSensitive: request.includeSensitive,
+    importedAt,
     includeSourceRecords: true,
     onComplete: (result) => {
       streamResults.push(result)
     }
   })) {
-    drafts.push(draft)
+    void draft
   }
   const result = requireStreamResult(streamResults)
   const stageId = createStageId()
   stagedResults.set(stageId, {
     result,
-    commitDraftsWithSourceRecords: drafts,
-    commitDraftsWithoutSourceRecords: null
+    file: request.file,
+    manifest: request.manifest,
+    buckets: request.buckets,
+    includeSensitive: request.includeSensitive,
+    importedAt,
+    streams: new Map()
   })
 
   postSuccessResponse(
@@ -138,10 +154,19 @@ async function handleStageChunk(
     throw new Error(`No staged social import found for ${request.stageId}`)
   }
 
-  const drafts = getCommitDrafts(stagedResult, request.includeSourceRecords)
-  const offset = clampInteger(request.offset, 0, drafts.length)
+  let stream = await getStageDraftStream(stagedResult, request.includeSourceRecords)
+  const offset = clampInteger(request.offset, 0, stream.totalRecords)
+  if (offset === 0 && stream.offset !== 0) {
+    stream = await getStageDraftStream(stagedResult, request.includeSourceRecords, true)
+  }
+  if (offset !== stream.offset) {
+    throw new Error(
+      `Social import stage stream expected offset ${stream.offset} but received ${offset}`
+    )
+  }
+
   const limit = Math.max(0, Math.floor(request.limit))
-  const nextOffset = Math.min(offset + limit, drafts.length)
+  const drafts = await readStageDraftStream(stream, limit)
 
   postSuccessResponse(
     {
@@ -150,12 +175,12 @@ async function handleStageChunk(
       ok: true,
       result: {
         stageId: request.stageId,
-        drafts: drafts.slice(offset, nextOffset),
+        drafts,
         offset,
         limit,
-        totalRecords: drafts.length,
-        nextOffset,
-        done: nextOffset >= drafts.length
+        totalRecords: stream.totalRecords,
+        nextOffset: stream.offset,
+        done: stream.done || stream.offset >= stream.totalRecords
       }
     },
     startedAt
@@ -207,22 +232,59 @@ function createStagePayload(
   }
 }
 
-function getCommitDrafts(
+async function getStageDraftStream(
   stagedResult: WorkerStagedResult,
+  includeSourceRecords: boolean,
+  reset = false
+): Promise<WorkerStageDraftStream> {
+  const streamKey = includeSourceRecords ? 'with-source-records' : 'without-source-records'
+  const existing = stagedResult.streams.get(streamKey)
+  if (existing && !reset) return existing
+
+  const readJsonEntry = await createBrowserZipJsonEntryReader(stagedResult.file)
+  const readTextEntry = await createBrowserZipTextEntryReader(stagedResult.file)
+  const totalRecords = getCommitRecordCount(stagedResult.result, includeSourceRecords)
+  const stream: WorkerStageDraftStream = {
+    generator: streamSocialImportNodeDrafts({
+      manifest: stagedResult.manifest,
+      adapters,
+      readJsonEntry,
+      readTextEntry,
+      buckets: stagedResult.buckets,
+      includeSensitive: stagedResult.includeSensitive,
+      importedAt: stagedResult.importedAt,
+      includeSourceRecords
+    }),
+    offset: 0,
+    totalRecords,
+    done: false
+  }
+  stagedResult.streams.set(streamKey, stream)
+  return stream
+}
+
+async function readStageDraftStream(
+  stream: WorkerStageDraftStream,
+  limit: number
+): Promise<SocialImportNodeDraft[]> {
+  const drafts: SocialImportNodeDraft[] = []
+  while (drafts.length < limit && !stream.done) {
+    const next = await stream.generator.next()
+    if (next.done) {
+      stream.done = true
+      break
+    }
+    drafts.push(next.value)
+  }
+  stream.offset += drafts.length
+  return drafts
+}
+
+function getCommitRecordCount(
+  result: Pick<SocialImportNodeDraftStreamResult, 'canonicalRecordCount' | 'recordCount'>,
   includeSourceRecords: boolean
-): SocialImportNodeDraft[] {
-  if (!stagedResult.commitDraftsWithSourceRecords) {
-    throw new Error('Staged social import is missing commit drafts.')
-  }
-
-  if (includeSourceRecords) {
-    return stagedResult.commitDraftsWithSourceRecords
-  }
-
-  stagedResult.commitDraftsWithoutSourceRecords ??= [
-    ...getCommitDrafts(stagedResult, true).filter((draft) => draft.kind !== 'source-record')
-  ]
-  return stagedResult.commitDraftsWithoutSourceRecords
+): number {
+  return 2 + (includeSourceRecords ? result.recordCount : result.canonicalRecordCount)
 }
 
 function requireStreamResult(
