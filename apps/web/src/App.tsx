@@ -21,6 +21,7 @@ import {
 } from '@xnetjs/react'
 import {
   checkBrowserSupport,
+  checkPersistentStorage,
   requestPersistentStorage,
   showUnsupportedBrowserMessage,
   SCHEMA_VERSION,
@@ -133,6 +134,22 @@ type StorageBannerDescriptor = {
   message: string
   usageBytes?: number
   quotaBytes?: number
+  actionLabel?: string
+  actionPendingLabel?: string
+}
+
+function updateAppStorageStatus(
+  current: AppState,
+  storageStatus: PersistentStorageStatus
+): AppState {
+  switch (current.status) {
+    case 'needs-onboarding':
+    case 'unlocking':
+    case 'authenticated':
+      return { ...current, storageStatus }
+    default:
+      return current
+  }
 }
 
 function getStorageBanner(input: {
@@ -150,7 +167,13 @@ function getStorageBanner(input: {
           ? `${storageWarning} ${storageStatus.message}`
           : storageWarning,
       usageBytes: storageStatus?.usageBytes,
-      quotaBytes: storageStatus?.quotaBytes
+      quotaBytes: storageStatus?.quotaBytes,
+      ...(storageStatus?.requestable
+        ? {
+            actionLabel: 'Enable durable storage',
+            actionPendingLabel: 'Requesting storage'
+          }
+        : {})
     }
   }
 
@@ -170,10 +193,18 @@ function getStorageBanner(input: {
     case 'not-granted':
       return {
         tone: 'warning',
-        title: 'Durable storage not granted',
+        title: storageStatus.requested
+          ? 'Durable storage not granted'
+          : 'Enable durable local storage',
         message: storageStatus.message,
         usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes
+        quotaBytes: storageStatus.quotaBytes,
+        ...(storageStatus.requestable
+          ? {
+              actionLabel: 'Enable durable storage',
+              actionPendingLabel: 'Requesting storage'
+            }
+          : {})
       }
     case 'unsupported':
     case 'error':
@@ -198,6 +229,7 @@ function UnsupportedBrowser({ reason }: { reason: string }): JSX.Element {
 // ─── Main App ───────────────────────────────────────────────────
 export function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: 'initializing' })
+  const [isRequestingStorage, setIsRequestingStorage] = useState(false)
   const [{ hubUrl, authToken }] = useState(() => resolveHubSessionFromLocation())
   const storageRef = useRef<StorageContext | null>(null)
 
@@ -219,7 +251,7 @@ export function App(): JSX.Element {
         }
 
         const storageWarning = support.warning
-        const storageStatus = await requestPersistentStorage()
+        const storageStatus = await checkPersistentStorage()
 
         // Dynamically import the web proxy to enable code splitting
         const { WebSQLiteProxy } = await import('@xnetjs/sqlite/web-proxy')
@@ -331,6 +363,30 @@ export function App(): JSX.Element {
     }))
   }, [])
 
+  const handleRequestPersistentStorage = useCallback(async () => {
+    setIsRequestingStorage(true)
+
+    try {
+      const storageStatus = await requestPersistentStorage()
+      setAppState((current) => updateAppStorageStatus(current, storageStatus))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setAppState((current) =>
+        updateAppStorageStatus(current, {
+          supported: true,
+          persisted: null,
+          granted: null,
+          requested: true,
+          requestable: true,
+          state: 'error',
+          message: `xNet could not confirm durable storage (${message}). Local data may still work, but persistence guarantees are unclear.`
+        })
+      )
+    } finally {
+      setIsRequestingStorage(false)
+    }
+  }, [])
+
   // ─── Render ─────────────────────────────────────────────────────
 
   // Initializing SQLite state
@@ -371,7 +427,13 @@ export function App(): JSX.Element {
     const storageBanner = getStorageBanner(appState)
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-        {storageBanner && <StorageWarningBanner {...storageBanner} />}
+        {storageBanner && (
+          <StorageWarningBanner
+            {...storageBanner}
+            actionPending={isRequestingStorage}
+            onAction={storageBanner.actionLabel ? handleRequestPersistentStorage : undefined}
+          />
+        )}
         <div className="flex items-center justify-center h-screen bg-background">
           <div className="text-center">
             <div className="text-4xl mb-4">🔐</div>
@@ -409,7 +471,13 @@ export function App(): JSX.Element {
     const storageBanner = getStorageBanner(appState)
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-        {storageBanner && <StorageWarningBanner {...storageBanner} />}
+        {storageBanner && (
+          <StorageWarningBanner
+            {...storageBanner}
+            actionPending={isRequestingStorage}
+            onAction={storageBanner.actionLabel ? handleRequestPersistentStorage : undefined}
+          />
+        )}
         <OnboardingProvider defaultHubUrl={hubUrl} onComplete={handleOnboardingComplete}>
           <OnboardingFlow />
         </OnboardingProvider>
@@ -424,7 +492,13 @@ export function App(): JSX.Element {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-      {storageBanner && <StorageWarningBanner {...storageBanner} />}
+      {storageBanner && (
+        <StorageWarningBanner
+          {...storageBanner}
+          actionPending={isRequestingStorage}
+          onAction={storageBanner.actionLabel ? handleRequestPersistentStorage : undefined}
+        />
+      )}
       <ErrorBoundary>
         <XNetProvider
           config={{

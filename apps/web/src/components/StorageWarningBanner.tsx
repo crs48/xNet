@@ -1,3 +1,4 @@
+import { AlertTriangle, CheckCircle2, Info, ShieldCheck, X } from 'lucide-react'
 import { useState } from 'react'
 
 interface StorageWarningBannerProps {
@@ -6,6 +7,10 @@ interface StorageWarningBannerProps {
   message: string
   usageBytes?: number
   quotaBytes?: number
+  actionLabel?: string
+  actionPendingLabel?: string
+  actionPending?: boolean
+  onAction?: () => void
 }
 
 function formatBytes(bytes: number): string {
@@ -30,6 +35,8 @@ function getToneClasses(tone: StorageWarningBannerProps['tone']): {
   icon: string
   text: string
   button: string
+  actionButton: string
+  actionIcon: typeof AlertTriangle
 } {
   switch (tone) {
     case 'success':
@@ -39,21 +46,30 @@ function getToneClasses(tone: StorageWarningBannerProps['tone']): {
         icon: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300',
         text: 'text-emerald-900 dark:text-emerald-100',
         button:
-          'text-emerald-700 dark:text-emerald-300 hover:text-emerald-600 dark:hover:text-emerald-200'
+          'text-emerald-700 dark:text-emerald-300 hover:text-emerald-600 dark:hover:text-emerald-200',
+        actionButton:
+          'border-emerald-300/80 bg-emerald-100/80 text-emerald-900 hover:bg-emerald-200 dark:border-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-100 dark:hover:bg-emerald-800',
+        actionIcon: CheckCircle2
       }
     case 'info':
       return {
         container: 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-900/60',
         icon: 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300',
         text: 'text-sky-900 dark:text-sky-100',
-        button: 'text-sky-700 dark:text-sky-300 hover:text-sky-600 dark:hover:text-sky-200'
+        button: 'text-sky-700 dark:text-sky-300 hover:text-sky-600 dark:hover:text-sky-200',
+        actionButton:
+          'border-sky-300/80 bg-sky-100/80 text-sky-900 hover:bg-sky-200 dark:border-sky-700 dark:bg-sky-900/60 dark:text-sky-100 dark:hover:bg-sky-800',
+        actionIcon: Info
       }
     case 'warning':
       return {
         container: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/60',
         icon: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
         text: 'text-amber-900 dark:text-amber-100',
-        button: 'text-amber-700 dark:text-amber-300 hover:text-amber-600 dark:hover:text-amber-200'
+        button: 'text-amber-700 dark:text-amber-300 hover:text-amber-600 dark:hover:text-amber-200',
+        actionButton:
+          'border-amber-300/80 bg-amber-100/80 text-amber-950 hover:bg-amber-200 dark:border-amber-700 dark:bg-amber-900/60 dark:text-amber-100 dark:hover:bg-amber-800',
+        actionIcon: AlertTriangle
       }
   }
 }
@@ -63,10 +79,16 @@ export function StorageWarningBanner({
   title,
   message,
   usageBytes,
-  quotaBytes
+  quotaBytes,
+  actionLabel,
+  actionPendingLabel,
+  actionPending = false,
+  onAction
 }: StorageWarningBannerProps): JSX.Element | null {
   const [dismissed, setDismissed] = useState(false)
   const toneClasses = getToneClasses(tone)
+  const Icon = toneClasses.actionIcon
+  const showAction = Boolean(actionLabel && onAction)
   const usageLabel =
     typeof usageBytes === 'number' && typeof quotaBytes === 'number' && quotaBytes > 0
       ? `${formatBytes(usageBytes)} used of ${formatBytes(quotaBytes)} available`
@@ -82,14 +104,7 @@ export function StorageWarningBanner({
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-start flex-1 min-w-0">
             <span className={`flex p-2 rounded-lg ${toneClasses.icon}`}>
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
+              <Icon className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className={`ml-3 min-w-0 ${toneClasses.text}`}>
               <p className="text-sm font-semibold">{title}</p>
@@ -97,19 +112,26 @@ export function StorageWarningBanner({
               {usageLabel && <p className="text-xs mt-1 opacity-80">{usageLabel}</p>}
             </div>
           </div>
+          {showAction && (
+            <button
+              type="button"
+              onClick={onAction}
+              disabled={actionPending}
+              className={`pointer-events-auto inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-md border px-3 text-sm font-medium transition disabled:cursor-wait disabled:opacity-70 ${toneClasses.actionButton}`}
+            >
+              <ShieldCheck
+                className={`h-4 w-4 ${actionPending ? 'animate-pulse' : ''}`}
+                aria-hidden="true"
+              />
+              <span>{actionPending ? (actionPendingLabel ?? actionLabel) : actionLabel}</span>
+            </button>
+          )}
           <button
             onClick={() => setDismissed(true)}
             className={`pointer-events-auto flex-shrink-0 inline-flex focus:outline-none ${toneClasses.button}`}
             aria-label="Dismiss"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
       </div>

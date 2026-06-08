@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { requestPersistentStorage } from './browser-support'
+import { checkPersistentStorage, requestPersistentStorage } from './browser-support'
 
 type StorageEstimate = {
   usage?: number
@@ -31,8 +31,36 @@ describe('requestPersistentStorage', () => {
       supported: false,
       persisted: null,
       granted: null,
+      requested: true,
+      requestable: false,
       state: 'unsupported'
     })
+  })
+
+  it('checks current durable storage without requesting persistence', async () => {
+    const persist = vi.fn().mockResolvedValue(true)
+    const persisted = vi.fn().mockResolvedValue(false)
+
+    stubNavigator({
+      estimate: vi.fn().mockResolvedValue({ usage: 256, quota: 2048 }),
+      persist,
+      persisted
+    })
+
+    const status = await checkPersistentStorage()
+
+    expect(status).toMatchObject({
+      supported: true,
+      persisted: false,
+      granted: null,
+      requested: false,
+      requestable: true,
+      state: 'not-granted',
+      usageBytes: 256,
+      quotaBytes: 2048
+    })
+    expect(persist).not.toHaveBeenCalled()
+    expect(persisted).toHaveBeenCalledTimes(2)
   })
 
   it('reports granted durable storage when persistence is enabled', async () => {
@@ -48,6 +76,8 @@ describe('requestPersistentStorage', () => {
       supported: true,
       persisted: true,
       granted: true,
+      requested: true,
+      requestable: false,
       state: 'granted',
       usageBytes: 512,
       quotaBytes: 4096
@@ -72,6 +102,8 @@ describe('requestPersistentStorage', () => {
       supported: true,
       persisted: false,
       granted: false,
+      requested: true,
+      requestable: true,
       state: 'not-granted',
       usageBytes: 1024,
       quotaBytes: 8192
@@ -92,6 +124,8 @@ describe('requestPersistentStorage', () => {
       supported: true,
       persisted: null,
       granted: null,
+      requested: true,
+      requestable: true,
       state: 'error',
       usageBytes: 2048,
       quotaBytes: 16384

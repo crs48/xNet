@@ -63,10 +63,15 @@ export type {
 // Browser support detection
 export {
   checkBrowserSupport,
+  checkPersistentStorage,
   requestPersistentStorage,
   showUnsupportedBrowserMessage
 } from './browser-support'
-export type { BrowserSupport, PersistentStorageStatus } from './browser-support'
+export type {
+  BrowserSupport,
+  PersistentStorageRequestOptions,
+  PersistentStorageStatus
+} from './browser-support'
 
 // Re-export adapters for convenience (tree-shakeable)
 // Users should prefer importing from subpaths for smaller bundles
