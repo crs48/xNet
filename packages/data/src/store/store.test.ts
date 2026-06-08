@@ -769,6 +769,26 @@ describe('transaction support', () => {
   })
 })
 
+describe('bulk existence lookup', () => {
+  it('should return existing node ids without hydrating nodes through the public read path', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const first = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'First' }
+    })
+    const second = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Second' }
+    })
+
+    await expect(
+      store.getExistingNodeIds([second.id, 'missing-node', first.id, second.id])
+    ).resolves.toEqual([second.id, first.id])
+  })
+})
+
 describe('authorization enforcement', () => {
   it('should throw PermissionError when create is denied', async () => {
     const { adapter, did, privateKey } = createTestStore()

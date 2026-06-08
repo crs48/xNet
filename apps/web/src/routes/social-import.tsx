@@ -234,14 +234,7 @@ function SocialImportPage(): React.ReactElement {
       const summary = await commitDrafts({
         drafts,
         mutate,
-        getExistingIds: async (ids) =>
-          new Set(
-            (
-              await Promise.all(
-                ids.map(async (id): Promise<string | null> => ((await store.get(id)) ? id : null))
-              )
-            ).filter(isString)
-          ),
+        getExistingIds: async (ids) => new Set(await store.getExistingNodeIds(ids)),
         onProgress: (progress) => {
           updateSocialImportJob(commitJob.jobId, {
             status: 'running',
@@ -1054,10 +1047,6 @@ function formatDuration(milliseconds: number): string {
   const hours = Math.floor(minutes / 60)
   const remainingMinutes = minutes % 60
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`
-}
-
-function isString(value: string | null): value is string {
-  return typeof value === 'string'
 }
 
 function yieldCommitProgress(): Promise<void> {

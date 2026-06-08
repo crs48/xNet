@@ -237,6 +237,28 @@ export class NodeStore {
   }
 
   /**
+   * Return the subset of IDs that already exist in materialized storage.
+   *
+   * This intentionally returns identifiers only and does not hydrate node
+   * contents. Importers use it to route deterministic drafts to create/update.
+   */
+  async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return []
+
+    if (this.storage.getExistingNodeIds) {
+      return this.storage.getExistingNodeIds(uniqueIds)
+    }
+
+    const existingIds = await Promise.all(
+      uniqueIds.map(
+        async (id): Promise<NodeId | null> => ((await this.storage.getNode(id)) ? id : null)
+      )
+    )
+    return existingIds.filter((id): id is NodeId => id !== null)
+  }
+
+  /**
    * Get a Node by ID with automatic schema migration.
    *
    * If the stored node's schema version differs from the target schema,

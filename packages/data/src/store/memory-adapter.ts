@@ -109,6 +109,15 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     return this.nodes.get(id) ?? null
   }
 
+  async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
+    const seen = new Set<NodeId>()
+    return ids.filter((id) => {
+      if (seen.has(id) || !this.nodes.has(id)) return false
+      seen.add(id)
+      return true
+    })
+  }
+
   async setNode(node: NodeState): Promise<void> {
     this.nodes.set(node.id, node)
   }

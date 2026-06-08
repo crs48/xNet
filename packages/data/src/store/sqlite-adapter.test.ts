@@ -167,6 +167,35 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(retrieved!.properties.title).toBe('Updated')
     })
 
+    it('returns existing node ids in input order without duplicates', async () => {
+      const now = Date.now()
+      await adapter.setNode(
+        createTestNode({
+          id: 'existing-node-1',
+          properties: { title: 'Existing 1' },
+          createdAt: now,
+          updatedAt: now
+        })
+      )
+      await adapter.setNode(
+        createTestNode({
+          id: 'existing-node-2',
+          properties: { title: 'Existing 2' },
+          createdAt: now + 1,
+          updatedAt: now + 1
+        })
+      )
+
+      await expect(
+        adapter.getExistingNodeIds([
+          'existing-node-2',
+          'missing-node',
+          'existing-node-1',
+          'existing-node-2'
+        ])
+      ).resolves.toEqual(['existing-node-2', 'existing-node-1'])
+    })
+
     it('serializes concurrent transaction-backed node writes', async () => {
       const now = Date.now()
       const nodes = Array.from({ length: 8 }, (_, index) =>

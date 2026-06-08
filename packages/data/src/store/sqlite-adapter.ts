@@ -268,6 +268,7 @@ const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
   maxNodes: 1000,
   logFailures: true
 }
+const SQLITE_BIND_PARAMETER_BATCH_SIZE = 900
 
 function getMaterializedQueryRefreshReason(input: {
   cached: MaterializedQueryRow | null
@@ -417,6 +418,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       getChangeByHash: (hash) => this.getChangeByHash(hash),
       getLastChange: (nodeId) => this.getLastChange(nodeId),
       getNode: (id) => this.getNode(id),
+      getExistingNodeIds: (ids) => this.getExistingNodeIds(ids),
       setNode: (node, options) => this._setNodeInternal(node, options),
       deleteNode: (id) => this.deleteNodeInternal(id),
       listNodes: (options) => this.listNodes(options),
@@ -565,6 +567,23 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       updatedAt: nodeRow.updated_at,
       updatedBy
     }
+  }
+
+  async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return []
+
+    const existingIds = new Set<NodeId>()
+    for (const batch of chunkItems(uniqueIds, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
+      const placeholders = batch.map(() => '?').join(', ')
+      const rows = await this.db.query<{ id: string }>(
+        `SELECT id FROM nodes WHERE id IN (${placeholders})`,
+        batch
+      )
+      rows.forEach((row) => existingIds.add(row.id))
+    }
+
+    return uniqueIds.filter((id) => existingIds.has(id))
   }
 
   async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
@@ -2755,6 +2774,14 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       signature: row.signature
     }
   }
+}
+
+function chunkItems<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+  return chunks
 }
 
 // ─── Factory Functions ───────────────────────────────────────────────────────

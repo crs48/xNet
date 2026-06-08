@@ -97,6 +97,11 @@ export class IPCNodeStorageAdapter implements NodeStorageAdapter {
     return node ? deserializeNodeState(node as SerializedNodeState) : null
   }
 
+  async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
+    log('getExistingNodeIds()', ids.length)
+    return window.xnetNodes.getExistingNodeIds([...ids])
+  }
+
   async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
     log('setNode()', node.id)
     await window.xnetNodes.setNode(serializeNodeState(node), options)

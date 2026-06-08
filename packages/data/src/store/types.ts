@@ -161,6 +161,8 @@ export interface NodeStorageAdapter {
 
   // Materialized state operations
   getNode(id: NodeId): Promise<NodeState | null>
+  /** Return the subset of ids that currently exist in materialized storage. */
+  getExistingNodeIds?(ids: readonly NodeId[]): Promise<NodeId[]>
   setNode(node: NodeState, options?: SetNodeOptions): Promise<void>
   deleteNode(id: NodeId): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<NodeState[]>
