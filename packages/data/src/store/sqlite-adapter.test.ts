@@ -31,6 +31,27 @@ function cleanupDb(path: string): void {
   }
 }
 
+function isNativeSQLiteLoadError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    message.includes('better_sqlite3.node') ||
+    message.includes('incompatible architecture') ||
+    message.includes('Cannot find module')
+  )
+}
+
+async function createNativeSQLiteAdapterOrNull(path: string): Promise<SQLiteAdapter | null> {
+  try {
+    return await createElectronSQLiteAdapter({ path })
+  } catch (error) {
+    cleanupDb(path)
+    if (isNativeSQLiteLoadError(error)) {
+      return null
+    }
+    throw error
+  }
+}
+
 describe('SQLiteNodeStorageAdapter', () => {
   let db: SQLiteAdapter
   let adapter: SQLiteNodeStorageAdapter
@@ -144,6 +165,25 @@ describe('SQLiteNodeStorageAdapter', () => {
 
       const retrieved = await adapter.getNode('node-1')
       expect(retrieved!.properties.title).toBe('Updated')
+    })
+
+    it('serializes concurrent transaction-backed node writes', async () => {
+      const now = Date.now()
+      const nodes = Array.from({ length: 8 }, (_, index) =>
+        createTestNode({
+          id: `queued-node-${index}`,
+          properties: { title: `Queued ${index}` },
+          createdAt: now + index,
+          updatedAt: now + index
+        })
+      )
+
+      await expect(Promise.all(nodes.map((node) => adapter.setNode(node)))).resolves.toHaveLength(
+        nodes.length
+      )
+
+      const stored = await Promise.all(nodes.map((node) => adapter.getNode(node.id)))
+      expect(stored.map((node) => node?.id).sort()).toEqual(nodes.map((node) => node.id).sort())
     })
 
     it('respects LWW for concurrent updates - higher lamport wins', async () => {
@@ -986,7 +1026,9 @@ describe('SQLiteNodeStorageAdapter', () => {
 
     it('uses FTS candidates for search queries when SQLite supports it', async () => {
       const dbPath = getTestDbPath()
-      const nativeDb = await createElectronSQLiteAdapter({ path: dbPath })
+      const nativeDb = await createNativeSQLiteAdapterOrNull(dbPath)
+      if (!nativeDb) return
+
       const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
       const now = Date.now()
 
@@ -1070,7 +1112,9 @@ describe('SQLiteNodeStorageAdapter', () => {
 
     it('uses R-Tree candidates for spatial queries when SQLite supports it', async () => {
       const dbPath = getTestDbPath()
-      const nativeDb = await createElectronSQLiteAdapter({ path: dbPath })
+      const nativeDb = await createNativeSQLiteAdapterOrNull(dbPath)
+      if (!nativeDb) return
+
       const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
       const now = Date.now()
 

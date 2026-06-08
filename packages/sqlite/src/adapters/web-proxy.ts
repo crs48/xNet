@@ -41,6 +41,7 @@ export class WebSQLiteProxy implements SQLiteAdapter {
   private worker: Worker | null = null
   private proxy: RemoteHandler | null = null
   private _config: SQLiteConfig | null = null
+  private inTransaction = false
 
   async open(config: SQLiteConfig): Promise<void> {
     if (this.worker) {
@@ -94,6 +95,7 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     }
 
     this._config = null
+    this.inTransaction = false
   }
 
   isOpen(): boolean {
@@ -147,17 +149,32 @@ export class WebSQLiteProxy implements SQLiteAdapter {
 
   async beginTransaction(): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    if (this.inTransaction) {
+      throw new Error('Transaction already in progress')
+    }
+
     await this.proxy.exec('BEGIN IMMEDIATE')
+    this.inTransaction = true
   }
 
   async commit(): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    if (!this.inTransaction) {
+      throw new Error('No transaction in progress')
+    }
+
     await this.proxy.exec('COMMIT')
+    this.inTransaction = false
   }
 
   async rollback(): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    if (!this.inTransaction) {
+      return
+    }
+
     await this.proxy.exec('ROLLBACK')
+    this.inTransaction = false
   }
 
   async prepare(_sql: string): Promise<PreparedStatement> {

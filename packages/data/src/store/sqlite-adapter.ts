@@ -336,6 +336,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   private fullTextSearchTablesState: FullTextSearchTablesState = 'unknown'
 
+  private writeQueue: Promise<unknown> = Promise.resolve()
+
   constructor(
     private db: SQLiteAdapter,
     options: SQLiteNodeStorageAdapterOptions = {}
@@ -385,9 +387,19 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return stmt
   }
 
+  private async enqueueWrite<T>(write: () => Promise<T>): Promise<T> {
+    const run = this.writeQueue.then(write, write)
+    this.writeQueue = run.catch(() => undefined)
+    return run
+  }
+
   // ─── Change Log Operations ────────────────────────────────────────────────
 
   async appendChange(change: NodeChange): Promise<void> {
+    await this.enqueueWrite(() => this.appendChangeInternal(change))
+  }
+
+  private async appendChangeInternal(change: NodeChange): Promise<void> {
     const payload = this.serializePayload(change.payload)
 
     // Note: The schema uses 'lamport_peer' and 'author' columns but we adapt here
@@ -518,15 +530,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
-    // Use manual transaction control for web proxy compatibility
-    await this.db.beginTransaction()
-    try {
-      await this._setNodeInternal(node, options)
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    await this.enqueueWrite(async () => {
+      // Use manual transaction control for web proxy compatibility
+      await this.db.beginTransaction()
+      try {
+        await this._setNodeInternal(node, options)
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
   }
 
   /**
@@ -597,15 +611,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async deleteNode(id: NodeId): Promise<void> {
-    const existing = await this.getNode(id)
-    // Delete from FTS index first (no-op if FTS5 not supported)
-    await deleteNodeFTS(this.db, id)
-    await this.deleteSpatialRowsForNode(id)
-    // Delete node (cascades to properties via FK)
-    await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
-    if (existing) {
-      await this.invalidateMaterializedViewsForSchema(existing.schemaId)
-    }
+    await this.enqueueWrite(async () => {
+      const existing = await this.getNode(id)
+      // Delete from FTS index first (no-op if FTS5 is not supported)
+      await deleteNodeFTS(this.db, id)
+      await this.deleteSpatialRowsForNode(id)
+      // Delete node (cascades to properties via FK)
+      await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
+      if (existing) {
+        await this.invalidateMaterializedViewsForSchema(existing.schemaId)
+      }
+    })
   }
 
   async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {
@@ -798,6 +814,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async setLastLamportTime(time: number): Promise<void> {
+    await this.enqueueWrite(() => this.setLastLamportTimeInternal(time))
+  }
+
+  private async setLastLamportTimeInternal(time: number): Promise<void> {
     await this.db.run(
       `INSERT INTO sync_state (key, value) VALUES ('lastLamportTime', ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
@@ -817,6 +837,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void> {
+    await this.enqueueWrite(() => this.setDocumentContentInternal(nodeId, content))
+  }
+
+  private async setDocumentContentInternal(nodeId: NodeId, content: Uint8Array): Promise<void> {
     await this.db.run(
       `INSERT INTO yjs_state (node_id, state, updated_at)
        VALUES (?, ?, ?)
@@ -839,11 +863,19 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     docState: Uint8Array
     byteSize: number
   }): Promise<void> {
-    await this.db.run(
-      `INSERT INTO yjs_snapshots (node_id, timestamp, snapshot, doc_state, byte_size)
-       VALUES (?, ?, ?, ?, ?)`,
-      [snapshot.nodeId, snapshot.timestamp, snapshot.snapshot, snapshot.docState, snapshot.byteSize]
-    )
+    await this.enqueueWrite(async () => {
+      await this.db.run(
+        `INSERT INTO yjs_snapshots (node_id, timestamp, snapshot, doc_state, byte_size)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          snapshot.nodeId,
+          snapshot.timestamp,
+          snapshot.snapshot,
+          snapshot.docState,
+          snapshot.byteSize
+        ]
+      )
+    })
   }
 
   /**
@@ -879,7 +911,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Delete Yjs snapshots for a node.
    */
   async deleteYjsSnapshots(nodeId: NodeId): Promise<void> {
-    await this.db.run(`DELETE FROM yjs_snapshots WHERE node_id = ?`, [nodeId])
+    await this.enqueueWrite(async () => {
+      await this.db.run(`DELETE FROM yjs_snapshots WHERE node_id = ?`, [nodeId])
+    })
   }
 
   // ─── Bulk Operations ──────────────────────────────────────────────────────
@@ -889,86 +923,94 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Used for sync and restore operations.
    */
   async importNodes(nodes: NodeState[]): Promise<void> {
-    // Use manual transaction control for web proxy compatibility
-    await this.db.beginTransaction()
-    try {
-      for (const node of nodes) {
-        await this._setNodeInternal(node)
+    await this.enqueueWrite(async () => {
+      // Use manual transaction control for web proxy compatibility
+      await this.db.beginTransaction()
+      try {
+        for (const node of nodes) {
+          await this._setNodeInternal(node)
+        }
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
       }
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    })
   }
 
   /**
    * Rebuild the scalar sidecar from materialized node_properties.
    */
   async rebuildScalarIndex(): Promise<{ nodesScanned: number; scalarRowsWritten: number }> {
-    await this.db.beginTransaction()
-    try {
-      await this.db.run('DELETE FROM node_property_scalars')
-      const rows = await this.db.query<{ id: string }>('SELECT id FROM nodes ORDER BY id ASC')
-      let scalarRowsWritten = 0
+    return this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.db.run('DELETE FROM node_property_scalars')
+        const rows = await this.db.query<{ id: string }>('SELECT id FROM nodes ORDER BY id ASC')
+        let scalarRowsWritten = 0
 
-      for (const row of rows) {
-        const node = await this.getNode(row.id)
-        if (!node) continue
+        for (const row of rows) {
+          const node = await this.getNode(row.id)
+          if (!node) continue
 
-        scalarRowsWritten += await this.syncScalarRowsForNode(node, true)
+          scalarRowsWritten += await this.syncScalarRowsForNode(node, true)
+        }
+
+        await this.db.commit()
+        return {
+          nodesScanned: rows.length,
+          scalarRowsWritten
+        }
+      } catch (err) {
+        await this.db.rollback()
+        throw err
       }
-
-      await this.db.commit()
-      return {
-        nodesScanned: rows.length,
-        scalarRowsWritten
-      }
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    })
   }
 
   /**
    * Import multiple changes in a single transaction.
    */
   async importChanges(changes: NodeChange[]): Promise<void> {
-    // Use manual transaction control for web proxy compatibility
-    await this.db.beginTransaction()
-    try {
-      for (const change of changes) {
-        await this.appendChange(change)
+    await this.enqueueWrite(async () => {
+      // Use manual transaction control for web proxy compatibility
+      await this.db.beginTransaction()
+      try {
+        for (const change of changes) {
+          await this.appendChangeInternal(change)
+        }
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
       }
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    })
   }
 
   /**
    * Clear all data (for testing or reset).
    */
   async clear(): Promise<void> {
-    // Use manual transaction control for web proxy compatibility
-    await this.db.beginTransaction()
-    try {
-      await this.db.run('DELETE FROM yjs_snapshots')
-      await this.db.run('DELETE FROM yjs_updates')
-      await this.db.run('DELETE FROM yjs_state')
-      await this.db.run('DELETE FROM changes')
-      await this.clearSpatialRows()
-      await this.clearMaterializedViewRows()
-      await this.db.run('DELETE FROM node_property_scalars')
-      await this.db.run('DELETE FROM node_properties')
-      await this.db.run('DELETE FROM nodes')
-      await this.db.run("DELETE FROM sync_state WHERE key = 'lastLamportTime'")
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    await this.enqueueWrite(async () => {
+      // Use manual transaction control for web proxy compatibility
+      await this.db.beginTransaction()
+      try {
+        await this.db.run('DELETE FROM yjs_snapshots')
+        await this.db.run('DELETE FROM yjs_updates')
+        await this.db.run('DELETE FROM yjs_state')
+        await this.db.run('DELETE FROM changes')
+        await this.clearSpatialRows()
+        await this.clearMaterializedViewRows()
+        await this.db.run('DELETE FROM node_property_scalars')
+        await this.db.run('DELETE FROM node_properties')
+        await this.db.run('DELETE FROM nodes')
+        await this.db.run("DELETE FROM sync_state WHERE key = 'lastLamportTime'")
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────────
@@ -1126,51 +1168,55 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const refreshed = await this.queryNodes(input.descriptor)
     const generatedAt = Date.now()
 
-    await this.db.beginTransaction()
-    try {
-      await this.db.run('DELETE FROM node_query_materialized_ids WHERE view_id = ?', [input.viewId])
-      await this.db.run(
-        `INSERT INTO node_query_materializations
-          (
-            view_id,
-            descriptor_hash,
-            schema_id,
-            descriptor_json,
-            generated_at,
-            invalidated_at,
-            row_count
-          )
-         VALUES (?, ?, ?, ?, ?, NULL, ?)
-         ON CONFLICT(view_id) DO UPDATE SET
-           descriptor_hash = excluded.descriptor_hash,
-           schema_id = excluded.schema_id,
-           descriptor_json = excluded.descriptor_json,
-           generated_at = excluded.generated_at,
-           invalidated_at = NULL,
-           row_count = excluded.row_count`,
-        [
-          input.viewId,
-          input.descriptorHash,
-          input.descriptor.schemaId,
-          input.descriptorJson,
-          generatedAt,
-          refreshed.nodes.length
-        ]
-      )
-
-      for (const [ordinal, node] of refreshed.nodes.entries()) {
+    await this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.db.run('DELETE FROM node_query_materialized_ids WHERE view_id = ?', [
+          input.viewId
+        ])
         await this.db.run(
-          `INSERT INTO node_query_materialized_ids (view_id, ordinal, node_id)
-           VALUES (?, ?, ?)`,
-          [input.viewId, ordinal, node.id]
+          `INSERT INTO node_query_materializations
+            (
+              view_id,
+              descriptor_hash,
+              schema_id,
+              descriptor_json,
+              generated_at,
+              invalidated_at,
+              row_count
+            )
+           VALUES (?, ?, ?, ?, ?, NULL, ?)
+           ON CONFLICT(view_id) DO UPDATE SET
+             descriptor_hash = excluded.descriptor_hash,
+             schema_id = excluded.schema_id,
+             descriptor_json = excluded.descriptor_json,
+             generated_at = excluded.generated_at,
+             invalidated_at = NULL,
+             row_count = excluded.row_count`,
+          [
+            input.viewId,
+            input.descriptorHash,
+            input.descriptor.schemaId,
+            input.descriptorJson,
+            generatedAt,
+            refreshed.nodes.length
+          ]
         )
-      }
 
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+        for (const [ordinal, node] of refreshed.nodes.entries()) {
+          await this.db.run(
+            `INSERT INTO node_query_materialized_ids (view_id, ordinal, node_id)
+             VALUES (?, ?, ?)`,
+            [input.viewId, ordinal, node.id]
+          )
+        }
+
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
 
     return {
       viewId: input.viewId,
@@ -1448,43 +1494,45 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
     const fields = this.getSpatialFieldConfig(spatial)
     const now = Date.now()
 
-    await this.db.beginTransaction()
-    try {
-      await this.db.run(
-        `INSERT INTO node_spatial_indexes
-          (spatial_key, schema_id, x_key, y_key, width_key, height_key, created_at, last_built_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          spatialKey,
-          schemaId,
-          fields.xKey,
-          fields.yKey,
-          fields.widthKey,
-          fields.heightKey,
-          now,
-          now
-        ]
-      )
+    await this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.db.run(
+          `INSERT INTO node_spatial_indexes
+            (spatial_key, schema_id, x_key, y_key, width_key, height_key, created_at, last_built_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            spatialKey,
+            schemaId,
+            fields.xKey,
+            fields.yKey,
+            fields.widthKey,
+            fields.heightKey,
+            now,
+            now
+          ]
+        )
 
-      const nodes = await this.listNodesOptimized({ schemaId, includeDeleted: true })
-      const config: SpatialIndexConfigRow = {
-        spatial_key: spatialKey,
-        schema_id: schemaId,
-        x_key: fields.xKey,
-        y_key: fields.yKey,
-        width_key: fields.widthKey,
-        height_key: fields.heightKey
+        const nodes = await this.listNodesOptimized({ schemaId, includeDeleted: true })
+        const config: SpatialIndexConfigRow = {
+          spatial_key: spatialKey,
+          schema_id: schemaId,
+          x_key: fields.xKey,
+          y_key: fields.yKey,
+          width_key: fields.widthKey,
+          height_key: fields.heightKey
+        }
+
+        for (const node of nodes) {
+          await this.replaceSpatialRowForConfig(node, config, true)
+        }
+
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
       }
-
-      for (const node of nodes) {
-        await this.replaceSpatialRowForConfig(node, config, true)
-      }
-
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    })
   }
 
   private async syncSpatialRowsForNode(node: NodeState, indexProperties: boolean): Promise<void> {
