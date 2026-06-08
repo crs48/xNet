@@ -95,9 +95,26 @@ export type SocialImportNodeDraftStreamResult = Omit<SocialImportStageResult, 'r
   canonicalRecordCount: number
 }
 
+export type SocialImportNodeDraftPreviewResult = {
+  archive: SocialImportArchivePreview
+  drafts: SocialImportNodeDraft[]
+  summary: StagingSummary
+  limit: number
+  limitReached: boolean
+  processedRecordCount: number
+  sourceRecordCount: number
+  canonicalRecordCount: number
+  stageDurationMs: number
+}
+
 export type StreamSocialImportNodeDraftsInput = SocialImportStageInput & {
   includeSourceRecords?: boolean
   onComplete?: (result: SocialImportNodeDraftStreamResult) => void
+}
+
+export type PreviewSocialImportNodeDraftsInput = SocialImportStageInput & {
+  limit: number
+  includeSourceRecords?: boolean
 }
 
 export async function createSocialArchivePreview(input: {
@@ -308,6 +325,79 @@ export async function* streamSocialImportNodeDrafts(
   return result
 }
 
+export async function previewSocialImportNodeDrafts(
+  input: PreviewSocialImportNodeDraftsInput
+): Promise<SocialImportNodeDraftPreviewResult> {
+  const stageStartedAt = Date.now()
+  const plan = await createSocialImportStagePlan(input)
+  const summaryAccumulator = createStagingSummaryAccumulator()
+  const limit = normalizePreviewLimit(input.limit)
+  const drafts: SocialImportNodeDraft[] = []
+  const progressIntervalRecords = Math.max(1, Math.floor(input.progressIntervalRecords ?? 1000))
+  let processedRecordCount = 0
+  let sourceRecordCount = 0
+  let limitReached = limit === 0
+
+  if (limit === 0) {
+    const summary = summaryAccumulator.summary()
+    input.onProgress?.({
+      ...summary,
+      currentBucketId: null
+    })
+
+    return {
+      archive: plan.archive,
+      drafts,
+      summary,
+      limit,
+      limitReached,
+      processedRecordCount,
+      sourceRecordCount,
+      canonicalRecordCount: processedRecordCount - sourceRecordCount,
+      stageDurationMs: Date.now() - stageStartedAt
+    }
+  }
+
+  for await (const record of plan.adapter.stage(
+    createSocialImportContext(input, plan),
+    plan.selection
+  )) {
+    processedRecordCount += 1
+    summaryAccumulator.add(record)
+    if (record.kind === 'source-record') sourceRecordCount += 1
+
+    if (input.onProgress && processedRecordCount % progressIntervalRecords === 0) {
+      input.onProgress(summaryAccumulator.progress(record.bucketId))
+    }
+
+    if ((input.includeSourceRecords ?? true) || record.kind !== 'source-record') {
+      drafts.push(toSocialImportNodeDraft(record))
+      if (drafts.length >= limit) {
+        limitReached = true
+        break
+      }
+    }
+  }
+
+  const summary = summaryAccumulator.summary()
+  input.onProgress?.({
+    ...summary,
+    currentBucketId: null
+  })
+
+  return {
+    archive: plan.archive,
+    drafts,
+    summary,
+    limit,
+    limitReached,
+    processedRecordCount,
+    sourceRecordCount,
+    canonicalRecordCount: processedRecordCount - sourceRecordCount,
+    stageDurationMs: Date.now() - stageStartedAt
+  }
+}
+
 function createSocialImportContext(
   input: SocialImportStageInput,
   plan: SocialImportStagePlan
@@ -426,4 +516,9 @@ function createRedactedManifestSummary(manifest: ArchiveManifest): Record<string
     archiveHash: manifest.archiveHash,
     entriesByTopLevel
   }
+}
+
+function normalizePreviewLimit(limit: number): number {
+  if (!Number.isFinite(limit)) throw new Error('Preview limit must be a finite number')
+  return Math.max(0, Math.floor(limit))
 }

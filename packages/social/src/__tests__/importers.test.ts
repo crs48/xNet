@@ -67,6 +67,7 @@ import {
   parseTwitterArchiveJs,
   parseYouTubeCsv,
   openaiAdapter,
+  previewSocialImportNodeDrafts,
   sanitizeStagedRecordsForFixture,
   stageSocialArchive,
   streamSocialImportNodeDrafts,
@@ -2018,6 +2019,102 @@ describe('social import adapters', () => {
       expect(complete?.sourceRecordCount).toBe(1)
       expect(complete?.canonicalRecordCount).toBe(1)
       expect(complete).not.toHaveProperty('records')
+    })
+
+    it('previews the first matching node drafts without materializing all records', async () => {
+      const records = [
+        createSourceRecord({
+          archiveId: 'archive',
+          importRunId: 'run',
+          platform: 'instagram',
+          bucketId: 'instagram.raw',
+          source: entry('raw.json'),
+          sourceRecordKind: 'content',
+          sourceRecordId: 'raw-one',
+          payload: { id: 'raw-one' },
+          privacyClass: 'private'
+        }),
+        createStagedNode({
+          kind: 'content',
+          deterministicId: 'content:preview-one',
+          platform: 'instagram',
+          bucketId: 'instagram.posts',
+          source: entry('posts.json'),
+          sourceRecordId: 'post-one',
+          privacyClass: 'public',
+          properties: { contentKind: 'post' }
+        }),
+        createStagedNode({
+          kind: 'interaction',
+          deterministicId: 'interaction:preview-two',
+          platform: 'instagram',
+          bucketId: 'instagram.likes',
+          source: entry('likes.json'),
+          sourceRecordId: 'like-one',
+          privacyClass: 'public',
+          properties: { interactionKind: 'like' }
+        })
+      ]
+      const archiveManifest = manifest([
+        entry('raw.json'),
+        entry('posts.json'),
+        entry('likes.json')
+      ])
+      const adapter: SocialImportAdapter = {
+        id: 'preview-fixture',
+        version: '1.0.0',
+        platform: 'instagram',
+        detect: () => 1,
+        probe: () => ({
+          adapterId: 'preview-fixture',
+          adapterVersion: '1.0.0',
+          platform: 'instagram',
+          confidence: 1,
+          warnings: [],
+          buckets: [
+            {
+              id: 'instagram.raw',
+              label: 'Raw records',
+              entryPaths: ['raw.json'],
+              privacyClass: 'private',
+              defaultSelected: true
+            },
+            {
+              id: 'instagram.posts',
+              label: 'Posts',
+              entryPaths: ['posts.json'],
+              privacyClass: 'public',
+              defaultSelected: true
+            },
+            {
+              id: 'instagram.likes',
+              label: 'Likes',
+              entryPaths: ['likes.json'],
+              privacyClass: 'public',
+              defaultSelected: true
+            }
+          ]
+        }),
+        async *stage() {
+          yield* records
+        }
+      }
+
+      const result = await previewSocialImportNodeDrafts({
+        manifest: archiveManifest,
+        adapters: [adapter],
+        readJsonEntry: async <T>() => ({}) as T,
+        importedAt,
+        includeSourceRecords: false,
+        limit: 1
+      })
+
+      expect(result.drafts.map((draft) => draft.kind)).toEqual(['content'])
+      expect(result.limitReached).toBe(true)
+      expect(result.processedRecordCount).toBe(2)
+      expect(result.sourceRecordCount).toBe(1)
+      expect(result.canonicalRecordCount).toBe(1)
+      expect(result.summary.totalRecords).toBe(2)
     })
 
     it('plans entry-level blob storage for large archives', () => {
