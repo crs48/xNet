@@ -4,6 +4,7 @@
 
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type {
+  ArchiveManifest,
   SocialImportArchivePreview as SharedSocialImportArchivePreview,
   SocialImportNodeDraft as SharedSocialImportNodeDraft,
   SocialImportNodeDraftStreamResult,
@@ -67,8 +68,10 @@ const COMMIT_BATCH_SIZE = 2500
 
 type ElectronStagedSocialImport = Omit<SocialImportNodeDraftStreamResult, 'archive'> & {
   archive: SocialImportArchivePreview
-  commitDraftsWithSourceRecords: SharedSocialImportNodeDraft[] | null
-  commitDraftsWithoutSourceRecords: SharedSocialImportNodeDraft[] | null
+  archivePath: string
+  manifest: ArchiveManifest
+  stageRequest: SocialImportStageRequest
+  importedAt: string
 }
 
 export function setupSocialImportIPC(getWindow: () => BrowserWindow | null): void {
@@ -155,9 +158,9 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
   const manifest = await readZipArchiveManifest(request.archivePath, { hashEntries: false })
   const readJsonEntry = await createZipJsonEntryReader(request.archivePath)
   const readTextEntry = await createZipTextEntryReader(request.archivePath)
+  const importedAt = new Date().toISOString()
 
   const streamResults: SocialImportNodeDraftStreamResult[] = []
-  const drafts: SharedSocialImportNodeDraft[] = []
   for await (const draft of streamSocialImportNodeDrafts({
     manifest,
     adapters,
@@ -165,12 +168,13 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
     readTextEntry,
     buckets: request.buckets,
     includeSensitive: request.includeSensitive,
+    importedAt,
     includeSourceRecords: true,
     onComplete: (streamResult) => {
       streamResults.push(streamResult)
     }
   })) {
-    drafts.push(draft)
+    void draft
   }
   const result = requireStreamResult(streamResults)
   const archive = requireArchivePath(result.archive, request.archivePath)
@@ -178,8 +182,10 @@ async function stageArchive(request: SocialImportStageRequest): Promise<SocialIm
   stagedResults.set(stageId, {
     ...result,
     archive,
-    commitDraftsWithSourceRecords: drafts,
-    commitDraftsWithoutSourceRecords: null
+    archivePath: request.archivePath,
+    manifest,
+    stageRequest: request,
+    importedAt
   })
 
   return {
@@ -208,7 +214,7 @@ function startCommitJob(
     throw new Error('Missing import signing identity')
   }
 
-  const drafts = getCommitDrafts(stagedResult, request.includeSourceRecords)
+  const totalRecords = getCommitRecordCount(stagedResult, request.includeSourceRecords)
   const now = Date.now()
   const job: SocialImportCommitJobSnapshot = {
     jobId: createCommitJobId(),
@@ -216,7 +222,7 @@ function startCommitJob(
     phase: 'checking',
     platform: stagedResult.archive.adapter?.platform ?? 'unknown',
     archiveName: stagedResult.archive.filename,
-    totalRecords: drafts.length,
+    totalRecords,
     processedRecords: 0,
     created: 0,
     updated: 0,
@@ -224,7 +230,7 @@ function startCommitJob(
     warnings: stagedResult.summary.totalWarnings,
     currentBucketId: null,
     currentChunk: 0,
-    totalChunks: Math.ceil(drafts.length / COMMIT_BATCH_SIZE),
+    totalChunks: Math.ceil(totalRecords / COMMIT_BATCH_SIZE),
     startedAt: now,
     updatedAt: now,
     completedAt: null,
@@ -234,7 +240,7 @@ function startCommitJob(
 
   commitJobs.set(job.jobId, job)
   publishCommitJob(job, getWindow)
-  void runCommitJob({ jobId: job.jobId, drafts, request, getWindow })
+  void runCommitJob({ jobId: job.jobId, stagedResult, request, totalRecords, getWindow })
   return job
 }
 
@@ -256,12 +262,13 @@ function cancelCommitJob(
 
 async function runCommitJob(input: {
   jobId: string
-  drafts: SharedSocialImportNodeDraft[]
+  stagedResult: ElectronStagedSocialImport
   request: SocialImportCommitJobRequest
+  totalRecords: number
   getWindow: () => BrowserWindow | null
 }): Promise<void> {
   const startedAt = Date.now()
-  const totalRecords = input.drafts.length
+  const totalRecords = input.totalRecords
   const totalChunks = Math.ceil(totalRecords / COMMIT_BATCH_SIZE)
   const metrics: Omit<SocialImportJobMetrics, 'recordsPerSecond'> = {
     lastCheckMs: 0,
@@ -273,14 +280,23 @@ async function runCommitJob(input: {
   }
   let created = 0
   let updated = 0
+  let processedRecords = 0
+  let currentChunk = 0
+  let draftBatch: SharedSocialImportNodeDraft[] = []
 
   try {
     updateCommitJob(input.jobId, { status: 'running', phase: 'checking' }, input.getWindow)
 
-    for (const [chunkIndex, draftChunk] of chunkItems(input.drafts, COMMIT_BATCH_SIZE).entries()) {
+    const readJsonEntry = await createZipJsonEntryReader(input.stagedResult.archivePath)
+    const readTextEntry = await createZipTextEntryReader(input.stagedResult.archivePath)
+
+    const flushDraftBatch = async (): Promise<void> => {
+      if (draftBatch.length === 0) return
+
       assertCommitJobNotCancelled(input.jobId)
-      const processedBeforeChunk = Math.min(chunkIndex * COMMIT_BATCH_SIZE, totalRecords)
-      const currentChunk = chunkIndex + 1
+      const draftChunk = draftBatch
+      draftBatch = []
+      const nextChunk = currentChunk + 1
 
       const checkStartedAt = performance.now()
       const deterministicDrafts = draftChunk.map(toDeterministicNodeImportDraft)
@@ -291,10 +307,10 @@ async function runCommitJob(input: {
         jobId: input.jobId,
         phase: 'writing',
         totalRecords,
-        processedRecords: processedBeforeChunk,
+        processedRecords,
         created,
         updated,
-        currentChunk: chunkIndex,
+        currentChunk,
         totalChunks,
         startedAt,
         metrics,
@@ -316,13 +332,15 @@ async function runCommitJob(input: {
 
       created += batchResult.created
       updated += batchResult.updated
+      processedRecords += draftChunk.length
+      currentChunk = nextChunk
       assertCommitJobNotCancelled(input.jobId)
 
       reportCommitJobProgress({
         jobId: input.jobId,
         phase: currentChunk >= totalChunks ? 'finalizing' : 'checking',
         totalRecords,
-        processedRecords: processedBeforeChunk + draftChunk.length,
+        processedRecords,
         created,
         updated,
         currentChunk,
@@ -331,6 +349,31 @@ async function runCommitJob(input: {
         metrics,
         getWindow: input.getWindow
       })
+    }
+
+    for await (const draft of streamSocialImportNodeDrafts({
+      manifest: input.stagedResult.manifest,
+      adapters,
+      readJsonEntry,
+      readTextEntry,
+      buckets: input.stagedResult.stageRequest.buckets,
+      includeSensitive: input.stagedResult.stageRequest.includeSensitive,
+      importedAt: input.stagedResult.importedAt,
+      includeSourceRecords: input.request.includeSourceRecords
+    })) {
+      assertCommitJobNotCancelled(input.jobId)
+      draftBatch.push(draft)
+      if (draftBatch.length >= COMMIT_BATCH_SIZE) {
+        await flushDraftBatch()
+      }
+    }
+
+    await flushDraftBatch()
+
+    if (processedRecords !== totalRecords) {
+      throw new Error(
+        `Social import streamed ${processedRecords} records but expected ${totalRecords}`
+      )
     }
 
     updateCommitJob(
@@ -433,22 +476,11 @@ function publishCommitJob(
   }
 }
 
-function getCommitDrafts(
+function getCommitRecordCount(
   stagedResult: ElectronStagedSocialImport,
   includeSourceRecords: boolean
-): SharedSocialImportNodeDraft[] {
-  if (!stagedResult.commitDraftsWithSourceRecords) {
-    throw new Error('Staged social import is missing commit drafts.')
-  }
-
-  if (includeSourceRecords) {
-    return stagedResult.commitDraftsWithSourceRecords
-  }
-
-  stagedResult.commitDraftsWithoutSourceRecords ??= [
-    ...stagedResult.commitDraftsWithSourceRecords.filter((draft) => draft.kind !== 'source-record')
-  ]
-  return stagedResult.commitDraftsWithoutSourceRecords
+): number {
+  return 2 + (includeSourceRecords ? stagedResult.recordCount : stagedResult.canonicalRecordCount)
 }
 
 function requireStreamResult(
@@ -492,14 +524,6 @@ function createStageId(): string {
 
 function createCommitJobId(): string {
   return `electron-social-import:${Date.now()}:${Math.random().toString(36).slice(2)}`
-}
-
-function chunkItems<T>(items: readonly T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
-  }
-  return chunks
 }
 
 function requireArchivePath(
