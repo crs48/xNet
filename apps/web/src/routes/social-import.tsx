@@ -17,10 +17,13 @@ import {
   Import,
   Loader2,
   Shield,
-  Upload
+  Upload,
+  X
 } from 'lucide-react'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
+  BrowserSocialImportCommitCancelledError,
+  cancelBrowserSocialImportCommitJob,
   getBrowserSocialImportCommitRecordCount,
   startBrowserSocialImportCommitJob,
   type BrowserSocialImportCommitProgress as CommitProgress,
@@ -60,6 +63,7 @@ function SocialImportPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null)
   const [commitSummary, setCommitSummary] = useState<CommitSummary | null>(null)
   const [commitProgress, setCommitProgress] = useState<CommitProgress | null>(null)
+  const [commitJobId, setCommitJobId] = useState<string | null>(null)
   const [workspaceSummary, setWorkspaceSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [workspaceSeeding, setWorkspaceSeeding] = useState(false)
   const { mutate } = useMutate()
@@ -140,6 +144,7 @@ function SocialImportPage(): React.ReactElement {
     setStatus('committing')
     setError(null)
     setCommitProgress(null)
+    setCommitJobId(null)
 
     try {
       const job = startBrowserSocialImportCommitJob({
@@ -148,6 +153,7 @@ function SocialImportPage(): React.ReactElement {
         importDrafts: async (batchDrafts) => store.importDeterministicNodes(batchDrafts),
         onProgress: setCommitProgress
       })
+      setCommitJobId(job.jobId)
       const summary = await job.promise
 
       setCommitSummary(summary)
@@ -157,9 +163,23 @@ function SocialImportPage(): React.ReactElement {
       const message = toErrorMessage(err)
       setStatus('staged')
       setCommitProgress(null)
-      setError(message)
+      setError(
+        err instanceof BrowserSocialImportCommitCancelledError
+          ? 'Import cancelled. Commit again to retry the remaining deterministic records.'
+          : message
+      )
+    } finally {
+      setCommitJobId(null)
     }
   }, [includeSourceRecords, stageResult, store, storeReady])
+
+  const handleCancelCommit = useCallback(() => {
+    if (!commitJobId) return
+    const cancelled = cancelBrowserSocialImportCommitJob(commitJobId)
+    if (cancelled) {
+      setError('Cancelling after the current batch finishes.')
+    }
+  }, [commitJobId])
 
   const handleOpenWorkspace = useCallback(async () => {
     if (!store || !storeReady) return
@@ -453,6 +473,17 @@ function SocialImportPage(): React.ReactElement {
                   )}
                   Commit {commitRecordCount || ''}
                 </button>
+                {status === 'committing' ? (
+                  <button
+                    type="button"
+                    disabled={!commitJobId}
+                    onClick={handleCancelCommit}
+                    className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <X size={15} />
+                    Cancel
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   disabled={status !== 'committed' || !storeReady || workspaceSeeding}

@@ -595,7 +595,7 @@ Recommendation:
 - [x] Add web job client that owns a long-lived worker outside the route component.
 - [x] Keep parsed/staged chunks in the worker and post only progress summaries to UI.
 - [x] Add `BroadcastChannel` progress fanout for route changes and multi-tab display.
-- [ ] Add cancel and retry semantics.
+- [x] Add cancel and retry semantics.
 - [x] Add honest paused UI for restored browser page-close/reload cases.
 - [ ] Add resume semantics for restored browser page-close/reload cases.
 

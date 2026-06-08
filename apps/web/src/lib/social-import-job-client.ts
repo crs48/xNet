@@ -56,6 +56,14 @@ export type StartBrowserSocialImportCommitJobInput = {
 
 const COMMIT_BATCH_SIZE = 2500
 const activeCommitJobs = new Map<string, BrowserSocialImportCommitJob>()
+const cancelledCommitJobIds = new Set<string>()
+
+export class BrowserSocialImportCommitCancelledError extends Error {
+  constructor(jobId: string) {
+    super(`Social import commit ${jobId} was cancelled`)
+    this.name = 'BrowserSocialImportCommitCancelledError'
+  }
+}
 
 export function getBrowserSocialImportCommitRecordCount(
   stageResult: Pick<BrowserSocialImportStageResult, 'canonicalRecordCount' | 'recordCount'>,
@@ -79,6 +87,7 @@ export function startBrowserSocialImportCommitJob(
     totalChunks,
     warnings: input.stageResult.summary.totalWarnings
   })
+  cancelledCommitJobIds.delete(commitJob.jobId)
 
   const promise = commitBrowserSocialImportStage({
     ...input,
@@ -100,6 +109,15 @@ export function startBrowserSocialImportCommitJob(
       return summary
     })
     .catch((error: unknown) => {
+      if (error instanceof BrowserSocialImportCommitCancelledError) {
+        updateSocialImportJob(commitJob.jobId, {
+          status: 'cancelled',
+          phase: 'finalizing',
+          error: null
+        })
+        throw error
+      }
+
       updateSocialImportJob(commitJob.jobId, {
         status: 'failed',
         error: error instanceof Error ? error.message : String(error)
@@ -108,6 +126,7 @@ export function startBrowserSocialImportCommitJob(
     })
     .finally(() => {
       activeCommitJobs.delete(commitJob.jobId)
+      cancelledCommitJobIds.delete(commitJob.jobId)
     })
 
   const job = {
@@ -120,6 +139,17 @@ export function startBrowserSocialImportCommitJob(
 
 export function getActiveBrowserSocialImportCommitJobs(): BrowserSocialImportCommitJob[] {
   return [...activeCommitJobs.values()]
+}
+
+export function cancelBrowserSocialImportCommitJob(jobId: string): boolean {
+  if (!activeCommitJobs.has(jobId)) return false
+
+  cancelledCommitJobIds.add(jobId)
+  updateSocialImportJob(jobId, {
+    status: 'cancelled',
+    error: null
+  })
+  return true
 }
 
 async function commitBrowserSocialImportStage(input: {
@@ -188,6 +218,7 @@ async function commitBrowserSocialImportStage(input: {
   )
 
   while (offset < input.totalRecords) {
+    assertBrowserSocialImportCommitNotCancelled(input.jobId)
     const currentBatch = completedBatches + 1
 
     await reportProgressAndYield(metrics, () =>
@@ -236,6 +267,7 @@ async function commitBrowserSocialImportStage(input: {
     updated += batchResult.updated
     completedBatches += 1
     offset = chunk.nextOffset
+    assertBrowserSocialImportCommitNotCancelled(input.jobId)
 
     reportProgress({
       phase: 'committed',
@@ -252,6 +284,12 @@ async function commitBrowserSocialImportStage(input: {
   }
 
   return { created, updated, batches: completedBatches }
+}
+
+function assertBrowserSocialImportCommitNotCancelled(jobId: string): void {
+  if (cancelledCommitJobIds.has(jobId)) {
+    throw new BrowserSocialImportCommitCancelledError(jobId)
+  }
 }
 
 function toDeterministicNodeImportDraft(
