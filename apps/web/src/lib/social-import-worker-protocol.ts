@@ -1,6 +1,7 @@
 import type {
   ArchiveManifest,
   SocialImportArchivePreview,
+  SocialImportNodeDraft,
   SocialImportStageResult
 } from '@xnetjs/social/import/browser'
 
@@ -17,7 +18,22 @@ export type SocialImportWorkerPreviewPayload = {
   preview: SocialImportArchivePreview
 }
 
-export type SocialImportWorkerStagePayload = SocialImportStageResult
+export type SocialImportWorkerStagePayload = Omit<SocialImportStageResult, 'records'> & {
+  stageId: string
+  recordCount: number
+  sourceRecordCount: number
+  canonicalRecordCount: number
+}
+
+export type SocialImportWorkerStageChunkPayload = {
+  stageId: string
+  drafts: SocialImportNodeDraft[]
+  offset: number
+  limit: number
+  totalRecords: number
+  nextOffset: number
+  done: boolean
+}
 
 export type SocialImportWorkerPreviewRequest = {
   kind: 'preview'
@@ -34,9 +50,19 @@ export type SocialImportWorkerStageRequest = {
   includeSensitive: boolean
 }
 
+export type SocialImportWorkerStageChunkRequest = {
+  kind: 'stage-chunk'
+  requestId: string
+  stageId: string
+  offset: number
+  limit: number
+  includeSourceRecords: boolean
+}
+
 export type SocialImportWorkerRequest =
   | SocialImportWorkerPreviewRequest
   | SocialImportWorkerStageRequest
+  | SocialImportWorkerStageChunkRequest
 
 export type SocialImportWorkerSuccessResponse =
   | {
@@ -51,6 +77,13 @@ export type SocialImportWorkerSuccessResponse =
       requestId: string
       ok: true
       result: SocialImportWorkerStagePayload
+      timings?: SocialImportWorkerTimings
+    }
+  | {
+      kind: 'stage-chunk'
+      requestId: string
+      ok: true
+      result: SocialImportWorkerStageChunkPayload
       timings?: SocialImportWorkerTimings
     }
 

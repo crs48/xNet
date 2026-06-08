@@ -2,19 +2,12 @@
  * Browser social archive import route.
  */
 
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SocialImporterRegistryEntry } from '@xnetjs/social/importers'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMutate } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
 import { isSensitivePrivacyClass, type ArchiveManifest } from '@xnetjs/social/import/browser'
-import {
-  createSocialImportJob,
-  updateSocialImportJob,
-  type SocialImportArchivePreview,
-  type SocialImportNodeDraft,
-  type SocialImportJobPhase
-} from '@xnetjs/social/import/core'
+import { type SocialImportArchivePreview } from '@xnetjs/social/import/core'
 import { builtInSocialImporterRegistry } from '@xnetjs/social/importers'
 import {
   AlertTriangle,
@@ -27,6 +20,12 @@ import {
   Upload
 } from 'lucide-react'
 import React, { useCallback, useMemo, useRef, useState } from 'react'
+import {
+  getBrowserSocialImportCommitRecordCount,
+  startBrowserSocialImportCommitJob,
+  type BrowserSocialImportCommitProgress as CommitProgress,
+  type BrowserSocialImportCommitSummary as CommitSummary
+} from '../lib/social-import-job-client'
 import {
   readBrowserSocialImportPreview,
   stageBrowserSocialArchive,
@@ -43,45 +42,12 @@ export const Route = createFileRoute('/social-import')({
 
 type ImportStatus = 'idle' | 'picked' | 'staging' | 'staged' | 'committing' | 'committed'
 
-type CommitSummary = {
-  created: number
-  updated: number
-  batches: number
-}
-
-type CommitProgressPhase = 'checking' | 'writing' | 'committed'
-
-type CommitProgressMetrics = {
-  recordsPerSecond: number
-  lastCheckMs: number
-  lastWriteMs: number
-  lastProgressMs: number
-  totalCheckMs: number
-  totalWriteMs: number
-  totalProgressMs: number
-}
-
-type CommitProgress = {
-  phase: CommitProgressPhase
-  totalRecords: number
-  processedRecords: number
-  totalBatches: number
-  completedBatches: number
-  currentBatch: number
-  created: number
-  updated: number
-  startedAt: number
-  updatedAt: number
-  metrics: CommitProgressMetrics
-}
-
 type PickedArchive = {
   file: File
   manifest: ArchiveManifest
   preview: SocialImportArchivePreview
 }
 
-const COMMIT_BATCH_SIZE = 2500
 function SocialImportPage(): React.ReactElement {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -99,20 +65,11 @@ function SocialImportPage(): React.ReactElement {
   const { mutate } = useMutate()
   const { store, isReady: storeReady } = useNodeStore()
 
-  const stagedRecordCount = stageResult?.records.length ?? 0
-  const sourceRecordCount = useMemo(
-    () => stageResult?.records.filter((record) => record.kind === 'source-record').length ?? 0,
-    [stageResult]
-  )
-  const canonicalRecordCount = stagedRecordCount - sourceRecordCount
+  const sourceRecordCount = stageResult?.sourceRecordCount ?? 0
+  const canonicalRecordCount = stageResult?.canonicalRecordCount ?? 0
   const commitRecordCount = useMemo(() => {
     if (!stageResult) return 0
-    return (
-      2 +
-      stageResult.records.filter(
-        (record) => includeSourceRecords || record.kind !== 'source-record'
-      ).length
-    )
+    return getBrowserSocialImportCommitRecordCount(stageResult, includeSourceRecords)
   }, [includeSourceRecords, stageResult])
 
   const handlePickFile = useCallback(async (file: File) => {
@@ -183,55 +140,16 @@ function SocialImportPage(): React.ReactElement {
     setStatus('committing')
     setError(null)
     setCommitProgress(null)
-    let commitJobId: string | null = null
 
     try {
-      const drafts = [
-        stageResult.archiveNode,
-        stageResult.importRunNode,
-        ...stageResult.records.filter(
-          (record) => includeSourceRecords || record.kind !== 'source-record'
-        )
-      ]
-      const commitJob = createSocialImportJob({
-        archiveName: stageResult.archive.filename,
-        platform: stageResult.archive.adapter?.platform ?? 'unknown',
-        totalRecords: drafts.length,
-        totalChunks: Math.ceil(drafts.length / COMMIT_BATCH_SIZE),
-        warnings: stageResult.summary.totalWarnings
-      })
-      commitJobId = commitJob.jobId
-      const summary = await commitDrafts({
-        drafts,
+      const job = startBrowserSocialImportCommitJob({
+        stageResult,
+        includeSourceRecords,
         importDrafts: async (batchDrafts) => store.importDeterministicNodes(batchDrafts),
-        onProgress: (progress) => {
-          updateSocialImportJob(commitJob.jobId, {
-            status: 'running',
-            phase: commitProgressPhaseToJobPhase(progress),
-            totalRecords: progress.totalRecords,
-            processedRecords: progress.processedRecords,
-            created: progress.created,
-            updated: progress.updated,
-            currentChunk: progress.completedBatches,
-            totalChunks: progress.totalBatches,
-            startedAt: progress.startedAt,
-            metrics: progress.metrics,
-            error: null
-          })
-          setCommitProgress(progress)
-        }
+        onProgress: setCommitProgress
       })
+      const summary = await job.promise
 
-      updateSocialImportJob(commitJob.jobId, {
-        status: 'completed',
-        phase: 'finalizing',
-        processedRecords: drafts.length,
-        created: summary.created,
-        updated: summary.updated,
-        currentChunk: summary.batches,
-        totalChunks: summary.batches,
-        error: null
-      })
       setCommitSummary(summary)
       setWorkspaceSummary(null)
       setStatus('committed')
@@ -239,12 +157,6 @@ function SocialImportPage(): React.ReactElement {
       const message = toErrorMessage(err)
       setStatus('staged')
       setCommitProgress(null)
-      if (commitJobId) {
-        updateSocialImportJob(commitJobId, {
-          status: 'failed',
-          error: message
-        })
-      }
       setError(message)
     }
   }, [includeSourceRecords, stageResult, store, storeReady])
@@ -838,133 +750,6 @@ function StatusCallout({
   )
 }
 
-async function commitDrafts(input: {
-  drafts: SocialImportNodeDraft[]
-  importDrafts: (drafts: DeterministicNodeImportDraft[]) => Promise<{
-    created: number
-    updated: number
-  }>
-  onProgress?: (progress: CommitProgress) => void
-}): Promise<CommitSummary> {
-  const chunks = chunk(input.drafts, COMMIT_BATCH_SIZE)
-  let created = 0
-  let updated = 0
-  const startedAt = Date.now()
-  const metrics: Omit<CommitProgressMetrics, 'recordsPerSecond'> = {
-    lastCheckMs: 0,
-    lastWriteMs: 0,
-    lastProgressMs: 0,
-    totalCheckMs: 0,
-    totalWriteMs: 0,
-    totalProgressMs: 0
-  }
-
-  const reportProgress = (
-    progress: Omit<CommitProgress, 'startedAt' | 'updatedAt' | 'metrics'>
-  ) => {
-    const updatedAt = Date.now()
-    input.onProgress?.({
-      ...progress,
-      startedAt,
-      updatedAt,
-      metrics: {
-        ...metrics,
-        recordsPerSecond: getRecordsPerSecond(progress.processedRecords, startedAt, updatedAt)
-      }
-    })
-  }
-
-  await reportProgressAndYield(metrics, () =>
-    reportProgress({
-      phase: 'checking',
-      totalRecords: input.drafts.length,
-      processedRecords: 0,
-      totalBatches: chunks.length,
-      completedBatches: 0,
-      currentBatch: chunks.length > 0 ? 1 : 0,
-      created,
-      updated
-    })
-  )
-
-  for (const [batchIndex, drafts] of chunks.entries()) {
-    const processedBeforeBatch = Math.min(batchIndex * COMMIT_BATCH_SIZE, input.drafts.length)
-
-    await reportProgressAndYield(metrics, () =>
-      reportProgress({
-        phase: 'checking',
-        totalRecords: input.drafts.length,
-        processedRecords: processedBeforeBatch,
-        totalBatches: chunks.length,
-        completedBatches: batchIndex,
-        currentBatch: batchIndex + 1,
-        created,
-        updated
-      })
-    )
-
-    const checkStartedAt = performance.now()
-    const deterministicDrafts = drafts.map(toDeterministicNodeImportDraft)
-    metrics.lastCheckMs = performance.now() - checkStartedAt
-    metrics.totalCheckMs += metrics.lastCheckMs
-
-    await reportProgressAndYield(metrics, () =>
-      reportProgress({
-        phase: 'writing',
-        totalRecords: input.drafts.length,
-        processedRecords: processedBeforeBatch,
-        totalBatches: chunks.length,
-        completedBatches: batchIndex,
-        currentBatch: batchIndex + 1,
-        created,
-        updated
-      })
-    )
-
-    const writeStartedAt = performance.now()
-    const batchResult = await input.importDrafts(deterministicDrafts)
-    metrics.lastWriteMs = performance.now() - writeStartedAt
-    metrics.totalWriteMs += metrics.lastWriteMs
-
-    created += batchResult.created
-    updated += batchResult.updated
-
-    reportProgress({
-      phase: 'committed',
-      totalRecords: input.drafts.length,
-      processedRecords: processedBeforeBatch + drafts.length,
-      totalBatches: chunks.length,
-      completedBatches: batchIndex + 1,
-      currentBatch: batchIndex + 1,
-      created,
-      updated
-    })
-  }
-
-  return { created, updated, batches: chunks.length }
-}
-
-function toDeterministicNodeImportDraft(
-  draft: SocialImportNodeDraft
-): DeterministicNodeImportDraft {
-  return {
-    id: draft.deterministicId,
-    schemaId: draft.schemaId as DeterministicNodeImportDraft['schemaId'],
-    properties: draft.properties
-  }
-}
-
-async function reportProgressAndYield(
-  metrics: Omit<CommitProgressMetrics, 'recordsPerSecond'>,
-  report: () => void
-): Promise<void> {
-  const progressStartedAt = performance.now()
-  report()
-  await yieldCommitProgress()
-  metrics.lastProgressMs = performance.now() - progressStartedAt
-  metrics.totalProgressMs += metrics.lastProgressMs
-}
-
 function getCommitProgressPhaseLabel(progress: CommitProgress): string {
   if (progress.totalRecords > 0 && progress.processedRecords >= progress.totalRecords) {
     return 'Commit complete'
@@ -973,12 +758,6 @@ function getCommitProgressPhaseLabel(progress: CommitProgress): string {
   if (progress.phase === 'checking') return 'Checking existing records'
   if (progress.phase === 'writing') return 'Writing batch'
   return 'Batch committed'
-}
-
-function commitProgressPhaseToJobPhase(progress: CommitProgress): SocialImportJobPhase {
-  if (progress.processedRecords >= progress.totalRecords) return 'finalizing'
-  if (progress.phase === 'checking') return 'checking'
-  return 'writing'
 }
 
 function getCommitEtaLabel(progress: CommitProgress): string | null {
@@ -991,15 +770,6 @@ function getCommitEtaLabel(progress: CommitProgress): string | null {
   const remainingRecords = progress.totalRecords - progress.processedRecords
   const remainingMs = remainingRecords / Math.max(recordsPerMs, 0.0001)
   return `~${formatDuration(remainingMs)}`
-}
-
-function getRecordsPerSecond(
-  processedRecords: number,
-  startedAt: number,
-  updatedAt: number
-): number {
-  const elapsedSeconds = Math.max((updatedAt - startedAt) / 1000, 0.001)
-  return processedRecords / elapsedSeconds
 }
 
 function formatRate(recordsPerSecond: number): string {
@@ -1024,18 +794,6 @@ function formatDuration(milliseconds: number): string {
   const hours = Math.floor(minutes / 60)
   const remainingMinutes = minutes % 60
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`
-}
-
-function yieldCommitProgress(): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, 0))
-}
-
-function chunk<T>(items: readonly T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
-  }
-  return chunks
 }
 
 function formatByteSize(bytes: number): string {

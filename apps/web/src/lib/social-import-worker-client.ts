@@ -3,10 +3,11 @@ import type {
   SocialImportWorkerPreviewPayload,
   SocialImportWorkerRequest,
   SocialImportWorkerResponse,
+  SocialImportWorkerStageChunkPayload,
   SocialImportWorkerStagePayload,
   SocialImportWorkerTimings
 } from './social-import-worker-protocol'
-import type { ArchiveManifest } from '@xnetjs/social/import/browser'
+import type { ArchiveManifest, SocialImportStageResult } from '@xnetjs/social/import/browser'
 import {
   createBrowserZipJsonEntryReader,
   createBrowserZipTextEntryReader,
@@ -40,6 +41,18 @@ export type BrowserSocialImportStageResult = SocialImportWorkerStagePayload & {
   workerTimings?: SocialImportWorkerTimings
 }
 
+export type BrowserSocialImportStageChunkInput = {
+  stageId: string
+  offset: number
+  limit: number
+  includeSourceRecords: boolean
+}
+
+export type BrowserSocialImportStageChunkResult = SocialImportWorkerStageChunkPayload & {
+  executionMode: SocialImportWorkerExecutionMode
+  workerTimings?: SocialImportWorkerTimings
+}
+
 class SocialImportWorkerUnavailableError extends Error {
   constructor(message: string) {
     super(message)
@@ -49,6 +62,26 @@ class SocialImportWorkerUnavailableError extends Error {
 
 const adapters = builtInSocialImportAdapters
 const WORKER_TIMING_FALLBACK_MS = 250
+const mainThreadStageDrafts = new Map<
+  string,
+  {
+    withSourceRecords: SocialImportWorkerStageChunkPayload['drafts'] | null
+    withoutSourceRecords: SocialImportWorkerStageChunkPayload['drafts'] | null
+    result: SocialImportStageResult
+  }
+>()
+let sharedWorker: Worker | null = null
+const pendingWorkerRequests = new Map<string, PendingWorkerRequest<unknown>>()
+
+type PendingWorkerRequest<T> = {
+  isExpectedResponse: (response: SocialImportWorkerResponse) => boolean
+  resolve: (result: TimedWorkerResult<T>) => void
+  reject: (error: Error) => void
+  requestPostMessageMs: number
+  pendingSuccess: TimedWorkerResult<T> | null
+  pendingTimings: SocialImportWorkerTimings | null
+  timingFallbackTimeout: ReturnType<typeof setTimeout> | null
+}
 
 function nextRequestId(): string {
   return `social-import:${Date.now()}:${Math.random().toString(36).slice(2)}`
@@ -79,104 +112,138 @@ function requestWorker<T>(
   }
 ): Promise<TimedWorkerResult<T>> {
   const requestId = nextRequestId()
-  const worker = createWorker()
+  const worker = getSharedWorker()
 
   return new Promise((resolve, reject) => {
-    let requestPostMessageMs = 0
-    let pendingSuccess: TimedWorkerResult<T> | null = null
-    let pendingTimings: SocialImportWorkerTimings | null = null
-    let timingFallbackTimeout: ReturnType<typeof setTimeout> | null = null
-    let settled = false
-
-    const cleanup = (): void => {
-      if (timingFallbackTimeout) {
-        clearTimeout(timingFallbackTimeout)
-        timingFallbackTimeout = null
-      }
-      worker.onmessage = null
-      worker.onerror = null
-      worker.terminate()
-    }
-
-    const resolveTimedResult = (result: TimedWorkerResult<T>): void => {
-      if (settled) return
-      settled = true
-      cleanup()
-      resolve({
-        result: result.result,
-        timings: {
-          ...result.timings,
-          ...(pendingTimings ?? {})
-        }
-      })
-    }
-
-    const rejectTimedResult = (error: Error): void => {
-      if (settled) return
-      settled = true
-      cleanup()
-      reject(error)
-    }
-
-    worker.onmessage = (event: MessageEvent<SocialImportWorkerResponse>): void => {
-      const response = event.data
-      if (response.requestId !== requestId) return
-
-      if (response.kind === 'timing') {
-        pendingTimings = response.timings
-        if (pendingSuccess) {
-          resolveTimedResult(pendingSuccess)
-        }
-        return
-      }
-
-      if (!response.ok) {
-        rejectTimedResult(new Error(response.error.message))
-        return
-      }
-
-      if (!isExpectedResponse(response)) {
-        rejectTimedResult(new Error(`Unexpected social import worker response: ${response.kind}`))
-        return
-      }
-
-      pendingSuccess = {
-        result: response.result,
-        timings: {
-          requestPostMessageMs,
-          ...(response.timings ?? {})
-        }
-      }
-
-      if (pendingTimings) {
-        resolveTimedResult(pendingSuccess)
-        return
-      }
-
-      timingFallbackTimeout = setTimeout(() => {
-        if (pendingSuccess) {
-          resolveTimedResult(pendingSuccess)
-        }
-      }, WORKER_TIMING_FALLBACK_MS)
-    }
-
-    worker.onerror = (event): void => {
-      rejectTimedResult(
-        new SocialImportWorkerUnavailableError(
-          event instanceof ErrorEvent ? event.message : 'Social import worker failed.'
-        )
-      )
-    }
-
     try {
       const postMessageStartedAt = performance.now()
+      const pendingRequest: PendingWorkerRequest<T> = {
+        isExpectedResponse,
+        resolve,
+        reject,
+        requestPostMessageMs: 0,
+        pendingSuccess: null,
+        pendingTimings: null,
+        timingFallbackTimeout: null
+      }
+      pendingWorkerRequests.set(requestId, pendingRequest as PendingWorkerRequest<unknown>)
       worker.postMessage({ ...input, requestId } as SocialImportWorkerRequest)
-      requestPostMessageMs = performance.now() - postMessageStartedAt
+      pendingRequest.requestPostMessageMs = performance.now() - postMessageStartedAt
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      rejectTimedResult(new SocialImportWorkerUnavailableError(message))
+      pendingWorkerRequests.delete(requestId)
+      reject(new SocialImportWorkerUnavailableError(message))
     }
   })
+}
+
+function getSharedWorker(): Worker {
+  if (sharedWorker) return sharedWorker
+
+  const worker = createWorker()
+  worker.onmessage = (event: MessageEvent<SocialImportWorkerResponse>): void => {
+    handleSharedWorkerMessage(event.data)
+  }
+  worker.onerror = (event): void => {
+    const error = new SocialImportWorkerUnavailableError(
+      event instanceof ErrorEvent ? event.message : 'Social import worker failed.'
+    )
+    rejectPendingWorkerRequests(error)
+    sharedWorker = null
+  }
+  sharedWorker = worker
+  return worker
+}
+
+function handleSharedWorkerMessage(response: SocialImportWorkerResponse): void {
+  const pendingRequest = pendingWorkerRequests.get(response.requestId)
+  if (!pendingRequest) return
+
+  if (response.kind === 'timing') {
+    pendingRequest.pendingTimings = response.timings
+    if (pendingRequest.pendingSuccess) {
+      resolvePendingWorkerRequest(response.requestId, pendingRequest, pendingRequest.pendingSuccess)
+    }
+    return
+  }
+
+  if (!response.ok) {
+    rejectPendingWorkerRequest(
+      response.requestId,
+      pendingRequest,
+      new Error(response.error.message)
+    )
+    return
+  }
+
+  if (!pendingRequest.isExpectedResponse(response)) {
+    rejectPendingWorkerRequest(
+      response.requestId,
+      pendingRequest,
+      new Error(`Unexpected social import worker response: ${response.kind}`)
+    )
+    return
+  }
+
+  pendingRequest.pendingSuccess = {
+    result: response.result,
+    timings: {
+      requestPostMessageMs: pendingRequest.requestPostMessageMs,
+      ...(response.timings ?? {})
+    }
+  }
+
+  if (pendingRequest.pendingTimings) {
+    resolvePendingWorkerRequest(response.requestId, pendingRequest, pendingRequest.pendingSuccess)
+    return
+  }
+
+  pendingRequest.timingFallbackTimeout = setTimeout(() => {
+    if (pendingRequest.pendingSuccess) {
+      resolvePendingWorkerRequest(response.requestId, pendingRequest, pendingRequest.pendingSuccess)
+    }
+  }, WORKER_TIMING_FALLBACK_MS)
+}
+
+function resolvePendingWorkerRequest<T>(
+  requestId: string,
+  pendingRequest: PendingWorkerRequest<T>,
+  result: TimedWorkerResult<T>
+): void {
+  cleanupPendingWorkerRequest(requestId, pendingRequest)
+  pendingRequest.resolve({
+    result: result.result,
+    timings: {
+      ...result.timings,
+      ...(pendingRequest.pendingTimings ?? {})
+    }
+  })
+}
+
+function rejectPendingWorkerRequest(
+  requestId: string,
+  pendingRequest: PendingWorkerRequest<unknown>,
+  error: Error
+): void {
+  cleanupPendingWorkerRequest(requestId, pendingRequest)
+  pendingRequest.reject(error)
+}
+
+function cleanupPendingWorkerRequest<T>(
+  requestId: string,
+  pendingRequest: PendingWorkerRequest<T>
+): void {
+  if (pendingRequest.timingFallbackTimeout) {
+    clearTimeout(pendingRequest.timingFallbackTimeout)
+    pendingRequest.timingFallbackTimeout = null
+  }
+  pendingWorkerRequests.delete(requestId)
+}
+
+function rejectPendingWorkerRequests(error: Error): void {
+  for (const [requestId, pendingRequest] of pendingWorkerRequests.entries()) {
+    rejectPendingWorkerRequest(requestId, pendingRequest, error)
+  }
 }
 
 function isPreviewResponse(
@@ -197,6 +264,16 @@ function isStageResponse(
   result: SocialImportWorkerStagePayload
 } {
   return response.ok && response.kind === 'stage'
+}
+
+function isStageChunkResponse(
+  response: SocialImportWorkerResponse
+): response is SocialImportWorkerResponse & {
+  kind: 'stage-chunk'
+  ok: true
+  result: SocialImportWorkerStageChunkPayload
+} {
+  return response.ok && response.kind === 'stage-chunk'
 }
 
 async function readPreviewOnMainThread(file: File): Promise<BrowserSocialImportPreviewResult> {
@@ -223,9 +300,15 @@ async function stageOnMainThread(
     buckets: input.buckets,
     includeSensitive: input.includeSensitive
   })
+  const stageId = createStageId()
+  mainThreadStageDrafts.set(stageId, {
+    result,
+    withSourceRecords: null,
+    withoutSourceRecords: null
+  })
 
   return {
-    ...result,
+    ...createStagePayload(stageId, result),
     executionMode: 'main-thread'
   }
 }
@@ -280,4 +363,107 @@ export async function stageBrowserSocialArchive(
 
     throw error
   }
+}
+
+export async function readBrowserSocialImportStageChunk(
+  input: BrowserSocialImportStageChunkInput
+): Promise<BrowserSocialImportStageChunkResult> {
+  const mainThreadResult = readStageChunkOnMainThread(input)
+  if (mainThreadResult) return mainThreadResult
+
+  const result = await requestWorker<SocialImportWorkerStageChunkPayload>(
+    {
+      kind: 'stage-chunk',
+      stageId: input.stageId,
+      offset: input.offset,
+      limit: input.limit,
+      includeSourceRecords: input.includeSourceRecords
+    },
+    isStageChunkResponse
+  )
+
+  return {
+    ...result.result,
+    executionMode: 'worker',
+    workerTimings: result.timings
+  }
+}
+
+function readStageChunkOnMainThread(
+  input: BrowserSocialImportStageChunkInput
+): BrowserSocialImportStageChunkResult | null {
+  const stagedResult = mainThreadStageDrafts.get(input.stageId)
+  if (!stagedResult) return null
+
+  const drafts = getMainThreadCommitDrafts(stagedResult, input.includeSourceRecords)
+  const offset = clampInteger(input.offset, 0, drafts.length)
+  const limit = Math.max(0, Math.floor(input.limit))
+  const nextOffset = Math.min(offset + limit, drafts.length)
+
+  return {
+    stageId: input.stageId,
+    drafts: drafts.slice(offset, nextOffset),
+    offset,
+    limit,
+    totalRecords: drafts.length,
+    nextOffset,
+    done: nextOffset >= drafts.length,
+    executionMode: 'main-thread'
+  }
+}
+
+function createStagePayload(
+  stageId: string,
+  result: SocialImportStageResult
+): SocialImportWorkerStagePayload {
+  const sourceRecordCount = result.records.filter(
+    (record) => record.kind === 'source-record'
+  ).length
+
+  return {
+    archive: result.archive,
+    archiveNode: result.archiveNode,
+    importRunNode: result.importRunNode,
+    summary: result.summary,
+    telemetry: result.telemetry,
+    stageDurationMs: result.stageDurationMs,
+    stageId,
+    recordCount: result.records.length,
+    sourceRecordCount,
+    canonicalRecordCount: result.records.length - sourceRecordCount
+  }
+}
+
+function getMainThreadCommitDrafts(
+  stagedResult: {
+    withSourceRecords: SocialImportWorkerStageChunkPayload['drafts'] | null
+    withoutSourceRecords: SocialImportWorkerStageChunkPayload['drafts'] | null
+    result: SocialImportStageResult
+  },
+  includeSourceRecords: boolean
+): SocialImportWorkerStageChunkPayload['drafts'] {
+  if (includeSourceRecords) {
+    stagedResult.withSourceRecords ??= [
+      stagedResult.result.archiveNode,
+      stagedResult.result.importRunNode,
+      ...stagedResult.result.records
+    ]
+    return stagedResult.withSourceRecords
+  }
+
+  stagedResult.withoutSourceRecords ??= [
+    stagedResult.result.archiveNode,
+    stagedResult.result.importRunNode,
+    ...stagedResult.result.records.filter((record) => record.kind !== 'source-record')
+  ]
+  return stagedResult.withoutSourceRecords
+}
+
+function createStageId(): string {
+  return `social-stage:${Date.now()}:${Math.random().toString(36).slice(2)}`
+}
+
+function clampInteger(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min
+  return Math.min(max, Math.max(min, Math.floor(value)))
 }
