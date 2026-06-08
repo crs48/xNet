@@ -2,11 +2,13 @@
  * Shared archive staging orchestration for Electron and web import surfaces.
  */
 
+import type { LargeArchiveStoragePlan } from './storage'
 import type {
   ArchiveManifest,
   ImportProbe,
   ImportSelection,
   JsonArchiveEntryReader,
+  SocialImportContext,
   SocialImportAdapter,
   SocialImportStageProgress,
   StagedSocialRecord,
@@ -76,6 +78,28 @@ export type SocialImportStageResult = {
   stageDurationMs: number
 }
 
+export type SocialImportStagePlan = {
+  archive: SocialImportArchivePreview
+  adapter: SocialImportAdapter
+  archiveId: string
+  importRunId: string
+  importedAt: string
+  selectedBuckets: string[]
+  selection: ImportSelection
+  storagePlan: LargeArchiveStoragePlan
+}
+
+export type SocialImportNodeDraftStreamResult = Omit<SocialImportStageResult, 'records'> & {
+  recordCount: number
+  sourceRecordCount: number
+  canonicalRecordCount: number
+}
+
+export type StreamSocialImportNodeDraftsInput = SocialImportStageInput & {
+  includeSourceRecords?: boolean
+  onComplete?: (result: SocialImportNodeDraftStreamResult) => void
+}
+
 export async function createSocialArchivePreview(input: {
   adapters: readonly SocialImportAdapter[]
   manifest: ArchiveManifest
@@ -109,10 +133,9 @@ export async function createSocialArchivePreview(input: {
   }
 }
 
-export async function stageSocialArchive(
+export async function createSocialImportStagePlan(
   input: SocialImportStageInput
-): Promise<SocialImportStageResult> {
-  const stageStartedAt = Date.now()
+): Promise<SocialImportStagePlan> {
   const detection = detectSocialArchive(input.adapters, input.manifest)
   if (!detection) throw new Error('No social importer recognized this archive')
 
@@ -131,25 +154,37 @@ export async function stageSocialArchive(
     Boolean(input.includeSensitive),
     importedAt
   ])
-  const selection: ImportSelection = {
-    buckets: selectedBuckets,
-    includeSensitive: Boolean(input.includeSensitive)
+
+  return {
+    archive: await createSocialArchivePreview({
+      adapters: input.adapters,
+      manifest: input.manifest
+    }),
+    adapter: detection.adapter,
+    archiveId,
+    importRunId,
+    importedAt,
+    selectedBuckets,
+    selection: {
+      buckets: selectedBuckets,
+      includeSensitive: Boolean(input.includeSensitive)
+    },
+    storagePlan: createLargeArchiveStoragePlan(input.manifest)
   }
+}
+
+export async function stageSocialArchive(
+  input: SocialImportStageInput
+): Promise<SocialImportStageResult> {
+  const stageStartedAt = Date.now()
+  const plan = await createSocialImportStagePlan(input)
   const stagedRecords: StagedSocialRecord[] = []
   const summaryAccumulator = createStagingSummaryAccumulator()
   const progressIntervalRecords = Math.max(1, Math.floor(input.progressIntervalRecords ?? 1000))
 
-  for await (const record of detection.adapter.stage(
-    {
-      manifest: input.manifest,
-      archiveId,
-      importRunId,
-      importedAt,
-      observedBy: input.observedBy,
-      readJsonEntry: input.readJsonEntry,
-      readTextEntry: input.readTextEntry
-    },
-    selection
+  for await (const record of plan.adapter.stage(
+    createSocialImportContext(input, plan),
+    plan.selection
   )) {
     stagedRecords.push(record)
     summaryAccumulator.add(record)
@@ -167,37 +202,124 @@ export async function stageSocialArchive(
   const stageDurationMs = Date.now() - stageStartedAt
 
   return {
-    archive: await createSocialArchivePreview({
-      adapters: input.adapters,
-      manifest: input.manifest
-    }),
+    archive: plan.archive,
     archiveNode: createSocialImportArchiveDraft({
-      adapter: detection.adapter,
-      archiveId,
-      importedAt,
+      adapter: plan.adapter,
+      archiveId: plan.archiveId,
+      importedAt: plan.importedAt,
       manifest: input.manifest
     }),
     importRunNode: createSocialImportRunDraft({
-      adapter: detection.adapter,
-      archiveId,
-      importRunId,
-      importedAt,
-      selectedBuckets,
+      adapter: plan.adapter,
+      archiveId: plan.archiveId,
+      importRunId: plan.importRunId,
+      importedAt: plan.importedAt,
+      selectedBuckets: plan.selectedBuckets,
       summary
     }),
     records: createSocialImportNodeDrafts(stagedRecords),
     summary,
     telemetry: createSocialImportTelemetryEvents({
-      adapterId: detection.adapter.id,
-      adapterVersion: detection.adapter.version,
-      platform: detection.adapter.platform,
+      adapterId: plan.adapter.id,
+      adapterVersion: plan.adapter.version,
+      platform: plan.adapter.platform,
       stagedRecords,
       stagingSummary: summary,
       stageDurationMs,
-      storagePlan: createLargeArchiveStoragePlan(input.manifest),
-      createdAt: importedAt
+      storagePlan: plan.storagePlan,
+      createdAt: plan.importedAt
     }),
     stageDurationMs
+  }
+}
+
+export async function* streamSocialImportNodeDrafts(
+  input: StreamSocialImportNodeDraftsInput
+): AsyncGenerator<SocialImportNodeDraft, SocialImportNodeDraftStreamResult, void> {
+  const stageStartedAt = Date.now()
+  const plan = await createSocialImportStagePlan(input)
+  const summaryAccumulator = createStagingSummaryAccumulator()
+  const progressIntervalRecords = Math.max(1, Math.floor(input.progressIntervalRecords ?? 1000))
+  const archiveNode = createSocialImportArchiveDraft({
+    adapter: plan.adapter,
+    archiveId: plan.archiveId,
+    importedAt: plan.importedAt,
+    manifest: input.manifest
+  })
+  let sourceRecordCount = 0
+  let processedRecords = 0
+
+  yield archiveNode
+
+  for await (const record of plan.adapter.stage(
+    createSocialImportContext(input, plan),
+    plan.selection
+  )) {
+    processedRecords += 1
+    summaryAccumulator.add(record)
+    if (record.kind === 'source-record') sourceRecordCount += 1
+
+    if (input.onProgress && processedRecords % progressIntervalRecords === 0) {
+      input.onProgress(summaryAccumulator.progress(record.bucketId))
+    }
+
+    if ((input.includeSourceRecords ?? true) || record.kind !== 'source-record') {
+      yield toSocialImportNodeDraft(record)
+    }
+  }
+
+  const summary = summaryAccumulator.summary()
+  input.onProgress?.({
+    ...summary,
+    currentBucketId: null
+  })
+
+  const importRunNode = createSocialImportRunDraft({
+    adapter: plan.adapter,
+    archiveId: plan.archiveId,
+    importRunId: plan.importRunId,
+    importedAt: plan.importedAt,
+    selectedBuckets: plan.selectedBuckets,
+    summary
+  })
+  yield importRunNode
+
+  const stageDurationMs = Date.now() - stageStartedAt
+  const result: SocialImportNodeDraftStreamResult = {
+    archive: plan.archive,
+    archiveNode,
+    importRunNode,
+    summary,
+    telemetry: createSocialImportTelemetryEvents({
+      adapterId: plan.adapter.id,
+      adapterVersion: plan.adapter.version,
+      platform: plan.adapter.platform,
+      stagingSummary: summary,
+      stageDurationMs,
+      storagePlan: plan.storagePlan,
+      createdAt: plan.importedAt
+    }),
+    stageDurationMs,
+    recordCount: summary.totalRecords,
+    sourceRecordCount,
+    canonicalRecordCount: summary.totalRecords - sourceRecordCount
+  }
+  input.onComplete?.(result)
+  return result
+}
+
+function createSocialImportContext(
+  input: SocialImportStageInput,
+  plan: SocialImportStagePlan
+): SocialImportContext {
+  return {
+    manifest: input.manifest,
+    archiveId: plan.archiveId,
+    importRunId: plan.importRunId,
+    importedAt: plan.importedAt,
+    observedBy: input.observedBy,
+    readJsonEntry: input.readJsonEntry,
+    readTextEntry: input.readTextEntry
   }
 }
 

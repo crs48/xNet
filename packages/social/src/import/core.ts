@@ -70,16 +70,21 @@ export {
 } from './staging'
 export {
   createSocialArchivePreview,
+  createSocialImportStagePlan,
   createSocialImportNodeDrafts,
   createSocialImportRunDraft,
   createSocialImportArchiveDraft,
   resolveSelectedSocialImportBuckets,
   stageSocialArchive,
+  streamSocialImportNodeDrafts,
   toSocialImportNodeDraft,
   type SocialImportArchivePreview,
+  type SocialImportNodeDraftStreamResult,
   type SocialImportNodeDraft,
+  type SocialImportStagePlan,
   type SocialImportStageInput,
-  type SocialImportStageResult
+  type SocialImportStageResult,
+  type StreamSocialImportNodeDraftsInput
 } from './stage-archive'
 export {
   sanitizeForFixture,

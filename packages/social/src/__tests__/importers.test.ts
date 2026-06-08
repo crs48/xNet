@@ -69,10 +69,12 @@ import {
   openaiAdapter,
   sanitizeStagedRecordsForFixture,
   stageSocialArchive,
+  streamSocialImportNodeDrafts,
   tiktokAdapter,
   type ArchiveEntryRef,
   type ArchiveManifest,
   type SocialImportAdapter,
+  type SocialImportNodeDraftStreamResult,
   type SocialImportContext,
   type StagedSocialRecord,
   xAdapter,
@@ -1935,6 +1937,87 @@ describe('social import adapters', () => {
         'instagram.posts',
         'instagram.raw'
       ])
+    })
+
+    it('streams import node drafts without returning staged records', async () => {
+      const records = [
+        createStagedNode({
+          kind: 'content',
+          deterministicId: 'content:stream-one',
+          platform: 'instagram',
+          bucketId: 'instagram.posts',
+          source: entry('posts.json'),
+          sourceRecordId: 'post-one',
+          privacyClass: 'public',
+          properties: { contentKind: 'post' }
+        }),
+        createSourceRecord({
+          archiveId: 'archive',
+          importRunId: 'run',
+          platform: 'instagram',
+          bucketId: 'instagram.raw',
+          source: entry('raw.json'),
+          sourceRecordKind: 'content',
+          sourceRecordId: 'raw-one',
+          payload: { id: 'raw-one' },
+          privacyClass: 'private'
+        })
+      ]
+      const archiveManifest = manifest([entry('posts.json'), entry('raw.json')])
+      const adapter: SocialImportAdapter = {
+        id: 'stream-fixture',
+        version: '1.0.0',
+        platform: 'instagram',
+        detect: () => 1,
+        probe: () => ({
+          adapterId: 'stream-fixture',
+          adapterVersion: '1.0.0',
+          platform: 'instagram',
+          confidence: 1,
+          warnings: [],
+          buckets: [
+            {
+              id: 'instagram.posts',
+              label: 'Posts',
+              entryPaths: ['posts.json'],
+              privacyClass: 'public',
+              defaultSelected: true
+            },
+            {
+              id: 'instagram.raw',
+              label: 'Raw records',
+              entryPaths: ['raw.json'],
+              privacyClass: 'private',
+              defaultSelected: true
+            }
+          ]
+        }),
+        async *stage() {
+          yield* records
+        }
+      }
+      const completeResults: SocialImportNodeDraftStreamResult[] = []
+      const drafts: Array<{ kind: string }> = []
+
+      for await (const draft of streamSocialImportNodeDrafts({
+        manifest: archiveManifest,
+        adapters: [adapter],
+        readJsonEntry: async <T>() => ({}) as T,
+        importedAt,
+        includeSourceRecords: false,
+        onComplete: (result) => {
+          completeResults.push(result)
+        }
+      })) {
+        drafts.push(draft)
+      }
+
+      expect(drafts.map((draft) => draft.kind)).toEqual(['import-archive', 'content', 'import-run'])
+      const [complete] = completeResults
+      expect(complete?.recordCount).toBe(2)
+      expect(complete?.sourceRecordCount).toBe(1)
+      expect(complete?.canonicalRecordCount).toBe(1)
+      expect(complete).not.toHaveProperty('records')
     })
 
     it('plans entry-level blob storage for large archives', () => {

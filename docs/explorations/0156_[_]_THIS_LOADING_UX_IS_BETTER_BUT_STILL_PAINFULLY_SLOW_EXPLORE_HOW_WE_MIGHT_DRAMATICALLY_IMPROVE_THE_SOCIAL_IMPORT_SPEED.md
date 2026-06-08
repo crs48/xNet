@@ -601,7 +601,7 @@ Recommendation:
 
 ### Phase 4 - Streaming stage-to-commit pipeline
 
-- [ ] Split `stageSocialArchive()` into preview, summary, and streaming commit paths.
+- [x] Split `stageSocialArchive()` into preview, summary, and streaming commit paths.
 - [ ] Avoid returning `records[]` for large imports.
 - [x] Add importer-level progress counts per bucket.
 - [ ] Commit chunks as records stream from adapter stage iterables.
