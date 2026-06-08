@@ -576,7 +576,7 @@ Recommendation:
 
 ### Phase 2 - Bulk NodeStore import primitive
 
-- [ ] Add storage bulk methods for node lookup, last-change lookup, change append, and node import.
+- [x] Add storage bulk methods for node lookup, last-change lookup, change append, and node import.
 - [ ] Add `NodeStore.importDeterministicNodes()` or equivalent package-level API.
 - [ ] Preserve signed `NodeChange` creation, parent hashes, Lamport behavior, and batch ids.
 - [ ] Bulk materialize node state in memory using existing LWW semantics.

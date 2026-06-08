@@ -10,7 +10,8 @@ import type {
   NodeState,
   NodeStorageAdapter,
   ListNodesOptions,
-  CountNodesOptions
+  CountNodesOptions,
+  ImportNodesOptions
 } from './types'
 import type { ContentId } from '@xnetjs/core'
 
@@ -73,6 +74,16 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.changesByHash.set(change.hash, change)
   }
 
+  async appendChanges(changes: readonly NodeChange[]): Promise<void> {
+    changes.forEach((change) => {
+      const nodeId = change.payload.nodeId
+      const existing = this.changes.get(nodeId) ?? []
+      existing.push(change)
+      this.changes.set(nodeId, existing)
+      this.changesByHash.set(change.hash, change)
+    })
+  }
+
   async getChanges(nodeId: NodeId): Promise<NodeChange[]> {
     return this.changes.get(nodeId) ?? []
   }
@@ -101,12 +112,36 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     return changes[changes.length - 1]
   }
 
+  async getLastChangesByNodeId(nodeIds: readonly NodeId[]): Promise<Map<NodeId, NodeChange>> {
+    const result = new Map<NodeId, NodeChange>()
+
+    Array.from(new Set(nodeIds)).forEach((nodeId) => {
+      const changes = this.changes.get(nodeId)
+      const lastChange = changes?.at(-1)
+      if (lastChange) {
+        result.set(nodeId, lastChange)
+      }
+    })
+
+    return result
+  }
+
   // ==========================================================================
   // Materialized State Operations
   // ==========================================================================
 
   async getNode(id: NodeId): Promise<NodeState | null> {
     return this.nodes.get(id) ?? null
+  }
+
+  async getNodes(ids: readonly NodeId[]): Promise<NodeState[]> {
+    const seen = new Set<NodeId>()
+    return ids.flatMap((id) => {
+      if (seen.has(id)) return []
+      seen.add(id)
+      const node = this.nodes.get(id)
+      return node ? [node] : []
+    })
   }
 
   async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
@@ -120,6 +155,10 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
 
   async setNode(node: NodeState): Promise<void> {
     this.nodes.set(node.id, node)
+  }
+
+  async importNodes(nodes: readonly NodeState[], _options?: ImportNodesOptions): Promise<void> {
+    nodes.forEach((node) => this.nodes.set(node.id, node))
   }
 
   async deleteNode(id: NodeId): Promise<void> {

@@ -158,12 +158,20 @@ export interface NodeStorageAdapter {
   getChangesSince(sinceLamport: number): Promise<NodeChange[]>
   getChangeByHash(hash: ContentId): Promise<NodeChange | null>
   getLastChange(nodeId: NodeId): Promise<NodeChange | null>
+  /** Return the latest change for each requested node id. Missing nodes are omitted. */
+  getLastChangesByNodeId?(nodeIds: readonly NodeId[]): Promise<Map<NodeId, NodeChange>>
+  /** Append multiple changes in one storage-owned write when supported. */
+  appendChanges?(changes: readonly NodeChange[]): Promise<void>
 
   // Materialized state operations
   getNode(id: NodeId): Promise<NodeState | null>
+  /** Return existing materialized nodes in input order. Missing nodes are omitted. */
+  getNodes?(ids: readonly NodeId[]): Promise<NodeState[]>
   /** Return the subset of ids that currently exist in materialized storage. */
   getExistingNodeIds?(ids: readonly NodeId[]): Promise<NodeId[]>
   setNode(node: NodeState, options?: SetNodeOptions): Promise<void>
+  /** Import multiple materialized nodes in one storage-owned write when supported. */
+  importNodes?(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void>
   deleteNode(id: NodeId): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<NodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
@@ -186,6 +194,8 @@ export interface SetNodeOptions {
    */
   indexProperties?: boolean
 }
+
+export type ImportNodesOptions = SetNodeOptions
 
 export interface ListNodesOptions {
   /** Filter by schema IRI */

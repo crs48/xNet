@@ -196,6 +196,34 @@ describe('SQLiteNodeStorageAdapter', () => {
       ).resolves.toEqual(['existing-node-2', 'existing-node-1'])
     })
 
+    it('returns existing nodes in input order without duplicates', async () => {
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'bulk-node-1',
+          properties: { title: 'Bulk 1' },
+          createdAt: now,
+          updatedAt: now
+        }),
+        createTestNode({
+          id: 'bulk-node-2',
+          properties: { title: 'Bulk 2' },
+          createdAt: now + 1,
+          updatedAt: now + 1
+        })
+      ])
+
+      const nodes = await adapter.getNodes([
+        'bulk-node-2',
+        'missing-node',
+        'bulk-node-1',
+        'bulk-node-2'
+      ])
+
+      expect(nodes.map((node) => node.id)).toEqual(['bulk-node-2', 'bulk-node-1'])
+      expect(nodes.map((node) => node.properties.title)).toEqual(['Bulk 2', 'Bulk 1'])
+    })
+
     it('serializes concurrent transaction-backed node writes', async () => {
       const now = Date.now()
       const nodes = Array.from({ length: 8 }, (_, index) =>
@@ -1670,6 +1698,47 @@ describe('SQLiteNodeStorageAdapter', () => {
       const lastChange = await adapter.getLastChange('node-1')
       expect(lastChange).not.toBeNull()
       expect(lastChange!.lamport.time).toBe(5)
+    })
+
+    it('getLastChangesByNodeId returns latest changes for multiple nodes', async () => {
+      await createNodeForChange('node-1')
+      await createNodeForChange('node-2')
+
+      await adapter.appendChanges([
+        createTestChange('hash-1', 'node-1', 1),
+        createTestChange('hash-2', 'node-1', 5),
+        createTestChange('hash-3', 'node-2', 3),
+        createTestChange('hash-4', 'node-2', 9)
+      ])
+
+      const lastChanges = await adapter.getLastChangesByNodeId([
+        'node-2',
+        'missing-node',
+        'node-1',
+        'node-2'
+      ])
+
+      expect(Array.from(lastChanges.keys())).toEqual(['node-2', 'node-1'])
+      expect(lastChanges.get('node-1')?.hash).toBe('cid:blake3:hash-2')
+      expect(lastChanges.get('node-2')?.hash).toBe('cid:blake3:hash-4')
+    })
+
+    it('appends multiple changes in one bulk write', async () => {
+      await createNodeForChange('node-1')
+      await createNodeForChange('node-2')
+
+      await adapter.appendChanges([
+        createTestChange('bulk-hash-1', 'node-1', 1),
+        createTestChange('bulk-hash-2', 'node-2', 2),
+        createTestChange('bulk-hash-3', 'node-1', 3)
+      ])
+
+      const changes = await adapter.getAllChanges()
+      expect(changes.map((change) => change.hash)).toEqual([
+        'cid:blake3:bulk-hash-1',
+        'cid:blake3:bulk-hash-2',
+        'cid:blake3:bulk-hash-3'
+      ])
     })
 
     it('deduplicates changes by hash', async () => {

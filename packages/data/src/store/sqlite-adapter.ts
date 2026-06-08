@@ -14,7 +14,8 @@ import type {
   ListNodesOptions,
   CountNodesOptions,
   PropertyTimestamp,
-  SetNodeOptions
+  SetNodeOptions,
+  ImportNodesOptions
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
@@ -269,6 +270,7 @@ const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
   logFailures: true
 }
 const SQLITE_BIND_PARAMETER_BATCH_SIZE = 900
+const SQLITE_HYDRATE_NODE_BATCH_SIZE = Math.floor(SQLITE_BIND_PARAMETER_BATCH_SIZE / 2)
 
 function getMaterializedQueryRefreshReason(input: {
   cached: MaterializedQueryRow | null
@@ -417,9 +419,13 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       getChangesSince: (sinceLamport) => this.getChangesSince(sinceLamport),
       getChangeByHash: (hash) => this.getChangeByHash(hash),
       getLastChange: (nodeId) => this.getLastChange(nodeId),
+      getLastChangesByNodeId: (nodeIds) => this.getLastChangesByNodeId(nodeIds),
+      appendChanges: (changes) => this.appendChangesInternal(changes),
       getNode: (id) => this.getNode(id),
+      getNodes: (ids) => this.getNodes(ids),
       getExistingNodeIds: (ids) => this.getExistingNodeIds(ids),
       setNode: (node, options) => this._setNodeInternal(node, options),
+      importNodes: (nodes, options) => this.importNodesInternal(nodes, options),
       deleteNode: (id) => this.deleteNodeInternal(id),
       listNodes: (options) => this.listNodes(options),
       countNodes: (options) => this.countNodes(options),
@@ -461,6 +467,27 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         change.signature
       ]
     )
+  }
+
+  async appendChanges(changes: readonly NodeChange[]): Promise<void> {
+    if (changes.length === 0) return
+
+    await this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.appendChangesInternal(changes)
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  private async appendChangesInternal(changes: readonly NodeChange[]): Promise<void> {
+    for (const change of changes) {
+      await this.appendChangeInternal(change)
+    }
   }
 
   async getChanges(nodeId: NodeId): Promise<NodeChange[]> {
@@ -522,6 +549,42 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return row ? this.deserializeChange(row) : null
   }
 
+  async getLastChangesByNodeId(nodeIds: readonly NodeId[]): Promise<Map<NodeId, NodeChange>> {
+    const uniqueIds = Array.from(new Set(nodeIds))
+    const changes = new Map<NodeId, NodeChange>()
+    if (uniqueIds.length === 0) return changes
+
+    for (const batch of chunkItems(uniqueIds, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
+      const placeholders = batch.map(() => '?').join(', ')
+      const rows = await this.db.query<ChangeRow>(
+        `SELECT hash, node_id, payload, lamport_time,
+                lamport_peer as lamport_author, wall_time,
+                author as author_did, parent_hash, batch_id, signature
+         FROM changes c
+         WHERE c.node_id IN (${placeholders})
+           AND c.hash = (
+             SELECT c2.hash
+             FROM changes c2
+             WHERE c2.node_id = c.node_id
+             ORDER BY c2.lamport_time DESC
+             LIMIT 1
+           )`,
+        batch
+      )
+
+      rows.forEach((row) => {
+        changes.set(row.node_id, this.deserializeChange(row))
+      })
+    }
+
+    return new Map(
+      uniqueIds.flatMap((nodeId): [NodeId, NodeChange][] => {
+        const change = changes.get(nodeId)
+        return change ? [[nodeId, change]] : []
+      })
+    )
+  }
+
   // ─── Materialized State Operations ────────────────────────────────────────
 
   async getNode(id: NodeId): Promise<NodeState | null> {
@@ -567,6 +630,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       updatedAt: nodeRow.updated_at,
       updatedBy
     }
+  }
+
+  async getNodes(ids: readonly NodeId[]): Promise<NodeState[]> {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return []
+
+    const nodes: NodeState[] = []
+    for (const batch of chunkItems(uniqueIds, SQLITE_HYDRATE_NODE_BATCH_SIZE)) {
+      nodes.push(...(await this.hydrateNodesByIds(batch)))
+    }
+    return nodes
   }
 
   async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
@@ -981,20 +1055,29 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Import multiple nodes in a single transaction.
    * Used for sync and restore operations.
    */
-  async importNodes(nodes: NodeState[]): Promise<void> {
+  async importNodes(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void> {
+    if (nodes.length === 0) return
+
     await this.enqueueWrite(async () => {
       // Use manual transaction control for web proxy compatibility
       await this.db.beginTransaction()
       try {
-        for (const node of nodes) {
-          await this._setNodeInternal(node)
-        }
+        await this.importNodesInternal(nodes, options)
         await this.db.commit()
       } catch (err) {
         await this.db.rollback()
         throw err
       }
     })
+  }
+
+  private async importNodesInternal(
+    nodes: readonly NodeState[],
+    options?: ImportNodesOptions
+  ): Promise<void> {
+    for (const node of nodes) {
+      await this._setNodeInternal(node, options)
+    }
   }
 
   /**
@@ -1030,20 +1113,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   /**
    * Import multiple changes in a single transaction.
    */
-  async importChanges(changes: NodeChange[]): Promise<void> {
-    await this.enqueueWrite(async () => {
-      // Use manual transaction control for web proxy compatibility
-      await this.db.beginTransaction()
-      try {
-        for (const change of changes) {
-          await this.appendChangeInternal(change)
-        }
-        await this.db.commit()
-      } catch (err) {
-        await this.db.rollback()
-        throw err
-      }
-    })
+  async importChanges(changes: readonly NodeChange[]): Promise<void> {
+    await this.appendChanges(changes)
   }
 
   /**
@@ -1116,6 +1187,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private async hydrateNodesByIds(ids: string[]): Promise<NodeState[]> {
     if (ids.length === 0) {
       return []
+    }
+
+    if (ids.length > SQLITE_HYDRATE_NODE_BATCH_SIZE) {
+      const nodes: NodeState[] = []
+      for (const batch of chunkItems(ids, SQLITE_HYDRATE_NODE_BATCH_SIZE)) {
+        nodes.push(...(await this.hydrateNodesByIds(batch)))
+      }
+      return nodes
     }
 
     const values = ids.map(() => '(?, ?)').join(', ')
