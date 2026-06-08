@@ -380,6 +380,8 @@ export {
   type NodeStoreOptions,
   type CreateNodeOptions as CreateNodeStoreOptions,
   type UpdateNodeOptions,
+  type DeterministicNodeImportDraft,
+  type ImportDeterministicNodesResult,
   type TransactionOperation,
   type TransactionResult,
   type NodeChangeEvent,

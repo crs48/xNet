@@ -2,8 +2,7 @@
  * Browser social archive import route.
  */
 
-import type { DefinedSchema, PropertyBuilder } from '@xnetjs/data'
-import type { MutateOp } from '@xnetjs/react'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SocialImporterRegistryEntry } from '@xnetjs/social/importers'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMutate } from '@xnetjs/react'
@@ -17,19 +16,6 @@ import {
   type SocialImportJobPhase
 } from '@xnetjs/social/import/core'
 import { builtInSocialImporterRegistry } from '@xnetjs/social/importers'
-import {
-  SocialActorSchema,
-  SocialCollectionItemSchema,
-  SocialCollectionSchema,
-  SocialContentSchema,
-  SocialConversationSchema,
-  SocialIdentityClaimSchema,
-  SocialImportArchiveSchema,
-  SocialImportRunSchema,
-  SocialInteractionSchema,
-  SocialMessageSchema,
-  SocialSourceRecordSchema
-} from '@xnetjs/social/schemas'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -96,22 +82,6 @@ type PickedArchive = {
 }
 
 const COMMIT_BATCH_SIZE = 2500
-const schemasById = Object.fromEntries(
-  [
-    SocialImportArchiveSchema,
-    SocialImportRunSchema,
-    SocialSourceRecordSchema,
-    SocialActorSchema,
-    SocialIdentityClaimSchema,
-    SocialContentSchema,
-    SocialInteractionSchema,
-    SocialConversationSchema,
-    SocialMessageSchema,
-    SocialCollectionSchema,
-    SocialCollectionItemSchema
-  ].map((schema) => [schema.schema['@id'], schema])
-) as Record<string, DefinedSchema<Record<string, PropertyBuilder>>>
-
 function SocialImportPage(): React.ReactElement {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -233,8 +203,7 @@ function SocialImportPage(): React.ReactElement {
       commitJobId = commitJob.jobId
       const summary = await commitDrafts({
         drafts,
-        mutate,
-        getExistingIds: async (ids) => new Set(await store.getExistingNodeIds(ids)),
+        importDrafts: async (batchDrafts) => store.importDeterministicNodes(batchDrafts),
         onProgress: (progress) => {
           updateSocialImportJob(commitJob.jobId, {
             status: 'running',
@@ -278,7 +247,7 @@ function SocialImportPage(): React.ReactElement {
       }
       setError(message)
     }
-  }, [includeSourceRecords, mutate, stageResult, store, storeReady])
+  }, [includeSourceRecords, stageResult, store, storeReady])
 
   const handleOpenWorkspace = useCallback(async () => {
     if (!store || !storeReady) return
@@ -871,8 +840,10 @@ function StatusCallout({
 
 async function commitDrafts(input: {
   drafts: SocialImportNodeDraft[]
-  mutate: (ops: MutateOp[]) => Promise<unknown>
-  getExistingIds: (ids: string[]) => Promise<Set<string>>
+  importDrafts: (drafts: DeterministicNodeImportDraft[]) => Promise<{
+    created: number
+    updated: number
+  }>
   onProgress?: (progress: CommitProgress) => void
 }): Promise<CommitSummary> {
   const chunks = chunk(input.drafts, COMMIT_BATCH_SIZE)
@@ -918,8 +889,6 @@ async function commitDrafts(input: {
 
   for (const [batchIndex, drafts] of chunks.entries()) {
     const processedBeforeBatch = Math.min(batchIndex * COMMIT_BATCH_SIZE, input.drafts.length)
-    let batchCreated = 0
-    let batchUpdated = 0
 
     await reportProgressAndYield(metrics, () =>
       reportProgress({
@@ -935,21 +904,7 @@ async function commitDrafts(input: {
     )
 
     const checkStartedAt = performance.now()
-    const existingIds = await input.getExistingIds(drafts.map((draft) => draft.deterministicId))
-    const operations = drafts.map((draft): MutateOp => {
-      if (existingIds.has(draft.deterministicId)) {
-        batchUpdated += 1
-        return { type: 'update', id: draft.deterministicId, data: draft.properties }
-      }
-
-      batchCreated += 1
-      return {
-        type: 'create',
-        id: draft.deterministicId,
-        schema: getSchema(draft.schemaId),
-        data: draft.properties
-      } as MutateOp
-    })
+    const deterministicDrafts = drafts.map(toDeterministicNodeImportDraft)
     metrics.lastCheckMs = performance.now() - checkStartedAt
     metrics.totalCheckMs += metrics.lastCheckMs
 
@@ -961,18 +916,18 @@ async function commitDrafts(input: {
         totalBatches: chunks.length,
         completedBatches: batchIndex,
         currentBatch: batchIndex + 1,
-        created: created + batchCreated,
-        updated: updated + batchUpdated
+        created,
+        updated
       })
     )
 
     const writeStartedAt = performance.now()
-    await input.mutate(operations)
+    const batchResult = await input.importDrafts(deterministicDrafts)
     metrics.lastWriteMs = performance.now() - writeStartedAt
     metrics.totalWriteMs += metrics.lastWriteMs
 
-    created += batchCreated
-    updated += batchUpdated
+    created += batchResult.created
+    updated += batchResult.updated
 
     reportProgress({
       phase: 'committed',
@@ -987,6 +942,16 @@ async function commitDrafts(input: {
   }
 
   return { created, updated, batches: chunks.length }
+}
+
+function toDeterministicNodeImportDraft(
+  draft: SocialImportNodeDraft
+): DeterministicNodeImportDraft {
+  return {
+    id: draft.deterministicId,
+    schemaId: draft.schemaId as DeterministicNodeImportDraft['schemaId'],
+    properties: draft.properties
+  }
 }
 
 async function reportProgressAndYield(
@@ -1063,12 +1028,6 @@ function formatDuration(milliseconds: number): string {
 
 function yieldCommitProgress(): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, 0))
-}
-
-function getSchema(schemaId: string): DefinedSchema<Record<string, PropertyBuilder>> {
-  const schema = schemasById[schemaId]
-  if (!schema) throw new Error(`Unsupported social schema: ${schemaId}`)
-  return schema
 }
 
 function chunk<T>(items: readonly T[], size: number): T[][] {

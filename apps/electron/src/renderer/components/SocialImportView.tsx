@@ -7,29 +7,15 @@ import type {
   SocialImportNodeDraft,
   SocialImportStageResult
 } from '../../main/social-import-ipc'
-import type { DefinedSchema, PropertyBuilder } from '@xnetjs/data'
-import type { MutateOp } from '@xnetjs/react'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SocialImporterRegistryEntry } from '@xnetjs/social/importers'
-import { useMutate } from '@xnetjs/react'
+import { useMutate, useXNet } from '@xnetjs/react'
 import {
   createSocialImportJob,
   updateSocialImportJob,
   type SocialImportJobPhase
 } from '@xnetjs/social/import/core'
 import { builtInSocialImporterRegistry } from '@xnetjs/social/importers'
-import {
-  SocialActorSchema,
-  SocialCollectionItemSchema,
-  SocialCollectionSchema,
-  SocialContentSchema,
-  SocialConversationSchema,
-  SocialIdentityClaimSchema,
-  SocialImportArchiveSchema,
-  SocialImportRunSchema,
-  SocialInteractionSchema,
-  SocialMessageSchema,
-  SocialSourceRecordSchema
-} from '@xnetjs/social/schemas'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -82,22 +68,6 @@ type CommitProgress = {
 
 const COMMIT_BATCH_SIZE = 2500
 
-const schemasById = Object.fromEntries(
-  [
-    SocialImportArchiveSchema,
-    SocialImportRunSchema,
-    SocialSourceRecordSchema,
-    SocialActorSchema,
-    SocialIdentityClaimSchema,
-    SocialContentSchema,
-    SocialInteractionSchema,
-    SocialConversationSchema,
-    SocialMessageSchema,
-    SocialCollectionSchema,
-    SocialCollectionItemSchema
-  ].map((schema) => [schema.schema['@id'], schema])
-) as Record<string, DefinedSchema<Record<string, PropertyBuilder>>>
-
 interface SocialImportViewProps {
   onClose: () => void
   onOpenDataWorkspace?: () => void
@@ -119,6 +89,7 @@ export function SocialImportView({
   const [workspaceSummary, setWorkspaceSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [workspaceSeeding, setWorkspaceSeeding] = useState(false)
   const { mutate } = useMutate()
+  const { nodeStore, nodeStoreReady } = useXNet()
 
   const stagedRecordCount = stageResult?.records.length ?? 0
   const sourceRecordCount = useMemo(
@@ -198,7 +169,7 @@ export function SocialImportView({
   }, [archive, includeSensitive, selectedBuckets])
 
   const handleCommit = useCallback(async () => {
-    if (!stageResult) return
+    if (!stageResult || !nodeStore || !nodeStoreReady) return
 
     setStatus('committing')
     setError(null)
@@ -223,8 +194,7 @@ export function SocialImportView({
       commitJobId = commitJob.jobId
       const summary = await commitDrafts({
         drafts,
-        mutate,
-        getExistingIds: async (ids) => new Set(await window.xnetNodes.getExistingNodeIds(ids)),
+        importDrafts: async (batchDrafts) => nodeStore.importDeterministicNodes(batchDrafts),
         onProgress: (progress) => {
           updateSocialImportJob(commitJob.jobId, {
             status: 'running',
@@ -268,9 +238,11 @@ export function SocialImportView({
       }
       setError(message)
     }
-  }, [archive?.filename, includeSourceRecords, mutate, stageResult])
+  }, [archive?.filename, includeSourceRecords, nodeStore, nodeStoreReady, stageResult])
 
   const handleOpenWorkspace = useCallback(async () => {
+    if (!nodeStoreReady) return
+
     setWorkspaceSeeding(true)
     setError(null)
 
@@ -286,7 +258,7 @@ export function SocialImportView({
     } finally {
       setWorkspaceSeeding(false)
     }
-  }, [mutate, onOpenDataWorkspace])
+  }, [mutate, nodeStoreReady, onOpenDataWorkspace])
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -397,7 +369,12 @@ export function SocialImportView({
               <button
                 type="button"
                 onClick={() => void handleCommit()}
-                disabled={!stageResult || status === 'committing' || status === 'committed'}
+                disabled={
+                  !stageResult ||
+                  !nodeStoreReady ||
+                  status === 'committing' ||
+                  status === 'committed'
+                }
                 className="flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {status === 'committing' ? (
@@ -410,7 +387,7 @@ export function SocialImportView({
               <button
                 type="button"
                 onClick={() => void handleOpenWorkspace()}
-                disabled={status !== 'committed' || workspaceSeeding}
+                disabled={status !== 'committed' || !nodeStoreReady || workspaceSeeding}
                 className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {workspaceSeeding ? (
@@ -817,8 +794,10 @@ function StatusBanner({
 
 async function commitDrafts(input: {
   drafts: SocialImportNodeDraft[]
-  mutate: (ops: MutateOp[]) => Promise<unknown>
-  getExistingIds: (ids: string[]) => Promise<Set<string>>
+  importDrafts: (drafts: DeterministicNodeImportDraft[]) => Promise<{
+    created: number
+    updated: number
+  }>
   onProgress?: (progress: CommitProgress) => void
 }): Promise<CommitSummary> {
   const chunks = chunk(input.drafts, COMMIT_BATCH_SIZE)
@@ -864,8 +843,6 @@ async function commitDrafts(input: {
 
   for (const [batchIndex, drafts] of chunks.entries()) {
     const processedBeforeBatch = Math.min(batchIndex * COMMIT_BATCH_SIZE, input.drafts.length)
-    let batchCreated = 0
-    let batchUpdated = 0
 
     await reportProgressAndYield(metrics, () =>
       reportProgress({
@@ -881,21 +858,7 @@ async function commitDrafts(input: {
     )
 
     const checkStartedAt = performance.now()
-    const existingIds = await input.getExistingIds(drafts.map((draft) => draft.deterministicId))
-    const operations = drafts.map((draft): MutateOp => {
-      if (existingIds.has(draft.deterministicId)) {
-        batchUpdated += 1
-        return { type: 'update', id: draft.deterministicId, data: draft.properties }
-      }
-
-      batchCreated += 1
-      return {
-        type: 'create',
-        id: draft.deterministicId,
-        schema: getSchema(draft.schemaId),
-        data: draft.properties
-      } as MutateOp
-    })
+    const deterministicDrafts = drafts.map(toDeterministicNodeImportDraft)
     metrics.lastCheckMs = performance.now() - checkStartedAt
     metrics.totalCheckMs += metrics.lastCheckMs
 
@@ -907,18 +870,18 @@ async function commitDrafts(input: {
         totalBatches: chunks.length,
         completedBatches: batchIndex,
         currentBatch: batchIndex + 1,
-        created: created + batchCreated,
-        updated: updated + batchUpdated
+        created,
+        updated
       })
     )
 
     const writeStartedAt = performance.now()
-    await input.mutate(operations)
+    const batchResult = await input.importDrafts(deterministicDrafts)
     metrics.lastWriteMs = performance.now() - writeStartedAt
     metrics.totalWriteMs += metrics.lastWriteMs
 
-    created += batchCreated
-    updated += batchUpdated
+    created += batchResult.created
+    updated += batchResult.updated
 
     reportProgress({
       phase: 'committed',
@@ -933,6 +896,16 @@ async function commitDrafts(input: {
   }
 
   return { created, updated, batches: chunks.length }
+}
+
+function toDeterministicNodeImportDraft(
+  draft: SocialImportNodeDraft
+): DeterministicNodeImportDraft {
+  return {
+    id: draft.deterministicId,
+    schemaId: draft.schemaId as DeterministicNodeImportDraft['schemaId'],
+    properties: draft.properties
+  }
 }
 
 async function reportProgressAndYield(
@@ -1009,12 +982,6 @@ function formatDuration(milliseconds: number): string {
 
 function yieldCommitProgress(): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, 0))
-}
-
-function getSchema(schemaId: string): DefinedSchema<Record<string, PropertyBuilder>> {
-  const schema = schemasById[schemaId]
-  if (!schema) throw new Error(`Unsupported social schema: ${schemaId}`)
-  return schema
 }
 
 function chunk<T>(items: readonly T[], size: number): T[][] {
