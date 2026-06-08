@@ -212,6 +212,35 @@ describe('MainThreadBridge', () => {
       unsubscribe()
     })
 
+    it('should coalesce deterministic import batch notifications into one query refresh', async () => {
+      const subscription = bridge.query(TestTaskSchema)
+      const callback = vi.fn()
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(callback)
+
+      await store.importDeterministicNodes(
+        Array.from({ length: 30 }, (_, index) => ({
+          id: `bulk-query-node-${index}`,
+          schemaId: TestTaskSchema._schemaId,
+          properties: {
+            title: `Bulk Query Node ${index}`,
+            done: false
+          }
+        }))
+      )
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(30)
+      })
+
+      expect(callback).toHaveBeenCalledTimes(1)
+      unsubscribe()
+    })
+
     it('should filter by where clause', async () => {
       // Create nodes
       await bridge.create(TestTaskSchema, { title: 'Task 1', done: false })

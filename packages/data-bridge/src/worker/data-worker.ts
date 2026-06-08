@@ -47,6 +47,8 @@ import {
   matchesQueryDescriptor
 } from '../query-descriptor'
 
+const BULK_STORE_CHANGE_RELOAD_THRESHOLD = 25
+
 // ─── Y.Doc Pool Configuration ────────────────────────────────────────────────
 
 /** Maximum number of Y.Docs to keep in the pool */
@@ -77,6 +79,8 @@ class DataWorker implements DataWorkerAPI {
   private status: SyncStatus = 'disconnected'
   private statusHandlers = new Set<(status: SyncStatus) => void>()
   private storeUnsubscribe: (() => void) | null = null
+  private pendingStoreChanges: NodeChangeEvent[] = []
+  private storeChangeFlushQueued = false
 
   // Y.Doc pool - the "source of truth" for all documents
   private docPool = new Map<string, PoolEntry>()
@@ -99,7 +103,7 @@ class DataWorker implements DataWorkerAPI {
 
     // Set up store change listener for subscriptions
     this.storeUnsubscribe = this.store.subscribe((event) => {
-      this.handleStoreChange(event)
+      this.enqueueStoreChange(event)
     })
 
     this.setStatus('connected')
@@ -357,7 +361,81 @@ class DataWorker implements DataWorkerAPI {
     return result.nodes
   }
 
-  private handleStoreChange(event: NodeChangeEvent): void {
+  private enqueueStoreChange(event: NodeChangeEvent): void {
+    this.pendingStoreChanges.push(event)
+
+    if (this.storeChangeFlushQueued) {
+      return
+    }
+
+    this.storeChangeFlushQueued = true
+    queueMicrotask(() => {
+      void this.flushStoreChanges()
+    })
+  }
+
+  private async flushStoreChanges(): Promise<void> {
+    const events = this.pendingStoreChanges
+    this.pendingStoreChanges = []
+    this.storeChangeFlushQueued = false
+
+    if (events.length === 0) {
+      return
+    }
+
+    if (!this.isBulkStoreChangeSet(events) && events.length === 1) {
+      await this.handleStoreChange(events[0])
+      return
+    }
+
+    await this.handleStoreChangeSet(events)
+  }
+
+  private isBulkStoreChangeSet(events: readonly NodeChangeEvent[]): boolean {
+    return (
+      events.length > BULK_STORE_CHANGE_RELOAD_THRESHOLD ||
+      events.some((event) => (event.change.batchSize ?? 1) > BULK_STORE_CHANGE_RELOAD_THRESHOLD)
+    )
+  }
+
+  private async handleStoreChangeSet(events: readonly NodeChangeEvent[]): Promise<void> {
+    const eventsBySchema = new Map<SchemaIRI, NodeChangeEvent[]>()
+
+    for (const event of events) {
+      const schemaId: SchemaIRI | undefined = event.node?.schemaId ?? event.change.payload.schemaId
+      if (!schemaId) continue
+
+      const next = eventsBySchema.get(schemaId) ?? []
+      next.push(event)
+      eventsBySchema.set(schemaId, next)
+    }
+
+    for (const [schemaId, schemaEvents] of eventsBySchema) {
+      const shouldReload = this.isBulkStoreChangeSet(schemaEvents)
+
+      for (const [queryId, sub] of this.subscriptions) {
+        if (sub.schemaId !== schemaId) continue
+
+        if (shouldReload) {
+          const reloaded = await this.loadQuery(sub.descriptor)
+          sub.lastResult = reloaded
+          sub.onDelta({ type: 'reload', data: reloaded })
+          continue
+        }
+
+        for (const event of schemaEvents) {
+          await this.applyStoreChangeToSubscription(
+            queryId,
+            sub,
+            event.change.payload.nodeId,
+            event.node ?? null
+          )
+        }
+      }
+    }
+  }
+
+  private async handleStoreChange(event: NodeChangeEvent): Promise<void> {
     const { node, change } = event
     const schemaId: SchemaIRI | undefined = node?.schemaId ?? change.payload.schemaId
 
@@ -367,7 +445,7 @@ class DataWorker implements DataWorkerAPI {
     for (const [queryId, sub] of this.subscriptions) {
       if (sub.schemaId !== schemaId) continue
 
-      void this.applyStoreChangeToSubscription(queryId, sub, change.payload.nodeId, node ?? null)
+      await this.applyStoreChangeToSubscription(queryId, sub, change.payload.nodeId, node ?? null)
     }
   }
 

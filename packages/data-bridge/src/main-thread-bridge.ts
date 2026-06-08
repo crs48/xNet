@@ -78,6 +78,8 @@ import {
   isRemoteNodeQuerySuccess
 } from './remote-query-protocol'
 
+const BULK_STORE_CHANGE_RELOAD_THRESHOLD = 25
+
 // ─── SyncManager Interface ───────────────────────────────────────────────────
 
 /**
@@ -128,6 +130,8 @@ export class MainThreadBridge implements DataBridge {
   private remoteLoads = new Map<string, Promise<void>>()
   private remoteStreams = new Map<string, RemoteStreamRuntime>()
   private remoteInvalidations: RemoteInvalidationRuntime | null = null
+  private pendingStoreChanges: NodeChangeEvent[] = []
+  private storeChangeFlushQueued = false
 
   constructor(store: NodeStore, options?: MainThreadBridgeOptions) {
     this.store = store
@@ -137,7 +141,7 @@ export class MainThreadBridge implements DataBridge {
 
     // Subscribe to store changes for cache invalidation
     this.storeUnsubscribe = this.store.subscribe((event) => {
-      this.handleStoreChange(event)
+      this.enqueueStoreChange(event)
     })
     this.startRemoteInvalidationSubscription()
   }
@@ -821,6 +825,99 @@ export class MainThreadBridge implements DataBridge {
   /**
    * Handle store changes and invalidate affected caches.
    */
+  private enqueueStoreChange(event: NodeChangeEvent): void {
+    this.pendingStoreChanges.push(event)
+
+    if (this.storeChangeFlushQueued) {
+      return
+    }
+
+    this.storeChangeFlushQueued = true
+    queueMicrotask(() => {
+      this.flushStoreChanges()
+    })
+  }
+
+  private flushStoreChanges(): void {
+    const events = this.pendingStoreChanges
+    this.pendingStoreChanges = []
+    this.storeChangeFlushQueued = false
+
+    if (events.length === 0) {
+      return
+    }
+
+    if (!this.isBulkStoreChangeSet(events) && events.length === 1) {
+      this.handleStoreChange(events[0])
+      return
+    }
+
+    this.handleStoreChangeSet(events)
+  }
+
+  private isBulkStoreChangeSet(events: readonly NodeChangeEvent[]): boolean {
+    return (
+      events.length > BULK_STORE_CHANGE_RELOAD_THRESHOLD ||
+      events.some((event) => (event.change.batchSize ?? 1) > BULK_STORE_CHANGE_RELOAD_THRESHOLD)
+    )
+  }
+
+  private handleStoreChangeSet(events: readonly NodeChangeEvent[]): void {
+    const eventsBySchema = new Map<SchemaIRI, NodeChangeEvent[]>()
+
+    for (const event of events) {
+      const schemaId: SchemaIRI | undefined = event.node?.schemaId ?? event.change.payload.schemaId
+      if (!schemaId) continue
+
+      const next = eventsBySchema.get(schemaId) ?? []
+      next.push(event)
+      eventsBySchema.set(schemaId, next)
+    }
+
+    for (const [schemaId, schemaEvents] of eventsBySchema) {
+      const shouldReload = this.isBulkStoreChangeSet(schemaEvents)
+
+      for (const entry of this.cache.getEntriesForSchema(schemaId)) {
+        if (entry.descriptor.mode === 'remote') continue
+
+        if (entry.data === null || shouldReload) {
+          void this.loadInitialQuery(entry.queryId, entry.descriptor)
+          continue
+        }
+
+        let data = entry.data
+        let shouldReloadEntry = false
+
+        for (const event of schemaEvents) {
+          const delta = applyNodeChangeToQueryResult({
+            descriptor: entry.descriptor,
+            currentData: data,
+            nodeId: event.change.payload.nodeId,
+            nextNode: event.node
+          })
+
+          if (delta.kind === 'reload') {
+            shouldReloadEntry = true
+            break
+          }
+
+          if (delta.kind === 'set') {
+            data = delta.data
+          }
+        }
+
+        if (shouldReloadEntry) {
+          void this.loadInitialQuery(entry.queryId, entry.descriptor)
+          continue
+        }
+
+        if (data !== entry.data) {
+          this.cache.set(entry.queryId, data)
+        }
+      }
+    }
+  }
+
   private handleStoreChange(event: NodeChangeEvent): void {
     const { node, change } = event
     // Get schemaId from node (if available) or from the change payload
