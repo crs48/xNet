@@ -217,6 +217,14 @@ async function sendRequest(
   })
 }
 
+export function sendDataProcessRequest(
+  type: string,
+  payload: Record<string, unknown>,
+  timeout?: number
+): Promise<unknown> {
+  return sendRequest(type, payload, timeout)
+}
+
 /**
  * Handle messages from the utility process
  */

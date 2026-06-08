@@ -130,6 +130,35 @@ export function updateSocialImportJob(
   return next
 }
 
+export function upsertSocialImportJobProgress(
+  job: SocialImportJobProgress
+): SocialImportJobProgress {
+  const next: SocialImportJobProgress = {
+    jobId: job.jobId,
+    status: normalizeStatus(job.status),
+    phase: normalizePhase(job.phase),
+    platform: job.platform,
+    archiveName: job.archiveName,
+    totalRecords: typeof job.totalRecords === 'number' ? job.totalRecords : null,
+    processedRecords: numberOrZero(job.processedRecords),
+    created: numberOrZero(job.created),
+    updated: numberOrZero(job.updated),
+    skipped: numberOrZero(job.skipped),
+    warnings: numberOrZero(job.warnings),
+    currentBucketId: typeof job.currentBucketId === 'string' ? job.currentBucketId : null,
+    currentChunk: numberOrZero(job.currentChunk),
+    totalChunks: typeof job.totalChunks === 'number' ? job.totalChunks : null,
+    startedAt: typeof job.startedAt === 'number' ? job.startedAt : null,
+    updatedAt: typeof job.updatedAt === 'number' ? job.updatedAt : Date.now(),
+    completedAt: typeof job.completedAt === 'number' ? job.completedAt : null,
+    error: typeof job.error === 'string' ? job.error : null,
+    metrics: normalizeMetrics(job.metrics)
+  }
+
+  upsertSocialImportJob(next, { broadcast: true })
+  return next
+}
+
 export function listSocialImportJobs(): SocialImportJobProgress[] {
   return [...getSocialImportJobsById().values()].sort(
     (left, right) => right.updatedAt - left.updatedAt

@@ -3,6 +3,8 @@
  */
 import type {
   SocialImportArchivePreview,
+  SocialImportCommitJobRequest,
+  SocialImportCommitJobSnapshot,
   SocialImportStageRequest,
   SocialImportStageResult
 } from '../main/social-import-ipc'
@@ -349,7 +351,21 @@ contextBridge.exposeInMainWorld('xnetSocialImport', {
   queueArchiveForTest: (archivePath: string): Promise<SocialImportArchivePreview> =>
     ipcRenderer.invoke('xnet:social-import:queueArchiveForTest', archivePath),
   stageArchive: (request: SocialImportStageRequest): Promise<SocialImportStageResult> =>
-    ipcRenderer.invoke('xnet:social-import:stageArchive', request)
+    ipcRenderer.invoke('xnet:social-import:stageArchive', request),
+  startCommitJob: (request: SocialImportCommitJobRequest): Promise<SocialImportCommitJobSnapshot> =>
+    ipcRenderer.invoke('xnet:social-import:startCommitJob', request),
+  listCommitJobs: (): Promise<SocialImportCommitJobSnapshot[]> =>
+    ipcRenderer.invoke('xnet:social-import:listCommitJobs'),
+  getCommitJob: (jobId: string): Promise<SocialImportCommitJobSnapshot | null> =>
+    ipcRenderer.invoke('xnet:social-import:getCommitJob', jobId),
+  cancelCommitJob: (jobId: string): Promise<SocialImportCommitJobSnapshot | null> =>
+    ipcRenderer.invoke('xnet:social-import:cancelCommitJob', jobId),
+  onCommitJob: (callback: (job: SocialImportCommitJobSnapshot) => void) => {
+    const handler = (_: unknown, job: SocialImportCommitJobSnapshot) => callback(job)
+    ipcRenderer.on('xnet:social-import:job', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener('xnet:social-import:job', handler as (...args: unknown[]) => void)
+  }
 })
 
 // ─── Node Storage IPC API ────────────────────────────────────────────────────
@@ -411,6 +427,11 @@ export interface XNetSocialImportAPI {
   pickArchive(): Promise<SocialImportArchivePreview | null>
   queueArchiveForTest(archivePath: string): Promise<SocialImportArchivePreview>
   stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult>
+  startCommitJob(request: SocialImportCommitJobRequest): Promise<SocialImportCommitJobSnapshot>
+  listCommitJobs(): Promise<SocialImportCommitJobSnapshot[]>
+  getCommitJob(jobId: string): Promise<SocialImportCommitJobSnapshot | null>
+  cancelCommitJob(jobId: string): Promise<SocialImportCommitJobSnapshot | null>
+  onCommitJob(callback: (job: SocialImportCommitJobSnapshot) => void): () => void
 }
 
 export interface XNetStorybookStatus {

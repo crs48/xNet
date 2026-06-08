@@ -12,8 +12,15 @@
  * Events are sent to main process for relay to the appropriate window.
  */
 
+import type { DID } from '@xnetjs/core'
+import type {
+  DeterministicNodeImportDraft,
+  ImportDeterministicNodesResult,
+  NodeChange
+} from '@xnetjs/data'
 import { existsSync, unlinkSync } from 'fs'
 import { hashContent, createContentId } from '@xnetjs/core'
+import { NodeStore, SQLiteNodeStorageAdapter } from '@xnetjs/data'
 import { createElectronSQLiteAdapter, ElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import {
   signYjsUpdate,
@@ -132,6 +139,18 @@ interface SetNodeOptions {
   indexProperties?: boolean
 }
 
+type ImportDeterministicNodesOptions = {
+  drafts: DeterministicNodeImportDraft[]
+  authorDID: string
+  signingKey: number[]
+}
+
+type ImportDeterministicNodesSummary = {
+  batchId: string
+  created: number
+  updated: number
+}
+
 export interface DataService {
   initialize(): Promise<void>
   shutdown(): Promise<void>
@@ -167,6 +186,9 @@ export interface DataService {
   getNode(id: string): Promise<SerializedNodeState | null>
   getExistingNodeIds(ids: string[]): Promise<string[]>
   setNode(node: SerializedNodeState, options?: SetNodeOptions): Promise<void>
+  importDeterministicNodes(
+    options: ImportDeterministicNodesOptions
+  ): Promise<ImportDeterministicNodesSummary>
   deleteNode(id: string): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<SerializedNodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
@@ -1617,6 +1639,37 @@ export function createDataService(config: DataServiceConfig): DataService {
       log('setNode:', node.id, 'schema:', node.schemaId)
     },
 
+    async importDeterministicNodes(
+      options: ImportDeterministicNodesOptions
+    ): Promise<ImportDeterministicNodesSummary> {
+      if (!adapter) throw new Error('Database not initialized')
+
+      const nodeStorage = new SQLiteNodeStorageAdapter(adapter)
+      await nodeStorage.open()
+
+      try {
+        const store = new NodeStore({
+          storage: nodeStorage,
+          authorDID: options.authorDID as DID,
+          signingKey: new Uint8Array(options.signingKey)
+        })
+        await store.initialize()
+
+        const result: ImportDeterministicNodesResult = await store.importDeterministicNodes(
+          options.drafts
+        )
+        sendEvent('nodes:change', { changes: result.changes.map(serializeNodeChange) })
+
+        return {
+          batchId: result.batchId,
+          created: result.created,
+          updated: result.updated
+        }
+      } finally {
+        await nodeStorage.close()
+      }
+    },
+
     async deleteNode(id: string): Promise<void> {
       if (!adapter) throw new Error('Database not initialized')
 
@@ -1743,6 +1796,32 @@ export function createDataService(config: DataServiceConfig): DataService {
 }
 
 // ─── Helper Functions ─────────────────────────────────────────────────────────
+
+function serializeNodeChange(change: NodeChange): SerializedNodeChange {
+  return {
+    protocolVersion: change.protocolVersion,
+    id: change.id,
+    type: change.type,
+    hash: change.hash,
+    payload: {
+      nodeId: change.payload.nodeId,
+      schemaId: change.payload.schemaId,
+      properties: change.payload.properties,
+      deleted: change.payload.deleted
+    },
+    lamport: {
+      time: change.lamport.time,
+      author: change.lamport.author
+    },
+    wallTime: change.wallTime,
+    authorDID: change.authorDID,
+    parentHash: change.parentHash,
+    batchId: change.batchId,
+    batchIndex: change.batchIndex,
+    batchSize: change.batchSize,
+    signature: Array.from(change.signature)
+  }
+}
 
 function rowToSerializedChange(row: {
   hash: string

@@ -21,6 +21,7 @@ export {
   listSocialImportJobs,
   subscribeSocialImportJobs,
   updateSocialImportJob,
+  upsertSocialImportJobProgress,
   type CreateSocialImportJobInput,
   type SocialImportJobMetrics,
   type SocialImportJobPatch,

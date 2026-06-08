@@ -11,6 +11,7 @@ import {
 import {
   listSocialImportJobs,
   subscribeSocialImportJobs,
+  upsertSocialImportJobProgress,
   type SocialImportJobProgress
 } from '@xnetjs/social/import/core'
 import { createDefaultSocialGraphAtlas, type SocialGraphAtlasEntry } from '@xnetjs/social/lenses'
@@ -400,7 +401,28 @@ export function DataWorkspaceView({
     }
   }, [allSavedViews, selectedView, selectedViewId])
 
-  useEffect(() => subscribeSocialImportJobs(() => setSocialImportJobs(listSocialImportJobs())), [])
+  useEffect(() => {
+    const syncSocialImportJobs = () => setSocialImportJobs(listSocialImportJobs())
+    const unsubscribeLocal = subscribeSocialImportJobs(syncSocialImportJobs)
+
+    void window.xnetSocialImport
+      .listCommitJobs()
+      .then((jobs) => {
+        jobs.forEach(upsertSocialImportJobProgress)
+        syncSocialImportJobs()
+      })
+      .catch(() => undefined)
+
+    const unsubscribeElectron = window.xnetSocialImport.onCommitJob((job) => {
+      upsertSocialImportJobProgress(job)
+      syncSocialImportJobs()
+    })
+
+    return () => {
+      unsubscribeLocal()
+      unsubscribeElectron()
+    }
+  }, [])
 
   async function handleSeedWorkspace(): Promise<void> {
     setSeeding(true)
