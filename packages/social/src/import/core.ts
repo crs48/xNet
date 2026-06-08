@@ -3,6 +3,13 @@
  */
 
 export {
+  createSocialImportBenchmarkDrafts,
+  iterateSocialImportBenchmarkDrafts,
+  SOCIAL_IMPORT_BENCHMARK_RECORD_COUNTS,
+  type SocialImportBenchmarkDraftOptions,
+  type SocialImportBenchmarkRecordCount
+} from './benchmark-fixtures'
+export {
   buildSocialCommitOperations,
   commitStagedSocialNodes,
   type SocialCommitSummary
