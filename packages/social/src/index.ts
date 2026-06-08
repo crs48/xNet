@@ -10,3 +10,5 @@ export * from './projection'
 export * from './schemas'
 export * from './views'
 export * from './workspace'
+
+export type { SocialImportJobPhase, SocialImportJobStatus } from './import'

@@ -8,6 +8,7 @@ import { SocialContentSchema } from './content'
 import { SocialConversationSchema, SocialMessageSchema } from './conversation'
 import {
   SocialImportArchiveSchema,
+  SocialImportJobSchema,
   SocialImportRunSchema,
   SocialSourceRecordSchema
 } from './import'
@@ -20,6 +21,8 @@ export {
   contentKinds,
   conversationKinds,
   identityClaimKinds,
+  importJobPhases,
+  importJobStatuses,
   importRunStatuses,
   interactionKinds,
   messageKinds,
@@ -32,6 +35,8 @@ export {
   type SocialContentKind,
   type SocialConversationKind,
   type SocialIdentityClaimKind,
+  type SocialImportJobPhase,
+  type SocialImportJobStatus,
   type SocialImportRunStatus,
   type SocialInteractionKind,
   type SocialMessageKind,
@@ -43,9 +48,11 @@ export {
 
 export {
   SocialImportArchiveSchema,
+  SocialImportJobSchema,
   SocialImportRunSchema,
   SocialSourceRecordSchema,
   type SocialImportArchive,
+  type SocialImportJob,
   type SocialImportRun,
   type SocialSourceRecord
 } from './import'
@@ -73,6 +80,7 @@ export {
 export const socialSchemas = [
   SocialImportArchiveSchema,
   SocialImportRunSchema,
+  SocialImportJobSchema,
   SocialSourceRecordSchema,
   SocialActorSchema,
   SocialIdentityClaimSchema,

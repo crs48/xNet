@@ -588,7 +588,7 @@ Recommendation:
 
 - [x] Add `SocialImportJobProgress` and job status types in `@xnetjs/social`.
 - [x] Add interim route-independent job progress persistence with localStorage.
-- [ ] Add local job persistence table or local-only schema for the storage-owned runner.
+- [x] Add local job persistence table or local-only schema for the storage-owned runner.
 - [ ] Add Electron IPC: start/list/get/cancel/subscribe import jobs.
 - [ ] Run Electron jobs in the data process or import utility process, not the renderer.
 - [x] Add route-independent job progress panels to the web and Electron Data Workspace.

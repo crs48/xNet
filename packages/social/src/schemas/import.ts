@@ -6,6 +6,8 @@ import type { InferNode } from '@xnetjs/data'
 import { checkbox, date, defineSchema, number, relation, select, text } from '@xnetjs/data'
 import {
   SOCIAL_NAMESPACE,
+  importJobPhases,
+  importJobStatuses,
   importRunStatuses,
   privacyClasses,
   socialPlatforms,
@@ -48,6 +50,46 @@ export const SocialImportRunSchema = defineSchema({
   document: undefined
 })
 
+/**
+ * Operational import job state for local runners.
+ *
+ * This is intentionally separate from SocialImportRun, which represents the
+ * durable import history exposed in the social graph. Import jobs are local
+ * progress/checkpoint records used by Electron data-process and web worker
+ * runners.
+ */
+export const SocialImportJobSchema = defineSchema({
+  name: 'SocialImportJob',
+  namespace: SOCIAL_NAMESPACE,
+  properties: {
+    jobId: text({ required: true, maxLength: 128 }),
+    status: select({ options: importJobStatuses, required: true, default: 'queued' }),
+    phase: select({ options: importJobPhases, required: true, default: 'probing' }),
+    platform: select({ options: socialPlatforms, required: true, default: 'generic' }),
+    archiveName: text({ required: true, maxLength: 500 }),
+    archiveFingerprint: text({ maxLength: 512 }),
+    adapterId: text({ maxLength: 100 }),
+    adapterVersion: text({ maxLength: 100 }),
+    totalRecords: number({ min: 0, integer: true }),
+    processedRecords: number({ min: 0, integer: true }),
+    created: number({ min: 0, integer: true }),
+    updated: number({ min: 0, integer: true }),
+    skipped: number({ min: 0, integer: true }),
+    warnings: number({ min: 0, integer: true }),
+    currentBucketId: text({ maxLength: 300 }),
+    currentChunk: number({ min: 0, integer: true }),
+    totalChunks: number({ min: 0, integer: true }),
+    startedAt: date({ includeTime: true }),
+    updatedAt: date({ required: true, includeTime: true }),
+    completedAt: date({ includeTime: true }),
+    error: text({ maxLength: 5000 }),
+    metricsJson: text({ maxLength: 10000 }),
+    checkpointJson: text({ maxLength: 50000 }),
+    requestJson: text({ maxLength: 50000 })
+  },
+  document: undefined
+})
+
 export const SocialSourceRecordSchema = defineSchema({
   name: 'SocialSourceRecord',
   namespace: SOCIAL_NAMESPACE,
@@ -72,4 +114,5 @@ export const SocialSourceRecordSchema = defineSchema({
 
 export type SocialImportArchive = InferNode<(typeof SocialImportArchiveSchema)['_properties']>
 export type SocialImportRun = InferNode<(typeof SocialImportRunSchema)['_properties']>
+export type SocialImportJob = InferNode<(typeof SocialImportJobSchema)['_properties']>
 export type SocialSourceRecord = InferNode<(typeof SocialSourceRecordSchema)['_properties']>

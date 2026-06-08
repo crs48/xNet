@@ -52,6 +52,28 @@ export const importRunStatuses = [
 
 export type SocialImportRunStatus = (typeof importRunStatuses)[number]['id']
 
+export const importJobStatuses = [
+  { id: 'queued', name: 'Queued', color: 'gray' },
+  { id: 'running', name: 'Running', color: 'blue' },
+  { id: 'paused', name: 'Paused', color: 'yellow' },
+  { id: 'completed', name: 'Completed', color: 'green' },
+  { id: 'failed', name: 'Failed', color: 'red' },
+  { id: 'cancelled', name: 'Cancelled', color: 'gray' }
+] as const
+
+export type SocialImportJobStatus = (typeof importJobStatuses)[number]['id']
+
+export const importJobPhases = [
+  { id: 'probing', name: 'Probing' },
+  { id: 'staging', name: 'Staging' },
+  { id: 'checking', name: 'Checking' },
+  { id: 'writing', name: 'Writing' },
+  { id: 'indexing', name: 'Indexing' },
+  { id: 'finalizing', name: 'Finalizing' }
+] as const
+
+export type SocialImportJobPhase = (typeof importJobPhases)[number]['id']
+
 export const sourceRecordKinds = [
   { id: 'actor', name: 'Actor' },
   { id: 'content', name: 'Content' },

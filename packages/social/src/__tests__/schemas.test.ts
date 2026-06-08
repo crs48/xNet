@@ -5,6 +5,7 @@ import {
   SocialContentSchema,
   SocialConversationSchema,
   SocialImportArchiveSchema,
+  SocialImportJobSchema,
   SocialImportRunSchema,
   SocialInteractionSchema,
   SocialMessageSchema,
@@ -27,6 +28,7 @@ describe('social schemas', () => {
     expect(socialSchemas.map((schema) => schema.schema['@id'])).toEqual([
       `${SOCIAL_NAMESPACE}SocialImportArchive@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialImportRun@1.0.0`,
+      `${SOCIAL_NAMESPACE}SocialImportJob@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialSourceRecord@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialActor@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialIdentityClaim@1.0.0`,
@@ -42,6 +44,7 @@ describe('social schemas', () => {
   it('uses source provenance schemas for archives, runs, and source records', () => {
     expect(propertyNames(SocialImportArchiveSchema)).toContain('archiveHash')
     expect(propertyNames(SocialImportRunSchema)).toContain('selectedBucketsJson')
+    expect(propertyNames(SocialImportJobSchema)).toContain('checkpointJson')
     expect(propertyNames(SocialSourceRecordSchema)).toContain('sourceRecordHash')
   })
 
