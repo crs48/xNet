@@ -605,7 +605,7 @@ Recommendation:
 - [x] Avoid returning `records[]` for large imports.
 - [x] Add importer-level progress counts per bucket.
 - [x] Commit chunks as records stream from adapter stage iterables.
-- [ ] Persist per-bucket and per-source checkpoint metadata where possible.
+- [x] Persist per-bucket and per-source checkpoint metadata where possible.
 - [x] Support "preview first N records" for UI inspection without materializing the full archive.
 
 ### Phase 5 - Optional relational/analytics sidecar

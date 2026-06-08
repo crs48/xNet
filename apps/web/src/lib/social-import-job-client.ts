@@ -1,7 +1,11 @@
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SocialImportNodeDraft } from '@xnetjs/social/import/browser'
 import type { SocialImportJobPhase } from '@xnetjs/social/import/core'
-import { createSocialImportJob, updateSocialImportJob } from '@xnetjs/social/import/core'
+import {
+  createSocialImportJob,
+  createSocialImportJobCheckpointAccumulator,
+  updateSocialImportJob
+} from '@xnetjs/social/import/core'
 import {
   readBrowserSocialImportStageChunk,
   type BrowserSocialImportStageResult
@@ -174,11 +178,13 @@ async function commitBrowserSocialImportStage(input: {
     totalWriteMs: 0,
     totalProgressMs: 0
   }
+  const checkpointAccumulator = createSocialImportJobCheckpointAccumulator()
 
   const reportProgress = (
     progress: Omit<BrowserSocialImportCommitProgress, 'startedAt' | 'updatedAt' | 'metrics'>
   ) => {
     const updatedAt = Date.now()
+    const checkpointSnapshot = checkpointAccumulator.snapshot()
     const commitProgress = {
       ...progress,
       startedAt,
@@ -199,6 +205,9 @@ async function commitBrowserSocialImportStage(input: {
       totalChunks: commitProgress.totalBatches,
       startedAt: commitProgress.startedAt,
       metrics: commitProgress.metrics,
+      currentBucketId: checkpointSnapshot.checkpoint?.bucketId ?? null,
+      checkpoint: checkpointSnapshot.checkpoint,
+      bucketCheckpoints: checkpointSnapshot.bucketCheckpoints,
       error: null
     })
     input.onProgress?.(commitProgress)
@@ -267,6 +276,10 @@ async function commitBrowserSocialImportStage(input: {
     updated += batchResult.updated
     completedBatches += 1
     offset = chunk.nextOffset
+    checkpointAccumulator.add(chunk.drafts, {
+      processedRecords: offset,
+      currentChunk: completedBatches
+    })
     assertBrowserSocialImportCommitNotCancelled(input.jobId)
 
     reportProgress({

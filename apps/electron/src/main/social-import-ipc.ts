@@ -7,12 +7,14 @@ import type {
   ArchiveManifest,
   SocialImportArchivePreview as SharedSocialImportArchivePreview,
   SocialImportNodeDraft as SharedSocialImportNodeDraft,
+  SocialImportJobCheckpointSnapshot,
   SocialImportNodeDraftStreamResult,
   SocialImportJobMetrics,
   SocialImportJobPhase,
   SocialImportJobProgress
 } from '@xnetjs/social/import/core'
 import type { BrowserWindow, OpenDialogOptions } from 'electron'
+import { createSocialImportJobCheckpointAccumulator } from '@xnetjs/social/import/core'
 import {
   createSocialArchivePreview,
   createZipJsonEntryReader,
@@ -235,7 +237,9 @@ function startCommitJob(
     updatedAt: now,
     completedAt: null,
     error: null,
-    metrics: null
+    metrics: null,
+    checkpoint: null,
+    bucketCheckpoints: []
   }
 
   commitJobs.set(job.jobId, job)
@@ -283,6 +287,7 @@ async function runCommitJob(input: {
   let processedRecords = 0
   let currentChunk = 0
   let draftBatch: SharedSocialImportNodeDraft[] = []
+  const checkpointAccumulator = createSocialImportJobCheckpointAccumulator()
 
   try {
     updateCommitJob(input.jobId, { status: 'running', phase: 'checking' }, input.getWindow)
@@ -314,6 +319,7 @@ async function runCommitJob(input: {
         totalChunks,
         startedAt,
         metrics,
+        checkpointSnapshot: checkpointAccumulator.snapshot(),
         getWindow: input.getWindow
       })
 
@@ -334,6 +340,10 @@ async function runCommitJob(input: {
       updated += batchResult.updated
       processedRecords += draftChunk.length
       currentChunk = nextChunk
+      const checkpointSnapshot = checkpointAccumulator.add(draftChunk, {
+        processedRecords,
+        currentChunk
+      })
       assertCommitJobNotCancelled(input.jobId)
 
       reportCommitJobProgress({
@@ -347,6 +357,7 @@ async function runCommitJob(input: {
         totalChunks,
         startedAt,
         metrics,
+        checkpointSnapshot,
         getWindow: input.getWindow
       })
     }
@@ -419,6 +430,7 @@ function reportCommitJobProgress(input: {
   totalChunks: number
   startedAt: number
   metrics: Omit<SocialImportJobMetrics, 'recordsPerSecond'>
+  checkpointSnapshot: SocialImportJobCheckpointSnapshot
   getWindow: () => BrowserWindow | null
 }): void {
   const progressStartedAt = performance.now()
@@ -437,10 +449,13 @@ function reportCommitJobProgress(input: {
       totalChunks: input.totalChunks,
       startedAt: input.startedAt,
       updatedAt,
+      currentBucketId: input.checkpointSnapshot.checkpoint?.bucketId ?? null,
       metrics: {
         ...input.metrics,
         recordsPerSecond: input.processedRecords / elapsedSeconds
-      }
+      },
+      checkpoint: input.checkpointSnapshot.checkpoint,
+      bucketCheckpoints: input.checkpointSnapshot.bucketCheckpoints
     },
     input.getWindow
   )

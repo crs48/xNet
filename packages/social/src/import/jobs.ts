@@ -28,6 +28,34 @@ export type SocialImportJobMetrics = {
   totalProgressMs: number
 }
 
+export type SocialImportJobCheckpoint = {
+  bucketId: string | null
+  sourcePath: string | null
+  sourceRecordId: string | null
+  processedRecords: number
+  currentChunk: number
+  updatedAt: number
+}
+
+export type SocialImportJobBucketCheckpoint = {
+  bucketId: string
+  processedRecords: number
+  sourcePath: string | null
+  sourceRecordId: string | null
+  updatedAt: number
+}
+
+export type SocialImportJobCheckpointDraft = {
+  bucketId: string
+  sourcePath?: string | null
+  sourceRecordId?: string | null
+}
+
+export type SocialImportJobCheckpointSnapshot = {
+  checkpoint: SocialImportJobCheckpoint | null
+  bucketCheckpoints: SocialImportJobBucketCheckpoint[]
+}
+
 export type SocialImportJobProgress = {
   jobId: string
   status: SocialImportJobStatus
@@ -48,6 +76,8 @@ export type SocialImportJobProgress = {
   completedAt: number | null
   error: string | null
   metrics: SocialImportJobMetrics | null
+  checkpoint: SocialImportJobCheckpoint | null
+  bucketCheckpoints: SocialImportJobBucketCheckpoint[]
 }
 
 export type CreateSocialImportJobInput = {
@@ -100,7 +130,9 @@ export function createSocialImportJob(input: CreateSocialImportJobInput): Social
     updatedAt: now,
     completedAt: null,
     error: null,
-    metrics: null
+    metrics: null,
+    checkpoint: null,
+    bucketCheckpoints: []
   }
 
   upsertSocialImportJob(job, { broadcast: true })
@@ -152,7 +184,9 @@ export function upsertSocialImportJobProgress(
     updatedAt: typeof job.updatedAt === 'number' ? job.updatedAt : Date.now(),
     completedAt: typeof job.completedAt === 'number' ? job.completedAt : null,
     error: typeof job.error === 'string' ? job.error : null,
-    metrics: normalizeMetrics(job.metrics)
+    metrics: normalizeMetrics(job.metrics),
+    checkpoint: normalizeCheckpoint(job.checkpoint),
+    bucketCheckpoints: normalizeBucketCheckpoints(job.bucketCheckpoints)
   }
 
   upsertSocialImportJob(next, { broadcast: true })
@@ -277,9 +311,59 @@ function normalizePersistedSocialImportJob(value: unknown): SocialImportJobProgr
           : restoredStatus === 'paused'
             ? 'Import progress was restored after a reload. Start the import again to continue safely.'
             : null,
-      metrics: normalizeMetrics(value.metrics)
+      metrics: normalizeMetrics(value.metrics),
+      checkpoint: normalizeCheckpoint(value.checkpoint),
+      bucketCheckpoints: normalizeBucketCheckpoints(value.bucketCheckpoints)
     }
   ]
+}
+
+export function createSocialImportJobCheckpointAccumulator(): {
+  add: (
+    drafts: readonly SocialImportJobCheckpointDraft[],
+    progress: { processedRecords: number; currentChunk: number; updatedAt?: number }
+  ) => SocialImportJobCheckpointSnapshot
+  snapshot: () => SocialImportJobCheckpointSnapshot
+} {
+  const buckets = new Map<string, SocialImportJobBucketCheckpoint>()
+  let checkpoint: SocialImportJobCheckpoint | null = null
+
+  const snapshot = (): SocialImportJobCheckpointSnapshot => ({
+    checkpoint,
+    bucketCheckpoints: [...buckets.values()].sort((left, right) =>
+      left.bucketId.localeCompare(right.bucketId)
+    )
+  })
+
+  return {
+    add(drafts, progress) {
+      const updatedAt = progress.updatedAt ?? Date.now()
+      for (const draft of drafts) {
+        const current = buckets.get(draft.bucketId)
+        buckets.set(draft.bucketId, {
+          bucketId: draft.bucketId,
+          processedRecords: (current?.processedRecords ?? 0) + 1,
+          sourcePath: draft.sourcePath ?? current?.sourcePath ?? null,
+          sourceRecordId: draft.sourceRecordId ?? current?.sourceRecordId ?? null,
+          updatedAt
+        })
+      }
+
+      const lastDraft = drafts.at(-1)
+      const lastSourceDraft = findLastSourceCheckpointDraft(drafts)
+      checkpoint = {
+        bucketId: lastSourceDraft?.bucketId ?? lastDraft?.bucketId ?? null,
+        sourcePath: lastSourceDraft?.sourcePath ?? null,
+        sourceRecordId: lastSourceDraft?.sourceRecordId ?? null,
+        processedRecords: progress.processedRecords,
+        currentChunk: progress.currentChunk,
+        updatedAt
+      }
+
+      return snapshot()
+    },
+    snapshot
+  }
 }
 
 function initializeSocialImportJobsChannel(): void {
@@ -358,6 +442,47 @@ function normalizeMetrics(value: unknown): SocialImportJobMetrics | null {
     totalWriteMs: numberOrZero(value.totalWriteMs),
     totalProgressMs: numberOrZero(value.totalProgressMs)
   }
+}
+
+function normalizeCheckpoint(value: unknown): SocialImportJobCheckpoint | null {
+  if (!isRecord(value)) return null
+
+  return {
+    bucketId: typeof value.bucketId === 'string' ? value.bucketId : null,
+    sourcePath: typeof value.sourcePath === 'string' ? value.sourcePath : null,
+    sourceRecordId: typeof value.sourceRecordId === 'string' ? value.sourceRecordId : null,
+    processedRecords: numberOrZero(value.processedRecords),
+    currentChunk: numberOrZero(value.currentChunk),
+    updatedAt: typeof value.updatedAt === 'number' ? value.updatedAt : Date.now()
+  }
+}
+
+function normalizeBucketCheckpoints(value: unknown): SocialImportJobBucketCheckpoint[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    if (!isRecord(item)) return []
+    if (typeof item.bucketId !== 'string') return []
+
+    return [
+      {
+        bucketId: item.bucketId,
+        processedRecords: numberOrZero(item.processedRecords),
+        sourcePath: typeof item.sourcePath === 'string' ? item.sourcePath : null,
+        sourceRecordId: typeof item.sourceRecordId === 'string' ? item.sourceRecordId : null,
+        updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : Date.now()
+      }
+    ]
+  })
+}
+
+function findLastSourceCheckpointDraft(
+  drafts: readonly SocialImportJobCheckpointDraft[]
+): SocialImportJobCheckpointDraft | null {
+  for (let index = drafts.length - 1; index >= 0; index -= 1) {
+    const draft = drafts[index]
+    if (draft.sourcePath || draft.sourceRecordId) return draft
+  }
+  return null
 }
 
 function numberOrZero(value: unknown): number {

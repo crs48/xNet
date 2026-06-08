@@ -31,6 +31,8 @@ export type SocialImportNodeDraft = {
   privacyClass: string
   properties: Record<string, unknown>
   warningCount: number
+  sourcePath?: string
+  sourceRecordId?: string
 }
 
 export type SocialImportArchivePreview = {
@@ -499,7 +501,9 @@ export function toSocialImportNodeDraft(record: StagedSocialRecord): SocialImpor
     bucketId: record.bucketId,
     privacyClass: record.privacyClass,
     properties: record.properties,
-    warningCount: record.warnings.length
+    warningCount: record.warnings.length,
+    sourcePath: record.source.path,
+    sourceRecordId: record.sourceRecordId
   }
 }
 
