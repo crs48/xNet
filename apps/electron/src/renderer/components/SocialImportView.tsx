@@ -11,6 +11,11 @@ import type { DefinedSchema, PropertyBuilder } from '@xnetjs/data'
 import type { MutateOp } from '@xnetjs/react'
 import type { SocialImporterRegistryEntry } from '@xnetjs/social/importers'
 import { useMutate } from '@xnetjs/react'
+import {
+  createSocialImportJob,
+  updateSocialImportJob,
+  type SocialImportJobPhase
+} from '@xnetjs/social/import/core'
 import { builtInSocialImporterRegistry } from '@xnetjs/social/importers'
 import {
   SocialActorSchema,
@@ -198,6 +203,7 @@ export function SocialImportView({
     setStatus('committing')
     setError(null)
     setCommitProgress(null)
+    let commitJobId: string | null = null
 
     try {
       const drafts = [
@@ -207,22 +213,62 @@ export function SocialImportView({
           (record) => includeSourceRecords || record.kind !== 'source-record'
         )
       ]
+      const commitJob = createSocialImportJob({
+        archiveName: archive?.filename ?? stageResult.archive.filename,
+        platform: stageResult.archive.adapter?.platform ?? 'unknown',
+        totalRecords: drafts.length,
+        totalChunks: Math.ceil(drafts.length / COMMIT_BATCH_SIZE),
+        warnings: stageResult.summary.totalWarnings
+      })
+      commitJobId = commitJob.jobId
       const summary = await commitDrafts({
         drafts,
         mutate,
         getExistingIds: async (ids) => new Set(await window.xnetNodes.getExistingNodeIds(ids)),
-        onProgress: setCommitProgress
+        onProgress: (progress) => {
+          updateSocialImportJob(commitJob.jobId, {
+            status: 'running',
+            phase: commitProgressPhaseToJobPhase(progress),
+            totalRecords: progress.totalRecords,
+            processedRecords: progress.processedRecords,
+            created: progress.created,
+            updated: progress.updated,
+            currentChunk: progress.completedBatches,
+            totalChunks: progress.totalBatches,
+            startedAt: progress.startedAt,
+            metrics: progress.metrics,
+            error: null
+          })
+          setCommitProgress(progress)
+        }
       })
 
+      updateSocialImportJob(commitJob.jobId, {
+        status: 'completed',
+        phase: 'finalizing',
+        processedRecords: drafts.length,
+        created: summary.created,
+        updated: summary.updated,
+        currentChunk: summary.batches,
+        totalChunks: summary.batches,
+        error: null
+      })
       setCommitSummary(summary)
       setWorkspaceSummary(null)
       setStatus('committed')
     } catch (err) {
+      const message = toErrorMessage(err)
       setStatus('staged')
       setCommitProgress(null)
-      setError(toErrorMessage(err))
+      if (commitJobId) {
+        updateSocialImportJob(commitJobId, {
+          status: 'failed',
+          error: message
+        })
+      }
+      setError(message)
     }
-  }, [includeSourceRecords, mutate, stageResult])
+  }, [archive?.filename, includeSourceRecords, mutate, stageResult])
 
   const handleOpenWorkspace = useCallback(async () => {
     setWorkspaceSeeding(true)
@@ -908,6 +954,12 @@ function getCommitProgressPhaseLabel(progress: CommitProgress): string {
   if (progress.phase === 'checking') return 'Checking existing records'
   if (progress.phase === 'writing') return 'Writing batch'
   return 'Batch committed'
+}
+
+function commitProgressPhaseToJobPhase(progress: CommitProgress): SocialImportJobPhase {
+  if (progress.processedRecords >= progress.totalRecords) return 'finalizing'
+  if (progress.phase === 'checking') return 'checking'
+  return 'writing'
 }
 
 function getCommitEtaLabel(progress: CommitProgress): string | null {

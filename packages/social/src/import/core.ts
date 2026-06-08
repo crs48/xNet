@@ -9,6 +9,19 @@ export {
 } from './commit'
 export { detectSocialArchive, probeSocialArchive, type SocialArchiveDetection } from './detector'
 export {
+  clearCompletedSocialImportJobs,
+  createSocialImportJob,
+  listSocialImportJobs,
+  subscribeSocialImportJobs,
+  updateSocialImportJob,
+  type CreateSocialImportJobInput,
+  type SocialImportJobMetrics,
+  type SocialImportJobPatch,
+  type SocialImportJobPhase,
+  type SocialImportJobProgress,
+  type SocialImportJobStatus
+} from './jobs'
+export {
   createSocialNodeId,
   createSourceRecordHash,
   createSourceRecordId,

@@ -9,6 +9,11 @@ import {
   type SavedViewSchemaRegistry
 } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
+import {
+  listSocialImportJobs,
+  subscribeSocialImportJobs,
+  type SocialImportJobProgress
+} from '@xnetjs/social/import/core'
 import { createDefaultSocialGraphAtlas, type SocialGraphAtlasEntry } from '@xnetjs/social/lenses'
 import {
   createSocialPatternSavedViewDraft,
@@ -164,6 +169,36 @@ function descriptorKindLabel(descriptor: ParsedDescriptor): string {
   return descriptor.queryKind
 }
 
+function isVisibleSocialImportJob(job: SocialImportJobProgress): boolean {
+  if (job.status !== 'completed') return true
+  return Date.now() - job.updatedAt < 5 * 60 * 1000
+}
+
+function socialImportJobPercent(job: SocialImportJobProgress): number {
+  if (!job.totalRecords || job.totalRecords <= 0) return job.status === 'completed' ? 100 : 0
+  return Math.min(100, Math.max(0, (job.processedRecords / job.totalRecords) * 100))
+}
+
+function socialImportJobStatusLabel(job: SocialImportJobProgress): string {
+  if (job.status === 'queued') return 'Queued'
+  if (job.status === 'running') return 'Running'
+  if (job.status === 'paused') return 'Paused'
+  if (job.status === 'completed') return 'Complete'
+  if (job.status === 'failed') return 'Failed'
+  return 'Cancelled'
+}
+
+function socialImportJobRecordLabel(job: SocialImportJobProgress): string {
+  if (!job.totalRecords) return job.processedRecords.toLocaleString()
+  return `${job.processedRecords.toLocaleString()} / ${job.totalRecords.toLocaleString()}`
+}
+
+function socialImportJobRateLabel(job: SocialImportJobProgress): string {
+  const recordsPerSecond = job.metrics?.recordsPerSecond ?? 0
+  if (!Number.isFinite(recordsPerSecond) || recordsPerSecond <= 0) return '0/s'
+  return `${Math.round(recordsPerSecond).toLocaleString()}/s`
+}
+
 function readDismissedPatternIds(): string[] {
   if (typeof localStorage === 'undefined') return []
 
@@ -199,6 +234,8 @@ function patternIconFor(kind: SocialPatternKind): typeof BarChart3 {
 export function DataWorkspaceView(): JSX.Element {
   const { create, mutate } = useMutate()
   const { store, isReady: storeReady } = useNodeStore()
+  const [socialImportJobs, setSocialImportJobs] =
+    useState<SocialImportJobProgress[]>(listSocialImportJobs)
   const [seedSummary, setSeedSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [seeding, setSeeding] = useState(false)
   const [seedError, setSeedError] = useState<string | null>(null)
@@ -332,6 +369,10 @@ export function DataWorkspaceView(): JSX.Element {
       }),
     [defaultSeedBySourceId, graphAtlasEntries, socialWorkspaceViews]
   )
+  const visibleSocialImportJobs = useMemo(
+    () => socialImportJobs.filter(isVisibleSocialImportJob).slice(0, 3),
+    [socialImportJobs]
+  )
 
   useEffect(() => {
     if (!selectedViewId && selectedView) {
@@ -343,6 +384,8 @@ export function DataWorkspaceView(): JSX.Element {
       setSelectedViewId(selectedView?.id ?? null)
     }
   }, [allSavedViews, selectedView, selectedViewId])
+
+  useEffect(() => subscribeSocialImportJobs(() => setSocialImportJobs(listSocialImportJobs())), [])
 
   async function handleSeedWorkspace() {
     if (!store || !storeReady) return
@@ -484,6 +527,7 @@ export function DataWorkspaceView(): JSX.Element {
       {seedError ? <StatusBanner tone="error" message={seedError} /> : null}
       {saveLensMessage ? <StatusBanner tone="success" message={saveLensMessage} /> : null}
       {saveLensError ? <StatusBanner tone="error" message={saveLensError} /> : null}
+      <SocialImportJobsPanel jobs={visibleSocialImportJobs} />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => {
@@ -599,6 +643,79 @@ export function DataWorkspaceView(): JSX.Element {
           </section>
         </main>
       </div>
+    </div>
+  )
+}
+
+function SocialImportJobsPanel({ jobs }: { jobs: SocialImportJobProgress[] }): JSX.Element | null {
+  if (jobs.length === 0) return null
+
+  return (
+    <section className="space-y-2">
+      <SectionLabel label="Import Jobs" />
+      <div className="space-y-2">
+        {jobs.map((job) => {
+          const percent = socialImportJobPercent(job)
+          const statusLabel = socialImportJobStatusLabel(job)
+
+          return (
+            <div key={job.jobId} className="rounded-md border border-border p-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    {job.status === 'running' || job.status === 'queued' ? (
+                      <Loader2 size={14} className="animate-spin text-muted-foreground" />
+                    ) : (
+                      <Import size={14} className="text-muted-foreground" />
+                    )}
+                    <div className="truncate text-sm font-medium">{job.archiveName}</div>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {job.platform} / {statusLabel} / {job.phase}
+                  </div>
+                </div>
+                <div className="text-right text-sm font-medium tabular-nums">
+                  {Math.floor(percent)}%
+                </div>
+              </div>
+              <div
+                className="mt-3 h-2 overflow-hidden rounded-full bg-secondary"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={job.totalRecords ?? job.processedRecords}
+                aria-valuenow={job.processedRecords}
+                aria-label={`Import progress for ${job.archiveName}`}
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-200"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-4">
+                <JobMetric label="Records" value={socialImportJobRecordLabel(job)} />
+                <JobMetric label="Created" value={job.created.toLocaleString()} />
+                <JobMetric label="Updated" value={job.updated.toLocaleString()} />
+                <JobMetric label="Rate" value={socialImportJobRateLabel(job)} />
+              </div>
+              {job.error ? (
+                <div className="mt-2 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-xs text-destructive">
+                  <AlertTriangle size={13} />
+                  <span className="min-w-0 truncate">{job.error}</span>
+                </div>
+              ) : null}
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+function JobMetric({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div>
+      <div className="uppercase tracking-wide">{label}</div>
+      <div className="mt-0.5 font-medium text-foreground tabular-nums">{value}</div>
     </div>
   )
 }

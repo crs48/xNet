@@ -586,15 +586,18 @@ Recommendation:
 
 ### Phase 3 - Route-independent import jobs
 
-- [ ] Add `SocialImportJobProgress` and job status types in `@xnetjs/social`.
-- [ ] Add local job persistence table or local-only schema.
+- [x] Add `SocialImportJobProgress` and job status types in `@xnetjs/social`.
+- [x] Add interim route-independent job progress persistence with localStorage.
+- [ ] Add local job persistence table or local-only schema for the storage-owned runner.
 - [ ] Add Electron IPC: start/list/get/cancel/subscribe import jobs.
 - [ ] Run Electron jobs in the data process or import utility process, not the renderer.
+- [x] Add route-independent job progress panels to the web and Electron Data Workspace.
 - [ ] Add web job client that owns a long-lived worker outside the route component.
 - [ ] Keep parsed/staged chunks in the worker and post only progress summaries to UI.
-- [ ] Add `BroadcastChannel` progress fanout for route changes and multi-tab display.
+- [x] Add `BroadcastChannel` progress fanout for route changes and multi-tab display.
 - [ ] Add cancel and retry semantics.
-- [ ] Add honest paused/resume UI for browser page-close cases.
+- [x] Add honest paused UI for restored browser page-close/reload cases.
+- [ ] Add resume semantics for restored browser page-close/reload cases.
 
 ### Phase 4 - Streaming stage-to-commit pipeline
 
