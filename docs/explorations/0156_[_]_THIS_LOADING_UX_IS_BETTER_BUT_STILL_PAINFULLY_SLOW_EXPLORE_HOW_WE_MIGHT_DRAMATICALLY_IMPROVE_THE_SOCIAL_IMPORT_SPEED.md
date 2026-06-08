@@ -582,7 +582,7 @@ Recommendation:
 - [x] Bulk materialize node state in memory using existing LWW semantics.
 - [x] Add `deferIndexes` / `rebuildIndexesForSchemas` support to SQLite node storage.
 - [ ] Emit compact import progress events and avoid per-node React invalidation until after chunk commit.
-- [ ] Add correctness tests comparing generic `transaction()` results against bulk import results for create, update, conflict/LWW, and source-record cases.
+- [x] Add correctness tests comparing generic `transaction()` results against bulk import results for create, update, conflict/LWW, and source-record cases.
 
 ### Phase 3 - Route-independent import jobs
 

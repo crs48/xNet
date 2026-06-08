@@ -3,7 +3,13 @@
  */
 
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
-import type { ContentKeyCache, NodeContentCipher, NodeStorageAdapter } from './types'
+import type {
+  ContentKeyCache,
+  NodeChange,
+  NodeContentCipher,
+  NodeState,
+  NodeStorageAdapter
+} from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
@@ -25,6 +31,7 @@ import { NodeStore } from './store'
 // Test fixtures
 const TEST_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Task'
 const TEST_SCHEMA_2: SchemaIRI = 'xnet://xnet.fyi/Page'
+const TEST_SOURCE_RECORD_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/social/SourceRecord'
 
 function createTestStore(): {
   store: NodeStore
@@ -56,6 +63,64 @@ function createAuthDecision(input: AuthCheckInput, allowed: boolean): AuthDecisi
     cached: false,
     evaluatedAt: Date.now(),
     duration: 0
+  }
+}
+
+function createPairedTestStores(): {
+  transactionStore: NodeStore
+  importStore: NodeStore
+  transactionAdapter: MemoryNodeStorageAdapter
+  importAdapter: MemoryNodeStorageAdapter
+} {
+  const keyPair = generateSigningKeyPair()
+  const did = createDID(keyPair.publicKey) as DID
+  const transactionAdapter = new MemoryNodeStorageAdapter()
+  const importAdapter = new MemoryNodeStorageAdapter()
+
+  return {
+    transactionStore: new NodeStore({
+      storage: transactionAdapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    }),
+    importStore: new NodeStore({
+      storage: importAdapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    }),
+    transactionAdapter,
+    importAdapter
+  }
+}
+
+function comparableNodeState(node: NodeState | null): unknown {
+  if (!node) return null
+
+  return {
+    id: node.id,
+    schemaId: node.schemaId,
+    properties: node.properties,
+    deleted: node.deleted,
+    createdBy: node.createdBy,
+    updatedBy: node.updatedBy,
+    timestamps: Object.fromEntries(
+      Object.entries(node.timestamps).map(([key, timestamp]) => [
+        key,
+        {
+          lamport: timestamp.lamport
+        }
+      ])
+    )
+  }
+}
+
+function comparableChange(change: NodeChange): unknown {
+  return {
+    type: change.type,
+    payload: change.payload,
+    lamport: change.lamport,
+    authorDID: change.authorDID,
+    parentHash: change.parentHash
   }
 }
 
@@ -903,6 +968,158 @@ describe('deterministic node import', () => {
     ])
 
     expect(adapter.transactionCalls).toBe(1)
+  })
+
+  it('matches generic transaction materialization for deterministic creates', async () => {
+    const { transactionStore, importStore } = createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    const draft = {
+      id: 'parity-create-node',
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Created', status: 'open', priority: 2 }
+    }
+
+    const transactionResult = await transactionStore.transaction([
+      {
+        type: 'create',
+        options: draft
+      }
+    ])
+    const importResult = await importStore.importDeterministicNodes([draft])
+
+    expect(importResult.created).toBe(1)
+    expect(importResult.updated).toBe(0)
+    expect(comparableNodeState(await importStore.get(draft.id))).toEqual(
+      comparableNodeState(await transactionStore.get(draft.id))
+    )
+    expect(importResult.changes.map(comparableChange)).toEqual(
+      transactionResult.changes.map(comparableChange)
+    )
+  })
+
+  it('matches generic transaction materialization for deterministic updates', async () => {
+    const { transactionStore, importStore } = createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    await transactionStore.transaction([
+      {
+        type: 'create',
+        options: {
+          id: 'parity-update-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Before', status: 'open' }
+        }
+      }
+    ])
+    await importStore.importDeterministicNodes([
+      {
+        id: 'parity-update-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Before', status: 'open' }
+      }
+    ])
+
+    await transactionStore.transaction([
+      {
+        type: 'update',
+        nodeId: 'parity-update-node',
+        options: { properties: { title: 'After' } }
+      }
+    ])
+    const importResult = await importStore.importDeterministicNodes([
+      {
+        id: 'parity-update-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'After' }
+      }
+    ])
+
+    expect(importResult.created).toBe(0)
+    expect(importResult.updated).toBe(1)
+    expect(comparableNodeState(await importStore.get('parity-update-node'))).toEqual(
+      comparableNodeState(await transactionStore.get('parity-update-node'))
+    )
+  })
+
+  it('matches generic transaction LWW behavior when an existing property has a newer Lamport time', async () => {
+    const { transactionStore, importStore, transactionAdapter, importAdapter } =
+      createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    const lockedNode: NodeState = {
+      id: 'parity-lww-node',
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Locked', status: 'kept' },
+      timestamps: {
+        title: { lamport: { time: 50, author: 'did:key:remote' as DID }, wallTime: 50 },
+        status: { lamport: { time: 50, author: 'did:key:remote' as DID }, wallTime: 50 }
+      },
+      deleted: false,
+      createdAt: 50,
+      createdBy: 'did:key:remote' as DID,
+      updatedAt: 50,
+      updatedBy: 'did:key:remote' as DID
+    }
+    await transactionAdapter.setNode(structuredClone(lockedNode))
+    await importAdapter.setNode(structuredClone(lockedNode))
+
+    await transactionStore.transaction([
+      {
+        type: 'update',
+        nodeId: lockedNode.id,
+        options: { properties: { status: 'ignored' } }
+      }
+    ])
+    await importStore.importDeterministicNodes([
+      {
+        id: lockedNode.id,
+        schemaId: TEST_SCHEMA,
+        properties: { status: 'ignored' }
+      }
+    ])
+
+    expect(comparableNodeState(await importStore.get(lockedNode.id))).toEqual(
+      comparableNodeState(await transactionStore.get(lockedNode.id))
+    )
+    expect((await importStore.get(lockedNode.id))?.properties.status).toBe('kept')
+  })
+
+  it('matches generic transaction materialization for source-record-shaped nodes', async () => {
+    const { transactionStore, importStore } = createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    const draft = {
+      id: 'parity-source-record',
+      schemaId: TEST_SOURCE_RECORD_SCHEMA,
+      properties: {
+        platform: 'youtube',
+        bucketId: 'youtube.history',
+        sourcePath: 'Takeout/YouTube/history/watch-history.json',
+        recordKey: 'watch-123',
+        raw: {
+          title: 'Example video',
+          channel: 'Example Channel',
+          watchedAt: '2026-06-08T12:00:00.000Z'
+        }
+      }
+    }
+
+    await transactionStore.transaction([
+      {
+        type: 'create',
+        options: draft
+      }
+    ])
+    await importStore.importDeterministicNodes([draft])
+
+    expect(comparableNodeState(await importStore.get(draft.id))).toEqual(
+      comparableNodeState(await transactionStore.get(draft.id))
+    )
   })
 })
 
