@@ -17,6 +17,7 @@ const mockXnetNodes = {
   getChangeByHash: vi.fn(),
   getLastChange: vi.fn(),
   getNode: vi.fn(),
+  getExistingNodeIds: vi.fn(),
   setNode: vi.fn(),
   deleteNode: vi.fn(),
   listNodes: vi.fn(),

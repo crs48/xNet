@@ -353,6 +353,7 @@ export interface XNetNodesAPI {
 
   // Materialized state operations
   getNode(id: string): Promise<unknown | null>
+  getExistingNodeIds(ids: string[]): Promise<string[]>
   setNode(node: unknown, options?: unknown): Promise<void>
   deleteNode(id: string): Promise<void>
   listNodes(options?: unknown): Promise<unknown[]>

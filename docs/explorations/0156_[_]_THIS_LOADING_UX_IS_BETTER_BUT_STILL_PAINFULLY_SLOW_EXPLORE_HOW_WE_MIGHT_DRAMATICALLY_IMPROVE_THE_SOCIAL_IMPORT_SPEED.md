@@ -564,11 +564,13 @@ Recommendation:
 
 ### Phase 1 - Measure and low-risk speedups
 
-- [ ] Add timing telemetry for stage, structured clone, existence checks, mutate, storage write, index/FTS, progress updates.
-- [ ] Add `getExistingNodeIds(ids)` or `getNodesById(ids)` to the renderer/web commit path.
-- [ ] Replace per-draft existence checks in Electron and web with one bulk check per chunk.
-- [ ] Raise or adapt `COMMIT_BATCH_SIZE` only after bulk existence checks land.
-- [ ] Add import performance metrics to the progress UI: records/sec, write ms/chunk, check ms/chunk, indexing ms/chunk.
+- [x] Add timing telemetry for stage, existence checks, mutate/storage write/index bucket, and progress updates.
+- [ ] Add structured-clone timing for browser staging worker payloads.
+- [x] Add `getExistingNodeIds(ids)` or `getNodesById(ids)` to the renderer/web commit path.
+- [x] Replace per-draft existence checks in Electron and web with one bulk check per chunk.
+- [x] Raise or adapt `COMMIT_BATCH_SIZE` only after bulk existence checks land.
+- [x] Add import performance metrics to the progress UI: records/sec, write ms/chunk, check ms/chunk, indexing ms/chunk.
+- [ ] Add a true web storage/worker bulk existence backend instead of the current route-level grouped fallback.
 - [ ] Add a benchmark fixture for 10k, 72k, 280k, and 1M social-node drafts.
 - [ ] Confirm the current nested transaction error cannot happen in the new path by having one transaction owner per chunk.
 

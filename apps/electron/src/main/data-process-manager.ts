@@ -510,6 +510,11 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
     return result.node
   })
 
+  ipcMain.handle('xnet:nodes:getExistingNodeIds', async (_event, opts: { ids: string[] }) => {
+    const result = (await sendRequest('nodes:getExistingNodeIds', opts)) as { ids: string[] }
+    return result.ids
+  })
+
   ipcMain.handle(
     'xnet:nodes:setNode',
     async (_event, opts: { node: unknown; options?: unknown }) => {

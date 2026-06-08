@@ -62,6 +62,16 @@ type CommitSummary = {
 
 type CommitProgressPhase = 'checking' | 'writing' | 'committed'
 
+type CommitProgressMetrics = {
+  recordsPerSecond: number
+  lastCheckMs: number
+  lastWriteMs: number
+  lastProgressMs: number
+  totalCheckMs: number
+  totalWriteMs: number
+  totalProgressMs: number
+}
+
 type CommitProgress = {
   phase: CommitProgressPhase
   totalRecords: number
@@ -73,6 +83,7 @@ type CommitProgress = {
   updated: number
   startedAt: number
   updatedAt: number
+  metrics: CommitProgressMetrics
 }
 
 type PickedArchive = {
@@ -81,7 +92,7 @@ type PickedArchive = {
   preview: SocialImportArchivePreview
 }
 
-const COMMIT_BATCH_SIZE = 500
+const COMMIT_BATCH_SIZE = 2500
 const schemasById = Object.fromEntries(
   [
     SocialImportArchiveSchema,
@@ -211,7 +222,14 @@ function SocialImportPage(): React.ReactElement {
       const summary = await commitDrafts({
         drafts,
         mutate,
-        getExisting: (id) => store.get(id),
+        getExistingIds: async (ids) =>
+          new Set(
+            (
+              await Promise.all(
+                ids.map(async (id): Promise<string | null> => ((await store.get(id)) ? id : null))
+              )
+            ).filter(isString)
+          ),
         onProgress: setCommitProgress
       })
 
@@ -535,10 +553,11 @@ function SocialImportPage(): React.ReactElement {
               {commitProgress ? <CommitProgressPanel progress={commitProgress} /> : null}
 
               {stageResult ? (
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-4">
                   <SummaryCard label="Total" value={stageResult.summary.totalRecords} />
                   <SummaryCard label="Warnings" value={stageResult.summary.totalWarnings} />
                   <SummaryCard label="Ignored" value={stageResult.summary.totalIgnored} />
+                  <SummaryCard label="Stage" value={formatDuration(stageResult.stageDurationMs)} />
                 </div>
               ) : (
                 <div className="rounded-md border border-border p-8 text-center text-sm text-muted-foreground">
@@ -698,11 +717,13 @@ function summarizeList(items: readonly string[], limit = 4): string {
   return hiddenCount > 0 ? `${visibleItems.join(', ')} +${hiddenCount}` : visibleItems.join(', ')
 }
 
-function SummaryCard({ label, value }: { label: string; value: number }) {
+function SummaryCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-md border border-border p-3">
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-semibold">{value.toLocaleString()}</div>
+      <div className="mt-1 text-2xl font-semibold">
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </div>
     </div>
   )
 }
@@ -741,13 +762,23 @@ function CommitProgressPanel({ progress }: { progress: CommitProgress }): React.
           style={{ width: `${percent}%` }}
         />
       </div>
-      <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-4">
+      <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
         <ProgressMetric
           label="Records"
           value={`${progress.processedRecords.toLocaleString()} / ${progress.totalRecords.toLocaleString()}`}
         />
         <ProgressMetric label="Created" value={progress.created.toLocaleString()} />
         <ProgressMetric label="Updated" value={progress.updated.toLocaleString()} />
+        <ProgressMetric label="Rate" value={formatRate(progress.metrics.recordsPerSecond)} />
+        <ProgressMetric label="Check" value={formatMilliseconds(progress.metrics.lastCheckMs)} />
+        <ProgressMetric
+          label="Write/index"
+          value={formatMilliseconds(progress.metrics.lastWriteMs)}
+        />
+        <ProgressMetric
+          label="Progress UI"
+          value={formatMilliseconds(progress.metrics.lastProgressMs)}
+        />
         <ProgressMetric label="Remaining" value={etaLabel ?? `Elapsed ${elapsedLabel}`} />
       </div>
     </div>
@@ -792,81 +823,104 @@ function StatusCallout({
 async function commitDrafts(input: {
   drafts: SocialImportNodeDraft[]
   mutate: (ops: MutateOp[]) => Promise<unknown>
-  getExisting: (id: string) => Promise<unknown>
+  getExistingIds: (ids: string[]) => Promise<Set<string>>
   onProgress?: (progress: CommitProgress) => void
 }): Promise<CommitSummary> {
   const chunks = chunk(input.drafts, COMMIT_BATCH_SIZE)
   let created = 0
   let updated = 0
   const startedAt = Date.now()
+  const metrics: Omit<CommitProgressMetrics, 'recordsPerSecond'> = {
+    lastCheckMs: 0,
+    lastWriteMs: 0,
+    lastProgressMs: 0,
+    totalCheckMs: 0,
+    totalWriteMs: 0,
+    totalProgressMs: 0
+  }
 
-  const reportProgress = (progress: Omit<CommitProgress, 'startedAt' | 'updatedAt'>) => {
+  const reportProgress = (
+    progress: Omit<CommitProgress, 'startedAt' | 'updatedAt' | 'metrics'>
+  ) => {
+    const updatedAt = Date.now()
     input.onProgress?.({
       ...progress,
       startedAt,
-      updatedAt: Date.now()
+      updatedAt,
+      metrics: {
+        ...metrics,
+        recordsPerSecond: getRecordsPerSecond(progress.processedRecords, startedAt, updatedAt)
+      }
     })
   }
 
-  reportProgress({
-    phase: 'checking',
-    totalRecords: input.drafts.length,
-    processedRecords: 0,
-    totalBatches: chunks.length,
-    completedBatches: 0,
-    currentBatch: chunks.length > 0 ? 1 : 0,
-    created,
-    updated
-  })
-  await yieldCommitProgress()
-
-  for (const [batchIndex, drafts] of chunks.entries()) {
-    const processedBeforeBatch = batchIndex * COMMIT_BATCH_SIZE
-    let batchCreated = 0
-    let batchUpdated = 0
-
+  await reportProgressAndYield(metrics, () =>
     reportProgress({
       phase: 'checking',
       totalRecords: input.drafts.length,
-      processedRecords: processedBeforeBatch,
+      processedRecords: 0,
       totalBatches: chunks.length,
-      completedBatches: batchIndex,
-      currentBatch: batchIndex + 1,
+      completedBatches: 0,
+      currentBatch: chunks.length > 0 ? 1 : 0,
       created,
       updated
     })
+  )
 
-    const operations = await Promise.all(
-      drafts.map(async (draft): Promise<MutateOp> => {
-        const existing = await input.getExisting(draft.deterministicId)
-        if (existing) {
-          batchUpdated += 1
-          return { type: 'update', id: draft.deterministicId, data: draft.properties }
-        }
+  for (const [batchIndex, drafts] of chunks.entries()) {
+    const processedBeforeBatch = Math.min(batchIndex * COMMIT_BATCH_SIZE, input.drafts.length)
+    let batchCreated = 0
+    let batchUpdated = 0
 
-        batchCreated += 1
-        return {
-          type: 'create',
-          id: draft.deterministicId,
-          schema: getSchema(draft.schemaId),
-          data: draft.properties
-        } as MutateOp
+    await reportProgressAndYield(metrics, () =>
+      reportProgress({
+        phase: 'checking',
+        totalRecords: input.drafts.length,
+        processedRecords: processedBeforeBatch,
+        totalBatches: chunks.length,
+        completedBatches: batchIndex,
+        currentBatch: batchIndex + 1,
+        created,
+        updated
       })
     )
 
-    reportProgress({
-      phase: 'writing',
-      totalRecords: input.drafts.length,
-      processedRecords: processedBeforeBatch,
-      totalBatches: chunks.length,
-      completedBatches: batchIndex,
-      currentBatch: batchIndex + 1,
-      created: created + batchCreated,
-      updated: updated + batchUpdated
-    })
-    await yieldCommitProgress()
+    const checkStartedAt = performance.now()
+    const existingIds = await input.getExistingIds(drafts.map((draft) => draft.deterministicId))
+    const operations = drafts.map((draft): MutateOp => {
+      if (existingIds.has(draft.deterministicId)) {
+        batchUpdated += 1
+        return { type: 'update', id: draft.deterministicId, data: draft.properties }
+      }
 
+      batchCreated += 1
+      return {
+        type: 'create',
+        id: draft.deterministicId,
+        schema: getSchema(draft.schemaId),
+        data: draft.properties
+      } as MutateOp
+    })
+    metrics.lastCheckMs = performance.now() - checkStartedAt
+    metrics.totalCheckMs += metrics.lastCheckMs
+
+    await reportProgressAndYield(metrics, () =>
+      reportProgress({
+        phase: 'writing',
+        totalRecords: input.drafts.length,
+        processedRecords: processedBeforeBatch,
+        totalBatches: chunks.length,
+        completedBatches: batchIndex,
+        currentBatch: batchIndex + 1,
+        created: created + batchCreated,
+        updated: updated + batchUpdated
+      })
+    )
+
+    const writeStartedAt = performance.now()
     await input.mutate(operations)
+    metrics.lastWriteMs = performance.now() - writeStartedAt
+    metrics.totalWriteMs += metrics.lastWriteMs
 
     created += batchCreated
     updated += batchUpdated
@@ -884,6 +938,17 @@ async function commitDrafts(input: {
   }
 
   return { created, updated, batches: chunks.length }
+}
+
+async function reportProgressAndYield(
+  metrics: Omit<CommitProgressMetrics, 'recordsPerSecond'>,
+  report: () => void
+): Promise<void> {
+  const progressStartedAt = performance.now()
+  report()
+  await yieldCommitProgress()
+  metrics.lastProgressMs = performance.now() - progressStartedAt
+  metrics.totalProgressMs += metrics.lastProgressMs
 }
 
 function getCommitProgressPhaseLabel(progress: CommitProgress): string {
@@ -908,6 +973,26 @@ function getCommitEtaLabel(progress: CommitProgress): string | null {
   return `~${formatDuration(remainingMs)}`
 }
 
+function getRecordsPerSecond(
+  processedRecords: number,
+  startedAt: number,
+  updatedAt: number
+): number {
+  const elapsedSeconds = Math.max((updatedAt - startedAt) / 1000, 0.001)
+  return processedRecords / elapsedSeconds
+}
+
+function formatRate(recordsPerSecond: number): string {
+  if (!Number.isFinite(recordsPerSecond) || recordsPerSecond <= 0) return '0/s'
+  return `${Math.round(recordsPerSecond).toLocaleString()}/s`
+}
+
+function formatMilliseconds(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return '0ms'
+  if (milliseconds < 1000) return `${Math.round(milliseconds)}ms`
+  return `${(milliseconds / 1000).toFixed(1)}s`
+}
+
 function formatDuration(milliseconds: number): string {
   const totalSeconds = Math.max(0, Math.round(milliseconds / 1000))
   if (totalSeconds < 60) return `${totalSeconds}s`
@@ -919,6 +1004,10 @@ function formatDuration(milliseconds: number): string {
   const hours = Math.floor(minutes / 60)
   const remainingMinutes = minutes % 60
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`
+}
+
+function isString(value: string | null): value is string {
+  return typeof value === 'string'
 }
 
 function yieldCommitProgress(): Promise<void> {

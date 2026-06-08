@@ -165,6 +165,7 @@ export interface DataService {
   getChangeByHash(hash: string): Promise<SerializedNodeChange | null>
   getLastChange(nodeId: string): Promise<SerializedNodeChange | null>
   getNode(id: string): Promise<SerializedNodeState | null>
+  getExistingNodeIds(ids: string[]): Promise<string[]>
   setNode(node: SerializedNodeState, options?: SetNodeOptions): Promise<void>
   deleteNode(id: string): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<SerializedNodeState[]>
@@ -1539,6 +1540,24 @@ export function createDataService(config: DataServiceConfig): DataService {
       }
     },
 
+    async getExistingNodeIds(ids: string[]): Promise<string[]> {
+      if (!adapter || ids.length === 0) return []
+
+      const existingIds: string[] = []
+      const uniqueIds = [...new Set(ids.filter(Boolean))]
+
+      for (const batch of chunkItems(uniqueIds, 900)) {
+        const placeholders = batch.map(() => '?').join(', ')
+        const rows = await adapter.query<{ id: string }>(
+          `SELECT id FROM nodes WHERE id IN (${placeholders})`,
+          batch
+        )
+        existingIds.push(...rows.map((row) => row.id))
+      }
+
+      return existingIds
+    },
+
     async setNode(node: SerializedNodeState, options?: SetNodeOptions): Promise<void> {
       if (!adapter) throw new Error('Database not initialized')
 
@@ -1759,4 +1778,12 @@ function rowToSerializedChange(row: {
     batchId: row.batch_id ?? undefined,
     signature: Array.from(row.signature)
   }
+}
+
+function chunkItems<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+  return chunks
 }

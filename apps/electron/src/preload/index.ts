@@ -368,6 +368,8 @@ contextBridge.exposeInMainWorld('xnetNodes', {
 
   // Materialized state operations
   getNode: (id: string) => ipcRenderer.invoke('xnet:nodes:getNode', { id }),
+  getExistingNodeIds: (ids: string[]) =>
+    ipcRenderer.invoke('xnet:nodes:getExistingNodeIds', { ids }),
   setNode: (node: unknown, options?: unknown) =>
     ipcRenderer.invoke('xnet:nodes:setNode', { node, options }),
   deleteNode: (id: string) => ipcRenderer.invoke('xnet:nodes:deleteNode', { id }),
@@ -546,6 +548,7 @@ export interface XNetNodesAPI {
 
   // Materialized state operations
   getNode(id: string): Promise<unknown | null>
+  getExistingNodeIds(ids: string[]): Promise<string[]>
   setNode(node: unknown, options?: unknown): Promise<void>
   deleteNode(id: string): Promise<void>
   listNodes(options?: unknown): Promise<unknown[]>

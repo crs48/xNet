@@ -374,6 +374,17 @@ process.parentPort?.on('message', async (event) => {
         break
       }
 
+      case 'nodes:getExistingNodeIds': {
+        const { ids } = payload as { ids: string[] }
+        if (dataService) {
+          const existingIds = await dataService.getExistingNodeIds(ids)
+          sendResponse(requestId, { ids: existingIds })
+        } else {
+          sendResponse(requestId, { ids: [] })
+        }
+        break
+      }
+
       case 'nodes:setNode': {
         const { node, options } = payload as { node: unknown; options?: unknown }
         if (dataService) {
