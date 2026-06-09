@@ -126,7 +126,7 @@ const bucketPatterns: Array<{ id: string; label: string; pattern: RegExp; descri
   {
     id: 'instagram.media',
     label: 'Media',
-    pattern: /your_instagram_activity\/media\/|^media\//,
+    pattern: /your_instagram_activity\/media\/.*\.json$/,
     description: 'Instagram posts, reels, reposts, and local media references.'
   },
   {

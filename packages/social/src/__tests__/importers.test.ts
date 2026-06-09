@@ -201,6 +201,21 @@ describe('social import adapters', () => {
       expect(records.some((record) => record.bucketId === 'instagram.messages')).toBe(false)
     })
 
+    it('keeps raw Instagram media blobs out of the JSON media bucket', async () => {
+      const reelsPath = 'your_instagram_activity/media/reels.json'
+      const archiveManifest = manifest([
+        entry(reelsPath),
+        entry('media/reels/202603/18058579175393290.mp4'),
+        entry('media/reels/202603/17900209500242710.srt'),
+        entry('media/posts/17928223388228092.jpg')
+      ])
+
+      const probe = await instagramAdapter.probe({ manifest: archiveManifest })
+      expect(probe.buckets.find((bucket) => bucket.id === 'instagram.media')?.entryPaths).toEqual([
+        reelsPath
+      ])
+    })
+
     it('detects Grok and marks conversations as private by default', async () => {
       const backendPath = 'ttl/30d/export_data/test/prod-grok-backend.json'
       const archiveManifest = manifest([entry(backendPath, 293_000_000)])

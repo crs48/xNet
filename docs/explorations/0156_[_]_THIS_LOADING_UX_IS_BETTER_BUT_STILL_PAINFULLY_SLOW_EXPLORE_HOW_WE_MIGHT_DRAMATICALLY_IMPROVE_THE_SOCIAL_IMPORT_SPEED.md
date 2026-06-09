@@ -634,8 +634,7 @@ Recommendation:
 
 Baseline note: `pnpm bench:social-import -- --all-buckets --include-sensitive` writes a local
 `tmp/social-import-baseline.json` report. The current fixture pass records successful full-bucket
-stage timings for YouTube, Twitter/X, TikTok, Claude, ChatGPT, Reddit, and Grok; Instagram is
-captured as a benchmark failure because its importer attempts to parse a JFIF image payload as JSON.
+stage timings for YouTube, Twitter/X, TikTok, Claude, ChatGPT, Reddit, Grok, and Instagram.
 
 ## Example Implementation Sketch
 
