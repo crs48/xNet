@@ -617,7 +617,7 @@ Recommendation:
 
 ## Validation Checklist
 
-- [ ] Baseline current import timings for YouTube, Twitter/X, TikTok, Claude, ChatGPT, Reddit, Grok, and Instagram fixtures.
+- [x] Baseline current import timings for YouTube, Twitter/X, TikTok, Claude, ChatGPT, Reddit, Grok, and Instagram fixtures.
 - [ ] Verify 72k committed records finishes under 60 seconds in Electron after bulk import work.
 - [ ] Verify 280k committed records finishes under 3 minutes in Electron or reports stable background progress with no route lock.
 - [ ] Verify web OPFS import remains responsive while writing 72k records.
@@ -631,6 +631,11 @@ Recommendation:
 - [ ] Verify indexes/FTS/social workspace lenses reflect imported data after finalization.
 - [ ] Verify OPFS `SQLITE_BUSY` handling under two tabs.
 - [ ] Verify durable-storage-not-granted cases still work, but the UI labels the persistence risk separately from import progress.
+
+Baseline note: `pnpm bench:social-import -- --all-buckets --include-sensitive` writes a local
+`tmp/social-import-baseline.json` report. The current fixture pass records successful full-bucket
+stage timings for YouTube, Twitter/X, TikTok, Claude, ChatGPT, Reddit, and Grok; Instagram is
+captured as a benchmark failure because its importer attempts to parse a JFIF image payload as JSON.
 
 ## Example Implementation Sketch
 
