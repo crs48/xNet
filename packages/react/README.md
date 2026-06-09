@@ -381,7 +381,7 @@ const result = await bulk({
   drafts: socialDrafts,
   policy: {
     indexMode: 'touched',
-    notificationMode: 'silent'
+    notificationMode: 'batch'
   }
 })
 

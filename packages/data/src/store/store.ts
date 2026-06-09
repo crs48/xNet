@@ -25,6 +25,8 @@ import type {
   TransactionOperation,
   TransactionResult,
   NodeChangeListener,
+  NodeBatchChangeListener,
+  NodeBatchChangeEvent,
   PropertyLookup,
   GetWithMigrationOptions,
   MigratedNodeState,
@@ -39,7 +41,8 @@ import type {
   NodeBatchWriteInput,
   NodeBatchWritePolicy,
   NodeBatchWriteResult,
-  NodeBatchWriteTimings
+  NodeBatchWriteTimings,
+  NodeBatchNotificationMode
 } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
@@ -133,6 +136,7 @@ export class NodeStore {
   private clock: LamportClock
   private conflicts: MergeConflict[] = []
   private listeners: Set<NodeChangeListener> = new Set()
+  private batchListeners: Set<NodeBatchChangeListener> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
   private lensRegistry?: LensRegistry
@@ -797,7 +801,7 @@ export class NodeStore {
     options: ImportDeterministicNodesOptions = {}
   ): Promise<ImportDeterministicNodesResult> {
     const result = await this.executeDeterministicNodeBatch(drafts, options, {
-      emitEvents: true
+      notificationMode: 'per-node'
     })
 
     return this.toImportDeterministicNodesResult(result)
@@ -810,7 +814,7 @@ export class NodeStore {
         const result = await this.executeDeterministicNodeBatch(
           input.drafts,
           { indexMode: policy.indexMode },
-          { emitEvents: policy.notificationMode === 'per-node' }
+          { notificationMode: policy.notificationMode }
         )
 
         return {
@@ -854,7 +858,7 @@ export class NodeStore {
   private async executeDeterministicNodeBatch(
     drafts: readonly DeterministicNodeImportDraft[],
     options: ImportDeterministicNodesOptions,
-    behavior: { emitEvents: boolean }
+    behavior: { notificationMode: NodeBatchNotificationMode }
   ): Promise<DeterministicNodeImportExecution> {
     const totalStartedAt = Date.now()
 
@@ -927,8 +931,30 @@ export class NodeStore {
       }
 
       const notifyStartedAt = Date.now()
-      if (behavior.emitEvents) {
+      if (behavior.notificationMode === 'per-node') {
         this.emitDeterministicImportEvents(result.events)
+      } else {
+        this.invalidateAuthForNodes(result.nodes)
+
+        if (behavior.notificationMode === 'batch') {
+          this.emitDeterministicImportBatch({
+            batchId,
+            nodeIds: result.nodes.map((node) => node.id),
+            schemaIds: result.affectedSchemaIds,
+            created: result.created,
+            updated: result.updated,
+            changeCount: result.changes.length,
+            isRemote: false,
+            storage: result.storage,
+            timings: {
+              preflightMs: result.timings.preflightMs,
+              materializeMs: result.timings.materializeMs,
+              applyMs: result.applyMs,
+              notifyMs: 0,
+              totalMs: elapsedMs(totalStartedAt)
+            }
+          })
+        }
       }
       const notifyMs = elapsedMs(notifyStartedAt)
 
@@ -967,6 +993,12 @@ export class NodeStore {
       this.emit(event.change, event.result, event.previousNode, false)
       this.authEvaluator?.invalidate(event.change.payload.nodeId)
     }
+  }
+
+  private invalidateAuthForNodes(nodes: readonly NodeState[]): void {
+    if (!this.authEvaluator) return
+
+    nodes.forEach((node) => this.authEvaluator?.invalidate(node.id))
   }
 
   private async createDeterministicImportAuthOps(
@@ -1549,6 +1581,19 @@ export class NodeStore {
     this.listeners.add(listener)
     return () => {
       this.listeners.delete(listener)
+    }
+  }
+
+  subscribeToBatchChanges(listener: NodeBatchChangeListener): () => void {
+    this.batchListeners.add(listener)
+    return () => {
+      this.batchListeners.delete(listener)
+    }
+  }
+
+  private emitDeterministicImportBatch(event: NodeBatchChangeEvent): void {
+    for (const listener of this.batchListeners) {
+      listener(event)
     }
   }
 

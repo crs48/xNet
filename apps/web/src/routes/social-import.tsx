@@ -213,7 +213,7 @@ function SocialImportPage(): React.ReactElement {
           const result = await store.batchWrite({
             kind: 'deterministic-import',
             drafts: batchDrafts,
-            policy: { indexMode: 'touched' }
+            policy: { indexMode: 'touched', notificationMode: 'batch' }
           })
           return {
             created: result.created,
@@ -321,7 +321,7 @@ function SocialImportPage(): React.ReactElement {
             const batchResult = await store.batchWrite({
               kind: 'deterministic-import',
               drafts: batchDrafts,
-              policy: { indexMode: 'touched' }
+              policy: { indexMode: 'touched', notificationMode: 'batch' }
             })
             return {
               created: batchResult.created,

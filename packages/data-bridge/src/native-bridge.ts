@@ -30,6 +30,7 @@ import type {
   PropertyBuilder,
   InferCreateProps,
   NodeChangeEvent,
+  NodeBatchChangeEvent,
   ListNodesOptions,
   NodeBatchWriteInput,
   NodeBatchWriteResult
@@ -91,6 +92,7 @@ export class NativeBridge implements DataBridge {
   private cache: QueryCache
   private statusListeners = new Set<(status: SyncStatus) => void>()
   private storeUnsubscribe: (() => void) | null = null
+  private storeBatchUnsubscribe: (() => void) | null = null
   private storageAdapter?: NativeStorageAdapter
   private _status: SyncStatus = 'disconnected'
   private destroyed = false
@@ -103,6 +105,9 @@ export class NativeBridge implements DataBridge {
     // Subscribe to store changes for cache invalidation
     this.storeUnsubscribe = this.store.subscribe((event) => {
       this.handleStoreChange(event)
+    })
+    this.storeBatchUnsubscribe = this.store.subscribeToBatchChanges((event) => {
+      this.handleStoreBatchChange(event)
     })
 
     // Mark as connected since we're local-only for now
@@ -206,6 +211,16 @@ export class NativeBridge implements DataBridge {
     }
   }
 
+  private handleStoreBatchChange(event: NodeBatchChangeEvent): void {
+    if (this.destroyed) return
+
+    for (const schemaId of event.schemaIds) {
+      for (const entry of this.cache.getEntriesForSchema(schemaId)) {
+        void this.loadQuery(entry.queryId, entry.descriptor)
+      }
+    }
+  }
+
   // ─── Mutations ──────────────────────────────────────────
 
   async create<P extends Record<string, PropertyBuilder>>(
@@ -297,6 +312,10 @@ export class NativeBridge implements DataBridge {
     if (this.storeUnsubscribe) {
       this.storeUnsubscribe()
       this.storeUnsubscribe = null
+    }
+    if (this.storeBatchUnsubscribe) {
+      this.storeBatchUnsubscribe()
+      this.storeBatchUnsubscribe = null
     }
 
     if (this.storageAdapter) {

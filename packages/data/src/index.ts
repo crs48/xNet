@@ -399,6 +399,8 @@ export {
   type TransactionResult,
   type NodeChangeEvent,
   type NodeChangeListener,
+  type NodeBatchChangeEvent,
+  type NodeBatchChangeListener,
   type NodeContentCipher,
   type ContentKeyCache,
   type GetWithMigrationOptions,

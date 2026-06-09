@@ -264,7 +264,7 @@ export interface ApplyNodeBatchResult {
   ftsRowsWritten: number
 }
 
-export type NodeBatchNotificationMode = 'per-node' | 'silent'
+export type NodeBatchNotificationMode = 'per-node' | 'batch' | 'silent'
 
 export interface NodeBatchWritePolicy {
   /** Secondary index strategy for this batch. */
@@ -307,6 +307,27 @@ export interface NodeBatchWriteResult {
   schemaIds: SchemaIRI[]
   /** Number of signed changes appended by the batch. */
   changeCount: number
+  /** Storage-level write counters when the adapter reports them. */
+  storage?: ApplyNodeBatchResult
+  /** Phase timings for import diagnostics and progress UIs. */
+  timings: NodeBatchWriteTimings
+}
+
+export interface NodeBatchChangeEvent {
+  /** The batch ID shared by all changes. */
+  batchId: string
+  /** Final node IDs touched by the batch. */
+  nodeIds: NodeId[]
+  /** Schemas whose materialized nodes changed. */
+  schemaIds: SchemaIRI[]
+  /** Number of drafts that created a node at the time they were applied. */
+  created: number
+  /** Number of drafts that updated a node at the time they were applied. */
+  updated: number
+  /** Number of signed changes appended by the batch. */
+  changeCount: number
+  /** Whether this was a remote change batch from sync. */
+  isRemote: boolean
   /** Storage-level write counters when the adapter reports them. */
   storage?: ApplyNodeBatchResult
   /** Phase timings for import diagnostics and progress UIs. */
@@ -620,6 +641,8 @@ export interface NodeChangeEvent {
  * Listener for Node change events.
  */
 export type NodeChangeListener = (event: NodeChangeEvent) => void
+
+export type NodeBatchChangeListener = (event: NodeBatchChangeEvent) => void
 
 // ============================================================================
 // Migration Support

@@ -34,6 +34,7 @@ import type {
   PropertyBuilder,
   InferCreateProps,
   NodeChangeEvent,
+  NodeBatchChangeEvent,
   ListNodesOptions,
   SchemaIRI,
   NodeBatchWriteInput,
@@ -126,6 +127,7 @@ export class MainThreadBridge implements DataBridge {
   private cache: QueryCache
   private statusListeners = new Set<(status: SyncStatus) => void>()
   private storeUnsubscribe: (() => void) | null = null
+  private storeBatchUnsubscribe: (() => void) | null = null
   private _syncManager: SyncManagerLike | null = null
   private remoteNodeQueryClient: RemoteNodeQueryClient | null
   private remoteNodeQueryRouting: Partial<NodeQueryRouterThresholds> | undefined
@@ -144,6 +146,9 @@ export class MainThreadBridge implements DataBridge {
     // Subscribe to store changes for cache invalidation
     this.storeUnsubscribe = this.store.subscribe((event) => {
       this.enqueueStoreChange(event)
+    })
+    this.storeBatchUnsubscribe = this.store.subscribeToBatchChanges((event) => {
+      this.handleStoreBatchChange(event)
     })
     this.startRemoteInvalidationSubscription()
   }
@@ -920,6 +925,16 @@ export class MainThreadBridge implements DataBridge {
     }
   }
 
+  private handleStoreBatchChange(event: NodeBatchChangeEvent): void {
+    for (const schemaId of event.schemaIds) {
+      for (const entry of this.cache.getEntriesForSchema(schemaId)) {
+        if (entry.descriptor.mode === 'remote') continue
+
+        void this.loadInitialQuery(entry.queryId, entry.descriptor)
+      }
+    }
+  }
+
   private handleStoreChange(event: NodeChangeEvent): void {
     const { node, change } = event
     // Get schemaId from node (if available) or from the change payload
@@ -1038,6 +1053,10 @@ export class MainThreadBridge implements DataBridge {
     if (this.storeUnsubscribe) {
       this.storeUnsubscribe()
       this.storeUnsubscribe = null
+    }
+    if (this.storeBatchUnsubscribe) {
+      this.storeBatchUnsubscribe()
+      this.storeBatchUnsubscribe = null
     }
     this.cache.clear()
     this.statusListeners.clear()

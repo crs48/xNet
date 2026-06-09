@@ -241,7 +241,7 @@ describe('MainThreadBridge', () => {
       })
     })
 
-    it('should coalesce deterministic import batch notifications into one query refresh', async () => {
+    it('should reload affected queries once for deterministic batch notifications', async () => {
       const subscription = bridge.query(TestTaskSchema)
       const callback = vi.fn()
 
@@ -251,16 +251,18 @@ describe('MainThreadBridge', () => {
 
       const unsubscribe = subscription.subscribe(callback)
 
-      await store.importDeterministicNodes(
-        Array.from({ length: 30 }, (_, index) => ({
+      await bridge.bulkWrite({
+        kind: 'deterministic-import',
+        drafts: Array.from({ length: 30 }, (_, index) => ({
           id: `bulk-query-node-${index}`,
           schemaId: TestTaskSchema._schemaId,
           properties: {
             title: `Bulk Query Node ${index}`,
             done: false
           }
-        }))
-      )
+        })),
+        policy: { notificationMode: 'batch' }
+      })
 
       await vi.waitFor(() => {
         expect(subscription.getSnapshot()).toHaveLength(30)

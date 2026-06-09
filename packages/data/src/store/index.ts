@@ -64,6 +64,8 @@ export type {
   TransactionResult,
   NodeChangeEvent,
   NodeChangeListener,
+  NodeBatchChangeEvent,
+  NodeBatchChangeListener,
   PropertyLookup,
   NodeContentCipher,
   ContentKeyCache,

@@ -814,8 +814,8 @@ This can reduce social import write volume without sacrificing provenance.
 - [x] Add `NodeStorageAdapter.applyNodeBatch()` optional capability.
 - [x] Refactor `NodeStore.importDeterministicNodes()` to use `applyNodeBatch()` when available.
 - [x] Preserve existing fallback behavior for memory/test adapters.
-- [ ] Add `NodeBatchChangeEvent` or equivalent batch notification shape.
-- [ ] Update MainThreadBridge and DataWorker cache invalidation to consume batch events directly.
+- [x] Add `NodeBatchChangeEvent` or equivalent batch notification shape.
+- [x] Update MainThreadBridge and DataWorker cache invalidation to consume batch events directly.
 - [x] Add SQLite migrations for `idx_prop_scalars_node` and `idx_changes_node_lamport`.
 - [ ] Implement Electron `applyNodeBatch()` with prepared statements inside one transaction.
 - [ ] Implement web `SQLiteWorkerHandler.applyNodeBatch()` to run inside the SQLite worker.
@@ -840,7 +840,7 @@ This can reduce social import write volume without sacrificing provenance.
 - [ ] Unit test touched-node scalar rows match whole-schema rebuild output.
 - [ ] Unit test touched-node FTS rows match whole-schema rebuild output.
 - [ ] Unit test materialized views invalidate once per schema.
-- [ ] Unit test batch notifications cause one schema reload rather than per-node churn.
+- [x] Unit test batch notifications cause one schema reload rather than per-node churn.
 - [ ] Browser benchmark YouTube/TikTok-style 10k import before/after.
 - [ ] Browser benchmark 72,738 canonical records before/after.
 - [ ] Browser benchmark 280k records with source records disabled.

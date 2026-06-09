@@ -1079,6 +1079,43 @@ describe('deterministic node import', () => {
     })
   })
 
+  it('emits one batch notification for deterministic batchWrite imports when requested', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+    const nodeEvents: string[] = []
+    const batchEvents: string[][] = []
+    const unsubscribeNodes = store.subscribe((event) => {
+      if (event.node) nodeEvents.push(event.node.id)
+    })
+    const unsubscribeBatches = store.subscribeToBatchChanges((event) => {
+      batchEvents.push(event.nodeIds)
+    })
+
+    const result = await store.batchWrite({
+      kind: 'deterministic-import',
+      drafts: [
+        {
+          id: 'batch-event-node-1',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Batch event 1' }
+        },
+        {
+          id: 'batch-event-node-2',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Batch event 2' }
+        }
+      ],
+      policy: { notificationMode: 'batch' }
+    })
+
+    unsubscribeNodes()
+    unsubscribeBatches()
+
+    expect(result.nodeIds).toEqual(['batch-event-node-1', 'batch-event-node-2'])
+    expect(nodeEvents).toEqual([])
+    expect(batchEvents).toEqual([['batch-event-node-1', 'batch-event-node-2']])
+  })
+
   it('maintains import indexes incrementally instead of rebuilding per chunk', async () => {
     const keyPair = generateSigningKeyPair()
     const did = createDID(keyPair.publicKey) as DID

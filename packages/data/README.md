@@ -136,7 +136,7 @@ const result = await store.batchWrite({
   ],
   policy: {
     indexMode: 'touched',
-    notificationMode: 'silent'
+    notificationMode: 'batch'
   }
 })
 
