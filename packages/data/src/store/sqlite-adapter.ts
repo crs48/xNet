@@ -23,7 +23,12 @@ import type {
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
-import type { SQLiteAdapter, SQLValue, PreparedStatement } from '@xnetjs/sqlite'
+import type {
+  SQLiteAdapter,
+  SQLValue,
+  PreparedStatement,
+  SQLiteOperationStats
+} from '@xnetjs/sqlite'
 import {
   updateNodeFTS,
   deleteNodeFTS,
@@ -440,6 +445,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       deleteNode: (id) => this.deleteNodeInternal(id),
       listNodes: (options) => this.listNodes(options),
       countNodes: (options) => this.countNodes(options),
+      getOperationStats: () => this.getOperationStats(),
+      resetOperationStats: () => this.resetOperationStats(),
       getLastLamportTime: () => this.getLastLamportTime(),
       setLastLamportTime: (time) => this.setLastLamportTimeInternal(time),
       getDocumentContent: (nodeId) => this.getDocumentContent(nodeId),
@@ -1138,6 +1145,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         throw err
       }
     })
+  }
+
+  getOperationStats(): Promise<SQLiteOperationStats | null> | SQLiteOperationStats | null {
+    return this.db.getOperationStats?.() ?? null
+  }
+
+  resetOperationStats(): Promise<void> | void {
+    return this.db.resetOperationStats?.()
   }
 
   private async resolveApplyNodeBatchInput(

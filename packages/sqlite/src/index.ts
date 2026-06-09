@@ -3,7 +3,14 @@
  */
 
 // Types
-export type { SQLValue, SQLRow, RunResult, SQLiteConfig, SchemaVersion } from './types'
+export type {
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteConfig,
+  SchemaVersion,
+  SQLiteOperationStats
+} from './types'
 
 // Interface
 export type { SQLiteAdapter, PreparedStatement } from './adapter'

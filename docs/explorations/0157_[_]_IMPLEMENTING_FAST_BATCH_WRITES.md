@@ -808,7 +808,7 @@ This can reduce social import write volume without sacrificing provenance.
 ## Implementation Checklist
 
 - [x] Add batch metrics types and counters for social import commit phases.
-- [ ] Add SQL/Comlink operation counting in dev mode for web SQLite imports.
+- [x] Add SQL/Comlink operation counting in dev mode for web SQLite imports.
 - [x] Add `NodeBatchWritePolicy`, `NodeBatchWriteResult`, and `NodeStore.batchWrite()` types.
 - [x] Add `NodeStorageAdapter.getBatchPreflight()` optional capability.
 - [x] Add `NodeStorageAdapter.applyNodeBatch()` optional capability.

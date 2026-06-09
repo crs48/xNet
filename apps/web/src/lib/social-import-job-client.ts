@@ -6,6 +6,7 @@ import type {
 } from '@xnetjs/data'
 import type { SocialImportNodeDraft } from '@xnetjs/social/import/browser'
 import type { SocialImportJobPhase } from '@xnetjs/social/import/core'
+import type { SQLiteOperationStats } from '@xnetjs/sqlite'
 import {
   createSocialImportJob,
   createSocialImportJobCheckpointAccumulator,
@@ -50,6 +51,10 @@ export type BrowserSocialImportCommitProgressMetrics = {
   totalChangeRowsWritten: number
   totalScalarRowsWritten: number
   totalFtsRowsWritten: number
+  lastSqlOperations: number
+  lastWorkerRequests: number
+  totalSqlOperations: number
+  totalWorkerRequests: number
 }
 
 export type BrowserSocialImportCommitProgress = {
@@ -88,6 +93,7 @@ export type StartBrowserSocialImportCommitJobInput = {
     storage?: ApplyNodeBatchResult
     timings?: NodeBatchWriteTimings
   }>
+  getOperationStats?: () => Promise<SQLiteOperationStats | null>
   rebuildIndexesForSchemas?: (schemaIds: readonly SchemaIRI[]) => Promise<void>
   onProgress?: (progress: BrowserSocialImportCommitProgress) => void
 }
@@ -234,6 +240,7 @@ async function commitBrowserSocialImportStage(input: {
   stageResult: BrowserSocialImportStageResult
   includeSourceRecords: boolean
   importDrafts: StartBrowserSocialImportCommitJobInput['importDrafts']
+  getOperationStats?: StartBrowserSocialImportCommitJobInput['getOperationStats']
   rebuildIndexesForSchemas?: StartBrowserSocialImportCommitJobInput['rebuildIndexesForSchemas']
   onProgress?: (progress: BrowserSocialImportCommitProgress) => void
   jobId: string
@@ -267,7 +274,11 @@ async function commitBrowserSocialImportStage(input: {
     totalPropertyRowsWritten: 0,
     totalChangeRowsWritten: 0,
     totalScalarRowsWritten: 0,
-    totalFtsRowsWritten: 0
+    totalFtsRowsWritten: 0,
+    lastSqlOperations: 0,
+    lastWorkerRequests: 0,
+    totalSqlOperations: 0,
+    totalWorkerRequests: 0
   }
   const checkpointAccumulator = createSocialImportJobCheckpointAccumulator()
   const affectedSchemaIds = new Set<SchemaIRI>()
@@ -360,10 +371,13 @@ async function commitBrowserSocialImportStage(input: {
     )
 
     const writeStartedAt = performance.now()
+    const operationStatsBefore = await input.getOperationStats?.()
     const batchResult = await input.importDrafts(deterministicDrafts)
+    const operationStatsAfter = await input.getOperationStats?.()
     metrics.lastWriteMs = performance.now() - writeStartedAt
     metrics.totalWriteMs += metrics.lastWriteMs
     applyBatchResultMetrics(metrics, batchResult)
+    applyOperationStatsDelta(metrics, operationStatsBefore ?? null, operationStatsAfter ?? null)
 
     created += batchResult.created
     updated += batchResult.updated
@@ -443,6 +457,53 @@ function applyBatchResultMetrics(
   metrics.totalChangeRowsWritten += result.storage?.changeRowsWritten ?? 0
   metrics.totalScalarRowsWritten += result.storage?.scalarRowsWritten ?? 0
   metrics.totalFtsRowsWritten += result.storage?.ftsRowsWritten ?? 0
+}
+
+function applyOperationStatsDelta(
+  metrics: Omit<BrowserSocialImportCommitProgressMetrics, 'recordsPerSecond'>,
+  before: SQLiteOperationStats | null,
+  after: SQLiteOperationStats | null
+): void {
+  if (!before || !after) {
+    metrics.lastSqlOperations = 0
+    metrics.lastWorkerRequests = 0
+    return
+  }
+
+  const delta = subtractOperationStats(after, before)
+  metrics.lastSqlOperations = countSqlOperations(delta)
+  metrics.lastWorkerRequests = Math.max(0, delta.workerRequestCount)
+  metrics.totalSqlOperations += metrics.lastSqlOperations
+  metrics.totalWorkerRequests += metrics.lastWorkerRequests
+}
+
+function subtractOperationStats(
+  after: SQLiteOperationStats,
+  before: SQLiteOperationStats
+): SQLiteOperationStats {
+  return {
+    queryCount: Math.max(0, after.queryCount - before.queryCount),
+    queryOneCount: Math.max(0, after.queryOneCount - before.queryOneCount),
+    runCount: Math.max(0, after.runCount - before.runCount),
+    execCount: Math.max(0, after.execCount - before.execCount),
+    transactionCount: Math.max(0, after.transactionCount - before.transactionCount),
+    transactionBatchCount: Math.max(0, after.transactionBatchCount - before.transactionBatchCount),
+    transactionBatchOperationCount: Math.max(
+      0,
+      after.transactionBatchOperationCount - before.transactionBatchOperationCount
+    ),
+    workerRequestCount: Math.max(0, after.workerRequestCount - before.workerRequestCount)
+  }
+}
+
+function countSqlOperations(stats: SQLiteOperationStats): number {
+  return (
+    stats.queryCount +
+    stats.queryOneCount +
+    stats.runCount +
+    stats.execCount +
+    stats.transactionBatchOperationCount
+  )
 }
 
 function toDeterministicNodeImportDraft(

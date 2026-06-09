@@ -17,6 +17,7 @@ import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
+import type { SQLiteOperationStats } from '@xnetjs/sqlite'
 import type { Change, LamportTimestamp } from '@xnetjs/sync'
 
 // ============================================================================
@@ -185,6 +186,10 @@ export interface NodeStorageAdapter {
   listNodes(options?: ListNodesOptions): Promise<NodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
   queryNodes?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
+  /** Optional runtime operation counters for import diagnostics. */
+  getOperationStats?(): Promise<SQLiteOperationStats | null> | SQLiteOperationStats | null
+  /** Reset optional runtime operation counters before a focused measurement. */
+  resetOperationStats?(): Promise<void> | void
 
   // Sync state
   getLastLamportTime(): Promise<number>

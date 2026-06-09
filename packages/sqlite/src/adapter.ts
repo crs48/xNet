@@ -2,7 +2,7 @@
  * @xnetjs/sqlite - SQLite adapter interface definitions
  */
 
-import type { SQLValue, SQLRow, RunResult, SQLiteConfig } from './types'
+import type { SQLValue, SQLRow, RunResult, SQLiteConfig, SQLiteOperationStats } from './types'
 
 /**
  * Unified SQLite adapter interface.
@@ -179,6 +179,16 @@ export interface SQLiteAdapter {
    * or 'memory' if using in-memory fallback.
    */
   getStorageMode(): Promise<'opfs' | 'memory'> | 'opfs' | 'memory'
+
+  /**
+   * Optional cumulative operation counters for import diagnostics.
+   */
+  getOperationStats?(): Promise<SQLiteOperationStats> | SQLiteOperationStats
+
+  /**
+   * Reset cumulative operation counters when starting a focused measurement.
+   */
+  resetOperationStats?(): Promise<void> | void
 }
 
 /**

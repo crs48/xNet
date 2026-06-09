@@ -223,6 +223,8 @@ function SocialImportPage(): React.ReactElement {
             timings: result.timings
           }
         },
+        getOperationStats: async () =>
+          (await store.getStorageAdapter().getOperationStats?.()) ?? null,
         onProgress: (progress) => {
           setCommitProgress(progress)
           upsertResumeRecord(progress)
@@ -331,6 +333,8 @@ function SocialImportPage(): React.ReactElement {
               timings: batchResult.timings
             }
           },
+          getOperationStats: async () =>
+            (await store.getStorageAdapter().getOperationStats?.()) ?? null,
           onProgress: (progress) => {
             setCommitProgress(progress)
             upsertResumeRecord(progress)
@@ -1036,6 +1040,20 @@ function CommitProgressPanel({ progress }: { progress: CommitProgress }): React.
           value={formatMilliseconds(progress.metrics.lastProgressMs)}
         />
         <ProgressMetric label="Rows" value={formatStorageRows(progress.metrics)} />
+        <ProgressMetric
+          label="SQL Ops"
+          value={formatOperationDelta(
+            progress.metrics.lastSqlOperations,
+            progress.metrics.totalSqlOperations
+          )}
+        />
+        <ProgressMetric
+          label="Worker Hops"
+          value={formatOperationDelta(
+            progress.metrics.lastWorkerRequests,
+            progress.metrics.totalWorkerRequests
+          )}
+        />
         <ProgressMetric label="Remaining" value={etaLabel ?? `Elapsed ${elapsedLabel}`} />
       </div>
     </div>
@@ -1119,6 +1137,11 @@ function formatStorageRows(progressMetrics: CommitProgress['metrics']): string {
   if (totalRows <= 0) return '0'
 
   return totalRows.toLocaleString()
+}
+
+function formatOperationDelta(last: number, total: number): string {
+  if (total <= 0) return '0'
+  return `${last.toLocaleString()} / ${total.toLocaleString()}`
 }
 
 function formatMilliseconds(milliseconds: number): string {
