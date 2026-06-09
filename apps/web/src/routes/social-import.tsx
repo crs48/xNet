@@ -20,7 +20,7 @@ import {
   Upload,
   X
 } from 'lucide-react'
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   BrowserSocialImportCommitCancelledError,
   cancelBrowserSocialImportCommitJob,
@@ -29,6 +29,15 @@ import {
   type BrowserSocialImportCommitProgress as CommitProgress,
   type BrowserSocialImportCommitSummary as CommitSummary
 } from '../lib/social-import-job-client'
+import {
+  canPickResumableBrowserSocialImportArchive,
+  listBrowserSocialImportResumeRecords,
+  pickBrowserSocialImportArchive,
+  readBrowserSocialImportArchiveHandleFile,
+  removeBrowserSocialImportResumeRecord,
+  upsertBrowserSocialImportResumeRecord,
+  type BrowserSocialImportResumeRecord
+} from '../lib/social-import-resume'
 import {
   readBrowserSocialImportPreview,
   stageBrowserSocialArchive,
@@ -47,6 +56,7 @@ type ImportStatus = 'idle' | 'picked' | 'staging' | 'staged' | 'committing' | 'c
 
 type PickedArchive = {
   file: File
+  handleId: string | null
   manifest: ArchiveManifest
   preview: SocialImportArchivePreview
 }
@@ -64,6 +74,7 @@ function SocialImportPage(): React.ReactElement {
   const [commitSummary, setCommitSummary] = useState<CommitSummary | null>(null)
   const [commitProgress, setCommitProgress] = useState<CommitProgress | null>(null)
   const [commitJobId, setCommitJobId] = useState<string | null>(null)
+  const [resumeRecords, setResumeRecords] = useState<BrowserSocialImportResumeRecord[]>([])
   const [workspaceSummary, setWorkspaceSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
   const [workspaceSeeding, setWorkspaceSeeding] = useState(false)
   const { mutate } = useMutate()
@@ -76,7 +87,15 @@ function SocialImportPage(): React.ReactElement {
     return getBrowserSocialImportCommitRecordCount(stageResult, includeSourceRecords)
   }, [includeSourceRecords, stageResult])
 
-  const handlePickFile = useCallback(async (file: File) => {
+  const refreshResumeRecords = useCallback(() => {
+    setResumeRecords(listBrowserSocialImportResumeRecords())
+  }, [])
+
+  useEffect(() => {
+    refreshResumeRecords()
+  }, [refreshResumeRecords])
+
+  const handlePickFile = useCallback(async (file: File, handleId: string | null = null) => {
     setError(null)
     setCommitSummary(null)
     setCommitProgress(null)
@@ -85,7 +104,7 @@ function SocialImportPage(): React.ReactElement {
 
     try {
       const { manifest, preview } = await readBrowserSocialImportPreview(file)
-      setArchive({ file, manifest, preview })
+      setArchive({ file, handleId, manifest, preview })
       setStatus('picked')
       setIncludeSensitive(false)
       setIncludeSourceRecords(false)
@@ -101,6 +120,21 @@ function SocialImportPage(): React.ReactElement {
       setError(toErrorMessage(err))
     }
   }, [])
+
+  const handleChooseArchive = useCallback(async () => {
+    if (!canPickResumableBrowserSocialImportArchive()) {
+      fileInputRef.current?.click()
+      return
+    }
+
+    try {
+      const picked = await pickBrowserSocialImportArchive()
+      await handlePickFile(picked.file, picked.handleId)
+    } catch (err) {
+      if (isAbortError(err)) return
+      setError(toErrorMessage(err))
+    }
+  }, [handlePickFile])
 
   const handleToggleBucket = useCallback((bucketId: string, checked: boolean) => {
     setSelectedBuckets((current) =>
@@ -139,7 +173,7 @@ function SocialImportPage(): React.ReactElement {
   }, [archive, includeSensitive, selectedBuckets])
 
   const handleCommit = useCallback(async () => {
-    if (!stageResult || !store || !storeReady) return
+    if (!archive || !stageResult || !store || !storeReady) return
 
     setStatus('committing')
     setError(null)
@@ -147,18 +181,50 @@ function SocialImportPage(): React.ReactElement {
     setCommitJobId(null)
 
     try {
+      let activeJobId = ''
+      const upsertResumeRecord = (progress: CommitProgress | null): void => {
+        if (!archive.handleId || !activeJobId) return
+
+        upsertBrowserSocialImportResumeRecord({
+          jobId: activeJobId,
+          archiveHandleId: archive.handleId,
+          archiveName: archive.file.name,
+          manifest: archive.manifest,
+          preview: archive.preview,
+          stageResult,
+          buckets: selectedBuckets,
+          includeSensitive,
+          includeSourceRecords,
+          importedAt: stageResult.importedAt,
+          processedRecords: progress?.processedRecords ?? 0,
+          completedBatches: progress?.completedBatches ?? 0,
+          created: progress?.created ?? 0,
+          updated: progress?.updated ?? 0,
+          updatedAt: Date.now(),
+          error: null
+        })
+        refreshResumeRecords()
+      }
+
       const job = startBrowserSocialImportCommitJob({
         stageResult,
         includeSourceRecords,
         importDrafts: async (batchDrafts) => store.importDeterministicNodes(batchDrafts),
-        onProgress: setCommitProgress
+        onProgress: (progress) => {
+          setCommitProgress(progress)
+          upsertResumeRecord(progress)
+        }
       })
+      activeJobId = job.jobId
       setCommitJobId(job.jobId)
+      upsertResumeRecord(null)
       const summary = await job.promise
 
       setCommitSummary(summary)
       setWorkspaceSummary(null)
       setStatus('committed')
+      removeBrowserSocialImportResumeRecord(job.jobId)
+      refreshResumeRecords()
     } catch (err) {
       const message = toErrorMessage(err)
       setStatus('staged')
@@ -171,7 +237,112 @@ function SocialImportPage(): React.ReactElement {
     } finally {
       setCommitJobId(null)
     }
-  }, [includeSourceRecords, stageResult, store, storeReady])
+  }, [
+    archive,
+    includeSensitive,
+    includeSourceRecords,
+    refreshResumeRecords,
+    selectedBuckets,
+    stageResult,
+    store,
+    storeReady
+  ])
+
+  const handleResumeImport = useCallback(
+    async (record: BrowserSocialImportResumeRecord) => {
+      if (!store || !storeReady) return
+
+      setStatus('committing')
+      setError(null)
+      setCommitProgress(null)
+      setCommitSummary(null)
+      setWorkspaceSummary(null)
+      setCommitJobId(record.jobId)
+
+      try {
+        const file = await readBrowserSocialImportArchiveHandleFile(record.archiveHandleId)
+        const result = await stageBrowserSocialArchive({
+          file,
+          manifest: record.manifest,
+          buckets: record.buckets,
+          includeSensitive: record.includeSensitive,
+          importedAt: record.importedAt
+        })
+        setArchive({
+          file,
+          handleId: record.archiveHandleId,
+          manifest: record.manifest,
+          preview: result.archive
+        })
+        setSelectedBuckets(record.buckets)
+        setIncludeSensitive(record.includeSensitive)
+        setIncludeSourceRecords(record.includeSourceRecords)
+        setStageResult(result)
+
+        const upsertResumeRecord = (progress: CommitProgress | null): void => {
+          upsertBrowserSocialImportResumeRecord({
+            ...record,
+            preview: result.archive,
+            stageResult: result,
+            processedRecords: progress?.processedRecords ?? record.processedRecords,
+            completedBatches: progress?.completedBatches ?? record.completedBatches,
+            created: progress?.created ?? record.created,
+            updated: progress?.updated ?? record.updated,
+            updatedAt: Date.now(),
+            error: null
+          })
+          refreshResumeRecords()
+        }
+
+        const job = startBrowserSocialImportCommitJob({
+          jobId: record.jobId,
+          stageResult: result,
+          includeSourceRecords: record.includeSourceRecords,
+          initialProgress: {
+            processedRecords: record.processedRecords,
+            completedBatches: record.completedBatches,
+            created: record.created,
+            updated: record.updated
+          },
+          importDrafts: async (batchDrafts) => store.importDeterministicNodes(batchDrafts),
+          onProgress: (progress) => {
+            setCommitProgress(progress)
+            upsertResumeRecord(progress)
+          }
+        })
+        upsertResumeRecord(null)
+        const summary = await job.promise
+
+        setCommitSummary(summary)
+        setWorkspaceSummary(null)
+        setStatus('committed')
+        removeBrowserSocialImportResumeRecord(record.jobId)
+        refreshResumeRecords()
+      } catch (err) {
+        const message = toErrorMessage(err)
+        setStatus('idle')
+        setCommitProgress(null)
+        upsertBrowserSocialImportResumeRecord({
+          ...record,
+          error: message,
+          updatedAt: Date.now()
+        })
+        refreshResumeRecords()
+        setError(message)
+      } finally {
+        setCommitJobId(null)
+      }
+    },
+    [refreshResumeRecords, store, storeReady]
+  )
+
+  const handleDismissResumeRecord = useCallback(
+    (jobId: string) => {
+      removeBrowserSocialImportResumeRecord(jobId)
+      refreshResumeRecords()
+    },
+    [refreshResumeRecords]
+  )
 
   const handleCancelCommit = useCallback(() => {
     if (!commitJobId) return
@@ -228,13 +399,13 @@ function SocialImportPage(): React.ReactElement {
               className="hidden"
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0]
-                if (file) void handlePickFile(file)
+                if (file) void handlePickFile(file, null)
                 event.currentTarget.value = ''
               }}
             />
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => void handleChooseArchive()}
               className="flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
             >
               <Upload size={15} />
@@ -253,7 +424,7 @@ function SocialImportPage(): React.ReactElement {
               const file = Array.from(event.dataTransfer.files).find(
                 (item) => item.name.endsWith('.zip') || item.type === 'application/zip'
               )
-              if (file) void handlePickFile(file)
+              if (file) void handlePickFile(file, null)
             }}
           >
             <FileArchive className="mx-auto mb-2 text-muted-foreground" size={24} />
@@ -313,6 +484,12 @@ function SocialImportPage(): React.ReactElement {
                 message={`Workspace views ready: ${workspaceSummary.created} created and ${workspaceSummary.updated} updated.`}
               />
             ) : null}
+            <ResumeImportsPanel
+              records={resumeRecords}
+              disabled={!storeReady || status === 'committing'}
+              onResume={handleResumeImport}
+              onDismiss={handleDismissResumeRecord}
+            />
 
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
@@ -555,6 +732,89 @@ function SocialImportPage(): React.ReactElement {
         </main>
       </div>
     </div>
+  )
+}
+
+function ResumeImportsPanel({
+  disabled,
+  onDismiss,
+  onResume,
+  records
+}: {
+  disabled: boolean
+  onDismiss: (jobId: string) => void
+  onResume: (record: BrowserSocialImportResumeRecord) => void
+  records: BrowserSocialImportResumeRecord[]
+}): React.ReactElement | null {
+  if (records.length === 0) return null
+
+  return (
+    <section className="rounded-md border border-border">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
+        <div>
+          <h2 className="text-sm font-semibold">Paused Imports</h2>
+          <p className="text-xs text-muted-foreground">{records.length} resumable archive jobs</p>
+        </div>
+      </div>
+      <div className="divide-y divide-border">
+        {records.map((record) => {
+          const totalRecords = getBrowserSocialImportCommitRecordCount(
+            record.stageResult,
+            record.includeSourceRecords
+          )
+          const percent =
+            totalRecords > 0
+              ? Math.min(100, Math.max(0, (record.processedRecords / totalRecords) * 100))
+              : 0
+
+          return (
+            <div
+              key={record.jobId}
+              className="grid gap-3 px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <FileArchive size={15} className="shrink-0 text-muted-foreground" />
+                  <span className="truncate text-sm font-medium">{record.archiveName}</span>
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {record.processedRecords.toLocaleString()} / {totalRecords.toLocaleString()}{' '}
+                  records · {Math.floor(percent)}%
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                {record.error ? (
+                  <div className="mt-2 text-xs text-destructive">{record.error}</div>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onResume(record)}
+                  className="flex items-center gap-2 rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <Import size={14} />
+                  Resume
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDismiss(record.jobId)}
+                  className="rounded-md border border-border p-2 transition-colors hover:bg-accent"
+                  aria-label={`Dismiss ${record.archiveName}`}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -841,6 +1101,10 @@ function formatByteSize(bytes: number): string {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError'
 }
 
 function isDefaultDisabledBucketReason(reason: string | undefined): boolean {

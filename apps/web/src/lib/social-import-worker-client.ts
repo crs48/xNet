@@ -38,6 +38,7 @@ export type BrowserSocialImportStageInput = {
   manifest: ArchiveManifest
   buckets: string[]
   includeSensitive: boolean
+  importedAt?: string
 }
 
 export type BrowserSocialImportStageResult = SocialImportWorkerStagePayload & {
@@ -307,7 +308,7 @@ async function stageOnMainThread(
   const readJsonEntry = await createBrowserZipJsonEntryReader(input.file)
   const readTextEntry = await createBrowserZipTextEntryReader(input.file)
   const streamResults: SocialImportNodeDraftStreamResult[] = []
-  const importedAt = new Date().toISOString()
+  const importedAt = input.importedAt ?? new Date().toISOString()
   for await (const draft of streamSocialImportNodeDrafts({
     manifest: input.manifest,
     adapters,
@@ -336,7 +337,7 @@ async function stageOnMainThread(
   })
 
   return {
-    ...createStagePayload(stageId, result),
+    ...createStagePayload(stageId, result, importedAt),
     executionMode: 'main-thread'
   }
 }
@@ -374,7 +375,8 @@ export async function stageBrowserSocialArchive(
         file: input.file,
         manifest: input.manifest,
         buckets: input.buckets,
-        includeSensitive: input.includeSensitive
+        includeSensitive: input.includeSensitive,
+        importedAt: input.importedAt
       },
       isStageResponse
     )
@@ -428,6 +430,9 @@ async function readStageChunkOnMainThread(
   if (offset === 0 && stream.offset !== 0) {
     stream = await getMainThreadStageDraftStream(stagedResult, input.includeSourceRecords, true)
   }
+  if (offset > stream.offset) {
+    await readMainThreadStageDraftStream(stream, offset - stream.offset)
+  }
   if (offset !== stream.offset) {
     throw new Error(
       `Social import stage stream expected offset ${stream.offset} but received ${offset}`
@@ -451,7 +456,8 @@ async function readStageChunkOnMainThread(
 
 function createStagePayload(
   stageId: string,
-  result: SocialImportNodeDraftStreamResult
+  result: SocialImportNodeDraftStreamResult,
+  importedAt: string
 ): SocialImportWorkerStagePayload {
   return {
     archive: result.archive,
@@ -461,6 +467,7 @@ function createStagePayload(
     telemetry: result.telemetry,
     stageDurationMs: result.stageDurationMs,
     stageId,
+    importedAt,
     recordCount: result.recordCount,
     sourceRecordCount: result.sourceRecordCount,
     canonicalRecordCount: result.canonicalRecordCount

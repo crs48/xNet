@@ -4,6 +4,7 @@ import type { SocialImportJobPhase } from '@xnetjs/social/import/core'
 import {
   createSocialImportJob,
   createSocialImportJobCheckpointAccumulator,
+  upsertSocialImportJobProgress,
   updateSocialImportJob
 } from '@xnetjs/social/import/core'
 import {
@@ -49,8 +50,15 @@ export type BrowserSocialImportCommitJob = {
 }
 
 export type StartBrowserSocialImportCommitJobInput = {
+  jobId?: string
   stageResult: BrowserSocialImportStageResult
   includeSourceRecords: boolean
+  initialProgress?: {
+    processedRecords: number
+    completedBatches: number
+    created: number
+    updated: number
+  }
   importDrafts: (drafts: DeterministicNodeImportDraft[]) => Promise<{
     created: number
     updated: number
@@ -84,23 +92,63 @@ export function startBrowserSocialImportCommitJob(
     input.includeSourceRecords
   )
   const totalChunks = Math.ceil(totalRecords / COMMIT_BATCH_SIZE)
-  const commitJob = createSocialImportJob({
-    archiveName: input.stageResult.archive.filename,
-    platform: input.stageResult.archive.adapter?.platform ?? 'unknown',
+  const jobId =
+    input.jobId ??
+    createSocialImportJob({
+      archiveName: input.stageResult.archive.filename,
+      platform: input.stageResult.archive.adapter?.platform ?? 'unknown',
+      totalRecords,
+      totalChunks,
+      warnings: input.stageResult.summary.totalWarnings
+    }).jobId
+  cancelledCommitJobIds.delete(jobId)
+  const queuedJob = updateSocialImportJob(jobId, {
+    status: 'queued',
+    phase: 'checking',
     totalRecords,
     totalChunks,
-    warnings: input.stageResult.summary.totalWarnings
+    processedRecords: input.initialProgress?.processedRecords ?? 0,
+    created: input.initialProgress?.created ?? 0,
+    updated: input.initialProgress?.updated ?? 0,
+    currentChunk: input.initialProgress?.completedBatches ?? 0,
+    warnings: input.stageResult.summary.totalWarnings,
+    error: null,
+    completedAt: null
   })
-  cancelledCommitJobIds.delete(commitJob.jobId)
+  if (!queuedJob) {
+    upsertSocialImportJobProgress({
+      jobId,
+      status: 'queued',
+      phase: 'checking',
+      platform: input.stageResult.archive.adapter?.platform ?? 'unknown',
+      archiveName: input.stageResult.archive.filename,
+      totalRecords,
+      processedRecords: input.initialProgress?.processedRecords ?? 0,
+      created: input.initialProgress?.created ?? 0,
+      updated: input.initialProgress?.updated ?? 0,
+      skipped: 0,
+      warnings: input.stageResult.summary.totalWarnings,
+      currentBucketId: null,
+      currentChunk: input.initialProgress?.completedBatches ?? 0,
+      totalChunks,
+      startedAt: null,
+      updatedAt: Date.now(),
+      completedAt: null,
+      error: null,
+      metrics: null,
+      checkpoint: null,
+      bucketCheckpoints: []
+    })
+  }
 
   const promise = commitBrowserSocialImportStage({
     ...input,
-    jobId: commitJob.jobId,
+    jobId,
     totalRecords,
     totalChunks
   })
     .then((summary) => {
-      updateSocialImportJob(commitJob.jobId, {
+      updateSocialImportJob(jobId, {
         status: 'completed',
         phase: 'finalizing',
         processedRecords: totalRecords,
@@ -114,7 +162,7 @@ export function startBrowserSocialImportCommitJob(
     })
     .catch((error: unknown) => {
       if (error instanceof BrowserSocialImportCommitCancelledError) {
-        updateSocialImportJob(commitJob.jobId, {
+        updateSocialImportJob(jobId, {
           status: 'cancelled',
           phase: 'finalizing',
           error: null
@@ -122,22 +170,22 @@ export function startBrowserSocialImportCommitJob(
         throw error
       }
 
-      updateSocialImportJob(commitJob.jobId, {
+      updateSocialImportJob(jobId, {
         status: 'failed',
         error: error instanceof Error ? error.message : String(error)
       })
       throw error
     })
     .finally(() => {
-      activeCommitJobs.delete(commitJob.jobId)
-      cancelledCommitJobIds.delete(commitJob.jobId)
+      activeCommitJobs.delete(jobId)
+      cancelledCommitJobIds.delete(jobId)
     })
 
   const job = {
-    jobId: commitJob.jobId,
+    jobId,
     promise
   }
-  activeCommitJobs.set(commitJob.jobId, job)
+  activeCommitJobs.set(jobId, job)
   return job
 }
 
@@ -162,13 +210,16 @@ async function commitBrowserSocialImportStage(input: {
   importDrafts: StartBrowserSocialImportCommitJobInput['importDrafts']
   onProgress?: (progress: BrowserSocialImportCommitProgress) => void
   jobId: string
+  initialProgress?: StartBrowserSocialImportCommitJobInput['initialProgress']
   totalRecords: number
   totalChunks: number
 }): Promise<BrowserSocialImportCommitSummary> {
   let created = 0
   let updated = 0
-  let offset = 0
-  let completedBatches = 0
+  let offset = input.initialProgress?.processedRecords ?? 0
+  let completedBatches = input.initialProgress?.completedBatches ?? 0
+  created = input.initialProgress?.created ?? created
+  updated = input.initialProgress?.updated ?? updated
   const startedAt = Date.now()
   const metrics: Omit<BrowserSocialImportCommitProgressMetrics, 'recordsPerSecond'> = {
     lastCheckMs: 0,
@@ -217,10 +268,10 @@ async function commitBrowserSocialImportStage(input: {
     reportProgress({
       phase: 'checking',
       totalRecords: input.totalRecords,
-      processedRecords: 0,
+      processedRecords: offset,
       totalBatches: input.totalChunks,
       completedBatches,
-      currentBatch: input.totalChunks > 0 ? 1 : 0,
+      currentBatch: input.totalChunks > 0 ? Math.min(input.totalChunks, completedBatches + 1) : 0,
       created,
       updated
     })

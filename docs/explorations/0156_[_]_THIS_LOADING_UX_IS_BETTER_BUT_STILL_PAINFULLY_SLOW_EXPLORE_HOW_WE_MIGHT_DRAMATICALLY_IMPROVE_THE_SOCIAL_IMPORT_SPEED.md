@@ -597,7 +597,7 @@ Recommendation:
 - [x] Add `BroadcastChannel` progress fanout for route changes and multi-tab display.
 - [x] Add cancel and retry semantics.
 - [x] Add honest paused UI for restored browser page-close/reload cases.
-- [ ] Add resume semantics for restored browser page-close/reload cases.
+- [x] Add resume semantics for restored browser page-close/reload cases.
 
 ### Phase 4 - Streaming stage-to-commit pipeline
 

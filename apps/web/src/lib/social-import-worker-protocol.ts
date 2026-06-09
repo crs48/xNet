@@ -20,6 +20,7 @@ export type SocialImportWorkerPreviewPayload = {
 
 export type SocialImportWorkerStagePayload = SocialImportNodeDraftStreamResult & {
   stageId: string
+  importedAt: string
 }
 
 export type SocialImportWorkerStageChunkPayload = {
@@ -45,6 +46,7 @@ export type SocialImportWorkerStageRequest = {
   manifest: ArchiveManifest
   buckets: string[]
   includeSensitive: boolean
+  importedAt?: string
 }
 
 export type SocialImportWorkerStageChunkRequest = {

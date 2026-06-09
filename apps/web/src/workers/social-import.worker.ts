@@ -105,7 +105,7 @@ async function handleStage(
   const readJsonEntry = await createBrowserZipJsonEntryReader(request.file)
   const readTextEntry = await createBrowserZipTextEntryReader(request.file)
   const streamResults: SocialImportNodeDraftStreamResult[] = []
-  const importedAt = new Date().toISOString()
+  const importedAt = request.importedAt ?? new Date().toISOString()
 
   for await (const draft of streamSocialImportNodeDrafts({
     manifest: request.manifest,
@@ -139,7 +139,7 @@ async function handleStage(
       kind: 'stage',
       requestId: request.requestId,
       ok: true,
-      result: createStagePayload(stageId, result)
+      result: createStagePayload(stageId, result, importedAt)
     },
     startedAt
   )
@@ -158,6 +158,9 @@ async function handleStageChunk(
   const offset = clampInteger(request.offset, 0, stream.totalRecords)
   if (offset === 0 && stream.offset !== 0) {
     stream = await getStageDraftStream(stagedResult, request.includeSourceRecords, true)
+  }
+  if (offset > stream.offset) {
+    await readStageDraftStream(stream, offset - stream.offset)
   }
   if (offset !== stream.offset) {
     throw new Error(
@@ -216,7 +219,8 @@ workerScope.onmessage = (event): void => {
 
 function createStagePayload(
   stageId: string,
-  result: SocialImportNodeDraftStreamResult
+  result: SocialImportNodeDraftStreamResult,
+  importedAt: string
 ): SocialImportWorkerStagePayload {
   return {
     archive: result.archive,
@@ -226,6 +230,7 @@ function createStagePayload(
     telemetry: result.telemetry,
     stageDurationMs: result.stageDurationMs,
     stageId,
+    importedAt,
     recordCount: result.recordCount,
     sourceRecordCount: result.sourceRecordCount,
     canonicalRecordCount: result.canonicalRecordCount
