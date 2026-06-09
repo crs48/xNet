@@ -6,7 +6,14 @@
  */
 
 import type { SQLiteAdapter, PreparedStatement } from '../adapter'
-import type { SQLValue, SQLRow, RunResult, SQLiteConfig } from '../types'
+import type {
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteConfig,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
+} from '../types'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 
 // We use 'any' types here because @sqlite.org/sqlite-wasm is a peer dependency
@@ -289,6 +296,149 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     } catch (err) {
       await this.rollback()
       throw err
+    }
+  }
+
+  async applyNodeBatch(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult> {
+    await this.transaction(async () => {
+      for (const node of input.nodes) {
+        await this.run(
+          `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             schema_id = excluded.schema_id,
+             updated_at = excluded.updated_at,
+             deleted_at = excluded.deleted_at`,
+          [node.id, node.schemaId, node.createdAt, node.updatedAt, node.createdBy, node.deletedAt]
+        )
+
+        if (node.propertyKeys.length === 0) {
+          await this.run('DELETE FROM node_properties WHERE node_id = ?', [node.id])
+        } else {
+          await this.run(
+            `DELETE FROM node_properties
+             WHERE node_id = ? AND property_key NOT IN (${node.propertyKeys.map(() => '?').join(', ')})`,
+            [node.id, ...node.propertyKeys]
+          )
+        }
+      }
+
+      for (const property of input.properties) {
+        await this.run(
+          `INSERT INTO node_properties
+              (node_id, property_key, value, lamport_time, updated_by, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(node_id, property_key) DO UPDATE SET
+              value = excluded.value,
+              lamport_time = excluded.lamport_time,
+              updated_by = excluded.updated_by,
+              updated_at = excluded.updated_at
+            WHERE excluded.lamport_time > node_properties.lamport_time`,
+          [
+            property.nodeId,
+            property.propertyKey,
+            property.value,
+            property.lamportTime,
+            property.updatedBy,
+            property.updatedAt
+          ]
+        )
+      }
+
+      if (input.indexMode !== 'defer-schema') {
+        for (const node of input.nodes) {
+          await this.run('DELETE FROM node_property_scalars WHERE node_id = ?', [node.id])
+        }
+
+        for (const row of input.scalarIndexRows) {
+          await this.run(
+            `INSERT INTO node_property_scalars
+                (
+                  node_id,
+                  schema_id,
+                  property_key,
+                  value_type,
+                  value_text,
+                  value_number,
+                  value_boolean,
+                  value_hash,
+                  updated_at,
+                  lamport_time
+                )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              row.nodeId,
+              row.schemaId,
+              row.propertyKey,
+              row.valueType,
+              row.valueText,
+              row.valueNumber,
+              row.valueBoolean,
+              row.valueHash,
+              row.updatedAt,
+              row.lamportTime
+            ]
+          )
+        }
+
+        for (const nodeId of input.ftsNodeIds) {
+          await this.run('DELETE FROM nodes_fts WHERE node_id = ?', [nodeId])
+        }
+
+        for (const row of input.ftsRows) {
+          await this.run('INSERT INTO nodes_fts (node_id, title, content) VALUES (?, ?, ?)', [
+            row.nodeId,
+            row.title,
+            row.content
+          ])
+        }
+      }
+
+      for (const change of input.changes) {
+        await this.run(
+          `INSERT OR IGNORE INTO changes
+            (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            change.hash,
+            change.nodeId,
+            change.payload,
+            change.lamportTime,
+            change.lamportPeer,
+            change.wallTime,
+            change.author,
+            change.parentHash,
+            change.batchId,
+            change.signature
+          ]
+        )
+      }
+
+      await this.run(
+        `INSERT INTO sync_state (key, value) VALUES ('lastLamportTime', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        [String(input.lastLamportTime)]
+      )
+
+      if (input.indexMode !== 'defer-schema') {
+        const invalidatedAt = Date.now()
+        for (const schemaId of input.affectedSchemaIds) {
+          await this.run(
+            `UPDATE node_query_materializations
+             SET invalidated_at = ?
+             WHERE schema_id = ? AND invalidated_at IS NULL`,
+            [invalidatedAt, schemaId]
+          )
+        }
+      }
+    })
+
+    return {
+      nodeRowsWritten: input.nodes.length,
+      propertyRowsWritten: input.properties.length,
+      changeRowsWritten: input.changes.length,
+      scalarRowsWritten: input.scalarIndexRows.length,
+      ftsRowsWritten: input.ftsRows.length
     }
   }
 

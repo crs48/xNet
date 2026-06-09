@@ -69,3 +69,76 @@ export interface SQLiteOperationStats {
   /** Comlink or postMessage requests crossing into a worker. */
   workerRequestCount: number
 }
+
+export type SQLiteNodeBatchIndexMode = 'eager' | 'touched' | 'defer-schema'
+
+export interface SQLiteNodeBatchNodeRow {
+  id: string
+  schemaId: string
+  createdAt: number
+  updatedAt: number
+  createdBy: string
+  deletedAt: number | null
+  propertyKeys: string[]
+}
+
+export interface SQLiteNodeBatchPropertyRow {
+  nodeId: string
+  propertyKey: string
+  value: Uint8Array | null
+  lamportTime: number
+  updatedBy: string
+  updatedAt: number
+}
+
+export interface SQLiteNodeBatchChangeRow {
+  hash: string
+  nodeId: string
+  payload: Uint8Array
+  lamportTime: number
+  lamportPeer: string
+  wallTime: number
+  author: string
+  parentHash: string | null
+  batchId: string | null
+  signature: Uint8Array
+}
+
+export interface SQLiteNodeBatchScalarIndexRow {
+  nodeId: string
+  schemaId: string
+  propertyKey: string
+  valueType: string
+  valueText: string | null
+  valueNumber: number | null
+  valueBoolean: number | null
+  valueHash: string | null
+  updatedAt: number
+  lamportTime: number
+}
+
+export interface SQLiteNodeBatchFtsRow {
+  nodeId: string
+  title: string
+  content: string
+}
+
+export interface SQLiteNodeBatchApplyInput {
+  nodes: SQLiteNodeBatchNodeRow[]
+  properties: SQLiteNodeBatchPropertyRow[]
+  changes: SQLiteNodeBatchChangeRow[]
+  scalarIndexRows: SQLiteNodeBatchScalarIndexRow[]
+  ftsNodeIds: string[]
+  ftsRows: SQLiteNodeBatchFtsRow[]
+  affectedSchemaIds: string[]
+  lastLamportTime: number
+  indexMode: SQLiteNodeBatchIndexMode
+}
+
+export interface SQLiteNodeBatchApplyResult {
+  nodeRowsWritten: number
+  propertyRowsWritten: number
+  changeRowsWritten: number
+  scalarRowsWritten: number
+  ftsRowsWritten: number
+}

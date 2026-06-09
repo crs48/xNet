@@ -9,7 +9,15 @@ export type {
   RunResult,
   SQLiteConfig,
   SchemaVersion,
-  SQLiteOperationStats
+  SQLiteOperationStats,
+  SQLiteNodeBatchIndexMode,
+  SQLiteNodeBatchNodeRow,
+  SQLiteNodeBatchPropertyRow,
+  SQLiteNodeBatchChangeRow,
+  SQLiteNodeBatchScalarIndexRow,
+  SQLiteNodeBatchFtsRow,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
 } from './types'
 
 // Interface

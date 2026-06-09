@@ -27,7 +27,8 @@ import type {
   SQLiteAdapter,
   SQLValue,
   PreparedStatement,
-  SQLiteOperationStats
+  SQLiteOperationStats,
+  SQLiteNodeBatchApplyInput
 } from '@xnetjs/sqlite'
 import {
   updateNodeFTS,
@@ -1131,6 +1132,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return this.enqueueWrite(async () => {
       const effectiveInput = await this.resolveApplyNodeBatchInput(input)
 
+      if (await this.canApplyNodeBatchWithTypedAdapterCommand(effectiveInput)) {
+        return this.applyNodeBatchWithTypedAdapterCommand(effectiveInput)
+      }
+
       if (await this.canApplyNodeBatchWithTransactionBatch(effectiveInput)) {
         return this.applyNodeBatchWithTransactionBatch(effectiveInput)
       }
@@ -1179,6 +1184,123 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     if (input.indexMode === 'eager') return false
     if (await this.hasSpatialTables()) return false
     return true
+  }
+
+  private async canApplyNodeBatchWithTypedAdapterCommand(
+    input: ApplyNodeBatchInput
+  ): Promise<boolean> {
+    if (!this.db.applyNodeBatch) return false
+    if (input.indexMode === 'eager') return false
+    if (await this.hasSpatialTables()) return false
+    return true
+  }
+
+  private async applyNodeBatchWithTypedAdapterCommand(
+    input: ApplyNodeBatchInput
+  ): Promise<ApplyNodeBatchResult> {
+    if (!this.db.applyNodeBatch) {
+      throw new Error('SQLite typed node batch apply is not available.')
+    }
+
+    return this.db.applyNodeBatch(await this.createSQLiteNodeBatchApplyInput(input))
+  }
+
+  private async createSQLiteNodeBatchApplyInput(
+    input: ApplyNodeBatchInput
+  ): Promise<SQLiteNodeBatchApplyInput> {
+    const indexProperties = input.indexProperties ?? true
+    const hasFullTextSearch =
+      input.indexMode !== 'defer-schema' && (await this.hasFullTextSearchTable())
+    const scalarIndexRows: SQLiteNodeBatchApplyInput['scalarIndexRows'] = []
+    const ftsNodeIds: string[] = []
+    const ftsRows: SQLiteNodeBatchApplyInput['ftsRows'] = []
+
+    if (input.indexMode !== 'defer-schema' && indexProperties) {
+      for (const node of input.nodes) {
+        for (const [key, value] of Object.entries(node.properties)) {
+          const timestamp = node.timestamps[key]
+          const scalar = this.toScalarIndexValue(value)
+          if (!timestamp || !scalar) continue
+
+          scalarIndexRows.push({
+            nodeId: node.id,
+            schemaId: node.schemaId,
+            propertyKey: key,
+            valueType: scalar.valueType,
+            valueText: scalar.valueText,
+            valueNumber: scalar.valueNumber,
+            valueBoolean: scalar.valueBoolean,
+            valueHash: scalar.valueHash,
+            updatedAt: timestamp.wallTime,
+            lamportTime: timestamp.lamport.time
+          })
+        }
+      }
+    }
+
+    if (hasFullTextSearch) {
+      for (const node of input.nodes) {
+        ftsNodeIds.push(node.id)
+        if (node.deleted) continue
+
+        const title = typeof node.properties.title === 'string' ? node.properties.title : ''
+        const content = extractSearchableContent(node.properties) ?? ''
+        if (!title && !content) continue
+
+        ftsRows.push({
+          nodeId: node.id,
+          title,
+          content
+        })
+      }
+    }
+
+    return {
+      nodes: input.nodes.map((node) => ({
+        id: node.id,
+        schemaId: node.schemaId,
+        createdAt: node.createdAt,
+        updatedAt: node.updatedAt,
+        createdBy: node.createdBy,
+        deletedAt: node.deleted && node.deletedAt ? node.deletedAt.wallTime : null,
+        propertyKeys: Object.keys(node.properties)
+      })),
+      properties: input.nodes.flatMap((node) =>
+        Object.entries(node.properties).flatMap(([key, value]) => {
+          const timestamp = node.timestamps[key]
+          if (!timestamp) return []
+
+          return [
+            {
+              nodeId: node.id,
+              propertyKey: key,
+              value: this.serializeValue(value),
+              lamportTime: timestamp.lamport.time,
+              updatedBy: timestamp.lamport.author,
+              updatedAt: timestamp.wallTime
+            }
+          ]
+        })
+      ),
+      changes: input.changes.map((change) => ({
+        hash: change.hash,
+        nodeId: change.payload.nodeId,
+        payload: this.serializePayload(change.payload),
+        lamportTime: change.lamport.time,
+        lamportPeer: change.lamport.author,
+        wallTime: change.wallTime,
+        author: change.authorDID,
+        parentHash: change.parentHash ?? null,
+        batchId: change.batchId ?? null,
+        signature: change.signature
+      })),
+      scalarIndexRows,
+      ftsNodeIds,
+      ftsRows,
+      affectedSchemaIds: Array.from(new Set(input.affectedSchemaIds)),
+      lastLamportTime: input.lastLamportTime,
+      indexMode: input.indexMode
+    }
   }
 
   private async applyNodeBatchWithTransactionBatch(

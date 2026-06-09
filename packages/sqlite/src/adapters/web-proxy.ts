@@ -7,7 +7,15 @@
 
 import type { SQLiteWorkerHandler } from './web-worker'
 import type { SQLiteAdapter, PreparedStatement } from '../adapter'
-import type { SQLiteConfig, SQLValue, SQLRow, RunResult, SQLiteOperationStats } from '../types'
+import type {
+  SQLiteConfig,
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteOperationStats,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
+} from '../types'
 import * as Comlink from 'comlink'
 
 function isDebugEnabled(): boolean {
@@ -35,6 +43,21 @@ function createEmptyOperationStats(): SQLiteOperationStats {
 
 function cloneOperationStats(stats: SQLiteOperationStats): SQLiteOperationStats {
   return { ...stats }
+}
+
+function estimateNodeBatchSqlOperations(input: SQLiteNodeBatchApplyInput): number {
+  const indexOperations =
+    input.indexMode === 'defer-schema'
+      ? 0
+      : input.nodes.length +
+        input.scalarIndexRows.length +
+        input.ftsNodeIds.length +
+        input.ftsRows.length +
+        input.affectedSchemaIds.length
+
+  return (
+    input.nodes.length * 2 + input.properties.length + input.changes.length + indexOperations + 1
+  )
 }
 
 /**
@@ -195,6 +218,14 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     this.operationStats.transactionBatchOperationCount += operations.length
     this.operationStats.workerRequestCount += 1
     await this.proxy.transaction(operations)
+  }
+
+  async applyNodeBatch(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult> {
+    if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.transactionBatchCount += 1
+    this.operationStats.transactionBatchOperationCount += estimateNodeBatchSqlOperations(input)
+    this.operationStats.workerRequestCount += 1
+    return this.proxy.applyNodeBatch(input)
   }
 
   async beginTransaction(): Promise<void> {

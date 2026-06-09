@@ -818,7 +818,7 @@ This can reduce social import write volume without sacrificing provenance.
 - [x] Update MainThreadBridge and DataWorker cache invalidation to consume batch events directly.
 - [x] Add SQLite migrations for `idx_prop_scalars_node` and `idx_changes_node_lamport`.
 - [x] Implement Electron `applyNodeBatch()` with prepared statements inside one transaction.
-- [ ] Implement web `SQLiteWorkerHandler.applyNodeBatch()` to run inside the SQLite worker.
+- [x] Implement web `SQLiteWorkerHandler.applyNodeBatch()` to run inside the SQLite worker.
 - [x] Implement SQLite touched-node scalar index maintenance.
 - [x] Implement SQLite touched-node FTS maintenance.
 - [x] Coalesce materialized-view invalidation to once per affected schema.

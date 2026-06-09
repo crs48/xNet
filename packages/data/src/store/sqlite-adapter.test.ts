@@ -6,7 +6,7 @@ import type { NodeQueryDescriptor } from './query'
 import type { NodeState, NodeChange, NodePayload } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { DID, ContentId } from '@xnetjs/core'
-import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import type { SQLiteAdapter, SQLiteNodeBatchApplyInput } from '@xnetjs/sqlite'
 import { randomUUID } from 'crypto'
 import { existsSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
@@ -399,6 +399,144 @@ describe('SQLiteNodeStorageAdapter', () => {
         { property_key: 'status', value_text: 'indexed' },
         { property_key: 'title', value_text: 'Batch Apply' }
       ])
+    })
+
+    it('uses typed SQLite node batch apply when available', async () => {
+      const batchDb = db as SQLiteAdapter & {
+        typedBatchInput: SQLiteNodeBatchApplyInput | null
+        transactionBatchCalls: number
+      }
+      batchDb.typedBatchInput = null
+      batchDb.transactionBatchCalls = 0
+      batchDb.applyNodeBatch = async (input) => {
+        batchDb.typedBatchInput = input
+        await db.transaction(async () => {
+          for (const node of input.nodes) {
+            await db.run(
+              `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                node.id,
+                node.schemaId,
+                node.createdAt,
+                node.updatedAt,
+                node.createdBy,
+                node.deletedAt
+              ]
+            )
+          }
+          for (const property of input.properties) {
+            await db.run(
+              `INSERT INTO node_properties
+                  (node_id, property_key, value, lamport_time, updated_by, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                property.nodeId,
+                property.propertyKey,
+                property.value,
+                property.lamportTime,
+                property.updatedBy,
+                property.updatedAt
+              ]
+            )
+          }
+          for (const change of input.changes) {
+            await db.run(
+              `INSERT OR IGNORE INTO changes
+                (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                change.hash,
+                change.nodeId,
+                change.payload,
+                change.lamportTime,
+                change.lamportPeer,
+                change.wallTime,
+                change.author,
+                change.parentHash,
+                change.batchId,
+                change.signature
+              ]
+            )
+          }
+          await db.run(
+            `INSERT INTO sync_state (key, value) VALUES ('lastLamportTime', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+            [String(input.lastLamportTime)]
+          )
+        })
+
+        return {
+          nodeRowsWritten: input.nodes.length,
+          propertyRowsWritten: input.properties.length,
+          changeRowsWritten: input.changes.length,
+          scalarRowsWritten: input.scalarIndexRows.length,
+          ftsRowsWritten: input.ftsRows.length
+        }
+      }
+      batchDb.transactionBatch = async () => {
+        batchDb.transactionBatchCalls += 1
+      }
+
+      const batchAdapter = new SQLiteNodeStorageAdapter(batchDb)
+      const now = Date.now()
+      const node = createTestNode({
+        id: 'typed-batch-node',
+        properties: { title: 'Typed Batch', status: 'queued' },
+        createdAt: now,
+        updatedAt: now
+      })
+      const change: NodeChange = {
+        id: 'typed-batch-change',
+        type: 'node',
+        hash: 'cid:blake3:typed-batch-change' as ContentId,
+        payload: {
+          nodeId: node.id,
+          schemaId: node.schemaId,
+          properties: node.properties
+        } as NodePayload,
+        lamport: { time: 21, author: testDID },
+        wallTime: now,
+        authorDID: testDID,
+        parentHash: null,
+        batchId: 'typed-batch-1',
+        batchIndex: 0,
+        batchSize: 1,
+        signature: new Uint8Array([4, 5, 6])
+      }
+
+      const result = await batchAdapter.applyNodeBatch({
+        batchId: 'typed-batch-1',
+        nodes: [node],
+        changes: [change],
+        lastLamportTime: 21,
+        affectedSchemaIds: [testSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      expect(batchDb.transactionBatchCalls).toBe(0)
+      expect(batchDb.typedBatchInput).toMatchObject({
+        indexMode: 'touched',
+        lastLamportTime: 21,
+        nodes: [{ id: 'typed-batch-node', propertyKeys: ['title', 'status'] }],
+        properties: [
+          { nodeId: 'typed-batch-node', propertyKey: 'title' },
+          { nodeId: 'typed-batch-node', propertyKey: 'status' }
+        ],
+        changes: [{ nodeId: 'typed-batch-node', batchId: 'typed-batch-1' }],
+        affectedSchemaIds: [testSchemaId]
+      })
+      expect(result).toMatchObject({
+        nodeRowsWritten: 1,
+        propertyRowsWritten: 2,
+        changeRowsWritten: 1,
+        scalarRowsWritten: 2
+      })
+      await expect(batchAdapter.getNode('typed-batch-node')).resolves.toMatchObject({
+        properties: { title: 'Typed Batch', status: 'queued' }
+      })
+      await expect(batchAdapter.getLastLamportTime()).resolves.toBe(21)
     })
 
     it('serializes concurrent transaction-backed node writes', async () => {

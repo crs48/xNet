@@ -5,7 +5,14 @@
  * The main thread communicates with it via postMessage/Comlink.
  */
 
-import type { SQLiteConfig, SQLValue, SQLRow, RunResult } from '../types'
+import type {
+  SQLiteConfig,
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
+} from '../types'
 import * as Comlink from 'comlink'
 import { WebSQLiteAdapter, createWebSQLiteAdapter, resetWebSQLiteOpfsStorage } from './web'
 
@@ -88,6 +95,11 @@ class SQLiteWorkerHandler {
         await this.adapter!.run(op.sql, op.params)
       }
     })
+  }
+
+  async applyNodeBatch(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult> {
+    if (!this.adapter) throw new Error('Database not open')
+    return this.adapter.applyNodeBatch(input)
   }
 
   async getSchemaVersion(): Promise<number> {

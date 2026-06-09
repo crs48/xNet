@@ -2,7 +2,15 @@
  * @xnetjs/sqlite - SQLite adapter interface definitions
  */
 
-import type { SQLValue, SQLRow, RunResult, SQLiteConfig, SQLiteOperationStats } from './types'
+import type {
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteConfig,
+  SQLiteOperationStats,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
+} from './types'
 
 /**
  * Unified SQLite adapter interface.
@@ -103,6 +111,14 @@ export interface SQLiteAdapter {
    * execute all operations atomically and roll back on the first failure.
    */
   transactionBatch?(operations: Array<{ sql: string; params?: SQLValue[] }>): Promise<void>
+
+  /**
+   * Execute a node-store batch using compact typed row payloads.
+   *
+   * Worker-backed adapters can use this to avoid transferring a very large
+   * array of repeated SQL strings over Comlink.
+   */
+  applyNodeBatch?(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult>
 
   /**
    * Begin a manual transaction.
