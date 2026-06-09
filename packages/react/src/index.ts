@@ -85,6 +85,24 @@ export {
   type SavedViewRunnerProps,
   type SavedViewSortDirection
 } from './components/SavedViewRunner'
+export {
+  createSavedViewCanvasProjectionNodes,
+  createSavedViewVisualPreviewFingerprint,
+  deriveSavedViewTimelineBuckets,
+  deriveSavedViewVisualPreview,
+  deriveSavedViewVisualPreviews,
+  hasSavedViewVisualPreviewSensitiveData,
+  isSavedViewVisualPreviewEmbeddable,
+  savedViewVisualPreviewIsSelfActor,
+  type SavedViewCanvasProjectionNode,
+  type SavedViewVisualPreviewCreator,
+  type SavedViewVisualPreviewKind,
+  type SavedViewVisualPreviewModel,
+  type SavedViewVisualPreviewPrivacy,
+  type SavedViewVisualPreviewRelationship,
+  type SavedViewVisualTimelineBucket,
+  type SavedViewVisualWorkspaceLayout
+} from './components/savedViewVisualPreview'
 
 /**
  * useMutate - Write operations for nodes
