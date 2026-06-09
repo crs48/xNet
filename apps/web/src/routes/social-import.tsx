@@ -210,8 +210,7 @@ function SocialImportPage(): React.ReactElement {
         stageResult,
         includeSourceRecords,
         importDrafts: async (batchDrafts) =>
-          store.importDeterministicNodes(batchDrafts, { deferIndexes: true }),
-        rebuildIndexesForSchemas: async (schemaIds) => store.rebuildIndexesForSchemas(schemaIds),
+          store.importDeterministicNodes(batchDrafts, { indexMode: 'touched' }),
         onProgress: (progress) => {
           setCommitProgress(progress)
           upsertResumeRecord(progress)
@@ -307,8 +306,7 @@ function SocialImportPage(): React.ReactElement {
             updated: record.updated
           },
           importDrafts: async (batchDrafts) =>
-            store.importDeterministicNodes(batchDrafts, { deferIndexes: true }),
-          rebuildIndexesForSchemas: async (schemaIds) => store.rebuildIndexesForSchemas(schemaIds),
+            store.importDeterministicNodes(batchDrafts, { indexMode: 'touched' }),
           onProgress: (progress) => {
             setCommitProgress(progress)
             upsertResumeRecord(progress)

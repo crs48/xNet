@@ -824,7 +824,7 @@ This can reduce social import write volume without sacrificing provenance.
 - [x] Coalesce materialized-view invalidation to once per affected schema.
 - [ ] Add `DataBridge.bulkWrite()` and worker RPC support.
 - [ ] Add `useMutate().bulk()` or a dedicated `useBulkMutate()` hook.
-- [ ] Move web social import to the new bulk path.
+- [x] Move web social import to the new bulk path.
 - [ ] Move Electron social import to the same bulk path.
 - [ ] Add optional source-record sidecar design behind a feature flag.
 - [ ] Add import policy controls for index, notification, sync, and source-record behavior.
