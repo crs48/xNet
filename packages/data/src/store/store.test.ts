@@ -916,6 +916,12 @@ describe('deterministic node import', () => {
     expect(result.changes.map((change) => change.batchIndex)).toEqual([0, 1])
     expect(result.changes.map((change) => change.batchSize)).toEqual([2, 2])
     expect(result.changes.every((change) => change.parentHash === null)).toBe(true)
+    expect(result.storage).toMatchObject({
+      nodeRowsWritten: 2,
+      propertyRowsWritten: 2,
+      changeRowsWritten: 2
+    })
+    expect(result.timings.totalMs).toBeGreaterThanOrEqual(0)
     expect(events).toEqual(['import-node-1', 'import-node-2'])
 
     await expect(store.get('import-node-1')).resolves.toMatchObject({

@@ -564,6 +564,10 @@ export interface ImportDeterministicNodesResult {
   changes: NodeChange[]
   /** Schemas whose materialized nodes changed */
   affectedSchemaIds: SchemaIRI[]
+  /** Storage-level write counters when the adapter reports them. */
+  storage?: ApplyNodeBatchResult
+  /** Phase timings for import diagnostics and progress UIs. */
+  timings: NodeBatchWriteTimings
 }
 
 // ============================================================================

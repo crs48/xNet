@@ -845,7 +845,9 @@ export class NodeStore {
       updated: result.updated,
       nodes: result.nodes,
       changes: result.changes,
-      affectedSchemaIds: result.affectedSchemaIds
+      affectedSchemaIds: result.affectedSchemaIds,
+      storage: result.storage,
+      timings: result.timings
     }
   }
 

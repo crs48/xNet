@@ -825,7 +825,7 @@ This can reduce social import write volume without sacrificing provenance.
 - [x] Add `DataBridge.bulkWrite()` and worker RPC support.
 - [x] Add `useMutate().bulk()` or a dedicated `useBulkMutate()` hook.
 - [x] Move web social import to the new bulk path.
-- [ ] Move Electron social import to the same bulk path.
+- [x] Move Electron social import to the same bulk path.
 - [ ] Add optional source-record sidecar design behind a feature flag.
 - [ ] Add import policy controls for index, notification, sync, and source-record behavior.
 - [ ] Update docs in `packages/social/README.md` and data/react package docs.
@@ -833,9 +833,9 @@ This can reduce social import write volume without sacrificing provenance.
 ## Validation Checklist
 
 - [ ] Unit test `NodeStore.batchWrite()` parity with `transaction()` for creates, updates, deletes, and duplicate IDs.
-- [ ] Unit test `importDeterministicNodes()` parity with existing behavior.
-- [ ] Unit test LWW behavior when existing properties have newer Lamport timestamps.
-- [ ] Unit test parent hash chaining for duplicate deterministic IDs in one batch.
+- [x] Unit test `importDeterministicNodes()` parity with existing behavior.
+- [x] Unit test LWW behavior when existing properties have newer Lamport timestamps.
+- [x] Unit test parent hash chaining for duplicate deterministic IDs in one batch.
 - [ ] Unit test rollback leaves no partial nodes, properties, changes, scalar rows, or FTS rows.
 - [ ] Unit test touched-node scalar rows match whole-schema rebuild output.
 - [ ] Unit test touched-node FTS rows match whole-schema rebuild output.

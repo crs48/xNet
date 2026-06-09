@@ -2,7 +2,11 @@
  * Main-process IPC for local social graph archive imports.
  */
 
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import type {
+  ApplyNodeBatchResult,
+  DeterministicNodeImportDraft,
+  NodeBatchWriteTimings
+} from '@xnetjs/data'
 import type {
   ArchiveManifest,
   SocialImportArchivePreview as SharedSocialImportArchivePreview,
@@ -345,9 +349,15 @@ async function runCommitJob(input: {
           signingKey: input.request.signingKey
         },
         10 * 60 * 1000
-      )) as { created: number; updated: number }
+      )) as {
+        created: number
+        updated: number
+        storage?: ApplyNodeBatchResult
+        timings?: NodeBatchWriteTimings
+      }
       metrics.lastWriteMs = performance.now() - writeStartedAt
       metrics.totalWriteMs += metrics.lastWriteMs
+      applyBatchResultMetrics(metrics, batchResult)
 
       created += batchResult.created
       updated += batchResult.updated
@@ -430,6 +440,28 @@ async function runCommitJob(input: {
   } finally {
     cancelledCommitJobIds.delete(input.jobId)
   }
+}
+
+function applyBatchResultMetrics(
+  metrics: Omit<SocialImportJobMetrics, 'recordsPerSecond'>,
+  result: {
+    storage?: ApplyNodeBatchResult
+    timings?: NodeBatchWriteTimings
+  }
+): void {
+  metrics.lastPreflightMs = result.timings?.preflightMs ?? 0
+  metrics.lastMaterializeMs = result.timings?.materializeMs ?? 0
+  metrics.lastApplyMs = result.timings?.applyMs ?? 0
+  metrics.lastNotifyMs = result.timings?.notifyMs ?? 0
+  metrics.totalPreflightMs += metrics.lastPreflightMs
+  metrics.totalMaterializeMs += metrics.lastMaterializeMs
+  metrics.totalApplyMs += metrics.lastApplyMs
+  metrics.totalNotifyMs += metrics.lastNotifyMs
+  metrics.totalNodeRowsWritten += result.storage?.nodeRowsWritten ?? 0
+  metrics.totalPropertyRowsWritten += result.storage?.propertyRowsWritten ?? 0
+  metrics.totalChangeRowsWritten += result.storage?.changeRowsWritten ?? 0
+  metrics.totalScalarRowsWritten += result.storage?.scalarRowsWritten ?? 0
+  metrics.totalFtsRowsWritten += result.storage?.ftsRowsWritten ?? 0
 }
 
 function reportCommitJobProgress(input: {

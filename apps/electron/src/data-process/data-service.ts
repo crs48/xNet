@@ -14,8 +14,10 @@
 
 import type { DID } from '@xnetjs/core'
 import type {
+  ApplyNodeBatchResult,
   DeterministicNodeImportDraft,
   ImportDeterministicNodesResult,
+  NodeBatchWriteTimings,
   NodeChange
 } from '@xnetjs/data'
 import { existsSync, unlinkSync } from 'fs'
@@ -149,6 +151,8 @@ type ImportDeterministicNodesSummary = {
   batchId: string
   created: number
   updated: number
+  storage?: ApplyNodeBatchResult
+  timings: NodeBatchWriteTimings
 }
 
 export interface DataService {
@@ -1663,7 +1667,9 @@ export function createDataService(config: DataServiceConfig): DataService {
         return {
           batchId: result.batchId,
           created: result.created,
-          updated: result.updated
+          updated: result.updated,
+          storage: result.storage,
+          timings: result.timings
         }
       } finally {
         await nodeStorage.close()
