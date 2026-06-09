@@ -828,6 +828,24 @@ export class NodeStore {
           timings: result.timings
         }
       }
+
+      case 'operations': {
+        const policy = this.resolveNodeBatchWritePolicy(input.policy)
+        const result = await this.executeOperationNodeBatch(
+          input.operations,
+          policy.notificationMode
+        )
+
+        return {
+          batchId: result.batchId,
+          created: result.created,
+          updated: result.updated,
+          nodeIds: result.nodeIds,
+          schemaIds: result.schemaIds,
+          changeCount: result.changes.length,
+          timings: result.timings
+        }
+      }
     }
   }
 
@@ -852,6 +870,124 @@ export class NodeStore {
       affectedSchemaIds: result.affectedSchemaIds,
       storage: result.storage,
       timings: result.timings
+    }
+  }
+
+  private async executeOperationNodeBatch(
+    operations: readonly TransactionOperation[],
+    notificationMode: NodeBatchNotificationMode
+  ): Promise<{
+    batchId: string
+    created: number
+    updated: number
+    nodeIds: NodeId[]
+    schemaIds: SchemaIRI[]
+    changes: NodeChange[]
+    timings: NodeBatchWriteTimings
+  }> {
+    const totalStartedAt = Date.now()
+    if (operations.length === 0) {
+      return {
+        batchId: '',
+        created: 0,
+        updated: 0,
+        nodeIds: [],
+        schemaIds: [],
+        changes: [],
+        timings: emptyBatchWriteTimings()
+      }
+    }
+
+    const { operations: resolvedOps } = resolveTempIds([...operations], this.schemaLookup)
+
+    await this.assertAuthorizedBatch(resolvedOps)
+
+    const batchId = createBatchId()
+    const batchSize = resolvedOps.length
+    const now = Date.now()
+    const previousClock = this.clock
+    const [newClock, lamport] = tick(this.clock)
+    this.clock = newClock
+
+    try {
+      const applyStartedAt = Date.now()
+      const run = (storage: NodeStorageAdapter) =>
+        this.executeTransactionOperations({
+          operations: resolvedOps,
+          storage,
+          lamport,
+          now,
+          batchId,
+          batchSize
+        })
+      const result = this.storage.withTransaction
+        ? await this.storage.withTransaction(run)
+        : await run(this.storage)
+      const applyMs = elapsedMs(applyStartedAt)
+
+      const nodeIds = Array.from(new Set(result.changes.map((change) => change.payload.nodeId)))
+      const schemaIds = Array.from(
+        new Set(
+          result.events.flatMap((event) => {
+            const schemaId = event.result?.schemaId ?? event.previousNode?.schemaId
+            return schemaId ? [schemaId] : []
+          })
+        )
+      )
+      const created = result.events.filter(
+        (event) => event.previousNode === null && event.result !== null
+      ).length
+      const updated = result.events.length - created
+
+      const notifyStartedAt = Date.now()
+      if (notificationMode === 'per-node') {
+        for (const event of result.events) {
+          this.emit(event.change, event.result, event.previousNode, false)
+          this.authEvaluator?.invalidate(event.change.payload.nodeId)
+        }
+      } else {
+        const nodes = result.events.flatMap((event) => event.result ?? event.previousNode ?? [])
+        this.invalidateAuthForNodes(nodes)
+
+        if (notificationMode === 'batch') {
+          this.emitDeterministicImportBatch({
+            batchId,
+            nodeIds,
+            schemaIds,
+            created,
+            updated,
+            changeCount: result.changes.length,
+            isRemote: false,
+            timings: {
+              preflightMs: 0,
+              materializeMs: 0,
+              applyMs,
+              notifyMs: 0,
+              totalMs: elapsedMs(totalStartedAt)
+            }
+          })
+        }
+      }
+      const notifyMs = elapsedMs(notifyStartedAt)
+
+      return {
+        batchId,
+        created,
+        updated,
+        nodeIds,
+        schemaIds,
+        changes: result.changes,
+        timings: {
+          preflightMs: 0,
+          materializeMs: 0,
+          applyMs,
+          notifyMs,
+          totalMs: elapsedMs(totalStartedAt)
+        }
+      }
+    } catch (err) {
+      this.clock = previousClock
+      throw err
     }
   }
 

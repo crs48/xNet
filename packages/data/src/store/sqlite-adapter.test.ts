@@ -539,6 +539,90 @@ describe('SQLiteNodeStorageAdapter', () => {
       await expect(batchAdapter.getLastLamportTime()).resolves.toBe(21)
     })
 
+    it('rolls back partial node, property, scalar, FTS, change, and sync writes when batch apply fails', async () => {
+      let hasFts = true
+      try {
+        await db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
+          node_id,
+          title,
+          content,
+          tokenize='porter unicode61'
+        )`)
+      } catch {
+        hasFts = false
+      }
+
+      const now = Date.now()
+      const node = createTestNode({
+        id: 'rollback-batch-node',
+        properties: { title: 'Rollback Title', status: 'queued' },
+        createdAt: now,
+        updatedAt: now
+      })
+      const badChange: NodeChange = {
+        id: 'rollback-batch-change',
+        type: 'node',
+        hash: 'cid:blake3:rollback-batch-change' as ContentId,
+        payload: {
+          nodeId: 'missing-rollback-node',
+          schemaId: node.schemaId,
+          properties: { title: 'Should fail' }
+        } as NodePayload,
+        lamport: { time: 44, author: testDID },
+        wallTime: now,
+        authorDID: testDID,
+        parentHash: null,
+        batchId: 'rollback-batch-1',
+        batchIndex: 0,
+        batchSize: 1,
+        signature: new Uint8Array([7, 8, 9])
+      }
+
+      await expect(
+        adapter.applyNodeBatch({
+          batchId: 'rollback-batch-1',
+          nodes: [node],
+          changes: [badChange],
+          lastLamportTime: 44,
+          affectedSchemaIds: [node.schemaId],
+          indexMode: 'eager',
+          indexProperties: true
+        })
+      ).rejects.toThrow()
+
+      await expect(adapter.getNode(node.id)).resolves.toBeNull()
+      await expect(adapter.getLastLamportTime()).resolves.toBe(0)
+
+      const nodeRow = await db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM nodes WHERE id = ?',
+        [node.id]
+      )
+      const propertyRows = await db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM node_properties WHERE node_id = ?',
+        [node.id]
+      )
+      const scalarRows = await db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM node_property_scalars WHERE node_id = ?',
+        [node.id]
+      )
+      const ftsRows = hasFts
+        ? await db.queryOne<{ count: number }>(
+            'SELECT COUNT(*) as count FROM nodes_fts WHERE node_id = ?',
+            [node.id]
+          )
+        : { count: 0 }
+      const changeRows = await db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM changes WHERE hash = ?',
+        [badChange.hash]
+      )
+
+      expect(nodeRow?.count).toBe(0)
+      expect(propertyRows?.count).toBe(0)
+      expect(scalarRows?.count).toBe(0)
+      expect(ftsRows?.count).toBe(0)
+      expect(changeRows?.count).toBe(0)
+    })
+
     it('serializes concurrent transaction-backed node writes', async () => {
       const now = Date.now()
       const nodes = Array.from({ length: 8 }, (_, index) =>

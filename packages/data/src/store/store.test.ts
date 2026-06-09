@@ -1116,6 +1116,92 @@ describe('deterministic node import', () => {
     expect(batchEvents).toEqual([['batch-event-node-1', 'batch-event-node-2']])
   })
 
+  it('matches transaction materialization for operation batch writes with creates, updates, deletes, and duplicate IDs', async () => {
+    const { transactionStore, importStore } = createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    const seedOperations = [
+      {
+        type: 'create' as const,
+        options: {
+          id: 'operation-batch-update-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Before', status: 'open' }
+        }
+      },
+      {
+        type: 'create' as const,
+        options: {
+          id: 'operation-batch-delete-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Delete me', status: 'open' }
+        }
+      }
+    ]
+    await transactionStore.transaction(seedOperations)
+    await importStore.transaction(seedOperations)
+
+    const operations = [
+      {
+        type: 'create' as const,
+        options: {
+          id: 'operation-batch-create-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Created', status: 'open' }
+        }
+      },
+      {
+        type: 'update' as const,
+        nodeId: 'operation-batch-update-node',
+        options: { properties: { title: 'After' } }
+      },
+      {
+        type: 'delete' as const,
+        nodeId: 'operation-batch-delete-node'
+      },
+      {
+        type: 'create' as const,
+        options: {
+          id: 'operation-batch-duplicate-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'First' }
+        }
+      },
+      {
+        type: 'update' as const,
+        nodeId: 'operation-batch-duplicate-node',
+        options: { properties: { title: 'Second', status: 'deduped' } }
+      }
+    ]
+
+    await transactionStore.transaction(operations)
+    const result = await importStore.batchWrite({
+      kind: 'operations',
+      operations,
+      policy: { notificationMode: 'silent' }
+    })
+
+    expect(result).toMatchObject({
+      created: 2,
+      updated: 3,
+      nodeIds: [
+        'operation-batch-create-node',
+        'operation-batch-update-node',
+        'operation-batch-delete-node',
+        'operation-batch-duplicate-node'
+      ],
+      schemaIds: [TEST_SCHEMA],
+      changeCount: operations.length
+    })
+
+    for (const nodeId of result.nodeIds) {
+      expect(comparableNodeState(await importStore.get(nodeId))).toEqual(
+        comparableNodeState(await transactionStore.get(nodeId))
+      )
+    }
+  })
+
   it('maintains import indexes incrementally instead of rebuilding per chunk', async () => {
     const keyPair = generateSigningKeyPair()
     const did = createDID(keyPair.publicKey) as DID

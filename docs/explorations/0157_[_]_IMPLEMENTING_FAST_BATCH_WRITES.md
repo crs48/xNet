@@ -832,11 +832,11 @@ This can reduce social import write volume without sacrificing provenance.
 
 ## Validation Checklist
 
-- [ ] Unit test `NodeStore.batchWrite()` parity with `transaction()` for creates, updates, deletes, and duplicate IDs.
+- [x] Unit test `NodeStore.batchWrite()` parity with `transaction()` for creates, updates, deletes, and duplicate IDs.
 - [x] Unit test `importDeterministicNodes()` parity with existing behavior.
 - [x] Unit test LWW behavior when existing properties have newer Lamport timestamps.
 - [x] Unit test parent hash chaining for duplicate deterministic IDs in one batch.
-- [ ] Unit test rollback leaves no partial nodes, properties, changes, scalar rows, or FTS rows.
+- [x] Unit test rollback leaves no partial nodes, properties, changes, scalar rows, or FTS rows.
 - [ ] Unit test touched-node scalar rows match whole-schema rebuild output.
 - [ ] Unit test touched-node FTS rows match whole-schema rebuild output.
 - [ ] Unit test materialized views invalidate once per schema.

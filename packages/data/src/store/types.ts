@@ -297,7 +297,13 @@ export interface DeterministicNodeBatchWriteInput {
   policy?: Partial<NodeBatchWritePolicy>
 }
 
-export type NodeBatchWriteInput = DeterministicNodeBatchWriteInput
+export interface OperationNodeBatchWriteInput {
+  kind: 'operations'
+  operations: readonly TransactionOperation[]
+  policy?: Partial<NodeBatchWritePolicy>
+}
+
+export type NodeBatchWriteInput = DeterministicNodeBatchWriteInput | OperationNodeBatchWriteInput
 
 export interface NodeBatchWriteResult {
   /** The batch ID shared by all changes. */

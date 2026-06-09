@@ -47,6 +47,7 @@ export type {
   NodeBatchPreflightResult,
   NodeBatchWriteInput,
   DeterministicNodeBatchWriteInput,
+  OperationNodeBatchWriteInput,
   NodeBatchWritePolicy,
   NodeBatchWriteResult,
   NodeBatchWriteTimings,
