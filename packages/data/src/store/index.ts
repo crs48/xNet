@@ -44,6 +44,7 @@ export type {
   ApplyNodeBatchResult,
   NodeBatchIndexMode,
   NodeBatchNotificationMode,
+  NodeBatchSyncMode,
   NodeBatchPreflightResult,
   NodeBatchWriteInput,
   DeterministicNodeBatchWriteInput,

@@ -136,7 +136,8 @@ const result = await store.batchWrite({
   ],
   policy: {
     indexMode: 'touched',
-    notificationMode: 'batch'
+    notificationMode: 'batch',
+    syncMode: 'defer'
   }
 })
 
@@ -144,8 +145,10 @@ console.log(result.created, result.updated, result.timings.applyMs, result.stora
 ```
 
 `indexMode: 'touched'` is the import default. It avoids whole-schema rebuilds by reindexing only the
-nodes changed by the batch. `importDeterministicNodes()` remains available for existing callers and
-returns the same storage counters and phase timings while preserving its detailed `changes` array.
+nodes changed by the batch. `notificationMode: 'batch'` coalesces live reload work. Deferred sync is
+an advisory hint for runtimes that can coalesce outbound replication.
+`importDeterministicNodes()` remains available for existing callers and returns the same storage
+counters and phase timings while preserving its detailed `changes` array.
 
 ### Yjs Documents
 

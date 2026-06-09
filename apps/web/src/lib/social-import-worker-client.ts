@@ -470,6 +470,8 @@ function createStagePayload(
     importedAt,
     recordCount: result.recordCount,
     sourceRecordCount: result.sourceRecordCount,
+    sourceRecordMode: result.sourceRecordMode,
+    sidecarSourceRecordCount: result.sidecarSourceRecordCount,
     canonicalRecordCount: result.canonicalRecordCount
   }
 }

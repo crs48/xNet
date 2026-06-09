@@ -18,6 +18,11 @@ import type {
 import { SocialImportArchiveSchema, SocialImportRunSchema } from '../schemas'
 import { detectSocialArchive } from './detector'
 import { createSocialNodeId } from './ids'
+import {
+  resolveSocialImportCommitPolicy,
+  shouldCommitSourceRecordNodes,
+  type SocialImportSourceRecordMode
+} from './policy'
 import { createStagingSummaryAccumulator } from './staging'
 import { createLargeArchiveStoragePlan } from './storage'
 import { createSocialImportTelemetryEvents, type SocialImportTelemetryEvent } from './telemetry'
@@ -94,6 +99,8 @@ export type SocialImportStagePlan = {
 export type SocialImportNodeDraftStreamResult = Omit<SocialImportStageResult, 'records'> & {
   recordCount: number
   sourceRecordCount: number
+  sourceRecordMode: SocialImportSourceRecordMode
+  sidecarSourceRecordCount: number
   canonicalRecordCount: number
 }
 
@@ -105,18 +112,22 @@ export type SocialImportNodeDraftPreviewResult = {
   limitReached: boolean
   processedRecordCount: number
   sourceRecordCount: number
+  sourceRecordMode: SocialImportSourceRecordMode
+  sidecarSourceRecordCount: number
   canonicalRecordCount: number
   stageDurationMs: number
 }
 
 export type StreamSocialImportNodeDraftsInput = SocialImportStageInput & {
   includeSourceRecords?: boolean
+  sourceRecordMode?: SocialImportSourceRecordMode
   onComplete?: (result: SocialImportNodeDraftStreamResult) => void
 }
 
 export type PreviewSocialImportNodeDraftsInput = SocialImportStageInput & {
   limit: number
   includeSourceRecords?: boolean
+  sourceRecordMode?: SocialImportSourceRecordMode
 }
 
 export async function createSocialArchivePreview(input: {
@@ -259,6 +270,11 @@ export async function* streamSocialImportNodeDrafts(
   const plan = await createSocialImportStagePlan(input)
   const summaryAccumulator = createStagingSummaryAccumulator()
   const progressIntervalRecords = Math.max(1, Math.floor(input.progressIntervalRecords ?? 1000))
+  const sourceRecordMode = resolveSocialImportCommitPolicy({
+    ...input,
+    includeSourceRecords: input.includeSourceRecords ?? true
+  }).sourceRecordMode
+  const commitSourceRecordNodes = shouldCommitSourceRecordNodes({ sourceRecordMode })
   const archiveNode = createSocialImportArchiveDraft({
     adapter: plan.adapter,
     archiveId: plan.archiveId,
@@ -266,6 +282,7 @@ export async function* streamSocialImportNodeDrafts(
     manifest: input.manifest
   })
   let sourceRecordCount = 0
+  let sidecarSourceRecordCount = 0
   let processedRecords = 0
 
   yield archiveNode
@@ -276,13 +293,16 @@ export async function* streamSocialImportNodeDrafts(
   )) {
     processedRecords += 1
     summaryAccumulator.add(record)
-    if (record.kind === 'source-record') sourceRecordCount += 1
+    if (record.kind === 'source-record') {
+      sourceRecordCount += 1
+      if (sourceRecordMode === 'sidecar') sidecarSourceRecordCount += 1
+    }
 
     if (input.onProgress && processedRecords % progressIntervalRecords === 0) {
       input.onProgress(summaryAccumulator.progress(record.bucketId))
     }
 
-    if ((input.includeSourceRecords ?? true) || record.kind !== 'source-record') {
+    if (record.kind !== 'source-record' || commitSourceRecordNodes) {
       yield toSocialImportNodeDraft(record)
     }
   }
@@ -321,6 +341,8 @@ export async function* streamSocialImportNodeDrafts(
     stageDurationMs,
     recordCount: summary.totalRecords,
     sourceRecordCount,
+    sourceRecordMode,
+    sidecarSourceRecordCount,
     canonicalRecordCount: summary.totalRecords - sourceRecordCount
   }
   input.onComplete?.(result)
@@ -336,8 +358,14 @@ export async function previewSocialImportNodeDrafts(
   const limit = normalizePreviewLimit(input.limit)
   const drafts: SocialImportNodeDraft[] = []
   const progressIntervalRecords = Math.max(1, Math.floor(input.progressIntervalRecords ?? 1000))
+  const sourceRecordMode = resolveSocialImportCommitPolicy({
+    ...input,
+    includeSourceRecords: input.includeSourceRecords ?? true
+  }).sourceRecordMode
+  const commitSourceRecordNodes = shouldCommitSourceRecordNodes({ sourceRecordMode })
   let processedRecordCount = 0
   let sourceRecordCount = 0
+  let sidecarSourceRecordCount = 0
   let limitReached = limit === 0
 
   if (limit === 0) {
@@ -355,6 +383,8 @@ export async function previewSocialImportNodeDrafts(
       limitReached,
       processedRecordCount,
       sourceRecordCount,
+      sourceRecordMode,
+      sidecarSourceRecordCount,
       canonicalRecordCount: processedRecordCount - sourceRecordCount,
       stageDurationMs: Date.now() - stageStartedAt
     }
@@ -366,13 +396,16 @@ export async function previewSocialImportNodeDrafts(
   )) {
     processedRecordCount += 1
     summaryAccumulator.add(record)
-    if (record.kind === 'source-record') sourceRecordCount += 1
+    if (record.kind === 'source-record') {
+      sourceRecordCount += 1
+      if (sourceRecordMode === 'sidecar') sidecarSourceRecordCount += 1
+    }
 
     if (input.onProgress && processedRecordCount % progressIntervalRecords === 0) {
       input.onProgress(summaryAccumulator.progress(record.bucketId))
     }
 
-    if ((input.includeSourceRecords ?? true) || record.kind !== 'source-record') {
+    if (record.kind !== 'source-record' || commitSourceRecordNodes) {
       drafts.push(toSocialImportNodeDraft(record))
       if (drafts.length >= limit) {
         limitReached = true
@@ -395,6 +428,8 @@ export async function previewSocialImportNodeDrafts(
     limitReached,
     processedRecordCount,
     sourceRecordCount,
+    sourceRecordMode,
+    sidecarSourceRecordCount,
     canonicalRecordCount: processedRecordCount - sourceRecordCount,
     stageDurationMs: Date.now() - stageStartedAt
   }

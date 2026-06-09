@@ -18,7 +18,12 @@ import type {
   SocialImportJobProgress
 } from '@xnetjs/social/import/core'
 import type { BrowserWindow, OpenDialogOptions } from 'electron'
-import { createSocialImportJobCheckpointAccumulator } from '@xnetjs/social/import/core'
+import {
+  createSocialImportJobCheckpointAccumulator,
+  resolveSocialImportCommitPolicy,
+  shouldCommitSourceRecordNodes,
+  toNodeBatchWritePolicy
+} from '@xnetjs/social/import/core'
 import {
   createSocialArchivePreview,
   createZipJsonEntryReader,
@@ -278,6 +283,10 @@ async function runCommitJob(input: {
   const startedAt = Date.now()
   const totalRecords = input.totalRecords
   const totalChunks = Math.ceil(totalRecords / COMMIT_BATCH_SIZE)
+  const commitPolicy = resolveSocialImportCommitPolicy({
+    includeSourceRecords: input.request.includeSourceRecords
+  })
+  const commitSourceRecordNodes = shouldCommitSourceRecordNodes(commitPolicy)
   const metrics: Omit<SocialImportJobMetrics, 'recordsPerSecond'> = {
     lastCheckMs: 0,
     lastWriteMs: 0,
@@ -346,7 +355,8 @@ async function runCommitJob(input: {
         {
           drafts: deterministicDrafts,
           authorDID: input.request.authorDID,
-          signingKey: input.request.signingKey
+          signingKey: input.request.signingKey,
+          policy: toNodeBatchWritePolicy(commitPolicy)
         },
         10 * 60 * 1000
       )) as {
@@ -393,7 +403,8 @@ async function runCommitJob(input: {
       buckets: input.stagedResult.stageRequest.buckets,
       includeSensitive: input.stagedResult.stageRequest.includeSensitive,
       importedAt: input.stagedResult.importedAt,
-      includeSourceRecords: input.request.includeSourceRecords
+      includeSourceRecords: commitSourceRecordNodes,
+      sourceRecordMode: commitPolicy.sourceRecordMode
     })) {
       assertCommitJobNotCancelled(input.jobId)
       draftBatch.push(draft)

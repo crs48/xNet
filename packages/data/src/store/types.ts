@@ -270,12 +270,15 @@ export interface ApplyNodeBatchResult {
 }
 
 export type NodeBatchNotificationMode = 'per-node' | 'batch' | 'silent'
+export type NodeBatchSyncMode = 'normal' | 'defer'
 
 export interface NodeBatchWritePolicy {
   /** Secondary index strategy for this batch. */
   indexMode: NodeBatchIndexMode
   /** Live notification strategy after the batch is durable. */
   notificationMode: NodeBatchNotificationMode
+  /** Advisory sync strategy for runtimes that can coalesce outbound replication. */
+  syncMode: NodeBatchSyncMode
 }
 
 export interface NodeBatchWriteTimings {

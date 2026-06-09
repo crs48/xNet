@@ -7,7 +7,12 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMutate } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
 import { isSensitivePrivacyClass, type ArchiveManifest } from '@xnetjs/social/import/browser'
-import { type SocialImportArchivePreview } from '@xnetjs/social/import/core'
+import {
+  resolveSocialImportCommitPolicy,
+  shouldCommitSourceRecordNodes,
+  toNodeBatchWritePolicy,
+  type SocialImportArchivePreview
+} from '@xnetjs/social/import/core'
 import { builtInSocialImporterRegistry } from '@xnetjs/social/importers'
 import {
   AlertTriangle,
@@ -182,6 +187,8 @@ function SocialImportPage(): React.ReactElement {
 
     try {
       let activeJobId = ''
+      const commitPolicy = resolveSocialImportCommitPolicy({ includeSourceRecords })
+      const commitSourceRecordNodes = shouldCommitSourceRecordNodes(commitPolicy)
       const upsertResumeRecord = (progress: CommitProgress | null): void => {
         if (!archive.handleId || !activeJobId) return
 
@@ -208,12 +215,12 @@ function SocialImportPage(): React.ReactElement {
 
       const job = startBrowserSocialImportCommitJob({
         stageResult,
-        includeSourceRecords,
+        includeSourceRecords: commitSourceRecordNodes,
         importDrafts: async (batchDrafts) => {
           const result = await store.batchWrite({
             kind: 'deterministic-import',
             drafts: batchDrafts,
-            policy: { indexMode: 'touched', notificationMode: 'batch' }
+            policy: toNodeBatchWritePolicy(commitPolicy)
           })
           return {
             created: result.created,
@@ -294,6 +301,10 @@ function SocialImportPage(): React.ReactElement {
         setIncludeSourceRecords(record.includeSourceRecords)
         setStageResult(result)
 
+        const commitPolicy = resolveSocialImportCommitPolicy({
+          includeSourceRecords: record.includeSourceRecords
+        })
+        const commitSourceRecordNodes = shouldCommitSourceRecordNodes(commitPolicy)
         const upsertResumeRecord = (progress: CommitProgress | null): void => {
           upsertBrowserSocialImportResumeRecord({
             ...record,
@@ -312,7 +323,7 @@ function SocialImportPage(): React.ReactElement {
         const job = startBrowserSocialImportCommitJob({
           jobId: record.jobId,
           stageResult: result,
-          includeSourceRecords: record.includeSourceRecords,
+          includeSourceRecords: commitSourceRecordNodes,
           initialProgress: {
             processedRecords: record.processedRecords,
             completedBatches: record.completedBatches,
@@ -323,7 +334,7 @@ function SocialImportPage(): React.ReactElement {
             const batchResult = await store.batchWrite({
               kind: 'deterministic-import',
               drafts: batchDrafts,
-              policy: { indexMode: 'touched', notificationMode: 'batch' }
+              policy: toNodeBatchWritePolicy(commitPolicy)
             })
             return {
               created: batchResult.created,

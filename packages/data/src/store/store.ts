@@ -854,7 +854,8 @@ export class NodeStore {
   ): NodeBatchWritePolicy {
     return {
       indexMode: policy?.indexMode ?? 'touched',
-      notificationMode: policy?.notificationMode ?? 'per-node'
+      notificationMode: policy?.notificationMode ?? 'per-node',
+      syncMode: policy?.syncMode ?? 'normal'
     }
   }
 

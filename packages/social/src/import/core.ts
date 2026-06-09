@@ -51,6 +51,15 @@ export {
   isSensitivePrivacyClass
 } from './privacy'
 export {
+  DEFAULT_SOCIAL_IMPORT_COMMIT_POLICY,
+  resolveSocialImportCommitPolicy,
+  shouldCommitSourceRecordNodes,
+  toNodeBatchWritePolicy,
+  type SocialImportCommitPolicy,
+  type SocialImportCommitPolicyInput,
+  type SocialImportSourceRecordMode
+} from './policy'
+export {
   createLargeArchiveStoragePlan,
   type ArchiveBlobStorageMode,
   type LargeArchiveStoragePlan,

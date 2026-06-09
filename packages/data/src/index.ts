@@ -325,6 +325,7 @@ export {
   type ApplyNodeBatchResult,
   type NodeBatchIndexMode,
   type NodeBatchNotificationMode,
+  type NodeBatchSyncMode,
   type NodeBatchPreflightResult,
   type NodeBatchWriteInput,
   type DeterministicNodeBatchWriteInput,

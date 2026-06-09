@@ -20,7 +20,7 @@
  *                                                          Hub/Signaling
  */
 
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import type { DeterministicNodeImportDraft, NodeBatchWritePolicy } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { createDataService, type DataService } from './data-service'
 
@@ -399,16 +399,18 @@ process.parentPort?.on('message', async (event) => {
       }
 
       case 'nodes:importDeterministicNodes': {
-        const { drafts, authorDID, signingKey } = payload as {
+        const { drafts, authorDID, signingKey, policy } = payload as {
           drafts: DeterministicNodeImportDraft[]
           authorDID: string
           signingKey: number[]
+          policy?: Partial<NodeBatchWritePolicy>
         }
         if (dataService) {
           const result = await dataService.importDeterministicNodes({
             drafts,
             authorDID,
-            signingKey
+            signingKey,
+            policy
           })
           sendResponse(requestId, result)
         } else {

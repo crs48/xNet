@@ -381,7 +381,8 @@ const result = await bulk({
   drafts: socialDrafts,
   policy: {
     indexMode: 'touched',
-    notificationMode: 'batch'
+    notificationMode: 'batch',
+    syncMode: 'defer'
   }
 })
 
@@ -389,8 +390,9 @@ console.log(result.nodeIds.length, result.timings.applyMs, result.storage?.prope
 ```
 
 Bulk writes are still signed NodeStore writes. The batch policy controls indexing and live
-notification cost; `touched` indexes are the default import choice for immediate query correctness
-without a whole-schema rebuild.
+notification cost; `syncMode: 'defer'` is available for runtimes that can coalesce outbound
+replication. `touched` indexes are the default import choice for immediate query correctness without a
+whole-schema rebuild.
 
 ### `useNode` -- Rich Text Editing
 

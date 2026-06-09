@@ -149,13 +149,17 @@ export async function stageSocialArchive(archivePath: string) {
 
 Committing staged records from a renderer or service layer should happen after review. The package
 exports `buildSocialCommitOperations` and `commitStagedSocialNodes` for NodeStore-backed callers.
-Source records can be stored when provenance, replay, or auditability matters; they can also be
-omitted when the user wants only canonical graph data.
+Source records can be committed as graph nodes when provenance, replay, or auditability needs to be
+queryable. Large imports should usually start with `sourceRecordMode: 'sidecar'`: canonical graph
+nodes keep source IDs and paths, while raw source records are reserved for a sidecar provenance store
+instead of doubling the node write volume. `sourceRecordMode: 'skip'` is available when the user wants
+only canonical graph data.
 
 Large archive surfaces should prefer deterministic batch writes over one-node-at-a-time mutations.
 Web and Electron route staged `SocialImportNodeDraft` records through `NodeStore.batchWrite()` /
-`useMutate().bulk()` with `indexMode: 'touched'`, then report preflight, materialization, storage
-apply, notification, row-count, and rate metrics to the commit progress UI.
+`useMutate().bulk()` with `indexMode: 'touched'`, `notificationMode: 'batch'`, and deferred sync.
+They report preflight, materialization, storage apply, notification, row-count, and rate
+metrics to the commit progress UI.
 
 ```mermaid
 flowchart LR

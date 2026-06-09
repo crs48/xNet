@@ -2032,6 +2032,8 @@ describe('social import adapters', () => {
       const [complete] = completeResults
       expect(complete?.recordCount).toBe(2)
       expect(complete?.sourceRecordCount).toBe(1)
+      expect(complete?.sourceRecordMode).toBe('sidecar')
+      expect(complete?.sidecarSourceRecordCount).toBe(1)
       expect(complete?.canonicalRecordCount).toBe(1)
       expect(complete).not.toHaveProperty('records')
     })
@@ -2128,6 +2130,8 @@ describe('social import adapters', () => {
       expect(result.limitReached).toBe(true)
       expect(result.processedRecordCount).toBe(2)
       expect(result.sourceRecordCount).toBe(1)
+      expect(result.sourceRecordMode).toBe('sidecar')
+      expect(result.sidecarSourceRecordCount).toBe(1)
       expect(result.canonicalRecordCount).toBe(1)
       expect(result.summary.totalRecords).toBe(2)
     })

@@ -17,6 +17,7 @@ import type {
   ApplyNodeBatchResult,
   DeterministicNodeImportDraft,
   ImportDeterministicNodesResult,
+  NodeBatchWritePolicy,
   NodeBatchWriteTimings,
   NodeChange
 } from '@xnetjs/data'
@@ -145,6 +146,7 @@ type ImportDeterministicNodesOptions = {
   drafts: DeterministicNodeImportDraft[]
   authorDID: string
   signingKey: number[]
+  policy?: Partial<NodeBatchWritePolicy>
 }
 
 type ImportDeterministicNodesSummary = {
@@ -1660,7 +1662,8 @@ export function createDataService(config: DataServiceConfig): DataService {
         await store.initialize()
 
         const result: ImportDeterministicNodesResult = await store.importDeterministicNodes(
-          options.drafts
+          options.drafts,
+          { indexMode: options.policy?.indexMode ?? 'touched' }
         )
         sendEvent('nodes:change', { changes: result.changes.map(serializeNodeChange) })
 
