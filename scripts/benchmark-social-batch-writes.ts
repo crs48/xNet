@@ -59,6 +59,7 @@ type QueryCheck = {
   scalarQueryRows: number
   scalarQueryPlan: string
   scalarQueryMs: number
+  skippedScalarQuery: boolean
 }
 
 type BenchmarkResult = {
@@ -243,11 +244,10 @@ async function benchmarkRuntime(input: {
     }
 
     const totalMs = performance.now() - startedAt
-    const queryCheck = await verifyTouchedIndexes(
-      runtimeStore.store,
-      runtimeStore.adapter,
-      input.count
-    )
+    const queryCheck =
+      input.options.policy.indexMode === 'defer-schema'
+        ? await verifyNodeCountOnly(runtimeStore.adapter, input.count)
+        : await verifyTouchedIndexes(runtimeStore.store, runtimeStore.adapter, input.count)
     const databaseSizeBytes = await runtimeStore.db.getDatabaseSize()
 
     return {
@@ -378,7 +378,29 @@ async function verifyTouchedIndexes(
     nodeCount,
     scalarQueryRows: queryResult.nodes.length,
     scalarQueryPlan: queryResult.plan.strategy,
-    scalarQueryMs
+    scalarQueryMs,
+    skippedScalarQuery: false
+  }
+}
+
+async function verifyNodeCountOnly(
+  adapter: SQLiteNodeStorageAdapter,
+  expectedCount: number
+): Promise<QueryCheck> {
+  const nodeCount = await adapter.countNodes({
+    schemaId: SOCIAL_CONTENT_SCHEMA_ID,
+    includeDeleted: false
+  })
+  if (nodeCount !== expectedCount) {
+    throw new Error(`Expected ${expectedCount} imported nodes, found ${nodeCount}`)
+  }
+
+  return {
+    nodeCount,
+    scalarQueryRows: 0,
+    scalarQueryPlan: 'skipped-deferred-index',
+    scalarQueryMs: 0,
+    skippedScalarQuery: true
   }
 }
 
