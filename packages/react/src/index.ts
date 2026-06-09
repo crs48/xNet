@@ -86,6 +86,7 @@ export {
   type SavedViewSortDirection
 } from './components/SavedViewRunner'
 export {
+  deriveCachedSavedViewVisualPreviews,
   createSavedViewCanvasProjectionNodes,
   createSavedViewVisualPreviewFingerprint,
   deriveSavedViewTimelineBuckets,

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createSavedViewCanvasProjectionNodes,
   createSavedViewVisualPreviewFingerprint,
+  deriveCachedSavedViewVisualPreviews,
   deriveSavedViewTimelineBuckets,
   deriveSavedViewVisualPreview,
   deriveSavedViewVisualPreviews,
@@ -229,5 +230,32 @@ describe('saved view visual previews', () => {
     })
 
     expect(first).not.toBe(second)
+  })
+
+  it('caches preview derivation by descriptor, query, and row versions', () => {
+    const input = {
+      descriptor: {
+        version: 1,
+        title: 'Content',
+        query: { version: 1, kind: 'node', schemaId: 'xnet://schema/content' }
+      } as const,
+      query: {
+        queryId: 'content',
+        rowRole: 'Social Content',
+        schemaId: 'xnet://schema/content',
+        schemaName: 'Social Content'
+      },
+      rows: [{ id: 'content-1', updatedAt: 1, title: 'Cached item' }]
+    }
+
+    const first = deriveCachedSavedViewVisualPreviews(input)
+    const second = deriveCachedSavedViewVisualPreviews(input)
+    const changed = deriveCachedSavedViewVisualPreviews({
+      ...input,
+      rows: [{ id: 'content-1', updatedAt: 2, title: 'Cached item' }]
+    })
+
+    expect(second).toBe(first)
+    expect(changed).not.toBe(first)
   })
 })

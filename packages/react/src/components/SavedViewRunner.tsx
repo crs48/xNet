@@ -16,26 +16,43 @@ import type {
 } from '@xnetjs/data'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode, JSX } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   CalendarDays,
   ChevronDown,
   ChevronRight,
   Columns3,
+  ExternalLink,
   FileSearch,
   Filter,
   GitBranch,
+  Image,
   Info,
+  LayoutGrid,
+  Link,
   Loader2,
+  MessageSquare,
   Network,
+  Play,
   RefreshCw,
   Search,
   Save,
   Shield,
   Table,
+  UserRound,
   X
 } from 'lucide-react'
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useSavedView } from '../hooks/useSavedView'
+import {
+  deriveCachedSavedViewVisualPreviews,
+  deriveSavedViewTimelineBuckets,
+  hasSavedViewVisualPreviewSensitiveData,
+  isSavedViewVisualPreviewEmbeddable,
+  type SavedViewVisualPreviewKind,
+  type SavedViewVisualPreviewModel,
+  type SavedViewVisualTimelineBucket
+} from './savedViewVisualPreview'
 
 export type SavedViewRunnerProps = {
   descriptor?: SavedViewDescriptor | string | null
@@ -172,10 +189,24 @@ export type SavedViewGraphLensNode = SavedViewGraphLensSelection & {
   sourceRecordId: string | null
 }
 
+export type SavedViewPresentationMode = 'table' | 'cards' | 'timeline' | 'canvas' | 'graph'
+
+type SavedViewPresentationModeOption = {
+  mode: SavedViewPresentationMode
+  label: string
+  description: string
+  icon: LucideIcon
+  enabled: boolean
+}
+
 type SortDirection = SavedViewSortDirection
 
 const DEFAULT_PAGE_SIZE = 25
 const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const
+const DEFAULT_VISUAL_GRID_COLUMNS = 3
+const VISUAL_GRID_ROW_HEIGHT = 318
+const VISUAL_GRID_OVERSCAN = 4
+const TIMELINE_PREVIEW_LIMIT_PER_BUCKET = 18
 const MAX_FACET_FIELDS = 5
 const MAX_FACET_VALUES = 8
 const MAX_FACET_DISTINCT_VALUES = 16
@@ -786,6 +817,8 @@ export function SavedViewRunner({
     field: null,
     bucketKeys: []
   })
+  const [presentationMode, setPresentationMode] = useState<SavedViewPresentationMode>('table')
+  const [activeEmbedPreviewId, setActiveEmbedPreviewId] = useState<string | null>(null)
   const [saveLensState, setSaveLensState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveLensError, setSaveLensError] = useState<string | null>(null)
   const descriptorKey = useMemo(() => descriptorKeyFor(descriptor), [descriptor])
@@ -864,6 +897,39 @@ export function SavedViewRunner({
     () => (activeQuery ? { ...activeQuery, data: filteredRows } : null),
     [activeQuery, filteredRows]
   )
+  const visualPreviews = useMemo(
+    () =>
+      deriveCachedSavedViewVisualPreviews({
+        descriptor: result.descriptor ?? descriptor,
+        query: activeQuery
+          ? {
+              queryId: activeQuery.queryId,
+              rowRole: activeQuery.rowRole,
+              schemaId: activeQuery.schemaId,
+              schemaName: activeQuery.schemaName
+            }
+          : null,
+        rows: filteredRows as Record<string, unknown>[]
+      }),
+    [activeQuery, descriptor, filteredRows, result.descriptor]
+  )
+  const timelineBuckets = useMemo(
+    () => deriveSavedViewTimelineBuckets(visualPreviews),
+    [visualPreviews]
+  )
+  const presentationModeOptions = useMemo(
+    () =>
+      createSavedViewPresentationModeOptions({
+        resultKind: result.kind,
+        previewCount: visualPreviews.length,
+        timelineBucketCount: timelineBuckets.length,
+        relationshipCount: visualPreviews.reduce(
+          (count, preview) => count + preview.relationships.length,
+          0
+        )
+      }),
+    [result.kind, timelineBuckets.length, visualPreviews]
+  )
   const inspectedRow = useMemo<Record<string, unknown> | null>(() => {
     if (!expandedRowId) return null
 
@@ -891,6 +957,8 @@ export function SavedViewRunner({
     setVisibleColumns([])
     setFacetSelection({})
     setDateBrushSelection({ field: null, bucketKeys: [] })
+    setPresentationMode('table')
+    setActiveEmbedPreviewId(null)
     setSaveLensState('idle')
     setSaveLensError(null)
   }, [initialPageSize, resetIdentity])
@@ -908,11 +976,13 @@ export function SavedViewRunner({
 
   useEffect(() => {
     setExpandedRowId(null)
+    setActiveEmbedPreviewId(null)
   }, [pageSize, searchText, sortDirection, sortField])
 
   useEffect(() => {
     setFacetSelection({})
     setDateBrushSelection({ field: null, bucketKeys: [] })
+    setActiveEmbedPreviewId(null)
     setSaveLensState('idle')
     setSaveLensError(null)
   }, [activeQueryId, searchText, sortDirection, sortField])
@@ -921,6 +991,20 @@ export function SavedViewRunner({
     setSaveLensState('idle')
     setSaveLensError(null)
   }, [dateBrushSelection, facetSelection])
+
+  useEffect(() => {
+    const activeOption = presentationModeOptions.find((option) => option.mode === presentationMode)
+    if (!activeOption?.enabled) {
+      setPresentationMode('table')
+    }
+  }, [presentationMode, presentationModeOptions])
+
+  useEffect(() => {
+    if (!activeEmbedPreviewId) return
+    if (!visualPreviews.some((preview) => preview.id === activeEmbedPreviewId)) {
+      setActiveEmbedPreviewId(null)
+    }
+  }, [activeEmbedPreviewId, visualPreviews])
 
   useEffect(() => {
     setVisibleColumns((current) => {
@@ -1209,13 +1293,51 @@ export function SavedViewRunner({
         onClear={() => setDateBrushSelection({ field: null, bucketKeys: [] })}
       />
 
+      <SavedViewPresentationModeSwitcher
+        modes={presentationModeOptions}
+        activeMode={presentationMode}
+        onSelectMode={setPresentationMode}
+      />
+
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <SavedViewResultTable
-          query={displayedQuery}
-          columns={visibleColumns}
-          expandedRowId={expandedRowId}
-          onToggleRow={(rowId) => setExpandedRowId((current) => (current === rowId ? null : rowId))}
-        />
+        {presentationMode === 'cards' ? (
+          <SavedViewVisualGrid
+            previews={visualPreviews}
+            selectedSourceNodeId={expandedRowId}
+            activeEmbedPreviewId={activeEmbedPreviewId}
+            onSelectPreview={(preview) =>
+              setExpandedRowId((current) =>
+                current === preview.sourceNodeId ? null : preview.sourceNodeId
+              )
+            }
+            onToggleLiveEmbed={(preview) =>
+              setActiveEmbedPreviewId((current) => (current === preview.id ? null : preview.id))
+            }
+          />
+        ) : presentationMode === 'timeline' ? (
+          <SavedViewVisualTimeline
+            buckets={timelineBuckets}
+            selectedSourceNodeId={expandedRowId}
+            activeEmbedPreviewId={activeEmbedPreviewId}
+            onSelectPreview={(preview) =>
+              setExpandedRowId((current) =>
+                current === preview.sourceNodeId ? null : preview.sourceNodeId
+              )
+            }
+            onToggleLiveEmbed={(preview) =>
+              setActiveEmbedPreviewId((current) => (current === preview.id ? null : preview.id))
+            }
+          />
+        ) : (
+          <SavedViewResultTable
+            query={displayedQuery}
+            columns={visibleColumns}
+            expandedRowId={expandedRowId}
+            onToggleRow={(rowId) =>
+              setExpandedRowId((current) => (current === rowId ? null : rowId))
+            }
+          />
+        )}
         <SavedViewRowInspector row={inspectedRow} query={activeQuery} />
       </div>
 
@@ -1330,6 +1452,498 @@ export function SavedViewGraphLensPanel({
       </div>
     </div>
   )
+}
+
+function createSavedViewPresentationModeOptions(input: {
+  resultKind: UseSavedViewResult['kind']
+  previewCount: number
+  timelineBucketCount: number
+  relationshipCount: number
+}): SavedViewPresentationModeOption[] {
+  return [
+    {
+      mode: 'table',
+      label: 'Table',
+      description: 'Inspect rows and fields',
+      icon: Table,
+      enabled: true
+    },
+    {
+      mode: 'cards',
+      label: 'Cards',
+      description: 'Browse visual previews',
+      icon: LayoutGrid,
+      enabled: input.previewCount > 0
+    },
+    {
+      mode: 'timeline',
+      label: 'Timeline',
+      description: 'Group visible records by month',
+      icon: CalendarDays,
+      enabled: input.timelineBucketCount > 0
+    }
+  ]
+}
+
+function SavedViewPresentationModeSwitcher({
+  modes,
+  activeMode,
+  onSelectMode
+}: {
+  modes: SavedViewPresentationModeOption[]
+  activeMode: SavedViewPresentationMode
+  onSelectMode: (mode: SavedViewPresentationMode) => void
+}): JSX.Element {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-secondary/20 p-2">
+      <div className="flex flex-wrap gap-1">
+        {modes.map((mode) => {
+          const active = activeMode === mode.mode
+          const Icon = mode.icon
+
+          return (
+            <button
+              key={mode.mode}
+              type="button"
+              disabled={!mode.enabled}
+              onClick={() => onSelectMode(mode.mode)}
+              title={mode.description}
+              className={classNames([
+                'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors',
+                active
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:bg-background hover:text-foreground',
+                !mode.enabled && 'cursor-not-allowed opacity-45 hover:bg-transparent'
+              ])}
+            >
+              <Icon size={14} />
+              {mode.label}
+            </button>
+          )
+        })}
+      </div>
+      <span className="px-2 text-xs text-muted-foreground">
+        Switch the same saved view between queryable and visual layouts.
+      </span>
+    </div>
+  )
+}
+
+function chunkVisualPreviews(
+  previews: readonly SavedViewVisualPreviewModel[],
+  columnCount = DEFAULT_VISUAL_GRID_COLUMNS
+): SavedViewVisualPreviewModel[][] {
+  const rows: SavedViewVisualPreviewModel[][] = []
+
+  for (let index = 0; index < previews.length; index += columnCount) {
+    rows.push(previews.slice(index, index + columnCount))
+  }
+
+  return rows
+}
+
+function SavedViewVisualGrid({
+  previews,
+  selectedSourceNodeId,
+  activeEmbedPreviewId,
+  onSelectPreview,
+  onToggleLiveEmbed
+}: {
+  previews: SavedViewVisualPreviewModel[]
+  selectedSourceNodeId: string | null
+  activeEmbedPreviewId: string | null
+  onSelectPreview: (preview: SavedViewVisualPreviewModel) => void
+  onToggleLiveEmbed: (preview: SavedViewVisualPreviewModel) => void
+}): JSX.Element {
+  const parentRef = useRef<HTMLDivElement | null>(null)
+  const rows = useMemo(() => chunkVisualPreviews(previews), [previews])
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => VISUAL_GRID_ROW_HEIGHT,
+    initialRect: { width: 1024, height: 640 },
+    overscan: VISUAL_GRID_OVERSCAN
+  })
+  const virtualRows = virtualizer.getVirtualItems()
+  const renderedRows =
+    virtualRows.length > 0
+      ? virtualRows.map((virtualRow) => ({
+          key: virtualRow.key,
+          index: virtualRow.index,
+          start: virtualRow.start
+        }))
+      : rows.slice(0, VISUAL_GRID_OVERSCAN).map((_, index) => ({
+          key: `initial-${index}`,
+          index,
+          start: index * VISUAL_GRID_ROW_HEIGHT
+        }))
+
+  if (previews.length === 0) {
+    return (
+      <div className="flex h-56 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
+        No visual previews for these loaded rows.
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-background">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <LayoutGrid size={14} className="text-muted-foreground" />
+          <span>Visual Cards</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {previews.length.toLocaleString()} previews
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          Live embeds mount only after activation.
+        </span>
+      </div>
+      <div ref={parentRef} className="h-[640px] overflow-auto">
+        <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
+          {renderedRows.map((virtualRow) => (
+            <SavedViewVisualGridRow
+              key={virtualRow.key}
+              start={virtualRow.start}
+              previews={rows[virtualRow.index] ?? []}
+              selectedSourceNodeId={selectedSourceNodeId}
+              activeEmbedPreviewId={activeEmbedPreviewId}
+              onSelectPreview={onSelectPreview}
+              onToggleLiveEmbed={onToggleLiveEmbed}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SavedViewVisualGridRow({
+  start,
+  previews,
+  selectedSourceNodeId,
+  activeEmbedPreviewId,
+  onSelectPreview,
+  onToggleLiveEmbed
+}: {
+  start: number
+  previews: SavedViewVisualPreviewModel[]
+  selectedSourceNodeId: string | null
+  activeEmbedPreviewId: string | null
+  onSelectPreview: (preview: SavedViewVisualPreviewModel) => void
+  onToggleLiveEmbed: (preview: SavedViewVisualPreviewModel) => void
+}): JSX.Element {
+  return (
+    <div
+      className="absolute left-0 top-0 grid w-full gap-3 p-3 md:grid-cols-2 xl:grid-cols-3"
+      style={{ transform: `translateY(${start}px)` }}
+    >
+      {previews.map((preview) => (
+        <SavedViewVisualPreviewCard
+          key={preview.id}
+          preview={preview}
+          selected={selectedSourceNodeId === preview.sourceNodeId}
+          live={activeEmbedPreviewId === preview.id}
+          onSelect={() => onSelectPreview(preview)}
+          onToggleLiveEmbed={() => onToggleLiveEmbed(preview)}
+        />
+      ))}
+    </div>
+  )
+}
+
+function SavedViewVisualTimeline({
+  buckets,
+  selectedSourceNodeId,
+  activeEmbedPreviewId,
+  onSelectPreview,
+  onToggleLiveEmbed
+}: {
+  buckets: SavedViewVisualTimelineBucket[]
+  selectedSourceNodeId: string | null
+  activeEmbedPreviewId: string | null
+  onSelectPreview: (preview: SavedViewVisualPreviewModel) => void
+  onToggleLiveEmbed: (preview: SavedViewVisualPreviewModel) => void
+}): JSX.Element {
+  const parentRef = useRef<HTMLDivElement | null>(null)
+  const virtualizer = useVirtualizer({
+    count: buckets.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 390,
+    initialRect: { width: 1024, height: 640 },
+    overscan: 2
+  })
+  const virtualRows = virtualizer.getVirtualItems()
+  const renderedRows =
+    virtualRows.length > 0
+      ? virtualRows.map((virtualRow) => ({
+          key: virtualRow.key,
+          index: virtualRow.index,
+          start: virtualRow.start
+        }))
+      : buckets.slice(0, 3).map((_, index) => ({
+          key: `initial-${index}`,
+          index,
+          start: index * 390
+        }))
+
+  if (buckets.length === 0) {
+    return (
+      <div className="flex h-56 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
+        No timestamped rows for a visual timeline.
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-background">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <CalendarDays size={14} className="text-muted-foreground" />
+          <span>Visual Timeline</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {buckets.length.toLocaleString()} buckets
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          Showing up to {TIMELINE_PREVIEW_LIMIT_PER_BUCKET} previews per bucket.
+        </span>
+      </div>
+      <div ref={parentRef} className="h-[640px] overflow-auto">
+        <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
+          {renderedRows.map((virtualRow) => {
+            const bucket = buckets[virtualRow.index]
+            if (!bucket) return null
+
+            return (
+              <section
+                key={virtualRow.key}
+                className="absolute left-0 top-0 w-full p-3"
+                style={{ transform: `translateY(${virtualRow.start}px)` }}
+              >
+                <div className="rounded-md border border-border bg-secondary/20 p-3">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold">{bucket.label}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {bucket.count.toLocaleString()} records
+                      </p>
+                    </div>
+                    <div className="h-2 min-w-24 flex-1 rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-foreground"
+                        style={{
+                          width: `${Math.max(
+                            6,
+                            Math.min(
+                              100,
+                              (bucket.count / Math.max(...buckets.map((b) => b.count))) * 100
+                            )
+                          )}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {bucket.previews.slice(0, TIMELINE_PREVIEW_LIMIT_PER_BUCKET).map((preview) => (
+                      <SavedViewVisualPreviewCard
+                        key={preview.id}
+                        preview={preview}
+                        selected={selectedSourceNodeId === preview.sourceNodeId}
+                        live={activeEmbedPreviewId === preview.id}
+                        compact
+                        onSelect={() => onSelectPreview(preview)}
+                        onToggleLiveEmbed={() => onToggleLiveEmbed(preview)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SavedViewVisualPreviewCard({
+  preview,
+  selected,
+  live,
+  compact = false,
+  onSelect,
+  onToggleLiveEmbed
+}: {
+  preview: SavedViewVisualPreviewModel
+  selected: boolean
+  live: boolean
+  compact?: boolean
+  onSelect: () => void
+  onToggleLiveEmbed: () => void
+}): JSX.Element {
+  const embeddable = isSavedViewVisualPreviewEmbeddable(preview)
+  const sensitive = hasSavedViewVisualPreviewSensitiveData(preview)
+  const Icon = iconForVisualPreviewKind(preview.kind)
+  const timestampLabel = preview.timestamp ? new Date(preview.timestamp).toLocaleString() : null
+  const metricEntries = Object.entries(preview.metrics).slice(0, 2)
+
+  return (
+    <article
+      className={classNames([
+        'min-w-0 overflow-hidden rounded-md border bg-background shadow-sm transition-colors',
+        selected ? 'border-foreground' : 'border-border hover:border-foreground/40'
+      ])}
+      style={{ contentVisibility: 'auto', containIntrinsicSize: compact ? '220px' : '300px' }}
+    >
+      {live && embeddable ? (
+        <div className="aspect-video border-b border-border bg-black">
+          <iframe
+            title={preview.title}
+            src={preview.embedUrl}
+            loading="lazy"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"
+            referrerPolicy="strict-origin-when-cross-origin"
+            className="h-full w-full"
+          />
+        </div>
+      ) : preview.thumbnailUrl && preview.privacy === 'public' ? (
+        <button
+          type="button"
+          onClick={onSelect}
+          className="group relative block aspect-video w-full overflow-hidden border-b border-border bg-muted text-left"
+          aria-label={`Inspect ${preview.title}`}
+        >
+          <img
+            src={preview.thumbnailUrl}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+          />
+          <span className="absolute left-2 top-2 rounded-md bg-background/90 px-2 py-1 text-xs font-medium">
+            {providerLabel(preview)}
+          </span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex aspect-video w-full items-center justify-center border-b border-border bg-secondary/40 text-muted-foreground"
+          aria-label={`Inspect ${preview.title}`}
+        >
+          <div className="flex flex-col items-center gap-2">
+            <Icon size={compact ? 20 : 28} />
+            <span className="max-w-[14rem] truncate text-xs">{providerLabel(preview)}</span>
+          </div>
+        </button>
+      )}
+
+      <div className="space-y-3 p-3">
+        <div className="flex items-start justify-between gap-2">
+          <button
+            type="button"
+            onClick={onSelect}
+            className="min-w-0 flex-1 text-left"
+            aria-label={`Inspect ${preview.title}`}
+          >
+            <h3 className="line-clamp-2 text-sm font-semibold leading-5">{preview.title}</h3>
+            {preview.subtitle ? (
+              <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{preview.subtitle}</p>
+            ) : null}
+          </button>
+          <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+            {preview.kind}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+          {preview.creator ? (
+            <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-secondary px-2 py-1">
+              <UserRound size={11} />
+              <span className="truncate">{preview.creator.label}</span>
+            </span>
+          ) : null}
+          {timestampLabel ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1">
+              <CalendarDays size={11} />
+              {timestampLabel}
+            </span>
+          ) : null}
+          <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1">
+            <Shield size={11} />
+            {preview.privacy}
+          </span>
+          {metricEntries.map(([metric, value]) => (
+            <span key={metric} className="rounded-md bg-secondary px-2 py-1">
+              {metric}: {value.toLocaleString()}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onSelect}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-accent"
+          >
+            <FileSearch size={12} />
+            Inspect
+          </button>
+          {preview.url ? (
+            <a
+              href={preview.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-accent"
+            >
+              <ExternalLink size={12} />
+              Open
+            </a>
+          ) : null}
+          {embeddable ? (
+            <button
+              type="button"
+              onClick={onToggleLiveEmbed}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-accent"
+            >
+              {live ? <Image size={12} /> : <Play size={12} />}
+              {live ? 'Preview' : 'Live'}
+            </button>
+          ) : sensitive ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-1 text-xs text-muted-foreground">
+              <Shield size={12} />
+              Local preview
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function iconForVisualPreviewKind(kind: SavedViewVisualPreviewKind): LucideIcon {
+  switch (kind) {
+    case 'actor':
+      return UserRound
+    case 'message':
+      return MessageSquare
+    case 'reference':
+      return Link
+    case 'interaction':
+      return GitBranch
+    case 'collection':
+      return Columns3
+    case 'content':
+      return Image
+    case 'record':
+      return FileSearch
+  }
+}
+
+function providerLabel(preview: SavedViewVisualPreviewModel): string {
+  if (preview.provider && preview.provider !== 'generic') return preview.provider
+  return preview.platform
 }
 
 function SavedViewFacetShelf({

@@ -399,6 +399,138 @@ describe('SavedViewRunner helpers', () => {
 })
 
 describe('SavedViewRunner', () => {
+  it('switches a saved view into visual card mode and inspects selected cards', async () => {
+    const descriptor: SavedViewDescriptor = {
+      version: 1,
+      title: 'Content',
+      scope: 'workspace',
+      query: {
+        version: 1,
+        kind: 'node',
+        schemaId: 'xnet://schema/social/content',
+        page: { first: 25, count: 'estimate' }
+      }
+    }
+    const query = createQueryResult({
+      data: [
+        {
+          id: 'content-1',
+          schemaId: 'xnet://schema/social/content',
+          createdAt: 1,
+          createdBy: 'did:key:test',
+          updatedAt: 1,
+          updatedBy: 'did:key:test',
+          deleted: false,
+          title: 'Saved video',
+          platform: 'youtube',
+          contentKind: 'video',
+          canonicalUrl: 'https://www.youtube.com/watch?v=abc123',
+          actorHandle: '@creator',
+          privacyClass: 'public',
+          visibility: 'public'
+        }
+      ]
+    })
+
+    vi.mocked(useSavedView).mockReturnValue({
+      descriptor,
+      validation: { valid: true, errors: [] },
+      kind: 'node',
+      status: 'success',
+      loading: false,
+      error: null,
+      title: 'Content',
+      description: 'Imported content',
+      primaryQueryId: 'primary',
+      queryIds: ['primary'],
+      queries: { primary: query },
+      primary: query,
+      blockers: [],
+      warnings: [],
+      privacy: {
+        counts: {},
+        sensitiveCount: 0
+      },
+      reload: vi.fn()
+    })
+
+    render(<SavedViewRunner descriptor={descriptor} registry={[]} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cards' }))
+
+    expect(screen.getByText('Visual Cards')).toBeTruthy()
+    expect(await screen.findByText('Saved video')).toBeTruthy()
+    expect((await screen.findAllByText('@creator')).length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect' }))
+
+    const inspector = screen.getByText('Inspector').closest('aside')
+    expect(inspector).toBeTruthy()
+    expect(within(inspector as HTMLElement).getByText('content-1')).toBeTruthy()
+  })
+
+  it('switches timestamped rows into a visual timeline', async () => {
+    const firstMonth = Date.UTC(2026, 0, 2)
+    const descriptor: SavedViewDescriptor = {
+      version: 1,
+      title: 'Content',
+      scope: 'workspace',
+      query: {
+        version: 1,
+        kind: 'node',
+        schemaId: 'xnet://schema/social/content',
+        page: { first: 25, count: 'estimate' }
+      }
+    }
+    const query = createQueryResult({
+      data: [
+        {
+          id: 'content-1',
+          schemaId: 'xnet://schema/social/content',
+          createdAt: 1,
+          createdBy: 'did:key:test',
+          updatedAt: 1,
+          updatedBy: 'did:key:test',
+          deleted: false,
+          title: 'Saved video',
+          platform: 'youtube',
+          contentKind: 'video',
+          publishedAt: firstMonth,
+          privacyClass: 'public'
+        }
+      ]
+    })
+
+    vi.mocked(useSavedView).mockReturnValue({
+      descriptor,
+      validation: { valid: true, errors: [] },
+      kind: 'node',
+      status: 'success',
+      loading: false,
+      error: null,
+      title: 'Content',
+      description: 'Imported content',
+      primaryQueryId: 'primary',
+      queryIds: ['primary'],
+      queries: { primary: query },
+      primary: query,
+      blockers: [],
+      warnings: [],
+      privacy: {
+        counts: {},
+        sensitiveCount: 0
+      },
+      reload: vi.fn()
+    })
+
+    render(<SavedViewRunner descriptor={descriptor} registry={[]} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Timeline' }))
+
+    expect(screen.getByText('Visual Timeline')).toBeTruthy()
+    expect(await screen.findByText('Saved video')).toBeTruthy()
+  })
+
   it('opens a selected graph lens source record in the shared inspector', () => {
     const descriptor: SavedViewDescriptor = {
       version: 1,

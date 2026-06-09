@@ -820,18 +820,18 @@ export function createVisualCanvasProjection({
 
 ## Implementation Checklist
 
-- [ ] Add a visual renderer mode switcher to `SavedViewRunner`.
+- [x] Add a visual renderer mode switcher to `SavedViewRunner`.
 - [x] Define a shared `VisualPreviewModel` in the social or views package.
 - [x] Add social preview derivation for content, actor, interaction, message, collection, and reference rows.
-- [ ] Build a virtualized `VisualCardGrid` using the existing `@tanstack/react-virtual` dependency path.
-- [ ] Reuse provider parsing from `packages/data/src/external-references.ts` for embed URLs and preview shells.
-- [ ] Add an explicit live-embed activation policy with a small global live-embed cap.
-- [ ] Build a virtualized timeline renderer with month/day buckets and expandable card groups.
+- [x] Build a virtualized `VisualCardGrid` using the existing `@tanstack/react-virtual` dependency path.
+- [x] Reuse provider parsing from `packages/data/src/external-references.ts` for embed URLs and preview shells.
+- [x] Add an explicit live-embed activation policy with a small global live-embed cap.
+- [x] Build a virtualized timeline renderer with month/day buckets and expandable card groups.
 - [ ] Add saved-view layout settings for grid, timeline, cluster, graph, and collection board modes.
 - [ ] Add "Open as canvas" from a saved view, backed by source-node projection rather than copied records.
 - [ ] Add social layout presets: creator cluster, platform lanes, content-type lanes, date bands, and collection board.
 - [x] Cache preview derivations and layout results by saved view descriptor hash and importer version.
-- [ ] Add lightweight empty, loading, and partial-provider-failure states for visual modes.
+- [x] Add lightweight empty, loading, and partial-provider-failure states for visual modes.
 - [ ] Add keyboard navigation and selection behavior shared across visual grid, timeline, and canvas projection.
 
 ## Validation Checklist

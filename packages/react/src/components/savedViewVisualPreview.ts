@@ -153,6 +153,8 @@ const RELATIONSHIP_FIELDS = [
 
 const MAX_TITLE_LENGTH = 140
 const MAX_SUBTITLE_LENGTH = 180
+const MAX_PREVIEW_CACHE_ENTRIES = 32
+const savedViewVisualPreviewCache = new Map<string, SavedViewVisualPreviewModel[]>()
 
 function stringValue(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -469,6 +471,32 @@ export function deriveSavedViewVisualPreviews(
   query?: Pick<SavedViewQueryResult, 'queryId' | 'rowRole' | 'schemaId' | 'schemaName'> | null
 ): SavedViewVisualPreviewModel[] {
   return rows.map((row) => deriveSavedViewVisualPreview(row, query))
+}
+
+export function deriveCachedSavedViewVisualPreviews(input: {
+  descriptor?: SavedViewDescriptor | string | null
+  query?: Pick<SavedViewQueryResult, 'queryId' | 'rowRole' | 'schemaId' | 'schemaName'> | null
+  rows: readonly Readonly<Record<string, unknown>>[]
+}): SavedViewVisualPreviewModel[] {
+  const key = createSavedViewVisualPreviewFingerprint(input)
+  const cached = savedViewVisualPreviewCache.get(key)
+
+  if (cached) {
+    savedViewVisualPreviewCache.delete(key)
+    savedViewVisualPreviewCache.set(key, cached)
+    return cached
+  }
+
+  const previews = deriveSavedViewVisualPreviews(input.rows, input.query)
+  savedViewVisualPreviewCache.set(key, previews)
+
+  while (savedViewVisualPreviewCache.size > MAX_PREVIEW_CACHE_ENTRIES) {
+    const oldestKey = savedViewVisualPreviewCache.keys().next().value
+    if (oldestKey === undefined) break
+    savedViewVisualPreviewCache.delete(oldestKey)
+  }
+
+  return previews
 }
 
 export function createSavedViewVisualPreviewFingerprint(input: {
