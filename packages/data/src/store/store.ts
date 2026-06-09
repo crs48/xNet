@@ -32,7 +32,9 @@ import type {
   ContentKeyCache,
   DeterministicNodeImportDraft,
   ImportDeterministicNodesOptions,
-  ImportDeterministicNodesResult
+  ImportDeterministicNodesResult,
+  NodeBatchIndexMode,
+  NodeBatchPreflightResult
 } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
@@ -80,6 +82,15 @@ type PendingTransactionEvent = {
   change: NodeChange
   result: NodeState | null
   previousNode: NodeState | null
+}
+
+type DeterministicNodeImportPlan = {
+  created: number
+  updated: number
+  nodes: NodeState[]
+  changes: NodeChange[]
+  events: PendingTransactionEvent[]
+  affectedSchemaIds: SchemaIRI[]
 }
 
 /**
@@ -765,11 +776,44 @@ export class NodeStore {
     const batchSize = drafts.length
     const now = Date.now()
     const previousClock = this.clock
+    const indexMode = this.resolveDeterministicImportIndexMode(options)
 
     const [newClock, lamport] = tick(this.clock)
     this.clock = newClock
 
     try {
+      if (this.storage.applyNodeBatch && !this.nodeContentCipher) {
+        const result = await this.planDeterministicNodeImport({
+          drafts,
+          storage: this.storage,
+          lamport,
+          now,
+          batchId,
+          batchSize
+        })
+
+        await this.storage.applyNodeBatch({
+          batchId,
+          nodes: result.nodes,
+          changes: result.changes,
+          lastLamportTime: this.clock.time,
+          affectedSchemaIds: result.affectedSchemaIds,
+          indexMode,
+          indexProperties: true
+        })
+
+        this.emitDeterministicImportEvents(result.events)
+
+        return {
+          batchId,
+          created: result.created,
+          updated: result.updated,
+          nodes: result.nodes,
+          changes: result.changes,
+          affectedSchemaIds: result.affectedSchemaIds
+        }
+      }
+
       const run = (storage: NodeStorageAdapter) =>
         this.executeDeterministicNodeImport({
           drafts,
@@ -778,16 +822,13 @@ export class NodeStore {
           now,
           batchId,
           batchSize,
-          deferIndexes: options.deferIndexes === true
+          deferIndexes: indexMode === 'defer-schema'
         })
       const result = this.storage.withTransaction
         ? await this.storage.withTransaction(run)
         : await run(this.storage)
 
-      for (const event of result.events) {
-        this.emit(event.change, event.result, event.previousNode, false)
-        this.authEvaluator?.invalidate(event.change.payload.nodeId)
-      }
+      this.emitDeterministicImportEvents(result.events)
 
       return {
         batchId,
@@ -800,6 +841,21 @@ export class NodeStore {
     } catch (err) {
       this.clock = previousClock
       throw err
+    }
+  }
+
+  private resolveDeterministicImportIndexMode(
+    options: ImportDeterministicNodesOptions
+  ): NodeBatchIndexMode {
+    if (options.indexMode) return options.indexMode
+    if (options.deferIndexes === true) return 'defer-schema'
+    return 'touched'
+  }
+
+  private emitDeterministicImportEvents(events: readonly PendingTransactionEvent[]): void {
+    for (const event of events) {
+      this.emit(event.change, event.result, event.previousNode, false)
+      this.authEvaluator?.invalidate(event.change.payload.nodeId)
     }
   }
 
@@ -833,27 +889,18 @@ export class NodeStore {
     })
   }
 
-  private async executeDeterministicNodeImport(input: {
+  private async planDeterministicNodeImport(input: {
     drafts: readonly DeterministicNodeImportDraft[]
     storage: NodeStorageAdapter
     lamport: LamportTimestamp
     now: number
     batchId: string
     batchSize: number
-    deferIndexes: boolean
-  }): Promise<{
-    created: number
-    updated: number
-    nodes: NodeState[]
-    changes: NodeChange[]
-    events: PendingTransactionEvent[]
-    affectedSchemaIds: SchemaIRI[]
-  }> {
+  }): Promise<DeterministicNodeImportPlan> {
     const ids = input.drafts.map((draft) => draft.id)
-    const [existingNodes, lastChanges] = await Promise.all([
-      this.getNodesById(ids, input.storage),
-      this.getLastChangesByNodeId(ids, input.storage)
-    ])
+    const preflight = await this.getBatchPreflight(ids, input.storage)
+    const existingNodes = this.cloneNodeMap(preflight.nodesById)
+    const lastChanges = new Map(preflight.lastChangesByNodeId)
     const nodesById = new Map<NodeId, NodeState>(existingNodes)
     const changedIds: NodeId[] = []
     const seenChangedIds = new Set<NodeId>()
@@ -910,17 +957,31 @@ export class NodeStore {
     })
     const affectedSchemaIds = Array.from(new Set(nodes.map((node) => node.schemaId)))
 
-    await this.importMaterializedNodes(input.storage, nodes, {
+    return { created, updated, nodes, changes, events, affectedSchemaIds }
+  }
+
+  private async executeDeterministicNodeImport(input: {
+    drafts: readonly DeterministicNodeImportDraft[]
+    storage: NodeStorageAdapter
+    lamport: LamportTimestamp
+    now: number
+    batchId: string
+    batchSize: number
+    deferIndexes: boolean
+  }): Promise<DeterministicNodeImportPlan> {
+    const plan = await this.planDeterministicNodeImport(input)
+
+    await this.importMaterializedNodes(input.storage, plan.nodes, {
       deferIndexes: input.deferIndexes
     })
-    await this.appendImportedChanges(input.storage, changes)
+    await this.appendImportedChanges(input.storage, plan.changes)
     await input.storage.setLastLamportTime(this.clock.time)
 
-    for (const node of nodes) {
+    for (const node of plan.nodes) {
       await this.persistEncryptedNodeSnapshot(node, input.storage)
     }
 
-    return { created, updated, nodes, changes, events, affectedSchemaIds }
+    return plan
   }
 
   private async getNodesById(
@@ -942,6 +1003,31 @@ export class NodeStore {
       nodes.flatMap((node): [NodeId, NodeState][] => {
         const cloned = this.cloneNodeState(node)
         return cloned ? [[node.id, cloned]] : []
+      })
+    )
+  }
+
+  private async getBatchPreflight(
+    ids: readonly NodeId[],
+    storage: NodeStorageAdapter
+  ): Promise<NodeBatchPreflightResult> {
+    if (storage.getBatchPreflight) {
+      return storage.getBatchPreflight(ids)
+    }
+
+    const [nodesById, lastChangesByNodeId] = await Promise.all([
+      this.getNodesById(ids, storage),
+      this.getLastChangesByNodeId(ids, storage)
+    ])
+
+    return { nodesById, lastChangesByNodeId }
+  }
+
+  private cloneNodeMap(nodesById: ReadonlyMap<NodeId, NodeState>): Map<NodeId, NodeState> {
+    return new Map(
+      Array.from(nodesById.entries()).flatMap(([nodeId, node]): [NodeId, NodeState][] => {
+        const cloned = this.cloneNodeState(node)
+        return cloned ? [[nodeId, cloned]] : []
       })
     )
   }

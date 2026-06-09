@@ -169,9 +169,13 @@ export interface NodeStorageAdapter {
   getNodes?(ids: readonly NodeId[]): Promise<NodeState[]>
   /** Return the subset of ids that currently exist in materialized storage. */
   getExistingNodeIds?(ids: readonly NodeId[]): Promise<NodeId[]>
+  /** Return all read state needed to plan a node batch in one adapter-owned preflight. */
+  getBatchPreflight?(ids: readonly NodeId[]): Promise<NodeBatchPreflightResult>
   setNode(node: NodeState, options?: SetNodeOptions): Promise<void>
   /** Import multiple materialized nodes in one storage-owned write when supported. */
   importNodes?(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void>
+  /** Apply materialized nodes, signed changes, sync state, and batch indexes in one write. */
+  applyNodeBatch?(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult>
   /** Rebuild secondary node indexes after an import that deferred index maintenance. */
   rebuildIndexesForSchemas?(
     schemaIds: readonly SchemaIRI[],
@@ -216,6 +220,49 @@ export interface ImportNodesOptions extends SetNodeOptions {
 }
 
 export type RebuildNodeIndexesOptions = SetNodeOptions
+
+export type NodeBatchIndexMode = 'eager' | 'touched' | 'defer-schema'
+
+export interface NodeBatchPreflightResult {
+  /** Existing materialized nodes keyed by node ID. Missing node IDs are omitted. */
+  nodesById: Map<NodeId, NodeState>
+  /** Latest known change for each requested node ID. Missing node IDs are omitted. */
+  lastChangesByNodeId: Map<NodeId, NodeChange>
+}
+
+export interface ApplyNodeBatchInput extends SetNodeOptions {
+  /** Batch ID shared by all supplied changes. */
+  batchId: string
+  /** Final materialized state for changed nodes. */
+  nodes: readonly NodeState[]
+  /** Signed changes to append after materialized nodes exist. */
+  changes: readonly NodeChange[]
+  /** Last Lamport time after applying the batch. */
+  lastLamportTime: number
+  /** Schemas affected by the batch, used for index/view invalidation. */
+  affectedSchemaIds: readonly SchemaIRI[]
+  /**
+   * Secondary index strategy for this batch.
+   *
+   * - `eager`: maintain indexes through the normal per-node write path.
+   * - `touched`: skip per-node indexes, then rebuild only touched node indexes.
+   * - `defer-schema`: skip indexes so the caller can rebuild affected schemas later.
+   */
+  indexMode: NodeBatchIndexMode
+}
+
+export interface ApplyNodeBatchResult {
+  /** Number of materialized node rows written or updated. */
+  nodeRowsWritten: number
+  /** Number of property rows considered for write. */
+  propertyRowsWritten: number
+  /** Number of change rows considered for append. */
+  changeRowsWritten: number
+  /** Number of scalar index rows written. */
+  scalarRowsWritten: number
+  /** Number of full-text index rows written. */
+  ftsRowsWritten: number
+}
 
 export interface ListNodesOptions {
   /** Filter by schema IRI */
@@ -441,9 +488,16 @@ export interface DeterministicNodeImportDraft {
 
 export interface ImportDeterministicNodesOptions {
   /**
+   * Secondary index strategy for this import. Defaults to `touched`, which is
+   * optimized for bulk imports when storage supports `applyNodeBatch()`.
+   */
+  indexMode?: NodeBatchIndexMode
+  /**
    * Skip secondary index maintenance for this chunk. Call
    * `NodeStore.rebuildIndexesForSchemas()` for the affected schemas before
    * relying on indexed queries.
+   *
+   * @deprecated Prefer `indexMode: 'defer-schema'`.
    */
   deferIndexes?: boolean
 }

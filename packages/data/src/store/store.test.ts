@@ -4,6 +4,8 @@
 
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
 import type {
+  ApplyNodeBatchInput,
+  ApplyNodeBatchResult,
   ContentKeyCache,
   ImportNodesOptions,
   NodeChange,
@@ -184,20 +186,32 @@ class QueryCapableMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
 
 class TransactionTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
   transactionCalls = 0
+  applyBatchCalls = 0
 
   async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
     this.transactionCalls += 1
     return super.withTransaction(fn)
   }
+
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    this.applyBatchCalls += 1
+    return super.applyNodeBatch(input)
+  }
 }
 
 class ImportOptionsTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
   readonly importOptions: ImportNodesOptions[] = []
+  readonly applyBatchInputs: ApplyNodeBatchInput[] = []
   rebuildCalls = 0
 
   async importNodes(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void> {
     this.importOptions.push(options ?? {})
     await super.importNodes(nodes, options)
+  }
+
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    this.applyBatchInputs.push(input)
+    return super.applyNodeBatch(input)
   }
 
   async rebuildIndexesForSchemas(): Promise<void> {
@@ -963,7 +977,7 @@ describe('deterministic node import', () => {
     })
   })
 
-  it('delegates deterministic import writes to storage-owned transactions', async () => {
+  it('delegates deterministic import writes to storage-owned batch apply', async () => {
     const keyPair = generateSigningKeyPair()
     const did = createDID(keyPair.publicKey) as DID
     const adapter = new TransactionTrackingMemoryNodeStorageAdapter()
@@ -982,7 +996,8 @@ describe('deterministic node import', () => {
       }
     ])
 
-    expect(adapter.transactionCalls).toBe(1)
+    expect(adapter.applyBatchCalls).toBe(1)
+    expect(adapter.transactionCalls).toBe(0)
   })
 
   it('maintains import indexes incrementally instead of rebuilding per chunk', async () => {
@@ -1004,12 +1019,12 @@ describe('deterministic node import', () => {
       }
     ])
 
-    expect(adapter.importOptions).toHaveLength(1)
-    expect(adapter.importOptions[0]).toMatchObject({
-      indexProperties: true,
-      trustMaterializedState: true
+    expect(adapter.importOptions).toHaveLength(0)
+    expect(adapter.applyBatchInputs).toHaveLength(1)
+    expect(adapter.applyBatchInputs[0]).toMatchObject({
+      indexMode: 'touched',
+      indexProperties: true
     })
-    expect(adapter.importOptions[0]?.deferIndexes).not.toBe(true)
     expect(adapter.rebuildCalls).toBe(0)
   })
 
@@ -1036,9 +1051,10 @@ describe('deterministic node import', () => {
     )
 
     expect(result.affectedSchemaIds).toEqual([TEST_SCHEMA])
-    expect(adapter.importOptions[0]).toMatchObject({
-      deferIndexes: true,
-      trustMaterializedState: true
+    expect(adapter.importOptions).toHaveLength(0)
+    expect(adapter.applyBatchInputs[0]).toMatchObject({
+      indexMode: 'defer-schema',
+      indexProperties: true
     })
 
     await store.rebuildIndexesForSchemas(result.affectedSchemaIds)

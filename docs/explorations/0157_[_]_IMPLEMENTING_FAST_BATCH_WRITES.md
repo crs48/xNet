@@ -150,7 +150,7 @@ This matters because social import currently has to pierce through the route int
 
 ```ts
 events.length > BULK_STORE_CHANGE_RELOAD_THRESHOLD ||
-events.some((event) => (event.change.batchSize ?? 1) > BULK_STORE_CHANGE_RELOAD_THRESHOLD)
+  events.some((event) => (event.change.batchSize ?? 1) > BULK_STORE_CHANGE_RELOAD_THRESHOLD)
 ```
 
 That is useful, but NodeStore still emits one event per changed node. Consumers then coalesce after the fact. A true batch transaction system should emit a batch event first-class and let callers decide whether they need per-node detail.
@@ -492,9 +492,7 @@ export type ApplyNodeBatchResult = {
 }
 
 export interface NodeStorageAdapter {
-  getBatchPreflight?(
-    ids: readonly NodeId[]
-  ): Promise<{
+  getBatchPreflight?(ids: readonly NodeId[]): Promise<{
     nodesById: Map<NodeId, NodeState>
     lastChangesByNodeId: Map<NodeId, NodeChange>
   }>
@@ -529,12 +527,12 @@ This lets importers, AI tools, migrations, and sync restore all call one composa
 
 ### Batch Size
 
-| Choice | Benefits | Costs | Recommendation |
-| --- | --- | --- | --- |
-| 500 records | frequent progress, low memory | too many transactions | keep only for very constrained devices |
-| 2,500 records | current compromise | still many batches at 280k+ | acceptable fallback |
-| 5k-25k adaptive | fewer transactions and notifications | longer locks, more memory | recommended with progress inside storage worker |
-| one giant transaction | maximum amortization | long lock, high memory, poor recovery | only for explicit offline/import mode |
+| Choice                | Benefits                             | Costs                                 | Recommendation                                  |
+| --------------------- | ------------------------------------ | ------------------------------------- | ----------------------------------------------- |
+| 500 records           | frequent progress, low memory        | too many transactions                 | keep only for very constrained devices          |
+| 2,500 records         | current compromise                   | still many batches at 280k+           | acceptable fallback                             |
+| 5k-25k adaptive       | fewer transactions and notifications | longer locks, more memory             | recommended with progress inside storage worker |
+| one giant transaction | maximum amortization                 | long lock, high memory, poor recovery | only for explicit offline/import mode           |
 
 Recommendation: implement adaptive chunking based on observed `applyMs`, memory pressure, and UI progress cadence. A good starting policy:
 
@@ -545,32 +543,32 @@ Recommendation: implement adaptive chunking based on observed `applyMs`, memory 
 
 ### Index Policy
 
-| Policy | Query correctness after batch | Import speed | Notes |
-| --- | --- | --- | --- |
-| `eager` | immediate | slowest | good for small user actions |
-| `defer-schema` | correct after final rebuild | medium initially, slow at scale | current social-import shape |
-| `touched` | immediate for touched nodes | fast | recommended default |
-| `background` | eventually correct | fastest foreground | requires clear UI state and query fallback |
+| Policy         | Query correctness after batch | Import speed                    | Notes                                      |
+| -------------- | ----------------------------- | ------------------------------- | ------------------------------------------ |
+| `eager`        | immediate                     | slowest                         | good for small user actions                |
+| `defer-schema` | correct after final rebuild   | medium initially, slow at scale | current social-import shape                |
+| `touched`      | immediate for touched nodes   | fast                            | recommended default                        |
+| `background`   | eventually correct            | fastest foreground              | requires clear UI state and query fallback |
 
 Recommendation: make `touched` the default for imports. Use `background` only for optional FTS/adaptive indexes where stale search is acceptable for a short time.
 
 ### Notification Policy
 
-| Policy | UI behavior | Cost | Use case |
-| --- | --- | --- | --- |
-| `per-node` | fine-grained deltas | high | small edits |
-| `batch` | one batch summary and schema reload | low | imports/migrations |
-| `silent` | no live updates until explicit refresh | lowest | internal repair jobs |
+| Policy     | UI behavior                            | Cost   | Use case             |
+| ---------- | -------------------------------------- | ------ | -------------------- |
+| `per-node` | fine-grained deltas                    | high   | small edits          |
+| `batch`    | one batch summary and schema reload    | low    | imports/migrations   |
+| `silent`   | no live updates until explicit refresh | lowest | internal repair jobs |
 
 Recommendation: social import should use `batch` notifications. DataWorkspace should show progress from the job queue, then reload affected schema lenses once per committed chunk or once after final commit.
 
 ### Sync Policy
 
-| Policy | Network behavior | Cost | Risk |
-| --- | --- | --- | --- |
-| `immediate` | broadcast each change as produced | high | floods peers and hub |
-| `after-commit` | enqueue batch after local commit | medium | recommended |
-| `paused` | no automatic sync until user resumes | low | may surprise users |
+| Policy         | Network behavior                     | Cost   | Risk                 |
+| -------------- | ------------------------------------ | ------ | -------------------- |
+| `immediate`    | broadcast each change as produced    | high   | floods peers and hub |
+| `after-commit` | enqueue batch after local commit     | medium | recommended          |
+| `paused`       | no automatic sync until user resumes | low    | may surprise users   |
 
 Recommendation: queue sync after each storage commit, but coalesce upload/broadcast into batch envelopes where the sync layer supports it.
 
@@ -812,18 +810,18 @@ This can reduce social import write volume without sacrificing provenance.
 - [ ] Add batch metrics types and counters for social import commit phases.
 - [ ] Add SQL/Comlink operation counting in dev mode for web SQLite imports.
 - [ ] Add `NodeBatchWritePolicy`, `NodeBatchWriteResult`, and `NodeStore.batchWrite()` types.
-- [ ] Add `NodeStorageAdapter.getBatchPreflight()` optional capability.
-- [ ] Add `NodeStorageAdapter.applyNodeBatch()` optional capability.
-- [ ] Refactor `NodeStore.importDeterministicNodes()` to use `applyNodeBatch()` when available.
-- [ ] Preserve existing fallback behavior for memory/test adapters.
+- [x] Add `NodeStorageAdapter.getBatchPreflight()` optional capability.
+- [x] Add `NodeStorageAdapter.applyNodeBatch()` optional capability.
+- [x] Refactor `NodeStore.importDeterministicNodes()` to use `applyNodeBatch()` when available.
+- [x] Preserve existing fallback behavior for memory/test adapters.
 - [ ] Add `NodeBatchChangeEvent` or equivalent batch notification shape.
 - [ ] Update MainThreadBridge and DataWorker cache invalidation to consume batch events directly.
-- [ ] Add SQLite migrations for `idx_prop_scalars_node` and `idx_changes_node_lamport`.
+- [x] Add SQLite migrations for `idx_prop_scalars_node` and `idx_changes_node_lamport`.
 - [ ] Implement Electron `applyNodeBatch()` with prepared statements inside one transaction.
 - [ ] Implement web `SQLiteWorkerHandler.applyNodeBatch()` to run inside the SQLite worker.
-- [ ] Implement SQLite touched-node scalar index maintenance.
-- [ ] Implement SQLite touched-node FTS maintenance.
-- [ ] Coalesce materialized-view invalidation to once per affected schema.
+- [x] Implement SQLite touched-node scalar index maintenance.
+- [x] Implement SQLite touched-node FTS maintenance.
+- [x] Coalesce materialized-view invalidation to once per affected schema.
 - [ ] Add `DataBridge.bulkWrite()` and worker RPC support.
 - [ ] Add `useMutate().bulk()` or a dedicated `useBulkMutate()` hook.
 - [ ] Move web social import to the new bulk path.

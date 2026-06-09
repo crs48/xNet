@@ -16,7 +16,10 @@ import type {
   PropertyTimestamp,
   SetNodeOptions,
   ImportNodesOptions,
-  RebuildNodeIndexesOptions
+  RebuildNodeIndexesOptions,
+  ApplyNodeBatchInput,
+  ApplyNodeBatchResult,
+  NodeBatchPreflightResult
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
@@ -302,6 +305,10 @@ function getMaterializedQueryRefreshReason(input: {
   return undefined
 }
 
+function countPropertyRows(nodes: readonly NodeState[]): number {
+  return nodes.reduce((count, node) => count + Object.keys(node.properties).length, 0)
+}
+
 // ─── SQLiteNodeStorageAdapter ───────────────────────────────────────────────
 
 /**
@@ -427,6 +434,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       getExistingNodeIds: (ids) => this.getExistingNodeIds(ids),
       setNode: (node, options) => this._setNodeInternal(node, options),
       importNodes: (nodes, options) => this.importNodesInternal(nodes, options),
+      applyNodeBatch: (input) => this.applyNodeBatchInternal(input),
       rebuildIndexesForSchemas: (schemaIds, options) =>
         this.rebuildIndexesForSchemasInternal(schemaIds, options),
       deleteNode: (id) => this.deleteNodeInternal(id),
@@ -661,6 +669,18 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     return uniqueIds.filter((id) => existingIds.has(id))
+  }
+
+  async getBatchPreflight(ids: readonly NodeId[]): Promise<NodeBatchPreflightResult> {
+    const [nodes, lastChangesByNodeId] = await Promise.all([
+      this.getNodes(ids),
+      this.getLastChangesByNodeId(ids)
+    ])
+
+    return {
+      nodesById: new Map(nodes.map((node) => [node.id, node])),
+      lastChangesByNodeId
+    }
   }
 
   async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
@@ -1090,6 +1110,151 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     })
   }
 
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    if (input.nodes.length === 0 && input.changes.length === 0) {
+      return {
+        nodeRowsWritten: 0,
+        propertyRowsWritten: 0,
+        changeRowsWritten: 0,
+        scalarRowsWritten: 0,
+        ftsRowsWritten: 0
+      }
+    }
+
+    return this.enqueueWrite(async () => {
+      const effectiveInput = await this.resolveApplyNodeBatchInput(input)
+
+      if (await this.canApplyNodeBatchWithTransactionBatch(effectiveInput)) {
+        return this.applyNodeBatchWithTransactionBatch(effectiveInput)
+      }
+
+      await this.db.beginTransaction()
+      try {
+        const result = await this.applyNodeBatchInternal(effectiveInput)
+        await this.db.commit()
+        return result
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  private async resolveApplyNodeBatchInput(
+    input: ApplyNodeBatchInput
+  ): Promise<ApplyNodeBatchInput> {
+    if (input.indexMode !== 'touched') {
+      return input
+    }
+
+    // Spatial indexes still need their existing eager per-node path until they
+    // get a touched-node batch writer. Social import schemas do not use spatial
+    // indexes, so this preserves correctness without blocking the common path.
+    if (await this.hasSpatialTables()) {
+      return { ...input, indexMode: 'eager' }
+    }
+
+    return input
+  }
+
+  private async canApplyNodeBatchWithTransactionBatch(
+    input: ApplyNodeBatchInput
+  ): Promise<boolean> {
+    if (!this.db.transactionBatch) return false
+    if (input.indexMode === 'eager') return false
+    if (await this.hasSpatialTables()) return false
+    return true
+  }
+
+  private async applyNodeBatchWithTransactionBatch(
+    input: ApplyNodeBatchInput
+  ): Promise<ApplyNodeBatchResult> {
+    if (!this.db.transactionBatch) {
+      throw new Error('SQLite transactionBatch is not available.')
+    }
+
+    const indexProperties = input.indexProperties ?? true
+    const operations: Array<{ sql: string; params?: SQLValue[] }> = []
+    const hasFullTextSearch = input.indexMode === 'touched' && (await this.hasFullTextSearchTable())
+    const affectedSchemaIds = new Set(input.affectedSchemaIds)
+    let scalarRowsWritten = 0
+    let ftsRowsWritten = 0
+
+    for (const node of input.nodes) {
+      affectedSchemaIds.add(node.schemaId)
+      operations.push(
+        ...this.createImportNodeOperationsForIndexMode(
+          node,
+          indexProperties,
+          hasFullTextSearch,
+          input.indexMode
+        )
+      )
+      if (input.indexMode === 'touched' && indexProperties) {
+        scalarRowsWritten += this.countScalarIndexRowsForNode(node)
+      }
+      if (
+        input.indexMode === 'touched' &&
+        hasFullTextSearch &&
+        this.hasSearchableNodeContent(node)
+      ) {
+        ftsRowsWritten += 1
+      }
+    }
+
+    operations.push(...input.changes.map((change) => this.createAppendChangeOperation(change)))
+    operations.push(this.createSetLastLamportTimeOperation(input.lastLamportTime))
+
+    if (input.indexMode !== 'defer-schema') {
+      for (const schemaId of affectedSchemaIds) {
+        operations.push(this.createInvalidateMaterializedViewsOperation(schemaId))
+      }
+    }
+
+    await this.db.transactionBatch(operations)
+
+    return {
+      nodeRowsWritten: input.nodes.length,
+      propertyRowsWritten: countPropertyRows(input.nodes),
+      changeRowsWritten: input.changes.length,
+      scalarRowsWritten,
+      ftsRowsWritten
+    }
+  }
+
+  private async applyNodeBatchInternal(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    const indexProperties = input.indexProperties ?? true
+    const eagerIndexes = input.indexMode === 'eager'
+
+    await this.importNodesInternal(input.nodes, {
+      indexProperties,
+      trustMaterializedState: true,
+      deferIndexes: !eagerIndexes
+    })
+    await this.appendChangesInternal(input.changes)
+    await this.setLastLamportTimeInternal(input.lastLamportTime)
+
+    let scalarRowsWritten = 0
+    let ftsRowsWritten = 0
+    if (input.indexMode === 'touched') {
+      const touchedIndexResult = await this.syncTouchedIndexesForNodes(input.nodes, indexProperties)
+      scalarRowsWritten = touchedIndexResult.scalarRowsWritten
+      ftsRowsWritten = touchedIndexResult.ftsRowsWritten
+
+      for (const schemaId of new Set(input.affectedSchemaIds)) {
+        await this.invalidateMaterializedViewsForSchema(schemaId)
+      }
+    }
+
+    return {
+      nodeRowsWritten: input.nodes.length,
+      propertyRowsWritten: countPropertyRows(input.nodes),
+      changeRowsWritten: input.changes.length,
+      scalarRowsWritten,
+      ftsRowsWritten
+    }
+  }
+
   private async importNodesInternal(
     nodes: readonly NodeState[],
     options?: ImportNodesOptions
@@ -1142,6 +1307,20 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     indexProperties: boolean,
     hasFullTextSearch: boolean
   ): Array<{ sql: string; params?: SQLValue[] }> {
+    return this.createImportNodeOperationsForIndexMode(
+      node,
+      indexProperties,
+      hasFullTextSearch,
+      'eager'
+    )
+  }
+
+  private createImportNodeOperationsForIndexMode(
+    node: NodeState,
+    indexProperties: boolean,
+    hasFullTextSearch: boolean,
+    indexMode: ApplyNodeBatchInput['indexMode']
+  ): Array<{ sql: string; params?: SQLValue[] }> {
     const operations: Array<{ sql: string; params?: SQLValue[] }> = [
       {
         sql: `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
@@ -1187,19 +1366,60 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       })
     }
 
-    operations.push({
-      sql: 'DELETE FROM node_property_scalars WHERE node_id = ?',
-      params: [node.id]
-    })
-    if (indexProperties) {
-      operations.push(...this.createScalarIndexOperations(node))
-    }
-
-    if (hasFullTextSearch) {
-      operations.push(...this.createFullTextIndexOperations(node))
+    if (indexMode !== 'defer-schema') {
+      operations.push({
+        sql: 'DELETE FROM node_property_scalars WHERE node_id = ?',
+        params: [node.id]
+      })
+      if (indexProperties) {
+        operations.push(...this.createScalarIndexOperations(node))
+      }
+      if (hasFullTextSearch) {
+        operations.push(...this.createFullTextIndexOperations(node))
+      }
     }
 
     return operations
+  }
+
+  private createAppendChangeOperation(change: NodeChange): { sql: string; params?: SQLValue[] } {
+    return {
+      sql: `INSERT OR IGNORE INTO changes
+            (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      params: [
+        change.hash,
+        change.payload.nodeId,
+        this.serializePayload(change.payload),
+        change.lamport.time,
+        change.lamport.author,
+        change.wallTime,
+        change.authorDID,
+        change.parentHash ?? null,
+        change.batchId ?? null,
+        change.signature
+      ]
+    }
+  }
+
+  private createSetLastLamportTimeOperation(time: number): { sql: string; params?: SQLValue[] } {
+    return {
+      sql: `INSERT INTO sync_state (key, value) VALUES ('lastLamportTime', ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      params: [String(time)]
+    }
+  }
+
+  private createInvalidateMaterializedViewsOperation(schemaId: SchemaIRI): {
+    sql: string
+    params?: SQLValue[]
+  } {
+    return {
+      sql: `UPDATE node_query_materializations
+            SET invalidated_at = ?
+            WHERE schema_id = ? AND invalidated_at IS NULL`,
+      params: [Date.now(), schemaId]
+    }
   }
 
   private createDeleteRemovedPropertiesOperation(node: NodeState): {
@@ -1283,6 +1503,48 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     return operations
+  }
+
+  private countScalarIndexRowsForNode(node: NodeState): number {
+    return Object.values(node.properties).filter((value) => this.toScalarIndexValue(value) !== null)
+      .length
+  }
+
+  private hasSearchableNodeContent(node: NodeState): boolean {
+    const title = typeof node.properties.title === 'string' ? node.properties.title : null
+    const content = extractSearchableContent(node.properties)
+    return Boolean(title || content)
+  }
+
+  private async syncTouchedIndexesForNodes(
+    nodes: readonly NodeState[],
+    indexProperties: boolean
+  ): Promise<{ scalarRowsWritten: number; ftsRowsWritten: number }> {
+    let scalarRowsWritten = 0
+    let ftsRowsWritten = 0
+    const hasFullTextSearch = await this.hasFullTextSearchTable()
+
+    for (const node of nodes) {
+      scalarRowsWritten += await this.syncScalarRowsForNode(node, indexProperties)
+
+      if (!hasFullTextSearch) {
+        continue
+      }
+
+      if (node.deleted) {
+        await deleteNodeFTS(this.db, node.id)
+        continue
+      }
+
+      const title = typeof node.properties.title === 'string' ? node.properties.title : null
+      const content = extractSearchableContent(node.properties)
+      await updateNodeFTS(this.db, node.id, title, content)
+      if (title || content) {
+        ftsRowsWritten += 1
+      }
+    }
+
+    return { scalarRowsWritten, ftsRowsWritten }
   }
 
   async rebuildIndexesForSchemas(

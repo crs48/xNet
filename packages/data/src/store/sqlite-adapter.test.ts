@@ -338,6 +338,69 @@ describe('SQLiteNodeStorageAdapter', () => {
       ])
     })
 
+    it('applies node batches with changes, sync time, and touched scalar indexes', async () => {
+      const now = Date.now()
+      const node = createTestNode({
+        id: 'batch-apply-node',
+        properties: { title: 'Batch Apply', status: 'indexed' },
+        createdAt: now,
+        updatedAt: now
+      })
+      const change: NodeChange = {
+        id: 'batch-apply-change',
+        type: 'node',
+        hash: 'cid:blake3:batch-apply-change' as ContentId,
+        payload: {
+          nodeId: node.id,
+          schemaId: node.schemaId,
+          properties: node.properties
+        } as NodePayload,
+        lamport: { time: 12, author: testDID },
+        wallTime: now,
+        authorDID: testDID,
+        parentHash: null,
+        batchId: 'batch-apply-1',
+        batchIndex: 0,
+        batchSize: 1,
+        signature: new Uint8Array([1, 2, 3])
+      }
+
+      const result = await adapter.applyNodeBatch({
+        batchId: 'batch-apply-1',
+        nodes: [node],
+        changes: [change],
+        lastLamportTime: 12,
+        affectedSchemaIds: [testSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      expect(result).toMatchObject({
+        nodeRowsWritten: 1,
+        propertyRowsWritten: 2,
+        changeRowsWritten: 1,
+        scalarRowsWritten: 2
+      })
+      await expect(adapter.getNode('batch-apply-node')).resolves.toMatchObject({
+        id: 'batch-apply-node',
+        properties: { title: 'Batch Apply', status: 'indexed' }
+      })
+      await expect(adapter.getLastLamportTime()).resolves.toBe(12)
+      await expect(adapter.getChanges('batch-apply-node')).resolves.toHaveLength(1)
+
+      const scalarRows = await db.query<{ property_key: string; value_text: string | null }>(
+        `SELECT property_key, value_text
+         FROM node_property_scalars
+         WHERE node_id = ?
+         ORDER BY property_key ASC`,
+        ['batch-apply-node']
+      )
+      expect(scalarRows).toEqual([
+        { property_key: 'status', value_text: 'indexed' },
+        { property_key: 'title', value_text: 'Batch Apply' }
+      ])
+    })
+
     it('serializes concurrent transaction-backed node writes', async () => {
       const now = Date.now()
       const nodes = Array.from({ length: 8 }, (_, index) =>

@@ -11,7 +11,10 @@ import type {
   NodeStorageAdapter,
   ListNodesOptions,
   CountNodesOptions,
-  ImportNodesOptions
+  ImportNodesOptions,
+  ApplyNodeBatchInput,
+  ApplyNodeBatchResult,
+  NodeBatchPreflightResult
 } from './types'
 import type { ContentId } from '@xnetjs/core'
 
@@ -153,12 +156,42 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     })
   }
 
+  async getBatchPreflight(ids: readonly NodeId[]): Promise<NodeBatchPreflightResult> {
+    const nodes = await this.getNodes(ids)
+    const lastChangesByNodeId = await this.getLastChangesByNodeId(ids)
+
+    return {
+      nodesById: new Map(nodes.map((node) => [node.id, node])),
+      lastChangesByNodeId
+    }
+  }
+
   async setNode(node: NodeState): Promise<void> {
     this.nodes.set(node.id, node)
   }
 
   async importNodes(nodes: readonly NodeState[], _options?: ImportNodesOptions): Promise<void> {
     nodes.forEach((node) => this.nodes.set(node.id, node))
+  }
+
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    input.nodes.forEach((node) => this.nodes.set(node.id, node))
+    await this.appendChanges(input.changes)
+    this.lastLamportTime = input.lastLamportTime
+
+    return {
+      nodeRowsWritten: input.nodes.length,
+      propertyRowsWritten: input.nodes.reduce(
+        (count, node) => count + Object.keys(node.properties).length,
+        0
+      ),
+      changeRowsWritten: input.changes.length,
+      scalarRowsWritten:
+        input.indexProperties === false
+          ? 0
+          : input.nodes.reduce((count, node) => count + Object.keys(node.properties).length, 0),
+      ftsRowsWritten: 0
+    }
   }
 
   async deleteNode(id: NodeId): Promise<void> {

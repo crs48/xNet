@@ -6,7 +6,7 @@
  * Current schema version.
  * Increment this when making schema changes.
  */
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 /**
  * Core SQLite schema for xNet (without FTS5).
@@ -238,6 +238,8 @@ CREATE INDEX IF NOT EXISTS idx_prop_scalars_boolean
 CREATE INDEX IF NOT EXISTS idx_prop_scalars_null
     ON node_property_scalars(schema_id, property_key, node_id)
     WHERE value_type = 'null';
+CREATE INDEX IF NOT EXISTS idx_prop_scalars_node
+    ON node_property_scalars(node_id);
 
 CREATE INDEX IF NOT EXISTS idx_query_stats_schema_seen
     ON query_descriptor_stats(schema_id, last_seen_at DESC);
@@ -252,6 +254,8 @@ CREATE INDEX IF NOT EXISTS idx_changes_node ON changes(node_id);
 CREATE INDEX IF NOT EXISTS idx_changes_lamport ON changes(lamport_time);
 CREATE INDEX IF NOT EXISTS idx_changes_wall_time ON changes(wall_time);
 CREATE INDEX IF NOT EXISTS idx_changes_batch ON changes(batch_id);
+CREATE INDEX IF NOT EXISTS idx_changes_node_lamport
+    ON changes(node_id, lamport_time DESC, hash);
 
 CREATE INDEX IF NOT EXISTS idx_yjs_state_updated ON yjs_state(updated_at);
 CREATE INDEX IF NOT EXISTS idx_yjs_updates_node ON yjs_updates(node_id);
@@ -404,6 +408,13 @@ CREATE INDEX IF NOT EXISTS idx_query_materializations_schema
     ON node_query_materializations(schema_id, invalidated_at);
 CREATE INDEX IF NOT EXISTS idx_query_materialized_ids_node
     ON node_query_materialized_ids(node_id);
+`,
+
+  6: `
+CREATE INDEX IF NOT EXISTS idx_prop_scalars_node
+    ON node_property_scalars(node_id);
+CREATE INDEX IF NOT EXISTS idx_changes_node_lamport
+    ON changes(node_id, lamport_time DESC, hash);
 `
 }
 
