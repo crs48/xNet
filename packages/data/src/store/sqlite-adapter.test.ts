@@ -95,6 +95,49 @@ describe('SQLiteNodeStorageAdapter', () => {
     }
   }
 
+  function createTestChange(input: {
+    id: string
+    nodeId: string
+    schemaId?: SchemaIRI
+    properties?: Record<string, unknown>
+    lamportTime: number
+    batchId: string
+  }): NodeChange {
+    const now = Date.now()
+    return {
+      id: input.id,
+      type: 'node',
+      hash: `cid:blake3:${input.id}` as ContentId,
+      payload: {
+        nodeId: input.nodeId,
+        ...(input.schemaId ? { schemaId: input.schemaId } : {}),
+        properties: input.properties ?? {}
+      } as NodePayload,
+      lamport: { time: input.lamportTime, author: testDID },
+      wallTime: now,
+      authorDID: testDID,
+      parentHash: null,
+      batchId: input.batchId,
+      batchIndex: 0,
+      batchSize: 1,
+      signature: new Uint8Array([1, 2, 3])
+    }
+  }
+
+  async function ensureFtsTable(): Promise<boolean> {
+    try {
+      await db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
+        node_id,
+        title,
+        content,
+        tokenize='porter unicode61'
+      )`)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   beforeEach(async () => {
     db = await createMemorySQLiteAdapter()
     adapter = new SQLiteNodeStorageAdapter(db)
@@ -1031,6 +1074,78 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(scalarRows.map((row) => row.property_key)).toEqual(['done', 'priority', 'title'])
     })
 
+    it('keeps touched-node scalar rows identical to a whole-schema rebuild', async () => {
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'touched-scalar-updated',
+          schemaId: taskSchemaId,
+          properties: { title: 'Before', status: 'open', priority: 1 },
+          createdAt: now,
+          updatedAt: now
+        }),
+        createTestNode({
+          id: 'touched-scalar-unchanged',
+          schemaId: taskSchemaId,
+          properties: { title: 'Unchanged', status: 'open', done: false },
+          createdAt: now + 1,
+          updatedAt: now + 1
+        })
+      ])
+
+      const updatedNode = createTestNode({
+        id: 'touched-scalar-updated',
+        schemaId: taskSchemaId,
+        properties: { title: 'After', priority: 5, done: true },
+        createdAt: now,
+        updatedAt: now + 2
+      })
+      Object.values(updatedNode.timestamps).forEach((timestamp, index) => {
+        timestamp.lamport.time = 80 + index
+      })
+
+      await adapter.applyNodeBatch({
+        batchId: 'touched-scalar-parity',
+        nodes: [updatedNode],
+        changes: [
+          createTestChange({
+            id: 'touched-scalar-parity-change',
+            nodeId: 'touched-scalar-updated',
+            properties: { title: 'After', priority: 5, done: true },
+            lamportTime: 80,
+            batchId: 'touched-scalar-parity'
+          })
+        ],
+        lastLamportTime: 80,
+        affectedSchemaIds: [taskSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      const readScalarRows = () =>
+        db.query<{
+          node_id: string
+          property_key: string
+          value_type: string
+          value_text: string | null
+          value_number: number | null
+          value_boolean: number | null
+        }>(
+          `SELECT node_id, property_key, value_type, value_text, value_number, value_boolean
+           FROM node_property_scalars
+           WHERE schema_id = ?
+           ORDER BY node_id ASC, property_key ASC`,
+          [taskSchemaId]
+        )
+
+      const touchedRows = await readScalarRows()
+      await db.run('DELETE FROM node_property_scalars WHERE schema_id = ?', [taskSchemaId])
+      await adapter.rebuildIndexesForSchemas([taskSchemaId])
+      const rebuiltRows = await readScalarRows()
+
+      expect(touchedRows).toEqual(rebuiltRows)
+    })
+
     it('skips plaintext scalar rows when indexing is disabled', async () => {
       await adapter.setNode(
         createTestNode({
@@ -1047,6 +1162,74 @@ describe('SQLiteNodeStorageAdapter', () => {
       )
 
       expect(count?.count).toBe(0)
+    })
+  })
+
+  describe('full-text index', () => {
+    it('keeps touched-node FTS rows identical to a whole-schema rebuild', async () => {
+      if (!(await ensureFtsTable())) return
+
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'touched-fts-updated',
+          schemaId: taskSchemaId,
+          properties: { title: 'Before roadmap', body: 'Draft content' },
+          createdAt: now,
+          updatedAt: now
+        }),
+        createTestNode({
+          id: 'touched-fts-unchanged',
+          schemaId: taskSchemaId,
+          properties: { title: 'Stable note', body: 'Kept content' },
+          createdAt: now + 1,
+          updatedAt: now + 1
+        })
+      ])
+
+      const updatedNode = createTestNode({
+        id: 'touched-fts-updated',
+        schemaId: taskSchemaId,
+        properties: { title: 'After roadmap', body: 'Published content' },
+        createdAt: now,
+        updatedAt: now + 2
+      })
+      Object.values(updatedNode.timestamps).forEach((timestamp, index) => {
+        timestamp.lamport.time = 81 + index
+      })
+
+      await adapter.applyNodeBatch({
+        batchId: 'touched-fts-parity',
+        nodes: [updatedNode],
+        changes: [
+          createTestChange({
+            id: 'touched-fts-parity-change',
+            nodeId: 'touched-fts-updated',
+            properties: { title: 'After roadmap', body: 'Published content' },
+            lamportTime: 81,
+            batchId: 'touched-fts-parity'
+          })
+        ],
+        lastLamportTime: 81,
+        affectedSchemaIds: [taskSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      const readFtsRows = () =>
+        db.query<{ node_id: string; title: string; content: string }>(
+          `SELECT node_id, title, content
+           FROM nodes_fts
+           ORDER BY node_id ASC`,
+          []
+        )
+
+      const touchedRows = await readFtsRows()
+      await db.run('DELETE FROM nodes_fts')
+      await adapter.rebuildIndexesForSchemas([taskSchemaId])
+      const rebuiltRows = await readFtsRows()
+
+      expect(touchedRows).toEqual(rebuiltRows)
     })
   })
 
@@ -1318,6 +1501,92 @@ describe('SQLiteNodeStorageAdapter', () => {
         valid: true,
         expectedNodeCount: 1
       })
+    })
+
+    it('coalesces touched batch materialized-view invalidation to once per schema', async () => {
+      let invalidationStatements = 0
+      const countingDb = new Proxy(db, {
+        get(target, property, receiver) {
+          if (property === 'run') {
+            return async (sql: string, params?: Parameters<SQLiteAdapter['run']>[1]) => {
+              if (
+                sql.includes('UPDATE node_query_materializations') &&
+                sql.includes('invalidated_at')
+              ) {
+                invalidationStatements += 1
+              }
+              return target.run(sql, params)
+            }
+          }
+
+          const value = Reflect.get(target, property, receiver)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      }) as SQLiteAdapter
+      const countingAdapter = new SQLiteNodeStorageAdapter(countingDb)
+
+      await countingAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        materializedView: { viewId: 'task-table-coalesced' }
+      })
+
+      invalidationStatements = 0
+      const now = Date.now() + 20_000
+      const updatedHigh = createTestNode({
+        id: 'task-open-high',
+        schemaId: taskSchemaId,
+        properties: { title: 'Open high updated', status: 'open', priority: 11, done: false },
+        updatedAt: now
+      })
+      const updatedLow = createTestNode({
+        id: 'task-open-low',
+        schemaId: taskSchemaId,
+        properties: { title: 'Open low updated', status: 'open', priority: 2, done: false },
+        updatedAt: now + 1
+      })
+      for (const [nodeIndex, node] of [updatedHigh, updatedLow].entries()) {
+        Object.values(node.timestamps).forEach((timestamp, propertyIndex) => {
+          timestamp.lamport.time = 90 + nodeIndex * 10 + propertyIndex
+        })
+      }
+
+      await countingAdapter.applyNodeBatch({
+        batchId: 'materialized-coalesced-batch',
+        nodes: [updatedHigh, updatedLow],
+        changes: [
+          createTestChange({
+            id: 'materialized-coalesced-high',
+            nodeId: updatedHigh.id,
+            properties: updatedHigh.properties,
+            lamportTime: 120,
+            batchId: 'materialized-coalesced-batch'
+          }),
+          createTestChange({
+            id: 'materialized-coalesced-low',
+            nodeId: updatedLow.id,
+            properties: updatedLow.properties,
+            lamportTime: 120,
+            batchId: 'materialized-coalesced-batch'
+          })
+        ],
+        lastLamportTime: 120,
+        affectedSchemaIds: [taskSchemaId, taskSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      const invalidated = await db.queryOne<{ invalidated_at: number | null }>(
+        `SELECT invalidated_at
+         FROM node_query_materializations
+         WHERE view_id = ?`,
+        ['task-table-coalesced']
+      )
+
+      expect(invalidationStatements).toBe(1)
+      expect(invalidated?.invalidated_at).toEqual(expect.any(Number))
     })
 
     it('refreshes materialized views when maxAgeMs expires or forceRefresh is requested', async () => {

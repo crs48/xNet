@@ -837,9 +837,9 @@ This can reduce social import write volume without sacrificing provenance.
 - [x] Unit test LWW behavior when existing properties have newer Lamport timestamps.
 - [x] Unit test parent hash chaining for duplicate deterministic IDs in one batch.
 - [x] Unit test rollback leaves no partial nodes, properties, changes, scalar rows, or FTS rows.
-- [ ] Unit test touched-node scalar rows match whole-schema rebuild output.
-- [ ] Unit test touched-node FTS rows match whole-schema rebuild output.
-- [ ] Unit test materialized views invalidate once per schema.
+- [x] Unit test touched-node scalar rows match whole-schema rebuild output.
+- [x] Unit test touched-node FTS rows match whole-schema rebuild output.
+- [x] Unit test materialized views invalidate once per schema.
 - [x] Unit test batch notifications cause one schema reload rather than per-node churn.
 - [ ] Browser benchmark YouTube/TikTok-style 10k import before/after.
 - [ ] Browser benchmark 72,738 canonical records before/after.
