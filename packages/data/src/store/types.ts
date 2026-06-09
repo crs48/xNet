@@ -207,6 +207,12 @@ export interface ImportNodesOptions extends SetNodeOptions {
    * queries again.
    */
   deferIndexes?: boolean
+  /**
+   * Treat the provided NodeState objects as the post-LWW materialized truth
+   * when updating secondary indexes. This avoids a per-node readback during
+   * import paths that already materialize against current storage state.
+   */
+  trustMaterializedState?: boolean
 }
 
 export type RebuildNodeIndexesOptions = SetNodeOptions
@@ -433,6 +439,15 @@ export interface DeterministicNodeImportDraft {
   properties: Record<PropertyKey, unknown>
 }
 
+export interface ImportDeterministicNodesOptions {
+  /**
+   * Skip secondary index maintenance for this chunk. Call
+   * `NodeStore.rebuildIndexesForSchemas()` for the affected schemas before
+   * relying on indexed queries.
+   */
+  deferIndexes?: boolean
+}
+
 export interface ImportDeterministicNodesResult {
   /** The batch ID shared by all imported changes */
   batchId: string
@@ -444,6 +459,8 @@ export interface ImportDeterministicNodesResult {
   nodes: NodeState[]
   /** All signed changes created for the import */
   changes: NodeChange[]
+  /** Schemas whose materialized nodes changed */
+  affectedSchemaIds: SchemaIRI[]
 }
 
 // ============================================================================

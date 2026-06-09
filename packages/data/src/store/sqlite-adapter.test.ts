@@ -293,6 +293,51 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(afterRebuild?.value_text).toBe('done')
     })
 
+    it('uses transactionBatch for trusted materialized imports when available', async () => {
+      const batchDb = db as SQLiteAdapter & {
+        batchCalls: number
+        transactionBatch: NonNullable<SQLiteAdapter['transactionBatch']>
+      }
+      batchDb.batchCalls = 0
+      batchDb.transactionBatch = async (operations) => {
+        batchDb.batchCalls += 1
+        await db.transaction(async () => {
+          for (const operation of operations) {
+            await db.run(operation.sql, operation.params)
+          }
+        })
+      }
+
+      const batchAdapter = new SQLiteNodeStorageAdapter(batchDb)
+      await batchAdapter.importNodes(
+        [
+          createTestNode({
+            id: 'batch-import-node',
+            properties: { title: 'Batch Import', status: 'indexed' }
+          })
+        ],
+        { trustMaterializedState: true }
+      )
+
+      expect(batchDb.batchCalls).toBe(1)
+      await expect(batchAdapter.getNode('batch-import-node')).resolves.toMatchObject({
+        id: 'batch-import-node',
+        properties: { title: 'Batch Import', status: 'indexed' }
+      })
+
+      const scalarRows = await db.query<{ property_key: string; value_text: string | null }>(
+        `SELECT property_key, value_text
+         FROM node_property_scalars
+         WHERE node_id = ?
+         ORDER BY property_key ASC`,
+        ['batch-import-node']
+      )
+      expect(scalarRows).toEqual([
+        { property_key: 'status', value_text: 'indexed' },
+        { property_key: 'title', value_text: 'Batch Import' }
+      ])
+    })
+
     it('serializes concurrent transaction-backed node writes', async () => {
       const now = Date.now()
       const nodes = Array.from({ length: 8 }, (_, index) =>

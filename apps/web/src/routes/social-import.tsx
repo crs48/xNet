@@ -209,7 +209,9 @@ function SocialImportPage(): React.ReactElement {
       const job = startBrowserSocialImportCommitJob({
         stageResult,
         includeSourceRecords,
-        importDrafts: async (batchDrafts) => store.importDeterministicNodes(batchDrafts),
+        importDrafts: async (batchDrafts) =>
+          store.importDeterministicNodes(batchDrafts, { deferIndexes: true }),
+        rebuildIndexesForSchemas: async (schemaIds) => store.rebuildIndexesForSchemas(schemaIds),
         onProgress: (progress) => {
           setCommitProgress(progress)
           upsertResumeRecord(progress)
@@ -304,7 +306,9 @@ function SocialImportPage(): React.ReactElement {
             created: record.created,
             updated: record.updated
           },
-          importDrafts: async (batchDrafts) => store.importDeterministicNodes(batchDrafts),
+          importDrafts: async (batchDrafts) =>
+            store.importDeterministicNodes(batchDrafts, { deferIndexes: true }),
+          rebuildIndexesForSchemas: async (schemaIds) => store.rebuildIndexesForSchemas(schemaIds),
           onProgress: (progress) => {
             setCommitProgress(progress)
             upsertResumeRecord(progress)
@@ -1042,6 +1046,10 @@ function StatusCallout({
 }
 
 function getCommitProgressPhaseLabel(progress: CommitProgress): string {
+  if (progress.phase === 'indexing') {
+    return 'Rebuilding indexes'
+  }
+
   if (progress.totalRecords > 0 && progress.processedRecords >= progress.totalRecords) {
     return 'Commit complete'
   }

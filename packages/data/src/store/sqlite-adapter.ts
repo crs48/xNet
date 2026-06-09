@@ -735,7 +735,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return
     }
 
-    const indexedNode = await this.getNode(node.id)
+    const trustMaterializedState = options
+      ? 'trustMaterializedState' in options && options.trustMaterializedState
+      : false
+    const indexedNode = trustMaterializedState ? node : await this.getNode(node.id)
     if (indexedNode) {
       const indexProperties = options?.indexProperties ?? true
       await this.syncScalarRowsForNode(indexedNode, indexProperties)
@@ -1070,6 +1073,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     if (nodes.length === 0) return
 
     await this.enqueueWrite(async () => {
+      if (await this.canImportNodesWithTransactionBatch(options)) {
+        await this.importNodesWithTransactionBatch(nodes, options)
+        return
+      }
+
       // Use manual transaction control for web proxy compatibility
       await this.db.beginTransaction()
       try {
@@ -1089,6 +1097,192 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     for (const node of nodes) {
       await this._setNodeInternal(node, options)
     }
+  }
+
+  private async canImportNodesWithTransactionBatch(options?: ImportNodesOptions): Promise<boolean> {
+    if (!this.db.transactionBatch) return false
+    if (options?.trustMaterializedState !== true) return false
+    if (options?.deferIndexes === true) return false
+
+    return !(await this.hasSpatialTables())
+  }
+
+  private async importNodesWithTransactionBatch(
+    nodes: readonly NodeState[],
+    options?: ImportNodesOptions
+  ): Promise<void> {
+    if (!this.db.transactionBatch) {
+      throw new Error('SQLite transactionBatch is not available.')
+    }
+
+    const operations: Array<{ sql: string; params?: SQLValue[] }> = []
+    const indexProperties = options?.indexProperties ?? true
+    const hasFullTextSearch = await this.hasFullTextSearchTable()
+    const affectedSchemaIds = new Set<SchemaIRI>()
+
+    for (const node of nodes) {
+      affectedSchemaIds.add(node.schemaId)
+      operations.push(...this.createImportNodeOperations(node, indexProperties, hasFullTextSearch))
+    }
+
+    for (const schemaId of affectedSchemaIds) {
+      operations.push({
+        sql: `UPDATE node_query_materializations
+              SET invalidated_at = ?
+              WHERE schema_id = ? AND invalidated_at IS NULL`,
+        params: [Date.now(), schemaId]
+      })
+    }
+
+    await this.db.transactionBatch(operations)
+  }
+
+  private createImportNodeOperations(
+    node: NodeState,
+    indexProperties: boolean,
+    hasFullTextSearch: boolean
+  ): Array<{ sql: string; params?: SQLValue[] }> {
+    const operations: Array<{ sql: string; params?: SQLValue[] }> = [
+      {
+        sql: `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                schema_id = excluded.schema_id,
+                updated_at = excluded.updated_at,
+                deleted_at = excluded.deleted_at`,
+        params: [
+          node.id,
+          node.schemaId,
+          node.createdAt,
+          node.updatedAt,
+          node.createdBy,
+          node.deleted && node.deletedAt ? node.deletedAt.wallTime : null
+        ]
+      },
+      this.createDeleteRemovedPropertiesOperation(node)
+    ]
+
+    for (const [key, value] of Object.entries(node.properties)) {
+      const timestamp = node.timestamps[key]
+      if (!timestamp) continue
+
+      operations.push({
+        sql: `INSERT INTO node_properties
+                (node_id, property_key, value, lamport_time, updated_by, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(node_id, property_key) DO UPDATE SET
+                value = excluded.value,
+                lamport_time = excluded.lamport_time,
+                updated_by = excluded.updated_by,
+                updated_at = excluded.updated_at
+              WHERE excluded.lamport_time > node_properties.lamport_time`,
+        params: [
+          node.id,
+          key,
+          this.serializeValue(value),
+          timestamp.lamport.time,
+          timestamp.lamport.author,
+          timestamp.wallTime
+        ]
+      })
+    }
+
+    operations.push({
+      sql: 'DELETE FROM node_property_scalars WHERE node_id = ?',
+      params: [node.id]
+    })
+    if (indexProperties) {
+      operations.push(...this.createScalarIndexOperations(node))
+    }
+
+    if (hasFullTextSearch) {
+      operations.push(...this.createFullTextIndexOperations(node))
+    }
+
+    return operations
+  }
+
+  private createDeleteRemovedPropertiesOperation(node: NodeState): {
+    sql: string
+    params?: SQLValue[]
+  } {
+    const keys = Object.keys(node.properties)
+
+    if (keys.length === 0) {
+      return {
+        sql: 'DELETE FROM node_properties WHERE node_id = ?',
+        params: [node.id]
+      }
+    }
+
+    return {
+      sql: `DELETE FROM node_properties
+            WHERE node_id = ? AND property_key NOT IN (${keys.map(() => '?').join(', ')})`,
+      params: [node.id, ...keys]
+    }
+  }
+
+  private createScalarIndexOperations(
+    node: NodeState
+  ): Array<{ sql: string; params?: SQLValue[] }> {
+    return Object.entries(node.properties).flatMap(([key, value]) => {
+      const timestamp = node.timestamps[key]
+      const scalar = this.toScalarIndexValue(value)
+      if (!timestamp || !scalar) return []
+
+      return [
+        {
+          sql: `INSERT INTO node_property_scalars
+                  (
+                    node_id,
+                    schema_id,
+                    property_key,
+                    value_type,
+                    value_text,
+                    value_number,
+                    value_boolean,
+                    value_hash,
+                    updated_at,
+                    lamport_time
+                  )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          params: [
+            node.id,
+            node.schemaId,
+            key,
+            scalar.valueType,
+            scalar.valueText,
+            scalar.valueNumber,
+            scalar.valueBoolean,
+            scalar.valueHash,
+            timestamp.wallTime,
+            timestamp.lamport.time
+          ]
+        }
+      ]
+    })
+  }
+
+  private createFullTextIndexOperations(
+    node: NodeState
+  ): Array<{ sql: string; params?: SQLValue[] }> {
+    const title = typeof node.properties.title === 'string' ? node.properties.title : null
+    const content = extractSearchableContent(node.properties)
+    const operations: Array<{ sql: string; params?: SQLValue[] }> = [
+      {
+        sql: 'DELETE FROM nodes_fts WHERE node_id = ?',
+        params: [node.id]
+      }
+    ]
+
+    if (title || content) {
+      operations.push({
+        sql: 'INSERT INTO nodes_fts (node_id, title, content) VALUES (?, ?, ?)',
+        params: [node.id, title ?? '', content ?? '']
+      })
+    }
+
+    return operations
   }
 
   async rebuildIndexesForSchemas(

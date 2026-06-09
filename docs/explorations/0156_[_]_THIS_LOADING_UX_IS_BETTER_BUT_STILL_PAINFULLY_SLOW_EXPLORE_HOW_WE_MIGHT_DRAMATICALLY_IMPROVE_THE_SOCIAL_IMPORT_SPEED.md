@@ -636,6 +636,12 @@ Baseline note: `pnpm bench:social-import -- --all-buckets --include-sensitive` w
 `tmp/social-import-baseline.json` report. The current fixture pass records successful full-bucket
 stage timings for YouTube, Twitter/X, TikTok, Claude, ChatGPT, Reddit, Grok, and Instagram.
 
+Web commit note: a Playwright-driven `tiktok.zip` browser import committed 5,515 records in about
+61.8s before data-layer batching/index changes and about 26.9s after deferring per-chunk index work
+with a final schema rebuild. This is a measurable improvement, but the 72k-record OPFS target still
+needs a larger run and likely a storage-owned node/change batch command to remove the remaining
+per-statement worker cost.
+
 ## Example Implementation Sketch
 
 ### Electron job IPC

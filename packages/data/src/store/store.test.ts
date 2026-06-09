@@ -5,6 +5,7 @@
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
 import type {
   ContentKeyCache,
+  ImportNodesOptions,
   NodeChange,
   NodeContentCipher,
   NodeState,
@@ -187,6 +188,20 @@ class TransactionTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapt
   async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
     this.transactionCalls += 1
     return super.withTransaction(fn)
+  }
+}
+
+class ImportOptionsTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
+  readonly importOptions: ImportNodesOptions[] = []
+  rebuildCalls = 0
+
+  async importNodes(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void> {
+    this.importOptions.push(options ?? {})
+    await super.importNodes(nodes, options)
+  }
+
+  async rebuildIndexesForSchemas(): Promise<void> {
+    this.rebuildCalls += 1
   }
 }
 
@@ -968,6 +983,66 @@ describe('deterministic node import', () => {
     ])
 
     expect(adapter.transactionCalls).toBe(1)
+  })
+
+  it('maintains import indexes incrementally instead of rebuilding per chunk', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new ImportOptionsTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    await store.importDeterministicNodes([
+      {
+        id: 'incremental-index-import-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Incremental index import' }
+      }
+    ])
+
+    expect(adapter.importOptions).toHaveLength(1)
+    expect(adapter.importOptions[0]).toMatchObject({
+      indexProperties: true,
+      trustMaterializedState: true
+    })
+    expect(adapter.importOptions[0]?.deferIndexes).not.toBe(true)
+    expect(adapter.rebuildCalls).toBe(0)
+  })
+
+  it('can defer deterministic import indexes for a caller-owned final rebuild', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new ImportOptionsTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    const result = await store.importDeterministicNodes(
+      [
+        {
+          id: 'deferred-index-import-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Deferred index import' }
+        }
+      ],
+      { deferIndexes: true }
+    )
+
+    expect(result.affectedSchemaIds).toEqual([TEST_SCHEMA])
+    expect(adapter.importOptions[0]).toMatchObject({
+      deferIndexes: true,
+      trustMaterializedState: true
+    })
+
+    await store.rebuildIndexesForSchemas(result.affectedSchemaIds)
+    expect(adapter.rebuildCalls).toBe(1)
   })
 
   it('matches generic transaction materialization for deterministic creates', async () => {

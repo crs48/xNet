@@ -383,6 +383,7 @@ export {
   type CreateNodeOptions as CreateNodeStoreOptions,
   type UpdateNodeOptions,
   type DeterministicNodeImportDraft,
+  type ImportDeterministicNodesOptions,
   type ImportDeterministicNodesResult,
   type TransactionOperation,
   type TransactionResult,

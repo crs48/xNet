@@ -31,6 +31,7 @@ import type {
   NodeContentCipher,
   ContentKeyCache,
   DeterministicNodeImportDraft,
+  ImportDeterministicNodesOptions,
   ImportDeterministicNodesResult
 } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
@@ -751,10 +752,11 @@ export class NodeStore {
    * transaction when the adapter supports it.
    */
   async importDeterministicNodes(
-    drafts: readonly DeterministicNodeImportDraft[]
+    drafts: readonly DeterministicNodeImportDraft[],
+    options: ImportDeterministicNodesOptions = {}
   ): Promise<ImportDeterministicNodesResult> {
     if (drafts.length === 0) {
-      return { batchId: '', created: 0, updated: 0, nodes: [], changes: [] }
+      return { batchId: '', created: 0, updated: 0, nodes: [], changes: [], affectedSchemaIds: [] }
     }
 
     await this.assertAuthorizedBatch(await this.createDeterministicImportAuthOps(drafts))
@@ -775,7 +777,8 @@ export class NodeStore {
           lamport,
           now,
           batchId,
-          batchSize
+          batchSize,
+          deferIndexes: options.deferIndexes === true
         })
       const result = this.storage.withTransaction
         ? await this.storage.withTransaction(run)
@@ -791,7 +794,8 @@ export class NodeStore {
         created: result.created,
         updated: result.updated,
         nodes: result.nodes,
-        changes: result.changes
+        changes: result.changes,
+        affectedSchemaIds: result.affectedSchemaIds
       }
     } catch (err) {
       this.clock = previousClock
@@ -836,12 +840,14 @@ export class NodeStore {
     now: number
     batchId: string
     batchSize: number
+    deferIndexes: boolean
   }): Promise<{
     created: number
     updated: number
     nodes: NodeState[]
     changes: NodeChange[]
     events: PendingTransactionEvent[]
+    affectedSchemaIds: SchemaIRI[]
   }> {
     const ids = input.drafts.map((draft) => draft.id)
     const [existingNodes, lastChanges] = await Promise.all([
@@ -902,8 +908,11 @@ export class NodeStore {
       const node = nodesById.get(id)
       return node ? [node] : []
     })
+    const affectedSchemaIds = Array.from(new Set(nodes.map((node) => node.schemaId)))
 
-    await this.importMaterializedNodes(input.storage, nodes)
+    await this.importMaterializedNodes(input.storage, nodes, {
+      deferIndexes: input.deferIndexes
+    })
     await this.appendImportedChanges(input.storage, changes)
     await input.storage.setLastLamportTime(this.clock.time)
 
@@ -911,7 +920,7 @@ export class NodeStore {
       await this.persistEncryptedNodeSnapshot(node, input.storage)
     }
 
-    return { created, updated, nodes, changes, events }
+    return { created, updated, nodes, changes, events, affectedSchemaIds }
   }
 
   private async getNodesById(
@@ -960,28 +969,36 @@ export class NodeStore {
 
   private async importMaterializedNodes(
     storage: NodeStorageAdapter,
-    nodes: readonly NodeState[]
+    nodes: readonly NodeState[],
+    options?: Pick<ImportDeterministicNodesOptions, 'deferIndexes'>
   ): Promise<void> {
     if (nodes.length === 0) return
 
-    const affectedSchemaIds = Array.from(new Set(nodes.map((node) => node.schemaId)))
     const indexProperties = !this.nodeContentCipher
-    const canDeferIndexes = Boolean(storage.rebuildIndexesForSchemas)
+    const deferIndexes = options?.deferIndexes === true && Boolean(storage.rebuildIndexesForSchemas)
 
     if (storage.importNodes) {
       await storage.importNodes(nodes, {
         indexProperties,
-        deferIndexes: canDeferIndexes
+        deferIndexes,
+        trustMaterializedState: true
       })
-      if (canDeferIndexes) {
-        await storage.rebuildIndexesForSchemas?.(affectedSchemaIds, { indexProperties })
-      }
       return
     }
 
     for (const node of nodes) {
       await storage.setNode(node, { indexProperties })
     }
+  }
+
+  async rebuildIndexesForSchemas(schemaIds: readonly SchemaIRI[]): Promise<void> {
+    const uniqueSchemaIds = Array.from(new Set(schemaIds.filter(Boolean)))
+    if (uniqueSchemaIds.length === 0) return
+    if (!this.storage.rebuildIndexesForSchemas) return
+
+    await this.storage.rebuildIndexesForSchemas(uniqueSchemaIds, {
+      indexProperties: !this.nodeContentCipher
+    })
   }
 
   private async appendImportedChanges(

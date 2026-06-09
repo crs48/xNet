@@ -1,4 +1,4 @@
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import type { DeterministicNodeImportDraft, SchemaIRI } from '@xnetjs/data'
 import type { SocialImportNodeDraft } from '@xnetjs/social/import/browser'
 import type { SocialImportJobPhase } from '@xnetjs/social/import/core'
 import {
@@ -18,7 +18,11 @@ export type BrowserSocialImportCommitSummary = {
   batches: number
 }
 
-export type BrowserSocialImportCommitProgressPhase = 'checking' | 'writing' | 'committed'
+export type BrowserSocialImportCommitProgressPhase =
+  | 'checking'
+  | 'writing'
+  | 'indexing'
+  | 'committed'
 
 export type BrowserSocialImportCommitProgressMetrics = {
   recordsPerSecond: number
@@ -62,7 +66,9 @@ export type StartBrowserSocialImportCommitJobInput = {
   importDrafts: (drafts: DeterministicNodeImportDraft[]) => Promise<{
     created: number
     updated: number
+    affectedSchemaIds?: readonly SchemaIRI[]
   }>
+  rebuildIndexesForSchemas?: (schemaIds: readonly SchemaIRI[]) => Promise<void>
   onProgress?: (progress: BrowserSocialImportCommitProgress) => void
 }
 
@@ -208,6 +214,7 @@ async function commitBrowserSocialImportStage(input: {
   stageResult: BrowserSocialImportStageResult
   includeSourceRecords: boolean
   importDrafts: StartBrowserSocialImportCommitJobInput['importDrafts']
+  rebuildIndexesForSchemas?: StartBrowserSocialImportCommitJobInput['rebuildIndexesForSchemas']
   onProgress?: (progress: BrowserSocialImportCommitProgress) => void
   jobId: string
   initialProgress?: StartBrowserSocialImportCommitJobInput['initialProgress']
@@ -230,6 +237,7 @@ async function commitBrowserSocialImportStage(input: {
     totalProgressMs: 0
   }
   const checkpointAccumulator = createSocialImportJobCheckpointAccumulator()
+  const affectedSchemaIds = new Set<SchemaIRI>()
 
   const reportProgress = (
     progress: Omit<BrowserSocialImportCommitProgress, 'startedAt' | 'updatedAt' | 'metrics'>
@@ -325,6 +333,7 @@ async function commitBrowserSocialImportStage(input: {
 
     created += batchResult.created
     updated += batchResult.updated
+    batchResult.affectedSchemaIds?.forEach((schemaId) => affectedSchemaIds.add(schemaId))
     completedBatches += 1
     offset = chunk.nextOffset
     checkpointAccumulator.add(chunk.drafts, {
@@ -349,6 +358,26 @@ async function commitBrowserSocialImportStage(input: {
 
   if (offset !== input.totalRecords) {
     throw new Error(`Social import streamed ${offset} records but expected ${input.totalRecords}`)
+  }
+
+  if (input.rebuildIndexesForSchemas && affectedSchemaIds.size > 0) {
+    await reportProgressAndYield(metrics, () =>
+      reportProgress({
+        phase: 'indexing',
+        totalRecords: input.totalRecords,
+        processedRecords: input.totalRecords,
+        totalBatches: input.totalChunks,
+        completedBatches,
+        currentBatch: completedBatches,
+        created,
+        updated
+      })
+    )
+
+    const indexStartedAt = performance.now()
+    await input.rebuildIndexesForSchemas([...affectedSchemaIds])
+    metrics.lastWriteMs = performance.now() - indexStartedAt
+    metrics.totalWriteMs += metrics.lastWriteMs
   }
 
   return { created, updated, batches: completedBatches }
@@ -384,6 +413,7 @@ async function reportProgressAndYield(
 function commitProgressPhaseToJobPhase(
   progress: BrowserSocialImportCommitProgress
 ): SocialImportJobPhase {
+  if (progress.phase === 'indexing') return 'indexing'
   if (progress.processedRecords >= progress.totalRecords) return 'finalizing'
   if (progress.phase === 'checking') return 'checking'
   return 'writing'

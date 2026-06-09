@@ -48,6 +48,7 @@ export type {
   CreateNodeOptions,
   UpdateNodeOptions,
   DeterministicNodeImportDraft,
+  ImportDeterministicNodesOptions,
   ImportDeterministicNodesResult,
   TransactionOperation,
   TransactionResult,

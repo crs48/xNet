@@ -96,6 +96,15 @@ export interface SQLiteAdapter {
   transaction<T>(fn: () => Promise<T>): Promise<T>
 
   /**
+   * Execute a list of SQL statements inside one transaction.
+   *
+   * This is primarily for proxy/worker-backed adapters where a callback
+   * transaction would cross a serialization boundary. Implementations should
+   * execute all operations atomically and roll back on the first failure.
+   */
+  transactionBatch?(operations: Array<{ sql: string; params?: SQLValue[] }>): Promise<void>
+
+  /**
    * Begin a manual transaction.
    * Must be followed by commit() or rollback().
    */
