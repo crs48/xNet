@@ -35,7 +35,9 @@ import type {
   InferCreateProps,
   NodeChangeEvent,
   ListNodesOptions,
-  SchemaIRI
+  SchemaIRI,
+  NodeBatchWriteInput,
+  NodeBatchWriteResult
 } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
@@ -975,6 +977,10 @@ export class MainThreadBridge implements DataBridge {
 
   async restore(nodeId: string): Promise<NodeState> {
     return this.store.restore(nodeId)
+  }
+
+  async bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult> {
+    return this.store.batchWrite(input)
   }
 
   // ─── Documents ─────────────────────────────────────────

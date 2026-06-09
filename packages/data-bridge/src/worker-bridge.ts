@@ -21,7 +21,14 @@ import type {
   AcquiredDoc
 } from './types'
 import type { DataWorkerAPI, QueryDelta, SerializedQueryOptions } from './worker/worker-types'
-import type { NodeState, DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
+import type {
+  NodeState,
+  DefinedSchema,
+  PropertyBuilder,
+  InferCreateProps,
+  NodeBatchWriteInput,
+  NodeBatchWriteResult
+} from '@xnetjs/data'
 import { wrap, proxy, type Remote } from 'comlink'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -301,6 +308,14 @@ export class WorkerBridge implements DataBridge {
     }
 
     return this.remote.restore(nodeId)
+  }
+
+  async bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult> {
+    if (!this.initialized) {
+      throw new Error('WorkerBridge not initialized')
+    }
+
+    return this.remote.bulkWrite(input)
   }
 
   // ─── Documents ────────────────────────────────────────────────────────────────

@@ -37,7 +37,9 @@ import {
   type NodeState,
   type NodeChangeEvent,
   type SchemaIRI,
-  type NodeStorageAdapter
+  type NodeStorageAdapter,
+  type NodeBatchWriteInput,
+  type NodeBatchWriteResult
 } from '@xnetjs/data'
 import { expose, proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
@@ -184,6 +186,14 @@ class DataWorker implements DataWorkerAPI {
     }
 
     return this.store.restore(nodeId)
+  }
+
+  async bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult> {
+    if (!this.store) {
+      throw new Error('DataWorker not initialized')
+    }
+
+    return this.store.batchWrite(input)
   }
 
   async get(nodeId: string): Promise<NodeState | null> {

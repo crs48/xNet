@@ -822,8 +822,8 @@ This can reduce social import write volume without sacrificing provenance.
 - [x] Implement SQLite touched-node scalar index maintenance.
 - [x] Implement SQLite touched-node FTS maintenance.
 - [x] Coalesce materialized-view invalidation to once per affected schema.
-- [ ] Add `DataBridge.bulkWrite()` and worker RPC support.
-- [ ] Add `useMutate().bulk()` or a dedicated `useBulkMutate()` hook.
+- [x] Add `DataBridge.bulkWrite()` and worker RPC support.
+- [x] Add `useMutate().bulk()` or a dedicated `useBulkMutate()` hook.
 - [x] Move web social import to the new bulk path.
 - [ ] Move Electron social import to the same bulk path.
 - [ ] Add optional source-record sidecar design behind a feature flag.

@@ -212,6 +212,35 @@ describe('MainThreadBridge', () => {
       unsubscribe()
     })
 
+    it('should expose storage-owned deterministic bulk writes', async () => {
+      const result = await bridge.bulkWrite({
+        kind: 'deterministic-import',
+        drafts: [
+          {
+            id: 'bridge-bulk-node-1',
+            schemaId: TestTaskSchema._schemaId,
+            properties: { title: 'Bridge Bulk 1', done: false }
+          },
+          {
+            id: 'bridge-bulk-node-2',
+            schemaId: TestTaskSchema._schemaId,
+            properties: { title: 'Bridge Bulk 2', done: true }
+          }
+        ]
+      })
+
+      expect(result).toMatchObject({
+        created: 2,
+        updated: 0,
+        nodeIds: ['bridge-bulk-node-1', 'bridge-bulk-node-2'],
+        schemaIds: [TestTaskSchema._schemaId],
+        changeCount: 2
+      })
+      await expect(store.get('bridge-bulk-node-1')).resolves.toMatchObject({
+        properties: { title: 'Bridge Bulk 1', done: false }
+      })
+    })
+
     it('should coalesce deterministic import batch notifications into one query refresh', async () => {
       const subscription = bridge.query(TestTaskSchema)
       const callback = vi.fn()

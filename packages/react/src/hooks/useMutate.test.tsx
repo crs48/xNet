@@ -423,6 +423,53 @@ describe('useMutate', () => {
       ).rejects.toThrow('Temp IDs in useMutate.mutate() require a transaction-capable bridge')
     })
   })
+
+  describe('bulk', () => {
+    it('should execute deterministic import bulk writes', async () => {
+      const wrapper = createWrapper()
+
+      const { result } = renderHook(
+        () => ({
+          mutate: useMutate(),
+          tasks: useQuery(TaskSchema)
+        }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.tasks.loading).toBe(false)
+      })
+
+      let bulkResult: Awaited<ReturnType<typeof result.current.mutate.bulk>> | null = null
+      await act(async () => {
+        bulkResult = await result.current.mutate.bulk({
+          kind: 'deterministic-import',
+          drafts: [
+            {
+              id: 'hook-bulk-node',
+              schemaId: TaskSchema._schemaId,
+              properties: { title: 'Hook bulk', status: 'todo' }
+            }
+          ]
+        })
+      })
+
+      expect(bulkResult).toMatchObject({
+        created: 1,
+        updated: 0,
+        nodeIds: ['hook-bulk-node'],
+        schemaIds: [TaskSchema._schemaId],
+        changeCount: 1
+      })
+
+      await act(async () => {
+        await result.current.tasks.reload()
+      })
+
+      expect(result.current.tasks.data).toHaveLength(1)
+      expect(result.current.tasks.data[0].title).toBe('Hook bulk')
+    })
+  })
 })
 
 function createSequentialBridgeWithoutTransactions(): DataBridge {
@@ -490,6 +537,9 @@ function createSequentialBridgeWithoutTransactions(): DataBridge {
       const restored: NodeState = { ...existing, deleted: false, updatedAt: Date.now() }
       nodes.set(nodeId, restored)
       return restored
+    },
+    async bulkWrite(): Promise<never> {
+      throw new Error('Bulk writes are not supported by this test bridge')
     },
     destroy(): void {
       nodes.clear()

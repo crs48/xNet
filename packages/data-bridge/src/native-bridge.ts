@@ -30,7 +30,9 @@ import type {
   PropertyBuilder,
   InferCreateProps,
   NodeChangeEvent,
-  ListNodesOptions
+  ListNodesOptions,
+  NodeBatchWriteInput,
+  NodeBatchWriteResult
 } from '@xnetjs/data'
 import { QueryCache } from './query-cache'
 import {
@@ -240,6 +242,13 @@ export class NativeBridge implements DataBridge {
       throw new Error('NativeBridge has been destroyed')
     }
     return this.store.restore(nodeId)
+  }
+
+  async bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult> {
+    if (this.destroyed) {
+      throw new Error('NativeBridge has been destroyed')
+    }
+    return this.store.batchWrite(input)
   }
 
   // ─── Documents ─────────────────────────────────────────

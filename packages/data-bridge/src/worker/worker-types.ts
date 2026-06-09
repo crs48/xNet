@@ -6,7 +6,7 @@
  */
 
 import type { QueryDescriptor, QueryPageOptions, SyncStatus } from '../types'
-import type { NodeState, SchemaIRI } from '@xnetjs/data'
+import type { NodeBatchWriteInput, NodeBatchWriteResult, NodeState, SchemaIRI } from '@xnetjs/data'
 
 // ─── Document Types ──────────────────────────────────────────────────────────
 
@@ -141,6 +141,11 @@ export interface DataWorkerAPI {
    * Restore a deleted node.
    */
   restore(nodeId: string): Promise<NodeState>
+
+  /**
+   * Execute a storage-owned batch write in the worker.
+   */
+  bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult>
 
   /**
    * Get a single node by ID.

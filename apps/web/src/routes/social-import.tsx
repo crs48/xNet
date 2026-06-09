@@ -209,8 +209,18 @@ function SocialImportPage(): React.ReactElement {
       const job = startBrowserSocialImportCommitJob({
         stageResult,
         includeSourceRecords,
-        importDrafts: async (batchDrafts) =>
-          store.importDeterministicNodes(batchDrafts, { indexMode: 'touched' }),
+        importDrafts: async (batchDrafts) => {
+          const result = await store.batchWrite({
+            kind: 'deterministic-import',
+            drafts: batchDrafts,
+            policy: { indexMode: 'touched' }
+          })
+          return {
+            created: result.created,
+            updated: result.updated,
+            affectedSchemaIds: result.schemaIds
+          }
+        },
         onProgress: (progress) => {
           setCommitProgress(progress)
           upsertResumeRecord(progress)
@@ -305,8 +315,18 @@ function SocialImportPage(): React.ReactElement {
             created: record.created,
             updated: record.updated
           },
-          importDrafts: async (batchDrafts) =>
-            store.importDeterministicNodes(batchDrafts, { indexMode: 'touched' }),
+          importDrafts: async (batchDrafts) => {
+            const batchResult = await store.batchWrite({
+              kind: 'deterministic-import',
+              drafts: batchDrafts,
+              policy: { indexMode: 'touched' }
+            })
+            return {
+              created: batchResult.created,
+              updated: batchResult.updated,
+              affectedSchemaIds: batchResult.schemaIds
+            }
+          },
           onProgress: (progress) => {
             setCommitProgress(progress)
             upsertResumeRecord(progress)

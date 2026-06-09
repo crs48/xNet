@@ -37,7 +37,9 @@ import type {
   PropertyBuilder,
   InferCreateProps,
   NodeState,
-  TransactionOperation
+  TransactionOperation,
+  NodeBatchWriteInput,
+  NodeBatchWriteResult
 } from '@xnetjs/data'
 import { isTempId } from '@xnetjs/data'
 import { useCallback, useState, useRef } from 'react'
@@ -221,6 +223,11 @@ export interface UseMutateResult {
    * WorkerBridge executes operations sequentially (not truly atomic).
    */
   mutate: (ops: MutateOp[]) => Promise<MutateResult | null>
+
+  /**
+   * Execute a storage-owned bulk write.
+   */
+  bulk: (input: NodeBatchWriteInput) => Promise<NodeBatchWriteResult | null>
 
   /**
    * Whether any mutation is currently in progress.
@@ -447,12 +454,35 @@ export function useMutate(): UseMutateResult {
     [bridge, telemetry, withPending]
   )
 
+  const bulk = useCallback(
+    async (input: NodeBatchWriteInput): Promise<NodeBatchWriteResult | null> => {
+      if (!bridge) return null
+
+      const start = telemetry ? Date.now() : 0
+      try {
+        const result = await withPending(async () => bridge.bulkWrite(input))
+        telemetry?.reportPerformance('react.useMutate.bulk', Date.now() - start)
+        telemetry?.reportUsage('react.useMutate.bulk.success', 1)
+        return result
+      } catch (err) {
+        telemetry?.reportUsage('react.useMutate.bulk.failure', 1)
+        telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
+          codeNamespace: 'react.useMutate.bulk',
+          kind: input.kind
+        })
+        throw err
+      }
+    },
+    [bridge, telemetry, withPending]
+  )
+
   return {
     create,
     update,
     remove,
     restore,
     mutate,
+    bulk,
     isPending: pendingCount > 0,
     pendingCount
   }

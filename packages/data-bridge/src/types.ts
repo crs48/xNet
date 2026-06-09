@@ -15,7 +15,9 @@ import type {
   NodeChangeEvent,
   ListNodesOptions,
   NodeQueryPlanMetadata,
-  NodeQueryPageCountMode
+  NodeQueryPageCountMode,
+  NodeBatchWriteInput,
+  NodeBatchWriteResult
 } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
@@ -414,6 +416,11 @@ export interface DataBridge {
    * Restore a soft-deleted node.
    */
   restore(nodeId: string): Promise<NodeState>
+
+  /**
+   * Execute a storage-owned batch write when the runtime supports it.
+   */
+  bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult>
 
   // ─── Documents ──────────────────────────────────────────
 
