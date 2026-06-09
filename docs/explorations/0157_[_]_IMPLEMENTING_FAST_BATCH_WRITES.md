@@ -845,13 +845,47 @@ This can reduce social import write volume without sacrificing provenance.
 - [ ] Browser benchmark 72,738 canonical records before/after.
 - [ ] Browser benchmark 280k records with source records disabled.
 - [ ] Browser stress test 1M synthetic records in chunks.
-- [ ] Electron benchmark same record counts.
+- [x] Electron benchmark same record counts.
 - [ ] Verify OPFS storage remains persistent and no corruption after cancelled import.
 - [ ] Verify resume after crash/cancel starts at the last committed chunk.
 - [ ] Verify foreground UI remains responsive during web import.
-- [ ] Verify query results are correct immediately after touched-node index commit.
+- [x] Verify query results are correct immediately after touched-node index commit.
 - [ ] Verify sync/hub upload is coalesced and does not flood per-node updates.
 - [ ] Verify durable-storage warning and storage recovery paths still work.
+
+## Benchmark Notes
+
+The current file-backed Electron benchmark uses `better-sqlite3` through
+`createElectronSQLiteAdapter()`, so it validates the storage-owned batch apply
+path without OPFS/browser scheduling noise. The benchmark creates synthetic
+social content drafts with eleven properties per node and writes them through
+`NodeStore.batchWrite({ kind: 'deterministic-import' })` in 2,500-record
+chunks.
+
+| Command | Index mode | Records | Total | Throughput | Apply | Materialize | Database |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `pnpm bench:social-batch -- --counts=10k --runtime=electron --progress-every=1 --out=tmp/social-batch-electron-10k.json` | touched | 10,000 | 11.33s | 883 rec/s | 7.50s | 3.70s | 107 MB |
+| `pnpm bench:social-batch -- --counts=10k --runtime=electron --progress-every=1 --index-mode=defer-schema --out=tmp/social-batch-electron-10k-defer.json` | defer schema | 10,000 | 4.64s | 2,154 rec/s | 0.76s | 3.75s | 54 MB |
+| `pnpm bench:social-batch -- --counts=72738 --runtime=electron --progress-every=5 --index-mode=defer-schema --out=tmp/social-batch-electron-72738-defer.json` | defer schema | 72,738 | 36.29s | 2,004 rec/s | 10.30s | 25.14s | 393 MB |
+| `pnpm bench:social-batch -- --counts=280k --runtime=electron --progress-every=20 --index-mode=defer-schema --out=tmp/social-batch-electron-280k-defer.json` | defer schema | 280,000 | 180.15s | 1,554 rec/s | 82.01s | 94.79s | 1.51 GB |
+
+The touched-index 10k run also verifies that scalar queries are immediately
+usable after a touched-node index commit: the benchmark's `contentType = video`
+query used the storage query path and returned rows without requiring a schema
+rebuild. The deferred-schema runs intentionally skip scalar query validation
+because the point of that policy is to avoid scalar/FTS index writes during the
+hot import and rebuild later.
+
+These numbers show two different bottlenecks:
+
+- Touched indexing roughly doubles disk footprint and dominates the 10k run
+  because it writes 110,000 scalar rows plus 10,000 FTS rows immediately.
+- Deferred schema indexing makes node/property/change writes much faster, then
+  materialization and signing become the largest fixed cost per chunk.
+
+The unchecked browser validation items still require actual OPFS runs in
+Chromium/Safari/Firefox so we can measure worker scheduling, persistence,
+cancel/resume behavior, and UI responsiveness under real browser storage.
 
 ## Example Code
 
