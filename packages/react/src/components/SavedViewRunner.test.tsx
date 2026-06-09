@@ -462,7 +462,7 @@ describe('SavedViewRunner', () => {
     expect(await screen.findByText('Saved video')).toBeTruthy()
     expect((await screen.findAllByText('@creator')).length).toBeGreaterThan(0)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Inspect' }))
+    fireEvent.keyDown(screen.getByLabelText('Preview Saved video'), { key: 'Enter' })
 
     const inspector = screen.getByText('Inspector').closest('aside')
     expect(inspector).toBeTruthy()
@@ -529,6 +529,171 @@ describe('SavedViewRunner', () => {
 
     expect(screen.getByText('Visual Timeline')).toBeTruthy()
     expect(await screen.findByText('Saved video')).toBeTruthy()
+  })
+
+  it('builds a source-backed canvas projection request from the visual canvas mode', async () => {
+    const onOpenVisualCanvasProjection = vi.fn()
+    const descriptor: SavedViewDescriptor = {
+      version: 1,
+      title: 'Content',
+      scope: 'workspace',
+      query: {
+        version: 1,
+        kind: 'node',
+        schemaId: 'xnet://schema/social/content',
+        page: { first: 25, count: 'estimate' }
+      }
+    }
+    const query = createQueryResult({
+      data: [
+        {
+          id: 'content-1',
+          schemaId: 'xnet://schema/social/content',
+          createdAt: 1,
+          createdBy: 'did:key:test',
+          updatedAt: 1,
+          updatedBy: 'did:key:test',
+          deleted: false,
+          title: 'Creator post',
+          platform: 'instagram',
+          actorHandle: '@creator',
+          authorActor: 'actor-1',
+          privacyClass: 'public'
+        },
+        {
+          id: 'content-2',
+          schemaId: 'xnet://schema/social/content',
+          createdAt: 1,
+          createdBy: 'did:key:test',
+          updatedAt: 1,
+          updatedBy: 'did:key:test',
+          deleted: false,
+          title: 'Another creator post',
+          platform: 'youtube',
+          actorHandle: '@another',
+          authorActor: 'actor-2',
+          privacyClass: 'public'
+        }
+      ]
+    })
+
+    vi.mocked(useSavedView).mockReturnValue({
+      descriptor,
+      validation: { valid: true, errors: [] },
+      kind: 'node',
+      status: 'success',
+      loading: false,
+      error: null,
+      title: 'Content',
+      description: 'Imported content',
+      primaryQueryId: 'primary',
+      queryIds: ['primary'],
+      queries: { primary: query },
+      primary: query,
+      blockers: [],
+      warnings: [],
+      privacy: {
+        counts: {},
+        sensitiveCount: 0
+      },
+      reload: vi.fn()
+    })
+
+    render(
+      <SavedViewRunner
+        descriptor={descriptor}
+        registry={[]}
+        onOpenVisualCanvasProjection={onOpenVisualCanvasProjection}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Canvas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Creators' }))
+
+    expect(screen.getByText('Canvas Projection')).toBeTruthy()
+    expect(screen.getByText('Projected nodes')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open as canvas' }))
+
+    expect(onOpenVisualCanvasProjection).toHaveBeenCalledTimes(1)
+    expect(onOpenVisualCanvasProjection.mock.calls[0]?.[0]).toMatchObject({
+      sourceQueryId: 'primary',
+      sourceSchemaId: 'xnet://schema/social/content',
+      layout: {
+        id: 'creator-clusters',
+        projectionGroupBy: 'creator'
+      },
+      sourceNodeIds: ['content-2', 'content-1'],
+      omittedNodeCount: 0,
+      previewCount: 2
+    })
+  })
+
+  it('renders relationship edges in graph mode and selects the source row', () => {
+    const descriptor: SavedViewDescriptor = {
+      version: 1,
+      title: 'Content Graph',
+      scope: 'workspace',
+      query: {
+        version: 1,
+        kind: 'node',
+        schemaId: 'xnet://schema/social/content',
+        page: { first: 25, count: 'estimate' }
+      }
+    }
+    const query = createQueryResult({
+      data: [
+        {
+          id: 'content-1',
+          schemaId: 'xnet://schema/social/content',
+          createdAt: 1,
+          createdBy: 'did:key:test',
+          updatedAt: 1,
+          updatedBy: 'did:key:test',
+          deleted: false,
+          title: 'Saved video',
+          platform: 'youtube',
+          authorActor: 'actor-1',
+          actorHandle: '@creator',
+          privacyClass: 'public'
+        }
+      ]
+    })
+
+    vi.mocked(useSavedView).mockReturnValue({
+      descriptor,
+      validation: { valid: true, errors: [] },
+      kind: 'node',
+      status: 'success',
+      loading: false,
+      error: null,
+      title: 'Content Graph',
+      description: 'Relationship view',
+      primaryQueryId: 'primary',
+      queryIds: ['primary'],
+      queries: { primary: query },
+      primary: query,
+      blockers: [],
+      warnings: [],
+      privacy: {
+        counts: {},
+        sensitiveCount: 0
+      },
+      reload: vi.fn()
+    })
+
+    render(<SavedViewRunner descriptor={descriptor} registry={[]} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Graph' }))
+
+    expect(screen.getByText('Graph Summary')).toBeTruthy()
+    expect(screen.getByText('actor-1 (external)')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Saved video/i }))
+
+    const inspector = screen.getByText('Inspector').closest('aside')
+    expect(inspector).toBeTruthy()
+    expect(within(inspector as HTMLElement).getByText('content-1')).toBeTruthy()
   })
 
   it('opens a selected graph lens source record in the shared inspector', () => {

@@ -6,7 +6,8 @@ import {
   useQuery,
   type MutateOp,
   type SavedViewLensDraft,
-  type SavedViewSchemaRegistry
+  type SavedViewSchemaRegistry,
+  type SavedViewVisualCanvasProjectionRequest
 } from '@xnetjs/react'
 import {
   listSocialImportJobs,
@@ -530,6 +531,24 @@ export function DataWorkspaceView({
     onInsertSavedLensAsCanvasFrame(savedView)
   }
 
+  function handleOpenVisualCanvasProjection(request: SavedViewVisualCanvasProjectionRequest): void {
+    if (!onInsertSavedLensAsCanvasFrame) return
+
+    const descriptorJson =
+      typeof request.descriptor === 'string'
+        ? request.descriptor
+        : request.descriptor
+          ? JSON.stringify(request.descriptor)
+          : selectedView?.descriptor
+
+    onInsertSavedLensAsCanvasFrame({
+      id: selectedView?.id ?? request.id,
+      title: request.title,
+      ...(request.description ? { description: request.description } : {}),
+      ...(descriptorJson ? { descriptor: descriptorJson } : {})
+    })
+  }
+
   function handleDismissPattern(patternId: string): void {
     setDismissedPatternIds((current) => {
       const next = [...new Set([...current, patternId])]
@@ -693,6 +712,9 @@ export function DataWorkspaceView({
                 fallbackId={selectedView?.id ?? null}
                 resetKey={selectedView?.id ?? null}
                 onSaveLens={handleSaveLens}
+                onOpenVisualCanvasProjection={
+                  onInsertSavedLensAsCanvasFrame ? handleOpenVisualCanvasProjection : undefined
+                }
               />
 
               <section className="mt-6 space-y-3">

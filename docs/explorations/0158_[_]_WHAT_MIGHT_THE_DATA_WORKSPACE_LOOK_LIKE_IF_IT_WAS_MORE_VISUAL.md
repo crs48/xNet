@@ -827,12 +827,12 @@ export function createVisualCanvasProjection({
 - [x] Reuse provider parsing from `packages/data/src/external-references.ts` for embed URLs and preview shells.
 - [x] Add an explicit live-embed activation policy with a small global live-embed cap.
 - [x] Build a virtualized timeline renderer with month/day buckets and expandable card groups.
-- [ ] Add saved-view layout settings for grid, timeline, cluster, graph, and collection board modes.
-- [ ] Add "Open as canvas" from a saved view, backed by source-node projection rather than copied records.
-- [ ] Add social layout presets: creator cluster, platform lanes, content-type lanes, date bands, and collection board.
+- [x] Add saved-view layout settings for grid, timeline, cluster, graph, and collection board modes.
+- [x] Add "Open as canvas" from a saved view, backed by source-node projection rather than copied records.
+- [x] Add social layout presets: creator cluster, platform lanes, content-type lanes, date bands, and collection board.
 - [x] Cache preview derivations and layout results by saved view descriptor hash and importer version.
 - [x] Add lightweight empty, loading, and partial-provider-failure states for visual modes.
-- [ ] Add keyboard navigation and selection behavior shared across visual grid, timeline, and canvas projection.
+- [x] Add keyboard navigation and selection behavior shared across visual grid, timeline, and canvas projection.
 
 ## Validation Checklist
 
@@ -841,7 +841,7 @@ export function createVisualCanvasProjection({
 - [ ] Verify live iframes are not mounted for off-screen cards.
 - [ ] Verify no more than the configured live-embed cap is active at once.
 - [ ] Verify timeline bucket expansion does not fetch or render all records at once.
-- [ ] Verify canvas projections preserve source node IDs and can open row inspectors for canonical records.
+- [x] Verify canvas projections preserve source node IDs and can open row inspectors for canonical records.
 - [ ] Verify canvas DOM-node caps still hold with social external reference cards.
 - [ ] Verify graph layouts are bounded, clustered, or sampled by default.
 - [ ] Verify provider failures fall back to metadata shells without breaking scroll.

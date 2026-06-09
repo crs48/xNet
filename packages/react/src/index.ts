@@ -62,6 +62,7 @@ export {
   deriveSavedViewPrivacyChips,
   deriveSavedViewRowInspector,
   createSavedViewLensDraft,
+  createSavedViewVisualCanvasProjectionRequest,
   filterSavedViewRowsByDateBrush,
   filterSavedViewRowsByFacets,
   formatSavedViewCellValue,
@@ -83,7 +84,10 @@ export {
   type SavedViewResultTableProps,
   type SavedViewRowInspectorModel,
   type SavedViewRunnerProps,
-  type SavedViewSortDirection
+  type SavedViewSortDirection,
+  type SavedViewVisualCanvasProjectionRequest,
+  type SavedViewVisualLayoutId,
+  type SavedViewVisualLayoutOption
 } from './components/SavedViewRunner'
 export {
   deriveCachedSavedViewVisualPreviews,

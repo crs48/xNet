@@ -45,13 +45,16 @@ import {
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useSavedView } from '../hooks/useSavedView'
 import {
+  createSavedViewCanvasProjectionNodes,
   deriveCachedSavedViewVisualPreviews,
   deriveSavedViewTimelineBuckets,
   hasSavedViewVisualPreviewSensitiveData,
   isSavedViewVisualPreviewEmbeddable,
+  type SavedViewCanvasProjectionNode,
   type SavedViewVisualPreviewKind,
   type SavedViewVisualPreviewModel,
-  type SavedViewVisualTimelineBucket
+  type SavedViewVisualTimelineBucket,
+  type SavedViewVisualWorkspaceLayout
 } from './savedViewVisualPreview'
 
 export type SavedViewRunnerProps = {
@@ -68,6 +71,9 @@ export type SavedViewRunnerProps = {
   options?: Omit<UseSavedViewOptions, 'queryOverrides' | 'search'>
   onSaveLens?: (draft: SavedViewLensDraft) => void | Promise<void>
   saveLensLabel?: string
+  onOpenVisualCanvasProjection?: (
+    request: SavedViewVisualCanvasProjectionRequest
+  ) => void | Promise<void>
 }
 
 export type SavedViewResultTableProps = {
@@ -199,6 +205,45 @@ type SavedViewPresentationModeOption = {
   enabled: boolean
 }
 
+export type SavedViewVisualLayoutId =
+  | 'grid'
+  | 'timeline'
+  | 'creator-clusters'
+  | 'platform-lanes'
+  | 'content-type-lanes'
+  | 'date-bands'
+  | 'collection-board'
+  | 'graph'
+
+export type SavedViewVisualLayoutOption = {
+  id: SavedViewVisualLayoutId
+  label: string
+  description: string
+  icon: LucideIcon
+  enabled: boolean
+  workspaceLayout: SavedViewVisualWorkspaceLayout
+  projectionGroupBy: 'platform' | 'kind' | 'creator' | 'privacy'
+}
+
+export type SavedViewVisualCanvasProjectionRequest = {
+  id: string
+  title: string
+  description?: string | null
+  descriptor?: SavedViewDescriptor | string | null
+  sourceQueryId?: string | null
+  sourceSchemaId?: string | null
+  layout: {
+    id: SavedViewVisualLayoutId
+    label: string
+    workspaceLayout: SavedViewVisualWorkspaceLayout
+    projectionGroupBy: SavedViewVisualLayoutOption['projectionGroupBy']
+  }
+  nodes: SavedViewCanvasProjectionNode[]
+  sourceNodeIds: string[]
+  omittedNodeCount: number
+  previewCount: number
+}
+
 type SortDirection = SavedViewSortDirection
 
 const DEFAULT_PAGE_SIZE = 25
@@ -206,6 +251,8 @@ const DEFAULT_PAGE_SIZES = [10, 25, 50, 100] as const
 const DEFAULT_VISUAL_GRID_COLUMNS = 3
 const VISUAL_GRID_ROW_HEIGHT = 318
 const VISUAL_GRID_OVERSCAN = 4
+const VISUAL_CANVAS_PROJECTION_LIMIT = 120
+const VISUAL_GRAPH_EDGE_LIMIT = 96
 const TIMELINE_PREVIEW_LIMIT_PER_BUCKET = 18
 const MAX_FACET_FIELDS = 5
 const MAX_FACET_VALUES = 8
@@ -802,7 +849,8 @@ export function SavedViewRunner({
   initialPageSize = DEFAULT_PAGE_SIZE,
   options: baseOptions,
   onSaveLens,
-  saveLensLabel = 'Save lens'
+  saveLensLabel = 'Save lens',
+  onOpenVisualCanvasProjection
 }: SavedViewRunnerProps): JSX.Element {
   const [activeQueryId, setActiveQueryId] = useState<string | null>(null)
   const [searchText, setSearchText] = useState('')
@@ -818,6 +866,7 @@ export function SavedViewRunner({
     bucketKeys: []
   })
   const [presentationMode, setPresentationMode] = useState<SavedViewPresentationMode>('table')
+  const [visualLayoutId, setVisualLayoutId] = useState<SavedViewVisualLayoutId>('platform-lanes')
   const [activeEmbedPreviewId, setActiveEmbedPreviewId] = useState<string | null>(null)
   const [saveLensState, setSaveLensState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveLensError, setSaveLensError] = useState<string | null>(null)
@@ -917,18 +966,47 @@ export function SavedViewRunner({
     () => deriveSavedViewTimelineBuckets(visualPreviews),
     [visualPreviews]
   )
+  const relationshipCount = useMemo(
+    () => visualPreviews.reduce((count, preview) => count + preview.relationships.length, 0),
+    [visualPreviews]
+  )
+  const visualLayoutOptions = useMemo(
+    () =>
+      createSavedViewVisualLayoutOptions({
+        previewCount: visualPreviews.length,
+        timelineBucketCount: timelineBuckets.length,
+        relationshipCount,
+        resultKind: result.kind
+      }),
+    [relationshipCount, result.kind, timelineBuckets.length, visualPreviews.length]
+  )
+  const activeVisualLayout =
+    visualLayoutOptions.find((option) => option.id === visualLayoutId) ?? visualLayoutOptions[0]
+  const arrangedVisualPreviews = useMemo(
+    () => arrangeSavedViewVisualPreviews(visualPreviews, activeVisualLayout?.id ?? 'grid'),
+    [activeVisualLayout?.id, visualPreviews]
+  )
+  const visualCanvasProjectionNodes = useMemo(
+    () =>
+      createSavedViewCanvasProjectionNodes(arrangedVisualPreviews, {
+        limit: VISUAL_CANVAS_PROJECTION_LIMIT,
+        groupBy: activeVisualLayout?.projectionGroupBy ?? 'platform'
+      }),
+    [activeVisualLayout?.projectionGroupBy, arrangedVisualPreviews]
+  )
+  const visualGraphEdges = useMemo(
+    () => deriveSavedViewVisualGraphEdges(arrangedVisualPreviews),
+    [arrangedVisualPreviews]
+  )
   const presentationModeOptions = useMemo(
     () =>
       createSavedViewPresentationModeOptions({
         resultKind: result.kind,
         previewCount: visualPreviews.length,
         timelineBucketCount: timelineBuckets.length,
-        relationshipCount: visualPreviews.reduce(
-          (count, preview) => count + preview.relationships.length,
-          0
-        )
+        relationshipCount
       }),
-    [result.kind, timelineBuckets.length, visualPreviews]
+    [relationshipCount, result.kind, timelineBuckets.length, visualPreviews.length]
   )
   const inspectedRow = useMemo<Record<string, unknown> | null>(() => {
     if (!expandedRowId) return null
@@ -958,6 +1036,7 @@ export function SavedViewRunner({
     setFacetSelection({})
     setDateBrushSelection({ field: null, bucketKeys: [] })
     setPresentationMode('table')
+    setVisualLayoutId('platform-lanes')
     setActiveEmbedPreviewId(null)
     setSaveLensState('idle')
     setSaveLensError(null)
@@ -998,6 +1077,15 @@ export function SavedViewRunner({
       setPresentationMode('table')
     }
   }, [presentationMode, presentationModeOptions])
+
+  useEffect(() => {
+    const activeOption = visualLayoutOptions.find((option) => option.id === visualLayoutId)
+    const fallbackOption =
+      visualLayoutOptions.find((option) => option.enabled) ?? visualLayoutOptions[0]
+    if (!activeOption?.enabled && fallbackOption) {
+      setVisualLayoutId(fallbackOption.id)
+    }
+  }, [visualLayoutId, visualLayoutOptions])
 
   useEffect(() => {
     if (!activeEmbedPreviewId) return
@@ -1298,11 +1386,18 @@ export function SavedViewRunner({
         activeMode={presentationMode}
         onSelectMode={setPresentationMode}
       />
+      {presentationMode !== 'table' && activeVisualLayout ? (
+        <SavedViewVisualLayoutSettings
+          options={visualLayoutOptions}
+          activeLayoutId={activeVisualLayout.id}
+          onSelectLayout={setVisualLayoutId}
+        />
+      ) : null}
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
         {presentationMode === 'cards' ? (
           <SavedViewVisualGrid
-            previews={visualPreviews}
+            previews={arrangedVisualPreviews}
             selectedSourceNodeId={expandedRowId}
             activeEmbedPreviewId={activeEmbedPreviewId}
             onSelectPreview={(preview) =>
@@ -1326,6 +1421,27 @@ export function SavedViewRunner({
             }
             onToggleLiveEmbed={(preview) =>
               setActiveEmbedPreviewId((current) => (current === preview.id ? null : preview.id))
+            }
+          />
+        ) : presentationMode === 'canvas' ? (
+          <SavedViewVisualCanvasProjectionPanel
+            previews={arrangedVisualPreviews}
+            projectionNodes={visualCanvasProjectionNodes}
+            layout={activeVisualLayout}
+            descriptor={result.descriptor ?? descriptor}
+            title={title ?? result.title ?? 'Visual saved view'}
+            description={description ?? result.description ?? null}
+            sourceQueryId={activeQuery?.queryId ?? resolvedActiveQueryId}
+            sourceSchemaId={activeQuery?.schemaId ?? null}
+            onOpenProjection={onOpenVisualCanvasProjection}
+          />
+        ) : presentationMode === 'graph' ? (
+          <SavedViewVisualGraphPanel
+            previews={arrangedVisualPreviews}
+            edges={visualGraphEdges}
+            selectedSourceNodeId={expandedRowId}
+            onSelectSourceNode={(sourceNodeId) =>
+              setExpandedRowId((current) => (current === sourceNodeId ? null : sourceNodeId))
             }
           />
         ) : (
@@ -1481,6 +1597,21 @@ function createSavedViewPresentationModeOptions(input: {
       description: 'Group visible records by month',
       icon: CalendarDays,
       enabled: input.timelineBucketCount > 0
+    },
+    {
+      mode: 'canvas',
+      label: 'Canvas',
+      description: 'Preview a bounded source-backed canvas projection',
+      icon: Network,
+      enabled: input.previewCount > 0
+    },
+    {
+      mode: 'graph',
+      label: 'Graph',
+      description: 'Surface relationships, clusters, and sampled edges',
+      icon: GitBranch,
+      enabled:
+        input.previewCount > 0 && (input.relationshipCount > 0 || input.resultKind === 'query-set')
     }
   ]
 }
@@ -1527,6 +1658,197 @@ function SavedViewPresentationModeSwitcher({
       </span>
     </div>
   )
+}
+
+function createSavedViewVisualLayoutOptions(input: {
+  previewCount: number
+  timelineBucketCount: number
+  relationshipCount: number
+  resultKind: UseSavedViewResult['kind']
+}): SavedViewVisualLayoutOption[] {
+  const hasPreviews = input.previewCount > 0
+  const hasTimeline = input.timelineBucketCount > 0
+  const hasGraph = input.relationshipCount > 0 || input.resultKind === 'query-set'
+
+  return [
+    {
+      id: 'grid',
+      label: 'Grid',
+      description: 'Dense preview cards sorted by title and recency.',
+      icon: LayoutGrid,
+      enabled: hasPreviews,
+      workspaceLayout: { kind: 'grid', groupBy: 'kind', sortBy: 'timestamp' },
+      projectionGroupBy: 'kind'
+    },
+    {
+      id: 'timeline',
+      label: 'Timeline',
+      description: 'Chronological buckets for timestamped records.',
+      icon: CalendarDays,
+      enabled: hasTimeline,
+      workspaceLayout: { kind: 'timeline', timeField: 'timestamp', laneBy: 'platform' },
+      projectionGroupBy: 'platform'
+    },
+    {
+      id: 'creator-clusters',
+      label: 'Creators',
+      description: 'Cluster records by the person or account behind them.',
+      icon: UserRound,
+      enabled: hasPreviews,
+      workspaceLayout: { kind: 'cluster', groupBy: 'creator', sizeBy: 'count' },
+      projectionGroupBy: 'creator'
+    },
+    {
+      id: 'platform-lanes',
+      label: 'Platforms',
+      description: 'Lane records by source platform.',
+      icon: Columns3,
+      enabled: hasPreviews,
+      workspaceLayout: { kind: 'cluster', groupBy: 'platform', sizeBy: 'count' },
+      projectionGroupBy: 'platform'
+    },
+    {
+      id: 'content-type-lanes',
+      label: 'Types',
+      description: 'Lane records by content, actor, message, or collection type.',
+      icon: FileSearch,
+      enabled: hasPreviews,
+      workspaceLayout: { kind: 'cluster', groupBy: 'kind', sizeBy: 'count' },
+      projectionGroupBy: 'kind'
+    },
+    {
+      id: 'date-bands',
+      label: 'Dates',
+      description: 'Band timestamped records by date before projecting.',
+      icon: CalendarDays,
+      enabled: hasTimeline,
+      workspaceLayout: { kind: 'timeline', timeField: 'timestamp', laneBy: 'kind' },
+      projectionGroupBy: 'kind'
+    },
+    {
+      id: 'collection-board',
+      label: 'Board',
+      description: 'Group collection records and collection-like items together.',
+      icon: Columns3,
+      enabled: hasPreviews,
+      workspaceLayout: { kind: 'collection-board', collectionField: 'collection' },
+      projectionGroupBy: 'kind'
+    },
+    {
+      id: 'graph',
+      label: 'Graph',
+      description: 'Sample bounded relationship edges for graph inspection.',
+      icon: GitBranch,
+      enabled: hasPreviews && hasGraph,
+      workspaceLayout: { kind: 'graph', algorithm: 'layered' },
+      projectionGroupBy: 'creator'
+    }
+  ]
+}
+
+function SavedViewVisualLayoutSettings({
+  options,
+  activeLayoutId,
+  onSelectLayout
+}: {
+  options: SavedViewVisualLayoutOption[]
+  activeLayoutId: SavedViewVisualLayoutId
+  onSelectLayout: (layoutId: SavedViewVisualLayoutId) => void
+}): JSX.Element {
+  return (
+    <div className="rounded-md border border-border bg-background p-2">
+      <div className="mb-2 flex items-center justify-between gap-3 px-1">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Layout
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Affects visual ordering and projection lanes.
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {options.map((option) => {
+          const active = activeLayoutId === option.id
+          const Icon = option.icon
+
+          return (
+            <button
+              key={option.id}
+              type="button"
+              disabled={!option.enabled}
+              onClick={() => onSelectLayout(option.id)}
+              title={option.description}
+              className={classNames([
+                'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition-colors',
+                active
+                  ? 'bg-foreground text-background'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                !option.enabled && 'cursor-not-allowed opacity-45 hover:bg-transparent'
+              ])}
+            >
+              <Icon size={13} />
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function compareMaybeNumberDescending(left?: number, right?: number): number {
+  if (left === undefined && right === undefined) return 0
+  if (left === undefined) return 1
+  if (right === undefined) return -1
+  return right - left
+}
+
+function previewGroupValue(
+  preview: SavedViewVisualPreviewModel,
+  layoutId: SavedViewVisualLayoutId
+): string {
+  switch (layoutId) {
+    case 'creator-clusters':
+    case 'graph':
+      return preview.creator?.label ?? 'unknown creator'
+    case 'content-type-lanes':
+    case 'collection-board':
+    case 'grid':
+      return preview.kind
+    case 'date-bands':
+    case 'timeline':
+      return preview.timestamp ? new Date(preview.timestamp).toISOString().slice(0, 7) : 'undated'
+    case 'platform-lanes':
+    default:
+      return preview.platform
+  }
+}
+
+function arrangeSavedViewVisualPreviews(
+  previews: readonly SavedViewVisualPreviewModel[],
+  layoutId: SavedViewVisualLayoutId
+): SavedViewVisualPreviewModel[] {
+  return [...previews].sort((left, right) => {
+    if (layoutId === 'timeline' || layoutId === 'date-bands') {
+      return (
+        compareMaybeNumberDescending(left.timestampMs, right.timestampMs) ||
+        left.title.localeCompare(right.title)
+      )
+    }
+
+    if (layoutId === 'graph') {
+      return (
+        right.relationships.length - left.relationships.length ||
+        previewGroupValue(left, layoutId).localeCompare(previewGroupValue(right, layoutId)) ||
+        left.title.localeCompare(right.title)
+      )
+    }
+
+    return (
+      previewGroupValue(left, layoutId).localeCompare(previewGroupValue(right, layoutId)) ||
+      compareMaybeNumberDescending(left.timestampMs, right.timestampMs) ||
+      left.title.localeCompare(right.title)
+    )
+  })
 }
 
 function chunkVisualPreviews(
@@ -1768,6 +2090,333 @@ function SavedViewVisualTimeline({
   )
 }
 
+export function createSavedViewVisualCanvasProjectionRequest(input: {
+  descriptor?: SavedViewDescriptor | string | null
+  title: string
+  description?: string | null
+  sourceQueryId?: string | null
+  sourceSchemaId?: string | null
+  layout: SavedViewVisualLayoutOption
+  previews: readonly SavedViewVisualPreviewModel[]
+  nodes: readonly SavedViewCanvasProjectionNode[]
+}): SavedViewVisualCanvasProjectionRequest {
+  const id = ['saved-view-visual-projection', input.sourceQueryId ?? 'query', input.layout.id].join(
+    ':'
+  )
+
+  return {
+    id,
+    title: `${input.title} - ${input.layout.label}`,
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.descriptor ? { descriptor: input.descriptor } : {}),
+    ...(input.sourceQueryId ? { sourceQueryId: input.sourceQueryId } : {}),
+    ...(input.sourceSchemaId ? { sourceSchemaId: input.sourceSchemaId } : {}),
+    layout: {
+      id: input.layout.id,
+      label: input.layout.label,
+      workspaceLayout: input.layout.workspaceLayout,
+      projectionGroupBy: input.layout.projectionGroupBy
+    },
+    nodes: [...input.nodes],
+    sourceNodeIds: input.nodes.map((node) => node.id),
+    omittedNodeCount: Math.max(0, input.previews.length - input.nodes.length),
+    previewCount: input.previews.length
+  }
+}
+
+function groupCanvasProjectionNodes(
+  nodes: readonly SavedViewCanvasProjectionNode[]
+): Array<{ key: string; nodes: SavedViewCanvasProjectionNode[] }> {
+  const groups = nodes.reduce<Map<string, SavedViewCanvasProjectionNode[]>>((current, node) => {
+    const key = node.groupKey ?? 'ungrouped'
+    current.set(key, [...(current.get(key) ?? []), node])
+    return current
+  }, new Map())
+
+  return [...groups.entries()]
+    .map(([key, groupNodes]) => ({ key, nodes: groupNodes }))
+    .sort(
+      (left, right) => right.nodes.length - left.nodes.length || left.key.localeCompare(right.key)
+    )
+}
+
+function SavedViewVisualCanvasProjectionPanel({
+  previews,
+  projectionNodes,
+  layout,
+  descriptor,
+  title,
+  description,
+  sourceQueryId,
+  sourceSchemaId,
+  onOpenProjection
+}: {
+  previews: SavedViewVisualPreviewModel[]
+  projectionNodes: SavedViewCanvasProjectionNode[]
+  layout: SavedViewVisualLayoutOption
+  descriptor?: SavedViewDescriptor | string | null
+  title: string
+  description?: string | null
+  sourceQueryId?: string | null
+  sourceSchemaId?: string | null
+  onOpenProjection?: (request: SavedViewVisualCanvasProjectionRequest) => void | Promise<void>
+}): JSX.Element {
+  const groups = useMemo(() => groupCanvasProjectionNodes(projectionNodes), [projectionNodes])
+  const omittedNodeCount = Math.max(0, previews.length - projectionNodes.length)
+
+  if (previews.length === 0) {
+    return (
+      <div className="flex h-56 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
+        No rows are available for a canvas projection.
+      </div>
+    )
+  }
+
+  const request = createSavedViewVisualCanvasProjectionRequest({
+    descriptor,
+    title,
+    description,
+    sourceQueryId,
+    sourceSchemaId,
+    layout,
+    previews,
+    nodes: projectionNodes
+  })
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-background">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Network size={14} className="text-muted-foreground" />
+          <span>Canvas Projection</span>
+          <span className="text-xs font-normal text-muted-foreground">{layout.label}</span>
+        </div>
+        <button
+          type="button"
+          disabled={!onOpenProjection || projectionNodes.length === 0}
+          onClick={() => void onOpenProjection?.(request)}
+          className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          <Network size={12} />
+          Open as canvas
+        </button>
+      </div>
+
+      <div className="space-y-3 p-3">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ProjectionMetric label="Source rows" value={previews.length} />
+          <ProjectionMetric label="Projected nodes" value={projectionNodes.length} />
+          <ProjectionMetric label="Omitted" value={omittedNodeCount} />
+        </div>
+
+        <div className="rounded-md border border-border bg-secondary/20 p-3 text-sm text-muted-foreground">
+          Projection nodes keep the canonical source node IDs, schema IDs, privacy classes, and
+          grouping keys from the saved view. Canvas rendering can materialize these as source-backed
+          cards without duplicating the imported records.
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+          {groups.map((group) => (
+            <section key={group.key} className="min-w-0 rounded-md border border-border p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="truncate text-sm font-semibold">{formatGroupLabel(group.key)}</h3>
+                <span className="text-xs text-muted-foreground">{group.nodes.length}</span>
+              </div>
+              <div className="space-y-1.5">
+                {group.nodes.slice(0, 8).map((node) => (
+                  <div
+                    key={node.id}
+                    className="min-w-0 rounded-md bg-secondary px-2 py-1.5 text-xs"
+                  >
+                    <div className="truncate font-medium">{node.title}</div>
+                    <div className="truncate text-muted-foreground">
+                      {node.kind} / {shortSchemaId(node.schemaId)}
+                    </div>
+                  </div>
+                ))}
+                {group.nodes.length > 8 ? (
+                  <div className="text-xs text-muted-foreground">
+                    +{(group.nodes.length - 8).toLocaleString()} more in this lane
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProjectionMetric({ label, value }: { label: string; value: number }): JSX.Element {
+  return (
+    <div className="rounded-md border border-border p-3">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-semibold">{value.toLocaleString()}</div>
+    </div>
+  )
+}
+
+type SavedViewVisualGraphEdge = {
+  id: string
+  kind: string
+  sourceNodeId: string
+  targetNodeId: string
+  sourceTitle: string
+  targetTitle: string
+  targetVisible: boolean
+}
+
+function deriveSavedViewVisualGraphEdges(
+  previews: readonly SavedViewVisualPreviewModel[]
+): SavedViewVisualGraphEdge[] {
+  const previewBySourceNodeId = new Map(previews.map((preview) => [preview.sourceNodeId, preview]))
+
+  return previews.flatMap((preview) =>
+    preview.relationships.map((relationship, index) => {
+      const target = previewBySourceNodeId.get(relationship.targetNodeId)
+
+      return {
+        id: `${preview.id}:${relationship.kind}:${relationship.targetNodeId}:${index}`,
+        kind: relationship.kind,
+        sourceNodeId: preview.sourceNodeId,
+        targetNodeId: relationship.targetNodeId,
+        sourceTitle: preview.title,
+        targetTitle: target?.title ?? relationship.label ?? relationship.targetNodeId,
+        targetVisible: Boolean(target)
+      }
+    })
+  )
+}
+
+function SavedViewVisualGraphPanel({
+  previews,
+  edges,
+  selectedSourceNodeId,
+  onSelectSourceNode
+}: {
+  previews: SavedViewVisualPreviewModel[]
+  edges: SavedViewVisualGraphEdge[]
+  selectedSourceNodeId: string | null
+  onSelectSourceNode: (sourceNodeId: string) => void
+}): JSX.Element {
+  const groups = useMemo(
+    () =>
+      groupCanvasProjectionNodes(
+        createSavedViewCanvasProjectionNodes(previews, {
+          limit: VISUAL_CANVAS_PROJECTION_LIMIT,
+          groupBy: 'creator'
+        })
+      ),
+    [previews]
+  )
+  const visibleEdges = edges.slice(0, VISUAL_GRAPH_EDGE_LIMIT)
+
+  if (previews.length === 0) {
+    return (
+      <div className="flex h-56 items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
+        No visual rows are available for graph analysis.
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-md border border-border bg-background">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <GitBranch size={14} className="text-muted-foreground" />
+          <span>Graph Summary</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {edges.length.toLocaleString()} relationships
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          Bounded to {VISUAL_GRAPH_EDGE_LIMIT.toLocaleString()} rendered edges.
+        </span>
+      </div>
+
+      <div className="grid gap-3 p-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <section className="min-w-0 rounded-md border border-border p-3">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Clusters</h3>
+            <span className="text-xs text-muted-foreground">{groups.length}</span>
+          </div>
+          <div className="space-y-2">
+            {groups.slice(0, 12).map((group) => (
+              <div key={group.key} className="min-w-0 rounded-md bg-secondary/60 p-2">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="truncate font-medium">{formatGroupLabel(group.key)}</span>
+                  <span className="text-muted-foreground">{group.nodes.length}</span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-background">
+                  <div
+                    className="h-full rounded-full bg-foreground"
+                    style={{
+                      width: `${Math.max(
+                        8,
+                        (group.nodes.length /
+                          Math.max(...groups.map((item) => item.nodes.length), 1)) *
+                          100
+                      )}%`
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="min-w-0 rounded-md border border-border p-3">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Relationships</h3>
+            <span className="text-xs text-muted-foreground">
+              {visibleEdges.length.toLocaleString()} shown
+            </span>
+          </div>
+          {visibleEdges.length > 0 ? (
+            <div className="space-y-2">
+              {visibleEdges.map((edge) => (
+                <button
+                  key={edge.id}
+                  type="button"
+                  onClick={() => onSelectSourceNode(edge.sourceNodeId)}
+                  className={classNames([
+                    'grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-md border px-2 py-2 text-left text-xs transition-colors hover:bg-accent',
+                    selectedSourceNodeId === edge.sourceNodeId
+                      ? 'border-foreground'
+                      : 'border-border'
+                  ])}
+                >
+                  <span className="truncate font-medium">{edge.sourceTitle}</span>
+                  <span className="rounded-md bg-secondary px-2 py-1 text-muted-foreground">
+                    {edge.kind}
+                  </span>
+                  <span className="truncate text-muted-foreground">
+                    {edge.targetVisible ? edge.targetTitle : `${edge.targetTitle} (external)`}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              No explicit relationship fields are loaded in this view. Try a graph-lens saved view
+              or a layout grouped by creator/platform to explore clusters.
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function formatGroupLabel(value: string): string {
+  return value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
+    .join(' ')
+}
+
 function SavedViewVisualPreviewCard({
   preview,
   selected,
@@ -1791,8 +2440,16 @@ function SavedViewVisualPreviewCard({
 
   return (
     <article
+      tabIndex={0}
+      aria-label={`Preview ${preview.title}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect()
+        }
+      }}
       className={classNames([
-        'min-w-0 overflow-hidden rounded-md border bg-background shadow-sm transition-colors',
+        'min-w-0 overflow-hidden rounded-md border bg-background shadow-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring',
         selected ? 'border-foreground' : 'border-border hover:border-foreground/40'
       ])}
       style={{ contentVisibility: 'auto', containIntrinsicSize: compact ? '220px' : '300px' }}
