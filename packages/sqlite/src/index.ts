@@ -73,5 +73,8 @@ export type {
   PersistentStorageStatus
 } from './browser-support'
 
+// Error helpers
+export { isSQLiteCorruptionError } from './errors'
+
 // Re-export adapters for convenience (tree-shakeable)
 // Users should prefer importing from subpaths for smaller bundles

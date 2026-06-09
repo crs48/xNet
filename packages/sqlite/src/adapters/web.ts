@@ -13,6 +13,18 @@ import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 // that may not be installed at build time. The actual types are checked at runtime.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+const WEB_SQLITE_VFS_NAME = 'opfs-sahpool'
+const WEB_SQLITE_VFS_DIRECTORY = '.xnet-sqlite'
+const WEB_SQLITE_INITIAL_CAPACITY = 10
+
+type OPFSDirectoryHandle = {
+  removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>
+}
+
+type OPFSStorageManager = {
+  getDirectory?: () => Promise<OPFSDirectoryHandle>
+}
+
 function isDebugEnabled(): boolean {
   return (
     typeof self !== 'undefined' &&
@@ -24,6 +36,65 @@ function isDebugEnabled(): boolean {
 function log(...args: unknown[]): void {
   if (isDebugEnabled()) {
     console.log(...args)
+  }
+}
+
+function getDatabasePath(config: SQLiteConfig): string {
+  return config.path.startsWith('/') ? config.path : `/${config.path}`
+}
+
+async function removeOPFSDirectory(directory: string): Promise<void> {
+  const storage = (
+    globalThis.navigator as (Navigator & { storage?: OPFSStorageManager }) | undefined
+  )?.storage
+
+  if (typeof storage?.getDirectory !== 'function') {
+    return
+  }
+
+  try {
+    const root = await storage.getDirectory()
+    await root.removeEntry(directory.replace(/^\/+/, ''), { recursive: true })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'NotFoundError') {
+      return
+    }
+
+    throw err
+  }
+}
+
+/**
+ * Remove xNet's OPFS-backed SQLite storage for the supplied database path.
+ *
+ * This must run in a worker because the SAH-pool VFS uses synchronous OPFS
+ * handles. It is intentionally scoped to xNet's SQLite VFS directory.
+ */
+export async function resetWebSQLiteOpfsStorage(config: SQLiteConfig): Promise<void> {
+  const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default
+  const sqlite3 = await sqlite3InitModule()
+  const dbPath = getDatabasePath(config)
+
+  try {
+    const poolUtil = await sqlite3.installOpfsSAHPoolVfs({
+      name: WEB_SQLITE_VFS_NAME,
+      directory: WEB_SQLITE_VFS_DIRECTORY,
+      initialCapacity: WEB_SQLITE_INITIAL_CAPACITY,
+      clearOnInit: false
+    })
+
+    try {
+      poolUtil.unlink(dbPath)
+    } catch {
+      // unlink() can fail if the pool metadata is already damaged. wipeFiles()
+      // and the OPFS directory fallback below cover that case.
+    }
+
+    await poolUtil.wipeFiles()
+    await poolUtil.removeVfs()
+  } catch (err) {
+    console.warn('[WebSQLiteAdapter] SAH-pool reset failed, removing OPFS directory:', err)
+    await removeOPFSDirectory(WEB_SQLITE_VFS_DIRECTORY)
   }
 }
 
@@ -76,9 +147,9 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     try {
       log('[WebSQLiteAdapter] Installing OPFS-SAHPool VFS...')
       this.poolUtil = await this.sqlite3.installOpfsSAHPoolVfs({
-        name: 'opfs-sahpool',
-        directory: '.xnet-sqlite',
-        initialCapacity: 10, // Support ~3-4 databases with journals
+        name: WEB_SQLITE_VFS_NAME,
+        directory: WEB_SQLITE_VFS_DIRECTORY,
+        initialCapacity: WEB_SQLITE_INITIAL_CAPACITY, // Support ~3-4 databases with journals
         clearOnInit: false
       })
       log('[WebSQLiteAdapter] OPFS-SAHPool VFS installed')
@@ -89,7 +160,7 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       log('[WebSQLiteAdapter] Capacity reserved')
 
       // Path must be absolute for opfs-sahpool
-      const dbPath = config.path.startsWith('/') ? config.path : `/${config.path}`
+      const dbPath = getDatabasePath(config)
 
       // Open database using the pool VFS
       log('[WebSQLiteAdapter] Opening database at', dbPath)
@@ -101,7 +172,7 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       // Safari can fail SAH pool setup but still support OPFS persistence.
       console.warn('[WebSQLiteAdapter] OPFS-SAHPool not available, trying OPFS direct mode:', err)
 
-      const dbPath = config.path.startsWith('/') ? config.path : `/${config.path}`
+      const dbPath = getDatabasePath(config)
       const opfsDbCtor = this.sqlite3?.oo1?.OpfsDb
 
       if (typeof opfsDbCtor === 'function') {

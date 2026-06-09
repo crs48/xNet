@@ -7,7 +7,7 @@
 
 import type { SQLiteConfig, SQLValue, SQLRow, RunResult } from '../types'
 import * as Comlink from 'comlink'
-import { WebSQLiteAdapter, createWebSQLiteAdapter } from './web'
+import { WebSQLiteAdapter, createWebSQLiteAdapter, resetWebSQLiteOpfsStorage } from './web'
 
 function isDebugEnabled(): boolean {
   return (
@@ -38,6 +38,15 @@ class SQLiteWorkerHandler {
     }
     this.adapter = await createWebSQLiteAdapter(config)
     log('[SQLiteWorkerHandler] open() completed')
+  }
+
+  async resetStorage(config: SQLiteConfig): Promise<void> {
+    if (this.adapter) {
+      await this.adapter.close()
+      this.adapter = null
+    }
+
+    await resetWebSQLiteOpfsStorage(config)
   }
 
   async close(): Promise<void> {

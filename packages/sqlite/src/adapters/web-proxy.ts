@@ -43,19 +43,11 @@ export class WebSQLiteProxy implements SQLiteAdapter {
   private _config: SQLiteConfig | null = null
   private inTransaction = false
 
-  async open(config: SQLiteConfig): Promise<void> {
-    if (this.worker) {
-      throw new Error('Already open. Call close() first.')
-    }
-
+  private createWorkerProxy(): RemoteHandler {
     log('[WebSQLiteProxy] Creating worker...')
 
-    // Create worker
-    // The URL is resolved relative to this file's location at build time
-    // Use .js extension for production builds (Vite handles .ts in dev)
     this.worker = new Worker(new URL('./web-worker.js', import.meta.url), { type: 'module' })
 
-    // Listen for worker errors
     this.worker.onerror = (event) => {
       console.error('[WebSQLiteProxy] Worker error:', event)
     }
@@ -66,13 +58,21 @@ export class WebSQLiteProxy implements SQLiteAdapter {
 
     log('[WebSQLiteProxy] Worker created, wrapping with Comlink...')
 
-    // Wrap with Comlink for RPC-style communication
     this.proxy = Comlink.wrap<SQLiteWorkerHandler>(this.worker)
+    return this.proxy
+  }
+
+  async open(config: SQLiteConfig): Promise<void> {
+    if (this.worker) {
+      throw new Error('Already open. Call close() first.')
+    }
+
+    const proxy = this.createWorkerProxy()
 
     log('[WebSQLiteProxy] Calling proxy.open()...')
 
     // Open database in worker with timeout
-    const openPromise = this.proxy.open(config)
+    const openPromise = proxy.open(config)
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Worker initialization timeout after 15s')), 15000)
     )
@@ -81,6 +81,24 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     log('[WebSQLiteProxy] proxy.open() completed')
 
     this._config = config
+  }
+
+  async resetStorage(config: SQLiteConfig): Promise<void> {
+    if (this.worker) {
+      throw new Error('Already open. Call close() first.')
+    }
+
+    const proxy = this.createWorkerProxy()
+    const resetPromise = proxy.resetStorage(config)
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Worker storage reset timeout after 15s')), 15000)
+    )
+
+    try {
+      await Promise.race([resetPromise, timeoutPromise])
+    } finally {
+      await this.close()
+    }
   }
 
   async close(): Promise<void> {
@@ -248,4 +266,9 @@ export async function createWebSQLiteProxy(config: SQLiteConfig): Promise<WebSQL
   const proxy = new WebSQLiteProxy()
   await proxy.open(config)
   return proxy
+}
+
+export async function resetWebSQLiteStorage(config: SQLiteConfig): Promise<void> {
+  const proxy = new WebSQLiteProxy()
+  await proxy.resetStorage(config)
 }
