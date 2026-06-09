@@ -257,11 +257,33 @@ describe('social import telemetry', () => {
       stageDurationMs: 123,
       commitDurationMs: 45,
       commitSummary: { created: 2, updated: 1, unchanged: 0 },
+      commitBatchMetrics: {
+        timings: {
+          preflightMs: 11,
+          materializeMs: 22,
+          applyMs: 33,
+          notifyMs: 4,
+          totalMs: 70
+        },
+        storage: {
+          nodeRowsWritten: 3,
+          propertyRowsWritten: 9,
+          changeRowsWritten: 3,
+          scalarRowsWritten: 6,
+          ftsRowsWritten: 2
+        }
+      },
       createdAt: '2026-06-06T00:00:00.000Z'
     })
     const serialized = JSON.stringify(events)
 
     expect(events.some((event) => event.metric === 'social.import.stage.records')).toBe(true)
+    expect(events.some((event) => event.metric === 'social.import.commit.apply_duration')).toBe(
+      true
+    )
+    expect(
+      events.some((event) => event.metric === 'social.import.commit.property_rows_written')
+    ).toBe(true)
     expect(serialized).not.toContain('private text')
     expect(serialized).not.toContain('https://example.invalid/private')
     expect(serialized).not.toContain('private/messages/message_1.json')

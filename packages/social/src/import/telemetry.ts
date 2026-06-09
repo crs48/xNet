@@ -4,6 +4,7 @@
 
 import type { LargeArchiveStoragePlan } from './storage'
 import type { StagedSocialRecord, StagingSummary } from './types'
+import type { ApplyNodeBatchResult, NodeBatchWriteTimings } from '@xnetjs/data'
 
 export type SocialImportTelemetryMetric =
   | 'social.import.stage.records'
@@ -16,6 +17,15 @@ export type SocialImportTelemetryMetric =
   | 'social.import.commit.updated'
   | 'social.import.commit.unchanged'
   | 'social.import.commit.duration'
+  | 'social.import.commit.preflight_duration'
+  | 'social.import.commit.materialize_duration'
+  | 'social.import.commit.apply_duration'
+  | 'social.import.commit.notify_duration'
+  | 'social.import.commit.node_rows_written'
+  | 'social.import.commit.property_rows_written'
+  | 'social.import.commit.change_rows_written'
+  | 'social.import.commit.scalar_rows_written'
+  | 'social.import.commit.fts_rows_written'
 
 export type SocialImportTelemetryUnit = 'count' | 'ms' | 'bytes'
 
@@ -50,6 +60,10 @@ export type SocialImportTelemetryInput = {
     created: number
     updated: number
     unchanged: number
+  }
+  commitBatchMetrics?: {
+    storage?: ApplyNodeBatchResult
+    timings?: NodeBatchWriteTimings
   }
   createdAt?: string
 }
@@ -143,6 +157,66 @@ function eventsFromCommit(input: SocialImportTelemetryInput): SocialImportTeleme
   ]
 }
 
+function eventsFromCommitBatch(input: SocialImportTelemetryInput): SocialImportTelemetryEvent[] {
+  const metrics = input.commitBatchMetrics
+  if (!metrics) return []
+
+  return [
+    ...(metrics.timings
+      ? [
+          createEvent(
+            input,
+            'social.import.commit.preflight_duration',
+            metrics.timings.preflightMs,
+            'ms'
+          ),
+          createEvent(
+            input,
+            'social.import.commit.materialize_duration',
+            metrics.timings.materializeMs,
+            'ms'
+          ),
+          createEvent(input, 'social.import.commit.apply_duration', metrics.timings.applyMs, 'ms'),
+          createEvent(input, 'social.import.commit.notify_duration', metrics.timings.notifyMs, 'ms')
+        ]
+      : []),
+    ...(metrics.storage
+      ? [
+          createEvent(
+            input,
+            'social.import.commit.node_rows_written',
+            metrics.storage.nodeRowsWritten,
+            'count'
+          ),
+          createEvent(
+            input,
+            'social.import.commit.property_rows_written',
+            metrics.storage.propertyRowsWritten,
+            'count'
+          ),
+          createEvent(
+            input,
+            'social.import.commit.change_rows_written',
+            metrics.storage.changeRowsWritten,
+            'count'
+          ),
+          createEvent(
+            input,
+            'social.import.commit.scalar_rows_written',
+            metrics.storage.scalarRowsWritten,
+            'count'
+          ),
+          createEvent(
+            input,
+            'social.import.commit.fts_rows_written',
+            metrics.storage.ftsRowsWritten,
+            'count'
+          )
+        ]
+      : [])
+  ]
+}
+
 /**
  * Build redacted local telemetry events. Raw content, source paths, handles, URLs,
  * and source record payloads are intentionally omitted.
@@ -158,6 +232,7 @@ export function createSocialImportTelemetryEvents(
       : []),
     ...eventsFromStoragePlan(input),
     ...eventsFromCommit(input),
+    ...eventsFromCommitBatch(input),
     ...(typeof input.commitDurationMs === 'number'
       ? [createEvent(input, 'social.import.commit.duration', input.commitDurationMs, 'ms')]
       : [])

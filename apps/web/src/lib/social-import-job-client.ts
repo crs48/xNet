@@ -1,4 +1,9 @@
-import type { DeterministicNodeImportDraft, SchemaIRI } from '@xnetjs/data'
+import type {
+  ApplyNodeBatchResult,
+  DeterministicNodeImportDraft,
+  NodeBatchWriteTimings,
+  SchemaIRI
+} from '@xnetjs/data'
 import type { SocialImportNodeDraft } from '@xnetjs/social/import/browser'
 import type { SocialImportJobPhase } from '@xnetjs/social/import/core'
 import {
@@ -28,10 +33,23 @@ export type BrowserSocialImportCommitProgressMetrics = {
   recordsPerSecond: number
   lastCheckMs: number
   lastWriteMs: number
+  lastPreflightMs: number
+  lastMaterializeMs: number
+  lastApplyMs: number
+  lastNotifyMs: number
   lastProgressMs: number
   totalCheckMs: number
   totalWriteMs: number
+  totalPreflightMs: number
+  totalMaterializeMs: number
+  totalApplyMs: number
+  totalNotifyMs: number
   totalProgressMs: number
+  totalNodeRowsWritten: number
+  totalPropertyRowsWritten: number
+  totalChangeRowsWritten: number
+  totalScalarRowsWritten: number
+  totalFtsRowsWritten: number
 }
 
 export type BrowserSocialImportCommitProgress = {
@@ -67,6 +85,8 @@ export type StartBrowserSocialImportCommitJobInput = {
     created: number
     updated: number
     affectedSchemaIds?: readonly SchemaIRI[]
+    storage?: ApplyNodeBatchResult
+    timings?: NodeBatchWriteTimings
   }>
   rebuildIndexesForSchemas?: (schemaIds: readonly SchemaIRI[]) => Promise<void>
   onProgress?: (progress: BrowserSocialImportCommitProgress) => void
@@ -231,10 +251,23 @@ async function commitBrowserSocialImportStage(input: {
   const metrics: Omit<BrowserSocialImportCommitProgressMetrics, 'recordsPerSecond'> = {
     lastCheckMs: 0,
     lastWriteMs: 0,
+    lastPreflightMs: 0,
+    lastMaterializeMs: 0,
+    lastApplyMs: 0,
+    lastNotifyMs: 0,
     lastProgressMs: 0,
     totalCheckMs: 0,
     totalWriteMs: 0,
-    totalProgressMs: 0
+    totalPreflightMs: 0,
+    totalMaterializeMs: 0,
+    totalApplyMs: 0,
+    totalNotifyMs: 0,
+    totalProgressMs: 0,
+    totalNodeRowsWritten: 0,
+    totalPropertyRowsWritten: 0,
+    totalChangeRowsWritten: 0,
+    totalScalarRowsWritten: 0,
+    totalFtsRowsWritten: 0
   }
   const checkpointAccumulator = createSocialImportJobCheckpointAccumulator()
   const affectedSchemaIds = new Set<SchemaIRI>()
@@ -330,6 +363,7 @@ async function commitBrowserSocialImportStage(input: {
     const batchResult = await input.importDrafts(deterministicDrafts)
     metrics.lastWriteMs = performance.now() - writeStartedAt
     metrics.totalWriteMs += metrics.lastWriteMs
+    applyBatchResultMetrics(metrics, batchResult)
 
     created += batchResult.created
     updated += batchResult.updated
@@ -387,6 +421,28 @@ function assertBrowserSocialImportCommitNotCancelled(jobId: string): void {
   if (cancelledCommitJobIds.has(jobId)) {
     throw new BrowserSocialImportCommitCancelledError(jobId)
   }
+}
+
+function applyBatchResultMetrics(
+  metrics: Omit<BrowserSocialImportCommitProgressMetrics, 'recordsPerSecond'>,
+  result: {
+    storage?: ApplyNodeBatchResult
+    timings?: NodeBatchWriteTimings
+  }
+): void {
+  metrics.lastPreflightMs = result.timings?.preflightMs ?? 0
+  metrics.lastMaterializeMs = result.timings?.materializeMs ?? 0
+  metrics.lastApplyMs = result.timings?.applyMs ?? 0
+  metrics.lastNotifyMs = result.timings?.notifyMs ?? 0
+  metrics.totalPreflightMs += metrics.lastPreflightMs
+  metrics.totalMaterializeMs += metrics.lastMaterializeMs
+  metrics.totalApplyMs += metrics.lastApplyMs
+  metrics.totalNotifyMs += metrics.lastNotifyMs
+  metrics.totalNodeRowsWritten += result.storage?.nodeRowsWritten ?? 0
+  metrics.totalPropertyRowsWritten += result.storage?.propertyRowsWritten ?? 0
+  metrics.totalChangeRowsWritten += result.storage?.changeRowsWritten ?? 0
+  metrics.totalScalarRowsWritten += result.storage?.scalarRowsWritten ?? 0
+  metrics.totalFtsRowsWritten += result.storage?.ftsRowsWritten ?? 0
 }
 
 function toDeterministicNodeImportDraft(

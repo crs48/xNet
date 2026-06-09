@@ -22,10 +22,23 @@ export type SocialImportJobMetrics = {
   recordsPerSecond: number
   lastCheckMs: number
   lastWriteMs: number
+  lastPreflightMs: number
+  lastMaterializeMs: number
+  lastApplyMs: number
+  lastNotifyMs: number
   lastProgressMs: number
   totalCheckMs: number
   totalWriteMs: number
+  totalPreflightMs: number
+  totalMaterializeMs: number
+  totalApplyMs: number
+  totalNotifyMs: number
   totalProgressMs: number
+  totalNodeRowsWritten: number
+  totalPropertyRowsWritten: number
+  totalChangeRowsWritten: number
+  totalScalarRowsWritten: number
+  totalFtsRowsWritten: number
 }
 
 export type SocialImportJobCheckpoint = {
@@ -437,10 +450,23 @@ function normalizeMetrics(value: unknown): SocialImportJobMetrics | null {
     recordsPerSecond: numberOrZero(value.recordsPerSecond),
     lastCheckMs: numberOrZero(value.lastCheckMs),
     lastWriteMs: numberOrZero(value.lastWriteMs),
+    lastPreflightMs: numberOrZero(value.lastPreflightMs),
+    lastMaterializeMs: numberOrZero(value.lastMaterializeMs),
+    lastApplyMs: numberOrZero(value.lastApplyMs),
+    lastNotifyMs: numberOrZero(value.lastNotifyMs),
     lastProgressMs: numberOrZero(value.lastProgressMs),
     totalCheckMs: numberOrZero(value.totalCheckMs),
     totalWriteMs: numberOrZero(value.totalWriteMs),
-    totalProgressMs: numberOrZero(value.totalProgressMs)
+    totalPreflightMs: numberOrZero(value.totalPreflightMs),
+    totalMaterializeMs: numberOrZero(value.totalMaterializeMs),
+    totalApplyMs: numberOrZero(value.totalApplyMs),
+    totalNotifyMs: numberOrZero(value.totalNotifyMs),
+    totalProgressMs: numberOrZero(value.totalProgressMs),
+    totalNodeRowsWritten: numberOrZero(value.totalNodeRowsWritten),
+    totalPropertyRowsWritten: numberOrZero(value.totalPropertyRowsWritten),
+    totalChangeRowsWritten: numberOrZero(value.totalChangeRowsWritten),
+    totalScalarRowsWritten: numberOrZero(value.totalScalarRowsWritten),
+    totalFtsRowsWritten: numberOrZero(value.totalFtsRowsWritten)
   }
 }
 

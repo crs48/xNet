@@ -847,10 +847,23 @@ function emptyCommitProgressMetrics(): SocialImportJobMetrics {
     recordsPerSecond: 0,
     lastCheckMs: 0,
     lastWriteMs: 0,
+    lastPreflightMs: 0,
+    lastMaterializeMs: 0,
+    lastApplyMs: 0,
+    lastNotifyMs: 0,
     lastProgressMs: 0,
     totalCheckMs: 0,
     totalWriteMs: 0,
-    totalProgressMs: 0
+    totalPreflightMs: 0,
+    totalMaterializeMs: 0,
+    totalApplyMs: 0,
+    totalNotifyMs: 0,
+    totalProgressMs: 0,
+    totalNodeRowsWritten: 0,
+    totalPropertyRowsWritten: 0,
+    totalChangeRowsWritten: 0,
+    totalScalarRowsWritten: 0,
+    totalFtsRowsWritten: 0
   }
 }
 

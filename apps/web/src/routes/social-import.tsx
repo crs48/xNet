@@ -218,7 +218,9 @@ function SocialImportPage(): React.ReactElement {
           return {
             created: result.created,
             updated: result.updated,
-            affectedSchemaIds: result.schemaIds
+            affectedSchemaIds: result.schemaIds,
+            storage: result.storage,
+            timings: result.timings
           }
         },
         onProgress: (progress) => {
@@ -324,7 +326,9 @@ function SocialImportPage(): React.ReactElement {
             return {
               created: batchResult.created,
               updated: batchResult.updated,
-              affectedSchemaIds: batchResult.schemaIds
+              affectedSchemaIds: batchResult.schemaIds,
+              storage: batchResult.storage,
+              timings: batchResult.timings
             }
           },
           onProgress: (progress) => {
@@ -1015,13 +1019,23 @@ function CommitProgressPanel({ progress }: { progress: CommitProgress }): React.
         <ProgressMetric label="Rate" value={formatRate(progress.metrics.recordsPerSecond)} />
         <ProgressMetric label="Check" value={formatMilliseconds(progress.metrics.lastCheckMs)} />
         <ProgressMetric
-          label="Write/index"
-          value={formatMilliseconds(progress.metrics.lastWriteMs)}
+          label="Preflight"
+          value={formatMilliseconds(progress.metrics.lastPreflightMs)}
         />
+        <ProgressMetric
+          label="Materialize"
+          value={formatMilliseconds(progress.metrics.lastMaterializeMs)}
+        />
+        <ProgressMetric
+          label="Apply"
+          value={formatMilliseconds(progress.metrics.lastApplyMs || progress.metrics.lastWriteMs)}
+        />
+        <ProgressMetric label="Notify" value={formatMilliseconds(progress.metrics.lastNotifyMs)} />
         <ProgressMetric
           label="Progress UI"
           value={formatMilliseconds(progress.metrics.lastProgressMs)}
         />
+        <ProgressMetric label="Rows" value={formatStorageRows(progress.metrics)} />
         <ProgressMetric label="Remaining" value={etaLabel ?? `Elapsed ${elapsedLabel}`} />
       </div>
     </div>
@@ -1092,6 +1106,19 @@ function getCommitEtaLabel(progress: CommitProgress): string | null {
 function formatRate(recordsPerSecond: number): string {
   if (!Number.isFinite(recordsPerSecond) || recordsPerSecond <= 0) return '0/s'
   return `${Math.round(recordsPerSecond).toLocaleString()}/s`
+}
+
+function formatStorageRows(progressMetrics: CommitProgress['metrics']): string {
+  const totalRows =
+    progressMetrics.totalNodeRowsWritten +
+    progressMetrics.totalPropertyRowsWritten +
+    progressMetrics.totalChangeRowsWritten +
+    progressMetrics.totalScalarRowsWritten +
+    progressMetrics.totalFtsRowsWritten
+
+  if (totalRows <= 0) return '0'
+
+  return totalRows.toLocaleString()
 }
 
 function formatMilliseconds(milliseconds: number): string {
