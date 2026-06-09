@@ -166,6 +166,32 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
     }
   }
 
+  async transactionBatch(operations: Array<{ sql: string; params?: SQLValue[] }>): Promise<void> {
+    this.ensureOpen()
+    if (operations.length === 0) return
+    if (this.inTransaction) {
+      throw new Error('Transaction already in progress')
+    }
+
+    let currentSql = operations[0].sql
+
+    try {
+      this.transactionSync(() => {
+        for (const operation of operations) {
+          currentSql = operation.sql
+          const stmt = this.getOrPrepare(operation.sql)
+          if (operation.params) {
+            stmt.run(...operation.params)
+          } else {
+            stmt.run()
+          }
+        }
+      })
+    } catch (err) {
+      throw this.wrapError(err, currentSql)
+    }
+  }
+
   /**
    * Synchronous transaction for performance-critical batch operations.
    * Prefer this over async transaction when the body is synchronous.

@@ -199,6 +199,59 @@ describeNativeSQLite('ElectronSQLiteAdapter', () => {
       const count = await adapter.queryOne<{ c: number }>('SELECT COUNT(*) as c FROM nodes')
       expect(count?.c).toBe(1)
     })
+
+    it('commits transactionBatch operations in one prepared transaction', async () => {
+      const now = Date.now()
+
+      await adapter.transactionBatch([
+        {
+          sql: 'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+          params: ['batch-node-1', 'xnet://Page/1.0', now, now, 'did:key:test']
+        },
+        {
+          sql: 'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+          params: ['batch-node-2', 'xnet://Page/1.0', now, now, 'did:key:test']
+        },
+        {
+          sql: 'UPDATE nodes SET schema_id = ? WHERE id = ?',
+          params: ['xnet://Database/1.0', 'batch-node-2']
+        }
+      ])
+
+      const rows = await adapter.query<{ id: string; schema_id: string }>(
+        'SELECT id, schema_id FROM nodes ORDER BY id ASC'
+      )
+
+      expect(rows).toEqual([
+        { id: 'batch-node-1', schema_id: 'xnet://Page/1.0' },
+        { id: 'batch-node-2', schema_id: 'xnet://Database/1.0' }
+      ])
+    })
+
+    it('rolls back transactionBatch operations on the first failure', async () => {
+      const now = Date.now()
+
+      await adapter.run(
+        'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+        ['existing-batch-node', 'xnet://Page/1.0', now, now, 'did:key:test']
+      )
+
+      await expect(
+        adapter.transactionBatch([
+          {
+            sql: 'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+            params: ['rolled-back-batch-node', 'xnet://Page/1.0', now, now, 'did:key:test']
+          },
+          {
+            sql: 'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+            params: ['existing-batch-node', 'xnet://Page/1.0', now, now, 'did:key:test']
+          }
+        ])
+      ).rejects.toThrow('SQLite error')
+
+      const rows = await adapter.query<{ id: string }>('SELECT id FROM nodes ORDER BY id ASC')
+      expect(rows).toEqual([{ id: 'existing-batch-node' }])
+    })
   })
 
   describe('FTS5 Full-Text Search', () => {
