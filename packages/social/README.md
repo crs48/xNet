@@ -152,6 +152,21 @@ exports `buildSocialCommitOperations` and `commitStagedSocialNodes` for NodeStor
 Source records can be stored when provenance, replay, or auditability matters; they can also be
 omitted when the user wants only canonical graph data.
 
+Large archive surfaces should prefer deterministic batch writes over one-node-at-a-time mutations.
+Web and Electron route staged `SocialImportNodeDraft` records through `NodeStore.batchWrite()` /
+`useMutate().bulk()` with `indexMode: 'touched'`, then report preflight, materialization, storage
+apply, notification, row-count, and rate metrics to the commit progress UI.
+
+```mermaid
+flowchart LR
+  Stage["Staged social node drafts"] --> Review["Review selected buckets"]
+  Review --> Bulk["NodeStore.batchWrite / useMutate.bulk"]
+  Bulk --> Index["Touched-node indexes"]
+  Bulk --> Progress["Commit progress metrics"]
+  Index --> Workspace["Data workspace views"]
+  Progress --> Workspace
+```
+
 After a successful commit, app surfaces can call `createDefaultSocialWorkspaceSavedViewSeeds()` to
 upsert default social `SavedView` nodes. The seeds include both table-oriented schema views and
 graph-lens query sets, so web and Electron can open the same imported-data workspace without

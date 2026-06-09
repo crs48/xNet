@@ -367,6 +367,31 @@ await mutate([
 ])
 ```
 
+**Bulk deterministic imports:**
+
+`useMutate().bulk()` exposes the same batch write path as `NodeStore.batchWrite()` through the active
+DataBridge. Use it for importer, restore, migration, or AI-assisted bulk-edit surfaces where the UI
+needs counters and phase timings instead of per-node mutation results.
+
+```tsx
+const { bulk, isPending } = useMutate()
+
+const result = await bulk({
+  kind: 'deterministic-import',
+  drafts: socialDrafts,
+  policy: {
+    indexMode: 'touched',
+    notificationMode: 'silent'
+  }
+})
+
+console.log(result.nodeIds.length, result.timings.applyMs, result.storage?.propertyRowsWritten)
+```
+
+Bulk writes are still signed NodeStore writes. The batch policy controls indexing and live
+notification cost; `touched` indexes are the default import choice for immediate query correctness
+without a whole-schema rebuild.
+
 ### `useNode` -- Rich Text Editing
 
 Load a node with its Y.Doc for collaborative rich text editing.

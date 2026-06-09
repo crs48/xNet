@@ -828,7 +828,7 @@ This can reduce social import write volume without sacrificing provenance.
 - [x] Move Electron social import to the same bulk path.
 - [ ] Add optional source-record sidecar design behind a feature flag.
 - [ ] Add import policy controls for index, notification, sync, and source-record behavior.
-- [ ] Update docs in `packages/social/README.md` and data/react package docs.
+- [x] Update docs in `packages/social/README.md` and data/react package docs.
 
 ## Validation Checklist
 
