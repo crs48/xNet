@@ -33,8 +33,13 @@ import type {
   DeterministicNodeImportDraft,
   ImportDeterministicNodesOptions,
   ImportDeterministicNodesResult,
+  ApplyNodeBatchResult,
   NodeBatchIndexMode,
-  NodeBatchPreflightResult
+  NodeBatchPreflightResult,
+  NodeBatchWriteInput,
+  NodeBatchWritePolicy,
+  NodeBatchWriteResult,
+  NodeBatchWriteTimings
 } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
@@ -68,6 +73,20 @@ import { resolveTempIds, type SchemaLookup } from './tempids'
 const MAX_CONFLICTS = 200
 const ENCRYPTED_NODE_MARKER = 'xnet:node-encrypted:v1'
 
+function elapsedMs(startedAt: number): number {
+  return Math.max(0, Date.now() - startedAt)
+}
+
+function emptyBatchWriteTimings(): NodeBatchWriteTimings {
+  return {
+    preflightMs: 0,
+    materializeMs: 0,
+    applyMs: 0,
+    notifyMs: 0,
+    totalMs: 0
+  }
+}
+
 type EncryptedNodeSnapshot = {
   marker: typeof ENCRYPTED_NODE_MARKER
   payload: string
@@ -91,6 +110,17 @@ type DeterministicNodeImportPlan = {
   changes: NodeChange[]
   events: PendingTransactionEvent[]
   affectedSchemaIds: SchemaIRI[]
+  timings: Pick<NodeBatchWriteTimings, 'preflightMs' | 'materializeMs'>
+}
+
+type DeterministicNodeImportAppliedPlan = DeterministicNodeImportPlan & {
+  applyMs: number
+  storage?: ApplyNodeBatchResult
+}
+
+type DeterministicNodeImportExecution = ImportDeterministicNodesResult & {
+  storage?: ApplyNodeBatchResult
+  timings: NodeBatchWriteTimings
 }
 
 /**
@@ -766,8 +796,76 @@ export class NodeStore {
     drafts: readonly DeterministicNodeImportDraft[],
     options: ImportDeterministicNodesOptions = {}
   ): Promise<ImportDeterministicNodesResult> {
+    const result = await this.executeDeterministicNodeBatch(drafts, options, {
+      emitEvents: true
+    })
+
+    return this.toImportDeterministicNodesResult(result)
+  }
+
+  async batchWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult> {
+    switch (input.kind) {
+      case 'deterministic-import': {
+        const policy = this.resolveNodeBatchWritePolicy(input.policy)
+        const result = await this.executeDeterministicNodeBatch(
+          input.drafts,
+          { indexMode: policy.indexMode },
+          { emitEvents: policy.notificationMode === 'per-node' }
+        )
+
+        return {
+          batchId: result.batchId,
+          created: result.created,
+          updated: result.updated,
+          nodeIds: result.nodes.map((node) => node.id),
+          schemaIds: result.affectedSchemaIds,
+          changeCount: result.changes.length,
+          storage: result.storage,
+          timings: result.timings
+        }
+      }
+    }
+  }
+
+  private resolveNodeBatchWritePolicy(
+    policy?: Partial<NodeBatchWritePolicy>
+  ): NodeBatchWritePolicy {
+    return {
+      indexMode: policy?.indexMode ?? 'touched',
+      notificationMode: policy?.notificationMode ?? 'per-node'
+    }
+  }
+
+  private toImportDeterministicNodesResult(
+    result: DeterministicNodeImportExecution
+  ): ImportDeterministicNodesResult {
+    return {
+      batchId: result.batchId,
+      created: result.created,
+      updated: result.updated,
+      nodes: result.nodes,
+      changes: result.changes,
+      affectedSchemaIds: result.affectedSchemaIds
+    }
+  }
+
+  private async executeDeterministicNodeBatch(
+    drafts: readonly DeterministicNodeImportDraft[],
+    options: ImportDeterministicNodesOptions,
+    behavior: { emitEvents: boolean }
+  ): Promise<DeterministicNodeImportExecution> {
+    const totalStartedAt = Date.now()
+
     if (drafts.length === 0) {
-      return { batchId: '', created: 0, updated: 0, nodes: [], changes: [], affectedSchemaIds: [] }
+      return {
+        batchId: '',
+        created: 0,
+        updated: 0,
+        nodes: [],
+        changes: [],
+        affectedSchemaIds: [],
+        timings: emptyBatchWriteTimings()
+      }
     }
 
     await this.assertAuthorizedBatch(await this.createDeterministicImportAuthOps(drafts))
@@ -782,8 +880,10 @@ export class NodeStore {
     this.clock = newClock
 
     try {
+      let result: DeterministicNodeImportAppliedPlan
+
       if (this.storage.applyNodeBatch && !this.nodeContentCipher) {
-        const result = await this.planDeterministicNodeImport({
+        const plan = await this.planDeterministicNodeImport({
           drafts,
           storage: this.storage,
           lamport,
@@ -792,43 +892,43 @@ export class NodeStore {
           batchSize
         })
 
-        await this.storage.applyNodeBatch({
+        const applyStartedAt = Date.now()
+        const storageResult = await this.storage.applyNodeBatch({
           batchId,
-          nodes: result.nodes,
-          changes: result.changes,
+          nodes: plan.nodes,
+          changes: plan.changes,
           lastLamportTime: this.clock.time,
-          affectedSchemaIds: result.affectedSchemaIds,
+          affectedSchemaIds: plan.affectedSchemaIds,
           indexMode,
           indexProperties: true
         })
 
-        this.emitDeterministicImportEvents(result.events)
-
-        return {
-          batchId,
-          created: result.created,
-          updated: result.updated,
-          nodes: result.nodes,
-          changes: result.changes,
-          affectedSchemaIds: result.affectedSchemaIds
+        result = {
+          ...plan,
+          applyMs: elapsedMs(applyStartedAt),
+          storage: storageResult
         }
+      } else {
+        const run = (storage: NodeStorageAdapter) =>
+          this.executeDeterministicNodeImport({
+            drafts,
+            storage,
+            lamport,
+            now,
+            batchId,
+            batchSize,
+            deferIndexes: indexMode === 'defer-schema'
+          })
+        result = this.storage.withTransaction
+          ? await this.storage.withTransaction(run)
+          : await run(this.storage)
       }
 
-      const run = (storage: NodeStorageAdapter) =>
-        this.executeDeterministicNodeImport({
-          drafts,
-          storage,
-          lamport,
-          now,
-          batchId,
-          batchSize,
-          deferIndexes: indexMode === 'defer-schema'
-        })
-      const result = this.storage.withTransaction
-        ? await this.storage.withTransaction(run)
-        : await run(this.storage)
-
-      this.emitDeterministicImportEvents(result.events)
+      const notifyStartedAt = Date.now()
+      if (behavior.emitEvents) {
+        this.emitDeterministicImportEvents(result.events)
+      }
+      const notifyMs = elapsedMs(notifyStartedAt)
 
       return {
         batchId,
@@ -836,7 +936,15 @@ export class NodeStore {
         updated: result.updated,
         nodes: result.nodes,
         changes: result.changes,
-        affectedSchemaIds: result.affectedSchemaIds
+        affectedSchemaIds: result.affectedSchemaIds,
+        storage: result.storage,
+        timings: {
+          preflightMs: result.timings.preflightMs,
+          materializeMs: result.timings.materializeMs,
+          applyMs: result.applyMs,
+          notifyMs,
+          totalMs: elapsedMs(totalStartedAt)
+        }
       }
     } catch (err) {
       this.clock = previousClock
@@ -898,7 +1006,10 @@ export class NodeStore {
     batchSize: number
   }): Promise<DeterministicNodeImportPlan> {
     const ids = input.drafts.map((draft) => draft.id)
+    const preflightStartedAt = Date.now()
     const preflight = await this.getBatchPreflight(ids, input.storage)
+    const preflightMs = elapsedMs(preflightStartedAt)
+    const materializeStartedAt = Date.now()
     const existingNodes = this.cloneNodeMap(preflight.nodesById)
     const lastChanges = new Map(preflight.lastChangesByNodeId)
     const nodesById = new Map<NodeId, NodeState>(existingNodes)
@@ -957,7 +1068,18 @@ export class NodeStore {
     })
     const affectedSchemaIds = Array.from(new Set(nodes.map((node) => node.schemaId)))
 
-    return { created, updated, nodes, changes, events, affectedSchemaIds }
+    return {
+      created,
+      updated,
+      nodes,
+      changes,
+      events,
+      affectedSchemaIds,
+      timings: {
+        preflightMs,
+        materializeMs: elapsedMs(materializeStartedAt)
+      }
+    }
   }
 
   private async executeDeterministicNodeImport(input: {
@@ -968,9 +1090,10 @@ export class NodeStore {
     batchId: string
     batchSize: number
     deferIndexes: boolean
-  }): Promise<DeterministicNodeImportPlan> {
+  }): Promise<DeterministicNodeImportAppliedPlan> {
     const plan = await this.planDeterministicNodeImport(input)
 
+    const applyStartedAt = Date.now()
     await this.importMaterializedNodes(input.storage, plan.nodes, {
       deferIndexes: input.deferIndexes
     })
@@ -981,7 +1104,10 @@ export class NodeStore {
       await this.persistEncryptedNodeSnapshot(node, input.storage)
     }
 
-    return plan
+    return {
+      ...plan,
+      applyMs: elapsedMs(applyStartedAt)
+    }
   }
 
   private async getNodesById(

@@ -1000,6 +1000,79 @@ describe('deterministic node import', () => {
     expect(adapter.transactionCalls).toBe(0)
   })
 
+  it('exposes deterministic imports through batchWrite with storage counters and timings', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new ImportOptionsTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    const result = await store.batchWrite({
+      kind: 'deterministic-import',
+      drafts: [
+        {
+          id: 'batch-write-import-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Batch write import' }
+        }
+      ]
+    })
+
+    expect(result).toMatchObject({
+      created: 1,
+      updated: 0,
+      nodeIds: ['batch-write-import-node'],
+      schemaIds: [TEST_SCHEMA],
+      changeCount: 1,
+      storage: {
+        nodeRowsWritten: 1,
+        propertyRowsWritten: 1,
+        changeRowsWritten: 1
+      }
+    })
+    expect(result.batchId).toBeTruthy()
+    expect(result.timings.totalMs).toBeGreaterThanOrEqual(0)
+    expect(adapter.applyBatchInputs[0]).toMatchObject({
+      indexMode: 'touched'
+    })
+    await expect(store.get('batch-write-import-node')).resolves.toMatchObject({
+      properties: { title: 'Batch write import' }
+    })
+  })
+
+  it('supports silent notifications for deterministic batchWrite imports', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+    const events: string[] = []
+    const unsubscribe = store.subscribe((event) => {
+      if (event.node) events.push(event.node.id)
+    })
+
+    const result = await store.batchWrite({
+      kind: 'deterministic-import',
+      drafts: [
+        {
+          id: 'silent-batch-write-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Silent batch write' }
+        }
+      ],
+      policy: { notificationMode: 'silent' }
+    })
+
+    unsubscribe()
+
+    expect(result.nodeIds).toEqual(['silent-batch-write-node'])
+    expect(events).toEqual([])
+    await expect(store.get('silent-batch-write-node')).resolves.toMatchObject({
+      properties: { title: 'Silent batch write' }
+    })
+  })
+
   it('maintains import indexes incrementally instead of rebuilding per chunk', async () => {
     const keyPair = generateSigningKeyPair()
     const did = createDID(keyPair.publicKey) as DID

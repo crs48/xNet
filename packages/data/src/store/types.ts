@@ -264,6 +264,55 @@ export interface ApplyNodeBatchResult {
   ftsRowsWritten: number
 }
 
+export type NodeBatchNotificationMode = 'per-node' | 'silent'
+
+export interface NodeBatchWritePolicy {
+  /** Secondary index strategy for this batch. */
+  indexMode: NodeBatchIndexMode
+  /** Live notification strategy after the batch is durable. */
+  notificationMode: NodeBatchNotificationMode
+}
+
+export interface NodeBatchWriteTimings {
+  /** Existing-node and parent-change lookup time. */
+  preflightMs: number
+  /** In-memory materialization and change signing time. */
+  materializeMs: number
+  /** Storage apply time, including indexes owned by the adapter. */
+  applyMs: number
+  /** Listener notification time after the storage commit. */
+  notifyMs: number
+  /** Full wall time for the batch write call. */
+  totalMs: number
+}
+
+export interface DeterministicNodeBatchWriteInput {
+  kind: 'deterministic-import'
+  drafts: readonly DeterministicNodeImportDraft[]
+  policy?: Partial<NodeBatchWritePolicy>
+}
+
+export type NodeBatchWriteInput = DeterministicNodeBatchWriteInput
+
+export interface NodeBatchWriteResult {
+  /** The batch ID shared by all changes. */
+  batchId: string
+  /** Number of drafts that created a node at the time they were applied. */
+  created: number
+  /** Number of drafts that updated a node at the time they were applied. */
+  updated: number
+  /** Final node IDs touched by the batch. */
+  nodeIds: NodeId[]
+  /** Schemas whose materialized nodes changed. */
+  schemaIds: SchemaIRI[]
+  /** Number of signed changes appended by the batch. */
+  changeCount: number
+  /** Storage-level write counters when the adapter reports them. */
+  storage?: ApplyNodeBatchResult
+  /** Phase timings for import diagnostics and progress UIs. */
+  timings: NodeBatchWriteTimings
+}
+
 export interface ListNodesOptions {
   /** Filter by schema IRI */
   schemaId?: SchemaIRI
