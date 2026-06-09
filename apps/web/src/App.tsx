@@ -36,7 +36,8 @@ import { StorageWarningBanner } from './components/StorageWarningBanner'
 import {
   clearXNetBrowserStorage,
   clearXNetBrowserStorageResetRequest,
-  shouldResetXNetBrowserStorageOnLoad
+  shouldResetXNetBrowserStorageOnLoad,
+  subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
@@ -560,6 +561,18 @@ export function App(): JSX.Element {
         storageRef.current.sqliteAdapter.close().catch(console.error)
       }
     }
+  }, [])
+
+  useEffect(() => {
+    return subscribeXNetStorageCorruption((error) => {
+      const storage = storageRef.current
+      storageRef.current = null
+
+      void storage?.storageAdapter.close().catch(console.error)
+      void storage?.sqliteAdapter.close().catch(console.error)
+
+      setAppState({ status: 'storage-corrupt', error })
+    })
   }, [])
 
   // Handle onboarding completion

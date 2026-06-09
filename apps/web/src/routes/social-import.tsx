@@ -14,6 +14,7 @@ import {
   type SocialImportArchivePreview
 } from '@xnetjs/social/import/core'
 import { builtInSocialImporterRegistry } from '@xnetjs/social/importers'
+import { isSQLiteCorruptionError } from '@xnetjs/sqlite'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -26,6 +27,7 @@ import {
   X
 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { notifyXNetStorageCorruption } from '../lib/browser-storage-reset'
 import {
   BrowserSocialImportCommitCancelledError,
   cancelBrowserSocialImportCommitJob,
@@ -248,6 +250,10 @@ function SocialImportPage(): React.ReactElement {
       removeBrowserSocialImportResumeRecord(job.jobId)
       refreshResumeRecords()
     } catch (err) {
+      if (isSQLiteCorruptionError(err)) {
+        notifyXNetStorageCorruption(err)
+      }
+
       const message = toErrorMessage(err)
       setStatus('staged')
       setCommitProgress(null)
@@ -360,6 +366,10 @@ function SocialImportPage(): React.ReactElement {
         removeBrowserSocialImportResumeRecord(record.jobId)
         refreshResumeRecords()
       } catch (err) {
+        if (isSQLiteCorruptionError(err)) {
+          notifyXNetStorageCorruption(err)
+        }
+
         const message = toErrorMessage(err)
         setStatus('idle')
         setCommitProgress(null)

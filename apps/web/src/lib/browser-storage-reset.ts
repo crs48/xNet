@@ -3,10 +3,15 @@
  */
 
 export const XNET_RESET_STORAGE_ON_LOAD_KEY = 'xnet:reset-local-data-on-load'
+export const XNET_STORAGE_CORRUPTION_EVENT = 'xnet:storage-corruption'
 const XNET_SQLITE_CONFIG = { path: '/xnet.db' } as const
 
 type IndexedDBDatabaseInfo = {
   name?: string
+}
+
+type StorageCorruptionEventDetail = {
+  error: Error
 }
 
 function getSessionStorage(): Storage | null {
@@ -56,4 +61,29 @@ export function clearXNetBrowserStorageResetRequest(): void {
 export function requestXNetBrowserStorageReset(): void {
   getSessionStorage()?.setItem(XNET_RESET_STORAGE_ON_LOAD_KEY, 'true')
   window.location.reload()
+}
+
+export function notifyXNetStorageCorruption(error: unknown): void {
+  if (typeof window === 'undefined') return
+
+  const normalizedError = error instanceof Error ? error : new Error(String(error))
+  window.dispatchEvent(
+    new CustomEvent<StorageCorruptionEventDetail>(XNET_STORAGE_CORRUPTION_EVENT, {
+      detail: { error: normalizedError }
+    })
+  )
+}
+
+export function subscribeXNetStorageCorruption(listener: (error: Error) => void): () => void {
+  if (typeof window === 'undefined') {
+    return () => {}
+  }
+
+  const handleCorruption = (event: Event) => {
+    const detail = (event as CustomEvent<Partial<StorageCorruptionEventDetail>>).detail
+    listener(detail?.error instanceof Error ? detail.error : new Error('SQLite storage is corrupt'))
+  }
+
+  window.addEventListener(XNET_STORAGE_CORRUPTION_EVENT, handleCorruption)
+  return () => window.removeEventListener(XNET_STORAGE_CORRUPTION_EVENT, handleCorruption)
 }

@@ -14,6 +14,7 @@ import type {
   SQLiteNodeBatchApplyInput,
   SQLiteNodeBatchApplyResult
 } from '../types'
+import { isSQLiteCorruptionError } from '../errors'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 
 // We use 'any' types here because @sqlite.org/sqlite-wasm is a peer dependency
@@ -294,7 +295,15 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       await this.commit()
       return result
     } catch (err) {
-      await this.rollback()
+      if (this.inTransaction) {
+        try {
+          await this.rollback()
+        } catch (rollbackErr) {
+          if (isSQLiteCorruptionError(rollbackErr) && !isSQLiteCorruptionError(err)) {
+            throw rollbackErr
+          }
+        }
+      }
       throw err
     }
   }
@@ -456,8 +465,15 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       throw new Error('No transaction in progress')
     }
 
-    this.execSync('COMMIT')
-    this.inTransaction = false
+    try {
+      this.execSync('COMMIT')
+      this.inTransaction = false
+    } catch (err) {
+      if (isSQLiteCorruptionError(err)) {
+        this.inTransaction = false
+      }
+      throw err
+    }
   }
 
   async rollback(): Promise<void> {
@@ -465,8 +481,11 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       return // Silently ignore
     }
 
-    this.execSync('ROLLBACK')
-    this.inTransaction = false
+    try {
+      this.execSync('ROLLBACK')
+    } finally {
+      this.inTransaction = false
+    }
   }
 
   async prepare(sql: string): Promise<PreparedStatement> {
