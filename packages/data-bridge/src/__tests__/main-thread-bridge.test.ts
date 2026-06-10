@@ -212,6 +212,66 @@ describe('MainThreadBridge', () => {
       unsubscribe()
     })
 
+    it('should expose storage-owned deterministic bulk writes', async () => {
+      const result = await bridge.bulkWrite({
+        kind: 'deterministic-import',
+        drafts: [
+          {
+            id: 'bridge-bulk-node-1',
+            schemaId: TestTaskSchema._schemaId,
+            properties: { title: 'Bridge Bulk 1', done: false }
+          },
+          {
+            id: 'bridge-bulk-node-2',
+            schemaId: TestTaskSchema._schemaId,
+            properties: { title: 'Bridge Bulk 2', done: true }
+          }
+        ]
+      })
+
+      expect(result).toMatchObject({
+        created: 2,
+        updated: 0,
+        nodeIds: ['bridge-bulk-node-1', 'bridge-bulk-node-2'],
+        schemaIds: [TestTaskSchema._schemaId],
+        changeCount: 2
+      })
+      await expect(store.get('bridge-bulk-node-1')).resolves.toMatchObject({
+        properties: { title: 'Bridge Bulk 1', done: false }
+      })
+    })
+
+    it('should reload affected queries once for deterministic batch notifications', async () => {
+      const subscription = bridge.query(TestTaskSchema)
+      const callback = vi.fn()
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toEqual([])
+      })
+
+      const unsubscribe = subscription.subscribe(callback)
+
+      await bridge.bulkWrite({
+        kind: 'deterministic-import',
+        drafts: Array.from({ length: 30 }, (_, index) => ({
+          id: `bulk-query-node-${index}`,
+          schemaId: TestTaskSchema._schemaId,
+          properties: {
+            title: `Bulk Query Node ${index}`,
+            done: false
+          }
+        })),
+        policy: { notificationMode: 'batch' }
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(30)
+      })
+
+      expect(callback).toHaveBeenCalledTimes(1)
+      unsubscribe()
+    })
+
     it('should filter by where clause', async () => {
       // Create nodes
       await bridge.create(TestTaskSchema, { title: 'Task 1', done: false })

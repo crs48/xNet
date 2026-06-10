@@ -3,7 +3,16 @@
  */
 
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
-import type { ContentKeyCache, NodeContentCipher } from './types'
+import type {
+  ApplyNodeBatchInput,
+  ApplyNodeBatchResult,
+  ContentKeyCache,
+  ImportNodesOptions,
+  NodeChange,
+  NodeContentCipher,
+  NodeState,
+  NodeStorageAdapter
+} from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
@@ -25,6 +34,7 @@ import { NodeStore } from './store'
 // Test fixtures
 const TEST_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Task'
 const TEST_SCHEMA_2: SchemaIRI = 'xnet://xnet.fyi/Page'
+const TEST_SOURCE_RECORD_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/social/SourceRecord'
 
 function createTestStore(): {
   store: NodeStore
@@ -56,6 +66,64 @@ function createAuthDecision(input: AuthCheckInput, allowed: boolean): AuthDecisi
     cached: false,
     evaluatedAt: Date.now(),
     duration: 0
+  }
+}
+
+function createPairedTestStores(): {
+  transactionStore: NodeStore
+  importStore: NodeStore
+  transactionAdapter: MemoryNodeStorageAdapter
+  importAdapter: MemoryNodeStorageAdapter
+} {
+  const keyPair = generateSigningKeyPair()
+  const did = createDID(keyPair.publicKey) as DID
+  const transactionAdapter = new MemoryNodeStorageAdapter()
+  const importAdapter = new MemoryNodeStorageAdapter()
+
+  return {
+    transactionStore: new NodeStore({
+      storage: transactionAdapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    }),
+    importStore: new NodeStore({
+      storage: importAdapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    }),
+    transactionAdapter,
+    importAdapter
+  }
+}
+
+function comparableNodeState(node: NodeState | null): unknown {
+  if (!node) return null
+
+  return {
+    id: node.id,
+    schemaId: node.schemaId,
+    properties: node.properties,
+    deleted: node.deleted,
+    createdBy: node.createdBy,
+    updatedBy: node.updatedBy,
+    timestamps: Object.fromEntries(
+      Object.entries(node.timestamps).map(([key, timestamp]) => [
+        key,
+        {
+          lamport: timestamp.lamport
+        }
+      ])
+    )
+  }
+}
+
+function comparableChange(change: NodeChange): unknown {
+  return {
+    type: change.type,
+    payload: change.payload,
+    lamport: change.lamport,
+    authorDID: change.authorDID,
+    parentHash: change.parentHash
   }
 }
 
@@ -114,6 +182,41 @@ class QueryCapableMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
       throw new Error('storage query should not run while read authorization is active')
     }
   )
+}
+
+class TransactionTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
+  transactionCalls = 0
+  applyBatchCalls = 0
+
+  async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
+    this.transactionCalls += 1
+    return super.withTransaction(fn)
+  }
+
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    this.applyBatchCalls += 1
+    return super.applyNodeBatch(input)
+  }
+}
+
+class ImportOptionsTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
+  readonly importOptions: ImportNodesOptions[] = []
+  readonly applyBatchInputs: ApplyNodeBatchInput[] = []
+  rebuildCalls = 0
+
+  async importNodes(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void> {
+    this.importOptions.push(options ?? {})
+    await super.importNodes(nodes, options)
+  }
+
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    this.applyBatchInputs.push(input)
+    return super.applyNodeBatch(input)
+  }
+
+  async rebuildIndexesForSchemas(): Promise<void> {
+    this.rebuildCalls += 1
+  }
 }
 
 function createMockNodeContentCipher() {
@@ -602,6 +705,54 @@ describe('transaction support', () => {
     }
   })
 
+  it('should delegate non-empty transaction batches to storage transaction owner', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new TransactionTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    await store.transaction([
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 1' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 2' } } }
+    ])
+
+    expect(adapter.transactionCalls).toBe(1)
+  })
+
+  it('should roll back storage writes when a transaction operation fails', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new TransactionTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+    const timeBefore = store.getCurrentLamportTime()
+
+    await expect(
+      store.transaction([
+        { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Created' } } },
+        {
+          type: 'update',
+          nodeId: 'missing-node',
+          options: { properties: { title: 'Missing' } }
+        }
+      ])
+    ).rejects.toThrow('Node not found')
+
+    expect(adapter.transactionCalls).toBe(1)
+    expect(adapter.getNodeCount()).toBe(0)
+    expect(adapter.getChangeCount()).toBe(0)
+    expect(store.getCurrentLamportTime()).toBe(timeBefore)
+  })
+
   it('should use the same Lamport timestamp for all operations in a batch', async () => {
     const { store } = createTestStore()
     await store.initialize()
@@ -709,6 +860,559 @@ describe('transaction support', () => {
     expect(events[0].title).toBe('Task 1')
     expect(events[1].title).toBe('Task 2')
     expect(events[2].title).toBe('Task 3')
+  })
+})
+
+describe('bulk existence lookup', () => {
+  it('should return existing node ids without hydrating nodes through the public read path', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const first = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'First' }
+    })
+    const second = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Second' }
+    })
+
+    await expect(
+      store.getExistingNodeIds([second.id, 'missing-node', first.id, second.id])
+    ).resolves.toEqual([second.id, first.id])
+  })
+})
+
+describe('deterministic node import', () => {
+  it('imports deterministic nodes as signed batched changes', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const events: string[] = []
+    const unsubscribe = store.subscribe((event) => {
+      if (event.node) events.push(event.node.id)
+    })
+
+    const result = await store.importDeterministicNodes([
+      {
+        id: 'import-node-1',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Imported 1' }
+      },
+      {
+        id: 'import-node-2',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Imported 2' }
+      }
+    ])
+
+    unsubscribe()
+
+    expect(result.created).toBe(2)
+    expect(result.updated).toBe(0)
+    expect(result.nodes.map((node) => node.id)).toEqual(['import-node-1', 'import-node-2'])
+    expect(result.changes).toHaveLength(2)
+    expect(result.changes.map((change) => change.batchId)).toEqual([result.batchId, result.batchId])
+    expect(result.changes.map((change) => change.batchIndex)).toEqual([0, 1])
+    expect(result.changes.map((change) => change.batchSize)).toEqual([2, 2])
+    expect(result.changes.every((change) => change.parentHash === null)).toBe(true)
+    expect(result.storage).toMatchObject({
+      nodeRowsWritten: 2,
+      propertyRowsWritten: 2,
+      changeRowsWritten: 2
+    })
+    expect(result.timings.totalMs).toBeGreaterThanOrEqual(0)
+    expect(events).toEqual(['import-node-1', 'import-node-2'])
+
+    await expect(store.get('import-node-1')).resolves.toMatchObject({
+      id: 'import-node-1',
+      properties: { title: 'Imported 1' }
+    })
+  })
+
+  it('updates existing deterministic nodes and links parent hashes', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const first = await store.importDeterministicNodes([
+      {
+        id: 'import-node-existing',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Before', status: 'open' }
+      }
+    ])
+    const second = await store.importDeterministicNodes([
+      {
+        id: 'import-node-existing',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'After' }
+      }
+    ])
+
+    expect(second.created).toBe(0)
+    expect(second.updated).toBe(1)
+    expect(second.changes[0].parentHash).toBe(first.changes[0].hash)
+    await expect(store.get('import-node-existing')).resolves.toMatchObject({
+      properties: { title: 'After', status: 'open' }
+    })
+  })
+
+  it('chains duplicate deterministic ids within the same import batch with existing LWW semantics', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const result = await store.importDeterministicNodes([
+      {
+        id: 'duplicate-import-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'First' }
+      },
+      {
+        id: 'duplicate-import-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Second' }
+      }
+    ])
+
+    expect(result.created).toBe(1)
+    expect(result.updated).toBe(1)
+    expect(result.nodes).toHaveLength(1)
+    expect(result.changes[1].parentHash).toBe(result.changes[0].hash)
+    await expect(store.get('duplicate-import-node')).resolves.toMatchObject({
+      properties: { title: 'First' }
+    })
+  })
+
+  it('delegates deterministic import writes to storage-owned batch apply', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new TransactionTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    await store.importDeterministicNodes([
+      {
+        id: 'transaction-owned-import-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Transaction-owned' }
+      }
+    ])
+
+    expect(adapter.applyBatchCalls).toBe(1)
+    expect(adapter.transactionCalls).toBe(0)
+  })
+
+  it('exposes deterministic imports through batchWrite with storage counters and timings', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new ImportOptionsTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    const result = await store.batchWrite({
+      kind: 'deterministic-import',
+      drafts: [
+        {
+          id: 'batch-write-import-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Batch write import' }
+        }
+      ]
+    })
+
+    expect(result).toMatchObject({
+      created: 1,
+      updated: 0,
+      nodeIds: ['batch-write-import-node'],
+      schemaIds: [TEST_SCHEMA],
+      changeCount: 1,
+      storage: {
+        nodeRowsWritten: 1,
+        propertyRowsWritten: 1,
+        changeRowsWritten: 1
+      }
+    })
+    expect(result.batchId).toBeTruthy()
+    expect(result.timings.totalMs).toBeGreaterThanOrEqual(0)
+    expect(adapter.applyBatchInputs[0]).toMatchObject({
+      indexMode: 'touched'
+    })
+    await expect(store.get('batch-write-import-node')).resolves.toMatchObject({
+      properties: { title: 'Batch write import' }
+    })
+  })
+
+  it('supports silent notifications for deterministic batchWrite imports', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+    const events: string[] = []
+    const unsubscribe = store.subscribe((event) => {
+      if (event.node) events.push(event.node.id)
+    })
+
+    const result = await store.batchWrite({
+      kind: 'deterministic-import',
+      drafts: [
+        {
+          id: 'silent-batch-write-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Silent batch write' }
+        }
+      ],
+      policy: { notificationMode: 'silent' }
+    })
+
+    unsubscribe()
+
+    expect(result.nodeIds).toEqual(['silent-batch-write-node'])
+    expect(events).toEqual([])
+    await expect(store.get('silent-batch-write-node')).resolves.toMatchObject({
+      properties: { title: 'Silent batch write' }
+    })
+  })
+
+  it('emits one batch notification for deterministic batchWrite imports when requested', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+    const nodeEvents: string[] = []
+    const batchEvents: string[][] = []
+    const unsubscribeNodes = store.subscribe((event) => {
+      if (event.node) nodeEvents.push(event.node.id)
+    })
+    const unsubscribeBatches = store.subscribeToBatchChanges((event) => {
+      batchEvents.push(event.nodeIds)
+    })
+
+    const result = await store.batchWrite({
+      kind: 'deterministic-import',
+      drafts: [
+        {
+          id: 'batch-event-node-1',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Batch event 1' }
+        },
+        {
+          id: 'batch-event-node-2',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Batch event 2' }
+        }
+      ],
+      policy: { notificationMode: 'batch' }
+    })
+
+    unsubscribeNodes()
+    unsubscribeBatches()
+
+    expect(result.nodeIds).toEqual(['batch-event-node-1', 'batch-event-node-2'])
+    expect(nodeEvents).toEqual([])
+    expect(batchEvents).toEqual([['batch-event-node-1', 'batch-event-node-2']])
+  })
+
+  it('matches transaction materialization for operation batch writes with creates, updates, deletes, and duplicate IDs', async () => {
+    const { transactionStore, importStore } = createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    const seedOperations = [
+      {
+        type: 'create' as const,
+        options: {
+          id: 'operation-batch-update-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Before', status: 'open' }
+        }
+      },
+      {
+        type: 'create' as const,
+        options: {
+          id: 'operation-batch-delete-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Delete me', status: 'open' }
+        }
+      }
+    ]
+    await transactionStore.transaction(seedOperations)
+    await importStore.transaction(seedOperations)
+
+    const operations = [
+      {
+        type: 'create' as const,
+        options: {
+          id: 'operation-batch-create-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Created', status: 'open' }
+        }
+      },
+      {
+        type: 'update' as const,
+        nodeId: 'operation-batch-update-node',
+        options: { properties: { title: 'After' } }
+      },
+      {
+        type: 'delete' as const,
+        nodeId: 'operation-batch-delete-node'
+      },
+      {
+        type: 'create' as const,
+        options: {
+          id: 'operation-batch-duplicate-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'First' }
+        }
+      },
+      {
+        type: 'update' as const,
+        nodeId: 'operation-batch-duplicate-node',
+        options: { properties: { title: 'Second', status: 'deduped' } }
+      }
+    ]
+
+    await transactionStore.transaction(operations)
+    const result = await importStore.batchWrite({
+      kind: 'operations',
+      operations,
+      policy: { notificationMode: 'silent' }
+    })
+
+    expect(result).toMatchObject({
+      created: 2,
+      updated: 3,
+      nodeIds: [
+        'operation-batch-create-node',
+        'operation-batch-update-node',
+        'operation-batch-delete-node',
+        'operation-batch-duplicate-node'
+      ],
+      schemaIds: [TEST_SCHEMA],
+      changeCount: operations.length
+    })
+
+    for (const nodeId of result.nodeIds) {
+      expect(comparableNodeState(await importStore.get(nodeId))).toEqual(
+        comparableNodeState(await transactionStore.get(nodeId))
+      )
+    }
+  })
+
+  it('maintains import indexes incrementally instead of rebuilding per chunk', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new ImportOptionsTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    await store.importDeterministicNodes([
+      {
+        id: 'incremental-index-import-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Incremental index import' }
+      }
+    ])
+
+    expect(adapter.importOptions).toHaveLength(0)
+    expect(adapter.applyBatchInputs).toHaveLength(1)
+    expect(adapter.applyBatchInputs[0]).toMatchObject({
+      indexMode: 'touched',
+      indexProperties: true
+    })
+    expect(adapter.rebuildCalls).toBe(0)
+  })
+
+  it('can defer deterministic import indexes for a caller-owned final rebuild', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new ImportOptionsTrackingMemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
+    await store.initialize()
+
+    const result = await store.importDeterministicNodes(
+      [
+        {
+          id: 'deferred-index-import-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Deferred index import' }
+        }
+      ],
+      { deferIndexes: true }
+    )
+
+    expect(result.affectedSchemaIds).toEqual([TEST_SCHEMA])
+    expect(adapter.importOptions).toHaveLength(0)
+    expect(adapter.applyBatchInputs[0]).toMatchObject({
+      indexMode: 'defer-schema',
+      indexProperties: true
+    })
+
+    await store.rebuildIndexesForSchemas(result.affectedSchemaIds)
+    expect(adapter.rebuildCalls).toBe(1)
+  })
+
+  it('matches generic transaction materialization for deterministic creates', async () => {
+    const { transactionStore, importStore } = createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    const draft = {
+      id: 'parity-create-node',
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Created', status: 'open', priority: 2 }
+    }
+
+    const transactionResult = await transactionStore.transaction([
+      {
+        type: 'create',
+        options: draft
+      }
+    ])
+    const importResult = await importStore.importDeterministicNodes([draft])
+
+    expect(importResult.created).toBe(1)
+    expect(importResult.updated).toBe(0)
+    expect(comparableNodeState(await importStore.get(draft.id))).toEqual(
+      comparableNodeState(await transactionStore.get(draft.id))
+    )
+    expect(importResult.changes.map(comparableChange)).toEqual(
+      transactionResult.changes.map(comparableChange)
+    )
+  })
+
+  it('matches generic transaction materialization for deterministic updates', async () => {
+    const { transactionStore, importStore } = createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    await transactionStore.transaction([
+      {
+        type: 'create',
+        options: {
+          id: 'parity-update-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Before', status: 'open' }
+        }
+      }
+    ])
+    await importStore.importDeterministicNodes([
+      {
+        id: 'parity-update-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Before', status: 'open' }
+      }
+    ])
+
+    await transactionStore.transaction([
+      {
+        type: 'update',
+        nodeId: 'parity-update-node',
+        options: { properties: { title: 'After' } }
+      }
+    ])
+    const importResult = await importStore.importDeterministicNodes([
+      {
+        id: 'parity-update-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'After' }
+      }
+    ])
+
+    expect(importResult.created).toBe(0)
+    expect(importResult.updated).toBe(1)
+    expect(comparableNodeState(await importStore.get('parity-update-node'))).toEqual(
+      comparableNodeState(await transactionStore.get('parity-update-node'))
+    )
+  })
+
+  it('matches generic transaction LWW behavior when an existing property has a newer Lamport time', async () => {
+    const { transactionStore, importStore, transactionAdapter, importAdapter } =
+      createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    const lockedNode: NodeState = {
+      id: 'parity-lww-node',
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Locked', status: 'kept' },
+      timestamps: {
+        title: { lamport: { time: 50, author: 'did:key:remote' as DID }, wallTime: 50 },
+        status: { lamport: { time: 50, author: 'did:key:remote' as DID }, wallTime: 50 }
+      },
+      deleted: false,
+      createdAt: 50,
+      createdBy: 'did:key:remote' as DID,
+      updatedAt: 50,
+      updatedBy: 'did:key:remote' as DID
+    }
+    await transactionAdapter.setNode(structuredClone(lockedNode))
+    await importAdapter.setNode(structuredClone(lockedNode))
+
+    await transactionStore.transaction([
+      {
+        type: 'update',
+        nodeId: lockedNode.id,
+        options: { properties: { status: 'ignored' } }
+      }
+    ])
+    await importStore.importDeterministicNodes([
+      {
+        id: lockedNode.id,
+        schemaId: TEST_SCHEMA,
+        properties: { status: 'ignored' }
+      }
+    ])
+
+    expect(comparableNodeState(await importStore.get(lockedNode.id))).toEqual(
+      comparableNodeState(await transactionStore.get(lockedNode.id))
+    )
+    expect((await importStore.get(lockedNode.id))?.properties.status).toBe('kept')
+  })
+
+  it('matches generic transaction materialization for source-record-shaped nodes', async () => {
+    const { transactionStore, importStore } = createPairedTestStores()
+    await transactionStore.initialize()
+    await importStore.initialize()
+
+    const draft = {
+      id: 'parity-source-record',
+      schemaId: TEST_SOURCE_RECORD_SCHEMA,
+      properties: {
+        platform: 'youtube',
+        bucketId: 'youtube.history',
+        sourcePath: 'Takeout/YouTube/history/watch-history.json',
+        recordKey: 'watch-123',
+        raw: {
+          title: 'Example video',
+          channel: 'Example Channel',
+          watchedAt: '2026-06-08T12:00:00.000Z'
+        }
+      }
+    }
+
+    await transactionStore.transaction([
+      {
+        type: 'create',
+        options: draft
+      }
+    ])
+    await importStore.importDeterministicNodes([draft])
+
+    expect(comparableNodeState(await importStore.get(draft.id))).toEqual(
+      comparableNodeState(await transactionStore.get(draft.id))
+    )
   })
 })
 

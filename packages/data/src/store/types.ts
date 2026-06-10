@@ -17,6 +17,7 @@ import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
+import type { SQLiteOperationStats } from '@xnetjs/sqlite'
 import type { Change, LamportTimestamp } from '@xnetjs/sync'
 
 // ============================================================================
@@ -142,6 +143,13 @@ export interface NodeStorageAdapter {
   open?(): Promise<void>
   /** Close the storage connection */
   close?(): Promise<void>
+  /**
+   * Execute a batch of storage operations as one adapter-owned transaction.
+   *
+   * Storage implementations pass a transaction-scoped adapter to `fn`; writes
+   * through that adapter must not start their own nested transaction.
+   */
+  withTransaction?<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T>
 
   // Change log operations
   appendChange(change: NodeChange): Promise<void>
@@ -151,14 +159,37 @@ export interface NodeStorageAdapter {
   getChangesSince(sinceLamport: number): Promise<NodeChange[]>
   getChangeByHash(hash: ContentId): Promise<NodeChange | null>
   getLastChange(nodeId: NodeId): Promise<NodeChange | null>
+  /** Return the latest change for each requested node id. Missing nodes are omitted. */
+  getLastChangesByNodeId?(nodeIds: readonly NodeId[]): Promise<Map<NodeId, NodeChange>>
+  /** Append multiple changes in one storage-owned write when supported. */
+  appendChanges?(changes: readonly NodeChange[]): Promise<void>
 
   // Materialized state operations
   getNode(id: NodeId): Promise<NodeState | null>
+  /** Return existing materialized nodes in input order. Missing nodes are omitted. */
+  getNodes?(ids: readonly NodeId[]): Promise<NodeState[]>
+  /** Return the subset of ids that currently exist in materialized storage. */
+  getExistingNodeIds?(ids: readonly NodeId[]): Promise<NodeId[]>
+  /** Return all read state needed to plan a node batch in one adapter-owned preflight. */
+  getBatchPreflight?(ids: readonly NodeId[]): Promise<NodeBatchPreflightResult>
   setNode(node: NodeState, options?: SetNodeOptions): Promise<void>
+  /** Import multiple materialized nodes in one storage-owned write when supported. */
+  importNodes?(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void>
+  /** Apply materialized nodes, signed changes, sync state, and batch indexes in one write. */
+  applyNodeBatch?(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult>
+  /** Rebuild secondary node indexes after an import that deferred index maintenance. */
+  rebuildIndexesForSchemas?(
+    schemaIds: readonly SchemaIRI[],
+    options?: RebuildNodeIndexesOptions
+  ): Promise<void>
   deleteNode(id: NodeId): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<NodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
   queryNodes?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
+  /** Optional runtime operation counters for import diagnostics. */
+  getOperationStats?(): Promise<SQLiteOperationStats | null> | SQLiteOperationStats | null
+  /** Reset optional runtime operation counters before a focused measurement. */
+  resetOperationStats?(): Promise<void> | void
 
   // Sync state
   getLastLamportTime(): Promise<number>
@@ -176,6 +207,145 @@ export interface SetNodeOptions {
    * query evaluation instead.
    */
   indexProperties?: boolean
+}
+
+export interface ImportNodesOptions extends SetNodeOptions {
+  /**
+   * Skip secondary scalar/spatial/FTS/materialized maintenance for this write.
+   * Callers must rebuild affected schema indexes before relying on indexed
+   * queries again.
+   */
+  deferIndexes?: boolean
+  /**
+   * Treat the provided NodeState objects as the post-LWW materialized truth
+   * when updating secondary indexes. This avoids a per-node readback during
+   * import paths that already materialize against current storage state.
+   */
+  trustMaterializedState?: boolean
+}
+
+export type RebuildNodeIndexesOptions = SetNodeOptions
+
+export type NodeBatchIndexMode = 'eager' | 'touched' | 'defer-schema'
+
+export interface NodeBatchPreflightResult {
+  /** Existing materialized nodes keyed by node ID. Missing node IDs are omitted. */
+  nodesById: Map<NodeId, NodeState>
+  /** Latest known change for each requested node ID. Missing node IDs are omitted. */
+  lastChangesByNodeId: Map<NodeId, NodeChange>
+}
+
+export interface ApplyNodeBatchInput extends SetNodeOptions {
+  /** Batch ID shared by all supplied changes. */
+  batchId: string
+  /** Final materialized state for changed nodes. */
+  nodes: readonly NodeState[]
+  /** Signed changes to append after materialized nodes exist. */
+  changes: readonly NodeChange[]
+  /** Last Lamport time after applying the batch. */
+  lastLamportTime: number
+  /** Schemas affected by the batch, used for index/view invalidation. */
+  affectedSchemaIds: readonly SchemaIRI[]
+  /**
+   * Secondary index strategy for this batch.
+   *
+   * - `eager`: maintain indexes through the normal per-node write path.
+   * - `touched`: skip per-node indexes, then rebuild only touched node indexes.
+   * - `defer-schema`: skip indexes so the caller can rebuild affected schemas later.
+   */
+  indexMode: NodeBatchIndexMode
+}
+
+export interface ApplyNodeBatchResult {
+  /** Number of materialized node rows written or updated. */
+  nodeRowsWritten: number
+  /** Number of property rows considered for write. */
+  propertyRowsWritten: number
+  /** Number of change rows considered for append. */
+  changeRowsWritten: number
+  /** Number of scalar index rows written. */
+  scalarRowsWritten: number
+  /** Number of full-text index rows written. */
+  ftsRowsWritten: number
+}
+
+export type NodeBatchNotificationMode = 'per-node' | 'batch' | 'silent'
+export type NodeBatchSyncMode = 'normal' | 'defer'
+
+export interface NodeBatchWritePolicy {
+  /** Secondary index strategy for this batch. */
+  indexMode: NodeBatchIndexMode
+  /** Live notification strategy after the batch is durable. */
+  notificationMode: NodeBatchNotificationMode
+  /** Advisory sync strategy for runtimes that can coalesce outbound replication. */
+  syncMode: NodeBatchSyncMode
+}
+
+export interface NodeBatchWriteTimings {
+  /** Existing-node and parent-change lookup time. */
+  preflightMs: number
+  /** In-memory materialization and change signing time. */
+  materializeMs: number
+  /** Storage apply time, including indexes owned by the adapter. */
+  applyMs: number
+  /** Listener notification time after the storage commit. */
+  notifyMs: number
+  /** Full wall time for the batch write call. */
+  totalMs: number
+}
+
+export interface DeterministicNodeBatchWriteInput {
+  kind: 'deterministic-import'
+  drafts: readonly DeterministicNodeImportDraft[]
+  policy?: Partial<NodeBatchWritePolicy>
+}
+
+export interface OperationNodeBatchWriteInput {
+  kind: 'operations'
+  operations: readonly TransactionOperation[]
+  policy?: Partial<NodeBatchWritePolicy>
+}
+
+export type NodeBatchWriteInput = DeterministicNodeBatchWriteInput | OperationNodeBatchWriteInput
+
+export interface NodeBatchWriteResult {
+  /** The batch ID shared by all changes. */
+  batchId: string
+  /** Number of drafts that created a node at the time they were applied. */
+  created: number
+  /** Number of drafts that updated a node at the time they were applied. */
+  updated: number
+  /** Final node IDs touched by the batch. */
+  nodeIds: NodeId[]
+  /** Schemas whose materialized nodes changed. */
+  schemaIds: SchemaIRI[]
+  /** Number of signed changes appended by the batch. */
+  changeCount: number
+  /** Storage-level write counters when the adapter reports them. */
+  storage?: ApplyNodeBatchResult
+  /** Phase timings for import diagnostics and progress UIs. */
+  timings: NodeBatchWriteTimings
+}
+
+export interface NodeBatchChangeEvent {
+  /** The batch ID shared by all changes. */
+  batchId: string
+  /** Final node IDs touched by the batch. */
+  nodeIds: NodeId[]
+  /** Schemas whose materialized nodes changed. */
+  schemaIds: SchemaIRI[]
+  /** Number of drafts that created a node at the time they were applied. */
+  created: number
+  /** Number of drafts that updated a node at the time they were applied. */
+  updated: number
+  /** Number of signed changes appended by the batch. */
+  changeCount: number
+  /** Whether this was a remote change batch from sync. */
+  isRemote: boolean
+  /** Storage-level write counters when the adapter reports them. */
+  storage?: ApplyNodeBatchResult
+  /** Phase timings for import diagnostics and progress UIs. */
+  timings: NodeBatchWriteTimings
 }
 
 export interface ListNodesOptions {
@@ -385,6 +555,56 @@ export interface UpdateNodeOptions {
   properties: Record<PropertyKey, unknown>
 }
 
+/**
+ * A deterministic node import draft.
+ *
+ * Intended for importers that already know stable node IDs and want one
+ * signed change per draft while avoiding per-node storage transactions.
+ */
+export interface DeterministicNodeImportDraft {
+  /** Stable node ID to create or update */
+  id: NodeId
+  /** Schema IRI used when the node does not already exist */
+  schemaId: SchemaIRI
+  /** Properties to merge with LWW semantics */
+  properties: Record<PropertyKey, unknown>
+}
+
+export interface ImportDeterministicNodesOptions {
+  /**
+   * Secondary index strategy for this import. Defaults to `touched`, which is
+   * optimized for bulk imports when storage supports `applyNodeBatch()`.
+   */
+  indexMode?: NodeBatchIndexMode
+  /**
+   * Skip secondary index maintenance for this chunk. Call
+   * `NodeStore.rebuildIndexesForSchemas()` for the affected schemas before
+   * relying on indexed queries.
+   *
+   * @deprecated Prefer `indexMode: 'defer-schema'`.
+   */
+  deferIndexes?: boolean
+}
+
+export interface ImportDeterministicNodesResult {
+  /** The batch ID shared by all imported changes */
+  batchId: string
+  /** Number of drafts that created a node at the time they were applied */
+  created: number
+  /** Number of drafts that updated a node at the time they were applied */
+  updated: number
+  /** Final materialized state for each changed node */
+  nodes: NodeState[]
+  /** All signed changes created for the import */
+  changes: NodeChange[]
+  /** Schemas whose materialized nodes changed */
+  affectedSchemaIds: SchemaIRI[]
+  /** Storage-level write counters when the adapter reports them. */
+  storage?: ApplyNodeBatchResult
+  /** Phase timings for import diagnostics and progress UIs. */
+  timings: NodeBatchWriteTimings
+}
+
 // ============================================================================
 // Transaction Support
 // ============================================================================
@@ -435,6 +655,8 @@ export interface NodeChangeEvent {
  * Listener for Node change events.
  */
 export type NodeChangeListener = (event: NodeChangeEvent) => void
+
+export type NodeBatchChangeListener = (event: NodeBatchChangeEvent) => void
 
 // ============================================================================
 // Migration Support

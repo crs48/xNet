@@ -11,6 +11,7 @@ const remote = {
   update: vi.fn(),
   delete: vi.fn(),
   restore: vi.fn(),
+  bulkWrite: vi.fn(),
   acquireDoc: vi.fn(async () => ({
     nodeId: 'page-1',
     state: new Uint8Array(),
@@ -59,5 +60,43 @@ describe('WorkerBridge', () => {
 
     expect(remote.releaseDoc).toHaveBeenCalledWith('page-1')
     expect(destroySpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('delegates bulk writes to the worker API', async () => {
+    remote.bulkWrite.mockResolvedValueOnce({
+      batchId: 'batch-worker',
+      created: 1,
+      updated: 0,
+      nodeIds: ['worker-bulk-node'],
+      schemaIds: ['xnet://test.local/Task'],
+      changeCount: 1,
+      timings: {
+        preflightMs: 0,
+        materializeMs: 1,
+        applyMs: 2,
+        notifyMs: 0,
+        totalMs: 3
+      }
+    })
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3])
+    })
+
+    const input = {
+      kind: 'deterministic-import' as const,
+      drafts: [
+        {
+          id: 'worker-bulk-node',
+          schemaId: 'xnet://test.local/Task',
+          properties: { title: 'Worker bulk' }
+        }
+      ]
+    }
+    const result = await bridge.bulkWrite(input)
+
+    expect(remote.bulkWrite).toHaveBeenCalledWith(input)
+    expect(result.batchId).toBe('batch-worker')
   })
 })

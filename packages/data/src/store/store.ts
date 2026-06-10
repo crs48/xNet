@@ -25,15 +25,28 @@ import type {
   TransactionOperation,
   TransactionResult,
   NodeChangeListener,
+  NodeBatchChangeListener,
+  NodeBatchChangeEvent,
   PropertyLookup,
   GetWithMigrationOptions,
   MigratedNodeState,
   NodeContentCipher,
-  ContentKeyCache
+  ContentKeyCache,
+  DeterministicNodeImportDraft,
+  ImportDeterministicNodesOptions,
+  ImportDeterministicNodesResult,
+  ApplyNodeBatchResult,
+  NodeBatchIndexMode,
+  NodeBatchPreflightResult,
+  NodeBatchWriteInput,
+  NodeBatchWritePolicy,
+  NodeBatchWriteResult,
+  NodeBatchWriteTimings,
+  NodeBatchNotificationMode
 } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
-import type { AuthAction, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
+import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
 import { base64ToBytes, bytesToBase64 } from '@xnetjs/crypto'
 import { parseDID } from '@xnetjs/identity'
 import {
@@ -63,6 +76,20 @@ import { resolveTempIds, type SchemaLookup } from './tempids'
 const MAX_CONFLICTS = 200
 const ENCRYPTED_NODE_MARKER = 'xnet:node-encrypted:v1'
 
+function elapsedMs(startedAt: number): number {
+  return Math.max(0, Date.now() - startedAt)
+}
+
+function emptyBatchWriteTimings(): NodeBatchWriteTimings {
+  return {
+    preflightMs: 0,
+    materializeMs: 0,
+    applyMs: 0,
+    notifyMs: 0,
+    totalMs: 0
+  }
+}
+
 type EncryptedNodeSnapshot = {
   marker: typeof ENCRYPTED_NODE_MARKER
   payload: string
@@ -71,6 +98,32 @@ type EncryptedNodeSnapshot = {
 type SerializedNodeSnapshot = {
   properties: Record<string, unknown>
   unknown?: Record<string, unknown>
+}
+
+type PendingTransactionEvent = {
+  change: NodeChange
+  result: NodeState | null
+  previousNode: NodeState | null
+}
+
+type DeterministicNodeImportPlan = {
+  created: number
+  updated: number
+  nodes: NodeState[]
+  changes: NodeChange[]
+  events: PendingTransactionEvent[]
+  affectedSchemaIds: SchemaIRI[]
+  timings: Pick<NodeBatchWriteTimings, 'preflightMs' | 'materializeMs'>
+}
+
+type DeterministicNodeImportAppliedPlan = DeterministicNodeImportPlan & {
+  applyMs: number
+  storage?: ApplyNodeBatchResult
+}
+
+type DeterministicNodeImportExecution = ImportDeterministicNodesResult & {
+  storage?: ApplyNodeBatchResult
+  timings: NodeBatchWriteTimings
 }
 
 /**
@@ -83,6 +136,7 @@ export class NodeStore {
   private clock: LamportClock
   private conflicts: MergeConflict[] = []
   private listeners: Set<NodeChangeListener> = new Set()
+  private batchListeners: Set<NodeBatchChangeListener> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
   private lensRegistry?: LensRegistry
@@ -228,6 +282,28 @@ export class NodeStore {
     const node = await this.storage.getNode(id)
     const decrypted = await this.decryptNodeSnapshotIfPresent(node)
     return (await this.canReadNode(decrypted)) ? decrypted : null
+  }
+
+  /**
+   * Return the subset of IDs that already exist in materialized storage.
+   *
+   * This intentionally returns identifiers only and does not hydrate node
+   * contents. Importers use it to route deterministic drafts to create/update.
+   */
+  async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return []
+
+    if (this.storage.getExistingNodeIds) {
+      return this.storage.getExistingNodeIds(uniqueIds)
+    }
+
+    const existingIds = await Promise.all(
+      uniqueIds.map(
+        async (id): Promise<NodeId | null> => ((await this.storage.getNode(id)) ? id : null)
+      )
+    )
+    return existingIds.filter((id): id is NodeId => id !== null)
   }
 
   /**
@@ -680,16 +756,668 @@ export class NodeStore {
     const batchId = createBatchId()
     const batchSize = resolvedOps.length
     const now = Date.now()
+    const previousClock = this.clock
 
     // Tick the clock once for the entire batch
     const [newClock, lamport] = tick(this.clock)
     this.clock = newClock
 
+    try {
+      const run = (storage: NodeStorageAdapter) =>
+        this.executeTransactionOperations({
+          operations: resolvedOps,
+          storage,
+          lamport,
+          now,
+          batchId,
+          batchSize
+        })
+      const result = this.storage.withTransaction
+        ? await this.storage.withTransaction(run)
+        : await run(this.storage)
+
+      for (const event of result.events) {
+        this.emit(event.change, event.result, event.previousNode, false)
+        this.authEvaluator?.invalidate(event.change.payload.nodeId)
+      }
+
+      return { batchId, results: result.results, changes: result.changes, tempIds }
+    } catch (err) {
+      this.clock = previousClock
+      throw err
+    }
+  }
+
+  /**
+   * Import deterministic node drafts as signed node changes.
+   *
+   * This is optimized for importers that already have stable node IDs. It uses
+   * one Lamport timestamp and batch ID for the whole import, materializes nodes
+   * in memory, then persists final node states and all changes in one storage
+   * transaction when the adapter supports it.
+   */
+  async importDeterministicNodes(
+    drafts: readonly DeterministicNodeImportDraft[],
+    options: ImportDeterministicNodesOptions = {}
+  ): Promise<ImportDeterministicNodesResult> {
+    const result = await this.executeDeterministicNodeBatch(drafts, options, {
+      notificationMode: 'per-node'
+    })
+
+    return this.toImportDeterministicNodesResult(result)
+  }
+
+  async batchWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult> {
+    switch (input.kind) {
+      case 'deterministic-import': {
+        const policy = this.resolveNodeBatchWritePolicy(input.policy)
+        const result = await this.executeDeterministicNodeBatch(
+          input.drafts,
+          { indexMode: policy.indexMode },
+          { notificationMode: policy.notificationMode }
+        )
+
+        return {
+          batchId: result.batchId,
+          created: result.created,
+          updated: result.updated,
+          nodeIds: result.nodes.map((node) => node.id),
+          schemaIds: result.affectedSchemaIds,
+          changeCount: result.changes.length,
+          storage: result.storage,
+          timings: result.timings
+        }
+      }
+
+      case 'operations': {
+        const policy = this.resolveNodeBatchWritePolicy(input.policy)
+        const result = await this.executeOperationNodeBatch(
+          input.operations,
+          policy.notificationMode
+        )
+
+        return {
+          batchId: result.batchId,
+          created: result.created,
+          updated: result.updated,
+          nodeIds: result.nodeIds,
+          schemaIds: result.schemaIds,
+          changeCount: result.changes.length,
+          timings: result.timings
+        }
+      }
+    }
+  }
+
+  private resolveNodeBatchWritePolicy(
+    policy?: Partial<NodeBatchWritePolicy>
+  ): NodeBatchWritePolicy {
+    return {
+      indexMode: policy?.indexMode ?? 'touched',
+      notificationMode: policy?.notificationMode ?? 'per-node',
+      syncMode: policy?.syncMode ?? 'normal'
+    }
+  }
+
+  private toImportDeterministicNodesResult(
+    result: DeterministicNodeImportExecution
+  ): ImportDeterministicNodesResult {
+    return {
+      batchId: result.batchId,
+      created: result.created,
+      updated: result.updated,
+      nodes: result.nodes,
+      changes: result.changes,
+      affectedSchemaIds: result.affectedSchemaIds,
+      storage: result.storage,
+      timings: result.timings
+    }
+  }
+
+  private async executeOperationNodeBatch(
+    operations: readonly TransactionOperation[],
+    notificationMode: NodeBatchNotificationMode
+  ): Promise<{
+    batchId: string
+    created: number
+    updated: number
+    nodeIds: NodeId[]
+    schemaIds: SchemaIRI[]
+    changes: NodeChange[]
+    timings: NodeBatchWriteTimings
+  }> {
+    const totalStartedAt = Date.now()
+    if (operations.length === 0) {
+      return {
+        batchId: '',
+        created: 0,
+        updated: 0,
+        nodeIds: [],
+        schemaIds: [],
+        changes: [],
+        timings: emptyBatchWriteTimings()
+      }
+    }
+
+    const { operations: resolvedOps } = resolveTempIds([...operations], this.schemaLookup)
+
+    await this.assertAuthorizedBatch(resolvedOps)
+
+    const batchId = createBatchId()
+    const batchSize = resolvedOps.length
+    const now = Date.now()
+    const previousClock = this.clock
+    const [newClock, lamport] = tick(this.clock)
+    this.clock = newClock
+
+    try {
+      const applyStartedAt = Date.now()
+      const run = (storage: NodeStorageAdapter) =>
+        this.executeTransactionOperations({
+          operations: resolvedOps,
+          storage,
+          lamport,
+          now,
+          batchId,
+          batchSize
+        })
+      const result = this.storage.withTransaction
+        ? await this.storage.withTransaction(run)
+        : await run(this.storage)
+      const applyMs = elapsedMs(applyStartedAt)
+
+      const nodeIds = Array.from(new Set(result.changes.map((change) => change.payload.nodeId)))
+      const schemaIds = Array.from(
+        new Set(
+          result.events.flatMap((event) => {
+            const schemaId = event.result?.schemaId ?? event.previousNode?.schemaId
+            return schemaId ? [schemaId] : []
+          })
+        )
+      )
+      const created = result.events.filter(
+        (event) => event.previousNode === null && event.result !== null
+      ).length
+      const updated = result.events.length - created
+
+      const notifyStartedAt = Date.now()
+      if (notificationMode === 'per-node') {
+        for (const event of result.events) {
+          this.emit(event.change, event.result, event.previousNode, false)
+          this.authEvaluator?.invalidate(event.change.payload.nodeId)
+        }
+      } else {
+        const nodes = result.events.flatMap((event) => event.result ?? event.previousNode ?? [])
+        this.invalidateAuthForNodes(nodes)
+
+        if (notificationMode === 'batch') {
+          this.emitDeterministicImportBatch({
+            batchId,
+            nodeIds,
+            schemaIds,
+            created,
+            updated,
+            changeCount: result.changes.length,
+            isRemote: false,
+            timings: {
+              preflightMs: 0,
+              materializeMs: 0,
+              applyMs,
+              notifyMs: 0,
+              totalMs: elapsedMs(totalStartedAt)
+            }
+          })
+        }
+      }
+      const notifyMs = elapsedMs(notifyStartedAt)
+
+      return {
+        batchId,
+        created,
+        updated,
+        nodeIds,
+        schemaIds,
+        changes: result.changes,
+        timings: {
+          preflightMs: 0,
+          materializeMs: 0,
+          applyMs,
+          notifyMs,
+          totalMs: elapsedMs(totalStartedAt)
+        }
+      }
+    } catch (err) {
+      this.clock = previousClock
+      throw err
+    }
+  }
+
+  private async executeDeterministicNodeBatch(
+    drafts: readonly DeterministicNodeImportDraft[],
+    options: ImportDeterministicNodesOptions,
+    behavior: { notificationMode: NodeBatchNotificationMode }
+  ): Promise<DeterministicNodeImportExecution> {
+    const totalStartedAt = Date.now()
+
+    if (drafts.length === 0) {
+      return {
+        batchId: '',
+        created: 0,
+        updated: 0,
+        nodes: [],
+        changes: [],
+        affectedSchemaIds: [],
+        timings: emptyBatchWriteTimings()
+      }
+    }
+
+    await this.assertAuthorizedBatch(await this.createDeterministicImportAuthOps(drafts))
+
+    const batchId = createBatchId()
+    const batchSize = drafts.length
+    const now = Date.now()
+    const previousClock = this.clock
+    const indexMode = this.resolveDeterministicImportIndexMode(options)
+
+    const [newClock, lamport] = tick(this.clock)
+    this.clock = newClock
+
+    try {
+      let result: DeterministicNodeImportAppliedPlan
+
+      if (this.storage.applyNodeBatch && !this.nodeContentCipher) {
+        const plan = await this.planDeterministicNodeImport({
+          drafts,
+          storage: this.storage,
+          lamport,
+          now,
+          batchId,
+          batchSize
+        })
+
+        const applyStartedAt = Date.now()
+        const storageResult = await this.storage.applyNodeBatch({
+          batchId,
+          nodes: plan.nodes,
+          changes: plan.changes,
+          lastLamportTime: this.clock.time,
+          affectedSchemaIds: plan.affectedSchemaIds,
+          indexMode,
+          indexProperties: true
+        })
+
+        result = {
+          ...plan,
+          applyMs: elapsedMs(applyStartedAt),
+          storage: storageResult
+        }
+      } else {
+        const run = (storage: NodeStorageAdapter) =>
+          this.executeDeterministicNodeImport({
+            drafts,
+            storage,
+            lamport,
+            now,
+            batchId,
+            batchSize,
+            deferIndexes: indexMode === 'defer-schema'
+          })
+        result = this.storage.withTransaction
+          ? await this.storage.withTransaction(run)
+          : await run(this.storage)
+      }
+
+      const notifyStartedAt = Date.now()
+      if (behavior.notificationMode === 'per-node') {
+        this.emitDeterministicImportEvents(result.events)
+      } else {
+        this.invalidateAuthForNodes(result.nodes)
+
+        if (behavior.notificationMode === 'batch') {
+          this.emitDeterministicImportBatch({
+            batchId,
+            nodeIds: result.nodes.map((node) => node.id),
+            schemaIds: result.affectedSchemaIds,
+            created: result.created,
+            updated: result.updated,
+            changeCount: result.changes.length,
+            isRemote: false,
+            storage: result.storage,
+            timings: {
+              preflightMs: result.timings.preflightMs,
+              materializeMs: result.timings.materializeMs,
+              applyMs: result.applyMs,
+              notifyMs: 0,
+              totalMs: elapsedMs(totalStartedAt)
+            }
+          })
+        }
+      }
+      const notifyMs = elapsedMs(notifyStartedAt)
+
+      return {
+        batchId,
+        created: result.created,
+        updated: result.updated,
+        nodes: result.nodes,
+        changes: result.changes,
+        affectedSchemaIds: result.affectedSchemaIds,
+        storage: result.storage,
+        timings: {
+          preflightMs: result.timings.preflightMs,
+          materializeMs: result.timings.materializeMs,
+          applyMs: result.applyMs,
+          notifyMs,
+          totalMs: elapsedMs(totalStartedAt)
+        }
+      }
+    } catch (err) {
+      this.clock = previousClock
+      throw err
+    }
+  }
+
+  private resolveDeterministicImportIndexMode(
+    options: ImportDeterministicNodesOptions
+  ): NodeBatchIndexMode {
+    if (options.indexMode) return options.indexMode
+    if (options.deferIndexes === true) return 'defer-schema'
+    return 'touched'
+  }
+
+  private emitDeterministicImportEvents(events: readonly PendingTransactionEvent[]): void {
+    for (const event of events) {
+      this.emit(event.change, event.result, event.previousNode, false)
+      this.authEvaluator?.invalidate(event.change.payload.nodeId)
+    }
+  }
+
+  private invalidateAuthForNodes(nodes: readonly NodeState[]): void {
+    if (!this.authEvaluator) return
+
+    nodes.forEach((node) => this.authEvaluator?.invalidate(node.id))
+  }
+
+  private async createDeterministicImportAuthOps(
+    drafts: readonly DeterministicNodeImportDraft[]
+  ): Promise<TransactionOperation[]> {
+    if (!this.authEvaluator && !this.auth) {
+      return []
+    }
+
+    const existingNodes = await this.getNodesById(
+      drafts.map((draft) => draft.id),
+      this.storage
+    )
+    const knownIds = new Set(existingNodes.keys())
+
+    return drafts.map((draft): TransactionOperation => {
+      if (knownIds.has(draft.id)) {
+        return { type: 'update', nodeId: draft.id, options: { properties: draft.properties } }
+      }
+
+      knownIds.add(draft.id)
+      return {
+        type: 'create',
+        options: {
+          id: draft.id,
+          schemaId: draft.schemaId,
+          properties: draft.properties
+        }
+      }
+    })
+  }
+
+  private async planDeterministicNodeImport(input: {
+    drafts: readonly DeterministicNodeImportDraft[]
+    storage: NodeStorageAdapter
+    lamport: LamportTimestamp
+    now: number
+    batchId: string
+    batchSize: number
+  }): Promise<DeterministicNodeImportPlan> {
+    const ids = input.drafts.map((draft) => draft.id)
+    const preflightStartedAt = Date.now()
+    const preflight = await this.getBatchPreflight(ids, input.storage)
+    const preflightMs = elapsedMs(preflightStartedAt)
+    const materializeStartedAt = Date.now()
+    const existingNodes = this.cloneNodeMap(preflight.nodesById)
+    const lastChanges = new Map(preflight.lastChangesByNodeId)
+    const nodesById = new Map<NodeId, NodeState>(existingNodes)
+    const changedIds: NodeId[] = []
+    const seenChangedIds = new Set<NodeId>()
+    const changes: NodeChange[] = []
+    const events: PendingTransactionEvent[] = []
+    let created = 0
+    let updated = 0
+
+    for (let index = 0; index < input.drafts.length; index++) {
+      const draft = input.drafts[index]
+      const currentNode = nodesById.get(draft.id) ?? null
+      const previousNode = this.cloneNodeState(currentNode)
+      const isCreate = currentNode === null
+      const payload: NodePayload = {
+        nodeId: draft.id,
+        ...(isCreate ? { schemaId: draft.schemaId } : {}),
+        properties: draft.properties
+      }
+      const change = await this.createBatchedChangeWithParentHash(
+        'node-change',
+        payload,
+        lastChanges.get(draft.id)?.hash ?? null,
+        input.lamport,
+        input.now,
+        input.batchId,
+        index,
+        input.batchSize
+      )
+      const node = this.materializeNodeChange(
+        change,
+        currentNode ?? this.createInitialNodeFromChange(change, draft.schemaId)
+      )
+
+      nodesById.set(draft.id, node)
+      lastChanges.set(draft.id, change)
+      changes.push(change)
+      events.push({ change, result: this.cloneNodeState(node), previousNode })
+
+      if (!seenChangedIds.has(draft.id)) {
+        changedIds.push(draft.id)
+        seenChangedIds.add(draft.id)
+      }
+
+      if (isCreate) {
+        created += 1
+      } else {
+        updated += 1
+      }
+    }
+
+    const nodes = changedIds.flatMap((id) => {
+      const node = nodesById.get(id)
+      return node ? [node] : []
+    })
+    const affectedSchemaIds = Array.from(new Set(nodes.map((node) => node.schemaId)))
+
+    return {
+      created,
+      updated,
+      nodes,
+      changes,
+      events,
+      affectedSchemaIds,
+      timings: {
+        preflightMs,
+        materializeMs: elapsedMs(materializeStartedAt)
+      }
+    }
+  }
+
+  private async executeDeterministicNodeImport(input: {
+    drafts: readonly DeterministicNodeImportDraft[]
+    storage: NodeStorageAdapter
+    lamport: LamportTimestamp
+    now: number
+    batchId: string
+    batchSize: number
+    deferIndexes: boolean
+  }): Promise<DeterministicNodeImportAppliedPlan> {
+    const plan = await this.planDeterministicNodeImport(input)
+
+    const applyStartedAt = Date.now()
+    await this.importMaterializedNodes(input.storage, plan.nodes, {
+      deferIndexes: input.deferIndexes
+    })
+    await this.appendImportedChanges(input.storage, plan.changes)
+    await input.storage.setLastLamportTime(this.clock.time)
+
+    for (const node of plan.nodes) {
+      await this.persistEncryptedNodeSnapshot(node, input.storage)
+    }
+
+    return {
+      ...plan,
+      applyMs: elapsedMs(applyStartedAt)
+    }
+  }
+
+  private async getNodesById(
+    ids: readonly NodeId[],
+    storage: NodeStorageAdapter
+  ): Promise<Map<NodeId, NodeState>> {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return new Map()
+
+    const nodes = storage.getNodes
+      ? await storage.getNodes(uniqueIds)
+      : (
+          await Promise.all(
+            uniqueIds.map(async (id): Promise<NodeState | null> => storage.getNode(id))
+          )
+        ).filter((node): node is NodeState => node !== null)
+
+    return new Map(
+      nodes.flatMap((node): [NodeId, NodeState][] => {
+        const cloned = this.cloneNodeState(node)
+        return cloned ? [[node.id, cloned]] : []
+      })
+    )
+  }
+
+  private async getBatchPreflight(
+    ids: readonly NodeId[],
+    storage: NodeStorageAdapter
+  ): Promise<NodeBatchPreflightResult> {
+    if (storage.getBatchPreflight) {
+      return storage.getBatchPreflight(ids)
+    }
+
+    const [nodesById, lastChangesByNodeId] = await Promise.all([
+      this.getNodesById(ids, storage),
+      this.getLastChangesByNodeId(ids, storage)
+    ])
+
+    return { nodesById, lastChangesByNodeId }
+  }
+
+  private cloneNodeMap(nodesById: ReadonlyMap<NodeId, NodeState>): Map<NodeId, NodeState> {
+    return new Map(
+      Array.from(nodesById.entries()).flatMap(([nodeId, node]): [NodeId, NodeState][] => {
+        const cloned = this.cloneNodeState(node)
+        return cloned ? [[nodeId, cloned]] : []
+      })
+    )
+  }
+
+  private async getLastChangesByNodeId(
+    ids: readonly NodeId[],
+    storage: NodeStorageAdapter
+  ): Promise<Map<NodeId, NodeChange>> {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return new Map()
+
+    if (storage.getLastChangesByNodeId) {
+      return storage.getLastChangesByNodeId(uniqueIds)
+    }
+
+    const changes = await Promise.all(
+      uniqueIds.map(async (id): Promise<[NodeId, NodeChange] | null> => {
+        const change = await storage.getLastChange(id)
+        return change ? [id, change] : null
+      })
+    )
+
+    return new Map(changes.filter((entry): entry is [NodeId, NodeChange] => entry !== null))
+  }
+
+  private async importMaterializedNodes(
+    storage: NodeStorageAdapter,
+    nodes: readonly NodeState[],
+    options?: Pick<ImportDeterministicNodesOptions, 'deferIndexes'>
+  ): Promise<void> {
+    if (nodes.length === 0) return
+
+    const indexProperties = !this.nodeContentCipher
+    const deferIndexes = options?.deferIndexes === true && Boolean(storage.rebuildIndexesForSchemas)
+
+    if (storage.importNodes) {
+      await storage.importNodes(nodes, {
+        indexProperties,
+        deferIndexes,
+        trustMaterializedState: true
+      })
+      return
+    }
+
+    for (const node of nodes) {
+      await storage.setNode(node, { indexProperties })
+    }
+  }
+
+  async rebuildIndexesForSchemas(schemaIds: readonly SchemaIRI[]): Promise<void> {
+    const uniqueSchemaIds = Array.from(new Set(schemaIds.filter(Boolean)))
+    if (uniqueSchemaIds.length === 0) return
+    if (!this.storage.rebuildIndexesForSchemas) return
+
+    await this.storage.rebuildIndexesForSchemas(uniqueSchemaIds, {
+      indexProperties: !this.nodeContentCipher
+    })
+  }
+
+  private async appendImportedChanges(
+    storage: NodeStorageAdapter,
+    changes: readonly NodeChange[]
+  ): Promise<void> {
+    if (changes.length === 0) return
+
+    if (storage.appendChanges) {
+      await storage.appendChanges(changes)
+      return
+    }
+
+    for (const change of changes) {
+      await storage.appendChange(change)
+    }
+  }
+
+  private async executeTransactionOperations(input: {
+    operations: TransactionOperation[]
+    storage: NodeStorageAdapter
+    lamport: LamportTimestamp
+    now: number
+    batchId: string
+    batchSize: number
+  }): Promise<{
+    results: (NodeState | null)[]
+    changes: NodeChange[]
+    events: PendingTransactionEvent[]
+  }> {
     const results: (NodeState | null)[] = []
     const changes: NodeChange[] = []
+    const events: PendingTransactionEvent[] = []
 
-    for (let i = 0; i < resolvedOps.length; i++) {
-      const op = resolvedOps[i]
+    for (let i = 0; i < input.operations.length; i++) {
+      const op = input.operations[i]
       let change: NodeChange
       let result: NodeState | null = null
       let previousNode: NodeState | null = null
@@ -705,20 +1433,21 @@ export class NodeStore {
           change = await this.createBatchedChange(
             'node-change',
             payload,
-            lamport,
-            now,
-            batchId,
+            input.lamport,
+            input.now,
+            input.batchId,
             i,
-            batchSize
+            input.batchSize,
+            input.storage
           )
-          await this.applyChange(change)
-          result = await this.storage.getNode(id)
-          await this.persistEncryptedNodeSnapshot(result)
+          await this.applyChange(change, input.storage)
+          result = await input.storage.getNode(id)
+          await this.persistEncryptedNodeSnapshot(result, input.storage)
           break
         }
 
         case 'update': {
-          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
+          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
@@ -730,20 +1459,21 @@ export class NodeStore {
           change = await this.createBatchedChange(
             'node-change',
             payload,
-            lamport,
-            now,
-            batchId,
+            input.lamport,
+            input.now,
+            input.batchId,
             i,
-            batchSize
+            input.batchSize,
+            input.storage
           )
-          await this.applyChange(change)
-          result = await this.storage.getNode(op.nodeId)
-          await this.persistEncryptedNodeSnapshot(result)
+          await this.applyChange(change, input.storage)
+          result = await input.storage.getNode(op.nodeId)
+          await this.persistEncryptedNodeSnapshot(result, input.storage)
           break
         }
 
         case 'delete': {
-          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
+          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
@@ -756,19 +1486,20 @@ export class NodeStore {
           change = await this.createBatchedChange(
             'node-change',
             payload,
-            lamport,
-            now,
-            batchId,
+            input.lamport,
+            input.now,
+            input.batchId,
             i,
-            batchSize
+            input.batchSize,
+            input.storage
           )
-          await this.applyChange(change)
+          await this.applyChange(change, input.storage)
           result = null
           break
         }
 
         case 'restore': {
-          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
+          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
@@ -781,28 +1512,26 @@ export class NodeStore {
           change = await this.createBatchedChange(
             'node-change',
             payload,
-            lamport,
-            now,
-            batchId,
+            input.lamport,
+            input.now,
+            input.batchId,
             i,
-            batchSize
+            input.batchSize,
+            input.storage
           )
-          await this.applyChange(change)
-          result = await this.storage.getNode(op.nodeId)
-          await this.persistEncryptedNodeSnapshot(result)
+          await this.applyChange(change, input.storage)
+          result = await input.storage.getNode(op.nodeId)
+          await this.persistEncryptedNodeSnapshot(result, input.storage)
           break
         }
       }
 
       changes.push(change)
       results.push(result)
-
-      // Emit change event for subscribers
-      this.emit(change, result, previousNode, false)
-      this.authEvaluator?.invalidate(change.payload.nodeId)
+      events.push({ change, result, previousNode })
     }
 
-    return { batchId, results, changes, tempIds }
+    return { results, changes, events }
   }
 
   // ==========================================================================
@@ -992,6 +1721,19 @@ export class NodeStore {
     }
   }
 
+  subscribeToBatchChanges(listener: NodeBatchChangeListener): () => void {
+    this.batchListeners.add(listener)
+    return () => {
+      this.batchListeners.delete(listener)
+    }
+  }
+
+  private emitDeterministicImportBatch(event: NodeBatchChangeEvent): void {
+    for (const listener of this.batchListeners) {
+      listener(event)
+    }
+  }
+
   /**
    * Emit a change event to all listeners.
    */
@@ -1054,12 +1796,35 @@ export class NodeStore {
     wallTime: number,
     batchId: string,
     batchIndex: number,
-    batchSize: number
+    batchSize: number,
+    storage: NodeStorageAdapter = this.storage
   ): Promise<NodeChange> {
     // Get parent hash (last change for this node)
-    const lastChange = await this.storage.getLastChange(payload.nodeId)
+    const lastChange = await storage.getLastChange(payload.nodeId)
     const parentHash = lastChange?.hash ?? null
 
+    return this.createBatchedChangeWithParentHash(
+      type,
+      payload,
+      parentHash,
+      lamport,
+      wallTime,
+      batchId,
+      batchIndex,
+      batchSize
+    )
+  }
+
+  private async createBatchedChangeWithParentHash(
+    type: string,
+    payload: NodePayload,
+    parentHash: ContentId | null,
+    lamport: LamportTimestamp,
+    wallTime: number,
+    batchId: string,
+    batchIndex: number,
+    batchSize: number
+  ): Promise<NodeChange> {
     // Create and sign the change with batch metadata
     const unsigned = createUnsignedChange({
       id: createNodeId(),
@@ -1077,14 +1842,31 @@ export class NodeStore {
     return signChange(unsigned, this.signingKey)
   }
 
+  private createInitialNodeFromChange(change: NodeChange, schemaId: SchemaIRI): NodeState {
+    return {
+      id: change.payload.nodeId,
+      schemaId,
+      properties: {},
+      timestamps: {},
+      deleted: false,
+      createdAt: change.wallTime,
+      createdBy: change.authorDID,
+      updatedAt: change.wallTime,
+      updatedBy: change.authorDID
+    }
+  }
+
   /**
    * Apply a change to storage and update materialized state.
    */
-  private async applyChange(change: NodeChange): Promise<void> {
-    const { nodeId, schemaId, properties, deleted } = change.payload
+  private async applyChange(
+    change: NodeChange,
+    storage: NodeStorageAdapter = this.storage
+  ): Promise<void> {
+    const { nodeId, schemaId } = change.payload
 
     // Get or create materialized state FIRST (required for foreign key constraint)
-    let node = await this.storage.getNode(nodeId)
+    let node = await storage.getNode(nodeId)
 
     if (!node) {
       // First change for this node - create it
@@ -1092,27 +1874,26 @@ export class NodeStore {
         throw new Error(`First change for node ${nodeId} must include schemaId`)
       }
 
-      node = {
-        id: nodeId,
-        schemaId,
-        properties: {},
-        timestamps: {},
-        deleted: false,
-        createdAt: change.wallTime,
-        createdBy: change.authorDID,
-        updatedAt: change.wallTime,
-        updatedBy: change.authorDID
-      }
+      node = this.createInitialNodeFromChange(change, schemaId)
 
       // Persist the node record BEFORE appending change (FK constraint)
-      await this.storage.setNode(node, { indexProperties: !this.nodeContentCipher })
+      await storage.setNode(node, { indexProperties: !this.nodeContentCipher })
     }
 
     // Now append to change log (node exists, FK constraint satisfied)
-    await this.storage.appendChange(change)
+    await storage.appendChange(change)
 
     // Update Lamport time
-    await this.storage.setLastLamportTime(this.clock.time)
+    await storage.setLastLamportTime(this.clock.time)
+
+    this.materializeNodeChange(change, node)
+
+    // Persist
+    await storage.setNode(node, { indexProperties: !this.nodeContentCipher })
+  }
+
+  private materializeNodeChange(change: NodeChange, node: NodeState): NodeState {
+    const { nodeId, properties, deleted } = change.payload
 
     // Get known property names from schema (if available)
     const knownProps = this.propertyLookup?.(node.schemaId)
@@ -1195,8 +1976,7 @@ export class NodeStore {
     node.updatedAt = Math.max(node.updatedAt, change.wallTime)
     node.updatedBy = change.authorDID
 
-    // Persist
-    await this.storage.setNode(node, { indexProperties: !this.nodeContentCipher })
+    return node
   }
 
   /**
@@ -1346,7 +2126,10 @@ export class NodeStore {
     return Object.keys(patch).some((propertyName) => authRelevant.has(propertyName))
   }
 
-  private async persistEncryptedNodeSnapshot(node: NodeState | null): Promise<void> {
+  private async persistEncryptedNodeSnapshot(
+    node: NodeState | null,
+    storage: NodeStorageAdapter = this.storage
+  ): Promise<void> {
     if (!node || !this.nodeContentCipher) {
       return
     }
@@ -1370,7 +2153,7 @@ export class NodeStore {
     }
 
     const encodedWrapper = new TextEncoder().encode(JSON.stringify(wrappedSnapshot))
-    await this.storage.setDocumentContent(node.id, encodedWrapper)
+    await storage.setDocumentContent(node.id, encodedWrapper)
   }
 
   private async decryptNodeSnapshotIfPresent(node: NodeState | null): Promise<NodeState | null> {

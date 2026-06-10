@@ -7,7 +7,15 @@
 
 import type { SQLiteWorkerHandler } from './web-worker'
 import type { SQLiteAdapter, PreparedStatement } from '../adapter'
-import type { SQLiteConfig, SQLValue, SQLRow, RunResult } from '../types'
+import type {
+  SQLiteConfig,
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteOperationStats,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
+} from '../types'
 import * as Comlink from 'comlink'
 
 function isDebugEnabled(): boolean {
@@ -18,6 +26,38 @@ function log(...args: unknown[]): void {
   if (isDebugEnabled()) {
     console.log(...args)
   }
+}
+
+function createEmptyOperationStats(): SQLiteOperationStats {
+  return {
+    queryCount: 0,
+    queryOneCount: 0,
+    runCount: 0,
+    execCount: 0,
+    transactionCount: 0,
+    transactionBatchCount: 0,
+    transactionBatchOperationCount: 0,
+    workerRequestCount: 0
+  }
+}
+
+function cloneOperationStats(stats: SQLiteOperationStats): SQLiteOperationStats {
+  return { ...stats }
+}
+
+function estimateNodeBatchSqlOperations(input: SQLiteNodeBatchApplyInput): number {
+  const indexOperations =
+    input.indexMode === 'defer-schema'
+      ? 0
+      : input.nodes.length +
+        input.scalarIndexRows.length +
+        input.ftsNodeIds.length +
+        input.ftsRows.length +
+        input.affectedSchemaIds.length
+
+  return (
+    input.nodes.length * 2 + input.properties.length + input.changes.length + indexOperations + 1
+  )
 }
 
 /**
@@ -41,20 +81,14 @@ export class WebSQLiteProxy implements SQLiteAdapter {
   private worker: Worker | null = null
   private proxy: RemoteHandler | null = null
   private _config: SQLiteConfig | null = null
+  private inTransaction = false
+  private operationStats = createEmptyOperationStats()
 
-  async open(config: SQLiteConfig): Promise<void> {
-    if (this.worker) {
-      throw new Error('Already open. Call close() first.')
-    }
-
+  private createWorkerProxy(): RemoteHandler {
     log('[WebSQLiteProxy] Creating worker...')
 
-    // Create worker
-    // The URL is resolved relative to this file's location at build time
-    // Use .js extension for production builds (Vite handles .ts in dev)
     this.worker = new Worker(new URL('./web-worker.js', import.meta.url), { type: 'module' })
 
-    // Listen for worker errors
     this.worker.onerror = (event) => {
       console.error('[WebSQLiteProxy] Worker error:', event)
     }
@@ -65,13 +99,22 @@ export class WebSQLiteProxy implements SQLiteAdapter {
 
     log('[WebSQLiteProxy] Worker created, wrapping with Comlink...')
 
-    // Wrap with Comlink for RPC-style communication
     this.proxy = Comlink.wrap<SQLiteWorkerHandler>(this.worker)
+    return this.proxy
+  }
+
+  async open(config: SQLiteConfig): Promise<void> {
+    if (this.worker) {
+      throw new Error('Already open. Call close() first.')
+    }
+
+    const proxy = this.createWorkerProxy()
 
     log('[WebSQLiteProxy] Calling proxy.open()...')
 
     // Open database in worker with timeout
-    const openPromise = this.proxy.open(config)
+    const openPromise = proxy.open(config)
+    this.operationStats.workerRequestCount += 1
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Worker initialization timeout after 15s')), 15000)
     )
@@ -82,8 +125,28 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     this._config = config
   }
 
+  async resetStorage(config: SQLiteConfig): Promise<void> {
+    if (this.worker) {
+      throw new Error('Already open. Call close() first.')
+    }
+
+    const proxy = this.createWorkerProxy()
+    const resetPromise = proxy.resetStorage(config)
+    this.operationStats.workerRequestCount += 1
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Worker storage reset timeout after 15s')), 15000)
+    )
+
+    try {
+      await Promise.race([resetPromise, timeoutPromise])
+    } finally {
+      await this.close()
+    }
+  }
+
   async close(): Promise<void> {
     if (this.proxy) {
+      this.operationStats.workerRequestCount += 1
       await this.proxy.close()
       this.proxy = null
     }
@@ -94,6 +157,7 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     }
 
     this._config = null
+    this.inTransaction = false
   }
 
   isOpen(): boolean {
@@ -102,23 +166,31 @@ export class WebSQLiteProxy implements SQLiteAdapter {
 
   async query<T extends SQLRow = SQLRow>(sql: string, params?: SQLValue[]): Promise<T[]> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.queryCount += 1
+    this.operationStats.workerRequestCount += 1
     const result = await this.proxy.query(sql, params)
     return result as T[]
   }
 
   async queryOne<T extends SQLRow = SQLRow>(sql: string, params?: SQLValue[]): Promise<T | null> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.queryOneCount += 1
+    this.operationStats.workerRequestCount += 1
     const result = await this.proxy.queryOne(sql, params)
     return result as T | null
   }
 
   async run(sql: string, params?: SQLValue[]): Promise<RunResult> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.runCount += 1
+    this.operationStats.workerRequestCount += 1
     return this.proxy.run(sql, params)
   }
 
   async exec(sql: string): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.execCount += 1
+    this.operationStats.workerRequestCount += 1
     return this.proxy.exec(sql)
   }
 
@@ -142,22 +214,54 @@ export class WebSQLiteProxy implements SQLiteAdapter {
    */
   async transactionBatch(operations: Array<{ sql: string; params?: SQLValue[] }>): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.transactionBatchCount += 1
+    this.operationStats.transactionBatchOperationCount += operations.length
+    this.operationStats.workerRequestCount += 1
     await this.proxy.transaction(operations)
+  }
+
+  async applyNodeBatch(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult> {
+    if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.transactionBatchCount += 1
+    this.operationStats.transactionBatchOperationCount += estimateNodeBatchSqlOperations(input)
+    this.operationStats.workerRequestCount += 1
+    return this.proxy.applyNodeBatch(input)
   }
 
   async beginTransaction(): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    if (this.inTransaction) {
+      throw new Error('Transaction already in progress')
+    }
+
+    this.operationStats.execCount += 1
+    this.operationStats.workerRequestCount += 1
     await this.proxy.exec('BEGIN IMMEDIATE')
+    this.inTransaction = true
   }
 
   async commit(): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    if (!this.inTransaction) {
+      throw new Error('No transaction in progress')
+    }
+
+    this.operationStats.execCount += 1
+    this.operationStats.workerRequestCount += 1
     await this.proxy.exec('COMMIT')
+    this.inTransaction = false
   }
 
   async rollback(): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    if (!this.inTransaction) {
+      return
+    }
+
+    this.operationStats.execCount += 1
+    this.operationStats.workerRequestCount += 1
     await this.proxy.exec('ROLLBACK')
+    this.inTransaction = false
   }
 
   async prepare(_sql: string): Promise<PreparedStatement> {
@@ -168,11 +272,15 @@ export class WebSQLiteProxy implements SQLiteAdapter {
 
   async getSchemaVersion(): Promise<number> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.queryOneCount += 1
+    this.operationStats.workerRequestCount += 1
     return this.proxy.getSchemaVersion()
   }
 
   async setSchemaVersion(version: number): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.runCount += 1
+    this.operationStats.workerRequestCount += 1
     await this.proxy.run('INSERT INTO _schema_version (version, applied_at) VALUES (?, ?)', [
       version,
       Date.now()
@@ -190,11 +298,13 @@ export class WebSQLiteProxy implements SQLiteAdapter {
 
   async getDatabaseSize(): Promise<number> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.workerRequestCount += 1
     return this.proxy.getDatabaseSize()
   }
 
   async vacuum(): Promise<void> {
     if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.workerRequestCount += 1
     return this.proxy.vacuum()
   }
 
@@ -207,6 +317,7 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     if (!this.proxy) throw new Error('Database not open')
     try {
       log('[WebSQLiteProxy] Calling proxy.getStorageMode()...')
+      this.operationStats.workerRequestCount += 1
       const mode = await this.proxy.getStorageMode()
       log('[WebSQLiteProxy] getStorageMode() returned:', mode)
       return mode
@@ -214,6 +325,14 @@ export class WebSQLiteProxy implements SQLiteAdapter {
       console.error('[WebSQLiteProxy] getStorageMode() failed:', err)
       throw err
     }
+  }
+
+  getOperationStats(): SQLiteOperationStats {
+    return cloneOperationStats(this.operationStats)
+  }
+
+  resetOperationStats(): void {
+    this.operationStats = createEmptyOperationStats()
   }
 }
 
@@ -231,4 +350,9 @@ export async function createWebSQLiteProxy(config: SQLiteConfig): Promise<WebSQL
   const proxy = new WebSQLiteProxy()
   await proxy.open(config)
   return proxy
+}
+
+export async function resetWebSQLiteStorage(config: SQLiteConfig): Promise<void> {
+  const proxy = new WebSQLiteProxy()
+  await proxy.resetStorage(config)
 }

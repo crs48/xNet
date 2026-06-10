@@ -20,6 +20,7 @@
     "@xnetjs/plugins": "workspace:*",
     "@xnetjs/react": "workspace:*",
     "@xnetjs/sdk": "workspace:*",
+    "@xnetjs/social": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/storage": "workspace:*",
     "@xnetjs/sync": "workspace:*",

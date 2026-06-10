@@ -461,7 +461,7 @@ export interface XNetContextValue {
   runtimeStatus: XNetRuntimeStatus
 }
 
-type XNetInternalContextValue = {
+export type XNetInternalContextValue = {
   authorDID: string | null
   signingKey: Uint8Array | null
   sync: SyncReplicationConfig | undefined

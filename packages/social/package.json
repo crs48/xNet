@@ -1,0 +1,73 @@
+{
+  "name": "@xnetjs/social",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./schemas": {
+      "import": "./src/schemas/index.ts",
+      "types": "./src/schemas/index.ts"
+    },
+    "./import": {
+      "import": "./src/import/index.ts",
+      "types": "./src/import/index.ts"
+    },
+    "./import/core": {
+      "import": "./src/import/core.ts",
+      "types": "./src/import/core.ts"
+    },
+    "./import/browser": {
+      "import": "./src/import/browser.ts",
+      "types": "./src/import/browser.ts"
+    },
+    "./import/node": {
+      "import": "./src/import/node.ts",
+      "types": "./src/import/node.ts"
+    },
+    "./importers": {
+      "import": "./src/importers/index.ts",
+      "types": "./src/importers/index.ts"
+    },
+    "./lenses": {
+      "import": "./src/lenses/index.ts",
+      "types": "./src/lenses/index.ts"
+    },
+    "./patterns": {
+      "import": "./src/patterns/index.ts",
+      "types": "./src/patterns/index.ts"
+    },
+    "./projection": {
+      "import": "./src/projection/index.ts",
+      "types": "./src/projection/index.ts"
+    },
+    "./views": {
+      "import": "./src/views/index.ts",
+      "types": "./src/views/index.ts"
+    },
+    "./workspace": {
+      "import": "./src/workspace/index.ts",
+      "types": "./src/workspace/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/schemas/index.ts src/import/index.ts src/import/core.ts src/import/browser.ts src/import/node.ts src/importers/index.ts src/lenses/index.ts src/patterns/index.ts src/projection/index.ts src/views/index.ts src/workspace/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/data": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0"
+  },
+  "private": true
+}

@@ -102,6 +102,54 @@ const tasks = await store.list(TaskSchema)
 await store.remove(task.id)
 ```
 
+### Batch Writes
+
+Use `NodeStore.batchWrite()` for high-volume deterministic imports, restores, migrations, and other
+bulk workflows that already know stable node IDs. The store still signs one change per draft and
+preserves LWW semantics, but storage adapters can apply materialized nodes, changes, Lamport state,
+and touched secondary indexes in one owned batch.
+
+```mermaid
+sequenceDiagram
+  participant Caller as "Importer / migration"
+  participant Store as "NodeStore.batchWrite()"
+  participant Storage as "NodeStorageAdapter.applyNodeBatch()"
+  participant SQLite as "SQLite transaction"
+
+  Caller->>Store: deterministic drafts + policy
+  Store->>Storage: batch preflight
+  Store->>Store: sign changes + materialize nodes
+  Store->>Storage: apply materialized nodes and changes
+  Storage->>SQLite: write nodes, properties, changes, touched indexes
+  Store-->>Caller: counters, timings, affected schemas
+```
+
+```typescript
+const result = await store.batchWrite({
+  kind: 'deterministic-import',
+  drafts: [
+    {
+      id: 'social:content:example',
+      schemaId: 'xnet://xnet.fyi/social/Content',
+      properties: { title: 'Example post', platform: 'youtube' }
+    }
+  ],
+  policy: {
+    indexMode: 'touched',
+    notificationMode: 'batch',
+    syncMode: 'defer'
+  }
+})
+
+console.log(result.created, result.updated, result.timings.applyMs, result.storage)
+```
+
+`indexMode: 'touched'` is the import default. It avoids whole-schema rebuilds by reindexing only the
+nodes changed by the batch. `notificationMode: 'batch'` coalesces live reload work. Deferred sync is
+an advisory hint for runtimes that can coalesce outbound replication.
+`importDeterministicNodes()` remains available for existing callers and returns the same storage
+counters and phase timings while preserving its detailed `changes` array.
+
 ### Yjs Documents
 
 ```typescript

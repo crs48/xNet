@@ -46,6 +46,68 @@ export {
   type InfiniteQueryResult
 } from './hooks/useInfiniteQuery'
 export { useFind, type UseFindOptions, type UseFindResult } from './hooks/useFind'
+export {
+  useSavedView,
+  type SavedViewPrivacySummary,
+  type SavedViewQueryOverride,
+  type SavedViewQueryResult,
+  type SavedViewSchemaRegistry,
+  type UseSavedViewOptions,
+  type UseSavedViewResult
+} from './hooks/useSavedView'
+export {
+  deriveSavedViewDateBucketSummaries,
+  deriveSavedViewFacetSummaries,
+  deriveSavedViewColumns,
+  deriveSavedViewPrivacyChips,
+  deriveSavedViewRowInspector,
+  createSavedViewLensDraft,
+  createSavedViewVisualCanvasProjectionRequest,
+  filterSavedViewRowsByDateBrush,
+  filterSavedViewRowsByFacets,
+  formatSavedViewCellValue,
+  getSavedViewSensitiveResultWarning,
+  SavedViewResultTable,
+  SavedViewRunner,
+  type SavedViewDateBrushSelection,
+  type SavedViewDateBucketFieldSummary,
+  type SavedViewDateBucketInterval,
+  type SavedViewDateBucketSummary,
+  type SavedViewFacetSelection,
+  type SavedViewFacetSummary,
+  type SavedViewFacetValueSummary,
+  type SavedViewInspectorItem,
+  type SavedViewInspectorItemKind,
+  type SavedViewLensDraft,
+  type SavedViewPrivacyChip,
+  type SavedViewPrivacyChipTone,
+  type SavedViewResultTableProps,
+  type SavedViewRowInspectorModel,
+  type SavedViewRunnerProps,
+  type SavedViewSortDirection,
+  type SavedViewVisualCanvasProjectionRequest,
+  type SavedViewVisualLayoutId,
+  type SavedViewVisualLayoutOption
+} from './components/SavedViewRunner'
+export {
+  deriveCachedSavedViewVisualPreviews,
+  createSavedViewCanvasProjectionNodes,
+  createSavedViewVisualPreviewFingerprint,
+  deriveSavedViewTimelineBuckets,
+  deriveSavedViewVisualPreview,
+  deriveSavedViewVisualPreviews,
+  hasSavedViewVisualPreviewSensitiveData,
+  isSavedViewVisualPreviewEmbeddable,
+  savedViewVisualPreviewIsSelfActor,
+  type SavedViewCanvasProjectionNode,
+  type SavedViewVisualPreviewCreator,
+  type SavedViewVisualPreviewKind,
+  type SavedViewVisualPreviewModel,
+  type SavedViewVisualPreviewPrivacy,
+  type SavedViewVisualPreviewRelationship,
+  type SavedViewVisualTimelineBucket,
+  type SavedViewVisualWorkspaceLayout
+} from './components/savedViewVisualPreview'
 
 /**
  * useMutate - Write operations for nodes

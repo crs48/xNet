@@ -4,6 +4,12 @@
 
 import type { CanvasViewportSnapshot } from '../ingestion'
 import type { CanvasNode, CanvasNodeProperties, Point } from '../types'
+import type {
+  QueryASTNodeQuery,
+  QueryASTOperator,
+  QueryASTPredicate,
+  SavedViewDescriptor
+} from '@xnetjs/data'
 import { getCanvasContainerRole } from '../selection/scene-operations'
 import { createCanvasFrameVariantNode, createCanvasFrameVariantProperties } from './frame-variants'
 
@@ -11,7 +17,11 @@ export type CanvasQueryFrameSource = 'database' | 'schema' | 'search' | 'plugin'
 
 export type CanvasQueryFrameRefreshMode = 'manual' | 'on-open' | 'live'
 
+export type CanvasQueryFrameRefreshTrigger = 'manual' | 'open' | 'result-change'
+
 export type CanvasQueryFrameMaterialization = 'virtual' | 'pinned-cards' | 'synced-cards'
+
+export type CanvasQueryFrameExecutionStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export type CanvasQueryFrameFilterOperator =
   | 'equals'
@@ -56,9 +66,52 @@ export type CanvasQueryFrameResultSummary = {
   totalCount: number
   visibleCount: number
   stale: boolean
+  status: CanvasQueryFrameExecutionStatus
   sourceVersion?: string
   contentHash?: string
   lastUpdatedAt?: string
+  errorMessage?: string
+}
+
+export type CanvasQueryFrameExecutionSnapshot = {
+  status?: CanvasQueryFrameExecutionStatus | null
+  loading?: boolean | null
+  totalCount?: number | null
+  visibleCount?: number | null
+  sourceVersion?: string | null
+  contentHash?: string | null
+  errorMessage?: string | null
+}
+
+export type CanvasQueryFrameResultCard = {
+  id: string
+  title: string
+  subtitle?: string
+  eyebrow?: string
+  description?: string
+  sourceNodeId?: string
+  schemaId?: string
+  href?: string
+  badges: readonly string[]
+}
+
+export type CanvasQueryFrameResultPreview = {
+  cards: readonly CanvasQueryFrameResultCard[]
+  overflowCount: number
+}
+
+export type ShouldRefreshCanvasQueryFrameResultInput = {
+  refreshMode: CanvasQueryFrameRefreshMode
+  trigger: CanvasQueryFrameRefreshTrigger
+  currentSummary: CanvasQueryFrameResultSummary
+  nextSummary: CanvasQueryFrameResultSummary
+  currentPreview: CanvasQueryFrameResultPreview
+  nextPreview: CanvasQueryFrameResultPreview
+}
+
+export type CreateCanvasQueryFrameResultPreviewInput = {
+  cards?: readonly Partial<CanvasQueryFrameResultCard>[] | null
+  overflowCount?: number | null
 }
 
 export type CanvasQueryFrameProperties = CanvasNodeProperties & {
@@ -69,6 +122,7 @@ export type CanvasQueryFrameProperties = CanvasNodeProperties & {
   queryText: string
   queryDefinition: CanvasQueryFrameDefinition
   queryResultSummary: CanvasQueryFrameResultSummary
+  queryResultPreview: CanvasQueryFrameResultPreview
 }
 
 export type CreateCanvasQueryFrameDefinitionInput = {
@@ -88,11 +142,20 @@ export type CreateCanvasQueryFrameDefinitionInput = {
   resultCardKind?: string | null
 }
 
+export type CreateCanvasQueryFrameDefinitionFromSavedViewInput = {
+  viewId: string
+  descriptor: SavedViewDescriptor
+  queryId?: string | null
+  label?: string | null
+  resultCardKind?: string | null
+}
+
 export type CreateCanvasQueryFramePropertiesInput = {
   query: CreateCanvasQueryFrameDefinitionInput
   title?: string | null
   properties?: CanvasNodeProperties
   resultSummary?: Partial<CanvasQueryFrameResultSummary> | null
+  resultPreview?: CreateCanvasQueryFrameResultPreviewInput | null
 }
 
 export type CreateCanvasQueryFrameNodeInput = CreateCanvasQueryFramePropertiesInput & {
@@ -103,6 +166,7 @@ export type CreateCanvasQueryFrameNodeInput = CreateCanvasQueryFramePropertiesIn
 
 const DEFAULT_QUERY_LIMIT = 50
 const MAX_QUERY_LIMIT = 500
+const MAX_QUERY_PREVIEW_CARDS = 8
 
 const FILTER_OPERATORS: readonly CanvasQueryFrameFilterOperator[] = [
   'equals',
@@ -115,8 +179,23 @@ const FILTER_OPERATORS: readonly CanvasQueryFrameFilterOperator[] = [
   'in',
   'exists'
 ]
+const QUERY_AST_TO_FRAME_OPERATOR: Record<QueryASTOperator, CanvasQueryFrameFilterOperator | null> =
+  {
+    eq: 'equals',
+    neq: 'not-equals',
+    contains: 'contains',
+    gt: 'greater-than',
+    gte: 'greater-than-or-equal',
+    lt: 'less-than',
+    lte: 'less-than-or-equal',
+    in: 'in',
+    isNotNull: 'exists',
+    startsWith: 'contains',
+    between: null,
+    isNull: null
+  }
 
-function normalizeString(value: string | null | undefined): string | null {
+function normalizeString(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null
   }
@@ -212,6 +291,12 @@ function readMaterialization(value: unknown): CanvasQueryFrameMaterialization | 
   return value === 'virtual' || value === 'pinned-cards' || value === 'synced-cards' ? value : null
 }
 
+function readExecutionStatus(value: unknown): CanvasQueryFrameExecutionStatus | null {
+  return value === 'idle' || value === 'loading' || value === 'success' || value === 'error'
+    ? value
+    : null
+}
+
 export function createCanvasQueryFrameDefinition(
   input: CreateCanvasQueryFrameDefinitionInput
 ): CanvasQueryFrameDefinition {
@@ -239,6 +324,28 @@ export function createCanvasQueryFrameDefinition(
   }
 }
 
+export function createCanvasQueryFrameDefinitionFromSavedView(
+  input: CreateCanvasQueryFrameDefinitionFromSavedViewInput
+): CanvasQueryFrameDefinition {
+  const nodeQuery = nodeQueryForSavedView(input.descriptor, input.queryId)
+  const label = normalizeString(input.label) ?? input.descriptor.title
+  const queryText = JSON.stringify(input.descriptor)
+
+  return createCanvasQueryFrameDefinition({
+    source: nodeQuery ? 'schema' : 'custom',
+    label,
+    viewId: input.viewId,
+    schemaId: nodeQuery?.schemaId,
+    queryText,
+    filters: nodeQuery ? queryAstPredicateToFrameFilters(nodeQuery.predicate) : [],
+    sorts: nodeQuery?.orderBy ?? [],
+    limit: nodeQuery?.page?.first,
+    refreshMode: 'manual',
+    materialization: 'virtual',
+    resultCardKind: normalizeString(input.resultCardKind) ?? 'saved-view.result-card'
+  })
+}
+
 export function createCanvasQueryFrameResultSummary(
   input: Partial<CanvasQueryFrameResultSummary> | null = null
 ): CanvasQueryFrameResultSummary {
@@ -255,20 +362,237 @@ export function createCanvasQueryFrameResultSummary(
     totalCount,
     visibleCount: Math.min(visibleCount, totalCount),
     stale: input?.stale ?? false,
+    status: readExecutionStatus(input?.status) ?? 'idle',
     sourceVersion: normalizeString(input?.sourceVersion) ?? undefined,
     contentHash: normalizeString(input?.contentHash) ?? undefined,
-    lastUpdatedAt: normalizeString(input?.lastUpdatedAt) ?? undefined
+    lastUpdatedAt: normalizeString(input?.lastUpdatedAt) ?? undefined,
+    errorMessage: normalizeString(input?.errorMessage) ?? undefined
   }
+}
+
+export function createCanvasQueryFrameResultSummaryFromExecution(input: {
+  queries: readonly CanvasQueryFrameExecutionSnapshot[]
+  now?: string | null
+  sourceVersion?: string | null
+  contentHash?: string | null
+  errorMessage?: string | null
+}): CanvasQueryFrameResultSummary {
+  const status = queryExecutionStatus(input.queries)
+  const visibleCount = input.queries.reduce(
+    (total, query) => total + normalizeCount(query.visibleCount),
+    0
+  )
+  const totalCount = input.queries.every((query) => typeof query.totalCount === 'number')
+    ? input.queries.reduce((total, query) => total + normalizeCount(query.totalCount), 0)
+    : visibleCount
+
+  return createCanvasQueryFrameResultSummary({
+    totalCount,
+    visibleCount,
+    status,
+    stale: status === 'loading' || status === 'error',
+    sourceVersion:
+      normalizeString(input.sourceVersion) ??
+      normalizeJoinedStrings(input.queries.map((query) => query.sourceVersion)),
+    contentHash:
+      normalizeString(input.contentHash) ??
+      normalizeJoinedStrings(input.queries.map((query) => query.contentHash)),
+    lastUpdatedAt: normalizeString(input.now) ?? undefined,
+    errorMessage:
+      normalizeString(input.errorMessage) ??
+      normalizeString(
+        input.queries.find((query) => normalizeString(query.errorMessage))?.errorMessage
+      ) ??
+      undefined
+  })
+}
+
+export function createCanvasQueryFrameResultPreview(
+  input: CreateCanvasQueryFrameResultPreviewInput | null = null
+): CanvasQueryFrameResultPreview {
+  const cards = Array.isArray(input?.cards)
+    ? input.cards
+        .map((card, index) => normalizeResultCard(card, index))
+        .filter((card): card is CanvasQueryFrameResultCard => card !== null)
+        .slice(0, MAX_QUERY_PREVIEW_CARDS)
+    : []
+
+  return {
+    cards,
+    overflowCount: normalizeCount(input?.overflowCount)
+  }
+}
+
+function normalizeResultCard(
+  value: Partial<CanvasQueryFrameResultCard>,
+  index: number
+): CanvasQueryFrameResultCard | null {
+  const title = normalizeString(value.title)
+  if (!title) return null
+
+  const id =
+    normalizeString(value.id) ??
+    normalizeString(value.sourceNodeId) ??
+    `query-result-card:${slugify(title)}:${index}`
+  const badges = Array.isArray(value.badges)
+    ? [...new Set(value.badges.flatMap((badge) => normalizeString(badge) ?? []))].slice(0, 4)
+    : []
+
+  return {
+    id,
+    title,
+    subtitle: normalizeString(value.subtitle) ?? undefined,
+    eyebrow: normalizeString(value.eyebrow) ?? undefined,
+    description: normalizeString(value.description) ?? undefined,
+    sourceNodeId: normalizeString(value.sourceNodeId) ?? undefined,
+    schemaId: normalizeString(value.schemaId) ?? undefined,
+    href: normalizeString(value.href) ?? undefined,
+    badges
+  }
+}
+
+function normalizeCount(value: number | null | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
+}
+
+function normalizeJoinedStrings(
+  values: readonly (string | null | undefined)[]
+): string | undefined {
+  const normalized = [...new Set(values.flatMap((value) => normalizeString(value) ?? []))]
+  return normalized.length > 0 ? normalized.join('|') : undefined
+}
+
+function queryExecutionStatus(
+  queries: readonly CanvasQueryFrameExecutionSnapshot[]
+): CanvasQueryFrameExecutionStatus {
+  if (queries.length === 0) return 'idle'
+  if (queries.some((query) => query.status === 'error' || normalizeString(query.errorMessage))) {
+    return 'error'
+  }
+  if (queries.some((query) => query.loading || query.status === 'loading')) {
+    return 'loading'
+  }
+  return 'success'
+}
+
+export function canvasQueryFrameResultSummarySignatureMatches(
+  current: CanvasQueryFrameResultSummary,
+  next: CanvasQueryFrameResultSummary
+): boolean {
+  return (
+    current.totalCount === next.totalCount &&
+    current.visibleCount === next.visibleCount &&
+    current.stale === next.stale &&
+    current.status === next.status &&
+    current.sourceVersion === next.sourceVersion &&
+    current.contentHash === next.contentHash &&
+    current.errorMessage === next.errorMessage
+  )
+}
+
+export function canvasQueryFrameResultPreviewMatches(
+  current: CanvasQueryFrameResultPreview,
+  next: CanvasQueryFrameResultPreview
+): boolean {
+  return JSON.stringify(current) === JSON.stringify(next)
+}
+
+export function shouldRefreshCanvasQueryFrameResult({
+  refreshMode,
+  trigger,
+  currentSummary,
+  nextSummary,
+  currentPreview,
+  nextPreview
+}: ShouldRefreshCanvasQueryFrameResultInput): boolean {
+  if (trigger === 'manual') {
+    return true
+  }
+
+  if (trigger === 'open') {
+    return refreshMode === 'on-open' || refreshMode === 'live'
+  }
+
+  if (refreshMode !== 'live') {
+    return false
+  }
+
+  return (
+    !canvasQueryFrameResultSummarySignatureMatches(currentSummary, nextSummary) ||
+    !canvasQueryFrameResultPreviewMatches(currentPreview, nextPreview)
+  )
+}
+
+function nodeQueryForSavedView(
+  descriptor: SavedViewDescriptor,
+  queryId: string | null | undefined
+): QueryASTNodeQuery | null {
+  if (descriptor.query.kind === 'node') return descriptor.query
+
+  if (queryId && descriptor.query.queries[queryId]) {
+    return descriptor.query.queries[queryId]
+  }
+
+  return Object.values(descriptor.query.queries)[0] ?? null
+}
+
+function queryAstPredicateToFrameFilters(
+  predicate: QueryASTPredicate | undefined
+): CanvasQueryFrameFilter[] {
+  if (!predicate) return []
+
+  if (predicate.kind === 'and') {
+    return predicate.predicates.flatMap(queryAstPredicateToFrameFilters)
+  }
+
+  if (predicate.kind !== 'comparison') {
+    return []
+  }
+
+  if (predicate.op === 'between') {
+    const [from, to] = predicate.values ?? []
+    return [
+      {
+        field: predicate.field,
+        operator: 'greater-than-or-equal',
+        value: from
+      },
+      {
+        field: predicate.field,
+        operator: 'less-than-or-equal',
+        value: to
+      }
+    ]
+  }
+
+  const operator = queryAstOperatorToFrameOperator(predicate.op)
+  if (!operator) return []
+
+  return [
+    {
+      field: predicate.field,
+      operator,
+      ...(predicate.op === 'in' ? { value: predicate.values ?? [] } : { value: predicate.value })
+    }
+  ]
+}
+
+function queryAstOperatorToFrameOperator(
+  operator: QueryASTOperator
+): CanvasQueryFrameFilterOperator | null {
+  return QUERY_AST_TO_FRAME_OPERATOR[operator]
 }
 
 export function createCanvasQueryFrameProperties({
   query,
   title,
   properties,
-  resultSummary
+  resultSummary,
+  resultPreview
 }: CreateCanvasQueryFramePropertiesInput): CanvasQueryFrameProperties {
   const queryDefinition = createCanvasQueryFrameDefinition(query)
   const queryResultSummary = createCanvasQueryFrameResultSummary(resultSummary)
+  const queryResultPreview = createCanvasQueryFrameResultPreview(resultPreview)
   const frameTitle = normalizeString(title) ?? queryDefinition.label
 
   return {
@@ -278,14 +602,16 @@ export function createCanvasQueryFrameProperties({
       queryMode: 'saved-query',
       queryText: queryDefinition.queryText ?? '',
       queryDefinition,
-      queryResultSummary
+      queryResultSummary,
+      queryResultPreview
     }),
     frameVariant: 'query',
     frameIntent: 'query',
     queryMode: 'saved-query',
     queryText: queryDefinition.queryText ?? '',
     queryDefinition,
-    queryResultSummary
+    queryResultSummary,
+    queryResultPreview
   }
 }
 
@@ -351,7 +677,23 @@ export function getCanvasQueryFrameResultSummary(node: CanvasNode): CanvasQueryF
     stale: typeof record?.stale === 'boolean' ? record.stale : undefined,
     sourceVersion: typeof record?.sourceVersion === 'string' ? record.sourceVersion : undefined,
     contentHash: typeof record?.contentHash === 'string' ? record.contentHash : undefined,
-    lastUpdatedAt: typeof record?.lastUpdatedAt === 'string' ? record.lastUpdatedAt : undefined
+    lastUpdatedAt: typeof record?.lastUpdatedAt === 'string' ? record.lastUpdatedAt : undefined,
+    status: readExecutionStatus(record?.status) ?? undefined,
+    errorMessage: typeof record?.errorMessage === 'string' ? record.errorMessage : undefined
+  })
+}
+
+export function getCanvasQueryFrameResultPreview(node: CanvasNode): CanvasQueryFrameResultPreview {
+  const record = readRecord(node.properties.queryResultPreview)
+
+  return createCanvasQueryFrameResultPreview({
+    cards: Array.isArray(record?.cards)
+      ? record.cards.flatMap((card) => {
+          const cardRecord = readRecord(card)
+          return cardRecord ? [cardRecord as Partial<CanvasQueryFrameResultCard>] : []
+        })
+      : [],
+    overflowCount: typeof record?.overflowCount === 'number' ? record.overflowCount : undefined
   })
 }
 
@@ -376,6 +718,44 @@ export function updateCanvasQueryFrameResultSummary(
     properties: {
       ...node.properties,
       queryResultSummary: createCanvasQueryFrameResultSummary(summary)
+    }
+  }
+}
+
+export function updateCanvasQueryFrameResultPreview(
+  node: CanvasNode,
+  preview: CreateCanvasQueryFrameResultPreviewInput
+): CanvasNode {
+  if (!isCanvasQueryFrameNode(node)) {
+    return node
+  }
+
+  return {
+    ...node,
+    properties: {
+      ...node.properties,
+      queryResultPreview: createCanvasQueryFrameResultPreview(preview)
+    }
+  }
+}
+
+export function updateCanvasQueryFrameResults(
+  node: CanvasNode,
+  input: {
+    summary: Partial<CanvasQueryFrameResultSummary>
+    preview?: CreateCanvasQueryFrameResultPreviewInput | null
+  }
+): CanvasNode {
+  if (!isCanvasQueryFrameNode(node)) {
+    return node
+  }
+
+  return {
+    ...node,
+    properties: {
+      ...node.properties,
+      queryResultSummary: createCanvasQueryFrameResultSummary(input.summary),
+      queryResultPreview: createCanvasQueryFrameResultPreview(input.preview)
     }
   }
 }

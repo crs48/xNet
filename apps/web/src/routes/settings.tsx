@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { PluginManager } from '../components/PluginManager'
+import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage
@@ -262,27 +263,11 @@ function DataSettings() {
 
     setClearing(true)
     try {
-      // Clear IndexedDB databases
-      const databases = await indexedDB.databases()
-      for (const db of databases) {
-        if (db.name) {
-          indexedDB.deleteDatabase(db.name)
-        }
-      }
-
-      // Clear localStorage
-      localStorage.clear()
-
+      requestXNetBrowserStorageReset()
       setCleared(true)
       setConfirmClear(false)
-
-      // Reload after a short delay
-      setTimeout(() => {
-        window.location.reload()
-      }, 1500)
     } catch (err) {
       console.error('Failed to clear data:', err)
-    } finally {
       setClearing(false)
     }
   }, [confirmClear])
@@ -300,7 +285,7 @@ function DataSettings() {
 
       <div className="space-y-4">
         <SettingRow label="Storage" description="Data is stored locally in your browser">
-          <span className="text-sm text-muted-foreground">IndexedDB</span>
+          <span className="text-sm text-muted-foreground">SQLite OPFS</span>
         </SettingRow>
 
         <SettingRow label="Export data" description="Download a backup of all your documents">

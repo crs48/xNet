@@ -10,9 +10,28 @@ import type {
   NodeState,
   NodeStorageAdapter,
   ListNodesOptions,
-  CountNodesOptions
+  CountNodesOptions,
+  ImportNodesOptions,
+  ApplyNodeBatchInput,
+  ApplyNodeBatchResult,
+  NodeBatchPreflightResult
 } from './types'
 import type { ContentId } from '@xnetjs/core'
+
+type MemoryNodeStorageSnapshot = {
+  changes: Map<NodeId, NodeChange[]>
+  changesByHash: Map<ContentId, NodeChange>
+  nodes: Map<NodeId, NodeState>
+  documentContentStore: Map<NodeId, Uint8Array>
+  yjsSnapshotStore: {
+    nodeId: NodeId
+    timestamp: number
+    snapshot: Uint8Array
+    docState: Uint8Array
+    byteSize: number
+  }[]
+  lastLamportTime: number
+}
 
 /**
  * In-memory implementation of NodeStorageAdapter.
@@ -31,6 +50,17 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   }[] = []
   private lastLamportTime = 0
 
+  async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
+    const snapshot = this.createSnapshot()
+
+    try {
+      return await fn(this)
+    } catch (err) {
+      this.restoreSnapshot(snapshot)
+      throw err
+    }
+  }
+
   // ==========================================================================
   // Change Log Operations
   // ==========================================================================
@@ -45,6 +75,16 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
 
     // Index by hash
     this.changesByHash.set(change.hash, change)
+  }
+
+  async appendChanges(changes: readonly NodeChange[]): Promise<void> {
+    changes.forEach((change) => {
+      const nodeId = change.payload.nodeId
+      const existing = this.changes.get(nodeId) ?? []
+      existing.push(change)
+      this.changes.set(nodeId, existing)
+      this.changesByHash.set(change.hash, change)
+    })
   }
 
   async getChanges(nodeId: NodeId): Promise<NodeChange[]> {
@@ -75,6 +115,20 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     return changes[changes.length - 1]
   }
 
+  async getLastChangesByNodeId(nodeIds: readonly NodeId[]): Promise<Map<NodeId, NodeChange>> {
+    const result = new Map<NodeId, NodeChange>()
+
+    Array.from(new Set(nodeIds)).forEach((nodeId) => {
+      const changes = this.changes.get(nodeId)
+      const lastChange = changes?.at(-1)
+      if (lastChange) {
+        result.set(nodeId, lastChange)
+      }
+    })
+
+    return result
+  }
+
   // ==========================================================================
   // Materialized State Operations
   // ==========================================================================
@@ -83,8 +137,61 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     return this.nodes.get(id) ?? null
   }
 
+  async getNodes(ids: readonly NodeId[]): Promise<NodeState[]> {
+    const seen = new Set<NodeId>()
+    return ids.flatMap((id) => {
+      if (seen.has(id)) return []
+      seen.add(id)
+      const node = this.nodes.get(id)
+      return node ? [node] : []
+    })
+  }
+
+  async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
+    const seen = new Set<NodeId>()
+    return ids.filter((id) => {
+      if (seen.has(id) || !this.nodes.has(id)) return false
+      seen.add(id)
+      return true
+    })
+  }
+
+  async getBatchPreflight(ids: readonly NodeId[]): Promise<NodeBatchPreflightResult> {
+    const nodes = await this.getNodes(ids)
+    const lastChangesByNodeId = await this.getLastChangesByNodeId(ids)
+
+    return {
+      nodesById: new Map(nodes.map((node) => [node.id, node])),
+      lastChangesByNodeId
+    }
+  }
+
   async setNode(node: NodeState): Promise<void> {
     this.nodes.set(node.id, node)
+  }
+
+  async importNodes(nodes: readonly NodeState[], _options?: ImportNodesOptions): Promise<void> {
+    nodes.forEach((node) => this.nodes.set(node.id, node))
+  }
+
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    input.nodes.forEach((node) => this.nodes.set(node.id, node))
+    await this.appendChanges(input.changes)
+    this.lastLamportTime = input.lastLamportTime
+
+    return {
+      nodeRowsWritten: input.nodes.length,
+      propertyRowsWritten: input.nodes.reduce(
+        (count, node) => count + Object.keys(node.properties).length,
+        0
+      ),
+      changeRowsWritten: input.changes.length,
+      scalarRowsWritten:
+        input.indexProperties === false
+          ? 0
+          : input.nodes.reduce((count, node) => count + Object.keys(node.properties).length, 0),
+      ftsRowsWritten: 0
+    }
   }
 
   async deleteNode(id: NodeId): Promise<void> {
@@ -231,5 +338,42 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
    */
   getNodeCount(): number {
     return this.nodes.size
+  }
+
+  private createSnapshot(): MemoryNodeStorageSnapshot {
+    return {
+      changes: new Map(
+        Array.from(this.changes.entries(), ([nodeId, changes]) => [
+          nodeId,
+          structuredClone(changes)
+        ])
+      ),
+      changesByHash: new Map(
+        Array.from(this.changesByHash.entries(), ([hash, change]) => [
+          hash,
+          structuredClone(change)
+        ])
+      ),
+      nodes: new Map(
+        Array.from(this.nodes.entries(), ([nodeId, node]) => [nodeId, structuredClone(node)])
+      ),
+      documentContentStore: new Map(
+        Array.from(this.documentContentStore.entries(), ([nodeId, content]) => [
+          nodeId,
+          new Uint8Array(content)
+        ])
+      ),
+      yjsSnapshotStore: structuredClone(this.yjsSnapshotStore),
+      lastLamportTime: this.lastLamportTime
+    }
+  }
+
+  private restoreSnapshot(snapshot: MemoryNodeStorageSnapshot): void {
+    this.changes = snapshot.changes
+    this.changesByHash = snapshot.changesByHash
+    this.nodes = snapshot.nodes
+    this.documentContentStore = snapshot.documentContentStore
+    this.yjsSnapshotStore = snapshot.yjsSnapshotStore
+    this.lastLamportTime = snapshot.lastLamportTime
   }
 }

@@ -199,6 +199,30 @@ describe('NativeBridge', () => {
 
       expect(restored.deleted).toBeFalsy()
     })
+
+    it('should run storage-owned deterministic bulk writes', async () => {
+      const result = await bridge.bulkWrite({
+        kind: 'deterministic-import',
+        drafts: [
+          {
+            id: 'native-bulk-node',
+            schemaId: TestSchema._schemaId,
+            properties: { title: 'Native bulk', count: 5, active: true }
+          }
+        ]
+      })
+
+      expect(result).toMatchObject({
+        created: 1,
+        updated: 0,
+        nodeIds: ['native-bulk-node'],
+        schemaIds: [TestSchema._schemaId],
+        changeCount: 1
+      })
+      await expect(bridge.get('native-bulk-node')).resolves.toMatchObject({
+        properties: { title: 'Native bulk', count: 5, active: true }
+      })
+    })
   })
 
   describe('direct access', () => {

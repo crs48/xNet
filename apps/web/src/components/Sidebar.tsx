@@ -14,7 +14,9 @@ import {
   ChevronDown,
   ChevronRight,
   Settings,
-  Link as LinkIcon
+  Upload,
+  Link as LinkIcon,
+  Network
 } from 'lucide-react'
 import { useState } from 'react'
 import { AddSharedDialog } from './AddSharedDialog'
@@ -370,6 +372,28 @@ export function Sidebar() {
 
       {/* Settings */}
       <div className="p-2 border-t border-border">
+        <Link
+          to="/data"
+          className={`mb-1 w-full flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer no-underline hover:no-underline transition-colors ${
+            location.pathname === '/data'
+              ? 'bg-accent text-foreground'
+              : 'text-foreground hover:bg-accent/50'
+          }`}
+        >
+          <Network size={14} className="text-muted-foreground" />
+          <span className="text-sm">Data Workspace</span>
+        </Link>
+        <Link
+          to="/social-import"
+          className={`mb-1 w-full flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer no-underline hover:no-underline transition-colors ${
+            location.pathname === '/social-import'
+              ? 'bg-accent text-foreground'
+              : 'text-foreground hover:bg-accent/50'
+          }`}
+        >
+          <Upload size={14} className="text-muted-foreground" />
+          <span className="text-sm">Social Import</span>
+        </Link>
         <Link
           to="/settings"
           className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer no-underline hover:no-underline transition-colors ${

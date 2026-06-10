@@ -11,8 +11,11 @@ import {
 } from '../frames/frame-variants'
 import {
   getCanvasQueryFrameDefinition,
-  getCanvasQueryFrameResultSummary
+  getCanvasQueryFrameResultPreview,
+  getCanvasQueryFrameResultSummary,
+  type CanvasQueryFrameResultCard
 } from '../frames/query-frames'
+import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '../ingestion'
 import { getCanvasContainerMemberIds, getCanvasContainerRole } from '../selection/scene-operations'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 import { ShapeNodeComponent, type ShapeNodeData } from './shape-node'
@@ -87,6 +90,39 @@ function getFrameLanes(node: CanvasNode): readonly string[] {
   return Array.isArray(lanes) && lanes.every((lane) => typeof lane === 'string')
     ? lanes
     : ['Now', 'Next', 'Later']
+}
+
+function canDragQueryResultCard(
+  card: CanvasQueryFrameResultCard
+): card is CanvasQueryFrameResultCard & { sourceNodeId: string; schemaId: string } {
+  return Boolean(card.sourceNodeId && card.schemaId)
+}
+
+function createQueryResultCardDragStart(
+  card: CanvasQueryFrameResultCard
+): React.DragEventHandler<HTMLDivElement> | undefined {
+  if (!canDragQueryResultCard(card)) {
+    return undefined
+  }
+
+  return (event) => {
+    event.stopPropagation()
+    event.dataTransfer.effectAllowed = 'copy'
+    event.dataTransfer.setData(
+      CANVAS_INTERNAL_NODE_MIME,
+      serializeCanvasInternalNodeDragData({
+        nodeId: card.sourceNodeId,
+        schemaId: card.schemaId,
+        title: card.title,
+        canvasKind: 'external-reference',
+        ...(card.subtitle ? { subtitle: card.subtitle } : {}),
+        ...(card.description ? { description: card.description } : {}),
+        ...(card.href ? { href: card.href } : {}),
+        ...(card.badges.length > 0 ? { badges: card.badges } : {})
+      })
+    )
+    event.dataTransfer.setData('text/plain', card.title)
+  }
 }
 
 function CanvasFrameVariantPreview({
@@ -222,10 +258,16 @@ function CanvasFrameVariantPreview({
   if (variant === 'query') {
     const queryDefinition = getCanvasQueryFrameDefinition(node)
     const querySummary = getCanvasQueryFrameResultSummary(node)
+    const queryPreview = getCanvasQueryFrameResultPreview(node)
+    const resultCards = queryPreview.cards.slice(0, 3)
     const countLabel =
-      querySummary.totalCount > 0
-        ? `${querySummary.visibleCount}/${querySummary.totalCount} results`
-        : 'No results'
+      querySummary.status === 'loading'
+        ? 'Loading'
+        : querySummary.status === 'error'
+          ? 'Error'
+          : querySummary.totalCount > 0
+            ? `${querySummary.visibleCount}/${querySummary.totalCount} results`
+            : 'No results'
 
     return (
       <div
@@ -275,20 +317,149 @@ function CanvasFrameVariantPreview({
             {countLabel}
           </span>
         </div>
-        {[0, 1, 2].map((index) => (
+        {resultCards.length > 0 ? (
           <div
-            key={index}
+            data-canvas-query-frame-result-cards="true"
             style={{
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr',
-              gap: 6
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              minHeight: 0,
+              overflow: 'hidden'
             }}
           >
-            {[0, 1, 2].map((cell) => (
-              <div key={cell} style={{ height: 14, borderRadius: 5, background: mutedLine }} />
-            ))}
+            {resultCards.map((card) => {
+              const draggable = canDragQueryResultCard(card)
+
+              return (
+                <div
+                  key={card.id}
+                  data-canvas-query-frame-result-card="true"
+                  data-canvas-query-frame-result-card-draggable={draggable ? 'true' : 'false'}
+                  data-canvas-query-frame-result-source-node-id={card.sourceNodeId}
+                  data-canvas-query-frame-result-schema-id={card.schemaId}
+                  draggable={draggable}
+                  onDragStart={createQueryResultCardDragStart(card)}
+                  style={{
+                    minHeight: 48,
+                    borderRadius: 8,
+                    border: `1px solid ${mutedLine}`,
+                    background:
+                      theme.mode === 'dark'
+                        ? 'rgba(15, 23, 42, 0.42)'
+                        : 'rgba(255, 255, 255, 0.66)',
+                    padding: 8,
+                    overflow: 'hidden',
+                    pointerEvents: draggable ? 'auto' : 'none',
+                    cursor: draggable ? 'grab' : 'default'
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8
+                    }}
+                  >
+                    <span
+                      style={{
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: theme.panelText,
+                        fontSize: 12,
+                        fontWeight: 650
+                      }}
+                    >
+                      {card.title}
+                    </span>
+                    {card.eyebrow ? (
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          borderRadius: 999,
+                          background: accentFill,
+                          color: theme.panelMutedText,
+                          fontSize: 9,
+                          fontWeight: 650,
+                          padding: '1px 5px'
+                        }}
+                      >
+                        {card.eyebrow}
+                      </span>
+                    ) : null}
+                  </div>
+                  {card.subtitle || card.description ? (
+                    <div
+                      style={{
+                        marginTop: 4,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: theme.panelMutedText,
+                        fontSize: 10
+                      }}
+                    >
+                      {card.subtitle ?? card.description}
+                    </div>
+                  ) : null}
+                  {card.badges.length > 0 ? (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 6, overflow: 'hidden' }}>
+                      {card.badges.slice(0, 3).map((badge) => (
+                        <span
+                          key={badge}
+                          style={{
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            borderRadius: 999,
+                            background: mutedLine,
+                            color: theme.panelMutedText,
+                            fontSize: 9,
+                            padding: '1px 5px'
+                          }}
+                        >
+                          {badge}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
           </div>
-        ))}
+        ) : querySummary.status === 'error' ? (
+          <div
+            data-canvas-query-frame-error="true"
+            style={{
+              borderRadius: 8,
+              border: `1px solid ${mutedLine}`,
+              color: theme.panelMutedText,
+              fontSize: 11,
+              padding: 10
+            }}
+          >
+            {querySummary.errorMessage ?? 'Query frame could not load results.'}
+          </div>
+        ) : (
+          [0, 1, 2].map((index) => (
+            <div
+              key={index}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 1fr',
+                gap: 6
+              }}
+            >
+              {[0, 1, 2].map((cell) => (
+                <div key={cell} style={{ height: 14, borderRadius: 5, background: mutedLine }} />
+              ))}
+            </div>
+          ))
+        )}
       </div>
     )
   }

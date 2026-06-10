@@ -179,6 +179,9 @@ describe('useQuery', () => {
       async restore() {
         throw new Error('Not implemented in mock bridge')
       },
+      async bulkWrite() {
+        throw new Error('Not implemented in mock bridge')
+      },
       destroy() {},
       status: 'connected',
       on() {

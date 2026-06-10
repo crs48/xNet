@@ -16,6 +16,7 @@ import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { createMenu } from './menu'
 import { dataPath, profile } from './profile'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
+import { setupSocialImportIPC } from './social-import-ipc'
 import { setupStorybookIPC, stopStorybook } from './storybook-ipc'
 import { initAutoUpdater } from './updater'
 
@@ -187,6 +188,9 @@ app.whenReady().then(async () => {
 
   // Setup Local API IPC handlers
   setupLocalAPIIPC()
+
+  // Setup local social import IPC handlers
+  setupSocialImportIPC(() => mainWindow)
 
   // Setup Cloudflare tunnel IPC handlers
   cleanupTunnelIPC = setupCloudflareTunnelIPC()

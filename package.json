@@ -16,6 +16,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "bench:core-platform": "tsx scripts/collect-core-platform-baselines.ts",
+    "bench:social-import": "tsx scripts/benchmark-social-import-fixtures.ts",
+    "bench:social-batch": "tsx scripts/benchmark-social-batch-writes.ts",
     "validate:canvas-v2": "bash scripts/validate-canvas-v2-release-gate.sh",
     "lint": "eslint packages apps --ext .ts,.tsx",
     "format:check": "prettier --check \"packages/**/*.{ts,tsx}\" \"apps/**/*.{ts,tsx}\"",

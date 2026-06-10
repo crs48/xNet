@@ -4,7 +4,19 @@
 
 import type { Theme } from '@xnetjs/ui'
 import { Menu, MenuItem, MenuLabel, MenuSeparator, useTheme } from '@xnetjs/ui'
-import { Bug, Check, Ellipsis, Layers3, Monitor, Moon, Settings, Share2, Sun } from 'lucide-react'
+import {
+  Bug,
+  Check,
+  Database,
+  Ellipsis,
+  Import as ImportIcon,
+  Layers3,
+  Monitor,
+  Moon,
+  Settings,
+  Share2,
+  Sun
+} from 'lucide-react'
 import React from 'react'
 
 interface RecentDocument {
@@ -17,6 +29,8 @@ interface SystemMenuProps {
   recentDocuments: RecentDocument[]
   onOpenDocument: (docId: string) => void
   onOpenSettings: () => void
+  onOpenDataWorkspace: () => void
+  onOpenSocialImport: () => void
   onOpenStories?: () => void
   onAddShared: () => void
   onToggleDebugPanel: () => void
@@ -59,6 +73,8 @@ export function SystemMenu({
   recentDocuments,
   onOpenDocument,
   onOpenSettings,
+  onOpenDataWorkspace,
+  onOpenSocialImport,
   onOpenStories,
   onAddShared,
   onToggleDebugPanel
@@ -95,6 +111,18 @@ export function SystemMenu({
         <span className="flex items-center gap-2">
           <Share2 size={14} />
           Add shared item
+        </span>
+      </MenuItem>
+      <MenuItem onSelect={onOpenDataWorkspace}>
+        <span className="flex items-center gap-2">
+          <Database size={14} />
+          Data Workspace
+        </span>
+      </MenuItem>
+      <MenuItem onSelect={onOpenSocialImport}>
+        <span className="flex items-center gap-2">
+          <ImportIcon size={14} />
+          Import social archive
         </span>
       </MenuItem>
       {onOpenStories ? (

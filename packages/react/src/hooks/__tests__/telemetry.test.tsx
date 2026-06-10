@@ -208,12 +208,22 @@ describe('useMutate telemetry', () => {
 
     const { result } = renderHook(() => useMutate(), { wrapper: Wrapper })
 
-    // Wait for bridge to initialize
-    await waitFor(() => result.current.isPending === false)
+    let nodeId: string | undefined
+    for (let attempt = 0; attempt < 5 && !nodeId; attempt++) {
+      await act(async () => {
+        const node = await result.current.create(TaskSchema, {
+          title: `Test Task ${attempt}`,
+          status: 'todo'
+        })
+        nodeId = node?.id
+      })
 
-    await act(async () => {
-      await result.current.create(TaskSchema, { title: 'Test Task', status: 'todo' })
-    })
+      if (!nodeId) {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+    }
+
+    expect(nodeId).toBeDefined()
 
     const successCall = telemetry.calls.find(
       (c) => c.method === 'reportUsage' && c.args[0] === 'react.useMutate.create.success'

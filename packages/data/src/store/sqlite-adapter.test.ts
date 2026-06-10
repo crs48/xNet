@@ -6,7 +6,7 @@ import type { NodeQueryDescriptor } from './query'
 import type { NodeState, NodeChange, NodePayload } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { DID, ContentId } from '@xnetjs/core'
-import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import type { SQLiteAdapter, SQLiteNodeBatchApplyInput } from '@xnetjs/sqlite'
 import { randomUUID } from 'crypto'
 import { existsSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
@@ -28,6 +28,27 @@ function cleanupDb(path: string): void {
     } catch {
       // Ignore cleanup errors.
     }
+  }
+}
+
+function isNativeSQLiteLoadError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    message.includes('better_sqlite3.node') ||
+    message.includes('incompatible architecture') ||
+    message.includes('Cannot find module')
+  )
+}
+
+async function createNativeSQLiteAdapterOrNull(path: string): Promise<SQLiteAdapter | null> {
+  try {
+    return await createElectronSQLiteAdapter({ path })
+  } catch (error) {
+    cleanupDb(path)
+    if (isNativeSQLiteLoadError(error)) {
+      return null
+    }
+    throw error
   }
 }
 
@@ -71,6 +92,49 @@ describe('SQLiteNodeStorageAdapter', () => {
       createdBy: testDID,
       updatedAt: input.updatedAt ?? now,
       updatedBy: testDID
+    }
+  }
+
+  function createTestChange(input: {
+    id: string
+    nodeId: string
+    schemaId?: SchemaIRI
+    properties?: Record<string, unknown>
+    lamportTime: number
+    batchId: string
+  }): NodeChange {
+    const now = Date.now()
+    return {
+      id: input.id,
+      type: 'node',
+      hash: `cid:blake3:${input.id}` as ContentId,
+      payload: {
+        nodeId: input.nodeId,
+        ...(input.schemaId ? { schemaId: input.schemaId } : {}),
+        properties: input.properties ?? {}
+      } as NodePayload,
+      lamport: { time: input.lamportTime, author: testDID },
+      wallTime: now,
+      authorDID: testDID,
+      parentHash: null,
+      batchId: input.batchId,
+      batchIndex: 0,
+      batchSize: 1,
+      signature: new Uint8Array([1, 2, 3])
+    }
+  }
+
+  async function ensureFtsTable(): Promise<boolean> {
+    try {
+      await db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
+        node_id,
+        title,
+        content,
+        tokenize='porter unicode61'
+      )`)
+      return true
+    } catch {
+      return false
     }
   }
 
@@ -144,6 +208,531 @@ describe('SQLiteNodeStorageAdapter', () => {
 
       const retrieved = await adapter.getNode('node-1')
       expect(retrieved!.properties.title).toBe('Updated')
+    })
+
+    it('returns existing node ids in input order without duplicates', async () => {
+      const now = Date.now()
+      await adapter.setNode(
+        createTestNode({
+          id: 'existing-node-1',
+          properties: { title: 'Existing 1' },
+          createdAt: now,
+          updatedAt: now
+        })
+      )
+      await adapter.setNode(
+        createTestNode({
+          id: 'existing-node-2',
+          properties: { title: 'Existing 2' },
+          createdAt: now + 1,
+          updatedAt: now + 1
+        })
+      )
+
+      await expect(
+        adapter.getExistingNodeIds([
+          'existing-node-2',
+          'missing-node',
+          'existing-node-1',
+          'existing-node-2'
+        ])
+      ).resolves.toEqual(['existing-node-2', 'existing-node-1'])
+    })
+
+    it('returns existing nodes in input order without duplicates', async () => {
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'bulk-node-1',
+          properties: { title: 'Bulk 1' },
+          createdAt: now,
+          updatedAt: now
+        }),
+        createTestNode({
+          id: 'bulk-node-2',
+          properties: { title: 'Bulk 2' },
+          createdAt: now + 1,
+          updatedAt: now + 1
+        })
+      ])
+
+      const nodes = await adapter.getNodes([
+        'bulk-node-2',
+        'missing-node',
+        'bulk-node-1',
+        'bulk-node-2'
+      ])
+
+      expect(nodes.map((node) => node.id)).toEqual(['bulk-node-2', 'bulk-node-1'])
+      expect(nodes.map((node) => node.properties.title)).toEqual(['Bulk 2', 'Bulk 1'])
+    })
+
+    it('defers scalar index writes until schema indexes are rebuilt', async () => {
+      await adapter.importNodes(
+        [
+          createTestNode({
+            id: 'deferred-node-1',
+            properties: { title: 'Deferred Node', status: 'queued' }
+          })
+        ],
+        { deferIndexes: true }
+      )
+
+      const beforeRebuild = await db.queryOne<{ count: number }>(
+        `SELECT COUNT(*) as count
+         FROM node_property_scalars
+         WHERE node_id = ?`,
+        ['deferred-node-1']
+      )
+      expect(beforeRebuild?.count).toBe(0)
+
+      await adapter.rebuildIndexesForSchemas([testSchemaId])
+
+      const afterRebuild = await db.query<{ property_key: string; value_text: string | null }>(
+        `SELECT property_key, value_text
+         FROM node_property_scalars
+         WHERE node_id = ?
+         ORDER BY property_key ASC`,
+        ['deferred-node-1']
+      )
+      expect(afterRebuild).toEqual([
+        { property_key: 'status', value_text: 'queued' },
+        { property_key: 'title', value_text: 'Deferred Node' }
+      ])
+    })
+
+    it('rebuilds stale scalar rows after deferred updates', async () => {
+      await adapter.importNodes([
+        createTestNode({
+          id: 'deferred-node-2',
+          properties: { title: 'Deferred Node', status: 'queued' }
+        })
+      ])
+
+      const updated = createTestNode({
+        id: 'deferred-node-2',
+        properties: { title: 'Deferred Node', status: 'done' },
+        updatedAt: Date.now() + 1000
+      })
+      updated.timestamps.status.lamport.time = 10
+      await adapter.importNodes([updated], { deferIndexes: true })
+
+      const beforeRebuild = await db.queryOne<{ value_text: string | null }>(
+        `SELECT value_text
+         FROM node_property_scalars
+         WHERE node_id = ? AND property_key = ?`,
+        ['deferred-node-2', 'status']
+      )
+      expect(beforeRebuild?.value_text).toBe('queued')
+
+      await adapter.rebuildIndexesForSchemas([testSchemaId])
+
+      const afterRebuild = await db.queryOne<{ value_text: string | null }>(
+        `SELECT value_text
+         FROM node_property_scalars
+         WHERE node_id = ? AND property_key = ?`,
+        ['deferred-node-2', 'status']
+      )
+      expect(afterRebuild?.value_text).toBe('done')
+    })
+
+    it('uses transactionBatch for trusted materialized imports when available', async () => {
+      const batchDb = db as SQLiteAdapter & {
+        batchCalls: number
+        transactionBatch: NonNullable<SQLiteAdapter['transactionBatch']>
+      }
+      batchDb.batchCalls = 0
+      batchDb.transactionBatch = async (operations) => {
+        batchDb.batchCalls += 1
+        await db.transaction(async () => {
+          for (const operation of operations) {
+            await db.run(operation.sql, operation.params)
+          }
+        })
+      }
+
+      const batchAdapter = new SQLiteNodeStorageAdapter(batchDb)
+      await batchAdapter.importNodes(
+        [
+          createTestNode({
+            id: 'batch-import-node',
+            properties: { title: 'Batch Import', status: 'indexed' }
+          })
+        ],
+        { trustMaterializedState: true }
+      )
+
+      expect(batchDb.batchCalls).toBe(1)
+      await expect(batchAdapter.getNode('batch-import-node')).resolves.toMatchObject({
+        id: 'batch-import-node',
+        properties: { title: 'Batch Import', status: 'indexed' }
+      })
+
+      const scalarRows = await db.query<{ property_key: string; value_text: string | null }>(
+        `SELECT property_key, value_text
+         FROM node_property_scalars
+         WHERE node_id = ?
+         ORDER BY property_key ASC`,
+        ['batch-import-node']
+      )
+      expect(scalarRows).toEqual([
+        { property_key: 'status', value_text: 'indexed' },
+        { property_key: 'title', value_text: 'Batch Import' }
+      ])
+    })
+
+    it('applies node batches with changes, sync time, and touched scalar indexes', async () => {
+      const now = Date.now()
+      const node = createTestNode({
+        id: 'batch-apply-node',
+        properties: { title: 'Batch Apply', status: 'indexed' },
+        createdAt: now,
+        updatedAt: now
+      })
+      const change: NodeChange = {
+        id: 'batch-apply-change',
+        type: 'node',
+        hash: 'cid:blake3:batch-apply-change' as ContentId,
+        payload: {
+          nodeId: node.id,
+          schemaId: node.schemaId,
+          properties: node.properties
+        } as NodePayload,
+        lamport: { time: 12, author: testDID },
+        wallTime: now,
+        authorDID: testDID,
+        parentHash: null,
+        batchId: 'batch-apply-1',
+        batchIndex: 0,
+        batchSize: 1,
+        signature: new Uint8Array([1, 2, 3])
+      }
+
+      const result = await adapter.applyNodeBatch({
+        batchId: 'batch-apply-1',
+        nodes: [node],
+        changes: [change],
+        lastLamportTime: 12,
+        affectedSchemaIds: [testSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      expect(result).toMatchObject({
+        nodeRowsWritten: 1,
+        propertyRowsWritten: 2,
+        changeRowsWritten: 1,
+        scalarRowsWritten: 2
+      })
+      await expect(adapter.getNode('batch-apply-node')).resolves.toMatchObject({
+        id: 'batch-apply-node',
+        properties: { title: 'Batch Apply', status: 'indexed' }
+      })
+      await expect(adapter.getLastLamportTime()).resolves.toBe(12)
+      await expect(adapter.getChanges('batch-apply-node')).resolves.toHaveLength(1)
+
+      const scalarRows = await db.query<{ property_key: string; value_text: string | null }>(
+        `SELECT property_key, value_text
+         FROM node_property_scalars
+         WHERE node_id = ?
+         ORDER BY property_key ASC`,
+        ['batch-apply-node']
+      )
+      expect(scalarRows).toEqual([
+        { property_key: 'status', value_text: 'indexed' },
+        { property_key: 'title', value_text: 'Batch Apply' }
+      ])
+    })
+
+    it('uses typed SQLite node batch apply when available', async () => {
+      const batchDb = db as SQLiteAdapter & {
+        typedBatchInput: SQLiteNodeBatchApplyInput | null
+        transactionBatchCalls: number
+      }
+      batchDb.typedBatchInput = null
+      batchDb.transactionBatchCalls = 0
+      batchDb.applyNodeBatch = async (input) => {
+        batchDb.typedBatchInput = input
+        await db.transaction(async () => {
+          for (const node of input.nodes) {
+            await db.run(
+              `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                node.id,
+                node.schemaId,
+                node.createdAt,
+                node.updatedAt,
+                node.createdBy,
+                node.deletedAt
+              ]
+            )
+          }
+          for (const property of input.properties) {
+            await db.run(
+              `INSERT INTO node_properties
+                  (node_id, property_key, value, lamport_time, updated_by, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                property.nodeId,
+                property.propertyKey,
+                property.value,
+                property.lamportTime,
+                property.updatedBy,
+                property.updatedAt
+              ]
+            )
+          }
+          for (const change of input.changes) {
+            await db.run(
+              `INSERT OR IGNORE INTO changes
+                (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                change.hash,
+                change.nodeId,
+                change.payload,
+                change.lamportTime,
+                change.lamportPeer,
+                change.wallTime,
+                change.author,
+                change.parentHash,
+                change.batchId,
+                change.signature
+              ]
+            )
+          }
+          await db.run(
+            `INSERT INTO sync_state (key, value) VALUES ('lastLamportTime', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+            [String(input.lastLamportTime)]
+          )
+        })
+
+        return {
+          nodeRowsWritten: input.nodes.length,
+          propertyRowsWritten: input.properties.length,
+          changeRowsWritten: input.changes.length,
+          scalarRowsWritten: input.scalarIndexRows.length,
+          ftsRowsWritten: input.ftsRows.length
+        }
+      }
+      batchDb.transactionBatch = async () => {
+        batchDb.transactionBatchCalls += 1
+      }
+
+      const batchAdapter = new SQLiteNodeStorageAdapter(batchDb)
+      const now = Date.now()
+      const node = createTestNode({
+        id: 'typed-batch-node',
+        properties: { title: 'Typed Batch', status: 'queued' },
+        createdAt: now,
+        updatedAt: now
+      })
+      const change: NodeChange = {
+        id: 'typed-batch-change',
+        type: 'node',
+        hash: 'cid:blake3:typed-batch-change' as ContentId,
+        payload: {
+          nodeId: node.id,
+          schemaId: node.schemaId,
+          properties: node.properties
+        } as NodePayload,
+        lamport: { time: 21, author: testDID },
+        wallTime: now,
+        authorDID: testDID,
+        parentHash: null,
+        batchId: 'typed-batch-1',
+        batchIndex: 0,
+        batchSize: 1,
+        signature: new Uint8Array([4, 5, 6])
+      }
+
+      const result = await batchAdapter.applyNodeBatch({
+        batchId: 'typed-batch-1',
+        nodes: [node],
+        changes: [change],
+        lastLamportTime: 21,
+        affectedSchemaIds: [testSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      expect(batchDb.transactionBatchCalls).toBe(0)
+      expect(batchDb.typedBatchInput).toMatchObject({
+        indexMode: 'touched',
+        lastLamportTime: 21,
+        nodes: [{ id: 'typed-batch-node', propertyKeys: ['title', 'status'] }],
+        properties: [
+          { nodeId: 'typed-batch-node', propertyKey: 'title' },
+          { nodeId: 'typed-batch-node', propertyKey: 'status' }
+        ],
+        changes: [{ nodeId: 'typed-batch-node', batchId: 'typed-batch-1' }],
+        affectedSchemaIds: [testSchemaId]
+      })
+      expect(result).toMatchObject({
+        nodeRowsWritten: 1,
+        propertyRowsWritten: 2,
+        changeRowsWritten: 1,
+        scalarRowsWritten: 2
+      })
+      await expect(batchAdapter.getNode('typed-batch-node')).resolves.toMatchObject({
+        properties: { title: 'Typed Batch', status: 'queued' }
+      })
+      await expect(batchAdapter.getLastLamportTime()).resolves.toBe(21)
+    })
+
+    it('rolls back partial node, property, scalar, FTS, change, and sync writes when batch apply fails', async () => {
+      let hasFts = true
+      try {
+        await db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
+          node_id,
+          title,
+          content,
+          tokenize='porter unicode61'
+        )`)
+      } catch {
+        hasFts = false
+      }
+
+      const now = Date.now()
+      const node = createTestNode({
+        id: 'rollback-batch-node',
+        properties: { title: 'Rollback Title', status: 'queued' },
+        createdAt: now,
+        updatedAt: now
+      })
+      const badChange: NodeChange = {
+        id: 'rollback-batch-change',
+        type: 'node',
+        hash: 'cid:blake3:rollback-batch-change' as ContentId,
+        payload: {
+          nodeId: 'missing-rollback-node',
+          schemaId: node.schemaId,
+          properties: { title: 'Should fail' }
+        } as NodePayload,
+        lamport: { time: 44, author: testDID },
+        wallTime: now,
+        authorDID: testDID,
+        parentHash: null,
+        batchId: 'rollback-batch-1',
+        batchIndex: 0,
+        batchSize: 1,
+        signature: new Uint8Array([7, 8, 9])
+      }
+
+      await expect(
+        adapter.applyNodeBatch({
+          batchId: 'rollback-batch-1',
+          nodes: [node],
+          changes: [badChange],
+          lastLamportTime: 44,
+          affectedSchemaIds: [node.schemaId],
+          indexMode: 'eager',
+          indexProperties: true
+        })
+      ).rejects.toThrow()
+
+      await expect(adapter.getNode(node.id)).resolves.toBeNull()
+      await expect(adapter.getLastLamportTime()).resolves.toBe(0)
+
+      const nodeRow = await db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM nodes WHERE id = ?',
+        [node.id]
+      )
+      const propertyRows = await db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM node_properties WHERE node_id = ?',
+        [node.id]
+      )
+      const scalarRows = await db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM node_property_scalars WHERE node_id = ?',
+        [node.id]
+      )
+      const ftsRows = hasFts
+        ? await db.queryOne<{ count: number }>(
+            'SELECT COUNT(*) as count FROM nodes_fts WHERE node_id = ?',
+            [node.id]
+          )
+        : { count: 0 }
+      const changeRows = await db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM changes WHERE hash = ?',
+        [badChange.hash]
+      )
+
+      expect(nodeRow?.count).toBe(0)
+      expect(propertyRows?.count).toBe(0)
+      expect(scalarRows?.count).toBe(0)
+      expect(ftsRows?.count).toBe(0)
+      expect(changeRows?.count).toBe(0)
+    })
+
+    it('serializes concurrent transaction-backed node writes', async () => {
+      const now = Date.now()
+      const nodes = Array.from({ length: 8 }, (_, index) =>
+        createTestNode({
+          id: `queued-node-${index}`,
+          properties: { title: `Queued ${index}` },
+          createdAt: now + index,
+          updatedAt: now + index
+        })
+      )
+
+      await expect(Promise.all(nodes.map((node) => adapter.setNode(node)))).resolves.toHaveLength(
+        nodes.length
+      )
+
+      const stored = await Promise.all(nodes.map((node) => adapter.getNode(node.id)))
+      expect(stored.map((node) => node?.id).sort()).toEqual(nodes.map((node) => node.id).sort())
+    })
+
+    it('runs repeated transaction-scoped writes without nested transactions', async () => {
+      const now = Date.now()
+
+      await adapter.withTransaction(async (tx) => {
+        await tx.setNode(
+          createTestNode({
+            id: 'tx-node-1',
+            properties: { title: 'Transaction node 1' },
+            createdAt: now,
+            updatedAt: now
+          })
+        )
+        await tx.setNode(
+          createTestNode({
+            id: 'tx-node-2',
+            properties: { title: 'Transaction node 2' },
+            createdAt: now + 1,
+            updatedAt: now + 1
+          })
+        )
+        await tx.setLastLamportTime(42)
+      })
+
+      await expect(adapter.getNode('tx-node-1')).resolves.toMatchObject({
+        id: 'tx-node-1',
+        properties: { title: 'Transaction node 1' }
+      })
+      await expect(adapter.getNode('tx-node-2')).resolves.toMatchObject({
+        id: 'tx-node-2',
+        properties: { title: 'Transaction node 2' }
+      })
+      await expect(adapter.getLastLamportTime()).resolves.toBe(42)
+    })
+
+    it('rolls back transaction-scoped writes on failure', async () => {
+      await expect(
+        adapter.withTransaction(async (tx) => {
+          await tx.setNode(
+            createTestNode({
+              id: 'rolled-back-node',
+              properties: { title: 'Rolled back' }
+            })
+          )
+          throw new Error('rollback sentinel')
+        })
+      ).rejects.toThrow('rollback sentinel')
+
+      await expect(adapter.getNode('rolled-back-node')).resolves.toBeNull()
     })
 
     it('respects LWW for concurrent updates - higher lamport wins', async () => {
@@ -485,6 +1074,78 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(scalarRows.map((row) => row.property_key)).toEqual(['done', 'priority', 'title'])
     })
 
+    it('keeps touched-node scalar rows identical to a whole-schema rebuild', async () => {
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'touched-scalar-updated',
+          schemaId: taskSchemaId,
+          properties: { title: 'Before', status: 'open', priority: 1 },
+          createdAt: now,
+          updatedAt: now
+        }),
+        createTestNode({
+          id: 'touched-scalar-unchanged',
+          schemaId: taskSchemaId,
+          properties: { title: 'Unchanged', status: 'open', done: false },
+          createdAt: now + 1,
+          updatedAt: now + 1
+        })
+      ])
+
+      const updatedNode = createTestNode({
+        id: 'touched-scalar-updated',
+        schemaId: taskSchemaId,
+        properties: { title: 'After', priority: 5, done: true },
+        createdAt: now,
+        updatedAt: now + 2
+      })
+      Object.values(updatedNode.timestamps).forEach((timestamp, index) => {
+        timestamp.lamport.time = 80 + index
+      })
+
+      await adapter.applyNodeBatch({
+        batchId: 'touched-scalar-parity',
+        nodes: [updatedNode],
+        changes: [
+          createTestChange({
+            id: 'touched-scalar-parity-change',
+            nodeId: 'touched-scalar-updated',
+            properties: { title: 'After', priority: 5, done: true },
+            lamportTime: 80,
+            batchId: 'touched-scalar-parity'
+          })
+        ],
+        lastLamportTime: 80,
+        affectedSchemaIds: [taskSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      const readScalarRows = () =>
+        db.query<{
+          node_id: string
+          property_key: string
+          value_type: string
+          value_text: string | null
+          value_number: number | null
+          value_boolean: number | null
+        }>(
+          `SELECT node_id, property_key, value_type, value_text, value_number, value_boolean
+           FROM node_property_scalars
+           WHERE schema_id = ?
+           ORDER BY node_id ASC, property_key ASC`,
+          [taskSchemaId]
+        )
+
+      const touchedRows = await readScalarRows()
+      await db.run('DELETE FROM node_property_scalars WHERE schema_id = ?', [taskSchemaId])
+      await adapter.rebuildIndexesForSchemas([taskSchemaId])
+      const rebuiltRows = await readScalarRows()
+
+      expect(touchedRows).toEqual(rebuiltRows)
+    })
+
     it('skips plaintext scalar rows when indexing is disabled', async () => {
       await adapter.setNode(
         createTestNode({
@@ -501,6 +1162,74 @@ describe('SQLiteNodeStorageAdapter', () => {
       )
 
       expect(count?.count).toBe(0)
+    })
+  })
+
+  describe('full-text index', () => {
+    it('keeps touched-node FTS rows identical to a whole-schema rebuild', async () => {
+      if (!(await ensureFtsTable())) return
+
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'touched-fts-updated',
+          schemaId: taskSchemaId,
+          properties: { title: 'Before roadmap', body: 'Draft content' },
+          createdAt: now,
+          updatedAt: now
+        }),
+        createTestNode({
+          id: 'touched-fts-unchanged',
+          schemaId: taskSchemaId,
+          properties: { title: 'Stable note', body: 'Kept content' },
+          createdAt: now + 1,
+          updatedAt: now + 1
+        })
+      ])
+
+      const updatedNode = createTestNode({
+        id: 'touched-fts-updated',
+        schemaId: taskSchemaId,
+        properties: { title: 'After roadmap', body: 'Published content' },
+        createdAt: now,
+        updatedAt: now + 2
+      })
+      Object.values(updatedNode.timestamps).forEach((timestamp, index) => {
+        timestamp.lamport.time = 81 + index
+      })
+
+      await adapter.applyNodeBatch({
+        batchId: 'touched-fts-parity',
+        nodes: [updatedNode],
+        changes: [
+          createTestChange({
+            id: 'touched-fts-parity-change',
+            nodeId: 'touched-fts-updated',
+            properties: { title: 'After roadmap', body: 'Published content' },
+            lamportTime: 81,
+            batchId: 'touched-fts-parity'
+          })
+        ],
+        lastLamportTime: 81,
+        affectedSchemaIds: [taskSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      const readFtsRows = () =>
+        db.query<{ node_id: string; title: string; content: string }>(
+          `SELECT node_id, title, content
+           FROM nodes_fts
+           ORDER BY node_id ASC`,
+          []
+        )
+
+      const touchedRows = await readFtsRows()
+      await db.run('DELETE FROM nodes_fts')
+      await adapter.rebuildIndexesForSchemas([taskSchemaId])
+      const rebuiltRows = await readFtsRows()
+
+      expect(touchedRows).toEqual(rebuiltRows)
     })
   })
 
@@ -774,6 +1503,92 @@ describe('SQLiteNodeStorageAdapter', () => {
       })
     })
 
+    it('coalesces touched batch materialized-view invalidation to once per schema', async () => {
+      let invalidationStatements = 0
+      const countingDb = new Proxy(db, {
+        get(target, property, receiver) {
+          if (property === 'run') {
+            return async (sql: string, params?: Parameters<SQLiteAdapter['run']>[1]) => {
+              if (
+                sql.includes('UPDATE node_query_materializations') &&
+                sql.includes('invalidated_at')
+              ) {
+                invalidationStatements += 1
+              }
+              return target.run(sql, params)
+            }
+          }
+
+          const value = Reflect.get(target, property, receiver)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      }) as SQLiteAdapter
+      const countingAdapter = new SQLiteNodeStorageAdapter(countingDb)
+
+      await countingAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        materializedView: { viewId: 'task-table-coalesced' }
+      })
+
+      invalidationStatements = 0
+      const now = Date.now() + 20_000
+      const updatedHigh = createTestNode({
+        id: 'task-open-high',
+        schemaId: taskSchemaId,
+        properties: { title: 'Open high updated', status: 'open', priority: 11, done: false },
+        updatedAt: now
+      })
+      const updatedLow = createTestNode({
+        id: 'task-open-low',
+        schemaId: taskSchemaId,
+        properties: { title: 'Open low updated', status: 'open', priority: 2, done: false },
+        updatedAt: now + 1
+      })
+      for (const [nodeIndex, node] of [updatedHigh, updatedLow].entries()) {
+        Object.values(node.timestamps).forEach((timestamp, propertyIndex) => {
+          timestamp.lamport.time = 90 + nodeIndex * 10 + propertyIndex
+        })
+      }
+
+      await countingAdapter.applyNodeBatch({
+        batchId: 'materialized-coalesced-batch',
+        nodes: [updatedHigh, updatedLow],
+        changes: [
+          createTestChange({
+            id: 'materialized-coalesced-high',
+            nodeId: updatedHigh.id,
+            properties: updatedHigh.properties,
+            lamportTime: 120,
+            batchId: 'materialized-coalesced-batch'
+          }),
+          createTestChange({
+            id: 'materialized-coalesced-low',
+            nodeId: updatedLow.id,
+            properties: updatedLow.properties,
+            lamportTime: 120,
+            batchId: 'materialized-coalesced-batch'
+          })
+        ],
+        lastLamportTime: 120,
+        affectedSchemaIds: [taskSchemaId, taskSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      const invalidated = await db.queryOne<{ invalidated_at: number | null }>(
+        `SELECT invalidated_at
+         FROM node_query_materializations
+         WHERE view_id = ?`,
+        ['task-table-coalesced']
+      )
+
+      expect(invalidationStatements).toBe(1)
+      expect(invalidated?.invalidated_at).toEqual(expect.any(Number))
+    })
+
     it('refreshes materialized views when maxAgeMs expires or forceRefresh is requested', async () => {
       await adapter.queryNodes({
         schemaId: taskSchemaId,
@@ -986,7 +1801,9 @@ describe('SQLiteNodeStorageAdapter', () => {
 
     it('uses FTS candidates for search queries when SQLite supports it', async () => {
       const dbPath = getTestDbPath()
-      const nativeDb = await createElectronSQLiteAdapter({ path: dbPath })
+      const nativeDb = await createNativeSQLiteAdapterOrNull(dbPath)
+      if (!nativeDb) return
+
       const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
       const now = Date.now()
 
@@ -1070,7 +1887,9 @@ describe('SQLiteNodeStorageAdapter', () => {
 
     it('uses R-Tree candidates for spatial queries when SQLite supports it', async () => {
       const dbPath = getTestDbPath()
-      const nativeDb = await createElectronSQLiteAdapter({ path: dbPath })
+      const nativeDb = await createNativeSQLiteAdapterOrNull(dbPath)
+      if (!nativeDb) return
+
       const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
       const now = Date.now()
 
@@ -1547,6 +2366,47 @@ describe('SQLiteNodeStorageAdapter', () => {
       const lastChange = await adapter.getLastChange('node-1')
       expect(lastChange).not.toBeNull()
       expect(lastChange!.lamport.time).toBe(5)
+    })
+
+    it('getLastChangesByNodeId returns latest changes for multiple nodes', async () => {
+      await createNodeForChange('node-1')
+      await createNodeForChange('node-2')
+
+      await adapter.appendChanges([
+        createTestChange('hash-1', 'node-1', 1),
+        createTestChange('hash-2', 'node-1', 5),
+        createTestChange('hash-3', 'node-2', 3),
+        createTestChange('hash-4', 'node-2', 9)
+      ])
+
+      const lastChanges = await adapter.getLastChangesByNodeId([
+        'node-2',
+        'missing-node',
+        'node-1',
+        'node-2'
+      ])
+
+      expect(Array.from(lastChanges.keys())).toEqual(['node-2', 'node-1'])
+      expect(lastChanges.get('node-1')?.hash).toBe('cid:blake3:hash-2')
+      expect(lastChanges.get('node-2')?.hash).toBe('cid:blake3:hash-4')
+    })
+
+    it('appends multiple changes in one bulk write', async () => {
+      await createNodeForChange('node-1')
+      await createNodeForChange('node-2')
+
+      await adapter.appendChanges([
+        createTestChange('bulk-hash-1', 'node-1', 1),
+        createTestChange('bulk-hash-2', 'node-2', 2),
+        createTestChange('bulk-hash-3', 'node-1', 3)
+      ])
+
+      const changes = await adapter.getAllChanges()
+      expect(changes.map((change) => change.hash)).toEqual([
+        'cid:blake3:bulk-hash-1',
+        'cid:blake3:bulk-hash-2',
+        'cid:blake3:bulk-hash-3'
+      ])
     })
 
     it('deduplicates changes by hash', async () => {

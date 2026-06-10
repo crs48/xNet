@@ -1,6 +1,13 @@
 /**
  * Preload script - exposes xNet API to renderer
  */
+import type {
+  SocialImportArchivePreview,
+  SocialImportCommitJobRequest,
+  SocialImportCommitJobSnapshot,
+  SocialImportStageRequest,
+  SocialImportStageResult
+} from '../main/social-import-ipc'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
 
@@ -338,6 +345,29 @@ contextBridge.exposeInMainWorld('xnetTunnel', {
   }
 })
 
+contextBridge.exposeInMainWorld('xnetSocialImport', {
+  pickArchive: (): Promise<SocialImportArchivePreview | null> =>
+    ipcRenderer.invoke('xnet:social-import:pickArchive'),
+  queueArchiveForTest: (archivePath: string): Promise<SocialImportArchivePreview> =>
+    ipcRenderer.invoke('xnet:social-import:queueArchiveForTest', archivePath),
+  stageArchive: (request: SocialImportStageRequest): Promise<SocialImportStageResult> =>
+    ipcRenderer.invoke('xnet:social-import:stageArchive', request),
+  startCommitJob: (request: SocialImportCommitJobRequest): Promise<SocialImportCommitJobSnapshot> =>
+    ipcRenderer.invoke('xnet:social-import:startCommitJob', request),
+  listCommitJobs: (): Promise<SocialImportCommitJobSnapshot[]> =>
+    ipcRenderer.invoke('xnet:social-import:listCommitJobs'),
+  getCommitJob: (jobId: string): Promise<SocialImportCommitJobSnapshot | null> =>
+    ipcRenderer.invoke('xnet:social-import:getCommitJob', jobId),
+  cancelCommitJob: (jobId: string): Promise<SocialImportCommitJobSnapshot | null> =>
+    ipcRenderer.invoke('xnet:social-import:cancelCommitJob', jobId),
+  onCommitJob: (callback: (job: SocialImportCommitJobSnapshot) => void) => {
+    const handler = (_: unknown, job: SocialImportCommitJobSnapshot) => callback(job)
+    ipcRenderer.on('xnet:social-import:job', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener('xnet:social-import:job', handler as (...args: unknown[]) => void)
+  }
+})
+
 // ─── Node Storage IPC API ────────────────────────────────────────────────────
 // Routes NodeStore operations to the data process SQLite database via IPC.
 // This enables persistent node storage in Electron (replacing MemoryNodeStorageAdapter).
@@ -354,6 +384,8 @@ contextBridge.exposeInMainWorld('xnetNodes', {
 
   // Materialized state operations
   getNode: (id: string) => ipcRenderer.invoke('xnet:nodes:getNode', { id }),
+  getExistingNodeIds: (ids: string[]) =>
+    ipcRenderer.invoke('xnet:nodes:getExistingNodeIds', { ids }),
   setNode: (node: unknown, options?: unknown) =>
     ipcRenderer.invoke('xnet:nodes:setNode', { node, options }),
   deleteNode: (id: string) => ipcRenderer.invoke('xnet:nodes:deleteNode', { id }),
@@ -389,6 +421,17 @@ export interface XNetAPI {
   onNewPage(callback: () => void): () => void
   onDevToolsToggle(callback: () => void): () => void
   onSharePayload(callback: (payload: string) => void): () => void
+}
+
+export interface XNetSocialImportAPI {
+  pickArchive(): Promise<SocialImportArchivePreview | null>
+  queueArchiveForTest(archivePath: string): Promise<SocialImportArchivePreview>
+  stageArchive(request: SocialImportStageRequest): Promise<SocialImportStageResult>
+  startCommitJob(request: SocialImportCommitJobRequest): Promise<SocialImportCommitJobSnapshot>
+  listCommitJobs(): Promise<SocialImportCommitJobSnapshot[]>
+  getCommitJob(jobId: string): Promise<SocialImportCommitJobSnapshot | null>
+  cancelCommitJob(jobId: string): Promise<SocialImportCommitJobSnapshot | null>
+  onCommitJob(callback: (job: SocialImportCommitJobSnapshot) => void): () => void
 }
 
 export interface XNetStorybookStatus {
@@ -526,6 +569,7 @@ export interface XNetNodesAPI {
 
   // Materialized state operations
   getNode(id: string): Promise<unknown | null>
+  getExistingNodeIds(ids: string[]): Promise<string[]>
   setNode(node: unknown, options?: unknown): Promise<void>
   deleteNode(id: string): Promise<void>
   listNodes(options?: unknown): Promise<unknown[]>
@@ -551,6 +595,7 @@ declare global {
     xnetServices: XNetServicesAPI
     xnetLocalAPI: XNetLocalAPIAPI
     xnetTunnel: XNetTunnelAPI
+    xnetSocialImport: XNetSocialImportAPI
     xnetNodes: XNetNodesAPI
   }
 }

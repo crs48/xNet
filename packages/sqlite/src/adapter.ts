@@ -2,7 +2,15 @@
  * @xnetjs/sqlite - SQLite adapter interface definitions
  */
 
-import type { SQLValue, SQLRow, RunResult, SQLiteConfig } from './types'
+import type {
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteConfig,
+  SQLiteOperationStats,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
+} from './types'
 
 /**
  * Unified SQLite adapter interface.
@@ -96,6 +104,23 @@ export interface SQLiteAdapter {
   transaction<T>(fn: () => Promise<T>): Promise<T>
 
   /**
+   * Execute a list of SQL statements inside one transaction.
+   *
+   * This is primarily for proxy/worker-backed adapters where a callback
+   * transaction would cross a serialization boundary. Implementations should
+   * execute all operations atomically and roll back on the first failure.
+   */
+  transactionBatch?(operations: Array<{ sql: string; params?: SQLValue[] }>): Promise<void>
+
+  /**
+   * Execute a node-store batch using compact typed row payloads.
+   *
+   * Worker-backed adapters can use this to avoid transferring a very large
+   * array of repeated SQL strings over Comlink.
+   */
+  applyNodeBatch?(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult>
+
+  /**
    * Begin a manual transaction.
    * Must be followed by commit() or rollback().
    */
@@ -170,6 +195,16 @@ export interface SQLiteAdapter {
    * or 'memory' if using in-memory fallback.
    */
   getStorageMode(): Promise<'opfs' | 'memory'> | 'opfs' | 'memory'
+
+  /**
+   * Optional cumulative operation counters for import diagnostics.
+   */
+  getOperationStats?(): Promise<SQLiteOperationStats> | SQLiteOperationStats
+
+  /**
+   * Reset cumulative operation counters when starting a focused measurement.
+   */
+  resetOperationStats?(): Promise<void> | void
 }
 
 /**

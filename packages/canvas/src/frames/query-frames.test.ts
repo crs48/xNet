@@ -1,11 +1,18 @@
+import type { SavedViewDescriptor } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import { applyCanvasFrameVariant, createCanvasFrameVariantNode } from './frame-variants'
 import {
   createCanvasQueryFrameDefinition,
+  createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameNode,
+  createCanvasQueryFrameResultPreview,
+  createCanvasQueryFrameResultSummaryFromExecution,
   getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary,
   isCanvasQueryFrameNode,
+  shouldRefreshCanvasQueryFrameResult,
+  updateCanvasQueryFrameResults,
   updateCanvasQueryFrameResultSummary
 } from './query-frames'
 
@@ -53,6 +60,64 @@ describe('query frame helpers', () => {
     expect(definition.sorts).toEqual([{ field: 'closeDate', direction: 'asc' }])
   })
 
+  it('creates query frame definitions from saved view descriptors', () => {
+    const descriptor: SavedViewDescriptor = {
+      version: 1,
+      title: 'YouTube Saves Lens',
+      scope: 'workspace',
+      query: {
+        version: 1,
+        kind: 'node',
+        schemaId: 'xnet://xnet.fyi/SocialContent@1.0.0',
+        predicate: {
+          kind: 'and',
+          predicates: [
+            { kind: 'comparison', field: 'platform', op: 'in', values: ['youtube'] },
+            {
+              kind: 'comparison',
+              field: 'publishedAt',
+              op: 'between',
+              values: [1704067200000, 1704153599999]
+            }
+          ]
+        },
+        orderBy: [{ field: 'publishedAt', direction: 'desc' }],
+        page: { first: 50, count: 'estimate' }
+      }
+    }
+
+    const definition = createCanvasQueryFrameDefinitionFromSavedView({
+      viewId: 'saved-view-1',
+      descriptor
+    })
+
+    expect(definition).toMatchObject({
+      source: 'schema',
+      label: 'YouTube Saves Lens',
+      viewId: 'saved-view-1',
+      schemaId: 'xnet://xnet.fyi/SocialContent@1.0.0',
+      limit: 50,
+      refreshMode: 'manual',
+      materialization: 'virtual',
+      resultCardKind: 'saved-view.result-card'
+    })
+    expect(definition.filters).toEqual([
+      { field: 'platform', operator: 'in', value: ['youtube'] },
+      {
+        field: 'publishedAt',
+        operator: 'greater-than-or-equal',
+        value: 1704067200000
+      },
+      {
+        field: 'publishedAt',
+        operator: 'less-than-or-equal',
+        value: 1704153599999
+      }
+    ])
+    expect(definition.sorts).toEqual([{ field: 'publishedAt', direction: 'desc' }])
+    expect(definition.queryText).toBe(JSON.stringify(descriptor))
+  })
+
   it('creates query-backed frame nodes with result summaries', () => {
     const frame = createCanvasQueryFrameNode({
       viewport,
@@ -67,6 +132,18 @@ describe('query frame helpers', () => {
         visibleCount: 8,
         stale: true,
         sourceVersion: 'v7'
+      },
+      resultPreview: {
+        cards: [
+          {
+            id: 'po-1',
+            title: 'PO-1001',
+            subtitle: 'Vendor A',
+            eyebrow: 'Purchase order',
+            badges: ['open', 'urgent']
+          }
+        ],
+        overflowCount: 3
       }
     })
 
@@ -91,6 +168,18 @@ describe('query frame helpers', () => {
       visibleCount: 8,
       stale: true,
       sourceVersion: 'v7'
+    })
+    expect(getCanvasQueryFrameResultPreview(frame)).toEqual({
+      cards: [
+        {
+          id: 'po-1',
+          title: 'PO-1001',
+          subtitle: 'Vendor A',
+          eyebrow: 'Purchase order',
+          badges: ['open', 'urgent']
+        }
+      ],
+      overflowCount: 3
     })
   })
 
@@ -138,5 +227,191 @@ describe('query frame helpers', () => {
     expect(updateCanvasQueryFrameResultSummary(standard, { totalCount: 2 })).toBe(standard)
     expect(standard.properties.queryDefinition).toBeUndefined()
     expect(standard.properties.queryResultSummary).toBeUndefined()
+  })
+
+  it('normalizes and updates query result previews', () => {
+    const preview = createCanvasQueryFrameResultPreview({
+      cards: [
+        {
+          id: ' row-1 ',
+          title: ' First row ',
+          subtitle: ' Social content ',
+          eyebrow: ' Content ',
+          description: 'Loaded from an imported archive',
+          sourceNodeId: ' social-content-1 ',
+          schemaId: ' xnet://xnet.fyi/SocialContent@1.0.0 ',
+          href: ' https://example.com/post ',
+          badges: [' instagram ', 'public', 'instagram']
+        },
+        {
+          id: 'missing-title',
+          title: '',
+          badges: ['ignored']
+        }
+      ],
+      overflowCount: 2
+    })
+    const frame = createCanvasQueryFrameNode({
+      viewport,
+      query: {
+        source: 'schema',
+        label: 'Social content'
+      }
+    })
+    const updated = updateCanvasQueryFrameResults(frame, {
+      summary: { totalCount: 3, visibleCount: 1, status: 'success' },
+      preview
+    })
+    const standard = applyCanvasFrameVariant(frame, 'standard')
+
+    expect(preview).toEqual({
+      cards: [
+        {
+          id: 'row-1',
+          title: 'First row',
+          subtitle: 'Social content',
+          eyebrow: 'Content',
+          description: 'Loaded from an imported archive',
+          sourceNodeId: 'social-content-1',
+          schemaId: 'xnet://xnet.fyi/SocialContent@1.0.0',
+          href: 'https://example.com/post',
+          badges: ['instagram', 'public']
+        }
+      ],
+      overflowCount: 2
+    })
+    expect(getCanvasQueryFrameResultSummary(updated)).toMatchObject({
+      totalCount: 3,
+      visibleCount: 1,
+      status: 'success'
+    })
+    expect(getCanvasQueryFrameResultPreview(updated)).toEqual(preview)
+    expect(updateCanvasQueryFrameResults(standard, { summary: { totalCount: 1 }, preview })).toBe(
+      standard
+    )
+  })
+
+  it('folds saved-view query execution snapshots into frame result summaries', () => {
+    const summary = createCanvasQueryFrameResultSummaryFromExecution({
+      now: '2026-05-26T00:00:00.000Z',
+      queries: [
+        {
+          status: 'success',
+          totalCount: 10,
+          visibleCount: 4,
+          contentHash: 'hash-a'
+        },
+        {
+          status: 'success',
+          totalCount: 5,
+          visibleCount: 5,
+          contentHash: 'hash-b'
+        }
+      ]
+    })
+    const loading = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: [{ loading: true, visibleCount: 2 }]
+    })
+    const error = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: [{ status: 'error', errorMessage: 'Schema not registered' }]
+    })
+
+    expect(summary).toMatchObject({
+      totalCount: 15,
+      visibleCount: 9,
+      stale: false,
+      status: 'success',
+      contentHash: 'hash-a|hash-b',
+      lastUpdatedAt: '2026-05-26T00:00:00.000Z'
+    })
+    expect(loading).toMatchObject({
+      totalCount: 2,
+      visibleCount: 2,
+      stale: true,
+      status: 'loading'
+    })
+    expect(error).toMatchObject({
+      totalCount: 0,
+      visibleCount: 0,
+      stale: true,
+      status: 'error',
+      errorMessage: 'Schema not registered'
+    })
+  })
+
+  it('decides refresh behavior for manual, on-open, and live query frames', () => {
+    const currentSummary = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: [{ status: 'success', totalCount: 2, visibleCount: 2, contentHash: 'hash-a' }]
+    })
+    const nextSummary = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: [{ status: 'success', totalCount: 3, visibleCount: 3, contentHash: 'hash-b' }]
+    })
+    const currentPreview = createCanvasQueryFrameResultPreview({
+      cards: [{ id: 'row-1', title: 'First row' }]
+    })
+    const nextPreview = createCanvasQueryFrameResultPreview({
+      cards: [{ id: 'row-2', title: 'Second row' }]
+    })
+
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'manual',
+        trigger: 'result-change',
+        currentSummary,
+        nextSummary,
+        currentPreview,
+        nextPreview
+      })
+    ).toBe(false)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'manual',
+        trigger: 'manual',
+        currentSummary,
+        nextSummary: currentSummary,
+        currentPreview,
+        nextPreview: currentPreview
+      })
+    ).toBe(true)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'on-open',
+        trigger: 'open',
+        currentSummary,
+        nextSummary,
+        currentPreview,
+        nextPreview
+      })
+    ).toBe(true)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'on-open',
+        trigger: 'result-change',
+        currentSummary,
+        nextSummary,
+        currentPreview,
+        nextPreview
+      })
+    ).toBe(false)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'live',
+        trigger: 'result-change',
+        currentSummary,
+        nextSummary,
+        currentPreview,
+        nextPreview
+      })
+    ).toBe(true)
+    expect(
+      shouldRefreshCanvasQueryFrameResult({
+        refreshMode: 'live',
+        trigger: 'result-change',
+        currentSummary,
+        nextSummary: currentSummary,
+        currentPreview,
+        nextPreview: currentPreview
+      })
+    ).toBe(false)
   })
 })

@@ -21,6 +21,8 @@ import {
 } from '@xnetjs/react'
 import {
   checkBrowserSupport,
+  checkPersistentStorage,
+  isSQLiteCorruptionError,
   requestPersistentStorage,
   showUnsupportedBrowserMessage,
   SCHEMA_VERSION,
@@ -31,6 +33,12 @@ import { ThemeProvider } from '@xnetjs/ui'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
+import {
+  clearXNetBrowserStorage,
+  clearXNetBrowserStorageResetRequest,
+  shouldResetXNetBrowserStorageOnLoad,
+  subscribeXNetStorageCorruption
+} from './lib/browser-storage-reset'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -58,6 +66,18 @@ type SharedHubSession = {
   endpoint: string
   token: string
   exp: number
+}
+
+type BrowserFamily = 'chromium' | 'firefox' | 'safari' | 'other'
+
+type BeforeInstallPromptUserChoice = {
+  outcome: 'accepted' | 'dismissed'
+  platform: string
+}
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<BeforeInstallPromptUserChoice>
 }
 
 function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | null } {
@@ -100,6 +120,148 @@ function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | 
   }
 }
 
+function detectBrowserFamily(): BrowserFamily {
+  if (typeof navigator === 'undefined') {
+    return 'other'
+  }
+
+  const userAgent = navigator.userAgent
+  const isChromium =
+    /Chrome|Chromium|Edg|OPR/i.test(userAgent) &&
+    !/Firefox|FxiOS|Safari\/.*Version/i.test(userAgent)
+  const isFirefox = /Firefox|FxiOS/i.test(userAgent)
+  const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(userAgent)
+
+  if (isChromium) return 'chromium'
+  if (isFirefox) return 'firefox'
+  if (isSafari) return 'safari'
+  return 'other'
+}
+
+function isStandaloneWebApp(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return false
+  }
+
+  return (
+    window.matchMedia?.('(display-mode: standalone)').matches === true ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  )
+}
+
+function getStorageRecoveryItems(input: {
+  browserFamily: BrowserFamily
+  installAvailable: boolean
+  isInstalled: boolean
+  storageStatus: PersistentStorageStatus
+}): string[] {
+  const { browserFamily, installAvailable, isInstalled, storageStatus } = input
+
+  if (storageStatus.state !== 'not-granted') {
+    return []
+  }
+
+  const common = storageStatus.requested
+    ? ['Browsers do not expose an override after they decline this request.']
+    : ['Browsers decide durable-storage requests from install and engagement signals.']
+  const localhostHint =
+    typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? [
+          'Localhost can be stricter than a real HTTPS app origin for install and engagement heuristics.'
+        ]
+      : []
+
+  if (browserFamily === 'safari') {
+    return [
+      ...common,
+      'Safari usually needs xNet installed first. On macOS, use Share > Add to Dock, open xNet from the Dock, then retry.',
+      'On iPhone or iPad, use Share > Add to Home Screen, open xNet from the Home Screen, then retry.',
+      ...localhostHint
+    ]
+  }
+
+  if (browserFamily === 'chromium') {
+    return [
+      ...common,
+      installAvailable && !isInstalled
+        ? 'Install xNet with the Install app button, open the installed app, then retry durable storage.'
+        : 'If install is unavailable, use the browser install icon or bookmark xNet, keep using it, then retry.',
+      ...localhostHint
+    ]
+  }
+
+  if (browserFamily === 'firefox') {
+    return [
+      ...common,
+      'Firefox may show a persistent-storage permission prompt. Allow it if prompted, then retry.',
+      ...localhostHint
+    ]
+  }
+
+  return [
+    ...common,
+    'Install or bookmark xNet, keep using it from the same browser profile, then retry durable storage.',
+    ...localhostHint
+  ]
+}
+
+function useWebInstallPrompt(): {
+  canInstall: boolean
+  isInstalled: boolean
+  promptInstall: () => Promise<BeforeInstallPromptUserChoice | null>
+} {
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [isInstalled, setIsInstalled] = useState(() => isStandaloneWebApp())
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault()
+      setInstallPrompt(event as BeforeInstallPromptEvent)
+    }
+
+    const handleAppInstalled = () => {
+      setInstallPrompt(null)
+      setIsInstalled(true)
+    }
+
+    const mediaQuery = window.matchMedia?.('(display-mode: standalone)')
+    const handleDisplayModeChange = () => setIsInstalled(isStandaloneWebApp())
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+    mediaQuery?.addEventListener?.('change', handleDisplayModeChange)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+      mediaQuery?.removeEventListener?.('change', handleDisplayModeChange)
+    }
+  }, [])
+
+  const promptInstall = useCallback(async (): Promise<BeforeInstallPromptUserChoice | null> => {
+    if (!installPrompt) {
+      return null
+    }
+
+    const prompt = installPrompt
+    setInstallPrompt(null)
+    await prompt.prompt()
+    const userChoice = await prompt.userChoice.catch(() => null)
+
+    if (userChoice?.outcome === 'accepted') {
+      setIsInstalled(true)
+    }
+
+    return userChoice
+  }, [installPrompt])
+
+  return {
+    canInstall: Boolean(installPrompt),
+    isInstalled,
+    promptInstall
+  }
+}
+
 // ─── Types ──────────────────────────────────────────────────────
 type AppState =
   | { status: 'initializing' }
@@ -107,6 +269,7 @@ type AppState =
   | { status: 'loading' }
   | { status: 'needs-onboarding'; storageWarning?: string; storageStatus?: PersistentStorageStatus }
   | { status: 'unlocking'; storageWarning?: string; storageStatus?: PersistentStorageStatus }
+  | { status: 'storage-corrupt'; error: Error }
   | {
       status: 'authenticated'
       identity: Identity
@@ -133,13 +296,38 @@ type StorageBannerDescriptor = {
   message: string
   usageBytes?: number
   quotaBytes?: number
+  actionLabel?: string
+  actionPendingLabel?: string
+  secondaryActionLabel?: string
+  secondaryActionPendingLabel?: string
+  detailItems?: string[]
+}
+
+function updateAppStorageStatus(
+  current: AppState,
+  storageStatus: PersistentStorageStatus
+): AppState {
+  switch (current.status) {
+    case 'needs-onboarding':
+    case 'unlocking':
+    case 'authenticated':
+      return { ...current, storageStatus }
+    default:
+      return current
+  }
 }
 
 function getStorageBanner(input: {
   storageWarning?: string
   storageStatus?: PersistentStorageStatus
+  browserFamily: BrowserFamily
+  installAvailable: boolean
+  isInstalled: boolean
 }): StorageBannerDescriptor | null {
-  const { storageWarning, storageStatus } = input
+  const { browserFamily, installAvailable, isInstalled, storageWarning, storageStatus } = input
+  const detailItems = storageStatus
+    ? getStorageRecoveryItems({ browserFamily, installAvailable, isInstalled, storageStatus })
+    : []
 
   if (storageWarning) {
     return {
@@ -150,7 +338,20 @@ function getStorageBanner(input: {
           ? `${storageWarning} ${storageStatus.message}`
           : storageWarning,
       usageBytes: storageStatus?.usageBytes,
-      quotaBytes: storageStatus?.quotaBytes
+      quotaBytes: storageStatus?.quotaBytes,
+      ...(storageStatus?.requestable
+        ? {
+            actionLabel: 'Enable durable storage',
+            actionPendingLabel: 'Requesting storage'
+          }
+        : {}),
+      ...(detailItems.length > 0 ? { detailItems } : {}),
+      ...(installAvailable && !isInstalled && storageStatus?.state === 'not-granted'
+        ? {
+            secondaryActionLabel: 'Install app',
+            secondaryActionPendingLabel: 'Opening install'
+          }
+        : {})
     }
   }
 
@@ -170,10 +371,27 @@ function getStorageBanner(input: {
     case 'not-granted':
       return {
         tone: 'warning',
-        title: 'Durable storage not granted',
+        title: storageStatus.requested
+          ? 'Browser declined durable storage'
+          : 'Enable durable local storage',
         message: storageStatus.message,
         usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes
+        quotaBytes: storageStatus.quotaBytes,
+        ...(storageStatus.requestable
+          ? {
+              actionLabel: storageStatus.requested
+                ? 'Retry durable storage'
+                : 'Enable durable storage',
+              actionPendingLabel: 'Requesting storage'
+            }
+          : {}),
+        ...(detailItems.length > 0 ? { detailItems } : {}),
+        ...(installAvailable && !isInstalled
+          ? {
+              secondaryActionLabel: 'Install app',
+              secondaryActionPendingLabel: 'Opening install'
+            }
+          : {})
       }
     case 'unsupported':
     case 'error':
@@ -198,6 +416,15 @@ function UnsupportedBrowser({ reason }: { reason: string }): JSX.Element {
 // ─── Main App ───────────────────────────────────────────────────
 export function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: 'initializing' })
+  const [isRequestingStorage, setIsRequestingStorage] = useState(false)
+  const [isInstallingApp, setIsInstallingApp] = useState(false)
+  const [isResettingStorage, setIsResettingStorage] = useState(false)
+  const [browserFamily] = useState(() => detectBrowserFamily())
+  const {
+    canInstall: canInstallApp,
+    isInstalled: isInstalledApp,
+    promptInstall
+  } = useWebInstallPrompt()
   const [{ hubUrl, authToken }] = useState(() => resolveHubSessionFromLocation())
   const storageRef = useRef<StorageContext | null>(null)
 
@@ -209,6 +436,11 @@ export function App(): JSX.Element {
 
     async function initialize() {
       try {
+        if (shouldResetXNetBrowserStorageOnLoad()) {
+          clearXNetBrowserStorageResetRequest()
+          await clearXNetBrowserStorage()
+        }
+
         // Check browser support first
         const support = await checkBrowserSupport()
 
@@ -219,7 +451,7 @@ export function App(): JSX.Element {
         }
 
         const storageWarning = support.warning
-        const storageStatus = await requestPersistentStorage()
+        const storageStatus = await checkPersistentStorage()
 
         // Dynamically import the web proxy to enable code splitting
         const { WebSQLiteProxy } = await import('@xnetjs/sqlite/web-proxy')
@@ -295,10 +527,21 @@ export function App(): JSX.Element {
         }
       } catch (err) {
         if (cancelled) return
+        await cleanupStorageAdapter?.close().catch(console.error)
+        await cleanupAdapter?.close().catch(console.error)
+        cleanupStorageAdapter = null
+        cleanupAdapter = null
+
         console.error('[App] Initialization failed:', err)
+        const error = err instanceof Error ? err : new Error(String(err))
+        if (isSQLiteCorruptionError(error)) {
+          setAppState({ status: 'storage-corrupt', error })
+          return
+        }
+
         setAppState({
           status: 'error',
-          error: err instanceof Error ? err : new Error(String(err))
+          error
         })
       }
     }
@@ -320,6 +563,18 @@ export function App(): JSX.Element {
     }
   }, [])
 
+  useEffect(() => {
+    return subscribeXNetStorageCorruption((error) => {
+      const storage = storageRef.current
+      storageRef.current = null
+
+      void storage?.storageAdapter.close().catch(console.error)
+      void storage?.sqliteAdapter.close().catch(console.error)
+
+      setAppState({ status: 'storage-corrupt', error })
+    })
+  }, [])
+
   // Handle onboarding completion
   const handleOnboardingComplete = useCallback((identity: Identity, keyBundle: KeyBundle) => {
     setAppState((current) => ({
@@ -329,6 +584,60 @@ export function App(): JSX.Element {
       storageWarning: 'storageWarning' in current ? current.storageWarning : undefined,
       storageStatus: 'storageStatus' in current ? current.storageStatus : undefined
     }))
+  }, [])
+
+  const handleRequestPersistentStorage = useCallback(async () => {
+    setIsRequestingStorage(true)
+
+    try {
+      const storageStatus = await requestPersistentStorage()
+      setAppState((current) => updateAppStorageStatus(current, storageStatus))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setAppState((current) =>
+        updateAppStorageStatus(current, {
+          supported: true,
+          persisted: null,
+          granted: null,
+          requested: true,
+          requestable: true,
+          state: 'error',
+          message: `xNet could not confirm durable storage (${message}). Local data may still work, but persistence guarantees are unclear.`
+        })
+      )
+    } finally {
+      setIsRequestingStorage(false)
+    }
+  }, [])
+
+  const handleInstallApp = useCallback(async () => {
+    setIsInstallingApp(true)
+
+    try {
+      const userChoice = await promptInstall()
+
+      if (userChoice?.outcome === 'accepted') {
+        const storageStatus = await checkPersistentStorage()
+        setAppState((current) => updateAppStorageStatus(current, storageStatus))
+      }
+    } finally {
+      setIsInstallingApp(false)
+    }
+  }, [promptInstall])
+
+  const handleResetCorruptStorage = useCallback(async () => {
+    setIsResettingStorage(true)
+
+    try {
+      await clearXNetBrowserStorage()
+      window.location.reload()
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      console.error('[App] Failed to reset corrupt storage:', error)
+      setAppState({ status: 'error', error })
+    } finally {
+      setIsResettingStorage(false)
+    }
   }, [])
 
   // ─── Render ─────────────────────────────────────────────────────
@@ -368,10 +677,23 @@ export function App(): JSX.Element {
 
   // Unlocking state (Touch ID prompt)
   if (appState.status === 'unlocking') {
-    const storageBanner = getStorageBanner(appState)
+    const storageBanner = getStorageBanner({
+      ...appState,
+      browserFamily,
+      installAvailable: canInstallApp,
+      isInstalled: isInstalledApp
+    })
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-        {storageBanner && <StorageWarningBanner {...storageBanner} />}
+        {storageBanner && (
+          <StorageWarningBanner
+            {...storageBanner}
+            actionPending={isRequestingStorage}
+            onAction={storageBanner.actionLabel ? handleRequestPersistentStorage : undefined}
+            secondaryActionPending={isInstallingApp}
+            onSecondaryAction={storageBanner.secondaryActionLabel ? handleInstallApp : undefined}
+          />
+        )}
         <div className="flex items-center justify-center h-screen bg-background">
           <div className="text-center">
             <div className="text-4xl mb-4">🔐</div>
@@ -404,12 +726,63 @@ export function App(): JSX.Element {
     )
   }
 
-  // Onboarding flow
-  if (appState.status === 'needs-onboarding') {
-    const storageBanner = getStorageBanner(appState)
+  if (appState.status === 'storage-corrupt') {
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-        {storageBanner && <StorageWarningBanner {...storageBanner} />}
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="max-w-lg p-6 text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h1 className="text-xl font-semibold mb-2 text-destructive">
+              Local database needs recovery
+            </h1>
+            <p className="text-muted-foreground mb-4">
+              SQLite reported a malformed local database. Resetting removes local xNet data in this
+              browser and creates a fresh database.
+            </p>
+            <p className="text-xs text-muted-foreground mb-6 break-words">
+              {appState.error.message}
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={handleResetCorruptStorage}
+                disabled={isResettingStorage}
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 disabled:opacity-60"
+              >
+                {isResettingStorage ? 'Resetting...' : 'Reset local database'}
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                disabled={isResettingStorage}
+                className="px-4 py-2 border border-border rounded-md hover:bg-accent disabled:opacity-60"
+              >
+                Reload
+              </button>
+            </div>
+          </div>
+        </div>
+      </ThemeProvider>
+    )
+  }
+
+  // Onboarding flow
+  if (appState.status === 'needs-onboarding') {
+    const storageBanner = getStorageBanner({
+      ...appState,
+      browserFamily,
+      installAvailable: canInstallApp,
+      isInstalled: isInstalledApp
+    })
+    return (
+      <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
+        {storageBanner && (
+          <StorageWarningBanner
+            {...storageBanner}
+            actionPending={isRequestingStorage}
+            onAction={storageBanner.actionLabel ? handleRequestPersistentStorage : undefined}
+            secondaryActionPending={isInstallingApp}
+            onSecondaryAction={storageBanner.secondaryActionLabel ? handleInstallApp : undefined}
+          />
+        )}
         <OnboardingProvider defaultHubUrl={hubUrl} onComplete={handleOnboardingComplete}>
           <OnboardingFlow />
         </OnboardingProvider>
@@ -419,12 +792,25 @@ export function App(): JSX.Element {
 
   // Authenticated — render main app
   const { identity, keyBundle } = appState
-  const storageBanner = getStorageBanner(appState)
+  const storageBanner = getStorageBanner({
+    ...appState,
+    browserFamily,
+    installAvailable: canInstallApp,
+    isInstalled: isInstalledApp
+  })
   const storage = storageRef.current!
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-      {storageBanner && <StorageWarningBanner {...storageBanner} />}
+      {storageBanner && (
+        <StorageWarningBanner
+          {...storageBanner}
+          actionPending={isRequestingStorage}
+          onAction={storageBanner.actionLabel ? handleRequestPersistentStorage : undefined}
+          secondaryActionPending={isInstallingApp}
+          onSecondaryAction={storageBanner.secondaryActionLabel ? handleInstallApp : undefined}
+        />
+      )}
       <ErrorBoundary>
         <XNetProvider
           config={{

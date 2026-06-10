@@ -19,8 +19,10 @@ import {
   type CanvasViewHandle
 } from './components/CanvasView'
 import { DatabaseView } from './components/DatabaseView'
+import { DataWorkspaceView, type SavedViewCanvasFrameInput } from './components/DataWorkspaceView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
+import { SocialImportView } from './components/SocialImportView'
 import { StorybookView } from './components/StorybookView'
 import { SystemMenu } from './components/SystemMenu'
 
@@ -38,6 +40,8 @@ type ShellState =
   | { kind: 'database-focus'; docId: string; returnViewport: ViewportSnapshot | null }
   | { kind: 'database-split'; docId: string }
   | { kind: 'settings' }
+  | { kind: 'data-workspace' }
+  | { kind: 'social-import' }
   | { kind: 'stories' }
 
 type DocumentItem = {
@@ -58,6 +62,7 @@ const EMPTY_CANVAS_COMMAND_STATE: CanvasViewCommandState = {
   selectedSourceType: null,
   selectedDisplayType: null,
   selectedTitle: null,
+  selectedIsQueryFrame: false,
   selectionAllLocked: false,
   selectionAnyLocked: false,
   shortcutHelpOpen: false
@@ -351,6 +356,8 @@ export function App(): React.ReactElement {
     if (shellState.kind === 'page-focus') return 'Document'
     if (shellState.kind === 'database-focus') return 'Database'
     if (shellState.kind === 'settings') return 'Settings'
+    if (shellState.kind === 'data-workspace') return 'Data Workspace'
+    if (shellState.kind === 'social-import') return 'Social Import'
     if (shellState.kind === 'stories') return 'Stories'
     return null
   }, [shellState.kind])
@@ -370,6 +377,37 @@ export function App(): React.ReactElement {
     clearTransitionTimer()
     setShellState({ kind: 'settings' })
   }, [clearTransitionTimer])
+
+  const handleOpenSocialImport = useCallback(() => {
+    clearTransitionTimer()
+    setShellState({ kind: 'social-import' })
+  }, [clearTransitionTimer])
+
+  const handleOpenDataWorkspace = useCallback(() => {
+    clearTransitionTimer()
+    setShellState({ kind: 'data-workspace' })
+  }, [clearTransitionTimer])
+
+  const handleInsertSavedLensAsCanvasFrame = useCallback(
+    (view: SavedViewCanvasFrameInput) => {
+      const inserted =
+        canvasViewRef.current?.createQueryFrameFromSavedView({
+          viewId: view.id,
+          title: view.title ?? 'Saved lens',
+          descriptorJson: view.descriptor ?? null
+        }) ?? false
+
+      if (!inserted) {
+        console.error('Failed to insert saved lens as a canvas query frame', view.id)
+        return
+      }
+
+      clearTransitionTimer()
+      setShellState({ kind: 'canvas-home' })
+      setActiveNodeId(homeCanvasId)
+    },
+    [clearTransitionTimer, homeCanvasId, setActiveNodeId]
+  )
 
   const handleOpenStories = useCallback(() => {
     if (!STORIES_ENABLED) return
@@ -459,6 +497,21 @@ export function App(): React.ReactElement {
         when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
         execute: () => {
           canvasViewRef.current?.wrapSelectionInFrame()
+        }
+      },
+      {
+        id: 'canvas-refresh-query-frame',
+        name: 'Refresh Query Frame',
+        description:
+          canvasCommandState.selectedTitle && canvasCommandState.selectedIsQueryFrame
+            ? `Refresh ${canvasCommandState.selectedTitle}`
+            : 'Refresh the selected query frame',
+        icon: 'refresh-cw',
+        group: 'Canvas',
+        keywords: ['refresh', 'query', 'frame', 'lens', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectedIsQueryFrame,
+        execute: () => {
+          canvasViewRef.current?.refreshSelectedQueryFrame()
         }
       },
       {
@@ -806,6 +859,24 @@ export function App(): React.ReactElement {
         icon: 'settings',
         execute: handleOpenSettings
       },
+      {
+        id: 'open-social-import',
+        name: 'Import Social Archive',
+        description: 'Open the social graph archive importer',
+        icon: 'upload',
+        group: 'Data',
+        keywords: ['social', 'archive', 'instagram', 'grok', 'import'],
+        execute: handleOpenSocialImport
+      },
+      {
+        id: 'open-data-workspace',
+        name: 'Open Data Workspace',
+        description: 'Explore saved views, graph lenses, and imported data counts',
+        icon: 'database',
+        group: 'Data',
+        keywords: ['data', 'workspace', 'social', 'saved views', 'lenses'],
+        execute: handleOpenDataWorkspace
+      },
       ...(STORIES_ENABLED
         ? [
             {
@@ -836,11 +907,14 @@ export function App(): React.ReactElement {
       handleCreateCanvasNote,
       handleCreateLinkedDocument,
       handleOpenDocument,
+      handleOpenDataWorkspace,
       handleOpenSettings,
+      handleOpenSocialImport,
       handleOpenStories,
       canvasCommandState,
       isCanvasInteractiveShell,
-      recentDocuments
+      recentDocuments,
+      shellState.kind
     ]
   )
 
@@ -869,6 +943,32 @@ export function App(): React.ReactElement {
         <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
           <div className={overlaySurfaceClassName}>
             <StorybookView />
+          </div>
+        </div>
+      )
+    }
+
+    if (shellState.kind === 'social-import') {
+      return (
+        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className={overlaySurfaceClassName}>
+            <SocialImportView
+              onClose={handleReturnHome}
+              onOpenDataWorkspace={handleOpenDataWorkspace}
+            />
+          </div>
+        </div>
+      )
+    }
+
+    if (shellState.kind === 'data-workspace') {
+      return (
+        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className={overlaySurfaceClassName}>
+            <DataWorkspaceView
+              onClose={handleReturnHome}
+              onInsertSavedLensAsCanvasFrame={handleInsertSavedLensAsCanvasFrame}
+            />
           </div>
         </div>
       )
@@ -967,6 +1067,8 @@ export function App(): React.ReactElement {
             recentDocuments={recentDocuments}
             onOpenDocument={handleOpenDocument}
             onOpenSettings={handleOpenSettings}
+            onOpenDataWorkspace={handleOpenDataWorkspace}
+            onOpenSocialImport={handleOpenSocialImport}
             onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
             onAddShared={() => {
               setPrefilledShareValue('')

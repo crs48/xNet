@@ -8,6 +8,7 @@
 import type { SQLiteAdapter, PreparedStatement } from '../adapter'
 import type { SQLValue, SQLRow, RunResult, SQLiteConfig } from '../types'
 import type Database from 'better-sqlite3'
+import { isSQLiteCorruptionError } from '../errors'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 
 // better-sqlite3 is imported dynamically to avoid bundling in web
@@ -161,8 +162,42 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
       await this.commit()
       return result
     } catch (err) {
-      await this.rollback()
+      if (this.inTransaction) {
+        try {
+          await this.rollback()
+        } catch (rollbackErr) {
+          if (isSQLiteCorruptionError(rollbackErr) && !isSQLiteCorruptionError(err)) {
+            throw rollbackErr
+          }
+        }
+      }
       throw err
+    }
+  }
+
+  async transactionBatch(operations: Array<{ sql: string; params?: SQLValue[] }>): Promise<void> {
+    this.ensureOpen()
+    if (operations.length === 0) return
+    if (this.inTransaction) {
+      throw new Error('Transaction already in progress')
+    }
+
+    let currentSql = operations[0].sql
+
+    try {
+      this.transactionSync(() => {
+        for (const operation of operations) {
+          currentSql = operation.sql
+          const stmt = this.getOrPrepare(operation.sql)
+          if (operation.params) {
+            stmt.run(...operation.params)
+          } else {
+            stmt.run()
+          }
+        }
+      })
+    } catch (err) {
+      throw this.wrapError(err, currentSql)
     }
   }
 
@@ -191,8 +226,15 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
       throw new Error('No transaction in progress')
     }
 
-    this.db!.exec('COMMIT')
-    this.inTransaction = false
+    try {
+      this.db!.exec('COMMIT')
+      this.inTransaction = false
+    } catch (err) {
+      if (isSQLiteCorruptionError(err)) {
+        this.inTransaction = false
+      }
+      throw err
+    }
   }
 
   async rollback(): Promise<void> {
@@ -200,8 +242,11 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
       return // Silently ignore if no transaction (for cleanup in error handlers)
     }
 
-    this.db!.exec('ROLLBACK')
-    this.inTransaction = false
+    try {
+      this.db!.exec('ROLLBACK')
+    } finally {
+      this.inTransaction = false
+    }
   }
 
   async prepare(sql: string): Promise<PreparedStatement> {

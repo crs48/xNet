@@ -12,8 +12,18 @@
  * Events are sent to main process for relay to the appropriate window.
  */
 
+import type { DID } from '@xnetjs/core'
+import type {
+  ApplyNodeBatchResult,
+  DeterministicNodeImportDraft,
+  ImportDeterministicNodesResult,
+  NodeBatchWritePolicy,
+  NodeBatchWriteTimings,
+  NodeChange
+} from '@xnetjs/data'
 import { existsSync, unlinkSync } from 'fs'
 import { hashContent, createContentId } from '@xnetjs/core'
+import { NodeStore, SQLiteNodeStorageAdapter } from '@xnetjs/data'
 import { createElectronSQLiteAdapter, ElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import {
   signYjsUpdate,
@@ -132,6 +142,21 @@ interface SetNodeOptions {
   indexProperties?: boolean
 }
 
+type ImportDeterministicNodesOptions = {
+  drafts: DeterministicNodeImportDraft[]
+  authorDID: string
+  signingKey: number[]
+  policy?: Partial<NodeBatchWritePolicy>
+}
+
+type ImportDeterministicNodesSummary = {
+  batchId: string
+  created: number
+  updated: number
+  storage?: ApplyNodeBatchResult
+  timings: NodeBatchWriteTimings
+}
+
 export interface DataService {
   initialize(): Promise<void>
   shutdown(): Promise<void>
@@ -165,7 +190,11 @@ export interface DataService {
   getChangeByHash(hash: string): Promise<SerializedNodeChange | null>
   getLastChange(nodeId: string): Promise<SerializedNodeChange | null>
   getNode(id: string): Promise<SerializedNodeState | null>
+  getExistingNodeIds(ids: string[]): Promise<string[]>
   setNode(node: SerializedNodeState, options?: SetNodeOptions): Promise<void>
+  importDeterministicNodes(
+    options: ImportDeterministicNodesOptions
+  ): Promise<ImportDeterministicNodesSummary>
   deleteNode(id: string): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<SerializedNodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
@@ -1539,6 +1568,24 @@ export function createDataService(config: DataServiceConfig): DataService {
       }
     },
 
+    async getExistingNodeIds(ids: string[]): Promise<string[]> {
+      if (!adapter || ids.length === 0) return []
+
+      const existingIds: string[] = []
+      const uniqueIds = [...new Set(ids.filter(Boolean))]
+
+      for (const batch of chunkItems(uniqueIds, 900)) {
+        const placeholders = batch.map(() => '?').join(', ')
+        const rows = await adapter.query<{ id: string }>(
+          `SELECT id FROM nodes WHERE id IN (${placeholders})`,
+          batch
+        )
+        existingIds.push(...rows.map((row) => row.id))
+      }
+
+      return existingIds
+    },
+
     async setNode(node: SerializedNodeState, options?: SetNodeOptions): Promise<void> {
       if (!adapter) throw new Error('Database not initialized')
 
@@ -1596,6 +1643,40 @@ export function createDataService(config: DataServiceConfig): DataService {
       }
 
       log('setNode:', node.id, 'schema:', node.schemaId)
+    },
+
+    async importDeterministicNodes(
+      options: ImportDeterministicNodesOptions
+    ): Promise<ImportDeterministicNodesSummary> {
+      if (!adapter) throw new Error('Database not initialized')
+
+      const nodeStorage = new SQLiteNodeStorageAdapter(adapter)
+      await nodeStorage.open()
+
+      try {
+        const store = new NodeStore({
+          storage: nodeStorage,
+          authorDID: options.authorDID as DID,
+          signingKey: new Uint8Array(options.signingKey)
+        })
+        await store.initialize()
+
+        const result: ImportDeterministicNodesResult = await store.importDeterministicNodes(
+          options.drafts,
+          { indexMode: options.policy?.indexMode ?? 'touched' }
+        )
+        sendEvent('nodes:change', { changes: result.changes.map(serializeNodeChange) })
+
+        return {
+          batchId: result.batchId,
+          created: result.created,
+          updated: result.updated,
+          storage: result.storage,
+          timings: result.timings
+        }
+      } finally {
+        await nodeStorage.close()
+      }
     },
 
     async deleteNode(id: string): Promise<void> {
@@ -1725,6 +1806,32 @@ export function createDataService(config: DataServiceConfig): DataService {
 
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 
+function serializeNodeChange(change: NodeChange): SerializedNodeChange {
+  return {
+    protocolVersion: change.protocolVersion,
+    id: change.id,
+    type: change.type,
+    hash: change.hash,
+    payload: {
+      nodeId: change.payload.nodeId,
+      schemaId: change.payload.schemaId,
+      properties: change.payload.properties,
+      deleted: change.payload.deleted
+    },
+    lamport: {
+      time: change.lamport.time,
+      author: change.lamport.author
+    },
+    wallTime: change.wallTime,
+    authorDID: change.authorDID,
+    parentHash: change.parentHash,
+    batchId: change.batchId,
+    batchIndex: change.batchIndex,
+    batchSize: change.batchSize,
+    signature: Array.from(change.signature)
+  }
+}
+
 function rowToSerializedChange(row: {
   hash: string
   node_id: string
@@ -1759,4 +1866,12 @@ function rowToSerializedChange(row: {
     batchId: row.batch_id ?? undefined,
     signature: Array.from(row.signature)
   }
+}
+
+function chunkItems<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+  return chunks
 }

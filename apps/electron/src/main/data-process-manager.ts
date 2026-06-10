@@ -217,6 +217,14 @@ async function sendRequest(
   })
 }
 
+export function sendDataProcessRequest(
+  type: string,
+  payload: Record<string, unknown>,
+  timeout?: number
+): Promise<unknown> {
+  return sendRequest(type, payload, timeout)
+}
+
 /**
  * Handle messages from the utility process
  */
@@ -508,6 +516,11 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
   ipcMain.handle('xnet:nodes:getNode', async (_event, opts: { id: string }) => {
     const result = (await sendRequest('nodes:getNode', opts)) as { node: unknown | null }
     return result.node
+  })
+
+  ipcMain.handle('xnet:nodes:getExistingNodeIds', async (_event, opts: { ids: string[] }) => {
+    const result = (await sendRequest('nodes:getExistingNodeIds', opts)) as { ids: string[] }
+    return result.ids
   })
 
   ipcMain.handle(

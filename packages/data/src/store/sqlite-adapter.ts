@@ -14,11 +14,22 @@ import type {
   ListNodesOptions,
   CountNodesOptions,
   PropertyTimestamp,
-  SetNodeOptions
+  SetNodeOptions,
+  ImportNodesOptions,
+  RebuildNodeIndexesOptions,
+  ApplyNodeBatchInput,
+  ApplyNodeBatchResult,
+  NodeBatchPreflightResult
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
-import type { SQLiteAdapter, SQLValue, PreparedStatement } from '@xnetjs/sqlite'
+import type {
+  SQLiteAdapter,
+  SQLValue,
+  PreparedStatement,
+  SQLiteOperationStats,
+  SQLiteNodeBatchApplyInput
+} from '@xnetjs/sqlite'
 import {
   updateNodeFTS,
   deleteNodeFTS,
@@ -268,6 +279,8 @@ const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
   maxNodes: 1000,
   logFailures: true
 }
+const SQLITE_BIND_PARAMETER_BATCH_SIZE = 900
+const SQLITE_HYDRATE_NODE_BATCH_SIZE = Math.floor(SQLITE_BIND_PARAMETER_BATCH_SIZE / 2)
 
 function getMaterializedQueryRefreshReason(input: {
   cached: MaterializedQueryRow | null
@@ -296,6 +309,10 @@ function getMaterializedQueryRefreshReason(input: {
   }
 
   return undefined
+}
+
+function countPropertyRows(nodes: readonly NodeState[]): number {
+  return nodes.reduce((count, node) => count + Object.keys(node.properties).length, 0)
 }
 
 // ─── SQLiteNodeStorageAdapter ───────────────────────────────────────────────
@@ -335,6 +352,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private spatialTablesState: SpatialTablesState = 'unknown'
 
   private fullTextSearchTablesState: FullTextSearchTablesState = 'unknown'
+
+  private writeQueue: Promise<unknown> = Promise.resolve()
 
   constructor(
     private db: SQLiteAdapter,
@@ -385,9 +404,67 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return stmt
   }
 
+  private async enqueueWrite<T>(write: () => Promise<T>): Promise<T> {
+    const run = this.writeQueue.then(write, write)
+    this.writeQueue = run.catch(() => undefined)
+    return run
+  }
+
+  async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
+    return this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+
+      try {
+        const result = await fn(this.createTransactionStorageAdapter())
+        await this.db.commit()
+        return result
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  private createTransactionStorageAdapter(): NodeStorageAdapter {
+    const storage: NodeStorageAdapter = {
+      appendChange: (change) => this.appendChangeInternal(change),
+      getChanges: (nodeId) => this.getChanges(nodeId),
+      getAllChanges: () => this.getAllChanges(),
+      getChangesSince: (sinceLamport) => this.getChangesSince(sinceLamport),
+      getChangeByHash: (hash) => this.getChangeByHash(hash),
+      getLastChange: (nodeId) => this.getLastChange(nodeId),
+      getLastChangesByNodeId: (nodeIds) => this.getLastChangesByNodeId(nodeIds),
+      appendChanges: (changes) => this.appendChangesInternal(changes),
+      getNode: (id) => this.getNode(id),
+      getNodes: (ids) => this.getNodes(ids),
+      getExistingNodeIds: (ids) => this.getExistingNodeIds(ids),
+      setNode: (node, options) => this._setNodeInternal(node, options),
+      importNodes: (nodes, options) => this.importNodesInternal(nodes, options),
+      applyNodeBatch: (input) => this.applyNodeBatchInternal(input),
+      rebuildIndexesForSchemas: (schemaIds, options) =>
+        this.rebuildIndexesForSchemasInternal(schemaIds, options),
+      deleteNode: (id) => this.deleteNodeInternal(id),
+      listNodes: (options) => this.listNodes(options),
+      countNodes: (options) => this.countNodes(options),
+      getOperationStats: () => this.getOperationStats(),
+      resetOperationStats: () => this.resetOperationStats(),
+      getLastLamportTime: () => this.getLastLamportTime(),
+      setLastLamportTime: (time) => this.setLastLamportTimeInternal(time),
+      getDocumentContent: (nodeId) => this.getDocumentContent(nodeId),
+      setDocumentContent: (nodeId, content) => this.setDocumentContentInternal(nodeId, content)
+    }
+
+    storage.queryNodes = (descriptor) => this.queryNodes(descriptor)
+    return storage
+  }
+
   // ─── Change Log Operations ────────────────────────────────────────────────
 
   async appendChange(change: NodeChange): Promise<void> {
+    await this.enqueueWrite(() => this.appendChangeInternal(change))
+  }
+
+  private async appendChangeInternal(change: NodeChange): Promise<void> {
     const payload = this.serializePayload(change.payload)
 
     // Note: The schema uses 'lamport_peer' and 'author' columns but we adapt here
@@ -409,6 +486,27 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         change.signature
       ]
     )
+  }
+
+  async appendChanges(changes: readonly NodeChange[]): Promise<void> {
+    if (changes.length === 0) return
+
+    await this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.appendChangesInternal(changes)
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  private async appendChangesInternal(changes: readonly NodeChange[]): Promise<void> {
+    for (const change of changes) {
+      await this.appendChangeInternal(change)
+    }
   }
 
   async getChanges(nodeId: NodeId): Promise<NodeChange[]> {
@@ -470,6 +568,42 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return row ? this.deserializeChange(row) : null
   }
 
+  async getLastChangesByNodeId(nodeIds: readonly NodeId[]): Promise<Map<NodeId, NodeChange>> {
+    const uniqueIds = Array.from(new Set(nodeIds))
+    const changes = new Map<NodeId, NodeChange>()
+    if (uniqueIds.length === 0) return changes
+
+    for (const batch of chunkItems(uniqueIds, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
+      const placeholders = batch.map(() => '?').join(', ')
+      const rows = await this.db.query<ChangeRow>(
+        `SELECT hash, node_id, payload, lamport_time,
+                lamport_peer as lamport_author, wall_time,
+                author as author_did, parent_hash, batch_id, signature
+         FROM changes c
+         WHERE c.node_id IN (${placeholders})
+           AND c.hash = (
+             SELECT c2.hash
+             FROM changes c2
+             WHERE c2.node_id = c.node_id
+             ORDER BY c2.lamport_time DESC
+             LIMIT 1
+           )`,
+        batch
+      )
+
+      rows.forEach((row) => {
+        changes.set(row.node_id, this.deserializeChange(row))
+      })
+    }
+
+    return new Map(
+      uniqueIds.flatMap((nodeId): [NodeId, NodeChange][] => {
+        const change = changes.get(nodeId)
+        return change ? [[nodeId, change]] : []
+      })
+    )
+  }
+
   // ─── Materialized State Operations ────────────────────────────────────────
 
   async getNode(id: NodeId): Promise<NodeState | null> {
@@ -517,23 +651,68 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
   }
 
-  async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
-    // Use manual transaction control for web proxy compatibility
-    await this.db.beginTransaction()
-    try {
-      await this._setNodeInternal(node, options)
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
+  async getNodes(ids: readonly NodeId[]): Promise<NodeState[]> {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return []
+
+    const nodes: NodeState[] = []
+    for (const batch of chunkItems(uniqueIds, SQLITE_HYDRATE_NODE_BATCH_SIZE)) {
+      nodes.push(...(await this.hydrateNodesByIds(batch)))
     }
+    return nodes
+  }
+
+  async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
+    const uniqueIds = Array.from(new Set(ids))
+    if (uniqueIds.length === 0) return []
+
+    const existingIds = new Set<NodeId>()
+    for (const batch of chunkItems(uniqueIds, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
+      const placeholders = batch.map(() => '?').join(', ')
+      const rows = await this.db.query<{ id: string }>(
+        `SELECT id FROM nodes WHERE id IN (${placeholders})`,
+        batch
+      )
+      rows.forEach((row) => existingIds.add(row.id))
+    }
+
+    return uniqueIds.filter((id) => existingIds.has(id))
+  }
+
+  async getBatchPreflight(ids: readonly NodeId[]): Promise<NodeBatchPreflightResult> {
+    const [nodes, lastChangesByNodeId] = await Promise.all([
+      this.getNodes(ids),
+      this.getLastChangesByNodeId(ids)
+    ])
+
+    return {
+      nodesById: new Map(nodes.map((node) => [node.id, node])),
+      lastChangesByNodeId
+    }
+  }
+
+  async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
+    await this.enqueueWrite(async () => {
+      // Use manual transaction control for web proxy compatibility
+      await this.db.beginTransaction()
+      try {
+        await this._setNodeInternal(node, options)
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
   }
 
   /**
    * Internal method for setting a node without starting a new transaction.
    * Used by importNodes to avoid nested transactions.
    */
-  private async _setNodeInternal(node: NodeState, options?: SetNodeOptions): Promise<void> {
+  private async _setNodeInternal(
+    node: NodeState,
+    options?: SetNodeOptions | ImportNodesOptions
+  ): Promise<void> {
     // Upsert node
     await this.db.run(
       `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
@@ -579,7 +758,15 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       )
     }
 
-    const indexedNode = await this.getNode(node.id)
+    const deferIndexes = options ? 'deferIndexes' in options && options.deferIndexes : false
+    if (deferIndexes) {
+      return
+    }
+
+    const trustMaterializedState = options
+      ? 'trustMaterializedState' in options && options.trustMaterializedState
+      : false
+    const indexedNode = trustMaterializedState ? node : await this.getNode(node.id)
     if (indexedNode) {
       const indexProperties = options?.indexProperties ?? true
       await this.syncScalarRowsForNode(indexedNode, indexProperties)
@@ -597,8 +784,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async deleteNode(id: NodeId): Promise<void> {
+    await this.enqueueWrite(() => this.deleteNodeInternal(id))
+  }
+
+  private async deleteNodeInternal(id: NodeId): Promise<void> {
     const existing = await this.getNode(id)
-    // Delete from FTS index first (no-op if FTS5 not supported)
+    // Delete from FTS index first (no-op if FTS5 is not supported)
     await deleteNodeFTS(this.db, id)
     await this.deleteSpatialRowsForNode(id)
     // Delete node (cascades to properties via FK)
@@ -798,6 +989,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async setLastLamportTime(time: number): Promise<void> {
+    await this.enqueueWrite(() => this.setLastLamportTimeInternal(time))
+  }
+
+  private async setLastLamportTimeInternal(time: number): Promise<void> {
     await this.db.run(
       `INSERT INTO sync_state (key, value) VALUES ('lastLamportTime', ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
@@ -817,6 +1012,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void> {
+    await this.enqueueWrite(() => this.setDocumentContentInternal(nodeId, content))
+  }
+
+  private async setDocumentContentInternal(nodeId: NodeId, content: Uint8Array): Promise<void> {
     await this.db.run(
       `INSERT INTO yjs_state (node_id, state, updated_at)
        VALUES (?, ?, ?)
@@ -839,11 +1038,19 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     docState: Uint8Array
     byteSize: number
   }): Promise<void> {
-    await this.db.run(
-      `INSERT INTO yjs_snapshots (node_id, timestamp, snapshot, doc_state, byte_size)
-       VALUES (?, ?, ?, ?, ?)`,
-      [snapshot.nodeId, snapshot.timestamp, snapshot.snapshot, snapshot.docState, snapshot.byteSize]
-    )
+    await this.enqueueWrite(async () => {
+      await this.db.run(
+        `INSERT INTO yjs_snapshots (node_id, timestamp, snapshot, doc_state, byte_size)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          snapshot.nodeId,
+          snapshot.timestamp,
+          snapshot.snapshot,
+          snapshot.docState,
+          snapshot.byteSize
+        ]
+      )
+    })
   }
 
   /**
@@ -879,7 +1086,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Delete Yjs snapshots for a node.
    */
   async deleteYjsSnapshots(nodeId: NodeId): Promise<void> {
-    await this.db.run(`DELETE FROM yjs_snapshots WHERE node_id = ?`, [nodeId])
+    await this.enqueueWrite(async () => {
+      await this.db.run(`DELETE FROM yjs_snapshots WHERE node_id = ?`, [nodeId])
+    })
   }
 
   // ─── Bulk Operations ──────────────────────────────────────────────────────
@@ -888,17 +1097,707 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Import multiple nodes in a single transaction.
    * Used for sync and restore operations.
    */
-  async importNodes(nodes: NodeState[]): Promise<void> {
-    // Use manual transaction control for web proxy compatibility
-    await this.db.beginTransaction()
-    try {
-      for (const node of nodes) {
-        await this._setNodeInternal(node)
+  async importNodes(nodes: readonly NodeState[], options?: ImportNodesOptions): Promise<void> {
+    if (nodes.length === 0) return
+
+    await this.enqueueWrite(async () => {
+      if (await this.canImportNodesWithTransactionBatch(options)) {
+        await this.importNodesWithTransactionBatch(nodes, options)
+        return
       }
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
+
+      // Use manual transaction control for web proxy compatibility
+      await this.db.beginTransaction()
+      try {
+        await this.importNodesInternal(nodes, options)
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  async applyNodeBatch(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    if (input.nodes.length === 0 && input.changes.length === 0) {
+      return {
+        nodeRowsWritten: 0,
+        propertyRowsWritten: 0,
+        changeRowsWritten: 0,
+        scalarRowsWritten: 0,
+        ftsRowsWritten: 0
+      }
+    }
+
+    return this.enqueueWrite(async () => {
+      const effectiveInput = await this.resolveApplyNodeBatchInput(input)
+
+      if (await this.canApplyNodeBatchWithTypedAdapterCommand(effectiveInput)) {
+        return this.applyNodeBatchWithTypedAdapterCommand(effectiveInput)
+      }
+
+      if (await this.canApplyNodeBatchWithTransactionBatch(effectiveInput)) {
+        return this.applyNodeBatchWithTransactionBatch(effectiveInput)
+      }
+
+      await this.db.beginTransaction()
+      try {
+        const result = await this.applyNodeBatchInternal(effectiveInput)
+        await this.db.commit()
+        return result
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  getOperationStats(): Promise<SQLiteOperationStats | null> | SQLiteOperationStats | null {
+    return this.db.getOperationStats?.() ?? null
+  }
+
+  resetOperationStats(): Promise<void> | void {
+    return this.db.resetOperationStats?.()
+  }
+
+  private async resolveApplyNodeBatchInput(
+    input: ApplyNodeBatchInput
+  ): Promise<ApplyNodeBatchInput> {
+    if (input.indexMode !== 'touched') {
+      return input
+    }
+
+    // Spatial indexes still need their existing eager per-node path until they
+    // get a touched-node batch writer. Social import schemas do not use spatial
+    // indexes, so this preserves correctness without blocking the common path.
+    if (await this.hasSpatialTables()) {
+      return { ...input, indexMode: 'eager' }
+    }
+
+    return input
+  }
+
+  private async canApplyNodeBatchWithTransactionBatch(
+    input: ApplyNodeBatchInput
+  ): Promise<boolean> {
+    if (!this.db.transactionBatch) return false
+    if (input.indexMode === 'eager') return false
+    if (await this.hasSpatialTables()) return false
+    return true
+  }
+
+  private async canApplyNodeBatchWithTypedAdapterCommand(
+    input: ApplyNodeBatchInput
+  ): Promise<boolean> {
+    if (!this.db.applyNodeBatch) return false
+    if (input.indexMode === 'eager') return false
+    if (await this.hasSpatialTables()) return false
+    return true
+  }
+
+  private async applyNodeBatchWithTypedAdapterCommand(
+    input: ApplyNodeBatchInput
+  ): Promise<ApplyNodeBatchResult> {
+    if (!this.db.applyNodeBatch) {
+      throw new Error('SQLite typed node batch apply is not available.')
+    }
+
+    return this.db.applyNodeBatch(await this.createSQLiteNodeBatchApplyInput(input))
+  }
+
+  private async createSQLiteNodeBatchApplyInput(
+    input: ApplyNodeBatchInput
+  ): Promise<SQLiteNodeBatchApplyInput> {
+    const indexProperties = input.indexProperties ?? true
+    const hasFullTextSearch =
+      input.indexMode !== 'defer-schema' && (await this.hasFullTextSearchTable())
+    const scalarIndexRows: SQLiteNodeBatchApplyInput['scalarIndexRows'] = []
+    const ftsNodeIds: string[] = []
+    const ftsRows: SQLiteNodeBatchApplyInput['ftsRows'] = []
+
+    if (input.indexMode !== 'defer-schema' && indexProperties) {
+      for (const node of input.nodes) {
+        for (const [key, value] of Object.entries(node.properties)) {
+          const timestamp = node.timestamps[key]
+          const scalar = this.toScalarIndexValue(value)
+          if (!timestamp || !scalar) continue
+
+          scalarIndexRows.push({
+            nodeId: node.id,
+            schemaId: node.schemaId,
+            propertyKey: key,
+            valueType: scalar.valueType,
+            valueText: scalar.valueText,
+            valueNumber: scalar.valueNumber,
+            valueBoolean: scalar.valueBoolean,
+            valueHash: scalar.valueHash,
+            updatedAt: timestamp.wallTime,
+            lamportTime: timestamp.lamport.time
+          })
+        }
+      }
+    }
+
+    if (hasFullTextSearch) {
+      for (const node of input.nodes) {
+        ftsNodeIds.push(node.id)
+        if (node.deleted) continue
+
+        const title = typeof node.properties.title === 'string' ? node.properties.title : ''
+        const content = extractSearchableContent(node.properties) ?? ''
+        if (!title && !content) continue
+
+        ftsRows.push({
+          nodeId: node.id,
+          title,
+          content
+        })
+      }
+    }
+
+    return {
+      nodes: input.nodes.map((node) => ({
+        id: node.id,
+        schemaId: node.schemaId,
+        createdAt: node.createdAt,
+        updatedAt: node.updatedAt,
+        createdBy: node.createdBy,
+        deletedAt: node.deleted && node.deletedAt ? node.deletedAt.wallTime : null,
+        propertyKeys: Object.keys(node.properties)
+      })),
+      properties: input.nodes.flatMap((node) =>
+        Object.entries(node.properties).flatMap(([key, value]) => {
+          const timestamp = node.timestamps[key]
+          if (!timestamp) return []
+
+          return [
+            {
+              nodeId: node.id,
+              propertyKey: key,
+              value: this.serializeValue(value),
+              lamportTime: timestamp.lamport.time,
+              updatedBy: timestamp.lamport.author,
+              updatedAt: timestamp.wallTime
+            }
+          ]
+        })
+      ),
+      changes: input.changes.map((change) => ({
+        hash: change.hash,
+        nodeId: change.payload.nodeId,
+        payload: this.serializePayload(change.payload),
+        lamportTime: change.lamport.time,
+        lamportPeer: change.lamport.author,
+        wallTime: change.wallTime,
+        author: change.authorDID,
+        parentHash: change.parentHash ?? null,
+        batchId: change.batchId ?? null,
+        signature: change.signature
+      })),
+      scalarIndexRows,
+      ftsNodeIds,
+      ftsRows,
+      affectedSchemaIds: Array.from(new Set(input.affectedSchemaIds)),
+      lastLamportTime: input.lastLamportTime,
+      indexMode: input.indexMode
+    }
+  }
+
+  private async applyNodeBatchWithTransactionBatch(
+    input: ApplyNodeBatchInput
+  ): Promise<ApplyNodeBatchResult> {
+    if (!this.db.transactionBatch) {
+      throw new Error('SQLite transactionBatch is not available.')
+    }
+
+    const indexProperties = input.indexProperties ?? true
+    const operations: Array<{ sql: string; params?: SQLValue[] }> = []
+    const hasFullTextSearch = input.indexMode === 'touched' && (await this.hasFullTextSearchTable())
+    const affectedSchemaIds = new Set(input.affectedSchemaIds)
+    let scalarRowsWritten = 0
+    let ftsRowsWritten = 0
+
+    for (const node of input.nodes) {
+      affectedSchemaIds.add(node.schemaId)
+      operations.push(
+        ...this.createImportNodeOperationsForIndexMode(
+          node,
+          indexProperties,
+          hasFullTextSearch,
+          input.indexMode
+        )
+      )
+      if (input.indexMode === 'touched' && indexProperties) {
+        scalarRowsWritten += this.countScalarIndexRowsForNode(node)
+      }
+      if (
+        input.indexMode === 'touched' &&
+        hasFullTextSearch &&
+        this.hasSearchableNodeContent(node)
+      ) {
+        ftsRowsWritten += 1
+      }
+    }
+
+    operations.push(...input.changes.map((change) => this.createAppendChangeOperation(change)))
+    operations.push(this.createSetLastLamportTimeOperation(input.lastLamportTime))
+
+    if (input.indexMode !== 'defer-schema') {
+      for (const schemaId of affectedSchemaIds) {
+        operations.push(this.createInvalidateMaterializedViewsOperation(schemaId))
+      }
+    }
+
+    await this.db.transactionBatch(operations)
+
+    return {
+      nodeRowsWritten: input.nodes.length,
+      propertyRowsWritten: countPropertyRows(input.nodes),
+      changeRowsWritten: input.changes.length,
+      scalarRowsWritten,
+      ftsRowsWritten
+    }
+  }
+
+  private async applyNodeBatchInternal(input: ApplyNodeBatchInput): Promise<ApplyNodeBatchResult> {
+    const indexProperties = input.indexProperties ?? true
+    const eagerIndexes = input.indexMode === 'eager'
+
+    await this.importNodesInternal(input.nodes, {
+      indexProperties,
+      trustMaterializedState: true,
+      deferIndexes: !eagerIndexes
+    })
+    await this.appendChangesInternal(input.changes)
+    await this.setLastLamportTimeInternal(input.lastLamportTime)
+
+    let scalarRowsWritten = 0
+    let ftsRowsWritten = 0
+    if (input.indexMode === 'touched') {
+      const touchedIndexResult = await this.syncTouchedIndexesForNodes(input.nodes, indexProperties)
+      scalarRowsWritten = touchedIndexResult.scalarRowsWritten
+      ftsRowsWritten = touchedIndexResult.ftsRowsWritten
+
+      for (const schemaId of new Set(input.affectedSchemaIds)) {
+        await this.invalidateMaterializedViewsForSchema(schemaId)
+      }
+    }
+
+    return {
+      nodeRowsWritten: input.nodes.length,
+      propertyRowsWritten: countPropertyRows(input.nodes),
+      changeRowsWritten: input.changes.length,
+      scalarRowsWritten,
+      ftsRowsWritten
+    }
+  }
+
+  private async importNodesInternal(
+    nodes: readonly NodeState[],
+    options?: ImportNodesOptions
+  ): Promise<void> {
+    for (const node of nodes) {
+      await this._setNodeInternal(node, options)
+    }
+  }
+
+  private async canImportNodesWithTransactionBatch(options?: ImportNodesOptions): Promise<boolean> {
+    if (!this.db.transactionBatch) return false
+    if (options?.trustMaterializedState !== true) return false
+    if (options?.deferIndexes === true) return false
+
+    return !(await this.hasSpatialTables())
+  }
+
+  private async importNodesWithTransactionBatch(
+    nodes: readonly NodeState[],
+    options?: ImportNodesOptions
+  ): Promise<void> {
+    if (!this.db.transactionBatch) {
+      throw new Error('SQLite transactionBatch is not available.')
+    }
+
+    const operations: Array<{ sql: string; params?: SQLValue[] }> = []
+    const indexProperties = options?.indexProperties ?? true
+    const hasFullTextSearch = await this.hasFullTextSearchTable()
+    const affectedSchemaIds = new Set<SchemaIRI>()
+
+    for (const node of nodes) {
+      affectedSchemaIds.add(node.schemaId)
+      operations.push(...this.createImportNodeOperations(node, indexProperties, hasFullTextSearch))
+    }
+
+    for (const schemaId of affectedSchemaIds) {
+      operations.push({
+        sql: `UPDATE node_query_materializations
+              SET invalidated_at = ?
+              WHERE schema_id = ? AND invalidated_at IS NULL`,
+        params: [Date.now(), schemaId]
+      })
+    }
+
+    await this.db.transactionBatch(operations)
+  }
+
+  private createImportNodeOperations(
+    node: NodeState,
+    indexProperties: boolean,
+    hasFullTextSearch: boolean
+  ): Array<{ sql: string; params?: SQLValue[] }> {
+    return this.createImportNodeOperationsForIndexMode(
+      node,
+      indexProperties,
+      hasFullTextSearch,
+      'eager'
+    )
+  }
+
+  private createImportNodeOperationsForIndexMode(
+    node: NodeState,
+    indexProperties: boolean,
+    hasFullTextSearch: boolean,
+    indexMode: ApplyNodeBatchInput['indexMode']
+  ): Array<{ sql: string; params?: SQLValue[] }> {
+    const operations: Array<{ sql: string; params?: SQLValue[] }> = [
+      {
+        sql: `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                schema_id = excluded.schema_id,
+                updated_at = excluded.updated_at,
+                deleted_at = excluded.deleted_at`,
+        params: [
+          node.id,
+          node.schemaId,
+          node.createdAt,
+          node.updatedAt,
+          node.createdBy,
+          node.deleted && node.deletedAt ? node.deletedAt.wallTime : null
+        ]
+      },
+      this.createDeleteRemovedPropertiesOperation(node)
+    ]
+
+    for (const [key, value] of Object.entries(node.properties)) {
+      const timestamp = node.timestamps[key]
+      if (!timestamp) continue
+
+      operations.push({
+        sql: `INSERT INTO node_properties
+                (node_id, property_key, value, lamport_time, updated_by, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(node_id, property_key) DO UPDATE SET
+                value = excluded.value,
+                lamport_time = excluded.lamport_time,
+                updated_by = excluded.updated_by,
+                updated_at = excluded.updated_at
+              WHERE excluded.lamport_time > node_properties.lamport_time`,
+        params: [
+          node.id,
+          key,
+          this.serializeValue(value),
+          timestamp.lamport.time,
+          timestamp.lamport.author,
+          timestamp.wallTime
+        ]
+      })
+    }
+
+    if (indexMode !== 'defer-schema') {
+      operations.push({
+        sql: 'DELETE FROM node_property_scalars WHERE node_id = ?',
+        params: [node.id]
+      })
+      if (indexProperties) {
+        operations.push(...this.createScalarIndexOperations(node))
+      }
+      if (hasFullTextSearch) {
+        operations.push(...this.createFullTextIndexOperations(node))
+      }
+    }
+
+    return operations
+  }
+
+  private createAppendChangeOperation(change: NodeChange): { sql: string; params?: SQLValue[] } {
+    return {
+      sql: `INSERT OR IGNORE INTO changes
+            (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      params: [
+        change.hash,
+        change.payload.nodeId,
+        this.serializePayload(change.payload),
+        change.lamport.time,
+        change.lamport.author,
+        change.wallTime,
+        change.authorDID,
+        change.parentHash ?? null,
+        change.batchId ?? null,
+        change.signature
+      ]
+    }
+  }
+
+  private createSetLastLamportTimeOperation(time: number): { sql: string; params?: SQLValue[] } {
+    return {
+      sql: `INSERT INTO sync_state (key, value) VALUES ('lastLamportTime', ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      params: [String(time)]
+    }
+  }
+
+  private createInvalidateMaterializedViewsOperation(schemaId: SchemaIRI): {
+    sql: string
+    params?: SQLValue[]
+  } {
+    return {
+      sql: `UPDATE node_query_materializations
+            SET invalidated_at = ?
+            WHERE schema_id = ? AND invalidated_at IS NULL`,
+      params: [Date.now(), schemaId]
+    }
+  }
+
+  private createDeleteRemovedPropertiesOperation(node: NodeState): {
+    sql: string
+    params?: SQLValue[]
+  } {
+    const keys = Object.keys(node.properties)
+
+    if (keys.length === 0) {
+      return {
+        sql: 'DELETE FROM node_properties WHERE node_id = ?',
+        params: [node.id]
+      }
+    }
+
+    return {
+      sql: `DELETE FROM node_properties
+            WHERE node_id = ? AND property_key NOT IN (${keys.map(() => '?').join(', ')})`,
+      params: [node.id, ...keys]
+    }
+  }
+
+  private createScalarIndexOperations(
+    node: NodeState
+  ): Array<{ sql: string; params?: SQLValue[] }> {
+    return Object.entries(node.properties).flatMap(([key, value]) => {
+      const timestamp = node.timestamps[key]
+      const scalar = this.toScalarIndexValue(value)
+      if (!timestamp || !scalar) return []
+
+      return [
+        {
+          sql: `INSERT INTO node_property_scalars
+                  (
+                    node_id,
+                    schema_id,
+                    property_key,
+                    value_type,
+                    value_text,
+                    value_number,
+                    value_boolean,
+                    value_hash,
+                    updated_at,
+                    lamport_time
+                  )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          params: [
+            node.id,
+            node.schemaId,
+            key,
+            scalar.valueType,
+            scalar.valueText,
+            scalar.valueNumber,
+            scalar.valueBoolean,
+            scalar.valueHash,
+            timestamp.wallTime,
+            timestamp.lamport.time
+          ]
+        }
+      ]
+    })
+  }
+
+  private createFullTextIndexOperations(
+    node: NodeState
+  ): Array<{ sql: string; params?: SQLValue[] }> {
+    const title = typeof node.properties.title === 'string' ? node.properties.title : null
+    const content = extractSearchableContent(node.properties)
+    const operations: Array<{ sql: string; params?: SQLValue[] }> = [
+      {
+        sql: 'DELETE FROM nodes_fts WHERE node_id = ?',
+        params: [node.id]
+      }
+    ]
+
+    if (title || content) {
+      operations.push({
+        sql: 'INSERT INTO nodes_fts (node_id, title, content) VALUES (?, ?, ?)',
+        params: [node.id, title ?? '', content ?? '']
+      })
+    }
+
+    return operations
+  }
+
+  private countScalarIndexRowsForNode(node: NodeState): number {
+    return Object.values(node.properties).filter((value) => this.toScalarIndexValue(value) !== null)
+      .length
+  }
+
+  private hasSearchableNodeContent(node: NodeState): boolean {
+    const title = typeof node.properties.title === 'string' ? node.properties.title : null
+    const content = extractSearchableContent(node.properties)
+    return Boolean(title || content)
+  }
+
+  private async syncTouchedIndexesForNodes(
+    nodes: readonly NodeState[],
+    indexProperties: boolean
+  ): Promise<{ scalarRowsWritten: number; ftsRowsWritten: number }> {
+    let scalarRowsWritten = 0
+    let ftsRowsWritten = 0
+    const hasFullTextSearch = await this.hasFullTextSearchTable()
+
+    for (const node of nodes) {
+      scalarRowsWritten += await this.syncScalarRowsForNode(node, indexProperties)
+
+      if (!hasFullTextSearch) {
+        continue
+      }
+
+      if (node.deleted) {
+        await deleteNodeFTS(this.db, node.id)
+        continue
+      }
+
+      const title = typeof node.properties.title === 'string' ? node.properties.title : null
+      const content = extractSearchableContent(node.properties)
+      await updateNodeFTS(this.db, node.id, title, content)
+      if (title || content) {
+        ftsRowsWritten += 1
+      }
+    }
+
+    return { scalarRowsWritten, ftsRowsWritten }
+  }
+
+  async rebuildIndexesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    options?: RebuildNodeIndexesOptions
+  ): Promise<void> {
+    if (schemaIds.length === 0) return
+
+    await this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.rebuildIndexesForSchemasInternal(schemaIds, options)
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
+  }
+
+  private async rebuildIndexesForSchemasInternal(
+    schemaIds: readonly SchemaIRI[],
+    options?: RebuildNodeIndexesOptions
+  ): Promise<void> {
+    const uniqueSchemaIds = Array.from(new Set(schemaIds.filter(Boolean)))
+    if (uniqueSchemaIds.length === 0) return
+
+    const nodesBySchemaId = new Map<SchemaIRI, NodeState[]>()
+    for (const schemaId of uniqueSchemaIds) {
+      nodesBySchemaId.set(
+        schemaId,
+        await this.listNodesOptimized({ schemaId, includeDeleted: true })
+      )
+    }
+
+    const indexProperties = options?.indexProperties ?? true
+    await this.rebuildScalarIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
+    await this.rebuildSpatialIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
+    await this.rebuildFullTextIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId)
+
+    for (const schemaId of uniqueSchemaIds) {
+      await this.invalidateMaterializedViewsForSchema(schemaId)
+    }
+  }
+
+  private async rebuildScalarIndexesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>,
+    indexProperties: boolean
+  ): Promise<void> {
+    for (const schemaId of schemaIds) {
+      await this.db.run('DELETE FROM node_property_scalars WHERE schema_id = ?', [schemaId])
+
+      if (!indexProperties) {
+        continue
+      }
+
+      const nodes = nodesBySchemaId.get(schemaId) ?? []
+      for (const node of nodes) {
+        await this.syncScalarRowsForNode(node, true)
+      }
+    }
+  }
+
+  private async rebuildSpatialIndexesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>,
+    indexProperties: boolean
+  ): Promise<void> {
+    if (!(await this.hasSpatialTables())) {
+      return
+    }
+
+    for (const schemaId of schemaIds) {
+      const configs = await this.db.query<SpatialIndexConfigRow>(
+        `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
+         FROM node_spatial_indexes
+         WHERE schema_id = ?`,
+        [schemaId]
+      )
+
+      for (const config of configs) {
+        await this.clearSpatialRowsForConfig(config.spatial_key)
+
+        if (!indexProperties) {
+          continue
+        }
+
+        const nodes = nodesBySchemaId.get(schemaId) ?? []
+        for (const node of nodes) {
+          await this.replaceSpatialRowForConfig(node, config, true)
+        }
+      }
+    }
+  }
+
+  private async rebuildFullTextIndexesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>
+  ): Promise<void> {
+    if (!(await this.hasFullTextSearchTable())) {
+      return
+    }
+
+    for (const schemaId of schemaIds) {
+      const nodes = nodesBySchemaId.get(schemaId) ?? []
+      for (const node of nodes) {
+        if (node.deleted) {
+          await deleteNodeFTS(this.db, node.id)
+          continue
+        }
+
+        const title = typeof node.properties.title === 'string' ? node.properties.title : null
+        const content = extractSearchableContent(node.properties)
+        await updateNodeFTS(this.db, node.id, title, content)
+      }
     }
   }
 
@@ -906,69 +1805,63 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Rebuild the scalar sidecar from materialized node_properties.
    */
   async rebuildScalarIndex(): Promise<{ nodesScanned: number; scalarRowsWritten: number }> {
-    await this.db.beginTransaction()
-    try {
-      await this.db.run('DELETE FROM node_property_scalars')
-      const rows = await this.db.query<{ id: string }>('SELECT id FROM nodes ORDER BY id ASC')
-      let scalarRowsWritten = 0
+    return this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.db.run('DELETE FROM node_property_scalars')
+        const rows = await this.db.query<{ id: string }>('SELECT id FROM nodes ORDER BY id ASC')
+        let scalarRowsWritten = 0
 
-      for (const row of rows) {
-        const node = await this.getNode(row.id)
-        if (!node) continue
+        for (const row of rows) {
+          const node = await this.getNode(row.id)
+          if (!node) continue
 
-        scalarRowsWritten += await this.syncScalarRowsForNode(node, true)
+          scalarRowsWritten += await this.syncScalarRowsForNode(node, true)
+        }
+
+        await this.db.commit()
+        return {
+          nodesScanned: rows.length,
+          scalarRowsWritten
+        }
+      } catch (err) {
+        await this.db.rollback()
+        throw err
       }
-
-      await this.db.commit()
-      return {
-        nodesScanned: rows.length,
-        scalarRowsWritten
-      }
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    })
   }
 
   /**
    * Import multiple changes in a single transaction.
    */
-  async importChanges(changes: NodeChange[]): Promise<void> {
-    // Use manual transaction control for web proxy compatibility
-    await this.db.beginTransaction()
-    try {
-      for (const change of changes) {
-        await this.appendChange(change)
-      }
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+  async importChanges(changes: readonly NodeChange[]): Promise<void> {
+    await this.appendChanges(changes)
   }
 
   /**
    * Clear all data (for testing or reset).
    */
   async clear(): Promise<void> {
-    // Use manual transaction control for web proxy compatibility
-    await this.db.beginTransaction()
-    try {
-      await this.db.run('DELETE FROM yjs_snapshots')
-      await this.db.run('DELETE FROM yjs_updates')
-      await this.db.run('DELETE FROM yjs_state')
-      await this.db.run('DELETE FROM changes')
-      await this.clearSpatialRows()
-      await this.clearMaterializedViewRows()
-      await this.db.run('DELETE FROM node_property_scalars')
-      await this.db.run('DELETE FROM node_properties')
-      await this.db.run('DELETE FROM nodes')
-      await this.db.run("DELETE FROM sync_state WHERE key = 'lastLamportTime'")
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    await this.enqueueWrite(async () => {
+      // Use manual transaction control for web proxy compatibility
+      await this.db.beginTransaction()
+      try {
+        await this.db.run('DELETE FROM yjs_snapshots')
+        await this.db.run('DELETE FROM yjs_updates')
+        await this.db.run('DELETE FROM yjs_state')
+        await this.db.run('DELETE FROM changes')
+        await this.clearSpatialRows()
+        await this.clearMaterializedViewRows()
+        await this.db.run('DELETE FROM node_property_scalars')
+        await this.db.run('DELETE FROM node_properties')
+        await this.db.run('DELETE FROM nodes')
+        await this.db.run("DELETE FROM sync_state WHERE key = 'lastLamportTime'")
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────────
@@ -1015,6 +1908,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private async hydrateNodesByIds(ids: string[]): Promise<NodeState[]> {
     if (ids.length === 0) {
       return []
+    }
+
+    if (ids.length > SQLITE_HYDRATE_NODE_BATCH_SIZE) {
+      const nodes: NodeState[] = []
+      for (const batch of chunkItems(ids, SQLITE_HYDRATE_NODE_BATCH_SIZE)) {
+        nodes.push(...(await this.hydrateNodesByIds(batch)))
+      }
+      return nodes
     }
 
     const values = ids.map(() => '(?, ?)').join(', ')
@@ -1126,51 +2027,55 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const refreshed = await this.queryNodes(input.descriptor)
     const generatedAt = Date.now()
 
-    await this.db.beginTransaction()
-    try {
-      await this.db.run('DELETE FROM node_query_materialized_ids WHERE view_id = ?', [input.viewId])
-      await this.db.run(
-        `INSERT INTO node_query_materializations
-          (
-            view_id,
-            descriptor_hash,
-            schema_id,
-            descriptor_json,
-            generated_at,
-            invalidated_at,
-            row_count
-          )
-         VALUES (?, ?, ?, ?, ?, NULL, ?)
-         ON CONFLICT(view_id) DO UPDATE SET
-           descriptor_hash = excluded.descriptor_hash,
-           schema_id = excluded.schema_id,
-           descriptor_json = excluded.descriptor_json,
-           generated_at = excluded.generated_at,
-           invalidated_at = NULL,
-           row_count = excluded.row_count`,
-        [
-          input.viewId,
-          input.descriptorHash,
-          input.descriptor.schemaId,
-          input.descriptorJson,
-          generatedAt,
-          refreshed.nodes.length
-        ]
-      )
-
-      for (const [ordinal, node] of refreshed.nodes.entries()) {
+    await this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.db.run('DELETE FROM node_query_materialized_ids WHERE view_id = ?', [
+          input.viewId
+        ])
         await this.db.run(
-          `INSERT INTO node_query_materialized_ids (view_id, ordinal, node_id)
-           VALUES (?, ?, ?)`,
-          [input.viewId, ordinal, node.id]
+          `INSERT INTO node_query_materializations
+            (
+              view_id,
+              descriptor_hash,
+              schema_id,
+              descriptor_json,
+              generated_at,
+              invalidated_at,
+              row_count
+            )
+           VALUES (?, ?, ?, ?, ?, NULL, ?)
+           ON CONFLICT(view_id) DO UPDATE SET
+             descriptor_hash = excluded.descriptor_hash,
+             schema_id = excluded.schema_id,
+             descriptor_json = excluded.descriptor_json,
+             generated_at = excluded.generated_at,
+             invalidated_at = NULL,
+             row_count = excluded.row_count`,
+          [
+            input.viewId,
+            input.descriptorHash,
+            input.descriptor.schemaId,
+            input.descriptorJson,
+            generatedAt,
+            refreshed.nodes.length
+          ]
         )
-      }
 
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+        for (const [ordinal, node] of refreshed.nodes.entries()) {
+          await this.db.run(
+            `INSERT INTO node_query_materialized_ids (view_id, ordinal, node_id)
+             VALUES (?, ?, ?)`,
+            [input.viewId, ordinal, node.id]
+          )
+        }
+
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
+      }
+    })
 
     return {
       viewId: input.viewId,
@@ -1448,43 +2353,45 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
     const fields = this.getSpatialFieldConfig(spatial)
     const now = Date.now()
 
-    await this.db.beginTransaction()
-    try {
-      await this.db.run(
-        `INSERT INTO node_spatial_indexes
-          (spatial_key, schema_id, x_key, y_key, width_key, height_key, created_at, last_built_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          spatialKey,
-          schemaId,
-          fields.xKey,
-          fields.yKey,
-          fields.widthKey,
-          fields.heightKey,
-          now,
-          now
-        ]
-      )
+    await this.enqueueWrite(async () => {
+      await this.db.beginTransaction()
+      try {
+        await this.db.run(
+          `INSERT INTO node_spatial_indexes
+            (spatial_key, schema_id, x_key, y_key, width_key, height_key, created_at, last_built_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            spatialKey,
+            schemaId,
+            fields.xKey,
+            fields.yKey,
+            fields.widthKey,
+            fields.heightKey,
+            now,
+            now
+          ]
+        )
 
-      const nodes = await this.listNodesOptimized({ schemaId, includeDeleted: true })
-      const config: SpatialIndexConfigRow = {
-        spatial_key: spatialKey,
-        schema_id: schemaId,
-        x_key: fields.xKey,
-        y_key: fields.yKey,
-        width_key: fields.widthKey,
-        height_key: fields.heightKey
+        const nodes = await this.listNodesOptimized({ schemaId, includeDeleted: true })
+        const config: SpatialIndexConfigRow = {
+          spatial_key: spatialKey,
+          schema_id: schemaId,
+          x_key: fields.xKey,
+          y_key: fields.yKey,
+          width_key: fields.widthKey,
+          height_key: fields.heightKey
+        }
+
+        for (const node of nodes) {
+          await this.replaceSpatialRowForConfig(node, config, true)
+        }
+
+        await this.db.commit()
+      } catch (err) {
+        await this.db.rollback()
+        throw err
       }
-
-      for (const node of nodes) {
-        await this.replaceSpatialRowForConfig(node, config, true)
-      }
-
-      await this.db.commit()
-    } catch (err) {
-      await this.db.rollback()
-      throw err
-    }
+    })
   }
 
   private async syncSpatialRowsForNode(node: NodeState, indexProperties: boolean): Promise<void> {
@@ -1564,6 +2471,24 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
 
     await this.db.run('DELETE FROM node_spatial_rtree WHERE spatial_id = ?', [existing.spatial_id])
     await this.db.run('DELETE FROM node_spatial_ids WHERE spatial_id = ?', [existing.spatial_id])
+  }
+
+  private async clearSpatialRowsForConfig(spatialKey: string): Promise<void> {
+    const rows = await this.db.query<{ spatial_id: number }>(
+      `SELECT spatial_id
+       FROM node_spatial_ids
+       WHERE spatial_key = ?`,
+      [spatialKey]
+    )
+
+    for (const batch of chunkItems(rows, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
+      const placeholders = batch.map(() => '?').join(', ')
+      await this.db.run(`DELETE FROM node_spatial_rtree WHERE spatial_id IN (${placeholders})`, [
+        ...batch.map((row) => row.spatial_id)
+      ])
+    }
+
+    await this.db.run('DELETE FROM node_spatial_ids WHERE spatial_key = ?', [spatialKey])
   }
 
   private async clearSpatialRows(): Promise<void> {
@@ -2667,6 +3592,14 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       signature: row.signature
     }
   }
+}
+
+function chunkItems<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+  return chunks
 }
 
 // ─── Factory Functions ───────────────────────────────────────────────────────

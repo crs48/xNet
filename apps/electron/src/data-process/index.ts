@@ -20,6 +20,7 @@
  *                                                          Hub/Signaling
  */
 
+import type { DeterministicNodeImportDraft, NodeBatchWritePolicy } from '@xnetjs/data'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { createDataService, type DataService } from './data-service'
 
@@ -374,6 +375,17 @@ process.parentPort?.on('message', async (event) => {
         break
       }
 
+      case 'nodes:getExistingNodeIds': {
+        const { ids } = payload as { ids: string[] }
+        if (dataService) {
+          const existingIds = await dataService.getExistingNodeIds(ids)
+          sendResponse(requestId, { ids: existingIds })
+        } else {
+          sendResponse(requestId, { ids: [] })
+        }
+        break
+      }
+
       case 'nodes:setNode': {
         const { node, options } = payload as { node: unknown; options?: unknown }
         if (dataService) {
@@ -383,6 +395,27 @@ process.parentPort?.on('message', async (event) => {
           )
         }
         sendResponse(requestId, { success: true })
+        break
+      }
+
+      case 'nodes:importDeterministicNodes': {
+        const { drafts, authorDID, signingKey, policy } = payload as {
+          drafts: DeterministicNodeImportDraft[]
+          authorDID: string
+          signingKey: number[]
+          policy?: Partial<NodeBatchWritePolicy>
+        }
+        if (dataService) {
+          const result = await dataService.importDeterministicNodes({
+            drafts,
+            authorDID,
+            signingKey,
+            policy
+          })
+          sendResponse(requestId, result)
+        } else {
+          sendResponse(requestId, { batchId: '', created: 0, updated: 0 })
+        }
         break
       }
 

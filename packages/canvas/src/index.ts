@@ -589,28 +589,45 @@ export type {
 } from './frames/frame-export'
 export {
   createCanvasQueryFrameDefinition,
+  createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameNode,
   createCanvasQueryFrameProperties,
+  createCanvasQueryFrameResultPreview,
   createCanvasQueryFrameResultSummary,
+  createCanvasQueryFrameResultSummaryFromExecution,
+  canvasQueryFrameResultPreviewMatches,
+  canvasQueryFrameResultSummarySignatureMatches,
   getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary,
   isCanvasQueryFrameDefinition,
   isCanvasQueryFrameNode,
+  shouldRefreshCanvasQueryFrameResult,
+  updateCanvasQueryFrameResultPreview,
+  updateCanvasQueryFrameResults,
   updateCanvasQueryFrameResultSummary
 } from './frames/query-frames'
 export type {
   CanvasQueryFrameDefinition,
+  CanvasQueryFrameExecutionSnapshot,
+  CanvasQueryFrameExecutionStatus,
   CanvasQueryFrameFilter,
   CanvasQueryFrameFilterOperator,
   CanvasQueryFrameMaterialization,
   CanvasQueryFrameProperties,
   CanvasQueryFrameRefreshMode,
+  CanvasQueryFrameRefreshTrigger,
+  CanvasQueryFrameResultCard,
+  CanvasQueryFrameResultPreview,
   CanvasQueryFrameResultSummary,
   CanvasQueryFrameSort,
   CanvasQueryFrameSource,
+  CreateCanvasQueryFrameDefinitionFromSavedViewInput,
   CreateCanvasQueryFrameDefinitionInput,
   CreateCanvasQueryFrameNodeInput,
-  CreateCanvasQueryFramePropertiesInput
+  CreateCanvasQueryFramePropertiesInput,
+  CreateCanvasQueryFrameResultPreviewInput,
+  ShouldRefreshCanvasQueryFrameResultInput
 } from './frames/query-frames'
 export {
   CANVAS_SAVED_LAYOUT_DEFINITIONS,
@@ -694,6 +711,7 @@ export type {
   CanvasExternalReferenceKind,
   CanvasExternalReferenceDescriptor,
   CanvasMediaKind,
+  CanvasSourceBackedObjectKind,
   CanvasSourceBackedNodeInput,
   CanvasPrimitiveObjectKind,
   CanvasPrimitiveNodeInput
@@ -902,6 +920,14 @@ export {
   resolveCanvasAnchorPoint,
   toLegacyEdgeAnchor
 } from './edges/bindings'
+
+export { materializeCanvasProjectionPlan } from './projection/materialize'
+export type {
+  CanvasProjectionEdgeDraft,
+  CanvasProjectionNodeDraft,
+  CanvasProjectionPlanLike,
+  MaterializedCanvasProjection
+} from './projection/materialize'
 
 // Minimap, navigation, and presence components
 export {

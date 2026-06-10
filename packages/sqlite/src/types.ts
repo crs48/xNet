@@ -43,3 +43,102 @@ export interface SchemaVersion {
   version: number
   appliedAt: number
 }
+
+/**
+ * Runtime operation counters for diagnosing SQLite import performance.
+ *
+ * Counts are cumulative until reset by the adapter. Proxy-backed adapters can
+ * use `workerRequestCount` to show serialization-boundary pressure separately
+ * from the SQL statements executed by SQLite.
+ */
+export interface SQLiteOperationStats {
+  /** SELECT statements returning many rows. */
+  queryCount: number
+  /** SELECT statements returning at most one row. */
+  queryOneCount: number
+  /** INSERT, UPDATE, DELETE, or other mutation statements. */
+  runCount: number
+  /** Raw SQL executions, often schema or transaction control statements. */
+  execCount: number
+  /** Callback transactions requested through this adapter. */
+  transactionCount: number
+  /** Batch transactions requested through this adapter. */
+  transactionBatchCount: number
+  /** SQL operations included in batch transactions. */
+  transactionBatchOperationCount: number
+  /** Comlink or postMessage requests crossing into a worker. */
+  workerRequestCount: number
+}
+
+export type SQLiteNodeBatchIndexMode = 'eager' | 'touched' | 'defer-schema'
+
+export interface SQLiteNodeBatchNodeRow {
+  id: string
+  schemaId: string
+  createdAt: number
+  updatedAt: number
+  createdBy: string
+  deletedAt: number | null
+  propertyKeys: string[]
+}
+
+export interface SQLiteNodeBatchPropertyRow {
+  nodeId: string
+  propertyKey: string
+  value: Uint8Array | null
+  lamportTime: number
+  updatedBy: string
+  updatedAt: number
+}
+
+export interface SQLiteNodeBatchChangeRow {
+  hash: string
+  nodeId: string
+  payload: Uint8Array
+  lamportTime: number
+  lamportPeer: string
+  wallTime: number
+  author: string
+  parentHash: string | null
+  batchId: string | null
+  signature: Uint8Array
+}
+
+export interface SQLiteNodeBatchScalarIndexRow {
+  nodeId: string
+  schemaId: string
+  propertyKey: string
+  valueType: string
+  valueText: string | null
+  valueNumber: number | null
+  valueBoolean: number | null
+  valueHash: string | null
+  updatedAt: number
+  lamportTime: number
+}
+
+export interface SQLiteNodeBatchFtsRow {
+  nodeId: string
+  title: string
+  content: string
+}
+
+export interface SQLiteNodeBatchApplyInput {
+  nodes: SQLiteNodeBatchNodeRow[]
+  properties: SQLiteNodeBatchPropertyRow[]
+  changes: SQLiteNodeBatchChangeRow[]
+  scalarIndexRows: SQLiteNodeBatchScalarIndexRow[]
+  ftsNodeIds: string[]
+  ftsRows: SQLiteNodeBatchFtsRow[]
+  affectedSchemaIds: string[]
+  lastLamportTime: number
+  indexMode: SQLiteNodeBatchIndexMode
+}
+
+export interface SQLiteNodeBatchApplyResult {
+  nodeRowsWritten: number
+  propertyRowsWritten: number
+  changeRowsWritten: number
+  scalarRowsWritten: number
+  ftsRowsWritten: number
+}

@@ -97,6 +97,11 @@ export class IPCNodeStorageAdapter implements NodeStorageAdapter {
     return node ? deserializeNodeState(node as SerializedNodeState) : null
   }
 
+  async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
+    log('getExistingNodeIds()', ids.length)
+    return window.xnetNodes.getExistingNodeIds([...ids])
+  }
+
   async setNode(node: NodeState, options?: SetNodeOptions): Promise<void> {
     log('setNode()', node.id)
     await window.xnetNodes.setNode(serializeNodeState(node), options)
@@ -353,6 +358,7 @@ export interface XNetNodesAPI {
 
   // Materialized state operations
   getNode(id: string): Promise<unknown | null>
+  getExistingNodeIds(ids: string[]): Promise<string[]>
   setNode(node: unknown, options?: unknown): Promise<void>
   deleteNode(id: string): Promise<void>
   listNodes(options?: unknown): Promise<unknown[]>

@@ -36,8 +36,11 @@ import {
   MemoryNodeStorageAdapter,
   type NodeState,
   type NodeChangeEvent,
+  type NodeBatchChangeEvent,
   type SchemaIRI,
-  type NodeStorageAdapter
+  type NodeStorageAdapter,
+  type NodeBatchWriteInput,
+  type NodeBatchWriteResult
 } from '@xnetjs/data'
 import { expose, proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
@@ -46,6 +49,8 @@ import {
   createQueryDescriptor,
   matchesQueryDescriptor
 } from '../query-descriptor'
+
+const BULK_STORE_CHANGE_RELOAD_THRESHOLD = 25
 
 // ─── Y.Doc Pool Configuration ────────────────────────────────────────────────
 
@@ -77,6 +82,9 @@ class DataWorker implements DataWorkerAPI {
   private status: SyncStatus = 'disconnected'
   private statusHandlers = new Set<(status: SyncStatus) => void>()
   private storeUnsubscribe: (() => void) | null = null
+  private storeBatchUnsubscribe: (() => void) | null = null
+  private pendingStoreChanges: NodeChangeEvent[] = []
+  private storeChangeFlushQueued = false
 
   // Y.Doc pool - the "source of truth" for all documents
   private docPool = new Map<string, PoolEntry>()
@@ -99,7 +107,10 @@ class DataWorker implements DataWorkerAPI {
 
     // Set up store change listener for subscriptions
     this.storeUnsubscribe = this.store.subscribe((event) => {
-      this.handleStoreChange(event)
+      this.enqueueStoreChange(event)
+    })
+    this.storeBatchUnsubscribe = this.store.subscribeToBatchChanges((event) => {
+      void this.handleStoreBatchChange(event)
     })
 
     this.setStatus('connected')
@@ -180,6 +191,14 @@ class DataWorker implements DataWorkerAPI {
     }
 
     return this.store.restore(nodeId)
+  }
+
+  async bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult> {
+    if (!this.store) {
+      throw new Error('DataWorker not initialized')
+    }
+
+    return this.store.batchWrite(input)
   }
 
   async get(nodeId: string): Promise<NodeState | null> {
@@ -327,6 +346,10 @@ class DataWorker implements DataWorkerAPI {
       this.storeUnsubscribe()
       this.storeUnsubscribe = null
     }
+    if (this.storeBatchUnsubscribe) {
+      this.storeBatchUnsubscribe()
+      this.storeBatchUnsubscribe = null
+    }
 
     // Destroy all Y.Docs in the pool
     for (const entry of this.docPool.values()) {
@@ -357,7 +380,93 @@ class DataWorker implements DataWorkerAPI {
     return result.nodes
   }
 
-  private handleStoreChange(event: NodeChangeEvent): void {
+  private enqueueStoreChange(event: NodeChangeEvent): void {
+    this.pendingStoreChanges.push(event)
+
+    if (this.storeChangeFlushQueued) {
+      return
+    }
+
+    this.storeChangeFlushQueued = true
+    queueMicrotask(() => {
+      void this.flushStoreChanges()
+    })
+  }
+
+  private async flushStoreChanges(): Promise<void> {
+    const events = this.pendingStoreChanges
+    this.pendingStoreChanges = []
+    this.storeChangeFlushQueued = false
+
+    if (events.length === 0) {
+      return
+    }
+
+    if (!this.isBulkStoreChangeSet(events) && events.length === 1) {
+      await this.handleStoreChange(events[0])
+      return
+    }
+
+    await this.handleStoreChangeSet(events)
+  }
+
+  private isBulkStoreChangeSet(events: readonly NodeChangeEvent[]): boolean {
+    return (
+      events.length > BULK_STORE_CHANGE_RELOAD_THRESHOLD ||
+      events.some((event) => (event.change.batchSize ?? 1) > BULK_STORE_CHANGE_RELOAD_THRESHOLD)
+    )
+  }
+
+  private async handleStoreChangeSet(events: readonly NodeChangeEvent[]): Promise<void> {
+    const eventsBySchema = new Map<SchemaIRI, NodeChangeEvent[]>()
+
+    for (const event of events) {
+      const schemaId: SchemaIRI | undefined = event.node?.schemaId ?? event.change.payload.schemaId
+      if (!schemaId) continue
+
+      const next = eventsBySchema.get(schemaId) ?? []
+      next.push(event)
+      eventsBySchema.set(schemaId, next)
+    }
+
+    for (const [schemaId, schemaEvents] of eventsBySchema) {
+      const shouldReload = this.isBulkStoreChangeSet(schemaEvents)
+
+      for (const [queryId, sub] of this.subscriptions) {
+        if (sub.schemaId !== schemaId) continue
+
+        if (shouldReload) {
+          const reloaded = await this.loadQuery(sub.descriptor)
+          sub.lastResult = reloaded
+          sub.onDelta({ type: 'reload', data: reloaded })
+          continue
+        }
+
+        for (const event of schemaEvents) {
+          await this.applyStoreChangeToSubscription(
+            queryId,
+            sub,
+            event.change.payload.nodeId,
+            event.node ?? null
+          )
+        }
+      }
+    }
+  }
+
+  private async handleStoreBatchChange(event: NodeBatchChangeEvent): Promise<void> {
+    for (const schemaId of event.schemaIds) {
+      for (const sub of this.subscriptions.values()) {
+        if (sub.schemaId !== schemaId) continue
+
+        const reloaded = await this.loadQuery(sub.descriptor)
+        sub.lastResult = reloaded
+        sub.onDelta({ type: 'reload', data: reloaded })
+      }
+    }
+  }
+
+  private async handleStoreChange(event: NodeChangeEvent): Promise<void> {
     const { node, change } = event
     const schemaId: SchemaIRI | undefined = node?.schemaId ?? change.payload.schemaId
 
@@ -367,7 +476,7 @@ class DataWorker implements DataWorkerAPI {
     for (const [queryId, sub] of this.subscriptions) {
       if (sub.schemaId !== schemaId) continue
 
-      void this.applyStoreChangeToSubscription(queryId, sub, change.payload.nodeId, node ?? null)
+      await this.applyStoreChangeToSubscription(queryId, sub, change.payload.nodeId, node ?? null)
     }
   }
 

@@ -3,7 +3,22 @@
  */
 
 // Types
-export type { SQLValue, SQLRow, RunResult, SQLiteConfig, SchemaVersion } from './types'
+export type {
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteConfig,
+  SchemaVersion,
+  SQLiteOperationStats,
+  SQLiteNodeBatchIndexMode,
+  SQLiteNodeBatchNodeRow,
+  SQLiteNodeBatchPropertyRow,
+  SQLiteNodeBatchChangeRow,
+  SQLiteNodeBatchScalarIndexRow,
+  SQLiteNodeBatchFtsRow,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
+} from './types'
 
 // Interface
 export type { SQLiteAdapter, PreparedStatement } from './adapter'
@@ -63,10 +78,18 @@ export type {
 // Browser support detection
 export {
   checkBrowserSupport,
+  checkPersistentStorage,
   requestPersistentStorage,
   showUnsupportedBrowserMessage
 } from './browser-support'
-export type { BrowserSupport, PersistentStorageStatus } from './browser-support'
+export type {
+  BrowserSupport,
+  PersistentStorageRequestOptions,
+  PersistentStorageStatus
+} from './browser-support'
+
+// Error helpers
+export { isSQLiteCorruptionError } from './errors'
 
 // Re-export adapters for convenience (tree-shakeable)
 // Users should prefer importing from subpaths for smaller bundles

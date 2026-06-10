@@ -160,9 +160,14 @@ describe('canvas ingestion utilities', () => {
       getData(type: string) {
         if (type === CANVAS_INTERNAL_NODE_MIME) {
           return serializeCanvasInternalNodeDragData({
-            nodeId: 'page-1',
-            schemaId: PageSchema._schemaId,
-            title: 'Dragged page'
+            nodeId: 'social-actor-1',
+            schemaId: 'xnet://xnet.fyi/SocialActor@1.0.0',
+            title: 'Dragged actor',
+            canvasKind: 'external-reference',
+            subtitle: 'instagram',
+            description: 'Imported profile',
+            href: 'https://instagram.com/example',
+            badges: ['instagram', 'actor', 'actor']
           })
         }
 
@@ -174,9 +179,14 @@ describe('canvas ingestion utilities', () => {
       {
         kind: 'internal-node',
         data: {
-          nodeId: 'page-1',
-          schemaId: PageSchema._schemaId,
-          title: 'Dragged page'
+          nodeId: 'social-actor-1',
+          schemaId: 'xnet://xnet.fyi/SocialActor@1.0.0',
+          title: 'Dragged actor',
+          canvasKind: 'external-reference',
+          subtitle: 'instagram',
+          description: 'Imported profile',
+          href: 'https://instagram.com/example',
+          badges: ['instagram', 'actor']
         }
       },
       {
@@ -202,6 +212,29 @@ describe('canvas ingestion utilities', () => {
     expect(node.position.height).toBe(220)
     expect(node.position.x).toBe(220)
     expect(node.position.y).toBe(190)
+
+    const socialCard = createSourceBackedCanvasNode({
+      objectKind: 'external-reference',
+      viewport: { x: 400, y: 300, zoom: 1 },
+      sourceNodeId: 'social-actor-1',
+      sourceSchemaId: 'xnet://xnet.fyi/SocialActor@1.0.0',
+      title: 'Dragged actor',
+      properties: {
+        provider: 'instagram',
+        kind: 'social',
+        url: 'https://instagram.com/example'
+      }
+    })
+
+    expect(socialCard.type).toBe('external-reference')
+    expect(socialCard.sourceNodeId).toBe('social-actor-1')
+    expect(socialCard.sourceSchemaId).toBe('xnet://xnet.fyi/SocialActor@1.0.0')
+    expect(socialCard.properties).toMatchObject({
+      title: 'Dragged actor',
+      provider: 'instagram',
+      kind: 'social',
+      url: 'https://instagram.com/example'
+    })
   })
 
   it('sizes embeddable external references using shared provider metadata', () => {
@@ -301,6 +334,9 @@ describe('canvas ingestion utilities', () => {
   it('maps schemas and media sizing to canvas primitives', () => {
     expect(getCanvasObjectKindFromSchema(PageSchema._schemaId)).toBe('page')
     expect(getCanvasObjectKindFromSchema(DatabaseSchema._schemaId)).toBe('database')
+    expect(
+      getCanvasObjectKindFromSchema('xnet://xnet.fyi/SocialActor@1.0.0', 'external-reference')
+    ).toBe('external-reference')
     expect(getMediaRect({ width: 1920, height: 1080 })).toEqual({ width: 420, height: 236 })
   })
 

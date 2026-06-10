@@ -6,12 +6,32 @@
  */
 
 import type { SQLiteAdapter, PreparedStatement } from '../adapter'
-import type { SQLValue, SQLRow, RunResult, SQLiteConfig } from '../types'
+import type {
+  SQLValue,
+  SQLRow,
+  RunResult,
+  SQLiteConfig,
+  SQLiteNodeBatchApplyInput,
+  SQLiteNodeBatchApplyResult
+} from '../types'
+import { isSQLiteCorruptionError } from '../errors'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 
 // We use 'any' types here because @sqlite.org/sqlite-wasm is a peer dependency
 // that may not be installed at build time. The actual types are checked at runtime.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+const WEB_SQLITE_VFS_NAME = 'opfs-sahpool'
+const WEB_SQLITE_VFS_DIRECTORY = '.xnet-sqlite'
+const WEB_SQLITE_INITIAL_CAPACITY = 10
+
+type OPFSDirectoryHandle = {
+  removeEntry(name: string, options?: { recursive?: boolean }): Promise<void>
+}
+
+type OPFSStorageManager = {
+  getDirectory?: () => Promise<OPFSDirectoryHandle>
+}
 
 function isDebugEnabled(): boolean {
   return (
@@ -24,6 +44,65 @@ function isDebugEnabled(): boolean {
 function log(...args: unknown[]): void {
   if (isDebugEnabled()) {
     console.log(...args)
+  }
+}
+
+function getDatabasePath(config: SQLiteConfig): string {
+  return config.path.startsWith('/') ? config.path : `/${config.path}`
+}
+
+async function removeOPFSDirectory(directory: string): Promise<void> {
+  const storage = (
+    globalThis.navigator as (Navigator & { storage?: OPFSStorageManager }) | undefined
+  )?.storage
+
+  if (typeof storage?.getDirectory !== 'function') {
+    return
+  }
+
+  try {
+    const root = await storage.getDirectory()
+    await root.removeEntry(directory.replace(/^\/+/, ''), { recursive: true })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'NotFoundError') {
+      return
+    }
+
+    throw err
+  }
+}
+
+/**
+ * Remove xNet's OPFS-backed SQLite storage for the supplied database path.
+ *
+ * This must run in a worker because the SAH-pool VFS uses synchronous OPFS
+ * handles. It is intentionally scoped to xNet's SQLite VFS directory.
+ */
+export async function resetWebSQLiteOpfsStorage(config: SQLiteConfig): Promise<void> {
+  const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default
+  const sqlite3 = await sqlite3InitModule()
+  const dbPath = getDatabasePath(config)
+
+  try {
+    const poolUtil = await sqlite3.installOpfsSAHPoolVfs({
+      name: WEB_SQLITE_VFS_NAME,
+      directory: WEB_SQLITE_VFS_DIRECTORY,
+      initialCapacity: WEB_SQLITE_INITIAL_CAPACITY,
+      clearOnInit: false
+    })
+
+    try {
+      poolUtil.unlink(dbPath)
+    } catch {
+      // unlink() can fail if the pool metadata is already damaged. wipeFiles()
+      // and the OPFS directory fallback below cover that case.
+    }
+
+    await poolUtil.wipeFiles()
+    await poolUtil.removeVfs()
+  } catch (err) {
+    console.warn('[WebSQLiteAdapter] SAH-pool reset failed, removing OPFS directory:', err)
+    await removeOPFSDirectory(WEB_SQLITE_VFS_DIRECTORY)
   }
 }
 
@@ -76,9 +155,9 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     try {
       log('[WebSQLiteAdapter] Installing OPFS-SAHPool VFS...')
       this.poolUtil = await this.sqlite3.installOpfsSAHPoolVfs({
-        name: 'opfs-sahpool',
-        directory: '.xnet-sqlite',
-        initialCapacity: 10, // Support ~3-4 databases with journals
+        name: WEB_SQLITE_VFS_NAME,
+        directory: WEB_SQLITE_VFS_DIRECTORY,
+        initialCapacity: WEB_SQLITE_INITIAL_CAPACITY, // Support ~3-4 databases with journals
         clearOnInit: false
       })
       log('[WebSQLiteAdapter] OPFS-SAHPool VFS installed')
@@ -89,7 +168,7 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       log('[WebSQLiteAdapter] Capacity reserved')
 
       // Path must be absolute for opfs-sahpool
-      const dbPath = config.path.startsWith('/') ? config.path : `/${config.path}`
+      const dbPath = getDatabasePath(config)
 
       // Open database using the pool VFS
       log('[WebSQLiteAdapter] Opening database at', dbPath)
@@ -101,7 +180,7 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       // Safari can fail SAH pool setup but still support OPFS persistence.
       console.warn('[WebSQLiteAdapter] OPFS-SAHPool not available, trying OPFS direct mode:', err)
 
-      const dbPath = config.path.startsWith('/') ? config.path : `/${config.path}`
+      const dbPath = getDatabasePath(config)
       const opfsDbCtor = this.sqlite3?.oo1?.OpfsDb
 
       if (typeof opfsDbCtor === 'function') {
@@ -216,8 +295,159 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       await this.commit()
       return result
     } catch (err) {
-      await this.rollback()
+      if (this.inTransaction) {
+        try {
+          await this.rollback()
+        } catch (rollbackErr) {
+          if (isSQLiteCorruptionError(rollbackErr) && !isSQLiteCorruptionError(err)) {
+            throw rollbackErr
+          }
+        }
+      }
       throw err
+    }
+  }
+
+  async applyNodeBatch(input: SQLiteNodeBatchApplyInput): Promise<SQLiteNodeBatchApplyResult> {
+    await this.transaction(async () => {
+      for (const node of input.nodes) {
+        await this.run(
+          `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             schema_id = excluded.schema_id,
+             updated_at = excluded.updated_at,
+             deleted_at = excluded.deleted_at`,
+          [node.id, node.schemaId, node.createdAt, node.updatedAt, node.createdBy, node.deletedAt]
+        )
+
+        if (node.propertyKeys.length === 0) {
+          await this.run('DELETE FROM node_properties WHERE node_id = ?', [node.id])
+        } else {
+          await this.run(
+            `DELETE FROM node_properties
+             WHERE node_id = ? AND property_key NOT IN (${node.propertyKeys.map(() => '?').join(', ')})`,
+            [node.id, ...node.propertyKeys]
+          )
+        }
+      }
+
+      for (const property of input.properties) {
+        await this.run(
+          `INSERT INTO node_properties
+              (node_id, property_key, value, lamport_time, updated_by, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(node_id, property_key) DO UPDATE SET
+              value = excluded.value,
+              lamport_time = excluded.lamport_time,
+              updated_by = excluded.updated_by,
+              updated_at = excluded.updated_at
+            WHERE excluded.lamport_time > node_properties.lamport_time`,
+          [
+            property.nodeId,
+            property.propertyKey,
+            property.value,
+            property.lamportTime,
+            property.updatedBy,
+            property.updatedAt
+          ]
+        )
+      }
+
+      if (input.indexMode !== 'defer-schema') {
+        for (const node of input.nodes) {
+          await this.run('DELETE FROM node_property_scalars WHERE node_id = ?', [node.id])
+        }
+
+        for (const row of input.scalarIndexRows) {
+          await this.run(
+            `INSERT INTO node_property_scalars
+                (
+                  node_id,
+                  schema_id,
+                  property_key,
+                  value_type,
+                  value_text,
+                  value_number,
+                  value_boolean,
+                  value_hash,
+                  updated_at,
+                  lamport_time
+                )
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              row.nodeId,
+              row.schemaId,
+              row.propertyKey,
+              row.valueType,
+              row.valueText,
+              row.valueNumber,
+              row.valueBoolean,
+              row.valueHash,
+              row.updatedAt,
+              row.lamportTime
+            ]
+          )
+        }
+
+        for (const nodeId of input.ftsNodeIds) {
+          await this.run('DELETE FROM nodes_fts WHERE node_id = ?', [nodeId])
+        }
+
+        for (const row of input.ftsRows) {
+          await this.run('INSERT INTO nodes_fts (node_id, title, content) VALUES (?, ?, ?)', [
+            row.nodeId,
+            row.title,
+            row.content
+          ])
+        }
+      }
+
+      for (const change of input.changes) {
+        await this.run(
+          `INSERT OR IGNORE INTO changes
+            (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            change.hash,
+            change.nodeId,
+            change.payload,
+            change.lamportTime,
+            change.lamportPeer,
+            change.wallTime,
+            change.author,
+            change.parentHash,
+            change.batchId,
+            change.signature
+          ]
+        )
+      }
+
+      await this.run(
+        `INSERT INTO sync_state (key, value) VALUES ('lastLamportTime', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        [String(input.lastLamportTime)]
+      )
+
+      if (input.indexMode !== 'defer-schema') {
+        const invalidatedAt = Date.now()
+        for (const schemaId of input.affectedSchemaIds) {
+          await this.run(
+            `UPDATE node_query_materializations
+             SET invalidated_at = ?
+             WHERE schema_id = ? AND invalidated_at IS NULL`,
+            [invalidatedAt, schemaId]
+          )
+        }
+      }
+    })
+
+    return {
+      nodeRowsWritten: input.nodes.length,
+      propertyRowsWritten: input.properties.length,
+      changeRowsWritten: input.changes.length,
+      scalarRowsWritten: input.scalarIndexRows.length,
+      ftsRowsWritten: input.ftsRows.length
     }
   }
 
@@ -235,8 +465,15 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       throw new Error('No transaction in progress')
     }
 
-    this.execSync('COMMIT')
-    this.inTransaction = false
+    try {
+      this.execSync('COMMIT')
+      this.inTransaction = false
+    } catch (err) {
+      if (isSQLiteCorruptionError(err)) {
+        this.inTransaction = false
+      }
+      throw err
+    }
   }
 
   async rollback(): Promise<void> {
@@ -244,8 +481,11 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       return // Silently ignore
     }
 
-    this.execSync('ROLLBACK')
-    this.inTransaction = false
+    try {
+      this.execSync('ROLLBACK')
+    } finally {
+      this.inTransaction = false
+    }
   }
 
   async prepare(sql: string): Promise<PreparedStatement> {

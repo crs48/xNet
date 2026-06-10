@@ -10,6 +10,10 @@ import type {
   CanvasNode,
   CanvasNodeRenderContext,
   CanvasPlanningTemplateId,
+  CanvasQueryFrameExecutionSnapshot,
+  CanvasQueryFrameRefreshTrigger,
+  CanvasQueryFrameResultCard,
+  CanvasQueryFrameResultPreview,
   CanvasSelectionSnapshot,
   Rect,
   ShapeType
@@ -20,9 +24,18 @@ import {
   createCanvasFrameVariantProperties,
   createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
+  createCanvasQueryFrameDefinitionFromSavedView,
+  createCanvasQueryFrameProperties,
+  createCanvasQueryFrameResultSummaryFromExecution,
   extractCanvasIngressPayloads,
+  getCanvasQueryFrameDefinition,
+  getCanvasQueryFrameResultPreview,
+  getCanvasQueryFrameResultSummary,
   getCanvasObjectsMap,
   getSelectionBounds,
+  isCanvasQueryFrameNode,
+  shouldRefreshCanvasQueryFrameResult,
+  updateCanvasQueryFrameResults,
   useCanvasThemeTokens,
   useCanvasObjectIngestion
 } from '@xnetjs/canvas'
@@ -32,6 +45,8 @@ import {
   PageSchema,
   decodeAnchor,
   encodeAnchor,
+  validateSavedViewDescriptor,
+  type SavedViewDescriptor,
   type CanvasObjectAnchor
 } from '@xnetjs/data'
 import {
@@ -40,8 +55,19 @@ import {
   CanvasLifecycleStatusBadge,
   useBlobService
 } from '@xnetjs/editor/react'
-import { useComments, useDatabaseDoc, useIdentity, useNode, useUndo } from '@xnetjs/react'
+import {
+  useComments,
+  useDatabaseDoc,
+  useIdentity,
+  useNode,
+  useSavedView,
+  useUndo,
+  type SavedViewQueryResult,
+  type SavedViewSchemaRegistry,
+  type UseSavedViewResult
+} from '@xnetjs/react'
 import { useUndoScope } from '@xnetjs/react/internal'
+import { socialSchemas } from '@xnetjs/social/schemas'
 import {
   Command,
   Database,
@@ -50,6 +76,7 @@ import {
   FileText,
   Link2,
   MessageSquare,
+  RefreshCw,
   StickyNote,
   X
 } from 'lucide-react'
@@ -122,6 +149,46 @@ type CanvasViewProps = {
   onCommandStateChange?: (state: CanvasViewCommandState) => void
 }
 
+type CanvasQueryFrameTarget = {
+  nodeId: string
+  descriptorJson: string
+}
+
+const SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY = socialSchemas as unknown as SavedViewSchemaRegistry
+const QUERY_RESULT_PREVIEW_LIMIT = 4
+const QUERY_RESULT_TITLE_FIELDS = [
+  'title',
+  'displayName',
+  'handle',
+  'name',
+  'username',
+  'url',
+  'sourceUrl',
+  'id'
+]
+const QUERY_RESULT_SUBTITLE_FIELDS = [
+  'platform',
+  'contentKind',
+  'interactionKind',
+  'messageKind',
+  'collectionKind',
+  'publishedAt',
+  'observedAt',
+  'sentAt',
+  'createdAt',
+  'updatedAt'
+]
+const QUERY_RESULT_DESCRIPTION_FIELDS = ['summary', 'description', 'text', 'body', 'content']
+const QUERY_RESULT_BADGE_FIELDS = [
+  'platform',
+  'privacyClass',
+  'visibility',
+  'contentKind',
+  'interactionKind',
+  'messageKind',
+  'collectionKind'
+]
+
 function getYjsStackDepth(manager: Y.UndoManager | null, stack: 'undoStack' | 'redoStack'): number {
   if (!manager) {
     return 0
@@ -154,6 +221,7 @@ export type CanvasViewCommandState = {
     | 'frame'
     | null
   selectedTitle: string | null
+  selectedIsQueryFrame: boolean
   selectionAllLocked: boolean
   selectionAnyLocked: boolean
   shortcutHelpOpen: boolean
@@ -184,6 +252,8 @@ export type CanvasViewHandle = {
   createFrame: () => boolean
   createMindMap: () => boolean
   createPlanningTemplate: (templateId: CanvasPlanningTemplateId) => boolean
+  createQueryFrameFromSavedView: (input: SavedViewCanvasQueryFrameInput) => boolean
+  refreshSelectedQueryFrame: () => boolean
   createExternalReference: (url?: string) => boolean
   createMediaFile: () => boolean
   wrapSelectionInFrame: () => boolean
@@ -194,6 +264,12 @@ export type CanvasViewHandle = {
   toggleShortcutHelp: (open?: boolean) => void
 }
 
+export type SavedViewCanvasQueryFrameInput = {
+  viewId: string
+  title?: string | null
+  descriptorJson?: string | null
+}
+
 function getNodeRect(node: CanvasNode): Rect {
   return {
     x: node.position.x,
@@ -201,6 +277,235 @@ function getNodeRect(node: CanvasNode): Rect {
     width: node.position.width,
     height: node.position.height
   }
+}
+
+function parseSavedViewDescriptorForCanvasFrame(
+  value: string | null | undefined
+): SavedViewDescriptor | null {
+  if (!value) return null
+
+  try {
+    const descriptor = JSON.parse(value) as SavedViewDescriptor
+    return validateSavedViewDescriptor(descriptor).valid ? descriptor : null
+  } catch {
+    return null
+  }
+}
+
+function getCanvasQueryFrameTargets(doc: Y.Doc | null): CanvasQueryFrameTarget[] {
+  if (!doc) return []
+
+  return Array.from(getCanvasObjectsMap<CanvasNode>(doc).values()).flatMap((node) => {
+    if (!isCanvasQueryFrameNode(node)) return []
+
+    const definition = getCanvasQueryFrameDefinition(node)
+    if (!definition?.queryText) return []
+
+    return [
+      {
+        nodeId: node.id,
+        descriptorJson: definition.queryText
+      }
+    ]
+  })
+}
+
+function savedViewQueryExecutionSnapshot(
+  query: SavedViewQueryResult
+): CanvasQueryFrameExecutionSnapshot {
+  return {
+    status: query.status,
+    loading: query.loading,
+    totalCount: query.totalCount,
+    visibleCount: query.data.length,
+    sourceVersion: query.metadata?.updatedAt ? String(query.metadata.updatedAt) : null,
+    contentHash: query.plan?.descriptorHash ?? null,
+    errorMessage: query.error?.message ?? query.metadata?.error ?? null
+  }
+}
+
+function savedViewExecutionSnapshots(
+  result: UseSavedViewResult
+): CanvasQueryFrameExecutionSnapshot[] {
+  const queries = result.queryIds.map((queryId) => result.queries[queryId]).filter(Boolean)
+  if (queries.length > 0) {
+    return queries.map(savedViewQueryExecutionSnapshot)
+  }
+
+  return [
+    {
+      status: result.status,
+      loading: result.loading,
+      totalCount: 0,
+      visibleCount: 0,
+      errorMessage: result.error?.message ?? null
+    }
+  ]
+}
+
+function savedViewResultPreview(result: UseSavedViewResult): CanvasQueryFrameResultPreview {
+  const queries = result.queryIds.map((queryId) => result.queries[queryId]).filter(Boolean)
+  const loadedCount = queries.reduce((total, query) => total + query.data.length, 0)
+  const cards = queries.flatMap((query) =>
+    query.data.map((row, index) => savedViewRowResultCard(query, row, index))
+  )
+
+  return {
+    cards: cards.slice(0, QUERY_RESULT_PREVIEW_LIMIT),
+    overflowCount: Math.max(0, loadedCount - QUERY_RESULT_PREVIEW_LIMIT)
+  }
+}
+
+function savedViewRowResultCard(
+  query: SavedViewQueryResult,
+  row: Record<string, unknown>,
+  index: number
+): CanvasQueryFrameResultCard {
+  const title = firstPreviewFieldValue(row, QUERY_RESULT_TITLE_FIELDS) ?? `${query.rowRole} result`
+  const subtitleParts = QUERY_RESULT_SUBTITLE_FIELDS.flatMap((field) => {
+    const value = previewValueLabel(field, row[field], 48)
+    return value ? [value] : []
+  })
+  const badges = QUERY_RESULT_BADGE_FIELDS.flatMap((field) => {
+    const value = previewValueLabel(field, row[field], 28)
+    return value ? [value] : []
+  })
+  const sourceNodeId = typeof row.id === 'string' ? row.id : null
+
+  return {
+    id: `${query.queryId}:${sourceNodeId ?? index}`,
+    title,
+    subtitle: subtitleParts.slice(0, 2).join(' / ') || undefined,
+    eyebrow: query.rowRole,
+    description: firstPreviewFieldValue(row, QUERY_RESULT_DESCRIPTION_FIELDS, 180) ?? undefined,
+    sourceNodeId: sourceNodeId ?? undefined,
+    schemaId: query.schemaId,
+    href: firstPreviewFieldValue(row, ['url', 'sourceUrl', 'uri'], 240) ?? undefined,
+    badges: [...new Set(badges)].slice(0, 4)
+  }
+}
+
+function firstPreviewFieldValue(
+  row: Record<string, unknown>,
+  fields: readonly string[],
+  maxLength = 120
+): string | null {
+  for (const field of fields) {
+    const value = previewValueLabel(field, row[field], maxLength)
+    if (value) return value
+  }
+
+  return null
+}
+
+function previewValueLabel(field: string, value: unknown, maxLength: number): string | null {
+  if (value === null || value === undefined || value === '') return null
+
+  if (typeof value === 'number' && field.endsWith('At') && value > 1_000_000_000_000) {
+    return new Date(value).toLocaleDateString()
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    return trimmed.length > maxLength
+      ? `${trimmed.slice(0, Math.max(0, maxLength - 3))}...`
+      : trimmed
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0 ? `${value.length} items` : null
+  }
+
+  return null
+}
+
+function CanvasSavedViewQueryFrameExecutor({
+  doc,
+  nodeId,
+  descriptorJson,
+  manualRefreshRequestId
+}: {
+  doc: Y.Doc | null
+  nodeId: string
+  descriptorJson: string
+  manualRefreshRequestId: string | null
+}): null {
+  const result = useSavedView(descriptorJson, SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY)
+  const snapshots = useMemo(() => savedViewExecutionSnapshots(result), [result])
+  const preview = useMemo(() => savedViewResultPreview(result), [result])
+  const summaryKey = useMemo(() => JSON.stringify(snapshots), [snapshots])
+  const previewKey = useMemo(() => JSON.stringify(preview), [preview])
+  const lastManualRefreshRequestRef = useRef<string | null>(null)
+  const openRefreshPendingRef = useRef(true)
+
+  useEffect(() => {
+    if (!doc) return
+
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const node = objects.get(nodeId)
+    if (!node) return
+
+    const definition = getCanvasQueryFrameDefinition(node)
+    if (!definition) return
+    if (definition.refreshMode === 'manual') {
+      openRefreshPendingRef.current = false
+    }
+
+    const manualRefreshRequested =
+      manualRefreshRequestId !== null &&
+      manualRefreshRequestId !== lastManualRefreshRequestRef.current
+    const trigger: CanvasQueryFrameRefreshTrigger = manualRefreshRequested
+      ? 'manual'
+      : openRefreshPendingRef.current
+        ? 'open'
+        : 'result-change'
+    const nextBaseline = createCanvasQueryFrameResultSummaryFromExecution({ queries: snapshots })
+    const current = getCanvasQueryFrameResultSummary(node)
+    const currentPreview = getCanvasQueryFrameResultPreview(node)
+    const shouldRefresh = shouldRefreshCanvasQueryFrameResult({
+      refreshMode: definition.refreshMode,
+      trigger,
+      currentSummary: current,
+      nextSummary: nextBaseline,
+      currentPreview,
+      nextPreview: preview
+    })
+
+    if (manualRefreshRequested) {
+      lastManualRefreshRequestRef.current = manualRefreshRequestId
+    }
+    if (!shouldRefresh) {
+      if (trigger === 'open' && nextBaseline.status !== 'loading') {
+        openRefreshPendingRef.current = false
+      }
+      return
+    }
+
+    const nextSummary = createCanvasQueryFrameResultSummaryFromExecution({
+      queries: snapshots,
+      now: new Date().toISOString()
+    })
+    const next = updateCanvasQueryFrameResults(node, {
+      summary: nextSummary,
+      preview
+    })
+
+    if (next !== node) {
+      objects.set(nodeId, next)
+    }
+    if (trigger === 'open' && nextSummary.status !== 'loading') {
+      openRefreshPendingRef.current = false
+    }
+    // summaryKey/previewKey are stable execution signatures; the values remain the source for the write.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, manualRefreshRequestId, nodeId, previewKey, summaryKey])
+
+  return null
 }
 
 function getCanvasViewDisplayType(
@@ -220,6 +525,34 @@ function getCanvasViewDisplayType(
   }
 
   return getCanvasShellDisplayType(node, document)
+}
+
+function readStringList(value: unknown, limit = 4): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .flatMap((item) => (typeof item === 'string' && item.trim() ? [item.trim()] : []))
+    .slice(0, limit)
+}
+
+function schemaIdLabel(schemaId: string | undefined): string {
+  if (!schemaId) {
+    return 'Source record'
+  }
+
+  const withoutVersion = schemaId.split('@')[0] ?? schemaId
+  const lastSegment = withoutVersion.split('/').pop()
+  return lastSegment && lastSegment.trim().length > 0 ? lastSegment.trim() : schemaId
+}
+
+function isPinnedSourceRecordCard(node: CanvasNode): boolean {
+  return (
+    node.type === 'external-reference' &&
+    (node.properties.sourceCardRole === 'query-result' ||
+      node.properties.sourceCardRole === 'social-projection')
+  )
 }
 
 function getShapeLabel(shapeType: ShapeType): string {
@@ -432,6 +765,58 @@ function renderNodeCard(
   )
   const status = typeof node.properties.status === 'string' ? node.properties.status : null
 
+  if (displayType === 'external-reference' && isPinnedSourceRecordCard(node)) {
+    const badges = readStringList(node.properties.badges)
+    const description =
+      typeof node.properties.description === 'string' ? node.properties.description : null
+    const pinnedSubtitle =
+      typeof node.properties.subtitle === 'string' ? node.properties.subtitle : null
+    const href = typeof node.properties.href === 'string' ? node.properties.href : null
+
+    return (
+      <div
+        className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
+        data-canvas-node-card="true"
+        data-canvas-card-kind="source-record"
+        data-canvas-pinned-source-card="true"
+        data-canvas-source-node-id={sourceId}
+        data-canvas-source-schema-id={node.sourceSchemaId}
+        data-canvas-theme={themeMode}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <Database size={12} />
+            <span className="truncate">{schemaIdLabel(node.sourceSchemaId)}</span>
+          </span>
+          <CanvasLifecycleStatusBadge status={status} />
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
+          {pinnedSubtitle || description ? (
+            <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+              {description ?? pinnedSubtitle}
+            </p>
+          ) : null}
+          {href ? <p className="truncate text-xs text-muted-foreground">{href}</p> : null}
+        </div>
+
+        {badges.length > 0 ? (
+          <div className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">
+            {badges.map((badge) => (
+              <span
+                key={badge}
+                className="max-w-full truncate rounded-full border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
   if (displayType === 'page' || displayType === 'note') {
     return (
       <CanvasPageStaticPreviewCard
@@ -608,6 +993,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     nodeIds: [],
     edgeIds: []
   })
+  const [manualQueryFrameRefreshRequests, setManualQueryFrameRefreshRequests] = useState<
+    Record<string, string>
+  >({})
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
   const [peekState, setPeekState] = useState<CanvasPeekState | null>(null)
   const [selectionPanel, setSelectionPanel] = useState<CanvasSelectionPanel>(null)
@@ -697,6 +1085,21 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       .map((nodeId) => nodes.get(nodeId))
       .filter((node): node is CanvasNode => node !== undefined)
   }, [doc, sceneRevision, selection.nodeIds])
+  const selectedQueryFrameNode = useMemo(
+    () =>
+      selectedNodes.length === 1 && isCanvasQueryFrameNode(selectedNodes[0])
+        ? selectedNodes[0]
+        : null,
+    [selectedNodes]
+  )
+  const selectedQueryFrameDefinition = useMemo(
+    () => (selectedQueryFrameNode ? getCanvasQueryFrameDefinition(selectedQueryFrameNode) : null),
+    [selectedQueryFrameNode]
+  )
+  const queryFrameTargets = useMemo(() => {
+    void sceneRevision
+    return getCanvasQueryFrameTargets(doc)
+  }, [doc, sceneRevision])
 
   const selectionAllLocked = selectedNodes.length > 0 && selectedNodes.every((node) => node.locked)
   const selectionAnyLocked = selectedNodes.some((node) => node.locked)
@@ -1714,6 +2117,56 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return created
   }, [placePrimitiveObject, recordUndoBoundary])
 
+  const createQueryFrameFromSavedView = useCallback(
+    (input: SavedViewCanvasQueryFrameInput): boolean => {
+      const descriptor = parseSavedViewDescriptorForCanvasFrame(input.descriptorJson)
+      if (!descriptor) return false
+
+      const title = input.title?.trim() || descriptor.title || 'Saved lens'
+      const queryDefinition = createCanvasQueryFrameDefinitionFromSavedView({
+        viewId: input.viewId,
+        descriptor,
+        label: title
+      })
+      const insertedQueryDefinition = {
+        ...queryDefinition,
+        refreshMode: 'on-open' as const
+      }
+      const created = Boolean(
+        placePrimitiveObject({
+          objectKind: 'group',
+          title,
+          rect: {
+            width: 720,
+            height: 460
+          },
+          properties: createCanvasQueryFrameProperties({
+            title,
+            query: insertedQueryDefinition
+          })
+        })
+      )
+
+      if (created) {
+        recordUndoBoundary('scene')
+      }
+
+      return created
+    },
+    [placePrimitiveObject, recordUndoBoundary]
+  )
+
+  const refreshSelectedQueryFrame = useCallback((): boolean => {
+    if (!selectedQueryFrameNode) return false
+
+    const requestId = `${Date.now()}:${Math.random().toString(36).slice(2)}`
+    setManualQueryFrameRefreshRequests((current) => ({
+      ...current,
+      [selectedQueryFrameNode.id]: requestId
+    }))
+    return true
+  }, [selectedQueryFrameNode])
+
   const createMindMap = useCallback((): boolean => {
     const properties = createCanvasMindMapRootProperties()
     const created = Boolean(
@@ -1840,6 +2293,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       selectedSourceType: selectedCanvasObject?.sourceType ?? null,
       selectedDisplayType: selectedCanvasObject?.displayType ?? null,
       selectedTitle: selectedCanvasObject?.title ?? null,
+      selectedIsQueryFrame: Boolean(selectedQueryFrameNode),
       selectionAllLocked,
       selectionAnyLocked,
       shortcutHelpOpen
@@ -1847,6 +2301,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }, [
     onCommandStateChange,
     selectedCanvasObject,
+    selectedQueryFrameNode,
     selection.nodeIds.length,
     selectionAllLocked,
     selectionAnyLocked,
@@ -1878,6 +2333,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createFrame,
       createMindMap,
       createPlanningTemplate,
+      createQueryFrameFromSavedView,
+      refreshSelectedQueryFrame,
       createExternalReference,
       createMediaFile,
       wrapSelectionInFrame,
@@ -1896,6 +2353,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createFrame,
       createMindMap,
       createPlanningTemplate,
+      createQueryFrameFromSavedView,
       createMediaFile,
       createShape,
       connectSelection,
@@ -1907,6 +2365,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       openAliasEditor,
       openCommentComposer,
       openSelection,
+      refreshSelectedQueryFrame,
       resetCanvasView,
       restoreViewport,
       shiftSelectionLayer,
@@ -2025,6 +2484,20 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                     <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                       Mod+Enter
                     </span>
+                  </button>
+                ) : null}
+                {selectedQueryFrameDefinition ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    onClick={() => {
+                      refreshSelectedQueryFrame()
+                    }}
+                    data-canvas-selection-action="refresh-query-frame"
+                    title={`Refresh ${selectedQueryFrameDefinition.refreshMode} query frame`}
+                  >
+                    <RefreshCw size={12} />
+                    Refresh
                   </button>
                 ) : null}
                 {selectedCanvasObject.displayType === 'database' &&
@@ -2579,6 +3052,16 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           </div>
         </div>
       ) : null}
+
+      {queryFrameTargets.map((target) => (
+        <CanvasSavedViewQueryFrameExecutor
+          key={target.nodeId}
+          doc={doc}
+          nodeId={target.nodeId}
+          descriptorJson={target.descriptorJson}
+          manualRefreshRequestId={manualQueryFrameRefreshRequests[target.nodeId] ?? null}
+        />
+      ))}
 
       <div className="h-full">
         <Canvas
