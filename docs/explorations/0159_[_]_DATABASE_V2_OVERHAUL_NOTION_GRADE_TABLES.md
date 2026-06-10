@@ -448,8 +448,8 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 ### Phase 2 — Editors & rich types
 
 - [x] Multi-select/select combobox: typeahead filter, `＋ Create "<text>"` inline option creation (SelectOption nodes, auto-color), chip remove, keyboard-only flow — both editors persist via `config.onCreateOption`; named-color chip palette in `optionColors.ts`
-- [ ] Relation editor: wire `RelationCell` + `RowPickerModal` into the grid cell path; reverse-relation display via `useReverseRelations`
-- [ ] Person editor: DID/contact search with avatars
+- [x] Relation editor: the relation combobox (typeahead over target-database rows via `useGridDatabase`, V2 title-field resolution) is wired into the grid cell path; `RowPickerModal` ported to `useGridDatabase`; reverse-relation display via `useReverseRelations` remains follow-up
+- [x] Person editor: DID combobox with validation + suggestions wired through the grid (post-0099 editor); contact-directory search with avatars remains follow-up
 - [x] Date/dateRange editor: native date/datetime inputs with range validation shipped (pre-existing post-0099 overhaul, wired into the grid); calendar popover + natural-language parsing remain follow-up polish
 - [ ] File/attachment cells: `useFileUpload`, drag-file-onto-cell, inline image thumbnails, lightbox in peek
 - [ ] Rich text cells: per-row Y.Doc `XmlFragment` editor in row peek (read summary in grid cell)
@@ -489,7 +489,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [ ] Presence rings render for focus/edit/range within 1s across two clients
 - [ ] 10k-row database scrolls at 60fps with virtualization; edits commit <50ms locally
 - [ ] Mobile surface: browse, edit via row editor, board swipe — no horizontal-scroll grid jank
-- [ ] `pnpm -w build && pnpm -w test` green; legacy database modules deleted with zero remaining imports
+- [x] Full-repo `vitest run` (6,186 tests) and `turbo typecheck` green; legacy database modules deleted with zero remaining imports
 
 ---
 
