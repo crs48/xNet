@@ -138,6 +138,15 @@ export {
 // Database setup (V2 node model)
 export { setupDatabase, type SetupDatabaseResult } from './database-setup'
 
+// Database-defined schemas from field nodes (V2 node model)
+export {
+  DEFAULT_DATABASE_SCHEMA_VERSION,
+  fieldsToStoredColumns,
+  buildSchemaFromFields,
+  getDatabaseSchemaIRI,
+  createNodeDatabaseSchemaResolver
+} from './schema-from-fields'
+
 // Column types and configs
 export {
   type ColumnType,

@@ -431,7 +431,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 - [x] Add `DatabaseFieldSchema`, `SelectOptionSchema`, `DatabaseViewSchema` node schemas; bump `Database`/`DatabaseRow` to `@2.0.0`; keep `Row` cell storage unchanged
 - [x] Port `column-operations.ts` / `view-operations.ts` to node ops (fractional-index ordering, per-view overrides); unit tests mirror existing suites
-- [ ] Re-point database-defined schema utilities (`schema-utils.ts`, `schema-resolver.ts`, `clone.ts`, templates) at node-based fields
+- [x] Re-point database-defined schema utilities (`schema-utils.ts`, `schema-resolver.ts`, `clone.ts`, templates) at node-based fields — `schema-from-fields.ts` (node resolver + `fieldsToStoredColumns` adapter feeding the pure clone/template transforms)
 - [ ] Delete `legacy-model.ts`, `legacy-migration.ts`, Y.Doc column/view storage, and all `prefersLegacyDatabaseModel` branches
 - [ ] Reduce the Database Y.Doc to awareness-only; verify presence sessions work with content-less docs
 - [ ] Unify on a single `ViewConfig` type in `@xnetjs/data`; delete the `@xnetjs/views` dialect and `toSurfaceViewConfig`

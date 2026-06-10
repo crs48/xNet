@@ -51,7 +51,14 @@ export const DatabaseSchema = defineSchema({
      * Updated on row add/delete operations.
      * Used for query routing decisions (local vs hub).
      */
-    rowCount: number({ min: 0, integer: true })
+    rowCount: number({ min: 0, integer: true }),
+
+    /**
+     * Version of the database-defined schema (semver).
+     * Bumped when fields change (see schema-utils.ts bump rules).
+     * Used to build the database schema IRI: xnet://xnet.fyi/db/<id>@<version>
+     */
+    schemaVersion: text({ maxLength: 20 })
   },
   // Y.Doc used ONLY as the awareness/presence channel — no persistent state
   document: 'yjs'
