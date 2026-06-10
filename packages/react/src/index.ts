@@ -222,6 +222,27 @@ export {
 } from './hooks/useDatabase'
 
 /**
+ * useGridDatabase - The V2 database hook (exploration 0159).
+ * Fields/views/options/rows as nodes via useQuery; view nodes are the
+ * single source of truth; scoped local-only undo.
+ *
+ * @example
+ * ```tsx
+ * const grid = useGridDatabase(databaseId, { viewId, search })
+ * <GridSurface fields={grid.visibleFields} rows={grid.rows} ... />
+ * ```
+ */
+export {
+  useGridDatabase,
+  type UseGridDatabaseOptions,
+  type UseGridDatabaseResult,
+  type GridFieldModel,
+  type GridOptionModel,
+  type GridViewModel,
+  type GridRowModel
+} from './hooks/useGridDatabase'
+
+/**
  * useDatabaseRow - Hook for single row operations with optimistic updates
  *
  * @example

@@ -137,6 +137,7 @@ export interface FieldNode {
 export interface SelectOptionNode {
   id: string
   field: string
+  database: string
   name: string
   color?: SelectColor
   sortKey: string
@@ -167,6 +168,7 @@ export function toSelectOptionNode(node: {
   return {
     id: node.id,
     field: p.field as string,
+    database: p.database as string,
     name: p.name as string,
     color: p.color as SelectColor | undefined,
     sortKey: p.sortKey as string

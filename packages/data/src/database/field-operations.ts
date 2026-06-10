@@ -239,6 +239,7 @@ export async function duplicateField(
       schemaId: OPTION_SCHEMA_ID,
       properties: {
         field: newId,
+        database: field.database,
         name: option.name,
         ...(option.color ? { color: option.color } : {}),
         sortKey: option.sortKey
@@ -282,12 +283,18 @@ export async function createSelectOption(
     throw new Error(`Invalid select color: ${String(color)}`)
   }
 
+  const field = await getField(store, fieldId)
+  if (!field) {
+    throw new Error(`Unknown field: ${fieldId}`)
+  }
+
   const sortKey = await resolveSortKey(store, OPTION_SCHEMA_ID, { field: fieldId })
 
   const node = await store.create({
     schemaId: OPTION_SCHEMA_ID,
     properties: {
       field: fieldId,
+      database: field.database,
       name,
       color: color ?? autoColor(name),
       sortKey
@@ -295,6 +302,21 @@ export async function createSelectOption(
   })
 
   return node.id
+}
+
+/**
+ * Get all options for every select field of a database in one query.
+ */
+export async function getDatabaseSelectOptions(
+  store: NodeStore,
+  databaseId: string
+): Promise<SelectOptionNode[]> {
+  const descriptor = createNodeQueryDescriptor(OPTION_SCHEMA_ID, {
+    where: { database: databaseId },
+    orderBy: { sortKey: 'asc' }
+  })
+  const result = await store.query(descriptor)
+  return result.nodes.map(toSelectOptionNode).sort((a, b) => compareSortKeys(a.sortKey, b.sortKey))
 }
 
 /**

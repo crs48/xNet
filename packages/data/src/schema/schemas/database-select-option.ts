@@ -24,6 +24,15 @@ export const DatabaseSelectOptionSchema = defineSchema({
       required: true
     }),
 
+    /**
+     * Parent database (denormalized from the field) so all options for a
+     * database load in a single indexed query.
+     */
+    database: relation({
+      target: 'xnet://xnet.fyi/Database@2.0.0',
+      required: true
+    }),
+
     /** Display name (the tag text) */
     name: text({ required: true, maxLength: 100 }),
 

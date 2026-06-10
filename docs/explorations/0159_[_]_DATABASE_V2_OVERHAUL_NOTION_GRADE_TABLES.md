@@ -440,7 +440,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 - [x] `GridStateMachine`: selection model (cell/range/row/column), focus, editing lifecycle per `EDITOR_CONTRACT`, full keymap table — pure TS, exhaustively unit-tested (`packages/views/src/grid/{types,state,keymap}.ts`, 78 tests)
 - [x] `GridSurface`: DOM grid with TanStack Virtual row virtualization, sticky header + row gutter, ARIA grid roles (column virtualization deferred — widths are bounded and rows dominate; revisit if >50-column databases appear)
-- [ ] Rewire `useDatabase` → thin composition of `useQuery` (fields/views/rows with `materializedView` + `search`), `useMutate`, `useUndoScope`; remove the ×10 over-fetch and client pipeline for the base window
+- [x] Rewire `useDatabase` → thin composition of `useQuery` (fields/views/rows with `materializedView` + `search`), `useMutate`, `useUndoScope`; remove the ×10 over-fetch and client pipeline for the base window — shipped as `useGridDatabase` (legacy `useDatabase` deleted in the demolition step)
 - [x] Clipboard: TSV copy/cut/paste with per-type coercion, range clear, fill-down (`packages/views/src/grid/clipboard.ts`; range clear/fill-down commands wired in GridSurface)
 - [x] dnd-kit column reorder (per-view `fieldOrder`), column resize, row drag via gutter handle (`moveRow`) — surface emits `onMoveField`/`onMoveRow`/`onResizeField`; hook layer persists to View nodes
 - [ ] Toolbar: view tabs (View nodes), sort/filter chips (reuse FilterBuilder), group selector, field-visibility popover, quick-find

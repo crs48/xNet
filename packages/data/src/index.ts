@@ -587,6 +587,7 @@ export {
   moveField,
   duplicateField,
   getSelectOptions,
+  getDatabaseSelectOptions,
   createSelectOption,
   updateSelectOption,
   deleteSelectOption,
