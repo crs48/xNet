@@ -49,3 +49,10 @@ export {
 export { GridSurface, type GridSurfaceProps } from './GridSurface'
 export { GridCell, type GridCellProps } from './GridCell'
 export { GridHeader, type GridHeaderProps } from './GridHeader'
+export {
+  GridToolbar,
+  type GridToolbarProps,
+  type GridViewTab,
+  toSurfaceFilter,
+  fromSurfaceFilter
+} from './GridToolbar'

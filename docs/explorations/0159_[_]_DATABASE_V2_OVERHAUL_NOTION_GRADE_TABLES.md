@@ -443,7 +443,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [x] Rewire `useDatabase` → thin composition of `useQuery` (fields/views/rows with `materializedView` + `search`), `useMutate`, `useUndoScope`; remove the ×10 over-fetch and client pipeline for the base window — shipped as `useGridDatabase` (legacy `useDatabase` deleted in the demolition step)
 - [x] Clipboard: TSV copy/cut/paste with per-type coercion, range clear, fill-down (`packages/views/src/grid/clipboard.ts`; range clear/fill-down commands wired in GridSurface)
 - [x] dnd-kit column reorder (per-view `fieldOrder`), column resize, row drag via gutter handle (`moveRow`) — surface emits `onMoveField`/`onMoveRow`/`onResizeField`; hook layer persists to View nodes
-- [ ] Toolbar: view tabs (View nodes), sort/filter chips (reuse FilterBuilder), group selector, field-visibility popover, quick-find
+- [x] Toolbar: view tabs (View nodes), sort/filter chips (reuse FilterBuilder), group selector, field-visibility popover, quick-find (`GridToolbar.tsx` + filter-dialect adapters)
 
 ### Phase 2 — Editors & rich types
 

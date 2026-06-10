@@ -255,5 +255,10 @@ export {
   GridCell,
   type GridCellProps,
   GridHeader,
-  type GridHeaderProps
+  type GridHeaderProps,
+  GridToolbar,
+  type GridToolbarProps,
+  type GridViewTab,
+  toSurfaceFilter,
+  fromSurfaceFilter
 } from './grid/index.js'
