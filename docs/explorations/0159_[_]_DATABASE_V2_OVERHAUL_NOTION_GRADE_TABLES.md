@@ -453,13 +453,13 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [x] Date/dateRange editor: native date/datetime inputs with range validation shipped (pre-existing post-0099 overhaul, wired into the grid); calendar popover + natural-language parsing remain follow-up polish
 - [ ] File/attachment cells: `useFileUpload`, drag-file-onto-cell, inline image thumbnails, lightbox in peek
 - [ ] Rich text cells: per-row Y.Doc `XmlFragment` editor in row peek (read summary in grid cell)
-- [ ] Row peek: desktop side panel / mobile sheet, stacked field editors, row comments thread
+- [x] Row peek: desktop side panel / mobile sheet, stacked field editors, row comments thread — `GridPeek` (side panel in the web shell; full editors stacked; row comment count slot; mobile sheet arrives with the Expo surface)
 - [ ] Auto fields (`created`/`createdBy`/`updated`/`updatedBy`) + rollup columns rendered via the computed path
 
 ### Phase 3 — Comments, presence, polish
 
-- [ ] Cell comment badges + hover thread preview + context-menu/shortcut create, via `useDatabaseComments` anchors; column/row anchors in menus
-- [ ] Presence: awareness broadcast of focus/edit/range; remote rings, name flags, range overlays
+- [x] Cell comment badges + thread popover + shortcut create (`Cmd/Ctrl+Shift+M`), via `useDatabaseComments` anchors — badges/counts in GridCell, CommentPopover + composer in the web shell; hover-preview and column/row menu anchors remain follow-up polish
+- [x] Presence: awareness broadcast of cell focus; remote rings + name flags (GridCell), wired through the Database Y.Doc awareness channel in the web shell; edit-pulse and range overlays remain follow-up polish
 - [ ] Hover/active states, tooltips with shortcut hints on every toolbar control, empty states, loading skeletons
 - [ ] Touch affordances: long-press drag, bottom-sheet pickers under breakpoint
 - [ ] Replace `apps/web` + `apps/electron` `DatabaseView.tsx` with thin shells over the new surface; delete `VirtualizedTableView`/`useTableState`/TanStack Table dependency

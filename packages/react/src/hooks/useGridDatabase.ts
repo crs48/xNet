@@ -110,7 +110,12 @@ export interface UseGridDatabaseResult {
   moveRowToIndex: (rowId: string, targetIndex: number) => Promise<void>
 
   // Field mutations
-  addField: (name: string, type: FieldType, config?: FieldConfig) => Promise<string | null>
+  addField: (
+    name: string,
+    type: FieldType,
+    config?: FieldConfig,
+    opts?: { isTitle?: boolean; width?: number }
+  ) => Promise<string | null>
   renameField: (fieldId: string, name: string) => Promise<void>
   updateFieldConfig: (fieldId: string, config: FieldConfig) => Promise<void>
   changeFieldType: (fieldId: string, type: FieldType) => Promise<void>
@@ -466,13 +471,20 @@ export function useGridDatabase(
   // ─── Field mutations ──────────────────────────────────────────────────────
 
   const addField = useCallback(
-    async (name: string, type: FieldType, config?: FieldConfig): Promise<string | null> => {
+    async (
+      name: string,
+      type: FieldType,
+      config?: FieldConfig,
+      opts?: { isTitle?: boolean; width?: number }
+    ): Promise<string | null> => {
       const node = await mutate.create(DatabaseFieldSchema, {
         database: databaseId,
         name,
         type,
         config: (config ?? {}) as Record<string, unknown>,
-        sortKey: nextAppendKey(fieldTailRef)
+        sortKey: nextAppendKey(fieldTailRef),
+        ...(opts?.isTitle !== undefined ? { isTitle: opts.isTitle } : {}),
+        ...(opts?.width !== undefined ? { width: opts.width } : {})
       })
       return node?.id ?? null
     },

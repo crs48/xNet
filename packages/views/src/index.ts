@@ -254,6 +254,8 @@ export {
   type GridSurfaceProps,
   GridCell,
   type GridCellProps,
+  GridPeek,
+  type GridPeekProps,
   GridHeader,
   type GridHeaderProps,
   GridToolbar,
