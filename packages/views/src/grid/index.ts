@@ -37,3 +37,15 @@ export {
   type PasteField,
   type CoerceResult
 } from './clipboard'
+
+export {
+  type GridField,
+  type GridFieldOption,
+  type GridRowData,
+  type CellRef,
+  type GridCallbacks
+} from './model'
+
+export { GridSurface, type GridSurfaceProps } from './GridSurface'
+export { GridCell, type GridCellProps } from './GridCell'
+export { GridHeader, type GridHeaderProps } from './GridHeader'

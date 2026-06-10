@@ -244,5 +244,16 @@ export {
   coerceCellText,
   type CopyField,
   type PasteField,
-  type CoerceResult
+  type CoerceResult,
+  type GridField,
+  type GridFieldOption,
+  type GridRowData,
+  type CellRef,
+  type GridCallbacks,
+  GridSurface,
+  type GridSurfaceProps,
+  GridCell,
+  type GridCellProps,
+  GridHeader,
+  type GridHeaderProps
 } from './grid/index.js'

@@ -1,0 +1,709 @@
+/**
+ * GridSurface — the V2 database grid (exploration 0159).
+ *
+ * DOM grid with:
+ * - TanStack Virtual row virtualization
+ * - GridState reducer + full keyboard map (see keymap.ts)
+ * - TSV clipboard copy/cut/paste with typed coercion
+ * - dnd-kit column reorder (header) and row reorder (gutter handle)
+ * - pointer column resize
+ * - presence rings and comment badges per cell
+ *
+ * The surface is store-agnostic: data comes in as GridField/GridRowData
+ * props, mutations leave through GridCallbacks. View nodes remain the
+ * single source of truth — no internal mirror of sort/filter/visibility.
+ */
+
+import type { CellPresence } from '../types.js'
+import type { CellRef, GridCallbacks, GridField, GridRowData } from './model.js'
+import type { GridCommand, GridPos, GridState, KeyInput } from './types.js'
+import type { CellValue, SortConfig } from '@xnetjs/data'
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { cn } from '@xnetjs/ui'
+import { Expand, GripVertical, Plus } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import { coerceCellText, parseTsv, serializeTsv, type PasteField } from './clipboard.js'
+import { GridCell } from './GridCell.js'
+import { GridHeader } from './GridHeader.js'
+import { interpretKeyDown } from './keymap.js'
+import { createGridState, gridReducer } from './state.js'
+import { isSelected, selectionRect } from './types.js'
+
+const GUTTER_WIDTH = 56
+const DEFAULT_ROW_HEIGHT = 36
+
+export interface GridSurfaceProps extends GridCallbacks {
+  fields: GridField[]
+  rows: GridRowData[]
+  sorts?: SortConfig[]
+  presences?: CellPresence[]
+  /** "rowId:fieldId" -> thread count */
+  cellCommentCounts?: Map<string, number>
+  rowHeight?: number
+  readOnly?: boolean
+  className?: string
+}
+
+export function GridSurface({
+  fields,
+  rows,
+  sorts,
+  presences,
+  cellCommentCounts,
+  rowHeight = DEFAULT_ROW_HEIGHT,
+  readOnly,
+  className,
+  onUpdateCell,
+  onClearCells,
+  onAddRow,
+  onDeleteRows,
+  onMoveRow,
+  onMoveField,
+  onResizeField,
+  onToggleSort,
+  onFieldMenu,
+  onAddField,
+  onCreateOption,
+  onOpenRow,
+  onUndo,
+  onRedo,
+  onFind,
+  onCommentCell,
+  onCellFocus,
+  onCellBlur
+}: GridSurfaceProps): React.JSX.Element {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [state, dispatch] = useReducer(gridReducer, undefined, () =>
+    createGridState(rows.length, fields.length)
+  )
+  /** Latest editor draft (commit reads this when the keymap closes an edit) */
+  const draftRef = useRef<CellValue>(null)
+
+  // Keep the state machine in sync with data dimensions
+  useEffect(() => {
+    if (state.rowCount !== rows.length || state.colCount !== fields.length) {
+      dispatch({ type: 'resize', rowCount: rows.length, colCount: fields.length })
+    }
+  }, [rows.length, fields.length, state.rowCount, state.colCount])
+
+  // Presence broadcast on cursor change
+  const cursorKey = state.cursor ? `${state.cursor.row}:${state.cursor.col}` : null
+  useEffect(() => {
+    if (state.cursor) {
+      const row = rows[state.cursor.row]
+      const field = fields[state.cursor.col]
+      if (row && field) onCellFocus?.(row.id, field.id)
+    } else {
+      onCellBlur?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cursorKey])
+
+  // ─── Virtualization ────────────────────────────────────────────────────────
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => rowHeight,
+    overscan: 10
+  })
+
+  // Keep the focused cell scrolled into view
+  useEffect(() => {
+    if (state.cursor) rowVirtualizer.scrollToIndex(state.cursor.row)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cursorKey])
+
+  const totalWidth = useMemo(
+    () => GUTTER_WIDTH + fields.reduce((sum, f) => sum + f.width, 0),
+    [fields]
+  )
+
+  // ─── Mutation helpers ──────────────────────────────────────────────────────
+
+  const cellAt = useCallback(
+    (pos: GridPos): { row: GridRowData; field: GridField } | null => {
+      const row = rows[pos.row]
+      const field = fields[pos.col]
+      return row && field ? { row, field } : null
+    },
+    [rows, fields]
+  )
+
+  const selectedRect = useCallback(() => {
+    return selectionRect(state.selection, rows.length, fields.length)
+  }, [state.selection, rows.length, fields.length])
+
+  const refsInRect = useCallback(
+    (rect: { top: number; left: number; bottom: number; right: number }): CellRef[] => {
+      const refs: CellRef[] = []
+      for (let r = rect.top; r <= rect.bottom; r++) {
+        for (let c = rect.left; c <= rect.right; c++) {
+          const cell = cellAt({ row: r, col: c })
+          if (cell) refs.push({ rowId: cell.row.id, fieldId: cell.field.id })
+        }
+      }
+      return refs
+    },
+    [cellAt]
+  )
+
+  const commitDraft = useCallback(() => {
+    if (!state.editing) return
+    const cell = cellAt(state.editing.pos)
+    if (cell) {
+      onUpdateCell?.(cell.row.id, cell.field.id, draftRef.current)
+    }
+  }, [state.editing, cellAt, onUpdateCell])
+
+  // ─── Clipboard ─────────────────────────────────────────────────────────────
+
+  const copySelection = useCallback(
+    async (cut: boolean) => {
+      const rect = selectedRect()
+      if (!rect) return
+      const block: (CellValue | undefined)[][] = []
+      for (let r = rect.top; r <= rect.bottom; r++) {
+        const rowValues: (CellValue | undefined)[] = []
+        for (let c = rect.left; c <= rect.right; c++) {
+          const cell = cellAt({ row: r, col: c })
+          rowValues.push(cell ? cell.row.cells[cell.field.id] : undefined)
+        }
+        block.push(rowValues)
+      }
+      const copyFields = fields.slice(rect.left, rect.right + 1).map((f) => ({
+        id: f.id,
+        type: f.type,
+        optionName: (id: string) => f.options?.find((o) => o.id === id)?.name
+      }))
+      try {
+        await navigator.clipboard.writeText(serializeTsv(block, copyFields))
+      } catch {
+        // Clipboard may be unavailable (permissions); ignore
+      }
+      if (cut && !readOnly) {
+        onClearCells?.(refsInRect(rect))
+      }
+    },
+    [selectedRect, cellAt, fields, refsInRect, onClearCells, readOnly]
+  )
+
+  const pasteAtCursor = useCallback(async () => {
+    if (readOnly || !state.cursor) return
+    let text: string
+    try {
+      text = await navigator.clipboard.readText()
+    } catch {
+      return
+    }
+    if (!text) return
+    const matrix = parseTsv(text)
+    const origin = state.cursor
+
+    for (let r = 0; r < matrix.length; r++) {
+      for (let c = 0; c < matrix[r].length; c++) {
+        const pos = { row: origin.row + r, col: origin.col + c }
+        const cell = cellAt(pos)
+        if (!cell) continue
+        const pasteField: PasteField = {
+          id: cell.field.id,
+          type: cell.field.type,
+          optionIdByName: (name) =>
+            cell.field.options?.find((o) => o.name.toLowerCase() === name.toLowerCase())?.id
+        }
+        const result = coerceCellText(matrix[r][c], pasteField)
+        let value = result.value
+
+        // Inline-create unresolved select options when allowed
+        if (result.unresolvedOptions && onCreateOption) {
+          const created: string[] = []
+          for (const name of result.unresolvedOptions) {
+            const id = await onCreateOption(cell.field.id, name)
+            if (id) created.push(id)
+          }
+          if (cell.field.type === 'multiSelect') {
+            const existing = Array.isArray(value) ? value : []
+            value = [...existing, ...created]
+          } else if (cell.field.type === 'select' && created.length > 0) {
+            value = created[0]
+          }
+        }
+
+        if (!result.lossy || value !== null) {
+          onUpdateCell?.(cell.row.id, cell.field.id, value)
+        }
+      }
+    }
+  }, [readOnly, state.cursor, cellAt, onCreateOption, onUpdateCell])
+
+  const fillDown = useCallback(() => {
+    if (readOnly) return
+    const rect = selectedRect()
+    if (!rect || rect.bottom === rect.top) return
+    for (let c = rect.left; c <= rect.right; c++) {
+      const source = cellAt({ row: rect.top, col: c })
+      if (!source) continue
+      const value = source.row.cells[source.field.id] ?? null
+      for (let r = rect.top + 1; r <= rect.bottom; r++) {
+        const target = cellAt({ row: r, col: c })
+        if (target) onUpdateCell?.(target.row.id, target.field.id, value)
+      }
+    }
+  }, [readOnly, selectedRect, cellAt, onUpdateCell])
+
+  // ─── Command execution ─────────────────────────────────────────────────────
+
+  const runCommand = useCallback(
+    (command: GridCommand): void => {
+      switch (command.type) {
+        case 'move':
+          dispatch({ type: 'move', dir: command.dir, extend: command.extend, jump: command.jump })
+          break
+        case 'moveToEdge':
+          dispatch({ type: 'moveToEdge', dir: command.dir, extend: command.extend })
+          break
+        case 'startEdit':
+          if (!readOnly) dispatch({ type: 'startEdit', mode: command.mode, seed: command.seed })
+          break
+        case 'commitEdit':
+          commitDraft()
+          dispatch({ type: 'commitEdit', move: command.move })
+          break
+        case 'cancelEdit':
+          dispatch({ type: 'cancelEdit' })
+          break
+        case 'selectAll':
+          dispatch({ type: 'selectAll' })
+          break
+        case 'escape':
+          dispatch({ type: 'escape' })
+          break
+        case 'openPeek': {
+          const row = state.cursor ? rows[state.cursor.row] : undefined
+          if (row) onOpenRow?.(row.id)
+          dispatch({ type: 'openPeek' })
+          break
+        }
+        case 'closePeek':
+          dispatch({ type: 'closePeek' })
+          break
+        case 'copy':
+          void copySelection(command.cut ?? false)
+          break
+        case 'paste':
+          void pasteAtCursor()
+          break
+        case 'clearCells': {
+          if (readOnly) break
+          const rect = selectedRect()
+          if (rect) onClearCells?.(refsInRect(rect))
+          break
+        }
+        case 'fillDown':
+          fillDown()
+          break
+        case 'undo':
+          onUndo?.()
+          break
+        case 'redo':
+          onRedo?.()
+          break
+        case 'insertRowBelow': {
+          const row = state.cursor ? rows[state.cursor.row] : undefined
+          if (!readOnly) onAddRow?.(row?.id)
+          break
+        }
+        case 'deleteRows': {
+          if (readOnly) break
+          if (state.selection.kind === 'rows') {
+            const top = Math.min(state.selection.anchorRow, state.selection.focusRow)
+            const bottom = Math.max(state.selection.anchorRow, state.selection.focusRow)
+            const ids = rows.slice(top, bottom + 1).map((r) => r.id)
+            onDeleteRows?.(ids)
+          }
+          break
+        }
+        case 'commentCell': {
+          const cell = state.cursor ? cellAt(state.cursor) : null
+          if (cell) onCommentCell?.(cell.row.id, cell.field.id, null)
+          break
+        }
+        case 'find':
+          onFind?.()
+          break
+      }
+    },
+    [
+      readOnly,
+      rows,
+      state.cursor,
+      state.selection,
+      commitDraft,
+      copySelection,
+      pasteAtCursor,
+      fillDown,
+      selectedRect,
+      refsInRect,
+      cellAt,
+      onClearCells,
+      onAddRow,
+      onDeleteRows,
+      onOpenRow,
+      onUndo,
+      onRedo,
+      onFind,
+      onCommentCell
+    ]
+  )
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const input: KeyInput = {
+        key: e.key,
+        shift: e.shiftKey,
+        mod: e.metaKey || e.ctrlKey,
+        alt: e.altKey,
+        ctrl: e.ctrlKey
+      }
+      const command = interpretKeyDown(state, input)
+      if (!command) return
+      // While browsing, don't hijack typing that belongs to inputs rendered
+      // inside toolbars/popovers — only handle keys when the event target is
+      // the grid itself or a cell.
+      const target = e.target as HTMLElement
+      if (
+        !state.editing &&
+        target !== containerRef.current &&
+        !target.closest('[data-grid-cell],[data-grid-body]')
+      ) {
+        return
+      }
+      e.preventDefault()
+      e.stopPropagation()
+      runCommand(command)
+    },
+    [state, runCommand]
+  )
+
+  // ─── Mouse selection ───────────────────────────────────────────────────────
+
+  const handleCellMouseDown = useCallback(
+    (rowIndex: number, colIndex: number, shiftKey: boolean) => {
+      if (state.editing) {
+        commitDraft()
+        dispatch({ type: 'commitEdit' })
+      }
+      dispatch({ type: 'focusCell', pos: { row: rowIndex, col: colIndex }, extend: shiftKey })
+      containerRef.current?.focus()
+    },
+    [state.editing, commitDraft]
+  )
+
+  const handleCellMouseEnter = useCallback(
+    (rowIndex: number, colIndex: number, buttons: number) => {
+      if (buttons === 1 && !state.editing) {
+        dispatch({ type: 'dragTo', pos: { row: rowIndex, col: colIndex } })
+      }
+    },
+    [state.editing]
+  )
+
+  const handleCellDoubleClick = useCallback(
+    (rowIndex: number, colIndex: number) => {
+      if (readOnly) return
+      dispatch({ type: 'focusCell', pos: { row: rowIndex, col: colIndex } })
+      dispatch({ type: 'startEdit', mode: 'edit' })
+    },
+    [readOnly]
+  )
+
+  // ─── Editing callbacks (from GridCell) ─────────────────────────────────────
+
+  const handleEditorCommit = useCallback(
+    (value: CellValue) => {
+      if (!state.editing) return
+      const cell = cellAt(state.editing.pos)
+      if (cell) onUpdateCell?.(cell.row.id, cell.field.id, value)
+      dispatch({ type: 'commitEdit' })
+      containerRef.current?.focus()
+    },
+    [state.editing, cellAt, onUpdateCell]
+  )
+
+  const handleEditorCancel = useCallback(() => {
+    dispatch({ type: 'cancelEdit' })
+    containerRef.current?.focus()
+  }, [])
+
+  // ─── Row drag (gutter handles) ─────────────────────────────────────────────
+
+  const rowSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const handleRowDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+      const targetIndex = rows.findIndex((r) => r.id === over.id)
+      if (targetIndex >= 0) onMoveRow?.(String(active.id), targetIndex)
+    },
+    [rows, onMoveRow]
+  )
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
+  const virtualRows = rowVirtualizer.getVirtualItems()
+  const totalHeight = rowVirtualizer.getTotalSize()
+
+  return (
+    <div
+      ref={containerRef}
+      role="grid"
+      aria-rowcount={rows.length + 1}
+      aria-colcount={fields.length}
+      aria-multiselectable
+      tabIndex={0}
+      data-xnet-grid
+      className={cn(
+        'flex flex-col h-full outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100',
+        className
+      )}
+      onKeyDown={handleKeyDown}
+    >
+      <div ref={scrollRef} className="flex-1 overflow-auto">
+        <div style={{ width: totalWidth, minWidth: '100%' }}>
+          <GridHeader
+            fields={fields}
+            gutterWidth={GUTTER_WIDTH}
+            sorts={sorts}
+            readOnly={readOnly}
+            onToggleSort={onToggleSort}
+            onMoveField={onMoveField}
+            onResizeField={onResizeField}
+            onFieldMenu={onFieldMenu}
+            onAddField={onAddField}
+            onSelectColumn={(col, shiftKey) =>
+              dispatch({ type: 'selectColumn', col, extend: shiftKey })
+            }
+          />
+
+          <DndContext
+            sensors={rowSensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleRowDragEnd}
+          >
+            <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+              <div data-grid-body style={{ height: totalHeight, position: 'relative' }}>
+                {virtualRows.map((virtualRow) => {
+                  const row = rows[virtualRow.index]
+                  if (!row) return null
+                  return (
+                    <GridRow
+                      key={row.id}
+                      row={row}
+                      rowIndex={virtualRow.index}
+                      top={virtualRow.start}
+                      height={rowHeight}
+                      fields={fields}
+                      state={state}
+                      presences={presences}
+                      cellCommentCounts={cellCommentCounts}
+                      readOnly={readOnly}
+                      draftRef={draftRef}
+                      onMouseDownCell={handleCellMouseDown}
+                      onMouseEnterCell={handleCellMouseEnter}
+                      onDoubleClickCell={handleCellDoubleClick}
+                      onEditorCommit={handleEditorCommit}
+                      onEditorCancel={handleEditorCancel}
+                      onSelectRow={(r, shiftKey) =>
+                        dispatch({ type: 'selectRow', row: r, extend: shiftKey })
+                      }
+                      onOpenRow={onOpenRow}
+                      onCommentClick={onCommentCell ?? undefined}
+                    />
+                  )
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <span>
+          {rows.length} {rows.length === 1 ? 'row' : 'rows'}
+        </span>
+        {!readOnly && onAddRow && (
+          <button
+            type="button"
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            onClick={() => onAddRow()}
+          >
+            <Plus className="w-3.5 h-3.5" /> New
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Row ─────────────────────────────────────────────────────────────────────
+
+interface GridRowProps {
+  row: GridRowData
+  rowIndex: number
+  top: number
+  height: number
+  fields: GridField[]
+  state: GridState
+  presences?: CellPresence[]
+  cellCommentCounts?: Map<string, number>
+  readOnly?: boolean
+  draftRef: React.MutableRefObject<CellValue>
+  onMouseDownCell: (rowIndex: number, colIndex: number, shiftKey: boolean) => void
+  onMouseEnterCell: (rowIndex: number, colIndex: number, buttons: number) => void
+  onDoubleClickCell: (rowIndex: number, colIndex: number) => void
+  onEditorCommit: (value: CellValue) => void
+  onEditorCancel: () => void
+  onSelectRow: (rowIndex: number, shiftKey: boolean) => void
+  onOpenRow?: (rowId: string) => void
+  onCommentClick?: (rowId: string, fieldId: string, anchorEl: HTMLElement | null) => void
+}
+
+function GridRow({
+  row,
+  rowIndex,
+  top,
+  height,
+  fields,
+  state,
+  presences,
+  cellCommentCounts,
+  readOnly,
+  draftRef,
+  onMouseDownCell,
+  onMouseEnterCell,
+  onDoubleClickCell,
+  onEditorCommit,
+  onEditorCancel,
+  onSelectRow,
+  onOpenRow,
+  onCommentClick
+}: GridRowProps): React.JSX.Element {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
+    id: row.id,
+    disabled: readOnly
+  })
+
+  const rowSelected =
+    state.selection.kind === 'rows' &&
+    rowIndex >= Math.min(state.selection.anchorRow, state.selection.focusRow) &&
+    rowIndex <= Math.max(state.selection.anchorRow, state.selection.focusRow)
+
+  return (
+    <div
+      ref={setNodeRef}
+      role="row"
+      aria-rowindex={rowIndex + 2}
+      data-row-id={row.id}
+      style={{
+        position: 'absolute',
+        top,
+        left: 0,
+        right: 0,
+        height,
+        ...(transform ? { transform: `translateY(${transform.y ?? 0}px)` } : {})
+      }}
+      className={cn(
+        'flex group/row hover:bg-gray-50 dark:hover:bg-gray-800/40',
+        rowSelected && 'bg-blue-50 dark:bg-blue-900/20',
+        isDragging && 'opacity-60 z-20'
+      )}
+    >
+      {/* Gutter: row number, drag handle, expand */}
+      <div
+        style={{ width: GUTTER_WIDTH, minWidth: GUTTER_WIDTH }}
+        className="flex items-center justify-between pl-1 pr-0.5 border-b border-r border-gray-100 dark:border-gray-800 text-[11px] text-gray-400"
+        onClick={(e) => onSelectRow(rowIndex, e.shiftKey)}
+      >
+        {!readOnly ? (
+          <button
+            type="button"
+            aria-label="Drag row"
+            data-testid={`row-handle-${row.id}`}
+            className="opacity-0 group-hover/row:opacity-100 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+            onClick={(e) => e.stopPropagation()}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+        ) : (
+          <span />
+        )}
+        <span className="tabular-nums">{rowIndex + 1}</span>
+        <button
+          type="button"
+          aria-label="Open row"
+          className="opacity-0 group-hover/row:opacity-100 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
+          onClick={(e) => {
+            e.stopPropagation()
+            onOpenRow?.(row.id)
+          }}
+        >
+          <Expand className="w-3 h-3" />
+        </button>
+      </div>
+
+      {fields.map((field, colIndex) => {
+        const pos = { row: rowIndex, col: colIndex }
+        const focused =
+          state.cursor?.row === rowIndex && state.cursor?.col === colIndex && !state.editing
+        const editing = state.editing?.pos.row === rowIndex && state.editing?.pos.col === colIndex
+        const cellPresences = presences?.filter(
+          (p) => p.rowId === row.id && p.columnId === field.id
+        )
+        return (
+          <GridCell
+            key={field.id}
+            rowId={row.id}
+            field={field}
+            value={row.cells[field.id]}
+            rowIndex={rowIndex}
+            colIndex={colIndex}
+            focused={focused}
+            selected={isSelected(state.selection, pos)}
+            editing={Boolean(editing)}
+            editSeed={editing ? state.editing?.seed : undefined}
+            presences={cellPresences}
+            commentCount={cellCommentCounts?.get(`${row.id}:${field.id}`) ?? 0}
+            width={field.width}
+            readOnly={readOnly}
+            onMouseDown={onMouseDownCell}
+            onMouseEnter={onMouseEnterCell}
+            onDoubleClick={onDoubleClickCell}
+            onCommit={onEditorCommit}
+            onDraftChange={(v) => {
+              draftRef.current = v
+            }}
+            onCancel={onEditorCancel}
+            onCommentClick={
+              onCommentClick
+                ? (rowId, fieldId, el) => onCommentClick(rowId, fieldId, el)
+                : undefined
+            }
+          />
+        )
+      })}
+    </div>
+  )
+}
