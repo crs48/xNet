@@ -649,28 +649,9 @@ export {
   setMeta,
   deleteMeta,
 
-  // Legacy database compatibility
+  // Document model detection
   getDatabaseDocumentModel,
-  prefersLegacyDatabaseModel,
-  hasLegacyRows,
-  getLegacyColumns,
-  getLegacyColumn,
-  createLegacyColumn,
-  updateLegacyColumn,
-  deleteLegacyColumn,
-  reorderLegacyColumn,
-  getLegacyViews,
-  getLegacyView,
-  createLegacyView,
-  updateLegacyView,
-  deleteLegacyView,
-  getLegacyRows,
-  createLegacyRow,
-  updateLegacyRow,
-  deleteLegacyRow,
-  moveLegacyRow,
   type DatabaseDocumentModel,
-  type LegacyDatabaseRow,
 
   // Column operations
   getColumns,
@@ -787,11 +768,6 @@ export {
   getSchemaIRIFromDoc,
   type DocFetcher,
   type CreateDatabaseSchemaResolverOptions,
-
-  // Explicit legacy migration
-  getLegacyDatabaseMigrationStatus,
-  migrateLegacyDatabaseDocument,
-  type LegacyDatabaseMigrationStatus,
 
   // Clone schema utilities
   cloneSchema,

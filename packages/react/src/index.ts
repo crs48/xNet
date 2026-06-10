@@ -194,8 +194,7 @@ export {
   type ColumnType,
   type ColumnConfig,
   type ViewConfig,
-  type ViewType,
-  type LegacyDatabaseMigrationStatus
+  type ViewType
 } from './hooks/useDatabaseDoc'
 
 /**

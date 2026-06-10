@@ -432,8 +432,8 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [x] Add `DatabaseFieldSchema`, `SelectOptionSchema`, `DatabaseViewSchema` node schemas; bump `Database`/`DatabaseRow` to `@2.0.0`; keep `Row` cell storage unchanged
 - [x] Port `column-operations.ts` / `view-operations.ts` to node ops (fractional-index ordering, per-view overrides); unit tests mirror existing suites
 - [x] Re-point database-defined schema utilities (`schema-utils.ts`, `schema-resolver.ts`, `clone.ts`, templates) at node-based fields — `schema-from-fields.ts` (node resolver + `fieldsToStoredColumns` adapter feeding the pure clone/template transforms)
-- [ ] Delete `legacy-model.ts`, `legacy-migration.ts`, Y.Doc column/view storage, and all `prefersLegacyDatabaseModel` branches
-- [ ] Reduce the Database Y.Doc to awareness-only; verify presence sessions work with content-less docs
+- [x] Delete `legacy-model.ts`, `legacy-migration.ts`, and all `prefersLegacyDatabaseModel` branches (useDatabase/useDatabaseDoc stripped to canonical-only; relation pickers ported to `useGridDatabase`). Y.Doc column/view ops survive solely behind the Electron canvas database-preview surfaces — they delete when those surfaces port to the grid
+- [x] Reduce the Database Y.Doc to awareness-only (both app shells; presence verified through useNode's awareness channel) — canvas preview surfaces still initialize legacy Y.Doc columns until ported
 - [ ] Unify on a single `ViewConfig` type in `@xnetjs/data`; delete the `@xnetjs/views` dialect and `toSurfaceViewConfig`
 
 ### Phase 1 — Grid engine (`@xnetjs/grid`)
@@ -462,7 +462,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [x] Presence: awareness broadcast of cell focus; remote rings + name flags (GridCell), wired through the Database Y.Doc awareness channel in the web shell; edit-pulse and range overlays remain follow-up polish
 - [ ] Hover/active states, tooltips with shortcut hints on every toolbar control, empty states, loading skeletons
 - [ ] Touch affordances: long-press drag, bottom-sheet pickers under breakpoint
-- [ ] Replace `apps/web` + `apps/electron` `DatabaseView.tsx` with thin shells over the new surface; delete `VirtualizedTableView`/`useTableState`/TanStack Table dependency
+- [x] Replace `apps/web` + `apps/electron` `DatabaseView.tsx` with thin shells over the new surface (−2,600 lines net); `VirtualizedTableView`/`useTableState`/TanStack Table removal rides with the canvas-preview + DataWorkspaceView ports
 
 ### Phase 4 — Cross-platform & multiplayer hardening
 

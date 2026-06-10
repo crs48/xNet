@@ -5,8 +5,8 @@
  * multi-select support and the ability to create new rows inline.
  */
 
-import type { ColumnDefinition, CellValue } from '@xnetjs/data'
-import { useDatabase, type DatabaseRow } from '@xnetjs/react'
+import type { CellValue } from '@xnetjs/data'
+import { useGridDatabase, type GridFieldModel, type GridRowModel } from '@xnetjs/react'
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -118,24 +118,24 @@ export function RowPickerModal({
   const backdropRef = useRef<HTMLDivElement>(null)
 
   // Load database rows
-  const { rows, columns, loading, hasMore, loadMore, createRow } = useDatabase(targetDatabaseId, {
-    pageSize: 20
-  })
+  const {
+    rows,
+    fields,
+    loading,
+    addRow: createRow
+  } = useGridDatabase(targetDatabaseId, { pageSize: 200 })
+  const hasMore = false
+  const loadMore = useCallback(() => {}, [])
 
-  // Get title column
+  // Get title field
   const titleColumn = useMemo(() => {
-    // Find explicit title column first
-    const explicit = columns.find((c) => c.name?.toLowerCase() === 'title')
-    if (explicit) return explicit
-
-    // Find column marked as title
-    const isTitle = columns.find((c) => (c as ColumnDefinition & { isTitle?: boolean }).isTitle)
+    const isTitle = fields.find((f) => f.isTitle)
     if (isTitle) return isTitle
-
-    // Fall back to first text column or first column
-    const textCol = columns.find((c) => c.type === 'text')
-    return textCol ?? columns[0]
-  }, [columns])
+    const explicit = fields.find((f) => f.name?.toLowerCase() === 'title')
+    if (explicit) return explicit
+    const textCol = fields.find((f) => f.type === 'text')
+    return textCol ?? fields[0]
+  }, [fields])
 
   // Filter rows by search
   const filteredRows = useMemo(() => {
@@ -217,7 +217,8 @@ export function RowPickerModal({
         [titleColumn.id]: title
       }
 
-      const newRowId = await createRow(values)
+      const newRowId = await createRow(undefined, values)
+      if (!newRowId) return
 
       if (allowMultiple) {
         setPendingSelection((prev) => new Set([...prev, newRowId]))
@@ -384,7 +385,7 @@ export function RowPickerModal({
 /**
  * Get the display title for a row.
  */
-function getRowTitle(row: DatabaseRow, titleColumn: ColumnDefinition | undefined): string {
+function getRowTitle(row: GridRowModel, titleColumn: GridFieldModel | undefined): string {
   if (!titleColumn) {
     // Fallback: try common title keys
     const title = row.cells.title ?? row.cells.name ?? row.cells.Name ?? row.cells.Title

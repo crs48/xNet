@@ -180,40 +180,10 @@ export {
   setupNewDatabase,
   getMeta,
   setMeta,
-  deleteMeta
-} from './database-doc'
-
-// Legacy database compatibility
-export {
+  deleteMeta,
   getDatabaseDocumentModel,
-  prefersLegacyDatabaseModel,
-  hasLegacyRows,
-  getLegacyColumns,
-  getLegacyColumn,
-  createLegacyColumn,
-  updateLegacyColumn,
-  deleteLegacyColumn,
-  reorderLegacyColumn,
-  getLegacyViews,
-  getLegacyView,
-  createLegacyView,
-  updateLegacyView,
-  deleteLegacyView,
-  getLegacyRows,
-  createLegacyRow,
-  updateLegacyRow,
-  deleteLegacyRow,
-  moveLegacyRow,
-  type DatabaseDocumentModel,
-  type LegacyDatabaseRow
-} from './legacy-model'
-
-// Explicit legacy migration
-export {
-  getLegacyDatabaseMigrationStatus,
-  migrateLegacyDatabaseDocument,
-  type LegacyDatabaseMigrationStatus
-} from './legacy-migration'
+  type DatabaseDocumentModel
+} from './database-doc'
 
 // Column operations
 export {
