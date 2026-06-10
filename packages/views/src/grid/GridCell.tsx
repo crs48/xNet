@@ -8,7 +8,7 @@ import type { GridField } from './model.js'
 import type { CellValue } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react'
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 
 export interface GridCellProps {
@@ -42,6 +42,8 @@ export interface GridCellProps {
   onDraftChange: (value: CellValue) => void
   onCancel: () => void
   onCommentClick?: (rowId: string, fieldId: string, anchorEl: HTMLElement) => void
+  /** Persist a new select option for this field (typeahead create) */
+  onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
 }
 
 /** Seed text -> initial draft value for replace-mode editing. */
@@ -82,11 +84,24 @@ function GridCellInner({
   onCommit,
   onDraftChange,
   onCancel,
-  onCommentClick
+  onCommentClick,
+  onCreateOption
 }: GridCellProps): React.JSX.Element {
   const handler = getPropertyHandler(field.type)
   const cellRef = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState<CellValue>(null)
+
+  const editorConfig = useMemo(
+    () => ({
+      allowCreate: true,
+      ...field.config,
+      options: field.options,
+      ...(onCreateOption
+        ? { onCreateOption: (name: string) => onCreateOption(field.id, name) }
+        : {})
+    }),
+    [field, onCreateOption]
+  )
 
   // Initialize the draft when an edit session starts (and report it, so a
   // commit with no further changes persists the right value)
@@ -150,7 +165,7 @@ function GridCellInner({
         <div className="absolute inset-0 z-10 bg-white dark:bg-gray-900 flex items-stretch">
           <handler.Editor
             value={draft}
-            config={{ ...field.config, options: field.options }}
+            config={editorConfig}
             onChange={handleChange}
             onCommit={handleEditorCommit}
             onCancel={onCancel}
@@ -159,9 +174,7 @@ function GridCellInner({
           />
         </div>
       ) : (
-        <div className="flex-1 truncate">
-          {handler.render(value ?? null, { ...field.config, options: field.options })}
-        </div>
+        <div className="flex-1 truncate">{handler.render(value ?? null, editorConfig)}</div>
       )}
 
       {/* Remote presence name flag */}

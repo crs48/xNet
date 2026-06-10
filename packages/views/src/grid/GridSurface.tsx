@@ -528,6 +528,7 @@ export function GridSurface({
                       }
                       onOpenRow={onOpenRow}
                       onCommentClick={onCommentCell ?? undefined}
+                      onCreateOption={onCreateOption}
                     />
                   )
                 })}
@@ -577,6 +578,7 @@ interface GridRowProps {
   onSelectRow: (rowIndex: number, shiftKey: boolean) => void
   onOpenRow?: (rowId: string) => void
   onCommentClick?: (rowId: string, fieldId: string, anchorEl: HTMLElement | null) => void
+  onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
 }
 
 function GridRow({
@@ -597,7 +599,8 @@ function GridRow({
   onEditorCancel,
   onSelectRow,
   onOpenRow,
-  onCommentClick
+  onCommentClick,
+  onCreateOption
 }: GridRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
     id: row.id,
@@ -696,6 +699,7 @@ function GridRow({
               draftRef.current = v
             }}
             onCancel={onEditorCancel}
+            onCreateOption={onCreateOption}
             onCommentClick={
               onCommentClick
                 ? (rowId, fieldId, el) => onCommentClick(rowId, fieldId, el)

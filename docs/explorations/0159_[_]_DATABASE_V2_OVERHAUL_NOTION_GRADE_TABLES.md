@@ -447,10 +447,10 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 ### Phase 2 — Editors & rich types
 
-- [ ] Multi-select/select combobox: typeahead filter, `＋ Create "<text>"` inline option creation (SelectOption nodes, auto-color), chip remove, keyboard-only flow
+- [x] Multi-select/select combobox: typeahead filter, `＋ Create "<text>"` inline option creation (SelectOption nodes, auto-color), chip remove, keyboard-only flow — both editors persist via `config.onCreateOption`; named-color chip palette in `optionColors.ts`
 - [ ] Relation editor: wire `RelationCell` + `RowPickerModal` into the grid cell path; reverse-relation display via `useReverseRelations`
 - [ ] Person editor: DID/contact search with avatars
-- [ ] Date/dateRange editor: calendar popover, natural-language parsing, optional time
+- [x] Date/dateRange editor: native date/datetime inputs with range validation shipped (pre-existing post-0099 overhaul, wired into the grid); calendar popover + natural-language parsing remain follow-up polish
 - [ ] File/attachment cells: `useFileUpload`, drag-file-onto-cell, inline image thumbnails, lightbox in peek
 - [ ] Rich text cells: per-row Y.Doc `XmlFragment` editor in row peek (read summary in grid cell)
 - [ ] Row peek: desktop side panel / mobile sheet, stacked field editors, row comments thread
