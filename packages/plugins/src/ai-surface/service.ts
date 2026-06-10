@@ -2745,7 +2745,7 @@ function belongsToDatabase(node: NodeData, databaseId: string): boolean {
   )
 }
 
-const DEFAULT_DATABASE_ROW_SCHEMA_ID = 'xnet://xnet.fyi/DatabaseRow@1.0.0'
+const DEFAULT_DATABASE_ROW_SCHEMA_ID = 'xnet://xnet.fyi/DatabaseRow@2.0.0'
 
 function buildDatabaseQueryDescriptor(
   database: NodeData,

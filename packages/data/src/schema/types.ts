@@ -12,6 +12,7 @@ export type PropertyType =
   | 'text'
   | 'number'
   | 'checkbox'
+  | 'json'
   | 'date'
   | 'dateRange'
   | 'select'

@@ -33,7 +33,7 @@ export const SavedViewSchema = defineSchema({
     }),
 
     /** Optional database that owns database-scoped views */
-    database: relation({ target: 'xnet://xnet.fyi/Database@1.0.0' as const })
+    database: relation({ target: 'xnet://xnet.fyi/Database@2.0.0' as const })
   }
 })
 

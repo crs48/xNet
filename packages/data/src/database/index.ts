@@ -65,6 +65,79 @@ export {
   getRichTextPlainText
 } from './rich-text-cell'
 
+// ─── V2 node model: fields, select options, views ───────────────────────────
+
+// Field types (V2 node model)
+export {
+  type FieldType,
+  type FieldConfig,
+  type FieldNode,
+  type SelectOptionNode,
+  type NumberFieldConfig,
+  type TextFieldConfig,
+  type RelationFieldConfig,
+  type RollupFieldConfig,
+  type FormulaFieldConfig,
+  type DateFieldConfig,
+  type FileFieldConfig,
+  FIELD_TYPES,
+  SELECT_COLORS,
+  isFieldType,
+  isSelectColor,
+  autoColor,
+  isNodeStoreFieldType,
+  isComputedFieldType,
+  isAutoFieldType,
+  isYDocFieldType,
+  toFieldNode,
+  toSelectOptionNode
+} from './field-types'
+
+// Field operations (V2 node model)
+export {
+  type CreateFieldOptions,
+  type UpdateFieldOptions,
+  type CreateSelectOptionOptions,
+  getFields,
+  getField,
+  getTitleField,
+  createField,
+  updateField,
+  deleteField,
+  moveField,
+  duplicateField,
+  getSelectOptions,
+  createSelectOption,
+  updateSelectOption,
+  deleteSelectOption,
+  moveSelectOption
+} from './field-operations'
+
+// View operations (V2 node model)
+export {
+  type ViewNode,
+  type CreateViewOptions,
+  type UpdateViewOptions,
+  getViews as getViewNodes,
+  getView as getViewNode,
+  createView as createViewNode,
+  updateView as updateViewNode,
+  deleteView as deleteViewNode,
+  duplicateView as duplicateViewNode,
+  moveView,
+  setViewFilters as setViewNodeFilters,
+  setViewSorts as setViewNodeSorts,
+  setViewGroupBy as setViewNodeGroupBy,
+  toggleViewGroupCollapsed,
+  setFieldHidden,
+  setViewFieldWidth,
+  setViewFieldOrder,
+  effectiveFieldSortKey
+} from './view-node-operations'
+
+// Database setup (V2 node model)
+export { setupDatabase, type SetupDatabaseResult } from './database-setup'
+
 // Column types and configs
 export {
   type ColumnType,
