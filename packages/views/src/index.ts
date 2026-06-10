@@ -217,3 +217,32 @@ export {
   CloneSchemaModal,
   type CloneSchemaModalProps
 } from './schema/index.js'
+
+// Grid engine (V2 database grid — exploration 0159)
+export {
+  type GridPos,
+  type GridRange,
+  type GridRect,
+  type GridSelection,
+  type GridState,
+  type GridCommand,
+  type EditingState,
+  type CommitReason,
+  type MoveDirection,
+  type KeyInput,
+  rangeToRect,
+  isSelected,
+  selectionRect,
+  createGridState,
+  gridReducer,
+  type GridAction,
+  interpretKeyDown,
+  isPrintableKey,
+  serializeTsv,
+  parseTsv,
+  formatCellText,
+  coerceCellText,
+  type CopyField,
+  type PasteField,
+  type CoerceResult
+} from './grid/index.js'
