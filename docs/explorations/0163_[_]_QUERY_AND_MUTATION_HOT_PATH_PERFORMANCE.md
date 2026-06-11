@@ -576,12 +576,12 @@ Phase 0 — adapter overhead:
 
 Phase 1 — incremental bounded queries:
 
-- [ ] Add working-set (limit + overfetch) storage to `QueryCache` entries
-- [ ] Implement `applyChangeToBoundedResult` in `query-descriptor.ts` with the underflow→reload fallback
-- [ ] Route `handleStoreChange`/`handleStoreChangeSet` bounded entries through the delta path
-- [ ] Replace `handleStoreBatchChange`'s unconditional reload with grouped delta application + raised reload threshold
-- [ ] Property-test deltas against re-executed ground truth (reuse parity-audit comparator)
-- [ ] Add `query-update-fanout` benches for bounded queries at 1k/10k/50k and multi-query fan-out (10 active queries)
+- [x] Add working-set (limit + overfetch) storage to `QueryCache` entries
+- [x] Implement `applyChangeToBoundedResult` in `query-descriptor.ts` with the underflow→reload fallback (`applyNodeChangeToBoundedQueryResult`)
+- [x] Route `handleStoreChange`/`handleStoreChangeSet` bounded entries through the delta path
+- [x] Replace `handleStoreBatchChange`'s unconditional reload with grouped delta application (hydrate touched nodes ≤ threshold) + reload threshold raised 25 → 250
+- [x] Property-test deltas against re-executed ground truth (reuse parity-audit comparator) — `bounded-query-delta.test.ts`, 3600 randomized ops
+- [x] Add `query-update-fanout` benches for bounded queries at 1k/10k/50k and multi-query fan-out (10 active queries)
 
 Phase 2 — React identity stability:
 

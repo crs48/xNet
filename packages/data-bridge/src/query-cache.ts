@@ -20,7 +20,8 @@ import type { NodeState, PropertyBuilder, InferCreateProps, SchemaIRI } from '@x
 import {
   createQueryDescriptor,
   queryDescriptorToOptions,
-  serializeQueryDescriptor
+  serializeQueryDescriptor,
+  type BoundedQueryWorkingSet
 } from './query-descriptor'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -37,6 +38,12 @@ const WEAK_REF_CLEANUP_INTERVAL = 60_000 // 60 seconds
 interface CacheEntry {
   /** Cached query result */
   data: NodeState[] | null
+  /**
+   * Overfetch buffer for bounded queries (visible window + spare rows).
+   * Only valid for data produced by the bounded delta path; any other
+   * write to the entry clears it so deltas fall back to reload semantics.
+   */
+  workingSet: BoundedQueryWorkingSet | null
   /** Strong subscribers to this query (active subscriptions) */
   subscribers: Set<() => void>
   /** Weak subscribers (for long-lived but GC-able subscriptions) */
@@ -171,7 +178,8 @@ export class QueryCache {
     data: NodeState[] | null,
     schemaIdOrDescriptor?: SchemaIRI | QueryDescriptor,
     options?: QueryOptions,
-    metadata?: QueryMetadata | null
+    metadata?: QueryMetadata | null,
+    workingSet?: BoundedQueryWorkingSet | null
   ): void {
     const entry = this.cache.get(queryId)
     const now = Date.now()
@@ -182,6 +190,9 @@ export class QueryCache {
 
     if (entry) {
       entry.data = data
+      // Any write that does not carry a working set invalidates the old
+      // one — its prefix invariant no longer matches the visible data.
+      entry.workingSet = workingSet ?? null
       if (descriptor) {
         entry.schemaId = descriptor.schemaId
         entry.descriptor = descriptor
@@ -203,6 +214,7 @@ export class QueryCache {
 
       this.cache.set(queryId, {
         data,
+        workingSet: workingSet ?? null,
         subscribers: new Set(),
         weakSubscribers: new Map(),
         schemaId: descriptor.schemaId,
@@ -232,6 +244,7 @@ export class QueryCache {
 
       this.cache.set(queryId, {
         data: null,
+        workingSet: null,
         subscribers: new Set(),
         weakSubscribers: new Map(),
         schemaId: descriptor.schemaId,
@@ -370,11 +383,13 @@ export class QueryCache {
     queryId: string
     descriptor: QueryDescriptor
     data: NodeState[] | null
+    workingSet: BoundedQueryWorkingSet | null
   }> {
     const matches: Array<{
       queryId: string
       descriptor: QueryDescriptor
       data: NodeState[] | null
+      workingSet: BoundedQueryWorkingSet | null
     }> = []
 
     for (const [queryId, entry] of this.cache) {
@@ -382,7 +397,8 @@ export class QueryCache {
         matches.push({
           queryId,
           descriptor: entry.descriptor,
-          data: entry.data
+          data: entry.data,
+          workingSet: entry.workingSet
         })
       }
     }
@@ -397,12 +413,21 @@ export class QueryCache {
     queryId: string
     descriptor: QueryDescriptor
     data: NodeState[] | null
+    workingSet: BoundedQueryWorkingSet | null
   }> {
     return Array.from(this.cache.entries()).map(([queryId, entry]) => ({
       queryId,
       descriptor: entry.descriptor,
-      data: entry.data
+      data: entry.data,
+      workingSet: entry.workingSet
     }))
+  }
+
+  /**
+   * Get the bounded-query working set for a cached query, if any.
+   */
+  getWorkingSet(queryId: string): BoundedQueryWorkingSet | null {
+    return this.cache.get(queryId)?.workingSet ?? null
   }
 
   /**

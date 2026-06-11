@@ -44,9 +44,15 @@ import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
 import { QueryCache } from './query-cache'
 import {
+  applyNodeChangeToBoundedQueryResult,
   applyNodeChangeToQueryResult,
+  createBoundedWorkingSet,
+  createBoundedWorkingSetDescriptor,
   createQueryDescriptor,
-  serializeQueryDescriptor
+  queryDescriptorSupportsBoundedDelta,
+  serializeQueryDescriptor,
+  type BoundedQueryWorkingSet,
+  type QueryResultDelta
 } from './query-descriptor'
 import {
   createQueryErrorMetadata,
@@ -81,7 +87,12 @@ import {
   isRemoteNodeQuerySuccess
 } from './remote-query-protocol'
 
-const BULK_STORE_CHANGE_RELOAD_THRESHOLD = 25
+// Above this many events in one flush (or one storage batch), invalidation
+// stops applying per-node deltas and falls back to re-querying each affected
+// cache entry once. Delta application is pure in-memory work, so the
+// threshold is sized so that only genuinely bulk flows (imports, migrations)
+// pay for re-queries.
+const BULK_STORE_CHANGE_RELOAD_THRESHOLD = 250
 
 // ─── SyncManager Interface ───────────────────────────────────────────────────
 
@@ -241,12 +252,28 @@ export class MainThreadBridge implements DataBridge {
     descriptor: QueryDescriptor
   ): Promise<Awaited<ReturnType<NodeStore['query']>> | null> {
     try {
-      const result = await this.store.query(descriptor)
+      // Bounded queries overfetch a small buffer so later node changes can
+      // be applied in memory instead of re-executing the query.
+      const useBoundedWorkingSet = queryDescriptorSupportsBoundedDelta(descriptor)
+      const result = await this.store.query(
+        useBoundedWorkingSet ? createBoundedWorkingSetDescriptor(descriptor) : descriptor
+      )
       this.debugQueryPlan(queryId, result.plan)
-      this.cache.set(queryId, result.nodes, descriptor, undefined, {
-        ...createQueryMetadata({ descriptor, result, source: 'local' }),
-        source: 'local'
-      })
+      const visibleNodes = useBoundedWorkingSet
+        ? result.nodes.slice(0, descriptor.limit)
+        : result.nodes
+      const visibleResult = useBoundedWorkingSet ? { ...result, nodes: visibleNodes } : result
+      this.cache.set(
+        queryId,
+        visibleNodes,
+        descriptor,
+        undefined,
+        {
+          ...createQueryMetadata({ descriptor, result: visibleResult, source: 'local' }),
+          source: 'local'
+        },
+        useBoundedWorkingSet ? createBoundedWorkingSet(descriptor, result.nodes) : undefined
+      )
       return result
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err))
@@ -883,6 +910,10 @@ export class MainThreadBridge implements DataBridge {
 
     for (const [schemaId, schemaEvents] of eventsBySchema) {
       const shouldReload = this.isBulkStoreChangeSet(schemaEvents)
+      const changes = schemaEvents.map((event) => ({
+        nodeId: event.change.payload.nodeId,
+        nextNode: event.node ?? null
+      }))
 
       for (const entry of this.cache.getEntriesForSchema(schemaId)) {
         if (entry.descriptor.mode === 'remote') continue
@@ -892,47 +923,143 @@ export class MainThreadBridge implements DataBridge {
           continue
         }
 
-        let data = entry.data
-        let shouldReloadEntry = false
-
-        for (const event of schemaEvents) {
-          const delta = applyNodeChangeToQueryResult({
-            descriptor: entry.descriptor,
-            currentData: data,
-            nodeId: event.change.payload.nodeId,
-            nextNode: event.node
-          })
-
-          if (delta.kind === 'reload') {
-            shouldReloadEntry = true
-            break
-          }
-
-          if (delta.kind === 'set') {
-            data = delta.data
-          }
-        }
-
-        if (shouldReloadEntry) {
-          void this.loadInitialQuery(entry.queryId, entry.descriptor)
-          continue
-        }
-
-        if (data !== entry.data) {
-          this.cache.set(entry.queryId, data)
-        }
+        this.applyChangesToEntry(entry, changes)
       }
     }
   }
 
   private handleStoreBatchChange(event: NodeBatchChangeEvent): void {
-    for (const schemaId of event.schemaIds) {
+    // Batch notifications carry node ids only. Small batches hydrate the
+    // touched nodes once and flow through the same delta path as regular
+    // change events; only genuinely bulk batches re-query each entry.
+    if (event.nodeIds.length > BULK_STORE_CHANGE_RELOAD_THRESHOLD) {
+      this.reloadEntriesForSchemas(event.schemaIds)
+      return
+    }
+
+    void this.applyStoreBatchChangeDeltas(event).catch((err) => {
+      console.error('[MainThreadBridge] Failed to apply batch change deltas:', err)
+      this.reloadEntriesForSchemas(event.schemaIds)
+    })
+  }
+
+  private reloadEntriesForSchemas(schemaIds: readonly SchemaIRI[]): void {
+    for (const schemaId of schemaIds) {
       for (const entry of this.cache.getEntriesForSchema(schemaId)) {
         if (entry.descriptor.mode === 'remote') continue
 
         void this.loadInitialQuery(entry.queryId, entry.descriptor)
       }
     }
+  }
+
+  private async applyStoreBatchChangeDeltas(event: NodeBatchChangeEvent): Promise<void> {
+    const nodes = await Promise.all(event.nodeIds.map((nodeId) => this.store.get(nodeId)))
+    const changes = event.nodeIds.map((nodeId, index) => ({
+      nodeId,
+      nextNode: nodes[index]
+    }))
+
+    for (const schemaId of event.schemaIds) {
+      // Re-read entries after the async hydration so deltas apply to the
+      // freshest snapshot.
+      for (const entry of this.cache.getEntriesForSchema(schemaId)) {
+        if (entry.descriptor.mode === 'remote') continue
+
+        if (entry.data === null) {
+          void this.loadInitialQuery(entry.queryId, entry.descriptor)
+          continue
+        }
+
+        this.applyChangesToEntry(entry, changes)
+      }
+    }
+  }
+
+  /**
+   * Apply a list of node changes to a single cache entry, falling back to a
+   * storage re-query only when a delta is ambiguous.
+   */
+  private applyChangesToEntry(
+    entry: {
+      queryId: string
+      descriptor: QueryDescriptor
+      data: NodeState[] | null
+      workingSet: BoundedQueryWorkingSet | null
+    },
+    changes: ReadonlyArray<{ nodeId: string; nextNode: NodeState | null }>
+  ): void {
+    let data = entry.data ?? []
+    let workingSet = entry.workingSet
+    let changed = false
+
+    for (const change of changes) {
+      const applied = this.applyChangeToEntryState({
+        descriptor: entry.descriptor,
+        data,
+        workingSet,
+        nodeId: change.nodeId,
+        nextNode: change.nextNode
+      })
+
+      if (applied.kind === 'reload') {
+        void this.loadInitialQuery(entry.queryId, entry.descriptor)
+        return
+      }
+
+      if (applied.changed) {
+        data = applied.data
+        workingSet = applied.workingSet
+        changed = true
+      }
+    }
+
+    if (changed) {
+      this.cache.set(entry.queryId, data, undefined, undefined, undefined, workingSet)
+    }
+  }
+
+  private applyChangeToEntryState(input: {
+    descriptor: QueryDescriptor
+    data: NodeState[]
+    workingSet: BoundedQueryWorkingSet | null
+    nodeId: string
+    nextNode: NodeState | null
+  }):
+    | { kind: 'reload' }
+    | {
+        kind: 'ok'
+        data: NodeState[]
+        workingSet: BoundedQueryWorkingSet | null
+        changed: boolean
+      } {
+    if (input.workingSet && queryDescriptorSupportsBoundedDelta(input.descriptor)) {
+      const delta = applyNodeChangeToBoundedQueryResult({
+        descriptor: input.descriptor,
+        workingSet: input.workingSet,
+        nodeId: input.nodeId,
+        nextNode: input.nextNode
+      })
+
+      if (delta.kind === 'reload') return { kind: 'reload' }
+      if (delta.kind === 'noop') {
+        return { kind: 'ok', data: input.data, workingSet: input.workingSet, changed: false }
+      }
+      return { kind: 'ok', data: delta.data, workingSet: delta.workingSet, changed: true }
+    }
+
+    const delta: QueryResultDelta = applyNodeChangeToQueryResult({
+      descriptor: input.descriptor,
+      currentData: input.data,
+      nodeId: input.nodeId,
+      nextNode: input.nextNode
+    })
+
+    if (delta.kind === 'reload') return { kind: 'reload' }
+    if (delta.kind === 'noop') {
+      return { kind: 'ok', data: input.data, workingSet: input.workingSet, changed: false }
+    }
+    return { kind: 'ok', data: delta.data, workingSet: null, changed: true }
   }
 
   private handleStoreChange(event: NodeChangeEvent): void {
@@ -942,6 +1069,8 @@ export class MainThreadBridge implements DataBridge {
 
     if (!schemaId) return
 
+    const changes = [{ nodeId: change.payload.nodeId, nextNode: node ?? null }]
+
     for (const entry of this.cache.getEntriesForSchema(schemaId)) {
       if (entry.descriptor.mode === 'remote') continue
 
@@ -950,21 +1079,7 @@ export class MainThreadBridge implements DataBridge {
         continue
       }
 
-      const delta = applyNodeChangeToQueryResult({
-        descriptor: entry.descriptor,
-        currentData: entry.data,
-        nodeId: change.payload.nodeId,
-        nextNode: node
-      })
-
-      if (delta.kind === 'reload') {
-        void this.loadInitialQuery(entry.queryId, entry.descriptor)
-        continue
-      }
-
-      if (delta.kind === 'set') {
-        this.cache.set(entry.queryId, delta.data)
-      }
+      this.applyChangesToEntry(entry, changes)
     }
   }
 

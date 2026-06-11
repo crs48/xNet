@@ -107,21 +107,49 @@ async function createStore(): Promise<NodeStore> {
   return store
 }
 
+function benchPageProperties(index: number): Record<string, unknown> {
+  return {
+    title: `Bench Page ${index}`,
+    status: index % 3 === 0 ? 'open' : 'archived',
+    body: `Bench body ${index} irrigation orchard planning seed rotation soil schedule ${index % 100}`,
+    priority: index % 5,
+    updatedAt: Date.now() + index
+  }
+}
+
 async function populatePages(store: NodeStore, count: number): Promise<string[]> {
   const ids: string[] = []
 
   for (let index = 0; index < count; index += 1) {
     const node = await store.create({
       schemaId: BenchPageSchema._schemaId,
-      properties: {
-        title: `Bench Page ${index}`,
-        status: index % 3 === 0 ? 'open' : 'archived',
-        body: `Bench body ${index} irrigation orchard planning seed rotation soil schedule ${index % 100}`,
-        priority: index % 5,
-        updatedAt: Date.now() + index
-      }
+      properties: benchPageProperties(index)
     })
     ids.push(node.id)
+  }
+
+  return ids
+}
+
+/** Storage-owned batch population for large fixtures (50k singles would dominate the run). */
+async function populatePagesBulk(store: NodeStore, count: number): Promise<string[]> {
+  const ids: string[] = []
+  const chunkSize = 500
+
+  for (let start = 0; start < count; start += chunkSize) {
+    const size = Math.min(chunkSize, count - start)
+    const result = await store.batchWrite({
+      kind: 'operations',
+      operations: Array.from({ length: size }, (_, offset) => ({
+        type: 'create' as const,
+        options: {
+          schemaId: BenchPageSchema._schemaId,
+          properties: benchPageProperties(start + offset)
+        }
+      })),
+      policy: { notificationMode: 'silent' }
+    })
+    ids.push(...result.nodeIds)
   }
 
   return ids
@@ -186,6 +214,107 @@ async function collectQueryMetrics(nodeCount: number): Promise<MetricSummary[]> 
     })
 
     return [initialWindow, limitedFiltered, targetedUpdate]
+  } finally {
+    bridge.destroy()
+  }
+}
+
+async function collectLargeFanoutMetric(nodeCount: number): Promise<MetricSummary> {
+  const store = await createStore()
+  const ids = await populatePagesBulk(store, nodeCount)
+  const bridge = new MainThreadBridge(store)
+  const targetId = ids.filter((_, index) => index % 3 === 0)[0]
+
+  try {
+    return await measureAsync(`query-update-fanout-${nodeCount}`, 10, async (i) => {
+      const nextTitle = `Updated fanout ${i}`
+      const subscription = bridge.query(BenchPageSchema, {
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 100
+      })
+
+      await waitForSnapshot(subscription)
+
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          unsubscribe()
+          reject(new Error('Timed out waiting for targeted query update'))
+        }, 5000)
+
+        const unsubscribe = subscription.subscribe(() => {
+          const snapshot = subscription.getSnapshot()
+          const matched = snapshot?.find((node) => node.id === targetId)
+          if (matched?.properties.title === nextTitle) {
+            clearTimeout(timeout)
+            unsubscribe()
+            resolve()
+          }
+        })
+
+        void bridge.update(targetId, {
+          title: nextTitle,
+          updatedAt: Date.now() + i + nodeCount
+        })
+      })
+    })
+  } finally {
+    bridge.destroy()
+  }
+}
+
+async function collectMultiQueryFanoutMetric(
+  nodeCount: number,
+  queryCount: number
+): Promise<MetricSummary> {
+  const store = await createStore()
+  const ids = await populatePagesBulk(store, nodeCount)
+  const bridge = new MainThreadBridge(store)
+  const targetId = ids.filter((_, index) => index % 3 === 0)[0]
+
+  try {
+    // Distinct bounded queries the way a busy screen holds them: varied
+    // filters, orderings, and limits so each one is its own cache entry.
+    const subscriptions = Array.from({ length: queryCount }, (_, queryIndex) =>
+      bridge.query(BenchPageSchema, {
+        ...(queryIndex % 2 === 0 ? { where: { status: 'open' } } : {}),
+        orderBy:
+          queryIndex % 3 === 0
+            ? { updatedAt: 'desc' }
+            : queryIndex % 3 === 1
+              ? { title: 'asc' }
+              : { priority: 'asc' },
+        limit: 50 + queryIndex
+      })
+    )
+    await Promise.all(subscriptions.map((subscription) => waitForSnapshot(subscription)))
+    const watched = subscriptions[0]
+
+    return await measureAsync(`query-update-fanout-${nodeCount}-x${queryCount}`, 10, async (i) => {
+      const nextTitle = `Multi fanout ${i}`
+
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          unsubscribe()
+          reject(new Error('Timed out waiting for multi-query update'))
+        }, 5000)
+
+        const unsubscribe = watched.subscribe(() => {
+          const snapshot = watched.getSnapshot()
+          const matched = snapshot?.find((node) => node.id === targetId)
+          if (matched?.properties.title === nextTitle) {
+            clearTimeout(timeout)
+            unsubscribe()
+            resolve()
+          }
+        })
+
+        void bridge.update(targetId, {
+          title: nextTitle,
+          updatedAt: Date.now() + i + nodeCount
+        })
+      })
+    })
   } finally {
     bridge.destroy()
   }
@@ -284,6 +413,8 @@ async function main(): Promise<void> {
   const metrics = [
     ...(await collectQueryMetrics(1000)),
     ...(await collectQueryMetrics(10_000)),
+    await collectLargeFanoutMetric(50_000),
+    await collectMultiQueryFanoutMetric(10_000, 10),
     await collectSearchMetrics(1000),
     await collectSearchMetrics(10_000),
     ...(await collectDatabaseMetrics())
