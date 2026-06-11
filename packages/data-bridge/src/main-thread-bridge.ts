@@ -987,7 +987,10 @@ export class MainThreadBridge implements DataBridge {
 
   /**
    * Apply a list of node changes to a single cache entry, falling back to a
-   * storage re-query only when a delta is ambiguous.
+   * storage re-query only when a delta is ambiguous. Optimistic
+   * (pre-persistence) applies skip ambiguous entries instead of reloading —
+   * storage still holds the OLD state, and the durable change event that
+   * follows will reconcile them.
    */
   private applyChangesToEntry(
     entry: {
@@ -996,7 +999,8 @@ export class MainThreadBridge implements DataBridge {
       data: NodeState[] | null
       workingSet: BoundedQueryWorkingSet | null
     },
-    changes: ReadonlyArray<{ nodeId: string; nextNode: NodeState | null }>
+    changes: ReadonlyArray<{ nodeId: string; nextNode: NodeState | null }>,
+    options?: { onAmbiguous?: 'reload' | 'skip' }
   ): void {
     let data = entry.data ?? []
     let workingSet = entry.workingSet
@@ -1012,7 +1016,9 @@ export class MainThreadBridge implements DataBridge {
       })
 
       if (applied.kind === 'reload') {
-        void this.loadInitialQuery(entry.queryId, entry.descriptor)
+        if (options?.onAmbiguous !== 'skip') {
+          void this.loadInitialQuery(entry.queryId, entry.descriptor)
+        }
         return
       }
 
@@ -1025,6 +1031,49 @@ export class MainThreadBridge implements DataBridge {
 
     if (changed) {
       this.cache.set(entry.queryId, data, undefined, undefined, undefined, workingSet)
+    }
+  }
+
+  /**
+   * Find the freshest cached snapshot of a node across all cache entries.
+   */
+  private findCachedNode(nodeId: string): NodeState | null {
+    for (const entry of this.cache.getEntries()) {
+      const fromWorkingSet = entry.workingSet?.nodes.find((node) => node.id === nodeId)
+      if (fromWorkingSet) return fromWorkingSet
+      const fromData = entry.data?.find((node) => node.id === nodeId)
+      if (fromData) return fromData
+    }
+    return null
+  }
+
+  /**
+   * Synchronously apply an optimistic node mutation to every affected cache
+   * entry before persistence, so subscribers see the edit immediately.
+   * Returns a revert function that restores authoritative state by
+   * re-querying storage (used when persistence fails).
+   */
+  private applyOptimisticNodeChange(
+    nodeId: string,
+    mutate: (node: NodeState) => NodeState
+  ): () => void {
+    const current = this.findCachedNode(nodeId)
+    if (!current) {
+      return () => {}
+    }
+
+    const nextNode = mutate(current)
+    const changes = [{ nodeId, nextNode }]
+
+    for (const entry of this.cache.getEntriesForSchema(current.schemaId)) {
+      if (entry.descriptor.mode === 'remote') continue
+      if (entry.data === null) continue
+
+      this.applyChangesToEntry(entry, changes, { onAmbiguous: 'skip' })
+    }
+
+    return () => {
+      this.reloadEntriesForSchemas([current.schemaId])
     }
   }
 
@@ -1107,11 +1156,36 @@ export class MainThreadBridge implements DataBridge {
   }
 
   async update(nodeId: string, changes: Record<string, unknown>): Promise<NodeState> {
-    return this.store.update(nodeId, { properties: changes })
+    // Optimistic apply: subscribers see the edit synchronously; the durable
+    // change event reconciles with signed/authoritative state, and failures
+    // revert by re-querying storage.
+    const revert = this.applyOptimisticNodeChange(nodeId, (node) => ({
+      ...node,
+      properties: { ...node.properties, ...changes },
+      updatedAt: Date.now()
+    }))
+
+    try {
+      return await this.store.update(nodeId, { properties: changes })
+    } catch (err) {
+      revert()
+      throw err
+    }
   }
 
   async delete(nodeId: string): Promise<void> {
-    await this.store.delete(nodeId)
+    const revert = this.applyOptimisticNodeChange(nodeId, (node) => ({
+      ...node,
+      deleted: true,
+      updatedAt: Date.now()
+    }))
+
+    try {
+      await this.store.delete(nodeId)
+    } catch (err) {
+      revert()
+      throw err
+    }
   }
 
   async restore(nodeId: string): Promise<NodeState> {

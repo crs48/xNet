@@ -593,10 +593,10 @@ Phase 2 — React identity stability:
 
 Phase 3 — write path:
 
-- [ ] Add single-message read-modify-write op to the storage adapter (reuse `batchWrite` transaction plumbing)
-- [ ] Optimistic cache apply in `MainThreadBridge.update/create/delete` with rollback from `previousNode`
-- [ ] Move change signing off the interactive path (worker or WebCrypto), batch for bulk flows
-- [ ] Bench: `database-update-row` end-to-end and perceived (cache-visible) latency separately
+- [x] Add single-message read-modify-write op to the storage adapter (reuse `batchWrite` transaction plumbing) — singles run preflight + `applyNodeBatch` (7 → 2 round trips); `transaction()` shares the same fast path (one preflight + one atomic apply)
+- [x] Optimistic cache apply in `MainThreadBridge.update/delete` with revert-by-requery on failure (creates keep the existing temp-id flow)
+- [x] Move change signing off the interactive path — pluggable `changeSigner` NodeStore option + `createWebCryptoChangeSigner` (byte-identical Ed25519 signatures, off-thread capable); default remains synchronous
+- [x] Bench: end-to-end (`query-update-fanout-*`) and perceived (`query-update-perceived-*`) latency measured separately
 
 Phase 4 — worker-resident data layer:
 

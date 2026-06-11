@@ -180,6 +180,7 @@ async function collectQueryMetrics(nodeCount: number): Promise<MetricSummary[]> 
       await waitForSnapshot(subscription)
     })
 
+    // End-to-end: durable persistence + cache fan-out for one update.
     const targetedUpdate = await measureAsync(`query-update-fanout-${nodeCount}`, 10, async (i) => {
       const nextTitle = `Updated fanout ${i}`
       const subscription = bridge.query(BenchPageSchema, {
@@ -190,7 +191,7 @@ async function collectQueryMetrics(nodeCount: number): Promise<MetricSummary[]> 
 
       await waitForSnapshot(subscription)
 
-      await new Promise<void>((resolve, reject) => {
+      const notified = new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           unsubscribe()
           reject(new Error('Timed out waiting for targeted query update'))
@@ -205,15 +206,66 @@ async function collectQueryMetrics(nodeCount: number): Promise<MetricSummary[]> 
             resolve()
           }
         })
-
-        void bridge.update(targetId, {
-          title: nextTitle,
-          updatedAt: Date.now() + i + nodeCount
-        })
       })
+      const updated = bridge.update(targetId, {
+        title: nextTitle,
+        updatedAt: Date.now() + i + nodeCount
+      })
+
+      await Promise.all([notified, updated])
     })
 
-    return [initialWindow, limitedFiltered, targetedUpdate]
+    // Perceived: time until subscribers can see the edit (optimistic apply),
+    // independent of persistence completing.
+    const pendingPerceivedUpdates: Promise<unknown>[] = []
+    const perceivedUpdate = await measureAsync(
+      `query-update-perceived-${nodeCount}`,
+      10,
+      async (i) => {
+        const nextTitle = `Perceived ${i}`
+        const subscription = bridge.query(BenchPageSchema, {
+          where: { status: 'open' },
+          orderBy: { updatedAt: 'desc' },
+          limit: 100
+        })
+
+        await waitForSnapshot(subscription)
+
+        const visible = new Promise<void>((resolve, reject) => {
+          const probe = () => {
+            const snapshot = subscription.getSnapshot()
+            const matched = snapshot?.find((node) => node.id === targetId)
+            if (matched?.properties.title === nextTitle) {
+              clearTimeout(timeout)
+              unsubscribe()
+              resolve()
+              return true
+            }
+            return false
+          }
+          const timeout = setTimeout(() => {
+            unsubscribe()
+            reject(new Error('Timed out waiting for perceived query update'))
+          }, 5000)
+          const unsubscribe = subscription.subscribe(() => {
+            probe()
+          })
+
+          pendingPerceivedUpdates.push(
+            bridge.update(targetId, {
+              title: nextTitle,
+              updatedAt: Date.now() + i + nodeCount + 1_000_000
+            })
+          )
+          probe()
+        })
+
+        await visible
+      }
+    )
+    await Promise.all(pendingPerceivedUpdates)
+
+    return [initialWindow, limitedFiltered, targetedUpdate, perceivedUpdate]
   } finally {
     bridge.destroy()
   }
@@ -236,7 +288,7 @@ async function collectLargeFanoutMetric(nodeCount: number): Promise<MetricSummar
 
       await waitForSnapshot(subscription)
 
-      await new Promise<void>((resolve, reject) => {
+      const notified = new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           unsubscribe()
           reject(new Error('Timed out waiting for targeted query update'))
@@ -251,12 +303,13 @@ async function collectLargeFanoutMetric(nodeCount: number): Promise<MetricSummar
             resolve()
           }
         })
-
-        void bridge.update(targetId, {
-          title: nextTitle,
-          updatedAt: Date.now() + i + nodeCount
-        })
       })
+      const updated = bridge.update(targetId, {
+        title: nextTitle,
+        updatedAt: Date.now() + i + nodeCount
+      })
+
+      await Promise.all([notified, updated])
     })
   } finally {
     bridge.destroy()
@@ -293,7 +346,7 @@ async function collectMultiQueryFanoutMetric(
     return await measureAsync(`query-update-fanout-${nodeCount}-x${queryCount}`, 10, async (i) => {
       const nextTitle = `Multi fanout ${i}`
 
-      await new Promise<void>((resolve, reject) => {
+      const notified = new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           unsubscribe()
           reject(new Error('Timed out waiting for multi-query update'))
@@ -308,12 +361,13 @@ async function collectMultiQueryFanoutMetric(
             resolve()
           }
         })
-
-        void bridge.update(targetId, {
-          title: nextTitle,
-          updatedAt: Date.now() + i + nodeCount
-        })
       })
+      const updated = bridge.update(targetId, {
+        title: nextTitle,
+        updatedAt: Date.now() + i + nodeCount
+      })
+
+      await Promise.all([notified, updated])
     })
   } finally {
     bridge.destroy()

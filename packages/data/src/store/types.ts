@@ -18,7 +18,7 @@ import type { LensRegistry } from '../schema/lens'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
 import type { SQLiteOperationStats } from '@xnetjs/sqlite'
-import type { Change, LamportTimestamp } from '@xnetjs/sync'
+import type { Change, ChangeSigner, LamportTimestamp } from '@xnetjs/sync'
 
 // ============================================================================
 // Node ID Types
@@ -421,6 +421,13 @@ export interface NodeStoreOptions {
   authorDID: DID
   /** Ed25519 signing key */
   signingKey: Uint8Array
+  /**
+   * Optional async change signer (e.g. `createWebCryptoChangeSigner` from
+   * @xnetjs/sync, or a worker-backed signer). Signatures must be
+   * byte-identical to the synchronous Ed25519 path. When omitted, changes
+   * are signed synchronously with `signingKey` on the calling thread.
+   */
+  changeSigner?: ChangeSigner
   /**
    * Optional schema lookup for temp ID resolution in relation properties.
    * When provided, `transaction()` will resolve `~`-prefixed temp IDs in

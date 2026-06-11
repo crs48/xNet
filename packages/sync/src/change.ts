@@ -239,6 +239,66 @@ export function signChange<T>(unsigned: UnsignedChange<T>, signingKey: Uint8Arra
 }
 
 /**
+ * Pluggable async change signer. Lets integrators move Ed25519 signing off
+ * the interactive path (WebCrypto, a worker, or a remote signer) while
+ * producing byte-identical signatures to {@link signChange}.
+ */
+export type ChangeSigner = <T>(unsigned: UnsignedChange<T>) => Promise<Change<T>>
+
+// RFC 8410 PKCS#8 prefix for a raw 32-byte Ed25519 private key.
+const ED25519_PKCS8_PREFIX = new Uint8Array([
+  0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20
+])
+
+/**
+ * Create a {@link ChangeSigner} backed by WebCrypto Ed25519.
+ *
+ * Ed25519 is deterministic (RFC 8032), so signatures are byte-identical to
+ * the synchronous {@link signChange} path — only the execution moves off
+ * the calling thread. Returns null when the runtime has no SubtleCrypto;
+ * if WebCrypto rejects Ed25519 at runtime, the signer falls back to the
+ * synchronous path transparently.
+ */
+export function createWebCryptoChangeSigner(signingKey: Uint8Array): ChangeSigner | null {
+  const subtle = (globalThis as { crypto?: { subtle?: SubtleCrypto } }).crypto?.subtle
+  if (!subtle || typeof subtle.importKey !== 'function') {
+    return null
+  }
+
+  const pkcs8 = new Uint8Array(ED25519_PKCS8_PREFIX.length + 32)
+  pkcs8.set(ED25519_PKCS8_PREFIX, 0)
+  pkcs8.set(signingKey.subarray(0, 32), ED25519_PKCS8_PREFIX.length)
+
+  let cryptoKeyPromise: Promise<CryptoKey> | null = null
+  let webCryptoUnavailable = false
+
+  const importSigningKey = (): Promise<CryptoKey> => {
+    cryptoKeyPromise ??= subtle.importKey('pkcs8', pkcs8, { name: 'Ed25519' }, false, ['sign'])
+    return cryptoKeyPromise
+  }
+
+  return async <T>(unsigned: UnsignedChange<T>): Promise<Change<T>> => {
+    if (webCryptoUnavailable) {
+      return signChange(unsigned, signingKey)
+    }
+
+    const hash = computeChangeHash(unsigned)
+    try {
+      const key = await importSigningKey()
+      const signature = new Uint8Array(
+        await subtle.sign('Ed25519', key, new TextEncoder().encode(hash))
+      )
+      return { ...unsigned, hash, signature }
+    } catch {
+      // Runtime lacks Ed25519 support (or rejected the key) — fall back to
+      // the synchronous signer permanently for this signer instance.
+      webCryptoUnavailable = true
+      return signChange(unsigned, signingKey)
+    }
+  }
+}
+
+/**
  * Verify a change's signature against a public key.
  *
  * Protocol version handling:

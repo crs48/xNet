@@ -540,6 +540,56 @@ describe('MainThreadBridge', () => {
       querySpy.mockRestore()
     })
 
+    it('should apply updates to subscribed queries optimistically before persistence', async () => {
+      const task = await bridge.create(TestTaskSchema, { title: 'Optimistic', done: false })
+
+      const subscription = bridge.query(TestTaskSchema, {
+        orderBy: { title: 'asc' },
+        limit: 5
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(1)
+      })
+
+      // Kick off the update WITHOUT awaiting: the optimistic apply runs
+      // synchronously, so the snapshot already reflects the edit.
+      const pending = bridge.update(task.id, { title: 'Optimistic edited' })
+      expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('Optimistic edited')
+
+      await pending
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('Optimistic edited')
+      })
+    })
+
+    it('should revert optimistic updates when persistence fails', async () => {
+      const task = await bridge.create(TestTaskSchema, { title: 'Stable title', done: false })
+
+      const subscription = bridge.query(TestTaskSchema, {
+        orderBy: { title: 'asc' },
+        limit: 5
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(1)
+      })
+
+      const updateSpy = vi
+        .spyOn(store, 'update')
+        .mockRejectedValueOnce(new Error('persistence failed'))
+
+      await expect(bridge.update(task.id, { title: 'Doomed edit' })).rejects.toThrow(
+        'persistence failed'
+      )
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('Stable title')
+      })
+
+      updateSpy.mockRestore()
+    })
+
     it('should insert newly created nodes into bounded windows without re-querying', async () => {
       await bridge.create(TestTaskSchema, { title: 'B Task', done: false })
       await bridge.create(TestTaskSchema, { title: 'C Task', done: false })

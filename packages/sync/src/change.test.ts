@@ -6,6 +6,7 @@ import {
   createUnsignedChange,
   computeChangeHash,
   signChange,
+  createWebCryptoChangeSigner,
   verifyChange,
   verifyChangeHash,
   createChangeId
@@ -121,6 +122,33 @@ describe('Change', () => {
       expect(signed.hash).toMatch(/^cid:blake3:/)
       expect(signed.signature).toBeInstanceOf(Uint8Array)
       expect(signed.signature.length).toBe(64) // Ed25519 signatures are 64 bytes
+    })
+  })
+
+  describe('createWebCryptoChangeSigner', () => {
+    it('produces signatures byte-identical to the synchronous signer', async () => {
+      const keyPair = generateSigningKeyPair()
+      const signer = createWebCryptoChangeSigner(keyPair.privateKey)
+      // SubtleCrypto must exist in supported runtimes; the signer itself
+      // falls back to the sync path if Ed25519 is rejected at runtime.
+      expect(signer).not.toBeNull()
+
+      const unsigned = createUnsignedChange({
+        id: 'test-webcrypto-sign',
+        type: 'test',
+        payload: { data: 'sign me async' },
+        parentHash: null,
+        authorDID: testDID,
+        lamport: testLamport,
+        wallTime: 1000
+      })
+
+      const asyncSigned = await signer!(unsigned)
+      const syncSigned = signChange(unsigned, keyPair.privateKey)
+
+      expect(asyncSigned.hash).toBe(syncSigned.hash)
+      expect(Array.from(asyncSigned.signature)).toEqual(Array.from(syncSigned.signature))
+      expect(verifyChange(asyncSigned, keyPair.publicKey)).toBe(true)
     })
   })
 
