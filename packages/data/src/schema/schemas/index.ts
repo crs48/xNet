@@ -11,7 +11,17 @@ export { DatabaseRowSchema, type DatabaseRow } from './database-row'
 export { DatabaseFieldSchema, type DatabaseField } from './database-field'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './database-select-option'
 export { DatabaseViewSchema, type DatabaseView } from './database-view'
-export { TaskSchema, type Task } from './task'
+export {
+  TaskSchema,
+  TASK_STATUS_CATEGORIES,
+  getTaskStatusCategory,
+  isCompletedTaskStatus,
+  type Task,
+  type TaskStatusCategory,
+  type TaskStatusId
+} from './task'
+export { TaskViewSchema, type TaskView } from './task-view'
+export { ProjectSchema, type Project } from './project'
 export { ExternalReferenceSchema, type ExternalReference } from './external-reference'
 export { MediaAssetSchema, type MediaAsset } from './media-asset'
 export { CanvasSchema, type Canvas } from './canvas'
@@ -149,6 +159,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/DatabaseView@1.0.0': () =>
     import('./database-view').then((m) => m.DatabaseViewSchema),
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
+  'xnet://xnet.fyi/TaskView@1.0.0': () => import('./task-view').then((m) => m.TaskViewSchema),
+  'xnet://xnet.fyi/Project@1.0.0': () => import('./project').then((m) => m.ProjectSchema),
   'xnet://xnet.fyi/ExternalReference@1.0.0': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset@1.0.0': () => import('./media-asset').then((m) => m.MediaAssetSchema),
@@ -195,6 +207,8 @@ export const builtInSchemas = {
     import('./database-select-option').then((m) => m.DatabaseSelectOptionSchema),
   'xnet://xnet.fyi/DatabaseView': () => import('./database-view').then((m) => m.DatabaseViewSchema),
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
+  'xnet://xnet.fyi/TaskView': () => import('./task-view').then((m) => m.TaskViewSchema),
+  'xnet://xnet.fyi/Project': () => import('./project').then((m) => m.ProjectSchema),
   'xnet://xnet.fyi/ExternalReference': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),

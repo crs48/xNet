@@ -110,7 +110,17 @@ export { DatabaseRowSchema, type DatabaseRow } from './schemas'
 export { DatabaseFieldSchema, type DatabaseField } from './schemas'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './schemas'
 export { DatabaseViewSchema, type DatabaseView } from './schemas'
-export { TaskSchema, type Task } from './schemas'
+export {
+  TaskSchema,
+  TASK_STATUS_CATEGORIES,
+  getTaskStatusCategory,
+  isCompletedTaskStatus,
+  type Task,
+  type TaskStatusCategory,
+  type TaskStatusId
+} from './schemas'
+export { TaskViewSchema, type TaskView } from './schemas'
+export { ProjectSchema, type Project } from './schemas'
 export { ExternalReferenceSchema, type ExternalReference } from './schemas'
 export { MediaAssetSchema, type MediaAsset } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'

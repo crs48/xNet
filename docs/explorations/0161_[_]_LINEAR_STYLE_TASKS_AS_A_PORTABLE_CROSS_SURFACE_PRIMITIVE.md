@@ -582,15 +582,18 @@ export function parseTaskLinks(text: string) {
 
 ### Phase 2 — Tasks surface
 
-- [ ] Add `TaskViewSchema` + `ProjectSchema` to
-      `packages/data/src/schema/schemas/`
+- [x] Add `TaskViewSchema` + `ProjectSchema` to
+      `packages/data/src/schema/schemas/` (registered in builtInSchemas;
+      Task gains a `project` relation)
 - [ ] Generalize v2 list/board renderers to accept Task node collections
       via `useQuery` (no legacy `useDatabase` path)
 - [ ] Build the Tasks surface in `apps/web`: My Tasks, Triage inbox,
       per-project views; board drag-drop via @dnd-kit updating
       status/sortKey
-- [ ] Upgrade status model: state categories with derived `completed`;
-      schema version bump + migration
+- [x] Upgrade status model: state categories with derived `completed`
+      (`TASK_STATUS_CATEGORIES` + `isCompletedTaskStatus` in
+      `packages/data`; triage/backlog/in-review added additively — no
+      version bump required, unknown statuses degrade to `unstarted`)
 - [ ] Benchmark 10k-task board/list rendering through DataBridge
 
 ### Phase 3 — Keyboard layer

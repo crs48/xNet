@@ -9,7 +9,7 @@
  * removal, never hard-delete).
  */
 import type { InferCreateProps } from '@xnetjs/data'
-import { ExternalReferenceSchema, TaskSchema } from '@xnetjs/data'
+import { ExternalReferenceSchema, TaskSchema, isCompletedTaskStatus } from '@xnetjs/data'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutate } from './useMutate'
 import { useQuery } from './useQuery'
@@ -104,7 +104,9 @@ function computeExternalReferenceId(
 
 function getNextStatus(currentStatus: TaskStatus | undefined, completed: boolean): TaskStatus {
   if (completed) return 'done'
-  if (!currentStatus || currentStatus === 'done') return 'todo'
+  // Un-completing any completed/cancelled-category status returns to todo;
+  // active statuses (in-progress, in-review, triage, backlog) are preserved.
+  if (!currentStatus || isCompletedTaskStatus(currentStatus)) return 'todo'
   return currentStatus
 }
 
