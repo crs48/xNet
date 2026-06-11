@@ -91,7 +91,7 @@ describe('canvas-shell', () => {
       const node = {
         type: 'media',
         sourceNodeId: 'db-1',
-        sourceSchemaId: 'xnet://xnet.fyi/Database@1.0.0',
+        sourceSchemaId: 'xnet://xnet.fyi/Database@2.0.0',
         properties: {}
       }
 

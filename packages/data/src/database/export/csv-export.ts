@@ -141,12 +141,12 @@ export function formatValue(
     case 'file': {
       if (Array.isArray(value)) {
         return value
-          .map((f) => (typeof f === 'object' && f !== null ? f.name || f.url : f))
+          .map((f) => (typeof f === 'object' && f !== null ? f.name || f.cid : f))
           .join(', ')
       }
       if (typeof value === 'object' && value !== null) {
-        const file = value as { name?: string; url?: string }
-        return file.name || file.url || ''
+        const file = value as { name?: string; cid?: string }
+        return file.name || file.cid || ''
       }
       return String(value)
     }

@@ -4,6 +4,7 @@
 import type { RootStackParamList } from './types'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React from 'react'
+import { DatabaseScreen } from '../screens/DatabaseScreen'
 import { DocumentScreen } from '../screens/DocumentScreen'
 import { HomeScreen } from '../screens/HomeScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
@@ -19,6 +20,14 @@ export function AppNavigator() {
         component={DocumentScreen}
         options={{
           title: 'Document',
+          headerBackTitle: 'Back'
+        }}
+      />
+      <Stack.Screen
+        name="Database"
+        component={DatabaseScreen}
+        options={{
+          title: 'Database',
           headerBackTitle: 'Back'
         }}
       />

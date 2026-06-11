@@ -65,6 +65,97 @@ export {
   getRichTextPlainText
 } from './rich-text-cell'
 
+// ─── V2 node model: fields, select options, views ───────────────────────────
+
+// Field types (V2 node model)
+export {
+  type FieldType,
+  type FieldConfig,
+  type FieldNode,
+  type SelectOptionNode,
+  type NumberFieldConfig,
+  type TextFieldConfig,
+  type RelationFieldConfig,
+  type RollupFieldConfig,
+  type FormulaFieldConfig,
+  type DateFieldConfig,
+  type FileFieldConfig,
+  FIELD_TYPES,
+  SELECT_COLORS,
+  isFieldType,
+  isSelectColor,
+  autoColor,
+  isNodeStoreFieldType,
+  isComputedFieldType,
+  isAutoFieldType,
+  isYDocFieldType,
+  toFieldNode,
+  toSelectOptionNode
+} from './field-types'
+
+// Field operations (V2 node model)
+export {
+  type CreateFieldOptions,
+  type UpdateFieldOptions,
+  type CreateSelectOptionOptions,
+  getFields,
+  getField,
+  getTitleField,
+  createField,
+  updateField,
+  deleteField,
+  moveField,
+  duplicateField,
+  getSelectOptions,
+  getDatabaseSelectOptions,
+  createSelectOption,
+  updateSelectOption,
+  deleteSelectOption,
+  moveSelectOption
+} from './field-operations'
+
+// View operations (V2 node model)
+export {
+  type ViewNode,
+  type CreateViewOptions,
+  type UpdateViewOptions,
+  getViews as getViewNodes,
+  getView as getViewNode,
+  createView as createViewNode,
+  updateView as updateViewNode,
+  deleteView as deleteViewNode,
+  duplicateView as duplicateViewNode,
+  moveView,
+  setViewFilters as setViewNodeFilters,
+  setViewSorts as setViewNodeSorts,
+  setViewGroupBy as setViewNodeGroupBy,
+  toggleViewGroupCollapsed,
+  setFieldHidden,
+  setViewFieldWidth,
+  setViewFieldOrder,
+  effectiveFieldSortKey
+} from './view-node-operations'
+
+// Cell conversion for field type changes (V2 node model)
+export {
+  convertCellValue,
+  cellValueToText,
+  type ConvertContext,
+  type ConvertedCell
+} from './convert-cell'
+
+// Database setup (V2 node model)
+export { setupDatabase, type SetupDatabaseResult } from './database-setup'
+
+// Database-defined schemas from field nodes (V2 node model)
+export {
+  DEFAULT_DATABASE_SCHEMA_VERSION,
+  fieldsToStoredColumns,
+  buildSchemaFromFields,
+  getDatabaseSchemaIRI,
+  createNodeDatabaseSchemaResolver
+} from './schema-from-fields'
+
 // Column types and configs
 export {
   type ColumnType,
@@ -97,40 +188,10 @@ export {
   setupNewDatabase,
   getMeta,
   setMeta,
-  deleteMeta
-} from './database-doc'
-
-// Legacy database compatibility
-export {
+  deleteMeta,
   getDatabaseDocumentModel,
-  prefersLegacyDatabaseModel,
-  hasLegacyRows,
-  getLegacyColumns,
-  getLegacyColumn,
-  createLegacyColumn,
-  updateLegacyColumn,
-  deleteLegacyColumn,
-  reorderLegacyColumn,
-  getLegacyViews,
-  getLegacyView,
-  createLegacyView,
-  updateLegacyView,
-  deleteLegacyView,
-  getLegacyRows,
-  createLegacyRow,
-  updateLegacyRow,
-  deleteLegacyRow,
-  moveLegacyRow,
-  type DatabaseDocumentModel,
-  type LegacyDatabaseRow
-} from './legacy-model'
-
-// Explicit legacy migration
-export {
-  getLegacyDatabaseMigrationStatus,
-  migrateLegacyDatabaseDocument,
-  type LegacyDatabaseMigrationStatus
-} from './legacy-migration'
+  type DatabaseDocumentModel
+} from './database-doc'
 
 // Column operations
 export {

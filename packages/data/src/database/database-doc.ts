@@ -162,3 +162,22 @@ export function deleteMeta(doc: Y.Doc, key: string): void {
   const meta = doc.getMap('meta')
   meta.delete(key)
 }
+
+// ─── Document model detection ────────────────────────────────────────────────
+
+/**
+ * Storage model of a database Y.Doc. V2 keeps the Y.Doc presence-only, so
+ * docs are either 'canonical' (pre-V2 columns/views/meta present) or
+ * 'empty'. The legacy Y.Map row model was removed with exploration 0159.
+ */
+export type DatabaseDocumentModel = 'canonical' | 'empty'
+
+/**
+ * Detect whether a database Y.Doc carries canonical column/view state.
+ */
+export function getDatabaseDocumentModel(doc: Y.Doc): DatabaseDocumentModel {
+  if (doc.share.has('columns') || doc.share.has('views') || doc.share.has('meta')) {
+    return 'canonical'
+  }
+  return 'empty'
+}

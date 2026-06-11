@@ -1,21 +1,19 @@
 /**
- * Database E2E test harness.
+ * E2E Test Harness for the V2 Database Grid (exploration 0159)
  *
- * Tests database data model features:
- * - Creating databases with columns
- * - Adding rows
- * - Updating cells
+ * Renders the real V2 stack — useGridDatabase + GridToolbar + GridSurface —
+ * against a hub-synced store, with a debug strip and helper buttons the
+ * Playwright specs drive. Multi-user: open with ?user=2&db=<same-id> in a
+ * second context to exercise sync/presence.
  *
- * Query params:
- *   ?user=1     -> User identity
- *   ?db=<id>    -> Database ID
- *   ?hub=<url>  -> Hub WebSocket URL
+ * Used by src/database.spec.ts and src/database-undo.spec.ts.
  */
 
-import { DatabaseSchema, MemoryNodeStorageAdapter, type PropertyType } from '@xnetjs/data'
+import { MemoryNodeStorageAdapter, DatabaseSchema } from '@xnetjs/data'
 import { identityFromPrivateKey } from '@xnetjs/identity'
-import { XNetProvider, useNode } from '@xnetjs/react'
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { XNetProvider, useGridDatabase, useNode } from '@xnetjs/react'
+import { GridSurface, GridToolbar, useDatabaseComments } from '@xnetjs/views'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 
 // ─── Parse query params ──────────────────────────────────────────────
@@ -37,524 +35,233 @@ const signingKey = seed
 
 const nodeStorage = new MemoryNodeStorageAdapter()
 
-// ─── Types ───────────────────────────────────────────────────────────
+// ─── Database Harness ────────────────────────────────────────────────
 
-interface StoredColumn {
-  id: string
-  name: string
-  type: PropertyType
-  config?: Record<string, unknown>
-}
-
-interface TableRow {
-  id: string
-  [key: string]: unknown
-}
-
-interface DatabaseHistorySnapshot {
-  columns: StoredColumn[]
-  rows: TableRow[]
-  tableView: Record<string, unknown> | undefined
-  boardView: Record<string, unknown> | undefined
-}
-
-// ─── Database Editor Component ───────────────────────────────────────
-
-function DatabaseEditor() {
-  const { doc, loading, error, syncStatus } = useNode(DatabaseSchema, dbId, {
-    createIfMissing: { title: 'E2E Test Database' }
+function DatabaseHarness() {
+  const { loading, error, syncStatus, awareness } = useNode(DatabaseSchema, dbId, {
+    createIfMissing: { title: 'Database E2E Test' },
+    did: authorDID
   })
 
-  const [viewMode, setViewMode] = useState<'table' | 'board'>('table')
-  const [columns, setColumns] = useState<StoredColumn[]>([])
-  const [rows, setRows] = useState<TableRow[]>([])
-  const containerRef = useRef<HTMLDivElement>(null)
-  const historyPastRef = useRef<DatabaseHistorySnapshot[]>([])
-  const historyFutureRef = useRef<DatabaseHistorySnapshot[]>([])
+  // ─── Comments (universal commenting system, anchored rowId:fieldId) ───────
+  const comments = useDatabaseComments({ databaseNodeId: dbId })
 
-  const isTextInputLikeElement = useCallback((target: EventTarget | null): boolean => {
-    if (!(target instanceof HTMLElement)) return false
-    return (
-      target instanceof HTMLInputElement ||
-      target instanceof HTMLTextAreaElement ||
-      target.isContentEditable
-    )
-  }, [])
-
-  const isDatabaseEditableTarget = useCallback((target: EventTarget | null): boolean => {
-    if (!(target instanceof Element)) return false
-    return target.closest('[data-xnet-db-editable="true"]') !== null
-  }, [])
-
-  const readSnapshot = useCallback(
-    (dataMap: { get: (key: string) => unknown }): DatabaseHistorySnapshot => {
-      return {
-        columns: structuredClone((dataMap.get('columns') as StoredColumn[] | undefined) ?? []),
-        rows: structuredClone((dataMap.get('rows') as TableRow[] | undefined) ?? []),
-        tableView: structuredClone(
-          (dataMap.get('tableView') as Record<string, unknown> | undefined) ?? undefined
-        ),
-        boardView: structuredClone(
-          (dataMap.get('boardView') as Record<string, unknown> | undefined) ?? undefined
-        )
-      }
-    },
-    []
-  )
-
-  const applySnapshot = useCallback(
-    (
-      dataMap: { set: (key: string, value: unknown) => void },
-      snapshot: DatabaseHistorySnapshot
-    ) => {
-      dataMap.set('columns', structuredClone(snapshot.columns))
-      dataMap.set('rows', structuredClone(snapshot.rows))
-      if (snapshot.tableView) {
-        dataMap.set('tableView', structuredClone(snapshot.tableView))
-      }
-      if (snapshot.boardView) {
-        dataMap.set('boardView', structuredClone(snapshot.boardView))
-      }
-    },
-    []
-  )
-
-  const pushHistorySnapshot = useCallback(() => {
-    if (!doc) return
-    const dataMap = doc.getMap('data')
-    historyPastRef.current.push(readSnapshot(dataMap))
-    historyFutureRef.current = []
-  }, [doc, readSnapshot])
-
-  const undo = useCallback(() => {
-    if (!doc) return
-    const dataMap = doc.getMap('data')
-    const snapshot = historyPastRef.current.pop()
-    if (!snapshot) return
-    historyFutureRef.current.push(readSnapshot(dataMap))
-    applySnapshot(dataMap, snapshot)
-  }, [applySnapshot, doc, readSnapshot])
-
-  const redo = useCallback(() => {
-    if (!doc) return
-    const dataMap = doc.getMap('data')
-    const snapshot = historyFutureRef.current.pop()
-    if (!snapshot) return
-    historyPastRef.current.push(readSnapshot(dataMap))
-    applySnapshot(dataMap, snapshot)
-  }, [applySnapshot, doc, readSnapshot])
-
-  const handleRootKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      const container = containerRef.current
-      if (!container) return
-
-      const key = e.key.toLowerCase()
-      const isMod = e.metaKey || e.ctrlKey
-      if (!isMod) return
-
-      const targetIsTextInputLike = isTextInputLikeElement(e.target)
-      const activeIsTextInputLike = isTextInputLikeElement(document.activeElement)
-      const targetIsDatabaseEditable = isDatabaseEditableTarget(e.target)
-      const activeIsDatabaseEditable = isDatabaseEditableTarget(document.activeElement)
-
-      if (
-        (targetIsTextInputLike && !targetIsDatabaseEditable) ||
-        (activeIsTextInputLike && !activeIsDatabaseEditable)
-      ) {
-        return
-      }
-
-      if (key === 'z') {
-        e.preventDefault()
-        if (e.shiftKey) {
-          redo()
-        } else {
-          undo()
-        }
-        return
-      }
-
-      if (!e.metaKey && e.ctrlKey && !e.shiftKey && key === 'y') {
-        e.preventDefault()
-        redo()
-      }
-    },
-    [isDatabaseEditableTarget, isTextInputLikeElement, redo, undo]
-  )
-
-  // Load data from Y.Doc
+  // ─── Presence (awareness channel, same wiring as the app shells) ──────────
+  const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
   useEffect(() => {
-    if (!doc) return
-
-    const dataMap = doc.getMap('data')
-
-    const loadData = () => {
-      const storedColumns = dataMap.get('columns') as StoredColumn[] | undefined
-      if (storedColumns && Array.isArray(storedColumns)) {
-        setColumns(storedColumns)
-      }
-
-      const storedRows = dataMap.get('rows') as TableRow[] | undefined
-      if (storedRows && Array.isArray(storedRows)) {
-        setRows(storedRows)
-      }
-    }
-
-    loadData()
-    dataMap.observe(loadData)
-    return () => dataMap.unobserve(loadData)
-  }, [doc])
-
-  // Add column
-  const handleAddColumn = useCallback(() => {
-    if (!doc) return
-    pushHistorySnapshot()
-
-    const newColumn: StoredColumn = {
-      id: `col_${Date.now()}`,
-      name: 'New Column',
-      type: 'text'
-    }
-
-    const dataMap = doc.getMap('data')
-    const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
-    dataMap.set('columns', [...currentColumns, newColumn])
-  }, [doc, pushHistorySnapshot])
-
-  // Add select column for board view
-  const handleAddSelectColumn = useCallback(() => {
-    if (!doc) return
-    pushHistorySnapshot()
-
-    const newColumn: StoredColumn = {
-      id: `col_${Date.now()}`,
-      name: 'Status',
-      type: 'select',
-      config: {
-        options: [
-          { id: 'todo', name: 'To Do', color: '#ef4444' },
-          { id: 'in-progress', name: 'In Progress', color: '#f59e0b' },
-          { id: 'done', name: 'Done', color: '#22c55e' }
-        ]
-      }
-    }
-
-    const dataMap = doc.getMap('data')
-    const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
-    dataMap.set('columns', [...currentColumns, newColumn])
-  }, [doc, pushHistorySnapshot])
-
-  // Add row
-  const handleAddRow = useCallback(() => {
-    if (!doc) return
-    pushHistorySnapshot()
-
-    const newRow: TableRow = {
-      id: `row_${Date.now()}`
-    }
-
-    // Initialize with empty values
-    columns.forEach((col) => {
-      switch (col.type) {
-        case 'checkbox':
-          newRow[col.id] = false
-          break
-        case 'number':
-          newRow[col.id] = null
-          break
-        case 'multiSelect':
-          newRow[col.id] = []
-          break
-        default:
-          newRow[col.id] = ''
-      }
+    if (!awareness) return
+    awareness.setLocalStateField('user', {
+      did: authorDID,
+      name: `User ${userNum}`,
+      color: userNum === 1 ? '#2563eb' : '#dc2626'
     })
+    const updatePresences = () => {
+      const next: CellPresence[] = []
+      awareness.getStates().forEach((state: Record<string, unknown>, clientId: number) => {
+        if (clientId === awareness.clientID) return
+        const user = state.user as { did?: string; color?: string; name?: string } | undefined
+        const cell = state.cell as { rowId?: string; fieldId?: string } | undefined
+        if (!user?.did || !cell?.rowId || !cell?.fieldId) return
+        next.push({
+          rowId: cell.rowId,
+          columnId: cell.fieldId,
+          color: user.color ?? '#999999',
+          did: user.did,
+          name: user.name ?? 'Anonymous'
+        })
+      })
+      setCellPresences(next)
+    }
+    awareness.on('change', updatePresences)
+    updatePresences()
+    return () => {
+      awareness.off('change', updatePresences)
+    }
+  }, [awareness])
+  const [search, setSearch] = useState('')
+  const grid = useGridDatabase(dbId, { search: search || undefined })
+  const seededRef = useRef(false)
 
-    const dataMap = doc.getMap('data')
-    const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
-    dataMap.set('rows', [...currentRows, newRow])
-  }, [doc, columns, pushHistorySnapshot])
+  // ─── Helper actions the specs drive ─────────────────────────────────
 
-  // Update row
-  const handleUpdateCell = useCallback(
-    (rowId: string, columnId: string, value: string) => {
-      if (!doc) return
-      pushHistorySnapshot()
-
-      const dataMap = doc.getMap('data')
-      const currentRows = dataMap.get('rows') as TableRow[] | undefined
-      if (!currentRows) return
-
-      const updatedRows = currentRows.map((row) =>
-        row.id === rowId ? { ...row, [columnId]: value } : row
-      )
-      dataMap.set('rows', updatedRows)
-    },
-    [doc, pushHistorySnapshot]
-  )
-
-  const handleSeedUndoFixture = useCallback(() => {
-    if (!doc) return
-    pushHistorySnapshot()
-
-    const dataMap = doc.getMap('data')
-    dataMap.set('columns', [
-      { id: 'title', name: 'Title', type: 'text' },
-      { id: 'tags', name: 'Tags', type: 'multiSelect', config: { options: [] } },
-      {
-        id: 'status',
-        name: 'Status',
-        type: 'select',
-        config: {
-          options: [
-            { id: 'todo', name: 'To Do', color: '#ef4444' },
-            { id: 'done', name: 'Done', color: '#22c55e' }
-          ]
-        }
+  const handleAddTextField = useCallback(() => {
+    void (async () => {
+      await grid.addField(`Text ${grid.fields.length + 1}`, 'text', undefined, {
+        isTitle: grid.fields.length === 0
+      })
+      // First field also bootstraps the default view (the app shells do
+      // this on database creation)
+      if (grid.views.length === 0) {
+        await grid.addView('Table', 'table')
       }
-    ])
-    dataMap.set('rows', [{ id: 'row-1', title: 'Initial', tags: [], status: 'todo' }])
-  }, [doc, pushHistorySnapshot])
+    })()
+  }, [grid])
+
+  const handleAddSelectField = useCallback(() => {
+    void grid.addField('Status', 'select')
+  }, [grid])
+
+  const handleAddRow = useCallback(() => {
+    void grid.addRow()
+  }, [grid])
+
+  const handleSeedFixture = useCallback(() => {
+    if (seededRef.current) return
+    seededRef.current = true
+    void (async () => {
+      const titleId = await grid.addField('Title', 'text', undefined, { isTitle: true })
+      await grid.addField('Status', 'select')
+      await grid.addField('Tags', 'multiSelect')
+      if (titleId) {
+        await grid.addRow(undefined, { [titleId]: 'Initial' })
+      }
+    })()
+  }, [grid])
+
+  const titleField = grid.fields.find((f) => f.isTitle) ?? grid.fields[0]
+  const firstRow = grid.rows[0]
 
   const handleEditTitleCell = useCallback(() => {
-    if (!doc) return
-    pushHistorySnapshot()
-    const dataMap = doc.getMap('data')
-    const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
-    dataMap.set(
-      'rows',
-      currentRows.map((row) => (row.id === 'row-1' ? { ...row, title: 'Edited title' } : row))
-    )
-  }, [doc, pushHistorySnapshot])
-
-  const handleEditTagsCell = useCallback(() => {
-    if (!doc) return
-    pushHistorySnapshot()
-    const dataMap = doc.getMap('data')
-    const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
-    dataMap.set(
-      'rows',
-      currentRows.map((row) => (row.id === 'row-1' ? { ...row, tags: ['opt-a', 'opt-b'] } : row))
-    )
-  }, [doc, pushHistorySnapshot])
+    if (firstRow && titleField) {
+      void grid.updateCell(firstRow.id, titleField.id, 'Edited title')
+    }
+  }, [grid, firstRow, titleField])
 
   const handleDeleteLastRow = useCallback(() => {
-    if (!doc) return
-    pushHistorySnapshot()
-    const dataMap = doc.getMap('data')
-    const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
-    dataMap.set('rows', currentRows.slice(0, -1))
-  }, [doc, pushHistorySnapshot])
+    const last = grid.rows[grid.rows.length - 1]
+    if (last) void grid.deleteRows([last.id])
+  }, [grid])
 
-  const handleChangeStatusType = useCallback(() => {
-    if (!doc) return
-    pushHistorySnapshot()
-    const dataMap = doc.getMap('data')
-    const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
-    dataMap.set(
-      'columns',
-      currentColumns.map((column) =>
-        column.id === 'status'
-          ? {
-              ...column,
-              type: 'multiSelect',
-              config: {
-                options: [
-                  { id: 'todo', name: 'To Do', color: '#ef4444' },
-                  { id: 'done', name: 'Done', color: '#22c55e' }
-                ],
-                allowCreate: true
-              }
-            }
-          : column
-      )
-    )
-  }, [doc, pushHistorySnapshot])
+  // ─── Debug values for assertions ────────────────────────────────────
 
-  const handleUndo = useCallback(() => {
-    undo()
-  }, [undo])
-
-  const handleRedo = useCallback(() => {
-    redo()
-  }, [redo])
-
-  const firstRow = rows[0]
-  const firstRowTitle = typeof firstRow?.title === 'string' ? firstRow.title : ''
-  const firstRowTags = Array.isArray(firstRow?.tags) ? firstRow.tags : []
-  const statusColumnType = columns.find((column) => column.id === 'status')?.type ?? 'missing'
+  const firstRowTitle = firstRow && titleField ? String(firstRow.cells[titleField.id] ?? '') : ''
+  const statusField = grid.fields.find((f) => f.name === 'Status')
+  const tagsField = grid.fields.find((f) => f.name === 'Tags')
+  const firstRowTagNames = (() => {
+    if (!firstRow || !tagsField) return '[]'
+    const ids = firstRow.cells[tagsField.id]
+    if (!Array.isArray(ids) || ids.length === 0) return '[]'
+    const names = ids.map((id) => tagsField.options?.find((o) => o.id === id)?.name ?? String(id))
+    return `[${names.join(', ')}]`
+  })()
 
   return (
     <div
-      ref={containerRef}
       data-testid="editor-root"
-      data-xnet-db-editable="true"
-      tabIndex={0}
-      onKeyDownCapture={handleRootKeyDown}
-      style={{ padding: '20px', fontFamily: 'system-ui' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}
     >
-      <h1 data-testid="title">Database E2E Test</h1>
+      <h1 data-testid="title" style={{ fontSize: 16, padding: '8px 12px' }}>
+        Database E2E Test
+      </h1>
 
-      <div data-testid="status" style={{ marginBottom: '10px', color: '#666' }}>
+      <div data-testid="status" style={{ padding: '0 12px 8px', color: '#666', fontSize: 12 }}>
         User {userNum} | Sync: <span data-testid="sync-status">{syncStatus}</span> | Columns:{' '}
-        <span data-testid="column-count">{columns.length}</span> | Rows:{' '}
-        <span data-testid="row-count">{rows.length}</span>
+        <span data-testid="column-count">{grid.fields.length}</span> | Rows:{' '}
+        <span data-testid="row-count">{grid.rows.length}</span> | First title:{' '}
+        <span data-testid="first-row-title">{firstRowTitle}</span> | First tags:{' '}
+        <span data-testid="first-row-tags">{firstRowTagNames}</span> | Status type:{' '}
+        <span data-testid="status-column-type">{statusField?.type ?? 'missing'}</span> | StatusRaw:{' '}
+        <span data-testid="first-row-status-raw">
+          {firstRow && statusField ? JSON.stringify(firstRow.cells[statusField.id] ?? null) : 'n/a'}
+        </span>{' '}
+        | Options:{' '}
+        <span data-testid="status-option-count">{statusField?.options?.length ?? 0}</span> | Undo:{' '}
+        <span data-testid="can-undo">{String(grid.canUndo)}</span>
       </div>
 
       {loading && <div data-testid="loading">Loading...</div>}
       {error && <div data-testid="error">Error: {error.message}</div>}
 
-      {!loading && !error && (
-        <>
-          {/* Toolbar */}
-          <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-            <button data-testid="add-column" onClick={handleAddColumn}>
-              Add Text Column
-            </button>
-            <button data-testid="add-select-column" onClick={handleAddSelectColumn}>
-              Add Status Column
-            </button>
-            <button data-testid="add-row" onClick={handleAddRow}>
-              Add Row
-            </button>
-            <button data-testid="seed-undo-fixture" onClick={handleSeedUndoFixture}>
-              Seed Undo Fixture
-            </button>
-            <button data-testid="edit-title-cell" onClick={handleEditTitleCell}>
-              Edit Title Cell
-            </button>
-            <button data-testid="edit-tags-cell" onClick={handleEditTagsCell}>
-              Edit Tags Cell
-            </button>
-            <button data-testid="delete-last-row" onClick={handleDeleteLastRow}>
-              Delete Last Row
-            </button>
-            <button data-testid="change-status-type" onClick={handleChangeStatusType}>
-              Change Status Type
-            </button>
-            <button data-testid="undo-action" onClick={handleUndo}>
-              Undo
-            </button>
-            <button data-testid="redo-action" onClick={handleRedo}>
-              Redo
-            </button>
-            <div style={{ marginLeft: '20px' }}>
-              <button
-                data-testid="view-table"
-                onClick={() => setViewMode('table')}
-                style={{ fontWeight: viewMode === 'table' ? 'bold' : 'normal' }}
-              >
-                Table
-              </button>
-              <button
-                data-testid="view-board"
-                onClick={() => setViewMode('board')}
-                style={{ fontWeight: viewMode === 'board' ? 'bold' : 'normal' }}
-              >
-                Board
-              </button>
-            </div>
-          </div>
+      <div style={{ display: 'flex', gap: 8, padding: '0 12px 8px', flexWrap: 'wrap' }}>
+        <button data-testid="add-column" onClick={handleAddTextField}>
+          Add Text Column
+        </button>
+        <button data-testid="add-select-column" onClick={handleAddSelectField}>
+          Add Status Column
+        </button>
+        <button data-testid="add-row" onClick={handleAddRow}>
+          Add Row
+        </button>
+        <button data-testid="seed-undo-fixture" onClick={handleSeedFixture}>
+          Seed Undo Fixture
+        </button>
+        <button data-testid="edit-title-cell" onClick={handleEditTitleCell}>
+          Edit Title Cell
+        </button>
+        <button data-testid="delete-last-row" onClick={handleDeleteLastRow}>
+          Delete Last Row
+        </button>
+        <button data-testid="undo-action" onClick={() => void grid.undo()}>
+          Undo
+        </button>
+        <button data-testid="redo-action" onClick={() => void grid.redo()}>
+          Redo
+        </button>
+      </div>
 
-          {/* View */}
-          <div data-testid="first-row-title">{firstRowTitle}</div>
-          <div data-testid="first-row-tags">{JSON.stringify(firstRowTags)}</div>
-          <div data-testid="status-column-type">{statusColumnType}</div>
-          {columns.length === 0 ? (
-            <div data-testid="empty-state">
-              No columns yet. Click "Add Text Column" or "Add Status Column" to get started.
-            </div>
-          ) : (
-            <div data-testid="view-container">
-              {viewMode === 'table' ? (
-                <table
-                  data-testid="table-view"
-                  style={{ borderCollapse: 'collapse', width: '100%' }}
-                >
-                  <thead>
-                    <tr>
-                      {columns.map((col) => (
-                        <th
-                          key={col.id}
-                          style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}
-                        >
-                          {col.name} ({col.type})
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id} data-testid={`row-${row.id}`}>
-                        {columns.map((col) => (
-                          <td key={col.id} style={{ border: '1px solid #ccc', padding: '8px' }}>
-                            <input
-                              type="text"
-                              value={String(row[col.id] || '')}
-                              onChange={(e) => handleUpdateCell(row.id, col.id, e.target.value)}
-                              style={{ width: '100%', border: 'none', padding: '4px' }}
-                              data-testid={`cell-${row.id}-${col.id}`}
-                            />
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div data-testid="board-view" style={{ display: 'flex', gap: '20px' }}>
-                  {/* Simple board view - just show columns */}
-                  {columns
-                    .filter((c) => c.type === 'select')
-                    .map((col) => {
-                      const options =
-                        (col.config?.options as Array<{ id: string; name: string }>) || []
-                      return (
-                        <div key={col.id} style={{ display: 'flex', gap: '10px' }}>
-                          {options.map((opt) => (
-                            <div
-                              key={opt.id}
-                              style={{
-                                minWidth: '200px',
-                                background: '#f3f4f6',
-                                padding: '10px',
-                                borderRadius: '8px'
-                              }}
-                            >
-                              <h3>{opt.name}</h3>
-                              <div>
-                                {rows
-                                  .filter((r) => r[col.id] === opt.id)
-                                  .map((r) => (
-                                    <div
-                                      key={r.id}
-                                      style={{
-                                        background: 'white',
-                                        padding: '8px',
-                                        marginTop: '8px',
-                                        borderRadius: '4px',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                      }}
-                                    >
-                                      Row {r.id.slice(-4)}
-                                    </div>
-                                  ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )
-                    })}
-                  {columns.filter((c) => c.type === 'select').length === 0 && (
-                    <div>Add a Status column to see the board view</div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </>
+      {grid.fields.length === 0 && grid.rows.length === 0 && !grid.loading && (
+        <div data-testid="empty-state" style={{ padding: 12, color: '#999' }}>
+          Empty database — add a column to get started
+        </div>
       )}
+
+      <GridToolbar
+        views={grid.views.map((v) => ({ id: v.id, name: v.name, type: v.type }))}
+        activeViewId={grid.activeView?.id}
+        fields={grid.fields.map((f) => ({
+          id: f.id,
+          name: f.name,
+          type: f.type,
+          config: f.config as Record<string, unknown>,
+          width: f.width,
+          options: f.options
+        }))}
+        sorts={grid.activeView?.sorts ?? []}
+        onToggleSort={(fieldId) => void grid.toggleSort(fieldId)}
+        filters={grid.activeView?.filters ?? null}
+        onChangeFilters={(filters) => void grid.setFilters(filters)}
+        search={search}
+        onSearchChange={setSearch}
+        rowCount={grid.rows.length}
+      />
+
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <GridSurface
+          fields={grid.visibleFields.map((f) => ({
+            id: f.id,
+            name: f.name,
+            type: f.type,
+            config: f.config as Record<string, unknown>,
+            width: f.width,
+            isTitle: f.isTitle,
+            options: f.options
+          }))}
+          rows={grid.rows.map((r) => ({ id: r.id, cells: r.cells }))}
+          sorts={grid.activeView?.sorts}
+          onUpdateCell={(rowId, fieldId, value) => void grid.updateCell(rowId, fieldId, value)}
+          onClearCells={(cells) => void grid.clearCells(cells)}
+          onAddRow={(afterRowId) => void grid.addRow(afterRowId)}
+          onDeleteRows={(rowIds) => void grid.deleteRows(rowIds)}
+          onMoveRow={(rowId, index) => void grid.moveRowToIndex(rowId, index)}
+          onMoveField={(fieldId, index) => void grid.moveFieldToIndex(fieldId, index)}
+          onResizeField={(fieldId, width) => void grid.resizeField(fieldId, width)}
+          onToggleSort={(fieldId) => void grid.toggleSort(fieldId)}
+          onCreateOption={grid.createOption}
+          onUndo={() => void grid.undo()}
+          onRedo={() => void grid.redo()}
+          presences={cellPresences}
+          cellCommentCounts={comments.cellCommentCounts}
+          onCommentCell={(rowId, fieldId) => {
+            void comments.commentOnCell(rowId, fieldId, 'e2e comment')
+          }}
+          onCellFocus={(rowId, fieldId) => {
+            awareness?.setLocalStateField('cell', { rowId, fieldId })
+          }}
+          onCellBlur={() => {
+            awareness?.setLocalStateField('cell', null)
+          }}
+        />
+      </div>
     </div>
   )
 }
@@ -569,18 +276,17 @@ function App() {
         authorDID,
         signingKey,
         hubUrl,
-        platform: 'web'
+        platform: 'web',
+        // Both users must share a node-sync room (it defaults to the
+        // author's own DID, which would isolate them)
+        hubOptions: { nodeSyncRoom: `e2e:${dbId}` }
       }}
     >
-      <DatabaseEditor />
+      <DatabaseHarness />
     </XNetProvider>
   )
 }
 
 // ─── Mount ────────────────────────────────────────────────────────────
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-)
+ReactDOM.createRoot(document.getElementById('root')!).render(<App />)

@@ -13,6 +13,7 @@ function NumberEditor({
   onChange,
   onBlur,
   autoFocus,
+  autoSelect = true,
   disabled,
   config
 }: PropertyEditorProps<number>) {
@@ -21,9 +22,14 @@ function NumberEditor({
   useEffect(() => {
     if (autoFocus && inputRef.current) {
       inputRef.current.focus()
-      inputRef.current.select()
+      if (autoSelect) {
+        inputRef.current.select()
+      } else {
+        const end = inputRef.current.value.length
+        inputRef.current.setSelectionRange(end, end)
+      }
     }
-  }, [autoFocus])
+  }, [autoFocus, autoSelect])
 
   const format = (config?.format as string) ?? 'number'
   const step = format === 'percent' ? 0.01 : 1

@@ -155,6 +155,12 @@ export interface PropertyEditorProps<T = unknown> {
   onCancel?: () => void
   onBlur?: () => void
   autoFocus?: boolean
+  /**
+   * Select the existing value on focus (default true — Enter/F2 edit).
+   * False for type-to-replace sessions, where the caret belongs at the
+   * end of the seeded draft.
+   */
+  autoSelect?: boolean
   disabled?: boolean
 }
 

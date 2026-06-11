@@ -194,8 +194,7 @@ export {
   type ColumnType,
   type ColumnConfig,
   type ViewConfig,
-  type ViewType,
-  type LegacyDatabaseMigrationStatus
+  type ViewType
 } from './hooks/useDatabaseDoc'
 
 /**
@@ -220,6 +219,32 @@ export {
   type UseDatabaseResult,
   type DatabaseRow
 } from './hooks/useDatabase'
+
+/**
+ * useGridDatabase - The V2 database hook (exploration 0159).
+ * Fields/views/options/rows as nodes via useQuery; view nodes are the
+ * single source of truth; scoped local-only undo.
+ *
+ * @example
+ * ```tsx
+ * const grid = useGridDatabase(databaseId, { viewId, search })
+ * <GridSurface fields={grid.visibleFields} rows={grid.rows} ... />
+ * ```
+ */
+/**
+ * useNodeStore - Direct access to the underlying NodeStore (advanced).
+ */
+export { useNodeStore } from './hooks/useNodeStore'
+
+export {
+  useGridDatabase,
+  type UseGridDatabaseOptions,
+  type UseGridDatabaseResult,
+  type GridFieldModel,
+  type GridOptionModel,
+  type GridViewModel,
+  type GridRowModel
+} from './hooks/useGridDatabase'
 
 /**
  * useDatabaseRow - Hook for single row operations with optimistic updates

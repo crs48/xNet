@@ -21,6 +21,7 @@
 export { text, type TextOptions } from './text'
 export { number, type NumberOptions } from './number'
 export { checkbox, type CheckboxOptions } from './checkbox'
+export { json, type JsonOptions } from './json'
 
 // Temporal types
 export { date, type DateOptions } from './date'

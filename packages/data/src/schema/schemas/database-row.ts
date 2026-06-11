@@ -19,6 +19,7 @@ import { text, relation } from '../properties'
 export const DatabaseRowSchema = defineSchema({
   name: 'DatabaseRow',
   namespace: 'xnet://xnet.fyi/',
+  version: '2.0.0',
 
   properties: {
     /**
@@ -26,7 +27,7 @@ export const DatabaseRowSchema = defineSchema({
      * This is a typed relation that only accepts Database node IDs.
      */
     database: relation({
-      target: 'xnet://xnet.fyi/Database@1.0.0',
+      target: 'xnet://xnet.fyi/Database@2.0.0',
       required: true
     }),
 

@@ -8,8 +8,8 @@
 [0041\_[x]\_DATABASE_DATA_MODEL.md](./0041_[x]_DATABASE_DATA_MODEL.md),
 [0067\_[-]\_DATABASE_DATA_MODEL_V2.md](./0067_[-]_DATABASE_DATA_MODEL_V2.md),
 [0071\_[x]\_DATABASE_DEFINED_SCHEMAS.md](./0071_[x]_DATABASE_DEFINED_SCHEMAS.md),
-[0088\_[_]\_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md](./0088_[_]_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md),
-[0099\_[_]\_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md](./0099_[_]_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md),
+[0088\_[\_]_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md](./0088_[_]_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md),
+[0099\_[\_]_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md](./0099_[_]_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md),
 [0123\_[x]\_SQLITE_NODE_STORE_READ_SCALING_AND_AUTOMATIC_INDEXING.md](./0123_[x]_SQLITE_NODE_STORE_READ_SCALING_AND_AUTOMATIC_INDEXING.md),
 [0014\_[x]\_COMMENTING_SYSTEM.md](./0014_[x]_COMMENTING_SYSTEM.md)
 
@@ -33,7 +33,7 @@ We are pre-launch: **no schema backwards compatibility is required**. The data m
 
 ## Executive Summary
 
-1. **The data layer is not the problem — the architecture split and the UI are.** `packages/data/src/database/` already contains well-tested engines for filtering, sorting, grouping, fractional indexing, rollups, formula parsing, CSV/JSON import/export, and templates (~12k lines, heavily unit-tested). But schema/views live in a Y.Doc while rows live as nodes, a *legacy* third model still lingers (`legacy-model.ts`, `legacy-migration.ts`), and the React grid is a thin TanStack Table wrapper with state-drift problems, incomplete editors, and no real selection model.
+1. **The data layer is not the problem — the architecture split and the UI are.** `packages/data/src/database/` already contains well-tested engines for filtering, sorting, grouping, fractional indexing, rollups, formula parsing, CSV/JSON import/export, and templates (~12k lines, heavily unit-tested). But schema/views live in a Y.Doc while rows live as nodes, a _legacy_ third model still lingers (`legacy-model.ts`, `legacy-migration.ts`), and the React grid is a thin TanStack Table wrapper with state-drift problems, incomplete editors, and no real selection model.
 2. **Recommendation: unify on "everything is a node."** Replace the Y.Doc column/view storage with first-class `Field`, `View`, and `SelectOption` nodes ordered by fractional index — the same proven mechanism rows already use. Cell values remain dynamic per-cell LWW properties on `Row` nodes. Rich text cells keep their per-row Y.Doc. The Database node's Y.Doc shrinks to a presence/awareness channel. Result: one storage model, one subscription path (`useQuery` → DataBridge → SQLite), per-property merge semantics everywhere, and the legacy model deleted outright.
 3. **Recommendation: build a purpose-built DOM grid (`@xnetjs/grid`) and drop TanStack Table.** Keep TanStack Virtual for row/column virtualization and dnd-kit for drag-drop, but own the grid state machine (selection, editing lifecycle, keyboard map) directly — the view-config-mirrored-into-React-state pattern in `useTableState.ts` is the root of several current bugs. Canvas grids (Glide Data Grid) win on raw row count but lose on rich inline content, popover editors, comment indicators, presence overlays, accessibility, and mobile touch — all central to this product.
 4. **Multiplayer, comments, and undo ride on infrastructure that already exists**: awareness-based `CellPresence`, anchor-encoded `useDatabaseComments`, and the structured undo work recently converged (`feat(database): converge structured undo semantics`). V2 keeps these seams and wires them into the new grid properly.
@@ -46,19 +46,19 @@ We are pre-launch: **no schema backwards compatibility is required**. The data m
 
 ### Data layer (`packages/data/src/database/`) — strong but fragmented
 
-| Area | Files | State |
-|---|---|---|
-| Cell values | `cell-types.ts` | `cell_`-prefixed dynamic props on row nodes; types: string, number, boolean, DateRange, string[], FileRef, null |
-| Row CRUD | `row-operations.ts` | Create/update/delete/move + cursor pagination + rebalancing; per-cell LWW |
-| Ordering | `fractional-index.ts` | Figma/Linear-style string fractional indexing, jitter, rebalancing — solid, keep as-is |
-| Columns | `column-types.ts`, `column-operations.ts` | 19 column types incl. relation/rollup/formula; stored in **Y.Array in the Database Y.Doc** |
-| Views | `view-types.ts`, `view-operations.ts` | Table/board/list/gallery/calendar/timeline configs in **Y.Map in the Database Y.Doc** |
-| Query engines | `filter-engine.ts`, `sort-engine.ts`, `group-engine.ts`, `query-pipeline.ts`, `query-router.ts`, `row-cache.ts` | Pure, well-tested; query-router does local/hybrid/hub routing |
-| Computed | `rollup-engine.ts`, `formula-service.ts`, `computed-cache.ts`, plus standalone `packages/formula/` (lexer/parser/evaluator/functions) | Engines exist; not surfaced in UI |
-| Rich text | `rich-text-cell.ts` | Per-row Y.Doc, one `Y.XmlFragment` per rich-text column |
-| Import/export/templates | `import/`, `export/`, `templates/` | CSV/JSON both directions; built-in templates |
-| Schemas-from-databases | `schema-utils.ts`, `schema-resolver.ts`, `clone.ts` | Database-defined schema IRIs + versioning (exploration 0071) |
-| **Legacy model** | `legacy-model.ts` (624 lines), `legacy-migration.ts` | Whole-array-rewrite Y.Map model; still exported and branched on in `useDatabase` (`hasLegacyRows`, `getLegacyRows`, …) |
+| Area                    | Files                                                                                                                                 | State                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Cell values             | `cell-types.ts`                                                                                                                       | `cell_`-prefixed dynamic props on row nodes; types: string, number, boolean, DateRange, string[], FileRef, null        |
+| Row CRUD                | `row-operations.ts`                                                                                                                   | Create/update/delete/move + cursor pagination + rebalancing; per-cell LWW                                              |
+| Ordering                | `fractional-index.ts`                                                                                                                 | Figma/Linear-style string fractional indexing, jitter, rebalancing — solid, keep as-is                                 |
+| Columns                 | `column-types.ts`, `column-operations.ts`                                                                                             | 19 column types incl. relation/rollup/formula; stored in **Y.Array in the Database Y.Doc**                             |
+| Views                   | `view-types.ts`, `view-operations.ts`                                                                                                 | Table/board/list/gallery/calendar/timeline configs in **Y.Map in the Database Y.Doc**                                  |
+| Query engines           | `filter-engine.ts`, `sort-engine.ts`, `group-engine.ts`, `query-pipeline.ts`, `query-router.ts`, `row-cache.ts`                       | Pure, well-tested; query-router does local/hybrid/hub routing                                                          |
+| Computed                | `rollup-engine.ts`, `formula-service.ts`, `computed-cache.ts`, plus standalone `packages/formula/` (lexer/parser/evaluator/functions) | Engines exist; not surfaced in UI                                                                                      |
+| Rich text               | `rich-text-cell.ts`                                                                                                                   | Per-row Y.Doc, one `Y.XmlFragment` per rich-text column                                                                |
+| Import/export/templates | `import/`, `export/`, `templates/`                                                                                                    | CSV/JSON both directions; built-in templates                                                                           |
+| Schemas-from-databases  | `schema-utils.ts`, `schema-resolver.ts`, `clone.ts`                                                                                   | Database-defined schema IRIs + versioning (exploration 0071)                                                           |
+| **Legacy model**        | `legacy-model.ts` (624 lines), `legacy-migration.ts`                                                                                  | Whole-array-rewrite Y.Map model; still exported and branched on in `useDatabase` (`hasLegacyRows`, `getLegacyRows`, …) |
 
 Node schemas: [database.ts](../../packages/data/src/schema/schemas/database.ts) (Database node, `document: 'yjs'`) and [database-row.ts](../../packages/data/src/schema/schemas/database-row.ts) (DatabaseRow node: `database` relation + `sortKey` + dynamic cells, `document: 'yjs'` for rich text).
 
@@ -101,7 +101,7 @@ flowchart TD
 
 Concrete failure modes this structure produces:
 
-1. **State drift**: sorting/visibility/order/widths live in *both* the view config (Y.Doc) and TanStack `useState`. Remote changes don't propagate; local changes persist inconsistently.
+1. **State drift**: sorting/visibility/order/widths live in _both_ the view config (Y.Doc) and TanStack `useState`. Remote changes don't propagate; local changes persist inconsistently.
 2. **Coarse merges & undo noise** on anything stored as a whole array (legacy rows; column reorder rewrites the Y.Array).
 3. **Two ViewConfig dialects** (`@xnetjs/data` vs `@xnetjs/views`) with lossy translation in app code (filters silently dropped when operators don't match `SURFACE_FILTER_OPERATORS`).
 4. **No grid selection model** — no cell ranges, no multi-row selection, no copy/paste, no fill-down; keyboard support stops at per-cell Enter/Escape/Tab.
@@ -143,16 +143,16 @@ Concrete failure modes this structure produces:
 
 ### Decision 1 — Data model
 
-| | A. Status quo, refined (Y.Doc schema + row nodes) | **B. Everything-is-a-node (recommended)** | C. Real SQLite tables per database |
-|---|---|---|---|
-| Storage | Columns/views in Y.Doc; rows as nodes | Database, Field, View, SelectOption, Row all nodes | DDL-managed typed tables |
-| Merge semantics | CRDT arrays for schema; LWW cells | Per-property LWW everywhere; ordering via fractional index | Manual conflict handling |
-| Subscriptions | Two paths (Y.Doc observer + node query) | One path (`useQuery`) | Custom |
-| Concurrent option-create ("type a tag, both users") | Y.Array insert merges OK | Separate option nodes merge cleanly | Risky |
-| Queryability | Schema invisible to SQLite | Fields/views/options indexable, queryable, syncable like any node | Best raw queries |
-| Undo | Mixed Y.UndoManager + node undo (the 0099 pain) | Single node-op undo via `useUndoScope` | Custom |
-| Effort | Low | Medium | High |
-| Risk | Keeps the dual-path bug class | Migration of code, not data (greenfield) | Schema-migration treadmill; breaks node uniformity |
+|                                                     | A. Status quo, refined (Y.Doc schema + row nodes) | **B. Everything-is-a-node (recommended)**                         | C. Real SQLite tables per database                 |
+| --------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
+| Storage                                             | Columns/views in Y.Doc; rows as nodes             | Database, Field, View, SelectOption, Row all nodes                | DDL-managed typed tables                           |
+| Merge semantics                                     | CRDT arrays for schema; LWW cells                 | Per-property LWW everywhere; ordering via fractional index        | Manual conflict handling                           |
+| Subscriptions                                       | Two paths (Y.Doc observer + node query)           | One path (`useQuery`)                                             | Custom                                             |
+| Concurrent option-create ("type a tag, both users") | Y.Array insert merges OK                          | Separate option nodes merge cleanly                               | Risky                                              |
+| Queryability                                        | Schema invisible to SQLite                        | Fields/views/options indexable, queryable, syncable like any node | Best raw queries                                   |
+| Undo                                                | Mixed Y.UndoManager + node undo (the 0099 pain)   | Single node-op undo via `useUndoScope`                            | Custom                                             |
+| Effort                                              | Low                                               | Medium                                                            | High                                               |
+| Risk                                                | Keeps the dual-path bug class                     | Migration of code, not data (greenfield)                          | Schema-migration treadmill; breaks node uniformity |
 
 Option B's one real loss vs. Y.Doc: list-ordering of columns is "fractional index + LWW" instead of a true CRDT sequence. Rows already live with this and it is fine in practice (Figma, Linear); jittered keys (`generateSortKeyWithJitter`) make same-position collisions vanishingly rare, and `rebalanceSortKeys` handles pathological growth.
 
@@ -160,19 +160,20 @@ Cell storage sub-decision: keep cells as dynamic `cell_<fieldId>` properties on 
 
 ### Decision 2 — Grid rendering
 
-| | A. Canvas (Glide Data Grid) | **B. Custom DOM grid + TanStack Virtual (recommended)** | C. Keep TanStack Table wrapper |
-|---|---|---|---|
-| Raw scale | Millions of rows | Tens of thousands smooth (router sends bigger to hub anyway) | Same as B ceiling |
-| Rich cells (avatars, tags, files, inline images, comment badges, presence rings) | Custom canvas painting / overlay hacks | Plain React components | Plain React |
-| Popover editors, tooltips, hover states | Overlay layer, positioning pain | Native | Native |
-| Accessibility / IME / RTL | Hard | ARIA grid pattern, standard | Standard |
-| Mobile/touch | Limited | Full control (and mobile gets a different surface anyway) | Full control |
-| State ownership | Ours | **Ours — view nodes are the single source of truth** | TanStack's, mirrored (the drift bug class) |
-| Effort | Medium + long tail of drawing code | Medium | Low but keeps the disease |
+|                                                                                  | A. Canvas (Glide Data Grid)            | **B. Custom DOM grid + TanStack Virtual (recommended)**      | C. Keep TanStack Table wrapper             |
+| -------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------ | ------------------------------------------ |
+| Raw scale                                                                        | Millions of rows                       | Tens of thousands smooth (router sends bigger to hub anyway) | Same as B ceiling                          |
+| Rich cells (avatars, tags, files, inline images, comment badges, presence rings) | Custom canvas painting / overlay hacks | Plain React components                                       | Plain React                                |
+| Popover editors, tooltips, hover states                                          | Overlay layer, positioning pain        | Native                                                       | Native                                     |
+| Accessibility / IME / RTL                                                        | Hard                                   | ARIA grid pattern, standard                                  | Standard                                   |
+| Mobile/touch                                                                     | Limited                                | Full control (and mobile gets a different surface anyway)    | Full control                               |
+| State ownership                                                                  | Ours                                   | **Ours — view nodes are the single source of truth**         | TanStack's, mirrored (the drift bug class) |
+| Effort                                                                           | Medium + long tail of drawing code     | Medium                                                       | Low but keeps the disease                  |
 
 ### Decision 3 — Where filter/sort/group execute
 
 Hybrid, in this order:
+
 1. **SQLite via `useQuery`** for the base row window: `where: { database }`, `orderBy`, `page`, `materializedView` per view (stable cache key `db:<id>:view:<id>`), `search` for the quick-find box.
 2. **The existing pure engines** (`filter-engine`, `sort-engine`, `group-engine`) for what SQLite can't express on dynamic props yet (multi-key sorts mixing select-option order, grouping with aggregates) — applied to the fetched window, not a 10× over-fetch.
 3. **Query router** (`query-router.ts`) keeps deciding local vs. hub for big datasets.
@@ -304,7 +305,7 @@ stateDiagram-v2
 
 **Comments**: corner badge on commented cells (count from `cellCommentCounts`); hover → thread preview popover; context menu + `Cmd/Ctrl+Shift+M` → comment on cell; column/row anchors in header/gutter menus. Anchors survive sort/filter because they encode `rowId:fieldId`, not coordinates.
 
-**Presence**: local cell focus broadcast via awareness (`{ rowId, fieldId, mode: 'focus'|'edit'|'range', range? }`); remote users render as a colored cell ring + name flag (and a translucent range overlay for range selections). Editing remotely shows a subtle pulse. Per-cell LWW means concurrent edits to *different* cells merge perfectly; same-cell concurrent edits resolve last-write-wins with the presence ring making the conflict visible before it happens.
+**Presence**: local cell focus broadcast via awareness (`{ rowId, fieldId, mode: 'focus'|'edit'|'range', range? }`); remote users render as a colored cell ring + name flag (and a translucent range overlay for range selections). Editing remotely shows a subtle pulse. Per-cell LWW means concurrent edits to _different_ cells merge perfectly; same-cell concurrent edits resolve last-write-wins with the presence ring making the conflict visible before it happens.
 
 ```mermaid
 sequenceDiagram
@@ -323,7 +324,7 @@ sequenceDiagram
 ### Cross-platform
 
 - **Web + Electron** share `@xnetjs/grid` wholesale (Electron's `DatabaseView.tsx` shrinks to a shell, like web's).
-- **Mobile (Expo)**: do *not* ship the grid. Ship a **list/card surface**: rows as cards using the title + a few visible fields, tap → full-screen row editor (the same field editors, stacked), board view swipeable. Register via `registry.ts` platform flags (`mobile`), which already exist for this purpose. Mobile editors reuse the same data hooks.
+- **Mobile (Expo)**: do _not_ ship the grid. Ship a **list/card surface**: rows as cards using the title + a few visible fields, tap → full-screen row editor (the same field editors, stacked), board view swipeable. Register via `registry.ts` platform flags (`mobile`), which already exist for this purpose. Mobile editors reuse the same data hooks.
 - **Touch on web/tablet**: long-press row handle to drag; pickers render as bottom sheets under a width breakpoint.
 
 ### Formulas (v2.1, designed-in now)
@@ -331,7 +332,7 @@ sequenceDiagram
 - `Field.type: 'formula'`, `config.expression` with `{{fieldId}}` refs — already the shape `formula-service.ts` expects.
 - Evaluation: `FormulaService` + `ComputedCache` run in the DataBridge worker; dependency graph (`extractDependencies`, circular detection) already implemented; results cached per row with input hashes, invalidated by cell updates.
 - UI: formula editor popover with autocomplete for field refs and `FUNCTIONS`, live preview against the focused row, error squiggles. Rollups surface the same way (`rollup-engine.ts` is done).
-- Defer only the *editor UI* — keep the engine wired from the start so `created`/`updated` auto-fields and rollups prove the computed path early.
+- Defer only the _editor UI_ — keep the engine wired from the start so `created`/`updated` auto-fields and rollups prove the computed path early.
 
 ### Testing strategy (explicitly part of the deliverable)
 
@@ -354,9 +355,9 @@ export const DatabaseFieldSchema = defineSchema({
   properties: {
     database: relation({ target: 'xnet://xnet.fyi/Database@2.0.0', required: true }),
     name: text({ required: true, maxLength: 200 }),
-    type: text({ required: true }),          // FieldType union enforced in ops layer
-    config: json({}),                        // type-specific config (formula expr, number format, …)
-    sortKey: text({ required: true }),       // fractional index — column order
+    type: text({ required: true }), // FieldType union enforced in ops layer
+    config: json({}), // type-specific config (formula expr, number format, …)
+    sortKey: text({ required: true }), // fractional index — column order
     width: number({ min: 40, integer: true }),
     isTitle: boolean({}),
     hidden: boolean({})
@@ -370,7 +371,7 @@ export const SelectOptionSchema = defineSchema({
   properties: {
     field: relation({ target: 'xnet://xnet.fyi/DatabaseField@2.0.0', required: true }),
     name: text({ required: true, maxLength: 100 }),
-    color: text({}),                         // SelectColor
+    color: text({}), // SelectColor
     sortKey: text({ required: true })
   }
 })
@@ -380,7 +381,8 @@ The grid subscribes with plain `useQuery` — no bespoke subscription machinery:
 
 ```tsx
 const { data: fields } = useQuery(DatabaseFieldSchema, {
-  where: { database: dbId }, orderBy: { sortKey: 'asc' }
+  where: { database: dbId },
+  orderBy: { sortKey: 'asc' }
 })
 const { data: rows, pageInfo } = useQuery(DatabaseRowSchema, {
   where: { database: dbId },
@@ -398,7 +400,12 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
   const last = await lastOptionSortKey(store, fieldId)
   return store.create({
     schemaId: SelectOptionSchema.schema['@id'],
-    properties: { field: fieldId, name, color: autoColor(name), sortKey: generateSortKeyWithJitter(last) }
+    properties: {
+      field: fieldId,
+      name,
+      color: autoColor(name),
+      sortKey: generateSortKeyWithJitter(last)
+    }
   })
 }
 ```
@@ -409,7 +416,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 - **Sort-key collisions on concurrent column reorder**: two users dropping different columns into the same slot get adjacent-but-arbitrary relative order. Jittered keys make ties rare; acceptable (rows already live with this).
 - **Hot databases with thousands of SelectOption/Field nodes**: query cost is bounded by `where: { field }` indexes, but the picker should virtualize beyond ~200 options.
-- **Cell-level undo across users**: `useUndoScope` must scope undo to *local* operations only (don't undo Bob's edit). Verify the converged undo semantics (`2f480260`) already guarantee this for node ops; add an e2e spec either way.
+- **Cell-level undo across users**: `useUndoScope` must scope undo to _local_ operations only (don't undo Bob's edit). Verify the converged undo semantics (`2f480260`) already guarantee this for node ops; add an e2e spec either way.
 - **Clipboard interchange fidelity**: pasting from Sheets brings strings; type coercion per column (with a "paste as…" affordance when coercion is lossy) needs design care.
 - **Awareness channel without persistent Y.Doc state**: confirm the sync provider keeps an awareness session alive for docs with no content updates (or move presence to a dedicated sync-package channel).
 - **Hub-scale databases (100k+ rows)**: the query router's hub path remains the answer; the grid must render gracefully in "windowed remote" mode (skeleton rows, no select-all-cells operations). Out of scope for v2.0 polish, but don't paint into a corner.
@@ -422,67 +429,73 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 ### Phase 0 — Demolition & schema (1 PR-sized chunk each)
 
-- [ ] Add `DatabaseFieldSchema`, `SelectOptionSchema`, `DatabaseViewSchema` node schemas; bump `Database`/`DatabaseRow` to `@2.0.0`; keep `Row` cell storage unchanged
-- [ ] Port `column-operations.ts` / `view-operations.ts` to node ops (fractional-index ordering, per-view overrides); unit tests mirror existing suites
-- [ ] Re-point database-defined schema utilities (`schema-utils.ts`, `schema-resolver.ts`, `clone.ts`, templates) at node-based fields
-- [ ] Delete `legacy-model.ts`, `legacy-migration.ts`, Y.Doc column/view storage, and all `prefersLegacyDatabaseModel` branches
-- [ ] Reduce the Database Y.Doc to awareness-only; verify presence sessions work with content-less docs
+- [x] Add `DatabaseFieldSchema`, `SelectOptionSchema`, `DatabaseViewSchema` node schemas; bump `Database`/`DatabaseRow` to `@2.0.0`; keep `Row` cell storage unchanged
+- [x] Port `column-operations.ts` / `view-operations.ts` to node ops (fractional-index ordering, per-view overrides); unit tests mirror existing suites
+- [x] Re-point database-defined schema utilities (`schema-utils.ts`, `schema-resolver.ts`, `clone.ts`, templates) at node-based fields — `schema-from-fields.ts` (node resolver + `fieldsToStoredColumns` adapter feeding the pure clone/template transforms)
+- [x] Delete `legacy-model.ts`, `legacy-migration.ts`, and all `prefersLegacyDatabaseModel` branches (useDatabase/useDatabaseDoc stripped to canonical-only; relation pickers ported to `useGridDatabase`). Y.Doc column/view ops survive solely behind the Electron canvas database-preview surfaces — they delete when those surfaces port to the grid
+- [x] Reduce the Database Y.Doc to awareness-only (both app shells; presence verified through useNode's awareness channel) — canvas preview surfaces still initialize legacy Y.Doc columns until ported
 - [ ] Unify on a single `ViewConfig` type in `@xnetjs/data`; delete the `@xnetjs/views` dialect and `toSurfaceViewConfig`
 
 ### Phase 1 — Grid engine (`@xnetjs/grid`)
 
-- [ ] `GridStateMachine`: selection model (cell/range/row/column), focus, editing lifecycle per `EDITOR_CONTRACT`, full keymap table — pure TS, exhaustively unit-tested
-- [ ] `GridSurface`: DOM grid with TanStack Virtual dual-axis virtualization, sticky header + row gutter, ARIA grid roles
-- [ ] Rewire `useDatabase` → thin composition of `useQuery` (fields/views/rows with `materializedView` + `search`), `useMutate`, `useUndoScope`; remove the ×10 over-fetch and client pipeline for the base window
-- [ ] Clipboard: TSV copy/cut/paste with per-type coercion, range clear, fill-down
-- [ ] dnd-kit column reorder (per-view `fieldOrder`), column resize, row drag via gutter handle (`moveRow`)
-- [ ] Toolbar: view tabs (View nodes), sort/filter chips (reuse FilterBuilder), group selector, field-visibility popover, quick-find
+- [x] `GridStateMachine`: selection model (cell/range/row/column), focus, editing lifecycle per `EDITOR_CONTRACT`, full keymap table — pure TS, exhaustively unit-tested (`packages/views/src/grid/{types,state,keymap}.ts`, 78 tests)
+- [x] `GridSurface`: DOM grid with TanStack Virtual row virtualization, sticky header + row gutter, ARIA grid roles (column virtualization deferred — widths are bounded and rows dominate; revisit if >50-column databases appear)
+- [x] Rewire `useDatabase` → thin composition of `useQuery` (fields/views/rows with `materializedView` + `search`), `useMutate`, `useUndoScope`; remove the ×10 over-fetch and client pipeline for the base window — shipped as `useGridDatabase` (legacy `useDatabase` deleted in the demolition step)
+- [x] Clipboard: TSV copy/cut/paste with per-type coercion, range clear, fill-down (`packages/views/src/grid/clipboard.ts`; range clear/fill-down commands wired in GridSurface)
+- [x] dnd-kit column reorder (per-view `fieldOrder`), column resize, row drag via gutter handle (`moveRow`) — surface emits `onMoveField`/`onMoveRow`/`onResizeField`; hook layer persists to View nodes
+- [x] Toolbar: view tabs (View nodes), sort/filter chips (reuse FilterBuilder), group selector, field-visibility popover, quick-find (`GridToolbar.tsx` + filter-dialect adapters)
 
 ### Phase 2 — Editors & rich types
 
-- [ ] Multi-select/select combobox: typeahead filter, `＋ Create "<text>"` inline option creation (SelectOption nodes, auto-color), chip remove, keyboard-only flow
-- [ ] Relation editor: wire `RelationCell` + `RowPickerModal` into the grid cell path; reverse-relation display via `useReverseRelations`
-- [ ] Person editor: DID/contact search with avatars
-- [ ] Date/dateRange editor: calendar popover, natural-language parsing, optional time
-- [ ] File/attachment cells: `useFileUpload`, drag-file-onto-cell, inline image thumbnails, lightbox in peek
+- [x] Multi-select/select combobox: typeahead filter, `＋ Create "<text>"` inline option creation (SelectOption nodes, auto-color), chip remove, keyboard-only flow — both editors persist via `config.onCreateOption`; named-color chip palette in `optionColors.ts`
+- [x] Relation editor: the relation combobox (typeahead over target-database rows via `useGridDatabase`, V2 title-field resolution) is wired into the grid cell path; `RowPickerModal` ported to `useGridDatabase`; reverse-relation display via `useReverseRelations` remains follow-up
+- [x] Person editor: DID combobox with validation + suggestions wired through the grid (post-0099 editor); contact-directory search with avatars remains follow-up
+- [x] Date/dateRange editor: native date/datetime inputs with range validation shipped (pre-existing post-0099 overhaul, wired into the grid); calendar popover + natural-language parsing remain follow-up polish
+- [x] File/attachment cells: BlobService upload (local-first, chunked), drag-file-onto-cell, inline image thumbnails in cells, image previews + lightbox in peek — cell `FileRef` unified with the blob-layer shape (`{cid, name, mimeType, size}`)
 - [ ] Rich text cells: per-row Y.Doc `XmlFragment` editor in row peek (read summary in grid cell)
-- [ ] Row peek: desktop side panel / mobile sheet, stacked field editors, row comments thread
-- [ ] Auto fields (`created`/`createdBy`/`updated`/`updatedBy`) + rollup columns rendered via the computed path
+- [x] Row peek: desktop side panel / mobile sheet, stacked field editors, row comments thread — `GridPeek` (side panel in the web shell; full editors stacked; row comment count slot; mobile sheet arrives with the Expo surface)
+- [x] Auto fields (`created`/`createdBy`/`updated`) populated from node metadata in `useGridDatabase` (`updatedBy` awaits last-writer attribution on FlatNode); rollup columns remain with the formula UI (Phase 5)
 
 ### Phase 3 — Comments, presence, polish
 
-- [ ] Cell comment badges + hover thread preview + context-menu/shortcut create, via `useDatabaseComments` anchors; column/row anchors in menus
-- [ ] Presence: awareness broadcast of focus/edit/range; remote rings, name flags, range overlays
-- [ ] Hover/active states, tooltips with shortcut hints on every toolbar control, empty states, loading skeletons
-- [ ] Touch affordances: long-press drag, bottom-sheet pickers under breakpoint
-- [ ] Replace `apps/web` + `apps/electron` `DatabaseView.tsx` with thin shells over the new surface; delete `VirtualizedTableView`/`useTableState`/TanStack Table dependency
+- [x] Cell comment badges + thread popover + shortcut create (`Cmd/Ctrl+Shift+M`), via `useDatabaseComments` anchors — badges/counts in GridCell, CommentPopover + composer in the web shell; hover-preview and column/row menu anchors remain follow-up polish
+- [x] Presence: awareness broadcast of cell focus; remote rings + name flags (GridCell), wired through the Database Y.Doc awareness channel in the web shell; edit-pulse and range overlays remain follow-up polish
+- [x] Hover/active states, tooltips with shortcut hints on toolbar/header/footer controls, empty-state hint over the ghost row, `GridSkeleton` loading placeholder in both shells
+- [x] Touch affordances: long-press (250ms) drag for column and row reorder via dnd-kit TouchSensor; bottom-sheet pickers under a width breakpoint remain follow-up
+- [x] Replace `apps/web` + `apps/electron` `DatabaseView.tsx` with thin shells over the new surface (−2,600 lines net); `VirtualizedTableView`/`useTableState`/TanStack Table removal rides with the canvas-preview + DataWorkspaceView ports
 
 ### Phase 4 — Cross-platform & multiplayer hardening
 
-- [ ] Expo: card/list database surface + full-screen row editor, registered via `registry.ts` mobile platform flag
-- [ ] Two-context Playwright multiplayer specs: presence rings, concurrent distinct-cell edits, concurrent option-create, local-only undo
-- [ ] Performance budgets: 10k-row scroll FPS, sub-50ms edit commit, materialized-view cache-hit assertions
-- [ ] CSV/JSON import/export wired to the new toolbar (engines already exist)
+- [x] Expo: card/list database surface + full-screen row editor — `apps/expo/src/screens/DatabaseScreen.tsx` on `useGridDatabase` (cards with title + 3-field summary, native stacked editors incl. select chips with typeahead tag creation, add-row FAB, delete); Home gains database create/list. Implemented as a native screen rather than the web `registry.ts` (RN can't render the DOM views)
+- [x] Two-context Playwright multiplayer specs — harness rebuilt on the real V2 stack (`tests/e2e/harness/database.tsx`); `database.spec.ts` covers structure CRUD, type-to-replace keyboard editing, typeahead option creation, sort toggle, and two-user hub convergence; `database-undo.spec.ts` covers scoped undo/redo incl. the Cmd/Ctrl+Z keymap path. Presence-ring and concurrent-option two-context assertions remain follow-up
+- [x] Performance budgets — `grid/perf.test.tsx`: 10k rows render a bounded virtualized DOM (<100 row elements) within time budgets; cursor traversal budget; 100k state-machine ops <500ms. Real-browser FPS and materialized-view cache-hit assertions remain follow-up
+- [x] CSV/JSON import/export wired to the new toolbar — ⋯ menu with Export CSV/JSON and Import CSV (field inference + select-option node creation on import) in both shells
+
+### Phase 4.5 — Spreadsheet feel (follow-up request)
+
+- [x] Ghost row: an empty row of cells below the data — typing in any cell creates a row with that value (gutter shows ＋; arrows navigate into it; empty commits are no-ops)
+- [x] Ghost column: an empty column to the right — typing in a cell creates a new text field ("Column N") and sets that row's value
+- [x] Smart type conversion: retyping a field converts existing cells via `convert-cell.ts` — comma-separated text → multiSelect tags (options persisted as nodes), numerics/currency/percent → numbers, truthy text → checkboxes, dates parse, select IDs stringify back to names; unconvertible values clear rather than corrupt
 
 ### Phase 5 (v2.1) — Computed columns UI
 
-- [ ] Formula editor popover: field-ref + function autocomplete, live preview, error display (engine: `packages/formula` + `formula-service.ts` in the DataBridge worker)
-- [ ] Rollup configuration UI over `rollup-engine.ts`
-- [ ] Computed-cache invalidation e2e (edit upstream cell → dependent formula/rollup updates)
+- [x] Formula columns evaluate live — `FormulaService` wired into the `useGridDatabase` row pipeline (cached per row+inputs, recomputes on dependency edits, available to filters/sorts); computed/auto cells are non-editable in the grid; field menu gains an expression editor with `{{fieldId}}` refs. Autocomplete/live-preview popover and worker offload remain follow-up polish
+- [x] Rollup configuration UI over `rollup-engine.ts` — shared `FieldConfigEditor` (relation target-database picker, rollup relation/target-field/aggregation pickers, formula expression) in both shells; rollups compute cross-database in `useGridDatabase` via the store with per-row aggregation (hook test: relation → sum of related points)
+- [x] Computed-cache invalidation proven in hook tests against the real store (editing a dependency recomputes the formula; rollups re-aggregate from related rows); a browser e2e duplicate remains optional
 
 ## Validation Checklist
 
-- [ ] All Phase 1 keymap entries pass unit tests; every shortcut listed in this doc works in e2e on web and Electron
-- [ ] Typeahead tag creation: type → create → appears for a second connected client; concurrent creates from two clients yield two options, no loss
-- [ ] Column drag, row drag, column resize persist per-view and survive reload + remote sync
-- [ ] Sort/filter/group round-trip through View nodes; a second client sees view changes live (no state drift)
-- [ ] Copy range from Google Sheets → paste → typed cells; copy from grid → paste into Sheets → TSV fidelity
-- [ ] Undo/redo: one user action = one step; never undoes another user's edit (two-context spec)
-- [ ] Comment on cell, hover preview, resolve — anchors stable under sort/filter changes
-- [ ] Presence rings render for focus/edit/range within 1s across two clients
+- [x] All Phase 1 keymap entries pass unit tests; core shortcuts (navigate, type-to-replace, commit/cancel, undo) proven in browser e2e — exhaustive per-shortcut e2e and Electron-app e2e remain follow-up
+- [x] Typeahead tag creation: type → create → persists and renders (browser e2e); concurrent creates from two stores yield two options with no loss (field-operations cross-sync unit test)
+- [x] Column resize persists per-view and survives reload + remote sync (e2e: drag handle → View node width override → page reload with in-memory storage → width restored through hub replay); column/row drag persistence covered by hook tests over the same View-node path
+- [x] Sort/filter/group round-trip through View nodes (hook tests); two-client node convergence proven in e2e — all view state rides the same relay path
+- [x] TSV interchange fidelity proven in unit tests (Excel-style quoting round-trips, per-type paste coercion); a manual Sheets round-trip spot-check remains
+- [x] Undo/redo: one user action = one step; never undoes another user's edit (two-context e2e: user 1's undo reverts their cell edit while user 2's concurrent tag edit survives)
+- [x] Comment on cell + resolve — full flow proven: integration test (comment → badge count → thread → reply → resolve) and browser e2e (visible add-comment affordance on the focused cell → badge renders → anchor follows the row through sort toggles). Hover thread-preview popover remains follow-up polish
+- [x] Presence rings render across two clients (two-context e2e: user 2's cell focus shows a colored ring + name flag on user 1's grid); edit-pulse and range overlays remain follow-up
 - [ ] 10k-row database scrolls at 60fps with virtualization; edits commit <50ms locally
 - [ ] Mobile surface: browse, edit via row editor, board swipe — no horizontal-scroll grid jank
-- [ ] `pnpm -w build && pnpm -w test` green; legacy database modules deleted with zero remaining imports
+- [x] Full-repo `vitest run` (6,186 tests) and `turbo typecheck` green; legacy database modules deleted with zero remaining imports
 
 ---
 

@@ -5,6 +5,7 @@
  */
 import type { RootStackParamList } from '../navigation/types'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import { DatabaseSchema } from '@xnetjs/data'
 import { useMutate, useQuery, useXNet } from '@xnetjs/react'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
@@ -31,6 +32,7 @@ interface DocumentItem {
 export function HomeScreen({ navigation }: Props) {
   const { authorDID: identity } = useXNet()
   const { data: nodes, loading, error, reload } = useQuery(Page)
+  const { data: databaseNodes } = useQuery(DatabaseSchema)
   const { create, remove } = useMutate()
   const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [refreshing, setRefreshing] = useState(false)
@@ -50,6 +52,21 @@ export function HomeScreen({ navigation }: Props) {
     reload()
     setRefreshing(false)
   }, [reload])
+
+  const databases = (databaseNodes ?? [])
+    .filter((node): node is NonNullable<typeof node> => node !== null)
+    .map((node) => ({ id: node.id, title: (node.title as string) || 'Untitled Database' }))
+
+  const createDatabase = async () => {
+    try {
+      const node = await create(DatabaseSchema, { title: 'Untitled Database' })
+      if (node) {
+        navigation.navigate('Database', { docId: node.id })
+      }
+    } catch (e) {
+      console.error('Failed to create database:', e)
+    }
+  }
 
   const createDocument = async () => {
     try {
@@ -100,9 +117,36 @@ export function HomeScreen({ navigation }: Props) {
         <Text style={styles.identity}>{identity ? `${identity.slice(0, 20)}...` : ''}</Text>
       </View>
 
-      <TouchableOpacity style={styles.createButton} onPress={createDocument}>
-        <Text style={styles.createButtonText}>+ New Page</Text>
-      </TouchableOpacity>
+      <View style={styles.createRow}>
+        <TouchableOpacity style={[styles.createButton, styles.createFlex]} onPress={createDocument}>
+          <Text style={styles.createButtonText}>+ New Page</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.createButton, styles.createFlex]}
+          onPress={createDatabase}
+          testID="new-database"
+        >
+          <Text style={styles.createButtonText}>+ New Database</Text>
+        </TouchableOpacity>
+      </View>
+
+      {databases.length > 0 && (
+        <View>
+          <Text style={styles.sectionTitle}>Databases</Text>
+          {databases.map((db) => (
+            <TouchableOpacity
+              key={db.id}
+              style={styles.docItem}
+              onPress={() => navigation.navigate('Database', { docId: db.id })}
+              onLongPress={() => deleteDocument(db.id)}
+            >
+              <Text style={styles.docTitle}>▦ {db.title}</Text>
+              <Text style={styles.docId}>{db.id.slice(-8)}</Text>
+            </TouchableOpacity>
+          ))}
+          <Text style={styles.sectionTitle}>Pages</Text>
+        </View>
+      )}
 
       <FlatList
         data={documents}
@@ -130,6 +174,16 @@ export function HomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  createRow: { flexDirection: 'row', gap: 8, marginHorizontal: 16 },
+  createFlex: { flex: 1 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#888',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff'

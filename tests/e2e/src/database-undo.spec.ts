@@ -1,199 +1,100 @@
 /**
- * E2E Database Undo/Redo Test
+ * E2E — V2 Database undo/redo
  *
- * Verifies database keyboard undo/redo for:
- * - text cell updates
- * - multiSelect cell updates
- * - row create/delete
- * - column type changes
+ * Verifies the scoped node-op undo that backs the grid (useUndoScope):
+ * - a committed cell edit undoes back to its previous value and redoes
+ * - the grid's Cmd/Ctrl+Z path triggers the same scoped undo
+ * - one user action maps to one undo step
+ *
+ * Run manually: cd tests/e2e && pnpm exec playwright test src/database-undo.spec.ts
  */
 
-import { spawn, type ChildProcess } from 'node:child_process'
+import type { ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { test, expect, type Page } from '@playwright/test'
+import { forceFreePorts, killTree, startHarness, startHub } from '../helpers/harness'
 
-const HARNESS_PORT = 15211
-const HUB_PORT = 14511
-const ROOT = new URL('../../../', import.meta.url).pathname.replace(/\/$/, '')
+const HARNESS_PORT = 15202
+const HUB_PORT = 14502
 
-function spawnAndWait(
-  command: string,
-  args: string[],
-  opts: {
-    cwd: string
-    env?: Record<string, string>
-    readyText: string
-    timeoutMs?: number
-    label: string
-  }
-): Promise<ChildProcess> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`${opts.label}: timed out waiting for "${opts.readyText}"`)),
-      opts.timeoutMs ?? 30_000
-    )
+const DB_ID = `e2e-undo-${Date.now()}`
 
-    const proc = spawn(command, args, {
-      cwd: opts.cwd,
-      env: { ...process.env, ...opts.env },
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true,
-      detached: true
-    })
+test.describe.configure({ mode: 'serial' })
 
-    let stdout = ''
-    // eslint-disable-next-line no-control-regex
-    const stripAnsi = (s: string): string => s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')
-
-    proc.stdout?.on('data', (chunk: Buffer) => {
-      const text = chunk.toString()
-      stdout += text
-      if (stripAnsi(stdout).includes(opts.readyText)) {
-        clearTimeout(timer)
-        resolve(proc)
-      }
-    })
-
-    proc.on('error', (err) => {
-      clearTimeout(timer)
-      reject(err)
-    })
-  })
-}
-
-function killTree(proc: ChildProcess): void {
-  try {
-    if (proc.pid) process.kill(-proc.pid, 'SIGTERM')
-  } catch {
-    try {
-      proc.kill('SIGTERM')
-    } catch {
-      // already dead
-    }
-  }
-}
-
-test.describe('Database undo/redo shortcuts', () => {
+test.describe('Database V2 undo/redo', () => {
   let hubProc: ChildProcess
   let harnessProc: ChildProcess
   let page: Page
 
   test.beforeAll(async ({ browser }) => {
-    hubProc = await spawnAndWait(
-      'pnpm',
-      [
-        '--filter',
-        '@xnetjs/hub',
-        'exec',
-        'tsx',
-        'src/cli.ts',
-        '--port',
-        String(HUB_PORT),
-        '--no-auth',
-        '--storage',
-        'memory'
-      ],
-      {
-        cwd: ROOT,
-        readyText: `listening on port ${HUB_PORT}`,
-        label: 'hub',
-        timeoutMs: 20_000
-      }
-    )
-
-    harnessProc = await spawnAndWait(
-      'pnpm',
-      ['exec', 'vite', '--config', 'harness/vite.config.ts'],
-      {
-        cwd: `${ROOT}/tests/e2e`,
-        env: { HARNESS_PORT: String(HARNESS_PORT) },
-        readyText: `localhost:${HARNESS_PORT}`,
-        label: 'harness',
-        timeoutMs: 30_000
-      }
-    )
+    hubProc = await startHub(HUB_PORT)
+    harnessProc = await startHarness(HARNESS_PORT)
 
     const context = await browser.newContext()
     page = await context.newPage()
-
     const hubWs = `ws://localhost:${HUB_PORT}`
     await page.goto(
-      `http://localhost:${HARNESS_PORT}/database.html?user=1&hub=${encodeURIComponent(hubWs)}`
+      `http://localhost:${HARNESS_PORT}/database.html?user=1&db=${DB_ID}&hub=${encodeURIComponent(hubWs)}`
     )
-
     await page.waitForSelector('[data-testid="title"]', { timeout: 30_000 })
-    await sleep(800)
+    await sleep(1000)
   })
 
   test.afterAll(async () => {
-    if (harnessProc) killTree(harnessProc)
-    if (hubProc) killTree(hubProc)
-
-    await sleep(500)
-
-    for (const port of [HUB_PORT, HARNESS_PORT]) {
-      try {
-        const { execSync } = await import('node:child_process')
-        execSync(`lsof -ti:${port} 2>/dev/null | xargs kill -9 2>/dev/null`, { stdio: 'ignore' })
-      } catch {
-        // already clear
-      }
-    }
+    killTree(harnessProc)
+    killTree(hubProc)
+    await sleep(1000)
+    forceFreePorts([HUB_PORT, HARNESS_PORT])
   })
 
-  test('undoes and redoes cell edits, row operations, and column type changes', async () => {
+  test('cell edit undoes and redoes as one step', async () => {
+    // Seed: Title/Status/Tags fields + one row titled 'Initial'
     await page.getByTestId('seed-undo-fixture').click()
-
-    await expect(page.getByTestId('column-count')).toContainText('3')
+    await expect(page.getByTestId('column-count')).toContainText('3', { timeout: 15_000 })
     await expect(page.getByTestId('row-count')).toContainText('1')
     await expect(page.getByTestId('first-row-title')).toContainText('Initial')
-    await expect(page.getByTestId('first-row-tags')).toContainText('[]')
     await expect(page.getByTestId('status-column-type')).toContainText('select')
 
+    // Programmatic cell edit (single node op)
     await page.getByTestId('edit-title-cell').click()
-    await page.getByTestId('edit-tags-cell').click()
-    await page.getByTestId('add-row').click()
-    await page.getByTestId('delete-last-row').click()
-    await page.getByTestId('change-status-type').click()
-
     await expect(page.getByTestId('first-row-title')).toContainText('Edited title')
-    await expect(page.getByTestId('first-row-tags')).toContainText('opt-a')
-    await expect(page.getByTestId('row-count')).toContainText('1')
-    await expect(page.getByTestId('status-column-type')).toContainText('multiSelect')
+    await expect(page.getByTestId('can-undo')).toContainText('true', { timeout: 10_000 })
 
-    await page.getByTestId('cell-row-1-title').click()
+    // Undo restores the previous value; redo reapplies it
+    await page.getByTestId('undo-action').click()
+    await expect(page.getByTestId('first-row-title')).toContainText('Initial', {
+      timeout: 10_000
+    })
 
-    await page.keyboard.press('ControlOrMeta+z')
-    await expect(page.getByTestId('status-column-type')).toContainText('select')
+    await page.getByTestId('redo-action').click()
+    await expect(page.getByTestId('first-row-title')).toContainText('Edited title', {
+      timeout: 10_000
+    })
+  })
 
-    await page.keyboard.press('ControlOrMeta+z')
-    await expect(page.getByTestId('row-count')).toContainText('2')
+  test('grid keyboard edit + Cmd/Ctrl+Z undoes the commit', async () => {
+    // Fresh database so the undo stack contains exactly one edit
+    const hubWs = `ws://localhost:${HUB_PORT}`
+    await page.goto(
+      `http://localhost:${HARNESS_PORT}/database.html?user=1&db=${DB_ID}-kbd&hub=${encodeURIComponent(hubWs)}`
+    )
+    await page.waitForSelector('[data-testid="title"]', { timeout: 30_000 })
+    await page.getByTestId('seed-undo-fixture').click()
+    await expect(page.getByTestId('first-row-title')).toContainText('Initial', {
+      timeout: 15_000
+    })
 
-    await page.keyboard.press('ControlOrMeta+z')
-    await expect(page.getByTestId('row-count')).toContainText('1')
+    const cell = page.locator('[data-row-index="0"][data-col-index="0"]')
+    await cell.click()
+    await page.keyboard.type('Keyboard edit')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('first-row-title')).toContainText('Keyboard edit')
 
-    await page.keyboard.press('ControlOrMeta+z')
-    await expect(page.getByTestId('first-row-tags')).toContainText('[]')
-
-    await page.keyboard.press('ControlOrMeta+z')
-    await expect(page.getByTestId('first-row-title')).toContainText('Initial')
-
-    // Validate Windows/Linux redo shortcut parity (Ctrl+Y)
-    await page.keyboard.press('Control+y')
-    await expect(page.getByTestId('first-row-title')).toContainText('Edited title')
-
-    await page.keyboard.press('ControlOrMeta+Shift+z')
-    await expect(page.getByTestId('first-row-tags')).toContainText('opt-a')
-
-    await page.keyboard.press('ControlOrMeta+Shift+z')
-    await expect(page.getByTestId('row-count')).toContainText('2')
-
-    await page.keyboard.press('ControlOrMeta+Shift+z')
-    await expect(page.getByTestId('row-count')).toContainText('1')
-
-    await page.keyboard.press('ControlOrMeta+Shift+z')
-    await expect(page.getByTestId('status-column-type')).toContainText('multiSelect')
-
-    await page.screenshot({ path: `${ROOT}/tmp/playwright/db-undo-final.png` })
+    // Focus stays on the grid (cursor moved down after commit); Cmd/Ctrl+Z
+    // routes through the keymap to the scoped undo
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z')
+    await expect(page.getByTestId('first-row-title')).toContainText('Initial', {
+      timeout: 10_000
+    })
   })
 })

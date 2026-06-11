@@ -8,6 +8,9 @@
 export { PageSchema, type Page } from './page'
 export { DatabaseSchema, type Database } from './database'
 export { DatabaseRowSchema, type DatabaseRow } from './database-row'
+export { DatabaseFieldSchema, type DatabaseField } from './database-field'
+export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './database-select-option'
+export { DatabaseViewSchema, type DatabaseView } from './database-view'
 export { TaskSchema, type Task } from './task'
 export { ExternalReferenceSchema, type ExternalReference } from './external-reference'
 export { MediaAssetSchema, type MediaAsset } from './media-asset'
@@ -136,9 +139,15 @@ export {
 export const builtInSchemas = {
   // Versioned IRIs (canonical)
   'xnet://xnet.fyi/Page@1.0.0': () => import('./page').then((m) => m.PageSchema),
-  'xnet://xnet.fyi/Database@1.0.0': () => import('./database').then((m) => m.DatabaseSchema),
-  'xnet://xnet.fyi/DatabaseRow@1.0.0': () =>
+  'xnet://xnet.fyi/Database@2.0.0': () => import('./database').then((m) => m.DatabaseSchema),
+  'xnet://xnet.fyi/DatabaseRow@2.0.0': () =>
     import('./database-row').then((m) => m.DatabaseRowSchema),
+  'xnet://xnet.fyi/DatabaseField@1.0.0': () =>
+    import('./database-field').then((m) => m.DatabaseFieldSchema),
+  'xnet://xnet.fyi/DatabaseSelectOption@1.0.0': () =>
+    import('./database-select-option').then((m) => m.DatabaseSelectOptionSchema),
+  'xnet://xnet.fyi/DatabaseView@1.0.0': () =>
+    import('./database-view').then((m) => m.DatabaseViewSchema),
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/ExternalReference@1.0.0': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
@@ -176,10 +185,15 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Appeal@1.0.0': () => import('./moderation').then((m) => m.AppealSchema),
   'xnet://xnet.fyi/ReviewTask@1.0.0': () => import('./moderation').then((m) => m.ReviewTaskSchema),
 
-  // Legacy unversioned IRIs (aliases for @1.0.0)
+  // Legacy unversioned IRIs (aliases for the current version)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
   'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),
   'xnet://xnet.fyi/DatabaseRow': () => import('./database-row').then((m) => m.DatabaseRowSchema),
+  'xnet://xnet.fyi/DatabaseField': () =>
+    import('./database-field').then((m) => m.DatabaseFieldSchema),
+  'xnet://xnet.fyi/DatabaseSelectOption': () =>
+    import('./database-select-option').then((m) => m.DatabaseSelectOptionSchema),
+  'xnet://xnet.fyi/DatabaseView': () => import('./database-view').then((m) => m.DatabaseViewSchema),
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/ExternalReference': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),

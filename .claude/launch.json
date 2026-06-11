@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web (vite)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "xnet-web", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "hub (sync server)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@xnetjs/hub", "dev"],
+      "port": 4444
+    },
+    {
+      "name": "electron (hub + app)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "xnet-desktop", "dev"],
+      "port": 4444
+    },
+    {
+      "name": "expo (mobile)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "xnet-mobile", "start"],
+      "port": 8081
+    },
+    {
+      "name": "storybook",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev:stories"],
+      "port": 6006
+    },
+    {
+      "name": "site (astro docs)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "site", "dev"],
+      "port": 4321
+    }
+  ]
+}

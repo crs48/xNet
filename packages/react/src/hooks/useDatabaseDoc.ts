@@ -30,8 +30,7 @@ import type {
   ViewType,
   FilterGroup,
   SortConfig,
-  DatabaseDocumentModel,
-  LegacyDatabaseMigrationStatus
+  DatabaseDocumentModel
 } from '@xnetjs/data'
 import {
   getColumns,
@@ -49,21 +48,7 @@ import {
   duplicateView as duplicateViewOp,
   initializeDatabaseDoc,
   isDatabaseDocInitialized,
-  getDatabaseDocumentModel,
-  getLegacyDatabaseMigrationStatus,
-  migrateLegacyDatabaseDocument,
-  prefersLegacyDatabaseModel,
-  getLegacyColumns,
-  getLegacyColumn,
-  createLegacyColumn,
-  updateLegacyColumn,
-  deleteLegacyColumn,
-  reorderLegacyColumn,
-  getLegacyViews,
-  getLegacyView,
-  createLegacyView,
-  updateLegacyView,
-  deleteLegacyView
+  getDatabaseDocumentModel
 } from '@xnetjs/data'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import * as Y from 'yjs'
@@ -84,11 +69,7 @@ export interface UseDatabaseDocResult {
   /** Which document storage model currently backs this database */
   storageMode: DatabaseDocumentModel
 
-  /** Current legacy migration status, if the doc still carries legacy state */
-  migrationStatus: LegacyDatabaseMigrationStatus | null
-
   /** Whether this doc can still be explicitly materialized into the canonical model */
-  canMigrateLegacyModel: boolean
 
   /** Whether the doc is loading */
   loading: boolean
@@ -121,9 +102,6 @@ export interface UseDatabaseDocResult {
   duplicateView: (viewId: string, newName?: string) => string | null
   /** Get a single view by ID */
   getView: (viewId: string) => ViewConfig | null
-
-  /** Materialize legacy rows/columns/views into the canonical model */
-  migrateLegacyModel: () => Promise<LegacyDatabaseMigrationStatus | null>
 }
 
 // ─── Hook Implementation ─────────────────────────────────────────────────────
@@ -141,7 +119,6 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
   const [columns, setColumns] = useState<ColumnDefinition[]>([])
   const [views, setViews] = useState<ViewConfig[]>([])
   const [storageMode, setStorageMode] = useState<DatabaseDocumentModel>('empty')
-  const [migrationStatus, setMigrationStatus] = useState<LegacyDatabaseMigrationStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -154,13 +131,9 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
   storageModeRef.current = storageMode
 
   const refreshStateFromDoc = useCallback((currentDoc: Y.Doc) => {
-    const model = getDatabaseDocumentModel(currentDoc)
-    const useLegacy = prefersLegacyDatabaseModel(currentDoc)
-
-    setStorageMode(model)
-    setColumns(useLegacy ? getLegacyColumns(currentDoc) : getColumns(currentDoc))
-    setViews(useLegacy ? getLegacyViews(currentDoc) : getViews(currentDoc))
-    setMigrationStatus(getLegacyDatabaseMigrationStatus(currentDoc))
+    setStorageMode(getDatabaseDocumentModel(currentDoc))
+    setColumns(getColumns(currentDoc))
+    setViews(getViews(currentDoc))
   }, [])
 
   // Load the database's Y.Doc
@@ -170,7 +143,6 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
       setColumns([])
       setViews([])
       setStorageMode('empty')
-      setMigrationStatus(null)
       setLoading(false)
       return
     }
@@ -197,7 +169,7 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
         }
 
         // Initialize if needed
-        if (!isDatabaseDocInitialized(ydoc) && !prefersLegacyDatabaseModel(ydoc)) {
+        if (!isDatabaseDocInitialized(ydoc)) {
           initializeDatabaseDoc(ydoc)
         }
 
@@ -279,9 +251,6 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
   const handleCreateColumn = useCallback(
     (definition: Omit<ColumnDefinition, 'id'>): string | null => {
       if (!docRef.current) return null
-      if (storageModeRef.current === 'legacy') {
-        return createLegacyColumn(docRef.current, definition)
-      }
       return createColumnOp(docRef.current, definition)
     },
     []
@@ -290,10 +259,6 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
   const handleUpdateColumn = useCallback(
     (columnId: string, updates: Partial<Omit<ColumnDefinition, 'id'>>): void => {
       if (!docRef.current) return
-      if (storageModeRef.current === 'legacy') {
-        updateLegacyColumn(docRef.current, columnId, updates)
-        return
-      }
       updateColumnOp(docRef.current, columnId, updates)
     },
     []
@@ -301,66 +266,33 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
 
   const handleDeleteColumn = useCallback((columnId: string): void => {
     if (!docRef.current) return
-    if (storageModeRef.current === 'legacy') {
-      deleteLegacyColumn(docRef.current, columnId)
-      return
-    }
     deleteColumnOp(docRef.current, columnId)
   }, [])
 
   const handleReorderColumn = useCallback((columnId: string, newIndex: number): void => {
     if (!docRef.current) return
-    if (storageModeRef.current === 'legacy') {
-      reorderLegacyColumn(docRef.current, columnId, newIndex)
-      return
-    }
     reorderColumnOp(docRef.current, columnId, newIndex)
   }, [])
 
   const handleDuplicateColumn = useCallback((columnId: string, newName?: string): string | null => {
     if (!docRef.current) return null
-    if (storageModeRef.current === 'legacy') {
-      const column = getLegacyColumn(docRef.current, columnId)
-      if (!column) return null
-      const definition: Omit<ColumnDefinition, 'id'> = {
-        name: column.name,
-        type: column.type,
-        config: column.config,
-        ...(column.width !== undefined ? { width: column.width } : {}),
-        ...(column.isTitle !== undefined ? { isTitle: column.isTitle } : {})
-      }
-      return createLegacyColumn(docRef.current, {
-        ...definition,
-        name: newName ?? `${column.name} (Copy)`
-      })
-    }
     return duplicateColumnOp(docRef.current, columnId, newName)
   }, [])
 
   const handleGetColumn = useCallback((columnId: string): ColumnDefinition | null => {
     if (!docRef.current) return null
-    if (storageModeRef.current === 'legacy') {
-      return getLegacyColumn(docRef.current, columnId)
-    }
     return getColumn(docRef.current, columnId)
   }, [])
 
   // View operations
   const handleCreateView = useCallback((config: Omit<ViewConfig, 'id'>): string | null => {
     if (!docRef.current) return null
-    if (storageModeRef.current === 'legacy') {
-      return createLegacyView(docRef.current, config)
-    }
     return createViewOp(docRef.current, config)
   }, [])
 
   const handleUpdateView = useCallback(
     (viewId: string, updates: Partial<Omit<ViewConfig, 'id'>>): void => {
       if (!docRef.current) return
-      if (storageModeRef.current === 'legacy') {
-        updateLegacyView(docRef.current, viewId, updates)
-        return
-      }
       updateViewOp(docRef.current, viewId, updates)
     },
     []
@@ -368,72 +300,24 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
 
   const handleDeleteView = useCallback((viewId: string): void => {
     if (!docRef.current) return
-    if (storageModeRef.current === 'legacy') {
-      deleteLegacyView(docRef.current, viewId)
-      return
-    }
     deleteViewOp(docRef.current, viewId)
   }, [])
 
   const handleDuplicateView = useCallback((viewId: string, newName?: string): string | null => {
     if (!docRef.current) return null
-    if (storageModeRef.current === 'legacy') {
-      const view = getLegacyView(docRef.current, viewId)
-      if (!view) return null
-      const config: Omit<ViewConfig, 'id'> = {
-        name: view.name,
-        type: view.type,
-        visibleColumns: view.visibleColumns,
-        ...(view.columnWidths !== undefined ? { columnWidths: view.columnWidths } : {}),
-        ...(view.filters !== undefined ? { filters: view.filters } : {}),
-        ...(view.sorts !== undefined ? { sorts: view.sorts } : {}),
-        ...(view.groupBy !== undefined ? { groupBy: view.groupBy } : {}),
-        ...(view.groupSort !== undefined ? { groupSort: view.groupSort } : {}),
-        ...(view.collapsedGroups !== undefined ? { collapsedGroups: view.collapsedGroups } : {}),
-        ...(view.coverColumn !== undefined ? { coverColumn: view.coverColumn } : {}),
-        ...(view.cardSize !== undefined ? { cardSize: view.cardSize } : {}),
-        ...(view.dateColumn !== undefined ? { dateColumn: view.dateColumn } : {}),
-        ...(view.endDateColumn !== undefined ? { endDateColumn: view.endDateColumn } : {})
-      }
-      return createLegacyView(docRef.current, {
-        ...config,
-        name: newName ?? `${view.name} (Copy)`
-      })
-    }
     return duplicateViewOp(docRef.current, viewId, newName)
   }, [])
 
   const handleGetView = useCallback((viewId: string): ViewConfig | null => {
     if (!docRef.current) return null
-    if (storageModeRef.current === 'legacy') {
-      return getLegacyView(docRef.current, viewId)
-    }
     return getView(docRef.current, viewId)
   }, [])
-
-  const handleMigrateLegacyModel =
-    useCallback(async (): Promise<LegacyDatabaseMigrationStatus | null> => {
-      if (!storeRef.current || !docRef.current) return null
-
-      const status = await migrateLegacyDatabaseDocument(
-        storeRef.current,
-        databaseId,
-        docRef.current
-      )
-      refreshStateFromDoc(docRef.current)
-      setMigrationStatus(status)
-      return status
-    }, [databaseId, refreshStateFromDoc])
 
   return {
     columns,
     views,
     doc,
     storageMode,
-    migrationStatus,
-    canMigrateLegacyModel:
-      (storageMode === 'legacy' || storageMode === 'mixed') &&
-      migrationStatus?.state !== 'completed',
     loading,
     error,
 
@@ -450,8 +334,7 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
     updateView: handleUpdateView,
     deleteView: handleDeleteView,
     duplicateView: handleDuplicateView,
-    getView: handleGetView,
-    migrateLegacyModel: handleMigrateLegacyModel
+    getView: handleGetView
   }
 }
 
@@ -463,6 +346,5 @@ export type {
   ViewConfig,
   ViewType,
   FilterGroup,
-  SortConfig,
-  LegacyDatabaseMigrationStatus
+  SortConfig
 }

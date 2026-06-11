@@ -5,10 +5,15 @@
 import type { PropertyHandler, PropertyEditorProps } from '../types'
 import type { SelectOption } from '@xnetjs/data'
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { optionChipStyle } from './optionColors.js'
 
 interface MultiSelectConfig {
   options?: SelectOption[]
   allowCreate?: boolean
+  /** Persist a new option; returns its ID (V2 SelectOption node) */
+  onCreateOption?: (name: string) => Promise<string | null>
+  /** Seed the autocomplete query (type-to-replace first character) */
+  initialQuery?: string
 }
 
 /**
@@ -23,12 +28,13 @@ function MultiSelectEditor({
   config
 }: PropertyEditorProps<string[]>) {
   const [isOpen, setIsOpen] = useState(false)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(((config ?? {}) as MultiSelectConfig).initialQuery ?? '')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const options = (config as MultiSelectConfig)?.options ?? []
-  const allowCreate = Boolean((config as MultiSelectConfig)?.allowCreate)
+  const cfg = (config ?? {}) as MultiSelectConfig
+  const options = cfg.options ?? []
+  const allowCreate = cfg.allowCreate !== false
   const selected = value ?? []
 
   const availableOptions = useMemo(
@@ -82,6 +88,17 @@ function MultiSelectEditor({
     setIsOpen(true)
   }
 
+  const createOption = async (): Promise<void> => {
+    if (!canCreateOption) return
+    if (cfg.onCreateOption) {
+      const id = await cfg.onCreateOption(normalizedQuery)
+      if (id) commitOption(id)
+      return
+    }
+    // Fallback (legacy config-embedded options): slugified ID
+    commitOption(createdOptionId)
+  }
+
   const getOptionLabel = (optionId: string): SelectOption => {
     const existing = options.find((option) => option.id === optionId)
     if (existing) return existing
@@ -119,8 +136,8 @@ function MultiSelectEditor({
               return (
                 <span
                   key={id}
-                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-white"
-                  style={{ backgroundColor: option.color ?? '#6b7280' }}
+                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs"
+                  style={optionChipStyle(option.color)}
                 >
                   {option.name}
                   {!disabled && (
@@ -178,6 +195,9 @@ function MultiSelectEditor({
 
               if (event.key === 'Enter') {
                 event.preventDefault()
+                // The picker owns Enter — don't let the grid keymap
+                // commit-and-close mid picker interaction
+                event.stopPropagation()
                 const highlighted = filteredOptions[activeIndex]
                 if (highlighted) {
                   commitOption(highlighted.id)
@@ -185,7 +205,7 @@ function MultiSelectEditor({
                 }
 
                 if (canCreateOption) {
-                  commitOption(createdOptionId)
+                  void createOption()
                 }
                 return
               }
@@ -225,8 +245,8 @@ function MultiSelectEditor({
               onClick={() => commitOption(opt.id)}
             >
               <span
-                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs text-white"
-                style={{ backgroundColor: opt.color ?? '#6b7280' }}
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs"
+                style={optionChipStyle(opt.color)}
               >
                 {opt.name}
               </span>
@@ -242,9 +262,9 @@ function MultiSelectEditor({
               type="button"
               className="w-full px-2 py-1 text-left text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20"
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => commitOption(createdOptionId)}
+              onClick={() => void createOption()}
             >
-              Create "{normalizedQuery}"
+              ＋ Create "{normalizedQuery}"
             </button>
           )}
         </div>
@@ -281,8 +301,8 @@ export const multiSelectHandler: PropertyHandler<string[]> = {
         {options.map((opt) => (
           <span
             key={opt.id}
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs text-white"
-            style={{ backgroundColor: opt.color ?? '#6b7280' }}
+            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs"
+            style={optionChipStyle(opt.color)}
           >
             {opt.name}
           </span>

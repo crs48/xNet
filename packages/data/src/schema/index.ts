@@ -52,9 +52,11 @@ export {
   text,
   number,
   checkbox,
+  json,
   type TextOptions,
   type NumberOptions,
-  type CheckboxOptions
+  type CheckboxOptions,
+  type JsonOptions
 } from './properties'
 
 // Property helpers - Temporal
@@ -105,6 +107,9 @@ export {
 export { PageSchema, type Page } from './schemas'
 export { DatabaseSchema, type Database } from './schemas'
 export { DatabaseRowSchema, type DatabaseRow } from './schemas'
+export { DatabaseFieldSchema, type DatabaseField } from './schemas'
+export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './schemas'
+export { DatabaseViewSchema, type DatabaseView } from './schemas'
 export { TaskSchema, type Task } from './schemas'
 export { ExternalReferenceSchema, type ExternalReference } from './schemas'
 export { MediaAssetSchema, type MediaAsset } from './schemas'

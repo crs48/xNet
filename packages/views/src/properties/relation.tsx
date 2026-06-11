@@ -3,8 +3,7 @@
  */
 
 import type { PropertyHandler, PropertyEditorProps } from '../types.js'
-import type { DatabaseRow } from '@xnetjs/react'
-import { useDatabase } from '@xnetjs/react'
+import { useGridDatabase, type GridRowModel } from '@xnetjs/react'
 import React, { useId, useMemo, useRef, useState } from 'react'
 
 interface RelationConfig {
@@ -12,8 +11,9 @@ interface RelationConfig {
   allowMultiple?: boolean
 }
 
-function getRowTitle(row: DatabaseRow): string {
-  const title = row.cells.title ?? row.cells.name
+function getRowTitle(row: GridRowModel, titleFieldId?: string): string {
+  const title =
+    (titleFieldId ? row.cells[titleFieldId] : undefined) ?? row.cells.title ?? row.cells.name
   if (typeof title === 'string' && title.trim()) return title
   return row.id
 }
@@ -64,7 +64,11 @@ function RelationEditor({
   const listboxId = useId()
 
   const selected = Array.isArray(value) ? value : []
-  const { rows } = useDatabase(targetDatabaseId ?? '', { pageSize: 40 })
+  const { rows, fields } = useGridDatabase(targetDatabaseId ?? '', { pageSize: 40 })
+  const titleFieldId = useMemo(
+    () => fields.find((f) => f.isTitle)?.id ?? fields.find((f) => f.type === 'text')?.id,
+    [fields]
+  )
 
   const selectedRows = useMemo(() => {
     const rowMap = new Map(rows.map((row) => [row.id, row]))
@@ -76,7 +80,7 @@ function RelationEditor({
     return rows.filter((row) => {
       if (selected.includes(row.id)) return false
       if (!needle) return true
-      const title = getRowTitle(row).toLowerCase()
+      const title = getRowTitle(row, titleFieldId).toLowerCase()
       return row.id.toLowerCase().includes(needle) || title.includes(needle)
     })
   }, [query, rows, selected])
@@ -128,7 +132,7 @@ function RelationEditor({
               <RelationChip
                 key={id}
                 id={id}
-                title={row ? getRowTitle(row) : id}
+                title={row ? getRowTitle(row, titleFieldId) : id}
                 onRemove={disabled ? undefined : () => remove(id)}
               />
             ))}
@@ -216,7 +220,9 @@ function RelationEditor({
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => commit(row.id)}
             >
-              <span className="text-sm text-gray-800 dark:text-gray-200">{getRowTitle(row)}</span>
+              <span className="text-sm text-gray-800 dark:text-gray-200">
+                {getRowTitle(row, titleFieldId)}
+              </span>
               <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{row.id}</span>
             </button>
           ))}

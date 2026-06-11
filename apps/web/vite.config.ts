@@ -66,8 +66,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,wasm}'],
-        // Increase limit for large bundles (elk.js, canvas, etc.)
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
+        // Increase limit for large bundles (elk.js, canvas, database tooling, etc.)
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com/,

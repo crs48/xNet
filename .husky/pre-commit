@@ -1,9 +1,116 @@
+#!/bin/sh
+set -e
+
 # Ensure pnpm is available (Cursor's Git integration has minimal PATH)
 export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.npm-global/bin"
 
-# Skip hooks for markdown-only changes
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
-NON_MD_FILES=$(echo "$STAGED_FILES" | grep -v '\.md$' | grep -v '^docs/' || true)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMRD)
+
+run_graphify_precommit() {
+  [ "${GRAPHIFY_SKIP_HOOK:-0}" = "1" ] && return 0
+  [ -f "graphify-out/graph.json" ] || return 0
+
+  GRAPHIFY_CHANGED=$(printf '%s\n' "$STAGED_FILES" | grep -v '^graphify-out/' | grep -v '^$' || true)
+  [ -n "$GRAPHIFY_CHANGED" ] || return 0
+
+  GRAPHIFY_PYTHON=""
+  _GFY_PYTHON_FILE="graphify-out/.graphify_python"
+  if [ -f "$_GFY_PYTHON_FILE" ]; then
+    _FROM_FILE=$(cat "$_GFY_PYTHON_FILE" 2>/dev/null | tr -d '[:space:]')
+    case "$_FROM_FILE" in
+      *[!a-zA-Z0-9/_.@:\-]*) _FROM_FILE="" ;;
+    esac
+    if [ -n "$_FROM_FILE" ] && [ -x "$_FROM_FILE" ] && "$_FROM_FILE" -c "import graphify" 2>/dev/null; then
+      GRAPHIFY_PYTHON="$_FROM_FILE"
+    fi
+  fi
+
+  if [ -z "$GRAPHIFY_PYTHON" ]; then
+    GRAPHIFY_BIN=$(command -v graphify 2>/dev/null || true)
+    if [ -n "$GRAPHIFY_BIN" ]; then
+      case "$GRAPHIFY_BIN" in
+        *.exe) _SHEBANG="" ;;
+        *) _SHEBANG=$(head -1 "$GRAPHIFY_BIN" | sed 's/^#![[:space:]]*//') ;;
+      esac
+      case "$_SHEBANG" in
+        */env\ *) GRAPHIFY_PYTHON="${_SHEBANG#*/env }" ;;
+        *) GRAPHIFY_PYTHON="$_SHEBANG" ;;
+      esac
+      case "$GRAPHIFY_PYTHON" in
+        *[!a-zA-Z0-9/_.@-]*) GRAPHIFY_PYTHON="" ;;
+      esac
+      if [ -n "$GRAPHIFY_PYTHON" ] && ! "$GRAPHIFY_PYTHON" -c "import graphify" 2>/dev/null; then
+        GRAPHIFY_PYTHON=""
+      fi
+    fi
+  fi
+
+  if [ -z "$GRAPHIFY_PYTHON" ]; then
+    if command -v python3 >/dev/null 2>&1 && python3 -c "import graphify" 2>/dev/null; then
+      GRAPHIFY_PYTHON="python3"
+    elif command -v python >/dev/null 2>&1 && python -c "import graphify" 2>/dev/null; then
+      GRAPHIFY_PYTHON="python"
+    else
+      echo "[graphify pre-commit] graphify is not installed; skipping graph refresh"
+      return 0
+    fi
+  fi
+
+  export GRAPHIFY_CHANGED
+  echo "[graphify pre-commit] refreshing graph before commit"
+  "$GRAPHIFY_PYTHON" - <<'PY'
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+changed = [
+    Path(line.strip())
+    for line in os.environ.get("GRAPHIFY_CHANGED", "").splitlines()
+    if line.strip()
+]
+
+unstaged_raw = subprocess.check_output(
+    ["git", "diff", "--name-only", "--diff-filter=ACMRD"],
+    text=True,
+)
+unstaged = {line.strip() for line in unstaged_raw.splitlines() if line.strip()}
+partially_staged = sorted(str(path) for path in changed if str(path) in unstaged)
+
+if partially_staged:
+    print("[graphify pre-commit] refusing to rebuild with partially staged files:")
+    for path in partially_staged:
+        print(f"  - {path}")
+    print("[graphify pre-commit] stage the full file or split the commit, then retry.")
+    sys.exit(1)
+
+try:
+    from graphify.watch import _apply_resource_limits, _rebuild_code
+
+    _apply_resource_limits()
+    root = Path(".")
+    saved_root = Path("graphify-out/.graphify_root")
+    if saved_root.exists():
+        text = saved_root.read_text(encoding="utf-8").strip()
+        if text:
+            root = Path(text)
+    force = os.environ.get("GRAPHIFY_FORCE", "").lower() in {"1", "true", "yes"}
+    if not _rebuild_code(root, changed_paths=changed, force=force, block_on_lock=True):
+        sys.exit(1)
+except Exception as exc:
+    print(f"[graphify pre-commit] graph refresh failed: {exc}")
+    sys.exit(1)
+PY
+
+  "$GRAPHIFY_PYTHON" -m graphify export html
+  git add graphify-out/graph.json graphify-out/GRAPH_REPORT.md graphify-out/graph.html 2>/dev/null || true
+}
+
+run_graphify_precommit
+
+# Recompute after graphify stages refreshed graph artifacts.
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMRD)
+NON_MD_FILES=$(printf '%s\n' "$STAGED_FILES" | grep -v '\.md$' | grep -v '^docs/' || true)
 
 if [ -z "$NON_MD_FILES" ]; then
   echo "Skipping pre-commit hooks (only markdown/docs changes)"
