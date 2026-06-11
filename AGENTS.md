@@ -254,12 +254,13 @@ This repo uses **husky** for git hooks. They run automatically on every commit/p
 
 ### What Runs on Every Commit (~10-15s)
 
-| Hook       | What Runs                                                | Time |
-| ---------- | -------------------------------------------------------- | ---- |
-| Pre-commit | `lint-staged` (eslint --fix + prettier + vitest related) | 5-8s |
-| Pre-commit | `turbo typecheck --affected`                             | 3-5s |
-| Pre-commit | `vitest run --changed HEAD --passWithNoTests`            | 5-8s |
-| Commit-msg | `commitlint` (conventional commits)                      | <1s  |
+| Hook       | What Runs                                                               | Time   |
+| ---------- | ----------------------------------------------------------------------- | ------ |
+| Pre-commit | `graphify` refreshes and stages tracked graph artifacts when applicable | varies |
+| Pre-commit | `lint-staged` (eslint --fix + prettier + vitest related)                | 5-8s   |
+| Pre-commit | `turbo typecheck --affected`                                            | 3-5s   |
+| Pre-commit | `vitest run --changed HEAD --passWithNoTests`                           | 5-8s   |
+| Commit-msg | `commitlint` (conventional commits)                                     | <1s    |
 
 ### What Runs on Every Push (~30s)
 
