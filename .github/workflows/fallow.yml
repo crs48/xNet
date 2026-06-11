@@ -69,19 +69,19 @@ jobs:
       # CodeQL's upload action rejects SARIF files that contain multiple runs
       # under one category, and fallow emits one run per sub-analysis — this
       # is why every upload failed before. Merge the runs (same driver) into
-      # one. Producing the .single.sarif file only when the input parses also
-      # guards against the empty file a crashed audit leaves behind, which
-      # passes hashFiles() but is not valid JSON.
+      # one, and drop run-level notices without locations (code scanning
+      # requires every result to carry at least one; they still appear in the
+      # step summary). Producing the .single.sarif file only when the input
+      # parses also guards against the empty file a crashed audit leaves
+      # behind, which passes hashFiles() but is not valid JSON.
       - name: Normalize Fallow SARIF to a single run
         if: always()
         shell: bash
         run: |
           if jq -e '.runs | length >= 1' fallow-audit.sarif > /dev/null 2>&1; then
-            jq 'if (.runs | length) > 1 then
-                  .runs[0].results = ([.runs[].results // []] | add) |
-                  .runs[0].tool.driver.rules = ([.runs[].tool.driver.rules // []] | add | unique_by(.id)) |
-                  .runs = [.runs[0]]
-                else . end' fallow-audit.sarif > fallow-audit.single.sarif
+            jq '.runs[0].results = ([.runs[].results // []] | add | map(select((.locations // []) | length > 0))) |
+                .runs[0].tool.driver.rules = ([.runs[].tool.driver.rules // []] | add | unique_by(.id)) |
+                .runs = [.runs[0]]' fallow-audit.sarif > fallow-audit.single.sarif
           fi
 
       - name: Upload Fallow SARIF
