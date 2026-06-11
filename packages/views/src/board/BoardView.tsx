@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { cn } from '@xnetjs/ui'
-import React, { useState, useCallback, useRef } from 'react'
+import React, { useState, useCallback, useMemo, useRef } from 'react'
 import { BoardCard } from './BoardCard.js'
 import { BoardColumn } from './BoardColumn.js'
 import {
@@ -57,6 +57,13 @@ export interface BoardViewProps {
   onCardClick?: (itemId: string) => void
   /** Additional CSS class */
   className?: string
+  /**
+   * Tile-constrained rendering (dashboard widgets, embeds): tighter outer
+   * padding and no add-column affordance.
+   */
+  compact?: boolean
+  /** Cap the number of cards rendered per column (tile-constrained hosts) */
+  maxRows?: number
 }
 
 /**
@@ -75,15 +82,31 @@ export function BoardView({
   onReorderColumns,
   onReorderCards,
   onCardClick,
-  className
+  className,
+  compact = false,
+  maxRows
 }: BoardViewProps): React.JSX.Element {
-  const { columns, moveCard, toggleColumnCollapse } = useBoardState({
+  const {
+    columns: allColumns,
+    moveCard,
+    toggleColumnCollapse
+  } = useBoardState({
     schema,
     view,
     data,
     onUpdateRow,
     onUpdateView
   })
+  const columns = useMemo(
+    () =>
+      maxRows === undefined
+        ? allColumns
+        : allColumns.map((column) => ({
+            ...column,
+            items: column.items.slice(0, Math.max(0, maxRows))
+          })),
+    [allColumns, maxRows]
+  )
 
   const [activeItem, setActiveItem] = useState<BoardRow | null>(null)
   const [activeColumn, setActiveColumn] = useState<BoardColumnType | null>(null)
@@ -316,7 +339,11 @@ export function BoardView({
   return (
     <div
       data-xnet-db-editable="true"
-      className={cn('h-full overflow-x-auto p-4 bg-white dark:bg-gray-900', className)}
+      className={cn(
+        'h-full overflow-x-auto bg-white dark:bg-gray-900',
+        compact ? 'p-2' : 'p-4',
+        className
+      )}
     >
       <DndContext
         sensors={sensors}
@@ -345,8 +372,8 @@ export function BoardView({
               />
             ))}
 
-            {/* Add column button */}
-            {onAddColumn && (
+            {/* Add column button (hidden in compact/tile hosts) */}
+            {onAddColumn && !compact && (
               <div className="flex-shrink-0 w-72">
                 <button
                   className="w-full py-3 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"

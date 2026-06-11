@@ -1,5 +1,5 @@
 {
-  "name": "@xnetjs/dashboard",
+  "name": "@xnetjs/charts",
   "version": "0.0.1",
   "type": "module",
   "main": "./src/index.ts",
@@ -17,31 +17,18 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnetjs/charts": "workspace:*",
-    "@xnetjs/data": "workspace:*",
-    "@xnetjs/react": "workspace:*",
-    "@xnetjs/social": "workspace:*",
-    "@xnetjs/ui": "workspace:*",
-    "gridstack": "^12.4.0",
-    "lucide-react": "^0.563.0",
-    "nanoid": "^5.1.6"
+    "echarts": "^6.0.0"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
-    "@testing-library/user-event": "^14.5.0",
     "@types/react": "^18.2.0",
-    "jsdom": "^26.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^4.0.0",
-    "@xnetjs/identity": "workspace:*",
-    "@xnetjs/core": "workspace:*"
+    "vitest": "^4.0.0"
   },
   "private": true
 }

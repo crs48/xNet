@@ -544,11 +544,11 @@ export interface WidgetContribution {
 
 ### Phase 2 — Charts and feeds
 
-- [ ] Create `packages/charts` wrapping `echarts/core` with selective imports and theme bridge to Tailwind tokens
-- [ ] Chart widgets: bar, line, area, pie; property-picker config (x, y, series, aggregate) reusing `ViewConfigField` patterns
-- [ ] Social feed widget over `packages/social/src/lenses/graph-lenses.ts` descriptors
-- [ ] Pin-board widget (gallery view in a tile) and calendar widget
-- [ ] Compact/`maxRows` modes for `TableView` and `BoardView` in `packages/views`
+- [x] Create `packages/charts` wrapping `echarts/core` with selective imports and theme bridge to Tailwind tokens
+- [x] Chart widgets: bar, line, area, pie; property-picker config (x, y, series, aggregate) reusing `ViewConfigField` patterns
+- [x] Social feed widget over `packages/social/src/lenses/graph-lenses.ts` descriptors
+- [x] Pin-board widget (gallery view in a tile) and calendar widget
+- [x] Compact/`maxRows` modes for `TableView` and `BoardView` in `packages/views`
 
 ### Phase 3 — Plugins and canvas reuse
 
