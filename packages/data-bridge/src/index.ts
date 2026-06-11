@@ -89,6 +89,7 @@ export {
   createDataBridge,
   createMainThreadBridgeSync,
   createWorkerBridgeSync,
+  getDefaultDataWorkerUrl,
   isWorkerSupported,
   isNodeEnvironment,
   type CreateBridgeOptions

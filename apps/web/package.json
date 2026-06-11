@@ -14,6 +14,7 @@
     "@tanstack/react-router": "^1.57.0",
     "@xnetjs/canvas": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/data-bridge": "workspace:*",
     "@xnetjs/devtools": "workspace:*",
     "@xnetjs/editor": "workspace:*",
     "@xnetjs/identity": "workspace:*",

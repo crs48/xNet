@@ -335,6 +335,9 @@ importers:
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../../packages/data
+      '@xnetjs/data-bridge':
+        specifier: workspace:*
+        version: link:../../packages/data-bridge
       '@xnetjs/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
