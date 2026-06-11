@@ -14,6 +14,8 @@ interface SelectConfig {
   allowCreate?: boolean
   /** Persist a new option; returns its ID (V2 SelectOption node) */
   onCreateOption?: (name: string) => Promise<string | null>
+  /** Seed the autocomplete query (type-to-replace first character) */
+  initialQuery?: string
 }
 
 /**
@@ -33,7 +35,7 @@ function SelectEditor({
   const cfg = (config ?? {}) as SelectConfig
   const options = cfg.options ?? []
   const allowCreate = cfg.allowCreate !== false
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(cfg.initialQuery ?? '')
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)

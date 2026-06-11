@@ -125,3 +125,42 @@ describe('optionChipStyle', () => {
     expect(optionChipStyle(undefined)).toEqual(optionChipStyle('gray'))
   })
 })
+
+describe('typeahead autocomplete', () => {
+  it('select editor lists all options when opened with no query', () => {
+    render(<selectHandler.Editor value={null} config={{ options }} onChange={vi.fn()} autoFocus />)
+    expect(screen.getAllByRole('option')).toHaveLength(2)
+    expect(screen.getByText('Todo')).toBeTruthy()
+    expect(screen.getByText('Done')).toBeTruthy()
+  })
+
+  it('select editor seeds the query from initialQuery (type-to-replace)', () => {
+    render(
+      <selectHandler.Editor
+        value={null}
+        config={{ options, initialQuery: 'do' }}
+        onChange={vi.fn()}
+        autoFocus
+      />
+    )
+    const input = screen.getByRole('combobox') as HTMLInputElement
+    expect(input.value).toBe('do')
+    // Both 'Todo' and 'Done' contain 'do'
+    expect(screen.getAllByRole('option')).toHaveLength(2)
+  })
+
+  it('multiSelect editor seeds the query from initialQuery', () => {
+    render(
+      <multiSelectHandler.Editor
+        value={[]}
+        config={{ options, initialQuery: 'tod' }}
+        onChange={vi.fn()}
+        autoFocus
+      />
+    )
+    const input = screen.getByRole('combobox') as HTMLInputElement
+    expect(input.value).toBe('tod')
+    expect(screen.getAllByRole('option')).toHaveLength(1)
+    expect(screen.getByText('Todo')).toBeTruthy()
+  })
+})

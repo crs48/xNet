@@ -722,6 +722,8 @@ function GridRow({
     disabled: readOnly
   })
 
+  const hostsEditing = state.editing?.pos.row === rowIndex
+
   const rowSelected =
     state.selection.kind === 'rows' &&
     rowIndex >= Math.min(state.selection.anchorRow, state.selection.focusRow) &&
@@ -739,6 +741,9 @@ function GridRow({
         left: 0,
         right: 0,
         height,
+        // The editing row paints above later (absolutely-positioned)
+        // siblings so editor dropdowns aren't covered
+        ...(hostsEditing ? { zIndex: 30 } : {}),
         ...(transform ? { transform: `translateY(${transform.y ?? 0}px)` } : {})
       }}
       className={cn(

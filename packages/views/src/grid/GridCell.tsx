@@ -135,9 +135,12 @@ function GridCellInner({
         ? { onCreateOption: (name: string) => onCreateOption(field.id, name) }
         : {}),
       ...(onUploadFile ? { onUploadFile } : {}),
-      ...(onResolveFileUrl ? { onResolveFileUrl } : {})
+      ...(onResolveFileUrl ? { onResolveFileUrl } : {}),
+      // Type-to-replace on picker cells: the typed character becomes the
+      // initial autocomplete query instead of being dropped
+      ...(editing && editSeed !== undefined ? { initialQuery: editSeed } : {})
     }),
-    [field, onCreateOption, onUploadFile, onResolveFileUrl]
+    [field, onCreateOption, onUploadFile, onResolveFileUrl, editing, editSeed]
   )
 
   const handleChange = useCallback(
@@ -183,10 +186,13 @@ function GridCellInner({
         ...(remotePresence ? { boxShadow: `inset 0 0 0 2px ${remotePresence.color}` } : {})
       }}
       className={cn(
-        'relative h-full border-b border-r border-gray-100 dark:border-gray-800 px-2 flex items-center text-sm overflow-hidden select-none',
+        'relative h-full border-b border-r border-gray-100 dark:border-gray-800 px-2 flex items-center text-sm select-none',
         selected && !focused && 'bg-blue-50/60 dark:bg-blue-900/20',
         focused && 'ring-2 ring-inset ring-blue-500 dark:ring-blue-400 z-[1]',
-        !editing && 'whitespace-nowrap'
+        // While editing the cell must not clip its editor's dropdown
+        // (option lists render below the input) and must paint above
+        // neighboring cells
+        editing ? 'z-30' : 'overflow-hidden whitespace-nowrap'
       )}
       onMouseDown={(e) => {
         if (e.button === 0) onMouseDown(rowIndex, colIndex, e.shiftKey)

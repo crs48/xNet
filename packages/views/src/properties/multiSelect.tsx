@@ -12,6 +12,8 @@ interface MultiSelectConfig {
   allowCreate?: boolean
   /** Persist a new option; returns its ID (V2 SelectOption node) */
   onCreateOption?: (name: string) => Promise<string | null>
+  /** Seed the autocomplete query (type-to-replace first character) */
+  initialQuery?: string
 }
 
 /**
@@ -26,7 +28,7 @@ function MultiSelectEditor({
   config
 }: PropertyEditorProps<string[]>) {
   const [isOpen, setIsOpen] = useState(false)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(((config ?? {}) as MultiSelectConfig).initialQuery ?? '')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
