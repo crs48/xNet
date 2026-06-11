@@ -193,6 +193,9 @@ function MultiSelectEditor({
 
               if (event.key === 'Enter') {
                 event.preventDefault()
+                // The picker owns Enter — don't let the grid keymap
+                // commit-and-close mid picker interaction
+                event.stopPropagation()
                 const highlighted = filteredOptions[activeIndex]
                 if (highlighted) {
                   commitOption(highlighted.id)

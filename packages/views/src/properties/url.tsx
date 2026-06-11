@@ -8,15 +8,27 @@ import React, { useEffect, useRef } from 'react'
 /**
  * URL editor component
  */
-function UrlEditor({ value, onChange, onBlur, autoFocus, disabled }: PropertyEditorProps<string>) {
+function UrlEditor({
+  value,
+  onChange,
+  onBlur,
+  autoFocus,
+  autoSelect = true,
+  disabled
+}: PropertyEditorProps<string>) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
       inputRef.current.focus()
-      inputRef.current.select()
+      if (autoSelect) {
+        inputRef.current.select()
+      } else {
+        const end = inputRef.current.value.length
+        inputRef.current.setSelectionRange(end, end)
+      }
     }
-  }, [autoFocus])
+  }, [autoFocus, autoSelect])
 
   return (
     <input

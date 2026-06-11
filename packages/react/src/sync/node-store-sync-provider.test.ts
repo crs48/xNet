@@ -77,4 +77,44 @@ describe('NodeStoreSyncProvider', () => {
       })
     })
   })
+
+  it('carries protocolVersion across the wire (it is part of the hashed fields)', () => {
+    // Regression: the serializer used to drop protocolVersion, so every
+    // relayed change failed verifyChangeHash on the receiving side and
+    // browser-to-browser node sync silently never converged.
+    let storeListener: ((event: { change: NodeChange; isRemote: boolean }) => void) | null = null
+    const store = {
+      subscribe: vi.fn((listener: (event: { change: NodeChange; isRemote: boolean }) => void) => {
+        storeListener = listener
+        return vi.fn()
+      }),
+      getChangesSince: vi.fn(async () => []),
+      applyRemoteChange: vi.fn(async () => undefined),
+      applyRemoteChanges: vi.fn(async () => undefined)
+    } as unknown as NodeStore
+    const connection = {
+      status: 'connected',
+      joinRoom: vi.fn(() => vi.fn()),
+      onMessage: vi.fn(() => vi.fn()),
+      onStatus: vi.fn(() => vi.fn()),
+      publish: vi.fn(),
+      sendRaw: vi.fn(),
+      joinRoomAsync: vi.fn(),
+      leaveRoom: vi.fn(),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      roomCount: 0
+    } as unknown as ConnectionManager
+    const provider = new NodeStoreSyncProvider(store, 'room-1')
+    provider.attach(connection)
+
+    const change: NodeChange = { ...createSchemaDefinitionChange(), protocolVersion: 1 }
+    storeListener!({ change, isRemote: false })
+
+    expect(connection.publish).toHaveBeenCalledWith('room-1', {
+      type: 'node-change',
+      room: 'room-1',
+      change: expect.objectContaining({ protocolVersion: 1 })
+    })
+  })
 })

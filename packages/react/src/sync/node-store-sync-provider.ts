@@ -25,6 +25,7 @@ export type SerializedNodeChange = {
   parentHash: string | null
   payload: NodePayload
   signatureB64: string
+  protocolVersion?: number
   batchId?: string
   batchIndex?: number
   batchSize?: number
@@ -243,6 +244,9 @@ export class NodeStoreSyncProvider {
       parentHash: change.parentHash,
       payload: change.payload,
       signatureB64: bytesToBase64(change.signature),
+      // protocolVersion is part of the hashed fields — dropping it makes
+      // every relayed change fail verifyChangeHash on the receiving side
+      protocolVersion: change.protocolVersion,
       batchId: change.batchId,
       batchIndex: change.batchIndex,
       batchSize: change.batchSize
@@ -260,6 +264,7 @@ export class NodeStoreSyncProvider {
       wallTime: serialized.wallTime,
       lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
       payload: serialized.payload,
+      protocolVersion: serialized.protocolVersion,
       batchId: serialized.batchId,
       batchIndex: serialized.batchIndex,
       batchSize: serialized.batchSize

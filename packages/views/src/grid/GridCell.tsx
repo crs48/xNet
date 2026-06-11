@@ -8,7 +8,7 @@ import type { GridField } from './model.js'
 import type { CellValue } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { memo, useCallback, useMemo, useRef, useState } from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 
 export interface GridCellProps {
@@ -90,6 +90,32 @@ function GridCellInner({
   const handler = getPropertyHandler(field.type)
   const cellRef = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState<CellValue>(null)
+  const wasEditingRef = useRef(false)
+  /**
+   * One commit (or cancel) per edit session. The unmounting editor's input
+   * fires a blur after the session already committed (picker-select, keymap
+   * Enter/Escape) — without this guard that stale blur re-commits the old
+   * draft and can clobber the just-written value.
+   */
+  const sessionDoneRef = useRef(true)
+
+  // Initialize the draft synchronously when an edit session starts — the
+  // editor captures its initial value on mount, so an effect would be too
+  // late and drop the type-to-replace seed (guarded setState-during-render,
+  // React's derived-state pattern).
+  if (editing && !wasEditingRef.current) {
+    wasEditingRef.current = true
+    sessionDoneRef.current = false
+    const initial =
+      editSeed !== undefined ? seedValue(field, editSeed) : ((value ?? null) as CellValue)
+    setDraft(initial)
+    onDraftChange(initial)
+  } else if (!editing && wasEditingRef.current) {
+    // The grid closed the session (keymap commit/cancel); render phase runs
+    // before the editor's DOM unmount, so the ref is set before its blur fires
+    wasEditingRef.current = false
+    sessionDoneRef.current = true
+  }
 
   const editorConfig = useMemo(
     () => ({
@@ -103,18 +129,6 @@ function GridCellInner({
     [field, onCreateOption]
   )
 
-  // Initialize the draft when an edit session starts (and report it, so a
-  // commit with no further changes persists the right value)
-  useEffect(() => {
-    if (editing) {
-      const initial =
-        editSeed !== undefined ? seedValue(field, editSeed) : ((value ?? null) as CellValue)
-      setDraft(initial)
-      onDraftChange(initial)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing])
-
   const handleChange = useCallback(
     (next: unknown) => {
       setDraft(next as CellValue)
@@ -125,10 +139,18 @@ function GridCellInner({
 
   const handleEditorCommit = useCallback(
     (next?: unknown) => {
+      if (sessionDoneRef.current) return
+      sessionDoneRef.current = true
       onCommit((next !== undefined ? next : draft) as CellValue)
     },
     [onCommit, draft]
   )
+
+  const handleEditorCancel = useCallback(() => {
+    if (sessionDoneRef.current) return
+    sessionDoneRef.current = true
+    onCancel()
+  }, [onCancel])
 
   const remotePresence = presences && presences.length > 0 ? presences[0] : undefined
 
@@ -168,9 +190,10 @@ function GridCellInner({
             config={editorConfig}
             onChange={handleChange}
             onCommit={handleEditorCommit}
-            onCancel={onCancel}
+            onCancel={handleEditorCancel}
             onBlur={() => handleEditorCommit()}
             autoFocus
+            autoSelect={editSeed === undefined}
           />
         </div>
       ) : (

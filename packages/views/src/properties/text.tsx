@@ -13,6 +13,7 @@ function TextEditor({
   onChange,
   onBlur,
   autoFocus,
+  autoSelect = true,
   disabled,
   config
 }: PropertyEditorProps<string>) {
@@ -21,9 +22,14 @@ function TextEditor({
   useEffect(() => {
     if (autoFocus && inputRef.current) {
       inputRef.current.focus()
-      inputRef.current.select()
+      if (autoSelect) {
+        inputRef.current.select()
+      } else {
+        const end = inputRef.current.value.length
+        inputRef.current.setSelectionRange(end, end)
+      }
     }
-  }, [autoFocus])
+  }, [autoFocus, autoSelect])
 
   return (
     <input

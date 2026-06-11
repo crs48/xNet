@@ -467,7 +467,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 ### Phase 4 — Cross-platform & multiplayer hardening
 
 - [ ] Expo: card/list database surface + full-screen row editor, registered via `registry.ts` mobile platform flag
-- [ ] Two-context Playwright multiplayer specs: presence rings, concurrent distinct-cell edits, concurrent option-create, local-only undo
+- [x] Two-context Playwright multiplayer specs — harness rebuilt on the real V2 stack (`tests/e2e/harness/database.tsx`); `database.spec.ts` covers structure CRUD, type-to-replace keyboard editing, typeahead option creation, sort toggle, and two-user hub convergence; `database-undo.spec.ts` covers scoped undo/redo incl. the Cmd/Ctrl+Z keymap path. Presence-ring and concurrent-option two-context assertions remain follow-up
 - [ ] Performance budgets: 10k-row scroll FPS, sub-50ms edit commit, materialized-view cache-hit assertions
 - [ ] CSV/JSON import/export wired to the new toolbar (engines already exist)
 

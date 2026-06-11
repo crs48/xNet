@@ -20,6 +20,24 @@
         padding: 8px 16px;
         cursor: pointer;
       }
+      /* Minimal Tailwind-equivalent layout utilities the grid relies on
+         (the harness does not run a Tailwind build) */
+      .flex { display: flex; }
+      .flex-col { flex-direction: column; }
+      .flex-1 { flex: 1 1 0%; }
+      .h-full { height: 100%; }
+      .w-full { width: 100%; }
+      .overflow-auto { overflow: auto; }
+      .overflow-hidden { overflow: hidden; }
+      .overflow-y-auto { overflow-y: auto; }
+      .items-center { align-items: center; }
+      .justify-between { justify-content: space-between; }
+      .sticky { position: sticky; }
+      .top-0 { top: 0; }
+      .relative { position: relative; }
+      .absolute { position: absolute; }
+      .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .min-h-0 { min-height: 0; }
     </style>
   </head>
   <body>

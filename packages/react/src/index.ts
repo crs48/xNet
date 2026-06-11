@@ -231,6 +231,11 @@ export {
  * <GridSurface fields={grid.visibleFields} rows={grid.rows} ... />
  * ```
  */
+/**
+ * useNodeStore - Direct access to the underlying NodeStore (advanced).
+ */
+export { useNodeStore } from './hooks/useNodeStore'
+
 export {
   useGridDatabase,
   type UseGridDatabaseOptions,

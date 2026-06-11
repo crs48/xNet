@@ -96,6 +96,19 @@ export function GridSurface({
     }
   }, [rows.length, fields.length, state.rowCount, state.colCount])
 
+  // Reclaim keyboard focus when an edit session ends. Runs as an effect so
+  // the editor has already rendered closed (and GridCell's session guard is
+  // set) before the editor input blurs — a synchronous focus() would fire
+  // that blur first and re-commit the stale draft.
+  const wasEditingRef = useRef(false)
+  useEffect(() => {
+    const isEditing = state.editing !== null
+    if (wasEditingRef.current && !isEditing) {
+      containerRef.current?.focus()
+    }
+    wasEditingRef.current = isEditing
+  }, [state.editing])
+
   // Presence broadcast on cursor change
   const cursorKey = state.cursor ? `${state.cursor.row}:${state.cursor.col}` : null
   useEffect(() => {
