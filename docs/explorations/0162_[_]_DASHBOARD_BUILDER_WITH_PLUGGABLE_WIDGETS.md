@@ -559,10 +559,10 @@ export interface WidgetContribution {
 
 ### Phase 4 — User-generated widgets
 
-- [ ] In-app widget editor (code + config schema)
-- [ ] SES `lockdown()` + per-widget `Compartment` in a Web Worker; postMessage render protocol
-- [ ] Marketplace tier: sandboxed iframe (web) / `<webview>` with `contextIsolation` (Electron)
-- [ ] Permission prompts surfaced from `PluginPermissions` at widget-add time
+- [x] In-app widget editor (code + config schema) — `UserWidgetEditor` persisting `UserWidgetSchema` nodes, registered as 'user'-tier widgets
+- [x] SES `lockdown()` + per-widget `Compartment` in a Web Worker; postMessage render protocol (SafeNode trees with tag/style allowlists)
+- [x] Marketplace tier: sandboxed iframe (web) `IframeWidgetHost`; Electron `<webview>` swaps in with the same message protocol
+- [x] Permission prompts surfaced from `PluginPermissions` at widget-add time (`summarizePluginPermissions` + picker confirmation step)
 
 ## Validation Checklist
 

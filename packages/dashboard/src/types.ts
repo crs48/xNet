@@ -149,6 +149,11 @@ export interface WidgetDefinition<C = Record<string, unknown>> {
   description?: string
   /** Trust tier assigned by the host */
   trustTier: WidgetTrustTier
+  /**
+   * Human-readable permission summaries (from PluginPermissions) surfaced
+   * to the user at widget-add time. Empty/absent = no special access.
+   */
+  permissions?: string[]
   /** Drives the auto-generated config editor */
   configFields: WidgetConfigField[]
   /** Default + minimum tile size in grid units */

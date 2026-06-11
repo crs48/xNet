@@ -22,9 +22,58 @@ export interface WidgetContributionSource {
   onChange(listener: () => void): () => void
 }
 
+/**
+ * Summarize a plugin's PluginPermissions into the human-readable lines the
+ * widget picker shows at add time.
+ */
+export function summarizePluginPermissions(permissions: {
+  schemas?: { read?: string[] | '*'; write?: string[] | '*'; create?: string[] }
+  capabilities?: {
+    network?: boolean | string[]
+    storage?: 'local' | 'shared'
+    clipboard?: boolean
+    notifications?: boolean
+    processes?: boolean
+  }
+}): string[] {
+  const lines: string[] = []
+  const schemaName = (iri: string) => iri.split('/').pop()?.split('@')[0] ?? iri
+
+  if (permissions.schemas?.read) {
+    lines.push(
+      permissions.schemas.read === '*'
+        ? 'Read all your data'
+        : `Read: ${permissions.schemas.read.map(schemaName).join(', ')}`
+    )
+  }
+  if (permissions.schemas?.write) {
+    lines.push(
+      permissions.schemas.write === '*'
+        ? 'Modify all your data'
+        : `Modify: ${permissions.schemas.write.map(schemaName).join(', ')}`
+    )
+  }
+  if (permissions.schemas?.create?.length) {
+    lines.push(`Create: ${permissions.schemas.create.map(schemaName).join(', ')}`)
+  }
+  if (permissions.capabilities?.network) {
+    lines.push(
+      permissions.capabilities.network === true
+        ? 'Access the network'
+        : `Access the network: ${permissions.capabilities.network.join(', ')}`
+    )
+  }
+  if (permissions.capabilities?.clipboard) lines.push('Read and write the clipboard')
+  if (permissions.capabilities?.notifications) lines.push('Show notifications')
+  if (permissions.capabilities?.processes) lines.push('Run system processes')
+
+  return lines
+}
+
 export function widgetDefinitionFromContribution(
   contribution: WidgetContribution,
-  trustTier: WidgetTrustTier
+  trustTier: WidgetTrustTier,
+  permissions?: string[]
 ): AnyWidgetDefinition {
   return {
     type: contribution.type,
@@ -32,6 +81,7 @@ export function widgetDefinitionFromContribution(
     icon: contribution.icon ?? 'blocks',
     description: contribution.description,
     trustTier,
+    ...(permissions && permissions.length > 0 ? { permissions } : {}),
     configFields: contribution.configFields ?? [],
     defaultSize: contribution.defaultSize,
     getStubConfig: (ctx) => {
@@ -57,6 +107,8 @@ export function connectWidgetContributions(
     registry?: WidgetRegistry
     /** Host-assigned tier for these contributions (default 'marketplace') */
     trustTier?: WidgetTrustTier
+    /** Permission summary lines surfaced at widget-add time */
+    permissions?: string[]
   } = {}
 ): () => void {
   const registry = options.registry ?? widgetRegistry
@@ -77,7 +129,9 @@ export function connectWidgetContributions(
       if (registered.has(type)) continue
       registered.set(
         type,
-        registry.register(widgetDefinitionFromContribution(contribution, trustTier))
+        registry.register(
+          widgetDefinitionFromContribution(contribution, trustTier, options.permissions)
+        )
       )
     }
   }

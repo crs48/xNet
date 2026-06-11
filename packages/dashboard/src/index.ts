@@ -58,9 +58,30 @@ export { recentItemsWidget, type RecentItemsWidgetConfig } from './widgets/recen
 // Plugin bridge
 export {
   connectWidgetContributions,
+  summarizePluginPermissions,
   widgetDefinitionFromContribution,
   type WidgetContributionSource
 } from './plugins'
+
+// Sandbox tiers (phase 4)
+export { renderSafeNode, SAFE_NODE_TAGS, type SafeNode } from './sandbox/safe-node'
+export {
+  evaluateUserWidget,
+  lockdownRealm,
+  renderUserWidget,
+  type UserWidgetRenderFn,
+  type UserWidgetRenderProps
+} from './sandbox/compartment'
+export { UserWidgetHost, type UserWidgetHostProps } from './sandbox/UserWidgetHost'
+export { IframeWidgetHost, type IframeWidgetHostProps } from './sandbox/IframeWidgetHost'
+export {
+  DEFAULT_USER_WIDGET_CODE,
+  USER_WIDGET_TYPE_PREFIX,
+  UserWidgetEditor,
+  userWidgetDefinition,
+  useUserWidgets,
+  type UserWidgetEditorProps
+} from './sandbox/user-widgets'
 
 // Canvas host
 export {

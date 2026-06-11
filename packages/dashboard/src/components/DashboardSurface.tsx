@@ -19,6 +19,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { resolveLayout, placeWidget, DASHBOARD_COLUMNS } from '../layout'
 import { widgetRegistry, type WidgetRegistry } from '../registry'
 import { DashboardRuntimeProvider } from '../runtime/context'
+import { UserWidgetEditor, useUserWidgets } from '../sandbox/user-widgets'
 import { registerBuiltinWidgets } from '../widgets/builtins'
 import { DashboardGrid } from './DashboardGrid'
 import { DashboardVariablesBar } from './DashboardVariablesBar'
@@ -47,7 +48,11 @@ export function DashboardSurface({
   const { create, update } = useMutate()
   const [editing, setEditing] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [widgetEditorOpen, setWidgetEditorOpen] = useState(false)
   const [configWidgetId, setConfigWidgetId] = useState<string | null>(null)
+
+  // Keep user-authored widgets (UserWidgetSchema nodes) registered.
+  useUserWidgets(registry)
 
   const widgets = useMemo(() => dashboard?.widgets ?? [], [dashboard?.widgets])
   const sizeFor = useCallback(
@@ -259,8 +264,14 @@ export function DashboardSurface({
           registry={registry}
           onSelect={handleAddWidget}
           onClose={() => setPickerOpen(false)}
+          onCreateWidget={() => {
+            setPickerOpen(false)
+            setWidgetEditorOpen(true)
+          }}
         />
       ) : null}
+
+      {widgetEditorOpen ? <UserWidgetEditor onClose={() => setWidgetEditorOpen(false)} /> : null}
     </DashboardRuntimeProvider>
   )
 }
