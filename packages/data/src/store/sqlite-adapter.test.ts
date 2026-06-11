@@ -140,7 +140,12 @@ describe('SQLiteNodeStorageAdapter', () => {
 
   beforeEach(async () => {
     db = await createMemorySQLiteAdapter()
-    adapter = new SQLiteNodeStorageAdapter(db)
+    // Parity verification and plan diagnostics are off by default in
+    // production; the test suite opts back in to keep the safety net.
+    adapter = new SQLiteNodeStorageAdapter(db, {
+      queryVerification: { enabled: true },
+      queryDiagnostics: true
+    })
   })
 
   afterEach(async () => {
@@ -1709,7 +1714,7 @@ describe('SQLiteNodeStorageAdapter', () => {
 
     it('skips parity checks when the descriptor scope exceeds the configured cap', async () => {
       adapter = new SQLiteNodeStorageAdapter(db, {
-        queryVerification: { maxNodes: 1 }
+        queryVerification: { enabled: true, maxNodes: 1 }
       })
 
       const result = await adapter.queryNodes({
@@ -1804,7 +1809,9 @@ describe('SQLiteNodeStorageAdapter', () => {
       const nativeDb = await createNativeSQLiteAdapterOrNull(dbPath)
       if (!nativeDb) return
 
-      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
+      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb, {
+        queryVerification: { enabled: true }
+      })
       const now = Date.now()
 
       try {
@@ -1890,7 +1897,9 @@ describe('SQLiteNodeStorageAdapter', () => {
       const nativeDb = await createNativeSQLiteAdapterOrNull(dbPath)
       if (!nativeDb) return
 
-      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb)
+      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb, {
+        queryVerification: { enabled: true }
+      })
       const now = Date.now()
 
       try {
@@ -2001,6 +2010,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         includeDeleted: false,
         where: { status: 'open' }
       })
+      await adapter.flushQueryTelemetry()
       const stats = await db.queryOne<{
         descriptor_hash: string
         hits: number

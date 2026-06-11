@@ -569,9 +569,9 @@ export function useMutate(): UseMutateResult {
 
 Phase 0 — adapter overhead:
 
-- [ ] Default `queryVerification.enabled` to `false`; enable explicitly in vitest/integration suites
-- [ ] Gate `collectCompiledQueryDiagnostics` behind `xnet:query:debug`
-- [ ] Make `recordQueryTelemetry` sample (or buffer in memory and flush on idle), preserving adaptive-index hit counting
+- [x] Default `queryVerification.enabled` to `false`; enable explicitly in vitest/integration suites
+- [x] Gate `collectCompiledQueryDiagnostics` behind `xnet:query:debug` (plus a `queryDiagnostics` adapter option)
+- [x] Make `recordQueryTelemetry` sample (or buffer in memory and flush on idle), preserving adaptive-index hit counting
 - [ ] Re-run `pnpm bench:core-platform` and commit updated baselines
 
 Phase 1 — incremental bounded queries:
