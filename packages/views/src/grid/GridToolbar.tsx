@@ -25,10 +25,13 @@ import {
   ArrowDownUp,
   ArrowDown,
   ArrowUp,
+  Download,
   Eye,
   EyeOff,
+  FileUp,
   Filter as FilterIcon,
   Layers,
+  MoreHorizontal,
   Plus,
   Search,
   X
@@ -109,11 +112,17 @@ export interface GridToolbarProps {
   search?: string
   onSearchChange?: (search: string) => void
 
+  /** Export the current view as CSV / JSON (engines live in the app layer) */
+  onExportCsv?: () => void
+  onExportJson?: () => void
+  /** Import rows (and inferred fields) from a CSV file */
+  onImportCsv?: (file: File) => void
+
   rowCount?: number
   className?: string
 }
 
-type Popover = 'filter' | 'visibility' | 'group' | null
+type Popover = 'filter' | 'visibility' | 'group' | 'more' | null
 
 export function GridToolbar({
   views,
@@ -132,9 +141,13 @@ export function GridToolbar({
   onChangeGroupBy,
   search = '',
   onSearchChange,
+  onExportCsv,
+  onExportJson,
+  onImportCsv,
   rowCount,
   className
 }: GridToolbarProps): React.JSX.Element {
+  const importInputRef = useRef<HTMLInputElement>(null)
   const [openPopover, setOpenPopover] = useState<Popover>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -367,6 +380,76 @@ export function GridToolbar({
                   </button>
                 )
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Import / export */}
+      {(onExportCsv || onExportJson || onImportCsv) && (
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="More actions"
+            aria-expanded={openPopover === 'more'}
+            className="p-1 rounded text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+            onClick={() => setOpenPopover(openPopover === 'more' ? null : 'more')}
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+          {openPopover === 'more' && (
+            <div
+              ref={popoverRef}
+              className="absolute right-0 top-full mt-1 z-30 w-48 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg"
+            >
+              {onExportCsv && (
+                <button
+                  type="button"
+                  className="w-full px-3 py-1.5 flex items-center gap-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800"
+                  onClick={() => {
+                    onExportCsv()
+                    setOpenPopover(null)
+                  }}
+                >
+                  <Download className="w-3.5 h-3.5" /> Export CSV
+                </button>
+              )}
+              {onExportJson && (
+                <button
+                  type="button"
+                  className="w-full px-3 py-1.5 flex items-center gap-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800"
+                  onClick={() => {
+                    onExportJson()
+                    setOpenPopover(null)
+                  }}
+                >
+                  <Download className="w-3.5 h-3.5" /> Export JSON
+                </button>
+              )}
+              {onImportCsv && (
+                <>
+                  <button
+                    type="button"
+                    className="w-full px-3 py-1.5 flex items-center gap-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800"
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    <FileUp className="w-3.5 h-3.5" /> Import CSV
+                  </button>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    data-testid="import-csv-input"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) onImportCsv(file)
+                      e.target.value = ''
+                      setOpenPopover(null)
+                    }}
+                  />
+                </>
+              )}
             </div>
           )}
         </div>

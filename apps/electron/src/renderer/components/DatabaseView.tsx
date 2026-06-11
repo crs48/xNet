@@ -7,7 +7,21 @@
  * through the universal commenting system.
  */
 
-import { type FieldType, DatabaseSchema, FIELD_TYPES } from '@xnetjs/data'
+import {
+  type CellValue,
+  type ColumnDefinition,
+  type FieldType,
+  type FileRef,
+  DatabaseSchema,
+  FIELD_TYPES,
+  downloadCsv,
+  downloadJson,
+  exportToCsv,
+  exportToJson,
+  inferColumnTypes,
+  parseCSV,
+  parseRow
+} from '@xnetjs/data'
 import { useBlobService } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
 import { CommentPopover, type CommentThreadData } from '@xnetjs/ui'
@@ -87,6 +101,106 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
       return blobService.getUrl(ref)
     },
     [blobService]
+  )
+
+  // ─── CSV/JSON import & export (engines in @xnetjs/data) ──────────────────
+  const exportColumns = useCallback(
+    (): ColumnDefinition[] =>
+      grid.fields.map((f) => ({
+        id: f.id,
+        name: f.name,
+        type: f.type as ColumnDefinition['type'],
+        config: f.config as ColumnDefinition['config']
+      })),
+    [grid.fields]
+  )
+
+  const handleExportCsv = useCallback(() => {
+    const csv = exportToCsv(
+      grid.rows.map((r) => ({ id: r.id, sortKey: r.sortKey, cells: r.cells })),
+      exportColumns()
+    )
+    downloadCsv(csv, `${database?.title || 'database'}.csv`)
+  }, [grid.rows, exportColumns, database?.title])
+
+  const handleExportJson = useCallback(() => {
+    const json = exportToJson(
+      grid.rows.map((r) => ({ id: r.id, sortKey: r.sortKey, cells: r.cells })),
+      exportColumns()
+    )
+    downloadJson(json, `${database?.title || 'database'}.json`)
+  }, [grid.rows, exportColumns, database?.title])
+
+  const handleImportCsv = useCallback(
+    async (file: File) => {
+      const text = await file.text()
+      const parsed = parseCSV(text)
+      if (parsed.headers.length === 0) return
+      const types = inferColumnTypes(parsed.headers, parsed.rows)
+
+      // Create one field per header (first header becomes the title field
+      // when the database doesn't have one yet)
+      const hasTitle = grid.fields.some((f) => f.isTitle)
+      const headerFieldIds = new Map<string, string>()
+      for (let i = 0; i < parsed.headers.length; i++) {
+        const header = parsed.headers[i]
+        const type = (types.get(header) ?? 'text') as FieldType
+        const id = await grid.addField(header, type, undefined, {
+          isTitle: !hasTitle && i === 0
+        })
+        if (id) headerFieldIds.set(header, id)
+      }
+
+      // Select-ish headers: persist unique values as option nodes
+      const optionMaps = new Map<string, Map<string, string>>()
+      for (const header of parsed.headers) {
+        const type = types.get(header)
+        if (type !== 'select' && type !== 'multiSelect') continue
+        const fieldId = headerFieldIds.get(header)
+        if (!fieldId) continue
+        const idx = parsed.headers.indexOf(header)
+        const unique = new Set<string>()
+        for (const row of parsed.rows) {
+          const raw = row[idx]?.trim()
+          if (!raw) continue
+          const names =
+            type === 'multiSelect'
+              ? raw
+                  .split(/[,;]/)
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : [raw]
+          names.forEach((n) => unique.add(n))
+        }
+        const nameToId = new Map<string, string>()
+        for (const name of unique) {
+          const optionId = await grid.createOption(fieldId, name)
+          if (optionId) nameToId.set(name.toLowerCase(), optionId)
+        }
+        optionMaps.set(header, nameToId)
+      }
+
+      for (const row of parsed.rows) {
+        const values = parseRow(row, parsed.headers, types)
+        const cells: Record<string, CellValue> = {}
+        for (const header of parsed.headers) {
+          const fieldId = headerFieldIds.get(header)
+          if (!fieldId) continue
+          let value = values[header] as CellValue
+          const nameToId = optionMaps.get(header)
+          if (nameToId) {
+            if (Array.isArray(value)) {
+              value = value.map((n) => nameToId.get(String(n).toLowerCase()) ?? String(n))
+            } else if (typeof value === 'string') {
+              value = nameToId.get(value.toLowerCase()) ?? value
+            }
+          }
+          cells[fieldId] = value ?? null
+        }
+        await grid.addRow(undefined, cells)
+      }
+    },
+    [grid]
   )
 
   // ─── Bootstrap: fresh databases get a title field + table view ───────────
@@ -287,6 +401,11 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         }}
         search={search}
         onSearchChange={setSearch}
+        onExportCsv={handleExportCsv}
+        onExportJson={handleExportJson}
+        onImportCsv={(file) => {
+          void handleImportCsv(file)
+        }}
         rowCount={grid.rows.length}
       />
 

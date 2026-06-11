@@ -138,3 +138,33 @@ describe('filter dialect adapters', () => {
     expect(fromSurfaceFilter({ type: 'and', filters: [] })).toBeNull()
   })
 })
+
+describe('import/export menu', () => {
+  it('exposes export and import actions behind the ⋯ menu', () => {
+    const onExportCsv = vi.fn()
+    const onExportJson = vi.fn()
+    const onImportCsv = vi.fn()
+    render(
+      <GridToolbar
+        views={views}
+        fields={fields}
+        onExportCsv={onExportCsv}
+        onExportJson={onExportJson}
+        onImportCsv={onImportCsv}
+      />
+    )
+    fireEvent.click(screen.getByLabelText('More actions'))
+    fireEvent.click(screen.getByText('Export CSV'))
+    expect(onExportCsv).toHaveBeenCalled()
+
+    fireEvent.click(screen.getByLabelText('More actions'))
+    fireEvent.click(screen.getByText('Export JSON'))
+    expect(onExportJson).toHaveBeenCalled()
+
+    fireEvent.click(screen.getByLabelText('More actions'))
+    const input = screen.getByTestId('import-csv-input') as HTMLInputElement
+    const file = new File(['a,b\n1,2'], 'rows.csv', { type: 'text/csv' })
+    fireEvent.change(input, { target: { files: [file] } })
+    expect(onImportCsv).toHaveBeenCalledWith(file)
+  })
+})

@@ -454,7 +454,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [x] File/attachment cells: BlobService upload (local-first, chunked), drag-file-onto-cell, inline image thumbnails in cells, image previews + lightbox in peek — cell `FileRef` unified with the blob-layer shape (`{cid, name, mimeType, size}`)
 - [ ] Rich text cells: per-row Y.Doc `XmlFragment` editor in row peek (read summary in grid cell)
 - [x] Row peek: desktop side panel / mobile sheet, stacked field editors, row comments thread — `GridPeek` (side panel in the web shell; full editors stacked; row comment count slot; mobile sheet arrives with the Expo surface)
-- [ ] Auto fields (`created`/`createdBy`/`updated`/`updatedBy`) + rollup columns rendered via the computed path
+- [x] Auto fields (`created`/`createdBy`/`updated`) populated from node metadata in `useGridDatabase` (`updatedBy` awaits last-writer attribution on FlatNode); rollup columns remain with the formula UI (Phase 5)
 
 ### Phase 3 — Comments, presence, polish
 
@@ -468,8 +468,8 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 - [ ] Expo: card/list database surface + full-screen row editor, registered via `registry.ts` mobile platform flag
 - [x] Two-context Playwright multiplayer specs — harness rebuilt on the real V2 stack (`tests/e2e/harness/database.tsx`); `database.spec.ts` covers structure CRUD, type-to-replace keyboard editing, typeahead option creation, sort toggle, and two-user hub convergence; `database-undo.spec.ts` covers scoped undo/redo incl. the Cmd/Ctrl+Z keymap path. Presence-ring and concurrent-option two-context assertions remain follow-up
-- [ ] Performance budgets: 10k-row scroll FPS, sub-50ms edit commit, materialized-view cache-hit assertions
-- [ ] CSV/JSON import/export wired to the new toolbar (engines already exist)
+- [x] Performance budgets — `grid/perf.test.tsx`: 10k rows render a bounded virtualized DOM (<100 row elements) within time budgets; cursor traversal budget; 100k state-machine ops <500ms. Real-browser FPS and materialized-view cache-hit assertions remain follow-up
+- [x] CSV/JSON import/export wired to the new toolbar — ⋯ menu with Export CSV/JSON and Import CSV (field inference + select-option node creation on import) in both shells
 
 ### Phase 5 (v2.1) — Computed columns UI
 

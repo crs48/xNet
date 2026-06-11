@@ -28,6 +28,7 @@ import {
   compareSortKeys,
   filterRows,
   fromCellProperties,
+  generateSortKey,
   generateSortKeyWithJitter,
   sortRows
 } from '@xnetjs/data'
@@ -297,11 +298,39 @@ export function useGridDatabase(
   }, [fields, activeView])
 
   const rows = useMemo(() => {
-    const base: GridRowModel[] = ((rowNodes ?? []) as unknown as Flat[]).map((node) => ({
-      id: node.id,
-      sortKey: (node.sortKey as string) ?? '',
-      cells: fromCellProperties(node)
-    }))
+    // Auto fields read node metadata instead of stored cells
+    const autoFields = fields.filter((f) =>
+      ['created', 'createdBy', 'updated', 'updatedBy'].includes(f.type)
+    )
+    const base: GridRowModel[] = ((rowNodes ?? []) as unknown as Flat[]).map((node) => {
+      const cells = fromCellProperties(node)
+      for (const field of autoFields) {
+        switch (field.type) {
+          case 'created':
+            cells[field.id] = node.createdAt
+              ? new Date(node.createdAt as number).toISOString()
+              : null
+            break
+          case 'createdBy':
+            cells[field.id] = (node.createdBy as string) ?? null
+            break
+          case 'updated':
+            cells[field.id] = node.updatedAt
+              ? new Date(node.updatedAt as number).toISOString()
+              : null
+            break
+          case 'updatedBy':
+            // Last-writer attribution isn't on the flattened node yet
+            cells[field.id] = null
+            break
+        }
+      }
+      return {
+        id: node.id,
+        sortKey: (node.sortKey as string) ?? '',
+        cells
+      }
+    })
     // Fractional-index comparator is the final ordering authority
     base.sort((a, b) => compareSortKeys(a.sortKey, b.sortKey))
     if (!activeView) return base
@@ -364,7 +393,11 @@ export function useGridDatabase(
   }, [optionsByField])
 
   const nextAppendKey = useCallback((tailRef: React.MutableRefObject<string | undefined>) => {
-    const key = generateSortKeyWithJitter(tailRef.current, undefined)
+    // Appends chain off the local tail, so they stay strictly monotonic
+    // without jitter (jitter is for concurrent same-position inserts,
+    // which appends are not — two clients appending diverge by their own
+    // tails either way)
+    const key = generateSortKey(tailRef.current, undefined)
     tailRef.current = key
     return key
   }, [])
