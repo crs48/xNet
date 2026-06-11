@@ -16,10 +16,12 @@ import {
   type FieldType,
   type FilterGroup,
   type SortConfig,
+  convertCellValue,
   filterRows,
   sortRows
 } from '@xnetjs/data'
 import { useCallback, useMemo, useState, type ReactElement } from 'react'
+import { GridFieldMenu } from './GridFieldMenu'
 import { GridPeek } from './GridPeek'
 import { GridSkeleton } from './GridSkeleton'
 import { GridSurface } from './GridSurface'
@@ -74,6 +76,7 @@ function DemoGrid({
   const [hidden, setHidden] = useState<string[]>([])
   const [search, setSearch] = useState('')
   const [peekRowId, setPeekRowId] = useState<string | null>(null)
+  const [fieldMenu, setFieldMenu] = useState<{ fieldId: string; anchor: HTMLElement } | null>(null)
 
   const visibleFields = useMemo(
     () => fields.filter((f) => !hidden.includes(f.id)),
@@ -132,6 +135,59 @@ function DemoGrid({
     [fields]
   )
 
+  /** Retype a field, converting existing cell values (the real engine). */
+  const changeFieldType = useCallback(
+    (fieldId: string, type: FieldType) => {
+      const sourceField = fields.find((f) => f.id === fieldId)
+      if (!sourceField) return
+      const ctx = {
+        optionName: (id: string) => sourceField.options?.find((o) => o.id === id)?.name
+      }
+      const newOptions: GridFieldOption[] = []
+      const nameToId = new Map<string, string>(
+        (sourceField.options ?? []).map((o) => [o.name.toLowerCase(), o.id])
+      )
+      setRows((prev) =>
+        prev.map((r) => {
+          const converted = convertCellValue(r.cells[fieldId] ?? null, sourceField.type, type, ctx)
+          let next = converted.value
+          if (converted.optionNames) {
+            const ids = converted.optionNames.map((name) => {
+              const existing = nameToId.get(name.toLowerCase())
+              if (existing) return existing
+              const option: GridFieldOption = {
+                id: nextId('opt'),
+                name,
+                color: ['blue', 'green', 'orange', 'purple', 'pink', 'red'][name.length % 6]
+              }
+              newOptions.push(option)
+              nameToId.set(name.toLowerCase(), option.id)
+              return option.id
+            })
+            next = type === 'multiSelect' ? ids : (ids[0] ?? null)
+          }
+          return { ...r, cells: { ...r.cells, [fieldId]: next } }
+        })
+      )
+      setFields((prev) =>
+        prev.map((f) =>
+          f.id === fieldId
+            ? {
+                ...f,
+                type,
+                options:
+                  type === 'select' || type === 'multiSelect'
+                    ? [...(f.options ?? []), ...newOptions]
+                    : f.options
+              }
+            : f
+        )
+      )
+    },
+    [fields]
+  )
+
+  const menuField = fieldMenu ? fields.find((f) => f.id === fieldMenu.fieldId) : null
   const peekRow = viewRows.find((r) => r.id === peekRowId) ?? null
 
   return (
@@ -228,8 +284,24 @@ function DemoGrid({
             onCreateOption={createOption}
             onResolveFileUrl={resolveFileUrl as never}
             onOpenRow={withPeek ? setPeekRowId : undefined}
+            onFieldMenu={
+              readOnly ? undefined : (fieldId, anchor) => setFieldMenu({ fieldId, anchor })
+            }
           />
         </div>
+        {fieldMenu && menuField && (
+          <GridFieldMenu
+            field={menuField}
+            anchor={fieldMenu.anchor}
+            onClose={() => setFieldMenu(null)}
+            onRename={(fieldId, name) =>
+              setFields((prev) => prev.map((f) => (f.id === fieldId ? { ...f, name } : f)))
+            }
+            onChangeType={changeFieldType}
+            onHide={(fieldId) => setHidden((prev) => [...prev, fieldId])}
+            onDelete={(fieldId) => setFields((prev) => prev.filter((f) => f.id !== fieldId))}
+          />
+        )}
         {withPeek && peekRow && (
           <div className="w-[380px] shrink-0">
             <GridPeek

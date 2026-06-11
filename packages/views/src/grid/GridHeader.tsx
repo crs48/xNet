@@ -130,7 +130,7 @@ function HeaderCell({
           <ArrowDown data-testid={`sort-desc-${field.id}`} className="w-3 h-3 text-blue-500" />
         ))}
 
-      {!readOnly && (
+      {!readOnly && onFieldMenu && (
         <button
           type="button"
           aria-label={`${field.name} field menu`}

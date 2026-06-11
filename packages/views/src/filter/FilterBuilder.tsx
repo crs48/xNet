@@ -54,10 +54,16 @@ export function FilterBuilder({
     const propKey = firstProp['@id'].split('#').pop() || firstProp.name
     const operators = getOperatorsForProperty(firstProp.type)
 
+    // Default to a value-less operator so adding a filter never blanks
+    // the table while the user is still choosing a value
+    const defaultOperator = operators.includes('isNotEmpty')
+      ? 'isNotEmpty'
+      : (operators[0] ?? 'equals')
+
     const newFilter: Filter = {
       id: crypto.randomUUID(),
       propertyId: propKey,
-      operator: operators[0] ?? 'equals',
+      operator: defaultOperator,
       value: null
     }
 
@@ -118,6 +124,13 @@ export function FilterBuilder({
 
   return (
     <div className={cn('p-4 space-y-3', className)}>
+      {/* Empty state */}
+      {group.filters.length === 0 && (
+        <div className="rounded-md border border-dashed border-gray-300 dark:border-gray-600 px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          No filters yet — add one to narrow the rows
+        </div>
+      )}
+
       {/* Filter conditions */}
       {group.filters.map((filter, index) => {
         const property = properties.find((p) => {
