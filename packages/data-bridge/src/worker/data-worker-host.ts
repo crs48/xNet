@@ -31,6 +31,7 @@ import type { DID } from '@xnetjs/core'
 import {
   NodeStore,
   MemoryNodeStorageAdapter,
+  SQLiteNodeStorageAdapter,
   type NodeState,
   type NodeChangeEvent,
   type NodeBatchChangeEvent,
@@ -54,6 +55,7 @@ import {
   type BoundedQueryWorkingSet
 } from '../query-descriptor'
 import { groupNodeChangeEventsBySchema } from '../utils/change-events'
+import { PortSQLiteAdapter } from './port-sqlite-adapter'
 
 // Above this many events in one flush (or one storage batch), invalidation
 // stops applying per-node deltas and falls back to re-querying each affected
@@ -181,11 +183,21 @@ export class DataWorker implements DataWorkerAPI {
   }
 
   /**
-   * Create the worker's storage adapter. The default is in-memory; port
-   * forwarding to a storage worker overrides this (exploration 0164
-   * checklist item 5).
+   * Create the worker's storage adapter.
+   *
+   * With a forwarded `storagePort`, persistence goes through the existing
+   * SQLite worker via PortSQLiteAdapter (worker-to-worker, no main-thread
+   * hop). Without one, storage is in-memory.
    */
-  protected async createStorageAdapter(_config: WorkerConfig): Promise<NodeStorageAdapter> {
+  protected async createStorageAdapter(config: WorkerConfig): Promise<NodeStorageAdapter> {
+    if (config.storagePort) {
+      const portAdapter = new PortSQLiteAdapter(config.storagePort)
+      await portAdapter.open()
+      const storage = new SQLiteNodeStorageAdapter(portAdapter)
+      await storage.open()
+      return storage
+    }
+
     return new MemoryNodeStorageAdapter()
   }
 

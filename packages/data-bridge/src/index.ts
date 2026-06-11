@@ -72,6 +72,7 @@ export {
   type SyncManagerLike
 } from './main-thread-bridge'
 export { WorkerBridge, createWorkerBridge } from './worker-bridge'
+export { PortSQLiteAdapter } from './worker/port-sqlite-adapter'
 export {
   NativeBridge,
   createNativeBridge,

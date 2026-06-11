@@ -368,6 +368,12 @@ export interface DataBridgeConfig {
   signingKey: Uint8Array
   /** Signaling server URL for sync */
   signalingUrl?: string
+  /**
+   * Optional MessagePort connected to a storage worker (e.g. the SQLite
+   * worker via `WebSQLiteProxy.createMessagePort()`). Worker-backed bridges
+   * transfer it to the data worker so storage calls bypass the main thread.
+   */
+  storagePort?: MessagePort
   /** Optional main-thread remote Node query client for progressive hub/federated reads. */
   remoteNodeQueryClient?: RemoteNodeQueryClient
   /** Optional source:auto routing thresholds for main-thread Node descriptor reads. */

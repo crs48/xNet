@@ -147,8 +147,9 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
       `data-worker-host.ts` for direct test coverage; reload threshold
       raised to 250 to match MainThreadBridge)
 - [x] Default `createWebCryptoChangeSigner` inside the worker
-- [ ] `PortSQLiteAdapter` + `MessagePort` forwarding from
-      `WorkerBridge.initialize`
+- [x] `PortSQLiteAdapter` + `MessagePort` forwarding from
+      `WorkerBridge.initialize` (`WebSQLiteProxy.createMessagePort()` +
+      `SQLiteWorkerHandler.connectPort()` provide the forwarded port)
 - [ ] Binary snapshot transfer for initial loads (`binary-state.ts`)
 - [ ] Worker-side optimistic apply; measure perceived latency vs
       main-thread overlay

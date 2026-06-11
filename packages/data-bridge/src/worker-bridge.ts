@@ -31,7 +31,7 @@ import type {
   NodeBatchWriteResult,
   TransactionOperation
 } from '@xnetjs/data'
-import { wrap, proxy, type Remote } from 'comlink'
+import { wrap, proxy, transfer, type Remote } from 'comlink'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { QueryCache } from './query-cache'
@@ -99,13 +99,21 @@ export class WorkerBridge implements DataBridge {
 
   /**
    * Initialize the bridge and underlying worker.
+   *
+   * When `config.storagePort` is provided (a MessagePort connected to the
+   * SQLite worker), it is transferred to the data worker so storage calls
+   * run worker-to-worker without a main-thread hop.
    */
   async initialize(config: DataBridgeConfig): Promise<void> {
-    await this.remote.initialize({
+    const workerConfig = {
       dbName: config.dbName ?? 'xnet',
       authorDID: config.authorDID,
-      signingKey: Array.from(config.signingKey)
-    })
+      signingKey: Array.from(config.signingKey),
+      ...(config.storagePort ? { storagePort: config.storagePort } : {})
+    }
+    await this.remote.initialize(
+      config.storagePort ? transfer(workerConfig, [config.storagePort]) : workerConfig
+    )
 
     // Subscribe to status changes from worker
     this.remote.onStatusChange(

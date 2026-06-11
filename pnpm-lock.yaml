@@ -620,6 +620,9 @@ importers:
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/sqlite':
+        specifier: workspace:*
+        version: link:../sqlite
       '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync

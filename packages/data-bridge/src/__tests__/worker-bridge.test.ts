@@ -23,9 +23,12 @@ const remote = {
   destroy: vi.fn(async () => {})
 }
 
+const transferSpy = vi.fn((value: unknown, _transferables: unknown[]) => value)
+
 vi.mock('comlink', () => ({
   wrap: vi.fn(() => remote),
-  proxy: vi.fn((value) => value)
+  proxy: vi.fn((value) => value),
+  transfer: vi.fn((value: unknown, transferables: unknown[]) => transferSpy(value, transferables))
 }))
 
 class MockWorker {
@@ -126,6 +129,34 @@ describe('WorkerBridge', () => {
 
     await expect(bridge.transaction([{ type: 'delete', nodeId: 'node-1' }])).rejects.toThrow(
       'WorkerBridge not initialized'
+    )
+  })
+
+  it('transfers the storage port to the worker on initialize', async () => {
+    const { port2 } = new MessageChannel()
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3]),
+      storagePort: port2
+    })
+
+    expect(transferSpy).toHaveBeenCalledTimes(1)
+    expect(transferSpy.mock.calls[0][1]).toEqual([port2])
+    expect(remote.initialize).toHaveBeenCalledWith(expect.objectContaining({ storagePort: port2 }))
+    port2.close()
+  })
+
+  it('skips transfer when no storage port is configured', async () => {
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3])
+    })
+
+    expect(transferSpy).not.toHaveBeenCalled()
+    expect(remote.initialize).toHaveBeenCalledWith(
+      expect.not.objectContaining({ storagePort: expect.anything() })
     )
   })
 })

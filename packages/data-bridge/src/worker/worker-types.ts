@@ -58,6 +58,13 @@ export interface WorkerConfig {
   authorDID: string
   /** Ed25519 signing key (serialized as array for transfer) */
   signingKey: number[]
+  /**
+   * Optional transferred MessagePort connected to the SQLite worker
+   * (created via `WebSQLiteProxy.createMessagePort()`). When present the
+   * data worker persists through a `PortSQLiteAdapter` instead of
+   * in-memory storage.
+   */
+  storagePort?: MessagePort
 }
 
 // ─── Query Types ─────────────────────────────────────────────────────────────
