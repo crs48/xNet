@@ -24,6 +24,12 @@ jobs:
   report:
     name: Report
     runs-on: ubuntu-latest
+    # fallow's base-snapshot pass runs `git worktree add`, which triggers the
+    # repo's husky post-checkout hook inside the fresh worktree, where it dies
+    # with exit 127 and fails the worktree creation. HUSKY=0 both skips hook
+    # installation during pnpm install and short-circuits any installed shim.
+    env:
+      HUSKY: '0'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,19 +57,6 @@ jobs:
           else
             echo "ref=origin/main" >> "$GITHUB_OUTPUT"
           fi
-
-      # Temporary diagnostic: exercise the exact git operation fallow's
-      # base-snapshot pass performs, with stderr visible in the log.
-      - name: Probe git worktree creation
-        shell: bash
-        run: |
-          set -x
-          git --version
-          git rev-parse --verify "${{ steps.base.outputs.ref }}"
-          git config core.hooksPath || true
-          df -h /tmp | tail -1
-          git worktree add --detach "$RUNNER_TEMP/fallow-probe" "${{ steps.base.outputs.ref }}" && echo "PROBE OK"
-          git worktree remove --force "$RUNNER_TEMP/fallow-probe" || true
 
       - name: Run Fallow audit
         shell: bash
