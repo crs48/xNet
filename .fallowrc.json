@@ -36,6 +36,11 @@
     "minLines": 12,
     "threshold": 0
   },
+  "health": {
+    "maxCyclomatic": 20,
+    "maxCognitive": 30,
+    "maxCrap": 30.0
+  },
   "production": {
     "deadCode": false,
     "dupes": false,

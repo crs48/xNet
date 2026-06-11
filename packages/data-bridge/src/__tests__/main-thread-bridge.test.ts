@@ -480,9 +480,11 @@ describe('MainThreadBridge', () => {
       unsubscribe()
     })
 
-    it('should apply in-window updates to bounded queries without re-querying storage', async () => {
+    // Shared fixture for the bounded-window no-requery tests: N created
+    // tasks and a subscribed title-ordered window of 3, settled.
+    async function createBoundedTitleWindow(taskCount: number) {
       const tasks = await Promise.all(
-        Array.from({ length: 5 }, (_, index) =>
+        Array.from({ length: taskCount }, (_, index) =>
           bridge.create(TestTaskSchema, { title: `Task ${index}`, done: false })
         )
       )
@@ -495,6 +497,12 @@ describe('MainThreadBridge', () => {
       await vi.waitFor(() => {
         expect(subscription.getSnapshot()).toHaveLength(3)
       })
+
+      return { tasks, subscription }
+    }
+
+    it('should apply in-window updates to bounded queries without re-querying storage', async () => {
+      const { tasks, subscription } = await createBoundedTitleWindow(5)
 
       const querySpy = vi.spyOn(store, 'query')
 
@@ -509,20 +517,7 @@ describe('MainThreadBridge', () => {
     })
 
     it('should absorb bounded-window removals from the overfetch buffer without re-querying', async () => {
-      const tasks = await Promise.all(
-        Array.from({ length: 6 }, (_, index) =>
-          bridge.create(TestTaskSchema, { title: `Task ${index}`, done: false })
-        )
-      )
-
-      const subscription = bridge.query(TestTaskSchema, {
-        orderBy: { title: 'asc' },
-        limit: 3
-      })
-
-      await vi.waitFor(() => {
-        expect(subscription.getSnapshot()).toHaveLength(3)
-      })
+      const { tasks, subscription } = await createBoundedTitleWindow(6)
 
       const querySpy = vi.spyOn(store, 'query')
 

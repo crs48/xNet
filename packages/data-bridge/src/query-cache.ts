@@ -70,6 +70,48 @@ function isSameNodeData(previous: NodeState[] | null, next: NodeState[] | null):
 }
 
 /**
+ * Metadata surfaces that only remote/stream queries populate. They are
+ * compared conservatively: anything beyond reference equality counts as a
+ * change. Local-only queries never set them, so the notify short-circuit
+ * still covers the hot path.
+ */
+const REMOTE_METADATA_SURFACES = [
+  'stream',
+  'completeness',
+  'staleness',
+  'verification',
+  'materialized'
+] as const
+
+function hasEquivalentRemoteSurfaces(previous: QueryMetadata, next: QueryMetadata): boolean {
+  return REMOTE_METADATA_SURFACES.every((surface) => {
+    if (previous[surface] === next[surface]) return true
+    // References differ: equivalent only when neither side has the surface.
+    return !previous[surface] && !next[surface]
+  })
+}
+
+const COMPARED_PAGE_INFO_FIELDS = [
+  'totalCount',
+  'countMode',
+  'hasMore',
+  'hasNextPage',
+  'hasPreviousPage',
+  'loadedCount',
+  'startCursor',
+  'endCursor'
+] as const
+
+function isSamePageInfo(
+  previous: QueryMetadata['pageInfo'],
+  next: QueryMetadata['pageInfo']
+): boolean {
+  if (previous === next) return true
+  if (!previous || !next) return false
+  return COMPARED_PAGE_INFO_FIELDS.every((field) => previous[field] === next[field])
+}
+
+/**
  * Whether two metadata snapshots are observably equivalent for render
  * purposes. Bookkeeping fields that change on every load (updatedAt, plan
  * timings) are ignored; anything remote/stream-related is conservatively
@@ -82,48 +124,11 @@ function isQueryMetadataEquivalent(
   if (previous === next) return true
   if (!previous || !next) return false
 
-  if (previous.source !== next.source || previous.error !== next.error) return false
-
-  if (
-    previous.stream !== next.stream ||
-    previous.completeness !== next.completeness ||
-    previous.staleness !== next.staleness ||
-    previous.verification !== next.verification ||
-    previous.materialized !== next.materialized
-  ) {
-    // Conservative for remote/stream surfaces: only structural reference
-    // equality counts. Local-only queries never set these, so the
-    // short-circuit still covers the hot path.
-    if (
-      previous.stream ||
-      next.stream ||
-      previous.completeness ||
-      next.completeness ||
-      previous.staleness ||
-      next.staleness ||
-      previous.verification ||
-      next.verification ||
-      previous.materialized ||
-      next.materialized
-    ) {
-      return false
-    }
-  }
-
-  const previousPage = previous.pageInfo
-  const nextPage = next.pageInfo
-  if (previousPage === nextPage) return true
-  if (!previousPage || !nextPage) return false
-
   return (
-    previousPage.totalCount === nextPage.totalCount &&
-    previousPage.countMode === nextPage.countMode &&
-    previousPage.hasMore === nextPage.hasMore &&
-    previousPage.hasNextPage === nextPage.hasNextPage &&
-    previousPage.hasPreviousPage === nextPage.hasPreviousPage &&
-    previousPage.loadedCount === nextPage.loadedCount &&
-    previousPage.startCursor === nextPage.startCursor &&
-    previousPage.endCursor === nextPage.endCursor
+    previous.source === next.source &&
+    previous.error === next.error &&
+    hasEquivalentRemoteSurfaces(previous, next) &&
+    isSamePageInfo(previous.pageInfo, next.pageInfo)
   )
 }
 

@@ -864,26 +864,13 @@ export class NodeStore {
     this.clock = newClock
 
     try {
-      const run = (storage: NodeStorageAdapter) =>
-        this.executeTransactionOperations({
-          operations: resolvedOps,
-          storage,
-          lamport,
-          now,
-          batchId,
-          batchSize
-        })
-      const result = this.canUseSingleWriteFastPath()
-        ? await this.executeTransactionOperationsFast({
-            operations: resolvedOps,
-            lamport,
-            now,
-            batchId,
-            batchSize
-          })
-        : this.storage.withTransaction
-          ? await this.storage.withTransaction(run)
-          : await run(this.storage)
+      const result = await this.runTransactionOperationsBatch({
+        operations: resolvedOps,
+        lamport,
+        now,
+        batchId,
+        batchSize
+      })
 
       for (const event of result.events) {
         this.emit(event.change, event.result, event.previousNode, false)
@@ -895,6 +882,31 @@ export class NodeStore {
       this.clock = previousClock
       throw err
     }
+  }
+
+  /**
+   * Execute a batch of transaction operations atomically: the preflight +
+   * applyNodeBatch fast path when storage supports it, otherwise the
+   * legacy per-operation path inside a storage transaction.
+   */
+  private async runTransactionOperationsBatch(input: {
+    operations: TransactionOperation[]
+    lamport: LamportTimestamp
+    now: number
+    batchId: string
+    batchSize: number
+  }): Promise<{
+    results: (NodeState | null)[]
+    changes: NodeChange[]
+    events: PendingTransactionEvent[]
+  }> {
+    if (this.canUseSingleWriteFastPath()) {
+      return this.executeTransactionOperationsFast(input)
+    }
+
+    const run = (storage: NodeStorageAdapter) =>
+      this.executeTransactionOperations({ ...input, storage })
+    return this.storage.withTransaction ? this.storage.withTransaction(run) : run(this.storage)
   }
 
   /**
@@ -1021,26 +1033,13 @@ export class NodeStore {
 
     try {
       const applyStartedAt = Date.now()
-      const run = (storage: NodeStorageAdapter) =>
-        this.executeTransactionOperations({
-          operations: resolvedOps,
-          storage,
-          lamport,
-          now,
-          batchId,
-          batchSize
-        })
-      const result = this.canUseSingleWriteFastPath()
-        ? await this.executeTransactionOperationsFast({
-            operations: resolvedOps,
-            lamport,
-            now,
-            batchId,
-            batchSize
-          })
-        : this.storage.withTransaction
-          ? await this.storage.withTransaction(run)
-          : await run(this.storage)
+      const result = await this.runTransactionOperationsBatch({
+        operations: resolvedOps,
+        lamport,
+        now,
+        batchId,
+        batchSize
+      })
       const applyMs = elapsedMs(applyStartedAt)
 
       const nodeIds = Array.from(new Set(result.changes.map((change) => change.payload.nodeId)))
@@ -2247,70 +2246,21 @@ export class NodeStore {
     // (memory) and bridge caches hand out NodeState references, and the
     // reactive layer relies on "same reference = same observable state".
     const node = structuredClone(currentNode)
-    const { nodeId, properties, deleted } = change.payload
+    const { properties, deleted } = change.payload
 
     // Get known property names from schema (if available)
     const knownProps = this.propertyLookup?.(node.schemaId)
 
     // Apply property changes with LWW
     for (const [key, value] of Object.entries(properties)) {
-      // Check if this is an unknown property (not in schema)
-      const isUnknownProperty = knownProps !== undefined && !knownProps.has(key)
-
-      const existingTs = node.timestamps[key]
-      const newTs: PropertyTimestamp = {
-        lamport: change.lamport,
-        wallTime: change.wallTime
-      }
-
-      if (!existingTs || this.shouldReplace(existingTs, newTs)) {
-        // New value wins
-        if (isUnknownProperty) {
-          // Store in _unknown for forward compatibility
-          if (!node._unknown) {
-            node._unknown = {}
-          }
-          if (value === undefined) {
-            delete node._unknown[key]
-          } else {
-            node._unknown[key] = value
-          }
-        } else {
-          // Store in properties (known property)
-          if (value === undefined) {
-            delete node.properties[key]
-          } else {
-            node.properties[key] = value
-          }
-        }
-        node.timestamps[key] = newTs
-
-        // Track conflict if there was an existing value
-        if (existingTs) {
-          this.conflicts.push({
-            nodeId,
-            key,
-            localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
-            localTimestamp: existingTs,
-            remoteValue: value,
-            remoteTimestamp: newTs,
-            resolved: 'remote'
-          })
-          this.trimConflicts()
-        }
-      } else {
-        // Existing value wins
-        this.conflicts.push({
-          nodeId,
-          key,
-          localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
-          localTimestamp: existingTs,
-          remoteValue: value,
-          remoteTimestamp: newTs,
-          resolved: 'local'
-        })
-        this.trimConflicts()
-      }
+      this.applyPropertyChangeWithLWW({
+        node,
+        change,
+        key,
+        value,
+        // Check if this is an unknown property (not in schema)
+        isUnknownProperty: knownProps !== undefined && !knownProps.has(key)
+      })
     }
 
     // Handle deleted flag
@@ -2331,6 +2281,53 @@ export class NodeStore {
     node.updatedBy = change.authorDID
 
     return node
+  }
+
+  /**
+   * Apply one property from a change to a node with LWW conflict
+   * resolution, recording any conflict against the existing timestamp.
+   * Mutates `node` in place (callers own a fresh clone).
+   */
+  private applyPropertyChangeWithLWW(input: {
+    node: NodeState
+    change: NodeChange
+    key: string
+    value: unknown
+    isUnknownProperty: boolean
+  }): void {
+    const { node, change, key, value, isUnknownProperty } = input
+    const existingTs = node.timestamps[key]
+    const newTs: PropertyTimestamp = {
+      lamport: change.lamport,
+      wallTime: change.wallTime
+    }
+    const incomingWins = !existingTs || this.shouldReplace(existingTs, newTs)
+
+    if (incomingWins) {
+      // New value wins: write into properties, or _unknown for forward
+      // compatibility when the schema does not know the property.
+      const target = isUnknownProperty ? (node._unknown ??= {}) : node.properties
+      if (value === undefined) {
+        delete target[key]
+      } else {
+        target[key] = value
+      }
+      node.timestamps[key] = newTs
+    }
+
+    // Track a conflict whenever an existing timestamp had to be compared.
+    if (existingTs) {
+      this.conflicts.push({
+        nodeId: change.payload.nodeId,
+        key,
+        localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
+        localTimestamp: existingTs,
+        remoteValue: value,
+        remoteTimestamp: newTs,
+        resolved: incomingWins ? 'remote' : 'local'
+      })
+      this.trimConflicts()
+    }
   }
 
   /**

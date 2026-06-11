@@ -155,6 +155,65 @@ async function populatePagesBulk(store: NodeStore, count: number): Promise<strin
   return ids
 }
 
+/** Resolve when the watched subscription shows `nextTitle` for `targetId`. */
+function waitForTitleVisible(
+  subscription: QuerySubscription,
+  targetId: string,
+  nextTitle: string
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      unsubscribe()
+      reject(new Error('Timed out waiting for targeted query update'))
+    }, 5000)
+
+    const unsubscribe = subscription.subscribe(() => {
+      const snapshot = subscription.getSnapshot()
+      const matched = snapshot?.find((node) => node.id === targetId)
+      if (matched?.properties.title === nextTitle) {
+        clearTimeout(timeout)
+        unsubscribe()
+        resolve()
+      }
+    })
+  })
+}
+
+/** One end-to-end iteration: durable targeted update + fan-out to the watched subscription. */
+async function runTargetedUpdateIteration(input: {
+  bridge: MainThreadBridge
+  subscription: QuerySubscription
+  targetId: string
+  nodeCount: number
+  iteration: number
+}): Promise<void> {
+  const nextTitle = `Updated fanout ${input.iteration}`
+  const notified = waitForTitleVisible(input.subscription, input.targetId, nextTitle)
+  const updated = input.bridge.update(input.targetId, {
+    title: nextTitle,
+    updatedAt: Date.now() + input.iteration + input.nodeCount
+  })
+
+  await Promise.all([notified, updated])
+}
+
+/** End-to-end fan-out metric: durable persistence + cache fan-out for one update. */
+function measureTargetedUpdateFanout(input: {
+  bridge: MainThreadBridge
+  targetId: string
+  nodeCount: number
+}): Promise<MetricSummary> {
+  return measureAsync(`query-update-fanout-${input.nodeCount}`, 10, async (i) => {
+    const subscription = input.bridge.query(BenchPageSchema, {
+      where: { status: 'open' },
+      orderBy: { updatedAt: 'desc' },
+      limit: 100
+    })
+    await waitForSnapshot(subscription)
+    await runTargetedUpdateIteration({ ...input, subscription, iteration: i })
+  })
+}
+
 async function collectQueryMetrics(nodeCount: number): Promise<MetricSummary[]> {
   const store = await createStore()
   const ids = await populatePages(store, nodeCount)
@@ -181,39 +240,7 @@ async function collectQueryMetrics(nodeCount: number): Promise<MetricSummary[]> 
     })
 
     // End-to-end: durable persistence + cache fan-out for one update.
-    const targetedUpdate = await measureAsync(`query-update-fanout-${nodeCount}`, 10, async (i) => {
-      const nextTitle = `Updated fanout ${i}`
-      const subscription = bridge.query(BenchPageSchema, {
-        where: { status: 'open' },
-        orderBy: { updatedAt: 'desc' },
-        limit: 100
-      })
-
-      await waitForSnapshot(subscription)
-
-      const notified = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          unsubscribe()
-          reject(new Error('Timed out waiting for targeted query update'))
-        }, 5000)
-
-        const unsubscribe = subscription.subscribe(() => {
-          const snapshot = subscription.getSnapshot()
-          const matched = snapshot?.find((node) => node.id === targetId)
-          if (matched?.properties.title === nextTitle) {
-            clearTimeout(timeout)
-            unsubscribe()
-            resolve()
-          }
-        })
-      })
-      const updated = bridge.update(targetId, {
-        title: nextTitle,
-        updatedAt: Date.now() + i + nodeCount
-      })
-
-      await Promise.all([notified, updated])
-    })
+    const targetedUpdate = await measureTargetedUpdateFanout({ bridge, targetId, nodeCount })
 
     // Perceived: time until subscribers can see the edit (optimistic apply),
     // independent of persistence completing.
@@ -278,39 +305,7 @@ async function collectLargeFanoutMetric(nodeCount: number): Promise<MetricSummar
   const targetId = ids.filter((_, index) => index % 3 === 0)[0]
 
   try {
-    return await measureAsync(`query-update-fanout-${nodeCount}`, 10, async (i) => {
-      const nextTitle = `Updated fanout ${i}`
-      const subscription = bridge.query(BenchPageSchema, {
-        where: { status: 'open' },
-        orderBy: { updatedAt: 'desc' },
-        limit: 100
-      })
-
-      await waitForSnapshot(subscription)
-
-      const notified = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          unsubscribe()
-          reject(new Error('Timed out waiting for targeted query update'))
-        }, 5000)
-
-        const unsubscribe = subscription.subscribe(() => {
-          const snapshot = subscription.getSnapshot()
-          const matched = snapshot?.find((node) => node.id === targetId)
-          if (matched?.properties.title === nextTitle) {
-            clearTimeout(timeout)
-            unsubscribe()
-            resolve()
-          }
-        })
-      })
-      const updated = bridge.update(targetId, {
-        title: nextTitle,
-        updatedAt: Date.now() + i + nodeCount
-      })
-
-      await Promise.all([notified, updated])
-    })
+    return await measureTargetedUpdateFanout({ bridge, targetId, nodeCount })
   } finally {
     bridge.destroy()
   }
@@ -345,23 +340,7 @@ async function collectMultiQueryFanoutMetric(
 
     return await measureAsync(`query-update-fanout-${nodeCount}-x${queryCount}`, 10, async (i) => {
       const nextTitle = `Multi fanout ${i}`
-
-      const notified = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          unsubscribe()
-          reject(new Error('Timed out waiting for multi-query update'))
-        }, 5000)
-
-        const unsubscribe = watched.subscribe(() => {
-          const snapshot = watched.getSnapshot()
-          const matched = snapshot?.find((node) => node.id === targetId)
-          if (matched?.properties.title === nextTitle) {
-            clearTimeout(timeout)
-            unsubscribe()
-            resolve()
-          }
-        })
-      })
+      const notified = waitForTitleVisible(watched, targetId, nextTitle)
       const updated = bridge.update(targetId, {
         title: nextTitle,
         updatedAt: Date.now() + i + nodeCount

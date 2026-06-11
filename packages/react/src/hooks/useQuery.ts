@@ -57,6 +57,11 @@ import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
+import {
+  computeFallbackPageInfo,
+  summarizePlan,
+  type QueryPlanSummary
+} from '../utils/queryResultMeta'
 
 // =============================================================================
 // Types
@@ -106,18 +111,7 @@ export interface QueryFilter<
 
 export type QueryStatus = 'loading' | 'success' | 'error'
 
-export interface QueryPlanSummary {
-  strategy?: string
-  candidateNodeCount?: number
-  hydratedNodeCount?: number
-  returnedNodeCount?: number
-  durationMs?: number
-  descriptorHash?: string
-  candidateAccelerators?: string[]
-  materializedViewId?: string
-  materializedCacheHit?: boolean
-  materializedRefreshReason?: string
-}
+export type { QueryPlanSummary } from '../utils/queryResultMeta'
 
 export interface QueryBaseResult {
   /** Query lifecycle status */
@@ -200,14 +194,6 @@ export interface QuerySingleResult<
   migrationWarnings: MigrationWarning[]
 }
 
-const EMPTY_PAGE_INFO: QueryPageInfo = {
-  totalCount: null,
-  countMode: 'none',
-  hasMore: false,
-  hasNextPage: false,
-  hasPreviousPage: false,
-  loadedCount: 0
-}
 const EMPTY_QUERY_FILTER: QueryFilter = Object.freeze({})
 const DISABLED_QUERY_SNAPSHOT: never[] = []
 
@@ -238,52 +224,80 @@ function getFallbackPageInfo(input: {
   data: unknown
   descriptor: QueryDescriptor
 }): QueryPageInfo {
-  if (input.metadata?.pageInfo) {
-    return input.metadata.pageInfo
-  }
+  return computeFallbackPageInfo({
+    metadata: input.metadata,
+    loading: input.loading,
+    loadedCount: !input.isSingleQuery && Array.isArray(input.data) ? input.data.length : null,
+    offset: input.descriptor.offset ?? 0,
+    limit: input.descriptor.limit
+  })
+}
 
-  if (input.loading || input.isSingleQuery || !Array.isArray(input.data)) {
-    return EMPTY_PAGE_INFO
-  }
+/**
+ * Flatten one bridge snapshot into FlatNodes plus lossy-migration warnings.
+ * Module-level so the hook body stays small; identity caching comes from
+ * flattenNodeCached.
+ */
+function flattenListSnapshot<P extends Record<string, PropertyBuilder>>(
+  rawData: NodeState[]
+): { data: FlatNode<P>[]; migrationWarnings: MigrationWarning[] } {
+  const data = rawData.map((node) => flattenNodeCached<P>(node))
+  return { data, migrationWarnings: collectMigrationWarnings(data) }
+}
 
-  const loadedCount = input.data.length
-  const offset = input.descriptor.offset ?? 0
-  const limit = input.descriptor.limit
-  const totalCount = limit === undefined && offset === 0 ? loadedCount : null
-  const countMode = totalCount === null ? 'none' : 'exact'
-  const hasMore =
-    limit !== undefined
-      ? totalCount === null
-        ? loadedCount >= limit
-        : offset + loadedCount < totalCount
-      : false
-
+/** Null-normalized metadata surfaces exposed on every query result. */
+function deriveMetadataSurfaces(metadata: QueryMetadata | null): {
+  source: QuerySource
+  materialized: QueryMaterializedMetadata | null
+  completeness: QueryCompletenessMetadata | null
+  staleness: QueryStalenessMetadata | null
+  verification: QueryVerificationMetadata | null
+  stream: QueryStreamMetadata | null
+} {
   return {
-    totalCount,
-    countMode,
-    hasMore,
-    hasNextPage: hasMore,
-    hasPreviousPage: offset > 0,
-    loadedCount
+    source: metadata?.source ?? 'local',
+    materialized: metadata?.materialized ?? null,
+    completeness: metadata?.completeness ?? null,
+    staleness: metadata?.staleness ?? null,
+    verification: metadata?.verification ?? null,
+    stream: metadata?.stream ?? null
   }
 }
 
-function summarizePlan(metadata: QueryMetadata | null): QueryPlanSummary | null {
-  const plan = metadata?.plan
-  if (!plan) return null
-
-  return {
-    strategy: plan.strategy,
-    candidateNodeCount: plan.candidateNodeCount,
-    hydratedNodeCount: plan.hydratedNodeCount,
-    returnedNodeCount: plan.returnedNodeCount,
-    durationMs: plan.durationMs,
-    descriptorHash: plan.descriptorHash,
-    candidateAccelerators: plan.candidateAccelerators,
-    materializedViewId: plan.materializedViewId,
-    materializedCacheHit: plan.materializedCacheHit,
-    materializedRefreshReason: plan.materializedRefreshReason
+function deriveTrackedFilter(descriptor: QueryDescriptor): Record<string, unknown> | undefined {
+  const next = {
+    ...(descriptor.where ? { where: descriptor.where } : {}),
+    ...(descriptor.spatial ? { spatial: descriptor.spatial } : {}),
+    ...(descriptor.search ? { search: descriptor.search } : {}),
+    ...(descriptor.materializedView ? { materializedView: descriptor.materializedView } : {})
   }
+
+  return Object.keys(next).length > 0 ? next : undefined
+}
+
+function deriveTrackedMode(
+  isSingleQuery: boolean,
+  descriptor: QueryDescriptor
+): 'single' | 'filtered' | 'list' {
+  if (isSingleQuery) return 'single'
+  return descriptor.where || descriptor.spatial || descriptor.search ? 'filtered' : 'list'
+}
+
+function collectMigrationWarnings(
+  flattened: ReadonlyArray<FlatNode<never> | FlatNode<Record<string, PropertyBuilder>>>
+): MigrationWarning[] {
+  const warnings: MigrationWarning[] = []
+  for (const flat of flattened) {
+    if (flat._migrationInfo && !flat._migrationInfo.lossless) {
+      warnings.push({
+        nodeId: flat.id,
+        from: flat._migrationInfo.from,
+        to: flat._migrationInfo.to,
+        warnings: flat._migrationInfo.warnings
+      })
+    }
+  }
+  return warnings
 }
 
 // =============================================================================
@@ -423,50 +437,27 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       }
     }
 
-    const warnings: MigrationWarning[] = []
-
     if (isSingleQuery) {
       // Single node query
       const node = rawData[0] ?? null
-      if (node) {
-        const flat = flattenNodeCached<P>(node)
-        if (flat._migrationInfo && !flat._migrationInfo.lossless) {
-          warnings.push({
-            nodeId: flat.id,
-            from: flat._migrationInfo.from,
-            to: flat._migrationInfo.to,
-            warnings: flat._migrationInfo.warnings
-          })
-        }
-        return { data: flat as FlatNode<P> | null, migrationWarnings: warnings }
+      const flat = node ? flattenNodeCached<P>(node) : null
+      return {
+        data: flat as FlatNode<P> | null,
+        migrationWarnings: flat ? collectMigrationWarnings([flat]) : []
       }
-      return { data: null, migrationWarnings: warnings }
     }
 
     // List query
-    const flattened = rawData.map((node) => flattenNodeCached<P>(node))
-
-    for (const flat of flattened) {
-      if (flat._migrationInfo && !flat._migrationInfo.lossless) {
-        warnings.push({
-          nodeId: flat.id,
-          from: flat._migrationInfo.from,
-          to: flat._migrationInfo.to,
-          warnings: flat._migrationInfo.warnings
-        })
-      }
-    }
-
+    const next = flattenListSnapshot<P>(rawData)
     const previous = previousListRef.current
     if (
       previous &&
-      previous.data.length === flattened.length &&
-      flattened.every((flat, index) => flat === previous.data[index])
+      previous.data.length === next.data.length &&
+      next.data.every((flat, index) => flat === previous.data[index])
     ) {
       return previous
     }
 
-    const next = { data: flattened, migrationWarnings: warnings }
     previousListRef.current = next
     return next
   }, [rawData, isSingleQuery])
@@ -482,35 +473,17 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     [metadata?.error]
   )
   const status: QueryStatus = error ? 'error' : loading ? 'loading' : 'success'
-  const source = metadata?.source ?? 'local'
   const plan = useMemo(() => summarizePlan(metadata), [metadata])
-  const materialized = metadata?.materialized ?? null
-  const completeness = metadata?.completeness ?? null
-  const staleness = metadata?.staleness ?? null
-  const verification = metadata?.verification ?? null
-  const stream = metadata?.stream ?? null
+  const { source, materialized, completeness, staleness, verification, stream } =
+    deriveMetadataSurfaces(metadata)
   const trackedFilter = useMemo(
-    () => {
-      const next = {
-        ...(descriptor.where ? { where: descriptor.where } : {}),
-        ...(descriptor.spatial ? { spatial: descriptor.spatial } : {}),
-        ...(descriptor.search ? { search: descriptor.search } : {}),
-        ...(descriptor.materializedView ? { materializedView: descriptor.materializedView } : {})
-      }
-
-      return Object.keys(next).length > 0 ? next : undefined
-    },
+    () => deriveTrackedFilter(descriptor),
     // queryKey is the canonical descriptor identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryKey]
   )
   const trackedMode = useMemo(
-    () =>
-      isSingleQuery
-        ? 'single'
-        : descriptor.where || descriptor.spatial || descriptor.search
-          ? 'filtered'
-          : 'list',
+    () => deriveTrackedMode(isSingleQuery, descriptor),
     // queryKey is the canonical descriptor identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isSingleQuery, queryKey]

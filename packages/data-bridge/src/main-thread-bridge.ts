@@ -87,6 +87,7 @@ import {
   isRemoteNodeQueryError,
   isRemoteNodeQuerySuccess
 } from './remote-query-protocol'
+import { groupNodeChangeEventsBySchema } from './utils/change-events'
 
 // Above this many events in one flush (or one storage batch), invalidation
 // stops applying per-node deltas and falls back to re-querying each affected
@@ -906,16 +907,7 @@ export class MainThreadBridge implements DataBridge {
   }
 
   private handleStoreChangeSet(events: readonly NodeChangeEvent[]): void {
-    const eventsBySchema = new Map<SchemaIRI, NodeChangeEvent[]>()
-
-    for (const event of events) {
-      const schemaId: SchemaIRI | undefined = event.node?.schemaId ?? event.change.payload.schemaId
-      if (!schemaId) continue
-
-      const next = eventsBySchema.get(schemaId) ?? []
-      next.push(event)
-      eventsBySchema.set(schemaId, next)
-    }
+    const eventsBySchema = groupNodeChangeEventsBySchema(events)
 
     for (const [schemaId, schemaEvents] of eventsBySchema) {
       const shouldReload = this.isBulkStoreChangeSet(schemaEvents)

@@ -58,11 +58,32 @@ jobs:
             echo "ref=origin/main" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Build packages
+        run: pnpm turbo run build --filter='./packages/*'
+
+      # CRAP scoring needs real coverage: without it every function counts
+      # as 0% covered and CRAP = cc^2 + cc, so any new function with
+      # cyclomatic >= 5 fails the audit. Istanbul provider because fallow's
+      # parser rejects the -1 markers in v8-converted coverage maps.
+      - name: Generate coverage for CRAP scoring
+        shell: bash
+        run: |
+          pnpm vitest run \
+            --coverage.enabled \
+            --coverage.provider=istanbul \
+            --coverage.reporter=json \
+            --coverage.reportsDirectory=coverage
+
       - name: Run Fallow audit
         shell: bash
         run: |
+          COVERAGE_ARGS=()
+          if [[ -f coverage/coverage-final.json ]]; then
+            COVERAGE_ARGS=(--coverage coverage/coverage-final.json)
+          fi
           pnpm exec fallow audit \
             --changed-since "${{ steps.base.outputs.ref }}" \
+            "${COVERAGE_ARGS[@]}" \
             --format sarif \
             --fail-on-issues > fallow-audit.sarif
 
