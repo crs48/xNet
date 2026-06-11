@@ -10,8 +10,69 @@
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
+import type { DevToolsEventInput } from '../core/types'
 import type { NodeStore, NodeChangeEvent } from '@xnetjs/data'
 import { DEFAULTS } from '../core/constants'
+
+function changeProperties(payload: Record<string, unknown>): Record<string, unknown> {
+  return (payload.properties || {}) as Record<string, unknown>
+}
+
+/**
+ * Map a local (non-remote) node change onto the DevTools event taxonomy
+ * by payload shape: create has a schemaId, delete/restore toggle the
+ * deleted flag, everything else is an update.
+ */
+function classifyLocalStoreEvent(
+  nodeId: string,
+  payload: Record<string, unknown>,
+  change: NodeChangeEvent['change']
+): DevToolsEventInput {
+  const schemaId = payload.schemaId as string | undefined
+  const deleted = payload.deleted as boolean | undefined
+
+  if (deleted === true) {
+    return { type: 'store:delete', nodeId, duration: 0 }
+  }
+  if (schemaId) {
+    return {
+      type: 'store:create',
+      nodeId,
+      schemaId,
+      properties: changeProperties(payload),
+      lamport: change.lamport,
+      duration: 0
+    }
+  }
+  if (deleted === false) {
+    return { type: 'store:restore', nodeId, duration: 0 }
+  }
+  return {
+    type: 'store:update',
+    nodeId,
+    properties: changeProperties(payload),
+    lamport: change.lamport,
+    duration: 0
+  }
+}
+
+function emitStoreEvent(bus: DevToolsEventBus, event: NodeChangeEvent): void {
+  const { change, isRemote } = event
+  const payload = change.payload as unknown as Record<string, unknown>
+  const nodeId = payload.nodeId as string
+
+  if (isRemote) {
+    bus.emit({
+      type: 'store:remote-change',
+      change: change as any,
+      nodeId,
+      isRemote: true
+    })
+    return
+  }
+
+  bus.emit(classifyLocalStoreEvent(nodeId, payload, change))
+}
 
 /**
  * Instrument any node change feed (a subscribe function returning an
@@ -22,58 +83,17 @@ export function instrumentChangeFeed(
   subscribe: (listener: (event: NodeChangeEvent) => void) => () => void,
   bus: DevToolsEventBus
 ): () => void {
-  return subscribe((event: NodeChangeEvent) => {
-    const { change, isRemote } = event
-    const payload = change.payload as unknown as Record<string, unknown>
-    const nodeId = payload.nodeId as string
+  return subscribe((event: NodeChangeEvent) => emitStoreEvent(bus, event))
+}
 
-    if (isRemote) {
-      bus.emit({
-        type: 'store:remote-change',
-        change: change as any,
-        nodeId,
-        isRemote: true
-      })
-      return
-    }
+function emitRecentConflicts(store: NodeStore, bus: DevToolsEventBus): void {
+  const conflicts = store.getRecentConflicts ? store.getRecentConflicts() : []
+  if (conflicts.length === 0) return
 
-    // Determine operation type from payload shape
-    const schemaId = payload.schemaId as string | undefined
-    const deleted = payload.deleted as boolean | undefined
-    const properties = (payload.properties || {}) as Record<string, unknown>
-
-    if (schemaId && deleted !== true) {
-      // Has schemaId and not deleted = create
-      bus.emit({
-        type: 'store:create',
-        nodeId,
-        schemaId,
-        properties,
-        lamport: change.lamport,
-        duration: 0
-      })
-    } else if (deleted === true) {
-      bus.emit({
-        type: 'store:delete',
-        nodeId,
-        duration: 0
-      })
-    } else if (deleted === false && !schemaId) {
-      bus.emit({
-        type: 'store:restore',
-        nodeId,
-        duration: 0
-      })
-    } else {
-      bus.emit({
-        type: 'store:update',
-        nodeId,
-        properties,
-        lamport: change.lamport,
-        duration: 0
-      })
-    }
+  conflicts.forEach((conflict) => {
+    bus.emit({ type: 'store:conflict', conflict })
   })
+  store.clearConflicts?.()
 }
 
 export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => void {
@@ -82,13 +102,7 @@ export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => 
 
   // Poll for conflicts periodically
   const conflictInterval = setInterval(() => {
-    const conflicts = store.getRecentConflicts?.()
-    if (conflicts?.length) {
-      conflicts.forEach((conflict) => {
-        bus.emit({ type: 'store:conflict', conflict })
-      })
-      store.clearConflicts?.()
-    }
+    emitRecentConflicts(store, bus)
   }, DEFAULTS.CONFLICT_POLL_MS)
 
   return () => {

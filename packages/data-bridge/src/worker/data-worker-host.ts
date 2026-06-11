@@ -92,6 +92,26 @@ interface ActiveWorkerSubscription extends WorkerSubscription {
   workingSet: BoundedQueryWorkingSet | null
 }
 
+type SubscriptionChangeResult =
+  | { kind: 'reload' }
+  | { kind: 'noop' }
+  | { kind: 'ok'; data: NodeState[]; workingSet: BoundedQueryWorkingSet | null }
+
+/**
+ * Graft previous node references (visible rows plus the bounded working
+ * set) onto a fresh query result wherever the snapshots are equivalent.
+ */
+function mergePreviousNodeReferences(
+  nextNodes: NodeState[],
+  previousNodes: NodeState[] | null,
+  previousWorkingSet?: BoundedQueryWorkingSet | null
+): NodeState[] {
+  return reuseEquivalentNodeReferences(nextNodes, [
+    ...(previousWorkingSet?.nodes ?? []),
+    ...(previousNodes ?? [])
+  ])
+}
+
 /**
  * Translate a visible-result transition into the wire delta sent to the
  * main thread. Relies on node-reference reuse: unchanged rows keep their
@@ -357,73 +377,10 @@ export class DataWorker implements DataWorkerAPI {
       throw new Error('DataWorker not initialized')
     }
 
-    let entry = this.docPool.get(nodeId)
-
-    if (entry) {
-      // Update last accessed time
-      entry.lastAccessed = Date.now()
-    } else {
-      // Create new Y.Doc as source of truth
-      const doc = new Y.Doc({ guid: nodeId, gc: false })
-
-      // Load persisted state from storage
-      const storedContent = await this.storage.getDocumentContent(nodeId)
-      if (storedContent && storedContent.length > 0) {
-        Y.applyUpdate(doc, storedContent, 'storage')
-      }
-
-      entry = {
-        doc,
-        refCount: 0,
-        updateHandlers: new Set(),
-        lastAccessed: Date.now()
-      }
-
-      // Evict old unused docs if pool is at capacity
-      this.evictOldDocs()
-
-      // Set up persistence - save on every update
-      doc.on('update', (update: Uint8Array, origin: unknown) => {
-        // Persist to storage (fire and forget for performance)
-        const content = Y.encodeStateAsUpdate(doc)
-        this.storage?.setDocumentContent(nodeId, content).catch((err) => {
-          console.error('[DataWorker] Failed to persist doc:', err)
-        })
-
-        // Forward remote updates to all registered handlers
-        // (but not local updates - those came from the handler's own doc)
-        if (origin === 'remote') {
-          const handlers = Array.from(entry!.updateHandlers)
-          for (let i = 0; i < handlers.length; i++) {
-            try {
-              // For the last handler, we can transfer ownership of the buffer
-              // For previous handlers, we need to copy since transfer is destructive
-              const isLast = i === handlers.length - 1
-              const updateToSend = isLast ? update : new Uint8Array(update)
-
-              // Use Comlink's transfer() for zero-copy when possible
-              if (isLast && update.buffer.byteLength === update.byteLength) {
-                // Transfer the ArrayBuffer for zero-copy (only works if we own the whole buffer)
-                handlers[i](
-                  transfer(updateToSend, [updateToSend.buffer]) as unknown as Uint8Array,
-                  'remote'
-                )
-              } else {
-                handlers[i](updateToSend, 'remote')
-              }
-            } catch (err) {
-              console.error('[DataWorker] Update handler error:', err)
-            }
-          }
-        }
-      })
-
-      this.docPool.set(nodeId, entry)
-    }
+    const entry = await this.acquireDocEntry(nodeId)
 
     // Register the update handler
-    const proxiedHandler = proxy(onUpdate)
-    entry.updateHandlers.add(proxiedHandler)
+    entry.updateHandlers.add(proxy(onUpdate))
     entry.refCount++
 
     // Get current state to send to main thread
@@ -440,6 +397,92 @@ export class DataWorker implements DataWorkerAPI {
       },
       [state.buffer]
     )
+  }
+
+  private async acquireDocEntry(nodeId: string): Promise<PoolEntry> {
+    const existing = this.docPool.get(nodeId)
+    if (existing) {
+      // Update last accessed time
+      existing.lastAccessed = Date.now()
+      return existing
+    }
+    return this.createDocEntry(nodeId)
+  }
+
+  private async createDocEntry(nodeId: string): Promise<PoolEntry> {
+    // Create new Y.Doc as source of truth
+    const doc = new Y.Doc({ guid: nodeId, gc: false })
+
+    // Load persisted state from storage
+    const storedContent = await this.storage!.getDocumentContent(nodeId)
+    if (storedContent && storedContent.length > 0) {
+      Y.applyUpdate(doc, storedContent, 'storage')
+    }
+
+    const entry: PoolEntry = {
+      doc,
+      refCount: 0,
+      updateHandlers: new Set(),
+      lastAccessed: Date.now()
+    }
+
+    // Evict old unused docs if pool is at capacity
+    this.evictOldDocs()
+
+    doc.on('update', (update: Uint8Array, origin: unknown) => {
+      this.handleDocUpdate(nodeId, entry, update, origin)
+    })
+
+    this.docPool.set(nodeId, entry)
+    return entry
+  }
+
+  private handleDocUpdate(
+    nodeId: string,
+    entry: PoolEntry,
+    update: Uint8Array,
+    origin: unknown
+  ): void {
+    // Persist to storage (fire and forget for performance)
+    this.persistDocState(nodeId, entry.doc)
+
+    // Forward remote updates to all registered handlers
+    // (but not local updates - those came from the handler's own doc)
+    if (origin !== 'remote') return
+    this.forwardRemoteDocUpdate(entry, update)
+  }
+
+  private persistDocState(nodeId: string, doc: Y.Doc): void {
+    const content = Y.encodeStateAsUpdate(doc)
+    this.storage?.setDocumentContent(nodeId, content).catch((err) => {
+      console.error('[DataWorker] Failed to persist doc:', err)
+    })
+  }
+
+  private forwardRemoteDocUpdate(entry: PoolEntry, update: Uint8Array): void {
+    const handlers = Array.from(entry.updateHandlers)
+    for (let i = 0; i < handlers.length; i++) {
+      try {
+        // Only the last handler may take ownership of the buffer;
+        // transfer is destructive, so earlier handlers receive copies.
+        this.sendDocUpdate(handlers[i], update, i === handlers.length - 1)
+      } catch (err) {
+        console.error('[DataWorker] Update handler error:', err)
+      }
+    }
+  }
+
+  private sendDocUpdate(
+    handler: (update: Uint8Array, origin: string) => void,
+    update: Uint8Array,
+    isLast: boolean
+  ): void {
+    // Use Comlink's transfer() for zero-copy when we own the whole buffer
+    if (isLast && update.buffer.byteLength === update.byteLength) {
+      handler(transfer(update, [update.buffer]) as unknown as Uint8Array, 'remote')
+      return
+    }
+    handler(isLast ? update : new Uint8Array(update), 'remote')
   }
 
   releaseDoc(nodeId: string): void {
@@ -499,15 +542,7 @@ export class DataWorker implements DataWorkerAPI {
   }
 
   async destroy(): Promise<void> {
-    // Unsubscribe from store
-    if (this.storeUnsubscribe) {
-      this.storeUnsubscribe()
-      this.storeUnsubscribe = null
-    }
-    if (this.storeBatchUnsubscribe) {
-      this.storeBatchUnsubscribe()
-      this.storeBatchUnsubscribe = null
-    }
+    this.detachStoreListeners()
 
     // Destroy all Y.Docs in the pool
     for (const entry of this.docPool.values()) {
@@ -515,11 +550,7 @@ export class DataWorker implements DataWorkerAPI {
     }
     this.docPool.clear()
 
-    // Close storage (if it supports close)
-    if (this.storage?.close) {
-      await this.storage.close()
-    }
-    this.storage = null
+    await this.closeStorage()
 
     // Clear state
     this.store = null
@@ -528,6 +559,20 @@ export class DataWorker implements DataWorkerAPI {
     this.changeFeedHandlers.clear()
 
     this.setStatus('disconnected')
+  }
+
+  private detachStoreListeners(): void {
+    this.storeUnsubscribe?.()
+    this.storeUnsubscribe = null
+    this.storeBatchUnsubscribe?.()
+    this.storeBatchUnsubscribe = null
+  }
+
+  private async closeStorage(): Promise<void> {
+    if (this.storage?.close) {
+      await this.storage.close()
+    }
+    this.storage = null
   }
 
   // ─── Private Methods ─────────────────────────────────────────────────────────
@@ -548,19 +593,17 @@ export class DataWorker implements DataWorkerAPI {
       return { visible: [], workingSet: null }
     }
 
-    const useBoundedWorkingSet = queryDescriptorSupportsBoundedDelta(descriptor)
-    const result = await this.store.query(
-      useBoundedWorkingSet ? createBoundedWorkingSetDescriptor(descriptor) : descriptor
-    )
-    const merged = reuseEquivalentNodeReferences(result.nodes, [
-      ...(previousWorkingSet?.nodes ?? []),
-      ...(previousNodes ?? [])
-    ])
-    const visible = useBoundedWorkingSet ? merged.slice(0, descriptor.limit) : merged
+    if (!queryDescriptorSupportsBoundedDelta(descriptor)) {
+      const result = await this.store.query(descriptor)
+      const merged = mergePreviousNodeReferences(result.nodes, previousNodes, previousWorkingSet)
+      return { visible: merged, workingSet: null }
+    }
 
+    const result = await this.store.query(createBoundedWorkingSetDescriptor(descriptor))
+    const merged = mergePreviousNodeReferences(result.nodes, previousNodes, previousWorkingSet)
     return {
-      visible,
-      workingSet: useBoundedWorkingSet ? createBoundedWorkingSet(descriptor, merged) : null
+      visible: merged.slice(0, descriptor.limit),
+      workingSet: createBoundedWorkingSet(descriptor, merged)
     }
   }
 
@@ -603,6 +646,12 @@ export class DataWorker implements DataWorkerAPI {
     )
   }
 
+  private *subscriptionsForSchema(schemaId: SchemaIRI): Iterable<ActiveWorkerSubscription> {
+    for (const sub of this.subscriptions.values()) {
+      if (sub.schemaId === schemaId) yield sub
+    }
+  }
+
   private async handleStoreChangeSet(events: readonly NodeChangeEvent[]): Promise<void> {
     const eventsBySchema = groupNodeChangeEventsBySchema(events)
 
@@ -613,9 +662,7 @@ export class DataWorker implements DataWorkerAPI {
         nextNode: event.node ?? null
       }))
 
-      for (const sub of this.subscriptions.values()) {
-        if (sub.schemaId !== schemaId) continue
-
+      for (const sub of this.subscriptionsForSchema(schemaId)) {
         if (shouldReload) {
           await this.reloadSubscription(sub)
           continue
@@ -647,9 +694,7 @@ export class DataWorker implements DataWorkerAPI {
 
   private async reloadSubscriptionsForSchemas(schemaIds: readonly SchemaIRI[]): Promise<void> {
     for (const schemaId of schemaIds) {
-      for (const sub of this.subscriptions.values()) {
-        if (sub.schemaId !== schemaId) continue
-
+      for (const sub of this.subscriptionsForSchema(schemaId)) {
         await this.reloadSubscription(sub)
       }
     }
@@ -665,9 +710,7 @@ export class DataWorker implements DataWorkerAPI {
     }))
 
     for (const schemaId of event.schemaIds) {
-      for (const sub of this.subscriptions.values()) {
-        if (sub.schemaId !== schemaId) continue
-
+      for (const sub of this.subscriptionsForSchema(schemaId)) {
         await this.applyChangesToSubscription(sub, changes)
       }
     }
@@ -683,27 +726,48 @@ export class DataWorker implements DataWorkerAPI {
     changes: ReadonlyArray<{ nodeId: string; nextNode: NodeState | null }>,
     options?: { onAmbiguous?: 'reload' | 'skip' }
   ): Promise<void> {
+    const skipAmbiguous = options?.onAmbiguous === 'skip'
     for (const change of changes) {
-      const applied = this.applyChangeToSubscriptionState(sub, change.nodeId, change.nextNode)
+      const handled = await this.applyChangeAndEmit(sub, change, skipAmbiguous)
+      if (!handled) return
+    }
+  }
 
-      if (applied.kind === 'reload') {
-        if (options?.onAmbiguous !== 'skip') {
-          await this.reloadSubscription(sub)
-        }
-        return
+  /**
+   * Apply one change to a subscription and emit its wire delta.
+   * Returns false when the change was ambiguous (the subscription was
+   * reloaded — or skipped — wholesale, so remaining changes are moot).
+   */
+  private async applyChangeAndEmit(
+    sub: ActiveWorkerSubscription,
+    change: { nodeId: string; nextNode: NodeState | null },
+    skipAmbiguous: boolean
+  ): Promise<boolean> {
+    const applied = this.applyChangeToSubscriptionState(sub, change.nodeId, change.nextNode)
+
+    if (applied.kind === 'reload') {
+      if (!skipAmbiguous) {
+        await this.reloadSubscription(sub)
       }
+      return false
+    }
 
-      if (applied.kind === 'noop') {
-        continue
-      }
+    if (applied.kind === 'ok') {
+      this.emitSubscriptionDelta(sub, applied)
+    }
+    return true
+  }
 
-      const delta = computeQueryDelta(sub.lastResult, applied.data)
-      sub.lastResult = applied.data
-      sub.workingSet = applied.workingSet
+  private emitSubscriptionDelta(
+    sub: ActiveWorkerSubscription,
+    applied: { data: NodeState[]; workingSet: BoundedQueryWorkingSet | null }
+  ): void {
+    const delta = computeQueryDelta(sub.lastResult, applied.data)
+    sub.lastResult = applied.data
+    sub.workingSet = applied.workingSet
 
-      if (delta) {
-        sub.onDelta(delta)
-      }
+    if (delta) {
+      sub.onDelta(delta)
     }
   }
 
@@ -757,32 +821,36 @@ export class DataWorker implements DataWorkerAPI {
     sub: ActiveWorkerSubscription,
     nodeId: string,
     nextNode: NodeState | null
-  ):
-    | { kind: 'reload' }
-    | { kind: 'noop' }
-    | { kind: 'ok'; data: NodeState[]; workingSet: BoundedQueryWorkingSet | null } {
+  ): SubscriptionChangeResult {
     if (sub.workingSet && queryDescriptorSupportsBoundedDelta(sub.descriptor)) {
-      const delta = applyNodeChangeToBoundedQueryResult({
-        descriptor: sub.descriptor,
-        workingSet: sub.workingSet,
-        nodeId,
-        nextNode
-      })
-
-      if (delta.kind === 'reload') return { kind: 'reload' }
-      if (delta.kind === 'noop') return { kind: 'noop' }
-      return { kind: 'ok', data: delta.data, workingSet: delta.workingSet }
+      return this.applyBoundedChange(sub.descriptor, sub.workingSet, nodeId, nextNode)
     }
+    return this.applyUnboundedChange(sub, nodeId, nextNode)
+  }
 
+  private applyBoundedChange(
+    descriptor: QueryDescriptor,
+    workingSet: BoundedQueryWorkingSet,
+    nodeId: string,
+    nextNode: NodeState | null
+  ): SubscriptionChangeResult {
+    const delta = applyNodeChangeToBoundedQueryResult({ descriptor, workingSet, nodeId, nextNode })
+    if (delta.kind !== 'set') return { kind: delta.kind }
+    return { kind: 'ok', data: delta.data, workingSet: delta.workingSet }
+  }
+
+  private applyUnboundedChange(
+    sub: ActiveWorkerSubscription,
+    nodeId: string,
+    nextNode: NodeState | null
+  ): SubscriptionChangeResult {
     const delta = applyNodeChangeToQueryResult({
       descriptor: sub.descriptor,
       currentData: sub.lastResult,
       nodeId,
       nextNode
     })
-
-    if (delta.kind === 'reload') return { kind: 'reload' }
-    if (delta.kind === 'noop') return { kind: 'noop' }
+    if (delta.kind !== 'set') return { kind: delta.kind }
     return { kind: 'ok', data: delta.data, workingSet: null }
   }
 
@@ -800,40 +868,47 @@ export class DataWorker implements DataWorkerAPI {
   private evictOldDocs(): void {
     if (this.docPool.size < MAX_DOC_POOL_SIZE) return
 
+    const candidates = this.collectDocEvictionCandidates()
+
+    // Evict enough to get below 80% of max size
+    const targetSize = Math.floor(MAX_DOC_POOL_SIZE * 0.8)
+    const toEvict = Math.min(this.docPool.size - targetSize, candidates.length)
+
+    for (let i = 0; i < toEvict; i++) {
+      this.evictDoc(candidates[i].nodeId)
+    }
+  }
+
+  /**
+   * Find eviction candidates — docs with no refs and old enough — ordered
+   * oldest-accessed first.
+   */
+  private collectDocEvictionCandidates(): Array<{ nodeId: string; lastAccessed: number }> {
     const now = Date.now()
     const candidates: Array<{ nodeId: string; lastAccessed: number }> = []
 
-    // Find eviction candidates: docs with no refs and old enough
     for (const [nodeId, entry] of this.docPool) {
       if (entry.refCount === 0 && now - entry.lastAccessed > MIN_DOC_AGE_FOR_EVICTION) {
         candidates.push({ nodeId, lastAccessed: entry.lastAccessed })
       }
     }
 
-    if (candidates.length === 0) return
+    return candidates.sort((a, b) => a.lastAccessed - b.lastAccessed)
+  }
 
-    // Sort by lastAccessed (oldest first)
-    candidates.sort((a, b) => a.lastAccessed - b.lastAccessed)
+  private evictDoc(nodeId: string): void {
+    const entry = this.docPool.get(nodeId)
+    if (!entry) return
 
-    // Evict enough to get below 80% of max size
-    const targetSize = Math.floor(MAX_DOC_POOL_SIZE * 0.8)
-    const toEvict = this.docPool.size - targetSize
-
-    for (let i = 0; i < Math.min(toEvict, candidates.length); i++) {
-      const nodeId = candidates[i].nodeId
-      const entry = this.docPool.get(nodeId)
-      if (entry) {
-        // Persist one final time before destroying
-        if (this.storage) {
-          const content = Y.encodeStateAsUpdate(entry.doc)
-          this.storage.setDocumentContent(nodeId, content).catch(() => {
-            // Silent fail on eviction persist
-          })
-        }
-        entry.doc.destroy()
-        this.docPool.delete(nodeId)
-      }
+    // Persist one final time before destroying
+    if (this.storage) {
+      const content = Y.encodeStateAsUpdate(entry.doc)
+      this.storage.setDocumentContent(nodeId, content).catch(() => {
+        // Silent fail on eviction persist
+      })
     }
+    entry.doc.destroy()
+    this.docPool.delete(nodeId)
   }
 }
 

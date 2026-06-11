@@ -41,6 +41,43 @@ import {
   type YDocRegistry
 } from './DevToolsContext'
 
+type NodeChangeBridge = ReturnType<typeof useDataBridge>
+type DevToolsNodeStore = ReturnType<typeof useNodeStore>['store']
+
+function selectBridgeChangeFeed(bridge: NodeChangeBridge) {
+  if (!bridge || !bridge.subscribeToChanges || bridge.nodeStore) return null
+  return bridge.subscribeToChanges.bind(bridge)
+}
+
+/**
+ * With a worker-resident data layer (0164) the main-thread store never
+ * sees hook-driven writes, so prefer the bridge's change feed whenever
+ * the bridge has no main-thread store of its own. Main-thread bridges
+ * keep direct store instrumentation (which adds conflict polling).
+ */
+function instrumentNodeChanges(
+  store: DevToolsNodeStore,
+  bridge: NodeChangeBridge,
+  bus: DevToolsEventBus
+): (() => void) | null {
+  const bridgeFeed = selectBridgeChangeFeed(bridge)
+  if (bridgeFeed) return instrumentChangeFeed(bridgeFeed, bus)
+  if (store) return instrumentStore(store, bus)
+  return null
+}
+
+/**
+ * DocumentHistoryEngine backed by the store's storage adapter when it
+ * supports Yjs snapshots, else in-memory.
+ */
+function createDocumentHistoryEngine(store: DevToolsNodeStore): DocumentHistoryEngine {
+  const storage = (store as any)?.storage
+  if (storage && typeof storage.saveYjsSnapshot === 'function') {
+    return new DocumentHistoryEngine(storage, { minInterval: 2000 })
+  }
+  return new DocumentHistoryEngine(new MemoryYjsSnapshotStorage(), { minInterval: 2000 })
+}
+
 function createSyncDiagnostics(
   syncManager: ReturnType<typeof useXNet>['syncManager']
 ): SyncDiagnostics {
@@ -344,37 +381,12 @@ export function XNetDevToolsProvider({
   const dataBridge = useDataBridge()
 
   // Set up store instrumentation when store becomes available.
-  //
-  // With a worker-resident data layer (0164) the main-thread store never
-  // sees hook-driven writes, so prefer the bridge's change feed whenever
-  // the bridge has no main-thread store of its own. Main-thread bridges
-  // keep direct store instrumentation (which adds conflict polling).
   useEffect(() => {
-    if (!store && !dataBridge?.subscribeToChanges) return
-
-    const useBridgeFeed = Boolean(dataBridge?.subscribeToChanges) && !dataBridge?.nodeStore
-    const cleanup = useBridgeFeed
-      ? instrumentChangeFeed(
-          (listener) => dataBridge!.subscribeToChanges!(listener),
-          busRef.current
-        )
-      : store
-        ? instrumentStore(store, busRef.current)
-        : null
+    const cleanup = instrumentNodeChanges(store, dataBridge, busRef.current)
     if (!cleanup) return
 
     cleanupsRef.current.push(cleanup)
-
-    // Create DocumentHistoryEngine backed by the store's storage adapter
-    const storage = (store as any)?.storage
-    if (storage && typeof storage.saveYjsSnapshot === 'function') {
-      documentHistoryRef.current = new DocumentHistoryEngine(storage, { minInterval: 2000 })
-    } else {
-      // Fallback to in-memory storage for adapters without Yjs snapshot support
-      documentHistoryRef.current = new DocumentHistoryEngine(new MemoryYjsSnapshotStorage(), {
-        minInterval: 2000
-      })
-    }
+    documentHistoryRef.current = createDocumentHistoryEngine(store)
 
     return () => {
       cleanup()

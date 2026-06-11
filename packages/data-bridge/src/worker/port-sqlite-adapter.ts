@@ -132,7 +132,11 @@ export class PortSQLiteAdapter implements SQLiteAdapter {
     return this.requireProxy().getSchemaVersion()
   }
 
+  // Schema versioning mirrors WebSQLiteProxy byte-for-byte on purpose:
+  // both speak the same worker protocol against the same _schema_version
+  // table, and diverging here would corrupt version tracking.
   async setSchemaVersion(version: number): Promise<void> {
+    // fallow-ignore-next-line code-duplication
     await this.requireProxy().run(
       'INSERT INTO _schema_version (version, applied_at) VALUES (?, ?)',
       [version, Date.now()]

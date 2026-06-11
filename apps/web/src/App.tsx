@@ -18,7 +18,8 @@ import {
   OnboardingProvider,
   OnboardingFlow,
   ErrorBoundary,
-  OfflineIndicator
+  OfflineIndicator,
+  type XNetRuntimeConfig
 } from '@xnetjs/react'
 import {
   checkBrowserSupport,
@@ -300,6 +301,36 @@ function isWorkerRuntimeEnabled(): boolean {
   return typeof localStorage !== 'undefined' && localStorage.getItem('xnet:runtime') === 'worker'
 }
 
+/**
+ * With the worker runtime enabled, hand the data worker its own port into
+ * the SQLite worker so storage calls skip the main thread.
+ */
+async function createDataWorkerStoragePort(sqliteAdapter: {
+  createMessagePort(): Promise<MessagePort>
+}): Promise<MessagePort | undefined> {
+  if (!isWorkerRuntimeEnabled()) return undefined
+  return sqliteAdapter.createMessagePort()
+}
+
+function resolveWebRuntime(storage: StorageContext): XNetRuntimeConfig {
+  if (isWorkerRuntimeEnabled()) {
+    return {
+      mode: 'worker',
+      fallback: 'main-thread',
+      diagnostics: import.meta.env.DEV,
+      worker: {
+        url: getDefaultDataWorkerUrl(),
+        storagePort: storage.dataWorkerStoragePort
+      }
+    }
+  }
+  return {
+    mode: 'main-thread',
+    fallback: 'main-thread',
+    diagnostics: import.meta.env.DEV
+  }
+}
+
 type StorageBannerTone = 'success' | 'warning' | 'info'
 
 type StorageBannerDescriptor = {
@@ -502,11 +533,7 @@ export function App(): JSX.Element {
           return
         }
 
-        // With the worker runtime enabled, hand the data worker its own
-        // port into the SQLite worker so storage calls skip the main thread.
-        const dataWorkerStoragePort = isWorkerRuntimeEnabled()
-          ? await sqliteAdapter.createMessagePort()
-          : undefined
+        const dataWorkerStoragePort = await createDataWorkerStoragePort(sqliteAdapter)
 
         // Store refs for later use
         storageRef.current = {
@@ -839,21 +866,7 @@ export function App(): JSX.Element {
             blobStore: storage.blobStore,
             hubUrl,
             hubOptions: authToken ? { autoAuth: false, authToken } : undefined,
-            runtime: isWorkerRuntimeEnabled()
-              ? {
-                  mode: 'worker',
-                  fallback: 'main-thread',
-                  diagnostics: import.meta.env.DEV,
-                  worker: {
-                    url: getDefaultDataWorkerUrl(),
-                    storagePort: storage.dataWorkerStoragePort
-                  }
-                }
-              : {
-                  mode: 'main-thread',
-                  fallback: 'main-thread',
-                  diagnostics: import.meta.env.DEV
-                },
+            runtime: resolveWebRuntime(storage),
             platform: 'web'
           }}
         >
