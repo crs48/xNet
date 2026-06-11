@@ -104,17 +104,74 @@ describe('DataWorker host', () => {
     await vi.waitFor(() => expect(deltas.length).toBe(1))
     expect(deltas[0]).toMatchObject({ type: 'add', node: { id: created.id } })
 
+    // Updates emit twice: the synchronous optimistic delta, then the
+    // durable one carrying authoritative (signed) state.
     await worker.update(created.id, { title: 'Renamed' })
-    await vi.waitFor(() => expect(deltas.length).toBe(2))
+    await vi.waitFor(() => expect(deltas.length).toBe(3))
     expect(deltas[1]).toMatchObject({
+      type: 'update',
+      nodeId: created.id,
+      node: { properties: { title: 'Renamed' } }
+    })
+    expect(deltas[2]).toMatchObject({
       type: 'update',
       nodeId: created.id,
       node: { properties: { title: 'Renamed' } }
     })
 
     await worker.delete(created.id)
-    await vi.waitFor(() => expect(deltas.length).toBe(3))
-    expect(deltas[2]).toMatchObject({ type: 'remove', nodeId: created.id })
+    await vi.waitFor(() => expect(deltas.length).toBe(4))
+    expect(deltas[3]).toMatchObject({ type: 'remove', nodeId: created.id })
+  })
+
+  it('emits optimistic update deltas synchronously, before persistence resolves', async () => {
+    const created = await worker.create(TaskSchema._schemaId, { title: 'Before' })
+    const deltas: QueryDelta[] = []
+    await worker.subscribe(subscriptionId(), TaskSchema._schemaId, {}, (delta) => {
+      deltas.push(delta)
+    })
+
+    const started = performance.now()
+    const updatePromise = worker.update(created.id, { title: 'After' })
+    const optimisticLatencyMs = performance.now() - started
+
+    // The optimistic delta is already emitted — persistence has not resolved.
+    expect(deltas).toHaveLength(1)
+    expect(deltas[0]).toMatchObject({
+      type: 'update',
+      nodeId: created.id,
+      node: { properties: { title: 'After' } }
+    })
+    // Perceived latency on the worker side is synchronous (sub-frame);
+    // the main thread adds one postMessage hop on top of this.
+    expect(optimisticLatencyMs).toBeLessThan(16)
+
+    await updatePromise
+  })
+
+  it('reverts optimistic deltas by re-querying when persistence fails', async () => {
+    const created = await worker.create(TaskSchema._schemaId, { title: 'Stable title' })
+    const deltas: QueryDelta[] = []
+    await worker.subscribe(subscriptionId(), TaskSchema._schemaId, {}, (delta) => {
+      deltas.push(delta)
+    })
+
+    const store = (worker as unknown as { store: { update: (...args: never[]) => unknown } }).store
+    vi.spyOn(store, 'update').mockRejectedValueOnce(new Error('persistence failed'))
+
+    await expect(worker.update(created.id, { title: 'Doomed edit' })).rejects.toThrow(
+      'persistence failed'
+    )
+
+    // Optimistic delta went out first, then the revert reloads from storage.
+    expect(deltas[0]).toMatchObject({
+      type: 'update',
+      node: { properties: { title: 'Doomed edit' } }
+    })
+    const last = deltas[deltas.length - 1]
+    expect(last.type).toBe('reload')
+    const reverted = (last as Extract<QueryDelta, { type: 'reload' }>).data
+    expect(reverted.find((node) => node.id === created.id)?.properties.title).toBe('Stable title')
   })
 
   it('maintains bounded working sets: removals promote buffered rows without re-querying', async () => {

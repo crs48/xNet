@@ -274,7 +274,21 @@ export class DataWorker implements DataWorkerAPI {
       throw new Error('DataWorker not initialized')
     }
 
-    return this.store.update(nodeId, { properties: changes })
+    // Optimistic apply: subscriber deltas are emitted synchronously (one
+    // postMessage ahead of persistence); the durable change event
+    // reconciles with signed state, and failures revert by re-querying.
+    const revert = this.applyOptimisticNodeChange(nodeId, (node) => ({
+      ...node,
+      properties: { ...node.properties, ...changes },
+      updatedAt: Date.now()
+    }))
+
+    try {
+      return await this.store.update(nodeId, { properties: changes })
+    } catch (err) {
+      await revert()
+      throw err
+    }
   }
 
   async delete(nodeId: string): Promise<void> {
@@ -282,7 +296,18 @@ export class DataWorker implements DataWorkerAPI {
       throw new Error('DataWorker not initialized')
     }
 
-    await this.store.delete(nodeId)
+    const revert = this.applyOptimisticNodeChange(nodeId, (node) => ({
+      ...node,
+      deleted: true,
+      updatedAt: Date.now()
+    }))
+
+    try {
+      await this.store.delete(nodeId)
+    } catch (err) {
+      await revert()
+      throw err
+    }
   }
 
   async restore(nodeId: string): Promise<NodeState> {
@@ -656,6 +681,52 @@ export class DataWorker implements DataWorkerAPI {
       if (delta) {
         sub.onDelta(delta)
       }
+    }
+  }
+
+  /**
+   * Find the freshest cached snapshot of a node across all subscriptions.
+   */
+  private findCachedNode(nodeId: string): NodeState | null {
+    for (const sub of this.subscriptions.values()) {
+      const fromWorkingSet = sub.workingSet?.nodes.find((node) => node.id === nodeId)
+      if (fromWorkingSet) return fromWorkingSet
+      const fromData = sub.lastResult.find((node) => node.id === nodeId)
+      if (fromData) return fromData
+    }
+    return null
+  }
+
+  /**
+   * Synchronously apply an optimistic node mutation to every affected
+   * subscription before persistence, so the main thread sees the edit one
+   * postMessage later (~next microtask) instead of after storage commits.
+   * Ambiguous deltas are skipped, not reloaded — storage still holds the
+   * OLD state, and the durable change event that follows reconciles.
+   * Returns a revert function that re-queries authoritative state (used
+   * when persistence fails).
+   */
+  private applyOptimisticNodeChange(
+    nodeId: string,
+    mutate: (node: NodeState) => NodeState
+  ): () => Promise<void> {
+    const current = this.findCachedNode(nodeId)
+    if (!current) {
+      return async () => {}
+    }
+
+    const nextNode = mutate(current)
+    const changes = [{ nodeId, nextNode }]
+
+    for (const sub of this.subscriptions.values()) {
+      if (sub.schemaId !== current.schemaId) continue
+
+      // Synchronous when ambiguity is skipped: no await is reached.
+      void this.applyChangesToSubscription(sub, changes, { onAmbiguous: 'skip' })
+    }
+
+    return async () => {
+      await this.reloadSubscriptionsForSchemas([current.schemaId])
     }
   }
 
