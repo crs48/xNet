@@ -466,7 +466,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 ### Phase 4 — Cross-platform & multiplayer hardening
 
-- [ ] Expo: card/list database surface + full-screen row editor, registered via `registry.ts` mobile platform flag
+- [x] Expo: card/list database surface + full-screen row editor — `apps/expo/src/screens/DatabaseScreen.tsx` on `useGridDatabase` (cards with title + 3-field summary, native stacked editors incl. select chips with typeahead tag creation, add-row FAB, delete); Home gains database create/list. Implemented as a native screen rather than the web `registry.ts` (RN can't render the DOM views)
 - [x] Two-context Playwright multiplayer specs — harness rebuilt on the real V2 stack (`tests/e2e/harness/database.tsx`); `database.spec.ts` covers structure CRUD, type-to-replace keyboard editing, typeahead option creation, sort toggle, and two-user hub convergence; `database-undo.spec.ts` covers scoped undo/redo incl. the Cmd/Ctrl+Z keymap path. Presence-ring and concurrent-option two-context assertions remain follow-up
 - [x] Performance budgets — `grid/perf.test.tsx`: 10k rows render a bounded virtualized DOM (<100 row elements) within time budgets; cursor traversal budget; 100k state-machine ops <500ms. Real-browser FPS and materialized-view cache-hit assertions remain follow-up
 - [x] CSV/JSON import/export wired to the new toolbar — ⋯ menu with Export CSV/JSON and Import CSV (field inference + select-option node creation on import) in both shells
