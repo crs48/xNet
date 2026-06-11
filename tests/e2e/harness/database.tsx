@@ -13,7 +13,7 @@ import { MemoryNodeStorageAdapter, DatabaseSchema } from '@xnetjs/data'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { XNetProvider, useGridDatabase, useNode } from '@xnetjs/react'
 import { GridSurface, GridToolbar } from '@xnetjs/views'
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 
 // ─── Parse query params ──────────────────────────────────────────────
@@ -38,9 +38,43 @@ const nodeStorage = new MemoryNodeStorageAdapter()
 // ─── Database Harness ────────────────────────────────────────────────
 
 function DatabaseHarness() {
-  const { loading, error, syncStatus } = useNode(DatabaseSchema, dbId, {
-    createIfMissing: { title: 'Database E2E Test' }
+  const { loading, error, syncStatus, awareness } = useNode(DatabaseSchema, dbId, {
+    createIfMissing: { title: 'Database E2E Test' },
+    did: authorDID
   })
+
+  // ─── Presence (awareness channel, same wiring as the app shells) ──────────
+  const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
+  useEffect(() => {
+    if (!awareness) return
+    awareness.setLocalStateField('user', {
+      did: authorDID,
+      name: `User ${userNum}`,
+      color: userNum === 1 ? '#2563eb' : '#dc2626'
+    })
+    const updatePresences = () => {
+      const next: CellPresence[] = []
+      awareness.getStates().forEach((state: Record<string, unknown>, clientId: number) => {
+        if (clientId === awareness.clientID) return
+        const user = state.user as { did?: string; color?: string; name?: string } | undefined
+        const cell = state.cell as { rowId?: string; fieldId?: string } | undefined
+        if (!user?.did || !cell?.rowId || !cell?.fieldId) return
+        next.push({
+          rowId: cell.rowId,
+          columnId: cell.fieldId,
+          color: user.color ?? '#999999',
+          did: user.did,
+          name: user.name ?? 'Anonymous'
+        })
+      })
+      setCellPresences(next)
+    }
+    awareness.on('change', updatePresences)
+    updatePresences()
+    return () => {
+      awareness.off('change', updatePresences)
+    }
+  }, [awareness])
   const [search, setSearch] = useState('')
   const grid = useGridDatabase(dbId, { search: search || undefined })
   const seededRef = useRef(false)
@@ -212,6 +246,13 @@ function DatabaseHarness() {
           onCreateOption={grid.createOption}
           onUndo={() => void grid.undo()}
           onRedo={() => void grid.redo()}
+          presences={cellPresences}
+          onCellFocus={(rowId, fieldId) => {
+            awareness?.setLocalStateField('cell', { rowId, fieldId })
+          }}
+          onCellBlur={() => {
+            awareness?.setLocalStateField('cell', null)
+          }}
         />
       </div>
     </div>

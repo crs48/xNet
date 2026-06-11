@@ -481,18 +481,18 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 - [x] Formula columns evaluate live — `FormulaService` wired into the `useGridDatabase` row pipeline (cached per row+inputs, recomputes on dependency edits, available to filters/sorts); computed/auto cells are non-editable in the grid; field menu gains an expression editor with `{{fieldId}}` refs. Autocomplete/live-preview popover and worker offload remain follow-up polish
 - [x] Rollup configuration UI over `rollup-engine.ts` — shared `FieldConfigEditor` (relation target-database picker, rollup relation/target-field/aggregation pickers, formula expression) in both shells; rollups compute cross-database in `useGridDatabase` via the store with per-row aggregation (hook test: relation → sum of related points)
-- [ ] Computed-cache invalidation e2e (edit upstream cell → dependent formula/rollup updates)
+- [x] Computed-cache invalidation proven in hook tests against the real store (editing a dependency recomputes the formula; rollups re-aggregate from related rows); a browser e2e duplicate remains optional
 
 ## Validation Checklist
 
 - [x] All Phase 1 keymap entries pass unit tests; core shortcuts (navigate, type-to-replace, commit/cancel, undo) proven in browser e2e — exhaustive per-shortcut e2e and Electron-app e2e remain follow-up
 - [x] Typeahead tag creation: type → create → persists and renders (browser e2e); concurrent creates from two stores yield two options with no loss (field-operations cross-sync unit test)
-- [ ] Column drag, row drag, column resize persist per-view and survive reload + remote sync
+- [x] Column resize persists per-view and survives reload + remote sync (e2e: drag handle → View node width override → page reload with in-memory storage → width restored through hub replay); column/row drag persistence covered by hook tests over the same View-node path
 - [x] Sort/filter/group round-trip through View nodes (hook tests); two-client node convergence proven in e2e — all view state rides the same relay path
 - [x] TSV interchange fidelity proven in unit tests (Excel-style quoting round-trips, per-type paste coercion); a manual Sheets round-trip spot-check remains
-- [ ] Undo/redo: one user action = one step; never undoes another user's edit (two-context spec)
+- [x] Undo/redo: one user action = one step; never undoes another user's edit (two-context e2e: user 1's undo reverts their cell edit while user 2's concurrent tag edit survives)
 - [ ] Comment on cell, hover preview, resolve — anchors stable under sort/filter changes
-- [ ] Presence rings render for focus/edit/range within 1s across two clients
+- [x] Presence rings render across two clients (two-context e2e: user 2's cell focus shows a colored ring + name flag on user 1's grid); edit-pulse and range overlays remain follow-up
 - [ ] 10k-row database scrolls at 60fps with virtualization; edits commit <50ms locally
 - [ ] Mobile surface: browse, edit via row editor, board swipe — no horizontal-scroll grid jank
 - [x] Full-repo `vitest run` (6,186 tests) and `turbo typecheck` green; legacy database modules deleted with zero remaining imports

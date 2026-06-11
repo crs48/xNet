@@ -48,6 +48,7 @@ test.describe('Database V2 grid', () => {
       page.on('console', (msg) =>
         process.stderr.write(`[page:console] ${msg.type()}: ${msg.text()}\n`)
       )
+      page.on('pageerror', (err) => process.stderr.write(`[page:error] ${err.message}\n`))
     }
     await page.goto(harnessUrl(1))
     await page.waitForSelector('[data-testid="title"]', { timeout: 30_000 })
@@ -139,6 +140,32 @@ test.describe('Database V2 grid', () => {
     await expect(header).not.toHaveAttribute('aria-sort', /.+/)
   })
 
+  test('column resize persists to the view node and survives reload', async () => {
+    const header = page.locator('[data-grid-header]').first()
+    const widthBefore = (await header.boundingBox())!.width
+
+    const handle = header.locator('[data-testid^="resize-"]')
+    const hb = (await handle.boundingBox())!
+    await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(hb.x + hb.width / 2 + 80, hb.y + hb.height / 2, { steps: 5 })
+    await page.mouse.up()
+
+    await expect
+      .poll(async () => (await header.boundingBox())!.width, { timeout: 10_000 })
+      .toBeGreaterThan(widthBefore + 60)
+    const widthAfter = (await header.boundingBox())!.width
+
+    // Reload: in-memory storage resets, so the view node (and its width
+    // override) must come back through hub sync
+    await page.reload()
+    await page.waitForSelector('[data-grid-header]', { timeout: 30_000 })
+    const headerAfter = page.locator('[data-grid-header]').first()
+    await expect
+      .poll(async () => (await headerAfter.boundingBox())!.width, { timeout: 20_000 })
+      .toBeCloseTo(widthAfter, -1)
+  })
+
   test('two users converge through the hub', async ({ browser }) => {
     const context2 = await browser.newContext()
     const page2 = await context2.newPage()
@@ -168,6 +195,49 @@ test.describe('Database V2 grid', () => {
 
     await page.screenshot({ path: `${ROOT}/tmp/playwright/grid-04-sync-user1.png` })
     await page2.screenshot({ path: `${ROOT}/tmp/playwright/grid-05-sync-user2.png` })
+
+    // ─── Presence: user 2's cell focus renders a ring + name flag for user 1
+    await cell2.click()
+    await expect(page.getByText('User 2')).toBeVisible({ timeout: 10_000 })
+    const presencedCell = page.locator('[data-row-index="0"][data-col-index="0"]')
+    await expect(presencedCell).toHaveCSS('box-shadow', /rgb\(220, 38, 38\)/, {
+      timeout: 10_000
+    })
+    await page.screenshot({ path: `${ROOT}/tmp/playwright/grid-06-presence.png` })
+
+    // ─── Undo isolation: user 1's undo never reverts user 2's edit
+    // user 1 edits column 0, user 2 edits column 1 on the same row
+    const cell1 = page.locator('[data-row-index="0"][data-col-index="0"]')
+    await cell1.click()
+    await page.keyboard.type('user one wrote this')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('first-row-title')).toContainText('user one wrote this')
+
+    const statusCell2 = page2.locator('[data-row-index="0"][data-col-index="1"]')
+    await statusCell2.click()
+    await page2.keyboard.press('Enter')
+    const combo2 = page2.locator('[data-row-index="0"][data-col-index="1"] [role="combobox"]')
+    await combo2.fill('FromUserTwo')
+    await page2.keyboard.press('Enter')
+    await expect(page2.locator('[data-row-index="0"][data-col-index="1"]')).toContainText(
+      'FromUserTwo',
+      { timeout: 10_000 }
+    )
+    // wait for user 2's edit to reach user 1
+    await expect(page.locator('[data-row-index="0"][data-col-index="1"]')).toContainText(
+      'FromUserTwo',
+      { timeout: 20_000 }
+    )
+
+    // user 1 undoes: their own cell reverts, user 2's tag stays
+    await page.getByTestId('undo-action').click()
+    await expect(page.getByTestId('first-row-title')).toContainText('From user two', {
+      timeout: 10_000
+    })
+    await expect(page.locator('[data-row-index="0"][data-col-index="1"]')).toContainText(
+      'FromUserTwo'
+    )
+
     await context2.close()
   })
 })
