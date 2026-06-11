@@ -23,6 +23,7 @@ import type {
   SerializedQueryOptions,
   QueryDelta,
   WorkerSubscription,
+  WorkerQuerySnapshot,
   DataWorkerAPI,
   WorkerAcquiredDoc
 } from './worker-types'
@@ -54,6 +55,7 @@ import {
   reuseEquivalentNodeReferences,
   type BoundedQueryWorkingSet
 } from '../query-descriptor'
+import { encodeWorkerQuerySnapshot } from '../utils/binary-state'
 import { groupNodeChangeEventsBySchema } from '../utils/change-events'
 import { PortSQLiteAdapter } from './port-sqlite-adapter'
 
@@ -206,7 +208,7 @@ export class DataWorker implements DataWorkerAPI {
     schemaId: string,
     options: SerializedQueryOptions,
     onDelta: (delta: QueryDelta) => void
-  ): Promise<NodeState[]> {
+  ): Promise<WorkerQuerySnapshot> {
     if (!this.store) {
       throw new Error('DataWorker not initialized')
     }
@@ -224,23 +226,35 @@ export class DataWorker implements DataWorkerAPI {
       onDelta: proxy(onDelta)
     })
 
-    return loaded.visible
+    return this.toWireSnapshot(loaded.visible)
   }
 
   async unsubscribe(queryId: string): Promise<void> {
     this.subscriptions.delete(queryId)
   }
 
-  async reloadQuery(queryId: string): Promise<NodeState[]> {
+  async reloadQuery(queryId: string): Promise<WorkerQuerySnapshot> {
     const sub = this.subscriptions.get(queryId)
     if (!sub) {
-      return []
+      return { encoding: 'json', nodes: [] }
     }
 
     const loaded = await this.loadQueryState(sub.descriptor, sub.lastResult, sub.workingSet)
     sub.lastResult = loaded.visible
     sub.workingSet = loaded.workingSet
-    return loaded.visible
+    return this.toWireSnapshot(loaded.visible)
+  }
+
+  /**
+   * Encode a snapshot for the wire. Binary payloads ride a freshly
+   * allocated buffer, so it is transferred (zero-copy) instead of cloned.
+   */
+  private toWireSnapshot(nodes: NodeState[]): WorkerQuerySnapshot {
+    const snapshot = encodeWorkerQuerySnapshot(nodes)
+    if (snapshot.encoding === 'binary') {
+      return transfer(snapshot, [snapshot.data.buffer])
+    }
+    return snapshot
   }
 
   async create(schemaId: string, data: Record<string, unknown>, id?: string): Promise<NodeState> {

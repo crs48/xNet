@@ -150,7 +150,9 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
 - [x] `PortSQLiteAdapter` + `MessagePort` forwarding from
       `WorkerBridge.initialize` (`WebSQLiteProxy.createMessagePort()` +
       `SQLiteWorkerHandler.connectPort()` provide the forwarded port)
-- [ ] Binary snapshot transfer for initial loads (`binary-state.ts`)
+- [x] Binary snapshot transfer for initial loads (`binary-state.ts`) —
+      snapshots above the `shouldUseBinaryEncoding` threshold ride a
+      transferred ArrayBuffer; small ones stay structured-clone
 - [ ] Worker-side optimistic apply; measure perceived latency vs
       main-thread overlay
 - [ ] Devtools event feed from the worker

@@ -58,6 +58,7 @@ export type {
   WorkerConfig,
   SerializedQueryOptions,
   QueryDelta,
+  WorkerQuerySnapshot,
   DataWorkerAPI,
   WorkerAcquiredDoc,
   DocUpdateMessage
@@ -197,5 +198,7 @@ export {
   NodeStateDecoder,
   encodeNodeStates,
   decodeNodeStates,
-  shouldUseBinaryEncoding
+  shouldUseBinaryEncoding,
+  encodeWorkerQuerySnapshot,
+  decodeWorkerQuerySnapshot
 } from './utils/binary-state'

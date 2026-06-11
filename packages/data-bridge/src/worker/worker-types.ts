@@ -88,6 +88,18 @@ export interface SerializedQueryOptions {
 }
 
 /**
+ * Wire format for query snapshots (initial loads and reloads).
+ *
+ * Large result sets are encoded with `binary-state.ts` so the backing
+ * ArrayBuffer can be transferred (zero-copy) instead of structured-cloned;
+ * small ones stay as plain structured-clone payloads, which is faster for
+ * few nodes.
+ */
+export type WorkerQuerySnapshot =
+  | { encoding: 'json'; nodes: NodeState[] }
+  | { encoding: 'binary'; data: Uint8Array }
+
+/**
  * Delta update types for incremental cache updates
  */
 export type QueryDelta =
@@ -120,15 +132,16 @@ export interface DataWorkerAPI {
   initialize(config: WorkerConfig): Promise<void>
 
   /**
-   * Subscribe to a query. Returns initial results.
-   * Delta updates are sent via the callback.
+   * Subscribe to a query. Returns the initial snapshot (binary-encoded
+   * and transferred above the size threshold). Delta updates are sent via
+   * the callback.
    */
   subscribe(
     queryId: string,
     schemaId: string,
     options: SerializedQueryOptions,
     onDelta: (delta: QueryDelta) => void
-  ): Promise<NodeState[]>
+  ): Promise<WorkerQuerySnapshot>
 
   /**
    * Unsubscribe from a query.
@@ -138,7 +151,7 @@ export interface DataWorkerAPI {
   /**
    * Force a targeted reload for an existing subscription.
    */
-  reloadQuery(queryId: string): Promise<NodeState[]>
+  reloadQuery(queryId: string): Promise<WorkerQuerySnapshot>
 
   /**
    * Create a new node.

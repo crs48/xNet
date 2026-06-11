@@ -13,6 +13,7 @@ import { defineSchema, text, number, checkbox } from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { serializeQueryDescriptor, createQueryDescriptor } from '../query-descriptor'
+import { decodeWorkerQuerySnapshot } from '../utils/binary-state'
 import { DataWorker, computeQueryDelta } from '../worker/data-worker-host'
 
 const TaskSchema = defineSchema({
@@ -92,9 +93,11 @@ describe('DataWorker host', () => {
   it('streams add, update, and remove deltas for a live subscription', async () => {
     const deltas: QueryDelta[] = []
     const queryId = subscriptionId()
-    const initial = await worker.subscribe(queryId, TaskSchema._schemaId, {}, (delta) => {
-      deltas.push(delta)
-    })
+    const initial = decodeWorkerQuerySnapshot(
+      await worker.subscribe(queryId, TaskSchema._schemaId, {}, (delta) => {
+        deltas.push(delta)
+      })
+    )
     expect(initial).toEqual([])
 
     const created = await worker.create(TaskSchema._schemaId, makeNode('task-1', 'First'))
@@ -122,9 +125,11 @@ describe('DataWorker host', () => {
     const options = { orderBy: { rank: 'asc' as const }, limit: 5 }
     const queryId = subscriptionId(options)
     const deltas: QueryDelta[] = []
-    const initial = await worker.subscribe(queryId, TaskSchema._schemaId, options, (delta) => {
-      deltas.push(delta)
-    })
+    const initial = decodeWorkerQuerySnapshot(
+      await worker.subscribe(queryId, TaskSchema._schemaId, options, (delta) => {
+        deltas.push(delta)
+      })
+    )
 
     expect(initial).toHaveLength(5)
     expect(initial.map((node) => node.properties.rank)).toEqual([0, 1, 2, 3, 4])
@@ -149,10 +154,12 @@ describe('DataWorker host', () => {
     await worker.create(TaskSchema._schemaId, { title: 'Also stable', rank: 2 })
 
     const queryId = subscriptionId()
-    const initial = await worker.subscribe(queryId, TaskSchema._schemaId, {}, () => {})
+    const initial = decodeWorkerQuerySnapshot(
+      await worker.subscribe(queryId, TaskSchema._schemaId, {}, () => {})
+    )
     expect(initial).toHaveLength(2)
 
-    const reloaded = await worker.reloadQuery(queryId)
+    const reloaded = decodeWorkerQuerySnapshot(await worker.reloadQuery(queryId))
     expect(reloaded).toHaveLength(2)
     for (const node of reloaded) {
       const previous = initial.find((candidate) => candidate.id === node.id)
@@ -206,6 +213,32 @@ describe('DataWorker host', () => {
     expect(deltas).toHaveLength(1)
     expect(deltas[0].type).toBe('reload')
     expect((deltas[0] as Extract<QueryDelta, { type: 'reload' }>).data).toHaveLength(251)
+  })
+
+  it('binary-encodes large initial snapshots and round-trips them losslessly', async () => {
+    const drafts = Array.from({ length: 150 }, (_, i) => ({
+      id: `node-${i}`,
+      schemaId: TaskSchema._schemaId,
+      properties: { title: `Node ${i}`, rank: i }
+    }))
+    await worker.bulkWrite({ kind: 'deterministic-import', drafts })
+
+    const snapshot = await worker.subscribe(subscriptionId(), TaskSchema._schemaId, {}, () => {})
+    expect(snapshot.encoding).toBe('binary')
+
+    const decoded = decodeWorkerQuerySnapshot(snapshot)
+    expect(decoded).toHaveLength(150)
+    const sample = decoded.find((node) => node.id === 'node-42')
+    expect(sample?.properties).toMatchObject({ title: 'Node 42', rank: 42 })
+
+    // Small snapshots stay structured-clone (faster for few nodes).
+    const small = await worker.subscribe(
+      subscriptionId({ limit: 3, orderBy: { rank: 'asc' as const } }),
+      TaskSchema._schemaId,
+      { limit: 3, orderBy: { rank: 'asc' as const } },
+      () => {}
+    )
+    expect(small.encoding).toBe('json')
   })
 
   it('defaults to the WebCrypto change signer when SubtleCrypto exists', () => {

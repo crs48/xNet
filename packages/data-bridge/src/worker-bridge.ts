@@ -41,6 +41,7 @@ import {
   serializeQueryDescriptor
 } from './query-descriptor'
 import { createQuerySnapshotMetadata } from './query-metadata'
+import { decodeWorkerQuerySnapshot } from './utils/binary-state'
 import { createUpdateBatcher, type UpdateBatcher } from './utils/debounce'
 
 // ─── Update Batcher Configuration ─────────────────────────────────────────────
@@ -187,7 +188,7 @@ export class WorkerBridge implements DataBridge {
       return
     }
 
-    const data = await this.remote.reloadQuery(queryId)
+    const data = decodeWorkerQuerySnapshot(await this.remote.reloadQuery(queryId))
     this.cache.set(
       queryId,
       data,
@@ -202,7 +203,7 @@ export class WorkerBridge implements DataBridge {
     descriptor: QueryDescriptor
   ): Promise<void> {
     try {
-      const initial = await this.remote.subscribe(
+      const snapshot = await this.remote.subscribe(
         queryId,
         descriptor.schemaId,
         this.serializeOptions(queryDescriptorToOptions(descriptor)),
@@ -210,6 +211,7 @@ export class WorkerBridge implements DataBridge {
           this.applyDelta(queryId, delta)
         })
       )
+      const initial = decodeWorkerQuerySnapshot(snapshot)
 
       // Update cache with initial data
       this.cache.set(
