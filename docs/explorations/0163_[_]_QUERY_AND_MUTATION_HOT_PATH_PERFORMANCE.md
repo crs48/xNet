@@ -600,7 +600,7 @@ Phase 3 — write path:
 
 Phase 4 — worker-resident data layer:
 
-- [ ] Write a follow-up exploration for migrating NodeStore into `data-worker.ts` (async transaction API, snapshot transfer via `binary-state.ts`, devtools story)
+- [x] Write a follow-up exploration for migrating NodeStore into `data-worker.ts` (async transaction API, snapshot transfer via `binary-state.ts`, devtools story) — see [0164*[*]\_WORKER_RESIDENT_DATA_LAYER.md](0164_%5B_%5D_WORKER_RESIDENT_DATA_LAYER.md)
 
 Independent:
 
