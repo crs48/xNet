@@ -118,6 +118,16 @@ export type {
 // Shortcuts
 export { ShortcutManager, getShortcutManager, installShortcutHandler } from './shortcuts'
 
+// Workspace command registry (scopes, single-key verbs, chords)
+export {
+  CommandRegistry,
+  getCommandRegistry,
+  installCommandHandler,
+  type WorkspaceCommand,
+  type CommandContext,
+  type CommandScope
+} from './commands'
+
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'
 export { MiddlewareChain } from './middleware'

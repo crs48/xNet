@@ -602,14 +602,24 @@ export function parseTaskLinks(text: string) {
 
 ### Phase 3 — Keyboard layer
 
-- [ ] Build workspace `CommandRegistry` with scopes + chords (tinykeys)
-      in `packages/plugins`, migrating `ShortcutManager` consumers
-- [ ] Unify Cmd+K: merge `GlobalSearch` with a cmdk-based command palette
-      (search + actions + task quick-create)
-- [ ] Single-key verbs + contextual mini-palettes (status/assignee/
+- [x] Build workspace `CommandRegistry` with scopes + chords
+      in `packages/plugins` (`commands.ts`: scope stack with
+      most-recent-wins conflict resolution, single-key suppression in
+      editors, `allowInInput` opt-in, chord pending-step timeout —
+      dependency-free, no tinykeys needed; `ShortcutManager` remains for
+      legacy plugin keybindings)
+- [x] Unify Cmd+K: merge `GlobalSearch` with a command palette
+      (search + actions + task quick-create) — Cmd+K is now a registry
+      command; the palette lists matching workspace commands with key
+      hints, page results, and a create-task action
+- [x] Single-key verbs + contextual mini-palettes (status/assignee/
       priority/due) on focused tasks across grid, tasks surface, canvas
-- [ ] `g`-chord navigation (`g t` tasks, `g i` inbox, …) and a `?`
-      shortcut-help overlay
+      (tasks surface shipped: j/k focus, x toggle, s/p filterable
+      mini-palettes, Enter open, c quick-create; grid/canvas surfaces
+      adopt the same registry scopes next)
+- [x] `g`-chord navigation (`g t` tasks, `g d` data, `g h` home, `g s`
+      settings) and a `?` shortcut-help overlay
+      (`apps/web/src/components/WorkspaceCommands.tsx`)
 
 ### Phase 4 — GitHub integration
 

@@ -7,12 +7,33 @@
  * cells (exploration 0161). Opening a task navigates to its host surface.
  */
 import { useNavigate } from '@tanstack/react-router'
-import { TaskSchema, isCompletedTaskStatus, type TaskStatusId } from '@xnetjs/data'
+import {
+  TASK_STATUS_CATEGORIES,
+  TaskSchema,
+  isCompletedTaskStatus,
+  type TaskStatusId
+} from '@xnetjs/data'
+import { getCommandRegistry } from '@xnetjs/plugins'
 import { useIdentity, useMutate, useTasks } from '@xnetjs/react'
-import { type TaskDisplayData } from '@xnetjs/ui'
+import { getTaskStatusMeta, type TaskDisplayData } from '@xnetjs/ui'
 import { TaskBoard, TaskListGrouped, type TaskBoardStatusChange } from '@xnetjs/views'
 import { Inbox, KanbanSquare, List, Plus, User } from 'lucide-react'
-import { useMemo, useState, type JSX } from 'react'
+import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { TaskMiniPalette } from './TaskMiniPalette'
+
+const WORKFLOW_ORDER = Object.keys(TASK_STATUS_CATEGORIES) as TaskStatusId[]
+
+const STATUS_OPTIONS = WORKFLOW_ORDER.map((status) => ({
+  id: status,
+  label: getTaskStatusMeta(status).name
+}))
+
+const PRIORITY_OPTIONS = [
+  { id: 'low', label: 'Low' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'high', label: 'High' },
+  { id: 'urgent', label: 'Urgent' }
+]
 
 type TasksTab = 'all' | 'mine' | 'triage'
 type TasksMode = 'list' | 'board'
@@ -33,6 +54,9 @@ export function TasksView(): JSX.Element {
   const [tab, setTab] = useState<TasksTab>('all')
   const [mode, setMode] = useState<TasksMode>('list')
   const [draft, setDraft] = useState('')
+  const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null)
+  const [miniPalette, setMiniPalette] = useState<'status' | 'priority' | null>(null)
+  const quickAddRef = useRef<HTMLInputElement>(null)
 
   const { data: tasks, loading } = useTasks({ includeCompleted: true })
 
@@ -63,6 +87,132 @@ export function TasksView(): JSX.Element {
       sortKey: typeof task.sortKey === 'string' ? task.sortKey : null
     }))
   }, [visibleTasks])
+
+  // Ordered ids matching the grouped-list render order (workflow groups,
+  // then input order) so focus movement walks rows the way they look.
+  const orderedTaskIds = useMemo(() => {
+    const byStatus = new Map<TaskStatusId, string[]>(WORKFLOW_ORDER.map((s) => [s, []]))
+    for (const task of displayTasks) {
+      const status = (task.status ?? 'todo') as TaskStatusId
+      ;(byStatus.get(status) ?? byStatus.get('todo'))?.push(task.id)
+    }
+    return WORKFLOW_ORDER.flatMap((status) => byStatus.get(status) ?? [])
+  }, [displayTasks])
+
+  const stateRef = useRef({ focusedTaskId, orderedTaskIds, miniPalette })
+  stateRef.current = { focusedTaskId, orderedTaskIds, miniPalette }
+  const tasksRef = useRef(tasks)
+  tasksRef.current = tasks
+
+  // Surface scope: focus movement + quick capture, active while mounted.
+  useEffect(() => {
+    const registry = getCommandRegistry()
+    const scope = registry.activateScope('surface:tasks')
+
+    const moveFocus = (delta: 1 | -1) => {
+      const { focusedTaskId: current, orderedTaskIds: ids } = stateRef.current
+      if (ids.length === 0) return
+      const index = current ? ids.indexOf(current) : -1
+      const next = index === -1 ? (delta === 1 ? 0 : ids.length - 1) : index + delta
+      setFocusedTaskId(ids[Math.max(0, Math.min(next, ids.length - 1))] ?? null)
+    }
+
+    const disposables = [
+      registry.register({
+        id: 'tasks.focusNext',
+        title: 'Focus next task',
+        scope: 'surface:tasks',
+        key: 'j',
+        run: () => moveFocus(1)
+      }),
+      registry.register({
+        id: 'tasks.focusNext.arrow',
+        title: 'Focus next task',
+        scope: 'surface:tasks',
+        key: 'down',
+        run: () => moveFocus(1)
+      }),
+      registry.register({
+        id: 'tasks.focusPrev',
+        title: 'Focus previous task',
+        scope: 'surface:tasks',
+        key: 'k',
+        run: () => moveFocus(-1)
+      }),
+      registry.register({
+        id: 'tasks.focusPrev.arrow',
+        title: 'Focus previous task',
+        scope: 'surface:tasks',
+        key: 'up',
+        run: () => moveFocus(-1)
+      }),
+      registry.register({
+        id: 'tasks.quickCreate',
+        title: 'New task',
+        scope: 'surface:tasks',
+        key: 'c',
+        run: () => quickAddRef.current?.focus()
+      })
+    ]
+
+    return () => {
+      for (const disposable of disposables) disposable.dispose()
+      scope.dispose()
+    }
+  }, [])
+
+  // Focused-task scope: single-key verbs acting on the highlighted row.
+  useEffect(() => {
+    if (!focusedTaskId) return
+
+    const registry = getCommandRegistry()
+    const scope = registry.activateScope('task-focused')
+
+    const withFocused = (action: (taskId: string) => void) => () => {
+      const { focusedTaskId: current, miniPalette: palette } = stateRef.current
+      if (current && !palette) action(current)
+    }
+
+    const disposables = [
+      registry.register({
+        id: 'task.toggleCompleted',
+        title: 'Toggle task completion',
+        scope: 'task-focused',
+        key: 'x',
+        run: withFocused((taskId) => {
+          const task = tasksRef.current.find((t) => t.id === taskId)
+          handleToggleCompleted(taskId, !task?.completed)
+        })
+      }),
+      registry.register({
+        id: 'task.setStatus',
+        title: 'Change task status…',
+        scope: 'task-focused',
+        key: 's',
+        run: withFocused(() => setMiniPalette('status'))
+      }),
+      registry.register({
+        id: 'task.setPriority',
+        title: 'Change task priority…',
+        scope: 'task-focused',
+        key: 'p',
+        run: withFocused(() => setMiniPalette('priority'))
+      }),
+      registry.register({
+        id: 'task.open',
+        title: 'Open task',
+        scope: 'task-focused',
+        key: 'enter',
+        run: withFocused((taskId) => handleOpenTask(taskId))
+      })
+    ]
+
+    return () => {
+      for (const disposable of disposables) disposable.dispose()
+      scope.dispose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Boolean(focusedTaskId)])
 
   const handleToggleCompleted = (taskId: string, completed: boolean) => {
     void update(TaskSchema, taskId, {
@@ -195,11 +345,34 @@ export function TasksView(): JSX.Element {
         ) : (
           <TaskListGrouped
             tasks={displayTasks}
+            focusedTaskId={focusedTaskId}
             onOpenTask={handleOpenTask}
             onToggleCompleted={handleToggleCompleted}
           />
         )}
       </div>
+
+      {miniPalette && focusedTaskId && (
+        <TaskMiniPalette
+          title={miniPalette === 'status' ? 'Change status…' : 'Change priority…'}
+          kind={miniPalette}
+          options={miniPalette === 'status' ? STATUS_OPTIONS : PRIORITY_OPTIONS}
+          onSelect={(optionId) => {
+            if (miniPalette === 'status') {
+              const status = optionId as TaskStatusId
+              void update(TaskSchema, focusedTaskId, {
+                status,
+                completed: isCompletedTaskStatus(status)
+              })
+            } else {
+              void update(TaskSchema, focusedTaskId, {
+                priority: optionId as 'low' | 'medium' | 'high' | 'urgent'
+              })
+            }
+          }}
+          onClose={() => setMiniPalette(null)}
+        />
+      )}
     </div>
   )
 }
