@@ -163,6 +163,20 @@ export {
   type UsePageTaskSyncResult
 } from './hooks/usePageTaskSync'
 export {
+  useCanvasTaskSync,
+  type CanvasTaskInput,
+  type UseCanvasTaskSyncOptions,
+  type UseCanvasTaskSyncResult
+} from './hooks/useCanvasTaskSync'
+export {
+  useTaskProjectionSync,
+  type TaskProjectionInput,
+  type TaskProjectionReferenceInput,
+  type TaskProjectionHost,
+  type UseTaskProjectionSyncOptions,
+  type UseTaskProjectionSyncResult
+} from './hooks/useTaskProjectionSync'
+export {
   useTasks,
   type UseTasksOptions,
   type UseTasksResult,

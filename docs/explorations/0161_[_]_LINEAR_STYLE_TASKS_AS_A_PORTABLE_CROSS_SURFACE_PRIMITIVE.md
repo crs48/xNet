@@ -566,8 +566,11 @@ export function parseTaskLinks(text: string) {
       `packages/canvas/src/nodes/` (`task-node.tsx` binds the canonical
       Task node via `useNode`; kind wired through ingestion, LOD colors,
       minimap, default sizes)
-- [ ] Migrate `ChecklistNodeComponent` items to Task-node backing
-      (one-time conversion of existing canvas checklist data)
+- [x] Migrate `ChecklistNodeComponent` items to Task-node backing
+      (one-time conversion of existing canvas checklist data —
+      `ensureChecklistTaskIds` + `useCanvasTaskSync` over a new
+      `canvas` host relation on `TaskSchema`; shared
+      `useTaskProjectionSync` core behind page + canvas syncs)
 - [ ] Specify and implement deletion semantics: unlink vs archive vs
       delete + tombstone chip for dangling `taskId`
 - [ ] Add `relation → Task (multiple)` column renderer with inline

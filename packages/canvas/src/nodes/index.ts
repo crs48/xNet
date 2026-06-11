@@ -10,7 +10,7 @@ export type { CanvasNodeProps, NodeRemoteUser, LODLevel } from './CanvasNodeComp
 export { MermaidNodeComponent } from './mermaid-node'
 export type { MermaidNodeData, MermaidNodeProps } from './mermaid-node'
 
-export { ChecklistNodeComponent } from './checklist-node'
+export { ChecklistNodeComponent, ensureChecklistTaskIds } from './checklist-node'
 export type { ChecklistItem, ChecklistNodeData, ChecklistNodeProps } from './checklist-node'
 
 export { TaskNodeComponent } from './task-node'

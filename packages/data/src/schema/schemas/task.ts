@@ -56,7 +56,11 @@ export const TaskSchema = defineSchema({
     /** Page that currently hosts this task */
     page: relation({ target: 'xnet://xnet.fyi/Page@1.0.0' as const }),
 
-    /** Surface-specific block anchor inside the page document */
+    /** Canvas that currently hosts this task (canvas-sourced tasks) */
+    canvas: relation({ target: 'xnet://xnet.fyi/Canvas@1.0.0' as const }),
+
+    /** Surface-specific anchor: block id inside the page document, or the
+     * hosting canvas object id for canvas-sourced tasks */
     anchorBlockId: text({ maxLength: 500 }),
 
     /** Stable sibling order key for cross-view projections */
