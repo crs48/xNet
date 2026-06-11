@@ -37,6 +37,12 @@ export interface DashboardWidgetInstance {
   query?: SavedViewDescriptor
   /** Refresh policy (default: 'live') */
   refresh?: DashboardWidgetRefresh
+  /**
+   * Date/number field constrained by the dashboard time-range variable.
+   * When set, the runtime injects `timeField between [start, end]` into the
+   * query before execution.
+   */
+  timeField?: string
 }
 
 /**

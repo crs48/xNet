@@ -534,13 +534,13 @@ export interface WidgetContribution {
 ### Phase 1 — Surface and built-in widgets
 
 - [x] Define `DashboardSchema` (title, icon, variables, per-breakpoint layouts) in `packages/data`
-- [ ] Create `packages/dashboard` with `WidgetDefinition`, `WidgetProps`, widget registry
-- [ ] Spike gridstack.js v12 vs react-grid-layout v2 in a tile host; pick and wire `renderCB`/hooks to React tiles
-- [ ] Add `/dashboard.$dashboardId.tsx` route in `apps/web/src/routes/` and sidebar entry in `__root.tsx`
-- [ ] Dashboard runtime: variable scope (time range v1), query interpolation, per-widget `useQuery` subscription management
-- [ ] Built-in widgets: metric (count/aggregate), task list, saved-view table, page links, recent-items feed
-- [ ] Widget picker + config panel generated from `configFields`
-- [ ] Persist layout edits (drag/resize/add/remove) to the `DashboardSchema` node
+- [x] Create `packages/dashboard` with `WidgetDefinition`, `WidgetProps`, widget registry
+- [x] Spike gridstack.js v12 vs react-grid-layout v2 in a tile host; pick and wire `renderCB`/hooks to React tiles (picked gridstack v12: React-keyed tiles adopted via `makeWidget`, engine `change` events serialized back)
+- [x] Add `/dashboard.$dashboardId.tsx` route in `apps/web/src/routes/` and sidebar entry (Dashboards section + New → Dashboard)
+- [x] Dashboard runtime: variable scope (time range v1), query interpolation, per-widget `useQuery` subscription management (via `useSavedView`; design note in `packages/dashboard/src/variables.ts`)
+- [x] Built-in widgets: metric (count/aggregate), task list, saved-view table, page links, recent-items feed
+- [x] Widget picker + config panel generated from `configFields`
+- [x] Persist layout edits (drag/resize/add/remove) to the `DashboardSchema` node
 
 ### Phase 2 — Charts and feeds
 

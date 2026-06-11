@@ -11,6 +11,7 @@ const workspaceAliases = {
   '@xnetjs/cli': new URL('./packages/cli/src/index.ts', import.meta.url).pathname,
   '@xnetjs/core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
   '@xnetjs/crypto': new URL('./packages/crypto/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/dashboard': new URL('./packages/dashboard/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
   '@xnetjs/devtools': new URL('./packages/devtools/src/index.ts', import.meta.url).pathname,
@@ -87,8 +88,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: true,
           include: [
-            'packages/{canvas,react,views,devtools,ui}/src/**/*.test.{ts,tsx}',
-            'packages/{canvas,react,views,devtools,ui}/test/**/*.test.{ts,tsx}'
+            'packages/{canvas,react,views,devtools,ui,dashboard}/src/**/*.test.{ts,tsx}',
+            'packages/{canvas,react,views,devtools,ui,dashboard}/test/**/*.test.{ts,tsx}'
           ]
         },
         resolve: {
