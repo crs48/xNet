@@ -213,7 +213,14 @@ function GridCellInner({
       }}
     >
       {editing && !readOnly ? (
-        <div className="absolute inset-0 z-10 bg-white dark:bg-gray-900 flex items-stretch">
+        <div
+          className="absolute inset-0 z-10 bg-white dark:bg-gray-900 flex items-stretch"
+          // Clicks inside the editor must not re-enter grid selection — the
+          // bubbled mousedown would re-dispatch focusCell and tear down the
+          // session before the editor's own click handler runs
+          onMouseDown={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
           <handler.Editor
             value={draft}
             config={editorConfig}

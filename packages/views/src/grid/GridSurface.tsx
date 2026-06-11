@@ -344,14 +344,23 @@ export function GridSurface({
           break
         case 'startEdit': {
           if (readOnly) break
-          // Computed/auto fields have no editor
           const target = state.cursor ? cellAt(state.cursor) : null
+          // Computed/auto fields have no editor
           if (
             target &&
             ['formula', 'rollup', 'created', 'createdBy', 'updated', 'updatedBy'].includes(
               target.field.type
             )
           ) {
+            break
+          }
+          // Checkboxes toggle in place — no edit session (Sheets/Notion behavior)
+          if (target && target.field.type === 'checkbox') {
+            onUpdateCell?.(
+              target.row.id,
+              target.field.id,
+              target.row.cells[target.field.id] !== true
+            )
             break
           }
           dispatch({ type: 'startEdit', mode: command.mode, seed: command.seed })
@@ -510,9 +519,15 @@ export function GridSurface({
     (rowIndex: number, colIndex: number) => {
       if (readOnly) return
       dispatch({ type: 'focusCell', pos: { row: rowIndex, col: colIndex } })
+      const cell = cellAt({ row: rowIndex, col: colIndex })
+      // Checkboxes toggle in place — no edit session (Sheets/Notion behavior)
+      if (cell?.field.type === 'checkbox') {
+        onUpdateCell?.(cell.row.id, cell.field.id, cell.row.cells[cell.field.id] !== true)
+        return
+      }
       dispatch({ type: 'startEdit', mode: 'edit' })
     },
-    [readOnly]
+    [readOnly, cellAt, onUpdateCell]
   )
 
   // ─── Editing callbacks (from GridCell) ─────────────────────────────────────
