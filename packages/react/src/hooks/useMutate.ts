@@ -42,7 +42,7 @@ import type {
   NodeBatchWriteResult
 } from '@xnetjs/data'
 import { isTempId } from '@xnetjs/data'
-import { useCallback, useState, useRef } from 'react'
+import { useCallback, useRef, useSyncExternalStore } from 'react'
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
@@ -256,18 +256,46 @@ export interface UseMutateResult {
 export function useMutate(): UseMutateResult {
   const bridge = useDataBridge()
   const telemetry = useTelemetryReporter()
-  const [pendingCount, setPendingCount] = useState(0)
+
+  // Pending state is tracked subscription-on-read: the snapshot only
+  // reflects what the component actually read on a previous render
+  // (nothing / isPending / pendingCount), so components that never
+  // destructure pending state pay zero re-renders per mutation, and
+  // isPending readers only re-render on idle<->busy transitions.
   const pendingRef = useRef(0)
+  const pendingListenersRef = useRef<Set<() => void> | null>(null)
+  pendingListenersRef.current ??= new Set()
+  // 0 = pending state never read, 1 = isPending read, 2 = pendingCount read
+  const pendingReadLevelRef = useRef(0)
+
+  const subscribePending = useCallback((listener: () => void) => {
+    const listeners = pendingListenersRef.current!
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+    }
+  }, [])
+  const getPendingSnapshot = useCallback(() => {
+    if (pendingReadLevelRef.current === 0) return 0
+    if (pendingReadLevelRef.current === 1) return pendingRef.current > 0 ? 1 : 0
+    return pendingRef.current
+  }, [])
+  useSyncExternalStore(subscribePending, getPendingSnapshot, getPendingSnapshot)
 
   // Helper to track pending state
   const withPending = useCallback(async <T>(fn: () => Promise<T>): Promise<T> => {
+    const notify = () => {
+      for (const listener of pendingListenersRef.current!) {
+        listener()
+      }
+    }
     pendingRef.current++
-    setPendingCount(pendingRef.current)
+    notify()
     try {
       return await fn()
     } finally {
       pendingRef.current--
-      setPendingCount(pendingRef.current)
+      notify()
     }
   }, [])
 
@@ -483,7 +511,16 @@ export function useMutate(): UseMutateResult {
     restore,
     mutate,
     bulk,
-    isPending: pendingCount > 0,
-    pendingCount
+    // Lazy getters record how much pending detail this component reads, so
+    // the external-store snapshot above can avoid re-rendering components
+    // that never look at pending state.
+    get isPending(): boolean {
+      pendingReadLevelRef.current = Math.max(pendingReadLevelRef.current, 1)
+      return pendingRef.current > 0
+    },
+    get pendingCount(): number {
+      pendingReadLevelRef.current = 2
+      return pendingRef.current
+    }
   }
 }

@@ -28,8 +28,9 @@
  * })
  * ```
  */
-import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
+import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeState } from '@xnetjs/data'
 import type {
+  QueryDescriptor,
   QueryExecutionMode,
   QueryCompletenessMetadata,
   QueryMaterializedMetadata,
@@ -55,7 +56,12 @@ import { useSyncExternalStore, useMemo, useCallback, useEffect, useRef } from 'r
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
 import { useInstrumentation } from '../instrumentation'
-import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'
+import { flattenNode, type FlatNode } from '../utils/flattenNode'
+import {
+  computeFallbackPageInfo,
+  summarizePlan,
+  type QueryPlanSummary
+} from '../utils/queryResultMeta'
 
 // =============================================================================
 // Types
@@ -105,18 +111,7 @@ export interface QueryFilter<
 
 export type QueryStatus = 'loading' | 'success' | 'error'
 
-export interface QueryPlanSummary {
-  strategy?: string
-  candidateNodeCount?: number
-  hydratedNodeCount?: number
-  returnedNodeCount?: number
-  durationMs?: number
-  descriptorHash?: string
-  candidateAccelerators?: string[]
-  materializedViewId?: string
-  materializedCacheHit?: boolean
-  materializedRefreshReason?: string
-}
+export type { QueryPlanSummary } from '../utils/queryResultMeta'
 
 export interface QueryBaseResult {
   /** Query lifecycle status */
@@ -199,70 +194,110 @@ export interface QuerySingleResult<
   migrationWarnings: MigrationWarning[]
 }
 
-const EMPTY_PAGE_INFO: QueryPageInfo = {
-  totalCount: null,
-  countMode: 'none',
-  hasMore: false,
-  hasNextPage: false,
-  hasPreviousPage: false,
-  loadedCount: 0
-}
 const EMPTY_QUERY_FILTER: QueryFilter = Object.freeze({})
 const DISABLED_QUERY_SNAPSHOT: never[] = []
+
+/**
+ * Global flatten cache: a NodeState reference always flattens to the same
+ * FlatNode reference. The bridge preserves NodeState identities for
+ * unchanged rows, so memoized children keyed on FlatNode identity skip
+ * re-rendering when their row did not change. Only valid for the
+ * options-less flatten that useQuery performs.
+ */
+const flatNodeCache = new WeakMap<NodeState, FlatNode<never>>()
+
+function flattenNodeCached<P extends Record<string, PropertyBuilder>>(
+  node: NodeState
+): FlatNode<P> {
+  const cached = flatNodeCache.get(node)
+  if (cached) return cached as FlatNode<P>
+
+  const flat = flattenNode<P>(node)
+  flatNodeCache.set(node, flat as FlatNode<never>)
+  return flat
+}
 
 function getFallbackPageInfo(input: {
   metadata: QueryMetadata | null
   loading: boolean
   isSingleQuery: boolean
   data: unknown
-  filter: QueryFilter
+  descriptor: QueryDescriptor
 }): QueryPageInfo {
-  if (input.metadata?.pageInfo) {
-    return input.metadata.pageInfo
-  }
+  return computeFallbackPageInfo({
+    metadata: input.metadata,
+    loading: input.loading,
+    loadedCount: !input.isSingleQuery && Array.isArray(input.data) ? input.data.length : null,
+    offset: input.descriptor.offset ?? 0,
+    limit: input.descriptor.limit
+  })
+}
 
-  if (input.loading || input.isSingleQuery || !Array.isArray(input.data)) {
-    return EMPTY_PAGE_INFO
-  }
+/**
+ * Flatten one bridge snapshot into FlatNodes plus lossy-migration warnings.
+ * Module-level so the hook body stays small; identity caching comes from
+ * flattenNodeCached.
+ */
+function flattenListSnapshot<P extends Record<string, PropertyBuilder>>(
+  rawData: NodeState[]
+): { data: FlatNode<P>[]; migrationWarnings: MigrationWarning[] } {
+  const data = rawData.map((node) => flattenNodeCached<P>(node))
+  return { data, migrationWarnings: collectMigrationWarnings(data) }
+}
 
-  const loadedCount = input.data.length
-  const offset = input.filter.offset ?? 0
-  const limit = input.filter.limit ?? input.filter.page?.first
-  const totalCount = limit === undefined && offset === 0 ? loadedCount : null
-  const countMode = totalCount === null ? 'none' : 'exact'
-  const hasMore =
-    limit !== undefined
-      ? totalCount === null
-        ? loadedCount >= limit
-        : offset + loadedCount < totalCount
-      : false
-
+/** Null-normalized metadata surfaces exposed on every query result. */
+function deriveMetadataSurfaces(metadata: QueryMetadata | null): {
+  source: QuerySource
+  materialized: QueryMaterializedMetadata | null
+  completeness: QueryCompletenessMetadata | null
+  staleness: QueryStalenessMetadata | null
+  verification: QueryVerificationMetadata | null
+  stream: QueryStreamMetadata | null
+} {
   return {
-    totalCount,
-    countMode,
-    hasMore,
-    hasNextPage: hasMore,
-    hasPreviousPage: offset > 0,
-    loadedCount
+    source: metadata?.source ?? 'local',
+    materialized: metadata?.materialized ?? null,
+    completeness: metadata?.completeness ?? null,
+    staleness: metadata?.staleness ?? null,
+    verification: metadata?.verification ?? null,
+    stream: metadata?.stream ?? null
   }
 }
 
-function summarizePlan(metadata: QueryMetadata | null): QueryPlanSummary | null {
-  const plan = metadata?.plan
-  if (!plan) return null
-
-  return {
-    strategy: plan.strategy,
-    candidateNodeCount: plan.candidateNodeCount,
-    hydratedNodeCount: plan.hydratedNodeCount,
-    returnedNodeCount: plan.returnedNodeCount,
-    durationMs: plan.durationMs,
-    descriptorHash: plan.descriptorHash,
-    candidateAccelerators: plan.candidateAccelerators,
-    materializedViewId: plan.materializedViewId,
-    materializedCacheHit: plan.materializedCacheHit,
-    materializedRefreshReason: plan.materializedRefreshReason
+function deriveTrackedFilter(descriptor: QueryDescriptor): Record<string, unknown> | undefined {
+  const next = {
+    ...(descriptor.where ? { where: descriptor.where } : {}),
+    ...(descriptor.spatial ? { spatial: descriptor.spatial } : {}),
+    ...(descriptor.search ? { search: descriptor.search } : {}),
+    ...(descriptor.materializedView ? { materializedView: descriptor.materializedView } : {})
   }
+
+  return Object.keys(next).length > 0 ? next : undefined
+}
+
+function deriveTrackedMode(
+  isSingleQuery: boolean,
+  descriptor: QueryDescriptor
+): 'single' | 'filtered' | 'list' {
+  if (isSingleQuery) return 'single'
+  return descriptor.where || descriptor.spatial || descriptor.search ? 'filtered' : 'list'
+}
+
+function collectMigrationWarnings(
+  flattened: ReadonlyArray<FlatNode<never> | FlatNode<Record<string, PropertyBuilder>>>
+): MigrationWarning[] {
+  const warnings: MigrationWarning[] = []
+  for (const flat of flattened) {
+    if (flat._migrationInfo && !flat._migrationInfo.lossless) {
+      warnings.push({
+        nodeId: flat.id,
+        from: flat._migrationInfo.from,
+        to: flat._migrationInfo.to,
+        warnings: flat._migrationInfo.warnings
+      })
+    }
+  }
+  return warnings
 }
 
 // =============================================================================
@@ -314,11 +349,21 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const enabled = filter.enabled ?? true
 
   // Create a canonical descriptor for stable cache keys and reload semantics.
-  const descriptor = useMemo(() => {
+  // Callers overwhelmingly pass inline filter literals, so the filter's
+  // object identity churns every render. Building + serializing costs ~1 µs;
+  // the important part is reusing the PREVIOUS descriptor object whenever the
+  // canonical key is unchanged so downstream memos and callbacks stay stable.
+  const descriptorRef = useRef<{ key: string; descriptor: QueryDescriptor } | null>(null)
+  {
     const options: QueryOptions<P> = isSingleQuery && nodeId ? { nodeId } : filter
-    return createQueryDescriptor(schemaId, options)
-  }, [schemaId, isSingleQuery, nodeId, filter])
-  const queryKey = useMemo(() => serializeQueryDescriptor(descriptor), [descriptor])
+    const candidate = createQueryDescriptor(schemaId, options)
+    const candidateKey = serializeQueryDescriptor(candidate)
+    if (descriptorRef.current?.key !== candidateKey) {
+      descriptorRef.current = { key: candidateKey, descriptor: candidate }
+    }
+  }
+  const descriptor = descriptorRef.current!.descriptor
+  const queryKey = descriptorRef.current!.key
 
   // Create subscription via DataBridge (memoized by schema + options)
   // When bridge is null (initializing), use a dummy subscription that returns loading state
@@ -348,15 +393,41 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     void bridge.reloadQuery(descriptor)
   }, [bridge, descriptor, enabled])
 
-  // Use React's useSyncExternalStore for concurrent-safe subscriptions
-  const rawData = useSyncExternalStore(
+  // Use React's useSyncExternalStore for concurrent-safe subscriptions.
+  // Data and metadata are folded into one versioned snapshot: a
+  // metadata-only update (same data identity) still produces a new snapshot
+  // object, so React cannot bail out and silently drop it.
+  const combinedSnapshotRef = useRef<{
+    data: NodeState[] | null
+    metadata: QueryMetadata | null
+  } | null>(null)
+  const getCombinedSnapshot = useCallback(() => {
+    const data = subscription.getSnapshot()
+    const metadata = subscription.getMetadata?.() ?? null
+    const previous = combinedSnapshotRef.current
+    if (previous && previous.data === data && previous.metadata === metadata) {
+      return previous
+    }
+    const next = { data, metadata }
+    combinedSnapshotRef.current = next
+    return next
+  }, [subscription])
+  const combinedSnapshot = useSyncExternalStore(
     subscription.subscribe,
-    subscription.getSnapshot,
-    subscription.getSnapshot // Server snapshot (same as client for now)
+    getCombinedSnapshot,
+    getCombinedSnapshot // Server snapshot (same as client for now)
   )
-  const metadata = subscription.getMetadata?.() ?? null
+  const rawData = combinedSnapshot.data
+  const metadata = combinedSnapshot.metadata
 
-  // Transform raw NodeState[] to FlatNode[]
+  // Transform raw NodeState[] to FlatNode[]. Flattening goes through a
+  // WeakMap keyed by NodeState identity, and the produced array is replaced
+  // by the previous one when every element kept its identity — so metadata-
+  // only snapshots and no-op reloads do not invalidate `data` for consumers.
+  const previousListRef = useRef<{
+    data: FlatNode<P>[]
+    migrationWarnings: MigrationWarning[]
+  } | null>(null)
   const { data, migrationWarnings } = useMemo(() => {
     if (rawData === null) {
       // Loading state
@@ -366,83 +437,53 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       }
     }
 
-    const warnings: MigrationWarning[] = []
-
     if (isSingleQuery) {
       // Single node query
       const node = rawData[0] ?? null
-      if (node) {
-        const flat = flattenNode<P>(node)
-        if (flat._migrationInfo && !flat._migrationInfo.lossless) {
-          warnings.push({
-            nodeId: flat.id,
-            from: flat._migrationInfo.from,
-            to: flat._migrationInfo.to,
-            warnings: flat._migrationInfo.warnings
-          })
-        }
-        return { data: flat as FlatNode<P> | null, migrationWarnings: warnings }
+      const flat = node ? flattenNodeCached<P>(node) : null
+      return {
+        data: flat as FlatNode<P> | null,
+        migrationWarnings: flat ? collectMigrationWarnings([flat]) : []
       }
-      return { data: null, migrationWarnings: warnings }
     }
 
     // List query
-    const flattened = flattenNodes<P>(rawData)
-
-    for (const flat of flattened) {
-      if (flat._migrationInfo && !flat._migrationInfo.lossless) {
-        warnings.push({
-          nodeId: flat.id,
-          from: flat._migrationInfo.from,
-          to: flat._migrationInfo.to,
-          warnings: flat._migrationInfo.warnings
-        })
-      }
+    const next = flattenListSnapshot<P>(rawData)
+    const previous = previousListRef.current
+    if (
+      previous &&
+      previous.data.length === next.data.length &&
+      next.data.every((flat, index) => flat === previous.data[index])
+    ) {
+      return previous
     }
 
-    return { data: flattened, migrationWarnings: warnings }
+    previousListRef.current = next
+    return next
   }, [rawData, isSingleQuery])
 
   // Loading state: rawData is null
   const loading = rawData === null
   const pageInfo = useMemo(
-    () => getFallbackPageInfo({ metadata, loading, isSingleQuery, data, filter }),
-    [metadata, loading, isSingleQuery, data, filter]
+    () => getFallbackPageInfo({ metadata, loading, isSingleQuery, data, descriptor }),
+    [metadata, loading, isSingleQuery, data, descriptor]
   )
   const error = useMemo(
     () => (metadata?.error ? new Error(metadata.error) : null),
     [metadata?.error]
   )
   const status: QueryStatus = error ? 'error' : loading ? 'loading' : 'success'
-  const source = metadata?.source ?? 'local'
   const plan = useMemo(() => summarizePlan(metadata), [metadata])
-  const materialized = metadata?.materialized ?? null
-  const completeness = metadata?.completeness ?? null
-  const staleness = metadata?.staleness ?? null
-  const verification = metadata?.verification ?? null
-  const stream = metadata?.stream ?? null
+  const { source, materialized, completeness, staleness, verification, stream } =
+    deriveMetadataSurfaces(metadata)
   const trackedFilter = useMemo(
-    () => {
-      const next = {
-        ...(descriptor.where ? { where: descriptor.where } : {}),
-        ...(descriptor.spatial ? { spatial: descriptor.spatial } : {}),
-        ...(descriptor.search ? { search: descriptor.search } : {}),
-        ...(descriptor.materializedView ? { materializedView: descriptor.materializedView } : {})
-      }
-
-      return Object.keys(next).length > 0 ? next : undefined
-    },
+    () => deriveTrackedFilter(descriptor),
     // queryKey is the canonical descriptor identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryKey]
   )
   const trackedMode = useMemo(
-    () =>
-      isSingleQuery
-        ? 'single'
-        : descriptor.where || descriptor.spatial || descriptor.search
-          ? 'filtered'
-          : 'list',
+    () => deriveTrackedMode(isSingleQuery, descriptor),
     // queryKey is the canonical descriptor identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isSingleQuery, queryKey]

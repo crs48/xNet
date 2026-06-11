@@ -721,7 +721,12 @@ describe('transaction support', () => {
       { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 2' } } }
     ])
 
-    expect(adapter.transactionCalls).toBe(1)
+    // The batch lands through one storage-owned atomic apply instead of the
+    // legacy per-operation writes inside withTransaction.
+    expect(adapter.applyBatchCalls).toBe(1)
+    expect(adapter.transactionCalls).toBe(0)
+    expect(adapter.getNodeCount()).toBe(2)
+    expect(adapter.getChangeCount()).toBe(2)
   })
 
   it('should roll back storage writes when a transaction operation fails', async () => {
@@ -747,7 +752,9 @@ describe('transaction support', () => {
       ])
     ).rejects.toThrow('Node not found')
 
-    expect(adapter.transactionCalls).toBe(1)
+    // The failure happens during in-memory materialization, before any
+    // storage write — nothing to roll back, nothing persisted.
+    expect(adapter.applyBatchCalls).toBe(0)
     expect(adapter.getNodeCount()).toBe(0)
     expect(adapter.getChangeCount()).toBe(0)
     expect(store.getCurrentLamportTime()).toBe(timeBefore)
@@ -860,6 +867,37 @@ describe('transaction support', () => {
     expect(events[0].title).toBe('Task 1')
     expect(events[1].title).toBe('Task 2')
     expect(events[2].title).toBe('Task 3')
+  })
+})
+
+describe('node-scoped subscriptions', () => {
+  it('dispatches only the subscribed node and stops after unsubscribe', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const watched = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Watched' }
+    })
+    const other = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Other' }
+    })
+
+    const titles: unknown[] = []
+    const unsubscribe = store.subscribeToNode(watched.id, (event) => {
+      titles.push(event.node?.properties.title)
+    })
+
+    await store.update(other.id, { properties: { title: 'Other edited' } })
+    await store.update(watched.id, { properties: { title: 'Watched edited' } })
+
+    expect(titles).toEqual(['Watched edited'])
+
+    unsubscribe()
+    await store.update(watched.id, { properties: { title: 'After unsubscribe' } })
+
+    expect(titles).toEqual(['Watched edited'])
   })
 })
 

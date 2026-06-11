@@ -480,6 +480,139 @@ describe('MainThreadBridge', () => {
       unsubscribe()
     })
 
+    // Shared fixture for the bounded-window no-requery tests: N created
+    // tasks and a subscribed title-ordered window of 3, settled.
+    async function createBoundedTitleWindow(taskCount: number) {
+      const tasks = await Promise.all(
+        Array.from({ length: taskCount }, (_, index) =>
+          bridge.create(TestTaskSchema, { title: `Task ${index}`, done: false })
+        )
+      )
+
+      const subscription = bridge.query(TestTaskSchema, {
+        orderBy: { title: 'asc' },
+        limit: 3
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(3)
+      })
+
+      return { tasks, subscription }
+    }
+
+    it('should apply in-window updates to bounded queries without re-querying storage', async () => {
+      const { tasks, subscription } = await createBoundedTitleWindow(5)
+
+      const querySpy = vi.spyOn(store, 'query')
+
+      await bridge.update(tasks[0]!.id, { title: 'Task 0 edited' })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('Task 0 edited')
+      })
+
+      expect(querySpy).not.toHaveBeenCalled()
+      querySpy.mockRestore()
+    })
+
+    it('should absorb bounded-window removals from the overfetch buffer without re-querying', async () => {
+      const { tasks, subscription } = await createBoundedTitleWindow(6)
+
+      const querySpy = vi.spyOn(store, 'query')
+
+      await bridge.delete(tasks[1]!.id)
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Task 0',
+          'Task 2',
+          'Task 3'
+        ])
+      })
+
+      expect(querySpy).not.toHaveBeenCalled()
+      querySpy.mockRestore()
+    })
+
+    it('should apply updates to subscribed queries optimistically before persistence', async () => {
+      const task = await bridge.create(TestTaskSchema, { title: 'Optimistic', done: false })
+
+      const subscription = bridge.query(TestTaskSchema, {
+        orderBy: { title: 'asc' },
+        limit: 5
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(1)
+      })
+
+      // Kick off the update WITHOUT awaiting: the optimistic apply runs
+      // synchronously, so the snapshot already reflects the edit.
+      const pending = bridge.update(task.id, { title: 'Optimistic edited' })
+      expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('Optimistic edited')
+
+      await pending
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('Optimistic edited')
+      })
+    })
+
+    it('should revert optimistic updates when persistence fails', async () => {
+      const task = await bridge.create(TestTaskSchema, { title: 'Stable title', done: false })
+
+      const subscription = bridge.query(TestTaskSchema, {
+        orderBy: { title: 'asc' },
+        limit: 5
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(1)
+      })
+
+      const updateSpy = vi
+        .spyOn(store, 'update')
+        .mockRejectedValueOnce(new Error('persistence failed'))
+
+      await expect(bridge.update(task.id, { title: 'Doomed edit' })).rejects.toThrow(
+        'persistence failed'
+      )
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('Stable title')
+      })
+
+      updateSpy.mockRestore()
+    })
+
+    it('should insert newly created nodes into bounded windows without re-querying', async () => {
+      await bridge.create(TestTaskSchema, { title: 'B Task', done: false })
+      await bridge.create(TestTaskSchema, { title: 'C Task', done: false })
+
+      const subscription = bridge.query(TestTaskSchema, {
+        orderBy: { title: 'asc' },
+        limit: 2
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).toHaveLength(2)
+      })
+
+      const querySpy = vi.spyOn(store, 'query')
+
+      await bridge.create(TestTaskSchema, { title: 'A Task', done: false })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'A Task',
+          'B Task'
+        ])
+      })
+
+      expect(querySpy).not.toHaveBeenCalled()
+      querySpy.mockRestore()
+    })
+
     it('should render local data before merging local-then-remote results', async () => {
       bridge.destroy()
 

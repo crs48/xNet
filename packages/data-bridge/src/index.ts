@@ -106,7 +106,14 @@ export {
   applyQueryDescriptor,
   queryDescriptorNeedsBoundedReload,
   applyNodeChangeToQueryResult,
-  type QueryResultDelta
+  applyNodeChangeToBoundedQueryResult,
+  queryDescriptorSupportsBoundedDelta,
+  createBoundedWorkingSet,
+  createBoundedWorkingSetDescriptor,
+  BOUNDED_QUERY_OVERFETCH,
+  type QueryResultDelta,
+  type BoundedQueryResultDelta,
+  type BoundedQueryWorkingSet
 } from './query-descriptor'
 export {
   createQueryMetadata,

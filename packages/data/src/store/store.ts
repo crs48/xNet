@@ -57,8 +57,10 @@ import {
   signChange,
   createUnsignedChange,
   createBatchId,
+  type ChangeSigner,
   type LamportClock,
-  type LamportTimestamp
+  type LamportTimestamp,
+  type UnsignedChange
 } from '@xnetjs/sync'
 import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
@@ -133,9 +135,11 @@ export class NodeStore {
   private storage: NodeStorageAdapter
   private authorDID: DID
   private signingKey: Uint8Array
+  private changeSigner?: ChangeSigner
   private clock: LamportClock
   private conflicts: MergeConflict[] = []
   private listeners: Set<NodeChangeListener> = new Set()
+  private nodeListeners: Map<NodeId, Set<NodeChangeListener>> = new Map()
   private batchListeners: Set<NodeBatchChangeListener> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
@@ -166,6 +170,7 @@ export class NodeStore {
     this.storage = options.storage
     this.authorDID = options.authorDID
     this.signingKey = options.signingKey
+    this.changeSigner = options.changeSigner
     this.clock = createLamportClock(options.authorDID)
     this.schemaLookup = options.schemaLookup
     this.propertyLookup = options.propertyLookup
@@ -218,6 +223,30 @@ export class NodeStore {
     const id = options.id ?? createNodeId()
 
     try {
+      if (this.canUseSingleWriteFastPath()) {
+        const { node, change } = await this.applySingleNodeWrite({
+          nodeId: id,
+          payload: {
+            nodeId: id,
+            schemaId: options.schemaId,
+            properties: options.properties
+          },
+          authAction: 'write',
+          requireExisting: false,
+          createSchemaId: options.schemaId
+        })
+
+        this.emit(change, node, null, false)
+        this.authEvaluator?.invalidate(node.id)
+
+        if (this.telemetry) {
+          this.telemetry.reportPerformance('data.create', Date.now() - start)
+          this.telemetry.reportUsage('data.create', 1)
+        }
+
+        return node
+      }
+
       await this.assertAuthorized({
         subject: this.authorDID,
         action: 'write',
@@ -388,6 +417,36 @@ export class NodeStore {
     const start = this.telemetry ? Date.now() : 0
 
     try {
+      if (this.canUseSingleWriteFastPath()) {
+        const { node, previousNode, change } = await this.applySingleNodeWrite({
+          nodeId: id,
+          payload: {
+            nodeId: id,
+            properties: options.properties
+          },
+          authAction: 'write',
+          requireExisting: true
+        })
+
+        this.emit(change, node, previousNode, false)
+        this.authEvaluator?.invalidate(node.id)
+
+        if (this.shouldRecomputeRecipients(node.schemaId, options.properties)) {
+          await this.onRecipientsMayNeedRecompute?.({
+            nodeId: id,
+            schemaId: node.schemaId,
+            changedProperties: Object.keys(options.properties)
+          })
+        }
+
+        if (this.telemetry) {
+          this.telemetry.reportPerformance('data.update', Date.now() - start)
+          this.telemetry.reportUsage('data.update', 1)
+        }
+
+        return node
+      }
+
       const existing = this.cloneNodeState(await this.storage.getNode(id))
       if (!existing) {
         throw new Error(`Node not found: ${id}`)
@@ -464,6 +523,30 @@ export class NodeStore {
     const start = this.telemetry ? Date.now() : 0
 
     try {
+      if (this.canUseSingleWriteFastPath()) {
+        const { node, previousNode, change } = await this.applySingleNodeWrite({
+          nodeId: id,
+          payload: {
+            nodeId: id,
+            properties: {},
+            deleted: true
+          },
+          authAction: 'delete',
+          requireExisting: true
+        })
+
+        this.contentKeyCache?.delete(id)
+        this.emit(change, node, previousNode, false)
+        this.authEvaluator?.invalidate(id)
+
+        if (this.telemetry) {
+          this.telemetry.reportPerformance('data.delete', Date.now() - start)
+          this.telemetry.reportUsage('data.delete', 1)
+        }
+
+        return
+      }
+
       const existing = this.cloneNodeState(await this.storage.getNode(id))
       if (!existing) {
         throw new Error(`Node not found: ${id}`)
@@ -523,6 +606,24 @@ export class NodeStore {
    * Restore a deleted Node.
    */
   async restore(id: NodeId): Promise<NodeState> {
+    if (this.canUseSingleWriteFastPath()) {
+      const { node, previousNode, change } = await this.applySingleNodeWrite({
+        nodeId: id,
+        payload: {
+          nodeId: id,
+          properties: {},
+          deleted: false
+        },
+        authAction: 'write',
+        requireExisting: true
+      })
+
+      this.emit(change, node, previousNode, false)
+      this.authEvaluator?.invalidate(node.id)
+
+      return node
+    }
+
     const existing = this.cloneNodeState(await this.storage.getNode(id))
     if (!existing) {
       throw new Error(`Node not found: ${id}`)
@@ -763,18 +864,13 @@ export class NodeStore {
     this.clock = newClock
 
     try {
-      const run = (storage: NodeStorageAdapter) =>
-        this.executeTransactionOperations({
-          operations: resolvedOps,
-          storage,
-          lamport,
-          now,
-          batchId,
-          batchSize
-        })
-      const result = this.storage.withTransaction
-        ? await this.storage.withTransaction(run)
-        : await run(this.storage)
+      const result = await this.runTransactionOperationsBatch({
+        operations: resolvedOps,
+        lamport,
+        now,
+        batchId,
+        batchSize
+      })
 
       for (const event of result.events) {
         this.emit(event.change, event.result, event.previousNode, false)
@@ -786,6 +882,31 @@ export class NodeStore {
       this.clock = previousClock
       throw err
     }
+  }
+
+  /**
+   * Execute a batch of transaction operations atomically: the preflight +
+   * applyNodeBatch fast path when storage supports it, otherwise the
+   * legacy per-operation path inside a storage transaction.
+   */
+  private async runTransactionOperationsBatch(input: {
+    operations: TransactionOperation[]
+    lamport: LamportTimestamp
+    now: number
+    batchId: string
+    batchSize: number
+  }): Promise<{
+    results: (NodeState | null)[]
+    changes: NodeChange[]
+    events: PendingTransactionEvent[]
+  }> {
+    if (this.canUseSingleWriteFastPath()) {
+      return this.executeTransactionOperationsFast(input)
+    }
+
+    const run = (storage: NodeStorageAdapter) =>
+      this.executeTransactionOperations({ ...input, storage })
+    return this.storage.withTransaction ? this.storage.withTransaction(run) : run(this.storage)
   }
 
   /**
@@ -912,18 +1033,13 @@ export class NodeStore {
 
     try {
       const applyStartedAt = Date.now()
-      const run = (storage: NodeStorageAdapter) =>
-        this.executeTransactionOperations({
-          operations: resolvedOps,
-          storage,
-          lamport,
-          now,
-          batchId,
-          batchSize
-        })
-      const result = this.storage.withTransaction
-        ? await this.storage.withTransaction(run)
-        : await run(this.storage)
+      const result = await this.runTransactionOperationsBatch({
+        operations: resolvedOps,
+        lamport,
+        now,
+        batchId,
+        batchSize
+      })
       const applyMs = elapsedMs(applyStartedAt)
 
       const nodeIds = Array.from(new Set(result.changes.map((change) => change.payload.nodeId)))
@@ -1534,6 +1650,104 @@ export class NodeStore {
     return { results, changes, events }
   }
 
+  /**
+   * Transaction fast path: one preflight for all touched nodes, in-memory
+   * materialization and signing, then one transactional applyNodeBatch.
+   * Avoids the per-operation storage round trips of
+   * {@link executeTransactionOperations} and the adapter-level
+   * withTransaction snapshotting that dominates small interactive
+   * transactions.
+   */
+  private async executeTransactionOperationsFast(input: {
+    operations: TransactionOperation[]
+    lamport: LamportTimestamp
+    now: number
+    batchId: string
+    batchSize: number
+  }): Promise<{
+    results: (NodeState | null)[]
+    changes: NodeChange[]
+    events: PendingTransactionEvent[]
+  }> {
+    const planned = input.operations.map((op) => ({
+      op,
+      id: op.type === 'create' ? (op.options.id ?? createNodeId()) : op.nodeId
+    }))
+
+    const preflight = await this.getBatchPreflight(
+      planned.map((entry) => entry.id),
+      this.storage
+    )
+    const nodesById = this.cloneNodeMap(preflight.nodesById)
+    const lastChanges = new Map(preflight.lastChangesByNodeId)
+
+    const results: (NodeState | null)[] = []
+    const changes: NodeChange[] = []
+    const events: PendingTransactionEvent[] = []
+    const affectedSchemaIds = new Set<SchemaIRI>()
+
+    for (let i = 0; i < planned.length; i++) {
+      const { op, id } = planned[i]
+      const existing = nodesById.get(id) ?? null
+
+      if (op.type !== 'create' && !existing) {
+        throw new Error(`Node not found: ${id}`)
+      }
+
+      const payload: NodePayload =
+        op.type === 'create'
+          ? { nodeId: id, schemaId: op.options.schemaId, properties: op.options.properties }
+          : op.type === 'update'
+            ? { nodeId: id, properties: op.options.properties }
+            : { nodeId: id, properties: {}, deleted: op.type === 'delete' }
+
+      const change = await this.createBatchedChangeWithParentHash(
+        'node-change',
+        payload,
+        lastChanges.get(id)?.hash ?? null,
+        input.lamport,
+        input.now,
+        input.batchId,
+        i,
+        input.batchSize
+      )
+
+      const schemaId = existing?.schemaId ?? (op.type === 'create' ? op.options.schemaId : null)
+      if (!schemaId) {
+        throw new Error(`First change for node ${id} must include schemaId`)
+      }
+
+      const node = this.materializeNodeChange(
+        change,
+        existing ?? this.createInitialNodeFromChange(change, schemaId)
+      )
+
+      nodesById.set(id, node)
+      lastChanges.set(id, change)
+      affectedSchemaIds.add(schemaId)
+      changes.push(change)
+      const result = op.type === 'delete' ? null : node
+      results.push(result)
+      events.push({ change, result, previousNode: existing })
+    }
+
+    const touchedIds = Array.from(new Set(planned.map((entry) => entry.id)))
+    await this.storage.applyNodeBatch!({
+      batchId: input.batchId,
+      nodes: touchedIds.flatMap((id) => {
+        const node = nodesById.get(id)
+        return node ? [node] : []
+      }),
+      changes,
+      lastLamportTime: this.clock.time,
+      affectedSchemaIds: Array.from(affectedSchemaIds),
+      indexMode: 'touched',
+      indexProperties: true
+    })
+
+    return { results, changes, events }
+  }
+
   // ==========================================================================
   // Sync Support
   // ==========================================================================
@@ -1721,6 +1935,31 @@ export class NodeStore {
     }
   }
 
+  /**
+   * Subscribe to change events for a single node.
+   *
+   * Dispatch is O(listeners-for-that-node) instead of O(all-listeners):
+   * per-cell/per-row UI hooks should prefer this over filtering the global
+   * feed, where every change event invokes every mounted callback.
+   */
+  subscribeToNode(nodeId: NodeId, listener: NodeChangeListener): () => void {
+    const existing = this.nodeListeners.get(nodeId)
+    if (existing) {
+      existing.add(listener)
+    } else {
+      this.nodeListeners.set(nodeId, new Set([listener]))
+    }
+
+    return () => {
+      const listeners = this.nodeListeners.get(nodeId)
+      if (!listeners) return
+      listeners.delete(listener)
+      if (listeners.size === 0) {
+        this.nodeListeners.delete(nodeId)
+      }
+    }
+  }
+
   subscribeToBatchChanges(listener: NodeBatchChangeListener): () => void {
     this.batchListeners.add(listener)
     return () => {
@@ -1749,6 +1988,17 @@ export class NodeStore {
         listener(event)
       } catch (err) {
         console.error('Error in NodeStore listener:', err)
+      }
+    }
+
+    const nodeListeners = this.nodeListeners.get(change.payload.nodeId)
+    if (nodeListeners) {
+      for (const listener of nodeListeners) {
+        try {
+          listener(event)
+        } catch (err) {
+          console.error('Error in NodeStore node listener:', err)
+        }
       }
     }
   }
@@ -1781,7 +2031,14 @@ export class NodeStore {
       wallTime
     })
 
-    return signChange(unsigned, this.signingKey)
+    return this.signNodeChange(unsigned)
+  }
+
+  private signNodeChange(unsigned: UnsignedChange<NodePayload>): Promise<NodeChange> {
+    if (this.changeSigner) {
+      return this.changeSigner(unsigned)
+    }
+    return Promise.resolve(signChange(unsigned, this.signingKey))
   }
 
   /**
@@ -1839,7 +2096,7 @@ export class NodeStore {
       batchSize
     })
 
-    return signChange(unsigned, this.signingKey)
+    return this.signNodeChange(unsigned)
   }
 
   private createInitialNodeFromChange(change: NodeChange, schemaId: SchemaIRI): NodeState {
@@ -1853,6 +2110,98 @@ export class NodeStore {
       createdBy: change.authorDID,
       updatedAt: change.wallTime,
       updatedBy: change.authorDID
+    }
+  }
+
+  /**
+   * Whether singular writes can use the two-round-trip fast path
+   * (preflight + transactional applyNodeBatch). Content ciphers need the
+   * legacy per-step path for encrypted snapshot persistence.
+   */
+  private canUseSingleWriteFastPath(): boolean {
+    return Boolean(this.storage.applyNodeBatch) && !this.nodeContentCipher
+  }
+
+  /**
+   * Singular write fast path: one preflight round trip (existing node +
+   * parent change), in-memory materialization and signing, then one
+   * transactional applyNodeBatch round trip. Replaces the legacy
+   * seven-round-trip getNode/getLastChange/getNode/appendChange/
+   * setLastLamportTime/setNode/getNode sequence.
+   */
+  private async applySingleNodeWrite(input: {
+    nodeId: NodeId
+    payload: NodePayload
+    authAction: AuthAction
+    requireExisting: boolean
+    createSchemaId?: SchemaIRI
+  }): Promise<{ node: NodeState; previousNode: NodeState | null; change: NodeChange }> {
+    const preflight = await this.getBatchPreflight([input.nodeId], this.storage)
+    const existing = this.cloneNodeState(preflight.nodesById.get(input.nodeId) ?? null)
+
+    if (!existing && input.requireExisting) {
+      throw new Error(`Node not found: ${input.nodeId}`)
+    }
+
+    const schemaId = existing?.schemaId ?? input.createSchemaId
+    if (!schemaId) {
+      throw new Error(`First change for node ${input.nodeId} must include schemaId`)
+    }
+
+    await this.assertAuthorized({
+      subject: this.authorDID,
+      action: input.authAction,
+      nodeId: input.nodeId,
+      patch: input.payload.properties,
+      node: existing
+        ? {
+            schemaId: existing.schemaId,
+            createdBy: existing.createdBy,
+            properties: existing.properties
+          }
+        : {
+            schemaId,
+            createdBy: this.authorDID,
+            properties: input.payload.properties
+          }
+    })
+
+    const now = Date.now()
+    const previousClock = this.clock
+    const [newClock, lamport] = tick(this.clock)
+    this.clock = newClock
+
+    try {
+      const parentHash = preflight.lastChangesByNodeId.get(input.nodeId)?.hash ?? null
+      const unsigned = createUnsignedChange({
+        id: createNodeId(),
+        type: 'node-change',
+        payload: input.payload,
+        parentHash,
+        authorDID: this.authorDID,
+        lamport,
+        wallTime: now
+      })
+      const change = await this.signNodeChange(unsigned)
+      const node = this.materializeNodeChange(
+        change,
+        existing ?? this.createInitialNodeFromChange(change, schemaId)
+      )
+
+      await this.storage.applyNodeBatch!({
+        batchId: createBatchId(),
+        nodes: [node],
+        changes: [change],
+        lastLamportTime: this.clock.time,
+        affectedSchemaIds: [schemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+
+      return { node, previousNode: existing, change }
+    } catch (err) {
+      this.clock = previousClock
+      throw err
     }
   }
 
@@ -1886,77 +2235,32 @@ export class NodeStore {
     // Update Lamport time
     await storage.setLastLamportTime(this.clock.time)
 
-    this.materializeNodeChange(change, node)
+    const materialized = this.materializeNodeChange(change, node)
 
     // Persist
-    await storage.setNode(node, { indexProperties: !this.nodeContentCipher })
+    await storage.setNode(materialized, { indexProperties: !this.nodeContentCipher })
   }
 
-  private materializeNodeChange(change: NodeChange, node: NodeState): NodeState {
-    const { nodeId, properties, deleted } = change.payload
+  private materializeNodeChange(change: NodeChange, currentNode: NodeState): NodeState {
+    // Copy-on-write: never mutate the incoming snapshot. Storage adapters
+    // (memory) and bridge caches hand out NodeState references, and the
+    // reactive layer relies on "same reference = same observable state".
+    const node = structuredClone(currentNode)
+    const { properties, deleted } = change.payload
 
     // Get known property names from schema (if available)
     const knownProps = this.propertyLookup?.(node.schemaId)
 
     // Apply property changes with LWW
     for (const [key, value] of Object.entries(properties)) {
-      // Check if this is an unknown property (not in schema)
-      const isUnknownProperty = knownProps !== undefined && !knownProps.has(key)
-
-      const existingTs = node.timestamps[key]
-      const newTs: PropertyTimestamp = {
-        lamport: change.lamport,
-        wallTime: change.wallTime
-      }
-
-      if (!existingTs || this.shouldReplace(existingTs, newTs)) {
-        // New value wins
-        if (isUnknownProperty) {
-          // Store in _unknown for forward compatibility
-          if (!node._unknown) {
-            node._unknown = {}
-          }
-          if (value === undefined) {
-            delete node._unknown[key]
-          } else {
-            node._unknown[key] = value
-          }
-        } else {
-          // Store in properties (known property)
-          if (value === undefined) {
-            delete node.properties[key]
-          } else {
-            node.properties[key] = value
-          }
-        }
-        node.timestamps[key] = newTs
-
-        // Track conflict if there was an existing value
-        if (existingTs) {
-          this.conflicts.push({
-            nodeId,
-            key,
-            localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
-            localTimestamp: existingTs,
-            remoteValue: value,
-            remoteTimestamp: newTs,
-            resolved: 'remote'
-          })
-          this.trimConflicts()
-        }
-      } else {
-        // Existing value wins
-        this.conflicts.push({
-          nodeId,
-          key,
-          localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
-          localTimestamp: existingTs,
-          remoteValue: value,
-          remoteTimestamp: newTs,
-          resolved: 'local'
-        })
-        this.trimConflicts()
-      }
+      this.applyPropertyChangeWithLWW({
+        node,
+        change,
+        key,
+        value,
+        // Check if this is an unknown property (not in schema)
+        isUnknownProperty: knownProps !== undefined && !knownProps.has(key)
+      })
     }
 
     // Handle deleted flag
@@ -1977,6 +2281,53 @@ export class NodeStore {
     node.updatedBy = change.authorDID
 
     return node
+  }
+
+  /**
+   * Apply one property from a change to a node with LWW conflict
+   * resolution, recording any conflict against the existing timestamp.
+   * Mutates `node` in place (callers own a fresh clone).
+   */
+  private applyPropertyChangeWithLWW(input: {
+    node: NodeState
+    change: NodeChange
+    key: string
+    value: unknown
+    isUnknownProperty: boolean
+  }): void {
+    const { node, change, key, value, isUnknownProperty } = input
+    const existingTs = node.timestamps[key]
+    const newTs: PropertyTimestamp = {
+      lamport: change.lamport,
+      wallTime: change.wallTime
+    }
+    const incomingWins = !existingTs || this.shouldReplace(existingTs, newTs)
+
+    if (incomingWins) {
+      // New value wins: write into properties, or _unknown for forward
+      // compatibility when the schema does not know the property.
+      const target = isUnknownProperty ? (node._unknown ??= {}) : node.properties
+      if (value === undefined) {
+        delete target[key]
+      } else {
+        target[key] = value
+      }
+      node.timestamps[key] = newTs
+    }
+
+    // Track a conflict whenever an existing timestamp had to be compared.
+    if (existingTs) {
+      this.conflicts.push({
+        nodeId: change.payload.nodeId,
+        key,
+        localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
+        localTimestamp: existingTs,
+        remoteValue: value,
+        remoteTimestamp: newTs,
+        resolved: incomingWins ? 'remote' : 'local'
+      })
+      this.trimConflicts()
+    }
   }
 
   /**

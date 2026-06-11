@@ -35,6 +35,7 @@ import { createQueryDescriptor, serializeQueryDescriptor } from '@xnetjs/data-br
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDataBridge } from '../context'
 import { flattenNodes, type FlatNode } from '../utils/flattenNode'
+import { EMPTY_PAGE_INFO, computeFallbackPageInfo, summarizePlan } from '../utils/queryResultMeta'
 
 type RegistrySchema = DefinedSchema<Record<string, PropertyBuilder>>
 
@@ -119,15 +120,6 @@ export type UseSavedViewResult = {
   warnings: string[]
   privacy: SavedViewPrivacySummary
   reload: () => void
-}
-
-const EMPTY_PAGE_INFO: QueryPageInfo = {
-  totalCount: null,
-  countMode: 'none',
-  hasMore: false,
-  hasNextPage: false,
-  hasPreviousPage: false,
-  loadedCount: 0
 }
 
 const EMPTY_VALIDATION: QueryASTValidationResult = { valid: false, errors: [] }
@@ -372,51 +364,88 @@ function fallbackPageInfo(input: {
   data: unknown[]
   filter: QueryFilter<Record<string, PropertyBuilder>>
 }): QueryPageInfo {
-  if (input.metadata?.pageInfo) {
-    return input.metadata.pageInfo
-  }
-
-  if (input.loading) {
-    return EMPTY_PAGE_INFO
-  }
-
-  const loadedCount = input.data.length
-  const offset = input.filter.offset ?? 0
-  const limit = input.filter.limit ?? input.filter.page?.first
-  const totalCount = limit === undefined && offset === 0 ? loadedCount : null
-  const countMode = totalCount === null ? 'none' : 'exact'
-  const hasMore =
-    limit !== undefined
-      ? totalCount === null
-        ? loadedCount >= limit
-        : offset + loadedCount < totalCount
-      : false
-
-  return {
-    totalCount,
-    countMode,
-    hasMore,
-    hasNextPage: hasMore,
-    hasPreviousPage: offset > 0,
-    loadedCount
-  }
+  return computeFallbackPageInfo({
+    metadata: input.metadata,
+    loading: input.loading,
+    loadedCount: input.data.length,
+    offset: input.filter.offset ?? 0,
+    limit: input.filter.limit ?? input.filter.page?.first
+  })
 }
 
-function summarizePlan(metadata: QueryMetadata | null): QueryPlanSummary | null {
-  const plan = metadata?.plan
-  if (!plan) return null
+/** Loaded rows + error/pageInfo state for one compiled saved-view query. */
+function deriveSavedViewQueryData(input: {
+  query: CompiledSavedViewQuery
+  state: QuerySnapshotState | undefined
+  bridgeAvailable: boolean
+}): {
+  data: FlatNode<Record<string, PropertyBuilder>>[]
+  metadata: QueryMetadata | null
+  loading: boolean
+  error: Error | null
+  pageInfo: QueryPageInfo
+} {
+  const { query, state, bridgeAvailable } = input
+  const raw = state?.raw ?? null
+  const metadata = state?.metadata ?? null
+  const bridgeData =
+    query.canExecute && raw
+      ? flattenNodes<Record<string, PropertyBuilder>>(raw)
+      : ([] as FlatNode<Record<string, PropertyBuilder>>[])
+  const filteredData = query.clientPredicate
+    ? filterQueryASTLoadedRows(bridgeData, query.clientPredicate)
+    : bridgeData
+  const data = applyClientPage(filteredData, query.clientPage)
+  const loading = Boolean(bridgeAvailable && query.canExecute && raw === null)
+  const metadataError = metadata?.error ? new Error(metadata.error) : null
+  const blockedError =
+    query.canExecute || query.blockers.length === 0
+      ? null
+      : new Error(`Saved view query blocked: ${query.blockers.join(', ')}`)
+  const pageInfo = query.clientPredicate
+    ? loading
+      ? EMPTY_PAGE_INFO
+      : clientFilteredPageInfo({
+          totalRows: filteredData.length,
+          loadedRows: data.length,
+          page: query.clientPage
+        })
+    : fallbackPageInfo({ metadata, loading, data, filter: query.filter })
+
+  return { data, metadata, loading, error: metadataError ?? blockedError, pageInfo }
+}
+
+function buildSavedViewQueryResult(input: {
+  query: CompiledSavedViewQuery
+  state: QuerySnapshotState | undefined
+  bridgeAvailable: boolean
+}): SavedViewQueryResult {
+  const { query } = input
+  const { data, metadata, loading, error, pageInfo } = deriveSavedViewQueryData(input)
 
   return {
-    strategy: plan.strategy,
-    candidateNodeCount: plan.candidateNodeCount,
-    hydratedNodeCount: plan.hydratedNodeCount,
-    returnedNodeCount: plan.returnedNodeCount,
-    durationMs: plan.durationMs,
-    descriptorHash: plan.descriptorHash,
-    candidateAccelerators: plan.candidateAccelerators,
-    materializedViewId: plan.materializedViewId,
-    materializedCacheHit: plan.materializedCacheHit,
-    materializedRefreshReason: plan.materializedRefreshReason
+    queryId: query.queryId,
+    rowRole: query.queryId === 'default' ? (query.schema?.schema.name ?? 'row') : query.queryId,
+    schemaId: query.ast.schemaId,
+    schemaName: query.schema?.schema.name ?? query.ast.schemaId,
+    data,
+    status: error ? 'error' : loading ? 'loading' : 'success',
+    loading,
+    error,
+    pageInfo,
+    totalCount: pageInfo.totalCount,
+    hasMore: pageInfo.hasMore,
+    plan: summarizePlan(metadata),
+    metadata,
+    plannerGate: query.plannerGate,
+    blockers: query.blockers,
+    warnings: query.warnings,
+    canExecute: query.canExecute,
+    aggregates:
+      query.canExecute && query.ast.aggregates && query.ast.aggregates.length > 0
+        ? executeQueryASTLoadedAggregates(query.ast, data)
+        : null,
+    privacy: privacySummaryForRows(data)
   }
 }
 
@@ -553,69 +582,14 @@ export function useSavedView(
 
   const queryResults = useMemo(() => {
     return Object.fromEntries(
-      compiledQueries.map((query): [string, SavedViewQueryResult] => {
-        const state = queryStates[query.queryId]
-        const raw = state?.raw ?? null
-        const metadata = state?.metadata ?? null
-        const bridgeData =
-          query.canExecute && raw
-            ? flattenNodes<Record<string, PropertyBuilder>>(raw)
-            : ([] as FlatNode<Record<string, PropertyBuilder>>[])
-        const filteredData = query.clientPredicate
-          ? filterQueryASTLoadedRows(bridgeData, query.clientPredicate)
-          : bridgeData
-        const data = applyClientPage(filteredData, query.clientPage)
-        const loading = Boolean(bridge && query.canExecute && raw === null)
-        const metadataError = metadata?.error ? new Error(metadata.error) : null
-        const blockedError =
-          query.canExecute || query.blockers.length === 0
-            ? null
-            : new Error(`Saved view query blocked: ${query.blockers.join(', ')}`)
-        const error = metadataError ?? blockedError
-        const pageInfo = query.clientPredicate
-          ? loading
-            ? EMPTY_PAGE_INFO
-            : clientFilteredPageInfo({
-                totalRows: filteredData.length,
-                loadedRows: data.length,
-                page: query.clientPage
-              })
-          : fallbackPageInfo({
-              metadata,
-              loading,
-              data,
-              filter: query.filter
-            })
-
-        return [
-          query.queryId,
-          {
-            queryId: query.queryId,
-            rowRole:
-              query.queryId === 'default' ? (query.schema?.schema.name ?? 'row') : query.queryId,
-            schemaId: query.ast.schemaId,
-            schemaName: query.schema?.schema.name ?? query.ast.schemaId,
-            data,
-            status: error ? 'error' : loading ? 'loading' : 'success',
-            loading,
-            error,
-            pageInfo,
-            totalCount: pageInfo.totalCount,
-            hasMore: pageInfo.hasMore,
-            plan: summarizePlan(metadata),
-            metadata,
-            plannerGate: query.plannerGate,
-            blockers: query.blockers,
-            warnings: query.warnings,
-            canExecute: query.canExecute,
-            aggregates:
-              query.canExecute && query.ast.aggregates && query.ast.aggregates.length > 0
-                ? executeQueryASTLoadedAggregates(query.ast, data)
-                : null,
-            privacy: privacySummaryForRows(data)
-          }
-        ]
-      })
+      compiledQueries.map((query): [string, SavedViewQueryResult] => [
+        query.queryId,
+        buildSavedViewQueryResult({
+          query,
+          state: queryStates[query.queryId],
+          bridgeAvailable: bridge !== null
+        })
+      ])
     )
   }, [bridge, compiledQueries, queryStates])
 

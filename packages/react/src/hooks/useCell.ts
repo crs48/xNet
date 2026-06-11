@@ -85,12 +85,13 @@ export function useCell<T extends CellValue = CellValue>(
     })
   }, [store, isReady, rowId, columnId])
 
-  // Subscribe to changes
+  // Subscribe to changes for this row only — node-indexed dispatch keeps
+  // unrelated change events from invoking every mounted cell's callback.
   useEffect(() => {
     if (!store || !rowId) return
 
-    const unsubscribe = store.subscribe((event) => {
-      if (event.change.payload.nodeId === rowId && event.node) {
+    const unsubscribe = store.subscribeToNode(rowId, (event) => {
+      if (event.node) {
         const key = cellKey(columnId)
         setValue((event.node.properties[key] as T) ?? null)
       }

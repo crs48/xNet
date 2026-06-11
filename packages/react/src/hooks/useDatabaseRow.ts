@@ -138,11 +138,9 @@ export function useDatabaseRow(rowId: string): UseDatabaseRowResult {
 
     load()
 
-    // Subscribe to changes
-    const unsubscribe = store.subscribe((event) => {
-      if (event.change.payload.nodeId === rowId) {
-        load()
-      }
+    // Subscribe to changes for this row only (node-indexed dispatch)
+    const unsubscribe = store.subscribeToNode(rowId, () => {
+      load()
     })
 
     return () => {

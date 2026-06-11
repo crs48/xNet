@@ -20,7 +20,8 @@ import type { NodeState, PropertyBuilder, InferCreateProps, SchemaIRI } from '@x
 import {
   createQueryDescriptor,
   queryDescriptorToOptions,
-  serializeQueryDescriptor
+  serializeQueryDescriptor,
+  type BoundedQueryWorkingSet
 } from './query-descriptor'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -37,6 +38,12 @@ const WEAK_REF_CLEANUP_INTERVAL = 60_000 // 60 seconds
 interface CacheEntry {
   /** Cached query result */
   data: NodeState[] | null
+  /**
+   * Overfetch buffer for bounded queries (visible window + spare rows).
+   * Only valid for data produced by the bounded delta path; any other
+   * write to the entry clears it so deltas fall back to reload semantics.
+   */
+  workingSet: BoundedQueryWorkingSet | null
   /** Strong subscribers to this query (active subscriptions) */
   subscribers: Set<() => void>
   /** Weak subscribers (for long-lived but GC-able subscriptions) */
@@ -53,6 +60,76 @@ interface CacheEntry {
   lastUpdated: number
   /** Last access timestamp (for LRU) */
   lastAccessed: number
+}
+
+function isSameNodeData(previous: NodeState[] | null, next: NodeState[] | null): boolean {
+  if (previous === next) return true
+  if (!previous || !next) return false
+  if (previous.length !== next.length) return false
+  return next.every((node, index) => node === previous[index])
+}
+
+/**
+ * Metadata surfaces that only remote/stream queries populate. They are
+ * compared conservatively: anything beyond reference equality counts as a
+ * change. Local-only queries never set them, so the notify short-circuit
+ * still covers the hot path.
+ */
+const REMOTE_METADATA_SURFACES = [
+  'stream',
+  'completeness',
+  'staleness',
+  'verification',
+  'materialized'
+] as const
+
+function hasEquivalentRemoteSurfaces(previous: QueryMetadata, next: QueryMetadata): boolean {
+  return REMOTE_METADATA_SURFACES.every((surface) => {
+    if (previous[surface] === next[surface]) return true
+    // References differ: equivalent only when neither side has the surface.
+    return !previous[surface] && !next[surface]
+  })
+}
+
+const COMPARED_PAGE_INFO_FIELDS = [
+  'totalCount',
+  'countMode',
+  'hasMore',
+  'hasNextPage',
+  'hasPreviousPage',
+  'loadedCount',
+  'startCursor',
+  'endCursor'
+] as const
+
+function isSamePageInfo(
+  previous: QueryMetadata['pageInfo'],
+  next: QueryMetadata['pageInfo']
+): boolean {
+  if (previous === next) return true
+  if (!previous || !next) return false
+  return COMPARED_PAGE_INFO_FIELDS.every((field) => previous[field] === next[field])
+}
+
+/**
+ * Whether two metadata snapshots are observably equivalent for render
+ * purposes. Bookkeeping fields that change on every load (updatedAt, plan
+ * timings) are ignored; anything remote/stream-related is conservatively
+ * treated as changed unless reference-equal.
+ */
+function isQueryMetadataEquivalent(
+  previous: QueryMetadata | null,
+  next: QueryMetadata | null
+): boolean {
+  if (previous === next) return true
+  if (!previous || !next) return false
+
+  return (
+    previous.source === next.source &&
+    previous.error === next.error &&
+    hasEquivalentRemoteSurfaces(previous, next) &&
+    isSamePageInfo(previous.pageInfo, next.pageInfo)
+  )
 }
 
 export interface QueryCacheOptions {
@@ -171,7 +248,8 @@ export class QueryCache {
     data: NodeState[] | null,
     schemaIdOrDescriptor?: SchemaIRI | QueryDescriptor,
     options?: QueryOptions,
-    metadata?: QueryMetadata | null
+    metadata?: QueryMetadata | null,
+    workingSet?: BoundedQueryWorkingSet | null
   ): void {
     const entry = this.cache.get(queryId)
     const now = Date.now()
@@ -181,17 +259,36 @@ export class QueryCache {
         : schemaIdOrDescriptor
 
     if (entry) {
-      entry.data = data
+      const dataUnchanged = isSameNodeData(entry.data, data)
+      const metadataUnchanged =
+        metadata === undefined || isQueryMetadataEquivalent(entry.metadata, metadata)
+
+      // Keep the previous array identity when the elements are unchanged so
+      // useSyncExternalStore snapshots and downstream memos stay stable.
+      entry.data = dataUnchanged ? entry.data : data
+      // Any write that does not carry a working set invalidates the old
+      // one — its prefix invariant no longer matches the visible data.
+      entry.workingSet = workingSet ?? null
       if (descriptor) {
         entry.schemaId = descriptor.schemaId
         entry.descriptor = descriptor
         entry.options = queryDescriptorToOptions(descriptor)
       }
       if (metadata !== undefined) {
-        entry.metadata = metadata
+        // Preserve the previous metadata identity when nothing observable
+        // changed so subscriber-side snapshot composition stays stable.
+        entry.metadata = metadataUnchanged && entry.metadata ? entry.metadata : metadata
       }
       entry.lastUpdated = now
       entry.lastAccessed = now
+
+      // A write that changed nothing observable (e.g. a reload that came
+      // back identical, or a buffered-row change outside the visible
+      // window) must not fan out renders.
+      if (dataUnchanged && metadataUnchanged) {
+        return
+      }
+
       this.notifySubscribers(queryId)
     } else {
       if (!descriptor) {
@@ -203,6 +300,7 @@ export class QueryCache {
 
       this.cache.set(queryId, {
         data,
+        workingSet: workingSet ?? null,
         subscribers: new Set(),
         weakSubscribers: new Map(),
         schemaId: descriptor.schemaId,
@@ -232,6 +330,7 @@ export class QueryCache {
 
       this.cache.set(queryId, {
         data: null,
+        workingSet: null,
         subscribers: new Set(),
         weakSubscribers: new Map(),
         schemaId: descriptor.schemaId,
@@ -370,11 +469,13 @@ export class QueryCache {
     queryId: string
     descriptor: QueryDescriptor
     data: NodeState[] | null
+    workingSet: BoundedQueryWorkingSet | null
   }> {
     const matches: Array<{
       queryId: string
       descriptor: QueryDescriptor
       data: NodeState[] | null
+      workingSet: BoundedQueryWorkingSet | null
     }> = []
 
     for (const [queryId, entry] of this.cache) {
@@ -382,7 +483,8 @@ export class QueryCache {
         matches.push({
           queryId,
           descriptor: entry.descriptor,
-          data: entry.data
+          data: entry.data,
+          workingSet: entry.workingSet
         })
       }
     }
@@ -397,12 +499,21 @@ export class QueryCache {
     queryId: string
     descriptor: QueryDescriptor
     data: NodeState[] | null
+    workingSet: BoundedQueryWorkingSet | null
   }> {
     return Array.from(this.cache.entries()).map(([queryId, entry]) => ({
       queryId,
       descriptor: entry.descriptor,
-      data: entry.data
+      data: entry.data,
+      workingSet: entry.workingSet
     }))
+  }
+
+  /**
+   * Get the bounded-query working set for a cached query, if any.
+   */
+  getWorkingSet(queryId: string): BoundedQueryWorkingSet | null {
+    return this.cache.get(queryId)?.workingSet ?? null
   }
 
   /**

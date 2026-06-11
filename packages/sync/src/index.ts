@@ -14,12 +14,13 @@
  */
 
 // Change types and functions
-export type { Change, UnsignedChange, CreateChangeOptions } from './change'
+export type { Change, UnsignedChange, CreateChangeOptions, ChangeSigner } from './change'
 export {
   CURRENT_PROTOCOL_VERSION,
   createUnsignedChange,
   computeChangeHash,
   signChange,
+  createWebCryptoChangeSigner,
   verifyChange,
   verifyChangeHash,
   createChangeId,

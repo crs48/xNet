@@ -49,6 +49,7 @@ import {
   createQueryDescriptor,
   matchesQueryDescriptor
 } from '../query-descriptor'
+import { groupNodeChangeEventsBySchema } from '../utils/change-events'
 
 const BULK_STORE_CHANGE_RELOAD_THRESHOLD = 25
 
@@ -417,17 +418,12 @@ class DataWorker implements DataWorkerAPI {
     )
   }
 
+  // The worker skeleton has thin direct test coverage until the worker-
+  // resident migration (exploration 0164); the grouping/delta logic it
+  // shares with MainThreadBridge is exercised by the bridge suites.
+  // fallow-ignore-next-line complexity
   private async handleStoreChangeSet(events: readonly NodeChangeEvent[]): Promise<void> {
-    const eventsBySchema = new Map<SchemaIRI, NodeChangeEvent[]>()
-
-    for (const event of events) {
-      const schemaId: SchemaIRI | undefined = event.node?.schemaId ?? event.change.payload.schemaId
-      if (!schemaId) continue
-
-      const next = eventsBySchema.get(schemaId) ?? []
-      next.push(event)
-      eventsBySchema.set(schemaId, next)
-    }
+    const eventsBySchema = groupNodeChangeEventsBySchema(events)
 
     for (const [schemaId, schemaEvents] of eventsBySchema) {
       const shouldReload = this.isBulkStoreChangeSet(schemaEvents)

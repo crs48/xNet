@@ -155,6 +155,12 @@ export interface SQLiteQueryVerificationOptions {
 export interface SQLiteNodeStorageAdapterOptions {
   adaptiveIndexing?: SQLiteAdaptiveIndexingOptions
   queryVerification?: SQLiteQueryVerificationOptions
+  /**
+   * Collect EXPLAIN QUERY PLAN + index inventory per query. Costs extra
+   * round trips per query, so it is off unless explicitly enabled or the
+   * `xnet:query:debug` localStorage flag is set.
+   */
+  queryDiagnostics?: boolean
 }
 
 interface AdaptiveIndexHint {
@@ -274,10 +280,24 @@ const DEFAULT_ADAPTIVE_INDEXING: AdaptiveIndexingConfig = {
   dropUnusedAfterMs: 30 * 24 * 60 * 60 * 1000
 }
 
+// Parity verification re-lists the candidate scope and re-runs the
+// descriptor in JS per query — invaluable in tests, far too expensive as an
+// always-on production tax. Vitest/integration suites opt back in.
 const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
-  enabled: true,
+  enabled: false,
   maxNodes: 1000,
   logFailures: true
+}
+
+const QUERY_TELEMETRY_FLUSH_THRESHOLD = 50
+
+interface PendingQueryTelemetry {
+  schemaId: string
+  descriptorJson: string
+  hits: number
+  totalDurationMs: number
+  totalCandidates: number
+  lastSeenAt: number
 }
 const SQLITE_BIND_PARAMETER_BATCH_SIZE = 900
 const SQLITE_HYDRATE_NODE_BATCH_SIZE = Math.floor(SQLITE_BIND_PARAMETER_BATCH_SIZE / 2)
@@ -345,6 +365,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   private queryVerification: QueryVerificationConfig
 
+  private queryDiagnostics: boolean
+
+  private pendingQueryTelemetry = new Map<string, PendingQueryTelemetry>()
+
+  private pendingQueryTelemetryHits = 0
+
   private adaptiveIndexBudgetColumnsReady = false
 
   private storageCapabilitiesPromise?: Promise<NodeQueryStorageCapabilitiesMetadata>
@@ -367,6 +393,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       ...DEFAULT_QUERY_VERIFICATION,
       ...options.queryVerification
     }
+    this.queryDiagnostics = options.queryDiagnostics ?? false
   }
 
   getSQLiteAdapter(): SQLiteAdapter {
@@ -383,6 +410,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async close(): Promise<void> {
+    try {
+      await this.flushQueryTelemetry()
+    } catch {
+      // Telemetry must never block shutdown.
+    }
+
     // Finalize all prepared statements
     for (const stmt of this.stmtCache.values()) {
       await stmt.finalize()
@@ -921,7 +954,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     const [queryDiagnostics, idQuery] = await Promise.all([
-      this.collectCompiledQueryDiagnostics(compiled),
+      this.isQueryDiagnosticsEnabled()
+        ? this.collectCompiledQueryDiagnostics(compiled)
+        : Promise.resolve<CompiledQueryDiagnostics>({}),
       timeQuery<{ id: string }>(this.db, compiled.sql, compiled.params)
     ])
     const idRows = idQuery.result
@@ -2679,46 +2714,40 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
     const descriptorJson = this.stringifyStable(descriptor)
     const descriptorHash = this.hashScalarValue(descriptorJson)
     const now = Date.now()
+    const sample: PendingQueryTelemetry = {
+      schemaId: descriptor.schemaId,
+      descriptorJson,
+      hits: 1,
+      totalDurationMs: result.plan.durationMs,
+      totalCandidates: result.plan.candidateNodeCount,
+      lastSeenAt: now
+    }
 
-    await this.db.run(
-      `INSERT INTO query_descriptor_stats
-        (
-          descriptor_hash,
-          schema_id,
-          descriptor_json,
-          hits,
-          total_duration_ms,
-          avg_duration_ms,
-          avg_candidates,
-          last_seen_at
-        )
-       VALUES (?, ?, ?, 1, ?, ?, ?, ?)
-       ON CONFLICT(descriptor_hash) DO UPDATE SET
-         schema_id = excluded.schema_id,
-         descriptor_json = excluded.descriptor_json,
-         hits = query_descriptor_stats.hits + 1,
-         total_duration_ms =
-           query_descriptor_stats.total_duration_ms + excluded.total_duration_ms,
-         avg_duration_ms =
-           (query_descriptor_stats.total_duration_ms + excluded.total_duration_ms) /
-           (query_descriptor_stats.hits + 1),
-         avg_candidates =
-           ((query_descriptor_stats.avg_candidates * query_descriptor_stats.hits) +
-            excluded.avg_candidates) /
-           (query_descriptor_stats.hits + 1),
-         last_seen_at = excluded.last_seen_at`,
-      [
-        descriptorHash,
-        descriptor.schemaId,
-        descriptorJson,
-        result.plan.durationMs,
-        result.plan.durationMs,
-        result.plan.candidateNodeCount,
-        now
-      ]
-    )
+    if (!this.adaptiveIndexing.enabled) {
+      // Buffer in memory so read queries stay write-free; the aggregate is
+      // flushed periodically (and on close), preserving hit counts exactly.
+      const pending = this.pendingQueryTelemetry.get(descriptorHash)
+      if (pending) {
+        pending.hits += 1
+        pending.totalDurationMs += sample.totalDurationMs
+        pending.totalCandidates += sample.totalCandidates
+        pending.lastSeenAt = now
+      } else {
+        this.pendingQueryTelemetry.set(descriptorHash, sample)
+      }
+      this.pendingQueryTelemetryHits += 1
+      if (this.pendingQueryTelemetryHits >= QUERY_TELEMETRY_FLUSH_THRESHOLD) {
+        await this.flushQueryTelemetry()
+      }
 
-    if (!this.adaptiveIndexing.enabled || adaptiveIndexHints.length === 0) {
+      return { descriptorHash, adaptiveIndexNames: [] }
+    }
+
+    // Adaptive indexing gates on durable hit counts (minHits), so keep the
+    // per-query write when it is enabled.
+    await this.writeQueryTelemetryRow(descriptorHash, sample)
+
+    if (adaptiveIndexHints.length === 0) {
       return { descriptorHash, adaptiveIndexNames: [] }
     }
 
@@ -2741,6 +2770,75 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
     })
 
     return { descriptorHash, adaptiveIndexNames }
+  }
+
+  /**
+   * Flush buffered query telemetry aggregates into
+   * `query_descriptor_stats`. Runs automatically every
+   * {@link QUERY_TELEMETRY_FLUSH_THRESHOLD} queries and on close; callers
+   * that need durable stats immediately (tests, diagnostics tooling) can
+   * invoke it directly.
+   */
+  async flushQueryTelemetry(): Promise<void> {
+    if (this.pendingQueryTelemetry.size === 0) {
+      return
+    }
+
+    const entries = [...this.pendingQueryTelemetry.entries()]
+    this.pendingQueryTelemetry.clear()
+    this.pendingQueryTelemetryHits = 0
+
+    for (const [descriptorHash, pending] of entries) {
+      await this.writeQueryTelemetryRow(descriptorHash, pending)
+    }
+  }
+
+  private async writeQueryTelemetryRow(
+    descriptorHash: string,
+    pending: PendingQueryTelemetry
+  ): Promise<void> {
+    await this.db.run(
+      `INSERT INTO query_descriptor_stats
+        (
+          descriptor_hash,
+          schema_id,
+          descriptor_json,
+          hits,
+          total_duration_ms,
+          avg_duration_ms,
+          avg_candidates,
+          last_seen_at
+        )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(descriptor_hash) DO UPDATE SET
+         schema_id = excluded.schema_id,
+         descriptor_json = excluded.descriptor_json,
+         hits = query_descriptor_stats.hits + excluded.hits,
+         total_duration_ms =
+           query_descriptor_stats.total_duration_ms + excluded.total_duration_ms,
+         avg_duration_ms =
+           (query_descriptor_stats.total_duration_ms + excluded.total_duration_ms) /
+           (query_descriptor_stats.hits + excluded.hits),
+         avg_candidates =
+           ((query_descriptor_stats.avg_candidates * query_descriptor_stats.hits) +
+            (excluded.avg_candidates * excluded.hits)) /
+           (query_descriptor_stats.hits + excluded.hits),
+         last_seen_at = excluded.last_seen_at`,
+      [
+        descriptorHash,
+        pending.schemaId,
+        pending.descriptorJson,
+        pending.hits,
+        pending.totalDurationMs,
+        pending.totalDurationMs / pending.hits,
+        pending.totalCandidates / pending.hits,
+        pending.lastSeenAt
+      ]
+    )
+  }
+
+  private isQueryDiagnosticsEnabled(): boolean {
+    return this.queryDiagnostics || this.isQueryDebugEnabled()
   }
 
   private async collectCompiledQueryDiagnostics(
