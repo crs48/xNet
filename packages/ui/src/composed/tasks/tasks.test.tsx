@@ -96,3 +96,43 @@ describe('TaskCard', () => {
     expect(screen.getByTestId('task-card-tombstone')).toBeTruthy()
   })
 })
+
+describe('GitHub state badges', () => {
+  it('derives state from pull-request reference metadata', async () => {
+    const { githubStateFromReferences } = await import('./types')
+
+    const state = githubStateFromReferences([
+      { kind: 'link', metadata: '{"prState":"open"}', updatedAt: 5 },
+      {
+        kind: 'pull-request',
+        metadata: '{"prState":"merged","reviewState":"approved","ciState":"passing"}',
+        updatedAt: 10
+      },
+      { kind: 'pull-request', metadata: 'not json', updatedAt: 20 }
+    ])
+
+    expect(state).toEqual({ prState: 'merged', reviewState: 'approved', ciState: 'passing' })
+    expect(githubStateFromReferences([])).toBeUndefined()
+  })
+
+  it('renders PR/review/CI badges on rows and cards', () => {
+    const github = {
+      prState: 'open',
+      reviewState: 'approved',
+      ciState: 'failing'
+    } as const
+
+    render(<TaskRow task={{ ...baseTask, github }} />)
+    expect(screen.getByLabelText('PR open')).toBeTruthy()
+    expect(screen.getByLabelText('Review approved')).toBeTruthy()
+    expect(screen.getByLabelText('Checks failing')).toBeTruthy()
+  })
+
+  it('renders merged badge on cards and nothing without state', () => {
+    render(<TaskCard task={{ ...baseTask, github: { prState: 'merged' } }} />)
+    expect(screen.getByLabelText('PR merged')).toBeTruthy()
+
+    render(<TaskCard task={{ ...baseTask, id: 'task_2' }} />)
+    expect(screen.queryAllByTestId('task-github-badges')).toHaveLength(1)
+  })
+})

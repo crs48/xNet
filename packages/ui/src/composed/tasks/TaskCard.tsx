@@ -10,6 +10,7 @@ import type { MouseEvent } from 'react'
 import { Link2, RotateCcw, Trash2 } from 'lucide-react'
 import { DIDAvatar } from '../../components/DIDAvatar'
 import { cn } from '../../utils'
+import { TaskGithubBadges } from './TaskGithubBadges'
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
 import {
   DUE_DATE_URGENCY_CLASS,
@@ -151,6 +152,7 @@ export function TaskCard({
 
       <div className="flex items-center gap-2 text-xs text-foreground-muted">
         <span className={statusMeta.colorClass}>{statusMeta.name}</span>
+        <TaskGithubBadges github={task.github} />
         {typeof task.referenceCount === 'number' && task.referenceCount > 0 && (
           <span className="inline-flex items-center gap-0.5">
             <Link2 className="h-3 w-3" aria-hidden />

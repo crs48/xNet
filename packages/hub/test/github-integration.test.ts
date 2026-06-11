@@ -145,3 +145,108 @@ describe('processGithubEvent', () => {
     expect(processGithubEvent('pull_request', { action: 'opened' })).toEqual([])
   })
 })
+
+describe('processGithubEvent reference state', () => {
+  const basePr = {
+    number: 12,
+    title: 'Fix the grid',
+    body: 'Fixes XN-142',
+    draft: false,
+    merged: false,
+    html_url: 'https://github.com/acme/app/pull/12',
+    head: { ref: 'crs/xn-142-fix-grid' },
+    base: { repo: { full_name: 'acme/app' } }
+  }
+
+  it('mirrors PR lifecycle state onto references', () => {
+    const opened = processGithubEvent('pull_request', { action: 'opened', pull_request: basePr })
+    expect(opened).toContainEqual({
+      type: 'set-reference-state',
+      shortId: 'XN-142',
+      refId: 'acme/app#12',
+      state: { prState: 'open' }
+    })
+
+    const merged = processGithubEvent('pull_request', {
+      action: 'closed',
+      pull_request: { ...basePr, merged: true }
+    })
+    expect(merged).toContainEqual({
+      type: 'set-reference-state',
+      shortId: 'XN-142',
+      refId: 'acme/app#12',
+      state: { prState: 'merged' }
+    })
+  })
+
+  it('maps submitted reviews to review state', () => {
+    const approved = processGithubEvent('pull_request_review', {
+      action: 'submitted',
+      review: { state: 'approved' },
+      pull_request: basePr
+    })
+    expect(approved).toEqual([
+      {
+        type: 'set-reference-state',
+        shortId: 'XN-142',
+        refId: 'acme/app#12',
+        state: { reviewState: 'approved' }
+      }
+    ])
+
+    const changes = processGithubEvent('pull_request_review', {
+      action: 'submitted',
+      review: { state: 'changes_requested' },
+      pull_request: basePr
+    })
+    expect(changes[0]).toMatchObject({ state: { reviewState: 'changes-requested' } })
+
+    // Comment-only reviews carry no state change
+    expect(
+      processGithubEvent('pull_request_review', {
+        action: 'submitted',
+        review: { state: 'commented' },
+        pull_request: basePr
+      })
+    ).toEqual([])
+  })
+
+  it('maps check suites to CI state via the branch identifier', () => {
+    const passing = processGithubEvent('check_suite', {
+      action: 'completed',
+      check_suite: {
+        status: 'completed',
+        conclusion: 'success',
+        head_branch: 'crs/xn-142-fix-grid',
+        pull_requests: [{ number: 12 }]
+      },
+      repository: { full_name: 'acme/app' }
+    })
+    expect(passing).toEqual([
+      {
+        type: 'set-reference-state',
+        shortId: 'XN-142',
+        refId: 'acme/app#12',
+        state: { ciState: 'passing' }
+      }
+    ])
+
+    const failing = processGithubEvent('check_suite', {
+      action: 'completed',
+      check_suite: {
+        status: 'completed',
+        conclusion: 'failure',
+        head_branch: 'crs/xn-142-fix-grid'
+      },
+      repository: { full_name: 'acme/app' }
+    })
+    expect(failing[0]).toMatchObject({ state: { ciState: 'failing' } })
+
+    // No identifier in the branch -> no actions
+    expect(
+      processGithubEvent('check_suite', {
+        check_suite: { status: 'completed', conclusion: 'success', head_branch: 'main' }
+      })
+    ).toEqual([])
+  })
+})

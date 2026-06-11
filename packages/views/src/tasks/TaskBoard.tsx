@@ -18,6 +18,7 @@ import {
 import { generateSortKey, isCompletedTaskStatus, type TaskStatusId } from '@xnetjs/data'
 import { TaskCard, TaskStatusIcon, getTaskStatusMeta, type TaskDisplayData } from '@xnetjs/ui'
 import React, { useMemo, useState } from 'react'
+import { TASK_WORKFLOW_ORDER, groupTasksByStatus, sortTasksBySortKey } from './grouping'
 
 export interface TaskBoardItem extends TaskDisplayData {
   sortKey?: string | null
@@ -41,23 +42,7 @@ export interface TaskBoardProps {
   onToggleCompleted?: (taskId: string, completed: boolean) => void
 }
 
-const DEFAULT_STATUSES: TaskStatusId[] = [
-  'triage',
-  'backlog',
-  'todo',
-  'in-progress',
-  'in-review',
-  'done',
-  'cancelled'
-]
-
-function sortColumn(tasks: TaskBoardItem[]): TaskBoardItem[] {
-  return [...tasks].sort((a, b) => {
-    const aKey = a.sortKey ?? ''
-    const bKey = b.sortKey ?? ''
-    return aKey.localeCompare(bKey) || a.id.localeCompare(b.id)
-  })
-}
+const DEFAULT_STATUSES: TaskStatusId[] = TASK_WORKFLOW_ORDER
 
 function DraggableTaskCard({
   task,
@@ -134,21 +119,9 @@ export function TaskBoard({
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
 
   const columns = useMemo(() => {
-    const byStatus = new Map<TaskStatusId, TaskBoardItem[]>(statuses.map((s) => [s, []]))
-
-    for (const task of tasks) {
-      const status = (task.status ?? 'todo') as TaskStatusId
-      const column = byStatus.get(status)
-      if (column) {
-        column.push(task)
-      } else {
-        byStatus.get('todo')?.push(task)
-      }
-    }
-
-    return statuses.map((status) => ({
-      status,
-      tasks: sortColumn(byStatus.get(status) ?? [])
+    return groupTasksByStatus(tasks, statuses).map((group) => ({
+      status: group.status,
+      tasks: sortTasksBySortKey(group.tasks)
     }))
   }, [tasks, statuses])
 

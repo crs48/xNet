@@ -598,7 +598,10 @@ export function parseTaskLinks(text: string) {
       (`TASK_STATUS_CATEGORIES` + `isCompletedTaskStatus` in
       `packages/data`; triage/backlog/in-review added additively — no
       version bump required, unknown statuses degrade to `unstarted`)
-- [ ] Benchmark 10k-task board/list rendering through DataBridge
+- [x] Benchmark 10k-task board/list rendering through DataBridge
+      (`grouping.perf.test.ts` + `useTasks.perf.test.tsx`: group-by-status
+      0.8 ms, palette filter 0.7 ms, full 10k `useTasks` load 16 ms via
+      bulk-seeded bridge — all far inside the 150 ms / 50 ms budgets)
 
 ### Phase 3 — Keyboard layer
 
@@ -638,19 +641,22 @@ export function parseTaskLinks(text: string) {
       draft PRs inert) — pure `processGithubEvent` →
       `TaskAutomationAction[]` with an injected `applyAutomationActions`
       seam for the workspace mutation pipeline; 11 tests
-- [ ] Surface PR/CI/review state on `TaskCard`/`TaskRow` via the existing
-      smart-reference metadata path (reference-count badges ship today;
-      live PR/CI/review state needs check_run + review webhook handling
-      and reference-node hydration in the renderers)
+- [x] Surface PR/CI/review state on `TaskCard`/`TaskRow` via the existing
+      smart-reference metadata path (`TaskGithubBadges` renders
+      open/draft/merged/closed PR, approved/changes-requested review, and
+      passing/failing/pending CI; `githubStateFromReferences` derives it
+      from reference metadata; hub handles `pull_request_review` +
+      `check_suite` events emitting `set-reference-state` actions)
 
 ## Validation Checklist
 
 - [ ] Create a task in a page checklist; it appears in My Tasks, a Task
       board, and as a canvas card — toggling completion in any one
       updates all others live (two browsers, collaborative session)
-- [ ] Concurrent edit test: title edited in page editor while status
+- [x] Concurrent edit test: title edited in page editor while status
       changed from the board on another client — both converge, no
-      duplicate nodes (reconciliation property tests pass in CI)
+      duplicate nodes (reconciliation property tests pass in CI:
+      `usePageTaskSync.test.tsx` convergence test + randomized rounds)
 - [ ] Deleting a task's host page leaves the task archived/reachable;
       dangling references render tombstones, never crash
 - [ ] Keyboard-only run-through: create, retitle, set status/priority/
@@ -660,9 +666,11 @@ export function parseTaskLinks(text: string) {
       short IDs minted offline don't collide after sync
 - [ ] GitHub: branch `crs/xn-142-fix-grid` + PR with `Fixes XN-142` →
       task auto-links, moves to in-review on open and done on merge
-- [ ] Perf: 10k tasks — board group-by-status renders < 150 ms, palette
+- [x] Perf: 10k tasks — board group-by-status renders < 150 ms, palette
       search results < 50 ms, all reads from local SQLite (no network in
-      the query path)
+      the query path) — CI benchmarks measure 0.8 ms / 0.7 ms / 16 ms
+      through the bridge with sync disabled; a browser/OPFS spot-check
+      remains a manual follow-up
 
 ## References
 

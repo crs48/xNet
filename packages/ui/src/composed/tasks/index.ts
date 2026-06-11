@@ -7,12 +7,15 @@ export {
   type TaskStatusIconProps,
   type TaskPriorityIconProps
 } from './TaskStatusIcon'
+export { TaskGithubBadges, type TaskGithubBadgesProps } from './TaskGithubBadges'
 export {
   TASK_STATUS_META,
   DUE_DATE_URGENCY_CLASS,
   getTaskStatusMeta,
   isCompletedStatus,
   formatDueDate,
+  githubStateFromReferences,
+  type TaskGithubState,
   type TaskDisplayData,
   type TaskDisplayStatus,
   type TaskDisplayPriority,

@@ -5,6 +5,7 @@ import { generateIdentity, type Identity } from '@xnetjs/identity'
 import React, { type ReactNode, useMemo } from 'react'
 import { describe, expect, it, beforeEach } from 'vitest'
 import { XNetProvider } from '../context'
+import { useMutate } from './useMutate'
 import { usePageTaskSync } from './usePageTaskSync'
 import { useQuery } from './useQuery'
 
@@ -210,6 +211,64 @@ describe('usePageTaskSync', () => {
       expect(revived?.deleted).toBeFalsy()
       expect(revived).toMatchObject({ title: 'Revivable task', page: 'page-1' })
       expect(result.current.tasks.data).toHaveLength(1)
+    })
+  })
+
+  it('converges concurrent editor title edits with board status changes', async () => {
+    // Validation scenario from exploration 0161: title edited in the page
+    // editor while the status changes from the board on another surface —
+    // both writes land on the same node with no duplicates and no revert.
+    const wrapper = createWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        sync: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        mutate: useMutate(),
+        tasks: useQuery(TaskSchema, { where: { page: 'page-1' } })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    const item = {
+      taskId: 'task_concurrent',
+      blockId: 'block_concurrent',
+      title: 'Original title',
+      completed: false,
+      parentTaskId: null,
+      sortKey: '0000',
+      assignees: [],
+      dueDate: null,
+      references: []
+    }
+
+    await act(async () => {
+      result.current.sync.handleTasksChange([item])
+    })
+
+    await waitFor(() => {
+      expect(result.current.tasks.data).toHaveLength(1)
+    })
+
+    // Board surface moves the workflow status while the editor retitles.
+    await act(async () => {
+      await result.current.mutate.update(TaskSchema, 'task_concurrent', {
+        status: 'in-progress'
+      })
+      result.current.sync.handleTasksChange([{ ...item, title: 'Renamed in editor' }])
+    })
+
+    await waitFor(() => {
+      const tasks = result.current.tasks.data.filter((task) => task.id === 'task_concurrent')
+      expect(tasks).toHaveLength(1)
+      expect(tasks[0]).toMatchObject({
+        title: 'Renamed in editor',
+        status: 'in-progress',
+        completed: false
+      })
     })
   })
 

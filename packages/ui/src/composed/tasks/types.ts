@@ -35,8 +35,67 @@ export interface TaskDisplayData {
   shortId?: string | null
   /** Count of linked external references (PRs, issues, designs) */
   referenceCount?: number
+  /** Live GitHub state mirrored from linked references */
+  github?: TaskGithubState
   /** Archived (soft-deleted) — renders as a tombstone */
   deleted?: boolean
+}
+
+/** PR/review/CI state mirrored onto the task from GitHub webhooks. */
+export interface TaskGithubState {
+  prState?: 'open' | 'draft' | 'merged' | 'closed'
+  reviewState?: 'approved' | 'changes-requested'
+  ciState?: 'pending' | 'passing' | 'failing'
+}
+
+/**
+ * Derive a task's GitHub display state from its ExternalReference nodes.
+ * Reference `metadata` is the JSON the hub webhook pipeline maintains
+ * ({ prState, reviewState, ciState }); the most recently updated
+ * pull-request reference wins.
+ */
+export function githubStateFromReferences(
+  references: ReadonlyArray<{
+    kind?: string | null
+    metadata?: string | null
+    updatedAt?: number
+  }>
+): TaskGithubState | undefined {
+  const prRefs = references
+    .filter((reference) => reference.kind === 'pull-request' && reference.metadata)
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+
+  for (const reference of prRefs) {
+    try {
+      const metadata = JSON.parse(reference.metadata ?? '{}') as Record<string, unknown>
+      const state: TaskGithubState = {}
+
+      if (
+        metadata.prState === 'open' ||
+        metadata.prState === 'draft' ||
+        metadata.prState === 'merged' ||
+        metadata.prState === 'closed'
+      ) {
+        state.prState = metadata.prState
+      }
+      if (metadata.reviewState === 'approved' || metadata.reviewState === 'changes-requested') {
+        state.reviewState = metadata.reviewState
+      }
+      if (
+        metadata.ciState === 'pending' ||
+        metadata.ciState === 'passing' ||
+        metadata.ciState === 'failing'
+      ) {
+        state.ciState = metadata.ciState
+      }
+
+      if (Object.keys(state).length > 0) return state
+    } catch {
+      // Malformed metadata never breaks rendering.
+    }
+  }
+
+  return undefined
 }
 
 export interface TaskIntentHandlers {

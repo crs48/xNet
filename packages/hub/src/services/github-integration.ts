@@ -86,9 +86,26 @@ export interface TaskExternalReference {
   title: string
 }
 
+/** Mirrored PR/review/CI display state stored in reference metadata */
+export interface TaskReferenceState {
+  prState?: 'open' | 'draft' | 'merged' | 'closed'
+  reviewState?: 'approved' | 'changes-requested'
+  ciState?: 'pending' | 'passing' | 'failing'
+}
+
 export type TaskAutomationAction =
   | { type: 'link'; shortId: string; reference: TaskExternalReference }
   | { type: 'set-status'; shortId: string; status: 'in-review' | 'in-progress' | 'done' }
+  | {
+      /** Merge `state` into the linked reference's metadata so TaskCard /
+       * TaskRow badges render live PR/review/CI state
+       * (githubStateFromReferences in @xnetjs/ui). */
+      type: 'set-reference-state'
+      shortId: string
+      /** Reference refId the state belongs to (repo#number) */
+      refId: string
+      state: TaskReferenceState
+    }
 
 interface PullRequestPayload {
   action?: string
@@ -107,6 +124,23 @@ interface PullRequestPayload {
 interface PushPayload {
   ref?: string
   commits?: Array<{ message?: string; url?: string; id?: string }>
+  repository?: { full_name?: string }
+}
+
+interface PullRequestReviewPayload {
+  action?: string
+  review?: { state?: string }
+  pull_request?: PullRequestPayload['pull_request']
+}
+
+interface CheckSuitePayload {
+  action?: string
+  check_suite?: {
+    status?: string
+    conclusion?: string | null
+    head_branch?: string | null
+    pull_requests?: Array<{ number?: number }>
+  }
   repository?: { full_name?: string }
 }
 
@@ -154,6 +188,14 @@ export function processGithubEvent(eventType: string, payload: unknown): TaskAut
     return processPushEvent(payload as PushPayload)
   }
 
+  if (eventType === 'pull_request_review') {
+    return processReviewEvent(payload as PullRequestReviewPayload)
+  }
+
+  if (eventType === 'check_suite') {
+    return processCheckSuiteEvent(payload as CheckSuitePayload)
+  }
+
   return []
 }
 
@@ -168,9 +210,18 @@ function processPullRequestEvent(payload: PullRequestPayload): TaskAutomationAct
   const reference = pullRequestReference(payload)
   const actions: TaskAutomationAction[] = []
 
+  const prState: TaskReferenceState['prState'] =
+    payload.action === 'closed' ? (pr.merged ? 'merged' : 'closed') : pr.draft ? 'draft' : 'open'
+
   for (const shortId of allIds) {
     if (reference) {
       actions.push({ type: 'link', shortId, reference })
+      actions.push({
+        type: 'set-reference-state',
+        shortId,
+        refId: reference.refId,
+        state: { prState }
+      })
     }
   }
 
@@ -244,4 +295,58 @@ function processPushEvent(payload: PushPayload): TaskAutomationAction[] {
   }
 
   return actions
+}
+
+function processReviewEvent(payload: PullRequestReviewPayload): TaskAutomationAction[] {
+  if (payload.action !== 'submitted') return []
+
+  const reviewState =
+    payload.review?.state === 'approved'
+      ? ('approved' as const)
+      : payload.review?.state === 'changes_requested'
+        ? ('changes-requested' as const)
+        : null
+  if (!reviewState) return []
+
+  const prPayload: PullRequestPayload = { pull_request: payload.pull_request }
+  const reference = pullRequestReference(prPayload)
+  if (!reference) return []
+
+  const { closes, refs } = pullRequestIds(prPayload)
+
+  return [...closes, ...refs].map((shortId) => ({
+    type: 'set-reference-state',
+    shortId,
+    refId: reference.refId,
+    state: { reviewState }
+  }))
+}
+
+function processCheckSuiteEvent(payload: CheckSuitePayload): TaskAutomationAction[] {
+  const suite = payload.check_suite
+  if (!suite) return []
+
+  const ciState: TaskReferenceState['ciState'] =
+    suite.status !== 'completed'
+      ? 'pending'
+      : suite.conclusion === 'success'
+        ? 'passing'
+        : 'failing'
+
+  // Check suites carry no PR body — the branch name is the identifier link.
+  const shortId = suite.head_branch ? parseBranchTaskId(suite.head_branch) : null
+  if (!shortId) return []
+
+  const repo = payload.repository?.full_name ?? ''
+  const prNumber = suite.pull_requests?.[0]?.number
+
+  return [
+    {
+      type: 'set-reference-state',
+      shortId,
+      refId:
+        repo && prNumber != null ? `${repo}#${prNumber}` : `${repo}:${suite.head_branch ?? ''}`,
+      state: { ciState }
+    }
+  ]
 }

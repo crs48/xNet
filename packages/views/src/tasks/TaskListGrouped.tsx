@@ -9,6 +9,7 @@ import { type TaskStatusId } from '@xnetjs/data'
 import { TaskRow, TaskStatusIcon, getTaskStatusMeta, type TaskDisplayData } from '@xnetjs/ui'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
+import { TASK_WORKFLOW_ORDER, groupTasksByStatus } from './grouping'
 
 export interface TaskListGroupedProps {
   tasks: TaskDisplayData[]
@@ -21,15 +22,7 @@ export interface TaskListGroupedProps {
   onToggleCompleted?: (taskId: string, completed: boolean) => void
 }
 
-const DEFAULT_STATUSES: TaskStatusId[] = [
-  'triage',
-  'backlog',
-  'todo',
-  'in-progress',
-  'in-review',
-  'done',
-  'cancelled'
-]
+const DEFAULT_STATUSES: TaskStatusId[] = TASK_WORKFLOW_ORDER
 
 export function TaskListGrouped({
   tasks,
@@ -42,17 +35,9 @@ export function TaskListGrouped({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   const groups = useMemo(() => {
-    const byStatus = new Map<TaskStatusId, TaskDisplayData[]>(statuses.map((s) => [s, []]))
-
-    for (const task of tasks) {
-      const status = (task.status ?? 'todo') as TaskStatusId
-      const group = byStatus.get(status) ?? byStatus.get('todo')
-      group?.push(task)
-    }
-
-    return statuses
-      .map((status) => ({ status, tasks: byStatus.get(status) ?? [] }))
-      .filter((group) => !hideEmptyGroups || group.tasks.length > 0)
+    return groupTasksByStatus(tasks, statuses).filter(
+      (group) => !hideEmptyGroups || group.tasks.length > 0
+    )
   }, [tasks, statuses, hideEmptyGroups])
 
   const toggleGroup = (status: string) => {

@@ -9,6 +9,7 @@ import type { MouseEvent } from 'react'
 import { Link2 } from 'lucide-react'
 import { DIDAvatar } from '../../components/DIDAvatar'
 import { cn } from '../../utils'
+import { TaskGithubBadges } from './TaskGithubBadges'
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
 import {
   DUE_DATE_URGENCY_CLASS,
@@ -88,6 +89,8 @@ export function TaskRow({
       >
         {task.title || 'Untitled task'}
       </span>
+
+      <TaskGithubBadges github={task.github} />
 
       {typeof task.referenceCount === 'number' && task.referenceCount > 0 && (
         <span className="inline-flex shrink-0 items-center gap-0.5 text-xs text-foreground-muted">
