@@ -300,9 +300,21 @@ export function GridSurface({
         case 'moveToEdge':
           dispatch({ type: 'moveToEdge', dir: command.dir, extend: command.extend })
           break
-        case 'startEdit':
-          if (!readOnly) dispatch({ type: 'startEdit', mode: command.mode, seed: command.seed })
+        case 'startEdit': {
+          if (readOnly) break
+          // Computed/auto fields have no editor
+          const target = state.cursor ? cellAt(state.cursor) : null
+          if (
+            target &&
+            ['formula', 'rollup', 'created', 'createdBy', 'updated', 'updatedBy'].includes(
+              target.field.type
+            )
+          ) {
+            break
+          }
+          dispatch({ type: 'startEdit', mode: command.mode, seed: command.seed })
           break
+        }
         case 'commitEdit':
           commitDraft()
           dispatch({ type: 'commitEdit', move: command.move })

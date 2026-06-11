@@ -47,8 +47,7 @@ interface DatabaseViewProps {
 // Field types offered in the add/edit field menus (computed/auto types are
 // created through dedicated flows later)
 const CREATABLE_FIELD_TYPES: FieldType[] = FIELD_TYPES.filter(
-  (t) =>
-    !['rollup', 'formula', 'richText', 'created', 'createdBy', 'updated', 'updatedBy'].includes(t)
+  (t) => !['rollup', 'richText', 'updatedBy'].includes(t)
 )
 
 interface FieldMenuState {
@@ -542,6 +541,26 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
                 </option>
               ))}
             </select>
+            {menuField.type === 'formula' && (
+              <textarea
+                aria-label="Formula expression"
+                placeholder="e.g. {{price}} * {{qty}}"
+                defaultValue={
+                  ((menuField.config as { expression?: string }).expression ?? '') as string
+                }
+                rows={2}
+                className="w-full mb-2 px-2 py-1 font-mono text-xs rounded border border-border bg-transparent outline-none focus:border-blue-400 resize-none"
+                onKeyDown={(e) => e.stopPropagation()}
+                onBlur={(e) => {
+                  const expression = e.target.value.trim()
+                  void grid.updateFieldConfig(menuField.id, {
+                    ...(menuField.config as Record<string, unknown>),
+                    expression,
+                    resultType: (menuField.config as { resultType?: string }).resultType ?? 'number'
+                  } as never)
+                }}
+              />
+            )}
             <button
               type="button"
               className="w-full px-2 py-1 text-left text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"

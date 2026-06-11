@@ -277,4 +277,42 @@ describe('useGridDatabase', () => {
     })
     await waitFor(() => expect(result.current.fields).toHaveLength(0))
   })
+
+  it('formula fields compute from other cells and react to edits', async () => {
+    const wrapper = createWrapper()
+    const databaseId = await setupDatabase(wrapper)
+    const { result } = renderHook(() => useGridDatabase(databaseId), { wrapper })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let priceId = ''
+    let qtyId = ''
+    let totalId = ''
+    let rowId: string | null = null
+    await act(async () => {
+      priceId = (await result.current.addField('Price', 'number')) ?? ''
+      qtyId = (await result.current.addField('Qty', 'number')) ?? ''
+      totalId =
+        (await result.current.addField('Total', 'formula', {
+          expression: `{{${'PRICE'}}}`, // placeholder, replaced below
+          resultType: 'number'
+        } as never)) ?? ''
+    })
+    await waitFor(() => expect(result.current.fields).toHaveLength(3))
+
+    await act(async () => {
+      await result.current.updateFieldConfig(totalId, {
+        expression: `{{${priceId}}} * {{${qtyId}}}`,
+        resultType: 'number'
+      } as never)
+      rowId = await result.current.addRow(undefined, { [priceId]: 5, [qtyId]: 4 })
+    })
+
+    await waitFor(() => expect(result.current.rows[0]?.cells[totalId]).toBe(20))
+
+    // Editing a dependency recomputes the formula
+    await act(async () => {
+      await result.current.updateCell(rowId!, qtyId, 10)
+    })
+    await waitFor(() => expect(result.current.rows[0]?.cells[totalId]).toBe(50))
+  })
 })

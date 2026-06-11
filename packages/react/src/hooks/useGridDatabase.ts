@@ -30,7 +30,8 @@ import {
   fromCellProperties,
   generateSortKey,
   generateSortKeyWithJitter,
-  sortRows
+  sortRows,
+  FormulaService
 } from '@xnetjs/data'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useIdentity } from './useIdentity'
@@ -204,6 +205,9 @@ function dropSortKey(
   return generateSortKeyWithJitter(before, after)
 }
 
+// Shared formula evaluator (AST + value caches keyed by row/column hash)
+const formulaService = new FormulaService()
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function useGridDatabase(
@@ -331,13 +335,36 @@ export function useGridDatabase(
         cells
       }
     })
+
+    // Formula fields evaluate from the row's other cells (cached per
+    // row+column input hash), before filters/sorts so they can use the
+    // computed values
+    const formulaFields = fields.filter((f) => f.type === 'formula')
+    if (formulaFields.length > 0) {
+      const columnDefs = fieldsToColumnDefinitions(fields)
+      for (const row of base) {
+        for (const field of formulaFields) {
+          const columnDef = columnDefs.find((c) => c.id === field.id)
+          if (!columnDef) continue
+          try {
+            row.cells[field.id] = formulaService.compute(
+              { id: row.id, databaseId, cells: row.cells },
+              columnDef,
+              columnDefs
+            ) as CellValue
+          } catch {
+            row.cells[field.id] = null
+          }
+        }
+      }
+    }
     // Fractional-index comparator is the final ordering authority
     base.sort((a, b) => compareSortKeys(a.sortKey, b.sortKey))
     if (!activeView) return base
     const columns = fieldsToColumnDefinitions(fields)
     const filtered = filterRows(base, columns, activeView.filters)
     return sortRows(filtered, columns, activeView.sorts)
-  }, [rowNodes, activeView, fields])
+  }, [rowNodes, activeView, fields, databaseId])
 
   const loading =
     dbStatus === 'loading' ||

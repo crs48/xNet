@@ -653,6 +653,12 @@ export {
   getDatabaseDocumentModel,
   type DatabaseDocumentModel,
 
+  // Formula service (computed columns)
+  FormulaService,
+  createFormulaService,
+  type FormulaRow,
+  type FormulaValidationResult,
+
   // Import module (CSV/JSON parsing)
   parseCSV,
   parseCSVLine,

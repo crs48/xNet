@@ -473,7 +473,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 ### Phase 5 (v2.1) — Computed columns UI
 
-- [ ] Formula editor popover: field-ref + function autocomplete, live preview, error display (engine: `packages/formula` + `formula-service.ts` in the DataBridge worker)
+- [x] Formula columns evaluate live — `FormulaService` wired into the `useGridDatabase` row pipeline (cached per row+inputs, recomputes on dependency edits, available to filters/sorts); computed/auto cells are non-editable in the grid; field menu gains an expression editor with `{{fieldId}}` refs. Autocomplete/live-preview popover and worker offload remain follow-up polish
 - [ ] Rollup configuration UI over `rollup-engine.ts`
 - [ ] Computed-cache invalidation e2e (edit upstream cell → dependent formula/rollup updates)
 
