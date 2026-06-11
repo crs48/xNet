@@ -185,6 +185,33 @@ export { KeyValue, type KeyValueProps } from './composed/KeyValue'
 export { CodeBlock, type CodeBlockProps } from './composed/CodeBlock'
 export { DataTable, type DataTableProps, type Column } from './composed/DataTable'
 
+// ─── Task Components ──────────────────────────────────────────────
+export {
+  TaskChip,
+  TaskRow,
+  TaskCard,
+  TaskStatusIcon,
+  TaskPriorityIcon,
+  TASK_STATUS_META,
+  DUE_DATE_URGENCY_CLASS,
+  getTaskStatusMeta,
+  isCompletedStatus,
+  formatDueDate,
+  type TaskChipProps,
+  type TaskRowProps,
+  type TaskCardProps,
+  type TaskCardMode,
+  type TaskStatusIconProps,
+  type TaskPriorityIconProps,
+  type TaskDisplayData,
+  type TaskDisplayStatus,
+  type TaskDisplayPriority,
+  type TaskIntentHandlers,
+  type TaskStatusMeta,
+  type DueDateUrgency,
+  type DueDateInfo
+} from './composed/tasks'
+
 // ─── Command Palette ──────────────────────────────────────────────
 export {
   CommandPalette,

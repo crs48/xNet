@@ -557,9 +557,10 @@ export function parseTaskLinks(text: string) {
       authority, deletion, cross-page moves) and add property-based tests
       around `usePageTaskSync` (`docs/specs/PAGE_TASK_RECONCILIATION.md`;
       claim-or-create path + randomized convergence tests)
-- [ ] Add `TaskChip`, `TaskRow`, `TaskCard` shared components to
+- [x] Add `TaskChip`, `TaskRow`, `TaskCard` shared components to
       `packages/ui` with consistent live-state rendering and an
-      "open task" affordance
+      "open task" affordance (`packages/ui/src/composed/tasks/`, incl.
+      status/priority icons, due-date urgency, tombstones)
 - [ ] Add canvas object kind `task` (source-backed, render modes
       card/mini) in `packages/canvas-core/src/types.ts` + renderer in
       `packages/canvas/src/nodes/`
