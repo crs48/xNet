@@ -140,6 +140,36 @@ test.describe('Database V2 grid', () => {
     await expect(header).not.toHaveAttribute('aria-sort', /.+/)
   })
 
+  test('cell comments: badge appears and the anchor survives sorting', async () => {
+    // Focus the first row's title cell and add a comment via the affordance
+    await page.locator('[data-row-index="0"][data-col-index="0"]').click()
+    await page.getByRole('button', { name: 'Add comment' }).click()
+    await expect(page.getByRole('button', { name: '1 comments' })).toBeVisible({
+      timeout: 10_000
+    })
+
+    // The badge belongs to the row, not the coordinate: after sorting moves
+    // the row, the badge moves with it
+    const badgeRowId = await page
+      .getByRole('button', { name: '1 comments' })
+      .evaluate((el) => el.closest('[data-grid-cell]')?.getAttribute('data-row-id'))
+    expect(badgeRowId).toBeTruthy()
+
+    const header = page.locator('[data-grid-header][data-field-id]').first()
+    await header.click() // sort asc
+    await expect(header).toHaveAttribute('aria-sort', 'ascending')
+    await expect(page.getByRole('button', { name: '1 comments' })).toBeVisible()
+    const badgeRowIdAfter = await page
+      .getByRole('button', { name: '1 comments' })
+      .evaluate((el) => el.closest('[data-grid-cell]')?.getAttribute('data-row-id'))
+    expect(badgeRowIdAfter).toBe(badgeRowId)
+
+    // Toggle the sort back off (asc -> desc -> none) to leave state clean
+    await header.click()
+    await header.click()
+    await expect(header).not.toHaveAttribute('aria-sort', /.+/)
+  })
+
   test('column resize persists to the view node and survives reload', async () => {
     const header = page.locator('[data-grid-header]').first()
     const widthBefore = (await header.boundingBox())!.width

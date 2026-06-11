@@ -417,7 +417,13 @@ export function GridSurface({
         }
         case 'commentCell': {
           const cell = state.cursor ? cellAt(state.cursor) : null
-          if (cell) onCommentCell?.(cell.row.id, cell.field.id, null)
+          if (cell) {
+            // Anchor the popover to the focused cell's element
+            const el = containerRef.current?.querySelector<HTMLElement>(
+              `[data-row-index="${state.cursor!.row}"][data-col-index="${state.cursor!.col}"]`
+            )
+            onCommentCell?.(cell.row.id, cell.field.id, el ?? null)
+          }
           break
         }
         case 'find':

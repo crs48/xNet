@@ -12,7 +12,7 @@
 import { MemoryNodeStorageAdapter, DatabaseSchema } from '@xnetjs/data'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { XNetProvider, useGridDatabase, useNode } from '@xnetjs/react'
-import { GridSurface, GridToolbar } from '@xnetjs/views'
+import { GridSurface, GridToolbar, useDatabaseComments } from '@xnetjs/views'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 
@@ -42,6 +42,9 @@ function DatabaseHarness() {
     createIfMissing: { title: 'Database E2E Test' },
     did: authorDID
   })
+
+  // ─── Comments (universal commenting system, anchored rowId:fieldId) ───────
+  const comments = useDatabaseComments({ databaseNodeId: dbId })
 
   // ─── Presence (awareness channel, same wiring as the app shells) ──────────
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
@@ -247,6 +250,10 @@ function DatabaseHarness() {
           onUndo={() => void grid.undo()}
           onRedo={() => void grid.redo()}
           presences={cellPresences}
+          cellCommentCounts={comments.cellCommentCounts}
+          onCommentCell={(rowId, fieldId) => {
+            void comments.commentOnCell(rowId, fieldId, 'e2e comment')
+          }}
           onCellFocus={(rowId, fieldId) => {
             awareness?.setLocalStateField('cell', { rowId, fieldId })
           }}

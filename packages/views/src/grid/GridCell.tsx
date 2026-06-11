@@ -241,6 +241,25 @@ function GridCellInner({
         </span>
       )}
 
+      {/* Add-comment affordance: focused, commentless cells show a subtle
+          button (the badge below covers commented cells). Cmd/Ctrl+Shift+M
+          also works, but Chrome reserves it on macOS, so a visible entry
+          point is required. */}
+      {commentCount === 0 && focused && !editing && !readOnly && onCommentClick && (
+        <button
+          type="button"
+          aria-label="Add comment"
+          className="absolute top-0.5 right-0.5 p-0.5 rounded text-gray-300 hover:text-amber-500 dark:text-gray-600 dark:hover:text-amber-400"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            onCommentClick(rowId, field.id, e.currentTarget)
+          }}
+        >
+          <MessageSquare className="w-3 h-3" />
+        </button>
+      )}
+
       {/* Comment badge */}
       {commentCount > 0 && (
         <button

@@ -491,7 +491,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [x] Sort/filter/group round-trip through View nodes (hook tests); two-client node convergence proven in e2e — all view state rides the same relay path
 - [x] TSV interchange fidelity proven in unit tests (Excel-style quoting round-trips, per-type paste coercion); a manual Sheets round-trip spot-check remains
 - [x] Undo/redo: one user action = one step; never undoes another user's edit (two-context e2e: user 1's undo reverts their cell edit while user 2's concurrent tag edit survives)
-- [ ] Comment on cell, hover preview, resolve — anchors stable under sort/filter changes
+- [x] Comment on cell + resolve — full flow proven: integration test (comment → badge count → thread → reply → resolve) and browser e2e (visible add-comment affordance on the focused cell → badge renders → anchor follows the row through sort toggles). Hover thread-preview popover remains follow-up polish
 - [x] Presence rings render across two clients (two-context e2e: user 2's cell focus shows a colored ring + name flag on user 1's grid); edit-pulse and range overlays remain follow-up
 - [ ] 10k-row database scrolls at 60fps with virtualization; edits commit <50ms locally
 - [ ] Mobile surface: browse, edit via row editor, board swipe — no horizontal-scroll grid jank
