@@ -52,14 +52,26 @@ jobs:
             echo "ref=origin/main" >> "$GITHUB_OUTPUT"
           fi
 
+      # Temporary diagnostic: exercise the exact git operation fallow's
+      # base-snapshot pass performs, with stderr visible in the log.
+      - name: Probe git worktree creation
+        shell: bash
+        run: |
+          set -x
+          git --version
+          git rev-parse --verify "${{ steps.base.outputs.ref }}"
+          git config core.hooksPath || true
+          df -h /tmp | tail -1
+          git worktree add --detach "$RUNNER_TEMP/fallow-probe" "${{ steps.base.outputs.ref }}" && echo "PROBE OK"
+          git worktree remove --force "$RUNNER_TEMP/fallow-probe" || true
+
       - name: Run Fallow audit
         shell: bash
         run: |
           pnpm exec fallow audit \
             --changed-since "${{ steps.base.outputs.ref }}" \
             --format sarif \
-            --fail-on-issues \
-            --quiet > fallow-audit.sarif
+            --fail-on-issues > fallow-audit.sarif
 
       # CodeQL's upload action rejects SARIF files that contain multiple runs
       # under one category, and fallow emits one run per sub-analysis — this
