@@ -571,10 +571,14 @@ export function parseTaskLinks(text: string) {
       `ensureChecklistTaskIds` + `useCanvasTaskSync` over a new
       `canvas` host relation on `TaskSchema`; shared
       `useTaskProjectionSync` core behind page + canvas syncs)
-- [ ] Specify and implement deletion semantics: unlink vs archive vs
-      delete + tombstone chip for dangling `taskId`
-- [ ] Add `relation → Task (multiple)` column renderer with inline
-      checklist cell in `packages/views/src/properties/`
+- [x] Specify and implement deletion semantics: unlink vs archive vs
+      delete + tombstone chip for dangling `taskId` (spec'd in
+      `docs/specs/PAGE_TASK_RECONCILIATION.md`; archives via projection
+      sync, tombstone + restore in `TaskChip`/`TaskCard`)
+- [x] Add `relation → Task (multiple)` column renderer with inline
+      checklist cell in `packages/views/src/properties/` (new `tasks`
+      column type: live TaskChip cells, inline checklist editor with
+      create/toggle/unlink writing through to Task nodes)
 
 ### Phase 2 — Tasks surface
 

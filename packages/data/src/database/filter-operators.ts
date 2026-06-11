@@ -45,6 +45,7 @@ export const OPERATORS_BY_TYPE: Record<ColumnType, FilterOperator[]> = {
   phone: ['isEmpty', 'isNotEmpty'],
   file: ['isEmpty', 'isNotEmpty'],
   relation: ['contains', 'notContains', 'isEmpty', 'isNotEmpty'],
+  tasks: ['isEmpty', 'isNotEmpty'],
   rollup: [], // Rollups use the result type's operators
   formula: [], // Formulas use the result type's operators
   richText: ['isEmpty', 'isNotEmpty', 'contains'],

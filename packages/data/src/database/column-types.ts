@@ -26,6 +26,7 @@ export type ColumnType =
   | 'file'
   // Relation types
   | 'relation'
+  | 'tasks'
   // Computed types
   | 'rollup'
   | 'formula'
@@ -223,7 +224,8 @@ export function isNodeStoreColumnType(type: ColumnType): boolean {
     'email',
     'phone',
     'file',
-    'relation'
+    'relation',
+    'tasks'
   ]
   return nodeStoreTypes.includes(type)
 }
