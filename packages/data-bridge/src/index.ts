@@ -15,6 +15,7 @@
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type {
+  BridgeTransactionResult,
   DataBridge,
   NodeQueryRouterThresholds,
   QueryCompletenessMetadata,

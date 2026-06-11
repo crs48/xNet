@@ -133,7 +133,7 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
 
 ## Implementation Checklist
 
-- [ ] Add `DataBridge.transaction(ops)` (async) and migrate
+- [x] Add `DataBridge.transaction(ops)` (async) and migrate
       `useMutate.mutate()` off `bridge.nodeStore`
 - [ ] Inventory and migrate remaining `bridge.nodeStore` consumers
       (SyncManager wiring, search indexing, devtools) to bridge APIs or

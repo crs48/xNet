@@ -12,6 +12,7 @@ const remote = {
   delete: vi.fn(),
   restore: vi.fn(),
   bulkWrite: vi.fn(),
+  transaction: vi.fn(),
   acquireDoc: vi.fn(async () => ({
     nodeId: 'page-1',
     state: new Uint8Array(),
@@ -98,5 +99,33 @@ describe('WorkerBridge', () => {
 
     expect(remote.bulkWrite).toHaveBeenCalledWith(input)
     expect(result.batchId).toBe('batch-worker')
+  })
+
+  it('delegates transactions to the worker API', async () => {
+    remote.transaction.mockResolvedValueOnce({
+      batchId: 'batch-tx',
+      results: [null],
+      tempIds: { '~task': 'real-id' }
+    })
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3])
+    })
+
+    const operations = [{ type: 'delete' as const, nodeId: 'node-1' }]
+    const result = await bridge.transaction(operations)
+
+    expect(remote.transaction).toHaveBeenCalledWith(operations)
+    expect(result.batchId).toBe('batch-tx')
+    expect(result.tempIds['~task']).toBe('real-id')
+  })
+
+  it('rejects transactions before initialization', async () => {
+    const bridge = new WorkerBridge('worker.js')
+
+    await expect(bridge.transaction([{ type: 'delete', nodeId: 'node-1' }])).rejects.toThrow(
+      'WorkerBridge not initialized'
+    )
   })
 })

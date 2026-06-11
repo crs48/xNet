@@ -5,8 +5,19 @@
  * Web Worker and the WorkerBridge on the main thread.
  */
 
-import type { QueryDescriptor, QueryPageOptions, SyncStatus } from '../types'
-import type { NodeBatchWriteInput, NodeBatchWriteResult, NodeState, SchemaIRI } from '@xnetjs/data'
+import type {
+  BridgeTransactionResult,
+  QueryDescriptor,
+  QueryPageOptions,
+  SyncStatus
+} from '../types'
+import type {
+  NodeBatchWriteInput,
+  NodeBatchWriteResult,
+  NodeState,
+  SchemaIRI,
+  TransactionOperation
+} from '@xnetjs/data'
 
 // ─── Document Types ──────────────────────────────────────────────────────────
 
@@ -146,6 +157,12 @@ export interface DataWorkerAPI {
    * Execute a storage-owned batch write in the worker.
    */
   bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult>
+
+  /**
+   * Execute an atomic multi-operation transaction in the worker.
+   * Returns a structured-clone-safe result (no signed change list).
+   */
+  transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult>
 
   /**
    * Get a single node by ID.

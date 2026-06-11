@@ -17,7 +17,8 @@ import type {
   NodeQueryPlanMetadata,
   NodeQueryPageCountMode,
   NodeBatchWriteInput,
-  NodeBatchWriteResult
+  NodeBatchWriteResult,
+  TransactionOperation
 } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
@@ -317,6 +318,22 @@ export interface UpdateResult {
   node: NodeState
 }
 
+/**
+ * Result of a bridge-level atomic transaction.
+ *
+ * A structured-clone-safe subset of NodeStore's `TransactionResult`: the
+ * signed change list stays on the data thread; callers only need the
+ * materialized results and temp ID mapping.
+ */
+export interface BridgeTransactionResult {
+  /** The batch ID shared by all changes */
+  batchId: string
+  /** Results for each operation (NodeState or null for delete) */
+  results: (NodeState | null)[]
+  /** Map from temp ID → generated real ID (empty if no temp IDs were used) */
+  tempIds: Record<string, string>
+}
+
 // ─── Document Types ──────────────────────────────────────────────────────────
 
 /**
@@ -421,6 +438,15 @@ export interface DataBridge {
    * Execute a storage-owned batch write when the runtime supports it.
    */
   bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult>
+
+  /**
+   * Execute multiple operations atomically with temp ID resolution.
+   *
+   * All operations succeed or fail together. Implemented by every bridge
+   * that owns (or proxies to) a transaction-capable NodeStore; consumers
+   * should feature-detect rather than reaching for `bridge.nodeStore`.
+   */
+  transaction?(operations: TransactionOperation[]): Promise<BridgeTransactionResult>
 
   // ─── Documents ──────────────────────────────────────────
 

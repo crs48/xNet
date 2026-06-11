@@ -12,6 +12,7 @@
  */
 
 import type {
+  BridgeTransactionResult,
   DataBridge,
   DataBridgeConfig,
   QueryDescriptor,
@@ -27,7 +28,8 @@ import type {
   PropertyBuilder,
   InferCreateProps,
   NodeBatchWriteInput,
-  NodeBatchWriteResult
+  NodeBatchWriteResult,
+  TransactionOperation
 } from '@xnetjs/data'
 import { wrap, proxy, type Remote } from 'comlink'
 import { Awareness } from 'y-protocols/awareness'
@@ -316,6 +318,14 @@ export class WorkerBridge implements DataBridge {
     }
 
     return this.remote.bulkWrite(input)
+  }
+
+  async transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult> {
+    if (!this.initialized) {
+      throw new Error('WorkerBridge not initialized')
+    }
+
+    return this.remote.transaction(operations)
   }
 
   // ─── Documents ────────────────────────────────────────────────────────────────

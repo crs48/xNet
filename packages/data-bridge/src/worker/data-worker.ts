@@ -29,7 +29,7 @@ import type {
   DataWorkerAPI,
   WorkerAcquiredDoc
 } from './worker-types'
-import type { SyncStatus } from '../types'
+import type { BridgeTransactionResult, SyncStatus } from '../types'
 import type { DID } from '@xnetjs/core'
 import {
   NodeStore,
@@ -40,7 +40,8 @@ import {
   type SchemaIRI,
   type NodeStorageAdapter,
   type NodeBatchWriteInput,
-  type NodeBatchWriteResult
+  type NodeBatchWriteResult,
+  type TransactionOperation
 } from '@xnetjs/data'
 import { expose, proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
@@ -200,6 +201,17 @@ class DataWorker implements DataWorkerAPI {
     }
 
     return this.store.batchWrite(input)
+  }
+
+  async transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult> {
+    if (!this.store) {
+      throw new Error('DataWorker not initialized')
+    }
+
+    const tx = await this.store.transaction(operations)
+    // Strip the signed change list: it is not needed on the main thread and
+    // would otherwise be structured-cloned on every transaction.
+    return { batchId: tx.batchId, results: tx.results, tempIds: tx.tempIds }
   }
 
   async get(nodeId: string): Promise<NodeState | null> {
