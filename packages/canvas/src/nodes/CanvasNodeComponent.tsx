@@ -170,6 +170,8 @@ function getNodeTypeLabel(node: CanvasNode): string {
       return 'Database'
     case 'note':
       return 'Note'
+    case 'task':
+      return 'Task'
     case 'external-reference':
       return 'Link preview'
     case 'media':

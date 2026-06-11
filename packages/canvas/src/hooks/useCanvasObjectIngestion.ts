@@ -52,7 +52,7 @@ export interface UseCanvasObjectIngestionOptions {
 }
 
 export interface PlaceCanvasSourceObjectInput {
-  objectKind: 'page' | 'database' | 'external-reference' | 'media' | 'note'
+  objectKind: 'page' | 'database' | 'external-reference' | 'media' | 'note' | 'task'
   sourceNodeId: string
   sourceSchemaId: string
   title: string

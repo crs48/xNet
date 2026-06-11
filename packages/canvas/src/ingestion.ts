@@ -17,6 +17,7 @@ import {
   ExternalReferenceSchema,
   MediaAssetSchema,
   PageSchema,
+  TaskSchema,
   normalizeExternalReferenceUrl as normalizeReferenceUrl,
   parseExternalReferenceUrl
 } from '@xnetjs/data'
@@ -43,7 +44,7 @@ export type CanvasViewportSnapshot = {
 
 export type CanvasSourceBackedObjectKind = Extract<
   CanvasObjectKind,
-  'page' | 'database' | 'external-reference' | 'media' | 'note'
+  'page' | 'database' | 'external-reference' | 'media' | 'note' | 'task'
 >
 
 export type CanvasInternalNodeDragData = {
@@ -63,7 +64,8 @@ function isCanvasSourceBackedObjectKind(value: unknown): value is CanvasSourceBa
     value === 'database' ||
     value === 'external-reference' ||
     value === 'media' ||
-    value === 'note'
+    value === 'note' ||
+    value === 'task'
   )
 }
 
@@ -345,6 +347,10 @@ export function getCanvasObjectKindFromSchema(
 
   if (schemaId === MediaAssetSchema._schemaId) {
     return 'media'
+  }
+
+  if (schemaId === TaskSchema._schemaId) {
+    return 'task'
   }
 
   return null

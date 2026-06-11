@@ -561,9 +561,11 @@ export function parseTaskLinks(text: string) {
       `packages/ui` with consistent live-state rendering and an
       "open task" affordance (`packages/ui/src/composed/tasks/`, incl.
       status/priority icons, due-date urgency, tombstones)
-- [ ] Add canvas object kind `task` (source-backed, render modes
+- [x] Add canvas object kind `task` (source-backed, render modes
       card/mini) in `packages/canvas-core/src/types.ts` + renderer in
-      `packages/canvas/src/nodes/`
+      `packages/canvas/src/nodes/` (`task-node.tsx` binds the canonical
+      Task node via `useNode`; kind wired through ingestion, LOD colors,
+      minimap, default sizes)
 - [ ] Migrate `ChecklistNodeComponent` items to Task-node backing
       (one-time conversion of existing canvas checklist data)
 - [ ] Specify and implement deletion semantics: unlink vs archive vs

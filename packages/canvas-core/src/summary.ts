@@ -24,7 +24,8 @@ const CANVAS_OBJECT_KINDS: readonly CanvasObjectKind[] = [
   'media',
   'shape',
   'note',
-  'group'
+  'group',
+  'task'
 ]
 
 export type CanvasTileSummaryObject = {
