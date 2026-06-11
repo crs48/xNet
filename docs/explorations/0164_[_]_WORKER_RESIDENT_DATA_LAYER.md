@@ -146,7 +146,7 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
       identity-merge into `data-worker.ts` (host class extracted to
       `data-worker-host.ts` for direct test coverage; reload threshold
       raised to 250 to match MainThreadBridge)
-- [ ] Default `createWebCryptoChangeSigner` inside the worker
+- [x] Default `createWebCryptoChangeSigner` inside the worker
 - [ ] `PortSQLiteAdapter` + `MessagePort` forwarding from
       `WorkerBridge.initialize`
 - [ ] Binary snapshot transfer for initial loads (`binary-state.ts`)

@@ -40,6 +40,7 @@ import {
   type NodeBatchWriteResult,
   type TransactionOperation
 } from '@xnetjs/data'
+import { createWebCryptoChangeSigner } from '@xnetjs/sync'
 import { proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
 import {
@@ -155,10 +156,16 @@ export class DataWorker implements DataWorkerAPI {
   async initialize(config: WorkerConfig): Promise<void> {
     this.storage = await this.createStorageAdapter(config)
 
+    const signingKey = new Uint8Array(config.signingKey)
     this.store = new NodeStore({
       storage: this.storage,
       authorDID: config.authorDID as DID,
-      signingKey: new Uint8Array(config.signingKey)
+      signingKey,
+      // Signing already runs off the main thread here, but WebCrypto keeps
+      // signature bursts (imports, transactions) from blocking the worker's
+      // own event loop — queries and deltas stay responsive. Byte-identical
+      // to the synchronous path; null when the runtime lacks SubtleCrypto.
+      changeSigner: createWebCryptoChangeSigner(signingKey) ?? undefined
     })
     await this.store.initialize()
 

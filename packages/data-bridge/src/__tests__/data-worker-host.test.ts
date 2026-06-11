@@ -208,6 +208,15 @@ describe('DataWorker host', () => {
     expect((deltas[0] as Extract<QueryDelta, { type: 'reload' }>).data).toHaveLength(251)
   })
 
+  it('defaults to the WebCrypto change signer when SubtleCrypto exists', () => {
+    const store = (worker as unknown as { store: { changeSigner?: unknown } }).store
+    if (globalThis.crypto?.subtle) {
+      expect(typeof (store as { changeSigner?: unknown }).changeSigner).toBe('function')
+    } else {
+      expect((store as { changeSigner?: unknown }).changeSigner).toBeUndefined()
+    }
+  })
+
   it('executes atomic transactions with temp ID resolution', async () => {
     const tx = await worker.transaction([
       {
