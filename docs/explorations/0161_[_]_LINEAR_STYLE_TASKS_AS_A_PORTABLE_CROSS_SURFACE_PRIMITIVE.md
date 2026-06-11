@@ -585,11 +585,15 @@ export function parseTaskLinks(text: string) {
 - [x] Add `TaskViewSchema` + `ProjectSchema` to
       `packages/data/src/schema/schemas/` (registered in builtInSchemas;
       Task gains a `project` relation)
-- [ ] Generalize v2 list/board renderers to accept Task node collections
-      via `useQuery` (no legacy `useDatabase` path)
-- [ ] Build the Tasks surface in `apps/web`: My Tasks, Triage inbox,
+- [x] Generalize v2 list/board renderers to accept Task node collections
+      via `useQuery` (no legacy `useDatabase` path) —
+      `packages/views/src/tasks/` `TaskListGrouped` + `TaskBoard` render
+      Task node collections directly
+- [x] Build the Tasks surface in `apps/web`: My Tasks, Triage inbox,
       per-project views; board drag-drop via @dnd-kit updating
-      status/sortKey
+      status/sortKey (`/tasks` route + `TasksView`: All/Mine/Triage tabs,
+      list/board modes, quick-create, open-task navigates to host
+      page/canvas; per-project views pending `TaskView` UI)
 - [x] Upgrade status model: state categories with derived `completed`
       (`TASK_STATUS_CATEGORIES` + `isCompletedTaskStatus` in
       `packages/data`; triage/backlog/in-review added additively — no

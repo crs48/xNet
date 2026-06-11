@@ -2,18 +2,18 @@
 
 ## Corpus Check
 
-- 2604 files · ~2,959,902 words
+- 2610 files · ~2,962,033 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
 
-- 34956 nodes · 55492 edges · 2315 communities (2071 shown, 244 thin omitted)
+- 34979 nodes · 55516 edges · 2321 communities (2080 shown, 241 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 611 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
 
-- Built from commit: `f8df93cd`
+- Built from commit: `8c3f1d26`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -2271,6 +2271,12 @@
 - [[_COMMUNITY_Community 2312|Community 2312]]
 - [[_COMMUNITY_Community 2313|Community 2313]]
 - [[_COMMUNITY_Community 2314|Community 2314]]
+- [[_COMMUNITY_Community 2315|Community 2315]]
+- [[_COMMUNITY_Community 2316|Community 2316]]
+- [[_COMMUNITY_Community 2317|Community 2317]]
+- [[_COMMUNITY_Community 2318|Community 2318]]
+- [[_COMMUNITY_Community 2319|Community 2319]]
+- [[_COMMUNITY_Community 2320|Community 2320]]
 
 ## God Nodes (most connected - your core abstractions)
 
@@ -2287,16 +2293,16 @@
 
 ## Surprising Connections (you probably didn't know these)
 
-- `Four-layer extensibility system` --semantically_similar_to--> `@xnetjs/plugins` [INFERRED] [semantically similar]
-  site/src/content/docs/docs/guides/plugins.mdx → packages/plugins/README.md
-- `Hook Patterns` --references--> `useNode()` [EXTRACTED]
-  site/src/content/docs/docs/hooks/patterns.mdx → packages/react/src/hooks/useNode.ts
 - `useNode()` --implements--> `useNode dual-write model` [EXTRACTED]
   packages/react/src/hooks/useNode.ts → site/src/content/docs/docs/hooks/usenode.mdx
-- `Yjs document option` --references--> `useNode()` [EXTRACTED]
-  site/src/content/docs/docs/schemas/defineschema.mdx → packages/react/src/hooks/useNode.ts
 - `useQuery()` --implements--> `Reactive local queries` [EXTRACTED]
   packages/react/src/hooks/useQuery.ts → site/src/content/docs/docs/hooks/usequery.mdx
+- `Four-layer extensibility system` --semantically_similar_to--> `@xnetjs/plugins` [INFERRED] [semantically similar]
+  site/src/content/docs/docs/guides/plugins.mdx → packages/plugins/README.md
+- `SignedYjsEnvelope` --semantically_similar_to--> `Yjs security layer` [INFERRED] [semantically similar]
+  site/src/content/docs/docs/guides/sync.mdx → packages/sync/README.md
+- `parseSavedViewDescriptorForCanvasFrame()` --calls--> `validateSavedViewDescriptor()` [INFERRED]
+  apps/electron/src/renderer/components/CanvasView.tsx → packages/data/src/store/query-ast.ts
 
 ## Import Cycles
 
@@ -2304,22 +2310,22 @@
 - 1-file cycle: `packages/sdk/src/index.ts -> packages/sdk/src/index.ts`
 - 3-file cycle: `packages/plugins/src/ai-surface/index.ts -> packages/plugins/src/ai-surface/service.ts -> packages/plugins/src/services/local-api.ts -> packages/plugins/src/ai-surface/index.ts`
 - 3-file cycle: `packages/data-bridge/src/query-stream.ts -> packages/data-bridge/src/types.ts -> packages/data-bridge/src/remote-query-protocol.ts -> packages/data-bridge/src/query-stream.ts`
-- 3-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/validate.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
-- 3-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/mode.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
 - 3-file cycle: `packages/data/src/auth/evaluator.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/evaluator.ts`
 - 3-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/migration.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
+- 3-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/mode.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
 - 3-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/recipients.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
-- 4-file cycle: `packages/data/src/auth/grants.ts -> packages/data/src/store/index.ts -> packages/data/src/store/types.ts -> packages/data/src/auth/store-auth.ts -> packages/data/src/auth/grants.ts`
-- 4-file cycle: `packages/data/src/auth/grants.ts -> packages/data/src/store/index.ts -> packages/data/src/store/store.ts -> packages/data/src/auth/store-auth.ts -> packages/data/src/auth/grants.ts`
-- 4-file cycle: `packages/data/src/auth/evaluator.ts -> packages/data/src/auth/validate.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/evaluator.ts`
-- 4-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/recipients.ts -> packages/data/src/auth/validate.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
-- 4-file cycle: `packages/data/src/auth/evaluator.ts -> packages/data/src/auth/mode.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/evaluator.ts`
+- 3-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/validate.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
 - 4-file cycle: `packages/data/src/auth/auth-migrator.ts -> packages/data/src/auth/recipients.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/auth-migrator.ts`
+- 4-file cycle: `packages/data/src/auth/evaluator.ts -> packages/data/src/auth/mode.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/evaluator.ts`
+- 4-file cycle: `packages/data/src/auth/evaluator.ts -> packages/data/src/auth/validate.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/evaluator.ts`
 - 4-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/migration.ts -> packages/data/src/auth/recipients.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
-- 5-file cycle: `packages/data/src/auth/grants.ts -> packages/data/src/store/index.ts -> packages/data/src/store/memory-adapter.ts -> packages/data/src/store/types.ts -> packages/data/src/auth/store-auth.ts -> packages/data/src/auth/grants.ts`
-- 5-file cycle: `packages/data/src/auth/grants.ts -> packages/data/src/store/index.ts -> packages/data/src/store/query.ts -> packages/data/src/store/types.ts -> packages/data/src/auth/store-auth.ts -> packages/data/src/auth/grants.ts`
-- 5-file cycle: `packages/data/src/auth/grants.ts -> packages/data/src/store/index.ts -> packages/data/src/store/sqlite-adapter.ts -> packages/data/src/store/types.ts -> packages/data/src/auth/store-auth.ts -> packages/data/src/auth/grants.ts`
-- 5-file cycle: `packages/data/src/auth/grants.ts -> packages/data/src/store/index.ts -> packages/data/src/store/store.ts -> packages/data/src/store/types.ts -> packages/data/src/auth/store-auth.ts -> packages/data/src/auth/grants.ts`
+- 4-file cycle: `packages/data/src/auth/index.ts -> packages/data/src/auth/recipients.ts -> packages/data/src/auth/validate.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts`
+- 4-file cycle: `packages/data/src/auth/grants.ts -> packages/data/src/store/index.ts -> packages/data/src/store/store.ts -> packages/data/src/auth/store-auth.ts -> packages/data/src/auth/grants.ts`
+- 4-file cycle: `packages/data/src/auth/grants.ts -> packages/data/src/store/index.ts -> packages/data/src/store/types.ts -> packages/data/src/auth/store-auth.ts -> packages/data/src/auth/grants.ts`
+- 5-file cycle: `packages/data/src/auth/auth-migrator.ts -> packages/data/src/auth/recipients.ts -> packages/data/src/auth/validate.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/auth-migrator.ts`
+- 5-file cycle: `packages/data/src/auth/auth-migrator.ts -> packages/data/src/store/index.ts -> packages/data/src/store/query.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/auth-migrator.ts`
+- 5-file cycle: `packages/data/src/auth/auth-migrator.ts -> packages/data/src/store/index.ts -> packages/data/src/store/query-ast.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/auth-migrator.ts`
+- 5-file cycle: `packages/data/src/auth/auth-migrator.ts -> packages/data/src/store/index.ts -> packages/data/src/store/tempids.ts -> packages/data/src/schema/types.ts -> packages/data/src/auth/index.ts -> packages/data/src/auth/auth-migrator.ts`
 
 ## Hyperedges (group relationships)
 
@@ -2364,87 +2370,87 @@
 - **Schema to hooks type flow** — schemas_defineschema_defineschema, schemas_type_inference_infercreateprops_flatnode_pipeline, hooks_usequery_usequery, hooks_usemutate_usemutate, hooks_usenode_usenode [INFERRED 0.85]
 - **Plugin extensibility surface** — plugins_readme_plugin_registry, guides_plugins_four_layer_extensibility, react_readme_core_hooks, guides_electron_electron_setup [INFERRED 0.75]
 
-## Communities (2315 total, 244 thin omitted)
+## Communities (2321 total, 241 thin omitted)
 
 ### Community 0 - "Canvas Controller Annotations Page"
 
-Cohesion: 0.02
-Nodes (224): CanvasConnectCommand, CanvasInteractionCommand, CanvasInteractionCommandKind, CanvasInteractionConnectorEndpoint, CanvasInteractionController, CanvasInteractionHandlerMap, CanvasInteractionPhase, CanvasInteractionResult (+216 more)
+Cohesion: 0.01
+Nodes (247): CanvasPerformanceSceneSeedResult, CanvasPerformanceSceneSummary, UseCanvasOptions, CanvasConnectCommand, CanvasInteractionCommand, CanvasInteractionCommandKind, CanvasInteractionConnectorEndpoint, CanvasInteractionController (+239 more)
 
 ### Community 1 - "Canvas Node Edge Position"
 
-Cohesion: 0.02
-Nodes (70): ChunkManager, createChunkManager(), ChunkedCanvasStore, createChunkedCanvasStore(), createChunkedCanvasStoreFromDoc(), chunkBounds(), chunkCenter(), chunkDistance() (+62 more)
+Cohesion: 0.03
+Nodes (49): ChunkManager, createChunkManager(), ChunkedCanvasStore, createChunkedCanvasStore(), createChunkedCanvasStoreFromDoc(), chunkBounds(), chunkCenter(), chunkDistance() (+41 more)
 
 ### Community 2 - "Canvas V2Legacy Viewport Node"
 
 Cohesion: 0.02
-Nodes (92): CollapsibleMinimap(), CollapsibleMinimapProps, getCanvasObjectKindMinimapColor(), getNodeMinimapColor(), getTileDominantColor(), Minimap(), MinimapProps, getPositionStyles() (+84 more)
+Nodes (78): ActionDock(), ActionDockProps, DockMode, CollapsibleMinimap(), CollapsibleMinimapProps, getCanvasObjectKindMinimapColor(), getNodeMinimapColor(), getTileDominantColor() (+70 more)
 
 ### Community 3 - "React Experimental Use Moderated"
 
 Cohesion: 0.02
-Nodes (155): DemoBanner(), DemoBannerProps, DemoQuotaIndicator(), DemoQuotaIndicatorProps, formatBytes(), HubStatusIndicator(), STATUS_CONFIG, SecurityContext (+147 more)
+Nodes (150): DemoBanner(), DemoBannerProps, DemoDataExpiredScreen, DemoQuotaIndicator(), DemoQuotaIndicatorProps, formatBytes(), HubStatusIndicator(), STATUS_CONFIG (+142 more)
 
 ### Community 4 - "Electron Canvas View Query"
 
 Cohesion: 0.03
-Nodes (76): CanvasView, CanvasViewProps, CanvasViewProps, CanvasInlinePageSurfaceProps, EditorExtensions, useStableTitle(), CanvasMediaCard(), CanvasNodeCardActions (+68 more)
+Nodes (64): CanvasView, CanvasViewProps, CanvasDatabasePreviewSurface(), CanvasDatabasePreviewSurfaceProps, mockUseDatabase, mockUseDatabaseDoc, mockUseIdentity, mockUseNode (+56 more)
 
 ### Community 5 - "Social Core Stage Archive"
 
 Cohesion: 0.05
-Nodes (88): createSocialImportBenchmarkDrafts(), SOCIAL_IMPORT_BENCHMARK_RECORD_COUNTS, SocialImportBenchmarkDraftOptions, SocialImportBenchmarkRecordCount, buildSocialCommitOperations(), commitStagedSocialNodes(), dedupeById(), SocialCommitSummary (+80 more)
+Nodes (90): createSocialImportBenchmarkDraft(), createSocialImportBenchmarkDrafts(), SOCIAL_IMPORT_BENCHMARK_RECORD_COUNTS, SocialImportBenchmarkDraftOptions, SocialImportBenchmarkRecordCount, buildSocialCommitOperations(), commitStagedSocialNodes(), dedupeById() (+82 more)
 
 ### Community 6 - "Canvas V3 Scene Operations"
 
 Cohesion: 0.02
-Nodes (112): CANVAS_STICKY_NOTE_COLOR_PRESETS, CanvasStickyNoteColor, CanvasStickyNotePromotionDraft, CanvasStickyNotePromotionTarget, createCanvasStickyNoteNode(), CreateCanvasStickyNoteNodeInput, createCanvasStickyNotePromotionDraft(), createCanvasStickyNoteProperties() (+104 more)
+Nodes (136): CanvasCreationShortcut, CanvasOpenShortcutMode, useCanvasKeyboard(), UseCanvasKeyboardOptions, createGridLayer(), calculateLOD(), LODLevel, CanvasConnectionPreview (+128 more)
 
 ### Community 7 - "Data Sqlite Adapter Node"
 
 Cohesion: 0.04
-Nodes (100): CanvasSavedViewQueryFrameExecutor(), getCanvasQueryFrameTargets(), CanvasFrameExportDocument, CanvasFrameExportFormat, createCanvasFrameExportDocument(), CreateCanvasFrameExportDocumentInput, getCanvasFrameExportEdges(), getCanvasFrameExportMembers() (+92 more)
+Nodes (101): CanvasSavedViewQueryFrameExecutor(), getCanvasQueryFrameTargets(), CanvasFrameExportDocument, CanvasFrameExportFormat, createCanvasFrameExportDocument(), CreateCanvasFrameExportDocumentInput, getCanvasFrameExportEdges(), getCanvasFrameExportMembers() (+93 more)
 
 ### Community 8 - "React Saved View Runner"
 
 Cohesion: 0.02
-Nodes (132): classNames(), createSavedViewAggregationCacheKey(), createSavedViewLensDraft(), createSavedViewVisualCanvasProjectionRequest(), datePredicateForSavedLens(), DEFAULT_PAGE_SIZES, deriveCachedSavedViewDateBucketSummaries(), deriveCachedSavedViewFacetSummaries() (+124 more)
+Nodes (133): classNames(), createSavedViewAggregationCacheKey(), createSavedViewLensDraft(), createSavedViewVisualCanvasProjectionRequest(), datePredicateForSavedLens(), DEFAULT_PAGE_SIZES, deriveCachedSavedViewDateBucketSummaries(), deriveCachedSavedViewFacetSummaries() (+125 more)
 
 ### Community 9 - "Canvas Queries Bindings Summaries"
 
 Cohesion: 0.03
-Nodes (111): clampRatio(), createCanvasEdgeEndpoint(), createCanvasObjectAnchorId(), EDGE_ANCHOR_PLACEMENTS, formatRatio(), getCanvasEdgeNodeIds(), getCanvasEdgeSourceObjectId(), getCanvasEdgeTargetObjectId() (+103 more)
+Nodes (114): deleteFromIndexedSet(), getOrCreateSet(), clampRatio(), createCanvasEdgeEndpoint(), createCanvasObjectAnchorId(), EDGE_ANCHOR_PLACEMENTS, formatRatio(), getCanvasEdgeNodeIds() (+106 more)
 
 ### Community 10 - "React Core Use Query"
 
-Cohesion: 0.08
-Nodes (34): normalizeUrl(), bucketPatterns, ClaudeAttachment, ClaudeBucketPattern, ClaudeCitation, ClaudeContentBlock, ClaudeConversation, ClaudeFileRef (+26 more)
+Cohesion: 0.09
+Nodes (27): bucketPatterns, ClaudeAttachment, ClaudeBucketPattern, ClaudeCitation, ClaudeContentBlock, ClaudeConversation, ClaudeFileRef, ClaudeMessage (+19 more)
 
 ### Community 11 - "Canvas Store Tile Doc"
 
 Cohesion: 0.05
-Nodes (79): role, BenchSchema, Identity, PerfSchema, checkbox(), CheckboxOptions, created(), CreatedOptions (+71 more)
+Nodes (74): checkbox(), CheckboxOptions, created(), CreatedOptions, createdBy(), CreatedByOptions, date(), DateOptions (+66 more)
 
 ### Community 12 - "Data Evaluator Store Auth"
 
-Cohesion: 0.09
-Nodes (48): deriveSharedSecret(), deriveSharedSecretWithContext(), generateKeyPair(), getPublicKeyFromPrivate(), KeyPair, createEncryptedEnvelope(), createSignatureMessage(), decryptEnvelopeContent() (+40 more)
+Cohesion: 0.08
+Nodes (39): deriveSharedSecret(), deriveSharedSecretWithContext(), generateKeyPair(), getPublicKeyFromPrivate(), KeyPair, createEncryptedEnvelope(), createSignatureMessage(), decryptEnvelopeContent() (+31 more)
 
 ### Community 13 - "Data System Comment Anchors"
 
 Cohesion: 0.02
-Nodes (175): getNextStatus(), createSchemaDefinitionNode(), Canvas, CanvasSchema, Comment, AnchorData, AnchorType, CanvasObjectAnchor (+167 more)
+Nodes (167): getNextStatus(), createSchemaDefinitionNode(), TestSystemStore, Canvas, CanvasSchema, Comment, AnchorData, AnchorType (+159 more)
 
 ### Community 14 - "Data Store Node Storage"
 
 Cohesion: 0.03
-Nodes (63): StoreAuthAPI, hasTempIdInValue(), createNodeId(), createBatchId(), MemoryNodeStorageAdapter, MemoryNodeStorageSnapshot, PermissionError, chunkItems() (+55 more)
+Nodes (53): createNodeId(), createBatchId(), MemoryNodeStorageAdapter, DeterministicNodeImportAppliedPlan, DeterministicNodeImportExecution, DeterministicNodeImportPlan, elapsedMs(), emptyBatchWriteTimings() (+45 more)
 
 ### Community 15 - "Canvas Benchmarks Model Queue"
 
-Cohesion: 0.03
-Nodes (103): Operation, average(), BENCHMARK_SOURCES, CanvasPreviewGenerationBenchmarkInput, CanvasPreviewGenerationBenchmarkMeasurement, CanvasPreviewGenerationBenchmarkSource, createBenchmarkClock(), createCanvasPreviewGenerationBenchmarkSources() (+95 more)
+Cohesion: 0.05
+Nodes (53): CanvasSnapGuide, CanvasNodeComponent, getHandleCursor(), getHandleStyle(), getNodeAccessibleLabel(), getNodeColor(), getNodeTitle(), getNodeTypeLabel() (+45 more)
 
 ### Community 16 - "Crypto Hybrid Signing Keygen"
 
@@ -2454,42 +2460,42 @@ Nodes (36): A. Where does the sync agent run?, B. Protocol choice per product, C
 ### Community 17 - "Data Registry Define Schema"
 
 Cohesion: 0.06
-Nodes (59): BRANCH_DIRECTIONS, CanvasMindMapBranchStyle, CanvasMindMapNodePropertiesUpdate, CanvasMindMapVisibilityState, createCanvasMindMapCollapseUpdates(), createCanvasMindMapInheritedStyleMap(), createCanvasMindMapInheritedStyleUpdates(), createCanvasMindMapVisibilityState() (+51 more)
+Nodes (58): BRANCH_DIRECTIONS, CanvasMindMapBranchStyle, CanvasMindMapNodePropertiesUpdate, CanvasMindMapVisibilityState, createCanvasMindMapCollapseUpdates(), createCanvasMindMapInheritedStyleMap(), createCanvasMindMapInheritedStyleUpdates(), createCanvasMindMapVisibilityState() (+50 more)
 
 ### Community 18 - "Views Grid Stories Model"
 
-Cohesion: 0.05
-Nodes (63): CanvasEdgeComponent, CanvasEdgeProps, UseCanvasOptions, CanvasCreationShortcut, CanvasOpenShortcutMode, useCanvasKeyboard(), UseCanvasKeyboardOptions, createGridLayer() (+55 more)
+Cohesion: 0.07
+Nodes (38): CANVAS_STICKY_NOTE_COLOR_PRESETS, CanvasStickyNoteColor, CanvasStickyNotePromotionDraft, CanvasStickyNotePromotionTarget, createCanvasStickyNoteNode(), CreateCanvasStickyNoteNodeInput, createCanvasStickyNotePromotionDraft(), createCanvasStickyNoteProperties() (+30 more)
 
 ### Community 19 - "React Sync Manager Connection"
 
 Cohesion: 0.03
-Nodes (55): aggregateConnectionStatus(), ConnectionManagerConfig, ConnectionStatus, createConnectionManager(), createMultiHubConnectionManager(), dedupeHubConfigs(), MultiHubConnectionManagerConfig, RoomHandler (+47 more)
+Nodes (59): BlobSyncMessage, BlobSyncProvider, BlobSyncProviderConfig, createBlobSyncProvider(), aggregateConnectionStatus(), ConnectionManager, ConnectionManagerConfig, ConnectionStatus (+51 more)
 
 ### Community 20 - "Editor React Canvas External"
 
 Cohesion: 0.03
-Nodes (87): CanvasCardAuditEntry, CanvasCardAuditOperation, CanvasCardAuditSource, CanvasCardAuditSummary, CanvasCardAuditTrail(), CanvasCardAuditTrailProps, CanvasNormalizedCardAuditEntry, createCanvasCardAuditSummary() (+79 more)
+Nodes (91): CanvasCardAuditEntry, CanvasCardAuditOperation, CanvasCardAuditSource, CanvasCardAuditSummary, CanvasCardAuditTrail(), CanvasCardAuditTrailProps, CanvasNormalizedCardAuditEntry, createCanvasCardAuditSummary() (+83 more)
 
 ### Community 21 - "Editor Markdown Xnet Database"
 
-Cohesion: 0.11
-Nodes (27): CanvasSourceBackedCardRef, CanvasSourceBulkExternalAction, CanvasSourceBulkNodeUpdate, CanvasSourceBulkOperation, CanvasSourceBulkOperationDefinition, CanvasSourceBulkOperationKind, CanvasSourceBulkOperationPlan, createCanvasSourceBulkOperationDefinitions() (+19 more)
+Cohesion: 0.12
+Nodes (25): CanvasSourceBackedCardRef, CanvasSourceBulkExternalAction, CanvasSourceBulkNodeUpdate, CanvasSourceBulkOperation, CanvasSourceBulkOperationDefinition, CanvasSourceBulkOperationKind, CanvasSourceBulkOperationPlan, createCanvasSourceBulkOperationDefinitions() (+17 more)
 
 ### Community 22 - "Canvas Ingestion Use Object"
 
-Cohesion: 0.05
-Nodes (69): CanvasIngestionResult, getLocalFileMediaMetadata(), getLocalFileStorageProperties(), getNodesMap(), inferLocalFileMediaKind(), PlaceCanvasPrimitiveObjectInput, PlaceCanvasSourceObjectInput, toStoredExternalReferenceProperties() (+61 more)
+Cohesion: 0.04
+Nodes (90): CanvasIngestionResult, getLocalFileMediaMetadata(), getLocalFileStorageProperties(), getNodesMap(), inferLocalFileMediaKind(), PlaceCanvasPrimitiveObjectInput, PlaceCanvasSourceObjectInput, toStoredExternalReferenceProperties() (+82 more)
 
 ### Community 23 - "Sync Deprecation Clientid Attestation"
 
 Cohesion: 0.09
-Nodes (14): bucketPatterns, createYouTubeChannelActorId(), findEntry(), isRecord(), mapYouTubePlaylists(), parseCommentText(), parseYouTubeCsv(), stageYouTubePlaylists() (+6 more)
+Nodes (19): bucketPatterns, createPlaylistCollection(), createPlaylistItemRecords(), createVideoContentNode(), createYouTubeVideoContentId(), findEntry(), isoOrUndefined(), isRecord() (+11 more)
 
 ### Community 24 - "Data Query Ast Validate"
 
 Cohesion: 0.03
-Nodes (146): parseSavedViewDescriptorForCanvasFrame(), InferCreateProps, applyNodeQueryDescriptor(), aggregateGroups(), aggregatePlanFor(), aggregateValue(), and(), avg() (+138 more)
+Nodes (145): createSocialPatternSavedViewDraft(), InferCreateProps, aggregateGroups(), aggregatePlanFor(), aggregateValue(), and(), avg(), between() (+137 more)
 
 ### Community 25 - "Plugins Service Read Record"
 
@@ -2499,12 +2505,12 @@ Nodes (92): AiPageMarkdownApplyAdapter, AiPageMarkdownApplyAdapterResult, AiPage
 ### Community 26 - "Views Database Surface Stories"
 
 Cohesion: 0.04
-Nodes (54): CardDetailModal(), CardDetailModalProps, getPropertyKey(), PropertyEditor(), PropertyEditorProps, DemoGridProps, boardView, cellPresences (+46 more)
+Nodes (49): DemoGridProps, boardView, cellPresences, initialRows, Playground, schema, Story, SurfaceMode (+41 more)
 
 ### Community 27 - "Sync Change Telemetry Manager"
 
-Cohesion: 0.05
-Nodes (40): ChangeHandler, ChangeHandlerRegistry, createHandler(), createTestContext(), createVersionedHandler(), HandlerContext, HandlerEvent, ProcessResult (+32 more)
+Cohesion: 0.07
+Nodes (29): ChangeHandlerRegistry, autoDeserialize(), autoSerialize(), createSerializerRegistry(), DefaultSerializerRegistry, getDefaultSerializer(), getSerializer(), ChangeSerializer (+21 more)
 
 ### Community 28 - "Data Column Filter Sort"
 
@@ -2514,47 +2520,47 @@ Nodes (45): combineFiltersAnd(), combineFiltersOr(), createAnyOfFilter(), create
 ### Community 29 - "Data Node System Presence"
 
 Cohesion: 0.03
-Nodes (71): RelationOptions, addDefault(), composeLens(), convert(), copy(), createOperations(), identity(), merge() (+63 more)
+Nodes (86): RelationOptions, addDefault(), composeLens(), convert(), copy(), createOperations(), identity(), merge() (+78 more)
 
 ### Community 30 - "Editor Extensions Markdown Io"
 
 Cohesion: 0.04
-Nodes (63): isMarkdownClipboardCandidate(), MARKDOWN_PATTERNS, MarkdownClipboard, markdownClipboardPluginKey, closeMarkdownHistoryStep(), exitCodeBlock(), findListItemDepth(), HeadingLevel (+55 more)
+Nodes (69): isMarkdownClipboardCandidate(), MARKDOWN_PATTERNS, MarkdownClipboard, markdownClipboardPluginKey, closeMarkdownHistoryStep(), exitCodeBlock(), findListItemDepth(), HeadingLevel (+61 more)
 
 ### Community 31 - "React Context Internal Use"
 
-Cohesion: 0.08
-Nodes (24): CanvasTaskInput, useCanvasTaskSync(), UseCanvasTaskSyncOptions, UseCanvasTaskSyncResult, PageTaskInput, PageTaskReferenceInput, usePageTaskSync(), UsePageTaskSyncOptions (+16 more)
+Cohesion: 0.02
+Nodes (194): Block, BlockDefinition, BlockType, createBlock(), getRegisteredBlockTypes(), registerBlockType(), registry, validateBlock() (+186 more)
 
 ### Community 32 - "Social Importers Instagram Registry"
 
 Cohesion: 0.05
-Nodes (76): claudeAdapter, mapClaudeFiles(), grokAdapter, asArray(), asLabeledArray(), asRelationshipArray(), bucketPatterns, instagramAdapter (+68 more)
+Nodes (95): createSourceRecord(), createStagedNode(), claudeAdapter, mapClaudeConversation(), mapClaudeConversations(), mapClaudeFiles(), mapClaudeProfile(), mapClaudeProject() (+87 more)
 
 ### Community 33 - "Hub Sqlite Interface Storage"
 
 Cohesion: 0.05
-Nodes (60): IndexAck, IndexUpdate, isQueryRequestTooLarge(), QueryService, createStorage(), StorageType, AwarenessEntry, BlobMeta (+52 more)
+Nodes (62): NodePoolOptions, PoolEntry, IndexAck, IndexUpdate, isQueryRequestTooLarge(), QueryService, createStorage(), StorageType (+54 more)
 
 ### Community 34 - "Ui Responsive Sidebar Contrast"
 
-Cohesion: 0.01
-Nodes (300): Block, BlockDefinition, BlockType, createBlock(), getRegisteredBlockTypes(), registerBlockType(), registry, validateBlock() (+292 more)
+Cohesion: 0.02
+Nodes (130): AccessibleButton, AccessibleButtonProps, AccessibleIconButton, AccessibleIconButtonProps, AccessibleInput, AccessibleInputProps, AccessibleTextarea, AccessibleTextareaProps (+122 more)
 
 ### Community 35 - "Plugins Ai Workspace Exporter"
 
-Cohesion: 0.04
-Nodes (63): AiSurfaceLimits, createAiSurfaceService(), AiWorkspaceChangedFile, AiWorkspaceChangedFileStatus, AiWorkspaceConflict, AiWorkspaceConflictKind, AiWorkspaceExporterConfig, AiWorkspaceExportKind (+55 more)
+Cohesion: 0.05
+Nodes (73): AiSurfaceLimits, AiWorkspaceChangedFile, AiWorkspaceChangedFileStatus, AiWorkspaceConflict, AiWorkspaceConflictKind, AiWorkspaceExporterConfig, AiWorkspaceExportKind, AiWorkspaceExportOptions (+65 more)
 
 ### Community 36 - "Plugins Service Ai Surface"
 
 Cohesion: 0.06
-Nodes (41): AiSurfaceService, applyDatabaseQueryDescriptorFallback(), clampLimit(), classifyDatabaseOperations(), createResource(), databaseMutationChangeSets(), databaseMutationRisk(), databaseMutationScopes() (+33 more)
+Nodes (39): AiSurfaceService, applyDatabaseQueryDescriptorFallback(), clampLimit(), classifyDatabaseOperations(), createResource(), databaseMutationChangeSets(), databaseMutationRisk(), databaseMutationScopes() (+31 more)
 
 ### Community 37 - "Social Reddit Ids Create"
 
-Cohesion: 0.07
-Nodes (26): createCellKey(), isDatabaseAnchorOrphaned(), parseCellKey(), UseDatabaseCommentsOptions, UseDatabaseCommentsResult, useViewRegistry(), UseViewRegistryResult, Disposable (+18 more)
+Cohesion: 0.08
+Nodes (14): useViewRegistry(), UseViewRegistryResult, builtinViews, getBuiltinViews(), registerBuiltinViews(), Platform, ViewConfigField, ViewConfigFieldType (+6 more)
 
 ### Community 38 - "Plugins Page Markdown Validation"
 
@@ -2569,12 +2575,12 @@ Nodes (37): CachedPeerDecision, decryptYjsState(), deserializeEncryptedYjsState(
 ### Community 40 - "Plugins Providers Runtime Ai"
 
 Cohesion: 0.04
-Nodes (76): AIComplexityLevel, AICostModel, AIGenerateRequest, AIGenerateResponse, AIGenerationError, AIMessage, AIMessageRole, AIModelCapabilities (+68 more)
+Nodes (75): AIComplexityLevel, AICostModel, AIGenerateRequest, AIGenerateResponse, AIGenerationError, AIMessage, AIMessageRole, AIModelCapabilities (+67 more)
 
 ### Community 41 - "Devtools Dev Tools Provider"
 
-Cohesion: 0.05
-Nodes (42): DEFAULTS, DevToolsEventBus, DevToolsEventBusOptions, EventListener, TypedListener, DevToolsEvent, DevToolsEventInput, DevToolsEventType (+34 more)
+Cohesion: 0.06
+Nodes (38): DEFAULTS, DevToolsEventBus, DevToolsEventBusOptions, EventListener, TypedListener, DevToolsEvent, DevToolsEventInput, EventOfType (+30 more)
 
 ### Community 42 - "Sync Features Provider Base"
 
@@ -2583,8 +2589,8 @@ Nodes (38): addDependencies(), ALL_FEATURES, diffFeatures(), FeatureConfig, Feat
 
 ### Community 43 - "Site Crdts Dual Crdt"
 
-Cohesion: 0.10
-Nodes (22): createMockServiceClient(), createServiceClient(), getIPC(), isServiceClientAvailable(), SERVICE_IPC_CHANNELS, XNetIPC, isNodeEnvironment(), ManagedProcess (+14 more)
+Cohesion: 0.14
+Nodes (5): isNodeEnvironment(), ManagedProcess, ProcessManager, ProcessManagerEvents, ServiceStatus
 
 ### Community 44 - "Data Field Operations View"
 
@@ -2593,18 +2599,18 @@ Nodes (20): CommitProgress, CommitProgressPanel(), CommitProgressPhase, CommitSu
 
 ### Community 45 - "Abuse Classifier Cascade Cloud"
 
-Cohesion: 0.07
-Nodes (64): classifyWithModerationCascade(), CloudReviewCallPolicy, CloudReviewCallReason, CloudReviewRouteDecision, CloudReviewSkipReason, createCascadeResult(), decideCloudReviewRoute(), hasNoLocalSignals() (+56 more)
+Cohesion: 0.06
+Nodes (75): AppealAnnotation, AppealEffect, AppealEffectAction, AppealEffectInput, AppealResolutionAction, AppealStatus, clamp(), createAppealEffect() (+67 more)
 
 ### Community 46 - "Views Property Handler Editor"
 
-Cohesion: 0.04
-Nodes (38): options, checkboxHandler, dateHandler, DateRangeConfig, dateRangeHandler, DateRangeValue, emailHandler, builtinHandlers (+30 more)
+Cohesion: 0.15
+Nodes (7): checkboxHandler, emailHandler, phoneHandler, textHandler, urlHandler, PropertyEditorProps, PropertyHandler
 
 ### Community 47 - "React Use Node Store"
 
-Cohesion: 0.04
-Nodes (71): useAudit(), UseAuditOptions, UseAuditResult, did, trace, AuthTraceSummary, ChangeEventLike, summarizeAuthTrace() (+63 more)
+Cohesion: 0.03
+Nodes (78): useAudit(), UseAuditOptions, UseAuditResult, did, trace, AuthTraceSummary, ChangeEventLike, summarizeAuthTrace() (+70 more)
 
 ### Community 48 - "Canvas Core Synthetic Moves"
 
@@ -2614,7 +2620,7 @@ Nodes (43): CanvasTileAwarenessFanoutPlan, CanvasTileAwarenessRoomPlan, CanvasTi
 ### Community 49 - "Ui Comments Catalog Stories"
 
 Cohesion: 0.05
-Nodes (40): PresenceAvatarsProps, PresenceAvatarsProps, CommentBubbleProps, CommentPopoverProps, CommentThreadData, CommentsSidebarProps, OrphanedCommentData, OrphanedThread (+32 more)
+Nodes (53): PresenceAvatarsProps, PresenceAvatarsProps, CommentBubble(), CommentBubbleProps, formatRelativeTime(), CommentData, CommentPopover(), CommentPopoverProps (+45 more)
 
 ### Community 50 - "Editor Rich Text Ux"
 
@@ -2643,13 +2649,13 @@ Nodes (19): BundleConfig, BundledEdge, CanvasEdge, createEdgeBundler(), DEFAULT_
 
 ### Community 55 - "Data Bridge Worker Sync"
 
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (15): handler, QueryPageOptions, SyncStatus, createWorkerBridge(), MirrorDocEntry, UpdateBatcher, DataWorker, PoolEntry (+7 more)
 
 ### Community 56 - "Hub Server Node Relay"
 
-Cohesion: 0.04
-Nodes (54): actionAllows(), hasHubCapability(), resourceAllows(), authenticateConnection(), authenticateHttpRequest(), AuthSession, createAnonymousSession(), createAuthContext() (+46 more)
+Cohesion: 0.05
+Nodes (41): actionAllows(), hasHubCapability(), resourceAllows(), authenticateConnection(), authenticateHttpRequest(), AuthSession, createAnonymousSession(), createAuthContext() (+33 more)
 
 ### Community 57 - "Data View Save Template"
 
@@ -2659,12 +2665,12 @@ Nodes (33): ColumnType, ViewNode, FilterGroup, SortConfig, ViewType, BUILTIN_TEM
 ### Community 58 - "Identity Key Bundle Create"
 
 Cohesion: 0.08
-Nodes (36): createLevel0Bundle(), createLevel2Bundle(), createPasskeyIdentity(), deriveKeySeed(), PRF_INPUT, XNET_SALT, DiscoveredPasskey, discoverExistingPasskey() (+28 more)
+Nodes (32): createPasskeyIdentity(), deriveKeySeed(), PRF_INPUT, XNET_SALT, DiscoveredPasskey, discoverExistingPasskey(), unlockDiscoveredPasskey(), FIXED_PRF_OUTPUT (+24 more)
 
 ### Community 59 - "Devtools History Panel Schema"
 
 Cohesion: 0.05
-Nodes (43): DecisionDetail(), ChangeTimeline(), getDotColor(), TimelineEntry(), TimelineEvent, useChangeTimeline(), AuditRow(), BlameRow() (+35 more)
+Nodes (40): DecisionDetail(), AuditRow(), BlameRow(), DiffRow(), DocSnapshotRow(), DocumentTab(), getOperationColor(), HistoryPanel() (+32 more)
 
 ### Community 60 - "Hub Database Ucan Auth"
 
@@ -2673,8 +2679,8 @@ Nodes (31): AuthContext, DatabaseHandler, isDatabaseCountRequest(), isDatabaseQu
 
 ### Community 61 - "Devtools Shell Use Dev"
 
-Cohesion: 0.05
-Nodes (37): AUTH_ACTIONS, AuthAction, AuthTrace, AuthTraceStep, AUTHZ_TAB_LABELS, AuthZPanel(), DelegationTreeExplorer(), DelegationTreeNode (+29 more)
+Cohesion: 0.06
+Nodes (33): AUTH_ACTIONS, AuthAction, AuthTrace, AuthTraceStep, AUTHZ_TAB_LABELS, AuthZPanel(), DelegationTreeExplorer(), DelegationTreeNode (+25 more)
 
 ### Community 62 - "Canvas Performance Validation Snap"
 
@@ -2684,12 +2690,12 @@ Nodes (37): useEditorUxState(), createPageReferenceTarget(), DATABASE_TOOLBAR_VI
 ### Community 63 - "Data Bridge Remote Query"
 
 Cohesion: 0.06
-Nodes (70): MainThreadBridgeOptions, chooseNewestNode(), createQueryRoutingMetadata(), createRemoteSuccessMetadata(), DEFAULT_NODE_QUERY_ROUTER_THRESHOLDS, getRemoteQuerySource(), mergeRemoteNodeSnapshots(), normalizeNodeQueryRouterThresholds() (+62 more)
+Nodes (58): createMainThreadBridge(), MainThreadBridgeOptions, RemoteNodeQueryAuth, RemoteNodeQueryClient, RemoteNodeQueryClientState, RemoteNodeQueryErrorResponse, RemoteNodeQueryInvalidationController, RemoteNodeQueryInvalidationObserver (+50 more)
 
 ### Community 64 - "Editor Document Compat Core"
 
-Cohesion: 0.07
-Nodes (42): createEditor(), Editor, appendMigration(), BLOCK_CONTENT_NODE_TYPES, booleanAttr(), combinedAttrs(), contentContextFor(), CURRENT_MARK_TYPES (+34 more)
+Cohesion: 0.15
+Nodes (30): appendMigration(), BLOCK_CONTENT_NODE_TYPES, booleanAttr(), combinedAttrs(), contentContextFor(), CURRENT_MARK_TYPES, CURRENT_NODE_TYPES, EditorJsonMark (+22 more)
 
 ### Community 65 - "Docs January Codebase Review"
 
@@ -2708,18 +2714,18 @@ Nodes (54): SocialActor, SocialActorSchema, SocialIdentityClaim, SocialIdentityC
 
 ### Community 68 - "Views Builtins Registry View"
 
-Cohesion: 0.10
-Nodes (30): ColumnConfig, DateColumnConfig, EmptyConfig, FileColumnConfig, FormulaColumnConfig, isAutoColumnType(), isComputedColumnType(), isNodeStoreColumnType() (+22 more)
+Cohesion: 0.09
+Nodes (31): ColumnConfig, DateColumnConfig, EmptyConfig, FileColumnConfig, isAutoColumnType(), isComputedColumnType(), isNodeStoreColumnType(), isYDocColumnType() (+23 more)
 
 ### Community 69 - "Views Grid Surface State"
 
 Cohesion: 0.09
-Nodes (25): explainDecision(), getReasonDetail(), REASON_DETAILS, ReasonDetail, summarizeDecision(), toExplanationReason(), AbuseActorFacts, AbuseAdmission (+17 more)
+Nodes (26): explainDecision(), getReasonDetail(), REASON_DETAILS, ReasonDetail, summarizeDecision(), toExplanationReason(), AbuseActorFacts, AbuseAdmission (+18 more)
 
 ### Community 70 - "Canvas Branches Conversion Creation"
 
-Cohesion: 0.12
-Nodes (15): CommitProgressPanel(), formatByteSize(), formatDuration(), formatMilliseconds(), formatOperationDelta(), formatRate(), formatStorageRows(), getCommitEtaLabel() (+7 more)
+Cohesion: 0.13
+Nodes (30): RemoteInvalidationRuntime, RemoteStreamRuntime, SyncManagerLike, createQueryStreamState(), QueryStreamEvent, QueryStreamState, chooseNewestNode(), createQueryRoutingMetadata() (+22 more)
 
 ### Community 71 - "Hub Shards Shard Registry"
 
@@ -2729,27 +2735,27 @@ Nodes (24): computeRange(), encoder, hashTerm(), ShardAssignment, ShardConfig, S
 ### Community 72 - "Crypto Envelope Key Resolution"
 
 Cohesion: 0.06
-Nodes (41): CacheEntry, CacheStats, clearVerificationCache(), setVerificationCache(), VerificationCache, VerificationCacheOptions, CryptoMetrics, CryptoTelemetry (+33 more)
+Nodes (81): CacheEntry, CacheStats, clearVerificationCache(), getVerificationCache(), setVerificationCache(), VerificationCache, VerificationCacheOptions, CryptoMetrics (+73 more)
 
 ### Community 73 - "Devtools Dev Tools Event"
 
-Cohesion: 0.07
-Nodes (54): STORE_EVENT_TYPES, AbuseLabelEvent, AbusePeerScoresEvent, AbusePendingLabelSnapshot, AbusePolicyDecisionEvent, AbuseQueueStateEvent, AbuseUsageSummaryEvent, DevToolsEventBase (+46 more)
+Cohesion: 0.09
+Nodes (42): STORE_EVENT_TYPES, AbuseLabelEvent, AbusePeerScoresEvent, AbusePendingLabelSnapshot, AbusePolicyDecisionEvent, AbuseQueueStateEvent, AbuseUsageSummaryEvent, DevToolsEventBase (+34 more)
 
 ### Community 74 - "Hub Relay Sync Yjs"
 
-Cohesion: 0.06
-Nodes (65): checkAndLogDeprecations(), checkDeprecations(), clearLoggedDeprecations(), configureDeprecationPolicy(), createWarning(), DEPRECATION_POLICY, DeprecationCallback, DeprecationContext (+57 more)
+Cohesion: 0.05
+Nodes (75): createSyncProtocol(), checkAndLogDeprecations(), checkDeprecations(), clearLoggedDeprecations(), configureDeprecationPolicy(), createWarning(), DEPRECATION_POLICY, DeprecationCallback (+67 more)
 
 ### Community 75 - "Identity Ucan Create Share"
 
-Cohesion: 0.19
-Nodes (17): fromBase64Url(), toBase64Url(), buildCapabilities(), createShareToken(), parseAndVerifyShareLink(), ParsedShare, parseShareLink(), verifyShareToken() (+9 more)
+Cohesion: 0.18
+Nodes (18): fromBase64Url(), toBase64Url(), buildCapabilities(), createShareToken(), parseAndVerifyShareLink(), ParsedShare, parseShareLink(), verifyShareToken() (+10 more)
 
 ### Community 76 - "Editor Rich Text Stories"
 
-Cohesion: 0.05
-Nodes (43): recordAttr(), parseSmartReferenceUrl(), SmartReference, SmartReferenceKind, Commands, metadataAttr(), parseMetadata(), SmartReferenceExtension (+35 more)
+Cohesion: 0.07
+Nodes (32): AWARENESS_SYNC_ORIGIN, boardView, calendarView, CollaborationSession, Collaborator, collaborators, CommentThreadState, createCollaborationSession() (+24 more)
 
 ### Community 77 - "Data Node Id Memory"
 
@@ -2759,12 +2765,12 @@ Nodes (48): 0062 - Monorepo Release Automation, Appendix: Tool Installation Comm
 ### Community 78 - "React Use Node Identity"
 
 Cohesion: 0.16
-Nodes (10): BacklinksPanel(), Props, GlobalSearch(), BacklinkResult, IndexedPage, PageHandle, usePageSearchSurface(), UsePageSearchSurfaceOptions (+2 more)
+Nodes (11): BacklinksPanel(), Props, GlobalSearch(), BacklinkResult, IndexedPage, PageHandle, usePageSearchSurface(), UsePageSearchSurfaceOptions (+3 more)
 
 ### Community 79 - "Identity Key Bundle Entry"
 
-Cohesion: 0.08
-Nodes (48): makeIdentityEvent(), makeImportEvent(), bundleCanSignAt(), bundleSecurityLevel(), bundleSize(), bundlesMatch(), createKeyBundleWithAttestation(), extractPublicKeys() (+40 more)
+Cohesion: 0.09
+Nodes (43): unlockFallbackIdentity(), makeIdentity(), ED25519_PREFIX, generateIdentity(), identityFromPrivateKey(), isValidDID(), parseDID(), bundleCanSignAt() (+35 more)
 
 ### Community 80 - "Plugins Canvas Sandbox Script"
 
@@ -2774,7 +2780,7 @@ Nodes (59): ASTNode, ASTVisitors, FORBIDDEN_GLOBALS, FORBIDDEN_PROPERTIES, quick
 ### Community 81 - "Data Dependency Formula Service"
 
 Cohesion: 0.08
-Nodes (40): ColumnDefinition, createFormulaService(), FormulaService, FormulaValidationResult, buildDependencyGraph(), CircularCheckResult, collectDependencies(), DependencyGraph (+32 more)
+Nodes (42): ColumnDefinition, FormulaColumnConfig, createFormulaService(), FormulaRow, FormulaService, FormulaValidationResult, buildDependencyGraph(), CircularCheckResult (+34 more)
 
 ### Community 82 - "Data Moderation Create Authorization"
 
@@ -2789,17 +2795,17 @@ Nodes (44): 1. The SKILL.md (the whole primary interface costs ~this much), 2. C
 ### Community 84 - "Data Query Sqlite Adapter"
 
 Cohesion: 0.03
-Nodes (66): Commands, DATABASE_VIEW_TYPES, DatabaseEmbedExtension, DatabaseEmbedOptions, DatabaseEmbedSelectionRange, DatabaseViewType, getSelectedDatabaseEmbedRange(), insertParagraphAroundDatabaseEmbed() (+58 more)
+Nodes (64): Commands, DATABASE_VIEW_TYPES, DatabaseEmbedExtension, DatabaseEmbedOptions, DatabaseEmbedSelectionRange, DatabaseViewType, getSelectedDatabaseEmbedRange(), insertParagraphAroundDatabaseEmbed() (+56 more)
 
 ### Community 85 - "Data Row Operations Scripts"
 
-Cohesion: 0.08
-Nodes (46): cellKey(), CellValue, columnIdFromKey(), DateRange, FileRef, fromCellProperties(), isCellKey(), isCellValue() (+38 more)
+Cohesion: 0.09
+Nodes (43): cellKey(), CellValue, columnIdFromKey(), DateRange, FileRef, fromCellProperties(), isCellKey(), isCellValue() (+35 more)
 
 ### Community 86 - "Web Social Import Worker"
 
-Cohesion: 0.08
-Nodes (33): BrowserSocialImportPreviewResult, BrowserSocialImportStageChunkInput, BrowserSocialImportStageChunkResult, BrowserSocialImportStageInput, clampInteger(), cleanupPendingWorkerRequest(), createStageId(), createStagePayload() (+25 more)
+Cohesion: 0.06
+Nodes (46): BrowserSocialImportPreviewResult, BrowserSocialImportStageChunkInput, BrowserSocialImportStageChunkResult, BrowserSocialImportStageInput, clampInteger(), cleanupPendingWorkerRequest(), createStageId(), createStagePayload() (+38 more)
 
 ### Community 87 - "Electron Social Import Ipc"
 
@@ -2809,7 +2815,7 @@ Nodes (25): sendDataProcessRequest(), approvedArchivePaths, archiveDialogOptions
 ### Community 88 - "Data Sqlite Adapter Query"
 
 Cohesion: 0.02
-Nodes (50): deleteNodeFTS(), extractSearchableContent(), updateNodeFTS(), NodeQueryDescriptor, NodeQueryParityCheckMetadata, NodeQueryResult, NodeQuerySpatialFilter, NodeQueryStorageCapabilitiesMetadata (+42 more)
+Nodes (63): detectSQLiteCapabilities(), checkFTSSupport(), deleteNodeFTS(), escapeFTSQuery(), extractSearchableContent(), extractTextFromTipTap(), FTSSearchOptions, FTSSearchResult (+55 more)
 
 ### Community 89 - "Ui Cn Devtools Catalog"
 
@@ -2818,28 +2824,28 @@ Nodes (25): getBetterSqlite3(), ExpoSQLiteDatabase, ExpoSQLiteResult, ExpoSQLite
 
 ### Community 90 - "Editor Floating Toolbar Shortcuts"
 
-Cohesion: 0.05
-Nodes (37): addBlocker(), CompiledFindQuery, compileFindQuery(), compileNodeQuery(), compilePage(), compilePredicate(), EMPTY_FIND_OPTIONS, schemaIdsFor() (+29 more)
+Cohesion: 0.07
+Nodes (25): addUnique(), applyPage(), CompiledSavedViewQuery, compileSavedViewQuery(), EMPTY_PAGE_INFO, EMPTY_SAVED_VIEW_OPTIONS, EMPTY_VALIDATION, errorForQueries() (+17 more)
 
 ### Community 91 - "Sync Change Clock Yjs"
 
-Cohesion: 0.09
-Nodes (43): serializerRegistry, createTestChange(), ChainValidationResult, detectFork(), findCommonAncestor(), Fork, getAncestry(), getChainHeads() (+35 more)
+Cohesion: 0.08
+Nodes (44): serializerRegistry, createTestChange(), ChainValidationResult, detectFork(), findCommonAncestor(), Fork, getAncestry(), getChainHeads() (+36 more)
 
 ### Community 92 - "Hub Crawl Coordinator Submit"
 
 Cohesion: 0.07
-Nodes (19): XNetCrawler, clamp(), clamp01(), CrawlConfig, CrawlCoordinator, CrawlDomainPolicy, CrawlIngestionDecision, CrawlQualitySignals (+11 more)
+Nodes (18): XNetCrawler, clamp(), clamp01(), CrawlCoordinator, CrawlDomainPolicy, CrawlIngestionDecision, CrawlQualitySignals, crawlReferenceFingerprints() (+10 more)
 
 ### Community 93 - "Editor Task Mention Extension"
 
 Cohesion: 0.07
-Nodes (32): TaskMentionMenu, TaskMentionMenuProps, TaskMentionMenuRef, TaskMentionSuggestion, collectPageTasks(), collectPageTasksFromNode(), ensurePageTaskAttrs(), getPageTasksSnapshot() (+24 more)
+Nodes (33): TaskMentionMenu, TaskMentionMenuProps, TaskMentionMenuRef, TaskMentionSuggestion, collectPageTasks(), collectPageTasksFromNode(), ensurePageTaskAttrs(), getPageTasksSnapshot() (+25 more)
 
 ### Community 94 - "Canvas Tree Layout Manager"
 
-Cohesion: 0.13
-Nodes (14): ALGORITHM_NAMES, LayoutAlgorithm, LayoutEdge, LayoutManager, LayoutManagerConfig, LayoutNode, LayoutRequest, PendingLayout (+6 more)
+Cohesion: 0.08
+Nodes (28): CANVAS_MIND_MAP_TREE_LAYOUT_DEFAULTS, CanvasMindMapTreeLayoutDirection, CanvasMindMapTreeLayoutInput, CanvasMindMapTreeLayoutOptions, CanvasMindMapTreeLayoutResult, CanvasMindMapTreePositionUpdatesInput, createCanvasMindMapTreeLayoutRequest(), createCanvasMindMapTreePositionUpdates() (+20 more)
 
 ### Community 95 - "Storybook Xnet Plugins Browser"
 
@@ -2848,13 +2854,13 @@ Nodes (78): CANVAS_PLUGIN_FIXTURES, CanvasPluginFixture, CanvasPluginFixtureCard
 
 ### Community 96 - "Sqlite Diagnostics Fts Adapter"
 
-Cohesion: 0.09
-Nodes (41): analyzeQuery(), analyzeTable(), canCreateVirtualTable(), checkIntegrity(), DatabaseStats, detectSQLiteCapabilities(), dropProbeTable(), explainQuery() (+33 more)
+Cohesion: 0.07
+Nodes (44): BrowserSupport, checkBrowserSupport(), checkPersistentStorage(), escapeHtml(), getPersistenceMessage(), isSafariPrivateBrowsing(), PersistentStorageRequestOptions, PersistentStorageStatus (+36 more)
 
 ### Community 97 - "Plugins Process Manager Managed"
 
-Cohesion: 0.11
-Nodes (36): getVerificationCache(), deriveHybridKeyPair(), deserializePublicKeys(), extractPublicKeys(), extractSigningKeys(), generateHybridKeyPair(), HybridKeyPair, KeyDerivationOptions (+28 more)
+Cohesion: 0.16
+Nodes (19): makeIdentityEvent(), makeImportEvent(), createFallbackIdentity(), deriveKeyBundle(), deserializeKeyBundle(), generateKeyBundle(), serializeKeyBundle(), BrowserPasskeyStorage (+11 more)
 
 ### Community 98 - "Data Bridge Thread Query"
 
@@ -2863,8 +2869,8 @@ Nodes (48): 1. Existing Tools in This Space, 2. Key Data Entities for Permacultu
 
 ### Community 99 - "React Saved View Visual"
 
-Cohesion: 0.11
-Nodes (29): assertResolvedZip64Values(), BrowserZipArchiveManifestOptions, BrowserZipCentralDirectoryEntry, createBrowserZipJsonEntryReader(), createBrowserZipTextEntryReader(), dosDateToIso(), findEndOfCentralDirectory(), getEntryDataStart() (+21 more)
+Cohesion: 0.13
+Nodes (24): assertResolvedZip64Values(), BrowserZipArchiveManifestOptions, BrowserZipCentralDirectoryEntry, dosDateToIso(), findEndOfCentralDirectory(), getEntryDataStart(), hashZipEntry(), inflateRaw() (+16 more)
 
 ### Community 100 - "Identity Package Exports Dependencies"
 
@@ -2874,7 +2880,7 @@ Nodes (46): dependencies, multiformats, @noble/curves, @noble/post-quantum, @xne
 ### Community 101 - "React Onboarding Flow Provider"
 
 Cohesion: 0.13
-Nodes (32): copyToClipboard(), getPlatformAuthName(), truncateDid(), createInitialState(), OnboardingEvent, OnboardingMachineContext, onboardingReducer(), OnboardingReducerState (+24 more)
+Nodes (33): copyToClipboard(), getPlatformAuthName(), truncateDid(), createInitialState(), OnboardingEvent, OnboardingMachineContext, onboardingReducer(), OnboardingReducerState (+25 more)
 
 ### Community 102 - "Data Adversarial Evaluator Bench"
 
@@ -2888,13 +2894,13 @@ Nodes (9): devDependencies, tsup, typescript, files, license, main, name, type (
 
 ### Community 104 - "Data View Operations Column"
 
-Cohesion: 0.09
-Nodes (59): columnMapToDefinition(), createColumn(), deleteColumn(), duplicateColumn(), getColumn(), getColumnIndex(), getColumns(), getTitleColumn() (+51 more)
+Cohesion: 0.10
+Nodes (53): columnMapToDefinition(), createColumn(), deleteColumn(), duplicateColumn(), getColumn(), getColumnIndex(), getColumns(), getTitleColumn() (+45 more)
 
 ### Community 105 - "Canvas Webgl Raster Tiles"
 
-Cohesion: 0.05
-Nodes (45): clamp(), createRasterTileDrawPlan(), createWebGLRasterTileRenderer(), DEFAULT_RASTER_TILE_CONFIG, estimateTextureBytes(), getCrossfadeProgress(), measureRasterTileTexturePressure(), MeasureRasterTileTexturePressureInput (+37 more)
+Cohesion: 0.08
+Nodes (42): clamp(), createRasterTileDrawPlan(), createWebGLRasterTileRenderer(), DEFAULT_RASTER_TILE_CONFIG, getCrossfadeProgress(), measureRasterTileTexturePressure(), MeasureRasterTileTexturePressureInput, RasterTileDrawItem (+34 more)
 
 ### Community 106 - "Hub Schemas Validation Is"
 
@@ -2904,7 +2910,7 @@ Nodes (36): CrawlRoutesOptions, createCrawlRoutes(), Env, createFederationRoutes
 ### Community 107 - "Sync Integrity Cli Doctor"
 
 Cohesion: 0.10
-Nodes (37): Chalk, doctorCommand(), DoctorOptions, exportCommand(), ExportOptions, findDataDir(), formatDuration(), generateDemoChanges() (+29 more)
+Nodes (38): Chalk, doctorCommand(), DoctorOptions, exportCommand(), ExportOptions, findDataDir(), formatDuration(), generateDemoChanges() (+30 more)
 
 ### Community 108 - "Cli Migrate Schema Diff"
 
@@ -2914,7 +2920,7 @@ Nodes (35): registerDoctorCommand(), analyzeCommand(), AnalyzeOptions, Chalk, cr
 ### Community 109 - "Social X Ids Normalize"
 
 Cohesion: 0.06
-Nodes (34): normalizeHandle(), normalizeToken(), cleanUsername(), bucketPatterns, createMentionActorId(), createMetadataSourceRecord(), createTweetPlaceholder(), createXAccountActorId() (+26 more)
+Nodes (32): normalizeUrl(), extractUrls(), bucketPatterns, createMetadataSourceRecord(), createTweetPlaceholder(), createXAccountActor(), createXTweetContentId(), findEntry() (+24 more)
 
 ### Community 110 - "Hub Federation Service Handle"
 
@@ -2969,7 +2975,7 @@ Nodes (18): attachLogCollector(), CanvasFrameBudgetInput, CanvasPerformanceScene
 ### Community 120 - "React Use Tasks Task"
 
 Cohesion: 0.06
-Nodes (21): schemaByType, MyTasksPanel(), getStartOfUtcDay(), isOverdue(), PageTasksPanel(), PageTasksPanelProps, RenderableTaskRow, DocType (+13 more)
+Nodes (21): MyTasksPanel(), getStartOfUtcDay(), isOverdue(), PageTasksPanel(), PageTasksPanelProps, RenderableTaskRow, DocType, schemaByType (+13 more)
 
 ### Community 121 - "Data Schema Clone Resolver"
 
@@ -2983,8 +2989,8 @@ Nodes (24): createDragDropPlugin(), DragDropPluginKey, DragState, INITIAL_STATE,
 
 ### Community 123 - "History Pruning Snapshot Cache"
 
-Cohesion: 0.11
-Nodes (24): BlameEngine, TEST_SCHEMA, TEST_SCHEMA_2, DEFAULT_POLICY, MOBILE_POLICY, PrunableStorageAdapter, PruningEngine, TelemetryReporter (+16 more)
+Cohesion: 0.09
+Nodes (20): BlameEngine, TEST_SCHEMA, TEST_SCHEMA_2, DEFAULT_POLICY, MOBILE_POLICY, PrunableStorageAdapter, PruningEngine, TelemetryReporter (+12 more)
 
 ### Community 124 - "Abuse Staged Writes Ai"
 
@@ -2993,8 +2999,8 @@ Nodes (37): AISignalProvenance, AISignalProvenanceInput, AISignalProvenanceValid
 
 ### Community 125 - "Sqlite Web Proxy Config"
 
-Cohesion: 0.11
-Nodes (27): UCANToken, actionAllows(), capabilityAllows(), createHeader(), createPayload(), createSigningInput(), createUCAN(), CreateUCANOptions (+19 more)
+Cohesion: 0.13
+Nodes (24): actionAllows(), capabilityAllows(), createHeader(), createPayload(), createSigningInput(), createUCAN(), CreateUCANOptions, encodeUtf8() (+16 more)
 
 ### Community 126 - "Expo App Navigator Database"
 
@@ -3003,8 +3009,8 @@ Nodes (31): getEditorHTML(), MessageFromWebView, MessageToWebView, styles, WebVi
 
 ### Community 127 - "Hub Config Capabilities Resolve"
 
-Cohesion: 0.06
-Nodes (27): HUB_ACTION_MAP, HubAction, HubCapability, verifyHubCapability(), createHubAuthError(), HubAuthError, HubAuthErrorCode, registerShutdownHandlers() (+19 more)
+Cohesion: 0.07
+Nodes (24): HUB_ACTION_MAP, HubAction, HubCapability, verifyHubCapability(), createHubAuthError(), HubAuthError, HubAuthErrorCode, registerShutdownHandlers() (+16 more)
 
 ### Community 128 - "Views View Config Use"
 
@@ -3034,7 +3040,7 @@ Nodes (46): 0096 [ _ ] Plan03 ERP Reality Check and Execution Reset, 00-01 (Over
 ### Community 133 - "Data Bridge Query Cache"
 
 Cohesion: 0.10
-Nodes (7): CacheEntry, QueryCache, QueryCacheOptions, queryDescriptorToOptions(), QueryMetadata, QueryOptions, TEST_SCHEMA_ID
+Nodes (5): CacheEntry, QueryCache, QueryMetadata, QueryOptions, TEST_SCHEMA_ID
 
 ### Community 134 - "Devtools Abuse Panel Use"
 
@@ -3054,7 +3060,7 @@ Nodes (29): AddSharedDialogProps, ShareButton(), ShareButtonProps, AddSharedInpu
 ### Community 137 - "Data Recipients Schema Auth"
 
 Cohesion: 0.02
-Nodes (124): LoopSchema, makeDid(), AuthMigrator, AuthMigratorSchemaRegistry, AuthMigratorStore, EncryptionLayer, MigrationError, MigrationOptions (+116 more)
+Nodes (132): LoopSchema, makeDid(), AuthMigrator, AuthMigratorSchemaRegistry, AuthMigratorStore, EncryptionLayer, MigrationError, MigrationOptions (+124 more)
 
 ### Community 138 - "Hub Package Dependencies Dev"
 
@@ -3063,18 +3069,18 @@ Nodes (40): bin, xnet-hub, dependencies, better-sqlite3, commander, hono, @hono/
 
 ### Community 139 - "Social Archive Reader Scripts"
 
-Cohesion: 0.10
-Nodes (33): assertResolvedZip64Values(), createZipJsonEntryReader(), createZipTextEntryReader(), dosDateToIso(), findEndOfCentralDirectory(), getEntryDataStart(), hashFile(), hashZipEntry() (+25 more)
+Cohesion: 0.09
+Nodes (35): assertResolvedZip64Values(), createZipJsonEntryReader(), createZipTextEntryReader(), dosDateToIso(), findEndOfCentralDirectory(), getEntryDataStart(), hashFile(), hashZipEntry() (+27 more)
 
 ### Community 140 - "Canvas Edge Renderer Update"
 
-Cohesion: 0.05
-Nodes (48): calculateLOD(), CanvasNodeComponent, getHandleCursor(), getHandleStyle(), getNodeAccessibleLabel(), getNodeColor(), getNodeTitle(), getNodeTypeLabel() (+40 more)
+Cohesion: 0.07
+Nodes (34): ChecklistItem, ChecklistNodeComponent, ChecklistNodeData, ChecklistNodeProps, ensureChecklistTaskIds(), styles, EmbedNodeComponent, EmbedNodeData (+26 more)
 
 ### Community 141 - "Social Suggestion Read String"
 
 Cohesion: 0.09
-Nodes (39): attentionBursts(), bridgeActors(), CountBucket, createSocialPatternDefinitions(), createSocialPatternSavedViewDraft(), creatorKey(), creatorLabel(), crossSourceOverlap() (+31 more)
+Nodes (27): CountBucket, createSocialPatternDefinitions(), creatorKey(), creatorLabel(), dateBucketKey(), detectSocialPatterns(), NormalizedSocialPatternInput, patternId() (+19 more)
 
 ### Community 142 - "Abuse Query Cost Budget"
 
@@ -3083,18 +3089,18 @@ Nodes (34): AbuseDeploymentProfile, AbuseDeploymentProfileInput, AbuseDeployment
 
 ### Community 143 - "React Use Saved View"
 
-Cohesion: 0.09
-Nodes (26): addObjectToDensity(), CANVAS_OBJECT_KINDS, CanvasTileSummaryEdge, CanvasTileSummaryObject, createCanvasTileSummaries(), CreateCanvasTileSummariesInput, createCanvasTileSummaryCacheKey(), createEmptyCanvasTileSummary() (+18 more)
+Cohesion: 0.12
+Nodes (12): createEditor(), Editor, EditorDocumentCompatibilityResult, EditorDocumentMigration, EditorDocumentMigrationKind, CursorPosition, EditorConfig, EditorEventHandler (+4 more)
 
 ### Community 144 - "Social Openai Map Open"
 
-Cohesion: 0.07
-Nodes (32): arrayFromUnknown(), bucketPatterns, cleanString(), cleanUrl(), collectMessageNodes(), collectOpenAIContentText(), collectTextFromValue(), createChatGPTShareUrl() (+24 more)
+Cohesion: 0.08
+Nodes (33): arrayFromUnknown(), bucketPatterns, cleanString(), cleanUrl(), collectMessageNodes(), collectOpenAIContentText(), collectTextFromValue(), createChatGPTShareUrl() (+25 more)
 
 ### Community 145 - "Data Bridge Native Create"
 
-Cohesion: 0.06
-Nodes (26): createNativeBridge(), isExpo(), isReactNative(), NativeBridge, NativeBridgeConfig, NativeStorageAdapter, applyNodeChangeToQueryResult(), applyQueryDescriptor() (+18 more)
+Cohesion: 0.11
+Nodes (26): createNativeBridge(), isExpo(), isReactNative(), NativeBridgeConfig, NativeStorageAdapter, QueryCacheOptions, applyNodeChangeToQueryResult(), applyQueryDescriptor() (+18 more)
 
 ### Community 146 - "Plugins Package Dev Dependencies"
 
@@ -3113,8 +3119,8 @@ Nodes (39): dependencies, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, 
 
 ### Community 149 - "Data Bridge Thread Query"
 
-Cohesion: 0.06
-Nodes (29): BenchTaskSchema, setupBridge(), testDID, MainThreadBridge, RemoteInvalidationRuntime, RemoteStreamRuntime, SyncManagerLike, createQueryErrorMetadata() (+21 more)
+Cohesion: 0.07
+Nodes (7): BenchTaskSchema, setupBridge(), testDID, MainThreadBridge, RemoteNodeQueryInvalidation, RemoteNodeQueryInvalidationSubscription, RemoteNodeQueryStreamSubscription
 
 ### Community 150 - "Editor Items Slash Command"
 
@@ -3143,13 +3149,13 @@ Nodes (39): Schema-Agnostic Comment Rationale, Schema-Agnostic Comment Schema, E
 
 ### Community 155 - "Web Route Tree Gen"
 
-Cohesion: 0.07
-Nodes (28): Route, Route, Route, Route, DocInfo, DocType, Route, Route (+20 more)
+Cohesion: 0.06
+Nodes (31): TasksView(), Route, Route, Route, Route, DocInfo, DocType, Route (+23 more)
 
 ### Community 156 - "Network Logging Auto Blocker"
 
-Cohesion: 0.12
-Nodes (27): BlockInfo, BlockPolicyListOptions, BlockThresholds, DEFAULT_BLOCK_THRESHOLDS, YjsPeerActionBridgeEvent, YjsPeerScorerBridge, ConnectionLimits, DEFAULT_LIMITS (+19 more)
+Cohesion: 0.13
+Nodes (26): BlockInfo, BlockPolicyListOptions, BlockThresholds, DEFAULT_BLOCK_THRESHOLDS, YjsPeerActionBridgeEvent, YjsPeerScorerBridge, ConnectionLimits, DEFAULT_LIMITS (+18 more)
 
 ### Community 157 - "Views Use Calendar State"
 
@@ -3158,8 +3164,8 @@ Nodes (29): CalendarDayView(), CalendarDayViewProps, CalendarMonthView(), Calend
 
 ### Community 158 - "Ui Menu Electron System"
 
-Cohesion: 0.07
-Nodes (72): createSocialImportBenchmarkDraft(), createSocialNodeId(), createSourceRecordId(), createSourceRecord(), createStagedNode(), describeJsonShape(), createCitationRecords(), mapClaudeConversations() (+64 more)
+Cohesion: 0.08
+Nodes (55): createSocialNodeId(), normalizeHandle(), normalizeToken(), createCitationRecords(), createOpenAISelfActorId(), booleanOrUndefined(), bucketPatterns, cleanString() (+47 more)
 
 ### Community 159 - "Expo Package Dependencies Scripts"
 
@@ -3169,7 +3175,7 @@ Nodes (37): dependencies, expo, expo-secure-store, expo-splash-screen, expo-sqli
 ### Community 160 - "Network Node Sync Ywebrtc"
 
 Cohesion: 0.11
-Nodes (33): createSyncProtocol(), SyncMessageV2, SyncProtocol, SyncProtocolConfig, createYWebRTCProvider(), getConnectedPeers(), isConnected(), onPeersChange() (+25 more)
+Nodes (32): SyncMessageV2, SyncProtocol, SyncProtocolConfig, createYWebRTCProvider(), getConnectedPeers(), isConnected(), onPeersChange(), YWebRTCOptions (+24 more)
 
 ### Community 161 - "Network Rate Limiter Sync"
 
@@ -3178,18 +3184,18 @@ Nodes (3): ProtocolRateLimiter, SyncRateLimiter, TokenBucket
 
 ### Community 162 - "Abuse Usage Events Create"
 
-Cohesion: 0.08
-Nodes (41): HashAlgorithm, hashBase64(), hashAbusePeerIdentifier(), ABUSE_USAGE_EVENT_KINDS, ABUSE_USAGE_SETTLEMENTS, AbuseDecisionUsageInput, AbuseUsageEvent, AbuseUsageEventInput (+33 more)
+Cohesion: 0.10
+Nodes (37): ABUSE_USAGE_EVENT_KINDS, ABUSE_USAGE_SETTLEMENTS, AbuseDecisionUsageInput, AbuseUsageEvent, AbuseUsageEventInput, AbuseUsageEventKind, AbuseUsageEventSummary, AbuseUsageSettlement (+29 more)
 
 ### Community 163 - "React Web Socket Sync"
 
-Cohesion: 0.13
-Nodes (11): resolveSyncReplicationPolicy(), AwarenessSnapshotUser, deserializeEnvelope(), fromBase64(), hasEnvelope(), log(), serializeEnvelope(), SyncEventHandler (+3 more)
+Cohesion: 0.08
+Nodes (14): AwarenessSnapshotUser, deserializeEnvelope(), fromBase64(), hasEnvelope(), log(), serializeEnvelope(), SyncEventHandler, SyncEventType (+6 more)
 
 ### Community 164 - "Web App Browser Storage"
 
-Cohesion: 0.17
-Nodes (5): AboutSettings(), SectionConfig, SECTIONS, SettingsSection, Theme
+Cohesion: 0.09
+Nodes (14): Commands, EmbedExtension, EmbedOptions, EmbedPastePluginKey, createEmbedLinkPlugin(), EmbedLinkPluginKey, EmbedLinkPluginOptions, ALIGNMENTS (+6 more)
 
 ### Community 165 - "Web Canvas Ingestion Data"
 
@@ -3198,18 +3204,18 @@ Nodes (17): cell(), setupDatabase(), connectCanvasNodes(), dragCanvasNode(), dra
 
 ### Community 166 - "Social Browser Ids Archive"
 
-Cohesion: 0.09
-Nodes (18): FilterBuilder(), FilterBuilderProps, FilterValueInputProps, fromSurfaceFilter(), GridToolbar(), GridToolbarProps, GridViewTab, Popover (+10 more)
+Cohesion: 0.14
+Nodes (11): FilterBuilder(), FilterBuilderProps, FilterValueInputProps, Disposable, Filter, FilterOperator, EditorCommitReason, FilterGroup (+3 more)
 
 ### Community 167 - "Abuse Policy Blocks Verify"
 
 Cohesion: 0.09
-Nodes (38): clearCompletedSocialImportJobs(), createSocialImportJob(), createSocialImportJobCheckpointAccumulator(), createSocialImportJobId(), CreateSocialImportJobInput, getSocialImportJobsById(), getSocialImportJobsChannel(), getSocialImportJobsStorage() (+30 more)
+Nodes (37): clearCompletedSocialImportJobs(), createSocialImportJob(), createSocialImportJobCheckpointAccumulator(), createSocialImportJobId(), CreateSocialImportJobInput, getSocialImportJobsById(), getSocialImportJobsChannel(), getSocialImportJobsStorage() (+29 more)
 
 ### Community 168 - "Canvas Swimlane Manager Node"
 
 Cohesion: 0.08
-Nodes (19): positionToItem(), rectToSearchBox(), SpatialIndex, CanvasNodePosition, createSwimlaneManager(), SwimlaneManager, SwimlaneNodeComponent, SwimlaneNodeProps (+11 more)
+Nodes (18): positionToItem(), rectToSearchBox(), SpatialIndex, createSwimlaneManager(), SwimlaneManager, SwimlaneNodeComponent, SwimlaneNodeProps, ContentBounds (+10 more)
 
 ### Community 169 - "Plugins Runtime Ai Agent"
 
@@ -3219,7 +3225,7 @@ Nodes (5): AiAgentRuntime, cloneSnapshot(), createGenerateRequest(), telemetryFo
 ### Community 170 - "Electron Data Workspace View"
 
 Cohesion: 0.07
-Nodes (11): DataWorkspaceView(), getCount(), GraphAtlasRow, metricValueLabel(), ParsedDescriptor, parseSavedViewDescriptorObject(), SavedViewRow, SOCIAL_SCHEMA_REGISTRY (+3 more)
+Nodes (14): DataWorkspaceView(), getCount(), GraphAtlasRow, metricValueLabel(), ParsedDescriptor, parseSavedViewDescriptor(), parseSavedViewDescriptorObject(), primarySchemaIdForQuery() (+6 more)
 
 ### Community 171 - "Site Astro Section Header"
 
@@ -3239,7 +3245,7 @@ Nodes (24): TaskCard(), TaskCardMode, TaskCardProps, TaskChip(), TaskChipProps, 
 ### Community 174 - "Web Data Workspace View"
 
 Cohesion: 0.07
-Nodes (10): DataWorkspaceView(), getCount(), GraphAtlasRow, metricValueLabel(), ParsedDescriptor, parseSavedViewDescriptorObject(), SavedViewRow, SOCIAL_SCHEMA_REGISTRY (+2 more)
+Nodes (13): DataWorkspaceView(), getCount(), GraphAtlasRow, metricValueLabel(), ParsedDescriptor, parseSavedViewDescriptor(), parseSavedViewDescriptorObject(), primarySchemaIdForQuery() (+5 more)
 
 ### Community 175 - "Cli Package Scripts Dependencies"
 
@@ -3248,8 +3254,8 @@ Nodes (34): bin, xnet, dependencies, chalk, commander, @xnetjs/data, @xnetjs/syn
 
 ### Community 176 - "Devtools Node Explorer Version"
 
-Cohesion: 0.09
-Nodes (16): CopyButton(), CopyButtonProps, NodeDetail(), NodeExplorer(), NodeEntry, useNodeExplorer(), QueryDebugger(), QueryEntry() (+8 more)
+Cohesion: 0.13
+Nodes (13): ChangeTimeline(), getDotColor(), TimelineEntry(), TimelineEvent, useChangeTimeline(), CopyButton(), CopyButtonProps, FeatureDetail (+5 more)
 
 ### Community 177 - "Docs X Social Data"
 
@@ -3259,7 +3265,7 @@ Nodes (35): Calibrated Fallow Adoption, Canonical Data With Competitive Service 
 ### Community 178 - "Hub Create Instance Awareness"
 
 Cohesion: 0.11
-Nodes (16): stringAttr(), Commands, createPageEmbedAttrs(), createPageEmbedMarkdownPayload(), normalizeText(), PageEmbedAttrs, PageEmbedExtension, PageEmbedMarkdownAttrs (+8 more)
+Nodes (15): Commands, createPageEmbedAttrs(), createPageEmbedMarkdownPayload(), normalizeText(), PageEmbedAttrs, PageEmbedExtension, PageEmbedMarkdownAttrs, PageEmbedOptions (+7 more)
 
 ### Community 179 - "X Net Hybrid Sync"
 
@@ -3268,8 +3274,8 @@ Nodes (36): xNet Hub Server Infrastructure, Chat and Video Architecture, Mastodo
 
 ### Community 180 - "Hub Ucan Files File"
 
-Cohesion: 0.15
-Nodes (7): createFileRoutes(), Env, DEFAULT_CONFIG, FileConfig, FileError, FileService, FileMeta
+Cohesion: 0.09
+Nodes (19): BENCH_AUTHOR_DID, BENCH_SCHEMA_ID, CountRow, createSeededBenchmarkStore(), maxNodeCount, nextMutationNode(), queryBenchmarkCases, SeededBenchmarkStore (+11 more)
 
 ### Community 181 - "Canvas Core Interest Tiles"
 
@@ -3293,8 +3299,8 @@ Nodes (16): CrashEventEntry(), formatRelativeTime(), SecurityEventEntry(), Telem
 
 ### Community 186 - "Ui Responsive Dialog Modal"
 
-Cohesion: 0.09
-Nodes (30): createFederatedQueryRouter(), FederatedQueryRouter, createLocalQueryEngine(), LocalQueryEngine, matchesFilter(), matchesFilters(), Filter, FilterOperator (+22 more)
+Cohesion: 0.29
+Nodes (9): createFederatedQueryRouter(), FederatedQueryRouter, Filter, FilterOperator, Query, QueryResult, QueryType, SearchQuery (+1 more)
 
 ### Community 187 - "History Package Scripts Dependencies"
 
@@ -3303,8 +3309,8 @@ Nodes (32): dependencies, @xnetjs/core, @xnetjs/data, @xnetjs/sync, yjs, descrip
 
 ### Community 188 - "Social Claude Map Message"
 
-Cohesion: 0.16
-Nodes (11): createNodeGraphSchemaResolver(), SystemSchemaFederationAppProps, createClient(), CreateClientOptions, SdkTelemetry, XNetClient, createSchemaDiscovery(), SchemaDiscovery (+3 more)
+Cohesion: 0.24
+Nodes (8): SystemSchemaFederationAppProps, createClient(), CreateClientOptions, SdkTelemetry, XNetClient, createSchemaDiscovery(), SchemaDiscovery, SchemaDiscoveryOptions
 
 ### Community 189 - "Electron Ipc Node Storage"
 
@@ -3328,8 +3334,8 @@ Nodes (4): UndoEntry, UndoManagerOptions, TelemetryReporter, UndoManager
 
 ### Community 193 - "Data Awareness Registry Updates"
 
-Cohesion: 0.31
-Nodes (7): applySignedUpdate(), captureUpdate(), getMissingUpdates(), mergeDocuments(), signUpdate(), SignUpdateOptions, verifyUpdate()
+Cohesion: 0.10
+Nodes (18): SecurityContext, SecurityContextActions, SecurityContextState, SecurityContextValue, SecurityProvider(), SecurityProviderProps, useSecurityContext(), useSecurityContextOptional() (+10 more)
 
 ### Community 194 - "Editor Embed Extension Node"
 
@@ -3339,7 +3345,7 @@ Nodes (28): AGENTS.md - Coding Agent Guidelines, Build & Test Commands, Bypassin
 ### Community 195 - "Social Youtube Create Playlist"
 
 Cohesion: 0.17
-Nodes (20): cloneDefaultTaskViewConfig(), Commands, DEFAULT_TASK_VIEW_CONFIG, mergeTaskViewConfig(), parseTaskViewConfig(), TaskViewAssigneeFilter, TaskViewConfig, TaskViewDueDateFilter (+12 more)
+Nodes (18): CanvasViewProps, CanvasMediaCard(), createPdfPlaceholderThumbnail(), escapeSvgText(), formatFileSize(), getMediaFileRef(), getMediaObjectFit(), getNumberProperty() (+10 more)
 
 ### Community 196 - "Canvas Css Grid Fallback"
 
@@ -3358,13 +3364,13 @@ Nodes (32): Yjs Awareness Cursor Presence, Selection Presence and Edit Locking, 
 
 ### Community 199 - "Scripts Benchmark Social Batch"
 
-Cohesion: 0.05
-Nodes (49): createMemorySQLiteAdapter(), BENCH_AUTHOR_DID, BENCH_SCHEMA_ID, CountRow, createSeededBenchmarkStore(), maxNodeCount, nextMutationNode(), queryBenchmarkCases (+41 more)
+Cohesion: 0.09
+Nodes (30): createMemorySQLiteAdapter(), addStorageTotals(), addTimingTotals(), BenchmarkError, BenchmarkOptions, BenchmarkReport, BenchmarkResult, BenchmarkRuntime (+22 more)
 
 ### Community 201 - "Data External Reference Metadata"
 
 Cohesion: 0.04
-Nodes (82): platformFor(), getAllowedEmbedPolicy(), getCanvasEmbedProviderPolicies(), cloneProviderPolicy(), DESIGN_IFRAME_ATTRIBUTES, EMBED_REGISTRY_PROVIDER_POLICIES, EmbedRegistryIframeSecurityAttributes, EmbedRegistryPolicyDecision (+74 more)
+Nodes (80): getAllowedEmbedPolicy(), cloneProviderPolicy(), DESIGN_IFRAME_ATTRIBUTES, EMBED_REGISTRY_PROVIDER_POLICIES, EmbedRegistryIframeSecurityAttributes, EmbedRegistryPolicyDecision, EmbedRegistryProvider, EmbedRegistryProviderPolicy (+72 more)
 
 ### Community 202 - "Canvas Saved Layouts Create"
 
@@ -3374,7 +3380,7 @@ Nodes (27): calculateBounds(), CANVAS_SAVED_LAYOUT_VALUES, CanvasSavedLayoutDefi
 ### Community 203 - "Canvas Core Camera Coordinates"
 
 Cohesion: 0.12
-Nodes (26): createCanvasCameraForViewport(), getScreenLineForSnapGuide(), getScreenPointForCanvasPoint(), getScreenRectForCanvasRect(), getScreenRectForObject(), CanvasCameraState, createCanvasCamera(), CreateCanvasCameraInput (+18 more)
+Nodes (28): createCanvasCameraForViewport(), getScreenLineForSnapGuide(), getScreenPointForCanvasPoint(), getScreenRectForCanvasRect(), getScreenRectForObject(), CanvasCameraState, createCanvasCamera(), CreateCanvasCameraInput (+20 more)
 
 ### Community 204 - "Canvas Source Bulk Operations"
 
@@ -3393,8 +3399,8 @@ Nodes (29): AllValuesOf, AnyEntryMap, CollectionEntry, CollectionKey, ContentCol
 
 ### Community 207 - "Electron App Settings View"
 
-Cohesion: 0.06
-Nodes (27): ActionDock(), ActionDockProps, DockMode, CanvasViewCommandState, CanvasViewHandle, SavedViewCanvasFrameInput, SECTIONS, SettingsSection (+19 more)
+Cohesion: 0.04
+Nodes (40): CanvasViewCommandState, CanvasViewHandle, SavedViewCanvasFrameInput, SECTIONS, SettingsSection, SettingsSectionConfig, SettingsView(), SettingsViewProps (+32 more)
 
 ### Community 208 - "Electron Social Import View"
 
@@ -3423,8 +3429,8 @@ Nodes (28): import, types, dependencies, @xnetjs/crypto, @xnetjs/identity, descr
 
 ### Community 213 - "Data Sqlite Node Store"
 
-Cohesion: 0.14
-Nodes (19): deserializeEnvelope(), deserializeV1Envelope(), EnvelopeVerificationResult, fromBase64(), getEnvelope(), hasPeerId(), isRecord(), isSyncMessage() (+11 more)
+Cohesion: 0.08
+Nodes (26): createEntry(), NodePool, deserializeEnvelope(), deserializeV1Envelope(), EnvelopeVerificationResult, fromBase64(), getEnvelope(), hasPeerId() (+18 more)
 
 ### Community 214 - "Crypto Package Dependencies Scripts"
 
@@ -3458,8 +3464,8 @@ Nodes (17): createVectorIndex(), IndexEntry, MetricType, SearchResult, VectorInd
 
 ### Community 220 - "Canvas Core Benchmarks Measure"
 
-Cohesion: 0.11
-Nodes (23): average(), BENCHMARK_OBJECT_KINDS, benchmarkSyntheticCanvasWorlds(), CanvasObjectTransferPayloadProfile, CanvasWorkerTransferBenchmarkInput, CanvasWorkerTransferBenchmarkObjectsInput, CanvasWorkerTransferOverheadMeasurement, createBenchmarkClock() (+15 more)
+Cohesion: 0.07
+Nodes (37): Operation, measure(), average(), BENCHMARK_OBJECT_KINDS, benchmarkSyntheticCanvasWorlds(), CanvasObjectTransferPayloadProfile, CanvasWorkerTransferBenchmarkInput, CanvasWorkerTransferBenchmarkObjectsInput (+29 more)
 
 ### Community 221 - "Telemetry Package Scripts Dev"
 
@@ -3483,13 +3489,13 @@ Nodes (21): AddColumnModal(), AddColumnModalProps, CATEGORY_LABELS, COLUMN_TYPES
 
 ### Community 225 - "Ui Settings View Stories"
 
-Cohesion: 0.14
-Nodes (20): CanvasPluginFallbackCard(), CanvasPluginFallbackCardProps, formatPermissions(), getDisplaySubtitle(), getDisplayTitle(), normalizeValue(), TONE_CLASSES, ACTION_LABELS (+12 more)
+Cohesion: 0.13
+Nodes (16): EditorRolloutMode, EditorSurface(), EditorSurfaceDensity, EditorSurfaceErrorBoundary, EditorSurfaceErrorBoundaryProps, EditorSurfaceErrorBoundaryState, EditorSurfaceMode, EditorSurfaceProps (+8 more)
 
 ### Community 226 - "Social Defaults Create Default"
 
-Cohesion: 0.10
-Nodes (30): getDefaultSocialWorkspaceSeeds(), SocialWorkspaceSeedOperationResult, SocialWorkspaceSeedSummary, upsertDefaultSocialWorkspace(), getDefaultSocialWorkspaceSeeds(), SocialWorkspaceSeedOperationResult, SocialWorkspaceSeedSummary, upsertDefaultSocialWorkspace() (+22 more)
+Cohesion: 0.07
+Nodes (50): getDefaultSocialWorkspaceSeeds(), SocialWorkspaceSeedOperationResult, SocialWorkspaceSeedSummary, upsertDefaultSocialWorkspace(), getDefaultSocialWorkspaceSeeds(), SocialWorkspaceSeedOperationResult, SocialWorkspaceSeedSummary, upsertDefaultSocialWorkspace() (+42 more)
 
 ### Community 227 - "Abuse Labeler Trust Evaluate"
 
@@ -3508,8 +3514,8 @@ Nodes (9): AIProviderRouter, createCapabilities(), emptyProviderUsage(), estimat
 
 ### Community 230 - "Editor Blob Context Image"
 
-Cohesion: 0.24
-Nodes (8): Commands, ImageExtension, ImageOptions, ALIGNMENTS, ImageNodeView(), createImagePastePlugin(), ImagePastePluginKey, ImagePastePluginOptions
+Cohesion: 0.15
+Nodes (3): estimateTextureBytes(), RasterTileTextureLru, WebGLRasterTileRenderer
 
 ### Community 231 - "Data Computed Cache Get"
 
@@ -3528,8 +3534,8 @@ Nodes (45): 10. Electron embedding guidance favors iframes or modern web content
 
 ### Community 234 - "History Engine Telemetry Target"
 
-Cohesion: 0.16
-Nodes (10): DiffEngine, HistoryEngine, inferOperation(), TelemetryReporter, TEST_SCHEMA, DiffResult, HistoricalState, HistoryTarget (+2 more)
+Cohesion: 0.15
+Nodes (11): topologicalSort(), DiffEngine, HistoryEngine, inferOperation(), TelemetryReporter, TEST_SCHEMA, DiffResult, HistoricalState (+3 more)
 
 ### Community 235 - "Docs Global Farming Erp"
 
@@ -3539,22 +3545,27 @@ Nodes (27): Namespace Registry and ICU Formatter, Lingui Compiler Pipeline, I18n
 ### Community 236 - "Views Reverse Relations Panel"
 
 Cohesion: 0.09
-Nodes (11): RelationCell(), RelationCellProps, RelationChipProps, getRowTitle(), GroupedRelations, ReverseRelationRow(), ReverseRelationRowProps, ReverseRelationsPanel() (+3 more)
+Nodes (9): RelationCellProps, RelationChipProps, getRowTitle(), GroupedRelations, ReverseRelationRow(), ReverseRelationRowProps, ReverseRelationsPanelProps, RowPickerModal() (+1 more)
 
 ### Community 237 - "Sync Chain Topological Sort"
 
 Cohesion: 0.12
-Nodes (8): topologicalSort(), applyChangeToState(), createEmptyState(), SchemaScrubCache, SchemaTimeline, ScrubCache, SchemaTimelineEntry, TimelineEntry
+Nodes (8): applyChangeToState(), createEmptyState(), SchemaScrubCache, restoreSchemaAt(), SchemaTimeline, ScrubCache, SchemaTimelineEntry, TimelineEntry
 
 ### Community 238 - "Views Use Timeline State"
 
 Cohesion: 0.18
-Nodes (21): ViewConfig, mockData, mockSchema, mockView, now, formatDate(), TimelineBar(), TimelineBarProps (+13 more)
+Nodes (20): mockData, mockSchema, mockView, now, formatDate(), TimelineBar(), TimelineBarProps, TimelineView() (+12 more)
 
 ### Community 239 - "Canvas Use Comments Comment"
 
 Cohesion: 0.14
 Nodes (20): CommentOverlay(), CommentOverlayProps, INITIAL_POPOVER_STATE, PopoverState, CommentPin(), CommentPinProps, getAuthorInitial(), CanvasObject (+12 more)
+
+### Community 240 - "Data Row Cache Cached"
+
+Cohesion: 0.09
+Nodes (7): CachedRow, CacheEntry, CacheStats, createRowCache(), DEFAULT_CACHE_CONFIG, RowCache, RowCacheConfig
 
 ### Community 241 - "Electron Package Dependencies Better"
 
@@ -3564,12 +3575,12 @@ Nodes (26): dependencies, better-sqlite3, electron-updater, lucide-react, mermai
 ### Community 242 - "Social Graph Lenses Data"
 
 Cohesion: 0.17
-Nodes (20): verifierResultIsValid(), CreateEnvelopeOptions, envelopeSize(), EnvelopeVerifyResult, hasSignedEnvelope(), isLegacyUpdate(), isV1Envelope(), isV2Envelope() (+12 more)
+Nodes (21): CreateEnvelopeOptions, deserializeYjsEnvelope(), envelopeSize(), EnvelopeVerifyResult, hasSignedEnvelope(), isLegacyUpdate(), isV1Envelope(), isV2Envelope() (+13 more)
 
 ### Community 243 - "Web Social Import Commit"
 
-Cohesion: 0.10
-Nodes (20): activeCommitJobs, applyBatchResultMetrics(), applyOperationStatsDelta(), assertBrowserSocialImportCommitNotCancelled(), BrowserSocialImportCommitCancelledError, BrowserSocialImportCommitJob, BrowserSocialImportCommitProgress, BrowserSocialImportCommitProgressMetrics (+12 more)
+Cohesion: 0.06
+Nodes (36): activeCommitJobs, applyBatchResultMetrics(), applyOperationStatsDelta(), assertBrowserSocialImportCommitNotCancelled(), BrowserSocialImportCommitCancelledError, BrowserSocialImportCommitJob, BrowserSocialImportCommitProgress, BrowserSocialImportCommitProgressMetrics (+28 more)
 
 ### Community 244 - "Sdk Package Dependencies Scripts"
 
@@ -3604,7 +3615,7 @@ Nodes (24): dependencies, @noble/hashes, devDependencies, tsup, typescript, expo
 ### Community 252 - "Web Social Import Job"
 
 Cohesion: 0.07
-Nodes (35): bucketDefinitions, cleanString(), cleanUrl(), createTikTokAccountActor(), createTikTokActorId(), createTikTokBuckets(), createTikTokContentId(), createTikTokLinkedContent() (+27 more)
+Nodes (33): bucketDefinitions, cleanString(), cleanUrl(), createTikTokAccountActor(), createTikTokBuckets(), createTikTokContentId(), createTikTokLinkedContent(), extractTikTokId() (+25 more)
 
 ### Community 253 - "Electron Cloudflare Tunnel Manager"
 
@@ -3613,8 +3624,8 @@ Nodes (14): setupCloudflareTunnelIPC(), stopCloudflareTunnel(), buildCloudflared
 
 ### Community 254 - "Sync Replication Policy Plan"
 
-Cohesion: 0.08
-Nodes (15): CachedEdge, createEdgeRenderer(), DEFAULT_EDGE_STYLE, EdgeRenderer, EdgeRendererViewport, expandRect(), hashCode(), intersects() (+7 more)
+Cohesion: 0.11
+Nodes (9): createDiscoveryRoutes(), DiscoveryRoutesOptions, DEFAULT_CONFIG, DiscoveryConfig, DiscoveryError, DiscoveryService, ENDPOINT_TYPES, normalizeEndpoints() (+1 more)
 
 ### Community 255 - "Query Package Dependencies Scripts"
 
@@ -3633,7 +3644,7 @@ Nodes (18): bucketCount(), bucketLatency(), bucketScore(), bucketSize(), bucketT
 
 ### Community 259 - "Abuse Content Fingerprint Crypto"
 
-Cohesion: 0.16
+Cohesion: 0.15
 Nodes (21): assessDuplicateContent(), canonicalizeContentText(), clamp01(), compareContentFingerprints(), compareSimHash64(), ContentFingerprintInput, ContentFingerprintOptions, createContentFingerprint() (+13 more)
 
 ### Community 260 - "Formula Ast Base Node"
@@ -3644,12 +3655,12 @@ Nodes (20): arrayLiteral, BaseNode, binaryExpression, booleanLiteral, callExpres
 ### Community 261 - "Data Bridge Query Descriptor"
 
 Cohesion: 0.05
-Nodes (54): DomIslandAssignment, DomIslandCandidate, DomIslandIframeAssignment, DomIslandPool, DomIslandPoolBudgets, DomIslandPoolPlan, DomIslandPoolUpdate, DomIslandTier (+46 more)
+Nodes (62): average(), BENCHMARK_SOURCES, CanvasPreviewGenerationBenchmarkInput, CanvasPreviewGenerationBenchmarkMeasurement, CanvasPreviewGenerationBenchmarkSource, createBenchmarkClock(), createCanvasPreviewGenerationBenchmarkSources(), createPreviewModelForSource() (+54 more)
 
 ### Community 262 - "Sync Yjs Limits Rate"
 
-Cohesion: 0.17
-Nodes (13): AiMutationPlan, AiWorkspaceWatcher, createWorkspaceReviewIndex(), databaseProjectionOperation(), errorKindForChangedFile(), isManifestEntry(), isMutationPlan(), isRecord() (+5 more)
+Cohesion: 0.13
+Nodes (19): AiMutationPlan, createAiOperation(), AiWorkspaceWatcher, conflictFileName(), createWorkspaceReviewIndex(), databaseProjectionOperation(), errorKindForChangedFile(), parseJsonlObjects() (+11 more)
 
 ### Community 263 - "Editor Task View Embed"
 
@@ -3658,8 +3669,8 @@ Nodes (44): 1. Current State Assessment, 2. Target Audience & Core Message, 3. C
 
 ### Community 264 - "Plugins Ai Mutation Plan"
 
-Cohesion: 0.10
-Nodes (20): attestationPayloadV1(), AttestationVerificationResult, AttestationVerifyResult, ClientIdAttestation, ClientIdAttestationV1, ClientIdAttestationV2, ClientIdAttestationWire, ClientIdMap (+12 more)
+Cohesion: 0.09
+Nodes (22): attestationPayloadV1(), AttestationVerificationResult, AttestationVerifyResult, ClientIdAttestation, ClientIdAttestationV1, ClientIdAttestationV2, ClientIdAttestationWire, ClientIdMap (+14 more)
 
 ### Community 265 - "Views Use Gallery State"
 
@@ -3673,8 +3684,8 @@ Nodes (8): enableTestBypass(), isNavigationAbortError(), setupTestAuth(), waitFo
 
 ### Community 267 - "Identity Keys Passkey Generate"
 
-Cohesion: 0.13
-Nodes (13): calculateChunkCount(), chunkUpdate(), DEFAULT_RATE_LIMITER_CONFIG, estimateBase64DecodedLength(), isBase64PayloadTooLarge(), isDocumentTooLarge(), isStateVectorTooLarge(), isUpdateTooLarge() (+5 more)
+Cohesion: 0.12
+Nodes (14): calculateChunkCount(), chunkUpdate(), DEFAULT_RATE_LIMITER_CONFIG, estimateBase64DecodedLength(), isAwarenessUpdateTooLarge(), isBase64PayloadTooLarge(), isDocumentTooLarge(), isStateVectorTooLarge() (+6 more)
 
 ### Community 268 - "Storage Blob Store Chunk"
 
@@ -3723,13 +3734,13 @@ Nodes (22): devDependencies, autoprefixer, concurrently, cross-env, electron, el
 
 ### Community 279 - "Electron Ipc Secure Seed"
 
-Cohesion: 0.38
-Nodes (7): clearSeedPhrase(), getSeedFilePath(), isStoredSeedRecord(), loadSeedPhrase(), SafeStorageLike, StoredSeedRecord, storeSeedPhrase()
+Cohesion: 0.15
+Nodes (9): dataPath, clearSeedPhrase(), getSeedFilePath(), isStoredSeedRecord(), loadSeedPhrase(), SafeStorageLike, StoredSeedRecord, storeSeedPhrase() (+1 more)
 
 ### Community 280 - "Hub Backup Service Create"
 
-Cohesion: 0.09
-Nodes (22): DID:key identity decision, DID:key and UCAN identity model, Identity Model, Identity Guide, @xnetjs/identity initial publish metadata, Dependencies, DID:key identity, Features (+14 more)
+Cohesion: 0.14
+Nodes (13): DID:key and UCAN identity model, Identity Model, @xnetjs/identity initial publish metadata, Dependencies, Features, Installation, Key bundles, Modules (+5 more)
 
 ### Community 281 - "Hub Discovery Service Dids"
 
@@ -3743,8 +3754,8 @@ Nodes (5): HUB_METRICS, Metrics, DEFAULT_CONFIG, TelemetryBridge, TelemetryBridg
 
 ### Community 283 - "Data Embed Registry Evaluate"
 
-Cohesion: 0.09
-Nodes (18): imageRef, pdfRef, ResizeObserverStub, resolveUrl, GridCellInner(), GridCellProps, seedValue(), Lightbox() (+10 more)
+Cohesion: 0.13
+Nodes (14): imageRef, pdfRef, ResizeObserverStub, resolveUrl, GridPeek(), Lightbox(), PeekField(), FileCellConfig (+6 more)
 
 ### Community 285 - "Editor Announcer Screen Reader"
 
@@ -3773,13 +3784,13 @@ Nodes (44): 0125 - AFFiNE as the xNet UI Layer, Adapter Responsibilities, AFFiNE
 
 ### Community 291 - "Electron Ipc Blob Store"
 
-Cohesion: 0.07
-Nodes (27): ContentId, createIPCBlobStore(), IPCBlobStore, AwarenessSnapshotHandler, AwarenessSnapshotUsers, ConnectionStatus, createIPCSyncManager(), DevToolsEventBus (+19 more)
+Cohesion: 0.11
+Nodes (16): ContentId, createIPCBlobStore(), IPCBlobStore, IPCSyncManager, CanvasFrameBudgetInput, CanvasPerformanceSceneInput, CanvasTestHarness, consentManager (+8 more)
 
 ### Community 292 - "Electron Service Ipc Handle"
 
 Cohesion: 0.13
-Nodes (16): dbPath, deliverSharePayload(), **dirname, **filename, handleDeepLink(), hasSingleInstanceLock, parseSharePayloadFromDeepLink(), getOrCreateStorage() (+8 more)
+Nodes (15): dbPath, deliverSharePayload(), **dirname, **filename, handleDeepLink(), hasSingleInstanceLock, parseSharePayloadFromDeepLink(), getOrCreateStorage() (+7 more)
 
 ### Community 293 - "Plugins Registry Context Extension"
 
@@ -3823,8 +3834,8 @@ Nodes (3): ElectronBatchWriter, SQLiteWorkerHandler, SQLValue
 
 ### Community 301 - "Identity Did Create Crypto"
 
-Cohesion: 0.23
-Nodes (20): createDefaultSocialGraphAtlas(), SocialGraphAtlasEntry, SocialGraphAtlasNodeRoleSummary, aiCitationsLens(), conversationReferencesLens(), createDefaultSocialGraphLenses(), defineSocialGraphLens(), page() (+12 more)
+Cohesion: 0.13
+Nodes (11): TasksMode, TasksTab, DEFAULT_STATUSES, TaskBoard(), TaskBoardItem, TaskBoardProps, TaskBoardStatusChange, DEFAULT_STATUSES (+3 more)
 
 ### Community 302 - "Electron Data Process Manager"
 
@@ -3848,8 +3859,8 @@ Nodes (4): getShortcutManager(), installShortcutHandler(), isMac(), ShortcutMana
 
 ### Community 307 - "History Snapshot Cache Memory"
 
-Cohesion: 0.18
-Nodes (4): MemorySnapshotStorage, SnapshotCache, Snapshot, SnapshotCacheOptions
+Cohesion: 0.17
+Nodes (7): MemorySnapshotStorage, setupAutoSnapshots(), SnapshotCache, SnapshotStorageAdapter, CacheStats, Snapshot, SnapshotCacheOptions
 
 ### Community 308 - "History Playback Engine Emit"
 
@@ -3883,13 +3894,13 @@ Nodes (10): ReportOptions, TelemetryContext, TelemetryContextValue, TelemetryPro
 
 ### Community 315 - "Identity Seed Recovery Create"
 
-Cohesion: 0.20
-Nodes (10): AiWorkspaceExporter, fileStem(), inferExportKind(), manifestEntry(), nodeRevision(), renderAgentsMd(), renderClaudeMcpConfig(), renderCodexConfig() (+2 more)
+Cohesion: 0.17
+Nodes (13): AiWorkspaceExporter, fileStem(), inferExportKind(), isManifestEntry(), isMutationPlan(), isRecord(), manifestEntry(), nodeRevision() (+5 more)
 
 ### Community 316 - "Canvas Core Wasm Density"
 
-Cohesion: 0.17
-Nodes (15): binDensityGridWithTypeScript(), binDensityGridWithWasm(), CanvasDensityBinningBackend, CanvasDensityBinningMode, CanvasDensityGridBinningInput, CanvasDensityGridBinningResult, createCanvasDensityGridWithOptionalWasm(), createEmptyValues() (+7 more)
+Cohesion: 0.16
+Nodes (16): CanvasDensityGrid, binDensityGridWithTypeScript(), binDensityGridWithWasm(), CanvasDensityBinningBackend, CanvasDensityBinningMode, CanvasDensityGridBinningInput, CanvasDensityGridBinningResult, createCanvasDensityGridWithOptionalWasm() (+8 more)
 
 ### Community 317 - "Data Bridge Binary State"
 
@@ -3898,13 +3909,13 @@ Nodes (4): decodeNodeStates(), encodeNodeStates(), NodeStateDecoder, shouldUseBi
 
 ### Community 318 - "Web Social Import Worker"
 
-Cohesion: 0.09
-Nodes (31): SocialImportWorkerErrorResponse, SocialImportWorkerExecutionMode, SocialImportWorkerPreviewPayload, SocialImportWorkerPreviewRequest, SocialImportWorkerRequest, SocialImportWorkerResponse, SocialImportWorkerStageChunkPayload, SocialImportWorkerStageChunkRequest (+23 more)
+Cohesion: 0.16
+Nodes (22): createBrowserZipJsonEntryReader(), createBrowserZipTextEntryReader(), getCommitRecordCount(), getMainThreadStageDraftStream(), clampInteger(), createStageId(), createStagePayload(), errorPayload() (+14 more)
 
 ### Community 319 - "Devtools Yjs Inspector Use"
 
-Cohesion: 0.15
-Nodes (10): buildTypeNode(), DocStats, getYTypeName(), StateVectorEntry, useYjsInspector(), YJS_EVENT_TYPES, YjsEvent, YjsSubView (+2 more)
+Cohesion: 0.14
+Nodes (11): buildTypeNode(), DocStats, getYTypeName(), StateVectorEntry, useYjsInspector(), YJS_EVENT_TYPES, YjsEvent, YjsSubView (+3 more)
 
 ### Community 320 - "Canvas Core Package Scripts"
 
@@ -3923,17 +3934,17 @@ Nodes (4): AuditIndex, ActivitySummary, AuditEntry, AuditQuery
 
 ### Community 324 - "Canvas Core Connectors Create"
 
-Cohesion: 0.07
-Nodes (37): resolveRasterTileBounds(), CanvasObjectKind, Point, Rect, getObjectTileId(), getObjectTileIdFromRect(), compareTileAddress(), ConnectorStorageKind (+29 more)
+Cohesion: 0.06
+Nodes (45): getNodeCenter(), getNodeTileId(), resolveRasterTileBounds(), CanvasObjectKind, Point, Rect, getObjectTileId(), createMutableSummary() (+37 more)
 
 ### Community 325 - "Data External Reference Embed"
 
 Cohesion: 0.09
-Nodes (22): SocialImportCommitJobRequest, SocialImportCommitJobSnapshot, SocialImportStageRequest, SocialImportStageResult, acquiredNodes, ALLOWED_SERVICE_CHANNELS, bsmMessageHandlers, bsmPortReadyCallbacks (+14 more)
+Nodes (22): SocialImportArchivePreview, SocialImportCommitJobRequest, SocialImportStageRequest, SocialImportStageResult, acquiredNodes, ALLOWED_SERVICE_CHANNELS, bsmMessageHandlers, bsmPortReadyCallbacks (+14 more)
 
 ### Community 326 - "Plugins Mcp Server Mcpserver"
 
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (11): CreateBridgeOptions, createDataBridge(), createMainThreadBridgeSync(), createWorkerBridgeSync(), isNodeEnvironment(), isWorkerSupported(), DataBridge, DataBridgeConfig (+3 more)
 
 ### Community 327 - "Site Docs Schema Properties"
@@ -3959,7 +3970,7 @@ Nodes (10): CrashReport, CrashReportSchema, TelemetrySchemaIRIs, TelemetrySchema
 ### Community 332 - "Canvas Contextual Popovers Create"
 
 Cohesion: 0.02
-Nodes (133): Architecture Decisions, One-way MetaBridge decision, Yjs over Automerge, Write read and sync paths, ErrorBoundary, ErrorBoundaryFallbackProps, ErrorBoundaryProps, ErrorBoundaryState (+125 more)
+Nodes (108): BundledPluginInstaller(), InstallPluginDialogProps, PluginCardProps, PluginManager(), BundledPluginInstaller(), InstallPluginDialogProps, PluginCardProps, PluginManager() (+100 more)
 
 ### Community 333 - "Sqlite Browser Support Request"
 
@@ -3998,8 +4009,8 @@ Nodes (42): 0156 - Faster Social Import Commit and Background Import Jobs, Backg
 
 ### Community 340 - "Network Gater Default Connection"
 
-Cohesion: 0.14
-Nodes (3): ConnectionGater, DefaultConnectionGater, logSecurityEvent()
+Cohesion: 0.11
+Nodes (6): ConnectionGater, DefaultConnectionGater, getSecurityLogger(), hashPeerId(), logSecurityEvent(), SecurityLogger
 
 ### Community 341 - "Data External References Parse"
 
@@ -4049,12 +4060,12 @@ Nodes (13): ColumnDefinition, ColumnType, DatabaseRow, extractPlainTextFromRichT
 ### Community 350 - "Plugins Middleware Chain Node"
 
 Cohesion: 0.19
-Nodes (12): ListItem(), ListItemProps, getPropertyKey(), ListView(), ListViewProps, ListRow, useListState(), UseListStateOptions (+4 more)
+Nodes (13): ListItem(), ListItemProps, getPropertyKey(), ListView(), ListViewProps, ListRow, useListState(), UseListStateOptions (+5 more)
 
 ### Community 352 - "Data Bridge Query Stream"
 
-Cohesion: 0.20
-Nodes (12): createQueryStreamState(), deleteNode(), getNextMetadata(), insertNode(), reduceQueryStreamEvent(), reduceQueryStreamEvents(), updateNode(), QueryStreamProgress (+4 more)
+Cohesion: 0.21
+Nodes (11): deleteNode(), getNextMetadata(), insertNode(), reduceQueryStreamEvent(), reduceQueryStreamEvents(), updateNode(), QueryStreamProgress, QueryStreamProgressPhase (+3 more)
 
 ### Community 353 - "Data Analyze Schema Changes"
 
@@ -4078,8 +4089,8 @@ Nodes (14): anyOf, default, type, type, type, badge, hidden, label (+6 more)
 
 ### Community 357 - "Plugins Xnetjs Site Sync"
 
-Cohesion: 0.12
-Nodes (18): Infinite Canvas Guide, @xnetjs/plugins initial publish metadata, AI Script Generation, Architecture, Canvas plugin contributions, Canvas Plugin Authoring, Dependencies, ExtensionContext (+10 more)
+Cohesion: 0.10
+Nodes (21): Infinite Canvas Guide, Four-layer extensibility system, Plugin middleware system, Plugin Development Guide, @xnetjs/plugins initial publish metadata, AI Script Generation, Architecture, Canvas plugin contributions (+13 more)
 
 ### Community 358 - "Editor Package Dev Dependencies"
 
@@ -4093,8 +4104,8 @@ Nodes (10): arrayFunctions, conversionFunctions, dateFunctions, functions, getFu
 
 ### Community 360 - "Electron Ipc Sync Manager"
 
-Cohesion: 0.04
-Nodes (44): BundledPluginInstaller(), DatabaseView(), InstallPluginDialogProps, PluginCardProps, PluginManager(), BundledPluginInstaller(), CanvasView(), DatabaseView() (+36 more)
+Cohesion: 0.02
+Nodes (105): Understanding xNet for AI Assistants, No-backend AI assistance model, DatabaseView(), CanvasView(), DatabaseView(), Additional packages, Design principles, Further reading (+97 more)
 
 ### Community 361 - "Turbo Tasks Build Package"
 
@@ -4118,8 +4129,8 @@ Nodes (10): BASE_PATH, decodeSharePayload(), fallbackWithHandle(), fromBase64Url
 
 ### Community 366 - "Hub Signaling Create Service"
 
-Cohesion: 0.29
-Nodes (7): Multiplexed WebSocket decision, Background Sync Manager, NodePool Registry OfflineQueue, Sync Architecture, Electron BSM process split, Electron Setup, Node.js plugin services
+Cohesion: 0.15
+Nodes (13): addBlocker(), CompiledFindQuery, compileFindQuery(), compileNodeQuery(), compilePage(), compilePredicate(), EMPTY_FIND_OPTIONS, schemaIdsFor() (+5 more)
 
 ### Community 368 - "Ui Didavatar Get Color"
 
@@ -4128,18 +4139,13 @@ Nodes (42): 05: Schema and Migrations, 1. Adding a New Migration, 2. Migration S
 
 ### Community 369 - "Telemetry Context Use Collector"
 
-Cohesion: 0.19
-Nodes (15): worldPointToAnchorLocal(), createViewportTileSubscriptionPlan(), expandTileCoverage(), extendCoverageForVelocity(), getCenterTileAddress(), getCoverageCount(), getTileDelta(), getVelocityTileCount() (+7 more)
+Cohesion: 0.22
+Nodes (12): createViewportTileSubscriptionPlan(), expandTileCoverage(), extendCoverageForVelocity(), getCenterTileAddress(), getCoverageCount(), getTileDelta(), getVelocityTileCount(), listPrioritizedTileIds() (+4 more)
 
 ### Community 370 - "Site Docs Schema Attrs"
 
 Cohesion: 0.15
 Nodes (13): additionalProperties, default, type, additionalProperties, properties, required, type, type (+5 more)
-
-### Community 371 - "Devtools Query Tracker Result"
-
-Cohesion: 0.20
-Nodes (4): createEntry(), NodePool, NodePoolOptions, PoolEntry
 
 ### Community 372 - "Formula Evaluator Evaluate Binary"
 
@@ -4183,23 +4189,23 @@ Nodes (41): 1. Technical Integration, 2. Information Architecture, 3. Content Pr
 
 ### Community 385 - "Crypto Metrics Collector Create"
 
-Cohesion: 0.12
-Nodes (9): AwarenessConfig, AwarenessRoomState, AwarenessService, DEFAULT_CONFIG, extractUserDid(), toBytes(), withOnlineState(), withUserDid() (+1 more)
+Cohesion: 0.16
+Nodes (8): AwarenessConfig, AwarenessRoomState, AwarenessService, DEFAULT_CONFIG, extractUserDid(), toBytes(), withOnlineState(), withUserDid()
 
 ### Community 386 - "React Package Publish Config"
 
-Cohesion: 0.17
-Nodes (11): files, license, main, name, peerDependencies, react, publishConfig, access (+3 more)
+Cohesion: 0.20
+Nodes (8): files, license, main, name, peerDependencies, react, type, version
 
 ### Community 387 - "React Package Exports Database"
 
 Cohesion: 0.17
-Nodes (12): import, types, import, types, exports, ./database, ./experimental, ./internal (+4 more)
+Nodes (12): import, types, import, types, exports, ./core, ./database, ./internal (+4 more)
 
 ### Community 388 - "Web Settings About Appearance"
 
-Cohesion: 0.11
-Nodes (19): Architecture, Editor extensions, `EditorToolbar`, Exports, Features, Installation, Keyboard Shortcuts, Quick Start with React (+11 more)
+Cohesion: 0.12
+Nodes (17): Architecture, Editor extensions, `EditorToolbar`, Exports, Features, Installation, Keyboard Shortcuts, Quick Start with React (+9 more)
 
 ### Community 389 - "Sqlite Package Exports Expo"
 
@@ -4233,13 +4239,13 @@ Nodes (6): forceFreePorts(), killTree(), ROOT, spawnAndWait(), startHarness(), s
 
 ### Community 395 - "Hub Rate Limit Limiter"
 
-Cohesion: 0.15
-Nodes (22): createIdentity(), setup(), createIdentity(), createTestStore(), createTestStore(), createTestStore(), createTestStore(), makeIdentity() (+14 more)
+Cohesion: 0.21
+Nodes (16): createIdentity(), createIdentity(), createTestStore(), createTestStore(), createTestStore(), createTestStore(), createRemoteSchemaFixture(), createDID() (+8 more)
 
 ### Community 396 - "Devtools Schema Registry Use"
 
 Cohesion: 0.23
-Nodes (11): AppealAnnotation, AppealEffect, AppealEffectAction, AppealEffectInput, AppealResolutionAction, AppealStatus, clamp(), createAppealEffect() (+3 more)
+Nodes (15): CanvasSemanticEdgeDraft, CanvasSemanticEndpointRole, createCanvasSemanticEdgeDraft(), CreateCanvasSemanticEdgeDraftInput, createCanvasSemanticEdgeRelationshipForNodes(), getCanvasSemanticEndpointRole(), getPdfPageNumber(), getRelationshipKindForRoles() (+7 more)
 
 ### Community 397 - "Network Authorized Sync Provider"
 
@@ -4268,8 +4274,8 @@ Nodes (9): AppDelegate, -applicationcontinueUserActivityrestorationHandler, -app
 
 ### Community 403 - "Data Store Auth Evaluator"
 
-Cohesion: 0.18
-Nodes (3): createProvider(), MockWebSocket, PublishMessage
+Cohesion: 0.17
+Nodes (13): compareTileAddress(), ConnectorStorageKind, ConnectorStoragePlan, createConnectorStoragePlan(), CreateConnectorStoragePlanOptions, createFarFieldEdgeSummaries(), CreateFarFieldEdgeSummariesOptions, createTilePairStorageKey() (+5 more)
 
 ### Community 404 - "Changeset Config Access Base"
 
@@ -4423,8 +4429,8 @@ Nodes (7): buildLlmsFull(), cleanMdxContent(), collectMdxFiles(), DocPage, extra
 
 ### Community 434 - "Social Package Exports Import"
 
-Cohesion: 0.25
-Nodes (8): exports, ./import/browser, ./importers, import, import, types, import, types
+Cohesion: 0.67
+Nodes (3): ./import/browser, import, types
 
 ### Community 435 - "Ui Tsconfig Compiler Options"
 
@@ -4613,8 +4619,8 @@ Nodes (13): Clean shutdown after local testing, Code style and architecture rule
 
 ### Community 475 - "Electron Social Workspace Get"
 
-Cohesion: 0.15
-Nodes (12): Adding authorization, Adding rich text support, Coercion, Dev-time warnings, Options, Quick example, Related, Return value: DefinedSchema (+4 more)
+Cohesion: 0.18
+Nodes (10): Adding authorization, Adding rich text support, Coercion, Dev-time warnings, Quick example, Related, Return value: DefinedSchema, Schema inheritance (+2 more)
 
 ### Community 476 - "Web Social Workspace Get"
 
@@ -4643,8 +4649,8 @@ Nodes (5): scripts, build, clean, test, typecheck
 
 ### Community 481 - "Query Xnetjs Site Usequery"
 
-Cohesion: 0.12
-Nodes (15): Hooks Overview, XNetProvider context requirement, @xnetjs/react initial publish metadata, API Reference, Hook Categories, Installation, Quick Start, Related Packages (+7 more)
+Cohesion: 0.08
+Nodes (23): @xnetjs/react initial publish metadata, Additional Hooks, API Reference, Comment Hooks, Core Hooks, History Hooks, Hook Categories, Hub Hooks (+15 more)
 
 ### Community 482 - "Hub Http Rate Limit"
 
@@ -4778,8 +4784,8 @@ Nodes (3): OpenCode Autonomous Plan Loop, Autonomous Builder Prompt, Plan Loop O
 
 ### Community 520 - "React Package Core Import"
 
-Cohesion: 0.18
-Nodes (16): adjustBrightness(), analyzeContrast(), ContrastLevel, ContrastResult, getContrastRatio(), getLuminance(), getLuminanceFromRGB(), getMinimumContrastRatio() (+8 more)
+Cohesion: 0.20
+Nodes (14): CanvasContextPopoverDefinition, CanvasContextPopoverKind, CONTEXT_POPOVER_LABELS, createCanvasContextPopoverDefinitions(), CreateCanvasContextPopoverDefinitionsInput, createDefinition(), getEnabledCanvasContextPopovers(), hasMultipleSourceBackedNodes() (+6 more)
 
 ### Community 521 - "React Package Repository Url"
 
@@ -4788,8 +4794,8 @@ Nodes (3): repository, type, url
 
 ### Community 523 - "Social Package Import"
 
-Cohesion: 0.67
-Nodes (3): ./import, import, types
+Cohesion: 0.25
+Nodes (8): exports, ./import, ./import/node, import, import, import, types, types
 
 ### Community 524 - "Social Package Import Core"
 
@@ -4878,13 +4884,13 @@ Nodes (12): Composed Components, Dependencies, Exports, Features, Hooks, Install
 
 ### Community 781 - "Community 781"
 
-Cohesion: 0.14
-Nodes (13): Lower packages cannot import higher packages, Package Graph, Monorepo development workflow, @xnetjs/sync initial publish metadata, Architecture, Change<T>, Dependencies, Features (+5 more)
+Cohesion: 0.11
+Nodes (18): Lower packages cannot import higher packages, Package Graph, BLAKE3 integrity, Hybrid classical post-quantum cryptography stack, Security levels, XChaCha20-Poly1305 encryption, Monorepo development workflow, @xnetjs/sync initial publish metadata (+10 more)
 
 ### Community 782 - "Community 782"
 
-Cohesion: 0.06
-Nodes (27): CommentPopoverState, CREATABLE_FIELD_TYPES, DatabaseViewProps, FieldMenuState, CommentPopoverState, CREATABLE_FIELD_TYPES, DatabaseViewProps, FieldMenuState (+19 more)
+Cohesion: 0.04
+Nodes (51): CommentPopoverState, CREATABLE_FIELD_TYPES, DatabaseViewProps, FieldMenuState, CommentPopoverState, CREATABLE_FIELD_TYPES, DatabaseViewProps, FieldMenuState (+43 more)
 
 ### Community 783 - "Community 783"
 
@@ -4923,8 +4929,8 @@ Nodes (37): 08 - Editor & Canvas Packages, CANVAS-01: Node Dragging Reads Stale 
 
 ### Community 795 - "Community 795"
 
-Cohesion: 0.40
-Nodes (8): createPersistedDocState(), hashYjsState(), loadVerifiedState(), PersistedDocState, shouldCompact(), verifyPersistedDocState(), verifyYjsStateIntegrity(), YjsIntegrityError
+Cohesion: 0.16
+Nodes (10): NodeChangeMessage, NodePayload, NodeRelayError, NodeRelayService, NodeSyncRequest, NodeSyncResponse, createUnauthorizedRemoteWriteFacts(), RemoteMutationTelemetryOptions (+2 more)
 
 ### Community 796 - "Community 796"
 
@@ -4948,8 +4954,8 @@ Nodes (9): exports, ./schema, ./updates, import, import, types, types, import (+
 
 ### Community 800 - "Community 800"
 
-Cohesion: 0.28
-Nodes (6): preview, Theme, ThemeContext, ThemeContextValue, ThemeProvider(), ThemeProviderProps
+Cohesion: 0.17
+Nodes (10): CardDetailModal(), CardDetailModalProps, getPropertyKey(), PropertyEditor(), PropertyEditorProps, GridCellInner(), GridCellProps, seedValue() (+2 more)
 
 ### Community 801 - "Community 801"
 
@@ -5483,8 +5489,8 @@ Nodes (25): APIs, CI Integration, Communicating with Users, Console Output, Curr
 
 ### Community 907 - "Community 907"
 
-Cohesion: 0.09
-Nodes (19): Every change is signed, Identity is a key pair, Next steps, Nodes are your data, Schemas define your data, Three hooks for everything, Two conflict resolution strategies, useMutate — write data (+11 more)
+Cohesion: 0.12
+Nodes (16): Authorization is encryption, Every change is signed, Identity is a key pair, Next steps, Nodes are your data, Schemas define your data, Three hooks for everything, Two conflict resolution strategies (+8 more)
 
 ### Community 908 - "Community 908"
 
@@ -5528,13 +5534,13 @@ Nodes (24): Auto-populated types, Basic types, checkbox, created, createdBy, dat
 
 ### Community 916 - "Community 916"
 
-Cohesion: 0.25
-Nodes (13): useBackup(), UseBackupReturn, BackupUploadResult, buildAuthHeader(), decodeEncrypted(), downloadBackup(), downloadEncryptedBackup(), encodeEncrypted() (+5 more)
+Cohesion: 0.18
+Nodes (7): options, MultiSelectConfig, multiSelectHandler, CHIP_COLORS, optionChipStyle, SelectConfig, selectHandler
 
 ### Community 917 - "Community 917"
 
-Cohesion: 0.29
-Nodes (7): Field-level LWW decision, BLAKE3 integrity, Hybrid classical post-quantum cryptography stack, Security levels, XChaCha20-Poly1305 encryption, Lamport clocks, Yjs security layer
+Cohesion: 0.17
+Nodes (13): Architecture Decisions, DID:key identity decision, Field-level LWW decision, One-way MetaBridge decision, Yjs over Automerge, Dual CRDT model, Strong eventual consistency, Core Concepts (+5 more)
 
 ### Community 918 - "Community 918"
 
@@ -5581,10 +5587,15 @@ Nodes (23): 07: Storage Package Refactor, BlobStore, Checklist, ChunkManager, Cl
 Cohesion: 0.08
 Nodes (23): 08: Performance and Security, 1. Conformance Test Matrix, 1. Layered Cache Architecture, 2. Adversarial and Fuzz Testing, 2. Event-Driven Invalidation, 3. Abuse Limits, 3. Benchmark Fixtures, 4. Benchmark Suite (+15 more)
 
+### Community 927 - "Community 927"
+
+Cohesion: 0.18
+Nodes (11): ChangeHandler, createHandler(), createTestContext(), createVersionedHandler(), HandlerContext, HandlerEvent, ProcessResult, RegistryStats (+3 more)
+
 ### Community 928 - "Community 928"
 
-Cohesion: 0.07
-Nodes (30): resetWebSQLiteStorage(), clearIndexedDBDatabases(), clearWebSQLiteStorage(), clearXNetBrowserStorage(), clearXNetBrowserStorageResetRequest(), getLocalStorage(), getSessionStorage(), IndexedDBDatabaseInfo (+22 more)
+Cohesion: 0.05
+Nodes (35): resetWebSQLiteStorage(), clearIndexedDBDatabases(), clearWebSQLiteStorage(), clearXNetBrowserStorage(), clearXNetBrowserStorageResetRequest(), getLocalStorage(), getSessionStorage(), IndexedDBDatabaseInfo (+27 more)
 
 ### Community 929 - "Community 929"
 
@@ -5828,8 +5839,8 @@ Nodes (19): Architecture and Phase Overview, Current State in the Repository, Ex
 
 ### Community 977 - "Community 977"
 
-Cohesion: 0.27
-Nodes (3): AutoBackup, AutoBackupOptions, BackupUploader
+Cohesion: 0.23
+Nodes (13): QueryMaterializedInfo, QueryPlanInfo, QueryStreamInfo, TrackedQuery, Window, QueryDebugger(), inferHookType(), processEvent() (+5 more)
 
 ### Community 978 - "Community 978"
 
@@ -5929,7 +5940,7 @@ Nodes (17): 0114 - Decentralized Alternatives for Non-xNet Internet Layers, Exec
 ### Community 997 - "Community 997"
 
 Cohesion: 0.11
-Nodes (17): 0117 - Architecting Decentralized AI on xNet, Concrete Next Actions, Core Thesis, Executive Summary, Exploration Status, Final Take, Frontier Deployment Matrix, Implication (+9 more)
+Nodes (17): 0117 - Architecting Decentralized AI on xNet, Concrete Next Actions, Core Thesis, Current relevant code surfaces, Executive Summary, Exploration Status, Final Take, Frontier Deployment Matrix (+9 more)
 
 ### Community 998 - "Community 998"
 
@@ -6003,8 +6014,8 @@ Nodes (16): 0108 - Canvas V1 Pages, Databases, Drops, and Infinite Canvas Deep D
 
 ### Community 1012 - "Community 1012"
 
-Cohesion: 0.12
-Nodes (16): 0111 - Unified Workbench Architecture for xNet, Canonical Model, Collaboration Fabric, Collaboration stack, ERP and Other Vertical Products, Exploration Status, External Research, Final Recommendation (+8 more)
+Cohesion: 0.14
+Nodes (13): 0111 - Unified Workbench Architecture for xNet, Canonical Model, Collaboration Fabric, Collaboration stack, ERP and Other Vertical Products, Exploration Status, Final Recommendation, Future continuum (+5 more)
 
 ### Community 1013 - "Community 1013"
 
@@ -6113,13 +6124,13 @@ Nodes (16): Architecture Decisions, Architecture Overview, Data Model, Dependenc
 
 ### Community 1034 - "Community 1034"
 
-Cohesion: 0.25
-Nodes (8): MetaBridge, NodePool, OfflineQueue, Orchestration layer, Registry, SyncManager, SignedYjsEnvelope, Sync Guide
+Cohesion: 0.13
+Nodes (15): Multiplexed WebSocket decision, Background Sync Manager, MetaBridge, NodePool, NodePool Registry OfflineQueue, OfflineQueue, Orchestration layer, Registry (+7 more)
 
 ### Community 1035 - "Community 1035"
 
-Cohesion: 0.18
-Nodes (14): BrowserSupport, checkBrowserSupport(), checkPersistentStorage(), escapeHtml(), getPersistenceMessage(), isSafariPrivateBrowsing(), PersistentStorageRequestOptions, PersistentStorageStatus (+6 more)
+Cohesion: 0.15
+Nodes (11): AwarenessSnapshotHandler, AwarenessSnapshotUsers, ConnectionStatus, createIPCSyncManager(), DevToolsEventBus, DocType, LifecycleHandler, ReconciliationHandler (+3 more)
 
 ### Community 1036 - "Community 1036"
 
@@ -6128,8 +6139,8 @@ Nodes (8): 3.1 Like, 3.2 React (Emoji Reactions), 3.3 Bookmark, 3.4 Comment, 3.5
 
 ### Community 1037 - "Community 1037"
 
-Cohesion: 0.29
-Nodes (7): Understanding xNet for AI Assistants, No-backend AI assistance model, Local-First, Offline-first local data model, Offline Support, AI no-backend mental model, Complete LLM documentation bundle
+Cohesion: 0.27
+Nodes (7): createQueryErrorMetadata(), createQueryMetadata(), createQuerySnapshotMetadata(), getCountMetadata(), getOffset(), getPageInfo(), TEST_SCHEMA_ID
 
 ### Community 1038 - "Community 1038"
 
@@ -6146,10 +6157,15 @@ Nodes (15): 06 - Identity & UCAN Hardening, Change Details, Checklist, Fix:, Har
 Cohesion: 0.12
 Nodes (15): Applications, Dependency graph, Package details, The rule, @xnetjs/canvas, @xnetjs/crypto, @xnetjs/data, @xnetjs/devtools (+7 more)
 
+### Community 1041 - "Community 1041"
+
+Cohesion: 0.18
+Nodes (3): createAiSurfaceService(), MCPServer, toMCPTool()
+
 ### Community 1042 - "Community 1042"
 
 Cohesion: 0.12
-Nodes (15): 11.1 Multi-Schema Queries, 11.2 Schema-Aware Type Narrowing, 7.1 Search Index, 7.2 Index Maintenance, 7.3 Search + Relation Queries, Conclusion, Context, Design Principles (+7 more)
+Nodes (15): 11.1 Multi-Schema Queries, 11.2 Schema-Aware Type Narrowing, 9.1 Why Datalog Matters, 9.2 Translation to Datalog-Like Evaluation, 9.3 Incremental View Maintenance, Conclusion, Context, Design Principles (+7 more)
 
 ### Community 1043 - "Community 1043"
 
@@ -6523,8 +6539,8 @@ Nodes (13): CLI Migration Schema Doctor Tools, Schema Migration Lenses, Protocol
 
 ### Community 1117 - "Community 1117"
 
-Cohesion: 0.05
-Nodes (68): fields, rows, coerceCellText(), CoerceResult, CopyField, FALSY, formatCellText(), parseTsv() (+60 more)
+Cohesion: 0.08
+Nodes (52): coerceCellText(), CoerceResult, CopyField, FALSY, formatCellText(), parseTsv(), PasteField, serializeTsv() (+44 more)
 
 ### Community 1118 - "Community 1118"
 
@@ -6580,6 +6596,11 @@ Nodes (13): Example Code 💻, Executive Summary 🎯, Exploration Status, Exter
 
 Cohesion: 0.14
 Nodes (13): Background sync for important nodes, Connection status indicator, Handling merge results, How offline sync works, Limits, Local-first by default, Normal operation (connected), Offline-aware forms (+5 more)
+
+### Community 1129 - "Community 1129"
+
+Cohesion: 0.20
+Nodes (10): clamp(), DEFAULT_DEMOTED_LABELS, DEFAULT_HIDDEN_LABELS, maxLabelConfidence(), RISK_QUALITY_SIGNALS, SearchModerationLabel, SearchModerationSummary, SearchQualitySignal (+2 more)
 
 ### Community 1130 - "Community 1130"
 
@@ -6989,7 +7010,12 @@ Nodes (12): 08: Multilingual Node Content, Acceptance Criteria, Adding translati
 ### Community 1211 - "Community 1211"
 
 Cohesion: 0.05
-Nodes (52): DEFAULT_KEYBOARD_THRESHOLDS, deriveKeyboardState(), deriveSelectionShape(), EditorContentMode, EditorModePolicy, EditorModePolicyInput, EditorUxState, hasCommandSelection() (+44 more)
+Nodes (55): DEFAULT_KEYBOARD_THRESHOLDS, deriveKeyboardState(), deriveSelectionShape(), EditorContentMode, EditorModePolicy, EditorModePolicyInput, EditorUxState, hasCommandSelection() (+47 more)
+
+### Community 1212 - "Community 1212"
+
+Cohesion: 0.35
+Nodes (11): attentionBursts(), bridgeActors(), crossSourceOverlap(), evidenceForBuckets(), privacyHotspots(), repeatedCreators(), sourceImportRunIdsFor(), suggestion() (+3 more)
 
 ### Community 1213 - "Community 1213"
 
@@ -7448,8 +7474,8 @@ Nodes (10): Best practices, Deprecation policy, DevTools panel, Further reading,
 
 ### Community 1304 - "Community 1304"
 
-Cohesion: 0.18
-Nodes (10): 14: Notifications, Calendar & External Integrations, External Integrations Pattern, Integration Bridge, Platform Capabilities, Platform Feature Matrix, Self-Hosted Bridge Option, Summary, The Challenge (+2 more)
+Cohesion: 0.20
+Nodes (9): 14: Notifications, Calendar & External Integrations, Calendar Integration for ERP, ERP Integration Points, Platform Capabilities, Platform Feature Matrix, Summary, Task Notifications, The Challenge (+1 more)
 
 ### Community 1305 - "Community 1305"
 
@@ -7603,8 +7629,8 @@ Nodes (10): 09: API Gateway, API Gateway Server, Architecture, Core Types, File 
 
 ### Community 1335 - "Community 1335"
 
-Cohesion: 0.22
-Nodes (8): Additional packages, Design principles, Further reading, How data flows, Layered architecture, Read path, Sync path, Write path
+Cohesion: 0.27
+Nodes (4): NodeDetail(), NodeExplorer(), NodeEntry, useNodeExplorer()
 
 ### Community 1336 - "Community 1336"
 
@@ -7679,7 +7705,7 @@ Nodes (10): Component Priority, Implementation Roadmap, Migration Path, Open Que
 ### Community 1350 - "Community 1350"
 
 Cohesion: 0.20
-Nodes (9): Executive Summary, Existing Precedents in the Ecosystem, Exploration: Rewriting @xnetjs Packages in Zig or Rust, Integration Strategy, Key Observations, Projects That Successfully Mixed Rust + TypeScript, Projects That Use Zig, The y-crdt (yrs) Opportunity (+1 more)
+Nodes (9): Current Benchmark Data (from `@xnetjs/crypto`), Executive Summary, Existing Precedents in the Ecosystem, Exploration: Rewriting @xnetjs Packages in Zig or Rust, Hot Path Analysis, Key Observations, Performance Analysis: Where Are the Bottlenecks?, Projects That Successfully Mixed Rust + TypeScript (+1 more)
 
 ### Community 1351 - "Community 1351"
 
@@ -7778,8 +7804,8 @@ Nodes (9): 09: AI & MCP Interface, AI-Collaborative Document Editing, Architectu
 
 ### Community 1370 - "Community 1370"
 
-Cohesion: 0.20
-Nodes (10): Alternative: Make.com / Zapier, API Endpoints, Architecture: xNet + n8n, Comparison, Docker Compose Setup, Security Considerations, Webhook Events (Outbound), Workflow Automation (n8n, Make, Zapier) (+2 more)
+Cohesion: 0.14
+Nodes (14): Alternative: Make.com / Zapier, API Endpoints, Architecture: xNet + n8n, Comparison, Deployment Options, Docker Compose Setup, Option 1: Same Machine (Simplest), Option 2: Home Server / NAS (+6 more)
 
 ### Community 1371 - "Community 1371"
 
@@ -8014,7 +8040,7 @@ Nodes (9): Comparison Summary, Datomic Datalog, Part 12: Query DSL Comparison, P
 ### Community 1417 - "Community 1417"
 
 Cohesion: 0.22
-Nodes (9): 1.1 Trigger Deployment, 1.2 Verify GitHub Actions, 1.3 Test Live URL, 6.1 Manual Testing Checklist, 6.2 Curl Tests, 6.3 Browser Console Checks, Implementation Plan, Phase 1: Verify Deployment (Day 1 Morning) (+1 more)
+Nodes (9): 1.1 Trigger Deployment, 1.2 Verify GitHub Actions, 1.3 Test Live URL, 5.1 Export Components from @xnetjs/react, 5.2 Update Root Layout, 5.3 Update Sidebar/Header for Quota (Optional), Implementation Plan, Phase 1: Verify Deployment (Day 1 Morning) (+1 more)
 
 ### Community 1418 - "Community 1418"
 
@@ -8298,8 +8324,8 @@ Nodes (8): Canvas V2 Release Gates, Current Thresholds, Gate Decision, Gate Mapp
 
 ### Community 1474 - "Community 1474"
 
-Cohesion: 0.33
-Nodes (6): Core Hooks, Materialized views, Remote and stream queries, `useMutate` -- Write Data, `useNode` -- Rich Text Editing, `useQuery` -- Read Data
+Cohesion: 0.29
+Nodes (6): IndexedDoc, SearchableDocument, SearchIndex, SearchIndexOptions, SearchModerationPolicy, SearchModerationSignals
 
 ### Community 1475 - "Community 1475"
 
@@ -8629,7 +8655,7 @@ Nodes (8): Circuit Relay (P2P Hubs), How GossipSub Works, P2P Mesh Scaling, Scal
 ### Community 1540 - "Community 1540"
 
 Cohesion: 0.25
-Nodes (7): 16: Development Timeline, Complete Timeline Overview, Overview, Phase 0: Setup & Foundations (Weeks 0-4), Summary, Week 0: Monorepo Setup, Weeks 1-4: Phase 0 Foundations
+Nodes (7): 16: Development Timeline, Complete Timeline Overview, Decision Points, Overview, Summary, When to Ask for Help, When to Pause and Assess
 
 ### Community 1541 - "Community 1541"
 
@@ -9881,6 +9907,11 @@ Nodes (5): 02: Node Pool, Checklist, Implementation, Overview, Tests
 Cohesion: 0.33
 Nodes (5): 07: Offline Queue, Checklist, Implementation, Integration with Sync Manager, Overview
 
+### Community 1792 - "Community 1792"
+
+Cohesion: 0.31
+Nodes (4): createLocalQueryEngine(), LocalQueryEngine, matchesFilter(), matchesFilters()
+
 ### Community 1793 - "Community 1793"
 
 Cohesion: 0.40
@@ -10173,8 +10204,8 @@ Nodes (5): 💡 Phase 3: Developer Experience (Weeks 5-6), @xnetjs/canvas - Rend
 
 ### Community 1851 - "Community 1851"
 
-Cohesion: 0.40
-Nodes (5): Additional Hooks, Comment Hooks, History Hooks, Hub Hooks, Plugin Hooks
+Cohesion: 0.25
+Nodes (8): builtinHandlers, customHandlers, ExtendedPropertyType, getRegisteredPropertyTypes(), listeners, notifyListeners(), onPropertyHandlersChange(), registerPropertyHandler()
 
 ### Community 1852 - "Community 1852"
 
@@ -11008,13 +11039,13 @@ Nodes (4): Environment Variables, Railway Deployment Configuration, railway.toml
 
 ### Community 2019 - "Community 2019"
 
-Cohesion: 0.50
-Nodes (4): Calendar Integration for ERP, ERP Integration Points, Task Notifications, Workflow Notifications
+Cohesion: 0.25
+Nodes (8): Identity Guide, DID:key identity, Property type categories, Content-addressed file reference, Property Types, person() property, relation() property, Relations
 
 ### Community 2020 - "Community 2020"
 
-Cohesion: 0.50
-Nodes (4): 5.1 Export Components from @xnetjs/react, 5.2 Update Root Layout, 5.3 Update Sidebar/Header for Quota (Optional), Phase 5: Wire Demo Components into Web App (Day 4)
+Cohesion: 0.25
+Nodes (3): DateRangeConfig, dateRangeHandler, DateRangeValue
 
 ### Community 2021 - "Community 2021"
 
@@ -11753,8 +11784,8 @@ Nodes (5): 3.1 Hero CTA, 3.2 Nav Link, 3.3 Fix Download Page Dead Link, 3.4 GetS
 
 ### Community 2168 - "Community 2168"
 
-Cohesion: 0.50
-Nodes (4): Deployment Options, Option 1: Same Machine (Simplest), Option 2: Home Server / NAS, Option 3: Cloud VPS (Self-Hosted)
+Cohesion: 0.25
+Nodes (3): PersonConfig, personHandler, PersonSuggestion
 
 ### Community 2169 - "Community 2169"
 
@@ -11968,8 +11999,8 @@ Nodes (3): Codebase Inventory, Dependency Graph with Rewrite Candidates, Package
 
 ### Community 2213 - "Community 2213"
 
-Cohesion: 0.50
-Nodes (4): 9.1 Why Datalog Matters, 9.2 Translation to Datalog-Like Evaluation, 9.3 Incremental View Maintenance, Part 9: Datalog Semantics Under the Hood
+Cohesion: 0.29
+Nodes (4): RelationChipProps, RelationConfig, RelationEditor(), relationHandler
 
 ### Community 2214 - "Community 2214"
 
@@ -12074,7 +12105,7 @@ Nodes (3): Affinity Clusters and Mixture-of-Experts Routing, Important nuance, W
 ### Community 2234 - "Community 2234"
 
 Cohesion: 0.04
-Nodes (70): createCanvasFarZoomEdgeSummaries(), createCanvasMinimapRelationshipHints(), buildCanvasPerformanceScene(), calculateBounds(), CanvasPerformanceSceneOptions, CanvasPerformanceSceneSeedResult, CanvasPerformanceSceneSummary, CONTENT_NODE_SEQUENCE (+62 more)
+Nodes (87): createCanvasFarZoomEdgeSummaries(), createCanvasMinimapRelationshipHints(), buildCanvasPerformanceScene(), calculateBounds(), CanvasPerformanceSceneOptions, CONTENT_NODE_SEQUENCE, createCanvasPerformanceSceneDoc(), createClusterGroup() (+79 more)
 
 ### Community 2235 - "Community 2235"
 
@@ -12103,8 +12134,8 @@ Nodes (5): 🔧 Phase 4: Specialized Features (Weeks 7-8), @xnetjs/formula - Exp
 
 ### Community 2240 - "Community 2240"
 
-Cohesion: 0.67
-Nodes (3): Current relevant code surfaces, Important current gap, What xNet Has Now
+Cohesion: 0.40
+Nodes (4): DevToolsEventType, useDevTools(), XNetDevToolsProvider(), XNetDevToolsProviderProps
 
 ### Community 2241 - "Community 2241"
 
@@ -12323,13 +12354,13 @@ Nodes (3): Integration with Existing Networks, Required Infrastructure, Technica
 
 ### Community 2297 - "Community 2297"
 
-Cohesion: 0.67
-Nodes (3): import, types, ./core
+Cohesion: 0.47
+Nodes (4): TaskChecklistCell(), TaskChecklistEditor(), taskChecklistHandler, useTaskDisplayMap()
 
 ### Community 2298 - "Community 2298"
 
-Cohesion: 1.00
-Nodes (3): parseSavedViewDescriptor(), primarySchemaIdForQuery(), primarySchemaIdForQuerySet()
+Cohesion: 0.40
+Nodes (5): External Integrations Pattern, Integration Bridge, Self-Hosted Bridge Option, The General Problem, What Requires the Bridge vs What Doesn't
 
 ### Community 2299 - "Community 2299"
 
@@ -12338,8 +12369,8 @@ Nodes (3): Deployment Order, Infrastructure Priority, Phase 4: Infrastructure (O
 
 ### Community 2300 - "Community 2300"
 
-Cohesion: 1.00
-Nodes (3): parseSavedViewDescriptor(), primarySchemaIdForQuery(), primarySchemaIdForQuerySet()
+Cohesion: 0.50
+Nodes (4): 7.1 Search Index, 7.2 Index Maintenance, 7.3 Search + Relation Queries, Part 7: Full-Text Search Architecture
 
 ### Community 2301 - "Community 2301"
 
@@ -12383,50 +12414,70 @@ Nodes (3): repository, type, url
 
 ### Community 2309 - "Community 2309"
 
-Cohesion: 0.67
-Nodes (3): ./import/node, import, types
-
-### Community 2310 - "Community 2310"
-
-Cohesion: 0.67
-Nodes (3): Current Benchmark Data (from `@xnetjs/crypto`), Hot Path Analysis, Performance Analysis: Where Are the Bottlenecks?
+Cohesion: 0.50
+Nodes (4): 6.1 Manual Testing Checklist, 6.2 Curl Tests, 6.3 Browser Console Checks, Phase 6: Testing & Validation (Day 5)
 
 ### Community 2311 - "Community 2311"
 
 Cohesion: 0.67
 Nodes (3): Codebase, External references, References
 
-### Community 2312 - "Community 2312"
-
-Cohesion: 0.67
-Nodes (3): Four-layer extensibility system, Plugin middleware system, Plugin Development Guide
-
 ### Community 2314 - "Community 2314"
 
 Cohesion: 0.67
-Nodes (3): Decision Points, When to Ask for Help, When to Pause and Assess
+Nodes (3): Integration Strategy, The y-crdt (yrs) Opportunity, yrs vs yjs Comparison
+
+### Community 2315 - "Community 2315"
+
+Cohesion: 0.67
+Nodes (3): External Research, Key Sources, xNet Repo
+
+### Community 2316 - "Community 2316"
+
+Cohesion: 0.67
+Nodes (3): Prompt Injection and Retrieval Security, Recommended pipeline, Why xNet AI is especially exposed
+
+### Community 2317 - "Community 2317"
+
+Cohesion: 0.67
+Nodes (3): Phase 0: Setup & Foundations (Weeks 0-4), Week 0: Monorepo Setup, Weeks 1-4: Phase 0 Foundations
+
+### Community 2318 - "Community 2318"
+
+Cohesion: 0.67
+Nodes (3): import, types, ./experimental
+
+### Community 2319 - "Community 2319"
+
+Cohesion: 0.67
+Nodes (3): publishConfig, access, provenance
+
+### Community 2320 - "Community 2320"
+
+Cohesion: 0.67
+Nodes (3): ./importers, import, types
 
 ## Knowledge Gaps
 
-- **16819 isolated node(s):** `Problem Statement`, `Executive Summary`, `The Task node already exists and is rich`, `Surface-by-surface inventory`, `Prior explorations that constrain this design` (+16814 more)
+- **16825 isolated node(s):** `DocType`, `SidebarDoc`, `typeConfig`, `schemaByType`, `TasksTab` (+16820 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **244 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **241 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Listener` connect `React Use Auth Hooks` to `Canvas Node Edge Position`, `Social Reddit Ids Create`, `Sync Features Provider Base`, `Site Crdts Dual Crdt`, `Plugins Registry Plugin Manifest`, `Electron Data Process Manager`, `Views Property Handler Editor`, `Plugins Contributions Typed Registry`, `Identity Key Bundle Entry`, `Data Store Node Storage`, `React Sync Manager Connection`, `Data Evaluator Default Policy`, `Telemetry Manager Tier Consent`, `Sync Change Telemetry Manager`, `Electron Cloudflare Tunnel Manager`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
-- **Why does `cn()` connect `Ui Responsive Sidebar Contrast` to `Views View Config Use`, `Views Use Gallery State`, `Community 782`, `Editor React Canvas External`, `Editor Items Slash Command`, `Views Database Surface Stories`, `Data Embed Registry Evaluate`, `Views Use Calendar State`, `Social Browser Ids Archive`, `Canvas Core Summary Workers`, `Ui Comments Catalog Stories`, `Hub Create Instance Awareness`, `Community 1211`, `Canvas Performance Validation Snap`, `Social Youtube Create Playlist`, `Data Query Sqlite Adapter`, `Editor File Extension Drop`, `Editor Mermaid Extension Node`, `Editor Task Mention Extension`, `Community 1117`, `Plugins Middleware Chain Node`, `Views Add Column Modal`, `Ui Settings View Stories`, `Editor Callout Extension Node`, `Editor Blob Context Image`, `Views Use Timeline State`, `Canvas Use Comments Comment`, `Editor Drag Drop Plugin`?**
+- **Why does `Listener` connect `React Use Auth Hooks` to `Canvas Node Edge Position`, `Community 1851`, `Social Reddit Ids Create`, `Sync Features Provider Base`, `Site Crdts Dual Crdt`, `Plugins Registry Plugin Manifest`, `Electron Data Process Manager`, `Plugins Contributions Typed Registry`, `Identity Key Bundle Entry`, `Data Store Node Storage`, `React Sync Manager Connection`, `Data Evaluator Default Policy`, `Telemetry Manager Tier Consent`, `Sync Change Telemetry Manager`, `Electron Cloudflare Tunnel Manager`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
+- **Why does `cn()` connect `Ui Responsive Sidebar Contrast` to `Views View Config Use`, `Views Use Gallery State`, `Community 782`, `Editor React Canvas External`, `Editor Items Slash Command`, `Views Database Surface Stories`, `Data Embed Registry Evaluate`, `Views Use Calendar State`, `Editor Extensions Markdown Io`, `React Context Internal Use`, `Community 800`, `Web App Browser Storage`, `Social Browser Ids Archive`, `Canvas Core Summary Workers`, `Ui Comments Catalog Stories`, `Hub Create Instance Awareness`, `Community 1211`, `Canvas Performance Validation Snap`, `Electron App Settings View`, `Data Query Sqlite Adapter`, `Editor File Extension Drop`, `Editor Mermaid Extension Node`, `Editor Task Mention Extension`, `Community 1117`, `Plugins Middleware Chain Node`, `Views Add Column Modal`, `Ui Settings View Stories`, `Editor Callout Extension Node`, `Electron Ipc Sync Manager`, `Views Use Timeline State`, `Canvas Use Comments Comment`, `Editor Drag Drop Plugin`?**
   _High betweenness centrality (0.024) - this node is a cross-community bridge._
-- **Why does `hashHex()` connect `Abuse Content Fingerprint Crypto` to `Community 795`, `Views Grid Peek File`, `Abuse Usage Events Create`, `Data Awareness Registry Updates`, `Social Core Stage Archive`, `Crypto Envelope Key Resolution`, `Identity Ucan Create Share`, `Data Evaluator Store Auth`, `Data System Comment Anchors`, `Hub Ucan Files File`, `Sync Change Clock Yjs`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **What connects `Problem Statement`, `Executive Summary`, `The Task node already exists and is rich` to the rest of the system?**
-  _16846 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `hashHex()` connect `Abuse Content Fingerprint Crypto` to `Views Grid Peek File`, `React Saved View Visual`, `Crypto Envelope Key Resolution`, `Hub Relay Sync Yjs`, `Identity Ucan Create Share`, `Data System Comment Anchors`, `Hub Server Node Relay`, `Sync Change Clock Yjs`, `React Context Internal Use`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **What connects `DocType`, `SidebarDoc`, `typeConfig` to the rest of the system?**
+  _16852 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Canvas Controller Annotations Page` be split into smaller, more focused modules?**
-  _Cohesion score 0.015400525462574767 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.014586937210715788 - nodes in this community are weakly interconnected._
 - **Should `Canvas Node Edge Position` be split into smaller, more focused modules?**
-  _Cohesion score 0.02254321572341937 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.02803606649760496 - nodes in this community are weakly interconnected._
 - **Should `Canvas V2Legacy Viewport Node` be split into smaller, more focused modules?**
-  _Cohesion score 0.022485207100591716 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.023058937353866 - nodes in this community are weakly interconnected._
