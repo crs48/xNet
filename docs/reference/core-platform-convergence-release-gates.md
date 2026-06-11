@@ -69,6 +69,43 @@ Environment:
 | `database-update-row`       |         20 |     0.36 |     0.31 |     0.75 |
 | `database-reorder-row`      |         20 |     0.34 |     0.31 |     0.45 |
 
+### Updated baselines — June 11, 2026 (exploration 0163 hot-path work)
+
+Recorded after the 0163 phases landed: bounded-query incremental deltas,
+adapter diagnostics gating, identity-stable React layer, two-round-trip
+singular writes, and optimistic cache apply. `query-update-fanout-*` is now
+end-to-end (durable write + cache fan-out); `query-update-perceived-*`
+measures cache-visible latency from the optimistic apply. The 50k fan-out
+average is dominated by the first iteration's cold initial query (~58 ms);
+its warm iterations match the 10k numbers. `global-search-*` (untouched by 0163) measured ~33 ms at 10k on this machine both before and after the
+changes — the difference from the March numbers is environment drift, not
+a regression.
+
+Environment:
+
+- `recordedAt`: `2026-06-11T20:47:41.874Z`
+- `node`: `v23.11.1`
+- `platform`: `darwin`
+- `arch`: `arm64`
+
+| Metric                          | Iterations | Avg (ms) | Min (ms) | Max (ms) |
+| ------------------------------- | ---------: | -------: | -------: | -------: |
+| `query-window-1000`             |         10 |     0.28 |     0.01 |     2.63 |
+| `query-filtered-1000`           |         10 |     0.12 |     0.00 |     1.10 |
+| `query-update-fanout-1000`      |         10 |     0.66 |     0.48 |     1.41 |
+| `query-update-perceived-1000`   |         10 |     0.46 |     0.18 |     0.88 |
+| `query-window-10000`            |         10 |     0.49 |     0.00 |     4.78 |
+| `query-filtered-10000`          |         10 |     0.76 |     0.00 |     7.54 |
+| `query-update-fanout-10000`     |         10 |     0.55 |     0.38 |     1.26 |
+| `query-update-perceived-10000`  |         10 |     0.37 |     0.07 |     0.52 |
+| `query-update-fanout-50000`     |         10 |     7.66 |     0.37 |    72.92 |
+| `query-update-fanout-10000-x10` |         10 |     0.71 |     0.49 |     1.18 |
+| `global-search-1000`            |         25 |     3.26 |     2.54 |     6.50 |
+| `global-search-10000`           |         25 |    35.82 |    32.64 |    46.83 |
+| `database-create-row`           |         15 |     1.37 |     1.18 |     2.07 |
+| `database-update-row`           |         20 |     0.39 |     0.31 |     0.87 |
+| `database-reorder-row`          |         20 |     0.36 |     0.31 |     0.51 |
+
 ## Validation Runs
 
 | Category                        | Command                                                                                                                                                                                                       | Result                                                                              |

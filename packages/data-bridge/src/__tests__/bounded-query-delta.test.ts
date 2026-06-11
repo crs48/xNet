@@ -164,7 +164,7 @@ describe('applyNodeChangeToBoundedQueryResult', () => {
   })
 
   it('matches re-executed ground truth across randomized op sequences', () => {
-    const SEQUENCES = 60
+    const SEQUENCES = 170
     const OPS_PER_SEQUENCE = 60
 
     for (let sequence = 0; sequence < SEQUENCES; sequence += 1) {

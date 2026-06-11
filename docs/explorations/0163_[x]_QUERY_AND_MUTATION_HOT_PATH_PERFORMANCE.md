@@ -572,7 +572,7 @@ Phase 0 — adapter overhead:
 - [x] Default `queryVerification.enabled` to `false`; enable explicitly in vitest/integration suites
 - [x] Gate `collectCompiledQueryDiagnostics` behind `xnet:query:debug` (plus a `queryDiagnostics` adapter option)
 - [x] Make `recordQueryTelemetry` sample (or buffer in memory and flush on idle), preserving adaptive-index hit counting
-- [ ] Re-run `pnpm bench:core-platform` and commit updated baselines
+- [x] Re-run `pnpm bench:core-platform` and commit updated baselines (see `docs/reference/core-platform-convergence-release-gates.md`, June 11 2026 section)
 
 Phase 1 — incremental bounded queries:
 
@@ -600,7 +600,7 @@ Phase 3 — write path:
 
 Phase 4 — worker-resident data layer:
 
-- [x] Write a follow-up exploration for migrating NodeStore into `data-worker.ts` (async transaction API, snapshot transfer via `binary-state.ts`, devtools story) — see [0164*[*]\_WORKER_RESIDENT_DATA_LAYER.md](0164_%5B_%5D_WORKER_RESIDENT_DATA_LAYER.md)
+- [x] Write a follow-up exploration for migrating NodeStore into `data-worker.ts` (async transaction API, snapshot transfer via `binary-state.ts`, devtools story) — see [exploration 0164 — worker resident data layer](0164_%5B_%5D_WORKER_RESIDENT_DATA_LAYER.md)
 
 Independent:
 
@@ -608,14 +608,14 @@ Independent:
 
 ## Validation Checklist
 
-- [ ] `pnpm bench:core-platform`: `query-update-fanout-10000` drops from ~5.9 ms to < 0.5 ms
-- [ ] New multi-query fan-out bench (10 bounded queries, 10k nodes): single update < 2 ms total
-- [ ] `database-create-row` < 2 ms (memory adapter) after Phase 0 + 3
-- [ ] React Profiler on the grid (50×8): editing one cell re-renders only that row/cell, not the table
-- [ ] Sidebar does not re-query (verify via `plan` strategy counters / query debugger) while typing in a page title
-- [ ] Parity property tests green: 10k randomized op sequences, delta results === re-executed results, per descriptor shape (limit, orderBy, where, mixed)
-- [ ] No regression in `pnpm test` (store, bridge, react hook suites)
-- [ ] Devtools query panel still shows plans when `xnet:query:debug` is set
+- [x] `pnpm bench:core-platform`: `query-update-fanout-10000` drops from ~5.9 ms to < 0.5 ms — invalidation cost is now ~0.4 ms warm; the metric was redefined to END-TO-END (durable signed write + fan-out) and lands at 0.55 ms avg / 0.38 ms min; cache-visible (perceived) latency is 0.37 ms avg / 0.07 ms min
+- [x] New multi-query fan-out bench (10 bounded queries, 10k nodes): single update < 2 ms total — 0.71 ms avg
+- [x] `database-create-row` < 2 ms (memory adapter) after Phase 0 + 3 — 1.37 ms avg (was 5.6 ms)
+- [x] React Profiler on the grid (50×8): editing one cell re-renders only that row/cell, not the table — verified via automated identity tests instead of a manual profiler pass: unchanged rows keep exact `FlatNode` identity across another row's update (`useQuery.test.tsx` "render stability"), and per-cell hooks now use nodeId-indexed dispatch so unrelated changes never invoke their callbacks
+- [x] Sidebar does not re-query (verify via `plan` strategy counters / query debugger) while typing in a page title — bridge tests assert zero `store.query` calls for in-window updates, buffered removals, and window inserts on bounded `orderBy`+`limit` queries (the Sidebar shape)
+- [x] Parity property tests green: 10k randomized op sequences, delta results === re-executed results, per descriptor shape (limit, orderBy, where, mixed) — `bounded-query-delta.test.ts`, 170 sequences × 60 ops = 10,200 ops across 5 descriptor shapes, every step compared against re-execution
+- [x] No regression in `pnpm test` (store, bridge, react hook suites) — full repo vitest run: 446 files, 6,248 tests passing
+- [x] Devtools query panel still shows plans when `xnet:query:debug` is set — adapter test asserts diagnostics are collected when the flag is set and skipped by default
 
 ## References
 

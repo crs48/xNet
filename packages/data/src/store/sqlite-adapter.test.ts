@@ -1712,6 +1712,49 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(result.plan.postFilterReason).toBe('verified-in-js')
     })
 
+    it('collects plan diagnostics when the xnet:query:debug flag is set', async () => {
+      const debugAdapter = new SQLiteNodeStorageAdapter(db)
+      const globalWithStorage = globalThis as {
+        localStorage?: { getItem: (key: string) => string | null }
+      }
+      const previousLocalStorage = globalWithStorage.localStorage
+      globalWithStorage.localStorage = {
+        getItem: (key: string) => (key === 'xnet:query:debug' ? 'true' : null)
+      }
+      const consoleDebug = vi.spyOn(console, 'debug').mockImplementation(() => undefined)
+
+      try {
+        const result = await debugAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          where: { status: 'open' }
+        })
+
+        expect(result.plan.usedIndexNames).toBeDefined()
+        expect(result.plan.availableIndexCount).toBeGreaterThan(0)
+      } finally {
+        consoleDebug.mockRestore()
+        if (previousLocalStorage === undefined) {
+          delete globalWithStorage.localStorage
+        } else {
+          globalWithStorage.localStorage = previousLocalStorage
+        }
+      }
+    })
+
+    it('skips plan diagnostics by default', async () => {
+      const defaultAdapter = new SQLiteNodeStorageAdapter(db)
+
+      const result = await defaultAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+
+      expect(result.plan.usedIndexNames).toBeUndefined()
+      expect(result.plan.parityCheck).toMatchObject({ strategy: 'skipped', reason: 'disabled' })
+    })
+
     it('skips parity checks when the descriptor scope exceeds the configured cap', async () => {
       adapter = new SQLiteNodeStorageAdapter(db, {
         queryVerification: { enabled: true, maxNodes: 1 }

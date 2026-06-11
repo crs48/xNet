@@ -152,7 +152,7 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
 
 ## References
 
-- [docs/explorations/0163*[*]\_QUERY_AND_MUTATION_HOT_PATH_PERFORMANCE.md](0163_%5B_%5D_QUERY_AND_MUTATION_HOT_PATH_PERFORMANCE.md) — predecessor; phases 0–3 landed
+- [Exploration 0163 — query and mutation hot path performance](0163_%5Bx%5D_QUERY_AND_MUTATION_HOT_PATH_PERFORMANCE.md) — predecessor; phases 0–3 landed
 - [packages/data-bridge/src/worker-bridge.ts](../../packages/data-bridge/src/worker-bridge.ts), [worker/data-worker.ts](../../packages/data-bridge/src/worker/data-worker.ts), [worker/worker-types.ts](../../packages/data-bridge/src/worker/worker-types.ts) — existing skeleton
 - [packages/data-bridge/src/utils/binary-state.ts](../../packages/data-bridge/src/utils/binary-state.ts) — snapshot encoding
 - SQLite WASM OPFS sync access handles — https://sqlite.org/wasm/doc/trunk/persistence.md
