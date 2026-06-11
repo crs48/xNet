@@ -50,6 +50,7 @@ import {
   createBoundedWorkingSetDescriptor,
   createQueryDescriptor,
   queryDescriptorSupportsBoundedDelta,
+  reuseEquivalentNodeReferences,
   serializeQueryDescriptor,
   type BoundedQueryWorkingSet,
   type QueryResultDelta
@@ -259,10 +260,18 @@ export class MainThreadBridge implements DataBridge {
         useBoundedWorkingSet ? createBoundedWorkingSetDescriptor(descriptor) : descriptor
       )
       this.debugQueryPlan(queryId, result.plan)
+      // Re-queries produce brand-new NodeState objects even for unchanged
+      // rows. Graft the previous references back in wherever the snapshots
+      // are equivalent so downstream identity-based caches keep working.
+      const previousWorkingSet = this.cache.getWorkingSet(queryId)
+      const mergedNodes = reuseEquivalentNodeReferences(result.nodes, [
+        ...(previousWorkingSet?.nodes ?? []),
+        ...(this.cache.get(queryId) ?? [])
+      ])
       const visibleNodes = useBoundedWorkingSet
-        ? result.nodes.slice(0, descriptor.limit)
-        : result.nodes
-      const visibleResult = useBoundedWorkingSet ? { ...result, nodes: visibleNodes } : result
+        ? mergedNodes.slice(0, descriptor.limit)
+        : mergedNodes
+      const visibleResult = { ...result, nodes: visibleNodes }
       this.cache.set(
         queryId,
         visibleNodes,
@@ -272,7 +281,7 @@ export class MainThreadBridge implements DataBridge {
           ...createQueryMetadata({ descriptor, result: visibleResult, source: 'local' }),
           source: 'local'
         },
-        useBoundedWorkingSet ? createBoundedWorkingSet(descriptor, result.nodes) : undefined
+        useBoundedWorkingSet ? createBoundedWorkingSet(descriptor, mergedNodes) : undefined
       )
       return result
     } catch (err) {

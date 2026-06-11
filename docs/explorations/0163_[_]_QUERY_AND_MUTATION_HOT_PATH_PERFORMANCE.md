@@ -585,11 +585,11 @@ Phase 1 — incremental bounded queries:
 
 Phase 2 — React identity stability:
 
-- [ ] WeakMap flatten cache + previous-array reuse in `useQuery`
-- [ ] Element-wise reference-equality short-circuit in `QueryCache.set` before notify
-- [ ] Fold metadata into the subscribed snapshot (or version it) so metadata-only updates render reliably
-- [ ] Rework `useMutate` pending tracking to subscription-on-read (no setState when `isPending` unused)
-- [ ] Stabilize `descriptor`/`reload`/`pageInfo` against inline-filter identity churn (key memos on `queryKey` only)
+- [x] WeakMap flatten cache + previous-array reuse in `useQuery`
+- [x] Element-wise reference-equality short-circuit in `QueryCache.set` before notify (plus reference grafting across reloads and copy-on-write `materializeNodeChange` so identity is a sound signal)
+- [x] Fold metadata into the subscribed snapshot (or version it) so metadata-only updates render reliably
+- [x] Rework `useMutate` pending tracking to subscription-on-read (no setState when `isPending` unused)
+- [x] Stabilize `descriptor`/`reload`/`pageInfo` against inline-filter identity churn (key memos on `queryKey` only)
 
 Phase 3 — write path:
 

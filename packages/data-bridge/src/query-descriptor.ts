@@ -150,6 +150,66 @@ export function queryDescriptorNeedsBoundedReload(descriptor: QueryDescriptor): 
 }
 
 /**
+ * Whether two node snapshots carry the same observable state. Used to
+ * reuse the PREVIOUS object reference after a re-query so unchanged rows
+ * keep their identity (and memoized React children skip re-rendering).
+ */
+export function areNodeStatesEquivalent(left: NodeState, right: NodeState): boolean {
+  if (left === right) return true
+  if (
+    left.id !== right.id ||
+    left.schemaId !== right.schemaId ||
+    left.deleted !== right.deleted ||
+    left.createdAt !== right.createdAt ||
+    left.createdBy !== right.createdBy ||
+    left.updatedAt !== right.updatedAt ||
+    left.updatedBy !== right.updatedBy
+  ) {
+    return false
+  }
+
+  const leftKeys = Object.keys(left.properties)
+  const rightKeys = Object.keys(right.properties)
+  if (leftKeys.length !== rightKeys.length) return false
+
+  for (const key of leftKeys) {
+    if (left.properties[key] !== right.properties[key]) return false
+  }
+
+  return true
+}
+
+/**
+ * Map fresh query results onto previous node references wherever the
+ * snapshots are equivalent, preserving identity across reloads.
+ */
+export function reuseEquivalentNodeReferences(
+  nextNodes: NodeState[],
+  previousNodes: ReadonlyArray<NodeState | null | undefined> | null
+): NodeState[] {
+  if (!previousNodes || previousNodes.length === 0 || nextNodes.length === 0) {
+    return nextNodes
+  }
+
+  const previousById = new Map<string, NodeState>()
+  for (const node of previousNodes) {
+    if (node) previousById.set(node.id, node)
+  }
+
+  let reusedAny = false
+  const merged = nextNodes.map((node) => {
+    const previous = previousById.get(node.id)
+    if (previous && areNodeStatesEquivalent(previous, node)) {
+      reusedAny = true
+      return previous
+    }
+    return node
+  })
+
+  return reusedAny ? merged : nextNodes
+}
+
+/**
  * Whether a bounded (limited) descriptor can be maintained incrementally
  * with an overfetch working set instead of re-executing on every change.
  *

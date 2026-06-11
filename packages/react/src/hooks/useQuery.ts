@@ -28,8 +28,9 @@
  * })
  * ```
  */
-import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
+import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeState } from '@xnetjs/data'
 import type {
+  QueryDescriptor,
   QueryExecutionMode,
   QueryCompletenessMetadata,
   QueryMaterializedMetadata,
@@ -55,7 +56,7 @@ import { useSyncExternalStore, useMemo, useCallback, useEffect, useRef } from 'r
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
 import { useInstrumentation } from '../instrumentation'
-import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'
+import { flattenNode, type FlatNode } from '../utils/flattenNode'
 
 // =============================================================================
 // Types
@@ -210,12 +211,32 @@ const EMPTY_PAGE_INFO: QueryPageInfo = {
 const EMPTY_QUERY_FILTER: QueryFilter = Object.freeze({})
 const DISABLED_QUERY_SNAPSHOT: never[] = []
 
+/**
+ * Global flatten cache: a NodeState reference always flattens to the same
+ * FlatNode reference. The bridge preserves NodeState identities for
+ * unchanged rows, so memoized children keyed on FlatNode identity skip
+ * re-rendering when their row did not change. Only valid for the
+ * options-less flatten that useQuery performs.
+ */
+const flatNodeCache = new WeakMap<NodeState, FlatNode<never>>()
+
+function flattenNodeCached<P extends Record<string, PropertyBuilder>>(
+  node: NodeState
+): FlatNode<P> {
+  const cached = flatNodeCache.get(node)
+  if (cached) return cached as FlatNode<P>
+
+  const flat = flattenNode<P>(node)
+  flatNodeCache.set(node, flat as FlatNode<never>)
+  return flat
+}
+
 function getFallbackPageInfo(input: {
   metadata: QueryMetadata | null
   loading: boolean
   isSingleQuery: boolean
   data: unknown
-  filter: QueryFilter
+  descriptor: QueryDescriptor
 }): QueryPageInfo {
   if (input.metadata?.pageInfo) {
     return input.metadata.pageInfo
@@ -226,8 +247,8 @@ function getFallbackPageInfo(input: {
   }
 
   const loadedCount = input.data.length
-  const offset = input.filter.offset ?? 0
-  const limit = input.filter.limit ?? input.filter.page?.first
+  const offset = input.descriptor.offset ?? 0
+  const limit = input.descriptor.limit
   const totalCount = limit === undefined && offset === 0 ? loadedCount : null
   const countMode = totalCount === null ? 'none' : 'exact'
   const hasMore =
@@ -314,11 +335,21 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const enabled = filter.enabled ?? true
 
   // Create a canonical descriptor for stable cache keys and reload semantics.
-  const descriptor = useMemo(() => {
+  // Callers overwhelmingly pass inline filter literals, so the filter's
+  // object identity churns every render. Building + serializing costs ~1 µs;
+  // the important part is reusing the PREVIOUS descriptor object whenever the
+  // canonical key is unchanged so downstream memos and callbacks stay stable.
+  const descriptorRef = useRef<{ key: string; descriptor: QueryDescriptor } | null>(null)
+  {
     const options: QueryOptions<P> = isSingleQuery && nodeId ? { nodeId } : filter
-    return createQueryDescriptor(schemaId, options)
-  }, [schemaId, isSingleQuery, nodeId, filter])
-  const queryKey = useMemo(() => serializeQueryDescriptor(descriptor), [descriptor])
+    const candidate = createQueryDescriptor(schemaId, options)
+    const candidateKey = serializeQueryDescriptor(candidate)
+    if (descriptorRef.current?.key !== candidateKey) {
+      descriptorRef.current = { key: candidateKey, descriptor: candidate }
+    }
+  }
+  const descriptor = descriptorRef.current!.descriptor
+  const queryKey = descriptorRef.current!.key
 
   // Create subscription via DataBridge (memoized by schema + options)
   // When bridge is null (initializing), use a dummy subscription that returns loading state
@@ -348,15 +379,41 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     void bridge.reloadQuery(descriptor)
   }, [bridge, descriptor, enabled])
 
-  // Use React's useSyncExternalStore for concurrent-safe subscriptions
-  const rawData = useSyncExternalStore(
+  // Use React's useSyncExternalStore for concurrent-safe subscriptions.
+  // Data and metadata are folded into one versioned snapshot: a
+  // metadata-only update (same data identity) still produces a new snapshot
+  // object, so React cannot bail out and silently drop it.
+  const combinedSnapshotRef = useRef<{
+    data: NodeState[] | null
+    metadata: QueryMetadata | null
+  } | null>(null)
+  const getCombinedSnapshot = useCallback(() => {
+    const data = subscription.getSnapshot()
+    const metadata = subscription.getMetadata?.() ?? null
+    const previous = combinedSnapshotRef.current
+    if (previous && previous.data === data && previous.metadata === metadata) {
+      return previous
+    }
+    const next = { data, metadata }
+    combinedSnapshotRef.current = next
+    return next
+  }, [subscription])
+  const combinedSnapshot = useSyncExternalStore(
     subscription.subscribe,
-    subscription.getSnapshot,
-    subscription.getSnapshot // Server snapshot (same as client for now)
+    getCombinedSnapshot,
+    getCombinedSnapshot // Server snapshot (same as client for now)
   )
-  const metadata = subscription.getMetadata?.() ?? null
+  const rawData = combinedSnapshot.data
+  const metadata = combinedSnapshot.metadata
 
-  // Transform raw NodeState[] to FlatNode[]
+  // Transform raw NodeState[] to FlatNode[]. Flattening goes through a
+  // WeakMap keyed by NodeState identity, and the produced array is replaced
+  // by the previous one when every element kept its identity — so metadata-
+  // only snapshots and no-op reloads do not invalidate `data` for consumers.
+  const previousListRef = useRef<{
+    data: FlatNode<P>[]
+    migrationWarnings: MigrationWarning[]
+  } | null>(null)
   const { data, migrationWarnings } = useMemo(() => {
     if (rawData === null) {
       // Loading state
@@ -372,7 +429,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       // Single node query
       const node = rawData[0] ?? null
       if (node) {
-        const flat = flattenNode<P>(node)
+        const flat = flattenNodeCached<P>(node)
         if (flat._migrationInfo && !flat._migrationInfo.lossless) {
           warnings.push({
             nodeId: flat.id,
@@ -387,7 +444,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     }
 
     // List query
-    const flattened = flattenNodes<P>(rawData)
+    const flattened = rawData.map((node) => flattenNodeCached<P>(node))
 
     for (const flat of flattened) {
       if (flat._migrationInfo && !flat._migrationInfo.lossless) {
@@ -400,14 +457,25 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       }
     }
 
-    return { data: flattened, migrationWarnings: warnings }
+    const previous = previousListRef.current
+    if (
+      previous &&
+      previous.data.length === flattened.length &&
+      flattened.every((flat, index) => flat === previous.data[index])
+    ) {
+      return previous
+    }
+
+    const next = { data: flattened, migrationWarnings: warnings }
+    previousListRef.current = next
+    return next
   }, [rawData, isSingleQuery])
 
   // Loading state: rawData is null
   const loading = rawData === null
   const pageInfo = useMemo(
-    () => getFallbackPageInfo({ metadata, loading, isSingleQuery, data, filter }),
-    [metadata, loading, isSingleQuery, data, filter]
+    () => getFallbackPageInfo({ metadata, loading, isSingleQuery, data, descriptor }),
+    [metadata, loading, isSingleQuery, data, descriptor]
   )
   const error = useMemo(
     () => (metadata?.error ? new Error(metadata.error) : null),

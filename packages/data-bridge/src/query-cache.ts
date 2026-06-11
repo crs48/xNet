@@ -62,6 +62,71 @@ interface CacheEntry {
   lastAccessed: number
 }
 
+function isSameNodeData(previous: NodeState[] | null, next: NodeState[] | null): boolean {
+  if (previous === next) return true
+  if (!previous || !next) return false
+  if (previous.length !== next.length) return false
+  return next.every((node, index) => node === previous[index])
+}
+
+/**
+ * Whether two metadata snapshots are observably equivalent for render
+ * purposes. Bookkeeping fields that change on every load (updatedAt, plan
+ * timings) are ignored; anything remote/stream-related is conservatively
+ * treated as changed unless reference-equal.
+ */
+function isQueryMetadataEquivalent(
+  previous: QueryMetadata | null,
+  next: QueryMetadata | null
+): boolean {
+  if (previous === next) return true
+  if (!previous || !next) return false
+
+  if (previous.source !== next.source || previous.error !== next.error) return false
+
+  if (
+    previous.stream !== next.stream ||
+    previous.completeness !== next.completeness ||
+    previous.staleness !== next.staleness ||
+    previous.verification !== next.verification ||
+    previous.materialized !== next.materialized
+  ) {
+    // Conservative for remote/stream surfaces: only structural reference
+    // equality counts. Local-only queries never set these, so the
+    // short-circuit still covers the hot path.
+    if (
+      previous.stream ||
+      next.stream ||
+      previous.completeness ||
+      next.completeness ||
+      previous.staleness ||
+      next.staleness ||
+      previous.verification ||
+      next.verification ||
+      previous.materialized ||
+      next.materialized
+    ) {
+      return false
+    }
+  }
+
+  const previousPage = previous.pageInfo
+  const nextPage = next.pageInfo
+  if (previousPage === nextPage) return true
+  if (!previousPage || !nextPage) return false
+
+  return (
+    previousPage.totalCount === nextPage.totalCount &&
+    previousPage.countMode === nextPage.countMode &&
+    previousPage.hasMore === nextPage.hasMore &&
+    previousPage.hasNextPage === nextPage.hasNextPage &&
+    previousPage.hasPreviousPage === nextPage.hasPreviousPage &&
+    previousPage.loadedCount === nextPage.loadedCount &&
+    previousPage.startCursor === nextPage.startCursor &&
+    previousPage.endCursor === nextPage.endCursor
+  )
+}
+
 export interface QueryCacheOptions {
   /** Maximum number of queries to cache (default: 100) */
   maxSize?: number
@@ -189,7 +254,13 @@ export class QueryCache {
         : schemaIdOrDescriptor
 
     if (entry) {
-      entry.data = data
+      const dataUnchanged = isSameNodeData(entry.data, data)
+      const metadataUnchanged =
+        metadata === undefined || isQueryMetadataEquivalent(entry.metadata, metadata)
+
+      // Keep the previous array identity when the elements are unchanged so
+      // useSyncExternalStore snapshots and downstream memos stay stable.
+      entry.data = dataUnchanged ? entry.data : data
       // Any write that does not carry a working set invalidates the old
       // one — its prefix invariant no longer matches the visible data.
       entry.workingSet = workingSet ?? null
@@ -199,10 +270,20 @@ export class QueryCache {
         entry.options = queryDescriptorToOptions(descriptor)
       }
       if (metadata !== undefined) {
-        entry.metadata = metadata
+        // Preserve the previous metadata identity when nothing observable
+        // changed so subscriber-side snapshot composition stays stable.
+        entry.metadata = metadataUnchanged && entry.metadata ? entry.metadata : metadata
       }
       entry.lastUpdated = now
       entry.lastAccessed = now
+
+      // A write that changed nothing observable (e.g. a reload that came
+      // back identical, or a buffered-row change outside the visible
+      // window) must not fan out renders.
+      if (dataUnchanged && metadataUnchanged) {
+        return
+      }
+
       this.notifySubscribers(queryId)
     } else {
       if (!descriptor) {

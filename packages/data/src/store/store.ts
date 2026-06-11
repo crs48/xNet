@@ -1886,13 +1886,17 @@ export class NodeStore {
     // Update Lamport time
     await storage.setLastLamportTime(this.clock.time)
 
-    this.materializeNodeChange(change, node)
+    const materialized = this.materializeNodeChange(change, node)
 
     // Persist
-    await storage.setNode(node, { indexProperties: !this.nodeContentCipher })
+    await storage.setNode(materialized, { indexProperties: !this.nodeContentCipher })
   }
 
-  private materializeNodeChange(change: NodeChange, node: NodeState): NodeState {
+  private materializeNodeChange(change: NodeChange, currentNode: NodeState): NodeState {
+    // Copy-on-write: never mutate the incoming snapshot. Storage adapters
+    // (memory) and bridge caches hand out NodeState references, and the
+    // reactive layer relies on "same reference = same observable state".
+    const node = structuredClone(currentNode)
     const { nodeId, properties, deleted } = change.payload
 
     // Get known property names from schema (if available)

@@ -213,6 +213,12 @@ describe('useQuery', () => {
         value: QueryMetadata | null
       ) {
         metadata.set(getQueryId(schema, filter), value)
+      },
+      notifyQuery<P extends Record<string, PropertyBuilder>>(
+        schema: DefinedSchema<P>,
+        filter: string | QueryFilter<P> | Record<string, unknown> | undefined
+      ) {
+        notify(getQueryId(schema, filter))
       }
     }
   }
@@ -822,6 +828,123 @@ describe('useQuery', () => {
       expect(result.current.pageInfo.loadedCount).toBe(2)
       expect(result.current.hasMore).toBe(false)
       expect(result.current.isFetchingNextPage).toBe(false)
+    })
+  })
+
+  describe('render stability', () => {
+    it('keeps FlatNode identity for unchanged rows when another row updates', async () => {
+      const wrapper = createWrapper()
+
+      const { result } = renderHook(
+        () => ({
+          query: useQuery(TaskSchema, { orderBy: { title: 'asc' }, limit: 10 }),
+          mutate: useMutate()
+        }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.query.loading).toBe(false)
+      })
+
+      let firstId: string | undefined
+      await act(async () => {
+        const first = await result.current.mutate.create(TaskSchema, {
+          title: 'A Task',
+          status: 'todo'
+        })
+        firstId = first?.id
+        await result.current.mutate.create(TaskSchema, { title: 'B Task', status: 'todo' })
+        await result.current.mutate.create(TaskSchema, { title: 'C Task', status: 'todo' })
+      })
+
+      await waitFor(() => {
+        expect(result.current.query.data).toHaveLength(3)
+      })
+
+      const before = result.current.query.data
+
+      await act(async () => {
+        await result.current.mutate.update(TaskSchema, firstId!, { status: 'done' })
+      })
+
+      await waitFor(() => {
+        expect(result.current.query.data[0]?.status).toBe('done')
+      })
+
+      const after = result.current.query.data
+      expect(after).not.toBe(before)
+      expect(after[0]).not.toBe(before[0])
+      // Untouched rows keep their exact object identity, so React.memo
+      // children keyed on row identity skip re-rendering.
+      expect(after[1]).toBe(before[1])
+      expect(after[2]).toBe(before[2])
+    })
+
+    it('re-renders for metadata-only updates instead of dropping them', async () => {
+      const mock = createMockBridge()
+      const node = createTaskNode('task-1', 'Task', 'todo')
+      mock.setSnapshot(TaskSchema, undefined, [node])
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema), { wrapper })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+      expect(result.current.totalCount).toBe(1)
+
+      // Metadata changes while the data snapshot keeps its identity.
+      act(() => {
+        mock.setMetadata(TaskSchema, undefined, {
+          source: 'local',
+          updatedAt: Date.now(),
+          pageInfo: {
+            totalCount: 42,
+            countMode: 'exact',
+            hasMore: true,
+            hasNextPage: true,
+            hasPreviousPage: false,
+            loadedCount: 1
+          }
+        })
+        mock.notifyQuery(TaskSchema, undefined)
+      })
+
+      await waitFor(() => {
+        expect(result.current.totalCount).toBe(42)
+      })
+      expect(result.current.hasMore).toBe(true)
+    })
+
+    it('does not re-render mutation-only components for pending-state changes', async () => {
+      const wrapper = createWrapper()
+      let renderCount = 0
+
+      const { result } = renderHook(
+        () => {
+          renderCount += 1
+          // Intentionally does NOT read isPending/pendingCount.
+          return useMutate()
+        },
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.create).toBeDefined()
+      })
+      // Let provider initialization renders settle.
+      await act(async () => {})
+      const settledRenderCount = renderCount
+
+      await act(async () => {
+        await result.current.create(TaskSchema, { title: 'Quiet Task', status: 'todo' })
+      })
+
+      expect(renderCount).toBe(settledRenderCount)
     })
   })
 })
