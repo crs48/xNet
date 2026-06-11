@@ -39,6 +39,7 @@ export type CanvasObjectKind =
   | 'media'
   | 'shape'
   | 'note'
+  | 'task'
   | 'group'
 
 export type CanvasObjectTypeCounts = Partial<Record<CanvasObjectKind, number>>

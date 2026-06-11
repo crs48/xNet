@@ -76,6 +76,7 @@ const KIND_COLORS: Record<CanvasObjectKind, readonly [number, number, number]> =
   media: [0.941, 0.447, 0.196],
   shape: [0.376, 0.443, 0.557],
   note: [0.902, 0.624, 0.125],
+  task: [0.388, 0.4, 0.945],
   group: [0.239, 0.239, 0.266]
 }
 

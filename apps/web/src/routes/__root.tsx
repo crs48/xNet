@@ -13,6 +13,7 @@ import { ThemeToggle } from '@xnetjs/ui'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { Sidebar } from '../components/Sidebar'
+import { WorkspaceCommands } from '../components/WorkspaceCommands'
 
 export const Route = createRootRoute({
   component: RootLayout
@@ -25,6 +26,7 @@ function RootLayout() {
 
   return (
     <div className="flex flex-col h-screen">
+      <WorkspaceCommands />
       {/* Demo mode banner */}
       {isDemo && limits && <DemoBanner evictionHours={limits.evictionHours} />}
 

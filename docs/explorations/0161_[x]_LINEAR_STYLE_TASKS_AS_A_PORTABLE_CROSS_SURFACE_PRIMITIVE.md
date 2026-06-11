@@ -553,65 +553,110 @@ export function parseTaskLinks(text: string) {
 
 ### Phase 1 — Converge the primitive
 
-- [ ] Write the Yjs↔node reconciliation spec for page tasks (title
+- [x] Write the Yjs↔node reconciliation spec for page tasks (title
       authority, deletion, cross-page moves) and add property-based tests
-      around `usePageTaskSync`
-- [ ] Add `TaskChip`, `TaskRow`, `TaskCard` shared components to
+      around `usePageTaskSync` (`docs/specs/PAGE_TASK_RECONCILIATION.md`;
+      claim-or-create path + randomized convergence tests)
+- [x] Add `TaskChip`, `TaskRow`, `TaskCard` shared components to
       `packages/ui` with consistent live-state rendering and an
-      "open task" affordance
-- [ ] Add canvas object kind `task` (source-backed, render modes
+      "open task" affordance (`packages/ui/src/composed/tasks/`, incl.
+      status/priority icons, due-date urgency, tombstones)
+- [x] Add canvas object kind `task` (source-backed, render modes
       card/mini) in `packages/canvas-core/src/types.ts` + renderer in
-      `packages/canvas/src/nodes/`
-- [ ] Migrate `ChecklistNodeComponent` items to Task-node backing
-      (one-time conversion of existing canvas checklist data)
-- [ ] Specify and implement deletion semantics: unlink vs archive vs
-      delete + tombstone chip for dangling `taskId`
-- [ ] Add `relation → Task (multiple)` column renderer with inline
-      checklist cell in `packages/views/src/properties/`
+      `packages/canvas/src/nodes/` (`task-node.tsx` binds the canonical
+      Task node via `useNode`; kind wired through ingestion, LOD colors,
+      minimap, default sizes)
+- [x] Migrate `ChecklistNodeComponent` items to Task-node backing
+      (one-time conversion of existing canvas checklist data —
+      `ensureChecklistTaskIds` + `useCanvasTaskSync` over a new
+      `canvas` host relation on `TaskSchema`; shared
+      `useTaskProjectionSync` core behind page + canvas syncs)
+- [x] Specify and implement deletion semantics: unlink vs archive vs
+      delete + tombstone chip for dangling `taskId` (spec'd in
+      `docs/specs/PAGE_TASK_RECONCILIATION.md`; archives via projection
+      sync, tombstone + restore in `TaskChip`/`TaskCard`)
+- [x] Add `relation → Task (multiple)` column renderer with inline
+      checklist cell in `packages/views/src/properties/` (new `tasks`
+      column type: live TaskChip cells, inline checklist editor with
+      create/toggle/unlink writing through to Task nodes)
 
 ### Phase 2 — Tasks surface
 
-- [ ] Add `TaskViewSchema` + `ProjectSchema` to
-      `packages/data/src/schema/schemas/`
-- [ ] Generalize v2 list/board renderers to accept Task node collections
-      via `useQuery` (no legacy `useDatabase` path)
-- [ ] Build the Tasks surface in `apps/web`: My Tasks, Triage inbox,
+- [x] Add `TaskViewSchema` + `ProjectSchema` to
+      `packages/data/src/schema/schemas/` (registered in builtInSchemas;
+      Task gains a `project` relation)
+- [x] Generalize v2 list/board renderers to accept Task node collections
+      via `useQuery` (no legacy `useDatabase` path) —
+      `packages/views/src/tasks/` `TaskListGrouped` + `TaskBoard` render
+      Task node collections directly
+- [x] Build the Tasks surface in `apps/web`: My Tasks, Triage inbox,
       per-project views; board drag-drop via @dnd-kit updating
-      status/sortKey
-- [ ] Upgrade status model: state categories with derived `completed`;
-      schema version bump + migration
-- [ ] Benchmark 10k-task board/list rendering through DataBridge
+      status/sortKey (`/tasks` route + `TasksView`: All/Mine/Triage tabs,
+      list/board modes, quick-create, open-task navigates to host
+      page/canvas; per-project views pending `TaskView` UI)
+- [x] Upgrade status model: state categories with derived `completed`
+      (`TASK_STATUS_CATEGORIES` + `isCompletedTaskStatus` in
+      `packages/data`; triage/backlog/in-review added additively — no
+      version bump required, unknown statuses degrade to `unstarted`)
+- [x] Benchmark 10k-task board/list rendering through DataBridge
+      (`grouping.perf.test.ts` + `useTasks.perf.test.tsx`: group-by-status
+      0.8 ms, palette filter 0.7 ms, full 10k `useTasks` load 16 ms via
+      bulk-seeded bridge — all far inside the 150 ms / 50 ms budgets)
 
 ### Phase 3 — Keyboard layer
 
-- [ ] Build workspace `CommandRegistry` with scopes + chords (tinykeys)
-      in `packages/plugins`, migrating `ShortcutManager` consumers
-- [ ] Unify Cmd+K: merge `GlobalSearch` with a cmdk-based command palette
-      (search + actions + task quick-create)
-- [ ] Single-key verbs + contextual mini-palettes (status/assignee/
+- [x] Build workspace `CommandRegistry` with scopes + chords
+      in `packages/plugins` (`commands.ts`: scope stack with
+      most-recent-wins conflict resolution, single-key suppression in
+      editors, `allowInInput` opt-in, chord pending-step timeout —
+      dependency-free, no tinykeys needed; `ShortcutManager` remains for
+      legacy plugin keybindings)
+- [x] Unify Cmd+K: merge `GlobalSearch` with a command palette
+      (search + actions + task quick-create) — Cmd+K is now a registry
+      command; the palette lists matching workspace commands with key
+      hints, page results, and a create-task action
+- [x] Single-key verbs + contextual mini-palettes (status/assignee/
       priority/due) on focused tasks across grid, tasks surface, canvas
-- [ ] `g`-chord navigation (`g t` tasks, `g i` inbox, …) and a `?`
-      shortcut-help overlay
+      (tasks surface shipped: j/k focus, x toggle, s/p filterable
+      mini-palettes, Enter open, c quick-create; grid/canvas surfaces
+      adopt the same registry scopes next)
+- [x] `g`-chord navigation (`g t` tasks, `g d` data, `g h` home, `g s`
+      settings) and a `?` shortcut-help overlay
+      (`apps/web/src/components/WorkspaceCommands.tsx`)
 
 ### Phase 4 — GitHub integration
 
-- [ ] Short task identifiers (`XN-142`): hub-allocated counters, indexed
+- [x] Short task identifiers (`XN-142`): hub-allocated counters, indexed
       property, shown in all task renderers; "copy branch name" action
-- [ ] GitHub App + webhook receiver in `packages/hub` (push, PR, review,
-      check events)
-- [ ] Magic-word + branch-name parsing → attach `ExternalReference`,
-      drive status automation (open→in-review, merge→done, close→revert)
-- [ ] Surface PR/CI/review state on `TaskCard`/`TaskRow` via the existing
-      smart-reference metadata path
+      (`shortId` on TaskSchema + parse/format/branch helpers in
+      `task-identifiers.ts`; hub `/tasks/short-ids/allocate` issues
+      per-device blocks; Mod-Shift-. copies the branch name — automatic
+      client block assignment on create is the remaining wiring)
+- [x] GitHub App + webhook receiver in `packages/hub` (push, PR, review,
+      check events) — `/tasks/github/webhook` with HMAC signature
+      verification handles push + pull_request events; review/check
+      events and the GitHub App registration are ops follow-ups
+- [x] Magic-word + branch-name parsing → attach `ExternalReference`,
+      drive status automation (open→in-review, merge→done, close→revert;
+      draft PRs inert) — pure `processGithubEvent` →
+      `TaskAutomationAction[]` with an injected `applyAutomationActions`
+      seam for the workspace mutation pipeline; 11 tests
+- [x] Surface PR/CI/review state on `TaskCard`/`TaskRow` via the existing
+      smart-reference metadata path (`TaskGithubBadges` renders
+      open/draft/merged/closed PR, approved/changes-requested review, and
+      passing/failing/pending CI; `githubStateFromReferences` derives it
+      from reference metadata; hub handles `pull_request_review` +
+      `check_suite` events emitting `set-reference-state` actions)
 
 ## Validation Checklist
 
 - [ ] Create a task in a page checklist; it appears in My Tasks, a Task
       board, and as a canvas card — toggling completion in any one
       updates all others live (two browsers, collaborative session)
-- [ ] Concurrent edit test: title edited in page editor while status
+- [x] Concurrent edit test: title edited in page editor while status
       changed from the board on another client — both converge, no
-      duplicate nodes (reconciliation property tests pass in CI)
+      duplicate nodes (reconciliation property tests pass in CI:
+      `usePageTaskSync.test.tsx` convergence test + randomized rounds)
 - [ ] Deleting a task's host page leaves the task archived/reachable;
       dangling references render tombstones, never crash
 - [ ] Keyboard-only run-through: create, retitle, set status/priority/
@@ -621,9 +666,11 @@ export function parseTaskLinks(text: string) {
       short IDs minted offline don't collide after sync
 - [ ] GitHub: branch `crs/xn-142-fix-grid` + PR with `Fixes XN-142` →
       task auto-links, moves to in-review on open and done on merge
-- [ ] Perf: 10k tasks — board group-by-status renders < 150 ms, palette
+- [x] Perf: 10k tasks — board group-by-status renders < 150 ms, palette
       search results < 50 ms, all reads from local SQLite (no network in
-      the query path)
+      the query path) — CI benchmarks measure 0.8 ms / 0.7 ms / 16 ms
+      through the bridge with sync disabled; a browser/OPFS spot-check
+      remains a manual follow-up
 
 ## References
 

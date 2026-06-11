@@ -11,6 +11,7 @@ import {
   Layout,
   Plus,
   Trash2,
+  CheckSquare2,
   ChevronDown,
   ChevronRight,
   Settings,
@@ -372,6 +373,17 @@ export function Sidebar() {
 
       {/* Settings */}
       <div className="p-2 border-t border-border">
+        <Link
+          to="/tasks"
+          className={`mb-1 w-full flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer no-underline hover:no-underline transition-colors ${
+            location.pathname === '/tasks'
+              ? 'bg-accent text-foreground'
+              : 'text-foreground hover:bg-accent/50'
+          }`}
+        >
+          <CheckSquare2 size={14} className="text-muted-foreground" />
+          <span className="text-sm">Tasks</span>
+        </Link>
         <Link
           to="/data"
           className={`mb-1 w-full flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer no-underline hover:no-underline transition-colors ${

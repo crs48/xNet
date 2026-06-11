@@ -8,7 +8,7 @@
  * - Alt+Arrow: Move item up/down
  */
 
-import { memo, useCallback } from 'react'
+import { memo, useCallback, useEffect } from 'react'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -17,6 +17,13 @@ export interface ChecklistItem {
   text: string
   checked: boolean
   indent: number
+  /**
+   * Canonical Task node backing this item. Assigned on first render via
+   * ensureChecklistTaskIds; the hosting app reconciles items to Task nodes
+   * with useCanvasTaskSync so canvas checklists are queryable everywhere
+   * (docs/specs/PAGE_TASK_RECONCILIATION.md).
+   */
+  taskId?: string
 }
 
 export interface ChecklistNodeData {
@@ -39,6 +46,33 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 12)
 }
 
+function generateTaskId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `task_${globalThis.crypto.randomUUID()}`
+  }
+
+  return `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+}
+
+/**
+ * One-time migration for legacy checklist data: assign a Task node id to
+ * every item that lacks one. Returns the same array when nothing changed so
+ * callers can cheaply decide whether to persist.
+ */
+export function ensureChecklistTaskIds(items: ChecklistItem[]): {
+  items: ChecklistItem[]
+  changed: boolean
+} {
+  let changed = false
+  const next = items.map((item) => {
+    if (item.taskId) return item
+    changed = true
+    return { ...item, taskId: generateTaskId() }
+  })
+
+  return { items: changed ? next : items, changed }
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export const ChecklistNodeComponent = memo(function ChecklistNodeComponent({
@@ -46,6 +80,15 @@ export const ChecklistNodeComponent = memo(function ChecklistNodeComponent({
   onUpdate
 }: ChecklistNodeProps) {
   const items = node.properties.items ?? []
+
+  // Legacy data migration: back every item with a Task node id so the host
+  // app's useCanvasTaskSync can materialize canonical Task nodes.
+  useEffect(() => {
+    const { items: migrated, changed } = ensureChecklistTaskIds(items)
+    if (changed) {
+      onUpdate({ items: migrated })
+    }
+  }, [items, onUpdate])
 
   const updateItem = useCallback(
     (id: string, changes: Partial<ChecklistItem>) => {
@@ -61,7 +104,8 @@ export const ChecklistNodeComponent = memo(function ChecklistNodeComponent({
         id: generateId(),
         text: '',
         checked: false,
-        indent: 0
+        indent: 0,
+        taskId: generateTaskId()
       }
 
       let newItems: ChecklistItem[]

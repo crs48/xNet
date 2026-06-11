@@ -24,7 +24,8 @@ const BENCHMARK_OBJECT_KINDS: readonly CanvasObjectKind[] = [
   'media',
   'shape',
   'note',
-  'group'
+  'group',
+  'task'
 ]
 
 export type BenchmarkClock = () => number

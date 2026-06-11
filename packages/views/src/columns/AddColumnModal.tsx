@@ -143,6 +143,13 @@ const COLUMN_TYPES: ColumnTypeOption[] = [
     category: 'reference',
     hasConfig: true
   },
+  {
+    value: 'tasks',
+    label: 'Tasks',
+    icon: '☑☰',
+    description: 'Inline checklist of linked tasks',
+    category: 'reference'
+  },
 
   // Auto types
   {

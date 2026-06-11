@@ -45,6 +45,7 @@ export type CanvasObjectKind =
   | 'media'
   | 'shape'
   | 'note'
+  | 'task'
   | 'group'
 
 /**
@@ -72,6 +73,7 @@ export type CanvasSourceBackedNodeKind =
   | 'external-reference'
   | 'media'
   | 'note'
+  | 'task'
 
 export type CanvasDisplayDensity = 'far' | 'mid' | 'near'
 
@@ -177,6 +179,18 @@ export type CanvasMediaNode = CanvasNodeBase<'media', CanvasMediaNodeProperties>
 
 export type CanvasNoteNode = CanvasNodeBase<'note', CanvasTitledNodeProperties>
 
+/**
+ * Source-backed task card. `sourceNodeId` points at the canonical Task node;
+ * title/status/assignees always render live from the node and are never
+ * duplicated into canvas properties (see
+ * docs/specs/PAGE_TASK_RECONCILIATION.md).
+ */
+export type CanvasTaskNodeProperties = CanvasTitledNodeProperties & {
+  renderMode?: 'card' | 'mini'
+}
+
+export type CanvasTaskNode = CanvasNodeBase<'task', CanvasTaskNodeProperties>
+
 export type CanvasShapeNode = CanvasNodeBase<'shape', CanvasShapeNodeProperties>
 
 export type CanvasGroupNode = CanvasNodeBase<'group', CanvasGroupNodeProperties>
@@ -193,6 +207,7 @@ export type CanvasSceneNode =
   | CanvasExternalReferenceNode
   | CanvasMediaNode
   | CanvasNoteNode
+  | CanvasTaskNode
   | CanvasShapeNode
   | CanvasGroupNode
 

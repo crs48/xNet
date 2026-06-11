@@ -10,8 +10,11 @@ export type { CanvasNodeProps, NodeRemoteUser, LODLevel } from './CanvasNodeComp
 export { MermaidNodeComponent } from './mermaid-node'
 export type { MermaidNodeData, MermaidNodeProps } from './mermaid-node'
 
-export { ChecklistNodeComponent } from './checklist-node'
+export { ChecklistNodeComponent, ensureChecklistTaskIds } from './checklist-node'
 export type { ChecklistItem, ChecklistNodeData, ChecklistNodeProps } from './checklist-node'
+
+export { TaskNodeComponent } from './task-node'
+export type { TaskNodeProps } from './task-node'
 
 export { ShapeNodeComponent, ShapePicker, createShapePath, SHAPE_TYPES } from './shape-node'
 export type { ShapeType, ShapeNodeData, ShapeNodeProps, ShapePickerProps } from './shape-node'

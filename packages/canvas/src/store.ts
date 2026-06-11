@@ -596,6 +596,8 @@ function getDefaultSceneNodeSize(type: CanvasSceneNodeKind): { width: number; he
       return { width: 440, height: 260 }
     case 'note':
       return { width: 320, height: 180 }
+    case 'task':
+      return { width: 280, height: 120 }
     case 'external-reference':
       return { width: 360, height: 180 }
     case 'media':

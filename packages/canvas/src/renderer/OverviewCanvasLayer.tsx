@@ -27,6 +27,8 @@ function getNodeFill(node: CanvasNode): string {
       return 'rgba(139, 92, 246, 0.18)'
     case 'note':
       return 'rgba(245, 158, 11, 0.2)'
+    case 'task':
+      return 'rgba(99, 102, 241, 0.18)'
     case 'group':
       return 'rgba(107, 114, 128, 0.1)'
     case 'shape':
@@ -50,6 +52,8 @@ function getNodeStroke(node: CanvasNode): string {
       return 'rgba(124, 58, 237, 0.55)'
     case 'note':
       return 'rgba(217, 119, 6, 0.6)'
+    case 'task':
+      return 'rgba(79, 70, 229, 0.55)'
     case 'group':
       return 'rgba(100, 116, 139, 0.35)'
     case 'shape':
