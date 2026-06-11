@@ -139,6 +139,7 @@ export class NodeStore {
   private clock: LamportClock
   private conflicts: MergeConflict[] = []
   private listeners: Set<NodeChangeListener> = new Set()
+  private nodeListeners: Map<NodeId, Set<NodeChangeListener>> = new Map()
   private batchListeners: Set<NodeBatchChangeListener> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
@@ -1935,6 +1936,31 @@ export class NodeStore {
     }
   }
 
+  /**
+   * Subscribe to change events for a single node.
+   *
+   * Dispatch is O(listeners-for-that-node) instead of O(all-listeners):
+   * per-cell/per-row UI hooks should prefer this over filtering the global
+   * feed, where every change event invokes every mounted callback.
+   */
+  subscribeToNode(nodeId: NodeId, listener: NodeChangeListener): () => void {
+    const existing = this.nodeListeners.get(nodeId)
+    if (existing) {
+      existing.add(listener)
+    } else {
+      this.nodeListeners.set(nodeId, new Set([listener]))
+    }
+
+    return () => {
+      const listeners = this.nodeListeners.get(nodeId)
+      if (!listeners) return
+      listeners.delete(listener)
+      if (listeners.size === 0) {
+        this.nodeListeners.delete(nodeId)
+      }
+    }
+  }
+
   subscribeToBatchChanges(listener: NodeBatchChangeListener): () => void {
     this.batchListeners.add(listener)
     return () => {
@@ -1963,6 +1989,17 @@ export class NodeStore {
         listener(event)
       } catch (err) {
         console.error('Error in NodeStore listener:', err)
+      }
+    }
+
+    const nodeListeners = this.nodeListeners.get(change.payload.nodeId)
+    if (nodeListeners) {
+      for (const listener of nodeListeners) {
+        try {
+          listener(event)
+        } catch (err) {
+          console.error('Error in NodeStore node listener:', err)
+        }
       }
     }
   }

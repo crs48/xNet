@@ -604,7 +604,7 @@ Phase 4 — worker-resident data layer:
 
 Independent:
 
-- [ ] NodeId-indexed listener dispatch in `NodeStore.subscribe` consumers (`useCell`, `useDatabaseRow`, `useNode`)
+- [x] NodeId-indexed listener dispatch in `NodeStore.subscribe` consumers (`useCell`, `useDatabaseRow`, `useNode`) — new `NodeStore.subscribeToNode(nodeId, listener)`
 
 ## Validation Checklist
 

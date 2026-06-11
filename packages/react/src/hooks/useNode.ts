@@ -1087,12 +1087,11 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     }
   }, [store, id, hasDocument])
 
-  // Subscribe to property changes
+  // Subscribe to property changes for this node only (node-indexed dispatch)
   useEffect(() => {
     if (!store || !id) return
 
-    const unsubscribe = store.subscribe((event) => {
-      if (event.change.payload.nodeId !== id) return
+    const unsubscribe = store.subscribeToNode(id, (event) => {
       if (event.node && event.node.schemaId === schemaId) {
         setData(flattenNode<P>(event.node))
       }

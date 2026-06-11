@@ -870,6 +870,37 @@ describe('transaction support', () => {
   })
 })
 
+describe('node-scoped subscriptions', () => {
+  it('dispatches only the subscribed node and stops after unsubscribe', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const watched = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Watched' }
+    })
+    const other = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Other' }
+    })
+
+    const titles: unknown[] = []
+    const unsubscribe = store.subscribeToNode(watched.id, (event) => {
+      titles.push(event.node?.properties.title)
+    })
+
+    await store.update(other.id, { properties: { title: 'Other edited' } })
+    await store.update(watched.id, { properties: { title: 'Watched edited' } })
+
+    expect(titles).toEqual(['Watched edited'])
+
+    unsubscribe()
+    await store.update(watched.id, { properties: { title: 'After unsubscribe' } })
+
+    expect(titles).toEqual(['Watched edited'])
+  })
+})
+
 describe('bulk existence lookup', () => {
   it('should return existing node ids without hydrating nodes through the public read path', async () => {
     const { store } = createTestStore()
