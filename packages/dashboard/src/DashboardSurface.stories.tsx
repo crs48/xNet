@@ -11,7 +11,10 @@ import { DashboardSchema, MemoryNodeStorageAdapter, PageSchema, TaskSchema } fro
 import { generateIdentity } from '@xnetjs/identity'
 import { XNetProvider, useMutate, useQuery, type SavedViewSchemaRegistry } from '@xnetjs/react'
 import { useEffect, useMemo, useRef, type ReactElement } from 'react'
+import { CanvasWidgetCard } from './canvas/CanvasWidgetCard'
 import { DashboardSurface } from './components/DashboardSurface'
+import { DashboardRuntimeProvider } from './runtime/context'
+import { chartWidgets } from './widgets/chart-widget'
 import { metricWidget } from './widgets/metric-widget'
 import { pageLinksWidget } from './widgets/page-links-widget'
 import { recentItemsWidget } from './widgets/recent-items-widget'
@@ -133,4 +136,133 @@ function Harness() {
 
 export const Surface: Story = {
   render: () => <Harness />
+}
+
+// ─── 20-widget perf validation (0162) ───────────────────────────────────────
+
+const TWENTY_ID = 'storybook-dashboard-20'
+
+function TwentySeeder({ children }: { children: ReactElement }) {
+  const { create } = useMutate()
+  const { data: dashboard, loading } = useQuery(DashboardSchema, TWENTY_ID)
+  const seeded = useRef(false)
+
+  useEffect(() => {
+    if (loading || dashboard || seeded.current) return
+    seeded.current = true
+
+    void (async () => {
+      for (let i = 0; i < 8; i++) {
+        await create(TaskSchema, { title: `Task ${i}`, completed: i % 3 === 0 })
+        await create(PageSchema, { title: `Page ${i}` })
+      }
+
+      const types = [
+        metricWidget,
+        taskListWidget,
+        pageLinksWidget,
+        recentItemsWidget,
+        ...chartWidgets
+      ]
+      const widgets = Array.from({ length: 20 }, (_, index) => {
+        const definition = types[index % types.length]
+        const stub = definition.getStubConfig({
+          schemas: SCHEMAS.map((schema) => schema.schema['@id'])
+        })
+        return {
+          id: `w${index}`,
+          widgetType: definition.type,
+          config: stub.config as Record<string, unknown>,
+          query: stub.query?.descriptor as never,
+          refresh: 'live' as const
+        }
+      })
+      const layouts = {
+        lg: widgets.map((widget, index) => ({
+          id: widget.id,
+          x: (index % 4) * 3,
+          y: Math.floor(index / 4) * 3,
+          w: 3,
+          h: 3
+        }))
+      }
+
+      await create(
+        DashboardSchema,
+        { title: 'Twenty widgets', icon: '🧪', variables: {}, widgets, layouts },
+        TWENTY_ID
+      )
+    })()
+  }, [create, dashboard, loading])
+
+  return children
+}
+
+export const TwentyWidgets: Story = {
+  render: () => {
+    function TwentyHarness() {
+      const identity = useMemo(() => generateIdentity(), [])
+      const storage = useMemo(() => new MemoryNodeStorageAdapter(), [])
+
+      return (
+        <XNetProvider
+          config={{
+            nodeStorage: storage,
+            authorDID: identity.identity.did as DID,
+            signingKey: identity.privateKey
+          }}
+        >
+          <TwentySeeder>
+            <div style={{ height: '100vh' }}>
+              <DashboardSurface dashboardId={TWENTY_ID} schemas={SCHEMAS} />
+            </div>
+          </TwentySeeder>
+        </XNetProvider>
+      )
+    }
+    return <TwentyHarness />
+  }
+}
+
+// ─── Canvas card host validation (0162) ─────────────────────────────────────
+
+export const CanvasCard: Story = {
+  render: () => {
+    function CanvasCardHarness() {
+      const identity = useMemo(() => generateIdentity(), [])
+      const storage = useMemo(() => new MemoryNodeStorageAdapter(), [])
+      const chart = chartWidgets[0]
+      const stub = chart.getStubConfig({
+        schemas: SCHEMAS.map((schema) => schema.schema['@id'])
+      })
+      const widget = {
+        id: 'canvas-chart',
+        widgetType: chart.type,
+        config: stub.config as Record<string, unknown>,
+        query: stub.query?.descriptor as never,
+        refresh: 'live' as const
+      }
+
+      return (
+        <XNetProvider
+          config={{
+            nodeStorage: storage,
+            authorDID: identity.identity.did as DID,
+            signingKey: identity.privateKey
+          }}
+        >
+          <Seeder>
+            <DashboardRuntimeProvider schemas={SCHEMAS} variables={undefined}>
+              <div style={{ width: 420, height: 320, padding: 24 }}>
+                <CanvasWidgetCard
+                  node={{ id: 'canvas-node', type: 'widget', properties: { widget } }}
+                />
+              </div>
+            </DashboardRuntimeProvider>
+          </Seeder>
+        </XNetProvider>
+      )
+    }
+    return <CanvasCardHarness />
+  }
 }
