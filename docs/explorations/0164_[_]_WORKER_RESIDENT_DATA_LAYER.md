@@ -135,9 +135,13 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
 
 - [x] Add `DataBridge.transaction(ops)` (async) and migrate
       `useMutate.mutate()` off `bridge.nodeStore`
-- [ ] Inventory and migrate remaining `bridge.nodeStore` consumers
+- [x] Inventory and migrate remaining `bridge.nodeStore` consumers
       (SyncManager wiring, search indexing, devtools) to bridge APIs or
-      provider-level access
+      provider-level access — inventory found `useMutate.mutate()` was the
+      only `bridge.nodeStore` consumer (now on `bridge.transaction`);
+      SyncManager, hub search indexing, devtools, and the undo hooks all
+      use the provider-owned store via `XNetContext`/`useNodeStore`. The
+      escape hatch is now `@deprecated` on the interface.
 - [ ] Port 0163 bounded working sets, batch hydration, and reload
       identity-merge into `data-worker.ts`
 - [ ] Default `createWebCryptoChangeSigner` inside the worker

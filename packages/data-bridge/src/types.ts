@@ -493,6 +493,12 @@ export interface DataBridge {
    * Get the underlying NodeStore directly.
    * Only available in MainThreadBridge for backward compatibility.
    * Will be removed in later phases.
+   *
+   * @deprecated Reach for bridge-level APIs (`transaction`, `bulkWrite`,
+   * `get`, `subscribeToChanges`) instead — worker-backed bridges have no
+   * main-thread store, so this is `undefined` there. Long-lived services
+   * (SyncManager, search indexing, devtools) should use the provider-owned
+   * store from XNetProvider context, not the bridge.
    */
   readonly nodeStore?: import('@xnetjs/data').NodeStore
 
