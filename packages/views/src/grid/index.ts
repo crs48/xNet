@@ -49,6 +49,8 @@ export {
 export { GridSurface, type GridSurfaceProps } from './GridSurface'
 export { GridCell, type GridCellProps } from './GridCell'
 export { GridPeek, type GridPeekProps } from './GridPeek'
+export { FieldConfigEditor, type FieldConfigEditorProps } from './FieldConfigEditor'
+export { GridSkeleton, type GridSkeletonProps } from './GridSkeleton'
 export { GridHeader, type GridHeaderProps } from './GridHeader'
 export {
   GridToolbar,

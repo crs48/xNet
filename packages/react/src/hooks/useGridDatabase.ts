@@ -31,12 +31,15 @@ import {
   generateSortKey,
   generateSortKeyWithJitter,
   sortRows,
+  aggregate,
   convertCellValue,
-  FormulaService
+  FormulaService,
+  type RollupAggregation
 } from '@xnetjs/data'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIdentity } from './useIdentity'
 import { useMutate } from './useMutate'
+import { useNodeStore } from './useNodeStore'
 import { useQuery } from './useQuery'
 import { useUndoScope } from './useUndoScope'
 
@@ -302,6 +305,57 @@ export function useGridDatabase(
     return effective.map((e) => e.field)
   }, [fields, activeView])
 
+  // ─── Rollups (async — related rows live in other databases) ──────────────
+  // Computed off the raw row nodes so the rows memo can merge results
+  // without forming an effect loop.
+  const { store } = useNodeStore()
+  const [rollupValues, setRollupValues] = useState<Map<string, CellValue>>(new Map())
+
+  useEffect(() => {
+    const rollupFields = fields.filter((f) => f.type === 'rollup')
+    if (rollupFields.length === 0 || !store) {
+      setRollupValues((prev) => (prev.size > 0 ? new Map() : prev))
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const next = new Map<string, CellValue>()
+      const relatedCache = new Map<string, Record<string, CellValue> | null>()
+      const nodes = (rowNodes ?? []) as unknown as Flat[]
+      for (const field of rollupFields) {
+        const config = field.config as {
+          relationColumn?: string
+          targetColumn?: string
+          aggregation?: RollupAggregation
+        }
+        if (!config.relationColumn || !config.targetColumn || !config.aggregation) continue
+        for (const node of nodes) {
+          const cells = fromCellProperties(node)
+          const raw = cells[config.relationColumn]
+          const relatedIds = Array.isArray(raw) ? raw : typeof raw === 'string' && raw ? [raw] : []
+          const values: unknown[] = []
+          for (const relatedId of relatedIds) {
+            let related = relatedCache.get(relatedId)
+            if (related === undefined) {
+              const relatedNode = await store.get(relatedId)
+              related =
+                relatedNode && !relatedNode.deleted
+                  ? fromCellProperties(relatedNode.properties)
+                  : null
+              relatedCache.set(relatedId, related)
+            }
+            if (related) values.push(related[config.targetColumn] ?? null)
+          }
+          next.set(`${node.id}:${field.id}`, aggregate(values, config.aggregation) as CellValue)
+        }
+      }
+      if (!cancelled) setRollupValues(next)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [rowNodes, fields, store])
+
   const rows = useMemo(() => {
     // Auto fields read node metadata instead of stored cells
     const autoFields = fields.filter((f) =>
@@ -359,13 +413,24 @@ export function useGridDatabase(
         }
       }
     }
+    // Rollup values merge from the async computation
+    if (rollupValues.size > 0) {
+      for (const row of base) {
+        for (const field of fields) {
+          if (field.type !== 'rollup') continue
+          const computed = rollupValues.get(`${row.id}:${field.id}`)
+          if (computed !== undefined) row.cells[field.id] = computed
+        }
+      }
+    }
+
     // Fractional-index comparator is the final ordering authority
     base.sort((a, b) => compareSortKeys(a.sortKey, b.sortKey))
     if (!activeView) return base
     const columns = fieldsToColumnDefinitions(fields)
     const filtered = filterRows(base, columns, activeView.filters)
     return sortRows(filtered, columns, activeView.sorts)
-  }, [rowNodes, activeView, fields, databaseId])
+  }, [rowNodes, activeView, fields, databaseId, rollupValues])
 
   const loading =
     dbStatus === 'loading' ||

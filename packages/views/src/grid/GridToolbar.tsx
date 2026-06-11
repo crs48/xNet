@@ -211,6 +211,7 @@ export function GridToolbar({
           <button
             type="button"
             aria-label="Add view"
+            title="Add a view"
             className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50"
             onClick={onAddView}
           >
@@ -260,6 +261,7 @@ export function GridToolbar({
           <button
             type="button"
             aria-label="Filter"
+            title="Filter rows"
             aria-expanded={openPopover === 'filter'}
             className={cn(
               'flex items-center gap-1 px-2 py-1 rounded text-xs',
@@ -293,6 +295,7 @@ export function GridToolbar({
           <button
             type="button"
             aria-label="Group"
+            title="Group rows by a field"
             aria-expanded={openPopover === 'group'}
             className={cn(
               'flex items-center gap-1 px-2 py-1 rounded text-xs',
@@ -349,6 +352,7 @@ export function GridToolbar({
           <button
             type="button"
             aria-label="Fields"
+            title="Show / hide fields"
             aria-expanded={openPopover === 'visibility'}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50"
             onClick={() => setOpenPopover(openPopover === 'visibility' ? null : 'visibility')}
@@ -391,6 +395,7 @@ export function GridToolbar({
           <button
             type="button"
             aria-label="More actions"
+            title="Import / export"
             aria-expanded={openPopover === 'more'}
             className="p-1 rounded text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50"
             onClick={() => setOpenPopover(openPopover === 'more' ? null : 'more')}
@@ -464,7 +469,8 @@ export function GridToolbar({
             type="search"
             role="searchbox"
             aria-label="Search rows"
-            placeholder="Search…"
+            placeholder="Search…  (⌘F)"
+            title="Search rows (Cmd/Ctrl+F)"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={(e) => {

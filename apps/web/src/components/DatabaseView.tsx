@@ -28,7 +28,9 @@ import { CommentPopover, type CommentThreadData } from '@xnetjs/ui'
 import {
   type CellPresence,
   type GridField,
+  FieldConfigEditor,
   GridPeek,
+  GridSkeleton,
   GridSurface,
   GridToolbar,
   useDatabaseComments
@@ -336,11 +338,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const activeView = grid.activeView
 
   if (nodeLoading || grid.loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Loading database…</p>
-      </div>
-    )
+    return <GridSkeleton className="-m-6" />
   }
 
   return (
@@ -546,26 +544,13 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
                 </option>
               ))}
             </select>
-            {menuField.type === 'formula' && (
-              <textarea
-                aria-label="Formula expression"
-                placeholder="e.g. {{price}} * {{qty}}"
-                defaultValue={
-                  ((menuField.config as { expression?: string }).expression ?? '') as string
-                }
-                rows={2}
-                className="w-full mb-2 px-2 py-1 font-mono text-xs rounded border border-border bg-transparent outline-none focus:border-blue-400 resize-none"
-                onKeyDown={(e) => e.stopPropagation()}
-                onBlur={(e) => {
-                  const expression = e.target.value.trim()
-                  void grid.updateFieldConfig(menuField.id, {
-                    ...(menuField.config as Record<string, unknown>),
-                    expression,
-                    resultType: (menuField.config as { resultType?: string }).resultType ?? 'number'
-                  } as never)
-                }}
-              />
-            )}
+            <FieldConfigEditor
+              field={menuField}
+              fields={grid.fields}
+              onSave={(config) => {
+                void grid.updateFieldConfig(menuField.id, config)
+              }}
+            />
             <button
               type="button"
               className="w-full px-2 py-1 text-left text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"

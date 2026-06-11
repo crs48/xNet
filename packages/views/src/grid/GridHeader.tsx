@@ -8,6 +8,7 @@ import type { SortConfig } from '@xnetjs/data'
 import {
   DndContext,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -115,7 +116,7 @@ function HeaderCell({
       {/* Drag handle covers the label */}
       <span
         className="flex-1 truncate cursor-grab active:cursor-grabbing"
-        title={field.name}
+        title={`${field.name} — click to sort, drag to reorder`}
         {...attributes}
         {...listeners}
       >
@@ -168,7 +169,11 @@ export function GridHeader({
   onAddField,
   onSelectColumn
 }: GridHeaderProps): React.JSX.Element {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // Touch: long-press to drag so taps/scrolls pass through
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 6 } })
+  )
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -210,6 +215,7 @@ export function GridHeader({
         <button
           type="button"
           aria-label="Add field"
+          title="Add a field"
           className="h-8 px-2 border-b border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           onClick={(e) => onAddField(e.currentTarget)}
         >

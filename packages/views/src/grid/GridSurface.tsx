@@ -21,6 +21,7 @@ import type { CellValue, SortConfig } from '@xnetjs/data'
 import {
   DndContext,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -527,7 +528,11 @@ export function GridSurface({
 
   // ─── Row drag (gutter handles) ─────────────────────────────────────────────
 
-  const rowSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
+  const rowSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // Touch: long-press the gutter handle to drag
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 6 } })
+  )
   const handleRowDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
@@ -582,6 +587,16 @@ export function GridSurface({
           >
             <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
               <div data-grid-body style={{ height: totalHeight, position: 'relative' }}>
+                {rows.length === 0 && (
+                  <div
+                    data-testid="grid-empty-hint"
+                    className="absolute inset-x-0 top-10 text-center text-xs text-gray-400 dark:text-gray-600 pointer-events-none"
+                  >
+                    {hasGhostRow
+                      ? 'Click a cell above and start typing to add your first row'
+                      : 'No rows'}
+                  </div>
+                )}
                 {virtualRows.map((virtualRow) => {
                   const row =
                     rows[virtualRow.index] ??
@@ -633,6 +648,7 @@ export function GridSurface({
         {!readOnly && onAddRow && (
           <button
             type="button"
+            title="New row (Cmd/Ctrl+Shift+,)"
             className="flex items-center gap-1 px-2 py-0.5 rounded text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
             onClick={() => onAddRow()}
           >

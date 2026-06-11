@@ -659,6 +659,14 @@ export {
   type ConvertContext,
   type ConvertedCell,
 
+  // Rollup engine (computed columns)
+  aggregate,
+  computeRollup,
+  batchComputeRollups,
+  validateRollupConfig,
+  type RollupRow,
+  type RollupContext,
+
   // Formula service (computed columns)
   FormulaService,
   createFormulaService,

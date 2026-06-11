@@ -361,4 +361,53 @@ describe('useGridDatabase', () => {
       expect(second === null || second === undefined).toBe(true)
     })
   })
+
+  it('rollup fields aggregate related rows across databases', async () => {
+    const wrapper = createWrapper()
+    const projectsDb = await setupDatabase(wrapper)
+    const tasksDb = await setupDatabase(wrapper)
+
+    // Tasks database: a points field and two rows
+    const tasks = renderHook(() => useGridDatabase(tasksDb), { wrapper })
+    await waitFor(() => expect(tasks.result.current.loading).toBe(false))
+    let pointsId = ''
+    let taskA: string | null = null
+    let taskB: string | null = null
+    await act(async () => {
+      pointsId = (await tasks.result.current.addField('Points', 'number')) ?? ''
+      taskA = await tasks.result.current.addRow(undefined, { [pointsId]: 3 })
+      taskB = await tasks.result.current.addRow(undefined, { [pointsId]: 5 })
+    })
+    await waitFor(() => expect(tasks.result.current.rows).toHaveLength(2))
+
+    // Projects database: relation → tasks, rollup sum(points)
+    const projects = renderHook(() => useGridDatabase(projectsDb), { wrapper })
+    await waitFor(() => expect(projects.result.current.loading).toBe(false))
+    let relId = ''
+    let rollupId = ''
+    await act(async () => {
+      relId =
+        (await projects.result.current.addField('Tasks', 'relation', {
+          targetDatabase: tasksDb
+        } as never)) ?? ''
+      rollupId =
+        (await projects.result.current.addField('Total points', 'rollup', {
+          relationColumn: '',
+          targetColumn: '',
+          aggregation: 'sum'
+        } as never)) ?? ''
+      await projects.result.current.updateFieldConfig(rollupId, {
+        relationColumn: relId,
+        targetColumn: pointsId,
+        aggregation: 'sum'
+      } as never)
+      await projects.result.current.addRow(undefined, {
+        [relId]: [taskA, taskB].filter((id): id is string => Boolean(id))
+      })
+    })
+
+    await waitFor(() => expect(projects.result.current.rows[0]?.cells[rollupId]).toBe(8), {
+      timeout: 10_000
+    })
+  })
 })

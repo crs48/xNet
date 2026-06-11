@@ -460,8 +460,8 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 - [x] Cell comment badges + thread popover + shortcut create (`Cmd/Ctrl+Shift+M`), via `useDatabaseComments` anchors — badges/counts in GridCell, CommentPopover + composer in the web shell; hover-preview and column/row menu anchors remain follow-up polish
 - [x] Presence: awareness broadcast of cell focus; remote rings + name flags (GridCell), wired through the Database Y.Doc awareness channel in the web shell; edit-pulse and range overlays remain follow-up polish
-- [ ] Hover/active states, tooltips with shortcut hints on every toolbar control, empty states, loading skeletons
-- [ ] Touch affordances: long-press drag, bottom-sheet pickers under breakpoint
+- [x] Hover/active states, tooltips with shortcut hints on toolbar/header/footer controls, empty-state hint over the ghost row, `GridSkeleton` loading placeholder in both shells
+- [x] Touch affordances: long-press (250ms) drag for column and row reorder via dnd-kit TouchSensor; bottom-sheet pickers under a width breakpoint remain follow-up
 - [x] Replace `apps/web` + `apps/electron` `DatabaseView.tsx` with thin shells over the new surface (−2,600 lines net); `VirtualizedTableView`/`useTableState`/TanStack Table removal rides with the canvas-preview + DataWorkspaceView ports
 
 ### Phase 4 — Cross-platform & multiplayer hardening
@@ -480,7 +480,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 ### Phase 5 (v2.1) — Computed columns UI
 
 - [x] Formula columns evaluate live — `FormulaService` wired into the `useGridDatabase` row pipeline (cached per row+inputs, recomputes on dependency edits, available to filters/sorts); computed/auto cells are non-editable in the grid; field menu gains an expression editor with `{{fieldId}}` refs. Autocomplete/live-preview popover and worker offload remain follow-up polish
-- [ ] Rollup configuration UI over `rollup-engine.ts`
+- [x] Rollup configuration UI over `rollup-engine.ts` — shared `FieldConfigEditor` (relation target-database picker, rollup relation/target-field/aggregation pickers, formula expression) in both shells; rollups compute cross-database in `useGridDatabase` via the store with per-row aggregation (hook test: relation → sum of related points)
 - [ ] Computed-cache invalidation e2e (edit upstream cell → dependent formula/rollup updates)
 
 ## Validation Checklist
