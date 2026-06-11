@@ -16,14 +16,32 @@ export const TaskSchema = defineSchema({
     /** Task title */
     title: text({ required: true, maxLength: 500 }),
 
+    /**
+     * Human-readable identifier, e.g. "XN-142". Allocated from hub-issued
+     * per-device blocks (see task-identifiers.ts) so offline mints never
+     * collide. Pattern-matched in branch names / commit messages / PR text
+     * by the GitHub integration.
+     */
+    shortId: text({ maxLength: 20 }),
+
     /** Whether the task is completed */
     completed: checkbox({ default: false }),
 
-    /** Task status */
+    /**
+     * Task workflow status.
+     *
+     * Statuses belong to categories (TASK_STATUS_CATEGORIES); `completed`
+     * is derivable from the category (isCompletedTaskStatus) so checkboxes
+     * stay one-tap everywhere. The original four statuses are unchanged;
+     * triage/backlog/in-review are additive (no version bump needed).
+     */
     status: select({
       options: [
+        { id: 'triage', name: 'Triage', color: 'yellow' },
+        { id: 'backlog', name: 'Backlog', color: 'gray' },
         { id: 'todo', name: 'To Do', color: 'gray' },
         { id: 'in-progress', name: 'In Progress', color: 'blue' },
+        { id: 'in-review', name: 'In Review', color: 'green' },
         { id: 'done', name: 'Done', color: 'green' },
         { id: 'cancelled', name: 'Cancelled', color: 'red' }
       ] as const,
@@ -53,10 +71,17 @@ export const TaskSchema = defineSchema({
     /** Parent task (for subtasks) */
     parent: relation({ target: 'xnet://xnet.fyi/Task' as const }),
 
+    /** Project this task belongs to */
+    project: relation({ target: 'xnet://xnet.fyi/Project@1.0.0' as const }),
+
     /** Page that currently hosts this task */
     page: relation({ target: 'xnet://xnet.fyi/Page@1.0.0' as const }),
 
-    /** Surface-specific block anchor inside the page document */
+    /** Canvas that currently hosts this task (canvas-sourced tasks) */
+    canvas: relation({ target: 'xnet://xnet.fyi/Canvas@1.0.0' as const }),
+
+    /** Surface-specific anchor: block id inside the page document, or the
+     * hosting canvas object id for canvas-sourced tasks */
     anchorBlockId: text({ maxLength: 500 }),
 
     /** Stable sibling order key for cross-view projections */
@@ -87,3 +112,48 @@ export const TaskSchema = defineSchema({
  * A Task node type (inferred from schema).
  */
 export type Task = InferNode<(typeof TaskSchema)['_properties']>
+
+/**
+ * Workflow categories. UI/automation reason about categories, not
+ * individual status ids, so custom per-project states can join a category
+ * later without touching consumers.
+ */
+export type TaskStatusCategory =
+  | 'triage'
+  | 'backlog'
+  | 'unstarted'
+  | 'started'
+  | 'completed'
+  | 'cancelled'
+
+export type TaskStatusId =
+  | 'triage'
+  | 'backlog'
+  | 'todo'
+  | 'in-progress'
+  | 'in-review'
+  | 'done'
+  | 'cancelled'
+
+export const TASK_STATUS_CATEGORIES: Record<TaskStatusId, TaskStatusCategory> = {
+  triage: 'triage',
+  backlog: 'backlog',
+  todo: 'unstarted',
+  'in-progress': 'started',
+  'in-review': 'started',
+  done: 'completed',
+  cancelled: 'cancelled'
+}
+
+export function getTaskStatusCategory(status: string | undefined): TaskStatusCategory {
+  return TASK_STATUS_CATEGORIES[(status ?? 'todo') as TaskStatusId] ?? 'unstarted'
+}
+
+/**
+ * Derive the `completed` checkbox from a workflow status. Stored
+ * `completed` is a mirror of this derivation — never diverge them.
+ */
+export function isCompletedTaskStatus(status: string | undefined): boolean {
+  const category = getTaskStatusCategory(status)
+  return category === 'completed' || category === 'cancelled'
+}

@@ -271,3 +271,12 @@ export {
   toSurfaceFilter,
   fromSurfaceFilter
 } from './grid/index.js'
+
+export {
+  TaskBoard,
+  TaskListGrouped,
+  type TaskBoardProps,
+  type TaskBoardItem,
+  type TaskBoardStatusChange,
+  type TaskListGroupedProps
+} from './tasks/index.js'

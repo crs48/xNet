@@ -31,8 +31,9 @@ const KIND_RATIOS: Record<CanvasObjectKind, number> = {
   database: 0.08,
   'external-reference': 0.08,
   media: 0.1,
-  shape: 0.36,
+  shape: 0.34,
   note: 0.12,
+  task: 0.02,
   group: 0.04
 }
 

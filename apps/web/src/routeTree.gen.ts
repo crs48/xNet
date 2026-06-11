@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as SocialImportRouteImport } from './routes/social-import'
 import { Route as ShareRouteImport } from './routes/share'
@@ -19,6 +20,11 @@ import { Route as DocDocIdRouteImport } from './routes/doc.$docId'
 import { Route as DbDbIdRouteImport } from './routes/db.$dbId'
 import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
 
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoriesRoute = StoriesRouteImport.update({
   id: '/stories',
   path: '/stories',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/share': typeof ShareRoute
   '/social-import': typeof SocialImportRoute
   '/stories': typeof StoriesRoute
+  '/tasks': typeof TasksRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/share': typeof ShareRoute
   '/social-import': typeof SocialImportRoute
   '/stories': typeof StoriesRoute
+  '/tasks': typeof TasksRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/share': typeof ShareRoute
   '/social-import': typeof SocialImportRoute
   '/stories': typeof StoriesRoute
+  '/tasks': typeof TasksRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/share'
     | '/social-import'
     | '/stories'
+    | '/tasks'
     | '/canvas/$canvasId'
     | '/db/$dbId'
     | '/doc/$docId'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/share'
     | '/social-import'
     | '/stories'
+    | '/tasks'
     | '/canvas/$canvasId'
     | '/db/$dbId'
     | '/doc/$docId'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/share'
     | '/social-import'
     | '/stories'
+    | '/tasks'
     | '/canvas/$canvasId'
     | '/db/$dbId'
     | '/doc/$docId'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   ShareRoute: typeof ShareRoute
   SocialImportRoute: typeof SocialImportRoute
   StoriesRoute: typeof StoriesRoute
+  TasksRoute: typeof TasksRoute
   CanvasCanvasIdRoute: typeof CanvasCanvasIdRoute
   DbDbIdRoute: typeof DbDbIdRoute
   DocDocIdRoute: typeof DocDocIdRoute
@@ -149,6 +162,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stories': {
       id: '/stories'
       path: '/stories'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShareRoute: ShareRoute,
   SocialImportRoute: SocialImportRoute,
   StoriesRoute: StoriesRoute,
+  TasksRoute: TasksRoute,
   CanvasCanvasIdRoute: CanvasCanvasIdRoute,
   DbDbIdRoute: DbDbIdRoute,
   DocDocIdRoute: DocDocIdRoute,

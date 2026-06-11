@@ -112,7 +112,9 @@ describe('ChecklistNodeComponent', () => {
 
     it('does not delete non-empty item on Backspace', () => {
       const onUpdate = vi.fn()
-      const node = createNode([{ id: '1', text: 'Task', checked: false, indent: 0 }])
+      const node = createNode([
+        { id: '1', text: 'Task', checked: false, indent: 0, taskId: 'task_1' }
+      ])
 
       const { container } = render(<ChecklistNodeComponent node={node} onUpdate={onUpdate} />)
 
@@ -120,6 +122,21 @@ describe('ChecklistNodeComponent', () => {
       fireEvent.keyDown(input, { key: 'Backspace' })
 
       expect(onUpdate).not.toHaveBeenCalled()
+    })
+
+    it('migrates legacy items without taskIds on mount', () => {
+      const onUpdate = vi.fn()
+      const node = createNode([
+        { id: '1', text: 'Legacy item', checked: false, indent: 0 },
+        { id: '2', text: 'Backed item', checked: true, indent: 1, taskId: 'task_existing' }
+      ])
+
+      render(<ChecklistNodeComponent node={node} onUpdate={onUpdate} />)
+
+      expect(onUpdate).toHaveBeenCalledTimes(1)
+      const migrated = onUpdate.mock.calls[0][0].items
+      expect(migrated[0].taskId).toMatch(/^task_/)
+      expect(migrated[1].taskId).toBe('task_existing')
     })
 
     it('increases indent on Tab', () => {

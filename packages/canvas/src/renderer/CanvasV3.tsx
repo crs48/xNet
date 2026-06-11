@@ -575,6 +575,8 @@ function getCanvasObjectKindLabel(node: CanvasNode): string {
       return 'Database'
     case 'note':
       return 'Note'
+    case 'task':
+      return 'Task'
     case 'external-reference':
       return 'Embed'
     case 'media':
@@ -880,6 +882,8 @@ function getObjectColor(kind: CanvasObjectRecord['kind']): string {
       return '#8b5cf6'
     case 'note':
       return '#f59e0b'
+    case 'task':
+      return '#6366f1'
     case 'group':
       return '#64748b'
     case 'shape':

@@ -33,6 +33,7 @@ import { createFileRoutes } from './routes/files'
 import { createKeyRegistryRoutes } from './routes/keys'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
+import { createTaskRoutes } from './routes/tasks'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
@@ -52,6 +53,7 @@ import { ShardIngestRouter } from './services/shard-ingest'
 import { ShardRebalancer } from './services/shard-rebalancer'
 import { ShardQueryRouter } from './services/shard-router'
 import { createSignalingService } from './services/signaling'
+import { TaskIdentifierService } from './services/task-identifiers'
 import { createStorage } from './storage'
 
 const getMessageSize = (data: RawData): number => {
@@ -408,6 +410,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   })
   const files = new FileService(storage)
   const keyRegistry = new KeyRegistryService()
+  const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)
   const federationDefaults = {
     enabled: false,
@@ -657,6 +660,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
+  app.use('/tasks/short-ids/*', requireAuth)
+  app.route(
+    '/tasks',
+    createTaskRoutes({
+      identifiers: taskIdentifiers,
+      githubWebhookSecret: process.env.HUB_GITHUB_WEBHOOK_SECRET
+    })
+  )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
   app.route('/federation', createFederationRoutes(federation, { requireAuth }))
   if (shardConfig.enabled) {

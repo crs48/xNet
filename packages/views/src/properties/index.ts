@@ -15,6 +15,7 @@ import { personHandler } from './person.js'
 import { phoneHandler } from './phone.js'
 import { relationHandler } from './relation.js'
 import { selectHandler } from './select.js'
+import { taskChecklistHandler } from './task.js'
 import { textHandler } from './text.js'
 import { urlHandler } from './url.js'
 
@@ -24,8 +25,14 @@ import { urlHandler } from './url.js'
  * Built-in property handlers (immutable)
  * Using 'any' to avoid complex generic variance issues
  */
+/**
+ * Column type keys beyond schema PropertyTypes (grid field types are open
+ * strings; 'tasks' is a relation → Task column with an inline checklist).
+ */
+type ExtendedPropertyType = PropertyType | 'tasks'
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const builtinHandlers: Partial<Record<PropertyType, PropertyHandler<any>>> = {
+const builtinHandlers: Partial<Record<ExtendedPropertyType, PropertyHandler<any>>> = {
   text: textHandler,
   number: numberHandler,
   checkbox: checkboxHandler,
@@ -39,6 +46,7 @@ const builtinHandlers: Partial<Record<PropertyType, PropertyHandler<any>>> = {
   file: fileHandler,
   // Relation type
   relation: relationHandler,
+  tasks: taskChecklistHandler,
   person: personHandler,
   // Auto properties - read-only
   created: dateHandler,
@@ -105,7 +113,7 @@ export function getPropertyHandler(type: PropertyType | string): PropertyHandler
   }
 
   // Fall back to built-in handlers
-  const builtinHandler = builtinHandlers[type as PropertyType]
+  const builtinHandler = builtinHandlers[type as ExtendedPropertyType]
   if (builtinHandler) {
     return builtinHandler
   }
@@ -157,5 +165,6 @@ export {
   emailHandler,
   phoneHandler,
   fileHandler,
-  relationHandler
+  relationHandler,
+  taskChecklistHandler
 }

@@ -74,3 +74,41 @@ describe('TaskSchema', () => {
     })
   })
 })
+
+describe('task status categories', () => {
+  it('maps every status to a category', async () => {
+    const { TASK_STATUS_CATEGORIES, getTaskStatusCategory } = await import('./task')
+
+    expect(getTaskStatusCategory('triage')).toBe('triage')
+    expect(getTaskStatusCategory('backlog')).toBe('backlog')
+    expect(getTaskStatusCategory('todo')).toBe('unstarted')
+    expect(getTaskStatusCategory('in-progress')).toBe('started')
+    expect(getTaskStatusCategory('in-review')).toBe('started')
+    expect(getTaskStatusCategory('done')).toBe('completed')
+    expect(getTaskStatusCategory('cancelled')).toBe('cancelled')
+    // Unknown/custom statuses degrade to unstarted
+    expect(getTaskStatusCategory('something-custom')).toBe('unstarted')
+    expect(getTaskStatusCategory(undefined)).toBe('unstarted')
+
+    const schemaStatusIds = [
+      'triage',
+      'backlog',
+      'todo',
+      'in-progress',
+      'in-review',
+      'done',
+      'cancelled'
+    ]
+    expect(Object.keys(TASK_STATUS_CATEGORIES).sort()).toEqual([...schemaStatusIds].sort())
+  })
+
+  it('derives completed from the status category', async () => {
+    const { isCompletedTaskStatus } = await import('./task')
+
+    expect(isCompletedTaskStatus('done')).toBe(true)
+    expect(isCompletedTaskStatus('cancelled')).toBe(true)
+    expect(isCompletedTaskStatus('in-review')).toBe(false)
+    expect(isCompletedTaskStatus('triage')).toBe(false)
+    expect(isCompletedTaskStatus(undefined)).toBe(false)
+  })
+})

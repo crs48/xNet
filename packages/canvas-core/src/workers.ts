@@ -21,7 +21,8 @@ const CANVAS_OBJECT_KINDS: readonly CanvasObjectKind[] = [
   'media',
   'shape',
   'note',
-  'group'
+  'group',
+  'task'
 ]
 
 const KIND_TO_CODE = new Map<CanvasObjectKind, number>(
