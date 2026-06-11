@@ -533,7 +533,7 @@ export interface WidgetContribution {
 
 ### Phase 1 — Surface and built-in widgets
 
-- [ ] Define `DashboardSchema` (title, icon, variables, per-breakpoint layouts) in `packages/data`
+- [x] Define `DashboardSchema` (title, icon, variables, per-breakpoint layouts) in `packages/data`
 - [ ] Create `packages/dashboard` with `WidgetDefinition`, `WidgetProps`, widget registry
 - [ ] Spike gridstack.js v12 vs react-grid-layout v2 in a tile host; pick and wire `renderCB`/hooks to React tiles
 - [ ] Add `/dashboard.$dashboardId.tsx` route in `apps/web/src/routes/` and sidebar entry in `__root.tsx`

@@ -39,6 +39,17 @@ export { ReactionSchema, type Reaction } from './reaction'
 export { GrantSchema, type Grant } from './grant'
 export { SavedViewSchema, type SavedView } from './saved-view'
 export {
+  DashboardSchema,
+  type Dashboard,
+  type DashboardBreakpointId,
+  type DashboardLayoutItem,
+  type DashboardLayouts,
+  type DashboardTimeRange,
+  type DashboardVariablesState,
+  type DashboardWidgetInstance,
+  type DashboardWidgetRefresh
+} from './dashboard'
+export {
   PresenceSummarySchema,
   SchemaCompatibilitySchema,
   SchemaDefinitionSchema,
@@ -178,6 +189,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/SavedView@1.0.0': () => import('./saved-view').then((m) => m.SavedViewSchema),
+  'xnet://xnet.fyi/Dashboard@1.0.0': () => import('./dashboard').then((m) => m.DashboardSchema),
   'xnet://xnet.fyi/SchemaDefinition@1.0.0': () =>
     import('./system').then((m) => m.SchemaDefinitionSchema),
   'xnet://xnet.fyi/SchemaCompatibility@1.0.0': () =>
@@ -226,6 +238,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/SavedView': () => import('./saved-view').then((m) => m.SavedViewSchema),
+  'xnet://xnet.fyi/Dashboard': () => import('./dashboard').then((m) => m.DashboardSchema),
   'xnet://xnet.fyi/SchemaDefinition': () =>
     import('./system').then((m) => m.SchemaDefinitionSchema),
   'xnet://xnet.fyi/SchemaCompatibility': () =>

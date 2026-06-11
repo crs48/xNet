@@ -138,6 +138,17 @@ export { ReactionSchema, type Reaction } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
 export {
+  DashboardSchema,
+  type Dashboard,
+  type DashboardBreakpointId,
+  type DashboardLayoutItem,
+  type DashboardLayouts,
+  type DashboardTimeRange,
+  type DashboardVariablesState,
+  type DashboardWidgetInstance,
+  type DashboardWidgetRefresh
+} from './schemas'
+export {
   PresenceSummarySchema,
   SchemaCompatibilitySchema,
   SchemaDefinitionSchema,
