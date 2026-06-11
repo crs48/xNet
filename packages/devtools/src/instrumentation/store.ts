@@ -1,17 +1,28 @@
 /**
  * NodeStore instrumentation
  *
- * Subscribes to the NodeStore's change events and emits typed DevTools events
- * for creates, updates, deletes, restores, remote changes, and conflicts.
+ * Subscribes to node change events and emits typed DevTools events for
+ * creates, updates, deletes, restores, remote changes, and conflicts.
+ *
+ * The change events can come from a main-thread NodeStore or from a
+ * worker-resident store via `DataBridge.subscribeToChanges` (0164) — the
+ * event shape is identical either way.
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
 import type { NodeStore, NodeChangeEvent } from '@xnetjs/data'
 import { DEFAULTS } from '../core/constants'
 
-export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => void {
-  // Listen to all store changes via the existing subscribe mechanism
-  const unsubscribe = store.subscribe((event: NodeChangeEvent) => {
+/**
+ * Instrument any node change feed (a subscribe function returning an
+ * unsubscriber). Used directly for bridge-level feeds where no NodeStore
+ * is reachable from the main thread.
+ */
+export function instrumentChangeFeed(
+  subscribe: (listener: (event: NodeChangeEvent) => void) => () => void,
+  bus: DevToolsEventBus
+): () => void {
+  return subscribe((event: NodeChangeEvent) => {
     const { change, isRemote } = event
     const payload = change.payload as unknown as Record<string, unknown>
     const nodeId = payload.nodeId as string
@@ -63,6 +74,11 @@ export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => 
       })
     }
   })
+}
+
+export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => void {
+  // Listen to all store changes via the existing subscribe mechanism
+  const unsubscribe = instrumentChangeFeed((listener) => store.subscribe(listener), bus)
 
   // Poll for conflicts periodically
   const conflictInterval = setInterval(() => {

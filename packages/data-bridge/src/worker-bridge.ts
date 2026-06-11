@@ -29,6 +29,7 @@ import type {
   InferCreateProps,
   NodeBatchWriteInput,
   NodeBatchWriteResult,
+  NodeChangeEvent,
   TransactionOperation
 } from '@xnetjs/data'
 import { wrap, proxy, transfer, type Remote } from 'comlink'
@@ -87,6 +88,8 @@ export class WorkerBridge implements DataBridge {
   private subscriptions = new Map<string, Set<() => void>>()
   private activeRemoteSubscriptions = new Set<string>()
   private statusListeners = new Set<(status: SyncStatus) => void>()
+  private changeListeners = new Set<(event: NodeChangeEvent) => void>()
+  private changeFeedStarted = false
   private _status: SyncStatus = 'connecting'
   private initialized = false
 
@@ -338,6 +341,36 @@ export class WorkerBridge implements DataBridge {
     return this.remote.transaction(operations)
   }
 
+  // ─── Change Feed ─────────────────────────────────────────────────────────────
+
+  /**
+   * Subscribe to the worker's store change feed (devtools and other
+   * instrumentation). A single proxied forwarder is registered with the
+   * worker on first use; events fan out to local listeners from there.
+   */
+  subscribeToChanges(listener: (event: NodeChangeEvent) => void): () => void {
+    this.changeListeners.add(listener)
+
+    if (!this.changeFeedStarted) {
+      this.changeFeedStarted = true
+      this.remote.subscribeToChanges(
+        proxy((event: NodeChangeEvent) => {
+          for (const handler of this.changeListeners) {
+            try {
+              handler(event)
+            } catch (err) {
+              console.error('[WorkerBridge] Change listener error:', err)
+            }
+          }
+        })
+      )
+    }
+
+    return () => {
+      this.changeListeners.delete(listener)
+    }
+  }
+
   // ─── Documents ────────────────────────────────────────────────────────────────
 
   /**
@@ -480,6 +513,8 @@ export class WorkerBridge implements DataBridge {
     this.cache.clear()
     this.subscriptions.clear()
     this.statusListeners.clear()
+    this.changeListeners.clear()
+    this.changeFeedStarted = false
     this.initialized = false
     this._status = 'disconnected'
   }

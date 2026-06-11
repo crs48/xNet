@@ -20,6 +20,7 @@ const remote = {
   })),
   releaseDoc: vi.fn(),
   applyLocalUpdate: vi.fn(),
+  subscribeToChanges: vi.fn(),
   destroy: vi.fn(async () => {})
 }
 
@@ -145,6 +146,34 @@ describe('WorkerBridge', () => {
     expect(transferSpy.mock.calls[0][1]).toEqual([port2])
     expect(remote.initialize).toHaveBeenCalledWith(expect.objectContaining({ storagePort: port2 }))
     port2.close()
+  })
+
+  it('fans out the worker change feed through a single remote forwarder', async () => {
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3])
+    })
+
+    const seenA: unknown[] = []
+    const seenB: unknown[] = []
+    const unsubscribeA = bridge.subscribeToChanges((event) => seenA.push(event))
+    bridge.subscribeToChanges((event) => seenB.push(event))
+
+    // One worker-side registration regardless of local listener count.
+    expect(remote.subscribeToChanges).toHaveBeenCalledTimes(1)
+
+    const forwarder = remote.subscribeToChanges.mock.calls[0][0] as (event: unknown) => void
+    const event = { isRemote: false, change: { payload: { nodeId: 'n1' } } }
+    forwarder(event)
+
+    expect(seenA).toEqual([event])
+    expect(seenB).toEqual([event])
+
+    unsubscribeA()
+    forwarder(event)
+    expect(seenA).toHaveLength(1)
+    expect(seenB).toHaveLength(2)
   })
 
   it('skips transfer when no storage port is configured', async () => {

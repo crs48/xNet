@@ -307,6 +307,20 @@ describe('DataWorker host', () => {
     }
   })
 
+  it('feeds raw store change events to instrumentation subscribers', async () => {
+    const events: Array<{ isRemote: boolean; nodeId: string }> = []
+    worker.subscribeToChanges((event) => {
+      events.push({ isRemote: event.isRemote, nodeId: event.change.payload.nodeId })
+    })
+
+    const created = await worker.create(TaskSchema._schemaId, { title: 'Observed' })
+    await worker.update(created.id, { title: 'Observed again' })
+
+    expect(events).toHaveLength(2)
+    expect(events.every((event) => event.nodeId === created.id)).toBe(true)
+    expect(events.every((event) => !event.isRemote)).toBe(true)
+  })
+
   it('executes atomic transactions with temp ID resolution', async () => {
     const tx = await worker.transaction([
       {

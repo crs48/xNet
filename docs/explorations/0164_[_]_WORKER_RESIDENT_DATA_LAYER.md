@@ -158,7 +158,10 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
       the worker (sub-millisecond in the host test, asserted < 16 ms), so
       the main thread perceives the edit after a single postMessage hop
       (~0.1–0.3 ms). Well under a frame; no main-thread overlay needed.
-- [ ] Devtools event feed from the worker
+- [x] Devtools event feed from the worker — `DataWorkerAPI.subscribeToChanges`
+      streams NodeChangeEvents; `WorkerBridge.subscribeToChanges` fans out
+      to local listeners; DevToolsProvider prefers the bridge feed when the
+      bridge has no main-thread store
 - [ ] Flag-gated rollout on web + bench comparison (fanout, input latency,
       bulk import jank)
 

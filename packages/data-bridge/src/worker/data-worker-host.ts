@@ -147,6 +147,7 @@ export class DataWorker implements DataWorkerAPI {
   private subscriptions = new Map<string, ActiveWorkerSubscription>()
   private status: SyncStatus = 'disconnected'
   private statusHandlers = new Set<(status: SyncStatus) => void>()
+  private changeFeedHandlers = new Set<(event: NodeChangeEvent) => void>()
   private storeUnsubscribe: (() => void) | null = null
   private storeBatchUnsubscribe: (() => void) | null = null
   private pendingStoreChanges: NodeChangeEvent[] = []
@@ -176,6 +177,7 @@ export class DataWorker implements DataWorkerAPI {
     // Set up store change listener for subscriptions
     this.storeUnsubscribe = this.store.subscribe((event) => {
       this.enqueueStoreChange(event)
+      this.emitChangeFeedEvent(event)
     })
     this.storeBatchUnsubscribe = this.store.subscribeToBatchChanges((event) => {
       void this.handleStoreBatchChange(event)
@@ -476,6 +478,26 @@ export class DataWorker implements DataWorkerAPI {
     this.statusHandlers.add(proxy(handler))
   }
 
+  /**
+   * Subscribe to the worker's raw store change feed (devtools and other
+   * instrumentation). Events are structured-clone-safe NodeChangeEvents.
+   * The bridge registers a single forwarder and fans out locally, so the
+   * worker keeps at most one handler per bridge.
+   */
+  subscribeToChanges(handler: (event: NodeChangeEvent) => void): void {
+    this.changeFeedHandlers.add(proxy(handler))
+  }
+
+  private emitChangeFeedEvent(event: NodeChangeEvent): void {
+    for (const handler of this.changeFeedHandlers) {
+      try {
+        handler(event)
+      } catch (err) {
+        console.error('[DataWorker] Change feed handler error:', err)
+      }
+    }
+  }
+
   async destroy(): Promise<void> {
     // Unsubscribe from store
     if (this.storeUnsubscribe) {
@@ -503,6 +525,7 @@ export class DataWorker implements DataWorkerAPI {
     this.store = null
     this.subscriptions.clear()
     this.statusHandlers.clear()
+    this.changeFeedHandlers.clear()
 
     this.setStatus('disconnected')
   }

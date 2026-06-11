@@ -9,6 +9,7 @@ import type { QueryMaterializedInfo, QueryPlanInfo } from '../core/types'
 import type * as Y from 'yjs'
 import { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from '@xnetjs/history'
 import {
+  useDataBridge,
   useNodeStore,
   useXNet,
   InstrumentationContext,
@@ -26,7 +27,7 @@ import {
 import { DEFAULTS } from '../core/constants'
 import { DevToolsEventBus } from '../core/event-bus'
 import { QueryTracker } from '../instrumentation/query'
-import { instrumentStore } from '../instrumentation/store'
+import { instrumentChangeFeed, instrumentStore } from '../instrumentation/store'
 import { instrumentTelemetry } from '../instrumentation/telemetry'
 import { instrumentYDoc } from '../instrumentation/yjs'
 import { DevToolsPanel } from '../panels/Shell'
@@ -340,16 +341,32 @@ export function XNetDevToolsProvider({
 
   // Get store from NodeStoreProvider context
   const { store } = useNodeStore()
+  const dataBridge = useDataBridge()
 
-  // Set up store instrumentation when store becomes available
+  // Set up store instrumentation when store becomes available.
+  //
+  // With a worker-resident data layer (0164) the main-thread store never
+  // sees hook-driven writes, so prefer the bridge's change feed whenever
+  // the bridge has no main-thread store of its own. Main-thread bridges
+  // keep direct store instrumentation (which adds conflict polling).
   useEffect(() => {
-    if (!store) return
+    if (!store && !dataBridge?.subscribeToChanges) return
 
-    const cleanup = instrumentStore(store, busRef.current)
+    const useBridgeFeed = Boolean(dataBridge?.subscribeToChanges) && !dataBridge?.nodeStore
+    const cleanup = useBridgeFeed
+      ? instrumentChangeFeed(
+          (listener) => dataBridge!.subscribeToChanges!(listener),
+          busRef.current
+        )
+      : store
+        ? instrumentStore(store, busRef.current)
+        : null
+    if (!cleanup) return
+
     cleanupsRef.current.push(cleanup)
 
     // Create DocumentHistoryEngine backed by the store's storage adapter
-    const storage = (store as any).storage
+    const storage = (store as any)?.storage
     if (storage && typeof storage.saveYjsSnapshot === 'function') {
       documentHistoryRef.current = new DocumentHistoryEngine(storage, { minInterval: 2000 })
     } else {
@@ -363,7 +380,7 @@ export function XNetDevToolsProvider({
       cleanup()
       cleanupsRef.current = cleanupsRef.current.filter((fn) => fn !== cleanup)
     }
-  }, [store])
+  }, [store, dataBridge])
 
   useEffect(() => {
     setSyncDiagnostics(createSyncDiagnostics(syncManager))

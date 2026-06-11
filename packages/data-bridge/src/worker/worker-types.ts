@@ -14,6 +14,7 @@ import type {
 import type {
   NodeBatchWriteInput,
   NodeBatchWriteResult,
+  NodeChangeEvent,
   NodeState,
   SchemaIRI,
   TransactionOperation
@@ -230,6 +231,13 @@ export interface DataWorkerAPI {
    * Subscribe to status changes.
    */
   onStatusChange(handler: (status: SyncStatus) => void): void
+
+  /**
+   * Subscribe to the worker's raw store change feed (devtools and other
+   * instrumentation). The bridge registers one forwarder and fans out to
+   * local listeners.
+   */
+  subscribeToChanges(handler: (event: NodeChangeEvent) => void): void
 
   /**
    * Clean up and close the worker.
