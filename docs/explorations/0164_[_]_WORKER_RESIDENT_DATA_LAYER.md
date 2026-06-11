@@ -142,8 +142,10 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
       SyncManager, hub search indexing, devtools, and the undo hooks all
       use the provider-owned store via `XNetContext`/`useNodeStore`. The
       escape hatch is now `@deprecated` on the interface.
-- [ ] Port 0163 bounded working sets, batch hydration, and reload
-      identity-merge into `data-worker.ts`
+- [x] Port 0163 bounded working sets, batch hydration, and reload
+      identity-merge into `data-worker.ts` (host class extracted to
+      `data-worker-host.ts` for direct test coverage; reload threshold
+      raised to 250 to match MainThreadBridge)
 - [ ] Default `createWebCryptoChangeSigner` inside the worker
 - [ ] `PortSQLiteAdapter` + `MessagePort` forwarding from
       `WorkerBridge.initialize`
