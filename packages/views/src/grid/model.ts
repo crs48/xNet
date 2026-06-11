@@ -44,6 +44,10 @@ export interface GridCallbacks {
   onClearCells?: (cells: CellRef[]) => void
   /** Add a row at the end (or after a specific row) */
   onAddRow?: (afterRowId?: string) => void
+  /** Typing in the ghost row: create a row with this initial cell */
+  onAddRowWithCells?: (cells: Record<string, CellValue>) => void
+  /** Typing in the ghost column: create a text field and set this row's cell */
+  onAddFieldWithCell?: (rowId: string, value: CellValue) => void
   /** Delete whole rows */
   onDeleteRows?: (rowIds: string[]) => void
   /** Reorder a row to sit at targetIndex in the current row list */

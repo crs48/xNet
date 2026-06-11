@@ -136,6 +136,14 @@ export {
   effectiveFieldSortKey
 } from './view-node-operations'
 
+// Cell conversion for field type changes (V2 node model)
+export {
+  convertCellValue,
+  cellValueToText,
+  type ConvertContext,
+  type ConvertedCell
+} from './convert-cell'
+
 // Database setup (V2 node model)
 export { setupDatabase, type SetupDatabaseResult } from './database-setup'
 

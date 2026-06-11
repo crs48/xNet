@@ -315,4 +315,50 @@ describe('useGridDatabase', () => {
     })
     await waitFor(() => expect(result.current.rows[0]?.cells[totalId]).toBe(50))
   })
+
+  it('changeFieldType converts existing cell values (text → multiSelect, text → number)', async () => {
+    const wrapper = createWrapper()
+    const databaseId = await setupDatabase(wrapper)
+    const { result } = renderHook(() => useGridDatabase(databaseId), { wrapper })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    let tagsId = ''
+    let amountId = ''
+    await act(async () => {
+      tagsId = (await result.current.addField('Tags', 'text')) ?? ''
+      amountId = (await result.current.addField('Amount', 'text')) ?? ''
+      await result.current.addRow(undefined, {
+        [tagsId]: 'red, blue',
+        [amountId]: '$1,250.50'
+      })
+      await result.current.addRow(undefined, { [tagsId]: 'blue', [amountId]: 'n/a' })
+    })
+    await waitFor(() => expect(result.current.rows).toHaveLength(2))
+
+    // text → multiSelect: comma-separated values become option nodes
+    await act(async () => {
+      await result.current.changeFieldType(tagsId, 'multiSelect')
+    })
+    await waitFor(() => {
+      const field = result.current.fields.find((f) => f.id === tagsId)
+      expect(field?.type).toBe('multiSelect')
+      expect(field?.options?.map((o) => o.name).sort()).toEqual(['blue', 'red'])
+    })
+    await waitFor(() => {
+      const field = result.current.fields.find((f) => f.id === tagsId)!
+      const idFor = (name: string) => field.options!.find((o) => o.name === name)!.id
+      expect(result.current.rows[0]?.cells[tagsId]).toEqual([idFor('red'), idFor('blue')])
+      expect(result.current.rows[1]?.cells[tagsId]).toEqual([idFor('blue')])
+    })
+
+    // text → number: numerics parse, garbage clears
+    await act(async () => {
+      await result.current.changeFieldType(amountId, 'number')
+    })
+    await waitFor(() => {
+      expect(result.current.rows[0]?.cells[amountId]).toBe(1250.5)
+      const second = result.current.rows[1]?.cells[amountId]
+      expect(second === null || second === undefined).toBe(true)
+    })
+  })
 })

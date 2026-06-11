@@ -653,6 +653,12 @@ export {
   getDatabaseDocumentModel,
   type DatabaseDocumentModel,
 
+  // Cell conversion for field type changes
+  convertCellValue,
+  cellValueToText,
+  type ConvertContext,
+  type ConvertedCell,
+
   // Formula service (computed columns)
   FormulaService,
   createFormulaService,

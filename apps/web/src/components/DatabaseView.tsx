@@ -422,6 +422,15 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onAddRow={(afterRowId) => {
               void grid.addRow(afterRowId)
             }}
+            onAddRowWithCells={(cells) => {
+              void grid.addRow(undefined, cells)
+            }}
+            onAddFieldWithCell={(rowId, value) => {
+              void (async () => {
+                const fieldId = await grid.addField(`Column ${grid.fields.length + 1}`, 'text')
+                if (fieldId) await grid.updateCell(rowId, fieldId, value)
+              })()
+            }}
             onDeleteRows={(rowIds) => {
               void grid.deleteRows(rowIds)
             }}

@@ -31,6 +31,7 @@ import {
   generateSortKey,
   generateSortKeyWithJitter,
   sortRows,
+  convertCellValue,
   FormulaService
 } from '@xnetjs/data'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
@@ -528,6 +529,28 @@ export function useGridDatabase(
     [rows, activeView, updateRowProps]
   )
 
+  // ─── Select options ───────────────────────────────────────────────────────
+
+  const createOption = useCallback(
+    async (fieldId: string, name: string): Promise<string | null> => {
+      const existing = optionsByField.get(fieldId) ?? []
+      const match = existing.find((o) => o.name.toLowerCase() === name.toLowerCase())
+      if (match) return match.id
+      const tail = optionTailRef.current.get(fieldId)
+      const sortKey = generateSortKeyWithJitter(tail, undefined)
+      optionTailRef.current.set(fieldId, sortKey)
+      const node = await mutate.create(DatabaseSelectOptionSchema, {
+        field: fieldId,
+        database: databaseId,
+        name,
+        color: autoColor(name),
+        sortKey
+      })
+      return node?.id ?? null
+    },
+    [mutate, databaseId, optionsByField]
+  )
+
   // ─── Field mutations ──────────────────────────────────────────────────────
 
   const addField = useCallback(
@@ -569,9 +592,47 @@ export function useGridDatabase(
 
   const changeFieldType = useCallback(
     async (fieldId: string, type: FieldType): Promise<void> => {
+      const field = fields.find((f) => f.id === fieldId)
+      const sourceType = field?.type ?? 'text'
       await mutate.update(DatabaseFieldSchema, fieldId, { type })
+      if (!field || sourceType === type) return
+
+      // Convert existing cell values to the new type. Select-ish targets
+      // get their distinct names persisted as option nodes first.
+      const ctx = {
+        optionName: (id: string) => field.options?.find((o) => o.id === id)?.name
+      }
+      const conversions = rows.map((row) => ({
+        row,
+        converted: convertCellValue(row.cells[fieldId] ?? null, sourceType, type, ctx)
+      }))
+
+      const nameToId = new Map<string, string>()
+      if (type === 'select' || type === 'multiSelect') {
+        const allNames = new Set<string>()
+        for (const { converted } of conversions) {
+          converted.optionNames?.forEach((n) => allNames.add(n))
+        }
+        for (const name of allNames) {
+          const optionId = await createOption(fieldId, name)
+          if (optionId) nameToId.set(name.toLowerCase(), optionId)
+        }
+      }
+
+      for (const { row, converted } of conversions) {
+        const before = row.cells[fieldId] ?? null
+        let next = converted.value
+        if (converted.optionNames && converted.optionNames.length > 0) {
+          const ids = converted.optionNames
+            .map((n) => nameToId.get(n.toLowerCase()))
+            .filter((id): id is string => Boolean(id))
+          next = type === 'multiSelect' ? ids : (ids[0] ?? null)
+        }
+        if (before === null && next === null) continue
+        await updateRowProps(row.id, { [cellKey(fieldId)]: next })
+      }
     },
-    [mutate]
+    [mutate, fields, rows, createOption, updateRowProps]
   )
 
   const removeField = useCallback(
@@ -618,28 +679,6 @@ export function useGridDatabase(
       await mutate.update(DatabaseViewSchema, activeView.id, { hiddenFields: [...set] })
     },
     [mutate, activeView]
-  )
-
-  // ─── Select options ───────────────────────────────────────────────────────
-
-  const createOption = useCallback(
-    async (fieldId: string, name: string): Promise<string | null> => {
-      const existing = optionsByField.get(fieldId) ?? []
-      const match = existing.find((o) => o.name.toLowerCase() === name.toLowerCase())
-      if (match) return match.id
-      const tail = optionTailRef.current.get(fieldId)
-      const sortKey = generateSortKeyWithJitter(tail, undefined)
-      optionTailRef.current.set(fieldId, sortKey)
-      const node = await mutate.create(DatabaseSelectOptionSchema, {
-        field: fieldId,
-        database: databaseId,
-        name,
-        color: autoColor(name),
-        sortKey
-      })
-      return node?.id ?? null
-    },
-    [mutate, databaseId, optionsByField]
   )
 
   // ─── View mutations ───────────────────────────────────────────────────────

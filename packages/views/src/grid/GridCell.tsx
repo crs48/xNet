@@ -219,6 +219,8 @@ function GridCellInner({
             autoSelect={editSeed === undefined}
           />
         </div>
+      ) : rowId === '__ghost__' || field.id === '__ghost__' ? (
+        <div className="flex-1" />
       ) : (
         <div className="flex-1 truncate">{handler.render(value ?? null, editorConfig)}</div>
       )}

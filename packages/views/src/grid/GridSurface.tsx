@@ -40,6 +40,19 @@ import { isSelected, selectionRect } from './types.js'
 
 const GUTTER_WIDTH = 56
 const DEFAULT_ROW_HEIGHT = 36
+const GHOST_COL_WIDTH = 140
+
+/** Synthetic field for ghost cells (typing creates the real thing). */
+const GHOST_FIELD: GridField = {
+  id: '__ghost__',
+  name: '',
+  type: 'text',
+  config: {},
+  width: GHOST_COL_WIDTH
+}
+
+/** Synthetic row for the ghost row (typing creates the real thing). */
+const GHOST_ROW: GridRowData = { id: '__ghost__', cells: {} }
 
 export interface GridSurfaceProps extends GridCallbacks {
   fields: GridField[]
@@ -65,6 +78,8 @@ export function GridSurface({
   onUpdateCell,
   onClearCells,
   onAddRow,
+  onAddRowWithCells,
+  onAddFieldWithCell,
   onDeleteRows,
   onMoveRow,
   onMoveField,
@@ -85,18 +100,24 @@ export function GridSurface({
 }: GridSurfaceProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Spreadsheet-style ghost row/column: empty cells past the data that
+  // create a row (or a new text field) when you type into them
+  const hasGhostRow = Boolean(onAddRowWithCells) && !readOnly
+  const hasGhostCol = Boolean(onAddFieldWithCell) && !readOnly
+  const rowCount = rows.length + (hasGhostRow ? 1 : 0)
+  const colCount = fields.length + (hasGhostCol ? 1 : 0)
   const [state, dispatch] = useReducer(gridReducer, undefined, () =>
-    createGridState(rows.length, fields.length)
+    createGridState(rowCount, colCount)
   )
   /** Latest editor draft (commit reads this when the keymap closes an edit) */
   const draftRef = useRef<CellValue>(null)
 
   // Keep the state machine in sync with data dimensions
   useEffect(() => {
-    if (state.rowCount !== rows.length || state.colCount !== fields.length) {
-      dispatch({ type: 'resize', rowCount: rows.length, colCount: fields.length })
+    if (state.rowCount !== rowCount || state.colCount !== colCount) {
+      dispatch({ type: 'resize', rowCount, colCount })
     }
-  }, [rows.length, fields.length, state.rowCount, state.colCount])
+  }, [rowCount, colCount, state.rowCount, state.colCount])
 
   // Reclaim keyboard focus when an edit session ends. Runs as an effect so
   // the editor has already rendered closed (and GridCell's session guard is
@@ -127,7 +148,7 @@ export function GridSurface({
   // ─── Virtualization ────────────────────────────────────────────────────────
 
   const rowVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: rowCount,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => rowHeight,
     overscan: 10
@@ -156,8 +177,8 @@ export function GridSurface({
   )
 
   const selectedRect = useCallback(() => {
-    return selectionRect(state.selection, rows.length, fields.length)
-  }, [state.selection, rows.length, fields.length])
+    return selectionRect(state.selection, rowCount, colCount)
+  }, [state.selection, rowCount, colCount])
 
   const refsInRect = useCallback(
     (rect: { top: number; left: number; bottom: number; right: number }): CellRef[] => {
@@ -186,13 +207,33 @@ export function GridSurface({
     [onUploadFile, cellAt, onUpdateCell]
   )
 
+  /** Persist a value at a position — real cell, ghost row, or ghost column. */
+  const commitValueAt = useCallback(
+    (pos: GridPos, value: CellValue) => {
+      const cell = cellAt(pos)
+      if (cell) {
+        onUpdateCell?.(cell.row.id, cell.field.id, value)
+        return
+      }
+      if (value === null || value === '') return
+      const inGhostRow = pos.row === rows.length
+      const inGhostCol = pos.col === fields.length
+      if (inGhostRow && !inGhostCol) {
+        const field = fields[pos.col]
+        if (field) onAddRowWithCells?.({ [field.id]: value })
+      } else if (inGhostCol && !inGhostRow) {
+        const row = rows[pos.row]
+        if (row) onAddFieldWithCell?.(row.id, value)
+      }
+      // Ghost corner (new row AND new field at once) is a no-op
+    },
+    [cellAt, rows, fields, onUpdateCell, onAddRowWithCells, onAddFieldWithCell]
+  )
+
   const commitDraft = useCallback(() => {
     if (!state.editing) return
-    const cell = cellAt(state.editing.pos)
-    if (cell) {
-      onUpdateCell?.(cell.row.id, cell.field.id, draftRef.current)
-    }
-  }, [state.editing, cellAt, onUpdateCell])
+    commitValueAt(state.editing.pos, draftRef.current)
+  }, [state.editing, commitValueAt])
 
   // ─── Clipboard ─────────────────────────────────────────────────────────────
 
@@ -472,12 +513,11 @@ export function GridSurface({
   const handleEditorCommit = useCallback(
     (value: CellValue) => {
       if (!state.editing) return
-      const cell = cellAt(state.editing.pos)
-      if (cell) onUpdateCell?.(cell.row.id, cell.field.id, value)
+      commitValueAt(state.editing.pos, value)
       dispatch({ type: 'commitEdit' })
       containerRef.current?.focus()
     },
-    [state.editing, cellAt, onUpdateCell]
+    [state.editing, commitValueAt]
   )
 
   const handleEditorCancel = useCallback(() => {
@@ -543,7 +583,9 @@ export function GridSurface({
             <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
               <div data-grid-body style={{ height: totalHeight, position: 'relative' }}>
                 {virtualRows.map((virtualRow) => {
-                  const row = rows[virtualRow.index]
+                  const row =
+                    rows[virtualRow.index] ??
+                    (hasGhostRow && virtualRow.index === rows.length ? GHOST_ROW : null)
                   if (!row) return null
                   return (
                     <GridRow
@@ -572,6 +614,8 @@ export function GridSurface({
                       onUploadFile={onUploadFile}
                       onDropFile={handleDropFile}
                       onResolveFileUrl={onResolveFileUrl}
+                      isGhostRow={row.id === '__ghost__'}
+                      hasGhostCol={hasGhostCol}
                     />
                   )
                 })}
@@ -625,6 +669,10 @@ interface GridRowProps {
   onUploadFile?: (file: File) => Promise<import('@xnetjs/data').FileRef | null>
   onDropFile?: (rowIndex: number, colIndex: number, file: File) => void
   onResolveFileUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string>
+  /** This is the ghost "type to add a row" row */
+  isGhostRow?: boolean
+  /** Append the ghost "type to add a field" column cell */
+  hasGhostCol?: boolean
 }
 
 function GridRow({
@@ -649,7 +697,9 @@ function GridRow({
   onCreateOption,
   onUploadFile,
   onDropFile,
-  onResolveFileUrl
+  onResolveFileUrl,
+  isGhostRow,
+  hasGhostCol
 }: GridRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
     id: row.id,
@@ -681,42 +731,51 @@ function GridRow({
         isDragging && 'opacity-60 z-20'
       )}
     >
-      {/* Gutter: row number, drag handle, expand */}
+      {/* Gutter: row number, drag handle, expand (ghost row: + affordance) */}
       <div
         style={{ width: GUTTER_WIDTH, minWidth: GUTTER_WIDTH }}
         className="flex items-center justify-between pl-1 pr-0.5 border-b border-r border-gray-100 dark:border-gray-800 text-[11px] text-gray-400"
-        onClick={(e) => onSelectRow(rowIndex, e.shiftKey)}
+        onClick={(e) => {
+          if (!isGhostRow) onSelectRow(rowIndex, e.shiftKey)
+        }}
       >
-        {!readOnly ? (
-          <button
-            type="button"
-            aria-label="Drag row"
-            data-testid={`row-handle-${row.id}`}
-            className="opacity-0 group-hover/row:opacity-100 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-            onClick={(e) => e.stopPropagation()}
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="w-3.5 h-3.5" />
-          </button>
+        {isGhostRow ? (
+          <span className="mx-auto text-gray-300 dark:text-gray-600">＋</span>
         ) : (
-          <span />
+          <>
+            {!readOnly ? (
+              <button
+                type="button"
+                aria-label="Drag row"
+                data-testid={`row-handle-${row.id}`}
+                className="opacity-0 group-hover/row:opacity-100 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+                onClick={(e) => e.stopPropagation()}
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <span />
+            )}
+            <span className="tabular-nums">{rowIndex + 1}</span>
+            <button
+              type="button"
+              aria-label="Open row"
+              className="opacity-0 group-hover/row:opacity-100 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenRow?.(row.id)
+              }}
+            >
+              <Expand className="w-3 h-3" />
+            </button>
+          </>
         )}
-        <span className="tabular-nums">{rowIndex + 1}</span>
-        <button
-          type="button"
-          aria-label="Open row"
-          className="opacity-0 group-hover/row:opacity-100 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpenRow?.(row.id)
-          }}
-        >
-          <Expand className="w-3 h-3" />
-        </button>
       </div>
 
-      {fields.map((field, colIndex) => {
+      {[...fields, ...(hasGhostCol ? [GHOST_FIELD] : [])].map((field, colIndex) => {
+        const isGhostCell = isGhostRow || field.id === '__ghost__'
         const pos = { row: rowIndex, col: colIndex }
         const focused =
           state.cursor?.row === rowIndex && state.cursor?.col === colIndex && !state.editing
@@ -724,6 +783,16 @@ function GridRow({
         const cellPresences = presences?.filter(
           (p) => p.rowId === row.id && p.columnId === field.id
         )
+        if (isGhostCell && isGhostRow && field.id === '__ghost__') {
+          // Ghost corner: visible but inert
+          return (
+            <div
+              key="__corner__"
+              style={{ width: GHOST_COL_WIDTH, minWidth: GHOST_COL_WIDTH }}
+              className="border-b border-r border-dashed border-gray-100 dark:border-gray-800/60"
+            />
+          )
+        }
         return (
           <GridCell
             key={field.id}

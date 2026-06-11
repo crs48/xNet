@@ -471,6 +471,12 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [x] Performance budgets — `grid/perf.test.tsx`: 10k rows render a bounded virtualized DOM (<100 row elements) within time budgets; cursor traversal budget; 100k state-machine ops <500ms. Real-browser FPS and materialized-view cache-hit assertions remain follow-up
 - [x] CSV/JSON import/export wired to the new toolbar — ⋯ menu with Export CSV/JSON and Import CSV (field inference + select-option node creation on import) in both shells
 
+### Phase 4.5 — Spreadsheet feel (follow-up request)
+
+- [x] Ghost row: an empty row of cells below the data — typing in any cell creates a row with that value (gutter shows ＋; arrows navigate into it; empty commits are no-ops)
+- [x] Ghost column: an empty column to the right — typing in a cell creates a new text field ("Column N") and sets that row's value
+- [x] Smart type conversion: retyping a field converts existing cells via `convert-cell.ts` — comma-separated text → multiSelect tags (options persisted as nodes), numerics/currency/percent → numbers, truthy text → checkboxes, dates parse, select IDs stringify back to names; unconvertible values clear rather than corrupt
+
 ### Phase 5 (v2.1) — Computed columns UI
 
 - [x] Formula columns evaluate live — `FormulaService` wired into the `useGridDatabase` row pipeline (cached per row+inputs, recomputes on dependency edits, available to filters/sorts); computed/auto cells are non-editable in the grid; field menu gains an expression editor with `{{fieldId}}` refs. Autocomplete/live-preview popover and worker offload remain follow-up polish
