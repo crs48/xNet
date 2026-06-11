@@ -190,7 +190,10 @@ export function usePageTaskSync({
         syncRunIdRef.current = runId
         const currentTasks = taskSnapshotsRef.current
         const nextTaskIds = new Set(currentTasks.map((task) => task.taskId))
-        const tasksToCreate: Array<{
+        // Tasks unknown to this page: either genuinely new (create) or
+        // hosted elsewhere / previously archived (claim = restore + update).
+        // See docs/specs/PAGE_TASK_RECONCILIATION.md.
+        const tasksToClaimOrCreate: Array<{
           id: string
           data: TaskCreate
         }> = []
@@ -233,7 +236,7 @@ export function usePageTaskSync({
           })
 
           if (!existingTask) {
-            tasksToCreate.push({
+            tasksToClaimOrCreate.push({
               id: task.taskId,
               data: {
                 title: task.title,
@@ -309,7 +312,7 @@ export function usePageTaskSync({
         }
 
         if (
-          tasksToCreate.length === 0 &&
+          tasksToClaimOrCreate.length === 0 &&
           tasksToRestore.length === 0 &&
           taskUpdates.length === 0 &&
           taskDeletes.length === 0 &&
@@ -343,9 +346,28 @@ export function usePageTaskSync({
             await restore(taskId)
           }
 
-          for (const task of tasksToCreate) {
+          for (const task of tasksToClaimOrCreate) {
             if (cancelled || runId !== syncRunIdRef.current) return
-            await create(TaskSchema, task.data, task.id)
+
+            // Claim-or-create: restore succeeds iff the node exists anywhere
+            // (possibly archived by its previous host page). On success the
+            // follow-up update moves it to this page; on failure the task is
+            // genuinely new and gets created with the editor-provided id.
+            let claimed = false
+            try {
+              await restore(task.id)
+              claimed = true
+            } catch {
+              claimed = false
+            }
+
+            if (cancelled || runId !== syncRunIdRef.current) return
+
+            if (claimed) {
+              await update(TaskSchema, task.id, task.data)
+            } else {
+              await create(TaskSchema, task.data, task.id)
+            }
           }
 
           for (const task of taskUpdates) {

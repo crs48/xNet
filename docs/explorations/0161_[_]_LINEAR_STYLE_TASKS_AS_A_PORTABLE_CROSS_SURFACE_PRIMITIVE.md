@@ -553,9 +553,10 @@ export function parseTaskLinks(text: string) {
 
 ### Phase 1 — Converge the primitive
 
-- [ ] Write the Yjs↔node reconciliation spec for page tasks (title
+- [x] Write the Yjs↔node reconciliation spec for page tasks (title
       authority, deletion, cross-page moves) and add property-based tests
-      around `usePageTaskSync`
+      around `usePageTaskSync` (`docs/specs/PAGE_TASK_RECONCILIATION.md`;
+      claim-or-create path + randomized convergence tests)
 - [ ] Add `TaskChip`, `TaskRow`, `TaskCard` shared components to
       `packages/ui` with consistent live-state rendering and an
       "open task" affordance
