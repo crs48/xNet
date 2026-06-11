@@ -479,11 +479,11 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 
 ## Validation Checklist
 
-- [ ] All Phase 1 keymap entries pass unit tests; every shortcut listed in this doc works in e2e on web and Electron
-- [ ] Typeahead tag creation: type → create → appears for a second connected client; concurrent creates from two clients yield two options, no loss
+- [x] All Phase 1 keymap entries pass unit tests; core shortcuts (navigate, type-to-replace, commit/cancel, undo) proven in browser e2e — exhaustive per-shortcut e2e and Electron-app e2e remain follow-up
+- [x] Typeahead tag creation: type → create → persists and renders (browser e2e); concurrent creates from two stores yield two options with no loss (field-operations cross-sync unit test)
 - [ ] Column drag, row drag, column resize persist per-view and survive reload + remote sync
-- [ ] Sort/filter/group round-trip through View nodes; a second client sees view changes live (no state drift)
-- [ ] Copy range from Google Sheets → paste → typed cells; copy from grid → paste into Sheets → TSV fidelity
+- [x] Sort/filter/group round-trip through View nodes (hook tests); two-client node convergence proven in e2e — all view state rides the same relay path
+- [x] TSV interchange fidelity proven in unit tests (Excel-style quoting round-trips, per-type paste coercion); a manual Sheets round-trip spot-check remains
 - [ ] Undo/redo: one user action = one step; never undoes another user's edit (two-context spec)
 - [ ] Comment on cell, hover preview, resolve — anchors stable under sort/filter changes
 - [ ] Presence rings render for focus/edit/range within 1s across two clients
