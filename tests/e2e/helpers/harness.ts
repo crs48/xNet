@@ -7,7 +7,7 @@ import { spawn, execSync, type ChildProcess } from 'node:child_process'
 
 export const ROOT = new URL('../../../', import.meta.url).pathname.replace(/\/$/, '')
 
-export function spawnAndWait(
+function spawnAndWait(
   command: string,
   args: string[],
   opts: {
