@@ -259,11 +259,6 @@ bookkeeping re-renders — per single-property update
 ([store.ts:387-458](../../packages/data/src/store/store.ts),
 [store.ts:1862-1893](../../packages/data/src/store/store.ts),
 [useMutate.ts:263-272](../../packages/react/src/hooks/useMutate.ts)).
-Published OPFS-in-worker figures put small SQLite ops at ~1.4–1.5 ms each
-(see External Research), so seven sequential hops is plausibly **~10 ms of
-storage I/O alone** in the browser before invalidation or rendering —
-consistent with the 5.6 ms `database-create-row` baseline on the much
-faster memory adapter.
 `useMutate`'s header comment promises "Immediate local updates (bridge
 updates UI subscribers synchronously)" — but the cache only updates after
 the full persistence path completes and the change event flushes. There is
@@ -297,111 +292,56 @@ O(listeners), not O(affected).
 
 ## External Research
 
-Findings from a survey of local-first/reactive-query systems (URLs in
-References):
+Findings from a survey of local-first/reactive-query systems (see
+References for sources):
 
-### Incremental view maintenance in JS
-
-The theory is unambiguous: an incremental algorithm beats re-execution by
-O(|DB|/|ΔDB|) (DBSP paper) — for single-row mutations against 10k-node
-result sets, that is three to four orders of magnitude. Four production
-systems apply this in JavaScript:
-
-- **RxDB EventReduce**: a finite-state-machine approach — 18 boolean
-  _state functions_ about the event and current result (`isInsert`,
-  `wasResultsEmpty`, `sortParamsChanged`, `changedDocumentIsInResults`, …)
-  and 16 _action functions_ (`insertFirst`, `replaceExisting`,
-  `insertAtSortPosition`, `doNothing`, `runFullQueryAgain`). All 2^18
-  state combinations are precomputed into a truth table compressed to a
-  binary decision diagram. Their benchmark: **~94% of randomized write
-  events resolve without re-executing the query** (higher on real
-  workloads), with up to 12× faster display updates after writes. Scope
-  limitation: single-collection queries only — which matches xNet's
-  per-schema descriptors exactly. The `doNothing` action is also what
-  enables returning an identical array reference (see render section).
-- **Rocicorp Zero (ZQL)**: "Materialize-style streaming SQL embedded in
-  the browser." Queries hydrate once against the local replica, then stay
-  registered; writes propagate as row-level diffs (add/remove/edit)
-  through operator pipelines — O(delta) work per affected query. Its
-  ancestor library Materialite claimed an order of magnitude over
-  in-memory SQLite _even for queries that can't be incrementally
-  maintained_. Queries have TTLs (~10 min default) so recently-used
-  windows stay warm.
-- **ElectricSQL D2TS + TanStack DB**: `@electric-sql/d2ts` is a pure
-  TypeScript differential dataflow library (map/filter/join/reduce/
-  distinct over multisets with multiplicities) — the engine behind
-  TanStack DB's live queries, making it the most broadly deployed JS
-  differential dataflow runtime. TanStack DB's headline benchmark:
-  **updating one row in a sorted 100,000-item collection takes ~0.7 ms**
-  on an M1 Pro — the same shape of operation that costs xNet 5.9 ms at
-  10k nodes today. Optimistic mutations apply to collections immediately;
-  durability is async.
-- **WatermelonDB**: two observation modes — _simple_ (evaluate the
-  changed record against the query predicate in JS, no DB hit; used when
-  the predicate is safely evaluable) and _reloading_ (full re-query for
-  joins/subqueries). xNet's unbounded-query delta path is already
-  WatermelonDB-simple; the gap is that bounded queries never qualify.
-- **LiveStore** (contrast): event-sourced SQLite where reactive queries
-  re-execute via trigger-based change tracking — architecturally closest
-  to xNet's current reload path, and the approach the IVM systems above
-  exist to avoid.
-
-### React subscription patterns at scale
-
-`useSyncExternalStore` compares `getSnapshot` results with `Object.is` —
-so the *only* way to suppress a re-render is to return the same reference
-when data is unchanged. TanStack Query v5 layers three mechanisms on top,
-all absent in xNet today:
-
-1. **Structural sharing** (`replaceEqualDeep`): deep-compare new vs old
-   result; reuse old sub-tree references wherever deeply equal, so
-   unchanged items keep identity and `React.memo` children skip.
-2. **Tracked properties**: the result object is a Proxy recording which
-   fields the component actually read; updates to unread fields (e.g.
-   `isFetching`) don't re-render. (Caveat: rest-destructuring defeats it.)
-3. **`notifyManager` batching**: all observer notifications queue during a
-   batch and flush together in one microtask → one render cycle even when
-   an invalidation touches 50 queries.
-
-Zustand/Redux selector practice agrees: selector + shallow equality, so an
-unchanged slice returns the previous reference.
-
-### SQLite WASM / OPFS and the worker boundary
-
-Concrete numbers (RxDB's storage benchmark): OPFS-in-worker small write
-≈ **1.54 ms**, small read ≈ **1.41 ms**; in-memory WASM SQLite ≈ 0.17 ms
-write. postMessage baseline round trip ≈ 0.5 ms, structured-clone cost
-scaling with payload (32 MB clone ≈ 300 ms vs ≈ 6.6 ms as a Transferable).
-Practical guidance across sqlite-wasm/Notion writeups: batch statements
-per message, move logic into the worker, return only final results — or
-diffs, which stay naturally small. Notion's production architecture
-(SharedWorker routing all tabs' queries to the one dedicated worker
-holding the OPFS handle, WASM lazily initialized ≈ 500 ms off the critical
-path) yielded 20% faster navigation overall. xNet's write path currently
-does the opposite of this guidance: 7 hops per update, full row sets per
-invalidation.
-
-### Ed25519 signing
-
-`@noble/ed25519` signs at ~**137 µs/op** (M4; our measured 0.37 ms
-includes canonical JSON + blake3 on an older M-series). Not a per-edit
-bottleneck — but synchronous on the main thread, 3–5× slower on median
-phones, and hostile in bulk (1000 signs ≈ 370 ms of jank). WebCrypto
-Ed25519 is now in all engines (Chrome 137+, May 2025) and runs in native
-code. Prior art consensus: sign in the worker, and batch-sign — one
-compound signed change per flush window rather than one signature per
-keystroke-level change.
-
-### Write batching / coalescing
-
-The standard local-first pattern is **optimistic in-memory apply now,
-durable persistence on a 50–200 ms debounce window with a max-wait
-ceiling**, coalescing multiple changes to the same object per flush
-(classic write-behind). Automerge's own benchmark shows a large editing
-trace applying "in about 1 second" as a single transaction versus far
-longer as per-keystroke transactions; Yjs makes the same recommendation
-via `doc.transact()`. xNet's `useCell` already debounces at 300 ms at the
-UI layer — the store should provide the same guarantee underneath.
+- **RxDB EventReduce**: RxDB's core insight is that when a query's
+  previous result and a change event are both known, the new result can
+  almost always be computed without re-execution. Their CI benchmark
+  reports ~**94% of queries** answerable purely from events, with up to
+  ~12× faster updated-result latency in their demo. The algorithm
+  enumerates a binary decision tree over (query has limit? change is
+  insert/update/delete? was-in-result? sort-field affected?) — compiled
+  offline into a lookup table. This is precisely the bounded-query gap in
+  xNet's `applyNodeChangeToQueryResult`: RxDB handles `limit` queries
+  incrementally by keeping the previous result plus a small overfetch,
+  falling back to re-exec only on genuinely ambiguous transitions (e.g.,
+  a result shrinks below `limit` and the next candidate is unknown).
+- **Rocicorp Zero (ZQL/IVM)**: Zero maintains query results via
+  incremental view maintenance over differential streams — each operator
+  (filter, join, sort, limit) consumes row deltas and emits result deltas.
+  Queries stay registered with the engine; a write produces O(delta) work
+  per affected query rather than O(result) or O(table). Zero's docs
+  emphasize keeping queries "warm" so navigation is instant. The lesson
+  for xNet is architectural: the bridge already holds the descriptor AND
+  the previous result — the delta engine just needs more cases than
+  "unbounded set vs full reload".
+- **TanStack Query structural sharing**: `replaceEqualDeep` walks new
+  results against old, reusing prior sub-objects when deep-equal, so
+  unchanged items keep referential identity and `React.memo` children skip
+  re-rendering. Combined with "tracked properties" (only re-render when a
+  field the component actually read changed) and batched notifications
+  (`notifyManager`), this is the industry-standard render-suppression
+  stack. xNet has none of the three today.
+- **SQLite WASM/OPFS**: with OPFS sync-access-handle VFS, simple indexed
+  reads are tens-of-µs-to-ms scale, but every main-thread→worker hop adds
+  postMessage + structuredClone overhead proportional to payload size.
+  Guidance across sqlite-wasm discussions: batch statements per message,
+  move logic to the worker, return only final results. xNet currently does
+  the opposite for writes (7 hops) and for invalidation (re-query returns
+  full row sets per change).
+- **Ed25519 in JS**: @noble/curves signs in roughly 0.2–0.5 ms (we
+  measured 0.37 ms including canonicalization + blake3). Fine per
+  interactive edit; hostile to bulk loops on the main thread (1000 signs ≈
+  370 ms of jank). WebCrypto Ed25519 (now broadly shipped) is several
+  times faster and runs off-thread; batching signs in a worker removes the
+  cost from the interactive path entirely.
+- **Write coalescing**: editor-class apps (Linear, Figma-style docs,
+  Automerge/Yjs ecosystems) apply mutations to an in-memory view
+  synchronously and persist asynchronously (write-behind), grouping
+  rapid-fire changes into transactions. xNet's `useCell` already debounces
+  at 300 ms — the store should offer the same guarantee underneath:
+  optimistic cache apply now, durable signed change soon.
 
 ## Key Findings
 
@@ -430,9 +370,8 @@ dedup design is sound.
 | Option                                                    | How                                                                                                                                                                                                             | Pros                                                                                                                                                                                    | Cons                                                                                                        |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | A1. Overfetch buffer + delta (recommended)                | Bridge fetches `limit + K` (K≈25) rows, keeps them as the entry's working set, applies deltas in memory, slices `limit` for subscribers; re-query only when buffer underflows or an ambiguous transition occurs | Removes ~all re-queries for the common cases (in-place update, insert-into-window, remove-with-spare); contained in `query-descriptor.ts`/`main-thread-bridge.ts`; RxDB-proven approach | Slightly more memory per entry; cursor (`after`) queries need care; correctness matrix must be tested hard  |
-| A2. Full EventReduce-style decision table                 | Port/adapt RxDB's event-reduce truth table over (op × in-result × sort-impact × limit)                                                                                                                          | Maximal coverage (~94% verified), proven library; `doNothing` action gives reference-stable no-op results for free                                                                      | Bigger lift; xNet sort semantics (nodeId tiebreak, null ordering) must match exactly; license/port overhead |
-| A3. Adopt `@electric-sql/d2ts` differential dataflow      | Register each active descriptor as a D2TS pipeline over a per-schema collection; feed store change events as +1/−1 multiset deltas                                                                              | Real IVM engine, MIT TS library, battle-tested via TanStack DB (~0.7 ms single-row update in a sorted 100k collection); handles joins later (relations!)                                | New dependency and mental model; descriptor semantics (search/spatial/cursor) need custom operators; operator state memory per query                |
-| A4. SQL-level materialized views with incremental refresh | Push windows into `materialized_query` tables refreshed by rowid deltas                                                                                                                                         | Moves work off JS entirely                                                                                                                                                              | Highest complexity; SQLite WASM has no native IVM; still crosses worker per refresh                         |
+| A2. Full EventReduce-style decision table                 | Port/adapt RxDB's event-reduce truth table over (op × in-result × sort-impact × limit)                                                                                                                          | Maximal coverage (~94% claim), proven library                                                                                                                                           | Bigger lift; xNet sort semantics (nodeId tiebreak, null ordering) must match exactly; license/port overhead |
+| A3. SQL-level materialized views with incremental refresh | Push windows into `materialized_query` tables refreshed by rowid deltas                                                                                                                                         | Moves work off JS entirely                                                                                                                                                              | Highest complexity; SQLite WASM has no native IVM; still crosses worker per refresh                         |
 
 ### B. Per-query adapter overhead (finding 2)
 
@@ -457,7 +396,7 @@ C1 + C3 together, with A1 preserving references, is the coherent set.
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------- |
 | D1. Single-op transaction reuse (recommended first) | Route `store.update` through the same storage-owned write pattern as `batchWrite`: one worker message doing read-modify-write-append-clock atomically | 7 round trips → 1–2; transactional by construction              | Adapter API addition (`applySignedChange`-style op)                 |
 | D2. Optimistic cache apply                          | Bridge applies the change to affected cache entries synchronously (it already has `applyNodeChangeToQueryResult`), then persists; reconcile on error  | Perceived latency → sub-ms; matches the useMutate doc comment   | Rollback path needed; temp-id flows already exist for creates       |
-| D3. Off-thread + batched signing                    | Sign in the SQLite (or data) worker (or WebCrypto Ed25519, native in all engines since Chrome 137); sign one compound change per flush window instead of per change | Removes 0.37 ms × N from main thread; bulk imports stop janking; signature count drops by the batch factor | Key material handling moves to worker (already crosses for storage); compound-change format touches sync protocol |
+| D3. Off-thread signing                              | Sign in the SQLite (or data) worker; or WebCrypto Ed25519                                                                                             | Removes 0.37 ms × N from main thread; bulk imports stop janking | Key material handling moves to worker (already crosses for storage) |
 
 ### E. Structural (findings 6–8)
 
@@ -486,10 +425,7 @@ existing benchmark harness plus new fan-out benches:
    buffer in the bridge + delta application for limited/ordered queries;
    kill the unconditional reload in `handleStoreBatchChange` by routing
    batches through grouped deltas with a much higher reload threshold.
-   Target: `query-update-fanout-10000` < 0.5 ms. If the hand-rolled delta
-   matrix grows past simple windows (relations/joins, aggregations), stop
-   and adopt `@electric-sql/d2ts` (A3) rather than reinventing
-   differential dataflow case by case.
+   Target: `query-update-fanout-10000` < 0.5 ms.
 3. **Phase 2 — identity-stable React layer (days):** C1 WeakMap flatten
    cache + previous-array reuse in `useQuery`; C3 equality short-circuit
    in `QueryCache.set`; fix `getMetadata` reactivity by folding metadata
@@ -502,11 +438,7 @@ existing benchmark harness plus new fan-out benches:
 5. **Phase 4 — worker-resident data layer (exploration + migration):** E2,
    building on the existing `WorkerBridge`/`data-worker.ts` skeleton, with
    binary snapshot transfer (`utils/binary-state.ts` already exists).
-   Follow Notion's shape: one worker owns the OPFS handle and runs
-   store + invalidation; the main thread receives **diffs, not result
-   arrays** (postMessage cost scales with payload — diffs stay naturally
-   small). Sequence after Phases 0–3 since they all apply inside the
-   worker too.
+   Sequence after Phases 0–3 since they all apply inside the worker too.
 
 E1 (nodeId dispatch index) can land any time; it is independent.
 
@@ -692,17 +624,8 @@ Independent:
 - [packages/data/src/store/query.ts](../../packages/data/src/store/query.ts), [store.ts](../../packages/data/src/store/store.ts), [sqlite-adapter.ts](../../packages/data/src/store/sqlite-adapter.ts) — execution core
 - [scripts/collect-core-platform-baselines.ts](../../scripts/collect-core-platform-baselines.ts) — benchmark harness used for the numbers above
 - Exploration 0156/0157 — import-speed and batch-write predecessors to this doc
-- RxDB EventReduce — https://github.com/pubkey/event-reduce (94% of randomized events resolved without re-exec; 18 state functions × 16 actions compiled to a BDD)
-- Rocicorp Zero / ZQL — https://zero.rocicorp.dev/docs/reading-data ; Materialite ancestry — https://github.com/vlcn-io/materialite and https://vlcn.io/blog/the-march-to-reactivity
-- ElectricSQL D2TS (TypeScript differential dataflow) — https://github.com/electric-sql/d2ts
-- TanStack DB (live queries on D2TS; ~0.7 ms single-row update in sorted 100k collection) — https://tanstack.com/blog/tanstack-db-0.1-the-embedded-client-database-for-tanstack-query
-- TanStack Query render optimizations (`replaceEqualDeep`, tracked properties, `notifyManager`) — https://tanstack.com/query/v5/docs/framework/react/guides/render-optimizations
-- WatermelonDB observation modes — https://watermelondb.dev/docs/Query
-- LiveStore architecture — https://docs.livestore.dev/evaluation/how-livestore-works/
-- DBSP paper (IVM speedup is O(|DB|/|ΔDB|)) — https://arxiv.org/pdf/2203.16684
-- RxDB browser-storage benchmark (OPFS-worker ≈1.5 ms small ops; memory WASM ≈0.17 ms) — https://rxdb.info/articles/localstorage-indexeddb-cookies-opfs-sqlite-wasm.html
-- Notion's WASM SQLite architecture (SharedWorker + single OPFS owner; 20% faster navigation) — https://www.notion.com/blog/how-we-sped-up-notion-in-the-browser-with-wasm-sqlite
-- postMessage / structured-clone cost analysis — https://surma.dev/things/is-postmessage-slow/
-- @noble/ed25519 benchmarks (~137 µs/sign on M4) — https://github.com/paulmillr/noble-ed25519
-- WebCrypto Ed25519 ships in Chrome 137 — https://developer.chrome.com/blog/chrome-137-beta
-- Automerge 2.0 batching benchmark — https://automerge.org/blog/automerge-2/
+- RxDB EventReduce — https://github.com/pubkey/event-reduce (≈94% of queries answerable from events; algorithm + decision-table design)
+- Rocicorp Zero docs (ZQL incremental view maintenance) — https://zero.rocicorp.dev/docs/reactivity
+- TanStack Query structural sharing & render optimizations — https://tanstack.com/query/latest/docs/framework/react/guides/render-optimizations
+- SQLite WASM + OPFS performance discussion — https://sqlite.org/wasm/doc/trunk/persistence.md
+- @noble/curves benchmarks — https://github.com/paulmillr/noble-curves#speed
