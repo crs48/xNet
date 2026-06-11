@@ -8,6 +8,7 @@
  */
 
 import { type FieldType, DatabaseSchema, FIELD_TYPES } from '@xnetjs/data'
+import { useBlobService } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
 import { CommentPopover, type CommentThreadData } from '@xnetjs/ui'
 import {
@@ -65,6 +66,28 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
   const [activeViewId, setActiveViewId] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
   const grid = useGridDatabase(docId, { viewId: activeViewId, search: search || undefined })
+
+  // ─── File attachments (BlobService: local-first, chunked) ─────────────────
+  const blobService = useBlobService()
+  const handleUploadFile = useCallback(
+    async (file: File): Promise<FileRef | null> => {
+      if (!blobService) return null
+      try {
+        return await blobService.upload(file)
+      } catch (err) {
+        console.error('[DatabaseView] file upload failed:', err)
+        return null
+      }
+    },
+    [blobService]
+  )
+  const handleResolveFileUrl = useCallback(
+    async (ref: FileRef): Promise<string> => {
+      if (!blobService) throw new Error('BlobService unavailable')
+      return blobService.getUrl(ref)
+    },
+    [blobService]
+  )
 
   // ─── Bootstrap: fresh databases get a title field + table view ───────────
   const bootstrappedRef = useRef(false)
@@ -303,6 +326,8 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
             onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
             onAddField={() => setAddingField(true)}
             onCreateOption={grid.createOption}
+            onUploadFile={blobService ? handleUploadFile : undefined}
+            onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
             onOpenRow={setPeekRowId}
             onUndo={() => {
               void grid.undo()
@@ -337,6 +362,8 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
                 void grid.deleteRows([rowId])
               }}
               onCreateOption={grid.createOption}
+              onUploadFile={blobService ? handleUploadFile : undefined}
+              onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
             >
               {/* Row comments summary */}
               <div className="text-xs text-gray-500">

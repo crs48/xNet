@@ -142,11 +142,10 @@ describe('Type Guards', () => {
     it('should return true for valid file refs', () => {
       expect(
         isFileRef({
-          id: 'file_123',
+          cid: 'cid:blake3:abc123',
           name: 'document.pdf',
-          size: 1024,
-          type: 'application/pdf',
-          url: 'https://example.com/file.pdf'
+          mimeType: 'application/pdf',
+          size: 1024
         })
       ).toBe(true)
     })
@@ -155,14 +154,13 @@ describe('Type Guards', () => {
       expect(isFileRef(null)).toBe(false)
       expect(isFileRef(undefined)).toBe(false)
       expect(isFileRef({})).toBe(false)
-      expect(isFileRef({ id: 'file_123' })).toBe(false)
+      expect(isFileRef({ cid: 'cid:blake3:abc123' })).toBe(false)
       expect(
         isFileRef({
-          id: 'file_123',
+          cid: 'cid:blake3:abc123',
           name: 'document.pdf',
-          size: '1024', // wrong type
-          type: 'application/pdf',
-          url: 'https://example.com/file.pdf'
+          mimeType: 'application/pdf',
+          size: '1024' // wrong type
         })
       ).toBe(false)
     })
@@ -187,11 +185,10 @@ describe('Type Guards', () => {
       // FileRef
       expect(
         isCellValue({
-          id: 'file_123',
+          cid: 'cid:blake3:abc123',
           name: 'doc.pdf',
-          size: 1024,
-          type: 'application/pdf',
-          url: 'https://example.com/file.pdf'
+          mimeType: 'application/pdf',
+          size: 1024
         })
       ).toBe(true)
     })

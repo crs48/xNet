@@ -10,18 +10,18 @@
 
 /**
  * Reference to a file stored in the system.
+ * Same shape as the blob-layer FileRef (schema/properties/file.ts):
+ * content-addressed, resolved to URLs through the BlobService.
  */
 export interface FileRef {
-  /** Unique file identifier */
-  id: string
+  /** Content-addressed ID (CID) of the file */
+  cid: string
   /** Original file name */
   name: string
+  /** MIME type */
+  mimeType: string
   /** File size in bytes */
   size: number
-  /** MIME type */
-  type: string
-  /** URL to access the file */
-  url: string
 }
 
 /**
@@ -142,11 +142,10 @@ export function isFileRef(value: unknown): value is FileRef {
   if (typeof value !== 'object' || value === null) return false
   const obj = value as Record<string, unknown>
   return (
-    typeof obj.id === 'string' &&
+    typeof obj.cid === 'string' &&
     typeof obj.name === 'string' &&
-    typeof obj.size === 'number' &&
-    typeof obj.type === 'string' &&
-    typeof obj.url === 'string'
+    typeof obj.mimeType === 'string' &&
+    typeof obj.size === 'number'
   )
 }
 

@@ -451,7 +451,7 @@ async function createOption(store: NodeStore, fieldId: string, name: string) {
 - [x] Relation editor: the relation combobox (typeahead over target-database rows via `useGridDatabase`, V2 title-field resolution) is wired into the grid cell path; `RowPickerModal` ported to `useGridDatabase`; reverse-relation display via `useReverseRelations` remains follow-up
 - [x] Person editor: DID combobox with validation + suggestions wired through the grid (post-0099 editor); contact-directory search with avatars remains follow-up
 - [x] Date/dateRange editor: native date/datetime inputs with range validation shipped (pre-existing post-0099 overhaul, wired into the grid); calendar popover + natural-language parsing remain follow-up polish
-- [ ] File/attachment cells: `useFileUpload`, drag-file-onto-cell, inline image thumbnails, lightbox in peek
+- [x] File/attachment cells: BlobService upload (local-first, chunked), drag-file-onto-cell, inline image thumbnails in cells, image previews + lightbox in peek — cell `FileRef` unified with the blob-layer shape (`{cid, name, mimeType, size}`)
 - [ ] Rich text cells: per-row Y.Doc `XmlFragment` editor in row peek (read summary in grid cell)
 - [x] Row peek: desktop side panel / mobile sheet, stacked field editors, row comments thread — `GridPeek` (side panel in the web shell; full editors stacked; row comment count slot; mobile sheet arrives with the Expo surface)
 - [ ] Auto fields (`created`/`createdBy`/`updated`/`updatedBy`) + rollup columns rendered via the computed path

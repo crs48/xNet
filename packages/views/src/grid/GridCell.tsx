@@ -44,6 +44,12 @@ export interface GridCellProps {
   onCommentClick?: (rowId: string, fieldId: string, anchorEl: HTMLElement) => void
   /** Persist a new select option for this field (typeahead create) */
   onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
+  /** Upload a file (file fields); returns the stored FileRef */
+  onUploadFile?: (file: File) => Promise<import('@xnetjs/data').FileRef | null>
+  /** A file was dropped onto this (non-editing) cell */
+  onDropFile?: (rowIndex: number, colIndex: number, file: File) => void
+  /** Resolve a FileRef to a displayable URL */
+  onResolveFileUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string>
 }
 
 /** Seed text -> initial draft value for replace-mode editing. */
@@ -85,7 +91,10 @@ function GridCellInner({
   onDraftChange,
   onCancel,
   onCommentClick,
-  onCreateOption
+  onCreateOption,
+  onUploadFile,
+  onDropFile,
+  onResolveFileUrl
 }: GridCellProps): React.JSX.Element {
   const handler = getPropertyHandler(field.type)
   const cellRef = useRef<HTMLDivElement>(null)
@@ -124,9 +133,11 @@ function GridCellInner({
       options: field.options,
       ...(onCreateOption
         ? { onCreateOption: (name: string) => onCreateOption(field.id, name) }
-        : {})
+        : {}),
+      ...(onUploadFile ? { onUploadFile } : {}),
+      ...(onResolveFileUrl ? { onResolveFileUrl } : {})
     }),
-    [field, onCreateOption]
+    [field, onCreateOption, onUploadFile, onResolveFileUrl]
   )
 
   const handleChange = useCallback(
@@ -182,6 +193,18 @@ function GridCellInner({
       }}
       onMouseEnter={(e) => onMouseEnter(rowIndex, colIndex, e.buttons)}
       onDoubleClick={() => onDoubleClick(rowIndex, colIndex)}
+      onDragOver={(e) => {
+        if (field.type === 'file' && !readOnly && e.dataTransfer.types.includes('Files')) {
+          e.preventDefault()
+        }
+      }}
+      onDrop={(e) => {
+        if (field.type !== 'file' || readOnly || !onDropFile) return
+        const file = e.dataTransfer.files?.[0]
+        if (!file) return
+        e.preventDefault()
+        onDropFile(rowIndex, colIndex, file)
+      }}
     >
       {editing && !readOnly ? (
         <div className="absolute inset-0 z-10 bg-white dark:bg-gray-900 flex items-stretch">

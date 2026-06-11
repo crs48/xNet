@@ -7,7 +7,7 @@
  * with plain fixtures.
  */
 
-import type { CellValue, FieldType, SortConfig } from '@xnetjs/data'
+import type { CellValue, FieldType, FileRef, SortConfig } from '@xnetjs/data'
 
 export interface GridFieldOption {
   id: string
@@ -60,6 +60,10 @@ export interface GridCallbacks {
   onAddField?: (anchorEl: HTMLElement) => void
   /** Create a select option inline (typeahead create). Returns the option ID. */
   onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
+  /** Upload a file for a file cell; returns the stored FileRef */
+  onUploadFile?: (file: File) => Promise<FileRef | null>
+  /** Resolve a FileRef CID to a displayable URL */
+  onResolveFileUrl?: (ref: FileRef) => Promise<string>
   /** Open row peek */
   onOpenRow?: (rowId: string) => void
   /** Undo/redo (wired to useUndoScope by the app layer) */

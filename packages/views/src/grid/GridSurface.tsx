@@ -73,6 +73,8 @@ export function GridSurface({
   onFieldMenu,
   onAddField,
   onCreateOption,
+  onUploadFile,
+  onResolveFileUrl,
   onOpenRow,
   onUndo,
   onRedo,
@@ -169,6 +171,19 @@ export function GridSurface({
       return refs
     },
     [cellAt]
+  )
+
+  // Drag-a-file-onto-a-cell → upload + write the FileRef directly
+  const handleDropFile = useCallback(
+    (rowIndex: number, colIndex: number, file: File) => {
+      if (!onUploadFile) return
+      const cell = cellAt({ row: rowIndex, col: colIndex })
+      if (!cell || cell.field.type !== 'file') return
+      void onUploadFile(file).then((ref) => {
+        if (ref) onUpdateCell?.(cell.row.id, cell.field.id, ref as unknown as CellValue)
+      })
+    },
+    [onUploadFile, cellAt, onUpdateCell]
   )
 
   const commitDraft = useCallback(() => {
@@ -542,6 +557,9 @@ export function GridSurface({
                       onOpenRow={onOpenRow}
                       onCommentClick={onCommentCell ?? undefined}
                       onCreateOption={onCreateOption}
+                      onUploadFile={onUploadFile}
+                      onDropFile={handleDropFile}
+                      onResolveFileUrl={onResolveFileUrl}
                     />
                   )
                 })}
@@ -592,6 +610,9 @@ interface GridRowProps {
   onOpenRow?: (rowId: string) => void
   onCommentClick?: (rowId: string, fieldId: string, anchorEl: HTMLElement | null) => void
   onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
+  onUploadFile?: (file: File) => Promise<import('@xnetjs/data').FileRef | null>
+  onDropFile?: (rowIndex: number, colIndex: number, file: File) => void
+  onResolveFileUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string>
 }
 
 function GridRow({
@@ -613,7 +634,10 @@ function GridRow({
   onSelectRow,
   onOpenRow,
   onCommentClick,
-  onCreateOption
+  onCreateOption,
+  onUploadFile,
+  onDropFile,
+  onResolveFileUrl
 }: GridRowProps): React.JSX.Element {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({
     id: row.id,
@@ -713,6 +737,9 @@ function GridRow({
             }}
             onCancel={onEditorCancel}
             onCreateOption={onCreateOption}
+            onUploadFile={onUploadFile}
+            onDropFile={onDropFile}
+            onResolveFileUrl={onResolveFileUrl}
             onCommentClick={
               onCommentClick
                 ? (rowId, fieldId, el) => onCommentClick(rowId, fieldId, el)
