@@ -11,6 +11,7 @@ import {
   TASK_STATUS_CATEGORIES,
   TaskSchema,
   isCompletedTaskStatus,
+  taskBranchName,
   type TaskStatusId
 } from '@xnetjs/data'
 import { getCommandRegistry } from '@xnetjs/plugins'
@@ -84,6 +85,7 @@ export function TasksView(): JSX.Element {
       dueDate: typeof task.dueDate === 'number' ? task.dueDate : null,
       assignees: Array.isArray(task.assignees) ? task.assignees.map(String) : [],
       referenceCount: Array.isArray(task.references) ? task.references.length : 0,
+      shortId: typeof task.shortId === 'string' ? task.shortId : null,
       sortKey: typeof task.sortKey === 'string' ? task.sortKey : null
     }))
   }, [visibleTasks])
@@ -204,6 +206,19 @@ export function TasksView(): JSX.Element {
         scope: 'task-focused',
         key: 'enter',
         run: withFocused((taskId) => handleOpenTask(taskId))
+      }),
+      registry.register({
+        id: 'task.copyBranchName',
+        title: 'Copy git branch name',
+        scope: 'task-focused',
+        key: 'Mod-Shift-.',
+        run: withFocused((taskId) => {
+          const task = tasksRef.current.find((t) => t.id === taskId)
+          if (!task) return
+          const shortId = typeof task.shortId === 'string' && task.shortId ? task.shortId : taskId
+          const branch = taskBranchName(shortId, typeof task.title === 'string' ? task.title : '')
+          void navigator.clipboard?.writeText(branch)
+        })
       })
     ]
 

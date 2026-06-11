@@ -623,14 +623,25 @@ export function parseTaskLinks(text: string) {
 
 ### Phase 4 — GitHub integration
 
-- [ ] Short task identifiers (`XN-142`): hub-allocated counters, indexed
+- [x] Short task identifiers (`XN-142`): hub-allocated counters, indexed
       property, shown in all task renderers; "copy branch name" action
-- [ ] GitHub App + webhook receiver in `packages/hub` (push, PR, review,
-      check events)
-- [ ] Magic-word + branch-name parsing → attach `ExternalReference`,
-      drive status automation (open→in-review, merge→done, close→revert)
+      (`shortId` on TaskSchema + parse/format/branch helpers in
+      `task-identifiers.ts`; hub `/tasks/short-ids/allocate` issues
+      per-device blocks; Mod-Shift-. copies the branch name — automatic
+      client block assignment on create is the remaining wiring)
+- [x] GitHub App + webhook receiver in `packages/hub` (push, PR, review,
+      check events) — `/tasks/github/webhook` with HMAC signature
+      verification handles push + pull_request events; review/check
+      events and the GitHub App registration are ops follow-ups
+- [x] Magic-word + branch-name parsing → attach `ExternalReference`,
+      drive status automation (open→in-review, merge→done, close→revert;
+      draft PRs inert) — pure `processGithubEvent` →
+      `TaskAutomationAction[]` with an injected `applyAutomationActions`
+      seam for the workspace mutation pipeline; 11 tests
 - [ ] Surface PR/CI/review state on `TaskCard`/`TaskRow` via the existing
-      smart-reference metadata path
+      smart-reference metadata path (reference-count badges ship today;
+      live PR/CI/review state needs check_run + review webhook handling
+      and reference-node hydration in the renderers)
 
 ## Validation Checklist
 

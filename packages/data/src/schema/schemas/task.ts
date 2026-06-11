@@ -16,6 +16,14 @@ export const TaskSchema = defineSchema({
     /** Task title */
     title: text({ required: true, maxLength: 500 }),
 
+    /**
+     * Human-readable identifier, e.g. "XN-142". Allocated from hub-issued
+     * per-device blocks (see task-identifiers.ts) so offline mints never
+     * collide. Pattern-matched in branch names / commit messages / PR text
+     * by the GitHub integration.
+     */
+    shortId: text({ maxLength: 20 }),
+
     /** Whether the task is completed */
     completed: checkbox({ default: false }),
 

@@ -21,6 +21,15 @@ export {
   type TaskStatusId
 } from './task'
 export { TaskViewSchema, type TaskView } from './task-view'
+export {
+  TASK_SHORT_ID_PATTERN,
+  formatTaskShortId,
+  parseTaskShortId,
+  taskBranchName,
+  shortIdsFromBlock,
+  type ParsedTaskShortId,
+  type TaskShortIdBlock
+} from './task-identifiers'
 export { ProjectSchema, type Project } from './project'
 export { ExternalReferenceSchema, type ExternalReference } from './external-reference'
 export { MediaAssetSchema, type MediaAsset } from './media-asset'
