@@ -115,6 +115,62 @@ export interface SidebarContribution {
   panel?: ComponentType
 }
 
+/**
+ * Dashboard widget contribution (0162).
+ *
+ * Mirrors WidgetDefinition from @xnetjs/dashboard structurally (kept
+ * dependency-free here, like ViewContribution). The host assigns the trust
+ * tier from the plugin's install source — plugins never self-declare it —
+ * and registers the widget into the dashboard WidgetRegistry.
+ */
+export interface WidgetContribution {
+  /** Widget registry key, e.g. 'com.example.burndown' (plugin-scoped) */
+  type: string
+  /** Display name shown in the widget picker */
+  name: string
+  /** Lucide icon name or component */
+  icon?: string | ComponentType
+  /** Short description for the picker */
+  description?: string
+  /** Config fields driving the auto-generated editor */
+  configFields?: WidgetContributionConfigField[]
+  /** Default + minimum tile size in 12-column grid units */
+  defaultSize: { w: number; h: number; minW?: number; minH?: number }
+  /** Sensible defaults so a freshly added widget renders immediately */
+  getStubConfig: (ctx: { schemas: string[] }) => {
+    config: Record<string, unknown>
+    query?: unknown
+  }
+  /** The renderer (runs in the tier-appropriate host) */
+  component: ComponentType<WidgetContributionProps>
+}
+
+export interface WidgetContributionConfigField {
+  key: string
+  label: string
+  type: 'property-select' | 'select' | 'number' | 'checkbox' | 'text' | 'color'
+  options?: Array<{ label: string; value: string }>
+  required?: boolean
+  description?: string
+  defaultValue?: unknown
+}
+
+export interface WidgetContributionProps {
+  config: Record<string, unknown>
+  data: {
+    rows: Array<Record<string, unknown> & { id: string }>
+    aggregates: unknown
+    queries: Record<string, Array<Record<string, unknown> & { id: string }>>
+    loading: boolean
+    error: Error | null
+  }
+  width: number
+  height: number
+  variables: Readonly<Record<string, unknown>>
+  onConfigChange?: (next: Record<string, unknown>) => void
+  onOpenNode?: (nodeId: string, schemaId: string) => void
+}
+
 export interface PropertyHandlerContribution {
   /** Property type this handler manages */
   type: string
@@ -401,6 +457,7 @@ export class TypedRegistry<T extends { id?: string; type?: string }> {
  */
 export class ContributionRegistry {
   readonly views = new TypedRegistry<ViewContribution>()
+  readonly widgets = new TypedRegistry<WidgetContribution>()
   readonly commands = new TypedRegistry<CommandContribution>()
   readonly slashCommands = new TypedRegistry<SlashCommandContribution>()
   readonly sidebar = new TypedRegistry<SidebarContribution>()
@@ -421,6 +478,7 @@ export class ContributionRegistry {
    */
   clear(): void {
     this.views.clear()
+    this.widgets.clear()
     this.commands.clear()
     this.slashCommands.clear()
     this.sidebar.clear()

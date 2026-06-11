@@ -552,10 +552,10 @@ export interface WidgetContribution {
 
 ### Phase 3 — Plugins and canvas reuse
 
-- [ ] Add `WidgetContribution` to `packages/plugins/src/contributions.ts`; host assigns trust tier
-- [ ] Canvas card adapter: render any `WidgetDefinition` as a canvas object (extend `CanvasObjectKind` with `'widget'`)
-- [ ] Migrate `CanvasQueryFrameDefinition` result rendering to reuse widget renderers where applicable
-- [ ] Shared render-harness test mounting every registered widget in grid + canvas hosts
+- [x] Add `WidgetContribution` to `packages/plugins/src/contributions.ts`; host assigns trust tier
+- [x] Canvas card adapter: render any `WidgetDefinition` as a canvas object (extend `CanvasObjectKind` with `'widget'`)
+- [x] Migrate `CanvasQueryFrameDefinition` result rendering to reuse widget renderers where applicable (`widgetInstanceFromQueryFrame` lowers schema-source frames onto the saved-view widget; database/plugin/search frames keep their own paths)
+- [x] Shared render-harness test mounting every registered widget in grid + canvas hosts
 
 ### Phase 4 — User-generated widgets
 

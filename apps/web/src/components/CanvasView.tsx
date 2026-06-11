@@ -27,6 +27,7 @@ import {
   useCanvasObjectIngestion,
   useCanvasThemeTokens
 } from '@xnetjs/canvas'
+import { CanvasWidgetCard, DashboardRuntimeProvider } from '@xnetjs/dashboard'
 import {
   CanvasSchema,
   DatabaseSchema,
@@ -59,6 +60,7 @@ import {
   Table2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { DASHBOARD_SCHEMA_REGISTRY } from './DashboardView'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -1548,6 +1550,14 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
               node.type === 'media'
             ) {
               return getNodeCard(node, theme.mode, blobService, updateCanvasNodeProperties)
+            }
+
+            if (node.type === 'widget') {
+              return (
+                <DashboardRuntimeProvider schemas={DASHBOARD_SCHEMA_REGISTRY} variables={undefined}>
+                  <CanvasWidgetCard node={node} />
+                </DashboardRuntimeProvider>
+              )
             }
 
             return undefined

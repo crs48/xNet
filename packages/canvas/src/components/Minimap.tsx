@@ -82,6 +82,8 @@ export function getCanvasObjectKindMinimapColor(kind: CanvasObjectKind): string 
       return 'rgba(245, 158, 11, 0.7)'
     case 'task':
       return 'rgba(99, 102, 241, 0.7)'
+    case 'widget':
+      return 'rgba(79, 70, 229, 0.7)'
     case 'group':
       return 'rgba(107, 114, 128, 0.35)'
   }

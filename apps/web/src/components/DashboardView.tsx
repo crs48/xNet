@@ -17,7 +17,7 @@ import {
 import { socialSchemas } from '@xnetjs/social/schemas'
 import { useCallback } from 'react'
 
-const DASHBOARD_SCHEMA_REGISTRY = [
+export const DASHBOARD_SCHEMA_REGISTRY = [
   PageSchema,
   DatabaseSchema,
   TaskSchema,

@@ -55,6 +55,27 @@ export { savedViewWidget, type SavedViewWidgetConfig } from './widgets/saved-vie
 export { pageLinksWidget, type PageLinksWidgetConfig } from './widgets/page-links-widget'
 export { recentItemsWidget, type RecentItemsWidgetConfig } from './widgets/recent-items-widget'
 
+// Plugin bridge
+export {
+  connectWidgetContributions,
+  widgetDefinitionFromContribution,
+  type WidgetContributionSource
+} from './plugins'
+
+// Canvas host
+export {
+  CANVAS_WIDGET_KIND,
+  CanvasWidgetCard,
+  createCanvasWidgetNodeProperties,
+  widgetInstanceFromCanvasNode,
+  type CanvasWidgetCardProps,
+  type CanvasWidgetNodeLike
+} from './canvas/CanvasWidgetCard'
+export {
+  widgetInstanceFromQueryFrame,
+  type QueryFrameDefinitionLike
+} from './canvas/query-frame-adapter'
+
 // Components
 export { DashboardGrid, type DashboardGridProps } from './components/DashboardGrid'
 export { DashboardSurface, type DashboardSurfaceProps } from './components/DashboardSurface'
