@@ -3,6 +3,7 @@
  */
 
 import type { PropertyHandler, PropertyEditorProps } from '../types'
+import { LinkifiedText } from '@xnetjs/ui'
 import React, { useEffect, useRef } from 'react'
 
 /**
@@ -56,7 +57,8 @@ export const textHandler: PropertyHandler<string> = {
     if (value === null || value === undefined || value === '') {
       return <span className="text-gray-400 dark:text-gray-500 italic">Empty</span>
     }
-    return <span className="text-gray-900 dark:text-gray-100">{value}</span>
+    // Read mode only — while editing, TextEditor shows the raw text (0170)
+    return <LinkifiedText value={value} className="text-gray-900 dark:text-gray-100" detectPhones />
   },
 
   compare(a, b) {

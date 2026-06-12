@@ -518,17 +518,17 @@ Phase 1 — URLs + emails:
       emails)
 - [x] `packages/ui/src/components/LinkifiedText.tsx`; add to **both** export
       lists in `packages/ui` (dual-export convention)
-- [ ] Chat: render `MessageBody` content through `<LinkifiedText>`
+- [x] Chat: render `MessageBody` content through `<LinkifiedText>`
       (`apps/web/src/comms/ChannelChat.tsx`); comment the
       structured-vs-render-decoration distinction next to the 0169 invariant
-- [ ] Table/grid: route `textHandler.render` through `<LinkifiedText>`
+- [x] Table/grid: route `textHandler.render` through `<LinkifiedText>`
       (`packages/views/src/properties/text.tsx`); confirm `GridCell` and
       `TableCell` inherit it via the shared handler
-- [ ] Page editor: extend `Link.configure` in
+- [x] Page editor: extend `Link.configure` in
       `packages/editor/src/components/RichTextEditor.tsx:510` with
       `defaultProtocol: 'https'`; confirm autolink/linkOnPaste behavior in a
       live doc
-- [ ] Sweep other read-only plain-text surfaces (task descriptions, node
+- [x] Sweep other read-only plain-text surfaces (task descriptions, node
       detail panels) and apply `<LinkifiedText>` where text is user-authored
 
 Phase 2 — phones (flag-gated):
@@ -537,8 +537,8 @@ Phase 2 — phones (flag-gated):
       `findPhoneNumbersInText` with `defaultCountry` from locale
 - [x] `detectPhones` prop on `<LinkifiedText>`; overlap resolution (URL/email
       tokens win)
-- [ ] Bundle-size check: phone chunk must be lazy, not in the entry bundle
-- [ ] Enable in chat + text cells behind a flag; collect false-positive
+- [x] Bundle-size check: phone chunk must be lazy, not in the entry bundle
+- [x] Enable in chat + text cells behind a flag; collect false-positive
       feedback before default-on
 
 Phase 3 — addresses (explicit action only):
@@ -561,13 +561,13 @@ Phase 3 — addresses (explicit action only):
 - [ ] Pages: typing `example.com ` autolinks with `https://`; undo removes
       the link mark and keeps text
 - [ ] Comments: existing GFM linkification unchanged (regression check)
-- [ ] Links open with `rel="noopener noreferrer"`; `mailto:`/`tel:` have no
+- [x] Links open with `rel="noopener noreferrer"`; `mailto:`/`tel:` have no
       `target="_blank"`
 - [ ] Perf: scroll a long channel (500+ messages) — no measurable render
       regression vs. baseline
 - [ ] FTS/search: message and cell text remain searchable as raw text (no
       stored markup anywhere)
-- [ ] Phase 2: phone chunk absent from entry bundle (build analysis); US/intl
+- [x] Phase 2: phone chunk absent from entry bundle (build analysis); US/intl
       formats linkify as `tel:+E164`; "2024-2025" and "$1,415,555" do not
 
 ## References

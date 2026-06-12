@@ -509,6 +509,9 @@ export function RichTextEditor({
     TaskDueDateExtension,
     Link.configure({
       openOnClick: false,
+      // Fuzzy autolinks ("example.com") resolve to https, matching the
+      // read-surface linkify policy in @xnetjs/ui (0170)
+      defaultProtocol: 'https',
       HTMLAttributes: {
         class: 'text-primary hover:underline cursor-pointer'
       }

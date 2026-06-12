@@ -6,6 +6,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { sendMessage, typingPeers, type PeerPresence } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
+import { LinkifiedText } from '@xnetjs/ui'
 import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
@@ -49,12 +50,21 @@ function EditedTag({ message }: { message: ChatMessageRow }) {
   return <span className="text-[10px] text-ink-3">(edited)</span>
 }
 
+/**
+ * Unlike tags/mentions (structured, composer-declared — see MessageTagChips),
+ * links are render-time decoration: a URL's meaning lives in its text, so the
+ * stored content is never parsed into structure or rewritten (0170).
+ */
 function MessageBody({ message }: { message: ChatMessageRow }) {
   if (message.redacted) {
     return <span className="text-xs italic text-ink-3">message deleted</span>
   }
   return (
-    <span className="whitespace-pre-wrap break-words text-xs text-ink-2">{message.content}</span>
+    <LinkifiedText
+      value={message.content ?? ''}
+      className="whitespace-pre-wrap break-words text-xs text-ink-2"
+      detectPhones
+    />
   )
 }
 
