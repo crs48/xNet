@@ -94,6 +94,19 @@ export interface FollowedProject<P extends PanelProject> {
   openCount: number
 }
 
+/** True when no section has anything to show (renders the hint state). */
+export function isDashboardEmpty(
+  selection: TasksDashboardSelection<PanelTask>,
+  followedProjects: ReadonlyArray<FollowedProject<PanelProject>>
+): boolean {
+  return (
+    selection.pinned.length === 0 &&
+    selection.inProgress.length === 0 &&
+    selection.assigned.length === 0 &&
+    followedProjects.length === 0
+  )
+}
+
 /** Projects you pinned, lead, or have open tasks in — with open counts. */
 export function selectFollowedProjects<P extends PanelProject>(
   projects: readonly P[],

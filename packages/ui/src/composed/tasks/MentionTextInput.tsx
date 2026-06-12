@@ -49,6 +49,32 @@ export function findActiveMention(value: string, caret: number): ActiveMention |
   return { start: at, query }
 }
 
+export type MentionKeyAction =
+  | 'menu-next'
+  | 'menu-prev'
+  | 'menu-select'
+  | 'menu-close'
+  | 'submit'
+  | 'cancel'
+  | null
+
+/** Map a key press onto the input's state machine (pure, testable). */
+export function interpretMentionKey(
+  key: string,
+  menuOpen: boolean,
+  hasSelection: boolean
+): MentionKeyAction {
+  if (menuOpen) {
+    if (key === 'ArrowDown') return 'menu-next'
+    if (key === 'ArrowUp') return 'menu-prev'
+    if ((key === 'Enter' || key === 'Tab') && hasSelection) return 'menu-select'
+    if (key === 'Escape') return 'menu-close'
+  }
+  if (key === 'Enter') return 'submit'
+  if (key === 'Escape') return 'cancel'
+  return null
+}
+
 export function MentionTextInput({
   value,
   onChange,
@@ -90,39 +116,30 @@ export function MentionTextInput({
     ref.current?.focus()
   }
 
+  const keyActions: Record<
+    NonNullable<MentionKeyAction>,
+    (event: KeyboardEvent<HTMLInputElement>) => void
+  > = {
+    'menu-next': () =>
+      setActiveIndex((index) => Math.min(index + 1, Math.max(suggestions.length - 1, 0))),
+    'menu-prev': () => setActiveIndex((index) => Math.max(index - 1, 0)),
+    'menu-select': () => {
+      const person = suggestions[activeIndex]
+      if (person) selectMention(person)
+    },
+    'menu-close': (event) => {
+      event.stopPropagation()
+      setMention(null)
+    },
+    submit: () => onSubmit?.(),
+    cancel: () => onCancel?.()
+  }
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (menuOpen) {
-      if (event.key === 'ArrowDown') {
-        event.preventDefault()
-        setActiveIndex((index) => Math.min(index + 1, Math.max(suggestions.length - 1, 0)))
-        return
-      }
-      if (event.key === 'ArrowUp') {
-        event.preventDefault()
-        setActiveIndex((index) => Math.max(index - 1, 0))
-        return
-      }
-      if (event.key === 'Enter' || event.key === 'Tab') {
-        const person = suggestions[activeIndex]
-        if (person) {
-          event.preventDefault()
-          selectMention(person)
-          return
-        }
-      }
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        event.stopPropagation()
-        setMention(null)
-        return
-      }
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      onSubmit?.()
-    } else if (event.key === 'Escape') {
-      onCancel?.()
-    }
+    const action = interpretMentionKey(event.key, menuOpen, Boolean(suggestions[activeIndex]))
+    if (action === null) return
+    if (action !== 'cancel') event.preventDefault()
+    keyActions[action](event)
   }
 
   return (

@@ -16,6 +16,7 @@ const workspaceAliases = {
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
   '@xnetjs/devtools': new URL('./packages/devtools/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/editor/react': new URL('./packages/editor/src/react.ts', import.meta.url).pathname,
   '@xnetjs/editor': new URL('./packages/editor/src/index.ts', import.meta.url).pathname,
   '@xnetjs/formula': new URL('./packages/formula/src/index.ts', import.meta.url).pathname,
   '@xnetjs/history': new URL('./packages/history/src/index.ts', import.meta.url).pathname,

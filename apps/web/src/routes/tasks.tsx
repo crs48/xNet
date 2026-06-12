@@ -11,11 +11,16 @@ export interface TasksSearch {
   project?: string
 }
 
+function stringParam(value: unknown): string | null {
+  return typeof value === 'string' && value ? value : null
+}
+
 export const Route = createFileRoute('/tasks')({
-  validateSearch: (search: Record<string, unknown>): TasksSearch => ({
-    ...(typeof search.task === 'string' && search.task ? { task: search.task } : {}),
-    ...(typeof search.project === 'string' && search.project ? { project: search.project } : {})
-  }),
+  validateSearch: (search: Record<string, unknown>): TasksSearch => {
+    const task = stringParam(search.task)
+    const project = stringParam(search.project)
+    return { ...(task ? { task } : {}), ...(project ? { project } : {}) }
+  },
   component: TasksPage
 })
 

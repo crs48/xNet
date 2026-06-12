@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { MentionTextInput, findActiveMention } from './MentionTextInput'
+import { MentionTextInput, findActiveMention, interpretMentionKey } from './MentionTextInput'
 import { filterTaskPeople, taskPersonLabel } from './people'
 import { TaskDetailForm } from './TaskDetailForm'
 
@@ -44,6 +44,23 @@ describe('findActiveMention', () => {
   it('ignores email-like text and tokens behind whitespace', () => {
     expect(findActiveMention('mail me a@b', 11)).toBeNull()
     expect(findActiveMention('hello @al done', 14)).toBeNull()
+  })
+})
+
+describe('interpretMentionKey', () => {
+  it('routes menu navigation while the menu is open', () => {
+    expect(interpretMentionKey('ArrowDown', true, true)).toBe('menu-next')
+    expect(interpretMentionKey('ArrowUp', true, true)).toBe('menu-prev')
+    expect(interpretMentionKey('Enter', true, true)).toBe('menu-select')
+    expect(interpretMentionKey('Tab', true, true)).toBe('menu-select')
+    expect(interpretMentionKey('Escape', true, true)).toBe('menu-close')
+  })
+
+  it('falls back to submit/cancel when the menu is closed or empty', () => {
+    expect(interpretMentionKey('Enter', false, false)).toBe('submit')
+    expect(interpretMentionKey('Enter', true, false)).toBe('submit')
+    expect(interpretMentionKey('Escape', false, false)).toBe('cancel')
+    expect(interpretMentionKey('a', true, true)).toBeNull()
   })
 })
 

@@ -10,7 +10,7 @@
  * checklists); due date and assignees edit through small popovers.
  */
 import { CalendarDays, ExternalLink, UserPlus, X } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { DIDAvatar } from '../../components/DIDAvatar'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { cn } from '../../utils'
@@ -67,6 +67,10 @@ function fromDateInputValue(value: string): number | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   const parsed = Date.parse(`${value}T00:00:00.000Z`)
   return Number.isNaN(parsed) ? null : parsed
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
 /** Chip-style trigger that reveals a popover panel below itself. */
@@ -137,6 +141,360 @@ function PickerOption({
   )
 }
 
+interface PickerControl {
+  open: boolean
+  onToggle: () => void
+  onClose: () => void
+}
+
+function StatusChip({
+  task,
+  control,
+  onPick
+}: {
+  task: TaskDisplayData
+  control: PickerControl
+  onPick: (status: string, completed: boolean) => void
+}) {
+  const current = task.status ?? 'todo'
+  const meta = TASK_STATUS_META[current as keyof typeof TASK_STATUS_META]
+
+  return (
+    <PickerChip
+      testId="task-status-chip"
+      label={meta?.name ?? 'To Do'}
+      icon={<TaskStatusIcon status={task.status} size={12} />}
+      {...control}
+    >
+      {WORKFLOW_IDS.map((status) => (
+        <PickerOption
+          key={status}
+          selected={status === current}
+          onSelect={() => onPick(status, isCompletedStatus(status))}
+        >
+          <TaskStatusIcon status={status} size={13} />
+          {TASK_STATUS_META[status].name}
+        </PickerOption>
+      ))}
+    </PickerChip>
+  )
+}
+
+function PriorityChip({
+  task,
+  control,
+  onPick
+}: {
+  task: TaskDisplayData
+  control: PickerControl
+  onPick: (priority: string) => void
+}) {
+  const current = task.priority ?? 'medium'
+
+  return (
+    <PickerChip
+      testId="task-priority-chip"
+      label={capitalize(current)}
+      icon={<TaskPriorityIcon priority={task.priority} size={12} />}
+      {...control}
+    >
+      {PRIORITY_IDS.map((priority) => (
+        <PickerOption
+          key={priority}
+          selected={priority === current}
+          onSelect={() => onPick(priority)}
+        >
+          <TaskPriorityIcon priority={priority} size={13} />
+          {capitalize(priority)}
+        </PickerOption>
+      ))}
+    </PickerChip>
+  )
+}
+
+function QuickDueButton({ label, onPick }: { label: string; onPick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className="flex-1 rounded-sm border border-border px-1.5 py-1 text-xs text-foreground hover:bg-background-subtle"
+    >
+      {label}
+    </button>
+  )
+}
+
+function DueDateMenu({
+  dueDate,
+  onPick
+}: {
+  dueDate: number | null | undefined
+  onPick: (dueDate: number | null) => void
+}) {
+  return (
+    <div className="flex flex-col gap-1 p-1">
+      <div className="flex gap-1">
+        <QuickDueButton label="Today" onPick={() => onPick(utcDay(0))} />
+        <QuickDueButton label="Tomorrow" onPick={() => onPick(utcDay(1))} />
+        <QuickDueButton label="Next week" onPick={() => onPick(utcDay(7))} />
+      </div>
+      <input
+        type="date"
+        data-testid="task-due-input"
+        value={toDateInputValue(dueDate)}
+        onChange={(event) => {
+          const parsed = fromDateInputValue(event.target.value)
+          if (parsed != null) onPick(parsed)
+        }}
+        className="w-full rounded-sm border border-border bg-transparent px-1.5 py-1 text-xs text-foreground outline-none"
+      />
+      {dueDate != null && (
+        <button
+          type="button"
+          onClick={() => onPick(null)}
+          className="rounded-sm px-1.5 py-1 text-left text-xs text-foreground-muted hover:bg-background-subtle hover:text-foreground"
+        >
+          Clear due date
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** Editable due-date picker, a static chip for locked tasks, or nothing. */
+function DueSection({
+  task,
+  control,
+  onPick
+}: {
+  task: TaskDisplayData
+  control: PickerControl
+  onPick?: ((dueDate: number | null) => void) | undefined
+}) {
+  const due = formatDueDate(task.dueDate)
+
+  if (!onPick) {
+    if (due.urgency === 'none') return null
+    return (
+      <span className="flex h-6 items-center gap-1.5 rounded-md border border-border px-1.5 text-xs text-foreground-muted">
+        <CalendarDays size={12} />
+        {due.label}
+      </span>
+    )
+  }
+
+  return (
+    <PickerChip
+      testId="task-due-chip"
+      label={due.urgency === 'none' ? 'Due date' : due.label}
+      icon={<CalendarDays size={12} />}
+      {...control}
+    >
+      <DueDateMenu dueDate={task.dueDate} onPick={onPick} />
+    </PickerChip>
+  )
+}
+
+function PersonOptionRow({
+  person,
+  onSelect
+}: {
+  person: TaskPersonOption
+  onSelect: (did: string) => void
+}) {
+  return (
+    <PickerOption selected={false} onSelect={() => onSelect(person.did)}>
+      <DIDAvatar did={person.did} size={18} />
+      <span className="min-w-0 flex-1 truncate">
+        {taskPersonLabel(person)}
+        {person.isSelf && <span className="text-foreground-muted"> (you)</span>}
+      </span>
+    </PickerOption>
+  )
+}
+
+function AssignChip({
+  candidates,
+  assignedCount,
+  control,
+  query,
+  onQueryChange,
+  onAdd
+}: {
+  candidates: TaskPersonOption[]
+  assignedCount: number
+  control: PickerControl
+  query: string
+  onQueryChange: (query: string) => void
+  onAdd: (did: string) => void
+}) {
+  return (
+    <PickerChip
+      testId="task-assign-chip"
+      label={assignedCount === 0 ? 'Assign' : `${assignedCount} assigned`}
+      icon={<UserPlus size={12} />}
+      {...control}
+    >
+      <input
+        type="text"
+        value={query}
+        autoFocus
+        placeholder="Find people…"
+        onChange={(event) => onQueryChange(event.target.value)}
+        className="mb-1 w-full rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-foreground outline-none placeholder:text-foreground-muted"
+      />
+      {candidates.length === 0 ? (
+        <p className="m-0 px-2 py-1.5 text-xs text-foreground-muted">No matching people</p>
+      ) : (
+        candidates.map((person) => (
+          <PersonOptionRow key={person.did} person={person} onSelect={onAdd} />
+        ))
+      )}
+    </PickerChip>
+  )
+}
+
+function AssigneeChips({
+  assignees,
+  people,
+  onRemove
+}: {
+  assignees: string[]
+  people: TaskPersonOption[]
+  onRemove?: ((did: string) => void) | undefined
+}) {
+  if (assignees.length === 0) return null
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {assignees.map((did) => {
+        const person = people.find((candidate) => candidate.did === did) ?? { did }
+        return (
+          <span
+            key={did}
+            data-testid="task-assignee-chip"
+            className="flex items-center gap-1.5 rounded-full border border-border py-0.5 pl-0.5 pr-1.5 text-xs text-foreground"
+          >
+            <DIDAvatar did={did} size={16} />
+            {taskPersonLabel(person)}
+            {onRemove && (
+              <button
+                type="button"
+                aria-label={`Remove assignee ${taskPersonLabel(person)}`}
+                onClick={() => onRemove(did)}
+                className="rounded-full text-foreground-muted transition-colors hover:text-foreground"
+              >
+                <X size={11} />
+              </button>
+            )}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+function FormFooter({
+  taskId,
+  sourceLabel,
+  onOpenSource,
+  footerExtra
+}: {
+  taskId: string
+  sourceLabel?: string | null | undefined
+  onOpenSource?: ((taskId: string) => void) | undefined
+  footerExtra?: ReactNode
+}) {
+  if (!sourceLabel && !footerExtra) return null
+  return (
+    <div className="flex items-center gap-2 border-t border-border pt-2">
+      {sourceLabel && onOpenSource && (
+        <button
+          type="button"
+          data-testid="task-open-source"
+          onClick={() => onOpenSource(taskId)}
+          className="flex items-center gap-1 rounded-sm text-xs text-foreground-muted transition-colors hover:text-foreground"
+        >
+          <ExternalLink size={11} />
+          {sourceLabel}
+        </button>
+      )}
+      <span className="ml-auto flex items-center gap-1">{footerExtra}</span>
+    </div>
+  )
+}
+
+function TitleRow({
+  task,
+  titleReadOnly,
+  title,
+  onTitleChange,
+  mentionPeople,
+  onMention,
+  onCommit,
+  onRevert,
+  onClose,
+  autoFocusTitle,
+  titleRef
+}: {
+  task: TaskDisplayData
+  titleReadOnly: boolean
+  title: string
+  onTitleChange: (title: string) => void
+  mentionPeople: TaskPersonOption[]
+  onMention: (did: string) => void
+  onCommit: () => void
+  onRevert: () => void
+  onClose?: (() => void) | undefined
+  autoFocusTitle: boolean
+  titleRef: RefObject<HTMLInputElement>
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      {task.shortId && (
+        <span className="shrink-0 font-mono text-xs text-foreground-muted">{task.shortId}</span>
+      )}
+      {titleReadOnly ? (
+        <span
+          data-testid="task-title-static"
+          className="min-w-0 flex-1 truncate text-sm text-foreground"
+        >
+          {task.title || 'Untitled task'}
+        </span>
+      ) : (
+        <MentionTextInput
+          value={title}
+          onChange={onTitleChange}
+          people={mentionPeople}
+          onMention={onMention}
+          onSubmit={() => {
+            onCommit()
+            onClose?.()
+          }}
+          onCancel={() => {
+            onRevert()
+            onClose?.()
+          }}
+          onBlur={onCommit}
+          placeholder="Task title"
+          autoFocus={autoFocusTitle}
+          inputRef={titleRef}
+          data-testid="task-title-input"
+        />
+      )}
+      {onClose && (
+        <button
+          type="button"
+          aria-label="Close editor"
+          onClick={onClose}
+          className="shrink-0 rounded-sm p-1 text-foreground-muted transition-colors hover:text-foreground"
+        >
+          <X size={13} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 type OpenPicker = 'status' | 'priority' | 'due' | 'assign' | null
 
 export function TaskDetailForm({
@@ -167,8 +525,6 @@ export function TaskDetailForm({
   }, [task.title])
 
   const assignees = task.assignees ?? []
-  const due = formatDueDate(task.dueDate)
-  const statusMeta = TASK_STATUS_META[(task.status ?? 'todo') as keyof typeof TASK_STATUS_META]
 
   const commitTitle = () => {
     const next = title.trim()
@@ -176,10 +532,14 @@ export function TaskDetailForm({
     else setTitle(task.title)
   }
 
-  const toggle = (picker: Exclude<OpenPicker, null>) => {
-    setAssignQuery('')
-    setOpenPicker((current) => (current === picker ? null : picker))
-  }
+  const pickerControl = (picker: Exclude<OpenPicker, null>): PickerControl => ({
+    open: openPicker === picker,
+    onToggle: () => {
+      setAssignQuery('')
+      setOpenPicker((current) => (current === picker ? null : picker))
+    },
+    onClose: () => setOpenPicker(null)
+  })
 
   const addAssignee = (did: string) => {
     if (!assignees.includes(did)) onAssigneesChange?.(task.id, [...assignees, did])
@@ -197,10 +557,7 @@ export function TaskDetailForm({
     setOpenPicker(null)
   }
 
-  const assignCandidates = filterTaskPeople(
-    people.filter((person) => !assignees.includes(person.did)),
-    assignQuery
-  )
+  const unassignedPeople = people.filter((person) => !assignees.includes(person.did))
 
   return (
     <div
@@ -210,246 +567,68 @@ export function TaskDetailForm({
         className
       )}
     >
-      <div className="flex items-center gap-2">
-        {task.shortId && (
-          <span className="shrink-0 font-mono text-xs text-foreground-muted">{task.shortId}</span>
-        )}
-        {titleReadOnly ? (
-          <span
-            data-testid="task-title-static"
-            className="min-w-0 flex-1 truncate text-sm text-foreground"
-          >
-            {task.title || 'Untitled task'}
-          </span>
-        ) : (
-          <MentionTextInput
-            value={title}
-            onChange={setTitle}
-            people={people.filter((person) => !assignees.includes(person.did))}
-            onMention={addAssignee}
-            onSubmit={() => {
-              commitTitle()
-              onClose?.()
-            }}
-            onCancel={() => {
-              setTitle(task.title)
-              onClose?.()
-            }}
-            onBlur={commitTitle}
-            placeholder="Task title"
-            autoFocus={autoFocusTitle}
-            inputRef={titleRef}
-            data-testid="task-title-input"
-          />
-        )}
-        {onClose && (
-          <button
-            type="button"
-            aria-label="Close editor"
-            onClick={onClose}
-            className="shrink-0 rounded-sm p-1 text-foreground-muted transition-colors hover:text-foreground"
-          >
-            <X size={13} />
-          </button>
-        )}
-      </div>
+      <TitleRow
+        task={task}
+        titleReadOnly={titleReadOnly}
+        title={title}
+        onTitleChange={setTitle}
+        mentionPeople={unassignedPeople}
+        onMention={addAssignee}
+        onCommit={commitTitle}
+        onRevert={() => setTitle(task.title)}
+        onClose={onClose}
+        autoFocusTitle={autoFocusTitle}
+        titleRef={titleRef}
+      />
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <PickerChip
-          testId="task-status-chip"
-          label={statusMeta?.name ?? task.status ?? 'To Do'}
-          icon={<TaskStatusIcon status={task.status} size={12} />}
-          open={openPicker === 'status'}
-          onToggle={() => toggle('status')}
-          onClose={() => setOpenPicker(null)}
-        >
-          {WORKFLOW_IDS.map((status) => (
-            <PickerOption
-              key={status}
-              selected={status === (task.status ?? 'todo')}
-              onSelect={() => {
-                onStatusChange?.(task.id, status, isCompletedStatus(status))
-                setOpenPicker(null)
-              }}
-            >
-              <TaskStatusIcon status={status} size={13} />
-              {TASK_STATUS_META[status].name}
-            </PickerOption>
-          ))}
-        </PickerChip>
-
-        <PickerChip
-          testId="task-priority-chip"
-          label={
-            (task.priority ?? 'medium').charAt(0).toUpperCase() +
-            (task.priority ?? 'medium').slice(1)
-          }
-          icon={<TaskPriorityIcon priority={task.priority} size={12} />}
-          open={openPicker === 'priority'}
-          onToggle={() => toggle('priority')}
-          onClose={() => setOpenPicker(null)}
-        >
-          {PRIORITY_IDS.map((priority) => (
-            <PickerOption
-              key={priority}
-              selected={priority === (task.priority ?? 'medium')}
-              onSelect={() => {
-                onPriorityChange?.(task.id, priority)
-                setOpenPicker(null)
-              }}
-            >
-              <TaskPriorityIcon priority={priority} size={13} />
-              {priority.charAt(0).toUpperCase() + priority.slice(1)}
-            </PickerOption>
-          ))}
-        </PickerChip>
-
-        {!onDueDateChange && due.urgency !== 'none' && (
-          <span className="flex h-6 items-center gap-1.5 rounded-md border border-border px-1.5 text-xs text-foreground-muted">
-            <CalendarDays size={12} />
-            {due.label}
-          </span>
-        )}
-        {onDueDateChange && (
-          <PickerChip
-            testId="task-due-chip"
-            label={due.urgency === 'none' ? 'Due date' : due.label}
-            icon={<CalendarDays size={12} />}
-            open={openPicker === 'due'}
-            onToggle={() => toggle('due')}
-            onClose={() => setOpenPicker(null)}
-          >
-            <div className="flex flex-col gap-1 p-1">
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => setDueDate(utcDay(0))}
-                  className="flex-1 rounded-sm border border-border px-1.5 py-1 text-xs text-foreground hover:bg-background-subtle"
-                >
-                  Today
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDueDate(utcDay(1))}
-                  className="flex-1 rounded-sm border border-border px-1.5 py-1 text-xs text-foreground hover:bg-background-subtle"
-                >
-                  Tomorrow
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDueDate(utcDay(7))}
-                  className="flex-1 rounded-sm border border-border px-1.5 py-1 text-xs text-foreground hover:bg-background-subtle"
-                >
-                  Next week
-                </button>
-              </div>
-              <input
-                type="date"
-                data-testid="task-due-input"
-                value={toDateInputValue(task.dueDate)}
-                onChange={(event) => {
-                  const parsed = fromDateInputValue(event.target.value)
-                  if (parsed != null) setDueDate(parsed)
-                }}
-                className="w-full rounded-sm border border-border bg-transparent px-1.5 py-1 text-xs text-foreground outline-none"
-              />
-              {task.dueDate != null && (
-                <button
-                  type="button"
-                  onClick={() => setDueDate(null)}
-                  className="rounded-sm px-1.5 py-1 text-left text-xs text-foreground-muted hover:bg-background-subtle hover:text-foreground"
-                >
-                  Clear due date
-                </button>
-              )}
-            </div>
-          </PickerChip>
-        )}
-
+        <StatusChip
+          task={task}
+          control={pickerControl('status')}
+          onPick={(status, completed) => {
+            onStatusChange?.(task.id, status, completed)
+            setOpenPicker(null)
+          }}
+        />
+        <PriorityChip
+          task={task}
+          control={pickerControl('priority')}
+          onPick={(priority) => {
+            onPriorityChange?.(task.id, priority)
+            setOpenPicker(null)
+          }}
+        />
+        <DueSection
+          task={task}
+          control={pickerControl('due')}
+          onPick={onDueDateChange ? setDueDate : undefined}
+        />
         {onAssigneesChange && (
-          <PickerChip
-            testId="task-assign-chip"
-            label={assignees.length === 0 ? 'Assign' : `${assignees.length} assigned`}
-            icon={<UserPlus size={12} />}
-            open={openPicker === 'assign'}
-            onToggle={() => toggle('assign')}
-            onClose={() => setOpenPicker(null)}
-          >
-            <input
-              type="text"
-              value={assignQuery}
-              autoFocus
-              placeholder="Find people…"
-              onChange={(event) => setAssignQuery(event.target.value)}
-              className="mb-1 w-full rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-foreground outline-none placeholder:text-foreground-muted"
-            />
-            {assignCandidates.length === 0 ? (
-              <p className="m-0 px-2 py-1.5 text-xs text-foreground-muted">No matching people</p>
-            ) : (
-              assignCandidates.map((person) => (
-                <PickerOption
-                  key={person.did}
-                  selected={false}
-                  onSelect={() => addAssignee(person.did)}
-                >
-                  <DIDAvatar did={person.did} size={18} />
-                  <span className="min-w-0 flex-1 truncate">
-                    {taskPersonLabel(person)}
-                    {person.isSelf && <span className="text-foreground-muted"> (you)</span>}
-                  </span>
-                </PickerOption>
-              ))
-            )}
-          </PickerChip>
+          <AssignChip
+            candidates={filterTaskPeople(unassignedPeople, assignQuery)}
+            assignedCount={assignees.length}
+            control={pickerControl('assign')}
+            query={assignQuery}
+            onQueryChange={setAssignQuery}
+            onAdd={addAssignee}
+          />
         )}
       </div>
 
       {metaNotice && <p className="m-0 text-[11px] text-foreground-muted">{metaNotice}</p>}
 
-      {assignees.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1">
-          {assignees.map((did) => {
-            const person = people.find((candidate) => candidate.did === did)
-            return (
-              <span
-                key={did}
-                data-testid="task-assignee-chip"
-                className="flex items-center gap-1.5 rounded-full border border-border py-0.5 pl-0.5 pr-1.5 text-xs text-foreground"
-              >
-                <DIDAvatar did={did} size={16} />
-                {taskPersonLabel(person ?? { did })}
-                {onAssigneesChange && (
-                  <button
-                    type="button"
-                    aria-label={`Remove assignee ${taskPersonLabel(person ?? { did })}`}
-                    onClick={() => removeAssignee(did)}
-                    className="rounded-full text-foreground-muted transition-colors hover:text-foreground"
-                  >
-                    <X size={11} />
-                  </button>
-                )}
-              </span>
-            )
-          })}
-        </div>
-      )}
+      <AssigneeChips
+        assignees={assignees}
+        people={people}
+        onRemove={onAssigneesChange ? removeAssignee : undefined}
+      />
 
-      {(sourceLabel || footerExtra) && (
-        <div className="flex items-center gap-2 border-t border-border pt-2">
-          {sourceLabel && onOpenSource && (
-            <button
-              type="button"
-              data-testid="task-open-source"
-              onClick={() => onOpenSource(task.id)}
-              className="flex items-center gap-1 rounded-sm text-xs text-foreground-muted transition-colors hover:text-foreground"
-            >
-              <ExternalLink size={11} />
-              {sourceLabel}
-            </button>
-          )}
-          <span className="ml-auto flex items-center gap-1">{footerExtra}</span>
-        </div>
-      )}
+      <FormFooter
+        taskId={task.id}
+        sourceLabel={sourceLabel}
+        onOpenSource={onOpenSource}
+        footerExtra={footerExtra}
+      />
     </div>
   )
 }
