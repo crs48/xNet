@@ -1,3 +1,29 @@
+/**
+ * xNet design tokens (exploration 0166).
+ *
+ * One APCA-tuned monochrome ramp per mode, named by role:
+ *
+ *   --surface-0   editor background (the work; the brightest/darkest plane)
+ *   --surface-1   panels, sidebar, rail (chrome sits one step dimmer)
+ *   --surface-2   tray, status bar, hover washes
+ *   --ink-1       primary text        (≥ Lc 90 on surface-0)
+ *   --ink-2       secondary text      (≥ Lc 60)
+ *   --ink-3       placeholder/disabled (≥ Lc 30)
+ *   --hairline    borders             (≈ Lc 15) — structure felt, not seen
+ *   --accent-ink  focus/selection accent (monochrome; hue belongs to data)
+ *
+ * Values are HSL triplets consumed as hsl(var(--token)).
+ * Legacy semantic names (--background, --foreground, --primary, …) are
+ * aliases onto the ramp so existing components keep working. Semantic
+ * red/green/orange survive only for user data (status dots, charts) —
+ * data may have color; chrome may not.
+ *
+ * Dark mode is near-black (#0A0A0A), not pure black, so elevation can be
+ * carried by 3–5 lightness points between surfaces. The optional
+ * "true-black" variant (html.dark[data-variant='true-black']) collapses
+ * surfaces to #000 for OLED; hairlines alone carry structure there.
+ */
+
 @layer base {
   :root {
     /* ─── Layout ────────────────────────────────────────────────── */
@@ -8,57 +34,67 @@
     --radius-xl: 0.75rem;
     --radius-full: 9999px;
 
-    /* ─── Backgrounds ───────────────────────────────────────────── */
-    --background: 0 0% 100%; /* Pure white */
-    --background-subtle: 0 0% 98%; /* Off-white for cards */
-    --background-muted: 0 0% 96%; /* Hover states */
-    --background-emphasis: 0 0% 94%; /* Active states */
+    /* ─── Monochrome ramp (light: ink on paper) ─────────────────── */
+    --surface-0: 0 0% 100%; /* #FFFFFF */
+    --surface-1: 0 0% 98%; /* #FAFAFA */
+    --surface-2: 0 0% 95.7%; /* #F4F4F4 */
+    --ink-1: 0 0% 6.7%; /* #111111  Lc 105 */
+    --ink-2: 0 0% 33.3%; /* #555555  Lc 86 */
+    --ink-3: 0 0% 56.1%; /* #8F8F8F  Lc 60 */
+    --hairline: 0 0% 89.8%; /* #E5E5E5  Lc 13 */
+    --accent-ink: 0 0% 6.7%; /* focus/selection only */
 
-    /* ─── Foregrounds ───────────────────────────────────────────── */
-    --foreground: 0 0% 9%; /* Primary text */
-    --foreground-muted: 0 0% 45%; /* Secondary text */
-    --foreground-subtle: 0 0% 64%; /* Tertiary text */
-    --foreground-faint: 0 0% 78%; /* Placeholder text */
+    /* ─── Type roles ────────────────────────────────────────────── */
+    /* UI sans: workbench chrome at 13px. Prose sans: editor at 16px.
+       Data mono: IDs, numeric cells, status bar, query console. */
+    --font-ui-size: 13px;
+    --font-prose-size: 16px;
 
-    /* ─── Borders ───────────────────────────────────────────────── */
-    --border: 0 0% 90%; /* Default borders */
-    --border-muted: 0 0% 94%; /* Subtle borders */
-    --border-emphasis: 0 0% 82%; /* Emphasized borders */
+    /* ─── Legacy aliases → ramp ─────────────────────────────────── */
+    --background: var(--surface-0);
+    --background-subtle: var(--surface-1);
+    --background-muted: var(--surface-2);
+    --background-emphasis: 0 0% 92%;
 
-    /* ─── Primary (Blue) ────────────────────────────────────────── */
-    --primary: 221 83% 53%; /* Interactive elements */
-    --primary-hover: 221 83% 47%; /* Hover state */
-    --primary-active: 221 83% 42%; /* Active/pressed state */
-    --primary-muted: 221 83% 96%; /* Subtle backgrounds */
-    --primary-foreground: 0 0% 100%; /* Text on primary */
+    --foreground: var(--ink-1);
+    --foreground-muted: var(--ink-2);
+    --foreground-subtle: var(--ink-3);
+    --foreground-faint: 0 0% 70%;
 
-    /* ─── Secondary ─────────────────────────────────────────────── */
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --border: var(--hairline);
+    --border-muted: 0 0% 94%;
+    --border-emphasis: 0 0% 82%;
 
-    /* ─── Muted (for backward compat) ───────────────────────────── */
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    /* Primary interactive = ink (black button, white text) */
+    --primary: var(--ink-1);
+    --primary-hover: 0 0% 18%;
+    --primary-active: 0 0% 4%;
+    --primary-muted: 0 0% 94%;
+    --primary-foreground: 0 0% 100%;
 
-    /* ─── Accent (for backward compat) ──────────────────────────── */
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --secondary: var(--surface-2);
+    --secondary-foreground: var(--ink-1);
 
-    /* ─── Semantic: Destructive ─────────────────────────────────── */
+    --muted: var(--surface-2);
+    --muted-foreground: var(--ink-2);
+
+    /* Hover/selection wash (legacy name; not the 0166 accent) */
+    --accent: 0 0% 93%;
+    --accent-foreground: var(--ink-1);
+
+    /* ─── Semantic: data-only hues (status dots, charts) ────────── */
     --destructive: 0 72% 51%;
     --destructive-hover: 0 72% 45%;
     --destructive-active: 0 72% 40%;
     --destructive-muted: 0 72% 96%;
     --destructive-foreground: 0 0% 100%;
 
-    /* ─── Semantic: Success ─────────────────────────────────────── */
     --success: 142 71% 45%;
     --success-hover: 142 71% 40%;
     --success-active: 142 71% 35%;
     --success-muted: 142 71% 96%;
     --success-foreground: 0 0% 100%;
 
-    /* ─── Semantic: Warning ─────────────────────────────────────── */
     --warning: 38 92% 50%;
     --warning-hover: 38 92% 45%;
     --warning-active: 38 92% 40%;
@@ -66,25 +102,23 @@
     --warning-foreground: 0 0% 9%;
 
     /* ─── Input & Ring ──────────────────────────────────────────── */
-    --input: 0 0% 90%;
-    --ring: 221 83% 53%;
+    --input: var(--hairline);
+    --ring: var(--accent-ink);
 
-    /* ─── Card / Panel (backward compat) ────────────────────────── */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    /* ─── Card / Popover ────────────────────────────────────────── */
+    --card: var(--surface-0);
+    --card-foreground: var(--ink-1);
+    --popover: var(--surface-0);
+    --popover-foreground: var(--ink-1);
 
-    /* ─── Popover / Dropdown (backward compat) ──────────────────── */
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    /* ─── Sidebar / chrome ──────────────────────────────────────── */
+    --sidebar-background: var(--surface-1);
+    --sidebar-foreground: var(--ink-2);
+    --sidebar-border: var(--hairline);
+    --sidebar-accent: 0 0% 93%;
+    --sidebar-accent-foreground: var(--ink-1);
 
-    /* ─── Sidebar ───────────────────────────────────────────────── */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    /* ─── Chart colors (data visualization) ─────────────────────── */
+    /* ─── Chart colors (data visualization keeps hue) ───────────── */
     --chart-1: 221 83% 53%;
     --chart-2: 142 71% 45%;
     --chart-3: 38 92% 50%;
@@ -93,81 +127,82 @@
   }
 
   .dark {
-    /* ─── Backgrounds ───────────────────────────────────────────── */
-    --background: 0 0% 7%; /* Near-black */
-    --background-subtle: 0 0% 10%; /* Cards */
-    --background-muted: 0 0% 13%; /* Hover states */
-    --background-emphasis: 0 0% 16%; /* Active states */
+    /* ─── Monochrome ramp (dark: paper on near-black) ───────────── */
+    --surface-0: 0 0% 3.9%; /* #0A0A0A */
+    --surface-1: 0 0% 6.7%; /* #111111 */
+    --surface-2: 0 0% 8.6%; /* #161616 */
+    --ink-1: 0 0% 92.9%; /* #EDEDED  Lc 96 */
+    --ink-2: 0 0% 70.6%; /* #B4B4B4  Lc 62 (doc's #9A9A9A measured Lc 48 — brightened to hit ≥60) */
+    --ink-3: 0 0% 47.8%; /* #7A7A7A  Lc 32 (doc's #5C5C5C measured Lc 19 — brightened to hit ≥30) */
+    --hairline: 0 0% 13.3%; /* #222222  Lc ~15 */
+    --accent-ink: 0 0% 92.9%;
 
-    /* ─── Foregrounds ───────────────────────────────────────────── */
-    --foreground: 0 0% 95%; /* Primary text */
-    --foreground-muted: 0 0% 65%; /* Secondary text */
-    --foreground-subtle: 0 0% 50%; /* Tertiary text */
-    --foreground-faint: 0 0% 35%; /* Placeholder text */
+    /* ─── Legacy aliases → ramp ─────────────────────────────────── */
+    --background: var(--surface-0);
+    --background-subtle: var(--surface-1);
+    --background-muted: var(--surface-2);
+    --background-emphasis: 0 0% 12%;
 
-    /* ─── Borders ───────────────────────────────────────────────── */
-    --border: 0 0% 18%; /* Default borders */
-    --border-muted: 0 0% 14%; /* Subtle borders */
-    --border-emphasis: 0 0% 25%; /* Emphasized borders */
+    --foreground: var(--ink-1);
+    --foreground-muted: var(--ink-2);
+    --foreground-subtle: var(--ink-3);
+    --foreground-faint: 0 0% 28%;
 
-    /* ─── Primary (Blue - brighter for dark mode) ───────────────── */
-    --primary: 217 91% 60%;
-    --primary-hover: 217 91% 65%;
-    --primary-active: 217 91% 55%;
-    --primary-muted: 217 91% 15%;
-    --primary-foreground: 0 0% 100%;
+    --border: var(--hairline);
+    --border-muted: 0 0% 10%;
+    --border-emphasis: 0 0% 20%;
 
-    /* ─── Secondary ─────────────────────────────────────────────── */
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    /* Primary interactive = ink (white button, black text) */
+    --primary: var(--ink-1);
+    --primary-hover: 0 0% 100%;
+    --primary-active: 0 0% 85%;
+    --primary-muted: 0 0% 14%;
+    --primary-foreground: 0 0% 4%;
 
-    /* ─── Muted (backward compat) ───────────────────────────────── */
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --secondary: var(--surface-2);
+    --secondary-foreground: var(--ink-1);
 
-    /* ─── Accent (backward compat) ──────────────────────────────── */
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --muted: var(--surface-2);
+    --muted-foreground: var(--ink-2);
 
-    /* ─── Semantic: Destructive ─────────────────────────────────── */
+    --accent: 0 0% 12%;
+    --accent-foreground: var(--ink-1);
+
+    /* ─── Semantic: data-only hues ──────────────────────────────── */
     --destructive: 0 62.8% 50.6%;
     --destructive-hover: 0 62.8% 55%;
     --destructive-active: 0 62.8% 45%;
     --destructive-muted: 0 62.8% 15%;
     --destructive-foreground: 0 0% 100%;
 
-    /* ─── Semantic: Success ─────────────────────────────────────── */
     --success: 142 71% 45%;
     --success-hover: 142 71% 50%;
     --success-active: 142 71% 40%;
     --success-muted: 142 71% 15%;
     --success-foreground: 0 0% 100%;
 
-    /* ─── Semantic: Warning ─────────────────────────────────────── */
     --warning: 38 92% 50%;
     --warning-hover: 38 92% 55%;
     --warning-active: 38 92% 45%;
-    --warning-muted: 38 92% 15%;
     --warning-foreground: 0 0% 9%;
+    --warning-muted: 38 92% 15%;
 
     /* ─── Input & Ring ──────────────────────────────────────────── */
-    --input: 0 0% 18%;
-    --ring: 217 91% 60%;
+    --input: var(--hairline);
+    --ring: var(--accent-ink);
 
-    /* ─── Card / Panel (backward compat) ────────────────────────── */
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 95%;
+    /* ─── Card / Popover ────────────────────────────────────────── */
+    --card: var(--surface-1);
+    --card-foreground: var(--ink-1);
+    --popover: var(--surface-1);
+    --popover-foreground: var(--ink-1);
 
-    /* ─── Popover / Dropdown (backward compat) ──────────────────── */
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 95%;
-
-    /* ─── Sidebar ───────────────────────────────────────────────── */
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    /* ─── Sidebar / chrome ──────────────────────────────────────── */
+    --sidebar-background: var(--surface-1);
+    --sidebar-foreground: var(--ink-2);
+    --sidebar-border: var(--hairline);
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: var(--ink-1);
 
     /* ─── Chart colors ──────────────────────────────────────────── */
     --chart-1: 217 91% 60%;
@@ -175,6 +210,13 @@
     --chart-3: 38 92% 50%;
     --chart-4: 280 65% 60%;
     --chart-5: 0 63% 51%;
+  }
+
+  /* OLED variant: surfaces collapse to #000; hairlines carry structure. */
+  .dark[data-variant='true-black'] {
+    --surface-0: 0 0% 0%;
+    --surface-1: 0 0% 0%;
+    --surface-2: 0 0% 3.9%;
   }
 }
 

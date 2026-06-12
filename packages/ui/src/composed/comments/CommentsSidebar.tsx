@@ -121,7 +121,7 @@ export function CommentsSidebar({
         key={thread.root.id}
         className={cn(
           'border-b border-border/50 last:border-b-0 transition-colors',
-          isSelected && 'bg-amber-500/5'
+          isSelected && 'bg-accent'
         )}
         onMouseEnter={() => onHoverThread?.(thread.root.id)}
         onMouseLeave={() => onLeaveThread?.()}

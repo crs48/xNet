@@ -5,13 +5,15 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { FileText, Database, Layout, Plus, ChevronDown, Network } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CreateDocMenuItems,
   navigateToNewDoc,
   type CreatableDocType,
   type NavigateLike
 } from '../lib/doc-creation'
+import { navigateToNode } from '../workbench/navigation'
+import { useWorkbench } from '../workbench/state'
 
 export const Route = createFileRoute('/')({
   component: HomePage
@@ -29,6 +31,15 @@ interface DocInfo {
 function HomePage() {
   const navigate = useNavigate()
   const [showCreateMenu, setShowCreateMenu] = useState(false)
+
+  // Configurable startup tab (0166): '/' opens the chosen surface.
+  const startupTab = useWorkbench((state) => state.startupTab)
+  useEffect(() => {
+    if (startupTab) {
+      navigateToNode(navigate, startupTab.nodeType, startupTab.nodeId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const { data: pages, loading: pagesLoading } = useQuery(PageSchema, {
     orderBy: { updatedAt: 'desc' },

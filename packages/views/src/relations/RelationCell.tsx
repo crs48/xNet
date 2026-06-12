@@ -7,6 +7,7 @@
 import type { ColumnDefinition, RelationColumnConfig } from '@xnetjs/data'
 import type { DatabaseRow } from '@xnetjs/react'
 import { useRelatedRows } from '@xnetjs/react'
+import { getNodeTransfer, hasNodeTransfer } from '@xnetjs/ui'
 import React, { useState, useCallback } from 'react'
 import { RowPickerModal } from './RowPickerModal.js'
 
@@ -141,6 +142,32 @@ export function RelationCell({
     [value, onEdit]
   )
 
+  // Dropping any node transfer onto the cell links it (reference, not
+  // copy — exploration 0166's unified drag model).
+  const handleNodeDrop = useCallback(
+    (event: React.DragEvent) => {
+      if (!onEdit) return
+      const transfer = getNodeTransfer(event)
+      if (!transfer) return
+      event.preventDefault()
+      event.stopPropagation()
+      if (!value.includes(transfer.nodeId)) {
+        onEdit([...value, transfer.nodeId])
+      }
+    },
+    [onEdit, value]
+  )
+
+  const handleNodeDragOver = useCallback(
+    (event: React.DragEvent) => {
+      if (onEdit && hasNodeTransfer(event)) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    },
+    [onEdit]
+  )
+
   if (loading) {
     return <Skeleton className="h-6 w-24" />
   }
@@ -179,7 +206,7 @@ export function RelationCell({
 
   // Full mode: show chips
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1" onDragOver={handleNodeDragOver} onDrop={handleNodeDrop}>
       {relatedRows.map((row) => (
         <RelationChip
           key={row.id}

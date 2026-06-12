@@ -1,0 +1,152 @@
+/**
+ * Workbench — the fixed-region shell (exploration 0166).
+ *
+ * Rail · Left Panel · Editor Area · Right Panel · Bottom Panel ·
+ * Status Bar. Every region except the editor area collapses; Cmd+.
+ * toggles zen (chrome hidden, layout snapshot restored on exit).
+ * Panel sizes persist via react-resizable-panels' useDefaultLayout;
+ * everything else persists in the useWorkbench store.
+ */
+import type { ReactNode } from 'react'
+import { DemoBanner, useDemoMode } from '@xnetjs/react'
+import { Group, Panel, useDefaultLayout } from 'react-resizable-panels'
+import { GlobalSearch } from '../components/GlobalSearch'
+import { WorkspaceCommands } from '../components/WorkspaceCommands'
+import { useWorkbenchCommands, useZenEscape } from './commands'
+import { ContextPanel } from './ContextPanel'
+import { EditorArea } from './EditorArea'
+import { useFocusRing } from './focus'
+import { Hairline } from './Hairline'
+import { PanelViewHost } from './PanelViewHost'
+import { Rail } from './Rail'
+import { useWorkbench } from './state'
+import { StatusBar } from './StatusBar'
+import { registerBuiltinPanelViews } from './views/register'
+
+registerBuiltinPanelViews()
+
+/** Below the fixed storage banner, filling the rest of the viewport. */
+const SHELL_FRAME =
+  'mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col text-ink-1'
+
+function useWorkbenchLayouts(leftOpen: boolean, rightOpen: boolean, bottomOpen: boolean) {
+  const horizontal = useDefaultLayout({
+    id: 'xnet:wb:layout-h',
+    panelIds: [...(leftOpen ? ['left'] : []), 'center', ...(rightOpen ? ['right'] : [])]
+  })
+  const vertical = useDefaultLayout({
+    id: 'xnet:wb:layout-v',
+    panelIds: ['editor', ...(bottomOpen ? ['bottom'] : [])]
+  })
+  return { horizontal, vertical }
+}
+
+function ZenSurface({ children }: { children: ReactNode }) {
+  return (
+    <div className={`${SHELL_FRAME} bg-surface-0`}>
+      <WorkspaceCommands />
+      <GlobalSearch />
+      <div className="min-h-0 flex-1">
+        <EditorArea>{children}</EditorArea>
+      </div>
+    </div>
+  )
+}
+
+/* Panel + separator pairs render as fragments, so the Panel divs stay
+   direct DOM children of the Group as react-resizable-panels requires. */
+
+function LeftPanelSlot({ open }: { open: boolean }) {
+  if (!open) return null
+  return (
+    <>
+      <Panel id="left" defaultSize={280} minSize={200} maxSize={420}>
+        <PanelViewHost slot="left" />
+      </Panel>
+      <Hairline orientation="horizontal" id="sep-left" />
+    </>
+  )
+}
+
+function BottomPanelSlot({ open }: { open: boolean }) {
+  if (!open) return null
+  return (
+    <>
+      <Hairline orientation="vertical" id="sep-bottom" />
+      <Panel id="bottom" defaultSize={240} minSize={120} maxSize="60%">
+        <PanelViewHost slot="bottom" />
+      </Panel>
+    </>
+  )
+}
+
+function RightPanelSlot({ open }: { open: boolean }) {
+  if (!open) return null
+  return (
+    <>
+      <Hairline orientation="horizontal" id="sep-right" />
+      <Panel id="right" defaultSize={320} minSize={240} maxSize={520}>
+        <ContextPanel />
+      </Panel>
+    </>
+  )
+}
+
+function WorkbenchDemoBanner() {
+  const { isDemo, limits } = useDemoMode()
+  if (!isDemo || !limits) return null
+  return <DemoBanner evictionHours={limits.evictionHours} />
+}
+
+export function Workbench({ children }: { children: ReactNode }) {
+  const mode = useWorkbench((state) => state.mode)
+  const left = useWorkbench((state) => state.left)
+  const right = useWorkbench((state) => state.right)
+  const bottom = useWorkbench((state) => state.bottom)
+
+  useWorkbenchCommands()
+  useZenEscape()
+  useFocusRing()
+
+  const { horizontal, vertical } = useWorkbenchLayouts(left.open, right.open, bottom.open)
+
+  if (mode === 'zen') {
+    return <ZenSurface>{children}</ZenSurface>
+  }
+
+  return (
+    <div className={`${SHELL_FRAME} bg-surface-1`}>
+      <WorkspaceCommands />
+      <GlobalSearch />
+      <WorkbenchDemoBanner />
+
+      <div className="flex min-h-0 flex-1">
+        <Rail />
+        <Group
+          orientation="horizontal"
+          id="xnet-wb-h"
+          defaultLayout={horizontal.defaultLayout}
+          onLayoutChanged={horizontal.onLayoutChanged}
+        >
+          <LeftPanelSlot open={left.open} />
+          <Panel id="center" minSize="30%">
+            <Group
+              orientation="vertical"
+              id="xnet-wb-v"
+              defaultLayout={vertical.defaultLayout}
+              onLayoutChanged={vertical.onLayoutChanged}
+            >
+              <Panel id="editor" minSize="30%">
+                <EditorArea>{children}</EditorArea>
+              </Panel>
+              <BottomPanelSlot open={bottom.open} />
+            </Group>
+          </Panel>
+          <RightPanelSlot open={right.open} />
+        </Group>
+      </div>
+
+      <StatusBar />
+    </div>
+  )
+}

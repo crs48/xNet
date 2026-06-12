@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, Info, ShieldCheck, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface StorageWarningBannerProps {
   tone: 'success' | 'warning' | 'info'
@@ -96,6 +96,27 @@ export function StorageWarningBanner({
   detailItems
 }: StorageWarningBannerProps): JSX.Element | null {
   const [dismissed, setDismissed] = useState(false)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  // Publish the banner height so the workbench can offset below the
+  // fixed overlay instead of rendering underneath it (0166).
+  useEffect(() => {
+    const root = rootRef.current
+    const documentElement = document.documentElement
+    if (!root || dismissed) {
+      documentElement.style.setProperty('--storage-banner-height', '0px')
+      return
+    }
+    const update = () =>
+      documentElement.style.setProperty('--storage-banner-height', `${root.offsetHeight}px`)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(root)
+    return () => {
+      observer.disconnect()
+      documentElement.style.setProperty('--storage-banner-height', '0px')
+    }
+  }, [dismissed])
   const toneClasses = getToneClasses(tone)
   const Icon = toneClasses.actionIcon
   const showAction = Boolean(actionLabel && onAction)
@@ -109,6 +130,7 @@ export function StorageWarningBanner({
 
   return (
     <div
+      ref={rootRef}
       className={`pointer-events-none fixed top-0 left-0 right-0 z-50 border-b ${toneClasses.container}`}
     >
       <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">

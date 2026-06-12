@@ -66,7 +66,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             className={cn(
               'flex h-9 w-full items-center justify-between',
               'whitespace-nowrap rounded-md border border-input',
-              'bg-transparent px-3 py-2 text-sm shadow-sm',
+              'bg-transparent px-3 py-2 text-sm',
               'ring-offset-background',
               'focus:outline-none focus:ring-1 focus:ring-ring',
               'disabled:cursor-not-allowed disabled:opacity-50',
@@ -87,7 +87,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
               <BaseSelect.Popup
                 className={cn(
                   'relative z-50 max-h-96 min-w-[8rem] overflow-hidden',
-                  'rounded-md border border-border bg-popover text-popover-foreground shadow-md',
+                  'rounded-md border border-border bg-popover text-popover-foreground',
                   // Animation
                   'opacity-0 scale-95',
                   'data-[open]:opacity-100 data-[open]:scale-100',
@@ -168,7 +168,7 @@ export const SelectTrigger = React.forwardRef<
     className={cn(
       'flex h-9 w-full items-center justify-between',
       'whitespace-nowrap rounded-md border border-input',
-      'bg-transparent px-3 py-2 text-sm shadow-sm',
+      'bg-transparent px-3 py-2 text-sm',
       'ring-offset-background',
       'focus:outline-none focus:ring-1 focus:ring-ring',
       'disabled:cursor-not-allowed disabled:opacity-50',
@@ -195,7 +195,7 @@ export const SelectContent = React.forwardRef<
         ref={ref}
         className={cn(
           'relative z-50 max-h-96 min-w-[8rem] overflow-hidden',
-          'rounded-md border border-border bg-popover text-popover-foreground shadow-md',
+          'rounded-md border border-border bg-popover text-popover-foreground',
           // Animation
           'opacity-0 scale-95',
           'data-[open]:opacity-100 data-[open]:scale-100',

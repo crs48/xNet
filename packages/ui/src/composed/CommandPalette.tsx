@@ -186,6 +186,30 @@ function resolveIcon(icon: string | ReactNode | undefined): ReactNode {
   return null
 }
 
+function PaletteCommandItem({
+  command,
+  onSelect
+}: {
+  command: PaletteCommand
+  onSelect: (command: PaletteCommand) => void
+}) {
+  return (
+    <CommandItem
+      value={`${command.name} ${command.keywords?.join(' ') ?? ''}`}
+      onSelect={() => onSelect(command)}
+    >
+      {resolveIcon(command.icon)}
+      <div className="flex flex-col flex-1">
+        <span>{command.name}</span>
+        {command.description && (
+          <span className="text-xs text-muted-foreground">{command.description}</span>
+        )}
+      </div>
+      {command.shortcut && <CommandShortcut>{command.shortcut}</CommandShortcut>}
+    </CommandItem>
+  )
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -279,7 +303,7 @@ export function CommandPalette({
         <BaseDialog.Popup
           className={cn(
             'fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]',
-            'border bg-popover shadow-lg rounded-lg overflow-hidden',
+            'border bg-popover rounded-lg overflow-hidden',
             'focus:outline-none',
             // Animation
             'opacity-0 scale-95',
@@ -304,20 +328,7 @@ export function CommandPalette({
               {enabledBuiltin.length > 0 && (
                 <CommandGroup heading="Actions">
                   {enabledBuiltin.map((cmd) => (
-                    <CommandItem
-                      key={cmd.id}
-                      value={`${cmd.name} ${cmd.keywords?.join(' ') ?? ''}`}
-                      onSelect={() => handleSelect(cmd)}
-                    >
-                      {resolveIcon(cmd.icon)}
-                      <div className="flex flex-col flex-1">
-                        <span>{cmd.name}</span>
-                        {cmd.description && (
-                          <span className="text-xs text-muted-foreground">{cmd.description}</span>
-                        )}
-                      </div>
-                      {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
-                    </CommandItem>
+                    <PaletteCommandItem key={cmd.id} command={cmd} onSelect={handleSelect} />
                   ))}
                 </CommandGroup>
               )}
@@ -326,20 +337,7 @@ export function CommandPalette({
               {Object.entries(groupedCommands).map(([group, cmds]) => (
                 <CommandGroup key={group} heading={group}>
                   {cmds.map((cmd) => (
-                    <CommandItem
-                      key={cmd.id}
-                      value={`${cmd.name} ${cmd.keywords?.join(' ') ?? ''}`}
-                      onSelect={() => handleSelect(cmd)}
-                    >
-                      {resolveIcon(cmd.icon)}
-                      <div className="flex flex-col flex-1">
-                        <span>{cmd.name}</span>
-                        {cmd.description && (
-                          <span className="text-xs text-muted-foreground">{cmd.description}</span>
-                        )}
-                      </div>
-                      {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
-                    </CommandItem>
+                    <PaletteCommandItem key={cmd.id} command={cmd} onSelect={handleSelect} />
                   ))}
                 </CommandGroup>
               ))}

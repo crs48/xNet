@@ -20,6 +20,7 @@ import { getTaskStatusMeta, type TaskDisplayData } from '@xnetjs/ui'
 import { TaskBoard, TaskListGrouped, type TaskBoardStatusChange } from '@xnetjs/views'
 import { Inbox, KanbanSquare, List, Plus, User } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { TaskMiniPalette } from './TaskMiniPalette'
 
 const WORKFLOW_ORDER = Object.keys(TASK_STATUS_CATEGORIES) as TaskStatusId[]
@@ -105,6 +106,57 @@ export function TasksView(): JSX.Element {
   stateRef.current = { focusedTaskId, orderedTaskIds, miniPalette }
   const tasksRef = useRef(tasks)
   tasksRef.current = tasks
+
+  // ─── Context panel: task detail (0166) ────────────────────────────────────
+  const focusedTask = useMemo(
+    () => displayTasks.find((task) => task.id === focusedTaskId) ?? null,
+    [displayTasks, focusedTaskId]
+  )
+  const taskContextSections = useMemo<ContextPanelSection[]>(
+    () => [
+      {
+        id: 'task-detail',
+        title: 'Task',
+        content: focusedTask ? (
+          <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
+            <div className="text-ink-1">{focusedTask.title || 'Untitled task'}</div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Status</span>
+              <span className="font-mono text-[11px]">{focusedTask.status ?? 'todo'}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Priority</span>
+              <span className="font-mono text-[11px]">{focusedTask.priority ?? '—'}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Due</span>
+              <span className="font-mono text-[11px]">
+                {focusedTask.dueDate ? new Date(focusedTask.dueDate).toLocaleDateString() : '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Assignees</span>
+              <span className="truncate font-mono text-[11px]">
+                {focusedTask.assignees?.length
+                  ? focusedTask.assignees.map((a) => a.slice(0, 12)).join(', ')
+                  : '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">References</span>
+              <span className="font-mono text-[11px]">{focusedTask.referenceCount}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center p-4 text-center text-xs text-ink-3">
+            Focus a task (↑/↓) to see its detail here.
+          </div>
+        )
+      }
+    ],
+    [focusedTask]
+  )
+  useContextPanel('tasks', taskContextSections)
 
   // Surface scope: focus movement + quick capture, active while mounted.
   useEffect(() => {

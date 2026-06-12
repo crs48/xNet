@@ -15,7 +15,9 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
   CanvasPdfPageViewer,
+  CANVAS_INTERNAL_NODE_MIME,
   CANVAS_MIND_MAP_CREATION_TOOL,
+  serializeCanvasInternalNodeDragData,
   createCanvasFrameExportDocument,
   createCanvasPdfPageAnchorId,
   createCanvasMindMapRootProperties,
@@ -45,6 +47,7 @@ import {
   useBlobService
 } from '@xnetjs/editor/react'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
+import { setNodeTransfer } from '@xnetjs/ui'
 import {
   Download,
   FileImage,
@@ -60,6 +63,7 @@ import {
   Table2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { DASHBOARD_SCHEMA_REGISTRY } from './DashboardView'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -653,6 +657,49 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
 
     return null
   }, [aliasEditorOpen, commentEditorOpen, selectedCanvasNode])
+
+  // ─── Context panel: selection inspector (0166) ──────────────────────────
+  const canvasContextSections = useMemo<ContextPanelSection[]>(
+    () => [
+      {
+        id: 'canvas-selection',
+        title: 'Selection',
+        badge: selection.nodeIds.length,
+        content: selectedCanvasNode ? (
+          <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Title</span>
+              <span className="truncate text-ink-1">{selectedCanvasNode.title}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Object</span>
+              <span className="truncate font-mono text-[11px]">{selectedCanvasNode.node.id}</span>
+            </div>
+            {(selectedCanvasNode.node.sourceNodeId ?? selectedCanvasNode.node.linkedNodeId) && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-ink-3">Source</span>
+                <span className="truncate font-mono text-[11px]">
+                  {selectedCanvasNode.node.sourceNodeId ?? selectedCanvasNode.node.linkedNodeId}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Comments</span>
+              <span className="font-mono text-[11px]">{selectedObjectCommentCount}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center p-4 text-center text-xs text-ink-3">
+            {selection.nodeIds.length > 1
+              ? `${selection.nodeIds.length} objects selected`
+              : 'Select a canvas object to inspect it.'}
+          </div>
+        )
+      }
+    ],
+    [selection.nodeIds.length, selectedCanvasNode, selectedObjectCommentCount]
+  )
+  useContextPanel(`canvas:${docId}`, canvasContextSections)
 
   useEffect(() => {
     if (!doc) {
@@ -1296,6 +1343,30 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
               className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/60 bg-background/84 px-3 py-2 shadow-lg backdrop-blur-xl"
               data-web-canvas-selection-pill="true"
               data-canvas-theme={theme.mode}
+              draggable={Boolean(selectedCanvasObject)}
+              onDragStart={(event) => {
+                // Dragging the pill carries the card's *source* node out
+                // of the canvas — excerpting, never copying (0166).
+                if (!selectedCanvasObject) return
+                event.dataTransfer.effectAllowed = 'copyMove'
+                setNodeTransfer(event, {
+                  nodeId: selectedCanvasObject.sourceNodeId,
+                  nodeType: 'node',
+                  title: selectedCanvasObject.title,
+                  schemaId: selectedCanvasObject.node.sourceSchemaId,
+                  sourceContext: 'canvas-card'
+                })
+                if (selectedCanvasObject.node.sourceSchemaId) {
+                  event.dataTransfer.setData(
+                    CANVAS_INTERNAL_NODE_MIME,
+                    serializeCanvasInternalNodeDragData({
+                      nodeId: selectedCanvasObject.sourceNodeId,
+                      schemaId: selectedCanvasObject.node.sourceSchemaId,
+                      title: selectedCanvasObject.title
+                    })
+                  )
+                }
+              }}
             >
               <span className="max-w-[min(52vw,420px)] truncate px-2 text-sm text-foreground">
                 {selectedCanvasNode.title}

@@ -107,7 +107,7 @@ export function ThreadPicker({
     <div
       ref={containerRef}
       className={cn(
-        'fixed z-50 w-64 rounded-lg border bg-popover text-popover-foreground shadow-lg',
+        'fixed z-50 w-64 rounded-lg border bg-popover text-popover-foreground',
         'animate-in fade-in-0 zoom-in-95',
         className
       )}

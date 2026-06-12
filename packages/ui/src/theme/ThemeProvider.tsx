@@ -2,11 +2,16 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 
 export type Theme = 'light' | 'dark' | 'system'
 
+/** 'true-black' collapses dark surfaces to #000 for OLED (0166). */
+export type ThemeVariant = 'default' | 'true-black'
+
 interface ThemeContextValue {
   theme: Theme
   resolvedTheme: 'light' | 'dark'
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
+  variant: ThemeVariant
+  setVariant: (variant: ThemeVariant) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
@@ -40,6 +45,15 @@ export function ThemeProvider({
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
 
+  const [variant, setVariantState] = useState<ThemeVariant>(() => {
+    if (typeof window === 'undefined') return 'default'
+    try {
+      return (localStorage.getItem(`${storageKey}-variant`) as ThemeVariant) || 'default'
+    } catch {
+      return 'default'
+    }
+  })
+
   // Listen for system theme changes
   useEffect(() => {
     if (!enableSystem) return
@@ -66,7 +80,13 @@ export function ThemeProvider({
     } else {
       root.setAttribute(attribute, resolvedTheme)
     }
-  }, [resolvedTheme, attribute])
+
+    if (variant === 'default') {
+      delete root.dataset.variant
+    } else {
+      root.dataset.variant = variant
+    }
+  }, [resolvedTheme, attribute, variant])
 
   // Persist theme choice
   const setTheme = useCallback(
@@ -85,8 +105,22 @@ export function ThemeProvider({
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
   }, [resolvedTheme, setTheme])
 
+  const setVariant = useCallback(
+    (newVariant: ThemeVariant) => {
+      setVariantState(newVariant)
+      try {
+        localStorage.setItem(`${storageKey}-variant`, newVariant)
+      } catch {
+        // Silent fail (incognito, etc.)
+      }
+    },
+    [storageKey]
+  )
+
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{ theme, resolvedTheme, setTheme, toggleTheme, variant, setVariant }}
+    >
       {children}
     </ThemeContext.Provider>
   )

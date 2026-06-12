@@ -75,7 +75,8 @@ export type {
   CanvasToolGroup,
   SettingContribution,
   SettingsPanelProps,
-  SchemaContribution
+  SchemaContribution,
+  StatusBarContribution
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
 

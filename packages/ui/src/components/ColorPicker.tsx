@@ -57,7 +57,7 @@ export function ColorPicker({
         <span className="text-sm text-foreground">{value}</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 mt-1 p-2 rounded-md border bg-popover shadow-lg">
+        <div className="absolute top-full left-0 z-50 mt-1 p-2 rounded-md border bg-popover">
           <div className="grid grid-cols-5 gap-1">
             {colors.map((color) => (
               <button
