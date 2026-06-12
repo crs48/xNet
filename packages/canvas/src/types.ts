@@ -47,6 +47,7 @@ export type CanvasObjectKind =
   | 'note'
   | 'task'
   | 'group'
+  | 'widget'
 
 /**
  * Primary Canvas V2 scene node kinds.
@@ -193,6 +194,18 @@ export type CanvasTaskNode = CanvasNodeBase<'task', CanvasTaskNodeProperties>
 
 export type CanvasShapeNode = CanvasNodeBase<'shape', CanvasShapeNodeProperties>
 
+/**
+ * Dashboard widget pinned onto the canvas (0162). `properties.widget` holds
+ * the serialized DashboardWidgetInstance (widgetType, config, query,
+ * refresh); the host app renders it with the shared widget contract via
+ * CanvasV3's renderNode seam.
+ */
+export type CanvasWidgetNodeProperties = CanvasTitledNodeProperties & {
+  widget?: Record<string, unknown>
+}
+
+export type CanvasWidgetNode = CanvasNodeBase<'widget', CanvasWidgetNodeProperties>
+
 export type CanvasGroupNode = CanvasNodeBase<'group', CanvasGroupNodeProperties>
 
 export type CanvasFrameNode = CanvasGroupNode & {
@@ -209,6 +222,7 @@ export type CanvasSceneNode =
   | CanvasNoteNode
   | CanvasTaskNode
   | CanvasShapeNode
+  | CanvasWidgetNode
   | CanvasGroupNode
 
 export type CanvasSceneObject = CanvasSceneNode

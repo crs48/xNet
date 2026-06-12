@@ -5,6 +5,7 @@
 import type {
   ContributionRegistry,
   ViewContribution,
+  WidgetContribution,
   CommandContribution,
   SlashCommandContribution,
   EditorContribution,
@@ -74,6 +75,8 @@ export interface ExtensionContext {
   registerSchema(schema: unknown): Disposable
   /** Register a custom view type */
   registerView(view: ViewContribution): Disposable
+  /** Register a dashboard widget (trust tier assigned by the host) */
+  registerWidget(widget: WidgetContribution): Disposable
   /** Register a property type handler */
   registerPropertyHandler(type: string, handler: PropertyHandlerContribution['handler']): Disposable
   /** Register a command */
@@ -202,6 +205,12 @@ export function createExtensionContext(options: CreateContextOptions): Extension
 
     registerView(view) {
       const d = contributions.views.register(view)
+      disposables.push(d)
+      return d
+    },
+
+    registerWidget(widget) {
+      const d = contributions.widgets.register(widget)
       disposables.push(d)
       return d
     },

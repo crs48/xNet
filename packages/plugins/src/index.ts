@@ -42,6 +42,9 @@ export { validateManifest, defineExtension, PluginValidationError } from './mani
 export type {
   ViewContribution,
   ViewProps,
+  WidgetContribution,
+  WidgetContributionConfigField,
+  WidgetContributionProps,
   CommandContribution,
   SlashCommandContribution,
   SlashCommandContext,

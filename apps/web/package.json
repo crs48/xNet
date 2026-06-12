@@ -13,6 +13,7 @@
     "@sqlite.org/sqlite-wasm": "3.51.2-build6",
     "@tanstack/react-router": "^1.57.0",
     "@xnetjs/canvas": "workspace:*",
+    "@xnetjs/dashboard": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/data-bridge": "workspace:*",
     "@xnetjs/devtools": "workspace:*",

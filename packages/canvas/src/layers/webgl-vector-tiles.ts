@@ -77,7 +77,8 @@ const KIND_COLORS: Record<CanvasObjectKind, readonly [number, number, number]> =
   shape: [0.376, 0.443, 0.557],
   note: [0.902, 0.624, 0.125],
   task: [0.388, 0.4, 0.945],
-  group: [0.239, 0.239, 0.266]
+  group: [0.239, 0.239, 0.266],
+  widget: [0.31, 0.275, 0.898]
 }
 
 export const VECTOR_TILE_INSTANCE_FLOATS = 8

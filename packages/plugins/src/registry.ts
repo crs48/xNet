@@ -295,6 +295,11 @@ export class PluginRegistry {
         ctx.registerView(view)
       }
     }
+    if (c.widgets) {
+      for (const widget of c.widgets) {
+        ctx.registerWidget(widget)
+      }
+    }
     if (c.commands) {
       for (const cmd of c.commands) {
         ctx.registerCommand(cmd)

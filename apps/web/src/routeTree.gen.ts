@@ -18,6 +18,7 @@ import { Route as DataRouteImport } from './routes/data'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocDocIdRouteImport } from './routes/doc.$docId'
 import { Route as DbDbIdRouteImport } from './routes/db.$dbId'
+import { Route as DashboardDashboardIdRouteImport } from './routes/dashboard.$dashboardId'
 import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
 
 const TasksRoute = TasksRouteImport.update({
@@ -65,6 +66,11 @@ const DbDbIdRoute = DbDbIdRouteImport.update({
   path: '/db/$dbId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardDashboardIdRoute = DashboardDashboardIdRouteImport.update({
+  id: '/dashboard/$dashboardId',
+  path: '/dashboard/$dashboardId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
   id: '/canvas/$canvasId',
   path: '/canvas/$canvasId',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
+  '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
+  '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
+  '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tasks'
     | '/canvas/$canvasId'
+    | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tasks'
     | '/canvas/$canvasId'
+    | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tasks'
     | '/canvas/$canvasId'
+    | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
   fileRoutesById: FileRoutesById
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   StoriesRoute: typeof StoriesRoute
   TasksRoute: typeof TasksRoute
   CanvasCanvasIdRoute: typeof CanvasCanvasIdRoute
+  DashboardDashboardIdRoute: typeof DashboardDashboardIdRoute
   DbDbIdRoute: typeof DbDbIdRoute
   DocDocIdRoute: typeof DocDocIdRoute
 }
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DbDbIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/$dashboardId': {
+      id: '/dashboard/$dashboardId'
+      path: '/dashboard/$dashboardId'
+      fullPath: '/dashboard/$dashboardId'
+      preLoaderRoute: typeof DashboardDashboardIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/canvas/$canvasId': {
       id: '/canvas/$canvasId'
       path: '/canvas/$canvasId'
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoriesRoute: StoriesRoute,
   TasksRoute: TasksRoute,
   CanvasCanvasIdRoute: CanvasCanvasIdRoute,
+  DashboardDashboardIdRoute: DashboardDashboardIdRoute,
   DbDbIdRoute: DbDbIdRoute,
   DocDocIdRoute: DocDocIdRoute,
 }

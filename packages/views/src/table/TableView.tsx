@@ -61,6 +61,13 @@ export interface TableViewProps {
   onCommentCreate?: (rowId: string, propertyKey: string, anchorEl: HTMLElement) => void
   /** Callback to delete a row (from context menu) */
   onDeleteRow?: (rowId: string) => void
+  /**
+   * Tile-constrained rendering (dashboard widgets, embeds): tighter row
+   * height and no footer chrome.
+   */
+  compact?: boolean
+  /** Cap the number of rendered rows (tile-constrained hosts) */
+  maxRows?: number
 }
 
 /**
@@ -87,9 +94,12 @@ export function TableView({
   onCommentHover,
   onCommentLeave,
   onCommentCreate,
-  onDeleteRow
+  onDeleteRow,
+  compact = false,
+  maxRows
 }: TableViewProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
+  const effectiveRowHeight = compact ? Math.min(rowHeight, 30) : rowHeight
 
   // Set up table state
   const { table } = useTableState({
@@ -100,13 +110,14 @@ export function TableView({
     onUpdateView
   })
 
-  const { rows } = table.getRowModel()
+  const allRows = table.getRowModel().rows
+  const rows = maxRows !== undefined ? allRows.slice(0, Math.max(0, maxRows)) : allRows
 
   // Set up virtual scrolling
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => rowHeight,
+    estimateSize: () => effectiveRowHeight,
     overscan
   })
 
@@ -188,18 +199,20 @@ export function TableView({
         </table>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-        <span>{rows.length} rows</span>
-        {onAddRow && (
-          <button
-            className="px-2 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-            onClick={onAddRow}
-          >
-            + New
-          </button>
-        )}
-      </div>
+      {/* Footer (hidden in compact/tile hosts) */}
+      {compact ? null : (
+        <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          <span>{rows.length} rows</span>
+          {onAddRow && (
+            <button
+              className="px-2 py-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+              onClick={onAddRow}
+            >
+              + New
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

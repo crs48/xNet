@@ -34,7 +34,8 @@ const KIND_RATIOS: Record<CanvasObjectKind, number> = {
   shape: 0.34,
   note: 0.12,
   task: 0.02,
-  group: 0.04
+  group: 0.04,
+  widget: 0
 }
 
 export type SyntheticCanvasSceneOptions = {
