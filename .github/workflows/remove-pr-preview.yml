@@ -8,8 +8,10 @@ permissions:
   contents: write
   pull-requests: write
 
+# Shares the per-PR preview group: closing the PR supersedes any in-flight preview
+# deploy for that PR, and can no longer cancel the production deploy.
 concurrency:
-  group: pages-branch
+  group: pages-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
