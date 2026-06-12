@@ -2,7 +2,8 @@
  * @xnetjs/react - Embedded task collection renderer
  */
 import { useMemo, type JSX } from 'react'
-import { useTasks, type TaskTreeItem } from '../hooks/useTasks'
+import { useTasks } from '../hooks/useTasks'
+import { flattenTaskTree, formatTaskDueDate, isTaskOverdue } from './pageTaskRows'
 
 export type TaskCollectionEmbedProps = {
   currentPageId: string | null
@@ -20,33 +21,6 @@ interface RenderableTaskRow {
   completed: boolean
   dueDate: number | undefined
   depth: number
-}
-
-function formatDueDate(timestamp: number | undefined): string | null {
-  if (typeof timestamp !== 'number') return null
-
-  return new Date(timestamp).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-function getStartOfUtcDay(timestamp: number): number {
-  const date = new Date(timestamp)
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-}
-
-function flattenTree(items: TaskTreeItem[], depth = 0): RenderableTaskRow[] {
-  return items.flatMap((item) => [
-    {
-      id: item.task.id,
-      title: item.task.title ?? 'Untitled task',
-      completed: Boolean(item.task.completed),
-      dueDate: typeof item.task.dueDate === 'number' ? item.task.dueDate : undefined,
-      depth
-    },
-    ...flattenTree(item.children, depth + 1)
-  ])
 }
 
 export function TaskCollectionEmbed({
@@ -75,7 +49,7 @@ export function TaskCollectionEmbed({
   })
 
   const rows = useMemo<RenderableTaskRow[]>(() => {
-    if (showHierarchy) return flattenTree(tree)
+    if (showHierarchy) return flattenTaskTree(tree)
 
     return data.map((task) => ({
       id: task.id,
@@ -106,11 +80,8 @@ export function TaskCollectionEmbed({
     <div className="p-3">
       <ul className="m-0 list-none space-y-1 p-0">
         {rows.map((task) => {
-          const dueDateLabel = formatDueDate(task.dueDate)
-          const overdue =
-            typeof task.dueDate === 'number' &&
-            !task.completed &&
-            getStartOfUtcDay(task.dueDate) < getStartOfUtcDay(Date.now())
+          const dueDateLabel = formatTaskDueDate(task.dueDate)
+          const overdue = isTaskOverdue(task.dueDate, task.completed)
 
           return (
             <li key={task.id}>

@@ -3,59 +3,18 @@
  */
 import { Calendar, CheckSquare2, ChevronDown, ChevronRight, Square, Users } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
-import { useTasks, type TaskTreeItem } from '../hooks/useTasks'
+import { useTasks } from '../hooks/useTasks'
+import { flattenTaskTree, formatTaskDueDate, isTaskOverdue } from './pageTaskRows'
 
 export type PageTasksPanelProps = {
   pageId: string
-}
-
-type RenderableTaskRow = {
-  id: string
-  title: string
-  completed: boolean
-  dueDate: number | undefined
-  depth: number
-  assigneeCount: number
-}
-
-function formatDueDate(timestamp: number | undefined): string | null {
-  if (typeof timestamp !== 'number') return null
-
-  return new Date(timestamp).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-function getStartOfUtcDay(timestamp: number): number {
-  const date = new Date(timestamp)
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-}
-
-function isOverdue(timestamp: number | undefined, completed: boolean): boolean {
-  if (typeof timestamp !== 'number' || completed) return false
-  return getStartOfUtcDay(timestamp) < getStartOfUtcDay(Date.now())
-}
-
-function flattenTree(items: TaskTreeItem[], depth = 0): RenderableTaskRow[] {
-  return items.flatMap((item) => [
-    {
-      id: item.task.id,
-      title: item.task.title ?? 'Untitled task',
-      completed: Boolean(item.task.completed),
-      dueDate: typeof item.task.dueDate === 'number' ? item.task.dueDate : undefined,
-      depth,
-      assigneeCount: Array.isArray(item.task.assignees) ? item.task.assignees.length : 0
-    },
-    ...flattenTree(item.children, depth + 1)
-  ])
 }
 
 export function PageTasksPanel({ pageId }: PageTasksPanelProps): JSX.Element {
   const [expanded, setExpanded] = useState(true)
   const { tree, loading } = useTasks({ pageId })
 
-  const rows = useMemo(() => flattenTree(tree), [tree])
+  const rows = useMemo(() => flattenTaskTree(tree), [tree])
 
   return (
     <div className="mt-8 overflow-hidden rounded-lg border border-border">
@@ -85,8 +44,8 @@ export function PageTasksPanel({ pageId }: PageTasksPanelProps): JSX.Element {
           ) : (
             <ul className="m-0 list-none space-y-1 p-0">
               {rows.map((task) => {
-                const dueDateLabel = formatDueDate(task.dueDate)
-                const overdue = isOverdue(task.dueDate, task.completed)
+                const dueDateLabel = formatTaskDueDate(task.dueDate)
+                const overdue = isTaskOverdue(task.dueDate, task.completed)
 
                 return (
                   <li key={task.id}>
