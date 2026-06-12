@@ -251,6 +251,7 @@ const authorizeRoomAction = async (input: {
   session: AuthSession
   action: 'hub/relay' | 'hub/signal'
   topic: string
+  shareAccess?: ShareAccessService
 }): Promise<AuthzDecision> => {
   const resource = topicToResource(input.topic)
 
@@ -259,6 +260,29 @@ const authorizeRoomAction = async (input: {
       allowed: false,
       code: 'TOKEN_EXPIRED',
       message: 'Authentication token has expired'
+    }
+    logAuthDecision({
+      allowed: false,
+      did: input.session.did,
+      action: input.action,
+      resource,
+      code: decision.code,
+      reason: decision.message
+    })
+    return decision
+  }
+
+  // A DID whose share grants were all revoked ("remove access") is denied
+  // outright — wildcard self-issued capabilities do not restore access.
+  if (
+    input.shareAccess &&
+    input.session.did !== 'did:key:anonymous' &&
+    (await input.shareAccess.isDenied(input.session.did, resource))
+  ) {
+    const decision: AuthzDecision = {
+      allowed: false,
+      code: 'TOKEN_REVOKED',
+      message: 'Access to this resource has been revoked'
     }
     logAuthDecision({
       allowed: false,
@@ -333,14 +357,16 @@ const authorizeRoomAction = async (input: {
 const checkRoomAuth = async (
   storage: HubStorage,
   session: AuthSession,
-  topics: string[]
+  topics: string[],
+  shareAccess?: ShareAccessService
 ): Promise<{ ok: true } | { ok: false; topic: string; decision: AuthzDecision }> => {
   for (const topic of topics) {
     const decision = await authorizeRoomAction({
       storage,
       session,
       action: 'hub/signal',
-      topic
+      topic,
+      shareAccess
     })
     if (!decision.allowed) {
       return { ok: false, topic, decision }
@@ -567,7 +593,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         storage,
         session,
         action: 'hub/signal',
-        topic
+        topic,
+        shareAccess
       })
       if (!decision.allowed) {
         denyAndCloseSocket(ws, decision, 'hub/signal', topic)
@@ -1137,7 +1164,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 storage,
                 session,
                 action: 'hub/relay',
-                topic: payload.room
+                topic: payload.room,
+                shareAccess
               })
               if (!roomDecision.allowed) {
                 ws.send(
@@ -1181,7 +1209,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 storage,
                 session,
                 action: 'hub/relay',
-                topic: payload.data.room
+                topic: payload.data.room,
+                shareAccess
               })
               if (!roomDecision.allowed) {
                 ws.send(
@@ -1222,7 +1251,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
             if (config.auth && isSubscribeMessage(payload)) {
               const topics = parseTopics(payload.topics)
-              const auth = await checkRoomAuth(storage, session, topics)
+              const auth = await checkRoomAuth(storage, session, topics, shareAccess)
               if (!auth.ok) {
                 const resource = topicToResource(auth.topic)
                 ws.send(
@@ -1250,7 +1279,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 storage,
                 session,
                 action: 'hub/signal',
-                topic: payload.topic
+                topic: payload.topic,
+                shareAccess
               })
               if (!publishDecision.allowed) {
                 reportUnauthorizedRemoteWrite(remoteMutationTelemetry, session.did)
@@ -1264,7 +1294,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 storage,
                 session,
                 action: 'hub/relay',
-                topic: payload.data.room
+                topic: payload.data.room,
+                shareAccess
               })
               if (!roomDecision.allowed) {
                 reportUnauthorizedRemoteWrite(remoteMutationTelemetry, session.did)

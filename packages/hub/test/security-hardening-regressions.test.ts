@@ -28,9 +28,10 @@ describe('Security hardening regressions', () => {
     const webApp = readSource('apps/web/src/App.tsx')
     const webShareRoute = readSource('apps/web/src/routes/share.tsx')
 
-    expect(webApp).toContain("parsed.searchParams.delete('payload')")
-    expect(webApp).toContain("parsed.searchParams.delete('handle')")
-    expect(webApp).toContain("parsed.searchParams.delete('shareSession')")
+    // stripParams removes the named params from both the search string and
+    // the hash query (hash routing) before rewriting history.
+    expect(webApp).toContain("stripParams('payload', 'handle')")
+    expect(webApp).toContain("stripParams('shareSession')")
     expect(webApp).toContain('window.history.replaceState')
 
     expect(webShareRoute).toContain('window.history.replaceState')
@@ -48,7 +49,7 @@ describe('Security hardening regressions', () => {
     const shareButton = readSource('apps/electron/src/renderer/components/ShareButton.tsx')
     const addSharedDialog = readSource('apps/electron/src/renderer/components/AddSharedDialog.tsx')
 
-    expect(shareButton).toContain('Share securely')
+    expect(shareButton).toContain('One-time handoff')
     expect(addSharedDialog).toContain('Add to Library')
   })
 })

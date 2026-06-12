@@ -401,6 +401,35 @@ describe('Share Links', () => {
       const result = await publishChange(bystander, 'doc-enforce')
       expect(result?.code).not.toBe('WRITE_FORBIDDEN')
     })
+
+    it('denies removed grantees entirely instead of restoring legacy access', async () => {
+      const member = makeActor()
+      const link = await createLink(owner, 'doc-removal', 'write')
+      expect((await claim(member, link.linkId, link.secret)).status).toBe(200)
+
+      const accepted = await publishChange(member, 'doc-removal')
+      expect(accepted?.code).not.toBe('WRITE_FORBIDDEN')
+
+      const grants = await api(`/shares/grants?docId=doc-removal`, { token: owner.token })
+      const grantRows = grants.json.grants as Array<Record<string, unknown>>
+      const grantId = grantRows.find((g) => g.granteeDid === member.did)?.grantId as string
+      const revoke = await api(`/shares/grants/${grantId}?docId=doc-removal`, {
+        method: 'DELETE',
+        token: owner.token
+      })
+      expect(revoke.status).toBe(200)
+
+      // Revocation invalidates the role cache immediately; the removed DID
+      // is now denied outright, wildcard capabilities notwithstanding.
+      const denied = await publishChange(member, 'doc-removal')
+      expect(denied?.code).toBe('TOKEN_REVOKED')
+
+      // Re-claiming the still-active link restores access (anyone with the
+      // link may join; to keep someone out, disable the link too).
+      expect((await claim(member, link.linkId, link.secret)).status).toBe(200)
+      const restored = await publishChange(member, 'doc-removal')
+      expect(restored?.code).not.toBe('TOKEN_REVOKED')
+    })
   })
 })
 
@@ -418,11 +447,11 @@ describe('ShareAccessService', () => {
     expect(isCommentSchema(undefined)).toBe(false)
   })
 
-  it('caches restrictions and invalidates on grant changes', async () => {
+  it('caches statuses and invalidates on grant changes', async () => {
     const storage = createMemoryStorage()
     const access = new ShareAccessService(storage, 60_000)
 
-    expect(await access.getRestriction('did:key:zReader', 'doc-1')).toBeNull()
+    expect(await access.getStatus('did:key:zReader', 'doc-1')).toBe('none')
 
     await storage.upsertGrantIndex({
       grantId: 'g1',
@@ -434,13 +463,21 @@ describe('ShareAccessService', () => {
       createdAt: Date.now()
     })
 
-    // Cached null until invalidated
-    expect(await access.getRestriction('did:key:zReader', 'doc-1')).toBeNull()
+    // Cached 'none' until invalidated
+    expect(await access.getStatus('did:key:zReader', 'doc-1')).toBe('none')
     access.invalidate('did:key:zReader', 'doc-1')
-    expect(await access.getRestriction('did:key:zReader', 'doc-1')).toBe('read')
+    expect(await access.getStatus('did:key:zReader', 'doc-1')).toBe('read')
 
     expect(await access.canWriteNodeChange('did:key:zReader', 'doc-1', 'any')).toBe(false)
     expect(await access.canWriteYjs('did:key:zReader', 'doc-1')).toBe(false)
     expect(await access.canWriteYjs('did:key:zSomeoneElse', 'doc-1')).toBe(true)
+
+    // Revoking the only grant flips the status to 'revoked' (denied), not
+    // back to 'none' (legacy unrestricted access).
+    await storage.revokeGrant('g1')
+    access.invalidate('did:key:zReader', 'doc-1')
+    expect(await access.getStatus('did:key:zReader', 'doc-1')).toBe('revoked')
+    expect(await access.isDenied('did:key:zReader', 'doc-1')).toBe(true)
+    expect(await access.canWriteNodeChange('did:key:zReader', 'doc-1', 'any')).toBe(false)
   })
 })

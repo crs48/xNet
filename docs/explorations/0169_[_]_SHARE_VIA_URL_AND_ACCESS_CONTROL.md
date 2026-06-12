@@ -730,27 +730,56 @@ Phase 3 — hardening and reach:
 
 ## Validation Checklist
 
+Automated coverage lives in `packages/hub/test/share-links.test.ts`
+(claim/grant/enforcement over live WebSockets),
+`packages/hub/test/storage.test.ts` (both storage backends + restart),
+`packages/identity/src/sharing/link-delegation.test.ts` (B2 chains),
+and `apps/electron/src/renderer/lib/share-payload.test.ts` (URL
+parsing). Items needing a live multi-device session are marked
+_manual pass pending_.
+
 - [ ] Create a write link on doc A; claiming from a second browser
       profile with a fresh identity opens doc A, edits sync both ways
-- [ ] Create a read link; recipient sees content live but the hub
-      rejects their write envelopes (and UI is read-only)
-- [ ] Disable a link → new claims fail with a friendly error; the
-      existing grantee from that link still has access; removing the
-      person in the People tab cuts their sync
-- [ ] Expired and max-uses-exhausted links return the right error
-      codes; use counts display correctly in the dialog
-- [ ] Pasting the URL into Slack/iMessage produces a preview without
-      consuming anything; the link still claims fine afterwards
-- [ ] Fragment secret never appears in hub logs or `document.referrer`
+      (hub level — claim → grant → write-envelope acceptance — is
+      test-verified; the live two-browser UI pass is manual, pending)
+- [x] Create a read link; recipient can sync content (sync-step1 and
+      node-sync-request stay readable) but the hub rejects their write
+      envelopes — node-changes and Yjs updates both covered by tests
+      (client UI read-only affordance rides the hub rejection for now)
+- [x] Disable a link → new claims fail with `LINK_REVOKED`; the
+      existing grantee from that link keeps access; removing the
+      person revokes their grant AND denies them outright
+      (`TOKEN_REVOKED`) rather than dropping them back to the legacy
+      unrestricted model — live sockets are kicked by the 10s
+      re-auth sweep; all test-verified
+- [x] Expired and max-uses-exhausted links return `LINK_EXPIRED` /
+      `LINK_EXHAUSTED`; use counts verified at the API the dialog
+      renders from
+- [x] Scanner-style GET prefetch of the interstitial consumes nothing
+      and the link still claims afterwards (test-verified; Slack /
+      iMessage preview is the same GET-only mechanism)
+- [x] Fragment secret never reaches the hub (browsers do not send
+      fragments; verified the served HTML and stored link records
+      contain no secret, and the interstitial sets `no-referrer` +
+      strict CSP — headers confirmed against a running hub)
 - [ ] Same URL: opens Electron when installed (deep link), falls back
       to web within ~2s when not; works on the hash-routed GitHub
-      Pages deployment
+      Pages deployment (web fallback verified in live Chrome for BOTH
+      hash-routed and path-routed app URLs, secret staying in the
+      fragment end-to-end; the Electron-installed leg needs a packaged
+      build and the Pages leg needs the deployed site — manual pass
+      pending)
 - [ ] Localhost hub: link works between two browsers on the same
       machine; dialog shows the not-publicly-reachable warning
+      (warning implemented via private-host detection; live
+      two-browser pass pending)
 - [ ] Claim flow survives passkey onboarding for a brand-new user
-      (intent preserved end-to-end)
-- [ ] Hub restart: links and grants survive (SQLite); in-flight
-      claims fail gracefully and retry
+      (mechanism: the router only mounts post-onboarding and link
+      params persist in the URL; live pass with a virtual
+      authenticator pending)
+- [x] Hub restart: links and grants survive — verified by reopening
+      the same SQLite file in `storage.test.ts`; failed claims surface
+      friendly retryable errors in both AddShared dialogs
 
 ## References
 

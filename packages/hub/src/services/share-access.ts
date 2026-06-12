@@ -39,11 +39,18 @@ export const isCommentSchema = (schemaId: string | undefined): boolean =>
   typeof schemaId === 'string' &&
   COMMENT_SCHEMA_PREFIXES.some((prefix) => schemaId.startsWith(prefix))
 
-/** `null` means the DID has no share grant for the doc — no restriction. */
-export type ShareRestriction = ShareLinkRole | null
+/**
+ * Share-grant status of a DID for a doc:
+ * - `none` — never had a grant; the legacy capability model applies.
+ * - a role — has an active grant; writes are limited to that role.
+ * - `revoked` — every grant was revoked or expired ("remove access");
+ *   the DID is denied entirely, overriding wildcard capabilities, until
+ *   it claims a still-valid link again.
+ */
+export type ShareStatus = ShareLinkRole | 'none' | 'revoked'
 
 type CacheEntry = {
-  restriction: ShareRestriction
+  status: ShareStatus
   expiresAt: number
 }
 
@@ -56,20 +63,36 @@ export class ShareAccessService {
   ) {}
 
   /**
-   * Resolve the share-grant restriction for a DID on a doc.
+   * Resolve the share-grant status for a DID on a doc.
    * Cached briefly — write paths call this per envelope.
    */
-  async getRestriction(did: string, docId: string): Promise<ShareRestriction> {
+  async getStatus(did: string, docId: string): Promise<ShareStatus> {
     const key = `${did}|${docId}`
     const cached = this.cache.get(key)
     if (cached && cached.expiresAt > Date.now()) {
-      return cached.restriction
+      return cached.status
     }
 
-    const grant = await this.storage.getActiveGrant(did, docId)
-    const restriction: ShareRestriction = grant ? roleFromActions(grant.actions) : null
-    this.cache.set(key, { restriction, expiresAt: Date.now() + this.cacheTtlMs })
-    return restriction
+    const now = Date.now()
+    const grants = (await this.storage.listGrantsForDoc(docId)).filter(
+      (grant) => grant.granteeDid === did
+    )
+    const active = grants
+      .filter((grant) => grant.revokedAt === 0 && (grant.expiresAt === 0 || grant.expiresAt > now))
+      .sort((a, b) => b.createdAt - a.createdAt)[0]
+
+    const status: ShareStatus = active
+      ? roleFromActions(active.actions)
+      : grants.length > 0
+        ? 'revoked'
+        : 'none'
+    this.cache.set(key, { status, expiresAt: now + this.cacheTtlMs })
+    return status
+  }
+
+  /** Whether the DID has been explicitly removed from the doc. */
+  async isDenied(did: string, docId: string): Promise<boolean> {
+    return (await this.getStatus(did, docId)) === 'revoked'
   }
 
   /** Drop cached restrictions after a grant changes (claim, role edit, revoke). */
@@ -89,16 +112,17 @@ export class ShareAccessService {
   /**
    * Whether a DID may relay a node-change for the given schema into a doc
    * room. Unrestricted (no grant) and `write` grantees pass; `comment`
-   * grantees pass only for comment-kind schemas; `read` grantees never pass.
+   * grantees pass only for comment-kind schemas; `read` grantees and
+   * removed (`revoked`) DIDs never pass.
    */
   async canWriteNodeChange(
     did: string,
     docId: string,
     schemaId: string | undefined
   ): Promise<boolean> {
-    const restriction = await this.getRestriction(did, docId)
-    if (restriction === null || restriction === 'write') return true
-    if (restriction === 'comment') return isCommentSchema(schemaId)
+    const status = await this.getStatus(did, docId)
+    if (status === 'none' || status === 'write') return true
+    if (status === 'comment') return isCommentSchema(schemaId)
     return false
   }
 
@@ -107,7 +131,7 @@ export class ShareAccessService {
    * Comment grantees cannot — page bodies are Yjs, comments are node-changes.
    */
   async canWriteYjs(did: string, docId: string): Promise<boolean> {
-    const restriction = await this.getRestriction(did, docId)
-    return restriction === null || restriction === 'write'
+    const status = await this.getStatus(did, docId)
+    return status === 'none' || status === 'write'
   }
 }
