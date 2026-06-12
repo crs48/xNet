@@ -183,6 +183,83 @@ describe('createIdentityManager', () => {
 
     await expect(manager.create()).rejects.toThrow('Passkey creation cancelled')
   })
+
+  it('resume returns null when there is no identity', async () => {
+    const { createIdentityManager } = await import('./index')
+    const manager = createIdentityManager()
+
+    expect(await manager.resume()).toBeNull()
+  })
+
+  it('create persists a session that a fresh manager resumes without prompting', async () => {
+    const { createIdentityManager } = await import('./index')
+    const manager = createIdentityManager()
+
+    const mockCred = createMockCredential(FIXED_PRF_OUTPUT)
+    vi.spyOn(navigator.credentials, 'create').mockResolvedValue(mockCred)
+
+    const created = await manager.create({ rpId: 'localhost' })
+
+    // Simulates a page reload: new manager instance, empty in-memory cache
+    const manager2 = createIdentityManager()
+    const resumed = await manager2.resume()
+
+    expect(resumed).not.toBeNull()
+    expect(resumed!.identity.did).toBe(created.identity.did)
+    expect(Array.from(resumed!.signingKey)).toEqual(Array.from(created.signingKey))
+
+    // No biometric prompt happened
+    expect(navigator.credentials.get).not.toHaveBeenCalled()
+  })
+
+  it('lock ends the session but keeps the identity', async () => {
+    const { createIdentityManager } = await import('./index')
+    const manager = createIdentityManager()
+
+    const mockCred = createMockCredential(FIXED_PRF_OUTPUT)
+    vi.spyOn(navigator.credentials, 'create').mockResolvedValue(mockCred)
+
+    await manager.create({ rpId: 'localhost' })
+    await manager.lock()
+
+    expect(manager.getCached()).toBeNull()
+    expect(await manager.hasIdentity()).toBe(true)
+
+    const manager2 = createIdentityManager()
+    expect(await manager2.resume()).toBeNull()
+  })
+
+  it('clear removes the persisted session too', async () => {
+    const { createIdentityManager } = await import('./index')
+    const manager = createIdentityManager()
+
+    const mockCred = createMockCredential(FIXED_PRF_OUTPUT)
+    vi.spyOn(navigator.credentials, 'create').mockResolvedValue(mockCred)
+
+    await manager.create({ rpId: 'localhost' })
+    await manager.clear()
+
+    const manager2 = createIdentityManager()
+    expect(await manager2.resume()).toBeNull()
+  })
+
+  it('resume rejects a session that belongs to a different identity', async () => {
+    const { createIdentityManager } = await import('./index')
+    const manager = createIdentityManager()
+
+    const mockCred = createMockCredential(FIXED_PRF_OUTPUT)
+    vi.spyOn(navigator.credentials, 'create').mockResolvedValue(mockCred)
+
+    await manager.create({ rpId: 'localhost' })
+
+    // Replace the stored identity with a different DID, leaving the old session behind
+    const { storeIdentity } = await import('./storage')
+    const stored = await getStoredIdentity()
+    await storeIdentity({ ...stored!.passkey, did: 'did:key:zSomeoneElse' })
+
+    const manager2 = createIdentityManager()
+    expect(await manager2.resume()).toBeNull()
+  })
 })
 
 // ─── Identity Manager with WebAuthn Emulator (Fallback Path) ─

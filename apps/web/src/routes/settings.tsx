@@ -12,18 +12,21 @@ import {
   Moon,
   Monitor,
   Download,
+  LogOut,
   Puzzle,
+  User,
   Wifi
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { PluginManager } from '../components/PluginManager'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
+import { logout } from '../lib/identity'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage
 })
 
-type SettingsSection = 'appearance' | 'data' | 'network' | 'plugins' | 'about'
+type SettingsSection = 'appearance' | 'data' | 'network' | 'plugins' | 'account' | 'about'
 
 interface SectionConfig {
   id: SettingsSection
@@ -56,6 +59,12 @@ const SECTIONS: SectionConfig[] = [
     label: 'Plugins',
     icon: <Puzzle size={18} />,
     description: 'Extensions'
+  },
+  {
+    id: 'account',
+    label: 'Account',
+    icon: <User size={18} />,
+    description: 'Identity and session'
   },
   {
     id: 'about',
@@ -98,6 +107,7 @@ function SettingsPage() {
         {activeSection === 'data' && <DataSettings />}
         {activeSection === 'network' && <NetworkSettings />}
         {activeSection === 'plugins' && <PluginManager />}
+        {activeSection === 'account' && <AccountSettings />}
         {activeSection === 'about' && <AboutSettings />}
       </div>
     </div>
@@ -419,6 +429,56 @@ function NetworkSettings() {
           <code className="font-mono">hub.xnet.fyi</code> is provided for convenience, but you can
           run your own signaling server.
         </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── About Settings ───────────────────────────────────────────────────────────
+
+// ─── Account Settings ─────────────────────────────────────────────────────────
+
+function AccountSettings() {
+  const { identity } = useIdentity()
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true)
+    try {
+      await logout()
+    } catch (err) {
+      console.error('Failed to log out:', err)
+      setLoggingOut(false)
+    }
+  }, [])
+
+  return (
+    <div className="max-w-xl space-y-6">
+      <div>
+        <h2 className="text-lg font-medium mb-1">Account</h2>
+        <p className="text-sm text-muted-foreground">Your identity and session on this device</p>
+      </div>
+
+      <div className="space-y-4">
+        <SettingRow label="Identity" description="Your decentralized identifier (DID)">
+          <span className="max-w-[280px] break-all font-mono text-xs text-muted-foreground">
+            {identity?.did || 'Not initialized'}
+          </span>
+        </SettingRow>
+
+        <SettingRow
+          label="Log out"
+          description="Ends your session on this device. Your data stays local — sign back in with your passkey."
+        >
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm border border-border hover:bg-accent transition-colors disabled:opacity-50"
+          >
+            <LogOut size={14} />
+            {loggingOut ? 'Logging out...' : 'Log out'}
+          </button>
+        </SettingRow>
       </div>
     </div>
   )

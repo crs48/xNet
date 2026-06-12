@@ -11,6 +11,7 @@ import type { HybridKeyBundle } from '../types'
 import type { PasskeyIdentity, PasskeyCreateOptions, FallbackStorage } from './types'
 import { createPasskeyIdentity } from './create'
 import { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
+import { persistSession, loadSession, clearSession } from './session'
 import { getStoredIdentity, storeIdentity, clearStoredIdentity } from './storage'
 import { detectPasskeySupport } from './support'
 import { isTestBypassEnabled, createTestIdentityManager } from './test-bypass'
@@ -39,6 +40,7 @@ export {
   type DiscoveredPasskey
 } from './discovery'
 export { isTestBypassEnabled, createTestIdentity, createTestIdentityManager } from './test-bypass'
+export { persistSession, loadSession, clearSession, SESSION_TTL_MS } from './session'
 
 // ─── Identity Manager ────────────────────────────────────────
 
@@ -58,10 +60,24 @@ export type IdentityManager = {
   /** Unlock the existing identity (prompts for biometric) */
   unlock(): Promise<HybridKeyBundle>
 
+  /**
+   * Resume a previously persisted session without prompting.
+   * Returns null if there is no session, it expired, or it doesn't
+   * match the stored identity — call `unlock()` in that case.
+   */
+  resume(): Promise<HybridKeyBundle | null>
+
   /** Get the cached key bundle without prompting (null if locked) */
   getCached(): HybridKeyBundle | null
 
-  /** Clear stored identity and cached keys */
+  /**
+   * End the unlocked session (logout): drop cached keys and the
+   * persisted session, but keep the identity so the user can unlock
+   * again with their passkey.
+   */
+  lock(): Promise<void>
+
+  /** Clear stored identity, persisted session, and cached keys */
   clear(): Promise<void>
 }
 
@@ -148,6 +164,7 @@ export function createIdentityManager(): IdentityManager {
 
       await storeIdentity(passkey, fallback)
       cachedKeyBundle = keyBundle
+      await persistCurrentSession(keyBundle)
 
       return keyBundle
     },
@@ -173,16 +190,58 @@ export function createIdentityManager(): IdentityManager {
       }
 
       cachedKeyBundle = keyBundle
+      await persistCurrentSession(keyBundle)
       return keyBundle
+    },
+
+    async resume(): Promise<HybridKeyBundle | null> {
+      if (cachedKeyBundle) {
+        return cachedKeyBundle
+      }
+
+      const stored = await getStoredIdentity()
+      const keyBundle = stored ? await loadSessionForIdentity(stored.passkey.did) : null
+      if (keyBundle) {
+        cachedKeyBundle = keyBundle
+      }
+      return cachedKeyBundle
     },
 
     getCached(): HybridKeyBundle | null {
       return cachedKeyBundle
     },
 
+    async lock(): Promise<void> {
+      await clearSession()
+      cachedKeyBundle = null
+    },
+
     async clear(): Promise<void> {
+      await clearSession().catch(() => {})
       await clearStoredIdentity()
       cachedKeyBundle = null
     }
   }
+}
+
+/** Session persistence is best-effort: never fail an unlock over it. */
+async function persistCurrentSession(keyBundle: HybridKeyBundle): Promise<void> {
+  try {
+    await persistSession(keyBundle)
+  } catch (err) {
+    console.warn('[identity] Could not persist session; next reload will re-prompt.', err)
+  }
+}
+
+/** A session left behind by a previous identity must not unlock this one. */
+async function loadSessionForIdentity(expectedDid: string): Promise<HybridKeyBundle | null> {
+  const keyBundle = await loadSession()
+  if (!keyBundle) {
+    return null
+  }
+  if (keyBundle.identity.did !== expectedDid) {
+    await clearSession().catch(() => {})
+    return null
+  }
+  return keyBundle
 }

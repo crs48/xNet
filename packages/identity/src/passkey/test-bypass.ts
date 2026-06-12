@@ -11,26 +11,35 @@ import type { HybridKeyBundle } from '../types'
 import { createKeyBundle } from '../key-bundle'
 
 const TEST_BYPASS_IDENTITY_MARKER = 'xnet:test:identity-created'
+const TEST_BYPASS_SESSION_MARKER = 'xnet:test:session-active'
 
-function readTestIdentityMarker(): boolean {
+function readMarker(key: string): boolean {
   if (typeof localStorage === 'undefined') {
     return false
   }
 
-  return localStorage.getItem(TEST_BYPASS_IDENTITY_MARKER) === 'true'
+  return localStorage.getItem(key) === 'true'
 }
 
-function writeTestIdentityMarker(enabled: boolean): void {
+function writeMarker(key: string, enabled: boolean): void {
   if (typeof localStorage === 'undefined') {
     return
   }
 
   if (enabled) {
-    localStorage.setItem(TEST_BYPASS_IDENTITY_MARKER, 'true')
+    localStorage.setItem(key, 'true')
     return
   }
 
-  localStorage.removeItem(TEST_BYPASS_IDENTITY_MARKER)
+  localStorage.removeItem(key)
+}
+
+function readTestIdentityMarker(): boolean {
+  return readMarker(TEST_BYPASS_IDENTITY_MARKER)
+}
+
+function writeTestIdentityMarker(enabled: boolean): void {
+  writeMarker(TEST_BYPASS_IDENTITY_MARKER, enabled)
 }
 
 /**
@@ -130,6 +139,7 @@ export function createTestIdentityManager() {
       cachedKeyBundle = keyBundle
       storedInMemory = true
       writeTestIdentityMarker(true)
+      writeMarker(TEST_BYPASS_SESSION_MARKER, true)
       return keyBundle
     },
 
@@ -145,6 +155,24 @@ export function createTestIdentityManager() {
       const keyBundle = createTestIdentity()
       cachedKeyBundle = keyBundle
       storedInMemory = true
+      writeMarker(TEST_BYPASS_SESSION_MARKER, true)
+      return keyBundle
+    },
+
+    async resume(): Promise<HybridKeyBundle | null> {
+      if (cachedKeyBundle) {
+        return cachedKeyBundle
+      }
+
+      // Mirrors real semantics: resume only works while a session is active
+      // (both markers are written together on create/unlock)
+      if (!readMarker(TEST_BYPASS_SESSION_MARKER) || !readTestIdentityMarker()) {
+        return null
+      }
+
+      const keyBundle = createTestIdentity()
+      cachedKeyBundle = keyBundle
+      storedInMemory = true
       return keyBundle
     },
 
@@ -152,10 +180,16 @@ export function createTestIdentityManager() {
       return cachedKeyBundle
     },
 
+    async lock(): Promise<void> {
+      cachedKeyBundle = null
+      writeMarker(TEST_BYPASS_SESSION_MARKER, false)
+    },
+
     async clear(): Promise<void> {
       cachedKeyBundle = null
       storedInMemory = false
       writeTestIdentityMarker(false)
+      writeMarker(TEST_BYPASS_SESSION_MARKER, false)
     }
   }
 }
