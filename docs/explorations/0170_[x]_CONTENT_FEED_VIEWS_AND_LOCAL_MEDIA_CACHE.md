@@ -550,44 +550,48 @@ const FEED_DENSITIES = {
 
 ## Implementation Checklist
 
-Phase 1 — YouTube feed, zero network:
+Phase 1 — YouTube feed, zero network (shipped):
 
-- [ ] Add `feed` to `SavedViewPresentationMode` in `packages/react/src/components/SavedViewRunner.tsx` with grid/list toggle and `compact|cozy|comfortable` density, virtualized via the existing `@tanstack/react-virtual` setup
-- [ ] `FeedCard` component rendering `SavedViewVisualPreviewModel` with provider-aware variants (YouTube 16:9 + duration affordance, Instagram 1:1/4:5, gradient letter-tile placeholder)
-- [ ] Thumbnail derivation for YouTube (`deriveYouTubeThumbnailUrl`) wired into `packages/react/src/components/savedViewVisualPreview.ts`, gated by embed policy
-- [ ] New lenses in `packages/social/src/lenses/`: `youtube-liked-videos`, `youtube-playlists`, `youtube-watch-history`, `instagram-saved`, `instagram-likes` — each defaulting to feed presentation
-- [ ] Surface the new lenses in `apps/web/src/components/DataWorkspaceView.tsx` starter views
+- [x] Add `feed` to `SavedViewPresentationMode` in `packages/react/src/components/SavedViewRunner.tsx` with grid/list toggle and `compact|cozy|comfortable` density, virtualized via the existing `@tanstack/react-virtual` setup — shipped as `packages/react/src/components/SavedViewVisualFeed.tsx`, with responsive column counts derived from the measured container width
+- [x] `FeedCard` component rendering `SavedViewVisualPreviewModel` with provider-aware variants (YouTube 16:9, Instagram/TikTok 1:1, gradient letter-tile placeholder, image-error fallback to the tile) — duration badges need data the importers don't carry yet
+- [x] Thumbnail derivation for YouTube already existed in `savedViewVisualPreview.ts` (`img.youtube.com/vi/<id>/hqdefault.jpg` from parsed URLs); previews additionally gained `description` and `platformContentId` for feed rendering and enrichment keying. Display gating follows the existing privacy-class convention rather than the embed policy
+- [x] Feed views defaulting to feed presentation via a new `SavedViewDescriptor.presentation` hint — shipped in `packages/social/src/feeds/` as `youtube-videos` (likes + playlists + history merge into one video feed; per-playlist scoping such as a dedicated liked-videos view needs collection-relation predicates, deferred), `youtube-playlists`, `instagram-saved`, `instagram-likes`
+- [x] Surface the new views in the workspace — wired into `createDefaultSocialWorkspaceSavedViewSeeds` as a `feed-view` seed kind, so the existing seed flow in `DataWorkspaceView` creates them
 
-Phase 2 — unfurl service + persistence:
+Phase 2 — unfurl service + persistence (shipped):
 
-- [ ] `SocialEnrichmentSchema` in `packages/social/src/schemas/enrichment.ts` + deterministic ID helper + registry export
-- [ ] Hub `routes/unfurl.ts`: `/unfurl/metadata` (server-side `resolveExternalReferenceMetadata`) and `/unfurl/image` (allowlist, `image/*` check, size cap, CORS + immutable cache headers), mounted in `packages/hub/src/server.ts`
-- [ ] Client enrichment queue worker + job client (modeled on `apps/web/src/lib/social-import-job-client.ts`): visible-first priority, ~2 req/s with jitter, exponential backoff writing `attemptCount`/`status`
-- [ ] Thumbnail bytes → `BlobStore.put` → `thumbnailBlobCid` on the enrichment node; feed card prefers blob object URL > hotlink > placeholder
-- [ ] Join enrichment into the preview deriver (enriched title/description/thumb override import placeholders)
-- [ ] `navigator.storage.persist()` request + storage usage readout
+- [x] `SocialEnrichmentSchema` in `packages/social/src/schemas/enrichment.ts` + `createSocialEnrichmentId` helper + registry export
+- [x] Hub `routes/unfurl.ts`: `/unfurl/metadata` (server-side `resolveExternalReferenceMetadata`) and `/unfurl/image` (hostname allowlist, `image/*` check, 5 MB cap, post-redirect SSRF re-validation, CORS + immutable cache headers, preflight handling), mounted in `packages/hub/src/server.ts`
+- [x] Client enrichment queue (`apps/web/src/hooks/social-feed-enrichment.ts` + `useSocialFeedEnrichment.ts`): visible-first priority, ~2 req/s with jitter, session-level dedupe, `attemptCount`/`status`/`lastError` persisted — a plain hook-owned queue proved sufficient; a dedicated worker and cross-session exponential backoff are deferred
+- [x] Thumbnail bytes → `BlobStore.put` → `thumbnailBlobCid` on the enrichment node; feed card prefers blob object URL > hotlink > letter tile
+- [x] Enrichment joined over previews at the feed layer (`SavedViewFeedEnrichmentAdapter` on `SavedViewRunner`); enriched titles/descriptions/thumbs override import placeholders in feed mode. Deeper integration into the shared preview deriver (so table/cards modes benefit too) is deferred
+- [ ] `navigator.storage.persist()` request + storage usage readout — deferred; the app already surfaces a durable-storage banner, a per-platform thumbnail size readout remains to do
 
-Phase 3 — Instagram:
+Phase 3 — Instagram (deferred follow-up):
 
-- [ ] Treat `unavailable` as terminal (no hot retries); placeholder-first card design pass
+- [x] `unavailable` is terminal for the session (no hot retries; only an explicit refresh path would re-fetch) and Instagram cards render placeholder-first with letter tiles
 - [ ] Immediate proxy-capture of any encountered Instagram CDN URL (expiring signatures)
 - [ ] Optional Meta app-token setting; hub-side Graph oEmbed when present
 
-Phase 4 — TikTok / X:
+Phase 4 — TikTok / X (deferred follow-up):
 
 - [ ] TikTok: browser-direct oEmbed in the enrichment worker (no hub hop), image via `/unfurl/image`
 - [ ] X: hub-side syndication-API fetcher, best-effort flagged
 
 ## Validation Checklist
 
-- [ ] Import a real YouTube Takeout: "Liked videos" lens renders a grid where every card shows a thumbnail (derived) and, post-enrichment, a real title — zero `YouTube video <id>` placeholders remain for public videos
-- [ ] Kill the network (devtools offline) and reopen the feed: titles, descriptions, and thumbnails render entirely from local store
-- [ ] Re-run the same import: enrichment nodes untouched, no title regressions to placeholders
-- [ ] Private/deleted video: card shows a designed unavailable state; enrichment node `status: 'unavailable'`; worker does not retry it on next session
-- [ ] `/unfurl/image` rejects non-allowlisted hosts, non-image content types, and oversize bodies; `validateExternalUrl` blocks internal addresses
-- [ ] Density and layout toggles persist per view and feel instant on a 5 000-item feed (virtualization holds 60 fps scroll)
-- [ ] Instagram saved lens renders intentionally (handles, collection chips, letter tiles) with zero images available
-- [ ] Embed-policy "remote media off" shows placeholders instead of hotlinks; blob-cached thumbs still render
+Validated live (synthetic YouTube Takeout imported through the real browser
+import flow; enrichment exercised against a local hub with the real oEmbed
+upstream, plus stubbed responses for the sandboxed-browser portion):
+
+- [x] Imported a YouTube Takeout: the YouTube Videos feed renders every card with a derived thumbnail, and post-enrichment zero `YouTube video <id>` placeholders remain (all 10 fixture items resolved to real titles)
+- [x] Offline reload (browser with no external network): titles, authors, and thumbnails render entirely from local enrichment nodes and BlobStore object URLs — 10/10 blob-backed thumbnails
+- [x] `/unfurl/image` rejects non-allowlisted hosts, non-image content types, oversize bodies, and private-address redirects; `validateExternalUrl` blocks internal addresses (hub route tests)
+- [x] Density and layout toggles re-render instantly and the grid stays virtualized (verified at 10 items; a 5 000-item scroll benchmark remains to do)
+- [x] Broken/unloadable thumbnail URLs fall back to the gradient letter tile (verified in a network-blocked browser)
+- [ ] Re-run the same import: enrichment nodes untouched, no title regressions to placeholders — designed for via disjoint deterministic ID namespaces (`social:enrichment:*` vs import-owned nodes), not yet exercised end-to-end
+- [ ] Private/deleted video: card shows a designed unavailable state; enrichment node `status: 'unavailable'`; worker does not retry it next session (cross-session retry policy still session-scoped)
+- [ ] Instagram saved lens with a real Instagram export (letter-tile rendering verified generically)
 - [ ] Storage estimate visible in settings; thumbnails for a 10 k-item library stay under ~300 MB
 
 ## References
