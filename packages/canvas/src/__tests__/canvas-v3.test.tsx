@@ -3237,3 +3237,173 @@ describe('Canvas v3 active renderer', () => {
     expect(surface.getAttribute('data-canvas-object-count')).toBe('3')
   })
 })
+
+describe('Canvas v3 pinch zoom', () => {
+  function renderPinchSurface() {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    act(() => {
+      ref.current?.setViewportSnapshot({ x: 0, y: 0, zoom: 1 })
+    })
+
+    return { doc, ref, surface }
+  }
+
+  it('zooms with a two-finger touch pinch and hands off to a single-finger pan', () => {
+    const { ref, surface } = renderPinchSurface()
+
+    fireEvent.pointerDown(surface, {
+      button: 0,
+      pointerId: 11,
+      pointerType: 'touch',
+      clientX: 430,
+      clientY: 320
+    })
+    fireEvent.pointerDown(surface, {
+      button: 0,
+      pointerId: 12,
+      pointerType: 'touch',
+      clientX: 530,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 11,
+      pointerType: 'touch',
+      clientX: 380,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 12,
+      pointerType: 'touch',
+      clientX: 580,
+      clientY: 320
+    })
+
+    const pinched = ref.current?.getViewportSnapshot()
+    expect(pinched?.zoom).toBeCloseTo(2)
+    expect(pinched?.x).toBeCloseTo(0)
+    expect(pinched?.y).toBeCloseTo(0)
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 12,
+      pointerType: 'touch',
+      clientX: 580,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 11,
+      pointerType: 'touch',
+      clientX: 360,
+      clientY: 300
+    })
+
+    const panned = ref.current?.getViewportSnapshot()
+    expect(panned?.zoom).toBeCloseTo(2)
+    expect(panned?.x).toBeCloseTo(10)
+    expect(panned?.y).toBeCloseTo(10)
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 11,
+      pointerType: 'touch',
+      clientX: 360,
+      clientY: 300
+    })
+  })
+
+  it('converts a touch node drag into a pinch when a second finger lands', () => {
+    const { doc, ref, surface } = renderPinchSurface()
+    const pageIsland = screen.getByText('Research Page').closest('[data-canvas-v3-object="true"]')
+    if (!pageIsland) {
+      throw new Error('Expected Research Page DOM island')
+    }
+
+    const nodeBefore = JSON.stringify(getNodeByTitle(doc, 'Research Page'))
+
+    fireEvent.pointerDown(pageIsland, {
+      button: 0,
+      pointerId: 21,
+      pointerType: 'touch',
+      clientX: 480,
+      clientY: 320
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 21,
+      pointerType: 'touch',
+      clientX: 500,
+      clientY: 340
+    })
+    fireEvent.pointerDown(surface, {
+      button: 0,
+      pointerId: 22,
+      pointerType: 'touch',
+      clientX: 600,
+      clientY: 340
+    })
+    fireEvent.pointerMove(surface, {
+      pointerId: 22,
+      pointerType: 'touch',
+      clientX: 700,
+      clientY: 340
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 21,
+      pointerType: 'touch',
+      clientX: 500,
+      clientY: 340
+    })
+    fireEvent.pointerUp(surface, {
+      pointerId: 22,
+      pointerType: 'touch',
+      clientX: 700,
+      clientY: 340
+    })
+
+    expect(ref.current?.getViewportSnapshot().zoom).toBeCloseTo(2)
+    expect(JSON.stringify(getNodeByTitle(doc, 'Research Page'))).toBe(nodeBefore)
+  })
+
+  it('zooms with ctrl+wheel trackpad pinches around the cursor', () => {
+    const { ref, surface } = renderPinchSurface()
+
+    fireEvent.wheel(surface, { ctrlKey: true, deltaY: -12, clientX: 480, clientY: 320 })
+
+    const centered = ref.current?.getViewportSnapshot()
+    expect(centered?.zoom).toBeCloseTo(1.144)
+    expect(centered?.x).toBeCloseTo(0)
+    expect(centered?.y).toBeCloseTo(0)
+
+    fireEvent.wheel(surface, { ctrlKey: true, deltaY: -12, clientX: 960, clientY: 320 })
+
+    const offCenter = ref.current?.getViewportSnapshot()
+    expect(offCenter?.zoom).toBeCloseTo(1.144 * 1.144)
+    expect(offCenter?.x).toBeGreaterThan(0)
+  })
+
+  it('zooms with Safari trackpad gesture events', () => {
+    const { ref, surface } = renderPinchSurface()
+
+    const dispatchGesture = (type: string, scale: number) => {
+      const gesture = new Event(type, { cancelable: true })
+      Object.assign(gesture, { scale, clientX: 480, clientY: 320 })
+      act(() => {
+        surface.dispatchEvent(gesture)
+      })
+    }
+
+    dispatchGesture('gesturestart', 1)
+    dispatchGesture('gesturechange', 1.5)
+    expect(ref.current?.getViewportSnapshot().zoom).toBeCloseTo(1.5)
+
+    dispatchGesture('gesturechange', 3)
+    expect(ref.current?.getViewportSnapshot().zoom).toBeCloseTo(3)
+
+    dispatchGesture('gestureend', 3)
+    dispatchGesture('gesturestart', 1)
+    dispatchGesture('gesturechange', 1.2)
+    expect(ref.current?.getViewportSnapshot().zoom).toBeCloseTo(3.6)
+  })
+})
