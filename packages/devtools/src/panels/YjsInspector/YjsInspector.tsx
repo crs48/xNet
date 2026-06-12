@@ -36,13 +36,13 @@ export function YjsInspector() {
   return (
     <div className="flex h-full">
       {/* Doc list */}
-      <div className="w-56 border-r border-zinc-800 overflow-y-auto shrink-0">
-        <div className="px-2 py-1 text-[10px] font-bold text-zinc-500 border-b border-zinc-800">
+      <div className="w-56 border-r border-hairline overflow-y-auto shrink-0">
+        <div className="px-2 py-1 text-[10px] font-bold text-ink-3 border-b border-hairline">
           Documents ({docStats.length})
         </div>
         <button
           onClick={() => setSelectedDoc(null)}
-          className={`w-full text-left px-2 py-1 text-[10px] ${!selectedDoc ? 'bg-zinc-800 text-blue-400' : 'text-zinc-400 hover:bg-zinc-900'}`}
+          className={`w-full text-left px-2 py-1 text-[10px] ${!selectedDoc ? 'bg-background-emphasis text-ink-1' : 'text-ink-2 hover:bg-accent'}`}
         >
           All ({events.length} events)
         </button>
@@ -59,7 +59,7 @@ export function YjsInspector() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Sub-view tabs */}
-        <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-800">
+        <div className="flex items-center gap-1 px-2 py-1 border-b border-hairline">
           <SubViewTab id="events" active={subView} onClick={setSubView} label="Updates" />
           <SubViewTab
             id="structure"
@@ -78,7 +78,7 @@ export function YjsInspector() {
           {subView === 'structure' && selectedDoc && (
             <button
               onClick={refreshTree}
-              className="ml-auto text-[9px] text-zinc-500 hover:text-zinc-300 px-1"
+              className="ml-auto text-[9px] text-ink-3 hover:text-ink-1 px-1"
               title="Refresh tree"
             >
               Refresh
@@ -87,7 +87,7 @@ export function YjsInspector() {
           {subView === 'state-vectors' && selectedDoc && (
             <button
               onClick={refreshStateVector}
-              className="ml-auto text-[9px] text-zinc-500 hover:text-zinc-300 px-1"
+              className="ml-auto text-[9px] text-ink-3 hover:text-ink-1 px-1"
               title="Refresh state vector"
             >
               Refresh
@@ -131,10 +131,10 @@ function SubViewTab({
       disabled={disabled}
       className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
         disabled
-          ? 'text-zinc-700 cursor-not-allowed'
+          ? 'text-foreground-faint cursor-not-allowed'
           : isActive
-            ? 'bg-zinc-700 text-zinc-200'
-            : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
+            ? 'bg-background-emphasis text-ink-1'
+            : 'text-ink-3 hover:text-ink-1 hover:bg-accent'
       }`}
     >
       {label}
@@ -147,7 +147,7 @@ function SubViewTab({
 function EventsView({ events }: { events: YjsEvent[] }) {
   if (events.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-zinc-600 text-xs">
+      <div className="flex items-center justify-center h-32 text-ink-3 text-xs">
         No Yjs events yet
       </div>
     )
@@ -155,7 +155,7 @@ function EventsView({ events }: { events: YjsEvent[] }) {
 
   return (
     <div>
-      <div className="px-2 py-1 text-[10px] font-bold text-zinc-500 border-b border-zinc-800">
+      <div className="px-2 py-1 text-[10px] font-bold text-ink-3 border-b border-hairline">
         Updates ({events.length})
       </div>
       {events.map((event) => (
@@ -170,7 +170,7 @@ function EventsView({ events }: { events: YjsEvent[] }) {
 function StructureView({ tree, selectedDoc }: { tree: YTreeNode[]; selectedDoc: string | null }) {
   if (!selectedDoc) {
     return (
-      <div className="flex items-center justify-center h-32 text-zinc-600 text-[10px]">
+      <div className="flex items-center justify-center h-32 text-ink-3 text-[10px]">
         Select a document to view its structure
       </div>
     )
@@ -178,7 +178,7 @@ function StructureView({ tree, selectedDoc }: { tree: YTreeNode[]; selectedDoc: 
 
   if (tree.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-zinc-600 text-[10px]">
+      <div className="flex items-center justify-center h-32 text-ink-3 text-[10px]">
         No shared types found in this document
       </div>
     )
@@ -199,31 +199,31 @@ function TreeNodeView({ node, depth }: { node: YTreeNode; depth: number }) {
   const indent = depth * 12
 
   const typeColors: Record<string, string> = {
-    Map: 'text-blue-400',
-    Array: 'text-green-400',
-    Text: 'text-yellow-400',
-    XmlFragment: 'text-purple-400',
-    XmlElement: 'text-pink-400',
-    XmlText: 'text-orange-400',
-    unknown: 'text-zinc-500'
+    Map: 'text-ink-2',
+    Array: 'text-ink-2',
+    Text: 'text-ink-2',
+    XmlFragment: 'text-ink-2',
+    XmlElement: 'text-ink-2',
+    XmlText: 'text-ink-2',
+    unknown: 'text-ink-3'
   }
 
   return (
     <div>
       <div
-        className="flex items-center gap-1 py-0.5 px-1 hover:bg-zinc-800/50 rounded cursor-pointer"
+        className="flex items-center gap-1 py-0.5 px-1 hover:bg-accent rounded cursor-pointer"
         style={{ paddingLeft: `${indent + 4}px` }}
         onClick={() => hasChildren && setExpanded(!expanded)}
       >
         {/* Expand toggle */}
         {hasChildren ? (
-          <span className="text-[10px] text-zinc-500 w-3">{expanded ? '▼' : '▶'}</span>
+          <span className="text-[10px] text-ink-3 w-3">{expanded ? '▼' : '▶'}</span>
         ) : (
           <span className="w-3" />
         )}
 
         {/* Key name */}
-        <span className="text-[10px] text-zinc-300 font-mono">{node.key}</span>
+        <span className="text-[10px] text-ink-2 font-mono">{node.key}</span>
 
         {/* Type badge */}
         <span className={`text-[8px] px-1 rounded ${typeColors[node.type] ?? typeColors.unknown}`}>
@@ -231,11 +231,11 @@ function TreeNodeView({ node, depth }: { node: YTreeNode; depth: number }) {
         </span>
 
         {/* Size */}
-        {node.size > 0 && <span className="text-[8px] text-zinc-600">({node.size})</span>}
+        {node.size > 0 && <span className="text-[8px] text-ink-3">({node.size})</span>}
 
         {/* Value preview */}
         {node.value && (
-          <span className="text-[9px] text-zinc-500 truncate ml-1 max-w-48">{node.value}</span>
+          <span className="text-[9px] text-ink-3 truncate ml-1 max-w-48">{node.value}</span>
         )}
       </div>
 
@@ -260,7 +260,7 @@ function StateVectorView({
 }) {
   if (!selectedDoc) {
     return (
-      <div className="flex items-center justify-center h-32 text-zinc-600 text-[10px]">
+      <div className="flex items-center justify-center h-32 text-ink-3 text-[10px]">
         Select a document to view its state vector
       </div>
     )
@@ -268,7 +268,7 @@ function StateVectorView({
 
   if (entries.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-zinc-600 text-[10px]">
+      <div className="flex items-center justify-center h-32 text-ink-3 text-[10px]">
         No state vector entries
       </div>
     )
@@ -276,12 +276,12 @@ function StateVectorView({
 
   return (
     <div className="p-2">
-      <div className="text-[10px] text-zinc-400 mb-2">
+      <div className="text-[10px] text-ink-2 mb-2">
         {entries.length} client{entries.length !== 1 ? 's' : ''} in state vector
       </div>
 
       {/* Header */}
-      <div className="flex items-center gap-4 px-2 py-1 text-[9px] text-zinc-500 font-semibold border-b border-zinc-800">
+      <div className="flex items-center gap-4 px-2 py-1 text-[9px] text-ink-3 font-semibold border-b border-hairline">
         <span className="w-24">Client ID</span>
         <span className="w-16 text-right">Clock</span>
         <span className="flex-1">Progress</span>
@@ -295,12 +295,12 @@ function StateVectorView({
         return (
           <div
             key={entry.clientId}
-            className="flex items-center gap-4 px-2 py-1 border-b border-zinc-800/50 text-[10px]"
+            className="flex items-center gap-4 px-2 py-1 border-b border-hairline text-[10px]"
           >
-            <span className="w-24 font-mono text-zinc-300">{entry.clientId}</span>
-            <span className="w-16 text-right font-mono text-zinc-400">{entry.clock}</span>
-            <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-400 rounded-full" style={{ width: `${pct}%` }} />
+            <span className="w-24 font-mono text-ink-2">{entry.clientId}</span>
+            <span className="w-16 text-right font-mono text-ink-2">{entry.clock}</span>
+            <div className="flex-1 h-1.5 bg-background-emphasis rounded-full overflow-hidden">
+              <div className="h-full bg-ink-2 rounded-full" style={{ width: `${pct}%` }} />
             </div>
           </div>
         )
@@ -323,14 +323,14 @@ function DocRow({
   return (
     <div
       onClick={onSelect}
-      className={`px-2 py-1.5 cursor-pointer text-[10px] ${isSelected ? 'bg-zinc-800 border-l-2 border-blue-400' : 'hover:bg-zinc-900 border-l-2 border-transparent'}`}
+      className={`px-2 py-1.5 cursor-pointer text-[10px] ${isSelected ? 'bg-background-emphasis border-l-2 border-accent-ink' : 'hover:bg-accent border-l-2 border-transparent'}`}
     >
-      <div className="font-mono text-zinc-300 truncate">{doc.docId.slice(0, 16)}</div>
-      <div className="flex items-center gap-2 text-zinc-500 mt-0.5">
+      <div className="font-mono text-ink-2 truncate">{doc.docId.slice(0, 16)}</div>
+      <div className="flex items-center gap-2 text-ink-3 mt-0.5">
         <span>{doc.updateCount} updates</span>
         <span>{formatBytes(doc.totalBytes)}</span>
       </div>
-      <div className="flex items-center gap-2 text-zinc-600 mt-0.5">
+      <div className="flex items-center gap-2 text-ink-3 mt-0.5">
         <span>L:{doc.localUpdates}</span>
         <span>R:{doc.remoteUpdates}</span>
         <span>{relativeTime(doc.lastUpdate)}</span>
@@ -343,14 +343,12 @@ function YjsEventRow({ event }: { event: YjsEvent }) {
   if (event.type === 'yjs:update') {
     return (
       <div className="flex items-center gap-2 px-2 py-0.5 text-[10px]">
-        <span className="text-zinc-600 w-16 font-mono">{formatTime(event.wallTime)}</span>
-        <span
-          className={`w-2 h-2 rounded-full ${event.isLocal ? 'bg-blue-400' : 'bg-purple-400'}`}
-        />
-        <span className="text-zinc-400 w-12">{event.isLocal ? 'local' : 'remote'}</span>
-        <span className="text-zinc-500 font-mono truncate">{event.docId.slice(0, 12)}</span>
-        <span className="text-zinc-500 ml-auto">{formatBytes(event.updateSize)}</span>
-        {event.origin && <span className="text-zinc-600 truncate max-w-20">{event.origin}</span>}
+        <span className="text-ink-3 w-16 font-mono">{formatTime(event.wallTime)}</span>
+        <span className={`w-2 h-2 rounded-full ${event.isLocal ? 'bg-ink-2' : 'bg-ink-3'}`} />
+        <span className="text-ink-2 w-12">{event.isLocal ? 'local' : 'remote'}</span>
+        <span className="text-ink-3 font-mono truncate">{event.docId.slice(0, 12)}</span>
+        <span className="text-ink-3 ml-auto">{formatBytes(event.updateSize)}</span>
+        {event.origin && <span className="text-ink-3 truncate max-w-20">{event.origin}</span>}
       </div>
     )
   }
@@ -358,11 +356,11 @@ function YjsEventRow({ event }: { event: YjsEvent }) {
   // meta-change
   return (
     <div className="flex items-center gap-2 px-2 py-0.5 text-[10px]">
-      <span className="text-zinc-600 w-16 font-mono">{formatTime(event.wallTime)}</span>
-      <span className="w-2 h-2 rounded-full bg-yellow-400" />
-      <span className="text-zinc-400 w-12">meta</span>
-      <span className="text-zinc-500 font-mono truncate">{event.docId.slice(0, 12)}</span>
-      <span className="text-zinc-500 ml-auto truncate">{event.keysChanged.join(', ')}</span>
+      <span className="text-ink-3 w-16 font-mono">{formatTime(event.wallTime)}</span>
+      <span className="w-2 h-2 rounded-full bg-warning" />
+      <span className="text-ink-2 w-12">meta</span>
+      <span className="text-ink-3 font-mono truncate">{event.docId.slice(0, 12)}</span>
+      <span className="text-ink-3 ml-auto truncate">{event.keysChanged.join(', ')}</span>
     </div>
   )
 }

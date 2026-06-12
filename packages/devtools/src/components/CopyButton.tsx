@@ -25,8 +25,8 @@ export function CopyButton({ getData, label = 'Copy' }: CopyButtonProps) {
       onClick={handleCopy}
       className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
         copied
-          ? 'bg-green-600 text-white'
-          : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600 hover:text-zinc-200'
+          ? 'bg-success text-success-foreground'
+          : 'bg-background-emphasis text-ink-2 hover:bg-border-emphasis hover:text-ink-1'
       }`}
       title={`Copy all ${label.toLowerCase()} as JSON`}
     >

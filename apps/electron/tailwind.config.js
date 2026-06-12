@@ -5,15 +5,13 @@ export default {
   ...baseConfig,
   content: ['./src/renderer/**/*.{html,tsx,ts}', '../../packages/*/src/**/*.{ts,tsx}'],
   safelist: [
-    // DevTools panel uses zinc colors in dynamically constructed class strings
-    { pattern: /^bg-zinc-(800|900|950)$/ },
-    { pattern: /^text-zinc-(200|400|500)$/ },
-    { pattern: /^border-zinc-(700|800)$/ },
-    // Hover states for text colors
-    'hover:text-zinc-200',
-    'hover:text-white',
-    'border-blue-400',
-    'text-blue-400',
+    // DevTools panel uses workspace tokens in dynamically constructed class strings
+    { pattern: /^bg-(surface-1|surface-2|background-emphasis|accent)$/ },
+    { pattern: /^text-ink-(1|2|3)$/ },
+    { pattern: /^border-(hairline|accent-ink)$/ },
+    // Hover states
+    'hover:text-ink-1',
+    'hover:bg-accent',
     // TableView dark mode inside devtools
     'dark:bg-gray-900',
     'dark:border-gray-800',
