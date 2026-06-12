@@ -1,0 +1,113 @@
+name: Maintain gh-pages
+
+# Weekly hygiene for the gh-pages branch:
+#  1. Sweep orphaned previews — pr/<N> dirs whose PR is no longer open and
+#     branch/<slug> dirs whose branch no longer exists (the delete event does
+#     not fire in every deletion path).
+#  2. Squash history to a single orphan commit. Every deploy commits a full
+#     set of hashed bundles; the live tree stays small but history grows
+#     without bound against GitHub's 1 GB repo soft limit.
+on:
+  schedule:
+    - cron: '17 6 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+# Serialize behind the production deploy so maintenance never interleaves
+# with a production publish.
+concurrency:
+  group: pages-production
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    if: github.repository_owner == 'crs48'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find orphaned previews
+        id: sweep
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          stale_file=$(mktemp)
+          touch "$stale_file"
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+
+            open_prs=$(gh pr list --state open --limit 1000 --json number --jq '.[].number')
+            for dir in $(git ls-tree --name-only origin/gh-pages:pr 2>/dev/null || true); do
+              if ! grep -qx "$dir" <<< "$open_prs"; then
+                echo "pr/$dir" >> "$stale_file"
+              fi
+            done
+
+            # Branch previews are stored under slugged names (slashes -> dashes).
+            live_slugs=$(git ls-remote --heads origin | sed 's|.*refs/heads/||' | tr '/' '-')
+            for dir in $(git ls-tree --name-only origin/gh-pages:branch 2>/dev/null || true); do
+              if ! grep -qx "$dir" <<< "$live_slugs"; then
+                echo "branch/$dir" >> "$stale_file"
+              fi
+            done
+          else
+            echo "No gh-pages branch; nothing to sweep."
+          fi
+
+          echo "Stale previews:"
+          cat "$stale_file"
+
+          {
+            echo 'stale<<XNET_STALE_EOF'
+            cat "$stale_file"
+            echo 'XNET_STALE_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Remove orphaned previews
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          remove: ${{ steps.sweep.outputs.stale }}
+          commit-message: 'deploy(preview): sweep orphaned previews'
+
+      - name: Squash gh-pages history
+        run: |
+          set -euo pipefail
+
+          if ! git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            echo "No gh-pages branch; nothing to squash."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for attempt in 1 2 3; do
+            git fetch origin gh-pages
+            tip=$(git rev-parse refs/remotes/origin/gh-pages)
+
+            if [ "$(git rev-list --count "$tip")" -le 1 ]; then
+              echo "gh-pages is already a single commit; nothing to squash."
+              exit 0
+            fi
+
+            tree=$(git rev-parse "$tip^{tree}")
+            new=$(git commit-tree "$tree" -m "deploy(site): squash gh-pages history")
+
+            # --force-with-lease: only replace the tip we just read, so a
+            # concurrent preview push is never silently discarded.
+            if git push --force-with-lease=refs/heads/gh-pages:"$tip" origin "$new":refs/heads/gh-pages; then
+              echo "Squashed gh-pages history to a single commit."
+              exit 0
+            fi
+
+            echo "gh-pages moved during squash (attempt $attempt); retrying."
+          done
+
+          echo "Failed to squash gh-pages history after 3 attempts."
+          exit 1

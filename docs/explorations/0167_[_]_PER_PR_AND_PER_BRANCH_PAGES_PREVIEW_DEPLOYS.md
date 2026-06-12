@@ -458,8 +458,8 @@ writer; the shared composite action should serialize via the
 - [x] Add `deploy-branch-preview.yml` (opt-in trigger: `preview/**` branches + `workflow_dispatch`), deploying to `branch/<slug>/app/` with `VITE_BASE_PATH` set accordingly
 - [x] Add `remove-branch-preview.yml` on the `delete` event (branch refs only, slugified path)
 - [x] Add `--exclude branch` to the production rsync in [deploy-site.yml](../../.github/workflows/deploy-site.yml) (`mkdir -p branch` turned out unnecessary — git does not track empty directories)
-- [ ] Add weekly `squash-gh-pages.yml` history-squash workflow
-- [ ] Add weekly orphan sweep: delete `pr/*` dirs with no open PR and `branch/*` dirs with no live ref
+- [x] Add weekly history-squash workflow (landed as [gh-pages-maintenance.yml](../../.github/workflows/gh-pages-maintenance.yml), using `git commit-tree` + `--force-with-lease` so no checkout is needed and concurrent pushes are never discarded)
+- [x] Add weekly orphan sweep: delete `pr/*` dirs with no open PR and `branch/*` dirs with no live ref (same workflow, runs before the squash)
 - [ ] Thread a `VITE_STORAGE_SCOPE` (e.g. `pr-42`) build arg into IndexedDB database names — starting with `DB_NAME` in [packages/identity/src/passkey/storage.ts](../../packages/identity/src/passkey/storage.ts) — so previews never open production databases
 - [ ] Document the preview URL scheme (`/pr/<N>/app/`, `/branch/<slug>/app/`) in the repo docs
 
