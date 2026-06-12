@@ -23,6 +23,7 @@ export type SharePayloadV2 = {
 export type ParsedShareInput =
   | { kind: 'legacy'; docType: ShareDocType; docId: string }
   | { kind: 'handle'; handle: string }
+  | { kind: 'link'; linkId: string; hub: string; secret: string }
   | { kind: 'v2'; payload: SharePayloadV2; encodedPayload: string; securityWarnings?: string[] }
 
 const DEFAULT_SHARE_BASE_URL = 'https://xnet.fyi/app'
@@ -87,15 +88,93 @@ export function buildUniversalShareHandleUrl(options: BuildShareHandleUrlOptions
   return `${baseUrl}${sharePath}?handle=${encodeURIComponent(options.handle)}`
 }
 
+const SHARE_LINK_ID_RE = /^[A-Za-z0-9_-]{8,64}$/
+
+const normalizeShareHubHttpUrl = (url: string): string =>
+  url.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/$/, '')
+
+/**
+ * Parse durable share-link URLs (exploration 0169):
+ * `https://<hub>/s/<linkId>#s=<secret>` or
+ * `xnet://share?link=<linkId>&hub=<hubUrl>#s=<secret>`.
+ */
+function parseShareLinkUrl(
+  input: string
+): { kind: 'link'; linkId: string; hub: string; secret: string } | null {
+  try {
+    const url = new URL(input)
+    const secret = new URLSearchParams(url.hash.replace(/^#/, '')).get('s') ?? ''
+
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      const match = url.pathname.match(/^\/s\/([A-Za-z0-9_-]{8,64})$/)
+      if (!match || !secret) return null
+      return { kind: 'link', linkId: match[1], hub: `${url.protocol}//${url.host}`, secret }
+    }
+
+    if (url.protocol === 'xnet:' && url.hostname === 'share') {
+      const linkId = url.searchParams.get('link') ?? ''
+      const hub = url.searchParams.get('hub') ?? ''
+      if (!SHARE_LINK_ID_RE.test(linkId) || !hub || !secret) return null
+      return { kind: 'link', linkId, hub: normalizeShareHubHttpUrl(hub), secret }
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+export type ShareLinkClaimResult = {
+  resource: string
+  docType: 'page' | 'database' | 'canvas' | 'dashboard' | 'view'
+  role: 'read' | 'comment' | 'write'
+  endpoint: string
+}
+
+/** Claim a durable share link, recording a grant for this identity. */
+export async function claimShareLink(
+  link: { linkId: string; hub: string; secret: string },
+  authToken: string
+): Promise<ShareLinkClaimResult> {
+  const hub = normalizeShareHubHttpUrl(link.hub)
+  const response = await fetch(`${hub}/shares/links/${encodeURIComponent(link.linkId)}/claim`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`
+    },
+    body: JSON.stringify({ secret: link.secret }),
+    cache: 'no-store'
+  })
+
+  const data = (await response.json().catch(() => null)) as
+    | (ShareLinkClaimResult & { error?: string })
+    | { error?: string }
+    | null
+
+  if (!response.ok || !data || !('resource' in data)) {
+    throw new Error(data?.error ?? 'Share link could not be claimed')
+  }
+  return data
+}
+
 export function parseShareInput(input: string): ParsedShareInput {
   const normalized = input.trim()
   if (!normalized) {
     throw new Error('Please enter a share link or payload')
   }
 
-  const legacy = parseLegacyShare(normalized)
-  if (legacy && normalized.includes(':')) {
-    return legacy
+  const shareLink = parseShareLinkUrl(normalized)
+  if (shareLink) {
+    return shareLink
+  }
+
+  // Naked `type:id` sharing was removed with durable share links
+  // (exploration 0169) — point people at the new URL form.
+  if (/^(page|database|canvas):/.test(normalized)) {
+    throw new Error(
+      'Document-ID sharing has been replaced by share links. Ask for a link like https://hub.xnet.fyi/s/…'
+    )
   }
 
   const directHandle = parseShareHandle(normalized)
@@ -103,73 +182,43 @@ export function parseShareInput(input: string): ParsedShareInput {
     return { kind: 'handle', handle: directHandle }
   }
 
-  try {
-    const extracted = extractPayload(normalized)
-    if (extracted.kind === 'handle') {
-      return extracted
-    }
-    const encodedPayload = extracted.encodedPayload
-    const payload = decodeSharePayloadV2(encodedPayload)
-    if (payload.exp <= Date.now()) {
-      throw new Error('Share link has expired')
-    }
-
-    const sanitizedIceResult = sanitizeInboundIceServers(payload.transportHints?.iceServers)
-    const securityWarnings: string[] = []
-    if (sanitizedIceResult.droppedCount > 0) {
-      securityWarnings.push(
-        `Ignored ${sanitizedIceResult.droppedCount} unapproved ICE URL${sanitizedIceResult.droppedCount === 1 ? '' : 's'} from share link.`
-      )
-    }
-    if (sanitizedIceResult.reorderedForRelaySecurity) {
-      securityWarnings.push('Reordered ICE candidates to prefer TURN over TLS relay paths.')
-    }
-
-    const sanitizedPayload: SharePayloadV2 = {
-      ...payload,
-      transportHints: payload.transportHints
-        ? {
-            ...payload.transportHints,
-            iceServers: sanitizedIceResult.iceServers
-          }
-        : undefined
-    }
-
-    return {
-      kind: 'v2',
-      payload: sanitizedPayload,
-      encodedPayload,
-      securityWarnings: securityWarnings.length > 0 ? securityWarnings : undefined
-    }
-  } catch (error) {
-    if (
-      legacy &&
-      error instanceof Error &&
-      (error.message === 'Invalid share payload encoding' || error.message === 'Invalid share URL')
-    ) {
-      return legacy
-    }
-    throw error
+  const extracted = extractPayload(normalized)
+  if (extracted.kind === 'handle') {
+    return extracted
   }
-}
-
-function parseLegacyShare(
-  input: string
-): { kind: 'legacy'; docType: ShareDocType; docId: string } | null {
-  if (!input.includes(':')) {
-    if (input.length >= 8) {
-      return { kind: 'legacy', docType: 'page', docId: input }
-    }
-    return null
+  const encodedPayload = extracted.encodedPayload
+  const payload = decodeSharePayloadV2(encodedPayload)
+  if (payload.exp <= Date.now()) {
+    throw new Error('Share link has expired')
   }
 
-  const [prefix, ...rest] = input.split(':')
-  const docId = rest.join(':').trim()
-  if (!docId) return null
-  if (prefix === 'page' || prefix === 'database' || prefix === 'canvas') {
-    return { kind: 'legacy', docType: prefix, docId }
+  const sanitizedIceResult = sanitizeInboundIceServers(payload.transportHints?.iceServers)
+  const securityWarnings: string[] = []
+  if (sanitizedIceResult.droppedCount > 0) {
+    securityWarnings.push(
+      `Ignored ${sanitizedIceResult.droppedCount} unapproved ICE URL${sanitizedIceResult.droppedCount === 1 ? '' : 's'} from share link.`
+    )
   }
-  return null
+  if (sanitizedIceResult.reorderedForRelaySecurity) {
+    securityWarnings.push('Reordered ICE candidates to prefer TURN over TLS relay paths.')
+  }
+
+  const sanitizedPayload: SharePayloadV2 = {
+    ...payload,
+    transportHints: payload.transportHints
+      ? {
+          ...payload.transportHints,
+          iceServers: sanitizedIceResult.iceServers
+        }
+      : undefined
+  }
+
+  return {
+    kind: 'v2',
+    payload: sanitizedPayload,
+    encodedPayload,
+    securityWarnings: securityWarnings.length > 0 ? securityWarnings : undefined
+  }
 }
 
 function extractPayload(

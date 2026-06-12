@@ -1,13 +1,22 @@
 /**
- * AddSharedDialog - Add a shared document to your local database
+ * AddSharedDialog - Open a share link that was sent to you.
  *
- * User pastes a document ID and it gets added to their local store.
- * The document then syncs via P2P and appears in their sidebar permanently.
+ * Paste a share URL (https://<hub>/s/<linkId>#s=… or xnet://share?…). The
+ * link is claimed against its hub, which grants this identity access; the
+ * document then syncs and appears in the sidebar permanently.
  */
 
 import { useNavigate } from '@tanstack/react-router'
+import { useXNet } from '@xnetjs/react'
 import { Link, X } from 'lucide-react'
 import { useState } from 'react'
+import {
+  claimShareLink,
+  parseShareUrl,
+  ShareClaimError,
+  shareClaimErrorMessage,
+  type ShareClaimResult
+} from '../lib/share-links'
 
 interface AddSharedDialogProps {
   isOpen: boolean
@@ -16,54 +25,71 @@ interface AddSharedDialogProps {
 
 export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
   const navigate = useNavigate()
-  const [sharedId, setSharedId] = useState('')
+  const { getHubAuthToken } = useXNet()
+  const [shareUrl, setShareUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [claiming, setClaiming] = useState(false)
 
   if (!isOpen) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const trimmedId = sharedId.trim()
-    if (!trimmedId) {
-      setError('Please enter a document ID')
-      return
-    }
-
-    // Parse type-prefixed ID (e.g., "page:abc123" or "database:xyz789")
-    const [typeOrId, maybeId] = trimmedId.split(':')
-    const docType = maybeId ? typeOrId : 'page'
-    const docId = maybeId || typeOrId
-
-    // Basic validation - IDs are typically 10+ characters
-    if (docId.length < 8) {
-      setError('Invalid document ID')
-      return
-    }
-
-    // Navigate to the document based on type
-    switch (docType) {
-      case 'page':
-        navigate({ to: '/doc/$docId', params: { docId } })
-        break
+  const openClaimedDoc = (result: ShareClaimResult): void => {
+    switch (result.docType) {
       case 'database':
-        navigate({ to: '/db/$dbId', params: { dbId: docId } })
+        void navigate({ to: '/db/$dbId', params: { dbId: result.resource } })
         break
       case 'canvas':
-        navigate({ to: '/canvas/$canvasId', params: { canvasId: docId } })
+        void navigate({ to: '/canvas/$canvasId', params: { canvasId: result.resource } })
+        break
+      case 'dashboard':
+        void navigate({
+          to: '/dashboard/$dashboardId',
+          params: { dashboardId: result.resource }
+        })
+        break
+      case 'view':
+        void navigate({ to: '/view/$viewId', params: { viewId: result.resource } })
         break
       default:
-        // Default to page for unknown types
-        navigate({ to: '/doc/$docId', params: { docId } })
+        void navigate({ to: '/doc/$docId', params: { docId: result.resource } })
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const parsed = parseShareUrl(shareUrl)
+    if (!parsed) {
+      setError('Paste a full share link, like https://hub.xnet.fyi/s/abc123#s=…')
+      return
+    }
+    if (!getHubAuthToken) {
+      setError('Hub authentication is not available')
+      return
     }
 
-    setSharedId('')
+    setClaiming(true)
     setError(null)
-    onClose()
+    try {
+      const token = await getHubAuthToken()
+      const result = await claimShareLink(parsed, token)
+      openClaimedDoc(result)
+      setShareUrl('')
+      onClose()
+    } catch (err) {
+      setError(
+        err instanceof ShareClaimError
+          ? shareClaimErrorMessage(err.code)
+          : err instanceof Error
+            ? err.message
+            : String(err)
+      )
+    } finally {
+      setClaiming(false)
+    }
   }
 
   const handleClose = () => {
-    setSharedId('')
+    setShareUrl('')
     setError(null)
     onClose()
   }
@@ -79,7 +105,7 @@ export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
             <Link size={16} className="text-primary" />
-            <h2 className="text-sm font-medium">Add Shared Document</h2>
+            <h2 className="text-sm font-medium">Open Share Link</h2>
           </div>
           <button
             onClick={handleClose}
@@ -90,22 +116,22 @@ export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={(e) => void handleSubmit(e)} className="p-4">
           <p className="text-sm text-muted-foreground mb-4">
-            Paste a document ID that was shared with you. The document will be added to your library
-            and sync automatically.
+            Paste a share link that was sent to you. Claiming it gives this device access and the
+            document syncs automatically.
           </p>
 
           <div className="mb-4">
-            <label className="block text-xs text-muted-foreground mb-1.5">Document ID</label>
+            <label className="block text-xs text-muted-foreground mb-1.5">Share link</label>
             <input
               type="text"
-              value={sharedId}
+              value={shareUrl}
               onChange={(e) => {
-                setSharedId(e.target.value)
+                setShareUrl(e.target.value)
                 setError(null)
               }}
-              placeholder="e.g., database:abc123def456..."
+              placeholder="https://hub.xnet.fyi/s/abc123#s=…"
               className="w-full px-3 py-2 text-sm font-mono bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
               autoFocus
             />
@@ -122,9 +148,10 @@ export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
+              disabled={claiming}
+              className="px-4 py-2 text-sm bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              Add to Library
+              {claiming ? 'Claiming…' : 'Open'}
             </button>
           </div>
         </form>
@@ -132,8 +159,8 @@ export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
         {/* Footer note */}
         <div className="px-4 py-3 bg-secondary/50 border-t border-border rounded-b-lg">
           <p className="text-xs text-muted-foreground">
-            <strong>Tip:</strong> Both you and the document owner need to be online for the initial
-            sync. After that, changes sync whenever you're both online.
+            <strong>Tip:</strong> Share links replace the old document-ID sharing. Ask for a new
+            link if someone sent you a bare <code>page:…</code> ID.
           </p>
         </div>
       </div>

@@ -82,19 +82,35 @@ type BeforeInstallPromptEvent = Event & {
 function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | null } {
   try {
     const parsed = new URL(window.location.href)
-    const shareSession = parsed.searchParams.get('shareSession')
-    if (parsed.searchParams.has('payload') || parsed.searchParams.has('handle')) {
-      parsed.searchParams.delete('payload')
-      parsed.searchParams.delete('handle')
-      window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${parsed.hash}`)
+    // Under hash routing the route query lives inside the fragment
+    // (e.g. /app/#/doc/x?shareSession=k) — check both locations.
+    const [hashPath, hashQuery = ''] = parsed.hash.split('?')
+    const hashParams = new URLSearchParams(hashQuery)
+    const shareSession = parsed.searchParams.get('shareSession') ?? hashParams.get('shareSession')
+
+    const stripParams = (...names: string[]): void => {
+      for (const name of names) {
+        parsed.searchParams.delete(name)
+        hashParams.delete(name)
+      }
+      const hash = hashParams.size > 0 ? `${hashPath}?${hashParams.toString()}` : hashPath
+      window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${hash}`)
+    }
+
+    if (
+      parsed.searchParams.has('payload') ||
+      parsed.searchParams.has('handle') ||
+      hashParams.has('payload') ||
+      hashParams.has('handle')
+    ) {
+      stripParams('payload', 'handle')
     }
     if (!shareSession) {
       return { hubUrl: DEFAULT_HUB_URL, authToken: null }
     }
 
     const stored = sessionStorage.getItem(`xnet:share-session:${shareSession}`)
-    parsed.searchParams.delete('shareSession')
-    window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${parsed.hash}`)
+    stripParams('shareSession')
     if (!stored) {
       return { hubUrl: DEFAULT_HUB_URL, authToken: null }
     }

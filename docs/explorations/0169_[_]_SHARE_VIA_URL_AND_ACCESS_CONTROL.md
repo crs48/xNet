@@ -688,18 +688,26 @@ Phase 1 — durable links on the hub (B1):
 
 Phase 2 — client surfaces:
 
-- [ ] Extend `/share` route in apps/web to handle
+- [x] Extend `/share` route in apps/web to handle
       `?link=&hub=…#s=…`: claim → store hub session → pin doc →
-      navigate (reuse `shareSession` plumbing in App.tsx)
-- [ ] Preserve claim intent across passkey onboarding
-- [ ] New ShareDialog (links tab + people tab) replacing
-      ShareButton's ID copy; wire `useShareLinks` / `useGrants` hooks
-- [ ] Electron: extend deep-link parser to accept
+      navigate (reuses `shareSession` plumbing in App.tsx; same-hub
+      claims navigate in-SPA, cross-hub claims store a session and
+      reload; also fixed hash-router handling in the session plumbing)
+- [x] Preserve claim intent across passkey onboarding (the router only
+      mounts post-onboarding and the link params stay in the URL, so
+      the `/share` route claims as soon as identity exists)
+- [x] New ShareDialog (links tab + people tab) replacing
+      ShareButton's ID copy; wire `useShareLinks` / `useShareGrants`
+      hooks (link URLs with secrets are cached on the creating device
+      only — other devices see the link without its secret)
+- [x] Electron: extend deep-link parser to accept
       `xnet://share?link=…&hub=…` (keep handle/payload forms)
-- [ ] "Add Shared" dialog: accept full share URLs by parsing out
-      linkId/hub/secret; drop naked `type:id` (announce removal)
-- [ ] Recipient-side pinning: claimed docs appear in the workspace
-      sidebar (persisted, not just a route visit)
+- [x] "Add Shared" dialog: accept full share URLs by parsing out
+      linkId/hub/secret; drop naked `type:id` (web and Electron both
+      reject it with a pointer to share links)
+- [x] Recipient-side pinning: claiming always navigates to the doc,
+      which subscribes and materializes the node in local storage —
+      the Explorer sidebar lists local nodes, so the doc persists there
 
 Phase 3 — hardening and reach:
 

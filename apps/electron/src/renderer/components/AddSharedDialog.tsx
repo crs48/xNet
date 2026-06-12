@@ -5,9 +5,10 @@
  * The document then syncs via P2P and appears in their sidebar permanently.
  */
 
+import { useXNet } from '@xnetjs/react'
 import { Link, X } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import { parseShareInput } from '../lib/share-payload'
+import { claimShareLink, parseShareInput } from '../lib/share-payload'
 
 export interface AddSharedInput {
   docType: 'page' | 'database' | 'canvas'
@@ -31,6 +32,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
   const [docId, setDocId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [securityNotice, setSecurityNotice] = useState<string | null>(null)
+  const { getHubAuthToken } = useXNet()
 
   useEffect(() => {
     if (!isOpen || !initialValue) {
@@ -56,10 +58,29 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
         setSecurityNotice(null)
       }
 
-      if (parsed.kind === 'legacy') {
+      if (parsed.kind === 'link') {
+        if (!getHubAuthToken) {
+          throw new Error('Hub authentication is not available')
+        }
+        const token = await getHubAuthToken()
+        const claimed = await claimShareLink(parsed, token)
+        if (
+          claimed.docType !== 'page' &&
+          claimed.docType !== 'database' &&
+          claimed.docType !== 'canvas'
+        ) {
+          throw new Error(
+            `This link shares a ${claimed.docType}, which is not supported on desktop yet — open it on the web app.`
+          )
+        }
         await onAdd({
-          docType: parsed.docType,
-          docId: parsed.docId
+          docType: claimed.docType,
+          docId: claimed.resource,
+          share: {
+            endpoint: claimed.endpoint,
+            token,
+            transport: 'ws'
+          }
         })
       } else if (parsed.kind === 'handle') {
         const hubHttpUrl = resolveHubHttpUrl()
