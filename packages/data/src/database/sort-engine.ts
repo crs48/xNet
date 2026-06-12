@@ -6,6 +6,7 @@
 
 import type { ColumnDefinition, ColumnType } from './column-types'
 import type { SortConfig } from './view-types'
+import { compareSortKeys } from './fractional-index'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,8 +43,10 @@ export function sortRows<T extends SortableRow>(
   sorts: SortConfig[]
 ): T[] {
   if (!sorts || sorts.length === 0) {
-    // Default sort by sortKey (fractional index)
-    return [...rows].sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+    // Default sort by sortKey (fractional index). Must use code-unit
+    // comparison: locale collation reorders mixed-case base-62 keys
+    // (e.g. 'Zz' after 'a0'), undoing manual row reorders.
+    return [...rows].sort((a, b) => compareSortKeys(a.sortKey, b.sortKey))
   }
 
   return [...rows].sort((a, b) => {
@@ -62,13 +65,15 @@ export function sortRows<T extends SortableRow>(
     }
 
     // Fallback to sortKey for stable sorting
-    return a.sortKey.localeCompare(b.sortKey)
+    return compareSortKeys(a.sortKey, b.sortKey)
   })
 }
 
 /**
  * Compare two values based on column type.
  */
+// Inherent flat switch over column types.
+// fallow-ignore-next-line complexity
 function compareValues(a: unknown, b: unknown, type: ColumnType): number {
   // Handle null/undefined - nulls sort last
   if (a == null && b == null) return 0

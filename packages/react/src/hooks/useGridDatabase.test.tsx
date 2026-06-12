@@ -119,23 +119,38 @@ describe('useGridDatabase', () => {
     const { result } = renderHook(() => useGridDatabase(databaseId), { wrapper })
     await waitFor(() => expect(result.current.loading).toBe(false))
 
+    // A view must exist: the app always bootstraps one, and with an active
+    // view the row list goes through sortRows (which once used locale
+    // collation and reverted moves — the drag-and-drop regression).
     let titleId = ''
     await act(async () => {
       titleId = (await result.current.addField('Title', 'text')) ?? ''
+      await result.current.addView('Table', 'table')
       await result.current.addRow(undefined, { [titleId]: 'A' })
       await result.current.addRow(undefined, { [titleId]: 'B' })
       await result.current.addRow(undefined, { [titleId]: 'C' })
     })
     await waitFor(() => expect(result.current.rows).toHaveLength(3))
+    await waitFor(() => expect(result.current.activeView).not.toBeNull())
 
     const idOf = (title: string): string =>
       result.current.rows.find((r) => r.cells[titleId] === title)!.id
 
+    // Move to the front (generates a prepend 'Z…' key — the case locale
+    // collation used to misorder)
     await act(async () => {
       await result.current.moveRowToIndex(idOf('C'), 0)
     })
     await waitFor(() =>
       expect(result.current.rows.map((r) => r.cells[titleId])).toEqual(['C', 'A', 'B'])
+    )
+
+    // Move to the end
+    await act(async () => {
+      await result.current.moveRowToIndex(idOf('C'), 2)
+    })
+    await waitFor(() =>
+      expect(result.current.rows.map((r) => r.cells[titleId])).toEqual(['A', 'B', 'C'])
     )
   })
 
