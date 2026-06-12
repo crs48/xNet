@@ -8,6 +8,7 @@
  */
 
 import type { InferNode } from '../types'
+import type { MessageMentions } from './mentions'
 import { defineSchema } from '../define'
 import {
   text,
@@ -18,7 +19,8 @@ import {
   relation,
   file,
   created,
-  createdBy
+  createdBy,
+  json
 } from '../properties'
 
 export const CommentSchema = defineSchema({
@@ -65,6 +67,13 @@ export const CommentSchema = defineSchema({
 
     /** Optional file attachments */
     attachments: file({ multiple: true }),
+
+    /**
+     * Structured mentions ({ dids, room? }) — populated by the composer when
+     * mention pills are inserted (exploration 0168). Additive and optional;
+     * legacy text-parsed mentions (commentReferences.ts) remain as fallback.
+     */
+    mentions: json<MessageMentions>({}),
 
     // ─── Pseudo Reply-To (for UI, not structural threading) ────────────────────
 
