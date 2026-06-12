@@ -699,12 +699,13 @@ Phase 1 — Shell skeleton
 
 Phase 2 — Tabs
 
-- [ ] Tab store + tab bar in the editor area; router-authoritative
+- [x] Tab store + tab bar in the editor area; router-authoritative
       activation; session persistence and restore
-- [ ] Preview-tab semantics (single click = preview, edit promotes), pin,
+- [x] Preview-tab semantics (single click = preview, edit promotes), pin,
       reorder, middle-click close, Ctrl+Tab cycling
-- [ ] One optional split (second editor group) via drag-to-edge and Cmd+\\
-- [ ] Background-tab subscription downgrade for Y.Doc-backed views
+- [x] One optional split (second editor group) via drag-to-edge and ⌘⇧\
+- [x] Background-tab subscription downgrade for Y.Doc-backed views
+      (background tabs are unmounted entirely — zero live subscriptions)
 
 Phase 3 — Panels
 

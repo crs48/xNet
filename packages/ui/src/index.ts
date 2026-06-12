@@ -255,7 +255,7 @@ export {
 } from './composed/comments'
 
 // ─── Theme ────────────────────────────────────────────────────────
-export { ThemeProvider, useTheme, type Theme } from './theme/ThemeProvider'
+export { ThemeProvider, useTheme, type Theme, type ThemeVariant } from './theme/ThemeProvider'
 
 // ─── Responsive Components ─────────────────────────────────────────
 export {
@@ -362,3 +362,13 @@ export {
   type ContrastLevel,
   type ContrastResult
 } from './utils/contrast'
+
+// ─── Drag & Drop (0166 unified node transfer) ─────────────────────
+export {
+  XNET_NODE_MIME,
+  setNodeTransfer,
+  getNodeTransfer,
+  hasNodeTransfer,
+  type NodeTransfer,
+  type NodeTransferSource
+} from './dnd/node-transfer'

@@ -71,3 +71,20 @@ export function tabFromPathname(pathname: string): RouteTabDescriptor | null {
 export function routeForTab(nodeType: TabNodeType, nodeId: string): string {
   return TAB_VIEWS[nodeType].toRoute(nodeId)
 }
+
+/**
+ * Preview intent — set by single-click sources (explorer, palette)
+ * just before they navigate, consumed by the route→tab sync. Deep
+ * links, back/forward and command navigation open permanent tabs.
+ */
+let previewIntent = false
+
+export function setPreviewIntent(): void {
+  previewIntent = true
+}
+
+export function consumePreviewIntent(): boolean {
+  const value = previewIntent
+  previewIntent = false
+  return value
+}

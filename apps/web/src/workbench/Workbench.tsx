@@ -9,18 +9,13 @@
  */
 import type { ReactNode } from 'react'
 import { DemoBanner, useDemoMode } from '@xnetjs/react'
-import {
-  Group,
-  Panel,
-  Separator,
-  useDefaultLayout,
-  type SeparatorProps
-} from 'react-resizable-panels'
+import { Group, Panel, useDefaultLayout } from 'react-resizable-panels'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { useWorkbenchCommands, useZenEscape } from './commands'
 import { ContextPanel } from './ContextPanel'
 import { EditorArea } from './EditorArea'
+import { Hairline } from './Hairline'
 import { PanelViewHost } from './PanelViewHost'
 import { Rail } from './Rail'
 import { useWorkbench } from './state'
@@ -28,20 +23,6 @@ import { StatusBar } from './StatusBar'
 import { registerInterimPanelViews } from './views/interim'
 
 registerInterimPanelViews()
-
-function Hairline(props: SeparatorProps & { orientation: 'horizontal' | 'vertical' }) {
-  const { orientation, ...rest } = props
-  return (
-    <Separator
-      {...rest}
-      className={
-        orientation === 'horizontal'
-          ? 'relative w-px shrink-0 bg-hairline transition-colors after:absolute after:-inset-x-1 after:inset-y-0 hover:bg-border-emphasis data-[dragging]:bg-accent-ink'
-          : 'relative h-px shrink-0 bg-hairline transition-colors after:absolute after:-inset-y-1 after:inset-x-0 hover:bg-border-emphasis data-[dragging]:bg-accent-ink'
-      }
-    />
-  )
-}
 
 export function Workbench({ children }: { children: ReactNode }) {
   const mode = useWorkbench((state) => state.mode)
