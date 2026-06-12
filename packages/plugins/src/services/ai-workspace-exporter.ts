@@ -16,6 +16,7 @@ import { watch as watchFs, type FSWatcher } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { attachAiPlanValidation, createAiOperation, createAiSurfaceService } from '../ai-surface'
+import { XNET_AGENT_SKILL_MD } from '../ai-surface/skill'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,10 @@ export type AiWorkspaceExportKind = 'page' | 'database' | 'canvas' | 'node'
 export type AiWorkspaceExportScope = {
   nodeIds?: string[]
   schemaIds?: string[]
+  /** Search query; matching nodes are materialized into the checkout. */
+  query?: string
+  /** Folder-style scope: export every node of these kinds (bounded by limit). */
+  kinds?: AiWorkspaceExportKind[]
   limit?: number
 }
 
@@ -31,6 +36,13 @@ export type AiWorkspaceExportOptions = {
   rootDir: string
   workspaceName?: string
   scope?: AiWorkspaceExportScope
+}
+
+export type AiWorkspaceCheckoutOptions = {
+  rootDir: string
+  workspaceName?: string
+  /** Required scope: a checkout always materializes an explicit slice. */
+  scope: AiWorkspaceExportScope
 }
 
 export type AiWorkspaceManifestEntry = {
@@ -57,6 +69,11 @@ export type AiWorkspaceExporterConfig = {
   schemas: SchemaRegistryAPI
   aiSurface?: AiSurfaceService
   clock?: () => Date
+  /**
+   * Generate a read-optimized `.tsv` sidecar for databases with at least this
+   * many rows. JSONL stays the write format; sidecars are read-only.
+   */
+  tsvSidecarMinRows?: number
 }
 
 export type AiWorkspaceChangedFileStatus = 'modified' | 'missing'
@@ -83,6 +100,7 @@ export type AiWorkspaceConflictKind =
   | 'invalid-json'
   | 'invalid-jsonl'
   | 'invalid-plan'
+  | 'validation-warning'
   | 'unsupported-change'
   | 'tool-error'
 
@@ -92,6 +110,8 @@ export type AiWorkspaceConflict = {
   id?: string
   message: string
   conflictPath?: string
+  /** Human/agent-readable Markdown note with resolution instructions. */
+  notePath?: string
   detectedAt: string
 }
 
@@ -142,8 +162,17 @@ export type AiWorkspaceWatcherScanResult = {
   review: AiWorkspaceReviewIndex
 }
 
+export type AiWorkspaceWatchOptions = AiWorkspaceWatcherScanOptions & {
+  /** Force interval polling instead of fs.watch (reliable cross-platform). */
+  usePolling?: boolean
+  /** Poll interval when polling is active. Defaults to 2000ms. */
+  pollIntervalMs?: number
+}
+
 export type AiWorkspaceWatchHandle = {
   close(): void
+  /** True when the handle fell back to (or was configured for) polling. */
+  isPolling(): boolean
 }
 
 // ─── Exporter ───────────────────────────────────────────────────────────────
@@ -173,9 +202,32 @@ export class AiWorkspaceExporter {
     return await this.exportWorkspaceProjection(options, { incremental: true })
   }
 
+  /**
+   * Lazily materialize an explicit slice of the workspace into the checkout.
+   *
+   * Unlike exportWorkspace there is no default "export everything up to the
+   * limit" behavior: a checkout always names what it wants (query, schema,
+   * node ids, or kind folders). Repeated checkouts are incremental and merge
+   * with whatever is already checked out.
+   */
+  async checkout(options: AiWorkspaceCheckoutOptions): Promise<AiWorkspaceExportResult> {
+    const scope = options.scope
+    const hasScope =
+      Boolean(scope.nodeIds?.length) ||
+      Boolean(scope.schemaIds?.length) ||
+      Boolean(scope.query?.trim()) ||
+      Boolean(scope.kinds?.length)
+    if (!hasScope) {
+      throw new Error(
+        'checkout requires an explicit scope (nodeIds, schemaIds, query, or kinds); eager whole-workspace export is not supported'
+      )
+    }
+    return await this.exportWorkspaceProjection(options, { incremental: true, merge: true })
+  }
+
   private async exportWorkspaceProjection(
     options: AiWorkspaceExportOptions,
-    mode: { incremental: boolean }
+    mode: { incremental: boolean; merge?: boolean }
   ): Promise<AiWorkspaceExportResult> {
     const exportedAt = this.clock().toISOString()
     const nodes = await this.resolveNodes(options.scope)
@@ -192,30 +244,60 @@ export class AiWorkspaceExporter {
       files
     )
 
+    const exportIds = new Set(nodes.map((node) => node.id))
+    const usedStems = new Set<string>()
+    const reusedEntries = new Map<string, AiWorkspaceManifestEntry[]>()
+    const previousEntriesById = new Map<string, AiWorkspaceManifestEntry[]>()
+
+    for (const entry of previousManifest) {
+      const entries = previousEntriesById.get(entry.id) ?? []
+      entries.push(entry)
+      previousEntriesById.set(entry.id, entries)
+    }
+
+    // Merge mode keeps previously checked-out nodes that this scope does not touch.
+    if (mode.merge) {
+      for (const entry of previousManifest) {
+        if (exportIds.has(entry.id)) continue
+        manifestEntries.push(entry)
+        usedStems.add(stemKeyForPath(entry.path))
+      }
+    }
+
+    // Reserve stems for unchanged nodes before allocating new ones.
     for (const node of nodes) {
-      const previousEntries = previousManifest.filter((entry) => entry.id === node.id)
+      const previousEntries = previousEntriesById.get(node.id) ?? []
       if (
         mode.incremental &&
         previousEntries.length > 0 &&
         previousEntries.every((entry) => entry.revision === nodeRevision(node))
       ) {
-        manifestEntries.push(...previousEntries)
+        reusedEntries.set(node.id, previousEntries)
+        for (const entry of previousEntries) usedStems.add(stemKeyForPath(entry.path))
+      }
+    }
+
+    for (const node of nodes) {
+      const reused = reusedEntries.get(node.id)
+      if (reused) {
+        manifestEntries.push(...reused)
         skippedNodeIds.push(node.id)
         continue
       }
 
       const kind = inferExportKind(node)
+      const stem = allocateStem(node, kind, usedStems, previousEntriesById.get(node.id))
       if (kind === 'page') {
-        const entry = await this.exportPage(options.rootDir, node, exportedAt, files)
+        const entry = await this.exportPage(options.rootDir, node, stem, exportedAt, files)
         manifestEntries.push(entry)
       } else if (kind === 'database') {
-        const entries = await this.exportDatabase(options.rootDir, node, exportedAt, files)
+        const entries = await this.exportDatabase(options.rootDir, node, stem, exportedAt, files)
         manifestEntries.push(...entries)
       } else if (kind === 'canvas') {
-        const entries = await this.exportCanvas(options.rootDir, node, exportedAt, files)
+        const entries = await this.exportCanvas(options.rootDir, node, stem, exportedAt, files)
         manifestEntries.push(...entries)
       } else {
-        const entry = await this.exportNode(options.rootDir, node, exportedAt, files)
+        const entry = await this.exportNode(options.rootDir, node, stem, exportedAt, files)
         manifestEntries.push(entry)
       }
     }
@@ -233,23 +315,57 @@ export class AiWorkspaceExporter {
   }
 
   private async resolveNodes(scope: AiWorkspaceExportScope | undefined): Promise<NodeData[]> {
-    if (scope?.nodeIds?.length) {
-      const nodes = await Promise.all(scope.nodeIds.map((id) => this.config.store.get(id)))
-      return uniqueNodes(nodes.filter((node): node is NodeData => node !== null && !node.deleted))
+    const hasExplicitScope =
+      Boolean(scope?.nodeIds?.length) ||
+      Boolean(scope?.schemaIds?.length) ||
+      Boolean(scope?.query?.trim()) ||
+      Boolean(scope?.kinds?.length)
+
+    if (!scope || !hasExplicitScope) {
+      return (await this.config.store.list({ limit: scope?.limit ?? 100, offset: 0 })).filter(
+        (node) => !node.deleted
+      )
     }
 
-    if (scope?.schemaIds?.length) {
+    const collected: NodeData[] = []
+
+    if (scope.nodeIds?.length) {
+      const nodes = await Promise.all(scope.nodeIds.map((id) => this.config.store.get(id)))
+      collected.push(...nodes.filter((node): node is NodeData => node !== null))
+    }
+
+    if (scope.schemaIds?.length) {
       const pages = await Promise.all(
         scope.schemaIds.map((schemaId) =>
           this.config.store.list({ schemaId, limit: scope.limit ?? 100, offset: 0 })
         )
       )
-      return uniqueNodes(pages.flat().filter((node) => !node.deleted))
+      collected.push(...pages.flat())
     }
 
-    return (await this.config.store.list({ limit: scope?.limit ?? 100, offset: 0 })).filter(
-      (node) => !node.deleted
-    )
+    if (scope.query?.trim()) {
+      const search = await this.aiSurface.search({
+        query: scope.query,
+        limit: scope.limit ?? 50
+      })
+      const results = Array.isArray(search.results) ? search.results : []
+      const nodes = await Promise.all(
+        results.map((result) =>
+          isRecord(result) && typeof result.id === 'string'
+            ? this.config.store.get(result.id)
+            : Promise.resolve(null)
+        )
+      )
+      collected.push(...nodes.filter((node): node is NodeData => node !== null))
+    }
+
+    if (scope.kinds?.length) {
+      const kinds = scope.kinds
+      const all = await this.config.store.list({ limit: scope.limit ?? 100, offset: 0 })
+      collected.push(...all.filter((node) => kinds.includes(inferExportKind(node))))
+    }
+
+    return uniqueNodes(collected.filter((node) => !node.deleted))
   }
 
   private async ensureBaseFolders(rootDir: string): Promise<void> {
@@ -281,6 +397,7 @@ export class AiWorkspaceExporter {
       files
     )
     await this.writeText(rootDir, 'AGENTS.md', renderAgentsMd(), files)
+    await this.writeText(rootDir, 'SKILL.md', XNET_AGENT_SKILL_MD, files)
     await this.writeText(
       rootDir,
       '.mcp.json',
@@ -293,13 +410,14 @@ export class AiWorkspaceExporter {
   private async exportPage(
     rootDir: string,
     node: NodeData,
+    stem: string,
     exportedAt: string,
     files: string[]
   ): Promise<AiWorkspaceManifestEntry> {
     const content = await this.aiSurface.readResource(
       `xnet://page/${encodeURIComponent(node.id)}.md`
     )
-    const path = `Pages/${fileStem(node)}.md`
+    const path = `Pages/${stem}.md`
     await this.writeText(rootDir, path, content.text, files)
     return manifestEntry(path, 'page', node, content.text, exportedAt)
   }
@@ -307,10 +425,10 @@ export class AiWorkspaceExporter {
   private async exportDatabase(
     rootDir: string,
     node: NodeData,
+    stem: string,
     exportedAt: string,
     files: string[]
   ): Promise<AiWorkspaceManifestEntry[]> {
-    const stem = fileStem(node)
     const schema = await this.aiSurface.readResource(
       `xnet://database/${encodeURIComponent(node.id)}/schema`
     )
@@ -329,20 +447,30 @@ export class AiWorkspaceExporter {
     await this.writeText(rootDir, viewsPath, views.text, files)
     await this.writeText(rootDir, rowsPath, rowsContent, files)
 
-    return [
+    const entries = [
       manifestEntry(schemaPath, 'database', node, schema.text, exportedAt),
       manifestEntry(viewsPath, 'database', node, views.text, exportedAt),
       manifestEntry(rowsPath, 'database', node, rowsContent, exportedAt)
     ]
+
+    const tsvMinRows = this.config.tsvSidecarMinRows ?? 50
+    if (rows.length >= tsvMinRows) {
+      const tsvPath = `Databases/${stem}.tsv`
+      const tsvContent = toTsv(rows.filter(isRecord))
+      await this.writeText(rootDir, tsvPath, tsvContent, files)
+      entries.push(manifestEntry(tsvPath, 'database', node, tsvContent, exportedAt))
+    }
+
+    return entries
   }
 
   private async exportCanvas(
     rootDir: string,
     node: NodeData,
+    stem: string,
     exportedAt: string,
     files: string[]
   ): Promise<AiWorkspaceManifestEntry[]> {
-    const stem = fileStem(node)
     const viewport = await this.aiSurface.callTool('xnet_canvas_read_viewport', {
       canvasId: node.id
     })
@@ -373,10 +501,11 @@ export class AiWorkspaceExporter {
   private async exportNode(
     rootDir: string,
     node: NodeData,
+    stem: string,
     exportedAt: string,
     files: string[]
   ): Promise<AiWorkspaceManifestEntry> {
-    const path = `.xnet/nodes/${fileStem(node)}.json`
+    const path = `.xnet/nodes/${stem}.json`
     const content = `${JSON.stringify(node, null, 2)}\n`
     await this.writeText(rootDir, path, content, files)
     return manifestEntry(path, 'node', node, content, exportedAt)
@@ -498,6 +627,21 @@ export class AiWorkspaceWatcher {
               detectedAt: scannedAt
             })
           )
+          continue
+        }
+        if (plan.validation.warnings.length > 0) {
+          // Never lossy-apply: warnings quarantine the change instead of
+          // letting a best-effort plan silently drop unsupported features.
+          conflicts.push(
+            await this.createConflict(options, {
+              kind: 'validation-warning',
+              path: entry.path,
+              id: entry.id,
+              message: plan.validation.warnings.join('; '),
+              detectedAt: scannedAt
+            })
+          )
+          continue
         }
         pendingPlans.push(await this.writePendingPlan(options, entry, currentSha256, plan))
       } catch (err) {
@@ -527,11 +671,13 @@ export class AiWorkspaceWatcher {
   }
 
   watchWorkspace(
-    options: AiWorkspaceWatcherScanOptions,
+    options: AiWorkspaceWatchOptions,
     onScan: (result: AiWorkspaceWatcherScanResult) => void | Promise<void>
   ): AiWorkspaceWatchHandle {
     let timer: ReturnType<typeof setTimeout> | null = null
+    let pollTimer: ReturnType<typeof setInterval> | null = null
     let watcher: FSWatcher | null = null
+    let closed = false
 
     const scheduleScan = (): void => {
       if (timer) clearTimeout(timer)
@@ -540,27 +686,64 @@ export class AiWorkspaceWatcher {
       }, 250)
     }
 
-    watcher = watchFs(options.rootDir, { recursive: true }, (_event, filename) => {
-      if (!filename) {
-        scheduleScan()
-        return
+    // Polling ticks scan directly (with an overlap guard) instead of going
+    // through the debounce, which a fast poll interval would starve forever.
+    let scanning = false
+    const pollScan = (): void => {
+      if (scanning) return
+      scanning = true
+      void this.scanChangedFiles(options)
+        .then(onScan)
+        .finally(() => {
+          scanning = false
+        })
+    }
+
+    const startPolling = (): void => {
+      if (closed || pollTimer) return
+      pollTimer = setInterval(pollScan, options.pollIntervalMs ?? 2000)
+    }
+
+    // fs.watch recursive is reliable on macOS/Windows but historically flaky
+    // on Linux; fall back to interval polling when it fails or errors.
+    if (options.usePolling) {
+      startPolling()
+    } else {
+      try {
+        watcher = watchFs(options.rootDir, { recursive: true }, (_event, filename) => {
+          if (!filename) {
+            scheduleScan()
+            return
+          }
+          const relativePath = String(filename)
+          if (
+            relativePath.startsWith('.xnet/pending/') ||
+            relativePath.startsWith('.xnet/conflicts/') ||
+            relativePath.startsWith('.xnet/review/')
+          ) {
+            return
+          }
+          scheduleScan()
+        })
+        watcher.on('error', () => {
+          watcher?.close()
+          watcher = null
+          startPolling()
+        })
+      } catch {
+        watcher = null
+        startPolling()
       }
-      const relativePath = String(filename)
-      if (
-        relativePath.startsWith('.xnet/pending/') ||
-        relativePath.startsWith('.xnet/conflicts/') ||
-        relativePath.startsWith('.xnet/review/')
-      ) {
-        return
-      }
-      scheduleScan()
-    })
+    }
 
     return {
       close: () => {
+        closed = true
         if (timer) clearTimeout(timer)
+        if (pollTimer) clearInterval(pollTimer)
         watcher?.close()
-      }
+      },
+      isPolling: () => pollTimer !== null
     }
   }
 
@@ -745,12 +928,15 @@ export class AiWorkspaceWatcher {
       conflict.path,
       conflict.kind
     )}`
+    const notePath = conflictPath.replace(/\.json$/, '.md')
     const nextConflict = {
       ...conflict,
-      conflictPath
+      conflictPath,
+      notePath
     }
     if (options.writeConflicts !== false) {
       await writeManagedJson(options.rootDir, conflictPath, nextConflict)
+      await writeManagedText(options.rootDir, notePath, renderConflictNote(nextConflict))
     }
     return nextConflict
   }
@@ -781,13 +967,75 @@ function renderAgentsMd(): string {
   return [
     '# xNet AI Workspace Instructions',
     '',
-    '- Preserve `xnet` frontmatter and id suffixes in filenames.',
+    'See `SKILL.md` for the full agent workflow (search, checkout, query, commit).',
+    '',
+    '- Preserve `xnet` frontmatter in pages; node identity lives there, not in filenames.',
     '- Treat edits as proposals; xNet validates and applies them through mutation plans.',
     '- Do not delete rows by removing lines from partial exports. Use explicit mutation plans.',
     '- Keep `.xnet/manifest.jsonl` and `.xnet/export-state.json` managed by xNet.',
-    '- Prefer Markdown for pages, JSON files for database schemas/views, JSONL for rows, and JSON Canvas for canvases.',
+    '- Prefer Markdown for pages, JSON files for database schemas/views, JSONL for rows, and JSON Canvas for canvases. `.tsv` sidecars are read-only.',
+    '- Conflicts are quarantined under `.xnet/conflicts/`; each has a Markdown note with resolution steps.',
     ''
   ].join('\n')
+}
+
+function renderConflictNote(conflict: AiWorkspaceConflict): string {
+  return [
+    `# Conflict: ${conflict.kind}`,
+    '',
+    `- **File:** \`${conflict.path}\``,
+    ...(conflict.id ? [`- **Node:** \`${conflict.id}\``] : []),
+    `- **Detected:** ${conflict.detectedAt}`,
+    `- **Details:** ${conflict.message}`,
+    '',
+    '## How to resolve',
+    '',
+    ...conflictResolutionSteps(conflict),
+    '',
+    `Machine-readable copy: \`${conflict.conflictPath ?? ''}\``,
+    ''
+  ].join('\n')
+}
+
+function conflictResolutionSteps(conflict: AiWorkspaceConflict): string[] {
+  switch (conflict.kind) {
+    case 'missing-file':
+      return [
+        '1. The projected file was deleted on disk. Deleting files does not delete nodes.',
+        '2. Re-run a checkout (`xnet checkout`) to restore the projection, or',
+        '3. propose an explicit delete through a mutation plan if removal was intended.'
+      ]
+    case 'stale-export':
+      return [
+        '1. The node changed in xNet after this file was exported; your edit is based on a stale revision.',
+        '2. Re-run a checkout (`xnet checkout`) to refresh the file, re-apply your edit on top, and save again.'
+      ]
+    case 'invalid-json':
+    case 'invalid-jsonl':
+      return [
+        '1. The file no longer parses. Fix the syntax error described above and save again.',
+        '2. For `.rows.jsonl`, every line must be a single JSON object.'
+      ]
+    case 'validation-warning':
+      return [
+        '1. The edit uses Markdown or structures xNet cannot round-trip safely, so it was quarantined instead of lossy-applied.',
+        '2. Remove or rewrite the unsupported feature (see details above), then save again.',
+        '3. Keep `:::xnet-database` blocks and `{{xnet-ref ...}}` directives intact.'
+      ]
+    case 'unsupported-change':
+      return [
+        '1. This projection file is read-only (for example `.tsv` sidecars).',
+        '2. Make the change in the writable projection instead: rows in `.rows.jsonl`, schema in `.schema.json`.'
+      ]
+    case 'invalid-plan':
+    case 'tool-error':
+    default:
+      return [
+        '1. xNet could not turn this edit into a valid mutation plan (see details above).',
+        '2. Revert the file (re-run a checkout) or adjust the edit, then save again.',
+        '3. Check `xnet status` to confirm the conflict clears.'
+      ]
+  }
 }
 
 function renderClaudeMcpConfig(): Record<string, unknown> {
@@ -885,9 +1133,73 @@ function inferExportKind(node: NodeData): AiWorkspaceExportKind {
   return 'node'
 }
 
-function fileStem(node: NodeData): string {
-  const title = typeof node.properties.title === 'string' ? node.properties.title : node.id
-  return `${slugify(title)}--${slugify(node.id)}`
+const STEM_SUFFIXES = [
+  '.schema.json',
+  '.views.json',
+  '.rows.jsonl',
+  '.objects.jsonl',
+  '.canvas',
+  '.tsv',
+  '.md',
+  '.json'
+]
+
+/** Folder-qualified stem for a projected path, e.g. `Pages/q3-planning`. */
+function stemKeyForPath(path: string): string {
+  for (const suffix of STEM_SUFFIXES) {
+    if (path.endsWith(suffix)) return path.slice(0, -suffix.length)
+  }
+  return path
+}
+
+function folderForKind(kind: AiWorkspaceExportKind): string {
+  if (kind === 'page') return 'Pages'
+  if (kind === 'database') return 'Databases'
+  if (kind === 'canvas') return 'Canvases'
+  return '.xnet/nodes'
+}
+
+/**
+ * Allocate a semantic-slug stem for a node. UUIDs stay in frontmatter and the
+ * manifest; a short hash suffix is appended only on collision. Re-exported
+ * nodes keep their previous stem while their title is unchanged.
+ */
+function allocateStem(
+  node: NodeData,
+  kind: AiWorkspaceExportKind,
+  usedStems: Set<string>,
+  previousEntries?: AiWorkspaceManifestEntry[]
+): string {
+  const folder = folderForKind(kind)
+  const base = semanticSlug(
+    typeof node.properties.title === 'string' && node.properties.title.trim()
+      ? node.properties.title
+      : node.id
+  )
+
+  const previousStemKey = previousEntries
+    ?.map((entry) => stemKeyForPath(entry.path))
+    .find((key) => key === `${folder}/${base}` || key.startsWith(`${folder}/${base}--`))
+  if (previousStemKey && !usedStems.has(previousStemKey)) {
+    usedStems.add(previousStemKey)
+    return previousStemKey.slice(folder.length + 1)
+  }
+
+  let stem = base
+  if (usedStems.has(`${folder}/${stem}`)) {
+    stem = `${base}--${shortHash(node.id).slice(0, 8)}`
+  }
+  usedStems.add(`${folder}/${stem}`)
+  return stem
+}
+
+function semanticSlug(value: string): string {
+  const slug = value
+    .normalize('NFKD')
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return slug || 'untitled'
 }
 
 function slugify(value: string): string {
@@ -896,6 +1208,38 @@ function slugify(value: string): string {
     .replace(/[^\w.-]+/g, '-')
     .replace(/^-+|-+$/g, '')
   return slug || 'untitled'
+}
+
+/** Render rows as TSV for cheap agent reads. Tabs/newlines collapse to spaces. */
+function toTsv(nodeRows: Record<string, unknown>[]): string {
+  const rows = nodeRows.map(flattenRowForTsv)
+  if (rows.length === 0) return ''
+  const columns: string[] = []
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!columns.includes(key)) columns.push(key)
+    }
+  }
+  const formatCell = (value: unknown): string => {
+    if (value === null || value === undefined) return ''
+    const text = typeof value === 'object' ? JSON.stringify(value) : String(value)
+    return text.replace(/[\t\n\r]+/g, ' ')
+  }
+  const lines = [
+    columns.join('\t'),
+    ...rows.map((row) => columns.map((column) => formatCell(row[column])).join('\t'))
+  ]
+  return `${lines.join('\n')}\n`
+}
+
+/** Database rows are node-shaped; lift `properties` to top-level TSV columns. */
+function flattenRowForTsv(row: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(row.properties)) return row
+  return {
+    ...(typeof row.id === 'string' ? { id: row.id } : {}),
+    ...row.properties,
+    ...(row.updatedAt !== undefined ? { updatedAt: row.updatedAt } : {})
+  }
 }
 
 function manifestEntry(
@@ -962,6 +1306,16 @@ async function writeManagedJson(
   await writeFile(fullPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
 }
 
+async function writeManagedText(
+  rootDir: string,
+  relativePath: string,
+  content: string
+): Promise<void> {
+  const fullPath = join(rootDir, relativePath)
+  await mkdir(dirname(fullPath), { recursive: true })
+  await writeFile(fullPath, content, 'utf8')
+}
+
 function databaseProjectionOperation(
   path: string,
   content: string,
@@ -991,6 +1345,12 @@ function databaseProjectionOperation(
       rows,
       rowCount: rows.length
     })
+  }
+
+  if (path.endsWith('.tsv')) {
+    throw new Error(
+      `Unsupported edit: ${path} is a read-only TSV sidecar. Edit the matching .rows.jsonl file instead.`
+    )
   }
 
   throw new Error(`Unsupported database projection file: ${path}`)

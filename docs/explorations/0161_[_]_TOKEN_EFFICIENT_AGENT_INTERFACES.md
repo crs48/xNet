@@ -546,11 +546,11 @@ function toTsv(rows: Record<string, unknown>[], cols: string[]): string {
 
 ### Phase 1 — Productionize the projection (files-first)
 
-- [ ] Add lazy scoped checkout to `AiWorkspaceExporter` (`scope: query|view|folder`, no default-100 eager export)
-- [ ] Semantic-slug filenames with frontmatter UUIDs (dedupe via short hash suffix only on collision)
+- [x] Add lazy scoped checkout to `AiWorkspaceExporter` (`scope: query|view|folder`, no default-100 eager export)
+- [x] Semantic-slug filenames with frontmatter UUIDs (dedupe via short hash suffix only on collision)
 - [ ] Harden the watcher: chokidar/polling fallback, validation-warning → conflict (never lossy apply), `xnet daemon` mode
-- [ ] Generate read-optimized `.tsv` sidecars for databases above N rows; keep `rows.jsonl` as the write format
-- [ ] Conflict UX: human/agent-readable conflict notes in `.xnet/conflicts/` with resolution instructions
+- [x] Generate read-optimized `.tsv` sidecars for databases above N rows; keep `rows.jsonl` as the write format
+- [x] Conflict UX: human/agent-readable conflict notes in `.xnet/conflicts/` with resolution instructions
 
 ### Phase 2 — `xnet` CLI + SKILL.md
 

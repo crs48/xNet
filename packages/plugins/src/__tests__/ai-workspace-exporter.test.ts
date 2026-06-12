@@ -209,20 +209,20 @@ describe('AiWorkspaceExporter', () => {
     expect(result.files).toContain('AGENTS.md')
     expect(result.files).toContain('.mcp.json')
     expect(result.files).toContain('.codex/config.toml')
-    expect(result.files).toContain('Pages/Product-Roadmap--page_1.md')
-    expect(result.files).toContain('Databases/Projects--db_projects.schema.json')
-    expect(result.files).toContain('Databases/Projects--db_projects.rows.jsonl')
-    expect(result.files).toContain('Canvases/Planning-Canvas--canvas_1.canvas')
+    expect(result.files).toContain('Pages/product-roadmap.md')
+    expect(result.files).toContain('Databases/projects.schema.json')
+    expect(result.files).toContain('Databases/projects.rows.jsonl')
+    expect(result.files).toContain('Canvases/planning-canvas.canvas')
 
-    const page = await readFile(join(rootDir, 'Pages/Product-Roadmap--page_1.md'), 'utf8')
+    const page = await readFile(join(rootDir, 'Pages/product-roadmap.md'), 'utf8')
     expect(page).toContain('id: "page_1"')
     expect(page).toContain('Roadmap body')
 
-    const rows = await readFile(join(rootDir, 'Databases/Projects--db_projects.rows.jsonl'), 'utf8')
+    const rows = await readFile(join(rootDir, 'Databases/projects.rows.jsonl'), 'utf8')
     expect(rows).toContain('"id":"row_1"')
 
     const canvas = JSON.parse(
-      await readFile(join(rootDir, 'Canvases/Planning-Canvas--canvas_1.canvas'), 'utf8')
+      await readFile(join(rootDir, 'Canvases/planning-canvas.canvas'), 'utf8')
     )
     expect(canvas.nodes[0].id).toBe('obj_1')
     expect(canvas.nodes[0].xnet.type).toBe('page')
@@ -235,7 +235,7 @@ describe('AiWorkspaceExporter', () => {
     expect(entries.some((entry) => entry.id === 'page_1' && entry.sha256)).toBe(true)
   })
 
-  it('keeps ids in filenames and manifest entries when titles change', async () => {
+  it('keeps node identity in the manifest while filenames stay semantic slugs', async () => {
     const store = createMockStore([
       {
         id: 'page_1',
@@ -264,9 +264,8 @@ describe('AiWorkspaceExporter', () => {
 
     expect(first.manifestEntries[0].id).toBe('page_1')
     expect(second.manifestEntries[0].id).toBe('page_1')
-    expect(first.manifestEntries[0].path).toContain('page_1')
-    expect(second.manifestEntries[0].path).toContain('page_1')
-    expect(second.manifestEntries[0].path).toBe('Pages/New-Title--page_1.md')
+    expect(first.manifestEntries[0].path).toBe('Pages/old-title.md')
+    expect(second.manifestEntries[0].path).toBe('Pages/new-title.md')
   })
 
   it('runs full workspace export as a background incremental job', async () => {
@@ -389,9 +388,9 @@ describe('AiWorkspaceExporter', () => {
       scope: { nodeIds: ['page_1', 'db_projects', 'canvas_1'] }
     })
 
-    const pagePath = join(rootDir, 'Pages/Product-Roadmap--page_1.md')
-    const rowsPath = join(rootDir, 'Databases/Projects--db_projects.rows.jsonl')
-    const canvasPath = join(rootDir, 'Canvases/Planning-Canvas--canvas_1.canvas')
+    const pagePath = join(rootDir, 'Pages/product-roadmap.md')
+    const rowsPath = join(rootDir, 'Databases/projects.rows.jsonl')
+    const canvasPath = join(rootDir, 'Canvases/planning-canvas.canvas')
     const page = await readFile(pagePath, 'utf8')
     const canvas = JSON.parse(await readFile(canvasPath, 'utf8'))
     canvas.nodes.push({
@@ -424,9 +423,9 @@ describe('AiWorkspaceExporter', () => {
 
     expect(result.conflicts).toEqual([])
     expect(result.changedFiles.map((file) => file.path).sort()).toEqual([
-      'Canvases/Planning-Canvas--canvas_1.canvas',
-      'Databases/Projects--db_projects.rows.jsonl',
-      'Pages/Product-Roadmap--page_1.md'
+      'Canvases/planning-canvas.canvas',
+      'Databases/projects.rows.jsonl',
+      'Pages/product-roadmap.md'
     ])
     expect(result.pendingPlans).toHaveLength(3)
     expect(result.review.entries).toHaveLength(3)
@@ -481,7 +480,7 @@ describe('AiWorkspaceExporter', () => {
       scope: { nodeIds: ['page_1'] }
     })
 
-    await unlink(join(rootDir, 'Pages/Product-Roadmap--page_1.md'))
+    await unlink(join(rootDir, 'Pages/product-roadmap.md'))
 
     const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
     const result = await watcher.scanChangedFiles({ rootDir })
@@ -490,7 +489,7 @@ describe('AiWorkspaceExporter', () => {
     expect(result.conflicts).toHaveLength(1)
     expect(result.conflicts[0]).toMatchObject({
       kind: 'missing-file',
-      path: 'Pages/Product-Roadmap--page_1.md',
+      path: 'Pages/product-roadmap.md',
       id: 'page_1'
     })
 
@@ -503,7 +502,7 @@ describe('AiWorkspaceExporter', () => {
       expect.objectContaining({
         kind: 'conflict',
         status: 'needs-review',
-        path: 'Pages/Product-Roadmap--page_1.md',
+        path: 'Pages/product-roadmap.md',
         conflictKind: 'missing-file',
         suggestedActions: ['reject', 'request-revision']
       })
@@ -536,7 +535,7 @@ describe('AiWorkspaceExporter', () => {
     })
 
     store.setNode('page_1', { markdown: 'Live edit' })
-    const pagePath = join(rootDir, 'Pages/Product-Roadmap--page_1.md')
+    const pagePath = join(rootDir, 'Pages/product-roadmap.md')
     const page = await readFile(pagePath, 'utf8')
     await writeFile(pagePath, page.replace('Roadmap body', 'External edit'), 'utf8')
 
@@ -547,7 +546,7 @@ describe('AiWorkspaceExporter', () => {
     expect(result.conflicts).toHaveLength(1)
     expect(result.conflicts[0]).toMatchObject({
       kind: 'stale-export',
-      path: 'Pages/Product-Roadmap--page_1.md',
+      path: 'Pages/product-roadmap.md',
       id: 'page_1'
     })
     expect(result.conflicts[0].message).toContain('live node is updatedAt:11')
@@ -555,5 +554,255 @@ describe('AiWorkspaceExporter', () => {
       kind: 'conflict',
       conflictKind: 'stale-export'
     })
+  })
+
+  it('requires an explicit scope for checkout and merges successive checkouts', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Q3 Planning', markdown: 'Quarterly goals' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      },
+      {
+        id: 'page_2',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Hiring Notes', markdown: 'Pipeline review' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 20
+      }
+    ])
+    const exporter = createAiWorkspaceExporter({
+      store,
+      schemas: createMockSchemas(),
+      clock: () => new Date('2026-06-02T12:00:00.000Z')
+    })
+
+    await expect(exporter.checkout({ rootDir, scope: {} })).rejects.toThrow(/explicit scope/)
+
+    const first = await exporter.checkout({ rootDir, scope: { query: 'Q3 Planning' } })
+    expect(first.manifestEntries.map((entry) => entry.id)).toEqual(['page_1'])
+    expect(first.files).toContain('Pages/q3-planning.md')
+    expect(first.files).toContain('SKILL.md')
+
+    const second = await exporter.checkout({ rootDir, scope: { nodeIds: ['page_2'] } })
+    expect(second.manifestEntries.map((entry) => entry.id).sort()).toEqual(['page_1', 'page_2'])
+    expect(second.manifestEntries.map((entry) => entry.path).sort()).toEqual([
+      'Pages/hiring-notes.md',
+      'Pages/q3-planning.md'
+    ])
+  })
+
+  it('supports kind-folder checkout scopes', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Page One', markdown: 'Body' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      },
+      {
+        id: 'canvas_1',
+        schemaId: 'xnet://xnet.fyi/Canvas@1.0.0',
+        properties: { title: 'Board', objects: [], edges: [] },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 13
+      }
+    ])
+    const exporter = createAiWorkspaceExporter({
+      store,
+      schemas: createMockSchemas(),
+      clock: () => new Date('2026-06-02T12:00:00.000Z')
+    })
+
+    const result = await exporter.checkout({ rootDir, scope: { kinds: ['page'] } })
+    expect(result.manifestEntries.map((entry) => entry.id)).toEqual(['page_1'])
+  })
+
+  it('dedupes colliding semantic slugs with a short hash suffix', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_a',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Weekly Sync', markdown: 'A' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      },
+      {
+        id: 'page_b',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Weekly Sync', markdown: 'B' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 20
+      }
+    ])
+    const exporter = createAiWorkspaceExporter({
+      store,
+      schemas: createMockSchemas(),
+      clock: () => new Date('2026-06-02T12:00:00.000Z')
+    })
+
+    const result = await exporter.exportWorkspace({
+      rootDir,
+      scope: { nodeIds: ['page_a', 'page_b'] }
+    })
+    const paths = result.manifestEntries.map((entry) => entry.path)
+    expect(paths).toContain('Pages/weekly-sync.md')
+    expect(paths.some((path) => /^Pages\/weekly-sync--[0-9a-f]{8}\.md$/.test(path))).toBe(true)
+  })
+
+  it('writes a read-only TSV sidecar for large databases and quarantines edits to it', async () => {
+    const rows = Array.from({ length: 5 }, (_, index) => ({
+      id: `row_${index}`,
+      schemaId: 'xnet://xnet.fyi/db/projects@1.0.0',
+      properties: { databaseId: 'db_projects', title: `Project ${index}` },
+      deleted: false,
+      createdAt: 1,
+      updatedAt: 10 + index
+    }))
+    const store = createMockStore([
+      {
+        id: 'db_projects',
+        schemaId: 'xnet://xnet.fyi/Database@1.0.0',
+        properties: {
+          title: 'Projects',
+          rowSchemaId: 'xnet://xnet.fyi/db/projects@1.0.0',
+          columns: [{ id: 'title', name: 'Title' }],
+          views: []
+        },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 11
+      },
+      ...rows
+    ])
+    const clock = () => new Date('2026-06-02T12:00:00.000Z')
+    const schemas = createMockSchemas()
+    const exporter = createAiWorkspaceExporter({ store, schemas, clock, tsvSidecarMinRows: 3 })
+    const result = await exporter.exportWorkspace({
+      rootDir,
+      scope: { nodeIds: ['db_projects'] }
+    })
+
+    expect(result.files).toContain('Databases/projects.tsv')
+    const tsv = await readFile(join(rootDir, 'Databases/projects.tsv'), 'utf8')
+    const [header, ...dataLines] = tsv.trim().split('\n')
+    expect(header.split('\t')).toContain('title')
+    expect(dataLines).toHaveLength(5)
+
+    await writeFile(join(rootDir, 'Databases/projects.tsv'), `${tsv}edited\tline\n`, 'utf8')
+    const watcher = createAiWorkspaceWatcher({ store, schemas, clock, tsvSidecarMinRows: 3 })
+    const scan = await watcher.scanChangedFiles({ rootDir })
+    expect(scan.pendingPlans).toEqual([])
+    expect(scan.conflicts).toHaveLength(1)
+    expect(scan.conflicts[0].kind).toBe('unsupported-change')
+    expect(scan.conflicts[0].message).toContain('read-only TSV sidecar')
+  })
+
+  it('quarantines page edits with round-trip validation warnings instead of planning them', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      }
+    ])
+    const clock = () => new Date('2026-06-02T12:00:00.000Z')
+    const schemas = createMockSchemas()
+    const exporter = createAiWorkspaceExporter({ store, schemas, clock })
+    await exporter.exportWorkspace({ rootDir, scope: { nodeIds: ['page_1'] } })
+
+    const pagePath = join(rootDir, 'Pages/product-roadmap.md')
+    const page = await readFile(pagePath, 'utf8')
+    await writeFile(
+      pagePath,
+      page.replace('Roadmap body', 'Roadmap body\n\n<!-- hidden html comment -->'),
+      'utf8'
+    )
+
+    const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
+    const result = await watcher.scanChangedFiles({ rootDir })
+
+    expect(result.pendingPlans).toEqual([])
+    expect(result.conflicts).toHaveLength(1)
+    expect(result.conflicts[0].kind).toBe('validation-warning')
+    expect(result.conflicts[0].message).toContain('HTML comments')
+  })
+
+  it('writes human-readable conflict notes with resolution instructions', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      }
+    ])
+    const clock = () => new Date('2026-06-02T12:00:00.000Z')
+    const schemas = createMockSchemas()
+    const exporter = createAiWorkspaceExporter({ store, schemas, clock })
+    await exporter.exportWorkspace({ rootDir, scope: { nodeIds: ['page_1'] } })
+    await unlink(join(rootDir, 'Pages/product-roadmap.md'))
+
+    const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
+    const result = await watcher.scanChangedFiles({ rootDir })
+
+    expect(result.conflicts[0].notePath).toMatch(/\.md$/)
+    const note = await readFile(join(rootDir, result.conflicts[0].notePath ?? ''), 'utf8')
+    expect(note).toContain('# Conflict: missing-file')
+    expect(note).toContain('How to resolve')
+    expect(note).toContain('Pages/product-roadmap.md')
+  })
+
+  it('falls back to polling when configured and still picks up changes', async () => {
+    const store = createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 10
+      }
+    ])
+    const clock = () => new Date('2026-06-02T12:00:00.000Z')
+    const schemas = createMockSchemas()
+    const exporter = createAiWorkspaceExporter({ store, schemas, clock })
+    await exporter.exportWorkspace({ rootDir, scope: { nodeIds: ['page_1'] } })
+
+    const pagePath = join(rootDir, 'Pages/product-roadmap.md')
+    const page = await readFile(pagePath, 'utf8')
+
+    const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
+    const scans: number[] = []
+    const handle = watcher.watchWorkspace(
+      { rootDir, usePolling: true, pollIntervalMs: 20 },
+      (result) => {
+        scans.push(result.pendingPlans.length)
+      }
+    )
+    expect(handle.isPolling()).toBe(true)
+
+    await writeFile(pagePath, page.replace('Roadmap body', 'Polled edit'), 'utf8')
+    for (let index = 0; index < 100 && scans.length === 0; index += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    handle.close()
+
+    expect(scans.length).toBeGreaterThan(0)
+    expect(scans[scans.length - 1]).toBe(1)
   })
 })

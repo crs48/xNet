@@ -40,6 +40,7 @@ export {
   type AiValidator
 } from './validation'
 export { AiSurfaceService, createAiSurfaceService } from './service'
+export { XNET_AGENT_SKILL_MD } from './skill'
 export type {
   AiDatabaseMutationApplyResult,
   AiPageMarkdownApplyAdapter,
