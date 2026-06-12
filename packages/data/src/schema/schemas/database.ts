@@ -17,7 +17,7 @@
 
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text, file, select, number } from '../properties'
+import { text, file, select, number, relation } from '../properties'
 
 export const DatabaseSchema = defineSchema({
   name: 'Database',
@@ -58,7 +58,16 @@ export const DatabaseSchema = defineSchema({
      * Bumped when fields change (see schema-utils.ts bump rules).
      * Used to build the database schema IRI: xnet://xnet.fyi/db/<id>@<version>
      */
-    schemaVersion: text({ maxLength: 20 })
+    schemaVersion: text({ maxLength: 20 }),
+
+    /** Canonical home; empty = Unfiled (exploration 0169) */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
+    /** Order among folder siblings — fractional index */
+    sortKey: text({ maxLength: 500 }),
+
+    /** Workspace-wide labels, referenced by id (exploration 0169) */
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true })
   },
   // Y.Doc used ONLY as the awareness/presence channel — no persistent state
   document: 'yjs'

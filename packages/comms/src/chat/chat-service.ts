@@ -44,6 +44,8 @@ export interface SendMessageInput {
   channelId: string
   content: string
   mentions?: MessageMentions
+  /** Tag node ids declared by the composer's #hashtag picks (0169) */
+  tags?: string[]
   inReplyTo?: string
 }
 
@@ -87,6 +89,7 @@ export async function sendMessage(store: ChatStore, input: SendMessageInput): Pr
     channel: input.channelId,
     content,
     mentions: normalizeMentions(input.mentions),
+    tags: input.tags?.length ? input.tags : undefined,
     inReplyTo: input.inReplyTo
   })
 }

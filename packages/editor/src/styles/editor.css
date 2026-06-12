@@ -259,6 +259,7 @@
 
 /* Task metadata chips */
 .ProseMirror span[data-task-mention],
+.ProseMirror span[data-hashtag],
 .ProseMirror time[data-task-due-date] {
   @apply inline-flex items-center rounded-full px-2 py-0.5 no-underline;
   border: 1px solid rgb(var(--editor-border));
@@ -271,6 +272,13 @@
 .ProseMirror span[data-task-mention] {
   background: rgb(var(--editor-primary) / 0.08);
   color: rgb(var(--editor-primary));
+}
+
+/* Inline #hashtag pills (0169) */
+.ProseMirror span[data-hashtag] {
+  background: rgb(var(--editor-success, 22 163 74) / 0.08);
+  color: rgb(var(--editor-success, 22 163 74));
+  cursor: pointer;
 }
 
 .ProseMirror time[data-task-due-date] {

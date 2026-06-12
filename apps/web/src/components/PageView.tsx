@@ -29,6 +29,7 @@ import {
 } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import {
   revealContextSection,
   useContextPanel,
@@ -191,6 +192,13 @@ export function PageView({ docId }: { docId: string }) {
   const mentionSuggestions = useMemo(
     () => buildTaskMentionSuggestions(presence, did),
     [did, presence]
+  )
+
+  // Inline #hashtags: picker suggestions + structured tags write-through (0169).
+  const { suggestions: hashtagSuggestions, getOrCreateTag, setNodeTags } = useWorkspaceTags()
+  const handleTagsChange = useCallback(
+    (tagIds: string[]) => void setNodeTags(docId, tagIds),
+    [setNodeTags, docId]
   )
 
   // The right-panel task editor writes assignee/due-date edits through
@@ -870,6 +878,9 @@ export function PageView({ docId }: { docId: string }) {
             extensions={commentExtensions}
             onEditorReady={handleEditorReady}
             mentionSuggestions={mentionSuggestions}
+            hashtagSuggestions={hashtagSuggestions}
+            onCreateHashtag={getOrCreateTag}
+            onTagsChange={handleTagsChange}
             onPageTasksChange={handleTasksChange}
             onCreateComment={handleCreateComment}
             onBackspaceAtStart={handleBackspaceAtStart}

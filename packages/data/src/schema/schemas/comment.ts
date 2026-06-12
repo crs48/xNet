@@ -65,6 +65,9 @@ export const CommentSchema = defineSchema({
     /** Comment body in GitHub-flavored markdown (stored as plain text) */
     content: text({ required: true, maxLength: 10000 }),
 
+    /** Workspace-wide labels from inline #hashtag pills (exploration 0169) */
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true }),
+
     /** Optional file attachments */
     attachments: file({ multiple: true }),
 

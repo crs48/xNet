@@ -9,7 +9,7 @@
 
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text, file } from '../properties'
+import { text, file, relation } from '../properties'
 
 export const PageSchema = defineSchema({
   name: 'Page',
@@ -22,7 +22,16 @@ export const PageSchema = defineSchema({
     icon: text({}),
 
     /** Cover image */
-    cover: file({ accept: ['image/*'] })
+    cover: file({ accept: ['image/*'] }),
+
+    /** Canonical home; empty = Unfiled (exploration 0169) */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
+    /** Order among folder siblings — fractional index */
+    sortKey: text({ maxLength: 500 }),
+
+    /** Workspace-wide labels, referenced by id (exploration 0169) */
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true })
   },
   document: 'yjs' // Collaborative Y.Doc for rich text
 })
