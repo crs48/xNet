@@ -468,18 +468,24 @@ export const phases: RoadmapPhase[] = [
 
 ## Validation Checklist
 
-- [ ] `pnpm --dir site build` succeeds; no broken internal links (Starlight link check)
-- [ ] `llms-full.txt` contains all six new pages and stays under ~200K tokens
-- [ ] Every roadmap "Built" item maps to a merged PR; every "Now/Next" item maps to a
-      real deferred-work list — spot-check against PRs #37–#51
-- [ ] No remaining hardcoded test/package counts that contradict
-      `ls packages | wc -l` and the current test suite
-- [ ] Screenshots render correctly in light and dark themes on the deployed preview
-      (per-PR Pages preview from 0169)
-- [ ] `ai/understanding-xnet.mdx` guidance matches what `xnet skill` actually prints
-- [ ] Grep the docs for the six feature keywords (workbench, dashboard, chat, inbox,
-      agent CLI, session resume) — each resolves to a real page
-- [ ] Compare-page pass scheduled or explicitly deferred
+- [x] `pnpm --dir site build` succeeds (54 pages); all six new guide pages and both
+      screenshot images present in `dist/` (no link-validator plugin installed —
+      new cross-links verified against built output by hand)
+- [x] `llms-full.txt` contains all six new pages and stays under ~200K tokens
+      (290 KB ≈ 73k tokens; sidebar-order guard passes with 47 content files)
+- [x] Every roadmap "Built" item maps to a merged PR (#37–#51); "Now/Next" items
+      taken from PR #47's deferred list and the standing backlog
+- [x] No remaining hardcoded test/package counts that contradict reality
+      (grep for `2400`, `21 packages`, `7-panel` over `site/` is clean)
+- [x] Screenshots render correctly in light and dark themes — verified on the
+      built site via `astro preview` (theme-aware swap confirmed via computed
+      `display`); the per-PR Pages preview re-verifies on the PR
+- [x] `ai/understanding-xnet.mdx` guidance matches `xnet skill` — written from
+      `packages/plugins/src/ai-surface/skill.ts` (the literal SKILL.md source)
+- [x] The six feature keywords (workbench, dashboard, chat, inbox, agent CLI,
+      session resume) each resolve to a real docs page
+- [x] Compare-page pass explicitly deferred — `site/src/pages/compare.astro` is
+      untouched; its competitor rows need their own fact-checking pass
 
 ## References
 
