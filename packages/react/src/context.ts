@@ -236,6 +236,7 @@ async function resolveRuntimeBridge(input: {
           authorDID,
           signingKey,
           signalingUrl: runtime.worker?.signalingUrl ?? signalingUrl,
+          storagePort: runtime.worker?.storagePort,
           remoteNodeQueryClient,
           remoteNodeQueryRouting
         },

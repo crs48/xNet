@@ -219,8 +219,9 @@ export interface UseMutateResult {
    * Execute multiple operations atomically.
    * All operations succeed or fail together.
    *
-   * Note: Transaction support requires MainThreadBridge with direct NodeStore access.
-   * WorkerBridge executes operations sequentially (not truly atomic).
+   * Note: Atomicity requires a bridge implementing DataBridge.transaction
+   * (MainThreadBridge, WorkerBridge, NativeBridge all do). Bridges without
+   * it execute operations sequentially (not truly atomic).
    */
   mutate: (ops: MutateOp[]) => Promise<MutateResult | null>
 
@@ -404,9 +405,8 @@ export function useMutate(): UseMutateResult {
     [bridge, telemetry, withPending]
   )
 
-  // Execute a transaction
-  // Note: For WorkerBridge, operations are executed sequentially, not atomically.
-  // True transactions require MainThreadBridge with direct NodeStore access.
+  // Execute a transaction via DataBridge.transaction when the bridge supports
+  // it; bridges without a transaction API run operations sequentially.
   const mutate = useCallback(
     async (ops: MutateOp[]): Promise<MutateResult | null> => {
       if (!bridge || ops.length === 0) return null
@@ -414,19 +414,18 @@ export function useMutate(): UseMutateResult {
       const start = telemetry ? Date.now() : 0
       try {
         const result = await withPending(async () => {
-          const nodeStore = bridge.nodeStore
-          const canUseStoreTransactions = nodeStore && typeof nodeStore.transaction === 'function'
+          const canUseTransactions = typeof bridge.transaction === 'function'
           const usesTempIds = hasTempIdsInOps(ops)
 
-          if (usesTempIds && !canUseStoreTransactions) {
+          if (usesTempIds && !canUseTransactions) {
             throw new Error(
-              'Temp IDs in useMutate.mutate() require a transaction-capable bridge (NodeStore.transaction). ' +
+              'Temp IDs in useMutate.mutate() require a transaction-capable bridge (DataBridge.transaction). ' +
                 'Current bridge executes operations sequentially and cannot resolve temp IDs.'
             )
           }
 
-          if (canUseStoreTransactions) {
-            const tx = await nodeStore.transaction(toTransactionOperations(ops))
+          if (canUseTransactions) {
+            const tx = await bridge.transaction!(toTransactionOperations(ops))
             return {
               results: tx.results,
               batchId: tx.batchId,

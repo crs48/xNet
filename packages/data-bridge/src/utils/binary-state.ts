@@ -436,3 +436,26 @@ export function shouldUseBinaryEncoding(states: NodeState[]): boolean {
   if (states.length > 100) return true
   return states.some((s) => s.documentContent && s.documentContent.length > 1000)
 }
+
+/**
+ * Encode a query snapshot for the worker → main-thread wire: binary above
+ * the size threshold (so the caller can transfer the buffer), structured
+ * clone below it.
+ */
+export function encodeWorkerQuerySnapshot(
+  nodes: NodeState[]
+): import('../worker/worker-types').WorkerQuerySnapshot {
+  if (!shouldUseBinaryEncoding(nodes)) {
+    return { encoding: 'json', nodes }
+  }
+  return { encoding: 'binary', data: encodeNodeStates(nodes) }
+}
+
+/**
+ * Decode a wire snapshot back to NodeState[] on the main thread.
+ */
+export function decodeWorkerQuerySnapshot(
+  snapshot: import('../worker/worker-types').WorkerQuerySnapshot
+): NodeState[] {
+  return snapshot.encoding === 'binary' ? decodeNodeStates(snapshot.data) : snapshot.nodes
+}

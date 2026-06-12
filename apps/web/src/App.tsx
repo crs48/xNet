@@ -9,6 +9,7 @@ import type { Identity, KeyBundle } from '@xnetjs/identity'
 import type { PersistentStorageStatus, SQLiteAdapter } from '@xnetjs/sqlite'
 import { RouterProvider, createRouter, createHashHistory } from '@tanstack/react-router'
 import { SQLiteNodeStorageAdapter, BlobService } from '@xnetjs/data'
+import { getDefaultDataWorkerUrl } from '@xnetjs/data-bridge'
 import { XNetDevToolsProvider } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
 import { createIdentityManager } from '@xnetjs/identity'
@@ -17,7 +18,8 @@ import {
   OnboardingProvider,
   OnboardingFlow,
   ErrorBoundary,
-  OfflineIndicator
+  OfflineIndicator,
+  type XNetRuntimeConfig
 } from '@xnetjs/react'
 import {
   checkBrowserSupport,
@@ -286,6 +288,47 @@ interface StorageContext {
   storageAdapter: SQLiteStorageAdapter
   blobStore: BlobStore
   blobService: BlobService
+  /** SQLite worker port for the data worker (worker runtime flag only) */
+  dataWorkerStoragePort?: MessagePort
+}
+
+/**
+ * Worker-resident data layer rollout flag (exploration 0164).
+ * Enable with `localStorage.setItem('xnet:runtime', 'worker')` and reload;
+ * remove the key to return to the main-thread bridge.
+ */
+function isWorkerRuntimeEnabled(): boolean {
+  return typeof localStorage !== 'undefined' && localStorage.getItem('xnet:runtime') === 'worker'
+}
+
+/**
+ * With the worker runtime enabled, hand the data worker its own port into
+ * the SQLite worker so storage calls skip the main thread.
+ */
+async function createDataWorkerStoragePort(sqliteAdapter: {
+  createMessagePort(): Promise<MessagePort>
+}): Promise<MessagePort | undefined> {
+  if (!isWorkerRuntimeEnabled()) return undefined
+  return sqliteAdapter.createMessagePort()
+}
+
+function resolveWebRuntime(storage: StorageContext): XNetRuntimeConfig {
+  if (isWorkerRuntimeEnabled()) {
+    return {
+      mode: 'worker',
+      fallback: 'main-thread',
+      diagnostics: import.meta.env.DEV,
+      worker: {
+        url: getDefaultDataWorkerUrl(),
+        storagePort: storage.dataWorkerStoragePort
+      }
+    }
+  }
+  return {
+    mode: 'main-thread',
+    fallback: 'main-thread',
+    diagnostics: import.meta.env.DEV
+  }
 }
 
 type StorageBannerTone = 'success' | 'warning' | 'info'
@@ -490,13 +533,16 @@ export function App(): JSX.Element {
           return
         }
 
+        const dataWorkerStoragePort = await createDataWorkerStoragePort(sqliteAdapter)
+
         // Store refs for later use
         storageRef.current = {
           sqliteAdapter,
           nodeStorage,
           storageAdapter,
           blobStore,
-          blobService
+          blobService,
+          dataWorkerStoragePort
         }
 
         // Check for existing identity
@@ -820,11 +866,7 @@ export function App(): JSX.Element {
             blobStore: storage.blobStore,
             hubUrl,
             hubOptions: authToken ? { autoAuth: false, authToken } : undefined,
-            runtime: {
-              mode: 'worker',
-              fallback: 'main-thread',
-              diagnostics: import.meta.env.DEV
-            },
+            runtime: resolveWebRuntime(storage),
             platform: 'web'
           }}
         >

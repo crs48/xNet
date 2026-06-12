@@ -327,6 +327,22 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     }
   }
 
+  /**
+   * Create a MessagePort connected directly to the SQLite worker.
+   *
+   * The returned port speaks the same Comlink `SQLiteWorkerHandler`
+   * protocol as this proxy and can be transferred to another worker
+   * (e.g. the data worker) so its storage calls skip the main thread.
+   */
+  async createMessagePort(): Promise<MessagePort> {
+    if (!this.proxy) throw new Error('Database not open')
+
+    const channel = new MessageChannel()
+    this.operationStats.workerRequestCount += 1
+    await this.proxy.connectPort(Comlink.transfer(channel.port1, [channel.port1]))
+    return channel.port2
+  }
+
   getOperationStats(): SQLiteOperationStats {
     return cloneOperationStats(this.operationStats)
   }

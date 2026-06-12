@@ -1430,6 +1430,32 @@ describe('MainThreadBridge', () => {
     })
   })
 
+  describe('transaction', () => {
+    it('should execute operations atomically and resolve temp IDs', async () => {
+      const existing = await bridge.create(TestTaskSchema, { title: 'Existing' })
+
+      const tx = await bridge.transaction([
+        {
+          type: 'create',
+          options: {
+            id: '~new-task',
+            schemaId: TestTaskSchema._schemaId,
+            properties: { title: 'Created in tx' }
+          }
+        },
+        { type: 'update', nodeId: existing.id, options: { properties: { title: 'Updated in tx' } } }
+      ])
+
+      expect(tx.batchId).toBeTruthy()
+      expect(tx.results).toHaveLength(2)
+      expect(tx.tempIds['~new-task']).toBeDefined()
+      expect(tx.results[0]?.id).toBe(tx.tempIds['~new-task'])
+      expect(tx.results[1]?.properties.title).toBe('Updated in tx')
+      // Bridge-level results stay structured-clone-safe: no signed change list.
+      expect('changes' in tx).toBe(false)
+    })
+  })
+
   describe('status', () => {
     it('should always return connected for MainThreadBridge', () => {
       expect(bridge.status).toBe('connected')

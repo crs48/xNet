@@ -5,8 +5,20 @@
  * Web Worker and the WorkerBridge on the main thread.
  */
 
-import type { QueryDescriptor, QueryPageOptions, SyncStatus } from '../types'
-import type { NodeBatchWriteInput, NodeBatchWriteResult, NodeState, SchemaIRI } from '@xnetjs/data'
+import type {
+  BridgeTransactionResult,
+  QueryDescriptor,
+  QueryPageOptions,
+  SyncStatus
+} from '../types'
+import type {
+  NodeBatchWriteInput,
+  NodeBatchWriteResult,
+  NodeChangeEvent,
+  NodeState,
+  SchemaIRI,
+  TransactionOperation
+} from '@xnetjs/data'
 
 // ─── Document Types ──────────────────────────────────────────────────────────
 
@@ -47,6 +59,13 @@ export interface WorkerConfig {
   authorDID: string
   /** Ed25519 signing key (serialized as array for transfer) */
   signingKey: number[]
+  /**
+   * Optional transferred MessagePort connected to the SQLite worker
+   * (created via `WebSQLiteProxy.createMessagePort()`). When present the
+   * data worker persists through a `PortSQLiteAdapter` instead of
+   * in-memory storage.
+   */
+  storagePort?: MessagePort
 }
 
 // ─── Query Types ─────────────────────────────────────────────────────────────
@@ -68,6 +87,18 @@ export interface SerializedQueryOptions {
   mode?: QueryDescriptor['mode']
   source?: QueryDescriptor['source']
 }
+
+/**
+ * Wire format for query snapshots (initial loads and reloads).
+ *
+ * Large result sets are encoded with `binary-state.ts` so the backing
+ * ArrayBuffer can be transferred (zero-copy) instead of structured-cloned;
+ * small ones stay as plain structured-clone payloads, which is faster for
+ * few nodes.
+ */
+export type WorkerQuerySnapshot =
+  | { encoding: 'json'; nodes: NodeState[] }
+  | { encoding: 'binary'; data: Uint8Array }
 
 /**
  * Delta update types for incremental cache updates
@@ -102,15 +133,16 @@ export interface DataWorkerAPI {
   initialize(config: WorkerConfig): Promise<void>
 
   /**
-   * Subscribe to a query. Returns initial results.
-   * Delta updates are sent via the callback.
+   * Subscribe to a query. Returns the initial snapshot (binary-encoded
+   * and transferred above the size threshold). Delta updates are sent via
+   * the callback.
    */
   subscribe(
     queryId: string,
     schemaId: string,
     options: SerializedQueryOptions,
     onDelta: (delta: QueryDelta) => void
-  ): Promise<NodeState[]>
+  ): Promise<WorkerQuerySnapshot>
 
   /**
    * Unsubscribe from a query.
@@ -120,7 +152,7 @@ export interface DataWorkerAPI {
   /**
    * Force a targeted reload for an existing subscription.
    */
-  reloadQuery(queryId: string): Promise<NodeState[]>
+  reloadQuery(queryId: string): Promise<WorkerQuerySnapshot>
 
   /**
    * Create a new node.
@@ -146,6 +178,12 @@ export interface DataWorkerAPI {
    * Execute a storage-owned batch write in the worker.
    */
   bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult>
+
+  /**
+   * Execute an atomic multi-operation transaction in the worker.
+   * Returns a structured-clone-safe result (no signed change list).
+   */
+  transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult>
 
   /**
    * Get a single node by ID.
@@ -193,6 +231,13 @@ export interface DataWorkerAPI {
    * Subscribe to status changes.
    */
   onStatusChange(handler: (status: SyncStatus) => void): void
+
+  /**
+   * Subscribe to the worker's raw store change feed (devtools and other
+   * instrumentation). The bridge registers one forwarder and fans out to
+   * local listeners.
+   */
+  subscribeToChanges(handler: (event: NodeChangeEvent) => void): void
 
   /**
    * Clean up and close the worker.

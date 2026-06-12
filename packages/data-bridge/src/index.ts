@@ -15,6 +15,7 @@
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type {
+  BridgeTransactionResult,
   DataBridge,
   NodeQueryRouterThresholds,
   QueryCompletenessMetadata,
@@ -57,6 +58,7 @@ export type {
   WorkerConfig,
   SerializedQueryOptions,
   QueryDelta,
+  WorkerQuerySnapshot,
   DataWorkerAPI,
   WorkerAcquiredDoc,
   DocUpdateMessage
@@ -71,6 +73,7 @@ export {
   type SyncManagerLike
 } from './main-thread-bridge'
 export { WorkerBridge, createWorkerBridge } from './worker-bridge'
+export { PortSQLiteAdapter } from './worker/port-sqlite-adapter'
 export {
   NativeBridge,
   createNativeBridge,
@@ -86,6 +89,7 @@ export {
   createDataBridge,
   createMainThreadBridgeSync,
   createWorkerBridgeSync,
+  getDefaultDataWorkerUrl,
   isWorkerSupported,
   isNodeEnvironment,
   type CreateBridgeOptions
@@ -195,5 +199,7 @@ export {
   NodeStateDecoder,
   encodeNodeStates,
   decodeNodeStates,
-  shouldUseBinaryEncoding
+  shouldUseBinaryEncoding,
+  encodeWorkerQuerySnapshot,
+  decodeWorkerQuerySnapshot
 } from './utils/binary-state'

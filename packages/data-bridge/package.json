@@ -47,6 +47,8 @@
   "dependencies": {
     "@xnetjs/core": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/sqlite": "workspace:*",
+    "@xnetjs/sync": "workspace:*",
     "comlink": "^4.4.2",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.24"

@@ -66,6 +66,15 @@ export function isNodeEnvironment(): boolean {
   return typeof process !== 'undefined' && process.versions?.node !== undefined
 }
 
+/**
+ * URL of the package's built data worker, resolved relative to this
+ * module (mirrors how @xnetjs/sqlite locates its web worker). Pass to
+ * `WorkerBridge`/`createDataBridge` or `runtime.worker.url`.
+ */
+export function getDefaultDataWorkerUrl(): URL {
+  return new URL('./worker/data-worker.js', import.meta.url)
+}
+
 // ─── Factory Functions ───────────────────────────────────────────────────────
 
 /**

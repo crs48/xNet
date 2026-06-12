@@ -12,6 +12,7 @@
  */
 
 import type {
+  BridgeTransactionResult,
   DataBridge,
   DataBridgeConfig,
   QueryDescriptor,
@@ -27,9 +28,11 @@ import type {
   PropertyBuilder,
   InferCreateProps,
   NodeBatchWriteInput,
-  NodeBatchWriteResult
+  NodeBatchWriteResult,
+  NodeChangeEvent,
+  TransactionOperation
 } from '@xnetjs/data'
-import { wrap, proxy, type Remote } from 'comlink'
+import { wrap, proxy, transfer, type Remote } from 'comlink'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { QueryCache } from './query-cache'
@@ -39,6 +42,7 @@ import {
   serializeQueryDescriptor
 } from './query-descriptor'
 import { createQuerySnapshotMetadata } from './query-metadata'
+import { decodeWorkerQuerySnapshot } from './utils/binary-state'
 import { createUpdateBatcher, type UpdateBatcher } from './utils/debounce'
 
 // ─── Update Batcher Configuration ─────────────────────────────────────────────
@@ -84,6 +88,8 @@ export class WorkerBridge implements DataBridge {
   private subscriptions = new Map<string, Set<() => void>>()
   private activeRemoteSubscriptions = new Set<string>()
   private statusListeners = new Set<(status: SyncStatus) => void>()
+  private changeListeners = new Set<(event: NodeChangeEvent) => void>()
+  private changeFeedStarted = false
   private _status: SyncStatus = 'connecting'
   private initialized = false
 
@@ -97,13 +103,21 @@ export class WorkerBridge implements DataBridge {
 
   /**
    * Initialize the bridge and underlying worker.
+   *
+   * When `config.storagePort` is provided (a MessagePort connected to the
+   * SQLite worker), it is transferred to the data worker so storage calls
+   * run worker-to-worker without a main-thread hop.
    */
   async initialize(config: DataBridgeConfig): Promise<void> {
-    await this.remote.initialize({
+    const workerConfig = {
       dbName: config.dbName ?? 'xnet',
       authorDID: config.authorDID,
-      signingKey: Array.from(config.signingKey)
-    })
+      signingKey: Array.from(config.signingKey),
+      ...(config.storagePort ? { storagePort: config.storagePort } : {})
+    }
+    await this.remote.initialize(
+      config.storagePort ? transfer(workerConfig, [config.storagePort]) : workerConfig
+    )
 
     // Subscribe to status changes from worker
     this.remote.onStatusChange(
@@ -177,7 +191,7 @@ export class WorkerBridge implements DataBridge {
       return
     }
 
-    const data = await this.remote.reloadQuery(queryId)
+    const data = decodeWorkerQuerySnapshot(await this.remote.reloadQuery(queryId))
     this.cache.set(
       queryId,
       data,
@@ -192,7 +206,7 @@ export class WorkerBridge implements DataBridge {
     descriptor: QueryDescriptor
   ): Promise<void> {
     try {
-      const initial = await this.remote.subscribe(
+      const snapshot = await this.remote.subscribe(
         queryId,
         descriptor.schemaId,
         this.serializeOptions(queryDescriptorToOptions(descriptor)),
@@ -200,6 +214,7 @@ export class WorkerBridge implements DataBridge {
           this.applyDelta(queryId, delta)
         })
       )
+      const initial = decodeWorkerQuerySnapshot(snapshot)
 
       // Update cache with initial data
       this.cache.set(
@@ -316,6 +331,44 @@ export class WorkerBridge implements DataBridge {
     }
 
     return this.remote.bulkWrite(input)
+  }
+
+  async transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult> {
+    if (!this.initialized) {
+      throw new Error('WorkerBridge not initialized')
+    }
+
+    return this.remote.transaction(operations)
+  }
+
+  // ─── Change Feed ─────────────────────────────────────────────────────────────
+
+  /**
+   * Subscribe to the worker's store change feed (devtools and other
+   * instrumentation). A single proxied forwarder is registered with the
+   * worker on first use; events fan out to local listeners from there.
+   */
+  subscribeToChanges(listener: (event: NodeChangeEvent) => void): () => void {
+    this.changeListeners.add(listener)
+
+    if (!this.changeFeedStarted) {
+      this.changeFeedStarted = true
+      this.remote.subscribeToChanges(
+        proxy((event: NodeChangeEvent) => {
+          for (const handler of this.changeListeners) {
+            try {
+              handler(event)
+            } catch (err) {
+              console.error('[WorkerBridge] Change listener error:', err)
+            }
+          }
+        })
+      )
+    }
+
+    return () => {
+      this.changeListeners.delete(listener)
+    }
   }
 
   // ─── Documents ────────────────────────────────────────────────────────────────
@@ -460,6 +513,8 @@ export class WorkerBridge implements DataBridge {
     this.cache.clear()
     this.subscriptions.clear()
     this.statusListeners.clear()
+    this.changeListeners.clear()
+    this.changeFeedStarted = false
     this.initialized = false
     this._status = 'disconnected'
   }

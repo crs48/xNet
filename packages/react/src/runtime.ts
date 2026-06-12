@@ -21,6 +21,13 @@ export interface XNetRuntimeWorkerConfig {
    * Optional signaling URL override for worker-backed sync.
    */
   signalingUrl?: string
+  /**
+   * Optional MessagePort connected to the SQLite worker (from
+   * `WebSQLiteProxy.createMessagePort()`). Transferred to the data worker
+   * so its storage calls run worker-to-worker; without it the data worker
+   * uses in-memory storage.
+   */
+  storagePort?: MessagePort
 }
 
 export interface XNetRuntimeConfig {

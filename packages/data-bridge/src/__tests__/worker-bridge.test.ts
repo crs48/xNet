@@ -12,6 +12,7 @@ const remote = {
   delete: vi.fn(),
   restore: vi.fn(),
   bulkWrite: vi.fn(),
+  transaction: vi.fn(),
   acquireDoc: vi.fn(async () => ({
     nodeId: 'page-1',
     state: new Uint8Array(),
@@ -19,12 +20,16 @@ const remote = {
   })),
   releaseDoc: vi.fn(),
   applyLocalUpdate: vi.fn(),
+  subscribeToChanges: vi.fn(),
   destroy: vi.fn(async () => {})
 }
 
+const transferSpy = vi.fn((value: unknown, _transferables: unknown[]) => value)
+
 vi.mock('comlink', () => ({
   wrap: vi.fn(() => remote),
-  proxy: vi.fn((value) => value)
+  proxy: vi.fn((value) => value),
+  transfer: vi.fn((value: unknown, transferables: unknown[]) => transferSpy(value, transferables))
 }))
 
 class MockWorker {
@@ -98,5 +103,89 @@ describe('WorkerBridge', () => {
 
     expect(remote.bulkWrite).toHaveBeenCalledWith(input)
     expect(result.batchId).toBe('batch-worker')
+  })
+
+  it('delegates transactions to the worker API', async () => {
+    remote.transaction.mockResolvedValueOnce({
+      batchId: 'batch-tx',
+      results: [null],
+      tempIds: { '~task': 'real-id' }
+    })
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3])
+    })
+
+    const operations = [{ type: 'delete' as const, nodeId: 'node-1' }]
+    const result = await bridge.transaction(operations)
+
+    expect(remote.transaction).toHaveBeenCalledWith(operations)
+    expect(result.batchId).toBe('batch-tx')
+    expect(result.tempIds['~task']).toBe('real-id')
+  })
+
+  it('rejects transactions before initialization', async () => {
+    const bridge = new WorkerBridge('worker.js')
+
+    await expect(bridge.transaction([{ type: 'delete', nodeId: 'node-1' }])).rejects.toThrow(
+      'WorkerBridge not initialized'
+    )
+  })
+
+  it('transfers the storage port to the worker on initialize', async () => {
+    const { port2 } = new MessageChannel()
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3]),
+      storagePort: port2
+    })
+
+    expect(transferSpy).toHaveBeenCalledTimes(1)
+    expect(transferSpy.mock.calls[0][1]).toEqual([port2])
+    expect(remote.initialize).toHaveBeenCalledWith(expect.objectContaining({ storagePort: port2 }))
+    port2.close()
+  })
+
+  it('fans out the worker change feed through a single remote forwarder', async () => {
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3])
+    })
+
+    const seenA: unknown[] = []
+    const seenB: unknown[] = []
+    const unsubscribeA = bridge.subscribeToChanges((event) => seenA.push(event))
+    bridge.subscribeToChanges((event) => seenB.push(event))
+
+    // One worker-side registration regardless of local listener count.
+    expect(remote.subscribeToChanges).toHaveBeenCalledTimes(1)
+
+    const forwarder = remote.subscribeToChanges.mock.calls[0][0] as (event: unknown) => void
+    const event = { isRemote: false, change: { payload: { nodeId: 'n1' } } }
+    forwarder(event)
+
+    expect(seenA).toEqual([event])
+    expect(seenB).toEqual([event])
+
+    unsubscribeA()
+    forwarder(event)
+    expect(seenA).toHaveLength(1)
+    expect(seenB).toHaveLength(2)
+  })
+
+  it('skips transfer when no storage port is configured', async () => {
+    const bridge = new WorkerBridge('worker.js')
+    await bridge.initialize({
+      authorDID: 'did:key:test',
+      signingKey: new Uint8Array([1, 2, 3])
+    })
+
+    expect(transferSpy).not.toHaveBeenCalled()
+    expect(remote.initialize).toHaveBeenCalledWith(
+      expect.not.objectContaining({ storagePort: expect.anything() })
+    )
   })
 })

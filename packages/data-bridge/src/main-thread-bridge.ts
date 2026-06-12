@@ -17,6 +17,7 @@ import type {
   RemoteNodeQueryStreamSubscription
 } from './remote-query-protocol'
 import type {
+  BridgeTransactionResult,
   DataBridge,
   QueryDescriptor,
   QueryMetadata,
@@ -38,7 +39,8 @@ import type {
   ListNodesOptions,
   SchemaIRI,
   NodeBatchWriteInput,
-  NodeBatchWriteResult
+  NodeBatchWriteResult,
+  TransactionOperation
 } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
@@ -1186,6 +1188,11 @@ export class MainThreadBridge implements DataBridge {
 
   async bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult> {
     return this.store.batchWrite(input)
+  }
+
+  async transaction(operations: TransactionOperation[]): Promise<BridgeTransactionResult> {
+    const tx = await this.store.transaction(operations)
+    return { batchId: tx.batchId, results: tx.results, tempIds: tx.tempIds }
   }
 
   // ─── Documents ─────────────────────────────────────────

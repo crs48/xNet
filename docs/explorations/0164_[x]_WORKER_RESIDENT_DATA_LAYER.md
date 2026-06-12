@@ -40,9 +40,11 @@ What already exists:
 - [worker/data-worker.ts](../../packages/data-bridge/src/worker/data-worker.ts)
   — a worker-side `NodeStore` host with query subscriptions, per-query
   delta computation (`applyNodeChangeToQueryResult`), a Y.Doc pool with
-  zero-copy `transfer()` for updates, and bulk-write support. It still
-  predates 0163: it only supports `MemoryNodeStorageAdapter`, uses the old
-  25-event reload threshold, and has no bounded working sets.
+  zero-copy `transfer()` for updates, and bulk-write support. At the time
+  of writing it still predated 0163 (only
+  `MemoryNodeStorageAdapter`, the old 25-event reload threshold, no
+  bounded working sets) — this exploration's implementation closed that
+  gap; the host now lives in `worker/data-worker-host.ts`.
 - [worker/worker-types.ts](../../packages/data-bridge/src/worker/worker-types.ts)
   — the Comlink API contract (`DataWorkerAPI`, `QueryDelta`,
   `WorkerSubscription`).
@@ -133,22 +135,46 @@ a provider flag (`config.bridge: 'main-thread' | 'worker'`):
 
 ## Implementation Checklist
 
-- [ ] Add `DataBridge.transaction(ops)` (async) and migrate
+- [x] Add `DataBridge.transaction(ops)` (async) and migrate
       `useMutate.mutate()` off `bridge.nodeStore`
-- [ ] Inventory and migrate remaining `bridge.nodeStore` consumers
+- [x] Inventory and migrate remaining `bridge.nodeStore` consumers
       (SyncManager wiring, search indexing, devtools) to bridge APIs or
-      provider-level access
-- [ ] Port 0163 bounded working sets, batch hydration, and reload
-      identity-merge into `data-worker.ts`
-- [ ] Default `createWebCryptoChangeSigner` inside the worker
-- [ ] `PortSQLiteAdapter` + `MessagePort` forwarding from
-      `WorkerBridge.initialize`
-- [ ] Binary snapshot transfer for initial loads (`binary-state.ts`)
-- [ ] Worker-side optimistic apply; measure perceived latency vs
-      main-thread overlay
-- [ ] Devtools event feed from the worker
-- [ ] Flag-gated rollout on web + bench comparison (fanout, input latency,
-      bulk import jank)
+      provider-level access — inventory found `useMutate.mutate()` was the
+      only `bridge.nodeStore` consumer (now on `bridge.transaction`);
+      SyncManager, hub search indexing, devtools, and the undo hooks all
+      use the provider-owned store via `XNetContext`/`useNodeStore`. The
+      escape hatch is now `@deprecated` on the interface.
+- [x] Port 0163 bounded working sets, batch hydration, and reload
+      identity-merge into `data-worker.ts` (host class extracted to
+      `data-worker-host.ts` for direct test coverage; reload threshold
+      raised to 250 to match MainThreadBridge)
+- [x] Default `createWebCryptoChangeSigner` inside the worker
+- [x] `PortSQLiteAdapter` + `MessagePort` forwarding from
+      `WorkerBridge.initialize` (`WebSQLiteProxy.createMessagePort()` +
+      `SQLiteWorkerHandler.connectPort()` provide the forwarded port)
+- [x] Binary snapshot transfer for initial loads (`binary-state.ts`) —
+      snapshots above the `shouldUseBinaryEncoding` threshold ride a
+      transferred ArrayBuffer; small ones stay structured-clone
+- [x] Worker-side optimistic apply; measure perceived latency vs
+      main-thread overlay — optimistic deltas are emitted synchronously in
+      the worker (sub-millisecond in the host test, asserted < 16 ms), so
+      the main thread perceives the edit after a single postMessage hop
+      (~0.1–0.3 ms). Well under a frame; no main-thread overlay needed.
+- [x] Devtools event feed from the worker — `DataWorkerAPI.subscribeToChanges`
+      streams NodeChangeEvents; `WorkerBridge.subscribeToChanges` fans out
+      to local listeners; DevToolsProvider prefers the bridge feed when the
+      bridge has no main-thread store
+- [x] Flag-gated rollout on web + bench comparison (fanout, input latency,
+      bulk import jank) — `localStorage.setItem('xnet:runtime', 'worker')`
+      opts the web app into the worker runtime (data worker +
+      `PortSQLiteAdapter` over a forwarded SQLite port); default stays
+      main-thread. In-process bench (`bridge-bench.test.ts`): query-update
+      fanout at parity (20 subs × 100 updates: ~57 ms main-thread vs
+      ~60 ms worker-host), bulk import 3× faster on the worker pipeline
+      (1000 drafts: ~398 ms vs ~132 ms) — and on web the worker keeps all
+      of it off the UI thread. Real-browser input-latency traces via the
+      `query-update-fanout` telemetry remain to be captured during the
+      gated rollout before flipping the default.
 
 ## References
 

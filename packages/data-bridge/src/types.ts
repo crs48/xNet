@@ -17,7 +17,8 @@ import type {
   NodeQueryPlanMetadata,
   NodeQueryPageCountMode,
   NodeBatchWriteInput,
-  NodeBatchWriteResult
+  NodeBatchWriteResult,
+  TransactionOperation
 } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
@@ -317,6 +318,22 @@ export interface UpdateResult {
   node: NodeState
 }
 
+/**
+ * Result of a bridge-level atomic transaction.
+ *
+ * A structured-clone-safe subset of NodeStore's `TransactionResult`: the
+ * signed change list stays on the data thread; callers only need the
+ * materialized results and temp ID mapping.
+ */
+export interface BridgeTransactionResult {
+  /** The batch ID shared by all changes */
+  batchId: string
+  /** Results for each operation (NodeState or null for delete) */
+  results: (NodeState | null)[]
+  /** Map from temp ID → generated real ID (empty if no temp IDs were used) */
+  tempIds: Record<string, string>
+}
+
 // ─── Document Types ──────────────────────────────────────────────────────────
 
 /**
@@ -351,6 +368,12 @@ export interface DataBridgeConfig {
   signingKey: Uint8Array
   /** Signaling server URL for sync */
   signalingUrl?: string
+  /**
+   * Optional MessagePort connected to a storage worker (e.g. the SQLite
+   * worker via `WebSQLiteProxy.createMessagePort()`). Worker-backed bridges
+   * transfer it to the data worker so storage calls bypass the main thread.
+   */
+  storagePort?: MessagePort
   /** Optional main-thread remote Node query client for progressive hub/federated reads. */
   remoteNodeQueryClient?: RemoteNodeQueryClient
   /** Optional source:auto routing thresholds for main-thread Node descriptor reads. */
@@ -422,6 +445,15 @@ export interface DataBridge {
    */
   bulkWrite(input: NodeBatchWriteInput): Promise<NodeBatchWriteResult>
 
+  /**
+   * Execute multiple operations atomically with temp ID resolution.
+   *
+   * All operations succeed or fail together. Implemented by every bridge
+   * that owns (or proxies to) a transaction-capable NodeStore; consumers
+   * should feature-detect rather than reaching for `bridge.nodeStore`.
+   */
+  transaction?(operations: TransactionOperation[]): Promise<BridgeTransactionResult>
+
   // ─── Documents ──────────────────────────────────────────
 
   /**
@@ -467,6 +499,12 @@ export interface DataBridge {
    * Get the underlying NodeStore directly.
    * Only available in MainThreadBridge for backward compatibility.
    * Will be removed in later phases.
+   *
+   * @deprecated Reach for bridge-level APIs (`transaction`, `bulkWrite`,
+   * `get`, `subscribeToChanges`) instead — worker-backed bridges have no
+   * main-thread store, so this is `undefined` there. Long-lived services
+   * (SyncManager, search indexing, devtools) should use the provider-owned
+   * store from XNetProvider context, not the bridge.
    */
   readonly nodeStore?: import('@xnetjs/data').NodeStore
 

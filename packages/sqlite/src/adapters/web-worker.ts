@@ -121,6 +121,18 @@ class SQLiteWorkerHandler {
     if (!this.adapter) throw new Error('Database not open')
     return this.adapter.getStorageMode()
   }
+
+  /**
+   * Expose this handler on an additional MessagePort.
+   *
+   * Lets another worker (e.g. the data worker from @xnetjs/data-bridge)
+   * talk to this SQLite worker directly without routing every storage call
+   * through the main thread. The port is created on the main thread with
+   * `WebSQLiteProxy.createMessagePort()` and transferred to the peer.
+   */
+  connectPort(port: MessagePort): void {
+    Comlink.expose(this, port)
+  }
 }
 
 const handler = new SQLiteWorkerHandler()
