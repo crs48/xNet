@@ -10,17 +10,17 @@ straight into a running build.
 
 ## Executive Summary
 
-> **Status (2026-06-12): the current deployment workflow is buggy and needs
-> work — implementation of the fixes below is in progress.** The defects are
-> concrete, not hypothetical: the preview workflows push to `gh-pages` with no
-> retry, so any two concurrent writers (two PR updates, or a merge firing
-> `remove-pr-preview` alongside `deploy-site`) race and one run fails with a
-> rejected push — the same failure class that broke the production deploy
-> twice on 2026-06-12 before commit `7decfc3c` added a retry loop to
-> deploy-site.yml only. On top of that, `gh-pages` history grows without bound
-> (every deploy commits a full set of hashed bundles), and previews share
-> production's browser-storage origin (see the security finding below). The
-> Implementation Checklist tracks the fixes.
+> **Status (2026-06-12): the deployment workflow as originally shipped was
+> buggy and needed work; the fixes below are now implemented** (see the
+> Implementation Checklist — validation items await live runs). The defects
+> were concrete, not hypothetical: the preview workflows pushed to `gh-pages`
+> with no retry, so any two concurrent writers (two PR updates, or a merge
+> firing `remove-pr-preview` alongside `deploy-site`) raced and one run failed
+> with a rejected push — the same failure class that broke the production
+> deploy twice on 2026-06-12 before commit `7decfc3c` added a retry loop to
+> deploy-site.yml only. On top of that, `gh-pages` history grew without bound
+> (every deploy commits a full set of hashed bundles), and previews shared
+> production's browser-storage origin (see the security finding below).
 
 **The core ask is already implemented and live on `main`.** Commit `ceef02d4`
 ("ci(pages): add branch-backed PR previews") shipped
@@ -461,7 +461,7 @@ writer; the shared composite action should serialize via the
 - [x] Add weekly history-squash workflow (landed as [gh-pages-maintenance.yml](../../.github/workflows/gh-pages-maintenance.yml), using `git commit-tree` + `--force-with-lease` so no checkout is needed and concurrent pushes are never discarded)
 - [x] Add weekly orphan sweep: delete `pr/*` dirs with no open PR and `branch/*` dirs with no live ref (same workflow, runs before the squash)
 - [x] Thread a `VITE_STORAGE_SCOPE` (e.g. `pr-42`) build arg into IndexedDB database names — starting with `DB_NAME` in [packages/identity/src/passkey/storage.ts](../../packages/identity/src/passkey/storage.ts) — so previews never open production databases (apps/web sets a `__XNET_STORAGE_SCOPE__` global from the env var as its first import; scoped builds open `xnet-identity--<scope>`; other client-side stores remain a follow-up)
-- [ ] Document the preview URL scheme (`/pr/<N>/app/`, `/branch/<slug>/app/`) in the repo docs
+- [x] Document the preview URL scheme (`/pr/<N>/app/`, `/branch/<slug>/app/`) in the repo docs ([docs/reference/pages-deployments.md](../reference/pages-deployments.md))
 
 ## Validation Checklist
 
