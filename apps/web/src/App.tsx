@@ -12,7 +12,6 @@ import { SQLiteNodeStorageAdapter, BlobService } from '@xnetjs/data'
 import { getDefaultDataWorkerUrl } from '@xnetjs/data-bridge'
 import { XNetDevToolsProvider } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
-import { createIdentityManager } from '@xnetjs/identity'
 import {
   XNetProvider,
   OnboardingProvider,
@@ -41,6 +40,7 @@ import {
   shouldResetXNetBrowserStorageOnLoad,
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
+import { identityManager } from './lib/identity'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -57,9 +57,6 @@ declare module '@tanstack/react-router' {
     router: typeof router
   }
 }
-
-// Identity manager (singleton)
-const identityManager = createIdentityManager()
 
 // Hub URL from env or default
 const DEFAULT_HUB_URL = import.meta.env.VITE_HUB_URL || 'wss://hub.xnet.fyi'
@@ -553,6 +550,22 @@ export function App(): JSX.Element {
         }
 
         if (hasIdentity) {
+          // A persisted session from a previous unlock lets us skip the
+          // biometric prompt across reloads.
+          const resumed = await identityManager.resume().catch(() => null)
+          if (cancelled) return
+
+          if (resumed) {
+            setAppState({
+              status: 'authenticated',
+              identity: resumed.identity,
+              keyBundle: resumed,
+              storageWarning,
+              storageStatus
+            })
+            return
+          }
+
           setAppState({ status: 'unlocking', storageWarning, storageStatus })
           try {
             const keyBundle = await identityManager.unlock()

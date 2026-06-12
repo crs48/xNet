@@ -5,13 +5,17 @@ import type { PasskeyIdentity, FallbackStorage, StoredPasskeyRecord } from './ty
 import type { DID } from '../types'
 
 const DB_NAME = 'xnet-identity'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const STORE_NAME = 'passkeys'
 const IDENTITY_KEY = 'primary'
 
+/** Object store holding resumable unlocked-session records. @internal */
+export const SESSION_STORE_NAME = 'sessions'
+
 // ─── IndexedDB Helpers ───────────────────────────────────────
 
-function openDB(): Promise<IDBDatabase> {
+/** @internal Shared with session.ts */
+export function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
 
@@ -20,6 +24,9 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME)
       }
+      if (!db.objectStoreNames.contains(SESSION_STORE_NAME)) {
+        db.createObjectStore(SESSION_STORE_NAME)
+      }
     }
 
     request.onsuccess = () => resolve(request.result)
@@ -27,31 +34,31 @@ function openDB(): Promise<IDBDatabase> {
   })
 }
 
-function dbGet<T>(db: IDBDatabase, key: string): Promise<T | undefined> {
+/** @internal Shared with session.ts */
+export function dbGet<T>(db: IDBDatabase, store: string, key: string): Promise<T | undefined> {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.get(key)
+    const tx = db.transaction(store, 'readonly')
+    const request = tx.objectStore(store).get(key)
     request.onsuccess = () => resolve(request.result as T | undefined)
     request.onerror = () => reject(request.error)
   })
 }
 
-function dbPut(db: IDBDatabase, key: string, value: unknown): Promise<void> {
+/** @internal Shared with session.ts */
+export function dbPut(db: IDBDatabase, store: string, key: string, value: unknown): Promise<void> {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.put(value, key)
+    const tx = db.transaction(store, 'readwrite')
+    const request = tx.objectStore(store).put(value, key)
     request.onsuccess = () => resolve()
     request.onerror = () => reject(request.error)
   })
 }
 
-function dbDelete(db: IDBDatabase, key: string): Promise<void> {
+/** @internal Shared with session.ts */
+export function dbDelete(db: IDBDatabase, store: string, key: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    const store = tx.objectStore(STORE_NAME)
-    const request = store.delete(key)
+    const tx = db.transaction(store, 'readwrite')
+    const request = tx.objectStore(store).delete(key)
     request.onsuccess = () => resolve()
     request.onerror = () => reject(request.error)
   })
@@ -138,7 +145,7 @@ export async function storeIdentity(
   const db = await openDB()
   try {
     const record: StoredPasskeyRecord = { passkey, fallback }
-    await dbPut(db, IDENTITY_KEY, serializeRecord(record))
+    await dbPut(db, STORE_NAME, IDENTITY_KEY, serializeRecord(record))
   } finally {
     db.close()
   }
@@ -150,7 +157,7 @@ export async function storeIdentity(
 export async function getStoredIdentity(): Promise<StoredPasskeyRecord | null> {
   const db = await openDB()
   try {
-    const raw = await dbGet<SerializedRecord>(db, IDENTITY_KEY)
+    const raw = await dbGet<SerializedRecord>(db, STORE_NAME, IDENTITY_KEY)
     if (!raw) return null
     return deserializeRecord(raw)
   } finally {
@@ -164,7 +171,7 @@ export async function getStoredIdentity(): Promise<StoredPasskeyRecord | null> {
 export async function clearStoredIdentity(): Promise<void> {
   const db = await openDB()
   try {
-    await dbDelete(db, IDENTITY_KEY)
+    await dbDelete(db, STORE_NAME, IDENTITY_KEY)
   } finally {
     db.close()
   }
