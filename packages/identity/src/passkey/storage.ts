@@ -4,10 +4,21 @@
 import type { PasskeyIdentity, FallbackStorage, StoredPasskeyRecord } from './types'
 import type { DID } from '../types'
 
-const DB_NAME = 'xnet-identity'
+const DB_BASE_NAME = 'xnet-identity'
 const DB_VERSION = 2
 const STORE_NAME = 'passkeys'
 const IDENTITY_KEY = 'primary'
+
+/**
+ * Browser storage is origin-scoped, and Pages preview deploys share
+ * production's origin (xnet.fyi/pr/<N>/app/ vs xnet.fyi/app/). Hosts set this
+ * global before any DB access (apps/web sets it from VITE_STORAGE_SCOPE) so
+ * preview builds open their own database instead of production's.
+ */
+function dbName(): string {
+  const scope = (globalThis as { __XNET_STORAGE_SCOPE__?: string }).__XNET_STORAGE_SCOPE__
+  return scope ? `${DB_BASE_NAME}--${scope}` : DB_BASE_NAME
+}
 
 /** Object store holding resumable unlocked-session records. @internal */
 export const SESSION_STORE_NAME = 'sessions'
@@ -17,7 +28,7 @@ export const SESSION_STORE_NAME = 'sessions'
 /** @internal Shared with session.ts */
 export function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    const request = indexedDB.open(dbName(), DB_VERSION)
 
     request.onupgradeneeded = () => {
       const db = request.result

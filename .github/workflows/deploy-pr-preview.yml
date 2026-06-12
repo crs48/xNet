@@ -38,6 +38,9 @@ jobs:
         env:
           VITE_BASE_PATH: /pr/${{ github.event.pull_request.number }}/app/
           VITE_USE_HASH_ROUTER: 'true'
+          # Previews share production's origin; scope IndexedDB names so a
+          # preview build can never open production databases.
+          VITE_STORAGE_SCOPE: pr-${{ github.event.pull_request.number }}
 
       - name: Prepare preview tree
         run: |

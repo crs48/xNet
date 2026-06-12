@@ -274,4 +274,31 @@ describe('IndexedDB storage', () => {
       expect(stored!.passkey.credentialId).toEqual(credId)
     })
   })
+
+  describe('storage scope', () => {
+    const scopedGlobal = globalThis as { __XNET_STORAGE_SCOPE__?: string }
+
+    afterEach(async () => {
+      delete scopedGlobal.__XNET_STORAGE_SCOPE__
+      await new Promise<void>((resolve) => {
+        const request = indexedDB.deleteDatabase(`${DB_NAME}--pr-42`)
+        request.onsuccess = () => resolve()
+        request.onerror = () => resolve()
+        request.onblocked = () => resolve()
+      })
+    })
+
+    it('opens a scoped database instead of the production one when a scope is set', async () => {
+      await storeIdentity(makePasskey({ did: 'did:key:z6MkProduction' }))
+
+      scopedGlobal.__XNET_STORAGE_SCOPE__ = 'pr-42'
+      expect(await getStoredIdentity()).toBeNull()
+
+      await storeIdentity(makePasskey({ did: 'did:key:z6MkPreview' }))
+      expect((await getStoredIdentity())!.passkey.did).toBe('did:key:z6MkPreview')
+
+      delete scopedGlobal.__XNET_STORAGE_SCOPE__
+      expect((await getStoredIdentity())!.passkey.did).toBe('did:key:z6MkProduction')
+    })
+  })
 })
