@@ -10,6 +10,7 @@ import { useRouterState } from '@tanstack/react-router'
 import {
   createNotifier,
   createRoomManager,
+  workspacePresenceRoomId,
   type Notifier,
   type PeerPresence,
   type RoomManager,
@@ -19,18 +20,13 @@ import {
 import { ProfileSchema, type NodeChangeEvent } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { tabFromPathname } from '../workbench/tabs'
+import { userCardFrom } from './comms-utils'
+import { useRoomSession } from './use-room-session'
 
 /** Single-workspace deployments share one well-known roster room. */
 export const WORKSPACE_ID = 'main'
-
-const USER_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
-
-function colorForDid(did: string): string {
-  const hash = did.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  return USER_COLORS[hash % USER_COLORS.length]
-}
 
 export interface CommsValue {
   me: UserCard
@@ -61,52 +57,9 @@ function useMe(): UserCard {
   const { data: profiles } = useQuery(ProfileSchema, {
     where: { did: did as `did:key:${string}` }
   })
-  const profile = profiles?.[0]
-  return useMemo(
-    () => ({
-      did,
-      name: (profile?.displayName as string | undefined) ?? undefined,
-      avatar: (profile?.avatar as string | undefined) ?? undefined,
-      color: colorForDid(did)
-    }),
-    [did, profile?.displayName, profile?.avatar]
-  )
-}
-
-function useWorkspaceRoom(roomManager: RoomManager | null): {
-  session: RoomSession | null
-  peers: PeerPresence[]
-} {
-  const [session, setSession] = useState<RoomSession | null>(null)
-  const [peers, setPeers] = useState<PeerPresence[]>([])
-
-  useEffect(() => {
-    if (!roomManager) return
-    let active = true
-    let joined: RoomSession | null = null
-    let unsubscribe: (() => void) | null = null
-
-    void roomManager.joinWorkspace(WORKSPACE_ID).then((s) => {
-      if (!active) {
-        s.leave()
-        return
-      }
-      joined = s
-      setSession(s)
-      setPeers(s.getPeers())
-      unsubscribe = s.onPeersChange(setPeers)
-    })
-
-    return () => {
-      active = false
-      unsubscribe?.()
-      joined?.leave()
-      setSession(null)
-      setPeers([])
-    }
-  }, [roomManager])
-
-  return { session, peers }
+  const profile = profiles?.[0] as unknown as Record<string, unknown> | undefined
+  // Query snapshots preserve node identity (0163), so `profile` is a stable dep.
+  return useMemo(() => userCardFrom(did, profile), [did, profile])
 }
 
 /** Broadcast which node the user is viewing (drives "2 here" chips). */
@@ -143,7 +96,10 @@ export function CommsProvider({ children }: { children: ReactNode }) {
 
   const notifier = useMemo(() => createNotifier({ me: authorDID ?? '' }), [authorDID])
 
-  const { session: workspaceSession, peers: workspacePeers } = useWorkspaceRoom(roomManager)
+  const { session: workspaceSession, peers: workspacePeers } = useRoomSession(
+    roomManager,
+    workspacePresenceRoomId(WORKSPACE_ID)
+  )
   useViewingBroadcast(workspaceSession)
   useNotifierFeed(notifier)
 

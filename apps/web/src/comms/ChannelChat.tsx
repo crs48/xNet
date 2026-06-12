@@ -7,21 +7,14 @@ import { sendMessage, typingPeers, type PeerPresence } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { mergeMentionables, type Mentionable, type ProfileEntry } from './comms-utils'
 import { useComms } from './CommsContext'
-import {
-  useChannelMessages,
-  useInbox,
-  useProfiles,
-  useRoomPresence,
-  displayName,
-  type ProfileEntry
-} from './hooks'
+import { useChannelMessages, useInbox, useProfiles, useRoomPresence, displayName } from './hooks'
 import {
   applyMentionPick,
   composerMentions,
-  filterMentionables,
   mentionQueryAt,
-  type MentionQuery
+  pickerOptionsFor
 } from './mention-composer'
 
 interface ChatMessageRow {
@@ -38,41 +31,67 @@ function formatTime(at: number | undefined): string {
   return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+function EditedTag({ message }: { message: ChatMessageRow }) {
+  if (!message.edited || message.redacted) return null
+  return <span className="text-[10px] text-ink-3">(edited)</span>
+}
+
+function MessageBody({ message }: { message: ChatMessageRow }) {
+  if (message.redacted) {
+    return <span className="text-xs italic text-ink-3">message deleted</span>
+  }
+  return (
+    <span className="whitespace-pre-wrap break-words text-xs text-ink-2">{message.content}</span>
+  )
+}
+
 function MessageRow({ message, profiles }: { message: ChatMessageRow; profiles: ProfileEntry[] }) {
-  const author = message.createdBy ? displayName(message.createdBy, profiles) : '?'
+  const author = displayName(message.createdBy ?? '?', profiles)
   return (
     <li className="flex flex-col gap-0.5 px-3 py-1.5 hover:bg-surface-2/50">
       <div className="flex items-baseline gap-2">
         <span className="text-xs font-medium text-ink-1">{author}</span>
         <span className="font-mono text-[10px] text-ink-3">{formatTime(message.createdAt)}</span>
-        {message.edited && !message.redacted && (
-          <span className="text-[10px] text-ink-3">(edited)</span>
-        )}
+        <EditedTag message={message} />
       </div>
-      {message.redacted ? (
-        <span className="text-xs italic text-ink-3">message deleted</span>
-      ) : (
-        <span className="whitespace-pre-wrap break-words text-xs text-ink-2">
-          {message.content}
-        </span>
-      )}
+      <MessageBody message={message} />
     </li>
+  )
+}
+
+function MessageList({
+  messages,
+  profiles,
+  listRef
+}: {
+  messages: ChatMessageRow[]
+  profiles: ProfileEntry[]
+  listRef: React.RefObject<HTMLUListElement>
+}) {
+  if (messages.length === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center text-xs text-ink-3">
+        No messages yet. Say hi!
+      </div>
+    )
+  }
+  return (
+    <ul ref={listRef} className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 py-2">
+      {messages.map((message) => (
+        <MessageRow key={message.id} message={message} profiles={profiles} />
+      ))}
+    </ul>
   )
 }
 
 function TypingLine({ peers, profiles }: { peers: PeerPresence[]; profiles: ProfileEntry[] }) {
   if (peers.length === 0) return <div className="h-4" />
-  const names = peers.map((p) => (p.user ? displayName(p.user.did, profiles) : '?')).join(', ')
+  const names = peers.map((p) => displayName(p.user?.did ?? '?', profiles)).join(', ')
   return (
     <div className="h-4 truncate px-3 text-[10px] italic text-ink-3">
       {names} {peers.length === 1 ? 'is' : 'are'} typing…
     </div>
   )
-}
-
-interface Mentionable {
-  label: string
-  did: string
 }
 
 function MentionPicker({
@@ -107,31 +126,32 @@ function MentionPicker({
 function useMentionables(): Mentionable[] {
   const profiles = useProfiles()
   const { workspacePeers, me } = useComms()
-  return useMemo(() => {
-    const byDid = new Map<string, Mentionable>()
-    for (const profile of profiles) {
-      byDid.set(profile.did, { did: profile.did, label: displayName(profile.did, profiles) })
-    }
-    for (const peer of workspacePeers) {
-      const did = peer.user?.did
-      if (did && !byDid.has(did)) {
-        byDid.set(did, { did, label: peer.user?.name?.trim() || `${did.slice(8, 14)}…` })
-      }
-    }
-    byDid.delete(me.did)
-    return [...byDid.values()]
-  }, [profiles, workspacePeers, me.did])
+  return useMemo(
+    () => mergeMentionables(profiles, workspacePeers, me.did),
+    [profiles, workspacePeers, me.did]
+  )
 }
 
 const TYPING_THROTTLE_MS = 1500
 const WATERMARK_DEBOUNCE_MS = 800
+
+/** Advance the channel's read watermark while its newest message is visible. */
+function useWatermarkAdvance(channelId: string, newest: ChatMessageRow | undefined): void {
+  const { markChannelRead } = useInbox()
+  useEffect(() => {
+    if (!newest?.createdAt) return
+    const timer = setTimeout(() => {
+      void markChannelRead(channelId, newest.createdAt as number, newest.id)
+    }, WATERMARK_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [channelId, newest?.id, newest?.createdAt, markChannelRead])
+}
 
 export function ChannelChat({ channelId }: { channelId: string }) {
   const bridge = useDataBridge()
   const { messages } = useChannelMessages(channelId)
   const { peers, session } = useRoomPresence(channelId)
   const profiles = useProfiles()
-  const { markChannelRead } = useInbox()
   const mentionables = useMentionables()
 
   const [text, setText] = useState('')
@@ -141,20 +161,11 @@ export function ChannelChat({ channelId }: { channelId: string }) {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
-  const mentionQuery: MentionQuery | null = mentionQueryAt(text, caret)
-  const pickerOptions = mentionQuery ? filterMentionables(mentionables, mentionQuery.query) : []
-
+  const pickerOptions = pickerOptionsFor(text, caret, mentionables)
   const typing = useMemo(() => typingPeers(peers, channelId, Date.now()), [peers, channelId])
+  const rows = messages as unknown as ChatMessageRow[]
 
-  // Advance the read watermark (debounced) while the newest message is visible.
-  const newest = messages.at(-1)
-  useEffect(() => {
-    if (!newest?.createdAt) return
-    const timer = setTimeout(() => {
-      void markChannelRead(channelId, newest.createdAt as number, newest.id)
-    }, WATERMARK_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
-  }, [channelId, newest?.id, newest?.createdAt, markChannelRead])
+  useWatermarkAdvance(channelId, rows.at(-1))
 
   // Keep scrolled to the bottom on new messages.
   useEffect(() => {
@@ -176,14 +187,15 @@ export function ChannelChat({ channelId }: { channelId: string }) {
 
   const pickMention = useCallback(
     (option: Mentionable) => {
-      if (!mentionQuery) return
+      const query = mentionQueryAt(text, caret)
+      if (!query) return
       picked.current.set(option.label, option.did)
-      const next = applyMentionPick(text, caret, mentionQuery.start, option.label)
+      const next = applyMentionPick(text, caret, query.start, option.label)
       setText(next.text)
       setCaret(next.caret)
       inputRef.current?.focus()
     },
-    [mentionQuery, text, caret]
+    [text, caret]
   )
 
   const send = useCallback(async () => {
@@ -201,18 +213,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <ul ref={listRef} className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 py-2">
-        {messages.length === 0 && (
-          <li className="px-3 py-6 text-center text-xs text-ink-3">No messages yet. Say hi!</li>
-        )}
-        {messages.map((message) => (
-          <MessageRow
-            key={message.id}
-            message={message as unknown as ChatMessageRow}
-            profiles={profiles}
-          />
-        ))}
-      </ul>
+      <MessageList messages={rows} profiles={profiles} listRef={listRef} />
       <TypingLine peers={typing} profiles={profiles} />
       <div className="relative border-t border-hairline p-2">
         <MentionPicker options={pickerOptions} onPick={pickMention} />

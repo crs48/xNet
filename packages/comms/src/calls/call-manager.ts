@@ -24,6 +24,16 @@ import type {
 } from './types'
 import { meshCapacity } from './types'
 
+/** Swap the outgoing video track on one connection's video sender. */
+async function replaceVideoSender(
+  connection: PeerConnectionLike | null,
+  track: unknown
+): Promise<void> {
+  const senders = connection?.getSenders?.() ?? []
+  const videoSender = senders.find((sender) => sender.track?.kind === 'video')
+  if (videoSender) await videoSender.replaceTrack(track)
+}
+
 export interface CallManagerOptions {
   self: CallSelf
   transport: SignalingTransport
@@ -225,9 +235,7 @@ export function createCallManager(options: CallManagerOptions): CallManager {
     },
     async replaceVideoTrack(track) {
       for (const entry of peers.values()) {
-        const senders = entry.connection?.getSenders?.() ?? []
-        const videoSender = senders.find((sender) => sender.track?.kind === 'video')
-        if (videoSender) await videoSender.replaceTrack(track)
+        await replaceVideoSender(entry.connection, track)
       }
     },
     getStatus: () => status,

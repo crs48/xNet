@@ -7,6 +7,7 @@ import { ProfileSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { useEffect, useState } from 'react'
+import { profileFormValues } from './comms-utils'
 
 function Field({
   label,
@@ -33,6 +34,33 @@ function Field({
   )
 }
 
+function SavedFlash({ visible }: { visible: boolean }) {
+  if (!visible) return null
+  return <span className="text-xs text-ink-3">Saved ✓</span>
+}
+
+interface ProfileForm {
+  name: string
+  emoji: string
+  message: string
+}
+
+function useProfileForm(profile: Record<string, unknown> | undefined): {
+  form: ProfileForm
+  setField: (field: keyof ProfileForm) => (value: string) => void
+} {
+  const [form, setForm] = useState<ProfileForm>({ name: '', emoji: '', message: '' })
+
+  useEffect(() => {
+    setForm(profileFormValues(profile))
+  }, [profile])
+
+  const setField = (field: keyof ProfileForm) => (value: string) =>
+    setForm((current) => ({ ...current, [field]: value }))
+
+  return { form, setField }
+}
+
 export function ProfileSettings() {
   const { authorDID } = useXNet()
   const bridge = useDataBridge()
@@ -40,27 +68,18 @@ export function ProfileSettings() {
   const { data: profiles } = useQuery(ProfileSchema, {
     where: { did: did as `did:key:${string}` }
   })
-  const profile = profiles?.[0]
-
-  const [name, setName] = useState('')
-  const [emoji, setEmoji] = useState('')
-  const [message, setMessage] = useState('')
+  const profile = profiles?.[0] as unknown as Record<string, unknown> | undefined
+  const { form, setField } = useProfileForm(profile)
   const [saved, setSaved] = useState(false)
 
-  useEffect(() => {
-    setName((profile?.displayName as string | undefined) ?? '')
-    setEmoji((profile?.statusEmoji as string | undefined) ?? '')
-    setMessage((profile?.statusMessage as string | undefined) ?? '')
-  }, [profile?.id, profile?.displayName, profile?.statusEmoji, profile?.statusMessage])
-
   const save = async () => {
-    if (!bridge || !did || !name.trim()) return
+    if (!bridge || !did) return
     const fields = {
-      displayName: name.trim(),
-      statusEmoji: emoji.trim(),
-      statusMessage: message.trim()
+      displayName: form.name.trim(),
+      statusEmoji: form.emoji.trim(),
+      statusMessage: form.message.trim()
     }
-    if (profile) await bridge.update(profile.id, fields)
+    if (profile) await bridge.update(String(profile.id), fields)
     else await bridge.create(ProfileSchema, { did: did as `did:key:${string}`, ...fields })
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
@@ -75,24 +94,34 @@ export function ProfileSettings() {
         </p>
         <p className="mt-1 break-all font-mono text-[10px] text-ink-3">{did}</p>
       </div>
-      <Field label="Display name" value={name} placeholder="Ada Lovelace" onChange={setName} />
-      <Field label="Status emoji" value={emoji} placeholder="🌴" onChange={setEmoji} />
+      <Field
+        label="Display name"
+        value={form.name}
+        placeholder="Ada Lovelace"
+        onChange={setField('name')}
+      />
+      <Field
+        label="Status emoji"
+        value={form.emoji}
+        placeholder="🌴"
+        onChange={setField('emoji')}
+      />
       <Field
         label="Status message"
-        value={message}
+        value={form.message}
         placeholder="Out until Monday"
-        onChange={setMessage}
+        onChange={setField('message')}
       />
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => void save()}
-          disabled={!name.trim()}
+          disabled={!form.name.trim()}
           className="w-fit cursor-pointer rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 hover:bg-surface-2 disabled:cursor-default disabled:opacity-50"
         >
           Save profile
         </button>
-        {saved && <span className="text-xs text-ink-3">Saved ✓</span>}
+        <SavedFlash visible={saved} />
       </div>
     </div>
   )

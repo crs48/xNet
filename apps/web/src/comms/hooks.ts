@@ -24,8 +24,12 @@ import {
 } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
+import { dedupeProfiles, displayName, type ProfileEntry } from './comms-utils'
 import { useComms } from './CommsContext'
+import { useRoomSession } from './use-room-session'
+
+export { displayName, type ProfileEntry }
 
 // ─── Presence ────────────────────────────────────────────────────────────────
 
@@ -37,69 +41,18 @@ export interface RoomPresenceResult {
 /** Join the presence room for a node while mounted. */
 export function useRoomPresence(nodeId: string | null): RoomPresenceResult {
   const { roomManager } = useComms()
-  const [session, setSession] = useState<RoomSession | null>(null)
-  const [peers, setPeers] = useState<PeerPresence[]>([])
-
-  useEffect(() => {
-    if (!roomManager || !nodeId) return
-    let active = true
-    let joined: RoomSession | null = null
-    let unsubscribe: (() => void) | null = null
-
-    void roomManager.join(nodeId).then((s) => {
-      if (!active) {
-        s.leave()
-        return
-      }
-      joined = s
-      setSession(s)
-      setPeers(s.getPeers())
-      unsubscribe = s.onPeersChange(setPeers)
-    })
-
-    return () => {
-      active = false
-      unsubscribe?.()
-      joined?.leave()
-      setSession(null)
-      setPeers([])
-    }
-  }, [roomManager, nodeId])
-
-  return { peers, session }
+  return useRoomSession(roomManager, nodeId)
 }
 
 // ─── Profiles ────────────────────────────────────────────────────────────────
 
-export interface ProfileEntry {
-  did: string
-  name?: string
-  avatar?: string
-}
-
 /** All known profiles, deduped by DID (newest wins). */
 export function useProfiles(): ProfileEntry[] {
   const { data } = useQuery(ProfileSchema, { orderBy: { createdAt: 'desc' } })
-  return useMemo(() => {
-    const seen = new Map<string, ProfileEntry>()
-    for (const profile of data ?? []) {
-      const did = profile.did as string | undefined
-      if (did && !seen.has(did)) {
-        seen.set(did, {
-          did,
-          name: profile.displayName as string | undefined,
-          avatar: profile.avatar as string | undefined
-        })
-      }
-    }
-    return [...seen.values()]
-  }, [data])
-}
-
-/** Resolve a DID to a short human label. */
-export function displayName(did: string, profiles: ProfileEntry[]): string {
-  const profile = profiles.find((p) => p.did === did)
-  return profile?.name?.trim() || `${did.slice(8, 14)}…`
+  return useMemo(
+    () => dedupeProfiles(data as unknown as Array<Record<string, unknown>> | null),
+    [data]
+  )
 }
 
 // ─── Chat data ───────────────────────────────────────────────────────────────

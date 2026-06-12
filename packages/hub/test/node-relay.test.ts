@@ -185,54 +185,45 @@ describe('Node Sync Relay', () => {
     ws.close()
   })
 
-  it('rejects invalid signatures without appending node changes', async () => {
-    const room = 'workspace-invalid-signature'
+  /** Publish a change, expect a node-error with the code, verify nothing appended. */
+  const expectRejectedChange = async (
+    room: string,
+    change: SerializedNodeChange,
+    code: string
+  ): Promise<void> => {
     const ws = await connect(PORT)
-
-    const change = makeSerializedChange({
-      room,
-      signatureB64: bytesToBase64(new Uint8Array(64).fill(0))
-    })
-
     ws.send(
       JSON.stringify({
         type: 'publish',
         topic: room,
-        data: {
-          type: 'node-change',
-          room,
-          change
-        }
+        data: { type: 'node-change', room, change }
       })
     )
 
-    const error = (await waitForMessage(ws)) as {
-      type: string
-      code?: string
-    }
-
-    expect(error).toMatchObject({
-      type: 'node-error',
-      code: 'INVALID_SIGNATURE'
-    })
+    const error = (await waitForMessage(ws)) as { type: string; code?: string }
+    expect(error).toMatchObject({ type: 'node-error', code })
 
     ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
-
     const response = (await waitForMessage(ws)) as {
       type: string
       changes?: SerializedNodeChange[]
     }
-
     expect(response.type).toBe('node-sync-response')
     expect(response.changes).toEqual([])
 
     ws.close()
+  }
+
+  it('rejects invalid signatures without appending node changes', async () => {
+    const room = 'workspace-invalid-signature'
+    const change = makeSerializedChange({
+      room,
+      signatureB64: bytesToBase64(new Uint8Array(64).fill(0))
+    })
+    await expectRejectedChange(room, change, 'INVALID_SIGNATURE')
   })
 
   it('rejects malformed mentions declarations without appending (0168)', async () => {
-    const room = 'workspace-bad-mentions'
-    const ws = await connect(PORT)
-
     const change = makeSerializedChange({
       payload: {
         nodeId: 'msg-1',
@@ -244,26 +235,7 @@ describe('Node Sync Relay', () => {
         }
       }
     })
-
-    ws.send(
-      JSON.stringify({
-        type: 'publish',
-        topic: room,
-        data: { type: 'node-change', room, change }
-      })
-    )
-
-    const error = (await waitForMessage(ws)) as { type: string; code?: string }
-    expect(error).toMatchObject({ type: 'node-error', code: 'INVALID_CHANGE' })
-
-    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
-    const response = (await waitForMessage(ws)) as {
-      type: string
-      changes?: SerializedNodeChange[]
-    }
-    expect(response.changes).toEqual([])
-
-    ws.close()
+    await expectRejectedChange('workspace-bad-mentions', change, 'INVALID_CHANGE')
   })
 
   it('relays well-formed mentions declarations (0168)', async () => {
@@ -303,45 +275,11 @@ describe('Node Sync Relay', () => {
 
   it('rejects invalid hashes without appending node changes', async () => {
     const room = 'workspace-invalid-hash'
-    const ws = await connect(PORT)
     const change = makeSerializedChange({
       room,
       hash: 'cid:blake3:0000000000000000000000000000000000000000000000000000000000000000'
     })
-
-    ws.send(
-      JSON.stringify({
-        type: 'publish',
-        topic: room,
-        data: {
-          type: 'node-change',
-          room,
-          change
-        }
-      })
-    )
-
-    const error = (await waitForMessage(ws)) as {
-      type: string
-      code?: string
-    }
-
-    expect(error).toMatchObject({
-      type: 'node-error',
-      code: 'INVALID_HASH'
-    })
-
-    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
-
-    const response = (await waitForMessage(ws)) as {
-      type: string
-      changes?: SerializedNodeChange[]
-    }
-
-    expect(response.type).toBe('node-sync-response')
-    expect(response.changes).toEqual([])
-
-    ws.close()
+    await expectRejectedChange(room, change, 'INVALID_HASH')
   })
 
   it('rejects duplicate system namespace changes as replay attempts', async () => {

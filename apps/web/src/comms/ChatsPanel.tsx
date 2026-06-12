@@ -15,28 +15,14 @@ import {
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Hash, MessageCircle, Plus, Volume2 } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
+import { channelLabel, type ChannelEntry } from './comms-utils'
 import { useComms } from './CommsContext'
-import { useChannels, useInbox, useProfiles, displayName, type ProfileEntry } from './hooks'
-
-interface ChannelEntry {
-  id: string
-  name?: string
-  kind?: string
-  members?: string[]
-}
+import { useChannels, useInbox, useProfiles, displayName } from './hooks'
 
 const KIND_ICONS: Record<string, typeof Hash> = {
   channel: Hash,
   dm: MessageCircle,
   voice: Volume2
-}
-
-function channelLabel(channel: ChannelEntry, me: string, profiles: ProfileEntry[]): string {
-  if (channel.kind === 'dm') {
-    const others = (channel.members ?? []).filter((m) => m !== me)
-    if (others.length > 0) return others.map((did) => displayName(did, profiles)).join(', ')
-  }
-  return channel.name?.trim() || 'untitled'
 }
 
 function unreadMentionCount(channelId: string, items: InboxItem[], state: InboxStateData): number {

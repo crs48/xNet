@@ -3,7 +3,8 @@ import {
   applyMentionPick,
   composerMentions,
   filterMentionables,
-  mentionQueryAt
+  mentionQueryAt,
+  pickerOptionsFor
 } from './mention-composer'
 
 describe('mentionQueryAt', () => {
@@ -52,6 +53,15 @@ describe('composerMentions', () => {
       ['AliceW', 'did:key:zAlice']
     ])
     expect(composerMentions('@Alice @AliceW', aliased)).toEqual({ dids: ['did:key:zAlice'] })
+  })
+})
+
+describe('pickerOptionsFor', () => {
+  const people = [{ label: 'Alice' }, { label: 'Bob' }]
+
+  it('returns matches only while composing a mention', () => {
+    expect(pickerOptionsFor('hey @al', 7, people).map((p) => p.label)).toEqual(['Alice'])
+    expect(pickerOptionsFor('hey al', 6, people)).toEqual([])
   })
 })
 

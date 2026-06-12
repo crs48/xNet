@@ -30,6 +30,7 @@ import {
   useState,
   type ReactNode
 } from 'react'
+import { toggleTrackKind } from './comms-utils'
 import { useComms } from './CommsContext'
 import { useProfiles, displayName } from './hooks'
 
@@ -149,32 +150,37 @@ export function CallProvider({ children }: { children: ReactNode }) {
     [hubConnection, me.did, leaveCall, announcePresence]
   )
 
-  const setTrackEnabled = useCallback(
-    (kind: 'audio' | 'video') => {
-      const active = callRef.current
-      if (!active) return
-      const tracks =
-        kind === 'audio' ? active.localStream.getAudioTracks() : active.localStream.getVideoTracks()
-      for (const track of tracks) track.enabled = !track.enabled
-      const media = {
-        ...active.media,
-        [kind]: tracks[0]?.enabled ?? false
-      }
+  const updateMedia = useCallback(
+    (active: ActiveCall, media: MediaFlags) => {
       announcePresence(active.roomId, media)
       setCall({ ...active, media })
     },
     [announcePresence]
   )
 
+  const setTrackEnabled = useCallback(
+    (kind: 'audio' | 'video') => {
+      const active = callRef.current
+      if (!active) return
+      const tracks =
+        kind === 'audio' ? active.localStream.getAudioTracks() : active.localStream.getVideoTracks()
+      const enabled = toggleTrackKind(tracks)
+      updateMedia(active, { ...active.media, [kind]: enabled })
+    },
+    [updateMedia]
+  )
+
+  const stopScreenShare = useCallback(async (active: ActiveCall) => {
+    const cameraTrack = active.localStream.getVideoTracks()[0] ?? null
+    await active.manager.replaceVideoTrack(cameraTrack)
+  }, [])
+
   const toggleScreenShare = useCallback(async () => {
     const active = callRef.current
     if (!active) return
     if (active.media.screen) {
-      const cameraTrack = active.localStream.getVideoTracks()[0] ?? null
-      await active.manager.replaceVideoTrack(cameraTrack)
-      const media = { ...active.media, screen: false }
-      announcePresence(active.roomId, media)
-      setCall({ ...active, media })
+      await stopScreenShare(active)
+      updateMedia(active, { ...active.media, screen: false })
       return
     }
     const display = await navigator.mediaDevices.getDisplayMedia({ video: true })
@@ -182,10 +188,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (!screenTrack) return
     await active.manager.replaceVideoTrack(screenTrack)
     screenTrack.onended = () => void toggleScreenShare()
-    const media = { ...active.media, screen: true }
-    announcePresence(active.roomId, media)
-    setCall({ ...active, media })
-  }, [announcePresence])
+    updateMedia(active, { ...active.media, screen: true })
+  }, [updateMedia, stopScreenShare])
 
   useEffect(() => () => leaveCall(), [leaveCall])
 
@@ -207,41 +211,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
 // ─── Join controls (channel header) ──────────────────────────────────────────
 
-export function CallControls({
-  roomId,
-  autoJoinVoice = false
-}: {
-  roomId: string
-  autoJoinVoice?: boolean
-}) {
-  const { call, joinCall, leaveCall } = useCall()
-  const { workspacePeers } = useComms()
-  const occupancy = peersInCall(workspacePeers, roomId).length
-  const inThisCall = call?.roomId === roomId
+function OccupancyDot({ count }: { count: number }) {
+  if (count === 0) return null
+  return <span className="font-mono text-[10px] text-ink-3">◉ {count}</span>
+}
 
-  // Discord model: opening a voice room joins its call.
-  useEffect(() => {
-    if (autoJoinVoice && !inThisCall) void joinCall(roomId, { video: false })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoJoinVoice, roomId])
+function LeaveButton({ onLeave }: { onLeave: () => void }) {
+  return (
+    <button
+      type="button"
+      title="Leave call"
+      onClick={onLeave}
+      className="flex h-6 cursor-pointer items-center gap-1 rounded-md border border-hairline bg-surface-0 px-2 text-[11px] text-red-500 hover:bg-surface-2"
+    >
+      <PhoneOff size={12} strokeWidth={1.5} /> Leave
+    </button>
+  )
+}
 
-  if (inThisCall) {
-    return (
-      <button
-        type="button"
-        title="Leave call"
-        onClick={leaveCall}
-        className="flex h-6 cursor-pointer items-center gap-1 rounded-md border border-hairline bg-surface-0 px-2 text-[11px] text-red-500 hover:bg-surface-2"
-      >
-        <PhoneOff size={12} strokeWidth={1.5} /> Leave
-      </button>
-    )
-  }
-
+function JoinButtons({ roomId, occupancy }: { roomId: string; occupancy: number }) {
+  const { joinCall } = useCall()
   const full = occupancy + 1 > meshCapacity({ video: false })
   return (
     <span className="flex items-center gap-1">
-      {occupancy > 0 && <span className="font-mono text-[10px] text-ink-3">◉ {occupancy}</span>}
+      <OccupancyDot count={occupancy} />
       <button
         type="button"
         title={full ? 'Room is full (mesh ceiling)' : 'Join audio'}
@@ -261,6 +254,28 @@ export function CallControls({
       </button>
     </span>
   )
+}
+
+export function CallControls({
+  roomId,
+  autoJoinVoice = false
+}: {
+  roomId: string
+  autoJoinVoice?: boolean
+}) {
+  const { call, joinCall, leaveCall } = useCall()
+  const { workspacePeers } = useComms()
+  const occupancy = peersInCall(workspacePeers, roomId).length
+  const inThisCall = call?.roomId === roomId
+
+  // Discord model: opening a voice room joins its call.
+  useEffect(() => {
+    if (autoJoinVoice && !inThisCall) void joinCall(roomId, { video: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoJoinVoice, roomId])
+
+  if (inThisCall) return <LeaveButton onLeave={leaveCall} />
+  return <JoinButtons roomId={roomId} occupancy={occupancy} />
 }
 
 // ─── The floating dock ───────────────────────────────────────────────────────
@@ -314,43 +329,68 @@ function DockButton({
   )
 }
 
+function MuteButton({ audio, onToggle }: { audio: boolean; onToggle: () => void }) {
+  return (
+    <DockButton title={audio ? 'Mute' : 'Unmute'} onClick={onToggle}>
+      {audio ? <Mic size={13} /> : <MicOff size={13} className="text-red-500" />}
+    </DockButton>
+  )
+}
+
+function CameraButton({ video, onToggle }: { video: boolean; onToggle: () => void }) {
+  return (
+    <DockButton title={video ? 'Camera off' : 'Camera on'} onClick={onToggle}>
+      {video ? <Video size={13} /> : <VideoOff size={13} />}
+    </DockButton>
+  )
+}
+
+function DockTiles({
+  call,
+  peers
+}: {
+  call: ActiveCall
+  peers: ReturnType<CallManager['getPeers']>
+}) {
+  const profiles = useProfiles()
+  const withStreams = peers.filter((peer) => peer.stream)
+  return (
+    <div className="flex max-w-md flex-wrap gap-2">
+      <VideoTile stream={call.localStream} label="you" muted />
+      {withStreams.map((peer) => (
+        <VideoTile
+          key={peer.sessionId}
+          stream={peer.stream as MediaStream}
+          label={displayName(peer.did, profiles)}
+        />
+      ))}
+    </div>
+  )
+}
+
+function DockError({ error }: { error: string | null }) {
+  if (!error) return null
+  return (
+    <div className="fixed bottom-10 right-4 z-50 rounded-md border border-hairline bg-surface-0 px-3 py-2 text-xs text-red-500 shadow-lg">
+      {error}
+    </div>
+  )
+}
+
 export function CommsDock() {
   const { call, leaveCall, toggleMute, toggleCamera, toggleScreenShare, error } = useCall()
-  const profiles = useProfiles()
   const [, bump] = useReducer((x: number) => x + 1, 0)
   useEffect(() => call?.manager.onChange(bump), [call])
-  const peers = call ? call.manager.getPeers() : []
 
-  if (error) {
-    return (
-      <div className="fixed bottom-10 right-4 z-50 rounded-md border border-hairline bg-surface-0 px-3 py-2 text-xs text-red-500 shadow-lg">
-        {error}
-      </div>
-    )
-  }
-  if (!call) return null
+  if (!call) return <DockError error={error} />
+  const peers = call.manager.getPeers()
 
   return (
     <div className="fixed bottom-10 right-4 z-50 flex flex-col gap-2 rounded-lg border border-hairline bg-surface-1 p-2 shadow-lg">
-      <div className="flex max-w-md flex-wrap gap-2">
-        <VideoTile stream={call.localStream} label="you" muted />
-        {peers
-          .filter((peer) => peer.stream)
-          .map((peer) => (
-            <VideoTile
-              key={peer.sessionId}
-              stream={peer.stream as MediaStream}
-              label={displayName(peer.did, profiles)}
-            />
-          ))}
-      </div>
+      <DockTiles call={call} peers={peers} />
       <div className="flex items-center gap-1.5">
-        <DockButton title={call.media.audio ? 'Mute' : 'Unmute'} onClick={toggleMute}>
-          {call.media.audio ? <Mic size={13} /> : <MicOff size={13} className="text-red-500" />}
-        </DockButton>
-        <DockButton title={call.media.video ? 'Camera off' : 'Camera on'} onClick={toggleCamera}>
-          {call.media.video ? <Video size={13} /> : <VideoOff size={13} />}
-        </DockButton>
+        <MuteButton audio={call.media.audio} onToggle={toggleMute} />
+        <CameraButton video={call.media.video} onToggle={toggleCamera} />
         <DockButton
           title={call.media.screen ? 'Stop sharing' : 'Share screen'}
           active={call.media.screen}

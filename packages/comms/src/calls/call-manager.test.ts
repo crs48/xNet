@@ -129,6 +129,33 @@ describe('createCallManager mesh', () => {
     expect(members[0]?.manager.getStatus()).toBe('full')
   })
 
+  it('replaceVideoTrack swaps the video sender on every connection', async () => {
+    const bus = createLoopbackBus()
+    const replaceTrack = vi.fn(async () => {})
+    const connections: PeerConnectionLike[] = []
+    const manager = createCallManager({
+      self: { did: 'did:key:zaaa', sessionId: 'aaa' },
+      transport: bus.transport(),
+      createPeerConnection: () => {
+        const connection = fakePeerConnection('aaa')
+        connection.getSenders = () => [
+          { track: { kind: 'audio' }, replaceTrack: vi.fn(async () => {}) },
+          { track: { kind: 'video' }, replaceTrack }
+        ]
+        connections.push(connection)
+        return connection
+      }
+    })
+    const b = participant(bus, 'bbb')
+
+    manager.join(VIDEO)
+    b.manager.join(VIDEO)
+    await settle()
+
+    await manager.replaceVideoTrack('screen-track')
+    expect(replaceTrack).toHaveBeenCalledWith('screen-track')
+  })
+
   it('notifies subscribers on membership changes', async () => {
     const bus = createLoopbackBus()
     const a = participant(bus, 'aaa')

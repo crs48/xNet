@@ -61,3 +61,14 @@ export function filterMentionables<T extends { label: string }>(items: T[], quer
   )
   return [...starts, ...contains].slice(0, 6)
 }
+
+/** Picker candidates for the current caret position (empty when inactive). */
+export function pickerOptionsFor<T extends { label: string }>(
+  text: string,
+  caret: number,
+  items: T[]
+): T[] {
+  const query = mentionQueryAt(text, caret)
+  if (!query) return []
+  return filterMentionables(items, query.query)
+}

@@ -38,7 +38,9 @@
     "ignore": [
       "apps/electron/src/renderer/components/**",
       "tests/e2e/harness/**",
-      "packages/ui/src/composed/comments/**"
+      "packages/ui/src/composed/comments/**",
+      "packages/data/src/index.ts",
+      "packages/data/src/store/index.ts"
     ]
   },
   "health": {

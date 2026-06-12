@@ -77,15 +77,19 @@ export function createWebSocketSignaling(options: WebSocketSignalingOptions): Si
   }
 }
 
-function parseBrokerMessage(data: unknown, topic: string): CallSignal | null {
+function safeJsonParse(data: unknown): { type?: string; topic?: string; data?: CallSignal } | null {
   if (typeof data !== 'string') return null
   try {
-    const message = JSON.parse(data) as { type?: string; topic?: string; data?: CallSignal }
-    if (message.type !== 'publish' || message.topic !== topic || !message.data) return null
-    return message.data
+    return JSON.parse(data) as { type?: string; topic?: string; data?: CallSignal }
   } catch {
     return null
   }
+}
+
+export function parseBrokerMessage(data: unknown, topic: string): CallSignal | null {
+  const message = safeJsonParse(data)
+  const matches = message?.type === 'publish' && message.topic === topic
+  return matches ? (message.data ?? null) : null
 }
 
 // ─── Loopback (tests, single-process demos) ──────────────────────────────────
