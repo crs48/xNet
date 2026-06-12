@@ -155,17 +155,42 @@ function GroupTabStrip({
   return <TabBar group={group} routed={routed} />
 }
 
+function ActiveGroupOutlet({
+  activeTab,
+  routed,
+  children
+}: {
+  activeTab: WorkbenchTab | null
+  routed: boolean
+  children: ReactNode
+}) {
+  // Pages are full-bleed documents that own their scroll; other
+  // views render inside the default padded scroll container.
+  const fullBleed = routed && activeTab?.nodeType === 'page'
+  return (
+    <main className={`h-full min-h-0 ${fullBleed ? 'overflow-hidden' : 'overflow-y-auto p-6'}`}>
+      {children}
+    </main>
+  )
+}
+
 function GroupContent({
   isActive,
   activeTab,
+  routed,
   children
 }: {
   isActive: boolean
   activeTab: WorkbenchTab | null
+  routed: boolean
   children: ReactNode
 }) {
   if (isActive) {
-    return <main className="h-full min-h-0 overflow-y-auto p-6">{children}</main>
+    return (
+      <ActiveGroupOutlet activeTab={activeTab} routed={routed}>
+        {children}
+      </ActiveGroupOutlet>
+    )
   }
   if (activeTab) {
     return <ViewHost tab={activeTab} />
@@ -201,7 +226,7 @@ function GroupPane({
     >
       <GroupTabStrip mode={mode} group={group} routed={routed} />
       <div className="min-h-0 flex-1">
-        <GroupContent isActive={isActive} activeTab={activeTab}>
+        <GroupContent isActive={isActive} activeTab={activeTab} routed={routed}>
           {children}
         </GroupContent>
       </div>

@@ -36,11 +36,12 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+        className="flex cursor-pointer items-center gap-1 rounded-md border-none bg-transparent px-2 py-1 text-xs text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-1"
         title="Share"
       >
-        <Share2 size={14} />
+        <Share2 size={13} strokeWidth={1.5} />
         <span>Share</span>
       </button>
 
