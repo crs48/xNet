@@ -10,7 +10,8 @@
 const scope = import.meta.env.VITE_STORAGE_SCOPE
 
 if (scope) {
-  ;(globalThis as { __XNET_STORAGE_SCOPE__?: string }).__XNET_STORAGE_SCOPE__ = scope
+  const scopedGlobal = globalThis as { __XNET_STORAGE_SCOPE__?: string }
+  scopedGlobal.__XNET_STORAGE_SCOPE__ = scope
 }
 
 export {}
