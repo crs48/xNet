@@ -4,23 +4,35 @@
  * Tabs scope the global Task collection (All / My Tasks / Triage); the
  * list and board modes are projections of the same canonical Task nodes,
  * so edits here are instantly visible in pages, canvases, and database
- * cells (exploration 0161). Opening a task navigates to its host surface.
+ * cells (exploration 0161). Clicking a task opens its inline editor
+ * (title with @mention-to-assign, status, priority, due date, assignees);
+ * `?task=` deep-links into that editor and `?project=` scopes the surface.
  */
 import { useNavigate } from '@tanstack/react-router'
 import {
+  ProjectSchema,
   TASK_STATUS_CATEGORIES,
   TaskSchema,
   isCompletedTaskStatus,
   taskBranchName,
+  type DID,
   type TaskStatusId
 } from '@xnetjs/data'
 import { getCommandRegistry } from '@xnetjs/plugins'
-import { useIdentity, useMutate, useTasks } from '@xnetjs/react'
-import { getTaskStatusMeta, type TaskDisplayData } from '@xnetjs/ui'
+import { useIdentity, useMutate, useQuery, useTasks } from '@xnetjs/react'
+import {
+  DIDAvatar,
+  MentionTextInput,
+  getTaskStatusMeta,
+  taskPersonLabel,
+  type TaskDisplayData
+} from '@xnetjs/ui'
 import { TaskBoard, TaskListGrouped, type TaskBoardStatusChange } from '@xnetjs/views'
-import { Inbox, KanbanSquare, List, Plus, User } from 'lucide-react'
+import { Inbox, KanbanSquare, List, Plus, User, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
+import { TaskInlineEditor } from './TaskInlineEditor'
 import { TaskMiniPalette } from './TaskMiniPalette'
 
 const WORKFLOW_ORDER = Object.keys(TASK_STATUS_CATEGORIES) as TaskStatusId[]
@@ -48,22 +60,53 @@ function generateTaskId(): string {
   return `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-export function TasksView(): JSX.Element {
+export interface TasksViewProps {
+  /** Task whose inline editor opens on mount (`/tasks?task=`) */
+  openTaskId?: string | null
+  /** Scope the surface to one project (`/tasks?project=`) */
+  projectId?: string | null
+}
+
+export function TasksView({ openTaskId = null, projectId = null }: TasksViewProps): JSX.Element {
   const navigate = useNavigate()
-  const { identity } = useIdentity()
-  const did = identity?.did ?? null
+  // `did` (not `identity?.did`): restored sessions carry only the author
+  // DID, and "My Tasks" must still scope to it.
+  const { did } = useIdentity()
   const { create, update } = useMutate()
+  const people = useWorkspacePeople()
   const [tab, setTab] = useState<TasksTab>('all')
   const [mode, setMode] = useState<TasksMode>('list')
   const [draft, setDraft] = useState('')
+  const [draftAssignees, setDraftAssignees] = useState<string[]>([])
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [miniPalette, setMiniPalette] = useState<'status' | 'priority' | null>(null)
   const quickAddRef = useRef<HTMLInputElement>(null)
 
   const { data: tasks, loading } = useTasks({ includeCompleted: true })
+  const { data: projects } = useQuery(ProjectSchema)
+
+  // `?task=` deep link: focus + open the editor, then consume the param so
+  // the same link works again later (sidebar rows navigate here).
+  useEffect(() => {
+    if (!openTaskId) return
+    setFocusedTaskId(openTaskId)
+    setEditingTaskId(openTaskId)
+    void navigate({
+      to: '/tasks',
+      search: projectId ? { project: projectId } : {},
+      replace: true
+    })
+  }, [navigate, openTaskId, projectId])
+
+  const scopedProject = useMemo(
+    () => (projectId ? (projects.find((project) => project.id === projectId) ?? null) : null),
+    [projectId, projects]
+  )
 
   const visibleTasks = useMemo(() => {
     return tasks.filter((task) => {
+      if (projectId && task.project !== projectId) return false
       if (tab === 'mine') {
         if (!did) return false
         const assignees = Array.isArray(task.assignees) ? task.assignees.map(String) : []
@@ -74,7 +117,7 @@ export function TasksView(): JSX.Element {
       }
       return true
     })
-  }, [tasks, tab, did])
+  }, [tasks, tab, did, projectId])
 
   const displayTasks = useMemo<Array<TaskDisplayData & { sortKey?: string | null }>>(() => {
     return visibleTasks.map((task) => ({
@@ -102,15 +145,15 @@ export function TasksView(): JSX.Element {
     return WORKFLOW_ORDER.flatMap((status) => byStatus.get(status) ?? [])
   }, [displayTasks])
 
-  const stateRef = useRef({ focusedTaskId, orderedTaskIds, miniPalette })
-  stateRef.current = { focusedTaskId, orderedTaskIds, miniPalette }
+  const stateRef = useRef({ focusedTaskId, orderedTaskIds, editingTaskId, miniPalette })
+  stateRef.current = { focusedTaskId, orderedTaskIds, editingTaskId, miniPalette }
   const tasksRef = useRef(tasks)
   tasksRef.current = tasks
 
-  // ─── Context panel: task detail (0166) ────────────────────────────────────
+  // ─── Context panel: live task editor (0166) ───────────────────────────────
   const focusedTask = useMemo(
-    () => displayTasks.find((task) => task.id === focusedTaskId) ?? null,
-    [displayTasks, focusedTaskId]
+    () => tasks.find((task) => task.id === focusedTaskId) ?? null,
+    [tasks, focusedTaskId]
   )
   const taskContextSections = useMemo<ContextPanelSection[]>(
     () => [
@@ -118,38 +161,12 @@ export function TasksView(): JSX.Element {
         id: 'task-detail',
         title: 'Task',
         content: focusedTask ? (
-          <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
-            <div className="text-ink-1">{focusedTask.title || 'Untitled task'}</div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-ink-3">Status</span>
-              <span className="font-mono text-[11px]">{focusedTask.status ?? 'todo'}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-ink-3">Priority</span>
-              <span className="font-mono text-[11px]">{focusedTask.priority ?? '—'}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-ink-3">Due</span>
-              <span className="font-mono text-[11px]">
-                {focusedTask.dueDate ? new Date(focusedTask.dueDate).toLocaleDateString() : '—'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-ink-3">Assignees</span>
-              <span className="truncate font-mono text-[11px]">
-                {focusedTask.assignees?.length
-                  ? focusedTask.assignees.map((a) => a.slice(0, 12)).join(', ')
-                  : '—'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-ink-3">References</span>
-              <span className="font-mono text-[11px]">{focusedTask.referenceCount}</span>
-            </div>
+          <div className="p-2">
+            <TaskInlineEditor task={focusedTask} className="border-none p-0" />
           </div>
         ) : (
           <div className="flex h-full items-center justify-center p-4 text-center text-xs text-ink-3">
-            Focus a task (↑/↓) to see its detail here.
+            Focus a task (↑/↓) to edit it here.
           </div>
         )
       }
@@ -223,8 +240,12 @@ export function TasksView(): JSX.Element {
     const scope = registry.activateScope('task-focused')
 
     const withFocused = (action: (taskId: string) => void) => () => {
-      const { focusedTaskId: current, miniPalette: palette } = stateRef.current
-      if (current && !palette) action(current)
+      const {
+        focusedTaskId: current,
+        editingTaskId: editing,
+        miniPalette: palette
+      } = stateRef.current
+      if (current && !editing && !palette) action(current)
     }
 
     const disposables = [
@@ -253,11 +274,11 @@ export function TasksView(): JSX.Element {
         run: withFocused(() => setMiniPalette('priority'))
       }),
       registry.register({
-        id: 'task.open',
-        title: 'Open task',
+        id: 'task.edit',
+        title: 'Edit task',
         scope: 'task-focused',
         key: 'enter',
-        run: withFocused((taskId) => handleOpenTask(taskId))
+        run: withFocused((taskId) => setEditingTaskId(taskId))
       }),
       registry.register({
         id: 'task.copyBranchName',
@@ -296,18 +317,9 @@ export function TasksView(): JSX.Element {
     })
   }
 
-  const handleOpenTask = (taskId: string) => {
-    const task = tasks.find((candidate) => candidate.id === taskId)
-    if (!task) return
-
-    if (typeof task.page === 'string' && task.page) {
-      void navigate({ to: '/doc/$docId', params: { docId: task.page } })
-      return
-    }
-
-    if (typeof task.canvas === 'string' && task.canvas) {
-      void navigate({ to: '/canvas/$canvasId', params: { canvasId: task.canvas } })
-    }
+  const handleEditTask = (taskId: string) => {
+    setFocusedTaskId(taskId)
+    setEditingTaskId((current) => (current === taskId ? null : taskId))
   }
 
   const handleCreate = async () => {
@@ -315,7 +327,13 @@ export function TasksView(): JSX.Element {
     if (!title) return
 
     setDraft('')
+    setDraftAssignees([])
     const status: TaskStatusId = tab === 'triage' ? 'triage' : 'todo'
+    const assignees =
+      tab === 'mine' && did && !draftAssignees.includes(did)
+        ? [...draftAssignees, did]
+        : draftAssignees
+    const [firstAssignee] = assignees
     await create(
       TaskSchema,
       {
@@ -323,11 +341,19 @@ export function TasksView(): JSX.Element {
         completed: isCompletedTaskStatus(status),
         status,
         source: 'api',
-        ...(tab === 'mine' && did ? { assignee: did, assignees: [did] } : {})
+        ...(projectId ? { project: projectId } : {}),
+        ...(firstAssignee ? { assignee: firstAssignee as DID, assignees: assignees as DID[] } : {})
       },
       generateTaskId()
     )
   }
+
+  const editingTask = useMemo(
+    () => (editingTaskId ? (tasks.find((task) => task.id === editingTaskId) ?? null) : null),
+    [editingTaskId, tasks]
+  )
+  const editorInList =
+    mode === 'list' && editingTaskId != null && visibleTasks.some((t) => t.id === editingTaskId)
 
   const tabs: Array<{ id: TasksTab; label: string; icon: JSX.Element }> = [
     { id: 'all', label: 'All Tasks', icon: <List size={13} /> },
@@ -356,6 +382,24 @@ export function TasksView(): JSX.Element {
           ))}
         </div>
 
+        {scopedProject && (
+          <span
+            data-testid="tasks-project-chip"
+            className="flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs text-foreground"
+          >
+            {scopedProject.icon ? `${scopedProject.icon} ` : ''}
+            {scopedProject.name || 'Untitled project'}
+            <button
+              type="button"
+              aria-label="Clear project filter"
+              onClick={() => void navigate({ to: '/tasks', search: {}, replace: true })}
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X size={11} />
+            </button>
+          </span>
+        )}
+
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
@@ -381,20 +425,38 @@ export function TasksView(): JSX.Element {
       </div>
 
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <Plus size={14} className="text-muted-foreground" />
-        <input
-          type="text"
+        <Plus size={14} className="shrink-0 text-muted-foreground" />
+        <MentionTextInput
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              void handleCreate()
-            }
-          }}
-          placeholder={tab === 'triage' ? 'Add to triage…' : 'Add a task…'}
-          className="flex-1 border-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          onChange={setDraft}
+          people={people.filter((person) => !draftAssignees.includes(person.did))}
+          onMention={(mentioned) => setDraftAssignees((current) => [...current, mentioned])}
+          onSubmit={() => void handleCreate()}
+          inputRef={quickAddRef}
+          placeholder={
+            tab === 'triage' ? 'Add to triage… (@ to assign)' : 'Add a task… (@ to assign)'
+          }
+          data-testid="task-quick-add"
         />
+        {draftAssignees.map((assignee) => (
+          <span
+            key={assignee}
+            className="flex shrink-0 items-center gap-1 rounded-full border border-border py-0.5 pl-0.5 pr-1.5 text-xs text-foreground"
+          >
+            <DIDAvatar did={assignee} size={14} />
+            {taskPersonLabel(people.find((person) => person.did === assignee) ?? { did: assignee })}
+            <button
+              type="button"
+              aria-label="Remove pending assignee"
+              onClick={() =>
+                setDraftAssignees((current) => current.filter((existing) => existing !== assignee))
+              }
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X size={10} />
+            </button>
+          </span>
+        ))}
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
@@ -406,18 +468,45 @@ export function TasksView(): JSX.Element {
           <TaskBoard
             tasks={displayTasks}
             onStatusChange={handleStatusChange}
-            onOpenTask={handleOpenTask}
+            onOpenTask={handleEditTask}
             onToggleCompleted={handleToggleCompleted}
           />
         ) : (
           <TaskListGrouped
             tasks={displayTasks}
             focusedTaskId={focusedTaskId}
-            onOpenTask={handleOpenTask}
+            expandedTaskId={editingTaskId}
+            renderTaskEditor={() =>
+              editingTask ? (
+                <TaskInlineEditor
+                  task={editingTask}
+                  autoFocusTitle
+                  onClose={() => setEditingTaskId(null)}
+                />
+              ) : null
+            }
+            onOpenTask={handleEditTask}
             onToggleCompleted={handleToggleCompleted}
           />
         )}
       </div>
+
+      {editingTask && !editorInList && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-32"
+          data-testid="task-editor-overlay"
+          onClick={() => setEditingTaskId(null)}
+        >
+          <div className="w-full max-w-lg" onClick={(event) => event.stopPropagation()}>
+            <TaskInlineEditor
+              task={editingTask}
+              autoFocusTitle
+              onClose={() => setEditingTaskId(null)}
+              className="shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
 
       {miniPalette && focusedTaskId && (
         <TaskMiniPalette
