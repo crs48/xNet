@@ -28,7 +28,7 @@ function generateTaskId(): string {
   return `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-export function GlobalSearch() {
+export function GlobalSearch({ trigger = 'button' }: { trigger?: 'button' | 'none' } = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -147,6 +147,7 @@ export function GlobalSearch() {
   }
 
   if (!isOpen) {
+    if (trigger === 'none') return null
     return (
       <button
         className="px-4 py-2 border border-border bg-secondary rounded-md cursor-pointer text-sm text-muted-foreground flex items-center gap-3 hover:border-muted-foreground transition-colors"

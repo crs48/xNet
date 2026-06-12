@@ -688,14 +688,14 @@ Phase 0 — Foundations
 
 Phase 1 — Shell skeleton
 
-- [ ] Create `apps/web/src/workbench/` with `Workbench.tsx`, `Rail`,
+- [x] Create `apps/web/src/workbench/` with `Workbench.tsx`, `Rail`,
       `StatusBar`, `PanelViewHost`, and a persisted zustand `useWorkbench`
       store (layout, panel sizes, mode, zen snapshot)
-- [ ] Replace `__root.tsx` layout with `Workbench` behind a
+- [x] Replace `__root.tsx` layout with `Workbench` behind a
       `xnet:shell=workbench` flag; old shell remains the fallback
-- [ ] Status bar v1: sync state, hub connection, background jobs (left);
+- [x] Status bar v1: sync state, hub connection, background jobs (left);
       view stats + theme toggle (right)
-- [ ] Zen mode (Cmd+.) with layout snapshot/restore
+- [x] Zen mode (Cmd+.) with layout snapshot/restore
 
 Phase 2 — Tabs
 
