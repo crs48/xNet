@@ -229,6 +229,78 @@ describe('Node Sync Relay', () => {
     ws.close()
   })
 
+  it('rejects malformed mentions declarations without appending (0168)', async () => {
+    const room = 'workspace-bad-mentions'
+    const ws = await connect(PORT)
+
+    const change = makeSerializedChange({
+      payload: {
+        nodeId: 'msg-1',
+        schemaId: 'xnet://xnet.fyi/ChatMessage@1.0.0',
+        properties: {
+          channel: 'chan-1',
+          content: 'mention bomb',
+          mentions: { dids: ['not-a-did'] }
+        }
+      }
+    })
+
+    ws.send(
+      JSON.stringify({
+        type: 'publish',
+        topic: room,
+        data: { type: 'node-change', room, change }
+      })
+    )
+
+    const error = (await waitForMessage(ws)) as { type: string; code?: string }
+    expect(error).toMatchObject({ type: 'node-error', code: 'INVALID_CHANGE' })
+
+    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
+    const response = (await waitForMessage(ws)) as {
+      type: string
+      changes?: SerializedNodeChange[]
+    }
+    expect(response.changes).toEqual([])
+
+    ws.close()
+  })
+
+  it('relays well-formed mentions declarations (0168)', async () => {
+    const room = 'workspace-good-mentions'
+    const ws = await connect(PORT)
+
+    const change = makeSerializedChange({
+      payload: {
+        nodeId: 'msg-2',
+        schemaId: 'xnet://xnet.fyi/ChatMessage@1.0.0',
+        properties: {
+          channel: 'chan-1',
+          content: 'hey @alice',
+          mentions: { dids: ['did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'] }
+        }
+      }
+    })
+
+    ws.send(
+      JSON.stringify({
+        type: 'publish',
+        topic: room,
+        data: { type: 'node-change', room, change }
+      })
+    )
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
+    const response = (await waitForMessage(ws)) as {
+      type: string
+      changes?: SerializedNodeChange[]
+    }
+    expect(response.changes?.length).toBe(1)
+
+    ws.close()
+  })
+
   it('rejects invalid hashes without appending node changes', async () => {
     const room = 'workspace-invalid-hash'
     const ws = await connect(PORT)

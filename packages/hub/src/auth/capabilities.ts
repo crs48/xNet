@@ -16,6 +16,10 @@ export type HubAction =
   | 'hub/backup'
   | 'hub/query'
   | 'hub/admin'
+  | 'call/join'
+  | 'call/signal'
+  | 'notify/register'
+  | 'notify/push'
 
 /** Canonical bridge from hub actions to AuthAction. */
 export const HUB_ACTION_MAP: Record<HubAction, AuthAction> = {
@@ -24,7 +28,15 @@ export const HUB_ACTION_MAP: Record<HubAction, AuthAction> = {
   'hub/relay': 'write',
   'hub/backup': 'write',
   'hub/query': 'read',
-  'hub/admin': 'admin'
+  'hub/admin': 'admin',
+  // Calls (exploration 0167): joining/signaling a call room rides the
+  // signaling broker; SFU token minting would gate on call/join.
+  'call/join': 'write',
+  'call/signal': 'write',
+  // Push (exploration 0168): registering device push endpoints and
+  // triggering wakeups.
+  'notify/register': 'write',
+  'notify/push': 'write'
 }
 
 /** Check if a granted action pattern covers the requested action. */
