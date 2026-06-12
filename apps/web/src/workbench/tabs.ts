@@ -12,6 +12,7 @@ import {
   FileText,
   Layout,
   LayoutDashboard,
+  MessageSquare,
   Network,
   Table2,
   type LucideIcon
@@ -37,7 +38,8 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   },
   savedview: { label: 'Saved view', icon: Table2, toRoute: (id) => `/view/${id}` },
   tasks: { label: 'Tasks', icon: CheckSquare2, toRoute: () => '/tasks', singleton: true },
-  data: { label: 'Data', icon: Network, toRoute: () => '/data', singleton: true }
+  data: { label: 'Data', icon: Network, toRoute: () => '/data', singleton: true },
+  channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` }
 }
 
 const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
@@ -45,7 +47,8 @@ const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/db/', nodeType: 'database' },
   { prefix: '/canvas/', nodeType: 'canvas' },
   { prefix: '/dashboard/', nodeType: 'dashboard' },
-  { prefix: '/view/', nodeType: 'savedview' }
+  { prefix: '/view/', nodeType: 'savedview' },
+  { prefix: '/channel/', nodeType: 'channel' }
 ]
 
 export interface RouteTabDescriptor {

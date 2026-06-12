@@ -9,6 +9,7 @@
  */
 import type { TabNodeType, WorkbenchTab } from './state'
 import type { ComponentType } from 'react'
+import { ChannelView } from '../comms/ChannelView'
 import { CanvasView } from '../components/CanvasView'
 import { DashboardView } from '../components/DashboardView'
 import { DatabaseView } from '../components/DatabaseView'
@@ -27,7 +28,8 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
     </div>
   ),
   tasks: () => <TasksView />,
-  data: () => <DataWorkspaceView />
+  data: () => <DataWorkspaceView />,
+  channel: ({ nodeId }) => <ChannelView channelId={nodeId} />
 }
 
 export function ViewHost({ tab }: { tab: WorkbenchTab }) {

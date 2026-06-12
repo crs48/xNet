@@ -55,6 +55,28 @@ export {
 } from './notify/inbox'
 export { MAX_INBOX_ITEMS, createNotifier, type Notifier } from './notify/notifier'
 
+// Calls
+export {
+  MESH_MAX_AUDIO_PARTICIPANTS,
+  MESH_MAX_VIDEO_PARTICIPANTS,
+  meshCapacity,
+  type CallPeerSnapshot,
+  type CallSelf,
+  type CallSignal,
+  type CallStatus,
+  type MediaFlags,
+  type PeerConnectionLike,
+  type SignalingTransport
+} from './calls/types'
+export {
+  callTopic,
+  createLoopbackBus,
+  createWebSocketSignaling,
+  type LoopbackBus,
+  type WebSocketSignalingOptions
+} from './calls/signaling'
+export { createCallManager, type CallManager, type CallManagerOptions } from './calls/call-manager'
+
 // Chat
 export { DM_ID_PREFIX, dmChannelId, dmMembers, isDmChannelId } from './chat/dm'
 export {

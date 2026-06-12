@@ -8,6 +8,7 @@ import { SavedViewSchema, TaskSchema, type SavedViewDescriptor } from '@xnetjs/d
 import { SavedViewRunner, useHubStatus, useMutate, useQuery } from '@xnetjs/react'
 import { CheckSquare2, CornerDownLeft, FileText } from 'lucide-react'
 import { useState } from 'react'
+import { InboxTray } from '../../comms/InboxTray'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../../lib/saved-view-registry'
 import { useWorkbenchStatus } from '../status'
 import { parseConsoleInput } from './console-input'
@@ -95,20 +96,11 @@ export function QuickCaptureTray() {
 
 // ─── Notifications ─────────────────────────────────────────────────
 
-export function NotificationsTray() {
-  const jobs = useWorkbenchStatus((state) => state.jobs)
+function JobsList({ jobs }: { jobs: ReturnType<typeof useWorkbenchStatus.getState>['jobs'] }) {
   const jobList = Object.values(jobs)
-
-  if (jobList.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center text-xs text-ink-3">
-        No notifications. Background jobs and mentions will appear here.
-      </div>
-    )
-  }
-
+  if (jobList.length === 0) return null
   return (
-    <ul className="m-0 flex list-none flex-col gap-1 p-3 text-xs text-ink-2">
+    <ul className="m-0 flex shrink-0 list-none flex-col gap-1 border-b border-hairline p-3 text-xs text-ink-2">
       {jobList.map((job) => (
         <li key={job.id} className="flex items-center gap-2">
           <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-ink-3" />
@@ -119,6 +111,18 @@ export function NotificationsTray() {
         </li>
       ))}
     </ul>
+  )
+}
+
+export function NotificationsTray() {
+  const jobs = useWorkbenchStatus((state) => state.jobs)
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <JobsList jobs={jobs} />
+      <div className="min-h-0 flex-1">
+        <InboxTray />
+      </div>
+    </div>
   )
 }
 

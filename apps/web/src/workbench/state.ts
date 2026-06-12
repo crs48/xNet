@@ -24,6 +24,7 @@ export type TabNodeType =
   | 'savedview'
   | 'tasks'
   | 'data'
+  | 'channel'
 
 export interface WorkbenchTab {
   /** `${nodeType}:${nodeId}` — stable across sessions */

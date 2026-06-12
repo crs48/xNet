@@ -341,6 +341,9 @@ importers:
       '@xnetjs/canvas':
         specifier: workspace:*
         version: link:../../packages/canvas
+      '@xnetjs/comms':
+        specifier: workspace:*
+        version: link:../../packages/comms
       '@xnetjs/dashboard':
         specifier: workspace:*
         version: link:../../packages/dashboard
