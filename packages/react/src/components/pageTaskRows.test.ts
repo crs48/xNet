@@ -1,6 +1,6 @@
+import type { TaskTreeItem } from '../hooks/useTasks'
 import { describe, expect, it } from 'vitest'
 import { flattenTaskTree, formatTaskDueDate, isTaskOverdue } from './pageTaskRows'
-import type { TaskTreeItem } from '../hooks/useTasks'
 
 const DAY = 24 * 60 * 60 * 1000
 

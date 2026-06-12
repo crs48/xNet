@@ -1,7 +1,9 @@
 /**
  * Tasks section for the Right Panel — a flat, monochrome list of the
  * page's checklist items. The document keeps only the prose; what is
- * *about* the page lives here (0166).
+ * *about* the page lives here (0166). Clicking an item expands the same
+ * inline editor used on the Tasks surface, so due dates and assignees
+ * are editable without leaving the page.
  */
 import {
   flattenTaskTree,
@@ -11,11 +13,23 @@ import {
   type RenderableTaskRow
 } from '@xnetjs/react'
 import { Calendar, CheckSquare2, Square, Users } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { TaskInlineEditor, type TaskHostEditor, type TaskNode } from './TaskInlineEditor'
 
-export function PageTasksSection({ pageId }: { pageId: string }) {
-  const { tree, loading } = useTasks({ pageId })
+export function PageTasksSection({
+  pageId,
+  hostEditor
+}: {
+  pageId: string
+  hostEditor?: TaskHostEditor
+}) {
+  const { data: tasks, tree, loading } = useTasks({ pageId })
   const rows = useMemo(() => flattenTaskTree(tree), [tree])
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const tasksById = useMemo(() => {
+    return new Map<string, TaskNode>(tasks.map((task) => [task.id, task]))
+  }, [tasks])
 
   if (loading) {
     return <p className="m-0 p-3 text-xs text-ink-3">Loading tasks…</p>
@@ -25,19 +39,52 @@ export function PageTasksSection({ pageId }: { pageId: string }) {
   }
   return (
     <ul className="m-0 list-none p-1.5">
-      {rows.map((row) => (
-        <PageTaskRow key={row.id} row={row} />
-      ))}
+      {rows.map((row) => {
+        const expandedTask = row.id === expandedId ? tasksById.get(row.id) : undefined
+        return (
+          <PageTaskRow
+            key={row.id}
+            row={row}
+            expanded={Boolean(expandedTask)}
+            onToggleExpanded={() =>
+              setExpandedId((current) => (current === row.id ? null : row.id))
+            }
+          >
+            {expandedTask && (
+              <TaskInlineEditor
+                task={expandedTask}
+                {...(hostEditor ? { hostEditor } : {})}
+                onClose={() => setExpandedId(null)}
+                className="mt-1"
+              />
+            )}
+          </PageTaskRow>
+        )
+      })}
     </ul>
   )
 }
 
-function PageTaskRow({ row }: { row: RenderableTaskRow }) {
+function PageTaskRow({
+  row,
+  expanded,
+  onToggleExpanded,
+  children
+}: {
+  row: RenderableTaskRow
+  expanded: boolean
+  onToggleExpanded: () => void
+  children?: React.ReactNode
+}) {
   const Glyph = row.completed ? CheckSquare2 : Square
   return (
     <li>
-      <div
-        className="flex items-start gap-2 rounded-md px-2 py-1.5"
+      <button
+        type="button"
+        data-testid="page-task-row"
+        onClick={onToggleExpanded}
+        aria-expanded={expanded}
+        className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent"
         style={{ paddingLeft: `${row.depth * 14 + 8}px` }}
       >
         <Glyph size={14} strokeWidth={1.5} className="mt-0.5 shrink-0 text-ink-3" />
@@ -51,7 +98,8 @@ function PageTaskRow({ row }: { row: RenderableTaskRow }) {
           </div>
           <PageTaskMeta row={row} />
         </div>
-      </div>
+      </button>
+      {children && <div className="px-1 pb-1">{children}</div>}
     </li>
   )
 }

@@ -8,6 +8,9 @@ export {
   type TaskPriorityIconProps
 } from './TaskStatusIcon'
 export { TaskGithubBadges, type TaskGithubBadgesProps } from './TaskGithubBadges'
+export { TaskDetailForm, type TaskDetailFormProps } from './TaskDetailForm'
+export { MentionTextInput, findActiveMention, type MentionTextInputProps } from './MentionTextInput'
+export { filterTaskPeople, taskPersonLabel, type TaskPersonOption } from './people'
 export {
   TASK_STATUS_META,
   DUE_DATE_URGENCY_CLASS,

@@ -63,6 +63,11 @@ COPY --from=builder /build/patches/ patches/
 
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
   && corepack enable \
+  # The "..." filter suffix is required: it installs the dependencies of every
+  # workspace package in hub's closure (e.g. yjs for @xnetjs/data), not just
+  # hub's own. A bare "--filter @xnetjs/hub" only symlinks the workspace
+  # packages and leaves their dependencies missing, crashing the hub on boot.
+  && corepack pnpm install --prod --frozen-lockfile --ignore-scripts --filter "@xnetjs/hub..." \
   # Keep the runtime image on patched Hono releases without auto-installing optional peer stacks like expo-sqlite.
   && corepack pnpm add @hono/node-server@1.19.10 hono@4.12.4 --prod --ignore-scripts --config.auto-install-peers=false --filter @xnetjs/hub \
   && corepack pnpm --filter @xnetjs/hub exec npm rebuild better-sqlite3 \

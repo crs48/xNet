@@ -2,6 +2,7 @@
  * Built-in panel views (exploration 0166). Plugin contributions can
  * register additional views into the same registries (Phase 6).
  */
+import { ChatsPanel } from '../../comms/ChatsPanel'
 import { registerPanelView } from '../PanelViewHost'
 import { Explorer } from './Explorer'
 import { DataPanelView, TasksPanelView } from './left'
@@ -10,6 +11,7 @@ import { NotificationsTray, QueryConsoleTray, QuickCaptureTray, SyncTray } from 
 
 export function registerBuiltinPanelViews(): void {
   registerPanelView('left', { id: 'explorer', title: 'Explorer', component: Explorer })
+  registerPanelView('left', { id: 'chats', title: 'Chats', component: ChatsPanel })
   registerPanelView('left', { id: 'tasks', title: 'Tasks', component: TasksPanelView })
   registerPanelView('left', { id: 'data', title: 'Data', component: DataPanelView })
 

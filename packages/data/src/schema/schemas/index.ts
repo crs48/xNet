@@ -36,6 +36,26 @@ export { MediaAssetSchema, type MediaAsset } from './media-asset'
 export { CanvasSchema, type Canvas } from './canvas'
 export { CommentSchema, type Comment } from './comment'
 export { ReactionSchema, type Reaction } from './reaction'
+export { ProfileSchema, type Profile } from './profile'
+export { ChannelSchema, CHANNEL_KINDS, type Channel, type ChannelKind } from './channel'
+export { ChatMessageSchema, type ChatMessage } from './chat-message'
+export {
+  InboxStateSchema,
+  inboxStateNodeId,
+  DEFAULT_CHANNEL_TIER,
+  type InboxState,
+  type InboxWatermark,
+  type InboxItemTriage,
+  type ChannelNotifyTier,
+  type NotificationPrefs
+} from './inbox-state'
+export {
+  MAX_MENTION_DIDS,
+  normalizeMentions,
+  mentionsInclude,
+  isValidMentions,
+  type MessageMentions
+} from './mentions'
 export { GrantSchema, type Grant } from './grant'
 export { SavedViewSchema, type SavedView } from './saved-view'
 export {
@@ -193,6 +213,11 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
+  'xnet://xnet.fyi/Profile@1.0.0': () => import('./profile').then((m) => m.ProfileSchema),
+  'xnet://xnet.fyi/Channel@1.0.0': () => import('./channel').then((m) => m.ChannelSchema),
+  'xnet://xnet.fyi/ChatMessage@1.0.0': () =>
+    import('./chat-message').then((m) => m.ChatMessageSchema),
+  'xnet://xnet.fyi/InboxState@1.0.0': () => import('./inbox-state').then((m) => m.InboxStateSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/SavedView@1.0.0': () => import('./saved-view').then((m) => m.SavedViewSchema),
   'xnet://xnet.fyi/Dashboard@1.0.0': () => import('./dashboard').then((m) => m.DashboardSchema),
@@ -243,6 +268,10 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
+  'xnet://xnet.fyi/Profile': () => import('./profile').then((m) => m.ProfileSchema),
+  'xnet://xnet.fyi/Channel': () => import('./channel').then((m) => m.ChannelSchema),
+  'xnet://xnet.fyi/ChatMessage': () => import('./chat-message').then((m) => m.ChatMessageSchema),
+  'xnet://xnet.fyi/InboxState': () => import('./inbox-state').then((m) => m.InboxStateSchema),
   'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/SavedView': () => import('./saved-view').then((m) => m.SavedViewSchema),
   'xnet://xnet.fyi/Dashboard': () => import('./dashboard').then((m) => m.DashboardSchema),
