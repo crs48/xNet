@@ -152,6 +152,32 @@ function useEnsureFolderExpanded(): (folderId: string) => void {
   }
 }
 
+/** The name area of a folder row: rename input while editing, label otherwise. */
+function FolderRowLabel({
+  folder,
+  editing,
+  setEditingId
+}: {
+  folder: ExplorerFolderEntry
+  editing: boolean
+  setEditingId: (id: string | null) => void
+}) {
+  if (editing) {
+    return <FolderNameEditor folder={folder} onDone={() => setEditingId(null)} />
+  }
+  return (
+    <span
+      className="min-w-0 flex-1 truncate text-xs"
+      onDoubleClick={(event) => {
+        event.stopPropagation()
+        setEditingId(folder.id)
+      }}
+    >
+      {folder.name || 'Untitled folder'}
+    </span>
+  )
+}
+
 function FolderRow({
   node,
   expanded,
@@ -165,6 +191,7 @@ function FolderRow({
 }) {
   const onTransfer = useFolderTransferDrop(node.folder.id)
   const Chevron = expanded ? ChevronDown : ChevronRight
+  const toggle = () => useWorkbench.getState().toggleFolderExpanded(node.folder.id)
 
   return (
     <DropTarget
@@ -189,28 +216,16 @@ function FolderRow({
             sourceContext: 'explorer'
           })
         }}
-        onClick={() => useWorkbench.getState().toggleFolderExpanded(node.folder.id)}
+        onClick={toggle}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') useWorkbench.getState().toggleFolderExpanded(node.folder.id)
+          if (event.key === 'Enter') toggle()
         }}
         style={node.depth > 0 ? { paddingLeft: node.depth * 14 } : undefined}
         className="flex min-w-0 flex-1 items-center gap-1.5"
       >
         <Chevron size={12} strokeWidth={1.5} className="shrink-0 text-ink-3" />
         <FolderClosed size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-        {editing ? (
-          <FolderNameEditor folder={node.folder} onDone={() => setEditingId(null)} />
-        ) : (
-          <span
-            className="min-w-0 flex-1 truncate text-xs"
-            onDoubleClick={(event) => {
-              event.stopPropagation()
-              setEditingId(node.folder.id)
-            }}
-          >
-            {node.folder.name || 'Untitled folder'}
-          </span>
-        )}
+        <FolderRowLabel folder={node.folder} editing={editing} setEditingId={setEditingId} />
         <FolderHoverActions folder={node.folder} onRename={() => setEditingId(node.folder.id)} />
       </div>
     </DropTarget>

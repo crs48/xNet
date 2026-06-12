@@ -6,11 +6,12 @@
  * Explorer's so the bridge shares subscriptions instead of re-reading.
  */
 import type { WorkbenchTab } from './state'
-import { FolderSchema, folderPathIds, type FolderLike } from '@xnetjs/data'
+import { FolderSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { FolderClosed } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
-import { EXPLORER_SCHEMAS, isExplorerNodeType } from './views/explorer-rows'
+import { folderPathNames } from './views/explorer-folders'
+import { EXPLORER_SCHEMAS, isExplorerNodeType } from './views/explorer-items'
 
 const QUERY_LIMIT = 500
 
@@ -30,21 +31,10 @@ function useFolderPathNames(tab: WorkbenchTab | null): string[] {
     enabled: folderable
   })
 
-  return useMemo(() => {
-    if (!folderable || !tab) return []
-    const node = (nodes ?? []).find((doc) => doc.id === tab.nodeId)
-    const folderId = typeof node?.folder === 'string' ? node.folder : null
-    if (!folderId) return []
-
-    const byId = new Map<string, FolderLike>(
-      (folderDocs ?? []).map((doc) => [
-        doc.id,
-        { id: doc.id, name: doc.name as string, parent: (doc.parent as string) ?? null }
-      ])
-    )
-    if (!byId.has(folderId)) return []
-    return folderPathIds(folderId, byId).map((id) => byId.get(id)?.name || 'Untitled folder')
-  }, [folderable, tab, nodes, folderDocs])
+  return useMemo(
+    () => (folderable && tab ? folderPathNames(tab.nodeId, nodes, folderDocs) : []),
+    [folderable, tab, nodes, folderDocs]
+  )
 }
 
 export function TabBreadcrumb({ tab }: { tab: WorkbenchTab | null }) {

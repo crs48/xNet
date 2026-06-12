@@ -8,7 +8,6 @@
  */
 import { useNavigate } from '@tanstack/react-router'
 import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
-import { CanvasSchema, DashboardSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
 import { hasNodeTransfer, getNodeTransfer, setNodeTransfer, type NodeTransfer } from '@xnetjs/ui'
 import { FolderInput, Pin } from 'lucide-react'
 import { useState } from 'react'
@@ -16,36 +15,15 @@ import { navigateToNode } from '../navigation'
 import { tabIdFor, useWorkbench } from '../state'
 import { setPreviewIntent, TAB_VIEWS } from '../tabs'
 import { useExplorerFolders } from './explorer-folders-context'
+import { SCHEMA_IDS, type ExplorerItem } from './explorer-items'
 
-export type ExplorerNodeType = 'page' | 'database' | 'canvas' | 'dashboard'
-
-export interface ExplorerItem {
-  id: string
-  title: string
-  type: ExplorerNodeType
-  updatedAt: number
-  folder?: string | null
-  sortKey?: string
-  tags?: string[]
-}
-
-export const EXPLORER_SCHEMAS = {
-  page: PageSchema,
-  database: DatabaseSchema,
-  canvas: CanvasSchema,
-  dashboard: DashboardSchema
-} as const
-
-export const SCHEMA_IDS: Record<ExplorerNodeType, string> = {
-  page: PageSchema._schemaId,
-  database: DatabaseSchema._schemaId,
-  canvas: CanvasSchema._schemaId,
-  dashboard: DashboardSchema._schemaId
-}
-
-export function isExplorerNodeType(value: string): value is ExplorerNodeType {
-  return value in SCHEMA_IDS
-}
+export {
+  EXPLORER_SCHEMAS,
+  SCHEMA_IDS,
+  isExplorerNodeType,
+  type ExplorerItem,
+  type ExplorerNodeType
+} from './explorer-items'
 
 function ExplorerPinToggle({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
   const label = pinned ? 'Unpin' : 'Pin'

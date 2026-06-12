@@ -74,6 +74,36 @@ export function hashtagFromMenuItem(item: TaskMentionSuggestion): HashtagSuggest
   return { id: item.id, name: item.label.replace(/^#/, '') }
 }
 
+type SuggestionRenderProps = {
+  items: TaskMentionSuggestion[]
+  command: (item: TaskMentionSuggestion) => void
+  clientRect?: (() => DOMRect | null) | null
+}
+
+interface PopupComponentLike {
+  updateProps(props: Record<string, unknown>): void
+}
+
+interface PopupInstanceLike {
+  setProps(props: Record<string, unknown>): void
+}
+
+/** Suggestion-popup update step, shared by onUpdate (exported for tests). */
+export function updateHashtagPopup(
+  component: PopupComponentLike | null,
+  popup: PopupInstanceLike[] | null,
+  props: SuggestionRenderProps
+): void {
+  if (!component) return
+  component.updateProps({
+    items: props.items,
+    command: (item: TaskMentionSuggestion) => props.command(item)
+  })
+  if (props.clientRect && popup?.[0]) {
+    popup[0].setProps({ getReferenceClientRect: props.clientRect as () => DOMRect })
+  }
+}
+
 export const HashtagExtension = Node.create<HashtagOptions>({
   name: 'hashtag',
 
@@ -191,18 +221,7 @@ export const HashtagExtension = Node.create<HashtagOptions>({
             },
 
             onUpdate(props) {
-              if (!component) return
-
-              component.updateProps({
-                items: props.items,
-                command: (item: TaskMentionSuggestion) => props.command(item)
-              })
-
-              if (props.clientRect && popup?.[0]) {
-                popup[0].setProps({
-                  getReferenceClientRect: props.clientRect as () => DOMRect
-                })
-              }
+              updateHashtagPopup(component, popup, props)
             },
 
             onKeyDown(props) {

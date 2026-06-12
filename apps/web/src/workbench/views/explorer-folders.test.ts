@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { appendSortKey, insertBeforeSortKey, partitionByFolder } from './explorer-folders'
+import {
+  appendSortKey,
+  folderPathNames,
+  insertBeforeSortKey,
+  partitionByFolder
+} from './explorer-folders'
 
 describe('partitionByFolder', () => {
   it('splits unfiled (null, undefined, empty) from filed items', () => {
@@ -46,6 +51,32 @@ describe('appendSortKey', () => {
 
   it('treats missing sortKeys on the last sibling as a fresh append', () => {
     expect(appendSortKey([{ id: 'a' }])).toBeTruthy()
+  })
+})
+
+describe('folderPathNames', () => {
+  const folders = [
+    { id: 'root', name: 'Work' },
+    { id: 'sub', name: 'Design', parent: 'root' }
+  ]
+  const nodes = [{ id: 'n1', folder: 'sub' }, { id: 'n2' }, { id: 'n3', folder: 'missing' }]
+
+  it('returns the root-first folder names for a filed node', () => {
+    expect(folderPathNames('n1', nodes, folders)).toEqual(['Work', 'Design'])
+  })
+
+  it('returns [] for unfiled and unknown nodes', () => {
+    expect(folderPathNames('n2', nodes, folders)).toEqual([])
+    expect(folderPathNames('nope', nodes, folders)).toEqual([])
+    expect(folderPathNames('n1', null, folders)).toEqual([])
+  })
+
+  it('returns [] when the folder is missing', () => {
+    expect(folderPathNames('n3', nodes, folders)).toEqual([])
+  })
+
+  it('falls back to a placeholder for unnamed folders', () => {
+    expect(folderPathNames('n1', nodes, [{ id: 'sub' }])).toEqual(['Untitled folder'])
   })
 })
 

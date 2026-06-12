@@ -260,6 +260,46 @@ function TagDiscussion({ tag }: { tag: TagEntity }) {
   )
 }
 
+/** Tagged content grouped by type, or the empty-state hint. */
+function TagPageBody({
+  tagName,
+  sections,
+  taggedTasks
+}: {
+  tagName: string
+  sections: TagSectionData[]
+  taggedTasks: Array<{ id: string; title?: string }>
+}) {
+  const total =
+    sections.reduce((sum, section) => sum + section.items.length, 0) + taggedTasks.length
+
+  if (total === 0) {
+    return (
+      <p className="mt-10 text-sm text-ink-3">
+        Nothing carries this tag yet. Type #{tagName} in a page or message to tag it.
+      </p>
+    )
+  }
+  return (
+    <>
+      {sections.map(
+        (section) =>
+          section.items.length > 0 && (
+            <section key={section.label}>
+              <h2 className="mb-1 mt-6 text-[11px] font-medium uppercase tracking-wider text-ink-3">
+                {section.label}
+              </h2>
+              {section.items.map((item) => (
+                <TaggedItemRow key={item.id} item={item} />
+              ))}
+            </section>
+          )
+      )}
+      <TaggedTasksSection tasks={taggedTasks} />
+    </>
+  )
+}
+
 export function TagView({ tagId }: { tagId: string }) {
   const data = useTagPageData(tagId)
   const { tag, sections, taggedTasks } = data
@@ -271,9 +311,6 @@ export function TagView({ tagId }: { tagId: string }) {
   if (!tag) {
     return <p className="mt-10 text-center text-sm text-ink-3">Tag not found.</p>
   }
-
-  const total =
-    sections.reduce((sum, section) => sum + section.items.length, 0) + taggedTasks.length
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -290,28 +327,7 @@ export function TagView({ tagId }: { tagId: string }) {
         <TagActions {...data} tag={tag} />
       </div>
 
-      {total === 0 ? (
-        <p className="mt-10 text-sm text-ink-3">
-          Nothing carries this tag yet. Type #{tag.name} in a page or message to tag it.
-        </p>
-      ) : (
-        <>
-          {sections.map(
-            (section) =>
-              section.items.length > 0 && (
-                <section key={section.label}>
-                  <h2 className="mb-1 mt-6 text-[11px] font-medium uppercase tracking-wider text-ink-3">
-                    {section.label}
-                  </h2>
-                  {section.items.map((item) => (
-                    <TaggedItemRow key={item.id} item={item} />
-                  ))}
-                </section>
-              )
-          )}
-          <TaggedTasksSection tasks={taggedTasks} />
-        </>
-      )}
+      <TagPageBody tagName={tag.name} sections={sections} taggedTasks={taggedTasks} />
 
       <TagDiscussion tag={tag} />
     </div>

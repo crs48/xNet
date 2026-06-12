@@ -3,6 +3,7 @@ export {
   HashtagExtension,
   filterHashtagSuggestions,
   hashtagFromMenuItem,
+  updateHashtagPopup,
   type HashtagOptions,
   type HashtagSuggestion
 } from './HashtagExtension'

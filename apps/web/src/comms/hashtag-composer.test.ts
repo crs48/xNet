@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { applyHashtagPick, composerTags, hashtagQueryAt, tagOptionsFor } from './hashtag-composer'
+import {
+  applyHashtagPick,
+  composerTags,
+  hashtagQueryAt,
+  shouldSendOnEnter,
+  tagOptionsFor
+} from './hashtag-composer'
 
 describe('hashtagQueryAt', () => {
   it('finds the active query after a #', () => {
@@ -45,6 +51,18 @@ describe('composerTags', () => {
 
   it('returns undefined when nothing survives', () => {
     expect(composerTags('no tags here', picked)).toBeUndefined()
+  })
+})
+
+describe('shouldSendOnEnter', () => {
+  it('sends on plain Enter with no pickers open', () => {
+    expect(shouldSendOnEnter({ key: 'Enter', shiftKey: false }, 0)).toBe(true)
+  })
+
+  it('does not send on Shift+Enter, other keys, or open pickers', () => {
+    expect(shouldSendOnEnter({ key: 'Enter', shiftKey: true }, 0)).toBe(false)
+    expect(shouldSendOnEnter({ key: 'a', shiftKey: false }, 0)).toBe(false)
+    expect(shouldSendOnEnter({ key: 'Enter', shiftKey: false }, 2)).toBe(false)
   })
 })
 

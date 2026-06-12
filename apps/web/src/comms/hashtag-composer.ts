@@ -63,6 +63,17 @@ export function composerTags(
 }
 
 /**
+ * Plain Enter sends — unless Shift is held or a suggestion picker is
+ * open (Enter then belongs to the picker).
+ */
+export function shouldSendOnEnter(
+  event: { key: string; shiftKey: boolean },
+  openSuggestionCount: number
+): boolean {
+  return event.key === 'Enter' && !event.shiftKey && openSuggestionCount === 0
+}
+
+/**
  * Picker options for the active query: existing tags (prefix matches
  * first, capped) plus a trailing create entry when the query is a
  * usable, unknown name.

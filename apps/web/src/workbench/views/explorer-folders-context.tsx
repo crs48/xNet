@@ -23,7 +23,7 @@ import {
 import { useMutate, useQuery } from '@xnetjs/react'
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { appendSortKey, insertBeforeSortKey, partitionByFolder } from './explorer-folders'
-import { EXPLORER_SCHEMAS, type ExplorerItem } from './explorer-rows'
+import { EXPLORER_SCHEMAS, type ExplorerItem } from './explorer-items'
 
 export interface ExplorerFolderEntry {
   id: string

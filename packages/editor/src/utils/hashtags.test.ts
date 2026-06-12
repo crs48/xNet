@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   CREATE_HASHTAG_ID,
   filterHashtagSuggestions,
-  hashtagFromMenuItem
+  hashtagFromMenuItem,
+  updateHashtagPopup
 } from '../extensions/hashtag'
 import { extractTagIds, tagsFromDoc } from './hashtags'
 
@@ -99,5 +100,47 @@ describe('hashtagFromMenuItem', () => {
       id: 't1',
       name: 'design'
     })
+  })
+})
+
+describe('updateHashtagPopup', () => {
+  const renderProps = (clientRect: (() => DOMRect | null) | null) => ({
+    items: [{ id: 't1', label: '#design' }],
+    command: vi.fn(),
+    clientRect
+  })
+
+  it('is a no-op without a mounted component', () => {
+    expect(() => updateHashtagPopup(null, null, renderProps(null))).not.toThrow()
+  })
+
+  it('pushes items and repositions the popup when a rect is available', () => {
+    const component = { updateProps: vi.fn() }
+    const instance = { setProps: vi.fn() }
+    updateHashtagPopup(
+      component,
+      [instance],
+      renderProps(() => null)
+    )
+    expect(component.updateProps).toHaveBeenCalledOnce()
+    expect(instance.setProps).toHaveBeenCalledOnce()
+  })
+
+  it('updates items without repositioning when the rect or popup is missing', () => {
+    const component = { updateProps: vi.fn() }
+    const instance = { setProps: vi.fn() }
+    updateHashtagPopup(component, [instance], renderProps(null))
+    updateHashtagPopup(
+      component,
+      null,
+      renderProps(() => null)
+    )
+    updateHashtagPopup(
+      component,
+      [],
+      renderProps(() => null)
+    )
+    expect(component.updateProps).toHaveBeenCalledTimes(3)
+    expect(instance.setProps).not.toHaveBeenCalled()
   })
 })

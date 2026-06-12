@@ -217,6 +217,35 @@ function VirtualizedItemList({
   )
 }
 
+/** Pinned + Recent, folder tree + tags (hidden while filtering), then the list. */
+function ExplorerSections({
+  filterActive,
+  allItems,
+  listItems,
+  pinnedItems,
+  recentItems,
+  pinnedNodeIds
+}: {
+  filterActive: boolean
+  allItems: ExplorerItem[]
+  listItems: ExplorerItem[]
+  pinnedItems: ExplorerItem[]
+  recentItems: ExplorerItem[]
+  pinnedNodeIds: string[]
+}) {
+  return (
+    <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="flex h-full flex-col">
+        <PinnedAndRecent pinnedItems={pinnedItems} recentItems={recentItems} />
+        {!filterActive && <ExplorerFoldersSection pinnedNodeIds={pinnedNodeIds} />}
+        {!filterActive && <ExplorerTagsSection items={allItems} />}
+        <SectionLabel>{filterActive ? 'Results' : 'Unfiled'}</SectionLabel>
+        <VirtualizedItemList items={listItems} pinnedNodeIds={pinnedNodeIds} />
+      </div>
+    </div>
+  )
+}
+
 export function Explorer() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<ExplorerNodeType | 'all'>('all')
@@ -295,16 +324,14 @@ export function Explorer() {
           </div>
         </div>
 
-        {/* Pinned + Recent, folder tree, then Unfiled (virtualized) */}
-        <div className="min-h-0 flex-1 overflow-hidden">
-          <div className="flex h-full flex-col">
-            <PinnedAndRecent pinnedItems={pinnedItems} recentItems={recentItems} />
-            {!filterActive && <ExplorerFoldersSection pinnedNodeIds={pinnedNodeIds} />}
-            {!filterActive && <ExplorerTagsSection items={allItems} />}
-            <SectionLabel>{filterActive ? 'Results' : 'Unfiled'}</SectionLabel>
-            <VirtualizedItemList items={listItems} pinnedNodeIds={pinnedNodeIds} />
-          </div>
-        </div>
+        <ExplorerSections
+          filterActive={filterActive}
+          allItems={allItems}
+          listItems={listItems}
+          pinnedItems={pinnedItems}
+          recentItems={recentItems}
+          pinnedNodeIds={pinnedNodeIds}
+        />
 
         <AddSharedDialog
           isOpen={showAddSharedDialog}

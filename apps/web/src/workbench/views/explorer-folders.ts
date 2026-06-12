@@ -5,7 +5,7 @@
  * plus a fractional `sortKey` for order among folder siblings. Sort keys
  * compare by code units (never localeCompare).
  */
-import { compareSortKeys, generateSortKey } from '@xnetjs/data'
+import { compareSortKeys, folderPathIds, generateSortKey, type FolderLike } from '@xnetjs/data'
 
 export interface FolderableItem {
   id: string
@@ -64,4 +64,30 @@ export function insertBeforeSortKey(siblings: FolderableItem[], beforeId: string
   if (index < 0) return appendSortKey(siblings)
   const prev = siblings[index - 1]
   return generateSortKey(prev?.sortKey || undefined, siblings[index].sortKey || undefined)
+}
+
+export interface BreadcrumbFolderDoc {
+  id: string
+  name?: string
+  parent?: string
+}
+
+/**
+ * Root-first folder names for a node's breadcrumb, or [] for unfiled
+ * nodes and unknown folders. Cycle-safe via folderPathIds.
+ */
+export function folderPathNames(
+  nodeId: string,
+  nodes: Array<{ id: string; folder?: string }> | null | undefined,
+  folderDocs: BreadcrumbFolderDoc[] | null | undefined
+): string[] {
+  const node = (nodes ?? []).find((doc) => doc.id === nodeId)
+  const folderId = typeof node?.folder === 'string' ? node.folder : null
+  if (!folderId) return []
+
+  const byId = new Map<string, FolderLike>(
+    (folderDocs ?? []).map((doc) => [doc.id, { id: doc.id, name: doc.name, parent: doc.parent }])
+  )
+  if (!byId.has(folderId)) return []
+  return folderPathIds(folderId, byId).map((id) => byId.get(id)?.name || 'Untitled folder')
 }

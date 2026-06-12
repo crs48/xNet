@@ -16,6 +16,7 @@ import {
   applyHashtagPick,
   composerTags,
   hashtagQueryAt,
+  shouldSendOnEnter,
   tagOptionsFor,
   type TagOption
 } from './hashtag-composer'
@@ -311,12 +312,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
             placeholder="Message… (@ to mention, # to tag, Enter to send)"
             onChange={(event) => handleChange(event.target.value, event.target.selectionStart ?? 0)}
             onKeyDown={(event) => {
-              if (
-                event.key === 'Enter' &&
-                !event.shiftKey &&
-                pickerOptions.length === 0 &&
-                tagOptions.length === 0
-              ) {
+              if (shouldSendOnEnter(event, pickerOptions.length + tagOptions.length)) {
                 event.preventDefault()
                 void send()
               }
