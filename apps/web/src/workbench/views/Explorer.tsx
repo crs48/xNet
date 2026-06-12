@@ -22,6 +22,7 @@ import { partitionByFolder } from './explorer-folders'
 import { ExplorerFoldersProvider } from './explorer-folders-context'
 import { ExplorerRow, type ExplorerItem, type ExplorerNodeType } from './explorer-rows'
 import { ExplorerFoldersSection } from './ExplorerFolderTree'
+import { ExplorerTagsSection } from './ExplorerTagsSection'
 
 const TYPE_FILTERS: Array<{ id: ExplorerNodeType | 'all'; label: string }> = [
   { id: 'all', label: 'All' },
@@ -130,6 +131,7 @@ interface ExplorerDocShape {
   updatedAt?: number
   folder?: string
   sortKey?: string
+  tags?: string[]
 }
 
 function collectItems(
@@ -142,7 +144,8 @@ function collectItems(
     type,
     updatedAt: doc.updatedAt ?? 0,
     folder: doc.folder ?? null,
-    sortKey: doc.sortKey
+    sortKey: doc.sortKey,
+    tags: doc.tags
   }))
 }
 
@@ -297,6 +300,7 @@ export function Explorer() {
           <div className="flex h-full flex-col">
             <PinnedAndRecent pinnedItems={pinnedItems} recentItems={recentItems} />
             {!filterActive && <ExplorerFoldersSection pinnedNodeIds={pinnedNodeIds} />}
+            {!filterActive && <ExplorerTagsSection items={allItems} />}
             <SectionLabel>{filterActive ? 'Results' : 'Unfiled'}</SectionLabel>
             <VirtualizedItemList items={listItems} pinnedNodeIds={pinnedNodeIds} />
           </div>

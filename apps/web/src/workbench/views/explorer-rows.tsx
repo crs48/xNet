@@ -26,6 +26,7 @@ export interface ExplorerItem {
   updatedAt: number
   folder?: string | null
   sortKey?: string
+  tags?: string[]
 }
 
 export const EXPLORER_SCHEMAS = {

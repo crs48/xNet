@@ -495,14 +495,14 @@ createNode(ChannelSchema, { name: `#${tag.name}`, kind: 'channel', target: tag.i
 
 ### Phase 2 — Tags (the labels)
 
-- [ ] Add `TagSchema` + register; lowercase-normalize `name` on create
-- [ ] Add `tags` multi-relation to the same organizable schemas + Task + ChatMessage + Comment
-- [ ] TipTap `hashtag` pill extension with `#` suggestion popup (clone the mention extension pattern in `packages/editor/src/extensions.ts`); autocomplete lists existing tags before "create new"
-- [ ] `extractTagIds` in `packages/editor/src/utils/hashtags.ts` + wire into page/comment/chat save paths (mirror mention extraction)
-- [ ] Tag picker component in `packages/ui` for Tasks and Database rows (and remember the dual export list when adding to `packages/ui`)
-- [ ] Tag browse: sidebar "Tags" section listing tags by usage count; tag detail page = live query of tagged nodes grouped by type
+- [x] Add `TagSchema` + register; lowercase-normalize `name` via `normalizeTagName`
+- [x] Add `tags` multi-relation to the same organizable schemas + Task + ChatMessage + Comment
+- [x] TipTap `hashtag` pill extension with `#` suggestion popup (mention-extension clone); autocomplete lists existing tags before "create new"
+- [x] `extractTagIds` in `packages/editor/src/utils/hashtags.ts`, wired into the page editor (`onTagsChange` write-through) and the chat composer (`hashtag-composer.ts`, textarea equivalent). Comment composers are plain textareas today — their `tags` property exists but composer wiring is deferred until comments adopt the rich editor
+- [x] Tag picker in `packages/ui` (`TaskDetailForm` tags chip + chips row, dual-exported) wired through `TaskInlineEditor`; Database rows keep their existing per-database select options (deliberately distinct from workspace tags — see Notion finding)
+- [x] Tag browse: sidebar "Tags" section ranked by usage across loaded items; tag detail page (`/tag/$tagId`) groups tagged nodes by type
 - [ ] Include tag names in hub FTS `index-update` metadata
-- [ ] Tag management: rename (propagates by reference), archive, and a merge tool (re-point `tags` relations, archive loser)
+- [x] Tag management: rename (propagates by reference), archive, and merge (re-points loaded `tags` relations, archives the loser; stragglers still resolve because archived tags are never deleted)
 
 ### Phase 3 — Tag channels & lenses (the bridge)
 
