@@ -509,18 +509,25 @@ export function useTextareaTypeahead(
 
 ### Phase 2 — Shared engine + chat
 
-- [ ] Create `packages/typeahead`: provider types, registry, ranker
-      (MiniSearch score × frecency), `SuggestionPopup` (ARIA combobox,
-      sections, keyboard state machine)
-- [ ] Frecency store (per-workspace, `VITE_STORAGE_SCOPE`-prefixed)
-- [ ] `useTextareaTypeahead` hook (caret mirror-div + Floating UI virtual
-      element)
-- [ ] Extend reference grammar with `[[nodeId|Label]]`
-      (`commentReferences.ts` + `convertRefsToLinks` + tests, backward
-      compatible)
-- [ ] Migrate `ChannelChat` composer to the hook (delete
-      `mention-composer.ts` picker internals); add `[[` and `#` triggers
-- [ ] Point the editor adapter's popup at the shared `SuggestionPopup`
+- [x] Shared suggestion popup for editor surfaces: the tippy lifecycle
+      behind the slash / mention / hashtag / wikilink menus is one
+      `createSuggestionPopupRender` factory in `packages/editor`
+- [x] Chat composer `[[` node links: `link-composer.ts` joins the
+      mention/hashtag composer modules (the same pure trigger-module
+      pattern — the de-facto shared engine for plain-text surfaces, per
+      0168/0169); `ChatMessage` gains a structured `links` relation
+      (composer-declared, never parsed from body), and link chips under
+      each message navigate to the node
+- [x] `ChannelChat` offers all three triggers (`@`, `#`, `[[`);
+      Enter-to-send defers to whichever picker is open
+- [ ] `packages/typeahead` with a caret-anchored combobox popup, MiniSearch
+      ranking and a frecency store — deferred: the composer-module pattern
+      already gives plain-text surfaces trigger detection + structured
+      commits, and workbench recents supply the recency signal; revisit if
+      a caret-anchored popup becomes worth the mirror-div machinery
+- [ ] `[[nodeId|Label]]` reference grammar — superseded for chat by the
+      structured `links` relation (0168 invariant); revisit alongside the
+      comment composer if comments keep the parsed-grammar path
 
 ### Phase 3 — Long tail surfaces
 

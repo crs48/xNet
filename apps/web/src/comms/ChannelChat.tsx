@@ -3,11 +3,14 @@
  * Room context section (0167). Typing indicators ride room presence; the
  * channel watermark advances (debounced) while the chat is visible.
  */
+import type { TabNodeType } from '../workbench/state'
+import type { WikilinkTarget } from '@xnetjs/editor/react'
 import { useNavigate } from '@tanstack/react-router'
 import { sendMessage, typingPeers, type PeerPresence } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { navigateToNode } from '../workbench/navigation'
 import { mergeMentionables, type Mentionable, type ProfileEntry } from './comms-utils'
@@ -21,6 +24,13 @@ import {
   type TagOption
 } from './hashtag-composer'
 import { useChannelMessages, useInbox, useProfiles, useRoomPresence, displayName } from './hooks'
+import {
+  applyLinkPick,
+  composerLinks,
+  linkOptionsFor,
+  linkQueryAt,
+  nodeIdFromHref
+} from './link-composer'
 import {
   applyMentionPick,
   composerMentions,
@@ -37,6 +47,8 @@ interface ChatMessageRow {
   redacted?: boolean
   /** Tag node ids declared by the composer (0169) */
   tags?: string[]
+  /** Linked node ids declared by the composer (0170) */
+  links?: string[]
 }
 
 function formatTime(at: number | undefined): string {
@@ -80,7 +92,45 @@ function MessageTagChips({ message }: { message: ChatMessageRow }) {
   )
 }
 
-function MessageRow({ message, profiles }: { message: ChatMessageRow; profiles: ProfileEntry[] }) {
+/** Chips for the message's structured node links — never parsed text (0170). */
+function MessageLinkChips({
+  message,
+  linkTargets
+}: {
+  message: ChatMessageRow
+  linkTargets: WikilinkTarget[]
+}) {
+  const navigate = useNavigate()
+  const linkIds = message.links ?? []
+  if (linkIds.length === 0 || message.redacted) return null
+  return (
+    <div className="flex flex-wrap gap-1">
+      {linkIds.map((id) => {
+        const target = linkTargets.find((t) => nodeIdFromHref(t.href) === id)
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => navigateToNode(navigate, (target?.kind ?? 'page') as TabNodeType, id)}
+            className="cursor-pointer rounded-full border border-hairline bg-transparent px-1.5 py-px text-[10px] text-ink-3 transition-colors hover:text-ink-1"
+          >
+            [[{target?.title ?? `${id.slice(0, 8)}…`}]]
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function MessageRow({
+  message,
+  profiles,
+  linkTargets
+}: {
+  message: ChatMessageRow
+  profiles: ProfileEntry[]
+  linkTargets: WikilinkTarget[]
+}) {
   const author = displayName(message.createdBy ?? '?', profiles)
   return (
     <li className="flex flex-col gap-0.5 px-3 py-1.5 hover:bg-surface-2/50">
@@ -91,6 +141,7 @@ function MessageRow({ message, profiles }: { message: ChatMessageRow; profiles: 
       </div>
       <MessageBody message={message} />
       <MessageTagChips message={message} />
+      <MessageLinkChips message={message} linkTargets={linkTargets} />
     </li>
   )
 }
@@ -98,10 +149,12 @@ function MessageRow({ message, profiles }: { message: ChatMessageRow; profiles: 
 function MessageList({
   messages,
   profiles,
+  linkTargets,
   listRef
 }: {
   messages: ChatMessageRow[]
   profiles: ProfileEntry[]
+  linkTargets: WikilinkTarget[]
   listRef: React.RefObject<HTMLUListElement>
 }) {
   if (messages.length === 0) {
@@ -114,7 +167,12 @@ function MessageList({
   return (
     <ul ref={listRef} className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 py-2">
       {messages.map((message) => (
-        <MessageRow key={message.id} message={message} profiles={profiles} />
+        <MessageRow
+          key={message.id}
+          message={message}
+          profiles={profiles}
+          linkTargets={linkTargets}
+        />
       ))}
     </ul>
   )
@@ -152,6 +210,37 @@ function TagPicker({
           >
             #{option.name}
             {option.isNew && <span className="text-[10px] text-ink-3">Create new tag</span>}
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function LinkPicker({
+  options,
+  onPick
+}: {
+  options: WikilinkTarget[]
+  onPick: (option: WikilinkTarget) => void
+}) {
+  if (options.length === 0) return null
+  return (
+    <ul className="absolute bottom-full left-0 z-10 m-0 mb-1 w-64 list-none rounded-md border border-hairline bg-surface-0 p-1 shadow-sm">
+      {options.map((option) => (
+        <li key={option.href}>
+          <button
+            type="button"
+            onMouseDown={(event) => {
+              event.preventDefault()
+              onPick(option)
+            }}
+            className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1 text-left text-xs text-ink-1 hover:bg-surface-2"
+          >
+            <span className="min-w-0 flex-1 truncate">[[{option.title}]]</span>
+            <span className="shrink-0 text-[10px] uppercase tracking-wider text-ink-3">
+              {option.kind}
+            </span>
           </button>
         </li>
       ))}
@@ -223,13 +312,19 @@ export function ChannelChat({ channelId }: { channelId: string }) {
   const [caret, setCaret] = useState(0)
   const picked = useRef(new Map<string, string>())
   const pickedTags = useRef(new Map<string, string>())
+  const pickedLinks = useRef(new Map<string, string>())
   const lastTypingSent = useRef(0)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
   const { suggestions: tagSuggestions, getOrCreateTag } = useWorkspaceTags()
+  const { linkTargets } = useLinkTargets()
   const pickerOptions = pickerOptionsFor(text, caret, mentionables)
-  const tagOptions = pickerOptions.length === 0 ? tagOptionsFor(text, caret, tagSuggestions) : []
+  const linkOptions = linkOptionsFor(text, caret, linkTargets)
+  const tagOptions =
+    pickerOptions.length === 0 && linkOptions.length === 0
+      ? tagOptionsFor(text, caret, tagSuggestions)
+      : []
   const typing = useMemo(() => typingPeers(peers, channelId, Date.now()), [peers, channelId])
   const rows = messages as unknown as ChatMessageRow[]
 
@@ -282,6 +377,19 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [text, caret, getOrCreateTag]
   )
 
+  const pickLink = useCallback(
+    (option: WikilinkTarget) => {
+      const query = linkQueryAt(text, caret)
+      if (!query) return
+      pickedLinks.current.set(option.title, nodeIdFromHref(option.href))
+      const next = applyLinkPick(text, caret, query.start, option.title)
+      setText(next.text)
+      setCaret(next.caret)
+      inputRef.current?.focus()
+    },
+    [text, caret]
+  )
+
   const send = useCallback(async () => {
     const content = text.trim()
     if (!content || !bridge) return
@@ -291,28 +399,41 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       channelId,
       content,
       mentions: composerMentions(content, picked.current),
-      tags: composerTags(content, pickedTags.current)
+      tags: composerTags(content, pickedTags.current),
+      links: composerLinks(content, pickedLinks.current)
     })
     picked.current.clear()
     pickedTags.current.clear()
+    pickedLinks.current.clear()
   }, [text, bridge, channelId, session])
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <MessageList messages={rows} profiles={profiles} listRef={listRef} />
+      <MessageList
+        messages={rows}
+        profiles={profiles}
+        linkTargets={linkTargets}
+        listRef={listRef}
+      />
       <TypingLine peers={typing} profiles={profiles} />
       <div className="relative border-t border-hairline p-2">
         <MentionPicker options={pickerOptions} onPick={pickMention} />
         <TagPicker options={tagOptions} onPick={pickTag} />
+        <LinkPicker options={linkOptions} onPick={pickLink} />
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
             value={text}
             rows={2}
-            placeholder="Message… (@ to mention, # to tag, Enter to send)"
+            placeholder="Message… (@ mention, # tag, [[ link, Enter to send)"
             onChange={(event) => handleChange(event.target.value, event.target.selectionStart ?? 0)}
             onKeyDown={(event) => {
-              if (shouldSendOnEnter(event, pickerOptions.length + tagOptions.length)) {
+              if (
+                shouldSendOnEnter(
+                  event,
+                  pickerOptions.length + tagOptions.length + linkOptions.length
+                )
+              ) {
                 event.preventDefault()
                 void send()
               }
