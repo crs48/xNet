@@ -9,8 +9,10 @@
  */
 import type { ExplorerNodeType } from '../workbench/views/explorer-rows'
 import { useNavigate } from '@tanstack/react-router'
+import { createChannel } from '@xnetjs/comms'
 import {
   CanvasSchema,
+  ChannelSchema,
   DashboardSchema,
   DatabaseSchema,
   PageSchema,
@@ -19,8 +21,10 @@ import {
   normalizeTagName
 } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
-import { Archive, ArchiveRestore, Hash, Merge } from 'lucide-react'
+import { useDataBridge } from '@xnetjs/react/internal'
+import { Archive, ArchiveRestore, Hash, Merge, MessageSquare } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { ChannelChat } from '../comms/ChannelChat'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench } from '../workbench/state'
 import { TAB_VIEWS } from '../workbench/tabs'
@@ -223,6 +227,39 @@ function TaggedTasksSection({ tasks }: { tasks: Array<{ id: string; title?: stri
   )
 }
 
+/**
+ * The "hashtag is a channel" half of the tag page: a Channel attached
+ * via the existing Channel.target relation hosts the tag's discussion.
+ */
+function TagDiscussion({ tag }: { tag: TagEntity }) {
+  const bridge = useDataBridge()
+  const { data: channels } = useQuery(ChannelSchema, { where: { target: tag.id } })
+  const channel = (channels ?? []).find((entry) => entry.archived !== true)
+
+  return (
+    <section className="mt-8">
+      <h2 className="mb-1 text-[11px] font-medium uppercase tracking-wider text-ink-3">
+        Discussion
+      </h2>
+      {channel ? (
+        <div className="h-80 overflow-hidden rounded-md border border-hairline">
+          <ChannelChat channelId={channel.id} />
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={!bridge}
+          onClick={() => void createChannel(bridge!, { name: `#${tag.name}`, target: tag.id })}
+          className="flex cursor-pointer items-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-xs text-ink-2 hover:bg-accent hover:text-ink-1 disabled:cursor-default disabled:opacity-50"
+        >
+          <MessageSquare size={12} />
+          Start discussion
+        </button>
+      )}
+    </section>
+  )
+}
+
 export function TagView({ tagId }: { tagId: string }) {
   const data = useTagPageData(tagId)
   const { tag, sections, taggedTasks } = data
@@ -275,6 +312,8 @@ export function TagView({ tagId }: { tagId: string }) {
           <TaggedTasksSection tasks={taggedTasks} />
         </>
       )}
+
+      <TagDiscussion tag={tag} />
     </div>
   )
 }

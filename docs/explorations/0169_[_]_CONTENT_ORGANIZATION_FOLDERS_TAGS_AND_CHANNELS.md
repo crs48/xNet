@@ -506,10 +506,10 @@ createNode(ChannelSchema, { name: `#${tag.name}`, kind: 'channel', target: tag.i
 
 ### Phase 3 — Tag channels & lenses (the bridge)
 
-- [ ] "Start discussion" on a tag page → create Channel with `target: tagId`, render chat inline on the tag page
-- [ ] Hashtag pills in chat messages link to the tag page
-- [ ] SavedView support for tag filters ("smart folder": pin a saved tag query into the sidebar)
-- [ ] Optional: notification on activity in tags you follow (reuse InboxState patterns from 0168)
+- [x] "Start discussion" on a tag page → creates a Channel with `target: tagId`, chat renders inline on the tag page
+- [x] Tag links in chat messages: chips under each message rendered from the structured `tags` relation (composer-declared — display never parses `#` text), linking to the tag page
+- [ ] SavedView support for tag filters — deferred: `SavedView` stores database-scoped query-AST descriptors today; the tag page already _is_ the live tag query and opens as a pinnable tab. Revisit when SavedView grows workspace-scoped descriptors
+- [ ] Optional: notification on activity in tags you follow (reuse InboxState patterns from 0168) — deferred
 
 ## Validation Checklist
 

@@ -3,11 +3,13 @@
  * Room context section (0167). Typing indicators ride room presence; the
  * channel watermark advances (debounced) while the chat is visible.
  */
+import { useNavigate } from '@tanstack/react-router'
 import { sendMessage, typingPeers, type PeerPresence } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
+import { navigateToNode } from '../workbench/navigation'
 import { mergeMentionables, type Mentionable, type ProfileEntry } from './comms-utils'
 import { useComms } from './CommsContext'
 import {
@@ -32,6 +34,8 @@ interface ChatMessageRow {
   createdAt?: number
   edited?: boolean
   redacted?: boolean
+  /** Tag node ids declared by the composer (0169) */
+  tags?: string[]
 }
 
 function formatTime(at: number | undefined): string {
@@ -53,6 +57,28 @@ function MessageBody({ message }: { message: ChatMessageRow }) {
   )
 }
 
+/** Chips rendered from the message's structured tags — never parsed text (0169). */
+function MessageTagChips({ message }: { message: ChatMessageRow }) {
+  const navigate = useNavigate()
+  const { allTags } = useWorkspaceTags()
+  const tagIds = message.tags ?? []
+  if (tagIds.length === 0 || message.redacted) return null
+  return (
+    <div className="flex flex-wrap gap-1">
+      {tagIds.map((tagId) => (
+        <button
+          key={tagId}
+          type="button"
+          onClick={() => navigateToNode(navigate, 'tag', tagId)}
+          className="cursor-pointer rounded-full border border-hairline bg-transparent px-1.5 py-px text-[10px] text-ink-3 transition-colors hover:text-ink-1"
+        >
+          #{allTags.find((tag) => tag.id === tagId)?.name ?? tagId}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function MessageRow({ message, profiles }: { message: ChatMessageRow; profiles: ProfileEntry[] }) {
   const author = displayName(message.createdBy ?? '?', profiles)
   return (
@@ -63,6 +89,7 @@ function MessageRow({ message, profiles }: { message: ChatMessageRow; profiles: 
         <EditedTag message={message} />
       </div>
       <MessageBody message={message} />
+      <MessageTagChips message={message} />
     </li>
   )
 }
