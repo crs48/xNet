@@ -486,21 +486,26 @@ export function useTextareaTypeahead(
 
 ### Phase 1 — Pages (TipTap only, no new packages)
 
-- [ ] `WikilinkSuggestion` extension in `packages/editor` (`char: '[['`,
-      allowSpaces, consume auto-paired `]]`), reusing the
-      SlashMenu/TaskMentionMenu popup pattern
-- [ ] Upgrade `Wikilink` node to carry `{ nodeId, label }` attrs; keep
-      legacy slug-resolution path for old documents
-- [ ] Node-links provider in `apps/web`: MiniSearch-backed, kinds page /
-      canvas / database / dashboard / view, type icons, "Create page" row
-      (eager create + navigate-on-click)
-- [ ] Generalize `TaskMentionExtension` (or add `PeopleMention`) to commit
-      `{ did, label, avatar }` from `mergeMentionables()` candidates
-- [ ] `tag` node schema in `packages/data` (name, color, createdBy; nanoid
-      id; workspace-scoped) + `HashtagExtension` with `#` suggestion and
-      lazy tag creation
-- [ ] Markdown serializers for wikilink / mention / tag nodes
-- [ ] Alias entry: typing `|` in an open `[[` session switches to alias text
+- [x] `WikilinkSuggestion` extension in `packages/editor` (`char: '[['`,
+      allowSpaces, consume trailing `]]`), with the popup lifecycle extracted
+      into a shared `createSuggestionPopupRender` used by slash / mention /
+      hashtag / wikilink menus
+- [x] Wikilink mark carries explicit targets (`href` = node id or
+      `xnet://<type>/<id>`, `title` = label) with `[[target|label]]` markdown
+      round-trip; legacy slug links keep parsing and serializing as
+      `[[title]]`
+- [x] Node-links provider in `apps/web` (`useLinkTargets`): bounded
+      recency-ordered queries over page / database / canvas / dashboard /
+      savedview (the GlobalSearch pattern — MiniSearch deferred), workbench
+      recents floated first, kind icons, "Create page" row (eager create)
+- [x] People mentions commit `{ did, label, avatar }`: PageView now feeds
+      `buildPersonMentionSuggestions` (durable profiles ∪ live presence,
+      self first) instead of presence-only suggestions
+- [x] `tag` node schema + `HashtagExtension` with `#` suggestion and lazy
+      creation — already shipped by 0169 (PR #53); nothing to add here
+- [x] Markdown serializers for wikilink (`[[target|label]]`) and pill
+      degradation for mention (`@label`) and hashtag (`#name`) nodes
+- [x] Alias entry: `|` inside an open `[[` session switches to alias text
 
 ### Phase 2 — Shared engine + chat
 

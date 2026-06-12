@@ -6,7 +6,13 @@
  * createPageTarget backs the popup's "Create page" row.
  */
 import type { WikilinkTarget } from '@xnetjs/editor/react'
-import { CanvasSchema, DashboardSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
+import {
+  CanvasSchema,
+  DashboardSchema,
+  DatabaseSchema,
+  PageSchema,
+  SavedViewSchema
+} from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useCallback, useMemo } from 'react'
 import { useWorkbench } from '../workbench/state'
@@ -28,6 +34,7 @@ export function useLinkTargets(): LinkTargetsApi {
   const { data: databases } = useQuery(DatabaseSchema, LINKABLE_QUERY)
   const { data: canvases } = useQuery(CanvasSchema, LINKABLE_QUERY)
   const { data: dashboards } = useQuery(DashboardSchema, LINKABLE_QUERY)
+  const { data: savedViews } = useQuery(SavedViewSchema, LINKABLE_QUERY)
 
   const linkTargets = useMemo(
     () =>
@@ -36,11 +43,12 @@ export function useLinkTargets(): LinkTargetsApi {
           { kind: 'page', docs: pages },
           { kind: 'database', docs: databases },
           { kind: 'canvas', docs: canvases },
-          { kind: 'dashboard', docs: dashboards }
+          { kind: 'dashboard', docs: dashboards },
+          { kind: 'savedview', docs: savedViews }
         ],
         recents.map((recent) => recent.nodeId)
       ),
-    [pages, databases, canvases, dashboards, recents]
+    [pages, databases, canvases, dashboards, savedViews, recents]
   )
 
   const createPageTarget = useCallback(

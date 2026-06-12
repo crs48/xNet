@@ -90,6 +90,13 @@ export const TaskMentionExtension = Node.create<TaskMentionOptions>({
     ]
   },
 
+  // Pills degrade to plain `@label` text on markdown export; body text is
+  // never parsed back into mentions (composer-declared invariant, 0168).
+  renderMarkdown: (node) => {
+    const label = typeof node.attrs?.label === 'string' ? node.attrs.label : ''
+    return `@${label || truncateDid(String(node.attrs?.id ?? ''))}`
+  },
+
   addCommands() {
     return {
       setTaskMention:

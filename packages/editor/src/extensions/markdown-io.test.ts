@@ -9,12 +9,14 @@ import {
   DatabaseEmbedExtension,
   DatabaseReferenceExtension,
   EmbedExtension,
+  HashtagExtension,
   HeadingWithSyntax,
   isMarkdownClipboardCandidate,
   MarkdownClipboard,
   PageEmbedExtension,
   PageTaskItemExtension,
   SmartReferenceExtension,
+  TaskMentionExtension,
   TiptapMarkdown,
   Wikilink
 } from '../extensions'
@@ -484,5 +486,70 @@ describe('MarkdownClipboard', () => {
     editor = createMarkdownEditor('### Copied heading\n\n```ts\nconst value = 1\n```')
 
     expect(serializeSelectionAsText()).toBe('### Copied heading\n\n```ts\nconst value = 1\n```')
+  })
+})
+
+describe('mention and hashtag pill markdown export (0170)', () => {
+  it('degrades pills to plain @label / #name text', () => {
+    const editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ link: false }),
+        TiptapMarkdown.configure({ markedOptions: { gfm: true, breaks: false } }),
+        TaskMentionExtension,
+        HashtagExtension
+      ],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Ping ' },
+              {
+                type: 'taskMention',
+                attrs: { id: 'did:key:z6MkExample', label: 'alice' }
+              },
+              { type: 'text', text: ' about ' },
+              { type: 'hashtag', attrs: { id: 'tag-1', name: 'design' } }
+            ]
+          }
+        ]
+      }
+    })
+
+    const markdown = editor.getMarkdown()
+    expect(markdown).toContain('@alice')
+    expect(markdown).toContain('#design')
+    editor.destroy()
+  })
+
+  it('falls back to a truncated DID when a mention has no label', () => {
+    const editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [
+        StarterKit.configure({ link: false }),
+        TiptapMarkdown.configure({ markedOptions: { gfm: true, breaks: false } }),
+        TaskMentionExtension,
+        HashtagExtension
+      ],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'taskMention',
+                attrs: { id: 'did:key:z6MkSomeLongIdentifier', label: null }
+              }
+            ]
+          }
+        ]
+      }
+    })
+
+    expect(editor.getMarkdown()).toContain('@did:key:z6MkSo')
+    editor.destroy()
   })
 })

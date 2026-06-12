@@ -114,6 +114,10 @@ export const HashtagExtension = Node.create<HashtagOptions>({
     ]
   },
 
+  // Pills degrade to plain `#name` text on markdown export; raw '#' text is
+  // never parsed back into tags (structured-tags invariant, 0169).
+  renderMarkdown: (node) => `#${String(node.attrs?.name ?? '')}`,
+
   addCommands() {
     return {
       setHashtag:

@@ -5,7 +5,7 @@
  * move, Enter/Tab accept (SuggestionMenuRef).
  */
 import type { LucideIcon } from 'lucide-react'
-import { Database, FileText, LayoutDashboard, Link2, Plus, Shapes } from 'lucide-react'
+import { Database, FileText, LayoutDashboard, Link2, Plus, Shapes, Table2 } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
 import { cn } from '../utils'
 
@@ -27,6 +27,7 @@ const KIND_ICONS: Record<string, LucideIcon> = {
   database: Database,
   canvas: Shapes,
   dashboard: LayoutDashboard,
+  savedview: Table2,
   create: Plus
 }
 
