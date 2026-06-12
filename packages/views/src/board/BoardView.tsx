@@ -30,6 +30,26 @@ import {
   type BoardColumn as BoardColumnType
 } from './useBoardState.js'
 
+function showAddColumnButton(hasHandler: boolean, compact: boolean): boolean {
+  return hasHandler && !compact
+}
+
+function boardClassName(compact: boolean, className: string | undefined): string {
+  return cn('h-full overflow-x-auto bg-white dark:bg-gray-900', compact ? 'p-2' : 'p-4', className)
+}
+
+/** Cap cards per column for tile-constrained hosts. */
+function capColumnItems<T extends { items: unknown[] }>(
+  columns: readonly T[],
+  maxRows: number | undefined
+): readonly T[] {
+  if (maxRows === undefined) return columns
+  return columns.map((column) => ({
+    ...column,
+    items: column.items.slice(0, Math.max(0, maxRows))
+  }))
+}
+
 export interface BoardViewProps {
   /** Schema defining the board structure */
   schema: Schema
@@ -97,16 +117,7 @@ export function BoardView({
     onUpdateRow,
     onUpdateView
   })
-  const columns = useMemo(
-    () =>
-      maxRows === undefined
-        ? allColumns
-        : allColumns.map((column) => ({
-            ...column,
-            items: column.items.slice(0, Math.max(0, maxRows))
-          })),
-    [allColumns, maxRows]
-  )
+  const columns = useMemo(() => capColumnItems(allColumns, maxRows), [allColumns, maxRows])
 
   const [activeItem, setActiveItem] = useState<BoardRow | null>(null)
   const [activeColumn, setActiveColumn] = useState<BoardColumnType | null>(null)
@@ -335,16 +346,10 @@ export function BoardView({
   const sortableColumnIds = columns
     .filter((c) => c.id !== '__all__' && c.id !== '__none__')
     .map((c) => `column-${c.id}`)
+  const showAddColumn = showAddColumnButton(Boolean(onAddColumn), compact)
 
   return (
-    <div
-      data-xnet-db-editable="true"
-      className={cn(
-        'h-full overflow-x-auto bg-white dark:bg-gray-900',
-        compact ? 'p-2' : 'p-4',
-        className
-      )}
-    >
+    <div data-xnet-db-editable="true" className={boardClassName(compact, className)}>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
@@ -373,7 +378,7 @@ export function BoardView({
             ))}
 
             {/* Add column button (hidden in compact/tile hosts) */}
-            {onAddColumn && !compact && (
+            {showAddColumn && (
               <div className="flex-shrink-0 w-72">
                 <button
                   className="w-full py-3 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"

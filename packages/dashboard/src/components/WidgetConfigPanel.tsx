@@ -46,90 +46,108 @@ export function usePropertyOptions(widget: DashboardWidgetInstance): string[] {
   }, [schemas, widget.query])
 }
 
-function FieldInput({
-  field,
-  value,
-  propertyOptions,
-  onChange
-}: {
+interface FieldInputProps {
   field: WidgetConfigField
   value: unknown
   propertyOptions: string[]
   onChange: (value: unknown) => void
-}): JSX.Element {
-  const inputClass =
-    'w-full rounded border border-border bg-background px-2 py-1 text-sm text-foreground'
+}
 
-  switch (field.type) {
-    case 'checkbox':
-      return (
-        <input
-          type="checkbox"
-          className="h-4 w-4 accent-primary"
-          checked={Boolean(value ?? field.defaultValue)}
-          onChange={(event) => onChange(event.target.checked)}
-        />
-      )
-    case 'number':
-      return (
-        <input
-          type="number"
-          className={inputClass}
-          value={value === undefined || value === null ? '' : Number(value)}
-          onChange={(event) =>
-            onChange(event.target.value === '' ? undefined : Number(event.target.value))
-          }
-        />
-      )
-    case 'select':
-      return (
-        <select
-          className={inputClass}
-          value={String(value ?? field.defaultValue ?? '')}
-          onChange={(event) => onChange(event.target.value)}
-        >
-          <option value="">—</option>
-          {(field.options ?? []).map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      )
-    case 'property-select':
-      return (
-        <select
-          className={inputClass}
-          value={String(value ?? '')}
-          onChange={(event) => onChange(event.target.value || undefined)}
-        >
-          <option value="">—</option>
-          {propertyOptions.map((property) => (
-            <option key={property} value={property}>
-              {property}
-            </option>
-          ))}
-        </select>
-      )
-    case 'color':
-      return (
-        <input
-          type="color"
-          className="h-8 w-12 cursor-pointer rounded border border-border"
-          value={String(value ?? field.defaultValue ?? '#4f46e5')}
-          onChange={(event) => onChange(event.target.value)}
-        />
-      )
-    default:
-      return (
-        <input
-          type="text"
-          className={inputClass}
-          value={String(value ?? '')}
-          onChange={(event) => onChange(event.target.value || undefined)}
-        />
-      )
-  }
+const INPUT_CLASS =
+  'w-full rounded border border-border bg-background px-2 py-1 text-sm text-foreground'
+
+function CheckboxField({ field, value, onChange }: FieldInputProps): JSX.Element {
+  return (
+    <input
+      type="checkbox"
+      className="h-4 w-4 accent-primary"
+      checked={Boolean(value ?? field.defaultValue)}
+      onChange={(event) => onChange(event.target.checked)}
+    />
+  )
+}
+
+function NumberField({ value, onChange }: FieldInputProps): JSX.Element {
+  return (
+    <input
+      type="number"
+      className={INPUT_CLASS}
+      value={value === undefined || value === null ? '' : Number(value)}
+      onChange={(event) =>
+        onChange(event.target.value === '' ? undefined : Number(event.target.value))
+      }
+    />
+  )
+}
+
+function SelectField({ field, value, onChange }: FieldInputProps): JSX.Element {
+  return (
+    <select
+      className={INPUT_CLASS}
+      value={String(value ?? field.defaultValue ?? '')}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">—</option>
+      {(field.options ?? []).map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function PropertySelectField({ value, propertyOptions, onChange }: FieldInputProps): JSX.Element {
+  return (
+    <select
+      className={INPUT_CLASS}
+      value={String(value ?? '')}
+      onChange={(event) => onChange(event.target.value || undefined)}
+    >
+      <option value="">—</option>
+      {propertyOptions.map((property) => (
+        <option key={property} value={property}>
+          {property}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function ColorField({ field, value, onChange }: FieldInputProps): JSX.Element {
+  return (
+    <input
+      type="color"
+      className="h-8 w-12 cursor-pointer rounded border border-border"
+      value={String(value ?? field.defaultValue ?? '#4f46e5')}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  )
+}
+
+function TextField({ value, onChange }: FieldInputProps): JSX.Element {
+  return (
+    <input
+      type="text"
+      className={INPUT_CLASS}
+      value={String(value ?? '')}
+      onChange={(event) => onChange(event.target.value || undefined)}
+    />
+  )
+}
+
+const FIELD_INPUTS: Record<string, (props: FieldInputProps) => JSX.Element> = {
+  checkbox: CheckboxField,
+  number: NumberField,
+  select: SelectField,
+  'property-select': PropertySelectField,
+  color: ColorField,
+  text: TextField
+}
+
+function FieldInput(props: FieldInputProps): JSX.Element {
+  const Input = FIELD_INPUTS[props.field.type] ?? TextField
+  return <Input {...props} />
 }
 
 function parseRefresh(value: string): DashboardWidgetRefresh {

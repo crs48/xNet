@@ -6,6 +6,12 @@ import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { FileText, Database, Layout, Plus, ChevronDown, Network } from 'lucide-react'
 import { useState } from 'react'
+import {
+  CreateDocMenuItems,
+  navigateToNewDoc,
+  type CreatableDocType,
+  type NavigateLike
+} from '../lib/doc-creation'
 
 export const Route = createFileRoute('/')({
   component: HomePage
@@ -46,21 +52,9 @@ function HomePage() {
     ...(canvases || []).map((c) => ({ ...c, type: 'canvas' as const }))
   ].sort((a, b) => b.updatedAt - a.updatedAt)
 
-  const handleCreate = (type: DocType) => {
-    const id = Math.random().toString(36).substring(2, 15)
+  const handleCreate = (type: CreatableDocType) => {
     setShowCreateMenu(false)
-
-    switch (type) {
-      case 'page':
-        navigate({ to: '/doc/$docId', params: { docId: id } })
-        break
-      case 'database':
-        navigate({ to: '/db/$dbId', params: { dbId: id } })
-        break
-      case 'canvas':
-        navigate({ to: '/canvas/$canvasId', params: { canvasId: id } })
-        break
-    }
+    navigateToNewDoc(navigate as unknown as NavigateLike, type)
   }
 
   const getIcon = (type: DocType) => {
@@ -121,27 +115,7 @@ function HomePage() {
 
           {showCreateMenu && (
             <div className="absolute right-0 top-full mt-1 bg-background border border-border rounded-md shadow-lg z-10 py-1 min-w-[140px]">
-              <button
-                onClick={() => handleCreate('page')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
-              >
-                <FileText size={14} />
-                <span>Page</span>
-              </button>
-              <button
-                onClick={() => handleCreate('database')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
-              >
-                <Database size={14} />
-                <span>Database</span>
-              </button>
-              <button
-                onClick={() => handleCreate('canvas')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
-              >
-                <Layout size={14} />
-                <span>Canvas</span>
-              </button>
+              <CreateDocMenuItems types={['page', 'database', 'canvas']} onCreate={handleCreate} />
             </div>
           )}
         </div>

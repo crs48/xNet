@@ -50,6 +50,13 @@ function iframeSrcDoc(code: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"></head><body><script>${runtime}</script></body></html>`
 }
 
+interface WidgetSandboxMessage {
+  kind: 'widget-ready' | 'widget-tree' | 'widget-error'
+  id?: number
+  tree?: unknown
+  error?: string
+}
+
 export interface IframeWidgetHostProps extends WidgetProps {
   /** The marketplace widget module source (CommonJS body exporting render) */
   code: string
@@ -76,23 +83,24 @@ export function IframeWidgetHost({ code, ...props }: IframeWidgetHostProps): JSX
   )
 
   useEffect(() => {
+    const handlers: Record<string, (data: WidgetSandboxMessage) => void> = {
+      'widget-ready': () => setReady(true),
+      'widget-tree': (data) => {
+        if (data.id !== requestIdRef.current) return
+        lastResponseIdRef.current = data.id ?? 0
+        setTree((data.tree as SafeNode) ?? null)
+        setError(null)
+      },
+      'widget-error': (data) => {
+        if (data.id) lastResponseIdRef.current = data.id
+        setError(data.error ?? 'Unknown widget error')
+      }
+    }
+
     const onMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return
-      const data = event.data as
-        | { kind: 'widget-ready' }
-        | { kind: 'widget-tree'; id: number; tree: SafeNode }
-        | { kind: 'widget-error'; id?: number; error: string }
-
-      if (data.kind === 'widget-ready') setReady(true)
-      if (data.kind === 'widget-tree' && data.id === requestIdRef.current) {
-        lastResponseIdRef.current = data.id
-        setTree(data.tree)
-        setError(null)
-      }
-      if (data.kind === 'widget-error') {
-        if (data.id) lastResponseIdRef.current = data.id
-        setError(data.error)
-      }
+      const data = event.data as WidgetSandboxMessage
+      handlers[data.kind]?.(data)
     }
 
     window.addEventListener('message', onMessage)

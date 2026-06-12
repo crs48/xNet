@@ -35,16 +35,70 @@ export interface DashboardGridProps {
   cellHeight?: number
 }
 
-function serializeNodes(nodes: GridStackNode[]): DashboardLayoutItem[] {
-  return nodes
-    .filter((node) => node.id !== undefined)
-    .map((node) => ({
-      id: String(node.id),
-      x: node.x ?? 0,
-      y: node.y ?? 0,
-      w: node.w ?? 1,
-      h: node.h ?? 1
-    }))
+/** Release engine nodes whose tiles React no longer renders. */
+function releaseRemovedTiles(grid: GridStack, layout: readonly DashboardLayoutItem[]): void {
+  const present = new Set(layout.map((item) => item.id))
+  for (const el of grid.getGridItems()) {
+    const id = el.getAttribute('gs-id')
+    if (id && !present.has(id)) {
+      grid.removeWidget(el, false, false)
+    }
+  }
+}
+
+/** Adopt a freshly rendered tile, or push an external position change. */
+function adoptOrUpdateTile(
+  grid: GridStack,
+  container: HTMLElement,
+  item: DashboardLayoutItem,
+  min: { minW?: number; minH?: number } | undefined
+): void {
+  const el = container.querySelector<GridItemHTMLElement>(`[gs-id="${item.id}"]`)
+  if (!el) return
+
+  const options = {
+    id: item.id,
+    x: item.x,
+    y: item.y,
+    w: item.w,
+    h: item.h,
+    ...(min?.minW ? { minW: min.minW } : {}),
+    ...(min?.minH ? { minH: min.minH } : {})
+  }
+
+  const node = el.gridstackNode
+  if (!node) {
+    grid.makeWidget(el, options)
+    return
+  }
+  if (node.x !== item.x || node.y !== item.y || node.w !== item.w || node.h !== item.h) {
+    grid.update(el, options)
+  }
+}
+
+/** Serialize engine nodes back to persisted column units (exported for tests). */
+export function serializeGridNodes(nodes: GridStackNode[]): DashboardLayoutItem[] {
+  return nodes.filter((node) => node.id !== undefined).map(toLayoutItem)
+}
+
+function toLayoutItem(node: GridStackNode): DashboardLayoutItem {
+  const { id, x = 0, y = 0, w = 1, h = 1 } = node
+  return { id: String(id), x, y, w, h }
+}
+
+/**
+ * Merge an engine change event into the current layout, or null when the
+ * event carries nothing to persist (exported for tests).
+ */
+export function mergeGridChange(
+  current: readonly DashboardLayoutItem[],
+  nodes: GridStackNode[] | undefined
+): DashboardLayoutItem[] | null {
+  const changed = serializeGridNodes(nodes ?? [])
+  if (changed.length === 0) return null
+
+  const byId = new Map(changed.map((item) => [item.id, item]))
+  return current.map((item) => byId.get(item.id) ?? item)
 }
 
 export function DashboardGrid({
@@ -92,10 +146,8 @@ export function DashboardGrid({
       // persisted 12-column layout; gridstack restores it from its own
       // per-column cache when the viewport widens again.
       if (grid.getColumn() !== DASHBOARD_COLUMNS) return
-      const changed = serializeNodes(nodes ?? [])
-      if (changed.length === 0) return
-      const byId = new Map(changed.map((item) => [item.id, item]))
-      onLayoutChangeRef.current?.(layoutRef.current.map((item) => byId.get(item.id) ?? item))
+      const merged = mergeGridChange(layoutRef.current, nodes)
+      if (merged) onLayoutChangeRef.current?.(merged)
     })
 
     return () => {
@@ -118,39 +170,11 @@ export function DashboardGrid({
     const container = containerRef.current
     if (!grid || !container) return
 
-    const present = new Set(layout.map((item) => item.id))
     grid.batchUpdate()
     try {
-      for (const el of grid.getGridItems()) {
-        const id = el.getAttribute('gs-id')
-        if (id && !present.has(id)) {
-          grid.removeWidget(el, false, false)
-        }
-      }
-
+      releaseRemovedTiles(grid, layout)
       for (const item of layout) {
-        const el = container.querySelector<GridItemHTMLElement>(`[gs-id="${item.id}"]`)
-        if (!el) continue
-
-        const min = minSizes?.[item.id]
-        const options = {
-          id: item.id,
-          x: item.x,
-          y: item.y,
-          w: item.w,
-          h: item.h,
-          ...(min?.minW ? { minW: min.minW } : {}),
-          ...(min?.minH ? { minH: min.minH } : {})
-        }
-
-        if (el.gridstackNode) {
-          const node = el.gridstackNode
-          if (node.x !== item.x || node.y !== item.y || node.w !== item.w || node.h !== item.h) {
-            grid.update(el, options)
-          }
-        } else {
-          grid.makeWidget(el, options)
-        }
+        adoptOrUpdateTile(grid, container, item, minSizes?.[item.id])
       }
     } finally {
       grid.batchUpdate(false)

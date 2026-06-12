@@ -27,22 +27,30 @@ export const DASHBOARD_SCHEMA_REGISTRY = [
   ...socialSchemas
 ] as unknown as SavedViewSchemaRegistry
 
+/** Schema-IRI fragment → surface route. First match wins; fallback is /data. */
+const NODE_OPEN_TARGETS: ReadonlyArray<{ match: string; to: string; paramKey?: string }> = [
+  { match: '/Page', to: '/doc/$docId', paramKey: 'docId' },
+  { match: '/Database', to: '/db/$dbId', paramKey: 'dbId' },
+  { match: '/Canvas', to: '/canvas/$canvasId', paramKey: 'canvasId' },
+  { match: '/Task', to: '/tasks' }
+]
+
+function nodeOpenOptions(
+  nodeId: string,
+  schemaId: string
+): { to: string; params?: Record<string, string> } {
+  const target = NODE_OPEN_TARGETS.find((candidate) => schemaId.includes(candidate.match))
+  if (!target) return { to: '/data' }
+  if (!target.paramKey) return { to: target.to }
+  return { to: target.to, params: { [target.paramKey]: nodeId } }
+}
+
 export function DashboardView({ dashboardId }: { dashboardId: string }) {
   const navigate = useNavigate()
 
   const handleOpenNode = useCallback(
     (nodeId: string, schemaId: string) => {
-      if (schemaId.includes('/Page@') || schemaId.includes('/Page')) {
-        void navigate({ to: '/doc/$docId', params: { docId: nodeId } })
-      } else if (schemaId.includes('/Database')) {
-        void navigate({ to: '/db/$dbId', params: { dbId: nodeId } })
-      } else if (schemaId.includes('/Canvas')) {
-        void navigate({ to: '/canvas/$canvasId', params: { canvasId: nodeId } })
-      } else if (schemaId.includes('/Task')) {
-        void navigate({ to: '/tasks' })
-      } else {
-        void navigate({ to: '/data' })
-      }
+      void navigate(nodeOpenOptions(nodeId, schemaId) as never)
     },
     [navigate]
   )
