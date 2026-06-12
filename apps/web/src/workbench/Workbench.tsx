@@ -15,6 +15,7 @@ import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { useWorkbenchCommands, useZenEscape } from './commands'
 import { ContextPanel } from './ContextPanel'
 import { EditorArea } from './EditorArea'
+import { useFocusRing } from './focus'
 import { Hairline } from './Hairline'
 import { PanelViewHost } from './PanelViewHost'
 import { Rail } from './Rail'
@@ -33,6 +34,7 @@ export function Workbench({ children }: { children: ReactNode }) {
 
   useWorkbenchCommands()
   useZenEscape()
+  useFocusRing()
 
   const horizontal = useDefaultLayout({
     id: 'xnet:wb:layout-h',

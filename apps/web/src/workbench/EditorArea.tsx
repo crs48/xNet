@@ -239,6 +239,7 @@ export function EditorArea({ children }: { children: ReactNode }) {
 
   return (
     <div
+      data-wb-region="editor"
       className="relative flex h-full min-h-0 flex-col bg-surface-0"
       onDragEnter={(e) => {
         if (hasNodeTransfer(e)) setDragDepth((depth) => depth + 1)

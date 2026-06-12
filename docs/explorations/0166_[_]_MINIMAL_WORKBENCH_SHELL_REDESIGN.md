@@ -719,11 +719,12 @@ Phase 3 — Panels
 
 Phase 4 — Keyboard & palette
 
-- [ ] Rebuild `GlobalSearch` on cmdk: node quick-open + `>` command mode,
+- [x] Rebuild `GlobalSearch` on cmdk: node quick-open + `>` command mode,
       recents-first, chords rendered per row
-- [ ] Register the full core keyboard map in `CommandRegistry`; shell-level
+- [x] Register the full core keyboard map in `CommandRegistry`; shell-level
       focus ring and per-region focus traps
-- [ ] Palette latency budget: open + focused < 50ms
+- [x] Palette latency budget: open + focused < 50ms (measured ~1ms —
+      synchronous render, recents render store-only)
 
 Phase 5 — Drag everywhere
 

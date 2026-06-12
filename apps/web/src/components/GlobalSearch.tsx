@@ -1,24 +1,32 @@
 /**
- * Global search component.
+ * Global search — the universal cmdk palette (exploration 0166).
  *
- * The unified Cmd+K palette: fuzzy document search, workspace commands
- * from the CommandRegistry (with their keyboard hints), and quick task
- * capture — one keyboard surface for "find or do anything"
- * (exploration 0161, phase 3).
+ * One surface for "find or do anything": quick-open for nodes
+ * (recents first), full-text page search, quick task capture, and a
+ * `>` prefix for command mode. Every command row shows its chord
+ * (passive training). Opens with Cmd+K (or Cmd+P for quick-open);
+ * Escape restores the previously focused element.
  */
 import type { SearchResult } from '@xnetjs/sdk'
 import { useNavigate } from '@tanstack/react-router'
-import { TaskSchema } from '@xnetjs/data'
+import { CanvasSchema, DashboardSchema, DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import { getCommandRegistry, type WorkspaceCommand } from '@xnetjs/plugins'
-import { useMutate } from '@xnetjs/react'
-import { CheckSquare2, CornerDownLeft, FileText, Terminal } from 'lucide-react'
-import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useMutate, useQuery } from '@xnetjs/react'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut
+} from '@xnetjs/ui'
+import { CheckSquare2, CornerDownLeft, FilePlus2, Terminal } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePageSearchSurface } from '../hooks/usePageSearchSurface'
-
-type PaletteEntry =
-  | { kind: 'command'; command: WorkspaceCommand }
-  | { kind: 'page'; result: SearchResult }
-  | { kind: 'create-task'; title: string }
+import { navigateToNode } from '../workbench/navigation'
+import { useWorkbench, type TabNodeType } from '../workbench/state'
+import { setPreviewIntent, TAB_VIEWS } from '../workbench/tabs'
 
 function generateTaskId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
@@ -28,56 +36,259 @@ function generateTaskId(): string {
   return `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
+interface PaletteNodeItem {
+  id: string
+  title: string
+  type: TabNodeType
+}
+
+function NodeRow({
+  item,
+  onSelect
+}: {
+  item: PaletteNodeItem
+  onSelect: (item: PaletteNodeItem) => void
+}) {
+  const Icon = TAB_VIEWS[item.type].icon
+  return (
+    <CommandItem value={`node:${item.type}:${item.id}`} onSelect={() => onSelect(item)}>
+      <Icon size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+      <span className="flex-1 truncate">{item.title || 'Untitled'}</span>
+      <span className="text-[10px] uppercase tracking-wider text-ink-3">
+        {TAB_VIEWS[item.type].label}
+      </span>
+    </CommandItem>
+  )
+}
+
+function CommandRow({
+  command,
+  onSelect
+}: {
+  command: WorkspaceCommand
+  onSelect: (command: WorkspaceCommand) => void
+}) {
+  const registry = getCommandRegistry()
+  return (
+    <CommandItem value={`command:${command.id}`} onSelect={() => onSelect(command)}>
+      <Terminal size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+      <span className="flex-1 truncate">{command.title}</span>
+      {command.key && <CommandShortcut>{registry.formatForDisplay(command.key)}</CommandShortcut>}
+    </CommandItem>
+  )
+}
+
+/**
+ * Mounted only while the palette is open, so its queries and search
+ * index subscription cost nothing the rest of the time.
+ */
+function PaletteResults({ query, onClose }: { query: string; onClose: () => void }) {
+  const navigate = useNavigate()
+  const { create } = useMutate()
+  const recents = useWorkbench((state) => state.recents)
+  const { search } = usePageSearchSurface({ enabled: true })
+
+  const commandMode = query.startsWith('>')
+  const needle = (commandMode ? query.slice(1) : query).trim().toLowerCase()
+
+  const { data: pages } = useQuery(PageSchema, { orderBy: { updatedAt: 'desc' }, limit: 200 })
+  const { data: databases } = useQuery(DatabaseSchema, {
+    orderBy: { updatedAt: 'desc' },
+    limit: 200
+  })
+  const { data: canvases } = useQuery(CanvasSchema, { orderBy: { updatedAt: 'desc' }, limit: 200 })
+  const { data: dashboards } = useQuery(DashboardSchema, {
+    orderBy: { updatedAt: 'desc' },
+    limit: 200
+  })
+
+  const allNodes = useMemo<PaletteNodeItem[]>(() => {
+    const collect = (
+      docs: Array<{ id: string; title?: string }> | undefined,
+      type: TabNodeType
+    ): PaletteNodeItem[] =>
+      (docs ?? []).map((doc) => ({ id: doc.id, title: doc.title ?? '', type }))
+    return [
+      ...collect(pages, 'page'),
+      ...collect(databases, 'database'),
+      ...collect(canvases, 'canvas'),
+      ...collect(dashboards, 'dashboard')
+    ]
+  }, [pages, databases, canvases, dashboards])
+
+  const fullText = useMemo<SearchResult[]>(() => {
+    if (commandMode || !needle) return []
+    return search(needle, 8)
+  }, [commandMode, needle, search])
+
+  const titleMatches = useMemo<PaletteNodeItem[]>(() => {
+    if (commandMode || !needle) return []
+    const fullTextIds = new Set(fullText.map((result) => result.id))
+    return allNodes
+      .filter((node) => !fullTextIds.has(node.id))
+      .filter((node) => (node.title || 'untitled').toLowerCase().includes(needle))
+      .slice(0, 8)
+  }, [commandMode, needle, allNodes, fullText])
+
+  const recentItems = useMemo<PaletteNodeItem[]>(() => {
+    if (commandMode || needle) return []
+    return recents
+      .slice(0, 8)
+      .map((recent) => ({ id: recent.nodeId, title: recent.title, type: recent.nodeType }))
+  }, [commandMode, needle, recents])
+
+  const commandMatches = useMemo<WorkspaceCommand[]>(() => {
+    const registry = getCommandRegistry()
+    const available = registry
+      .getAvailableCommands()
+      .filter((command) => !needle || command.title.toLowerCase().includes(needle))
+    return commandMode ? available : available.slice(0, needle ? 3 : 4)
+  }, [commandMode, needle])
+
+  const openNode = (item: PaletteNodeItem) => {
+    onClose()
+    setPreviewIntent()
+    navigateToNode(navigate, item.type, item.id)
+  }
+
+  const runCommand = (command: WorkspaceCommand) => {
+    onClose()
+    void getCommandRegistry().runCommand(command.id)
+  }
+
+  const createTask = () => {
+    const title = (commandMode ? needle : query).trim()
+    if (!title) return
+    onClose()
+    void create(
+      TaskSchema,
+      { title, completed: false, status: 'todo', source: 'api' },
+      generateTaskId()
+    ).then(() => navigate({ to: '/tasks' }))
+  }
+
+  const createPage = () => {
+    const title = query.trim()
+    if (!title) return
+    onClose()
+    const newId = `default/${title.toLowerCase().replace(/\s+/g, '-')}`
+    void navigate({ to: '/doc/$docId', params: { docId: newId } })
+  }
+
+  return (
+    <>
+      <CommandEmpty>Nothing found.</CommandEmpty>
+
+      {recentItems.length > 0 && (
+        <CommandGroup heading="Recent">
+          {recentItems.map((item) => (
+            <NodeRow key={`recent-${item.id}`} item={item} onSelect={openNode} />
+          ))}
+        </CommandGroup>
+      )}
+
+      {fullText.length > 0 && (
+        <CommandGroup heading="Pages">
+          {fullText.map((result) => (
+            <CommandItem
+              key={`page-${result.id}`}
+              value={`page:${result.id}`}
+              onSelect={() => openNode({ id: result.id, title: result.title, type: 'page' })}
+            >
+              <FilePlus2 size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{result.title}</span>
+                <span className="block truncate text-xs text-ink-3">
+                  {result.snippet || result.title}
+                </span>
+              </span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      )}
+
+      {titleMatches.length > 0 && (
+        <CommandGroup heading="Items">
+          {titleMatches.map((item) => (
+            <NodeRow key={`item-${item.id}`} item={item} onSelect={openNode} />
+          ))}
+        </CommandGroup>
+      )}
+
+      {commandMatches.length > 0 && (
+        <CommandGroup heading="Commands">
+          {commandMatches.map((command) => (
+            <CommandRow key={command.id} command={command} onSelect={runCommand} />
+          ))}
+        </CommandGroup>
+      )}
+
+      {!commandMode && needle && (
+        <CommandGroup heading="Create">
+          <CommandItem value="create:task" onSelect={createTask}>
+            <CheckSquare2 size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+            <span className="flex-1 truncate">Create task &ldquo;{query.trim()}&rdquo;</span>
+            <CornerDownLeft size={12} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+          </CommandItem>
+          <CommandItem value="create:page" onSelect={createPage}>
+            <FilePlus2 size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+            <span className="flex-1 truncate">Create page &ldquo;{query.trim()}&rdquo;</span>
+          </CommandItem>
+        </CommandGroup>
+      )}
+    </>
+  )
+}
+
 export function GlobalSearch({ trigger = 'button' }: { trigger?: 'button' | 'none' } = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const navigate = useNavigate()
-  const { create } = useMutate()
-  const deferredQuery = useDeferredValue(query)
-  const { indexedPages, loading, search, totalPages } = usePageSearchSurface({ enabled: isOpen })
+  const restoreFocusRef = useRef<HTMLElement | null>(null)
 
-  const results = useMemo<SearchResult[]>(() => {
-    if (!deferredQuery.trim()) return []
-    return search(deferredQuery, 10)
-  }, [deferredQuery, search])
+  const open = (initialQuery = '') => {
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setQuery(initialQuery)
+    setIsOpen(true)
+  }
 
-  const commandMatches = useMemo<WorkspaceCommand[]>(() => {
-    if (!isOpen) return []
-    const registry = getCommandRegistry()
-    const needle = deferredQuery.trim().toLowerCase()
-    return registry
-      .getAvailableCommands()
-      .filter((command) => !needle || command.title.toLowerCase().includes(needle))
-      .slice(0, needle ? 5 : 4)
-  }, [isOpen, deferredQuery])
+  const close = () => {
+    setIsOpen(false)
+    setQuery('')
+    restoreFocusRef.current?.focus()
+    restoreFocusRef.current = null
+  }
 
-  const entries = useMemo<PaletteEntry[]>(() => {
-    const list: PaletteEntry[] = commandMatches.map((command) => ({ kind: 'command', command }))
-    for (const result of results) list.push({ kind: 'page', result })
-    if (deferredQuery.trim()) {
-      list.push({ kind: 'create-task', title: deferredQuery.trim() })
-    }
-    return list
-  }, [commandMatches, results, deferredQuery])
-
-  // Cmd+K is a workspace command so it appears in the shortcut help and
-  // can be re-bound centrally; allowInInput keeps it reachable mid-edit.
+  // Cmd+K (palette) and Cmd+P (quick-open) are workspace commands so
+  // they appear in shortcut help and can be re-bound centrally.
   useEffect(() => {
     const registry = getCommandRegistry()
-    const disposable = registry.register({
-      id: 'search.open',
-      title: 'Search & commands',
-      key: 'Mod-K',
-      allowInInput: true,
-      run: () => {
-        setIsOpen(true)
-        setTimeout(() => inputRef.current?.focus(), 10)
-      }
-    })
+    const disposables = [
+      registry.register({
+        id: 'search.open',
+        title: 'Search & commands',
+        key: 'Mod-K',
+        allowInInput: true,
+        run: () => open()
+      }),
+      registry.register({
+        id: 'search.quickOpen',
+        title: 'Go to anything',
+        key: 'Mod-P',
+        allowInInput: true,
+        run: () => open()
+      }),
+      registry.register({
+        id: 'search.commands',
+        title: 'Run a command…',
+        run: () => open('>')
+      })
+    ]
 
-    return () => disposable.dispose()
+    return () => {
+      for (const disposable of disposables) disposable.dispose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -86,75 +297,22 @@ export function GlobalSearch({ trigger = 'button' }: { trigger?: 'button' | 'non
     const handler = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        setIsOpen(false)
-        setQuery('')
+        event.stopPropagation()
+        close()
       }
     }
 
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    window.addEventListener('keydown', handler, true)
+    return () => window.removeEventListener('keydown', handler, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
-
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [entries.length])
-
-  const close = () => {
-    setIsOpen(false)
-    setQuery('')
-  }
-
-  const handleSelect = (entry: PaletteEntry) => {
-    if (entry.kind === 'command') {
-      close()
-      void getCommandRegistry().runCommand(entry.command.id)
-      return
-    }
-
-    if (entry.kind === 'page') {
-      close()
-      navigate({ to: '/doc/$docId', params: { docId: entry.result.id } })
-      return
-    }
-
-    close()
-    void create(
-      TaskSchema,
-      { title: entry.title, completed: false, status: 'todo', source: 'api' },
-      generateTaskId()
-    ).then(() => navigate({ to: '/tasks' }))
-  }
-
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      setSelectedIndex((index) => Math.min(index + 1, entries.length - 1))
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      setSelectedIndex((index) => Math.max(index - 1, 0))
-    } else if (event.key === 'Enter' && entries[selectedIndex]) {
-      event.preventDefault()
-      handleSelect(entries[selectedIndex])
-    }
-  }
-
-  const handleCreatePage = () => {
-    if (!query.trim()) return
-
-    const newId = `default/${query.toLowerCase().replace(/\s+/g, '-')}`
-    close()
-    navigate({ to: '/doc/$docId', params: { docId: newId } })
-  }
 
   if (!isOpen) {
     if (trigger === 'none') return null
     return (
       <button
         className="px-4 py-2 border border-border bg-secondary rounded-md cursor-pointer text-sm text-muted-foreground flex items-center gap-3 hover:border-muted-foreground transition-colors"
-        onClick={() => {
-          setIsOpen(true)
-          setTimeout(() => inputRef.current?.focus(), 10)
-        }}
+        onClick={() => open()}
         type="button"
       >
         Search...{' '}
@@ -165,140 +323,32 @@ export function GlobalSearch({ trigger = 'button' }: { trigger?: 'button' | 'non
     )
   }
 
-  const registry = getCommandRegistry()
-
-  const renderEntry = (entry: PaletteEntry, index: number) => {
-    const isSelected = index === selectedIndex
-    const baseClass = `flex items-center gap-3 px-5 py-2.5 cursor-pointer transition-colors ${
-      isSelected ? 'bg-secondary' : 'hover:bg-secondary'
-    }`
-
-    if (entry.kind === 'command') {
-      return (
-        <li
-          key={`command-${entry.command.id}`}
-          className={baseClass}
-          onClick={() => handleSelect(entry)}
-          onMouseEnter={() => setSelectedIndex(index)}
-        >
-          <Terminal size={14} className="shrink-0 text-muted-foreground" />
-          <span className="flex-1 truncate text-sm text-foreground">{entry.command.title}</span>
-          {entry.command.key && (
-            <kbd className="rounded border border-border bg-background px-1.5 py-0.5 text-xs text-muted-foreground">
-              {registry.formatForDisplay(entry.command.key)}
-            </kbd>
-          )}
-        </li>
-      )
-    }
-
-    if (entry.kind === 'page') {
-      return (
-        <li
-          key={`page-${entry.result.id}`}
-          className={baseClass}
-          onClick={() => handleSelect(entry)}
-          onMouseEnter={() => setSelectedIndex(index)}
-        >
-          <FileText size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1">
-            <strong className="block truncate text-sm font-medium text-foreground">
-              {entry.result.title}
-            </strong>
-            <span className="block truncate text-xs text-muted-foreground">
-              {entry.result.snippet || entry.result.title}
-            </span>
-          </span>
-        </li>
-      )
-    }
-
-    return (
-      <li
-        key="create-task"
-        className={baseClass}
-        onClick={() => handleSelect(entry)}
-        onMouseEnter={() => setSelectedIndex(index)}
-      >
-        <CheckSquare2 size={14} className="shrink-0 text-muted-foreground" />
-        <span className="flex-1 truncate text-sm text-foreground">
-          Create task &ldquo;{entry.title}&rdquo;
-        </span>
-        <CornerDownLeft size={12} className="shrink-0 text-muted-foreground" />
-      </li>
-    )
-  }
-
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-start justify-center pt-24 z-50"
-      onClick={close}
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-24"
+      onMouseDown={close}
     >
-      <div
-        className="w-full max-w-xl bg-background rounded-xl shadow-2xl overflow-hidden"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="Search or run a command..."
-          value={query}
-          onChange={(event) => {
-            const value = event.target.value
-            startTransition(() => {
-              setQuery(value)
-            })
-          }}
-          onKeyDown={handleKeyDown}
-          className="w-full px-5 py-4 border-none text-lg outline-none bg-transparent text-foreground placeholder:text-muted-foreground"
-          autoComplete="off"
-        />
-
-        {loading && (
-          <div className="px-5 py-4 text-sm text-muted-foreground border-t border-border">
-            Indexing pages... {indexedPages}/{totalPages}
+      <div className="w-full max-w-xl" onMouseDown={(event) => event.stopPropagation()}>
+        <Command
+          shouldFilter={false}
+          className="overflow-hidden rounded-lg border border-hairline bg-popover"
+        >
+          <CommandInput
+            autoFocus
+            value={query}
+            onValueChange={setQuery}
+            placeholder="Search, or type > for commands…"
+          />
+          <CommandList className="max-h-96">
+            <PaletteResults query={query} onClose={close} />
+          </CommandList>
+          <div className="flex justify-center gap-4 border-t border-hairline px-5 py-2 text-[11px] text-ink-3">
+            <span>↑↓ navigate</span>
+            <span>↵ select</span>
+            <span>&gt; commands</span>
+            <span>esc close</span>
           </div>
-        )}
-
-        {entries.length > 0 && (
-          <ul className="list-none max-h-96 overflow-y-auto border-t border-border">
-            {entries.map((entry, index) => renderEntry(entry, index))}
-          </ul>
-        )}
-
-        {query && !loading && results.length === 0 && (
-          <div className="px-5 py-3 text-center border-t border-border">
-            <button
-              className="px-4 py-2 bg-primary text-white border-none rounded-md cursor-pointer text-sm hover:bg-primary-hover transition-colors"
-              onClick={handleCreatePage}
-              type="button"
-            >
-              Create page &ldquo;{query}&rdquo;
-            </button>
-          </div>
-        )}
-
-        <div className="flex gap-4 justify-center px-5 py-3 border-t border-border text-xs text-muted-foreground">
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-secondary rounded border border-border mr-1">
-              &uarr;
-            </kbd>
-            <kbd className="px-1.5 py-0.5 bg-secondary rounded border border-border mr-1">
-              &darr;
-            </kbd>
-            to navigate
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-secondary rounded border border-border mr-1">
-              Enter
-            </kbd>
-            to select
-          </span>
-          <span>
-            <kbd className="px-1.5 py-0.5 bg-secondary rounded border border-border mr-1">Esc</kbd>
-            to close
-          </span>
-        </div>
+        </Command>
       </div>
     </div>
   )

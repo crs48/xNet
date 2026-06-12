@@ -52,7 +52,7 @@ export function PanelViewHost({ slot }: { slot: 'left' | 'bottom' }) {
   const showTabs = slot === 'bottom' && views.length > 1
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-surface-1">
+    <section data-wb-region={slot} className="flex h-full min-h-0 flex-col bg-surface-1">
       <header className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-hairline px-3">
         {showTabs ? (
           <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto">

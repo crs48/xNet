@@ -21,7 +21,7 @@ export function ContextPanel() {
   const active = sections.find((section) => section.id === activeSectionId) ?? sections[0] ?? null
 
   return (
-    <aside className="flex h-full min-h-0 flex-col bg-surface-1">
+    <aside data-wb-region="right" className="flex h-full min-h-0 flex-col bg-surface-1">
       <header className="flex h-8 shrink-0 items-center gap-3 border-b border-hairline px-3">
         <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto">
           {sections.length === 0 ? (
