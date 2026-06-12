@@ -144,3 +144,38 @@ jobs:
             pnpm exec fallow health --score --hotspots --targets --top 10 --no-cache || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Weekly check that the marketing site and docs haven't silently fallen
+  # behind feature work (exploration 0170). Warns — never fails — when the
+  # last commit touching site/ is more than ~4 weeks older than the last
+  # commit touching apps/ or packages/.
+  site-staleness:
+    name: Site staleness
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Warn when site/ lags feature work
+        shell: bash
+        run: |
+          set -euo pipefail
+          site_ts=$(git log -1 --format=%ct -- site/ || echo 0)
+          code_ts=$(git log -1 --format=%ct -- apps/ packages/ || echo 0)
+          lag_days=$(( (code_ts - site_ts) / 86400 ))
+          {
+            echo "## Site staleness"
+            echo ""
+            echo "- Last site/ change: $(git log -1 --format='%h %ad %s' --date=short -- site/ || echo none)"
+            echo "- Last apps/packages change: $(git log -1 --format='%h %ad %s' --date=short -- apps/ packages/ || echo none)"
+            echo "- Lag: ${lag_days} days"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$lag_days" -gt 28 ]; then
+            echo "::warning title=Site is stale::site/ has not changed in ${lag_days} days of feature work — landing page and docs may be out of sync (see docs/explorations/0170)."
+          else
+            echo "Site lag is ${lag_days} days — within budget."
+          fi

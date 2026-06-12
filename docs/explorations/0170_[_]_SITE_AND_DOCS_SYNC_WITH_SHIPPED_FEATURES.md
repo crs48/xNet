@@ -460,10 +460,11 @@ export const phases: RoadmapPhase[] = [
       import it; surfaced a latent bug — guides/authorization and guides/versioning
       were missing from the old hardcoded order)
 - [x] Move roadmap content to `site/src/data/roadmap.ts` with an `updated` stamp
-- [ ] Add PR-template checklist item: user-facing change ⇒ docs/site updated or skip
-      justified
-- [ ] Add a staleness warning to the fallow maintenance workflow when `site/` lags
-      feature merges by more than ~4 weeks
+- [x] Add PR-template checklist item: user-facing change ⇒ docs/site updated or skip
+      justified (`.github/PULL_REQUEST_TEMPLATE.md` — the repo had no template)
+- [x] Add a staleness warning to the fallow maintenance workflow when `site/` lags
+      feature merges by more than ~4 weeks (`site-staleness` job in
+      `.github/workflows/fallow.yml`, schedule/dispatch only, warn-not-fail)
 
 ## Validation Checklist
 
