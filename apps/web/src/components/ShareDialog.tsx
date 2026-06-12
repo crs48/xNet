@@ -93,6 +93,18 @@ export function ShareDialog({
   isOpen,
   onClose
 }: ShareDialogProps): JSX.Element | null {
+  // The body (and its data-fetching hooks) must only mount while the
+  // dialog is open — otherwise every doc page fires hub requests just by
+  // rendering its Share button.
+  if (!isOpen) return null
+  return <ShareDialogBody docId={docId} docType={docType} onClose={onClose} />
+}
+
+function ShareDialogBody({
+  docId,
+  docType,
+  onClose
+}: Omit<ShareDialogProps, 'isOpen'>): JSX.Element {
   const [tab, setTab] = useState<'links' | 'people'>('links')
   const [role, setRole] = useState<ShareRole>('read')
   const [label, setLabel] = useState('')
@@ -131,8 +143,6 @@ export function ShareDialog({
     [hubHttpUrl]
   )
   const activeGrants = useMemo(() => grants.filter((grant) => grant.revokedAt === 0), [grants])
-
-  if (!isOpen) return null
 
   const handleCreate = async (): Promise<void> => {
     setCreating(true)

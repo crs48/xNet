@@ -1,0 +1,101 @@
+---
+title: 'Dashboards & Widgets'
+draft: false
+description: 'Widget boards over live workspace data — built-ins, charts, plugin widgets, and sandboxed user widgets.'
+---
+
+:::note[You will learn]
+
+- How dashboards, widgets, and dashboard variables fit together
+- The built-in widget catalog (metrics, tables, charts, feeds)
+- The widget contract for plugin authors
+- How user-written widgets are sandboxed
+  :::
+
+## Overview
+
+A dashboard is a node like any other: a grid of **widget instances** with
+per-breakpoint layouts, opened as a workbench tab (`/dashboard/$dashboardId`).
+Widgets are declarative — a widget describes *what data it needs* as a saved-view
+query and *how to render it*; the runtime executes the query reactively, so a
+task created anywhere in the workspace updates a live widget immediately.
+Widgets never touch the store directly.
+
+## Dashboard variables
+
+Dashboards carry variables — most importantly a **time range** — that the
+runtime interpolates into every widget's query (`$name` placeholders). Change
+the range once and every widget on the board re-queries.
+
+## Built-in widgets
+
+| Widget            | Shows                                                       |
+| ----------------- | ----------------------------------------------------------- |
+| Metric            | A single aggregate (count, sum, average) over a query       |
+| Task list         | Tasks matching a filter, editable inline                    |
+| Saved-view table  | Any saved view, in compact table form                       |
+| Bar / line / area / pie charts | Aggregates by property, via ECharts            |
+| Social feed       | Recent items from the saved-content graph                   |
+| Page links        | A curated set of page references                            |
+| Recent items      | Recently touched nodes across the workspace                 |
+| Pin board         | Your pinned nodes                                           |
+| Mini calendar     | A month view of dated items                                 |
+
+Add widgets from the picker; each widget's configuration panel is
+auto-generated from its declared config fields (property pickers, query
+filters, display options).
+
+## The widget contract
+
+A widget definition is Grafana-shaped — manifest, config fields, query,
+renderer:
+
+```ts
+import type { WidgetDefinition } from '@xnetjs/dashboard'
+
+const taskCountWidget: WidgetDefinition = {
+  manifest: { id: 'task-count', name: 'Open task count', icon: 'check' },
+  configFields: [
+    { key: 'project', type: 'node-ref', label: 'Project', schema: 'project' }
+  ],
+  query: (config, vars) => ({
+    schema: 'task',
+    filter: { project: config.project, status: { not: 'done' } },
+    range: vars.timeRange
+  }),
+  Renderer: ({ rows }) => <Metric value={rows.length} />
+}
+```
+
+Plugins register widgets with a `WidgetContribution`. The same definition also
+renders **on canvases** — any widget can be dropped onto a canvas as a live
+card.
+
+## Trust tiers and sandboxing
+
+The widget *host* assigns a trust tier — a widget can never self-declare one:
+
+| Tier          | Source                    | Isolation                                              |
+| ------------- | ------------------------- | ------------------------------------------------------ |
+| `built-in`    | Ships with the app        | None needed                                            |
+| `plugin`      | Installed extension       | Plugin permission model                                |
+| `user`        | Written in the in-app editor | SES `lockdown()` + per-widget `Compartment` in a Web Worker |
+| `marketplace` | Third-party               | Sandboxed iframe (`allow-scripts` only)                |
+
+User-tier widgets render through **safe node trees** materialized via tag and
+style allowlists — no `window`, `document`, `fetch`, or store access; runaway
+code is terminated and the worker respawned. Permission prompts appear when
+you add a widget that requests capabilities.
+
+## Writing your own widget in-app
+
+The widget editor (a regular tab) persists your code as a node and registers
+it as a `user`-tier widget — edit, save, and watch it render sandboxed on the
+board. It syncs like any other node, so your custom widgets follow you across
+devices.
+
+## Further reading
+
+- [The Workbench](/docs/guides/workbench/) — dashboards as tabs
+- [Plugins](/docs/guides/plugins/) — registering `WidgetContribution`s
+- [Canvas](/docs/guides/canvas/) — widget cards on the infinite canvas

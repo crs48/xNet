@@ -8,7 +8,8 @@ sidebar:
 
 ## Dependency graph
 
-The core dependency chain flows upward. Lower packages cannot import from higher ones:
+The workspace holds **30 packages**. The diagram shows the core chain and the
+major feature packages; lower packages cannot import from higher ones:
 
 ```mermaid
 graph BT
@@ -23,6 +24,14 @@ graph BT
   editor["@xnetjs/editor"]
   canvas["@xnetjs/canvas"]
   devtools["@xnetjs/devtools"]
+  ui["@xnetjs/ui"]
+  query["@xnetjs/query"]
+  views["@xnetjs/views"]
+  comms["@xnetjs/comms"]
+  charts["@xnetjs/charts"]
+  dashboard["@xnetjs/dashboard"]
+  cli["@xnetjs/cli"]
+  hub["@xnetjs/hub"]
 
   identity --> crypto
   storage --> identity
@@ -39,6 +48,19 @@ graph BT
   editor --> |Yjs| sync
   canvas --> data
   devtools --> react
+  query --> data
+  query --> storage
+  views --> react
+  views --> ui
+  comms --> data
+  comms --> crypto
+  dashboard --> react
+  dashboard --> charts
+  dashboard --> plugins
+  cli --> plugins
+  cli --> data
+  hub --> sync
+  hub --> data
 
   style crypto fill:#4f46e5,color:#fff,stroke:#6366f1
   style identity fill:#4f46e5,color:#fff,stroke:#6366f1
@@ -51,6 +73,14 @@ graph BT
   style editor fill:#6366f1,color:#fff,stroke:#818cf8
   style canvas fill:#6366f1,color:#fff,stroke:#818cf8
   style devtools fill:#6366f1,color:#fff,stroke:#818cf8
+  style ui fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style query fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style views fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style comms fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style charts fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style dashboard fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style cli fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style hub fill:#818cf8,color:#fff,stroke:#a5b4fc
 ```
 
 ## Package details
@@ -119,7 +149,51 @@ Infinite canvas with spatial indexing (R-tree), viewport management, zoom/pan, n
 
 **Dependencies:** `@xnetjs/react`
 
-7 debug panels: Sync, Store, Schema, Identity, Network, Plugins, Performance.
+10 debug panels: Nodes, Changes, Sync, Yjs, Queries, Telemetry, Schemas, Seed, History, and AuthZ. See the [DevTools guide](/docs/guides/devtools/).
+
+### @xnetjs/ui
+
+Shared design system: the monochrome token ramp (`surface`/`ink`/`hairline`), primitives, the shared task editor, and the unified drag payload. No xNet runtime dependencies.
+
+### @xnetjs/query
+
+**Dependencies:** `@xnetjs/data`, `@xnetjs/storage`
+
+Query AST, saved-view descriptors, full-text search index, and the reactive saved-view runner that powers tables, boards, and widgets.
+
+### @xnetjs/views
+
+**Dependencies:** `@xnetjs/react`, `@xnetjs/ui`
+
+Database view components: table, board, list, calendar, gallery, timeline — with compact modes for dashboards.
+
+### @xnetjs/comms
+
+**Dependencies:** `@xnetjs/data`, `@xnetjs/crypto`
+
+Chat, presence, and calls: room manager (typed awareness sessions), chat service (signed message nodes, deterministic DM ids), the local notification engine, and the full-mesh WebRTC call manager. See [Chat, Presence & Calls](/docs/guides/chat-and-calls/).
+
+### @xnetjs/dashboard & @xnetjs/charts
+
+**Dependencies:** `@xnetjs/react`, `@xnetjs/plugins`, `@xnetjs/charts`
+
+Widget contract, registry, grid runtime, and sandbox tiers; charts wraps ECharts behind a library-agnostic spec. See [Dashboards & Widgets](/docs/guides/dashboards/).
+
+### @xnetjs/cli
+
+**Dependencies:** `@xnetjs/plugins`, `@xnetjs/data`
+
+The `xnet` command-line tool: scoped workspace checkouts, search/query, commit/daemon, sandboxed scripts, SKILL.md. See [Agent Interfaces](/docs/guides/agent-interfaces/).
+
+### @xnetjs/hub
+
+**Dependencies:** `@xnetjs/sync`, `@xnetjs/data`
+
+The optional always-on node: relay, encrypted backup, full-text search, call signaling, UCAN-authorized actions. See the [Hub guide](/docs/guides/hub/).
+
+### Supporting packages
+
+`core` (shared primitives), `sqlite` & `data-bridge` (storage adapters), `canvas-core`, `editor`/`canvas` internals, `formula`, `history` (undo/redo), `social` (graph lenses & importers), `telemetry`, `abuse` (rate limiting & peer scoring), `vectors`, `sdk`.
 
 ## The rule
 
@@ -133,8 +207,11 @@ Infinite canvas with spatial indexing (R-tree), viewport management, zoom/pan, n
 ## Applications
 
 ```
-apps/electron    — Full-featured desktop app (all packages)
-apps/web         — PWA (pages only, subset of features)
+apps/web         — The flagship workbench PWA (documents, databases, canvas,
+                   tasks, dashboards, chat & calls)
+apps/electron    — Desktop wrapper adding background sync, ProcessManager,
+                   LocalAPI, and the MCP server (@xnetjs/plugins/node)
+apps/expo        — Mobile (in development)
 ```
 
-The Electron app uses all packages including `@xnetjs/plugins/node` for ProcessManager, LocalAPI, and MCP server. The web app uses the browser-safe subset.
+The web app is the primary surface and uses the browser-safe subset; Electron adds the Node-only service layer on top.

@@ -203,6 +203,7 @@ export {
   isCompletedStatus,
   formatDueDate,
   type TaskDetailFormProps,
+  type TaskTagOption,
   type MentionTextInputProps,
   type TaskPersonOption,
   type TaskChipProps,

@@ -25,6 +25,7 @@ export type TabNodeType =
   | 'tasks'
   | 'data'
   | 'channel'
+  | 'tag'
 
 export interface WorkbenchTab {
   /** `${nodeType}:${nodeId}` — stable across sessions */
@@ -101,6 +102,8 @@ interface WorkbenchState {
   activeGroupId: string
   pinnedNodeIds: string[]
   recents: RecentEntry[]
+  /** Expanded folders in the Explorer tree (exploration 0169) */
+  expandedFolderIds: string[]
   /** Muse-style shelf: nodes held in transit between contexts */
   shelf: ShelfEntry[]
   /** Tab opened when the workspace starts at '/' (configurable) */
@@ -146,6 +149,7 @@ interface WorkbenchState {
   // ─── Explorer pins & recents ───────────────────────────────────
   togglePinnedNode: (nodeId: string) => void
   touchRecent: (entry: Omit<RecentEntry, 'at'>) => void
+  toggleFolderExpanded: (folderId: string) => void
 
   // ─── Shelf ─────────────────────────────────────────────────────
   shelfAdd: (entry: ShelfEntry) => void
@@ -171,6 +175,7 @@ export const useWorkbench = create<WorkbenchState>()(
       activeGroupId: 'group-1',
       pinnedNodeIds: [],
       recents: [],
+      expandedFolderIds: [],
       shelf: [],
       startupTab: null,
 
@@ -429,6 +434,13 @@ export const useWorkbench = create<WorkbenchState>()(
           const rest = state.recents.filter((recent) => recent.nodeId !== entry.nodeId)
           return { recents: [{ ...entry, at: Date.now() }, ...rest].slice(0, MAX_RECENTS) }
         }),
+
+      toggleFolderExpanded: (folderId) =>
+        set((state) => ({
+          expandedFolderIds: state.expandedFolderIds.includes(folderId)
+            ? state.expandedFolderIds.filter((id) => id !== folderId)
+            : [...state.expandedFolderIds, folderId]
+        })),
 
       shelfAdd: (entry) =>
         set((state) => ({

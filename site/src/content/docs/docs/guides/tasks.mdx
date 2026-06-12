@@ -1,0 +1,106 @@
+---
+title: 'Tasks'
+draft: false
+description: 'Task surfaces, inline editing, quick-add with mentions, and the field-authority model.'
+---
+
+:::note[You will learn]
+
+- Where tasks live in the app and how the surfaces connect
+- Inline editing and quick-add with `@mention`
+- Deep links (`/tasks?task=`, `/tasks?project=`)
+- Why some task fields are read-only outside their hosting page
+  :::
+
+## Overview
+
+Tasks are first-class nodes (`TaskSchema`) with status, priority, assignees,
+due dates, and project membership. They show up — and are **editable in
+place** — on every surface that renders them: the Tasks view, the sidebar
+mini-dashboard, page checklists, kanban boards, and the right context panel.
+
+## Surfaces
+
+### The Tasks view (`/tasks`)
+
+The main surface: list and board layouts with keyboard verbs —
+`j`/`k` to move, `x` to complete, `s` for status, `p` for priority, `Enter` to
+edit. Clicking a row expands an editor beneath it; board cards open a peek
+overlay; the right context panel hosts the same live editor for the focused
+task.
+
+Deep links are first-class:
+
+- `/tasks?task=<id>` opens that task's editor directly.
+- `/tasks?project=<id>` scopes the surface to a project (with a clearable
+  chip); quick-added tasks join that project.
+
+### The sidebar Tasks panel
+
+A personal mini-dashboard in the left panel:
+
+- **Pinned** — tasks you pinned, surfaced first
+- **In progress** — your tasks in a started status
+- **Assigned to me** — priority-ordered (urgent → low, then nearest due date),
+  paginated
+- **Projects** — projects you follow, with open-task counts; click one to
+  scope the Tasks view to it
+
+Rows are draggable onto canvases and deep-link into the Tasks view.
+
+### Everywhere else
+
+Task checklists inside pages, task widgets on dashboards, and task rows in
+database views all expand the same shared editor — title with
+**@mention-to-assign**, status/priority pickers, a due-date popover
+(Today / Tomorrow / Next week / pick a date / clear), an assignee picker, and
+a pin toggle.
+
+## Quick-add
+
+Every task surface has a quick-add input. Type `@` while entering the title to
+assign as you type — pending assignees render as removable chips before the
+task is created.
+
+## Field authority: pages own their checklists
+
+A task can be **hosted by a page** (created from a checklist item in a
+document). The hosting page is the source of truth for the fields it renders
+inline:
+
+| Field                          | Owner                                  |
+| ------------------------------ | -------------------------------------- |
+| Title, assignees, due date     | The hosting page (document content)    |
+| Status, priority, completion, pins | The task node — editable everywhere |
+
+On the page itself, edits to doc-owned fields **write through the live
+document** (mention nodes, due chips) and the page then reconciles the task
+node. On other surfaces (e.g. `/tasks`), doc-owned fields of hosted tasks
+render read-only with an *Open page* affordance — a node-side write would be
+silently overwritten by the page's next snapshot, so the app doesn't offer
+one.
+
+Tasks created outside a page (quick-add, Tasks view, widgets) have no hosting
+page and every field is editable everywhere.
+
+## Querying tasks in your own code
+
+Tasks are ordinary nodes — the same hooks apply:
+
+```tsx
+import { useQuery, useMutate } from '@xnetjs/react'
+
+const { data: myTasks } = useQuery(TaskSchema, {
+  filter: { assignees: { contains: me }, status: { not: 'done' } },
+  sort: [{ field: 'priority' }, { field: 'dueDate' }]
+})
+
+const { update } = useMutate()
+await update(TaskSchema, taskId, { status: 'in-progress' })
+```
+
+## Further reading
+
+- [The Workbench](/docs/guides/workbench/) — where the task surfaces live
+- [Dashboards](/docs/guides/dashboards/) — task-list and metric widgets
+- [Quickstart](/docs/quickstart/) — build your own task schema from scratch

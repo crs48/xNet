@@ -64,9 +64,20 @@ const resolveUrls = (deps: ShareLinkRouteDeps): { http: string; ws: string } => 
   return { http: normalizeHttpUrl(base), ws: normalizeWsUrl(base) }
 }
 
-/** Deterministic grant id so re-claims upsert instead of duplicating. */
+/**
+ * Deterministic grant id so re-claims upsert instead of duplicating.
+ * `.` separators are unambiguous — base64url link ids and DID hashes
+ * contain only `[A-Za-z0-9_-]`.
+ */
 const grantIdFor = (linkId: string, did: string): string =>
-  `lnk_${linkId}_${createHash('sha256').update(did).digest('base64url').slice(0, 22)}`
+  `lnk.${linkId}.${createHash('sha256').update(did).digest('base64url').slice(0, 22)}`
+
+/** Inverse of `grantIdFor`: the linkId a grant was claimed through. */
+export const linkIdFromGrantId = (grantId: string): string | null => {
+  if (!grantId.startsWith('lnk.')) return null
+  const parts = grantId.split('.')
+  return parts.length === 3 ? parts[1] : null
+}
 
 /**
  * Whether a DID may manage sharing for a doc: the recorded owner always can;
@@ -310,9 +321,7 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
     const linkLabels = new Map(links.map((link) => [link.linkId, link.label]))
     return c.json({
       grants: grants.map((grant) => {
-        const viaLinkId = grant.grantId.startsWith('lnk_')
-          ? grant.grantId.slice('lnk_'.length, grant.grantId.lastIndexOf('_'))
-          : null
+        const viaLinkId = linkIdFromGrantId(grant.grantId)
         return {
           grantId: grant.grantId,
           granteeDid: grant.granteeDid,

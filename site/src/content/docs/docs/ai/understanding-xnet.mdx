@@ -7,6 +7,16 @@ description: A guide for AI coding assistants on how xNet differs from tradition
 
 If you're an AI assistant helping a developer build with xNet, this guide will help you understand the fundamental paradigm differences.
 
+:::tip[Working inside a user's workspace?]
+This page is about writing *application code* against xNet. If you are an
+agent operating on a user's actual data — reading pages, editing databases,
+searching their workspace — use the **files-first agent surface** instead: a
+scoped checkout of the workspace plus the `xnet` CLI, taught by a ~500-token
+`SKILL.md` (printable with `xnet skill`). It completes the same work at
+roughly a tenth of the tokens of an MCP toolset. See
+[Agent Interfaces](/docs/guides/agent-interfaces/).
+:::
+
 ## The Key Insight
 
 **xNet has no backend.**
