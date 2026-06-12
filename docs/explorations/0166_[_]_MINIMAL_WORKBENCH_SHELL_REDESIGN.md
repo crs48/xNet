@@ -739,11 +739,11 @@ Phase 5 — Drag everywhere
 
 Phase 6 — Extensibility & flip
 
-- [ ] Contribution points for rail items, panel views, status items, palette
+- [x] Contribution points for rail items, panel views, status items, palette
       commands; wire `SidebarContribution`/`WidgetContribution` through
-- [ ] Mount `DashboardView` (0162 build-out) and `DataWorkspaceView` as
+- [x] Mount `DashboardView` (0162 build-out) and `DataWorkspaceView` as
       first-class tabs; configurable startup tab
-- [ ] Remove the flag, delete the old shell, update `docs/`
+- [x] Remove the flag, delete the old shell, update `docs/`
 
 ## Validation Checklist
 

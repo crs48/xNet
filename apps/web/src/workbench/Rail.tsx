@@ -6,10 +6,19 @@
  * identity avatar and settings. Clicking the active item toggles the
  * Left Panel — the VS Code muscle memory.
  */
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
-import { CheckSquare2, Files, Network, Search, Settings, type LucideIcon } from 'lucide-react'
+import {
+  CheckSquare2,
+  Files,
+  Network,
+  Puzzle,
+  Search,
+  Settings,
+  type LucideIcon
+} from 'lucide-react'
+import { useWorkbenchContributions } from './contributions'
 import { useWorkbench } from './state'
 
 interface RailViewItem {
@@ -55,6 +64,8 @@ export function Rail() {
   const left = useWorkbench((state) => state.left)
   const showPanelView = useWorkbench((state) => state.showPanelView)
   const { identity } = useIdentity()
+  const navigate = useNavigate()
+  const { railItems } = useWorkbenchContributions()
 
   return (
     <nav className="flex w-11 shrink-0 flex-col items-center border-r border-hairline bg-surface-1 py-1">
@@ -75,6 +86,29 @@ export function Rail() {
           onClick={() => showPanelView('left', item.id)}
         />
       ))}
+
+      {railItems.length > 0 && <div className="my-1 h-px w-5 bg-hairline" />}
+      {railItems.map((item) => {
+        const Icon = typeof item.icon === 'string' ? Puzzle : item.icon
+        const viewId = `plugin:${item.id}`
+        return (
+          <RailButton
+            key={viewId}
+            label={item.name}
+            icon={Icon as LucideIcon}
+            active={item.panel ? left.open && left.activeViewId === viewId : false}
+            onClick={() => {
+              if (item.panel) {
+                showPanelView('left', viewId)
+              } else if (typeof item.action === 'string') {
+                void navigate({ to: item.action as never })
+              } else {
+                item.action()
+              }
+            }}
+          />
+        )
+      })}
 
       <div className="flex-1" />
 

@@ -94,6 +94,25 @@ export interface EditorContribution {
   priority?: number
 }
 
+/**
+ * Status bar item contributed by a plugin (0166 workbench).
+ * Left side = workspace scope; right side = view scope.
+ */
+export interface StatusBarContribution {
+  /** Unique item ID */
+  id: string
+  /** Static text, or a getter polled on render */
+  text: string | (() => string)
+  /** Which side of the status bar (default 'left') */
+  side?: 'left' | 'right'
+  /** Tooltip */
+  tooltip?: string
+  /** Command id (CommandRegistry) to run on click */
+  command?: string
+  /** Priority within the side (lower = earlier) */
+  priority?: number
+}
+
 export interface SidebarContribution {
   /** Unique item ID */
   id: string
@@ -461,6 +480,7 @@ export class ContributionRegistry {
   readonly commands = new TypedRegistry<CommandContribution>()
   readonly slashCommands = new TypedRegistry<SlashCommandContribution>()
   readonly sidebar = new TypedRegistry<SidebarContribution>()
+  readonly statusBar = new TypedRegistry<StatusBarContribution>()
   readonly editor = new TypedRegistry<EditorContribution>()
   readonly propertyHandlers = new TypedRegistry<PropertyHandlerContribution>()
   readonly blocks = new TypedRegistry<BlockContribution>()
@@ -482,6 +502,7 @@ export class ContributionRegistry {
     this.commands.clear()
     this.slashCommands.clear()
     this.sidebar.clear()
+    this.statusBar.clear()
     this.editor.clear()
     this.propertyHandlers.clear()
     this.blocks.clear()

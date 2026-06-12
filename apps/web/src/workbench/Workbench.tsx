@@ -49,7 +49,7 @@ export function Workbench({ children }: { children: ReactNode }) {
     return (
       <div className="flex h-dvh flex-col bg-surface-0 text-ink-1">
         <WorkspaceCommands />
-        <GlobalSearch trigger="none" />
+        <GlobalSearch />
         <main className="min-h-0 flex-1">
           <EditorArea>{children}</EditorArea>
         </main>
@@ -60,7 +60,7 @@ export function Workbench({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh flex-col bg-surface-1 text-ink-1">
       <WorkspaceCommands />
-      <GlobalSearch trigger="none" />
+      <GlobalSearch />
       {isDemo && limits && <DemoBanner evictionHours={limits.evictionHours} />}
 
       <div className="flex min-h-0 flex-1">

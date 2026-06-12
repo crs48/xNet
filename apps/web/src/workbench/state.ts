@@ -102,6 +102,8 @@ interface WorkbenchState {
   recents: RecentEntry[]
   /** Muse-style shelf: nodes held in transit between contexts */
   shelf: ShelfEntry[]
+  /** Tab opened when the workspace starts at '/' (configurable) */
+  startupTab: { nodeType: TabNodeType; nodeId: string } | null
 
   // ─── Panels ────────────────────────────────────────────────────
   setPanelOpen: (side: PanelSide, open: boolean) => void
@@ -148,6 +150,8 @@ interface WorkbenchState {
   shelfAdd: (entry: ShelfEntry) => void
   shelfRemove: (nodeId: string) => void
   shelfClear: () => void
+
+  setStartupTab: (tab: { nodeType: TabNodeType; nodeId: string } | null) => void
 }
 
 function freshGroups(): EditorGroup[] {
@@ -167,6 +171,7 @@ export const useWorkbench = create<WorkbenchState>()(
       pinnedNodeIds: [],
       recents: [],
       shelf: [],
+      startupTab: null,
 
       setPanelOpen: (side, open) => set((state) => ({ [side]: { ...state[side], open } })),
 
@@ -432,7 +437,9 @@ export const useWorkbench = create<WorkbenchState>()(
       shelfRemove: (nodeId) =>
         set((state) => ({ shelf: state.shelf.filter((held) => held.nodeId !== nodeId) })),
 
-      shelfClear: () => set({ shelf: [] })
+      shelfClear: () => set({ shelf: [] }),
+
+      setStartupTab: (tab) => set({ startupTab: tab })
     }),
     {
       name: 'xnet:workbench:v1'

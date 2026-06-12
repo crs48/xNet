@@ -240,7 +240,7 @@ function PaletteResults({ query, onClose }: { query: string; onClose: () => void
   )
 }
 
-export function GlobalSearch({ trigger = 'button' }: { trigger?: 'button' | 'none' } = {}) {
+export function GlobalSearch() {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
   const restoreFocusRef = useRef<HTMLElement | null>(null)
@@ -307,21 +307,7 @@ export function GlobalSearch({ trigger = 'button' }: { trigger?: 'button' | 'non
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
-  if (!isOpen) {
-    if (trigger === 'none') return null
-    return (
-      <button
-        className="px-4 py-2 border border-border bg-secondary rounded-md cursor-pointer text-sm text-muted-foreground flex items-center gap-3 hover:border-muted-foreground transition-colors"
-        onClick={() => open()}
-        type="button"
-      >
-        Search...{' '}
-        <kbd className="text-xs px-1.5 py-0.5 bg-background rounded border border-border">
-          &#8984;K
-        </kbd>
-      </button>
-    )
-  }
+  if (!isOpen) return null
 
   return (
     <div

@@ -6,9 +6,11 @@
  * useStatusBarItem, then the theme toggle. Ambient, glanceable,
  * never modal.
  */
+import { getCommandRegistry } from '@xnetjs/plugins'
 import { useHubStatus } from '@xnetjs/react'
 import { useTheme } from '@xnetjs/ui'
 import { Moon, Sun } from 'lucide-react'
+import { statusContributionText, useWorkbenchContributions } from './contributions'
 import { useWorkbenchStatus, type StatusBarItem } from './status'
 
 const HUB_LABEL: Record<string, { label: string; tone: string }> = {
@@ -50,9 +52,22 @@ export function StatusBar() {
   const items = useWorkbenchStatus((state) => state.items)
   const jobs = useWorkbenchStatus((state) => state.jobs)
   const { resolvedTheme, toggleTheme } = useTheme()
+  const { statusItems } = useWorkbenchContributions()
 
   const hub = HUB_LABEL[hubStatus] ?? HUB_LABEL.disconnected
-  const itemList = Object.values(items)
+  const contributed = statusItems
+    .slice()
+    .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
+    .map((item) => ({
+      id: `contrib:${item.id}`,
+      text: statusContributionText(item),
+      side: item.side ?? ('left' as const),
+      title: item.tooltip,
+      onClick: item.command
+        ? () => void getCommandRegistry().runCommand(item.command as string)
+        : undefined
+    }))
+  const itemList = [...Object.values(items), ...contributed]
   const leftItems = itemList.filter((item) => item.side === 'left')
   const rightItems = itemList.filter((item) => item.side === 'right')
   const jobList = Object.values(jobs)

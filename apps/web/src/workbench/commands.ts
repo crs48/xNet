@@ -58,6 +58,27 @@ export function useWorkbenchCommands(): void {
         id: 'workbench.showDataPanel',
         title: 'Show data panel',
         run: () => wb().showPanelView('left', 'data')
+      }),
+      registry.register({
+        id: 'workbench.setStartupTab',
+        title: 'Use current tab at startup',
+        when: () => {
+          const state = useWorkbench.getState()
+          const group = state.groups.find((g) => g.id === state.activeGroupId)
+          return Boolean(group?.activeTabId)
+        },
+        run: () => {
+          const state = wb()
+          const group = state.groups.find((g) => g.id === state.activeGroupId)
+          const tab = group?.tabs.find((t) => t.id === group.activeTabId)
+          if (tab) state.setStartupTab({ nodeType: tab.nodeType, nodeId: tab.nodeId })
+        }
+      }),
+      registry.register({
+        id: 'workbench.clearStartupTab',
+        title: 'Clear startup tab',
+        when: () => Boolean(useWorkbench.getState().startupTab),
+        run: () => wb().setStartupTab(null)
       })
     ]
 
