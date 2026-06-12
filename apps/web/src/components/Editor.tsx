@@ -6,12 +6,14 @@
  */
 import type { JSX } from 'react'
 import type * as Y from 'yjs'
+import { normalizeTagName } from '@xnetjs/data'
 import {
   RichTextEditor,
   useImageUpload,
   useFileUpload,
   useFileDownload,
   type Editor as TipTapEditor,
+  type HashtagSuggestion,
   type PageTaskSnapshot,
   type TaskMentionSuggestion,
   type TaskViewConfig,
@@ -32,6 +34,12 @@ interface Props {
   onEditorReady?: (editor: TipTapEditor) => void
   /** People that can be inserted as mentions */
   mentionSuggestions?: TaskMentionSuggestion[]
+  /** Workspace tags offered by the inline '#' picker (0169) */
+  hashtagSuggestions?: HashtagSuggestion[]
+  /** Create a Tag node for a new hashtag name */
+  onCreateHashtag?: (name: string) => Promise<HashtagSuggestion | null>
+  /** Structured tags write-through: pill ids whenever the set changes */
+  onTagsChange?: (tagIds: string[]) => void
   /** Callback for page-backed task snapshots */
   onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
   /** Current page ID for embedded task views */
@@ -52,6 +60,9 @@ export function Editor({
   extensions,
   onEditorReady,
   mentionSuggestions,
+  hashtagSuggestions,
+  onCreateHashtag,
+  onTagsChange,
   onPageTasksChange,
   pageId,
   onCreateComment,
@@ -80,6 +91,10 @@ export function Editor({
       extensions={extensions}
       onEditorReady={onEditorReady}
       mentionSuggestions={mentionSuggestions}
+      hashtagSuggestions={hashtagSuggestions}
+      onCreateHashtag={onCreateHashtag}
+      normalizeHashtagName={normalizeTagName}
+      onTagsChange={onTagsChange}
       onPageTasksChange={onPageTasksChange}
       taskViewPageId={pageId ?? null}
       renderTaskView={({
