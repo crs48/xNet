@@ -60,6 +60,7 @@ import {
   Table2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { DASHBOARD_SCHEMA_REGISTRY } from './DashboardView'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -653,6 +654,49 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
 
     return null
   }, [aliasEditorOpen, commentEditorOpen, selectedCanvasNode])
+
+  // ─── Context panel: selection inspector (0166) ──────────────────────────
+  const canvasContextSections = useMemo<ContextPanelSection[]>(
+    () => [
+      {
+        id: 'canvas-selection',
+        title: 'Selection',
+        badge: selection.nodeIds.length,
+        content: selectedCanvasNode ? (
+          <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Title</span>
+              <span className="truncate text-ink-1">{selectedCanvasNode.title}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Object</span>
+              <span className="truncate font-mono text-[11px]">{selectedCanvasNode.node.id}</span>
+            </div>
+            {(selectedCanvasNode.node.sourceNodeId ?? selectedCanvasNode.node.linkedNodeId) && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-ink-3">Source</span>
+                <span className="truncate font-mono text-[11px]">
+                  {selectedCanvasNode.node.sourceNodeId ?? selectedCanvasNode.node.linkedNodeId}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Comments</span>
+              <span className="font-mono text-[11px]">{selectedObjectCommentCount}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center p-4 text-center text-xs text-ink-3">
+            {selection.nodeIds.length > 1
+              ? `${selection.nodeIds.length} objects selected`
+              : 'Select a canvas object to inspect it.'}
+          </div>
+        )
+      }
+    ],
+    [selection.nodeIds.length, selectedCanvasNode, selectedObjectCommentCount]
+  )
+  useContextPanel(`canvas:${docId}`, canvasContextSections)
 
   useEffect(() => {
     if (!doc) {

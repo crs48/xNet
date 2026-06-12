@@ -21,6 +21,11 @@ import {
 } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import {
+  revealContextSection,
+  useContextPanel,
+  type ContextPanelSection
+} from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
 import { BacklinksPanel } from './BacklinksPanel'
 import { Editor as EditorComponent } from './Editor'
@@ -107,7 +112,6 @@ export function PageView({ docId }: { docId: string }) {
   // Popover state for comment interactions
   const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
   const [newCommentState, setNewCommentState] = useState<NewCommentState | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [orphanedIds, setOrphanedIds] = useState<string[]>([])
   const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -488,11 +492,12 @@ export function PageView({ docId }: { docId: string }) {
 
   const handleSelectOrphaned = useCallback(
     (commentId: string) => {
-      // Open the popover for this orphaned comment
+      // Open the right panel for this orphaned comment
       const thread = threadDataMap.get(commentId)
       if (thread) {
-        // Since orphaned comments don't have anchor elements, open sidebar instead
-        setSidebarOpen(true)
+        // Since orphaned comments don't have anchor elements, open the
+        // comments section in the context panel instead
+        revealContextSection('page-comments')
       }
     },
     [threadDataMap]
@@ -515,6 +520,102 @@ export function PageView({ docId }: { docId: string }) {
   // Get the current thread for the popover
   const currentThread = popoverState.threadId ? threadDataMap.get(popoverState.threadId) : null
   const sidebarThreads = useMemo(() => Array.from(threadDataMap.values()), [threadDataMap])
+
+  // ─── Context Panel Sections (0166) ──────────────────────────────────────────
+  // Properties, comments, and backlinks live in the shared Right Panel,
+  // contextual to this tab, instead of being embedded in the view.
+
+  const contextSections = useMemo<ContextPanelSection[]>(() => {
+    if (!page) return []
+    return [
+      {
+        id: 'page-properties',
+        title: 'Properties',
+        content: (
+          <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">ID</span>
+              <span className="truncate font-mono text-[11px]" title={docId}>
+                {docId}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Sync</span>
+              <span className="font-mono text-[11px]">
+                {syncStatus}
+                {peerCount > 0 ? ` · ${peerCount} peers` : ''}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Saved</span>
+              <span className="font-mono text-[11px]">
+                {isDirty
+                  ? 'saving…'
+                  : lastSavedAt
+                    ? new Date(lastSavedAt).toLocaleTimeString()
+                    : '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Presence</span>
+              <PresenceAvatars presence={presence} />
+            </div>
+            <div className="pt-1">
+              <ShareButton docId={docId} docType="page" />
+            </div>
+          </div>
+        )
+      },
+      {
+        id: 'page-comments',
+        title: 'Comments',
+        badge: unresolvedCount,
+        content: (
+          <CommentsSidebar
+            className="w-full border-l-0 bg-transparent"
+            threads={sidebarThreads}
+            open
+            onClose={() => useWorkbench.getState().setPanelOpen('right', false)}
+            onSelectThread={handleSidebarSelectThread}
+            selectedThreadId={popoverState.threadId}
+            onReply={handleSidebarReply}
+            onResolve={handleSidebarResolve}
+            onReopen={handleSidebarReopen}
+            onDelete={handleSidebarDelete}
+            onEdit={handleSidebarEdit}
+          />
+        )
+      },
+      {
+        id: 'page-backlinks',
+        title: 'Backlinks',
+        content: (
+          <div className="p-3">
+            <BacklinksPanel docId={docId} />
+          </div>
+        )
+      }
+    ]
+  }, [
+    page,
+    docId,
+    syncStatus,
+    peerCount,
+    isDirty,
+    lastSavedAt,
+    presence,
+    unresolvedCount,
+    sidebarThreads,
+    popoverState.threadId,
+    handleSidebarSelectThread,
+    handleSidebarReply,
+    handleSidebarResolve,
+    handleSidebarReopen,
+    handleSidebarDelete,
+    handleSidebarEdit
+  ])
+
+  useContextPanel(`page:${docId}`, contextSections)
 
   // Handle wikilink navigation
   const handleNavigate = (targetDocId: string) => {
@@ -558,9 +659,9 @@ export function PageView({ docId }: { docId: string }) {
         {/* Comment count badge */}
         {unresolvedCount > 0 && (
           <button
-            className="flex items-center gap-1.5 px-2 py-1 text-xs text-amber-600 hover:text-amber-500 bg-amber-500/10 rounded-md transition-colors"
+            className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-2 hover:text-ink-1 bg-surface-2 rounded-md transition-colors"
             title={`${unresolvedCount} unresolved comment${unresolvedCount !== 1 ? 's' : ''}`}
-            onClick={() => setSidebarOpen((prev) => !prev)}
+            onClick={() => revealContextSection('page-comments')}
           >
             <MessageSquare size={14} />
             <span>{unresolvedCount}</span>
@@ -633,23 +734,8 @@ export function PageView({ docId }: { docId: string }) {
             )}
 
             <PageTasksPanel pageId={docId} />
-            <BacklinksPanel docId={docId} />
           </div>
         </div>
-
-        {/* Comments Sidebar */}
-        <CommentsSidebar
-          threads={sidebarThreads}
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          onSelectThread={handleSidebarSelectThread}
-          selectedThreadId={popoverState.threadId}
-          onReply={handleSidebarReply}
-          onResolve={handleSidebarResolve}
-          onReopen={handleSidebarReopen}
-          onDelete={handleSidebarDelete}
-          onEdit={handleSidebarEdit}
-        />
       </div>
 
       {/* Comment Popover */}

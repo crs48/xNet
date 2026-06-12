@@ -709,12 +709,12 @@ Phase 2 — Tabs
 
 Phase 3 — Panels
 
-- [ ] Left Panel: Explorer view (pinned / recent / all-items virtualized
+- [x] Left Panel: Explorer view (pinned / recent / all-items virtualized
       tree, type filters) replacing `Sidebar.tsx`; Tasks view; Data view
-- [ ] Right Panel: `useContextPanel` contribution API; move page comments
+- [x] Right Panel: `useContextPanel` contribution API; move page comments
       and properties out of `doc.$docId.tsx`; database row detail; canvas
       selection inspector; task detail
-- [ ] Bottom Panel tray: quick capture, notifications, sync activity, query
+- [x] Bottom Panel tray: quick capture, notifications, sync activity, query
       console (QueryAST → table)
 
 Phase 4 — Keyboard & palette

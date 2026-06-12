@@ -20,9 +20,9 @@ import { PanelViewHost } from './PanelViewHost'
 import { Rail } from './Rail'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
-import { registerInterimPanelViews } from './views/interim'
+import { registerBuiltinPanelViews } from './views/register'
 
-registerInterimPanelViews()
+registerBuiltinPanelViews()
 
 export function Workbench({ children }: { children: ReactNode }) {
   const mode = useWorkbench((state) => state.mode)

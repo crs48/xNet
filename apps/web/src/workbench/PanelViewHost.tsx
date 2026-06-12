@@ -4,9 +4,8 @@
  *
  * Views are registered in a module-level registry so plugin
  * contributions can add panel views without touching the shell
- * (containers vs items — the VS Code model). Phase 1 ships interim
- * built-ins; Phase 3 replaces them with the real Explorer/Tasks/Data
- * and tray views.
+ * (containers vs items — the VS Code model). The bottom slot renders
+ * its registered views as panel-local tabs (the tray).
  */
 import type { ComponentType } from 'react'
 import { X } from 'lucide-react'
@@ -49,13 +48,32 @@ export function PanelViewHost({ slot }: { slot: 'left' | 'bottom' }) {
   }
 
   const View = view.component
+  const views = getPanelViews(slot)
+  const showTabs = slot === 'bottom' && views.length > 1
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-surface-1">
-      <header className="flex h-8 shrink-0 items-center justify-between border-b border-hairline px-3">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-ink-2">
-          {view.title}
-        </span>
+      <header className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-hairline px-3">
+        {showTabs ? (
+          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto">
+            {views.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => useWorkbench.getState().showPanelView(slot, entry.id)}
+                className={`shrink-0 cursor-pointer border-none bg-transparent p-0 text-[11px] font-medium uppercase tracking-wider transition-colors ${
+                  entry.id === view.id ? 'text-ink-1' : 'text-ink-3 hover:text-ink-2'
+                }`}
+              >
+                {entry.title}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="text-[11px] font-medium uppercase tracking-wider text-ink-2">
+            {view.title}
+          </span>
+        )}
         <button
           type="button"
           title="Close panel"

@@ -37,8 +37,17 @@ import {
 } from '@xnetjs/views'
 import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
+import { useWorkbench } from '../workbench/state'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
+
+function formatPeekCellValue(value: unknown): string {
+  if (value == null || value === '') return '—'
+  if (Array.isArray(value)) return value.map((entry) => formatPeekCellValue(entry)).join(', ')
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
 
 interface DatabaseViewProps {
   docId: string
@@ -301,6 +310,43 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     () => grid.rows.find((r) => r.id === peekRowId) ?? null,
     [grid.rows, peekRowId]
   )
+
+  // ─── Workbench integration (0166): tab title + row detail section ─────────
+  const databaseTitle = database?.title
+  useEffect(() => {
+    if (databaseTitle) useWorkbench.getState().setTabTitle(docId, databaseTitle)
+  }, [docId, databaseTitle])
+
+  const databaseContextSections = useMemo<ContextPanelSection[]>(
+    () => [
+      {
+        id: 'database-row',
+        title: 'Row',
+        content: peekRow ? (
+          <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Row</span>
+              <span className="truncate font-mono text-[11px]">{peekRow.id}</span>
+            </div>
+            {grid.fields.map((field) => (
+              <div key={field.id} className="flex items-start justify-between gap-2">
+                <span className="shrink-0 text-ink-3">{field.name}</span>
+                <span className="min-w-0 break-words text-right text-ink-1">
+                  {formatPeekCellValue(peekRow.cells[field.id])}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center p-4 text-center text-xs text-ink-3">
+            Open a row to see its detail here. {grid.rows.length} rows in view.
+          </div>
+        )
+      }
+    ],
+    [peekRow, grid.fields, grid.rows.length]
+  )
+  useContextPanel(`database:${docId}`, databaseContextSections)
 
   // ─── Field menus ──────────────────────────────────────────────────────────
   const [fieldMenu, setFieldMenu] = useState<FieldMenuState | null>(null)
