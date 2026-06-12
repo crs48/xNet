@@ -146,7 +146,7 @@ export function DatePicker({
         className="cursor-pointer"
       />
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded-md border bg-popover p-3 text-popover-foreground shadow-lg">
+        <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded-md border bg-popover p-3 text-popover-foreground">
           <div className="flex items-center justify-between mb-3">
             <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-accent rounded">
               &lt;

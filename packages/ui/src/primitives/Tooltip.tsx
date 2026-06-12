@@ -49,7 +49,6 @@ export function Tooltip({
                 'z-50 overflow-hidden rounded-md',
                 'bg-primary px-3 py-1.5',
                 'text-xs text-primary-foreground',
-                'shadow-md',
                 // Animation
                 'opacity-0 scale-95',
                 'data-[open]:opacity-100 data-[open]:scale-100',
@@ -111,7 +110,6 @@ export const TooltipPopup = React.forwardRef<
       'z-50 overflow-hidden rounded-md',
       'bg-primary px-3 py-1.5',
       'text-xs text-primary-foreground',
-      'shadow-md',
       // Animation
       'opacity-0 scale-95',
       'data-[open]:opacity-100 data-[open]:scale-100',
@@ -160,7 +158,6 @@ export const TooltipContent = React.forwardRef<
           'z-50 overflow-hidden rounded-md',
           'bg-primary px-3 py-1.5',
           'text-xs text-primary-foreground',
-          'shadow-md',
           // Animation
           'opacity-0 scale-95',
           'data-[open]:opacity-100 data-[open]:scale-100',

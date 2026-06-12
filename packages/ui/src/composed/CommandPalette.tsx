@@ -279,7 +279,7 @@ export function CommandPalette({
         <BaseDialog.Popup
           className={cn(
             'fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]',
-            'border bg-popover shadow-lg rounded-lg overflow-hidden',
+            'border bg-popover rounded-lg overflow-hidden',
             'focus:outline-none',
             // Animation
             'opacity-0 scale-95',

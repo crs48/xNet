@@ -38,7 +38,7 @@ export function Menu({ trigger, children, align = 'end', sideOffset = 4, classNa
             className={cn(
               'z-50 min-w-[8rem] overflow-hidden',
               'rounded-md border border-border bg-popover p-1',
-              'text-popover-foreground shadow-md',
+              'text-popover-foreground',
               // Animation
               'opacity-0 scale-95',
               'data-[open]:opacity-100 data-[open]:scale-100',
@@ -154,7 +154,7 @@ export const DropdownMenuContent = React.forwardRef<
         className={cn(
           'z-50 min-w-[8rem] overflow-hidden',
           'rounded-md border border-border bg-popover p-1',
-          'text-popover-foreground shadow-md',
+          'text-popover-foreground',
           // Animation
           'opacity-0 scale-95',
           'data-[open]:opacity-100 data-[open]:scale-100',
@@ -326,7 +326,7 @@ export const DropdownMenuSubContent = React.forwardRef<
         className={cn(
           'z-50 min-w-[8rem] overflow-hidden',
           'rounded-md border border-border bg-popover p-1',
-          'text-popover-foreground shadow-lg',
+          'text-popover-foreground',
           // Animation
           'opacity-0 scale-95',
           'data-[open]:opacity-100 data-[open]:scale-100',

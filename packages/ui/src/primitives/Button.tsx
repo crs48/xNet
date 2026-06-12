@@ -51,12 +51,12 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default: [
-          'bg-primary text-primary-foreground shadow-sm',
+          'bg-primary text-primary-foreground',
           'hover:bg-primary-hover',
           'active:bg-primary-active'
         ],
         destructive: [
-          'bg-destructive text-destructive-foreground shadow-sm',
+          'bg-destructive text-destructive-foreground',
           'hover:bg-destructive-hover',
           'active:bg-destructive-active'
         ],

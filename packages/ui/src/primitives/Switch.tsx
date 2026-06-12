@@ -31,7 +31,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(({ className, ..
     <BaseSwitch.Thumb
       className={cn(
         'pointer-events-none block h-4 w-4 rounded-full',
-        'bg-background shadow-lg ring-0',
+        'bg-background ring-0',
         'transition-transform duration-fast ease-spring',
         // Position based on checked state
         'translate-x-0 data-[checked]:translate-x-4'

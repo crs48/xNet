@@ -49,7 +49,7 @@ export function Popover({
             className={cn(
               'z-50 w-72 rounded-md',
               'border border-border bg-popover p-4',
-              'text-popover-foreground shadow-md',
+              'text-popover-foreground',
               'outline-none',
               // Animation
               'opacity-0 translate-y-1',
@@ -123,7 +123,7 @@ export const PopoverPopup = React.forwardRef<
     className={cn(
       'z-50 w-72 rounded-md',
       'border border-border bg-popover p-4',
-      'text-popover-foreground shadow-md',
+      'text-popover-foreground',
       'outline-none',
       // Animation
       'opacity-0 translate-y-1',
@@ -171,7 +171,7 @@ export const PopoverContent = React.forwardRef<
         className={cn(
           'z-50 w-72 rounded-md',
           'border border-border bg-popover p-4',
-          'text-popover-foreground shadow-md',
+          'text-popover-foreground',
           'outline-none',
           // Animation
           'opacity-0 translate-y-1',

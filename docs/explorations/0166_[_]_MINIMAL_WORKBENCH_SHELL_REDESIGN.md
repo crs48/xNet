@@ -678,12 +678,12 @@ export function setNodeTransfer(e: DragEvent, t: NodeTransfer) {
 
 Phase 0 — Foundations
 
-- [ ] Rebuild `packages/ui/src/theme/tokens.css` as the role-named monochrome
+- [x] Rebuild `packages/ui/src/theme/tokens.css` as the role-named monochrome
       ramp (surface/ink/hairline/accent), APCA-checked, with `true-black`
       variant; migrate Tailwind config mappings
-- [ ] Establish the 3-role type scale (UI sans / prose sans / data mono) and
+- [x] Establish the 3-role type scale (UI sans / prose sans / data mono) and
       add the mono font asset
-- [ ] Sweep `packages/ui` primitives for shadow/hue usage; replace with
+- [x] Sweep `packages/ui` primitives for shadow/hue usage; replace with
       hairline + dimming idioms
 
 Phase 1 — Shell skeleton

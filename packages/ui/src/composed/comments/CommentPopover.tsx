@@ -135,7 +135,7 @@ export function CommentPopover({
   const content = (
     <div
       className={cn(
-        'w-80 max-h-96 overflow-y-auto rounded-lg border bg-popover text-popover-foreground shadow-lg',
+        'w-80 max-h-96 overflow-y-auto rounded-lg border bg-popover text-popover-foreground',
         className
       )}
       onKeyDown={handleKeyDown}

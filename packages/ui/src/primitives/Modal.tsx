@@ -66,7 +66,7 @@ export function Modal({
             '-translate-x-1/2 -translate-y-1/2',
             'w-full',
             'grid gap-4 p-6',
-            'border border-border bg-background shadow-lg',
+            'border border-border bg-background',
             'rounded-lg',
             'focus:outline-none',
             // Animation
@@ -224,7 +224,7 @@ export const DialogContent = React.forwardRef<
         '-translate-x-1/2 -translate-y-1/2',
         'w-full max-w-lg',
         'grid gap-4 p-6',
-        'border border-border bg-background shadow-lg',
+        'border border-border bg-background',
         'rounded-lg',
         'focus:outline-none',
         // Animation

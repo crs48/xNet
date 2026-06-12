@@ -8,6 +8,20 @@ export default {
     extend: {
       // ─── Colors ──────────────────────────────────────────────────
       colors: {
+        // Role-named monochrome ramp (0166) — preferred for new code
+        surface: {
+          0: 'hsl(var(--surface-0))',
+          1: 'hsl(var(--surface-1))',
+          2: 'hsl(var(--surface-2))'
+        },
+        ink: {
+          1: 'hsl(var(--ink-1))',
+          2: 'hsl(var(--ink-2))',
+          3: 'hsl(var(--ink-3))'
+        },
+        hairline: 'hsl(var(--hairline))',
+        'accent-ink': 'hsl(var(--accent-ink))',
+
         // Background variants
         background: {
           DEFAULT: 'hsl(var(--background))',
@@ -121,8 +135,12 @@ export default {
       },
 
       // ─── Typography ──────────────────────────────────────────────
+      // Three roles (0166): UI sans (chrome, 13px), prose sans (editor,
+      // 16px), data mono (IDs, numeric cells, status bar, console).
       fontFamily: {
         sans: [
+          '"Inter Variable"',
+          'Inter',
           'ui-sans-serif',
           'system-ui',
           '-apple-system',
@@ -134,6 +152,7 @@ export default {
           'sans-serif'
         ],
         mono: [
+          '"Geist Mono"',
           'ui-monospace',
           'SFMono-Regular',
           '"SF Mono"',
