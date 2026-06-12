@@ -561,10 +561,10 @@ function toTsv(rows: Record<string, unknown>[], cols: string[]): string {
 
 ### Phase 3 — Slim the MCP layer
 
-- [ ] Mark all but 3–5 core tools `defer_loading: true`; verify against Claude Code's tool-search threshold
-- [ ] Drop pretty-printing in `stringifyJson()`; add `response_format` param; paginate defaults
-- [ ] Audit tool descriptions for brevity (target: non-deferred set ≤ 1.5k tokens total)
-- [ ] Document MCP as the no-shell fallback (web embeds, API-only) in plan 09; amend its "tools, not files" doctrine
+- [x] Mark all but 3–5 core tools `defer_loading: true`; verify against Claude Code's tool-search threshold
+- [x] Drop pretty-printing in `stringifyJson()`; add `response_format` param; paginate defaults
+- [x] Audit tool descriptions for brevity (target: non-deferred set ≤ 1.5k tokens total) — test-guarded in `mcp-server.test.ts`
+- [x] Document MCP as the no-shell fallback (web embeds, API-only) in plan 09; amend its "tools, not files" doctrine
 
 ### Phase 4 — Measure and iterate
 

@@ -10,7 +10,17 @@
 
 xNet exposes all data operations through an MCP (Model Context Protocol) server, enabling AI agents like Claude to read, write, and query content programmatically. This replaces the need for file-based storage while providing structured, type-safe access to all data.
 
-**Design Principle**: AI agents access data via tools (MCP), not files. This provides:
+**Design Principle** _(amended by exploration 0161)_: **files first, tools for
+what files can't do.** For harness-resident agents (Claude Code, Codex CLI,
+Gemini CLI, Cursor) the primary interface is the **vault checkout**
+(`AiWorkspaceExporter.checkout` + watcher + `xnet` CLI): models are post-trained
+on file/shell tools, the projection costs ~0 definition tokens, and Grep over a
+checkout is free retrieval. MCP remains the **compatibility layer** for
+no-shell contexts (web embeds, API-only clients) — slimmed to a small
+non-deferred core (`MCP_CORE_TOOL_NAMES`) with `defer_loading` on the rest,
+compact-JSON responses, and a `response_format` escape hatch. The CRDT store is
+still the single source of truth; every surface funnels into the same
+plan/validate/apply pipeline, which provides:
 
 - Structured queries (filter, sort, aggregate)
 - Atomic operations (no parse errors)
@@ -62,14 +72,25 @@ flowchart TB
 | **File-based (Obsidian-style)** | Human-readable, Git-friendly, external editor support            | Sync conflicts, Markdown limits rich content, parsing errors |
 | **MCP-based (xNet)**            | Structured queries, atomic ops, full flexibility, no sync issues | Requires MCP client, less portable                           |
 
-For AI agents specifically, MCP is superior:
+> **Amendment (exploration 0161):** measured benchmarks (Scalekit CLI-vs-MCP,
+> Anthropic tool-search/code-execution numbers, CodeAct) showed the original
+> "tools, not files" doctrine is backwards for harness-resident agents. The
+> table above still holds for _storage_ — the database, not files, is the
+> source of truth — but the _agent-facing_ surface is now the lazy vault
+> checkout with revision-tokened frontmatter, where edits are lifted back into
+> validated mutation plans by the watcher. MCP stays load-bearing where there
+> is no shell or filesystem.
 
-- Query: "find tasks due this week" (vs grep through files)
-- Bulk update: "mark all done" (vs edit multiple files)
+Where structured access genuinely beats files (and the `xnet` CLI or MCP is
+the right tool):
+
+- Query: "find tasks due this week" (`xnet query` / `xnet_database_query`)
+- Bulk update: "mark all done" (`xnet run` scripts, plan-only proposals)
 - Type safety: dates stay dates, numbers stay numbers
 - No formatting errors from malformed Markdown
 
-**Portability solved via Export/Import**: On-demand export to Markdown/JSON for backups, Git, and interop.
+**Portability solved via the checkout**: the vault projection (Markdown/JSONL
+plus `.tsv` read sidecars) doubles as the backup/Git/interop export.
 
 ---
 

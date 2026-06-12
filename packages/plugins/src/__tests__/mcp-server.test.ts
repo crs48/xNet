@@ -4,7 +4,12 @@
 
 import type { NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { MCPServer, createMCPServer, type MCPRequest } from '../services/mcp-server'
+import {
+  MCPServer,
+  MCP_CORE_TOOL_NAMES,
+  createMCPServer,
+  type MCPRequest
+} from '../services/mcp-server'
 
 // ─── Mock Store ──────────────────────────────────────────────────────────────
 
@@ -1029,5 +1034,71 @@ describe('createMCPServer', () => {
     })
 
     expect(server).toBeInstanceOf(MCPServer)
+  })
+})
+
+describe('slim MCP surface (0161)', () => {
+  it('defers everything except the stable core tool set', () => {
+    const server = createMCPServer({
+      store: createMockStore(),
+      schemas: createMockSchemas()
+    })
+
+    const tools = server.getTools()
+    const core = tools.filter((tool) => tool.defer_loading === false)
+    const deferred = tools.filter((tool) => tool.defer_loading === true)
+
+    expect(core.map((tool) => tool.name).sort()).toEqual([...MCP_CORE_TOOL_NAMES].sort())
+    expect(core.length).toBeGreaterThanOrEqual(3)
+    expect(core.length).toBeLessThanOrEqual(5)
+    expect(deferred.length).toBeGreaterThan(core.length)
+  })
+
+  it('keeps the non-deferred definition payload under the 1.5k-token budget', () => {
+    const server = createMCPServer({
+      store: createMockStore(),
+      schemas: createMockSchemas()
+    })
+
+    const core = server.getTools().filter((tool) => tool.defer_loading === false)
+    const characters = JSON.stringify(core).length
+    // ~4 characters per token heuristic
+    expect(characters / 4).toBeLessThanOrEqual(1500)
+  })
+
+  it('returns compact JSON by default and pretty JSON only when detailed', async () => {
+    const server = createMCPServer({
+      store: createMockStore(),
+      schemas: createMockSchemas()
+    })
+
+    const concise = await server.handleRequest(
+      createRequest('tools/call', { name: 'xnet_schemas', arguments: {} })
+    )
+    const conciseText = (concise.result as { content: Array<{ text: string }> }).content[0].text
+    expect(conciseText).not.toContain('\n')
+
+    const detailed = await server.handleRequest(
+      createRequest('tools/call', {
+        name: 'xnet_schemas',
+        arguments: { response_format: 'detailed' }
+      })
+    )
+    const detailedText = (detailed.result as { content: Array<{ text: string }> }).content[0].text
+    expect(detailedText).toContain('\n  ')
+  })
+
+  it('advertises response_format on every tool', () => {
+    const server = createMCPServer({
+      store: createMockStore(),
+      schemas: createMockSchemas()
+    })
+
+    for (const tool of server.getTools()) {
+      expect(tool.inputSchema.properties.response_format).toMatchObject({
+        type: 'string',
+        enum: ['concise', 'detailed']
+      })
+    }
   })
 })

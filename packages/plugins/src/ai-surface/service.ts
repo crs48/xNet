@@ -1053,8 +1053,8 @@ export class AiSurfaceService {
     throw new Error(`Resource not found: ${uri}`)
   }
 
-  toJsonText(value: unknown): string {
-    return this.stringifyJson(value)
+  toJsonText(value: unknown, format: 'concise' | 'detailed' = 'concise'): string {
+    return this.stringifyJson(value, format)
   }
 
   // ─── Workspace And Search ─────────────────────────────────────────────────
@@ -2456,8 +2456,10 @@ export class AiSurfaceService {
     }
   }
 
-  private stringifyJson(value: unknown): string {
-    const text = JSON.stringify(value, null, 2)
+  // Compact by default: pretty-printing costs ~20% extra tokens on every
+  // agent-visible response. 'detailed' keeps the indented form for humans.
+  private stringifyJson(value: unknown, format: 'concise' | 'detailed' = 'concise'): string {
+    const text = format === 'detailed' ? JSON.stringify(value, null, 2) : JSON.stringify(value)
     if (text.length <= this.limits.maxJsonCharacters) return text
 
     return stringifyTruncatedJson(text, this.limits.maxJsonCharacters)
