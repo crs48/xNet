@@ -14,7 +14,7 @@
  * ```
  */
 import type { NodeState, NodeChangeEvent } from '@xnetjs/data'
-import { CommentSchema } from '@xnetjs/data'
+import { CommentSchema, getMentionedUsers, normalizeMentions } from '@xnetjs/data'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 
@@ -243,6 +243,9 @@ export function useComments({ nodeId, anchorType }: UseCommentsOptions): UseComm
             anchorType: options.anchorType,
             anchorData: options.anchorData,
             content: options.content,
+            // Composer-declared structured mentions (0168): DID-form
+            // @mentions in the markdown become a queryable field.
+            mentions: normalizeMentions({ dids: getMentionedUsers(options.content) }),
             resolved: false,
             edited: false
           }
@@ -283,6 +286,7 @@ export function useComments({ nodeId, anchorType }: UseCommentsOptions): UseComm
             anchorType: 'node', // Replies don't need positional anchors
             anchorData: '{}',
             content,
+            mentions: normalizeMentions({ dids: getMentionedUsers(content) }),
             replyToUser: context?.replyToUser,
             replyToCommentId: context?.replyToCommentId,
             resolved: false,

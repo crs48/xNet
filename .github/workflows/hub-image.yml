@@ -1,0 +1,93 @@
+name: Hub Image
+
+# Railway builds packages/hub/Dockerfile from the repo on every push to main
+# (see railway.toml) with no GitHub Actions involvement, so a broken image is
+# invisible in CI. This workflow runs the same Docker build and boots the
+# container with the same start command and healthcheck Railway uses, so hub
+# deploy breakage shows up on the PR that causes it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/hub/**'
+      - 'packages/abuse/**'
+      - 'packages/core/**'
+      - 'packages/crypto/**'
+      - 'packages/data/**'
+      - 'packages/identity/**'
+      - 'packages/sqlite/**'
+      - 'packages/storage/**'
+      - 'packages/sync/**'
+      - 'packages/telemetry/**'
+      - 'patches/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - 'railway.toml'
+      - '.github/workflows/hub-image.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/hub/**'
+      - 'packages/abuse/**'
+      - 'packages/core/**'
+      - 'packages/crypto/**'
+      - 'packages/data/**'
+      - 'packages/identity/**'
+      - 'packages/sqlite/**'
+      - 'packages/storage/**'
+      - 'packages/sync/**'
+      - 'packages/telemetry/**'
+      - 'patches/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - 'railway.toml'
+      - '.github/workflows/hub-image.yml'
+
+concurrency:
+  group: hub-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build hub image (same build Railway runs)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: packages/hub/Dockerfile
+          push: false
+          load: true
+          tags: xnet-hub:ci
+          cache-from: type=gha,scope=hub-image
+          cache-to: type=gha,mode=max,scope=hub-image
+
+      - name: Boot hub with the Railway start command
+        run: |
+          docker run -d --name hub -e PORT=4444 -p 4444:4444 xnet-hub:ci \
+            sh -c 'cd /app && node packages/hub/dist/cli.js --port $PORT --data /data --demo'
+
+      - name: Probe /health (Railway healthcheckPath)
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4444/health; then
+              echo
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "hub /health never became reachable"
+          exit 1
+
+      - name: Dump hub container logs
+        if: failure()
+        run: docker logs hub || true
