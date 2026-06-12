@@ -34,9 +34,15 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
 
 export function ViewHost({ tab }: { tab: WorkbenchTab }) {
   const View = HOSTED_VIEWS[tab.nodeType]
+  // Pages are full-bleed documents that own their scroll (see
+  // GroupContent in EditorArea for the routed equivalent).
+  const hostClass =
+    tab.nodeType === 'page'
+      ? 'h-full min-h-0 overflow-hidden'
+      : 'h-full min-h-0 overflow-y-auto p-6'
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto p-6">
+    <div className={hostClass}>
       {/* keyed so switching tabs fully remounts the view */}
       <View key={tab.id} nodeId={tab.nodeId} />
     </div>

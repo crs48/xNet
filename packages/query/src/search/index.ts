@@ -86,10 +86,15 @@ export function createSearchIndex(options: SearchIndexOptions = {}): SearchIndex
     },
 
     remove(docId: string): void {
-      miniSearch.discard(docId)
+      // discard() throws for ids that were never added (or were already
+      // discarded); removal of an unindexed doc is a no-op, not an error.
+      if (miniSearch.has(docId)) {
+        miniSearch.discard(docId)
+      }
     },
 
     update(doc: SearchableDocument): void {
+      // Upsert: live-doc listeners call update() for first-time adds too.
       this.remove(doc.id)
       this.add(doc)
     },

@@ -214,4 +214,52 @@ describe.each(storageFactories)('HubStorage ($name)', ({ create }: StorageFactor
       expect(results).toHaveLength(1)
     })
   })
+
+  describe('database rows', () => {
+    const row = (id: string, sortKey: string, data: Record<string, unknown> = {}) => ({
+      id,
+      databaseId: 'db-1',
+      sortKey,
+      data,
+      searchable: '',
+      createdAt: Date.now(),
+      createdBy: 'did:key:tester',
+      updatedAt: Date.now()
+    })
+
+    it('orders rows by sortKey code units, not locale collation', async () => {
+      // 'Zz…' is what the fractional indexer emits for a move-to-front;
+      // locale collation sorts it after 'a…' and reverts the move.
+      await storage.insertDatabaseRow(row('row-b', 'a0'))
+      await storage.insertDatabaseRow(row('row-c', 'a1'))
+      await storage.insertDatabaseRow(row('row-a', 'Zz12'))
+
+      const unsorted = await storage.queryDatabaseRows({ databaseId: 'db-1' })
+      expect(unsorted.rows.map((r) => r.id)).toEqual(['row-a', 'row-b', 'row-c'])
+
+      const sorted = await storage.queryDatabaseRows({
+        databaseId: 'db-1',
+        sorts: [{ columnId: 'sortKey', direction: 'asc' }]
+      })
+      expect(sorted.rows.map((r) => r.id)).toEqual(['row-a', 'row-b', 'row-c'])
+
+      const descending = await storage.queryDatabaseRows({
+        databaseId: 'db-1',
+        sorts: [{ columnId: 'sortKey', direction: 'desc' }]
+      })
+      expect(descending.rows.map((r) => r.id)).toEqual(['row-c', 'row-b', 'row-a'])
+    })
+
+    it('sorts data columns with locale collation and falls back to id', async () => {
+      await storage.insertDatabaseRow(row('row-1', 'a0', { name: 'beta' }))
+      await storage.insertDatabaseRow(row('row-2', 'a1', { name: 'Alpha' }))
+      await storage.insertDatabaseRow(row('row-3', 'a2', { name: 'beta' }))
+
+      const byName = await storage.queryDatabaseRows({
+        databaseId: 'db-1',
+        sorts: [{ columnId: 'name', direction: 'asc' }]
+      })
+      expect(byName.rows.map((r) => r.id)).toEqual(['row-2', 'row-1', 'row-3'])
+    })
+  })
 })

@@ -114,6 +114,7 @@ import {
 } from '../templates/planning-templates'
 import { type CanvasThemeTokens, useCanvasThemeTokens } from '../theme/canvas-theme'
 import { planDomIslandPool } from './dom-island-pool'
+import { computePinchViewport, measureTouchPinch, type PinchGestureState } from './pinch-zoom'
 
 const EMPTY_FRAME_STATS: FrameStats = {
   frameCount: 0,
@@ -215,6 +216,7 @@ export type CanvasHandle = {
   setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) => void
   clearSelection: () => void
   selectNodes: (nodeIds: string[]) => void
+  selectEdges: (edgeIds: string[]) => void
   toggleSelectionLock: () => boolean
   alignSelection: (alignment: CanvasAlignment) => boolean
   distributeSelection: (axis: CanvasDistributionAxis) => boolean
@@ -341,6 +343,19 @@ type SelectionPopover =
   | 'source-bulk'
   | 'plugin-fields'
 
+const SELECTION_POPOVER_CAPABILITY: Record<SelectionPopover, keyof CanvasSelectionCapabilities> = {
+  dimensions: 'canEditDimensions',
+  'shape-style': 'canEditShapeStyle',
+  'sticky-note': 'canEditStickyNote',
+  'frame-variant': 'canEditFrameVariant',
+  'media-fit': 'canEditMediaFit',
+  'pdf-page': 'canInspectPdfPage',
+  'edge-type': 'canEditEdgeType',
+  references: 'canInspectReferences',
+  'source-bulk': 'canInspectSourceBulk',
+  'plugin-fields': 'canInspectPluginFields'
+}
+
 type DimensionField = 'x' | 'y' | 'width' | 'height'
 type CanvasMediaFit = 'contain' | 'cover' | 'fill'
 type CanvasNodePropertiesUpdate = {
@@ -357,9 +372,27 @@ type ConnectorStart = {
   placement: ConnectorHandlePlacement
 }
 
+type ConnectorDragState = {
+  pointerId: number
+  nodeId: string
+  placement: ConnectorHandlePlacement
+  startClientPoint: Point
+  currentClientPoint: Point
+  hoverTargetId: string | null
+  moved: boolean
+}
+
+type InlineNodeEditMode = 'text' | 'alias'
+
+type InlineNodeEditState = {
+  nodeId: string
+  mode: InlineNodeEditMode
+}
+
 type CanvasSelectionCapabilities = {
   canOpen: boolean
   canEditAlias: boolean
+  canRenameInline: boolean
   canComment: boolean
   canEditDimensions: boolean
   canEditShapeStyle: boolean
@@ -549,6 +582,32 @@ function getObjectTitle(object: CanvasObjectRecord): string {
   return object.preview.title ?? object.kind.replace('-', ' ')
 }
 
+function pickConnectorPlacementForScreenPoint(rect: Rect, point: Point): ConnectorHandlePlacement {
+  const centerX = rect.x + rect.width / 2
+  const centerY = rect.y + rect.height / 2
+  const dx = rect.width > 0 ? (point.x - centerX) / (rect.width / 2) : 0
+  const dy = rect.height > 0 ? (point.y - centerY) / (rect.height / 2) : 0
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx >= 0 ? 'right' : 'left'
+  }
+
+  return dy >= 0 ? 'bottom' : 'top'
+}
+
+function getRectAnchorPointForPlacement(rect: Rect, placement: ConnectorHandlePlacement): Point {
+  switch (placement) {
+    case 'top':
+      return { x: rect.x + rect.width / 2, y: rect.y }
+    case 'right':
+      return { x: rect.x + rect.width, y: rect.y + rect.height / 2 }
+    case 'bottom':
+      return { x: rect.x + rect.width / 2, y: rect.y + rect.height }
+    case 'left':
+      return { x: rect.x, y: rect.y + rect.height / 2 }
+  }
+}
+
 function getNodeTitle(node: CanvasNode, fallback: string): string {
   const title =
     typeof node.alias === 'string'
@@ -560,6 +619,37 @@ function getNodeTitle(node: CanvasNode, fallback: string): string {
           : fallback
 
   return title.trim().length > 0 ? title : fallback
+}
+
+function getInlineNodeEditValue(node: CanvasNode, mode: InlineNodeEditMode): string {
+  if (mode === 'alias') {
+    return typeof node.alias === 'string' ? node.alias : ''
+  }
+
+  const title = typeof node.properties.title === 'string' ? node.properties.title : ''
+  if (isCanvasStickyNoteNode(node)) {
+    const body = typeof node.properties.body === 'string' ? node.properties.body : ''
+    return body ? `${title}\n${body}` : title
+  }
+
+  // Shape-like nodes display `label` over `title` (see CanvasPrimitiveNodeContent),
+  // so the editor must surface the same text the canvas shows.
+  const label = typeof node.properties.label === 'string' ? node.properties.label : null
+  return label ?? title
+}
+
+function createInlineTextEditProperties(
+  current: CanvasNodeProperties,
+  value: string
+): CanvasNodeProperties {
+  const normalized = value.trim()
+  const next: CanvasNodeProperties = { ...current, title: normalized }
+
+  if (typeof current.label === 'string') {
+    next.label = normalized
+  }
+
+  return next
 }
 
 function getCanvasObjectKindLabel(node: CanvasNode): string {
@@ -803,6 +893,26 @@ function findCanvasEdgeEntryBetweenNodes(
   return null
 }
 
+function findCanvasEdgeEntryById(
+  connectors: Y.Map<CanvasEdge>,
+  edgeId: string
+): readonly [string, CanvasEdge] | null {
+  const direct = connectors.get(edgeId)
+  if (direct) {
+    return [edgeId, direct]
+  }
+
+  for (const entry of connectors.entries()) {
+    const [key, edge] = entry
+
+    if (edge.id === edgeId) {
+      return [key, edge]
+    }
+  }
+
+  return null
+}
+
 function createSelectionCapabilities(input: {
   nodes: readonly CanvasNode[]
   hasOpenHandler: boolean
@@ -819,6 +929,7 @@ function createSelectionCapabilities(input: {
   return {
     canOpen: selectionCount === 1 && input.hasOpenHandler,
     canEditAlias: selectionCount === 1 && Boolean(firstNode?.sourceNodeId) && input.hasAliasHandler,
+    canRenameInline: selectionCount === 1 && unlockedCount === 1,
     canComment: hasSelection && input.hasCommentHandler,
     canEditDimensions: selectionCount === 1 && hasUnlockedSelection,
     canEditShapeStyle: selectionCount === 1 && unlockedCount === 1 && firstNode?.type === 'shape',
@@ -2088,6 +2199,355 @@ function CanvasSelectionEdgeTypePopover({
   )
 }
 
+function getDomIslandStyle(input: {
+  renderRect: Rect
+  previewDelta: Point | null
+  resizeRect: Rect | null
+  position: { width: number; height: number }
+  zoom: number
+  highlighted: boolean
+  locked: boolean
+  theme: CanvasThemeTokens
+}): React.CSSProperties {
+  return {
+    ...styles.domIsland,
+    left: input.renderRect.x + (input.previewDelta?.x ?? 0),
+    top: input.renderRect.y + (input.previewDelta?.y ?? 0),
+    width: input.resizeRect?.width ?? input.position.width,
+    height: input.resizeRect?.height ?? input.position.height,
+    transform: `scale(${input.zoom})`,
+    borderColor: input.highlighted ? input.theme.minimapViewportStroke : input.theme.panelBorder,
+    boxShadow: input.highlighted
+      ? `0 0 0 2px ${input.theme.minimapViewportStroke}`
+      : input.theme.panelShadow,
+    background: input.theme.panelBackground,
+    cursor: input.locked ? 'default' : 'grab'
+  }
+}
+
+function shouldShowDomIslandConnectorHandles(input: {
+  locked: boolean
+  selected: boolean
+  hovered: boolean
+  connectorStart: ConnectorStart | null
+  connectorDrag: ConnectorDragState | null
+}): boolean {
+  if (input.locked) {
+    return false
+  }
+
+  return (
+    input.selected || input.hovered || input.connectorStart !== null || input.connectorDrag !== null
+  )
+}
+
+function getDomIslandTabIndex(input: {
+  selected: boolean
+  focused: boolean
+  liveIframe: boolean
+}): number {
+  return input.selected || input.focused || input.liveIframe ? 0 : -1
+}
+
+function CanvasObjectIslandChrome({
+  objectId,
+  title,
+  theme,
+  locked,
+  selected,
+  liveIframe,
+  liveIframeDescriptionId,
+  showConnectorHandles,
+  connectorStart,
+  onConnectorHandlePointerDown,
+  onConnectorHandleClick,
+  onResizePointerDown
+}: {
+  objectId: string
+  title: string
+  theme: CanvasThemeTokens
+  locked: boolean
+  selected: boolean
+  liveIframe: boolean
+  liveIframeDescriptionId: string
+  showConnectorHandles: boolean
+  connectorStart: ConnectorStart | null
+  onConnectorHandlePointerDown: (
+    event: React.PointerEvent<HTMLButtonElement>,
+    objectId: string,
+    placement: ConnectorHandlePlacement
+  ) => void
+  onConnectorHandleClick: (
+    event: React.MouseEvent<HTMLButtonElement>,
+    objectId: string,
+    placement: ConnectorHandlePlacement
+  ) => void
+  onResizePointerDown: (
+    event: React.PointerEvent<HTMLButtonElement>,
+    objectId: string,
+    handle: ResizeHandle
+  ) => void
+}) {
+  return (
+    <>
+      {liveIframe ? (
+        <span id={liveIframeDescriptionId} style={styles.screenReaderOnly}>
+          Live embed mode. Press Escape to return focus to the canvas.
+        </span>
+      ) : null}
+      {locked ? (
+        <div
+          style={{
+            ...styles.lockIndicator,
+            background: theme.mode === 'dark' ? 'rgba(15, 23, 42, 0.92)' : '#ffffff',
+            borderColor: theme.panelBorder,
+            color: theme.panelMutedText,
+            boxShadow: theme.panelShadow
+          }}
+          role="img"
+          aria-label={`Locked ${title}`}
+          title={`Locked ${title}`}
+          data-canvas-v3-lock-indicator="true"
+          data-canvas-object-id={objectId}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <rect
+              x="2.25"
+              y="5.25"
+              width="7.5"
+              height="5"
+              rx="1"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            />
+            <path
+              d="M3.75 5.25V3.75a2.25 2.25 0 0 1 4.5 0v1.5"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      ) : null}
+      {showConnectorHandles
+        ? CONNECTOR_HANDLE_PLACEMENTS.map((placement) => {
+            const active =
+              connectorStart?.nodeId === objectId && connectorStart.placement === placement
+            const pendingConnector = connectorStart !== null
+            const connectorLabel = active
+              ? `Connector start from ${title} ${placement}`
+              : pendingConnector
+                ? `Finish connector at ${title} ${placement}`
+                : `Start connector from ${title} ${placement}`
+
+            return (
+              <button
+                key={placement}
+                type="button"
+                style={getConnectorHandleStyle(
+                  placement,
+                  {
+                    background: theme.panelBackground,
+                    border: theme.minimapViewportStroke,
+                    activeBackground: theme.minimapViewportStroke,
+                    activeBorder: theme.panelBackground,
+                    shadow: theme.panelShadow
+                  },
+                  active
+                )}
+                aria-label={connectorLabel}
+                title={connectorLabel}
+                data-canvas-v3-connector-handle={placement}
+                data-canvas-connector-active={active ? 'true' : 'false'}
+                onPointerDown={(event) => {
+                  onConnectorHandlePointerDown(event, objectId, placement)
+                }}
+                onClick={(event) => {
+                  onConnectorHandleClick(event, objectId, placement)
+                }}
+              />
+            )
+          })
+        : null}
+      {selected && !locked
+        ? RESIZE_HANDLES.map((handle) => (
+            <button
+              key={handle}
+              type="button"
+              style={getResizeHandleStyle(handle, {
+                background: theme.panelBackground,
+                border: theme.minimapViewportStroke,
+                shadow: theme.panelShadow
+              })}
+              aria-label={`Resize ${title} from ${handle}`}
+              data-canvas-v3-resize-handle={handle}
+              onPointerDown={(event) => onResizePointerDown(event, objectId, handle)}
+            />
+          ))
+        : null}
+    </>
+  )
+}
+
+function CanvasEdgeToolbar({
+  theme,
+  style,
+  label,
+  kind,
+  focusToken,
+  onCommitLabel,
+  onSelectKind,
+  onReverse,
+  onDelete
+}: {
+  theme: CanvasThemeTokens
+  style: React.CSSProperties
+  label: string
+  kind: CanvasEdgeRelationshipKind
+  focusToken: number
+  onCommitLabel: (label: string) => void
+  onSelectKind: (kind: CanvasEdgeRelationshipKind) => void
+  onReverse: () => void
+  onDelete: () => void
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const lastCommittedLabelRef = useRef(label)
+  const cancelingLabelEditRef = useRef(false)
+  const [draft, setDraft] = useState(label)
+
+  useEffect(() => {
+    lastCommittedLabelRef.current = label
+    setDraft(label)
+  }, [label])
+
+  useEffect(() => {
+    if (focusToken > 0) {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }
+  }, [focusToken])
+
+  const commitDraft = (value: string) => {
+    if (value === lastCommittedLabelRef.current) {
+      return
+    }
+
+    lastCommittedLabelRef.current = value
+    onCommitLabel(value)
+  }
+
+  const kindOptions = EDGE_TYPE_OPTIONS.some((option) => option.kind === kind)
+    ? EDGE_TYPE_OPTIONS
+    : [...EDGE_TYPE_OPTIONS, { kind, label: kind, description: 'Current relationship kind' }]
+
+  return (
+    <div
+      style={{
+        ...styles.edgeToolbar,
+        background: theme.panelBackground,
+        borderColor: theme.panelBorder,
+        boxShadow: theme.panelShadow,
+        color: theme.panelText,
+        ...style
+      }}
+      role="toolbar"
+      aria-label="Canvas connector actions"
+      data-canvas-v3-edge-toolbar="true"
+      onPointerDown={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+    >
+      <input
+        ref={inputRef}
+        type="text"
+        value={draft}
+        placeholder="Label"
+        aria-label="Connector label"
+        data-canvas-v3-edge-label-input="true"
+        style={{
+          ...styles.edgeToolbarInput,
+          background: theme.surfaceBackground,
+          borderColor: theme.panelBorder,
+          color: theme.panelText
+        }}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            event.stopPropagation()
+            commitDraft(draft)
+            event.currentTarget.blur()
+            return
+          }
+
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            event.stopPropagation()
+            cancelingLabelEditRef.current = true
+            setDraft(label)
+            event.currentTarget.blur()
+          }
+        }}
+        onBlur={() => {
+          if (cancelingLabelEditRef.current) {
+            cancelingLabelEditRef.current = false
+            return
+          }
+
+          commitDraft(draft)
+        }}
+      />
+      <select
+        aria-label="Connector type"
+        data-canvas-v3-edge-type-select="true"
+        value={kind}
+        style={{
+          ...styles.edgeToolbarSelect,
+          background: theme.surfaceBackground,
+          borderColor: theme.panelBorder,
+          color: theme.panelText
+        }}
+        onChange={(event) => onSelectKind(event.target.value as CanvasEdgeRelationshipKind)}
+      >
+        {kindOptions.map((option) => (
+          <option key={option.kind} value={option.kind} title={option.description}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        aria-label="Reverse connector direction"
+        title="Reverse connector direction"
+        data-canvas-v3-edge-reverse="true"
+        style={{
+          ...styles.edgeToolbarButton,
+          background: theme.surfaceBackground,
+          borderColor: theme.panelBorder,
+          color: theme.panelText
+        }}
+        onClick={onReverse}
+      >
+        Reverse
+      </button>
+      <button
+        type="button"
+        aria-label="Delete connector"
+        title="Delete connector"
+        data-canvas-v3-edge-delete="true"
+        style={{
+          ...styles.edgeToolbarButton,
+          background: theme.surfaceBackground,
+          borderColor: theme.panelBorder,
+          color: theme.panelText
+        }}
+        onClick={onDelete}
+      >
+        Delete
+      </button>
+    </div>
+  )
+}
+
 function CanvasSelectionReferencesPopover({
   node,
   theme,
@@ -2528,6 +2988,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const containerRef = useRef<HTMLDivElement | null>(null)
   const vectorLayerRef = useRef<HTMLDivElement | null>(null)
   const lastPointerRef = useRef<Point | null>(null)
+  const touchPointersRef = useRef<Map<number, Point>>(new Map())
+  const pinchStateRef = useRef<PinchGestureState | null>(null)
   const nodeDragRef = useRef<NodeDragState | null>(null)
   const nodeResizeRef = useRef<NodeResizeState | null>(null)
   const scene = useCanvasV3Scene(doc)
@@ -2541,11 +3003,22 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     zoom: initialViewport?.zoom ?? 1
   })
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set())
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
   const [dragPreview, setDragPreview] = useState<DragPreviewState | null>(null)
   const [resizePreview, setResizePreview] = useState<ResizePreviewState | null>(null)
   const [activeSnapGuides, setActiveSnapGuides] = useState<CanvasSnapGuideSegment[]>([])
   const [connectorStart, setConnectorStart] = useState<ConnectorStart | null>(null)
+  const [connectorDrag, setConnectorDrag] = useState<ConnectorDragState | null>(null)
+  const connectorDragRef = useRef<ConnectorDragState | null>(null)
+  const suppressConnectorHandleClickRef = useRef(false)
+  const [connectorCursorClientPoint, setConnectorCursorClientPoint] = useState<Point | null>(null)
+  const [inlineNodeEdit, setInlineNodeEdit] = useState<InlineNodeEditState | null>(null)
+  // Mirrors inlineNodeEdit synchronously so a blur fired by cancel/commit focus
+  // changes cannot re-commit with stale state.
+  const inlineNodeEditRef = useRef<InlineNodeEditState | null>(null)
+  const [edgeLabelFocusToken, setEdgeLabelFocusToken] = useState(0)
   const [activeSelectionPopover, setActiveSelectionPopover] = useState<SelectionPopover | null>(
     null
   )
@@ -2612,6 +3085,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [viewport, viewportSize]
   )
 
+  const clientPointToScreenPoint = useCallback((clientX: number, clientY: number): Point => {
+    const bounds = containerRef.current?.getBoundingClientRect()
+
+    return {
+      x: clientX - (bounds?.left ?? 0),
+      y: clientY - (bounds?.top ?? 0)
+    }
+  }, [])
+
   const fitToRect = useCallback(
     (rect: Rect, padding = 80) => {
       setViewportClamped(
@@ -2629,15 +3111,28 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
   const clearSelection = useCallback(() => {
     setSelectedNodeIds(new Set())
+    setSelectedEdgeIds(new Set())
     setFocusedNodeId(null)
     setConnectorStart(null)
+    inlineNodeEditRef.current = null
+    setInlineNodeEdit(null)
     setActiveSnapGuides([])
   }, [])
 
   const selectNodes = useCallback((nodeIds: string[]) => {
     setSelectedNodeIds(new Set(nodeIds))
+    setSelectedEdgeIds(new Set())
     setFocusedNodeId(nodeIds[0] ?? null)
     setConnectorStart(null)
+  }, [])
+
+  const selectEdges = useCallback((edgeIds: string[]) => {
+    setSelectedEdgeIds(new Set(edgeIds))
+    setSelectedNodeIds(new Set())
+    setFocusedNodeId(null)
+    setConnectorStart(null)
+    inlineNodeEditRef.current = null
+    setInlineNodeEdit(null)
   }, [])
 
   const getSelectedNodes = useCallback((): CanvasNode[] => {
@@ -3331,6 +3826,201 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [connectorStart, doc, onSceneMutation]
   )
 
+  const updateSelectedEdge = useCallback(
+    (updater: (edge: CanvasEdge) => CanvasEdge): boolean => {
+      if (selectedEdgeIds.size !== 1) {
+        return false
+      }
+
+      const edgeId = Array.from(selectedEdgeIds)[0]
+      const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+      const entry = edgeId ? findCanvasEdgeEntryById(connectors, edgeId) : null
+      if (!entry) {
+        return false
+      }
+
+      const [entryKey, edge] = entry
+      doc.transact(() => {
+        connectors.set(entryKey, updater(edge))
+      })
+      onSceneMutation?.()
+
+      return true
+    },
+    [doc, onSceneMutation, selectedEdgeIds]
+  )
+
+  const setSelectedEdgeLabel = useCallback(
+    (label: string): boolean => {
+      const normalized = label.trim()
+
+      return updateSelectedEdge((edge) => {
+        const next: CanvasEdge = { ...edge }
+
+        if (normalized.length > 0) {
+          next.label = normalized
+        } else {
+          delete next.label
+        }
+
+        if (next.relationship) {
+          const relationship = { ...next.relationship }
+          if (normalized.length > 0) {
+            relationship.label = normalized
+          } else {
+            delete relationship.label
+          }
+          next.relationship = relationship
+        }
+
+        return next
+      })
+    },
+    [updateSelectedEdge]
+  )
+
+  const setSelectedEdgeRelationshipKind = useCallback(
+    (kind: CanvasEdgeRelationshipKind): boolean => {
+      return updateSelectedEdge((edge) => ({
+        ...edge,
+        relationship: createCanvasEdgeRelationship({
+          ...(edge.relationship ?? {}),
+          kind,
+          direction: undefined
+        })
+      }))
+    },
+    [updateSelectedEdge]
+  )
+
+  const reverseSelectedEdge = useCallback((): boolean => {
+    return updateSelectedEdge((edge) => {
+      const next: CanvasEdge = {
+        ...edge,
+        sourceId: edge.targetId,
+        targetId: edge.sourceId
+      }
+
+      delete next.sourceAnchor
+      delete next.targetAnchor
+      if (edge.targetAnchor !== undefined) {
+        next.sourceAnchor = edge.targetAnchor
+      }
+      if (edge.sourceAnchor !== undefined) {
+        next.targetAnchor = edge.sourceAnchor
+      }
+
+      delete next.source
+      delete next.target
+      if (edge.target !== undefined) {
+        next.source = edge.target
+      }
+      if (edge.source !== undefined) {
+        next.target = edge.source
+      }
+
+      if (edge.relationship) {
+        const relationship = { ...edge.relationship }
+        delete relationship.sourceRole
+        delete relationship.targetRole
+        if (edge.relationship.targetRole !== undefined) {
+          relationship.sourceRole = edge.relationship.targetRole
+        }
+        if (edge.relationship.sourceRole !== undefined) {
+          relationship.targetRole = edge.relationship.sourceRole
+        }
+        next.relationship = relationship
+      }
+
+      return next
+    })
+  }, [updateSelectedEdge])
+
+  const beginInlineNodeEdit = useCallback(
+    (nodeId: string, mode: InlineNodeEditMode): boolean => {
+      const node = getCanvasObjectsMap<CanvasNode>(doc).get(nodeId)
+      if (!node || node.locked) {
+        return false
+      }
+
+      setSelectedNodeIds(new Set([nodeId]))
+      setSelectedEdgeIds(new Set())
+      setFocusedNodeId(nodeId)
+      setConnectorStart(null)
+      inlineNodeEditRef.current = { nodeId, mode }
+      setInlineNodeEdit({ nodeId, mode })
+
+      return true
+    },
+    [doc]
+  )
+
+  const commitInlineNodeEdit = useCallback(
+    (value: string): boolean => {
+      const editing = inlineNodeEditRef.current
+      inlineNodeEditRef.current = null
+      setInlineNodeEdit(null)
+
+      if (!editing) {
+        return false
+      }
+
+      containerRef.current?.focus()
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const current = objects.get(editing.nodeId)
+      if (!current || current.locked) {
+        return false
+      }
+
+      if (value === getInlineNodeEditValue(current, editing.mode)) {
+        return false
+      }
+
+      doc.transact(() => {
+        if (editing.mode === 'alias') {
+          const normalized = value.trim()
+          const next: CanvasNode = { ...current }
+          if (normalized.length > 0) {
+            next.alias = normalized
+          } else {
+            delete next.alias
+          }
+          objects.set(current.id, next)
+          return
+        }
+
+        if (isCanvasStickyNoteNode(current)) {
+          const [firstLine, ...restLines] = value.split('\n')
+          objects.set(current.id, {
+            ...current,
+            properties: {
+              ...current.properties,
+              title: (firstLine ?? '').trim(),
+              body: restLines.join('\n').trim()
+            }
+          })
+          return
+        }
+
+        objects.set(current.id, {
+          ...current,
+          properties: createInlineTextEditProperties(current.properties, value)
+        })
+      })
+      onSceneMutation?.()
+
+      return true
+    },
+    [doc, onSceneMutation]
+  )
+
+  const cancelInlineNodeEdit = useCallback(() => {
+    inlineNodeEditRef.current = null
+    setInlineNodeEdit(null)
+    containerRef.current?.focus()
+  }, [])
+
   const duplicateSelection = useCallback((): boolean => {
     const selectedNodes = getUnlockedSelection(getSelectedNodes())
     if (selectedNodes.length === 0) {
@@ -3390,7 +4080,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
   const deleteSelection = useCallback((): boolean => {
     const selectedNodes = getUnlockedSelection(getSelectedNodes())
-    if (selectedNodes.length === 0) {
+    const edgeIdsToDelete = new Set(selectedEdgeIds)
+    if (selectedNodes.length === 0 && edgeIdsToDelete.size === 0) {
       return false
     }
 
@@ -3416,6 +4107,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           changed = true
         }
       })
+
+      for (const edgeId of edgeIdsToDelete) {
+        const entry = findCanvasEdgeEntryById(connectors, edgeId)
+        if (!entry) {
+          continue
+        }
+
+        connectors.delete(entry[0])
+        changed = true
+      }
     })
 
     if (!changed) {
@@ -3424,11 +4125,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
     const remainingIds = Array.from(selectedNodeIds).filter((id) => !deletedIds.has(id))
     setSelectedNodeIds(new Set(remainingIds))
+    setSelectedEdgeIds(new Set())
     setFocusedNodeId(remainingIds[0] ?? null)
     onSceneMutation?.()
 
     return true
-  }, [doc, getSelectedNodes, onSceneMutation, selectedNodeIds])
+  }, [doc, getSelectedNodes, onSceneMutation, selectedEdgeIds, selectedNodeIds])
 
   const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes, scene.objects])
   const selectedNodesForBounds = useMemo(() => {
@@ -3485,33 +4187,51 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [connectorStart, doc, scene.objects])
 
   useEffect(() => {
+    if (!connectorStart) {
+      setConnectorCursorClientPoint(null)
+    }
+  }, [connectorStart])
+
+  useEffect(() => {
+    if (selectedEdgeIds.size === 0) {
+      return
+    }
+
+    const connectors = getCanvasConnectorsMap<CanvasEdge>(doc)
+    const staleIds = Array.from(selectedEdgeIds).filter(
+      (edgeId) => findCanvasEdgeEntryById(connectors, edgeId) === null
+    )
+    if (staleIds.length === 0) {
+      return
+    }
+
+    setSelectedEdgeIds((current) => {
+      const next = new Set(current)
+      staleIds.forEach((edgeId) => next.delete(edgeId))
+      return next
+    })
+  }, [doc, scene.connectors, selectedEdgeIds])
+
+  useEffect(() => {
+    if (!inlineNodeEdit) {
+      return
+    }
+
+    const node = getCanvasObjectsMap<CanvasNode>(doc).get(inlineNodeEdit.nodeId)
+    if (!node || node.locked) {
+      inlineNodeEditRef.current = null
+      setInlineNodeEdit(null)
+    }
+  }, [doc, inlineNodeEdit, scene.objects])
+
+  useEffect(() => {
     if (
-      (activeSelectionPopover === 'dimensions' && !selectionCapabilities.canEditDimensions) ||
-      (activeSelectionPopover === 'shape-style' && !selectionCapabilities.canEditShapeStyle) ||
-      (activeSelectionPopover === 'sticky-note' && !selectionCapabilities.canEditStickyNote) ||
-      (activeSelectionPopover === 'frame-variant' && !selectionCapabilities.canEditFrameVariant) ||
-      (activeSelectionPopover === 'media-fit' && !selectionCapabilities.canEditMediaFit) ||
-      (activeSelectionPopover === 'pdf-page' && !selectionCapabilities.canInspectPdfPage) ||
-      (activeSelectionPopover === 'edge-type' && !selectionCapabilities.canEditEdgeType) ||
-      (activeSelectionPopover === 'references' && !selectionCapabilities.canInspectReferences) ||
-      (activeSelectionPopover === 'source-bulk' && !selectionCapabilities.canInspectSourceBulk) ||
-      (activeSelectionPopover === 'plugin-fields' && !selectionCapabilities.canInspectPluginFields)
+      activeSelectionPopover &&
+      !selectionCapabilities[SELECTION_POPOVER_CAPABILITY[activeSelectionPopover]]
     ) {
       setActiveSelectionPopover(null)
     }
-  }, [
-    activeSelectionPopover,
-    selectionCapabilities.canEditDimensions,
-    selectionCapabilities.canEditEdgeType,
-    selectionCapabilities.canEditFrameVariant,
-    selectionCapabilities.canEditMediaFit,
-    selectionCapabilities.canEditShapeStyle,
-    selectionCapabilities.canEditStickyNote,
-    selectionCapabilities.canInspectPdfPage,
-    selectionCapabilities.canInspectPluginFields,
-    selectionCapabilities.canInspectReferences,
-    selectionCapabilities.canInspectSourceBulk
-  ])
+  }, [activeSelectionPopover, selectionCapabilities])
 
   const firstSelectedNode = selectedNodes[0] ?? null
   const selectedPairEdgeKind = useMemo<CanvasEdgeRelationshipKind | null>(() => {
@@ -4010,6 +4730,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         }),
       clearSelection,
       selectNodes,
+      selectEdges,
       toggleSelectionLock,
       alignSelection,
       distributeSelection,
@@ -4051,6 +4772,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       onUndoRedoShortcut,
       scene.bounds,
       screenToCanvasPoint,
+      selectEdges,
       selectNodes,
       setViewportClamped,
       shiftSelectionLayer,
@@ -4065,9 +4787,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   useEffect(() => {
     onSelectionChange?.({
       nodeIds: Array.from(selectedNodeIds),
-      edgeIds: []
+      edgeIds: Array.from(selectedEdgeIds)
     })
-  }, [onSelectionChange, selectedNodeIds])
+  }, [onSelectionChange, selectedEdgeIds, selectedNodeIds])
 
   useEffect(() => {
     awareness?.setLocalStateField('canvasSelection', Array.from(selectedNodeIds))
@@ -4078,9 +4800,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [awareness, viewport])
 
   useEffect(() => {
-    awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
-    awareness?.setLocalStateField('editingNodeId', presenceIntent?.editingNodeId ?? null)
-  }, [awareness, presenceIntent])
+    awareness?.setLocalStateField(
+      'activity',
+      inlineNodeEdit ? 'editing' : (presenceIntent?.activity ?? 'idle')
+    )
+    awareness?.setLocalStateField(
+      'editingNodeId',
+      inlineNodeEdit?.nodeId ?? presenceIntent?.editingNodeId ?? null
+    )
+  }, [awareness, inlineNodeEdit, presenceIntent])
 
   useEffect(() => {
     if (!awareness) {
@@ -4223,6 +4951,71 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     viewport,
     viewportSize
   ])
+  const connectorPreviewLine = useMemo(() => {
+    const activeDrag = connectorDrag && connectorDrag.moved ? connectorDrag : null
+    const pending =
+      !activeDrag && connectorStart && connectorCursorClientPoint ? connectorStart : null
+    const source = activeDrag ?? pending
+    if (!source) {
+      return null
+    }
+
+    const sourceItem = screenObjects.find((item) => item.object.id === source.nodeId)
+    const cursorClient = activeDrag ? activeDrag.currentClientPoint : connectorCursorClientPoint
+    if (!sourceItem || !cursorClient) {
+      return null
+    }
+
+    const anchor = getRectAnchorPointForPlacement(sourceItem.rect, source.placement)
+    const cursor = clientPointToScreenPoint(cursorClient.x, cursorClient.y)
+
+    return { x1: anchor.x, y1: anchor.y, x2: cursor.x, y2: cursor.y }
+  }, [
+    clientPointToScreenPoint,
+    connectorCursorClientPoint,
+    connectorDrag,
+    connectorStart,
+    screenObjects
+  ])
+  const selectedEdgeForToolbar = useMemo(() => {
+    if (selectedEdgeIds.size !== 1) {
+      return null
+    }
+
+    const edgeId = Array.from(selectedEdgeIds)[0]
+    const entry = edgeId
+      ? findCanvasEdgeEntryById(getCanvasConnectorsMap<CanvasEdge>(doc), edgeId)
+      : null
+    const line = edgeId ? visibleConnectorLines.find((candidate) => candidate.id === edgeId) : null
+    if (!edgeId || !entry || !line) {
+      return null
+    }
+
+    return {
+      edgeId,
+      edge: entry[1],
+      midX: (line.x1 + line.x2) / 2,
+      midY: (line.y1 + line.y2) / 2
+    }
+  }, [doc, selectedEdgeIds, visibleConnectorLines])
+  const inlineNodeEditContext = useMemo(() => {
+    if (!inlineNodeEdit) {
+      return null
+    }
+
+    const item = screenObjects.find((candidate) => candidate.object.id === inlineNodeEdit.nodeId)
+    if (!item) {
+      return null
+    }
+
+    return {
+      nodeId: inlineNodeEdit.nodeId,
+      mode: inlineNodeEdit.mode,
+      rect: item.rect,
+      value: getInlineNodeEditValue(item.node, inlineNodeEdit.mode),
+      title: getObjectTitle(item.object)
+    }
+  }, [inlineNodeEdit, screenObjects])
   const visibleSnapGuideLines = useMemo(() => {
     return activeSnapGuides
       .map((guide) => ({
@@ -4240,8 +5033,230 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [screenToCanvasPoint, viewport]
   )
 
+  const findConnectorDropTarget = useCallback(
+    (clientX: number, clientY: number, excludeNodeId: string): ScreenObject | null => {
+      const point = clientPointToScreenPoint(clientX, clientY)
+
+      for (let index = screenObjects.length - 1; index >= 0; index -= 1) {
+        const item = screenObjects[index]
+        if (!item || item.object.id === excludeNodeId || item.node.locked === true) {
+          continue
+        }
+
+        const hitRect = getCanvasObjectHitTargetRect(item.rect)
+        if (
+          point.x >= hitRect.x &&
+          point.x <= hitRect.x + hitRect.width &&
+          point.y >= hitRect.y &&
+          point.y <= hitRect.y + hitRect.height
+        ) {
+          return item
+        }
+      }
+
+      return null
+    },
+    [clientPointToScreenPoint, screenObjects]
+  )
+
+  const completeConnectorDrag = useCallback(
+    (drag: ConnectorDragState, clientX: number, clientY: number): boolean => {
+      const target = findConnectorDropTarget(clientX, clientY, drag.nodeId)
+      if (!target) {
+        return false
+      }
+
+      const objects = getCanvasObjectsMap<CanvasNode>(doc)
+      const sourceNode = objects.get(drag.nodeId)
+      const targetNode = objects.get(target.object.id)
+      if (!sourceNode || !targetNode || sourceNode.locked || targetNode.locked) {
+        return false
+      }
+
+      const dropPoint = clientPointToScreenPoint(clientX, clientY)
+      const targetPlacement = pickConnectorPlacementForScreenPoint(target.rect, dropPoint)
+      const connectors = getCanvasConnectorsMap(doc)
+      const edge = createEdge(sourceNode.id, targetNode.id, {
+        ...createCanvasSemanticEdgeDraft({
+          sourceNode,
+          targetNode,
+          sourcePlacement: drag.placement,
+          targetPlacement
+        })
+      })
+
+      doc.transact(() => {
+        connectors.set(edge.id, edge)
+      })
+      setConnectorStart(null)
+      setSelectedNodeIds(new Set())
+      setFocusedNodeId(null)
+      setSelectedEdgeIds(new Set([edge.id]))
+      onSceneMutation?.()
+
+      return true
+    },
+    [clientPointToScreenPoint, doc, findConnectorDropTarget, onSceneMutation]
+  )
+
+  const handleConnectorHandlePointerDown = useCallback(
+    (
+      event: React.PointerEvent<HTMLButtonElement>,
+      nodeId: string,
+      placement: ConnectorHandlePlacement
+    ) => {
+      event.stopPropagation()
+      if (!isPrimaryPointerButton(event)) {
+        return
+      }
+
+      suppressConnectorHandleClickRef.current = false
+      const drag: ConnectorDragState = {
+        pointerId: event.pointerId,
+        nodeId,
+        placement,
+        startClientPoint: { x: event.clientX, y: event.clientY },
+        currentClientPoint: { x: event.clientX, y: event.clientY },
+        hoverTargetId: null,
+        moved: false
+      }
+      connectorDragRef.current = drag
+      setConnectorDrag(drag)
+    },
+    []
+  )
+
+  const handleConnectorHandleClick = useCallback(
+    (
+      event: React.MouseEvent<HTMLButtonElement>,
+      nodeId: string,
+      placement: ConnectorHandlePlacement
+    ) => {
+      event.stopPropagation()
+      if (suppressConnectorHandleClickRef.current) {
+        suppressConnectorHandleClickRef.current = false
+        return
+      }
+
+      connectFromHandle(nodeId, placement)
+    },
+    [connectFromHandle]
+  )
+
+  const handleIslandKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>, objectId: string, liveIframe: boolean) => {
+      if (liveIframe && event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        setFocusedNodeId(objectId)
+        containerRef.current?.focus()
+      }
+    },
+    []
+  )
+
+  const applyPinchZoom = useCallback(
+    (previousCenter: Point, nextCenter: Point, scaleFactor: number) => {
+      const bounds = containerRef.current?.getBoundingClientRect()
+      const left = bounds?.left ?? 0
+      const top = bounds?.top ?? 0
+
+      setViewportClamped((current) =>
+        computePinchViewport({
+          viewport: current,
+          viewportSize,
+          previousCenter: { x: previousCenter.x - left, y: previousCenter.y - top },
+          nextCenter: { x: nextCenter.x - left, y: nextCenter.y - top },
+          scaleFactor,
+          minZoom,
+          maxZoom
+        })
+      )
+    },
+    [maxZoom, minZoom, setViewportClamped, viewportSize]
+  )
+
+  const trackTouchPointerForPinch = useCallback(
+    (event: React.PointerEvent<HTMLElement>): boolean => {
+      if (event.pointerType !== 'touch') {
+        return false
+      }
+
+      const touchPointers = touchPointersRef.current
+      if (!touchPointers.has(event.pointerId) && touchPointers.size < 2) {
+        touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      }
+
+      const pinch = measureTouchPinch(touchPointers)
+      if (!pinch) {
+        return false
+      }
+
+      // A second finger converts any in-flight touch interaction into a pinch.
+      pinchStateRef.current = pinch
+      nodeDragRef.current = null
+      nodeResizeRef.current = null
+      lastPointerRef.current = null
+      setDragPreview(null)
+      setResizePreview(null)
+      setActiveSnapGuides([])
+      for (const pointerId of touchPointers.keys()) {
+        containerRef.current?.setPointerCapture?.(pointerId)
+      }
+      return true
+    },
+    []
+  )
+
+  const handleTouchPinchMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>): boolean => {
+      const touchPointers = touchPointersRef.current
+      if (event.pointerType !== 'touch' || !touchPointers.has(event.pointerId)) {
+        return false
+      }
+
+      touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      const previousPinch = pinchStateRef.current
+      if (!previousPinch) {
+        return false
+      }
+
+      const nextPinch = measureTouchPinch(touchPointers)
+      if (nextPinch) {
+        pinchStateRef.current = nextPinch
+        applyPinchZoom(
+          previousPinch.center,
+          nextPinch.center,
+          previousPinch.distance > 0 ? nextPinch.distance / previousPinch.distance : 1
+        )
+      }
+      return true
+    },
+    [applyPinchZoom]
+  )
+
+  const endTouchPinchPointer = useCallback((event: React.PointerEvent<HTMLDivElement>): boolean => {
+    if (event.pointerType !== 'touch' || !touchPointersRef.current.delete(event.pointerId)) {
+      return false
+    }
+
+    if (!pinchStateRef.current) {
+      return false
+    }
+
+    pinchStateRef.current = null
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+    // The remaining finger continues as a pan without re-running tap side effects.
+    lastPointerRef.current = Array.from(touchPointersRef.current.values())[0] ?? null
+    return true
+  }, [])
+
   const handleNodePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>, objectId: string) => {
+      if (trackTouchPointerForPinch(event)) {
+        return
+      }
+
       if (!isPrimaryPointerButton(event) || isTextInputLikeElement(event.target)) {
         return
       }
@@ -4252,6 +5267,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       const dragNodeIds = !additive && wasSelected ? Array.from(selectedNodeIds) : [objectId]
 
       setFocusedNodeId(objectId)
+      if (!additive) {
+        setSelectedEdgeIds(new Set())
+      }
       setSelectedNodeIds((current) => {
         if (!additive) {
           return new Set([objectId])
@@ -4277,7 +5295,72 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         containerRef.current?.setPointerCapture?.(event.pointerId)
       }
     },
-    [createNodeDragState, selectedNodeIds]
+    [createNodeDragState, selectedNodeIds, trackTouchPointerForPinch]
+  )
+
+  const handleNodeDoubleClick = useCallback(
+    (event: React.MouseEvent, objectId: string) => {
+      if (isTextInputLikeElement(event.target)) {
+        return
+      }
+
+      const node = getCanvasObjectsMap<CanvasNode>(doc).get(objectId)
+      if (node && !node.locked && !isCanvasSourceBackedNode(node)) {
+        event.stopPropagation()
+        beginInlineNodeEdit(objectId, 'text')
+        return
+      }
+
+      onNodeDoubleClick?.(objectId)
+    },
+    [beginInlineNodeEdit, doc, onNodeDoubleClick]
+  )
+
+  const handleEdgePointerDown = useCallback(
+    (event: React.PointerEvent<SVGLineElement>, edgeId: string) => {
+      if (!isPrimaryPointerButton(event)) {
+        return
+      }
+
+      event.stopPropagation()
+      containerRef.current?.focus()
+      const additive = event.shiftKey || event.metaKey
+
+      setSelectedEdgeIds((current) => {
+        if (!additive) {
+          return new Set([edgeId])
+        }
+
+        const next = new Set(current)
+        if (next.has(edgeId)) {
+          next.delete(edgeId)
+        } else {
+          next.add(edgeId)
+        }
+
+        return next
+      })
+
+      if (!additive) {
+        setSelectedNodeIds(new Set())
+        setFocusedNodeId(null)
+      }
+
+      setConnectorStart(null)
+      setEdgeLabelFocusToken(0)
+      inlineNodeEditRef.current = null
+      setInlineNodeEdit(null)
+    },
+    []
+  )
+
+  const handleEdgeDoubleClick = useCallback(
+    (event: React.MouseEvent<SVGLineElement>, edgeId: string) => {
+      event.stopPropagation()
+      selectEdges([edgeId])
+      setEdgeLabelFocusToken((token) => token + 1)
+    },
+    [selectEdges]
   )
 
   const handleResizePointerDown = useCallback(
@@ -4330,6 +5413,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
   const handleBackgroundPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (trackTouchPointerForPinch(event)) {
+        return
+      }
+
       if (event.button !== 0 || event.target !== containerRef.current) {
         return
       }
@@ -4339,14 +5426,45 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       clearSelection()
       onBackgroundClick?.()
       lastPointerRef.current = { x: event.clientX, y: event.clientY }
-      event.currentTarget.setPointerCapture(event.pointerId)
+      event.currentTarget.setPointerCapture?.(event.pointerId)
     },
-    [clearSelection, onBackgroundClick, onDismissTransientUi]
+    [clearSelection, onBackgroundClick, onDismissTransientUi, trackTouchPointerForPinch]
   )
 
   const handlePointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       awareness?.setLocalStateField('cursor', screenToCanvasPoint(event.clientX, event.clientY))
+
+      if (handleTouchPinchMove(event)) {
+        return
+      }
+
+      const connectorDragState = connectorDragRef.current
+      if (connectorDragState && connectorDragState.pointerId === event.pointerId) {
+        const moved =
+          connectorDragState.moved ||
+          Math.hypot(
+            event.clientX - connectorDragState.startClientPoint.x,
+            event.clientY - connectorDragState.startClientPoint.y
+          ) >= CANVAS_DRAG_START_THRESHOLD_PX
+        const nextDrag: ConnectorDragState = {
+          ...connectorDragState,
+          currentClientPoint: { x: event.clientX, y: event.clientY },
+          hoverTargetId:
+            findConnectorDropTarget(event.clientX, event.clientY, connectorDragState.nodeId)?.object
+              .id ?? null,
+          moved
+        }
+
+        connectorDragRef.current = nextDrag
+        setConnectorDrag(nextDrag)
+        awareness?.setLocalStateField('activity', 'connecting')
+        return
+      }
+
+      if (connectorStart) {
+        setConnectorCursorClientPoint({ x: event.clientX, y: event.clientY })
+      }
 
       const nodeResize = nodeResizeRef.current
       if (nodeResize && nodeResize.pointerId === event.pointerId) {
@@ -4424,17 +5542,46 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     },
     [
       awareness,
+      connectorStart,
       createDragInteraction,
       createDragPreview,
       createResizeInteraction,
       createSnappedDragPreviewState,
+      findConnectorDropTarget,
+      handleTouchPinchMove,
       screenToCanvasPoint,
       setViewportClamped
     ]
   )
 
+  const finishConnectorDragOnPointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const connectorDragState = connectorDragRef.current
+      if (connectorDragState?.pointerId !== event.pointerId) {
+        return
+      }
+
+      connectorDragRef.current = null
+      setConnectorDrag(null)
+
+      if (event.type !== 'pointercancel' && connectorDragState.moved) {
+        suppressConnectorHandleClickRef.current = true
+        completeConnectorDrag(connectorDragState, event.clientX, event.clientY)
+      }
+
+      awareness?.setLocalStateField('activity', presenceIntent?.activity ?? 'idle')
+    },
+    [awareness, completeConnectorDrag, presenceIntent?.activity]
+  )
+
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (endTouchPinchPointer(event)) {
+        return
+      }
+
+      finishConnectorDragOnPointerUp(event)
+
       if (nodeResizeRef.current?.pointerId === event.pointerId) {
         if (event.type !== 'pointercancel') {
           commitResizeState(nodeResizeRef.current)
@@ -4465,7 +5612,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       }
       lastPointerRef.current = null
     },
-    [awareness, commitResizeState, commitSelectionDragByScreenDelta, presenceIntent?.activity]
+    [
+      awareness,
+      commitResizeState,
+      commitSelectionDragByScreenDelta,
+      endTouchPinchPointer,
+      finishConnectorDragOnPointerUp,
+      presenceIntent?.activity
+    ]
   )
 
   const handleWheel = useCallback(
@@ -4473,22 +5627,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       event.preventDefault()
 
       if (event.ctrlKey || event.metaKey) {
-        const bounds = containerRef.current?.getBoundingClientRect()
-        const screenX = event.clientX - (bounds?.left ?? 0)
-        const screenY = event.clientY - (bounds?.top ?? 0)
-        const factor = 1 - clamp(event.deltaY, -12, 12) * 0.012
-
-        setViewportClamped((current) => {
-          const nextZoom = clamp(current.zoom * factor, minZoom, maxZoom)
-          const worldX = current.x + (screenX - viewportSize.width / 2) / current.zoom
-          const worldY = current.y + (screenY - viewportSize.height / 2) / current.zoom
-
-          return {
-            x: worldX - (screenX - viewportSize.width / 2) / nextZoom,
-            y: worldY - (screenY - viewportSize.height / 2) / nextZoom,
-            zoom: nextZoom
-          }
-        })
+        const center = { x: event.clientX, y: event.clientY }
+        applyPinchZoom(center, center, 1 - clamp(event.deltaY, -12, 12) * 0.012)
         return
       }
 
@@ -4498,8 +5638,59 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         y: current.y + event.deltaY / current.zoom
       }))
     },
-    [maxZoom, minZoom, setViewportClamped, viewportSize]
+    [applyPinchZoom, setViewportClamped]
   )
+
+  // Safari reports trackpad pinches through proprietary gesture events instead
+  // of ctrl+wheel; other engines never fire these. Touch pinches on iOS fire
+  // both gesture and pointer events, so the pointer-driven pinch wins.
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
+    let lastGestureScale = 1
+    const readGestureScale = (event: Event): number => {
+      const scale = (event as Event & { scale?: number }).scale
+      return typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1
+    }
+    const handleGestureStart = (event: Event) => {
+      event.preventDefault()
+      lastGestureScale = readGestureScale(event)
+    }
+    const handleGestureChange = (event: Event) => {
+      event.preventDefault()
+      if (pinchStateRef.current) {
+        return
+      }
+
+      const bounds = container.getBoundingClientRect()
+      const gesture = event as Event & { clientX?: number; clientY?: number }
+      const center = {
+        x: gesture.clientX ?? bounds.left + bounds.width / 2,
+        y: gesture.clientY ?? bounds.top + bounds.height / 2
+      }
+      const scale = readGestureScale(event)
+
+      applyPinchZoom(center, center, scale / lastGestureScale)
+      lastGestureScale = scale
+    }
+    const handleGestureEnd = (event: Event) => {
+      event.preventDefault()
+      lastGestureScale = 1
+    }
+
+    container.addEventListener('gesturestart', handleGestureStart)
+    container.addEventListener('gesturechange', handleGestureChange)
+    container.addEventListener('gestureend', handleGestureEnd)
+
+    return () => {
+      container.removeEventListener('gesturestart', handleGestureStart)
+      container.removeEventListener('gesturechange', handleGestureChange)
+      container.removeEventListener('gestureend', handleGestureEnd)
+    }
+  }, [applyPinchZoom])
 
   const selectNextVisibleObject = useCallback(
     (reverse: boolean): boolean => {
@@ -4591,9 +5782,23 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         return
       }
 
-      if (!mod && selectedIds.length > 0 && (key === 'delete' || key === 'backspace')) {
+      if (
+        !mod &&
+        (selectedIds.length > 0 || selectedEdgeIds.size > 0) &&
+        (key === 'delete' || key === 'backspace')
+      ) {
         event.preventDefault()
         deleteSelection()
+        return
+      }
+
+      if (key === 'f2' && selectedIds.length === 1) {
+        event.preventDefault()
+        const nodeId = selectedIds[0]
+        const node = nodeId ? getCanvasObjectsMap<CanvasNode>(doc).get(nodeId) : undefined
+        if (nodeId && node && !node.locked) {
+          beginInlineNodeEdit(nodeId, isCanvasSourceBackedNode(node) ? 'alias' : 'text')
+        }
         return
       }
 
@@ -4714,6 +5919,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     },
     [
       awareness,
+      beginInlineNodeEdit,
       clearSelection,
       config.gridSize,
       connectSelection,
@@ -4722,6 +5928,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       createShape,
       createStickyNote,
       deleteSelection,
+      doc,
       duplicateSelection,
       fitToRect,
       groupSelection,
@@ -4735,6 +5942,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       onUndoRedoShortcut,
       resizeSelectionByKeyboardDelta,
       scene.bounds,
+      selectedEdgeIds,
       selectedNodeIds,
       selectNextVisibleObject,
       setViewportClamped,
@@ -4926,6 +6134,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         {visibleConnectorLines.map((line) => {
           const midX = (line.x1 + line.x2) / 2
           const midY = (line.y1 + line.y2) / 2
+          const selected = selectedEdgeIds.has(line.id)
 
           const connectorAccessibleLabel = line.label
             ? `Connector label ${line.label}`
@@ -4937,20 +6146,56 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               role="img"
               aria-label={connectorAccessibleLabel}
               data-canvas-v3-edge-id={line.id}
+              data-canvas-edge-selected={selected ? 'true' : 'false'}
             >
+              {selected ? (
+                <line
+                  x1={line.x1}
+                  y1={line.y1}
+                  x2={line.x2}
+                  y2={line.y2}
+                  stroke={theme.minimapViewportStroke}
+                  strokeWidth={line.strokeWidth + 4}
+                  strokeOpacity={0.35}
+                  strokeLinecap="round"
+                  data-canvas-v3-edge-selection-halo="true"
+                />
+              ) : null}
               <line
                 x1={line.x1}
                 y1={line.y1}
                 x2={line.x2}
                 y2={line.y2}
                 stroke={line.stroke}
-                strokeWidth={line.strokeWidth}
+                strokeWidth={selected ? line.strokeWidth + 0.5 : line.strokeWidth}
                 strokeDasharray={line.strokeDasharray}
-                strokeOpacity={0.72}
+                strokeOpacity={selected ? 1 : 0.72}
                 markerEnd={
                   line.markerEnd === 'arrow' ? `url(#canvas-v3-edge-arrow-${line.id})` : undefined
                 }
               />
+              {selected ? (
+                <>
+                  <circle
+                    cx={line.x1}
+                    cy={line.y1}
+                    r={4}
+                    fill={theme.panelBackground}
+                    stroke={theme.minimapViewportStroke}
+                    strokeWidth={1.5}
+                    data-canvas-v3-edge-endpoint="source"
+                  />
+                  <circle
+                    cx={line.x2}
+                    cy={line.y2}
+                    r={4}
+                    fill={theme.panelBackground}
+                    stroke={theme.minimapViewportStroke}
+                    strokeWidth={1.5}
+                    data-canvas-v3-edge-endpoint="target"
+                  />
+                </>
+              ) : null}
               {line.label ? (
                 <text
                   x={midX}
@@ -4967,9 +6212,35 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
                   {line.label}
                 </text>
               ) : null}
+              <line
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke="transparent"
+                strokeWidth={Math.max(14, line.strokeWidth + 12)}
+                style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                data-canvas-v3-edge-hit-target="true"
+                data-canvas-edge-id={line.id}
+                onPointerDown={(event) => handleEdgePointerDown(event, line.id)}
+                onDoubleClick={(event) => handleEdgeDoubleClick(event, line.id)}
+              />
             </g>
           )
         })}
+        {connectorPreviewLine ? (
+          <line
+            x1={connectorPreviewLine.x1}
+            y1={connectorPreviewLine.y1}
+            x2={connectorPreviewLine.x2}
+            y2={connectorPreviewLine.y2}
+            stroke={theme.minimapViewportStroke}
+            strokeWidth={1.5}
+            strokeDasharray="6 4"
+            strokeOpacity={0.9}
+            data-canvas-v3-connector-preview="true"
+          />
+        ) : null}
       </svg>
 
       {visibleSnapGuideLines.length > 0 ? (
@@ -5053,7 +6324,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             data-canvas-object-id={item.object.id}
             data-canvas-hit-target-dom-island={domIslandIds.has(item.object.id) ? 'true' : 'false'}
             onPointerDown={(event) => handleNodePointerDown(event, item.object.id)}
-            onDoubleClick={() => onNodeDoubleClick?.(item.object.id)}
+            onDoubleClick={(event) => handleNodeDoubleClick(event, item.object.id)}
           />
         )
       })}
@@ -5071,7 +6342,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             : item.rect
           const locked = item.node.locked === true
           const liveIframe = liveIframeObjectIds.has(item.object.id)
-          const showConnectorHandles = !locked && (selected || connectorStart !== null)
+          const connectorDropTarget = connectorDrag?.hoverTargetId === item.object.id
+          const showConnectorHandles = shouldShowDomIslandConnectorHandles({
+            locked,
+            selected,
+            hovered: hoveredNodeId === item.object.id,
+            connectorStart,
+            connectorDrag
+          })
           const mindMapMetadata = getCanvasMindMapMetadata(item.node)
           const liveIframeDescriptionId = `canvas-v3-live-iframe-help-${item.object.id}`
           const accessibleLabel = getCanvasObjectAccessibleLabel({
@@ -5085,20 +6363,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             <div
               key={item.object.id}
               className="canvas-node canvas-node--v3"
-              style={{
-                ...styles.domIsland,
-                left: renderRect.x + (previewDelta?.x ?? 0),
-                top: renderRect.y + (previewDelta?.y ?? 0),
-                width: resizeRect?.width ?? item.object.position.width,
-                height: resizeRect?.height ?? item.object.position.height,
-                transform: `scale(${viewport.zoom})`,
-                borderColor: selected ? theme.minimapViewportStroke : theme.panelBorder,
-                boxShadow: selected
-                  ? `0 0 0 2px ${theme.minimapViewportStroke}`
-                  : theme.panelShadow,
-                background: theme.panelBackground,
-                cursor: locked ? 'default' : 'grab'
-              }}
+              style={getDomIslandStyle({
+                renderRect,
+                previewDelta,
+                resizeRect,
+                position: item.object.position,
+                zoom: viewport.zoom,
+                highlighted: selected || connectorDropTarget,
+                locked,
+                theme
+              })}
               data-canvas-v3-object="true"
               data-canvas-object-id={item.object.id}
               data-node-id={item.object.id}
@@ -5111,6 +6385,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               }
               data-canvas-object-locked={locked ? 'true' : 'false'}
               data-selected={selected ? 'true' : 'false'}
+              data-canvas-connector-drop-target={connectorDropTarget ? 'true' : 'false'}
               role="group"
               aria-roledescription={getCanvasObjectRoleDescription(item.node)}
               aria-label={accessibleLabel}
@@ -5120,118 +6395,34 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
                   ? 'ArrowUp ArrowDown ArrowLeft ArrowRight Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight'
                   : undefined
               }
-              tabIndex={selected || focusedNodeId === item.object.id || liveIframe ? 0 : -1}
+              tabIndex={getDomIslandTabIndex({
+                selected,
+                focused: focusedNodeId === item.object.id,
+                liveIframe
+              })}
               onPointerDown={(event) => handleNodePointerDown(event, item.object.id)}
-              onDoubleClick={() => onNodeDoubleClick?.(item.object.id)}
-              onKeyDown={(event) => {
-                if (liveIframe && event.key === 'Escape') {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  setFocusedNodeId(item.object.id)
-                  containerRef.current?.focus()
-                }
-              }}
+              onDoubleClick={(event) => handleNodeDoubleClick(event, item.object.id)}
+              onPointerEnter={() => setHoveredNodeId(item.object.id)}
+              onPointerLeave={() =>
+                setHoveredNodeId((current) => (current === item.object.id ? null : current))
+              }
+              onKeyDown={(event) => handleIslandKeyDown(event, item.object.id, liveIframe)}
             >
               {renderObjectContent(item, tier)}
-              {liveIframe ? (
-                <span id={liveIframeDescriptionId} style={styles.screenReaderOnly}>
-                  Live embed mode. Press Escape to return focus to the canvas.
-                </span>
-              ) : null}
-              {locked ? (
-                <div
-                  style={{
-                    ...styles.lockIndicator,
-                    background: theme.mode === 'dark' ? 'rgba(15, 23, 42, 0.92)' : '#ffffff',
-                    borderColor: theme.panelBorder,
-                    color: theme.panelMutedText,
-                    boxShadow: theme.panelShadow
-                  }}
-                  role="img"
-                  aria-label={`Locked ${title}`}
-                  title={`Locked ${title}`}
-                  data-canvas-v3-lock-indicator="true"
-                  data-canvas-object-id={item.object.id}
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                    <rect
-                      x="2.25"
-                      y="5.25"
-                      width="7.5"
-                      height="5"
-                      rx="1"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                    />
-                    <path
-                      d="M3.75 5.25V3.75a2.25 2.25 0 0 1 4.5 0v1.5"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-              ) : null}
-              {showConnectorHandles
-                ? CONNECTOR_HANDLE_PLACEMENTS.map((placement) => {
-                    const active =
-                      connectorStart?.nodeId === item.object.id &&
-                      connectorStart.placement === placement
-                    const pendingConnector = connectorStart !== null
-                    const connectorLabel = active
-                      ? `Connector start from ${title} ${placement}`
-                      : pendingConnector
-                        ? `Finish connector at ${title} ${placement}`
-                        : `Start connector from ${title} ${placement}`
-
-                    return (
-                      <button
-                        key={placement}
-                        type="button"
-                        style={getConnectorHandleStyle(
-                          placement,
-                          {
-                            background: theme.panelBackground,
-                            border: theme.minimapViewportStroke,
-                            activeBackground: theme.minimapViewportStroke,
-                            activeBorder: theme.panelBackground,
-                            shadow: theme.panelShadow
-                          },
-                          active
-                        )}
-                        aria-label={connectorLabel}
-                        title={connectorLabel}
-                        data-canvas-v3-connector-handle={placement}
-                        data-canvas-connector-active={active ? 'true' : 'false'}
-                        onPointerDown={(event) => {
-                          event.stopPropagation()
-                        }}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          connectFromHandle(item.object.id, placement)
-                        }}
-                      />
-                    )
-                  })
-                : null}
-              {selected && !locked
-                ? RESIZE_HANDLES.map((handle) => (
-                    <button
-                      key={handle}
-                      type="button"
-                      style={getResizeHandleStyle(handle, {
-                        background: theme.panelBackground,
-                        border: theme.minimapViewportStroke,
-                        shadow: theme.panelShadow
-                      })}
-                      aria-label={`Resize ${title} from ${handle}`}
-                      data-canvas-v3-resize-handle={handle}
-                      onPointerDown={(event) =>
-                        handleResizePointerDown(event, item.object.id, handle)
-                      }
-                    />
-                  ))
-                : null}
+              <CanvasObjectIslandChrome
+                objectId={item.object.id}
+                title={title}
+                theme={theme}
+                locked={locked}
+                selected={selected}
+                liveIframe={liveIframe}
+                liveIframeDescriptionId={liveIframeDescriptionId}
+                showConnectorHandles={showConnectorHandles}
+                connectorStart={connectorStart}
+                onConnectorHandlePointerDown={handleConnectorHandlePointerDown}
+                onConnectorHandleClick={handleConnectorHandleClick}
+                onResizePointerDown={handleResizePointerDown}
+              />
             </div>
           )
         })}
@@ -5242,6 +6433,87 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           aria-hidden="true"
           data-canvas-v3-selection-bounds="true"
           data-canvas-selection-count={selectedNodes.length}
+        />
+      ) : null}
+
+      {inlineNodeEditContext ? (
+        <div
+          style={{
+            ...styles.inlineNodeEditor,
+            left: inlineNodeEditContext.rect.x,
+            top: inlineNodeEditContext.rect.y,
+            width: Math.max(120, inlineNodeEditContext.rect.width),
+            height: Math.max(48, inlineNodeEditContext.rect.height)
+          }}
+          data-canvas-v3-inline-editor="true"
+          data-canvas-object-id={inlineNodeEditContext.nodeId}
+          data-canvas-inline-edit-mode={inlineNodeEditContext.mode}
+          onPointerDown={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+        >
+          <textarea
+            style={{
+              ...styles.inlineNodeEditorInput,
+              background: theme.panelBackground,
+              color: theme.panelText,
+              borderColor: theme.minimapViewportStroke,
+              boxShadow: theme.panelShadow,
+              fontSize: Math.max(11, Math.round(13 * viewport.zoom))
+            }}
+            aria-label={
+              inlineNodeEditContext.mode === 'alias'
+                ? `Rename ${inlineNodeEditContext.title}`
+                : `Edit ${inlineNodeEditContext.title} text`
+            }
+            data-canvas-editing-surface="true"
+            data-canvas-v3-inline-editor-input="true"
+            autoFocus
+            defaultValue={inlineNodeEditContext.value}
+            onFocus={(event) => event.currentTarget.select()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                event.stopPropagation()
+                commitInlineNodeEdit(event.currentTarget.value)
+                return
+              }
+
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                event.stopPropagation()
+                cancelInlineNodeEdit()
+              }
+            }}
+            onBlur={(event) => {
+              commitInlineNodeEdit(event.currentTarget.value)
+            }}
+          />
+        </div>
+      ) : null}
+
+      {selectedEdgeForToolbar ? (
+        <CanvasEdgeToolbar
+          key={selectedEdgeForToolbar.edgeId}
+          theme={theme}
+          style={{
+            left: selectedEdgeForToolbar.midX,
+            top: selectedEdgeForToolbar.midY + 16
+          }}
+          label={getCanvasEdgePresentation(selectedEdgeForToolbar.edge).label ?? ''}
+          kind={selectedEdgeForToolbar.edge.relationship?.kind ?? 'relates-to'}
+          focusToken={edgeLabelFocusToken}
+          onCommitLabel={(value) => {
+            setSelectedEdgeLabel(value)
+          }}
+          onSelectKind={(kind) => {
+            setSelectedEdgeRelationshipKind(kind)
+          }}
+          onReverse={() => {
+            reverseSelectedEdge()
+          }}
+          onDelete={() => {
+            deleteSelection()
+          }}
         />
       ) : null}
 
@@ -5265,6 +6537,22 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
               title="Open selection"
               theme={theme}
               onClick={() => onOpenSelection('peek')}
+            />
+          ) : null}
+
+          {selectionCapabilities.canRenameInline ? (
+            <CanvasSelectionToolbarButton
+              action="rename"
+              label="Rename"
+              title="Rename selection on the canvas (F2)"
+              theme={theme}
+              onClick={() => {
+                const nodeId = selectedNodes[0]?.id
+                const node = selectedNodes[0]
+                if (nodeId && node) {
+                  beginInlineNodeEdit(nodeId, isCanvasSourceBackedNode(node) ? 'alias' : 'text')
+                }
+              }}
             />
           ) : null}
 
@@ -5908,6 +7196,58 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'rgba(255, 255, 255, 0.9)',
     transformOrigin: 'top left',
     pointerEvents: 'auto'
+  },
+  inlineNodeEditor: {
+    position: 'absolute',
+    display: 'flex',
+    zIndex: 30,
+    pointerEvents: 'auto'
+  },
+  inlineNodeEditorInput: {
+    width: '100%',
+    height: '100%',
+    resize: 'none',
+    border: '1.5px solid',
+    borderRadius: 8,
+    padding: '8px 10px',
+    outline: 'none',
+    fontFamily: 'inherit',
+    lineHeight: 1.4,
+    boxSizing: 'border-box'
+  },
+  edgeToolbar: {
+    position: 'absolute',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 8px',
+    border: '1px solid',
+    borderRadius: 10,
+    transform: 'translate(-50%, 0)',
+    zIndex: 25,
+    pointerEvents: 'auto'
+  },
+  edgeToolbarInput: {
+    width: 120,
+    padding: '4px 6px',
+    border: '1px solid',
+    borderRadius: 6,
+    fontSize: 12,
+    outline: 'none'
+  },
+  edgeToolbarSelect: {
+    padding: '4px 6px',
+    border: '1px solid',
+    borderRadius: 6,
+    fontSize: 12
+  },
+  edgeToolbarButton: {
+    appearance: 'none',
+    padding: '4px 8px',
+    border: '1px solid',
+    borderRadius: 6,
+    fontSize: 12,
+    cursor: 'pointer'
   },
   lockIndicator: {
     position: 'absolute',

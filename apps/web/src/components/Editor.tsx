@@ -38,6 +38,10 @@ interface Props {
   pageId?: string | null
   /** Callback for creating a comment */
   onCreateComment?: (anchorData: string) => Promise<string | null>
+  /** Additional class for the editor container */
+  className?: string
+  /** Backspace in an empty first block (e.g. return focus to the title) */
+  onBackspaceAtStart?: () => boolean | void
 }
 
 export function Editor({
@@ -50,7 +54,9 @@ export function Editor({
   mentionSuggestions,
   onPageTasksChange,
   pageId,
-  onCreateComment
+  onCreateComment,
+  className,
+  onBackspaceAtStart
 }: Props): JSX.Element {
   const onImageUpload = useImageUpload()
   const onFileUpload = useFileUpload()
@@ -61,6 +67,8 @@ export function Editor({
       ydoc={doc}
       field="content"
       placeholder="Start writing..."
+      className={className}
+      onBackspaceAtStart={onBackspaceAtStart}
       awareness={awareness}
       did={did}
       showToolbar={true}

@@ -135,8 +135,12 @@
   @apply border-l-4 border-border pl-4 my-3 text-muted-foreground italic;
 }
 
-/* Placeholder: only show on the first empty paragraph of a completely empty editor */
-.xnet-editor .ProseMirror.is-editor-empty > p.is-empty:first-child::before {
+/* Placeholder: only show on the first empty paragraph of a completely
+   empty editor. TipTap's Placeholder puts emptyEditorClass on the
+   paragraph itself; the legacy root-level selector is kept for
+   older markup. */
+.xnet-editor .ProseMirror.is-editor-empty > p.is-empty:first-child::before,
+.xnet-editor .ProseMirror > p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: rgb(var(--editor-muted-foreground));
   float: left;

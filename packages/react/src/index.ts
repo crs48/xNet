@@ -717,6 +717,12 @@ export {
 } from './runtime'
 export { PageTasksPanel, type PageTasksPanelProps } from './components/PageTasksPanel'
 export {
+  flattenTaskTree,
+  formatTaskDueDate,
+  isTaskOverdue,
+  type RenderableTaskRow
+} from './components/pageTaskRows'
+export {
   TaskCollectionEmbed,
   type TaskCollectionEmbedProps
 } from './components/TaskCollectionEmbed'
