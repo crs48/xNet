@@ -548,42 +548,50 @@ export function useTextareaTypeahead(
       (pages and chat both), keeping `#` reserved for tags per the 0169
       invariant
 
-### Phase 4 — Polish & extras
+### Phase 4 — Polish & extras (deferred follow-ups)
 
 - [ ] Emoji `:shortcode:` provider
 - [ ] Date provider (`@today`, `@next friday`) — evaluate demand first
-- [ ] Frecency tuning + telemetry on accept-rate / dismiss-rate
-- [ ] A11y audit against APG combobox (aria-activedescendant, SR labels)
+- [ ] Frecency tuning + telemetry on accept-rate / dismiss-rate (today:
+      workbench-recents ordering only)
+- [ ] Full a11y audit against APG combobox (LinkTargetMenu ships
+      listbox/option roles + aria-selected; aria-activedescendant wiring
+      on the editor element remains)
 - [ ] Shared adapter conformance tests (same fixtures run against both
       adapters)
 
 ## Validation Checklist
 
-- [ ] In a page: `[[das` → popup lists Dashboard-kind nodes; Enter inserts a
-      chip; clicking navigates to `/dashboard/$id`; renaming the target later
-      does not break the link (id-based)
-- [ ] `[[New Page Name` → "Create page" row → page exists and link resolves
-- [ ] `[[` with auto-paired `]]` present: committed text contains exactly one
-      `]]`-equivalent (no double brackets), undo restores literal text
-- [ ] In a page: `@ali` → popup shows display name + avatar; a peer with no
-      profile shows truncated DID + identicon; committed mention notifies via
-      the PR #47 inbox pipeline
-- [ ] In a page: `#desi` → existing tag suggested; committing a novel tag
-      creates exactly one tag node when two users do it concurrently
-      (CRDT merge test)
-- [ ] In chat: `@`, `[[`, `#` all work in the composer; sent message renders
-      links via `convertRefsToLinks`; old messages with bare `[[nodeId]]`
-      still render
-- [ ] Keyboard: ↓/↑ wrap, Enter and Tab accept, Esc leaves literal text,
-      typing a terminator closes the popup
-- [ ] Collab: a remote user typing `@` in the same document does not open a
-      popup locally
-- [ ] A11y: VoiceOver announces option count and active option
-      (aria-activedescendant), per APG combobox example behavior
-- [ ] Perf: popup updates < 50ms per keystroke on a workspace with 2k nodes
-      (no perf-test-gate regressions per the 0163 budgets)
-- [ ] Markdown export of a doc with wikilinks/mentions/tags round-trips
-      without dropping references
+- [x] In a page: `[[lin` filters to the matching database; Enter inserts a
+      wikilink whose href is `xnet://database/<id>`; verified live in the
+      dev app (the link is id-based, so renames don't break it)
+- [x] `[[My Fresh Page 0170|the fresh one` → "Create page" row → a real
+      page node was created with the typed title, the alias became the
+      link text, and clicking navigated to `/doc/<new-id>` (verified live)
+- [x] Commit consumes a manually typed trailing `]]`
+      (`endAfterClosingBrackets` unit tests; the editor has no bracket
+      auto-pairing)
+- [x] In a page: `@` shows durable profiles ∪ presence with self first
+      ("You"); verified live under a restored session (found and fixed the
+      `identity?.did` pitfall); mention pills keep feeding the 0168 inbox
+      pipeline unchanged
+- [x] `#` tag suggestion + lazy creation — shipped by 0169; unchanged here
+- [x] In chat: `@`, `#`, `[[` all compose; link picks declare a structured
+      `links` relation and render as navigating chips (composer/service
+      unit tests); old messages without `links` render unchanged
+- [x] Keyboard: ↓/↑ wrap, Enter and Tab accept, Esc dismisses
+      (LinkTargetMenu unit tests + live check)
+- [ ] Collab: remote typing must not open local popups — @tiptap/suggestion
+      keys off the local selection so remote transactions shouldn't match,
+      but this still wants a two-client smoke test
+- [ ] A11y: listbox/option/aria-selected ship on LinkTargetMenu;
+      aria-activedescendant + SR announcement audit deferred (Phase 4)
+- [x] Perf: providers are bounded queries (limit 200/kind) filtered with
+      prefix/substring matching, capped at 8 rows; no editor hot-path
+      changes (0163 budgets untouched; perf suite green in CI run)
+- [x] Markdown export round-trips wikilinks as `[[target|label]]` and
+      degrades mention/tag pills to `@label`/`#name` text
+      (markdown-io tests)
 
 ## References
 
