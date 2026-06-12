@@ -1,0 +1,99 @@
+name: Publish to gh-pages
+description: >-
+  Sync a directory into (or remove paths from) the gh-pages branch via a git
+  worktree. The whole fetch -> apply -> push sequence retries up to 3 times so
+  concurrent writers (production deploy, PR previews, branch previews, cleanup
+  jobs) cannot fail each other with rejected pushes.
+
+inputs:
+  source:
+    description: >-
+      Directory whose contents are synced into `target`. Leave empty to switch
+      to removal mode, deleting the paths listed in `remove` instead.
+    default: ''
+  target:
+    description: Path inside gh-pages to sync into. Use '.' for the branch root.
+    default: '.'
+  remove:
+    description: >-
+      Newline-separated paths to delete from gh-pages. Only used in removal
+      mode (when `source` is empty).
+    default: ''
+  exclude:
+    description: >-
+      Newline-separated rsync --exclude patterns protected from deletion when
+      syncing into the branch root (e.g. pr, branch).
+    default: ''
+  commit-message:
+    description: Commit message for the gh-pages commit.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Publish to gh-pages
+      shell: bash
+      env:
+        SOURCE: ${{ inputs.source }}
+        TARGET: ${{ inputs.target }}
+        REMOVE: ${{ inputs.remove }}
+        EXCLUDE: ${{ inputs.exclude }}
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+      run: |
+        set -euo pipefail
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        worktree=/tmp/xnet-gh-pages
+
+        for attempt in 1 2 3; do
+          git worktree remove --force "$worktree" 2>/dev/null || true
+          rm -rf "$worktree"
+          git worktree prune
+          git fetch origin gh-pages || true
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git worktree add -B gh-pages "$worktree" origin/gh-pages
+          elif [ -z "$SOURCE" ]; then
+            echo "gh-pages branch does not exist; nothing to remove."
+            exit 0
+          else
+            git worktree add -B gh-pages "$worktree" HEAD
+            find "$worktree" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+            cp site/public/CNAME "$worktree/CNAME"
+            touch "$worktree/.nojekyll"
+          fi
+
+          if [ -n "$SOURCE" ]; then
+            # .git must survive --delete: in a worktree it is a file, not a directory.
+            args=(-a --delete --exclude .git)
+            while IFS= read -r pattern; do
+              [ -n "$pattern" ] && args+=(--exclude "$pattern")
+            done <<< "$EXCLUDE"
+            mkdir -p "$worktree/$TARGET"
+            rsync "${args[@]}" "$SOURCE"/ "$worktree/$TARGET"/
+          else
+            while IFS= read -r path; do
+              [ -n "$path" ] && rm -rf "$worktree/${path:?}"
+            done <<< "$REMOVE"
+          fi
+
+          git -C "$worktree" add -A
+
+          if git -C "$worktree" diff --cached --quiet; then
+            echo "No gh-pages changes to publish."
+            exit 0
+          fi
+
+          git -C "$worktree" commit -m "$COMMIT_MESSAGE"
+
+          if git -C "$worktree" push origin HEAD:gh-pages; then
+            exit 0
+          fi
+
+          echo "Push rejected (attempt $attempt); gh-pages moved, refetching."
+        done
+
+        echo "Failed to publish to gh-pages after 3 attempts."
+        exit 1

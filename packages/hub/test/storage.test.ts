@@ -263,3 +263,50 @@ describe.each(storageFactories)('HubStorage ($name)', ({ create }: StorageFactor
     })
   })
 })
+
+describe.runIf(sqliteAvailable)('SQLite schema migrations', () => {
+  it('boots on a database created before the crawl_history fingerprint columns', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'hub-migration-'))
+    try {
+      // Recreate the pre-fingerprint table shape (as deployed before 2026-06):
+      // SCHEMA_SQL must not reference columns that only the guarded ALTER
+      // TABLE migrations add, or boot dies with "no such column".
+      const { default: Database } = await import('better-sqlite3')
+      const db = new Database(join(dir, 'hub.db'))
+      db.exec(`
+        CREATE TABLE crawl_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          url TEXT NOT NULL,
+          cid TEXT NOT NULL,
+          title TEXT,
+          status_code INTEGER,
+          content_type TEXT,
+          language TEXT,
+          crawler_did TEXT,
+          crawl_time_ms INTEGER,
+          crawled_at INTEGER NOT NULL
+        );
+        CREATE INDEX idx_crawl_history_url ON crawl_history(url, crawled_at);
+      `)
+      db.close()
+
+      const storage = createSQLiteStorage(dir)
+      try {
+        const reopened = new Database(join(dir, 'hub.db'), { readonly: true })
+        const columns = new Set(
+          (reopened.prepare('PRAGMA table_info(crawl_history)').all() as { name: string }[]).map(
+            (col) => col.name
+          )
+        )
+        reopened.close()
+        expect(columns).toContain('content_fingerprint_json')
+        expect(columns).toContain('content_fingerprint_hash')
+        expect(columns).toContain('content_simhash64')
+      } finally {
+        storage.close()
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})

@@ -35,18 +35,18 @@ export function ChangeTimeline() {
       {/* Timeline list */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-zinc-800">
+        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-hairline">
           <input
             type="text"
             value={nodeFilter}
             onChange={(e) => setNodeFilter(e.target.value)}
             placeholder="Filter by node ID..."
-            className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 bg-surface-2 border border-hairline rounded px-2 py-0.5 text-xs text-ink-1 placeholder:text-ink-3 focus:outline-none focus:border-ring"
           />
           <select
             value={typeFilter || ''}
             onChange={(e) => setTypeFilter(e.target.value || null)}
-            className="bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-xs text-zinc-200"
+            className="bg-surface-2 border border-hairline rounded px-2 py-0.5 text-xs text-ink-1"
           >
             <option value="">All types</option>
             <option value="store:create">create</option>
@@ -56,7 +56,7 @@ export function ChangeTimeline() {
             <option value="store:remote-change">remote</option>
             <option value="store:conflict">conflict</option>
           </select>
-          <label className="flex items-center gap-1 text-[10px] text-zinc-500 cursor-pointer">
+          <label className="flex items-center gap-1 text-[10px] text-ink-3 cursor-pointer">
             <input
               type="checkbox"
               checked={autoScroll}
@@ -65,14 +65,14 @@ export function ChangeTimeline() {
             />
             Auto-scroll
           </label>
-          <span className="text-[10px] text-zinc-500">{events.length} changes</span>
+          <span className="text-[10px] text-ink-3">{events.length} changes</span>
           <CopyButton getData={getEventsData} label="Copy Changes" />
         </div>
 
         {/* Event list */}
         <div ref={listRef} className="flex-1 overflow-y-auto">
           {events.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-zinc-500 text-xs">
+            <div className="flex items-center justify-center h-full text-ink-3 text-xs">
               No store events yet
             </div>
           ) : (
@@ -90,7 +90,7 @@ export function ChangeTimeline() {
 
       {/* Detail pane */}
       {selectedEvent && (
-        <div className="w-72 border-l border-zinc-800 overflow-y-auto p-3">
+        <div className="w-72 border-l border-hairline overflow-y-auto p-3">
           <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
         </div>
       )}
@@ -117,23 +117,23 @@ function TimelineEntry({
       onClick={onSelect}
       className={`
         flex items-center gap-2 px-3 py-1 cursor-pointer border-l-2 text-xs
-        ${isSelected ? 'bg-zinc-800 border-blue-400' : 'border-transparent hover:bg-zinc-900'}
-        ${isConflict ? 'bg-amber-950/20' : ''}
-        ${isRemote ? 'bg-purple-950/20' : ''}
+        ${isSelected ? 'bg-background-emphasis border-accent-ink' : 'border-transparent hover:bg-accent'}
+        ${isConflict ? 'bg-warning-muted' : ''}
+        ${isRemote ? 'bg-surface-2' : ''}
       `}
     >
-      <span className="text-[10px] text-zinc-600 w-16 font-mono">{formatTime(event.wallTime)}</span>
-      <span className="text-[10px] text-zinc-500 w-8 text-right">L:{lamport}</span>
+      <span className="text-[10px] text-ink-3 w-16 font-mono">{formatTime(event.wallTime)}</span>
+      <span className="text-[10px] text-ink-3 w-8 text-right">L:{lamport}</span>
       <span className={`w-2 h-2 rounded-full ${getDotColor(event.type)}`} />
-      <span className="text-[10px] text-zinc-300 w-16">{event.type.split(':')[1]}</span>
-      <span className="text-[10px] text-zinc-500 font-mono truncate flex-1">
+      <span className="text-[10px] text-ink-2 w-16">{event.type.split(':')[1]}</span>
+      <span className="text-[10px] text-ink-3 font-mono truncate flex-1">
         {nodeId ? truncateCID(nodeId) : ''}
       </span>
       {isRemote && (
-        <span className="text-[9px] text-purple-400 bg-purple-900/30 px-1 rounded">remote</span>
+        <span className="text-[9px] text-ink-2 bg-background-emphasis px-1 rounded">remote</span>
       )}
       {isConflict && (
-        <span className="text-[9px] text-amber-400 bg-amber-900/30 px-1 rounded">conflict</span>
+        <span className="text-[9px] text-warning bg-warning-muted px-1 rounded">conflict</span>
       )}
     </div>
   )
@@ -143,12 +143,12 @@ function EventDetail({ event, onClose }: { event: TimelineEvent; onClose: () => 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-zinc-200">{event.type}</h3>
-        <button onClick={onClose} className="text-zinc-500 hover:text-white text-xs">
+        <h3 className="text-xs font-bold text-ink-1">{event.type}</h3>
+        <button onClick={onClose} className="text-ink-3 hover:text-ink-1 text-xs">
           x
         </button>
       </div>
-      <pre className="text-[10px] text-zinc-300 bg-zinc-900 rounded p-2 overflow-x-auto max-h-60 whitespace-pre-wrap">
+      <pre className="text-[10px] text-ink-2 bg-surface-2 rounded p-2 overflow-x-auto max-h-60 whitespace-pre-wrap">
         {JSON.stringify(event, null, 2)}
       </pre>
     </div>
@@ -158,18 +158,18 @@ function EventDetail({ event, onClose }: { event: TimelineEvent; onClose: () => 
 function getDotColor(type: string): string {
   switch (type) {
     case 'store:create':
-      return 'bg-green-400'
+      return 'bg-success'
     case 'store:update':
-      return 'bg-blue-400'
+      return 'bg-ink-2'
     case 'store:delete':
-      return 'bg-red-400'
+      return 'bg-destructive'
     case 'store:restore':
-      return 'bg-yellow-400'
+      return 'bg-warning'
     case 'store:remote-change':
-      return 'bg-purple-400'
+      return 'bg-ink-3'
     case 'store:conflict':
-      return 'bg-amber-400'
+      return 'bg-warning'
     default:
-      return 'bg-zinc-400'
+      return 'bg-ink-3'
   }
 }

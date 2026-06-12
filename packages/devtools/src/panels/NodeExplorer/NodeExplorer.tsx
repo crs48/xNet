@@ -56,7 +56,7 @@ export function NodeExplorer() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500">Loading nodes...</div>
+      <div className="flex items-center justify-center h-full text-ink-3">Loading nodes...</div>
     )
   }
 
@@ -65,18 +65,18 @@ export function NodeExplorer() {
       {/* Main table area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-zinc-800">
+        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-hairline">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search nodes..."
-            className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 bg-surface-2 border border-hairline rounded px-2 py-0.5 text-xs text-ink-1 placeholder:text-ink-3 focus:outline-none focus:border-ring"
           />
           <select
             value={schemaFilter || ''}
             onChange={(e) => setSchemaFilter(e.target.value || null)}
-            className="bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-xs text-zinc-200"
+            className="bg-surface-2 border border-hairline rounded px-2 py-0.5 text-xs text-ink-1"
           >
             <option value="">All schemas ({schemas.length})</option>
             {schemas.map((s) => (
@@ -85,7 +85,7 @@ export function NodeExplorer() {
               </option>
             ))}
           </select>
-          <label className="flex items-center gap-1 text-[10px] text-zinc-500 cursor-pointer">
+          <label className="flex items-center gap-1 text-[10px] text-ink-3 cursor-pointer">
             <input
               type="checkbox"
               checked={showDeleted}
@@ -94,14 +94,14 @@ export function NodeExplorer() {
             />
             Deleted
           </label>
-          <span className="text-[10px] text-zinc-500">{nodes.length} nodes</span>
+          <span className="text-[10px] text-ink-3">{nodes.length} nodes</span>
           <CopyButton getData={getNodesData} label="Copy Nodes" />
         </div>
 
         {/* TableView */}
         <div className="flex-1 overflow-hidden">
           {nodes.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-zinc-500 text-xs">
+            <div className="flex items-center justify-center h-full text-ink-3 text-xs">
               No nodes found
             </div>
           ) : (
@@ -114,7 +114,7 @@ export function NodeExplorer() {
               }
               rowHeight={28}
               overscan={15}
-              className="text-[11px] !bg-zinc-950 [&_thead]:!bg-zinc-900 [&_tr]:!border-zinc-800 [&_tr:hover]:!bg-zinc-900/50"
+              className="text-[11px] !bg-surface-1 [&_thead]:!bg-surface-2 [&_tr]:!border-hairline [&_tr:hover]:!bg-surface-2"
             />
           )}
         </div>
@@ -122,7 +122,7 @@ export function NodeExplorer() {
 
       {/* Detail pane */}
       {selectedNode && (
-        <div className="w-80 border-l border-zinc-800 overflow-y-auto p-3">
+        <div className="w-80 border-l border-hairline overflow-y-auto p-3">
           <NodeDetail node={selectedNode} onClose={() => setSelectedNode(null)} />
         </div>
       )}
@@ -245,8 +245,8 @@ function NodeDetail({ node, onClose }: { node: NodeEntry; onClose: () => void })
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-zinc-200">Node Detail</h3>
-        <button onClick={onClose} className="text-zinc-500 hover:text-white text-xs">
+        <h3 className="text-xs font-bold text-ink-1">Node Detail</h3>
+        <button onClick={onClose} className="text-ink-3 hover:text-ink-1 text-xs">
           x
         </button>
       </div>
@@ -261,8 +261,8 @@ function NodeDetail({ node, onClose }: { node: NodeEntry; onClose: () => void })
       </div>
 
       <div>
-        <h4 className="text-[10px] font-bold text-zinc-400 mb-1">Properties</h4>
-        <pre className="text-[10px] text-zinc-300 bg-zinc-900 rounded p-2 overflow-x-auto max-h-40">
+        <h4 className="text-[10px] font-bold text-ink-2 mb-1">Properties</h4>
+        <pre className="text-[10px] text-ink-2 bg-surface-2 rounded p-2 overflow-x-auto max-h-40">
           {JSON.stringify(node.properties, null, 2)}
         </pre>
       </div>
@@ -273,10 +273,8 @@ function NodeDetail({ node, onClose }: { node: NodeEntry; onClose: () => void })
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="text-[10px] text-zinc-500 w-16 shrink-0">{label}</span>
-      <span className={`text-[10px] text-zinc-300 break-all ${mono ? 'font-mono' : ''}`}>
-        {value}
-      </span>
+      <span className="text-[10px] text-ink-3 w-16 shrink-0">{label}</span>
+      <span className={`text-[10px] text-ink-2 break-all ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   )
 }

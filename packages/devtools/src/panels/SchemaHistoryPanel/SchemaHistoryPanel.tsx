@@ -108,7 +108,7 @@ export function SchemaHistoryPanel() {
 
   if (!activeNodeId) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500 text-xs">
+      <div className="flex items-center justify-center h-full text-ink-3 text-xs">
         Select a database node to view schema history
       </div>
     )
@@ -116,21 +116,21 @@ export function SchemaHistoryPanel() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500 text-xs">
-        Loading...
-      </div>
+      <div className="flex items-center justify-center h-full text-ink-3 text-xs">Loading...</div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full text-red-400 text-xs">{error}</div>
+      <div className="flex items-center justify-center h-full text-destructive text-xs">
+        {error}
+      </div>
     )
   }
 
   if (history.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500 text-xs">
+      <div className="flex items-center justify-center h-full text-ink-3 text-xs">
         No schema history recorded for this database
       </div>
     )
@@ -139,15 +139,15 @@ export function SchemaHistoryPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-zinc-800 shrink-0">
-        <span className="text-[10px] text-zinc-500">Schema Version History</span>
-        <span className="text-[10px] text-zinc-600 ml-auto">{history.length} versions</span>
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-hairline shrink-0">
+        <span className="text-[10px] text-ink-3">Schema Version History</span>
+        <span className="text-[10px] text-ink-3 ml-auto">{history.length} versions</span>
       </div>
 
       {/* Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Timeline list */}
-        <div className="w-1/2 overflow-y-auto border-r border-zinc-800">
+        <div className="w-1/2 overflow-y-auto border-r border-hairline">
           {history.map((entry, i) => (
             <HistoryRow
               key={i}
@@ -188,15 +188,15 @@ function HistoryRow({
     <div
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer border-l-2 text-xs ${
-        isSelected ? 'bg-zinc-800 border-blue-400' : 'border-transparent hover:bg-zinc-900'
+        isSelected
+          ? 'bg-background-emphasis border-accent-ink'
+          : 'border-transparent hover:bg-accent'
       }`}
     >
-      <span className="text-[10px] text-zinc-600 w-16 font-mono">
-        {formatTime(entry.timestamp)}
-      </span>
+      <span className="text-[10px] text-ink-3 w-16 font-mono">{formatTime(entry.timestamp)}</span>
       <span className={`w-2 h-2 rounded-full ${getChangeTypeColor(entry.changeType)}`} />
-      <span className="text-[10px] text-zinc-300 font-mono">v{entry.version}</span>
-      <span className="text-[10px] text-zinc-500 truncate flex-1">
+      <span className="text-[10px] text-ink-2 font-mono">v{entry.version}</span>
+      <span className="text-[10px] text-ink-3 truncate flex-1">
         {entry.changeDescription || entry.changeType}
       </span>
     </div>
@@ -230,9 +230,7 @@ function VersionDetail({
       {/* Column diff */}
       {!isFirst && diff && diff.length > 0 && (
         <div>
-          <h4 className="text-[10px] font-bold text-zinc-400 mb-1">
-            Changes from previous version
-          </h4>
+          <h4 className="text-[10px] font-bold text-ink-2 mb-1">Changes from previous version</h4>
           <div className="space-y-1">
             {diff.map((d, i) => (
               <DiffRow key={i} diff={d} />
@@ -243,12 +241,12 @@ function VersionDetail({
 
       {/* Column list */}
       <div>
-        <h4 className="text-[10px] font-bold text-zinc-400 mb-1">Columns at this version</h4>
+        <h4 className="text-[10px] font-bold text-ink-2 mb-1">Columns at this version</h4>
         <div className="space-y-0.5">
           {entry.columns.map((col) => (
             <div key={col.id} className="flex items-center gap-2 text-[10px]">
-              <span className="text-zinc-300">{col.name}</span>
-              <span className="text-zinc-500 font-mono">{col.type}</span>
+              <span className="text-ink-2">{col.name}</span>
+              <span className="text-ink-3 font-mono">{col.type}</span>
             </div>
           ))}
         </div>
@@ -262,16 +260,21 @@ function VersionDetail({
 function DiffRow({ diff }: { diff: ColumnDiff }) {
   const colors = {
     added: {
-      bg: 'bg-green-950/30',
-      border: 'border-green-700',
-      text: 'text-green-400',
+      bg: 'bg-success-muted',
+      border: 'border-success',
+      text: 'text-success',
       label: '+'
     },
-    removed: { bg: 'bg-red-950/30', border: 'border-red-700', text: 'text-red-400', label: '-' },
+    removed: {
+      bg: 'bg-destructive-muted',
+      border: 'border-destructive',
+      text: 'text-destructive',
+      label: '-'
+    },
     modified: {
-      bg: 'bg-yellow-950/30',
-      border: 'border-yellow-700',
-      text: 'text-yellow-400',
+      bg: 'bg-warning-muted',
+      border: 'border-warning',
+      text: 'text-warning',
       label: '~'
     }
   }
@@ -282,8 +285,8 @@ function DiffRow({ diff }: { diff: ColumnDiff }) {
       className={`flex items-center gap-2 px-2 py-0.5 border-l-2 ${c.border} ${c.bg} text-[10px]`}
     >
       <span className={`font-bold ${c.text} w-3`}>{c.label}</span>
-      <span className="text-zinc-200">{diff.columnName}</span>
-      {diff.details && <span className="text-zinc-500">{diff.details}</span>}
+      <span className="text-ink-1">{diff.columnName}</span>
+      {diff.details && <span className="text-ink-3">{diff.details}</span>}
     </div>
   )
 }
@@ -293,8 +296,8 @@ function DiffRow({ diff }: { diff: ColumnDiff }) {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-zinc-500 w-20">{label}</span>
-      <span className="text-zinc-300 font-mono">{value}</span>
+      <span className="text-ink-3 w-20">{label}</span>
+      <span className="text-ink-2 font-mono">{value}</span>
     </div>
   )
 }
@@ -302,15 +305,15 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 function getChangeTypeColor(changeType: string): string {
   switch (changeType) {
     case 'initial':
-      return 'bg-blue-400'
+      return 'bg-ink-2'
     case 'add':
-      return 'bg-green-400'
+      return 'bg-success'
     case 'update':
-      return 'bg-yellow-400'
+      return 'bg-warning'
     case 'delete':
-      return 'bg-red-400'
+      return 'bg-destructive'
     default:
-      return 'bg-zinc-400'
+      return 'bg-ink-3'
   }
 }
 

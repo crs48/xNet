@@ -24,28 +24,28 @@ export function VersionPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800 shrink-0">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-hairline shrink-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-zinc-500">Protocol</span>
-            <span className="text-sm font-bold text-blue-400">v{versionInfo.protocolVersion}</span>
+            <span className="text-[10px] text-ink-3">Protocol</span>
+            <span className="text-sm font-bold text-ink-1">v{versionInfo.protocolVersion}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-zinc-500">Features</span>
-            <span className="text-xs text-zinc-300">
+            <span className="text-[10px] text-ink-3">Features</span>
+            <span className="text-xs text-ink-2">
               {versionInfo.enabledFeatures.length}/{versionInfo.allFeatures.length}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-zinc-500">Peers</span>
-            <span className="text-xs text-zinc-300">{peers.length}</span>
+            <span className="text-[10px] text-ink-3">Peers</span>
+            <span className="text-xs text-ink-2">{peers.length}</span>
           </div>
         </div>
         <CopyButton getData={getExportData} label="Export" />
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b border-zinc-800 shrink-0">
+      <div className="flex border-b border-hairline shrink-0">
         <TabButton
           label="Features"
           count={versionInfo.enabledFeatures.length}
@@ -94,7 +94,7 @@ function TabButton({
       onClick={onClick}
       className={`
         px-3 py-1.5 text-xs font-medium border-b-2 transition-colors
-        ${active ? 'border-blue-400 text-blue-400' : 'border-transparent text-zinc-400 hover:text-zinc-200'}
+        ${active ? 'border-accent-ink text-ink-1' : 'border-transparent text-ink-2 hover:text-ink-1'}
       `}
     >
       {label} ({count})
@@ -111,7 +111,7 @@ function FeaturesTab({ featureDetails }: { featureDetails: Map<string, FeatureDe
     <div className="p-3 space-y-4">
       {/* Enabled features */}
       <div>
-        <h3 className="text-[10px] font-bold text-zinc-400 uppercase mb-2">
+        <h3 className="text-[10px] font-bold text-ink-2 uppercase mb-2">
           Enabled Features ({enabledFeatures.length})
         </h3>
         <div className="space-y-1">
@@ -124,7 +124,7 @@ function FeaturesTab({ featureDetails }: { featureDetails: Map<string, FeatureDe
       {/* Disabled/future features */}
       {disabledFeatures.length > 0 && (
         <div>
-          <h3 className="text-[10px] font-bold text-zinc-400 uppercase mb-2">
+          <h3 className="text-[10px] font-bold text-ink-2 uppercase mb-2">
             Future Features ({disabledFeatures.length})
           </h3>
           <div className="space-y-1 opacity-50">
@@ -144,7 +144,7 @@ function FeatureRow({ feature }: { feature: FeatureDetail }) {
   return (
     <div
       className={`
-        rounded bg-zinc-900/50 text-[10px] cursor-pointer
+        rounded bg-surface-2 text-[10px] cursor-pointer
         ${feature.enabled ? '' : 'opacity-60'}
       `}
       onClick={() => setExpanded(!expanded)}
@@ -152,35 +152,35 @@ function FeatureRow({ feature }: { feature: FeatureDetail }) {
       <div className="flex items-center gap-2 px-2 py-1.5">
         {/* Status indicator */}
         <span
-          className={`w-1.5 h-1.5 rounded-full ${feature.enabled ? 'bg-green-500' : 'bg-zinc-600'}`}
+          className={`w-1.5 h-1.5 rounded-full ${feature.enabled ? 'bg-success' : 'bg-border-emphasis'}`}
         />
 
         {/* Name */}
-        <span className="text-zinc-200 font-medium font-mono">{feature.name}</span>
+        <span className="text-ink-1 font-medium font-mono">{feature.name}</span>
 
         {/* Required badge */}
         {feature.required && (
-          <span className="text-[8px] px-1 py-0.5 rounded bg-red-900/50 text-red-400">
+          <span className="text-[8px] px-1 py-0.5 rounded bg-destructive-muted text-destructive">
             required
           </span>
         )}
 
         {/* Since version */}
-        <span className="text-zinc-500 ml-auto">v{feature.since}</span>
+        <span className="text-ink-3 ml-auto">v{feature.since}</span>
 
         {/* Expand indicator */}
-        <span className="text-zinc-600">{expanded ? '-' : '+'}</span>
+        <span className="text-ink-3">{expanded ? '-' : '+'}</span>
       </div>
 
       {/* Expanded details */}
       {expanded && (
-        <div className="px-2 pb-2 pt-1 border-t border-zinc-800 space-y-1">
-          <p className="text-zinc-400">{feature.description}</p>
+        <div className="px-2 pb-2 pt-1 border-t border-hairline space-y-1">
+          <p className="text-ink-2">{feature.description}</p>
           {feature.dependencies.length > 0 && (
-            <div className="flex items-center gap-1 text-zinc-500">
+            <div className="flex items-center gap-1 text-ink-3">
               <span>Requires:</span>
               {feature.dependencies.map((dep) => (
-                <span key={dep} className="font-mono text-zinc-400">
+                <span key={dep} className="font-mono text-ink-2">
                   {dep}
                 </span>
               ))}
@@ -195,7 +195,7 @@ function FeatureRow({ feature }: { feature: FeatureDetail }) {
 function PeersTab({ peers }: { peers: PeerVersionInfo[] }) {
   if (peers.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-500 text-xs">
+      <div className="flex flex-col items-center justify-center h-full text-ink-3 text-xs">
         <span>No connected peers</span>
         <span className="text-[10px] mt-1">Peer version info appears here when syncing</span>
       </div>
@@ -218,27 +218,27 @@ function PeerRow({ peer }: { peer: PeerVersionInfo }) {
     <div
       className={`
         rounded px-3 py-2 text-[10px]
-        ${hasWarnings ? 'bg-yellow-900/20 border border-yellow-800/50' : 'bg-zinc-900/50'}
+        ${hasWarnings ? 'bg-warning-muted border border-warning' : 'bg-surface-2'}
       `}
     >
       <div className="flex items-center gap-2 mb-1">
         {/* Negotiation status */}
         <span
-          className={`w-1.5 h-1.5 rounded-full ${peer.negotiated ? 'bg-green-500' : 'bg-yellow-500'}`}
+          className={`w-1.5 h-1.5 rounded-full ${peer.negotiated ? 'bg-success' : 'bg-warning'}`}
           title={peer.negotiated ? 'Negotiated' : 'Pending'}
         />
 
         {/* Peer name/id */}
-        <span className="text-zinc-200 font-medium">{peer.name || peer.id.slice(0, 12)}</span>
+        <span className="text-ink-1 font-medium">{peer.name || peer.id.slice(0, 12)}</span>
 
         {/* Protocol version */}
         {peer.protocolVersion !== undefined && (
-          <span className="text-zinc-500">v{peer.protocolVersion}</span>
+          <span className="text-ink-3">v{peer.protocolVersion}</span>
         )}
 
         {/* Agreed version (if different) */}
         {peer.agreedVersion !== undefined && peer.agreedVersion !== peer.protocolVersion && (
-          <span className="text-blue-400">agreed: v{peer.agreedVersion}</span>
+          <span className="text-ink-1">agreed: v{peer.agreedVersion}</span>
         )}
       </div>
 
@@ -246,12 +246,15 @@ function PeerRow({ peer }: { peer: PeerVersionInfo }) {
       {peer.commonFeatures && peer.commonFeatures.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1">
           {peer.commonFeatures.slice(0, 5).map((f) => (
-            <span key={f} className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-400 text-[8px]">
+            <span
+              key={f}
+              className="px-1 py-0.5 rounded bg-background-emphasis text-ink-2 text-[8px]"
+            >
               {f}
             </span>
           ))}
           {peer.commonFeatures.length > 5 && (
-            <span className="text-zinc-500">+{peer.commonFeatures.length - 5} more</span>
+            <span className="text-ink-3">+{peer.commonFeatures.length - 5} more</span>
           )}
         </div>
       )}
@@ -260,7 +263,7 @@ function PeerRow({ peer }: { peer: PeerVersionInfo }) {
       {hasWarnings && (
         <div className="mt-1 space-y-0.5">
           {peer.warnings!.map((warning, i) => (
-            <div key={i} className="text-yellow-400 flex items-start gap-1">
+            <div key={i} className="text-warning flex items-start gap-1">
               <span>!</span>
               <span>{warning}</span>
             </div>
@@ -274,7 +277,7 @@ function PeerRow({ peer }: { peer: PeerVersionInfo }) {
 function SchemasTab({ schemas }: { schemas: SchemaVersionInfo[] }) {
   if (schemas.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-zinc-500 text-xs">
+      <div className="flex flex-col items-center justify-center h-full text-ink-3 text-xs">
         <span>No schemas found</span>
         <span className="text-[10px] mt-1">Schema versions appear here when nodes are created</span>
       </div>
@@ -285,7 +288,7 @@ function SchemasTab({ schemas }: { schemas: SchemaVersionInfo[] }) {
     <div className="p-3">
       <table className="w-full text-[10px]">
         <thead>
-          <tr className="text-left text-zinc-500">
+          <tr className="text-left text-ink-3">
             <th className="pb-2 font-medium">Schema</th>
             <th className="pb-2 font-medium">Version</th>
             <th className="pb-2 font-medium text-right">Nodes</th>
@@ -293,19 +296,19 @@ function SchemasTab({ schemas }: { schemas: SchemaVersionInfo[] }) {
         </thead>
         <tbody>
           {schemas.map((schema) => (
-            <tr key={schema.iri} className="border-t border-zinc-800">
+            <tr key={schema.iri} className="border-t border-hairline">
               <td className="py-1.5">
-                <div className="font-medium text-zinc-200">{schema.name}</div>
-                <div className="text-zinc-500 font-mono truncate max-w-xs" title={schema.iri}>
+                <div className="font-medium text-ink-1">{schema.name}</div>
+                <div className="text-ink-3 font-mono truncate max-w-xs" title={schema.iri}>
                   {schema.iri}
                 </div>
               </td>
               <td className="py-1.5">
-                <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono">
+                <span className="px-1.5 py-0.5 rounded bg-background-emphasis text-ink-2 font-mono">
                   {schema.version}
                 </span>
               </td>
-              <td className="py-1.5 text-right text-zinc-400">{schema.nodeCount}</td>
+              <td className="py-1.5 text-right text-ink-2">{schema.nodeCount}</td>
             </tr>
           ))}
         </tbody>

@@ -56,7 +56,7 @@ export function TelemetryPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Sub-tab navigation */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-zinc-800">
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-hairline">
         <TabButton id="security" active={state.subTab} onClick={state.setSubTab} label="Security" />
         <TabButton
           id="performance"
@@ -106,8 +106,8 @@ function TabButton({
       onClick={() => onClick(id)}
       className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
         isActive
-          ? 'bg-zinc-700 text-zinc-200'
-          : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
+          ? 'bg-background-emphasis text-ink-1'
+          : 'text-ink-3 hover:text-ink-1 hover:bg-accent'
       }`}
     >
       {label}
@@ -133,22 +133,22 @@ function SecuritySubPanel({
   return (
     <div className="flex h-full">
       {/* Left: Event list */}
-      <div className="flex-1 overflow-y-auto border-r border-zinc-800">
+      <div className="flex-1 overflow-y-auto border-r border-hairline">
         {/* Health bar */}
-        <div className="sticky top-0 bg-zinc-950 px-3 py-1.5 border-b border-zinc-800 z-10">
+        <div className="sticky top-0 bg-surface-1 px-3 py-1.5 border-b border-hairline z-10">
           <NetworkHealthBar health={health} />
         </div>
 
         {/* Security events */}
         {events.length === 0 && crashes.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-zinc-600 text-[10px]">
+          <div className="flex items-center justify-center h-32 text-ink-3 text-[10px]">
             No security events recorded
           </div>
         ) : (
           <>
             {crashes.length > 0 && (
-              <div className="px-3 py-1 border-b border-zinc-800/50">
-                <span className="text-[9px] text-red-400 font-semibold uppercase">
+              <div className="px-3 py-1 border-b border-hairline">
+                <span className="text-[9px] text-destructive font-semibold uppercase">
                   Crashes ({crashes.length})
                 </span>
               </div>
@@ -186,16 +186,16 @@ function SecuritySubPanel({
 
 function NetworkHealthBar({ health }: { health: NetworkHealth }) {
   const color =
-    health.score > 80 ? 'bg-green-400' : health.score > 50 ? 'bg-yellow-400' : 'bg-red-400'
+    health.score > 80 ? 'bg-success' : health.score > 50 ? 'bg-warning' : 'bg-destructive'
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-zinc-400">Health:</span>
-      <div className="w-24 h-2 bg-zinc-800 rounded-full overflow-hidden">
+      <span className="text-[10px] text-ink-2">Health:</span>
+      <div className="w-24 h-2 bg-background-emphasis rounded-full overflow-hidden">
         <div className={`h-full ${color} transition-all`} style={{ width: `${health.score}%` }} />
       </div>
-      <span className="text-[10px] text-zinc-300">{health.score}%</span>
-      <span className="text-[9px] text-zinc-500 ml-2">
+      <span className="text-[10px] text-ink-2">{health.score}%</span>
+      <span className="text-[9px] text-ink-3 ml-2">
         ({health.recentEventCount} events last hour)
       </span>
     </div>
@@ -214,22 +214,22 @@ function SecurityEventEntry({
   onClick: () => void
 }) {
   const severityColor: Record<string, string> = {
-    low: 'text-zinc-400',
-    medium: 'text-yellow-400',
-    high: 'text-orange-400',
-    critical: 'text-red-400'
+    low: 'text-ink-2',
+    medium: 'text-warning',
+    high: 'text-warning',
+    critical: 'text-destructive'
   }
 
   return (
     <div
       onClick={onClick}
-      className={`flex items-start gap-2 px-3 py-1.5 border-b border-zinc-800/50 cursor-pointer transition-colors ${
-        isSelected ? 'bg-zinc-800/50' : 'hover:bg-zinc-800/30'
+      className={`flex items-start gap-2 px-3 py-1.5 border-b border-hairline cursor-pointer transition-colors ${
+        isSelected ? 'bg-background-emphasis' : 'hover:bg-accent'
       }`}
     >
       {/* Severity indicator */}
       <span
-        className={`text-[10px] font-bold w-4 ${severityColor[event.severity] ?? 'text-zinc-400'}`}
+        className={`text-[10px] font-bold w-4 ${severityColor[event.severity] ?? 'text-ink-2'}`}
       >
         {event.severity[0]?.toUpperCase() ?? '?'}
       </span>
@@ -237,10 +237,10 @@ function SecurityEventEntry({
       {/* Event info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-zinc-200 truncate">{event.eventType}</span>
+          <span className="text-[11px] text-ink-1 truncate">{event.eventType}</span>
           <ActionBadge action={event.actionTaken} />
         </div>
-        <div className="text-[9px] text-zinc-500 mt-0.5">{formatRelativeTime(event.timestamp)}</div>
+        <div className="text-[9px] text-ink-3 mt-0.5">{formatRelativeTime(event.timestamp)}</div>
       </div>
     </div>
   )
@@ -250,19 +250,19 @@ function SecurityEventEntry({
 
 function CrashEventEntry({ crash }: { crash: CrashEntry }) {
   return (
-    <div className="flex items-start gap-2 px-3 py-1.5 border-b border-zinc-800/50 bg-red-950/20">
-      <span className="text-[10px] font-bold text-red-400 w-4">!</span>
+    <div className="flex items-start gap-2 px-3 py-1.5 border-b border-hairline bg-destructive-muted">
+      <span className="text-[10px] font-bold text-destructive w-4">!</span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-red-300 truncate">{crash.errorType}</span>
+          <span className="text-[11px] text-destructive truncate">{crash.errorType}</span>
           {crash.component && (
-            <span className="text-[8px] px-1 py-0.5 rounded bg-red-900/50 text-red-300">
+            <span className="text-[8px] px-1 py-0.5 rounded bg-destructive-muted text-destructive">
               {crash.component}
             </span>
           )}
         </div>
-        <div className="text-[9px] text-zinc-500 mt-0.5 truncate">{crash.errorMessage}</div>
-        <div className="text-[9px] text-zinc-600 mt-0.5">{formatRelativeTime(crash.timestamp)}</div>
+        <div className="text-[9px] text-ink-3 mt-0.5 truncate">{crash.errorMessage}</div>
+        <div className="text-[9px] text-ink-3 mt-0.5">{formatRelativeTime(crash.timestamp)}</div>
       </div>
     </div>
   )
@@ -272,12 +272,12 @@ function CrashEventEntry({ crash }: { crash: CrashEntry }) {
 
 function ActionBadge({ action }: { action: string }) {
   const colors: Record<string, string> = {
-    none: 'bg-zinc-800 text-zinc-400',
-    logged: 'bg-zinc-800 text-zinc-300',
-    warned: 'bg-yellow-900 text-yellow-300',
-    throttled: 'bg-orange-900 text-orange-300',
-    blocked: 'bg-red-900 text-red-300',
-    reported: 'bg-purple-900 text-purple-300'
+    none: 'bg-background-emphasis text-ink-2',
+    logged: 'bg-background-emphasis text-ink-2',
+    warned: 'bg-warning-muted text-warning',
+    throttled: 'bg-warning-muted text-warning',
+    blocked: 'bg-destructive-muted text-destructive',
+    reported: 'bg-background-emphasis text-ink-1'
   }
 
   return (
@@ -293,8 +293,8 @@ function EventDetail({ event, onClose }: { event: SecurityEntry; onClose: () => 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h4 className="text-[10px] font-semibold text-zinc-300 uppercase">Event Detail</h4>
-        <button onClick={onClose} className="text-[10px] text-zinc-500 hover:text-zinc-300">
+        <h4 className="text-[10px] font-semibold text-ink-2 uppercase">Event Detail</h4>
+        <button onClick={onClose} className="text-[10px] text-ink-3 hover:text-ink-1">
           x
         </button>
       </div>
@@ -311,8 +311,8 @@ function EventDetail({ event, onClose }: { event: SecurityEntry; onClose: () => 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
-      <span className="text-zinc-500">{label}</span>
-      <span className="text-zinc-300">{value}</span>
+      <span className="text-ink-3">{label}</span>
+      <span className="text-ink-2">{value}</span>
     </div>
   )
 }
@@ -324,18 +324,18 @@ function PeerScoreList({ scores }: { scores: PeerScoreSnapshot[] }) {
 
   return (
     <div className="p-2">
-      <h4 className="text-[10px] font-semibold text-zinc-400 uppercase mb-2">
+      <h4 className="text-[10px] font-semibold text-ink-2 uppercase mb-2">
         Peer Scores ({scores.length})
       </h4>
 
       {sorted.length === 0 ? (
-        <div className="text-[9px] text-zinc-600">No peers connected</div>
+        <div className="text-[9px] text-ink-3">No peers connected</div>
       ) : (
         sorted.map((peer) => (
-          <div key={peer.peerId} className="py-1.5 border-b border-zinc-800/50">
+          <div key={peer.peerId} className="py-1.5 border-b border-hairline">
             <div className="flex items-center gap-2">
               {/* Score bar */}
-              <div className="w-12 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="w-12 h-1.5 bg-background-emphasis rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${getScoreBarColor(peer.score)}`}
                   style={{
@@ -353,22 +353,22 @@ function PeerScoreList({ scores }: { scores: PeerScoreSnapshot[] }) {
               </span>
 
               {/* Peer ID */}
-              <span className="text-[10px] text-zinc-400 font-mono truncate flex-1">
+              <span className="text-[10px] text-ink-2 font-mono truncate flex-1">
                 {peer.peerId.slice(0, 12)}
               </span>
             </div>
 
             {/* Breakdown */}
-            <div className="flex gap-2 mt-0.5 ml-14 text-[8px] text-zinc-600">
+            <div className="flex gap-2 mt-0.5 ml-14 text-[8px] text-ink-3">
               <span title="Sync successes">S:{peer.syncSuccesses}</span>
               <span title="Sync failures">F:{peer.syncFailures}</span>
               {peer.invalidSignatures > 0 && (
-                <span className="text-red-500" title="Invalid signatures">
+                <span className="text-destructive" title="Invalid signatures">
                   Sig:{peer.invalidSignatures}
                 </span>
               )}
               {peer.rateLimitViolations > 0 && (
-                <span className="text-orange-500" title="Rate limit violations">
+                <span className="text-warning" title="Rate limit violations">
                   RL:{peer.rateLimitViolations}
                 </span>
               )}
@@ -381,19 +381,19 @@ function PeerScoreList({ scores }: { scores: PeerScoreSnapshot[] }) {
 }
 
 function getScoreBarColor(score: number): string {
-  if (score > 50) return 'bg-green-400'
-  if (score > 0) return 'bg-blue-400'
-  if (score > -20) return 'bg-yellow-400'
-  if (score > -50) return 'bg-orange-400'
-  return 'bg-red-400'
+  if (score > 50) return 'bg-success'
+  if (score > 0) return 'bg-ink-2'
+  if (score > -20) return 'bg-warning'
+  if (score > -50) return 'bg-warning'
+  return 'bg-destructive'
 }
 
 function getScoreTextColor(score: number): string {
-  if (score > 50) return 'text-green-400'
-  if (score > 0) return 'text-blue-400'
-  if (score > -20) return 'text-yellow-400'
-  if (score > -50) return 'text-orange-400'
-  return 'text-red-400'
+  if (score > 50) return 'text-success'
+  if (score > 0) return 'text-ink-2'
+  if (score > -20) return 'text-warning'
+  if (score > -50) return 'text-warning'
+  return 'text-destructive'
 }
 
 // ─── Security Summary ──────────────────────────────────────
@@ -424,27 +424,27 @@ function SecuritySummary({
 
   return (
     <div className="space-y-3">
-      <h4 className="text-[10px] font-semibold text-zinc-400 uppercase">Summary</h4>
+      <h4 className="text-[10px] font-semibold text-ink-2 uppercase">Summary</h4>
 
       <div className="space-y-1">
-        <span className="text-[9px] text-zinc-500">By Severity</span>
+        <span className="text-[9px] text-ink-3">By Severity</span>
         {Object.entries(severityCounts).map(([severity, count]) => (
           <div key={severity} className="flex justify-between text-[10px]">
-            <span className="text-zinc-400 capitalize">{severity}</span>
-            <span className="text-zinc-300">{count}</span>
+            <span className="text-ink-2 capitalize">{severity}</span>
+            <span className="text-ink-2">{count}</span>
           </div>
         ))}
         {Object.keys(severityCounts).length === 0 && (
-          <div className="text-[9px] text-zinc-600">No events</div>
+          <div className="text-[9px] text-ink-3">No events</div>
         )}
       </div>
 
       <div className="space-y-1">
-        <span className="text-[9px] text-zinc-500">By Action</span>
+        <span className="text-[9px] text-ink-3">By Action</span>
         {Object.entries(actionCounts).map(([action, count]) => (
           <div key={action} className="flex justify-between text-[10px]">
-            <span className="text-zinc-400 capitalize">{action}</span>
-            <span className="text-zinc-300">{count}</span>
+            <span className="text-ink-2 capitalize">{action}</span>
+            <span className="text-ink-2">{count}</span>
           </div>
         ))}
       </div>
@@ -457,7 +457,7 @@ function SecuritySummary({
 function PerformanceSubPanel({ groups }: { groups: PerformanceGroup[] }) {
   if (groups.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-600 text-[10px]">
+      <div className="flex items-center justify-center h-full text-ink-3 text-[10px]">
         No performance metrics recorded
       </div>
     )
@@ -468,8 +468,8 @@ function PerformanceSubPanel({ groups }: { groups: PerformanceGroup[] }) {
       {groups.map((group) => (
         <div key={group.metric}>
           <div className="flex items-center justify-between mb-1.5">
-            <h4 className="text-[11px] font-semibold text-zinc-300">{group.metric}</h4>
-            <span className="text-[9px] text-zinc-500">{group.total} samples</span>
+            <h4 className="text-[11px] font-semibold text-ink-2">{group.metric}</h4>
+            <span className="text-[9px] text-ink-3">{group.total} samples</span>
           </div>
           <BucketDistribution buckets={group.buckets} total={group.total} />
         </div>
@@ -490,11 +490,11 @@ function BucketDistribution({ buckets, total }: { buckets: Map<string, number>; 
 
         return (
           <div key={bucket} className="flex items-center gap-2">
-            <span className="text-[9px] text-zinc-400 w-16 truncate font-mono">{bucket}</span>
-            <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-400 rounded-full" style={{ width: `${barWidth}%` }} />
+            <span className="text-[9px] text-ink-2 w-16 truncate font-mono">{bucket}</span>
+            <div className="flex-1 h-1.5 bg-background-emphasis rounded-full overflow-hidden">
+              <div className="h-full bg-ink-2 rounded-full" style={{ width: `${barWidth}%` }} />
             </div>
-            <span className="text-[9px] text-zinc-500 w-8 text-right">{pct.toFixed(0)}%</span>
+            <span className="text-[9px] text-ink-3 w-8 text-right">{pct.toFixed(0)}%</span>
           </div>
         )
       })}
@@ -507,19 +507,19 @@ function BucketDistribution({ buckets, total }: { buckets: Map<string, number>; 
 function ConsentSubPanel({ consent }: { consent: ConsentState }) {
   return (
     <div className="p-3 space-y-4 overflow-y-auto h-full">
-      <h3 className="text-sm font-bold text-zinc-200">Telemetry Consent</h3>
+      <h3 className="text-sm font-bold text-ink-1">Telemetry Consent</h3>
 
       {/* Current tier */}
       <div className="space-y-2">
-        <label className="text-[11px] text-zinc-400">Current Tier</label>
+        <label className="text-[11px] text-ink-2">Current Tier</label>
         <div className="flex items-center gap-2">
           <TierBadge tier={consent.tier} />
           {consent.previousTier && consent.previousTier !== consent.tier && (
-            <span className="text-[9px] text-zinc-600">(was: {consent.previousTier})</span>
+            <span className="text-[9px] text-ink-3">(was: {consent.previousTier})</span>
           )}
         </div>
         {consent.lastChanged && (
-          <div className="text-[9px] text-zinc-600">
+          <div className="text-[9px] text-ink-3">
             Changed: {new Date(consent.lastChanged).toLocaleString()}
           </div>
         )}
@@ -549,8 +549,8 @@ function ConsentSubPanel({ consent }: { consent: ConsentState }) {
       </div>
 
       {/* Info note (read-only in devtools) */}
-      <div className="border-t border-zinc-800 pt-3">
-        <p className="text-[10px] text-zinc-500">
+      <div className="border-t border-hairline pt-3">
+        <p className="text-[10px] text-ink-3">
           Consent is managed by the application. This panel provides a read-only view of the current
           telemetry configuration.
         </p>
@@ -561,10 +561,10 @@ function ConsentSubPanel({ consent }: { consent: ConsentState }) {
 
 function TierBadge({ tier }: { tier: string }) {
   const colors: Record<string, string> = {
-    off: 'bg-zinc-800 text-zinc-400',
-    local: 'bg-blue-900 text-blue-300',
-    crashes: 'bg-yellow-900 text-yellow-300',
-    anonymous: 'bg-green-900 text-green-300'
+    off: 'bg-background-emphasis text-ink-2',
+    local: 'bg-background-emphasis text-ink-1',
+    crashes: 'bg-warning-muted text-warning',
+    anonymous: 'bg-success-muted text-success'
   }
 
   return (
@@ -589,12 +589,14 @@ function TierRow({
   return (
     <div
       className={`flex items-center gap-2 px-2 py-1 rounded text-[10px] ${
-        isActive ? 'bg-zinc-800/80 border border-zinc-700' : 'border border-transparent'
+        isActive ? 'bg-background-emphasis border border-hairline' : 'border border-transparent'
       }`}
     >
-      <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-blue-400' : 'bg-zinc-700'}`} />
-      <span className={isActive ? 'text-zinc-200 font-semibold' : 'text-zinc-400'}>{label}</span>
-      <span className="text-zinc-600 flex-1">{desc}</span>
+      <div
+        className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-accent-ink' : 'bg-background-emphasis'}`}
+      />
+      <span className={isActive ? 'text-ink-1 font-semibold' : 'text-ink-2'}>{label}</span>
+      <span className="text-ink-3 flex-1">{desc}</span>
     </div>
   )
 }
@@ -603,10 +605,10 @@ function TierRow({
 
 function TelemetryNotAvailable() {
   return (
-    <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
+    <div className="flex items-center justify-center h-full text-ink-3 text-sm">
       <div className="text-center">
         <p>No telemetry data available.</p>
-        <p className="text-[10px] mt-1 text-zinc-600">
+        <p className="text-[10px] mt-1 text-ink-3">
           Telemetry events will appear here once @xnetjs/telemetry is instrumented.
         </p>
       </div>
