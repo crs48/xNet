@@ -4,7 +4,13 @@
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { describe, it, expect, vi } from 'vitest'
-import { Wikilink, LivePreview, MARK_SYNTAX } from './extensions'
+import {
+  Wikilink,
+  LivePreview,
+  MARK_SYNTAX,
+  serializeWikilink,
+  tokenizeWikilink
+} from './extensions'
 
 // Helper to create a test editor with our extensions
 function createTestEditor(
@@ -261,5 +267,71 @@ describe('Extension Integration', () => {
     expect(editor.isActive('italic')).toBe(true)
 
     editor.destroy()
+  })
+})
+
+describe('Wikilink markdown round trip (0170)', () => {
+  describe('serializeWikilink', () => {
+    it('emits legacy [[title]] when the href is the derived slug', () => {
+      expect(serializeWikilink('default/launch-plan', 'Launch Plan')).toBe('[[Launch Plan]]')
+    })
+
+    it('emits legacy [[title]] when the href is missing', () => {
+      expect(serializeWikilink(null, 'Launch Plan')).toBe('[[Launch Plan]]')
+    })
+
+    it('emits [[target|title]] for node-id hrefs', () => {
+      expect(serializeWikilink('V1StGXR8_Z5jdHi6B-myT', 'Launch Plan')).toBe(
+        '[[V1StGXR8_Z5jdHi6B-myT|Launch Plan]]'
+      )
+    })
+
+    it('emits [[target|title]] for xnet:// hrefs', () => {
+      expect(serializeWikilink('xnet://database/abc', 'Q3 Tracker')).toBe(
+        '[[xnet://database/abc|Q3 Tracker]]'
+      )
+    })
+  })
+
+  describe('tokenizeWikilink', () => {
+    it('tokenizes legacy [[title]] with a derived slug href', () => {
+      const token = tokenizeWikilink('[[Launch Plan]] and more')
+      expect(token).toMatchObject({
+        raw: '[[Launch Plan]]',
+        text: 'Launch Plan',
+        href: 'default/launch-plan'
+      })
+    })
+
+    it('tokenizes [[target|label]] keeping the explicit target', () => {
+      const token = tokenizeWikilink('[[V1StGXR8_Z5jdHi6B-myT|Launch Plan]]')
+      expect(token).toMatchObject({ text: 'Launch Plan', href: 'V1StGXR8_Z5jdHi6B-myT' })
+    })
+
+    it('returns undefined for non-links and empty targets', () => {
+      expect(tokenizeWikilink('plain text')).toBeUndefined()
+      expect(tokenizeWikilink('[[ ]]')).toBeUndefined()
+    })
+
+    it('round-trips serialized links', () => {
+      const source = serializeWikilink('xnet://dashboard/dash-1', 'Metrics')
+      const token = tokenizeWikilink(source)
+      expect(token).toMatchObject({ text: 'Metrics', href: 'xnet://dashboard/dash-1' })
+      expect(serializeWikilink(token?.href, token?.text ?? '')).toBe(source)
+    })
+  })
+})
+
+describe('serializeWikilink placeholder text', () => {
+  it('keeps the legacy form when text is a render placeholder but the title matches the slug', () => {
+    expect(
+      serializeWikilink('default/roadmap-page', 'Roadmap Page', '__TIPTAP_MARKDOWN_PLACEHOLDER__')
+    ).toBe('[[__TIPTAP_MARKDOWN_PLACEHOLDER__]]')
+  })
+
+  it('uses alias form with placeholder text for explicit targets', () => {
+    expect(serializeWikilink('node-id-x', 'Roadmap Page', 'PLACEHOLDER')).toBe(
+      '[[node-id-x|PLACEHOLDER]]'
+    )
   })
 })

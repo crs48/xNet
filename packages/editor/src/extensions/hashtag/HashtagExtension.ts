@@ -12,14 +12,11 @@
  */
 import { Node, mergeAttributes } from '@tiptap/core'
 import { PluginKey } from '@tiptap/pm/state'
-import { ReactRenderer } from '@tiptap/react'
 import Suggestion from '@tiptap/suggestion'
-import tippy, { type Instance, type Props as TippyProps } from 'tippy.js'
-import {
-  TaskMentionMenu,
-  type TaskMentionMenuRef,
-  type TaskMentionSuggestion
-} from '../../components/TaskMentionMenu'
+import { TaskMentionMenu, type TaskMentionSuggestion } from '../../components/TaskMentionMenu'
+import { createSuggestionPopupRender } from '../suggestion-popup'
+
+export { updateSuggestionPopup as updateHashtagPopup } from '../suggestion-popup'
 
 const HashtagSuggestionPluginKey = new PluginKey('hashtagSuggestion')
 
@@ -72,36 +69,6 @@ export function filterHashtagSuggestions(
 /** Map a picked menu entry back to a HashtagSuggestion. */
 export function hashtagFromMenuItem(item: TaskMentionSuggestion): HashtagSuggestion {
   return { id: item.id, name: item.label.replace(/^#/, '') }
-}
-
-type SuggestionRenderProps = {
-  items: TaskMentionSuggestion[]
-  command: (item: TaskMentionSuggestion) => void
-  clientRect?: (() => DOMRect | null) | null
-}
-
-interface PopupComponentLike {
-  updateProps(props: Record<string, unknown>): void
-}
-
-interface PopupInstanceLike {
-  setProps(props: Record<string, unknown>): void
-}
-
-/** Suggestion-popup update step, shared by onUpdate (exported for tests). */
-export function updateHashtagPopup(
-  component: PopupComponentLike | null,
-  popup: PopupInstanceLike[] | null,
-  props: SuggestionRenderProps
-): void {
-  if (!component) return
-  component.updateProps({
-    items: props.items,
-    command: (item: TaskMentionSuggestion) => props.command(item)
-  })
-  if (props.clientRect && popup?.[0]) {
-    popup[0].setProps({ getReferenceClientRect: props.clientRect as () => DOMRect })
-  }
 }
 
 export const HashtagExtension = Node.create<HashtagOptions>({
@@ -185,62 +152,7 @@ export const HashtagExtension = Node.create<HashtagOptions>({
             if (tag) editor.chain().focus().setHashtag(tag).run()
           })
         },
-        render: () => {
-          let component: ReactRenderer<TaskMentionMenuRef> | null = null
-          let popup: Instance<TippyProps>[] | null = null
-
-          return {
-            onStart: (props) => {
-              component = new ReactRenderer(TaskMentionMenu, {
-                props: {
-                  items: props.items,
-                  command: (item: TaskMentionSuggestion) => props.command(item)
-                },
-                editor: props.editor
-              })
-
-              if (!props.clientRect) return
-
-              popup = tippy('body', {
-                getReferenceClientRect: props.clientRect as () => DOMRect,
-                appendTo: () => document.body,
-                content: component.element,
-                showOnCreate: true,
-                interactive: true,
-                trigger: 'manual',
-                placement: 'bottom-start',
-                theme: 'slash-menu',
-                maxWidth: 'none',
-                popperOptions: {
-                  modifiers: [
-                    { name: 'flip', enabled: true },
-                    { name: 'preventOverflow', enabled: true }
-                  ]
-                }
-              })
-            },
-
-            onUpdate(props) {
-              updateHashtagPopup(component, popup, props)
-            },
-
-            onKeyDown(props) {
-              if (props.event.key === 'Escape') {
-                popup?.[0]?.hide()
-                return true
-              }
-
-              return component?.ref?.onKeyDown(props.event) ?? false
-            },
-
-            onExit() {
-              popup?.[0]?.destroy()
-              component?.destroy()
-              popup = null
-              component = null
-            }
-          }
-        }
+        render: createSuggestionPopupRender<TaskMentionSuggestion>(TaskMentionMenu)
       })
     ]
   }
