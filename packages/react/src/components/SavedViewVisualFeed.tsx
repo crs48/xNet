@@ -47,6 +47,8 @@ type FeedDensityConfig = {
   gridEstimateRowHeight: number
   listEstimateRowHeight: number
   titleClampClass: string
+  titleSizeClass: string
+  cardPaddingClass: string
   showMeta: boolean
   showDescription: boolean
   listThumbClass: string
@@ -59,6 +61,8 @@ const FEED_DENSITY_CONFIGS: Record<SavedViewFeedDensity, FeedDensityConfig> = {
     gridEstimateRowHeight: 168,
     listEstimateRowHeight: 56,
     titleClampClass: 'line-clamp-1',
+    titleSizeClass: 'text-xs',
+    cardPaddingClass: 'p-2',
     showMeta: false,
     showDescription: false,
     listThumbClass: 'h-10 w-[71px]'
@@ -69,6 +73,8 @@ const FEED_DENSITY_CONFIGS: Record<SavedViewFeedDensity, FeedDensityConfig> = {
     gridEstimateRowHeight: 224,
     listEstimateRowHeight: 80,
     titleClampClass: 'line-clamp-2',
+    titleSizeClass: 'text-sm',
+    cardPaddingClass: 'p-2.5',
     showMeta: true,
     showDescription: false,
     listThumbClass: 'h-14 w-[100px]'
@@ -79,6 +85,8 @@ const FEED_DENSITY_CONFIGS: Record<SavedViewFeedDensity, FeedDensityConfig> = {
     gridEstimateRowHeight: 330,
     listEstimateRowHeight: 108,
     titleClampClass: 'line-clamp-2',
+    titleSizeClass: 'text-sm',
+    cardPaddingClass: 'p-2.5',
     showMeta: true,
     showDescription: true,
     listThumbClass: 'h-20 w-[142px]'
@@ -128,6 +136,18 @@ export function mergeSavedViewFeedEnrichment(
     ...(thumbnailUrl ? { thumbnailUrl } : {}),
     ...(authorName && !preview.creator ? { creator: { label: authorName } } : {})
   }
+}
+
+/** Merge locally cached enrichment over every preview in a feed. */
+export function mergeFeedPreviews(
+  previews: readonly SavedViewVisualPreviewModel[],
+  enrichment: SavedViewFeedEnrichmentAdapter | undefined
+): SavedViewVisualPreviewModel[] {
+  if (!enrichment) return [...previews]
+
+  return previews.map((preview) =>
+    mergeSavedViewFeedEnrichment(preview, enrichment.lookup(preview))
+  )
 }
 
 function feedThumbAspectClass(preview: SavedViewVisualPreviewModel): string {
@@ -315,32 +335,72 @@ function FeedCardMedia({
   )
 }
 
-function FeedMetaLine({
-  preview,
-  showTimestamp = true
+function FeedCreatorChip({
+  creator
+}: {
+  creator: SavedViewVisualPreviewModel['creator']
+}): JSX.Element | null {
+  if (!creator) return null
+
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      <UserRound size={10} className="shrink-0" />
+      <span className="truncate">{creator.label}</span>
+    </span>
+  )
+}
+
+function FeedTimestampChip({
+  preview
 }: {
   preview: SavedViewVisualPreviewModel
-  showTimestamp?: boolean
 }): JSX.Element | null {
-  const timestampLabel = showTimestamp ? feedTimestampLabel(preview) : null
-  if (!preview.creator && !timestampLabel) return null
+  const label = feedTimestampLabel(preview)
+  if (!label) return null
+
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1">
+      <CalendarDays size={10} />
+      {label}
+    </span>
+  )
+}
+
+function FeedMetaLine({ preview }: { preview: SavedViewVisualPreviewModel }): JSX.Element | null {
+  if (!preview.creator && !preview.timestamp) return null
 
   return (
     <div className="flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
-      {preview.creator ? (
-        <span className="inline-flex min-w-0 items-center gap-1">
-          <UserRound size={10} className="shrink-0" />
-          <span className="truncate">{preview.creator.label}</span>
-        </span>
-      ) : null}
-      {timestampLabel ? (
-        <span className="inline-flex shrink-0 items-center gap-1">
-          <CalendarDays size={10} />
-          {timestampLabel}
-        </span>
-      ) : null}
+      <FeedCreatorChip creator={preview.creator} />
+      <FeedTimestampChip preview={preview} />
     </div>
   )
+}
+
+function FeedCardMeta({
+  preview,
+  density
+}: {
+  preview: SavedViewVisualPreviewModel
+  density: SavedViewFeedDensity
+}): JSX.Element | null {
+  if (!FEED_DENSITY_CONFIGS[density].showMeta) return null
+
+  return <FeedMetaLine preview={preview} />
+}
+
+function FeedCardDescription({
+  preview,
+  density,
+  className
+}: {
+  preview: SavedViewVisualPreviewModel
+  density: SavedViewFeedDensity
+  className: string
+}): JSX.Element | null {
+  if (!FEED_DENSITY_CONFIGS[density].showDescription || !preview.description) return null
+
+  return <p className={className}>{preview.description}</p>
 }
 
 function FeedExternalLink({
@@ -410,12 +470,12 @@ function FeedGridCard({
       ])}
     >
       <FeedCardMedia preview={preview} live={live} onToggleLiveEmbed={onToggleLiveEmbed} />
-      <div className={classNames(['min-w-0 space-y-1', density === 'compact' ? 'p-2' : 'p-2.5'])}>
+      <div className={classNames(['min-w-0 space-y-1', config.cardPaddingClass])}>
         <div className="flex items-start justify-between gap-1">
           <h3
             className={classNames([
               'min-w-0 flex-1 font-medium leading-snug',
-              density === 'compact' ? 'text-xs' : 'text-sm',
+              config.titleSizeClass,
               config.titleClampClass
             ])}
           >
@@ -423,10 +483,12 @@ function FeedGridCard({
           </h3>
           <FeedExternalLink preview={preview} />
         </div>
-        {config.showMeta ? <FeedMetaLine preview={preview} /> : null}
-        {config.showDescription && preview.description ? (
-          <p className="line-clamp-2 text-xs text-muted-foreground">{preview.description}</p>
-        ) : null}
+        <FeedCardMeta preview={preview} density={density} />
+        <FeedCardDescription
+          preview={preview}
+          density={density}
+          className="line-clamp-2 text-xs text-muted-foreground"
+        />
       </div>
     </article>
   )
@@ -463,16 +525,18 @@ function FeedListRow({
         <h3
           className={classNames([
             'font-medium leading-snug',
-            density === 'compact' ? 'text-xs' : 'text-sm',
+            config.titleSizeClass,
             config.titleClampClass
           ])}
         >
           {preview.title}
         </h3>
-        {config.showMeta ? <FeedMetaLine preview={preview} /> : null}
-        {config.showDescription && preview.description ? (
-          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{preview.description}</p>
-        ) : null}
+        <FeedCardMeta preview={preview} density={density} />
+        <FeedCardDescription
+          preview={preview}
+          density={density}
+          className="mt-0.5 line-clamp-1 text-xs text-muted-foreground"
+        />
       </div>
       <FeedExternalLink preview={preview} />
     </article>
@@ -490,6 +554,55 @@ function chunkFeedPreviews(
   }
 
   return rows
+}
+
+export type FeedVirtualRowModel = {
+  key: string | number | bigint
+  index: number
+  start: number
+  measured: boolean
+}
+
+export type FeedVirtualRowWindow = {
+  rows: FeedVirtualRowModel[]
+  visibleStart: number
+  visibleEnd: number
+}
+
+/**
+ * Rows to render for the current scroll window, with an estimated
+ * fallback window for environments where the virtualizer has not
+ * measured the scroll element yet (initial paint, jsdom).
+ */
+export function buildFeedVirtualRowWindow(input: {
+  virtualRows: readonly { key: string | number | bigint; index: number; start: number }[]
+  rowCount: number
+  estimateRowHeight: number
+  overscan?: number
+}): FeedVirtualRowWindow {
+  const rows =
+    input.virtualRows.length > 0
+      ? input.virtualRows.map((virtualRow) => ({
+          key: virtualRow.key,
+          index: virtualRow.index,
+          start: virtualRow.start,
+          measured: true
+        }))
+      : Array.from(
+          { length: Math.min(input.rowCount, input.overscan ?? FEED_OVERSCAN) },
+          (_, index) => ({
+            key: `initial-${index}`,
+            index,
+            start: index * input.estimateRowHeight,
+            measured: false
+          })
+        )
+
+  return {
+    rows,
+    visibleStart: rows[0]?.index ?? 0,
+    visibleEnd: rows[rows.length - 1]?.index ?? 0
+  }
 }
 
 function FeedVirtualRows({
@@ -511,23 +624,15 @@ function FeedVirtualRows({
     initialRect: { width: 1024, height: 640 },
     overscan: FEED_OVERSCAN
   })
-  const virtualRows = virtualizer.getVirtualItems()
-  const renderedRows =
-    virtualRows.length > 0
-      ? virtualRows.map((virtualRow) => ({
-          key: virtualRow.key,
-          index: virtualRow.index,
-          start: virtualRow.start,
-          measureRef: virtualizer.measureElement
-        }))
-      : Array.from({ length: Math.min(rowCount, FEED_OVERSCAN) }, (_, index) => ({
-          key: `initial-${index}`,
-          index,
-          start: index * estimateRowHeight,
-          measureRef: undefined
-        }))
-  const visibleStart = renderedRows[0]?.index ?? 0
-  const visibleEnd = renderedRows[renderedRows.length - 1]?.index ?? 0
+  const {
+    rows: renderedRows,
+    visibleStart,
+    visibleEnd
+  } = buildFeedVirtualRowWindow({
+    virtualRows: virtualizer.getVirtualItems(),
+    rowCount,
+    estimateRowHeight
+  })
 
   useEffect(() => {
     onVisibleRangeChange?.(visibleStart, visibleEnd)
@@ -540,13 +645,100 @@ function FeedVirtualRows({
           <div
             key={virtualRow.key}
             data-index={virtualRow.index}
-            ref={virtualRow.measureRef}
+            ref={virtualRow.measured ? virtualizer.measureElement : undefined}
             className="absolute left-0 top-0 w-full"
             style={{ transform: `translateY(${virtualRow.start}px)` }}
           >
             {renderRow(virtualRow.index)}
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function FeedToggleButton({
+  active,
+  title,
+  className,
+  onClick,
+  children
+}: {
+  active: boolean
+  title?: string
+  className: string
+  onClick: () => void
+  children: ReactNode
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={classNames([
+        className,
+        active ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+      ])}
+    >
+      {children}
+    </button>
+  )
+}
+
+function FeedToolbar({
+  itemCount,
+  layout,
+  density,
+  onSelectLayout,
+  onSelectDensity
+}: {
+  itemCount: number
+  layout: SavedViewFeedLayout
+  density: SavedViewFeedDensity
+  onSelectLayout: (layout: SavedViewFeedLayout) => void
+  onSelectDensity: (density: SavedViewFeedDensity) => void
+}): JSX.Element {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <GalleryVerticalEnd size={14} className="text-muted-foreground" />
+        <span>Feed</span>
+        <span className="text-xs font-normal text-muted-foreground">
+          {itemCount.toLocaleString()} items
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1">
+        <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+          <FeedToggleButton
+            active={layout === 'list'}
+            title="List layout"
+            className="rounded p-1 transition-colors"
+            onClick={() => onSelectLayout('list')}
+          >
+            <LayoutList size={13} />
+          </FeedToggleButton>
+          <FeedToggleButton
+            active={layout === 'grid'}
+            title="Grid layout"
+            className="rounded p-1 transition-colors"
+            onClick={() => onSelectLayout('grid')}
+          >
+            <LayoutGrid size={13} />
+          </FeedToggleButton>
+        </div>
+        <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+          {(Object.keys(FEED_DENSITY_CONFIGS) as SavedViewFeedDensity[]).map((candidate) => (
+            <FeedToggleButton
+              key={candidate}
+              active={density === candidate}
+              className="rounded px-1.5 py-0.5 text-[11px] transition-colors"
+              onClick={() => onSelectDensity(candidate)}
+            >
+              {FEED_DENSITY_LABELS[candidate]}
+            </FeedToggleButton>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -579,12 +771,7 @@ export function SavedViewVisualFeed({
   const { ref: containerRef, width: containerWidth } = useMeasuredWidth()
   const gridColumns = feedGridColumnCount(containerWidth, density)
   const enrichedPreviews = useMemo(
-    () =>
-      enrichment
-        ? previews.map((preview) =>
-            mergeSavedViewFeedEnrichment(preview, enrichment.lookup(preview))
-          )
-        : previews,
+    () => mergeFeedPreviews(previews, enrichment),
     [enrichment, previews]
   )
   const gridRows = useMemo(
@@ -618,65 +805,13 @@ export function SavedViewVisualFeed({
       ref={containerRef}
       className="overflow-hidden rounded-md border border-border bg-background"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <GalleryVerticalEnd size={14} className="text-muted-foreground" />
-          <span>Feed</span>
-          <span className="text-xs font-normal text-muted-foreground">
-            {previews.length.toLocaleString()} items
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-1">
-          <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
-            <button
-              type="button"
-              onClick={() => onSelectLayout('list')}
-              title="List layout"
-              aria-pressed={layout === 'list'}
-              className={classNames([
-                'rounded p-1 transition-colors',
-                layout === 'list'
-                  ? 'bg-foreground text-background'
-                  : 'text-muted-foreground hover:text-foreground'
-              ])}
-            >
-              <LayoutList size={13} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectLayout('grid')}
-              title="Grid layout"
-              aria-pressed={layout === 'grid'}
-              className={classNames([
-                'rounded p-1 transition-colors',
-                layout === 'grid'
-                  ? 'bg-foreground text-background'
-                  : 'text-muted-foreground hover:text-foreground'
-              ])}
-            >
-              <LayoutGrid size={13} />
-            </button>
-          </div>
-          <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
-            {(Object.keys(FEED_DENSITY_CONFIGS) as SavedViewFeedDensity[]).map((candidate) => (
-              <button
-                key={candidate}
-                type="button"
-                onClick={() => onSelectDensity(candidate)}
-                aria-pressed={density === candidate}
-                className={classNames([
-                  'rounded px-1.5 py-0.5 text-[11px] transition-colors',
-                  density === candidate
-                    ? 'bg-foreground text-background'
-                    : 'text-muted-foreground hover:text-foreground'
-                ])}
-              >
-                {FEED_DENSITY_LABELS[candidate]}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <FeedToolbar
+        itemCount={previews.length}
+        layout={layout}
+        density={density}
+        onSelectLayout={onSelectLayout}
+        onSelectDensity={onSelectDensity}
+      />
       {layout === 'grid' ? (
         <FeedVirtualRows
           key={`grid:${density}:${gridColumns}`}

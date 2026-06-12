@@ -2,8 +2,16 @@ import { describe, expect, it } from 'vitest'
 import {
   buildEnrichmentNodeData,
   enrichmentTargetForPreview,
+  feedEnrichmentEntryFor,
+  fetchEnrichmentForTarget,
+  hubAuthHeaders,
+  hubHttpUrlFor,
+  loadMissingThumbnailBlobUrls,
+  nextEnrichmentAttempt,
+  resolveHubAuthToken,
   socialEnrichmentKey,
   SocialEnrichmentQueue,
+  thumbnailContentTypeFor,
   type SocialEnrichmentTarget
 } from './social-feed-enrichment'
 
@@ -105,6 +113,196 @@ describe('buildEnrichmentNodeData', () => {
         fetchedAtMs: 1
       }).status
     ).toBe('error')
+  })
+})
+
+describe('hub url and header helpers', () => {
+  it('converts websocket hub urls to http', () => {
+    expect(hubHttpUrlFor('wss://hub.xnet.fyi')).toBe('https://hub.xnet.fyi')
+    expect(hubHttpUrlFor('ws://localhost:4444/')).toBe('http://localhost:4444')
+    expect(hubHttpUrlFor('not a url')).toBe('not a url')
+  })
+
+  it('builds bearer headers only when a token exists', () => {
+    expect(hubAuthHeaders('tok')).toEqual({ Authorization: 'Bearer tok' })
+    expect(hubAuthHeaders('')).toEqual({})
+  })
+
+  it('resolves hub auth tokens defensively', async () => {
+    expect(await resolveHubAuthToken(undefined)).toBe('')
+    expect(await resolveHubAuthToken(async () => 'tok')).toBe('tok')
+    expect(
+      await resolveHubAuthToken(async () => {
+        throw new Error('no session')
+      })
+    ).toBe('')
+  })
+
+  it('counts enrichment attempts from the existing node', () => {
+    expect(nextEnrichmentAttempt(undefined)).toBe(1)
+    expect(nextEnrichmentAttempt({})).toBe(1)
+    expect(nextEnrichmentAttempt({ attemptCount: 2 })).toBe(3)
+  })
+})
+
+describe('feedEnrichmentEntryFor', () => {
+  const row = {
+    id: 'enrichment-1',
+    status: 'resolved',
+    title: 'Real Title',
+    description: 'Desc',
+    authorName: 'Channel',
+    thumbnailUrl: 'https://i.ytimg.com/vi/abc/mqdefault.jpg',
+    thumbnailBlobCid: 'cid:blake3:abc'
+  }
+
+  it('maps resolved rows preferring blob object urls', () => {
+    expect(feedEnrichmentEntryFor(row, 'blob:local')).toEqual({
+      title: 'Real Title',
+      description: 'Desc',
+      authorName: 'Channel',
+      thumbnailUrl: 'blob:local'
+    })
+    expect(feedEnrichmentEntryFor(row, undefined)?.thumbnailUrl).toBe(row.thumbnailUrl)
+  })
+
+  it('hides unresolved rows from display', () => {
+    expect(feedEnrichmentEntryFor(undefined, undefined)).toBeNull()
+    expect(feedEnrichmentEntryFor({ ...row, status: 'unavailable' }, undefined)).toBeNull()
+  })
+})
+
+describe('thumbnailContentTypeFor', () => {
+  it('reads the stored content type with a jpeg fallback', () => {
+    expect(thumbnailContentTypeFor({ metadataJson: '{"thumbnailContentType":"image/webp"}' })).toBe(
+      'image/webp'
+    )
+    expect(thumbnailContentTypeFor({ metadataJson: undefined })).toBe('image/jpeg')
+    expect(thumbnailContentTypeFor({ metadataJson: 'not json' })).toBe('image/jpeg')
+  })
+})
+
+describe('fetchEnrichmentForTarget', () => {
+  const resolvedPayload = {
+    status: 'resolved',
+    metadata: { title: 'Real Title', imageUrl: 'https://i.ytimg.com/vi/abc123/mqdefault.jpg' }
+  }
+
+  function fetchStub(routes: Record<string, Response | (() => Response)>): typeof fetch {
+    return (async (input: RequestInfo | URL) => {
+      const url = String(input)
+      const matched = Object.entries(routes).find(([prefix]) => url.includes(prefix))
+      if (!matched) throw new Error(`Unexpected fetch: ${url}`)
+      const value = matched[1]
+      return typeof value === 'function' ? value() : value.clone()
+    }) as typeof fetch
+  }
+
+  it('fetches metadata and captures thumbnail bytes into the blob store', async () => {
+    const stored: Uint8Array[] = []
+    const result = await fetchEnrichmentForTarget({
+      httpUrl: 'https://hub.example',
+      headers: {},
+      target,
+      blobStore: {
+        put: async (bytes) => {
+          stored.push(bytes)
+          return 'cid:blake3:stored'
+        }
+      },
+      fetchImpl: fetchStub({
+        '/unfurl/metadata': new Response(JSON.stringify(resolvedPayload), {
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        '/unfurl/image': new Response(new Uint8Array([1, 2, 3]), {
+          headers: { 'Content-Type': 'image/jpeg' }
+        })
+      })
+    })
+
+    expect(result.payload.metadata?.title).toBe('Real Title')
+    expect(result.thumbnailBlobCid).toBe('cid:blake3:stored')
+    expect(result.thumbnailContentType).toBe('image/jpeg')
+    expect(stored[0]).toEqual(new Uint8Array([1, 2, 3]))
+  })
+
+  it('skips thumbnail capture without a blob store or image, and survives image failures', async () => {
+    const noBlobStore = await fetchEnrichmentForTarget({
+      httpUrl: 'https://hub.example',
+      headers: {},
+      target,
+      blobStore: null,
+      fetchImpl: fetchStub({
+        '/unfurl/metadata': new Response(JSON.stringify(resolvedPayload), {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      })
+    })
+    expect(noBlobStore.thumbnailBlobCid).toBeUndefined()
+
+    const imageFails = await fetchEnrichmentForTarget({
+      httpUrl: 'https://hub.example',
+      headers: {},
+      target,
+      blobStore: { put: async () => 'cid:blake3:unused' },
+      fetchImpl: fetchStub({
+        '/unfurl/metadata': new Response(JSON.stringify(resolvedPayload), {
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        '/unfurl/image': () => new Response('nope', { status: 502 })
+      })
+    })
+    expect(imageFails.payload.status).toBe('resolved')
+    expect(imageFails.thumbnailBlobCid).toBeUndefined()
+  })
+
+  it('throws on failed metadata requests so the queue records the miss', async () => {
+    await expect(
+      fetchEnrichmentForTarget({
+        httpUrl: 'https://hub.example',
+        headers: {},
+        target,
+        blobStore: null,
+        fetchImpl: fetchStub({ '/unfurl/metadata': () => new Response('nope', { status: 404 }) })
+      })
+    ).rejects.toThrow('Unfurl request failed with 404')
+  })
+})
+
+describe('loadMissingThumbnailBlobUrls', () => {
+  it('creates object urls for uncached blob cids only', async () => {
+    const added = await loadMissingThumbnailBlobUrls({
+      rows: [
+        { id: 'a', thumbnailBlobCid: 'cid:blake3:one' },
+        { id: 'b', thumbnailBlobCid: 'cid:blake3:cached' },
+        { id: 'c', thumbnailBlobCid: 'not-a-cid' },
+        { id: 'd' }
+      ],
+      blobStore: { get: async () => new Uint8Array([9]) },
+      hasUrl: (cid) => cid === 'cid:blake3:cached',
+      createUrl: () => 'blob:created'
+    })
+
+    expect([...added.entries()]).toEqual([['cid:blake3:one', 'blob:created']])
+  })
+
+  it('skips blobs that fail to load and stops when cancelled', async () => {
+    const missing = await loadMissingThumbnailBlobUrls({
+      rows: [{ id: 'a', thumbnailBlobCid: 'cid:blake3:gone' }],
+      blobStore: { get: async () => null },
+      hasUrl: () => false,
+      createUrl: () => 'blob:never'
+    })
+    expect(missing.size).toBe(0)
+
+    const cancelled = await loadMissingThumbnailBlobUrls({
+      rows: [{ id: 'a', thumbnailBlobCid: 'cid:blake3:one' }],
+      blobStore: { get: async () => new Uint8Array([1]) },
+      hasUrl: () => false,
+      createUrl: () => 'blob:never',
+      isCancelled: () => true
+    })
+    expect(cancelled.size).toBe(0)
   })
 })
 

@@ -72,6 +72,27 @@ function cleanString(value: string | null | undefined): string | undefined {
   return trimmed ? trimmed : undefined
 }
 
+const ENRICHMENT_STATUSES = ['resolved', 'unavailable', 'blocked', 'error'] as const
+
+function enrichmentStatusFor(status: string | undefined): SocialEnrichmentNodeData['status'] {
+  const known = ENRICHMENT_STATUSES.find((candidate) => candidate === status)
+  return known ?? 'unavailable'
+}
+
+const ENRICHMENT_SOURCES = ['oembed', 'open-graph'] as const
+
+function enrichmentSourceFor(source: string | null | undefined): string | undefined {
+  return ENRICHMENT_SOURCES.find((candidate) => candidate === source)
+}
+
+function assignDefined<K extends keyof SocialEnrichmentNodeData>(
+  data: SocialEnrichmentNodeData,
+  key: K,
+  value: SocialEnrichmentNodeData[K] | undefined
+): void {
+  if (value !== undefined) data[key] = value
+}
+
 export function buildEnrichmentNodeData(input: {
   target: SocialEnrichmentTarget
   payload: SocialUnfurlMetadataPayload
@@ -80,40 +101,185 @@ export function buildEnrichmentNodeData(input: {
   thumbnailBlobCid?: string
   thumbnailContentType?: string
 }): SocialEnrichmentNodeData {
-  const status =
-    input.payload.status === 'resolved' ||
-    input.payload.status === 'unavailable' ||
-    input.payload.status === 'blocked'
-      ? input.payload.status
-      : input.payload.status === 'error'
-        ? 'error'
-        : 'unavailable'
-  const metadata = input.payload.metadata
-  const source =
-    metadata?.source === 'oembed' || metadata?.source === 'open-graph' ? metadata.source : undefined
+  const status = enrichmentStatusFor(input.payload.status)
+  const metadata = input.payload.metadata ?? null
 
-  return {
+  const data: SocialEnrichmentNodeData = {
     platform: input.target.platform,
     platformContentId: input.target.platformContentId,
     canonicalUrl: input.target.url,
     status,
-    ...(cleanString(metadata?.title) ? { title: cleanString(metadata?.title) } : {}),
-    ...(cleanString(metadata?.description)
-      ? { description: cleanString(metadata?.description) }
-      : {}),
-    ...(cleanString(metadata?.authorName) ? { authorName: cleanString(metadata?.authorName) } : {}),
-    ...(cleanString(metadata?.imageUrl) ? { thumbnailUrl: cleanString(metadata?.imageUrl) } : {}),
-    ...(input.thumbnailBlobCid ? { thumbnailBlobCid: input.thumbnailBlobCid } : {}),
-    ...(source ? { source } : {}),
     fetchedAt: input.fetchedAtMs,
-    attemptCount: input.attemptCount,
-    ...(status !== 'resolved' && cleanString(input.payload.reason)
-      ? { lastError: cleanString(input.payload.reason) }
-      : {}),
-    ...(input.thumbnailContentType
-      ? { metadataJson: JSON.stringify({ thumbnailContentType: input.thumbnailContentType }) }
-      : {})
+    attemptCount: input.attemptCount
   }
+
+  assignDefined(data, 'title', cleanString(metadata?.title))
+  assignDefined(data, 'description', cleanString(metadata?.description))
+  assignDefined(data, 'authorName', cleanString(metadata?.authorName))
+  assignDefined(data, 'thumbnailUrl', cleanString(metadata?.imageUrl))
+  assignDefined(data, 'thumbnailBlobCid', input.thumbnailBlobCid)
+  assignDefined(data, 'source', enrichmentSourceFor(metadata?.source))
+  if (status !== 'resolved') {
+    assignDefined(data, 'lastError', cleanString(input.payload.reason))
+  }
+  if (input.thumbnailContentType) {
+    data.metadataJson = JSON.stringify({ thumbnailContentType: input.thumbnailContentType })
+  }
+
+  return data
+}
+
+export type EnrichmentRowLike = {
+  id: string
+  status?: string
+  title?: string
+  description?: string
+  authorName?: string
+  thumbnailUrl?: string
+  thumbnailBlobCid?: string
+  metadataJson?: string
+}
+
+export type FeedEnrichmentEntry = {
+  title: string | null
+  description: string | null
+  authorName: string | null
+  thumbnailUrl: string | null
+}
+
+/** Map a resolved enrichment node onto display fields for a feed card. */
+export function feedEnrichmentEntryFor(
+  row: EnrichmentRowLike | undefined,
+  blobUrl: string | undefined
+): FeedEnrichmentEntry | null {
+  if (!row || row.status !== 'resolved') return null
+
+  return {
+    title: row.title ?? null,
+    description: row.description ?? null,
+    authorName: row.authorName ?? null,
+    thumbnailUrl: blobUrl ?? row.thumbnailUrl ?? null
+  }
+}
+
+export function thumbnailContentTypeFor(row: Pick<EnrichmentRowLike, 'metadataJson'>): string {
+  try {
+    const metadata = JSON.parse(row.metadataJson ?? '{}') as { thumbnailContentType?: string }
+    return metadata.thumbnailContentType ?? 'image/jpeg'
+  } catch {
+    return 'image/jpeg'
+  }
+}
+
+export function hubHttpUrlFor(hubUrl: string): string {
+  try {
+    const url = new URL(hubUrl)
+    if (url.protocol === 'ws:') url.protocol = 'http:'
+    if (url.protocol === 'wss:') url.protocol = 'https:'
+    return url.toString().replace(/\/$/, '')
+  } catch {
+    return hubUrl
+  }
+}
+
+export function hubAuthHeaders(token: string): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+export async function resolveHubAuthToken(
+  getToken: (() => Promise<string>) | undefined
+): Promise<string> {
+  if (!getToken) return ''
+  return getToken().catch(() => '')
+}
+
+export function nextEnrichmentAttempt(existing: { attemptCount?: number } | undefined): number {
+  return (existing?.attemptCount ?? 0) + 1
+}
+
+export type EnrichmentFetchResult = {
+  payload: SocialUnfurlMetadataPayload
+  thumbnailBlobCid?: string
+  thumbnailContentType?: string
+}
+
+/**
+ * Fetch unfurled metadata for a target through the hub and, when a
+ * thumbnail is available, capture its bytes into the blob store so the
+ * feed can render it without any later network access.
+ */
+export async function fetchEnrichmentForTarget(input: {
+  httpUrl: string
+  headers: Record<string, string>
+  target: SocialEnrichmentTarget
+  blobStore: { put(data: Uint8Array): Promise<string> } | null
+  fetchImpl?: typeof fetch
+}): Promise<EnrichmentFetchResult> {
+  const fetchImpl = input.fetchImpl ?? fetch
+  const response = await fetchImpl(
+    `${input.httpUrl}/unfurl/metadata?url=${encodeURIComponent(input.target.url)}&provider=${encodeURIComponent(input.target.platform)}`,
+    { headers: input.headers }
+  )
+  if (!response.ok) {
+    throw new Error(`Unfurl request failed with ${response.status}`)
+  }
+  const payload = (await response.json()) as SocialUnfurlMetadataPayload
+
+  const imageUrl = payload.metadata?.imageUrl
+  if (payload.status !== 'resolved' || !imageUrl || !input.blobStore) {
+    return { payload }
+  }
+
+  const imageResponse = await fetchImpl(
+    `${input.httpUrl}/unfurl/image?url=${encodeURIComponent(imageUrl)}`,
+    { headers: input.headers }
+  ).catch(() => null)
+  if (!imageResponse?.ok) {
+    return { payload }
+  }
+
+  const bytes = new Uint8Array(await imageResponse.arrayBuffer())
+  if (bytes.byteLength === 0) {
+    return { payload }
+  }
+
+  return {
+    payload,
+    thumbnailBlobCid: await input.blobStore.put(bytes),
+    thumbnailContentType: imageResponse.headers.get('content-type') ?? undefined
+  }
+}
+
+/**
+ * Materialize object URLs for blob-cached thumbnails that are not in the
+ * cache yet. Returns the new cid → object URL entries.
+ */
+export async function loadMissingThumbnailBlobUrls(input: {
+  rows: readonly EnrichmentRowLike[]
+  blobStore: { get(cid: `cid:blake3:${string}`): Promise<Uint8Array | null> }
+  hasUrl: (cid: string) => boolean
+  createUrl: (blob: Blob) => string
+  limit?: number
+  isCancelled?: () => boolean
+}): Promise<Map<string, string>> {
+  const added = new Map<string, string>()
+  const missing = input.rows
+    .filter((row) => row.thumbnailBlobCid && !input.hasUrl(row.thumbnailBlobCid))
+    .slice(0, input.limit ?? 200)
+
+  for (const row of missing) {
+    const cid = row.thumbnailBlobCid as string
+    if (!cid.startsWith('cid:blake3:') || added.has(cid)) continue
+
+    const bytes = await input.blobStore.get(cid as `cid:blake3:${string}`).catch(() => null)
+    if (input.isCancelled?.()) return added
+    if (!bytes) continue
+
+    const blob = new Blob([bytes as BlobPart], { type: thumbnailContentTypeFor(row) })
+    added.set(cid, input.createUrl(blob))
+  }
+
+  return added
 }
 
 const DEFAULT_ENRICHMENT_INTERVAL_MS = 500
