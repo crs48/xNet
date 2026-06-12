@@ -16,24 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Replace gh-pages contents with offline page
+      - name: Prepare offline placeholder
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          rm -rf /tmp/xnet-gh-pages
-          git fetch origin gh-pages || true
-
-          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git worktree add -B gh-pages /tmp/xnet-gh-pages origin/gh-pages
-          else
-            git worktree add -B gh-pages /tmp/xnet-gh-pages HEAD
-          fi
-
-          find /tmp/xnet-gh-pages -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-          cp site/public/CNAME /tmp/xnet-gh-pages/CNAME
-          touch /tmp/xnet-gh-pages/.nojekyll
-          cat <<'EOF' > /tmp/xnet-gh-pages/index.html
+          rm -rf /tmp/xnet-offline
+          mkdir -p /tmp/xnet-offline
+          cp site/public/CNAME /tmp/xnet-offline/CNAME
+          touch /tmp/xnet-offline/.nojekyll
+          cat <<'EOF' > /tmp/xnet-offline/index.html
           <html>
             <body>
               <p>Site offline.</p>
@@ -41,13 +30,10 @@ jobs:
           </html>
           EOF
 
-          cd /tmp/xnet-gh-pages
-          git add -A
-
-          if git diff --cached --quiet; then
-            echo "No undeploy changes to publish."
-            exit 0
-          fi
-
-          git commit -m "deploy(site): publish offline placeholder"
-          git push origin HEAD:gh-pages
+      # No excludes: undeploy intentionally wipes pr/ and branch/ previews too.
+      - name: Replace gh-pages contents with offline page
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          source: /tmp/xnet-offline
+          target: .
+          commit-message: 'deploy(site): publish offline placeholder'

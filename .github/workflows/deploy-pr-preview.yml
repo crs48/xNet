@@ -41,36 +41,11 @@ jobs:
           cp /tmp/xnet-pr-preview/index.html /tmp/xnet-pr-preview/404.html
 
       - name: Publish preview to gh-pages
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          rm -rf /tmp/xnet-gh-pages
-          git fetch origin gh-pages || true
-
-          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git worktree add -B gh-pages /tmp/xnet-gh-pages origin/gh-pages
-          else
-            git worktree add -B gh-pages /tmp/xnet-gh-pages HEAD
-            find /tmp/xnet-gh-pages -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-            cp site/public/CNAME /tmp/xnet-gh-pages/CNAME
-            touch /tmp/xnet-gh-pages/.nojekyll
-          fi
-
-          preview_dir="/tmp/xnet-gh-pages/pr/${{ github.event.pull_request.number }}/app"
-          mkdir -p "$preview_dir"
-          rsync -a --delete /tmp/xnet-pr-preview/ "$preview_dir/"
-
-          cd /tmp/xnet-gh-pages
-          git add -A
-
-          if git diff --cached --quiet; then
-            echo "No preview changes to publish."
-            exit 0
-          fi
-
-          git commit -m "deploy(preview): publish PR #${{ github.event.pull_request.number }} preview"
-          git push origin HEAD:gh-pages
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          source: /tmp/xnet-pr-preview
+          target: pr/${{ github.event.pull_request.number }}/app
+          commit-message: 'deploy(preview): publish PR #${{ github.event.pull_request.number }} preview'
 
       - name: Comment preview link
         uses: actions/github-script@v7
