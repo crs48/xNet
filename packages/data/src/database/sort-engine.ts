@@ -72,7 +72,8 @@ export function sortRows<T extends SortableRow>(
 /**
  * Compare two values based on column type.
  */
-// fallow-ignore-next-line complexity -- inherent flat switch over column types
+// Inherent flat switch over column types.
+// fallow-ignore-next-line complexity
 function compareValues(a: unknown, b: unknown, type: ColumnType): number {
   // Handle null/undefined - nulls sort last
   if (a == null && b == null) return 0

@@ -269,7 +269,8 @@ export const createMemoryStorage = (): HubStorage => {
     }
   }
 
-  // fallow-ignore-next-line complexity -- pre-existing; billed to this PR by changed-file attribution
+  // Pre-existing complexity; billed to PRs touching this file by changed-file attribution.
+  // fallow-ignore-next-line complexity
   const cleanStaleAwareness = async (olderThanMs: number): Promise<number> => {
     const cutoff = Date.now() - olderThanMs
     let removed = 0
@@ -694,8 +695,8 @@ export const createMemoryStorage = (): HubStorage => {
     return group.operator === 'and' ? results.every(Boolean) : results.some(Boolean)
   }
 
-  // Helper: Evaluate single filter condition
-  // fallow-ignore-next-line complexity -- inherent flat switch over filter operators
+  // Helper: Evaluate single filter condition (inherent flat switch over operators)
+  // fallow-ignore-next-line complexity
   function evaluateFilterCondition(
     row: DatabaseRowRecord,
     condition: DatabaseFilterCondition
