@@ -28,12 +28,31 @@ export interface MCPTool {
   description: string
   risk?: string
   requiredScopes?: string[]
+  /**
+   * Tool Search Tool hint (advanced-tool-use): deferred tools are discovered
+   * on demand instead of paying their definition tokens on every turn.
+   */
+  defer_loading?: boolean
   inputSchema: {
     type: 'object'
     properties: Record<string, MCPPropertySchema>
     required?: string[]
   }
 }
+
+/**
+ * Tools loaded into context on every turn. Everything else is deferred and
+ * discovered on demand (~85% standing-definition reduction per Anthropic's
+ * Tool Search Tool measurements). Keep this list stable across releases so
+ * prompt caching amortizes the definitions.
+ */
+export const MCP_CORE_TOOL_NAMES: readonly string[] = [
+  'xnet_search',
+  'xnet_read_page_markdown',
+  'xnet_plan_page_patch',
+  'xnet_apply_page_markdown',
+  'xnet_database_query'
+]
 
 /**
  * MCP property schema
@@ -401,6 +420,11 @@ export class MCPServer {
       this.aiToolNames.add(tool.name)
       this.tools.set(tool.name, toMCPTool(tool))
     }
+
+    for (const [name, tool] of this.tools) {
+      tool.defer_loading = !MCP_CORE_TOOL_NAMES.includes(name)
+      tool.inputSchema.properties.response_format = RESPONSE_FORMAT_SCHEMA
+    }
   }
 
   // ─── Tool Execution ────────────────────────────────────────────────────────
@@ -410,7 +434,11 @@ export class MCPServer {
     arguments?: unknown
   }): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
     const { name, arguments: args } = params
-    const toolArgs = (args ?? {}) as Record<string, unknown>
+    const { response_format: responseFormatArg, ...toolArgs } = (args ?? {}) as Record<
+      string,
+      unknown
+    >
+    const responseFormat = responseFormatArg === 'detailed' ? 'detailed' : 'concise'
 
     let result: unknown
 
@@ -501,7 +529,7 @@ export class MCPServer {
     }
 
     return {
-      content: [{ type: 'text', text: this.config.aiSurface.toJsonText(result) }]
+      content: [{ type: 'text', text: this.config.aiSurface.toJsonText(result, responseFormat) }]
     }
   }
 
@@ -550,6 +578,12 @@ export function createMCPServer(config: MCPServerConfig): MCPServer {
 }
 
 // ─── Adapter Helpers ────────────────────────────────────────────────────────
+
+const RESPONSE_FORMAT_SCHEMA: MCPPropertySchema = {
+  type: 'string',
+  enum: ['concise', 'detailed'],
+  description: 'Response verbosity. Defaults to concise (compact JSON).'
+}
 
 function toMCPTool(tool: AiToolDefinition): MCPTool {
   return {

@@ -34,6 +34,7 @@ export { MCPServer, createMCPServer } from './mcp-server'
 export type {
   AiWorkspaceChangedFile,
   AiWorkspaceChangedFileStatus,
+  AiWorkspaceCheckoutOptions,
   AiWorkspaceConflict,
   AiWorkspaceConflictKind,
   AiWorkspaceExporterConfig,
@@ -50,7 +51,8 @@ export type {
   AiWorkspaceReviewStatus,
   AiWorkspaceWatcherScanOptions,
   AiWorkspaceWatcherScanResult,
-  AiWorkspaceWatchHandle
+  AiWorkspaceWatchHandle,
+  AiWorkspaceWatchOptions
 } from './ai-workspace-exporter'
 export {
   AiWorkspaceExporter,
@@ -105,11 +107,13 @@ export {
   createAiChangeSet,
   createAiOperation,
   createAiValidationResult,
+  flattenRowForTsv,
   isAiRiskLevel,
   isAiScope,
   isAiTargetKind,
   parseAiMutationPlan,
   serializeAiMutationPlan,
+  toTsv,
   validateAiMutationPlan,
   AiSurfaceService,
   createAiSurfaceService,
@@ -118,9 +122,31 @@ export {
   renderMarkdownLineDiff,
   renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
+  XNET_AGENT_SKILL_MD,
   XNET_MARKDOWN_DIRECTIVE_SPECS,
   validateXNetPageMarkdown
 } from '../ai-surface'
+
+// Agent script sandbox (code-execution surface for `xnet run`)
+export { createAgentScriptContext } from '../sandbox/agent-api'
+export type {
+  AgentApi,
+  AgentScriptContext,
+  AgentScriptSession,
+  AgentSearchResult,
+  AgentWriteProposal,
+  CreateAgentScriptContextInput
+} from '../sandbox/agent-api'
+export { ScriptSandbox } from '../sandbox'
+export type { FlatNode } from '../sandbox'
+
+// In-memory backend (tests, benchmarks, CLI fixtures)
+export {
+  createMemoryNodeStore,
+  createMemorySchemaRegistry,
+  createWorkspaceFixtureSchemas
+} from '../testing/memory-backend'
+export type { MemoryNodeStore } from '../testing/memory-backend'
 
 // Process Manager (uses Node.js child_process module)
 export { ProcessManager } from './process-manager'

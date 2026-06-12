@@ -29,7 +29,7 @@ is surveyed because the same architectural patterns recur there at scale.
 Five findings dominate the survey:
 
 1. **"AI OS" has crystallized into four distinct shapes**, distinguished by
-   *substrate* (where the data lives) and *who runs the loop*:
+   _substrate_ (where the data lives) and _who runs the loop_:
    **(a) harness-over-folders** (Claude Cowork, Claude Code, OpenClaw — local
    files, vendor or OSS loop), **(b) cloud-memory platforms** (ChatGPT +
    memory + connectors, Gemini Spark — proprietary store, vendor loop),
@@ -53,8 +53,8 @@ Five findings dominate the survey:
    security record (40k+ exposed instances, prompt-injection waves, malicious
    skills on its marketplace) shows what happens when capability outruns
    structure. The gap in the personal market is a system that is
-   *agent-legible like a vault* but *structured like Notion* and *safe by
-   construction* — xNet's precise shape.
+   _agent-legible like a vault_ but _structured like Notion_ and _safe by
+   construction_ — xNet's precise shape.
 4. **Enterprise convergence is unanimous: the ontology/semantic layer is the
    product.** Microsoft shipped Fabric IQ Ontology, Atlassian opened the
    Teamwork Graph, Glean tripled to $300M ARR on a permission-aware knowledge
@@ -172,8 +172,7 @@ mindmap
 - **Claude Cowork** (launched Jan 12, 2026; GA on all paid plans by
   mid-2026): "Claude Code power for knowledge work." Users grant per-folder
   read/write permission; the agent plans, runs code in an isolated VM,
-  organizes files, builds spreadsheets/reports. A Projects feature (~April
-  2026) gives each workspace its own files, instructions, and memory.
+  organizes files, builds spreadsheets/reports. A Projects feature (~April 2026) gives each workspace its own files, instructions, and memory.
   Interface = Skills + MCP connectors + plugins.
   ([anthropic.com/product/claude-cowork](https://www.anthropic.com/product/claude-cowork))
 - **Claude Code** desktop was rebuilt (April 2026) around parallel session
@@ -206,7 +205,7 @@ replacing Gemini CLI for individuals from June 18, 2026; notably
 multi-vendor — runs Claude and GPT-OSS models too).
 
 **Others:** **Manus Desktop** (Meta-acquired, ~$2B) moved a general agent
-onto the laptop; **Devin Desktop** (ex-Windsurf) became a *meta-harness*
+onto the laptop; **Devin Desktop** (ex-Windsurf) became a _meta-harness_
 running Codex/Claude/OpenCode agents side by side via the open Agent Client
 Protocol; **Grok Computer** (full desktop control) is in early access;
 **Kimi K2.6** ships open weights built for 12-hour autonomous sessions and
@@ -274,20 +273,20 @@ being eaten by generic harnesses over plain files.
 
 The most significant repos by bucket (full table in References):
 
-| Repo | Stars | What it is | Substrate |
-| --- | --- | --- | --- |
-| [openclaw/openclaw](https://github.com/openclaw/openclaw) | ~378k | Always-on personal agent | Markdown workspace |
-| [mem0ai/mem0](https://github.com/mem0ai/mem0) | ~58k | Universal agent memory layer (+ OpenMemory MCP) | Vector + graph + KV |
-| [Mintplex-Labs/anything-llm](https://github.com/Mintplex-Labs/anything-llm) | ~61k | Local-first agentic RAG workspace | SQLite + LanceDB |
-| [khoj-ai/khoj](https://github.com/khoj-ai/khoj) | ~35k | Self-hosted "AI second brain" over your files | Postgres + pgvector |
-| [getzep/graphiti](https://github.com/getzep/graphiti) | ~27k | Temporal knowledge graphs for agent memory | Neo4j/FalkorDB |
-| [supermemoryai/supermemory](https://github.com/supermemoryai/supermemory) | ~27k | Memory API; local mode | Vector + KV |
-| [letta-ai/letta](https://github.com/letta-ai/letta) | ~23k | MemGPT lineage; self-editing tiered memory | Postgres |
-| [topoteretes/cognee](https://github.com/topoteretes/cognee) | ~18k | Knowledge-graph memory engine (ECL pipelines) | Graph + vector |
-| [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero) | ~18k | File-transparent personal agent runtime | Prompt/memory as files |
-| [agiresearch/AIOS](https://github.com/agiresearch/AIOS) | ~6k | The academic agent-OS kernel (COLM 2025) | Layered managers |
-| [basicmachines-co/basic-memory](https://github.com/basicmachines-co/basic-memory) | ~3.2k | Markdown+MCP memory, Obsidian-compatible | Markdown + SQLite index |
-| [karlicoss/HPI](https://github.com/karlicoss/HPI) | ~1.6k | Typed Python API over *all* your personal data | Normalized exports |
+| Repo                                                                              | Stars | What it is                                      | Substrate               |
+| --------------------------------------------------------------------------------- | ----- | ----------------------------------------------- | ----------------------- |
+| [openclaw/openclaw](https://github.com/openclaw/openclaw)                         | ~378k | Always-on personal agent                        | Markdown workspace      |
+| [mem0ai/mem0](https://github.com/mem0ai/mem0)                                     | ~58k  | Universal agent memory layer (+ OpenMemory MCP) | Vector + graph + KV     |
+| [Mintplex-Labs/anything-llm](https://github.com/Mintplex-Labs/anything-llm)       | ~61k  | Local-first agentic RAG workspace               | SQLite + LanceDB        |
+| [khoj-ai/khoj](https://github.com/khoj-ai/khoj)                                   | ~35k  | Self-hosted "AI second brain" over your files   | Postgres + pgvector     |
+| [getzep/graphiti](https://github.com/getzep/graphiti)                             | ~27k  | Temporal knowledge graphs for agent memory      | Neo4j/FalkorDB          |
+| [supermemoryai/supermemory](https://github.com/supermemoryai/supermemory)         | ~27k  | Memory API; local mode                          | Vector + KV             |
+| [letta-ai/letta](https://github.com/letta-ai/letta)                               | ~23k  | MemGPT lineage; self-editing tiered memory      | Postgres                |
+| [topoteretes/cognee](https://github.com/topoteretes/cognee)                       | ~18k  | Knowledge-graph memory engine (ECL pipelines)   | Graph + vector          |
+| [agent0ai/agent-zero](https://github.com/agent0ai/agent-zero)                     | ~18k  | File-transparent personal agent runtime         | Prompt/memory as files  |
+| [agiresearch/AIOS](https://github.com/agiresearch/AIOS)                           | ~6k   | The academic agent-OS kernel (COLM 2025)        | Layered managers        |
+| [basicmachines-co/basic-memory](https://github.com/basicmachines-co/basic-memory) | ~3.2k | Markdown+MCP memory, Obsidian-compatible        | Markdown + SQLite index |
+| [karlicoss/HPI](https://github.com/karlicoss/HPI)                                 | ~1.6k | Typed Python API over _all_ your personal data  | Normalized exports      |
 
 Cross-cutting observations from the scan:
 
@@ -331,8 +330,7 @@ Architectural convergence across every serious player:
 4. **MCP everywhere** — donated to the Linux Foundation (Dec 2025), 97M+
    monthly SDK downloads, 10k+ public servers; Forrester expects 30% of
    enterprise app vendors to ship MCP servers in 2026.
-5. **The contrarian**: Tesla/xAI's **Digital Optimus** ("Macrohard," March
-   2026) rejects APIs entirely — Grok as a System-2 conductor over a
+5. **The contrarian**: Tesla/xAI's **Digital Optimus** ("Macrohard," March 2026) rejects APIs entirely — Grok as a System-2 conductor over a
    screen-video+keyboard System-1 model that drives GUIs like a human.
    Unshipped; treat claims skeptically.
 
@@ -349,7 +347,7 @@ Architectural convergence across every serious player:
   COLM 2025) built actual kernels with schedulers, context managers, and
   access control; 2026 papers add demand paging and context virtualization.
 - **The analyst line** takes it economically: Stratechery's "OpenAI's
-  Windows Play" (apps live *inside* ChatGPT via the MCP-based Apps SDK);
+  Windows Play" (apps live _inside_ ChatGPT via the MCP-based Apps SDK);
   a16z's "agentic interface" (the system of record loses primacy to workflow
   engines); Sequoia's agent economy (persistent identity, protocols, trust);
   and the "context is the moat" discourse — with New America's important
@@ -406,7 +404,7 @@ timeline
    OpenClaw is maximally capable and maximally dangerous (the "lethal
    trifecta": private data + untrusted content + exfiltration channels).
    No surveyed personal product offers typed data, reversible agent writes,
-   capability-scoped permissions, *and* plain-file agent access. That
+   capability-scoped permissions, _and_ plain-file agent access. That
    combination is xNet's pitch in one sentence.
 3. **Memory conventions have standardized — adopt, don't invent.** The
    field-tested taxonomy is: constitution file (SOUL.md/CLAUDE.md/AGENTS.md),
@@ -423,12 +421,12 @@ timeline
 5. **Don't fight for the front door; be reachable from every front door.**
    OpenAI's superapp/phone, Google's Spark, and Anthropic's Cowork will own
    conversational shells. The durable position for xNet is the
-   substrate-and-structure layer those shells operate *on* — via vault
+   substrate-and-structure layer those shells operate _on_ — via vault
    checkout (any file-capable harness), CLI/skills (terminal harnesses), and
    slim MCP (everything else), exactly 0161's layering. Anytype proved a
    local-first workspace participates fully in the agent ecosystem this way.
 6. **Security posture is a feature, not a tax.** OpenClaw's crisis created
-   the first mass audience that *understands* why plan/validate/apply,
+   the first mass audience that _understands_ why plan/validate/apply,
    provenance-tagged reversible writes, capability scoping, and local-only
    inference matter. xNet already has the plan/apply pipeline
    (`packages/plugins/src/ai-surface/`), UCAN/DID capabilities, and history
@@ -478,7 +476,7 @@ Ship xNet's own always-on agent product (OpenClaw-shaped, but safe).
   and with a 378k-star OSS incumbent; front doors are where the capital is
   concentrated; contradicts 0160's harness-agnostic principle. **Rejected**
   as primary strategy (an embedded agent remains Phase 4 of 0160 — a
-  *consumer* of the surface, not the strategy).
+  _consumer_ of the surface, not the strategy).
 
 ### Option B — Compete as a memory/RAG layer
 
@@ -541,7 +539,7 @@ sequencing adjustments to 0160/0161:**
    exists now and matches xNet's exact pitch.
 5. **Hold the line on no-front-door**: the embedded agent (0160 Phase 4)
    stays a consumer of the shared surface; meanwhile verify xNet works
-   beautifully *from* Claude Code, Cowork, Codex, and Antigravity — those
+   beautifully _from_ Claude Code, Cowork, Codex, and Antigravity — those
    are distribution, not competition.
 6. **Track, don't build yet**: A2A/AP2 and agent-identity standards (UCAN
    maps well; revisit when the standards stabilize), and per-row/temporal
@@ -585,7 +583,7 @@ flowchart TB
 - **The structure tax.** Vault users chose flat files partly because schemas
   feel like work. If xNet's typed layer isn't optional-feeling (AI-first
   filing per 0160, progressive structure), migrants will bounce. Open
-  question: can a vault import start 100% flat and *earn* structure
+  question: can a vault import start 100% flat and _earn_ structure
   gradually via gardening passes?
 - **OpenClaw association risk.** "Personal AI OS" now carries security
   connotations in the press. Leading with safety positioning is the
@@ -594,7 +592,7 @@ flowchart TB
 - **Speed of category collapse.** Reor died in ~18 months; Gemini CLI lasted
   a year. Survey facts have short half-lives — re-run this scan in ~6
   months before major positioning decisions.
-- **Open question:** should xNet ship an OpenClaw *channel adapter* (xNet as
+- **Open question:** should xNet ship an OpenClaw _channel adapter_ (xNet as
   OpenClaw's memory/workspace backend) as a growth wedge, or is the
   security association too costly?
 - **Open question:** does the Karpathy anti-RAG argument (just read files at
@@ -650,7 +648,7 @@ flowchart TB
 ### Internal
 
 - `docs/explorations/0160_[_]_XNET_AS_AN_AI_OPERATING_SYSTEM.md` — vision + phases
-- `docs/explorations/0161_[_]_TOKEN_EFFICIENT_AGENT_INTERFACES.md` — interface doctrine
+- `docs/explorations/0161_[x]_TOKEN_EFFICIENT_AGENT_INTERFACES.md` — interface doctrine
 - `packages/plugins/src/services/ai-workspace-exporter.ts` · `packages/plugins/src/services/mcp-server.ts` · `packages/social/src/importers/` · `packages/vectors/` · `packages/hub/`
 - `docs/plans/plan00Setup/09-ai-mcp-interface.md` — doctrine file to amend
 

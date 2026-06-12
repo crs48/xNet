@@ -1053,8 +1053,8 @@ export class AiSurfaceService {
     throw new Error(`Resource not found: ${uri}`)
   }
 
-  toJsonText(value: unknown): string {
-    return this.stringifyJson(value)
+  toJsonText(value: unknown, format: 'concise' | 'detailed' = 'concise'): string {
+    return this.stringifyJson(value, format)
   }
 
   // ─── Workspace And Search ─────────────────────────────────────────────────
@@ -1312,23 +1312,18 @@ export class AiSurfaceService {
 
     const pagePatch = readPageMarkdownPatch(plan)
     if (!pagePatch.valid) {
-      return {
-        applied: false,
+      return rejectedPageApplyResult({
         pageId: pagePatch.pageId,
         planId: plan.id,
-        mode: 'node-property',
         baseRevision: pagePatch.baseRevision,
         liveRevision: 'unknown',
-        markdownHash: pagePatch.markdown ? stableStringHash(pagePatch.markdown) : '',
-        bodyMarkdownHash: pagePatch.markdown
-          ? stableStringHash(stripXNetPageFrontmatter(pagePatch.markdown))
-          : '',
+        markdown: pagePatch.markdown,
         validation: {
           valid: false,
           errors: pagePatch.errors,
           warnings: planValidation.warnings
         }
-      }
+      })
     }
     const page = await this.getNodeOrThrow(pagePatch.pageId)
     const liveRevision = revisionForNode(page)
@@ -1338,21 +1333,18 @@ export class AiSurfaceService {
         : `baseRevision ${pagePatch.baseRevision} does not match live revision ${liveRevision}`
 
     if (staleWarning && !(readOptionalBoolean(args, 'allowStale') ?? false)) {
-      return {
-        applied: false,
+      return rejectedPageApplyResult({
         pageId: pagePatch.pageId,
         planId: plan.id,
-        mode: 'node-property',
         baseRevision: pagePatch.baseRevision,
         liveRevision,
-        markdownHash: stableStringHash(pagePatch.markdown),
-        bodyMarkdownHash: stableStringHash(stripXNetPageFrontmatter(pagePatch.markdown)),
+        markdown: pagePatch.markdown,
         validation: {
           valid: false,
           errors: [staleWarning],
           warnings: planValidation.warnings
         }
-      }
+      })
     }
 
     const bodyMarkdown = stripXNetPageFrontmatter(pagePatch.markdown)
@@ -1367,17 +1359,14 @@ export class AiSurfaceService {
       baseRevision: pagePatch.baseRevision
     })
     if (!markdownValidation.validation.valid) {
-      return {
-        applied: false,
+      return rejectedPageApplyResult({
         pageId: pagePatch.pageId,
         planId: plan.id,
-        mode: 'node-property',
         baseRevision: pagePatch.baseRevision,
         liveRevision,
-        markdownHash: stableStringHash(pagePatch.markdown),
-        bodyMarkdownHash: stableStringHash(bodyMarkdown),
+        markdown: pagePatch.markdown,
         validation: markdownValidation.validation
-      }
+      })
     }
 
     const adapterResult = this.config.pageMarkdownAdapter
@@ -1407,35 +1396,60 @@ export class AiSurfaceService {
       baseRevision: liveRevision,
       previousMarkdown
     })
-    const validation = {
-      valid: true,
-      errors: [],
+
+    return this.finalizeAppliedPageMarkdown({
+      plan,
+      pageId: pagePatch.pageId,
+      baseRevision: pagePatch.baseRevision,
+      liveRevision,
+      markdown: pagePatch.markdown,
+      bodyMarkdown,
+      rollbackHandle,
       warnings: [
         ...planValidation.warnings,
         ...markdownValidation.validation.warnings,
-        ...(staleWarning ? [staleWarning] : []),
-        ...(adapterResult?.warnings ?? [])
-      ]
+        ...(staleWarning ? [staleWarning] : [])
+      ],
+      adapterResult
+    })
+  }
+
+  private finalizeAppliedPageMarkdown(input: {
+    plan: AiMutationPlan
+    pageId: string
+    baseRevision: string
+    liveRevision: string
+    markdown: string
+    bodyMarkdown: string
+    rollbackHandle: string
+    warnings: string[]
+    adapterResult: AiPageMarkdownApplyAdapterResult | null
+  }): AiPageMarkdownApplyResult {
+    const { adapterResult } = input
+    const validation = {
+      valid: true,
+      errors: [],
+      warnings: [...input.warnings, ...(adapterResult?.warnings ?? [])]
     }
     const auditEvent = this.recordAuditEvent({
-      plan,
+      plan: input.plan,
       validation,
-      appliedChangeIds: [pagePatch.pageId],
-      rollbackHandle
+      appliedChangeIds: [input.pageId],
+      rollbackHandle: input.rollbackHandle
     })
 
     return {
       applied: true,
-      pageId: pagePatch.pageId,
-      planId: plan.id,
+      pageId: input.pageId,
+      planId: input.plan.id,
       mode: adapterResult?.mode ?? 'node-property',
-      baseRevision: pagePatch.baseRevision,
-      liveRevision,
-      markdownHash: stableStringHash(pagePatch.markdown),
-      bodyMarkdownHash: stableStringHash(bodyMarkdown),
+      baseRevision: input.baseRevision,
+      liveRevision: input.liveRevision,
+      markdownHash: stableStringHash(input.markdown),
+      bodyMarkdownHash: stableStringHash(input.bodyMarkdown),
       validation,
       auditEventId: auditEvent.id,
-      rollbackHandle,
+      rollbackHandle: input.rollbackHandle,
       ...(adapterResult?.yjsField ? { yjsField: adapterResult.yjsField } : {}),
       ...(adapterResult?.documentUpdate !== undefined
         ? { documentUpdate: adapterResult.documentUpdate }
@@ -2456,8 +2470,10 @@ export class AiSurfaceService {
     }
   }
 
-  private stringifyJson(value: unknown): string {
-    const text = JSON.stringify(value, null, 2)
+  // Compact by default: pretty-printing costs ~20% extra tokens on every
+  // agent-visible response. 'detailed' keeps the indented form for humans.
+  private stringifyJson(value: unknown, format: 'concise' | 'detailed' = 'concise'): string {
+    const text = format === 'detailed' ? JSON.stringify(value, null, 2) : JSON.stringify(value)
     if (text.length <= this.limits.maxJsonCharacters) return text
 
     return stringifyTruncatedJson(text, this.limits.maxJsonCharacters)
@@ -2559,6 +2575,29 @@ function invalidPageApplyResult(
     markdownHash: '',
     bodyMarkdownHash: '',
     validation
+  }
+}
+
+function rejectedPageApplyResult(input: {
+  pageId: string
+  planId: string
+  baseRevision: string
+  liveRevision: string
+  markdown: string | undefined
+  validation: AiPageMarkdownApplyResult['validation']
+}): AiPageMarkdownApplyResult {
+  return {
+    applied: false,
+    pageId: input.pageId,
+    planId: input.planId,
+    mode: 'node-property',
+    baseRevision: input.baseRevision,
+    liveRevision: input.liveRevision,
+    markdownHash: input.markdown ? stableStringHash(input.markdown) : '',
+    bodyMarkdownHash: input.markdown
+      ? stableStringHash(stripXNetPageFrontmatter(input.markdown))
+      : '',
+    validation: input.validation
   }
 }
 
@@ -2774,6 +2813,27 @@ function buildDatabaseQueryDescriptor(
     readRecordString(source, 'schemaId') ??
     readStringProperty(database, 'rowSchemaId') ??
     DEFAULT_DATABASE_ROW_SCHEMA_ID
+
+  return {
+    pageLimit,
+    offset,
+    descriptor: assembleDatabaseQueryDescriptor(source, options, schemaId, pageLimit, offset)
+  }
+}
+
+function assembleDatabaseQueryDescriptor(
+  source: Record<string, unknown>,
+  options: {
+    where?: Record<string, unknown>
+    search?: unknown
+    orderBy?: Record<string, unknown>
+    materializedView?: unknown
+    count?: string
+  },
+  schemaId: string,
+  pageLimit: number,
+  offset: number
+): NodeQueryDescriptor {
   const where = normalizeQueryWhere(options.where ?? readRecord(source, 'where'))
   const orderBy = normalizeQueryOrderBy(options.orderBy ?? readRecord(source, 'orderBy'))
   const search = normalizeQuerySearch(options.search ?? source.search)
@@ -2786,21 +2846,17 @@ function buildDatabaseQueryDescriptor(
   const includeDeleted = readRecordBoolean(source, 'includeDeleted') ?? false
 
   return {
-    pageLimit,
-    offset,
-    descriptor: {
-      schemaId: schemaId as NodeQueryDescriptor['schemaId'],
-      ...(nodeId ? { nodeId } : {}),
-      ...(where ? { where } : {}),
-      includeDeleted,
-      ...(orderBy ? { orderBy } : {}),
-      limit: pageLimit,
-      ...(offset > 0 ? { offset } : {}),
-      ...(after ? { after } : {}),
-      ...(count ? { count } : {}),
-      ...(search ? { search } : {}),
-      ...(materializedView ? { materializedView } : {})
-    }
+    schemaId: schemaId as NodeQueryDescriptor['schemaId'],
+    ...(nodeId ? { nodeId } : {}),
+    ...(where ? { where } : {}),
+    includeDeleted,
+    ...(orderBy ? { orderBy } : {}),
+    limit: pageLimit,
+    ...(offset > 0 ? { offset } : {}),
+    ...(after ? { after } : {}),
+    ...(count ? { count } : {}),
+    ...(search ? { search } : {}),
+    ...(materializedView ? { materializedView } : {})
   }
 }
 

@@ -229,10 +229,21 @@ export class ScriptSandbox {
     // 2. We shadow all dangerous globals in the wrapper
     // 3. The context object is frozen
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const factory = new Function('node', 'nodes', 'now', 'format', 'math', 'text', 'array', wrapped)
+    const factory = new Function(
+      'node',
+      'nodes',
+      'now',
+      'format',
+      'math',
+      'text',
+      'array',
+      'api',
+      wrapped
+    )
 
     return (ctx: ScriptContext): unknown => {
-      // Call the factory with context values to get the user's function
+      // Call the factory with context values to get the user's function.
+      // `api` is only present for agent scripts (see sandbox/agent-api.ts).
       const userFn = factory(
         ctx.node,
         ctx.nodes,
@@ -240,7 +251,8 @@ export class ScriptSandbox {
         ctx.format,
         ctx.math,
         ctx.text,
-        ctx.array
+        ctx.array,
+        (ctx as { api?: unknown }).api
       )
 
       // If the result is a function, call it with the node and full context
