@@ -1,0 +1,35 @@
+name: Remove Branch Preview
+
+on:
+  delete:
+
+permissions:
+  contents: write
+
+# Shares the per-branch preview group: deleting the branch supersedes any
+# in-flight preview deploy for it.
+concurrency:
+  group: pages-branch-${{ github.event.ref }}
+  cancel-in-progress: true
+
+jobs:
+  remove-branch-preview:
+    if: github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute branch slug
+        id: slug
+        env:
+          REF: ${{ github.event.ref }}
+        run: echo "slug=${REF//\//-}" >> "$GITHUB_OUTPUT"
+
+      # Slug collisions (feat/foo and feat-foo both map to feat-foo): deleting
+      # one of two colliding branches removes the shared directory until the
+      # surviving branch redeploys.
+      - name: Remove preview from gh-pages
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          remove: branch/${{ steps.slug.outputs.slug }}
+          commit-message: 'deploy(preview): remove branch ${{ github.event.ref }} preview'

@@ -1,6 +1,8 @@
 /**
  * xNet Web - Entry Point
  */
+// Must be first: sets the storage scope before any module can open IndexedDB.
+import './lib/storage-scope'
 import {
   getCanvasObjectsMap,
   seedCanvasPerformanceScene,
