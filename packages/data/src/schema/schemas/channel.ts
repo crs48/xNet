@@ -56,6 +56,9 @@ export const ChannelSchema = defineSchema({
     /** Order among folder siblings — fractional index */
     sortKey: text({ maxLength: 500 }),
 
+    /** Workspace-wide labels, referenced by id (exploration 0169) */
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true }),
+
     createdAt: created(),
     createdBy: createdBy()
   },

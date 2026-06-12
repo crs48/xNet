@@ -45,6 +45,9 @@ export const ChatMessageSchema = defineSchema({
     /** Soft tombstone: content removed, message shell kept for thread shape */
     redacted: checkbox({ default: false }),
 
+    /** Workspace-wide labels from inline #hashtag pills (exploration 0169) */
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true }),
+
     createdAt: created(),
     createdBy: createdBy()
   },

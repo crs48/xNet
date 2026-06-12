@@ -102,7 +102,10 @@ export const DashboardSchema = defineSchema({
     folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
 
     /** Order among folder siblings — fractional index */
-    sortKey: text({ maxLength: 500 })
+    sortKey: text({ maxLength: 500 }),
+
+    /** Workspace-wide labels, referenced by id (exploration 0169) */
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true })
   }
 })
 
