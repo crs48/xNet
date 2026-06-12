@@ -15,6 +15,7 @@ import { DashboardView } from '../components/DashboardView'
 import { DatabaseView } from '../components/DatabaseView'
 import { DataWorkspaceView } from '../components/DataWorkspaceView'
 import { PageView } from '../components/PageView'
+import { TagView } from '../components/TagView'
 import { TasksView } from '../components/TasksView'
 
 const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
@@ -29,7 +30,8 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   ),
   tasks: () => <TasksView />,
   data: () => <DataWorkspaceView />,
-  channel: ({ nodeId }) => <ChannelView channelId={nodeId} />
+  channel: ({ nodeId }) => <ChannelView channelId={nodeId} />,
+  tag: ({ nodeId }) => <TagView tagId={nodeId} />
 }
 
 export function ViewHost({ tab }: { tab: WorkbenchTab }) {

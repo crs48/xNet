@@ -105,6 +105,26 @@ export {
 
 // Built-in schemas
 export { PageSchema, type Page } from './schemas'
+export {
+  FOLDER_SCHEMA_IRI,
+  FolderSchema,
+  buildFolderTree,
+  flattenFolderTree,
+  folderAncestorIds,
+  folderPathIds,
+  wouldCreateFolderCycle,
+  type Folder,
+  type FolderLike,
+  type FolderTreeNode
+} from './schemas'
+export {
+  MAX_TAG_NAME_LENGTH,
+  TAG_SCHEMA_IRI,
+  TagSchema,
+  isValidTagName,
+  normalizeTagName,
+  type Tag
+} from './schemas'
 export { DatabaseSchema, type Database } from './schemas'
 export { DatabaseRowSchema, type DatabaseRow } from './schemas'
 export { DatabaseFieldSchema, type DatabaseField } from './schemas'

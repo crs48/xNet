@@ -35,6 +35,14 @@ vi.mock('@xnetjs/editor/react', () => ({
   removeTaskAssigneeFromDoc: mocks.removeTaskAssigneeFromDoc,
   setTaskDueDateInDoc: mocks.setTaskDueDateInDoc
 }))
+vi.mock('../hooks/useWorkspaceTags', () => ({
+  useWorkspaceTags: () => ({
+    allTags: [{ id: 'tag-design', name: 'design' }],
+    suggestions: [{ id: 'tag-design', name: 'design' }],
+    getOrCreateTag: async (name: string) => ({ id: `tag-${name}`, name }),
+    setNodeTags: vi.fn()
+  })
+}))
 
 function node(overrides: Record<string, unknown> = {}): TaskNode {
   return {
@@ -92,6 +100,25 @@ describe('TaskInlineEditor (unhosted task)', () => {
       assignees: ['did:key:z6Mkalice'],
       assignee: 'did:key:z6Mkalice'
     })
+  })
+
+  it('adds a workspace tag to the node (tags are node-owned)', () => {
+    render(<TaskInlineEditor task={node()} />)
+
+    fireEvent.click(screen.getByTestId('task-tags-chip'))
+    fireEvent.click(screen.getByText('design'))
+
+    expect(updateMock).toHaveBeenCalledWith(expect.anything(), 'task_1', {
+      tags: ['tag-design']
+    })
+  })
+
+  it('removes a tag via its chip', () => {
+    render(<TaskInlineEditor task={node({ tags: ['tag-design'] })} />)
+
+    fireEvent.click(screen.getByLabelText('Remove tag design'))
+
+    expect(updateMock).toHaveBeenCalledWith(expect.anything(), 'task_1', { tags: [] })
   })
 
   it('clears the due date with the undefined sentinel', () => {
