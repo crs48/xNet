@@ -28,6 +28,33 @@ export {
   type RoomSession
 } from './presence/room-manager'
 
+// Notify
+export {
+  type InboxItem,
+  type NotificationReason,
+  type NotifierContext,
+  type NotifierEvent
+} from './notify/types'
+export { evaluateChange } from './notify/rules'
+export {
+  MAX_ACKED_MENTIONS,
+  channelTier,
+  deriveBadges,
+  isInDnd,
+  isItemOpen,
+  isPastWatermark,
+  isSnoozed,
+  isUnread,
+  shouldAlert,
+  unreadCount,
+  withAckedMention,
+  withTriage,
+  withWatermark,
+  type BadgeCounts,
+  type InboxStateData
+} from './notify/inbox'
+export { MAX_INBOX_ITEMS, createNotifier, type Notifier } from './notify/notifier'
+
 // Chat
 export { DM_ID_PREFIX, dmChannelId, dmMembers, isDmChannelId } from './chat/dm'
 export {
