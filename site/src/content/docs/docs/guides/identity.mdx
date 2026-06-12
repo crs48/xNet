@@ -96,6 +96,28 @@ const storedKey = await storage.store(bundle, credentialId)
 const recovered = await storage.retrieve(storedKey, credentialId)
 ```
 
+### Resumable sessions
+
+Unlocking with a passkey on every page load would mean a biometric prompt per
+reload. Instead, after a successful `create()`/`unlock()` the key bundle is
+re-encrypted (AES-GCM) under a freshly generated **non-extractable** WebCrypto
+key and stored in IndexedDB, bound to the identity's DID. On boot,
+`identityManager.resume()` restores the session silently — no prompt.
+
+- Sessions expire after **7 days**; expiry forces a fresh passkey unlock.
+- Expired, tampered, or DID-mismatched session records are deleted and fall
+  back to a normal unlock.
+- The wrapping key's bytes cannot be exported by script, so an exfiltrated
+  IndexedDB dump is undecryptable off-device. Raw private keys are never
+  stored in plaintext.
+
+### Logging out
+
+`identityManager.lock()` clears the session and cached keys but keeps the
+identity — the next visit shows the unlock screen. In the app this is
+**Settings → Account → Log out**. `clear()` additionally removes the identity
+itself.
+
 ### X25519 from Ed25519
 
 The Ed25519 signing key can be birationally converted to an X25519 encryption key, so a single DID:key embeds both capabilities. xNet uses this conversion throughout the authorization system — the hub and other users can derive your X25519 public key directly from your DID, with no additional key exchange ceremony:

@@ -12,7 +12,7 @@ import { Tabs, TabItem, Steps, FileTree } from '@astrojs/starlight/components'
 
 - The four plugin layers and when to use each one
 - How to define, register, and distribute an extension
-- All nine contribution types with working examples
+- All eleven contribution types with working examples
 - The middleware system for intercepting data operations
 - The script sandbox for safe user-authored expressions
 - Platform compatibility across Electron, Web, and Mobile
@@ -173,7 +173,7 @@ interface ExtensionContext {
 
 ## Contribution types
 
-xNet supports nine contribution types. Each can be declared statically in `contributes` or registered dynamically in `activate()`.
+xNet supports eleven contribution types. Each can be declared statically in `contributes` or registered dynamically in `activate()`.
 
 ### Views
 
@@ -296,6 +296,31 @@ interface SidebarContribution {
   panel?: ComponentType // Expandable panel content
 }
 ```
+
+In the workbench shell, a `SidebarContribution` becomes a rail item; a
+contribution with a `panel` component becomes a left-panel view. See
+[The Workbench](/docs/guides/workbench/) for the container model.
+
+### Status bar items
+
+Add items to the workbench status bar — workspace scope on the left,
+view scope on the right:
+
+```ts
+interface StatusBarContribution {
+  id: string
+  alignment: 'left' | 'right'
+  priority?: number
+  item: ComponentType // Rendered in the 24px mono status bar
+}
+```
+
+### Dashboard widgets
+
+Register widgets users can add to dashboards (and drop onto canvases) with a
+`WidgetContribution`. The trust tier is host-assigned — a plugin can never
+self-declare one. See [Dashboards & Widgets](/docs/guides/dashboards/) for the
+widget contract.
 
 ### Property handlers
 
@@ -595,6 +620,12 @@ Exposes xNet data to AI agents via the Model Context Protocol:
 | `xnet_schemas` | List all schemas       |
 
 The MCP server reads from stdin and writes JSON-RPC 2.0 responses to stdout.
+
+:::tip
+MCP is the fallback surface for agents. The primary agent interface is the
+files-first workspace checkout plus the `xnet` CLI — dramatically cheaper in
+tokens. See [Agent Interfaces](/docs/guides/agent-interfaces/).
+:::
 
 ### Webhooks
 

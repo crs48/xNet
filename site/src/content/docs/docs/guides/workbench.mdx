@@ -1,0 +1,110 @@
+---
+title: 'The Workbench'
+draft: false
+description: 'The fixed-region, keyboard-first shell that hosts every xNet surface.'
+---
+
+:::note[You will learn]
+
+- The workbench regions and what lives in each
+- How tabs work (preview tabs, pinning, splits, deep links)
+- The command palette and core keyboard map
+- How plugins contribute to the shell
+  :::
+
+## Overview
+
+The web app's shell is a fixed-region workbench in the VS Code mold: predictable
+named regions, everything opens as a tab, one command palette, one drag model.
+The chrome is monochrome by design — hue is reserved for your data (status dots,
+charts), so the interface recedes and the work reads first.
+
+## Regions
+
+| Region       | What lives there                                                                    |
+| ------------ | ----------------------------------------------------------------------------------- |
+| Rail (left)  | Search, Explorer, Tasks, Data, Chats, plugin items; identity and settings below     |
+| Left Panel   | One view at a time: Explorer, Tasks, Data, Chats, or a plugin view                  |
+| Editor Area  | Tabbed documents — pages, databases, canvases, dashboards, channels, saved views    |
+| Right Panel  | Contextual sections published by the active tab (properties, comments, backlinks…)  |
+| Bottom Panel | Tray: Shelf, quick capture, Notifications, sync activity, and a query console       |
+| Status Bar   | Left = workspace scope (sync, presence), right = view scope (save state, theme)     |
+
+Layout, open tabs, pins, recents, and zen-mode snapshots persist locally and
+survive reloads bit-for-bit.
+
+## Tabs
+
+Everything opens as a tab, and **the router stays authoritative**: navigating
+opens-or-activates the matching tab, so deep links, back/forward, and old
+bookmarks keep working.
+
+- **Preview tabs** — a single click from the Explorer or palette opens an
+  italic _preview_ tab that is replaced by the next preview. Editing the
+  content or double-clicking promotes it to a real tab.
+- **Pinning** — pinned tabs stay put and survive "close others".
+- **Splits** — one optional second editor group: drag a tab to the editor edge
+  or press `⌘⇧\`.
+- **Performance** — background tabs are unmounted entirely; they hold no live
+  document subscriptions.
+
+## Command palette
+
+`⌘K` (or `⌘P`) opens quick-open: recents first, then full-text page matches and
+every node type. Type `>` to switch to command mode — every command in the
+registry is listed with its keyboard chord. Escape restores focus to where you
+were.
+
+## Keyboard map
+
+| Chord          | Action                                                |
+| -------------- | ----------------------------------------------------- |
+| `⌘K` / `⌘P`    | Palette / quick-open (`>` = command mode)             |
+| `⌘B`, `⌘\`, `⌘J` | Toggle left / right / bottom panel                  |
+| `⌘.`           | Zen mode (Esc Esc exits; layout restored bit-for-bit) |
+| `⌘T` / `⌘W`    | New page / close tab                                  |
+| `⌃Tab` / `⌃⇧Tab` | Cycle tabs                                          |
+| `⌘1` / `⌘2`    | Focus editor group                                    |
+| `⌘⇧\`          | Split editor                                          |
+| `F6` / `⇧F6`   | Cycle focus through shell regions                     |
+
+## Drag model
+
+Every draggable entity — explorer rows, tabs, task rows, database row chips,
+canvas selections — carries the same node payload. Drops create **references,
+never copies**:
+
+- onto the editor → a wikilink chip at the drop point
+- onto a relation cell → a link
+- onto a canvas → a source-backed card
+- onto the tab bar → a tab
+- onto an editor edge → a split
+- onto the Shelf (bottom tray) → a held reference for later
+
+## Theme
+
+The token system is a single APCA-contrast-tuned monochrome ramp per mode
+(`surface-0/1/2`, `ink-1/2/3`, `hairline`, `accent-ink`). Chrome sits on dimmer
+surfaces than the work; the editor area is the only brightest-surface region. A
+`true-black` variant collapses dark surfaces to `#000` for OLED displays —
+toggle it from the status bar theme control.
+
+## Extending the shell
+
+Plugins contribute _items_ into fixed containers; they cannot invent new chrome:
+
+- **Rail items / left-panel views** — `SidebarContribution` (a `panel`
+  component becomes a left-panel view)
+- **Status bar items** — `StatusBarContribution` (workspace scope or view scope)
+- **Palette commands** — `CommandContribution`, chords included
+- **Context sections** — views publish sections to the Right Panel
+- **Dashboard widgets** — `WidgetContribution` (see the
+  [Dashboards guide](/docs/guides/dashboards/))
+
+See the [Plugins guide](/docs/guides/plugins/) for the contribution API.
+
+## Further reading
+
+- [Tasks](/docs/guides/tasks/) — the task surfaces hosted by the shell
+- [Dashboards](/docs/guides/dashboards/) — widget boards as tabs
+- [Chat & Calls](/docs/guides/chat-and-calls/) — channels as tabs, calls in a dock
