@@ -668,17 +668,22 @@ node | subtree` column on grants plus client-side pinning of the
 
 Phase 1 — durable links on the hub (B1):
 
-- [ ] `share_links` table + storage interface methods (insert, get,
+- [x] `share_links` table + storage interface methods (insert, get,
       list-by-doc, increment-use, toggle, delete) in
       `packages/hub/src/storage/` (sqlite + memory)
-- [ ] `grants` writer + `revoked_at` support wired to the existing
-      grant index (`listGrantedDocIds`)
-- [ ] `POST /shares/links`, `GET /shares/links?docId=`,
+- [x] `grants` writer + `revoked_at` support wired to the existing
+      grant index (`listGrantedDocIds` plus new `listGrantsForDoc`,
+      `getActiveGrant`, `revokeGrant`)
+- [x] `POST /shares/links`, `GET /shares/links?docId=`,
       `PATCH /shares/links/:id`, `POST /shares/links/:id/claim` on the
-      hub, with rate limiting on claim
-- [ ] Role-scoped UCAN issuance on claim; reject write envelopes from
+      hub, with rate limiting on claim (plus `GET/DELETE /shares/grants`
+      for the People tab)
+- [x] Role-scoped grant recording on claim; reject write envelopes from
       `read` grantees in the `node-change` / `sync-update` handlers
-- [ ] `GET /s/:linkId` static interstitial (CSP, no-referrer,
+      (clients keep their self-issued UCANs — the grant row carries the
+      role and overrides wildcard capabilities on write paths;
+      `comment` grantees pass a Comment/Reaction schema allowlist)
+- [x] `GET /s/:linkId` static interstitial (CSP, no-referrer,
       `data-nosnippet`), `HUB_APP_URL` config alongside `HUB_PUBLIC_URL`
 
 Phase 2 — client surfaces:

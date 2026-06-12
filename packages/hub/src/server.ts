@@ -33,6 +33,8 @@ import { createFileRoutes } from './routes/files'
 import { createKeyRegistryRoutes } from './routes/keys'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
+import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
+import { createShareLinkRoutes } from './routes/share-links'
 import { createTaskRoutes } from './routes/tasks'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
@@ -52,6 +54,7 @@ import { SchemaRegistryService } from './services/schemas'
 import { ShardIngestRouter } from './services/shard-ingest'
 import { ShardRebalancer } from './services/shard-rebalancer'
 import { ShardQueryRouter } from './services/shard-router'
+import { ShareAccessService } from './services/share-access'
 import { createSignalingService } from './services/signaling'
 import { TaskIdentifierService } from './services/task-identifiers'
 import { createStorage } from './storage'
@@ -492,6 +495,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetryPeerHashSalt: config.telemetryPeerHashSalt
   }
   const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry)
+  const shareAccess = new ShareAccessService(storage)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
     cleanupIntervalMs: config.awarenessCleanupIntervalMs ?? 60 * 60 * 1000,
@@ -692,6 +696,28 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       })
     )
   }
+
+  app.route(
+    '/shares',
+    createShareLinkRoutes({
+      storage,
+      requireAuth,
+      publicUrl: config.publicUrl,
+      port: config.port,
+      onGrantsChanged: (did, docId) => shareAccess.invalidate(did, docId)
+    })
+  )
+  app.route(
+    '/',
+    createShareInterstitialRoutes({
+      publicUrl: config.publicUrl,
+      port: config.port,
+      appUrl: config.appUrl ?? DEFAULT_APP_URL,
+      appleAppId: config.appleAppId,
+      androidPackage: config.androidPackage,
+      androidCertSha256: config.androidCertSha256
+    })
+  )
 
   app.post('/shares/issue', requireAuth, async (c) => {
     const body = await c.req.json().catch(() => null)
@@ -1255,6 +1281,36 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
                 return
               }
 
+              // Share-grant role enforcement: read grantees cannot relay
+              // node-changes; comment grantees only comment-kind schemas.
+              // Checked for the session DID and the change author DID.
+              const changeResource = topicToResource(payload.data.room)
+              const changeSchemaId =
+                payload.data.change.schemaId ?? payload.data.change.payload?.schemaId
+              const writerDids = new Set([session.did, payload.data.change.authorDid])
+              for (const writerDid of writerDids) {
+                if (!writerDid || writerDid === 'did:key:anonymous') continue
+                const allowed = await shareAccess.canWriteNodeChange(
+                  writerDid,
+                  changeResource,
+                  changeSchemaId
+                )
+                if (!allowed) {
+                  reportUnauthorizedRemoteWrite(remoteMutationTelemetry, writerDid)
+                  ws.send(
+                    JSON.stringify({
+                      type: 'node-error',
+                      code: 'WRITE_FORBIDDEN',
+                      error: 'Share grant does not allow writing to this document',
+                      action: 'hub/relay',
+                      resource: changeResource
+                    })
+                  )
+                  metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                  return
+                }
+              }
+
               try {
                 const isNew = await nodeRelay.handleNodeChange(payload.data, authContext)
                 if (!isNew) return
@@ -1301,6 +1357,28 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               }
 
               if (payload.topic.startsWith('xnet-doc-') && isSyncRelayMessage(payload.data)) {
+                // sync-step2 / sync-update carry Yjs document updates;
+                // share grantees below `write` may not relay them
+                // (sync-step1 is a state request and stays readable).
+                if (payload.data.type !== 'sync-step1' && session.did !== 'did:key:anonymous') {
+                  const yjsResource = topicToResource(payload.topic)
+                  const allowed = await shareAccess.canWriteYjs(session.did, yjsResource)
+                  if (!allowed) {
+                    reportUnauthorizedRemoteWrite(remoteMutationTelemetry, session.did)
+                    ws.send(
+                      JSON.stringify({
+                        type: 'auth-denied',
+                        code: 'WRITE_FORBIDDEN',
+                        action: 'hub/relay',
+                        resource: yjsResource,
+                        error: 'Share grant does not allow editing this document'
+                      })
+                    )
+                    metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                    metrics.increment(HUB_METRICS.WS_MESSAGES_REJECTED)
+                    return
+                  }
+                }
                 const accepted = await relay.handleSyncMessage(
                   payload.topic,
                   payload.data,

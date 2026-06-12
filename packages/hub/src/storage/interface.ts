@@ -40,6 +40,26 @@ export type GrantIndexRecord = {
   createdAt: number
 }
 
+export type ShareLinkRole = 'read' | 'comment' | 'write'
+
+export type ShareLinkRecord = {
+  linkId: string
+  docId: string
+  docType: string
+  role: ShareLinkRole
+  /** sha256 (base64url) of the bearer secret carried in the URL fragment. */
+  secretHash: string
+  createdByDid: string
+  label: string | null
+  /** 0 = never expires. */
+  expiresAt: number
+  /** 0 = unlimited uses. */
+  maxUses: number
+  useCount: number
+  disabled: boolean
+  createdAt: number
+}
+
 export type SearchResult = {
   docId: string
   title: string
@@ -333,6 +353,20 @@ export type HubStorage = {
   upsertGrantIndex: (record: GrantIndexRecord) => Promise<void>
   removeGrantIndex: (grantId: string) => Promise<void>
   listGrantedDocIds: (granteeDid: string, now?: number) => Promise<string[]>
+  listGrantsForDoc: (docId: string) => Promise<GrantIndexRecord[]>
+  getActiveGrant: (
+    granteeDid: string,
+    docId: string,
+    now?: number
+  ) => Promise<GrantIndexRecord | null>
+  revokeGrant: (grantId: string, revokedAt?: number) => Promise<void>
+
+  insertShareLink: (record: ShareLinkRecord) => Promise<void>
+  getShareLink: (linkId: string) => Promise<ShareLinkRecord | null>
+  listShareLinks: (docId: string) => Promise<ShareLinkRecord[]>
+  setShareLinkDisabled: (linkId: string, disabled: boolean) => Promise<void>
+  incrementShareLinkUse: (linkId: string) => Promise<void>
+  deleteShareLink: (linkId: string) => Promise<void>
 
   getFileMeta: (cid: string) => Promise<FileMeta | null>
   putFile: (

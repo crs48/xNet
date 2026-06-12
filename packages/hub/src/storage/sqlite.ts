@@ -25,6 +25,8 @@ import type {
   SearchOptions,
   SearchResult,
   GrantIndexRecord,
+  ShareLinkRecord,
+  ShareLinkRole,
   SerializedNodeChange,
   DatabaseRowRecord,
   DatabaseRowQueryOptions,
@@ -84,6 +86,22 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_grant_index_grantee ON grant_index(grantee_did);
   CREATE INDEX IF NOT EXISTS idx_grant_index_resource ON grant_index(resource_doc_id);
   CREATE INDEX IF NOT EXISTS idx_grant_index_active ON grant_index(grantee_did, revoked_at, expires_at);
+
+  CREATE TABLE IF NOT EXISTS share_links (
+    link_id TEXT PRIMARY KEY,
+    doc_id TEXT NOT NULL,
+    doc_type TEXT NOT NULL,
+    role TEXT NOT NULL,
+    secret_hash TEXT NOT NULL,
+    created_by_did TEXT NOT NULL,
+    label TEXT,
+    expires_at INTEGER NOT NULL DEFAULT 0,
+    max_uses INTEGER NOT NULL DEFAULT 0,
+    use_count INTEGER NOT NULL DEFAULT 0,
+    disabled INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+  );
+  CREATE INDEX IF NOT EXISTS idx_share_links_doc ON share_links(doc_id);
 
   CREATE TABLE IF NOT EXISTS backups (
     key TEXT PRIMARY KEY,
@@ -572,6 +590,31 @@ type GrantedResourceRow = {
   resource_doc_id: string
 }
 
+type GrantIndexRow = {
+  grant_id: string
+  grantee_did: string
+  resource_doc_id: string
+  actions_json: string
+  expires_at: number
+  revoked_at: number
+  created_at: number
+}
+
+type ShareLinkRow = {
+  link_id: string
+  doc_id: string
+  doc_type: string
+  role: string
+  secret_hash: string
+  created_by_did: string
+  label: string | null
+  expires_at: number
+  max_uses: number
+  use_count: number
+  disabled: number
+  created_at: number
+}
+
 type DatabaseRowRow = {
   id: string
   database_id: string
@@ -681,6 +724,33 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
         AND revoked_at = 0
         AND (expires_at = 0 OR expires_at > ?)
     `),
+    listGrantsForDoc: db.prepare(`
+      SELECT * FROM grant_index WHERE resource_doc_id = ? ORDER BY created_at ASC
+    `),
+    getActiveGrant: db.prepare(`
+      SELECT * FROM grant_index
+      WHERE grantee_did = ?
+        AND resource_doc_id = ?
+        AND revoked_at = 0
+        AND (expires_at = 0 OR expires_at > ?)
+      ORDER BY created_at DESC
+      LIMIT 1
+    `),
+    revokeGrant: db.prepare('UPDATE grant_index SET revoked_at = ? WHERE grant_id = ?'),
+    insertShareLink: db.prepare(`
+      INSERT INTO share_links
+        (link_id, doc_id, doc_type, role, secret_hash, created_by_did, label, expires_at, max_uses, use_count, disabled, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    getShareLink: db.prepare('SELECT * FROM share_links WHERE link_id = ?'),
+    listShareLinks: db.prepare(`
+      SELECT * FROM share_links WHERE doc_id = ? ORDER BY created_at DESC
+    `),
+    setShareLinkDisabled: db.prepare('UPDATE share_links SET disabled = ? WHERE link_id = ?'),
+    incrementShareLinkUse: db.prepare(
+      'UPDATE share_links SET use_count = use_count + 1 WHERE link_id = ?'
+    ),
+    deleteShareLink: db.prepare('DELETE FROM share_links WHERE link_id = ?'),
     insertBackup: db.prepare(`
       INSERT OR REPLACE INTO backups (key, doc_id, owner_did, size_bytes, content_type, blob_path, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -1672,6 +1742,88 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     return rows.map((row) => row.resource_doc_id)
   }
 
+  const grantRowToRecord = (row: GrantIndexRow): GrantIndexRecord => ({
+    grantId: row.grant_id,
+    granteeDid: row.grantee_did,
+    resourceDocId: row.resource_doc_id,
+    actions: JSON.parse(row.actions_json) as string[],
+    expiresAt: row.expires_at,
+    revokedAt: row.revoked_at,
+    createdAt: row.created_at
+  })
+
+  const listGrantsForDoc = async (docId: string): Promise<GrantIndexRecord[]> => {
+    const rows = stmts.listGrantsForDoc.all(docId) as GrantIndexRow[]
+    return rows.map(grantRowToRecord)
+  }
+
+  const getActiveGrant = async (
+    granteeDid: string,
+    docId: string,
+    now = Date.now()
+  ): Promise<GrantIndexRecord | null> => {
+    const row = stmts.getActiveGrant.get(granteeDid, docId, now) as GrantIndexRow | undefined
+    return row ? grantRowToRecord(row) : null
+  }
+
+  const revokeGrant = async (grantId: string, revokedAt = Date.now()): Promise<void> => {
+    stmts.revokeGrant.run(revokedAt, grantId)
+  }
+
+  const shareLinkRowToRecord = (row: ShareLinkRow): ShareLinkRecord => ({
+    linkId: row.link_id,
+    docId: row.doc_id,
+    docType: row.doc_type,
+    role: row.role as ShareLinkRole,
+    secretHash: row.secret_hash,
+    createdByDid: row.created_by_did,
+    label: row.label,
+    expiresAt: row.expires_at,
+    maxUses: row.max_uses,
+    useCount: row.use_count,
+    disabled: row.disabled !== 0,
+    createdAt: row.created_at
+  })
+
+  const insertShareLink = async (record: ShareLinkRecord): Promise<void> => {
+    stmts.insertShareLink.run(
+      record.linkId,
+      record.docId,
+      record.docType,
+      record.role,
+      record.secretHash,
+      record.createdByDid,
+      record.label,
+      record.expiresAt,
+      record.maxUses,
+      record.useCount,
+      record.disabled ? 1 : 0,
+      record.createdAt
+    )
+  }
+
+  const getShareLink = async (linkId: string): Promise<ShareLinkRecord | null> => {
+    const row = stmts.getShareLink.get(linkId) as ShareLinkRow | undefined
+    return row ? shareLinkRowToRecord(row) : null
+  }
+
+  const listShareLinks = async (docId: string): Promise<ShareLinkRecord[]> => {
+    const rows = stmts.listShareLinks.all(docId) as ShareLinkRow[]
+    return rows.map(shareLinkRowToRecord)
+  }
+
+  const setShareLinkDisabled = async (linkId: string, disabled: boolean): Promise<void> => {
+    stmts.setShareLinkDisabled.run(disabled ? 1 : 0, linkId)
+  }
+
+  const incrementShareLinkUse = async (linkId: string): Promise<void> => {
+    stmts.incrementShareLinkUse.run(linkId)
+  }
+
+  const deleteShareLink = async (linkId: string): Promise<void> => {
+    stmts.deleteShareLink.run(linkId)
+  }
+
   const search = async (query: string, options?: SearchOptions): Promise<SearchResult[]> => {
     const limit = options?.limit ?? 20
     const offset = options?.offset ?? 0
@@ -2078,6 +2230,15 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     upsertGrantIndex,
     removeGrantIndex,
     listGrantedDocIds,
+    listGrantsForDoc,
+    getActiveGrant,
+    revokeGrant,
+    insertShareLink,
+    getShareLink,
+    listShareLinks,
+    setShareLinkDisabled,
+    incrementShareLinkUse,
+    deleteShareLink,
     getFileMeta,
     putFile,
     getFileData,
