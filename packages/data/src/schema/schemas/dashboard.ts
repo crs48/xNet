@@ -16,7 +16,7 @@
 import type { SavedViewDescriptor } from '../../store/query-ast'
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { json, text } from '../properties'
+import { json, relation, text } from '../properties'
 
 /** Refresh policy for a widget's query subscription. */
 export type DashboardWidgetRefresh = 'live' | 'on-open' | { intervalMs: number }
@@ -96,7 +96,13 @@ export const DashboardSchema = defineSchema({
     widgets: json<DashboardWidgetInstance[]>({}),
 
     /** Per-breakpoint {x, y, w, h} layout maps — whole-value LWW */
-    layouts: json<DashboardLayouts>({})
+    layouts: json<DashboardLayouts>({}),
+
+    /** Canonical home; empty = Unfiled (exploration 0169) */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
+    /** Order among folder siblings — fractional index */
+    sortKey: text({ maxLength: 500 })
   }
 })
 

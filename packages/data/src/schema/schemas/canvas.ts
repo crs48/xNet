@@ -9,7 +9,7 @@
 
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text } from '../properties'
+import { text, relation } from '../properties'
 
 export const CanvasSchema = defineSchema({
   name: 'Canvas',
@@ -19,7 +19,13 @@ export const CanvasSchema = defineSchema({
     title: text({ required: true, maxLength: 500 }),
 
     /** Emoji or icon URL */
-    icon: text({})
+    icon: text({}),
+
+    /** Canonical home; empty = Unfiled (exploration 0169) */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
+    /** Order among folder siblings — fractional index */
+    sortKey: text({ maxLength: 500 })
   },
   document: 'yjs' // Collaborative Y.Doc for canvas data (nodes, edges)
 })

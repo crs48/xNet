@@ -484,8 +484,8 @@ createNode(ChannelSchema, { name: `#${tag.name}`, kind: 'channel', target: tag.i
 
 ### Phase 1 — Folders (the home)
 
-- [ ] Add `FolderSchema` (`packages/data/src/schema/schemas/folder.ts`) + register in `schemas/index.ts`
-- [ ] Add optional `folder` relation + `sortKey` to Page, Database, Canvas, Dashboard, Project, Channel schemas (with lens migrations)
+- [x] Add `FolderSchema` (`packages/data/src/schema/schemas/folder.ts`) + register in `schemas/index.ts`
+- [x] Add optional `folder` relation + `sortKey` to Page, Database, Canvas, Dashboard, Project, Channel schemas (additive at current versions — validation ignores absent optional props, so no lens migration is required)
 - [ ] Explorer: render folder tree above the flat list — expand/collapse, indent capped visually at ~4 levels, "Unfiled" section for homeless nodes
 - [ ] Drag-and-drop move (reuse existing NodeTransfer drag machinery in `Explorer.tsx`); reorder siblings via `generateSortKey` between neighbors
 - [ ] Create/rename/delete folder (delete ⇒ children move to parent or Unfiled, never cascade-delete content)

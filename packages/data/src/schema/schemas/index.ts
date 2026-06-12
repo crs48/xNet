@@ -6,6 +6,18 @@
  */
 
 export { PageSchema, type Page } from './page'
+export {
+  FOLDER_SCHEMA_IRI,
+  FolderSchema,
+  buildFolderTree,
+  flattenFolderTree,
+  folderAncestorIds,
+  folderPathIds,
+  wouldCreateFolderCycle,
+  type Folder,
+  type FolderLike,
+  type FolderTreeNode
+} from './folder'
 export { DatabaseSchema, type Database } from './database'
 export { DatabaseRowSchema, type DatabaseRow } from './database-row'
 export { DatabaseFieldSchema, type DatabaseField } from './database-field'
@@ -195,6 +207,7 @@ export {
 export const builtInSchemas = {
   // Versioned IRIs (canonical)
   'xnet://xnet.fyi/Page@1.0.0': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Folder@1.0.0': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Database@2.0.0': () => import('./database').then((m) => m.DatabaseSchema),
   'xnet://xnet.fyi/DatabaseRow@2.0.0': () =>
     import('./database-row').then((m) => m.DatabaseRowSchema),
@@ -252,6 +265,7 @@ export const builtInSchemas = {
 
   // Legacy unversioned IRIs (aliases for the current version)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Folder': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),
   'xnet://xnet.fyi/DatabaseRow': () => import('./database-row').then((m) => m.DatabaseRowSchema),
   'xnet://xnet.fyi/DatabaseField': () =>

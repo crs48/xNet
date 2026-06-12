@@ -50,6 +50,12 @@ export const ChannelSchema = defineSchema({
     /** Archived channels are hidden from the default list */
     archived: checkbox({ default: false }),
 
+    /** Canonical home; empty = Unfiled (exploration 0169) */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
+    /** Order among folder siblings — fractional index */
+    sortKey: text({ maxLength: 500 }),
+
     createdAt: created(),
     createdBy: createdBy()
   },

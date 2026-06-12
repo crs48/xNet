@@ -9,7 +9,7 @@
 
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text, select, person, date } from '../properties'
+import { text, select, person, date, relation } from '../properties'
 
 export const ProjectSchema = defineSchema({
   name: 'Project',
@@ -37,7 +37,13 @@ export const ProjectSchema = defineSchema({
     lead: person({}),
 
     /** Target completion date */
-    targetDate: date({})
+    targetDate: date({}),
+
+    /** Canonical home; empty = Unfiled (exploration 0169) */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
+    /** Order among folder siblings — fractional index */
+    sortKey: text({ maxLength: 500 })
   },
   document: 'yjs' // Collaborative project brief
 })
