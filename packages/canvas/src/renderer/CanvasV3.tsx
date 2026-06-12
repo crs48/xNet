@@ -342,6 +342,19 @@ type SelectionPopover =
   | 'source-bulk'
   | 'plugin-fields'
 
+const SELECTION_POPOVER_CAPABILITY: Record<SelectionPopover, keyof CanvasSelectionCapabilities> = {
+  dimensions: 'canEditDimensions',
+  'shape-style': 'canEditShapeStyle',
+  'sticky-note': 'canEditStickyNote',
+  'frame-variant': 'canEditFrameVariant',
+  'media-fit': 'canEditMediaFit',
+  'pdf-page': 'canInspectPdfPage',
+  'edge-type': 'canEditEdgeType',
+  references: 'canInspectReferences',
+  'source-bulk': 'canInspectSourceBulk',
+  'plugin-fields': 'canInspectPluginFields'
+}
+
 type DimensionField = 'x' | 'y' | 'width' | 'height'
 type CanvasMediaFit = 'contain' | 'cover' | 'fill'
 type CanvasNodePropertiesUpdate = {
@@ -3489,32 +3502,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
   useEffect(() => {
     if (
-      (activeSelectionPopover === 'dimensions' && !selectionCapabilities.canEditDimensions) ||
-      (activeSelectionPopover === 'shape-style' && !selectionCapabilities.canEditShapeStyle) ||
-      (activeSelectionPopover === 'sticky-note' && !selectionCapabilities.canEditStickyNote) ||
-      (activeSelectionPopover === 'frame-variant' && !selectionCapabilities.canEditFrameVariant) ||
-      (activeSelectionPopover === 'media-fit' && !selectionCapabilities.canEditMediaFit) ||
-      (activeSelectionPopover === 'pdf-page' && !selectionCapabilities.canInspectPdfPage) ||
-      (activeSelectionPopover === 'edge-type' && !selectionCapabilities.canEditEdgeType) ||
-      (activeSelectionPopover === 'references' && !selectionCapabilities.canInspectReferences) ||
-      (activeSelectionPopover === 'source-bulk' && !selectionCapabilities.canInspectSourceBulk) ||
-      (activeSelectionPopover === 'plugin-fields' && !selectionCapabilities.canInspectPluginFields)
+      activeSelectionPopover &&
+      !selectionCapabilities[SELECTION_POPOVER_CAPABILITY[activeSelectionPopover]]
     ) {
       setActiveSelectionPopover(null)
     }
-  }, [
-    activeSelectionPopover,
-    selectionCapabilities.canEditDimensions,
-    selectionCapabilities.canEditEdgeType,
-    selectionCapabilities.canEditFrameVariant,
-    selectionCapabilities.canEditMediaFit,
-    selectionCapabilities.canEditShapeStyle,
-    selectionCapabilities.canEditStickyNote,
-    selectionCapabilities.canInspectPdfPage,
-    selectionCapabilities.canInspectPluginFields,
-    selectionCapabilities.canInspectReferences,
-    selectionCapabilities.canInspectSourceBulk
-  ])
+  }, [activeSelectionPopover, selectionCapabilities])
 
   const firstSelectedNode = selectedNodes[0] ?? null
   const selectedPairEdgeKind = useMemo<CanvasEdgeRelationshipKind | null>(() => {
@@ -4323,24 +4316,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [applyPinchZoom]
   )
 
-  const endTouchPinchPointer = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>): boolean => {
-      if (event.pointerType !== 'touch' || !touchPointersRef.current.delete(event.pointerId)) {
-        return false
-      }
+  const endTouchPinchPointer = useCallback((event: React.PointerEvent<HTMLDivElement>): boolean => {
+    if (event.pointerType !== 'touch' || !touchPointersRef.current.delete(event.pointerId)) {
+      return false
+    }
 
-      if (!pinchStateRef.current) {
-        return false
-      }
+    if (!pinchStateRef.current) {
+      return false
+    }
 
-      pinchStateRef.current = null
-      event.currentTarget.releasePointerCapture?.(event.pointerId)
-      // The remaining finger continues as a pan without re-running tap side effects.
-      lastPointerRef.current = Array.from(touchPointersRef.current.values())[0] ?? null
-      return true
-    },
-    []
-  )
+    pinchStateRef.current = null
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+    // The remaining finger continues as a pan without re-running tap side effects.
+    lastPointerRef.current = Array.from(touchPointersRef.current.values())[0] ?? null
+    return true
+  }, [])
 
   const handleNodePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>, objectId: string) => {
