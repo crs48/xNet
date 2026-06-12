@@ -144,7 +144,11 @@ export type {
   QueryASTAggregateResult,
   QueryASTAggregateExecution,
   QueryASTPlannerGate,
-  SavedViewDescriptor
+  SavedViewDescriptor,
+  SavedViewPresentationHint,
+  SavedViewPresentationHintMode,
+  SavedViewFeedLayout,
+  SavedViewFeedDensity
 } from './query-ast'
 export {
   QUERY_AST_VERSION,

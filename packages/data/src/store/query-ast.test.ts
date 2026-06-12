@@ -105,6 +105,33 @@ describe('query AST', () => {
     expect(JSON.parse(JSON.stringify(descriptor))).toEqual(descriptor)
   })
 
+  it('validates saved view presentation hints', () => {
+    const descriptor = defineSavedViewDescriptor({
+      title: 'Video feed',
+      scope: 'workspace',
+      query: defineNodeQueryAST(TaskSchema),
+      presentation: { mode: 'feed', feedLayout: 'grid', feedDensity: 'cozy' }
+    })
+
+    expect(validateSavedViewDescriptor(descriptor)).toEqual({ valid: true, errors: [] })
+    expect(JSON.parse(JSON.stringify(descriptor)).presentation).toEqual({
+      mode: 'feed',
+      feedLayout: 'grid',
+      feedDensity: 'cozy'
+    })
+    expect(
+      validateSavedViewDescriptor({ ...descriptor, presentation: { mode: 'mosaic' } }).valid
+    ).toBe(false)
+    expect(
+      validateSavedViewDescriptor({ ...descriptor, presentation: { feedLayout: 'masonry' } }).valid
+    ).toBe(false)
+    expect(
+      validateSavedViewDescriptor({ ...descriptor, presentation: { feedDensity: 'spacious' } })
+        .valid
+    ).toBe(false)
+    expect(validateSavedViewDescriptor({ ...descriptor, presentation: 'feed' }).valid).toBe(false)
+  })
+
   it('executes loaded aggregate snapshots with grouping and having predicates', () => {
     const ast = defineNodeQueryAST(TaskSchema, {
       aggregates: [
