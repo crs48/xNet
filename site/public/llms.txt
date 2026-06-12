@@ -49,6 +49,17 @@ xNet is different from traditional client-server architectures:
 - [Relations](https://xnet.fyi/docs/schemas/relations/): Link nodes together
 - [Type Inference](https://xnet.fyi/docs/schemas/type-inference/): TypeScript magic
 
+## The App
+
+- [The Workbench](https://xnet.fyi/docs/guides/workbench/): The tabbed, keyboard-first shell
+- [Tasks](https://xnet.fyi/docs/guides/tasks/): Task surfaces and inline editing
+- [Dashboards & Widgets](https://xnet.fyi/docs/guides/dashboards/): Widget boards over live data
+- [Chat, Presence & Calls](https://xnet.fyi/docs/guides/chat-and-calls/): Channels, DMs, WebRTC calls
+- [Notifications & Inbox](https://xnet.fyi/docs/guides/notifications/): Local-first notification engine
+- [Editor](https://xnet.fyi/docs/guides/editor/): Rich text editing
+- [Canvas](https://xnet.fyi/docs/guides/canvas/): Infinite canvas
+- [DevTools](https://xnet.fyi/docs/guides/devtools/): Debug panels
+
 ## Guides
 
 - [Sync](https://xnet.fyi/docs/guides/sync/): How P2P sync works
@@ -56,10 +67,8 @@ xNet is different from traditional client-server architectures:
 - [Identity](https://xnet.fyi/docs/guides/identity/): Cryptographic identity
 - [Collaboration](https://xnet.fyi/docs/guides/collaboration/): Real-time multiplayer
 - [Plugins](https://xnet.fyi/docs/guides/plugins/): Extend the platform
+- [Agent Interfaces](https://xnet.fyi/docs/guides/agent-interfaces/): Files-first surface, xnet CLI, SKILL.md
 - [Hub Setup](https://xnet.fyi/docs/guides/hub/): Optional always-on relay
-- [Canvas](https://xnet.fyi/docs/guides/canvas/): Infinite canvas
-- [Editor](https://xnet.fyi/docs/guides/editor/): Rich text editing
-- [DevTools](https://xnet.fyi/docs/guides/devtools/): Debug panels
 - [Testing](https://xnet.fyi/docs/guides/testing/): Test your app
 
 ## Concepts

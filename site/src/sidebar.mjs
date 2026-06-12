@@ -38,6 +38,20 @@ export const sidebar = [
     ]
   },
   {
+    label: 'The App',
+    collapsed: true,
+    items: [
+      { slug: 'docs/guides/workbench' },
+      { slug: 'docs/guides/tasks' },
+      { slug: 'docs/guides/dashboards' },
+      { slug: 'docs/guides/chat-and-calls' },
+      { slug: 'docs/guides/notifications' },
+      { slug: 'docs/guides/editor' },
+      { slug: 'docs/guides/canvas' },
+      { slug: 'docs/guides/devtools' }
+    ]
+  },
+  {
     label: 'Guides',
     collapsed: true,
     items: [
@@ -48,10 +62,8 @@ export const sidebar = [
       { slug: 'docs/guides/identity' },
       { slug: 'docs/guides/collaboration' },
       { slug: 'docs/guides/plugins' },
-      { slug: 'docs/guides/canvas' },
-      { slug: 'docs/guides/editor' },
+      { slug: 'docs/guides/agent-interfaces' },
       { slug: 'docs/guides/hub' },
-      { slug: 'docs/guides/devtools' },
       { slug: 'docs/guides/electron' },
       { slug: 'docs/guides/testing' }
     ]

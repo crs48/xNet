@@ -411,27 +411,31 @@ export const phases: RoadmapPhase[] = [
 
 ### Phase 2 — Docs pages
 
-- [ ] `guides/workbench.mdx` — distilled from `docs/reference/WORKBENCH.md` (tabs,
+- [x] `guides/workbench.mdx` — distilled from `docs/reference/WORKBENCH.md` (tabs,
       panels, palette, zen, keyboard map)
-- [ ] `guides/tasks.mdx` — surfaces, quick-add with @mention, field authority
+- [x] `guides/tasks.mdx` — surfaces, quick-add with @mention, field authority
       (page-hosted vs node-owned), `/tasks?task=` deep links
-- [ ] `guides/dashboards.mdx` — widget contract, built-ins, charts, sandbox tiers,
+- [x] `guides/dashboards.mdx` — widget contract, built-ins, charts, sandbox tiers,
       user widgets
-- [ ] `guides/chat-and-calls.mdx` — channels/DMs/voice rooms, RoomManager presence,
+- [x] `guides/chat-and-calls.mdx` — channels/DMs/voice rooms, RoomManager presence,
       mesh call limits (4 video / 8 audio), hub signaling
-- [ ] `guides/notifications.mdx` — Notifier rules, watermarks + mention acks, badges,
+- [x] `guides/notifications.mdx` — Notifier rules, watermarks + mention acks, badges,
       DND, triage
-- [ ] `guides/agent-interfaces.mdx` — files-first checkout, `xnet` CLI verbs,
+- [x] `guides/agent-interfaces.mdx` — files-first checkout, `xnet` CLI verbs,
       SKILL.md, slim MCP, the 0.111x benchmark
-- [ ] Update `guides/canvas.mdx` (edge editing, drag-to-connect, inline text),
+- [x] Update `guides/canvas.mdx` (edge editing, drag-to-connect, inline text),
       `guides/identity.mdx` (resumable sessions, TTL, logout), `guides/plugins.mdx`
-      (WidgetContribution, StatusBarContribution)
-- [ ] Update `architecture/package-graph.mdx` for the 30-package reality (at minimum:
-      comms, dashboard, charts, cli, query, views, ui)
-- [ ] Resolve `useGrants`: add `hooks/usegrants.mdx` or trim `hooks/overview.mdx`
-- [ ] Update `ai/understanding-xnet.mdx` to point agents at SKILL.md / files-first
-- [ ] Add all new pages to the sidebar in `site/astro.config.mjs` and to
-      `build-llms-full.ts` (or land Phase 4's auto-discovery first)
+      (WidgetContribution, StatusBarContribution, contribution count 9 → 11)
+- [x] Update `architecture/package-graph.mdx` for the 30-package reality (graph +
+      details for ui/query/views/comms/dashboard/charts/cli/hub; fixed a second
+      stale devtools panel list; web app no longer described as a feature subset)
+- [x] Resolve `useGrants`: `hooks/overview.mdx` actually had no `useGrants` row
+      (the audit overstated); added a `useCan`/`useGrants` supporting-hooks row
+      linking to the authorization guide, which documents both
+- [x] Update `ai/understanding-xnet.mdx` to point agents at SKILL.md / files-first
+- [x] Add all new pages to the sidebar (`site/src/sidebar.mjs` — new "The App"
+      group; llms-full.txt order follows automatically) and to the hand-curated
+      `public/llms.txt` index
 
 ### Phase 3 — Landing refresh
 

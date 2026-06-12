@@ -49,15 +49,33 @@ import { Canvas } from '@xnetjs/canvas'
 | `Cmd+1`                | Fit to content        |
 | `Cmd+0`                | Reset view            |
 
-### Mouse interaction
+### Mouse and touch interaction
 
 - **Scroll** — Pan the canvas
-- **Ctrl/Cmd + Scroll** — Zoom (pinch-to-zoom)
+- **Ctrl/Cmd + Scroll** — Zoom
+- **Two-finger pinch** — Zoom (trackpads and touch screens, including Safari gestures)
 - **Click node** — Select it
+- **Click edge** — Select it (edges have generous invisible hit areas)
 - **Shift/Cmd + Click** — Additive selection
 - **Drag node** — Move it
 - **Drag resize handles** — Resize (8 handles on selection)
-- **Double-click** — Open node
+- **Drag a connector handle** — Draw a new edge to another node (handles appear on hover)
+- **Double-click** — Open node, or edit its text in place
+
+## Editing on the canvas
+
+Nodes and edges are directly editable without leaving the canvas:
+
+- **Edges** — click to select; a floating toolbar offers a label input, an
+  edge-kind picker, reverse direction, and delete.
+- **Drag-to-connect** — drag from a node's connector handle (shown on hover)
+  and drop on another node to create an edge.
+- **Node text** — double-click a canvas-native node (shape, note) to edit its
+  text inline. Source-backed cards (a page or database dropped onto the
+  canvas) keep their source's title; press `F2` or use the Rename action to
+  give the card a local alias instead.
+
+All edits go through Yjs transactions and sync live to collaborators.
 
 ## useCanvas hook
 
