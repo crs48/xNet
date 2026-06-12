@@ -1,11 +1,17 @@
 /**
- * Root layout — the xNet Workbench (exploration 0166).
+ * Root layout — the xNet Workbench (exploration 0166) wrapped in the
+ * comms layer (explorations 0167/0168).
  *
- * Rail · Left Panel · Editor Area · Right Panel · Bottom Panel ·
- * Status Bar. The router outlet renders inside the editor area's
- * active group; everything else is shell.
+ * CommsProvider owns presence rooms and the notifier; CallProvider owns
+ * the active call. The CommsDock mounts OUTSIDE the router outlet so an
+ * active call survives navigation; RoomSection and the status items
+ * publish into shell contribution points.
  */
 import { createRootRoute, Outlet } from '@tanstack/react-router'
+import { CallProvider, CommsDock } from '../comms/CallDock'
+import { CommsProvider } from '../comms/CommsContext'
+import { RoomSection } from '../comms/RoomSection'
+import { InboxBellItem, PresenceStatusItem } from '../comms/StatusItems'
 import { Workbench } from '../workbench/Workbench'
 
 export const Route = createRootRoute({
@@ -14,8 +20,16 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   return (
-    <Workbench>
-      <Outlet />
-    </Workbench>
+    <CommsProvider>
+      <CallProvider>
+        <RoomSection />
+        <InboxBellItem />
+        <PresenceStatusItem />
+        <Workbench>
+          <Outlet />
+        </Workbench>
+        <CommsDock />
+      </CallProvider>
+    </CommsProvider>
   )
 }
