@@ -1056,6 +1056,310 @@ describe('Canvas v3 active renderer', () => {
     expect(edgeGroup?.getAttribute('aria-label')).toBe('Connector label Needs')
   })
 
+  it('selects v3 edges from their hit targets and deletes them from the keyboard', () => {
+    const doc = createCanvasTestDoc()
+    const onSelectionChange = vi.fn()
+    const edge = getCanvasConnectorsMap<CanvasEdge>(doc).get('edge-1')
+    if (!edge) {
+      throw new Error('Expected edge-1')
+    }
+
+    render(<Canvas doc={doc} onSelectionChange={onSelectionChange} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const hitTarget = surface.querySelector(
+      `[data-canvas-v3-edge-hit-target="true"][data-canvas-edge-id="${edge.id}"]`
+    )
+    if (!hitTarget) {
+      throw new Error('Expected edge hit target for edge-1')
+    }
+
+    fireEvent.pointerDown(hitTarget, { button: 0 })
+
+    const edgeGroup = surface.querySelector(`[data-canvas-v3-edge-id="${edge.id}"]`)
+    expect(edgeGroup?.getAttribute('data-canvas-edge-selected')).toBe('true')
+    expect(edgeGroup?.querySelector('[data-canvas-v3-edge-selection-halo="true"]')).toBeTruthy()
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [], edgeIds: [edge.id] })
+
+    fireEvent.keyDown(surface, { key: 'Delete' })
+
+    expect(getCanvasConnectorsMap(doc).has('edge-1')).toBe(false)
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [], edgeIds: [] })
+  })
+
+  it('edits edge labels, relationship kind, and direction from the v3 edge toolbar', () => {
+    const doc = createCanvasTestDoc()
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const edge = getCanvasConnectorsMap<CanvasEdge>(doc).get('edge-1')
+    if (!edge) {
+      throw new Error('Expected edge-1')
+    }
+
+    render(<Canvas doc={doc} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const hitTarget = surface.querySelector(
+      `[data-canvas-v3-edge-hit-target="true"][data-canvas-edge-id="${edge.id}"]`
+    )
+    if (!hitTarget) {
+      throw new Error('Expected edge hit target for edge-1')
+    }
+
+    fireEvent.pointerDown(hitTarget, { button: 0 })
+
+    const toolbar = screen.getByRole('toolbar', { name: 'Canvas connector actions' })
+    const labelInput = within(toolbar).getByRole('textbox', { name: 'Connector label' })
+
+    fireEvent.change(labelInput, { target: { value: 'Blocks deploy' } })
+    fireEvent.keyDown(labelInput, { key: 'Enter' })
+
+    expect(getCanvasConnectorsMap<CanvasEdge>(doc).get('edge-1')?.label).toBe('Blocks deploy')
+
+    fireEvent.change(within(toolbar).getByRole('combobox', { name: 'Connector type' }), {
+      target: { value: 'depends-on' }
+    })
+
+    const retyped = getCanvasConnectorsMap<CanvasEdge>(doc).get('edge-1')
+    expect(retyped?.relationship?.kind).toBe('depends-on')
+    expect(retyped?.relationship?.direction).toBe('directed')
+
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Reverse connector direction' }))
+
+    const reversed = getCanvasConnectorsMap<CanvasEdge>(doc).get('edge-1')
+    expect(reversed?.sourceId).toBe(shape.id)
+    expect(reversed?.targetId).toBe(page.id)
+
+    fireEvent.change(labelInput, { target: { value: 'Discarded label' } })
+    fireEvent.keyDown(labelInput, { key: 'Escape' })
+    fireEvent.blur(labelInput)
+
+    expect(getCanvasConnectorsMap<CanvasEdge>(doc).get('edge-1')?.label).toBe('Blocks deploy')
+
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Delete connector' }))
+
+    expect(getCanvasConnectorsMap(doc).has('edge-1')).toBe(false)
+    expect(screen.queryByRole('toolbar', { name: 'Canvas connector actions' })).toBeNull()
+  })
+
+  it('creates v3 edges by dragging from a connector handle onto another object', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+    const onSelectionChange = vi.fn()
+
+    render(<Canvas ref={ref} doc={doc} onSelectionChange={onSelectionChange} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const connectors = getCanvasConnectorsMap(doc)
+    const initialConnectorIds = new Set(Array.from(connectors.keys()))
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const handle = screen.getByRole('button', {
+      name: 'Start connector from Research Page right'
+    })
+
+    fireEvent.pointerDown(handle, { button: 0, pointerId: 7, clientX: 620, clientY: 320 })
+    fireEvent.pointerMove(surface, { pointerId: 7, clientX: 700, clientY: 420 })
+    fireEvent.pointerMove(surface, { pointerId: 7, clientX: 750, clientY: 470 })
+
+    expect(surface.querySelector('[data-canvas-v3-connector-preview="true"]')).toBeTruthy()
+
+    const shapeIsland = screen
+      .getByText('Decision Box')
+      .closest('[data-canvas-v3-object="true"]') as HTMLElement | null
+    expect(shapeIsland?.getAttribute('data-canvas-connector-drop-target')).toBe('true')
+
+    fireEvent.pointerUp(surface, { pointerId: 7, clientX: 750, clientY: 470 })
+
+    const createdEntry = Array.from(connectors.entries()).find(
+      ([edgeId]) => !initialConnectorIds.has(edgeId)
+    )
+    if (!createdEntry) {
+      throw new Error('Expected a connector created by drag')
+    }
+
+    const [createdId, created] = createdEntry as [string, CanvasEdge]
+    expect(created.sourceId).toBe(page.id)
+    expect(created.targetId).toBe(shape.id)
+    expect(created.source?.placement).toBe('right')
+    expect(created.target?.placement).toBe('left')
+    expect(surface.querySelector('[data-canvas-v3-connector-preview="true"]')).toBeNull()
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ nodeIds: [], edgeIds: [createdId] })
+  })
+
+  it('pans and zooms the v3 viewport from wheel input', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    const initial = ref.current?.getViewportSnapshot()
+    if (!initial) {
+      throw new Error('Expected viewport snapshot')
+    }
+
+    fireEvent.wheel(surface, { deltaX: 40, deltaY: 80 })
+
+    const panned = ref.current?.getViewportSnapshot()
+    expect(panned?.x).toBeCloseTo(initial.x + 40)
+    expect(panned?.y).toBeCloseTo(initial.y + 80)
+
+    fireEvent.wheel(surface, { deltaY: -10, ctrlKey: true, clientX: 480, clientY: 320 })
+
+    const zoomedIn = ref.current?.getViewportSnapshot()
+    expect(zoomedIn?.zoom ?? 0).toBeGreaterThan(panned?.zoom ?? 1)
+
+    fireEvent.wheel(surface, { deltaY: 10, metaKey: true, clientX: 480, clientY: 320 })
+
+    const zoomedOut = ref.current?.getViewportSnapshot()
+    expect(zoomedOut?.zoom ?? 0).toBeLessThan(zoomedIn?.zoom ?? 0)
+  })
+
+  it('shows v3 connector handles while hovering an unselected object', () => {
+    const doc = createCanvasTestDoc()
+
+    render(<Canvas doc={doc} />)
+
+    const shapeIsland = screen
+      .getByText('Decision Box')
+      .closest('[data-canvas-v3-object="true"]') as HTMLElement | null
+    if (!shapeIsland) {
+      throw new Error('Expected shape DOM island')
+    }
+
+    expect(shapeIsland.querySelectorAll('[data-canvas-v3-connector-handle]')).toHaveLength(0)
+
+    fireEvent.pointerOver(shapeIsland)
+    expect(shapeIsland.querySelectorAll('[data-canvas-v3-connector-handle]')).toHaveLength(4)
+
+    fireEvent.pointerOut(shapeIsland)
+    expect(shapeIsland.querySelectorAll('[data-canvas-v3-connector-handle]')).toHaveLength(0)
+  })
+
+  it('edits canvas-native node text inline from a double-click', () => {
+    const doc = createCanvasTestDoc()
+    const onNodeDoubleClick = vi.fn()
+    const onSceneMutation = vi.fn()
+    const objects = getCanvasObjectsMap<CanvasNode>(doc)
+    const seededShape = getNodeByTitle(doc, 'Decision Box')
+    objects.set(seededShape.id, {
+      ...seededShape,
+      properties: { ...seededShape.properties, label: 'Decision Box' }
+    })
+
+    render(
+      <Canvas doc={doc} onNodeDoubleClick={onNodeDoubleClick} onSceneMutation={onSceneMutation} />
+    )
+
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const shapeIsland = screen
+      .getByText('Decision Box')
+      .closest('[data-canvas-v3-object="true"]') as HTMLElement | null
+    if (!shapeIsland) {
+      throw new Error('Expected shape DOM island')
+    }
+
+    fireEvent.doubleClick(shapeIsland)
+
+    expect(onNodeDoubleClick).not.toHaveBeenCalled()
+
+    const editor = screen.getByLabelText('Edit Decision Box text') as HTMLTextAreaElement
+    expect(editor.value).toBe('Decision Box')
+
+    fireEvent.change(editor, { target: { value: 'Approved Box' } })
+    fireEvent.keyDown(editor, { key: 'Enter' })
+
+    const updated = getCanvasObjectsMap<CanvasNode>(doc).get(shape.id)
+    expect(updated?.properties.title).toBe('Approved Box')
+    expect(updated?.properties.label).toBe('Approved Box')
+    expect(screen.queryByLabelText('Edit Decision Box text')).toBeNull()
+    expect(onSceneMutation).toHaveBeenCalled()
+  })
+
+  it('cancels inline editing with Escape and keeps double-click navigation for source-backed objects', () => {
+    const doc = createCanvasTestDoc()
+    const onNodeDoubleClick = vi.fn()
+
+    render(<Canvas doc={doc} onNodeDoubleClick={onNodeDoubleClick} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+    const pageIsland = screen
+      .getByText('Research Page')
+      .closest('[data-canvas-v3-object="true"]') as HTMLElement | null
+    if (!pageIsland) {
+      throw new Error('Expected page DOM island')
+    }
+
+    fireEvent.doubleClick(pageIsland)
+    expect(onNodeDoubleClick).toHaveBeenCalledWith(page.id)
+    expect(document.querySelector('[data-canvas-v3-inline-editor="true"]')).toBeNull()
+
+    const shape = getNodeByTitle(doc, 'Decision Box')
+    const shapeIsland = screen
+      .getByText('Decision Box')
+      .closest('[data-canvas-v3-object="true"]') as HTMLElement | null
+    if (!shapeIsland) {
+      throw new Error('Expected shape DOM island')
+    }
+
+    fireEvent.doubleClick(shapeIsland)
+
+    const editor = screen.getByLabelText('Edit Decision Box text') as HTMLTextAreaElement
+    fireEvent.change(editor, { target: { value: 'Discarded text' } })
+    fireEvent.keyDown(editor, { key: 'Escape' })
+
+    expect(screen.queryByLabelText('Edit Decision Box text')).toBeNull()
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(shape.id)?.properties.title).toBe(
+      'Decision Box'
+    )
+  })
+
+  it('renames objects inline from the F2 shortcut and the selection toolbar', () => {
+    const doc = createCanvasTestDoc()
+    const ref = React.createRef<CanvasHandle>()
+
+    render(<Canvas ref={ref} doc={doc} />)
+
+    const page = getNodeByTitle(doc, 'Research Page')
+
+    act(() => {
+      ref.current?.selectNodes([page.id])
+    })
+
+    const surface = screen.getByRole('application', { name: 'Canvas' })
+    fireEvent.keyDown(surface, { key: 'F2' })
+
+    const aliasEditor = screen.getByLabelText('Rename Research Page') as HTMLTextAreaElement
+    expect(aliasEditor.value).toBe('')
+
+    fireEvent.change(aliasEditor, { target: { value: 'Launch Notes' } })
+    fireEvent.keyDown(aliasEditor, { key: 'Enter' })
+
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(page.id)?.alias).toBe('Launch Notes')
+
+    const shape = getNodeByTitle(doc, 'Decision Box')
+
+    act(() => {
+      ref.current?.selectNodes([shape.id])
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rename selection on the canvas (F2)' }))
+
+    const titleEditor = screen.getByLabelText('Edit Decision Box text') as HTMLTextAreaElement
+    fireEvent.change(titleEditor, { target: { value: 'Decision Gate' } })
+    fireEvent.keyDown(titleEditor, { key: 'Enter' })
+
+    expect(getCanvasObjectsMap<CanvasNode>(doc).get(shape.id)?.properties.title).toBe(
+      'Decision Gate'
+    )
+  })
+
   it('derives v3 selection toolbar actions from selection capabilities', () => {
     const doc = createCanvasTestDoc()
     const ref = React.createRef<CanvasHandle>()
