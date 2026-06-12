@@ -6,7 +6,6 @@
  * navigating to a route activates (or opens) its tab, so deep links,
  * back/forward, and old bookmarks keep working.
  */
-import type { TabNodeType } from './state'
 import {
   CheckSquare2,
   Database,
@@ -17,6 +16,7 @@ import {
   Table2,
   type LucideIcon
 } from 'lucide-react'
+import { tabIdFor, useWorkbench, type TabNodeType } from './state'
 
 export interface TabViewEntry {
   label: string
@@ -87,4 +87,38 @@ export function consumePreviewIntent(): boolean {
   const value = previewIntent
   previewIntent = false
   return value
+}
+
+/**
+ * Open-or-activate the tab matching a pathname (router → store).
+ * Returns silently for non-tab routes.
+ */
+export function syncRouteToTabs(pathname: string): void {
+  const descriptor = tabFromPathname(pathname)
+  if (!descriptor) return
+
+  const tabId = tabIdFor(descriptor.nodeType, descriptor.nodeId)
+  const state = useWorkbench.getState()
+  const owner = state.groups.find((group) => group.tabs.some((tab) => tab.id === tabId))
+
+  if (owner) {
+    consumePreviewIntent()
+    state.activateTab(tabId, owner.id)
+  } else {
+    state.openTab({
+      nodeId: descriptor.nodeId,
+      nodeType: descriptor.nodeType,
+      preview: consumePreviewIntent()
+    })
+  }
+
+  const tab = useWorkbench
+    .getState()
+    .groups.flatMap((group) => group.tabs)
+    .find((entry) => entry.id === tabId)
+  state.touchRecent({
+    nodeId: descriptor.nodeId,
+    nodeType: descriptor.nodeType,
+    title: tab?.title ?? ''
+  })
 }

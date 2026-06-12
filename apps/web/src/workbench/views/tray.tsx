@@ -4,17 +4,13 @@
  * "terminal" of a data workspace (run a QueryAST, get a table).
  */
 import { useNavigate } from '@tanstack/react-router'
-import {
-  SavedViewSchema,
-  TaskSchema,
-  validateSavedViewDescriptor,
-  type SavedViewDescriptor
-} from '@xnetjs/data'
+import { SavedViewSchema, TaskSchema, type SavedViewDescriptor } from '@xnetjs/data'
 import { SavedViewRunner, useHubStatus, useMutate, useQuery } from '@xnetjs/react'
 import { CheckSquare2, CornerDownLeft, FileText } from 'lucide-react'
 import { useState } from 'react'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../../lib/saved-view-registry'
 import { useWorkbenchStatus } from '../status'
+import { parseConsoleInput } from './console-input'
 
 function generateId(prefix: string): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
@@ -170,25 +166,10 @@ export function QueryConsoleTray() {
   const [runId, setRunId] = useState(0)
 
   const run = () => {
-    setError(null)
-    try {
-      const parsed = JSON.parse(source) as Record<string, unknown>
-      // Accept either a full descriptor or a bare QueryAST.
-      const candidate = (
-        parsed.query ? parsed : { version: 1, title: 'Console query', query: parsed }
-      ) as SavedViewDescriptor
-      const validation = validateSavedViewDescriptor(candidate)
-      if (!validation.valid) {
-        setError(validation.errors.map((e) => `${e.path}: ${e.message}`).join('\n'))
-        setDescriptor(null)
-        return
-      }
-      setDescriptor(candidate)
-      setRunId((id) => id + 1)
-    } catch (parseError) {
-      setError(parseError instanceof Error ? parseError.message : String(parseError))
-      setDescriptor(null)
-    }
+    const result = parseConsoleInput(source)
+    setError(result.error)
+    setDescriptor(result.descriptor)
+    if (result.descriptor) setRunId((id) => id + 1)
   }
 
   return (

@@ -8,8 +8,55 @@
  */
 import { X } from 'lucide-react'
 import { useMemo } from 'react'
-import { useContextPanelStore } from './context-panel'
+import { useContextPanelStore, type ContextPanelSection } from './context-panel'
 import { useWorkbench } from './state'
+
+function SectionBadge({ badge }: { badge: number | undefined }) {
+  if (typeof badge !== 'number' || badge === 0) return null
+  return (
+    <span className="rounded-full bg-surface-2 px-1 font-mono text-[10px] text-ink-2">{badge}</span>
+  )
+}
+
+function SectionTabs({
+  sections,
+  activeId,
+  onSelect
+}: {
+  sections: ContextPanelSection[]
+  activeId: string | null
+  onSelect: (id: string) => void
+}) {
+  if (sections.length === 0) {
+    return (
+      <span className="text-[11px] font-medium uppercase tracking-wider text-ink-2">Context</span>
+    )
+  }
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto">
+      {sections.map((section) => (
+        <button
+          key={section.id}
+          type="button"
+          onClick={() => onSelect(section.id)}
+          className={`flex shrink-0 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-[11px] font-medium uppercase tracking-wider transition-colors ${
+            activeId === section.id ? 'text-ink-1' : 'text-ink-3 hover:text-ink-2'
+          }`}
+        >
+          {section.title}
+          <SectionBadge badge={section.badge} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function resolveActiveSection(
+  sections: ContextPanelSection[],
+  activeId: string | null
+): ContextPanelSection | null {
+  return sections.find((section) => section.id === activeId) ?? sections[0] ?? null
+}
 
 export function ContextPanel() {
   const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
@@ -18,36 +65,16 @@ export function ContextPanel() {
   const activeSectionId = useContextPanelStore((state) => state.activeSectionId)
   const setActiveSection = useContextPanelStore((state) => state.setActiveSection)
 
-  const active = sections.find((section) => section.id === activeSectionId) ?? sections[0] ?? null
+  const active = resolveActiveSection(sections, activeSectionId)
 
   return (
     <aside data-wb-region="right" className="flex h-full min-h-0 flex-col bg-surface-1">
       <header className="flex h-8 shrink-0 items-center gap-3 border-b border-hairline px-3">
-        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto">
-          {sections.length === 0 ? (
-            <span className="text-[11px] font-medium uppercase tracking-wider text-ink-2">
-              Context
-            </span>
-          ) : (
-            sections.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => setActiveSection(section.id)}
-                className={`flex shrink-0 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-[11px] font-medium uppercase tracking-wider transition-colors ${
-                  active?.id === section.id ? 'text-ink-1' : 'text-ink-3 hover:text-ink-2'
-                }`}
-              >
-                {section.title}
-                {typeof section.badge === 'number' && section.badge > 0 && (
-                  <span className="rounded-full bg-surface-2 px-1 font-mono text-[10px] text-ink-2">
-                    {section.badge}
-                  </span>
-                )}
-              </button>
-            ))
-          )}
-        </div>
+        <SectionTabs
+          sections={sections}
+          activeId={active?.id ?? null}
+          onSelect={setActiveSection}
+        />
         <button
           type="button"
           title="Close panel"

@@ -48,12 +48,16 @@ function cycleRegion(delta: 1 | -1): void {
   focusRegion(next)
 }
 
+function returnFocusToEditor(): void {
+  const region = currentRegion()
+  if (region !== null && region !== 'editor') focusRegion('editor')
+}
+
+const EDITABLE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
+
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
-  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
-    return true
-  }
-  return target.isContentEditable
+  return EDITABLE_TAGS.has(target.tagName) || target.isContentEditable
 }
 
 export function useFocusRing(): void {
@@ -84,12 +88,8 @@ export function useFocusRing(): void {
     // Escape inside a panel returns to the editor; inputs keep their
     // own Escape semantics (blur, close menus) untouched.
     const escapeHandler = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      if (isEditableTarget(event.target)) return
-      const region = currentRegion()
-      if (region && region !== 'editor') {
-        focusRegion('editor')
-      }
+      if (event.key !== 'Escape' || isEditableTarget(event.target)) return
+      returnFocusToEditor()
     }
 
     window.addEventListener('keydown', escapeHandler)

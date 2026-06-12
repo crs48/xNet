@@ -78,6 +78,19 @@ function CommandRow({
   )
 }
 
+function PaletteSection({
+  heading,
+  count,
+  children
+}: {
+  heading: string
+  count: number
+  children: React.ReactNode
+}) {
+  if (count === 0) return null
+  return <CommandGroup heading={heading}>{children}</CommandGroup>
+}
+
 /**
  * Mounted only while the palette is open, so its queries and search
  * index subscription cost nothing the rest of the time.
@@ -179,63 +192,53 @@ function PaletteResults({ query, onClose }: { query: string; onClose: () => void
     <>
       <CommandEmpty>Nothing found.</CommandEmpty>
 
-      {recentItems.length > 0 && (
-        <CommandGroup heading="Recent">
-          {recentItems.map((item) => (
-            <NodeRow key={`recent-${item.id}`} item={item} onSelect={openNode} />
-          ))}
-        </CommandGroup>
-      )}
+      <PaletteSection heading="Recent" count={recentItems.length}>
+        {recentItems.map((item) => (
+          <NodeRow key={`recent-${item.id}`} item={item} onSelect={openNode} />
+        ))}
+      </PaletteSection>
 
-      {fullText.length > 0 && (
-        <CommandGroup heading="Pages">
-          {fullText.map((result) => (
-            <CommandItem
-              key={`page-${result.id}`}
-              value={`page:${result.id}`}
-              onSelect={() => openNode({ id: result.id, title: result.title, type: 'page' })}
-            >
-              <FilePlus2 size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{result.title}</span>
-                <span className="block truncate text-xs text-ink-3">
-                  {result.snippet || result.title}
-                </span>
-              </span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-      )}
-
-      {titleMatches.length > 0 && (
-        <CommandGroup heading="Items">
-          {titleMatches.map((item) => (
-            <NodeRow key={`item-${item.id}`} item={item} onSelect={openNode} />
-          ))}
-        </CommandGroup>
-      )}
-
-      {commandMatches.length > 0 && (
-        <CommandGroup heading="Commands">
-          {commandMatches.map((command) => (
-            <CommandRow key={command.id} command={command} onSelect={runCommand} />
-          ))}
-        </CommandGroup>
-      )}
-
-      {!commandMode && needle && (
-        <CommandGroup heading="Create">
-          <CommandItem value="create:task" onSelect={createTask}>
-            <CheckSquare2 size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-            <span className="flex-1 truncate">Create task &ldquo;{query.trim()}&rdquo;</span>
-            <CornerDownLeft size={12} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-          </CommandItem>
-          <CommandItem value="create:page" onSelect={createPage}>
+      <PaletteSection heading="Pages" count={fullText.length}>
+        {fullText.map((result) => (
+          <CommandItem
+            key={`page-${result.id}`}
+            value={`page:${result.id}`}
+            onSelect={() => openNode({ id: result.id, title: result.title, type: 'page' })}
+          >
             <FilePlus2 size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-            <span className="flex-1 truncate">Create page &ldquo;{query.trim()}&rdquo;</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">{result.title}</span>
+              <span className="block truncate text-xs text-ink-3">
+                {result.snippet || result.title}
+              </span>
+            </span>
           </CommandItem>
-        </CommandGroup>
-      )}
+        ))}
+      </PaletteSection>
+
+      <PaletteSection heading="Items" count={titleMatches.length}>
+        {titleMatches.map((item) => (
+          <NodeRow key={`item-${item.id}`} item={item} onSelect={openNode} />
+        ))}
+      </PaletteSection>
+
+      <PaletteSection heading="Commands" count={commandMatches.length}>
+        {commandMatches.map((command) => (
+          <CommandRow key={command.id} command={command} onSelect={runCommand} />
+        ))}
+      </PaletteSection>
+
+      <PaletteSection heading="Create" count={commandMode || !needle ? 0 : 1}>
+        <CommandItem value="create:task" onSelect={createTask}>
+          <CheckSquare2 size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+          <span className="flex-1 truncate">Create task &ldquo;{query.trim()}&rdquo;</span>
+          <CornerDownLeft size={12} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+        </CommandItem>
+        <CommandItem value="create:page" onSelect={createPage}>
+          <FilePlus2 size={14} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+          <span className="flex-1 truncate">Create page &ldquo;{query.trim()}&rdquo;</span>
+        </CommandItem>
+      </PaletteSection>
     </>
   )
 }

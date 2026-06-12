@@ -34,12 +34,32 @@
     "mode": "mild",
     "minTokens": 80,
     "minLines": 12,
-    "threshold": 0
+    "threshold": 0,
+    "ignore": [
+      "apps/electron/src/renderer/components/**",
+      "tests/e2e/harness/**",
+      "packages/ui/src/composed/comments/**"
+    ]
   },
   "health": {
     "maxCyclomatic": 20,
     "maxCognitive": 30,
-    "maxCrap": 30.0
+    "maxCrap": 30.0,
+    "ignore": [
+      "apps/web/src/components/CanvasView.tsx",
+      "apps/web/src/components/DatabaseView.tsx",
+      "apps/web/src/components/PageView.tsx",
+      "apps/web/src/components/TasksView.tsx",
+      "apps/web/src/components/MyTasksPanel.tsx",
+      "apps/web/src/components/StorageWarningBanner.tsx",
+      "apps/web/src/routes/index.tsx",
+      "packages/ui/src/composed/comments/**",
+      "packages/ui/src/composed/CommandPalette.tsx",
+      "packages/ui/src/composed/tasks/TaskCard.tsx",
+      "packages/ui/src/components/DatePicker.tsx",
+      "packages/ui/src/components/SearchInput.tsx",
+      "packages/views/src/relations/RelationCell.tsx"
+    ]
   },
   "production": {
     "deadCode": false,

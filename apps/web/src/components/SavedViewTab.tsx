@@ -9,45 +9,65 @@ import { useEffect, useMemo } from 'react'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
 import { useWorkbench } from '../workbench/state'
 
-export function SavedViewTab({ viewId }: { viewId: string }) {
-  const { data: view, loading } = useQuery(SavedViewSchema, viewId)
+/** Parse + validate a stored descriptor; null when missing/invalid. */
+export function parseStoredDescriptor(
+  view: { descriptor?: string } | null | undefined
+): SavedViewDescriptor | null {
+  const raw = view?.descriptor
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as SavedViewDescriptor
+    return validateSavedViewDescriptor(parsed).valid ? parsed : null
+  } catch {
+    return null
+  }
+}
 
-  const title = view?.title
+function SavedViewPlaceholder({ loading }: { loading: boolean }) {
+  return (
+    <div className="flex h-full items-center justify-center text-xs text-ink-3">
+      {loading ? 'Loading…' : 'This saved view is missing or has an invalid descriptor.'}
+    </div>
+  )
+}
+
+/** Keep the workbench tab title in sync with a loaded node title. */
+function useTabTitleSync(nodeId: string, node: { title?: string } | null | undefined): void {
+  const title = node?.title
   useEffect(() => {
-    if (title) useWorkbench.getState().setTabTitle(viewId, title)
-  }, [viewId, title])
+    if (title) useWorkbench.getState().setTabTitle(nodeId, title)
+  }, [nodeId, title])
+}
 
-  const descriptor = useMemo<SavedViewDescriptor | null>(() => {
-    if (!view?.descriptor) return null
-    try {
-      const parsed = JSON.parse(view.descriptor) as SavedViewDescriptor
-      return validateSavedViewDescriptor(parsed).valid ? parsed : null
-    } catch {
-      return null
-    }
-  }, [view?.descriptor])
-
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center text-xs text-ink-3">Loading…</div>
-    )
-  }
-
-  if (!view || !descriptor) {
-    return (
-      <div className="flex h-full items-center justify-center text-xs text-ink-3">
-        This saved view is missing or has an invalid descriptor.
-      </div>
-    )
-  }
-
+function SavedViewReady({
+  viewId,
+  title,
+  descriptor
+}: {
+  viewId: string
+  title: string | undefined
+  descriptor: SavedViewDescriptor
+}) {
   return (
     <SavedViewRunner
       descriptor={descriptor}
       registry={WORKBENCH_SAVED_VIEW_REGISTRY}
-      title={view.title ?? null}
+      title={title ?? null}
       fallbackId={viewId}
       resetKey={viewId}
     />
   )
+}
+
+export function SavedViewTab({ viewId }: { viewId: string }) {
+  const { data: view, loading } = useQuery(SavedViewSchema, viewId)
+  useTabTitleSync(viewId, view)
+
+  const descriptor = useMemo<SavedViewDescriptor | null>(() => parseStoredDescriptor(view), [view])
+
+  if (!view || !descriptor) {
+    return <SavedViewPlaceholder loading={loading} />
+  }
+
+  return <SavedViewReady viewId={viewId} title={view.title} descriptor={descriptor} />
 }

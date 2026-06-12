@@ -8,19 +8,127 @@
  * lose the close button.
  */
 import { useNavigate } from '@tanstack/react-router'
-import { getNodeTransfer, hasNodeTransfer, setNodeTransfer } from '@xnetjs/ui'
+import { getNodeTransfer, hasNodeTransfer, setNodeTransfer, type NodeTransfer } from '@xnetjs/ui'
 import { Pin, X } from 'lucide-react'
 import { useState } from 'react'
 import { navigateToNode } from './navigation'
 import { useWorkbench, type EditorGroup, type TabNodeType, type WorkbenchTab } from './state'
 import { TAB_VIEWS } from './tabs'
 
+type Navigate = ReturnType<typeof useNavigate>
+
+function tabDisplayTitle(tab: WorkbenchTab): string {
+  return tab.title || TAB_VIEWS[tab.nodeType].label
+}
+
 function asTabNodeType(nodeType: string): TabNodeType | null {
   return nodeType in TAB_VIEWS ? (nodeType as TabNodeType) : null
 }
 
-function tabDisplayTitle(tab: WorkbenchTab): string {
-  return tab.title || TAB_VIEWS[tab.nodeType].label
+/** Route to the active tab of the active group (or home when none). */
+function navigateToActiveTab(navigate: Navigate): void {
+  const state = useWorkbench.getState()
+  const group = state.groups.find((g) => g.id === state.activeGroupId)
+  const tab = group?.tabs.find((t) => t.id === group.activeTabId)
+  if (tab) {
+    navigateToNode(navigate, tab.nodeType, tab.nodeId)
+  } else {
+    void navigate({ to: '/' })
+  }
+}
+
+/** Move (tab source) or open (any other source) a transfer in a group. */
+function dropTransferOnGroup(
+  navigate: Navigate,
+  transfer: NodeTransfer,
+  groupId: string,
+  index: number
+): void {
+  const state = useWorkbench.getState()
+  if (transfer.sourceContext === 'tab') {
+    state.moveTab(`${transfer.nodeType}:${transfer.nodeId}`, groupId, index)
+  } else {
+    const nodeType = asTabNodeType(transfer.nodeType)
+    if (!nodeType) return
+    state.openTab({ nodeId: transfer.nodeId, nodeType, title: transfer.title, groupId })
+  }
+  navigateToActiveTab(navigate)
+}
+
+function tabItemClassName(active: boolean, routed: boolean): string {
+  const base =
+    'group relative flex h-full max-w-[180px] min-w-0 cursor-pointer select-none items-center gap-1.5 border-r border-hairline px-2.5 text-xs transition-colors'
+  if (active && routed) return `${base} bg-surface-0 text-ink-1`
+  if (active) return `${base} bg-surface-0 text-ink-2`
+  return `${base} bg-surface-1 text-ink-2 hover:text-ink-1`
+}
+
+function TabDropIndicator({ dropEdge }: { dropEdge: 'before' | 'after' | null }) {
+  if (!dropEdge) return null
+  return (
+    <span
+      className={`absolute top-1 bottom-1 w-0.5 bg-accent-ink ${
+        dropEdge === 'before' ? 'left-0' : 'right-0'
+      }`}
+    />
+  )
+}
+
+function TabLabel({ tab }: { tab: WorkbenchTab }) {
+  if (tab.pinned) return null
+  return (
+    <span className={tab.preview ? 'truncate italic' : 'truncate'}>{tabDisplayTitle(tab)}</span>
+  )
+}
+
+function TabActions({ tab, onClose }: { tab: WorkbenchTab; onClose: () => void }) {
+  if (tab.pinned) {
+    return (
+      <button
+        type="button"
+        title="Unpin tab"
+        aria-label="Unpin tab"
+        onClick={(e) => {
+          e.stopPropagation()
+          useWorkbench.getState().setTabPinned(tab.id, false)
+        }}
+        className="flex cursor-pointer items-center border-none bg-transparent p-0 text-ink-3 hover:text-ink-1"
+      >
+        <Pin size={11} className="fill-current" />
+      </button>
+    )
+  }
+
+  return (
+    <span className="flex w-[26px] shrink-0 items-center justify-end gap-0.5">
+      <button
+        type="button"
+        title="Pin tab"
+        aria-label="Pin tab"
+        onClick={(e) => {
+          e.stopPropagation()
+          useWorkbench.getState().setTabPinned(tab.id, true)
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="hidden cursor-pointer items-center border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:flex"
+      >
+        <Pin size={11} strokeWidth={1.5} />
+      </button>
+      <button
+        type="button"
+        title="Close tab (⌘W)"
+        aria-label="Close tab"
+        onClick={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="hidden cursor-pointer items-center border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:flex"
+      >
+        <X size={12} strokeWidth={1.5} />
+      </button>
+    </span>
+  )
 }
 
 function TabItem({
@@ -46,16 +154,26 @@ function TabItem({
   }
 
   const close = () => {
-    const state = useWorkbench.getState()
-    state.closeTab(tab.id, group.id)
-    const next = useWorkbench.getState()
-    const nextGroup = next.groups.find((g) => g.id === next.activeGroupId)
-    const nextTab = nextGroup?.tabs.find((t) => t.id === nextGroup.activeTabId)
-    if (nextTab) {
-      navigateToNode(navigate, nextTab.nodeType, nextTab.nodeId)
-    } else {
-      void navigate({ to: '/' })
-    }
+    useWorkbench.getState().closeTab(tab.id, group.id)
+    navigateToActiveTab(navigate)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    const transfer = getNodeTransfer(e)
+    setDropEdge(null)
+    if (!transfer) return
+    e.preventDefault()
+    e.stopPropagation()
+    const index = group.tabs.findIndex((t) => t.id === tab.id) + (dropEdge === 'after' ? 1 : 0)
+    dropTransferOnGroup(navigate, transfer, group.id, index)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!hasNodeTransfer(e)) return
+    e.preventDefault()
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    setDropEdge(e.clientX < rect.left + rect.width / 2 ? 'before' : 'after')
   }
 
   return (
@@ -73,39 +191,9 @@ function TabItem({
         })
         e.dataTransfer.effectAllowed = 'copyMove'
       }}
-      onDragOver={(e) => {
-        if (!hasNodeTransfer(e)) return
-        e.preventDefault()
-        e.stopPropagation()
-        const rect = e.currentTarget.getBoundingClientRect()
-        setDropEdge(e.clientX < rect.left + rect.width / 2 ? 'before' : 'after')
-      }}
+      onDragOver={handleDragOver}
       onDragLeave={() => setDropEdge(null)}
-      onDrop={(e) => {
-        const transfer = getNodeTransfer(e)
-        setDropEdge(null)
-        if (!transfer) return
-        e.preventDefault()
-        e.stopPropagation()
-        const state = useWorkbench.getState()
-        const index = group.tabs.findIndex((t) => t.id === tab.id) + (dropEdge === 'after' ? 1 : 0)
-        if (transfer.sourceContext === 'tab') {
-          state.moveTab(`${transfer.nodeType}:${transfer.nodeId}`, group.id, index)
-        } else {
-          const nodeType = asTabNodeType(transfer.nodeType)
-          if (!nodeType) return
-          state.openTab({
-            nodeId: transfer.nodeId,
-            nodeType,
-            title: transfer.title,
-            groupId: group.id
-          })
-        }
-        const next = useWorkbench.getState()
-        const nextGroup = next.groups.find((g) => g.id === next.activeGroupId)
-        const nextTab = nextGroup?.tabs.find((t) => t.id === nextGroup.activeTabId)
-        if (nextTab) navigateToNode(navigate, nextTab.nodeType, nextTab.nodeId)
-      }}
+      onDrop={handleDrop}
       onMouseDown={(e) => {
         if (e.button === 0) activate()
       }}
@@ -116,70 +204,14 @@ function TabItem({
         }
       }}
       onDoubleClick={() => useWorkbench.getState().promoteTab(tab.id)}
-      className={`group relative flex h-full max-w-[180px] min-w-0 cursor-pointer select-none items-center gap-1.5 border-r border-hairline px-2.5 text-xs transition-colors ${
-        active && routed
-          ? 'bg-surface-0 text-ink-1'
-          : active
-            ? 'bg-surface-0 text-ink-2'
-            : 'bg-surface-1 text-ink-2 hover:text-ink-1'
-      }`}
+      className={tabItemClassName(active, routed)}
     >
-      {dropEdge && (
-        <span
-          className={`absolute top-1 bottom-1 w-0.5 bg-accent-ink ${
-            dropEdge === 'before' ? 'left-0' : 'right-0'
-          }`}
-        />
-      )}
+      <TabDropIndicator dropEdge={dropEdge} />
       {/* active tab keeps a hairline notch to the editor below */}
       {active && routed && <span className="absolute inset-x-0 top-0 h-px bg-accent-ink" />}
       <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-      {!tab.pinned && (
-        <span className={`truncate ${tab.preview ? 'italic' : ''}`}>{tabDisplayTitle(tab)}</span>
-      )}
-      {tab.pinned ? (
-        <button
-          type="button"
-          title="Unpin tab"
-          aria-label="Unpin tab"
-          onClick={(e) => {
-            e.stopPropagation()
-            useWorkbench.getState().setTabPinned(tab.id, false)
-          }}
-          className="flex cursor-pointer items-center border-none bg-transparent p-0 text-ink-3 hover:text-ink-1"
-        >
-          <Pin size={11} className="fill-current" />
-        </button>
-      ) : (
-        <span className="flex w-[26px] shrink-0 items-center justify-end gap-0.5">
-          <button
-            type="button"
-            title="Pin tab"
-            aria-label="Pin tab"
-            onClick={(e) => {
-              e.stopPropagation()
-              useWorkbench.getState().setTabPinned(tab.id, true)
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="hidden cursor-pointer items-center border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:flex"
-          >
-            <Pin size={11} strokeWidth={1.5} />
-          </button>
-          <button
-            type="button"
-            title="Close tab (⌘W)"
-            aria-label="Close tab"
-            onClick={(e) => {
-              e.stopPropagation()
-              close()
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="hidden cursor-pointer items-center border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:flex"
-          >
-            <X size={12} strokeWidth={1.5} />
-          </button>
-        </span>
-      )}
+      <TabLabel tab={tab} />
+      <TabActions tab={tab} onClose={close} />
     </div>
   )
 }
@@ -198,23 +230,7 @@ export function TabBar({ group, routed }: { group: EditorGroup; routed: boolean 
         const transfer = getNodeTransfer(e)
         if (!transfer) return
         e.preventDefault()
-        const state = useWorkbench.getState()
-        if (transfer.sourceContext === 'tab') {
-          state.moveTab(`${transfer.nodeType}:${transfer.nodeId}`, group.id, group.tabs.length)
-        } else {
-          const nodeType = asTabNodeType(transfer.nodeType)
-          if (!nodeType) return
-          state.openTab({
-            nodeId: transfer.nodeId,
-            nodeType,
-            title: transfer.title,
-            groupId: group.id
-          })
-        }
-        const next = useWorkbench.getState()
-        const nextGroup = next.groups.find((g) => g.id === next.activeGroupId)
-        const nextTab = nextGroup?.tabs.find((t) => t.id === nextGroup.activeTabId)
-        if (nextTab) navigateToNode(navigate, nextTab.nodeType, nextTab.nodeId)
+        dropTransferOnGroup(navigate, transfer, group.id, group.tabs.length)
       }}
     >
       {group.tabs.map((tab) => (

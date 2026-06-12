@@ -36,11 +36,8 @@ export function useWorkbenchContributions(): WorkbenchContributions {
     const panelDisposers = new Map<string, () => void>()
     const commandDisposers = new Map<string, () => void>()
 
-    const sync = () => {
-      const railItems = registry.sidebar.getAll()
-      const statusItems = registry.statusBar.getAll()
-
-      // Sidebar contributions with a panel become left-panel views.
+    // Sidebar contributions with a panel become left-panel views.
+    const bridgePanels = (railItems: SidebarContribution[]) => {
       for (const item of railItems) {
         if (item.panel && !panelDisposers.has(item.id)) {
           panelDisposers.set(
@@ -53,8 +50,10 @@ export function useWorkbenchContributions(): WorkbenchContributions {
           )
         }
       }
+    }
 
-      // Plugin commands surface in the palette with their keybindings.
+    // Plugin commands surface in the palette with their keybindings.
+    const bridgeCommands = () => {
       for (const command of registry.commands.getAll()) {
         if (commandDisposers.has(command.id)) continue
         const disposable = commandRegistry.register({
@@ -66,7 +65,13 @@ export function useWorkbenchContributions(): WorkbenchContributions {
         })
         commandDisposers.set(command.id, () => disposable.dispose())
       }
+    }
 
+    const sync = () => {
+      const railItems = registry.sidebar.getAll()
+      const statusItems = registry.statusBar.getAll()
+      bridgePanels(railItems)
+      bridgeCommands()
       setContributions({ railItems, statusItems })
     }
 

@@ -92,7 +92,9 @@ export default defineConfig({
           isolate: true,
           include: [
             'packages/{canvas,react,views,devtools,ui,dashboard,charts}/src/**/*.test.{ts,tsx}',
-            'packages/{canvas,react,views,devtools,ui,dashboard,charts}/test/**/*.test.{ts,tsx}'
+            'packages/{canvas,react,views,devtools,ui,dashboard,charts}/test/**/*.test.{ts,tsx}',
+            // App-level logic tests (workbench shell, 0166)
+            'apps/web/src/**/*.test.{ts,tsx}'
           ]
         },
         resolve: {

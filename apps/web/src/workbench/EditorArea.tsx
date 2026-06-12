@@ -17,44 +17,22 @@ import { ErrorFallback } from '../components/ErrorFallback'
 import { navigateToNewDoc, type NavigateLike } from '../lib/doc-creation'
 import { Hairline } from './Hairline'
 import { navigateToNode } from './navigation'
-import { useWorkbench, tabIdFor, type EditorGroup, type TabNodeType } from './state'
+import {
+  useWorkbench,
+  tabIdFor,
+  type EditorGroup,
+  type TabNodeType,
+  type WorkbenchTab
+} from './state'
 import { TabBar } from './TabBar'
-import { consumePreviewIntent, tabFromPathname, TAB_VIEWS } from './tabs'
+import { syncRouteToTabs, tabFromPathname, TAB_VIEWS } from './tabs'
 import { ViewHost } from './ViewHost'
 
 type Navigate = ReturnType<typeof useNavigate>
 
 /** Open-or-activate the tab for the current route (router → store). */
 function useRouteTabSync(pathname: string): void {
-  useEffect(() => {
-    const descriptor = tabFromPathname(pathname)
-    if (!descriptor) return
-
-    const tabId = tabIdFor(descriptor.nodeType, descriptor.nodeId)
-    const state = useWorkbench.getState()
-    const owner = state.groups.find((group) => group.tabs.some((tab) => tab.id === tabId))
-
-    if (owner) {
-      consumePreviewIntent()
-      state.activateTab(tabId, owner.id)
-    } else {
-      state.openTab({
-        nodeId: descriptor.nodeId,
-        nodeType: descriptor.nodeType,
-        preview: consumePreviewIntent()
-      })
-    }
-
-    const tab = useWorkbench
-      .getState()
-      .groups.flatMap((group) => group.tabs)
-      .find((t) => t.id === tabId)
-    state.touchRecent({
-      nodeId: descriptor.nodeId,
-      nodeType: descriptor.nodeType,
-      title: tab?.title ?? ''
-    })
-  }, [pathname])
+  useEffect(() => syncRouteToTabs(pathname), [pathname])
 }
 
 function useTabCommands(navigate: Navigate): void {
@@ -164,6 +142,37 @@ function useTabCommands(navigate: Navigate): void {
   }, [navigate])
 }
 
+function GroupTabStrip({
+  mode,
+  group,
+  routed
+}: {
+  mode: string
+  group: EditorGroup
+  routed: boolean
+}) {
+  if (mode === 'zen' || group.tabs.length === 0) return null
+  return <TabBar group={group} routed={routed} />
+}
+
+function GroupContent({
+  isActive,
+  activeTab,
+  children
+}: {
+  isActive: boolean
+  activeTab: WorkbenchTab | null
+  children: ReactNode
+}) {
+  if (isActive) {
+    return <main className="h-full min-h-0 overflow-y-auto p-6">{children}</main>
+  }
+  if (activeTab) {
+    return <ViewHost tab={activeTab} />
+  }
+  return null
+}
+
 function GroupPane({
   group,
   isActive,
@@ -190,13 +199,11 @@ function GroupPane({
         if (tab) navigateToNode(navigate, tab.nodeType, tab.nodeId)
       }}
     >
-      {mode !== 'zen' && group.tabs.length > 0 && <TabBar group={group} routed={routed} />}
+      <GroupTabStrip mode={mode} group={group} routed={routed} />
       <div className="min-h-0 flex-1">
-        {isActive ? (
-          <main className="h-full min-h-0 overflow-y-auto p-6">{children}</main>
-        ) : activeTab ? (
-          <ViewHost tab={activeTab} />
-        ) : null}
+        <GroupContent isActive={isActive} activeTab={activeTab}>
+          {children}
+        </GroupContent>
       </div>
     </div>
   )

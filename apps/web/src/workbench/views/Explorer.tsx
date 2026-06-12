@@ -20,6 +20,7 @@ import { CreateDocMenuItems, navigateToNewDoc, type NavigateLike } from '../../l
 import { navigateToNode } from '../navigation'
 import { tabIdFor, useWorkbench } from '../state'
 import { setPreviewIntent, TAB_VIEWS } from '../tabs'
+import { filterExplorerItems } from './explorer-filter'
 
 type ExplorerNodeType = 'page' | 'database' | 'canvas' | 'dashboard'
 
@@ -47,6 +48,26 @@ const TYPE_FILTERS: Array<{ id: ExplorerNodeType | 'all'; label: string }> = [
 
 const QUERY_LIMIT = 500
 const ROW_HEIGHT = 26
+
+function ExplorerPinToggle({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
+  const label = pinned ? 'Unpin' : 'Pin'
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={(event) => {
+        event.stopPropagation()
+        useWorkbench.getState().togglePinnedNode(nodeId)
+      }}
+      className={`shrink-0 cursor-pointer border-none bg-transparent p-0 ${
+        pinned ? 'text-ink-2' : 'invisible text-ink-3 hover:text-ink-1 group-hover:visible'
+      }`}
+    >
+      <Pin size={11} strokeWidth={1.5} className={pinned ? 'fill-current' : ''} />
+    </button>
+  )
+}
 
 function ExplorerRow({ item, pinned }: { item: ExplorerItem; pinned: boolean }) {
   const navigate = useNavigate()
@@ -93,20 +114,89 @@ function ExplorerRow({ item, pinned }: { item: ExplorerItem; pinned: boolean }) 
     >
       <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
       <span className="min-w-0 flex-1 truncate text-xs">{title}</span>
+      <ExplorerPinToggle nodeId={item.id} pinned={pinned} />
+    </div>
+  )
+}
+
+function ExplorerCreateMenu({
+  open,
+  onToggle,
+  onCreate,
+  onAddShared
+}: {
+  open: boolean
+  onToggle: () => void
+  onCreate: (type: ExplorerNodeType) => void
+  onAddShared: () => void
+}) {
+  return (
+    <div className="relative">
       <button
         type="button"
-        title={pinned ? 'Unpin' : 'Pin'}
-        aria-label={pinned ? 'Unpin' : 'Pin'}
-        onClick={(event) => {
-          event.stopPropagation()
-          useWorkbench.getState().togglePinnedNode(item.id)
-        }}
-        className={`shrink-0 cursor-pointer border-none bg-transparent p-0 ${
-          pinned ? 'text-ink-2' : 'invisible text-ink-3 hover:text-ink-1 group-hover:visible'
-        }`}
+        onClick={onToggle}
+        className="flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-hairline bg-surface-0 text-xs text-ink-1 transition-colors hover:bg-accent"
       >
-        <Pin size={11} strokeWidth={1.5} className={pinned ? 'fill-current' : ''} />
+        <Plus size={13} strokeWidth={1.5} />
+        New
+        <ChevronDown
+          size={12}
+          strokeWidth={1.5}
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-md border border-hairline bg-popover py-1">
+          <CreateDocMenuItems
+            types={['page', 'database', 'canvas', 'dashboard']}
+            onCreate={onCreate}
+          />
+          <hr className="my-1 border-hairline" />
+          <button
+            onClick={onAddShared}
+            className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-sm text-ink-2 hover:bg-accent hover:text-ink-1"
+          >
+            <LinkIcon size={14} strokeWidth={1.5} />
+            <span>Add Shared...</span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ExplorerSection({
+  label,
+  items,
+  pinned
+}: {
+  label: string
+  items: ExplorerItem[]
+  pinned: boolean
+}) {
+  if (items.length === 0) return null
+  return (
+    <>
+      <SectionLabel>{label}</SectionLabel>
+      {items.map((item) => (
+        <ExplorerRow key={`${label}-${item.id}`} item={item} pinned={pinned} />
+      ))}
+    </>
+  )
+}
+
+function PinnedAndRecent({
+  pinnedItems,
+  recentItems
+}: {
+  pinnedItems: ExplorerItem[]
+  recentItems: ExplorerItem[]
+}) {
+  if (pinnedItems.length === 0 && recentItems.length === 0) return null
+  return (
+    <div className="shrink-0 px-1">
+      <ExplorerSection label="Pinned" items={pinnedItems} pinned />
+      <ExplorerSection label="Recent" items={recentItems} pinned={false} />
     </div>
   )
 }
@@ -168,14 +258,10 @@ export function Explorer() {
 
   const byId = useMemo(() => new Map(allItems.map((item) => [item.id, item])), [allItems])
 
-  const filtered = useMemo(() => {
-    const needle = search.trim().toLowerCase()
-    return allItems.filter((item) => {
-      if (filter !== 'all' && item.type !== filter) return false
-      if (needle && !(item.title || 'untitled').toLowerCase().includes(needle)) return false
-      return true
-    })
-  }, [allItems, filter, search])
+  const filtered = useMemo(
+    () => filterExplorerItems(allItems, filter, search),
+    [allItems, filter, search]
+  )
 
   const pinnedItems = useMemo(
     () => pinnedNodeIds.map((id) => byId.get(id)).filter((item): item is ExplorerItem => !!item),
@@ -208,40 +294,15 @@ export function Explorer() {
     <div className="flex h-full min-h-0 flex-col">
       {/* Tools */}
       <div className="flex flex-col gap-2 border-b border-hairline p-2">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowCreateMenu((prev) => !prev)}
-            className="flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-hairline bg-surface-0 text-xs text-ink-1 transition-colors hover:bg-accent"
-          >
-            <Plus size={13} strokeWidth={1.5} />
-            New
-            <ChevronDown
-              size={12}
-              strokeWidth={1.5}
-              className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`}
-            />
-          </button>
-          {showCreateMenu && (
-            <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-md border border-hairline bg-popover py-1">
-              <CreateDocMenuItems
-                types={['page', 'database', 'canvas', 'dashboard']}
-                onCreate={handleCreate}
-              />
-              <hr className="my-1 border-hairline" />
-              <button
-                onClick={() => {
-                  setShowCreateMenu(false)
-                  setShowAddSharedDialog(true)
-                }}
-                className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-sm text-ink-2 hover:bg-accent hover:text-ink-1"
-              >
-                <LinkIcon size={14} strokeWidth={1.5} />
-                <span>Add Shared...</span>
-              </button>
-            </div>
-          )}
-        </div>
+        <ExplorerCreateMenu
+          open={showCreateMenu}
+          onToggle={() => setShowCreateMenu((prev) => !prev)}
+          onCreate={handleCreate}
+          onAddShared={() => {
+            setShowCreateMenu(false)
+            setShowAddSharedDialog(true)
+          }}
+        />
         <input
           type="text"
           value={search}
@@ -270,26 +331,7 @@ export function Explorer() {
       {/* Pinned + Recent (fixed), then All Items (virtualized) */}
       <div className="min-h-0 flex-1 overflow-hidden">
         <div className="flex h-full flex-col">
-          {(pinnedItems.length > 0 || recentItems.length > 0) && (
-            <div className="shrink-0 px-1">
-              {pinnedItems.length > 0 && (
-                <>
-                  <SectionLabel>Pinned</SectionLabel>
-                  {pinnedItems.map((item) => (
-                    <ExplorerRow key={`pin-${item.id}`} item={item} pinned />
-                  ))}
-                </>
-              )}
-              {recentItems.length > 0 && (
-                <>
-                  <SectionLabel>Recent</SectionLabel>
-                  {recentItems.map((item) => (
-                    <ExplorerRow key={`recent-${item.id}`} item={item} pinned={false} />
-                  ))}
-                </>
-              )}
-            </div>
-          )}
+          <PinnedAndRecent pinnedItems={pinnedItems} recentItems={recentItems} />
 
           <SectionLabel>All items</SectionLabel>
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-1">

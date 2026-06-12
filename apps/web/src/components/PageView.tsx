@@ -60,6 +60,40 @@ interface NewCommentState {
   selectionTo: number
 }
 
+/** Render the loading / error placeholders, or null when ready. */
+function pageLoadPlaceholder(
+  loading: boolean,
+  error: Error | null,
+  ready: boolean
+): JSX.Element | null {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Loading document...
+      </div>
+    )
+  }
+  if (error) {
+    return <div className="text-center p-6 text-danger">Error: {error.message}</div>
+  }
+  if (!ready) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Loading...
+      </div>
+    )
+  }
+  return null
+}
+
+function lookupThread(
+  threadDataMap: Map<string, CommentThreadData>,
+  threadId: string | null
+): CommentThreadData | null {
+  if (!threadId) return null
+  return threadDataMap.get(threadId) ?? null
+}
+
 export function PageView({ docId }: { docId: string }) {
   const navigate = useNavigate()
   const { identity } = useIdentity()
@@ -521,7 +555,7 @@ export function PageView({ docId }: { docId: string }) {
   )
 
   // Get the current thread for the popover
-  const currentThread = popoverState.threadId ? threadDataMap.get(popoverState.threadId) : null
+  const currentThread = lookupThread(threadDataMap, popoverState.threadId)
   const sidebarThreads = useMemo(() => Array.from(threadDataMap.values()), [threadDataMap])
 
   // ─── Context Panel Sections (0166) ──────────────────────────────────────────
@@ -663,84 +697,24 @@ export function PageView({ docId }: { docId: string }) {
       .run()
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Loading document...
-      </div>
-    )
+  const placeholder = pageLoadPlaceholder(loading, error, Boolean(page && doc))
+  if (placeholder) {
+    return placeholder
   }
-
-  if (error) {
-    return <div className="text-center p-6 text-danger">Error: {error.message}</div>
-  }
-
-  if (!page || !doc) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Loading...
-      </div>
-    )
-  }
-
-  const connected = syncStatus === 'connected'
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden -m-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-secondary">
-        <input
-          type="text"
-          className="text-xl font-semibold border-none bg-transparent text-foreground flex-1 outline-none placeholder:text-muted-foreground"
-          value={page.title || ''}
-          onChange={(e) => update({ title: e.target.value })}
-          placeholder="Untitled"
-        />
-
-        {/* Comment count badge */}
-        {unresolvedCount > 0 && (
-          <button
-            className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-2 hover:text-ink-1 bg-surface-2 rounded-md transition-colors"
-            title={`${unresolvedCount} unresolved comment${unresolvedCount !== 1 ? 's' : ''}`}
-            onClick={() => revealContextSection('page-comments')}
-          >
-            <MessageSquare size={14} />
-            <span>{unresolvedCount}</span>
-          </button>
-        )}
-
-        <PresenceAvatars presence={presence} />
-        <ShareButton docId={docId} docType="page" />
-
-        {/* Save status indicator */}
-        <div
-          className="text-xs text-muted-foreground"
-          title={
-            lastSavedAt
-              ? `Last saved: ${new Date(lastSavedAt).toLocaleTimeString()}`
-              : 'Not saved yet'
-          }
-        >
-          {isDirty ? (
-            <span className="text-amber-500">Saving...</span>
-          ) : lastSavedAt ? (
-            <span className="text-success">Saved</span>
-          ) : null}
-        </div>
-
-        {/* Sync status indicator */}
-        <div
-          className="flex items-center gap-1.5 text-xs text-muted-foreground"
-          title={connected ? `Connected (${peerCount} peers)` : syncStatus}
-        >
-          <span
-            className={`w-2 h-2 rounded-full transition-colors ${
-              connected ? 'bg-success' : 'bg-muted-foreground'
-            }`}
-          />
-          {peerCount > 0 && <span className="text-xs font-medium">{peerCount}</span>}
-        </div>
-      </div>
+      <PageViewHeader
+        title={page!.title || ''}
+        onTitleChange={(title) => update({ title })}
+        unresolvedCount={unresolvedCount}
+        presence={presence}
+        docId={docId}
+        isDirty={isDirty}
+        lastSavedAt={lastSavedAt}
+        syncStatus={syncStatus}
+        peerCount={peerCount}
+      />
 
       {/* Editor + Sidebar horizontal layout */}
       <div className="flex-1 flex overflow-hidden">
@@ -752,7 +726,7 @@ export function PageView({ docId }: { docId: string }) {
         >
           <div className="max-w-3xl mx-auto">
             <EditorComponent
-              doc={doc}
+              doc={doc!}
               awareness={awareness}
               did={did}
               pageId={docId}
@@ -764,51 +738,217 @@ export function PageView({ docId }: { docId: string }) {
               onCreateComment={handleCreateComment}
             />
 
-            {/* Orphaned Comments Section */}
-            {orphanedThreads.length > 0 && (
-              <div className="mt-6">
-                <OrphanedThreadList
-                  orphanedThreads={orphanedThreads}
-                  collapsed={orphanedCollapsed}
-                  onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
-                  onDismiss={handleDismissOrphaned}
-                  onReattach={handleReattachOrphaned}
-                  onSelect={handleSelectOrphaned}
-                />
-              </div>
-            )}
+            <PageOrphanedComments
+              orphanedThreads={orphanedThreads}
+              collapsed={orphanedCollapsed}
+              onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
+              onDismiss={handleDismissOrphaned}
+              onReattach={handleReattachOrphaned}
+              onSelect={handleSelectOrphaned}
+            />
 
             <PageTasksPanel pageId={docId} />
           </div>
         </div>
       </div>
 
-      {/* Comment Popover */}
-      {popoverState.visible && popoverState.anchor && currentThread && (
-        <CommentPopover
-          thread={currentThread}
-          anchor={popoverState.anchor}
-          mode={popoverState.mode}
-          open={popoverState.visible}
-          side="right"
-          onReply={handleReply}
-          onResolve={handleResolve}
-          onReopen={handleReopen}
-          onDelete={handleDelete}
-          onEdit={handleEdit}
-          onDismiss={handleDismiss}
-          onUpgradeToFull={handleUpgradeToFull}
-          onMouseEnter={handlePopoverMouseEnter}
-          onMouseLeave={handlePopoverMouseLeave}
-        />
-      )}
+      <PageCommentPopoverOverlay
+        popoverState={popoverState}
+        thread={currentThread ?? null}
+        onReply={handleReply}
+        onResolve={handleResolve}
+        onReopen={handleReopen}
+        onDelete={handleDelete}
+        onEdit={handleEdit}
+        onDismiss={handleDismiss}
+        onUpgradeToFull={handleUpgradeToFull}
+        onMouseEnter={handlePopoverMouseEnter}
+        onMouseLeave={handlePopoverMouseLeave}
+      />
 
-      {/* New Comment Input Modal */}
-      {newCommentState?.visible && (
-        <NewCommentInput onSubmit={handleSubmitNewComment} onCancel={handleCancelNewComment} />
-      )}
+      <PageNewCommentOverlay
+        state={newCommentState}
+        onSubmit={handleSubmitNewComment}
+        onCancel={handleCancelNewComment}
+      />
     </div>
   )
+}
+
+// ─── Header ────────────────────────────────────────────────────────────────────
+
+function SaveStatusIndicator({
+  isDirty,
+  lastSavedAt
+}: {
+  isDirty: boolean
+  lastSavedAt: number | null
+}) {
+  const title = lastSavedAt
+    ? `Last saved: ${new Date(lastSavedAt).toLocaleTimeString()}`
+    : 'Not saved yet'
+  if (isDirty) {
+    return (
+      <div className="text-xs text-muted-foreground" title={title}>
+        <span className="text-amber-500">Saving...</span>
+      </div>
+    )
+  }
+  if (!lastSavedAt) return null
+  return (
+    <div className="text-xs text-muted-foreground" title={title}>
+      <span className="text-success">Saved</span>
+    </div>
+  )
+}
+
+function SyncStatusIndicator({ syncStatus, peerCount }: { syncStatus: string; peerCount: number }) {
+  const connected = syncStatus === 'connected'
+  return (
+    <div
+      className="flex items-center gap-1.5 text-xs text-muted-foreground"
+      title={connected ? `Connected (${peerCount} peers)` : syncStatus}
+    >
+      <span
+        className={`w-2 h-2 rounded-full transition-colors ${
+          connected ? 'bg-success' : 'bg-muted-foreground'
+        }`}
+      />
+      {peerCount > 0 && <span className="text-xs font-medium">{peerCount}</span>}
+    </div>
+  )
+}
+
+function CommentCountBadge({ unresolvedCount }: { unresolvedCount: number }) {
+  if (unresolvedCount === 0) return null
+  return (
+    <button
+      className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-2 hover:text-ink-1 bg-surface-2 rounded-md transition-colors"
+      title={`${unresolvedCount} unresolved comment${unresolvedCount !== 1 ? 's' : ''}`}
+      onClick={() => revealContextSection('page-comments')}
+    >
+      <MessageSquare size={14} />
+      <span>{unresolvedCount}</span>
+    </button>
+  )
+}
+
+interface PageViewHeaderProps {
+  title: string
+  onTitleChange: (title: string) => void
+  unresolvedCount: number
+  presence: Parameters<typeof PresenceAvatars>[0]['presence']
+  docId: string
+  isDirty: boolean
+  lastSavedAt: number | null
+  syncStatus: string
+  peerCount: number
+}
+
+function PageViewHeader({
+  title,
+  onTitleChange,
+  unresolvedCount,
+  presence,
+  docId,
+  isDirty,
+  lastSavedAt,
+  syncStatus,
+  peerCount
+}: PageViewHeaderProps) {
+  return (
+    <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-secondary">
+      <input
+        type="text"
+        className="text-xl font-semibold border-none bg-transparent text-foreground flex-1 outline-none placeholder:text-muted-foreground"
+        value={title}
+        onChange={(e) => onTitleChange(e.target.value)}
+        placeholder="Untitled"
+      />
+      <CommentCountBadge unresolvedCount={unresolvedCount} />
+      <PresenceAvatars presence={presence} />
+      <ShareButton docId={docId} docType="page" />
+      <SaveStatusIndicator isDirty={isDirty} lastSavedAt={lastSavedAt} />
+      <SyncStatusIndicator syncStatus={syncStatus} peerCount={peerCount} />
+    </div>
+  )
+}
+
+// ─── Comment overlays ──────────────────────────────────────────────────────────
+
+function PageOrphanedComments({
+  orphanedThreads,
+  collapsed,
+  onToggleCollapse,
+  onDismiss,
+  onReattach,
+  onSelect
+}: {
+  orphanedThreads: OrphanedThread[]
+  collapsed: boolean
+  onToggleCollapse: () => void
+  onDismiss: (commentId: string) => void
+  onReattach: (commentId: string) => void
+  onSelect: (commentId: string) => void
+}) {
+  if (orphanedThreads.length === 0) return null
+  return (
+    <div className="mt-6">
+      <OrphanedThreadList
+        orphanedThreads={orphanedThreads}
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+        onDismiss={onDismiss}
+        onReattach={onReattach}
+        onSelect={onSelect}
+      />
+    </div>
+  )
+}
+
+interface PageCommentPopoverOverlayProps {
+  popoverState: PopoverState
+  thread: CommentThreadData | null
+  onReply: (content: string) => Promise<void>
+  onResolve: () => Promise<void>
+  onReopen: () => Promise<void>
+  onDelete: (commentId: string) => Promise<void>
+  onEdit: (commentId: string, content: string) => Promise<void>
+  onDismiss: () => void
+  onUpgradeToFull: () => void
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+}
+
+function PageCommentPopoverOverlay({
+  popoverState,
+  thread,
+  ...handlers
+}: PageCommentPopoverOverlayProps) {
+  if (!popoverState.visible || !popoverState.anchor || !thread) return null
+  return (
+    <CommentPopover
+      thread={thread}
+      anchor={popoverState.anchor}
+      mode={popoverState.mode}
+      open={popoverState.visible}
+      side="right"
+      {...handlers}
+    />
+  )
+}
+
+function PageNewCommentOverlay({
+  state,
+  onSubmit,
+  onCancel
+}: {
+  state: NewCommentState | null
+  onSubmit: (content: string) => void
+  onCancel: () => void
+}) {
+  if (!state?.visible) return null
+  return <NewCommentInput onSubmit={onSubmit} onCancel={onCancel} />
 }
 
 // ─── New Comment Input ─────────────────────────────────────────────────────────
