@@ -18,7 +18,7 @@ import {
   UserRound,
   X
 } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   isSavedViewVisualPreviewEmbeddable,
   type SavedViewVisualPreviewModel
@@ -42,7 +42,8 @@ export type SavedViewFeedEnrichmentAdapter = {
 }
 
 type FeedDensityConfig = {
-  gridColumns: number
+  minCardPx: number
+  maxColumns: number
   gridEstimateRowHeight: number
   listEstimateRowHeight: number
   titleClampClass: string
@@ -53,7 +54,8 @@ type FeedDensityConfig = {
 
 const FEED_DENSITY_CONFIGS: Record<SavedViewFeedDensity, FeedDensityConfig> = {
   compact: {
-    gridColumns: 5,
+    minCardPx: 150,
+    maxColumns: 6,
     gridEstimateRowHeight: 168,
     listEstimateRowHeight: 56,
     titleClampClass: 'line-clamp-1',
@@ -62,7 +64,8 @@ const FEED_DENSITY_CONFIGS: Record<SavedViewFeedDensity, FeedDensityConfig> = {
     listThumbClass: 'h-10 w-[71px]'
   },
   cozy: {
-    gridColumns: 4,
+    minCardPx: 210,
+    maxColumns: 5,
     gridEstimateRowHeight: 224,
     listEstimateRowHeight: 80,
     titleClampClass: 'line-clamp-2',
@@ -71,7 +74,8 @@ const FEED_DENSITY_CONFIGS: Record<SavedViewFeedDensity, FeedDensityConfig> = {
     listThumbClass: 'h-14 w-[100px]'
   },
   comfortable: {
-    gridColumns: 3,
+    minCardPx: 280,
+    maxColumns: 4,
     gridEstimateRowHeight: 330,
     listEstimateRowHeight: 108,
     titleClampClass: 'line-clamp-2',
@@ -79,6 +83,19 @@ const FEED_DENSITY_CONFIGS: Record<SavedViewFeedDensity, FeedDensityConfig> = {
     showDescription: true,
     listThumbClass: 'h-20 w-[142px]'
   }
+}
+
+const FEED_GRID_GAP_PX = 12
+
+/** Columns that fit the measured container at the density's minimum card width. */
+export function feedGridColumnCount(width: number, density: SavedViewFeedDensity): number {
+  const config = FEED_DENSITY_CONFIGS[density]
+  if (width <= 0) return config.maxColumns
+
+  return Math.min(
+    config.maxColumns,
+    Math.max(1, Math.floor((width + FEED_GRID_GAP_PX) / (config.minCardPx + FEED_GRID_GAP_PX)))
+  )
 }
 
 const FEED_DENSITY_LABELS: Record<SavedViewFeedDensity, string> = {
@@ -145,6 +162,67 @@ function showFeedThumbnail(preview: SavedViewVisualPreviewModel): boolean {
   return Boolean(preview.thumbnailUrl && preview.privacy === 'public')
 }
 
+function useMeasuredWidth(): {
+  ref: (element: HTMLDivElement | null) => void
+  width: number
+} {
+  const elementRef = useRef<HTMLDivElement | null>(null)
+  const observerRef = useRef<ResizeObserver | null>(null)
+  const [width, setWidth] = useState(0)
+  const ref = (element: HTMLDivElement | null): void => {
+    if (element === elementRef.current) return
+    observerRef.current?.disconnect()
+    elementRef.current = element
+    if (!element) return
+
+    setWidth(element.getBoundingClientRect().width)
+    if (typeof ResizeObserver !== 'undefined') {
+      observerRef.current = new ResizeObserver((entries) => {
+        const next = entries[0]?.contentRect.width
+        if (typeof next === 'number') {
+          setWidth((current) => (Math.abs(current - next) > 1 ? next : current))
+        }
+      })
+      observerRef.current.observe(element)
+    }
+  }
+
+  useEffect(() => () => observerRef.current?.disconnect(), [])
+
+  return { ref, width }
+}
+
+/**
+ * Thumbnail with a deterministic gradient letter tile fallback — used
+ * when no image exists, the URL expired, or the client is offline.
+ */
+function FeedThumb({
+  preview,
+  letterClass,
+  imageClass
+}: {
+  preview: SavedViewVisualPreviewModel
+  letterClass: string
+  imageClass?: string
+}): JSX.Element {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const src = preview.thumbnailUrl
+
+  if (!showFeedThumbnail(preview) || !src || failedSrc === src) {
+    return <FeedLetterTile preview={preview} letterClass={letterClass} />
+  }
+
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setFailedSrc(src)}
+      className={classNames(['h-full w-full object-cover', imageClass])}
+    />
+  )
+}
+
 function FeedLetterTile({
   preview,
   letterClass
@@ -209,16 +287,12 @@ function FeedCardMedia({
 
   return (
     <div className={classNames(['group relative w-full overflow-hidden bg-muted', aspectClass])}>
-      {showFeedThumbnail(preview) ? (
-        <img
-          src={preview.thumbnailUrl}
-          alt=""
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
-        />
-      ) : (
-        <FeedLetterTile preview={preview} letterClass="text-2xl" />
-      )}
+      <FeedThumb
+        preview={preview}
+        letterClass="text-2xl"
+        imageClass="transition-transform group-hover:scale-[1.02]"
+      />
+
       <span className="absolute left-1.5 top-1.5 rounded bg-background/85 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
         {feedProviderLabel(preview)}
       </span>
@@ -383,16 +457,7 @@ function FeedListRow({
       <div
         className={classNames(['shrink-0 overflow-hidden rounded bg-muted', config.listThumbClass])}
       >
-        {showFeedThumbnail(preview) ? (
-          <img
-            src={preview.thumbnailUrl}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <FeedLetterTile preview={preview} letterClass="text-sm" />
-        )}
+        <FeedThumb preview={preview} letterClass="text-sm" />
       </div>
       <div className="min-w-0 flex-1">
         <h3
@@ -511,6 +576,8 @@ export function SavedViewVisualFeed({
   enrichment?: SavedViewFeedEnrichmentAdapter
 }): JSX.Element {
   const config = FEED_DENSITY_CONFIGS[density]
+  const { ref: containerRef, width: containerWidth } = useMeasuredWidth()
+  const gridColumns = feedGridColumnCount(containerWidth, density)
   const enrichedPreviews = useMemo(
     () =>
       enrichment
@@ -521,10 +588,10 @@ export function SavedViewVisualFeed({
     [enrichment, previews]
   )
   const gridRows = useMemo(
-    () => (layout === 'grid' ? chunkFeedPreviews(enrichedPreviews, config.gridColumns) : []),
-    [config.gridColumns, enrichedPreviews, layout]
+    () => (layout === 'grid' ? chunkFeedPreviews(enrichedPreviews, gridColumns) : []),
+    [gridColumns, enrichedPreviews, layout]
   )
-  const itemsPerRow = layout === 'grid' ? config.gridColumns : 1
+  const itemsPerRow = layout === 'grid' ? gridColumns : 1
   const handleVisibleRangeChange = useMemo(() => {
     if (!enrichment?.requestMany) return undefined
 
@@ -547,7 +614,10 @@ export function SavedViewVisualFeed({
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-background">
+    <div
+      ref={containerRef}
+      className="overflow-hidden rounded-md border border-border bg-background"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
         <div className="flex items-center gap-2 text-sm font-medium">
           <GalleryVerticalEnd size={14} className="text-muted-foreground" />
@@ -609,14 +679,14 @@ export function SavedViewVisualFeed({
       </div>
       {layout === 'grid' ? (
         <FeedVirtualRows
-          key={`grid:${density}`}
+          key={`grid:${density}:${gridColumns}`}
           rowCount={gridRows.length}
           estimateRowHeight={config.gridEstimateRowHeight}
           onVisibleRangeChange={handleVisibleRangeChange}
           renderRow={(rowIndex) => (
             <div
               className="grid gap-3 p-3 pb-0"
-              style={{ gridTemplateColumns: `repeat(${config.gridColumns}, minmax(0, 1fr))` }}
+              style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
             >
               {(gridRows[rowIndex] ?? []).map((preview) => (
                 <FeedGridCard

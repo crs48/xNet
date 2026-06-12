@@ -51,6 +51,7 @@ import {
   UserRound
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useSocialFeedEnrichment } from '../hooks/useSocialFeedEnrichment'
 import {
   getDefaultSocialWorkspaceSeeds,
   upsertDefaultSocialWorkspace,
@@ -234,6 +235,7 @@ function patternIconFor(kind: SocialPatternKind): typeof BarChart3 {
 export function DataWorkspaceView(): JSX.Element {
   const { create, mutate } = useMutate()
   const { store, isReady: storeReady } = useNodeStore()
+  const feedEnrichment = useSocialFeedEnrichment()
   const [socialImportJobs, setSocialImportJobs] =
     useState<SocialImportJobProgress[]>(listSocialImportJobs)
   const [seedSummary, setSeedSummary] = useState<SocialWorkspaceSeedSummary | null>(null)
@@ -625,6 +627,7 @@ export function DataWorkspaceView(): JSX.Element {
             fallbackId={selectedView?.id ?? null}
             resetKey={selectedView?.id ?? null}
             onSaveLens={handleSaveLens}
+            feedEnrichment={feedEnrichment}
           />
 
           <section className="mt-6 space-y-3">
