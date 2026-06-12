@@ -6,7 +6,8 @@
  */
 
 import { useXNet } from '@xnetjs/react'
-import { Check, Copy, Link2, ShieldAlert, Trash2, Users, X } from 'lucide-react'
+import { Check, Copy, Link2, QrCode, ShieldAlert, Trash2, Users, X } from 'lucide-react'
+import QRCode from 'qrcode'
 import { useMemo, useState } from 'react'
 import {
   roleFromGrantActions,
@@ -100,6 +101,17 @@ export function ShareDialog({
   const [creating, setCreating] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [freshUrl, setFreshUrl] = useState<string | null>(null)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+
+  // In-person / P2P handoff: render the same URL as a QR code so a phone
+  // camera can claim without any messaging channel.
+  const toggleQr = async (url: string): Promise<void> => {
+    if (qrDataUrl) {
+      setQrDataUrl(null)
+      return
+    }
+    setQrDataUrl(await QRCode.toDataURL(url, { margin: 1, width: 192 }))
+  }
 
   const { authorDID } = useXNet()
   const {
@@ -132,6 +144,7 @@ export function ShareDialog({
       if (maxUses > 0) options.maxUses = maxUses
       const created = await createLink(options)
       setFreshUrl(created.url ?? null)
+      setQrDataUrl(null)
       setLabel('')
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err))
@@ -273,7 +286,30 @@ export function ShareDialog({
                       className="flex-1 px-2 py-1 text-[11px] font-mono bg-secondary border border-border rounded text-foreground"
                     />
                     <CopyButton value={freshUrl} />
+                    <button
+                      type="button"
+                      title={qrDataUrl ? 'Hide QR code' : 'Show QR code'}
+                      onClick={() => void toggleQr(freshUrl)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                        qrDataUrl
+                          ? 'bg-primary text-white'
+                          : 'border border-border text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <QrCode size={12} /> QR
+                    </button>
                   </div>
+                  {qrDataUrl && (
+                    <div className="mt-2 flex justify-center">
+                      <img
+                        src={qrDataUrl}
+                        alt="Share link QR code"
+                        className="rounded bg-white p-1"
+                        width={192}
+                        height={192}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

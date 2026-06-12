@@ -160,19 +160,6 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
     }
   }
 
-  const handleCopyLegacy = async () => {
-    const legacyShare = `${docType}:${docId}`
-    try {
-      await navigator.clipboard.writeText(legacyShare)
-      setStatusMessage('Copied legacy share ID.')
-      setError(null)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    }
-  }
-
   const handleRevoke = async () => {
     if (!activeGrantId || !nodeStore?.auth) {
       return
@@ -227,9 +214,10 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
             </div>
 
             <p className="text-xs text-muted-foreground mb-3">
-              Click <strong>Share securely</strong> to generate and copy a temporary link. The
-              recipient can paste it in <strong>Open Shared</strong> to access this{' '}
-              {typeLabel.toLowerCase()}.
+              Click <strong>One-time handoff</strong> to generate and copy a single-use link that
+              expires in minutes — right for handing this {typeLabel.toLowerCase()} to one device
+              that is ready to open it now. For durable, revocable sharing use the web app's share
+              links.
             </p>
 
             {!nodeStoreReady && (
@@ -244,7 +232,7 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
                 disabled={isGenerating || !nodeStoreReady}
                 className="px-3 py-2 rounded-md text-sm bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isGenerating ? 'Generating...' : 'Share securely'}
+                {isGenerating ? 'Generating...' : 'One-time handoff'}
               </button>
               <button
                 onClick={handleRevoke}
@@ -278,19 +266,11 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
               </button>
             </div>
 
-            <div className="mt-2 flex items-center justify-between">
-              <button
-                onClick={handleCopyLegacy}
-                className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-              >
-                Copy legacy ID
-              </button>
-              {expiresAt && (
-                <p className="text-xs text-muted-foreground">
-                  Expires {new Date(expiresAt).toLocaleTimeString()}
-                </p>
-              )}
-            </div>
+            {expiresAt && (
+              <p className="mt-2 text-xs text-muted-foreground text-right">
+                Expires {new Date(expiresAt).toLocaleTimeString()}
+              </p>
+            )}
 
             {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
             {statusMessage && !error && (

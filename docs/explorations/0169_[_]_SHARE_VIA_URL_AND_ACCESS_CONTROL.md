@@ -711,13 +711,22 @@ Phase 2 — client surfaces:
 
 Phase 3 — hardening and reach:
 
-- [ ] Expo: add `"scheme": "xnet"`, linking config for the share
-      screen; AASA / assetlinks for `hub.xnet.fyi` + `xnet.fyi`
-- [ ] Localhost-link warning in share dialog
-- [ ] QR rendering of the payload encoding for in-person / P2P shares
-      (device-handoff `sh_` flow relabeled, not removed)
-- [ ] Persist `RevocationStore`; begin B2: link keypairs, owner→link
-      UCAN at creation, link→recipient sub-delegation at claim
+- [x] Expo: add `"scheme": "xnet"`, linking config for the share
+      screen; AASA / assetlinks served by the hub when
+      `HUB_APPLE_APP_ID` / `HUB_ANDROID_PACKAGE` +
+      `HUB_ANDROID_CERT_SHA256` are configured (real values need an
+      app-store build; mobile claim flow itself waits on Expo hub sync)
+- [x] Localhost-link warning in share dialog (private-host detection
+      covers localhost, RFC-1918 ranges, and `.local`)
+- [x] QR rendering of the share URL for in-person / P2P shares
+      (device-handoff `sh_` flow relabeled "one-time handoff" in the
+      Electron popover, not removed; legacy-ID copy button dropped)
+- [x] Persist `RevocationStore` (pluggable `RevocationPersistence` +
+      `hydrate()` with signature re-verification); begin B2: link
+      keypairs, owner→link UCAN at creation, link→recipient
+      sub-delegation at claim, and `verifyLinkClaim` chain verification
+      (in `packages/identity/src/sharing/link-delegation.ts`; hub-side
+      chain acceptance is the remaining B2 work)
 
 ## Validation Checklist
 

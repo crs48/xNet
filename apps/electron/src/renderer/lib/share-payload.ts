@@ -21,7 +21,6 @@ export type SharePayloadV2 = {
 }
 
 export type ParsedShareInput =
-  | { kind: 'legacy'; docType: ShareDocType; docId: string }
   | { kind: 'handle'; handle: string }
   | { kind: 'link'; linkId: string; hub: string; secret: string }
   | { kind: 'v2'; payload: SharePayloadV2; encodedPayload: string; securityWarnings?: string[] }

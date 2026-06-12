@@ -8,11 +8,71 @@ import { parseDID } from '../did'
 // ─── Revocation Store ────────────────────────────────────────
 
 /**
- * In-memory store for revoked share tokens.
- * In production, this would be backed by persistent storage.
+ * Pluggable persistence for revocations. The signature is binary —
+ * JSON-based backends should use the serialize/deserialize helpers below.
+ */
+export interface RevocationPersistence {
+  /** Load all persisted revocations (consumed by `hydrate`). */
+  load: () => Promise<Revocation[]> | Revocation[]
+  /** Persist a newly accepted revocation. */
+  save: (revocation: Revocation) => Promise<void> | void
+}
+
+export type SerializedRevocation = {
+  tokenHash: string
+  issuer: string
+  revokedAt: number
+  signatureB64: string
+}
+
+export function serializeRevocation(revocation: Revocation): SerializedRevocation {
+  let binary = ''
+  for (const byte of revocation.signature) {
+    binary += String.fromCharCode(byte)
+  }
+  return {
+    tokenHash: revocation.tokenHash,
+    issuer: revocation.issuer,
+    revokedAt: revocation.revokedAt,
+    signatureB64: btoa(binary)
+  }
+}
+
+export function deserializeRevocation(serialized: SerializedRevocation): Revocation {
+  const binary = atob(serialized.signatureB64)
+  return {
+    tokenHash: serialized.tokenHash,
+    issuer: serialized.issuer,
+    revokedAt: serialized.revokedAt,
+    signature: Uint8Array.from(binary, (c) => c.charCodeAt(0))
+  }
+}
+
+/**
+ * Store for revoked share tokens. In-memory by default; pass a
+ * `RevocationPersistence` adapter and call `hydrate()` to survive restarts.
+ * Persisted entries are signature-verified again on load.
  */
 export class RevocationStore {
   private revocations = new Map<string, Revocation>()
+
+  constructor(private readonly persistence?: RevocationPersistence) {}
+
+  /** Load and re-verify persisted revocations. Invalid entries are skipped. */
+  async hydrate(): Promise<number> {
+    if (!this.persistence) return 0
+    const entries = await this.persistence.load()
+    let loaded = 0
+    for (const entry of entries) {
+      try {
+        this.verifyAndStore(entry)
+        loaded += 1
+      } catch {
+        // Skip entries that no longer verify rather than poisoning the store
+      }
+    }
+    return loaded
+  }
 
   /**
    * Add a revocation after verifying the signature.
@@ -51,7 +111,16 @@ export class RevocationStore {
       }
     }
 
-    // Verify the signature
+    this.verifyAndStore(revocation)
+
+    if (this.persistence) {
+      void Promise.resolve(this.persistence.save(revocation)).catch(() => {
+        // Persistence is best-effort; the in-memory store stays authoritative.
+      })
+    }
+  }
+
+  private verifyAndStore(revocation: Revocation): void {
     const payload = buildRevocationPayload(revocation.tokenHash, revocation.revokedAt)
 
     let publicKey: Uint8Array
