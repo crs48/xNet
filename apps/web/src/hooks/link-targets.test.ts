@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildLinkTargets, wikilinkHref } from './link-targets'
+import { buildLinkTargets, linkableChannels, wikilinkHref } from './link-targets'
 
 describe('wikilinkHref', () => {
   it('links pages by bare node id', () => {
@@ -41,5 +41,26 @@ describe('buildLinkTargets', () => {
 
   it('handles empty input', () => {
     expect(buildLinkTargets([], [])).toEqual([])
+  })
+})
+
+describe('linkableChannels', () => {
+  it('keeps named, unarchived channels with a # title', () => {
+    expect(
+      linkableChannels([
+        { id: 'c1', name: 'general', kind: 'channel' },
+        { id: 'c2', name: 'old', kind: 'channel', archived: true },
+        { id: 'c3', kind: 'dm', name: 'ignored' },
+        { id: 'c4', name: '  ', kind: 'channel' },
+        { id: 'c5', name: 'design' }
+      ])
+    ).toEqual([
+      { id: 'c1', title: '#general' },
+      { id: 'c5', title: '#design' }
+    ])
+  })
+
+  it('handles undefined input', () => {
+    expect(linkableChannels(undefined)).toEqual([])
   })
 })

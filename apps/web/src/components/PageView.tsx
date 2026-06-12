@@ -21,15 +21,18 @@ import { useNode, useComments, useIdentity, usePageTaskSync } from '@xnetjs/reac
 import {
   CommentPopover,
   CommentsSidebar,
+  MentionTextArea,
   OrphanedThreadList,
   getNodeTransfer,
   hasNodeTransfer,
   type CommentThreadData,
-  type OrphanedThread
+  type OrphanedThread,
+  type TaskPersonOption
 } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useProfiles } from '../comms/hooks'
+import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import {
@@ -205,6 +208,9 @@ export function PageView({ docId }: { docId: string }) {
 
   // `[[` typeahead: linkable nodes + create-page row (0170).
   const { linkTargets, createPageTarget } = useLinkTargets()
+
+  // @-mention typeahead for comment composers (0170).
+  const commentPeople = useCommentPeople()
 
   // Inline #hashtags: picker suggestions + structured tags write-through (0169).
   const { suggestions: hashtagSuggestions, getOrCreateTag, setNodeTags } = useWorkspaceTags()
@@ -905,6 +911,7 @@ export function PageView({ docId }: { docId: string }) {
       <PageCommentPopoverOverlay
         popoverState={popoverState}
         thread={currentThread ?? null}
+        people={commentPeople}
         onReply={handleReply}
         onResolve={handleResolve}
         onReopen={handleReopen}
@@ -918,6 +925,7 @@ export function PageView({ docId }: { docId: string }) {
 
       <PageNewCommentOverlay
         state={newCommentState}
+        people={commentPeople}
         onSubmit={handleSubmitNewComment}
         onCancel={handleCancelNewComment}
       />
@@ -970,6 +978,7 @@ function PageToolbar({
 interface PageCommentPopoverOverlayProps {
   popoverState: PopoverState
   thread: CommentThreadData | null
+  people: TaskPersonOption[]
   onReply: (content: string) => Promise<void>
   onResolve: () => Promise<void>
   onReopen: () => Promise<void>
@@ -984,6 +993,7 @@ interface PageCommentPopoverOverlayProps {
 function PageCommentPopoverOverlay({
   popoverState,
   thread,
+  people,
   ...handlers
 }: PageCommentPopoverOverlayProps) {
   if (!popoverState.visible || !popoverState.anchor || !thread) return null
@@ -994,6 +1004,7 @@ function PageCommentPopoverOverlay({
       mode={popoverState.mode}
       open={popoverState.visible}
       side="right"
+      people={people}
       {...handlers}
     />
   )
@@ -1001,25 +1012,28 @@ function PageCommentPopoverOverlay({
 
 function PageNewCommentOverlay({
   state,
+  people,
   onSubmit,
   onCancel
 }: {
   state: NewCommentState | null
+  people: TaskPersonOption[]
   onSubmit: (content: string) => void
   onCancel: () => void
 }) {
   if (!state?.visible) return null
-  return <NewCommentInput onSubmit={onSubmit} onCancel={onCancel} />
+  return <NewCommentInput people={people} onSubmit={onSubmit} onCancel={onCancel} />
 }
 
 // ─── New Comment Input ─────────────────────────────────────────────────────────
 
 interface NewCommentInputProps {
+  people: TaskPersonOption[]
   onSubmit: (content: string) => void
   onCancel: () => void
 }
 
-function NewCommentInput({ onSubmit, onCancel }: NewCommentInputProps) {
+function NewCommentInput({ people, onSubmit, onCancel }: NewCommentInputProps) {
   const [content, setContent] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -1047,12 +1061,13 @@ function NewCommentInput({ onSubmit, onCancel }: NewCommentInputProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
       <div className="w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg p-4">
         <div className="text-sm font-medium mb-2">Add Comment</div>
-        <textarea
-          ref={textareaRef}
-          className="w-full p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
-          placeholder="Write a comment..."
+        <MentionTextArea
+          textareaRef={textareaRef}
+          className="p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
+          placeholder="Write a comment... (@ to mention)"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={setContent}
+          people={people}
           onKeyDown={handleKeyDown}
         />
         <div className="flex justify-end gap-2 mt-3">

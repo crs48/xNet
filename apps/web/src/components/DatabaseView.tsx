@@ -26,7 +26,12 @@ import {
 } from '@xnetjs/data'
 import { useBlobService } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
-import { CommentPopover, setNodeTransfer, type CommentThreadData } from '@xnetjs/ui'
+import {
+  CommentPopover,
+  MentionTextArea,
+  setNodeTransfer,
+  type CommentThreadData
+} from '@xnetjs/ui'
 import {
   type CellPresence,
   type GridField,
@@ -39,6 +44,7 @@ import {
 } from '@xnetjs/views'
 import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
 import { PresenceAvatars } from './PresenceAvatars'
@@ -305,6 +311,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   }, [commentPopover, comments])
 
   const [newCommentDraft, setNewCommentDraft] = useState('')
+  const commentPeople = useCommentPeople()
 
   // ─── Peek panel ───────────────────────────────────────────────────────────
   const [peekRowId, setPeekRowId] = useState<string | null>(null)
@@ -714,6 +721,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           anchor={commentPopover.anchor}
           mode="full"
           open
+          people={commentPeople}
           onReply={(content) => {
             void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
           }}
@@ -744,14 +752,16 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
                 : { top: commentPopover.anchor.y, left: commentPopover.anchor.x }
             }
           >
-            <textarea
-              aria-label="New comment"
-              placeholder="Add a comment…"
+            <MentionTextArea
+              data-testid="db-new-comment"
+              placeholder="Add a comment… (@ to mention)"
               value={newCommentDraft}
+              people={commentPeople}
               autoFocus
               rows={2}
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400 resize-none"
-              onChange={(e) => setNewCommentDraft(e.target.value)}
+              containerClassName="mb-2"
+              className="px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400 resize-none"
+              onChange={setNewCommentDraft}
               onKeyDown={(e) => {
                 e.stopPropagation()
                 if (e.key === 'Escape') {

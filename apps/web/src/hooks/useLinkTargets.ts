@@ -8,6 +8,7 @@
 import type { WikilinkTarget } from '@xnetjs/editor/react'
 import {
   CanvasSchema,
+  ChannelSchema,
   DashboardSchema,
   DatabaseSchema,
   PageSchema,
@@ -16,7 +17,7 @@ import {
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useCallback, useMemo } from 'react'
 import { useWorkbench } from '../workbench/state'
-import { buildLinkTargets } from './link-targets'
+import { buildLinkTargets, linkableChannels } from './link-targets'
 
 const LINKABLE_QUERY = { orderBy: { updatedAt: 'desc' as const }, limit: 200 }
 
@@ -35,6 +36,7 @@ export function useLinkTargets(): LinkTargetsApi {
   const { data: canvases } = useQuery(CanvasSchema, LINKABLE_QUERY)
   const { data: dashboards } = useQuery(DashboardSchema, LINKABLE_QUERY)
   const { data: savedViews } = useQuery(SavedViewSchema, LINKABLE_QUERY)
+  const { data: channels } = useQuery(ChannelSchema, LINKABLE_QUERY)
 
   const linkTargets = useMemo(
     () =>
@@ -44,11 +46,12 @@ export function useLinkTargets(): LinkTargetsApi {
           { kind: 'database', docs: databases },
           { kind: 'canvas', docs: canvases },
           { kind: 'dashboard', docs: dashboards },
-          { kind: 'savedview', docs: savedViews }
+          { kind: 'savedview', docs: savedViews },
+          { kind: 'channel', docs: linkableChannels(channels) }
         ],
         recents.map((recent) => recent.nodeId)
       ),
-    [pages, databases, canvases, dashboards, savedViews, recents]
+    [pages, databases, canvases, dashboards, savedViews, channels, recents]
   )
 
   const createPageTarget = useCallback(

@@ -25,6 +25,23 @@ export function wikilinkHref(kind: string, id: string): string {
   return kind === 'page' ? id : `xnet://${kind}/${id}`
 }
 
+export interface ChannelDoc {
+  id: string
+  name?: string
+  kind?: string
+  archived?: boolean
+}
+
+/** Named, unarchived channels as linkable docs (titles keep the # prefix). */
+export function linkableChannels(channels: ChannelDoc[] | undefined): LinkableDoc[] {
+  return (channels ?? [])
+    .filter(
+      (channel) =>
+        (channel.kind ?? 'channel') === 'channel' && !channel.archived && channel.name?.trim()
+    )
+    .map((channel) => ({ id: channel.id, title: `#${channel.name?.trim()}` }))
+}
+
 /** Flatten kind groups into targets, recents first. */
 export function buildLinkTargets(groups: LinkableGroup[], recentIds: string[]): WikilinkTarget[] {
   const rank = new Map(recentIds.map((id, index) => [id, index]))

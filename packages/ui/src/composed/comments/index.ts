@@ -3,6 +3,7 @@
  */
 
 export { CommentBubble, type CommentBubbleProps } from './CommentBubble'
+export { MentionTextArea, type MentionTextAreaProps } from './MentionTextArea'
 export {
   CommentPopover,
   type CommentPopoverProps,

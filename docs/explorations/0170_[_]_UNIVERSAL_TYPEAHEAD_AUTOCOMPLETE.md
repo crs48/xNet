@@ -531,12 +531,22 @@ export function useTextareaTypeahead(
 
 ### Phase 3 — Long tail surfaces
 
-- [ ] Comment composer typeahead (same hook, commits grammar text)
-- [ ] DB text cells (`packages/views/src/properties/text.tsx`): opt-in
-      typeahead via the hook
-- [ ] Canvas inline text (desktop first)
-- [ ] `/profile/$did` route or person hover-card for mention destinations
-- [ ] Channels section under `#` in chat (link to `/channel/$channelId`)
+- [x] Comment composer typeahead: shared `MentionTextArea` in
+      `packages/ui` (reuses the MentionTextInput state machine) inserts
+      DID-form mentions — the form `useComments` already extracts into
+      structured mentions; wired into the CommentPopover reply box, the
+      page new-comment overlay, and the database cell comment composer
+      (sidebar + bubble-edit textareas deferred)
+- [ ] DB text cells (`packages/views/src/properties/text.tsx`) — deferred:
+      free-text property values have no link/mention rendering story yet,
+      so a picker would commit syntax nothing displays
+- [ ] Canvas inline text — deferred with the same rationale (and Expo
+      caret APIs differ)
+- [ ] `/profile/$did` route or person hover-card — deferred; mentions
+      render through the existing comment/notification pipelines
+- [x] Channels are linkable: named channels join the `[[` typeahead kinds
+      (pages and chat both), keeping `#` reserved for tags per the 0169
+      invariant
 
 ### Phase 4 — Polish & extras
 
