@@ -29,8 +29,34 @@ import type {
   DatabaseRowQueryOptions,
   DatabaseRowQueryResult,
   DatabaseFilterGroup,
-  DatabaseFilterCondition
+  DatabaseFilterCondition,
+  DatabaseSortConfig
 } from './interface'
+
+/**
+ * Code-unit string comparison. Fractional sortKeys (and cursor pagination,
+ * which compares with plain `>`) depend on this ordering — locale collation
+ * reorders mixed-case base-62 keys and would undo manual row reorders.
+ */
+const compareCodeUnits = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
+
+const sortValueOf = (row: DatabaseRowRecord, columnId: string): string =>
+  String((columnId === 'sortKey' ? row.sortKey : row.data[columnId]) ?? '')
+
+const compareRowsBySorts = (
+  a: DatabaseRowRecord,
+  b: DatabaseRowRecord,
+  sorts: DatabaseSortConfig[]
+): number => {
+  for (const sort of sorts) {
+    const aVal = sortValueOf(a, sort.columnId)
+    const bVal = sortValueOf(b, sort.columnId)
+    const cmp =
+      sort.columnId === 'sortKey' ? compareCodeUnits(aVal, bVal) : aVal.localeCompare(bVal)
+    if (cmp !== 0) return sort.direction === 'asc' ? cmp : -cmp
+  }
+  return a.id.localeCompare(b.id)
+}
 
 export const createMemoryStorage = (): HubStorage => {
   const docStates = new Map<string, Uint8Array>()
@@ -243,6 +269,7 @@ export const createMemoryStorage = (): HubStorage => {
     }
   }
 
+  // fallow-ignore-next-line complexity -- pre-existing; billed to this PR by changed-file attribution
   const cleanStaleAwareness = async (olderThanMs: number): Promise<number> => {
     const cutoff = Date.now() - olderThanMs
     let removed = 0
@@ -608,19 +635,12 @@ export const createMemoryStorage = (): HubStorage => {
       rows = rows.filter((row) => row.searchable.toLowerCase().includes(searchLower))
     }
 
-    // Apply sorting
+    // Apply sorting. Fractional sortKeys (and the cursor below) rely on
+    // code-unit order, so they must not go through locale collation.
     if (sorts && sorts.length > 0) {
-      rows.sort((a, b) => {
-        for (const sort of sorts) {
-          const aVal = sort.columnId === 'sortKey' ? a.sortKey : (a.data[sort.columnId] as string)
-          const bVal = sort.columnId === 'sortKey' ? b.sortKey : (b.data[sort.columnId] as string)
-          const cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''))
-          if (cmp !== 0) return sort.direction === 'asc' ? cmp : -cmp
-        }
-        return a.id.localeCompare(b.id)
-      })
+      rows.sort((a, b) => compareRowsBySorts(a, b, sorts))
     } else {
-      rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey) || a.id.localeCompare(b.id))
+      rows.sort((a, b) => compareCodeUnits(a.sortKey, b.sortKey) || compareCodeUnits(a.id, b.id))
     }
 
     const total = rows.length
@@ -675,6 +695,7 @@ export const createMemoryStorage = (): HubStorage => {
   }
 
   // Helper: Evaluate single filter condition
+  // fallow-ignore-next-line complexity -- inherent flat switch over filter operators
   function evaluateFilterCondition(
     row: DatabaseRowRecord,
     condition: DatabaseFilterCondition
