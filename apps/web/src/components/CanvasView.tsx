@@ -596,6 +596,23 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     }
   }, [doc, sceneRevision, selection.nodeIds])
 
+  const selectedCanvasEdge = useMemo(() => {
+    void sceneRevision
+
+    if (!doc || selection.edgeIds.length !== 1) {
+      return null
+    }
+
+    const edgeId = selection.edgeIds[0]
+    for (const [key, edge] of getCanvasConnectorsMap<CanvasEdge>(doc).entries()) {
+      if (key === edgeId || edge.id === edgeId) {
+        return edge
+      }
+    }
+
+    return null
+  }, [doc, sceneRevision, selection.edgeIds])
+
   const selectedCanvasObject = useMemo(() => {
     if (!selectedCanvasNode) {
       return null
@@ -664,7 +681,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       {
         id: 'canvas-selection',
         title: 'Selection',
-        badge: selection.nodeIds.length,
+        badge: selection.nodeIds.length + selection.edgeIds.length,
         content: selectedCanvasNode ? (
           <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
             <div className="flex items-center justify-between gap-2">
@@ -688,16 +705,45 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
               <span className="font-mono text-[11px]">{selectedObjectCommentCount}</span>
             </div>
           </div>
+        ) : selectedCanvasEdge ? (
+          <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Connector</span>
+              <span className="truncate font-mono text-[11px]">{selectedCanvasEdge.id}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-ink-3">Type</span>
+              <span className="truncate text-ink-1">
+                {selectedCanvasEdge.relationship?.kind ?? 'relates-to'}
+              </span>
+            </div>
+            {(selectedCanvasEdge.label ?? selectedCanvasEdge.relationship?.label) && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-ink-3">Label</span>
+                <span className="truncate text-ink-1">
+                  {selectedCanvasEdge.label ?? selectedCanvasEdge.relationship?.label}
+                </span>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="flex h-full items-center justify-center p-4 text-center text-xs text-ink-3">
             {selection.nodeIds.length > 1
               ? `${selection.nodeIds.length} objects selected`
-              : 'Select a canvas object to inspect it.'}
+              : selection.edgeIds.length > 1
+                ? `${selection.edgeIds.length} connectors selected`
+                : 'Select a canvas object to inspect it.'}
           </div>
         )
       }
     ],
-    [selection.nodeIds.length, selectedCanvasNode, selectedObjectCommentCount]
+    [
+      selection.edgeIds.length,
+      selection.nodeIds.length,
+      selectedCanvasEdge,
+      selectedCanvasNode,
+      selectedObjectCommentCount
+    ]
   )
   useContextPanel(`canvas:${docId}`, canvasContextSections)
 
@@ -709,6 +755,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     setCanvasReady(true)
 
     const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectorsMap = getCanvasConnectorsMap<CanvasEdge>(doc)
     const syncHasNodes = () => {
       setHasNodes(nodesMap.size > 0)
       setSceneRevision((current) => current + 1)
@@ -716,9 +763,11 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
 
     syncHasNodes()
     nodesMap.observe(syncHasNodes)
+    connectorsMap.observe(syncHasNodes)
 
     return () => {
       nodesMap.unobserve(syncHasNodes)
+      connectorsMap.unobserve(syncHasNodes)
     }
   }, [doc])
 
