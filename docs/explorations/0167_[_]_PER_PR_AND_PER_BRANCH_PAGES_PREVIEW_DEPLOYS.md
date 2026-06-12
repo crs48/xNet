@@ -465,7 +465,7 @@ writer; the shared composite action should serialize via the
 
 ## Validation Checklist
 
-- [ ] Open a test PR → GitHub shows a "View deployment" button linking to `https://xnet.fyi/pr/<N>/app/`, and the sticky comment still appears
+- [x] Open a test PR → GitHub shows a "View deployment" button linking to `https://xnet.fyi/pr/<N>/app/`, and the sticky comment still appears (validated live by PR #49 itself: deployment `pr-49` state `success` with the preview URL, sticky comment posted, URL serves 200, and the deployed bundle carries the `pr-49` storage scope)
 - [ ] Push to the PR twice in quick succession alongside a `main` push → all three gh-pages writers succeed (retry loop absorbs races)
 - [ ] Push a `preview/test` branch → `https://xnet.fyi/branch/preview-test/app/` serves the app with working hash routing and assets (no 404s on hashed bundles)
 - [ ] Delete the branch → preview directory removed from gh-pages
