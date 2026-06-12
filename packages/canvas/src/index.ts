@@ -52,6 +52,8 @@ export type {
   CanvasMediaNode,
   CanvasNoteNode,
   CanvasShapeNode,
+  CanvasWidgetNode,
+  CanvasWidgetNodeProperties,
   CanvasGroupNode,
   CanvasFrameNode,
   CanvasSceneNode,

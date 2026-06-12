@@ -604,6 +604,8 @@ function getDefaultSceneNodeSize(type: CanvasSceneNodeKind): { width: number; he
       return { width: 320, height: 240 }
     case 'group':
       return { width: 320, height: 220 }
+    case 'widget':
+      return { width: 360, height: 260 }
     case 'shape':
       return { width: 200, height: 100 }
   }

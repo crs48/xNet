@@ -5,6 +5,10 @@ export const workspaceAliases = {
   '@xnetjs/cli': fileURLToPath(new URL('../packages/cli/src/index.ts', import.meta.url)),
   '@xnetjs/core': fileURLToPath(new URL('../packages/core/src/index.ts', import.meta.url)),
   '@xnetjs/crypto': fileURLToPath(new URL('../packages/crypto/src/index.ts', import.meta.url)),
+  '@xnetjs/charts': fileURLToPath(new URL('../packages/charts/src/index.ts', import.meta.url)),
+  '@xnetjs/dashboard': fileURLToPath(
+    new URL('../packages/dashboard/src/index.ts', import.meta.url)
+  ),
   '@xnetjs/data': fileURLToPath(new URL('../packages/data/src/index.ts', import.meta.url)),
   '@xnetjs/data-bridge': fileURLToPath(
     new URL('../packages/data-bridge/src/index.ts', import.meta.url)

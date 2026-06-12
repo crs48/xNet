@@ -1,0 +1,50 @@
+{
+  "name": "@xnetjs/dashboard",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --external react",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xnetjs/charts": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/plugins": "workspace:*",
+    "@xnetjs/react": "workspace:*",
+    "@xnetjs/social": "workspace:*",
+    "@xnetjs/ui": "workspace:*",
+    "gridstack": "^12.4.0",
+    "lucide-react": "^0.563.0",
+    "nanoid": "^5.1.6",
+    "ses": "^1.10.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "^10.2.16",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.5.0",
+    "@types/react": "^18.2.0",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
+    "jsdom": "^26.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0"
+  },
+  "private": true
+}

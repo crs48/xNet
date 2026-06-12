@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { cn } from '@xnetjs/ui'
-import React, { useState, useCallback, useRef } from 'react'
+import React, { useState, useCallback, useMemo, useRef } from 'react'
 import { BoardCard } from './BoardCard.js'
 import { BoardColumn } from './BoardColumn.js'
 import {
@@ -29,6 +29,26 @@ import {
   type BoardRow,
   type BoardColumn as BoardColumnType
 } from './useBoardState.js'
+
+function showAddColumnButton(hasHandler: boolean, compact: boolean): boolean {
+  return hasHandler && !compact
+}
+
+function boardClassName(compact: boolean, className: string | undefined): string {
+  return cn('h-full overflow-x-auto bg-white dark:bg-gray-900', compact ? 'p-2' : 'p-4', className)
+}
+
+/** Cap cards per column for tile-constrained hosts. */
+function capColumnItems<T extends { items: unknown[] }>(
+  columns: readonly T[],
+  maxRows: number | undefined
+): readonly T[] {
+  if (maxRows === undefined) return columns
+  return columns.map((column) => ({
+    ...column,
+    items: column.items.slice(0, Math.max(0, maxRows))
+  }))
+}
 
 export interface BoardViewProps {
   /** Schema defining the board structure */
@@ -57,6 +77,13 @@ export interface BoardViewProps {
   onCardClick?: (itemId: string) => void
   /** Additional CSS class */
   className?: string
+  /**
+   * Tile-constrained rendering (dashboard widgets, embeds): tighter outer
+   * padding and no add-column affordance.
+   */
+  compact?: boolean
+  /** Cap the number of cards rendered per column (tile-constrained hosts) */
+  maxRows?: number
 }
 
 /**
@@ -75,15 +102,22 @@ export function BoardView({
   onReorderColumns,
   onReorderCards,
   onCardClick,
-  className
+  className,
+  compact = false,
+  maxRows
 }: BoardViewProps): React.JSX.Element {
-  const { columns, moveCard, toggleColumnCollapse } = useBoardState({
+  const {
+    columns: allColumns,
+    moveCard,
+    toggleColumnCollapse
+  } = useBoardState({
     schema,
     view,
     data,
     onUpdateRow,
     onUpdateView
   })
+  const columns = useMemo(() => capColumnItems(allColumns, maxRows), [allColumns, maxRows])
 
   const [activeItem, setActiveItem] = useState<BoardRow | null>(null)
   const [activeColumn, setActiveColumn] = useState<BoardColumnType | null>(null)
@@ -312,12 +346,10 @@ export function BoardView({
   const sortableColumnIds = columns
     .filter((c) => c.id !== '__all__' && c.id !== '__none__')
     .map((c) => `column-${c.id}`)
+  const showAddColumn = showAddColumnButton(Boolean(onAddColumn), compact)
 
   return (
-    <div
-      data-xnet-db-editable="true"
-      className={cn('h-full overflow-x-auto p-4 bg-white dark:bg-gray-900', className)}
-    >
+    <div data-xnet-db-editable="true" className={boardClassName(compact, className)}>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
@@ -345,8 +377,8 @@ export function BoardView({
               />
             ))}
 
-            {/* Add column button */}
-            {onAddColumn && (
+            {/* Add column button (hidden in compact/tile hosts) */}
+            {showAddColumn && (
               <div className="flex-shrink-0 w-72">
                 <button
                   className="w-full py-3 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"

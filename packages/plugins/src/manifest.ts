@@ -19,7 +19,8 @@ import type {
   CanvasLayoutContribution,
   CanvasEdgeContribution,
   CanvasInspectorContribution,
-  CanvasTemplateContribution
+  CanvasTemplateContribution,
+  WidgetContribution
 } from './contributions'
 import type { Platform, PluginPermissions } from './types'
 
@@ -61,6 +62,8 @@ export interface XNetExtension {
 export interface PluginContributions {
   schemas?: SchemaContribution[]
   views?: ViewContribution[]
+  /** Dashboard widgets (0162); trust tier is host-assigned at registration */
+  widgets?: WidgetContribution[]
   editorExtensions?: EditorContribution[]
   propertyHandlers?: PropertyHandlerContribution[]
   blocks?: BlockContribution[]

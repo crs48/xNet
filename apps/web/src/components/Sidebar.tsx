@@ -3,7 +3,7 @@
  */
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
-import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
+import { PageSchema, DatabaseSchema, CanvasSchema, DashboardSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import {
   FileText,
@@ -14,16 +14,18 @@ import {
   CheckSquare2,
   ChevronDown,
   ChevronRight,
+  LayoutDashboard,
   Settings,
   Upload,
   Link as LinkIcon,
   Network
 } from 'lucide-react'
 import { useState } from 'react'
+import { CreateDocMenuItems, navigateToNewDoc, type NavigateLike } from '../lib/doc-creation'
 import { AddSharedDialog } from './AddSharedDialog'
 import { MyTasksPanel } from './MyTasksPanel'
 
-type DocType = 'page' | 'database' | 'canvas'
+type DocType = 'page' | 'database' | 'canvas' | 'dashboard'
 type SidebarDoc = {
   id: string
   title?: string
@@ -50,6 +52,12 @@ const typeConfig = {
     label: 'Canvases',
     route: '/canvas/$canvasId' as const,
     paramKey: 'canvasId'
+  },
+  dashboard: {
+    icon: LayoutDashboard,
+    label: 'Dashboards',
+    route: '/dashboard/$dashboardId' as const,
+    paramKey: 'dashboardId'
   }
 } as const
 
@@ -66,17 +74,20 @@ export function Sidebar() {
   const [sectionLimits, setSectionLimits] = useState<Record<DocType, number>>({
     page: SECTION_PAGE_SIZE,
     database: SECTION_PAGE_SIZE,
-    canvas: SECTION_PAGE_SIZE
+    canvas: SECTION_PAGE_SIZE,
+    dashboard: SECTION_PAGE_SIZE
   })
   const [expandedSections, setExpandedSections] = useState<Record<DocType, boolean>>({
     page: true,
     database: true,
-    canvas: true
+    canvas: true,
+    dashboard: true
   })
 
   const pageQueryLimit = sectionLimits.page + 1
   const databaseQueryLimit = sectionLimits.database + 1
   const canvasQueryLimit = sectionLimits.canvas + 1
+  const dashboardQueryLimit = sectionLimits.dashboard + 1
 
   const { data: pages, loading: pagesLoading } = useQuery(PageSchema, {
     orderBy: { updatedAt: 'desc' },
@@ -89,6 +100,10 @@ export function Sidebar() {
   const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema, {
     orderBy: { updatedAt: 'desc' },
     limit: canvasQueryLimit
+  })
+  const { data: dashboards, loading: dashboardsLoading } = useQuery(DashboardSchema, {
+    orderBy: { updatedAt: 'desc' },
+    limit: dashboardQueryLimit
   })
 
   const toggleSection = (type: DocType) => {
@@ -103,20 +118,8 @@ export function Sidebar() {
   }
 
   const handleCreate = (type: DocType) => {
-    const id = Math.random().toString(36).substring(2, 15)
     setShowCreateMenu(false)
-
-    switch (type) {
-      case 'page':
-        navigate({ to: '/doc/$docId', params: { docId: id } })
-        break
-      case 'database':
-        navigate({ to: '/db/$dbId', params: { dbId: id } })
-        break
-      case 'canvas':
-        navigate({ to: '/canvas/$canvasId', params: { canvasId: id } })
-        break
-    }
+    navigateToNewDoc(navigate as unknown as NavigateLike, type)
   }
 
   const renderDocLink = (type: DocType, doc: { id: string; title?: string }) => {
@@ -201,6 +204,21 @@ export function Sidebar() {
           >
             <Trash2 size={12} />
           </button>
+        </Link>
+      )
+    }
+
+    if (type === 'dashboard') {
+      return (
+        <Link
+          to="/dashboard/$dashboardId"
+          params={{ dashboardId: doc.id }}
+          className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer mb-0.5 group transition-colors no-underline hover:no-underline ${
+            isActive ? 'bg-accent' : 'hover:bg-accent/50'
+          }`}
+        >
+          <Icon size={14} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-sm truncate flex-1 text-foreground">{doc.title || 'Untitled'}</span>
         </Link>
       )
     }
@@ -303,27 +321,10 @@ export function Sidebar() {
           {/* Create menu dropdown */}
           {showCreateMenu && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 py-1">
-              <button
-                onClick={() => handleCreate('page')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
-              >
-                <FileText size={14} />
-                <span>Page</span>
-              </button>
-              <button
-                onClick={() => handleCreate('database')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
-              >
-                <Database size={14} />
-                <span>Database</span>
-              </button>
-              <button
-                onClick={() => handleCreate('canvas')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
-              >
-                <Layout size={14} />
-                <span>Canvas</span>
-              </button>
+              <CreateDocMenuItems
+                types={['page', 'database', 'canvas', 'dashboard']}
+                onCreate={handleCreate}
+              />
               <hr className="my-1 border-border" />
               <button
                 onClick={() => {
@@ -361,6 +362,12 @@ export function Sidebar() {
           canvases || [],
           (canvases?.length || 0) > sectionLimits.canvas,
           canvasesLoading
+        )}
+        {renderSection(
+          'dashboard',
+          dashboards || [],
+          (dashboards?.length || 0) > sectionLimits.dashboard,
+          dashboardsLoading
         )}
 
         {!pagesLoading &&
