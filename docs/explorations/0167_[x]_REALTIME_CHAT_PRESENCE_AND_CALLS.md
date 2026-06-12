@@ -689,37 +689,37 @@ registerPanelView('right', { id: 'room', title: 'Room', component: RoomPanel })
 
 ### Phase 1 — Presence
 
-- [ ] Create `packages/comms` with `RoomManager` over `SyncManager.getAwareness()`
-- [ ] Define app-level presence fields (`user`, `viewing`, `status`, `typing`, `call`) and a typed wrapper (pattern: `packages/canvas/src/presence/canvas-presence.ts`)
-- [ ] Add `Profile` schema + minimal profile editor (name, avatar, status)
-- [ ] Workspace presence room (`presence:{workspaceId}`) wired through hub `AwarenessService`
-- [ ] Status Bar avatar chips for the active node via `useStatusBarItem()`
-- [ ] Right Panel roster section ("here now") for the active tab's node
+- [x] Create `packages/comms` with `RoomManager` over `SyncManager.getAwareness()`
+- [x] Define app-level presence fields (`user`, `viewing`, `status`, `typing`, `call`) and a typed wrapper (pattern: `packages/canvas/src/presence/canvas-presence.ts`)
+- [x] Add `Profile` schema + minimal profile editor (name, avatar, status)
+- [x] Workspace presence room (`presence:{workspaceId}`) wired through hub `AwarenessService`
+- [x] Status Bar avatar chips for the active node via `useStatusBarItem()` — (count chip; avatar stack deferred)
+- [x] Right Panel roster section ("here now") for the active tab's node
 
 ### Phase 2 — Chat
 
-- [ ] `Channel`, `ChatMessage`, `ChannelReadState` schemas registered in `packages/data/src/schema/registry.ts`
-- [ ] `ChatService`: send (via `DataBridge.transaction`), windowed history queries (paginate by `createdAt`), edit/delete (LWW + soft tombstone), reactions
-- [ ] Deterministic DM channel IDs from sorted member DIDs
-- [ ] Chats Left Panel view (channels, DMs, unread badges) — `registerPanelView('left', …)`
-- [ ] Room Right Panel view: live chat + roster for active node; per-document channels via `target`
-- [ ] Channel-as-tab route (`/channel/$channelId`) for focused reading
-- [ ] Typing indicators over awareness; unread counts from `ChannelReadState`
+- [x] `Channel`, `ChatMessage`, `ChannelReadState` schemas registered in `packages/data/src/schema/registry.ts` — (`ChannelReadState` superseded by 0168's `InboxState`)
+- [x] `ChatService`: send (via `DataBridge.transaction`), windowed history queries (paginate by `createdAt`), edit/delete (LWW + soft tombstone), reactions — (reactions ride the existing `Reaction` schema; dedicated UI deferred)
+- [x] Deterministic DM channel IDs from sorted member DIDs
+- [x] Chats Left Panel view (channels, DMs, unread badges) — `registerPanelView('left', …)`
+- [x] Room Right Panel view: live chat + roster for active node; per-document channels via `target`
+- [x] Channel-as-tab route (`/channel/$channelId`) for focused reading
+- [x] Typing indicators over awareness; unread counts from `ChannelReadState` — (unread counts from `InboxState` watermarks)
 - [ ] Hub relay topic authorization for private channels (`MessageInterceptor` + UCAN)
 
 ### Phase 3 — Calls (mesh)
 
-- [ ] `SignalingTransport` interface; hub pub/sub implementation over `call:{roomId}` topics (signed payloads)
-- [ ] `CallManager`: mesh PeerConnections, device selection, mute/cam toggles, screen-share track, ICE restart
-- [ ] `CommsDock` floating UI in `Workbench.tsx` (outside router): tiles, controls, drag corner, collapse-to-pill
-- [ ] Call presence (`call` awareness field) rendered in rosters and the Chats panel
-- [ ] coturn deployment recipe alongside hub; STUN/TURN config surfaced in hub settings
-- [ ] Mesh ceiling enforcement (≤4 video / ≤8 audio) with clear "room full" UX
-- [ ] `call/*` UCAN capability in `packages/hub/src/auth/capabilities.ts`
+- [x] `SignalingTransport` interface; hub pub/sub implementation over `call:{roomId}` topics (signed payloads) — (signals ride the authenticated hub WS; per-signal signing deferred)
+- [x] `CallManager`: mesh PeerConnections, device selection, mute/cam toggles, screen-share track, ICE restart — (device picker and ICE restart deferred)
+- [x] `CommsDock` floating UI in `Workbench.tsx` (outside router): tiles, controls, drag corner, collapse-to-pill — (drag/collapse deferred)
+- [x] Call presence (`call` awareness field) rendered in rosters and the Chats panel
+- [x] coturn deployment recipe alongside hub; STUN/TURN config surfaced in hub settings — (recipe in `docs/deployment/REALTIME_CALLS.md`; settings UI deferred)
+- [x] Mesh ceiling enforcement (≤4 video / ≤8 audio) with clear "room full" UX
+- [x] `call/*` UCAN capability in `packages/hub/src/auth/capabilities.ts`
 
 ### Phase 4 — Voice rooms + SFU
 
-- [ ] `kind: 'voice'` channels: join-channel = join-call, occupancy in sidebar (Discord model)
+- [x] `kind: 'voice'` channels: join-channel = join-call, occupancy in sidebar (Discord model)
 - [ ] LiveKit co-deploy option for the hub; hub endpoint mints LiveKit JWTs from UCAN
 - [ ] CallManager SFU path (livekit-client) + mesh→SFU escalation
 - [ ] Optional `CallSession` history nodes

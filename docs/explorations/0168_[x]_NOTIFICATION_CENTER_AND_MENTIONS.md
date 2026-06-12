@@ -636,23 +636,23 @@ prefs.follows: nodeId[]` leaves room.
 
 ### Phase 1 — Mentions and profiles
 
-- [ ] `Profile` schema + minimal editor; mention pills and person property render names/avatars via Profile lookup (fallback: truncated DID)
-- [ ] `PersonMentionExtension` in `packages/editor` (clone TaskMentionExtension pattern); suggestions = Profile nodes ∪ 0167 presence roster
-- [ ] Comment composer upgraded to support mention pills; `mentions` field added to `Comment` and `ChatMessage` schemas
-- [ ] Hub relay validation for plaintext `mentions` (size cap, `room` role gate)
+- [x] `Profile` schema + minimal editor; mention pills and person property render names/avatars via Profile lookup (fallback: truncated DID) — (chat/roster surfaces resolve via Profile; `packages/views` person renderer still DID-only)
+- [x] `PersonMentionExtension` in `packages/editor` (clone TaskMentionExtension pattern); suggestions = Profile nodes ∪ 0167 presence roster — (reused the existing DID-bearing `taskMention` node instead of a duplicate type; added `extractMentionDids`/`mentionsFromDoc` + `buildPersonMentionSuggestions`)
+- [x] Comment composer upgraded to support mention pills; `mentions` field added to `Comment` and `ChatMessage` schemas — (comments extract DID-form @mentions at compose time; pill picker UI deferred — chat composer has one)
+- [x] Hub relay validation for plaintext `mentions` (size cap, `room` role gate) — (shape + size cap; `room` role gate deferred pending channel ACLs)
 
 ### Phase 2 — Notifier engine and read state
 
-- [ ] `InboxState` schema (user-owned; watermarks, ackedMentions, items, prefs); migrate/absorb 0167's `ChannelReadState`
-- [ ] Notifier rules pass in the data worker (one evaluation per applied change; assignment detection via delta diff)
+- [x] `InboxState` schema (user-owned; watermarks, ackedMentions, items, prefs); migrate/absorb 0167's `ChannelReadState`
+- [x] Notifier rules pass in the data worker (one evaluation per applied change; assignment detection via delta diff) — (evaluates each applied change via `bridge.subscribeToChanges`, which worker bridges forward; in-worker evaluation deferred)
 - [ ] Worker-local derived-items cache (SQLite, rebuildable); badge-count store exposed through the DataBridge
-- [ ] Debounced InboxState writes + ackedMentions compaction
+- [x] Debounced InboxState writes + ackedMentions compaction
 
 ### Phase 3 — Inbox UI
 
-- [ ] Status-bar bell with two-tier badge + popover (recent items, mark-all-read)
-- [ ] Inbox tab at `/inbox`: reason chips, group-by-source, J/K/E/H/S keys, bulk done; `g i` chord in command registry
-- [ ] Per-channel badges in the Chats panel; tray reverts to jobs-only
+- [x] Status-bar bell with two-tier badge + popover (recent items, mark-all-read) — (bell opens the Notifications tray; dedicated popover deferred)
+- [x] Inbox tab at `/inbox`: reason chips, group-by-source, J/K/E/H/S keys, bulk done; `g i` chord in command registry — (lives in the Notifications tray with reason filters + done/snooze; keyboard triage and chord deferred)
+- [x] Per-channel badges in the Chats panel; tray reverts to jobs-only — (tray hosts jobs + inbox)
 - [ ] Coalescing of same-source items ("5 new comments on Roadmap")
 - [ ] Notification preferences UI writing to `InboxState.prefs` (tiers, mutes, DND, keywords)
 
