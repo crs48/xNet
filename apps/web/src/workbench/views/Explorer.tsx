@@ -2,41 +2,26 @@
  * Explorer — the Left Panel navigation view (exploration 0166).
  *
  * Replaces the type-siloed Sidebar with the unified model: Pinned,
- * Recent, then All Items — one virtualized, type-filterable list of
- * every node. Every row drags (unified node transfer + canvas-legacy
- * MIME). Single click opens a preview tab; double click promotes;
- * pinning keeps a node at the top.
+ * Recent, the folder tree (exploration 0169), then Unfiled — one
+ * type-filterable list of every node. Every row drags (unified node
+ * transfer + canvas-legacy MIME). Single click opens a preview tab;
+ * double click promotes; pinning keeps a node at the top. When a text
+ * or type filter is active the tree hides and results span all items.
  */
 import { useNavigate } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
 import { CanvasSchema, DashboardSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
-import { setNodeTransfer } from '@xnetjs/ui'
-import { ChevronDown, Link as LinkIcon, Pin, Plus } from 'lucide-react'
+import { ChevronDown, Link as LinkIcon, Plus } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { AddSharedDialog } from '../../components/AddSharedDialog'
 import { CreateDocMenuItems, navigateToNewDoc, type NavigateLike } from '../../lib/doc-creation'
-import { navigateToNode } from '../navigation'
-import { tabIdFor, useWorkbench } from '../state'
-import { setPreviewIntent, TAB_VIEWS } from '../tabs'
+import { useWorkbench } from '../state'
 import { filterExplorerItems } from './explorer-filter'
-
-type ExplorerNodeType = 'page' | 'database' | 'canvas' | 'dashboard'
-
-interface ExplorerItem {
-  id: string
-  title: string
-  type: ExplorerNodeType
-  updatedAt: number
-}
-
-const SCHEMA_IDS: Record<ExplorerNodeType, string> = {
-  page: PageSchema._schemaId,
-  database: DatabaseSchema._schemaId,
-  canvas: CanvasSchema._schemaId,
-  dashboard: DashboardSchema._schemaId
-}
+import { partitionByFolder } from './explorer-folders'
+import { ExplorerFoldersProvider } from './explorer-folders-context'
+import { ExplorerRow, type ExplorerItem, type ExplorerNodeType } from './explorer-rows'
+import { ExplorerFoldersSection } from './ExplorerFolderTree'
 
 const TYPE_FILTERS: Array<{ id: ExplorerNodeType | 'all'; label: string }> = [
   { id: 'all', label: 'All' },
@@ -48,76 +33,6 @@ const TYPE_FILTERS: Array<{ id: ExplorerNodeType | 'all'; label: string }> = [
 
 const QUERY_LIMIT = 500
 const ROW_HEIGHT = 26
-
-function ExplorerPinToggle({ nodeId, pinned }: { nodeId: string; pinned: boolean }) {
-  const label = pinned ? 'Unpin' : 'Pin'
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onClick={(event) => {
-        event.stopPropagation()
-        useWorkbench.getState().togglePinnedNode(nodeId)
-      }}
-      className={`shrink-0 cursor-pointer border-none bg-transparent p-0 ${
-        pinned ? 'text-ink-2' : 'invisible text-ink-3 hover:text-ink-1 group-hover:visible'
-      }`}
-    >
-      <Pin size={11} strokeWidth={1.5} className={pinned ? 'fill-current' : ''} />
-    </button>
-  )
-}
-
-function ExplorerRow({ item, pinned }: { item: ExplorerItem; pinned: boolean }) {
-  const navigate = useNavigate()
-  const Icon = TAB_VIEWS[item.type].icon
-  const title = item.title || 'Untitled'
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      draggable
-      data-explorer-item-id={item.id}
-      onDragStart={(event) => {
-        event.dataTransfer.effectAllowed = 'copyMove'
-        setNodeTransfer(event, {
-          nodeId: item.id,
-          nodeType: item.type,
-          title,
-          schemaId: SCHEMA_IDS[item.type],
-          sourceContext: 'explorer'
-        })
-        event.dataTransfer.setData(
-          CANVAS_INTERNAL_NODE_MIME,
-          serializeCanvasInternalNodeDragData({
-            nodeId: item.id,
-            schemaId: SCHEMA_IDS[item.type],
-            title
-          })
-        )
-      }}
-      onClick={() => {
-        setPreviewIntent()
-        navigateToNode(navigate, item.type, item.id)
-      }}
-      onDoubleClick={() => {
-        useWorkbench.getState().promoteTab(tabIdFor(item.type, item.id))
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          navigateToNode(navigate, item.type, item.id)
-        }
-      }}
-      className="group flex h-[26px] cursor-pointer items-center gap-2 rounded-sm px-2 text-ink-2 transition-colors hover:bg-accent hover:text-ink-1"
-    >
-      <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-      <span className="min-w-0 flex-1 truncate text-xs">{title}</span>
-      <ExplorerPinToggle nodeId={item.id} pinned={pinned} />
-    </div>
-  )
-}
 
 function ExplorerCreateMenu({
   open,
@@ -209,6 +124,96 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+interface ExplorerDocShape {
+  id: string
+  title?: string
+  updatedAt?: number
+  folder?: string
+  sortKey?: string
+}
+
+function collectItems(
+  docs: ExplorerDocShape[] | undefined | null,
+  type: ExplorerNodeType
+): ExplorerItem[] {
+  return (docs ?? []).map((doc) => ({
+    id: doc.id,
+    title: doc.title ?? '',
+    type,
+    updatedAt: doc.updatedAt ?? 0,
+    folder: doc.folder ?? null,
+    sortKey: doc.sortKey
+  }))
+}
+
+/** All organizable nodes, newest first, with folder/sortKey projected. */
+function useExplorerItems(): ExplorerItem[] {
+  const options = { orderBy: { updatedAt: 'desc' as const }, limit: QUERY_LIMIT }
+  const { data: pages } = useQuery(PageSchema, options)
+  const { data: databases } = useQuery(DatabaseSchema, options)
+  const { data: canvases } = useQuery(CanvasSchema, options)
+  const { data: dashboards } = useQuery(DashboardSchema, options)
+
+  return useMemo<ExplorerItem[]>(
+    () =>
+      [
+        ...collectItems(pages, 'page'),
+        ...collectItems(databases, 'database'),
+        ...collectItems(canvases, 'canvas'),
+        ...collectItems(dashboards, 'dashboard')
+      ].sort((a, b) => b.updatedAt - a.updatedAt),
+    [pages, databases, canvases, dashboards]
+  )
+}
+
+function VirtualizedItemList({
+  items,
+  pinnedNodeIds
+}: {
+  items: ExplorerItem[]
+  pinnedNodeIds: string[]
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 12
+  })
+
+  return (
+    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-1">
+      {items.length === 0 ? (
+        <p className="mt-6 text-center text-xs text-ink-3">No items</p>
+      ) : (
+        <div
+          style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
+          className="w-full"
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const item = items[virtualRow.index]
+            return (
+              <div
+                key={item.id}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: virtualRow.size,
+                  transform: `translateY(${virtualRow.start}px)`
+                }}
+              >
+                <ExplorerRow item={item} pinned={pinnedNodeIds.includes(item.id)} />
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Explorer() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<ExplorerNodeType | 'all'>('all')
@@ -217,50 +222,15 @@ export function Explorer() {
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const pinnedNodeIds = useWorkbench((state) => state.pinnedNodeIds)
   const recents = useWorkbench((state) => state.recents)
-  const scrollRef = useRef<HTMLDivElement>(null)
 
-  const { data: pages } = useQuery(PageSchema, {
-    orderBy: { updatedAt: 'desc' },
-    limit: QUERY_LIMIT
-  })
-  const { data: databases } = useQuery(DatabaseSchema, {
-    orderBy: { updatedAt: 'desc' },
-    limit: QUERY_LIMIT
-  })
-  const { data: canvases } = useQuery(CanvasSchema, {
-    orderBy: { updatedAt: 'desc' },
-    limit: QUERY_LIMIT
-  })
-  const { data: dashboards } = useQuery(DashboardSchema, {
-    orderBy: { updatedAt: 'desc' },
-    limit: QUERY_LIMIT
-  })
-
-  const allItems = useMemo<ExplorerItem[]>(() => {
-    const collect = (
-      docs: Array<{ id: string; title?: string; updatedAt?: number }> | undefined,
-      type: ExplorerNodeType
-    ): ExplorerItem[] =>
-      (docs ?? []).map((doc) => ({
-        id: doc.id,
-        title: doc.title ?? '',
-        type,
-        updatedAt: doc.updatedAt ?? 0
-      }))
-
-    return [
-      ...collect(pages, 'page'),
-      ...collect(databases, 'database'),
-      ...collect(canvases, 'canvas'),
-      ...collect(dashboards, 'dashboard')
-    ].sort((a, b) => b.updatedAt - a.updatedAt)
-  }, [pages, databases, canvases, dashboards])
-
+  const allItems = useExplorerItems()
   const byId = useMemo(() => new Map(allItems.map((item) => [item.id, item])), [allItems])
 
-  const filtered = useMemo(
-    () => filterExplorerItems(allItems, filter, search),
-    [allItems, filter, search]
+  const filterActive = filter !== 'all' || search.trim() !== ''
+  const unfiled = useMemo(() => partitionByFolder(allItems).unfiled, [allItems])
+  const listItems = useMemo(
+    () => (filterActive ? filterExplorerItems(allItems, filter, search) : unfiled),
+    [filterActive, allItems, filter, search, unfiled]
   )
 
   const pinnedItems = useMemo(
@@ -278,95 +248,65 @@ export function Explorer() {
     [recents, byId, pinnedNodeIds]
   )
 
-  const virtualizer = useVirtualizer({
-    count: filtered.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 12
-  })
-
   const handleCreate = (type: ExplorerNodeType) => {
     setShowCreateMenu(false)
     navigateToNewDoc(navigate as unknown as NavigateLike, type)
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* Tools */}
-      <div className="flex flex-col gap-2 border-b border-hairline p-2">
-        <ExplorerCreateMenu
-          open={showCreateMenu}
-          onToggle={() => setShowCreateMenu((prev) => !prev)}
-          onCreate={handleCreate}
-          onAddShared={() => {
-            setShowCreateMenu(false)
-            setShowAddSharedDialog(true)
-          }}
-        />
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Filter…"
-          className="h-6 w-full rounded-sm border border-hairline bg-surface-0 px-2 text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
-        />
-        <div className="flex flex-wrap gap-1">
-          {TYPE_FILTERS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => setFilter(entry.id)}
-              className={`cursor-pointer rounded-full border px-1.5 py-px text-[10px] transition-colors ${
-                filter === entry.id
-                  ? 'border-accent-ink bg-accent text-ink-1'
-                  : 'border-hairline bg-transparent text-ink-3 hover:text-ink-1'
-              }`}
-            >
-              {entry.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Pinned + Recent (fixed), then All Items (virtualized) */}
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <div className="flex h-full flex-col">
-          <PinnedAndRecent pinnedItems={pinnedItems} recentItems={recentItems} />
-
-          <SectionLabel>All items</SectionLabel>
-          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-1">
-            {filtered.length === 0 ? (
-              <p className="mt-6 text-center text-xs text-ink-3">No items</p>
-            ) : (
-              <div
-                style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
-                className="w-full"
+    <ExplorerFoldersProvider items={allItems}>
+      <div className="flex h-full min-h-0 flex-col">
+        {/* Tools */}
+        <div className="flex flex-col gap-2 border-b border-hairline p-2">
+          <ExplorerCreateMenu
+            open={showCreateMenu}
+            onToggle={() => setShowCreateMenu((prev) => !prev)}
+            onCreate={handleCreate}
+            onAddShared={() => {
+              setShowCreateMenu(false)
+              setShowAddSharedDialog(true)
+            }}
+          />
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Filter…"
+            className="h-6 w-full rounded-sm border border-hairline bg-surface-0 px-2 text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
+          />
+          <div className="flex flex-wrap gap-1">
+            {TYPE_FILTERS.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => setFilter(entry.id)}
+                className={`cursor-pointer rounded-full border px-1.5 py-px text-[10px] transition-colors ${
+                  filter === entry.id
+                    ? 'border-accent-ink bg-accent text-ink-1'
+                    : 'border-hairline bg-transparent text-ink-3 hover:text-ink-1'
+                }`}
               >
-                {virtualizer.getVirtualItems().map((virtualRow) => {
-                  const item = filtered[virtualRow.index]
-                  return (
-                    <div
-                      key={item.id}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: virtualRow.size,
-                        transform: `translateY(${virtualRow.start}px)`
-                      }}
-                    >
-                      <ExplorerRow item={item} pinned={pinnedNodeIds.includes(item.id)} />
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                {entry.label}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      <AddSharedDialog isOpen={showAddSharedDialog} onClose={() => setShowAddSharedDialog(false)} />
-    </div>
+        {/* Pinned + Recent, folder tree, then Unfiled (virtualized) */}
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="flex h-full flex-col">
+            <PinnedAndRecent pinnedItems={pinnedItems} recentItems={recentItems} />
+            {!filterActive && <ExplorerFoldersSection pinnedNodeIds={pinnedNodeIds} />}
+            <SectionLabel>{filterActive ? 'Results' : 'Unfiled'}</SectionLabel>
+            <VirtualizedItemList items={listItems} pinnedNodeIds={pinnedNodeIds} />
+          </div>
+        </div>
+
+        <AddSharedDialog
+          isOpen={showAddSharedDialog}
+          onClose={() => setShowAddSharedDialog(false)}
+        />
+      </div>
+    </ExplorerFoldersProvider>
   )
 }

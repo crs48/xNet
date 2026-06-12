@@ -486,12 +486,12 @@ createNode(ChannelSchema, { name: `#${tag.name}`, kind: 'channel', target: tag.i
 
 - [x] Add `FolderSchema` (`packages/data/src/schema/schemas/folder.ts`) + register in `schemas/index.ts`
 - [x] Add optional `folder` relation + `sortKey` to Page, Database, Canvas, Dashboard, Project, Channel schemas (additive at current versions — validation ignores absent optional props, so no lens migration is required)
-- [ ] Explorer: render folder tree above the flat list — expand/collapse, indent capped visually at ~4 levels, "Unfiled" section for homeless nodes
-- [ ] Drag-and-drop move (reuse existing NodeTransfer drag machinery in `Explorer.tsx`); reorder siblings via `generateSortKey` between neighbors
-- [ ] Create/rename/delete folder (delete ⇒ children move to parent or Unfiled, never cascade-delete content)
-- [ ] Breadcrumb in tab header showing folder path
-- [ ] "Move to folder…" command in the node context menu / command palette
-- [ ] Default-folder assist: creating a node while a folder is open files it there
+- [x] Explorer: render folder tree above the flat list — expand/collapse (persisted in the workbench store), "Unfiled" section for homeless nodes; tree hides while a text/type filter is active
+- [x] Drag-and-drop move (NodeTransfer drops on folder rows; folder rows re-parent with cycle check); reorder siblings via insert-before drops using `generateSortKey` between neighbors
+- [x] Create/rename/delete folder (delete ⇒ children and items move to the parent or Unfiled, never cascade-delete content)
+- [x] Breadcrumb in tab header showing folder path (`TabBreadcrumb` under the tab bar)
+- [x] "Move to folder…" affordance in the node row hover menu (command-palette variant deferred — the palette has no folder-picker UI yet)
+- [x] Default-folder assist: per-folder "new page" action files the page in that folder and opens it
 
 ### Phase 2 — Tags (the labels)
 
