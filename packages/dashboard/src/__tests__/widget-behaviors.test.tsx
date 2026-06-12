@@ -7,10 +7,10 @@ import type { WidgetData, WidgetProps } from '../types'
 import type { DID } from '@xnetjs/core'
 import type { ReactNode } from 'react'
 import { fireEvent, render, waitFor } from '@testing-library/react'
-import { MemoryNodeStorageAdapter } from '@xnetjs/data'
+import { MemoryNodeStorageAdapter, TaskSchema } from '@xnetjs/data'
 import { generateIdentity } from '@xnetjs/identity'
-import { XNetProvider } from '@xnetjs/react'
-import { useMemo } from 'react'
+import { XNetProvider, useMutate, useQuery } from '@xnetjs/react'
+import { useEffect, useMemo, useRef } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { calendarWidget } from '../widgets/calendar-widget'
 import { barChartWidget } from '../widgets/chart-widget'
@@ -210,28 +210,52 @@ describe('calendar widget', () => {
 describe('task list widget', () => {
   const Component = taskListWidget.component
 
+  // Rows come from real Task nodes so the completion toggle's write-back
+  // has something to update.
+  function TaskListProbe({ onOpenNode }: { onOpenNode: (id: string, schema: string) => void }) {
+    const { create } = useMutate()
+    const { data: tasks, loading } = useQuery(TaskSchema)
+    const seeded = useRef(false)
+
+    useEffect(() => {
+      if (loading || seeded.current) return
+      seeded.current = true
+      void (async () => {
+        await create(TaskSchema, { title: 'Open task', dueDate: Date.now() })
+        await create(TaskSchema, { title: 'Done task', completed: true })
+      })()
+    }, [create, loading])
+
+    return <Component {...props({ data: data({ rows: (tasks ?? []) as never }), onOpenNode })} />
+  }
+
   it('filters completed tasks, toggles completion, and opens tasks', async () => {
     const onOpenNode = vi.fn()
-    const rows = [
-      { id: 't1', title: 'Open task', completed: false, dueDate: Date.now() },
-      { id: 't2', title: 'Done task', completed: true }
-    ]
     const { container } = render(
       <Harness>
-        <Component {...props({ data: data({ rows }), onOpenNode })} />
+        <TaskListProbe onOpenNode={onOpenNode} />
       </Harness>
     )
 
     await waitFor(() => expect(container.textContent).toContain('Open task'))
     expect(container.textContent).not.toContain('Done task')
 
-    fireEvent.click(container.querySelector('input[type="checkbox"]')!)
     fireEvent.click(container.querySelector('li button')!)
-    expect(onOpenNode).toHaveBeenCalledWith('t1', expect.stringContaining('Task'))
+    expect(onOpenNode).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('Task'))
+
+    // Toggling completion writes back to the canonical Task node, so the
+    // open-tasks filter drops the row reactively.
+    fireEvent.click(container.querySelector('input[type="checkbox"]')!)
+    await waitFor(() => expect(container.textContent).not.toContain('Open task'))
 
     const showAll = render(
       <Harness>
-        <Component {...props({ data: data({ rows }), config: { showCompleted: true } })} />
+        <Component
+          {...props({
+            data: data({ rows: [{ id: 'x', title: 'Done task', completed: true }] }),
+            config: { showCompleted: true }
+          })}
+        />
       </Harness>
     )
     await waitFor(() => expect(showAll.container.textContent).toContain('Done task'))
