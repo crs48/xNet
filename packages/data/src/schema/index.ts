@@ -155,6 +155,7 @@ export {
   isValidMentions,
   type MessageMentions
 } from './schemas'
+export { extractMentions, getMentionedUsers, type Mention } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
 export {

@@ -160,6 +160,12 @@ export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/p
 export type { TaskMentionSuggestion } from './extensions/task-metadata'
 export { createGravatarUrl } from './utils/gravatar'
 export { buildTaskMentionSuggestions } from './utils/taskMentionSuggestions'
+export {
+  buildPersonMentionSuggestions,
+  extractMentionDids,
+  mentionsFromDoc,
+  type MentionablePerson
+} from './utils/mentions'
 export type {
   TaskViewConfig,
   TaskViewEmbedType,
