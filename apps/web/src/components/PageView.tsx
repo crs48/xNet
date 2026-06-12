@@ -1,6 +1,12 @@
 /**
- * PageView - editor with comment system (extracted from the doc route
+ * PageView - the document surface (extracted from the doc route
  * for 0166 so the workbench ViewHost can mount it directly).
+ *
+ * The view is the document: a full-height paper surface with the
+ * title as the first line of the page. Everything that is *about*
+ * the document rather than *in* it lives elsewhere — properties,
+ * tasks, comments and backlinks in the contextual Right Panel,
+ * save/sync state in the Status Bar.
  *
  * Features:
  * - Collaborative editing via Yjs
@@ -30,9 +36,10 @@ import {
 } from '../workbench/context-panel'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
+import { useStatusBarItem, type StatusBarItem } from '../workbench/status'
 import { BacklinksPanel } from './BacklinksPanel'
 import { Editor as EditorComponent } from './Editor'
-import { PageTasksPanel } from './PageTasksPanel'
+import { PageTasksSection } from './PageTasksSection'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -68,22 +75,58 @@ function pageLoadPlaceholder(
 ): JSX.Element | null {
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Loading document...
+      <div className="flex h-full items-center justify-center text-xs text-ink-3">
+        Loading document…
       </div>
     )
   }
   if (error) {
-    return <div className="text-center p-6 text-danger">Error: {error.message}</div>
+    return <div className="p-6 text-center text-danger">Error: {error.message}</div>
   }
   if (!ready) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Loading...
-      </div>
+      <div className="flex h-full items-center justify-center text-xs text-ink-3">Loading…</div>
     )
   }
   return null
+}
+
+// ─── Status Bar items (view scope, 0166) ───────────────────────────────────────
+
+function pageSavedStatusItem(
+  docId: string,
+  isDirty: boolean,
+  lastSavedAt: number | null
+): StatusBarItem | null {
+  if (isDirty) {
+    return { id: `page-saved:${docId}`, side: 'right', text: 'saving…' }
+  }
+  if (!lastSavedAt) return null
+  return {
+    id: `page-saved:${docId}`,
+    side: 'right',
+    text: 'saved',
+    title: `Last saved ${new Date(lastSavedAt).toLocaleTimeString()}`
+  }
+}
+
+function pageSyncStatusItem(
+  docId: string,
+  syncStatus: string,
+  peerCount: number
+): StatusBarItem | null {
+  // The hub indicator (left, workspace scope) already covers being
+  // offline; this item only reports live document sync.
+  if (syncStatus === 'connecting') {
+    return { id: `page-sync:${docId}`, side: 'right', text: 'connecting…' }
+  }
+  if (syncStatus !== 'connected') return null
+  return {
+    id: `page-sync:${docId}`,
+    side: 'right',
+    text: peerCount === 1 ? '1 peer' : `${peerCount} peers`,
+    title: 'Document sync: connected'
+  }
 }
 
 function lookupThread(
@@ -92,6 +135,18 @@ function lookupThread(
 ): CommentThreadData | null {
   if (!threadId) return null
   return threadDataMap.get(threadId) ?? null
+}
+
+/** Place the caret at the document position nearest to a margin click. */
+function focusEditorNear(editor: Editor, clientX: number, clientY: number): void {
+  const rect = editor.view.dom.getBoundingClientRect()
+  const left = Math.min(Math.max(clientX, rect.left + 1), rect.right - 1)
+  const top = Math.min(Math.max(clientY, rect.top + 1), rect.bottom - 1)
+  const pos = editor.view.posAtCoords({ left, top })?.pos ?? editor.state.doc.content.size
+  editor.chain().focus(pos).run()
+  // TipTap defers DOM focus to the next animation frame; focus the
+  // view directly so the caret moves immediately.
+  editor.view.focus()
 }
 
 export function PageView({ docId }: { docId: string }) {
@@ -128,6 +183,11 @@ export function PageView({ docId }: { docId: string }) {
   useEffect(() => {
     if (isDirty) useWorkbench.getState().promoteTab(`page:${docId}`)
   }, [isDirty, docId])
+
+  // Save/sync state is ambient: it reads from the Status Bar, not the page.
+  useStatusBarItem(pageSavedStatusItem(docId, isDirty, lastSavedAt))
+  useStatusBarItem(pageSyncStatusItem(docId, syncStatus, peerCount))
+
   const mentionSuggestions = useMemo(
     () => buildTaskMentionSuggestions(presence, did),
     [did, presence]
@@ -154,6 +214,7 @@ export function PageView({ docId }: { docId: string }) {
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const editorRef = useRef<Editor | null>(null)
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
   const marksRestoredRef = useRef(false)
   const [editorReady, setEditorReady] = useState(false)
 
@@ -161,8 +222,14 @@ export function PageView({ docId }: { docId: string }) {
   const markHoveredRef = useRef(false)
   const popoverHoveredRef = useRef(false)
 
-  // Reset mark restoration state when switching documents
+  // Reset mark restoration state when switching documents. Skip the
+  // initial run: parent effects fire after the editor's ready
+  // notification, so an unconditional reset would null the ref the
+  // moment it was set.
+  const lastDocIdRef = useRef(docId)
   useEffect(() => {
+    if (lastDocIdRef.current === docId) return
+    lastDocIdRef.current = docId
     marksRestoredRef.current = false
     editorRef.current = null
     setEditorReady(false)
@@ -559,8 +626,9 @@ export function PageView({ docId }: { docId: string }) {
   const sidebarThreads = useMemo(() => Array.from(threadDataMap.values()), [threadDataMap])
 
   // ─── Context Panel Sections (0166) ──────────────────────────────────────────
-  // Properties, comments, and backlinks live in the shared Right Panel,
-  // contextual to this tab, instead of being embedded in the view.
+  // Everything that is *about* the page — properties, tasks, comments
+  // (including orphaned threads), backlinks — lives in the shared Right
+  // Panel, contextual to this tab. The view itself stays a document.
 
   const contextSections = useMemo<ContextPanelSection[]>(() => {
     if (!page) return []
@@ -604,33 +672,48 @@ export function PageView({ docId }: { docId: string }) {
         )
       },
       {
+        id: 'page-tasks',
+        title: 'Tasks',
+        content: <PageTasksSection pageId={docId} />
+      },
+      {
         id: 'page-comments',
         title: 'Comments',
         badge: unresolvedCount,
         content: (
-          <CommentsSidebar
-            className="w-full border-l-0 bg-transparent"
-            threads={sidebarThreads}
-            open
-            onClose={() => useWorkbench.getState().setPanelOpen('right', false)}
-            onSelectThread={handleSidebarSelectThread}
-            selectedThreadId={popoverState.threadId}
-            onReply={handleSidebarReply}
-            onResolve={handleSidebarResolve}
-            onReopen={handleSidebarReopen}
-            onDelete={handleSidebarDelete}
-            onEdit={handleSidebarEdit}
-          />
+          <div className="flex flex-col">
+            {orphanedThreads.length > 0 && (
+              <div className="border-b border-hairline p-3">
+                <OrphanedThreadList
+                  orphanedThreads={orphanedThreads}
+                  collapsed={orphanedCollapsed}
+                  onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
+                  onDismiss={handleDismissOrphaned}
+                  onReattach={handleReattachOrphaned}
+                  onSelect={handleSelectOrphaned}
+                />
+              </div>
+            )}
+            <CommentsSidebar
+              className="w-full border-l-0 bg-transparent"
+              threads={sidebarThreads}
+              open
+              onClose={() => useWorkbench.getState().setPanelOpen('right', false)}
+              onSelectThread={handleSidebarSelectThread}
+              selectedThreadId={popoverState.threadId}
+              onReply={handleSidebarReply}
+              onResolve={handleSidebarResolve}
+              onReopen={handleSidebarReopen}
+              onDelete={handleSidebarDelete}
+              onEdit={handleSidebarEdit}
+            />
+          </div>
         )
       },
       {
         id: 'page-backlinks',
         title: 'Backlinks',
-        content: (
-          <div className="p-3">
-            <BacklinksPanel docId={docId} />
-          </div>
-        )
+        content: <BacklinksPanel docId={docId} />
       }
     ]
   }, [
@@ -643,7 +726,12 @@ export function PageView({ docId }: { docId: string }) {
     presence,
     unresolvedCount,
     sidebarThreads,
+    orphanedThreads,
+    orphanedCollapsed,
     popoverState.threadId,
+    handleDismissOrphaned,
+    handleReattachOrphaned,
+    handleSelectOrphaned,
     handleSidebarSelectThread,
     handleSidebarReply,
     handleSidebarResolve,
@@ -653,6 +741,40 @@ export function PageView({ docId }: { docId: string }) {
   ])
 
   useContextPanel(`page:${docId}`, contextSections)
+
+  // ─── Document focus flow ─────────────────────────────────────────────────────
+  // The whole surface is the document: Enter/↓ in the title drops into
+  // the body, Backspace at the top of an empty body returns to the
+  // title, and clicks in the page margins place the caret nearby.
+
+  const handleTitleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter' && event.key !== 'ArrowDown') return
+    event.preventDefault()
+    const editor = editorRef.current
+    if (!editor) return
+    editor.commands.focus('start')
+    // TipTap defers DOM focus to the next animation frame; focus the
+    // view directly so the caret moves immediately.
+    editor.view.focus()
+  }, [])
+
+  const handleBackspaceAtStart = useCallback(() => {
+    const input = titleInputRef.current
+    if (!input) return false
+    const caret = input.value.length
+    input.focus()
+    input.setSelectionRange(caret, caret)
+    return true
+  }, [])
+
+  const handleMarginMouseDown = useCallback((event: React.MouseEvent) => {
+    const target = event.target as HTMLElement
+    if (!target.hasAttribute('data-page-margin')) return
+    const editor = editorRef.current
+    if (!editor) return
+    event.preventDefault()
+    focusEditorNear(editor, event.clientX, event.clientY)
+  }, [])
 
   // Handle wikilink navigation. Reference chips created by node drops
   // encode non-page targets as xnet://<type>/<id> (0166).
@@ -703,52 +825,46 @@ export function PageView({ docId }: { docId: string }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden -m-6">
-      <PageViewHeader
-        title={page!.title || ''}
-        onTitleChange={(title) => update({ title })}
-        unresolvedCount={unresolvedCount}
-        presence={presence}
-        docId={docId}
-        isDirty={isDirty}
-        lastSavedAt={lastSavedAt}
-        syncStatus={syncStatus}
-        peerCount={peerCount}
-      />
+    <div className="flex h-full min-h-0 flex-col bg-surface-0">
+      <PageToolbar docId={docId} unresolvedCount={unresolvedCount} presence={presence} />
 
-      {/* Editor + Sidebar horizontal layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Editor */}
-        <div
-          className="flex-1 overflow-auto px-6 py-4"
-          onDragOverCapture={handleEditorDragOver}
-          onDropCapture={handleEditorDrop}
-        >
-          <div className="max-w-3xl mx-auto">
-            <EditorComponent
-              doc={doc!}
-              awareness={awareness}
-              did={did}
-              pageId={docId}
-              onNavigate={handleNavigate}
-              extensions={commentExtensions}
-              onEditorReady={handleEditorReady}
-              mentionSuggestions={mentionSuggestions}
-              onPageTasksChange={handleTasksChange}
-              onCreateComment={handleCreateComment}
-            />
-
-            <PageOrphanedComments
-              orphanedThreads={orphanedThreads}
-              collapsed={orphanedCollapsed}
-              onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
-              onDismiss={handleDismissOrphaned}
-              onReattach={handleReattachOrphaned}
-              onSelect={handleSelectOrphaned}
-            />
-
-            <PageTasksPanel pageId={docId} />
-          </div>
+      {/* The document: one full-height paper surface. The title is the
+          first line of the page; margin clicks place the caret. */}
+      <div
+        data-page-margin
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        onMouseDown={handleMarginMouseDown}
+        onDragOverCapture={handleEditorDragOver}
+        onDropCapture={handleEditorDrop}
+      >
+        {/* `grow` (not min-h-full): a flex child only stretches into
+            definite space, so the column must flex from the scroller
+            for the editor to fill the page height. */}
+        <div data-page-margin className="mx-auto flex w-full max-w-3xl grow flex-col px-6 pt-10">
+          <input
+            ref={titleInputRef}
+            type="text"
+            aria-label="Page title"
+            className="w-full shrink-0 border-none bg-transparent pl-8 pr-1 text-4xl font-bold leading-tight tracking-tight text-ink-1 outline-none placeholder:text-ink-3"
+            value={page!.title || ''}
+            onChange={(e) => update({ title: e.target.value })}
+            onKeyDown={handleTitleKeyDown}
+            placeholder="Untitled"
+          />
+          <EditorComponent
+            className="page-prose mt-3 flex-1"
+            doc={doc!}
+            awareness={awareness}
+            did={did}
+            pageId={docId}
+            onNavigate={handleNavigate}
+            extensions={commentExtensions}
+            onEditorReady={handleEditorReady}
+            mentionSuggestions={mentionSuggestions}
+            onPageTasksChange={handleTasksChange}
+            onCreateComment={handleCreateComment}
+            onBackspaceAtStart={handleBackspaceAtStart}
+          />
         </div>
       </div>
 
@@ -775,136 +891,47 @@ export function PageView({ docId }: { docId: string }) {
   )
 }
 
-// ─── Header ────────────────────────────────────────────────────────────────────
-
-function SaveStatusIndicator({
-  isDirty,
-  lastSavedAt
-}: {
-  isDirty: boolean
-  lastSavedAt: number | null
-}) {
-  const title = lastSavedAt
-    ? `Last saved: ${new Date(lastSavedAt).toLocaleTimeString()}`
-    : 'Not saved yet'
-  if (isDirty) {
-    return (
-      <div className="text-xs text-muted-foreground" title={title}>
-        <span className="text-amber-500">Saving...</span>
-      </div>
-    )
-  }
-  if (!lastSavedAt) return null
-  return (
-    <div className="text-xs text-muted-foreground" title={title}>
-      <span className="text-success">Saved</span>
-    </div>
-  )
-}
-
-function SyncStatusIndicator({ syncStatus, peerCount }: { syncStatus: string; peerCount: number }) {
-  const connected = syncStatus === 'connected'
-  return (
-    <div
-      className="flex items-center gap-1.5 text-xs text-muted-foreground"
-      title={connected ? `Connected (${peerCount} peers)` : syncStatus}
-    >
-      <span
-        className={`w-2 h-2 rounded-full transition-colors ${
-          connected ? 'bg-success' : 'bg-muted-foreground'
-        }`}
-      />
-      {peerCount > 0 && <span className="text-xs font-medium">{peerCount}</span>}
-    </div>
-  )
-}
+// ─── Toolbar ───────────────────────────────────────────────────────────────────
 
 function CommentCountBadge({ unresolvedCount }: { unresolvedCount: number }) {
   if (unresolvedCount === 0) return null
   return (
     <button
-      className="flex items-center gap-1.5 px-2 py-1 text-xs text-ink-2 hover:text-ink-1 bg-surface-2 rounded-md transition-colors"
+      type="button"
+      className="flex cursor-pointer items-center gap-1 rounded-md border-none bg-transparent px-2 py-1 text-xs text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-1"
       title={`${unresolvedCount} unresolved comment${unresolvedCount !== 1 ? 's' : ''}`}
       onClick={() => revealContextSection('page-comments')}
     >
-      <MessageSquare size={14} />
+      <MessageSquare size={13} strokeWidth={1.5} />
       <span>{unresolvedCount}</span>
     </button>
   )
 }
 
-interface PageViewHeaderProps {
-  title: string
-  onTitleChange: (title: string) => void
+/**
+ * A quiet utility row above the document — collaboration affordances
+ * only (comments, presence, share). Save/sync state lives in the
+ * Status Bar; document metadata lives in the Right Panel.
+ */
+function PageToolbar({
+  docId,
+  unresolvedCount,
+  presence
+}: {
+  docId: string
   unresolvedCount: number
   presence: Parameters<typeof PresenceAvatars>[0]['presence']
-  docId: string
-  isDirty: boolean
-  lastSavedAt: number | null
-  syncStatus: string
-  peerCount: number
-}
-
-function PageViewHeader({
-  title,
-  onTitleChange,
-  unresolvedCount,
-  presence,
-  docId,
-  isDirty,
-  lastSavedAt,
-  syncStatus,
-  peerCount
-}: PageViewHeaderProps) {
+}) {
   return (
-    <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-secondary">
-      <input
-        type="text"
-        className="text-xl font-semibold border-none bg-transparent text-foreground flex-1 outline-none placeholder:text-muted-foreground"
-        value={title}
-        onChange={(e) => onTitleChange(e.target.value)}
-        placeholder="Untitled"
-      />
+    <div className="flex h-10 shrink-0 items-center justify-end gap-1 px-3">
       <CommentCountBadge unresolvedCount={unresolvedCount} />
       <PresenceAvatars presence={presence} />
       <ShareButton docId={docId} docType="page" />
-      <SaveStatusIndicator isDirty={isDirty} lastSavedAt={lastSavedAt} />
-      <SyncStatusIndicator syncStatus={syncStatus} peerCount={peerCount} />
     </div>
   )
 }
 
 // ─── Comment overlays ──────────────────────────────────────────────────────────
-
-function PageOrphanedComments({
-  orphanedThreads,
-  collapsed,
-  onToggleCollapse,
-  onDismiss,
-  onReattach,
-  onSelect
-}: {
-  orphanedThreads: OrphanedThread[]
-  collapsed: boolean
-  onToggleCollapse: () => void
-  onDismiss: (commentId: string) => void
-  onReattach: (commentId: string) => void
-  onSelect: (commentId: string) => void
-}) {
-  if (orphanedThreads.length === 0) return null
-  return (
-    <div className="mt-6">
-      <OrphanedThreadList
-        orphanedThreads={orphanedThreads}
-        collapsed={collapsed}
-        onToggleCollapse={onToggleCollapse}
-        onDismiss={onDismiss}
-        onReattach={onReattach}
-        onSelect={onSelect}
-      />
-    </div>
-  )
-}
 
 interface PageCommentPopoverOverlayProps {
   popoverState: PopoverState

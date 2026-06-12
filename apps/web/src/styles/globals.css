@@ -18,31 +18,53 @@
   }
 }
 
-/* Editor styles are now handled by @xnetjs/editor package (styles/editor.css) */
-/* App-specific editor overrides only.
-   Prose role: 16px sans in the editor (UI chrome stays at 13px). */
-.editor-content .ProseMirror {
-  @apply min-h-[380px] leading-relaxed;
+/* Editor styles are handled by @xnetjs/editor (styles/editor.css);
+   app overrides below keep the document on the monochrome ramp.
+
+   The editor package defaults to a blue caret/selection; chrome may
+   not have hue (0166), so ink carries the caret and a quiet gray
+   carries the selection. Scoped to .xnet-editor to win over the
+   package's :root defaults regardless of CSS import order. */
+.xnet-editor {
+  --editor-caret: 17 17 17;
+  --editor-foreground: 17 17 17;
+  --editor-selection-background: 224 224 224;
+  --editor-selection-foreground: 17 17 17;
+}
+
+.dark .xnet-editor {
+  --editor-caret: 237 237 237;
+  --editor-foreground: 237 237 237;
+  --editor-selection-background: 63 63 63;
+  --editor-selection-foreground: 237 237 237;
+}
+
+/* Prose role: the page document reads at 16px (UI chrome stays 13px).
+   The bottom padding keeps breathing room after the last line *inside*
+   the editable surface, so clicking it places the caret (the editor
+   stretches to the full page height via flex). */
+.page-prose .ProseMirror {
+  @apply leading-relaxed pb-[20vh];
   font-size: var(--font-prose-size);
 }
 
-.editor-content .ProseMirror p {
+.page-prose .ProseMirror p {
   @apply mb-4;
 }
 
-.editor-content .ProseMirror ul,
-.editor-content .ProseMirror ol {
+.page-prose .ProseMirror ul,
+.page-prose .ProseMirror ol {
   @apply pl-6 mb-4;
 }
 
-.editor-content .ProseMirror li {
+.page-prose .ProseMirror li {
   @apply my-1;
 }
 
-.editor-content .ProseMirror code {
+.page-prose .ProseMirror code {
   @apply px-1.5 py-0.5 rounded font-mono text-sm bg-muted;
 }
 
-.editor-content .ProseMirror pre code {
+.page-prose .ProseMirror pre code {
   @apply p-0 bg-transparent;
 }

@@ -73,6 +73,22 @@ describe('SearchIndex', () => {
   })
 
   describe('update', () => {
+    it('upserts a document that was never added', () => {
+      // Live-doc listeners call update() for first-time adds; this must
+      // not throw (MiniSearch discard() throws for unknown ids).
+      expect(() => index.update(createTestDoc('doc-1', 'page', 'Fresh Document'))).not.toThrow()
+      expect(index.search({ text: 'fresh' })).toHaveLength(1)
+    })
+
+    it('tolerates removing unknown and already removed documents', () => {
+      expect(() => index.remove('missing')).not.toThrow()
+
+      index.add(createTestDoc('doc-1', 'page', 'Test Document'))
+      index.remove('doc-1')
+      expect(() => index.remove('doc-1')).not.toThrow()
+      expect(index.search({ text: 'test' })).toHaveLength(0)
+    })
+
     it('should update document in index', () => {
       const doc = createTestDoc('doc-1', 'page', 'Alpha Title')
       index.add(doc)
