@@ -47,18 +47,18 @@ export function Workbench({ children }: { children: ReactNode }) {
 
   if (mode === 'zen') {
     return (
-      <div className="flex h-dvh flex-col bg-surface-0 text-ink-1">
+      <div className="mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col bg-surface-0 text-ink-1">
         <WorkspaceCommands />
         <GlobalSearch />
-        <main className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1">
           <EditorArea>{children}</EditorArea>
-        </main>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-surface-1 text-ink-1">
+    <div className="mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col bg-surface-1 text-ink-1">
       <WorkspaceCommands />
       <GlobalSearch />
       {isDemo && limits && <DemoBanner evictionHours={limits.evictionHours} />}

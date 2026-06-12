@@ -39,10 +39,10 @@ const SCHEMA_IDS: Record<ExplorerNodeType, string> = {
 
 const TYPE_FILTERS: Array<{ id: ExplorerNodeType | 'all'; label: string }> = [
   { id: 'all', label: 'All' },
-  { id: 'page', label: 'Pages' },
-  { id: 'database', label: 'Databases' },
-  { id: 'canvas', label: 'Canvases' },
-  { id: 'dashboard', label: 'Dashboards' }
+  { id: 'page', label: 'Page' },
+  { id: 'database', label: 'Database' },
+  { id: 'canvas', label: 'Canvas' },
+  { id: 'dashboard', label: 'Dashboard' }
 ]
 
 const QUERY_LIMIT = 500

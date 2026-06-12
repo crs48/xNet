@@ -193,7 +193,7 @@ function GroupPane({
       {mode !== 'zen' && group.tabs.length > 0 && <TabBar group={group} routed={routed} />}
       <div className="min-h-0 flex-1">
         {isActive ? (
-          <div className="h-full min-h-0 overflow-y-auto p-6">{children}</div>
+          <main className="h-full min-h-0 overflow-y-auto p-6">{children}</main>
         ) : activeTab ? (
           <ViewHost tab={activeTab} />
         ) : null}
