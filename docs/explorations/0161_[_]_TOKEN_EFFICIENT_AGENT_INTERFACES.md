@@ -548,16 +548,16 @@ function toTsv(rows: Record<string, unknown>[], cols: string[]): string {
 
 - [x] Add lazy scoped checkout to `AiWorkspaceExporter` (`scope: query|view|folder`, no default-100 eager export)
 - [x] Semantic-slug filenames with frontmatter UUIDs (dedupe via short hash suffix only on collision)
-- [ ] Harden the watcher: chokidar/polling fallback, validation-warning → conflict (never lossy apply), `xnet daemon` mode
+- [x] Harden the watcher: chokidar/polling fallback, validation-warning → conflict (never lossy apply), `xnet daemon` mode
 - [x] Generate read-optimized `.tsv` sidecars for databases above N rows; keep `rows.jsonl` as the write format
 - [x] Conflict UX: human/agent-readable conflict notes in `.xnet/conflicts/` with resolution instructions
 
 ### Phase 2 — `xnet` CLI + SKILL.md
 
-- [ ] Implement `checkout/status/commit/search/query/db get|set/run` in `packages/cli` as thin wrappers over `AiSurfaceService` + exporter + `HybridSearch`
-- [ ] `--format tsv|jsonl|md` everywhere; TSV default for tabular; concise-by-default with `--detailed`
-- [ ] Write the ~800-token SKILL.md; ship it in checkouts (alongside the existing generated `AGENTS.md`/`.mcp.json`) and publish for Claude Code/Codex/Gemini CLI/Cursor
-- [ ] `xnet run <script>`: extend the sandbox (`packages/plugins/src/sandbox/`) with `@xnet/agent-api` — filtered queries + plan-write proposals (still apply through the plan pipeline)
+- [x] Implement `checkout/status/commit/search/query/db get|set/run` in `packages/cli` as thin wrappers over `AiSurfaceService` + exporter + `HybridSearch`
+- [x] `--format tsv|jsonl|md` everywhere; TSV default for tabular; concise-by-default with `--detailed`
+- [x] Write the ~800-token SKILL.md; ship it in checkouts (alongside the existing generated `AGENTS.md`/`.mcp.json`) and publish for Claude Code/Codex/Gemini CLI/Cursor (`xnet skill` prints it for harness installation)
+- [x] `xnet run <script>`: extend the sandbox (`packages/plugins/src/sandbox/`) with `@xnet/agent-api` — filtered queries + plan-write proposals (still apply through the plan pipeline)
 
 ### Phase 3 — Slim the MCP layer
 

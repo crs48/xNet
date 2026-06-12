@@ -13,6 +13,17 @@ export type {
   ArrayHelpers
 } from './context'
 
+// Agent API (code-execution surface for `xnet run`)
+export { createAgentScriptContext } from './agent-api'
+export type {
+  AgentApi,
+  AgentScriptContext,
+  AgentScriptSession,
+  AgentSearchResult,
+  AgentWriteProposal,
+  CreateAgentScriptContextInput
+} from './agent-api'
+
 // AST Validator
 export { validateScriptAST, quickSafetyCheck } from './ast-validator'
 export type { ValidationResult } from './ast-validator'

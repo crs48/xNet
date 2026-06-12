@@ -16,6 +16,7 @@ import { watch as watchFs, type FSWatcher } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { attachAiPlanValidation, createAiOperation, createAiSurfaceService } from '../ai-surface'
+import { toTsv } from '../ai-surface/format'
 import { XNET_AGENT_SKILL_MD } from '../ai-surface/skill'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -1208,38 +1209,6 @@ function slugify(value: string): string {
     .replace(/[^\w.-]+/g, '-')
     .replace(/^-+|-+$/g, '')
   return slug || 'untitled'
-}
-
-/** Render rows as TSV for cheap agent reads. Tabs/newlines collapse to spaces. */
-function toTsv(nodeRows: Record<string, unknown>[]): string {
-  const rows = nodeRows.map(flattenRowForTsv)
-  if (rows.length === 0) return ''
-  const columns: string[] = []
-  for (const row of rows) {
-    for (const key of Object.keys(row)) {
-      if (!columns.includes(key)) columns.push(key)
-    }
-  }
-  const formatCell = (value: unknown): string => {
-    if (value === null || value === undefined) return ''
-    const text = typeof value === 'object' ? JSON.stringify(value) : String(value)
-    return text.replace(/[\t\n\r]+/g, ' ')
-  }
-  const lines = [
-    columns.join('\t'),
-    ...rows.map((row) => columns.map((column) => formatCell(row[column])).join('\t'))
-  ]
-  return `${lines.join('\n')}\n`
-}
-
-/** Database rows are node-shaped; lift `properties` to top-level TSV columns. */
-function flattenRowForTsv(row: Record<string, unknown>): Record<string, unknown> {
-  if (!isRecord(row.properties)) return row
-  return {
-    ...(typeof row.id === 'string' ? { id: row.id } : {}),
-    ...row.properties,
-    ...(row.updatedAt !== undefined ? { updatedAt: row.updatedAt } : {})
-  }
 }
 
 function manifestEntry(
