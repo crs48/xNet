@@ -15,7 +15,9 @@ import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
   CanvasPdfPageViewer,
+  CANVAS_INTERNAL_NODE_MIME,
   CANVAS_MIND_MAP_CREATION_TOOL,
+  serializeCanvasInternalNodeDragData,
   createCanvasFrameExportDocument,
   createCanvasPdfPageAnchorId,
   createCanvasMindMapRootProperties,
@@ -45,6 +47,7 @@ import {
   useBlobService
 } from '@xnetjs/editor/react'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
+import { setNodeTransfer } from '@xnetjs/ui'
 import {
   Download,
   FileImage,
@@ -1340,6 +1343,30 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
               className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/60 bg-background/84 px-3 py-2 shadow-lg backdrop-blur-xl"
               data-web-canvas-selection-pill="true"
               data-canvas-theme={theme.mode}
+              draggable={Boolean(selectedCanvasObject)}
+              onDragStart={(event) => {
+                // Dragging the pill carries the card's *source* node out
+                // of the canvas — excerpting, never copying (0166).
+                if (!selectedCanvasObject) return
+                event.dataTransfer.effectAllowed = 'copyMove'
+                setNodeTransfer(event, {
+                  nodeId: selectedCanvasObject.sourceNodeId,
+                  nodeType: 'node',
+                  title: selectedCanvasObject.title,
+                  schemaId: selectedCanvasObject.node.sourceSchemaId,
+                  sourceContext: 'canvas-card'
+                })
+                if (selectedCanvasObject.node.sourceSchemaId) {
+                  event.dataTransfer.setData(
+                    CANVAS_INTERNAL_NODE_MIME,
+                    serializeCanvasInternalNodeDragData({
+                      nodeId: selectedCanvasObject.sourceNodeId,
+                      schemaId: selectedCanvasObject.node.sourceSchemaId,
+                      title: selectedCanvasObject.title
+                    })
+                  )
+                }
+              }}
             >
               <span className="max-w-[min(52vw,420px)] truncate px-2 text-sm text-foreground">
                 {selectedCanvasNode.title}

@@ -16,6 +16,8 @@ import {
   CommentPopover,
   CommentsSidebar,
   OrphanedThreadList,
+  getNodeTransfer,
+  hasNodeTransfer,
   type CommentThreadData,
   type OrphanedThread
 } from '@xnetjs/ui'
@@ -26,7 +28,8 @@ import {
   useContextPanel,
   type ContextPanelSection
 } from '../workbench/context-panel'
-import { useWorkbench } from '../workbench/state'
+import { navigateToNode } from '../workbench/navigation'
+import { useWorkbench, type TabNodeType } from '../workbench/state'
 import { BacklinksPanel } from './BacklinksPanel'
 import { Editor as EditorComponent } from './Editor'
 import { PageTasksPanel } from './PageTasksPanel'
@@ -617,9 +620,47 @@ export function PageView({ docId }: { docId: string }) {
 
   useContextPanel(`page:${docId}`, contextSections)
 
-  // Handle wikilink navigation
+  // Handle wikilink navigation. Reference chips created by node drops
+  // encode non-page targets as xnet://<type>/<id> (0166).
   const handleNavigate = (targetDocId: string) => {
+    const match = targetDocId.match(/^xnet:\/\/([a-z]+)\/(.+)$/)
+    if (match) {
+      navigateToNode(navigate, match[1] as TabNodeType, match[2])
+      return
+    }
     navigate({ to: '/doc/$docId', params: { docId: targetDocId } })
+  }
+
+  // Dropping any node onto the editor inserts a reference chip (a
+  // wikilink mark) at the drop point — a reference, never a copy.
+  const handleEditorDragOver = (event: React.DragEvent) => {
+    if (hasNodeTransfer(event)) event.preventDefault()
+  }
+
+  const handleEditorDrop = (event: React.DragEvent) => {
+    const transfer = getNodeTransfer(event)
+    if (!transfer) return
+    event.preventDefault()
+    event.stopPropagation()
+    const editor = editorRef.current
+    if (!editor) return
+    const title = transfer.title || 'Untitled'
+    const href =
+      transfer.nodeType === 'page'
+        ? transfer.nodeId
+        : `xnet://${transfer.nodeType}/${transfer.nodeId}`
+    const pos =
+      editor.view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos ??
+      editor.state.selection.to
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(pos, {
+        type: 'text',
+        text: title,
+        marks: [{ type: 'wikilink', attrs: { href, title } }]
+      })
+      .run()
   }
 
   if (loading) {
@@ -704,7 +745,11 @@ export function PageView({ docId }: { docId: string }) {
       {/* Editor + Sidebar horizontal layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor */}
-        <div className="flex-1 overflow-auto px-6 py-4">
+        <div
+          className="flex-1 overflow-auto px-6 py-4"
+          onDragOverCapture={handleEditorDragOver}
+          onDropCapture={handleEditorDrop}
+        >
           <div className="max-w-3xl mx-auto">
             <EditorComponent
               doc={doc}

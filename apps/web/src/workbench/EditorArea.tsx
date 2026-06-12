@@ -19,7 +19,7 @@ import { Hairline } from './Hairline'
 import { navigateToNode } from './navigation'
 import { useWorkbench, tabIdFor, type EditorGroup, type TabNodeType } from './state'
 import { TabBar } from './TabBar'
-import { consumePreviewIntent, tabFromPathname } from './tabs'
+import { consumePreviewIntent, tabFromPathname, TAB_VIEWS } from './tabs'
 import { ViewHost } from './ViewHost'
 
 type Navigate = ReturnType<typeof useNavigate>
@@ -275,7 +275,7 @@ export function EditorArea({ children }: { children: ReactNode }) {
           onDrop={(e) => {
             const transfer = getNodeTransfer(e)
             setDragDepth(0)
-            if (!transfer) return
+            if (!transfer || !(transfer.nodeType in TAB_VIEWS)) return
             e.preventDefault()
             e.stopPropagation()
             useWorkbench.getState().splitWith({

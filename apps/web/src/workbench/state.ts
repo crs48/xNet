@@ -61,6 +61,13 @@ export interface RecentEntry {
   at: number
 }
 
+export interface ShelfEntry {
+  nodeId: string
+  nodeType: string
+  title?: string
+  schemaId?: string
+}
+
 const MAX_RECENTS = 30
 
 export function tabIdFor(nodeType: TabNodeType, nodeId: string): string {
@@ -93,6 +100,8 @@ interface WorkbenchState {
   activeGroupId: string
   pinnedNodeIds: string[]
   recents: RecentEntry[]
+  /** Muse-style shelf: nodes held in transit between contexts */
+  shelf: ShelfEntry[]
 
   // ─── Panels ────────────────────────────────────────────────────
   setPanelOpen: (side: PanelSide, open: boolean) => void
@@ -134,6 +143,11 @@ interface WorkbenchState {
   // ─── Explorer pins & recents ───────────────────────────────────
   togglePinnedNode: (nodeId: string) => void
   touchRecent: (entry: Omit<RecentEntry, 'at'>) => void
+
+  // ─── Shelf ─────────────────────────────────────────────────────
+  shelfAdd: (entry: ShelfEntry) => void
+  shelfRemove: (nodeId: string) => void
+  shelfClear: () => void
 }
 
 function freshGroups(): EditorGroup[] {
@@ -152,6 +166,7 @@ export const useWorkbench = create<WorkbenchState>()(
       activeGroupId: 'group-1',
       pinnedNodeIds: [],
       recents: [],
+      shelf: [],
 
       setPanelOpen: (side, open) => set((state) => ({ [side]: { ...state[side], open } })),
 
@@ -407,7 +422,17 @@ export const useWorkbench = create<WorkbenchState>()(
         set((state) => {
           const rest = state.recents.filter((recent) => recent.nodeId !== entry.nodeId)
           return { recents: [{ ...entry, at: Date.now() }, ...rest].slice(0, MAX_RECENTS) }
-        })
+        }),
+
+      shelfAdd: (entry) =>
+        set((state) => ({
+          shelf: [entry, ...state.shelf.filter((held) => held.nodeId !== entry.nodeId)]
+        })),
+
+      shelfRemove: (nodeId) =>
+        set((state) => ({ shelf: state.shelf.filter((held) => held.nodeId !== nodeId) })),
+
+      shelfClear: () => set({ shelf: [] })
     }),
     {
       name: 'xnet:workbench:v1'

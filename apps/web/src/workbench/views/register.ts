@@ -5,6 +5,7 @@
 import { registerPanelView } from '../PanelViewHost'
 import { Explorer } from './Explorer'
 import { DataPanelView, TasksPanelView } from './left'
+import { ShelfTray } from './Shelf'
 import { NotificationsTray, QueryConsoleTray, QuickCaptureTray, SyncTray } from './tray'
 
 export function registerBuiltinPanelViews(): void {
@@ -12,6 +13,7 @@ export function registerBuiltinPanelViews(): void {
   registerPanelView('left', { id: 'tasks', title: 'Tasks', component: TasksPanelView })
   registerPanelView('left', { id: 'data', title: 'Data', component: DataPanelView })
 
+  registerPanelView('bottom', { id: 'shelf', title: 'Shelf', component: ShelfTray })
   registerPanelView('bottom', { id: 'capture', title: 'Capture', component: QuickCaptureTray })
   registerPanelView('bottom', {
     id: 'notifications',

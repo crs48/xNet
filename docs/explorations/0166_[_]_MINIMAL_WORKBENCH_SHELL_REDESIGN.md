@@ -728,11 +728,14 @@ Phase 4 — Keyboard & palette
 
 Phase 5 — Drag everywhere
 
-- [ ] `XNET_NODE_MIME` transfer module in `packages/ui`; adopt in Explorer,
-      tabs, grid rows, tasks, canvas cards, editor blocks
-- [ ] Reference-creating drop handlers: canvas card, page chip, relation
+- [x] `XNET_NODE_MIME` transfer module in `packages/ui`; adopt in Explorer,
+      tabs, grid rows (via the row-detail chip — in-grid row drag stays on
+      dnd-kit reorder), tasks (My Tasks rows), canvas cards (selection-pill
+      drag-out carries the source reference; editor blocks stay on
+      ProseMirror's internal drag for now)
+- [x] Reference-creating drop handlers: canvas card, page chip, relation
       link, tab open, split open
-- [ ] Shelf (Muse-style holding area) in the bottom tray for multi-step moves
+- [x] Shelf (Muse-style holding area) in the bottom tray for multi-step moves
 
 Phase 6 — Extensibility & flip
 

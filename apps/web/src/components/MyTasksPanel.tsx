@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router'
-import { PageSchema } from '@xnetjs/data'
+import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
+import { PageSchema, TaskSchema } from '@xnetjs/data'
 import { useIdentity, useQuery, useTasks } from '@xnetjs/react'
+import { setNodeTransfer } from '@xnetjs/ui'
 import { Calendar, CheckSquare2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
 
@@ -65,6 +67,25 @@ export function MyTasksPanel(): JSX.Element | null {
               const pageTitle = pageId ? pageTitles.get(pageId) : null
               const content = (
                 <div
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = 'copyMove'
+                    setNodeTransfer(event, {
+                      nodeId: task.id,
+                      nodeType: 'task',
+                      title: typeof task.title === 'string' ? task.title : 'Task',
+                      schemaId: TaskSchema._schemaId,
+                      sourceContext: 'task'
+                    })
+                    event.dataTransfer.setData(
+                      CANVAS_INTERNAL_NODE_MIME,
+                      serializeCanvasInternalNodeDragData({
+                        nodeId: task.id,
+                        schemaId: TaskSchema._schemaId,
+                        title: typeof task.title === 'string' ? task.title : 'Task'
+                      })
+                    )
+                  }}
                   className="flex items-start gap-2 px-2 py-2 rounded-md transition-colors hover:bg-accent/50"
                   title={task.title}
                 >

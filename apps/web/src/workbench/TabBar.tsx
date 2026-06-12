@@ -15,6 +15,10 @@ import { navigateToNode } from './navigation'
 import { useWorkbench, type EditorGroup, type TabNodeType, type WorkbenchTab } from './state'
 import { TAB_VIEWS } from './tabs'
 
+function asTabNodeType(nodeType: string): TabNodeType | null {
+  return nodeType in TAB_VIEWS ? (nodeType as TabNodeType) : null
+}
+
 function tabDisplayTitle(tab: WorkbenchTab): string {
   return tab.title || TAB_VIEWS[tab.nodeType].label
 }
@@ -88,9 +92,11 @@ function TabItem({
         if (transfer.sourceContext === 'tab') {
           state.moveTab(`${transfer.nodeType}:${transfer.nodeId}`, group.id, index)
         } else {
+          const nodeType = asTabNodeType(transfer.nodeType)
+          if (!nodeType) return
           state.openTab({
             nodeId: transfer.nodeId,
-            nodeType: transfer.nodeType as TabNodeType,
+            nodeType,
             title: transfer.title,
             groupId: group.id
           })
@@ -196,9 +202,11 @@ export function TabBar({ group, routed }: { group: EditorGroup; routed: boolean 
         if (transfer.sourceContext === 'tab') {
           state.moveTab(`${transfer.nodeType}:${transfer.nodeId}`, group.id, group.tabs.length)
         } else {
+          const nodeType = asTabNodeType(transfer.nodeType)
+          if (!nodeType) return
           state.openTab({
             nodeId: transfer.nodeId,
-            nodeType: transfer.nodeType as TabNodeType,
+            nodeType,
             title: transfer.title,
             groupId: group.id
           })

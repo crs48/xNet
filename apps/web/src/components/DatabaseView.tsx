@@ -7,11 +7,13 @@
  * through the universal commenting system.
  */
 
+import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
 import {
   type CellValue,
   type ColumnDefinition,
   type FieldType,
   type FileRef,
+  DatabaseRowSchema,
   DatabaseSchema,
   FIELD_TYPES,
   downloadCsv,
@@ -24,7 +26,7 @@ import {
 } from '@xnetjs/data'
 import { useBlobService } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
-import { CommentPopover, type CommentThreadData } from '@xnetjs/ui'
+import { CommentPopover, setNodeTransfer, type CommentThreadData } from '@xnetjs/ui'
 import {
   type CellPresence,
   type GridField,
@@ -324,7 +326,32 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         title: 'Row',
         content: peekRow ? (
           <div className="flex flex-col gap-3 p-3 text-xs text-ink-2">
-            <div className="flex items-center justify-between gap-2">
+            <div
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = 'copyMove'
+                const title = formatPeekCellValue(
+                  peekRow.cells.title ?? peekRow.cells.name ?? peekRow.id
+                )
+                setNodeTransfer(event, {
+                  nodeId: peekRow.id,
+                  nodeType: 'row',
+                  title,
+                  schemaId: DatabaseRowSchema._schemaId,
+                  sourceContext: 'grid-row'
+                })
+                event.dataTransfer.setData(
+                  CANVAS_INTERNAL_NODE_MIME,
+                  serializeCanvasInternalNodeDragData({
+                    nodeId: peekRow.id,
+                    schemaId: DatabaseRowSchema._schemaId,
+                    title
+                  })
+                )
+              }}
+              className="flex cursor-grab items-center justify-between gap-2 rounded-sm border border-hairline bg-surface-0 px-2 py-1"
+              title="Drag this row onto a canvas, relation cell, or the shelf"
+            >
               <span className="text-ink-3">Row</span>
               <span className="truncate font-mono text-[11px]">{peekRow.id}</span>
             </div>
