@@ -6,7 +6,7 @@ import type { AuthContext } from '../auth/ucan'
 import type { HubStorage, SerializedNodeChange } from '../storage/interface'
 import type { ContentId, DID } from '@xnetjs/core'
 import { base64ToBytes } from '@xnetjs/crypto'
-import { isSystemNamespaceResource, isSystemSchemaIri } from '@xnetjs/data'
+import { isSystemNamespaceResource, isSystemSchemaIri, isValidMentions } from '@xnetjs/data'
 import { parseDID } from '@xnetjs/identity'
 import { verifyChange, verifyChangeHash, type Change } from '@xnetjs/sync'
 import { reportUnauthorizedRemoteWrite } from './remote-mutation-telemetry'
@@ -87,6 +87,14 @@ export class NodeRelayService {
 
     if (!verifyChange(change, publicKey)) {
       throw new NodeRelayError('INVALID_SIGNATURE', 'Change signature is invalid')
+    }
+
+    // Structured mentions (exploration 0168): clients declare mentions;
+    // the hub validates plaintext declarations (shape + size cap) so a
+    // hostile client cannot mention-bomb through the relay.
+    const mentions = (change.payload?.properties as Record<string, unknown> | undefined)?.mentions
+    if (mentions !== undefined && mentions !== null && !isValidMentions(mentions)) {
+      throw new NodeRelayError('INVALID_CHANGE', 'Malformed mentions declaration')
     }
 
     const exists = await this.storage.hasNodeChange(change.hash)

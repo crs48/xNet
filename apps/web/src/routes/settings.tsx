@@ -15,9 +15,11 @@ import {
   LogOut,
   Puzzle,
   User,
+  UserRound,
   Wifi
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
+import { ProfileSettings } from '../comms/ProfileSettings'
 import { PluginManager } from '../components/PluginManager'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { logout } from '../lib/identity'
@@ -26,7 +28,14 @@ export const Route = createFileRoute('/settings')({
   component: SettingsPage
 })
 
-type SettingsSection = 'appearance' | 'data' | 'network' | 'plugins' | 'account' | 'about'
+type SettingsSection =
+  | 'profile'
+  | 'appearance'
+  | 'data'
+  | 'network'
+  | 'plugins'
+  | 'account'
+  | 'about'
 
 interface SectionConfig {
   id: SettingsSection
@@ -36,6 +45,12 @@ interface SectionConfig {
 }
 
 const SECTIONS: SectionConfig[] = [
+  {
+    id: 'profile',
+    label: 'Profile',
+    icon: <UserRound size={18} />,
+    description: 'Name and avatar'
+  },
   {
     id: 'appearance',
     label: 'Appearance',
@@ -103,6 +118,7 @@ function SettingsPage() {
 
       {/* Content Area */}
       <div className="flex-1 overflow-auto p-6">
+        {activeSection === 'profile' && <ProfileSettings />}
         {activeSection === 'appearance' && <AppearanceSettings />}
         {activeSection === 'data' && <DataSettings />}
         {activeSection === 'network' && <NetworkSettings />}

@@ -1,0 +1,32 @@
+{
+  "name": "@xnetjs/comms",
+  "version": "0.0.1",
+  "description": "Real-time communications for xNet: presence rooms, chat, calls, and the notification inbox (explorations 0167/0168)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/data": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.24"
+  },
+  "private": true
+}

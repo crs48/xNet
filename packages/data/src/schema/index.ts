@@ -135,6 +135,27 @@ export { MediaAssetSchema, type MediaAsset } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export { CommentSchema, type Comment } from './schemas'
 export { ReactionSchema, type Reaction } from './schemas'
+export { ProfileSchema, type Profile } from './schemas'
+export { ChannelSchema, CHANNEL_KINDS, type Channel, type ChannelKind } from './schemas'
+export { ChatMessageSchema, type ChatMessage } from './schemas'
+export {
+  InboxStateSchema,
+  inboxStateNodeId,
+  DEFAULT_CHANNEL_TIER,
+  type InboxState,
+  type InboxWatermark,
+  type InboxItemTriage,
+  type ChannelNotifyTier,
+  type NotificationPrefs
+} from './schemas'
+export {
+  MAX_MENTION_DIDS,
+  normalizeMentions,
+  mentionsInclude,
+  isValidMentions,
+  type MessageMentions
+} from './schemas'
+export { extractMentions, getMentionedUsers, type Mention } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
 export {
