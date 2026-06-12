@@ -1,0 +1,99 @@
+---
+title: 'Chat, Presence & Calls'
+draft: false
+description: 'Channels, DMs, typed presence rooms, and peer-to-peer WebRTC calls.'
+---
+
+:::note[You will learn]
+
+- How channels, DMs, and voice rooms are modeled as nodes
+- How presence rooms work (who's here, typing, in a call)
+- How peer-to-peer calls connect and their mesh limits
+- What the hub adds (signaling relay, mention validation)
+  :::
+
+## Overview
+
+`@xnetjs/comms` brings real-time communication to the workspace using the same
+local-first machinery as everything else: **messages are signed nodes**, not a
+separate protocol. A channel is a `Channel` node (`channel`, `dm`, or `voice`),
+each message is a `ChatMessage` node signed by its author, and read state is
+your own private `InboxState` node. Everything syncs peer-to-peer, works
+offline, and lands in the same store your queries already read.
+
+## Channels and DMs
+
+- **Channels** open as workbench tabs (`/channel/$channelId`) with typing
+  indicators, an `@`-mention autocomplete composer, and call join controls.
+- **DMs** need no coordination to create: the channel ID is derived
+  deterministically from the sorted member DIDs, so both sides materialize the
+  same conversation independently.
+- **Per-document chat** — a channel can target any node, which powers the
+  Room section in the right panel: every page, canvas, or database gets a
+  discussion thread alongside a who's-here roster.
+- **Voice rooms** are channels with `kind: 'voice'`; opening one joins the
+  call automatically (the Discord model), and occupancy shows in the Chats
+  panel.
+
+Display names and avatars resolve through `Profile` nodes (DID → name /
+avatar / status), editable in Settings.
+
+### Mentions are structured
+
+Mentions are never parsed out of message text. Composers populate a
+`mentions: { dids, room? }` field on the message — the model used by Matrix's
+intentional-mentions spec — so notification logic is deterministic and a
+hostile client can't sneak a mention past a renderer difference.
+
+## Presence rooms
+
+Presence is built on **rooms**: refcounted awareness sessions over any node
+ID with typed fields — `user`, `viewing`, `status`, `typing`, `call`. The
+workspace presence room drives the global roster (the "◉ n here" chip in the
+status bar); per-node rooms drive who's-viewing-this-page and typing
+indicators. Open the same room from five components and they share one
+session.
+
+## Calls
+
+Calls are **full-mesh WebRTC**:
+
+- Offer initiation is deterministic (ordered by DID), so two peers never
+  glare.
+- The mesh ceiling is enforced reactively: **4 participants with video, 8
+  audio-only**. Beyond that, a selective-forwarding tier is on the roadmap.
+- Screen sharing replaces your video track — no renegotiation hiccup.
+- The call UI lives in a **floating dock** mounted outside the router, so
+  navigating tabs never drops a call (the Slack-huddle property).
+
+Signaling is a pluggable transport. With a hub, call setup reuses the hub's
+existing pub/sub broker — no new server protocol; an in-memory loopback
+transport exists for tests and same-device flows.
+
+## What the hub adds
+
+A [hub](/docs/guides/hub/) is optional for chat as for everything else, but
+when present it:
+
+- relays call signaling (`call/join`, `call/signal`) over its existing
+  WebSocket broker
+- validates mention declarations at relay time (shape checks and a 50-DID
+  cap) so clients can't mention-bomb a channel
+- will carry push notification delivery (in progress)
+
+For larger calls, deploy a TURN server alongside the hub — see the deployment
+recipes in the repository (`docs/deployment/REALTIME_CALLS.md`).
+
+## Current limits
+
+Chat content is signed and syncs over encrypted transports, but **per-channel
+end-to-end encryption phases are still in progress** — treat channel content
+like the rest of your workspace data today. SFU-tier large calls and push
+delivery are also on the roadmap (see the [roadmap](/#roadmap)).
+
+## Further reading
+
+- [Notifications & Inbox](/docs/guides/notifications/) — how messages become
+  notifications
+- [Collaboration](/docs/guides/collaboration/) — document presence and cursors
+- [Hub](/docs/guides/hub/) — running an always-on relay

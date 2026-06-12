@@ -25,10 +25,11 @@ import {
   type TaskMentionSuggestion
 } from '@xnetjs/editor/react'
 import { useMutate } from '@xnetjs/react'
-import { TaskDetailForm } from '@xnetjs/ui'
+import { TaskDetailForm, type TaskTagOption } from '@xnetjs/ui'
 import { Pin } from 'lucide-react'
 import { useMemo } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
+import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useWorkbench } from '../workbench/state'
 import {
   diffAssignees,
@@ -110,8 +111,15 @@ export function TaskInlineEditor({
   const navigate = useNavigate()
   const { update } = useMutate()
   const people = useWorkspacePeople()
+  const { allTags, suggestions: tagOptions, getOrCreateTag } = useWorkspaceTags()
 
   const display = useMemo(() => toTaskDisplayData(task), [task])
+
+  // Tags are node-owned (like status/priority): always editable.
+  const selectedTags = useMemo<TaskTagOption[]>(() => {
+    const ids = Array.isArray(task.tags) ? task.tags.map(String) : []
+    return ids.map((id) => ({ id, name: allTags.find((tag) => tag.id === id)?.name ?? id }))
+  }, [task.tags, allTags])
   const host = taskHostInfo(task)
   const docEditable = host.hostOwned && Boolean(hostEditor)
 
@@ -175,6 +183,10 @@ export function TaskInlineEditor({
       }
       onDueDateChange={pickMetaHandler(host, docEditable, applyDocDueDate, updateNodeDueDate)}
       onAssigneesChange={pickMetaHandler(host, docEditable, applyDocAssignees, updateNodeAssignees)}
+      tags={selectedTags}
+      tagOptions={tagOptions}
+      onTagsChange={(taskId, tagIds) => void update(TaskSchema, taskId, { tags: tagIds })}
+      onCreateTag={async (name) => (await getOrCreateTag(name))?.id ?? null}
       onOpenSource={host.sourceLabel ? handleOpenSource : undefined}
       footerExtra={<PinToggle taskId={task.id} />}
     />

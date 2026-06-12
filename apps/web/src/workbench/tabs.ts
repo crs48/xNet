@@ -10,6 +10,7 @@ import {
   CheckSquare2,
   Database,
   FileText,
+  Hash,
   Layout,
   LayoutDashboard,
   MessageSquare,
@@ -39,7 +40,8 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   savedview: { label: 'Saved view', icon: Table2, toRoute: (id) => `/view/${id}` },
   tasks: { label: 'Tasks', icon: CheckSquare2, toRoute: () => '/tasks', singleton: true },
   data: { label: 'Data', icon: Network, toRoute: () => '/data', singleton: true },
-  channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` }
+  channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` },
+  tag: { label: 'Tag', icon: Hash, toRoute: (id) => `/tag/${id}` }
 }
 
 const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
@@ -48,7 +50,8 @@ const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/canvas/', nodeType: 'canvas' },
   { prefix: '/dashboard/', nodeType: 'dashboard' },
   { prefix: '/view/', nodeType: 'savedview' },
-  { prefix: '/channel/', nodeType: 'channel' }
+  { prefix: '/channel/', nodeType: 'channel' },
+  { prefix: '/tag/', nodeType: 'tag' }
 ]
 
 export interface RouteTabDescriptor {

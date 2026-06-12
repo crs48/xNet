@@ -1,0 +1,103 @@
+---
+title: 'Agent Interfaces'
+draft: false
+description: 'The files-first surface for AI agents: workspace checkouts, the xnet CLI, SKILL.md, and slim MCP.'
+---
+
+:::note[You will learn]
+
+- Why the filesystem is the primary agent surface
+- The checkout layout and how edits flow back safely
+- The `xnet` CLI verbs and the ~500-token SKILL.md
+- When to fall back to MCP
+  :::
+
+## Files first
+
+Coding agents are already excellent at reading, grepping, and editing files —
+so xNet's primary agent interface is a **filesystem projection of the
+workspace**, not a wall of tool definitions. The store stays the source of
+truth; the checkout is a working tree. Every surface (files, CLI, MCP) funnels
+into the same plan → validate → apply core, so an agent can never corrupt the
+workspace with a malformed write.
+
+Measured on a 15-task benchmark, the files+CLI surface completes the same work
+at **~0.11x the tokens** of a traditional MCP toolset (0.05x on synthesis
+tasks), with equal task success.
+
+## The checkout
+
+`xnet checkout` materializes a scoped slice of the workspace into a folder:
+
+```
+Pages/q3-planning.md            # Markdown + YAML frontmatter (xnet.id, revision)
+Databases/tasks.schema.json     # the schema
+Databases/tasks.rows.jsonl      # one JSON object per line — edit/append/delete
+Databases/tasks.tsv             # read-only fast-read sidecar (large tables)
+Canvases/roadmap.canvas         # JSON Canvas projection
+SKILL.md                        # the agent contract (~500 tokens)
+.xnet/                          # manifest, conflict notes
+```
+
+Filenames are semantic slugs; identity lives in frontmatter and the manifest,
+never in filenames. Wikilinks (`[[Title]]`), `:::xnet-database` blocks, and
+`{{xnet-ref}}` directives are live references and survive round-trips.
+
+Checkouts are **scoped and incremental** — by query, schema, kind, or node
+(`xnet checkout --query "roadmap"`); repeated checkouts merge. Agents never
+need (and are told not to) export the whole workspace.
+
+### Edits become validated plans
+
+File edits are diffed into **mutation plans**, validated against schemas, and
+applied to the store — automatically with `xnet daemon` running, or on
+`xnet commit`. Anything that doesn't validate, or collides with a newer
+revision, is **quarantined as a conflict**: a Markdown note in
+`.xnet/conflicts/` explains what happened and how to resolve it. Stale edits
+never silently overwrite newer data.
+
+## The xnet CLI
+
+| Command | Purpose |
+| --- | --- |
+| `xnet checkout` | Materialize / extend a scoped checkout |
+| `xnet status` | Pending plans and conflicts |
+| `xnet commit [--apply]` | Turn file edits into applied mutations |
+| `xnet search "<text>"` | Ranked full-text search (TSV: id, slug, title, snippet) |
+| `xnet query <db> --where field=value` | Query tables (TSV default; `jsonl`/`json`/`md`) |
+| `xnet db get/set` | Single-cell reads and writes |
+| `xnet run <script.js>` | Sandboxed bulk work over a bounded `api` object |
+| `xnet daemon` | Watch the checkout and auto-apply valid edits |
+| `xnet skill` | Print SKILL.md |
+
+Output is TSV-first and concise by default (`--detailed` to opt out) — built
+for being read by a model, not a human.
+
+`xnet run` executes scripts in a sandbox with bounded reads and **write
+proposals** (`api.proposeUpdate`, `api.proposeCreate`) that flow through the
+same validated plan pipeline as file edits.
+
+## SKILL.md
+
+Every checkout ships a cross-harness `SKILL.md` (~500 tokens) that teaches any
+agent — Claude Code, Codex, Gemini CLI, Cursor — the layout and workflow above.
+That's the entire standing context cost, versus ~5k tokens of always-loaded
+tool definitions for a typical MCP server. Print it any time with
+`xnet skill`.
+
+## Slim MCP
+
+MCP remains as the **no-shell fallback** for harnesses that can't run a CLI.
+It's deliberately slim: five stable core tools are loaded eagerly and
+everything else defers (the non-deferred payload is test-guarded at ≤1.5k
+tokens). Responses are compact JSON by default with
+`response_format: concise | detailed` on every tool.
+
+The doctrine, in order: **files for reading and editing, the CLI for what
+files can't express, MCP only when there's no shell.**
+
+## Further reading
+
+- [For AI Assistants](/docs/ai/understanding-xnet/) — the mental model for
+  agents writing *app code* against xNet
+- [Plugins](/docs/guides/plugins/) — the integration layer MCP belongs to

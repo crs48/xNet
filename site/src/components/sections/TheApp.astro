@@ -16,15 +16,39 @@ const tools = [
   },
   {
     title: 'Canvas',
-    description: 'Visual thinking on an infinite whiteboard. Arrange ideas freely, draw connections, embed documents. Like Miro meets Obsidian.',
+    description: 'Visual thinking on an infinite whiteboard. Arrange ideas freely, draw and edit connections, embed documents. Like Miro meets Obsidian.',
     icon: 'canvas',
     color: 'amber',
   },
   {
     title: 'Tasks',
-    description: 'Manage projects with status, priority, assignees, and due dates. View as kanban boards, lists, or calendars.',
+    description: 'Manage projects with status, priority, assignees, and due dates. Edit tasks in place on any surface — boards, lists, pages, or the sidebar.',
     icon: 'task',
     color: 'pink',
+  },
+  {
+    title: 'Dashboards',
+    description: 'Metrics, charts, and feeds over your live data. Pick from built-in widgets or write your own — they run sandboxed and sync like everything else.',
+    icon: 'dashboard',
+    color: 'cyan',
+  },
+  {
+    title: 'Chat & Calls',
+    description: 'Channels, DMs, and peer-to-peer video calls — built on the same local-first sync as your documents. Every page gets its own discussion thread.',
+    icon: 'chat',
+    color: 'violet',
+  },
+  {
+    title: 'Notifications',
+    description: 'Mentions, assignments, and replies land in a private inbox derived locally from sync — no notification server reading your activity.',
+    icon: 'bell',
+    color: 'rose',
+  },
+  {
+    title: 'Instant search',
+    description: 'One palette (⌘K) opens anything, runs any command, and full-text searches every page — entirely on your device.',
+    icon: 'search',
+    color: 'sky',
   },
 ]
 
@@ -33,14 +57,18 @@ const colorMap: Record<string, { border: string, bg: string, text: string, iconB
   emerald: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/[0.03]', text: 'text-emerald-400', iconBg: 'bg-emerald-500/10' },
   amber: { border: 'border-amber-500/20', bg: 'bg-amber-500/[0.03]', text: 'text-amber-400', iconBg: 'bg-amber-500/10' },
   pink: { border: 'border-pink-500/20', bg: 'bg-pink-500/[0.03]', text: 'text-pink-400', iconBg: 'bg-pink-500/10' },
+  cyan: { border: 'border-cyan-500/20', bg: 'bg-cyan-500/[0.03]', text: 'text-cyan-400', iconBg: 'bg-cyan-500/10' },
+  violet: { border: 'border-violet-500/20', bg: 'bg-violet-500/[0.03]', text: 'text-violet-400', iconBg: 'bg-violet-500/10' },
+  rose: { border: 'border-rose-500/20', bg: 'bg-rose-500/[0.03]', text: 'text-rose-400', iconBg: 'bg-rose-500/10' },
+  sky: { border: 'border-sky-500/20', bg: 'bg-sky-500/[0.03]', text: 'text-sky-400', iconBg: 'bg-sky-500/10' },
 }
 ---
 
 <section id="app" class="border-y border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
-      title="Documents. Databases. Canvas. Tasks."
-      subtitle="A complete productivity app that works offline, syncs across your devices, and keeps your data private. No account required. Free forever."
+      title="Your whole workspace. One app."
+      subtitle="Documents, databases, canvas, tasks, dashboards, chat — in a keyboard-first workbench that works offline, syncs across your devices, and keeps your data private. No account required. Free forever."
       align="center"
     />
 
@@ -56,31 +84,35 @@ const colorMap: Record<string, { border: string, bg: string, text: string, iconB
           </div>
           <span class="text-xs text-gray-500 ml-2">xNet</span>
         </div>
-        <!-- Content placeholder - replace with actual screenshot -->
-        <div class="aspect-[16/10] flex items-center justify-center bg-gradient-to-br from-indigo-500/5 via-transparent to-emerald-500/5">
-          <div class="text-center px-8">
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 text-indigo-400 text-sm font-medium mb-4">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              See it in action
-            </div>
-            <p class="text-gray-500 text-sm max-w-md mx-auto mb-6">
-              Documents, databases, and canvas working together. <br class="hidden sm:block" />
-              Try it free in your browser.
-            </p>
-            <a
-              href="/app"
-              class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors"
-            >
-              Try the App
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </a>
-          </div>
-        </div>
+        <!-- Workbench screenshot (light/dark follow the page theme) -->
+        <img
+          src="/images/workbench-light.png"
+          alt="The xNet workbench in light mode: a Q3 Launch Plan document with a task checklist, tabbed pages, the Explorer panel, and a contextual tasks panel"
+          class="block w-full dark:hidden"
+          width="1600"
+          height="1000"
+          loading="lazy"
+        />
+        <img
+          src="/images/workbench-dark.png"
+          alt="The xNet workbench in dark mode: a Q3 Launch Plan document with a task checklist, tabbed pages, the Explorer panel, and a contextual tasks panel"
+          class="hidden w-full dark:block"
+          width="1600"
+          height="1000"
+          loading="lazy"
+        />
+      </div>
+      <div class="mt-6 text-center">
+        <a
+          href="/app"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors"
+        >
+          Try the App
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+        <p class="mt-3 text-sm text-gray-500">Free in your browser — no account, no install.</p>
       </div>
     </div>
 
@@ -122,6 +154,10 @@ const colorMap: Record<string, { border: string, bg: string, text: string, iconB
                 {tool.icon === 'db' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>}
                 {tool.icon === 'canvas' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"/></svg>}
                 {tool.icon === 'task' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>}
+                {tool.icon === 'dashboard' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
+                {tool.icon === 'chat' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>}
+                {tool.icon === 'bell' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>}
+                {tool.icon === 'search' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}
               </div>
               <h3 class={`font-semibold ${c.text}`}>{tool.title}</h3>
             </div>

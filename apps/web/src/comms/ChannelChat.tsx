@@ -3,12 +3,23 @@
  * Room context section (0167). Typing indicators ride room presence; the
  * channel watermark advances (debounced) while the chat is visible.
  */
+import { useNavigate } from '@tanstack/react-router'
 import { sendMessage, typingPeers, type PeerPresence } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
+import { navigateToNode } from '../workbench/navigation'
 import { mergeMentionables, type Mentionable, type ProfileEntry } from './comms-utils'
 import { useComms } from './CommsContext'
+import {
+  applyHashtagPick,
+  composerTags,
+  hashtagQueryAt,
+  shouldSendOnEnter,
+  tagOptionsFor,
+  type TagOption
+} from './hashtag-composer'
 import { useChannelMessages, useInbox, useProfiles, useRoomPresence, displayName } from './hooks'
 import {
   applyMentionPick,
@@ -24,6 +35,8 @@ interface ChatMessageRow {
   createdAt?: number
   edited?: boolean
   redacted?: boolean
+  /** Tag node ids declared by the composer (0169) */
+  tags?: string[]
 }
 
 function formatTime(at: number | undefined): string {
@@ -45,6 +58,28 @@ function MessageBody({ message }: { message: ChatMessageRow }) {
   )
 }
 
+/** Chips rendered from the message's structured tags — never parsed text (0169). */
+function MessageTagChips({ message }: { message: ChatMessageRow }) {
+  const navigate = useNavigate()
+  const { allTags } = useWorkspaceTags()
+  const tagIds = message.tags ?? []
+  if (tagIds.length === 0 || message.redacted) return null
+  return (
+    <div className="flex flex-wrap gap-1">
+      {tagIds.map((tagId) => (
+        <button
+          key={tagId}
+          type="button"
+          onClick={() => navigateToNode(navigate, 'tag', tagId)}
+          className="cursor-pointer rounded-full border border-hairline bg-transparent px-1.5 py-px text-[10px] text-ink-3 transition-colors hover:text-ink-1"
+        >
+          #{allTags.find((tag) => tag.id === tagId)?.name ?? tagId}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function MessageRow({ message, profiles }: { message: ChatMessageRow; profiles: ProfileEntry[] }) {
   const author = displayName(message.createdBy ?? '?', profiles)
   return (
@@ -55,6 +90,7 @@ function MessageRow({ message, profiles }: { message: ChatMessageRow; profiles: 
         <EditedTag message={message} />
       </div>
       <MessageBody message={message} />
+      <MessageTagChips message={message} />
     </li>
   )
 }
@@ -91,6 +127,35 @@ function TypingLine({ peers, profiles }: { peers: PeerPresence[]; profiles: Prof
     <div className="h-4 truncate px-3 text-[10px] italic text-ink-3">
       {names} {peers.length === 1 ? 'is' : 'are'} typing…
     </div>
+  )
+}
+
+function TagPicker({
+  options,
+  onPick
+}: {
+  options: TagOption[]
+  onPick: (option: TagOption) => void
+}) {
+  if (options.length === 0) return null
+  return (
+    <ul className="absolute bottom-full left-0 z-10 m-0 mb-1 w-56 list-none rounded-md border border-hairline bg-surface-0 p-1 shadow-sm">
+      {options.map((option) => (
+        <li key={option.isNew ? '__new__' : option.id}>
+          <button
+            type="button"
+            onMouseDown={(event) => {
+              event.preventDefault()
+              onPick(option)
+            }}
+            className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1 text-left text-xs text-ink-1 hover:bg-surface-2"
+          >
+            #{option.name}
+            {option.isNew && <span className="text-[10px] text-ink-3">Create new tag</span>}
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -157,11 +222,14 @@ export function ChannelChat({ channelId }: { channelId: string }) {
   const [text, setText] = useState('')
   const [caret, setCaret] = useState(0)
   const picked = useRef(new Map<string, string>())
+  const pickedTags = useRef(new Map<string, string>())
   const lastTypingSent = useRef(0)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
+  const { suggestions: tagSuggestions, getOrCreateTag } = useWorkspaceTags()
   const pickerOptions = pickerOptionsFor(text, caret, mentionables)
+  const tagOptions = pickerOptions.length === 0 ? tagOptionsFor(text, caret, tagSuggestions) : []
   const typing = useMemo(() => typingPeers(peers, channelId, Date.now()), [peers, channelId])
   const rows = messages as unknown as ChatMessageRow[]
 
@@ -198,6 +266,22 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [text, caret]
   )
 
+  const pickTag = useCallback(
+    (option: TagOption) => {
+      const query = hashtagQueryAt(text, caret)
+      if (!query) return
+      const next = applyHashtagPick(text, caret, query.start, option.name)
+      setText(next.text)
+      setCaret(next.caret)
+      inputRef.current?.focus()
+      // Resolve the id in the background; an unresolved pick sends as plain text.
+      void getOrCreateTag(option.name).then((tag) => {
+        if (tag) pickedTags.current.set(tag.name, tag.id)
+      })
+    },
+    [text, caret, getOrCreateTag]
+  )
+
   const send = useCallback(async () => {
     const content = text.trim()
     if (!content || !bridge) return
@@ -206,9 +290,11 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     await sendMessage(bridge, {
       channelId,
       content,
-      mentions: composerMentions(content, picked.current)
+      mentions: composerMentions(content, picked.current),
+      tags: composerTags(content, pickedTags.current)
     })
     picked.current.clear()
+    pickedTags.current.clear()
   }, [text, bridge, channelId, session])
 
   return (
@@ -217,15 +303,16 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       <TypingLine peers={typing} profiles={profiles} />
       <div className="relative border-t border-hairline p-2">
         <MentionPicker options={pickerOptions} onPick={pickMention} />
+        <TagPicker options={tagOptions} onPick={pickTag} />
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
             value={text}
             rows={2}
-            placeholder="Message… (@ to mention, Enter to send)"
+            placeholder="Message… (@ to mention, # to tag, Enter to send)"
             onChange={(event) => handleChange(event.target.value, event.target.selectionStart ?? 0)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey && pickerOptions.length === 0) {
+              if (shouldSendOnEnter(event, pickerOptions.length + tagOptions.length)) {
                 event.preventDefault()
                 void send()
               }

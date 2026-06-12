@@ -9,7 +9,7 @@
  * Title editing supports @mention-to-assign (same affordance as page
  * checklists); due date and assignees edit through small popovers.
  */
-import { CalendarDays, ExternalLink, UserPlus, X } from 'lucide-react'
+import { CalendarDays, ExternalLink, Hash, UserPlus, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { DIDAvatar } from '../../components/DIDAvatar'
 import { useClickOutside } from '../../hooks/useClickOutside'
@@ -19,10 +19,24 @@ import { filterTaskPeople, taskPersonLabel, type TaskPersonOption } from './peop
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
 import { TASK_STATUS_META, formatDueDate, isCompletedStatus, type TaskDisplayData } from './types'
 
+/** A workspace tag as the form renders it (0169). */
+export interface TaskTagOption {
+  id: string
+  name: string
+}
+
 export interface TaskDetailFormProps {
   task: TaskDisplayData
   /** Candidates for assignment (assignee picker + @mention) */
   people?: TaskPersonOption[]
+  /** Tags currently on the task (resolved id → name by the host) */
+  tags?: TaskTagOption[]
+  /** Workspace tags offered by the picker */
+  tagOptions?: TaskTagOption[]
+  /** Tags are node-owned: always editable when the host passes this */
+  onTagsChange?: (taskId: string, tagIds: string[]) => void
+  /** Create a tag for an unknown name; resolve its id (null aborts) */
+  onCreateTag?: (name: string) => Promise<string | null>
   /** Label for the host-surface link; absent hides the affordance */
   sourceLabel?: string | null
   onTitleChange?: (taskId: string, title: string) => void
@@ -393,6 +407,94 @@ function AssigneeChips({
   )
 }
 
+function filterTagOptions(options: TaskTagOption[], query: string): TaskTagOption[] {
+  const needle = query.trim().toLowerCase()
+  if (!needle) return options.slice(0, 8)
+  return options.filter((option) => option.name.toLowerCase().includes(needle)).slice(0, 8)
+}
+
+function TagChipPicker({
+  options,
+  selectedCount,
+  control,
+  query,
+  onQueryChange,
+  onAdd,
+  onCreate
+}: {
+  options: TaskTagOption[]
+  selectedCount: number
+  control: PickerControl
+  query: string
+  onQueryChange: (query: string) => void
+  onAdd: (tagId: string) => void
+  onCreate?: ((name: string) => void) | undefined
+}) {
+  const trimmed = query.trim().toLowerCase()
+  const exact = options.some((option) => option.name === trimmed)
+  return (
+    <PickerChip
+      testId="task-tags-chip"
+      label={selectedCount === 0 ? 'Tags' : `${selectedCount} tagged`}
+      icon={<Hash size={12} />}
+      {...control}
+    >
+      <input
+        type="text"
+        value={query}
+        autoFocus
+        placeholder="Find or create tags…"
+        onChange={(event) => onQueryChange(event.target.value)}
+        className="mb-1 w-full rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-foreground outline-none placeholder:text-foreground-muted"
+      />
+      {filterTagOptions(options, query).map((option) => (
+        <PickerOption key={option.id} selected={false} onSelect={() => onAdd(option.id)}>
+          <Hash size={13} className="text-foreground-muted" />
+          {option.name}
+        </PickerOption>
+      ))}
+      {onCreate && trimmed && !exact && (
+        <PickerOption selected={false} onSelect={() => onCreate(trimmed)}>
+          <Hash size={13} className="text-foreground-muted" />
+          Create “{trimmed}”
+        </PickerOption>
+      )}
+    </PickerChip>
+  )
+}
+
+function TagChips({
+  tags,
+  onRemove
+}: {
+  tags: TaskTagOption[]
+  onRemove: (tagId: string) => void
+}) {
+  if (tags.length === 0) return null
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {tags.map((tag) => (
+        <span
+          key={tag.id}
+          data-testid="task-tag-chip"
+          className="flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-xs text-foreground"
+        >
+          <Hash size={10} className="text-foreground-muted" />
+          {tag.name}
+          <button
+            type="button"
+            aria-label={`Remove tag ${tag.name}`}
+            onClick={() => onRemove(tag.id)}
+            className="rounded-full text-foreground-muted transition-colors hover:text-foreground"
+          >
+            <X size={11} />
+          </button>
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function FormFooter({
   taskId,
   sourceLabel,
@@ -495,11 +597,15 @@ function TitleRow({
   )
 }
 
-type OpenPicker = 'status' | 'priority' | 'due' | 'assign' | null
+type OpenPicker = 'status' | 'priority' | 'due' | 'assign' | 'tags' | null
 
 export function TaskDetailForm({
   task,
   people = [],
+  tags = [],
+  tagOptions = [],
+  onTagsChange,
+  onCreateTag,
   sourceLabel,
   onTitleChange,
   onStatusChange,
@@ -517,6 +623,7 @@ export function TaskDetailForm({
   const [title, setTitle] = useState(task.title)
   const [openPicker, setOpenPicker] = useState<OpenPicker>(null)
   const [assignQuery, setAssignQuery] = useState('')
+  const [tagQuery, setTagQuery] = useState('')
   const titleRef = useRef<HTMLInputElement>(null)
 
   // Adopt remote title edits unless the local draft is mid-edit.
@@ -558,6 +665,24 @@ export function TaskDetailForm({
   }
 
   const unassignedPeople = people.filter((person) => !assignees.includes(person.did))
+
+  const tagIds = tags.map((tag) => tag.id)
+  const addTag = (tagId: string) => {
+    setTagQuery('')
+    if (!tagIds.includes(tagId)) onTagsChange?.(task.id, [...tagIds, tagId])
+  }
+  const removeTag = (tagId: string) => {
+    onTagsChange?.(
+      task.id,
+      tagIds.filter((existing) => existing !== tagId)
+    )
+  }
+  const createAndAddTag = (name: string) => {
+    setTagQuery('')
+    void onCreateTag?.(name).then((tagId) => {
+      if (tagId) addTag(tagId)
+    })
+  }
 
   return (
     <div
@@ -613,6 +738,17 @@ export function TaskDetailForm({
             onAdd={addAssignee}
           />
         )}
+        {onTagsChange && (
+          <TagChipPicker
+            options={tagOptions.filter((option) => !tagIds.includes(option.id))}
+            selectedCount={tags.length}
+            control={pickerControl('tags')}
+            query={tagQuery}
+            onQueryChange={setTagQuery}
+            onAdd={addTag}
+            onCreate={onCreateTag ? createAndAddTag : undefined}
+          />
+        )}
       </div>
 
       {metaNotice && <p className="m-0 text-[11px] text-foreground-muted">{metaNotice}</p>}
@@ -622,6 +758,8 @@ export function TaskDetailForm({
         people={people}
         onRemove={onAssigneesChange ? removeAssignee : undefined}
       />
+
+      {onTagsChange && <TagChips tags={tags} onRemove={removeTag} />}
 
       <FormFooter
         taskId={task.id}

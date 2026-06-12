@@ -7,7 +7,8 @@ import type {
   SlashCommandItem,
   TaskMentionSuggestion,
   TaskViewConfig,
-  TaskViewEmbedType
+  TaskViewEmbedType,
+  HashtagSuggestion
 } from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
 import type { EditorState } from '@tiptap/pm/state'
@@ -49,9 +50,11 @@ import {
   PageTaskItemExtension,
   TaskMentionExtension,
   TaskDueDateExtension,
+  HashtagExtension,
   ensurePageTaskAttrs,
   getPageTasksSnapshot
 } from '../extensions'
+import { extractTagIds } from '../utils/hashtags'
 import { resolveEditorModePolicy, type EditorContentMode } from './editor-ux-state'
 import { FloatingToolbar, type ToolbarMode, type ToolbarSurface } from './FloatingToolbar'
 import '../styles/editor.css'
@@ -322,6 +325,25 @@ export interface RichTextEditorProps {
    */
   mentionSuggestions?: TaskMentionSuggestion[]
   /**
+   * Workspace tags offered by the inline '#' hashtag picker (0169).
+   */
+  hashtagSuggestions?: HashtagSuggestion[]
+  /**
+   * Create a Tag node for a new hashtag name; resolve null to abort.
+   * When omitted, the picker offers existing tags only.
+   */
+  onCreateHashtag?: (name: string) => Promise<HashtagSuggestion | null>
+  /**
+   * Normalizer for raw hashtag queries (defaults to trim+lowercase;
+   * hosts pass normalizeTagName from @xnetjs/data).
+   */
+  normalizeHashtagName?: (raw: string) => string
+  /**
+   * Structured-tags handler: called with the deduped Tag node ids of
+   * every hashtag pill whenever the set changes (0169).
+   */
+  onTagsChange?: (tagIds: string[]) => void
+  /**
    * Task snapshot handler for page-backed checklist reconciliation.
    * Called after task rows have stable ids and the editor view is in sync.
    */
@@ -408,12 +430,19 @@ export function RichTextEditor({
   onEditorReady,
   onBackspaceAtStart,
   mentionSuggestions = [],
+  hashtagSuggestions = [],
+  onCreateHashtag,
+  normalizeHashtagName,
+  onTagsChange,
   onPageTasksChange,
   onCreateComment
 }: RichTextEditorProps): JSX.Element {
   const cursorPluginRegisteredRef = useRef(false)
   const pageTaskSignatureRef = useRef<string>('')
+  const tagsSignatureRef = useRef<string>('')
   const mentionSuggestionsRef = useRef<TaskMentionSuggestion[]>(mentionSuggestions)
+  const hashtagSuggestionsRef = useRef<HashtagSuggestion[]>(hashtagSuggestions)
+  const onCreateHashtagRef = useRef(onCreateHashtag)
   const notifiedReadyEditorRef = useRef<Editor | null>(null)
   const [sourceValue, setSourceValue] = useState('')
 
@@ -426,6 +455,11 @@ export function RichTextEditor({
   useEffect(() => {
     mentionSuggestionsRef.current = mentionSuggestions
   }, [mentionSuggestions])
+
+  useEffect(() => {
+    hashtagSuggestionsRef.current = hashtagSuggestions
+    onCreateHashtagRef.current = onCreateHashtag
+  }, [hashtagSuggestions, onCreateHashtag])
 
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -466,6 +500,11 @@ export function RichTextEditor({
     }),
     TaskMentionExtension.configure({
       getSuggestions: () => mentionSuggestionsRef.current
+    }),
+    HashtagExtension.configure({
+      getSuggestions: () => hashtagSuggestionsRef.current,
+      createTag: (name: string) => onCreateHashtagRef.current?.(name) ?? Promise.resolve(null),
+      ...(normalizeHashtagName ? { normalizeName: normalizeHashtagName } : {})
     }),
     TaskDueDateExtension,
     Link.configure({
@@ -614,6 +653,27 @@ export function RichTextEditor({
       editor.off('update', publishPageTasks)
     }
   }, [editor, onPageTasksChange])
+
+  // Structured tags: publish the deduped hashtag-pill ids when they change (0169).
+  useEffect(() => {
+    if (!editor || !onTagsChange) return
+
+    const publishTags = () => {
+      const tagIds = extractTagIds(editor.getJSON())
+      const signature = tagIds.join(' ')
+      if (signature === tagsSignatureRef.current) return
+
+      tagsSignatureRef.current = signature
+      onTagsChange(tagIds)
+    }
+
+    editor.on('update', publishTags)
+    publishTags()
+
+    return () => {
+      editor.off('update', publishTags)
+    }
+  }, [editor, onTagsChange])
 
   // Add cursor plugin dynamically when awareness becomes available.
   // We use yCursorPlugin directly (instead of CollaborationCursor extension) to avoid

@@ -7,6 +7,7 @@
 
 import { readdir, readFile, writeFile, stat } from 'fs/promises'
 import { join, relative } from 'path'
+import { orderedDocSlugs } from '../src/sidebar.mjs'
 
 interface DocPage {
   path: string
@@ -15,47 +16,13 @@ interface DocPage {
   order: number
 }
 
-// Define the order of sections
-const SECTION_ORDER = [
-  'introduction',
-  'quickstart',
-  'core-concepts',
-  'hooks/overview',
-  'hooks/usequery',
-  'hooks/usemutate',
-  'hooks/usenode',
-  'hooks/useidentity',
-  'hooks/patterns',
-  'schemas/overview',
-  'schemas/defineschema',
-  'schemas/property-types',
-  'schemas/relations',
-  'schemas/type-inference',
-  'guides/sync',
-  'guides/offline',
-  'guides/identity',
-  'guides/collaboration',
-  'guides/plugins',
-  'guides/canvas',
-  'guides/editor',
-  'guides/hub',
-  'guides/devtools',
-  'guides/electron',
-  'guides/testing',
-  'concepts/local-first',
-  'concepts/crdts',
-  'concepts/sync-architecture',
-  'concepts/identity-model',
-  'concepts/cryptography',
-  'concepts/data-model',
-  'concepts/network',
-  'architecture/overview',
-  'architecture/decisions',
-  'architecture/package-graph',
-  'contributing/getting-started',
-  'contributing/code-style',
-  'contributing/testing'
-]
+// Section order comes from the sidebar (src/sidebar.mjs) — the same order a
+// human reads the docs in. Slugs there look like 'docs/guides/canvas'; paths
+// here are relative to the docs/ content root, so strip the prefix.
+const SECTION_ORDER: string[] = orderedDocSlugs.map((slug: string) => slug.replace(/^docs\//, ''))
+
+// Content files intentionally absent from the sidebar (and from llms-full.txt).
+const EXCLUDED_FROM_SIDEBAR: string[] = []
 
 async function collectMdxFiles(dir: string): Promise<string[]> {
   const files: string[] = []
@@ -121,13 +88,10 @@ function cleanMdxContent(content: string): string {
   return content.trim()
 }
 
-function getOrderIndex(filePath: string, docsDir: string): number {
-  const relativePath = relative(join(docsDir, 'docs'), filePath)
+function docSlug(filePath: string, docsDir: string): string {
+  return relative(join(docsDir, 'docs'), filePath)
     .replace(/\.mdx$/, '')
     .replace(/\\/g, '/')
-
-  const index = SECTION_ORDER.indexOf(relativePath)
-  return index >= 0 ? index : 999
 }
 
 async function buildLlmsFull() {
@@ -139,13 +103,26 @@ async function buildLlmsFull() {
   const files = await collectMdxFiles(join(docsDir, 'docs'))
   console.log(`Found ${files.length} MDX files`)
 
+  // Every content file must be listed in the sidebar (src/sidebar.mjs) or
+  // explicitly excluded — otherwise a new page would silently ship without
+  // navigation and with arbitrary placement in llms-full.txt.
+  const unlisted = files
+    .map((file) => docSlug(file, docsDir))
+    .filter((slug) => !SECTION_ORDER.includes(slug) && !EXCLUDED_FROM_SIDEBAR.includes(slug))
+  if (unlisted.length > 0) {
+    throw new Error(
+      `Docs pages missing from src/sidebar.mjs (add them to the sidebar or to EXCLUDED_FROM_SIDEBAR):\n` +
+        unlisted.map((slug) => `  - ${slug}`).join('\n')
+    )
+  }
+
   const pages: DocPage[] = []
 
   for (const file of files) {
     const content = await readFile(file, 'utf-8')
     const { title, body } = extractFrontmatter(content)
     const cleanedBody = cleanMdxContent(body)
-    const order = getOrderIndex(file, docsDir)
+    const order = SECTION_ORDER.indexOf(docSlug(file, docsDir))
 
     pages.push({
       path: file,
