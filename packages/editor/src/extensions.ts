@@ -712,6 +712,14 @@ export {
 export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/page-tasks'
 export { TaskMentionExtension, TaskDueDateExtension } from './extensions/task-metadata'
 export type { TaskMentionSuggestion, TaskDueDateOptions } from './extensions/task-metadata'
+export {
+  CREATE_HASHTAG_ID,
+  HashtagExtension,
+  filterHashtagSuggestions,
+  hashtagFromMenuItem,
+  type HashtagOptions,
+  type HashtagSuggestion
+} from './extensions/hashtag'
 export { formatTaskDueDateLabel, getCurrentTaskDueDate } from './extensions/task-metadata'
 export { createGravatarUrl, md5 } from './utils/gravatar'
 

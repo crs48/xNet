@@ -25,6 +25,7 @@ import {
   type WorkbenchTab
 } from './state'
 import { TabBar } from './TabBar'
+import { TabBreadcrumb } from './TabBreadcrumb'
 import { syncRouteToTabs, tabFromPathname, TAB_VIEWS } from './tabs'
 import { ViewHost } from './ViewHost'
 
@@ -225,6 +226,7 @@ function GroupPane({
       }}
     >
       <GroupTabStrip mode={mode} group={group} routed={routed} />
+      {mode !== 'zen' && <TabBreadcrumb tab={activeTab} />}
       <div className="min-h-0 flex-1">
         <GroupContent isActive={isActive} activeTab={activeTab} routed={routed}>
           {children}

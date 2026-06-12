@@ -171,6 +171,8 @@ export {
   mentionsFromDoc,
   type MentionablePerson
 } from './utils/mentions'
+export { extractTagIds, tagsFromDoc } from './utils/hashtags'
+export type { HashtagSuggestion } from './extensions/hashtag'
 export type {
   TaskViewConfig,
   TaskViewEmbedType,

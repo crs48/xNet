@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "web-worktree (vite)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "xnet-web", "dev", "--port", "5199", "--strictPort"],
+      "port": 5199
+    },
+    {
       "name": "hub (sync server)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@xnetjs/hub", "dev"],

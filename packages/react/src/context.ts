@@ -130,6 +130,26 @@ function logRuntimeStatus(runtime: XNetRuntimeConfig, status: XNetRuntimeStatus)
   console.info('[XNetProvider] Runtime ready:', status)
 }
 
+/**
+ * "#design #perf" search text for a node's tag ids, so searching a tag
+ * name finds tagged nodes (exploration 0169). Unresolvable ids are
+ * skipped — an archived or not-yet-synced tag never blocks indexing.
+ */
+async function resolveTagSearchText(
+  store: NodeStore,
+  tagIds: string[]
+): Promise<string | undefined> {
+  const names = await Promise.all(
+    tagIds.map(async (id) => {
+      const tag = await store.get(id).catch(() => null)
+      const name = tag?.properties?.name
+      return typeof name === 'string' && name ? `#${name}` : null
+    })
+  )
+  const present = names.filter((entry): entry is string => entry !== null)
+  return present.length > 0 ? present.join(' ') : undefined
+}
+
 function resolveRuntimeFailure(
   runtime: XNetRuntimeConfig,
   nodeStore: NodeStore,
@@ -892,6 +912,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       | {
           type: 'update'
           meta: { schemaIri: string; title: string; properties: Record<string, unknown> }
+          /** Extra searchable text (e.g. resolved #tag names — 0169) */
+          text?: string
         }
       | { type: 'remove' }
     >()
@@ -902,6 +924,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         | {
             type: 'update'
             meta: { schemaIri: string; title: string; properties: Record<string, unknown> }
+            text?: string
           }
         | { type: 'remove' }
     ): void => {
@@ -927,7 +950,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
           connection.sendRaw({
             type: 'index-update',
             docId,
-            meta: next.meta
+            meta: next.meta,
+            ...(next.text !== undefined ? { text: next.text } : {})
           })
         }, HUB_INDEX_DEBOUNCE_MS)
       )
@@ -942,14 +966,25 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
       if (!node.schemaId) return
 
-      const title = typeof node.properties.title === 'string' ? node.properties.title : ''
-      schedule(node.id, {
-        type: 'update',
-        meta: {
-          schemaIri: node.schemaId,
-          title,
-          properties: node.properties
-        }
+      // `name`-titled nodes (Tag, Folder, Project, Channel) index their name.
+      const title =
+        typeof node.properties.title === 'string'
+          ? node.properties.title
+          : typeof node.properties.name === 'string'
+            ? node.properties.name
+            : ''
+      const meta = { schemaIri: node.schemaId, title, properties: node.properties }
+
+      // Resolve tag ids to names so searching "design" finds tagged nodes (0169).
+      const tagIds = Array.isArray(node.properties.tags)
+        ? node.properties.tags.filter((id): id is string => typeof id === 'string')
+        : []
+      if (tagIds.length === 0) {
+        schedule(node.id, { type: 'update', meta })
+        return
+      }
+      void resolveTagSearchText(nodeStore, tagIds).then((text) => {
+        schedule(node.id, { type: 'update', meta, ...(text ? { text } : {}) })
       })
     }
 
