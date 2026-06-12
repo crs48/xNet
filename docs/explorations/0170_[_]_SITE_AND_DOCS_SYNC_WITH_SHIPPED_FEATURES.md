@@ -439,12 +439,17 @@ export const phases: RoadmapPhase[] = [
 
 ### Phase 3 — Landing refresh
 
-- [ ] Capture light + dark workbench screenshots (seeded demo data, test-bypass
+- [x] Capture light + dark workbench screenshots (seeded demo data, test-bypass
       identity); replace the gradient placeholder in `TheApp.astro:49-83`
-- [ ] Expand `TheApp.astro` tool grid: + Dashboards, + Chat & Calls, + Notifications
-- [ ] Add "Built for agents" section (SKILL.md, `xnet` CLI, 0.111x tokens, slim MCP)
+      (plain `<img>` from `public/images/` — site workspace has no sharp, so
+      `astro:assets` optimization is unavailable; PNGs are ~78 KB each)
+- [x] Expand `TheApp.astro` tool grid: + Dashboards, + Chat & Calls,
+      + Notifications, + Instant search (8 tools keeps the 2-col grid even)
+- [x] Add "Built for agents" section (SKILL.md, `xnet` CLI, 0.111x tokens, slim MCP)
       and link it from `ForDevelopers.astro`
-- [ ] `Hubs.astro`: add call signaling + notification relay to the feature list
+- [x] `Hubs.astro`: added call signaling + abuse protection (mention validation);
+      push-notification relay intentionally NOT listed — delivery is still
+      in progress per PR #47's deferred list
 - [x] Verify the Hero npm-install snippet against published npm packages
       (`@xnetjs/react` and `@xnetjs/data` both published at 0.0.2)
 
