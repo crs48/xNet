@@ -2,7 +2,7 @@
 
 How xnet.fyi is published, including per-PR and per-branch preview deploys.
 Background and design rationale:
-[exploration 0167](../explorations/0167_[_]_PER_PR_AND_PER_BRANCH_PAGES_PREVIEW_DEPLOYS.md).
+[exploration 0169](../explorations/0169_[_]_PER_PR_AND_PER_BRANCH_PAGES_PREVIEW_DEPLOYS.md).
 
 ## URL scheme
 
