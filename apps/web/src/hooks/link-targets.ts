@@ -39,7 +39,7 @@ export function linkableChannels(channels: ChannelDoc[] | undefined): LinkableDo
       (channel) =>
         (channel.kind ?? 'channel') === 'channel' && !channel.archived && channel.name?.trim()
     )
-    .map((channel) => ({ id: channel.id, title: `#${channel.name?.trim()}` }))
+    .map((channel) => ({ id: channel.id, title: `#${channel.name?.trim().replace(/^#+/, '')}` }))
 }
 
 /** Flatten kind groups into targets, recents first. */

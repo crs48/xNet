@@ -52,11 +52,13 @@ describe('linkableChannels', () => {
         { id: 'c2', name: 'old', kind: 'channel', archived: true },
         { id: 'c3', kind: 'dm', name: 'ignored' },
         { id: 'c4', name: '  ', kind: 'channel' },
-        { id: 'c5', name: 'design' }
+        { id: 'c5', name: 'design' },
+        { id: 'c6', name: '#launch' }
       ])
     ).toEqual([
       { id: 'c1', title: '#general' },
-      { id: 'c5', title: '#design' }
+      { id: 'c5', title: '#design' },
+      { id: 'c6', title: '#launch' }
     ])
   })
 

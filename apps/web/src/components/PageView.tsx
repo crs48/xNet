@@ -157,7 +157,9 @@ function focusEditorNear(editor: Editor, clientX: number, clientY: number): void
 
 export function PageView({ docId }: { docId: string }) {
   const navigate = useNavigate()
-  const { identity } = useIdentity()
+  // selfDid covers restored sessions too (authorDID without an unlocked
+  // identity); `did` keeps the live-identity semantics for sync/cursors.
+  const { identity, did: selfDid } = useIdentity()
   const did = identity?.did
 
   // Load document with Y.Doc, sync, presence, and auto-create
@@ -198,13 +200,13 @@ export function PageView({ docId }: { docId: string }) {
   // (0170); self stays first so "mention yourself" keeps working.
   const profiles = useProfiles()
   const mentionSuggestions = useMemo(() => {
-    const self = did ? [{ did }] : []
+    const self = selfDid ? [{ did: selfDid }] : []
     return buildPersonMentionSuggestions(
       [...self, ...profiles.map((p) => ({ did: p.did, name: p.name, avatar: p.avatar }))],
       presence,
-      did
+      selfDid
     )
-  }, [profiles, presence, did])
+  }, [profiles, presence, selfDid])
 
   // `[[` typeahead: linkable nodes + create-page row (0170).
   const { linkTargets, createPageTarget } = useLinkTargets()
