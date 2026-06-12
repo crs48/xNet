@@ -49,7 +49,7 @@ export function AuthZPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-800 shrink-0 overflow-x-auto">
+      <div className="flex items-center gap-1 px-2 py-1 border-b border-hairline shrink-0 overflow-x-auto">
         {AUTHZ_TABS.map((tab) => (
           <TabButton
             key={tab}
@@ -89,8 +89,8 @@ function TabButton({
       onClick={() => onSelect(id)}
       className={`px-2 py-1 text-[10px] border rounded transition-colors ${
         isActive
-          ? 'border-blue-500 bg-blue-500/15 text-blue-300'
-          : 'border-zinc-700 text-zinc-400 hover:text-zinc-200'
+          ? 'border-accent-ink bg-accent text-ink-1'
+          : 'border-hairline text-ink-2 hover:text-ink-1'
       }`}
     >
       {label}
@@ -135,19 +135,19 @@ function PermissionPlayground() {
   return (
     <div className="p-3 space-y-3">
       <div className="grid grid-cols-1 gap-2">
-        <label className="text-[10px] text-zinc-500">Node ID</label>
+        <label className="text-[10px] text-ink-3">Node ID</label>
         <input
           value={nodeId}
           onChange={(event) => setNodeId(event.target.value)}
           placeholder="node-id"
-          className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs"
+          className="w-full bg-surface-2 border border-hairline rounded px-2 py-1 text-xs"
         />
 
-        <label className="text-[10px] text-zinc-500">Action</label>
+        <label className="text-[10px] text-ink-3">Action</label>
         <select
           value={action}
           onChange={(event) => setAction(event.target.value as AuthAction)}
-          className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs"
+          className="w-full bg-surface-2 border border-hairline rounded px-2 py-1 text-xs"
         >
           {AUTH_ACTIONS.map((candidate) => (
             <option key={candidate} value={candidate}>
@@ -160,37 +160,35 @@ function PermissionPlayground() {
       <button
         onClick={run}
         disabled={!canRun || loading}
-        className="px-2 py-1 text-xs rounded border border-zinc-700 text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
+        className="px-2 py-1 text-xs rounded border border-hairline text-ink-1 hover:bg-accent disabled:opacity-50"
       >
         {loading ? 'Checking...' : 'Check Permission'}
       </button>
 
-      {!store?.auth && (
-        <div className="text-[10px] text-zinc-500">`store.auth` is unavailable.</div>
-      )}
-      {error && <div className="text-[10px] text-red-400">{error}</div>}
+      {!store?.auth && <div className="text-[10px] text-ink-3">`store.auth` is unavailable.</div>}
+      {error && <div className="text-[10px] text-destructive">{error}</div>}
 
       {trace && (
-        <div className="space-y-2 text-[10px] bg-zinc-900 border border-zinc-800 rounded p-2">
+        <div className="space-y-2 text-[10px] bg-surface-2 border border-hairline rounded p-2">
           <div className="flex items-center gap-2">
             <StatusBadge allowed={trace.allowed} />
-            <span className="text-zinc-400">Duration: {trace.duration.toFixed(2)}ms</span>
+            <span className="text-ink-2">Duration: {trace.duration.toFixed(2)}ms</span>
           </div>
-          <div className="text-zinc-300">Roles: {trace.roles.join(', ') || 'none'}</div>
-          <div className="text-zinc-300">Grants: {trace.grants.join(', ') || 'none'}</div>
+          <div className="text-ink-2">Roles: {trace.roles.join(', ') || 'none'}</div>
+          <div className="text-ink-2">Grants: {trace.grants.join(', ') || 'none'}</div>
           {trace.reasons.length > 0 && (
-            <div className="text-red-400">Reasons: {trace.reasons.join(', ')}</div>
+            <div className="text-destructive">Reasons: {trace.reasons.join(', ')}</div>
           )}
-          <div className="border-t border-zinc-800 pt-2">
-            <div className="text-zinc-500 mb-1">Evaluation Steps</div>
-            {trace.steps.length === 0 && <div className="text-zinc-600">No steps reported.</div>}
+          <div className="border-t border-hairline pt-2">
+            <div className="text-ink-3 mb-1">Evaluation Steps</div>
+            {trace.steps.length === 0 && <div className="text-ink-3">No steps reported.</div>}
             {trace.steps.map((step, index) => (
               <div
                 key={`${step.phase}-${index}`}
-                className="py-1 border-b border-zinc-800 last:border-none"
+                className="py-1 border-b border-hairline last:border-none"
               >
-                <div className="text-zinc-200">{step.phase}</div>
-                <div className="text-zinc-500">{JSON.stringify(step.output)}</div>
+                <div className="text-ink-1">{step.phase}</div>
+                <div className="text-ink-3">{JSON.stringify(step.output)}</div>
               </div>
             ))}
           </div>
@@ -274,22 +272,22 @@ function GrantManager() {
   return (
     <div className="p-3 space-y-3 text-xs">
       <div>
-        <label className="text-[10px] text-zinc-500">Node ID</label>
+        <label className="text-[10px] text-ink-3">Node ID</label>
         <input
           value={nodeId}
           onChange={(event) => setNodeId(event.target.value)}
           placeholder="node-id"
-          className="w-full mt-1 bg-zinc-900 border border-zinc-700 rounded px-2 py-1"
+          className="w-full mt-1 bg-surface-2 border border-hairline rounded px-2 py-1"
         />
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded p-2 space-y-2">
-        <div className="text-[10px] text-zinc-500">Create Grant</div>
+      <div className="bg-surface-2 border border-hairline rounded p-2 space-y-2">
+        <div className="text-[10px] text-ink-3">Create Grant</div>
         <input
           value={to}
           onChange={(event) => setTo(event.target.value)}
           placeholder="did:key:..."
-          className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1"
+          className="w-full bg-surface-1 border border-hairline rounded px-2 py-1"
         />
         <div className="flex flex-wrap gap-1">
           {AUTH_ACTIONS.filter((candidate) => candidate !== 'admin').map((candidate) => {
@@ -299,9 +297,7 @@ function GrantManager() {
                 key={candidate}
                 onClick={() => toggleAction(candidate)}
                 className={`px-2 py-0.5 rounded border text-[10px] ${
-                  selected
-                    ? 'border-blue-500 bg-blue-500/20 text-blue-300'
-                    : 'border-zinc-700 text-zinc-400'
+                  selected ? 'border-accent-ink bg-accent text-ink-1' : 'border-hairline text-ink-2'
                 }`}
               >
                 {candidate}
@@ -312,32 +308,32 @@ function GrantManager() {
         <button
           onClick={createGrant}
           disabled={!store?.auth || !nodeId || !to || actions.length === 0}
-          className="px-2 py-1 rounded border border-zinc-700 text-zinc-200 disabled:opacity-50"
+          className="px-2 py-1 rounded border border-hairline text-ink-1 disabled:opacity-50"
         >
           Grant Access
         </button>
       </div>
 
-      {error && <div className="text-[10px] text-red-400">{error}</div>}
+      {error && <div className="text-[10px] text-destructive">{error}</div>}
 
       <div className="space-y-1">
-        <div className="text-[10px] text-zinc-500">Active Grants</div>
-        {loading && <div className="text-[10px] text-zinc-500">Loading grants...</div>}
+        <div className="text-[10px] text-ink-3">Active Grants</div>
+        {loading && <div className="text-[10px] text-ink-3">Loading grants...</div>}
         {!loading && grants.length === 0 && (
-          <div className="text-[10px] text-zinc-600">No grants found for this resource.</div>
+          <div className="text-[10px] text-ink-3">No grants found for this resource.</div>
         )}
         {grants.map((grant) => (
           <div
             key={grant.id}
-            className="bg-zinc-900 border border-zinc-800 rounded p-2 flex items-center gap-2"
+            className="bg-surface-2 border border-hairline rounded p-2 flex items-center gap-2"
           >
             <div className="min-w-0 flex-1">
-              <div className="text-zinc-200 truncate">{grant.grantee}</div>
-              <div className="text-[10px] text-zinc-500">{grant.actions.join(', ')}</div>
+              <div className="text-ink-1 truncate">{grant.grantee}</div>
+              <div className="text-[10px] text-ink-3">{grant.actions.join(', ')}</div>
             </div>
             <button
               onClick={() => revoke(grant.id)}
-              className="px-2 py-0.5 text-[10px] rounded border border-red-800 text-red-300"
+              className="px-2 py-0.5 text-[10px] rounded border border-destructive text-destructive"
             >
               Revoke
             </button>
@@ -381,13 +377,13 @@ function GrantTimeline() {
 
   return (
     <div className="p-3 space-y-1 text-[10px] font-mono">
-      {events.length === 0 && <div className="text-zinc-600">No grant timeline events.</div>}
+      {events.length === 0 && <div className="text-ink-3">No grant timeline events.</div>}
       {events.map((event) => (
         <div key={event.id} className="flex items-center gap-2">
-          <span className="text-zinc-500 w-20">{formatTimestamp(event.timestamp)}</span>
+          <span className="text-ink-3 w-20">{formatTimestamp(event.timestamp)}</span>
           <GrantTypeBadge type={event.type} />
-          <span className="text-zinc-300 truncate">{event.grantee}</span>
-          <span className="text-zinc-500">{event.actions.join(', ')}</span>
+          <span className="text-ink-2 truncate">{event.grantee}</span>
+          <span className="text-ink-3">{event.actions.join(', ')}</span>
         </div>
       ))}
     </div>
@@ -428,7 +424,7 @@ function DelegationTreeExplorer() {
 
   return (
     <div className="p-3 space-y-2 text-[10px]">
-      {roots.length === 0 && <div className="text-zinc-600">No delegation grants to inspect.</div>}
+      {roots.length === 0 && <div className="text-ink-3">No delegation grants to inspect.</div>}
       {roots.map((root) => (
         <DelegationNode key={root.grant.id} node={root} depth={0} />
       ))}
@@ -472,19 +468,17 @@ function RevocationPropagation() {
 
   return (
     <div className="p-3 space-y-2 text-xs">
-      {revoked.length === 0 && (
-        <div className="text-zinc-600 text-[10px]">No recent revocations.</div>
-      )}
+      {revoked.length === 0 && <div className="text-ink-3 text-[10px]">No recent revocations.</div>}
       {revoked.map((grant) => (
-        <div key={grant.id} className="bg-zinc-900 border border-zinc-800 rounded p-2">
-          <div className="text-zinc-200">Grant {grant.id.slice(0, 8)} revoked</div>
-          <div className="text-[10px] text-zinc-500">Grantee: {grant.grantee}</div>
-          <div className="text-[10px] text-zinc-500">
+        <div key={grant.id} className="bg-surface-2 border border-hairline rounded p-2">
+          <div className="text-ink-1">Grant {grant.id.slice(0, 8)} revoked</div>
+          <div className="text-[10px] text-ink-3">Grantee: {grant.grantee}</div>
+          <div className="text-[10px] text-ink-3">
             Revoked: {formatTimestamp(grant.revokedAt)} (
             {formatDuration(Date.now() - grant.revokedAt)} ago)
           </div>
-          <div className="mt-1 flex items-center gap-2 text-[10px] text-zinc-400">
-            <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+          <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-success" />
             <span>Local evaluator cache invalidated</span>
           </div>
         </div>
@@ -498,8 +492,8 @@ function StatusBadge({ allowed }: { allowed: boolean }) {
     <span
       className={`px-1.5 py-0.5 rounded text-[10px] border ${
         allowed
-          ? 'border-green-700 bg-green-700/20 text-green-300'
-          : 'border-red-700 bg-red-700/20 text-red-300'
+          ? 'border-success bg-success-muted text-success'
+          : 'border-destructive bg-destructive-muted text-destructive'
       }`}
     >
       {allowed ? 'ALLOWED' : 'DENIED'}
@@ -510,10 +504,10 @@ function StatusBadge({ allowed }: { allowed: boolean }) {
 function GrantTypeBadge({ type }: { type: GrantEventType }) {
   const classes =
     type === 'created'
-      ? 'border-zinc-600 text-zinc-300'
+      ? 'border-border-emphasis text-ink-2'
       : type === 'revoked'
-        ? 'border-red-700 text-red-300'
-        : 'border-amber-700 text-amber-300'
+        ? 'border-destructive text-destructive'
+        : 'border-warning text-warning'
 
   return <span className={`px-1 rounded border ${classes}`}>{type}</span>
 }
@@ -530,13 +524,13 @@ function DelegationNode({ node, depth }: { node: DelegationTreeNode; depth: numb
       <div className="flex items-center gap-2">
         <span
           className={`px-1 rounded border text-[10px] ${
-            active ? 'border-zinc-600 text-zinc-300' : 'border-red-700 text-red-300'
+            active ? 'border-border-emphasis text-ink-2' : 'border-destructive text-destructive'
           }`}
         >
           {active ? 'active' : 'revoked'}
         </span>
-        <span className="text-zinc-300 truncate">{node.grant.grantee}</span>
-        <span className="text-zinc-500">depth: {node.grant.proofDepth}/4</span>
+        <span className="text-ink-2 truncate">{node.grant.grantee}</span>
+        <span className="text-ink-3">depth: {node.grant.proofDepth}/4</span>
       </div>
 
       {node.children.map((child) => (

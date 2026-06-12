@@ -1,7 +1,8 @@
 /**
  * DevToolsPanel Shell - Tab container, resize handle, status bar
  *
- * Uses a dark zinc theme to distinguish from app content.
+ * Styled with the workspace monochrome tokens (surface/ink/hairline),
+ * so it follows the app's light/dark theme.
  */
 
 import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
@@ -45,8 +46,8 @@ export function DevToolsPanel() {
       <ResizeHandle position={position} height={height} setHeight={setHeight} />
 
       {/* Tab Bar */}
-      <div className="flex items-center border-b border-zinc-700 shrink-0 overflow-x-auto">
-        <span className="text-xs font-bold text-zinc-400 ml-2 mr-3 select-none shrink-0">xNet</span>
+      <div className="flex items-center border-b border-hairline shrink-0 overflow-x-auto">
+        <span className="text-xs font-bold text-ink-2 ml-2 mr-3 select-none shrink-0">xNet</span>
 
         <div className="flex items-center shrink-0">
           {DEVTOOLS_PANELS.map((panel) => (
@@ -57,8 +58,8 @@ export function DevToolsPanel() {
                 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap
                 ${
                   activePanel === panel.id
-                    ? 'border-blue-400 text-blue-400'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                    ? 'border-accent-ink text-ink-1'
+                    : 'border-transparent text-ink-2 hover:text-ink-1'
                 }
               `}
             >
@@ -87,7 +88,7 @@ export function DevToolsPanel() {
           <ClearButton onClear={() => eventBus.clear()} />
           <button
             onClick={toggle}
-            className="text-zinc-400 hover:text-white p-1 text-xs"
+            className="text-ink-2 hover:text-ink-1 p-1 text-xs"
             title="Close (Ctrl+Shift+D)"
           >
             x
@@ -101,7 +102,7 @@ export function DevToolsPanel() {
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center px-3 py-1 border-t border-zinc-800 bg-zinc-950 text-[10px] text-zinc-500 shrink-0">
+      <div className="flex items-center px-3 py-1 border-t border-hairline bg-surface-2 text-[10px] text-ink-3 shrink-0">
         <span>
           Events: {eventBus.size}/{eventBus.capacity}
         </span>
@@ -118,11 +119,11 @@ export function DevToolsPanel() {
 function getSQLiteHealthDotClass(health: 'working' | 'degraded' | 'inactive'): string {
   switch (health) {
     case 'working':
-      return 'bg-green-500'
+      return 'bg-success'
     case 'degraded':
-      return 'bg-yellow-500'
+      return 'bg-warning'
     case 'inactive':
-      return 'bg-red-500'
+      return 'bg-destructive'
   }
 }
 
@@ -166,7 +167,7 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
 }
 
 function EventCounter({ count }: { count: number; capacity?: number }) {
-  return <span className="text-[10px] text-zinc-500">{count}</span>
+  return <span className="text-[10px] text-ink-3">{count}</span>
 }
 
 function PauseButton({
@@ -181,7 +182,7 @@ function PauseButton({
   return (
     <button
       onClick={isPaused ? onResume : onPause}
-      className="text-zinc-400 hover:text-white text-xs p-0.5"
+      className="text-ink-2 hover:text-ink-1 text-xs p-0.5"
       title={isPaused ? 'Resume' : 'Pause'}
     >
       {isPaused ? '>' : '||'}
@@ -193,7 +194,7 @@ function ClearButton({ onClear }: { onClear: () => void }) {
   return (
     <button
       onClick={onClear}
-      className="text-zinc-400 hover:text-white text-xs p-0.5"
+      className="text-ink-2 hover:text-ink-1 text-xs p-0.5"
       title="Clear events"
     >
       clr
@@ -241,7 +242,7 @@ function ClearDataButton({ store }: { store: ReturnType<typeof useDevTools>['sto
   return (
     <button
       onClick={handleClick}
-      className={`text-xs p-0.5 ${confirming ? 'text-red-400 hover:text-red-300' : 'text-zinc-400 hover:text-white'}`}
+      className={`text-xs p-0.5 ${confirming ? 'text-destructive hover:text-destructive' : 'text-ink-2 hover:text-ink-1'}`}
       title={confirming ? 'Click again to confirm' : 'Clear all local data'}
     >
       {confirming ? 'Confirm Clear?' : 'Clear Data'}
@@ -287,12 +288,11 @@ function ResizeHandle({
   return (
     <div
       onMouseDown={handleMouseDown}
-      className="shrink-0 group"
+      className="shrink-0 group bg-hairline"
       style={{
         cursor: isVertical ? 'ew-resize' : 'ns-resize',
         width: isVertical ? 4 : '100%',
         height: isVertical ? '100%' : 4,
-        backgroundColor: '#27272a',
         position: 'relative'
       }}
     >
@@ -313,7 +313,7 @@ function ResizeHandle({
 // ─── Layout Helpers ────────────────────────────────────────
 
 function getContainerClass(position: PanelPosition): string {
-  const base = 'dark flex flex-col text-zinc-200 font-mono text-xs border-zinc-700 z-[9999]'
+  const base = 'flex flex-col bg-surface-1 text-ink-1 font-mono text-xs border-hairline z-[9999]'
 
   switch (position) {
     case 'bottom':
@@ -326,15 +326,12 @@ function getContainerClass(position: PanelPosition): string {
 }
 
 function getContainerStyle(position: PanelPosition, height: number): CSSProperties {
-  // Use inline background color as fallback (Tailwind bg-zinc-950 may not be bundled)
-  const baseStyle: CSSProperties = { backgroundColor: '#09090b' }
-
   switch (position) {
     case 'bottom':
-      return { ...baseStyle, height }
+      return { height }
     case 'right':
-      return { ...baseStyle, width: height }
+      return { width: height }
     case 'floating':
-      return { ...baseStyle, width: 600, height }
+      return { width: 600, height }
   }
 }
