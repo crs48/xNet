@@ -140,6 +140,14 @@ export type {
 export { ScriptSandbox } from '../sandbox'
 export type { FlatNode } from '../sandbox'
 
+// In-memory backend (tests, benchmarks, CLI fixtures)
+export {
+  createMemoryNodeStore,
+  createMemorySchemaRegistry,
+  createWorkspaceFixtureSchemas
+} from '../testing/memory-backend'
+export type { MemoryNodeStore } from '../testing/memory-backend'
+
 // Process Manager (uses Node.js child_process module)
 export { ProcessManager } from './process-manager'
 

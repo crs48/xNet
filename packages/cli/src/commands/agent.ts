@@ -183,34 +183,29 @@ export async function runCommit(
   return lines.length > 0 ? lines.join('\n') : 'clean'
 }
 
+const APPLY_TOOL_BY_TARGET_KIND: Record<string, string> = {
+  page: 'xnet_apply_page_markdown',
+  database: 'xnet_apply_database_mutation',
+  databaseRows: 'xnet_apply_database_mutation'
+}
+
 async function applyPendingPlan(
   services: AgentCliServices,
   plan: AiMutationPlan
 ): Promise<{ status: 'applied' | 'skipped' | 'failed'; detail: string }> {
-  const targetKind = plan.changes[0]?.targetKind
+  const targetKind = plan.changes[0]?.targetKind ?? 'unknown'
+  const tool = APPLY_TOOL_BY_TARGET_KIND[targetKind]
+  if (!tool) {
+    return { status: 'skipped', detail: `${targetKind} plans need review in the xNet app` }
+  }
   try {
-    if (targetKind === 'page') {
-      const result = (await services.aiSurface.callTool('xnet_apply_page_markdown', {
-        plan,
-        confirmApply: true
-      })) as { applied?: boolean; validation?: { errors?: string[] } }
-      return result.applied
-        ? { status: 'applied', detail: 'page markdown applied' }
-        : { status: 'failed', detail: result.validation?.errors?.join('; ') ?? 'not applied' }
+    const result = (await services.aiSurface.callTool(tool, { plan, confirmApply: true })) as {
+      applied?: boolean
+      validation?: { errors?: string[] }
     }
-    if (targetKind === 'database' || targetKind === 'databaseRows') {
-      const result = (await services.aiSurface.callTool('xnet_apply_database_mutation', {
-        plan,
-        confirmApply: true
-      })) as { applied?: boolean; validation?: { errors?: string[] } }
-      return result.applied
-        ? { status: 'applied', detail: 'database mutation applied' }
-        : { status: 'failed', detail: result.validation?.errors?.join('; ') ?? 'not applied' }
-    }
-    return {
-      status: 'skipped',
-      detail: `${targetKind ?? 'unknown'} plans need review in the xNet app`
-    }
+    return result.applied
+      ? { status: 'applied', detail: `${targetKind} plan applied` }
+      : { status: 'failed', detail: result.validation?.errors?.join('; ') ?? 'not applied' }
   } catch (err) {
     return { status: 'failed', detail: err instanceof Error ? err.message : String(err) }
   }

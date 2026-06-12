@@ -2,10 +2,10 @@
  * Tests for the files-first agent CLI commands (exploration 0161).
  */
 
-import type { NodeData, NodeStoreAPI, SchemaRegistryAPI } from '@xnetjs/plugins/node'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createMemoryNodeStore, createWorkspaceFixtureSchemas } from '@xnetjs/plugins/node'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   createAgentServices,
@@ -18,84 +18,12 @@ import {
   runScript,
   runSearch,
   runStatus,
+  startDaemon,
   type AgentCliServices
 } from '../commands/agent.js'
 
-type MockNode = NodeData
-
-function createMockStore(initialNodes: MockNode[]): NodeStoreAPI {
-  const nodes = new Map(initialNodes.map((node) => [node.id, node]))
-  return {
-    get: async (id) => nodes.get(id) ?? null,
-    list: async (options) => {
-      let result = Array.from(nodes.values())
-      if (options?.schemaId) result = result.filter((node) => node.schemaId === options.schemaId)
-      if (options?.offset) result = result.slice(options.offset)
-      if (options?.limit) result = result.slice(0, options.limit)
-      return result
-    },
-    create: async (options) => {
-      const node: MockNode = {
-        id: `node-${nodes.size + 1}`,
-        schemaId: options.schemaId,
-        properties: options.properties,
-        deleted: false,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      }
-      nodes.set(node.id, node)
-      return node
-    },
-    update: async (id, options) => {
-      const existing = nodes.get(id)
-      if (!existing) throw new Error(`Node not found: ${id}`)
-      const node = {
-        ...existing,
-        properties: { ...existing.properties, ...options.properties },
-        updatedAt: existing.updatedAt + 1
-      }
-      nodes.set(id, node)
-      return node
-    },
-    delete: async (id) => {
-      const existing = nodes.get(id)
-      if (existing) existing.deleted = true
-    },
-    subscribe: () => () => {}
-  }
-}
-
-function createMockSchemas(): SchemaRegistryAPI {
-  const schemas = new Map([
-    [
-      'xnet://xnet.fyi/Page@1.0.0',
-      { iri: 'xnet://xnet.fyi/Page@1.0.0', name: 'Page', properties: { title: { type: 'text' } } }
-    ],
-    [
-      'xnet://xnet.fyi/Database@1.0.0',
-      {
-        iri: 'xnet://xnet.fyi/Database@1.0.0',
-        name: 'Database',
-        properties: { title: { type: 'text' } }
-      }
-    ],
-    [
-      'xnet://xnet.fyi/db/projects@1.0.0',
-      {
-        iri: 'xnet://xnet.fyi/db/projects@1.0.0',
-        name: 'Project Row',
-        properties: { title: { type: 'text' }, databaseId: { type: 'text' } }
-      }
-    ]
-  ])
-  return {
-    getAllIRIs: () => Array.from(schemas.keys()),
-    get: async (iri) => schemas.get(iri) ?? null
-  }
-}
-
 function createTestServices(): AgentCliServices {
-  const store = createMockStore([
+  const store = createMemoryNodeStore([
     {
       id: 'page_1',
       schemaId: 'xnet://xnet.fyi/Page@1.0.0',
@@ -134,7 +62,7 @@ function createTestServices(): AgentCliServices {
       updatedAt: 13
     }
   ])
-  return createAgentServices({ store, schemas: createMockSchemas() })
+  return createAgentServices({ store, schemas: createWorkspaceFixtureSchemas() })
 }
 
 describe('agent CLI commands', () => {
@@ -246,7 +174,8 @@ describe('agent CLI commands', () => {
         for (const row of active) {
           ctx.api.proposeUpdate(row.id, { status: 'review' })
         }
-        return { total: rows.length, active: active.length }
+        const hits = ctx.api.search('vault checkout')
+        return { total: rows.length, active: active.length, hits: hits.length }
       }`,
       'utf8'
     )
@@ -254,7 +183,7 @@ describe('agent CLI commands', () => {
     const output = JSON.parse(
       await runScript(services, { file: scriptPath, dir: rootDir })
     ) as Record<string, unknown>
-    expect(output.result).toEqual({ total: 2, active: 1 })
+    expect(output.result).toEqual({ total: 2, active: 1, hits: 1 })
     expect(output.plan).toMatchObject({ changes: 1, valid: true })
 
     const planPath = (output.planPath ?? '') as string
@@ -264,6 +193,40 @@ describe('agent CLI commands', () => {
       targetId: 'row_1',
       baseRevision: 'updatedAt:12'
     })
+  })
+
+  it('renders markdown tables for search and query when requested', async () => {
+    const services = createTestServices()
+    const search = await runSearch(services, { text: 'planning', format: 'md' })
+    expect(search.split('\n')[0]).toMatch(/^\| id \| schemaId \| title \| snippet \|$/)
+    const query = await runQuery(services, { databaseId: 'db_projects', format: 'md' })
+    expect(query).toContain('| --- |')
+    expect(query).toContain('| row_1 |')
+  })
+
+  it('daemon watches a checkout and reports planned edits', async () => {
+    const services = createTestServices()
+    await runCheckout(services, { dir: rootDir, node: ['page_1'] })
+
+    const summaries: string[] = []
+    const handle = startDaemon(services, {
+      dir: rootDir,
+      poll: true,
+      pollIntervalMs: 20,
+      onScan: (summary) => summaries.push(summary)
+    })
+
+    const pagePath = join(rootDir, 'Pages/q3-planning.md')
+    const page = await readFile(pagePath, 'utf8')
+    await writeFile(pagePath, page.replace('Quarterly goals', 'Daemon edit'), 'utf8')
+
+    for (let index = 0; index < 200 && summaries.length === 0; index += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
+    handle.close()
+
+    expect(summaries.length).toBeGreaterThan(0)
+    expect(summaries[0]).toContain('planned\tPages/q3-planning.md')
   })
 
   it('parses assignments with JSON and string values', () => {

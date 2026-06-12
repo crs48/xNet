@@ -19,60 +19,9 @@ import {
   validateAiMutationPlan,
   type AiMutationPlan
 } from '../ai-surface'
+import { createMemoryNodeStore } from '../testing/memory-backend'
 
-type MockNode = {
-  id: string
-  schemaId: string
-  properties: Record<string, unknown>
-  deleted: boolean
-  createdAt: number
-  updatedAt: number
-}
-
-function createMockStore(initialNodes: MockNode[]): NodeStoreAPI {
-  const nodes = new Map(initialNodes.map((node) => [node.id, node]))
-
-  return {
-    get: async (id) => nodes.get(id) ?? null,
-    list: async (options) => {
-      let result = Array.from(nodes.values())
-      if (options?.schemaId) {
-        result = result.filter((node) => node.schemaId === options.schemaId)
-      }
-      if (options?.offset) result = result.slice(options.offset)
-      if (options?.limit) result = result.slice(0, options.limit)
-      return result
-    },
-    create: async (options) => {
-      const node = {
-        id: `node-${nodes.size + 1}`,
-        schemaId: options.schemaId,
-        properties: options.properties,
-        deleted: false,
-        createdAt: 1,
-        updatedAt: 1
-      }
-      nodes.set(node.id, node)
-      return node
-    },
-    update: async (id, options) => {
-      const existing = nodes.get(id)
-      if (!existing) throw new Error(`Node not found: ${id}`)
-      const node = {
-        ...existing,
-        properties: { ...existing.properties, ...options.properties },
-        updatedAt: existing.updatedAt + 1
-      }
-      nodes.set(id, node)
-      return node
-    },
-    delete: async (id) => {
-      const existing = nodes.get(id)
-      if (existing) existing.deleted = true
-    },
-    subscribe: () => () => {}
-  }
-}
+const createMockStore = createMemoryNodeStore
 
 function createMockSchemas(): SchemaRegistryAPI {
   return {

@@ -212,13 +212,7 @@ export class AiWorkspaceExporter {
    * with whatever is already checked out.
    */
   async checkout(options: AiWorkspaceCheckoutOptions): Promise<AiWorkspaceExportResult> {
-    const scope = options.scope
-    const hasScope =
-      Boolean(scope.nodeIds?.length) ||
-      Boolean(scope.schemaIds?.length) ||
-      Boolean(scope.query?.trim()) ||
-      Boolean(scope.kinds?.length)
-    if (!hasScope) {
+    if (!hasExplicitScope(options.scope)) {
       throw new Error(
         'checkout requires an explicit scope (nodeIds, schemaIds, query, or kinds); eager whole-workspace export is not supported'
       )
@@ -316,57 +310,60 @@ export class AiWorkspaceExporter {
   }
 
   private async resolveNodes(scope: AiWorkspaceExportScope | undefined): Promise<NodeData[]> {
-    const hasExplicitScope =
-      Boolean(scope?.nodeIds?.length) ||
-      Boolean(scope?.schemaIds?.length) ||
-      Boolean(scope?.query?.trim()) ||
-      Boolean(scope?.kinds?.length)
-
-    if (!scope || !hasExplicitScope) {
+    if (!scope || !hasExplicitScope(scope)) {
       return (await this.config.store.list({ limit: scope?.limit ?? 100, offset: 0 })).filter(
         (node) => !node.deleted
       )
     }
 
-    const collected: NodeData[] = []
-
-    if (scope.nodeIds?.length) {
-      const nodes = await Promise.all(scope.nodeIds.map((id) => this.config.store.get(id)))
-      collected.push(...nodes.filter((node): node is NodeData => node !== null))
-    }
-
-    if (scope.schemaIds?.length) {
-      const pages = await Promise.all(
-        scope.schemaIds.map((schemaId) =>
-          this.config.store.list({ schemaId, limit: scope.limit ?? 100, offset: 0 })
-        )
-      )
-      collected.push(...pages.flat())
-    }
-
-    if (scope.query?.trim()) {
-      const search = await this.aiSurface.search({
-        query: scope.query,
-        limit: scope.limit ?? 50
-      })
-      const results = Array.isArray(search.results) ? search.results : []
-      const nodes = await Promise.all(
-        results.map((result) =>
-          isRecord(result) && typeof result.id === 'string'
-            ? this.config.store.get(result.id)
-            : Promise.resolve(null)
-        )
-      )
-      collected.push(...nodes.filter((node): node is NodeData => node !== null))
-    }
-
-    if (scope.kinds?.length) {
-      const kinds = scope.kinds
-      const all = await this.config.store.list({ limit: scope.limit ?? 100, offset: 0 })
-      collected.push(...all.filter((node) => kinds.includes(inferExportKind(node))))
-    }
+    const collected = [
+      ...(await this.resolveNodeIdScope(scope)),
+      ...(await this.resolveSchemaScope(scope)),
+      ...(await this.resolveQueryScope(scope)),
+      ...(await this.resolveKindScope(scope))
+    ]
 
     return uniqueNodes(collected.filter((node) => !node.deleted))
+  }
+
+  private async resolveNodeIdScope(scope: AiWorkspaceExportScope): Promise<NodeData[]> {
+    if (!scope.nodeIds?.length) return []
+    const nodes = await Promise.all(scope.nodeIds.map((id) => this.config.store.get(id)))
+    return nodes.filter((node): node is NodeData => node !== null)
+  }
+
+  private async resolveSchemaScope(scope: AiWorkspaceExportScope): Promise<NodeData[]> {
+    if (!scope.schemaIds?.length) return []
+    const pages = await Promise.all(
+      scope.schemaIds.map((schemaId) =>
+        this.config.store.list({ schemaId, limit: scope.limit ?? 100, offset: 0 })
+      )
+    )
+    return pages.flat()
+  }
+
+  private async resolveQueryScope(scope: AiWorkspaceExportScope): Promise<NodeData[]> {
+    if (!scope.query?.trim()) return []
+    const search = await this.aiSurface.search({
+      query: scope.query,
+      limit: scope.limit ?? 50
+    })
+    const results = Array.isArray(search.results) ? search.results : []
+    const nodes = await Promise.all(
+      results.map((result) =>
+        isRecord(result) && typeof result.id === 'string'
+          ? this.config.store.get(result.id)
+          : Promise.resolve(null)
+      )
+    )
+    return nodes.filter((node): node is NodeData => node !== null)
+  }
+
+  private async resolveKindScope(scope: AiWorkspaceExportScope): Promise<NodeData[]> {
+    const kinds = scope.kinds
+    if (!kinds?.length) return []
+    const all = await this.config.store.list({ limit: scope.limit ?? 100, offset: 0 })
+    return all.filter((node) => kinds.includes(inferExportKind(node)))
   }
 
   private async ensureBaseFolders(rootDir: string): Promise<void> {
@@ -998,45 +995,44 @@ function renderConflictNote(conflict: AiWorkspaceConflict): string {
   ].join('\n')
 }
 
+const PARSE_ERROR_RESOLUTION_STEPS = [
+  '1. The file no longer parses. Fix the syntax error described above and save again.',
+  '2. For `.rows.jsonl`, every line must be a single JSON object.'
+]
+
+const PLAN_ERROR_RESOLUTION_STEPS = [
+  '1. xNet could not turn this edit into a valid mutation plan (see details above).',
+  '2. Revert the file (re-run a checkout) or adjust the edit, then save again.',
+  '3. Check `xnet status` to confirm the conflict clears.'
+]
+
+const CONFLICT_RESOLUTION_STEPS: Record<AiWorkspaceConflictKind, string[]> = {
+  'missing-file': [
+    '1. The projected file was deleted on disk. Deleting files does not delete nodes.',
+    '2. Re-run a checkout (`xnet checkout`) to restore the projection, or',
+    '3. propose an explicit delete through a mutation plan if removal was intended.'
+  ],
+  'stale-export': [
+    '1. The node changed in xNet after this file was exported; your edit is based on a stale revision.',
+    '2. Re-run a checkout (`xnet checkout`) to refresh the file, re-apply your edit on top, and save again.'
+  ],
+  'invalid-json': PARSE_ERROR_RESOLUTION_STEPS,
+  'invalid-jsonl': PARSE_ERROR_RESOLUTION_STEPS,
+  'validation-warning': [
+    '1. The edit uses Markdown or structures xNet cannot round-trip safely, so it was quarantined instead of lossy-applied.',
+    '2. Remove or rewrite the unsupported feature (see details above), then save again.',
+    '3. Keep `:::xnet-database` blocks and `{{xnet-ref ...}}` directives intact.'
+  ],
+  'unsupported-change': [
+    '1. This projection file is read-only (for example `.tsv` sidecars).',
+    '2. Make the change in the writable projection instead: rows in `.rows.jsonl`, schema in `.schema.json`.'
+  ],
+  'invalid-plan': PLAN_ERROR_RESOLUTION_STEPS,
+  'tool-error': PLAN_ERROR_RESOLUTION_STEPS
+}
+
 function conflictResolutionSteps(conflict: AiWorkspaceConflict): string[] {
-  switch (conflict.kind) {
-    case 'missing-file':
-      return [
-        '1. The projected file was deleted on disk. Deleting files does not delete nodes.',
-        '2. Re-run a checkout (`xnet checkout`) to restore the projection, or',
-        '3. propose an explicit delete through a mutation plan if removal was intended.'
-      ]
-    case 'stale-export':
-      return [
-        '1. The node changed in xNet after this file was exported; your edit is based on a stale revision.',
-        '2. Re-run a checkout (`xnet checkout`) to refresh the file, re-apply your edit on top, and save again.'
-      ]
-    case 'invalid-json':
-    case 'invalid-jsonl':
-      return [
-        '1. The file no longer parses. Fix the syntax error described above and save again.',
-        '2. For `.rows.jsonl`, every line must be a single JSON object.'
-      ]
-    case 'validation-warning':
-      return [
-        '1. The edit uses Markdown or structures xNet cannot round-trip safely, so it was quarantined instead of lossy-applied.',
-        '2. Remove or rewrite the unsupported feature (see details above), then save again.',
-        '3. Keep `:::xnet-database` blocks and `{{xnet-ref ...}}` directives intact.'
-      ]
-    case 'unsupported-change':
-      return [
-        '1. This projection file is read-only (for example `.tsv` sidecars).',
-        '2. Make the change in the writable projection instead: rows in `.rows.jsonl`, schema in `.schema.json`.'
-      ]
-    case 'invalid-plan':
-    case 'tool-error':
-    default:
-      return [
-        '1. xNet could not turn this edit into a valid mutation plan (see details above).',
-        '2. Revert the file (re-run a checkout) or adjust the edit, then save again.',
-        '3. Check `xnet status` to confirm the conflict clears.'
-      ]
-  }
+  return CONFLICT_RESOLUTION_STEPS[conflict.kind] ?? PLAN_ERROR_RESOLUTION_STEPS
 }
 
 function renderClaudeMcpConfig(): Record<string, unknown> {
@@ -1124,6 +1120,15 @@ function reviewEntryForConflict(
     suggestedActions: ['reject', 'request-revision'],
     createdAt
   }
+}
+
+function hasExplicitScope(scope: AiWorkspaceExportScope): boolean {
+  return (
+    Boolean(scope.nodeIds?.length) ||
+    Boolean(scope.schemaIds?.length) ||
+    Boolean(scope.query?.trim()) ||
+    Boolean(scope.kinds?.length)
+  )
 }
 
 function inferExportKind(node: NodeData): AiWorkspaceExportKind {

@@ -3,7 +3,6 @@
  */
 
 import type { AIProvider } from '../ai/providers'
-import type { NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
 import { mkdtemp, readFile, rm, unlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -13,107 +12,34 @@ import {
   createAiWorkspaceExporter,
   createAiWorkspaceWatcher
 } from '../services/ai-workspace-exporter'
+import {
+  createMemoryNodeStore,
+  createWorkspaceFixtureSchemas,
+  type MemoryNodeStore
+} from '../testing/memory-backend'
 
-type MockNode = {
-  id: string
-  schemaId: string
-  properties: Record<string, unknown>
-  deleted: boolean
-  createdAt: number
-  updatedAt: number
-}
+const createMockStore = createMemoryNodeStore
+const createMockSchemas = createWorkspaceFixtureSchemas
 
-function createMockStore(initialNodes: MockNode[]): NodeStoreAPI & {
-  setNode(id: string, properties: Record<string, unknown>): void
+/** Single roadmap page used by most watcher scenarios. */
+function createRoadmapWorkspace(): {
+  store: MemoryNodeStore
+  schemas: ReturnType<typeof createMockSchemas>
+  clock: () => Date
 } {
-  const nodes = new Map(initialNodes.map((node) => [node.id, node]))
-
   return {
-    get: async (id) => nodes.get(id) ?? null,
-    list: async (options) => {
-      let result = Array.from(nodes.values())
-      if (options?.schemaId) {
-        result = result.filter((node) => node.schemaId === options.schemaId)
-      }
-      if (options?.offset) result = result.slice(options.offset)
-      if (options?.limit) result = result.slice(0, options.limit)
-      return result
-    },
-    create: async (options) => {
-      const node = {
-        id: `node-${nodes.size + 1}`,
-        schemaId: options.schemaId,
-        properties: options.properties,
+    store: createMockStore([
+      {
+        id: 'page_1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
         deleted: false,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
+        createdAt: 1,
+        updatedAt: 10
       }
-      nodes.set(node.id, node)
-      return node
-    },
-    update: async (id, options) => {
-      const existing = nodes.get(id)
-      if (!existing) throw new Error(`Node not found: ${id}`)
-      const node = {
-        ...existing,
-        properties: { ...existing.properties, ...options.properties },
-        updatedAt: existing.updatedAt + 1
-      }
-      nodes.set(id, node)
-      return node
-    },
-    delete: async (id) => {
-      const existing = nodes.get(id)
-      if (existing) existing.deleted = true
-    },
-    subscribe: () => () => {},
-    setNode: (id, properties) => {
-      const existing = nodes.get(id)
-      if (!existing) throw new Error(`Node not found: ${id}`)
-      nodes.set(id, {
-        ...existing,
-        properties: { ...existing.properties, ...properties },
-        updatedAt: existing.updatedAt + 1
-      })
-    }
-  }
-}
-
-function createMockSchemas(): SchemaRegistryAPI {
-  const schemas = new Map([
-    [
-      'xnet://xnet.fyi/Page@1.0.0',
-      { iri: 'xnet://xnet.fyi/Page@1.0.0', name: 'Page', properties: { title: { type: 'text' } } }
-    ],
-    [
-      'xnet://xnet.fyi/Database@1.0.0',
-      {
-        iri: 'xnet://xnet.fyi/Database@1.0.0',
-        name: 'Database',
-        properties: { title: { type: 'text' } }
-      }
-    ],
-    [
-      'xnet://xnet.fyi/Canvas@1.0.0',
-      {
-        iri: 'xnet://xnet.fyi/Canvas@1.0.0',
-        name: 'Canvas',
-        properties: { title: { type: 'text' } }
-      }
-    ],
-    [
-      'xnet://xnet.fyi/db/projects@1.0.0',
-      {
-        iri: 'xnet://xnet.fyi/db/projects@1.0.0',
-        name: 'Project Row',
-        properties: { title: { type: 'text' }, databaseId: { type: 'text' } }
-      }
-    ]
-  ])
-
-  return {
-    getAllIRIs: () => Array.from(schemas.keys()),
-    get: async (iri) => schemas.get(iri) ?? null
+    ]),
+    schemas: createMockSchemas(),
+    clock: () => new Date('2026-06-02T12:00:00.000Z')
   }
 }
 
@@ -129,6 +55,17 @@ const noopProvider: AIProvider = {
     quality: 'local'
   }),
   generate: async () => ''
+}
+
+/** Export the roadmap page, delete the projected file, and re-scan. */
+async function scanAfterRemovingRoadmapPage(rootDir: string) {
+  const { store, schemas, clock } = createRoadmapWorkspace()
+  const exporter = createAiWorkspaceExporter({ store, schemas, clock })
+  await exporter.exportWorkspace({ rootDir, scope: { nodeIds: ['page_1'] } })
+  await unlink(join(rootDir, 'Pages/product-roadmap.md'))
+
+  const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
+  return await watcher.scanChangedFiles({ rootDir })
 }
 
 async function waitFor(predicate: () => boolean): Promise<void> {
@@ -462,28 +399,7 @@ describe('AiWorkspaceExporter', () => {
   })
 
   it('writes conflict records for missing exported files', async () => {
-    const store = createMockStore([
-      {
-        id: 'page_1',
-        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
-        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
-        deleted: false,
-        createdAt: 1,
-        updatedAt: 10
-      }
-    ])
-    const clock = () => new Date('2026-06-02T12:00:00.000Z')
-    const schemas = createMockSchemas()
-    const exporter = createAiWorkspaceExporter({ store, schemas, clock })
-    await exporter.exportWorkspace({
-      rootDir,
-      scope: { nodeIds: ['page_1'] }
-    })
-
-    await unlink(join(rootDir, 'Pages/product-roadmap.md'))
-
-    const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
-    const result = await watcher.scanChangedFiles({ rootDir })
+    const result = await scanAfterRemovingRoadmapPage(rootDir)
 
     expect(result.pendingPlans).toEqual([])
     expect(result.conflicts).toHaveLength(1)
@@ -516,18 +432,7 @@ describe('AiWorkspaceExporter', () => {
   })
 
   it('turns stale exported edits into conflicts instead of pending plans', async () => {
-    const store = createMockStore([
-      {
-        id: 'page_1',
-        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
-        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
-        deleted: false,
-        createdAt: 1,
-        updatedAt: 10
-      }
-    ])
-    const clock = () => new Date('2026-06-02T12:00:00.000Z')
-    const schemas = createMockSchemas()
+    const { store, schemas, clock } = createRoadmapWorkspace()
     const exporter = createAiWorkspaceExporter({ store, schemas, clock })
     await exporter.exportWorkspace({
       rootDir,
@@ -708,18 +613,7 @@ describe('AiWorkspaceExporter', () => {
   })
 
   it('quarantines page edits with round-trip validation warnings instead of planning them', async () => {
-    const store = createMockStore([
-      {
-        id: 'page_1',
-        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
-        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
-        deleted: false,
-        createdAt: 1,
-        updatedAt: 10
-      }
-    ])
-    const clock = () => new Date('2026-06-02T12:00:00.000Z')
-    const schemas = createMockSchemas()
+    const { store, schemas, clock } = createRoadmapWorkspace()
     const exporter = createAiWorkspaceExporter({ store, schemas, clock })
     await exporter.exportWorkspace({ rootDir, scope: { nodeIds: ['page_1'] } })
 
@@ -741,24 +635,7 @@ describe('AiWorkspaceExporter', () => {
   })
 
   it('writes human-readable conflict notes with resolution instructions', async () => {
-    const store = createMockStore([
-      {
-        id: 'page_1',
-        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
-        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
-        deleted: false,
-        createdAt: 1,
-        updatedAt: 10
-      }
-    ])
-    const clock = () => new Date('2026-06-02T12:00:00.000Z')
-    const schemas = createMockSchemas()
-    const exporter = createAiWorkspaceExporter({ store, schemas, clock })
-    await exporter.exportWorkspace({ rootDir, scope: { nodeIds: ['page_1'] } })
-    await unlink(join(rootDir, 'Pages/product-roadmap.md'))
-
-    const watcher = createAiWorkspaceWatcher({ store, schemas, clock })
-    const result = await watcher.scanChangedFiles({ rootDir })
+    const result = await scanAfterRemovingRoadmapPage(rootDir)
 
     expect(result.conflicts[0].notePath).toMatch(/\.md$/)
     const note = await readFile(join(rootDir, result.conflicts[0].notePath ?? ''), 'utf8')
@@ -768,18 +645,7 @@ describe('AiWorkspaceExporter', () => {
   })
 
   it('falls back to polling when configured and still picks up changes', async () => {
-    const store = createMockStore([
-      {
-        id: 'page_1',
-        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
-        properties: { title: 'Product Roadmap', markdown: 'Roadmap body' },
-        deleted: false,
-        createdAt: 1,
-        updatedAt: 10
-      }
-    ])
-    const clock = () => new Date('2026-06-02T12:00:00.000Z')
-    const schemas = createMockSchemas()
+    const { store, schemas, clock } = createRoadmapWorkspace()
     const exporter = createAiWorkspaceExporter({ store, schemas, clock })
     await exporter.exportWorkspace({ rootDir, scope: { nodeIds: ['page_1'] } })
 

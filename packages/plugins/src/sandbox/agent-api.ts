@@ -181,22 +181,23 @@ function searchFlatNodes(nodes: FlatNode[], text: string): AgentSearchResult[] {
   const query = text.trim().toLocaleLowerCase()
   if (!query) return []
 
-  const results: AgentSearchResult[] = []
-  for (const node of nodes) {
-    const title = typeof node.title === 'string' ? node.title : node.id
-    const haystacks = Object.values(node).filter(
-      (value): value is string => typeof value === 'string'
-    )
-    const match = haystacks.find((value) => value.toLocaleLowerCase().includes(query))
-    if (!match) continue
-    results.push({
-      id: node.id,
-      schemaIRI: node.schemaIRI,
-      title,
-      snippet: match.slice(0, 160)
-    })
+  return nodes
+    .map((node) => toSearchResult(node, query))
+    .filter((result): result is AgentSearchResult => result !== null)
+}
+
+function toSearchResult(node: FlatNode, query: string): AgentSearchResult | null {
+  const haystacks = Object.values(node).filter(
+    (value): value is string => typeof value === 'string'
+  )
+  const match = haystacks.find((value) => value.toLocaleLowerCase().includes(query))
+  if (!match) return null
+  return {
+    id: node.id,
+    schemaIRI: node.schemaIRI,
+    title: typeof node.title === 'string' ? node.title : node.id,
+    snippet: match.slice(0, 160)
   }
-  return results
 }
 
 function revisionForFlatNode(node: FlatNode): string {
