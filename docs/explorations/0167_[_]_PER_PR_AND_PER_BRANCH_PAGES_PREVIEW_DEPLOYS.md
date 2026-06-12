@@ -10,6 +10,18 @@ straight into a running build.
 
 ## Executive Summary
 
+> **Status (2026-06-12): the current deployment workflow is buggy and needs
+> work — implementation of the fixes below is in progress.** The defects are
+> concrete, not hypothetical: the preview workflows push to `gh-pages` with no
+> retry, so any two concurrent writers (two PR updates, or a merge firing
+> `remove-pr-preview` alongside `deploy-site`) race and one run fails with a
+> rejected push — the same failure class that broke the production deploy
+> twice on 2026-06-12 before commit `7decfc3c` added a retry loop to
+> deploy-site.yml only. On top of that, `gh-pages` history grows without bound
+> (every deploy commits a full set of hashed bundles), and previews share
+> production's browser-storage origin (see the security finding below). The
+> Implementation Checklist tracks the fixes.
+
 **The core ask is already implemented and live on `main`.** Commit `ceef02d4`
 ("ci(pages): add branch-backed PR previews") shipped
 [deploy-pr-preview.yml](../../.github/workflows/deploy-pr-preview.yml), which
