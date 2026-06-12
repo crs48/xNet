@@ -455,9 +455,9 @@ writer; the shared composite action should serialize via the
 - [x] Add `environment: { name: pr-<N>, url: ... }` to the `deploy-preview` job in [deploy-pr-preview.yml](../../.github/workflows/deploy-pr-preview.yml)
 - [x] Mark the `pr-<N>` environment inactive from [remove-pr-preview.yml](../../.github/workflows/remove-pr-preview.yml) on close
 - [x] Extract a `.github/actions/publish-gh-pages` composite action (worktree checkout → rsync to target dir → commit → push with 3× refetch-retry), adopt it in all gh-pages-writing workflows
-- [ ] Add `deploy-branch-preview.yml` (opt-in trigger: `preview/**` branches + `workflow_dispatch`), deploying to `branch/<slug>/app/` with `VITE_BASE_PATH` set accordingly
-- [ ] Add `remove-branch-preview.yml` on the `delete` event (branch refs only, slugified path)
-- [ ] Add `--exclude branch` + `mkdir -p branch` to the production rsync in [deploy-site.yml](../../.github/workflows/deploy-site.yml)
+- [x] Add `deploy-branch-preview.yml` (opt-in trigger: `preview/**` branches + `workflow_dispatch`), deploying to `branch/<slug>/app/` with `VITE_BASE_PATH` set accordingly
+- [x] Add `remove-branch-preview.yml` on the `delete` event (branch refs only, slugified path)
+- [x] Add `--exclude branch` to the production rsync in [deploy-site.yml](../../.github/workflows/deploy-site.yml) (`mkdir -p branch` turned out unnecessary — git does not track empty directories)
 - [ ] Add weekly `squash-gh-pages.yml` history-squash workflow
 - [ ] Add weekly orphan sweep: delete `pr/*` dirs with no open PR and `branch/*` dirs with no live ref
 - [ ] Thread a `VITE_STORAGE_SCOPE` (e.g. `pr-42`) build arg into IndexedDB database names — starting with `DB_NAME` in [packages/identity/src/passkey/storage.ts](../../packages/identity/src/passkey/storage.ts) — so previews never open production databases

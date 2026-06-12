@@ -1,0 +1,59 @@
+name: Deploy Branch Preview
+
+# Opt-in branch previews: pushes to preview/** deploy automatically; any other
+# branch can be deployed on demand via workflow_dispatch (run it on that ref).
+on:
+  push:
+    branches: ['preview/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Per-branch group so preview runs never cancel the production deploy
+# (pages-production) or other branches' previews.
+concurrency:
+  group: pages-branch-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-branch-preview:
+    if: github.ref_name != 'main' && github.ref_name != 'gh-pages'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      # Branch names may contain slashes (feat/foo); flatten them so each
+      # branch maps to exactly one directory level under branch/.
+      - name: Compute branch slug
+        id: slug
+        run: echo "slug=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Build web app preview
+        run: pnpm --filter xnet-web build
+        env:
+          VITE_BASE_PATH: /branch/${{ steps.slug.outputs.slug }}/app/
+          VITE_USE_HASH_ROUTER: 'true'
+
+      - name: Prepare preview tree
+        run: |
+          rm -rf /tmp/xnet-branch-preview
+          mkdir -p /tmp/xnet-branch-preview
+          cp -R apps/web/dist/. /tmp/xnet-branch-preview/
+          cp /tmp/xnet-branch-preview/index.html /tmp/xnet-branch-preview/404.html
+
+      - name: Publish preview to gh-pages
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          source: /tmp/xnet-branch-preview
+          target: branch/${{ steps.slug.outputs.slug }}/app
+          commit-message: 'deploy(preview): publish branch ${{ github.ref_name }} preview'
+
+      - name: Add preview link to run summary
+        run: |
+          echo "Preview: https://xnet.fyi/branch/${{ steps.slug.outputs.slug }}/app/" >> "$GITHUB_STEP_SUMMARY"

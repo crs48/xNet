@@ -67,5 +67,7 @@ jobs:
         with:
           source: /tmp/xnet-pages-root
           target: .
-          exclude: pr
+          exclude: |
+            pr
+            branch
           commit-message: 'deploy(site): publish production site'
