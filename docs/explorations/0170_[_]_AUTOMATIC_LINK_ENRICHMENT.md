@@ -54,14 +54,14 @@ skipping).
 
 ### Surface inventory
 
-| Surface | Renderer | Linkifies today? |
-| --- | --- | --- |
-| Page documents | `packages/editor/src/components/RichTextEditor.tsx` — `Link.configure(...)` at line 510 | ✅ autolink (TipTap default) + `RichLinkExtension` / `SmartReferenceExtension` / `EmbedExtension` for pasted URLs |
-| Comments | `packages/ui/src/components/MarkdownContent.tsx` (used by `packages/ui/src/composed/comments/CommentBubble.tsx:156`) | ✅ GFM autolink literals (URL, `www.`, email) — no phones |
-| Chat messages | `MessageBody` in `apps/web/src/comms/ChannelChat.tsx:52` | ❌ plain `<span className="whitespace-pre-wrap …">{message.content}</span>` |
-| Table text cells | `textHandler.render` in `packages/views/src/properties/text.tsx:53` | ❌ plain `<span>{value}</span>` |
-| Grid text cells | `packages/views/src/grid/GridCell.tsx` → same property handler | ❌ same |
-| Typed columns | `packages/views/src/properties/url.tsx`, `email.tsx`, `phone.tsx` | ✅ but only for explicitly typed columns |
+| Surface          | Renderer                                                                                                             | Linkifies today?                                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Page documents   | `packages/editor/src/components/RichTextEditor.tsx` — `Link.configure(...)` at line 510                              | ✅ autolink (TipTap default) + `RichLinkExtension` / `SmartReferenceExtension` / `EmbedExtension` for pasted URLs |
+| Comments         | `packages/ui/src/components/MarkdownContent.tsx` (used by `packages/ui/src/composed/comments/CommentBubble.tsx:156`) | ✅ GFM autolink literals (URL, `www.`, email) — no phones                                                         |
+| Chat messages    | `MessageBody` in `apps/web/src/comms/ChannelChat.tsx:52`                                                             | ❌ plain `<span className="whitespace-pre-wrap …">{message.content}</span>`                                       |
+| Table text cells | `textHandler.render` in `packages/views/src/properties/text.tsx:53`                                                  | ❌ plain `<span>{value}</span>`                                                                                   |
+| Grid text cells  | `packages/views/src/grid/GridCell.tsx` → same property handler                                                       | ❌ same                                                                                                           |
+| Typed columns    | `packages/views/src/properties/url.tsx`, `email.tsx`, `phone.tsx`                                                    | ✅ but only for explicitly typed columns                                                                          |
 
 ### The typed-column handlers define the house link style
 
@@ -131,7 +131,7 @@ adds no new code to the bundle the app already ships.
 
 `packages/views` and `apps/web` both already depend on `@xnetjs/ui`
 (`packages/views/package.json`, `apps/web/package.json`), and comments live
-*in* `packages/ui`. So `packages/ui` is the natural home:
+_in_ `packages/ui`. So `packages/ui` is the natural home:
 
 - `packages/ui/src/utils/linkify.ts` — tokenizer + policy (pure logic,
   testable without DOM)
@@ -163,12 +163,12 @@ flowchart LR
 
 ### Library comparison
 
-| Library | Size (min/gzip) | Detects | Fuzzy (`example.com`) | React story | Maintenance |
-| --- | --- | --- | --- | --- | --- |
-| **linkifyjs** 4.3.3 | 19.3 / 10.4 kB, 0 deps | URL, email (+plugins: hashtag, mention, IP) | ✅ | Official `linkify-react` builds real React elements; `find()` returns raw tokens | Active (May 2026); 11.8 M weekly DLs; **already a transitive dep via TipTap** |
-| linkify-it 5.0.1 | 11.5 / 4.2 kB | URL, email | ✅ (`fuzzyLink` default) | Tokens only, no renderer | Active (markdown-it engine) |
-| Autolinker.js 4.1.5 | 48.6 / 20.2 kB | URL, email, **phone**, hashtag, mention | ✅ | HTML-string default; `parse()` gives matches | Slower cadence (May 2025) |
-| anchorme 3.0.8 | 21.9 / 10.0 kB | URL, email, IP, file paths | ✅ | HTML-string output | Dormant (Apr 2024) |
+| Library             | Size (min/gzip)        | Detects                                     | Fuzzy (`example.com`)    | React story                                                                      | Maintenance                                                                   |
+| ------------------- | ---------------------- | ------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **linkifyjs** 4.3.3 | 19.3 / 10.4 kB, 0 deps | URL, email (+plugins: hashtag, mention, IP) | ✅                       | Official `linkify-react` builds real React elements; `find()` returns raw tokens | Active (May 2026); 11.8 M weekly DLs; **already a transitive dep via TipTap** |
+| linkify-it 5.0.1    | 11.5 / 4.2 kB          | URL, email                                  | ✅ (`fuzzyLink` default) | Tokens only, no renderer                                                         | Active (markdown-it engine)                                                   |
+| Autolinker.js 4.1.5 | 48.6 / 20.2 kB         | URL, email, **phone**, hashtag, mention     | ✅                       | HTML-string default; `parse()` gives matches                                     | Slower cadence (May 2025)                                                     |
+| anchorme 3.0.8      | 21.9 / 10.0 kB         | URL, email, IP, file paths                  | ✅                       | HTML-string output                                                               | Dormant (Apr 2024)                                                            |
 
 Autolinker is the only one with phone detection, but it's regex-based with
 unspecified coverage — see the phone section for why that's not good enough.
@@ -193,13 +193,13 @@ unspecified coverage — see the phone section for why that's not good enough.
 
 ### Timing models in prior art
 
-| Product | When linkification happens | Escape hatch |
-| --- | --- | --- |
-| Google Sheets | On commit (Enter/blur) | Ctrl+Z removes just the link |
-| Slack | At send time | Link button for custom text |
-| Notion | On paste, with a menu (link/bookmark/embed/mention) | Dismiss option |
-| Linear | On paste (auto-embed for known apps) | "Keep as link" / Esc |
-| Gmail, iOS | Render time, read-only surfaces | n/a (text unchanged) |
+| Product       | When linkification happens                          | Escape hatch                 |
+| ------------- | --------------------------------------------------- | ---------------------------- |
+| Google Sheets | On commit (Enter/blur)                              | Ctrl+Z removes just the link |
+| Slack         | At send time                                        | Link button for custom text  |
+| Notion        | On paste, with a menu (link/bookmark/embed/mention) | Dismiss option               |
+| Linear        | On paste (auto-embed for known apps)                | "Keep as link" / Esc         |
+| Gmail, iOS    | Render time, read-only surfaces                     | n/a (text unchanged)         |
 
 Pattern: **as-you-type** enrichment only happens in rich editors with undo;
 **cells** enrich on commit; **read-only message display** enriches at render
@@ -234,8 +234,8 @@ on), read-mode rendering for cells and chat.
 
 - No reliable cross-locale grammar exists for postal addresses. The state of
   the art, **libpostal**, is a C library with a ~1.8 GB statistical model,
-  server-side only — and its README lists *"extracting addresses from free
-  text"* as an explicit **non-goal** (it parses strings already known to be
+  server-side only — and its README lists _"extracting addresses from free
+  text"_ as an explicit **non-goal** (it parses strings already known to be
   addresses).
 - The only credible free-text detectors are OS-scale (Apple's
   `NSDataDetector`) or cloud-scale (Gmail's server-side pipeline). Cloud
@@ -319,11 +319,11 @@ A small regex in `MessageBody`, another in `text.tsx`.
 
 ### Phone sub-decision
 
-| | Ship in v1 | Lazy phase 2 (recommended) | Skip forever |
-| --- | --- | --- | --- |
-| Bundle | +145 kB eager | +145 kB only after idle/lazy import | 0 |
-| Precedent | Gmail/iOS | — | Slack/Notion/Airtable |
-| Risk | False positives day one | Tunable behind a flag | Users with the need use the `phone` column |
+|           | Ship in v1              | Lazy phase 2 (recommended)          | Skip forever                               |
+| --------- | ----------------------- | ----------------------------------- | ------------------------------------------ |
+| Bundle    | +145 kB eager           | +145 kB only after idle/lazy import | 0                                          |
+| Precedent | Gmail/iOS               | —                                   | Slack/Notion/Airtable                      |
+| Risk      | False positives day one | Tunable behind a flag               | Users with the need use the `phone` column |
 
 Phase 2: `import('libphonenumber-js/min')` lazily, run
 `findPhoneNumbersInText` with `defaultCountry` from `navigator.language`
@@ -438,9 +438,7 @@ export function LinkifiedText({ value, className }: LinkifiedTextProps) {
           <a
             key={i}
             href={seg.token.href}
-            {...(seg.token.type === 'url'
-              ? { target: '_blank', rel: 'noopener noreferrer' }
-              : {})}
+            {...(seg.token.type === 'url' ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             className="text-blue-600 dark:text-blue-400 hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
@@ -460,7 +458,9 @@ Chat integration is then one line in
 
 ```tsx
 function MessageBody({ message }: { message: ChatMessageRow }) {
-  if (message.redacted) { /* unchanged */ }
+  if (message.redacted) {
+    /* unchanged */
+  }
   return (
     <LinkifiedText
       value={message.content}
@@ -511,12 +511,12 @@ render(value) {
 
 Phase 1 — URLs + emails:
 
-- [ ] Add `linkifyjs` as a direct dependency of `packages/ui`
-- [ ] `packages/ui/src/utils/linkify.ts`: `findLinkTokens` + `safeHref`
+- [x] Add `linkifyjs` as a direct dependency of `packages/ui`
+- [x] `packages/ui/src/utils/linkify.ts`: `findLinkTokens` + `safeHref`
       scheme allowlist + segmenter; unit tests (trailing punctuation, parens,
       IDN, `javascript:` rejection, control-char smuggling, fuzzy domains,
       emails)
-- [ ] `packages/ui/src/components/LinkifiedText.tsx`; add to **both** export
+- [x] `packages/ui/src/components/LinkifiedText.tsx`; add to **both** export
       lists in `packages/ui` (dual-export convention)
 - [ ] Chat: render `MessageBody` content through `<LinkifiedText>`
       (`apps/web/src/comms/ChannelChat.tsx`); comment the
@@ -533,9 +533,9 @@ Phase 1 — URLs + emails:
 
 Phase 2 — phones (flag-gated):
 
-- [ ] Lazy detector module wrapping `libphonenumber-js/min`
+- [x] Lazy detector module wrapping `libphonenumber-js/min`
       `findPhoneNumbersInText` with `defaultCountry` from locale
-- [ ] `detectPhones` prop on `<LinkifiedText>`; overlap resolution (URL/email
+- [x] `detectPhones` prop on `<LinkifiedText>`; overlap resolution (URL/email
       tokens win)
 - [ ] Bundle-size check: phone chunk must be lazy, not in the entry bundle
 - [ ] Enable in chat + text cells behind a flag; collect false-positive
@@ -548,7 +548,7 @@ Phase 3 — addresses (explicit action only):
 
 ## Validation Checklist
 
-- [ ] Unit: `findLinkTokens` handles `https://en.wikipedia.org/wiki/Foo_(bar)`,
+- [x] Unit: `findLinkTokens` handles `https://en.wikipedia.org/wiki/Foo_(bar)`,
       `example.com.`, `(see example.com)`, `alice@acme.io`, `EXAMPLE.COM`,
       Unicode/IDN hosts, and rejects `javascript:alert(1)`,
       `jav\tascript:alert(1)`, `data:text/html,…`
