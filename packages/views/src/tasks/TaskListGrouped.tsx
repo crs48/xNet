@@ -18,6 +18,10 @@ export interface TaskListGroupedProps {
   /** Hide empty groups (default true) */
   hideEmptyGroups?: boolean
   focusedTaskId?: string | null
+  /** Task whose row expands to show `renderTaskEditor` beneath it */
+  expandedTaskId?: string | null
+  /** Inline editor for the expanded row (host-provided) */
+  renderTaskEditor?: (task: TaskDisplayData) => React.ReactNode
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
 }
@@ -29,6 +33,8 @@ export function TaskListGrouped({
   statuses = DEFAULT_STATUSES,
   hideEmptyGroups = true,
   focusedTaskId = null,
+  expandedTaskId = null,
+  renderTaskEditor,
   onOpenTask,
   onToggleCompleted
 }: TaskListGroupedProps) {
@@ -85,13 +91,17 @@ export function TaskListGrouped({
             {!isCollapsed && (
               <div className="flex flex-col px-1 py-0.5">
                 {group.tasks.map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    focused={task.id === focusedTaskId}
-                    onOpen={onOpenTask}
-                    onToggleCompleted={onToggleCompleted}
-                  />
+                  <React.Fragment key={task.id}>
+                    <TaskRow
+                      task={task}
+                      focused={task.id === focusedTaskId}
+                      onOpen={onOpenTask}
+                      onToggleCompleted={onToggleCompleted}
+                    />
+                    {task.id === expandedTaskId && renderTaskEditor && (
+                      <div className="px-1 pb-1.5 pt-0.5">{renderTaskEditor(task)}</div>
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
             )}

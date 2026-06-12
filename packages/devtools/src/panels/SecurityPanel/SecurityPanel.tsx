@@ -15,9 +15,9 @@ const SIGNATURE_SIZES = {
 
 // Level color coding
 const LEVEL_COLORS = {
-  0: 'bg-blue-500',
-  1: 'bg-purple-500',
-  2: 'bg-green-500'
+  0: 'bg-ink-3',
+  1: 'bg-ink-2',
+  2: 'bg-ink-1'
 } as const
 
 const LEVEL_LABELS = {
@@ -31,10 +31,10 @@ export function SecurityPanel() {
 
   if (!context) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500 text-xs">
+      <div className="flex items-center justify-center h-full text-ink-3 text-xs">
         <div className="text-center">
           <p>SecurityProvider not available</p>
-          <p className="text-[10px] mt-1 text-zinc-600">
+          <p className="text-[10px] mt-1 text-ink-3">
             Ensure XNetProvider is configured with a keyBundle
           </p>
         </div>
@@ -52,13 +52,13 @@ function SecurityPanelContent() {
   return (
     <div className="flex flex-col h-full">
       {/* Header with current level */}
-      <div className="flex items-center gap-4 px-3 py-2 border-b border-zinc-800 shrink-0">
+      <div className="flex items-center gap-4 px-3 py-2 border-b border-hairline shrink-0">
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${LEVEL_COLORS[level]}`} />
-          <span className="text-sm font-medium text-zinc-200">Level {level}</span>
-          <span className="text-xs text-zinc-500">{LEVEL_LABELS[level]}</span>
+          <span className="text-sm font-medium text-ink-1">Level {level}</span>
+          <span className="text-xs text-ink-3">{LEVEL_LABELS[level]}</span>
         </div>
-        <div className="ml-auto flex items-center gap-2 text-[10px] text-zinc-500">
+        <div className="ml-auto flex items-center gap-2 text-[10px] text-ink-3">
           <span>Policy: {context.verificationPolicy}</span>
           <span>|</span>
           <span>Min Level: {context.minVerificationLevel}</span>
@@ -69,8 +69,8 @@ function SecurityPanelContent() {
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* Key Status */}
         <section>
-          <h3 className="text-xs font-bold text-zinc-400 mb-2">Key Status</h3>
-          <div className="bg-zinc-900 rounded p-3 space-y-2">
+          <h3 className="text-xs font-bold text-ink-2 mb-2">Key Status</h3>
+          <div className="bg-surface-2 rounded p-3 space-y-2">
             <StatusRow
               label="Key Bundle"
               value={hasKeyBundle ? 'Available' : 'Not configured'}
@@ -92,8 +92,8 @@ function SecurityPanelContent() {
 
         {/* Level Selector */}
         <section>
-          <h3 className="text-xs font-bold text-zinc-400 mb-2">Security Level</h3>
-          <div className="bg-zinc-900 rounded p-3">
+          <h3 className="text-xs font-bold text-ink-2 mb-2">Security Level</h3>
+          <div className="bg-surface-2 rounded p-3">
             <div className="flex gap-2">
               {([0, 1, 2] as const).map((l) => (
                 <LevelButton
@@ -105,9 +105,9 @@ function SecurityPanelContent() {
                 />
               ))}
             </div>
-            <p className="text-[10px] text-zinc-600 mt-2">
+            <p className="text-[10px] text-ink-3 mt-2">
               {!canSignAt(level) && (
-                <span className="text-yellow-500">
+                <span className="text-warning">
                   Warning: Cannot sign at Level {level} without PQ keys.{' '}
                 </span>
               )}
@@ -118,19 +118,19 @@ function SecurityPanelContent() {
 
         {/* Signature Sizes */}
         <section>
-          <h3 className="text-xs font-bold text-zinc-400 mb-2">Signature Sizes</h3>
-          <div className="bg-zinc-900 rounded p-3">
+          <h3 className="text-xs font-bold text-ink-2 mb-2">Signature Sizes</h3>
+          <div className="bg-surface-2 rounded p-3">
             <table className="w-full text-[10px]">
               <thead>
-                <tr className="text-zinc-500">
+                <tr className="text-ink-3">
                   <th className="text-left font-normal pb-1">Level</th>
                   <th className="text-left font-normal pb-1">Algorithm</th>
                   <th className="text-right font-normal pb-1">Size</th>
                 </tr>
               </thead>
-              <tbody className="text-zinc-300">
+              <tbody className="text-ink-2">
                 {([0, 1, 2] as const).map((l) => (
-                  <tr key={l} className={level === l ? 'text-white' : ''}>
+                  <tr key={l} className={level === l ? 'text-ink-1' : ''}>
                     <td className="py-0.5">
                       <div className="flex items-center gap-1.5">
                         <div className={`w-2 h-2 rounded-full ${LEVEL_COLORS[l]}`} />
@@ -148,10 +148,10 @@ function SecurityPanelContent() {
 
         {/* Level Descriptions */}
         <section>
-          <h3 className="text-xs font-bold text-zinc-400 mb-2">Level Descriptions</h3>
-          <div className="bg-zinc-900 rounded p-3 space-y-3 text-[10px] text-zinc-400">
+          <h3 className="text-xs font-bold text-ink-2 mb-2">Level Descriptions</h3>
+          <div className="bg-surface-2 rounded p-3 space-y-3 text-[10px] text-ink-2">
             <div>
-              <div className="flex items-center gap-1.5 text-zinc-300 mb-0.5">
+              <div className="flex items-center gap-1.5 text-ink-2 mb-0.5">
                 <div className={`w-2 h-2 rounded-full ${LEVEL_COLORS[0]}`} />
                 <span className="font-medium">Level 0 - Classical</span>
               </div>
@@ -161,7 +161,7 @@ function SecurityPanelContent() {
               </p>
             </div>
             <div>
-              <div className="flex items-center gap-1.5 text-zinc-300 mb-0.5">
+              <div className="flex items-center gap-1.5 text-ink-2 mb-0.5">
                 <div className={`w-2 h-2 rounded-full ${LEVEL_COLORS[1]}`} />
                 <span className="font-medium">Level 1 - Hybrid</span>
               </div>
@@ -171,7 +171,7 @@ function SecurityPanelContent() {
               </p>
             </div>
             <div>
-              <div className="flex items-center gap-1.5 text-zinc-300 mb-0.5">
+              <div className="flex items-center gap-1.5 text-ink-2 mb-0.5">
                 <div className={`w-2 h-2 rounded-full ${LEVEL_COLORS[2]}`} />
                 <span className="font-medium">Level 2 - Post-Quantum</span>
               </div>
@@ -189,11 +189,9 @@ function SecurityPanelContent() {
 function StatusRow({ label, value, success }: { label: string; value: string; success?: boolean }) {
   return (
     <div className="flex items-center justify-between text-[10px]">
-      <span className="text-zinc-500">{label}</span>
+      <span className="text-ink-3">{label}</span>
       <span
-        className={
-          success === undefined ? 'text-zinc-300' : success ? 'text-green-400' : 'text-zinc-500'
-        }
+        className={success === undefined ? 'text-ink-2' : success ? 'text-success' : 'text-ink-3'}
       >
         {value}
       </span>
@@ -222,10 +220,10 @@ function LevelButton({
         flex-1 px-3 py-2 rounded text-xs font-medium transition-colors
         ${
           isActive
-            ? `${LEVEL_COLORS[level]} text-white`
+            ? 'bg-primary text-primary-foreground'
             : canSign
-              ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
-              : 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
+              ? 'bg-background-emphasis text-ink-2 hover:bg-border-emphasis hover:text-ink-1'
+              : 'bg-surface-2 text-ink-3 cursor-not-allowed'
         }
       `}
       title={!canSign ? 'PQ keys required for this level' : `Select Level ${level}`}

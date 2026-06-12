@@ -157,6 +157,11 @@ export type {
 export { useSlashCommands } from './hooks/useSlashCommands'
 export type { SlashCommandContribution, UseSlashCommandsOptions } from './hooks/useSlashCommands'
 export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/page-tasks'
+export {
+  addTaskAssigneeToDoc,
+  removeTaskAssigneeFromDoc,
+  setTaskDueDateInDoc
+} from './extensions/page-tasks/write-through'
 export type { TaskMentionSuggestion } from './extensions/task-metadata'
 export { createGravatarUrl } from './utils/gravatar'
 export { buildTaskMentionSuggestions } from './utils/taskMentionSuggestions'

@@ -262,7 +262,6 @@ const SCHEMA_SQL = `
     crawled_at INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_crawl_history_url ON crawl_history(url, crawled_at);
-  CREATE INDEX IF NOT EXISTS idx_crawl_history_fingerprint ON crawl_history(content_fingerprint_hash);
 
   CREATE TABLE IF NOT EXISTS crawl_domains (
     domain TEXT PRIMARY KEY,
@@ -671,6 +670,9 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
   if (!crawlHistoryColumns.has('content_simhash64')) {
     db.exec('ALTER TABLE crawl_history ADD COLUMN content_simhash64 TEXT')
   }
+  // This index must stay out of SCHEMA_SQL: on a database created before the
+  // fingerprint columns existed, SCHEMA_SQL runs before the ALTERs above and
+  // "no such column" aborts the whole boot.
   db.exec(
     'CREATE INDEX IF NOT EXISTS idx_crawl_history_fingerprint ON crawl_history(content_fingerprint_hash)'
   )

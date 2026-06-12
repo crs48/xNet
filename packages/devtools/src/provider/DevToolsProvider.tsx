@@ -190,23 +190,15 @@ function DevToolsFab({
       onMouseDown={handleMouseDown}
       onClick={handleClick}
       title={`Toggle DevTools (${shortcut})`}
+      className={`fixed z-[99999] flex h-8 w-8 select-none items-center justify-center rounded-full border shadow-md transition-colors ${
+        isOpen
+          ? 'border-transparent bg-primary text-primary-foreground'
+          : 'border-hairline bg-surface-0 text-ink-2 hover:bg-surface-2 hover:text-ink-1'
+      }`}
       style={{
-        position: 'fixed',
         bottom: pos.y,
         right: pos.x,
-        width: 32,
-        height: 32,
-        borderRadius: '50%',
-        backgroundColor: isOpen ? '#0066ff' : '#333',
-        border: '2px solid rgba(255,255,255,0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: dragging.current ? 'grabbing' : 'grab',
-        zIndex: 99999,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        userSelect: 'none',
-        transition: 'background-color 0.15s'
+        cursor: dragging.current ? 'grabbing' : 'grab'
       }}
     >
       <svg
@@ -214,8 +206,8 @@ function DevToolsFab({
         height={14}
         viewBox="0 0 24 24"
         fill="none"
-        stroke="white"
-        strokeWidth={2.5}
+        stroke="currentColor"
+        strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
       >

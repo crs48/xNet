@@ -13,22 +13,20 @@ export function SchemaRegistry() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-zinc-500">
-        Loading schemas...
-      </div>
+      <div className="flex items-center justify-center h-full text-ink-3">Loading schemas...</div>
     )
   }
 
   return (
     <div className="flex h-full">
       {/* Schema list */}
-      <div className="w-64 border-r border-zinc-800 overflow-y-auto shrink-0">
-        <div className="flex items-center justify-between px-2 py-1 border-b border-zinc-800">
-          <span className="text-[10px] font-bold text-zinc-500">Schemas ({schemas.length})</span>
+      <div className="w-64 border-r border-hairline overflow-y-auto shrink-0">
+        <div className="flex items-center justify-between px-2 py-1 border-b border-hairline">
+          <span className="text-[10px] font-bold text-ink-3">Schemas ({schemas.length})</span>
           <CopyButton getData={getSchemasData} label="Copy" />
         </div>
         {schemas.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-zinc-600 text-xs">
+          <div className="flex items-center justify-center h-32 text-ink-3 text-xs">
             No schemas found
           </div>
         ) : (
@@ -48,7 +46,7 @@ export function SchemaRegistry() {
         {selectedSchema ? (
           <SchemaDetail schema={selectedSchema} onClose={() => setSelectedSchema(null)} />
         ) : (
-          <div className="flex items-center justify-center h-full text-zinc-600 text-[10px]">
+          <div className="flex items-center justify-center h-full text-ink-3 text-[10px]">
             Select a schema to view details
           </div>
         )}
@@ -71,21 +69,23 @@ function SchemaRow({
       onClick={onSelect}
       className={`
         px-3 py-1.5 cursor-pointer border-l-2 text-xs
-        ${isSelected ? 'bg-zinc-800 border-blue-400' : 'border-transparent hover:bg-zinc-900'}
+        ${isSelected ? 'bg-background-emphasis border-accent-ink' : 'border-transparent hover:bg-accent'}
       `}
     >
       <div className="flex items-center gap-2">
-        <span className="text-blue-400 font-medium">{schema.name}</span>
+        <span className="text-ink-1 font-medium">{schema.name}</span>
         {schema.isBuiltIn && (
-          <span className="text-[8px] px-1 py-0.5 rounded bg-zinc-700 text-zinc-400">built-in</span>
+          <span className="text-[8px] px-1 py-0.5 rounded bg-background-emphasis text-ink-2">
+            built-in
+          </span>
         )}
         {schema.documentType && (
-          <span className="text-[8px] px-1 py-0.5 rounded bg-purple-900 text-purple-300">
+          <span className="text-[8px] px-1 py-0.5 rounded bg-background-emphasis text-ink-1">
             {schema.documentType}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-500">
+      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-ink-3">
         <span>{schema.propertyCount} props</span>
         <span>{schema.nodeCount} nodes</span>
       </div>
@@ -100,16 +100,16 @@ function SchemaDetail({ schema, onClose }: { schema: SchemaEntry; onClose: () =>
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-zinc-200">{schema.name}</h3>
+            <h3 className="text-sm font-bold text-ink-1">{schema.name}</h3>
             {schema.isBuiltIn && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-700 text-zinc-400">
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-background-emphasis text-ink-2">
                 built-in
               </span>
             )}
           </div>
-          <div className="text-[10px] text-zinc-500 font-mono mt-0.5 break-all">{schema.iri}</div>
+          <div className="text-[10px] text-ink-3 font-mono mt-0.5 break-all">{schema.iri}</div>
         </div>
-        <button onClick={onClose} className="text-zinc-500 hover:text-white text-xs p-1">
+        <button onClick={onClose} className="text-ink-3 hover:text-ink-1 text-xs p-1">
           x
         </button>
       </div>
@@ -128,7 +128,7 @@ function SchemaDetail({ schema, onClose }: { schema: SchemaEntry; onClose: () =>
       {/* Properties */}
       {schema.properties.length > 0 && (
         <div>
-          <h4 className="text-[10px] font-bold text-zinc-400 uppercase mb-2">
+          <h4 className="text-[10px] font-bold text-ink-2 uppercase mb-2">
             Properties ({schema.properties.length})
           </h4>
           <div className="space-y-1">
@@ -141,8 +141,8 @@ function SchemaDetail({ schema, onClose }: { schema: SchemaEntry; onClose: () =>
 
       {/* Raw Schema */}
       <div>
-        <h4 className="text-[10px] font-bold text-zinc-400 uppercase mb-2">Raw Schema</h4>
-        <pre className="text-[9px] text-zinc-400 bg-zinc-900 rounded p-2 overflow-x-auto max-h-48">
+        <h4 className="text-[10px] font-bold text-ink-2 uppercase mb-2">Raw Schema</h4>
+        <pre className="text-[9px] text-ink-2 bg-surface-2 rounded p-2 overflow-x-auto max-h-48">
           {JSON.stringify(schema, null, 2)}
         </pre>
       </div>
@@ -161,10 +161,8 @@ function MetaRow({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-zinc-500">{label}:</span>
-      <span
-        className={`text-[10px] font-mono truncate ${highlight ? 'text-purple-400' : 'text-zinc-300'}`}
-      >
+      <span className="text-[10px] text-ink-3">{label}:</span>
+      <span className={`text-[10px] font-mono truncate ${highlight ? 'text-ink-1' : 'text-ink-2'}`}>
         {value}
       </span>
     </div>
@@ -173,42 +171,42 @@ function MetaRow({
 
 function PropertyRow({ property }: { property: PropertyInfo }) {
   const typeColors: Record<string, string> = {
-    text: 'text-blue-400',
-    number: 'text-green-400',
-    checkbox: 'text-yellow-400',
-    date: 'text-orange-400',
-    dateRange: 'text-orange-400',
-    select: 'text-purple-400',
-    multiSelect: 'text-purple-400',
-    person: 'text-pink-400',
-    relation: 'text-cyan-400',
-    rollup: 'text-teal-400',
-    formula: 'text-amber-400',
-    url: 'text-sky-400',
-    email: 'text-sky-400',
-    phone: 'text-sky-400',
-    file: 'text-indigo-400',
-    created: 'text-zinc-500',
-    updated: 'text-zinc-500',
-    createdBy: 'text-zinc-500'
+    text: 'text-ink-2',
+    number: 'text-ink-2',
+    checkbox: 'text-ink-2',
+    date: 'text-ink-2',
+    dateRange: 'text-ink-2',
+    select: 'text-ink-2',
+    multiSelect: 'text-ink-2',
+    person: 'text-ink-2',
+    relation: 'text-ink-2',
+    rollup: 'text-ink-2',
+    formula: 'text-ink-2',
+    url: 'text-ink-2',
+    email: 'text-ink-2',
+    phone: 'text-ink-2',
+    file: 'text-ink-2',
+    created: 'text-ink-3',
+    updated: 'text-ink-3',
+    createdBy: 'text-ink-3'
   }
 
   const hasConfig = property.config && Object.keys(property.config).length > 0
 
   return (
-    <div className="flex items-center gap-2 px-2 py-1 rounded bg-zinc-900/50 text-[10px]">
-      <span className="text-zinc-200 font-medium min-w-20">{property.name}</span>
-      <span className={`font-mono ${typeColors[property.type] || 'text-zinc-400'}`}>
+    <div className="flex items-center gap-2 px-2 py-1 rounded bg-surface-2 text-[10px]">
+      <span className="text-ink-1 font-medium min-w-20">{property.name}</span>
+      <span className={`font-mono ${typeColors[property.type] || 'text-ink-2'}`}>
         {property.type}
       </span>
       {property.required && (
-        <span className="text-red-400 text-[9px]" title="Required">
+        <span className="text-destructive text-[9px]" title="Required">
           *
         </span>
       )}
       {hasConfig && (
         <span
-          className="text-zinc-600 text-[9px] truncate flex-1"
+          className="text-ink-3 text-[9px] truncate flex-1"
           title={JSON.stringify(property.config)}
         >
           {formatConfig(property.config!)}

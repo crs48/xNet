@@ -193,6 +193,14 @@ export function PageView({ docId }: { docId: string }) {
     [did, presence]
   )
 
+  // The right-panel task editor writes assignee/due-date edits through
+  // this live editor (the document owns those fields while it hosts the
+  // task — see PAGE_TASK_RECONCILIATION.md).
+  const taskHostEditor = useMemo(
+    () => ({ getEditor: () => editorRef.current, suggestions: mentionSuggestions }),
+    [mentionSuggestions]
+  )
+
   // ─── Comments Integration ─────────────────────────────────────────────────────
 
   const {
@@ -674,7 +682,7 @@ export function PageView({ docId }: { docId: string }) {
       {
         id: 'page-tasks',
         title: 'Tasks',
-        content: <PageTasksSection pageId={docId} />
+        content: <PageTasksSection pageId={docId} hostEditor={taskHostEditor} />
       },
       {
         id: 'page-comments',
@@ -724,6 +732,7 @@ export function PageView({ docId }: { docId: string }) {
     isDirty,
     lastSavedAt,
     presence,
+    taskHostEditor,
     unresolvedCount,
     sidebarThreads,
     orphanedThreads,

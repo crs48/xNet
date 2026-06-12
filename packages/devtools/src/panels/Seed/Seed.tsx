@@ -1296,7 +1296,7 @@ export function Seed() {
 
   return (
     <div className="flex flex-col h-full p-4 space-y-4">
-      <div className="text-xs text-zinc-400">
+      <div className="text-xs text-ink-2">
         Create sample data to test the application. Each button creates a node with comprehensive
         test content.
       </div>
@@ -1309,8 +1309,8 @@ export function Seed() {
             px-4 py-2 text-xs font-medium rounded
             ${
               store && !isCreating
-                ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                ? 'bg-primary hover:bg-primary-hover text-primary-foreground'
+                : 'bg-background-emphasis text-ink-3 cursor-not-allowed'
             }
           `}
         >
@@ -1324,8 +1324,8 @@ export function Seed() {
             px-4 py-2 text-xs font-medium rounded
             ${
               store && !isCreating
-                ? 'bg-green-600 hover:bg-green-500 text-white'
-                : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                ? 'bg-primary hover:bg-primary-hover text-primary-foreground'
+                : 'bg-background-emphasis text-ink-3 cursor-not-allowed'
             }
           `}
         >
@@ -1339,8 +1339,8 @@ export function Seed() {
             px-4 py-2 text-xs font-medium rounded
             ${
               store && !isCreating
-                ? 'bg-purple-600 hover:bg-purple-500 text-white'
-                : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                ? 'bg-primary hover:bg-primary-hover text-primary-foreground'
+                : 'bg-background-emphasis text-ink-3 cursor-not-allowed'
             }
           `}
         >
@@ -1348,22 +1348,22 @@ export function Seed() {
         </button>
       </div>
 
-      {!store && (
-        <div className="text-xs text-yellow-500">Store not connected. Buttons disabled.</div>
-      )}
+      {!store && <div className="text-xs text-warning">Store not connected. Buttons disabled.</div>}
 
       {status && (
         <div
           className={`text-xs p-2 rounded ${
-            status.startsWith('Error') ? 'bg-red-900/30 text-red-400' : 'bg-zinc-800 text-zinc-300'
+            status.startsWith('Error')
+              ? 'bg-destructive-muted text-destructive'
+              : 'bg-background-emphasis text-ink-2'
           }`}
         >
           {status}
         </div>
       )}
 
-      <div className="mt-auto border-t border-zinc-800 pt-4">
-        <div className="text-[10px] text-zinc-600 space-y-1">
+      <div className="mt-auto border-t border-hairline pt-4">
+        <div className="text-[10px] text-ink-3 space-y-1">
           <div>
             <strong>Sample Page:</strong> H1-H3, paragraph, bullet/numbered/task lists, blockquote,
             code block, horizontal rule, all callout types, toggle sections, Mermaid diagram,

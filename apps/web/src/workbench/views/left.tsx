@@ -1,21 +1,22 @@
 /**
  * Left Panel views beyond the Explorer (exploration 0166): Tasks
- * (mine + triage) and Data (sources + saved views).
+ * (personal dashboard) and Data (sources + saved views).
  */
 import { Link } from '@tanstack/react-router'
 import { ArrowUpRight, Table2 } from 'lucide-react'
-import { MyTasksPanel } from '../../components/MyTasksPanel'
+import { TasksDashboard } from './TasksPanel'
 import { useSavedViews } from './tray'
 
 export function TasksPanelView() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        <MyTasksPanel />
+        <TasksDashboard />
       </div>
       <div className="shrink-0 border-t border-hairline p-2">
         <Link
           to="/tasks"
+          search={{}}
           className="flex items-center gap-1.5 px-1 text-xs text-ink-2 no-underline transition-colors hover:text-ink-1 hover:no-underline"
         >
           Open task board

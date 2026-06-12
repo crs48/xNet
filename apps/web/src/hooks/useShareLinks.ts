@@ -45,11 +45,16 @@ export type CreateLinkOptions = {
   maxUses?: number
 }
 
-const URL_CACHE_PREFIX = 'xnet:share-link-url:'
+// Scope-aware key so Pages preview deploys (which share production's
+// browser-storage origin) never read or write production's cached URLs.
+const urlCacheKey = (linkId: string): string => {
+  const scope = (globalThis as { __XNET_STORAGE_SCOPE__?: string }).__XNET_STORAGE_SCOPE__
+  return scope ? `xnet:share-link-url--${scope}:${linkId}` : `xnet:share-link-url:${linkId}`
+}
 
 const cacheLinkUrl = (linkId: string, url: string): void => {
   try {
-    localStorage.setItem(`${URL_CACHE_PREFIX}${linkId}`, url)
+    localStorage.setItem(urlCacheKey(linkId), url)
   } catch {
     // Best effort — the URL is still shown once in the dialog.
   }
@@ -57,7 +62,7 @@ const cacheLinkUrl = (linkId: string, url: string): void => {
 
 const cachedLinkUrl = (linkId: string): string | undefined => {
   try {
-    return localStorage.getItem(`${URL_CACHE_PREFIX}${linkId}`) ?? undefined
+    return localStorage.getItem(urlCacheKey(linkId)) ?? undefined
   } catch {
     return undefined
   }
@@ -65,7 +70,7 @@ const cachedLinkUrl = (linkId: string): string | undefined => {
 
 const dropCachedLinkUrl = (linkId: string): void => {
   try {
-    localStorage.removeItem(`${URL_CACHE_PREFIX}${linkId}`)
+    localStorage.removeItem(urlCacheKey(linkId))
   } catch {
     // ignore
   }
