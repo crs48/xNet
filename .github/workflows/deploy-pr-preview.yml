@@ -8,8 +8,9 @@ permissions:
   contents: write
   pull-requests: write
 
+# Per-PR group so preview runs never cancel the production deploy (pages-production).
 concurrency:
-  group: pages-branch
+  group: pages-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:

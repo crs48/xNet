@@ -8,6 +8,7 @@ RUN apk add --no-cache python3 make g++
 # Copy workspace root for pnpm workspace resolution
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/hub/package.json packages/hub/
+COPY packages/abuse/package.json packages/abuse/
 COPY packages/core/package.json packages/core/
 COPY packages/crypto/package.json packages/crypto/
 COPY packages/data/package.json packages/data/
@@ -25,6 +26,7 @@ RUN corepack enable && pnpm install --frozen-lockfile --filter @xnetjs/hub...
 
 # Copy source
 COPY packages/hub/ packages/hub/
+COPY packages/abuse/ packages/abuse/
 COPY packages/core/ packages/core/
 COPY packages/crypto/ packages/crypto/
 COPY packages/data/ packages/data/
@@ -46,6 +48,7 @@ WORKDIR /app
 # Install production dependencies only
 COPY --from=builder /build/pnpm-lock.yaml /build/pnpm-workspace.yaml /build/package.json ./
 COPY --from=builder /build/packages/hub/package.json packages/hub/
+COPY --from=builder /build/packages/abuse/package.json packages/abuse/
 COPY --from=builder /build/packages/core/package.json packages/core/
 COPY --from=builder /build/packages/crypto/package.json packages/crypto/
 COPY --from=builder /build/packages/data/package.json packages/data/
@@ -69,6 +72,7 @@ RUN apk add --no-cache --virtual .build-deps python3 make g++ \
 
 # Copy built artifacts
 COPY --from=builder /build/packages/hub/dist packages/hub/dist/
+COPY --from=builder /build/packages/abuse/dist packages/abuse/dist/
 COPY --from=builder /build/packages/core/dist packages/core/dist/
 COPY --from=builder /build/packages/crypto/dist packages/crypto/dist/
 COPY --from=builder /build/packages/data/dist packages/data/dist/

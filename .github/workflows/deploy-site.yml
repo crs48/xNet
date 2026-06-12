@@ -14,9 +14,11 @@ on:
 permissions:
   contents: write
 
+# Own concurrency group: sharing one group with the PR preview workflows let a
+# "Remove PR Preview" run (fired by the same merge) cancel the production deploy.
 concurrency:
-  group: pages-branch
-  cancel-in-progress: true
+  group: pages-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -65,26 +67,39 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          rm -rf /tmp/xnet-gh-pages
-          git fetch origin gh-pages || true
+          # Retry: a preview workflow can push gh-pages between our fetch and push.
+          for attempt in 1 2 3; do
+            git worktree remove --force /tmp/xnet-gh-pages 2>/dev/null || true
+            rm -rf /tmp/xnet-gh-pages
+            git worktree prune
+            git fetch origin gh-pages || true
 
-          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git worktree add -B gh-pages /tmp/xnet-gh-pages origin/gh-pages
-          else
-            git worktree add -B gh-pages /tmp/xnet-gh-pages HEAD
-            find /tmp/xnet-gh-pages -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-          fi
+            if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+              git worktree add -B gh-pages /tmp/xnet-gh-pages origin/gh-pages
+            else
+              git worktree add -B gh-pages /tmp/xnet-gh-pages HEAD
+              find /tmp/xnet-gh-pages -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+            fi
 
-          rsync -a --delete --exclude pr /tmp/xnet-pages-root/ /tmp/xnet-gh-pages/
-          mkdir -p /tmp/xnet-gh-pages/pr
+            # .git must survive --delete: in a worktree it is a file, not a directory.
+            rsync -a --delete --exclude .git --exclude pr /tmp/xnet-pages-root/ /tmp/xnet-gh-pages/
+            mkdir -p /tmp/xnet-gh-pages/pr
 
-          cd /tmp/xnet-gh-pages
-          git add -A
+            git -C /tmp/xnet-gh-pages add -A
 
-          if git diff --cached --quiet; then
-            echo "No production site changes to publish."
-            exit 0
-          fi
+            if git -C /tmp/xnet-gh-pages diff --cached --quiet; then
+              echo "No production site changes to publish."
+              exit 0
+            fi
 
-          git commit -m "deploy(site): publish production site"
-          git push origin HEAD:gh-pages
+            git -C /tmp/xnet-gh-pages commit -m "deploy(site): publish production site"
+
+            if git -C /tmp/xnet-gh-pages push origin HEAD:gh-pages; then
+              exit 0
+            fi
+
+            echo "Push rejected (attempt $attempt), gh-pages moved; refetching."
+          done
+
+          echo "Failed to publish after 3 attempts."
+          exit 1

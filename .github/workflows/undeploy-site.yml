@@ -7,8 +7,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: pages-branch
-  cancel-in-progress: true
+  group: pages-production
+  cancel-in-progress: false
 
 jobs:
   undeploy:
