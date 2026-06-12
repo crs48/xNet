@@ -1,79 +1,6 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
-
-const phases = [
-  {
-    status: 'done',
-    label: 'Built',
-    color: 'emerald',
-    title: 'The Foundation',
-    description: 'Core primitives for local-first apps',
-    items: [
-      'Hybrid post-quantum crypto (ML-DSA-65, NIST FIPS 204)',
-      'Crypto identity (DID:key, Ed25519, UCAN)',
-      'Schema system with 15 property types',
-      'P2P sync engine (Yjs + Lamport clocks)',
-      'Encryption-first authorization (roles, grants, key recovery)',
-      'Rich text editor, infinite canvas, devtools',
-      'Electron app with real-time collaboration',
-      '2400+ tests across 21 packages',
-    ],
-  },
-  {
-    status: 'now',
-    label: 'Now',
-    color: 'amber',
-    title: 'Daily Driver',
-    description: 'Make xNet an app you actually use every day',
-    items: [
-      'Personal wiki & task manager',
-      'Query API improvements',
-      'Polished desktop experience',
-      'Plugin system & custom views',
-      'Sharing UI (useCan / useGrants in app)',
-    ],
-  },
-  {
-    status: 'next',
-    label: 'Next',
-    color: 'indigo',
-    title: 'Hubs & Multiplayer',
-    description: 'Always-on sync nodes and shared workspaces',
-    items: [
-      'Hub MVP — backup, relay, key registry',
-      'Workspace invites & sharing flows',
-      'Presence & live cursors',
-      'Mobile app (Expo)',
-    ],
-  },
-  {
-    status: 'future',
-    label: 'Then',
-    color: 'purple',
-    title: 'Federation',
-    description: 'Hubs talk to each other. Data flows freely.',
-    items: [
-      'Hub-to-hub federation protocol',
-      'Federated queries across hubs',
-      'Schema registry & discovery',
-      'ERP framework & domain modules',
-    ],
-  },
-  {
-    status: 'vision',
-    label: 'Vision',
-    color: 'pink',
-    title: 'The Decentralized Data Layer',
-    description: 'A global namespace for structured knowledge',
-    items: [
-      'Global namespace — xnet://*',
-      'Decentralized search engine',
-      'Social federation (follows, feeds, reputation)',
-      'Domain-specific networks (farming, science, education)',
-      'Data commons — humanity\'s shared knowledge graph',
-    ],
-  },
-]
+import { phases, updated } from '../../data/roadmap'
 
 const colorMap: Record<string, { dot: string; border: string; bg: string; label: string; line: string }> = {
   emerald: {
@@ -164,10 +91,11 @@ const colorMap: Record<string, { dot: string; border: string; bg: string; label:
       </div>
 
       <!-- End flourish -->
-      <div class="mt-8 flex items-center justify-center">
+      <div class="mt-8 flex flex-col items-center justify-center gap-2">
         <div class="rounded-full border border-pink-500/20 bg-pink-500/[0.04] px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
           Every app built on xNet makes the network stronger
         </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500">Updated {updated}</p>
       </div>
     </div>
   </div>

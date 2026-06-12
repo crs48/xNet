@@ -396,16 +396,18 @@ export const phases: RoadmapPhase[] = [
 
 ### Phase 1 — Truth fixes (landing page text only)
 
-- [ ] `Roadmap.astro`: promote to **Built** — workbench shell, dashboards & widgets,
+- [x] `Roadmap.astro`: promote to **Built** — workbench shell, dashboards & widgets,
       chat/presence/calls, notification inbox, task manager with inline editing,
       Hub (backup/relay/search on Railway), agent CLI + SKILL.md
-- [ ] `Roadmap.astro`: rewrite **Now/Next** from the real deferred lists (mobile/Expo,
+- [x] `Roadmap.astro`: rewrite **Now/Next** from the real deferred lists (mobile/Expo,
       sharing & invite flows, push delivery, SFU calls, E2EE chat phases)
-- [ ] Update counts durably: "6,000+ tests", "30 packages", "9-panel devtools" in
-      `Roadmap.astro:19`, `Community.astro:20,48`
-- [ ] `Community.astro`: refresh "What's working now" (workbench, dashboards, comms,
+- [x] Update counts durably: "6,000+ tests", "30 packages", "10-panel devtools" in
+      `Roadmap.astro:19`, `Community.astro:20,48` (devtools count corrected to 10:
+      9 core panels + AuthZ per `guides/devtools.mdx`)
+- [x] `Community.astro`: refresh "What's working now" (workbench, dashboards, comms,
       inbox, agent CLI)
-- [ ] Sanity-check security wording in `UnderTheHood.astro` against shipped reality
+- [x] Sanity-check security wording in `UnderTheHood.astro` against shipped reality
+      (claims hold; aligned the Mobile platform card to "coming soon")
 
 ### Phase 2 — Docs pages
 
@@ -439,13 +441,16 @@ export const phases: RoadmapPhase[] = [
 - [ ] Add "Built for agents" section (SKILL.md, `xnet` CLI, 0.111x tokens, slim MCP)
       and link it from `ForDevelopers.astro`
 - [ ] `Hubs.astro`: add call signaling + notification relay to the feature list
-- [ ] Verify the Hero npm-install snippet against published npm packages
+- [x] Verify the Hero npm-install snippet against published npm packages
+      (`@xnetjs/react` and `@xnetjs/data` both published at 0.0.2)
 
 ### Phase 4 — Guardrails
 
-- [ ] Extract sidebar to `site/src/sidebar.ts`; make `build-llms-full.ts` consume it
-      and fail on unlisted content files
-- [ ] Move roadmap content to `site/src/data/roadmap.ts` with an `updated` stamp
+- [x] Extract sidebar to `site/src/sidebar.mjs`; make `build-llms-full.ts` consume it
+      and fail on unlisted content files (`.mjs` so the untranspiled Astro config can
+      import it; surfaced a latent bug — guides/authorization and guides/versioning
+      were missing from the old hardcoded order)
+- [x] Move roadmap content to `site/src/data/roadmap.ts` with an `updated` stamp
 - [ ] Add PR-template checklist item: user-facing change ⇒ docs/site updated or skip
       justified
 - [ ] Add a staleness warning to the fallow maintenance workflow when `site/` lags
