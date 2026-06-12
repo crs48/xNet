@@ -16,7 +16,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
-import { buildTaskMentionSuggestions, type Editor } from '@xnetjs/editor/react'
+import { buildPersonMentionSuggestions, type Editor } from '@xnetjs/editor/react'
 import { useNode, useComments, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
   CommentPopover,
@@ -29,6 +29,8 @@ import {
 } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useProfiles } from '../comms/hooks'
+import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import {
   revealContextSection,
@@ -189,10 +191,20 @@ export function PageView({ docId }: { docId: string }) {
   useStatusBarItem(pageSavedStatusItem(docId, isDirty, lastSavedAt))
   useStatusBarItem(pageSyncStatusItem(docId, syncStatus, peerCount))
 
-  const mentionSuggestions = useMemo(
-    () => buildTaskMentionSuggestions(presence, did),
-    [did, presence]
-  )
+  // @-mentions offer durable profiles plus whoever is present right now
+  // (0170); self stays first so "mention yourself" keeps working.
+  const profiles = useProfiles()
+  const mentionSuggestions = useMemo(() => {
+    const self = did ? [{ did }] : []
+    return buildPersonMentionSuggestions(
+      [...self, ...profiles.map((p) => ({ did: p.did, name: p.name, avatar: p.avatar }))],
+      presence,
+      did
+    )
+  }, [profiles, presence, did])
+
+  // `[[` typeahead: linkable nodes + create-page row (0170).
+  const { linkTargets, createPageTarget } = useLinkTargets()
 
   // Inline #hashtags: picker suggestions + structured tags write-through (0169).
   const { suggestions: hashtagSuggestions, getOrCreateTag, setNodeTags } = useWorkspaceTags()
@@ -880,6 +892,8 @@ export function PageView({ docId }: { docId: string }) {
             mentionSuggestions={mentionSuggestions}
             hashtagSuggestions={hashtagSuggestions}
             onCreateHashtag={getOrCreateTag}
+            linkTargets={linkTargets}
+            onCreateLinkTarget={createPageTarget}
             onTagsChange={handleTagsChange}
             onPageTasksChange={handleTasksChange}
             onCreateComment={handleCreateComment}
