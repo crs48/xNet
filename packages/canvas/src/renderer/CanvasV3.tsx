@@ -114,6 +114,7 @@ import {
 } from '../templates/planning-templates'
 import { type CanvasThemeTokens, useCanvasThemeTokens } from '../theme/canvas-theme'
 import { planDomIslandPool } from './dom-island-pool'
+import { computePinchViewport, measureTouchPinch, type PinchGestureState } from './pinch-zoom'
 
 const EMPTY_FRAME_STATS: FrameStats = {
   frameCount: 0,
@@ -342,6 +343,19 @@ type SelectionPopover =
   | 'source-bulk'
   | 'plugin-fields'
 
+const SELECTION_POPOVER_CAPABILITY: Record<SelectionPopover, keyof CanvasSelectionCapabilities> = {
+  dimensions: 'canEditDimensions',
+  'shape-style': 'canEditShapeStyle',
+  'sticky-note': 'canEditStickyNote',
+  'frame-variant': 'canEditFrameVariant',
+  'media-fit': 'canEditMediaFit',
+  'pdf-page': 'canInspectPdfPage',
+  'edge-type': 'canEditEdgeType',
+  references: 'canInspectReferences',
+  'source-bulk': 'canInspectSourceBulk',
+  'plugin-fields': 'canInspectPluginFields'
+}
+
 type DimensionField = 'x' | 'y' | 'width' | 'height'
 type CanvasMediaFit = 'contain' | 'cover' | 'fill'
 type CanvasNodePropertiesUpdate = {
@@ -525,20 +539,6 @@ const EDGE_TYPE_OPTIONS: readonly {
   { kind: 'depends-on', label: 'Depends on', description: 'Source needs target first.' },
   { kind: 'blocks', label: 'Blocks', description: 'Source blocks target progress.' }
 ]
-const SELECTION_POPOVER_CAPABILITY_KEYS: Partial<
-  Record<SelectionPopover, keyof CanvasSelectionCapabilities>
-> = {
-  dimensions: 'canEditDimensions',
-  'shape-style': 'canEditShapeStyle',
-  'sticky-note': 'canEditStickyNote',
-  'frame-variant': 'canEditFrameVariant',
-  'media-fit': 'canEditMediaFit',
-  'pdf-page': 'canInspectPdfPage',
-  'edge-type': 'canEditEdgeType',
-  references: 'canInspectReferences',
-  'source-bulk': 'canInspectSourceBulk',
-  'plugin-fields': 'canInspectPluginFields'
-}
 const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
 const CANVAS_OBJECT_HIT_TARGET_PADDING = 8
@@ -2988,6 +2988,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   const containerRef = useRef<HTMLDivElement | null>(null)
   const vectorLayerRef = useRef<HTMLDivElement | null>(null)
   const lastPointerRef = useRef<Point | null>(null)
+  const touchPointersRef = useRef<Map<number, Point>>(new Map())
+  const pinchStateRef = useRef<PinchGestureState | null>(null)
   const nodeDragRef = useRef<NodeDragState | null>(null)
   const nodeResizeRef = useRef<NodeResizeState | null>(null)
   const scene = useCanvasV3Scene(doc)
@@ -4223,12 +4225,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [doc, inlineNodeEdit, scene.objects])
 
   useEffect(() => {
-    if (!activeSelectionPopover) {
-      return
-    }
-
-    const capabilityKey = SELECTION_POPOVER_CAPABILITY_KEYS[activeSelectionPopover]
-    if (capabilityKey && !selectionCapabilities[capabilityKey]) {
+    if (
+      activeSelectionPopover &&
+      !selectionCapabilities[SELECTION_POPOVER_CAPABILITY[activeSelectionPopover]]
+    ) {
       setActiveSelectionPopover(null)
     }
   }, [activeSelectionPopover, selectionCapabilities])
@@ -5155,8 +5155,108 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     []
   )
 
+  const applyPinchZoom = useCallback(
+    (previousCenter: Point, nextCenter: Point, scaleFactor: number) => {
+      const bounds = containerRef.current?.getBoundingClientRect()
+      const left = bounds?.left ?? 0
+      const top = bounds?.top ?? 0
+
+      setViewportClamped((current) =>
+        computePinchViewport({
+          viewport: current,
+          viewportSize,
+          previousCenter: { x: previousCenter.x - left, y: previousCenter.y - top },
+          nextCenter: { x: nextCenter.x - left, y: nextCenter.y - top },
+          scaleFactor,
+          minZoom,
+          maxZoom
+        })
+      )
+    },
+    [maxZoom, minZoom, setViewportClamped, viewportSize]
+  )
+
+  const trackTouchPointerForPinch = useCallback(
+    (event: React.PointerEvent<HTMLElement>): boolean => {
+      if (event.pointerType !== 'touch') {
+        return false
+      }
+
+      const touchPointers = touchPointersRef.current
+      if (!touchPointers.has(event.pointerId) && touchPointers.size < 2) {
+        touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      }
+
+      const pinch = measureTouchPinch(touchPointers)
+      if (!pinch) {
+        return false
+      }
+
+      // A second finger converts any in-flight touch interaction into a pinch.
+      pinchStateRef.current = pinch
+      nodeDragRef.current = null
+      nodeResizeRef.current = null
+      lastPointerRef.current = null
+      setDragPreview(null)
+      setResizePreview(null)
+      setActiveSnapGuides([])
+      for (const pointerId of touchPointers.keys()) {
+        containerRef.current?.setPointerCapture?.(pointerId)
+      }
+      return true
+    },
+    []
+  )
+
+  const handleTouchPinchMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>): boolean => {
+      const touchPointers = touchPointersRef.current
+      if (event.pointerType !== 'touch' || !touchPointers.has(event.pointerId)) {
+        return false
+      }
+
+      touchPointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+      const previousPinch = pinchStateRef.current
+      if (!previousPinch) {
+        return false
+      }
+
+      const nextPinch = measureTouchPinch(touchPointers)
+      if (nextPinch) {
+        pinchStateRef.current = nextPinch
+        applyPinchZoom(
+          previousPinch.center,
+          nextPinch.center,
+          previousPinch.distance > 0 ? nextPinch.distance / previousPinch.distance : 1
+        )
+      }
+      return true
+    },
+    [applyPinchZoom]
+  )
+
+  const endTouchPinchPointer = useCallback((event: React.PointerEvent<HTMLDivElement>): boolean => {
+    if (event.pointerType !== 'touch' || !touchPointersRef.current.delete(event.pointerId)) {
+      return false
+    }
+
+    if (!pinchStateRef.current) {
+      return false
+    }
+
+    pinchStateRef.current = null
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+    // The remaining finger continues as a pan without re-running tap side effects.
+    lastPointerRef.current = Array.from(touchPointersRef.current.values())[0] ?? null
+    return true
+  }, [])
+
   const handleNodePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>, objectId: string) => {
+      if (trackTouchPointerForPinch(event)) {
+        return
+      }
+
       if (!isPrimaryPointerButton(event) || isTextInputLikeElement(event.target)) {
         return
       }
@@ -5195,7 +5295,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         containerRef.current?.setPointerCapture?.(event.pointerId)
       }
     },
-    [createNodeDragState, selectedNodeIds]
+    [createNodeDragState, selectedNodeIds, trackTouchPointerForPinch]
   )
 
   const handleNodeDoubleClick = useCallback(
@@ -5313,6 +5413,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
   const handleBackgroundPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (trackTouchPointerForPinch(event)) {
+        return
+      }
+
       if (event.button !== 0 || event.target !== containerRef.current) {
         return
       }
@@ -5322,14 +5426,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       clearSelection()
       onBackgroundClick?.()
       lastPointerRef.current = { x: event.clientX, y: event.clientY }
-      event.currentTarget.setPointerCapture(event.pointerId)
+      event.currentTarget.setPointerCapture?.(event.pointerId)
     },
-    [clearSelection, onBackgroundClick, onDismissTransientUi]
+    [clearSelection, onBackgroundClick, onDismissTransientUi, trackTouchPointerForPinch]
   )
 
   const handlePointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
       awareness?.setLocalStateField('cursor', screenToCanvasPoint(event.clientX, event.clientY))
+
+      if (handleTouchPinchMove(event)) {
+        return
+      }
 
       const connectorDragState = connectorDragRef.current
       if (connectorDragState && connectorDragState.pointerId === event.pointerId) {
@@ -5440,6 +5548,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       createResizeInteraction,
       createSnappedDragPreviewState,
       findConnectorDropTarget,
+      handleTouchPinchMove,
       screenToCanvasPoint,
       setViewportClamped
     ]
@@ -5467,6 +5576,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
 
   const handlePointerUp = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (endTouchPinchPointer(event)) {
+        return
+      }
+
       finishConnectorDragOnPointerUp(event)
 
       if (nodeResizeRef.current?.pointerId === event.pointerId) {
@@ -5503,6 +5616,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       awareness,
       commitResizeState,
       commitSelectionDragByScreenDelta,
+      endTouchPinchPointer,
       finishConnectorDragOnPointerUp,
       presenceIntent?.activity
     ]
@@ -5513,22 +5627,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       event.preventDefault()
 
       if (event.ctrlKey || event.metaKey) {
-        const bounds = containerRef.current?.getBoundingClientRect()
-        const screenX = event.clientX - (bounds?.left ?? 0)
-        const screenY = event.clientY - (bounds?.top ?? 0)
-        const factor = 1 - clamp(event.deltaY, -12, 12) * 0.012
-
-        setViewportClamped((current) => {
-          const nextZoom = clamp(current.zoom * factor, minZoom, maxZoom)
-          const worldX = current.x + (screenX - viewportSize.width / 2) / current.zoom
-          const worldY = current.y + (screenY - viewportSize.height / 2) / current.zoom
-
-          return {
-            x: worldX - (screenX - viewportSize.width / 2) / nextZoom,
-            y: worldY - (screenY - viewportSize.height / 2) / nextZoom,
-            zoom: nextZoom
-          }
-        })
+        const center = { x: event.clientX, y: event.clientY }
+        applyPinchZoom(center, center, 1 - clamp(event.deltaY, -12, 12) * 0.012)
         return
       }
 
@@ -5538,8 +5638,59 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
         y: current.y + event.deltaY / current.zoom
       }))
     },
-    [maxZoom, minZoom, setViewportClamped, viewportSize]
+    [applyPinchZoom, setViewportClamped]
   )
+
+  // Safari reports trackpad pinches through proprietary gesture events instead
+  // of ctrl+wheel; other engines never fire these. Touch pinches on iOS fire
+  // both gesture and pointer events, so the pointer-driven pinch wins.
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
+    let lastGestureScale = 1
+    const readGestureScale = (event: Event): number => {
+      const scale = (event as Event & { scale?: number }).scale
+      return typeof scale === 'number' && Number.isFinite(scale) && scale > 0 ? scale : 1
+    }
+    const handleGestureStart = (event: Event) => {
+      event.preventDefault()
+      lastGestureScale = readGestureScale(event)
+    }
+    const handleGestureChange = (event: Event) => {
+      event.preventDefault()
+      if (pinchStateRef.current) {
+        return
+      }
+
+      const bounds = container.getBoundingClientRect()
+      const gesture = event as Event & { clientX?: number; clientY?: number }
+      const center = {
+        x: gesture.clientX ?? bounds.left + bounds.width / 2,
+        y: gesture.clientY ?? bounds.top + bounds.height / 2
+      }
+      const scale = readGestureScale(event)
+
+      applyPinchZoom(center, center, scale / lastGestureScale)
+      lastGestureScale = scale
+    }
+    const handleGestureEnd = (event: Event) => {
+      event.preventDefault()
+      lastGestureScale = 1
+    }
+
+    container.addEventListener('gesturestart', handleGestureStart)
+    container.addEventListener('gesturechange', handleGestureChange)
+    container.addEventListener('gestureend', handleGestureEnd)
+
+    return () => {
+      container.removeEventListener('gesturestart', handleGestureStart)
+      container.removeEventListener('gesturechange', handleGestureChange)
+      container.removeEventListener('gestureend', handleGestureEnd)
+    }
+  }, [applyPinchZoom])
 
   const selectNextVisibleObject = useCallback(
     (reverse: boolean): boolean => {

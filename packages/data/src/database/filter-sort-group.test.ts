@@ -503,6 +503,28 @@ describe('Sort Engine', () => {
       expect(result.map((r) => r.id)).toEqual(['1', '2', '3', '4'])
     })
 
+    it('orders mixed-case fractional keys by code units, not locale collation', () => {
+      // Moving a row to the front of 'a0','a1' generates a 'Z…' key
+      // (prependKey) — locale collation sorts 'Z…' AFTER 'a…', which made
+      // dragged rows snap back to their old position.
+      const moved = [
+        { id: 'b', sortKey: 'a0', cells: {} },
+        { id: 'c', sortKey: 'a1', cells: {} },
+        { id: 'a', sortKey: 'Zz12', cells: {} }
+      ]
+      expect(sortRows(moved, columns, []).map((r) => r.id)).toEqual(['a', 'b', 'c'])
+
+      // Same for the sortKey tiebreak when sorted columns compare equal
+      // ('V' < 'b' in code units, but locale collation flips them)
+      const tied = [
+        { id: 'b', sortKey: 'a0b', cells: { age: 1 } },
+        { id: 'a', sortKey: 'a0V', cells: { age: 1 } }
+      ]
+      expect(
+        sortRows(tied, columns, [{ columnId: 'age', direction: 'asc' }]).map((r) => r.id)
+      ).toEqual(['a', 'b'])
+    })
+
     it('sorts by single column ascending', () => {
       const result = sortRows(rows, columns, [{ columnId: 'age', direction: 'asc' }])
       expect(result[0].id).toBe('2') // Bob (25)
