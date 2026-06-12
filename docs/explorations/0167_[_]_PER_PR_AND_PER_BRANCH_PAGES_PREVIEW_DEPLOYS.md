@@ -452,8 +452,8 @@ writer; the shared composite action should serialize via the
 
 ## Implementation Checklist
 
-- [ ] Add `environment: { name: pr-<N>, url: ... }` to the `deploy-preview` job in [deploy-pr-preview.yml](../../.github/workflows/deploy-pr-preview.yml)
-- [ ] Mark the `pr-<N>` environment inactive from [remove-pr-preview.yml](../../.github/workflows/remove-pr-preview.yml) on close
+- [x] Add `environment: { name: pr-<N>, url: ... }` to the `deploy-preview` job in [deploy-pr-preview.yml](../../.github/workflows/deploy-pr-preview.yml)
+- [x] Mark the `pr-<N>` environment inactive from [remove-pr-preview.yml](../../.github/workflows/remove-pr-preview.yml) on close
 - [x] Extract a `.github/actions/publish-gh-pages` composite action (worktree checkout → rsync to target dir → commit → push with 3× refetch-retry), adopt it in all gh-pages-writing workflows
 - [ ] Add `deploy-branch-preview.yml` (opt-in trigger: `preview/**` branches + `workflow_dispatch`), deploying to `branch/<slug>/app/` with `VITE_BASE_PATH` set accordingly
 - [ ] Add `remove-branch-preview.yml` on the `delete` event (branch refs only, slugified path)

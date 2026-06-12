@@ -17,6 +17,12 @@ jobs:
   deploy-preview:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # Native deployment record: GitHub renders a "View deployment" button on
+    # the PR. Inactive pr-<N> environments linger in the Environments tab after
+    # close (GITHUB_TOKEN cannot delete environments); that's cosmetic.
+    environment:
+      name: pr-${{ github.event.pull_request.number }}
+      url: https://xnet.fyi/pr/${{ github.event.pull_request.number }}/app/
     steps:
       - uses: actions/checkout@v4
         with:
