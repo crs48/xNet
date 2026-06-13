@@ -149,6 +149,12 @@ export type {
   NsfwImageDetection,
   NsfwImageDetector
 } from './local-image-classifier'
+export { prescreenImage, prescreenImageLabels } from './image-prescreen'
+export type {
+  ImagePrescreenOptions,
+  ImagePrescreenResult,
+  PrescreenRecommendation
+} from './image-prescreen'
 export { createPublicWriteBudgetKey, evaluatePublicWriteBudget } from './public-write-budget'
 export { createQueryCostBudgetKey, evaluateQueryCostBudget } from './query-cost-budget'
 export {

@@ -12,7 +12,7 @@
 
 Three explorations shipped the discovery + safety thread to `main`: **0174**
 (people matching), **0175** (NSFW moderation), **0176** (UI integration). The
-*engines*, the *web UI*, and a *validated e2e harness* are in. But **39 checklist
+_engines_, the _web UI_, and a _validated e2e harness_ are in. But **39 checklist
 items remain unchecked** across the three docs — a mix of genuinely-large
 subsystems (a hub directory backend, the CSAM/NCMEC pipeline, mobile/electron
 parity) and small clean wiring (notifier reasons, search filtering, a Contact
@@ -26,14 +26,14 @@ into coherent workstreams, sizes each against real seams, maps the dependencies,
 and sequences everything into a milestone plan** — so the next person (or agent)
 can pick up a self-contained chunk and ship it with validation.
 
-It is a *plan*, not new feature research; the design rationale already lives in
+It is a _plan_, not new feature research; the design rationale already lives in
 0174/0175/0176. The job here is **sequencing and sizing**, grounded in the code
 as it exists today.
 
 ## Executive Summary
 
 The 39 deferred items collapse into **nine workstreams**. Sorted by the only
-axis that matters for sequencing — *value ÷ (effort × risk)* — they fall into
+axis that matters for sequencing — _value ÷ (effort × risk)_ — they fall into
 four tiers:
 
 1. **Low-risk web wiring that completes the loops we started** (high value, days
@@ -44,19 +44,19 @@ four tiers:
    of 0175.**
 2. **Decentralized-moderation depth** (medium): labeler / signed-blocklist
    subscriptions (the persistence primitive `PolicySubscriptionSchema` already
-   exists), and real on-device image ML (the classifier *adapter* exists; inject
+   exists), and real on-device image ML (the classifier _adapter_ exists; inject
    an ONNX NSFW model + a before-upload pre-screen + BlurHash previews).
 3. **The hub backend** (large, the one genuinely new subsystem): a
    `DirectoryService` (people-match index) + consent-gated publish + server-side
    double-opt-in + a hub-side classifier + `hub-policy-offer` NSFW advertisement
-   + write-budgets on waves. **This is what makes discovery *federated* rather
-   than friends-of-friends-only.**
+   - write-budgets on waves. **This is what makes discovery _federated_ rather
+     than friends-of-friends-only.**
 4. **Legal, quality, and reach** (gated / ongoing): the **CSAM/PDQ/NCMEC**
    pipeline (a legal prerequisite before any hub hosts public user media —
-   sequenced *ahead* of the hub's public-media features despite being "later"),
+   sequenced _ahead_ of the hub's public-media features despite being "later"),
    matching-quality tuning (Thompson/UCB, post-intro feedback, derived-affinity-
    from-imports), age verification (VC/ZK), and **mobile (expo) + electron
-   parity** (electron has *none* of the 0174–0176 surfaces today).
+   parity** (electron has _none_ of the 0174–0176 surfaces today).
 
 **The single most important sequencing call:** the CSAM hash pipeline (W5) is the
 hard gate on the hub backend's public-media surface (W6). Everything else is
@@ -64,26 +64,26 @@ additive and can land incrementally behind the already-shipped, validated web UI
 
 **Recommended first move:** Milestone 1 (render-gate completion + message-
 requests + search filter) — all low-risk, all behind the existing e2e harness,
-and it makes the safety story *complete* on the web before we invest in the hub.
+and it makes the safety story _complete_ on the web before we invest in the hub.
 
 ## Current State In The Repository
 
 Everything below is shipped (PRs #63, #65) and on `main`.
 
-| Layer | What exists | Key files |
-| --- | --- | --- |
-| **Matching engine** | schemas, scoring, PSI, geohash, matchmaker, received-waves loop | `packages/social/src/connect/*`, `apps/web/src/hooks/useConnect.ts`, `apps/web/src/routes/discover.tsx` |
-| **Moderation engine** | decision engine, sensitivity dial, labels, image hash, classifier adapter, labeler-trust | `packages/abuse/src/{decision,sensitivity,image-fingerprint,local-image-classifier,labeler-trust,policy-blocks}.ts` |
-| **Render gate (web)** | `SensitiveContent` + `ModeratedContent`/`ModeratedNode`/`ModeratedMedia`, **wired in chat** | `packages/ui/src/components/SensitiveContent.tsx`, `apps/web/src/components/Moderated*.tsx`, `apps/web/src/comms/ChannelChat.tsx` |
-| **Safety UI (web)** | `PersonActions`, `useBlockList`, `useSafetyActions`, `ReportDialog`, `MessageActions`, Content & Safety + Safety Center settings, `/welcome` | `apps/web/src/components/{PersonActions,ReportDialog,MessageActions,ContentSafetySettings,SafetyCenterSettings}.tsx`, `apps/web/src/lib/{block-list,sensitivity-preferences,content-dial,self-label}.ts`, `apps/web/src/routes/welcome.tsx` |
-| **Validation** | full-app Playwright spec in CI + worktree-render recipe | `tests/e2e/src/safety-ui.spec.ts`, `.github/workflows/ci.yml` (editor-ux job) |
-| **Persisted moderation schemas** | `ModerationLabel`, `AbuseReport`, **`MessageRequest`**, **`PolicySubscription`** (:447), `PolicyList`, `PublicInteractionPolicy`, `CommunityNote`, `Appeal` | `packages/data/src/schema/schemas/moderation.ts` |
+| Layer                            | What exists                                                                                                                                                 | Key files                                                                                                                                                                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Matching engine**              | schemas, scoring, PSI, geohash, matchmaker, received-waves loop                                                                                             | `packages/social/src/connect/*`, `apps/web/src/hooks/useConnect.ts`, `apps/web/src/routes/discover.tsx`                                                                                                                                     |
+| **Moderation engine**            | decision engine, sensitivity dial, labels, image hash, classifier adapter, labeler-trust                                                                    | `packages/abuse/src/{decision,sensitivity,image-fingerprint,local-image-classifier,labeler-trust,policy-blocks}.ts`                                                                                                                         |
+| **Render gate (web)**            | `SensitiveContent` + `ModeratedContent`/`ModeratedNode`/`ModeratedMedia`, **wired in chat**                                                                 | `packages/ui/src/components/SensitiveContent.tsx`, `apps/web/src/components/Moderated*.tsx`, `apps/web/src/comms/ChannelChat.tsx`                                                                                                           |
+| **Safety UI (web)**              | `PersonActions`, `useBlockList`, `useSafetyActions`, `ReportDialog`, `MessageActions`, Content & Safety + Safety Center settings, `/welcome`                | `apps/web/src/components/{PersonActions,ReportDialog,MessageActions,ContentSafetySettings,SafetyCenterSettings}.tsx`, `apps/web/src/lib/{block-list,sensitivity-preferences,content-dial,self-label}.ts`, `apps/web/src/routes/welcome.tsx` |
+| **Validation**                   | full-app Playwright spec in CI + worktree-render recipe                                                                                                     | `tests/e2e/src/safety-ui.spec.ts`, `.github/workflows/ci.yml` (editor-ux job)                                                                                                                                                               |
+| **Persisted moderation schemas** | `ModerationLabel`, `AbuseReport`, **`MessageRequest`**, **`PolicySubscription`** (:447), `PolicyList`, `PublicInteractionPolicy`, `CommunityNote`, `Appeal` | `packages/data/src/schema/schemas/moderation.ts`                                                                                                                                                                                            |
 
 ### The seams the remaining work plugs into (verified)
 
 - **Views render path** — `SavedViewRunner` (`packages/react/src/components/SavedViewRunner.tsx`) dispatches to feed/card/table renderers (`SavedViewVisualFeed`, `SavedViewVisualGrid`, `packages/views/src/gallery/GalleryCard.tsx`). **No render-prop / `wrapContent` injection point exists** — that's the seam to add.
 - **Comms notifier** — `packages/comms/src/notify/rules.ts` holds a `RULES` array of `(node, prev, ctx) → NotificationReason | null` rules; `NotificationReason` (`notify/types.ts`) is a **closed union** with no `message-request`/`connection-request`. `InboxTray.tsx` `REASON_LABELS`/`FILTERS` mirror it.
-- **Hub services** — `packages/hub/src/server.ts` wires `DiscoveryService` (peer-connectivity, *not* people), `FederationService`, `QueryService`, `ShardRegistry`, crawl, relay. **No `DirectoryService`.** Routes register Hono apps (`app.route('/api/...', createXRoutes(service))`).
+- **Hub services** — `packages/hub/src/server.ts` wires `DiscoveryService` (peer-connectivity, _not_ people), `FederationService`, `QueryService`, `ShardRegistry`, crawl, relay. **No `DirectoryService`.** Routes register Hono apps (`app.route('/api/...', createXRoutes(service))`).
 - **First contact** — `MessageRequestSchema` (`moderation.ts:554`) is complete (sender/recipient/status/admission/reasonCodes/firstMessageRef/expiresAt); `decideByFirstContact` (`abuse/src/decision.ts`) returns a quarantine decision; `ensureDmChannel` (`comms/src/chat/dm.ts`) is pure. **There is no `Contact`/roster schema** to decide "non-mutual", and **nothing intercepts the DM-open flow.**
 - **Subscriptions** — `labeler-trust.ts` evaluates trust from in-memory `LabelerTrustSetting`s; **`PolicySubscriptionSchema` exists** for persistence, but there is **no subscribe UI** and no adapter from a persisted subscription → a runtime trust setting.
 - **On-device ML** — `createNsfwImageClassifier` takes an **injected** detector; `@xenova/transformers` is a dep of `@xnetjs/vectors`; **no model is wired**, **no before-upload hook**, and **no `blurhash` dep**.
@@ -92,12 +92,12 @@ Everything below is shipped (PRs #63, #65) and on `main`.
 
 ## External Research
 
-The design research is in the prior docs; this plan only needs the *integration*
+The design research is in the prior docs; this plan only needs the _integration_
 realities, which the 0175 research already established:
 
 - **CSAM is a legal pipeline, not a feature.** PDQ (Meta, open source via
   ThreatExchange) + PhotoDNA + **NCMEC CyberTipline** registration. The matching
-  *logic* is shipped (`matchKnownImageHash`); sourcing the hash list and the
+  _logic_ is shipped (`matchKnownImageHash`); sourcing the hash list and the
   reporting integration are operator/legal steps. This is the one item that
   **cannot be fully "done" in code** — and it gates public media hosting.
 - **On-device NSFW**: NSFWJS (MobileNet v2 ~2.3 MB) or a Falconsai ViT via
@@ -120,7 +120,7 @@ realities, which the 0175 research already established:
    gating — without it, "non-mutual" is an expensive conversation-history scan.
    It's ~80 LOC and unblocks the dating-safety core.
 5. **The persistence primitives mostly exist** (`MessageRequest`,
-   `PolicySubscription`) — the gap is the *adapters and UI*, not the data model.
+   `PolicySubscription`) — the gap is the _adapters and UI_, not the data model.
 6. **Electron parity is copy-paste-ish; expo is a real port.** Electron renders
    React like web; expo is React Native with different navigation/primitives.
 7. **CSAM is the only true blocker**, and it's operational, not technical — so it
@@ -130,19 +130,19 @@ realities, which the 0175 research already established:
 
 ### A. The data-workspace / feed render gate — where does the seam go?
 
-| Option | How | Pros | Cons | Verdict |
-| --- | --- | --- | --- | --- |
-| **A1. `renderPreview` prop on `SavedViewRunner`** | App passes `(preview, visibility) → ReactNode`; default = unwrapped | Keeps `packages/views` generic; one injection point; opt-in | Threads a prop through the visual stack | **Recommended** |
-| A2. Wrap `<img>` inside `GalleryCard` | Add moderation directly in views | Local | **Couples the generic view layer to app moderation** | reject |
-| A3. App post-processes the DOM | A wrapper observes rendered media | No views change | Fragile; no label context | reject |
+| Option                                            | How                                                                 | Pros                                                        | Cons                                                 | Verdict         |
+| ------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------- | --------------- |
+| **A1. `renderPreview` prop on `SavedViewRunner`** | App passes `(preview, visibility) → ReactNode`; default = unwrapped | Keeps `packages/views` generic; one injection point; opt-in | Threads a prop through the visual stack              | **Recommended** |
+| A2. Wrap `<img>` inside `GalleryCard`             | Add moderation directly in views                                    | Local                                                       | **Couples the generic view layer to app moderation** | reject          |
+| A3. App post-processes the DOM                    | A wrapper observes rendered media                                   | No views change                                             | Fragile; no label context                            | reject          |
 
 ### B. First-contact "non-mutual" determination
 
-| Option | Pros | Cons | Verdict |
-| --- | --- | --- | --- |
-| **B1. Explicit `Contact` schema** | O(1) lookup; survives sync; models block/mute too | One new schema | **Recommended** |
-| B2. Infer from conversation history | No schema | Expensive n-ary join per DM-open; racy | fallback only |
-| B3. Mutual-wave-only (0174) | Strongest | Too strict for non-dating DMs | dating intents only |
+| Option                              | Pros                                              | Cons                                   | Verdict             |
+| ----------------------------------- | ------------------------------------------------- | -------------------------------------- | ------------------- |
+| **B1. Explicit `Contact` schema**   | O(1) lookup; survives sync; models block/mute too | One new schema                         | **Recommended**     |
+| B2. Infer from conversation history | No schema                                         | Expensive n-ary join per DM-open; racy | fallback only       |
+| B3. Mutual-wave-only (0174)         | Strongest                                         | Too strict for non-dating DMs          | dating intents only |
 
 ### C. Search-side sensitivity filtering
 
@@ -153,7 +153,7 @@ compatible default = show all), with the viewer's dial passed at query time.
 ### D. Hub directory — build now or after web saturates?
 
 The friends-of-friends matcher already works locally (0174). The hub
-`DirectoryService` adds *reach beyond your network* but is the largest single
+`DirectoryService` adds _reach beyond your network_ but is the largest single
 effort. **Recommend deferring W6 behind M1/M2** (finish the web safety story and
 on-device ML first), and starting the **CSAM legal track in parallel** so W6's
 public-media surface isn't blocked when we get there.
@@ -250,10 +250,8 @@ export interface SavedViewRunnerProps {
   renderPreview?: (preview: SavedViewVisualPreviewModel, node: NodeShape) => ReactNode
 }
 // apps/web/src/components/DataWorkspaceView.tsx
-<SavedViewRunner
-  renderPreview={(preview, node) => (
-    <ModeratedNode targetId={node.id}>{preview}</ModeratedNode>
-  )}
+;<SavedViewRunner
+  renderPreview={(preview, node) => <ModeratedNode targetId={node.id}>{preview}</ModeratedNode>}
 />
 ```
 
@@ -274,7 +272,7 @@ export const ContactSchema = defineSchema({
 })
 
 // packages/comms/src/notify/types.ts — extend the union
-export type NotificationReason = /* ...existing */ | 'message-request' | 'connection-request'
+export type NotificationReason = /* ...existing */ 'message-request' | 'connection-request'
 
 // packages/comms/src/notify/rules.ts — additive rule
 function messageRequestReason(node, prev, ctx): NotificationReason | null {
@@ -289,9 +287,15 @@ function messageRequestReason(node, prev, ctx): NotificationReason | null {
 // adapter from the existing PolicySubscriptionSchema / a LabelerSubscription node
 export function subscriptionToTrustSetting(sub, scopeId: string): LabelerTrustSetting {
   return {
-    scope: sub.scope, scopeId, labelerDID: sub.labelerDID, level: sub.level,
-    weight: sub.weight, minConfidence: sub.minConfidence,
-    allowedLabels: sub.allowedLabels, deniedLabels: sub.deniedLabels, expiresAt: sub.expiresAt
+    scope: sub.scope,
+    scopeId,
+    labelerDID: sub.labelerDID,
+    level: sub.level,
+    weight: sub.weight,
+    minConfidence: sub.minConfidence,
+    allowedLabels: sub.allowedLabels,
+    deniedLabels: sub.deniedLabels,
+    expiresAt: sub.expiresAt
   }
 }
 ```
@@ -304,9 +308,13 @@ import { createNsfwImageClassifier } from '@xnetjs/abuse'
 const classifier = createNsfwImageClassifier({ detect: nsfwjsDetect /* injected ONNX */ })
 export async function prescreen(blob: Blob): Promise<AbuseLabel[]> {
   const gray = await blobToGrayscale(blob)
-  const hash = perceptualHash(gray)               // dedup + CSAM check
-  const known = matchKnownImageHash(hash, KNOWN)  // W5 list
-  const result = await classifier.classify({ surface: 'feed', body: '', metadata: { mediaKind: 'image/png', image: gray } })
+  const hash = perceptualHash(gray) // dedup + CSAM check
+  const known = matchKnownImageHash(hash, KNOWN) // W5 list
+  const result = await classifier.classify({
+    surface: 'feed',
+    body: '',
+    metadata: { mediaKind: 'image/png', image: gray }
+  })
   return [...(known ? [csamLabel] : []), ...result.labels]
 }
 ```
@@ -351,20 +359,38 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 > **search-side sensitivity filtering** (W1) and **first-contact / message-
 > requests** (W2 — `useDmOpen` interceptor, the `/requests` inbox, notifier
 > reasons + Rail badge). The **views render-prop** (data-workspace/feed gate)
-> is deliberately *deferred*: it threads through `SavedViewVisualFeed` (865 LOC)
+> is deliberately _deferred_: it threads through `SavedViewVisualFeed` (865 LOC)
 > and the inline grid — large, widely-used shared components — for the lowest-
-> value surface (your *own* imported archive), and can't be validated without
+> value surface (your _own_ imported archive), and can't be validated without
 > seeding social content. It's reframed as its own task rather than a risky blind
 > change. Everything from here (M2–M4 + the CSAM legal track) remains as planned.
 
+> **Build-out status — Milestone 2 (decentralized moderation).** W3 landed and
+> is validated end-to-end (unit + the full-app e2e spec): **signed shared-
+> blocklist import** (`blocklist-import.ts` → the viewer block list, signature
+> verified before applying), **labeler subscriptions** (`useLabelerSubscriptions`
+> persisting `PolicySubscription` nodes; subscribe / enable-disable / remove in
+> the Safety center), and the **subscription→runtime-trust adapter**
+> (`subscriptionToTrustSetting` in `@xnetjs/abuse`, exposed as `trustSettings`).
+> W4's **pre-screen pipeline** (`prescreenImage` / `prescreenImageLabels`:
+> classify → suggest self-label → warn-if-explicit) landed, model-agnostic over
+> the existing injected-detector seam. _Deferred, with reasons inline below:_
+> consuming `trustSettings` inside `decideAbuse` at the render gate (the per-
+> subject label-distribution wiring) and its "filtered by labeler X" attribution;
+> the actual ONNX model + BlurHash dep + upload-path wiring (can't be validated
+> in this environment without shipping blind or an unvalidatable lockfile change).
+
 ### Milestone 1 — Complete the web loops (low risk, behind existing e2e)
+
 **W1 — render gate + search filter**
-- [ ] Add an opt-in `renderPreview`/`wrapContent` prop to `SavedViewRunner` (default unwrapped) and thread to feed/grid/gallery renderers. *(deferred — high-risk shared component, low-value surface, see status note)*
-- [ ] Wrap data-workspace + feed previews in `ModeratedNode` from `DataWorkspaceView.tsx` (and content-feed views). *(deferred — depends on the render-prop above)*
+
+- [ ] Add an opt-in `renderPreview`/`wrapContent` prop to `SavedViewRunner` (default unwrapped) and thread to feed/grid/gallery renderers. _(deferred — high-risk shared component, low-value surface, see status note)_
+- [ ] Wrap data-workspace + feed previews in `ModeratedNode` from `DataWorkspaceView.tsx` (and content-feed views). _(deferred — depends on the render-prop above)_
 - [x] Add `sensitivityThreshold` filtering to `summarizeSearchModeration`; pass the viewer dial at query time.
 - [ ] Render test: a `porn`-labelled gallery item is blurred in the data workspace for a default-prefs viewer.
 
 **W2 — first-contact / message-requests**
+
 - [ ] Add a `Contact` schema (contact/blocked/muted) + register it; back `useBlockList` block/mute with synced `Contact` nodes (keep local as fast path).
 - [ ] `openOrCreateDmChannel(sender, recipient)`: mutual/contact → open DM; else create a `MessageRequest` (`firstMessageRef`/`firstMessagePreview`) and don't open the chat.
 - [x] Intercept the DM-open call sites (`PersonView`, `PersonHovercard`, `useWave` reveal) to route through it.
@@ -374,7 +400,9 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 - [ ] Extend `tests/e2e/src/safety-ui.spec.ts`: two identities, first DM lands in requests with media blurred; accept opens the DM; mutual wave skips the request.
 
 ### Milestone 2 — Decentralized moderation + on-device ML
+
 **W3 — subscriptions**
+
 - [x] Subscribe UI in Settings → Safety: add a labeler (DID + trust level/weight) → persist via `PolicySubscriptionSchema` (`useLabelerSubscriptions`; subscribe/enable-disable/remove).
 - [x] Import a signed `PolicyBlockList` (verify with `verifySignedPolicyBlockList`); apply its entries.
 - [x] Adapter: persisted subscriptions → runtime `LabelerTrustSetting`s (`subscriptionToTrustSetting`/`subscriptionsToTrustSettings` in `@xnetjs/abuse`, exposed as `trustSettings`).
@@ -383,13 +411,17 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
   - [ ] "Filtered by labeler X" attribution on individual filtered content — pairs with the gate-consumption above.
 
 **W4 — on-device image ML**
-- [ ] Add an ONNX NSFW model (NSFWJS/Falconsai via `@xenova/transformers`); inject as the `createNsfwImageClassifier` detector.
-- [ ] Before-upload pre-screen hook in the image upload paths (chat/editor): classify → suggest a self-label → warn-if-explicit.
-- [ ] Add the `blurhash` dep; compute/store a BlurHash on upload; use it for blurred media placeholders in `SensitiveContent`.
-- [ ] Viewer-side filter for unlabeled incoming media (classify on receive).
+
+- [x] Pre-screen pipeline (`prescreenImage`/`prescreenImageLabels` in `@xnetjs/abuse`): classify → suggest a self-label → warn-if-explicit, model-agnostic over the injected `createNsfwImageClassifier` detector.
+  - [ ] Add an ONNX NSFW model (NSFWJS/Falconsai via `@xenova/transformers`) as the injected detector — deferred: a multi-MB model fetched/inferred in-browser can't be validated in this environment without shipping blind.
+  - [ ] Wire the pre-screen into concrete image upload paths (chat/editor) once a media upload pipeline exists.
+- [ ] Add the `blurhash` dep; compute/store a BlurHash on upload; use it for blurred media placeholders in `SensitiveContent` — deferred: new runtime dep needs a lockfile change this worktree can't validate (no `node_modules`).
+- [ ] Viewer-side filter for unlabeled incoming media (classify on receive) — pairs with the injected model above.
 
 ### Milestone 3 — Hub backend (new subsystem)
+
 **W6 — directory + publish + server-side opt-in + classifier**
+
 - [ ] `DirectoryService` + `/api/directory` routes (Hono) indexing coarsened `ConnectableProfile` (tag buckets, vector buckets, geohash, intent) for `hub-indexed` profiles only.
 - [ ] Consent-gated publish pipeline (client → hub directory); cross-hub merge via the federated router; `reach` controls scope.
 - [ ] Server-side double-opt-in: store wave commitments, reveal only on mutual; rate-limit/write-budget waves via `public-write-budget`.
@@ -397,20 +429,25 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 - [ ] Hub advertises NSFW moderation + (W5) NCMEC attestation in `hub-policy-offer`.
 
 ### Milestone 4 — Quality, identity, reach
+
 **W7 — matching quality**
+
 - [ ] Wire `deriveAffinity` to actual owned-graph signal (social imports + tags + channels) with a `@xnetjs/vectors` embedder; user review step.
 - [ ] Thompson sampling / UCB exploration; tune MMR λ for weak-tie bridging.
 - [ ] Post-intro feedback loop feeding ranking quality.
 
 **W8 — identity / age**
+
 - [ ] Optional VC attestations (phone/ID/age); ZK age proof gating adult-content reveal + any `romance` intent.
 
 **W9 — parity + small UI**
+
 - [ ] Port the dial, `PersonActions`, discover, onboarding, render gate to **electron** (`apps/electron/src/renderer/`).
 - [ ] Port the core safety dial + discover to **expo** (React Native; its own effort).
 - [ ] Contextual command-palette safety actions (per-focused person/post); page-editor self-label; appeals UX on `appeals.ts`; a "why was this filtered?" explainer.
 
 ### Parallel legal track — W5 (CSAM) — **gates W6 public media**
+
 - [ ] Add an image perceptual hash (PDQ) alongside the shipped aHash/dHash/pHash.
 - [ ] Hub: PDQ/PhotoDNA match on all hosted/relayed/indexed media → block + preserve + **NCMEC CyberTipline** report (never merely "hide").
 - [ ] On-device PDQ check before send.
@@ -428,6 +465,7 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 ## References
 
 ### xNet code seams (verified)
+
 - Views render path: `packages/react/src/components/SavedViewRunner.tsx`, `packages/views/src/gallery/GalleryCard.tsx`
 - Notifier: `packages/comms/src/notify/{rules,types,inbox,notifier}.ts`, `apps/web/src/comms/InboxTray.tsx`
 - Hub: `packages/hub/src/server.ts`, `packages/hub/src/services/*`, `packages/hub/src/routes/*`, `packages/query/src/federation/router.ts`
@@ -439,9 +477,11 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 - Validation: `tests/e2e/src/safety-ui.spec.ts`, `.github/workflows/ci.yml`
 
 ### Prior explorations (design rationale)
+
 - 0174 (people matching), 0175 (NSFW moderation), 0176 (discovery + safety UI) — this plan closes their open checklist items.
 
 ### External (integration realities)
+
 - [PDQ / ThreatExchange (Meta)](https://github.com/facebook/ThreatExchange/tree/main/pdq) · [Microsoft PhotoDNA](https://www.microsoft.com/en-us/photodna) · [NCMEC CyberTipline](https://report.cybertip.org/)
 - [NSFWJS](https://github.com/infinitered/nsfwjs) · [Transformers.js](https://github.com/xenova/transformers.js) · [blurhash](https://github.com/woltapp/blurhash)
 - [Bluesky stackable moderation / Ozone](https://docs.bsky.app/blog/blueskys-moderation-architecture)
