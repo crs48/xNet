@@ -562,20 +562,20 @@ Dual rendering (per layer section, zero JS — duplication is free at build time
 - [x] Add protocol rows: IPFS, libp2p, ActivityPub, Matrix; move Solid/p2panda to chips if the table exceeds 12 rows.
 - [x] Add product rows: Logseq, Joplin; move Linear/Coda to chips.
 - [x] Add `ai` field for every row; add the AI/agents column to products, frameworks, and sync tables (xNet: CLI + SKILL.md + files-first checkout).
-- [ ] Build `CompareCell.astro` (ternary badges + footnote superscripts) and reuse `Badge.astro` for maturity.
-- [ ] Rebuild `compare.astro` as five layer sections rendering from `compare.ts`: dual table/card rendering, per-section footnote lists, sticky anchor pills, summary counts derived per layer.
-- [ ] Add a11y: `<caption>`, `scope` attributes, `role="region"` + `tabindex="0"` + `aria-labelledby` on scroll wrappers, icon+text (never color-only) cells.
-- [ ] Add trust block: methodology/bias note, per-section "Last verified", "edit this data on GitHub" link to `compare.ts`.
+- [x] Build `CompareCell.astro` (ternary badges + footnote superscripts) and reuse `Badge.astro` for maturity. _Used a dedicated `MaturityBadge.astro` (smaller sizing + a gray maintenance tone that `Badge.astro` lacks)._
+- [x] Rebuild `compare.astro` as five layer sections rendering from `compare.ts`: dual table/card rendering, per-section footnote lists, sticky anchor pills, summary counts derived per layer.
+- [x] Add a11y: `<caption>`, `scope` attributes, `role="region"` + `tabindex="0"` + `aria-labelledby` on scroll wrappers, icon+text (never color-only) cells.
+- [x] Add trust block: methodology/bias note, per-section "Last verified", "edit this data on GitHub" link to `compare.ts`.
 - [x] Add a vitest data-validation test (every row: url, maturity, license, bestFor; unique names; no dangling footnote refs; every footnote has sourceUrl). _Implemented as a build-time tsx script (`site/scripts/validate-compare.ts`, wired into `pnpm build`) since the site workspace has no vitest; editorial footnotes may omit sourceUrl, status-claim footnotes must have one._
-- [ ] Update `Landscape.astro` link copy ("25+ frameworks" → derived count) and the page `<title>`/meta description.
+- [x] Update `Landscape.astro` link copy ("25+ frameworks" → derived count) and the page `<title>`/meta description.
 
 ### Phase 2 — Guidance and honesty
 
-- [ ] Add the "Worth knowing" chip grid (~25 long-tail projects, `chip: true` rows).
-- [ ] Add the decision-guide section (cards or simplified diagram adapted from the flowchart above).
-- [ ] Add "When the alternatives are the better choice" block.
-- [ ] Add xNet caveat footnotes: pre-release maturity, UCAN community stewardship, plugin trust model, encryption scope (local-at-rest vs transport vs E2EE).
-- [ ] Update the products table with "Collab & comms" column reflecting shipped chat/presence/calls/inbox.
+- [x] Add the "Worth knowing" chip grid (~25 long-tail projects, `chip: true` rows). _Implemented as per-layer `chips` arrays (35 chips) rather than a `chip` flag on rows._
+- [x] Add the decision-guide section (cards or simplified diagram adapted from the flowchart above).
+- [x] Add "When the alternatives are the better choice" block.
+- [x] Add xNet caveat footnotes: pre-release maturity, UCAN community stewardship, plugin trust model, encryption scope (local-at-rest vs transport vs E2EE).
+- [x] Update the products table with "Collab & comms" column reflecting shipped chat/presence/calls/inbox.
 - [ ] Mark `0124_[_]` and this doc `[x]` once shipped (`docs(exploration): check off compare page redesign`).
 
 ### Phase 3 — Optional follow-ups (separate exploration not required)
