@@ -18,6 +18,9 @@
  * ```
  */
 
+import type { XNetContextValue } from '../context'
+import type { NodeStore } from '@xnetjs/data'
+import type { UndoManager } from '@xnetjs/history'
 import { useCallback, useContext, useEffect, useReducer } from 'react'
 import { XNetContext } from '../context'
 
@@ -32,10 +35,17 @@ export interface UseGlobalUndoResult {
   canRedo: boolean
 }
 
+type UndoContext = { undoManager: UndoManager | null; nodeStore: NodeStore | null }
+
+/** Pull the app-level undo manager + store off context (null outside a provider). */
+function readUndoContext(ctx: XNetContextValue | null): UndoContext {
+  if (!ctx) return { undoManager: null, nodeStore: null }
+  return { undoManager: ctx.undoManager, nodeStore: ctx.nodeStore }
+}
+
 export function useGlobalUndo(): UseGlobalUndoResult {
   const ctx = useContext(XNetContext)
-  const undoManager = ctx?.undoManager ?? null
-  const nodeStore = ctx?.nodeStore ?? null
+  const { undoManager, nodeStore } = readUndoContext(ctx)
 
   // Re-render canUndo/canRedo whenever the store changes (a new tracked
   // action, or a remote change) or after we run an undo/redo.
@@ -62,7 +72,7 @@ export function useGlobalUndo(): UseGlobalUndoResult {
   return {
     undo,
     redo,
-    canUndo: undoManager?.hasUndo() ?? false,
-    canRedo: undoManager?.hasRedo() ?? false
+    canUndo: undoManager ? undoManager.hasUndo() : false,
+    canRedo: undoManager ? undoManager.hasRedo() : false
   }
 }

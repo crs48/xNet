@@ -224,14 +224,8 @@ export class UndoManager {
 
   /** All nodeIds with a non-empty undo or redo stack (the global scope) */
   trackedNodeIds(): NodeId[] {
-    const ids = new Set<NodeId>()
-    for (const [nodeId, stack] of this.undoStacks) {
-      if (stack.length) ids.add(nodeId)
-    }
-    for (const [nodeId, stack] of this.redoStacks) {
-      if (stack.length) ids.add(nodeId)
-    }
-    return [...ids]
+    const ids = new Set<NodeId>([...this.undoStacks.keys(), ...this.redoStacks.keys()])
+    return [...ids].filter((id) => this.canUndo(id) || this.canRedo(id))
   }
 
   /** Whether any node anywhere has an undoable change (global canUndo) */
