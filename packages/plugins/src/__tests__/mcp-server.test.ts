@@ -354,10 +354,30 @@ describe('MCPServer', () => {
     })
 
     describe('tools/call - xnet_delete', () => {
-      it('deletes a node', async () => {
+      it('deletes a node when confirmed', async () => {
         const created = await mockStore.create({
           schemaId: 'xnet://xnet.dev/Task',
           properties: { title: 'To Delete' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_delete',
+            arguments: { nodeId: created.id, confirm: true }
+          })
+        )
+
+        expect(response.result).toBeDefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text)
+        expect(data.success).toBe(true)
+        expect(data.nodeId).toBe(created.id)
+      })
+
+      it('requires confirmation before deleting (guardrail)', async () => {
+        const created = await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: { title: 'Keep me unless confirmed' }
         })
 
         const response = await server.handleRequest(
@@ -367,11 +387,13 @@ describe('MCPServer', () => {
           })
         )
 
-        expect(response.result).toBeDefined()
         const result = response.result as { content: Array<{ type: string; text: string }> }
         const data = JSON.parse(result.content[0].text)
-        expect(data.success).toBe(true)
-        expect(data.nodeId).toBe(created.id)
+        expect(data.requiresConfirmation).toBe(true)
+        expect(data.risk).toBe('high')
+        // Nothing was deleted — the node is not tombstoned.
+        const node = (await mockStore.get(created.id)) as { deleted?: boolean } | null
+        expect(node?.deleted).toBeFalsy()
       })
 
       it('returns error for non-existent node', async () => {
@@ -1100,5 +1122,76 @@ describe('slim MCP surface (0161)', () => {
         enum: ['concise', 'detailed']
       })
     }
+  })
+
+  describe('guarded writes + first-class tools (0175)', () => {
+    let writeServer: MCPServer
+    let writeStore: NodeStoreAPI
+
+    beforeEach(() => {
+      writeStore = createMockStore()
+      writeServer = new MCPServer({ store: writeStore, schemas: createMockSchemas() })
+    })
+
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const response = await writeServer.handleRequest(
+        createRequest('tools/call', { name, arguments: args })
+      )
+      const result = response.result as { content: Array<{ text: string }> }
+      return JSON.parse(result.content[0].text) as Record<string, never>
+    }
+
+    it('creates a task via xnet_create_task', async () => {
+      const data = await call('xnet_create_task', { title: 'Write tests' })
+      expect(data.schemaId).toBe('xnet://xnet.fyi/Task@1.0.0')
+      expect((data.properties as { title: string }).title).toBe('Write tests')
+    })
+
+    it('creates a page via xnet_create_page', async () => {
+      const data = await call('xnet_create_page', { title: 'Notes', icon: '📝' })
+      expect(data.schemaId).toBe('xnet://xnet.fyi/Page@1.0.0')
+      expect((data.properties as { title: string }).title).toBe('Notes')
+    })
+
+    it('gates sending a message until confirmed (outward-facing)', async () => {
+      const gated = await call('xnet_send_message', { channel: 'chan-1', content: 'hi team' })
+      expect(gated.requiresConfirmation).toBe(true)
+      expect(gated.outwardFacing).toBe(true)
+
+      const sent = await call('xnet_send_message', {
+        channel: 'chan-1',
+        content: 'hi team',
+        confirm: true
+      })
+      expect(sent.schemaId).toBe('xnet://xnet.fyi/ChatMessage@1.0.0')
+      expect((sent.properties as { content: string }).content).toBe('hi team')
+    })
+
+    it('records applied writes in the guardrail audit log', async () => {
+      await call('xnet_create_task', { title: 'Audited' })
+      const audit = await call('xnet_get_write_audit', {})
+      const events = audit.events as Array<{ kind: string; schemaId?: string }>
+      expect(
+        events.some((e) => e.kind === 'create' && e.schemaId === 'xnet://xnet.fyi/Task@1.0.0')
+      ).toBe(true)
+    })
+
+    it('attaches AI provenance to the audit when supplied', async () => {
+      await call('xnet_create_task', {
+        title: 'With provenance',
+        provenance: { sourceType: 'cloud-ai', modelProvider: 'anthropic', modelName: 'claude-opus' }
+      })
+      const audit = await call('xnet_get_write_audit', {})
+      const events = audit.events as Array<{ provenanceRef?: string }>
+      expect(events.at(-1)?.provenanceRef).toContain('ai-provenance')
+    })
+
+    it('registers the first-class write tools', () => {
+      const names = writeServer.getTools().map((t) => t.name)
+      expect(names).toContain('xnet_create_task')
+      expect(names).toContain('xnet_create_page')
+      expect(names).toContain('xnet_send_message')
+      expect(names).toContain('xnet_get_write_audit')
+    })
   })
 })

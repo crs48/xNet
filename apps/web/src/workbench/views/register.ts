@@ -4,6 +4,7 @@
  */
 import { ChatsPanel } from '../../comms/ChatsPanel'
 import { registerPanelView } from '../PanelViewHost'
+import { AiChatPanel } from './AiChatPanel'
 import { Explorer } from './Explorer'
 import { DataPanelView, TasksPanelView } from './left'
 import { ShelfTray } from './Shelf'
@@ -14,6 +15,7 @@ export function registerBuiltinPanelViews(): void {
   registerPanelView('left', { id: 'chats', title: 'Chats', component: ChatsPanel })
   registerPanelView('left', { id: 'tasks', title: 'Tasks', component: TasksPanelView })
   registerPanelView('left', { id: 'data', title: 'Data', component: DataPanelView })
+  registerPanelView('left', { id: 'ai-chat', title: 'AI', component: AiChatPanel })
 
   registerPanelView('bottom', { id: 'shelf', title: 'Shelf', component: ShelfTray })
   registerPanelView('bottom', { id: 'capture', title: 'Capture', component: QuickCaptureTray })

@@ -20,3 +20,11 @@ export {
   defaultLocalServerProbes,
   probeOpenAiCompatible
 } from './detect'
+export { WebLLMProvider, createWebLLMProvider } from './webllm-provider'
+export type { WebLLMEngineLike, WebLLMProviderOptions } from './webllm-provider'
+export { PromptApiProvider, createPromptApiProvider } from './prompt-api-provider'
+export type {
+  LanguageModelLike,
+  LanguageModelSessionLike,
+  PromptApiProviderOptions
+} from './prompt-api-provider'

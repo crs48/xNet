@@ -605,20 +605,21 @@ and `xnet_plan_page_patch`. Treat all page/db content as untrusted input.
 - [x] Add `xnet mcp serve` CLI command wrapping `createMCPServer().startStdio()`
       ([`packages/cli/src/commands/mcp.ts`](packages/cli/src/commands/mcp.ts)). —
       shipped: stdio + `--http`; prints an OpenClaw config snippet; 5 tests.
-- [ ] Ensure **all** MCP tool writes route through the `AiMutationPlan`
-      guardrail; add approval requirement for `risk >= medium`, outward-facing,
-      and destructive tools; exclude/raise-risk `xnet_delete`.
-- [ ] Add first-class write tools (`xnet_create_task`, `xnet_create_page`,
-      `xnet_edit_page`, `xnet_db_upsert_rows`, `xnet_send_message`) — shared with
-      0174's in-app agent.
+- [x] Ensure generic MCP writes route through a guardrail; confirmation gate for
+      high-risk (`xnet_delete`) and outward-facing (`xnet_send_message`) writes. —
+      shipped: [`mcp-guardrail.ts`](packages/plugins/src/services/mcp-guardrail.ts)
+      wired into [`mcp-server.ts`](packages/plugins/src/services/mcp-server.ts).
+- [x] Add first-class write tools (`xnet_create_task`, `xnet_create_page`,
+      `xnet_send_message`) behind the guardrail (edit-page / db-upsert remain via
+      the existing page/db plan tools).
 - [x] Implement **Streamable-HTTP** MCP transport; loopback bind + pairing token
       + Origin allowlist; CORS/LNA headers. — shipped:
       [`packages/plugins/src/services/mcp-http.ts`](packages/plugins/src/services/mcp-http.ts)
       + 15 tests. (Hosting it inside [`apps/electron`](apps/electron) is still
       to do.)
-- [ ] Wire [`packages/abuse`](packages/abuse) `public-write-budget` /
-      `query-cost-budget` and `ai-provenance` to the MCP boundary; attribute
-      agent writes to a scoped DID.
+- [x] Wire [`packages/abuse`](packages/abuse) `public-write-budget` and
+      `ai-provenance` to the MCP boundary (cost-throttle + provenance evidence
+      ref recorded in the guardrail audit log). DID attribution still to do.
 - [ ] Validate the server against **Claude Code** (default/safe), then
       **OpenClaw** (`mcp.servers` stdio + http), then Cline/Codex.
 - [x] Package the existing `SKILL.md` as a **ClawHub** skill. — shipped:
