@@ -1,0 +1,32 @@
+{
+  "name": "@xnetjs/cloud-billing",
+  "version": "0.0.1",
+  "description": "Usage metering + Stripe billing for xNet Cloud: pure pricing math, an idempotent ledger, and a Stripe meter/webhook adapter.",
+  "license": "FSL-1.1-Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "stripe": "^17.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0"
+  },
+  "private": true
+}
