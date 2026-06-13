@@ -76,6 +76,15 @@ export {
 export { mutualItems, psiEncode, psiHash, psiIntersect } from './psi'
 
 export {
+  localCandidatesFromGraph,
+  rankMatches,
+  type CandidateProfile,
+  type MatchResult,
+  type MatchmakerInput,
+  type MatchmakerSelf
+} from './matchmaker'
+
+export {
   coarsenGeohash,
   decodeGeohash,
   encodeGeohash,

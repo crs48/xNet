@@ -38,4 +38,9 @@ export {
 } from './search/moderation'
 
 // Federation
-export { createFederatedQueryRouter, type FederatedQueryRouter } from './federation/router'
+export {
+  createFederatedQueryRouter,
+  type FederatedQueryRouter,
+  type FederatedQueryRouterOptions,
+  type RemoteQueryTransport
+} from './federation/router'
