@@ -73,6 +73,13 @@ remaining work is small and additive, not a rewrite.
 Cost: a 1,000-tenant fleet at 1 GB/tenant (100 active on volumes + 900 cold in R2) ≈ **$28.50/month in
 storage**, with near-zero compute when suspended. The cold-tenant floor is **$0.015/GB-month**.
 
+**Pricing model** (new section [Projected Pricing Model](#projected-pricing-model-storage--compute--margin)):
+a **$5/mo Personal** plan lands at **~85–90% gross margin** — infrastructure COGS is only **~$0.40–0.70/mo**
+(scale-to-zero compute ≈ $0 when idle + R2-tiered storage at $0.015/GB). The real entry-level drag is the
+**$0.30 fixed Stripe per-charge fee** (~9% of a $5 monthly charge → favor annual billing). Margins run
+from **~92% (Family)** down to **~55–65% (Enterprise)** as always-warm compute, SSO/SCIM, and support
+load in.
+
 ```mermaid
 flowchart LR
   subgraph Decision["The decision"]
@@ -315,6 +322,108 @@ sequenceDiagram
    volume); on reactivate, verify old machine stopped (provider API) before starting the new one.
 7. **Keep self-host trivial**: with no Litestream env + local volume, the hub runs exactly as today.
 
+## Projected Pricing Model (Storage + Compute + Margin)
+
+> **Illustrative model, not a forecast.** It composes the *unit costs* established across the prior
+> explorations — 0148 (AI), 0175 (compute / scale-to-zero), 0177/0178 (storage) — into per-plan COGS and
+> gross margin, to answer the direct question: **can we do $5/month, what does it get you, and what's the
+> margin at each tier vs. the price we charge?** AI is priced separately as a metered add-on (0148/0176)
+> and is excluded from base-plan COGS so it can't erode these margins.
+
+### Unit cost inputs
+
+| Input | Rate | Source |
+|---|---|---|
+| Object storage (R2 — blobs + cold DB snapshots) | **$0.015/GB-mo**, **$0 egress** | 0177/0178 |
+| Hot DB volume — Fly | $0.15/GB-mo | 0178 |
+| Hot DB volume — Hetzner | **$0.048/GB-mo** | 0178 |
+| Compute, scale-to-zero, **idle** | **≈ $0** (suspended) | 0175/0178 |
+| Compute, **active** (Fly shared-cpu-1x, 256–512 MB) | ~$1.9–3.9/mo *if always-on* → × active-fraction | 0175 |
+| Compute, **always-warm** (team tier, never sleeps) | ~$6/mo (≈1 vCPU / 1 GB) | 0175 |
+| Identity (WorkOS AuthKit) | **$0** to 1M MAU | 0174/0176 |
+| Identity SSO + SCIM (enterprise) | ~$250/mo (2 connections) | 0174/0176 |
+| Payments (Stripe) | **2.9% + $0.30 / charge** | standard |
+
+Two inputs actually move margin: **always-on compute** (only the team/enterprise *warm* tiers pay it —
+idle Personal/Family tiers are ≈ $0 via scale-to-zero) and the **$0.30 fixed Stripe fee** (trivial at
+$60+, but ~9% of a $5 monthly charge). Storage is cheap once tiered (R2 $0.015, zero egress).
+
+### Per-plan economics (illustrative)
+
+Assumes typical usage well below the included ceiling (median Personal ≈ 3 GB of 25; Family ≈ 30 GB of
+250 — the "generous quota" works because most users don't fill it, per 0147). **Margin @ full** stresses
+the worst case where a tenant consumes its entire included quota.
+
+| Plan | Price | Included (storage · compute · seats) | Model | Typical COGS/mo | **Margin @ typical** | Margin @ full quota |
+|---|---|---|---|---|---:|---:|
+| **Free / Demo** | $0 | 10 MB · pooled · 1 | pooled | ~$0 (shared) | — (loss leader) | — |
+| **Personal** | **$5/mo** ($50/yr) | 25 GB · scale-to-zero · 1 | B (cold-capable) | **~$0.40–0.70** | **~85–90%** | ~80% |
+| **Family** | $15/mo | 250 GB pool · scale-to-zero · 5 | A/B | ~$1.25 | **~92%** | ~70% |
+| **Team / Business** | $12/seat (min $29) | 100 GB + overage · **always-warm** · per-seat | A (warm) | ~$11 @ 8 seats ($96) | ~88% (large) · ~65% (3-seat min) | ~86% |
+| **Enterprise** | custom (~$2,000) | dedicated/region-pinned · SSO/SCIM · support/SLA | dedicated | ~$700–900 | **~55–65%** | varies |
+
+```mermaid
+xychart-beta
+  title "Illustrative gross margin by plan (typical usage)"
+  x-axis ["Personal", "Family", "Team(8)", "Enterprise"]
+  y-axis "Gross margin %" 0 --> 100
+  bar [88, 92, 88, 60]
+```
+
+### The $5/month question, in detail
+
+A $5/month Personal hub is **viable at ~85–90% gross margin** — the infrastructure is genuinely that
+cheap once scale-to-zero + R2 tiering do their job. The constraint is *not* infra; it's the **Stripe
+fixed fee**:
+
+| $5 Personal — monthly COGS | Billed monthly | Billed annually ($50/yr) |
+|---|---:|---:|
+| Compute (scale-to-zero, ~2 h/day active) | $0.16 | $0.16 |
+| Storage (~3 GB R2 blobs + ~1 GB DB) | $0.10 | $0.10 |
+| Identity (AuthKit) | $0.00 | $0.00 |
+| **Stripe (2.9% + $0.30)** | **$0.45 (≈9%)** | **$0.15 (≈2.9%)** |
+| **Total COGS** | **~$0.71** | **~$0.41** |
+| **Gross margin** | **~86%** | **~92%** |
+
+```mermaid
+xychart-beta
+  title "$5 Personal — monthly COGS breakdown (USD cents)"
+  x-axis ["Compute", "Storage", "Stripe-monthly", "Stripe-annual"]
+  y-axis "cents / month" 0 --> 50
+  bar [16, 10, 45, 15]
+```
+
+**What "$5/month" gets you** at ~85% margin: **25 GB of (mostly cold/R2) storage, an isolated
+scale-to-zero hub, unlimited devices, sync + encrypted backup + secure share links + device recovery.**
+The compute is effectively free when you're not using it; you pay us ~$0.40–0.70/month to run it. The
+single most effective lever to protect entry-tier margin is **annual billing**, which amortizes the
+$0.30 fixed fee from ~9% → ~3% of revenue (a $6–8/month price, or simply accepting ~86% margin on
+monthly, also work — but annual is cleanest).
+
+### What drives the trade-offs
+
+- **Idle is almost free; warm is not.** Personal/Family ride scale-to-zero (~$0 compute when asleep) →
+  fat margins. Team/Enterprise are **always-warm** (teams expect instant response) → they pay real
+  compute, so they're **per-seat / high-ACV** to keep revenue ahead of the fixed warm-hub cost. A
+  minimum seat count (~$29 floor) stops a 1-seat "team" from running negative.
+- **Quotas are ceilings, not averages.** Worst-case (full-quota) margins (Family ~70%) sit far below
+  typical (~92%) because median usage is a fraction of the ceiling. Price the *ceiling* to survive the
+  p95 heavy user; keep the gap on the median user.
+- **Storage tiering directly buys margin.** Keeping the hot DB tiny (metadata + working set) and pushing
+  bulk to R2 ($0.015, zero egress) — and demoting cold tenants to R2-only — is what makes a 25 GB plan
+  cost ~$0.10 instead of ~$3.75 (a full Fly volume) in storage. The 0177/0178 decision, in dollars.
+- **Enterprise margin is structurally lower** (SSO/SCIM ~$250, support, SLA, dedicated compute) but ACV
+  is 100–400× a Personal sub; growth is via seats + usage, not the base price.
+- **AI is its own P&L** (0148/0176): metered, marked-up (~30%), hard-stopped per tenant — never bundled
+  as "unlimited" into a flat base, so a heavy AI user can't turn a fat-margin plan negative.
+
+### Fleet sustainability check
+
+At ~85% margin, each $5 Personal sub contributes ~$4.25 gross. A lean ~$300k/yr operation breaks even
+near **~6,000 Personal subs** (or a smaller mix weighted to Family/Team/Enterprise), consistent with
+0147's ~5,500-subscriber threshold — and because the **marginal cost of an idle/cold tenant is just
+$0.015/GB-month**, carrying the free and dormant long tail barely moves the bill.
+
 ## Example Code
 
 ### 1. Pragmas — add `wal_autocheckpoint=0` only under Litestream
@@ -436,6 +545,13 @@ async function reactivate(t: Tenant) {
 - [ ] Add a **Hetzner** Model-A provisioner adapter (cheapest volumes) for at-scale cost; **Cloud Run**
       Model-B adapter for the ephemeral path. (Provisioner interface from PR #66.)
 
+**Pricing:**
+- [ ] Encode the plan cost model (unit costs → per-tier COGS + margin) as a small pricing module /
+      fixture alongside `@xnetjs/cloud-plans`, so prices and included quotas are checked against a
+      modeled gross-margin floor.
+- [ ] Default the entry (Personal) tier to **annual billing** to amortize the $0.30 Stripe fee; keep
+      monthly available at the (still ~86%) lower margin.
+
 **Docs:**
 - [ ] Mark the libSQL migration items in 0175/0176 **superseded by this exploration**; keep `case
       'libsql'` documented as a dormant option.
@@ -457,6 +573,9 @@ async function reactivate(t: Tenant) {
 - [ ] **Self-host intact:** the hub runs with no Litestream/R2 env on a local volume exactly as today;
       no libSQL dependency anywhere.
 - [ ] **Version pin honored:** CI/image uses Litestream v0.5.3; an upgrade gate references bug #1083.
+- [ ] **Entry-tier margin holds:** measured per-tenant COGS (compute + storage + Stripe) for a typical
+      Personal tenant is ≤ ~$0.70/mo and gross margin ≥ 80%; the $5/mo plan is verified profitable on
+      both monthly and annual billing.
 
 ## References
 
