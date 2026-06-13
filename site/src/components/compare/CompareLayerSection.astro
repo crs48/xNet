@@ -1,0 +1,289 @@
+---
+import type { CompareLayer, CompareProject } from '../../data/compare'
+import CompareCell from './CompareCell.astro'
+import MaturityBadge from './MaturityBadge.astro'
+
+interface Props {
+  layer: CompareLayer
+}
+
+const { layer } = Astro.props
+
+// `license` and `bestFor` columns resolve from top-level project fields.
+const resolve = (p: CompareProject, key: string) =>
+  key === 'license' ? p.license : key === 'bestFor' ? p.bestFor : p.dims[key]
+
+const fnIndex = (id: string) => layer.footnotes.findIndex((f) => f.id === id) + 1
+
+// Union of detail labels across projects, in first-appearance order.
+const detailKeys: string[] = []
+for (const p of layer.projects) {
+  for (const k of Object.keys(p.details ?? {})) {
+    if (!detailKeys.includes(k)) detailKeys.push(k)
+  }
+}
+const bestForInColumns = layer.columns.some((c) => c.key === 'bestFor')
+const hasExtended = detailKeys.length > 0 || !bestForInColumns
+
+const wrapClass = (key: string) => (key === 'bestFor' ? 'min-w-[18rem]' : 'whitespace-nowrap')
+---
+
+<section id={layer.id} class="mb-24 scroll-mt-36">
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{layer.title}</h2>
+    <span class="rounded-full border border-border px-2.5 py-0.5 text-xs text-gray-500">
+      Last verified: {layer.lastVerified}
+    </span>
+  </div>
+  <p class="mb-4 max-w-3xl text-gray-500 dark:text-gray-400">{layer.intro}</p>
+  {
+    layer.xnetNote && (
+      <p class="mb-6 max-w-3xl rounded-lg border border-indigo-500/20 bg-indigo-500/[0.04] px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+        {layer.xnetNote}
+      </p>
+    )
+  }
+
+  <!-- Desktop: full table in a keyboard-focusable scroll region -->
+  <div
+    class="hidden sm:block overflow-x-auto rounded-xl border border-border"
+    role="region"
+    aria-labelledby={`${layer.id}-caption`}
+    tabindex="0"
+  >
+    <table class="w-full text-sm">
+      <caption id={`${layer.id}-caption`} class="sr-only">{layer.title} comparison</caption>
+      <thead>
+        <tr class="border-b border-border bg-surface/30 dark:bg-surface/50">
+          <th
+            scope="col"
+            class="sticky left-0 z-10 min-w-[120px] bg-surface/80 px-4 py-3 text-left font-semibold text-gray-600 backdrop-blur-sm dark:bg-surface/90 dark:text-gray-300"
+          >
+            Project
+          </th>
+          <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-500">Maturity</th>
+          {
+            layer.columns.map((col) => (
+              <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-500">
+                {col.label}
+              </th>
+            ))
+          }
+        </tr>
+      </thead>
+      <tbody>
+        {
+          layer.projects.map((p) => (
+            <tr
+              class={`border-b border-border/50 ${p.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}
+            >
+              <th
+                scope="row"
+                class={`sticky left-0 z-10 ${p.highlight ? 'bg-indigo-500/[0.06]' : 'bg-code-bg'} whitespace-nowrap px-4 py-3 text-left font-medium backdrop-blur-sm`}
+              >
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class={`hover:underline ${p.highlight ? 'text-indigo-400' : 'text-gray-600 hover:text-indigo-400 dark:text-gray-300'}`}
+                >
+                  {p.name}
+                </a>
+                {(p.footnotes ?? []).map((id) => (
+                  <a
+                    href={`#${layer.id}-fn-${fnIndex(id)}`}
+                    class="ml-0.5 align-super text-[10px] text-indigo-400 hover:underline"
+                  >
+                    {fnIndex(id)}
+                  </a>
+                ))}
+              </th>
+              <td class="whitespace-nowrap px-4 py-3">
+                <MaturityBadge maturity={p.maturity} />
+              </td>
+              {layer.columns.map((col) => (
+                <td class={`px-4 py-3 ${wrapClass(col.key)}`}>
+                  <CompareCell value={resolve(p, col.key)} footnotes={layer.footnotes} anchor={layer.id} />
+                </td>
+              ))}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Desktop: extended dimensions, collapsed by default -->
+  {
+    hasExtended && (
+      <details class="mt-3 hidden sm:block">
+        <summary class="cursor-pointer select-none text-sm text-gray-500 transition-colors hover:text-indigo-400">
+          More dimensions: {[...(bestForInColumns ? [] : ['Best for']), ...detailKeys].join(' · ')}
+        </summary>
+        <div
+          class="mt-3 overflow-x-auto rounded-xl border border-border"
+          role="region"
+          aria-label={`${layer.title} extended dimensions`}
+          tabindex="0"
+        >
+          <table class="w-full text-sm">
+            <caption class="sr-only">{layer.title} extended dimensions</caption>
+            <thead>
+              <tr class="border-b border-border bg-surface/30 dark:bg-surface/50">
+                <th
+                  scope="col"
+                  class="sticky left-0 z-10 min-w-[120px] bg-surface/80 px-4 py-3 text-left font-semibold text-gray-600 backdrop-blur-sm dark:bg-surface/90 dark:text-gray-300"
+                >
+                  Project
+                </th>
+                {!bestForInColumns && (
+                  <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-500">
+                    Best for
+                  </th>
+                )}
+                {detailKeys.map((k) => (
+                  <th scope="col" class="whitespace-nowrap px-4 py-3 text-left font-medium text-gray-500">
+                    {k}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {layer.projects.map((p) => (
+                <tr
+                  class={`border-b border-border/50 ${p.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}
+                >
+                  <th
+                    scope="row"
+                    class={`sticky left-0 z-10 ${p.highlight ? 'bg-indigo-500/[0.06]' : 'bg-code-bg'} whitespace-nowrap px-4 py-3 text-left font-medium backdrop-blur-sm`}
+                  >
+                    <a
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class={`hover:underline ${p.highlight ? 'text-indigo-400' : 'text-gray-600 hover:text-indigo-400 dark:text-gray-300'}`}
+                    >
+                      {p.name}
+                    </a>
+                  </th>
+                  {!bestForInColumns && <td class="min-w-[18rem] px-4 py-3 text-gray-500 dark:text-gray-400">{p.bestFor}</td>}
+                  {detailKeys.map((k) => (
+                    <td class="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">
+                      {p.details?.[k] ?? '—'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    )
+  }
+
+  <!-- Mobile: one expandable card per project -->
+  <div class="space-y-3 sm:hidden">
+    {
+      layer.projects.map((p) => (
+        <details
+          class={`rounded-xl border px-4 py-3 ${p.highlight ? 'border-indigo-500/30 bg-indigo-500/[0.04]' : 'border-border bg-surface/20'}`}
+        >
+          <summary class="flex cursor-pointer select-none items-center justify-between gap-2">
+            <span class={`font-medium ${p.highlight ? 'text-indigo-400' : 'text-gray-700 dark:text-gray-200'}`}>
+              {p.name}
+              {(p.footnotes ?? []).map((id) => (
+                <a
+                  href={`#${layer.id}-fn-${fnIndex(id)}`}
+                  class="ml-0.5 align-super text-[10px] text-indigo-400"
+                >
+                  {fnIndex(id)}
+                </a>
+              ))}
+            </span>
+            <MaturityBadge maturity={p.maturity} />
+          </summary>
+          <dl class="mt-3 space-y-1.5 text-sm">
+            {layer.columns.map((col) => (
+              <div class="flex justify-between gap-4">
+                <dt class="shrink-0 text-gray-500">{col.label}</dt>
+                <dd class="text-right">
+                  <CompareCell value={resolve(p, col.key)} footnotes={layer.footnotes} anchor={layer.id} />
+                </dd>
+              </div>
+            ))}
+            {!bestForInColumns && (
+              <div class="flex justify-between gap-4">
+                <dt class="shrink-0 text-gray-500">Best for</dt>
+                <dd class="text-right text-gray-500 dark:text-gray-400">{p.bestFor}</dd>
+              </div>
+            )}
+            {detailKeys.map(
+              (k) =>
+                p.details?.[k] && (
+                  <div class="flex justify-between gap-4">
+                    <dt class="shrink-0 text-gray-500">{k}</dt>
+                    <dd class="text-right text-gray-500 dark:text-gray-400">{p.details[k]}</dd>
+                  </div>
+                )
+            )}
+            <div class="pt-1">
+              <a
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-xs text-indigo-400 hover:underline"
+              >
+                Visit site →
+              </a>
+            </div>
+          </dl>
+        </details>
+      ))
+    }
+  </div>
+
+  <!-- Long tail -->
+  {
+    layer.chips.length > 0 && (
+      <div class="mt-6">
+        <h3 class="mb-3 text-sm font-semibold text-gray-600 dark:text-gray-300">Worth knowing</h3>
+        <div class="flex flex-wrap gap-2">
+          {layer.chips.map((c) => (
+            <a
+              href={c.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group inline-flex max-w-full items-baseline gap-1.5 rounded-full border border-border bg-surface/30 px-3 py-1.5 text-xs transition-colors hover:border-indigo-500/40 hover:bg-indigo-500/[0.06]"
+            >
+              <span class="font-medium text-gray-600 group-hover:text-indigo-400 dark:text-gray-300">{c.name}</span>
+              <span class="text-gray-500">· {c.note}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  <!-- Footnotes -->
+  {
+    layer.footnotes.length > 0 && (
+      <ol class="mt-4 max-w-3xl list-none space-y-1 text-xs text-gray-500">
+        {layer.footnotes.map((f, i) => (
+          <li id={`${layer.id}-fn-${i + 1}`} class="scroll-mt-36">
+            <span class="text-indigo-400">{i + 1}.</span> {f.text}
+            {f.sourceUrl && (
+              <a
+                href={f.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="ml-1 text-indigo-400 hover:underline"
+              >
+                source
+              </a>
+            )}
+          </li>
+        ))}
+      </ol>
+    )
+  }
+</section>

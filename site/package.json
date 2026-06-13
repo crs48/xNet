@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "build:llms": "tsx scripts/build-llms-full.ts",
-    "build": "pnpm build:llms && astro build",
+    "validate:compare": "tsx scripts/validate-compare.ts",
+    "build": "pnpm validate:compare && pnpm build:llms && astro build",
     "preview": "astro preview",
     "astro": "astro"
   },
