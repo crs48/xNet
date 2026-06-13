@@ -7,6 +7,12 @@
 > r2, s3, minio, s3rver, litellm, claude-agent-sdk, workos, pulumi, testcontainers,
 > ports-and-adapters, managed-cloud, ci
 
+> **⚠️ Superseded (libSQL parts):** the **libSQL `HubStorage` port** described here is **superseded by
+> [0178](./0178_[_]_COST_EFFICIENT_SQLITE_HOSTING_NO_LIBSQL_MIGRATION.md)** — we **stay on `better-sqlite3`**
+> and use **Litestream → R2** for scale-to-zero + cold storage (rationale in
+> [0177](./0177_[_]_DATA_BACKEND_TIERING_AND_COLD_STORAGE_ECONOMICS.md)). The Stripe/LiteLLM/agent/WorkOS
+> testing patterns below still stand.
+
 ## Problem Statement
 
 [PR #66](https://github.com/crs48/xNet/pull/66) shipped the managed-fleet _foundation_

@@ -105,7 +105,9 @@ export class ControlPlane {
       substrateRef: handle.substrateRef,
       region: handle.region,
       targetVersion: handle.targetVersion,
-      createdAt: this.now()
+      createdAt: this.now(),
+      lastActiveMs: this.now(),
+      dataTier: 'hot'
     }
     await this.deps.tenants.put(record)
     return record
@@ -176,5 +178,70 @@ export class ControlPlane {
 
   getTenant(tenantId: string): Promise<TenantRecord | null> {
     return this.deps.tenants.get(tenantId)
+  }
+
+  /** R2 object path holding a tenant's SQLite snapshot (matches the Litestream replica path). */
+  private snapshotKey(tenantId: string): string {
+    return `t/${tenantId}/db`
+  }
+
+  /** Record activity so the cold-demotion clock resets (exploration 0178). */
+  async markActive(tenantId: string): Promise<void> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return
+    await this.deps.tenants.put({ ...record, lastActiveMs: this.now() })
+  }
+
+  /**
+   * Demote an idle hot tenant to COLD: confirm its DB is fully synced to R2, then
+   * destroy the volume + machine. The DB lives only in R2 afterward (~$0.015/GB),
+   * restored on reactivation. No-op if not hot or not yet idle long enough.
+   */
+  async demoteIfCold(
+    tenantId: string,
+    opts: { coldAfterMs: number; assertSynced?: (tenantId: string) => Promise<boolean> }
+  ): Promise<{ demoted: boolean }> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
+    if (record.dataTier !== 'hot') return { demoted: false }
+    if (this.now() - record.lastActiveMs < opts.coldAfterMs) return { demoted: false }
+
+    // Never destroy a live DB until its last write is durable in R2 (the demotion gate).
+    if (opts.assertSynced && !(await opts.assertSynced(tenantId))) {
+      return { demoted: false }
+    }
+
+    if (record.substrateRef) await this.deps.provisioner.destroy(record.substrateRef)
+    await this.deps.tenants.put({ ...record, dataTier: 'cold', substrateRef: '', hubUrl: '' })
+    return { demoted: true }
+  }
+
+  /**
+   * Reactivate a COLD tenant: provision a fresh hub that restores its DB from R2 on
+   * boot (Litestream). The control plane is the single-writer fence — a cold tenant
+   * has no live machine, so there is nothing to race.
+   */
+  async reactivate(tenantId: string): Promise<TenantRecord> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
+    if (record.dataTier === 'hot') return record // already live
+
+    const handle = await this.deps.provisioner.provision({
+      tenantId,
+      entitlements: record.entitlements,
+      targetVersion: record.targetVersion,
+      region: record.region,
+      env: this.hubEnv(record.entitlements),
+      restoreFromR2: this.snapshotKey(tenantId)
+    })
+    const updated: TenantRecord = {
+      ...record,
+      dataTier: 'hot',
+      hubUrl: handle.hubUrl,
+      substrateRef: handle.substrateRef,
+      lastActiveMs: this.now()
+    }
+    await this.deps.tenants.put(updated)
+    return updated
   }
 }

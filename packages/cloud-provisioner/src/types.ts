@@ -23,8 +23,13 @@ export interface ProvisionSpec {
   targetVersion: string
   /** Region to place the tenant in (residency); adapter default if omitted. */
   region?: string
-  /** Extra env injected into the hub container (e.g. HUB_PLAN, LIBSQL_URL, R2_*). */
+  /** Extra env injected into the hub container (e.g. HUB_PLAN, R2_*). */
   env?: Record<string, string>
+  /**
+   * R2 object path to restore the SQLite DB from before boot (Litestream, Model B —
+   * exploration 0178). Set when reactivating a cold tenant whose DB lives only in R2.
+   */
+  restoreFromR2?: string
 }
 
 /** A handle to a provisioned hub. `substrateRef` is opaque to callers. */
