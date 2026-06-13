@@ -52,7 +52,9 @@ export {
   createTrustedLabelFromSetting,
   evaluateReportEscalation,
   evaluateLabelerSubscriptionLimit,
-  evaluateLabelerTrust
+  evaluateLabelerTrust,
+  subscriptionToTrustSetting,
+  subscriptionsToTrustSettings
 } from './labeler-trust'
 export {
   groupCommunityNoteRatingsByPerspective,
@@ -147,6 +149,12 @@ export type {
   NsfwImageDetection,
   NsfwImageDetector
 } from './local-image-classifier'
+export { prescreenImage, prescreenImageLabels } from './image-prescreen'
+export type {
+  ImagePrescreenOptions,
+  ImagePrescreenResult,
+  PrescreenRecommendation
+} from './image-prescreen'
 export { createPublicWriteBudgetKey, evaluatePublicWriteBudget } from './public-write-budget'
 export { createQueryCostBudgetKey, evaluateQueryCostBudget } from './query-cost-budget'
 export {
@@ -192,6 +200,7 @@ export type {
   LabelerTrustLevel,
   LabelerTrustScope,
   LabelerTrustSetting,
+  PolicySubscriptionTrustInput,
   ReportEscalationDecision,
   ReportEscalationInput
 } from './labeler-trust'

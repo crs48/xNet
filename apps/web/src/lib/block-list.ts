@@ -90,6 +90,16 @@ export interface BlockListController {
   mute: (did: string) => void
   restrict: (did: string) => void
   unblock: (did: string) => void
+  /** Apply many (did, state) pairs at once — used by blocklist import. */
+  importMany: (entries: readonly { did: string; state: BlockState }[]) => void
+}
+
+/** Apply many state changes to a list in one pass (pure). */
+export function withMany(
+  list: BlockList,
+  entries: readonly { did: string; state: BlockState }[]
+): BlockList {
+  return entries.reduce((current, entry) => withState(current, entry.did, entry.state), list)
 }
 
 export function useBlockList(): BlockListController {
@@ -104,12 +114,19 @@ export function useBlockList(): BlockListController {
     []
   )
 
+  const importMany = useCallback(
+    (entries: readonly { did: string; state: BlockState }[]) =>
+      setList((current) => withMany(current, entries)),
+    []
+  )
+
   return {
     list,
     stateOf: (did: string) => blockStateOf(list, did),
     block: (did: string) => set(did, 'blocked'),
     mute: (did: string) => set(did, 'muted'),
     restrict: (did: string) => set(did, 'restricted'),
-    unblock: (did: string) => set(did, null)
+    unblock: (did: string) => set(did, null),
+    importMany
   }
 }

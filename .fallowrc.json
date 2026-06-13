@@ -74,6 +74,7 @@
       "apps/web/src/routes/welcome.tsx",
       "apps/web/src/comms/InboxTray.tsx",
       "apps/web/src/hooks/useDmOpen.ts",
+      "apps/web/src/lib/labeler-subscriptions.ts",
       "packages/ui/src/composed/comments/**",
       "packages/ui/src/composed/CommandPalette.tsx",
       "packages/ui/src/composed/tasks/TaskCard.tsx",
