@@ -11,7 +11,7 @@
  * is by id.
  */
 import { Node, mergeAttributes } from '@tiptap/core'
-import { PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import Suggestion from '@tiptap/suggestion'
 import { TaskMentionMenu, type TaskMentionSuggestion } from '../../components/TaskMentionMenu'
 import { createSuggestionPopupRender } from '../suggestion-popup'
@@ -19,6 +19,7 @@ import { createSuggestionPopupRender } from '../suggestion-popup'
 export { updateSuggestionPopup as updateHashtagPopup } from '../suggestion-popup'
 
 const HashtagSuggestionPluginKey = new PluginKey('hashtagSuggestion')
+const HashtagClickPluginKey = new PluginKey('hashtagClick')
 
 /** Sentinel id for the trailing "create new tag" menu entry. */
 export const CREATE_HASHTAG_ID = '__create-hashtag__'
@@ -36,6 +37,8 @@ export interface HashtagOptions {
   createTag?: (name: string) => Promise<HashtagSuggestion | null>
   /** Normalize a raw query into a usable tag name ('' = unusable) */
   normalizeName: (raw: string) => string
+  /** Clicking a hashtag pill navigates here (an `xnet://tag/<id>` href). */
+  onNavigate: (href: string) => void
   HTMLAttributes: Record<string, string>
 }
 
@@ -87,6 +90,7 @@ export const HashtagExtension = Node.create<HashtagOptions>({
       getSuggestions: () => [],
       createTag: undefined,
       normalizeName: (raw: string) => raw.trim().toLowerCase(),
+      onNavigate: () => {},
       HTMLAttributes: {}
     }
   },
@@ -108,7 +112,7 @@ export const HashtagExtension = Node.create<HashtagOptions>({
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-hashtag': '',
         'data-tag-id': HTMLAttributes.id,
-        class: 'hashtag'
+        class: 'hashtag cursor-pointer'
       }),
       `#${String(HTMLAttributes.name ?? '')}`
     ]
@@ -157,6 +161,20 @@ export const HashtagExtension = Node.create<HashtagOptions>({
           })
         },
         render: createSuggestionPopupRender<TaskMentionSuggestion>(TaskMentionMenu)
+      }),
+      // Clicking a hashtag pill opens that tag's page (0172).
+      new Plugin({
+        key: HashtagClickPluginKey,
+        props: {
+          handleClick: (_view, _pos, event) => {
+            const el = (event.target as HTMLElement | null)?.closest?.('[data-hashtag]')
+            const tagId = el?.getAttribute('data-tag-id')?.trim()
+            if (!tagId) return false
+            event.preventDefault()
+            this.options.onNavigate(`xnet://tag/${tagId}`)
+            return true
+          }
+        }
       })
     ]
   }

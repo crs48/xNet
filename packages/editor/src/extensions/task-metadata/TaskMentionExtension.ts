@@ -1,10 +1,11 @@
 import { Node, mergeAttributes } from '@tiptap/core'
-import { PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import Suggestion from '@tiptap/suggestion'
 import { TaskMentionMenu, type TaskMentionSuggestion } from '../../components/TaskMentionMenu'
 import { createSuggestionPopupRender } from '../suggestion-popup'
 
 const TaskMentionSuggestionPluginKey = new PluginKey('taskMentionSuggestion')
+const TaskMentionClickPluginKey = new PluginKey('taskMentionClick')
 
 function truncateDid(value: string): string {
   return value.startsWith('did:') ? `${value.slice(0, 14)}...${value.slice(-6)}` : value
@@ -31,6 +32,8 @@ function filterSuggestions(items: TaskMentionSuggestion[], query: string): TaskM
 
 export interface TaskMentionOptions {
   getSuggestions: () => TaskMentionSuggestion[]
+  /** Clicking a mention pill navigates here (an `xnet://person/<did>` href). */
+  onNavigate: (href: string) => void
   HTMLAttributes: Record<string, string>
 }
 
@@ -56,6 +59,7 @@ export const TaskMentionExtension = Node.create<TaskMentionOptions>({
   addOptions() {
     return {
       getSuggestions: () => [],
+      onNavigate: () => {},
       HTMLAttributes: {}
     }
   },
@@ -84,7 +88,7 @@ export const TaskMentionExtension = Node.create<TaskMentionOptions>({
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-task-mention': '',
         'data-mention-id': HTMLAttributes.id,
-        class: 'task-mention'
+        class: 'task-mention cursor-pointer'
       }),
       `@${label}`
     ]
@@ -134,6 +138,20 @@ export const TaskMentionExtension = Node.create<TaskMentionOptions>({
           editor.chain().focus().deleteRange(range).setTaskMention(props).run()
         },
         render: createSuggestionPopupRender<TaskMentionSuggestion>(TaskMentionMenu)
+      }),
+      // Clicking a mention pill opens that person (0172).
+      new Plugin({
+        key: TaskMentionClickPluginKey,
+        props: {
+          handleClick: (_view, _pos, event) => {
+            const el = (event.target as HTMLElement | null)?.closest?.('[data-task-mention]')
+            const did = el?.getAttribute('data-mention-id')?.trim()
+            if (!did) return false
+            event.preventDefault()
+            this.options.onNavigate(`xnet://person/${did}`)
+            return true
+          }
+        }
       })
     ]
   }
