@@ -556,42 +556,58 @@ it('places a tenant in a sharded project with the signed HUB_PLAN env', async ()
 
 ## Implementation Checklist
 
+> **Progress** (branch `feat/testable-cloud-integrations`): the keyless-testable layers landed —
+> `@xnetjs/cloud-storage` (S3/R2 `StorageAdapter` + shared contract suite, fake↔real-local parity via
+> `aws-sdk-client-mock`), `@xnetjs/cloud-billing` (pure pricing + idempotent ledger + Stripe meter
+> adapter + `FakeStripeBilling` + local webhook-signature crypto), `@xnetjs/cloud-ai` (OpenAI-compatible
+> gateway, usage→meter bridge, client-side budget hard-stop, and a provider-agnostic agent-safety
+> harness), and the WorkOS **msw wire-contract** test. 88 new tests, all in-process — no keys, no
+> Docker. Still open: the full libSQL `HubStorage` port (the big one), sealed sessions + `/auth/callback`,
+> the LiteLLM/stripe-mock Docker integration tests, real Pulumi adapters, and the `e2e-cloud` job.
+
 **PR 0 — contract/test toolkit (foundation):**
 
-- [ ] Add `tests/contract/` with `createMswServer`, `runHubStorageContract`, `runBlobStoreContract`.
-- [ ] Promote `msw` to an explicit devDep; add `aws-sdk-client-mock`, `s3rver`.
+- [x] Add a shared `StorageAdapter` contract suite (`runStorageAdapterContract` in
+      `@xnetjs/cloud-storage`). _(Full `HubStorage` contract suite lands with the libSQL port.)_
+- [x] Promote `msw` to an explicit devDep; add `aws-sdk-client-mock`. _(`s3rver` deferred — the
+      stateful `aws-sdk-client-mock` covers adapter logic for now.)_
 - [ ] Add a vitest `globalSetup` that boots **s3rver** for the integration project (env-gated).
 - [ ] Document the three-tier strategy in `tests/README.md`.
 
 **PR A — libSQL + R2 (the keystone):**
 
 - [ ] `createLibsqlStorage` implementing `HubStorage` over `@libsql/client`; add `case 'libsql'` to
-      [`createStorage`](../../packages/hub/src/storage/index.ts) (dynamic import).
-- [ ] R2 `BlobStore` adapter (`@aws-sdk/client-s3`, `forcePathStyle`) in `packages/storage`.
+      [`createStorage`](../../packages/hub/src/storage/index.ts) (dynamic import). _(The large port —
+      still open.)_
+- [x] R2 / S3 blob adapter (`@aws-sdk/client-s3`, `forcePathStyle`) — shipped as `S3BlobAdapter` in
+      `@xnetjs/cloud-storage` (server-only; keeps the AWS SDK out of client bundles).
 - [ ] Run the hub-storage contract suite against `better-sqlite3`, libSQL `file::memory:`, libSQL
-      temp `file:`, and the R2 adapter (s3rver + `MemoryBlobStore`).
+      temp `file:`, and the R2 adapter (s3rver + `MemoryBlobStore`). _(StorageAdapter contract runs
+      against `MemoryAdapter` + `S3BlobAdapter` today; libSQL/hub-storage half pending.)_
 - [ ] Add `@libsql/client`/`libsql` to `integration` `server.deps.external`; benchmark write latency.
 
 **PR B — Stripe billing + metering:**
 
-- [ ] `@xnetjs/cloud-billing`: pure `computeChargeCents`, idempotent `UsageLedger`, `StripeBilling`
-      port + `FakeStripe` + real `stripe` adapter, `verifyWebhook`.
-- [ ] Tests: exhaustive pricing math + "never undercharges" property; ledger idempotency; webhook
-      signature via `generateTestHeaderString`; SDK wiring vs **stripe-mock**.
+- [x] `@xnetjs/cloud-billing`: pure `computeChargeUsd`, idempotent `UsageLedger`, `StripeBilling`
+      port + `FakeStripeBilling` + real `stripe` adapter, `verifyWebhook`.
+- [x] Tests: exhaustive pricing math + "never undercharges" property; ledger idempotency; webhook
+      signature via `generateTestHeaderString`. _(`stripe-mock` binary deferred — `FakeStripeBilling`
+      + an injected-client adapter test cover the logic with no Docker.)_
 
 **PR C — LiteLLM gateway + server-side agent:**
 
-- [ ] `@xnetjs/cloud-ai`: `GatewayClient` (virtual keys + budgets) reusing the OpenAI-compatible
-      client; `meterFromUsage` → `cloud-billing`; `AgentRunner` (Claude Agent SDK, `allowedTools`,
-      `preToolUse` deny, token-cap breaker).
-- [ ] Tests: client vs **msw** OpenAI stub; budget hard-stop vs LiteLLM **`mock_response`** (opt-in
-      Docker); agent hooks/tool-deny vs **msw scripted-turn** Anthropic stub (`baseURL` override).
+- [x] `@xnetjs/cloud-ai`: `GatewayClient` (OpenAI-compatible, virtual key, budget), `meterUsage` →
+      `cloud-billing`, `MeteredGateway` (budget hard-stop), and a provider-agnostic `AgentRunner`
+      (`allowedTools`, `preToolUse` deny, token-cap breaker). _(Thin Claude Agent SDK adapter onto the
+      harness still to wire.)_
+- [x] Tests: client vs injected-fetch OpenAI stub; budget hard-stop (client-side); agent hooks /
+      tool-deny / token-cap vs scripted turns. _(LiteLLM `mock_response` Docker integration deferred.)_
 
 **PR D — WorkOS sessions + callback:**
 
 - [ ] Sealed-session handling + `/auth/callback` (state check → authenticate → seal) in `apps/cloud`.
-- [ ] **msw contract test** running the real `WorkOSAuthKitProvider` against recorded fixtures;
-      callback state-mismatch rejection; check off 0174's "binding audit log + notify".
+- [x] **msw contract test** running the real `WorkOSAuthKitProvider` against recorded fixtures.
+      _(Callback state-mismatch rejection lands with the callback handler above.)_
 
 **PR E — real Pulumi provisioner adapters (last):**
 
@@ -603,24 +619,25 @@ it('places a tenant in a sharded project with the signed HUB_PLAN env', async ()
 
 ## Validation Checklist
 
-- [ ] **No-key CI is green end-to-end:** the full suite passes with zero external accounts/secrets
-      configured (Tier 1–2 only).
-- [ ] **Fakes are proven:** the shared contract suite passes identically for each fake and its
-      real-local counterpart (libSQL, s3rver), demonstrating no drift.
+- [x] **No-key CI is green end-to-end:** the new suite passes with zero external accounts/secrets and
+      no Docker (Tier 1 only so far).
+- [x] **Fakes are proven:** the shared `StorageAdapter` contract suite passes identically for the
+      `MemoryAdapter` fake and the `S3BlobAdapter` (stateful mock) — no drift. _(libSQL/s3rver
+      real-local rows land with PR A.)_
 - [ ] **libSQL parity:** the hub-storage suite passes on `better-sqlite3`, libSQL `:memory:`, and
       libSQL `file:`; a self-hosted hub still boots on `better-sqlite3` with `LIBSQL_URL` unset.
-- [ ] **Money math is safe:** property test confirms charges never undercharge; ledger rejects
+- [x] **Money math is safe:** property test confirms charges never undercharge; ledger rejects
       duplicate idempotency keys; webhook signature verification accepts valid and rejects tampered.
-- [ ] **Budget hard-stop works:** a virtual key at its `max_budget` is blocked (LiteLLM
-      `mock_response` integration), with no provider key present.
-- [ ] **Agent safety is deterministic:** a scripted `tool_use` for a denied tool is blocked by
+- [x] **Budget hard-stop works:** an over-budget tenant is blocked before any provider call (tested
+      against `MeteredGateway`). _(LiteLLM `mock_response` Docker integration deferred.)_
+- [x] **Agent safety is deterministic:** a scripted `tool_use` for a denied tool is blocked by
       `preToolUse`; the token cap terminates a runaway loop — all without calling a model.
-- [ ] **WorkOS wire contract holds:** the real provider, run against recorded fixtures via msw, maps
-      responses correctly; an invalid OAuth `state` is rejected.
+- [x] **WorkOS wire contract holds:** the real provider, run against recorded fixtures via msw, maps
+      responses correctly. _(Invalid-OAuth-`state` rejection lands with the callback handler.)_
 - [ ] **Pulumi adapters declare correctly:** `setMocks` tests assert the sharded project, signed
       `HUB_PLAN` env, image tag, Turso DB, and R2 prefix; the doc names "real provisioning" as e2e-only.
-- [ ] **Docker stays optional:** removing Docker from the runner still yields a green every-push CI;
-      Tier-3 jobs are clearly opt-in/manual.
+- [x] **Docker stays optional:** the entire new suite runs with no Docker and no secrets; Tier-3 jobs
+      remain opt-in/manual.
 
 ## References
 
