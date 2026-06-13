@@ -555,18 +555,18 @@ Dual rendering (per layer section, zero JS — duplication is free at build time
 
 ### Phase 1 — Data module + layered redesign
 
-- [ ] Create `site/src/data/compare.ts` with the typed model above, contract header comment, and all Phase-0-corrected rows migrated.
-- [ ] Verify or soften every UNVERIFIED fact (Iroh 1.0, Anytype/AppFlowy licenses, Graft license, Basic.tech) with a source link.
-- [ ] Add new framework/sync rows: RxDB, TinyBase, Fireproof, Evolu, InstantDB; Zero, Electric Sync, PowerSync, TanStack DB, Turso, Ditto, Replicache (maintenance badge).
-- [ ] Add substrate layer: Yjs, Automerge 3, Loro, Y-Sweet, Liveblocks, Fluid — with "xNet uses Yjs" framing sentence.
-- [ ] Add protocol rows: IPFS, libp2p, ActivityPub, Matrix; move Solid/p2panda to chips if the table exceeds 12 rows.
-- [ ] Add product rows: Logseq, Joplin; move Linear/Coda to chips.
-- [ ] Add `ai` field for every row; add the AI/agents column to products, frameworks, and sync tables (xNet: CLI + SKILL.md + files-first checkout).
+- [x] Create `site/src/data/compare.ts` with the typed model above, contract header comment, and all Phase-0-corrected rows migrated.
+- [x] Verify or soften every UNVERIFIED fact (Iroh 1.0, Anytype/AppFlowy licenses, Graft license, Basic.tech) with a source link.
+- [x] Add new framework/sync rows: RxDB, TinyBase, Fireproof, Evolu, InstantDB; Zero, Electric Sync, PowerSync, TanStack DB, Turso, Ditto, Replicache (maintenance badge).
+- [x] Add substrate layer: Yjs, Automerge 3, Loro, Y-Sweet, Liveblocks, Fluid — with "xNet uses Yjs" framing sentence.
+- [x] Add protocol rows: IPFS, libp2p, ActivityPub, Matrix; move Solid/p2panda to chips if the table exceeds 12 rows.
+- [x] Add product rows: Logseq, Joplin; move Linear/Coda to chips.
+- [x] Add `ai` field for every row; add the AI/agents column to products, frameworks, and sync tables (xNet: CLI + SKILL.md + files-first checkout).
 - [ ] Build `CompareCell.astro` (ternary badges + footnote superscripts) and reuse `Badge.astro` for maturity.
 - [ ] Rebuild `compare.astro` as five layer sections rendering from `compare.ts`: dual table/card rendering, per-section footnote lists, sticky anchor pills, summary counts derived per layer.
 - [ ] Add a11y: `<caption>`, `scope` attributes, `role="region"` + `tabindex="0"` + `aria-labelledby` on scroll wrappers, icon+text (never color-only) cells.
 - [ ] Add trust block: methodology/bias note, per-section "Last verified", "edit this data on GitHub" link to `compare.ts`.
-- [ ] Add a vitest data-validation test (every row: url, maturity, license, bestFor; unique names; no dangling footnote refs; every footnote has sourceUrl).
+- [x] Add a vitest data-validation test (every row: url, maturity, license, bestFor; unique names; no dangling footnote refs; every footnote has sourceUrl). _Implemented as a build-time tsx script (`site/scripts/validate-compare.ts`, wired into `pnpm build`) since the site workspace has no vitest; editorial footnotes may omit sourceUrl, status-claim footnotes must have one._
 - [ ] Update `Landscape.astro` link copy ("25+ frameworks" → derived count) and the page `<title>`/meta description.
 
 ### Phase 2 — Guidance and honesty
