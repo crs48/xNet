@@ -56,9 +56,19 @@ describe('LitestreamController', () => {
   })
 
   it('returns timeout if Litestream does not exit within the grace period', async () => {
-    const { controller } = harness()
-    controller.start()
-    expect(await controller.drain(5)).toBe('timeout') // never emits exit
+    // Fake timers so the grace-period setTimeout fires deterministically instead
+    // of racing real wall-clock — under the loaded coverage run a real 5ms timer
+    // can starve past vitest's 10s test timeout and flake (CI reliability).
+    vi.useFakeTimers()
+    try {
+      const { controller } = harness()
+      controller.start()
+      const drain = controller.drain(5) // never emits exit
+      await vi.advanceTimersByTimeAsync(5) // fire the grace timer
+      expect(await drain).toBe('timeout')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('reports not-running before start, and drained if it already exited', async () => {
