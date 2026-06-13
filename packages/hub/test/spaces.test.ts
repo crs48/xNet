@@ -74,7 +74,9 @@ describe('space container-grant resolution', () => {
     await storage.setNodeContainer('nodeB', 'project1')
     await storage.setNodeContainer('project1', 'team1')
     await storage.setNodeContainer('team1', 'org1')
-    await storage.upsertGrantIndex(grant('did:key:dave', 'org1', ['read', 'comment', 'write', 'admin']))
+    await storage.upsertGrantIndex(
+      grant('did:key:dave', 'org1', ['read', 'comment', 'write', 'admin'])
+    )
 
     expect(await svc.getStatusForNode('did:key:dave', 'nodeB')).toBe('write')
     expect(await svc.canAccessNode('did:key:dave', 'nodeB')).toBe(true)
