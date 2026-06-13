@@ -23,9 +23,11 @@ import {
 import {
   checkBrowserSupport,
   checkPersistentStorage,
+  isSilentPersistRequestSafe,
   isSQLiteCorruptionError,
   requestPersistentStorage,
   showUnsupportedBrowserMessage,
+  watchPersistentStoragePermission,
   SCHEMA_VERSION,
   SCHEMA_DDL
 } from '@xnetjs/sqlite'
@@ -41,6 +43,8 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { identityManager } from './lib/identity'
+import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
+import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -66,8 +70,6 @@ type SharedHubSession = {
   token: string
   exp: number
 }
-
-type BrowserFamily = 'chromium' | 'firefox' | 'safari' | 'other'
 
 type BeforeInstallPromptUserChoice = {
   outcome: 'accepted' | 'dismissed'
@@ -135,24 +137,6 @@ function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | 
   }
 }
 
-function detectBrowserFamily(): BrowserFamily {
-  if (typeof navigator === 'undefined') {
-    return 'other'
-  }
-
-  const userAgent = navigator.userAgent
-  const isChromium =
-    /Chrome|Chromium|Edg|OPR/i.test(userAgent) &&
-    !/Firefox|FxiOS|Safari\/.*Version/i.test(userAgent)
-  const isFirefox = /Firefox|FxiOS/i.test(userAgent)
-  const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(userAgent)
-
-  if (isChromium) return 'chromium'
-  if (isFirefox) return 'firefox'
-  if (isSafari) return 'safari'
-  return 'other'
-}
-
 function isStandaloneWebApp(): boolean {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return false
@@ -162,62 +146,6 @@ function isStandaloneWebApp(): boolean {
     window.matchMedia?.('(display-mode: standalone)').matches === true ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   )
-}
-
-function getStorageRecoveryItems(input: {
-  browserFamily: BrowserFamily
-  installAvailable: boolean
-  isInstalled: boolean
-  storageStatus: PersistentStorageStatus
-}): string[] {
-  const { browserFamily, installAvailable, isInstalled, storageStatus } = input
-
-  if (storageStatus.state !== 'not-granted') {
-    return []
-  }
-
-  const common = storageStatus.requested
-    ? ['Browsers do not expose an override after they decline this request.']
-    : ['Browsers decide durable-storage requests from install and engagement signals.']
-  const localhostHint =
-    typeof window !== 'undefined' && window.location.hostname === 'localhost'
-      ? [
-          'Localhost can be stricter than a real HTTPS app origin for install and engagement heuristics.'
-        ]
-      : []
-
-  if (browserFamily === 'safari') {
-    return [
-      ...common,
-      'Safari usually needs xNet installed first. On macOS, use Share > Add to Dock, open xNet from the Dock, then retry.',
-      'On iPhone or iPad, use Share > Add to Home Screen, open xNet from the Home Screen, then retry.',
-      ...localhostHint
-    ]
-  }
-
-  if (browserFamily === 'chromium') {
-    return [
-      ...common,
-      installAvailable && !isInstalled
-        ? 'Install xNet with the Install app button, open the installed app, then retry durable storage.'
-        : 'If install is unavailable, use the browser install icon or bookmark xNet, keep using it, then retry.',
-      ...localhostHint
-    ]
-  }
-
-  if (browserFamily === 'firefox') {
-    return [
-      ...common,
-      'Firefox may show a persistent-storage permission prompt. Allow it if prompted, then retry.',
-      ...localhostHint
-    ]
-  }
-
-  return [
-    ...common,
-    'Install or bookmark xNet, keep using it from the same browser profile, then retry durable storage.',
-    ...localhostHint
-  ]
 }
 
 function useWebInstallPrompt(): {
@@ -344,21 +272,6 @@ function resolveWebRuntime(storage: StorageContext): XNetRuntimeConfig {
   }
 }
 
-type StorageBannerTone = 'success' | 'warning' | 'info'
-
-type StorageBannerDescriptor = {
-  tone: StorageBannerTone
-  title: string
-  message: string
-  usageBytes?: number
-  quotaBytes?: number
-  actionLabel?: string
-  actionPendingLabel?: string
-  secondaryActionLabel?: string
-  secondaryActionPendingLabel?: string
-  detailItems?: string[]
-}
-
 function updateAppStorageStatus(
   current: AppState,
   storageStatus: PersistentStorageStatus
@@ -370,94 +283,6 @@ function updateAppStorageStatus(
       return { ...current, storageStatus }
     default:
       return current
-  }
-}
-
-function getStorageBanner(input: {
-  storageWarning?: string
-  storageStatus?: PersistentStorageStatus
-  browserFamily: BrowserFamily
-  installAvailable: boolean
-  isInstalled: boolean
-}): StorageBannerDescriptor | null {
-  const { browserFamily, installAvailable, isInstalled, storageWarning, storageStatus } = input
-  const detailItems = storageStatus
-    ? getStorageRecoveryItems({ browserFamily, installAvailable, isInstalled, storageStatus })
-    : []
-
-  if (storageWarning) {
-    return {
-      tone: storageStatus?.state === 'granted' ? 'info' : 'warning',
-      title: 'Storage may be limited',
-      message:
-        storageStatus && storageStatus.state !== 'granted'
-          ? `${storageWarning} ${storageStatus.message}`
-          : storageWarning,
-      usageBytes: storageStatus?.usageBytes,
-      quotaBytes: storageStatus?.quotaBytes,
-      ...(storageStatus?.requestable
-        ? {
-            actionLabel: 'Enable durable storage',
-            actionPendingLabel: 'Requesting storage'
-          }
-        : {}),
-      ...(detailItems.length > 0 ? { detailItems } : {}),
-      ...(installAvailable && !isInstalled && storageStatus?.state === 'not-granted'
-        ? {
-            secondaryActionLabel: 'Install app',
-            secondaryActionPendingLabel: 'Opening install'
-          }
-        : {})
-    }
-  }
-
-  if (!storageStatus) {
-    return null
-  }
-
-  switch (storageStatus.state) {
-    case 'granted':
-      return {
-        tone: 'success',
-        title: 'Durable local storage enabled',
-        message: storageStatus.message,
-        usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes
-      }
-    case 'not-granted':
-      return {
-        tone: 'warning',
-        title: storageStatus.requested
-          ? 'Browser declined durable storage'
-          : 'Enable durable local storage',
-        message: storageStatus.message,
-        usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes,
-        ...(storageStatus.requestable
-          ? {
-              actionLabel: storageStatus.requested
-                ? 'Retry durable storage'
-                : 'Enable durable storage',
-              actionPendingLabel: 'Requesting storage'
-            }
-          : {}),
-        ...(detailItems.length > 0 ? { detailItems } : {}),
-        ...(installAvailable && !isInstalled
-          ? {
-              secondaryActionLabel: 'Install app',
-              secondaryActionPendingLabel: 'Opening install'
-            }
-          : {})
-      }
-    case 'unsupported':
-    case 'error':
-      return {
-        tone: 'info',
-        title: 'Storage durability unavailable',
-        message: storageStatus.message,
-        usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes
-      }
   }
 }
 
@@ -507,7 +332,15 @@ export function App(): JSX.Element {
         }
 
         const storageWarning = support.warning
-        const storageStatus = await checkPersistentStorage()
+        // Chromium/WebKit decide persist() silently and re-evaluate it on
+        // every call, so requesting at startup is free — returning users
+        // flip to granted once engagement/install/notification signals
+        // land. Firefox would show a modal prompt here, so it stays
+        // read-only until the user clicks the banner action (0172).
+        const storageStatus = isSilentPersistRequestSafe()
+          ? await requestPersistentStorage()
+          : await checkPersistentStorage()
+        recordDurabilityTransition('startup', storageStatus)
 
         // Dynamically import the web proxy to enable code splitting
         const { WebSQLiteProxy } = await import('@xnetjs/sqlite/web-proxy')
@@ -638,6 +471,27 @@ export function App(): JSX.Element {
     }
   }, [])
 
+  // A persistent-storage grant can land mid-session (notification opt-in,
+  // install, engagement crossing Chrome's threshold). Watching the
+  // permission is free — it never spends or triggers a request (0172).
+  useEffect(() => {
+    return watchPersistentStoragePermission((state) => {
+      if (state !== 'granted') return
+      void checkPersistentStorage().then((storageStatus) => {
+        recordDurabilityTransition('permission-change', storageStatus)
+        setAppState((current) => updateAppStorageStatus(current, storageStatus))
+      })
+    })
+  }, [])
+
+  // Statuses produced outside App's own handlers (the desktop-alerts
+  // opt-in chains a persist() request after a notification grant).
+  useEffect(() => {
+    return subscribeStorageStatus((storageStatus) => {
+      setAppState((current) => updateAppStorageStatus(current, storageStatus))
+    })
+  }, [])
+
   useEffect(() => {
     return subscribeXNetStorageCorruption((error) => {
       const storage = storageRef.current
@@ -666,6 +520,7 @@ export function App(): JSX.Element {
 
     try {
       const storageStatus = await requestPersistentStorage()
+      recordDurabilityTransition('banner', storageStatus)
       setAppState((current) => updateAppStorageStatus(current, storageStatus))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
@@ -692,7 +547,10 @@ export function App(): JSX.Element {
       const userChoice = await promptInstall()
 
       if (userChoice?.outcome === 'accepted') {
-        const storageStatus = await checkPersistentStorage()
+        // Installing makes the grant available but the browser does not
+        // flip persisted() on its own — request, don't just check (0172).
+        const storageStatus = await requestPersistentStorage()
+        recordDurabilityTransition('install', storageStatus)
         setAppState((current) => updateAppStorageStatus(current, storageStatus))
       }
     } finally {
