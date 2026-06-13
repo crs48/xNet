@@ -1091,6 +1091,9 @@ importers:
       '@xnetjs/abuse':
         specifier: workspace:*
         version: link:../abuse
+      '@xnetjs/cloud-plans':
+        specifier: workspace:*
+        version: link:../cloud-plans
       '@xnetjs/core':
         specifier: workspace:*
         version: link:../core

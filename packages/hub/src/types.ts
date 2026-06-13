@@ -82,7 +82,7 @@ export type HubConfig = {
   crawl?: CrawlConfig
   /** Runtime metadata (platform info, region). */
   runtime?: {
-    platform?: 'railway' | 'fly' | 'local' | 'unknown'
+    platform?: 'railway' | 'fly' | 'cloud-run' | 'fargate' | 'local' | 'unknown'
     region?: string
     machineId?: string
   }
