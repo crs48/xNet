@@ -48,6 +48,17 @@ export type HubConfig = {
   hubDid?: string
   /** Public hub URL for peer discovery (optional). */
   publicUrl?: string
+  /**
+   * Web app base URL the share interstitial falls back to. A trailing `#`
+   * marks a hash-routed deployment (default: https://xnet.fyi/app/#).
+   */
+  appUrl?: string
+  /** Apple team-prefixed app id for Universal Links (TEAMID.bundle.id). */
+  appleAppId?: string
+  /** Android package name for App Links. */
+  androidPackage?: string
+  /** Android signing cert SHA-256 fingerprints for App Links. */
+  androidCertSha256?: string[]
   /** Peer discovery TTL in ms (default: 7 days). */
   discoveryStaleTtlMs: number
   /** Peer discovery cleanup interval in ms (default: 6 hours). */

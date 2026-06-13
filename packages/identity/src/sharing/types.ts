@@ -69,6 +69,28 @@ export type ShareData = {
   h?: string
 }
 
+// ─── Link Delegation (B2 of exploration 0169) ────────────────
+
+export type ShareLinkDelegation = {
+  /** Owner-signed UCAN delegating the resource to the link's DID. */
+  token: string
+
+  /** The link's DID (audience of the token). */
+  linkDid: string
+
+  /** Resource URI the delegation covers. */
+  resource: string
+
+  /** Permission level delegated to the link. */
+  permission: SharePermission
+
+  /** Owner DID that signed the delegation. */
+  issuer: string
+
+  /** When the delegation expires (ms since epoch). */
+  expiresAt: number
+}
+
 // ─── Revocation ──────────────────────────────────────────────
 
 export type Revocation = {

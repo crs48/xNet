@@ -55,6 +55,32 @@ function parseSharePayloadFromDeepLink(rawUrl: string): string | null {
       return handle
     }
 
+    // Durable share link form: xnet://share?link=<id>&hub=<url>#s=<secret>.
+    // Forward the validated URL verbatim; the renderer parses + claims it.
+    const linkId = parsed.searchParams.get('link')
+    if (linkId) {
+      if (rawUrl.length > 2048 || !/^[A-Za-z0-9_-]{8,64}$/.test(linkId)) {
+        return null
+      }
+      const hub = parsed.searchParams.get('hub')
+      if (!hub || hub.length > 512) {
+        return null
+      }
+      try {
+        const hubUrl = new URL(hub)
+        if (!['http:', 'https:', 'ws:', 'wss:'].includes(hubUrl.protocol)) {
+          return null
+        }
+      } catch {
+        return null
+      }
+      const secret = new URLSearchParams(parsed.hash.replace(/^#/, '')).get('s') ?? ''
+      if (secret && !/^[A-Za-z0-9_-]{8,256}$/.test(secret)) {
+        return null
+      }
+      return rawUrl
+    }
+
     const payload = parsed.searchParams.get('payload')
     if (!payload) {
       return null

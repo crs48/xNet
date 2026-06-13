@@ -113,6 +113,13 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
       ? { compatibility: { allowUnsignedReplication: true } }
       : cliOptions.sync,
     publicUrl: process.env.HUB_PUBLIC_URL ?? cliOptions.publicUrl,
+    appUrl: process.env.HUB_APP_URL ?? cliOptions.appUrl,
+    appleAppId: process.env.HUB_APPLE_APP_ID ?? cliOptions.appleAppId,
+    androidPackage: process.env.HUB_ANDROID_PACKAGE ?? cliOptions.androidPackage,
+    androidCertSha256:
+      process.env.HUB_ANDROID_CERT_SHA256?.split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean) ?? cliOptions.androidCertSha256,
     runtime,
     shutdownGraceMs,
     demo,
