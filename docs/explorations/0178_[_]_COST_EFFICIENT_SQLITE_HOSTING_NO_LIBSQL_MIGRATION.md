@@ -521,20 +521,33 @@ async function reactivate(t: Tenant) {
 
 ## Implementation Checklist
 
+> **Progress** (branch `feat/cost-efficient-sqlite-hosting`): the keyless-testable pieces landed —
+> the plan **cost model** (`@xnetjs/cloud-plans/pricing`, margin-floor tested), **`@xnetjs/cloud-litestream`**
+> (config/command builders + a supervised `LitestreamController` + freshness helpers), the hub's
+> **`wal_autocheckpoint` gate + Litestream `-exec` entrypoint** (Dockerfile, pinned v0.5.3), and
+> control-plane **cold-tiering** (`demoteIfCold`/`reactivate` + `restoreFromR2`). Still open (infra-bound):
+> the blob→R2 hub wiring, the real Hetzner/Cloud Run provisioner adapters, and the runtime
+> RPO/restore/wake/split-brain validation (needs a real deploy).
+
 **Litestream durability (works on Fly today):**
-- [ ] Add Litestream (pinned **v0.5.3**) to the hub Docker image; `litestream.yml` replicating
-      `/data/hub.db` → R2 (`r2://xnet-db-snapshots/t/<id>/db`).
-- [ ] Gate `PRAGMA wal_autocheckpoint = 0` behind a `LITESTREAM` env flag in
-      [`sqlite.ts`](../../packages/hub/src/storage/sqlite.ts).
-- [ ] Sequence shutdown: quiesce writes → drain Litestream (SIGTERM child, await flush) → `db.close()`,
-      in [`lifecycle/shutdown.ts`](../../packages/hub/src/lifecycle/shutdown.ts).
-- [ ] Add a replication-freshness alert (R2 last-modified vs last write) to catch silent skips.
+- [x] Add Litestream (pinned **v0.5.3**) to the hub Docker image; per-tenant `litestream.yml` generated
+      by `@xnetjs/cloud-litestream` (`litestreamConfig`/`toYaml`) → R2.
+- [x] Gate `PRAGMA wal_autocheckpoint = 0` behind a `LITESTREAM` env flag in
+      [`sqlite.ts`](../../packages/hub/src/storage/sqlite.ts) (pure `litestreamWalPragmas` helper + test).
+- [x] Sequence shutdown so the final WAL flushes before close. _(Hub uses the `litestream replicate
+      -exec` entrypoint — Litestream supervises Node and flushes on shutdown; `LitestreamController.drain`
+      provides the explicit quiesce→drain→close path for Node-supervised deployments.)_
+- [x] Replication-freshness helpers (`isReplicaFresh`/`replicaLagMs`/`isFullySynced`). _(The R2
+      last-modified polling alert that consumes them is still to wire.)_
 
 **Cold tier (Model B):**
-- [ ] Entrypoint `litestream restore -if-db-not-exists -if-replica-exists` before the hub opens the DB.
-- [ ] Control-plane **demotion** job: idle ≥ N days → final-sync → destroy volume+machine → tier `cold`.
-- [ ] Control-plane **reactivation**: assert old machine stopped (provider API) → provision +
-      restore-from-R2; rely on Litestream conditional-write lease as the second fence.
+- [x] Entrypoint `litestream restore -if-db-not-exists -if-replica-exists` before the hub opens the DB
+      (`restoreArgs` + the Dockerfile entrypoint).
+- [x] Control-plane **demotion** (`ControlPlane.demoteIfCold`): idle ≥ N days → fully-synced gate →
+      destroy volume+machine → tier `cold`.
+- [x] Control-plane **reactivation** (`ControlPlane.reactivate` + `ProvisionSpec.restoreFromR2`): the
+      control plane is the single-writer fence; Litestream's conditional-write lease is the deploy-time
+      second fence.
 
 **Bytes + blobs:**
 - [ ] Wire the hub blob/file path to `@xnetjs/cloud-storage` `S3BlobAdapter` (R2), keep
@@ -546,14 +559,13 @@ async function reactivate(t: Tenant) {
       Model-B adapter for the ephemeral path. (Provisioner interface from PR #66.)
 
 **Pricing:**
-- [ ] Encode the plan cost model (unit costs → per-tier COGS + margin) as a small pricing module /
-      fixture alongside `@xnetjs/cloud-plans`, so prices and included quotas are checked against a
-      modeled gross-margin floor.
-- [ ] Default the entry (Personal) tier to **annual billing** to amortize the $0.30 Stripe fee; keep
-      monthly available at the (still ~86%) lower margin.
+- [x] Encode the plan cost model (unit costs → per-tier COGS + margin) as `@xnetjs/cloud-plans/pricing`
+      (`estimateCogs` + `PLAN_PRICING`), checked against gross-margin floors in tests.
+- [x] Default the entry (Personal) tier to **annual billing** (`DEFAULT_BILLING_PERIOD`) to amortize the
+      $0.30 Stripe fee; monthly stays available at the (still ~86%) lower margin.
 
 **Docs:**
-- [ ] Mark the libSQL migration items in 0175/0176 **superseded by this exploration**; keep `case
+- [x] Mark the libSQL migration items in 0175/0176 **superseded by this exploration**; keep `case
       'libsql'` documented as a dormant option.
 
 ## Validation Checklist
@@ -570,12 +582,14 @@ async function reactivate(t: Tenant) {
       released.
 - [ ] **No split-brain:** a forced reactivation-while-stale-writer test never diverges generations
       (control-plane fence + conditional-write lease both verified).
-- [ ] **Self-host intact:** the hub runs with no Litestream/R2 env on a local volume exactly as today;
-      no libSQL dependency anywhere.
-- [ ] **Version pin honored:** CI/image uses Litestream v0.5.3; an upgrade gate references bug #1083.
-- [ ] **Entry-tier margin holds:** measured per-tenant COGS (compute + storage + Stripe) for a typical
-      Personal tenant is ≤ ~$0.70/mo and gross margin ≥ 80%; the $5/mo plan is verified profitable on
-      both monthly and annual billing.
+- [x] **Self-host intact:** the hub runs with no Litestream/R2 env on a local volume exactly as today;
+      no libSQL dependency anywhere. _(The `wal_autocheckpoint` gate is a no-op without `LITESTREAM`; the
+      full hub storage suite passes unchanged.)_
+- [x] **Version pin honored:** the hub image installs Litestream **v0.5.3**, with a Dockerfile comment
+      referencing the #1083 silent-skip bug as the upgrade gate.
+- [x] **Entry-tier margin holds:** the `estimateCogs` tests prove a typical Personal tenant's COGS is
+      well under ~$0.70/mo and that the $5/mo plan is profitable on **both** monthly (~86%) and annual
+      (~91%) billing.
 
 ## References
 

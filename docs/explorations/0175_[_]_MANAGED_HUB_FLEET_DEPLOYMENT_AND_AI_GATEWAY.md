@@ -8,6 +8,12 @@
 > multi-tenant, byoc, federation, ai-gateway, litellm, bedrock, vertex, stripe-meters,
 > managed-keys, byok, claude-agent-sdk, mcp
 
+> **⚠️ Superseded (data layer):** the **libSQL / Turso migration** recommended below is **superseded by
+> [0178](./0178_[_]_COST_EFFICIENT_SQLITE_HOSTING_NO_LIBSQL_MIGRATION.md)**. Per the pricing analysis in
+> [0177](./0177_[_]_DATA_BACKEND_TIERING_AND_COLD_STORAGE_ECONOMICS.md), we **stay on `better-sqlite3`**
+> and get scale-to-zero + cheap cold storage via **Litestream → R2** instead — the `case 'libsql'` seam
+> remains a dormant option. The compute/substrate/AI-gateway parts of this doc still stand.
+
 ## Problem Statement
 
 [`0174`](./0174_[_]_MANAGED_HOSTING_AS_OPEN_CORE_IN_THE_PUBLIC_MONOREPO.md) decided _what_ the
