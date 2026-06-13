@@ -79,8 +79,10 @@ export type {
 export {
   checkBrowserSupport,
   checkPersistentStorage,
+  isSilentPersistRequestSafe,
   requestPersistentStorage,
-  showUnsupportedBrowserMessage
+  showUnsupportedBrowserMessage,
+  watchPersistentStoragePermission
 } from './browser-support'
 export type {
   BrowserSupport,

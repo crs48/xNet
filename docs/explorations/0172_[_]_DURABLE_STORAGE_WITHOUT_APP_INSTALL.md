@@ -14,8 +14,8 @@ Explorations [0154](0154_[_]_SQLITE_OPFS_DURABLE_STORAGE_BROWSER_CONSISTENCY.md)
 - ✅ **Chrome's four grant signals are concrete:** installed PWA, **notification permission granted**, site-engagement score ≥ MEDIUM (15 of 100 points; a site can accrue up to 15/day), or bookmarked (only while among the user's top-5 engaged bookmarks). Any one suffices. There is no prompt, no `chrome://settings` toggle, and no flag a user can flip.
 - ✅ **The strongest no-install lever for Chrome is notification permission.** xNet already has a notification inbox (0167/0168) with no OS-level delivery. A contextual "enable desktop notifications" opt-in is a legitimate feature whose grant flips `persist()` to `true` immediately.
 - ✅ **The cheapest lever is silent auto-retry.** `persist()` shows no prompt in Chrome or Safari, so xNet can re-request on every startup (gated off for Firefox, which prompts). Returning users cross the engagement threshold within days and silently flip to granted.
-- ⚠️ **Safari is the hard case, and `persist()` is not even the real problem there.** Safari's only documented grant heuristic is "opened as a Home Screen Web App," and — per open WebKit bug #209563 — even a *granted* persist does **not** exempt data from ITP's 7-day script-writable-storage deletion. Only Home Screen/Dock install does. In-tab Safari durability is capped by ITP no matter what the API returns.
-- ⚠️ **The requirement as stated is not fully satisfiable.** No web API forces durable storage on an arbitrary HTTPS site in Chrome or Safari; that is deliberate browser policy. What *is* achievable: make the grant near-automatic for returning Chrome users, make the Safari story honest (install or sync), and make real durability come from hub sync/export rather than a browser flag.
+- ⚠️ **Safari is the hard case, and `persist()` is not even the real problem there.** Safari's only documented grant heuristic is "opened as a Home Screen Web App," and — per open WebKit bug #209563 — even a _granted_ persist does **not** exempt data from ITP's 7-day script-writable-storage deletion. Only Home Screen/Dock install does. In-tab Safari durability is capped by ITP no matter what the API returns.
+- ⚠️ **The requirement as stated is not fully satisfiable.** No web API forces durable storage on an arbitrary HTTPS site in Chrome or Safari; that is deliberate browser policy. What _is_ achievable: make the grant near-automatic for returning Chrome users, make the Safari story honest (install or sync), and make real durability come from hub sync/export rather than a browser flag.
 
 ## Current State In The Repository
 
@@ -30,7 +30,7 @@ Explorations [0154](0154_[_]_SQLITE_OPFS_DURABLE_STORAGE_BROWSER_CONSISTENCY.md)
 - [apps/web/src/App.tsx:494](../../apps/web/src/App.tsx) — startup runs `checkPersistentStorage()` once and stores the status on app state. Nothing re-checks later in the session.
 - [apps/web/src/App.tsx:648](../../apps/web/src/App.tsx) — `handleRequestPersistentStorage()` backs the banner's **Enable/Retry durable storage** button (a user gesture, so Firefox's prompt works).
 - [apps/web/src/App.tsx:151](../../apps/web/src/App.tsx) — `getStorageRecoveryItems()` emits per-browser recovery tips. The Chromium copy says "Browsers do not expose an override after they decline this request," which conflates "no settings UI" (true) with "retry is futile" (false on Chrome).
-- [apps/web/src/App.tsx:207](../../apps/web/src/App.tsx) — `useWebInstallPrompt()` captures `beforeinstallprompt` and powers the **Install app** secondary action; after an accepted install it re-runs `checkPersistentStorage()` (read-only — see findings; it should *request*).
+- [apps/web/src/App.tsx:207](../../apps/web/src/App.tsx) — `useWebInstallPrompt()` captures `beforeinstallprompt` and powers the **Install app** secondary action; after an accepted install it re-runs `checkPersistentStorage()` (read-only — see findings; it should _request_).
 - [apps/web/vite.config.ts:41](../../apps/web/vite.config.ts) — `VitePWA` with manifest (`display: standalone`, scope/start_url from `VITE_BASE_PATH`) and a Workbox service worker, so the app is installable on Chrome and Safari.
 
 ### Notifications: in-app only
@@ -45,28 +45,28 @@ The production app lives at `https://xnet.fyi/app/`. Chrome's site-engagement sc
 
 ### Chrome / Chromium
 
-| Question | Answer | Source |
-| --- | --- | --- |
-| Prompt? | Never. Silent grant/deny. | [web.dev/articles/persistent-storage](https://web.dev/articles/persistent-storage) |
-| Grant signals | Installed PWA; notification permission `ALLOW`; site engagement ≥ MEDIUM (15/100, max accrual 15/day); bookmarked while in top-5 bookmarks by engagement | Chromium `important_sites_util.cc`, `site_engagement_score.cc` |
-| Denial sticky? | No. Re-evaluated fresh every call; no cooldown, no embargo | web.dev, MDN `StorageManager.persist()` |
-| User override? | None. No site-settings toggle, no flag | [blog.desgrange.net (Oct 2025)](https://blog.desgrange.net/post/2025/10/06/how-persistent-storage-permission-chrome.html) |
-| Permissions API | `navigator.permissions.query({name:'persistent-storage'})` is free; returns only `granted` or `prompt` (never `denied`) | [chromestatus.com/feature/4770049554382848](https://chromestatus.com/feature/4770049554382848) |
-| Eviction without persist | LRU per-origin wipe, only under storage pressure (~80% disk full). Rare in practice. "Clear browsing data" deletes regardless of persist | [MDN: Storage quotas and eviction criteria](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria) |
-| Notification lever still valid in 2025/26? | Yes, but Chrome began auto-revoking notification permission for low-engagement, high-volume sites (Oct 2025) — the lever is real but should be backed by genuine notification use | [blog.chromium.org (Oct 2025)](https://blog.chromium.org/2025/10/automatic-notification-permission.html) |
+| Question                                   | Answer                                                                                                                                                                            | Source                                                                                                                                         |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prompt?                                    | Never. Silent grant/deny.                                                                                                                                                         | [web.dev/articles/persistent-storage](https://web.dev/articles/persistent-storage)                                                             |
+| Grant signals                              | Installed PWA; notification permission `ALLOW`; site engagement ≥ MEDIUM (15/100, max accrual 15/day); bookmarked while in top-5 bookmarks by engagement                          | Chromium `important_sites_util.cc`, `site_engagement_score.cc`                                                                                 |
+| Denial sticky?                             | No. Re-evaluated fresh every call; no cooldown, no embargo                                                                                                                        | web.dev, MDN `StorageManager.persist()`                                                                                                        |
+| User override?                             | None. No site-settings toggle, no flag                                                                                                                                            | [blog.desgrange.net (Oct 2025)](https://blog.desgrange.net/post/2025/10/06/how-persistent-storage-permission-chrome.html)                      |
+| Permissions API                            | `navigator.permissions.query({name:'persistent-storage'})` is free; returns only `granted` or `prompt` (never `denied`)                                                           | [chromestatus.com/feature/4770049554382848](https://chromestatus.com/feature/4770049554382848)                                                 |
+| Eviction without persist                   | LRU per-origin wipe, only under storage pressure (~80% disk full). Rare in practice. "Clear browsing data" deletes regardless of persist                                          | [MDN: Storage quotas and eviction criteria](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria) |
+| Notification lever still valid in 2025/26? | Yes, but Chrome began auto-revoking notification permission for low-engagement, high-volume sites (Oct 2025) — the lever is real but should be backed by genuine notification use | [blog.chromium.org (Oct 2025)](https://blog.chromium.org/2025/10/automatic-notification-permission.html)                                       |
 
 One cautionary data point: a 2025 write-up ([desgrange.net](https://blog.desgrange.net/post/2025/10/06/how-persistent-storage-permission-chrome.html)) reported bookmarking and even installing did not flip the grant in their low-engagement test profile. Thresholds are not contractual; treat signals as probabilistic and stack them.
 
 ### Safari / WebKit
 
-| Question | Answer | Source |
-| --- | --- | --- |
-| `persist()` support | Since Safari 15.2; "fully supported" in 17.0. No prompt ever | [webkit.org/blog/14403](https://webkit.org/blog/14403/updates-to-storage-policy/) |
-| Grant heuristic | Only documented signal: "whether the website is opened as a Home Screen Web App" (Dock app on macOS counts) | webkit.org/blog/14403 |
-| ITP 7-day cap | All script-writable storage (IndexedDB, localStorage, service-worker caches; OPFS is script-writable and presumed included) is deleted after 7 days of Safari use without interacting with the site | [webkit.org/blog/10218](https://webkit.org/blog/10218/full-third-party-cookie-blocking-and-more/), [webkit.org/tracking-prevention](https://webkit.org/tracking-prevention/) |
-| Does `persist()` exempt from ITP? | **No.** Open WebKit bug confirms persisted data is still deleted by ITP | [bugs.webkit.org #209563](https://bugs.webkit.org/show_bug.cgi?id=209563) |
-| Does install exempt from ITP? | **Yes.** "The first-party domain of home screen web applications is exempt from ITP's 7-day cap." Dock apps on macOS have the same exemption | webkit.org/tracking-prevention |
-| Quota | Up to 60% of disk per origin in Safari 17+ (1 GB OPFS cap removed); same quota installed or not. No OPFS in private browsing | webkit.org/blog/14403 |
+| Question                          | Answer                                                                                                                                                                                              | Source                                                                                                                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `persist()` support               | Since Safari 15.2; "fully supported" in 17.0. No prompt ever                                                                                                                                        | [webkit.org/blog/14403](https://webkit.org/blog/14403/updates-to-storage-policy/)                                                                                            |
+| Grant heuristic                   | Only documented signal: "whether the website is opened as a Home Screen Web App" (Dock app on macOS counts)                                                                                         | webkit.org/blog/14403                                                                                                                                                        |
+| ITP 7-day cap                     | All script-writable storage (IndexedDB, localStorage, service-worker caches; OPFS is script-writable and presumed included) is deleted after 7 days of Safari use without interacting with the site | [webkit.org/blog/10218](https://webkit.org/blog/10218/full-third-party-cookie-blocking-and-more/), [webkit.org/tracking-prevention](https://webkit.org/tracking-prevention/) |
+| Does `persist()` exempt from ITP? | **No.** Open WebKit bug confirms persisted data is still deleted by ITP                                                                                                                             | [bugs.webkit.org #209563](https://bugs.webkit.org/show_bug.cgi?id=209563)                                                                                                    |
+| Does install exempt from ITP?     | **Yes.** "The first-party domain of home screen web applications is exempt from ITP's 7-day cap." Dock apps on macOS have the same exemption                                                        | webkit.org/tracking-prevention                                                                                                                                               |
+| Quota                             | Up to 60% of disk per origin in Safari 17+ (1 GB OPFS cap removed); same quota installed or not. No OPFS in private browsing                                                                        | webkit.org/blog/14403                                                                                                                                                        |
 
 ### Firefox
 
@@ -74,7 +74,7 @@ Firefox 55+ shows a real doorhanger ("Allow this site to store data in persisten
 
 ### Spec position (WHATWG Storage Standard)
 
-The spec explicitly permits UAs to grant/deny `persist()` by heuristic without UI. Best-effort buckets are evicted LRU under storage pressure; persistent buckets must never be auto-evicted (the UA must ask the user). Safari's ITP deletion is a privacy mechanism layered *on top of* the storage spec — which is why it can delete even "persistent" data. The Storage Buckets API (Chrome 122+, Chromium-only) adds per-bucket persistence hints but goes through the same permission gate; it is not a bypass.
+The spec explicitly permits UAs to grant/deny `persist()` by heuristic without UI. Best-effort buckets are evicted LRU under storage pressure; persistent buckets must never be auto-evicted (the UA must ask the user). Safari's ITP deletion is a privacy mechanism layered _on top of_ the storage spec — which is why it can delete even "persistent" data. The Storage Buckets API (Chrome 122+, Chromium-only) adds per-bucket persistence hints but goes through the same permission gate; it is not a bypass.
 
 ## Key Findings
 
@@ -96,12 +96,12 @@ flowchart TD
 
 From a plain HTTPS tab, xNet can influence three of the four:
 
-| Signal | xNet lever | Cost | Reliability |
-| --- | --- | --- | --- |
-| Notification permission | Contextual desktop-notifications opt-in (real feature: inbox 0167/0168) | One native prompt, user-initiated | High, immediate |
-| Site engagement | Silent `persist()` auto-retry every startup; engagement accrues with normal use (MEDIUM ≈ 1–2 days of active use) | Zero — no prompt in Chrome/Safari | High for returning users, zero for first-visit |
-| Bookmark | Copy suggestion only (cannot detect or trigger) | Zero | Low/unverifiable |
-| Installed PWA | Existing Install app button | User action | High but explicitly out of scope for this requirement |
+| Signal                  | xNet lever                                                                                                        | Cost                              | Reliability                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------- |
+| Notification permission | Contextual desktop-notifications opt-in (real feature: inbox 0167/0168)                                           | One native prompt, user-initiated | High, immediate                                       |
+| Site engagement         | Silent `persist()` auto-retry every startup; engagement accrues with normal use (MEDIUM ≈ 1–2 days of active use) | Zero — no prompt in Chrome/Safari | High for returning users, zero for first-visit        |
+| Bookmark                | Copy suggestion only (cannot detect or trigger)                                                                   | Zero                              | Low/unverifiable                                      |
+| Installed PWA           | Existing Install app button                                                                                       | User action                       | High but explicitly out of scope for this requirement |
 
 ### 2. The current code burns its best free lever
 
@@ -127,15 +127,15 @@ stateDiagram-v2
 Two consequences for the banner:
 
 - Telling Safari users to "retry" in a tab sells false hope; the only documented grant signal is the install context.
-- Even if WebKit someday grants `persist()` in-tab, bug #209563 shows ITP deletes persisted data anyway. The honest Safari message is: *use xNet at least weekly, keep sync/export on, or install for full protection*.
+- Even if WebKit someday grants `persist()` in-tab, bug #209563 shows ITP deletes persisted data anyway. The honest Safari message is: _use xNet at least weekly, keep sync/export on, or install for full protection_.
 
 ### 4. The risk model differs per browser, but the banner doesn't
 
-Chrome best-effort data is evicted only under genuine disk pressure (LRU, ~80% disk full) — rare; the screenshot's "21 MB used of 10 GB available" origin is at negligible eviction risk today. Safari best-effort data has a *date-certain* deletion trigger (7 days of non-use). One warning banner with identical severity for both overstates Chrome risk and understates Safari risk.
+Chrome best-effort data is evicted only under genuine disk pressure (LRU, ~80% disk full) — rare; the screenshot's "21 MB used of 10 GB available" origin is at negligible eviction risk today. Safari best-effort data has a _date-certain_ deletion trigger (7 days of non-use). One warning banner with identical severity for both overstates Chrome risk and understates Safari risk.
 
 ### 5. The post-install re-check is read-only — a near-miss bug
 
-`handleInstallApp()` ([App.tsx:672](../../apps/web/src/App.tsx)) re-runs `checkPersistentStorage()` after an accepted install. Installing makes the grant *available*, but Chrome doesn't flip `persisted()` to true on its own — the app must call `persist()` again. The post-install path should call `requestPersistentStorage()` (request mode), ideally after the user opens the installed window.
+`handleInstallApp()` ([App.tsx:672](../../apps/web/src/App.tsx)) re-runs `checkPersistentStorage()` after an accepted install. Installing makes the grant _available_, but Chrome doesn't flip `persisted()` to true on its own — the app must call `persist()` again. The post-install path should call `requestPersistentStorage()` (request mode), ideally after the user opens the installed window.
 
 ## Options And Tradeoffs
 
@@ -181,8 +181,8 @@ Double down on 0154's tier model: hub sync and snapshot export make browser evic
 Stack A + B + C (they are independent and complementary), keep D as the standing durability story:
 
 1. **Auto-request on startup for Chromium/WebKit** (Option A) — one-line policy change at the `checkPersistentStorage()` call site plus a `browserFamily` parameter; keep Firefox read-only at startup.
-2. **Ship OS notification delivery with a contextual opt-in** (Option B), and chain a `persist()` re-request onto the grant. This is the only lever that can flip a low-engagement Chrome profile *today* without install.
-3. **Fix the messaging** (Option C): per-browser copy, correct the "no override" line for Chrome (retry *does* re-evaluate), tell Safari users the truth about the 7-day cap, and switch the Chrome banner to a quieter informational tone while not granted.
+2. **Ship OS notification delivery with a contextual opt-in** (Option B), and chain a `persist()` re-request onto the grant. This is the only lever that can flip a low-engagement Chrome profile _today_ without install.
+3. **Fix the messaging** (Option C): per-browser copy, correct the "no override" line for Chrome (retry _does_ re-evaluate), tell Safari users the truth about the 7-day cap, and switch the Chrome banner to a quieter informational tone while not granted.
 4. **Post-install path requests instead of checks** (fixes Finding 5).
 5. Optionally watch `navigator.permissions.query({ name: 'persistent-storage' })` with its `change` event to update the banner live when a grant lands mid-session.
 
@@ -225,9 +225,7 @@ Browser-aware startup request in [App.tsx](../../apps/web/src/App.tsx):
 // fresh on each call, so requesting at startup is free. Firefox shows a
 // modal prompt, so it stays read-only until the user clicks the banner.
 const storageStatus =
-  browserFamily === 'firefox'
-    ? await checkPersistentStorage()
-    : await requestPersistentStorage()
+  browserFamily === 'firefox' ? await checkPersistentStorage() : await requestPersistentStorage()
 ```
 
 Notification opt-in chaining into persistence (new, e.g. `apps/web/src/comms/notification-permission.ts`):
@@ -263,7 +261,7 @@ status.addEventListener('change', () => {
 
 ## Implementation Checklist
 
-- [ ] `packages/sqlite/src/browser-support.ts`: accept a `silentRequestSafe` (or `browserFamily`) hint so callers can express "request at startup is free here"; keep API backward-compatible.
+- [x] `packages/sqlite/src/browser-support.ts`: accept a `silentRequestSafe` (or `browserFamily`) hint so callers can express "request at startup is free here"; keep API backward-compatible. _(Shipped as exported `isSilentPersistRequestSafe()` + `watchPersistentStoragePermission()` helpers.)_
 - [ ] `apps/web/src/App.tsx`: startup calls `requestPersistentStorage()` for Chromium/WebKit, `checkPersistentStorage()` for Firefox/unknown.
 - [ ] `apps/web/src/App.tsx` `handleInstallApp()`: after accepted install, call `requestPersistentStorage()` (request mode) instead of the read-only check.
 - [ ] Add `navigator.permissions.query({name:'persistent-storage'})` + `change` listener to refresh banner state mid-session (feature-detected; Chromium-only is fine).
