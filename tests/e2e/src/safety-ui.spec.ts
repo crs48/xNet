@@ -62,6 +62,16 @@ test.describe('Discovery + safety UI (0176)', () => {
     await expect(page.getByRole('heading', { name: /Safety center/i })).toBeVisible()
   })
 
+  test('the Requests inbox is reachable from the Rail (first-contact)', async ({ page }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+
+    const requests = page.locator('nav button[aria-label="Requests"]')
+    await expect(requests).toBeVisible()
+    await requests.click()
+    await expect(page.getByRole('heading', { name: /Message requests/i })).toBeVisible()
+  })
+
   test('the /welcome onboarding wizard runs through its steps', async ({ page }) => {
     await setupTestAuth(page)
     await advanceOnboarding(page)
