@@ -108,6 +108,23 @@ describe('messages', () => {
     await expect(sendMessage(memoryStore(), { channelId: 'c', content: '   ' })).rejects.toThrow()
   })
 
+  it('sendMessage passes composer-declared links through, omitting empty lists', async () => {
+    const store = memoryStore()
+    const linked = (await sendMessage(store, {
+      channelId: 'chan-1',
+      content: 'see [[Launch Plan]]',
+      links: ['node-1', 'node-2']
+    })) as Record<string, unknown>
+    expect(linked.links).toEqual(['node-1', 'node-2'])
+
+    const plain = (await sendMessage(store, {
+      channelId: 'chan-1',
+      content: 'no links',
+      links: []
+    })) as Record<string, unknown>
+    expect(plain.links ?? []).toHaveLength(0)
+  })
+
   it('editMessage marks edited; redactMessage tombstones', async () => {
     const store = memoryStore()
     const message = (await sendMessage(store, {

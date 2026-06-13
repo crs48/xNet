@@ -46,6 +46,8 @@ export interface SendMessageInput {
   mentions?: MessageMentions
   /** Tag node ids declared by the composer's #hashtag picks (0169) */
   tags?: string[]
+  /** Node ids declared by the composer's [[ link picks (0170) */
+  links?: string[]
   inReplyTo?: string
 }
 
@@ -90,6 +92,7 @@ export async function sendMessage(store: ChatStore, input: SendMessageInput): Pr
     content,
     mentions: normalizeMentions(input.mentions),
     tags: input.tags?.length ? input.tags : undefined,
+    links: input.links?.length ? input.links : undefined,
     inReplyTo: input.inReplyTo
   })
 }

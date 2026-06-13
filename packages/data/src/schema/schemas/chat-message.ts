@@ -48,6 +48,9 @@ export const ChatMessageSchema = defineSchema({
     /** Workspace-wide labels from inline #hashtag pills (exploration 0169) */
     tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true }),
 
+    /** Node ids from the composer's [[ link picks (exploration 0170) */
+    links: relation({ multiple: true }),
+
     createdAt: created(),
     createdBy: createdBy()
   },

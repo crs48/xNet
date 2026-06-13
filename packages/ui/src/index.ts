@@ -245,11 +245,13 @@ export {
 export {
   CommentBubble,
   CommentPopover,
+  MentionTextArea,
   useCommentPopover,
   OrphanedThreadList,
   ThreadPicker,
   type CommentBubbleProps,
   type CommentPopoverProps,
+  type MentionTextAreaProps,
   type CommentData,
   type CommentThreadData,
   type PopoverState,

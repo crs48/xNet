@@ -1,9 +1,8 @@
 import { Extension } from '@tiptap/core'
 import { PluginKey } from '@tiptap/pm/state'
-import { ReactRenderer } from '@tiptap/react'
 import Suggestion from '@tiptap/suggestion'
-import tippy, { type Instance, type Props as TippyProps } from 'tippy.js'
-import { SlashMenu, type SlashMenuRef } from '../../components/SlashMenu'
+import { SlashMenu } from '../../components/SlashMenu'
+import { createSuggestionPopupRender } from '../suggestion-popup'
 import { filterCommands, type SlashCommandItem } from './items'
 
 export const slashCommandPluginKey = new PluginKey('slashCommand')
@@ -79,73 +78,7 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
           props.command({ editor, range })
         },
 
-        render: () => {
-          let component: ReactRenderer<SlashMenuRef> | null = null
-          let popup: Instance<TippyProps>[] | null = null
-
-          return {
-            onStart: (props: any) => {
-              component = new ReactRenderer(SlashMenu, {
-                props: {
-                  items: props.items,
-                  command: (item: SlashCommandItem) => props.command(item)
-                },
-                editor: props.editor
-              })
-
-              if (!props.clientRect) return
-
-              popup = tippy('body', {
-                getReferenceClientRect: props.clientRect as () => DOMRect,
-                appendTo: () => document.body,
-                content: component.element,
-                showOnCreate: true,
-                interactive: true,
-                trigger: 'manual',
-                placement: 'bottom-start',
-                theme: 'slash-menu',
-                maxWidth: 'none',
-                popperOptions: {
-                  modifiers: [
-                    { name: 'flip', enabled: true },
-                    { name: 'preventOverflow', enabled: true }
-                  ]
-                }
-              })
-            },
-
-            onUpdate(props: any) {
-              if (!component) return
-
-              component.updateProps({
-                items: props.items,
-                command: (item: SlashCommandItem) => props.command(item)
-              })
-
-              if (props.clientRect && popup?.[0]) {
-                popup[0].setProps({
-                  getReferenceClientRect: props.clientRect as () => DOMRect
-                })
-              }
-            },
-
-            onKeyDown(props: any) {
-              if (props.event.key === 'Escape') {
-                popup?.[0]?.hide()
-                return true
-              }
-
-              return component?.ref?.onKeyDown(props.event) ?? false
-            },
-
-            onExit() {
-              popup?.[0]?.destroy()
-              component?.destroy()
-              popup = null
-              component = null
-            }
-          }
-        }
+        render: createSuggestionPopupRender<SlashCommandItem>(SlashMenu)
       })
     ]
   }

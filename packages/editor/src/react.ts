@@ -173,6 +173,9 @@ export {
 } from './utils/mentions'
 export { extractTagIds, tagsFromDoc } from './utils/hashtags'
 export type { HashtagSuggestion } from './extensions/hashtag'
+export type { WikilinkTarget } from './extensions/wikilink-suggestion'
+export { CREATE_WIKILINK_ID } from './extensions/wikilink-suggestion'
+export { serializeWikilink } from './extensions'
 export type {
   TaskViewConfig,
   TaskViewEmbedType,

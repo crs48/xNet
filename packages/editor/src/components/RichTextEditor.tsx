@@ -8,7 +8,8 @@ import type {
   TaskMentionSuggestion,
   TaskViewConfig,
   TaskViewEmbedType,
-  HashtagSuggestion
+  HashtagSuggestion,
+  WikilinkTarget
 } from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
 import type { EditorState } from '@tiptap/pm/state'
@@ -51,6 +52,7 @@ import {
   TaskMentionExtension,
   TaskDueDateExtension,
   HashtagExtension,
+  WikilinkSuggestionExtension,
   ensurePageTaskAttrs,
   getPageTasksSnapshot
 } from '../extensions'
@@ -339,6 +341,17 @@ export interface RichTextEditorProps {
    */
   normalizeHashtagName?: (raw: string) => string
   /**
+   * Linkable workspace nodes offered by the `[[` typeahead (0170),
+   * most-relevant first. Empty disables the suggestion popup's results
+   * (manual `[[title]]` input rules still work).
+   */
+  linkTargets?: WikilinkTarget[]
+  /**
+   * Create a page for an unmatched `[[` query; resolve null to abort.
+   * When omitted, the typeahead offers existing nodes only.
+   */
+  onCreateLinkTarget?: (title: string) => Promise<WikilinkTarget | null>
+  /**
    * Structured-tags handler: called with the deduped Tag node ids of
    * every hashtag pill whenever the set changes (0169).
    */
@@ -433,6 +446,8 @@ export function RichTextEditor({
   hashtagSuggestions = [],
   onCreateHashtag,
   normalizeHashtagName,
+  linkTargets = [],
+  onCreateLinkTarget,
   onTagsChange,
   onPageTasksChange,
   onCreateComment
@@ -443,6 +458,8 @@ export function RichTextEditor({
   const mentionSuggestionsRef = useRef<TaskMentionSuggestion[]>(mentionSuggestions)
   const hashtagSuggestionsRef = useRef<HashtagSuggestion[]>(hashtagSuggestions)
   const onCreateHashtagRef = useRef(onCreateHashtag)
+  const linkTargetsRef = useRef<WikilinkTarget[]>(linkTargets)
+  const onCreateLinkTargetRef = useRef(onCreateLinkTarget)
   const notifiedReadyEditorRef = useRef<Editor | null>(null)
   const [sourceValue, setSourceValue] = useState('')
 
@@ -460,6 +477,11 @@ export function RichTextEditor({
     hashtagSuggestionsRef.current = hashtagSuggestions
     onCreateHashtagRef.current = onCreateHashtag
   }, [hashtagSuggestions, onCreateHashtag])
+
+  useEffect(() => {
+    linkTargetsRef.current = linkTargets
+    onCreateLinkTargetRef.current = onCreateLinkTarget
+  }, [linkTargets, onCreateLinkTarget])
 
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -518,6 +540,16 @@ export function RichTextEditor({
     }),
     Wikilink.configure({
       onNavigate: onNavigate || (() => {})
+    }),
+    // `[[` typeahead over linkable workspace nodes (0170)
+    WikilinkSuggestionExtension.configure({
+      getTargets: () => linkTargetsRef.current,
+      ...(onCreateLinkTarget
+        ? {
+            onCreateTarget: (title: string) =>
+              onCreateLinkTargetRef.current?.(title) ?? Promise.resolve(null)
+          }
+        : {})
     }),
     // Obsidian-style inline syntax preview
     LivePreview.configure({

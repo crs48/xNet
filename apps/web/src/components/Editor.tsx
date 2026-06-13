@@ -17,7 +17,8 @@ import {
   type PageTaskSnapshot,
   type TaskMentionSuggestion,
   type TaskViewConfig,
-  type TaskViewEmbedType
+  type TaskViewEmbedType,
+  type WikilinkTarget
 } from '@xnetjs/editor/react'
 import { TaskCollectionEmbed } from '@xnetjs/react'
 
@@ -38,6 +39,10 @@ interface Props {
   hashtagSuggestions?: HashtagSuggestion[]
   /** Create a Tag node for a new hashtag name */
   onCreateHashtag?: (name: string) => Promise<HashtagSuggestion | null>
+  /** Linkable workspace nodes offered by the `[[` typeahead (0170) */
+  linkTargets?: WikilinkTarget[]
+  /** Create a page for an unmatched `[[` query */
+  onCreateLinkTarget?: (title: string) => Promise<WikilinkTarget | null>
   /** Structured tags write-through: pill ids whenever the set changes */
   onTagsChange?: (tagIds: string[]) => void
   /** Callback for page-backed task snapshots */
@@ -62,6 +67,8 @@ export function Editor({
   mentionSuggestions,
   hashtagSuggestions,
   onCreateHashtag,
+  linkTargets,
+  onCreateLinkTarget,
   onTagsChange,
   onPageTasksChange,
   pageId,
@@ -94,6 +101,8 @@ export function Editor({
       hashtagSuggestions={hashtagSuggestions}
       onCreateHashtag={onCreateHashtag}
       normalizeHashtagName={normalizeTagName}
+      linkTargets={linkTargets}
+      onCreateLinkTarget={onCreateLinkTarget}
       onTagsChange={onTagsChange}
       onPageTasksChange={onPageTasksChange}
       taskViewPageId={pageId ?? null}
