@@ -280,6 +280,79 @@ export function evaluateLabelerSubscriptionLimit(
   }
 }
 
+/**
+ * A persisted policy subscription, normalized to the fields the runtime trust
+ * setting needs. The app maps a `PolicySubscription` node onto this shape so
+ * this adapter stays decoupled from the data schema.
+ */
+export type PolicySubscriptionTrustInput = {
+  labelerDID: string
+  /** Persisted policy scope (user/workspace/community/hub/…). */
+  scope?: string
+  /** Trust weight in [0, 1] (the schema's `trust`). */
+  trust: number
+  enabled?: boolean
+  minConfidence?: number
+  allowedLabels?: readonly string[]
+  deniedLabels?: readonly string[]
+  maxLabelsPerSubject?: number
+  expiresAt?: number
+}
+
+/** Map a persisted subscription's trust weight to a coarse trust level. */
+function trustLevelFromWeight(weight: number, enabled: boolean): LabelerTrustLevel {
+  if (!enabled || weight <= 0) return 'blocked'
+  if (weight >= 0.75) return 'trusted'
+  if (weight >= 0.4) return 'review'
+  return 'observe'
+}
+
+/** Only `hub` maps to the hub runtime scope; everything else is workspace-local. */
+function runtimeScope(scope: string | undefined): LabelerTrustScope {
+  return scope === 'hub' ? 'hub' : 'workspace'
+}
+
+/**
+ * Project a persisted policy subscription onto a runtime `LabelerTrustSetting`
+ * — the seam between stored subscriptions and `evaluateLabelerTrust`. Disabled
+ * or zero-trust subscriptions become `blocked` so they reject rather than
+ * silently accept.
+ */
+export function subscriptionToTrustSetting(
+  sub: PolicySubscriptionTrustInput,
+  scopeId: string
+): LabelerTrustSetting {
+  const enabled = sub.enabled !== false
+  const weight = clamp01(sub.trust)
+  return {
+    scope: runtimeScope(sub.scope),
+    scopeId,
+    labelerDID: sub.labelerDID,
+    level: trustLevelFromWeight(weight, enabled),
+    weight,
+    minConfidence: sub.minConfidence ?? 0.5,
+    allowedLabels: sub.allowedLabels,
+    deniedLabels: sub.deniedLabels,
+    maxLabelsPerSubject: sub.maxLabelsPerSubject,
+    expiresAt: sub.expiresAt
+  }
+}
+
+/**
+ * Project many subscriptions, dropping ones that are expired at `now`. Disabled
+ * subscriptions are kept (mapped to `blocked`) so they explicitly suppress a
+ * labeler rather than falling through to `unconfigured`.
+ */
+export function subscriptionsToTrustSettings(
+  subs: readonly PolicySubscriptionTrustInput[],
+  scopeId: string,
+  now = Date.now()
+): LabelerTrustSetting[] {
+  return subs
+    .filter((sub) => sub.expiresAt === undefined || sub.expiresAt > now)
+    .map((sub) => subscriptionToTrustSetting(sub, scopeId))
+}
+
 // ─── Helpers ───────────────────────────────────────────────
 
 function selectLabelerTrustSetting(

@@ -41,13 +41,19 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icons/*.png', '**/*.wasm'],
+      includeAssets: [
+        'favicon.svg',
+        'favicon.ico',
+        'apple-touch-icon.png',
+        'icons/*.png',
+        '**/*.wasm'
+      ],
       manifest: {
         name: 'xNet',
         short_name: 'xNet',
         description: 'Local-first data platform',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
         start_url: basePath,
         scope: basePath,

@@ -7,31 +7,31 @@
  * can DM or open the profile without leaving the thread you're in.
  */
 import { useNavigate } from '@tanstack/react-router'
-import { ensureDmChannel } from '@xnetjs/comms'
-import { useDataBridge } from '@xnetjs/react/internal'
 import { DIDAvatar, Popover } from '@xnetjs/ui'
 import { MessageCircle, UserRound } from 'lucide-react'
-import { useCallback, type ReactElement } from 'react'
+import { useCallback, useState, type ReactElement } from 'react'
 import { displayName, mentionLabel } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
+import { useDmOpen } from '../hooks/useDmOpen'
 import { navigateToNode } from '../workbench/navigation'
 import { PersonActions } from './PersonActions'
 
 /** The popover body: identity + the two actions. */
 function PersonCard({ did }: { did: string }) {
   const navigate = useNavigate()
-  const bridge = useDataBridge()
   const profiles = useProfiles()
   const { me } = useComms()
+  const { openDm } = useDmOpen()
+  const [requested, setRequested] = useState(false)
   const isSelf = did === me.did
   const name = displayName(did, profiles)
 
   const message = useCallback(async () => {
-    if (!bridge || isSelf) return
-    const { channelId } = await ensureDmChannel(bridge, [me.did, did])
-    navigateToNode(navigate, 'channel', channelId)
-  }, [bridge, isSelf, me.did, did, navigate])
+    if (isSelf) return
+    const result = await openDm(did)
+    if ('requested' in result) setRequested(true)
+  }, [isSelf, did, openDm])
 
   return (
     <div className="flex flex-col gap-3">
@@ -50,10 +50,11 @@ function PersonCard({ did }: { did: string }) {
           <button
             type="button"
             onClick={() => void message()}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-2 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2"
+            disabled={requested}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-2 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:opacity-60"
           >
             <MessageCircle size={13} strokeWidth={1.5} />
-            Message
+            {requested ? 'Request sent' : 'Message'}
           </button>
         )}
         <button

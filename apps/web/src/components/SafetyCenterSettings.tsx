@@ -7,7 +7,10 @@
  */
 import { AbuseReportSchema, ModerationLabelSchema, ProfileSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
+import { useState } from 'react'
 import { useBlockList, type BlockState } from '../lib/block-list'
+import { importBlocklist } from '../lib/blocklist-import'
+import { useLabelerSubscriptions } from '../lib/labeler-subscriptions'
 
 type Row = Record<string, unknown>
 
@@ -21,8 +24,167 @@ const STATE_LABEL: Record<BlockState, string> = {
   restricted: 'Restricted'
 }
 
+function SharedBlocklistImport({
+  onImport
+}: {
+  onImport: (blocks: readonly { did: string; state: BlockState }[]) => void
+}) {
+  const [text, setText] = useState('')
+  const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null)
+
+  const handleImport = () => {
+    const result = importBlocklist(text)
+    if (!result.ok) {
+      setFeedback({ ok: false, message: result.error })
+      return
+    }
+    onImport(result.blocks)
+    const issuer = result.list.issuerDID.slice(0, 16)
+    setFeedback({
+      ok: true,
+      message: `Imported ${result.blocks.length} account(s) from ${issuer}….`
+    })
+    setText('')
+  }
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-medium">Shared blocklists</h3>
+      <p className="text-xs text-muted-foreground">
+        Paste a signed community blocklist to apply its blocks and mutes to your own view. The
+        signature is verified before anything is applied — nothing here is sent anywhere.
+      </p>
+      <textarea
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value)
+          setFeedback(null)
+        }}
+        placeholder='{"list": …, "signature": …}'
+        rows={4}
+        aria-label="Signed blocklist JSON"
+        className="w-full resize-y rounded-md border border-border bg-transparent px-3 py-2 font-mono text-xs"
+      />
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleImport}
+          disabled={text.trim().length === 0}
+          className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent/50 disabled:opacity-40"
+        >
+          Verify &amp; import
+        </button>
+        {feedback && (
+          <span className={`text-xs ${feedback.ok ? 'text-emerald-600' : 'text-destructive'}`}>
+            {feedback.message}
+          </span>
+        )}
+      </div>
+    </section>
+  )
+}
+
+const TRUST_OPTIONS: { label: string; value: number }[] = [
+  { label: 'Observe (weak)', value: 0.3 },
+  { label: 'Review (medium)', value: 0.6 },
+  { label: 'Trusted (strong)', value: 0.9 }
+]
+
+function trustLabel(trust: number): string {
+  if (trust >= 0.75) return 'Trusted'
+  if (trust >= 0.4) return 'Review'
+  return 'Observe'
+}
+
+function SubscribedLabelers() {
+  const { subscriptions, subscribe, setEnabled, unsubscribe } = useLabelerSubscriptions()
+  const [did, setDid] = useState('')
+  const [trust, setTrust] = useState(TRUST_OPTIONS[1].value)
+
+  const handleSubscribe = () => {
+    void subscribe(did, trust)
+    setDid('')
+  }
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-medium">Subscribed labelers</h3>
+      <p className="text-xs text-muted-foreground">
+        Trust a moderation labeler by its DID. Its labels count toward your filters at the weight
+        you choose — and only yours. Disable a labeler to stop applying it without forgetting it.
+      </p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={did}
+          onChange={(e) => setDid(e.target.value)}
+          placeholder="did:key:… (labeler)"
+          aria-label="Labeler DID"
+          className="min-w-0 flex-1 rounded-md border border-border bg-transparent px-3 py-1.5 font-mono text-xs"
+        />
+        <select
+          value={trust}
+          onChange={(e) => setTrust(Number(e.target.value))}
+          aria-label="Trust level"
+          className="rounded-md border border-border bg-transparent px-2 py-1.5 text-xs"
+        >
+          {TRUST_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={handleSubscribe}
+          disabled={did.trim().length === 0}
+          className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent/50 disabled:opacity-40"
+        >
+          Subscribe
+        </button>
+      </div>
+
+      {subscriptions.length === 0 ? (
+        <p className="text-xs text-muted-foreground">You haven't subscribed to any labelers.</p>
+      ) : (
+        <ul className="space-y-1">
+          {subscriptions.map((sub) => (
+            <li
+              key={sub.id}
+              className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
+            >
+              <div className="min-w-0">
+                <div className="truncate font-mono text-xs">{sub.labelerDID}</div>
+                <div className="text-xs text-muted-foreground">
+                  {sub.enabled ? trustLabel(sub.trust) : 'Disabled'}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void setEnabled(sub.id, !sub.enabled)}
+                  className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50"
+                >
+                  {sub.enabled ? 'Disable' : 'Enable'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void unsubscribe(sub.id)}
+                  className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50"
+                >
+                  Remove
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 export function SafetyCenterSettings() {
-  const { list, unblock } = useBlockList()
+  const { list, unblock, importMany } = useBlockList()
   const { authorDID } = useXNet()
   const me = authorDID ?? ''
   const { data: profiles } = useQuery(ProfileSchema, {})
@@ -82,6 +244,10 @@ export function SafetyCenterSettings() {
           </ul>
         )}
       </section>
+
+      <SharedBlocklistImport onImport={importMany} />
+
+      <SubscribedLabelers />
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium">Your reports</h3>
