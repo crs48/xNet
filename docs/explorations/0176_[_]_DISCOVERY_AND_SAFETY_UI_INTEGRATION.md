@@ -520,6 +520,17 @@ type InboxReason = 'mention' | 'dm' | 'assigned' | 'reply' | 'comment'
 
 ## Implementation Checklist
 
+> **Validation note (build-out):** the web app now renders in the worktree
+> preview via the test-bypass recipe ([[worktree-app-live-render-recipe]]), and a
+> full-app Playwright spec (`tests/e2e/src/safety-ui.spec.ts`, wired into CI)
+> drives Discover, the Content & Safety settings, and onboarding. The build-out
+> also added a **received-waves** surface on `/discover` (the receiving half of
+> the double opt-in), a **per-message report** menu, and made the chat filter
+> chip actionable. Remaining unchecked items below are the genuinely larger
+> efforts: the data-workspace gate (needs a `packages/views` media render-prop),
+> notifier-driven request inbox, subscribable blocklists/labeler marketplace,
+> BlurHash previews, and mobile/electron parity.
+
 ### Phase 1 — Wire the orphans + a front door (highest leverage)
 - [x] Add a `Discover` entry to the Rail ([Rail.tsx](apps/web/src/workbench/Rail.tsx)) + a `nav.discover` command (`g m`) in [WorkspaceCommands.tsx](apps/web/src/components/WorkspaceCommands.tsx).
 - [x] Introduce shared `ModeratedMedia` / `ModeratedPost` wrappers over `ModeratedNode`.
@@ -566,7 +577,7 @@ type InboxReason = 'mention' | 'dm' | 'assigned' | 'reply' | 'comment'
       `ModerationLabel`; the label immediately affects the author's own render.
 - [x] Onboarding sets sensitivity defaults + an optional discoverable profile and
       is fully skippable; nothing is discoverable without explicit opt-in.
-- [ ] The filter indicator shows a non-zero count when items are filtered and
+- [x] The filter indicator shows a non-zero count when items are filtered and
       opens a log that attributes each to self/dial/labeler (never "policy").
 - [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, and `fallow audit` green across
       `apps/web`, `@xnetjs/ui`, and touched packages.
