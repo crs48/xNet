@@ -450,7 +450,8 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 
 - [ ] Port the dial, `PersonActions`, discover, onboarding, render gate to **electron** (`apps/electron/src/renderer/`).
 - [ ] Port the core safety dial + discover to **expo** (React Native; its own effort).
-- [ ] Contextual command-palette safety actions (per-focused person/post); page-editor self-label; appeals UX on `appeals.ts`; a "why was this filtered?" explainer.
+- [x] A "why was this filtered?" explainer — `explainSensitivityVisibility` (`@xnetjs/abuse`) → `filterReasons` (web) → a "Why?" disclosure on the `SensitiveContent` veil (which label, and whose choice: your dial / adult-content switch / unsolicited-media rule / a platform decision).
+- [ ] Contextual command-palette safety actions (per-focused person/post); page-editor self-label; appeals UX on `appeals.ts`.
 
 ### Parallel legal track — W5 (CSAM) — **gates W6 public media**
 

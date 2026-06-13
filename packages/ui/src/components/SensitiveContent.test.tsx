@@ -71,6 +71,37 @@ describe('SensitiveContent', () => {
     expect(screen.getByRole('button').textContent).toContain('via did:key:zAB…')
   })
 
+  it('shows a "Why?" disclosure with reasons on the warn banner', () => {
+    render(
+      <SensitiveContent
+        visibility="warn"
+        labels={['porn']}
+        reasons={['Explicit / pornographic: flagged by your content & safety dial']}
+      >
+        <p>warned</p>
+      </SensitiveContent>
+    )
+    expect(screen.getByText('Why?')).toBeTruthy()
+    expect(
+      screen.getByText('Explicit / pornographic: flagged by your content & safety dial')
+    ).toBeTruthy()
+  })
+
+  it('shows a "Why?" disclosure on the blur veil and omits it when no reasons', () => {
+    const { rerender } = render(
+      <SensitiveContent visibility="blur" labels={['porn']} reasons={['Hidden by your dial']}>
+        <p>nsfw</p>
+      </SensitiveContent>
+    )
+    expect(screen.getByText('Why?')).toBeTruthy()
+    rerender(
+      <SensitiveContent visibility="blur" labels={['porn']}>
+        <p>nsfw</p>
+      </SensitiveContent>
+    )
+    expect(screen.queryByText('Why?')).toBeNull()
+  })
+
   it('labelText maps known labels and falls back gracefully', () => {
     expect(labelText(['porn', 'graphic-media'])).toBe('Explicit content, Graphic media')
     expect(labelText([])).toBe('Sensitive content')
