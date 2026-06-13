@@ -84,10 +84,21 @@ describe('known-bad hash matching (CSAM-style)', () => {
 describe('nsfw image classifier adapter', () => {
   it('maps model categories to the sensitivity vocabulary', () => {
     expect(mapNsfwLabelToSensitivity('Porn')).toBe('porn')
+    expect(mapNsfwLabelToSensitivity('explicit')).toBe('porn')
     expect(mapNsfwLabelToSensitivity('sexy')).toBe('sexual')
+    expect(mapNsfwLabelToSensitivity('suggestive')).toBe('sexual')
     expect(mapNsfwLabelToSensitivity('hentai')).toBe('porn')
+    expect(mapNsfwLabelToSensitivity('nude')).toBe('nudity')
+    expect(mapNsfwLabelToSensitivity('nudity')).toBe('nudity')
+    expect(mapNsfwLabelToSensitivity('gore')).toBe('graphic-media')
+    expect(mapNsfwLabelToSensitivity('violence')).toBe('graphic-media')
+    expect(mapNsfwLabelToSensitivity('graphic-media')).toBe('graphic-media')
     expect(mapNsfwLabelToSensitivity('neutral')).toBeNull()
+    expect(mapNsfwLabelToSensitivity('normal')).toBeNull()
     expect(mapNsfwLabelToSensitivity('drawing')).toBeNull()
+    expect(mapNsfwLabelToSensitivity('safe')).toBeNull()
+    expect(mapNsfwLabelToSensitivity('sexual')).toBe('sexual')
+    expect(mapNsfwLabelToSensitivity('totally-unknown')).toBeNull()
   })
 
   it('emits ml sensitivity labels above the threshold and ignores safe categories', async () => {

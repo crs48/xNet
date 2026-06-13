@@ -11,6 +11,7 @@ import {
   friendsOfFriends,
   graphProximity,
   isMutualPair,
+  jaccard,
   mmrRerank,
   rankInterestTags,
   reciprocalScore,
@@ -96,6 +97,14 @@ describe('graph proximity', () => {
     )
     expect(onlyCarol).toBeGreaterThan(onlyDave)
     expect(graphProximity(adjacency, 'alice', 'bob')).toBeGreaterThan(0)
+  })
+
+  it('computes the Jaccard coefficient of two neighbourhoods', () => {
+    // alice∩bob neighbours = {carol, dave}; union = {carol, dave}
+    expect(jaccard(adjacency, 'alice', 'bob')).toBeCloseTo(2 / 2)
+    // alice~{carol,dave}, eve~{dave}: share dave, union {carol,dave}
+    expect(jaccard(adjacency, 'alice', 'eve')).toBeCloseTo(1 / 2)
+    expect(jaccard(adjacency, 'nobody', 'noone')).toBe(0)
   })
 
   it('surfaces friends-of-friends with the bridging connections', () => {

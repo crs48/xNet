@@ -82,70 +82,103 @@ function reachAllowed(candidate: IntentReach, max: IntentReach): boolean {
   return REACH_RANK[candidate] <= REACH_RANK[max]
 }
 
-/** Rank and explain matches for an intent. Pure. */
-export function rankMatches(input: MatchmakerInput): MatchResult[] {
-  const maxReach = input.reach ?? 'public'
-  const minProximity = input.minProximity ?? 0.6
-  const myVec = input.me.affinityVector ? decodeVector(input.me.affinityVector) : []
-  const myInterests = input.me.interests ?? []
+type ScoringContext = {
+  meDid: string
+  myVec: number[]
+  myInterests: readonly string[]
+  myGeohash?: string
+  adjacency?: Adjacency
+  maxReach: IntentReach
+  inPerson: boolean
+  minProximity: number
+  weights?: MatchWeights
+}
 
-  // De-dupe by DID, preferring a local candidate over a hub one.
+type ScoredEntry = { item: MatchResult; vector: number[] }
+
+/** De-dupe candidates by DID, preferring a local candidate over a hub one. */
+function dedupeCandidates(
+  candidates: readonly CandidateProfile[],
+  meDid: string
+): CandidateProfile[] {
   const byDid = new Map<string, CandidateProfile>()
-  for (const candidate of input.candidates) {
-    if (candidate.did === input.me.did) continue
+  for (const candidate of candidates) {
+    if (candidate.did === meDid) continue
     const existing = byDid.get(candidate.did)
     if (!existing || (existing.source === 'hub' && candidate.source === 'local')) {
       byDid.set(candidate.did, candidate)
     }
   }
+  return [...byDid.values()]
+}
 
-  const scored: { item: MatchResult; vector: number[] }[] = []
+/** Apply reach + (for in-person intents) geohash proximity gating. */
+function gateCandidate(
+  candidate: CandidateProfile,
+  ctx: ScoringContext
+): { ok: boolean; proximity: number | null } {
+  if (!reachAllowed(candidate.reach, ctx.maxReach)) return { ok: false, proximity: null }
+  if (!ctx.inPerson) return { ok: true, proximity: null }
+  if (!candidate.geohashCell || !ctx.myGeohash) return { ok: false, proximity: null }
+  const proximity = geohashProximity(
+    coarsenGeohash(ctx.myGeohash, 5),
+    coarsenGeohash(candidate.geohashCell, 5)
+  )
+  return { ok: proximity >= ctx.minProximity, proximity }
+}
 
-  for (const candidate of byDid.values()) {
-    if (!reachAllowed(candidate.reach, maxReach)) continue
-
-    let proximity: number | null = null
-    if (input.inPerson) {
-      if (!candidate.geohashCell || !input.me.geohashCell) continue
-      proximity = geohashProximity(
-        coarsenGeohash(input.me.geohashCell, 5),
-        coarsenGeohash(candidate.geohashCell, 5)
-      )
-      if (proximity < minProximity) continue
-    }
-
-    const theirVec = candidate.affinityVector ? decodeVector(candidate.affinityVector) : []
-    const content = (cosineSimilarity(myVec, theirVec) + 1) / 2 // map [-1,1] → [0,1]
-    const graph = input.adjacency ? graphProximity(input.adjacency, input.me.did, candidate.did) : 0
-    const reciprocal = reciprocalScore(content, content) // symmetric proxy at cold-start
-    const exploration = explorationBonus(candidate.observations ?? 0)
-
-    const score = scoreCandidate({ content, reciprocal, graph, exploration }, input.weights)
-    const sharedInterests = mutualItems(myInterests, candidate.interests ?? [])
-    const graphPath = input.adjacency
-      ? shortestSocialPath(input.adjacency, input.me.did, candidate.did)
-      : null
-
-    scored.push({
-      item: {
-        did: candidate.did,
-        score,
-        source: candidate.source,
-        why: { sharedInterests, graphPath, proximity }
-      },
-      vector: theirVec
-    })
+/** Score one gated candidate and build its "why" evidence. */
+function scoreOneCandidate(
+  candidate: CandidateProfile,
+  ctx: ScoringContext,
+  proximity: number | null
+): ScoredEntry {
+  const theirVec = candidate.affinityVector ? decodeVector(candidate.affinityVector) : []
+  const content = (cosineSimilarity(ctx.myVec, theirVec) + 1) / 2 // map [-1,1] → [0,1]
+  const graph = ctx.adjacency ? graphProximity(ctx.adjacency, ctx.meDid, candidate.did) : 0
+  const reciprocal = reciprocalScore(content, content) // symmetric proxy at cold-start
+  const exploration = explorationBonus(candidate.observations ?? 0)
+  const score = scoreCandidate({ content, reciprocal, graph, exploration }, ctx.weights)
+  const sharedInterests = mutualItems(ctx.myInterests, candidate.interests ?? [])
+  const graphPath = ctx.adjacency
+    ? shortestSocialPath(ctx.adjacency, ctx.meDid, candidate.did)
+    : null
+  return {
+    item: {
+      did: candidate.did,
+      score,
+      source: candidate.source,
+      why: { sharedInterests, graphPath, proximity }
+    },
+    vector: theirVec
   }
+}
+
+/** Rank and explain matches for an intent. Pure. */
+export function rankMatches(input: MatchmakerInput): MatchResult[] {
+  const ctx: ScoringContext = {
+    meDid: input.me.did,
+    myVec: input.me.affinityVector ? decodeVector(input.me.affinityVector) : [],
+    myInterests: input.me.interests ?? [],
+    myGeohash: input.me.geohashCell,
+    adjacency: input.adjacency,
+    maxReach: input.reach ?? 'public',
+    inPerson: input.inPerson ?? false,
+    minProximity: input.minProximity ?? 0.6,
+    weights: input.weights
+  }
+
+  const scored = dedupeCandidates(input.candidates, ctx.meDid).flatMap((candidate) => {
+    const gate = gateCandidate(candidate, ctx)
+    return gate.ok ? [scoreOneCandidate(candidate, ctx, gate.proximity)] : []
+  })
 
   // MMR diversity over candidate affinity vectors (serendipity / weak ties).
   const vectorByDid = new Map(scored.map((entry) => [entry.item.did, entry.vector]))
   const ranked = mmrRerank(
     scored.map((entry) => ({ item: entry.item, score: entry.item.score })),
-    (a, b) => {
-      const va = vectorByDid.get(a.did) ?? []
-      const vb = vectorByDid.get(b.did) ?? []
-      return (cosineSimilarity(va, vb) + 1) / 2
-    },
+    (a, b) =>
+      (cosineSimilarity(vectorByDid.get(a.did) ?? [], vectorByDid.get(b.did) ?? []) + 1) / 2,
     input.lambda ?? 0.7
   )
 
