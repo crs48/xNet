@@ -22,6 +22,7 @@ import {
   createCanvasPdfPageAnchorId,
   createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
+  createCanvasUndoManager,
   extractCanvasIngressPayloads,
   getCanvasConnectorsMap,
   getCanvasContainerRole,
@@ -46,6 +47,7 @@ import {
   CanvasLifecycleStatusBadge,
   useBlobService
 } from '@xnetjs/editor/react'
+import { getCommandRegistry } from '@xnetjs/plugins'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
 import { setNodeTransfer } from '@xnetjs/ui'
 import {
@@ -553,6 +555,72 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     },
     [docId]
   )
+  // Canvas document-local undo (0179): a Y.UndoManager over the scene maps.
+  // Cmd+Z claims it only while the canvas surface is focused (the higher-
+  // priority 'surface:canvas' scope + focus guard); everywhere else Cmd+Z
+  // falls through to the app-wide node-store undo.
+  const canvasUndoManager = useMemo(() => (doc ? createCanvasUndoManager(doc) : null), [doc])
+
+  useEffect(() => {
+    if (!canvasUndoManager) return
+
+    const registry = getCommandRegistry()
+    const isCanvasFocused = () =>
+      typeof document !== 'undefined' &&
+      document.activeElement instanceof Element &&
+      document.activeElement.closest('[data-canvas-surface="true"]') !== null
+
+    const scope = registry.activateScope('surface:canvas')
+    const disposables = [
+      registry.register({
+        id: `canvas.undo:${docId}`,
+        title: 'Undo (canvas)',
+        key: 'Mod-Z',
+        scope: 'surface:canvas',
+        when: isCanvasFocused,
+        run: () => {
+          canvasUndoManager.undo()
+        }
+      }),
+      registry.register({
+        id: `canvas.redo:${docId}`,
+        title: 'Redo (canvas)',
+        key: 'Mod-Shift-Z',
+        scope: 'surface:canvas',
+        when: isCanvasFocused,
+        run: () => {
+          canvasUndoManager.redo()
+        }
+      }),
+      registry.register({
+        id: `canvas.redoAlt:${docId}`,
+        title: 'Redo (canvas, alternate binding)',
+        key: 'Mod-Y',
+        scope: 'surface:canvas',
+        when: isCanvasFocused,
+        run: () => {
+          canvasUndoManager.redo()
+        }
+      })
+    ]
+
+    return () => {
+      for (const disposable of disposables) disposable.dispose()
+      scope.dispose()
+      canvasUndoManager.destroy()
+    }
+  }, [canvasUndoManager, docId])
+
+  const handleCanvasUndoRedo = useCallback(
+    (direction: 'undo' | 'redo'): boolean => {
+      if (!canvasUndoManager) return false
+      if (direction === 'undo') canvasUndoManager.undo()
+      else canvasUndoManager.redo()
+      return true
+    },
+    [canvasUndoManager]
+  )
+
   const aliasInputRef = useRef<HTMLInputElement | null>(null)
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null)
   const mediaFileInputRef = useRef<HTMLInputElement | null>(null)
@@ -1641,6 +1709,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           navigationToolsPosition="bottom-right"
           navigationToolsShowZoomLabel={false}
           onSelectionChange={setSelection}
+          onUndoRedoShortcut={handleCanvasUndoRedo}
           onCreateObject={handleCreateObject}
           onEditSelectionAlias={openAliasEditor}
           onCreateSelectionComment={openCommentEditor}
