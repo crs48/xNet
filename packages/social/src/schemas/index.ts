@@ -14,6 +14,11 @@ import {
   SocialSourceRecordSchema
 } from './import'
 import { SocialInteractionSchema } from './interaction'
+import {
+  ConnectableProfileSchema,
+  ConnectionIntentSchema,
+  ConnectionWaveSchema
+} from '../connect/schemas'
 
 export {
   SOCIAL_NAMESPACE,
@@ -100,5 +105,8 @@ export const socialSchemas = [
   SocialConversationSchema,
   SocialMessageSchema,
   SocialCollectionSchema,
-  SocialCollectionItemSchema
+  SocialCollectionItemSchema,
+  ConnectableProfileSchema,
+  ConnectionIntentSchema,
+  ConnectionWaveSchema
 ] as const

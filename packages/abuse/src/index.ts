@@ -109,6 +109,29 @@ export {
   publicAppealChannels,
   verifySignedHubPolicyServiceOffer
 } from './hub-policy-offer'
+export {
+  DEFAULT_SENSITIVITY_PREFERENCES,
+  SENSITIVITY_LABEL_VALUES,
+  SENSITIVITY_PRESENCE_FLOOR,
+  SENSITIVITY_SOURCE_WEIGHT,
+  assessSensitivity,
+  buildSensitivityLabel,
+  decideSensitivityVisibility,
+  isSensitivityLabelValue,
+  resolveContentVisibility,
+  sensitivityLabels,
+  sensitivityOverride,
+  strictestVisibility
+} from './sensitivity'
+export type {
+  BuildSensitivityLabelInput,
+  SensitivityAssessment,
+  SensitivityLabelValue,
+  SensitivityPreference,
+  SensitivitySource,
+  SensitivityVisibilityOptions,
+  UserSensitivityPreferences
+} from './sensitivity'
 export { createPublicWriteBudgetKey, evaluatePublicWriteBudget } from './public-write-budget'
 export { createQueryCostBudgetKey, evaluateQueryCostBudget } from './query-cost-budget'
 export {
