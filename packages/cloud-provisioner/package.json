@@ -1,0 +1,32 @@
+{
+  "name": "@xnetjs/cloud-provisioner",
+  "version": "0.0.1",
+  "description": "Substrate-agnostic per-tenant hub provisioner for xNet Cloud (Cloud Run / Turso, Fargate / Litestream, in-memory).",
+  "license": "FSL-1.1-Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xnetjs/cloud-plans": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0"
+  },
+  "private": true
+}

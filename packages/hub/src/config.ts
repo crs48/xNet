@@ -3,6 +3,7 @@
  */
 
 import type { HubConfig, DemoOverrides } from './types'
+import { entitlementsFromEnv } from '@xnetjs/cloud-plans'
 import { DEFAULT_CONFIG, DEMO_DEFAULTS } from './types'
 
 const toNumber = (value: string | undefined): number | undefined => {
@@ -21,6 +22,12 @@ const toBoolean = (value: string | undefined): boolean | undefined => {
 const detectPlatform = (): HubConfig['runtime'] => {
   const isFly = Boolean(process.env.FLY_REGION || process.env.FLY_MACHINE_ID)
   const isRailway = Boolean(process.env.RAILWAY_VOLUME_MOUNT_PATH || process.env.RAILWAY_PROJECT_ID)
+  // GCP Cloud Run sets K_SERVICE/K_REVISION; AWS ECS/Fargate sets the ECS metadata
+  // URI / AWS_EXECUTION_ENV. These are the managed-fleet substrates from 0175.
+  const isCloudRun = Boolean(process.env.K_SERVICE)
+  const isFargate = Boolean(
+    process.env.ECS_CONTAINER_METADATA_URI_V4 || process.env.AWS_EXECUTION_ENV?.includes('ECS')
+  )
 
   if (isFly) {
     return {
@@ -36,7 +43,39 @@ const detectPlatform = (): HubConfig['runtime'] => {
     }
   }
 
+  if (isCloudRun) {
+    return {
+      platform: 'cloud-run',
+      region: process.env.GOOGLE_CLOUD_REGION,
+      machineId: process.env.K_REVISION
+    }
+  }
+
+  if (isFargate) {
+    return {
+      platform: 'fargate',
+      region: process.env.AWS_REGION
+    }
+  }
+
   return { platform: 'local' }
+}
+
+/**
+ * When running under xNet Cloud, the control plane injects a signed `HUB_PLAN`
+ * token (and `XNET_PLAN_SECRET`). Resolve the plan-driven quotas from it so the hub
+ * enforces its tenant's limits (exploration 0175). With no `HUB_PLAN`, this returns
+ * `{}` and a self-hosted hub keeps its own `DEFAULT_CONFIG` limits — the hub never
+ * depends on the control plane (anti-lock-in invariant from 0174).
+ */
+const resolvePlanLimits = (): Partial<HubConfig> => {
+  if (!process.env.HUB_PLAN) return {}
+  const entitlements = entitlementsFromEnv(process.env)
+  return {
+    defaultQuota: entitlements.quotaBytes,
+    maxBlobSize: entitlements.maxBlobBytes,
+    maxConnections: entitlements.maxConnections
+  }
 }
 
 /**
@@ -103,6 +142,8 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
   return {
     ...DEFAULT_CONFIG,
     ...cliOptions,
+    // Plan-driven quotas (managed fleet) override defaults but not explicit fields below.
+    ...resolvePlanLimits(),
     port,
     dataDir,
     auth,
