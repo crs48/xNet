@@ -355,6 +355,12 @@ export {
   type UseAnnounceOptions,
   type AnnounceFunction
 } from './hooks/useAnnounce'
+export {
+  useListboxNavigation,
+  type ListboxKeyEvent,
+  type ListboxNavigation,
+  type ListboxNavigationOptions
+} from './hooks/useListboxNavigation'
 
 // ─── Accessibility Utils ───────────────────────────────────────────
 export {

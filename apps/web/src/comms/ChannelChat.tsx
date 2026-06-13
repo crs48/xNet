@@ -8,7 +8,7 @@ import type { WikilinkTarget } from '@xnetjs/editor/react'
 import { useNavigate } from '@tanstack/react-router'
 import { sendMessage, typingPeers, type PeerPresence } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { LinkifiedText } from '@xnetjs/ui'
+import { cn, LinkifiedText, useListboxNavigation } from '@xnetjs/ui'
 import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLinkTargets } from '../hooks/useLinkTargets'
@@ -198,25 +198,57 @@ function TypingLine({ peers, profiles }: { peers: PeerPresence[]; profiles: Prof
   )
 }
 
+/**
+ * Shared keyboard state the chat pickers receive (0172). Only one picker is
+ * ever open at a time (the active query is exclusive), so a single
+ * useListboxNavigation in ChannelChat drives whichever is showing.
+ */
+interface PickerNav {
+  activeIndex: number
+  optionId: (index: number) => string | undefined
+  onHover: (index: number) => void
+}
+
+const PICKER_LIST_CLASS =
+  'absolute bottom-full left-0 z-10 m-0 mb-1 list-none rounded-md border border-hairline bg-surface-0 p-1 shadow-sm'
+
+function pickerOptionClass(active: boolean): string {
+  return cn(
+    'flex w-full cursor-pointer items-center gap-2 rounded border-none px-2 py-1 text-left text-xs text-ink-1',
+    active ? 'bg-surface-2' : 'bg-transparent hover:bg-surface-2'
+  )
+}
+
 function TagPicker({
   options,
+  nav,
   onPick
 }: {
   options: TagOption[]
+  nav: PickerNav
   onPick: (option: TagOption) => void
 }) {
   if (options.length === 0) return null
   return (
-    <ul className="absolute bottom-full left-0 z-10 m-0 mb-1 w-56 list-none rounded-md border border-hairline bg-surface-0 p-1 shadow-sm">
-      {options.map((option) => (
+    <ul
+      id="chat-suggest-listbox"
+      role="listbox"
+      aria-label="Tags"
+      className={cn(PICKER_LIST_CLASS, 'w-56')}
+    >
+      {options.map((option, index) => (
         <li key={option.isNew ? '__new__' : option.id}>
           <button
             type="button"
+            id={nav.optionId(index)}
+            role="option"
+            aria-selected={index === nav.activeIndex}
+            onMouseEnter={() => nav.onHover(index)}
             onMouseDown={(event) => {
               event.preventDefault()
               onPick(option)
             }}
-            className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1 text-left text-xs text-ink-1 hover:bg-surface-2"
+            className={pickerOptionClass(index === nav.activeIndex)}
           >
             #{option.name}
             {option.isNew && <span className="text-[10px] text-ink-3">Create new tag</span>}
@@ -229,23 +261,34 @@ function TagPicker({
 
 function LinkPicker({
   options,
+  nav,
   onPick
 }: {
   options: WikilinkTarget[]
+  nav: PickerNav
   onPick: (option: WikilinkTarget) => void
 }) {
   if (options.length === 0) return null
   return (
-    <ul className="absolute bottom-full left-0 z-10 m-0 mb-1 w-64 list-none rounded-md border border-hairline bg-surface-0 p-1 shadow-sm">
-      {options.map((option) => (
+    <ul
+      id="chat-suggest-listbox"
+      role="listbox"
+      aria-label="Links"
+      className={cn(PICKER_LIST_CLASS, 'w-64')}
+    >
+      {options.map((option, index) => (
         <li key={option.href}>
           <button
             type="button"
+            id={nav.optionId(index)}
+            role="option"
+            aria-selected={index === nav.activeIndex}
+            onMouseEnter={() => nav.onHover(index)}
             onMouseDown={(event) => {
               event.preventDefault()
               onPick(option)
             }}
-            className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1 text-left text-xs text-ink-1 hover:bg-surface-2"
+            className={pickerOptionClass(index === nav.activeIndex)}
           >
             <span className="min-w-0 flex-1 truncate">[[{option.title}]]</span>
             <span className="shrink-0 text-[10px] uppercase tracking-wider text-ink-3">
@@ -260,23 +303,34 @@ function LinkPicker({
 
 function MentionPicker({
   options,
+  nav,
   onPick
 }: {
   options: Mentionable[]
+  nav: PickerNav
   onPick: (option: Mentionable) => void
 }) {
   if (options.length === 0) return null
   return (
-    <ul className="absolute bottom-full left-0 z-10 m-0 mb-1 w-56 list-none rounded-md border border-hairline bg-surface-0 p-1 shadow-sm">
-      {options.map((option) => (
+    <ul
+      id="chat-suggest-listbox"
+      role="listbox"
+      aria-label="People"
+      className={cn(PICKER_LIST_CLASS, 'w-56')}
+    >
+      {options.map((option, index) => (
         <li key={option.did}>
           <button
             type="button"
+            id={nav.optionId(index)}
+            role="option"
+            aria-selected={index === nav.activeIndex}
+            onMouseEnter={() => nav.onHover(index)}
             onMouseDown={(event) => {
               event.preventDefault()
               onPick(option)
             }}
-            className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1 text-left text-xs text-ink-1 hover:bg-surface-2"
+            className={pickerOptionClass(index === nav.activeIndex)}
           >
             @{option.label}
             <span className="truncate font-mono text-[10px] text-ink-3">{option.did}</span>
@@ -320,6 +374,9 @@ export function ChannelChat({ channelId }: { channelId: string }) {
 
   const [text, setText] = useState('')
   const [caret, setCaret] = useState(0)
+  // Escape hides the active picker until the query next changes (the pickers
+  // are otherwise derived purely from text + caret, with no open/close state).
+  const [pickerDismissed, setPickerDismissed] = useState(false)
   const picked = useRef(new Map<string, string>())
   const pickedTags = useRef(new Map<string, string>())
   const pickedLinks = useRef(new Map<string, string>())
@@ -349,6 +406,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     (value: string, caretPos: number) => {
       setText(value)
       setCaret(caretPos)
+      setPickerDismissed(false)
       const now = Date.now()
       if (session && now - lastTypingSent.current > TYPING_THROTTLE_MS) {
         lastTypingSent.current = now
@@ -400,6 +458,66 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [text, caret]
   )
 
+  // Exactly one picker can be active at a caret (the @/[[/# queries are
+  // mutually exclusive), so a single listbox nav drives whichever is showing.
+  const activeKind: 'mention' | 'link' | 'tag' | null = pickerDismissed
+    ? null
+    : pickerOptions.length > 0
+      ? 'mention'
+      : linkOptions.length > 0
+        ? 'link'
+        : tagOptions.length > 0
+          ? 'tag'
+          : null
+  const activeOptionCount =
+    activeKind === 'mention'
+      ? pickerOptions.length
+      : activeKind === 'link'
+        ? linkOptions.length
+        : activeKind === 'tag'
+          ? tagOptions.length
+          : 0
+  // Stable across re-renders for the same query (option arrays are rebuilt each
+  // render); changes only when the query does, so arrowing never resets to 0.
+  const pickerResetKey =
+    activeKind === 'mention'
+      ? `mention:${pickerOptions.map((o) => o.did).join(',')}`
+      : activeKind === 'link'
+        ? `link:${linkOptions.map((o) => o.href).join(',')}`
+        : activeKind === 'tag'
+          ? `tag:${tagOptions.map((o) => (o.isNew ? `new:${o.name}` : o.id)).join(',')}`
+          : 'none'
+
+  const commitActive = useCallback(
+    (index: number) => {
+      if (activeKind === 'mention') {
+        const option = pickerOptions[index]
+        if (option) pickMention(option)
+      } else if (activeKind === 'link') {
+        const option = linkOptions[index]
+        if (option) pickLink(option)
+      } else if (activeKind === 'tag') {
+        const option = tagOptions[index]
+        if (option) pickTag(option)
+      }
+    },
+    [activeKind, pickerOptions, linkOptions, tagOptions, pickMention, pickLink, pickTag]
+  )
+
+  const pickerNav = useListboxNavigation({
+    count: activeOptionCount,
+    isOpen: activeKind !== null,
+    onCommit: commitActive,
+    onDismiss: () => setPickerDismissed(true),
+    resetKey: pickerResetKey,
+    idPrefix: 'chat-suggest'
+  })
+  const navProps: PickerNav = {
+    activeIndex: pickerNav.activeIndex,
+    optionId: pickerNav.optionId,
+    onHover: pickerNav.setActiveIndex
+  }
+
   const send = useCallback(async () => {
     const content = text.trim()
     if (!content || !bridge) return
@@ -427,23 +545,30 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       />
       <TypingLine peers={typing} profiles={profiles} />
       <div className="relative border-t border-hairline p-2">
-        <MentionPicker options={pickerOptions} onPick={pickMention} />
-        <TagPicker options={tagOptions} onPick={pickTag} />
-        <LinkPicker options={linkOptions} onPick={pickLink} />
+        {activeKind === 'mention' && (
+          <MentionPicker options={pickerOptions} nav={navProps} onPick={pickMention} />
+        )}
+        {activeKind === 'tag' && <TagPicker options={tagOptions} nav={navProps} onPick={pickTag} />}
+        {activeKind === 'link' && (
+          <LinkPicker options={linkOptions} nav={navProps} onPick={pickLink} />
+        )}
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
             value={text}
             rows={2}
             placeholder="Message… (@ mention, # tag, [[ link, Enter to send)"
+            role={activeKind ? 'combobox' : undefined}
+            aria-expanded={activeKind ? true : undefined}
+            aria-controls={activeKind ? 'chat-suggest-listbox' : undefined}
+            aria-activedescendant={activeKind ? pickerNav.activeDescendantId : undefined}
+            aria-autocomplete={activeKind ? 'list' : undefined}
             onChange={(event) => handleChange(event.target.value, event.target.selectionStart ?? 0)}
             onKeyDown={(event) => {
-              if (
-                shouldSendOnEnter(
-                  event,
-                  pickerOptions.length + tagOptions.length + linkOptions.length
-                )
-              ) {
+              // Active picker gets first refusal on arrows/Enter/Tab/Escape.
+              if (activeKind && pickerNav.onKeyDown(event)) return
+              // No picker open: Enter sends (unless mid-IME-composition).
+              if (!event.nativeEvent.isComposing && shouldSendOnEnter(event, 0)) {
                 event.preventDefault()
                 void send()
               }

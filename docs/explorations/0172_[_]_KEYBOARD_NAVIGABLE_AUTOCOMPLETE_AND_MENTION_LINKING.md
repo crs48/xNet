@@ -19,12 +19,12 @@ a mention/tag/link — composing it, and reading it back.
    When the chat composer pops a mention / hashtag / link suggestion list, the
    keyboard does nothing — you cannot arrow down to the item you want and press
    Enter/Tab to commit it. You have to lift your hands off the keyboard and
-   click. The editor's slash/`#`/`[[` menus *do* support arrows, but even those
+   click. The editor's slash/`#`/`[[` menus _do_ support arrows, but even those
    disagree with each other (wrap-around vs. clamp, Tab handled in one menu and
    not the next), and none of them is screen-reader-navigable
    (`aria-activedescendant` is absent everywhere).
 
-2. **Read: mentions/tags/links only become real links in *some* surfaces.** In a
+2. **Read: mentions/tags/links only become real links in _some_ surfaces.** In a
    chat message, a `#hashtag` is a clickable chip that opens the tag page, a
    `[[wikilink]]` chip opens the target node — but an `@mention` chip resolves a
    display name and then **links nowhere** (there is no person route). In a
@@ -53,11 +53,11 @@ invariants established in 0169–0171.
 ## Executive Summary
 
 - **There are three independent typeahead implementations and they don't agree.**
-  (1) `packages/editor` tippy popups (slash, `#`, `[[`, task-mention) — *have*
+  (1) `packages/editor` tippy popups (slash, `#`, `[[`, task-mention) — _have_
   keyboard nav with **wrap-around**, share `createSuggestionPopupRender`. (2)
   `apps/web/src/comms` chat composer pickers (mention/tag/link) — **mouse-only,
   zero keyboard nav**. (3) `packages/ui` `MentionTextArea` (comments) and the
-  `packages/views` property pickers — *have* keyboard nav with **clamp** (no
+  `packages/views` property pickers — _have_ keyboard nav with **clamp** (no
   wrap), and only some handle Tab/Escape. The chat composer is the worst offender
   and the highest-traffic surface.
 
@@ -75,18 +75,18 @@ invariants established in 0169–0171.
 
 - **Make entity references render as real links everywhere, by extending the
   chat model, not the comment model.** Chat already does this right: mentions,
-  tags, and links are *structured, composer-declared id arrays* on the message
+  tags, and links are _structured, composer-declared id arrays_ on the message
   node, and chips resolve display/title at read time (the 0169/0171 invariant:
-  *entity references are structured data; only self-describing tokens like URLs
-  are render-time decoration*). Comments currently regex-extract `@`/`#`/`[[`
+  _entity references are structured data; only self-describing tokens like URLs
+  are render-time decoration_). Comments currently regex-extract `@`/`#`/`[[`
   from markdown text and render them as plain text — `convertRefsToLinks` in
   `commentReferences.ts` even builds `/user/${did}` and `/node/${id}` hrefs that
   **point at routes that don't exist**. Close the gap by giving every read
   surface a shared renderer that turns structured references into chips/links.
 
-- **`@mention` should open a person *hovercard* on click, with a profile route
+- **`@mention` should open a person _hovercard_ on click, with a profile route
   behind it.** This is the Slack/GitHub pattern and it resolves the "DM vs.
-  profile vs. dashboard" indecision: the popover *is* the fast path (avatar,
+  profile vs. dashboard" indecision: the popover _is_ the fast path (avatar,
   status, **Message** → `ensureDmChannel`, **Open profile**), and "Open profile"
   navigates to a new `/person/$did` route that is exactly the per-person
   dashboard the prompt imagined (created items, assigned tasks, shared
@@ -131,17 +131,17 @@ flowchart TB
 
 The keyboard matrix, as it actually exists today:
 
-| Surface | File | ↑/↓ | Enter | Tab | Esc | Space | wrap? | `aria-activedescendant` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Slash `/` | `packages/editor/src/components/SlashMenu/index.tsx` | ✅ | ✅ | ✗ | ✅(global) | ✗ | **wrap** | ✗ |
-| Hashtag `#` / task `@` | `packages/editor/src/components/TaskMentionMenu.tsx` | ✅ | ✅ | ✗ | ✅(global) | ✗ | **wrap** | ✗ |
-| Wikilink `[[` | `packages/editor/src/components/LinkTargetMenu.tsx` | ✅ | ✅ | **✅** | ✅(global) | ✗ | **wrap** | ✗ |
-| **Chat mention** | `apps/web/src/comms/ChannelChat.tsx` (MentionPicker) | **✗** | **✗** | ✗ | ✗ | ✗ | — | ✗ |
-| **Chat tag** | `ChannelChat.tsx` (TagPicker) | **✗** | **✗** | ✗ | ✗ | ✗ | — | ✗ |
-| **Chat link** | `ChannelChat.tsx` (LinkPicker) | **✗** | **✗** | ✗ | ✗ | ✗ | — | ✗ |
-| Comment mention | `packages/ui/src/composed/comments/MentionTextArea.tsx` | ✅ | ✅ | ✅ | ✅ | ✗ | clamp | ✗ |
-| Select / person / relation | `packages/views/src/properties/*.tsx` | ✅ | ✅ | ✗ | ✅ | ✗ | clamp | partial (`aria-controls`) |
-| Global search | `apps/web/src/components/GlobalSearch.tsx` | ✅ | ✅ | ✗ | ✅ | ✗ | (cmdk) | (cmdk) |
+| Surface                    | File                                                    | ↑/↓   | Enter | Tab    | Esc        | Space | wrap?    | `aria-activedescendant`   |
+| -------------------------- | ------------------------------------------------------- | ----- | ----- | ------ | ---------- | ----- | -------- | ------------------------- |
+| Slash `/`                  | `packages/editor/src/components/SlashMenu/index.tsx`    | ✅    | ✅    | ✗      | ✅(global) | ✗     | **wrap** | ✗                         |
+| Hashtag `#` / task `@`     | `packages/editor/src/components/TaskMentionMenu.tsx`    | ✅    | ✅    | ✗      | ✅(global) | ✗     | **wrap** | ✗                         |
+| Wikilink `[[`              | `packages/editor/src/components/LinkTargetMenu.tsx`     | ✅    | ✅    | **✅** | ✅(global) | ✗     | **wrap** | ✗                         |
+| **Chat mention**           | `apps/web/src/comms/ChannelChat.tsx` (MentionPicker)    | **✗** | **✗** | ✗      | ✗          | ✗     | —        | ✗                         |
+| **Chat tag**               | `ChannelChat.tsx` (TagPicker)                           | **✗** | **✗** | ✗      | ✗          | ✗     | —        | ✗                         |
+| **Chat link**              | `ChannelChat.tsx` (LinkPicker)                          | **✗** | **✗** | ✗      | ✗          | ✗     | —        | ✗                         |
+| Comment mention            | `packages/ui/src/composed/comments/MentionTextArea.tsx` | ✅    | ✅    | ✅     | ✅         | ✗     | clamp    | ✗                         |
+| Select / person / relation | `packages/views/src/properties/*.tsx`                   | ✅    | ✅    | ✗      | ✅         | ✗     | clamp    | partial (`aria-controls`) |
+| Global search              | `apps/web/src/components/GlobalSearch.tsx`              | ✅    | ✅    | ✗      | ✅         | ✗     | (cmdk)   | (cmdk)                    |
 
 Three takeaways: the **chat composer is entirely mouse-driven**; the rest split
 between **wrap (editor)** and **clamp (comments/properties)**; **Tab commits in
@@ -163,11 +163,11 @@ export function shouldSendOnEnter(
 }
 ```
 
-So Enter is *already* suppressed while a picker is open — the wiring anticipated
+So Enter is _already_ suppressed while a picker is open — the wiring anticipated
 keyboard nav. But the three picker components (`MentionPicker`, `TagPicker`,
 `LinkPicker`, ~lines 201–288) only bind `onMouseDown` (prevent blur) and
 `onClick` (select). There is no `selectedIndex`, no arrow handling, and no
-Escape — so with a picker open, Enter is swallowed and *nothing* happens. The
+Escape — so with a picker open, Enter is swallowed and _nothing_ happens. The
 pure logic that a keyboard handler would need already exists and is unit-clean:
 `mentionQueryAt` / `applyMentionPick` / `pickerOptionsFor`
 (`mention-composer.ts`), and the parallel `hashtag-`/`link-composer.ts`.
@@ -193,12 +193,12 @@ flowchart LR
     S3 --> R3
 ```
 
-| Token | Chat | Comment | Page doc | Where a click *should* go |
-| --- | --- | --- | --- | --- |
-| `@mention` | chip, **resolves name but links nowhere** | plain text | pill, **no onClick** | person hovercard → profile/DM |
-| `#hashtag` | chip → `/tag/$tagId` ✅ | plain text | pill, **no onClick** | `/tag/$tagId` |
-| `[[wikilink]]` | chip → `navigateToNode` ✅ | plain text | link → `handleNavigate` ✅ | the target node |
-| bare URL | `LinkifiedText` ✅ (0171) | GFM autolink ✅ | TipTap autolink ✅ | the URL |
+| Token          | Chat                                      | Comment         | Page doc                   | Where a click _should_ go     |
+| -------------- | ----------------------------------------- | --------------- | -------------------------- | ----------------------------- |
+| `@mention`     | chip, **resolves name but links nowhere** | plain text      | pill, **no onClick**       | person hovercard → profile/DM |
+| `#hashtag`     | chip → `/tag/$tagId` ✅                   | plain text      | pill, **no onClick**       | `/tag/$tagId`                 |
+| `[[wikilink]]` | chip → `navigateToNode` ✅                | plain text      | link → `handleNavigate` ✅ | the target node               |
+| bare URL       | `LinkifiedText` ✅ (0171)                 | GFM autolink ✅ | TipTap autolink ✅         | the URL                       |
 
 The gaps are concrete:
 
@@ -213,7 +213,7 @@ The gaps are concrete:
 - **Comments don't render structured chips at all** — they re-parse markdown via
   `react-markdown`+`remark-gfm` (`MarkdownContent.tsx`), so `@`/`#`/`[[` are
   literal text. This is the inverse of the 0171 decision (where URLs are
-  *correctly* render-time), because mentions/tags are *entities*, not
+  _correctly_ render-time), because mentions/tags are _entities_, not
   self-describing tokens.
 
 ### Identity / profile data layer (what a person link can resolve)
@@ -268,26 +268,26 @@ input:
 - **Browsers do not auto-scroll** an `aria-activedescendant` target — JS must
   `scrollIntoView({block:'nearest'})` on every active-index change. The APG calls
   this out as mandatory for magnification users.
-- ↑/↓ navigate (wrap-around is *spec-optional*); **Enter** sets the value and
+- ↑/↓ navigate (wrap-around is _spec-optional_); **Enter** sets the value and
   closes; **Escape** closes (and, if already closed, clears the input).
 
 ### What real products commit a mention with
 
-| Product | Enter | Tab | Space | Notes |
-| --- | --- | --- | --- | --- |
-| Slack | ✅ | — | ✗ | Space stays in query so "John S" filters to "John Smith" |
-| Discord | ✅ | ✅ | ✗ | Tab and Enter both commit |
-| GitHub | ✅ | ✅* | ✗ | `github/combobox-nav`; `tabInsertsSuggestions` default true (flags a11y tradeoff) |
-| Notion | ✅ | ✅ | ✗ | |
-| Linear | ✅ | — | ✗ | widened popover for long titles |
+| Product | Enter | Tab  | Space | Notes                                                                             |
+| ------- | ----- | ---- | ----- | --------------------------------------------------------------------------------- |
+| Slack   | ✅    | —    | ✗     | Space stays in query so "John S" filters to "John Smith"                          |
+| Discord | ✅    | ✅   | ✗     | Tab and Enter both commit                                                         |
+| GitHub  | ✅    | ✅\* | ✗     | `github/combobox-nav`; `tabInsertsSuggestions` default true (flags a11y tradeoff) |
+| Notion  | ✅    | ✅   | ✗     |                                                                                   |
+| Linear  | ✅    | —    | ✗     | widened popover for long titles                                                   |
 
 The consensus: **Enter always commits; Tab usually commits; Space never commits**
 (so multi-word names like "Van Morrison" remain typeable). Twitter/X is the lone
-Space-commits exception because @handles are single-word — which is *not* our
+Space-commits exception because @handles are single-word — which is _not_ our
 case, since we resolve display names.
 
 **IME gotcha (the one bug everyone hits):** with a CJK IME mid-composition,
-pressing Enter to confirm the IME selection must *not* commit the mention. Guard
+pressing Enter to confirm the IME selection must _not_ commit the mention. Guard
 with `event.isComposing` (`event.nativeEvent.isComposing` in React) — confirmed
 breakages: [Mantine #5934](https://github.com/mantinedev/mantine/issues/5934),
 [GitLab UI ef57dec](https://gitlab.com/gitlab-org/gitlab-ui/-/commit/ef57dece9dac129dc2cd77d23d2be5ac7e5d072e).
@@ -298,28 +298,28 @@ Every federated protocol converged on the same shape: **resolve a mutable
 human-readable name to an immutable id at compose time; store the id; render the
 name at read time.**
 
-| Protocol | Stable id (stored) | Human name (resolved) | Where the id lives in the object |
-| --- | --- | --- | --- |
-| AT Proto / Bluesky | `did:plc:…` | `alice.bsky.social` (DNS/well-known) | richtext **facet** `#mention.did` over a byte range |
-| Matrix | `@alice:server` | display name | top-level `m.mentions.user_ids[]` (MSC3952, shipped v1.7) |
-| Nostr | pubkey (hex) | kind-0 `display_name` | `nostr:nprofile1…` URI in content + `["p", pubkey]` tag |
-| ActivityPub | actor URI (HTTPS) | `@alice@domain` (WebFinger) | `tag[]` `Mention.href` (+ `name` for display) |
+| Protocol           | Stable id (stored) | Human name (resolved)                | Where the id lives in the object                          |
+| ------------------ | ------------------ | ------------------------------------ | --------------------------------------------------------- |
+| AT Proto / Bluesky | `did:plc:…`        | `alice.bsky.social` (DNS/well-known) | richtext **facet** `#mention.did` over a byte range       |
+| Matrix             | `@alice:server`    | display name                         | top-level `m.mentions.user_ids[]` (MSC3952, shipped v1.7) |
+| Nostr              | pubkey (hex)       | kind-0 `display_name`                | `nostr:nprofile1…` URI in content + `["p", pubkey]` tag   |
+| ActivityPub        | actor URI (HTTPS)  | `@alice@domain` (WebFinger)          | `tag[]` `Mention.href` (+ `name` for display)             |
 
 The lesson for xNet: **we already do this for chat** (structured `mentions:[did]`
 is morally identical to a Matrix `m.mentions` / Bluesky facet). The missing piece
-is only the *handle* half — the `alice.bsky.social` ↔ `did:plc` mapping —
+is only the _handle_ half — the `alice.bsky.social` ↔ `did:plc` mapping —
 which AT Proto implements as DNS, Matrix as the localpart, ActivityPub as
 WebFinger. A per-workspace `handle` field is the minimum viable version of that.
 
 ### Mention click-target UX (resolving "DM vs. profile vs. dashboard")
 
-| Product | Hover | Click |
-| --- | --- | --- |
-| Slack | hover card | right-side **profile panel** with **Message**/Huddle/Call (no page nav) |
-| Discord | — | **mini profile modal** → secondary "View Full Profile" |
-| GitHub | **hovercard** (avatar, bio, context) | navigates to full **profile page** (no DM — GitHub has none) |
-| Notion | — | in-app **people profile** (top collaborators, teamspaces, recent activity) |
-| Linear | — | in-workspace **profile** |
+| Product | Hover                                | Click                                                                      |
+| ------- | ------------------------------------ | -------------------------------------------------------------------------- |
+| Slack   | hover card                           | right-side **profile panel** with **Message**/Huddle/Call (no page nav)    |
+| Discord | —                                    | **mini profile modal** → secondary "View Full Profile"                     |
+| GitHub  | **hovercard** (avatar, bio, context) | navigates to full **profile page** (no DM — GitHub has none)               |
+| Notion  | —                                    | in-app **people profile** (top collaborators, teamspaces, recent activity) |
+| Linear  | —                                    | in-workspace **profile**                                                   |
 
 Stated rationale across all of them: a **popover preserves reading context** —
 you can DM or open a call without losing your place in the thread. Notion's
@@ -345,13 +345,13 @@ caret-anchored-textarea primitive; this is where it lands.
 ## Key Findings
 
 1. **The pure logic for chat keyboard nav already exists** (`*-composer.ts`):
-   only the *view* layer (selectedIndex + key handler) is missing. This is a
+   only the _view_ layer (selectedIndex + key handler) is missing. This is a
    small, contained fix with outsized UX payoff.
 2. **The editor already has the contract we want to standardize on**
    (`createSuggestionPopupRender(Menu)`, `{items, command}` + `ref.onKeyDown`,
    wrap-around). Don't invent a new one — hoist this.
 3. **Chat already implements the correct storage model** for references
-   (structured id arrays). The work on the read side is to *propagate that model*
+   (structured id arrays). The work on the read side is to _propagate that model_
    to comments/pages, not to re-parse text.
 4. **`@mention` is the only token without a destination**, and the codebase has
    already half-built it (`convertRefsToLinks` → `/user/${did}`) against a route
@@ -370,33 +370,33 @@ caret-anchored-textarea primitive; this is where it lands.
 
 ### A. Keyboard navigation: how much to unify
 
-| Option | What | Pros | Cons |
-| --- | --- | --- | --- |
-| **A1. Per-surface patches** | Add arrow/Enter handling to chat pickers only, leave others as-is | Smallest diff; fixes the loudest complaint | Perpetuates wrap-vs-clamp drift; fourth copy of nav logic; fallow duplication risk (0170) |
-| **A2. Shared `useListboxNavigation` hook** ✅ | One headless hook (selectedIndex, wrap, Enter/Tab/Esc, isComposing, activedescendant id) consumed by all four surfaces | One contract; a11y for free; kills the menus' divergence; matches editor's existing shape | Touches all surfaces; must preserve each surface's commit semantics |
-| **A3. Adopt downshift `useCombobox`** | Replace bespoke menus with the library | Battle-tested ARIA | Cursor-jump pitfall in controlled inputs; heavy for the editor (ProseMirror already owns the input); migration churn |
+| Option                                        | What                                                                                                                   | Pros                                                                                      | Cons                                                                                                                 |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **A1. Per-surface patches**                   | Add arrow/Enter handling to chat pickers only, leave others as-is                                                      | Smallest diff; fixes the loudest complaint                                                | Perpetuates wrap-vs-clamp drift; fourth copy of nav logic; fallow duplication risk (0170)                            |
+| **A2. Shared `useListboxNavigation` hook** ✅ | One headless hook (selectedIndex, wrap, Enter/Tab/Esc, isComposing, activedescendant id) consumed by all four surfaces | One contract; a11y for free; kills the menus' divergence; matches editor's existing shape | Touches all surfaces; must preserve each surface's commit semantics                                                  |
+| **A3. Adopt downshift `useCombobox`**         | Replace bespoke menus with the library                                                                                 | Battle-tested ARIA                                                                        | Cursor-jump pitfall in controlled inputs; heavy for the editor (ProseMirror already owns the input); migration churn |
 
 A2 wins: it's the editor's contract generalized, so the editor barely changes and
 the other three surfaces converge onto it.
 
 ### B. Where comment/page references get their "linkness"
 
-| Option | What | Pros | Cons |
-| --- | --- | --- | --- |
-| **B1. Render-time regex linkify** (mirror 0171's `LinkifiedText`) | Parse `@`/`#`/`[[` out of text at render | No schema change | **Violates the 0169 invariant** — entities become guessable-from-text; breaks on rename; can't distinguish a literal "#1" from a tag |
-| **B2. Structured refs + shared chip renderer** ✅ | Comments/pages carry structured ref arrays (like chat); one `<EntityChip>`/`<ReferenceText>` renderer resolves them | Rename-safe; consistent with chat; one renderer for all surfaces | Comments need a structured field (or keep extracting at save, but render from the structured result, not the raw text) |
+| Option                                                            | What                                                                                                                | Pros                                                             | Cons                                                                                                                                 |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **B1. Render-time regex linkify** (mirror 0171's `LinkifiedText`) | Parse `@`/`#`/`[[` out of text at render                                                                            | No schema change                                                 | **Violates the 0169 invariant** — entities become guessable-from-text; breaks on rename; can't distinguish a literal "#1" from a tag |
+| **B2. Structured refs + shared chip renderer** ✅                 | Comments/pages carry structured ref arrays (like chat); one `<EntityChip>`/`<ReferenceText>` renderer resolves them | Rename-safe; consistent with chat; one renderer for all surfaces | Comments need a structured field (or keep extracting at save, but render from the structured result, not the raw text)               |
 
-B2 is the only option consistent with 0169/0171. Note comments *already* extract
+B2 is the only option consistent with 0169/0171. Note comments _already_ extract
 structured `mentions` at save (`normalizeMentions`) — the renderer just has to
 consume that instead of re-parsing the body, and the same approach extends to
 tags/wikilinks.
 
 ### C. `@mention` click target
 
-| Option | Pros | Cons |
-| --- | --- | --- |
-| **C1. Straight to DM** | Fastest "talk to this person" | Hijacks the click; no way to just *look* at who they are; jarring tab switch |
-| **C2. Straight to profile route** | Discoverable; shareable URL | Loses reading context; overkill for "who is this?" |
+| Option                                                | Pros                                                                                                                         | Cons                                                                            |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **C1. Straight to DM**                                | Fastest "talk to this person"                                                                                                | Hijacks the click; no way to just _look_ at who they are; jarring tab switch    |
+| **C2. Straight to profile route**                     | Discoverable; shareable URL                                                                                                  | Loses reading context; overkill for "who is this?"                              |
 | **C3. Hovercard popover, profile route behind it** ✅ | Preserves context (Slack/GitHub); popover offers **Message**(DM)+**Open profile**; "Open profile" → `/person/$did` dashboard | Two things to build — but the route is reusable and the popover is the 80% path |
 
 C3 directly answers the prompt's own uncertainty ("DM window? profile?
@@ -405,11 +405,11 @@ route is the deep dashboard.
 
 ### D. Usernames over the decentralized layer
 
-| Option | Pros | Cons |
-| --- | --- | --- |
-| **D1. DID-only (status quo)** | Nothing to build; always unique | Nobody can type a mention from memory; ugly |
-| **D2. Per-workspace `handle` on Profile** ✅ | Typeable `@alice`; unique within a workspace; matches AT Proto/Matrix shape; **stored mention stays the DID** | Not globally unique; two workspaces can both have `@alice` (fine — resolution is workspace-scoped) |
-| **D3. Global decentralized naming** (DNS/`did:web`/well-known) | True portable handles | Hard, slow, out of scope; AT Proto needed DNS infra to do it |
+| Option                                                         | Pros                                                                                                          | Cons                                                                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **D1. DID-only (status quo)**                                  | Nothing to build; always unique                                                                               | Nobody can type a mention from memory; ugly                                                        |
+| **D2. Per-workspace `handle` on Profile** ✅                   | Typeable `@alice`; unique within a workspace; matches AT Proto/Matrix shape; **stored mention stays the DID** | Not globally unique; two workspaces can both have `@alice` (fine — resolution is workspace-scoped) |
+| **D3. Global decentralized naming** (DNS/`did:web`/well-known) | True portable handles                                                                                         | Hard, slow, out of scope; AT Proto needed DNS infra to do it                                       |
 
 D2 is the pragmatic middle. Crucially it changes **nothing** about storage: the
 mention is still a DID; `handle` is just a resolver input at compose time and a
@@ -451,7 +451,7 @@ flowchart LR
    chips open the hovercard; "Open profile" opens the route.
 
 4. **Phase 4 — Handles.** Add optional `handle` to `ProfileSchema`
-   (workspace-unique, validated slug). Typeahead matches `handle` *and*
+   (workspace-unique, validated slug). Typeahead matches `handle` _and_
    `displayName`; **the committed mention is always the DID**. Render can show
    `@handle` when present, else `displayName`. Defer global uniqueness.
 
@@ -492,17 +492,14 @@ export function useListboxNavigation(opts: {
   // APG: aria-activedescendant targets are NOT auto-scrolled.
   useEffect(() => {
     if (!isOpen) return
-    document
-      .getElementById(`${idPrefix}-opt-${activeIndex}`)
-      ?.scrollIntoView({ block: 'nearest' })
+    document.getElementById(`${idPrefix}-opt-${activeIndex}`)?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex, isOpen, idPrefix])
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent | React.KeyboardEvent): boolean => {
       if (!isOpen || count === 0) return false
       // IME guard — Enter mid-composition confirms the IME, not the mention.
-      const composing =
-        'isComposing' in e ? e.isComposing : (e as any).nativeEvent?.isComposing
+      const composing = 'isComposing' in e ? e.isComposing : (e as any).nativeEvent?.isComposing
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault()
@@ -534,7 +531,7 @@ export function useListboxNavigation(opts: {
     activeIndex,
     setActiveIndex,
     optionId: (i) => `${idPrefix}-opt-${i}`,
-    onKeyDown,
+    onKeyDown
   }
 }
 ```
@@ -579,11 +576,19 @@ function PersonMentionChip({ did }: { did: string }) {
       trigger={<button className="mention-chip">@{profile.handle ?? profile.displayName}</button>}
     >
       <Avatar did={did} /> <strong>{profile.displayName}</strong>
-      {profile.statusMessage && <p>{profile.statusEmoji} {profile.statusMessage}</p>}
-      <button onClick={async () => {
-        const { channelId } = await ensureDmChannel(store, [myDid, did])
-        navigateToNode(navigate, 'channel', channelId)   // instant DM
-      }}>Message</button>
+      {profile.statusMessage && (
+        <p>
+          {profile.statusEmoji} {profile.statusMessage}
+        </p>
+      )}
+      <button
+        onClick={async () => {
+          const { channelId } = await ensureDmChannel(store, [myDid, did])
+          navigateToNode(navigate, 'channel', channelId) // instant DM
+        }}
+      >
+        Message
+      </button>
       <button onClick={() => navigateToNode(navigate, 'person', did)}>Open profile</button>
     </Hovercard>
   )
@@ -599,8 +604,8 @@ handle: { type: 'text', optional: true, maxLength: 32 }, // workspace-unique slu
 
 ## Risks And Open Questions
 
-- **IME / Enter-to-send collision in chat.** With a picker open *and* an IME
-  composing, key routing must check `isComposing` before *either* committing the
+- **IME / Enter-to-send collision in chat.** With a picker open _and_ an IME
+  composing, key routing must check `isComposing` before _either_ committing the
   mention or sending the message. The `useListboxNavigation` guard covers the
   picker; verify `send()` is also gated.
 - **Tab in the chat composer.** Tab currently moves focus out of the textarea
@@ -610,7 +615,7 @@ handle: { type: 'text', optional: true, maxLength: 32 }, // workspace-unique slu
   feels right.
 - **`fallow` duplication gate.** Four near-identical menu components is exactly
   what the dead-code/duplication gate caught in 0170. Consolidating onto one hook
-  *reduces* duplication, but the migration must land atomically or risk a gate
+  _reduces_ duplication, but the migration must land atomically or risk a gate
   trip mid-refactor.
 - **Comment reference model.** Comments extract `mentions` at save but not tags/
   wikilinks. Extending extraction must stay render-safe (don't re-parse the body
@@ -633,20 +638,26 @@ handle: { type: 'text', optional: true, maxLength: 32 }, // workspace-unique slu
 ## Implementation Checklist
 
 **Phase 1 — Keyboard navigation**
-- [ ] Create `packages/typeahead` leaf package (or `packages/ui` util) with
-      `useListboxNavigation` (wrap, Enter+Tab commit, Escape, `isComposing`
-      guard, `aria-activedescendant` id + scroll-into-view).
-- [ ] Refactor `SlashMenu`, `TaskMentionMenu`, `LinkTargetMenu` to consume the
-      hook via `createSuggestionPopupRender` (behavior identical; remove
-      bespoke modulo/clamp logic).
-- [ ] Wire the hook into `ChannelChat` `MentionPicker`/`TagPicker`/`LinkPicker`;
-      route `onKeyDown` before `shouldSendOnEnter`; add `role`/`aria` attrs.
-- [ ] Wire the hook into `MentionTextArea` (replace clamp logic; gain wrap +
-      activedescendant).
-- [ ] Standardize property pickers (`select`/`multiSelect`/`person`/`relation`)
-      onto the hook where it doesn't regress combobox semantics.
+
+- [x] Create `useListboxNavigation` (chose `packages/ui/src/hooks` over a new
+      package — `@xnetjs/editor` already depends on `@xnetjs/ui`): wrap,
+      Enter+Tab commit, Escape (opt-in), `isComposing` guard,
+      `aria-activedescendant` id + scroll-into-view. Unit-tested (9 cases).
+- [x] Refactor `SlashMenu`, `TaskMentionMenu`, `LinkTargetMenu` to consume the
+      hook via `useImperativeHandle` (behavior identical; removed bespoke
+      modulo logic — all 15 editor menu tests still green).
+- [x] Wire the hook into `ChannelChat` `MentionPicker`/`TagPicker`/`LinkPicker`
+      (one nav drives the exclusive active picker); route `onKeyDown` before
+      `shouldSendOnEnter`; add `role`/`aria` attrs + Escape-to-dismiss; guard
+      the send path against IME composition.
+- [x] Wire the hook into `MentionTextArea` (replaced clamp with wrap; gained
+      `aria-activedescendant`).
+- [ ] _Deferred:_ property pickers (`select`/`multiSelect`/`person`/`relation`)
+      already have working keyboard nav; rewiring them risks regressing their
+      create-and-pick / backspace-to-clear combobox semantics for low UX gain.
 
 **Phase 2 — Universal reference rendering**
+
 - [ ] Add `<ReferenceText>` / `<EntityChip>` to `packages/ui` resolving
       structured `{mentions, tags, links}` → chips with correct nav targets.
 - [ ] Render it in `CommentBubble` from the already-extracted structured
@@ -657,6 +668,7 @@ handle: { type: 'text', optional: true, maxLength: 32 }, // workspace-unique slu
       `commentReferences.ts` `convertRefsToLinks`.
 
 **Phase 3 — Person hovercard + profile route**
+
 - [ ] Build `<PersonHovercard>` (avatar/name/status + **Message** via
       `ensureDmChannel` + **Open profile**).
 - [ ] Add `/person/$did` route (the five-file `TabNodeType` change: `state.ts`,
@@ -668,6 +680,7 @@ handle: { type: 'text', optional: true, maxLength: 32 }, // workspace-unique slu
 - [ ] Point `@mention` chips at the hovercard; "Open profile" → the route.
 
 **Phase 4 — Handles**
+
 - [ ] Add optional `handle` to `ProfileSchema` (no version bump; additive).
 - [ ] Enforce workspace-unique handle on profile edit; validate slug format.
 - [ ] Typeahead matches `handle` + `displayName`; **commit DID only**.

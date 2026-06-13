@@ -1,7 +1,8 @@
 /**
  * @xnetjs/editor - Task mention menu component
  */
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
+import { useListboxNavigation } from '@xnetjs/ui'
+import { forwardRef, useCallback, useImperativeHandle } from 'react'
 import { cn } from '../utils'
 
 export type TaskMentionSuggestion = {
@@ -23,12 +24,6 @@ export type TaskMentionMenuRef = {
 
 export const TaskMentionMenu = forwardRef<TaskMentionMenuRef, TaskMentionMenuProps>(
   function TaskMentionMenu({ items, command }, ref) {
-    const [selectedIndex, setSelectedIndex] = useState(0)
-
-    useEffect(() => {
-      setSelectedIndex(0)
-    }, [items])
-
     const selectItem = useCallback(
       (index: number) => {
         const item = items[index]
@@ -39,33 +34,14 @@ export const TaskMentionMenu = forwardRef<TaskMentionMenuRef, TaskMentionMenuPro
       [command, items]
     )
 
-    useImperativeHandle(ref, () => ({
-      onKeyDown: (event: KeyboardEvent) => {
-        if (items.length === 0) return false
+    const nav = useListboxNavigation({
+      count: items.length,
+      onCommit: selectItem,
+      resetKey: items
+    })
+    const selectedIndex = nav.activeIndex
 
-        if (event.key === 'ArrowUp') {
-          event.preventDefault()
-          setSelectedIndex((prev) => (prev - 1 + items.length) % items.length)
-          return true
-        }
-
-        if (event.key === 'ArrowDown') {
-          event.preventDefault()
-          setSelectedIndex((prev) => (prev + 1) % items.length)
-          return true
-        }
-
-        if (event.key === 'Enter') {
-          event.preventDefault()
-          if (items.length > 0) {
-            selectItem(selectedIndex)
-          }
-          return true
-        }
-
-        return false
-      }
-    }))
+    useImperativeHandle(ref, () => ({ onKeyDown: nav.onKeyDown }), [nav.onKeyDown])
 
     if (items.length === 0) {
       return (
@@ -100,7 +76,7 @@ export const TaskMentionMenu = forwardRef<TaskMentionMenuRef, TaskMentionMenuPro
             key={item.id}
             type="button"
             onClick={() => selectItem(index)}
-            onMouseEnter={() => setSelectedIndex(index)}
+            onMouseEnter={() => nav.setActiveIndex(index)}
             className={cn(
               'flex items-center gap-3 w-full',
               'px-2 py-2 rounded-md',
