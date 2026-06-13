@@ -4,6 +4,7 @@
 
 export * from './import'
 export * from './importers'
+export * from './feeds'
 export * from './lenses'
 export * from './patterns'
 export * from './projection'

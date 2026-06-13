@@ -2,14 +2,16 @@
  * Default workspace seeds for imported social graph data.
  */
 
+import type { SocialFeedViewDefinition, SocialFeedViewId } from '../feeds'
 import type { SocialGraphLensDefinition, SocialGraphLensId } from '../lenses'
 import type { SocialSavedViewDefinition, SocialSavedViewId, SocialSavedViewScope } from '../views'
 import type { SavedViewDescriptor } from '@xnetjs/data'
+import { createDefaultSocialFeedViews } from '../feeds'
 import { createSocialNodeId } from '../import/ids'
 import { createDefaultSocialGraphLenses } from '../lenses'
 import { createDefaultSocialSavedViews } from '../views'
 
-export type SocialWorkspaceSeedKind = 'schema-view' | 'graph-lens'
+export type SocialWorkspaceSeedKind = 'schema-view' | 'graph-lens' | 'feed-view'
 
 export type SocialWorkspaceSeedPresentation =
   | 'table'
@@ -17,9 +19,10 @@ export type SocialWorkspaceSeedPresentation =
   | 'timeline'
   | 'graph'
   | 'canvas'
+  | 'feed'
 
 export type SocialWorkspaceSavedViewSeed = {
-  id: SocialSavedViewId | SocialGraphLensId
+  id: SocialSavedViewId | SocialGraphLensId | SocialFeedViewId
   deterministicId: string
   seedKind: SocialWorkspaceSeedKind
   title: string
@@ -121,6 +124,36 @@ function graphLensSeed(input: {
   }
 }
 
+function feedViewSeed(input: {
+  workspaceId: string
+  view: SocialFeedViewDefinition
+}): SocialWorkspaceSavedViewSeed {
+  const descriptor = input.view.descriptor
+  const json = descriptorJson(descriptor)
+
+  return {
+    id: input.view.id,
+    deterministicId: createSeedId({
+      workspaceId: input.workspaceId,
+      seedKind: 'feed-view',
+      sourceId: input.view.id
+    }),
+    seedKind: 'feed-view',
+    title: input.view.title,
+    description: input.view.description,
+    descriptor,
+    descriptorJson: json,
+    scope: input.view.savedViewProperties.scope,
+    presentationModes: ['feed', 'table', 'facet-browser', 'timeline'],
+    savedViewProperties: {
+      title: input.view.title,
+      description: input.view.description,
+      descriptor: json,
+      scope: input.view.savedViewProperties.scope
+    }
+  }
+}
+
 /**
  * Create deterministic SavedView seeds for the default imported social data workspace.
  */
@@ -133,12 +166,16 @@ export function createDefaultSocialWorkspaceSavedViewSeeds(
     scope,
     pageSize: options.pageSize
   }).map((view) => schemaViewSeed({ workspaceId, view }))
+  const feedViews = createDefaultSocialFeedViews({
+    scope,
+    pageSize: options.pageSize
+  }).map((view) => feedViewSeed({ workspaceId, view }))
   const graphLenses = createDefaultSocialGraphLenses({
     scope,
     pageSize: options.pageSize
   }).map((lens) => graphLensSeed({ workspaceId, scope, lens }))
 
-  return [...savedViews, ...graphLenses]
+  return [...savedViews, ...feedViews, ...graphLenses]
 }
 
 export function getDefaultSocialWorkspaceId(): string {

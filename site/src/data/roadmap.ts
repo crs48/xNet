@@ -39,8 +39,8 @@ export const phases: RoadmapPhase[] = [
       'Notification inbox with mentions & triage',
       'Agent surface — xnet CLI, SKILL.md, files-first checkout',
       'Hub — encrypted backup, relay & full-text search',
-      '6,000+ tests across 30 packages',
-    ],
+      '6,000+ tests across 30 packages'
+    ]
   },
   {
     status: 'now',
@@ -53,8 +53,8 @@ export const phases: RoadmapPhase[] = [
       'Workspace invites & sharing flows',
       'Sharing UI (useCan / useGrants in app)',
       'Push notification delivery (Web Push, Electron, mobile)',
-      'Query API improvements',
-    ],
+      'Query API improvements'
+    ]
   },
   {
     status: 'next',
@@ -66,8 +66,8 @@ export const phases: RoadmapPhase[] = [
       'Mobile app (Expo)',
       'SFU tier for larger calls',
       'End-to-end encrypted channels',
-      'Hub key registry & device directory',
-    ],
+      'Hub key registry & device directory'
+    ]
   },
   {
     status: 'future',
@@ -79,8 +79,8 @@ export const phases: RoadmapPhase[] = [
       'Hub-to-hub federation protocol',
       'Federated queries across hubs',
       'Schema registry & discovery',
-      'ERP framework & domain modules',
-    ],
+      'ERP framework & domain modules'
+    ]
   },
   {
     status: 'vision',
@@ -93,7 +93,7 @@ export const phases: RoadmapPhase[] = [
       'Decentralized search engine',
       'Social federation (follows, feeds, reputation)',
       'Domain-specific networks (farming, science, education)',
-      "Data commons — humanity's shared knowledge graph",
-    ],
-  },
+      "Data commons — humanity's shared knowledge graph"
+    ]
+  }
 ]

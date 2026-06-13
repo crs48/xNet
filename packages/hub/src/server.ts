@@ -34,6 +34,7 @@ import { createKeyRegistryRoutes } from './routes/keys'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
 import { createTaskRoutes } from './routes/tasks'
+import { createUnfurlRoutes } from './routes/unfurl'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
@@ -692,6 +693,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       })
     )
   }
+
+  app.route(
+    '/unfurl',
+    createUnfurlRoutes({
+      requireAuth,
+      userAgent: crawlConfig.userAgent
+    })
+  )
 
   app.post('/shares/issue', requireAuth, async (c) => {
     const body = await c.req.json().catch(() => null)

@@ -48,6 +48,7 @@ export type SavedViewVisualPreviewModel = {
   platform: string
   title: string
   subtitle?: string
+  description?: string
   creator?: SavedViewVisualPreviewCreator
   timestamp?: string
   timestampMs?: number
@@ -55,6 +56,7 @@ export type SavedViewVisualPreviewModel = {
   thumbnailUrl?: string
   embedUrl?: string
   provider?: ExternalReferenceProvider
+  platformContentId?: string
   privacy: SavedViewVisualPreviewPrivacy
   metrics: Record<string, number>
   relationships: SavedViewVisualPreviewRelationship[]
@@ -153,6 +155,7 @@ const RELATIONSHIP_FIELDS = [
 
 const MAX_TITLE_LENGTH = 140
 const MAX_SUBTITLE_LENGTH = 180
+const MAX_DESCRIPTION_LENGTH = 280
 const MAX_PREVIEW_CACHE_ENTRIES = 32
 const savedViewVisualPreviewCache = new Map<string, SavedViewVisualPreviewModel[]>()
 
@@ -381,6 +384,16 @@ function thumbnailFromMetadata(
   return undefined
 }
 
+function descriptionFor(row: Readonly<Record<string, unknown>>, title: string): string | undefined {
+  const text = stringValue(row.textPreview)
+  if (!text) return undefined
+
+  const collapsed = text.replace(/\s+/g, ' ')
+  if (collapsed === title || truncate(collapsed, MAX_TITLE_LENGTH) === title) return undefined
+
+  return truncate(collapsed, MAX_DESCRIPTION_LENGTH)
+}
+
 function metricsFor(row: Readonly<Record<string, unknown>>): Record<string, number> {
   return Object.fromEntries(
     NUMBER_METRIC_FIELDS.flatMap((field) => {
@@ -453,12 +466,16 @@ export function deriveSavedViewVisualPreview(
           subtitle: subtitleFor({ row, kind, platform, timestamp: timestamp.timestamp })
         }
       : {}),
+    ...(descriptionFor(row, title) ? { description: descriptionFor(row, title) } : {}),
     ...(creatorFor(row) ? { creator: creatorFor(row) } : {}),
     ...timestamp,
     ...(url ? { url } : {}),
     ...(thumbnailFromMetadata(row, url) ? { thumbnailUrl: thumbnailFromMetadata(row, url) } : {}),
     ...(descriptor?.embedUrl ? { embedUrl: descriptor.embedUrl } : {}),
     ...(descriptor?.provider ? { provider: descriptor.provider } : {}),
+    ...(stringValue(row.platformContentId)
+      ? { platformContentId: stringValue(row.platformContentId) as string }
+      : {}),
     privacy: privacyFor(row),
     metrics: metricsFor(row),
     relationships: relationshipsFor(row),
