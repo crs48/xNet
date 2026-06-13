@@ -4,6 +4,7 @@
 
 import type { SavedViewQueryResult } from '../hooks/useSavedView'
 import type { QueryASTNodeQuery, SavedViewDescriptor } from '@xnetjs/data'
+import type { ReactNode } from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useSavedView } from '../hooks/useSavedView'
@@ -398,61 +399,64 @@ describe('SavedViewRunner helpers', () => {
   })
 })
 
+/** Mock a saved view with one social-content row that renders as a visual card. */
+function mockSingleContentCardView(): SavedViewDescriptor {
+  const descriptor: SavedViewDescriptor = {
+    version: 1,
+    title: 'Content',
+    scope: 'workspace',
+    query: {
+      version: 1,
+      kind: 'node',
+      schemaId: 'xnet://schema/social/content',
+      page: { first: 25, count: 'estimate' }
+    }
+  }
+  const query = createQueryResult({
+    data: [
+      {
+        id: 'content-1',
+        schemaId: 'xnet://schema/social/content',
+        createdAt: 1,
+        createdBy: 'did:key:test',
+        updatedAt: 1,
+        updatedBy: 'did:key:test',
+        deleted: false,
+        title: 'Saved video',
+        platform: 'youtube',
+        contentKind: 'video',
+        canonicalUrl: 'https://www.youtube.com/watch?v=abc123',
+        actorHandle: '@creator',
+        privacyClass: 'public',
+        visibility: 'public'
+      }
+    ]
+  })
+
+  vi.mocked(useSavedView).mockReturnValue({
+    descriptor,
+    validation: { valid: true, errors: [] },
+    kind: 'node',
+    status: 'success',
+    loading: false,
+    error: null,
+    title: 'Content',
+    description: 'Imported content',
+    primaryQueryId: 'primary',
+    queryIds: ['primary'],
+    queries: { primary: query },
+    primary: query,
+    blockers: [],
+    warnings: [],
+    privacy: { counts: {}, sensitiveCount: 0 },
+    reload: vi.fn()
+  })
+  return descriptor
+}
+
 describe('SavedViewRunner', () => {
   it('switches a saved view into visual card mode and inspects selected cards', async () => {
-    const descriptor: SavedViewDescriptor = {
-      version: 1,
-      title: 'Content',
-      scope: 'workspace',
-      query: {
-        version: 1,
-        kind: 'node',
-        schemaId: 'xnet://schema/social/content',
-        page: { first: 25, count: 'estimate' }
-      }
-    }
-    const query = createQueryResult({
-      data: [
-        {
-          id: 'content-1',
-          schemaId: 'xnet://schema/social/content',
-          createdAt: 1,
-          createdBy: 'did:key:test',
-          updatedAt: 1,
-          updatedBy: 'did:key:test',
-          deleted: false,
-          title: 'Saved video',
-          platform: 'youtube',
-          contentKind: 'video',
-          canonicalUrl: 'https://www.youtube.com/watch?v=abc123',
-          actorHandle: '@creator',
-          privacyClass: 'public',
-          visibility: 'public'
-        }
-      ]
-    })
-
-    vi.mocked(useSavedView).mockReturnValue({
-      descriptor,
-      validation: { valid: true, errors: [] },
-      kind: 'node',
-      status: 'success',
-      loading: false,
-      error: null,
-      title: 'Content',
-      description: 'Imported content',
-      primaryQueryId: 'primary',
-      queryIds: ['primary'],
-      queries: { primary: query },
-      primary: query,
-      blockers: [],
-      warnings: [],
-      privacy: {
-        counts: {},
-        sensitiveCount: 0
-      },
-      reload: vi.fn()
-    })
+    const descriptor = mockSingleContentCardView()
 
     render(<SavedViewRunner descriptor={descriptor} registry={[]} />)
 
@@ -467,6 +471,22 @@ describe('SavedViewRunner', () => {
     const inspector = screen.getByText('Inspector').closest('aside')
     expect(inspector).toBeTruthy()
     expect(within(inspector as HTMLElement).getByText('content-1')).toBeTruthy()
+  })
+
+  it('wraps each visual card through wrapItem keyed by source node id (render-gate seam)', async () => {
+    const descriptor = mockSingleContentCardView()
+    const wrapItem = vi.fn((nodeId: string, content: ReactNode) => (
+      <div data-testid={`gated-${nodeId}`}>{content}</div>
+    ))
+    render(<SavedViewRunner descriptor={descriptor} registry={[]} wrapItem={wrapItem} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cards' }))
+    expect(screen.getByText('Visual Cards')).toBeTruthy()
+
+    // The card for content-1 is wrapped by the host's gate, keyed by its node id.
+    const gated = await screen.findByTestId('gated-content-1')
+    expect(within(gated).getByText('Saved video')).toBeTruthy()
+    expect(wrapItem).toHaveBeenCalledWith('content-1', expect.anything())
   })
 
   it('switches timestamped rows into a visual timeline', async () => {
