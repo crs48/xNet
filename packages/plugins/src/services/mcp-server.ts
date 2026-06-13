@@ -8,6 +8,7 @@
  */
 
 import type { NodeStoreAPI, SchemaRegistryAPI } from './local-api'
+import type { AISignalProvenanceInput } from '@xnetjs/abuse'
 import {
   AiSurfaceService,
   createAiSurfaceService,
@@ -16,6 +17,12 @@ import {
   type AiSurfaceLimits,
   type AiToolDefinition
 } from '../ai-surface'
+import { McpWriteGuardrail, type McpWriteRequest } from './mcp-guardrail'
+
+/** Schema IRIs for the first-class write tools (exploration 0174/0175). */
+const TASK_SCHEMA_IRI = 'xnet://xnet.fyi/Task@1.0.0'
+const PAGE_SCHEMA_IRI = 'xnet://xnet.fyi/Page@1.0.0'
+const CHAT_MESSAGE_SCHEMA_IRI = 'xnet://xnet.fyi/ChatMessage@1.0.0'
 
 // ─── MCP Protocol Types ──────────────────────────────────────────────────────
 
@@ -110,6 +117,12 @@ export interface MCPServerConfig {
   aiSurface?: AiSurfaceService
   /** Optional output and pagination limits for the default AI surface. */
   aiLimits?: Partial<AiSurfaceLimits>
+  /**
+   * Write guardrail for the generic + first-class write tools. A default
+   * guardrail (delete/outward writes need confirmation, cost budget, audit) is
+   * created when omitted. Pass a configured instance to tune it.
+   */
+  guardrail?: McpWriteGuardrail
   /** Server name (default: 'xnet') */
   name?: string
   /** Server version (default: '1.0.0') */
@@ -145,6 +158,7 @@ export class MCPServer {
     store: NodeStoreAPI
     schemas: SchemaRegistryAPI
     aiSurface: AiSurfaceService
+    guardrail: McpWriteGuardrail
     name: string
     version: string
   }
@@ -165,6 +179,7 @@ export class MCPServer {
       store: config.store,
       schemas: config.schemas,
       aiSurface,
+      guardrail: config.guardrail ?? new McpWriteGuardrail(),
       name: config.name ?? 'xnet',
       version: config.version ?? '1.0.0'
     }
@@ -286,21 +301,24 @@ export class MCPServer {
 
     for await (const line of rl) {
       if (!this.running) break
+      await this.handleStdioLine(line)
+    }
+  }
 
-      try {
-        const request = JSON.parse(line) as MCPRequest
-        const response = await this.handleRequest(request)
-        console.log(JSON.stringify(response))
-      } catch {
-        // Invalid JSON - send parse error
-        console.log(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            id: null,
-            error: { code: -32700, message: 'Parse error' }
-          })
-        )
-      }
+  /** Parse one stdin line as a JSON-RPC request and write the response. */
+  private async handleStdioLine(line: string): Promise<void> {
+    try {
+      const response = await this.handleRequest(JSON.parse(line) as MCPRequest)
+      console.log(JSON.stringify(response))
+    } catch {
+      // Invalid JSON - send parse error
+      console.log(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: null,
+          error: { code: -32700, message: 'Parse error' }
+        })
+      )
     }
   }
 
@@ -355,7 +373,8 @@ export class MCPServer {
 
     this.tools.set('xnet_create', {
       name: 'xnet_create',
-      description: 'Create a new node with the given schema and properties.',
+      description:
+        'Create a new node with the given schema and properties. Outward-facing creates (e.g. chat messages) return needs-confirmation until re-called with confirm: true.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -366,7 +385,9 @@ export class MCPServer {
           properties: {
             type: 'object',
             description: 'Initial property values for the node'
-          }
+          },
+          confirm: CONFIRM_SCHEMA,
+          provenance: PROVENANCE_SCHEMA
         },
         required: ['schema', 'properties']
       }
@@ -385,7 +406,9 @@ export class MCPServer {
           properties: {
             type: 'object',
             description: 'Properties to update (only specified properties will change)'
-          }
+          },
+          confirm: CONFIRM_SCHEMA,
+          provenance: PROVENANCE_SCHEMA
         },
         required: ['nodeId', 'properties']
       }
@@ -393,16 +416,81 @@ export class MCPServer {
 
     this.tools.set('xnet_delete', {
       name: 'xnet_delete',
-      description: 'Delete a node by its ID.',
+      description:
+        'Delete a node by its ID. High-risk: returns needs-confirmation until re-called with confirm: true.',
       inputSchema: {
         type: 'object',
         properties: {
           nodeId: {
             type: 'string',
             description: 'ID of the node to delete'
-          }
+          },
+          confirm: CONFIRM_SCHEMA,
+          provenance: PROVENANCE_SCHEMA
         },
         required: ['nodeId']
+      }
+    })
+
+    this.tools.set('xnet_create_task', {
+      name: 'xnet_create_task',
+      description: 'Create a Task. Convenience wrapper over xnet_create with the Task schema.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Task title (required)' },
+          status: { type: 'string', description: 'Status (e.g. todo, in_progress, done)' },
+          priority: { type: 'string', description: 'Priority (e.g. low, medium, high)' },
+          dueDate: { type: 'string', description: 'Due date (ISO 8601)' },
+          properties: { type: 'object', description: 'Additional Task properties' },
+          confirm: CONFIRM_SCHEMA,
+          provenance: PROVENANCE_SCHEMA
+        },
+        required: ['title']
+      }
+    })
+
+    this.tools.set('xnet_create_page', {
+      name: 'xnet_create_page',
+      description: 'Create a Page. Convenience wrapper over xnet_create with the Page schema.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Page title (required)' },
+          icon: { type: 'string', description: 'Optional icon' },
+          properties: { type: 'object', description: 'Additional Page properties' },
+          confirm: CONFIRM_SCHEMA,
+          provenance: PROVENANCE_SCHEMA
+        },
+        required: ['title']
+      }
+    })
+
+    this.tools.set('xnet_send_message', {
+      name: 'xnet_send_message',
+      description:
+        'Send a chat message to a channel. Outward-facing: returns needs-confirmation until re-called with confirm: true.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          channel: { type: 'string', description: 'Target channel node id (required)' },
+          content: { type: 'string', description: 'Message content, GFM markdown (required)' },
+          inReplyTo: { type: 'string', description: 'Optional id of the message being replied to' },
+          confirm: CONFIRM_SCHEMA,
+          provenance: PROVENANCE_SCHEMA
+        },
+        required: ['channel', 'content']
+      }
+    })
+
+    this.tools.set('xnet_get_write_audit', {
+      name: 'xnet_get_write_audit',
+      description: 'List recent guardrail-recorded writes (kind, risk, provenance) for review.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: 'Max events to return (default 50)' }
+        }
       }
     })
 
@@ -466,12 +554,30 @@ export class MCPServer {
       case 'xnet_create': {
         const schema = toolArgs.schema as string
         const properties = toolArgs.properties as Record<string, unknown>
+        result = await this.guardedWrite(
+          { kind: 'create', schemaId: schema, ...readWriteGate(toolArgs) },
+          () => this.config.store.create({ schemaId: schema, properties }),
+          nodeIdOf
+        )
+        break
+      }
 
-        const node = await this.config.store.create({
-          schemaId: schema,
-          properties
-        })
-        result = node
+      case 'xnet_create_task': {
+        result = await this.createNode(TASK_SCHEMA_IRI, taskProperties(toolArgs), toolArgs)
+        break
+      }
+
+      case 'xnet_create_page': {
+        result = await this.createNode(PAGE_SCHEMA_IRI, pageProperties(toolArgs), toolArgs)
+        break
+      }
+
+      case 'xnet_send_message': {
+        result = await this.createNode(
+          CHAT_MESSAGE_SCHEMA_IRI,
+          messageProperties(toolArgs),
+          toolArgs
+        )
         break
       }
 
@@ -484,8 +590,10 @@ export class MCPServer {
           throw new Error(`Node not found: ${nodeId}`)
         }
 
-        const node = await this.config.store.update(nodeId, { properties })
-        result = node
+        result = await this.guardedWrite(
+          { kind: 'update', nodeId, ...readWriteGate(toolArgs) },
+          () => this.config.store.update(nodeId, { properties })
+        )
         break
       }
 
@@ -497,8 +605,19 @@ export class MCPServer {
           throw new Error(`Node not found: ${nodeId}`)
         }
 
-        await this.config.store.delete(nodeId)
-        result = { success: true, nodeId }
+        result = await this.guardedWrite(
+          { kind: 'delete', nodeId, ...readWriteGate(toolArgs) },
+          async () => {
+            await this.config.store.delete(nodeId)
+            return { success: true, nodeId }
+          }
+        )
+        break
+      }
+
+      case 'xnet_get_write_audit': {
+        const limit = (toolArgs.limit as number) ?? 50
+        result = { events: this.config.guardrail.getAuditLog(limit) }
         break
       }
 
@@ -531,6 +650,48 @@ export class MCPServer {
     return {
       content: [{ type: 'text', text: this.config.aiSurface.toJsonText(result, responseFormat) }]
     }
+  }
+
+  // ─── Guarded Writes ──────────────────────────────────────────────────────────
+
+  /**
+   * Route a write through the guardrail. Returns a gate result
+   * (`requiresConfirmation` / `blocked`) without mutating, or applies + records
+   * an audit entry and returns the applied value.
+   */
+  private async guardedWrite(
+    req: McpWriteRequest,
+    apply: () => Promise<unknown>,
+    nodeIdFrom?: (applied: unknown) => string | undefined
+  ): Promise<unknown> {
+    const verdict = this.config.guardrail.evaluate(req)
+    if (verdict.decision === 'blocked') {
+      return { blocked: true, risk: verdict.risk, reason: verdict.reason }
+    }
+    if (verdict.decision === 'needs-confirmation') {
+      return {
+        requiresConfirmation: true,
+        risk: verdict.risk,
+        outwardFacing: verdict.outwardFacing,
+        reason: verdict.reason
+      }
+    }
+    const applied = await apply()
+    this.config.guardrail.recordApplied(req, verdict, nodeIdFrom ? nodeIdFrom(applied) : req.nodeId)
+    return applied
+  }
+
+  /** Shared create path for the first-class write tools. */
+  private createNode(
+    schemaId: string,
+    properties: Record<string, unknown>,
+    toolArgs: Record<string, unknown>
+  ): Promise<unknown> {
+    return this.guardedWrite(
+      { kind: 'create', schemaId, ...readWriteGate(toolArgs) },
+      () => this.config.store.create({ schemaId, properties }),
+      nodeIdOf
+    )
   }
 
   // ─── Resource Handling ─────────────────────────────────────────────────────
@@ -583,6 +744,62 @@ const RESPONSE_FORMAT_SCHEMA: MCPPropertySchema = {
   type: 'string',
   enum: ['concise', 'detailed'],
   description: 'Response verbosity. Defaults to concise (compact JSON).'
+}
+
+const CONFIRM_SCHEMA: MCPPropertySchema = {
+  type: 'boolean',
+  description:
+    'Set true (after the user approves) to apply a high-risk or outward-facing write. Omitted/false returns needs-confirmation without mutating.'
+}
+
+const PROVENANCE_SCHEMA: MCPPropertySchema = {
+  type: 'object',
+  description:
+    'Optional AI provenance for the write: { sourceType: "local-ai"|"cloud-ai", modelProvider, modelName }.'
+}
+
+/** Read the shared write-gate args (confirm + provenance) off a tool call. */
+function readWriteGate(args: Record<string, unknown>): {
+  confirm: boolean
+  provenance?: AISignalProvenanceInput
+} {
+  const provenance = isPlainRecord(args.provenance)
+    ? (args.provenance as AISignalProvenanceInput)
+    : undefined
+  return { confirm: args.confirm === true, ...(provenance ? { provenance } : {}) }
+}
+
+const nodeIdOf = (applied: unknown): string | undefined =>
+  isPlainRecord(applied) && typeof applied.id === 'string' ? applied.id : undefined
+
+function taskProperties(args: Record<string, unknown>): Record<string, unknown> {
+  return {
+    title: args.title,
+    ...(args.status !== undefined ? { status: args.status } : {}),
+    ...(args.priority !== undefined ? { priority: args.priority } : {}),
+    ...(args.dueDate !== undefined ? { dueDate: args.dueDate } : {}),
+    ...(isPlainRecord(args.properties) ? args.properties : {})
+  }
+}
+
+function pageProperties(args: Record<string, unknown>): Record<string, unknown> {
+  return {
+    title: args.title,
+    ...(args.icon !== undefined ? { icon: args.icon } : {}),
+    ...(isPlainRecord(args.properties) ? args.properties : {})
+  }
+}
+
+function messageProperties(args: Record<string, unknown>): Record<string, unknown> {
+  return {
+    channel: args.channel,
+    content: args.content,
+    ...(args.inReplyTo !== undefined ? { inReplyTo: args.inReplyTo } : {})
+  }
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function toMCPTool(tool: AiToolDefinition): MCPTool {

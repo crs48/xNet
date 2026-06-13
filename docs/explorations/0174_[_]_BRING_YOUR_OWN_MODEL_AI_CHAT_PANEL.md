@@ -665,23 +665,31 @@ registerPanelView('right', { id: 'ai-chat', title: 'AI', component: AiChatPanel 
       `packages/plugins/src/ai/connectors/` (reusing `isOllamaAvailable`,
       provider presets). — shipped: `types.ts`/`detect.ts` + 10 tests;
       `writeModeFor()` encodes the propose-only downgrade rule.
-- [ ] Build the **AI Chat panel** (`apps/web/src/ai-chat/`) with a
-      token-streaming assistant bubble; register via `registerPanelView('right', …)`.
-- [ ] Wire the panel to `AiAgentRuntime` (threads/turns) and expose core MCP
-      tools (`xnet_search/read/query/create/update/delete`) as the agent tool set.
-- [ ] Phase 1 connectors: **local-server auto-detect** (Ollama/LM Studio) +
-      **BYO cloud key** (key stored locally, never sent to hub).
-- [ ] Connector **setup helper**: detect CORS/LNA failure, show OS-specific
-      `OLLAMA_ORIGINS` / LM Studio toggle / Chrome "Allow" guidance.
+- [x] Build the **AI Chat panel** with a token-streaming assistant bubble;
+      registered via `registerPanelView('left', …)` + a Rail item. — shipped:
+      [`AiChatPanel.tsx`](apps/web/src/workbench/views/AiChatPanel.tsx).
+- [~] Wire the panel to `AiAgentRuntime` (threads/turns) and expose core MCP
+      tools as the agent tool set. — runtime threads/turns + streaming wired;
+      exposing the live `xnet_*` tool set to the in-panel agent (tool-call loop)
+      is the next step.
+- [x] Phase 1 connectors: **local-server auto-detect** (Ollama/LM Studio) +
+      **BYO cloud key** (key stored locally, never sent to hub). — via
+      `detectConnectors` + [`ai-chat-connector.ts`](apps/web/src/workbench/views/ai-chat-connector.ts).
+- [x] Connector **setup helper**: surfaces the per-tier setup hint
+      (`OLLAMA_ORIGINS` / LM Studio toggle / Chrome "Allow") when a tier is
+      unavailable. — basic version in the panel + [`detect.ts`](packages/plugins/src/ai/connectors/detect.ts).
 - [ ] Enforce writes through the **mutation-plan guardrail** with
-      `AiAgentApproval` gating; show a diff preview + "Undo" (rollback handle).
-- [ ] Phase 2: **WebLLM** connector (`@mlc-ai/web-llm`) with progress UI and a
-      small default model; **propose-only** write mode for `toolCalling !==
-      'reliable'`.
-- [ ] Phase 2: first-class agent tools — `xnet_create_task`,
-      `xnet_create_page`, `xnet_edit_page`, `xnet_db_upsert_rows`,
-      `xnet_send_message` — behind the plan/validate/apply pipeline.
-- [ ] Phase 2: **Gemini Nano** (`window.LanguageModel`) bonus chat tier on Chrome.
+      `AiAgentApproval` gating in the panel; show a diff preview + "Undo".
+      (Boundary guardrail shipped in 0175; panel-side approval UI pending.)
+- [x] Phase 2: **WebLLM** connector — `WebLLMProvider` over an injected engine;
+      **propose-only** write mode via `writeModeFor`. — shipped:
+      [`webllm-provider.ts`](packages/plugins/src/ai/connectors/webllm-provider.ts).
+- [x] Phase 2: first-class agent tools — `xnet_create_task`, `xnet_create_page`,
+      `xnet_send_message` behind the guardrail (edit-page / db-upsert remain via
+      the existing page/db plan tools). — shipped in
+      [`mcp-server.ts`](packages/plugins/src/services/mcp-server.ts).
+- [x] Phase 2: **Gemini Nano** (`LanguageModel`) bonus chat tier. — shipped:
+      [`prompt-api-provider.ts`](packages/plugins/src/ai/connectors/prompt-api-provider.ts).
 - [ ] Phase 3: **bridge daemon** (`tools/xnet-llm-bridge/`) spawning `claude -p
       --output-format stream-json`; Origin allowlist + pairing token; bundle
       with Electron (`apps/electron`).

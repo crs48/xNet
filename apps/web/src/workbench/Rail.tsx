@@ -18,6 +18,7 @@ import {
   Puzzle,
   Search,
   Settings,
+  Sparkles,
   UserPlus,
   type LucideIcon
 } from 'lucide-react'
@@ -35,7 +36,8 @@ const LEFT_VIEW_ITEMS: RailViewItem[] = [
   { id: 'explorer', label: 'Explorer', icon: Files },
   { id: 'chats', label: 'Chats', icon: MessageSquare },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare2 },
-  { id: 'data', label: 'Data', icon: Network }
+  { id: 'data', label: 'Data', icon: Network },
+  { id: 'ai-chat', label: 'AI', icon: Sparkles }
 ]
 
 function RailButton({
