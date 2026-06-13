@@ -235,7 +235,14 @@ export {
   classifyAiAgentDisplayState,
   createAiAgentRuntime,
   createMemoryAiAgentRuntimeStorage,
-  renderSelectionPrompt
+  renderSelectionPrompt,
+  // BYO-Model connectors (exploration 0174)
+  CONNECTOR_META,
+  detectConnectors,
+  pickBestConnector,
+  defaultLocalServerProbes,
+  probeOpenAiCompatible,
+  writeModeFor
 } from './ai'
 export type {
   // Prompt types
@@ -296,7 +303,14 @@ export type {
   AiAgentThreadStatus,
   AiAgentTurn,
   AiAgentTurnRole,
-  AiAgentTurnStatus
+  AiAgentTurnStatus,
+  // BYO-Model connector types (exploration 0174)
+  ConnectorTier,
+  ToolCallingFidelity,
+  WriteMode,
+  ConnectorEnv,
+  LocalServerProbe,
+  ConnectorDetection
 } from './ai'
 
 // AI surface contract (resources, tools, mutation plans, validation)
