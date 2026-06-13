@@ -55,6 +55,24 @@ export {
   createMemoryAiAgentRuntimeStorage,
   renderSelectionPrompt
 } from './runtime'
+
+// Bring-Your-Own-Model connectors (exploration 0174)
+export {
+  CONNECTOR_META,
+  detectConnectors,
+  pickBestConnector,
+  defaultLocalServerProbes,
+  probeOpenAiCompatible,
+  writeModeFor
+} from './connectors'
+export type {
+  ConnectorTier,
+  ToolCallingFidelity,
+  WriteMode,
+  ConnectorEnv,
+  LocalServerProbe,
+  ConnectorDetection
+} from './connectors'
 export type {
   AiAgentApproval,
   AiAgentApprovalRequestInput,
