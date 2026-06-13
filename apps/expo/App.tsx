@@ -118,6 +118,24 @@ export default function App() {
 
   const navTheme = useMemo(() => (colorScheme === 'dark' ? DarkTheme : DefaultTheme), [colorScheme])
 
+  // Deep linking (exploration 0169): xnet://doc/<id> and xnet://db/<id>
+  // open documents directly; xnet://share?... lands on Home until the
+  // mobile claim flow ships (Expo has no hub sync yet).
+  const linking = useMemo(
+    () => ({
+      prefixes: ['xnet://'],
+      config: {
+        screens: {
+          Home: 'share',
+          Document: 'doc/:docId',
+          Database: 'db/:docId',
+          Settings: 'settings'
+        }
+      }
+    }),
+    []
+  )
+
   if (bootError) {
     return <View style={{ flex: 1, backgroundColor: '#fff' }} />
   }
@@ -134,7 +152,7 @@ export default function App() {
 
   return (
     <XNetProvider config={config}>
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer theme={navTheme} linking={linking}>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <AppNavigator />
       </NavigationContainer>

@@ -1,4 +1,10 @@
-import type { BlobMeta, DocMeta, HubStorage } from '../src/storage/interface'
+import type {
+  BlobMeta,
+  DocMeta,
+  GrantIndexRecord,
+  HubStorage,
+  ShareLinkRecord
+} from '../src/storage/interface'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -260,6 +266,123 @@ describe.each(storageFactories)('HubStorage ($name)', ({ create }: StorageFactor
         sorts: [{ columnId: 'name', direction: 'asc' }]
       })
       expect(byName.rows.map((r) => r.id)).toEqual(['row-2', 'row-1', 'row-3'])
+    })
+  })
+
+  describe('share links', () => {
+    const link = (overrides: Partial<ShareLinkRecord> = {}): ShareLinkRecord => ({
+      linkId: 'lnk-test-1',
+      docId: 'doc-1',
+      docType: 'page',
+      role: 'read',
+      secretHash: 'hash-abc',
+      createdByDid: 'did:key:zOwner',
+      label: 'team link',
+      expiresAt: 0,
+      maxUses: 0,
+      useCount: 0,
+      disabled: false,
+      createdAt: 1000,
+      ...overrides
+    })
+
+    it('inserts, fetches, lists, toggles, increments, and deletes links', async () => {
+      await storage.insertShareLink(link())
+      await storage.insertShareLink(link({ linkId: 'lnk-test-2', role: 'write', createdAt: 2000 }))
+
+      const fetched = await storage.getShareLink('lnk-test-1')
+      expect(fetched).toMatchObject({
+        linkId: 'lnk-test-1',
+        role: 'read',
+        label: 'team link',
+        disabled: false
+      })
+
+      const listed = await storage.listShareLinks('doc-1')
+      expect(listed.map((entry) => entry.linkId)).toEqual(['lnk-test-2', 'lnk-test-1'])
+
+      await storage.setShareLinkDisabled('lnk-test-1', true)
+      expect((await storage.getShareLink('lnk-test-1'))?.disabled).toBe(true)
+
+      await storage.incrementShareLinkUse('lnk-test-2')
+      await storage.incrementShareLinkUse('lnk-test-2')
+      expect((await storage.getShareLink('lnk-test-2'))?.useCount).toBe(2)
+
+      await storage.deleteShareLink('lnk-test-1')
+      expect(await storage.getShareLink('lnk-test-1')).toBeNull()
+    })
+  })
+
+  describe('grants for docs', () => {
+    const grant = (overrides: Partial<GrantIndexRecord> = {}): GrantIndexRecord => ({
+      grantId: 'grant-1',
+      granteeDid: 'did:key:zReader',
+      resourceDocId: 'doc-1',
+      actions: ['read'],
+      expiresAt: 0,
+      revokedAt: 0,
+      createdAt: 1000,
+      ...overrides
+    })
+
+    it('lists grants per doc and resolves the active grant', async () => {
+      await storage.upsertGrantIndex(grant())
+      await storage.upsertGrantIndex(
+        grant({ grantId: 'grant-2', granteeDid: 'did:key:zWriter', actions: ['read', 'write'] })
+      )
+
+      const grants = await storage.listGrantsForDoc('doc-1')
+      expect(grants.map((entry) => entry.grantId)).toEqual(['grant-1', 'grant-2'])
+
+      const active = await storage.getActiveGrant('did:key:zWriter', 'doc-1')
+      expect(active?.actions).toEqual(['read', 'write'])
+
+      expect(await storage.getActiveGrant('did:key:zStranger', 'doc-1')).toBeNull()
+    })
+
+    it('share links and grants survive reopening the same SQLite file', async function () {
+      if (!sqliteAvailable) return
+
+      const dir = mkdtempSync(join(tmpdir(), 'hub-restart-'))
+      try {
+        const first = createSQLiteStorage(dir)
+        await first.insertShareLink({
+          linkId: 'lnk-restart',
+          docId: 'doc-restart',
+          docType: 'page',
+          role: 'write',
+          secretHash: 'hash-restart',
+          createdByDid: 'did:key:zOwner',
+          label: null,
+          expiresAt: 0,
+          maxUses: 0,
+          useCount: 3,
+          disabled: false,
+          createdAt: 1000
+        })
+        await first.upsertGrantIndex(grant({ resourceDocId: 'doc-restart' }))
+        await first.close()
+
+        const reopened = createSQLiteStorage(dir)
+        expect((await reopened.getShareLink('lnk-restart'))?.useCount).toBe(3)
+        expect(await reopened.getActiveGrant('did:key:zReader', 'doc-restart')).not.toBeNull()
+        await reopened.close()
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+
+    it('revoked and expired grants stop being active but stay listed', async () => {
+      await storage.upsertGrantIndex(grant())
+      await storage.revokeGrant('grant-1', 5000)
+      expect(await storage.getActiveGrant('did:key:zReader', 'doc-1')).toBeNull()
+      expect((await storage.listGrantsForDoc('doc-1'))[0]?.revokedAt).toBe(5000)
+      expect(await storage.listGrantedDocIds('did:key:zReader')).toEqual([])
+
+      await storage.upsertGrantIndex(
+        grant({ grantId: 'grant-expired', expiresAt: Date.now() - 1000 })
+      )
+      expect(await storage.getActiveGrant('did:key:zReader', 'doc-1')).toBeNull()
     })
   })
 })

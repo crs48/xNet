@@ -40,7 +40,9 @@
       "tests/e2e/harness/**",
       "packages/ui/src/composed/comments/**",
       "packages/data/src/index.ts",
-      "packages/data/src/store/index.ts"
+      "packages/data/src/store/index.ts",
+      "packages/hub/src/storage/memory.ts",
+      "packages/hub/src/storage/sqlite.ts"
     ]
   },
   "health": {
@@ -51,6 +53,7 @@
       "apps/web/src/components/CanvasView.tsx",
       "apps/web/src/components/DatabaseView.tsx",
       "apps/web/src/components/PageView.tsx",
+      "apps/web/src/components/ShareDialog.tsx",
       "apps/web/src/components/TasksView.tsx",
       "apps/web/src/components/MyTasksPanel.tsx",
       "apps/web/src/components/StorageWarningBanner.tsx",

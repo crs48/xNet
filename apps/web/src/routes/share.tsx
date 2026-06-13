@@ -2,16 +2,32 @@
  * Share bridge route.
  *
  * Attempts to launch Electron via xnet:// deep link and falls back to the web app.
+ *
+ * Accepted inputs (query params live in the hash query under hash routing):
+ * - `?link=<linkId>&hub=<hubUrl>` + secret in `s` (hash query) or `#s=` fragment
+ *   — durable share links (exploration 0169); claimed against the issuing hub.
+ * - `?handle=sh_…` — one-shot device-handoff handles.
+ * - `?payload=…` — self-contained share payloads (QR / P2P form).
  */
 
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useXNet } from '@xnetjs/react'
 import { useEffect, useMemo, useState } from 'react'
+import {
+  claimErrorText,
+  claimShareLink,
+  decideClaimDestination,
+  docRouteFor,
+  parseShareRouteInput,
+  type ShareRouteInput
+} from '../lib/share-links'
 
 const DEEP_LINK_TIMEOUT_MS = 1000
 const BASE_PATH = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+const USE_HASH_ROUTER = import.meta.env.VITE_USE_HASH_ROUTER === 'true'
 const SHARE_HANDLE_RE = /^sh_[A-Za-z0-9_-]{16,}$/
 
-type ShareDocType = 'page' | 'database' | 'canvas'
+type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view'
 
 type SharePayloadV2 = {
   v: 2
@@ -37,24 +53,10 @@ export const Route = createFileRoute('/share')({
 function ShareBridgePage(): JSX.Element {
   const [status, setStatus] = useState<'launching' | 'fallback' | 'error'>('launching')
   const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const { getHubAuthToken, hubUrl } = useXNet()
 
-  const shareInput = useMemo(() => {
-    const hash = window.location.hash
-    const hashQuery = hash.includes('?') ? hash.split('?')[1] : ''
-    if (hashQuery) {
-      const params = new URLSearchParams(hashQuery)
-      const handle = params.get('handle')
-      const payload = params.get('payload')
-      if (handle) return { kind: 'handle' as const, value: handle }
-      if (payload) return { kind: 'payload' as const, value: payload }
-    }
-    const parsed = new URL(window.location.href)
-    const handle = parsed.searchParams.get('handle')
-    const payload = parsed.searchParams.get('payload')
-    if (handle) return { kind: 'handle' as const, value: handle }
-    if (payload) return { kind: 'payload' as const, value: payload }
-    return { kind: 'missing' as const, value: '' }
-  }, [])
+  const shareInput = useMemo<ShareRouteInput>(() => parseShareRouteInput(window.location), [])
 
   useEffect(() => {
     const sanitizedPath = `${window.location.pathname}${window.location.hash.split('?')[0] || ''}`
@@ -73,8 +75,54 @@ function ShareBridgePage(): JSX.Element {
   useEffect(() => {
     if (shareInput.kind === 'missing') {
       setStatus('error')
-      setError('Missing handle or payload in share link')
+      setError('Missing link, handle, or payload in share link')
       return
+    }
+
+    if (shareInput.kind === 'link') {
+      const input = shareInput.value
+
+      const claim = async (): Promise<void> => {
+        if (!getHubAuthToken) {
+          throw new Error('Hub authentication is not available')
+        }
+        const token = await getHubAuthToken()
+        const result = await claimShareLink(input, token)
+        const destination = decideClaimDestination(result.endpoint, input.hub, hubUrl)
+
+        if (destination.kind === 'navigate') {
+          // Visiting the doc subscribes + materializes it locally,
+          // which pins it into the workspace sidebar.
+          const route = docRouteFor(result.docType, result.resource)
+          void navigate({ to: route.to, params: route.params } as never)
+          return
+        }
+
+        // The doc lives on a different hub than this app is connected to:
+        // store a hub session and reload so the app boots against it.
+        const key = persistShareSession({
+          endpoint: destination.endpoint,
+          token,
+          resource: result.resource,
+          docType: result.docType,
+          exp: Date.now() + 10 * 60_000
+        })
+        window.location.replace(getWebFallbackPath(result.docType, result.resource, key))
+      }
+
+      window.location.href = `xnet://share?link=${encodeURIComponent(input.linkId)}&hub=${encodeURIComponent(input.hub)}#s=${encodeURIComponent(input.secret)}`
+
+      const timeout = window.setTimeout(() => {
+        setStatus('fallback')
+        void claim().catch((err) => {
+          setStatus('error')
+          setError(claimErrorText(err))
+        })
+      }, DEEP_LINK_TIMEOUT_MS)
+
+      return () => {
+        window.clearTimeout(timeout)
+      }
     }
 
     if (shareInput.kind === 'handle') {
@@ -135,11 +183,11 @@ function ShareBridgePage(): JSX.Element {
     return () => {
       window.clearTimeout(timeout)
     }
-  }, [shareInput])
+  }, [shareInput, navigate, getHubAuthToken, hubUrl])
 
   const copySupportCode = async () => {
     if (shareInput.kind === 'missing') return
-    const value = shareInput.value
+    const value = shareInput.kind === 'link' ? shareInput.value.linkId : shareInput.value
     const masked = maskSecretValue(value)
     await navigator.clipboard.writeText(`xnet-share-debug kind=${shareInput.kind} value=${masked}`)
   }
@@ -256,14 +304,17 @@ function fromBase64Url(str: string): string {
 function getWebFallbackPath(docType: ShareDocType, resource: string, shareSession: string): string {
   const query = `shareSession=${encodeURIComponent(shareSession)}`
   const prefix = BASE_PATH === '' ? '' : BASE_PATH
+  // Hash-routed deployments (GitHub Pages) only resolve routes inside the
+  // fragment — a bare path 404s on the static host.
+  const routePrefix = USE_HASH_ROUTER ? `${prefix}/#` : prefix
 
-  if (docType === 'page') {
-    return `${prefix}/doc/${encodeURIComponent(resource)}?${query}`
+  const docPath: Record<ShareDocType, string> = {
+    page: `/doc/${encodeURIComponent(resource)}`,
+    database: `/db/${encodeURIComponent(resource)}`,
+    canvas: `/canvas/${encodeURIComponent(resource)}`,
+    dashboard: `/dashboard/${encodeURIComponent(resource)}`,
+    view: `/view/${encodeURIComponent(resource)}`
   }
 
-  if (docType === 'database') {
-    return `${prefix}/db/${encodeURIComponent(resource)}?${query}`
-  }
-
-  return `${prefix}/canvas/${encodeURIComponent(resource)}?${query}`
+  return `${routePrefix}${docPath[docType]}?${query}`
 }

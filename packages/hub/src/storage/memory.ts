@@ -25,6 +25,7 @@ import type {
   SearchResult,
   SerializedNodeChange,
   GrantIndexRecord,
+  ShareLinkRecord,
   DatabaseRowRecord,
   DatabaseRowQueryOptions,
   DatabaseRowQueryResult,
@@ -65,6 +66,7 @@ export const createMemoryStorage = (): HubStorage => {
   const searchBodies = new Map<string, string>()
   const docRecipients = new Map<string, Set<string>>()
   const grantsById = new Map<string, GrantIndexRecord>()
+  const shareLinksById = new Map<string, ShareLinkRecord>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
@@ -207,6 +209,68 @@ export const createMemoryStorage = (): HubStorage => {
     }
 
     return Array.from(resources)
+  }
+
+  const listGrantsForDoc = async (docId: string): Promise<GrantIndexRecord[]> =>
+    Array.from(grantsById.values())
+      .filter((grant) => grant.resourceDocId === docId)
+      .sort((a, b) => a.createdAt - b.createdAt)
+
+  const getActiveGrant = async (
+    granteeDid: string,
+    docId: string,
+    now = Date.now()
+  ): Promise<GrantIndexRecord | null> => {
+    let latest: GrantIndexRecord | null = null
+    for (const grant of grantsById.values()) {
+      if (grant.granteeDid !== granteeDid || grant.resourceDocId !== docId) continue
+      if (grant.revokedAt > 0) continue
+      if (grant.expiresAt > 0 && grant.expiresAt <= now) continue
+      if (!latest || grant.createdAt > latest.createdAt) {
+        latest = grant
+      }
+    }
+    return latest
+  }
+
+  const revokeGrant = async (grantId: string, revokedAt = Date.now()): Promise<void> => {
+    const grant = grantsById.get(grantId)
+    if (grant) {
+      grantsById.set(grantId, { ...grant, revokedAt })
+    }
+  }
+
+  const insertShareLink = async (record: ShareLinkRecord): Promise<void> => {
+    shareLinksById.set(record.linkId, { ...record })
+  }
+
+  const getShareLink = async (linkId: string): Promise<ShareLinkRecord | null> => {
+    const record = shareLinksById.get(linkId)
+    return record ? { ...record } : null
+  }
+
+  const listShareLinks = async (docId: string): Promise<ShareLinkRecord[]> =>
+    Array.from(shareLinksById.values())
+      .filter((link) => link.docId === docId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((link) => ({ ...link }))
+
+  const setShareLinkDisabled = async (linkId: string, disabled: boolean): Promise<void> => {
+    const link = shareLinksById.get(linkId)
+    if (link) {
+      shareLinksById.set(linkId, { ...link, disabled })
+    }
+  }
+
+  const incrementShareLinkUse = async (linkId: string): Promise<void> => {
+    const link = shareLinksById.get(linkId)
+    if (link) {
+      shareLinksById.set(linkId, { ...link, useCount: link.useCount + 1 })
+    }
+  }
+
+  const deleteShareLink = async (linkId: string): Promise<void> => {
+    shareLinksById.delete(linkId)
   }
 
   const getFileMeta = async (cid: string): Promise<FileMeta | null> => files.get(cid)?.meta ?? null
@@ -800,6 +864,15 @@ export const createMemoryStorage = (): HubStorage => {
     upsertGrantIndex,
     removeGrantIndex,
     listGrantedDocIds,
+    listGrantsForDoc,
+    getActiveGrant,
+    revokeGrant,
+    insertShareLink,
+    getShareLink,
+    listShareLinks,
+    setShareLinkDisabled,
+    incrementShareLinkUse,
+    deleteShareLink,
     getFileMeta,
     putFile,
     getFileData,

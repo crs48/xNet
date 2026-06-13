@@ -62,13 +62,27 @@ describe('share-payload', () => {
     expect(parsed).toEqual({ kind: 'handle', handle: 'sh_abcdefghijklmnopqrstuvwxyz' })
   })
 
-  it('parses legacy type-prefixed shares', () => {
-    const parsed = parseShareInput('database:db-123')
+  it('rejects legacy type-prefixed shares with a pointer to share links', () => {
+    expect(() => parseShareInput('database:db-123')).toThrow(/replaced by share links/)
+  })
 
-    expect(parsed).toEqual({
-      kind: 'legacy',
-      docType: 'database',
-      docId: 'db-123'
+  it('parses durable share-link URLs in https and xnet forms', () => {
+    const https = parseShareInput('https://hub.xnet.fyi/s/AbCdEf123#s=c2VjcmV0LXZhbHVl')
+    expect(https).toEqual({
+      kind: 'link',
+      linkId: 'AbCdEf123',
+      hub: 'https://hub.xnet.fyi',
+      secret: 'c2VjcmV0LXZhbHVl'
+    })
+
+    const deep = parseShareInput(
+      'xnet://share?link=AbCdEf123&hub=wss%3A%2F%2Fhub.xnet.fyi#s=c2VjcmV0LXZhbHVl'
+    )
+    expect(deep).toEqual({
+      kind: 'link',
+      linkId: 'AbCdEf123',
+      hub: 'https://hub.xnet.fyi',
+      secret: 'c2VjcmV0LXZhbHVl'
     })
   })
 
