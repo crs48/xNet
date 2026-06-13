@@ -358,12 +358,15 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 > loops landed and are validated end-to-end (unit + the full-app e2e spec):
 > **search-side sensitivity filtering** (W1) and **first-contact / message-
 > requests** (W2 — `useDmOpen` interceptor, the `/requests` inbox, notifier
-> reasons + Rail badge). The **views render-prop** (data-workspace/feed gate)
-> is deliberately _deferred_: it threads through `SavedViewVisualFeed` (865 LOC)
-> and the inline grid — large, widely-used shared components — for the lowest-
-> value surface (your _own_ imported archive), and can't be validated without
-> seeding social content. It's reframed as its own task rather than a risky blind
-> change. Everything from here (M2–M4 + the CSAM legal track) remains as planned.
+> reasons + Rail badge). The **views render-prop** was initially deferred as a
+> risky shared-component change; it later landed for the **cards** renderer as an
+> additive opt-in `wrapItem(nodeId, content)` on `SavedViewRunner` (default
+> unwrapped — zero change to existing renders), with `DataWorkspaceView` routing
+> each card through `ModeratedMedia`. Validated by a seam test (the card is
+> wrapped, keyed by its node id) composed with the gate's own tests; extending
+> the same prop to the feed/timeline renderers and a fully-integrated
+> seeded-label blur render remain follow-ups. Everything else from here (M2–M4 +
+> the CSAM legal track) remains as planned.
 
 > **Build-out status — Milestone 2 (decentralized moderation).** W3 landed and
 > is validated end-to-end (unit + the full-app e2e spec): **signed shared-
@@ -390,10 +393,12 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 
 **W1 — render gate + search filter**
 
-- [ ] Add an opt-in `renderPreview`/`wrapContent` prop to `SavedViewRunner` (default unwrapped) and thread to feed/grid/gallery renderers. _(deferred — high-risk shared component, low-value surface, see status note)_
-- [ ] Wrap data-workspace + feed previews in `ModeratedNode` from `DataWorkspaceView.tsx` (and content-feed views). _(deferred — depends on the render-prop above)_
+- [x] Add an opt-in `wrapItem(nodeId, content)` prop to `SavedViewRunner` (default unwrapped — additive, zero change to existing renders) and thread it to the **cards** renderer.
+  - [ ] Extend the same prop to the **feed / timeline / gallery** renderers (follow-up; cards is the highest-value card surface).
+- [x] Wrap data-workspace cards in `ModeratedMedia` from `DataWorkspaceView.tsx` (`gateVisualItem` → each card routes through the moderation gate, incl. the trust-gated labeler labels + "why filtered" explainer).
+  - [ ] Wrap the content-feed views too (depends on the feed-renderer prop above).
 - [x] Add `sensitivityThreshold` filtering to `summarizeSearchModeration`; pass the viewer dial at query time.
-- [ ] Render test: a `porn`-labelled gallery item is blurred in the data workspace for a default-prefs viewer.
+- [x] Render test (seam): the `wrapItem` test proves each card is wrapped, keyed by its source node id; combined with the `ModeratedMedia`/`ModeratedNode` gate tests this covers the blur path. _(A single integrated "porn-labelled card blurs in the data workspace" render still needs seeded labelled social content this sandbox can't produce.)_
 
 **W2 — first-contact / message-requests**
 
