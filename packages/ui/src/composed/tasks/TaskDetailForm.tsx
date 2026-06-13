@@ -15,6 +15,7 @@ import { DIDAvatar } from '../../components/DIDAvatar'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { cn } from '../../utils'
 import { dueDateInputValue, isoToDueDateMs, utcDayFromNow } from './due-date'
+import { parseDueDate } from './parse-due-date'
 import { MentionTextInput } from './MentionTextInput'
 import { filterTaskPeople, taskPersonLabel, type TaskPersonOption } from './people'
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
@@ -220,6 +221,16 @@ function QuickDueButton({ label, onPick }: { label: string; onPick: () => void }
   )
 }
 
+/** Weekday + month + day, read in UTC to match the stored all-day value. */
+function formatDuePreview(ms: number): string {
+  return new Date(ms).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC'
+  })
+}
+
 function DueDateMenu({
   dueDate,
   onPick
@@ -227,11 +238,56 @@ function DueDateMenu({
   dueDate: number | null | undefined
   onPick: (dueDate: number | null) => void
 }) {
+  const [text, setText] = useState('')
+  const parsed = text.trim() ? parseDueDate(text) : null
+
+  const commitText = () => {
+    if (parsed) {
+      onPick(parsed.ms)
+      setText('')
+    }
+  }
+
   return (
     <div className="flex flex-col gap-1 p-1">
-      <div className="flex gap-1">
+      <input
+        type="text"
+        data-testid="task-due-nl-input"
+        value={text}
+        autoFocus
+        placeholder="Type a date… (e.g. next friday)"
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            commitText()
+          }
+        }}
+        className="w-full rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-foreground outline-none placeholder:text-foreground-muted"
+      />
+      {text.trim() && (
+        <button
+          type="button"
+          disabled={!parsed}
+          onClick={commitText}
+          data-testid="task-due-nl-preview"
+          className={cn(
+            'rounded-sm px-2 py-1 text-left text-xs',
+            parsed
+              ? 'text-success hover:bg-background-subtle'
+              : 'cursor-default text-foreground-muted'
+          )}
+        >
+          {parsed ? `→ ${formatDuePreview(parsed.ms)}` : 'Not a recognizable date'}
+        </button>
+      )}
+      <div className="flex flex-wrap gap-1">
         <QuickDueButton label="Today" onPick={() => onPick(utcDayFromNow(0))} />
         <QuickDueButton label="Tomorrow" onPick={() => onPick(utcDayFromNow(1))} />
+        <QuickDueButton
+          label="Weekend"
+          onPick={() => onPick(parseDueDate('this weekend')?.ms ?? utcDayFromNow(0))}
+        />
         <QuickDueButton label="Next week" onPick={() => onPick(utcDayFromNow(7))} />
       </div>
       <input
@@ -239,8 +295,8 @@ function DueDateMenu({
         data-testid="task-due-input"
         value={dueDateInputValue(dueDate)}
         onChange={(event) => {
-          const parsed = isoToDueDateMs(event.target.value)
-          if (parsed != null) onPick(parsed)
+          const parsedIso = isoToDueDateMs(event.target.value)
+          if (parsedIso != null) onPick(parsedIso)
         }}
         className="w-full rounded-sm border border-border bg-transparent px-1.5 py-1 text-xs text-foreground outline-none"
       />

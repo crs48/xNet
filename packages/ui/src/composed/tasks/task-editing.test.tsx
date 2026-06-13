@@ -141,6 +141,33 @@ describe('TaskDetailForm', () => {
     expect(onDueDateChange).toHaveBeenCalledWith('task_1', Date.UTC(2026, 6, 1))
   })
 
+  it('sets a due date by typing a natural-language phrase', () => {
+    const onDueDateChange = vi.fn()
+    render(<TaskDetailForm task={baseTask} onDueDateChange={onDueDateChange} />)
+
+    fireEvent.click(screen.getByTestId('task-due-chip'))
+    const nl = screen.getByTestId('task-due-nl-input')
+    // Explicit date keeps the assertion independent of the wall clock.
+    fireEvent.change(nl, { target: { value: '2026-07-01' } })
+    expect(screen.getByTestId('task-due-nl-preview').textContent).toContain('Jul 1')
+    fireEvent.keyDown(nl, { key: 'Enter' })
+
+    expect(onDueDateChange).toHaveBeenCalledWith('task_1', Date.UTC(2026, 6, 1))
+  })
+
+  it('shows no commit for an unrecognized date phrase', () => {
+    const onDueDateChange = vi.fn()
+    render(<TaskDetailForm task={baseTask} onDueDateChange={onDueDateChange} />)
+
+    fireEvent.click(screen.getByTestId('task-due-chip'))
+    const nl = screen.getByTestId('task-due-nl-input')
+    fireEvent.change(nl, { target: { value: 'not a date' } })
+    expect(screen.getByTestId('task-due-nl-preview').textContent).toContain('Not a recognizable')
+    fireEvent.keyDown(nl, { key: 'Enter' })
+
+    expect(onDueDateChange).not.toHaveBeenCalled()
+  })
+
   it('adds and removes assignees through the picker', () => {
     const onAssigneesChange = vi.fn()
     const assigned = { ...baseTask, assignees: ['did:key:z6MkbobYYYYYYYYYY'] }
