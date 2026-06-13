@@ -109,6 +109,84 @@ describe('MentionTextInput', () => {
   })
 })
 
+const tagOptions = [
+  { id: 'tag_urgent', name: 'urgent' },
+  { id: 'tag_design', name: 'design' }
+]
+
+function MultiTriggerHarness({
+  onTag,
+  onCreateTag,
+  onDueDate
+}: {
+  onTag?: (id: string) => void
+  onCreateTag?: (name: string) => void
+  onDueDate?: (ms: number) => void
+}) {
+  const [value, setValue] = React.useState('')
+  return (
+    <MentionTextInput
+      value={value}
+      onChange={setValue}
+      people={people}
+      onMention={() => {}}
+      tags={tagOptions}
+      onTag={onTag}
+      onCreateTag={onCreateTag}
+      onDueDate={onDueDate}
+      data-testid="mt"
+    />
+  )
+}
+
+describe('MentionTextInput multi-trigger', () => {
+  it('adds an existing tag on #, stripping the token', () => {
+    const onTag = vi.fn()
+    render(<MultiTriggerHarness onTag={onTag} />)
+    const input = screen.getByTestId('mt') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: 'Fix #urg' } })
+    expect(screen.getByText('urgent')).toBeTruthy()
+    fireEvent.click(screen.getByText('urgent'))
+
+    expect(onTag).toHaveBeenCalledWith('tag_urgent')
+    expect(input.value).toBe('Fix ')
+  })
+
+  it('offers to create an unknown tag on #', () => {
+    const onCreateTag = vi.fn()
+    render(<MultiTriggerHarness onCreateTag={onCreateTag} />)
+    const input = screen.getByTestId('mt') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: 'Plan #roadmap' } })
+    fireEvent.click(screen.getByText(/Create/))
+
+    expect(onCreateTag).toHaveBeenCalledWith('roadmap')
+    expect(input.value).toBe('Plan ')
+  })
+
+  it('suggests and commits a trailing due date, stripping the phrase', () => {
+    const onDueDate = vi.fn()
+    render(<MultiTriggerHarness onDueDate={onDueDate} />)
+    const input = screen.getByTestId('mt') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: 'Plan trip 2026-07-01' } })
+    expect(screen.getByTestId('due-suggestion')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('due-suggestion'))
+
+    expect(onDueDate).toHaveBeenCalledWith(Date.UTC(2026, 6, 1))
+    expect(input.value).toBe('Plan trip')
+  })
+
+  it('does not suggest a date for an ordinary title', () => {
+    render(<MultiTriggerHarness onDueDate={vi.fn()} />)
+    const input = screen.getByTestId('mt') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: 'Write the design doc' } })
+    expect(screen.queryByTestId('due-suggestion')).toBeNull()
+  })
+})
+
 describe('TaskDetailForm', () => {
   it('commits a changed title on blur', () => {
     const onTitleChange = vi.fn()

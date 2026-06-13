@@ -15,8 +15,8 @@ import { DIDAvatar } from '../../components/DIDAvatar'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { cn } from '../../utils'
 import { dueDateInputValue, isoToDueDateMs, utcDayFromNow } from './due-date'
-import { parseDueDate } from './parse-due-date'
 import { MentionTextInput } from './MentionTextInput'
+import { parseDueDate } from './parse-due-date'
 import { filterTaskPeople, taskPersonLabel, type TaskPersonOption } from './people'
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
 import { TASK_STATUS_META, formatDueDate, isCompletedStatus, type TaskDisplayData } from './types'
@@ -570,6 +570,10 @@ function TitleRow({
   onTitleChange,
   mentionPeople,
   onMention,
+  tagOptions,
+  onTag,
+  onCreateTag,
+  onDueDate,
   onCommit,
   onRevert,
   onClose,
@@ -582,6 +586,10 @@ function TitleRow({
   onTitleChange: (title: string) => void
   mentionPeople: TaskPersonOption[]
   onMention: (did: string) => void
+  tagOptions: TaskTagOption[]
+  onTag: ((tagId: string) => void) | undefined
+  onCreateTag: ((name: string) => void) | undefined
+  onDueDate: ((ms: number) => void) | undefined
   onCommit: () => void
   onRevert: () => void
   onClose?: (() => void) | undefined
@@ -606,6 +614,10 @@ function TitleRow({
           onChange={onTitleChange}
           people={mentionPeople}
           onMention={onMention}
+          tags={tagOptions}
+          onTag={onTag}
+          onCreateTag={onCreateTag}
+          onDueDate={onDueDate}
           onSubmit={() => {
             onCommit()
             onClose?.()
@@ -737,6 +749,10 @@ export function TaskDetailForm({
         onTitleChange={setTitle}
         mentionPeople={unassignedPeople}
         onMention={addAssignee}
+        tagOptions={tagOptions.filter((option) => !tagIds.includes(option.id))}
+        onTag={onTagsChange ? addTag : undefined}
+        onCreateTag={onTagsChange && onCreateTag ? createAndAddTag : undefined}
+        onDueDate={onDueDateChange ? (ms) => onDueDateChange(task.id, ms) : undefined}
         onCommit={commitTitle}
         onRevert={() => setTitle(task.title)}
         onClose={onClose}

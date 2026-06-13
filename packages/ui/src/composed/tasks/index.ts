@@ -9,7 +9,13 @@ export {
 } from './TaskStatusIcon'
 export { TaskGithubBadges, type TaskGithubBadgesProps } from './TaskGithubBadges'
 export { TaskDetailForm, type TaskDetailFormProps, type TaskTagOption } from './TaskDetailForm'
-export { MentionTextInput, findActiveMention, type MentionTextInputProps } from './MentionTextInput'
+export {
+  MentionTextInput,
+  findActiveMention,
+  findActiveHashtag,
+  type MentionTextInputProps,
+  type MentionTagOption
+} from './MentionTextInput'
 export { filterTaskPeople, taskPersonLabel, type TaskPersonOption } from './people'
 export { dueDateMsToIso, isoToDueDateMs, utcDayFromNow, dueDateInputValue } from './due-date'
 export {
