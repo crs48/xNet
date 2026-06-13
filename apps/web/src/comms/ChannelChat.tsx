@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ModeratedPost } from '../components/ModeratedMedia'
 import { PersonMentionChip } from '../components/PersonHovercard'
 import { useContentLabelsBatch } from '../lib/self-label'
+import { hidesContent, useBlockList } from '../lib/block-list'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import type { AbuseLabel } from '@xnetjs/abuse'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
@@ -155,12 +156,14 @@ function MessageRow({
   message,
   profiles,
   linkTargets,
-  labels
+  labels,
+  hiddenByBlock
 }: {
   message: ChatMessageRow
   profiles: ProfileEntry[]
   linkTargets: WikilinkTarget[]
   labels: readonly AbuseLabel[]
+  hiddenByBlock: boolean
 }) {
   const author = displayName(message.createdBy ?? '?', profiles)
   return (
@@ -170,9 +173,13 @@ function MessageRow({
         <span className="font-mono text-[10px] text-ink-3">{formatTime(message.createdAt)}</span>
         <EditedTag message={message} />
       </div>
-      {/* Sensitive-content render gate (0176): a self-labelled or ML-flagged
-          message is blurred per the viewer's dial. */}
-      <ModeratedPost labels={labels}>
+      {/* Render gate (0176): blurred per the viewer's dial for sensitive labels,
+          and hidden entirely for a blocked/muted author. */}
+      <ModeratedPost
+        labels={labels}
+        platformVisibility={hiddenByBlock ? 'hide' : undefined}
+        hiddenPlaceholder={<span className="text-xs italic text-ink-3">message hidden</span>}
+      >
         <MessageBody message={message} />
       </ModeratedPost>
       <MessageMentionChips message={message} />
@@ -197,6 +204,7 @@ function MessageList({
 }) {
   const ids = useMemo(() => messages.map((message) => message.id), [messages])
   const labelsByTarget = useContentLabelsBatch(ids)
+  const blocks = useBlockList()
   if (messages.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center text-xs text-ink-3">
@@ -213,6 +221,7 @@ function MessageList({
           profiles={profiles}
           linkTargets={linkTargets}
           labels={labelsByTarget.get(message.id) ?? NO_LABELS}
+          hiddenByBlock={message.createdBy ? hidesContent(blocks.list, message.createdBy) : false}
         />
       ))}
     </ul>

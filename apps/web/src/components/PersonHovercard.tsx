@@ -16,6 +16,7 @@ import { displayName, mentionLabel } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
 import { navigateToNode } from '../workbench/navigation'
+import { PersonActions } from './PersonActions'
 
 /** The popover body: identity + the two actions. */
 function PersonCard({ did }: { did: string }) {
@@ -42,6 +43,7 @@ function PersonCard({ did }: { did: string }) {
             {did}
           </div>
         </div>
+        {!isSelf && <PersonActions did={did} label={name} />}
       </div>
       <div className="flex gap-2">
         {!isSelf && (

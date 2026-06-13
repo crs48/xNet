@@ -6,7 +6,7 @@
  * or `nodeId` (self-fetch for a single item). Wiring once here means a future
  * surface can't accidentally ship unfiltered media.
  */
-import type { AbuseLabel } from '@xnetjs/abuse'
+import type { AbuseLabel, AbuseVisibility } from '@xnetjs/abuse'
 import * as React from 'react'
 import { ModeratedContent } from './ModeratedContent'
 import { ModeratedNode } from './ModeratedNode'
@@ -18,6 +18,10 @@ interface BaseProps {
   nodeId?: string
   /** Media from a non-mutual sender → blur by default (0174 dating rule). */
   unsolicitedMedia?: boolean
+  /** Platform decision (e.g. 'hide' for a blocked/muted author); strictest wins. */
+  platformVisibility?: AbuseVisibility
+  /** What to render when fully hidden (defaults: a chip for media, nothing for posts). */
+  hiddenPlaceholder?: React.ReactNode
   className?: string
   children: React.ReactNode
 }
@@ -26,14 +30,16 @@ function Gate({
   labels,
   nodeId,
   unsolicitedMedia,
+  platformVisibility,
   className,
   hiddenPlaceholder,
   children
-}: BaseProps & { hiddenPlaceholder?: React.ReactNode }) {
+}: BaseProps) {
   if (labels) {
     return (
       <ModeratedContent
         labels={labels}
+        platformVisibility={platformVisibility}
         unsolicitedMedia={unsolicitedMedia}
         hiddenPlaceholder={hiddenPlaceholder}
         className={className}
@@ -45,6 +51,7 @@ function Gate({
   return (
     <ModeratedNode
       targetId={nodeId}
+      platformVisibility={platformVisibility}
       unsolicitedMedia={unsolicitedMedia}
       hiddenPlaceholder={hiddenPlaceholder}
       className={className}

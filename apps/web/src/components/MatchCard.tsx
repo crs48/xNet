@@ -6,6 +6,7 @@
 import type { MatchListing } from '../hooks/useConnect'
 import { DIDAvatar } from '@xnetjs/ui'
 import { useState } from 'react'
+import { PersonActions } from './PersonActions'
 
 export interface MatchCardProps {
   match: MatchListing
@@ -33,6 +34,7 @@ export function MatchCard({ match, onWave }: MatchCardProps) {
           <span className="ml-auto text-xs text-muted-foreground">
             {Math.round(match.score * 100)}% match
           </span>
+          <PersonActions did={match.did} label={match.displayName} hideWave />
         </div>
         <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
           {match.why.sharedInterests.length > 0 && (
