@@ -649,7 +649,7 @@ stateDiagram-v2
       `<SensitiveContent>`. (Highest-leverage task.)
 
 ### Phase 1 — On-device classification + user dial
-- [ ] `createNsfwImageClassifier` (Transformers.js, lazy-loaded ONNX) as a
+- [x] `createNsfwImageClassifier` (Transformers.js, lazy-loaded ONNX) as a
       `LocalClassifierAdapter`; register in the local cascade.
 - [ ] On-device **pre-screen before upload** → suggest self-label; **viewer-side
       filter** for unlabeled incoming media.
@@ -667,7 +667,7 @@ stateDiagram-v2
 - [ ] Hub advertises NSFW moderation in `hub-policy-offer`.
 
 ### Phase 3 — CSAM hash pipeline (gating requirement for media hubs)
-- [ ] Add an **image perceptual hash (PDQ)** to `content-fingerprint.ts`
+- [x] Add an **image perceptual hash (PDQ)** to `content-fingerprint.ts`
       (currently text-only).
 - [ ] Hub: PDQ/PhotoDNA match on all hosted/relayed/indexed media; on match →
       block + preserve + **NCMEC CyberTipline** report; never merely "hide".

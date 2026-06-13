@@ -728,16 +728,16 @@ function DiscoverPeople({ intent }: { intent: ConnectionIntentKind }) {
       `ConnectableProfile` (tag buckets, vector buckets, geohash, intent) for
       `hub-indexed` visibility only.
 - [ ] Opt-in publish pipeline (consent-gated) from client → hub directory.
-- [ ] Reciprocal scoring + MMR + exploration bonus on the hub candidate set.
+- [x] Reciprocal scoring + MMR + exploration bonus on the hub candidate set.
 - [ ] Server-side double-opt-in: store commitments, reveal only on mutual.
 - [ ] Rate limits + write budgets via `@xnetjs/abuse` `public-write-budget`.
 
 ### Phase 3 — Federation + PSI + geohash
-- [ ] Implement `findSources`/`routeToRemote` in
+- [x] Implement `findSources`/`routeToRemote` in
       `packages/query/src/federation/router.ts` for `people-match` queries.
-- [ ] Cross-hub candidate merge + dedupe; `reach` controls federation scope.
-- [ ] PSI for mutual interest tags and mutual friends (OPRF-based).
-- [ ] Geohash proximity for `in-person` intents (k-anonymous cells, query rate
+- [x] Cross-hub candidate merge + dedupe; `reach` controls federation scope.
+- [x] PSI for mutual interest tags and mutual friends (OPRF-based).
+- [x] Geohash proximity for `in-person` intents (k-anonymous cells, query rate
       limit).
 
 ### Phase 4 — Serendipity + safety
