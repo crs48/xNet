@@ -53,6 +53,24 @@ describe('SensitiveContent', () => {
     expect(screen.getByText('nsfw')).toBeTruthy()
   })
 
+  it('shows source attribution on the warn banner', () => {
+    render(
+      <SensitiveContent visibility="warn" labels={['sexual']} attribution="via did:key:zAB…">
+        <p>warned</p>
+      </SensitiveContent>
+    )
+    expect(screen.getByRole('note').textContent).toContain('via did:key:zAB…')
+  })
+
+  it('shows source attribution on the blur veil', () => {
+    render(
+      <SensitiveContent visibility="blur" labels={['porn']} attribution="via did:key:zAB…">
+        <p>nsfw</p>
+      </SensitiveContent>
+    )
+    expect(screen.getByRole('button').textContent).toContain('via did:key:zAB…')
+  })
+
   it('labelText maps known labels and falls back gracefully', () => {
     expect(labelText(['porn', 'graphic-media'])).toBe('Explicit content, Graphic media')
     expect(labelText([])).toBe('Sensitive content')

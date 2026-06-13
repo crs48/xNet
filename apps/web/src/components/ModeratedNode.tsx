@@ -7,7 +7,7 @@
  */
 import type { AbuseVisibility } from '@xnetjs/abuse'
 import * as React from 'react'
-import { useContentLabels } from '../lib/self-label'
+import { attributionText, useTrustedContentLabels } from '../lib/content-labels-trust'
 import { ModeratedContent } from './ModeratedContent'
 
 export interface ModeratedNodeProps {
@@ -28,12 +28,13 @@ export function ModeratedNode({
   className,
   children
 }: ModeratedNodeProps) {
-  const labels = useContentLabels(targetId)
+  const { labels, attributions } = useTrustedContentLabels(targetId)
   return (
     <ModeratedContent
       labels={labels}
       platformVisibility={platformVisibility}
       unsolicitedMedia={unsolicitedMedia}
+      attribution={attributionText(attributions)}
       hiddenPlaceholder={hiddenPlaceholder}
       className={className}
     >
