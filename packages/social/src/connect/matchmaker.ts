@@ -9,12 +9,18 @@
  */
 
 import type { ConnectionIntentKind, IntentReach } from './constants'
+import {
+  adaptiveLambda,
+  averagePairwiseSimilarity,
+  banditExplorationBonus,
+  ucb1ExplorationBonus,
+  type BanditArm
+} from './exploration'
 import { coarsenGeohash, geohashProximity } from './geohash'
 import { friendsOfFriends, shortestSocialPath } from './graph'
 import {
   cosineSimilarity,
   decodeVector,
-  explorationBonus,
   graphProximity,
   mmrRerank,
   reciprocalScore,
@@ -35,8 +41,10 @@ export type CandidateProfile = {
   /** Where this candidate came from. */
   reach: IntentReach
   source: 'local' | 'hub'
-  /** Optional count of prior observations, for the exploration bonus. */
+  /** Optional count of prior observations, for the UCB1 exploration bonus. */
   observations?: number
+  /** Optional intro→connection outcomes (post-intro feedback) for the bandit. */
+  outcomes?: BanditArm
 }
 
 export type MatchmakerSelf = {
@@ -127,17 +135,29 @@ function gateCandidate(
   return { ok: proximity >= ctx.minProximity, proximity }
 }
 
+/**
+ * Exploration signal for a candidate: when post-intro outcomes exist, use the
+ * Beta-posterior uncertainty (Bayesian-UCB); otherwise fall back to UCB1 over the
+ * raw observation counts. `totalObservations` is the round count across the set.
+ */
+function explorationFor(candidate: CandidateProfile, totalObservations: number): number {
+  return candidate.outcomes
+    ? banditExplorationBonus(candidate.outcomes)
+    : ucb1ExplorationBonus(candidate.observations ?? 0, totalObservations)
+}
+
 /** Score one gated candidate and build its "why" evidence. */
 function scoreOneCandidate(
   candidate: CandidateProfile,
   ctx: ScoringContext,
-  proximity: number | null
+  proximity: number | null,
+  totalObservations: number
 ): ScoredEntry {
   const theirVec = candidate.affinityVector ? decodeVector(candidate.affinityVector) : []
   const content = (cosineSimilarity(ctx.myVec, theirVec) + 1) / 2 // map [-1,1] → [0,1]
   const graph = ctx.adjacency ? graphProximity(ctx.adjacency, ctx.meDid, candidate.did) : 0
   const reciprocal = reciprocalScore(content, content) // symmetric proxy at cold-start
-  const exploration = explorationBonus(candidate.observations ?? 0)
+  const exploration = explorationFor(candidate, totalObservations)
   const score = scoreCandidate({ content, reciprocal, graph, exploration }, ctx.weights)
   const sharedInterests = mutualItems(ctx.myInterests, candidate.interests ?? [])
   const graphPath = ctx.adjacency
@@ -168,19 +188,35 @@ export function rankMatches(input: MatchmakerInput): MatchResult[] {
     weights: input.weights
   }
 
-  const scored = dedupeCandidates(input.candidates, ctx.meDid).flatMap((candidate) => {
-    const gate = gateCandidate(candidate, ctx)
-    return gate.ok ? [scoreOneCandidate(candidate, ctx, gate.proximity)] : []
-  })
+  const gated = dedupeCandidates(input.candidates, ctx.meDid)
+    .map((candidate) => ({ candidate, gate: gateCandidate(candidate, ctx) }))
+    .filter((entry) => entry.gate.ok)
+
+  // UCB1's round count is the total observations across the surviving set.
+  const totalObservations = gated.reduce((sum, { candidate }) => {
+    return sum + (candidate.observations ?? 0)
+  }, 0)
+
+  const scored = gated.map(({ candidate, gate }) =>
+    scoreOneCandidate(candidate, ctx, gate.proximity, totalObservations)
+  )
 
   // MMR diversity over candidate affinity vectors (serendipity / weak ties).
   const vectorByDid = new Map(scored.map((entry) => [entry.item.did, entry.vector]))
-  const ranked = mmrRerank(
-    scored.map((entry) => ({ item: entry.item, score: entry.item.score })),
-    (a, b) =>
-      (cosineSimilarity(vectorByDid.get(a.did) ?? [], vectorByDid.get(b.did) ?? []) + 1) / 2,
-    input.lambda ?? 0.7
-  )
+  const items = scored.map((entry) => ({ item: entry.item, score: entry.item.score }))
+  const similarity = (a: MatchResult, b: MatchResult) =>
+    (cosineSimilarity(vectorByDid.get(a.did) ?? [], vectorByDid.get(b.did) ?? []) + 1) / 2
+  // When λ isn't pinned, tune it to the set's homogeneity: a cluster of look-
+  // alikes gets a lower λ (more diversity weight) to bridge weak ties.
+  const lambda =
+    input.lambda ??
+    adaptiveLambda(
+      averagePairwiseSimilarity(
+        items.map((entry) => entry.item),
+        similarity
+      )
+    )
+  const ranked = mmrRerank(items, similarity, lambda)
 
   return ranked.map((entry) => entry.item)
 }

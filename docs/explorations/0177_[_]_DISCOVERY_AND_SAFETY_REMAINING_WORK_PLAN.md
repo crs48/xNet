@@ -438,9 +438,9 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 
 **W7 — matching quality**
 
-- [ ] Wire `deriveAffinity` to actual owned-graph signal (social imports + tags + channels) with a `@xnetjs/vectors` embedder; user review step.
-- [ ] Thompson sampling / UCB exploration; tune MMR λ for weak-tie bridging.
-- [ ] Post-intro feedback loop feeding ranking quality.
+- [ ] Wire `deriveAffinity` to actual owned-graph signal (social imports + tags + channels) with a `@xnetjs/vectors` embedder; user review step. _(deferred — needs the embedder + real owned-graph data to validate)_
+- [x] Thompson sampling / UCB exploration; tune MMR λ for weak-tie bridging — `packages/social/src/connect/exploration.ts` (`ucb1ExplorationBonus`, Beta-Bernoulli bandit + `thompsonSample`, `adaptiveLambda`), wired into `rankMatches` (UCB1/bandit exploration signal + homogeneity-tuned MMR λ).
+- [x] Post-intro feedback loop — _ranking half:_ `BanditArm`/`updateArm`/`betaPosterior*` + `rankMatches` consumes a candidate's `outcomes` (Bayesian-UCB uncertainty). _(deferred: capturing intro outcomes from the UI → persisting → feeding `outcomes` back needs a UI + a store.)_
 
 **W8 — identity / age**
 

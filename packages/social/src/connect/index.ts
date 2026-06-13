@@ -48,6 +48,20 @@ export {
   type RankedCandidate
 } from './matching'
 
+export {
+  EMPTY_ARM,
+  adaptiveLambda,
+  averagePairwiseSimilarity,
+  banditExplorationBonus,
+  betaPosteriorMean,
+  betaPosteriorStdev,
+  thompsonSample,
+  ucb1ExplorationBonus,
+  updateArm,
+  type AdaptiveLambdaOptions,
+  type BanditArm
+} from './exploration'
+
 export { friendsOfFriends, shortestSocialPath, type FriendOfFriend } from './graph'
 
 export {
