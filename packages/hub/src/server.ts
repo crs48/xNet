@@ -34,6 +34,7 @@ import { createKeyRegistryRoutes } from './routes/keys'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
 import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
+import { createPublicRoutes } from './routes/public'
 import { createShareLinkRoutes } from './routes/share-links'
 import { createTaskRoutes } from './routes/tasks'
 import { createUnfurlRoutes } from './routes/unfurl'
@@ -255,12 +256,19 @@ const maintainSpaceContainment = async (
   const properties = change.payload?.properties
   if (!nodeId || !schemaId || !properties || change.payload?.deleted) return
   const hasKey = (k: string): boolean => Object.prototype.hasOwnProperty.call(properties, k)
+  const recordVisibility = async (): Promise<void> => {
+    if (!hasKey('visibility')) return
+    const value = properties.visibility
+    await storage.setNodeVisibility(nodeId, typeof value === 'string' ? value : null)
+  }
   if (schemaId.startsWith(SPACE_SCHEMA_PREFIX)) {
     if (hasKey('parent')) await storage.setNodeContainer(nodeId, firstRelationId(properties.parent))
+    await recordVisibility()
     return
   }
   if (SPACEABLE_SCHEMA_PREFIXES.some((prefix) => schemaId.startsWith(prefix))) {
     if (hasKey('space')) await storage.setNodeContainer(nodeId, firstRelationId(properties.space))
+    await recordVisibility()
   }
 }
 
@@ -810,6 +818,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       onGrantsChanged: (did, docId) => shareAccess.invalidate(did, docId)
     })
   )
+  // Unauthenticated, read-only public access (exploration 0179) — gated on
+  // effective visibility === 'public'; never bypasses the grant model otherwise.
+  app.route('/public', createPublicRoutes({ storage }))
   app.route(
     '/',
     createShareInterstitialRoutes({

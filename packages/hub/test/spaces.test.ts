@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createHub, type HubInstance } from '../src'
+import { createPublicRoutes, resolveEffectiveVisibility } from '../src/routes/public'
 import { ShareAccessService } from '../src/services/share-access'
 import { createMemoryStorage } from '../src/storage/memory'
 import { createSQLiteStorage } from '../src/storage/sqlite'
@@ -162,6 +163,79 @@ describe('containment index storage', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('public visibility (the private→public dial)', () => {
+  const setMeta = async (
+    storage: ReturnType<typeof createMemoryStorage>,
+    id: string,
+    title: string
+  ): Promise<void> => {
+    const now = Date.now()
+    await storage.setDocMeta(id, {
+      docId: id,
+      ownerDid: 'did:key:owner',
+      schemaIri: 'xnet://xnet.fyi/Page@1.0.0',
+      title,
+      properties: { title },
+      createdAt: now,
+      updatedAt: now
+    })
+  }
+
+  it('resolves inherited visibility up the space chain', async () => {
+    const storage = createMemoryStorage()
+    await storage.setNodeContainer('page', 'space')
+    await storage.setNodeVisibility('space', 'public')
+    // page inherits (unset) → resolves to the space's public
+    expect(await resolveEffectiveVisibility(storage, 'page')).toBe('public')
+    // explicit private on the page wins (no lowering past it)
+    await storage.setNodeVisibility('page', 'private')
+    expect(await resolveEffectiveVisibility(storage, 'page')).toBe('private')
+    // unknown node defaults to private
+    expect(await resolveEffectiveVisibility(storage, 'orphan')).toBe('private')
+  })
+
+  it('serves a public node and 404s a private one', async () => {
+    const storage = createMemoryStorage()
+    const app = createPublicRoutes({ storage })
+    await setMeta(storage, 'pub', 'Public page')
+    await storage.setNodeVisibility('pub', 'public')
+    await setMeta(storage, 'priv', 'Private page')
+    await storage.setNodeVisibility('priv', 'private')
+
+    const okRes = await app.request('/node/pub')
+    expect(okRes.status).toBe(200)
+    const okBody = (await okRes.json()) as { node: { id: string; title: string } }
+    expect(okBody.node.id).toBe('pub')
+    expect(okBody.node.title).toBe('Public page')
+
+    const denied = await app.request('/node/priv')
+    expect(denied.status).toBe(404)
+  })
+
+  it('lists only public nodes within a public space (transitive)', async () => {
+    const storage = createMemoryStorage()
+    const app = createPublicRoutes({ storage })
+    await storage.setNodeVisibility('space', 'public')
+    await setMeta(storage, 'space', 'Open space')
+    // child1 public (explicit), child2 private, grandchild inherits public via space? no — under child2
+    await storage.setNodeContainer('child1', 'space')
+    await storage.setNodeVisibility('child1', 'public')
+    await setMeta(storage, 'child1', 'Child 1')
+    await storage.setNodeContainer('child2', 'space')
+    await storage.setNodeVisibility('child2', 'private')
+    await setMeta(storage, 'child2', 'Child 2')
+    // grandchild under child1 inherits → public
+    await storage.setNodeContainer('grand', 'child1')
+    await setMeta(storage, 'grand', 'Grandchild')
+
+    const res = await app.request('/space/space')
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { nodes: Array<{ id: string }> }
+    const ids = body.nodes.map((n) => n.id).sort()
+    expect(ids).toEqual(['child1', 'grand'])
   })
 })
 

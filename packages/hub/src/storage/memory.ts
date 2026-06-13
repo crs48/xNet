@@ -68,6 +68,7 @@ export const createMemoryStorage = (): HubStorage => {
   const grantsById = new Map<string, GrantIndexRecord>()
   const shareLinksById = new Map<string, ShareLinkRecord>()
   const nodeContainers = new Map<string, string>()
+  const nodeVisibility = new Map<string, string>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
@@ -260,6 +261,22 @@ export const createMemoryStorage = (): HubStorage => {
     }
     return ancestors
   }
+
+  const listContainedNodes = async (containerId: string): Promise<string[]> => {
+    const children: string[] = []
+    for (const [nodeId, parent] of nodeContainers) {
+      if (parent === containerId) children.push(nodeId)
+    }
+    return children
+  }
+
+  const setNodeVisibility = async (nodeId: string, visibility: string | null): Promise<void> => {
+    if (visibility) nodeVisibility.set(nodeId, visibility)
+    else nodeVisibility.delete(nodeId)
+  }
+
+  const getNodeVisibility = async (nodeId: string): Promise<string | null> =>
+    nodeVisibility.get(nodeId) ?? null
 
   const insertShareLink = async (record: ShareLinkRecord): Promise<void> => {
     shareLinksById.set(record.linkId, { ...record })
@@ -890,6 +907,9 @@ export const createMemoryStorage = (): HubStorage => {
     setNodeContainer,
     getNodeContainer,
     ancestorContainers,
+    listContainedNodes,
+    setNodeVisibility,
+    getNodeVisibility,
     revokeGrant,
     insertShareLink,
     getShareLink,

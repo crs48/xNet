@@ -372,6 +372,15 @@ export type HubStorage = {
   getNodeContainer: (nodeId: string) => Promise<string | null>
   /** Ancestor container ids, nearest-first; cycle- and depth-bounded. */
   ancestorContainers: (nodeId: string, maxDepth?: number) => Promise<string[]>
+  /** Direct children of a container (nodes whose immediate container is this id). */
+  listContainedNodes: (containerId: string) => Promise<string[]>
+
+  // ─── Node visibility index (exploration 0179) ───────────────────────────────
+  // The private→public dial. `inherit` (or absent) defers to the node's Space.
+  /** Set (or clear, with null) a node's own visibility. */
+  setNodeVisibility: (nodeId: string, visibility: string | null) => Promise<void>
+  /** A node's own visibility, or null when unset/inherited. */
+  getNodeVisibility: (nodeId: string) => Promise<string | null>
 
   insertShareLink: (record: ShareLinkRecord) => Promise<void>
   getShareLink: (linkId: string) => Promise<ShareLinkRecord | null>

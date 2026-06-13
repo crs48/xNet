@@ -112,6 +112,12 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_node_container_container ON node_container(container_id);
 
+  -- Node visibility index (exploration 0179): the private→public dial.
+  CREATE TABLE IF NOT EXISTS node_visibility (
+    node_id TEXT PRIMARY KEY,
+    visibility TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS backups (
     key TEXT PRIMARY KEY,
     doc_id TEXT NOT NULL,
@@ -757,6 +763,14 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     `),
     clearNodeContainer: db.prepare('DELETE FROM node_container WHERE node_id = ?'),
     getNodeContainer: db.prepare('SELECT container_id FROM node_container WHERE node_id = ?'),
+    listContainedNodes: db.prepare('SELECT node_id FROM node_container WHERE container_id = ?'),
+    setNodeVisibility: db.prepare(`
+      INSERT INTO node_visibility (node_id, visibility)
+      VALUES (?, ?)
+      ON CONFLICT(node_id) DO UPDATE SET visibility = excluded.visibility
+    `),
+    clearNodeVisibility: db.prepare('DELETE FROM node_visibility WHERE node_id = ?'),
+    getNodeVisibility: db.prepare('SELECT visibility FROM node_visibility WHERE node_id = ?'),
     insertShareLink: db.prepare(`
       INSERT INTO share_links
         (link_id, doc_id, doc_type, role, secret_hash, created_by_did, label, expires_at, max_uses, use_count, disabled, created_at)
@@ -1812,6 +1826,21 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     return ancestors
   }
 
+  const listContainedNodes = async (containerId: string): Promise<string[]> => {
+    const rows = stmts.listContainedNodes.all(containerId) as { node_id: string }[]
+    return rows.map((row) => row.node_id)
+  }
+
+  const setNodeVisibility = async (nodeId: string, visibility: string | null): Promise<void> => {
+    if (visibility) stmts.setNodeVisibility.run(nodeId, visibility)
+    else stmts.clearNodeVisibility.run(nodeId)
+  }
+
+  const getNodeVisibility = async (nodeId: string): Promise<string | null> => {
+    const row = stmts.getNodeVisibility.get(nodeId) as { visibility: string } | undefined
+    return row?.visibility ?? null
+  }
+
   const shareLinkRowToRecord = (row: ShareLinkRow): ShareLinkRecord => ({
     linkId: row.link_id,
     docId: row.doc_id,
@@ -2278,6 +2307,9 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     setNodeContainer,
     getNodeContainer,
     ancestorContainers,
+    listContainedNodes,
+    setNodeVisibility,
+    getNodeVisibility,
     insertShareLink,
     getShareLink,
     listShareLinks,
