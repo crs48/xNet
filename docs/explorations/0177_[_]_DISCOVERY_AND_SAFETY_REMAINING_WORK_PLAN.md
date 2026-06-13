@@ -394,7 +394,8 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 **W1 — render gate + search filter**
 
 - [x] Add an opt-in `wrapItem(nodeId, content)` prop to `SavedViewRunner` (default unwrapped — additive, zero change to existing renders) and thread it to the **cards** renderer.
-  - [ ] Extend the same prop to the **feed / timeline / gallery** renderers (follow-up; cards is the highest-value card surface).
+  - [x] Extend the same prop to the **feed** renderer (`SavedViewVisualFeed` — both grid + list layouts wrap by `sourceNodeId`).
+    - [ ] Extend to the **timeline / gallery / canvas** renderers (follow-up).
 - [x] Wrap data-workspace cards in `ModeratedMedia` from `DataWorkspaceView.tsx` (`gateVisualItem` → each card routes through the moderation gate, incl. the trust-gated labeler labels + "why filtered" explainer).
   - [ ] Wrap the content-feed views too (depends on the feed-renderer prop above).
 - [x] Add `sensitivityThreshold` filtering to `summarizeSearchModeration`; pass the viewer dial at query time.
