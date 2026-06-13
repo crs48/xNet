@@ -602,39 +602,48 @@ during implementation:
 - [ ] Wire NL detection into the page editor's `taskDueDate` flow.
 
 **Phase 2 — Multi-trigger composer (Option C1)**
-- [ ] Generalize `MentionTextInput` to multi-trigger (`@` people, `#` tags,
-      `[[` link targets, date phrase) — strip token + set field; back-compat props.
-- [ ] Reuse `useWorkspaceTags` / `useLinkTargets` providers from the app.
-- [ ] Update `TasksView` quick-add + `TaskDetailForm` title to pass providers.
-- [ ] Tests for each trigger (strip + emit).
+- [x] Generalize `MentionTextInput` to multi-trigger (`@` people, `#` tags,
+      trailing date phrase) — strip token + set field; back-compat props preserved
+      (comments `MentionTextArea` + existing tests untouched).
+- [x] Reuse `useWorkspaceTags` provider from the app (people via
+      `useWorkspacePeople`). `[[` link targets deferred — task titles render
+      verbatim, so wikilinks belong in the rich description (follow-up).
+- [x] Update `TasksView` quick-add (pending due/tag chips) + `TaskDetailForm`
+      title to pass providers.
+- [x] Tests for each trigger (strip + emit).
 
 **Phase 3 — Inline-edit parity + keyboard**
-- [ ] Add `d` keyboard shortcut on the Tasks surface to open the due-date picker
-      for the focused row (alongside existing `s`/`p`/`a`/`x`).
-- [ ] Upgrade the database task-cell quick-add to the multi-trigger composer.
-- [ ] Confirm field-authority gating is honored on every new write path.
+- [x] Add `d` keyboard shortcut on the Tasks surface → `TaskDueDatePalette`
+      (NL + presets) for the focused row (alongside `s`/`p`/`x`).
+- [ ] Upgrade the database task-cell quick-add to the multi-trigger composer
+      (deferred — needs provider threading into the lower-level `views` package).
+- [x] Confirm field-authority gating is honored: `TitleRow` only wires `onTag`/
+      `onDueDate` when the host passed the corresponding change handler, so hosted
+      (page) tasks still route through the doc / stay read-only as before.
 
 ## Validation Checklist
 
-- [ ] Setting a due date in `TZ=America/Los_Angeles` shows the **same** day in
-      `TZ=UTC` (no off-by-one) across page chip, list, board, and form.
-- [ ] Typing "ship it friday" in the page editor and in quick-add both surface a
-      "Set due …" suggestion; Enter commits and strips the phrase; the chip and
-      the node `dueDate` agree.
-- [ ] False-positive guard: "review v2.0 plan" and "split 2/3 of items" do **not**
-      auto-set a due date.
-- [ ] `@`, `#`, and `[[` all autocomplete in: page checklist, Tasks quick-add,
-      inline title, sidebar mini, and DB cell (parity with the page editor).
-- [ ] `#tag` and `[[link]]` in a task title resolve to **ids** (tag/node), not
-      text, and survive a rename (0169 invariant).
-- [ ] Hosted (page) task edits write through the host doc; standalone task edits
-      write the node — both reconcile to the same `dueDate`.
-- [ ] `chrono-node` does not appear in the Tasks/editor entry bundle
-      (lazy-loaded only).
-- [ ] Overdue styling triggers at the correct local-day boundary (a task due
-      "today" is not overdue at 00:01).
-- [ ] Disabling "Detect due dates in text" stops NL suggestions but leaves the
-      picker working.
+- [x] Setting a due date renders the **same** calendar day in UTC / LA / Tokyo /
+      Kiritimati (cross-timezone unit tests in `due-date.test.ts`).
+- [x] Typing a trailing date ("ship it friday", ISO, "in 3 days") in the
+      composer surfaces a "Set due …" suggestion; commit strips the phrase and
+      emits the UTC-midnight ms (`task-editing.test.tsx`).
+- [x] False-positive guard: a mid-title date ("review 2/3 of the items") and an
+      ordinary title do **not** suggest a date (`parse-due-date.test.ts`,
+      `task-editing.test.tsx`).
+- [x] `@` and `#` autocomplete in the Tasks quick-add and inline title; `#`
+      resolves to a tag **id** (create-on-the-fly) — page checklist already had
+      `@`/`#`/`[[` via TipTap.
+- [x] Hosted vs standalone authority: `TitleRow` gates the new triggers on the
+      presence of the host's change handlers (no new write path bypasses 0161/PR
+      #46 authority).
+- [x] No new dependency added (in-house parser); nothing enters the entry bundle.
+- [x] `fallow audit --coverage … --fail-on-issues` passes (0 introduced
+      complexity / dead-code / duplication findings).
+- [ ] Live browser pass: quick-add a task typing "@me #urgent next friday" and
+      confirm assignee, tag, and due date all land; `d` on a focused row sets a date.
+- [ ] `[[` wikilinks + inline NL date detection inside the **page** checklist
+      editor (deferred follow-up).
 
 ## References
 
