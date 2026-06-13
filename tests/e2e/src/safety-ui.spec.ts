@@ -25,12 +25,25 @@ const SIGNED_BLOCKLIST_FIXTURE = JSON.stringify({
   scope: 'community',
   issuerDID: 'did:key:z6Mkk4TrBu9RNcCWb6HK2Hb3EjJSFqkNg5kFSfAtPE68FStZ',
   entries: [
-    { subject: 'did:key:zSpammer', subjectType: 'did', action: 'reject', reason: 'spam', createdAt: 1000 },
-    { subject: 'did:key:zNoise', subjectType: 'did', action: 'hide', reason: 'noise', createdAt: 1000 }
+    {
+      subject: 'did:key:zSpammer',
+      subjectType: 'did',
+      action: 'reject',
+      reason: 'spam',
+      createdAt: 1000
+    },
+    {
+      subject: 'did:key:zNoise',
+      subjectType: 'did',
+      action: 'hide',
+      reason: 'noise',
+      createdAt: 1000
+    }
   ],
   signature: {
     alg: 'Ed25519',
-    value: '2aLdhT/L3OE2HkT7YP5+RKJgRovL6qySLlAqQyFuGeQmgIfifOJyUmqPHTIL9LrqBBq9+pygKWhoCjPzVtynAg=='
+    value:
+      '2aLdhT/L3OE2HkT7YP5+RKJgRovL6qySLlAqQyFuGeQmgIfifOJyUmqPHTIL9LrqBBq9+pygKWhoCjPzVtynAg=='
   }
 })
 
@@ -100,6 +113,23 @@ test.describe('Discovery + safety UI (0176)', () => {
     // Signature verified → both accounts applied (reject→blocked, hide→muted).
     await expect(page.getByText(/Imported 2 account\(s\)/i)).toBeVisible()
     await expect(page.getByText(/Blocked/).first()).toBeVisible()
+  })
+
+  test('a moderation labeler can be subscribed to from the Safety center', async ({ page }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+
+    await page.goto(`${BASE}/settings`)
+    await page.getByRole('button', { name: /Content & Safety/i }).click()
+
+    await expect(page.getByRole('heading', { name: /Subscribed labelers/i })).toBeVisible()
+    await page.getByLabel('Labeler DID').fill('did:key:zE2ELabeler')
+    await page.getByLabel('Trust level').selectOption({ label: 'Trusted (strong)' })
+    await page.getByRole('button', { name: 'Subscribe' }).click()
+
+    // The subscription persists and renders with its DID + a Remove control.
+    await expect(page.getByText('did:key:zE2ELabeler')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible()
   })
 
   test('the Requests inbox is reachable from the Rail (first-contact)', async ({ page }) => {

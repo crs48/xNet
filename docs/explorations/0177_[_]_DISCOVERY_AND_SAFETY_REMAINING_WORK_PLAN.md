@@ -375,10 +375,12 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 
 ### Milestone 2 — Decentralized moderation + on-device ML
 **W3 — subscriptions**
-- [ ] Subscribe UI in Settings → Safety: add a labeler (DID + trust level/weight) → persist via `PolicySubscriptionSchema`/a `LabelerSubscription` node.
+- [x] Subscribe UI in Settings → Safety: add a labeler (DID + trust level/weight) → persist via `PolicySubscriptionSchema` (`useLabelerSubscriptions`; subscribe/enable-disable/remove).
 - [x] Import a signed `PolicyBlockList` (verify with `verifySignedPolicyBlockList`); apply its entries.
-- [ ] Adapter: persisted subscriptions → runtime `LabelerTrustSetting`s at startup; feed into `decideAbuse`.
-- [ ] Surface subscribed labelers + a "filtered by labeler X" attribution in the Safety Center.
+- [x] Adapter: persisted subscriptions → runtime `LabelerTrustSetting`s (`subscriptionToTrustSetting`/`subscriptionsToTrustSettings` in `@xnetjs/abuse`, exposed as `trustSettings`).
+  - [ ] Consume `trustSettings` in `decideAbuse` at the render gate (weight per-subject `ModerationLabel`s from subscribed labelers) — the label-distribution wiring, deferred.
+- [x] Surface subscribed labelers in the Safety Center (list + trust level + enable/remove).
+  - [ ] "Filtered by labeler X" attribution on individual filtered content — pairs with the gate-consumption above.
 
 **W4 — on-device image ML**
 - [ ] Add an ONNX NSFW model (NSFWJS/Falconsai via `@xenova/transformers`); inject as the `createNsfwImageClassifier` detector.

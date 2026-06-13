@@ -52,7 +52,9 @@ export {
   createTrustedLabelFromSetting,
   evaluateReportEscalation,
   evaluateLabelerSubscriptionLimit,
-  evaluateLabelerTrust
+  evaluateLabelerTrust,
+  subscriptionToTrustSetting,
+  subscriptionsToTrustSettings
 } from './labeler-trust'
 export {
   groupCommunityNoteRatingsByPerspective,
@@ -192,6 +194,7 @@ export type {
   LabelerTrustLevel,
   LabelerTrustScope,
   LabelerTrustSetting,
+  PolicySubscriptionTrustInput,
   ReportEscalationDecision,
   ReportEscalationInput
 } from './labeler-trust'
