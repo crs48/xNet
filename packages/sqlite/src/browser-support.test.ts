@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { checkPersistentStorage, requestPersistentStorage } from './browser-support'
+import {
+  checkPersistentStorage,
+  isSilentPersistRequestSafe,
+  requestPersistentStorage,
+  watchPersistentStoragePermission
+} from './browser-support'
 
 type StorageEstimate = {
   usage?: number
@@ -131,5 +136,81 @@ describe('requestPersistentStorage', () => {
       quotaBytes: 16384
     })
     expect(status.message).toContain('permission denied')
+  })
+})
+
+describe('isSilentPersistRequestSafe', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('treats Chromium as silent-request safe', () => {
+    vi.stubGlobal('navigator', {
+      userAgent:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+    })
+    expect(isSilentPersistRequestSafe()).toBe(true)
+  })
+
+  it('treats Safari as silent-request safe', () => {
+    vi.stubGlobal('navigator', {
+      userAgent:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15'
+    })
+    expect(isSilentPersistRequestSafe()).toBe(true)
+  })
+
+  it('treats Firefox as prompt-capable', () => {
+    vi.stubGlobal('navigator', {
+      userAgent:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:127.0) Gecko/20100101 Firefox/127.0'
+    })
+    expect(isSilentPersistRequestSafe()).toBe(false)
+  })
+
+  it('is false without a navigator', () => {
+    vi.stubGlobal('navigator', undefined)
+    expect(isSilentPersistRequestSafe()).toBe(false)
+  })
+})
+
+describe('watchPersistentStoragePermission', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('reports permission changes and detaches on unsubscribe', async () => {
+    const listeners = new Set<() => void>()
+    const status = {
+      state: 'prompt' as PermissionState,
+      addEventListener: vi.fn((_: string, listener: () => void) => listeners.add(listener)),
+      removeEventListener: vi.fn((_: string, listener: () => void) => listeners.delete(listener))
+    }
+    vi.stubGlobal('navigator', {
+      permissions: { query: vi.fn().mockResolvedValue(status) }
+    })
+
+    const onChange = vi.fn()
+    const unsubscribe = watchPersistentStoragePermission(onChange)
+    await vi.waitFor(() => expect(status.addEventListener).toHaveBeenCalled())
+
+    status.state = 'granted'
+    for (const listener of listeners) listener()
+    expect(onChange).toHaveBeenCalledWith('granted')
+
+    unsubscribe()
+    expect(status.removeEventListener).toHaveBeenCalled()
+    expect(listeners.size).toBe(0)
+  })
+
+  it('is a no-op when the Permissions API is unavailable', async () => {
+    vi.stubGlobal('navigator', {})
+
+    const onChange = vi.fn()
+    const unsubscribe = watchPersistentStoragePermission(onChange)
+    await Promise.resolve()
+
+    unsubscribe()
+    expect(onChange).not.toHaveBeenCalled()
   })
 })
