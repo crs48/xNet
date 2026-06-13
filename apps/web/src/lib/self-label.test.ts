@@ -1,6 +1,6 @@
 import { decideSensitivityVisibility } from '@xnetjs/abuse'
 import { describe, expect, it } from 'vitest'
-import { moderationRowToAbuseLabel } from './self-label'
+import { groupLabelsByTarget, moderationRowToAbuseLabel } from './self-label'
 
 describe('moderationRowToAbuseLabel', () => {
   it('maps a persisted moderation label row to an AbuseLabel', () => {
@@ -45,5 +45,24 @@ describe('moderationRowToAbuseLabel', () => {
     const label = moderationRowToAbuseLabel({ value: 'sexual' })
     expect(label.confidence).toBe(1)
     expect(label.sourceWeight).toBe(1)
+  })
+})
+
+describe('groupLabelsByTarget', () => {
+  it('groups label rows by their target node and skips rows without a target', () => {
+    const grouped = groupLabelsByTarget([
+      { target: 'msg-1', value: 'porn', confidence: 1, sourceWeight: 0.5 },
+      { target: 'msg-1', value: 'sexual', confidence: 1, sourceWeight: 0.5 },
+      { target: 'msg-2', value: 'nudity', confidence: 1, sourceWeight: 0.5 },
+      { value: 'spam' } // no target → dropped
+    ])
+    expect(
+      grouped
+        .get('msg-1')
+        ?.map((l) => l.value)
+        .sort()
+    ).toEqual(['porn', 'sexual'])
+    expect(grouped.get('msg-2')?.map((l) => l.value)).toEqual(['nudity'])
+    expect(grouped.size).toBe(2)
   })
 })

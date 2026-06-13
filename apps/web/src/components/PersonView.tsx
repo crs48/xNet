@@ -30,6 +30,7 @@ import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench } from '../workbench/state'
+import { PersonActions } from './PersonActions'
 
 const BOUNDED = { orderBy: { updatedAt: 'desc' as const }, limit: 200 }
 
@@ -198,14 +199,17 @@ export function PersonView({ did }: { did: string }) {
           </p>
         </div>
         {!isSelf && (
-          <button
-            type="button"
-            onClick={() => void message()}
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2"
-          >
-            <MessageCircle size={14} strokeWidth={1.5} />
-            Message
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void message()}
+              className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2"
+            >
+              <MessageCircle size={14} strokeWidth={1.5} />
+              Message
+            </button>
+            <PersonActions did={did} label={name} />
+          </div>
         )}
       </header>
 

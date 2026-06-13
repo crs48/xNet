@@ -191,3 +191,62 @@ export function useWave(): WaveController {
 
   return { wave }
 }
+
+export type ReceivedWave = {
+  id: string
+  fromDid: string
+  intentKind: ConnectionIntentKind
+  displayName: string
+}
+
+export interface ReceivedWavesController {
+  waves: ReceivedWave[]
+  ignore: (id: string) => Promise<void>
+}
+
+/**
+ * Pending waves addressed to me (the receiving side of the double opt-in). The
+ * /discover surface lists these so I can wave back (→ mutual match + DM) or
+ * ignore. Without this, the wave loop is write-only.
+ */
+export function useReceivedWaves(): ReceivedWavesController {
+  const { authorDID } = useXNet()
+  const bridge = useDataBridge()
+  const me = authorDID ?? ''
+  const { data: waves } = useQuery(ConnectionWaveSchema, {
+    where: { toDid: me as `did:key:${string}`, status: 'pending' }
+  })
+  const { data: people } = useQuery(ProfileSchema, {})
+
+  const list = useMemo<ReceivedWave[]>(() => {
+    if (!me) return []
+    const personByDid = new Map<string, Row>()
+    for (const person of (people ?? []) as unknown as Row[]) {
+      const did = str(person.did)
+      if (did) personByDid.set(did, person)
+    }
+    return ((waves ?? []) as unknown as Row[])
+      .filter((row) => str(row.toDid) === me && str(row.status) === 'pending')
+      .map((row) => {
+        const fromDid = str(row.fromDid) ?? ''
+        const person = personByDid.get(fromDid)
+        return {
+          id: str(row.id) ?? '',
+          fromDid,
+          intentKind: (str(row.intentKind) as ConnectionIntentKind) ?? 'friends',
+          displayName: (person && str(person.displayName)) ?? `${fromDid.slice(0, 16)}…`
+        }
+      })
+      .filter((wave) => wave.id && wave.fromDid)
+  }, [me, waves, people])
+
+  const ignore = useCallback(
+    async (id: string) => {
+      if (!bridge) return
+      await bridge.update(id, { status: 'expired' })
+    },
+    [bridge]
+  )
+
+  return { waves: list, ignore }
+}

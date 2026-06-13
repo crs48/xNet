@@ -22,6 +22,7 @@ import {
 import { useState, useCallback } from 'react'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
+import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { PluginManager } from '../components/PluginManager'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { logout } from '../lib/identity'
@@ -129,7 +130,12 @@ function SettingsPage() {
       <div className="flex-1 overflow-auto p-6">
         {activeSection === 'profile' && <ProfileSettings />}
         {activeSection === 'appearance' && <AppearanceSettings />}
-        {activeSection === 'safety' && <ContentSafetySettings />}
+        {activeSection === 'safety' && (
+          <div className="space-y-10">
+            <ContentSafetySettings />
+            <SafetyCenterSettings />
+          </div>
+        )}
         {activeSection === 'data' && <DataSettings />}
         {activeSection === 'network' && <NetworkSettings />}
         {activeSection === 'plugins' && <PluginManager />}
