@@ -31,6 +31,7 @@ import { createDiscoveryRoutes } from './routes/dids'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
 import { createKeyRegistryRoutes } from './routes/keys'
+import { createPublicRoutes } from './routes/public'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
 import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
@@ -206,6 +207,71 @@ const isClientHandshake = (
 const topicToResource = (topic: string): string =>
   topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
 
+// ─── Space containment maintenance (exploration 0179) ─────────────────────────
+// Schemas that carry a `space` relation (their canonical security home).
+const SPACEABLE_SCHEMA_PREFIXES = [
+  'xnet://xnet.fyi/Page',
+  'xnet://xnet.fyi/Database',
+  'xnet://xnet.fyi/Canvas',
+  'xnet://xnet.fyi/Dashboard',
+  'xnet://xnet.fyi/Project',
+  'xnet://xnet.fyi/Channel',
+  'xnet://xnet.fyi/Task'
+]
+const SPACE_SCHEMA_PREFIX = 'xnet://xnet.fyi/Space'
+
+const firstRelationId = (value: unknown): string | null => {
+  if (typeof value === 'string') return value.trim() || null
+  if (Array.isArray(value)) return value.length > 0 ? firstRelationId(value[0]) : null
+  if (value && typeof value === 'object' && 'id' in value) {
+    const id = (value as { id?: unknown }).id
+    return typeof id === 'string' ? id.trim() || null : null
+  }
+  return null
+}
+
+type ContainmentChange = {
+  nodeId?: string
+  schemaId?: string
+  payload?: {
+    nodeId?: string
+    schemaId?: string
+    properties?: Record<string, unknown>
+    deleted?: boolean
+  }
+}
+
+/**
+ * Keep the hub's node→container index fresh from relayed node-changes so
+ * container (Space) grants resolve. A content node's container is its `space`;
+ * a Space's container is its `parent`. Only updates when the relevant property
+ * is actually present in the change (partial CRDT updates never clobber it).
+ */
+const maintainSpaceContainment = async (
+  storage: HubStorage,
+  change: ContainmentChange
+): Promise<void> => {
+  const nodeId = change.payload?.nodeId ?? change.nodeId
+  const schemaId = change.schemaId ?? change.payload?.schemaId
+  const properties = change.payload?.properties
+  if (!nodeId || !schemaId || !properties || change.payload?.deleted) return
+  const hasKey = (k: string): boolean => Object.prototype.hasOwnProperty.call(properties, k)
+  const recordVisibility = async (): Promise<void> => {
+    if (!hasKey('visibility')) return
+    const value = properties.visibility
+    await storage.setNodeVisibility(nodeId, typeof value === 'string' ? value : null)
+  }
+  if (schemaId.startsWith(SPACE_SCHEMA_PREFIX)) {
+    if (hasKey('parent')) await storage.setNodeContainer(nodeId, firstRelationId(properties.parent))
+    await recordVisibility()
+    return
+  }
+  if (SPACEABLE_SCHEMA_PREFIXES.some((prefix) => schemaId.startsWith(prefix))) {
+    if (hasKey('space')) await storage.setNodeContainer(nodeId, firstRelationId(properties.space))
+    await recordVisibility()
+  }
+}
+
 const getPublishPeerId = (payload: { data?: unknown }): string | null => {
   if (!isRecord(payload.data)) return null
   return typeof payload.data.from === 'string' ? payload.data.from : null
@@ -217,7 +283,7 @@ type AuthzDecision = {
   allowed: boolean
   code?: AuthzCode
   message?: string
-  source?: 'capability' | 'grant-index'
+  source?: 'capability' | 'grant-index' | 'space-grant'
 }
 
 const isTokenExpired = (session: AuthSession): boolean => {
@@ -233,7 +299,7 @@ const logAuthDecision = (input: {
   did: string
   action: string
   resource: string
-  source?: 'capability' | 'grant-index'
+  source?: 'capability' | 'grant-index' | 'space-grant'
   code?: AuthzCode
   reason?: string
 }): void => {
@@ -320,6 +386,23 @@ const authorizeRoomAction = async (input: {
       source: 'grant-index'
     })
     return { allowed: true, source: 'grant-index' }
+  }
+
+  // Container (Space) membership: a member of an ancestor Space may access nodes
+  // beneath it even without a direct per-doc grant (exploration 0179).
+  if (
+    input.shareAccess &&
+    input.session.did !== 'did:key:anonymous' &&
+    (await input.shareAccess.canAccessNode(input.session.did, resource))
+  ) {
+    logAuthDecision({
+      allowed: true,
+      did: input.session.did,
+      action: input.action,
+      resource,
+      source: 'space-grant'
+    })
+    return { allowed: true, source: 'space-grant' }
   }
 
   if (Array.isArray(input.session.token?.prf) && input.session.token.prf.length > 0) {
@@ -735,6 +818,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       onGrantsChanged: (did, docId) => shareAccess.invalidate(did, docId)
     })
   )
+  // Unauthenticated, read-only public access (exploration 0179) — gated on
+  // effective visibility === 'public'; never bypasses the grant model otherwise.
+  app.route('/public', createPublicRoutes({ storage }))
   app.route(
     '/',
     createShareInterstitialRoutes({
@@ -1352,6 +1438,12 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
               try {
                 const isNew = await nodeRelay.handleNodeChange(payload.data, authContext)
+                // Maintain the Space containment index (best-effort, never blocks relay).
+                try {
+                  await maintainSpaceContainment(storage, payload.data.change)
+                } catch {
+                  /* containment is advisory; a failure must not drop the change */
+                }
                 if (!isNew) return
               } catch (err) {
                 if (err instanceof NodeRelayError) {

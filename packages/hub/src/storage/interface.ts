@@ -361,6 +361,27 @@ export type HubStorage = {
   ) => Promise<GrantIndexRecord | null>
   revokeGrant: (grantId: string, revokedAt?: number) => Promise<void>
 
+  // ─── Space containment index (exploration 0179) ─────────────────────────────
+  // A uniform parent pointer per node: a content node points to its Space; a
+  // Space points to its parent Space. Walking it from any node yields exactly
+  // that node's ancestor Spaces, which is how container (subtree) grants are
+  // resolved — a grant whose resource is a Space id covers every node beneath it.
+  /** Set (or clear, with null) a node's container. */
+  setNodeContainer: (nodeId: string, containerId: string | null) => Promise<void>
+  /** A node's immediate container id, or null. */
+  getNodeContainer: (nodeId: string) => Promise<string | null>
+  /** Ancestor container ids, nearest-first; cycle- and depth-bounded. */
+  ancestorContainers: (nodeId: string, maxDepth?: number) => Promise<string[]>
+  /** Direct children of a container (nodes whose immediate container is this id). */
+  listContainedNodes: (containerId: string) => Promise<string[]>
+
+  // ─── Node visibility index (exploration 0179) ───────────────────────────────
+  // The private→public dial. `inherit` (or absent) defers to the node's Space.
+  /** Set (or clear, with null) a node's own visibility. */
+  setNodeVisibility: (nodeId: string, visibility: string | null) => Promise<void>
+  /** A node's own visibility, or null when unset/inherited. */
+  getNodeVisibility: (nodeId: string) => Promise<string | null>
+
   insertShareLink: (record: ShareLinkRecord) => Promise<void>
   getShareLink: (linkId: string) => Promise<ShareLinkRecord | null>
   listShareLinks: (docId: string) => Promise<ShareLinkRecord[]>

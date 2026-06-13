@@ -9,7 +9,7 @@
 
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text, relation } from '../properties'
+import { text, relation, select } from '../properties'
 
 export const CanvasSchema = defineSchema({
   name: 'Canvas',
@@ -28,7 +28,21 @@ export const CanvasSchema = defineSchema({
     sortKey: text({ maxLength: 500 }),
 
     /** Workspace-wide labels, referenced by id (exploration 0169) */
-    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true })
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true }),
+
+    /** Canonical SECURITY home; empty = personal/private (exploration 0179) */
+    space: relation({ target: 'xnet://xnet.fyi/Space@1.0.0' as const }),
+
+    /** Per-node visibility; `inherit` defers to the Space (exploration 0179) */
+    visibility: select({
+      options: [
+        { id: 'inherit', name: 'Inherit', color: 'gray' },
+        { id: 'private', name: 'Private', color: 'gray' },
+        { id: 'unlisted', name: 'Unlisted', color: 'yellow' },
+        { id: 'public', name: 'Public', color: 'green' }
+      ] as const,
+      default: 'inherit'
+    })
   },
   document: 'yjs' // Collaborative Y.Doc for canvas data (nodes, edges)
 })
