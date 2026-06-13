@@ -87,8 +87,17 @@ export {
   type SavedViewSortDirection,
   type SavedViewVisualCanvasProjectionRequest,
   type SavedViewVisualLayoutId,
-  type SavedViewVisualLayoutOption
+  type SavedViewVisualLayoutOption,
+  type SavedViewPresentationMode,
+  type SavedViewFeedDensity,
+  type SavedViewFeedLayout
 } from './components/SavedViewRunner'
+export {
+  SavedViewVisualFeed,
+  mergeSavedViewFeedEnrichment,
+  type SavedViewFeedEnrichmentAdapter,
+  type SavedViewFeedEnrichmentEntry
+} from './components/SavedViewVisualFeed'
 export {
   deriveCachedSavedViewVisualPreviews,
   createSavedViewCanvasProjectionNodes,

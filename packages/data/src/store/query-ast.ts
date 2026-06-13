@@ -202,12 +202,35 @@ export type QueryASTPlannerGate = {
   blockers: string[]
 }
 
+export type SavedViewFeedLayout = 'list' | 'grid'
+
+export type SavedViewFeedDensity = 'compact' | 'cozy' | 'comfortable'
+
+export type SavedViewPresentationHintMode =
+  | 'table'
+  | 'cards'
+  | 'timeline'
+  | 'canvas'
+  | 'graph'
+  | 'feed'
+
+/**
+ * Optional rendering hint persisted with a saved view so specialized views
+ * (for example media feeds) can open in their intended presentation.
+ */
+export type SavedViewPresentationHint = {
+  mode?: SavedViewPresentationHintMode
+  feedLayout?: SavedViewFeedLayout
+  feedDensity?: SavedViewFeedDensity
+}
+
 export type SavedViewDescriptor = {
   version: QueryASTVersion
   title: string
   query: QueryAST
   description?: string
   scope?: 'user' | 'workspace' | 'database'
+  presentation?: SavedViewPresentationHint
 }
 
 function schemaIdFor<P extends Record<string, PropertyBuilder>>(
@@ -1152,6 +1175,15 @@ export function validateQueryAST(value: unknown): QueryASTValidationResult {
   }
 }
 
+const SAVED_VIEW_PRESENTATION_HINT_MODES: readonly SavedViewPresentationHintMode[] = [
+  'table',
+  'cards',
+  'timeline',
+  'canvas',
+  'graph',
+  'feed'
+]
+
 export function validateSavedViewDescriptor(value: unknown): QueryASTValidationResult {
   const descriptor = objectValue(value)
   const errors: QueryASTValidationError[] = []
@@ -1188,6 +1220,57 @@ export function validateSavedViewDescriptor(value: unknown): QueryASTValidationR
     descriptor.scope !== 'database'
   ) {
     pushError(errors, '$.scope', 'SAVED_VIEW_DESCRIPTOR_SCOPE', 'Unsupported saved view scope')
+  }
+
+  if (descriptor.presentation !== undefined) {
+    const presentation = objectValue(descriptor.presentation)
+    if (!presentation) {
+      pushError(
+        errors,
+        '$.presentation',
+        'SAVED_VIEW_DESCRIPTOR_PRESENTATION',
+        'Presentation hint must be an object'
+      )
+    } else {
+      if (
+        presentation.mode !== undefined &&
+        !SAVED_VIEW_PRESENTATION_HINT_MODES.includes(
+          presentation.mode as SavedViewPresentationHintMode
+        )
+      ) {
+        pushError(
+          errors,
+          '$.presentation.mode',
+          'SAVED_VIEW_DESCRIPTOR_PRESENTATION',
+          'Unsupported presentation mode'
+        )
+      }
+      if (
+        presentation.feedLayout !== undefined &&
+        presentation.feedLayout !== 'list' &&
+        presentation.feedLayout !== 'grid'
+      ) {
+        pushError(
+          errors,
+          '$.presentation.feedLayout',
+          'SAVED_VIEW_DESCRIPTOR_PRESENTATION',
+          'Unsupported feed layout'
+        )
+      }
+      if (
+        presentation.feedDensity !== undefined &&
+        presentation.feedDensity !== 'compact' &&
+        presentation.feedDensity !== 'cozy' &&
+        presentation.feedDensity !== 'comfortable'
+      ) {
+        pushError(
+          errors,
+          '$.presentation.feedDensity',
+          'SAVED_VIEW_DESCRIPTOR_PRESENTATION',
+          'Unsupported feed density'
+        )
+      }
+    }
   }
 
   const queryResult = validateQueryAST(descriptor.query)

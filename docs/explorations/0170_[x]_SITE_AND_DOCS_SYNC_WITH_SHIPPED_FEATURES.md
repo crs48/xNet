@@ -443,8 +443,7 @@ export const phases: RoadmapPhase[] = [
       identity); replace the gradient placeholder in `TheApp.astro:49-83`
       (plain `<img>` from `public/images/` — site workspace has no sharp, so
       `astro:assets` optimization is unavailable; PNGs are ~78 KB each)
-- [x] Expand `TheApp.astro` tool grid: + Dashboards, + Chat & Calls,
-      + Notifications, + Instant search (8 tools keeps the 2-col grid even)
+- [x] Expand `TheApp.astro` tool grid: + Dashboards, + Chat & Calls, + Notifications, + Instant search (8 tools keeps the 2-col grid even)
 - [x] Add "Built for agents" section (SKILL.md, `xnet` CLI, 0.111x tokens, slim MCP)
       and link it from `ForDevelopers.astro`
 - [x] `Hubs.astro`: added call signaling + abuse protection (mention validation);

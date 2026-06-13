@@ -58,6 +58,39 @@ describe('saved view visual previews', () => {
     expect(isSavedViewVisualPreviewEmbeddable(preview)).toBe(true)
   })
 
+  it('derives descriptions and platform content ids for feed rendering', () => {
+    const preview = deriveSavedViewVisualPreview({
+      id: 'content-2',
+      schemaId: 'xnet://xnet.fyi/SocialContent@1.0.0',
+      platform: 'instagram',
+      contentKind: 'post',
+      platformContentId: 'post-42',
+      title: 'Saved post',
+      textPreview: 'A longer caption preview for the saved post.',
+      privacyClass: 'public',
+      visibility: 'public'
+    })
+
+    expect(preview).toMatchObject({
+      title: 'Saved post',
+      description: 'A longer caption preview for the saved post.',
+      platformContentId: 'post-42'
+    })
+  })
+
+  it('omits descriptions that duplicate the derived title', () => {
+    const preview = deriveSavedViewVisualPreview({
+      id: 'content-3',
+      schemaId: 'xnet://xnet.fyi/SocialContent@1.0.0',
+      platform: 'instagram',
+      textPreview: 'Caption only post',
+      privacyClass: 'public'
+    })
+
+    expect(preview.title).toBe('Caption only post')
+    expect(preview.description).toBeUndefined()
+  })
+
   it('derives actor previews and detects self actors', () => {
     const row = {
       id: 'actor-1',

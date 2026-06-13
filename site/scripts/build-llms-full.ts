@@ -19,9 +19,7 @@ interface DocPage {
 // Section order comes from the sidebar (src/sidebar.mjs) — the same order a
 // human reads the docs in. Slugs there look like 'docs/guides/canvas'; paths
 // here are relative to the docs/ content root, so strip the prefix.
-const SECTION_ORDER: string[] = orderedDocSlugs.map((slug: string) =>
-  slug.replace(/^docs\//, '')
-)
+const SECTION_ORDER: string[] = orderedDocSlugs.map((slug: string) => slug.replace(/^docs\//, ''))
 
 // Content files intentionally absent from the sidebar (and from llms-full.txt).
 const EXCLUDED_FROM_SIDEBAR: string[] = []
@@ -110,10 +108,7 @@ async function buildLlmsFull() {
   // navigation and with arbitrary placement in llms-full.txt.
   const unlisted = files
     .map((file) => docSlug(file, docsDir))
-    .filter(
-      (slug) =>
-        !SECTION_ORDER.includes(slug) && !EXCLUDED_FROM_SIDEBAR.includes(slug)
-    )
+    .filter((slug) => !SECTION_ORDER.includes(slug) && !EXCLUDED_FROM_SIDEBAR.includes(slug))
   if (unlisted.length > 0) {
     throw new Error(
       `Docs pages missing from src/sidebar.mjs (add them to the sidebar or to EXCLUDED_FROM_SIDEBAR):\n` +

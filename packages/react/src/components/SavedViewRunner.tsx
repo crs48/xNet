@@ -12,7 +12,10 @@ import type {
   QueryASTNodeQuery,
   QueryASTOrderBy,
   QueryASTPredicate,
-  SavedViewDescriptor
+  SavedViewDescriptor,
+  SavedViewFeedDensity,
+  SavedViewFeedLayout,
+  SavedViewPresentationHint
 } from '@xnetjs/data'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode, JSX } from 'react'
@@ -25,6 +28,7 @@ import {
   ExternalLink,
   FileSearch,
   Filter,
+  GalleryVerticalEnd,
   GitBranch,
   Image,
   Info,
@@ -44,6 +48,7 @@ import {
 } from 'lucide-react'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useSavedView } from '../hooks/useSavedView'
+import { SavedViewVisualFeed, type SavedViewFeedEnrichmentAdapter } from './SavedViewVisualFeed'
 import {
   createSavedViewCanvasProjectionNodes,
   deriveCachedSavedViewVisualPreviews,
@@ -74,6 +79,7 @@ export type SavedViewRunnerProps = {
   onOpenVisualCanvasProjection?: (
     request: SavedViewVisualCanvasProjectionRequest
   ) => void | Promise<void>
+  feedEnrichment?: SavedViewFeedEnrichmentAdapter
 }
 
 export type SavedViewResultTableProps = {
@@ -195,7 +201,9 @@ export type SavedViewGraphLensNode = SavedViewGraphLensSelection & {
   sourceRecordId: string | null
 }
 
-export type SavedViewPresentationMode = 'table' | 'cards' | 'timeline' | 'canvas' | 'graph'
+export type SavedViewPresentationMode = 'table' | 'cards' | 'timeline' | 'canvas' | 'graph' | 'feed'
+
+export type { SavedViewFeedDensity, SavedViewFeedLayout } from '@xnetjs/data'
 
 type SavedViewPresentationModeOption = {
   mode: SavedViewPresentationMode
@@ -850,7 +858,8 @@ export function SavedViewRunner({
   options: baseOptions,
   onSaveLens,
   saveLensLabel = 'Save lens',
-  onOpenVisualCanvasProjection
+  onOpenVisualCanvasProjection,
+  feedEnrichment
 }: SavedViewRunnerProps): JSX.Element {
   const [activeQueryId, setActiveQueryId] = useState<string | null>(null)
   const [searchText, setSearchText] = useState('')
@@ -867,6 +876,9 @@ export function SavedViewRunner({
   })
   const [presentationMode, setPresentationMode] = useState<SavedViewPresentationMode>('table')
   const [visualLayoutId, setVisualLayoutId] = useState<SavedViewVisualLayoutId>('platform-lanes')
+  const [feedLayout, setFeedLayout] = useState<SavedViewFeedLayout>('grid')
+  const [feedDensity, setFeedDensity] = useState<SavedViewFeedDensity>('cozy')
+  const [appliedPresentationHintKey, setAppliedPresentationHintKey] = useState<string | null>(null)
   const [activeEmbedPreviewId, setActiveEmbedPreviewId] = useState<string | null>(null)
   const [saveLensState, setSaveLensState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveLensError, setSaveLensError] = useState<string | null>(null)
@@ -966,6 +978,15 @@ export function SavedViewRunner({
     () => deriveSavedViewTimelineBuckets(visualPreviews),
     [visualPreviews]
   )
+  const feedPreviews = useMemo(
+    () => arrangeSavedViewVisualPreviews(visualPreviews, 'timeline'),
+    [visualPreviews]
+  )
+  const presentationHint = useMemo<SavedViewPresentationHint | null>(() => {
+    const resolved =
+      result.descriptor ?? (descriptor && typeof descriptor === 'object' ? descriptor : null)
+    return resolved?.presentation ?? null
+  }, [descriptor, result.descriptor])
   const relationshipCount = useMemo(
     () => visualPreviews.reduce((count, preview) => count + preview.relationships.length, 0),
     [visualPreviews]
@@ -1037,10 +1058,27 @@ export function SavedViewRunner({
     setDateBrushSelection({ field: null, bucketKeys: [] })
     setPresentationMode('table')
     setVisualLayoutId('platform-lanes')
+    setFeedLayout('grid')
+    setFeedDensity('cozy')
+    setAppliedPresentationHintKey(null)
     setActiveEmbedPreviewId(null)
     setSaveLensState('idle')
     setSaveLensError(null)
   }, [initialPageSize, resetIdentity])
+
+  useEffect(() => {
+    if (!presentationHint || appliedPresentationHintKey === resetIdentity) return
+
+    const hintedMode = presentationHint.mode
+    if (hintedMode) {
+      const option = presentationModeOptions.find((candidate) => candidate.mode === hintedMode)
+      if (!option?.enabled) return
+      setPresentationMode(hintedMode)
+    }
+    if (presentationHint.feedLayout) setFeedLayout(presentationHint.feedLayout)
+    if (presentationHint.feedDensity) setFeedDensity(presentationHint.feedDensity)
+    setAppliedPresentationHintKey(resetIdentity)
+  }, [appliedPresentationHintKey, presentationHint, presentationModeOptions, resetIdentity])
 
   useEffect(() => {
     if (!result.primaryQueryId) return
@@ -1386,7 +1424,7 @@ export function SavedViewRunner({
         activeMode={presentationMode}
         onSelectMode={setPresentationMode}
       />
-      {presentationMode !== 'table' && activeVisualLayout ? (
+      {presentationMode !== 'table' && presentationMode !== 'feed' && activeVisualLayout ? (
         <SavedViewVisualLayoutSettings
           options={visualLayoutOptions}
           activeLayoutId={activeVisualLayout.id}
@@ -1395,7 +1433,26 @@ export function SavedViewRunner({
       ) : null}
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
-        {presentationMode === 'cards' ? (
+        {presentationMode === 'feed' ? (
+          <SavedViewVisualFeed
+            previews={feedPreviews}
+            layout={feedLayout}
+            density={feedDensity}
+            enrichment={feedEnrichment}
+            onSelectLayout={setFeedLayout}
+            onSelectDensity={setFeedDensity}
+            selectedSourceNodeId={expandedRowId}
+            activeEmbedPreviewId={activeEmbedPreviewId}
+            onSelectPreview={(preview) =>
+              setExpandedRowId((current) =>
+                current === preview.sourceNodeId ? null : preview.sourceNodeId
+              )
+            }
+            onToggleLiveEmbed={(preview) =>
+              setActiveEmbedPreviewId((current) => (current === preview.id ? null : preview.id))
+            }
+          />
+        ) : presentationMode === 'cards' ? (
           <SavedViewVisualGrid
             previews={arrangedVisualPreviews}
             selectedSourceNodeId={expandedRowId}
@@ -1583,6 +1640,13 @@ function createSavedViewPresentationModeOptions(input: {
       description: 'Inspect rows and fields',
       icon: Table,
       enabled: true
+    },
+    {
+      mode: 'feed',
+      label: 'Feed',
+      description: 'Browse content as a media feed with list and grid layouts',
+      icon: GalleryVerticalEnd,
+      enabled: input.previewCount > 0
     },
     {
       mode: 'cards',
