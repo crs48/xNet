@@ -12,6 +12,11 @@ const workspaceAliases = {
   '@xnetjs/core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
   '@xnetjs/crypto': new URL('./packages/crypto/src/index.ts', import.meta.url).pathname,
   '@xnetjs/charts': new URL('./packages/charts/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/cloud-plans': new URL('./packages/cloud-plans/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/cloud-provisioner': new URL('./packages/cloud-provisioner/src/index.ts', import.meta.url)
+    .pathname,
+  '@xnetjs/cloud-identity': new URL('./packages/cloud-identity/src/index.ts', import.meta.url)
+    .pathname,
   '@xnetjs/dashboard': new URL('./packages/dashboard/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
@@ -75,8 +80,10 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,canvas-core,cli,comms,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
-            'packages/{abuse,canvas-core,cli,comms,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts'
+            'packages/{abuse,canvas-core,cli,cloud-plans,cloud-provisioner,cloud-identity,comms,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
+            'packages/{abuse,canvas-core,cli,cloud-plans,cloud-provisioner,cloud-identity,comms,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
+            // Control-plane app logic (xNet Cloud, explorations 0174/0175)
+            'apps/cloud/src/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread
