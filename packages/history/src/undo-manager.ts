@@ -40,7 +40,8 @@ export class UndoManager {
     this.options = {
       maxStackSize: options?.maxStackSize ?? 100,
       localOnly: options?.localOnly ?? true,
-      mergeInterval: options?.mergeInterval ?? 300
+      mergeInterval: options?.mergeInterval ?? 300,
+      surface: options?.surface ?? 'node'
     }
   }
 
@@ -83,7 +84,7 @@ export class UndoManager {
     }
 
     this.telemetry?.reportPerformance('history.undo', Date.now() - start)
-    this.telemetry?.reportUsage('history.undo', 1)
+    this.telemetry?.reportUsage(`history.undo.${this.options.surface}`, 1)
 
     const redoStack = this.getOrCreateStack(this.redoStacks, nodeId)
     redoStack.push(entry)
@@ -107,7 +108,7 @@ export class UndoManager {
     }
 
     this.telemetry?.reportPerformance('history.redo', Date.now() - start)
-    this.telemetry?.reportUsage('history.redo', 1)
+    this.telemetry?.reportUsage(`history.redo.${this.options.surface}`, 1)
 
     const undoStack = this.getOrCreateStack(this.undoStacks, nodeId)
     undoStack.push(entry)
@@ -208,6 +209,34 @@ export class UndoManager {
   /** Get redo stack size */
   getRedoCount(nodeId: NodeId): number {
     return this.redoStacks.get(nodeId)?.length ?? 0
+  }
+
+  /** All nodeIds with a non-empty undo or redo stack (the global scope) */
+  trackedNodeIds(): NodeId[] {
+    const ids = new Set<NodeId>()
+    for (const [nodeId, stack] of this.undoStacks) {
+      if (stack.length) ids.add(nodeId)
+    }
+    for (const [nodeId, stack] of this.redoStacks) {
+      if (stack.length) ids.add(nodeId)
+    }
+    return [...ids]
+  }
+
+  /** Whether any node anywhere has an undoable change (global canUndo) */
+  hasUndo(): boolean {
+    for (const stack of this.undoStacks.values()) {
+      if (stack.length) return true
+    }
+    return false
+  }
+
+  /** Whether any node anywhere has a redoable change (global canRedo) */
+  hasRedo(): boolean {
+    for (const stack of this.redoStacks.values()) {
+      if (stack.length) return true
+    }
+    return false
   }
 
   /** Clear all stacks for a node */

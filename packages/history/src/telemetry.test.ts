@@ -131,7 +131,7 @@ describe('UndoManager telemetry', () => {
       expect(perfCalls).toHaveLength(1)
 
       const usageCalls = telemetry.calls.filter(
-        (c) => c.method === 'reportUsage' && c.args[0] === 'history.undo'
+        (c) => c.method === 'reportUsage' && c.args[0] === 'history.undo.node'
       )
       expect(usageCalls).toHaveLength(1)
     }

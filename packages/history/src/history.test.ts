@@ -977,6 +977,52 @@ describe('UndoManager', () => {
     await store.update(node.id, { properties: { count: 2 } })
     expect(undo.canUndo(node.id)).toBe(false)
   })
+
+  it('hasUndo/hasRedo/trackedNodeIds reflect the global scope', async () => {
+    expect(undo.hasUndo()).toBe(false)
+    expect(undo.hasRedo()).toBe(false)
+    expect(undo.trackedNodeIds()).toEqual([])
+
+    const a = await store.create({ schemaId: TEST_SCHEMA, properties: { count: 1 } })
+    const b = await store.create({ schemaId: TEST_SCHEMA, properties: { count: 1 } })
+
+    expect(undo.hasUndo()).toBe(true)
+    expect(undo.hasRedo()).toBe(false)
+    expect(new Set(undo.trackedNodeIds())).toEqual(new Set([a.id, b.id]))
+
+    await undo.undoLatest()
+    expect(undo.hasRedo()).toBe(true)
+  })
+
+  it('undoLatest reverses the most recent action across different nodes', async () => {
+    // Two independent "surfaces": a folder node and a task node.
+    const folder = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Recipes' }
+    })
+    const task = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { status: 'todo' }
+    })
+
+    // Most recent action: change the task status.
+    const current = await store.get(task.id)
+    undo.capturePreChangeState(task.id, current!.properties)
+    await store.update(task.id, { properties: { status: 'done' } })
+
+    // Cmd+Z → reverses the task status (most recent), not the folder.
+    await undo.undoLatest()
+    expect((await store.get(task.id))!.properties.status).toBe('todo')
+    expect((await store.get(folder.id))!.deleted).not.toBe(true)
+
+    // Cmd+Z again → reverses the task creation.
+    await undo.undoLatest()
+    expect((await store.get(task.id))!.deleted).toBe(true)
+
+    // Cmd+Z again → reverses the folder creation.
+    await undo.undoLatest()
+    expect((await store.get(folder.id))!.deleted).toBe(true)
+  })
 })
 
 // ─── ScrubCache Tests ────────────────────────────────────────

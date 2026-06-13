@@ -314,6 +314,8 @@ export interface UndoManagerOptions {
   maxStackSize: number
   localOnly: boolean
   mergeInterval: number
+  /** Telemetry surface label ('node', 'canvas', …) for per-surface metrics */
+  surface: string
 }
 
 // ─── Playback ────────────────────────────────────────────────
