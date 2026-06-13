@@ -90,20 +90,71 @@ export class ShareAccessService {
     return status
   }
 
-  /** Whether the DID has been explicitly removed from the doc. */
+  /**
+   * Resolve a DID's effective status for a node, folding in container (Space)
+   * grants (exploration 0179). The most permissive of the node's direct grant
+   * and any ancestor-Space grant wins (Drive's expansive rule). An explicit
+   * per-doc removal (`revoked`) denies outright — a deny always wins, even over
+   * a space membership.
+   */
+  async getStatusForNode(did: string, docId: string): Promise<ShareStatus> {
+    const key = `node|${did}|${docId}`
+    const cached = this.cache.get(key)
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.status
+    }
+
+    const direct = await this.getStatus(did, docId)
+    let status: ShareStatus
+    if (direct === 'revoked') {
+      status = 'revoked'
+    } else {
+      let best: ShareLinkRole | null = direct === 'none' ? null : direct
+      const ancestors = await this.storage.ancestorContainers(docId)
+      for (const containerId of ancestors) {
+        const grant = await this.storage.getActiveGrant(did, containerId)
+        if (!grant) continue
+        const role = roleFromActions(grant.actions)
+        if (!best || compareShareRoles(role, best) > 0) best = role
+      }
+      status = best ?? 'none'
+    }
+
+    this.cache.set(key, { status, expiresAt: Date.now() + this.cacheTtlMs })
+    return status
+  }
+
+  /** Whether the DID has been explicitly removed from the doc (direct grant only). */
   async isDenied(did: string, docId: string): Promise<boolean> {
     return (await this.getStatus(did, docId)) === 'revoked'
   }
 
-  /** Drop cached restrictions after a grant changes (claim, role edit, revoke). */
+  /**
+   * Whether the DID may read/subscribe to a node — directly granted, or a
+   * member of an ancestor Space (exploration 0179). Explicit removal denies.
+   */
+  async canAccessNode(did: string, docId: string): Promise<boolean> {
+    const status = await this.getStatusForNode(did, docId)
+    return status === 'read' || status === 'comment' || status === 'write'
+  }
+
+  /**
+   * Drop cached restrictions after a grant changes (claim, role edit, revoke).
+   * Keys are either `did|docId` (direct) or `node|did|docId` (container-folded).
+   * A grant change always names the affected DID; because a container (Space)
+   * grant can move the status of any node beneath it, invalidating a DID clears
+   * every cached entry for that DID, not just the named doc.
+   */
   invalidate(did?: string, docId?: string): void {
     if (!did && !docId) {
       this.cache.clear()
       return
     }
     for (const key of this.cache.keys()) {
-      const [cachedDid, cachedDocId] = key.split('|')
-      if ((did && cachedDid === did) || (docId && cachedDocId === docId)) {
+      const parts = key.split('|')
+      const keyDid = parts.length === 3 ? parts[1] : parts[0]
+      const keyDoc = parts.length === 3 ? parts[2] : parts[1]
+      if ((did && keyDid === did) || (docId && keyDoc === docId)) {
         this.cache.delete(key)
       }
     }
@@ -120,7 +171,7 @@ export class ShareAccessService {
     docId: string,
     schemaId: string | undefined
   ): Promise<boolean> {
-    const status = await this.getStatus(did, docId)
+    const status = await this.getStatusForNode(did, docId)
     if (status === 'none' || status === 'write') return true
     if (status === 'comment') return isCommentSchema(schemaId)
     return false
@@ -131,7 +182,7 @@ export class ShareAccessService {
    * Comment grantees cannot — page bodies are Yjs, comments are node-changes.
    */
   async canWriteYjs(did: string, docId: string): Promise<boolean> {
-    const status = await this.getStatus(did, docId)
+    const status = await this.getStatusForNode(did, docId)
     return status === 'none' || status === 'write'
   }
 }

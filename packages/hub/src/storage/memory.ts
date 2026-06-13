@@ -67,6 +67,7 @@ export const createMemoryStorage = (): HubStorage => {
   const docRecipients = new Map<string, Set<string>>()
   const grantsById = new Map<string, GrantIndexRecord>()
   const shareLinksById = new Map<string, ShareLinkRecord>()
+  const nodeContainers = new Map<string, string>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
@@ -238,6 +239,26 @@ export const createMemoryStorage = (): HubStorage => {
     if (grant) {
       grantsById.set(grantId, { ...grant, revokedAt })
     }
+  }
+
+  const setNodeContainer = async (nodeId: string, containerId: string | null): Promise<void> => {
+    if (containerId && containerId !== nodeId) nodeContainers.set(nodeId, containerId)
+    else nodeContainers.delete(nodeId)
+  }
+
+  const getNodeContainer = async (nodeId: string): Promise<string | null> =>
+    nodeContainers.get(nodeId) ?? null
+
+  const ancestorContainers = async (nodeId: string, maxDepth = 32): Promise<string[]> => {
+    const ancestors: string[] = []
+    const seen = new Set<string>([nodeId])
+    let current = nodeContainers.get(nodeId) ?? null
+    while (current && !seen.has(current) && ancestors.length < maxDepth) {
+      ancestors.push(current)
+      seen.add(current)
+      current = nodeContainers.get(current) ?? null
+    }
+    return ancestors
   }
 
   const insertShareLink = async (record: ShareLinkRecord): Promise<void> => {
@@ -866,6 +887,9 @@ export const createMemoryStorage = (): HubStorage => {
     listGrantedDocIds,
     listGrantsForDoc,
     getActiveGrant,
+    setNodeContainer,
+    getNodeContainer,
+    ancestorContainers,
     revokeGrant,
     insertShareLink,
     getShareLink,

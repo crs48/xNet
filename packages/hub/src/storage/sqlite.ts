@@ -104,6 +104,14 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_share_links_doc ON share_links(doc_id);
 
+  -- Space containment index (exploration 0179): one parent pointer per node.
+  -- Content nodes point to their Space; a Space points to its parent Space.
+  CREATE TABLE IF NOT EXISTS node_container (
+    node_id TEXT PRIMARY KEY,
+    container_id TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_node_container_container ON node_container(container_id);
+
   CREATE TABLE IF NOT EXISTS backups (
     key TEXT PRIMARY KEY,
     doc_id TEXT NOT NULL,
@@ -742,6 +750,13 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       LIMIT 1
     `),
     revokeGrant: db.prepare('UPDATE grant_index SET revoked_at = ? WHERE grant_id = ?'),
+    setNodeContainer: db.prepare(`
+      INSERT INTO node_container (node_id, container_id)
+      VALUES (?, ?)
+      ON CONFLICT(node_id) DO UPDATE SET container_id = excluded.container_id
+    `),
+    clearNodeContainer: db.prepare('DELETE FROM node_container WHERE node_id = ?'),
+    getNodeContainer: db.prepare('SELECT container_id FROM node_container WHERE node_id = ?'),
     insertShareLink: db.prepare(`
       INSERT INTO share_links
         (link_id, doc_id, doc_type, role, secret_hash, created_by_did, label, expires_at, max_uses, use_count, disabled, created_at)
@@ -1775,6 +1790,28 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     stmts.revokeGrant.run(revokedAt, grantId)
   }
 
+  const setNodeContainer = async (nodeId: string, containerId: string | null): Promise<void> => {
+    if (containerId && containerId !== nodeId) stmts.setNodeContainer.run(nodeId, containerId)
+    else stmts.clearNodeContainer.run(nodeId)
+  }
+
+  const getNodeContainer = async (nodeId: string): Promise<string | null> => {
+    const row = stmts.getNodeContainer.get(nodeId) as { container_id: string } | undefined
+    return row?.container_id ?? null
+  }
+
+  const ancestorContainers = async (nodeId: string, maxDepth = 32): Promise<string[]> => {
+    const ancestors: string[] = []
+    const seen = new Set<string>([nodeId])
+    let current = await getNodeContainer(nodeId)
+    while (current && !seen.has(current) && ancestors.length < maxDepth) {
+      ancestors.push(current)
+      seen.add(current)
+      current = await getNodeContainer(current)
+    }
+    return ancestors
+  }
+
   const shareLinkRowToRecord = (row: ShareLinkRow): ShareLinkRecord => ({
     linkId: row.link_id,
     docId: row.doc_id,
@@ -2238,6 +2275,9 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     listGrantsForDoc,
     getActiveGrant,
     revokeGrant,
+    setNodeContainer,
+    getNodeContainer,
+    ancestorContainers,
     insertShareLink,
     getShareLink,
     listShareLinks,
