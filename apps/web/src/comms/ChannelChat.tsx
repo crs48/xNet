@@ -12,6 +12,7 @@ import { useDataBridge } from '@xnetjs/react/internal'
 import { cn, LinkifiedText, Popover, useListboxNavigation } from '@xnetjs/ui'
 import { Send, Shield } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { MessageActions } from '../components/MessageActions'
 import { ModeratedPost } from '../components/ModeratedMedia'
 import { PersonMentionChip } from '../components/PersonHovercard'
 import { useLinkTargets } from '../hooks/useLinkTargets'
@@ -157,21 +158,26 @@ function MessageRow({
   profiles,
   linkTargets,
   labels,
-  hiddenByBlock
+  hiddenByBlock,
+  me
 }: {
   message: ChatMessageRow
   profiles: ProfileEntry[]
   linkTargets: WikilinkTarget[]
   labels: readonly AbuseLabel[]
   hiddenByBlock: boolean
+  me: string
 }) {
   const author = displayName(message.createdBy ?? '?', profiles)
   return (
-    <li className="flex flex-col gap-0.5 px-3 py-1.5 hover:bg-surface-2/50">
+    <li className="group flex flex-col gap-0.5 px-3 py-1.5 hover:bg-surface-2/50">
       <div className="flex items-baseline gap-2">
         <span className="text-xs font-medium text-ink-1">{author}</span>
         <span className="font-mono text-[10px] text-ink-3">{formatTime(message.createdAt)}</span>
         <EditedTag message={message} />
+        <span className="ml-auto">
+          <MessageActions targetId={message.id} isOwn={message.createdBy === me} />
+        </span>
       </div>
       {/* Render gate (0176): blurred per the viewer's dial for sensitive labels,
           and hidden entirely for a blocked/muted author. */}
@@ -195,13 +201,16 @@ function MessageList({
   messages,
   profiles,
   linkTargets,
-  listRef
+  listRef,
+  me
 }: {
   messages: ChatMessageRow[]
   profiles: ProfileEntry[]
   linkTargets: WikilinkTarget[]
   listRef: React.RefObject<HTMLUListElement>
+  me: string
 }) {
+  const navigate = useNavigate()
   const ids = useMemo(() => messages.map((message) => message.id), [messages])
   const labelsByTarget = useContentLabelsBatch(ids)
   const blocks = useBlockList()
@@ -218,8 +227,14 @@ function MessageList({
   return (
     <ul ref={listRef} className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 py-2">
       {hiddenCount > 0 && (
-        <li className="px-3 py-1 text-[10px] text-ink-3">
-          🛡 {hiddenCount} message(s) hidden by your block/mute list
+        <li className="px-3 py-1">
+          <button
+            type="button"
+            onClick={() => void navigate({ to: '/settings' })}
+            className="text-[10px] text-ink-3 hover:text-ink-1"
+          >
+            🛡 {hiddenCount} message(s) hidden by your block/mute list — review
+          </button>
         </li>
       )}
       {messages.map((message) => (
@@ -230,6 +245,7 @@ function MessageList({
           linkTargets={linkTargets}
           labels={labelsByTarget.get(message.id) ?? NO_LABELS}
           hiddenByBlock={message.createdBy ? hidesContent(blocks.list, message.createdBy) : false}
+          me={me}
         />
       ))}
     </ul>
@@ -461,6 +477,7 @@ function ComposerSelfLabel({
 
 export function ChannelChat({ channelId }: { channelId: string }) {
   const bridge = useDataBridge()
+  const { me } = useComms()
   const { messages } = useChannelMessages(channelId)
   const { peers, session } = useRoomPresence(channelId)
   const profiles = useProfiles()
@@ -646,6 +663,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
         profiles={profiles}
         linkTargets={linkTargets}
         listRef={listRef}
+        me={me.did}
       />
       <TypingLine peers={typing} profiles={profiles} />
       <div className="relative border-t border-hairline p-2">
