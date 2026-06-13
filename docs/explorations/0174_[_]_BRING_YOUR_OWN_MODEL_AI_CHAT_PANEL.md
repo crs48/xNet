@@ -661,9 +661,10 @@ registerPanelView('right', { id: 'ai-chat', title: 'AI', component: AiChatPanel 
 
 ## Implementation Checklist
 
-- [ ] Define `ModelConnector` + `detectConnectors()` in
+- [x] Define `ModelConnector` + `detectConnectors()` in
       `packages/plugins/src/ai/connectors/` (reusing `isOllamaAvailable`,
-      provider presets).
+      provider presets). — shipped: `types.ts`/`detect.ts` + 10 tests;
+      `writeModeFor()` encodes the propose-only downgrade rule.
 - [ ] Build the **AI Chat panel** (`apps/web/src/ai-chat/`) with a
       token-streaming assistant bubble; register via `registerPanelView('right', …)`.
 - [ ] Wire the panel to `AiAgentRuntime` (threads/turns) and expose core MCP
@@ -684,11 +685,13 @@ registerPanelView('right', { id: 'ai-chat', title: 'AI', component: AiChatPanel 
 - [ ] Phase 3: **bridge daemon** (`tools/xnet-llm-bridge/`) spawning `claude -p
       --output-format stream-json`; Origin allowlist + pairing token; bundle
       with Electron (`apps/electron`).
-- [ ] Phase 3 / parallel: ship **files-first / local-MCP** integration so an
+- [x] Phase 3 / parallel: ship **files-first / local-MCP** integration so an
       existing Claude Code can drive xNet (the projection + `SKILL.md` exist;
-      add the MCP-server transport / `xnet mcp` entry point).
+      add the MCP-server transport / `xnet mcp` entry point). — shipped:
+      `xnet mcp serve` (stdio + hardened HTTP), see 0175.
 - [ ] Decide AI-conversation persistence model (panel-local vs. synced nodes).
-- [ ] Docs: a "Connect a model" page covering each tier and its setup.
+- [x] Docs: a "Connect a model" page covering each tier and its setup. —
+      shipped: [`docs/guides/connect-a-model.md`](../guides/connect-a-model.md).
 
 ## Validation Checklist
 

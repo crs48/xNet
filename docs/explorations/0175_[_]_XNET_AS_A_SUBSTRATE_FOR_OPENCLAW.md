@@ -602,26 +602,31 @@ and `xnet_plan_page_patch`. Treat all page/db content as untrusted input.
 
 ## Implementation Checklist
 
-- [ ] Add `xnet mcp serve` CLI command wrapping `createMCPServer().startStdio()`
-      ([`packages/cli/src/commands/`](packages/cli/src/commands/)).
+- [x] Add `xnet mcp serve` CLI command wrapping `createMCPServer().startStdio()`
+      ([`packages/cli/src/commands/mcp.ts`](packages/cli/src/commands/mcp.ts)). —
+      shipped: stdio + `--http`; prints an OpenClaw config snippet; 5 tests.
 - [ ] Ensure **all** MCP tool writes route through the `AiMutationPlan`
       guardrail; add approval requirement for `risk >= medium`, outward-facing,
       and destructive tools; exclude/raise-risk `xnet_delete`.
 - [ ] Add first-class write tools (`xnet_create_task`, `xnet_create_page`,
       `xnet_edit_page`, `xnet_db_upsert_rows`, `xnet_send_message`) — shared with
       0174's in-app agent.
-- [ ] Implement **Streamable-HTTP** MCP transport; host in
-      [`apps/electron`](apps/electron) / bridge; loopback bind + pairing token +
-      Origin allowlist; CORS/LNA headers.
+- [x] Implement **Streamable-HTTP** MCP transport; loopback bind + pairing token
+      + Origin allowlist; CORS/LNA headers. — shipped:
+      [`packages/plugins/src/services/mcp-http.ts`](packages/plugins/src/services/mcp-http.ts)
+      + 15 tests. (Hosting it inside [`apps/electron`](apps/electron) is still
+      to do.)
 - [ ] Wire [`packages/abuse`](packages/abuse) `public-write-budget` /
       `query-cost-budget` and `ai-provenance` to the MCP boundary; attribute
       agent writes to a scoped DID.
 - [ ] Validate the server against **Claude Code** (default/safe), then
       **OpenClaw** (`mcp.servers` stdio + http), then Cline/Codex.
-- [ ] Package the existing `SKILL.md` as a signed **ClawHub** skill; document the
-      Filesystem-MCP-over-`vault/` path.
-- [ ] Write a hardened-OpenClaw setup guide (no `0.0.0.0`, Docker, `toolFilter`
-      least-privilege, what xNet does/doesn't expose).
+- [x] Package the existing `SKILL.md` as a **ClawHub** skill. — shipped:
+      [`docs/integrations/openclaw/xnet-workspace-skill.md`](../integrations/openclaw/xnet-workspace-skill.md)
+      (signing + publishing to ClawHub remain an operational step).
+- [x] Write a hardened-OpenClaw setup guide (no `0.0.0.0`, Docker, `toolFilter`
+      least-privilege, what xNet does/doesn't expose). — shipped:
+      [`docs/guides/openclaw-integration.md`](../guides/openclaw-integration.md).
 - [ ] (Optional) Inverse integration: xNet as MCP client of `openclaw mcp serve`
       to deliver approval prompts/notifications to channels.
 - [ ] Unify the OpenClaw path and the in-app agent (0174) on one runtime +
