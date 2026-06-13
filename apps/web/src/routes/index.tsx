@@ -4,8 +4,9 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
-import { FileText, Database, Layout, Plus, ChevronDown, Network } from 'lucide-react'
+import { FileText, Database, Layout, Plus, ChevronDown, Network, Compass } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { hasOnboarded } from './welcome'
 import {
   CreateDocMenuItems,
   navigateToNewDoc,
@@ -131,6 +132,30 @@ function HomePage() {
           )}
         </div>
       </div>
+
+      {!hasOnboarded() && (
+        <Link
+          to="/welcome"
+          className="mb-4 flex items-center justify-between rounded-lg border border-border bg-accent/30 px-4 py-3 text-sm no-underline hover:bg-accent/50 hover:no-underline"
+        >
+          <span>
+            <strong className="font-medium text-foreground">Finish setting up</strong> — choose your
+            content filters and whether to be discoverable.
+          </span>
+          <ChevronDown size={16} className="-rotate-90 text-muted-foreground" />
+        </Link>
+      )}
+
+      <Link
+        to="/discover"
+        className="mb-6 flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-sm no-underline transition-colors hover:bg-accent hover:no-underline"
+      >
+        <Compass size={18} className="text-muted-foreground" />
+        <span>
+          <strong className="font-medium text-foreground">Discover people</strong> — find
+          collaborators and friends through shared interests.
+        </span>
+      </Link>
 
       {allDocs.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
