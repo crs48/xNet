@@ -16,6 +16,8 @@ export type NotificationReason =
   | 'comment'
   | 'keyword'
   | 'call-missed'
+  | 'connection-request'
+  | 'message-request'
   | 'system'
 
 export interface InboxItem {

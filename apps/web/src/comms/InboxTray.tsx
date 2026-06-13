@@ -20,6 +20,8 @@ const REASON_LABELS: Partial<Record<NotificationReason, string>> = {
   comment: 'comment',
   keyword: 'keyword',
   'call-missed': 'missed call',
+  'connection-request': 'wave',
+  'message-request': 'request',
   system: 'system'
 }
 
@@ -27,6 +29,8 @@ const FILTERS: Array<{ id: 'all' | NotificationReason; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'mention', label: 'Mentions' },
   { id: 'dm', label: 'DMs' },
+  { id: 'message-request', label: 'Requests' },
+  { id: 'connection-request', label: 'Waves' },
   { id: 'assigned', label: 'Assigned' },
   { id: 'reply', label: 'Replies' },
   { id: 'comment', label: 'Comments' }
@@ -36,6 +40,8 @@ const CHAT_SCHEMA = 'xnet://xnet.fyi/ChatMessage@1.0.0'
 const SNOOZE_MS = 60 * 60 * 1000
 
 function itemRoute(item: InboxItem): { to: string; params: Record<string, string> } | null {
+  if (item.reason === 'connection-request') return { to: '/discover', params: {} }
+  if (item.reason === 'message-request') return { to: '/requests', params: {} }
   if (!item.contextId) return null
   if (item.schemaId === CHAT_SCHEMA) {
     return { to: '/channel/$channelId', params: { channelId: item.contextId } }

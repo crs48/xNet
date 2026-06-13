@@ -63,7 +63,11 @@ export {
   pickBestConnector,
   defaultLocalServerProbes,
   probeOpenAiCompatible,
-  writeModeFor
+  writeModeFor,
+  WebLLMProvider,
+  createWebLLMProvider,
+  PromptApiProvider,
+  createPromptApiProvider
 } from './connectors'
 export type {
   ConnectorTier,
@@ -71,7 +75,12 @@ export type {
   WriteMode,
   ConnectorEnv,
   LocalServerProbe,
-  ConnectorDetection
+  ConnectorDetection,
+  WebLLMEngineLike,
+  WebLLMProviderOptions,
+  LanguageModelLike,
+  LanguageModelSessionLike,
+  PromptApiProviderOptions
 } from './connectors'
 export type {
   AiAgentApproval,

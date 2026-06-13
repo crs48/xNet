@@ -242,7 +242,11 @@ export {
   pickBestConnector,
   defaultLocalServerProbes,
   probeOpenAiCompatible,
-  writeModeFor
+  writeModeFor,
+  WebLLMProvider,
+  createWebLLMProvider,
+  PromptApiProvider,
+  createPromptApiProvider
 } from './ai'
 export type {
   // Prompt types
@@ -310,7 +314,12 @@ export type {
   WriteMode,
   ConnectorEnv,
   LocalServerProbe,
-  ConnectorDetection
+  ConnectorDetection,
+  WebLLMEngineLike,
+  WebLLMProviderOptions,
+  LanguageModelLike,
+  LanguageModelSessionLike,
+  PromptApiProviderOptions
 } from './ai'
 
 // AI surface contract (resources, tools, mutation plans, validation)

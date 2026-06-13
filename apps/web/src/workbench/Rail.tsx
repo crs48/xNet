@@ -18,8 +18,11 @@ import {
   Puzzle,
   Search,
   Settings,
+  Sparkles,
+  UserPlus,
   type LucideIcon
 } from 'lucide-react'
+import { useRequestCount } from '../hooks/useRequestCount'
 import { useWorkbenchContributions } from './contributions'
 import { useWorkbench } from './state'
 
@@ -33,18 +36,21 @@ const LEFT_VIEW_ITEMS: RailViewItem[] = [
   { id: 'explorer', label: 'Explorer', icon: Files },
   { id: 'chats', label: 'Chats', icon: MessageSquare },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare2 },
-  { id: 'data', label: 'Data', icon: Network }
+  { id: 'data', label: 'Data', icon: Network },
+  { id: 'ai-chat', label: 'AI', icon: Sparkles }
 ]
 
 function RailButton({
   label,
   icon: Icon,
   active,
+  badge,
   onClick
 }: {
   label: string
   icon: LucideIcon
   active?: boolean
+  badge?: number
   onClick: () => void
 }) {
   return (
@@ -59,6 +65,11 @@ function RailButton({
     >
       {active && <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-accent-ink" />}
       <Icon size={17} strokeWidth={1.5} />
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute right-1.5 top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-ink px-1 text-[8px] font-semibold leading-none text-surface-0">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
     </button>
   )
 }
@@ -69,6 +80,7 @@ export function Rail() {
   const { identity } = useIdentity()
   const navigate = useNavigate()
   const { railItems } = useWorkbenchContributions()
+  const requestCount = useRequestCount()
 
   return (
     <nav className="flex w-11 shrink-0 flex-col items-center border-r border-hairline bg-surface-1 py-1">
@@ -96,6 +108,13 @@ export function Rail() {
         label="Discover people"
         icon={Compass}
         onClick={() => void navigate({ to: '/discover' })}
+      />
+
+      <RailButton
+        label="Requests"
+        icon={UserPlus}
+        badge={requestCount}
+        onClick={() => void navigate({ to: '/requests' })}
       />
 
       {railItems.length > 0 && <div className="my-1 h-px w-5 bg-hairline" />}

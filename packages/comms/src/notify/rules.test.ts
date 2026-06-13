@@ -9,6 +9,8 @@ const other = 'did:key:z6MkfDbvZkqwzPLs7BA1eMnaGyfXcb4ZUmaqYwhEbBPp7pTV'
 const CHAT = 'xnet://xnet.fyi/ChatMessage@1.0.0'
 const COMMENT = 'xnet://xnet.fyi/Comment@1.0.0'
 const TASK = 'xnet://xnet.fyi/Task@1.0.0'
+const MESSAGE_REQUEST = 'xnet://xnet.fyi/MessageRequest@1.0.0'
+const CONNECTION_WAVE = 'xnet://xnet.fyi/social/ConnectionWave@1.0.0'
 
 const ctx: NotifierContext = { me }
 
@@ -76,6 +78,43 @@ describe('evaluateChange', () => {
     const lookupCtx: NotifierContext = { me, getChannelKind: () => 'dm' }
     const node = { id: 'm3', schemaId: CHAT, channel: 'chan-x', content: 'yo' }
     expect(evaluateChange(event(node), lookupCtx)?.reason).toBe('dm')
+  })
+
+  it('message-request: fires for a pending request addressed to me', () => {
+    const node = {
+      id: 'mr1',
+      schemaId: MESSAGE_REQUEST,
+      sender: other,
+      recipient: me,
+      status: 'pending',
+      firstMessagePreview: 'hi, can we connect?'
+    }
+    const item = evaluateChange(event(node), ctx)
+    expect(item).toMatchObject({ reason: 'message-request', sourceId: 'mr1', actor: other })
+    expect(item?.preview).toBe('hi, can we connect?')
+  })
+
+  it('message-request: does not fire when addressed to someone else or already accepted', () => {
+    const toOther = { id: 'mr2', schemaId: MESSAGE_REQUEST, recipient: other, status: 'pending' }
+    expect(evaluateChange(event(toOther), ctx)).toBeNull()
+    const accepted = { id: 'mr3', schemaId: MESSAGE_REQUEST, recipient: me, status: 'accepted' }
+    expect(evaluateChange(event(accepted), ctx)).toBeNull()
+  })
+
+  it('connection-request: fires for a pending wave addressed to me', () => {
+    const node = {
+      id: 'w1',
+      schemaId: CONNECTION_WAVE,
+      fromDid: other,
+      toDid: me,
+      status: 'pending'
+    }
+    expect(evaluateChange(event(node), ctx)?.reason).toBe('connection-request')
+  })
+
+  it('connection-request: does not fire for a mutual (already revealed) wave', () => {
+    const node = { id: 'w2', schemaId: CONNECTION_WAVE, toDid: me, status: 'mutual' }
+    expect(evaluateChange(event(node), ctx)).toBeNull()
   })
 
   it('dm: does not fire for edits', () => {
