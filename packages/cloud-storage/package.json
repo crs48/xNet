@@ -1,0 +1,35 @@
+{
+  "name": "@xnetjs/cloud-storage",
+  "version": "0.0.1",
+  "description": "Server-only object-storage adapters for xNet Cloud (Cloudflare R2 / S3) implementing @xnetjs/storage StorageAdapter.",
+  "license": "FSL-1.1-Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "aws-sdk-client-mock": "^4.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0"
+  },
+  "private": true
+}
