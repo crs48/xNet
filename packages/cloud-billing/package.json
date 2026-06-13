@@ -1,7 +1,7 @@
 {
-  "name": "@xnetjs/cloud-identity",
+  "name": "@xnetjs/cloud-billing",
   "version": "0.0.1",
-  "description": "Two-identity model for xNet Cloud: custodial billing identity (WorkOS AuthKit) bound to a non-custodial data DID.",
+  "description": "Usage metering + Stripe billing for xNet Cloud: pure pricing math, an idempotent ledger, and a Stripe meter/webhook adapter.",
   "license": "FSL-1.1-Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,9 +19,11 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "stripe": "^17.0.0"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "msw": "^2.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"

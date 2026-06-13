@@ -1,7 +1,7 @@
 {
-  "name": "@xnetjs/cloud-identity",
+  "name": "@xnetjs/cloud-storage",
   "version": "0.0.1",
-  "description": "Two-identity model for xNet Cloud: custodial billing identity (WorkOS AuthKit) bound to a non-custodial data DID.",
+  "description": "Server-only object-storage adapters for xNet Cloud (Cloudflare R2 / S3) implementing @xnetjs/storage StorageAdapter.",
   "license": "FSL-1.1-Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,9 +19,14 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/storage": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "msw": "^2.0.0",
+    "aws-sdk-client-mock": "^4.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"
