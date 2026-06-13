@@ -51,6 +51,38 @@ export {
   type TaskShortIdBlock
 } from './task-identifiers'
 export { ProjectSchema, type Project } from './project'
+export {
+  SPACE_SCHEMA_IRI,
+  SPACE_KINDS,
+  SPACE_ROLES,
+  SPACE_VISIBILITY,
+  NODE_VISIBILITY,
+  SpaceSchema,
+  buildSpaceTree,
+  flattenSpaceTree,
+  spaceAncestorIds,
+  spacePathIds,
+  wouldCreateSpaceCycle,
+  compareSpaceRoles,
+  effectiveSpaceRole,
+  canManageSpace,
+  spaceRoleGrantActions,
+  spaceRoleToShareRole,
+  type Space,
+  type SpaceKind,
+  type SpaceRole,
+  type SpaceVisibility,
+  type NodeVisibility,
+  type SpaceLike,
+  type SpaceTreeNode
+} from './space'
+export {
+  SPACE_MEMBERSHIP_SCHEMA_IRI,
+  SpaceMembershipSchema,
+  spaceMembershipId,
+  isSpaceRole,
+  type SpaceMembership
+} from './space-membership'
 export { ExternalReferenceSchema, type ExternalReference } from './external-reference'
 export { MediaAssetSchema, type MediaAsset } from './media-asset'
 export { CanvasSchema, type Canvas } from './canvas'
@@ -229,6 +261,9 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/TaskView@1.0.0': () => import('./task-view').then((m) => m.TaskViewSchema),
   'xnet://xnet.fyi/Project@1.0.0': () => import('./project').then((m) => m.ProjectSchema),
+  'xnet://xnet.fyi/Space@1.0.0': () => import('./space').then((m) => m.SpaceSchema),
+  'xnet://xnet.fyi/SpaceMembership@1.0.0': () =>
+    import('./space-membership').then((m) => m.SpaceMembershipSchema),
   'xnet://xnet.fyi/ExternalReference@1.0.0': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset@1.0.0': () => import('./media-asset').then((m) => m.MediaAssetSchema),
@@ -286,6 +321,9 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/TaskView': () => import('./task-view').then((m) => m.TaskViewSchema),
   'xnet://xnet.fyi/Project': () => import('./project').then((m) => m.ProjectSchema),
+  'xnet://xnet.fyi/Space': () => import('./space').then((m) => m.SpaceSchema),
+  'xnet://xnet.fyi/SpaceMembership': () =>
+    import('./space-membership').then((m) => m.SpaceMembershipSchema),
   'xnet://xnet.fyi/ExternalReference': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),

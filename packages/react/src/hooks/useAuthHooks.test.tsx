@@ -99,7 +99,8 @@ function createWrapper(input?: {
       usedFallback: false,
       phase: 'ready',
       reason: null
-    }
+    },
+    undoManager: null
   }
 
   const Wrapper = ({ children }: { children: ReactNode }) => (

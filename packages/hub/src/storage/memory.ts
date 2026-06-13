@@ -67,6 +67,8 @@ export const createMemoryStorage = (): HubStorage => {
   const docRecipients = new Map<string, Set<string>>()
   const grantsById = new Map<string, GrantIndexRecord>()
   const shareLinksById = new Map<string, ShareLinkRecord>()
+  const nodeContainers = new Map<string, string>()
+  const nodeVisibility = new Map<string, string>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
@@ -239,6 +241,42 @@ export const createMemoryStorage = (): HubStorage => {
       grantsById.set(grantId, { ...grant, revokedAt })
     }
   }
+
+  const setNodeContainer = async (nodeId: string, containerId: string | null): Promise<void> => {
+    if (containerId && containerId !== nodeId) nodeContainers.set(nodeId, containerId)
+    else nodeContainers.delete(nodeId)
+  }
+
+  const getNodeContainer = async (nodeId: string): Promise<string | null> =>
+    nodeContainers.get(nodeId) ?? null
+
+  const ancestorContainers = async (nodeId: string, maxDepth = 32): Promise<string[]> => {
+    const ancestors: string[] = []
+    const seen = new Set<string>([nodeId])
+    let current = nodeContainers.get(nodeId) ?? null
+    while (current && !seen.has(current) && ancestors.length < maxDepth) {
+      ancestors.push(current)
+      seen.add(current)
+      current = nodeContainers.get(current) ?? null
+    }
+    return ancestors
+  }
+
+  const listContainedNodes = async (containerId: string): Promise<string[]> => {
+    const children: string[] = []
+    for (const [nodeId, parent] of nodeContainers) {
+      if (parent === containerId) children.push(nodeId)
+    }
+    return children
+  }
+
+  const setNodeVisibility = async (nodeId: string, visibility: string | null): Promise<void> => {
+    if (visibility) nodeVisibility.set(nodeId, visibility)
+    else nodeVisibility.delete(nodeId)
+  }
+
+  const getNodeVisibility = async (nodeId: string): Promise<string | null> =>
+    nodeVisibility.get(nodeId) ?? null
 
   const insertShareLink = async (record: ShareLinkRecord): Promise<void> => {
     shareLinksById.set(record.linkId, { ...record })
@@ -866,6 +904,12 @@ export const createMemoryStorage = (): HubStorage => {
     listGrantedDocIds,
     listGrantsForDoc,
     getActiveGrant,
+    setNodeContainer,
+    getNodeContainer,
+    ancestorContainers,
+    listContainedNodes,
+    setNodeVisibility,
+    getNodeVisibility,
     revokeGrant,
     insertShareLink,
     getShareLink,

@@ -460,6 +460,16 @@ export { useHistory, type UseHistoryResult } from './hooks/useHistory'
 export { useUndo, type UseUndoResult, type UseUndoOptions } from './hooks/useUndo'
 
 /**
+ * useGlobalUndo - app-wide Cmd+Z across every node-backed surface (0179)
+ *
+ * @example
+ * ```tsx
+ * const { undo, redo, canUndo, canRedo } = useGlobalUndo()
+ * ```
+ */
+export { useGlobalUndo, type UseGlobalUndoResult } from './hooks/useGlobalUndo'
+
+/**
  * useAudit - Query the audit log for a node
  *
  * @example

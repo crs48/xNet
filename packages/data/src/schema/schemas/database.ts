@@ -67,7 +67,21 @@ export const DatabaseSchema = defineSchema({
     sortKey: text({ maxLength: 500 }),
 
     /** Workspace-wide labels, referenced by id (exploration 0169) */
-    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true })
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true }),
+
+    /** Canonical SECURITY home; empty = personal/private (exploration 0179) */
+    space: relation({ target: 'xnet://xnet.fyi/Space@1.0.0' as const }),
+
+    /** Per-node visibility; `inherit` defers to the Space (exploration 0179) */
+    visibility: select({
+      options: [
+        { id: 'inherit', name: 'Inherit', color: 'gray' },
+        { id: 'private', name: 'Private', color: 'gray' },
+        { id: 'unlisted', name: 'Unlisted', color: 'yellow' },
+        { id: 'public', name: 'Public', color: 'green' }
+      ] as const,
+      default: 'inherit'
+    })
   },
   // Y.Doc used ONLY as the awareness/presence channel — no persistent state
   document: 'yjs'

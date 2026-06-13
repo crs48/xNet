@@ -29,7 +29,10 @@ export type ShareLinkRouteDeps = {
   claimRateLimit?: { maxAttempts: number; windowMs: number }
 }
 
-const SHARE_DOC_TYPES = ['page', 'database', 'canvas', 'dashboard', 'view'] as const
+// 'space' invites bootstrap Space membership: the grant a claim writes is keyed
+// on the Space id, so it acts as a container (subtree) grant that the hub
+// resolves for every node beneath the Space (exploration 0179).
+const SHARE_DOC_TYPES = ['page', 'database', 'canvas', 'dashboard', 'view', 'space'] as const
 type ShareDocType = (typeof SHARE_DOC_TYPES)[number]
 
 const isShareDocType = (value: unknown): value is ShareDocType =>

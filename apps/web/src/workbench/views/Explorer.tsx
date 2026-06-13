@@ -22,6 +22,7 @@ import { partitionByFolder } from './explorer-folders'
 import { ExplorerFoldersProvider } from './explorer-folders-context'
 import { ExplorerRow, type ExplorerItem, type ExplorerNodeType } from './explorer-rows'
 import { ExplorerFoldersSection } from './ExplorerFolderTree'
+import { ExplorerSpacesSection } from './ExplorerSpacesSection'
 import { ExplorerTagsSection } from './ExplorerTagsSection'
 
 const TYPE_FILTERS: Array<{ id: ExplorerNodeType | 'all'; label: string }> = [
@@ -237,6 +238,7 @@ function ExplorerSections({
     <div className="min-h-0 flex-1 overflow-hidden">
       <div className="flex h-full flex-col">
         <PinnedAndRecent pinnedItems={pinnedItems} recentItems={recentItems} />
+        {!filterActive && <ExplorerSpacesSection />}
         {!filterActive && <ExplorerFoldersSection pinnedNodeIds={pinnedNodeIds} />}
         {!filterActive && <ExplorerTagsSection items={allItems} />}
         <SectionLabel>{filterActive ? 'Results' : 'Unfiled'}</SectionLabel>

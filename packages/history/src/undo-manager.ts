@@ -25,6 +25,8 @@ export class UndoManager {
   private lastEntryTime = new Map<NodeId, number>()
   private localDID: DID
   private _isUndoRedoing = false
+  /** Monotonic counter giving every entry a global LIFO order. */
+  private orderCounter = 0
   /** Cache of node state before each change, for capturing previousValues */
   private preChangeState = new Map<NodeId, Record<string, unknown>>()
   private telemetry?: TelemetryReporter
@@ -40,7 +42,8 @@ export class UndoManager {
     this.options = {
       maxStackSize: options?.maxStackSize ?? 100,
       localOnly: options?.localOnly ?? true,
-      mergeInterval: options?.mergeInterval ?? 300
+      mergeInterval: options?.mergeInterval ?? 300,
+      surface: options?.surface ?? 'node'
     }
   }
 
@@ -83,8 +86,10 @@ export class UndoManager {
     }
 
     this.telemetry?.reportPerformance('history.undo', Date.now() - start)
-    this.telemetry?.reportUsage('history.undo', 1)
+    this.telemetry?.reportUsage(`history.undo.${this.options.surface}`, 1)
 
+    // Re-stamp so the just-undone entry is the next thing redoLatest pops.
+    entry.order = ++this.orderCounter
     const redoStack = this.getOrCreateStack(this.redoStacks, nodeId)
     redoStack.push(entry)
 
@@ -107,8 +112,10 @@ export class UndoManager {
     }
 
     this.telemetry?.reportPerformance('history.redo', Date.now() - start)
-    this.telemetry?.reportUsage('history.redo', 1)
+    this.telemetry?.reportUsage(`history.redo.${this.options.surface}`, 1)
 
+    // Re-stamp so the just-redone entry is the next thing undoLatest pops.
+    entry.order = ++this.orderCounter
     const undoStack = this.getOrCreateStack(this.undoStacks, nodeId)
     undoStack.push(entry)
 
@@ -131,8 +138,11 @@ export class UndoManager {
       this._isUndoRedoing = false
     }
 
-    // Push to redo stacks
+    // Push to redo stacks. One shared order for the whole batch so it
+    // pops as a single LIFO step.
+    const undoneOrder = ++this.orderCounter
     for (const { nodeId, entry } of entries) {
+      entry.order = undoneOrder
       const redoStack = this.getOrCreateStack(this.redoStacks, nodeId)
       redoStack.push(entry)
     }
@@ -156,7 +166,9 @@ export class UndoManager {
       this._isUndoRedoing = false
     }
 
+    const redoneOrder = ++this.orderCounter
     for (const { nodeId, entry } of entries) {
+      entry.order = redoneOrder
       const undoStack = this.getOrCreateStack(this.undoStacks, nodeId)
       undoStack.push(entry)
     }
@@ -210,6 +222,28 @@ export class UndoManager {
     return this.redoStacks.get(nodeId)?.length ?? 0
   }
 
+  /** All nodeIds with a non-empty undo or redo stack (the global scope) */
+  trackedNodeIds(): NodeId[] {
+    const ids = new Set<NodeId>([...this.undoStacks.keys(), ...this.redoStacks.keys()])
+    return [...ids].filter((id) => this.canUndo(id) || this.canRedo(id))
+  }
+
+  /** Whether any node anywhere has an undoable change (global canUndo) */
+  hasUndo(): boolean {
+    for (const stack of this.undoStacks.values()) {
+      if (stack.length) return true
+    }
+    return false
+  }
+
+  /** Whether any node anywhere has a redoable change (global canRedo) */
+  hasRedo(): boolean {
+    for (const stack of this.redoStacks.values()) {
+      if (stack.length) return true
+    }
+    return false
+  }
+
   /** Clear all stacks for a node */
   clear(nodeId: NodeId): void {
     this.undoStacks.delete(nodeId)
@@ -249,6 +283,7 @@ export class UndoManager {
       currentValues,
       batchId: change.batchId,
       wallTime: change.wallTime,
+      order: ++this.orderCounter,
       wasCreate: previousNode === null && change.payload.deleted === undefined,
       wasDelete: change.payload.deleted === true,
       wasRestore: change.payload.deleted === false
@@ -268,6 +303,7 @@ export class UndoManager {
         }
         previousEntry.currentValues[key] = value
       }
+      previousEntry.order = ++this.orderCounter
     } else {
       stack.push(entry)
       if (stack.length > this.options.maxStackSize) {
@@ -424,7 +460,7 @@ export class UndoManager {
       const entry = stack[stack.length - 1]
       if (!entry) continue
 
-      if (!latest || entry.wallTime > latest.entry.wallTime) {
+      if (!latest || entry.order > latest.entry.order) {
         latest = { nodeId, entry }
       }
     }
