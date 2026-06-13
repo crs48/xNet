@@ -91,6 +91,20 @@ COPY --from=builder /build/packages/storage/dist packages/storage/dist/
 COPY --from=builder /build/packages/sync/dist packages/sync/dist/
 COPY --from=builder /build/packages/telemetry/dist packages/telemetry/dist/
 
+# ── Litestream (pinned; exploration 0178) — SQLite WAL replication to R2 ──
+# Only activated at runtime when LITESTREAM=1 with a config present; self-host and
+# the Railway demo (which overrides startCommand) ignore it. v0.5.6/0.5.7 carry a
+# silent-replication bug (#1083) — stay on a known-good pin.
+ARG LITESTREAM_VERSION=0.5.3
+ARG TARGETARCH=amd64
+RUN apk add --no-cache ca-certificates \
+  && wget -qO /tmp/litestream.tar.gz \
+     "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-v${LITESTREAM_VERSION}-linux-${TARGETARCH}.tar.gz" \
+  && tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz litestream \
+  && rm /tmp/litestream.tar.gz
+COPY packages/hub/litestream-entrypoint.sh /usr/local/bin/xnet-entrypoint.sh
+RUN chmod +x /usr/local/bin/xnet-entrypoint.sh
+
 # Create data directory (Railway volume mount will override, but useful for local)
 RUN mkdir -p /data
 
@@ -105,5 +119,6 @@ EXPOSE 4444
 # Run as root to allow writing to Railway-mounted volumes
 # (Railway mounts volumes as root-owned)
 
-# Default CMD for local Docker runs; Railway uses startCommand from railway.toml
-CMD ["node", "packages/hub/dist/cli.js", "--port", "4444", "--data", "/data"]
+# Entrypoint runs the hub directly, or under Litestream when LITESTREAM=1.
+# Railway uses startCommand from railway.toml and bypasses this.
+CMD ["/usr/local/bin/xnet-entrypoint.sh"]

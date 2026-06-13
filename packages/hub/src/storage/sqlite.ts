@@ -37,6 +37,7 @@ import type {
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import Database from 'better-sqlite3'
+import { litestreamWalPragmas } from './litestream'
 
 const assertSafePath = (base: string, key: string): string => {
   const resolved = resolve(base, key)
@@ -636,6 +637,8 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
   db.pragma('journal_mode = WAL')
   db.pragma('synchronous = NORMAL')
   db.pragma('busy_timeout = 5000')
+  // Hand WAL checkpointing to Litestream when replicating to R2 (exploration 0178).
+  for (const pragma of litestreamWalPragmas()) db.pragma(pragma)
 
   db.exec(SCHEMA_SQL)
 

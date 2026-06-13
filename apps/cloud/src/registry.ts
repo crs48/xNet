@@ -16,11 +16,17 @@ export interface TenantRecord {
   billingUserId: string
   /** Bound data identity (`did:key`); empty while a rebind is pending. */
   did: string
+  /** Reachable hub URL; empty while the tenant is cold (no live hub). */
   hubUrl: string
+  /** Substrate handle; empty while cold (volume + machine released). */
   substrateRef: string
   region: string
   targetVersion: string
   createdAt: number
+  /** Last time the tenant was active (drives cold demotion — exploration 0178). */
+  lastActiveMs: number
+  /** `hot` = live hub; `cold` = DB lives only in R2, restored on reactivation. */
+  dataTier: 'hot' | 'cold'
 }
 
 export interface TenantStore {
