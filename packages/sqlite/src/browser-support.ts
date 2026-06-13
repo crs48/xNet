@@ -190,7 +190,7 @@ function getPersistenceMessage(input: {
   }
 
   if (granted === false) {
-    return 'This browser declined durable storage for now. xNet will keep working, and you can try again after using, bookmarking, or installing this site.'
+    return 'This browser declined durable storage for now. xNet keeps working, and browsers re-evaluate the request as install, notification, and usage signals change.'
   }
 
   return 'This browser did not confirm durable storage. xNet will keep working, but local data may be evicted under storage pressure or aggressive cleanup.'
@@ -202,6 +202,58 @@ function getPersistenceMessage(input: {
  */
 export async function checkPersistentStorage(): Promise<PersistentStorageStatus> {
   return requestPersistentStorage({ request: false })
+}
+
+/**
+ * Whether `navigator.storage.persist()` can be called without showing the
+ * user a permission prompt.
+ *
+ * Chromium and WebKit decide the request silently from heuristics (install,
+ * notification permission, engagement) and re-evaluate it fresh on every
+ * call, so requesting at startup is free. Gecko (desktop Firefox) shows a
+ * modal doorhanger, so requests there must stay behind a user gesture.
+ * Firefox on iOS (FxiOS) runs WebKit, but we treat anything Firefox-branded
+ * as prompt-capable — the worst case is skipping a free request.
+ */
+export function isSilentPersistRequestSafe(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return !/Firefox|FxiOS/i.test(navigator.userAgent)
+}
+
+/**
+ * Watch the `persistent-storage` permission for changes (e.g. a grant that
+ * lands mid-session after the user enables notifications or installs the
+ * app). Querying is free — it never spends or triggers a request.
+ *
+ * Calls `onChange` with the new state whenever the browser reports a
+ * change. No-op on browsers without the Permissions API or the
+ * `persistent-storage` permission name. Returns an unsubscribe function.
+ */
+export function watchPersistentStoragePermission(
+  onChange: (state: PermissionState) => void
+): () => void {
+  let active = true
+  let detach: (() => void) | null = null
+
+  void (async () => {
+    try {
+      const status = await navigator.permissions.query({
+        name: 'persistent-storage' as PermissionName
+      })
+      if (!active) return
+      const listener = () => onChange(status.state)
+      status.addEventListener('change', listener)
+      detach = () => status.removeEventListener('change', listener)
+    } catch {
+      // Permissions API or permission name unsupported — nothing to watch.
+    }
+  })()
+
+  return () => {
+    active = false
+    detach?.()
+    detach = null
+  }
 }
 
 /**

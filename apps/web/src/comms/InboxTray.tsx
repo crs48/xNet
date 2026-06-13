@@ -6,8 +6,9 @@
  */
 import { useNavigate } from '@tanstack/react-router'
 import { isUnread, type InboxItem, type NotificationReason } from '@xnetjs/comms'
-import { Check, Clock } from 'lucide-react'
+import { Bell, Check, Clock } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { desktopNotificationPermission, enableDesktopNotifications } from './desktop-notifications'
 import { useInbox, useProfiles, displayName } from './hooks'
 
 const REASON_LABELS: Partial<Record<NotificationReason, string>> = {
@@ -83,6 +84,44 @@ function FilterRow({
   )
 }
 
+/**
+ * One-time desktop-alerts opt-in (0172). Only rendered while the browser
+ * permission is still undecided; the grant also re-requests durable
+ * storage (a Chromium important-site signal — see desktop-notifications).
+ */
+function DesktopAlertsOptIn() {
+  const [permission, setPermission] = useState(desktopNotificationPermission)
+  const [requesting, setRequesting] = useState(false)
+
+  if (permission !== 'default') return null
+
+  const enable = async () => {
+    setRequesting(true)
+    try {
+      setPermission(await enableDesktopNotifications())
+    } finally {
+      setRequesting(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 border-b border-hairline px-3 py-1.5">
+      <Bell size={12} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+      <span className="min-w-0 flex-1 truncate text-[11px] text-ink-3">
+        Get desktop alerts for mentions and DMs — also lets this browser keep xNet data durable.
+      </span>
+      <button
+        type="button"
+        onClick={() => void enable()}
+        disabled={requesting}
+        className="shrink-0 cursor-pointer rounded border border-hairline bg-transparent px-1.5 py-0.5 text-[11px] text-ink-2 hover:text-ink-1 disabled:cursor-wait disabled:opacity-60"
+      >
+        {requesting ? 'Asking…' : 'Enable'}
+      </button>
+    </div>
+  )
+}
+
 export function InboxTray() {
   const navigate = useNavigate()
   const profiles = useProfiles()
@@ -105,14 +144,18 @@ export function InboxTray() {
 
   if (items.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-xs text-ink-3">
-        Mentions, DMs, replies, and assignments will appear here.
+      <div className="flex h-full min-h-0 flex-col">
+        <DesktopAlertsOptIn />
+        <div className="flex flex-1 items-center justify-center text-xs text-ink-3">
+          Mentions, DMs, replies, and assignments will appear here.
+        </div>
       </div>
     )
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <DesktopAlertsOptIn />
       <FilterRow active={filter} onSelect={setFilter} />
       {visible.length === 0 ? (
         <div className="flex flex-1 items-center justify-center text-xs text-ink-3">

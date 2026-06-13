@@ -148,6 +148,24 @@ xNet uses SQLite through the `@xnetjs/storage` adapter. Data is organized per-no
 
 The storage layer handles serialization, compression, and integrity checks. You don't interact with SQLite directly.
 
+## Durable storage
+
+In the browser, xNet's SQLite database lives in the Origin Private File System, which starts out as **best-effort** storage: the browser may evict it under pressure. xNet asks the browser to upgrade the origin to **persistent** via `navigator.storage.persist()`, but each browser decides that request differently:
+
+| Browser         | Prompt? | When it grants                                                                                                     | Eviction while best-effort                            |
+| --------------- | ------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| Chrome / Edge   | No      | Silently, once the site is installed, has notification permission, is regularly used, or is a top bookmark — re-evaluated on every request | Only under disk pressure (least-recently-used origins) |
+| Safari          | No      | Only when xNet runs as an installed web app (Add to Dock / Add to Home Screen)                                       | Site data is deleted after 7 days of Safari use without visiting the site |
+| Firefox desktop | Yes     | When you click **Allow** in its permission prompt                                                                    | Only under disk pressure                               |
+
+What xNet does about it:
+
+- On Chromium and WebKit browsers the request is silent and never penalized, so xNet re-requests durable storage on every startup. Regular use typically flips Chrome to granted within days; enabling desktop alerts in the Notifications panel or installing the app grants it immediately.
+- On Safari in a browser tab, durable storage cannot be granted and even a granted request would not stop the 7-day cleanup — installing xNet from the Share menu is the only full protection. Visiting at least weekly resets the cleanup timer.
+- On Firefox, xNet only asks when you click **Enable durable storage**, so the prompt appears from a deliberate action.
+
+Durable storage protects against automatic eviction only. Clearing site data in the browser always removes local data — hub sync and exports are the real safety net for important work.
+
 ## Limits
 
 | Resource           | Limit                               |
