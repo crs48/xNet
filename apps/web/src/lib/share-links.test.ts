@@ -180,7 +180,9 @@ describe('parseShareRouteInput', () => {
 
   it('reads link inputs from path-routed URLs (secret in #s= fragment)', () => {
     expect(
-      parseShareRouteInput(at('http://localhost:5173/share?link=AbCdEf123&hub=wss%3A%2F%2Fhub.x#s=shh'))
+      parseShareRouteInput(
+        at('http://localhost:5173/share?link=AbCdEf123&hub=wss%3A%2F%2Fhub.x#s=shh')
+      )
     ).toEqual({
       kind: 'link',
       value: { linkId: 'AbCdEf123', hub: 'https://hub.x', secret: 'shh' }

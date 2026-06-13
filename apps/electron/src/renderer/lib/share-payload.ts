@@ -200,9 +200,7 @@ export type ResolvedShareAdd = {
 
 /** Security notice text for inputs that had ICE policy warnings. */
 export const describeShareSecurityNotice = (parsed: ParsedShareInput): string | null =>
-  parsed.kind === 'v2' && parsed.securityWarnings?.length
-    ? parsed.securityWarnings.join(' ')
-    : null
+  parsed.kind === 'v2' && parsed.securityWarnings?.length ? parsed.securityWarnings.join(' ') : null
 
 const DESKTOP_DOC_TYPES = new Set(['page', 'database', 'canvas'])
 

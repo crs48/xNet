@@ -108,7 +108,7 @@ type HubCollection<T> = {
 }
 
 /** Shared fetch-list-with-refresh state for hub-backed collections. */
-const useHubCollection = <T,>(
+const useHubCollection = <T>(
   docId: string,
   path: string,
   extract: (data: unknown) => T[]

@@ -140,9 +140,7 @@ export function claimErrorText(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
-export type ClaimDestination =
-  | { kind: 'navigate' }
-  | { kind: 'switch-hub'; endpoint: string }
+export type ClaimDestination = { kind: 'navigate' } | { kind: 'switch-hub'; endpoint: string }
 
 /**
  * Where a successful claim should take the user: same-hub claims navigate
