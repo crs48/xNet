@@ -635,7 +635,7 @@ stateDiagram-v2
 ## Implementation Checklist
 
 ### Phase 0 — Vocabulary + self-label + render gate (no ML)
-- [ ] Add `sensitivity.ts` (label vocab, source weights) to `@xnetjs/abuse`;
+- [x] Add `sensitivity.ts` (label vocab, source weights) to `@xnetjs/abuse`;
       export the values.
 - [ ] Add NSFW label values to `DEFAULT_*` sets and feed/search policy so
       `decideAbuse`/`summarizeSearchModeration` recognize them.

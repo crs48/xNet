@@ -703,22 +703,22 @@ function DiscoverPeople({ intent }: { intent: ConnectionIntentKind }) {
 ## Implementation Checklist
 
 ### Phase 0 — Schemas + local derivation
-- [ ] Add `ConnectableProfileSchema`, `ConnectionIntentSchema`,
+- [x] Add `ConnectableProfileSchema`, `ConnectionIntentSchema`,
       `ConnectionWaveSchema` in `packages/social/src/schemas/connect.ts`; export
       from `schemas/index.ts`.
-- [ ] Add `connectionIntentKinds`, `intentReach` to `schemas/constants.ts`.
-- [ ] Implement `deriveAffinity()` over social imports + tags + channels +
+- [x] Add `connectionIntentKinds`, `intentReach` to `schemas/constants.ts`.
+- [x] Implement `deriveAffinity()` over social imports + tags + channels +
       projects using `@xnetjs/vectors`; output a reviewable draft.
-- [ ] Add `reciprocalScore()` (harmonic mean) and `encodeVec/decodeVec` helpers.
+- [x] Add `reciprocalScore()` (harmonic mean) and `encodeVec/decodeVec` helpers.
 - [ ] Profile editor UI: review/curate derived interests, set headline/about,
       toggle `enabled`, pick per-intent `visibility` + `reach`.
 
 ### Phase 1 — Friends-of-friends matching (no hub)
-- [ ] New graph lens / traversal: candidates from `people-i-follow` + comms
+- [x] New graph lens / traversal: candidates from `people-i-follow` + comms
       roster + grant graph, scored by Adamic-Adar / personalized PageRank on the
       local subgraph.
-- [ ] Local match scorer: `w_c·cosine + w_g·graphProximity` + MMR re-rank.
-- [ ] "Why you matched" card: shared interest tags + shortest social path.
+- [x] Local match scorer: `w_c·cosine + w_g·graphProximity` + MMR re-rank.
+- [x] "Why you matched" card: shared interest tags + shortest social path.
 - [ ] `/discover` route + `MatchCard` + `useMatchmaker` (local-only) +
       `useConnect().wave`.
 - [ ] Wire `matchReveal()` → `ensureDmChannel` + intro card on mutual wave.
