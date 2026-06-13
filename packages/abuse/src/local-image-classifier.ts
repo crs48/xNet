@@ -12,10 +12,10 @@
  */
 
 import type { LocalClassifierAdapter, LocalClassifierProvenance } from './local-classifier'
-import { createLocalClassificationResult } from './local-classifier'
-import { buildSensitivityLabel, isSensitivityLabelValue } from './sensitivity'
 import type { SensitivityLabelValue } from './sensitivity'
 import type { AbuseLabel } from './types'
+import { createLocalClassificationResult } from './local-classifier'
+import { buildSensitivityLabel, isSensitivityLabelValue } from './sensitivity'
 
 /** A single category score from an NSFW image model (e.g. NSFWJS / Falconsai). */
 export type NsfwImageDetection = { label: string; score: number }

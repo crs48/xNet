@@ -1,3 +1,4 @@
+import type { GrayscaleImage } from '../src/image-fingerprint'
 import { describe, expect, it } from 'vitest'
 import {
   averageHash,
@@ -11,7 +12,6 @@ import {
   createNsfwImageClassifier,
   mapNsfwLabelToSensitivity
 } from '../src/local-image-classifier'
-import type { GrayscaleImage } from '../src/image-fingerprint'
 
 function gradient(width: number, height: number, invert = false): GrayscaleImage {
   const luma: number[] = []

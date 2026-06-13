@@ -8,6 +8,8 @@
  */
 import { ensureDmChannel } from '@xnetjs/comms'
 import { ProfileSchema } from '@xnetjs/data'
+import { useQuery, useXNet } from '@xnetjs/react'
+import { useDataBridge } from '@xnetjs/react/internal'
 import {
   ConnectableProfileSchema,
   ConnectionIntentSchema,
@@ -23,8 +25,6 @@ import {
   type IntentReach,
   type MatchResult
 } from '@xnetjs/social/connect'
-import { useQuery, useXNet } from '@xnetjs/react'
-import { useDataBridge } from '@xnetjs/react/internal'
 import { useCallback, useMemo } from 'react'
 
 type Row = Record<string, unknown>

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { mutualItems, psiEncode, psiHash, psiIntersect } from './psi'
 import {
   coarsenGeohash,
   decodeGeohash,
@@ -9,6 +8,7 @@ import {
   kAnonymityCells,
   sharedPrefixLength
 } from './geohash'
+import { mutualItems, psiEncode, psiHash, psiIntersect } from './psi'
 
 describe('private set intersection', () => {
   const salt = 'pair-secret'

@@ -6,14 +6,14 @@
  * derivation seed), and intents are toggled per kind.
  */
 import { TagSchema } from '@xnetjs/data'
+import { useQuery, useXNet } from '@xnetjs/react'
+import { useDataBridge } from '@xnetjs/react/internal'
 import {
   ConnectableProfileSchema,
   ConnectionIntentSchema,
   connectionIntentKinds,
   type ConnectionIntentKind
 } from '@xnetjs/social/connect'
-import { useQuery, useXNet } from '@xnetjs/react'
-import { useDataBridge } from '@xnetjs/react/internal'
 import { useEffect, useMemo, useState } from 'react'
 
 type Row = Record<string, unknown>

@@ -1,8 +1,8 @@
+import type { Query, QueryResult } from '../types'
+import type { DataSource } from '@xnetjs/core'
+import type { NetworkNode } from '@xnetjs/network'
 import { describe, expect, it } from 'vitest'
 import { createFederatedQueryRouter } from './router'
-import type { Query, QueryResult } from '../types'
-import type { NetworkNode } from '@xnetjs/network'
-import type { DataSource } from '@xnetjs/core'
 
 const node = {} as NetworkNode
 

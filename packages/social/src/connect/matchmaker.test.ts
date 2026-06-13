@@ -1,7 +1,7 @@
+import type { CandidateProfile } from './matchmaker'
 import { describe, expect, it } from 'vitest'
 import { buildAdjacency, encodeVector } from './matching'
 import { localCandidatesFromGraph, rankMatches } from './matchmaker'
-import type { CandidateProfile } from './matchmaker'
 
 const me = {
   did: 'me',

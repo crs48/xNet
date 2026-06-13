@@ -3,9 +3,9 @@
  * evidence and a private wave button. No cold contact: a wave is only revealed
  * to the other side when they wave back.
  */
+import type { MatchListing } from '../hooks/useConnect'
 import { DIDAvatar } from '@xnetjs/ui'
 import { useState } from 'react'
-import type { MatchListing } from '../hooks/useConnect'
 
 export interface MatchCardProps {
   match: MatchListing

@@ -6,8 +6,11 @@
  * `useContentLabels` reads the labels on a node and maps them to the
  * `@xnetjs/abuse` `AbuseLabel` shape consumed by the render gate.
  */
-import type { AbuseLabel } from '@xnetjs/abuse'
-import { SENSITIVITY_SOURCE_WEIGHT, type SensitivityLabelValue } from '@xnetjs/abuse'
+import {
+  SENSITIVITY_SOURCE_WEIGHT,
+  type AbuseLabel,
+  type SensitivityLabelValue
+} from '@xnetjs/abuse'
 import { ModerationLabelSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'

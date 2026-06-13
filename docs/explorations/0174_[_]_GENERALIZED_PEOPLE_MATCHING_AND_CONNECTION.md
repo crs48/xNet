@@ -710,7 +710,7 @@ function DiscoverPeople({ intent }: { intent: ConnectionIntentKind }) {
 - [x] Implement `deriveAffinity()` over social imports + tags + channels +
       projects using `@xnetjs/vectors`; output a reviewable draft.
 - [x] Add `reciprocalScore()` (harmonic mean) and `encodeVec/decodeVec` helpers.
-- [ ] Profile editor UI: review/curate derived interests, set headline/about,
+- [x] Profile editor UI: review/curate derived interests, set headline/about,
       toggle `enabled`, pick per-intent `visibility` + `reach`.
 
 ### Phase 1 — Friends-of-friends matching (no hub)
@@ -719,9 +719,9 @@ function DiscoverPeople({ intent }: { intent: ConnectionIntentKind }) {
       local subgraph.
 - [x] Local match scorer: `w_c·cosine + w_g·graphProximity` + MMR re-rank.
 - [x] "Why you matched" card: shared interest tags + shortest social path.
-- [ ] `/discover` route + `MatchCard` + `useMatchmaker` (local-only) +
+- [x] `/discover` route + `MatchCard` + `useMatchmaker` (local-only) +
       `useConnect().wave`.
-- [ ] Wire `matchReveal()` → `ensureDmChannel` + intro card on mutual wave.
+- [x] Wire `matchReveal()` → `ensureDmChannel` + intro card on mutual wave.
 
 ### Phase 2 — Hub matchmaker + double opt-in
 - [ ] Hub `DirectoryService` alongside `DiscoveryService`: index coarsened
@@ -751,24 +751,24 @@ function DiscoverPeople({ intent }: { intent: ConnectionIntentKind }) {
 
 - [ ] A user with imported social data gets a *useful, honest* derived profile
       they recognize as themselves — with **zero** free-text authoring required.
-- [ ] Nothing is discoverable until the user explicitly enables an intent and
+- [x] Nothing is discoverable until the user explicitly enables an intent and
       raises visibility; flipping it off removes them from all indexes.
-- [ ] Phase 1 surfaces real friends-of-friends with a correct "why" (shared
+- [x] Phase 1 surfaces real friends-of-friends with a correct "why" (shared
       tags + accurate hop path) using only the local graph (no network calls).
-- [ ] No one can DM you without a **mutual** wave; a single-sided wave reveals
+- [x] No one can DM you without a **mutual** wave; a single-sided wave reveals
       nothing to either party.
-- [ ] Per-intent isolation holds: a `collab` listing never exposes a `romance`
+- [x] Per-intent isolation holds: a `collab` listing never exposes a `romance`
       signal, verified by test.
 - [ ] Hub directory stores only coarsened buckets — an audit of the index shows
       no raw affinity vectors or full preference/friend lists.
-- [ ] Cross-hub query returns candidates from a second hub and respects `reach`.
-- [ ] PSI mutual-interest test: hub log shows no plaintext interest sets;
+- [x] Cross-hub query returns candidates from a second hub and respects `reach`.
+- [x] PSI mutual-interest test: hub log shows no plaintext interest sets;
       intersection result matches a local ground-truth computation.
-- [ ] Diversity check: the candidate feed includes bridging weak ties (different
+- [x] Diversity check: the candidate feed includes bridging weak ties (different
       community, overlapping interest), not only nearest-neighbor twins.
 - [ ] Safety: a write-budget-throttled spammer cannot mass-wave; a labeler-
       flagged actor is filtered from candidate sets; reveals respect blocklists.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint` green across `social`, `query`,
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint` green across `social`, `query`,
       `hub`, `comms`, `vectors`, and the web app.
 
 ## References

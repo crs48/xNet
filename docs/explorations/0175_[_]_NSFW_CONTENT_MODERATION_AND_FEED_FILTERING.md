@@ -639,10 +639,10 @@ stateDiagram-v2
       export the values.
 - [ ] Add NSFW label values to `DEFAULT_*` sets and feed/search policy so
       `decideAbuse`/`summarizeSearchModeration` recognize them.
-- [ ] Self-label UX: a "Mark sensitive (sexual / nudity / graphic)" control in
+- [x] Self-label UX: a "Mark sensitive (sexual / nudity / graphic)" control in
       the composer/editor and on uploaded media; persist `ModerationLabelSchema`
       with `sourceType:'self'`.
-- [ ] Build `<SensitiveContent>` blur/content-warning/hide component in
+- [x] Build `<SensitiveContent>` blur/content-warning/hide component in
       `@xnetjs/ui` (blur-then-click-to-reveal).
 - [ ] **Wire the render gate**: feed (0170 content-feed-views), DMs (comms), and
       the future matching surface call `decideAbuse` and render via
@@ -653,10 +653,10 @@ stateDiagram-v2
       `LocalClassifierAdapter`; register in the local cascade.
 - [ ] On-device **pre-screen before upload** → suggest self-label; **viewer-side
       filter** for unlabeled incoming media.
-- [ ] Add a **Content & Safety** settings section: per-label dial
+- [x] Add a **Content & Safety** settings section: per-label dial
       (`show/warn/blur/hide`) + adult-content master toggle (age-gated) + muted
       words; persist as a synced preference node.
-- [ ] Map preferences → `AbuseDecisionOverride{scope:'user'}` in the render gate.
+- [x] Map preferences → `AbuseDecisionOverride{scope:'user'}` in the render gate.
 
 ### Phase 2 — Hub classification + federated labelers
 - [ ] Hub image classifier adapter (NudeNet v3 ONNX / Llama-Guard) plugged into
@@ -676,7 +676,7 @@ stateDiagram-v2
       non-attesting hubs. Document operator obligations + ToS disclosure.
 
 ### Phase 4 — Dating defaults + appeals + tuning
-- [ ] Matching/DM rule (0174): **blur unsolicited media from non-mutual matches**
+- [x] Matching/DM rule (0174): **blur unsolicited media from non-mutual matches**
       by default, independent of label.
 - [ ] Appeals UX on `appeals.ts` (negating `safe` label) with a fast SLA.
 - [ ] Threshold/weight tuning + a "why was this filtered?" explainer
@@ -684,17 +684,17 @@ stateDiagram-v2
 
 ## Validation Checklist
 
-- [ ] An author can mark a post/image sensitive in one tap; viewers see it
+- [x] An author can mark a post/image sensitive in one tap; viewers see it
       blurred with a click-to-reveal, no ML required.
 - [ ] On-device pre-screen flags an obvious explicit test image **without the
       image leaving the browser** (verified: no network request with image bytes).
 - [ ] A user who sets "hide porn / blur sexual" sees exactly that across feed,
       DMs, and matching; flipping the adult-content toggle off hides all NSFW.
-- [ ] Defaults verified: fresh user has `porn`=hide (until 18+ opt-in),
+- [x] Defaults verified: fresh user has `porn`=hide (until 18+ opt-in),
       `sexual`/`nudity` blurred/shown per the table.
-- [ ] A self-labeled-safe post from a trusted author is **not** auto-hidden by a
+- [x] A self-labeled-safe post from a trusted author is **not** auto-hidden by a
       single low-confidence ML flag (warn/blur, not hide).
-- [ ] An appeal emits a negating `safe` label and the content reappears per
+- [x] An appeal emits a negating `safe` label and the content reappears per
       `activeLabels` negation.
 - [ ] Hub classification emits `sourceType:'ml'` labels only for
       `hub-indexed`/public content; private/local content is never hub-scanned
@@ -703,9 +703,9 @@ stateDiagram-v2
       unsubscribing removes their effect.
 - [ ] **CSAM:** a known-bad PDQ test hash (synthetic/benign stand-in) is matched,
       blocked before hosting, and routed to the report path — never just hidden.
-- [ ] Dating rule: media from a non-mutual match is blurred by default even when
+- [x] Dating rule: media from a non-mutual match is blurred by default even when
       unlabeled.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint` green across `abuse`, `data`,
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint` green across `abuse`, `data`,
       `query`, `social`, `comms`, `ui`, and the web app.
 
 ## References

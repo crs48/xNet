@@ -1,3 +1,5 @@
+import type { UserSensitivityPreferences } from '../src/sensitivity'
+import type { AbuseLabel } from '../src/types'
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_SENSITIVITY_PREFERENCES,
@@ -8,8 +10,6 @@ import {
   sensitivityOverride,
   strictestVisibility
 } from '../src/sensitivity'
-import type { UserSensitivityPreferences } from '../src/sensitivity'
-import type { AbuseLabel } from '../src/types'
 
 const adultViewer: UserSensitivityPreferences = {
   adultContentEnabled: true,
