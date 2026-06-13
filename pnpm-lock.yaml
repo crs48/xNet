@@ -338,6 +338,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.14.2
         version: 3.14.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@xnetjs/abuse':
+        specifier: workspace:*
+        version: link:../../packages/abuse
       '@xnetjs/canvas':
         specifier: workspace:*
         version: link:../../packages/canvas
