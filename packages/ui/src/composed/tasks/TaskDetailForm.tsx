@@ -14,6 +14,7 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import { DIDAvatar } from '../../components/DIDAvatar'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { cn } from '../../utils'
+import { dueDateInputValue, isoToDueDateMs, utcDayFromNow } from './due-date'
 import { MentionTextInput } from './MentionTextInput'
 import { filterTaskPeople, taskPersonLabel, type TaskPersonOption } from './people'
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
@@ -63,25 +64,6 @@ export interface TaskDetailFormProps {
 
 const PRIORITY_IDS = ['low', 'medium', 'high', 'urgent'] as const
 const WORKFLOW_IDS = Object.keys(TASK_STATUS_META) as Array<keyof typeof TASK_STATUS_META>
-
-const DAY_MS = 86_400_000
-
-/** UTC midnight of the calendar day `offset` days from now. */
-function utcDay(offset: number): number {
-  const now = new Date()
-  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + offset * DAY_MS
-}
-
-function toDateInputValue(dueDate: number | null | undefined): string {
-  if (dueDate == null) return ''
-  return new Date(dueDate).toISOString().slice(0, 10)
-}
-
-function fromDateInputValue(value: string): number | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
-  const parsed = Date.parse(`${value}T00:00:00.000Z`)
-  return Number.isNaN(parsed) ? null : parsed
-}
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1)
@@ -248,16 +230,16 @@ function DueDateMenu({
   return (
     <div className="flex flex-col gap-1 p-1">
       <div className="flex gap-1">
-        <QuickDueButton label="Today" onPick={() => onPick(utcDay(0))} />
-        <QuickDueButton label="Tomorrow" onPick={() => onPick(utcDay(1))} />
-        <QuickDueButton label="Next week" onPick={() => onPick(utcDay(7))} />
+        <QuickDueButton label="Today" onPick={() => onPick(utcDayFromNow(0))} />
+        <QuickDueButton label="Tomorrow" onPick={() => onPick(utcDayFromNow(1))} />
+        <QuickDueButton label="Next week" onPick={() => onPick(utcDayFromNow(7))} />
       </div>
       <input
         type="date"
         data-testid="task-due-input"
-        value={toDateInputValue(dueDate)}
+        value={dueDateInputValue(dueDate)}
         onChange={(event) => {
-          const parsed = fromDateInputValue(event.target.value)
+          const parsed = isoToDueDateMs(event.target.value)
           if (parsed != null) onPick(parsed)
         }}
         className="w-full rounded-sm border border-border bg-transparent px-1.5 py-1 text-xs text-foreground outline-none"

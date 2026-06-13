@@ -3,7 +3,7 @@
  * Kept free of React so the host-authority rules stay unit-testable.
  */
 import type { UseTasksResult } from '@xnetjs/react'
-import type { TaskDisplayData } from '@xnetjs/ui'
+import { dueDateMsToIso as msToIso, type TaskDisplayData } from '@xnetjs/ui'
 
 export type TaskNode = UseTasksResult['data'][number]
 
@@ -54,9 +54,11 @@ export function diffAssignees(
   }
 }
 
-/** UTC ms → YYYY-MM-DD for the editor's due-date chips; null clears. */
+/** UTC ms → YYYY-MM-DD for the editor's due-date chips; null clears.
+ *  Delegates to the canonical converter (@xnetjs/ui) so the node↔doc
+ *  round-trip shares one timezone-safe contract (exploration 0172). */
 export function dueDateMsToIso(dueDate: number | null): string | null {
-  return dueDate == null ? null : new Date(dueDate).toISOString().slice(0, 10)
+  return dueDate == null ? null : msToIso(dueDate)
 }
 
 /** Compact fallback label when presence has no entry for a DID. */

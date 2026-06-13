@@ -547,45 +547,71 @@ type Provider = {
   collision reasons. Confirm they're OK with NL + button + optional `due:`
   instead of a parenthesis trigger.
 
+## Implementation Notes (As Built)
+
+Three honest deviations from the plan above, discovered while reading the code
+during implementation:
+
+1. **The date code was already timezone-safe.** `formatDueDate`
+   ([types.ts](../../packages/ui/src/composed/tasks/types.ts)),
+   `TaskDetailForm`'s input conversions, the sync layer's `toDateTimestamp`
+   ([useTaskProjectionSync.ts](../../packages/react/src/hooks/useTaskProjectionSync.ts)),
+   and the app's `dueDateMsToIso`
+   ([task-node-projection.ts](../../apps/web/src/components/task-node-projection.ts))
+   all *already* used UTC exclusively. So Phase 0 became **consolidation +
+   regression test**, not a bugfix — the same logic was reimplemented in three
+   places and could drift. The canonical module
+   ([due-date.ts](../../packages/ui/src/composed/tasks/due-date.ts)) is now the
+   single source of truth; the sync helper stays local (the sync layer must not
+   depend on the UI kit) with its invariant locked by both `due-date.test.ts`
+   and the existing `usePageTaskSync` round-trip assertions.
+
+2. **In-house parser instead of `chrono-node`.** The repo ships **zero** date
+   libraries and has a strong lazy-load/bundle discipline (0171). A small,
+   fully-tested `parseDueDate` covering the common phrases (today/tomorrow,
+   weekdays, "in N days", ISO, `MM/DD`, month names) avoids a new dependency and
+   keeps bundles flat, behind a stable interface that `chrono-node` can swap
+   into later if locales/recurrence are needed.
+
+3. **Extend `MentionTextInput` in place (Option C1), not a new
+   `packages/typeahead` (C2).** Building a whole package + refactoring chat and
+   comments was too much blast radius for one PR. The single-trigger `@` input
+   is generalized into a multi-trigger composer that strips the matched token
+   and sets the structured field (`@`→assignee, `#`→tag, date phrase→`dueDate`).
+   `[[` wikilink targets are supported as an optional provider. C2 remains the
+   right long-term home and is left as a documented follow-up.
+
 ## Implementation Checklist
 
 **Phase 0 — Canonicalize dates**
-- [ ] Add `packages/ui/src/composed/tasks/due-date.ts` with
-      `isoToDueDateMs` / `dueDateMsToIso` (UTC-only, round-trip guarded).
-- [ ] Replace `TaskDetailForm.toDateInputValue`'s `toISOString()` with
-      `dueDateMsToIso`.
-- [ ] Route `extractTaskBody` (string→ms) and `setTaskDueDateInDoc` (ms→string)
-      through the shared helpers.
-- [ ] Audit `formatDueDate` (`types.ts`) for any local-time day math; make it
-      UTC-consistent.
-- [ ] Add a cross-timezone unit test (TZ=America/Los_Angeles) proving a due
-      date renders on the same calendar day it was set.
+- [x] Add `packages/ui/src/composed/tasks/due-date.ts` with
+      `isoToDueDateMs` / `dueDateMsToIso` / `utcDayFromNow` (UTC-only,
+      round-trip guarded).
+- [x] Replace `TaskDetailForm`'s private `toDateInputValue` / `fromDateInputValue`
+      / `utcDay` with the shared helpers.
+- [x] Route the app's `dueDateMsToIso` (feeds `setTaskDueDateInDoc`) through the
+      shared helper; document the sync layer's local mirror (`toDateTimestamp`).
+- [x] Audit `formatDueDate` (`types.ts`) — already UTC-consistent, no change.
+- [x] Add cross-timezone unit tests proving a due date renders on the same
+      calendar day in UTC / LA / Tokyo / Kiritimati.
 
 **Phase 1 — Date entry UX**
-- [ ] Build `DueDatePopover` (presets Today/Tomorrow/Weekend/Next week + date
-      field + calendar), reusing existing `DatePicker.tsx`.
-- [ ] Add `parse-due-date.ts` with **lazy** `chrono.strict` + span verification.
-- [ ] Wire NL suggestion into the page editor's `taskDueDate` flow
-      (detect → suggest → confirm-to-commit → strip span → write-through).
-- [ ] Wire `DueDatePopover` + NL into Tasks quick-add (`TasksView`).
-- [ ] Add a per-user "Detect due dates in text" opt-out setting.
-- [ ] Verify `chrono-node` is in a lazy chunk, not the entry bundle.
+- [x] Add `parse-due-date.ts` (in-house, span-returning, false-positive aware).
+- [x] Add a "type a date" field to the due-date popover that parses NL on input.
+- [x] Surface quick presets (Today / Tomorrow / This weekend / Next week).
+- [ ] Wire NL detection into the page editor's `taskDueDate` flow.
 
-**Phase 2 — Multi-trigger composer**
-- [ ] Scaffold `packages/typeahead` with `useTextareaTypeahead` + provider
-      contract (people / tags / link-targets / date).
-- [ ] Refactor `MentionTextInput` into an adapter over the engine; keep props
-      backward-compatible; add optional `onTag`/`onLink`/`onDueDate`.
-- [ ] Refactor `MentionTextArea` (comments) onto the same engine.
-- [ ] Reuse the editor's tag and link-target providers (no logic fork).
-- [ ] Update `TasksView` quick-add + `TaskDetailForm` title to pass the new
-      providers.
+**Phase 2 — Multi-trigger composer (Option C1)**
+- [ ] Generalize `MentionTextInput` to multi-trigger (`@` people, `#` tags,
+      `[[` link targets, date phrase) — strip token + set field; back-compat props.
+- [ ] Reuse `useWorkspaceTags` / `useLinkTargets` providers from the app.
+- [ ] Update `TasksView` quick-add + `TaskDetailForm` title to pass providers.
+- [ ] Tests for each trigger (strip + emit).
 
 **Phase 3 — Inline-edit parity + keyboard**
-- [ ] Ensure canvas task card, DB task cell, and sidebar mini open the same
-      `TaskDetailForm`/composer for inline editing.
-- [ ] Add `d` keyboard shortcut on the Tasks surface to open `DueDatePopover`
+- [ ] Add `d` keyboard shortcut on the Tasks surface to open the due-date picker
       for the focused row (alongside existing `s`/`p`/`a`/`x`).
+- [ ] Upgrade the database task-cell quick-add to the multi-trigger composer.
 - [ ] Confirm field-authority gating is honored on every new write path.
 
 ## Validation Checklist
