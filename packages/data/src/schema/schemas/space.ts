@@ -16,6 +16,8 @@
  */
 
 import type { InferNode } from '../types'
+import { defineSchema } from '../define'
+import { checkbox, created, createdBy, person, relation, select, text } from '../properties'
 import {
   buildFolderTree,
   flattenFolderTree,
@@ -25,8 +27,6 @@ import {
   type FolderLike,
   type FolderTreeNode
 } from './folder'
-import { defineSchema } from '../define'
-import { checkbox, created, createdBy, person, relation, select, text } from '../properties'
 
 export const SPACE_SCHEMA_IRI = 'xnet://xnet.fyi/Space@1.0.0'
 

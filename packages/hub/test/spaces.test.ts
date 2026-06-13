@@ -7,10 +7,10 @@
  */
 
 import type { GrantIndexRecord } from '../src/storage/interface'
-import { createUCAN, generateKeyBundle, type KeyBundle } from '@xnetjs/identity'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createUCAN, generateKeyBundle, type KeyBundle } from '@xnetjs/identity'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createHub, type HubInstance } from '../src'
 import { createPublicRoutes, resolveEffectiveVisibility } from '../src/routes/public'

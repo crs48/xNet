@@ -8,8 +8,13 @@
  * deliberately does NOT reimplement membership; the ShareDialog opened on a
  * Space id handles it.
  */
-import type { SpaceKind, SpaceVisibility } from '@xnetjs/data'
-import { SpaceSchema, buildSpaceTree, type SpaceTreeNode } from '@xnetjs/data'
+import {
+  SpaceSchema,
+  buildSpaceTree,
+  type SpaceKind,
+  type SpaceTreeNode,
+  type SpaceVisibility
+} from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useCallback, useMemo } from 'react'
 
