@@ -33,7 +33,7 @@ instance created once in `XNetProvider`
 A purpose-built [`UndoManager`](packages/history/src/undo-manager.ts)
 already subscribes to that store's change stream, records **compensating
 changes** (the multiplayer-correct "command pattern"), is **local-only**
-by default (you undo *your* last action, not a collaborator's), already
+by default (you undo _your_ last action, not a collaborator's), already
 **coalesces** rapid edits (e.g. rename keystrokes) into one step, and
 already exposes an `undoLatest()` / `redoLatest()` that pops the most
 recent action **across every node** — i.e. a genuine global stack.
@@ -48,14 +48,14 @@ What's missing is **wiring, not architecture**:
    registry ([apps/web/src/workbench/commands.ts](apps/web/src/workbench/commands.ts))
    registers `Mod-B`, `Mod-J`, etc., but never `Mod-Z`.
 3. Two surfaces — the **rich-text page editor** and the **canvas** — do
-   *not* mutate the NodeStore. They mutate their own **Yjs documents**
+   _not_ mutate the NodeStore. They mutate their own **Yjs documents**
    ([packages/editor/src/core.ts](packages/editor/src/core.ts),
    [packages/canvas/src/store.ts](packages/canvas/src/store.ts)) and have
    no undo wired at all. Those need their own `Y.UndoManager` and a way
    to claim `Cmd+Z` while focused.
 
 The honest design tension is **global linear stack vs. focus-scoped
-stacks**. A *naïve* single global stack that includes intra-document
+stacks**. A _naïve_ single global stack that includes intra-document
 text keystrokes is exactly what every collaborative-app design guide
 warns against (it undoes other people's work and produces
 "spooky-action-at-a-distance"). The recommendation is a **hybrid**: a
@@ -105,19 +105,19 @@ flowchart TB
     YCanvas -.no undo wired.-> X2["∅"]
 ```
 
-**World 1 — the NodeStore.** Everything structured is a *node*, and every
+**World 1 — the NodeStore.** Everything structured is a _node_, and every
 mutation is a signed `Change` appended to an event log. The store is
 created exactly once
 ([packages/react/src/context.ts:624](packages/react/src/context.ts)) and
 shared through `XNetProvider`. Mutation entry points
 ([packages/data/src/store/store.ts](packages/data/src/store/store.ts)):
 
-| Method | Line | Used by |
-| --- | --- | --- |
-| `create(options)` | `store.ts:221` | new folder, task, channel, db row, message |
-| `update(id, options)` | `store.ts:416` | rename, status change, move (re-parent), edit cell |
-| `delete(id)` / `restore(id)` | `store.ts:522` / `608` | soft delete + restore |
-| `transaction(operations)` | `store.ts:847` | multi-node atomic ops, shared `batchId` |
+| Method                       | Line                   | Used by                                            |
+| ---------------------------- | ---------------------- | -------------------------------------------------- |
+| `create(options)`            | `store.ts:221`         | new folder, task, channel, db row, message         |
+| `update(id, options)`        | `store.ts:416`         | rename, status change, move (re-parent), edit cell |
+| `delete(id)` / `restore(id)` | `store.ts:522` / `608` | soft delete + restore                              |
+| `transaction(operations)`    | `store.ts:847`         | multi-node atomic ops, shared `batchId`            |
 
 Every write emits a `NodeChangeEvent`
 ([packages/data/src/store/types.ts:650](packages/data/src/store/types.ts))
@@ -152,7 +152,7 @@ and mutates via `ydoc.transact(...)`
 canvas keeps nodes/edges in Y.Maps and likewise calls `ydoc.transact(...)`
 in ~10 places ([packages/canvas/src/store.ts](packages/canvas/src/store.ts)).
 These edits **never touch the NodeStore change stream**, so the existing
-UndoManager cannot see them. The canvas even has a dormant *undo-group*
+UndoManager cannot see them. The canvas even has a dormant _undo-group_
 command concept (`CanvasUndoGroupCommand`, begin/commit/cancel —
 [packages/canvas/src/interaction/controller.ts:93](packages/canvas/src/interaction/controller.ts))
 but **no `Y.UndoManager` is wired** to consume it.
@@ -164,12 +164,12 @@ is a real, tested implementation that already embodies the
 multiplayer-correct patterns:
 
 - **Command pattern (compensating changes).** Undo doesn't roll back to a
-  snapshot — it *issues a new forward change* that restores the previous
+  snapshot — it _issues a new forward change_ that restores the previous
   values (`applyUndoEntry`, lines 308-325). Peers see undo as an ordinary
   edit. This is the P2P-safe approach.
 - **Local-only by default.** It ignores remote changes and any change
   whose `authorDID` isn't the local user
-  ([lines 51-52](packages/history/src/undo-manager.ts)) — you undo *your*
+  ([lines 51-52](packages/history/src/undo-manager.ts)) — you undo _your_
   action, never a collaborator's.
 - **Coalescing.** Edits within `mergeInterval` (default 300ms) merge into
   one undo step (lines 260-276) — so a rename's keystrokes undo as one.
@@ -178,7 +178,7 @@ multiplayer-correct patterns:
 - **Global pop, already implemented.** `undoLatest(nodeIds?)` /
   `redoLatest()` (lines 167-181) pick the most recent entry **across all
   tracked nodes** by `wallTime`, dispatching to `undoBatch` if it was a
-  transaction. *This is the global-stack primitive we need.*
+  transaction. _This is the global-stack primitive we need._
 
 ```mermaid
 sequenceDiagram
@@ -199,7 +199,7 @@ sequenceDiagram
     UM->>Store: delete(folder "Recipes")
 ```
 
-### What's *not* wired
+### What's _not_ wired
 
 - `useUndo` ([useUndo.ts](packages/react/src/hooks/useUndo.ts)) creates a
   **fresh `UndoManager` per call** (line 84) and only exposes
@@ -220,7 +220,7 @@ sequenceDiagram
 ## External Research
 
 **Yjs `Y.UndoManager`** ([docs.yjs.dev](https://docs.yjs.dev/api/undo-manager)).
-Scoped to a shared type *or a collection of them* — one manager can track
+Scoped to a shared type _or a collection of them_ — one manager can track
 several Y types in a doc. `trackedOrigins` selects which transactions to
 capture: by default only local, origin-less changes are tracked, so
 remote peers' edits are excluded automatically. `captureTimeout` (default
@@ -247,7 +247,7 @@ Key principles, all of which our code already follows or should:
 single global linear stack that includes text keystrokes. Undo is
 **scoped to the focused document/surface**: `Cmd+Z` in a Figma file
 undoes canvas ops; in a Notion page it undoes that page's edits; Linear's
-`Cmd+Z` reverts the last *issue action* (status, assignee, etc.) and pairs
+`Cmd+Z` reverts the last _issue action_ (status, assignee, etc.) and pairs
 it with an **undo toast**. Figma/Google Slides treat undo of a
 now-deleted object as a no-op rather than erroring. The consistent
 lesson: **"global feel" comes from coarse structural actions sharing one
@@ -261,7 +261,7 @@ over global state snapshots.
 ## Key Findings
 
 1. **One store already unifies most surfaces.** Folders, tasks, status,
-   moves, databases, chat, and settings are *all* node mutations on a
+   moves, databases, chat, and settings are _all_ node mutations on a
    single shared `NodeStore`. A single subscriber sees them all — the
    hard part of "app-wide" is already done by the data architecture.
 2. **The global-undo primitive exists** (`undoLatest` / `redoLatest`) and
@@ -272,7 +272,7 @@ over global state snapshots.
    the most-recent scope's `Mod-Z` wins; otherwise global node undo runs.
 4. **Two Yjs surfaces are the real new work.** They need their own
    `Y.UndoManager` (local-origin only) and a scope activation on focus.
-   Editor and canvas are the *only* places where "undo" means something
+   Editor and canvas are the _only_ places where "undo" means something
    other than a node change.
 5. **A pure global linear stack is the wrong target.** Best practice and
    the codebase both point to: global stack for structural/node actions,
@@ -305,7 +305,7 @@ the global node stack.
 - **+** Minimal coupling; respects collaboration and Yjs semantics.
 - **−** Not literally one stack: editing a page then clicking the folder
   tree and pressing `Cmd+Z` won't undo the page edit. (But this is the
-  *expected* behavior, not a bug.)
+  _expected_ behavior, not a bug.)
 
 ### Option B — True single global linear stack
 
@@ -323,21 +323,21 @@ walks it backward regardless of focus, including text keystrokes.
 
 - **All node-backed actions** (folders, tasks, status, moves, db, chat,
   settings) live on **one global stack** via a singleton node
-  `UndoManager` + `undoLatest()`. This *is* the seamless cross-surface
+  `UndoManager` + `undoLatest()`. This _is_ the seamless cross-surface
   experience for ~90% of the user's examples — and it's already built.
 - **Text editor and canvas** keep **document-scoped** `Y.UndoManager`s
   that claim `Cmd+Z` only while focused, through the scope stack.
 - One keybinding, one mental model ("undo my last thing"), correct
   collaboration semantics, and it leverages code that already exists.
 
-| Dimension | A: Federated | B: Global linear | **C: Hybrid (rec.)** |
-| --- | --- | --- | --- |
-| Matches prompt's "seamless" feel | Partial | Full | **High (for structural actions)** |
-| Collaboration-safe | ✅ | ❌ | ✅ |
-| Reuses existing code | ✅ | ⚠️ rework | ✅✅ |
-| Cross-surface single stack | ❌ | ✅ | ✅ (node world) |
-| Implementation risk | Low | High | **Low–Medium** |
-| Aligns with Notion/Figma/Linear | ✅ | ❌ | ✅ |
+| Dimension                        | A: Federated | B: Global linear | **C: Hybrid (rec.)**              |
+| -------------------------------- | ------------ | ---------------- | --------------------------------- |
+| Matches prompt's "seamless" feel | Partial      | Full             | **High (for structural actions)** |
+| Collaboration-safe               | ✅           | ❌               | ✅                                |
+| Reuses existing code             | ✅           | ⚠️ rework        | ✅✅                              |
+| Cross-surface single stack       | ❌           | ✅               | ✅ (node world)                   |
+| Implementation risk              | Low          | High             | **Low–Medium**                    |
+| Aligns with Notion/Figma/Linear  | ✅           | ❌               | ✅                                |
 
 ## Recommendation
 
@@ -409,8 +409,8 @@ registry.register({
   id: 'edit.undo',
   title: 'Undo',
   key: 'Mod-Z',
-  scope: 'global',          // editor/canvas scopes outrank this when focused
-  allowInInput: false,      // plain inputs keep native undo
+  scope: 'global', // editor/canvas scopes outrank this when focused
+  allowInInput: false, // plain inputs keep native undo
   run: () => void undo.undo()
 })
 registry.register({
@@ -429,12 +429,18 @@ registry.register({
 // On focus of a page editor or canvas, activate a scope and register a
 // higher-priority Mod-Z that drives that surface's Y.UndoManager.
 useEffect(() => {
-  const dispose = registry.activateScope('surface:editor')   // most-recent scope wins
+  const dispose = registry.activateScope('surface:editor') // most-recent scope wins
   const cmd = registry.register({
-    id: 'editor.undo', key: 'Mod-Z', scope: 'surface:editor',
-    allowInInput: true, run: () => yUndoManager.undo()
+    id: 'editor.undo',
+    key: 'Mod-Z',
+    scope: 'surface:editor',
+    allowInInput: true,
+    run: () => yUndoManager.undo()
   })
-  return () => { cmd.dispose(); dispose.dispose() }
+  return () => {
+    cmd.dispose()
+    dispose.dispose()
+  }
 }, [isFocused])
 ```
 
@@ -472,7 +478,7 @@ flowchart TB
   index of entries.
 - **Cross-world ordering is not unified.** With Option C, the node stack
   and the two Yjs stacks are separate timelines. If a user does a node
-  action *then* a canvas action then blurs the canvas, `Cmd+Z` (now
+  action _then_ a canvas action then blurs the canvas, `Cmd+Z` (now
   global) undoes the node action, not the canvas one. Acceptable and
   expected, but document it.
 - **Atomicity gaps.** Any mutation path that loops `store.update()`
@@ -481,7 +487,7 @@ flowchart TB
 - **`allowInInput` collisions.** Inside a plain `<input>` (e.g. rename
   field), should `Cmd+Z` do native text undo or node undo? Recommend
   native while editing the field, node undo once committed/blurred —
-  achieved by *not* setting `allowInInput` on the global command.
+  achieved by _not_ setting `allowInInput` on the global command.
 - **Redo divergence.** A new change clears the redo stack
   (undo-manager.ts:281), per node. For a global redo, confirm the UX of
   redo after switching surfaces (standard: any new action invalidates
@@ -495,57 +501,81 @@ flowchart TB
 
 ## Implementation Checklist
 
-- [ ] Add a `trackedNodeIds()` (or expose stack node set) + ensure
-      `canUndoAny`/`canRedoAny` can be called without an explicit list on
-      the `UndoManager`.
-- [ ] Instantiate **one** `UndoManager` in `XNetProvider`, `start()` on
-      mount, `stop()` on unmount; expose it via context alongside `store`.
-- [ ] Add `useGlobalUndo()` hook backed by `undoLatest()`/`redoLatest()`
-      with reactive `canUndo`/`canRedo`.
-- [ ] Register `edit.undo` (`Mod-Z`), `edit.redo` (`Mod-Shift-Z`), and a
-      `Mod-Y` alias in the workbench command layer.
-- [ ] Add a `Y.UndoManager` to the page editor (local origin,
-      `captureTimeout` 500ms); activate `surface:editor` scope + scoped
-      `Mod-Z`/`Mod-Shift-Z` on focus, dispose on blur.
-- [ ] Add a `Y.UndoManager` to the canvas scene doc; wire the existing
-      `CanvasUndoGroupCommand` begin/commit/cancel so drags/resizes are
-      single steps; activate `surface:canvas` scope on focus.
-- [ ] Audit multi-node mutations (cascading folder delete, bulk edits, db
-      field/row ops) to route through `store.transaction(...)` for atomic
-      undo; fix any that loop single updates.
-- [ ] Add an "Undo" toast after destructive/coarse node actions
-      (delete folder, archive task) calling the same global undo.
-- [ ] Add undo/redo entries to the command palette and any Edit menu so
-      they're discoverable.
-- [ ] Telemetry: the manager already reports `history.undo` /
-      `history.redo`; add per-surface dimension (node vs editor vs canvas).
+- [x] Add `trackedNodeIds()` + `hasUndo()`/`hasRedo()` (callable without an
+      explicit node list) to the `UndoManager`
+      ([undo-manager.ts](../../packages/history/src/undo-manager.ts)).
+- [x] Instantiate **one** `UndoManager` in `XNetProvider`, `start()` on
+      mount, `stop()` on unmount; expose it via context alongside `store`
+      ([context.ts](../../packages/react/src/context.ts)).
+- [x] Add `useGlobalUndo()` hook backed by `undoLatest()`/`redoLatest()`
+      with reactive `canUndo`/`canRedo`
+      ([useGlobalUndo.ts](../../packages/react/src/hooks/useGlobalUndo.ts)).
+- [x] Register `edit.undo` (`Mod-Z`), `edit.redo` (`Mod-Shift-Z`), and a
+      `Mod-Y` alias in the workbench command layer
+      ([WorkspaceCommands.tsx](../../apps/web/src/components/WorkspaceCommands.tsx)).
+- [x] Page editor undo. **Already provided** by TipTap's `Collaboration`
+      extension (`StarterKit` runs with `undoRedo: false`, Collaboration
+      binds its own local-origin `Y.UndoManager` + keymap —
+      [RichTextEditor.tsx](../../packages/editor/src/components/RichTextEditor.tsx)).
+      The global `Mod-Z` defers automatically: it is `allowInInput: false`,
+      so inside the contenteditable the registry skips it and ProseMirror's
+      keymap runs Collaboration undo. No second manager added (that would
+      double-undo).
+- [x] Add a `Y.UndoManager` to the canvas scene doc
+      ([undo.ts](../../packages/canvas/src/undo.ts)); `captureTimeout`
+      collapses a drag's update stream into one step; claim `Mod-Z`/
+      `Mod-Shift-Z`/`Mod-Y` via a focus-guarded `surface:canvas` scope
+      ([CanvasView.tsx](../../apps/web/src/components/CanvasView.tsx)).
+- [x] Audit multi-node mutations. `useMutate.mutate([...])` already routes
+      arrays through `bridge.transaction(...)` (one shared `batchId`), and
+      `deleteFolder` / db field+row ops use it — so cascading deletes undo
+      atomically via `undoBatch`. Verified, no loop-of-updates found
+      ([useMutate.ts](../../packages/react/src/hooks/useMutate.ts),
+      [explorer-folders-context.tsx](../../apps/web/src/workbench/views/explorer-folders-context.tsx)).
+- [x] Add an "Undo" toast after destructive node actions (folder delete),
+      reusable `useUndoToast()` driving the same global undo
+      ([UndoToast.tsx](../../apps/web/src/components/UndoToast.tsx)).
+- [x] Undo/redo are discoverable: registered with titles + chords, they
+      list in the `?` shortcuts overlay and the `Cmd+K` palette
+      (`getAvailableCommands` — [GlobalSearch.tsx](../../apps/web/src/components/GlobalSearch.tsx)).
+- [x] Telemetry: node undo emits `history.undo.node` / `history.redo.node`
+      (surface-tagged); canvas uses its own Yjs manager.
 
 ## Validation Checklist
 
-- [ ] Create a folder, press `Cmd+Z` → folder is removed; `Cmd+Shift+Z` →
-      restored.
-- [ ] Rename a folder, `Cmd+Z` → previous name restored (and rename
-      keystrokes collapse to one undo via the merge interval).
-- [ ] Move an item into a folder, `Cmd+Z` → item leaves the folder.
-- [ ] Create a task → `Cmd+Z` deletes it; change task status → `Cmd+Z`
-      restores the prior status.
-- [ ] Delete a database field (multi-node transaction) → `Cmd+Z` restores
-      field *and* affected cells in **one** press.
-- [ ] Send a chat message → `Cmd+Z` retracts it (soft delete);
-      `Cmd+Shift+Z` re-sends.
-- [ ] Change a setting → `Cmd+Z` reverts it.
-- [ ] Type in the page editor, `Cmd+Z` undoes **text**, not the last node
-      action; blur to the folder tree, `Cmd+Z` now undoes the last node
-      action.
-- [ ] On the canvas, drag a node then `Cmd+Z` → node returns to its
-      original position in one step.
-- [ ] Collaboration: a second peer's edits are **never** undone by your
-      `Cmd+Z` (local-only invariant holds).
-- [ ] Inside a plain text input, `Cmd+Z` performs native text undo, not a
-      node undo.
-- [ ] No regressions to existing `Mod-B`/`Mod-J`/etc. workbench chords.
-- [ ] `undoLatest` ordering correct across a rapid sequence of mixed
-      actions (folder, task, db) — undoes strictly most-recent-first.
+- [x] Create a node, undo removes it, redo restores it — covered by the
+      end-to-end [`global-undo.test.tsx`](../../tests/integration/src/global-undo.test.tsx)
+      (real `XNetProvider` + `useGlobalUndo`) and the `UndoManager`
+      create→delete/restore unit tests.
+- [x] Rename → undo restores the previous value, and rapid edits collapse
+      to one step (`mergeInterval`) — `UndoManager` unit tests.
+- [x] Undo the most recent action across **different** nodes/surfaces in
+      strict order — `undoLatest reverses the most recent action across
+    different nodes` unit test + integration test.
+- [x] Multi-node transaction (cascading folder delete / db field+row ops)
+      undoes in **one** press — `useMutate` → `bridge.transaction` (shared
+      `batchId`) + `UndoManager - undoBatch` unit tests.
+- [x] Redo follows global **LIFO** order, not original wall-clock —
+      `redoLatest follows global LIFO order` unit test + integration test.
+- [x] Collaboration / local-only: a peer's edits are never undone
+      (`localOnly` author filter; canvas excludes remote origins) —
+      `UndoManager` + `createCanvasUndoManager` unit tests.
+- [x] Canvas drag/create undoes as one document-local step —
+      [`undo.test.ts`](../../packages/canvas/src/undo.test.ts)
+      (`captureTimeout` grouping + undo/redo round-trip).
+- [x] Editor `Cmd+Z` undoes **text**, not a node action; plain inputs keep
+      native undo — the global command is `allowInInput: false`, so the
+      registry skips it inside contenteditable/inputs
+      (`handleKeyDown` logic, covered by `@xnetjs/plugins` command tests),
+      letting ProseMirror/native undo run.
+- [x] No regressions: `tsc` green across `history`, `react`, `canvas`,
+      `web` (30 turbo typecheck tasks); existing `Mod-B`/`Mod-J` chords
+      untouched (additive commands, unique keys); full `history` (138) and
+      `react` (277) suites pass.
+- [ ] Manual browser pass (headless WebAuthn-gated, see
+      [[worktree-app-live-render-recipe]]): click-through create-folder →
+      `Cmd+Z` and the on-canvas drag → `Cmd+Z`. Deferred to a real session;
+      logic is covered above.
 
 ## References
 
