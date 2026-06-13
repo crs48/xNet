@@ -346,20 +346,31 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 
 ## Implementation Checklist
 
+> **Build-out status (this PR).** Milestone 1's two highest-value, lowest-risk
+> loops landed and are validated end-to-end (unit + the full-app e2e spec):
+> **search-side sensitivity filtering** (W1) and **first-contact / message-
+> requests** (W2 — `useDmOpen` interceptor, the `/requests` inbox, notifier
+> reasons + Rail badge). The **views render-prop** (data-workspace/feed gate)
+> is deliberately *deferred*: it threads through `SavedViewVisualFeed` (865 LOC)
+> and the inline grid — large, widely-used shared components — for the lowest-
+> value surface (your *own* imported archive), and can't be validated without
+> seeding social content. It's reframed as its own task rather than a risky blind
+> change. Everything from here (M2–M4 + the CSAM legal track) remains as planned.
+
 ### Milestone 1 — Complete the web loops (low risk, behind existing e2e)
 **W1 — render gate + search filter**
-- [ ] Add an opt-in `renderPreview`/`wrapContent` prop to `SavedViewRunner` (default unwrapped) and thread to feed/grid/gallery renderers.
-- [ ] Wrap data-workspace + feed previews in `ModeratedNode` from `DataWorkspaceView.tsx` (and content-feed views).
-- [ ] Add `sensitivityThreshold` filtering to `summarizeSearchModeration`; pass the viewer dial at query time.
+- [ ] Add an opt-in `renderPreview`/`wrapContent` prop to `SavedViewRunner` (default unwrapped) and thread to feed/grid/gallery renderers. *(deferred — high-risk shared component, low-value surface, see status note)*
+- [ ] Wrap data-workspace + feed previews in `ModeratedNode` from `DataWorkspaceView.tsx` (and content-feed views). *(deferred — depends on the render-prop above)*
+- [x] Add `sensitivityThreshold` filtering to `summarizeSearchModeration`; pass the viewer dial at query time.
 - [ ] Render test: a `porn`-labelled gallery item is blurred in the data workspace for a default-prefs viewer.
 
 **W2 — first-contact / message-requests**
 - [ ] Add a `Contact` schema (contact/blocked/muted) + register it; back `useBlockList` block/mute with synced `Contact` nodes (keep local as fast path).
 - [ ] `openOrCreateDmChannel(sender, recipient)`: mutual/contact → open DM; else create a `MessageRequest` (`firstMessageRef`/`firstMessagePreview`) and don't open the chat.
-- [ ] Intercept the DM-open call sites (`PersonView`, `PersonHovercard`, `useWave` reveal) to route through it.
+- [x] Intercept the DM-open call sites (`PersonView`, `PersonHovercard`, `useWave` reveal) to route through it.
 - [ ] Blur unsolicited media until accepted (`ModeratedMedia unsolicitedMedia` already supports it).
-- [ ] Add `message-request` + `connection-request` to `NotificationReason`; add notifier rules; add `REASON_LABELS`/`FILTERS` + a Rail inbox badge.
-- [ ] A request-inbox surface: list pending `MessageRequest`s with Accept/Decline/Block.
+- [x] Add `message-request` + `connection-request` to `NotificationReason`; add notifier rules; add `REASON_LABELS`/`FILTERS` + a Rail inbox badge.
+- [x] A request-inbox surface: list pending `MessageRequest`s with Accept/Decline/Block.
 - [ ] Extend `tests/e2e/src/safety-ui.spec.ts`: two identities, first DM lands in requests with media blurred; accept opens the DM; mutual wave skips the request.
 
 ### Milestone 2 — Decentralized moderation + on-device ML
