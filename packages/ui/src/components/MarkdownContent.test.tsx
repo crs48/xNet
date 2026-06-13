@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { MarkdownContent } from './MarkdownContent'
 
 /**
- * Regression guard for comment linkification (0170): comments rely on GFM
+ * Regression guard for comment linkification (0171): comments rely on GFM
  * autolink literals in MarkdownContent, not on LinkifiedText. These must
  * keep working unchanged.
  */

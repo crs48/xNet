@@ -53,7 +53,7 @@ function EditedTag({ message }: { message: ChatMessageRow }) {
 /**
  * Unlike tags/mentions (structured, composer-declared — see MessageTagChips),
  * links are render-time decoration: a URL's meaning lives in its text, so the
- * stored content is never parsed into structure or rewritten (0170).
+ * stored content is never parsed into structure or rewritten (0171).
  */
 function MessageBody({ message }: { message: ChatMessageRow }) {
   if (message.redacted) {

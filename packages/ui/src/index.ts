@@ -373,7 +373,7 @@ export {
   type ContrastResult
 } from './utils/contrast'
 
-// ─── Link enrichment (0170) ───────────────────────────────────────
+// ─── Link enrichment (0171) ───────────────────────────────────────
 export {
   findLinkTokens,
   mergeLinkTokens,

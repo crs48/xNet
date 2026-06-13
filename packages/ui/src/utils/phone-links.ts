@@ -1,5 +1,5 @@
 /**
- * Phone number detection for plain user text (0170, phase 2).
+ * Phone number detection for plain user text (0171, phase 2).
  *
  * Kept in its own module so libphonenumber's metadata (~80 kB even in the
  * min build) only loads when a surface opts into phone detection — import

@@ -57,7 +57,7 @@ export const textHandler: PropertyHandler<string> = {
     if (value === null || value === undefined || value === '') {
       return <span className="text-gray-400 dark:text-gray-500 italic">Empty</span>
     }
-    // Read mode only — while editing, TextEditor shows the raw text (0170)
+    // Read mode only — while editing, TextEditor shows the raw text (0171)
     return <LinkifiedText value={value} className="text-gray-900 dark:text-gray-100" detectPhones />
   },
 

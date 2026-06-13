@@ -1,6 +1,6 @@
 /**
  * LinkifiedText - renders plain user text with detected URLs, email
- * addresses, and (optionally) phone numbers as clickable links (0170).
+ * addresses, and (optionally) phone numbers as clickable links (0171).
  *
  * Detection is render-time only: the stored value is never rewritten, so a
  * detection improvement or bug fix applies retroactively to all content.

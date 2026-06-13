@@ -510,7 +510,7 @@ export function RichTextEditor({
     Link.configure({
       openOnClick: false,
       // Fuzzy autolinks ("example.com") resolve to https, matching the
-      // read-surface linkify policy in @xnetjs/ui (0170)
+      // read-surface linkify policy in @xnetjs/ui (0171)
       defaultProtocol: 'https',
       HTMLAttributes: {
         class: 'text-primary hover:underline cursor-pointer'
