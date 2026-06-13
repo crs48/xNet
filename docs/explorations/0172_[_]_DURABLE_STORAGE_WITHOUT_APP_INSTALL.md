@@ -272,7 +272,7 @@ status.addEventListener('change', () => {
 - [x] Ship OS notification delivery for inbox items (deferred from 0167/0168): contextual pre-prompt UI, `Notification.requestPermission()` on gesture, deliver via existing `Notifier` subscription. _(`comms/desktop-notifications.ts`; opt-in row in InboxTray; delivery only while the tab is hidden.)_
 - [x] Chain `requestPersistentStorage()` after a notification-permission grant.
 - [x] Record persist-state transitions (granted/denied/error + which lever) in the storage diagnostics surface proposed in 0154. _(`lib/storage-durability.ts` keeps a scope-aware localStorage ring buffer, `xnet:durability-log`, readable from devtools.)_
-- [ ] Docs site: update any storage/durability page to the per-browser truth table.
+- [x] Docs site: update any storage/durability page to the per-browser truth table. _(`site/src/content/docs/docs/guides/offline.mdx` gains a Durable storage section.)_
 
 ## Validation Checklist
 
