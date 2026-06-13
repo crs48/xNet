@@ -24,6 +24,15 @@ export const ProfileSchema = defineSchema({
     /** Human-readable display name */
     displayName: text({ required: true, maxLength: 120 }),
 
+    /**
+     * Optional @handle — a short, workspace-unique slug for typing mentions
+     * (exploration 0172). The stable identity is always the DID; the handle is
+     * a resolver input at compose time and a display option at read time, so a
+     * rename never breaks an existing mention. Global uniqueness is out of
+     * scope — the DID remains the source of truth.
+     */
+    handle: text({ maxLength: 32 }),
+
     /** Avatar URL or blob reference */
     avatar: text({ maxLength: 500 }),
 

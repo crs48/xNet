@@ -1,5 +1,6 @@
 import type { SlashCommandItem } from '../../extensions/slash-command/items'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
+import { useListboxNavigation } from '@xnetjs/ui'
+import { forwardRef, useCallback, useImperativeHandle } from 'react'
 import { cn } from '../../utils'
 
 interface SlashMenuProps {
@@ -12,19 +13,14 @@ export interface SlashMenuRef {
 }
 
 /**
- * SlashMenu - Command palette UI component
+ * SlashMenu - Command palette UI component. Keyboard handling is the shared
+ * listbox contract (exploration 0172); swallowKeysWhenEmpty keeps arrows from
+ * moving the editor caret while "No results" is showing.
  */
 export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(function SlashMenu(
   { items, command },
   ref
 ) {
-  const [selectedIndex, setSelectedIndex] = useState(0)
-
-  // Reset selection when items change
-  useEffect(() => {
-    setSelectedIndex(0)
-  }, [items])
-
   const selectItem = useCallback(
     (index: number) => {
       const item = items[index]
@@ -35,38 +31,15 @@ export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(function Slash
     [items, command]
   )
 
-  useImperativeHandle(ref, () => ({
-    onKeyDown: (event: KeyboardEvent) => {
-      if (items.length === 0) {
-        if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'Enter') {
-          event.preventDefault()
-          return true
-        }
+  const nav = useListboxNavigation({
+    count: items.length,
+    onCommit: selectItem,
+    resetKey: items,
+    swallowKeysWhenEmpty: true
+  })
+  const selectedIndex = nav.activeIndex
 
-        return false
-      }
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault()
-        setSelectedIndex((prev) => (prev - 1 + items.length) % items.length)
-        return true
-      }
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault()
-        setSelectedIndex((prev) => (prev + 1) % items.length)
-        return true
-      }
-
-      if (event.key === 'Enter') {
-        event.preventDefault()
-        selectItem(selectedIndex)
-        return true
-      }
-
-      return false
-    }
-  }))
+  useImperativeHandle(ref, () => ({ onKeyDown: nav.onKeyDown }), [nav.onKeyDown])
 
   if (items.length === 0) {
     return (
@@ -104,7 +77,7 @@ export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(function Slash
           item={item}
           isSelected={index === selectedIndex}
           onClick={() => selectItem(index)}
-          onMouseEnter={() => setSelectedIndex(index)}
+          onMouseEnter={() => nav.setActiveIndex(index)}
         />
       ))}
     </div>

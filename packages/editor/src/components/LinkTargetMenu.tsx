@@ -5,6 +5,7 @@
  * move, Enter/Tab accept (SuggestionMenuRef).
  */
 import type { LucideIcon } from 'lucide-react'
+import { useListboxNavigation } from '@xnetjs/ui'
 import {
   Database,
   FileText,
@@ -15,7 +16,7 @@ import {
   Shapes,
   Table2
 } from 'lucide-react'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
+import { forwardRef, useCallback, useImperativeHandle } from 'react'
 import { cn } from '../utils'
 
 export type WikilinkMenuItem = {
@@ -56,12 +57,6 @@ export type LinkTargetMenuRef = {
 
 export const LinkTargetMenu = forwardRef<LinkTargetMenuRef, LinkTargetMenuProps>(
   function LinkTargetMenu({ items, command }, ref) {
-    const [selectedIndex, setSelectedIndex] = useState(0)
-
-    useEffect(() => {
-      setSelectedIndex(0)
-    }, [items])
-
     const selectItem = useCallback(
       (index: number) => {
         const item = items[index]
@@ -72,28 +67,14 @@ export const LinkTargetMenu = forwardRef<LinkTargetMenuRef, LinkTargetMenuProps>
       [command, items]
     )
 
-    useImperativeHandle(ref, () => ({
-      onKeyDown: (event: KeyboardEvent) => {
-        if (items.length === 0) return false
+    const nav = useListboxNavigation({
+      count: items.length,
+      onCommit: selectItem,
+      resetKey: items
+    })
+    const selectedIndex = nav.activeIndex
 
-        const step = (delta: number) => {
-          event.preventDefault()
-          setSelectedIndex((prev) => (prev + delta + items.length) % items.length)
-          return true
-        }
-
-        if (event.key === 'ArrowUp') return step(-1)
-        if (event.key === 'ArrowDown') return step(1)
-
-        if (event.key === 'Enter' || event.key === 'Tab') {
-          event.preventDefault()
-          selectItem(selectedIndex)
-          return true
-        }
-
-        return false
-      }
-    }))
+    useImperativeHandle(ref, () => ({ onKeyDown: nav.onKeyDown }), [nav.onKeyDown])
 
     if (items.length === 0) {
       return (
@@ -134,7 +115,7 @@ export const LinkTargetMenu = forwardRef<LinkTargetMenuRef, LinkTargetMenuProps>
               role="option"
               aria-selected={index === selectedIndex}
               onClick={() => selectItem(index)}
-              onMouseEnter={() => setSelectedIndex(index)}
+              onMouseEnter={() => nav.setActiveIndex(index)}
               className={cn(
                 'flex items-center gap-3 w-full',
                 'px-2 py-2 rounded-md',

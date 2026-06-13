@@ -7,7 +7,8 @@ import { ProfileSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { useEffect, useState } from 'react'
-import { profileFormValues } from './comms-utils'
+import { isHandleTaken, normalizeHandle, profileFormValues } from './comms-utils'
+import { useProfiles } from './hooks'
 
 function Field({
   label,
@@ -41,6 +42,7 @@ function SavedFlash({ visible }: { visible: boolean }) {
 
 interface ProfileForm {
   name: string
+  handle: string
   emoji: string
   message: string
 }
@@ -49,7 +51,7 @@ function useProfileForm(profile: Record<string, unknown> | undefined): {
   form: ProfileForm
   setField: (field: keyof ProfileForm) => (value: string) => void
 } {
-  const [form, setForm] = useState<ProfileForm>({ name: '', emoji: '', message: '' })
+  const [form, setForm] = useState<ProfileForm>({ name: '', handle: '', emoji: '', message: '' })
 
   useEffect(() => {
     setForm(profileFormValues(profile))
@@ -71,11 +73,17 @@ export function ProfileSettings() {
   const profile = profiles?.[0] as unknown as Record<string, unknown> | undefined
   const { form, setField } = useProfileForm(profile)
   const [saved, setSaved] = useState(false)
+  const allProfiles = useProfiles()
+
+  const normalizedHandle = normalizeHandle(form.handle)
+  const handleTaken = isHandleTaken(normalizedHandle, did, allProfiles)
 
   const save = async () => {
-    if (!bridge || !did) return
+    if (!bridge || !did || handleTaken) return
     const fields = {
       displayName: form.name.trim(),
+      // Store the normalized slug; the DID stays the canonical reference.
+      handle: normalizedHandle,
       statusEmoji: form.emoji.trim(),
       statusMessage: form.message.trim()
     }
@@ -100,6 +108,26 @@ export function ProfileSettings() {
         placeholder="Ada Lovelace"
         onChange={setField('name')}
       />
+      <label className="flex flex-col gap-1">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-ink-3">Handle</span>
+        <div className="flex items-center gap-1">
+          <span className="text-sm text-ink-3">@</span>
+          <input
+            type="text"
+            value={form.handle}
+            placeholder="ada"
+            onChange={(event) => setField('handle')(event.target.value)}
+            className="h-8 w-full max-w-md rounded-md border border-hairline bg-surface-0 px-2 text-sm text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
+          />
+        </div>
+        {handleTaken ? (
+          <span className="text-[11px] text-red-500">@{normalizedHandle} is already taken</span>
+        ) : (
+          <span className="text-[11px] text-ink-3">
+            Lets people type @{normalizedHandle || 'you'} to mention you. Unique in this workspace.
+          </span>
+        )}
+      </label>
       <Field
         label="Status emoji"
         value={form.emoji}
@@ -116,7 +144,7 @@ export function ProfileSettings() {
         <button
           type="button"
           onClick={() => void save()}
-          disabled={!form.name.trim()}
+          disabled={!form.name.trim() || handleTaken}
           className="w-fit cursor-pointer rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 hover:bg-surface-2 disabled:cursor-default disabled:opacity-50"
         >
           Save profile

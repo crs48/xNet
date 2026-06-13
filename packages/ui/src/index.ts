@@ -196,6 +196,7 @@ export {
   TaskDetailForm,
   MentionTextInput,
   findActiveMention,
+  findActiveHashtag,
   filterTaskPeople,
   taskPersonLabel,
   TASK_STATUS_META,
@@ -203,9 +204,18 @@ export {
   getTaskStatusMeta,
   isCompletedStatus,
   formatDueDate,
+  dueDateMsToIso,
+  isoToDueDateMs,
+  utcDayFromNow,
+  dueDateInputValue,
+  parseDueDate,
+  detectTrailingDueDate,
+  type DueDateParse,
+  type TrailingDueDate,
   type TaskDetailFormProps,
   type TaskTagOption,
   type MentionTextInputProps,
+  type MentionTagOption,
   type TaskPersonOption,
   type TaskChipProps,
   type TaskRowProps,
@@ -355,6 +365,12 @@ export {
   type UseAnnounceOptions,
   type AnnounceFunction
 } from './hooks/useAnnounce'
+export {
+  useListboxNavigation,
+  type ListboxKeyEvent,
+  type ListboxNavigation,
+  type ListboxNavigationOptions
+} from './hooks/useListboxNavigation'
 
 // ─── Accessibility Utils ───────────────────────────────────────────
 export {

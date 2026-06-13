@@ -23,15 +23,18 @@ import { useIdentity, useMutate, useQuery, useTasks } from '@xnetjs/react'
 import {
   DIDAvatar,
   MentionTextInput,
+  formatDueDate,
   getTaskStatusMeta,
   taskPersonLabel,
   type TaskDisplayData
 } from '@xnetjs/ui'
 import { TaskBoard, TaskListGrouped, type TaskBoardStatusChange } from '@xnetjs/views'
-import { Inbox, KanbanSquare, List, Plus, User, X } from 'lucide-react'
+import { CalendarDays, Hash, Inbox, KanbanSquare, List, Plus, User, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
+import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
+import { TaskDueDatePalette } from './TaskDueDatePalette'
 import { TaskInlineEditor } from './TaskInlineEditor'
 import { TaskMiniPalette } from './TaskMiniPalette'
 
@@ -74,13 +77,16 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
   const { did } = useIdentity()
   const { create, update } = useMutate()
   const people = useWorkspacePeople()
+  const { suggestions: tagOptions, getOrCreateTag } = useWorkspaceTags()
   const [tab, setTab] = useState<TasksTab>('all')
   const [mode, setMode] = useState<TasksMode>('list')
   const [draft, setDraft] = useState('')
   const [draftAssignees, setDraftAssignees] = useState<string[]>([])
+  const [draftTags, setDraftTags] = useState<string[]>([])
+  const [draftDue, setDraftDue] = useState<number | null>(null)
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
-  const [miniPalette, setMiniPalette] = useState<'status' | 'priority' | null>(null)
+  const [miniPalette, setMiniPalette] = useState<'status' | 'priority' | 'dueDate' | null>(null)
   const quickAddRef = useRef<HTMLInputElement>(null)
 
   const { data: tasks, loading } = useTasks({ includeCompleted: true })
@@ -274,6 +280,13 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         run: withFocused(() => setMiniPalette('priority'))
       }),
       registry.register({
+        id: 'task.setDueDate',
+        title: 'Set task due date…',
+        scope: 'task-focused',
+        key: 'd',
+        run: withFocused(() => setMiniPalette('dueDate'))
+      }),
+      registry.register({
         id: 'task.edit',
         title: 'Edit task',
         scope: 'task-focused',
@@ -328,6 +341,8 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
 
     setDraft('')
     setDraftAssignees([])
+    setDraftTags([])
+    setDraftDue(null)
     const status: TaskStatusId = tab === 'triage' ? 'triage' : 'todo'
     const assignees =
       tab === 'mine' && did && !draftAssignees.includes(did)
@@ -342,7 +357,9 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         status,
         source: 'api',
         ...(projectId ? { project: projectId } : {}),
-        ...(firstAssignee ? { assignee: firstAssignee as DID, assignees: assignees as DID[] } : {})
+        ...(firstAssignee ? { assignee: firstAssignee as DID, assignees: assignees as DID[] } : {}),
+        ...(draftTags.length ? { tags: draftTags } : {}),
+        ...(draftDue != null ? { dueDate: draftDue } : {})
       },
       generateTaskId()
     )
@@ -431,13 +448,54 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
           onChange={setDraft}
           people={people.filter((person) => !draftAssignees.includes(person.did))}
           onMention={(mentioned) => setDraftAssignees((current) => [...current, mentioned])}
+          tags={tagOptions.filter((tag) => !draftTags.includes(tag.id))}
+          onTag={(tagId) => setDraftTags((current) => [...current, tagId])}
+          onCreateTag={(name) => {
+            void getOrCreateTag(name).then((tag) => {
+              if (tag) setDraftTags((current) => [...current, tag.id])
+            })
+          }}
+          onDueDate={(ms) => setDraftDue(ms)}
           onSubmit={() => void handleCreate()}
           inputRef={quickAddRef}
           placeholder={
-            tab === 'triage' ? 'Add to triage… (@ to assign)' : 'Add a task… (@ to assign)'
+            tab === 'triage'
+              ? 'Add to triage… (@ assign · # tag · due date)'
+              : 'Add a task… (@ assign · # tag · type a due date)'
           }
           data-testid="task-quick-add"
         />
+        {draftDue != null && (
+          <span className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-xs text-foreground">
+            <CalendarDays size={12} className="text-muted-foreground" />
+            {formatDueDate(draftDue).label}
+            <button
+              type="button"
+              aria-label="Remove pending due date"
+              onClick={() => setDraftDue(null)}
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X size={10} />
+            </button>
+          </span>
+        )}
+        {draftTags.map((tagId) => (
+          <span
+            key={tagId}
+            className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-xs text-foreground"
+          >
+            <Hash size={11} className="text-muted-foreground" />
+            {tagOptions.find((tag) => tag.id === tagId)?.name ?? 'tag'}
+            <button
+              type="button"
+              aria-label="Remove pending tag"
+              onClick={() => setDraftTags((current) => current.filter((id) => id !== tagId))}
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X size={10} />
+            </button>
+          </span>
+        ))}
         {draftAssignees.map((assignee) => (
           <span
             key={assignee}
@@ -508,7 +566,7 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         </div>
       )}
 
-      {miniPalette && focusedTaskId && (
+      {(miniPalette === 'status' || miniPalette === 'priority') && focusedTaskId && (
         <TaskMiniPalette
           title={miniPalette === 'status' ? 'Change status…' : 'Change priority…'}
           kind={miniPalette}
@@ -526,6 +584,15 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
               })
             }
           }}
+          onClose={() => setMiniPalette(null)}
+        />
+      )}
+
+      {miniPalette === 'dueDate' && focusedTaskId && (
+        <TaskDueDatePalette
+          onSelect={(dueDate) =>
+            void update(TaskSchema, focusedTaskId, { dueDate: dueDate ?? undefined })
+          }
           onClose={() => setMiniPalette(null)}
         />
       )}

@@ -5,7 +5,10 @@ import {
   colorForDid,
   dedupeProfiles,
   displayName,
+  isHandleTaken,
+  mentionLabel,
   mergeMentionables,
+  normalizeHandle,
   profileFormValues,
   toggleTrackKind,
   userCardFrom
@@ -91,10 +94,51 @@ describe('profileFormValues', () => {
   it('maps fields with empty-string fallbacks', () => {
     expect(profileFormValues({ displayName: 'A', statusEmoji: '🌴' })).toEqual({
       name: 'A',
+      handle: '',
       emoji: '🌴',
       message: ''
     })
-    expect(profileFormValues(null)).toEqual({ name: '', emoji: '', message: '' })
+    expect(profileFormValues({ displayName: 'A', handle: 'ada' })).toEqual({
+      name: 'A',
+      handle: 'ada',
+      emoji: '',
+      message: ''
+    })
+    expect(profileFormValues(null)).toEqual({ name: '', handle: '', emoji: '', message: '' })
+  })
+})
+
+describe('handle helpers (0172)', () => {
+  it('normalizes a raw handle to a workspace slug', () => {
+    expect(normalizeHandle('  @Ada Lovelace! ')).toBe('adalovelace')
+    expect(normalizeHandle('@@ada__dev-1')).toBe('ada__dev-1')
+    expect(normalizeHandle('!!!')).toBe('')
+    expect(normalizeHandle('x'.repeat(40))).toHaveLength(32)
+  })
+
+  it('detects a handle taken by another DID, ignoring the same DID', () => {
+    const withHandles = [
+      { did: alice, name: 'Alice', handle: 'ada' },
+      { did: bob, name: 'Bob', handle: 'bob' }
+    ]
+    expect(isHandleTaken('ada', bob, withHandles)).toBe(true)
+    expect(isHandleTaken('@Ada', bob, withHandles)).toBe(true) // normalized before compare
+    expect(isHandleTaken('ada', alice, withHandles)).toBe(false) // own handle
+    expect(isHandleTaken('fresh', bob, withHandles)).toBe(false)
+    expect(isHandleTaken('', bob, withHandles)).toBe(false)
+  })
+
+  it('prefers the @handle over display name for mentions', () => {
+    const withHandle = [{ did: alice, name: 'Alice Lovelace', handle: 'ada' }]
+    expect(mentionLabel(alice, withHandle)).toBe('ada')
+    expect(mentionLabel(bob, withHandle)).toBe(`${bob.slice(8, 14)}…`) // falls back
+  })
+
+  it('carries the handle through dedupeProfiles and mergeMentionables', () => {
+    const deduped = dedupeProfiles([{ did: alice, displayName: 'Alice', handle: 'ada' }])
+    expect(deduped[0].handle).toBe('ada')
+    const mentionables = mergeMentionables(deduped, [], bob)
+    expect(mentionables[0]).toMatchObject({ did: alice, label: 'Alice', handle: 'ada' })
   })
 })
 

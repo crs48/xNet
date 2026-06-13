@@ -76,4 +76,15 @@ describe('filterMentionables', () => {
   it('returns the head of the list for empty queries', () => {
     expect(filterMentionables(people, '')).toHaveLength(4)
   })
+
+  it('matches the @handle as well as the display label (0172)', () => {
+    const withHandles = [
+      { label: 'Alice Lovelace', handle: 'ada' },
+      { label: 'Bob Smith', handle: 'bobby' }
+    ]
+    // 'ada' matches no display label, but matches Alice's handle
+    expect(filterMentionables(withHandles, 'ada').map((p) => p.label)).toEqual(['Alice Lovelace'])
+    // substring on handle
+    expect(filterMentionables(withHandles, 'obb').map((p) => p.label)).toEqual(['Bob Smith'])
+  })
 })

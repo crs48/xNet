@@ -14,7 +14,9 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import { DIDAvatar } from '../../components/DIDAvatar'
 import { useClickOutside } from '../../hooks/useClickOutside'
 import { cn } from '../../utils'
+import { dueDateInputValue, isoToDueDateMs, utcDayFromNow } from './due-date'
 import { MentionTextInput } from './MentionTextInput'
+import { parseDueDate } from './parse-due-date'
 import { filterTaskPeople, taskPersonLabel, type TaskPersonOption } from './people'
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
 import { TASK_STATUS_META, formatDueDate, isCompletedStatus, type TaskDisplayData } from './types'
@@ -63,25 +65,6 @@ export interface TaskDetailFormProps {
 
 const PRIORITY_IDS = ['low', 'medium', 'high', 'urgent'] as const
 const WORKFLOW_IDS = Object.keys(TASK_STATUS_META) as Array<keyof typeof TASK_STATUS_META>
-
-const DAY_MS = 86_400_000
-
-/** UTC midnight of the calendar day `offset` days from now. */
-function utcDay(offset: number): number {
-  const now = new Date()
-  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + offset * DAY_MS
-}
-
-function toDateInputValue(dueDate: number | null | undefined): string {
-  if (dueDate == null) return ''
-  return new Date(dueDate).toISOString().slice(0, 10)
-}
-
-function fromDateInputValue(value: string): number | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
-  const parsed = Date.parse(`${value}T00:00:00.000Z`)
-  return Number.isNaN(parsed) ? null : parsed
-}
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1)
@@ -238,6 +221,16 @@ function QuickDueButton({ label, onPick }: { label: string; onPick: () => void }
   )
 }
 
+/** Weekday + month + day, read in UTC to match the stored all-day value. */
+function formatDuePreview(ms: number): string {
+  return new Date(ms).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC'
+  })
+}
+
 function DueDateMenu({
   dueDate,
   onPick
@@ -245,20 +238,65 @@ function DueDateMenu({
   dueDate: number | null | undefined
   onPick: (dueDate: number | null) => void
 }) {
+  const [text, setText] = useState('')
+  const parsed = text.trim() ? parseDueDate(text) : null
+
+  const commitText = () => {
+    if (parsed) {
+      onPick(parsed.ms)
+      setText('')
+    }
+  }
+
   return (
     <div className="flex flex-col gap-1 p-1">
-      <div className="flex gap-1">
-        <QuickDueButton label="Today" onPick={() => onPick(utcDay(0))} />
-        <QuickDueButton label="Tomorrow" onPick={() => onPick(utcDay(1))} />
-        <QuickDueButton label="Next week" onPick={() => onPick(utcDay(7))} />
+      <input
+        type="text"
+        data-testid="task-due-nl-input"
+        value={text}
+        autoFocus
+        placeholder="Type a date… (e.g. next friday)"
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            commitText()
+          }
+        }}
+        className="w-full rounded-sm border border-border bg-transparent px-2 py-1 text-xs text-foreground outline-none placeholder:text-foreground-muted"
+      />
+      {text.trim() && (
+        <button
+          type="button"
+          disabled={!parsed}
+          onClick={commitText}
+          data-testid="task-due-nl-preview"
+          className={cn(
+            'rounded-sm px-2 py-1 text-left text-xs',
+            parsed
+              ? 'text-success hover:bg-background-subtle'
+              : 'cursor-default text-foreground-muted'
+          )}
+        >
+          {parsed ? `→ ${formatDuePreview(parsed.ms)}` : 'Not a recognizable date'}
+        </button>
+      )}
+      <div className="flex flex-wrap gap-1">
+        <QuickDueButton label="Today" onPick={() => onPick(utcDayFromNow(0))} />
+        <QuickDueButton label="Tomorrow" onPick={() => onPick(utcDayFromNow(1))} />
+        <QuickDueButton
+          label="Weekend"
+          onPick={() => onPick(parseDueDate('this weekend')?.ms ?? utcDayFromNow(0))}
+        />
+        <QuickDueButton label="Next week" onPick={() => onPick(utcDayFromNow(7))} />
       </div>
       <input
         type="date"
         data-testid="task-due-input"
-        value={toDateInputValue(dueDate)}
+        value={dueDateInputValue(dueDate)}
         onChange={(event) => {
-          const parsed = fromDateInputValue(event.target.value)
-          if (parsed != null) onPick(parsed)
+          const parsedIso = isoToDueDateMs(event.target.value)
+          if (parsedIso != null) onPick(parsedIso)
         }}
         className="w-full rounded-sm border border-border bg-transparent px-1.5 py-1 text-xs text-foreground outline-none"
       />
@@ -532,6 +570,10 @@ function TitleRow({
   onTitleChange,
   mentionPeople,
   onMention,
+  tagOptions,
+  onTag,
+  onCreateTag,
+  onDueDate,
   onCommit,
   onRevert,
   onClose,
@@ -544,6 +586,10 @@ function TitleRow({
   onTitleChange: (title: string) => void
   mentionPeople: TaskPersonOption[]
   onMention: (did: string) => void
+  tagOptions: TaskTagOption[]
+  onTag: ((tagId: string) => void) | undefined
+  onCreateTag: ((name: string) => void) | undefined
+  onDueDate: ((ms: number) => void) | undefined
   onCommit: () => void
   onRevert: () => void
   onClose?: (() => void) | undefined
@@ -568,6 +614,10 @@ function TitleRow({
           onChange={onTitleChange}
           people={mentionPeople}
           onMention={onMention}
+          tags={tagOptions}
+          onTag={onTag}
+          onCreateTag={onCreateTag}
+          onDueDate={onDueDate}
           onSubmit={() => {
             onCommit()
             onClose?.()
@@ -699,6 +749,10 @@ export function TaskDetailForm({
         onTitleChange={setTitle}
         mentionPeople={unassignedPeople}
         onMention={addAssignee}
+        tagOptions={tagOptions.filter((option) => !tagIds.includes(option.id))}
+        onTag={onTagsChange ? addTag : undefined}
+        onCreateTag={onTagsChange && onCreateTag ? createAndAddTag : undefined}
+        onDueDate={onDueDateChange ? (ms) => onDueDateChange(task.id, ms) : undefined}
         onCommit={commitTitle}
         onRevert={() => setTitle(task.title)}
         onClose={onClose}
