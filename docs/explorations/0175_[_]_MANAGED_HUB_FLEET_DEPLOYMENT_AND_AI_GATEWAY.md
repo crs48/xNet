@@ -10,9 +10,9 @@
 
 ## Problem Statement
 
-[`0174`](./0174_[_]_MANAGED_HOSTING_AS_OPEN_CORE_IN_THE_PUBLIC_MONOREPO.md) decided *what* the
-managed service is (open-core control plane in the monorepo), *who* you are to it (custodial billing
-identity bound to the non-custodial data DID), and *how you charge* (Stripe Billing + Meters). It
+[`0174`](./0174_[_]_MANAGED_HOSTING_AS_OPEN_CORE_IN_THE_PUBLIC_MONOREPO.md) decided _what_ the
+managed service is (open-core control plane in the monorepo), _who_ you are to it (custodial billing
+identity bound to the non-custodial data DID), and _how you charge_ (Stripe Billing + Meters). It
 deliberately left a `Provisioner` interface abstract and flagged one open question loudly: **Railway
 and Fly both prohibit reselling compute, so where does the managed fleet actually run?**
 
@@ -27,7 +27,7 @@ This exploration answers the deployment question end-to-end:
    rest, then grow smoothly — more storage, more capacity, more concurrency, more features — as their
    needs expand. We want the smallest possible infra bill.
 4. **Managed AI integration.** Eventually the hub itself connects directly to AI model APIs, with the
-   models *plugged in automatically* and *billed through us* (Stripe) with a margin — so a user gets
+   models _plugged in automatically_ and _billed through us_ (Stripe) with a margin — so a user gets
    agentic help (the kind they'd get from Claude Code / Codex on a desktop) from their always-online
    hub, without running anything locally. Where does that gateway run, who holds the keys, and how do
    we keep a server-side agent safe against the user's own data?
@@ -48,7 +48,7 @@ and keep it cross-platform by construction.** Concretely:
    idle personal hub costs **~$0.006/mo** of compute. The one sharp edge is a **hard cap of 1,000
    Cloud Run services per project per region** (not raise-able), so dedicated-per-tenant services
    **shard across projects** — which the control plane automates. Cloud Run / Fargate / GKE all
-   *permit* SaaS resale, so this also **closes 0174's Railway/Fly reselling landmine**.
+   _permit_ SaaS resale, so this also **closes 0174's Railway/Fly reselling landmine**.
 
 2. **Data: Turso / libSQL, one database per tenant.** This is the keystone decision. It dissolves
    the SQLite-vs-scale-to-zero tension: each tenant gets an isolated libSQL database that scales to
@@ -61,7 +61,7 @@ and keep it cross-platform by construction.** Concretely:
    Terraform-workspace-per-tenant is a documented anti-pattern (state explosion, slow, blast radius).
    Use IaC for the shared control plane; use a **programmatic provisioner embedded in the Node/TS
    control plane** (Pulumi Automation API — same language as the monorepo) to create each tenant's
-   Cloud Run service + Turso DB + R2 prefix + LiteLLM key. This *is* 0174's `Provisioner` interface,
+   Cloud Run service + Turso DB + R2 prefix + LiteLLM key. This _is_ 0174's `Provisioner` interface,
    made concrete.
 
 4. **Cross-platform without a rewrite.** Portability comes from three choices, not from a
@@ -83,17 +83,17 @@ and keep it cross-platform by construction.** Concretely:
    server-side, sandboxed.** xNet already ships an `AIProviderRouter` (Anthropic/OpenAI/OpenRouter/
    LiteLLM/Ollama) with per-call cost tracking
    ([`packages/plugins/src/ai/providers.ts`](../../packages/plugins/src/ai/providers.ts)), an
-   `ai-surface`, an MCP server, and a persistent agent runtime — so this is a *gateway + billing +
-   safety* job, not a from-scratch build. Run **LiteLLM self-hosted** as the multi-tenant gateway:
+   `ai-surface`, an MCP server, and a persistent agent runtime — so this is a _gateway + billing +
+   safety_ job, not a from-scratch build. Run **LiteLLM self-hosted** as the multi-tenant gateway:
    one **virtual key per hub** with a hard `max_budget` (the runaway-cost stop), provider keys held by
    us (managed-keys, BYOK on enterprise), fallback routing, Bedrock/Vertex as IAM-native upstreams.
    Meter marked-up dollars into **Stripe Billing Meters**, gated by a **prepaid credit ledger**. The
    always-on hub runs the **Claude Agent SDK** with an `allowed_tools` allow-list, `PreToolUse`
    audit/permission hooks, per-tenant MCP isolation, context spotlighting, and per-session token caps
-   — the defense-in-depth required when an agent reads the user's own data. The *product/pricing/
-   safety* of this is already designed in
+   — the defense-in-depth required when an agent reads the user's own data. The _product/pricing/
+   safety_ of this is already designed in
    [`0148`](./0148_[_]_HOSTED_HUBS_DEEP_AI_INTEGRATION_WITH_PAID_FOUNDATION_MODELS.md); this doc adds
-   *where it runs and who holds the keys*.
+   _where it runs and who holds the keys_.
 
 ```mermaid
 flowchart TB
@@ -138,7 +138,7 @@ flowchart TB
   — so the blob path can target object storage and the DB path can target libSQL behind the existing
   seam rather than a rewrite of call sites.
 - **Scale-to-zero is already configured on Fly.** [`packages/hub/fly.toml`](../../packages/hub/fly.toml)
-  sets `auto_stop_machines = "suspend"`, `min_machines_running = 0` — the *operational intent* is
+  sets `auto_stop_machines = "suspend"`, `min_machines_running = 0` — the _operational intent_ is
   already there; we just need a substrate where we're allowed to resell and where the data survives
   sleep cheaply.
 - **Platform detection exists.** [`config.ts`](../../packages/hub/src/config.ts) already branches on
@@ -156,7 +156,7 @@ flowchart TB
 - **Agent + MCP surface.** Per [`0148`](./0148_[_]_HOSTED_HUBS_DEEP_AI_INTEGRATION_WITH_PAID_FOUNDATION_MODELS.md):
   `packages/plugins/src/ai-surface/*` (typed mutation plans, audit, rollback), `services/local-api.ts`
   (`/ai/*` routes), `services/mcp-server.ts` (MCP), `ai/runtime.ts` (persistent threads, approvals,
-  usage events). The application-level *AI safety contract* exists; the missing piece is the **hosted
+  usage events). The application-level _AI safety contract_ exists; the missing piece is the **hosted
   gateway**: provider secrets, per-tenant budgets, routing/fallback, metered billing, kill-switch.
 - **0148 already designed the AI product/pricing/safety** (credits, mutation-plan review, margin
   multipliers, rogue-AI mitigations). This doc must not re-derive it — it adds the **deployment and
@@ -164,13 +164,13 @@ flowchart TB
 
 ### What 0174 left abstract that this doc makes concrete
 
-| 0174 abstraction | This doc's concrete answer |
-|---|---|
-| `Provisioner` interface | Pulumi Automation API (TS) in `apps/cloud`; Cloud Run + Turso + R2 + LiteLLM-key per tenant |
-| "reseller-permitted substrate" (open Q) | **GCP Cloud Run** primary; Fargate/GKE alternates — all permit SaaS resale |
-| Isolation tier ladder | mapped to compute+data+IaC per tier (pooled → BYOC) below |
-| "entitlement flag the hub reads live" | Cloud Run min/max-instances + concurrency, Turso storage, plan quota |
-| Stripe Meters | extended to **AI token markup** via per-call meter events |
+| 0174 abstraction                        | This doc's concrete answer                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `Provisioner` interface                 | Pulumi Automation API (TS) in `apps/cloud`; Cloud Run + Turso + R2 + LiteLLM-key per tenant |
+| "reseller-permitted substrate" (open Q) | **GCP Cloud Run** primary; Fargate/GKE alternates — all permit SaaS resale                  |
+| Isolation tier ladder                   | mapped to compute+data+IaC per tier (pooled → BYOC) below                                   |
+| "entitlement flag the hub reads live"   | Cloud Run min/max-instances + concurrency, Turso storage, plan quota                        |
+| Stripe Meters                           | extended to **AI token markup** via per-call meter events                                   |
 
 ## External Research
 
@@ -178,12 +178,12 @@ flowchart TB
 
 ### The scale-to-zero ⟷ SQLite tension, and how to dissolve it
 
-| Substrate | Scale-to-zero | Cold start | Per-tenant SQLite state | Idle $/tenant | Resale OK | Ops |
-|---|---|---|---|---|---|---|
-| **GCP Cloud Run** | yes, native | 0.5–2 s | needs external state (GCS-FUSE ✗ for SQLite; NFS works but costs at rest) | **~$0.006** | yes | very low |
-| AWS App Runner | **no** (≥1 always on) | n/a | EFS ✗ | ~$5/mo always | yes | low |
-| AWS ECS Fargate | via stop/start | 30–90 s | EFS/EBS volume + Litestream | ~$1.35 (2 h/day) | yes | medium |
-| GKE Autopilot / EKS | KEDA | 30–60 s | PVC; vcluster for hard isolation | + $72/mo/cluster | yes | high |
+| Substrate           | Scale-to-zero         | Cold start | Per-tenant SQLite state                                                   | Idle $/tenant    | Resale OK | Ops      |
+| ------------------- | --------------------- | ---------- | ------------------------------------------------------------------------- | ---------------- | --------- | -------- |
+| **GCP Cloud Run**   | yes, native           | 0.5–2 s    | needs external state (GCS-FUSE ✗ for SQLite; NFS works but costs at rest) | **~$0.006**      | yes       | very low |
+| AWS App Runner      | **no** (≥1 always on) | n/a        | EFS ✗                                                                     | ~$5/mo always    | yes       | low      |
+| AWS ECS Fargate     | via stop/start        | 30–90 s    | EFS/EBS volume + Litestream                                               | ~$1.35 (2 h/day) | yes       | medium   |
+| GKE Autopilot / EKS | KEDA                  | 30–60 s    | PVC; vcluster for hard isolation                                          | + $72/mo/cluster | yes       | high     |
 
 The blocker on Cloud Run is that its ephemeral FS loses data, **GCS-FUSE doesn't honor SQLite's
 `flock`/`mmap`**, and NFS/Filestore bills at rest. The clean fix is to **stop keeping per-tenant state
@@ -195,7 +195,7 @@ on the compute node at all**:
   $4.99/mo: unlimited DBs**; overage $0.75/GB. Proven at millions of DBs (Adaptive.ai). Migration
   cost: swap `better-sqlite3` for `@libsql/client` (writes become async to the primary).
 - **Litestream** (if staying on Fargate/EBS): streams the WAL to S3; restore-on-boot 5–30 s; single
-  writer only (fine for one-hub-per-tenant). **LiteFS is explicitly *not* recommended with
+  writer only (fine for one-hub-per-tenant). **LiteFS is explicitly _not_ recommended with
   scale-to-zero** (lease races → data-loss risk).
 - **Cloudflare D1** (Workers/V8 only — a Node rewrite) and **Neon** (serverless Postgres — abandons
   SQLite) are viable but higher-switching-cost alternatives.
@@ -208,7 +208,7 @@ on the compute node at all**:
   explosion, 30–60 s plan/apply per tenant, large blast radius, per-run CI cost.
 - **Recommended split:** Terraform/OpenTofu for **shared** infra (projects, IAM, VPC, GKE, the
   LiteLLM deployment); **Pulumi Automation API** embedded in the control plane for **per-tenant**
-  resources — it's a *library* you call (`stack.up()`) from TS with real loops/conditionals, built
+  resources — it's a _library_ you call (`stack.up()`) from TS with real loops/conditionals, built
   for "thousands of single-tenant instances." **Crossplane** (K8s-native, CRDs reconcile cloud
   resources) is the middle path once you're on GKE/EKS for enterprise tiers.
 
@@ -230,9 +230,9 @@ independent of any tenant's data-layer choice.
   budget synced to the customer's prepaid balance. Alternatives: **OpenRouter** (hosted, key-
   provisioning API + spend limits, 5.5% top-up fee, no self-host/observability depth), **Portkey**
   (managed, open-core gateway), **Cloudflare AI Gateway** (caching/analytics only — not per-tenant
-  budgets), **Helicone** (observability). **Bedrock / Vertex** as IAM-native upstreams *behind*
+  budgets), **Helicone** (observability). **Bedrock / Vertex** as IAM-native upstreams _behind_
   LiteLLM (no static keys, unified cloud billing, residency).
-- **Billing: Stripe Billing Meters.** Compute marked-up dollars in *your* backend (versioned model-
+- **Billing: Stripe Billing Meters.** Compute marked-up dollars in _your_ backend (versioned model-
   price table × markup, e.g. 25–40%), emit `billing.meterEvents` with `value` in dollars. **Stripe
   has no native spend gate** → the **prepaid credit ledger + LiteLLM `max_budget` is the hard stop**;
   auto-top-up when low. (Stripe shipped "AI Token Billing" preview in 2026 that maintains the model-
@@ -260,7 +260,7 @@ independent of any tenant's data-layer choice.
    **1,000-services/project/region** cap forces **project sharding** for dedicated tenants (the
    control plane handles it). App Runner is out (no scale-to-zero); Fargate/GKE are the alternates.
 3. **Resale is permitted on Cloud Run/Fargate/GKE**, resolving 0174's blocker. Keep Railway/Fly only
-   as the *free self-host* path.
+   as the _free self-host_ path.
 4. **Cross-platform is achieved by construction** (container + libSQL client + Pulumi-by-provider),
    not by a leaky abstraction layer — and that same construction is what makes BYOC/federation
    possible later without a rewrite.
@@ -291,20 +291,20 @@ flowchart LR
 - **Fargate + Litestream + EFS.** The AWS-native path; needed when enterprise/BYOC mandates AWS.
   Cost: 30–90 s cold starts, EFS/volume lifecycle, Litestream sidecar.
 - **GKE/EKS + vcluster.** Strongest isolation, best for enterprise/BYOC/federated; highest ops and a
-  per-cluster floor (~$72/mo). Use it *at the top tier*, not for the long tail.
+  per-cluster floor (~$72/mo). Use it _at the top tier_, not for the long tail.
 
 ### B. Per-tenant data durability
 
-| Option | Scale-to-zero | Code change from `better-sqlite3` | Verdict |
-|---|---|---|---|
-| **Turso / libSQL** | native, per-DB | swap to `@libsql/client` (async writes) | **recommended** |
-| Litestream + EFS/EBS | via stop/start | minimal (keep better-sqlite3) | AWS-native fallback |
-| Cloudflare D1 | native | **Workers rewrite** | reject (Node hub) |
-| Neon (Postgres) | native | **SQL/driver rewrite** | only if Postgres is independently wanted |
+| Option               | Scale-to-zero  | Code change from `better-sqlite3`       | Verdict                                  |
+| -------------------- | -------------- | --------------------------------------- | ---------------------------------------- |
+| **Turso / libSQL**   | native, per-DB | swap to `@libsql/client` (async writes) | **recommended**                          |
+| Litestream + EFS/EBS | via stop/start | minimal (keep better-sqlite3)           | AWS-native fallback                      |
+| Cloudflare D1        | native         | **Workers rewrite**                     | reject (Node hub)                        |
+| Neon (Postgres)      | native         | **SQL/driver rewrite**                  | only if Postgres is independently wanted |
 
 ### C. IaC / provisioning
 
-- **Terraform/OpenTofu only** → anti-pattern per tenant. *Reject for per-tenant.*
+- **Terraform/OpenTofu only** → anti-pattern per tenant. _Reject for per-tenant._
 - **Pulumi Automation API (recommended)** → per-tenant in TS, shares the monorepo language; pairs with
   Terraform for shared infra.
 - **Crossplane** → adopt when already on K8s for enterprise tiers.
@@ -320,7 +320,7 @@ flowchart LR
 ### E. Managed keys vs BYOK
 
 - **Managed keys (default, personal/team):** natural markup, simple onboarding, you carry cost risk
-  + key-vault blast radius.
+  - key-vault blast radius.
 - **BYOK (enterprise):** no token markup (platform fee instead), meets regulated key-custody, more
   onboarding friction.
 
@@ -335,13 +335,13 @@ Meters** for marked-up token billing gated by a prepaid credit ledger, and the *
 
 ### Tier → compute → data → isolation → cost
 
-| Tier | Compute | Data | Blobs | Isolation | Idle cost |
-|---|---|---|---|---|---|
-| **Free / Personal** | shared Cloud Run svc (tenant-routed) | shared Turso (free 500 DBs) | shared R2 prefix | app-level | ~$0 |
-| **Family / Team** | dedicated Cloud Run, `min=0` sleep | dedicated Turso DB | R2 prefix | service + DB | ~$0.006–$1 |
-| **Company** | dedicated Cloud Run `min=1` (no cold start) | Turso DB (region) | R2 bucket | service + SSO/SCIM | warm small |
-| **Enterprise** | GKE namespace / region-pinned | Turso group / Neon in region | bucket in region | namespace/VPC + DPA | dedicated |
-| **BYOC / Federated** | customer's cloud (container) | self-hosted libSQL in their VPC | their bucket | their account | n/a (theirs) |
+| Tier                 | Compute                                     | Data                            | Blobs            | Isolation           | Idle cost    |
+| -------------------- | ------------------------------------------- | ------------------------------- | ---------------- | ------------------- | ------------ |
+| **Free / Personal**  | shared Cloud Run svc (tenant-routed)        | shared Turso (free 500 DBs)     | shared R2 prefix | app-level           | ~$0          |
+| **Family / Team**    | dedicated Cloud Run, `min=0` sleep          | dedicated Turso DB              | R2 prefix        | service + DB        | ~$0.006–$1   |
+| **Company**          | dedicated Cloud Run `min=1` (no cold start) | Turso DB (region)               | R2 bucket        | service + SSO/SCIM  | warm small   |
+| **Enterprise**       | GKE namespace / region-pinned               | Turso group / Neon in region    | bucket in region | namespace/VPC + DPA | dedicated    |
+| **BYOC / Federated** | customer's cloud (container)                | self-hosted libSQL in their VPC | their bucket     | their account       | n/a (theirs) |
 
 ### Capacity growth = entitlement flips (no migration until a tier boundary)
 
@@ -446,34 +446,42 @@ import { LocalWorkspace } from '@pulumi/pulumi/automation'
 
 export class CloudRunTursoProvisioner implements Provisioner {
   async provision(spec: ProvisionSpec): Promise<HubHandle> {
-    const projectId = pickShardedProject(spec.tenantId)        // < 1000 svc/project/region
+    const projectId = pickShardedProject(spec.tenantId) // < 1000 svc/project/region
     const stack = await LocalWorkspace.createOrSelectStack({
       stackName: spec.tenantId,
       projectName: 'xnet-hub',
       program: async () => {
-        const db = await turso.createDatabase(spec.tenantId)   // per-tenant libSQL
-        const bucketPrefix = `t/${spec.tenantId}`              // shared R2, per-tenant prefix
+        const db = await turso.createDatabase(spec.tenantId) // per-tenant libSQL
+        const bucketPrefix = `t/${spec.tenantId}` // shared R2, per-tenant prefix
         const svc = new gcp.cloudrunv2.Service(spec.tenantId, {
           project: projectId,
           template: {
-            scaling: { minInstanceCount: spec.entitlements.warm ? 1 : 0,
-                       maxInstanceCount: spec.entitlements.maxConnections / 250 },
-            containers: [{
-              image: `registry/xnet-hub:${spec.targetVersion}`,  // immutable, from 0174
-              envs: [
-                { name: 'LIBSQL_URL', value: db.url },
-                { name: 'LIBSQL_TOKEN', value: db.token },
-                { name: 'R2_PREFIX', value: bucketPrefix },
-                { name: 'HUB_PLAN', value: signEntitlements(spec.entitlements) },
-              ],
-            }],
-          },
+            scaling: {
+              minInstanceCount: spec.entitlements.warm ? 1 : 0,
+              maxInstanceCount: spec.entitlements.maxConnections / 250
+            },
+            containers: [
+              {
+                image: `registry/xnet-hub:${spec.targetVersion}`, // immutable, from 0174
+                envs: [
+                  { name: 'LIBSQL_URL', value: db.url },
+                  { name: 'LIBSQL_TOKEN', value: db.token },
+                  { name: 'R2_PREFIX', value: bucketPrefix },
+                  { name: 'HUB_PLAN', value: signEntitlements(spec.entitlements) }
+                ]
+              }
+            ]
+          }
         })
         return { hubUrl: svc.uri }
-      },
+      }
     })
     const res = await stack.up()
-    return { hubUrl: res.outputs.hubUrl.value, substrateRef: `${projectId}/${spec.tenantId}`, region: spec.region }
+    return {
+      hubUrl: res.outputs.hubUrl.value,
+      substrateRef: `${projectId}/${spec.tenantId}`,
+      region: spec.region
+    }
   }
   // upgrade()/setEnv()/sleep()/destroy() → stack.up() with new args / serviceDelete / min=0
 }
@@ -485,7 +493,11 @@ export class CloudRunTursoProvisioner implements Provisioner {
 // packages/hub/src/storage/libsql.ts  — adapter alongside sqlite.ts
 import { createClient } from '@libsql/client'
 
-export const createLibsqlStorage = (cfg: { url: string; authToken?: string; syncUrl?: string }): HubStorage => {
+export const createLibsqlStorage = (cfg: {
+  url: string
+  authToken?: string
+  syncUrl?: string
+}): HubStorage => {
   // Embedded replica: local file synced from the Turso primary → reads stay local-fast,
   // writes go to the primary. Same HubStorage interface the rest of the hub already uses.
   const db = createClient({ url: 'file:local.db', syncUrl: cfg.url, authToken: cfg.authToken })
@@ -500,10 +512,10 @@ export const createLibsqlStorage = (cfg: { url: string; authToken?: string; sync
 // apps/cloud — provider cost (from AIProviderUsage.estimatedCostUsd) × markup → meter event
 async function meterAiUsage(tenant: Tenant, usage: AIUsage, markup = 1.35) {
   const marked = (usage.estimatedCostUsd ?? 0) * markup
-  await creditLedger.settle(tenant.id, marked)               // hard-stop ledger is the real gate
+  await creditLedger.settle(tenant.id, marked) // hard-stop ledger is the real gate
   await stripe.billing.meterEvents.create({
     event_name: 'ai_usage_usd',
-    payload: { stripe_customer_id: tenant.stripeCustomerId, value: marked.toFixed(8) },
+    payload: { stripe_customer_id: tenant.stripeCustomerId, value: marked.toFixed(8) }
   })
 }
 // LiteLLM virtual key max_budget = prepaid balance → provider-side runaway stop.
@@ -520,9 +532,9 @@ const result = query({
   options: {
     allowedTools: ['Read', 'Grep', 'xnet_search', 'xnet_context_pack'], // NOT Write/Bash by default
     hooks: { PreToolUse: [auditAndScopeToTenant(tenant.id)] },
-    mcpServers: { hub: perTenantMcpServer(tenant.id) },               // isolated per tenant
-    maxTokens: tenant.entitlements.agentSessionTokenCap,
-  },
+    mcpServers: { hub: perTenantMcpServer(tenant.id) }, // isolated per tenant
+    maxTokens: tenant.entitlements.agentSessionTokenCap
+  }
 })
 ```
 
@@ -530,7 +542,7 @@ const result = query({
 
 - **The libSQL migration is real work and a correctness risk.** `better-sqlite3` is synchronous;
   libSQL writes are async to the primary. Behaviors that assume synchronous commit (and the
-  `npm rebuild better-sqlite3` Docker step) must be audited. *Mitigation:* keep the better-sqlite3
+  `npm rebuild better-sqlite3` Docker step) must be audited. _Mitigation:_ keep the better-sqlite3
   adapter for self-host; gate libSQL behind `LIBSQL_URL`; differential-test both adapters against the
   hub test suite. Open question: do any hot paths (sync relay, FTS) tolerate write latency to a
   remote primary, or do they need the embedded-replica local-write mode?
@@ -538,47 +550,62 @@ const result = query({
   scheme in the provisioner; cross-project quota/billing/observability adds complexity. Open question:
   at what tenant count do we pre-create project shards vs. lazily?
 - **Vendor concentration.** Cloud Run + Turso + R2 + Stripe + LiteLLM is convenient but multi-vendor;
-  each is a dependency and a ToS surface. *Mitigation:* the container+libSQL+Pulumi portability story
+  each is a dependency and a ToS surface. _Mitigation:_ the container+libSQL+Pulumi portability story
   is the hedge — but verify Turso's durability/SLA and have the Fargate+Litestream adapter real, not
   theoretical, before betting the fleet.
 - **Cold start vs. cost on the cheapest tier.** `min=0` means a 0.5–2 s (Cloud Run) or 5–30 s
-  (Litestream restore) first-request delay. *Mitigation:* pooled free tier is warm (shared); paid
+  (Litestream restore) first-request delay. _Mitigation:_ pooled free tier is warm (shared); paid
   tiers can buy `min=1`. Open question: is a libSQL embedded-replica cold sync fast enough on wake?
 - **AI key-vault blast radius (managed keys).** One breach exposes fleet-wide provider capacity.
-  *Mitigation:* secrets manager, per-tier provider keys, rotation, per-tenant LiteLLM budgets cap
+  _Mitigation:_ secrets manager, per-tier provider keys, rotation, per-tenant LiteLLM budgets cap
   damage; BYOK for the regulated.
 - **Agent prompt-injection against the user's own data** is the headline AI risk (malicious text in a
-  synced doc telling the agent to exfiltrate). *Mitigation:* tool allow-list + `PreToolUse` tenant
+  synced doc telling the agent to exfiltrate). _Mitigation:_ tool allow-list + `PreToolUse` tenant
   scoping + spotlighting + output scanning + per-session caps — never rely on prompt wording. Defer
   write-capable autonomous agents until this is hardened (0148's mutation-plan/approval model).
 - **AI margin erosion.** Provider prices move; flat "unlimited AI" is a trap (one agent run = $1–15).
-  *Mitigation:* prepaid credits + markup floor + model-price-table versioning (or Stripe AI Token
+  _Mitigation:_ prepaid credits + markup floor + model-price-table versioning (or Stripe AI Token
   Billing); hard stop at $0, per the whole industry's 2026 convergence.
-- **BYOC support burden.** Customer-cloud deployments multiply environments. *Mitigation:* one Pulumi
+- **BYOC support burden.** Customer-cloud deployments multiply environments. _Mitigation:_ one Pulumi
   module, cross-account IAM, control-plane-can't-see-data invariant; gate BYOC to enterprise pricing.
 - **Self-host must stay first-class** (0174 invariant): the better-sqlite3 + local-blob path must keep
   working with zero cloud dependency, so the managed data-layer swap is additive, not a replacement.
 
 ## Implementation Checklist
 
+> **Progress** (branch `feat/managed-hub-fleet`): the control-plane foundation from 0174 landed
+> (`@xnetjs/cloud-plans`, `@xnetjs/cloud-provisioner`, `@xnetjs/cloud-identity`, `apps/cloud`).
+> Relevant to this doc: the `Provisioner` interface + `MemoryProvisioner` + **project-shard
+> allocator** are built and tested, Cloud Run/Fargate **platform detection** + the `HUB_PLAN`
+> entitlement contract are in the hub, and **entitlement-flip-vs-migration** logic is wired through
+> the control plane. The libSQL/R2 data-layer swap, real Pulumi adapters, Terraform, and the whole
+> AI gateway (P2) / BYOC (P3) remain open.
+
 **P0 — Data layer (unblocks everything):**
+
 - [ ] Add `createLibsqlStorage` (`@libsql/client`, embedded replica) behind `createStorage`
       ([`storage/index.ts`](../../packages/hub/src/storage/index.ts)); keep `better-sqlite3` for self-host.
 - [ ] Route blobs/files through `BlobStore` ([`packages/storage/`](../../packages/storage/)) to an
       **R2** (S3-compatible) backend instead of local `blobs/`/`files/` dirs.
-- [ ] Add `cloud-run` / `fargate` platform detection + `LIBSQL_URL` / `R2_*` env contract in
-      [`config.ts`](../../packages/hub/src/config.ts).
+- [x] Add `cloud-run` / `fargate` platform detection + `LIBSQL_URL` / `R2_*` env contract in
+      [`config.ts`](../../packages/hub/src/config.ts). _(Platform detection + `HUB_PLAN` contract
+      shipped & tested; `LIBSQL_URL`/`R2_\*` consumption lands with the storage adapter above.)\_
 - [ ] Differential-test both storage adapters; verify cold-start + first-query latency on Cloud Run.
 
 **P1 — Provisioning & fleet:**
+
 - [ ] Implement `CloudRunTursoProvisioner` via **Pulumi Automation API** in
       `packages/cloud-provisioner` (0174); add a `FargateLitestreamProvisioner` adapter for AWS/BYOC.
+      _(Typed adapter skeletons + config surface landed; Pulumi wiring pending.)_
 - [ ] Terraform/OpenTofu for shared infra (GCP project shards, IAM, VPC, LiteLLM, R2 buckets).
-- [ ] Project-shard allocator (< 1000 Cloud Run services/project/region) in the control plane.
+- [x] Project-shard allocator (< 1000 Cloud Run services/project/region) in the control plane.
 - [ ] Pooled free tier (shared Cloud Run + shared Turso) from demo mode; dedicated paid tier path.
-- [ ] Wire entitlement flips → Cloud Run `min/max`/`concurrency` + Turso storage + hub quota (live).
+- [x] Wire entitlement flips → Cloud Run `min/max`/`concurrency` + Turso storage + hub quota (live).
+      _(Flip-vs-migration logic + hub quota from plan shipped & tested; the Cloud Run/Turso side
+      lands with the real adapter.)_
 
 **P2 — Managed AI gateway:**
+
 - [ ] Deploy **LiteLLM** (Postgres+Redis); provider keys in a secrets manager (managed-keys).
 - [ ] Provision one **virtual key per hub** at signup; sync `max_budget` to the prepaid credit ledger.
 - [ ] Meter marked-up dollars to **Stripe Billing Meters**; prepaid ledger as hard stop + auto-top-up;
@@ -588,6 +615,7 @@ const result = query({
 - [ ] Bedrock/Vertex as IAM-native upstreams behind LiteLLM for AWS/GCP-native + residency.
 
 **P3 — Enterprise / BYOC / federated:**
+
 - [ ] GKE Autopilot + **vcluster** for hard-isolation/region-pinned enterprise tenants.
 - [ ] **BYOC** Pulumi module (deploy container + self-hosted libSQL into customer cloud; cross-account
       IAM; control-plane-can't-read-data invariant); **BYOK** AI keys; DPA / residency.
@@ -601,13 +629,16 @@ const result = query({
       a correct first request within an acceptable cold-start budget.
 - [ ] **Data layer parity:** the hub test suite passes on both `better-sqlite3` and libSQL adapters;
       no write-latency-induced regressions in sync/FTS.
-- [ ] **Self-host intact:** a standalone hub runs with local SQLite + local blobs, zero cloud
-      dependency.
+- [x] **Self-host intact:** a standalone hub runs with local SQLite + local blobs, zero cloud
+      dependency. _(Test: `resolveConfig` keeps `DEFAULT_CONFIG` with no `HUB_PLAN`.)_
 - [ ] **Provisioning is programmatic:** a new tenant's Cloud Run service + Turso DB + R2 prefix +
       LiteLLM key are created/destroyed by one control-plane call; no Terraform-per-tenant.
-- [ ] **Project sharding works:** crossing 1,000 services rolls to a new project shard transparently.
-- [ ] **Capacity flips don't migrate:** raising storage/concurrency changes the live hub without
-      moving data; only tier-boundary crossings run the migration engine with zero loss.
+      _(Single-call lifecycle proven against `MemoryProvisioner`; real cloud resources pending.)_
+- [x] **Project sharding works:** crossing 1,000 services rolls to a new project shard transparently.
+      _(Tested: `ShardAllocator` rolls over at the cap and refills released slots.)_
+- [x] **Capacity flips don't migrate:** raising storage/concurrency changes the live hub without
+      moving data; only tier-boundary crossings run the migration engine. _(Tested via
+      `ControlPlane.changePlan`.)_
 - [ ] **R2 egress is $0** on a media-heavy tenant vs. a modeled S3 bill.
 - [ ] **AI hard stop:** a tenant at $0 credits is blocked at the gateway (LiteLLM `max_budget`) before
       any provider spend; auto-top-up restores access.
@@ -621,6 +652,7 @@ const result = query({
 ## References
 
 ### Repository
+
 - Hub storage — [`storage/index.ts`](../../packages/hub/src/storage/index.ts),
   [`storage/sqlite.ts`](../../packages/hub/src/storage/sqlite.ts) (`better-sqlite3`),
   [`packages/storage/`](../../packages/storage/) (`StorageAdapter`, `BlobStore`, `ChunkManager`)
@@ -638,6 +670,7 @@ const result = query({
   [`0173_COMMUNITY_OWNED_DECENTRALIZED_CLOUD_INFRASTRUCTURE`](./0173_[_]_COMMUNITY_OWNED_DECENTRALIZED_CLOUD_INFRASTRUCTURE.md)
 
 ### Compute & data
+
 - Cloud Run pricing — https://cloud.google.com/run/pricing · quotas (1,000 svc/project) — https://docs.cloud.google.com/run/quotas ·
   GCS volume mounts — https://docs.cloud.google.com/run/docs/configuring/services/cloud-storage-volume-mounts
 - AWS Fargate pricing — https://aws.amazon.com/fargate/pricing/ · App Runner — https://aws.amazon.com/apprunner/pricing/ ·
@@ -649,12 +682,14 @@ const result = query({
   R2 (zero egress) — https://developers.cloudflare.com/r2/pricing/
 
 ### IaC & BYOC
+
 - Pulumi Automation API — https://www.pulumi.com/docs/iac/concepts/automation-api/ ·
   Terraform multi-tenant anti-patterns — https://oneuptime.com/blog/post/2026-02-23-how-to-handle-terraform-anti-patterns-and-how-to-fix-them/view ·
   Crossplane multi-tenant — https://docs.crossplane.io/v1.20/guides/multi-tenant/ ·
   ClickHouse BYOC — https://clickhouse.com/blog/announcing-general-availability-of-clickhouse-bring-your-own-cloud-on-aws
 
 ### AI gateway, billing, agent safety
+
 - LiteLLM multi-tenant — https://docs.litellm.ai/docs/proxy/multi_tenant_architecture · budgets/keys — https://docs.litellm.ai/docs/proxy/users ·
   OpenRouter provisioning keys — https://openrouter.ai/docs/features/provisioning-api-keys ·
   Cloudflare AI Gateway — https://developers.cloudflare.com/ai-gateway/reference/pricing/ · Portkey — https://portkey.ai/docs/product/ai-gateway · Helicone — https://docs.helicone.ai/guides/cookbooks/cost-tracking
