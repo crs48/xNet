@@ -3,16 +3,25 @@
  *
  * Transparency, framed as *your* choices: the people you've muted/blocked, and a
  * record of what you've reported and self-labelled. Filtering here is personal
- * and client-side, never platform censorship.
+ * and client-side, never platform censorship. Workbench-idiom styling (0179).
  */
 import { AbuseReportSchema, ModerationLabelSchema, ProfileSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
+import { SettingsGroup, SettingsPanel } from '@xnetjs/ui'
 import { useState } from 'react'
 import { useBlockList, type BlockState } from '../lib/block-list'
 import { importBlocklist } from '../lib/blocklist-import'
 import { useLabelerSubscriptions } from '../lib/labeler-subscriptions'
 
 type Row = Record<string, unknown>
+
+/** Quiet bordered button — the workbench's default action affordance. */
+const QUIET_BUTTON =
+  'rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:opacity-40'
+const QUIET_BUTTON_SM =
+  'rounded-md border border-hairline bg-surface-0 px-2 py-1 text-xs text-ink-1 transition-colors hover:bg-surface-2'
+const LIST_ROW =
+  'flex items-center justify-between gap-3 rounded-md border border-hairline px-3 py-2'
 
 function str(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
@@ -48,12 +57,10 @@ function SharedBlocklistImport({
   }
 
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-medium">Shared blocklists</h3>
-      <p className="text-xs text-muted-foreground">
-        Paste a signed community blocklist to apply its blocks and mutes to your own view. The
-        signature is verified before anything is applied — nothing here is sent anywhere.
-      </p>
+    <SettingsGroup
+      label="Shared blocklists"
+      description="Paste a signed community blocklist to apply its blocks and mutes to your own view. The signature is verified before anything is applied — nothing here is sent anywhere."
+    >
       <textarea
         value={text}
         onChange={(e) => {
@@ -63,24 +70,24 @@ function SharedBlocklistImport({
         placeholder='{"list": …, "signature": …}'
         rows={4}
         aria-label="Signed blocklist JSON"
-        className="w-full resize-y rounded-md border border-border bg-transparent px-3 py-2 font-mono text-xs"
+        className="w-full resize-y rounded-md border border-hairline bg-surface-0 px-3 py-2 font-mono text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
       />
-      <div className="flex items-center gap-3">
+      <div className="mt-2 flex items-center gap-3">
         <button
           type="button"
           onClick={handleImport}
           disabled={text.trim().length === 0}
-          className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent/50 disabled:opacity-40"
+          className={QUIET_BUTTON}
         >
           Verify &amp; import
         </button>
         {feedback && (
-          <span className={`text-xs ${feedback.ok ? 'text-emerald-600' : 'text-destructive'}`}>
+          <span className={`text-xs ${feedback.ok ? 'text-success' : 'text-destructive'}`}>
             {feedback.message}
           </span>
         )}
       </div>
-    </section>
+    </SettingsGroup>
   )
 }
 
@@ -107,26 +114,23 @@ function SubscribedLabelers() {
   }
 
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-medium">Subscribed labelers</h3>
-      <p className="text-xs text-muted-foreground">
-        Trust a moderation labeler by its DID. Its labels count toward your filters at the weight
-        you choose — and only yours. Disable a labeler to stop applying it without forgetting it.
-      </p>
-
+    <SettingsGroup
+      label="Subscribed labelers"
+      description="Trust a moderation labeler by its DID. Its labels count toward your filters at the weight you choose — and only yours. Disable a labeler to stop applying it without forgetting it."
+    >
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={did}
           onChange={(e) => setDid(e.target.value)}
           placeholder="did:key:… (labeler)"
           aria-label="Labeler DID"
-          className="min-w-0 flex-1 rounded-md border border-border bg-transparent px-3 py-1.5 font-mono text-xs"
+          className="h-8 min-w-0 flex-1 rounded-md border border-hairline bg-surface-0 px-2 font-mono text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
         />
         <select
           value={trust}
           onChange={(e) => setTrust(Number(e.target.value))}
           aria-label="Trust level"
-          className="rounded-md border border-border bg-transparent px-2 py-1.5 text-xs"
+          className="h-8 rounded-md border border-hairline bg-surface-0 px-2 text-xs text-ink-1 outline-none focus:border-border-emphasis"
         >
           {TRUST_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -138,24 +142,21 @@ function SubscribedLabelers() {
           type="button"
           onClick={handleSubscribe}
           disabled={did.trim().length === 0}
-          className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent/50 disabled:opacity-40"
+          className={QUIET_BUTTON}
         >
           Subscribe
         </button>
       </div>
 
       {subscriptions.length === 0 ? (
-        <p className="text-xs text-muted-foreground">You haven't subscribed to any labelers.</p>
+        <p className="mt-2 text-xs text-ink-3">You haven't subscribed to any labelers.</p>
       ) : (
-        <ul className="space-y-1">
+        <ul className="mt-2 space-y-1">
           {subscriptions.map((sub) => (
-            <li
-              key={sub.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
-            >
+            <li key={sub.id} className={LIST_ROW}>
               <div className="min-w-0">
-                <div className="truncate font-mono text-xs">{sub.labelerDID}</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="truncate font-mono text-xs text-ink-1">{sub.labelerDID}</div>
+                <div className="text-xs text-ink-3">
                   {sub.enabled ? trustLabel(sub.trust) : 'Disabled'}
                 </div>
               </div>
@@ -163,14 +164,14 @@ function SubscribedLabelers() {
                 <button
                   type="button"
                   onClick={() => void setEnabled(sub.id, !sub.enabled)}
-                  className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50"
+                  className={QUIET_BUTTON_SM}
                 >
                   {sub.enabled ? 'Disable' : 'Enable'}
                 </button>
                 <button
                   type="button"
                   onClick={() => void unsubscribe(sub.id)}
-                  className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50"
+                  className={QUIET_BUTTON_SM}
                 >
                   Remove
                 </button>
@@ -179,7 +180,7 @@ function SubscribedLabelers() {
           ))}
         </ul>
       )}
-    </section>
+    </SettingsGroup>
   )
 }
 
@@ -208,73 +209,57 @@ export function SafetyCenterSettings() {
   )
 
   return (
-    <div className="max-w-2xl space-y-8">
-      <header>
-        <h2 className="text-lg font-semibold">Safety center</h2>
-        <p className="text-sm text-muted-foreground">
-          People you've muted or blocked, and a log of what you've reported or marked sensitive.
-          These are your personal choices — they don't change what others see.
-        </p>
-      </header>
-
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium">Blocked &amp; muted accounts</h3>
+    <SettingsPanel
+      className="max-w-2xl"
+      title="Safety center"
+      description="People you've muted or blocked, and a log of what you've reported or marked sensitive. These are your personal choices — they don't change what others see."
+    >
+      <SettingsGroup label="Blocked & muted accounts">
         {entries.length === 0 ? (
-          <p className="text-xs text-muted-foreground">You haven't blocked or muted anyone.</p>
+          <p className="text-xs text-ink-3">You haven't blocked or muted anyone.</p>
         ) : (
           <ul className="space-y-1">
             {entries.map(({ did, state }) => (
-              <li
-                key={did}
-                className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
-              >
+              <li key={did} className={LIST_ROW}>
                 <div className="min-w-0">
-                  <div className="truncate text-sm">{nameOf(did)}</div>
-                  <div className="text-xs text-muted-foreground">{STATE_LABEL[state]}</div>
+                  <div className="truncate text-sm text-ink-1">{nameOf(did)}</div>
+                  <div className="text-xs text-ink-3">{STATE_LABEL[state]}</div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => unblock(did)}
-                  className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50"
-                >
+                <button type="button" onClick={() => unblock(did)} className={QUIET_BUTTON_SM}>
                   Undo
                 </button>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </SettingsGroup>
 
       <SharedBlocklistImport onImport={importMany} />
 
       <SubscribedLabelers />
 
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium">Your reports</h3>
+      <SettingsGroup label="Your reports">
         {myReports.length === 0 ? (
-          <p className="text-xs text-muted-foreground">You haven't reported anything.</p>
+          <p className="text-xs text-ink-3">You haven't reported anything.</p>
         ) : (
-          <ul className="space-y-1 text-xs text-muted-foreground">
+          <ul className="space-y-1 text-xs text-ink-3">
             {myReports.map((report) => (
-              <li key={str(report.id)} className="rounded-md border border-border px-3 py-1.5">
-                Reported <span className="text-foreground">{str(report.category)}</span> ·{' '}
+              <li key={str(report.id)} className="rounded-md border border-hairline px-3 py-1.5">
+                Reported <span className="text-ink-1">{str(report.category)}</span> ·{' '}
                 {str(report.status) ?? 'open'}
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </SettingsGroup>
 
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium">Content you've marked sensitive</h3>
+      <SettingsGroup label="Content you've marked sensitive">
         {mySelfLabels.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nothing marked yet.</p>
+          <p className="text-xs text-ink-3">Nothing marked yet.</p>
         ) : (
-          <p className="text-xs text-muted-foreground">
-            {mySelfLabels.length} item(s) self-labelled.
-          </p>
+          <p className="text-xs text-ink-3">{mySelfLabels.length} item(s) self-labelled.</p>
         )}
-      </section>
-    </div>
+      </SettingsGroup>
+    </SettingsPanel>
   )
 }
