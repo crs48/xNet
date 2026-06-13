@@ -25,6 +25,8 @@ export interface ModeratedContentProps {
   platformVisibility?: AbuseVisibility
   /** Dating signal: media from a non-mutual sender → blur by default (0174). */
   unsolicitedMedia?: boolean
+  /** Optional "via <labeler>" attribution shown on the veil (0177 W3). */
+  attribution?: string
   hiddenPlaceholder?: React.ReactNode
   className?: string
   children: React.ReactNode
@@ -34,6 +36,7 @@ export function ModeratedContent({
   labels,
   platformVisibility = 'show',
   unsolicitedMedia,
+  attribution,
   hiddenPlaceholder,
   className,
   children
@@ -57,6 +60,7 @@ export function ModeratedContent({
     <SensitiveContent
       visibility={visibility}
       labels={presentLabels}
+      attribution={attribution}
       hiddenPlaceholder={hiddenPlaceholder}
       className={className}
     >

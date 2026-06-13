@@ -18,7 +18,8 @@ import { PersonMentionChip } from '../components/PersonHovercard'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { hidesContent, useBlockList } from '../lib/block-list'
-import { useContentLabelsBatch, useSelfLabel } from '../lib/self-label'
+import { attributionText, useTrustedContentLabelsBatch } from '../lib/content-labels-trust'
+import { useSelfLabel } from '../lib/self-label'
 import { navigateToNode } from '../workbench/navigation'
 import { mergeMentionables, type Mentionable, type ProfileEntry } from './comms-utils'
 import { useComms } from './CommsContext'
@@ -158,6 +159,7 @@ function MessageRow({
   profiles,
   linkTargets,
   labels,
+  attribution,
   hiddenByBlock,
   me
 }: {
@@ -165,6 +167,7 @@ function MessageRow({
   profiles: ProfileEntry[]
   linkTargets: WikilinkTarget[]
   labels: readonly AbuseLabel[]
+  attribution?: string
   hiddenByBlock: boolean
   me: string
 }) {
@@ -183,6 +186,7 @@ function MessageRow({
           and hidden entirely for a blocked/muted author. */}
       <ModeratedPost
         labels={labels}
+        attribution={attribution}
         platformVisibility={hiddenByBlock ? 'hide' : undefined}
         hiddenPlaceholder={<span className="text-xs italic text-ink-3">message hidden</span>}
       >
@@ -212,7 +216,7 @@ function MessageList({
 }) {
   const navigate = useNavigate()
   const ids = useMemo(() => messages.map((message) => message.id), [messages])
-  const labelsByTarget = useContentLabelsBatch(ids)
+  const labelsByTarget = useTrustedContentLabelsBatch(ids)
   const blocks = useBlockList()
   const hiddenCount = messages.filter(
     (message) => message.createdBy && hidesContent(blocks.list, message.createdBy)
@@ -237,17 +241,21 @@ function MessageList({
           </button>
         </li>
       )}
-      {messages.map((message) => (
-        <MessageRow
-          key={message.id}
-          message={message}
-          profiles={profiles}
-          linkTargets={linkTargets}
-          labels={labelsByTarget.get(message.id) ?? NO_LABELS}
-          hiddenByBlock={message.createdBy ? hidesContent(blocks.list, message.createdBy) : false}
-          me={me}
-        />
-      ))}
+      {messages.map((message) => {
+        const trusted = labelsByTarget.get(message.id)
+        return (
+          <MessageRow
+            key={message.id}
+            message={message}
+            profiles={profiles}
+            linkTargets={linkTargets}
+            labels={trusted?.labels ?? NO_LABELS}
+            attribution={trusted ? attributionText(trusted.attributions) : undefined}
+            hiddenByBlock={message.createdBy ? hidesContent(blocks.list, message.createdBy) : false}
+            me={me}
+          />
+        )
+      })}
     </ul>
   )
 }

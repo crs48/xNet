@@ -18,6 +18,8 @@ export interface SensitiveContentProps {
   visibility: SensitiveVisibility
   /** Label values driving the warning text, e.g. ['sexual', 'porn']. */
   labels?: readonly string[]
+  /** Optional source attribution, e.g. 'via did:key:zAB…' (a subscribed labeler). */
+  attribution?: string
   /** Render nothing for `hide` (default), or a compact placeholder. */
   hiddenPlaceholder?: React.ReactNode
   className?: string
@@ -39,11 +41,13 @@ export function labelText(labels: readonly string[] = []): string {
 export function SensitiveContent({
   visibility,
   labels = [],
+  attribution,
   hiddenPlaceholder = null,
   className,
   children
 }: SensitiveContentProps) {
   const [revealed, setRevealed] = useState(false)
+  const suffix = attribution ? ` · ${attribution}` : ''
 
   if (visibility === 'hide') {
     return <>{hiddenPlaceholder}</>
@@ -58,6 +62,7 @@ export function SensitiveContent({
       <div className={cn('flex flex-col gap-1', className)}>
         <p className="text-xs text-muted-foreground" role="note">
           ⚠️ {labelText(labels)}
+          {suffix}
         </p>
         {children}
       </div>
@@ -79,8 +84,11 @@ export function SensitiveContent({
       <div aria-hidden className="pointer-events-none select-none blur-xl saturate-50">
         {children}
       </div>
-      <span className="absolute inset-0 flex items-center justify-center gap-1 text-sm font-medium text-foreground">
-        🙈 {labelText(labels)} — tap to reveal
+      <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 text-sm font-medium text-foreground">
+        <span>🙈 {labelText(labels)} — tap to reveal</span>
+        {attribution && (
+          <span className="text-xs font-normal text-muted-foreground">{attribution}</span>
+        )}
       </span>
     </button>
   )

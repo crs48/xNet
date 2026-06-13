@@ -18,6 +18,8 @@ interface BaseProps {
   nodeId?: string
   /** Media from a non-mutual sender → blur by default (0174 dating rule). */
   unsolicitedMedia?: boolean
+  /** "via <labeler>" attribution for the labels path (0177 W3); the nodeId path derives its own. */
+  attribution?: string
   /** Platform decision (e.g. 'hide' for a blocked/muted author); strictest wins. */
   platformVisibility?: AbuseVisibility
   /** What to render when fully hidden (defaults: a chip for media, nothing for posts). */
@@ -30,6 +32,7 @@ function Gate({
   labels,
   nodeId,
   unsolicitedMedia,
+  attribution,
   platformVisibility,
   className,
   hiddenPlaceholder,
@@ -41,6 +44,7 @@ function Gate({
         labels={labels}
         platformVisibility={platformVisibility}
         unsolicitedMedia={unsolicitedMedia}
+        attribution={attribution}
         hiddenPlaceholder={hiddenPlaceholder}
         className={className}
       >

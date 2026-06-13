@@ -374,11 +374,17 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 > (`subscriptionToTrustSetting` in `@xnetjs/abuse`, exposed as `trustSettings`).
 > W4's **pre-screen pipeline** (`prescreenImage` / `prescreenImageLabels`:
 > classify → suggest self-label → warn-if-explicit) landed, model-agnostic over
-> the existing injected-detector seam. _Deferred, with reasons inline below:_
-> consuming `trustSettings` inside `decideAbuse` at the render gate (the per-
-> subject label-distribution wiring) and its "filtered by labeler X" attribution;
-> the actual ONNX model + BlurHash dep + upload-path wiring (can't be validated
-> in this environment without shipping blind or an unvalidatable lockfile change).
+> the existing injected-detector seam. A follow-up then closed the W3 tail:
+> **render-gate consumption** — `applyLabelerTrustToRows` (via
+> `useTrustedContentLabels`/`Batch`) keeps a `labeler`/`policy-list`
+> `ModerationLabel` only when you're subscribed-and-accepted, re-weights it by
+> your trust, and feeds it into the dial; wired into `ModeratedNode` + chat, with
+> a **"via &lt;labeler&gt;" attribution** on the veil. Proven by the pure
+> trust→visibility decision test (subscribed → hidden, unsubscribed → shown) +
+> `SensitiveContent` attribution render tests (the live chat-message click-through
+> needs seeded chat data this sandbox can't produce). _Still deferred, reasons
+> inline below:_ the actual ONNX model + BlurHash dep + upload-path wiring (can't
+> be validated here without shipping blind or an unvalidatable lockfile change).
 
 ### Milestone 1 — Complete the web loops (low risk, behind existing e2e)
 
@@ -406,9 +412,9 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 - [x] Subscribe UI in Settings → Safety: add a labeler (DID + trust level/weight) → persist via `PolicySubscriptionSchema` (`useLabelerSubscriptions`; subscribe/enable-disable/remove).
 - [x] Import a signed `PolicyBlockList` (verify with `verifySignedPolicyBlockList`); apply its entries.
 - [x] Adapter: persisted subscriptions → runtime `LabelerTrustSetting`s (`subscriptionToTrustSetting`/`subscriptionsToTrustSettings` in `@xnetjs/abuse`, exposed as `trustSettings`).
-  - [ ] Consume `trustSettings` in `decideAbuse` at the render gate (weight per-subject `ModerationLabel`s from subscribed labelers) — the label-distribution wiring, deferred.
+  - [x] Consume `trustSettings` at the render gate: `applyLabelerTrustToRows` (via `useTrustedContentLabels`/`useTrustedContentLabelsBatch`) keeps `labeler`/`policy-list` `ModerationLabel`s only when subscribed-and-accepted, re-weighted by trust, and feeds them into the dial — wired into `ModeratedNode` and chat (`ChannelChat`).
 - [x] Surface subscribed labelers in the Safety Center (list + trust level + enable/remove).
-  - [ ] "Filtered by labeler X" attribution on individual filtered content — pairs with the gate-consumption above.
+  - [x] "Filtered by labeler X" attribution on filtered content (`attributionText` → `SensitiveContent` veil, via `ModeratedContent`/`ModeratedMedia`).
 
 **W4 — on-device image ML**
 
