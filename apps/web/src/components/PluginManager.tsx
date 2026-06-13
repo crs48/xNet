@@ -6,23 +6,42 @@
  * - Enable/disable plugins
  * - Install new plugins from manifest
  * - Uninstall plugins
+ *
+ * Workbench-idiom styling: hairline list rows, the design-system <Switch>
+ * for enable/disable, and the monochrome ramp (exploration 0179).
  */
 
 import type { RegisteredPlugin } from '@xnetjs/plugins'
 import { useXNet } from '@xnetjs/react'
+import { Switch } from '@xnetjs/ui'
 import {
   Puzzle,
-  Power,
-  PowerOff,
   Trash2,
   Plus,
   AlertCircle,
   CheckCircle,
+  PowerOff,
   XCircle,
   Package,
   Loader2
 } from 'lucide-react'
 import { useState, useCallback, useEffect } from 'react'
+
+/** Quiet bordered button — the workbench's default action affordance. */
+const QUIET_BUTTON =
+  'flex items-center gap-2 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50'
+
+function PluginsHeader({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div>
+        <h2 className="text-base font-medium text-ink-1">Plugins</h2>
+        <p className="text-xs text-ink-3">Manage extensions and plugins</p>
+      </div>
+      {children}
+    </div>
+  )
+}
 
 export function PluginManager() {
   const [error, setError] = useState<string | null>(null)
@@ -74,6 +93,14 @@ export function PluginManager() {
     [registry]
   )
 
+  const handleToggle = useCallback(
+    (pluginId: string, next: boolean) => {
+      if (next) void handleActivate(pluginId)
+      else void handleDeactivate(pluginId)
+    },
+    [handleActivate, handleDeactivate]
+  )
+
   const handleUninstall = useCallback(
     async (pluginId: string) => {
       if (!registry) return
@@ -109,14 +136,10 @@ export function PluginManager() {
   if (!nodeStoreReady) {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-medium mb-1">Plugins</h2>
-          <p className="text-sm text-muted-foreground">Manage extensions and plugins</p>
-        </div>
-
+        <PluginsHeader />
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Loader2 size={24} className="text-muted-foreground animate-spin mb-4" />
-          <p className="text-sm text-muted-foreground">Initializing plugin system...</p>
+          <Loader2 size={24} strokeWidth={1.5} className="mb-4 animate-spin text-ink-3" />
+          <p className="text-xs text-ink-3">Initializing plugin system…</p>
         </div>
       </div>
     )
@@ -126,17 +149,13 @@ export function PluginManager() {
   if (!pluginsEnabled) {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-medium mb-1">Plugins</h2>
-          <p className="text-sm text-muted-foreground">Manage extensions and plugins</p>
-        </div>
-
+        <PluginsHeader />
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Puzzle size={24} className="text-muted-foreground" />
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-2">
+            <Puzzle size={24} strokeWidth={1.5} className="text-ink-3" />
           </div>
-          <h3 className="text-sm font-medium mb-2">Plugin System Not Available</h3>
-          <p className="text-xs text-muted-foreground max-w-[300px]">
+          <h3 className="mb-2 text-sm font-medium text-ink-1">Plugin System Not Available</h3>
+          <p className="max-w-[300px] text-xs text-ink-3">
             The plugin system is not available in this environment. Plugins require specific
             platform capabilities that may not be enabled.
           </p>
@@ -148,26 +167,21 @@ export function PluginManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-medium mb-1">Plugins</h2>
-          <p className="text-sm text-muted-foreground">
-            {plugins.length} plugin{plugins.length !== 1 ? 's' : ''} installed
-          </p>
-        </div>
-        <button
-          onClick={() => setShowInstallDialog(true)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 rounded-md text-sm transition-colors"
-        >
-          <Plus size={14} />
+      <PluginsHeader>
+        <button type="button" onClick={() => setShowInstallDialog(true)} className={QUIET_BUTTON}>
+          <Plus size={14} strokeWidth={1.5} />
           Install Plugin
         </button>
-      </div>
+      </PluginsHeader>
+
+      <p className="text-xs text-ink-3">
+        {plugins.length} plugin{plugins.length !== 1 ? 's' : ''} installed
+      </p>
 
       {/* Error message */}
       {error && (
-        <div className="flex items-center gap-2 bg-destructive/10 text-destructive border border-destructive/20 rounded-md px-3 py-2 text-sm">
-          <AlertCircle size={16} />
+        <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive-muted px-3 py-2 text-xs text-destructive">
+          <AlertCircle size={16} strokeWidth={1.5} />
           {error}
         </div>
       )}
@@ -176,13 +190,12 @@ export function PluginManager() {
       {plugins.length === 0 ? (
         <EmptyState onInstall={() => setShowInstallDialog(true)} />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {plugins.map((plugin) => (
             <PluginCard
               key={plugin.manifest.id}
               plugin={plugin}
-              onActivate={handleActivate}
-              onDeactivate={handleDeactivate}
+              onToggle={handleToggle}
               onUninstall={handleUninstall}
             />
           ))}
@@ -205,90 +218,68 @@ export function PluginManager() {
 
 interface PluginCardProps {
   plugin: RegisteredPlugin
-  onActivate: (id: string) => void
-  onDeactivate: (id: string) => void
+  onToggle: (id: string, next: boolean) => void
   onUninstall: (id: string) => void
 }
 
-function PluginCard({ plugin, onActivate, onDeactivate, onUninstall }: PluginCardProps) {
+function PluginCard({ plugin, onToggle, onUninstall }: PluginCardProps) {
   const { manifest, status, error } = plugin
   const isActive = status === 'active'
   const hasError = status === 'error'
 
   return (
     <div
-      className={`border rounded-lg p-4 transition-colors ${
-        hasError
-          ? 'border-destructive/50 bg-destructive/5'
-          : isActive
-            ? 'border-border bg-background'
-            : 'border-border bg-muted/30'
+      className={`rounded-md border p-3 transition-colors ${
+        hasError ? 'border-destructive/40 bg-destructive-muted' : 'border-hairline bg-surface-0'
       }`}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3">
         {/* Icon */}
         <div
-          className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            hasError
-              ? 'bg-destructive/20 text-destructive'
-              : isActive
-                ? 'bg-primary/10 text-primary'
-                : 'bg-muted text-muted-foreground'
+          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md ${
+            hasError ? 'bg-destructive/15 text-destructive' : 'bg-surface-2 text-ink-2'
           }`}
         >
-          <Package size={20} />
+          <Package size={18} strokeWidth={1.5} />
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-sm font-medium truncate">{manifest.name}</h3>
-            <span className="text-xs text-muted-foreground">v{manifest.version}</span>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center gap-2">
+            <h3 className="truncate text-sm font-medium text-ink-1">{manifest.name}</h3>
+            <span className="font-mono text-[10px] text-ink-3">v{manifest.version}</span>
             <StatusBadge status={status} />
           </div>
 
           {manifest.description && (
-            <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-              {manifest.description}
-            </p>
+            <p className="mb-1 line-clamp-2 text-xs text-ink-3">{manifest.description}</p>
           )}
 
-          {manifest.author && <p className="text-xs text-muted-foreground">By {manifest.author}</p>}
+          {manifest.author && <p className="text-xs text-ink-3">By {manifest.author}</p>}
 
           {hasError && error && (
-            <p className="text-xs text-destructive mt-2 flex items-center gap-1">
-              <AlertCircle size={12} />
+            <p className="mt-2 flex items-center gap-1 text-xs text-destructive">
+              <AlertCircle size={12} strokeWidth={1.5} />
               {error.message}
             </p>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {isActive ? (
-            <button
-              onClick={() => onDeactivate(manifest.id)}
-              className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title="Deactivate"
-            >
-              <PowerOff size={16} />
-            </button>
-          ) : (
-            <button
-              onClick={() => onActivate(manifest.id)}
-              className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title="Activate"
-            >
-              <Power size={16} />
-            </button>
-          )}
-
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <Switch
+            checked={isActive}
+            onCheckedChange={(next) => onToggle(manifest.id, next)}
+            aria-label={isActive ? 'Deactivate plugin' : 'Activate plugin'}
+          />
           <button
+            type="button"
             onClick={() => onUninstall(manifest.id)}
-            className="p-2 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+            className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-surface-2 hover:text-destructive"
             title="Uninstall"
+            aria-label="Uninstall plugin"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
@@ -303,28 +294,28 @@ function StatusBadge({ status }: { status: RegisteredPlugin['status'] }) {
     RegisteredPlugin['status'],
     { label: string; color: string; icon: React.ReactNode }
   > = {
-    installed: { label: 'Installed', color: 'bg-muted text-muted-foreground', icon: null },
+    installed: { label: 'Installed', color: 'bg-surface-2 text-ink-3', icon: null },
     active: {
       label: 'Active',
-      color: 'bg-green-500/10 text-green-600 dark:text-green-400',
-      icon: <CheckCircle size={10} />
+      color: 'bg-success-muted text-success',
+      icon: <CheckCircle size={10} strokeWidth={1.5} />
     },
     disabled: {
       label: 'Disabled',
-      color: 'bg-muted text-muted-foreground',
-      icon: <PowerOff size={10} />
+      color: 'bg-surface-2 text-ink-3',
+      icon: <PowerOff size={10} strokeWidth={1.5} />
     },
     error: {
       label: 'Error',
-      color: 'bg-destructive/10 text-destructive',
-      icon: <XCircle size={10} />
+      color: 'bg-destructive-muted text-destructive',
+      icon: <XCircle size={10} strokeWidth={1.5} />
     }
   }
   const config = configs[status]
 
   return (
     <span
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${config.color}`}
+      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${config.color}`}
     >
       {config.icon}
       {config.label}
@@ -337,27 +328,26 @@ function StatusBadge({ status }: { status: RegisteredPlugin['status'] }) {
 function EmptyState({ onInstall }: { onInstall: () => void }) {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border rounded-lg">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-          <Puzzle size={24} className="text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-hairline py-12 text-center">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-2">
+          <Puzzle size={24} strokeWidth={1.5} className="text-ink-3" />
         </div>
-        <h3 className="text-sm font-medium mb-2">No plugins installed</h3>
-        <p className="text-xs text-muted-foreground mb-4 max-w-[300px]">
+        <h3 className="mb-2 text-sm font-medium text-ink-1">No plugins installed</h3>
+        <p className="mb-4 max-w-[300px] text-xs text-ink-3">
           Plugins extend xNet with custom views, commands, sidebar items, and integrations.
         </p>
-        <button
-          onClick={onInstall}
-          className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 rounded-md text-sm transition-colors"
-        >
-          <Plus size={14} />
+        <button type="button" onClick={onInstall} className={QUIET_BUTTON}>
+          <Plus size={14} strokeWidth={1.5} />
           Install Plugin
         </button>
       </div>
 
       {/* Built-in features note */}
-      <div className="bg-muted/50 rounded-lg p-4">
-        <h4 className="text-xs font-medium mb-2 text-muted-foreground">Built-in Features</h4>
-        <p className="text-xs text-muted-foreground">
+      <div className="rounded-md border border-hairline bg-surface-1 p-3">
+        <h4 className="mb-1 text-[10px] font-medium uppercase tracking-wider text-ink-3">
+          Built-in Features
+        </h4>
+        <p className="text-xs text-ink-3">
           Core editor features like Mermaid diagrams, callouts, embeds, and code blocks are built
           into xNet and don't require plugins. Plugins are for adding custom functionality beyond
           the built-in features.
@@ -407,45 +397,39 @@ function InstallPluginDialog({ onInstall, onClose, error }: InstallPluginDialogP
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Dialog */}
-      <div className="relative bg-background border border-border rounded-lg shadow-lg w-[500px] max-h-[80vh] overflow-hidden">
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold">Install Plugin</h2>
-          <p className="text-sm text-muted-foreground">Paste the plugin manifest JSON to install</p>
+      <div className="relative max-h-[80vh] w-[500px] overflow-hidden rounded-md border border-hairline bg-surface-0 shadow-lg">
+        <div className="border-b border-hairline px-6 py-4">
+          <h2 className="text-base font-medium text-ink-1">Install Plugin</h2>
+          <p className="text-xs text-ink-3">Paste the plugin manifest JSON to install</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
           <div>
-            <label className="block text-sm font-medium mb-2">Plugin Manifest</label>
+            <label className="mb-2 block text-[10px] font-medium uppercase tracking-wider text-ink-3">
+              Plugin Manifest
+            </label>
             <textarea
               value={manifest}
               onChange={(e) => setManifest(e.target.value)}
               placeholder={exampleManifest}
-              className="w-full h-[200px] bg-secondary border border-border rounded-md px-3 py-2 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+              className="h-[200px] w-full resize-none rounded-md border border-hairline bg-surface-1 px-3 py-2 font-mono text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
               spellCheck={false}
             />
           </div>
 
           {(parseError || error) && (
-            <div className="flex items-center gap-2 bg-destructive/10 text-destructive border border-destructive/20 rounded-md px-3 py-2 text-sm">
-              <AlertCircle size={16} />
+            <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive-muted px-3 py-2 text-xs text-destructive">
+              <AlertCircle size={16} strokeWidth={1.5} />
               {parseError || error}
             </div>
           )}
 
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm hover:bg-muted transition-colors"
-            >
+            <button type="button" onClick={onClose} className={QUIET_BUTTON}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={!manifest.trim()}
-              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-md text-sm transition-colors"
-            >
-              <Plus size={14} />
+            <button type="submit" disabled={!manifest.trim()} className={QUIET_BUTTON}>
+              <Plus size={14} strokeWidth={1.5} />
               Install
             </button>
           </div>

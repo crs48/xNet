@@ -246,7 +246,7 @@ export {
   type CommandPaletteProps
 } from './composed/CommandPalette'
 
-// ─── Settings View ────────────────────────────────────────────────
+// ─── Settings View (deprecated — prefer the settings kit below) ───
 export {
   SettingsView,
   SettingsSection,
@@ -256,6 +256,9 @@ export {
   type SettingsPanelProps,
   type PluginSettingsPanel
 } from './composed/SettingsView'
+
+// ─── Settings kit (0179 — workbench-idiom controls) ───────────────
+export { SettingsPanel, SettingsGroup, SettingRow, SettingToggle } from './composed/settings-kit'
 
 // ─── Comment Components ───────────────────────────────────────────
 export {
