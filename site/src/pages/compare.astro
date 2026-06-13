@@ -18,15 +18,15 @@ const infraProjects = [
     schema: 'TypeScript defineSchema()',
     hooks: 'useQuery / useMutate / useNode',
     typeSafety: 'Full inference',
-    selfHosted: 'No server needed',
+    selfHosted: 'P2P; optional Hub (backup, relay, search)',
     license: 'MIT',
     identity: 'DID:key + UCAN',
     plugins: '4-layer system',
-    platforms: 'Electron + Web + Expo',
+    platforms: 'Electron + Web (mobile in development)',
   },
   {
     name: 'Zero',
-    url: 'https://zerosync.dev',
+    url: 'https://zero.rocicorp.dev',
     highlight: false,
     localFirst: true,
     offline: 'Full',
@@ -62,7 +62,7 @@ const infraProjects = [
   },
   {
     name: 'ElectricSQL',
-    url: 'https://electric-sql.com',
+    url: 'https://electric.ax',
     highlight: false,
     localFirst: true,
     offline: 'Full',
@@ -85,7 +85,7 @@ const infraProjects = [
     localFirst: true,
     offline: 'Full',
     sync: 'P2P via relay',
-    crdt: 'Automerge-based',
+    crdt: 'CoJSON CRDTs (own engine)',
     richText: '—',
     schema: 'CoValues (TypeScript)',
     hooks: 'useCoState',
@@ -144,8 +144,8 @@ const infraProjects = [
     schema: 'TypeScript',
     hooks: 'useQuery',
     typeSafety: 'Full inference',
-    selfHosted: 'Cloud only',
-    license: 'Proprietary**',
+    selfHosted: 'Self-host (Docker)',
+    license: 'FSL-Apache-2.0**',
     identity: 'External',
     plugins: '—',
     platforms: 'Web',
@@ -192,7 +192,7 @@ const protocolProjects = [
     sync: 'Federated relay',
     identity: 'DID:plc',
     language: 'TypeScript',
-    status: 'Production (30M+ users)',
+    status: 'Production (Bluesky)',
     bestFor: 'Social networking',
   },
   {
@@ -209,7 +209,7 @@ const protocolProjects = [
   },
   {
     name: 'Hypercore / Pear',
-    url: 'https://holepunch.to',
+    url: 'https://pears.com',
     highlight: false,
     scope: 'P2P runtime',
     dataModel: 'Append-only logs',
@@ -321,14 +321,14 @@ const productivityApps = [
     plugins: '4-layer system',
     pricing: 'Free forever',
     dataOwnership: 'Full — encrypted, local',
-    platforms: 'Desktop, Web, Mobile',
+    platforms: 'Desktop, Web (mobile in development)',
   },
   {
     name: 'Notion',
     url: 'https://notion.so',
     highlight: false,
     localFirst: false,
-    offline: 'Partial (cache)',
+    offline: 'Partial (per-page opt-in)',
     realTimeCollab: 'Server (OT)',
     richText: 'Block-based',
     databases: 'Full (views, relations)',
@@ -348,7 +348,7 @@ const productivityApps = [
     offline: 'Full',
     realTimeCollab: 'Paid plugin',
     richText: 'Markdown',
-    databases: 'Via plugins',
+    databases: 'Bases (core) + plugins',
     canvas: 'Yes',
     openSource: 'No (free for personal)',
     selfHosted: 'Files on disk',
@@ -563,7 +563,7 @@ const productivityColumns = [
             </tbody>
           </table>
         </div>
-        <p class="mt-3 text-xs text-gray-600">** Convex runtime is proprietary; client SDKs are open source. All other projects are fully open source.</p>
+        <p class="mt-3 text-xs text-gray-600">** Convex's backend is source-available under the Functional Source License (converts to Apache-2.0 after two years) and self-hostable via Docker since Feb 2025. xNet is pre-release; its rows reflect shipped behavior, not roadmap.</p>
       </section>
 
       <!-- Table 2: Protocols -->

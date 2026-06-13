@@ -545,13 +545,13 @@ Dual rendering (per layer section, zero JS — duplication is free at build time
 
 ### Phase 0 — Fact hotfix (same day, current page structure)
 
-- [ ] Fix Jazz row: CoJSON CRDTs (not Automerge), status v2 alpha.
-- [ ] Fix Convex row: self-hostable (FSL-Apache-2.0) — update footnote on line 566 too.
-- [ ] Update Zero row: 1.0 stable, URL `zero.rocicorp.dev`.
-- [ ] Update ElectricSQL row: URL `electric.ax`, note agent-platform repositioning.
-- [ ] Update Hypercore/Pear URL to `pears.com`; soften AT Protocol user count.
-- [ ] Update Notion offline and Obsidian Bases cells.
-- [ ] Fix xNet rows: `platforms` (mobile in development), `selfHosted` ("P2P; optional Hub for backup, relay, search"), add pre-release qualifier.
+- [x] Fix Jazz row: CoJSON CRDTs (not Automerge), status v2 alpha.
+- [x] Fix Convex row: self-hostable (FSL-Apache-2.0) — update footnote on line 566 too.
+- [x] Update Zero row: 1.0 stable, URL `zero.rocicorp.dev`.
+- [x] Update ElectricSQL row: URL `electric.ax`, note agent-platform repositioning.
+- [x] Update Hypercore/Pear URL to `pears.com`; soften AT Protocol user count.
+- [x] Update Notion offline and Obsidian Bases cells.
+- [x] Fix xNet rows: `platforms` (mobile in development), `selfHosted` ("P2P; optional Hub for backup, relay, search"), add pre-release qualifier.
 
 ### Phase 1 — Data module + layered redesign
 
