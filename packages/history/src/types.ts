@@ -301,6 +301,13 @@ export interface UndoEntry {
   currentValues: Record<string, unknown>
   batchId?: string
   wallTime: number
+  /**
+   * Monotonic local order, re-stamped on every stack transition. Lets
+   * undoLatest/redoLatest pop in true global LIFO order across surfaces
+   * instead of by wall-clock (which can mis-order on clock skew or when
+   * undoing nodes out of chronological order).
+   */
+  order: number
   /** True if this entry represents a create operation */
   wasCreate?: boolean
   /** True if this entry represents a delete operation */

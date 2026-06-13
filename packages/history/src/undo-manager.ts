@@ -25,6 +25,8 @@ export class UndoManager {
   private lastEntryTime = new Map<NodeId, number>()
   private localDID: DID
   private _isUndoRedoing = false
+  /** Monotonic counter giving every entry a global LIFO order. */
+  private orderCounter = 0
   /** Cache of node state before each change, for capturing previousValues */
   private preChangeState = new Map<NodeId, Record<string, unknown>>()
   private telemetry?: TelemetryReporter
@@ -86,6 +88,8 @@ export class UndoManager {
     this.telemetry?.reportPerformance('history.undo', Date.now() - start)
     this.telemetry?.reportUsage(`history.undo.${this.options.surface}`, 1)
 
+    // Re-stamp so the just-undone entry is the next thing redoLatest pops.
+    entry.order = ++this.orderCounter
     const redoStack = this.getOrCreateStack(this.redoStacks, nodeId)
     redoStack.push(entry)
 
@@ -110,6 +114,8 @@ export class UndoManager {
     this.telemetry?.reportPerformance('history.redo', Date.now() - start)
     this.telemetry?.reportUsage(`history.redo.${this.options.surface}`, 1)
 
+    // Re-stamp so the just-redone entry is the next thing undoLatest pops.
+    entry.order = ++this.orderCounter
     const undoStack = this.getOrCreateStack(this.undoStacks, nodeId)
     undoStack.push(entry)
 
@@ -132,8 +138,11 @@ export class UndoManager {
       this._isUndoRedoing = false
     }
 
-    // Push to redo stacks
+    // Push to redo stacks. One shared order for the whole batch so it
+    // pops as a single LIFO step.
+    const undoneOrder = ++this.orderCounter
     for (const { nodeId, entry } of entries) {
+      entry.order = undoneOrder
       const redoStack = this.getOrCreateStack(this.redoStacks, nodeId)
       redoStack.push(entry)
     }
@@ -157,7 +166,9 @@ export class UndoManager {
       this._isUndoRedoing = false
     }
 
+    const redoneOrder = ++this.orderCounter
     for (const { nodeId, entry } of entries) {
+      entry.order = redoneOrder
       const undoStack = this.getOrCreateStack(this.undoStacks, nodeId)
       undoStack.push(entry)
     }
@@ -278,6 +289,7 @@ export class UndoManager {
       currentValues,
       batchId: change.batchId,
       wallTime: change.wallTime,
+      order: ++this.orderCounter,
       wasCreate: previousNode === null && change.payload.deleted === undefined,
       wasDelete: change.payload.deleted === true,
       wasRestore: change.payload.deleted === false
@@ -297,6 +309,7 @@ export class UndoManager {
         }
         previousEntry.currentValues[key] = value
       }
+      previousEntry.order = ++this.orderCounter
     } else {
       stack.push(entry)
       if (stack.length > this.options.maxStackSize) {
@@ -453,7 +466,7 @@ export class UndoManager {
       const entry = stack[stack.length - 1]
       if (!entry) continue
 
-      if (!latest || entry.wallTime > latest.entry.wallTime) {
+      if (!latest || entry.order > latest.entry.order) {
         latest = { nodeId, entry }
       }
     }

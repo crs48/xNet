@@ -1023,6 +1023,26 @@ describe('UndoManager', () => {
     await undo.undoLatest()
     expect((await store.get(folder.id))!.deleted).toBe(true)
   })
+
+  it('redoLatest follows global LIFO order, not original wall-clock', async () => {
+    const folder = await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Recipes' } })
+    const task = await store.create({ schemaId: TEST_SCHEMA, properties: { status: 'todo' } })
+
+    // Undo newest-first: task creation, then folder creation.
+    await undo.undoLatest()
+    expect((await store.get(task.id))!.deleted).toBe(true)
+    await undo.undoLatest()
+    expect((await store.get(folder.id))!.deleted).toBe(true)
+
+    // Redo must reverse the undo order: the folder (last undone) comes back
+    // first — even though the task was created later in wall-clock time.
+    await undo.redoLatest()
+    expect((await store.get(folder.id))!.deleted).not.toBe(true)
+    expect((await store.get(task.id))!.deleted).toBe(true)
+
+    await undo.redoLatest()
+    expect((await store.get(task.id))!.deleted).not.toBe(true)
+  })
 })
 
 // ─── ScrubCache Tests ────────────────────────────────────────
