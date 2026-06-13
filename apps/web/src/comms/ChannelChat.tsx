@@ -11,6 +11,7 @@ import { useDataBridge } from '@xnetjs/react/internal'
 import { cn, LinkifiedText, useListboxNavigation } from '@xnetjs/ui'
 import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PersonMentionChip } from '../components/PersonHovercard'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { navigateToNode } from '../workbench/navigation'
@@ -46,6 +47,8 @@ interface ChatMessageRow {
   createdAt?: number
   edited?: boolean
   redacted?: boolean
+  /** Structured mentions declared by the composer (0168) */
+  mentions?: { dids?: string[]; room?: boolean }
   /** Tag node ids declared by the composer (0169) */
   tags?: string[]
   /** Linked node ids declared by the composer (0170) */
@@ -77,6 +80,19 @@ function MessageBody({ message }: { message: ChatMessageRow }) {
       className="whitespace-pre-wrap break-words text-xs text-ink-2"
       detectPhones
     />
+  )
+}
+
+/** Mention chips from the message's structured DIDs — open the person popover (0172). */
+function MessageMentionChips({ message }: { message: ChatMessageRow }) {
+  const dids = message.mentions?.dids ?? []
+  if (dids.length === 0 || message.redacted) return null
+  return (
+    <div className="flex flex-wrap gap-1">
+      {dids.map((did) => (
+        <PersonMentionChip key={did} did={did} />
+      ))}
+    </div>
   )
 }
 
@@ -150,6 +166,7 @@ function MessageRow({
         <EditedTag message={message} />
       </div>
       <MessageBody message={message} />
+      <MessageMentionChips message={message} />
       <MessageTagChips message={message} />
       <MessageLinkChips message={message} linkTargets={linkTargets} />
     </li>

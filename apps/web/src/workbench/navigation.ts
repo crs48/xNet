@@ -34,6 +34,9 @@ export function navigateToNode(navigate: Navigate, nodeType: TabNodeType, nodeId
     case 'tag':
       void navigate({ to: '/tag/$tagId' as never, params: { tagId: nodeId } as never })
       break
+    case 'channel':
+      void navigate({ to: '/channel/$channelId', params: { channelId: nodeId } })
+      break
     case 'person':
       void navigate({ to: '/person/$did' as never, params: { did: nodeId } as never })
       break
