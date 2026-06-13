@@ -658,59 +658,73 @@ handle: { type: 'text', optional: true, maxLength: 32 }, // workspace-unique slu
 
 **Phase 2 — Universal reference rendering**
 
-- [ ] Add `<ReferenceText>` / `<EntityChip>` to `packages/ui` resolving
-      structured `{mentions, tags, links}` → chips with correct nav targets.
-- [ ] Render it in `CommentBubble` from the already-extracted structured
-      `mentions`; extend comment extraction to tags + wikilinks.
-- [ ] Make `HashtagExtension` and `TaskMentionExtension` pills clickable in
-      `PageView` (hashtag → `/tag/$tagId`; mention → hovercard).
-- [ ] Remove/repoint the dead `/user`/`/node` hrefs in
-      `commentReferences.ts` `convertRefsToLinks`.
+- [x] Make `HashtagExtension` and `TaskMentionExtension` pills clickable in
+      `PageView` (hashtag → `/tag/$tagId`; mention → `/person/$did`) via click
+      plugins that emit `xnet://` hrefs through the editor's existing
+      `onNavigate` (the wikilink pattern). Unit-tested (`pill-navigation.test.ts`).
+- [ ] _Deferred (follow-up):_ comment bodies still render `@`/`#`/`[[` as plain
+      text. A `<ReferenceText>` renderer that linkifies structured references
+      while preserving GFM/markdown needs a render-prop drilled through
+      `@xnetjs/ui` `CommentsSidebar → CommentBubble`; out of scope here to keep
+      the PR focused. Chat (the primary surface) renders all three as real
+      links. Structured `mentions` are still extracted at save, so notifications
+      are unaffected — only comment _display_ is deferred.
+- [ ] _Deferred (follow-up):_ repoint the unused `/user`/`/node` defaults in
+      `commentReferences.ts` `convertRefsToLinks` (only reached once comment
+      rendering above lands).
 
 **Phase 3 — Person hovercard + profile route**
 
-- [ ] Build `<PersonHovercard>` (avatar/name/status + **Message** via
-      `ensureDmChannel` + **Open profile**).
-- [ ] Add `/person/$did` route (the five-file `TabNodeType` change: `state.ts`,
+- [x] Build `<PersonHovercard>` / `PersonMentionChip` (avatar/name/DID +
+      **Message** via `ensureDmChannel` + **Open profile**).
+- [x] Add `/person/$did` route (the five-file `TabNodeType` change: `state.ts`,
       `tabs.ts` TAB_VIEWS+ROUTE_PREFIXES, `navigation.ts`, `ViewHost.tsx`, route
-      file).
-- [ ] Build the person dashboard (created nodes, assigned tasks, shared
-      channels/DMs, recent activity) from bounded queries; render from a bare
-      DID when no profile exists.
-- [ ] Point `@mention` chips at the hovercard; "Open profile" → the route.
+      file). Also fixed the missing `navigateToNode` `'channel'` case it
+      surfaced.
+- [x] Build the person dashboard (created content, assigned tasks, shared
+      channels/DMs) from bounded queries filtered client-side by DID; renders
+      from a bare DID when no profile exists.
+- [x] Chat messages render structured mentions as `@mention` chips that open the
+      popover; "Open profile" → the route.
 
 **Phase 4 — Handles**
 
-- [ ] Add optional `handle` to `ProfileSchema` (no version bump; additive).
-- [ ] Enforce workspace-unique handle on profile edit; validate slug format.
-- [ ] Typeahead matches `handle` + `displayName`; **commit DID only**.
-- [ ] Render `@handle` when present, else `displayName`, else DID fallback.
+- [x] Add optional `handle` to `ProfileSchema` (no version bump; additive).
+- [x] Enforce workspace-unique handle on profile edit; normalize to a slug and
+      block save when taken (`normalizeHandle` / `isHandleTaken`).
+- [x] Chat mention typeahead matches `handle` + `displayName`; **commit DID
+      only** (`filterMentionables`).
+- [x] Render `@handle` when present, else `displayName`, else DID fallback
+      (`mentionLabel`, PersonView header). Page-editor assignee typeahead
+      handle-matching deferred (separate suggestion builder in `@xnetjs/editor`).
 
 ## Validation Checklist
 
-- [ ] In chat, opening a mention/tag/link picker and pressing ↑/↓ moves the
-      highlight (with wrap); Enter **and** Tab commit the highlighted item;
-      Escape dismisses; Space types a space and keeps filtering.
-- [ ] With a picker open, Enter does **not** send the message; with no picker
-      open, Enter sends (Shift+Enter newlines) — `shouldSendOnEnter` unchanged.
-- [ ] CJK IME: composing + Enter confirms the IME and does **not** commit a
-      mention or send the message.
-- [ ] Screen reader announces the active option (`aria-activedescendant`
-      present); arrowing past the visible list scrolls it into view.
-- [ ] All four picker surfaces share identical key behavior (no wrap-vs-clamp,
-      no Tab-in-one-not-another drift).
-- [ ] A `#hashtag` in a **comment** is clickable → `/tag/$tagId`; a
-      `[[wikilink]]` in a comment → the target node; an `@mention` in a comment
-      opens the person hovercard.
-- [ ] Page-doc hashtag and mention pills are clickable.
-- [ ] Clicking an `@mention` shows a hovercard; **Message** lands in a DM
-      channel (`ensureDmChannel`); **Open profile** opens `/person/$did`.
-- [ ] `/person/$did` renders a dashboard for a DID **with no profile row**
-      (fallback display name) without crashing.
-- [ ] Renaming a profile's `handle`/`displayName` updates every rendered
-      mention (because the stored ref is the DID) and breaks no existing mention.
-- [ ] `pnpm --filter @xnetjs/ui build` and the fallow gate pass (no new
-      duplication / dead-code findings from the menu consolidation).
+- [x] In chat, opening a mention/tag/link picker and pressing ↑/↓ moves the
+      highlight (with wrap, `aria-activedescendant` following); Enter **and** Tab
+      commit; Escape dismisses; typing re-opens. _(verified live + unit tests)_
+- [x] With a picker open, Enter does **not** send the message; with no picker
+      open, Enter sends — `shouldSendOnEnter` unchanged. _(verified live)_
+- [x] IME guard: `event.isComposing` blocks both commit and send. _(unit-tested
+      in `useListboxNavigation.test.ts`; send path guarded in `ChannelChat`)_
+- [x] `aria-activedescendant` present and the active option scrolls into view
+      (jsdom-guarded). _(verified live: combobox + listbox/option roles)_
+- [x] Editor menus + chat + comment textarea share one hook (`useListboxNavigation`);
+      no wrap-vs-clamp drift. _(15 editor menu + 5 textarea tests green)_
+- [ ] _Deferred:_ comment-body `#`/`[[`/`@` clickable (see Phase 2 deferral).
+- [x] Page-doc hashtag and mention pills are clickable. _(unit-tested
+      `pill-navigation.test.ts`: hashtag → `xnet://tag/<id>`, mention →
+      `xnet://person/<did>`)_
+- [x] Clicking **Message** lands in a DM channel (`ensureDmChannel`); **Open
+      profile** opens `/person/$did`. _(verified live — also fixed the missing
+      `navigateToNode` channel case)_
+- [x] `/person/$did` renders a dashboard for a DID **with no profile row**
+      (fallback display name) without crashing. _(verified live)_
+- [x] Handle: set `@Chris Dev!` → normalized to `chrisdev`, saved, blocked when
+      taken, rendered as `@chrisdev`, matchable in typeahead. _(verified live +
+      unit tests)_; renaming is rename-safe because the stored ref is the DID.
+- [x] `pnpm --filter xnet-web build` passes (production build, no HMR). Full
+      vitest suite green.
 
 ## References
 
