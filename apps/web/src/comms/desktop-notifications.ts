@@ -68,6 +68,26 @@ function deliver(item: InboxItem): void {
   }
 }
 
+function deliveryAllowed(): boolean {
+  return desktopNotificationPermission() === 'granted' && document.visibilityState === 'hidden'
+}
+
+/**
+ * Deliver items not seen before, marking everything seen either way.
+ * Exported for tests; the hook below wires it to the live notifier.
+ */
+export function deliverFreshInboxItems(
+  items: InboxItem[],
+  seen: Set<string>,
+  allowed: () => boolean = deliveryAllowed,
+  deliverItem: (item: InboxItem) => void = deliver
+): void {
+  const fresh = items.filter((item) => !seen.has(item.sourceId))
+  for (const item of items) seen.add(item.sourceId)
+  if (fresh.length === 0 || !allowed()) return
+  for (const item of fresh) deliverItem(item)
+}
+
 /**
  * Mirror new inbox items to OS notifications while the tab is hidden.
  * Permission is checked at delivery time, so a grant from the opt-in (or
@@ -76,15 +96,6 @@ function deliver(item: InboxItem): void {
 export function useDesktopNotificationDelivery(notifier: Notifier): void {
   useEffect(() => {
     const seen = new Set(notifier.getItems().map((item) => item.sourceId))
-
-    return notifier.subscribe(() => {
-      const items = notifier.getItems()
-      const fresh = items.filter((item) => !seen.has(item.sourceId))
-      for (const item of items) seen.add(item.sourceId)
-      if (fresh.length === 0) return
-      if (desktopNotificationPermission() !== 'granted') return
-      if (document.visibilityState !== 'hidden') return
-      for (const item of fresh) deliver(item)
-    })
+    return notifier.subscribe(() => deliverFreshInboxItems(notifier.getItems(), seen))
   }, [notifier])
 }

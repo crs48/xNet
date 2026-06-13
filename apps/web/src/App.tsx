@@ -43,6 +43,7 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { identityManager } from './lib/identity'
+import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
@@ -69,8 +70,6 @@ type SharedHubSession = {
   token: string
   exp: number
 }
-
-type BrowserFamily = 'chromium' | 'firefox' | 'safari' | 'other'
 
 type BeforeInstallPromptUserChoice = {
   outcome: 'accepted' | 'dismissed'
@@ -122,24 +121,6 @@ function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | 
   }
 }
 
-function detectBrowserFamily(): BrowserFamily {
-  if (typeof navigator === 'undefined') {
-    return 'other'
-  }
-
-  const userAgent = navigator.userAgent
-  const isChromium =
-    /Chrome|Chromium|Edg|OPR/i.test(userAgent) &&
-    !/Firefox|FxiOS|Safari\/.*Version/i.test(userAgent)
-  const isFirefox = /Firefox|FxiOS/i.test(userAgent)
-  const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(userAgent)
-
-  if (isChromium) return 'chromium'
-  if (isFirefox) return 'firefox'
-  if (isSafari) return 'safari'
-  return 'other'
-}
-
 function isStandaloneWebApp(): boolean {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return false
@@ -149,59 +130,6 @@ function isStandaloneWebApp(): boolean {
     window.matchMedia?.('(display-mode: standalone)').matches === true ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   )
-}
-
-function getStorageRecoveryItems(input: {
-  browserFamily: BrowserFamily
-  installAvailable: boolean
-  isInstalled: boolean
-  storageStatus: PersistentStorageStatus
-}): string[] {
-  const { browserFamily, installAvailable, isInstalled, storageStatus } = input
-
-  if (storageStatus.state !== 'not-granted') {
-    return []
-  }
-
-  const localhostHint =
-    typeof window !== 'undefined' && window.location.hostname === 'localhost'
-      ? [
-          'Localhost can be stricter than a real HTTPS app origin for install and engagement heuristics.'
-        ]
-      : []
-
-  if (browserFamily === 'safari') {
-    return [
-      'Safari only grants durable storage to installed web apps, and clears data from sites unused for 7 days of Safari browsing.',
-      'On macOS, use Share > Add to Dock. On iPhone or iPad, use Share > Add to Home Screen. Installed apps are exempt from that cleanup.',
-      'Until then, opening xNet at least weekly resets the cleanup timer, and hub sync keeps your data recoverable.',
-      ...localhostHint
-    ]
-  }
-
-  if (browserFamily === 'chromium') {
-    return [
-      'No action needed: this browser re-evaluates the request automatically, and regular use grants it within a few days.',
-      installAvailable && !isInstalled
-        ? 'To enable it now, turn on desktop alerts in the Notifications panel or install xNet with the Install app button.'
-        : 'To enable it now, turn on desktop alerts in the Notifications panel or install xNet from the browser menu.',
-      ...localhostHint
-    ]
-  }
-
-  if (browserFamily === 'firefox') {
-    return [
-      storageStatus.requested
-        ? 'Firefox remembers a blocked prompt. Re-allow it from the permissions icon in the address bar or Page Info > Permissions > Store data in persistent storage.'
-        : 'Firefox shows a permission prompt. Choose Allow, and check "Remember this decision" to keep it.',
-      ...localhostHint
-    ]
-  }
-
-  return [
-    'Browsers grant durable storage from install, notification, and usage signals. Keep using xNet from this profile, then retry.',
-    ...localhostHint
-  ]
 }
 
 function useWebInstallPrompt(): {
@@ -328,21 +256,6 @@ function resolveWebRuntime(storage: StorageContext): XNetRuntimeConfig {
   }
 }
 
-type StorageBannerTone = 'success' | 'warning' | 'info'
-
-type StorageBannerDescriptor = {
-  tone: StorageBannerTone
-  title: string
-  message: string
-  usageBytes?: number
-  quotaBytes?: number
-  actionLabel?: string
-  actionPendingLabel?: string
-  secondaryActionLabel?: string
-  secondaryActionPendingLabel?: string
-  detailItems?: string[]
-}
-
 function updateAppStorageStatus(
   current: AppState,
   storageStatus: PersistentStorageStatus
@@ -354,107 +267,6 @@ function updateAppStorageStatus(
       return { ...current, storageStatus }
     default:
       return current
-  }
-}
-
-function getStorageBanner(input: {
-  storageWarning?: string
-  storageStatus?: PersistentStorageStatus
-  browserFamily: BrowserFamily
-  installAvailable: boolean
-  isInstalled: boolean
-}): StorageBannerDescriptor | null {
-  const { browserFamily, installAvailable, isInstalled, storageWarning, storageStatus } = input
-  const detailItems = storageStatus
-    ? getStorageRecoveryItems({ browserFamily, installAvailable, isInstalled, storageStatus })
-    : []
-
-  if (storageWarning) {
-    return {
-      tone: storageStatus?.state === 'granted' ? 'info' : 'warning',
-      title: 'Storage may be limited',
-      message:
-        storageStatus && storageStatus.state !== 'granted'
-          ? `${storageWarning} ${storageStatus.message}`
-          : storageWarning,
-      usageBytes: storageStatus?.usageBytes,
-      quotaBytes: storageStatus?.quotaBytes,
-      ...(storageStatus?.requestable
-        ? {
-            actionLabel: 'Enable durable storage',
-            actionPendingLabel: 'Requesting storage'
-          }
-        : {}),
-      ...(detailItems.length > 0 ? { detailItems } : {}),
-      ...(installAvailable && !isInstalled && storageStatus?.state === 'not-granted'
-        ? {
-            secondaryActionLabel: 'Install app',
-            secondaryActionPendingLabel: 'Opening install'
-          }
-        : {})
-    }
-  }
-
-  if (!storageStatus) {
-    return null
-  }
-
-  switch (storageStatus.state) {
-    case 'granted':
-      return {
-        tone: 'success',
-        title: 'Durable local storage enabled',
-        message: storageStatus.message,
-        usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes
-      }
-    case 'not-granted': {
-      // Chrome's denial is re-evaluated on every visit and resolves itself
-      // with regular use — an informational note, not a warning. Safari's
-      // best-effort storage has a date-certain ITP cleanup, and an in-tab
-      // retry cannot succeed there, so it warns and drops the retry
-      // action in favor of the install guidance (0172).
-      const tone: StorageBannerTone = browserFamily === 'chromium' ? 'info' : 'warning'
-      const title = !storageStatus.requested
-        ? 'Enable durable local storage'
-        : browserFamily === 'chromium'
-          ? 'Durable storage pending'
-          : browserFamily === 'safari'
-            ? 'Safari limits durable storage in browser tabs'
-            : 'Browser declined durable storage'
-      const retryCanSucceed = browserFamily !== 'safari' || isInstalled
-      return {
-        tone,
-        title,
-        message: storageStatus.message,
-        usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes,
-        ...(storageStatus.requestable && retryCanSucceed
-          ? {
-              actionLabel: storageStatus.requested
-                ? 'Retry durable storage'
-                : 'Enable durable storage',
-              actionPendingLabel: 'Requesting storage'
-            }
-          : {}),
-        ...(detailItems.length > 0 ? { detailItems } : {}),
-        ...(installAvailable && !isInstalled
-          ? {
-              secondaryActionLabel: 'Install app',
-              secondaryActionPendingLabel: 'Opening install'
-            }
-          : {})
-      }
-    }
-    case 'unsupported':
-    case 'error':
-      return {
-        tone: 'info',
-        title: 'Storage durability unavailable',
-        message: storageStatus.message,
-        usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes
-      }
   }
 }
 

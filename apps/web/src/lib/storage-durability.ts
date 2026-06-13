@@ -50,6 +50,15 @@ export function readDurabilityLog(): DurabilityLogEntry[] {
   }
 }
 
+function sameTransition(a: DurabilityLogEntry, b: DurabilityLogEntry): boolean {
+  return (
+    a.lever === b.lever &&
+    a.state === b.state &&
+    a.persisted === b.persisted &&
+    a.granted === b.granted
+  )
+}
+
 /**
  * Append a transition to the log. Repeated identical states from the same
  * lever are skipped so startup retries don't fill the buffer.
@@ -60,25 +69,17 @@ export function recordDurabilityTransition(
 ): void {
   try {
     const log = readDurabilityLog()
-    const last = log[log.length - 1]
-    if (
-      last &&
-      last.lever === lever &&
-      last.state === status.state &&
-      last.persisted === status.persisted &&
-      last.granted === status.granted
-    ) {
-      return
-    }
-
-    log.push({
+    const entry: DurabilityLogEntry = {
       at: Date.now(),
       lever,
       state: status.state,
       persisted: status.persisted,
       granted: status.granted
-    })
-    localStorage.setItem(durabilityLogKey(), JSON.stringify(log.slice(-LOG_LIMIT)))
+    }
+    const last = log[log.length - 1]
+    if (last && sameTransition(last, entry)) return
+
+    localStorage.setItem(durabilityLogKey(), JSON.stringify([...log, entry].slice(-LOG_LIMIT)))
   } catch {
     // Logging must never break the storage flow itself.
   }
