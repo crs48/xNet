@@ -150,6 +150,36 @@ export {
   type TaskShortIdBlock
 } from './schemas'
 export { ProjectSchema, type Project } from './schemas'
+export {
+  SPACE_SCHEMA_IRI,
+  SPACE_KINDS,
+  SPACE_ROLES,
+  SPACE_VISIBILITY,
+  NODE_VISIBILITY,
+  SpaceSchema,
+  buildSpaceTree,
+  flattenSpaceTree,
+  spaceAncestorIds,
+  spacePathIds,
+  wouldCreateSpaceCycle,
+  compareSpaceRoles,
+  effectiveSpaceRole,
+  canManageSpace,
+  spaceRoleGrantActions,
+  spaceRoleToShareRole,
+  SPACE_MEMBERSHIP_SCHEMA_IRI,
+  SpaceMembershipSchema,
+  spaceMembershipId,
+  isSpaceRole,
+  type Space,
+  type SpaceKind,
+  type SpaceRole,
+  type SpaceVisibility,
+  type NodeVisibility,
+  type SpaceLike,
+  type SpaceTreeNode,
+  type SpaceMembership
+} from './schemas'
 export { ExternalReferenceSchema, type ExternalReference } from './schemas'
 export { MediaAssetSchema, type MediaAsset } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'

@@ -8,7 +8,9 @@ import { useXNet } from '@xnetjs/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { hubApiFetch, normalizeHubHttpUrl } from '../lib/share-links'
 
-export type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view'
+// 'space' invites bootstrap Space membership — one link shares the whole Space
+// (exploration 0179).
+export type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space'
 export type ShareRole = 'read' | 'comment' | 'write'
 
 export type ShareLink = {
