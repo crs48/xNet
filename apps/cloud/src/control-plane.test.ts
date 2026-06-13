@@ -1,6 +1,6 @@
 import { MemoryBindingStore } from '@xnetjs/cloud-identity'
 import { MemoryProvisioner } from '@xnetjs/cloud-provisioner'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ControlPlane } from './control-plane'
 import { MemoryTenantStore } from './registry'
 
@@ -136,5 +136,96 @@ describe('ControlPlane.upgradeTenant + recoverAccount', () => {
     expect(tenant.tenantId).toBe('acme') // account + hub survive
     expect(tenant.did).toBe('') // data identity cleared, awaiting rebind
     expect(tenant.hubUrl).toContain('acme')
+  })
+})
+
+describe('ControlPlane cold-tiering (0178)', () => {
+  function coldHarness() {
+    let clock = 1000
+    const provisioner = new MemoryProvisioner({ sharding: { projectPrefix: 'cold' } })
+    const cp = new ControlPlane({
+      tenants: new MemoryTenantStore(),
+      bindings: new MemoryBindingStore(),
+      provisioner,
+      verifyDid: async (c) => Boolean(c.did && c.signature),
+      planSecret: 'test-secret',
+      defaultTargetVersion: 'xnet-hub@1.0.0',
+      nowMs: () => clock
+    })
+    const provision = () =>
+      cp.provisionTenant({
+        tenantId: 'acme',
+        plan: 'personal',
+        billingUserId: 'user_a',
+        challenge: challenge('did:key:alice')
+      })
+    return { cp, provisioner, provision, tick: (n: number) => (clock += n) }
+  }
+
+  it('provisions hot with activity tracking', async () => {
+    const { provision } = coldHarness()
+    const r = await provision()
+    expect(r.dataTier).toBe('hot')
+    expect(r.lastActiveMs).toBe(1000)
+  })
+
+  it('demotes an idle hot tenant to cold and releases the substrate', async () => {
+    const { cp, provisioner, provision, tick } = coldHarness()
+    const r = await provision()
+    const destroy = vi.spyOn(provisioner, 'destroy')
+    tick(40 * 24 * 3600 * 1000) // 40 days idle
+    const result = await cp.demoteIfCold('acme', { coldAfterMs: 30 * 24 * 3600 * 1000 })
+    expect(result.demoted).toBe(true)
+    expect(destroy).toHaveBeenCalledWith(r.substrateRef)
+    const t = await cp.getTenant('acme')
+    expect(t).toMatchObject({ dataTier: 'cold', substrateRef: '', hubUrl: '' })
+  })
+
+  it('does not demote when still active, or when not yet fully synced to R2', async () => {
+    const { cp, provision, tick } = coldHarness()
+    await provision()
+    tick(10 * 24 * 3600 * 1000) // only 10 days idle
+    expect((await cp.demoteIfCold('acme', { coldAfterMs: 30 * 24 * 3600 * 1000 })).demoted).toBe(
+      false
+    )
+
+    tick(40 * 24 * 3600 * 1000) // now idle long enough
+    // ...but the replica isn't fully synced yet — the demotion gate blocks destroy.
+    expect(
+      (
+        await cp.demoteIfCold('acme', {
+          coldAfterMs: 30 * 24 * 3600 * 1000,
+          assertSynced: async () => false
+        })
+      ).demoted
+    ).toBe(false)
+    expect((await cp.getTenant('acme'))?.dataTier).toBe('hot')
+  })
+
+  it('markActive resets the idle clock', async () => {
+    const { cp, provision, tick } = coldHarness()
+    await provision()
+    tick(40 * 24 * 3600 * 1000)
+    await cp.markActive('acme') // fresh activity
+    expect((await cp.demoteIfCold('acme', { coldAfterMs: 30 * 24 * 3600 * 1000 })).demoted).toBe(
+      false
+    )
+  })
+
+  it('reactivates a cold tenant by provisioning a hub that restores from R2', async () => {
+    const { cp, provisioner, provision, tick } = coldHarness()
+    await provision()
+    tick(40 * 24 * 3600 * 1000)
+    await cp.demoteIfCold('acme', { coldAfterMs: 30 * 24 * 3600 * 1000 })
+
+    const provisionSpy = vi.spyOn(provisioner, 'provision')
+    const reactivated = await cp.reactivate('acme')
+    expect(reactivated.dataTier).toBe('hot')
+    expect(reactivated.substrateRef).not.toBe('')
+    expect(reactivated.hubUrl).toContain('acme')
+    // The fresh hub is told to restore the tenant's DB snapshot from R2.
+    expect(provisionSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ restoreFromR2: 't/acme/db' })
+    )
   })
 })
