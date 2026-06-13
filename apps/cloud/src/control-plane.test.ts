@@ -1,0 +1,140 @@
+import { MemoryBindingStore } from '@xnetjs/cloud-identity'
+import { MemoryProvisioner } from '@xnetjs/cloud-provisioner'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { ControlPlane } from './control-plane'
+import { MemoryTenantStore } from './registry'
+
+const challenge = (did: string) => ({ did, nonce: 'n', signature: 'sig' })
+
+function build() {
+  let clock = 1000
+  const cp = new ControlPlane({
+    tenants: new MemoryTenantStore(),
+    bindings: new MemoryBindingStore(),
+    provisioner: new MemoryProvisioner({
+      sharding: { projectPrefix: 'test', servicesPerProject: 800 }
+    }),
+    verifyDid: async (c) => Boolean(c.did && c.signature),
+    planSecret: 'test-secret',
+    defaultTargetVersion: 'xnet-hub@1.0.0',
+    nowMs: () => clock
+  })
+  return { cp, tick: (n: number) => (clock += n) }
+}
+
+describe('ControlPlane.provisionTenant', () => {
+  it('binds identities, provisions a hub, and records the tenant', async () => {
+    const { cp } = build()
+    const record = await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    expect(record).toMatchObject({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      did: 'did:key:alice',
+      targetVersion: 'xnet-hub@1.0.0'
+    })
+    expect(record.hubUrl).toContain('acme')
+    expect(record.entitlements.isolation).toBe('dedicated-sleep')
+    expect(await cp.getTenant('acme')).toMatchObject({ tenantId: 'acme' })
+  })
+
+  it('rejects a duplicate tenant and a failed DID challenge', async () => {
+    const { cp } = build()
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    await expect(
+      cp.provisionTenant({
+        tenantId: 'acme',
+        plan: 'team',
+        billingUserId: 'user_a',
+        challenge: challenge('did:key:alice')
+      })
+    ).rejects.toThrow(/already exists/)
+
+    await expect(
+      cp.provisionTenant({
+        tenantId: 'other',
+        plan: 'personal',
+        billingUserId: 'user_b',
+        challenge: { did: 'did:key:x', nonce: 'n', signature: '' } // bad challenge
+      })
+    ).rejects.toThrow(/DID challenge failed/)
+  })
+})
+
+describe('ControlPlane.changePlan', () => {
+  let cp: ControlPlane
+  beforeEach(async () => {
+    cp = build().cp
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+  })
+
+  it('flips capacity in place within the same isolation tier (no migration)', async () => {
+    // personal → family are both `dedicated-sleep`.
+    const result = await cp.changePlan('acme', 'family')
+    expect(result.kind).toBe('flipped')
+    if (result.kind === 'flipped') {
+      expect(result.tenant.plan).toBe('family')
+      expect(result.tenant.entitlements.quotaBytes).toBe(250 * 1024 * 1024 * 1024)
+    }
+  })
+
+  it('requires migration when crossing an isolation boundary', async () => {
+    // personal (dedicated-sleep) → community (dedicated-project).
+    const result = await cp.changePlan('acme', 'community')
+    expect(result.kind).toBe('migration-required')
+    if (result.kind === 'migration-required') {
+      expect(result.from.isolation).toBe('dedicated-sleep')
+      expect(result.to.isolation).toBe('dedicated-project')
+    }
+    // The recorded tenant is unchanged until the migration runs.
+    expect((await cp.getTenant('acme'))?.plan).toBe('personal')
+  })
+
+  it('treats an in-tier storage add-on as a flip', async () => {
+    const result = await cp.changePlan('acme', 'personal', { quotaBytes: 100 * 1024 * 1024 * 1024 })
+    expect(result.kind).toBe('flipped')
+  })
+})
+
+describe('ControlPlane.upgradeTenant + recoverAccount', () => {
+  it('rolls a tenant to a new immutable image', async () => {
+    const { cp } = build()
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const upgraded = await cp.upgradeTenant('acme', 'xnet-hub@1.1.0')
+    expect(upgraded.targetVersion).toBe('xnet-hub@1.1.0')
+  })
+
+  it('recovers the paid account off the billing identity, clearing the data DID', async () => {
+    const { cp } = build()
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const { tenant } = await cp.recoverAccount('user_a')
+    expect(tenant.tenantId).toBe('acme') // account + hub survive
+    expect(tenant.did).toBe('') // data identity cleared, awaiting rebind
+    expect(tenant.hubUrl).toContain('acme')
+  })
+})

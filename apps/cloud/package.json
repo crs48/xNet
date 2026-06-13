@@ -1,0 +1,31 @@
+{
+  "name": "xnet-cloud",
+  "version": "0.0.1",
+  "description": "xNet Cloud control plane — billing, provisioning, and fleet management (explorations 0174/0175).",
+  "license": "FSL-1.1-Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "node --loader tsx src/index.ts",
+    "build": "tsup src/index.ts --format esm",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.0.0",
+    "@xnetjs/cloud-identity": "workspace:*",
+    "@xnetjs/cloud-plans": "workspace:*",
+    "@xnetjs/cloud-provisioner": "workspace:*",
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0"
+  },
+  "private": true
+}

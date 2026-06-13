@@ -2,6 +2,11 @@
  * @xnetjs/social - Canonical social graph schemas.
  */
 
+import {
+  ConnectableProfileSchema,
+  ConnectionIntentSchema,
+  ConnectionWaveSchema
+} from '../connect/schemas'
 import { SocialActorSchema, SocialIdentityClaimSchema } from './actor'
 import { SocialCollectionItemSchema, SocialCollectionSchema } from './collection'
 import { SocialContentSchema } from './content'
@@ -14,11 +19,6 @@ import {
   SocialSourceRecordSchema
 } from './import'
 import { SocialInteractionSchema } from './interaction'
-import {
-  ConnectableProfileSchema,
-  ConnectionIntentSchema,
-  ConnectionWaveSchema
-} from '../connect/schemas'
 
 export {
   SOCIAL_NAMESPACE,

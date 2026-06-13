@@ -17,10 +17,10 @@ inherit the oldest problem in social software: **a lot of people share
 not-safe-for-work content, and a lot of people don't want to see it.** In dating
 especially, unsolicited explicit images are routine and unwelcome.
 
-The user's ask is precise and worth quoting: *"what sort of automations can be
+The user's ask is precise and worth quoting: _"what sort of automations can be
 provided to help moderate for that sort of content across the entire platform,
 so that people can more readily filter that content out of their feeds if they
-so desire."*
+so desire."_
 
 Two words carry the design: **automations** (classify and label NSFW content
 without a human in the loop for every item) and **if they so desire** (the user
@@ -45,8 +45,8 @@ defaults safe, and the platform legally compliant?**
 
 The surprising finding: **xNet has already built ~70% of the hard part and wired
 ~10% of it.** The `@xnetjs/abuse` package is a complete, ATProto-Ozone-class
-moderation *decision engine*, and `packages/data/src/schema/schemas/moderation.ts`
-is a complete *persisted label store*. The decision engine's visibility model is
+moderation _decision engine_, and `packages/data/src/schema/schemas/moderation.ts`
+is a complete _persisted label store_. The decision engine's visibility model is
 **literally `'show' | 'warn' | 'blur' | 'hide'`**
 ([abuse/src/types.ts:20](packages/abuse/src/types.ts)) — exactly the dial the
 user wants — and it already supports a **per-user override**
@@ -54,7 +54,7 @@ user wants — and it already supports a **per-user override**
 [types.ts:105-113](packages/abuse/src/types.ts)). The engine is wired into
 **hub write-admission and crawl** but **not into feed rendering, has no image
 classifier, no NSFW label vocabulary, no user preferences UI, and no blur
-component.** The work is mostly *assembly + three new capabilities*, not a new
+component.** The work is mostly _assembly + three new capabilities_, not a new
 subsystem.
 
 The research is equally clear on the shape:
@@ -64,18 +64,18 @@ The research is equally clear on the shape:
    prompt and treat unlabeled-then-reported as a penalty.
 2. **On-device image classification keeps the local-first promise.** NSFWJS
    (MobileNet v2, ~2.3 MB, ~93%) runs in the browser via TensorFlow.js /
-   Transformers.js (`@xenova/transformers` is *already a dependency* of
+   Transformers.js (`@xenova/transformers` is _already a dependency_ of
    `@xnetjs/vectors`). It pre-screens an image **before upload**, powers a
-   self-label prompt, and powers the *viewer's own* filter — never silently
+   self-label prompt, and powers the _viewer's own_ filter — never silently
    reports the user.
 3. **The hub is the heavier classifier and the legal line.** Content that goes
    `hub-indexed`/public gets NudeNet/Llama-Guard-class classification through the
    existing **local→cloud classifier cascade** (redaction + budget already
    built, [classifier-cascade.ts](packages/abuse/src/classifier-cascade.ts)).
 4. **CSAM is a separate, mandatory, hash-based pipeline.** PDQ (Meta, open
-   source) + PhotoDNA, NCMEC CyberTipline registration — this is *not* "NSFW
+   source) + PhotoDNA, NCMEC CyberTipline registration — this is _not_ "NSFW
    filtering", it is legal compliance every hub operator must do. `content-
-   fingerprint.ts` does text SimHash today; it needs an **image perceptual
+fingerprint.ts` does text SimHash today; it needs an **image perceptual
    hash**.
 5. **Federation composes via labelers.** `labeler-trust.ts` already implements
    subscribe-to-a-labeler with trust levels and confidence thresholds — the
@@ -207,19 +207,19 @@ content-feed views (0170), DMs, or the matching surface (0174).**
 
 ### Wiring status (the honest part)
 
-| Surface | Uses `@xnetjs/abuse`? |
-| --- | --- |
-| Hub remote-mutation admission | ✅ `decideRemoteMutation` |
-| Hub crawl dedupe | ✅ `assessDuplicateContent` |
-| Network peer auto-block | ✅ |
-| Search ranking | ✅ (query/search/moderation) |
-| **Feeds / content-feed-views (0170)** | ❌ **not imported** |
-| **DMs / comms rendering** | ❌ |
-| **Matching surface (0174)** | ❌ (doesn't exist yet) |
-| **Settings / user preferences** | ❌ no moderation/safety section |
-| **`@xnetjs/ui` blur / content-warning component** | ❌ none |
+| Surface                                           | Uses `@xnetjs/abuse`?           |
+| ------------------------------------------------- | ------------------------------- |
+| Hub remote-mutation admission                     | ✅ `decideRemoteMutation`       |
+| Hub crawl dedupe                                  | ✅ `assessDuplicateContent`     |
+| Network peer auto-block                           | ✅                              |
+| Search ranking                                    | ✅ (query/search/moderation)    |
+| **Feeds / content-feed-views (0170)**             | ❌ **not imported**             |
+| **DMs / comms rendering**                         | ❌                              |
+| **Matching surface (0174)**                       | ❌ (doesn't exist yet)          |
+| **Settings / user preferences**                   | ❌ no moderation/safety section |
+| **`@xnetjs/ui` blur / content-warning component** | ❌ none                         |
 
-On-device ML is *feasible today*: `@xenova/transformers` already ships in
+On-device ML is _feasible today_: `@xenova/transformers` already ships in
 `@xnetjs/vectors` ([vectors/src/embedding.ts](packages/vectors/src/embedding.ts))
 — the same runtime that loads `all-MiniLM-L6-v2` can load an ONNX image
 classifier in the browser.
@@ -230,13 +230,13 @@ classifier in the browser.
 
 ### On-device / in-browser image classification
 
-| Model | Runs | Size | Classes | Notes |
-| --- | --- | --- | --- | --- |
-| **NSFWJS** (MobileNet v2) | Browser (TF.js) | ~2.3 MB | drawing/hentai/neutral/porn/sexy | ~93%; the de-facto browser standard; known FPs (skin, swimwear) |
-| **NudeNet v3** (ONNX) | Browser (onnxruntime-web) or hub | ~6 MB | body-part **detection** → granular | precise nudity vs explicit vs genitalia |
-| **Falconsai/nsfw_image_detection** | Hub / WebGPU | ViT, ~80 MB | normal/sexy/porn/hentai | higher accuracy, heavier |
-| **CLIP zero-shot** | Hub / WebGPU | large | arbitrary prompts | flexible, slow, needs WebGPU in-browser |
-| Cloud (AWS Rekognition / GCV SafeSearch / Azure Content Safety) | 3rd-party server | — | rich taxonomies | **against local-first**; sends images out |
+| Model                                                           | Runs                             | Size        | Classes                            | Notes                                                           |
+| --------------------------------------------------------------- | -------------------------------- | ----------- | ---------------------------------- | --------------------------------------------------------------- |
+| **NSFWJS** (MobileNet v2)                                       | Browser (TF.js)                  | ~2.3 MB     | drawing/hentai/neutral/porn/sexy   | ~93%; the de-facto browser standard; known FPs (skin, swimwear) |
+| **NudeNet v3** (ONNX)                                           | Browser (onnxruntime-web) or hub | ~6 MB       | body-part **detection** → granular | precise nudity vs explicit vs genitalia                         |
+| **Falconsai/nsfw_image_detection**                              | Hub / WebGPU                     | ViT, ~80 MB | normal/sexy/porn/hentai            | higher accuracy, heavier                                        |
+| **CLIP zero-shot**                                              | Hub / WebGPU                     | large       | arbitrary prompts                  | flexible, slow, needs WebGPU in-browser                         |
+| Cloud (AWS Rekognition / GCV SafeSearch / Azure Content Safety) | 3rd-party server                 | —           | rich taxonomies                    | **against local-first**; sends images out                       |
 
 Browser recommendation from the research: **NSFWJS MobileNet v2 (~2.3 MB) for
 on-device pre-screen** (50–200 ms with WebGL), **NudeNet v3 for granular labels**
@@ -252,9 +252,9 @@ On-device: `Xenova/toxic-bert`-class DistilBERT (~65 MB) in Transformers.js.
 
 ### Perceptual hashing & CSAM (the legal non-negotiable)
 
-- **PhotoDNA** (Microsoft) and **PDQ** (Meta, *open source* via ThreatExchange)
-  match *known* illegal images by robust hash — **zero-FP for known content**,
-  fundamentally different from ML classification (which finds *novel* content).
+- **PhotoDNA** (Microsoft) and **PDQ** (Meta, _open source_ via ThreatExchange)
+  match _known_ illegal images by robust hash — **zero-FP for known content**,
+  fundamentally different from ML classification (which finds _novel_ content).
   **You need both.**
 - **CSAM is a legal obligation, not a feature.** US operators must report to the
   **NCMEC CyberTipline**; hosting/relaying user images triggers it. Federated
@@ -288,12 +288,12 @@ preferences** is the best fit for "let users filter if they desire" — and it m
 Adult-content master toggle, **age-gated** (self-declared 18+, default OFF).
 Per-label dial:
 
-| Label | Default | Options |
-| --- | --- | --- |
-| `porn` | Hide | Hide / Warn / Show |
-| `sexual` | Warn | Hide / Warn / Show |
-| `nudity` | Show | Hide / Warn / Show |
-| `graphic-media` | Warn | Hide / Warn / Show |
+| Label           | Default | Options            |
+| --------------- | ------- | ------------------ |
+| `porn`          | Hide    | Hide / Warn / Show |
+| `sexual`        | Warn    | Hide / Warn / Show |
+| `nudity`        | Show    | Hide / Warn / Show |
+| `graphic-media` | Warn    | Hide / Warn / Show |
 
 Plus muted words, the **blur-then-click-to-reveal** pattern, and a moderation
 event log. The principle: **a dial, not a binary**, with safe defaults.
@@ -321,7 +321,7 @@ surveillance; hub-side ML/hash applies only to content the user chose to make
    override is the entire UX the prompt asks for, minus a label vocabulary and a
    settings screen.
 2. **The persisted schema layer is complete.** `ModerationLabelSchema` et al.
-   need *no* new structure — only new label *values*.
+   need _no_ new structure — only new label _values_.
 3. **The missing 90% is rendering.** Nothing on the read path
    (feeds/DMs/matching) consults `decideAbuse`. That single integration is the
    highest-leverage work.
@@ -335,7 +335,7 @@ surveillance; hub-side ML/hash applies only to content the user chose to make
 7. **Federation is a solved pattern here** — labeler subscriptions + hub policy
    offers already exist; NSFW is just new label values flowing through them.
 8. **Safe defaults + a dial beat platform bans.** The user explicitly wants
-   *"filter if they so desire"* — per-user preference, not platform removal
+   _"filter if they so desire"_ — per-user preference, not platform removal
    (except illegal content, which is removed for everyone).
 9. **Dating context needs one extra default (from 0174):** blur unsolicited
    media from non-mutual matches, regardless of label, until trust is established.
@@ -344,11 +344,11 @@ surveillance; hub-side ML/hash applies only to content the user chose to make
 
 ### A. Where does classification run?
 
-| Option | Pros | Cons | Verdict |
-| --- | --- | --- | --- |
-| **A1. On-device only** (NSFWJS/Transformers.js) | Images never leave device; pure local-first; powers self-label + viewer filter | Can't see others' unlabeled content you receive until you fetch+classify locally; weaker models | **Yes — for self-label + receiver-side filter** |
-| **A2. Hub-side classify** (NudeNet/Llama-Guard via cascade) | Stronger models; labels shared with all viewers; needed for public/federated reach | Hub sees content (only the content user made public/indexed); compute cost | **Yes — for `hub-indexed`/public content** |
-| **A3. Cloud vision API** (AWS/GCV/Azure) | Best accuracy, no infra | Sends user images to a 3rd party; against ethos; cost | **Only as opt-in cloud adapter behind redaction/budget** |
+| Option                                                      | Pros                                                                               | Cons                                                                                            | Verdict                                                  |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **A1. On-device only** (NSFWJS/Transformers.js)             | Images never leave device; pure local-first; powers self-label + viewer filter     | Can't see others' unlabeled content you receive until you fetch+classify locally; weaker models | **Yes — for self-label + receiver-side filter**          |
+| **A2. Hub-side classify** (NudeNet/Llama-Guard via cascade) | Stronger models; labels shared with all viewers; needed for public/federated reach | Hub sees content (only the content user made public/indexed); compute cost                      | **Yes — for `hub-indexed`/public content**               |
+| **A3. Cloud vision API** (AWS/GCV/Azure)                    | Best accuracy, no infra                                                            | Sends user images to a 3rd party; against ethos; cost                                           | **Only as opt-in cloud adapter behind redaction/budget** |
 
 **Recommended: A1 + A2 hybrid.** On-device pre-screen + self-label at author
 time and as the viewer's private filter; hub classification on anything that goes
@@ -357,24 +357,24 @@ cascade already supports exactly this).
 
 ### B. Who decides a piece of content is NSFW?
 
-| Signal | Weight | Pros | Cons |
-| --- | --- | --- | --- |
-| **Author self-label** | 0.50 | Cheapest, highest precision, polite | Needs incentive; bad actors omit it |
-| **Automated ML** (on-device + hub) | 0.30 | Scales; catches omissions | False positives; novel content |
-| **Community reports** | 0.15 | Catches what ML misses | Gameable; brigading |
-| **Subscribed labelers** | 0.05–trusted | Federated, user-chosen | Trust calibration |
+| Signal                             | Weight       | Pros                                | Cons                                |
+| ---------------------------------- | ------------ | ----------------------------------- | ----------------------------------- |
+| **Author self-label**              | 0.50         | Cheapest, highest precision, polite | Needs incentive; bad actors omit it |
+| **Automated ML** (on-device + hub) | 0.30         | Scales; catches omissions           | False positives; novel content      |
+| **Community reports**              | 0.15         | Catches what ML misses              | Gameable; brigading                 |
+| **Subscribed labelers**            | 0.05–trusted | Federated, user-chosen              | Trust calibration                   |
 
 These map onto `weightedLabelScore` directly (each becomes an `AbuseLabel` with a
-`sourceWeight`). **Combine, don't pick one.** Penalize *unlabeled-then-reported*
+`sourceWeight`). **Combine, don't pick one.** Penalize _unlabeled-then-reported_
 content via the sender's `public-write-budget` / peer score.
 
 ### C. What does the filter do by default?
 
-| Approach | Pros | Cons | Verdict |
-| --- | --- | --- | --- |
-| **Hide all NSFW for everyone** | Simplest, safest-looking | Paternalistic; the prompt explicitly wants user choice; kills legitimate adult use | **Reject** |
-| **Show everything, opt-in to filter** | Maximally permissive | Unwanted explicit content hits people by default — the exact complaint | **Reject** |
-| **Safe defaults + per-label dial** (blur sexual/nudity, hide porn until 18+ opt-in) | Matches the ask; Bluesky-proven; warn/blur forgiving of FPs | More UI; age gate needed | **Recommended** |
+| Approach                                                                            | Pros                                                        | Cons                                                                               | Verdict         |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------- |
+| **Hide all NSFW for everyone**                                                      | Simplest, safest-looking                                    | Paternalistic; the prompt explicitly wants user choice; kills legitimate adult use | **Reject**      |
+| **Show everything, opt-in to filter**                                               | Maximally permissive                                        | Unwanted explicit content hits people by default — the exact complaint             | **Reject**      |
+| **Safe defaults + per-label dial** (blur sexual/nudity, hide porn until 18+ opt-in) | Matches the ask; Bluesky-proven; warn/blur forgiving of FPs | More UI; age gate needed                                                           | **Recommended** |
 
 ### D. CSAM handling
 
@@ -442,8 +442,8 @@ flowchart TB
   pipeline, the render gate, and the settings dial.
 - **Federation-native:** labels are synced nodes; labelers are subscribable; hubs
   advertise policy. A user on hub A can subscribe to a labeler run by community B.
-- **Honors the prompt:** *automated* (classifiers label without per-item humans)
-  and *if they so desire* (per-user dial, safe defaults, not a platform ban).
+- **Honors the prompt:** _automated_ (classifiers label without per-item humans)
+  and _if they so desire_ (per-user dial, safe defaults, not a platform ban).
 
 ### Phasing
 
@@ -482,7 +482,10 @@ export type SensitivityLabel = (typeof sensitivityLabels)[number]['id']
 export const SENSITIVITY_LABEL_VALUES = sensitivityLabels.map((l) => l.id)
 /** Source provenance → weight (research: self 0.5 / ml 0.3 / report 0.15 / labeler 0.05). */
 export const SENSITIVITY_SOURCE_WEIGHT = {
-  self: 0.5, ml: 0.3, report: 0.15, labeler: 0.05
+  self: 0.5,
+  ml: 0.3,
+  report: 0.15,
+  labeler: 0.05
 } as const
 ```
 
@@ -510,8 +513,9 @@ export function createNsfwImageClassifier(): LocalClassifierAdapter {
       const labels = out
         .filter((o) => o.label !== 'normal' && o.score >= 0.5)
         .map((o) => ({
-          value: mapToSensitivity(o.label),     // porn/sexy → porn/sexual
-          sourceWeight: 0.3, confidence: o.score
+          value: mapToSensitivity(o.label), // porn/sexy → porn/sexual
+          sourceWeight: 0.3,
+          confidence: o.score
         }))
       return { labels, quality: emptyQuality(), classifierId: this.id }
     }
@@ -527,8 +531,12 @@ import { decideAbuse, isVisible } from '@xnetjs/abuse'
 /** Author marks their own content — the cheapest, highest-precision signal. */
 async function selfLabel(store, contentId: DID, value: SensitivityLabel) {
   await store.create(ModerationLabelSchema, {
-    target: contentId, value, sourceType: 'self',
-    sourceDID: me.did, confidence: 1, sourceWeight: 0.5
+    target: contentId,
+    value,
+    sourceType: 'self',
+    sourceDID: me.did,
+    confidence: 1,
+    sourceWeight: 0.5
   })
 }
 
@@ -539,7 +547,7 @@ function resolveVisibility(item, labels, userPrefs): AbuseVisibility {
     labels: labels.map(toAbuseLabel),
     policy: { abuseLabelHideThreshold: 1.0, abuseLabelWarnThreshold: 0.3 },
     // the personal dial → already-supported user override:
-    override: userPrefs.overrideFor(labels)   // {scope:'user', visibility:'hide'|'blur'|'show'}
+    override: userPrefs.overrideFor(labels) // {scope:'user', visibility:'hide'|'blur'|'show'}
   })
   return decision.visibility
 }
@@ -554,7 +562,7 @@ function SensitiveContent({ visibility, labels, children }) {
   return (
     <button className="sensitive-veil" onClick={() => setRevealed(true)}>
       <Blur />
-      <span>{labelText(labels)} — tap to reveal</span>   {/* warn = banner, blur = blurred */}
+      <span>{labelText(labels)} — tap to reveal</span> {/* warn = banner, blur = blurred */}
     </button>
   )
 }
@@ -610,8 +618,8 @@ stateDiagram-v2
   that don't attest to it? **Recommendation: yes.** This must be settled before
   any public media feature.
 - **On-device scanning ↔ Apple-2021 backlash.** We must be explicit and
-  load-bearing: on-device classification powers *the user's own filter and a
-  self-label suggestion only*; it never reports the author. Server-side scanning
+  load-bearing: on-device classification powers _the user's own filter and a
+  self-label suggestion only_; it never reports the author. Server-side scanning
   applies only to content the user published. Document this prominently.
 - **E2E DMs can't be hub-scanned.** Then NSFW filtering in private DMs is
   **on-device only** (viewer-side blur via local classifier) + the dating default
@@ -629,12 +637,13 @@ stateDiagram-v2
   only durable answer; no classifier is a fortress.
 - **Labeler trust calibration / over-blocking.** A malicious or sloppy labeler
   could over-label. The `labeler-trust` weights + `minConfidence` + `observe`
-  tier exist; open question is good defaults and a UI to see *why* something was
+  tier exist; open question is good defaults and a UI to see _why_ something was
   filtered (the moderation event log).
 
 ## Implementation Checklist
 
 ### Phase 0 — Vocabulary + self-label + render gate (no ML)
+
 - [x] Add `sensitivity.ts` (label vocab, source weights) to `@xnetjs/abuse`;
       export the values.
 - [ ] Add NSFW label values to `DEFAULT_*` sets and feed/search policy so
@@ -649,6 +658,7 @@ stateDiagram-v2
       `<SensitiveContent>`. (Highest-leverage task.)
 
 ### Phase 1 — On-device classification + user dial
+
 - [x] `createNsfwImageClassifier` (Transformers.js, lazy-loaded ONNX) as a
       `LocalClassifierAdapter`; register in the local cascade.
 - [ ] On-device **pre-screen before upload** → suggest self-label; **viewer-side
@@ -659,6 +669,7 @@ stateDiagram-v2
 - [x] Map preferences → `AbuseDecisionOverride{scope:'user'}` in the render gate.
 
 ### Phase 2 — Hub classification + federated labelers
+
 - [ ] Hub image classifier adapter (NudeNet v3 ONNX / Llama-Guard) plugged into
       `classifyWithModerationCascade` for `hub-indexed`/public/crawl surfaces.
 - [ ] Emit `ModerationLabelSchema` with `sourceType:'ml'` from hub classification.
@@ -667,6 +678,7 @@ stateDiagram-v2
 - [ ] Hub advertises NSFW moderation in `hub-policy-offer`.
 
 ### Phase 3 — CSAM hash pipeline (gating requirement for media hubs)
+
 - [x] Add an **image perceptual hash (PDQ)** to `content-fingerprint.ts`
       (currently text-only).
 - [ ] Hub: PDQ/PhotoDNA match on all hosted/relayed/indexed media; on match →
@@ -676,6 +688,7 @@ stateDiagram-v2
       non-attesting hubs. Document operator obligations + ToS disclosure.
 
 ### Phase 4 — Dating defaults + appeals + tuning
+
 - [x] Matching/DM rule (0174): **blur unsolicited media from non-mutual matches**
       by default, independent of label.
 - [ ] Appeals UX on `appeals.ts` (negating `safe` label) with a fast SLA.
@@ -711,6 +724,7 @@ stateDiagram-v2
 ## References
 
 ### xNet code seams
+
 - `packages/abuse/src/types.ts` — `AbuseVisibility` (show/warn/blur/hide, :20),
   `AbuseDecisionOverride` user scope (:107-113), `AbuseLabel` (:51-60),
   `AbuseSurface` incl. `feed` (:13)
@@ -734,6 +748,7 @@ stateDiagram-v2
   surfaces to gate; exploration **0174** (matching), **0170** (content-feed-views)
 
 ### On-device & ML classification
+
 - [NSFWJS (infinitered)](https://github.com/infinitered/nsfwjs) ·
   [GantMan nsfw_model](https://github.com/GantMan/nsfw_model)
 - [Yahoo open_nsfw](https://github.com/yahoo/open_nsfw) ·
@@ -749,12 +764,14 @@ stateDiagram-v2
   [Llama Guard](https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/)
 
 ### Perceptual hashing & CSAM
+
 - [PDQ / ThreatExchange (Meta)](https://github.com/facebook/ThreatExchange/tree/main/pdq) ·
   [Microsoft PhotoDNA](https://www.microsoft.com/en-us/photodna)
 - [NCMEC CyberTipline](https://report.cybertip.org/) ·
   [Apple CSAM client-side scanning backlash (EFF)](https://www.eff.org/deeplinks/2021/08/apples-plan-think-different-about-encryption-opens-backdoor-your-private-life)
 
 ### Decentralized labeling & filtering UX
+
 - [Bluesky stackable moderation](https://bsky.social/about/blog/03-12-2024-stackable-moderation) ·
   [Ozone](https://github.com/bluesky-social/ozone) ·
   [Bluesky moderation architecture](https://docs.bsky.app/blog/blueskys-moderation-architecture)
