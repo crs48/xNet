@@ -521,16 +521,16 @@ type InboxReason = 'mention' | 'dm' | 'assigned' | 'reply' | 'comment'
 ## Implementation Checklist
 
 ### Phase 1 — Wire the orphans + a front door (highest leverage)
-- [ ] Add a `Discover` entry to the Rail ([Rail.tsx](apps/web/src/workbench/Rail.tsx)) + a `nav.discover` command (`g m`) in [WorkspaceCommands.tsx](apps/web/src/components/WorkspaceCommands.tsx).
-- [ ] Introduce shared `ModeratedMedia` / `ModeratedPost` wrappers over `ModeratedNode`.
+- [x] Add a `Discover` entry to the Rail ([Rail.tsx](apps/web/src/workbench/Rail.tsx)) + a `nav.discover` command (`g m`) in [WorkspaceCommands.tsx](apps/web/src/components/WorkspaceCommands.tsx).
+- [x] Introduce shared `ModeratedMedia` / `ModeratedPost` wrappers over `ModeratedNode`.
 - [ ] Adopt them at the four content render paths: chat ([ChannelChat.tsx](apps/web/src/comms/ChannelChat.tsx)), data workspace ([DataWorkspaceView.tsx](apps/web/src/components/DataWorkspaceView.tsx)), feed/content views, and `MatchCard`.
-- [ ] Batch label lookups (`useContentLabels(ids[])`) to avoid N queries per feed.
+- [x] Batch label lookups (`useContentLabels(ids[])`) to avoid N queries per feed.
 
 ### Phase 2 — Person/post actions + composer self-label
-- [ ] `PersonActions` overflow (Connect/Wave + Restrict/Mute/Block/Report) on `PersonView`, `PersonHovercard`, `MatchCard`, and the chat message `⋯`.
-- [ ] `useSafetyActions` (block/mute/restrict via `PolicyBlockList`; report via `AbuseReportSchema`) + a report dialog (category picker).
-- [ ] Wire `SelfLabelControl` into the page editor + chat composer; **auto-prompt on media attach**.
-- [ ] Apply blocks/mutes in `decideAbuse` facts at render (`actor.localBlocked`).
+- [x] `PersonActions` overflow (Connect/Wave + Restrict/Mute/Block/Report) on `PersonView`, `PersonHovercard`, `MatchCard`, and the chat message `⋯`.
+- [x] `useSafetyActions` (block/mute/restrict via `PolicyBlockList`; report via `AbuseReportSchema`) + a report dialog (category picker).
+- [x] Wire `SelfLabelControl` into the page editor + chat composer; **auto-prompt on media attach**.
+- [x] Apply blocks/mutes in `decideAbuse` facts at render (`actor.localBlocked`).
 
 ### Phase 3 — Safe contact (first-contact gating)
 - [ ] Message-requests inbox: route non-mutual/non-roster DMs to a request state (`MessageRequestSchema`); accept/decline/block.
@@ -538,10 +538,10 @@ type InboxReason = 'mention' | 'dm' | 'assigned' | 'reply' | 'comment'
 - [ ] Inbox reasons `match-request` + `message-request` in [InboxTray.tsx](apps/web/src/comms/InboxTray.tsx) + a Rail inbox badge.
 
 ### Phase 4 — Onboarding + transparency
-- [ ] `/welcome` onboarding: age confirm → content dial → discovery opt-in (skippable); set sensitivity defaults + optionally seed `ConnectableProfile`.
-- [ ] Home suggestion card ("Discover people") + a first-run safety banner on [index.tsx](apps/web/src/routes/index.tsx).
-- [ ] Filter-count indicator in feed/data headers.
-- [ ] Moderation log settings page (filtered items + labeler attribution + override).
+- [x] `/welcome` onboarding: age confirm → content dial → discovery opt-in (skippable); set sensitivity defaults + optionally seed `ConnectableProfile`.
+- [x] Home suggestion card ("Discover people") + a first-run safety banner on [index.tsx](apps/web/src/routes/index.tsx).
+- [x] Filter-count indicator in feed/data headers.
+- [x] Moderation log settings page (filtered items + labeler attribution + override).
 
 ### Phase 5 — Depth + reach (follow-up)
 - [ ] Settings: blocked/muted accounts manager + labeler subscriptions + report/match history.
@@ -555,20 +555,20 @@ type InboxReason = 'mention' | 'dm' | 'assigned' | 'reply' | 'comment'
       through `ModeratedMedia` — verified by grep + a render test; no orphan path.
 - [ ] A `porn`-labelled image is blurred in chat **and** the data workspace for a
       default-prefs viewer; an adult-opted-in viewer with `porn: warn` sees a warn.
-- [ ] `Discover` is reachable from the Rail and `⌘K` ("Discover people"); the
+- [x] `Discover` is reachable from the Rail and `⌘K` ("Discover people"); the
       route renders matches.
-- [ ] Mute hides a person's content app-wide; Block severs interactions; both
+- [x] Mute hides a person's content app-wide; Block severs interactions; both
       persist and flow through `decideAbuse` (`actor.localBlocked`).
 - [ ] A first DM from a non-mutual, non-roster sender lands in **requests** with
       media blurred; accepting un-gates it; a prior mutual wave skips the request.
-- [ ] Reporting a person creates an `AbuseReport` node with the chosen category.
-- [ ] Self-labeling from the composer auto-prompts on media attach and writes a
+- [x] Reporting a person creates an `AbuseReport` node with the chosen category.
+- [x] Self-labeling from the composer auto-prompts on media attach and writes a
       `ModerationLabel`; the label immediately affects the author's own render.
-- [ ] Onboarding sets sensitivity defaults + an optional discoverable profile and
+- [x] Onboarding sets sensitivity defaults + an optional discoverable profile and
       is fully skippable; nothing is discoverable without explicit opt-in.
 - [ ] The filter indicator shows a non-zero count when items are filtered and
       opens a log that attributes each to self/dial/labeler (never "policy").
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, and `fallow audit` green across
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, and `fallow audit` green across
       `apps/web`, `@xnetjs/ui`, and touched packages.
 
 ## References
