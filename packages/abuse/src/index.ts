@@ -119,6 +119,7 @@ export {
   assessSensitivity,
   buildSensitivityLabel,
   decideSensitivityVisibility,
+  explainSensitivityVisibility,
   isSensitivityLabelValue,
   resolveContentVisibility,
   sensitivityLabels,
@@ -128,8 +129,11 @@ export {
 export type {
   BuildSensitivityLabelInput,
   SensitivityAssessment,
+  SensitivityExplanation,
   SensitivityLabelValue,
   SensitivityPreference,
+  SensitivityReason,
+  SensitivityReasonCause,
   SensitivitySource,
   SensitivityVisibilityOptions,
   UserSensitivityPreferences

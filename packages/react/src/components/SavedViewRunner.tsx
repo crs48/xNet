@@ -80,6 +80,13 @@ export type SavedViewRunnerProps = {
     request: SavedViewVisualCanvasProjectionRequest
   ) => void | Promise<void>
   feedEnrichment?: SavedViewFeedEnrichmentAdapter
+  /**
+   * Optional per-item wrapper for the visual renderers (cards mode), keyed by a
+   * preview's source node id. The host uses it to route each item through its
+   * moderation render gate without this package depending on it. Default: no-op
+   * (content rendered unwrapped, exactly as before).
+   */
+  wrapItem?: (nodeId: string, content: ReactNode) => ReactNode
 }
 
 export type SavedViewResultTableProps = {
@@ -859,7 +866,8 @@ export function SavedViewRunner({
   onSaveLens,
   saveLensLabel = 'Save lens',
   onOpenVisualCanvasProjection,
-  feedEnrichment
+  feedEnrichment,
+  wrapItem
 }: SavedViewRunnerProps): JSX.Element {
   const [activeQueryId, setActiveQueryId] = useState<string | null>(null)
   const [searchText, setSearchText] = useState('')
@@ -1457,6 +1465,7 @@ export function SavedViewRunner({
             previews={arrangedVisualPreviews}
             selectedSourceNodeId={expandedRowId}
             activeEmbedPreviewId={activeEmbedPreviewId}
+            wrapItem={wrapItem}
             onSelectPreview={(preview) =>
               setExpandedRowId((current) =>
                 current === preview.sourceNodeId ? null : preview.sourceNodeId
@@ -1932,12 +1941,14 @@ function SavedViewVisualGrid({
   previews,
   selectedSourceNodeId,
   activeEmbedPreviewId,
+  wrapItem,
   onSelectPreview,
   onToggleLiveEmbed
 }: {
   previews: SavedViewVisualPreviewModel[]
   selectedSourceNodeId: string | null
   activeEmbedPreviewId: string | null
+  wrapItem?: (nodeId: string, content: ReactNode) => ReactNode
   onSelectPreview: (preview: SavedViewVisualPreviewModel) => void
   onToggleLiveEmbed: (preview: SavedViewVisualPreviewModel) => void
 }): JSX.Element {
@@ -1995,6 +2006,7 @@ function SavedViewVisualGrid({
               previews={rows[virtualRow.index] ?? []}
               selectedSourceNodeId={selectedSourceNodeId}
               activeEmbedPreviewId={activeEmbedPreviewId}
+              wrapItem={wrapItem}
               onSelectPreview={onSelectPreview}
               onToggleLiveEmbed={onToggleLiveEmbed}
             />
@@ -2010,6 +2022,7 @@ function SavedViewVisualGridRow({
   previews,
   selectedSourceNodeId,
   activeEmbedPreviewId,
+  wrapItem,
   onSelectPreview,
   onToggleLiveEmbed
 }: {
@@ -2017,6 +2030,7 @@ function SavedViewVisualGridRow({
   previews: SavedViewVisualPreviewModel[]
   selectedSourceNodeId: string | null
   activeEmbedPreviewId: string | null
+  wrapItem?: (nodeId: string, content: ReactNode) => ReactNode
   onSelectPreview: (preview: SavedViewVisualPreviewModel) => void
   onToggleLiveEmbed: (preview: SavedViewVisualPreviewModel) => void
 }): JSX.Element {
@@ -2025,16 +2039,23 @@ function SavedViewVisualGridRow({
       className="absolute left-0 top-0 grid w-full gap-3 p-3 md:grid-cols-2 xl:grid-cols-3"
       style={{ transform: `translateY(${start}px)` }}
     >
-      {previews.map((preview) => (
-        <SavedViewVisualPreviewCard
-          key={preview.id}
-          preview={preview}
-          selected={selectedSourceNodeId === preview.sourceNodeId}
-          live={activeEmbedPreviewId === preview.id}
-          onSelect={() => onSelectPreview(preview)}
-          onToggleLiveEmbed={() => onToggleLiveEmbed(preview)}
-        />
-      ))}
+      {previews.map((preview) => {
+        const card = (
+          <SavedViewVisualPreviewCard
+            key={preview.id}
+            preview={preview}
+            selected={selectedSourceNodeId === preview.sourceNodeId}
+            live={activeEmbedPreviewId === preview.id}
+            onSelect={() => onSelectPreview(preview)}
+            onToggleLiveEmbed={() => onToggleLiveEmbed(preview)}
+          />
+        )
+        return wrapItem ? (
+          <Fragment key={preview.id}>{wrapItem(preview.sourceNodeId, card)}</Fragment>
+        ) : (
+          card
+        )
+      })}
     </div>
   )
 }

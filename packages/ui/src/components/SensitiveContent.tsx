@@ -20,10 +20,27 @@ export interface SensitiveContentProps {
   labels?: readonly string[]
   /** Optional source attribution, e.g. 'via did:key:zAB…' (a subscribed labeler). */
   attribution?: string
+  /** Optional human-readable reasons for a "why was this filtered?" disclosure. */
+  reasons?: readonly string[]
   /** Render nothing for `hide` (default), or a compact placeholder. */
   hiddenPlaceholder?: React.ReactNode
   className?: string
   children: React.ReactNode
+}
+
+/** A small inline "Why?" disclosure listing the reasons content was filtered. */
+function WhyFiltered({ reasons }: { reasons?: readonly string[] }) {
+  if (!reasons || reasons.length === 0) return null
+  return (
+    <details className="mt-0.5 text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+      <summary className="cursor-pointer select-none opacity-80 hover:opacity-100">Why?</summary>
+      <ul className="mt-0.5 list-disc pl-4 text-left font-normal">
+        {reasons.map((reason, i) => (
+          <li key={i}>{reason}</li>
+        ))}
+      </ul>
+    </details>
+  )
 }
 
 const LABEL_TEXT: Record<string, string> = {
@@ -42,6 +59,7 @@ export function SensitiveContent({
   visibility,
   labels = [],
   attribution,
+  reasons,
   hiddenPlaceholder = null,
   className,
   children
@@ -60,10 +78,11 @@ export function SensitiveContent({
   if (visibility === 'warn') {
     return (
       <div className={cn('flex flex-col gap-1', className)}>
-        <p className="text-xs text-muted-foreground" role="note">
+        <div className="text-xs text-muted-foreground" role="note">
           ⚠️ {labelText(labels)}
           {suffix}
-        </p>
+          <WhyFiltered reasons={reasons} />
+        </div>
         {children}
       </div>
     )
@@ -89,6 +108,7 @@ export function SensitiveContent({
         {attribution && (
           <span className="text-xs font-normal text-muted-foreground">{attribution}</span>
         )}
+        <WhyFiltered reasons={reasons} />
       </span>
     </button>
   )
