@@ -7,7 +7,9 @@
  */
 import { AbuseReportSchema, ModerationLabelSchema, ProfileSchema } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
+import { useState } from 'react'
 import { useBlockList, type BlockState } from '../lib/block-list'
+import { importBlocklist } from '../lib/blocklist-import'
 
 type Row = Record<string, unknown>
 
@@ -21,8 +23,68 @@ const STATE_LABEL: Record<BlockState, string> = {
   restricted: 'Restricted'
 }
 
+function SharedBlocklistImport({
+  onImport
+}: {
+  onImport: (blocks: readonly { did: string; state: BlockState }[]) => void
+}) {
+  const [text, setText] = useState('')
+  const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null)
+
+  const handleImport = () => {
+    const result = importBlocklist(text)
+    if (!result.ok) {
+      setFeedback({ ok: false, message: result.error })
+      return
+    }
+    onImport(result.blocks)
+    const issuer = result.list.issuerDID.slice(0, 16)
+    setFeedback({
+      ok: true,
+      message: `Imported ${result.blocks.length} account(s) from ${issuer}….`
+    })
+    setText('')
+  }
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-medium">Shared blocklists</h3>
+      <p className="text-xs text-muted-foreground">
+        Paste a signed community blocklist to apply its blocks and mutes to your own view. The
+        signature is verified before anything is applied — nothing here is sent anywhere.
+      </p>
+      <textarea
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value)
+          setFeedback(null)
+        }}
+        placeholder='{"list": …, "signature": …}'
+        rows={4}
+        aria-label="Signed blocklist JSON"
+        className="w-full resize-y rounded-md border border-border bg-transparent px-3 py-2 font-mono text-xs"
+      />
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleImport}
+          disabled={text.trim().length === 0}
+          className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent/50 disabled:opacity-40"
+        >
+          Verify &amp; import
+        </button>
+        {feedback && (
+          <span className={`text-xs ${feedback.ok ? 'text-emerald-600' : 'text-destructive'}`}>
+            {feedback.message}
+          </span>
+        )}
+      </div>
+    </section>
+  )
+}
+
 export function SafetyCenterSettings() {
-  const { list, unblock } = useBlockList()
+  const { list, unblock, importMany } = useBlockList()
   const { authorDID } = useXNet()
   const me = authorDID ?? ''
   const { data: profiles } = useQuery(ProfileSchema, {})
@@ -82,6 +144,8 @@ export function SafetyCenterSettings() {
           </ul>
         )}
       </section>
+
+      <SharedBlocklistImport onImport={importMany} />
 
       <section className="space-y-2">
         <h3 className="text-sm font-medium">Your reports</h3>

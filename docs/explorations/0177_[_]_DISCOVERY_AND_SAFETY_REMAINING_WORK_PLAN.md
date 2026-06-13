@@ -376,7 +376,7 @@ const SENSITIVITY = new Set(['sexual', 'nudity', 'porn', 'graphic-media'])
 ### Milestone 2 — Decentralized moderation + on-device ML
 **W3 — subscriptions**
 - [ ] Subscribe UI in Settings → Safety: add a labeler (DID + trust level/weight) → persist via `PolicySubscriptionSchema`/a `LabelerSubscription` node.
-- [ ] Import a signed `PolicyBlockList` (verify with `verifySignedPolicyBlockList`); apply its entries.
+- [x] Import a signed `PolicyBlockList` (verify with `verifySignedPolicyBlockList`); apply its entries.
 - [ ] Adapter: persisted subscriptions → runtime `LabelerTrustSetting`s at startup; feed into `decideAbuse`.
 - [ ] Surface subscribed labelers + a "filtered by labeler X" attribution in the Safety Center.
 
