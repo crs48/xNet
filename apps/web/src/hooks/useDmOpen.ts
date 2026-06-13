@@ -6,15 +6,15 @@
  * must accept. `useMessageRequests()` is the receiving side: pending requests
  * with accept/decline. Together these gate cold contact (the dating-safety core).
  */
+import { useNavigate } from '@tanstack/react-router'
 import { dmChannelId, ensureDmChannel } from '@xnetjs/comms'
 import { ChannelSchema, MessageRequestSchema, ProfileSchema } from '@xnetjs/data'
 import { useXNet, useQuery } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { ConnectionWaveSchema } from '@xnetjs/social/connect'
-import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useMemo } from 'react'
-import { navigateToNode } from '../workbench/navigation'
 import { isFirstContact, type WaveEdge } from '../lib/first-contact'
+import { navigateToNode } from '../workbench/navigation'
 
 type Row = Record<string, unknown>
 
