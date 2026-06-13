@@ -1447,6 +1447,7 @@ export function SavedViewRunner({
             layout={feedLayout}
             density={feedDensity}
             enrichment={feedEnrichment}
+            wrapItem={wrapItem}
             onSelectLayout={setFeedLayout}
             onSelectDensity={setFeedDensity}
             selectedSourceNodeId={expandedRowId}

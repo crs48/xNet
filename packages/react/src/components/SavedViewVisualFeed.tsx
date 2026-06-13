@@ -18,7 +18,7 @@ import {
   UserRound,
   X
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
   isSavedViewVisualPreviewEmbeddable,
   type SavedViewVisualPreviewModel
@@ -754,7 +754,8 @@ export function SavedViewVisualFeed({
   activeEmbedPreviewId,
   onSelectPreview,
   onToggleLiveEmbed,
-  enrichment
+  enrichment,
+  wrapItem
 }: {
   previews: SavedViewVisualPreviewModel[]
   layout: SavedViewFeedLayout
@@ -766,6 +767,7 @@ export function SavedViewVisualFeed({
   onSelectPreview: (preview: SavedViewVisualPreviewModel) => void
   onToggleLiveEmbed: (preview: SavedViewVisualPreviewModel) => void
   enrichment?: SavedViewFeedEnrichmentAdapter
+  wrapItem?: (nodeId: string, content: ReactNode) => ReactNode
 }): JSX.Element {
   const config = FEED_DENSITY_CONFIGS[density]
   const { ref: containerRef, width: containerWidth } = useMeasuredWidth()
@@ -823,17 +825,24 @@ export function SavedViewVisualFeed({
               className="grid gap-3 p-3 pb-0"
               style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
             >
-              {(gridRows[rowIndex] ?? []).map((preview) => (
-                <FeedGridCard
-                  key={preview.id}
-                  preview={preview}
-                  density={density}
-                  selected={selectedSourceNodeId === preview.sourceNodeId}
-                  live={activeEmbedPreviewId === preview.id}
-                  onSelect={() => onSelectPreview(preview)}
-                  onToggleLiveEmbed={() => onToggleLiveEmbed(preview)}
-                />
-              ))}
+              {(gridRows[rowIndex] ?? []).map((preview) => {
+                const card = (
+                  <FeedGridCard
+                    key={preview.id}
+                    preview={preview}
+                    density={density}
+                    selected={selectedSourceNodeId === preview.sourceNodeId}
+                    live={activeEmbedPreviewId === preview.id}
+                    onSelect={() => onSelectPreview(preview)}
+                    onToggleLiveEmbed={() => onToggleLiveEmbed(preview)}
+                  />
+                )
+                return wrapItem ? (
+                  <Fragment key={preview.id}>{wrapItem(preview.sourceNodeId, card)}</Fragment>
+                ) : (
+                  card
+                )
+              })}
             </div>
           )}
         />
@@ -847,14 +856,17 @@ export function SavedViewVisualFeed({
             const preview = enrichedPreviews[rowIndex]
             if (!preview) return null
 
+            const row = (
+              <FeedListRow
+                preview={preview}
+                density={density}
+                selected={selectedSourceNodeId === preview.sourceNodeId}
+                onSelect={() => onSelectPreview(preview)}
+              />
+            )
             return (
               <div className="px-2 pt-1">
-                <FeedListRow
-                  preview={preview}
-                  density={density}
-                  selected={selectedSourceNodeId === preview.sourceNodeId}
-                  onSelect={() => onSelectPreview(preview)}
-                />
+                {wrapItem ? wrapItem(preview.sourceNodeId, row) : row}
               </div>
             )
           }}

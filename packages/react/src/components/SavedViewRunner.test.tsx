@@ -489,6 +489,19 @@ describe('SavedViewRunner', () => {
     expect(wrapItem).toHaveBeenCalledWith('content-1', expect.anything())
   })
 
+  it('wraps each feed card through wrapItem in feed mode', async () => {
+    const descriptor = mockSingleContentCardView()
+    const wrapItem = vi.fn((nodeId: string, content: ReactNode) => (
+      <div data-testid={`feed-gated-${nodeId}`}>{content}</div>
+    ))
+    render(<SavedViewRunner descriptor={descriptor} registry={[]} wrapItem={wrapItem} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Feed' }))
+
+    expect(await screen.findByTestId('feed-gated-content-1')).toBeTruthy()
+    expect(wrapItem).toHaveBeenCalledWith('content-1', expect.anything())
+  })
+
   it('switches timestamped rows into a visual timeline', async () => {
     const firstMonth = Date.UTC(2026, 0, 2)
     const descriptor: SavedViewDescriptor = {
