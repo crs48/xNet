@@ -27,6 +27,15 @@ export type SearchModerationPolicy = {
   hideConfidenceThreshold?: number
   demoteConfidenceThreshold?: number
   includeHidden?: boolean
+  /**
+   * Sensitivity label values the viewer has chosen to hide from search (derived
+   * from their content dial, exploration 0175/0177). Unlike abuse labels, these
+   * are a per-viewer preference, so the caller passes them per query. A result
+   * carrying a present (weighted) sensitivity label in this set is excluded.
+   */
+  sensitivityHiddenLabels?: readonly string[]
+  /** Minimum weighted confidence for a sensitivity label to count as present. */
+  sensitivityPresenceFloor?: number
   now?: number
 }
 
@@ -63,6 +72,22 @@ export function summarizeSearchModeration(
     .filter((label) => label.confidence >= hideThreshold && label.confidence > safeConfidence)
     .map((label) => `label:${label.value}`)
 
+  // Per-viewer sensitivity hiding: a present sensitivity label (weighted
+  // confidence over the floor, not negated by a `safe` label) hides the result.
+  const sensitivityHidden = new Set(policy.sensitivityHiddenLabels ?? [])
+  const sensitivityFloor = policy.sensitivityPresenceFloor ?? 0.15
+  const sensitivityReasons =
+    sensitivityHidden.size === 0
+      ? []
+      : labels
+          .filter((label) => sensitivityHidden.has(label.value))
+          .filter(
+            (label) =>
+              label.confidence * Math.max(0, label.sourceWeight ?? 1) >= sensitivityFloor &&
+              label.confidence > safeConfidence
+          )
+          .map((label) => `sensitivity:${label.value}`)
+
   const labelPenalty = labels
     .filter((label) => demotedLabels.has(label.value))
     .filter((label) => label.confidence >= demoteThreshold && label.confidence > safeConfidence)
@@ -93,10 +118,12 @@ export function summarizeSearchModeration(
     })
     .map((signal) => `quality:${signal.signal}`)
 
+  const allHiddenReasons = [...hiddenReasons, ...sensitivityReasons]
+
   return {
-    includeInSearch: hiddenReasons.length === 0 || (policy.includeHidden ?? false),
+    includeInSearch: allHiddenReasons.length === 0 || (policy.includeHidden ?? false),
     scoreMultiplier,
-    reasons: [...hiddenReasons, ...qualityReasons],
+    reasons: [...allHiddenReasons, ...qualityReasons],
     activeLabels: labels,
     activeQualitySignals: qualitySignals
   }
