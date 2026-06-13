@@ -1,0 +1,81 @@
+---
+title: 'Notifications & Inbox'
+draft: false
+description: 'The local-first notification engine — rules, read state, badges, and triage.'
+---
+
+:::note[You will learn]
+
+- How notifications are derived locally from synced changes
+- The rule priority order and its edge semantics
+- How read state works (watermarks + mention acks)
+- Badges, mutes, do-not-disturb, and inbox triage
+  :::
+
+## Overview
+
+There is no notification server. Because every change in the workspace syncs
+to your device anyway, notifications are **derived locally**: a notifier runs
+one evaluation per applied change and decides whether it deserves your
+attention. Your read state is itself a private, user-owned node
+(`InboxState`), so the inbox follows you across devices without anyone else
+seeing what you've read.
+
+## The rules
+
+Rules run in priority order — the highest matching reason wins:
+
+```
+mention > dm > assigned > reply > comment > room-mention > keyword
+```
+
+Three details keep this trustworthy:
+
+- **Edge semantics** — assignment notifies on the *transition* into being
+  assigned. A re-sync or replay of the same change never re-notifies.
+- **Own-change suppression** — your own edits never notify you.
+- **Tombstone suppression** — deleted content doesn't resurrect a
+  notification.
+
+## Read state: watermarks + mention acks
+
+Read state is the Zulip-style hybrid:
+
+- a **per-channel watermark** ("read up to here") advances as you view a
+  channel, clearing activity in bulk;
+- **explicit mention acks** track each mention individually, so a mention
+  can't be accidentally swept away by scrolling past it.
+
+On top of that, inbox items can be triaged: **done**, **saved**, or
+**snoozed**.
+
+## Badges and alerting
+
+Badging is two-tier so the urgent never drowns in the ambient:
+
+- a **number** counts things aimed at you — mentions and DMs
+- a **dot** means there's other activity — replies, comments, room chatter
+
+Channels can be **muted**, and a mention **overrides the mute** (you can
+silence a busy channel without becoming unreachable). **Do-not-disturb
+windows** suppress alerting overnight; items still accumulate in the inbox.
+
+## The Inbox
+
+The Notifications tray (bottom panel) is the triage surface: reason-chip
+filters (mentions / DMs / assigned / replies…), done/snooze actions, and deep
+links that jump straight to the message, task, or comment in its own tab. The
+status-bar bell carries the two-tier badge.
+
+## Delivery to other surfaces
+
+Because derivation is local, anything that syncs can notify. Push delivery to
+closed apps (Web Push, Electron, mobile) rides the hub and is in progress —
+see the [roadmap](/#roadmap).
+
+## Further reading
+
+- [Chat, Presence & Calls](/docs/guides/chat-and-calls/) — where mentions and
+  DMs come from
+- [Tasks](/docs/guides/tasks/) — assignment notifications
+- [The Workbench](/docs/guides/workbench/) — the tray and status bar

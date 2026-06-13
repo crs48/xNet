@@ -28,15 +28,23 @@ Before reading this documentation, understand that xNet works differently:
   - Property Types
   - Relations
   - Type Inference
+  - The Workbench
+  - Tasks
+  - Dashboards & Widgets
+  - Chat, Presence & Calls
+  - Notifications & Inbox
+  - Rich Text Editor
+  - Infinite Canvas
+  - DevTools
+  - Authorization
   - Sync Guide
+  - Version Compatibility
   - Offline Patterns
   - Identity & Keys
   - Real-time Collaboration
   - Plugin Development
-  - Infinite Canvas
-  - Rich Text Editor
+  - Agent Interfaces
   - Hub Setup
-  - DevTools
   - Electron Setup
   - Testing
   - Local-First
@@ -53,8 +61,6 @@ Before reading this documentation, understand that xNet works differently:
   - Code Style
   - Testing Guide
 - Understanding xNet (For AI Assistants)
-  - Authorization
-  - Version Compatibility
 
 ---
 
@@ -556,6 +562,7 @@ Do you need a Yjs document (rich text, canvas)?
 | Hook                                      | Purpose                                    |
 | ----------------------------------------- | ------------------------------------------ |
 | [`useIdentity`](/docs/hooks/useidentity/) | Get the current user's DID and auth status |
+| `useCan` / `useGrants`                    | Permission checks and grant management — see the [Authorization guide](/docs/guides/authorization/) |
 | `useComments`                             | Thread-based comments on any node          |
 | `useHistory`                              | Change history for a node                  |
 | `useUndo`                                 | Undo/redo for node changes                 |
@@ -2328,6 +2335,1484 @@ If you're building a custom property type, implement the `PropertyBuilder` inter
 
 ---
 
+## The Workbench
+
+**You will learn**
+
+- The workbench regions and what lives in each
+- How tabs work (preview tabs, pinning, splits, deep links)
+- The command palette and core keyboard map
+- How plugins contribute to the shell
+  
+
+## Overview
+
+The web app's shell is a fixed-region workbench in the VS Code mold: predictable
+named regions, everything opens as a tab, one command palette, one drag model.
+The chrome is monochrome by design — hue is reserved for your data (status dots,
+charts), so the interface recedes and the work reads first.
+
+## Regions
+
+| Region       | What lives there                                                                    |
+| ------------ | ----------------------------------------------------------------------------------- |
+| Rail (left)  | Search, Explorer, Tasks, Data, Chats, plugin items; identity and settings below     |
+| Left Panel   | One view at a time: Explorer, Tasks, Data, Chats, or a plugin view                  |
+| Editor Area  | Tabbed documents — pages, databases, canvases, dashboards, channels, saved views    |
+| Right Panel  | Contextual sections published by the active tab (properties, comments, backlinks…)  |
+| Bottom Panel | Tray: Shelf, quick capture, Notifications, sync activity, and a query console       |
+| Status Bar   | Left = workspace scope (sync, presence), right = view scope (save state, theme)     |
+
+Layout, open tabs, pins, recents, and zen-mode snapshots persist locally and
+survive reloads bit-for-bit.
+
+## Tabs
+
+Everything opens as a tab, and **the router stays authoritative**: navigating
+opens-or-activates the matching tab, so deep links, back/forward, and old
+bookmarks keep working.
+
+- **Preview tabs** — a single click from the Explorer or palette opens an
+  italic _preview_ tab that is replaced by the next preview. Editing the
+  content or double-clicking promotes it to a real tab.
+- **Pinning** — pinned tabs stay put and survive "close others".
+- **Splits** — one optional second editor group: drag a tab to the editor edge
+  or press `⌘⇧\`.
+- **Performance** — background tabs are unmounted entirely; they hold no live
+  document subscriptions.
+
+## Command palette
+
+`⌘K` (or `⌘P`) opens quick-open: recents first, then full-text page matches and
+every node type. Type `>` to switch to command mode — every command in the
+registry is listed with its keyboard chord. Escape restores focus to where you
+were.
+
+## Keyboard map
+
+| Chord          | Action                                                |
+| -------------- | ----------------------------------------------------- |
+| `⌘K` / `⌘P`    | Palette / quick-open (`>` = command mode)             |
+| `⌘B`, `⌘\`, `⌘J` | Toggle left / right / bottom panel                  |
+| `⌘.`           | Zen mode (Esc Esc exits; layout restored bit-for-bit) |
+| `⌘T` / `⌘W`    | New page / close tab                                  |
+| `⌃Tab` / `⌃⇧Tab` | Cycle tabs                                          |
+| `⌘1` / `⌘2`    | Focus editor group                                    |
+| `⌘⇧\`          | Split editor                                          |
+| `F6` / `⇧F6`   | Cycle focus through shell regions                     |
+
+## Drag model
+
+Every draggable entity — explorer rows, tabs, task rows, database row chips,
+canvas selections — carries the same node payload. Drops create **references,
+never copies**:
+
+- onto the editor → a wikilink chip at the drop point
+- onto a relation cell → a link
+- onto a canvas → a source-backed card
+- onto the tab bar → a tab
+- onto an editor edge → a split
+- onto the Shelf (bottom tray) → a held reference for later
+
+## Theme
+
+The token system is a single APCA-contrast-tuned monochrome ramp per mode
+(`surface-0/1/2`, `ink-1/2/3`, `hairline`, `accent-ink`). Chrome sits on dimmer
+surfaces than the work; the editor area is the only brightest-surface region. A
+`true-black` variant collapses dark surfaces to `#000` for OLED displays —
+toggle it from the status bar theme control.
+
+## Extending the shell
+
+Plugins contribute _items_ into fixed containers; they cannot invent new chrome:
+
+- **Rail items / left-panel views** — `SidebarContribution` (a `panel`
+  component becomes a left-panel view)
+- **Status bar items** — `StatusBarContribution` (workspace scope or view scope)
+- **Palette commands** — `CommandContribution`, chords included
+- **Context sections** — views publish sections to the Right Panel
+- **Dashboard widgets** — `WidgetContribution` (see the
+  [Dashboards guide](/docs/guides/dashboards/))
+
+See the [Plugins guide](/docs/guides/plugins/) for the contribution API.
+
+## Further reading
+
+- [Tasks](/docs/guides/tasks/) — the task surfaces hosted by the shell
+- [Dashboards](/docs/guides/dashboards/) — widget boards as tabs
+- [Chat & Calls](/docs/guides/chat-and-calls/) — channels as tabs, calls in a dock
+
+---
+
+## Tasks
+
+**You will learn**
+
+- Where tasks live in the app and how the surfaces connect
+- Inline editing and quick-add with `@mention`
+- Deep links (`/tasks?task=`, `/tasks?project=`)
+- Why some task fields are read-only outside their hosting page
+  
+
+## Overview
+
+Tasks are first-class nodes (`TaskSchema`) with status, priority, assignees,
+due dates, and project membership. They show up — and are **editable in
+place** — on every surface that renders them: the Tasks view, the sidebar
+mini-dashboard, page checklists, kanban boards, and the right context panel.
+
+## Surfaces
+
+### The Tasks view (`/tasks`)
+
+The main surface: list and board layouts with keyboard verbs —
+`j`/`k` to move, `x` to complete, `s` for status, `p` for priority, `Enter` to
+edit. Clicking a row expands an editor beneath it; board cards open a peek
+overlay; the right context panel hosts the same live editor for the focused
+task.
+
+Deep links are first-class:
+
+- `/tasks?task=<id>` opens that task's editor directly.
+- `/tasks?project=<id>` scopes the surface to a project (with a clearable
+  chip); quick-added tasks join that project.
+
+### The sidebar Tasks panel
+
+A personal mini-dashboard in the left panel:
+
+- **Pinned** — tasks you pinned, surfaced first
+- **In progress** — your tasks in a started status
+- **Assigned to me** — priority-ordered (urgent → low, then nearest due date),
+  paginated
+- **Projects** — projects you follow, with open-task counts; click one to
+  scope the Tasks view to it
+
+Rows are draggable onto canvases and deep-link into the Tasks view.
+
+### Everywhere else
+
+Task checklists inside pages, task widgets on dashboards, and task rows in
+database views all expand the same shared editor — title with
+**@mention-to-assign**, status/priority pickers, a due-date popover
+(Today / Tomorrow / Next week / pick a date / clear), an assignee picker, and
+a pin toggle.
+
+## Quick-add
+
+Every task surface has a quick-add input. Type `@` while entering the title to
+assign as you type — pending assignees render as removable chips before the
+task is created.
+
+## Field authority: pages own their checklists
+
+A task can be **hosted by a page** (created from a checklist item in a
+document). The hosting page is the source of truth for the fields it renders
+inline:
+
+| Field                          | Owner                                  |
+| ------------------------------ | -------------------------------------- |
+| Title, assignees, due date     | The hosting page (document content)    |
+| Status, priority, completion, pins | The task node — editable everywhere |
+
+On the page itself, edits to doc-owned fields **write through the live
+document** (mention nodes, due chips) and the page then reconciles the task
+node. On other surfaces (e.g. `/tasks`), doc-owned fields of hosted tasks
+render read-only with an *Open page* affordance — a node-side write would be
+silently overwritten by the page's next snapshot, so the app doesn't offer
+one.
+
+Tasks created outside a page (quick-add, Tasks view, widgets) have no hosting
+page and every field is editable everywhere.
+
+## Querying tasks in your own code
+
+Tasks are ordinary nodes — the same hooks apply:
+
+```tsx
+
+const { data: myTasks } = useQuery(TaskSchema, {
+  filter: { assignees: { contains: me }, status: { not: 'done' } },
+  sort: [{ field: 'priority' }, { field: 'dueDate' }]
+})
+
+const { update } = useMutate()
+await update(TaskSchema, taskId, { status: 'in-progress' })
+```
+
+## Further reading
+
+- [The Workbench](/docs/guides/workbench/) — where the task surfaces live
+- [Dashboards](/docs/guides/dashboards/) — task-list and metric widgets
+- [Quickstart](/docs/quickstart/) — build your own task schema from scratch
+
+---
+
+## Dashboards & Widgets
+
+**You will learn**
+
+- How dashboards, widgets, and dashboard variables fit together
+- The built-in widget catalog (metrics, tables, charts, feeds)
+- The widget contract for plugin authors
+- How user-written widgets are sandboxed
+  
+
+## Overview
+
+A dashboard is a node like any other: a grid of **widget instances** with
+per-breakpoint layouts, opened as a workbench tab (`/dashboard/$dashboardId`).
+Widgets are declarative — a widget describes *what data it needs* as a saved-view
+query and *how to render it*; the runtime executes the query reactively, so a
+task created anywhere in the workspace updates a live widget immediately.
+Widgets never touch the store directly.
+
+## Dashboard variables
+
+Dashboards carry variables — most importantly a **time range** — that the
+runtime interpolates into every widget's query (`$name` placeholders). Change
+the range once and every widget on the board re-queries.
+
+## Built-in widgets
+
+| Widget            | Shows                                                       |
+| ----------------- | ----------------------------------------------------------- |
+| Metric            | A single aggregate (count, sum, average) over a query       |
+| Task list         | Tasks matching a filter, editable inline                    |
+| Saved-view table  | Any saved view, in compact table form                       |
+| Bar / line / area / pie charts | Aggregates by property, via ECharts            |
+| Social feed       | Recent items from the saved-content graph                   |
+| Page links        | A curated set of page references                            |
+| Recent items      | Recently touched nodes across the workspace                 |
+| Pin board         | Your pinned nodes                                           |
+| Mini calendar     | A month view of dated items                                 |
+
+Add widgets from the picker; each widget's configuration panel is
+auto-generated from its declared config fields (property pickers, query
+filters, display options).
+
+## The widget contract
+
+A widget definition is Grafana-shaped — manifest, config fields, query,
+renderer:
+
+```ts
+
+const taskCountWidget: WidgetDefinition = {
+  manifest: { id: 'task-count', name: 'Open task count', icon: 'check' },
+  configFields: [
+    { key: 'project', type: 'node-ref', label: 'Project', schema: 'project' }
+  ],
+  query: (config, vars) => ({
+    schema: 'task',
+    filter: { project: config.project, status: { not: 'done' } },
+    range: vars.timeRange
+  }),
+  Renderer: ({ rows }) => 
+}
+```
+
+Plugins register widgets with a `WidgetContribution`. The same definition also
+renders **on canvases** — any widget can be dropped onto a canvas as a live
+card.
+
+## Trust tiers and sandboxing
+
+The widget *host* assigns a trust tier — a widget can never self-declare one:
+
+| Tier          | Source                    | Isolation                                              |
+| ------------- | ------------------------- | ------------------------------------------------------ |
+| `built-in`    | Ships with the app        | None needed                                            |
+| `plugin`      | Installed extension       | Plugin permission model                                |
+| `user`        | Written in the in-app editor | SES `lockdown()` + per-widget `Compartment` in a Web Worker |
+| `marketplace` | Third-party               | Sandboxed iframe (`allow-scripts` only)                |
+
+User-tier widgets render through **safe node trees** materialized via tag and
+style allowlists — no `window`, `document`, `fetch`, or store access; runaway
+code is terminated and the worker respawned. Permission prompts appear when
+you add a widget that requests capabilities.
+
+## Writing your own widget in-app
+
+The widget editor (a regular tab) persists your code as a node and registers
+it as a `user`-tier widget — edit, save, and watch it render sandboxed on the
+board. It syncs like any other node, so your custom widgets follow you across
+devices.
+
+## Further reading
+
+- [The Workbench](/docs/guides/workbench/) — dashboards as tabs
+- [Plugins](/docs/guides/plugins/) — registering `WidgetContribution`s
+- [Canvas](/docs/guides/canvas/) — widget cards on the infinite canvas
+
+---
+
+## Chat, Presence & Calls
+
+**You will learn**
+
+- How channels, DMs, and voice rooms are modeled as nodes
+- How presence rooms work (who's here, typing, in a call)
+- How peer-to-peer calls connect and their mesh limits
+- What the hub adds (signaling relay, mention validation)
+  
+
+## Overview
+
+`@xnetjs/comms` brings real-time communication to the workspace using the same
+local-first machinery as everything else: **messages are signed nodes**, not a
+separate protocol. A channel is a `Channel` node (`channel`, `dm`, or `voice`),
+each message is a `ChatMessage` node signed by its author, and read state is
+your own private `InboxState` node. Everything syncs peer-to-peer, works
+offline, and lands in the same store your queries already read.
+
+## Channels and DMs
+
+- **Channels** open as workbench tabs (`/channel/$channelId`) with typing
+  indicators, an `@`-mention autocomplete composer, and call join controls.
+- **DMs** need no coordination to create: the channel ID is derived
+  deterministically from the sorted member DIDs, so both sides materialize the
+  same conversation independently.
+- **Per-document chat** — a channel can target any node, which powers the
+  Room section in the right panel: every page, canvas, or database gets a
+  discussion thread alongside a who's-here roster.
+- **Voice rooms** are channels with `kind: 'voice'`; opening one joins the
+  call automatically (the Discord model), and occupancy shows in the Chats
+  panel.
+
+Display names and avatars resolve through `Profile` nodes (DID → name /
+avatar / status), editable in Settings.
+
+### Mentions are structured
+
+Mentions are never parsed out of message text. Composers populate a
+`mentions: { dids, room? }` field on the message — the model used by Matrix's
+intentional-mentions spec — so notification logic is deterministic and a
+hostile client can't sneak a mention past a renderer difference.
+
+## Presence rooms
+
+Presence is built on **rooms**: refcounted awareness sessions over any node
+ID with typed fields — `user`, `viewing`, `status`, `typing`, `call`. The
+workspace presence room drives the global roster (the "◉ n here" chip in the
+status bar); per-node rooms drive who's-viewing-this-page and typing
+indicators. Open the same room from five components and they share one
+session.
+
+## Calls
+
+Calls are **full-mesh WebRTC**:
+
+- Offer initiation is deterministic (ordered by DID), so two peers never
+  glare.
+- The mesh ceiling is enforced reactively: **4 participants with video, 8
+  audio-only**. Beyond that, a selective-forwarding tier is on the roadmap.
+- Screen sharing replaces your video track — no renegotiation hiccup.
+- The call UI lives in a **floating dock** mounted outside the router, so
+  navigating tabs never drops a call (the Slack-huddle property).
+
+Signaling is a pluggable transport. With a hub, call setup reuses the hub's
+existing pub/sub broker — no new server protocol; an in-memory loopback
+transport exists for tests and same-device flows.
+
+## What the hub adds
+
+A [hub](/docs/guides/hub/) is optional for chat as for everything else, but
+when present it:
+
+- relays call signaling (`call/join`, `call/signal`) over its existing
+  WebSocket broker
+- validates mention declarations at relay time (shape checks and a 50-DID
+  cap) so clients can't mention-bomb a channel
+- will carry push notification delivery (in progress)
+
+For larger calls, deploy a TURN server alongside the hub — see the deployment
+recipes in the repository (`docs/deployment/REALTIME_CALLS.md`).
+
+## Current limits
+
+Chat content is signed and syncs over encrypted transports, but **per-channel
+end-to-end encryption phases are still in progress** — treat channel content
+like the rest of your workspace data today. SFU-tier large calls and push
+delivery are also on the roadmap (see the [roadmap](/#roadmap)).
+
+## Further reading
+
+- [Notifications & Inbox](/docs/guides/notifications/) — how messages become
+  notifications
+- [Collaboration](/docs/guides/collaboration/) — document presence and cursors
+- [Hub](/docs/guides/hub/) — running an always-on relay
+
+---
+
+## Notifications & Inbox
+
+**You will learn**
+
+- How notifications are derived locally from synced changes
+- The rule priority order and its edge semantics
+- How read state works (watermarks + mention acks)
+- Badges, mutes, do-not-disturb, and inbox triage
+  
+
+## Overview
+
+There is no notification server. Because every change in the workspace syncs
+to your device anyway, notifications are **derived locally**: a notifier runs
+one evaluation per applied change and decides whether it deserves your
+attention. Your read state is itself a private, user-owned node
+(`InboxState`), so the inbox follows you across devices without anyone else
+seeing what you've read.
+
+## The rules
+
+Rules run in priority order — the highest matching reason wins:
+
+```
+mention > dm > assigned > reply > comment > room-mention > keyword
+```
+
+Three details keep this trustworthy:
+
+- **Edge semantics** — assignment notifies on the *transition* into being
+  assigned. A re-sync or replay of the same change never re-notifies.
+- **Own-change suppression** — your own edits never notify you.
+- **Tombstone suppression** — deleted content doesn't resurrect a
+  notification.
+
+## Read state: watermarks + mention acks
+
+Read state is the Zulip-style hybrid:
+
+- a **per-channel watermark** ("read up to here") advances as you view a
+  channel, clearing activity in bulk;
+- **explicit mention acks** track each mention individually, so a mention
+  can't be accidentally swept away by scrolling past it.
+
+On top of that, inbox items can be triaged: **done**, **saved**, or
+**snoozed**.
+
+## Badges and alerting
+
+Badging is two-tier so the urgent never drowns in the ambient:
+
+- a **number** counts things aimed at you — mentions and DMs
+- a **dot** means there's other activity — replies, comments, room chatter
+
+Channels can be **muted**, and a mention **overrides the mute** (you can
+silence a busy channel without becoming unreachable). **Do-not-disturb
+windows** suppress alerting overnight; items still accumulate in the inbox.
+
+## The Inbox
+
+The Notifications tray (bottom panel) is the triage surface: reason-chip
+filters (mentions / DMs / assigned / replies…), done/snooze actions, and deep
+links that jump straight to the message, task, or comment in its own tab. The
+status-bar bell carries the two-tier badge.
+
+## Delivery to other surfaces
+
+Because derivation is local, anything that syncs can notify. Push delivery to
+closed apps (Web Push, Electron, mobile) rides the hub and is in progress —
+see the [roadmap](/#roadmap).
+
+## Further reading
+
+- [Chat, Presence & Calls](/docs/guides/chat-and-calls/) — where mentions and
+  DMs come from
+- [Tasks](/docs/guides/tasks/) — assignment notifications
+- [The Workbench](/docs/guides/workbench/) — the tray and status bar
+
+---
+
+## Rich Text Editor
+
+**You will learn**
+
+- The editor component and its props
+- All built-in extensions (20+)
+- Slash commands and the floating toolbar
+- How plugins contribute editor extensions
+- Yjs collaboration and cursor presence
+  
+
+## Overview
+
+`@xnetjs/editor` is a collaborative rich text editor built on TipTap v3 with Yjs for real-time CRDT sync. It provides three entry points:
+
+| Import                    | Contents                                 |
+| ------------------------- | ---------------------------------------- |
+| `@xnetjs/editor`            | Core `Editor` class (framework-agnostic) |
+| `@xnetjs/editor/react`      | React components, hooks, node views      |
+| `@xnetjs/editor/extensions` | All TipTap extensions and utilities      |
+
+## RichTextEditor component
+
+```tsx
+
+ router.push(`/doc/${docId}`)}
+  onImageUpload={handleImageUpload}
+  onFileUpload={handleFileUpload}
+  onEditorReady={(editor) => { ... }}
+/>
+```
+
+## Built-in extensions
+
+### Block types
+
+| Block           | Description                                                               | Input             |
+| --------------- | ------------------------------------------------------------------------- | ----------------- |
+| Paragraph       | Default text block                                                        | —                 |
+| Heading (1-6)   | Section headings with `#` syntax preview                                  | `# `, `## `, etc. |
+| Code Block      | Syntax-highlighted code with language selector                            | ` ``` `           |
+| Blockquote      | Quote with `>` prefix preview                                             | `> `              |
+| Bullet List     | Unordered list                                                            | `- ` or `* `      |
+| Ordered List    | Numbered list                                                             | `1. `             |
+| Task List       | Checkbox list with nesting                                                | `[ ] `            |
+| Horizontal Rule | Divider                                                                   | `---`             |
+| Image           | CID-based with paste/drop upload, resize handles, alignment               | Paste or `/image` |
+| File            | Generic file attachment with upload progress                              | Drop or `/file`   |
+| Embed           | Auto-embed for YouTube, Vimeo, Spotify, Twitter, Figma, CodeSandbox, Loom | Paste URL         |
+| Callout         | 6 types (info, tip, warning, caution, note, quote), collapsible           | `> [!info]`       |
+| Toggle          | Collapsible details/summary sections                                      | `> [toggle]`      |
+| Database Embed  | Inline database views (table/board/list/calendar/gallery/timeline)        | `/database`       |
+| Mermaid         | Diagram blocks (via plugin)                                               | ` ```mermaid `    |
+
+### Marks
+
+Bold, italic, strikethrough, code, link, wikilink (`[[page-name]]`), and comment.
+
+### Live preview
+
+Obsidian-style inline markdown syntax rendering — bold markers (`**`), italic (`*`), strikethrough (`~~`), and code (`` ` ``) are shown as decorations while typing and hidden when the cursor moves away.
+
+## Slash commands
+
+Type `/` to open the command palette. Built-in command groups:
+
+- **Basic Blocks** — Text, H1, H2, H3
+- **Lists** — Bullet, Numbered, Task
+- **Blocks** — Quote, Code Block, Divider
+- **Media** — Image, File, Embed
+- **Callouts** — Info, Tip, Warning, Caution, Note
+- **Toggles** — Toggle section
+- **Data** — Database
+
+Plugins can add custom slash commands via `contributes.slashCommands`.
+
+## Floating toolbar
+
+The toolbar appears on text selection:
+
+- **Desktop** — Bubble menu floating near the selection
+- **Mobile** — Fixed bottom bar, horizontally scrollable
+
+Built-in buttons: Bold, Italic, Strike, Code, Comment | H1, H2, H3 | Bullet, Ordered, Task | Quote, Code Block, Divider.
+
+Plugins can add toolbar buttons via `EditorContribution.toolbar`.
+
+## Drag and drop
+
+Three integrated plugins handle block-level drag and drop:
+
+- **DragHandle** — Shows a grip icon on hover at the left edge of blocks
+- **DragDropPlugin** — Handles block reordering via drag
+- **DropIndicator** — Shows a visual insertion line during drag
+
+## Yjs collaboration
+
+The editor binds to a `Y.XmlFragment` inside the Y.Doc via TipTap's `Collaboration` extension. When you pass an `awareness` instance, cursor presence is shown automatically:
+
+- Remote cursors rendered as colored carets with DID-derived identicon avatars
+- Selections shown as translucent highlights in the user's color
+- Hover over a cursor to see the user label
+
+### Comment anchors
+
+Comments are positioned using Yjs relative positions (`captureTextAnchor` / `resolveTextAnchor`). This means comment positions survive concurrent edits — if someone inserts text before your comment, the anchor moves with the text.
+
+## Plugin extensions
+
+Plugins contribute editor extensions through the contribution system:
+
+```ts
+// In a plugin manifest
+contributes: {
+  editorExtensions: [{
+    id: 'my-extension',
+    extension: MyTipTapExtension,
+    priority: 100,
+    toolbar: {
+      icon: MyIcon,
+      title: 'My Tool',
+      group: 'insert',
+      action: (editor) => editor.chain().focus().insertMyThing().run()
+    }
+  }],
+  slashCommands: [{
+    id: 'my-command',
+    name: 'My Block',
+    execute: ({ editor, range }) => { ... }
+  }]
+}
+```
+
+The Electron app collects plugin extensions via `useEditorExtensionsSafe()` and passes them to ``. Plugin extensions are loaded before the editor mounts to prevent crashes when Yjs content contains nodes from unregistered extensions.
+
+## Embed providers
+
+URLs pasted into the editor are automatically detected and embedded for 7 services:
+
+| Provider    | URL Pattern                     |
+| ----------- | ------------------------------- |
+| YouTube     | `youtube.com/watch`, `youtu.be` |
+| Vimeo       | `vimeo.com`                     |
+| Spotify     | `open.spotify.com`              |
+| Twitter/X   | `twitter.com`, `x.com`          |
+| Figma       | `figma.com`                     |
+| CodeSandbox | `codesandbox.io`                |
+| Loom        | `loom.com`                      |
+
+## Further reading
+
+- [Collaboration Guide](/docs/guides/collaboration/) — Real-time editing patterns
+- [Plugin Development](/docs/guides/plugins/) — Contributing editor extensions
+- [useNode](/docs/hooks/usenode/) — The hook that provides the editor
+
+---
+
+## Infinite Canvas
+
+**You will learn**
+
+- How the infinite canvas works
+- The spatial index (R-tree) for viewport culling
+- Layout algorithms (ELK.js, grid, circle)
+- The Canvas component and useCanvas hook
+- How canvas state syncs via Yjs
+  
+
+## Overview
+
+`@xnetjs/canvas` provides an infinite, zoomable 2D surface where users can place, connect, and arrange nodes. The canvas supports real-time collaboration via Yjs — multiple users can simultaneously add, move, and connect nodes.
+
+## Canvas component
+
+```tsx
+
+; } // Custom node content
+  onNodeDoubleClick={(id) => open(id)}
+  onBackgroundClick={() => deselect()}
+  config={{
+    minZoom: 0.1,
+    maxZoom: 3,
+    gridSize: 20,
+    showGrid: true
+  }}
+/>
+```
+
+### Keyboard shortcuts
+
+| Shortcut               | Action                |
+| ---------------------- | --------------------- |
+| `Delete` / `Backspace` | Delete selected nodes |
+| `Cmd+A`                | Select all            |
+| `Escape`               | Clear selection       |
+| `Cmd+1`                | Fit to content        |
+| `Cmd+0`                | Reset view            |
+
+### Mouse and touch interaction
+
+- **Scroll** — Pan the canvas
+- **Ctrl/Cmd + Scroll** — Zoom
+- **Two-finger pinch** — Zoom (trackpads and touch screens, including Safari gestures)
+- **Click node** — Select it
+- **Click edge** — Select it (edges have generous invisible hit areas)
+- **Shift/Cmd + Click** — Additive selection
+- **Drag node** — Move it
+- **Drag resize handles** — Resize (8 handles on selection)
+- **Drag a connector handle** — Draw a new edge to another node (handles appear on hover)
+- **Double-click** — Open node, or edit its text in place
+
+## Editing on the canvas
+
+Nodes and edges are directly editable without leaving the canvas:
+
+- **Edges** — click to select; a floating toolbar offers a label input, an
+  edge-kind picker, reverse direction, and delete.
+- **Drag-to-connect** — drag from a node's connector handle (shown on hover)
+  and drop on another node to create an edge.
+- **Node text** — double-click a canvas-native node (shape, note) to edit its
+  text inline. Source-backed cards (a page or database dropped onto the
+  canvas) keep their source's title; press `F2` or use the Rename action to
+  give the card a local alias instead.
+
+All edits go through Yjs transactions and sync live to collaborators.
+
+## useCanvas hook
+
+The primary hook that wires together the store, viewport, and layout engine:
+
+```ts
+const {
+  // State
+  nodes,
+  edges,
+  selectedNodeIds,
+  viewport,
+
+  // Node operations
+  addNode,
+  updateNodePosition,
+  removeNode,
+
+  // Edge operations
+  addEdge,
+  removeEdge,
+
+  // Selection
+  selectNode,
+  selectAll,
+  clearSelection,
+  deleteSelected,
+
+  // Viewport
+  pan,
+  zoomAt,
+  fitToContent,
+  resetView,
+
+  // Layout
+  autoLayout,
+  layoutSelected,
+
+  // Queries
+  findNodeAt,
+  findNodesInRect,
+  getVisibleNodes
+} = useCanvas({ doc: ydoc, config })
+```
+
+## Spatial index
+
+The canvas uses an R-tree (`rbush`) for efficient spatial queries. This enables viewport culling — only nodes visible on screen need to be rendered.
+
+```ts
+// Find all nodes in the current viewport
+const visibleIds = store.getVisibleNodes(viewport.getVisibleRect())
+
+// Find the topmost node at a point
+const nodeId = store.findNodeAt(point)
+
+// Find all nodes overlapping with a given node
+const overlapping = store.findIntersecting(nodeId)
+```
+
+The spatial index is automatically updated when nodes are added, moved, or removed.
+
+## Layout algorithms
+
+The `LayoutEngine` supports automatic layout via ELK.js and two built-in algorithms:
+
+### ELK.js layouts
+
+```ts
+await autoLayout({
+  algorithm: 'layered', // Sugiyama/hierarchical
+  direction: 'RIGHT', // RIGHT, LEFT, DOWN, UP
+  nodeSpacing: 50,
+  layerSpacing: 100,
+  edgeRouting: 'ORTHOGONAL' // POLYLINE, ORTHOGONAL, SPLINES
+})
+```
+
+Available algorithms: `layered`, `force`, `mrtree`, `radial`, `stress`, `box`.
+
+### Grid layout
+
+```ts
+layoutEngine.layoutGrid(nodes, {
+  columns: 4,
+  spacing: 20,
+  padding: 50
+})
+```
+
+### Circle layout
+
+```ts
+layoutEngine.layoutCircle(nodes, {
+  radius: 300 // Auto-calculated if omitted
+})
+```
+
+Nodes with `properties.fixed = true` keep their positions during layout.
+
+## Viewport
+
+The `Viewport` class manages the camera:
+
+- **`pan(dx, dy)`** — Move by screen-space delta
+- **`zoomAt(x, y, factor)`** — Zoom while keeping the point under cursor stationary
+- **`fitToRect(rect, padding)`** — Fit viewport to show a rectangle (never zooms beyond 100%)
+- **`reset()`** — Return to origin at zoom 1
+- **`screenToCanvas(x, y)`** — Convert screen coordinates to canvas space
+- **`canvasToScreen(x, y)`** — Convert canvas coordinates to screen space
+- **`getVisibleRect()`** — The canvas-space rectangle currently on screen
+
+## Data storage
+
+Canvas state is stored in three Yjs maps inside the Y.Doc:
+
+| Map        | Contents                          |
+| ---------- | --------------------------------- |
+| `metadata` | Title, created/updated timestamps |
+| `nodes`    | `CanvasNode` objects keyed by ID  |
+| `edges`    | `CanvasEdge` objects keyed by ID  |
+
+All mutations go through Yjs transactions, so changes sync automatically to other peers. The spatial index updates reactively when the Yjs maps change.
+
+## Node types
+
+```ts
+interface CanvasNode {
+  id: string
+  type: string // 'page', 'database', 'note', etc.
+  position: {
+    x: number
+    y: number
+    width: number // Default: 200
+    height: number // Default: 100
+    rotation?: number
+    zIndex?: number
+    collapsed?: boolean
+  }
+  properties: Record<string, unknown>
+  linkedNodeId?: string // Link to a page/database node
+}
+```
+
+Edges connect nodes with optional labels, arrow markers, and routing styles (bezier or orthogonal).
+
+## Comments
+
+The canvas supports spatial comments via `useCanvasComments`:
+
+- **Position pins** — Fixed canvas coordinates. Never orphaned.
+- **Object-attached pins** — Follow a node's position. Become orphaned when the node is deleted.
+
+## Further reading
+
+- [Collaboration Guide](/docs/guides/collaboration/) — Real-time editing patterns
+- [Sync Guide](/docs/guides/sync/) — How Yjs sync works
+
+---
+
+## DevTools
+
+**You will learn**
+
+- How to enable and use the debug panels (9 core + AuthZ panel)
+- What each panel shows and how to read it
+- The event bus instrumentation system
+- How to integrate DevTools into your app
+  
+
+## Quick start
+
+Wrap your app with `XNetDevToolsProvider`. In production builds, it tree-shakes to zero bytes.
+
+```tsx
+
+  
+    
+  
+
+```
+
+**Toggle:** `Ctrl+Shift+D` (or `Cmd+Shift+D` on Mac), or click the floating wrench button.
+
+## The panels
+
+### Nodes
+
+Browse every node in the NodeStore. Features:
+
+- Full-text search across IDs, schemas, and properties
+- Filter by schema type
+- Show/hide deleted nodes
+- Click a node to see its full properties, timestamps, and author DID
+- Copy all nodes as JSON
+
+Data refreshes every 2 seconds and on live store events.
+
+### Changes
+
+Chronological timeline of all mutations with Lamport clock ordering:
+
+- Color-coded by operation: green (create), blue (update), red (delete), yellow (restore), purple (remote), amber (conflict)
+- Filter by node ID or event type
+- Auto-scroll toggle to follow new events
+- Click any change for the full JSON payload
+
+Keeps the last 1000 events.
+
+### Sync
+
+P2P connection status and peer monitoring:
+
+- Connection status indicator (connected/connecting/disconnected/error)
+- Peer list with connection times
+- Sent/received/error counters
+- Scrolling event log with timestamps
+- Toggle sync debug logging (`localStorage xnet:sync:debug`)
+
+### Yjs
+
+Y.Doc structure inspector with three sub-views:
+
+- **Updates** — Live stream of Yjs update events with local/remote indicators and byte sizes
+- **Structure** — Interactive tree view of Y.Doc shared types (Map, Array, Text, XmlFragment). Expandable nodes, color-coded by type, depth-limited to 5 levels.
+- **State Vectors** — ClientID clock values with progress bars. Shows how far each peer has synced.
+
+Select a document from the sidebar to inspect its internals.
+
+### Queries
+
+Performance profiler for all active hooks:
+
+- Lists every `useQuery`, `useMutate`, and `useNode` instance
+- Shows schema, mode (list/single/filtered/document), caller source location
+- Tracks update count, result count, average and peak render time
+- Warnings: amber for >16ms (dropped frame), red for >50ms
+- Sort by most updates, slowest render, or most recent
+
+Source locations are extracted from stack traces automatically.
+
+### Telemetry
+
+Security events and performance metrics, split into three tabs:
+
+- **Security** — Network health score, crash entries, security events by severity, peer reputation scores with breakdown
+- **Performance** — Metric groups with bucket distribution charts (time ranges: \<10ms, 10-50ms, 50-100ms, etc.)
+- **Consent** — Current telemetry tier (off/local/crashes/anonymous)
+
+### Schemas
+
+All registered schemas and their properties:
+
+- Schema list with node counts and property counts
+- Property details: type (color-coded), required flag, config summary
+- Raw schema JSON dump
+- Built-in vs. user-defined badges
+
+### Seed
+
+Create sample data for testing:
+
+- **Create Sample Page** — Rich document with headings, lists, callouts, code blocks, Mermaid diagrams, comments with text anchors, and change history
+- **Create Sample Database** — 15-column database with all property types, 5 rows, view configs, and comments
+
+### History
+
+Full change history and time travel for individual nodes. Seven sub-tabs:
+
+- **Timeline** — Scrub through all changes with a slider. See materialized state at any point.
+- **Diff** — Compare two points in time. Shows added/modified/removed properties with before/after values.
+- **Blame** — Per-property attribution: who last changed each field, when, and how many times.
+- **Audit** — Filterable audit log with operation breakdown (create/update/delete/restore).
+- **Verification** — Check hash chain integrity. Reports valid/invalid, verified hashes, chain links, forks.
+- **Storage** — Storage metrics, prunable changes, estimated recovery bytes.
+- **Document** — Yjs snapshot timeline. Compare snapshots with size deltas and content diffs.
+
+### AuthZ
+
+Live authorization inspector for the [encryption-first access control system](/docs/guides/authorization/). Five sub-tabs:
+
+- **Playground** — Test `store.auth.can()` interactively. Select a node and action, see the decision with a full explanation trace including role resolution steps.
+- **Grants** — All active grants for the selected node: grantee DID, actions, expiry, and revocation controls. Create new grants directly from this panel.
+- **Timeline** — Chronological log of grant changes — created, revoked, expired — with timestamps and actor DIDs.
+- **Delegation tree** — Visual tree of UCAN delegation chains. Shows the full proof hierarchy with depth indicators and attenuation warnings.
+- **Revocation propagation** — Tracks revocation events across peers: which peers have received and applied a revocation, with timing deltas.
+
+## Configuration
+
+```tsx
+
+```
+
+### Toggle methods
+
+| Method                   | Description                       |
+| ------------------------ | --------------------------------- |
+| `Ctrl+Shift+D`           | Keyboard shortcut                 |
+| Floating button          | Click the wrench icon (draggable) |
+| 4-finger tap             | Mobile                            |
+| `useDevTools().toggle()` | Programmatic                      |
+
+### Persistence
+
+The panel remembers its state in `localStorage`:
+
+- `xnet:devtools:open` — open/closed
+- `xnet:devtools:panel` — last active tab
+- `xnet:devtools:position` — dock position
+
+## Event bus
+
+All instrumentation flows through a `DevToolsEventBus` — a typed ring buffer (default 10,000 events):
+
+```ts
+const { eventBus } = useDevTools()
+
+// Subscribe to all events
+eventBus.subscribe((event) => console.log(event))
+
+// Subscribe to a specific type
+eventBus.on('sync:peer-connected', (event) => { ... })
+
+// Query
+eventBus.getEventsByType('store:create')
+eventBus.getEventsForNode(nodeId)
+eventBus.getRecent(50)
+```
+
+### Event categories
+
+| Category      | Events                                                                                                                                   |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Store (7)     | `store:create`, `store:update`, `store:delete`, `store:restore`, `store:transaction`, `store:remote-change`, `store:conflict`            |
+| Sync (6)      | `sync:status-change`, `sync:peer-connected`, `sync:peer-disconnected`, `sync:change-received`, `sync:broadcast`, `sync:error`            |
+| Yjs (4)       | `yjs:update`, `yjs:meta-change`, `yjs:state-vector`, `yjs:provider-status`                                                               |
+| Query (6)     | `query:subscribe`, `query:unsubscribe`, `query:result`, `query:error`, `mutate:start`, `mutate:complete`                                 |
+| Telemetry (6) | `telemetry:crash`, `telemetry:usage`, `telemetry:security`, `telemetry:performance`, `telemetry:consent-change`, `telemetry:peer-scores` |
+
+### Instrumentation wiring
+
+Instrumentation functions connect data sources to the event bus:
+
+```ts
+instrumentStore(store, eventBus) // NodeStore events
+instrumentSync(provider, room, bus) // SyncProvider events
+instrumentYDoc(doc, docId, bus) // Y.Doc updates
+instrumentTelemetry(collector, consent, bus) // Telemetry
+```
+
+React hooks (`useQuery`, `useNode`) automatically report to DevTools when the provider is present, via `InstrumentationContext`. No manual wiring needed.
+
+## useDevTools hook
+
+```ts
+const {
+  isOpen,
+  toggle,
+  eventBus,
+  activeNodeId,
+  setActiveNodeId,
+  activePanel,
+  setActivePanel,
+  store,
+  yDocRegistry
+} = useDevTools()
+```
+
+## Production behavior
+
+When `NODE_ENV` is `production`, the DevTools provider renders children unchanged and `useDevTools()` returns inert stubs. The full panel code is tree-shaken out of the bundle — zero bytes in production.
+
+---
+
+## Authorization
+
+**You will learn**
+
+- The core insight: encryption IS authorization
+- How to define roles and actions in your schema
+- How to grant, revoke, and delegate access
+- How to check permissions with `useCan` and `useGrants`
+- How key recovery and multi-device access work
+- The trust model and its security tradeoffs
+  
+
+## The core insight
+
+In a decentralized system, the only meaningful access control is **the ability to decrypt**:
+
+```
+Can you decrypt it?       → You can read it.
+In the recipients list?  → The hub will serve it to you.
+Schema says you can write? → The client will let you sign a change.
+```
+
+Roles, relations, and UCAN delegation are all machinery for deciding **who gets the content key**. Once a user has the key, cryptography enforces their access — no server policy engine required.
+
+## Defining authorization in a schema
+
+Add an `authorization` block to any schema to define who can do what:
+
+```ts
+
+export const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true }),
+    assignee: person(),
+    project: relation({ target: 'xnet://my-app/Project' as const }),
+    editors: person({ multiple: true })
+  },
+  authorization: {
+    roles: {
+      owner: role.creator(), // whoever created the node
+      assignee: role.property('assignee'), // person() property value
+      editor: role.property('editors'), // person({ multiple: true }) value
+      admin: role.relation('project', 'admin'), // role from a related node
+      viewer: role.relation('project', 'viewer') // role from a related node
+    },
+    actions: {
+      read: allow('viewer', 'editor', 'admin', 'owner', 'assignee'),
+      write: allow('editor', 'admin', 'owner'),
+      delete: allow('admin', 'owner'),
+      share: allow('admin', 'owner')
+    },
+    publicProps: ['title'] // properties readable without decryption
+  }
+})
+```
+
+### Role types
+
+| Builder                          | Resolves to                                  |
+| -------------------------------- | -------------------------------------------- |
+| `role.creator()`                 | The DID that created the node                |
+| `role.property('field')`         | The DID(s) in a `person()` property          |
+| `role.relation('field', 'role')` | Anyone who has that role on the related node |
+
+### Actions
+
+| Action   | Covers                                          |
+| -------- | ----------------------------------------------- |
+| `read`   | `store.get`, `useQuery`, hub queries            |
+| `write`  | `store.create`, `store.update`, `store.restore` |
+| `delete` | `store.delete`                                  |
+| `share`  | `store.auth.grant`, `store.auth.revoke`         |
+| `admin`  | Hub operational controls                        |
+
+Explicit `deny()` always wins over `allow()`:
+
+```ts
+actions: {
+  read: allow('viewer').deny('blocked'),  // 'blocked' role can never read
+}
+```
+
+### Public nodes
+
+Set `publicProps` to expose specific fields without encryption, or use `PUBLIC` to make the entire node readable by anyone:
+
+```ts
+authorization: {
+  // ...roles and actions...
+  publicProps: ['title', 'status'],  // these fields are unencrypted
+}
+```
+
+For fully public nodes (no access control), use the built-in preset:
+
+```ts
+
+export const ArticleSchema = defineSchema({
+  // ...
+  authorization: presets.public
+})
+```
+
+### Permission presets
+
+```ts
+
+// Full owner control — only creator can do anything
+authorization: presets.ownerOnly
+
+// Owner + share — owner shares explicit read/write with others via grants
+authorization: presets.ownerWithShare
+
+// Collaborative — creator is owner, any member of a 'workspace' relation can read/write
+authorization: presets.collaborative({ relation: 'workspace' })
+
+// Fully public — all content is unencrypted and anyone can read
+authorization: presets.public
+```
+
+## Checking permissions
+
+### `useCan` hook
+
+```tsx
+
+function TaskCard({ taskId }: { taskId: string }) {
+  const { canRead, canWrite, canDelete, canShare, loading } = useCan(taskId)
+
+  if (loading) return null
+
+  return (
+    <div>
+      
+      {canWrite && }
+      {canDelete && }
+      {canShare && }
+    </div>
+  )
+}
+```
+
+`useCan` is reactive — it re-evaluates when grants change or when you switch users.
+
+### `store.auth.can()`
+
+```ts
+const decision = await store.auth.can({ action: 'write', nodeId: taskId })
+// { allowed: true, reason: 'role:owner', cached: false }
+
+const decision = await store.auth.can({ action: 'delete', nodeId: taskId })
+// { allowed: false, reason: 'no matching role or grant' }
+```
+
+### Explaining a decision
+
+For debugging or AI-assisted introspection, use `explain()`:
+
+```ts
+const trace = await store.auth.explain({ action: 'write', nodeId: taskId })
+// {
+//   allowed: true,
+//   subject: 'did:key:z6Mk...',
+//   action: 'write',
+//   nodeId: 'task_abc',
+//   roles: ['owner'],
+//   grants: [],
+//   policyTrace: [
+//     { rule: 'allow(editor, admin, owner)', matched: 'owner' }
+//   ]
+// }
+```
+
+## Granting and revoking access
+
+### `useGrants` hook
+
+```tsx
+
+function ShareDialog({ taskId }: { taskId: string }) {
+  const { grants, grant, revoke, loading } = useGrants(taskId)
+
+  return (
+    <div>
+      {grants.map((g) => (
+        <div key={g.id}>
+          {g.grantee} — {g.actions.join(', ')}
+          <button onClick={() => revoke(g.id)}>Revoke</button>
+        </div>
+      ))}
+      <button onClick={() => grant({ to: 'did:key:...', actions: ['read'] })}>Add person</button>
+    </div>
+  )
+}
+```
+
+### `store.auth` API
+
+```ts
+// Grant access with optional expiry
+await store.auth.grant({
+  to: bobDid,
+  actions: ['read', 'write'],
+  resource: taskId,
+  expiresIn: '7d' // or expiresAt: timestamp
+})
+
+// Revoke a grant (last-admin protection prevents locking yourself out)
+await store.auth.revoke({ grantId })
+
+// List all grants for a node
+const grants = await store.auth.listGrants({ nodeId: taskId })
+```
+
+Grants are stored as signed nodes in the NodeStore — they sync, replicate, and benefit from the same CRDT conflict resolution as all other data.
+
+### Delegation (UCAN chains)
+
+Any user with the `share` action can delegate their access to another user via UCAN proof chains. Delegation is **attenuated** — you can only delegate up to (not beyond) your own permissions:
+
+```ts
+// Alice (owner) grants Bob write access
+await store.auth.grant({ to: bob, actions: ['write'], resource: docId })
+
+// Bob can delegate read access to Carol (subset of Bob's write)
+await store.auth.grant({
+  to: carol,
+  actions: ['read'],
+  resource: docId
+  // Bob's grant to Alice is automatically included as proof
+})
+```
+
+Delegation chains are capped at depth 4 (`maxProofDepth = 4`). Revoking a parent grant cascades to all derived grants.
+
+### Grant expiration
+
+Grants with `expiresIn` or `expiresAt` automatically become inactive after their expiry time. A background `GrantExpirationCleaner` prunes expired grants and re-encrypts affected nodes with updated recipient lists.
+
+## How enforcement works
+
+### Local mutations
+
+When you call `store.create()`, `store.update()`, or `store.delete()`, the store checks authorization first:
+
+```ts
+try {
+  await store.update(TaskSchema, taskId, { title: 'New title' })
+} catch (err) {
+  if (err instanceof PermissionError) {
+    // err.message: "denied: action=write, subject=did:key:..., role context: [viewer]"
+  }
+}
+```
+
+### Remote changes
+
+When a remote peer's change arrives via sync, the store silently rejects unauthorized changes and emits a `change:rejected` event. The peer also receives a scoring penalty to protect against abuse.
+
+### Yjs documents
+
+Collaborative editing (via `useNode`) uses a layered auth model:
+
+1. **Room gate** — only authorized users can join a sync room
+2. **Per-update gate** — each incoming Yjs update is checked against `PolicyEvaluator`
+3. **At-rest encryption** — Y.Doc state is encrypted with the node's content key
+
+Revoking a user from a document immediately kicks them from the room and rotates the content key, so all future updates are encrypted for the new recipient set.
+
+### Hub filtering
+
+The hub never decrypts data — it filters queries by recipient lists stored in node metadata. If your DID isn't in the recipients list, the hub doesn't return the node. This is transparent to your app: you write normal queries, unauthorized data is silently excluded.
+
+## Failure modes
+
+| Context                      | When auth fails                             | Why                                    |
+| ---------------------------- | ------------------------------------------- | -------------------------------------- |
+| `store.create/update/delete` | Throws `PermissionError`                    | Developer should see and handle errors |
+| `applyRemoteChange`          | Silently rejected + `change:rejected` event | Don't crash on bad remote data         |
+| Yjs update                   | Silently rejected + peer scoring penalty    | Don't interrupt editing flow           |
+| Hub query                    | Node excluded from results (no error)       | Transparent access control             |
+
+## Trust model
+
+**Read access is cryptographically enforced.** If you don't have the content key, you cannot decrypt the data. The hub can't help you because it doesn't hold keys.
+
+**Write access is enforced client-side.** A malicious client could skip the `can()` check and broadcast a signed change. The hub and honest peers accept it because the Ed25519 signature is valid.
+
+This is an intentional tradeoff:
+
+- All changes are signed and part of a tamper-evident hash chain — unauthorized writes are attributable and detectable
+- Peer scoring penalizes unauthorized write attempts, leading to automatic blocking
+- Key rotation on revocation means revoked users lose future read access regardless of write-side enforcement
+
+For apps where write enforcement must be stronger, self-hosted hubs can add custom policy validation.
+
+## Key resolution
+
+When encrypting a node for a recipient, xNet needs their X25519 public key to perform key wrapping. It resolves this in two steps:
+
+1. **Birational conversion** — Ed25519 public keys (from DID:key) can be mathematically converted to X25519 keys without any additional lookup. This works for any DID:key holder.
+2. **Hub registry fallback** — For cases where the key holder has registered a separate X25519 key (unusual), the hub maintains a public key registry.
+
+This means sharing data with any DID:key holder requires no out-of-band key exchange.
+
+## Key recovery & multi-device
+
+### Seed phrase
+
+Your signing key can be derived deterministically from a seed phrase (BIP-39 format). The seed phrase is the root of your identity — back it up carefully.
+
+```ts
+
+// Generate a new identity with a recoverable seed
+const { mnemonic, bundle } = deriveSeedPhrase()
+// mnemonic: "correct horse battery staple ..."
+
+// Recover identity on a new device
+const recoveredBundle = recoverFromSeedPhrase(mnemonic)
+// Produces the same DID and key pair
+```
+
+### Multi-device
+
+Each device derives the same primary key from the seed, so your DID is the same across devices. When you add a second device:
+
+1. The new device generates its own device-specific encryption key
+2. It registers in a device registry (synchronized via the Hub)
+3. Your primary key wraps the content keys for each device
+
+### Social recovery
+
+As a fallback when the seed phrase is unavailable, xNet supports Shamir's Secret Sharing: split the seed across trusted contacts, any threshold (e.g., 3 of 5) can reconstruct it.
+
+### Encrypted hub backup
+
+The hub can store an encrypted backup of your key bundle, unlocked by a passphrase or WebAuthn credential. This is opt-in and the hub never sees the plaintext key.
+
+## Offline authorization
+
+By default, authorization decisions are cached with a 5-minute TTL. This means:
+
+- The app works offline — cached decisions are used while disconnected
+- Revocations take at most 5 minutes to propagate to offline users
+- On reconnect, the cache is revalidated against the current grant state
+
+Configure offline behavior per-schema:
+
+```ts
+authorization: {
+  // ...
+  offlinePolicy: {
+    cacheTTL: 300_000,          // 5 minutes (default)
+    maxStaleness: 3_600_000,    // 1 hour — refuse to use older cached decisions
+    revalidateOnReconnect: true // (default) revalidate immediately when online
+  }
+}
+```
+
+## Migration from unencrypted schemas
+
+Schemas without an `authorization` block continue to work but emit a console warning in development. To add authorization to an existing schema:
+
+1. Add the `authorization` block with your desired roles and actions
+2. Run the `AuthMigrator` utility to batch-encrypt existing nodes:
+
+```ts
+
+const migrator = new AuthMigrator(store, encryptionLayer)
+await migrator.migrateSchema(MySchema, {
+  batchSize: 50,
+  onProgress: ({ done, total }) => console.log(`${done}/${total}`)
+})
+```
+
+The migration re-encrypts nodes in batches and updates their recipient lists. Existing peers will receive the re-encrypted versions via normal sync.
+
+## Related
+
+- [defineSchema](/docs/schemas/defineschema/) — Full schema API reference
+- [Identity & Keys](/docs/guides/identity/) — DID:key, UCAN tokens, key management
+- [Cryptography](/docs/concepts/cryptography/) — BLAKE3, Ed25519, XChaCha20, X25519
+- [Offline Patterns](/docs/guides/offline/) — Offline cache behavior and sync
+- [DevTools](/docs/guides/devtools/) — AuthZ panel for live inspection
+
+---
+
 ## Sync Guide
 
 **You will learn**
@@ -2626,6 +4111,602 @@ Use `pnpm dev:both` in the Electron app to run two instances for testing sync be
 
 ---
 
+## Version Compatibility
+
+**You will learn**
+
+- How protocol versioning and schema versioning work
+- How to create migrations with lenses
+- How version negotiation keeps peers compatible
+- How to use CLI tools for schema management
+- How to diagnose and repair data issues
+  
+
+## Overview
+
+xNet uses a **translate-on-read** approach to version compatibility:
+
+```mermaid
+flowchart LR
+  subgraph Storage
+    V1["v1 data"]
+    V2["v2 data"]
+    V3["v3 data"]
+  end
+
+  subgraph "Read Path"
+    L1["Lens v1→v2"]
+    L2["Lens v2→v3"]
+  end
+
+  subgraph App
+    Current["Current Schema (v3)"]
+  end
+
+  V1 --> L1 --> L2 --> Current
+  V2 --> L2
+  V3 --> Current
+```
+
+1. Data is stored in its original format
+2. Migrations are applied when reading, not when writing
+3. Old clients can still read new data (graceful degradation)
+4. No batch migrations required
+
+This means you can ship schema changes incrementally without breaking existing clients.
+
+## Protocol versioning
+
+The sync protocol is versioned separately from schemas. Every `Change` includes a `protocolVersion`:
+
+```ts
+interface Change {
+  id: string
+  type: string
+  payload: T
+  protocolVersion: number // Currently: 1
+  hash: ContentId
+  parentHash: ContentId | null
+  authorDID: DID
+  signature: Uint8Array
+  lamport: LamportTimestamp
+}
+```
+
+### Version compatibility
+
+| Your Version | Peer Version | Behavior                                           |
+| ------------ | ------------ | -------------------------------------------------- |
+| v1           | v1           | Full compatibility                                 |
+| v1           | v0 (legacy)  | Full backward compatibility                        |
+| v1           | v2+          | Partial — unknown fields preserved, warning logged |
+
+### Feature negotiation
+
+When peers connect, they negotiate a common feature set:
+
+```mermaid
+sequenceDiagram
+  participant A as Client A (v1.2)
+  participant B as Client B (v1.0)
+
+  A->>B: Hello {features: [yjs, change_v2, compression]}
+  B->>A: Hello {features: [yjs, change_v1]}
+  Note over A,B: Negotiate intersection
+  A->>B: Using {features: [yjs, change_v1]}
+  Note over A,B: A downgrades to v1 format
+```
+
+```ts
+// Handshake exchange
+{
+  clientVersion: '1.2.0',
+  protocolVersion: 1,
+  features: ['yjs_sync', 'change_v2', 'signatures', 'compression']
+}
+```
+
+The negotiator finds the intersection of features both peers support. If a required feature is missing, the connection is downgraded or rejected.
+
+## Schema versioning
+
+Every schema should have a semantic version:
+
+```ts
+
+const TaskSchema = defineSchema({
+  name: 'Task',
+  version: '2.0.0', // Major.Minor.Patch
+  properties: {
+    title: { type: 'text' },
+    status: { type: 'select', options: ['todo', 'doing', 'done'] },
+    priority: { type: 'select', options: ['low', 'medium', 'high'] }
+  }
+})
+```
+
+### Version bump rules
+
+| Change Type                     | Version Bump | Example           |
+| ------------------------------- | ------------ | ----------------- |
+| Add optional field              | Minor        | `1.0.0` → `1.1.0` |
+| Add required field with default | Minor        | `1.0.0` → `1.1.0` |
+| Remove field                    | Major        | `1.0.0` → `2.0.0` |
+| Rename field                    | Major        | `1.0.0` → `2.0.0` |
+| Change field type               | Major        | `1.0.0` → `2.0.0` |
+| Fix bug in migration            | Patch        | `1.0.1` → `1.0.2` |
+
+### Schema change classification
+
+Every schema change falls into one of three risk categories:
+
+```mermaid
+flowchart TB
+    subgraph "SAFE - Ship Anytime"
+        SAFE1["Add optional properties"]
+        SAFE2["Add new schemas"]
+        SAFE3["Add new change types"]
+        SAFE4["Add new select options"]
+        SAFE5["Make required → optional"]
+    end
+
+    subgraph "CAUTION - Plan Ahead"
+        CAUTION1["Add required properties"]
+        CAUTION2["Remove properties"]
+        CAUTION3["Make optional → required"]
+        CAUTION4["Change property defaults"]
+    end
+
+    subgraph "BREAKING - Requires Migration"
+        DANGER1["Change property type"]
+        DANGER2["Rename properties"]
+        DANGER3["Change schema namespace"]
+        DANGER4["Remove select options"]
+    end
+
+    style SAFE1 fill:#c8e6c9
+    style SAFE2 fill:#c8e6c9
+    style SAFE3 fill:#c8e6c9
+    style SAFE4 fill:#c8e6c9
+    style SAFE5 fill:#c8e6c9
+    style CAUTION1 fill:#fff3e0
+    style CAUTION2 fill:#fff3e0
+    style CAUTION3 fill:#fff3e0
+    style CAUTION4 fill:#fff3e0
+    style DANGER1 fill:#ffcdd2
+    style DANGER2 fill:#ffcdd2
+    style DANGER3 fill:#ffcdd2
+    style DANGER4 fill:#ffcdd2
+```
+
+#### Classification matrix
+
+| Change Type            | Forward Safe | Backward Safe | Auto-Migrate | Manual Action    |
+| ---------------------- | ------------ | ------------- | ------------ | ---------------- |
+| Add optional property  | Yes          | Yes           | N/A          | None             |
+| Add required property  | No           | Yes           | Yes          | Define default   |
+| Remove property        | Yes          | No            | Yes          | None             |
+| Change property type   | No           | No            | Maybe        | Define transform |
+| Rename property        | No           | No            | Yes          | Define mapping   |
+| Add select option      | Yes          | Yes           | N/A          | None             |
+| Remove select option   | No           | No            | Maybe        | Define fallback  |
+| Make optional→required | No           | Yes           | Yes          | Define default   |
+| Make required→optional | Yes          | Yes           | N/A          | None             |
+
+**Legend:**
+
+- **Forward Safe**: Old clients can read data created by new clients
+- **Backward Safe**: New clients can read data created by old clients
+- **Auto-Migrate**: The system can generate migration code automatically
+
+#### Migration wizard
+
+Use the **Migrate** panel in DevTools to:
+
+1. **Analyze** - Scan your store for schema changes
+2. **Review** - See changes grouped by risk level
+3. **Generate** - Auto-generate lens code for migrations
+4. **Test** - Validate migrations on sample data
+5. **Apply** - Apply migrations to your store
+
+```mermaid
+flowchart TB
+    START["Schema Change Detected"]
+    ANALYZE["Analyze Changes"]
+    CLASSIFY["Classify Risk"]
+
+    START --> ANALYZE
+    ANALYZE --> CLASSIFY
+
+    CLASSIFY -->|"Safe"| AUTO["Auto-apply"]
+    CLASSIFY -->|"Caution"| REVIEW["Review & Confirm"]
+    CLASSIFY -->|"Breaking"| WIZARD["Migration Wizard"]
+
+    WIZARD --> LENS["Generate Lens Code"]
+    LENS --> TEST["Test Migration"]
+    TEST -->|"Pass"| APPLY["Apply to Store"]
+    TEST -->|"Fail"| EDIT["Edit Lens"]
+    EDIT --> TEST
+
+    AUTO --> DONE["Done"]
+    REVIEW --> APPLY
+    APPLY --> DONE
+
+    style AUTO fill:#c8e6c9
+    style REVIEW fill:#fff3e0
+    style WIZARD fill:#ffcdd2
+```
+
+## Migrations with lenses
+
+Lenses transform data between schema versions. They're bidirectional — you can upgrade and downgrade.
+
+```mermaid
+flowchart LR
+  subgraph "Lens"
+    UP["up()"]
+    DOWN["down()"]
+  end
+
+  V1["v1.0.0"] -->|upgrade| UP --> V2["v2.0.0"]
+  V2 -->|downgrade| DOWN --> V1
+```
+
+### Creating a lens
+
+```ts
+
+const taskV1ToV2: SchemaLens = createLens({
+  from: '1.0.0',
+  to: '2.0.0',
+
+  // Transform v1 → v2
+  up(node) {
+    return {
+      ...node,
+      priority: node.priority ?? 'medium' // Add default
+    }
+  },
+
+  // Transform v2 → v1
+  down(node) {
+    const { priority, ...rest } = node
+    return rest // Remove new field
+  }
+})
+```
+
+### Registering lenses
+
+```ts
+
+const registry = new LensRegistry()
+
+// Register all lenses for a schema
+registry.register('Task', taskV1ToV2)
+registry.register('Task', taskV2ToV3)
+
+// The registry automatically chains lenses
+// v1 → v2 → v3 happens automatically
+```
+
+```mermaid
+flowchart LR
+  V1["v1.0.0"] --> L1["Lens 1"] --> V2["v2.0.0"] --> L2["Lens 2"] --> V3["v3.0.0"]
+
+  style V1 fill:#fee
+  style V2 fill:#ffe
+  style V3 fill:#efe
+```
+
+The registry finds the shortest path between any two versions and chains the lenses automatically.
+
+### Reading with migration
+
+```ts
+
+const store = new NodeStore({ lensRegistry: registry })
+
+// Read with automatic migration
+const task = await store.getWithMigration(taskId, {
+  targetVersion: '3.0.0'
+})
+// Data is transformed to v3 format
+
+// Original data unchanged in storage
+const original = await store.get(taskId)
+// Still in its original version
+```
+
+## Common migration patterns
+
+### Adding a field
+
+```ts
+const addPriority = createLens({
+  from: '1.0.0',
+  to: '1.1.0',
+  up: (node) => ({
+    ...node,
+    priority: 'medium' // Sensible default
+  }),
+  down: (node) => {
+    const { priority, ...rest } = node
+    return rest
+  }
+})
+```
+
+### Renaming a field
+
+```ts
+const renameDueDate = createLens({
+  from: '1.0.0',
+  to: '2.0.0',
+  up: (node) => {
+    const { due_date, ...rest } = node
+    return { ...rest, dueDate: due_date }
+  },
+  down: (node) => {
+    const { dueDate, ...rest } = node
+    return { ...rest, due_date: dueDate }
+  }
+})
+```
+
+### Splitting a field
+
+```ts
+const splitName = createLens({
+  from: '1.0.0',
+  to: '2.0.0',
+  up: (node) => {
+    const [firstName, ...rest] = (node.name || '').split(' ')
+    return {
+      ...node,
+      firstName,
+      lastName: rest.join(' ')
+    }
+  },
+  down: (node) => ({
+    ...node,
+    name: `${node.firstName} ${node.lastName}`.trim()
+  })
+})
+```
+
+## React integration
+
+### useQuery with migrations
+
+```tsx
+
+function TaskList() {
+  const { data: tasks } = useQuery({
+    type: 'Task',
+    targetVersion: '3.0.0' // Migrate to this version
+  })
+
+  // All tasks are v3 format, regardless of storage version
+  return tasks.map((task) => )
+}
+```
+
+## CLI tools
+
+### Extract schemas
+
+```bash
+# Extract current schema to JSON
+xnet schema extract --output schemas/
+
+# Creates schemas/Task.v2.0.0.json
+```
+
+### Compare schemas
+
+```bash
+# Compare two versions
+xnet schema diff Task 1.0.0 2.0.0
+
+# Output:
+# + priority: select (added)
+# ~ status: text → select (type changed)
+```
+
+### Validate migrations
+
+```bash
+# Check that lenses are registered for all version pairs
+xnet migrate validate
+
+# Output:
+# ✓ Task: 1.0.0 → 2.0.0 (lens registered)
+# ✓ Task: 2.0.0 → 3.0.0 (lens registered)
+# ✗ Contact: 1.0.0 → 2.0.0 (no lens!)
+```
+
+### Diagnose issues
+
+```bash
+# Full diagnostic
+xnet doctor
+
+# Output:
+# Checking nodes...
+#   ✓ 1,234 nodes checked
+#   ✓ All hashes valid
+#   ⚠ 3 nodes have unknown schema types
+#
+# Summary:
+#   Errors: 0
+#   Warnings: 3
+#   Status: HEALTHY (with warnings)
+```
+
+### Repair data
+
+```bash
+# Preview what would be fixed
+xnet repair --dry-run
+
+# Apply fixes
+xnet repair
+```
+
+### Export and import
+
+```bash
+# Export all data to JSON
+xnet export --output backup.json
+
+# Import with migration
+xnet import backup.json --migrate-to-current
+```
+
+## Graceful degradation
+
+When encountering unknown data, xNet preserves it rather than discarding it:
+
+```mermaid
+flowchart TD
+  subgraph "New Client (v2)"
+    N1["Create node with\nnew 'priority' field"]
+  end
+
+  subgraph "Old Client (v1)"
+    O1["Receive node"]
+    O2["Unknown field\n'priority'"]
+    O3["Store as-is\n(preserve field)"]
+    O4["Edit 'title'"]
+    O5["Save node\n(priority intact)"]
+  end
+
+  N1 --> O1 --> O2 --> O3 --> O4 --> O5
+```
+
+### Unknown schema type
+
+```ts
+// Node with unknown schema type
+const node = {
+  '@type': 'xnet://example.com/FutureType',
+  title: 'Something new',
+  unknownField: { complex: 'data' }
+}
+
+// Old client behavior:
+// - Stores node as-is
+// - Can display raw data
+// - Preserves unknown fields on save
+```
+
+### Unknown property type
+
+```ts
+// Property with future type
+const property = {
+  name: 'location',
+  type: 'geo-polygon',  // Unknown type
+  value: { points: [...] }
+}
+
+// Old client behavior:
+// - Preserves value
+// - Displays as JSON in UI
+// - Round-trips correctly
+```
+
+## Deprecation policy
+
+Features follow a deprecation lifecycle:
+
+```mermaid
+flowchart LR
+  A["Active"] --> D["Deprecated\n(warning)"]
+  D --> X["Discouraged\n(error)"]
+  X --> R["Removed"]
+
+  D -.- |"6+ months"| X
+  X -.- |"3+ months"| R
+```
+
+| Stage       | Behavior               | Duration     |
+| ----------- | ---------------------- | ------------ |
+| Active      | Works normally         | Indefinite   |
+| Deprecated  | Works, warning logged  | Min 6 months |
+| Discouraged | Works, error logged    | Min 3 months |
+| Removed     | Feature does not exist | Permanent    |
+
+Check for deprecations programmatically:
+
+```ts
+
+const warnings = checkDeprecations({
+  protocolVersion: 0,
+  features: ['change_v1']
+})
+
+warnings.forEach((w) => {
+  console.warn(`${w.feature}: ${w.message}`)
+  console.warn(`  Deadline: ${w.deadline}`)
+})
+```
+
+## DevTools panel
+
+The Version DevTools panel shows:
+
+- Current protocol version
+- Connected peer versions
+- Feature negotiation results
+- Deprecation warnings
+- Schema version distribution
+
+Enable it in the DevTools:
+
+```tsx
+
+function App() {
+  return (
+    
+      
+        
+      
+    
+  )
+}
+```
+
+## Best practices
+
+1. **Always provide defaults** when adding fields:
+
+   ```ts
+   up: (node) => ({ ...node, priority: node.priority ?? 'medium' })
+   ```
+
+2. **Test both directions** — migrations should round-trip:
+
+   ```ts
+   const roundTripped = lens.down(lens.up(original))
+   expect(roundTripped.title).toBe(original.title)
+   ```
+
+3. **Keep lenses simple** — one concern per lens, chain for complex migrations
+
+4. **Version bumps are cheap** — don't be afraid to bump minor versions for additive changes
+
+5. **Run `xnet doctor`** in CI to catch issues early
+
+## Further reading
+
+- [Sync Guide](/docs/guides/sync/) — How sync works
+- [Schemas Overview](/docs/schemas/overview/) — Defining schemas
+- [DevTools](/docs/guides/devtools/) — Debugging tools
+
+---
+
 ## Offline Patterns
 
 **You will learn**
@@ -2869,6 +4950,28 @@ const storage = new BrowserPasskeyStorage()
 const storedKey = await storage.store(bundle, credentialId)
 const recovered = await storage.retrieve(storedKey, credentialId)
 ```
+
+### Resumable sessions
+
+Unlocking with a passkey on every page load would mean a biometric prompt per
+reload. Instead, after a successful `create()`/`unlock()` the key bundle is
+re-encrypted (AES-GCM) under a freshly generated **non-extractable** WebCrypto
+key and stored in IndexedDB, bound to the identity's DID. On boot,
+`identityManager.resume()` restores the session silently — no prompt.
+
+- Sessions expire after **7 days**; expiry forces a fresh passkey unlock.
+- Expired, tampered, or DID-mismatched session records are deleted and fall
+  back to a normal unlock.
+- The wrapping key's bytes cannot be exported by script, so an exfiltrated
+  IndexedDB dump is undecryptable off-device. Raw private keys are never
+  stored in plaintext.
+
+### Logging out
+
+`identityManager.lock()` clears the session and cached keys but keeps the
+identity — the next visit shows the unlock screen. In the app this is
+**Settings → Account → Log out**. `clear()` additionally removes the identity
+itself.
 
 ### X25519 from Ed25519
 
@@ -3336,7 +5439,7 @@ See the [Sync Guide](/docs/guides/sync/) for the full security architecture.
 
 - The four plugin layers and when to use each one
 - How to define, register, and distribute an extension
-- All nine contribution types with working examples
+- All eleven contribution types with working examples
 - The middleware system for intercepting data operations
 - The script sandbox for safe user-authored expressions
 - Platform compatibility across Electron, Web, and Mobile
@@ -3492,7 +5595,7 @@ interface ExtensionContext {
 
 ## Contribution types
 
-xNet supports nine contribution types. Each can be declared statically in `contributes` or registered dynamically in `activate()`.
+xNet supports eleven contribution types. Each can be declared statically in `contributes` or registered dynamically in `activate()`.
 
 ### Views
 
@@ -3615,6 +5718,31 @@ interface SidebarContribution {
   panel?: ComponentType // Expandable panel content
 }
 ```
+
+In the workbench shell, a `SidebarContribution` becomes a rail item; a
+contribution with a `panel` component becomes a left-panel view. See
+[The Workbench](/docs/guides/workbench/) for the container model.
+
+### Status bar items
+
+Add items to the workbench status bar — workspace scope on the left,
+view scope on the right:
+
+```ts
+interface StatusBarContribution {
+  id: string
+  alignment: 'left' | 'right'
+  priority?: number
+  item: ComponentType // Rendered in the 24px mono status bar
+}
+```
+
+### Dashboard widgets
+
+Register widgets users can add to dashboards (and drop onto canvases) with a
+`WidgetContribution`. The trust tier is host-assigned — a plugin can never
+self-declare one. See [Dashboards & Widgets](/docs/guides/dashboards/) for the
+widget contract.
 
 ### Property handlers
 
@@ -3912,6 +6040,11 @@ Exposes xNet data to AI agents via the Model Context Protocol:
 
 The MCP server reads from stdin and writes JSON-RPC 2.0 responses to stdout.
 
+tip
+MCP is the fallback surface for agents. The primary agent interface is the
+files-first workspace checkout plus the `xnet` CLI — dramatically cheaper in
+tokens. See [Agent Interfaces](/docs/guides/agent-interfaces/).
+
 ### Webhooks
 
 Push notifications on store changes:
@@ -4020,370 +6153,105 @@ If a plugin specifies `platforms` and the current platform isn't included, insta
 
 ---
 
-## Infinite Canvas
+## Agent Interfaces
 
 **You will learn**
 
-- How the infinite canvas works
-- The spatial index (R-tree) for viewport culling
-- Layout algorithms (ELK.js, grid, circle)
-- The Canvas component and useCanvas hook
-- How canvas state syncs via Yjs
+- Why the filesystem is the primary agent surface
+- The checkout layout and how edits flow back safely
+- The `xnet` CLI verbs and the ~500-token SKILL.md
+- When to fall back to MCP
   
 
-## Overview
+## Files first
 
-`@xnetjs/canvas` provides an infinite, zoomable 2D surface where users can place, connect, and arrange nodes. The canvas supports real-time collaboration via Yjs — multiple users can simultaneously add, move, and connect nodes.
+Coding agents are already excellent at reading, grepping, and editing files —
+so xNet's primary agent interface is a **filesystem projection of the
+workspace**, not a wall of tool definitions. The store stays the source of
+truth; the checkout is a working tree. Every surface (files, CLI, MCP) funnels
+into the same plan → validate → apply core, so an agent can never corrupt the
+workspace with a malformed write.
 
-## Canvas component
+Measured on a 15-task benchmark, the files+CLI surface completes the same work
+at **~0.11x the tokens** of a traditional MCP toolset (0.05x on synthesis
+tasks), with equal task success.
 
-```tsx
+## The checkout
 
-; } // Custom node content
-  onNodeDoubleClick={(id) => open(id)}
-  onBackgroundClick={() => deselect()}
-  config={{
-    minZoom: 0.1,
-    maxZoom: 3,
-    gridSize: 20,
-    showGrid: true
-  }}
-/>
+`xnet checkout` materializes a scoped slice of the workspace into a folder:
+
+```
+Pages/q3-planning.md            # Markdown + YAML frontmatter (xnet.id, revision)
+Databases/tasks.schema.json     # the schema
+Databases/tasks.rows.jsonl      # one JSON object per line — edit/append/delete
+Databases/tasks.tsv             # read-only fast-read sidecar (large tables)
+Canvases/roadmap.canvas         # JSON Canvas projection
+SKILL.md                        # the agent contract (~500 tokens)
+.xnet/                          # manifest, conflict notes
 ```
 
-### Keyboard shortcuts
+Filenames are semantic slugs; identity lives in frontmatter and the manifest,
+never in filenames. Wikilinks (`[[Title]]`), `xnet-database` blocks, and
+`{{xnet-ref}}` directives are live references and survive round-trips.
 
-| Shortcut               | Action                |
-| ---------------------- | --------------------- |
-| `Delete` / `Backspace` | Delete selected nodes |
-| `Cmd+A`                | Select all            |
-| `Escape`               | Clear selection       |
-| `Cmd+1`                | Fit to content        |
-| `Cmd+0`                | Reset view            |
+Checkouts are **scoped and incremental** — by query, schema, kind, or node
+(`xnet checkout --query "roadmap"`); repeated checkouts merge. Agents never
+need (and are told not to) export the whole workspace.
 
-### Mouse interaction
+### Edits become validated plans
 
-- **Scroll** — Pan the canvas
-- **Ctrl/Cmd + Scroll** — Zoom (pinch-to-zoom)
-- **Click node** — Select it
-- **Shift/Cmd + Click** — Additive selection
-- **Drag node** — Move it
-- **Drag resize handles** — Resize (8 handles on selection)
-- **Double-click** — Open node
+File edits are diffed into **mutation plans**, validated against schemas, and
+applied to the store — automatically with `xnet daemon` running, or on
+`xnet commit`. Anything that doesn't validate, or collides with a newer
+revision, is **quarantined as a conflict**: a Markdown note in
+`.xnet/conflicts/` explains what happened and how to resolve it. Stale edits
+never silently overwrite newer data.
 
-## useCanvas hook
+## The xnet CLI
 
-The primary hook that wires together the store, viewport, and layout engine:
+| Command | Purpose |
+| --- | --- |
+| `xnet checkout` | Materialize / extend a scoped checkout |
+| `xnet status` | Pending plans and conflicts |
+| `xnet commit [--apply]` | Turn file edits into applied mutations |
+| `xnet search "<text>"` | Ranked full-text search (TSV: id, slug, title, snippet) |
+| `xnet query <db> --where field=value` | Query tables (TSV default; `jsonl`/`json`/`md`) |
+| `xnet db get/set` | Single-cell reads and writes |
+| `xnet run <script.js>` | Sandboxed bulk work over a bounded `api` object |
+| `xnet daemon` | Watch the checkout and auto-apply valid edits |
+| `xnet skill` | Print SKILL.md |
 
-```ts
-const {
-  // State
-  nodes,
-  edges,
-  selectedNodeIds,
-  viewport,
+Output is TSV-first and concise by default (`--detailed` to opt out) — built
+for being read by a model, not a human.
 
-  // Node operations
-  addNode,
-  updateNodePosition,
-  removeNode,
+`xnet run` executes scripts in a sandbox with bounded reads and **write
+proposals** (`api.proposeUpdate`, `api.proposeCreate`) that flow through the
+same validated plan pipeline as file edits.
 
-  // Edge operations
-  addEdge,
-  removeEdge,
+## SKILL.md
 
-  // Selection
-  selectNode,
-  selectAll,
-  clearSelection,
-  deleteSelected,
+Every checkout ships a cross-harness `SKILL.md` (~500 tokens) that teaches any
+agent — Claude Code, Codex, Gemini CLI, Cursor — the layout and workflow above.
+That's the entire standing context cost, versus ~5k tokens of always-loaded
+tool definitions for a typical MCP server. Print it any time with
+`xnet skill`.
 
-  // Viewport
-  pan,
-  zoomAt,
-  fitToContent,
-  resetView,
+## Slim MCP
 
-  // Layout
-  autoLayout,
-  layoutSelected,
+MCP remains as the **no-shell fallback** for harnesses that can't run a CLI.
+It's deliberately slim: five stable core tools are loaded eagerly and
+everything else defers (the non-deferred payload is test-guarded at ≤1.5k
+tokens). Responses are compact JSON by default with
+`response_format: concise | detailed` on every tool.
 
-  // Queries
-  findNodeAt,
-  findNodesInRect,
-  getVisibleNodes
-} = useCanvas({ doc: ydoc, config })
-```
-
-## Spatial index
-
-The canvas uses an R-tree (`rbush`) for efficient spatial queries. This enables viewport culling — only nodes visible on screen need to be rendered.
-
-```ts
-// Find all nodes in the current viewport
-const visibleIds = store.getVisibleNodes(viewport.getVisibleRect())
-
-// Find the topmost node at a point
-const nodeId = store.findNodeAt(point)
-
-// Find all nodes overlapping with a given node
-const overlapping = store.findIntersecting(nodeId)
-```
-
-The spatial index is automatically updated when nodes are added, moved, or removed.
-
-## Layout algorithms
-
-The `LayoutEngine` supports automatic layout via ELK.js and two built-in algorithms:
-
-### ELK.js layouts
-
-```ts
-await autoLayout({
-  algorithm: 'layered', // Sugiyama/hierarchical
-  direction: 'RIGHT', // RIGHT, LEFT, DOWN, UP
-  nodeSpacing: 50,
-  layerSpacing: 100,
-  edgeRouting: 'ORTHOGONAL' // POLYLINE, ORTHOGONAL, SPLINES
-})
-```
-
-Available algorithms: `layered`, `force`, `mrtree`, `radial`, `stress`, `box`.
-
-### Grid layout
-
-```ts
-layoutEngine.layoutGrid(nodes, {
-  columns: 4,
-  spacing: 20,
-  padding: 50
-})
-```
-
-### Circle layout
-
-```ts
-layoutEngine.layoutCircle(nodes, {
-  radius: 300 // Auto-calculated if omitted
-})
-```
-
-Nodes with `properties.fixed = true` keep their positions during layout.
-
-## Viewport
-
-The `Viewport` class manages the camera:
-
-- **`pan(dx, dy)`** — Move by screen-space delta
-- **`zoomAt(x, y, factor)`** — Zoom while keeping the point under cursor stationary
-- **`fitToRect(rect, padding)`** — Fit viewport to show a rectangle (never zooms beyond 100%)
-- **`reset()`** — Return to origin at zoom 1
-- **`screenToCanvas(x, y)`** — Convert screen coordinates to canvas space
-- **`canvasToScreen(x, y)`** — Convert canvas coordinates to screen space
-- **`getVisibleRect()`** — The canvas-space rectangle currently on screen
-
-## Data storage
-
-Canvas state is stored in three Yjs maps inside the Y.Doc:
-
-| Map        | Contents                          |
-| ---------- | --------------------------------- |
-| `metadata` | Title, created/updated timestamps |
-| `nodes`    | `CanvasNode` objects keyed by ID  |
-| `edges`    | `CanvasEdge` objects keyed by ID  |
-
-All mutations go through Yjs transactions, so changes sync automatically to other peers. The spatial index updates reactively when the Yjs maps change.
-
-## Node types
-
-```ts
-interface CanvasNode {
-  id: string
-  type: string // 'page', 'database', 'note', etc.
-  position: {
-    x: number
-    y: number
-    width: number // Default: 200
-    height: number // Default: 100
-    rotation?: number
-    zIndex?: number
-    collapsed?: boolean
-  }
-  properties: Record<string, unknown>
-  linkedNodeId?: string // Link to a page/database node
-}
-```
-
-Edges connect nodes with optional labels, arrow markers, and routing styles (bezier or orthogonal).
-
-## Comments
-
-The canvas supports spatial comments via `useCanvasComments`:
-
-- **Position pins** — Fixed canvas coordinates. Never orphaned.
-- **Object-attached pins** — Follow a node's position. Become orphaned when the node is deleted.
+The doctrine, in order: **files for reading and editing, the CLI for what
+files can't express, MCP only when there's no shell.**
 
 ## Further reading
 
-- [Collaboration Guide](/docs/guides/collaboration/) — Real-time editing patterns
-- [Sync Guide](/docs/guides/sync/) — How Yjs sync works
-
----
-
-## Rich Text Editor
-
-**You will learn**
-
-- The editor component and its props
-- All built-in extensions (20+)
-- Slash commands and the floating toolbar
-- How plugins contribute editor extensions
-- Yjs collaboration and cursor presence
-  
-
-## Overview
-
-`@xnetjs/editor` is a collaborative rich text editor built on TipTap v3 with Yjs for real-time CRDT sync. It provides three entry points:
-
-| Import                    | Contents                                 |
-| ------------------------- | ---------------------------------------- |
-| `@xnetjs/editor`            | Core `Editor` class (framework-agnostic) |
-| `@xnetjs/editor/react`      | React components, hooks, node views      |
-| `@xnetjs/editor/extensions` | All TipTap extensions and utilities      |
-
-## RichTextEditor component
-
-```tsx
-
- router.push(`/doc/${docId}`)}
-  onImageUpload={handleImageUpload}
-  onFileUpload={handleFileUpload}
-  onEditorReady={(editor) => { ... }}
-/>
-```
-
-## Built-in extensions
-
-### Block types
-
-| Block           | Description                                                               | Input             |
-| --------------- | ------------------------------------------------------------------------- | ----------------- |
-| Paragraph       | Default text block                                                        | —                 |
-| Heading (1-6)   | Section headings with `#` syntax preview                                  | `# `, `## `, etc. |
-| Code Block      | Syntax-highlighted code with language selector                            | ` ``` `           |
-| Blockquote      | Quote with `>` prefix preview                                             | `> `              |
-| Bullet List     | Unordered list                                                            | `- ` or `* `      |
-| Ordered List    | Numbered list                                                             | `1. `             |
-| Task List       | Checkbox list with nesting                                                | `[ ] `            |
-| Horizontal Rule | Divider                                                                   | `---`             |
-| Image           | CID-based with paste/drop upload, resize handles, alignment               | Paste or `/image` |
-| File            | Generic file attachment with upload progress                              | Drop or `/file`   |
-| Embed           | Auto-embed for YouTube, Vimeo, Spotify, Twitter, Figma, CodeSandbox, Loom | Paste URL         |
-| Callout         | 6 types (info, tip, warning, caution, note, quote), collapsible           | `> [!info]`       |
-| Toggle          | Collapsible details/summary sections                                      | `> [toggle]`      |
-| Database Embed  | Inline database views (table/board/list/calendar/gallery/timeline)        | `/database`       |
-| Mermaid         | Diagram blocks (via plugin)                                               | ` ```mermaid `    |
-
-### Marks
-
-Bold, italic, strikethrough, code, link, wikilink (`[[page-name]]`), and comment.
-
-### Live preview
-
-Obsidian-style inline markdown syntax rendering — bold markers (`**`), italic (`*`), strikethrough (`~~`), and code (`` ` ``) are shown as decorations while typing and hidden when the cursor moves away.
-
-## Slash commands
-
-Type `/` to open the command palette. Built-in command groups:
-
-- **Basic Blocks** — Text, H1, H2, H3
-- **Lists** — Bullet, Numbered, Task
-- **Blocks** — Quote, Code Block, Divider
-- **Media** — Image, File, Embed
-- **Callouts** — Info, Tip, Warning, Caution, Note
-- **Toggles** — Toggle section
-- **Data** — Database
-
-Plugins can add custom slash commands via `contributes.slashCommands`.
-
-## Floating toolbar
-
-The toolbar appears on text selection:
-
-- **Desktop** — Bubble menu floating near the selection
-- **Mobile** — Fixed bottom bar, horizontally scrollable
-
-Built-in buttons: Bold, Italic, Strike, Code, Comment | H1, H2, H3 | Bullet, Ordered, Task | Quote, Code Block, Divider.
-
-Plugins can add toolbar buttons via `EditorContribution.toolbar`.
-
-## Drag and drop
-
-Three integrated plugins handle block-level drag and drop:
-
-- **DragHandle** — Shows a grip icon on hover at the left edge of blocks
-- **DragDropPlugin** — Handles block reordering via drag
-- **DropIndicator** — Shows a visual insertion line during drag
-
-## Yjs collaboration
-
-The editor binds to a `Y.XmlFragment` inside the Y.Doc via TipTap's `Collaboration` extension. When you pass an `awareness` instance, cursor presence is shown automatically:
-
-- Remote cursors rendered as colored carets with DID-derived identicon avatars
-- Selections shown as translucent highlights in the user's color
-- Hover over a cursor to see the user label
-
-### Comment anchors
-
-Comments are positioned using Yjs relative positions (`captureTextAnchor` / `resolveTextAnchor`). This means comment positions survive concurrent edits — if someone inserts text before your comment, the anchor moves with the text.
-
-## Plugin extensions
-
-Plugins contribute editor extensions through the contribution system:
-
-```ts
-// In a plugin manifest
-contributes: {
-  editorExtensions: [{
-    id: 'my-extension',
-    extension: MyTipTapExtension,
-    priority: 100,
-    toolbar: {
-      icon: MyIcon,
-      title: 'My Tool',
-      group: 'insert',
-      action: (editor) => editor.chain().focus().insertMyThing().run()
-    }
-  }],
-  slashCommands: [{
-    id: 'my-command',
-    name: 'My Block',
-    execute: ({ editor, range }) => { ... }
-  }]
-}
-```
-
-The Electron app collects plugin extensions via `useEditorExtensionsSafe()` and passes them to ``. Plugin extensions are loaded before the editor mounts to prevent crashes when Yjs content contains nodes from unregistered extensions.
-
-## Embed providers
-
-URLs pasted into the editor are automatically detected and embedded for 7 services:
-
-| Provider    | URL Pattern                     |
-| ----------- | ------------------------------- |
-| YouTube     | `youtube.com/watch`, `youtu.be` |
-| Vimeo       | `vimeo.com`                     |
-| Spotify     | `open.spotify.com`              |
-| Twitter/X   | `twitter.com`, `x.com`          |
-| Figma       | `figma.com`                     |
-| CodeSandbox | `codesandbox.io`                |
-| Loom        | `loom.com`                      |
-
-## Further reading
-
-- [Collaboration Guide](/docs/guides/collaboration/) — Real-time editing patterns
-- [Plugin Development](/docs/guides/plugins/) — Contributing editor extensions
-- [useNode](/docs/hooks/usenode/) — The hook that provides the editor
+- [For AI Assistants](/docs/ai/understanding-xnet/) — the mental model for
+  agents writing *app code* against xNet
+- [Plugins](/docs/guides/plugins/) — the integration layer MCP belongs to
 
 ---
 
@@ -4612,220 +6480,6 @@ Railway → VPS/Fly.io is just a volume export + upload. Fly.io → Railway is t
 - [Sync Guide](/docs/guides/sync/)
 - [Sync Architecture](/docs/concepts/sync-architecture/)
 - [Electron Setup](/docs/guides/electron/)
-
----
-
-## DevTools
-
-**You will learn**
-
-- How to enable and use the debug panels (9 core + AuthZ panel)
-- What each panel shows and how to read it
-- The event bus instrumentation system
-- How to integrate DevTools into your app
-  
-
-## Quick start
-
-Wrap your app with `XNetDevToolsProvider`. In production builds, it tree-shakes to zero bytes.
-
-```tsx
-
-  
-    
-  
-
-```
-
-**Toggle:** `Ctrl+Shift+D` (or `Cmd+Shift+D` on Mac), or click the floating wrench button.
-
-## The panels
-
-### Nodes
-
-Browse every node in the NodeStore. Features:
-
-- Full-text search across IDs, schemas, and properties
-- Filter by schema type
-- Show/hide deleted nodes
-- Click a node to see its full properties, timestamps, and author DID
-- Copy all nodes as JSON
-
-Data refreshes every 2 seconds and on live store events.
-
-### Changes
-
-Chronological timeline of all mutations with Lamport clock ordering:
-
-- Color-coded by operation: green (create), blue (update), red (delete), yellow (restore), purple (remote), amber (conflict)
-- Filter by node ID or event type
-- Auto-scroll toggle to follow new events
-- Click any change for the full JSON payload
-
-Keeps the last 1000 events.
-
-### Sync
-
-P2P connection status and peer monitoring:
-
-- Connection status indicator (connected/connecting/disconnected/error)
-- Peer list with connection times
-- Sent/received/error counters
-- Scrolling event log with timestamps
-- Toggle sync debug logging (`localStorage xnet:sync:debug`)
-
-### Yjs
-
-Y.Doc structure inspector with three sub-views:
-
-- **Updates** — Live stream of Yjs update events with local/remote indicators and byte sizes
-- **Structure** — Interactive tree view of Y.Doc shared types (Map, Array, Text, XmlFragment). Expandable nodes, color-coded by type, depth-limited to 5 levels.
-- **State Vectors** — ClientID clock values with progress bars. Shows how far each peer has synced.
-
-Select a document from the sidebar to inspect its internals.
-
-### Queries
-
-Performance profiler for all active hooks:
-
-- Lists every `useQuery`, `useMutate`, and `useNode` instance
-- Shows schema, mode (list/single/filtered/document), caller source location
-- Tracks update count, result count, average and peak render time
-- Warnings: amber for >16ms (dropped frame), red for >50ms
-- Sort by most updates, slowest render, or most recent
-
-Source locations are extracted from stack traces automatically.
-
-### Telemetry
-
-Security events and performance metrics, split into three tabs:
-
-- **Security** — Network health score, crash entries, security events by severity, peer reputation scores with breakdown
-- **Performance** — Metric groups with bucket distribution charts (time ranges: \<10ms, 10-50ms, 50-100ms, etc.)
-- **Consent** — Current telemetry tier (off/local/crashes/anonymous)
-
-### Schemas
-
-All registered schemas and their properties:
-
-- Schema list with node counts and property counts
-- Property details: type (color-coded), required flag, config summary
-- Raw schema JSON dump
-- Built-in vs. user-defined badges
-
-### Seed
-
-Create sample data for testing:
-
-- **Create Sample Page** — Rich document with headings, lists, callouts, code blocks, Mermaid diagrams, comments with text anchors, and change history
-- **Create Sample Database** — 15-column database with all property types, 5 rows, view configs, and comments
-
-### History
-
-Full change history and time travel for individual nodes. Seven sub-tabs:
-
-- **Timeline** — Scrub through all changes with a slider. See materialized state at any point.
-- **Diff** — Compare two points in time. Shows added/modified/removed properties with before/after values.
-- **Blame** — Per-property attribution: who last changed each field, when, and how many times.
-- **Audit** — Filterable audit log with operation breakdown (create/update/delete/restore).
-- **Verification** — Check hash chain integrity. Reports valid/invalid, verified hashes, chain links, forks.
-- **Storage** — Storage metrics, prunable changes, estimated recovery bytes.
-- **Document** — Yjs snapshot timeline. Compare snapshots with size deltas and content diffs.
-
-### AuthZ
-
-Live authorization inspector for the [encryption-first access control system](/docs/guides/authorization/). Five sub-tabs:
-
-- **Playground** — Test `store.auth.can()` interactively. Select a node and action, see the decision with a full explanation trace including role resolution steps.
-- **Grants** — All active grants for the selected node: grantee DID, actions, expiry, and revocation controls. Create new grants directly from this panel.
-- **Timeline** — Chronological log of grant changes — created, revoked, expired — with timestamps and actor DIDs.
-- **Delegation tree** — Visual tree of UCAN delegation chains. Shows the full proof hierarchy with depth indicators and attenuation warnings.
-- **Revocation propagation** — Tracks revocation events across peers: which peers have received and applied a revocation, with timing deltas.
-
-## Configuration
-
-```tsx
-
-```
-
-### Toggle methods
-
-| Method                   | Description                       |
-| ------------------------ | --------------------------------- |
-| `Ctrl+Shift+D`           | Keyboard shortcut                 |
-| Floating button          | Click the wrench icon (draggable) |
-| 4-finger tap             | Mobile                            |
-| `useDevTools().toggle()` | Programmatic                      |
-
-### Persistence
-
-The panel remembers its state in `localStorage`:
-
-- `xnet:devtools:open` — open/closed
-- `xnet:devtools:panel` — last active tab
-- `xnet:devtools:position` — dock position
-
-## Event bus
-
-All instrumentation flows through a `DevToolsEventBus` — a typed ring buffer (default 10,000 events):
-
-```ts
-const { eventBus } = useDevTools()
-
-// Subscribe to all events
-eventBus.subscribe((event) => console.log(event))
-
-// Subscribe to a specific type
-eventBus.on('sync:peer-connected', (event) => { ... })
-
-// Query
-eventBus.getEventsByType('store:create')
-eventBus.getEventsForNode(nodeId)
-eventBus.getRecent(50)
-```
-
-### Event categories
-
-| Category      | Events                                                                                                                                   |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Store (7)     | `store:create`, `store:update`, `store:delete`, `store:restore`, `store:transaction`, `store:remote-change`, `store:conflict`            |
-| Sync (6)      | `sync:status-change`, `sync:peer-connected`, `sync:peer-disconnected`, `sync:change-received`, `sync:broadcast`, `sync:error`            |
-| Yjs (4)       | `yjs:update`, `yjs:meta-change`, `yjs:state-vector`, `yjs:provider-status`                                                               |
-| Query (6)     | `query:subscribe`, `query:unsubscribe`, `query:result`, `query:error`, `mutate:start`, `mutate:complete`                                 |
-| Telemetry (6) | `telemetry:crash`, `telemetry:usage`, `telemetry:security`, `telemetry:performance`, `telemetry:consent-change`, `telemetry:peer-scores` |
-
-### Instrumentation wiring
-
-Instrumentation functions connect data sources to the event bus:
-
-```ts
-instrumentStore(store, eventBus) // NodeStore events
-instrumentSync(provider, room, bus) // SyncProvider events
-instrumentYDoc(doc, docId, bus) // Y.Doc updates
-instrumentTelemetry(collector, consent, bus) // Telemetry
-```
-
-React hooks (`useQuery`, `useNode`) automatically report to DevTools when the provider is present, via `InstrumentationContext`. No manual wiring needed.
-
-## useDevTools hook
-
-```ts
-const {
-  isOpen,
-  toggle,
-  eventBus,
-  activeNodeId,
-  setActiveNodeId,
-  activePanel,
-  setActivePanel,
-  store,
-  yDocRegistry
-} = useDevTools()
-```
-
-## Production behavior
-
-When `NODE_ENV` is `production`, the DevTools provider renders children unchanged and `useDevTools()` returns inert stubs. The full panel code is tree-shaken out of the bundle — zero bytes in production.
 
 ---
 
@@ -6509,7 +8163,8 @@ flowchart LR
 
 ## Dependency graph
 
-The core dependency chain flows upward. Lower packages cannot import from higher ones:
+The workspace holds **30 packages**. The diagram shows the core chain and the
+major feature packages; lower packages cannot import from higher ones:
 
 ```mermaid
 graph BT
@@ -6524,6 +8179,14 @@ graph BT
   editor["@xnetjs/editor"]
   canvas["@xnetjs/canvas"]
   devtools["@xnetjs/devtools"]
+  ui["@xnetjs/ui"]
+  query["@xnetjs/query"]
+  views["@xnetjs/views"]
+  comms["@xnetjs/comms"]
+  charts["@xnetjs/charts"]
+  dashboard["@xnetjs/dashboard"]
+  cli["@xnetjs/cli"]
+  hub["@xnetjs/hub"]
 
   identity --> crypto
   storage --> identity
@@ -6540,6 +8203,19 @@ graph BT
   editor --> |Yjs| sync
   canvas --> data
   devtools --> react
+  query --> data
+  query --> storage
+  views --> react
+  views --> ui
+  comms --> data
+  comms --> crypto
+  dashboard --> react
+  dashboard --> charts
+  dashboard --> plugins
+  cli --> plugins
+  cli --> data
+  hub --> sync
+  hub --> data
 
   style crypto fill:#4f46e5,color:#fff,stroke:#6366f1
   style identity fill:#4f46e5,color:#fff,stroke:#6366f1
@@ -6552,6 +8228,14 @@ graph BT
   style editor fill:#6366f1,color:#fff,stroke:#818cf8
   style canvas fill:#6366f1,color:#fff,stroke:#818cf8
   style devtools fill:#6366f1,color:#fff,stroke:#818cf8
+  style ui fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style query fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style views fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style comms fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style charts fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style dashboard fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style cli fill:#818cf8,color:#fff,stroke:#a5b4fc
+  style hub fill:#818cf8,color:#fff,stroke:#a5b4fc
 ```
 
 ## Package details
@@ -6620,7 +8304,51 @@ Infinite canvas with spatial indexing (R-tree), viewport management, zoom/pan, n
 
 **Dependencies:** `@xnetjs/react`
 
-7 debug panels: Sync, Store, Schema, Identity, Network, Plugins, Performance.
+10 debug panels: Nodes, Changes, Sync, Yjs, Queries, Telemetry, Schemas, Seed, History, and AuthZ. See the [DevTools guide](/docs/guides/devtools/).
+
+### @xnetjs/ui
+
+Shared design system: the monochrome token ramp (`surface`/`ink`/`hairline`), primitives, the shared task editor, and the unified drag payload. No xNet runtime dependencies.
+
+### @xnetjs/query
+
+**Dependencies:** `@xnetjs/data`, `@xnetjs/storage`
+
+Query AST, saved-view descriptors, full-text search index, and the reactive saved-view runner that powers tables, boards, and widgets.
+
+### @xnetjs/views
+
+**Dependencies:** `@xnetjs/react`, `@xnetjs/ui`
+
+Database view components: table, board, list, calendar, gallery, timeline — with compact modes for dashboards.
+
+### @xnetjs/comms
+
+**Dependencies:** `@xnetjs/data`, `@xnetjs/crypto`
+
+Chat, presence, and calls: room manager (typed awareness sessions), chat service (signed message nodes, deterministic DM ids), the local notification engine, and the full-mesh WebRTC call manager. See [Chat, Presence & Calls](/docs/guides/chat-and-calls/).
+
+### @xnetjs/dashboard & @xnetjs/charts
+
+**Dependencies:** `@xnetjs/react`, `@xnetjs/plugins`, `@xnetjs/charts`
+
+Widget contract, registry, grid runtime, and sandbox tiers; charts wraps ECharts behind a library-agnostic spec. See [Dashboards & Widgets](/docs/guides/dashboards/).
+
+### @xnetjs/cli
+
+**Dependencies:** `@xnetjs/plugins`, `@xnetjs/data`
+
+The `xnet` command-line tool: scoped workspace checkouts, search/query, commit/daemon, sandboxed scripts, SKILL.md. See [Agent Interfaces](/docs/guides/agent-interfaces/).
+
+### @xnetjs/hub
+
+**Dependencies:** `@xnetjs/sync`, `@xnetjs/data`
+
+The optional always-on node: relay, encrypted backup, full-text search, call signaling, UCAN-authorized actions. See the [Hub guide](/docs/guides/hub/).
+
+### Supporting packages
+
+`core` (shared primitives), `sqlite` & `data-bridge` (storage adapters), `canvas-core`, `editor`/`canvas` internals, `formula`, `history` (undo/redo), `social` (graph lenses & importers), `telemetry`, `abuse` (rate limiting & peer scoring), `vectors`, `sdk`.
 
 ## The rule
 
@@ -6634,11 +8362,14 @@ Infinite canvas with spatial indexing (R-tree), viewport management, zoom/pan, n
 ## Applications
 
 ```
-apps/electron    — Full-featured desktop app (all packages)
-apps/web         — PWA (pages only, subset of features)
+apps/web         — The flagship workbench PWA (documents, databases, canvas,
+                   tasks, dashboards, chat & calls)
+apps/electron    — Desktop wrapper adding background sync, ProcessManager,
+                   LocalAPI, and the MCP server (@xnetjs/plugins/node)
+apps/expo        — Mobile (in development)
 ```
 
-The Electron app uses all packages including `@xnetjs/plugins/node` for ProcessManager, LocalAPI, and MCP server. The web app uses the browser-safe subset.
+The web app is the primary surface and uses the browser-safe subset; Electron adds the Node-only service layer on top.
 
 ---
 
@@ -6973,6 +8704,15 @@ Tests cover core algorithms and security-critical paths. Each core package has t
 
 If you're an AI assistant helping a developer build with xNet, this guide will help you understand the fundamental paradigm differences.
 
+**Working inside a user's workspace?**
+This page is about writing *application code* against xNet. If you are an
+agent operating on a user's actual data — reading pages, editing databases,
+searching their workspace — use the **files-first agent surface** instead: a
+scoped checkout of the workspace plus the `xnet` CLI, taught by a ~500-token
+`SKILL.md` (printable with `xnet skill`). It completes the same work at
+roughly a tenth of the tokens of an MCP toolset. See
+[Agent Interfaces](/docs/guides/agent-interfaces/).
+
 ## The Key Insight
 
 **xNet has no backend.**
@@ -7156,991 +8896,6 @@ When helping with xNet:
 5. **Always use schemas** — They're the source of truth
 
 The paradigm shift: **data is local, sync is automatic, identity is cryptographic**.
-
----
-
-## Authorization
-
-**You will learn**
-
-- The core insight: encryption IS authorization
-- How to define roles and actions in your schema
-- How to grant, revoke, and delegate access
-- How to check permissions with `useCan` and `useGrants`
-- How key recovery and multi-device access work
-- The trust model and its security tradeoffs
-  
-
-## The core insight
-
-In a decentralized system, the only meaningful access control is **the ability to decrypt**:
-
-```
-Can you decrypt it?       → You can read it.
-In the recipients list?  → The hub will serve it to you.
-Schema says you can write? → The client will let you sign a change.
-```
-
-Roles, relations, and UCAN delegation are all machinery for deciding **who gets the content key**. Once a user has the key, cryptography enforces their access — no server policy engine required.
-
-## Defining authorization in a schema
-
-Add an `authorization` block to any schema to define who can do what:
-
-```ts
-
-export const TaskSchema = defineSchema({
-  name: 'Task',
-  namespace: 'xnet://my-app/',
-  properties: {
-    title: text({ required: true }),
-    assignee: person(),
-    project: relation({ target: 'xnet://my-app/Project' as const }),
-    editors: person({ multiple: true })
-  },
-  authorization: {
-    roles: {
-      owner: role.creator(), // whoever created the node
-      assignee: role.property('assignee'), // person() property value
-      editor: role.property('editors'), // person({ multiple: true }) value
-      admin: role.relation('project', 'admin'), // role from a related node
-      viewer: role.relation('project', 'viewer') // role from a related node
-    },
-    actions: {
-      read: allow('viewer', 'editor', 'admin', 'owner', 'assignee'),
-      write: allow('editor', 'admin', 'owner'),
-      delete: allow('admin', 'owner'),
-      share: allow('admin', 'owner')
-    },
-    publicProps: ['title'] // properties readable without decryption
-  }
-})
-```
-
-### Role types
-
-| Builder                          | Resolves to                                  |
-| -------------------------------- | -------------------------------------------- |
-| `role.creator()`                 | The DID that created the node                |
-| `role.property('field')`         | The DID(s) in a `person()` property          |
-| `role.relation('field', 'role')` | Anyone who has that role on the related node |
-
-### Actions
-
-| Action   | Covers                                          |
-| -------- | ----------------------------------------------- |
-| `read`   | `store.get`, `useQuery`, hub queries            |
-| `write`  | `store.create`, `store.update`, `store.restore` |
-| `delete` | `store.delete`                                  |
-| `share`  | `store.auth.grant`, `store.auth.revoke`         |
-| `admin`  | Hub operational controls                        |
-
-Explicit `deny()` always wins over `allow()`:
-
-```ts
-actions: {
-  read: allow('viewer').deny('blocked'),  // 'blocked' role can never read
-}
-```
-
-### Public nodes
-
-Set `publicProps` to expose specific fields without encryption, or use `PUBLIC` to make the entire node readable by anyone:
-
-```ts
-authorization: {
-  // ...roles and actions...
-  publicProps: ['title', 'status'],  // these fields are unencrypted
-}
-```
-
-For fully public nodes (no access control), use the built-in preset:
-
-```ts
-
-export const ArticleSchema = defineSchema({
-  // ...
-  authorization: presets.public
-})
-```
-
-### Permission presets
-
-```ts
-
-// Full owner control — only creator can do anything
-authorization: presets.ownerOnly
-
-// Owner + share — owner shares explicit read/write with others via grants
-authorization: presets.ownerWithShare
-
-// Collaborative — creator is owner, any member of a 'workspace' relation can read/write
-authorization: presets.collaborative({ relation: 'workspace' })
-
-// Fully public — all content is unencrypted and anyone can read
-authorization: presets.public
-```
-
-## Checking permissions
-
-### `useCan` hook
-
-```tsx
-
-function TaskCard({ taskId }: { taskId: string }) {
-  const { canRead, canWrite, canDelete, canShare, loading } = useCan(taskId)
-
-  if (loading) return null
-
-  return (
-    <div>
-      
-      {canWrite && }
-      {canDelete && }
-      {canShare && }
-    </div>
-  )
-}
-```
-
-`useCan` is reactive — it re-evaluates when grants change or when you switch users.
-
-### `store.auth.can()`
-
-```ts
-const decision = await store.auth.can({ action: 'write', nodeId: taskId })
-// { allowed: true, reason: 'role:owner', cached: false }
-
-const decision = await store.auth.can({ action: 'delete', nodeId: taskId })
-// { allowed: false, reason: 'no matching role or grant' }
-```
-
-### Explaining a decision
-
-For debugging or AI-assisted introspection, use `explain()`:
-
-```ts
-const trace = await store.auth.explain({ action: 'write', nodeId: taskId })
-// {
-//   allowed: true,
-//   subject: 'did:key:z6Mk...',
-//   action: 'write',
-//   nodeId: 'task_abc',
-//   roles: ['owner'],
-//   grants: [],
-//   policyTrace: [
-//     { rule: 'allow(editor, admin, owner)', matched: 'owner' }
-//   ]
-// }
-```
-
-## Granting and revoking access
-
-### `useGrants` hook
-
-```tsx
-
-function ShareDialog({ taskId }: { taskId: string }) {
-  const { grants, grant, revoke, loading } = useGrants(taskId)
-
-  return (
-    <div>
-      {grants.map((g) => (
-        <div key={g.id}>
-          {g.grantee} — {g.actions.join(', ')}
-          <button onClick={() => revoke(g.id)}>Revoke</button>
-        </div>
-      ))}
-      <button onClick={() => grant({ to: 'did:key:...', actions: ['read'] })}>Add person</button>
-    </div>
-  )
-}
-```
-
-### `store.auth` API
-
-```ts
-// Grant access with optional expiry
-await store.auth.grant({
-  to: bobDid,
-  actions: ['read', 'write'],
-  resource: taskId,
-  expiresIn: '7d' // or expiresAt: timestamp
-})
-
-// Revoke a grant (last-admin protection prevents locking yourself out)
-await store.auth.revoke({ grantId })
-
-// List all grants for a node
-const grants = await store.auth.listGrants({ nodeId: taskId })
-```
-
-Grants are stored as signed nodes in the NodeStore — they sync, replicate, and benefit from the same CRDT conflict resolution as all other data.
-
-### Delegation (UCAN chains)
-
-Any user with the `share` action can delegate their access to another user via UCAN proof chains. Delegation is **attenuated** — you can only delegate up to (not beyond) your own permissions:
-
-```ts
-// Alice (owner) grants Bob write access
-await store.auth.grant({ to: bob, actions: ['write'], resource: docId })
-
-// Bob can delegate read access to Carol (subset of Bob's write)
-await store.auth.grant({
-  to: carol,
-  actions: ['read'],
-  resource: docId
-  // Bob's grant to Alice is automatically included as proof
-})
-```
-
-Delegation chains are capped at depth 4 (`maxProofDepth = 4`). Revoking a parent grant cascades to all derived grants.
-
-### Grant expiration
-
-Grants with `expiresIn` or `expiresAt` automatically become inactive after their expiry time. A background `GrantExpirationCleaner` prunes expired grants and re-encrypts affected nodes with updated recipient lists.
-
-## How enforcement works
-
-### Local mutations
-
-When you call `store.create()`, `store.update()`, or `store.delete()`, the store checks authorization first:
-
-```ts
-try {
-  await store.update(TaskSchema, taskId, { title: 'New title' })
-} catch (err) {
-  if (err instanceof PermissionError) {
-    // err.message: "denied: action=write, subject=did:key:..., role context: [viewer]"
-  }
-}
-```
-
-### Remote changes
-
-When a remote peer's change arrives via sync, the store silently rejects unauthorized changes and emits a `change:rejected` event. The peer also receives a scoring penalty to protect against abuse.
-
-### Yjs documents
-
-Collaborative editing (via `useNode`) uses a layered auth model:
-
-1. **Room gate** — only authorized users can join a sync room
-2. **Per-update gate** — each incoming Yjs update is checked against `PolicyEvaluator`
-3. **At-rest encryption** — Y.Doc state is encrypted with the node's content key
-
-Revoking a user from a document immediately kicks them from the room and rotates the content key, so all future updates are encrypted for the new recipient set.
-
-### Hub filtering
-
-The hub never decrypts data — it filters queries by recipient lists stored in node metadata. If your DID isn't in the recipients list, the hub doesn't return the node. This is transparent to your app: you write normal queries, unauthorized data is silently excluded.
-
-## Failure modes
-
-| Context                      | When auth fails                             | Why                                    |
-| ---------------------------- | ------------------------------------------- | -------------------------------------- |
-| `store.create/update/delete` | Throws `PermissionError`                    | Developer should see and handle errors |
-| `applyRemoteChange`          | Silently rejected + `change:rejected` event | Don't crash on bad remote data         |
-| Yjs update                   | Silently rejected + peer scoring penalty    | Don't interrupt editing flow           |
-| Hub query                    | Node excluded from results (no error)       | Transparent access control             |
-
-## Trust model
-
-**Read access is cryptographically enforced.** If you don't have the content key, you cannot decrypt the data. The hub can't help you because it doesn't hold keys.
-
-**Write access is enforced client-side.** A malicious client could skip the `can()` check and broadcast a signed change. The hub and honest peers accept it because the Ed25519 signature is valid.
-
-This is an intentional tradeoff:
-
-- All changes are signed and part of a tamper-evident hash chain — unauthorized writes are attributable and detectable
-- Peer scoring penalizes unauthorized write attempts, leading to automatic blocking
-- Key rotation on revocation means revoked users lose future read access regardless of write-side enforcement
-
-For apps where write enforcement must be stronger, self-hosted hubs can add custom policy validation.
-
-## Key resolution
-
-When encrypting a node for a recipient, xNet needs their X25519 public key to perform key wrapping. It resolves this in two steps:
-
-1. **Birational conversion** — Ed25519 public keys (from DID:key) can be mathematically converted to X25519 keys without any additional lookup. This works for any DID:key holder.
-2. **Hub registry fallback** — For cases where the key holder has registered a separate X25519 key (unusual), the hub maintains a public key registry.
-
-This means sharing data with any DID:key holder requires no out-of-band key exchange.
-
-## Key recovery & multi-device
-
-### Seed phrase
-
-Your signing key can be derived deterministically from a seed phrase (BIP-39 format). The seed phrase is the root of your identity — back it up carefully.
-
-```ts
-
-// Generate a new identity with a recoverable seed
-const { mnemonic, bundle } = deriveSeedPhrase()
-// mnemonic: "correct horse battery staple ..."
-
-// Recover identity on a new device
-const recoveredBundle = recoverFromSeedPhrase(mnemonic)
-// Produces the same DID and key pair
-```
-
-### Multi-device
-
-Each device derives the same primary key from the seed, so your DID is the same across devices. When you add a second device:
-
-1. The new device generates its own device-specific encryption key
-2. It registers in a device registry (synchronized via the Hub)
-3. Your primary key wraps the content keys for each device
-
-### Social recovery
-
-As a fallback when the seed phrase is unavailable, xNet supports Shamir's Secret Sharing: split the seed across trusted contacts, any threshold (e.g., 3 of 5) can reconstruct it.
-
-### Encrypted hub backup
-
-The hub can store an encrypted backup of your key bundle, unlocked by a passphrase or WebAuthn credential. This is opt-in and the hub never sees the plaintext key.
-
-## Offline authorization
-
-By default, authorization decisions are cached with a 5-minute TTL. This means:
-
-- The app works offline — cached decisions are used while disconnected
-- Revocations take at most 5 minutes to propagate to offline users
-- On reconnect, the cache is revalidated against the current grant state
-
-Configure offline behavior per-schema:
-
-```ts
-authorization: {
-  // ...
-  offlinePolicy: {
-    cacheTTL: 300_000,          // 5 minutes (default)
-    maxStaleness: 3_600_000,    // 1 hour — refuse to use older cached decisions
-    revalidateOnReconnect: true // (default) revalidate immediately when online
-  }
-}
-```
-
-## Migration from unencrypted schemas
-
-Schemas without an `authorization` block continue to work but emit a console warning in development. To add authorization to an existing schema:
-
-1. Add the `authorization` block with your desired roles and actions
-2. Run the `AuthMigrator` utility to batch-encrypt existing nodes:
-
-```ts
-
-const migrator = new AuthMigrator(store, encryptionLayer)
-await migrator.migrateSchema(MySchema, {
-  batchSize: 50,
-  onProgress: ({ done, total }) => console.log(`${done}/${total}`)
-})
-```
-
-The migration re-encrypts nodes in batches and updates their recipient lists. Existing peers will receive the re-encrypted versions via normal sync.
-
-## Related
-
-- [defineSchema](/docs/schemas/defineschema/) — Full schema API reference
-- [Identity & Keys](/docs/guides/identity/) — DID:key, UCAN tokens, key management
-- [Cryptography](/docs/concepts/cryptography/) — BLAKE3, Ed25519, XChaCha20, X25519
-- [Offline Patterns](/docs/guides/offline/) — Offline cache behavior and sync
-- [DevTools](/docs/guides/devtools/) — AuthZ panel for live inspection
-
----
-
-## Version Compatibility
-
-**You will learn**
-
-- How protocol versioning and schema versioning work
-- How to create migrations with lenses
-- How version negotiation keeps peers compatible
-- How to use CLI tools for schema management
-- How to diagnose and repair data issues
-  
-
-## Overview
-
-xNet uses a **translate-on-read** approach to version compatibility:
-
-```mermaid
-flowchart LR
-  subgraph Storage
-    V1["v1 data"]
-    V2["v2 data"]
-    V3["v3 data"]
-  end
-
-  subgraph "Read Path"
-    L1["Lens v1→v2"]
-    L2["Lens v2→v3"]
-  end
-
-  subgraph App
-    Current["Current Schema (v3)"]
-  end
-
-  V1 --> L1 --> L2 --> Current
-  V2 --> L2
-  V3 --> Current
-```
-
-1. Data is stored in its original format
-2. Migrations are applied when reading, not when writing
-3. Old clients can still read new data (graceful degradation)
-4. No batch migrations required
-
-This means you can ship schema changes incrementally without breaking existing clients.
-
-## Protocol versioning
-
-The sync protocol is versioned separately from schemas. Every `Change` includes a `protocolVersion`:
-
-```ts
-interface Change {
-  id: string
-  type: string
-  payload: T
-  protocolVersion: number // Currently: 1
-  hash: ContentId
-  parentHash: ContentId | null
-  authorDID: DID
-  signature: Uint8Array
-  lamport: LamportTimestamp
-}
-```
-
-### Version compatibility
-
-| Your Version | Peer Version | Behavior                                           |
-| ------------ | ------------ | -------------------------------------------------- |
-| v1           | v1           | Full compatibility                                 |
-| v1           | v0 (legacy)  | Full backward compatibility                        |
-| v1           | v2+          | Partial — unknown fields preserved, warning logged |
-
-### Feature negotiation
-
-When peers connect, they negotiate a common feature set:
-
-```mermaid
-sequenceDiagram
-  participant A as Client A (v1.2)
-  participant B as Client B (v1.0)
-
-  A->>B: Hello {features: [yjs, change_v2, compression]}
-  B->>A: Hello {features: [yjs, change_v1]}
-  Note over A,B: Negotiate intersection
-  A->>B: Using {features: [yjs, change_v1]}
-  Note over A,B: A downgrades to v1 format
-```
-
-```ts
-// Handshake exchange
-{
-  clientVersion: '1.2.0',
-  protocolVersion: 1,
-  features: ['yjs_sync', 'change_v2', 'signatures', 'compression']
-}
-```
-
-The negotiator finds the intersection of features both peers support. If a required feature is missing, the connection is downgraded or rejected.
-
-## Schema versioning
-
-Every schema should have a semantic version:
-
-```ts
-
-const TaskSchema = defineSchema({
-  name: 'Task',
-  version: '2.0.0', // Major.Minor.Patch
-  properties: {
-    title: { type: 'text' },
-    status: { type: 'select', options: ['todo', 'doing', 'done'] },
-    priority: { type: 'select', options: ['low', 'medium', 'high'] }
-  }
-})
-```
-
-### Version bump rules
-
-| Change Type                     | Version Bump | Example           |
-| ------------------------------- | ------------ | ----------------- |
-| Add optional field              | Minor        | `1.0.0` → `1.1.0` |
-| Add required field with default | Minor        | `1.0.0` → `1.1.0` |
-| Remove field                    | Major        | `1.0.0` → `2.0.0` |
-| Rename field                    | Major        | `1.0.0` → `2.0.0` |
-| Change field type               | Major        | `1.0.0` → `2.0.0` |
-| Fix bug in migration            | Patch        | `1.0.1` → `1.0.2` |
-
-### Schema change classification
-
-Every schema change falls into one of three risk categories:
-
-```mermaid
-flowchart TB
-    subgraph "SAFE - Ship Anytime"
-        SAFE1["Add optional properties"]
-        SAFE2["Add new schemas"]
-        SAFE3["Add new change types"]
-        SAFE4["Add new select options"]
-        SAFE5["Make required → optional"]
-    end
-
-    subgraph "CAUTION - Plan Ahead"
-        CAUTION1["Add required properties"]
-        CAUTION2["Remove properties"]
-        CAUTION3["Make optional → required"]
-        CAUTION4["Change property defaults"]
-    end
-
-    subgraph "BREAKING - Requires Migration"
-        DANGER1["Change property type"]
-        DANGER2["Rename properties"]
-        DANGER3["Change schema namespace"]
-        DANGER4["Remove select options"]
-    end
-
-    style SAFE1 fill:#c8e6c9
-    style SAFE2 fill:#c8e6c9
-    style SAFE3 fill:#c8e6c9
-    style SAFE4 fill:#c8e6c9
-    style SAFE5 fill:#c8e6c9
-    style CAUTION1 fill:#fff3e0
-    style CAUTION2 fill:#fff3e0
-    style CAUTION3 fill:#fff3e0
-    style CAUTION4 fill:#fff3e0
-    style DANGER1 fill:#ffcdd2
-    style DANGER2 fill:#ffcdd2
-    style DANGER3 fill:#ffcdd2
-    style DANGER4 fill:#ffcdd2
-```
-
-#### Classification matrix
-
-| Change Type            | Forward Safe | Backward Safe | Auto-Migrate | Manual Action    |
-| ---------------------- | ------------ | ------------- | ------------ | ---------------- |
-| Add optional property  | Yes          | Yes           | N/A          | None             |
-| Add required property  | No           | Yes           | Yes          | Define default   |
-| Remove property        | Yes          | No            | Yes          | None             |
-| Change property type   | No           | No            | Maybe        | Define transform |
-| Rename property        | No           | No            | Yes          | Define mapping   |
-| Add select option      | Yes          | Yes           | N/A          | None             |
-| Remove select option   | No           | No            | Maybe        | Define fallback  |
-| Make optional→required | No           | Yes           | Yes          | Define default   |
-| Make required→optional | Yes          | Yes           | N/A          | None             |
-
-**Legend:**
-
-- **Forward Safe**: Old clients can read data created by new clients
-- **Backward Safe**: New clients can read data created by old clients
-- **Auto-Migrate**: The system can generate migration code automatically
-
-#### Migration wizard
-
-Use the **Migrate** panel in DevTools to:
-
-1. **Analyze** - Scan your store for schema changes
-2. **Review** - See changes grouped by risk level
-3. **Generate** - Auto-generate lens code for migrations
-4. **Test** - Validate migrations on sample data
-5. **Apply** - Apply migrations to your store
-
-```mermaid
-flowchart TB
-    START["Schema Change Detected"]
-    ANALYZE["Analyze Changes"]
-    CLASSIFY["Classify Risk"]
-
-    START --> ANALYZE
-    ANALYZE --> CLASSIFY
-
-    CLASSIFY -->|"Safe"| AUTO["Auto-apply"]
-    CLASSIFY -->|"Caution"| REVIEW["Review & Confirm"]
-    CLASSIFY -->|"Breaking"| WIZARD["Migration Wizard"]
-
-    WIZARD --> LENS["Generate Lens Code"]
-    LENS --> TEST["Test Migration"]
-    TEST -->|"Pass"| APPLY["Apply to Store"]
-    TEST -->|"Fail"| EDIT["Edit Lens"]
-    EDIT --> TEST
-
-    AUTO --> DONE["Done"]
-    REVIEW --> APPLY
-    APPLY --> DONE
-
-    style AUTO fill:#c8e6c9
-    style REVIEW fill:#fff3e0
-    style WIZARD fill:#ffcdd2
-```
-
-## Migrations with lenses
-
-Lenses transform data between schema versions. They're bidirectional — you can upgrade and downgrade.
-
-```mermaid
-flowchart LR
-  subgraph "Lens"
-    UP["up()"]
-    DOWN["down()"]
-  end
-
-  V1["v1.0.0"] -->|upgrade| UP --> V2["v2.0.0"]
-  V2 -->|downgrade| DOWN --> V1
-```
-
-### Creating a lens
-
-```ts
-
-const taskV1ToV2: SchemaLens = createLens({
-  from: '1.0.0',
-  to: '2.0.0',
-
-  // Transform v1 → v2
-  up(node) {
-    return {
-      ...node,
-      priority: node.priority ?? 'medium' // Add default
-    }
-  },
-
-  // Transform v2 → v1
-  down(node) {
-    const { priority, ...rest } = node
-    return rest // Remove new field
-  }
-})
-```
-
-### Registering lenses
-
-```ts
-
-const registry = new LensRegistry()
-
-// Register all lenses for a schema
-registry.register('Task', taskV1ToV2)
-registry.register('Task', taskV2ToV3)
-
-// The registry automatically chains lenses
-// v1 → v2 → v3 happens automatically
-```
-
-```mermaid
-flowchart LR
-  V1["v1.0.0"] --> L1["Lens 1"] --> V2["v2.0.0"] --> L2["Lens 2"] --> V3["v3.0.0"]
-
-  style V1 fill:#fee
-  style V2 fill:#ffe
-  style V3 fill:#efe
-```
-
-The registry finds the shortest path between any two versions and chains the lenses automatically.
-
-### Reading with migration
-
-```ts
-
-const store = new NodeStore({ lensRegistry: registry })
-
-// Read with automatic migration
-const task = await store.getWithMigration(taskId, {
-  targetVersion: '3.0.0'
-})
-// Data is transformed to v3 format
-
-// Original data unchanged in storage
-const original = await store.get(taskId)
-// Still in its original version
-```
-
-## Common migration patterns
-
-### Adding a field
-
-```ts
-const addPriority = createLens({
-  from: '1.0.0',
-  to: '1.1.0',
-  up: (node) => ({
-    ...node,
-    priority: 'medium' // Sensible default
-  }),
-  down: (node) => {
-    const { priority, ...rest } = node
-    return rest
-  }
-})
-```
-
-### Renaming a field
-
-```ts
-const renameDueDate = createLens({
-  from: '1.0.0',
-  to: '2.0.0',
-  up: (node) => {
-    const { due_date, ...rest } = node
-    return { ...rest, dueDate: due_date }
-  },
-  down: (node) => {
-    const { dueDate, ...rest } = node
-    return { ...rest, due_date: dueDate }
-  }
-})
-```
-
-### Splitting a field
-
-```ts
-const splitName = createLens({
-  from: '1.0.0',
-  to: '2.0.0',
-  up: (node) => {
-    const [firstName, ...rest] = (node.name || '').split(' ')
-    return {
-      ...node,
-      firstName,
-      lastName: rest.join(' ')
-    }
-  },
-  down: (node) => ({
-    ...node,
-    name: `${node.firstName} ${node.lastName}`.trim()
-  })
-})
-```
-
-## React integration
-
-### useQuery with migrations
-
-```tsx
-
-function TaskList() {
-  const { data: tasks } = useQuery({
-    type: 'Task',
-    targetVersion: '3.0.0' // Migrate to this version
-  })
-
-  // All tasks are v3 format, regardless of storage version
-  return tasks.map((task) => )
-}
-```
-
-## CLI tools
-
-### Extract schemas
-
-```bash
-# Extract current schema to JSON
-xnet schema extract --output schemas/
-
-# Creates schemas/Task.v2.0.0.json
-```
-
-### Compare schemas
-
-```bash
-# Compare two versions
-xnet schema diff Task 1.0.0 2.0.0
-
-# Output:
-# + priority: select (added)
-# ~ status: text → select (type changed)
-```
-
-### Validate migrations
-
-```bash
-# Check that lenses are registered for all version pairs
-xnet migrate validate
-
-# Output:
-# ✓ Task: 1.0.0 → 2.0.0 (lens registered)
-# ✓ Task: 2.0.0 → 3.0.0 (lens registered)
-# ✗ Contact: 1.0.0 → 2.0.0 (no lens!)
-```
-
-### Diagnose issues
-
-```bash
-# Full diagnostic
-xnet doctor
-
-# Output:
-# Checking nodes...
-#   ✓ 1,234 nodes checked
-#   ✓ All hashes valid
-#   ⚠ 3 nodes have unknown schema types
-#
-# Summary:
-#   Errors: 0
-#   Warnings: 3
-#   Status: HEALTHY (with warnings)
-```
-
-### Repair data
-
-```bash
-# Preview what would be fixed
-xnet repair --dry-run
-
-# Apply fixes
-xnet repair
-```
-
-### Export and import
-
-```bash
-# Export all data to JSON
-xnet export --output backup.json
-
-# Import with migration
-xnet import backup.json --migrate-to-current
-```
-
-## Graceful degradation
-
-When encountering unknown data, xNet preserves it rather than discarding it:
-
-```mermaid
-flowchart TD
-  subgraph "New Client (v2)"
-    N1["Create node with\nnew 'priority' field"]
-  end
-
-  subgraph "Old Client (v1)"
-    O1["Receive node"]
-    O2["Unknown field\n'priority'"]
-    O3["Store as-is\n(preserve field)"]
-    O4["Edit 'title'"]
-    O5["Save node\n(priority intact)"]
-  end
-
-  N1 --> O1 --> O2 --> O3 --> O4 --> O5
-```
-
-### Unknown schema type
-
-```ts
-// Node with unknown schema type
-const node = {
-  '@type': 'xnet://example.com/FutureType',
-  title: 'Something new',
-  unknownField: { complex: 'data' }
-}
-
-// Old client behavior:
-// - Stores node as-is
-// - Can display raw data
-// - Preserves unknown fields on save
-```
-
-### Unknown property type
-
-```ts
-// Property with future type
-const property = {
-  name: 'location',
-  type: 'geo-polygon',  // Unknown type
-  value: { points: [...] }
-}
-
-// Old client behavior:
-// - Preserves value
-// - Displays as JSON in UI
-// - Round-trips correctly
-```
-
-## Deprecation policy
-
-Features follow a deprecation lifecycle:
-
-```mermaid
-flowchart LR
-  A["Active"] --> D["Deprecated\n(warning)"]
-  D --> X["Discouraged\n(error)"]
-  X --> R["Removed"]
-
-  D -.- |"6+ months"| X
-  X -.- |"3+ months"| R
-```
-
-| Stage       | Behavior               | Duration     |
-| ----------- | ---------------------- | ------------ |
-| Active      | Works normally         | Indefinite   |
-| Deprecated  | Works, warning logged  | Min 6 months |
-| Discouraged | Works, error logged    | Min 3 months |
-| Removed     | Feature does not exist | Permanent    |
-
-Check for deprecations programmatically:
-
-```ts
-
-const warnings = checkDeprecations({
-  protocolVersion: 0,
-  features: ['change_v1']
-})
-
-warnings.forEach((w) => {
-  console.warn(`${w.feature}: ${w.message}`)
-  console.warn(`  Deadline: ${w.deadline}`)
-})
-```
-
-## DevTools panel
-
-The Version DevTools panel shows:
-
-- Current protocol version
-- Connected peer versions
-- Feature negotiation results
-- Deprecation warnings
-- Schema version distribution
-
-Enable it in the DevTools:
-
-```tsx
-
-function App() {
-  return (
-    
-      
-        
-      
-    
-  )
-}
-```
-
-## Best practices
-
-1. **Always provide defaults** when adding fields:
-
-   ```ts
-   up: (node) => ({ ...node, priority: node.priority ?? 'medium' })
-   ```
-
-2. **Test both directions** — migrations should round-trip:
-
-   ```ts
-   const roundTripped = lens.down(lens.up(original))
-   expect(roundTripped.title).toBe(original.title)
-   ```
-
-3. **Keep lenses simple** — one concern per lens, chain for complex migrations
-
-4. **Version bumps are cheap** — don't be afraid to bump minor versions for additive changes
-
-5. **Run `xnet doctor`** in CI to catch issues early
-
-## Further reading
-
-- [Sync Guide](/docs/guides/sync/) — How sync works
-- [Schemas Overview](/docs/schemas/overview/) — Defining schemas
-- [DevTools](/docs/guides/devtools/) — Debugging tools
 
 ---
 

@@ -1,5 +1,18 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
+
+const working = [
+  '6,000+ tests passing across 30 packages',
+  'Web + Electron apps with full P2P sync',
+  'Workbench shell with tabs & command palette',
+  'Schema system with 15 property types',
+  'Real-time collaboration via Yjs',
+  'Chat, presence & peer-to-peer calls',
+  'Dashboards with sandboxed custom widgets',
+  'Cryptographic identity with passkey sign-in',
+  'Agent surface: xnet CLI, SKILL.md & MCP',
+  '10-panel devtools suite',
+]
 ---
 
 <section id="community" class="py-24 lg:py-32">
@@ -15,38 +28,12 @@ import SectionHeader from '../ui/SectionHeader.astro'
       <div class="animate-on-scroll rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-6 sm:p-8">
         <h3 class="font-semibold text-emerald-400 mb-4">What's working now</h3>
         <div class="grid gap-3 sm:grid-cols-2">
-          <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            2400+ tests passing across 21 packages
-          </div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            Electron app with full P2P sync
-          </div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            Schema system with 15 property types
-          </div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            Real-time collaboration via Yjs
-          </div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            Cryptographic identity (DID:key + Ed25519)
-          </div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            Rich text editor with TipTap
-          </div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            Infinite canvas with spatial indexing
-          </div>
-          <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-            7-panel devtools suite
-          </div>
+          {working.map((item) => (
+            <div class="flex items-center gap-2.5 text-sm text-gray-500 dark:text-gray-400">
+              <svg class="h-4 w-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              {item}
+            </div>
+          ))}
         </div>
       </div>
     </div>
