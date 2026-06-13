@@ -11,8 +11,11 @@ import { useDataBridge } from '@xnetjs/react/internal'
 import { cn, LinkifiedText, useListboxNavigation } from '@xnetjs/ui'
 import { Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ModeratedPost } from '../components/ModeratedMedia'
 import { PersonMentionChip } from '../components/PersonHovercard'
+import { useContentLabelsBatch } from '../lib/self-label'
 import { useLinkTargets } from '../hooks/useLinkTargets'
+import type { AbuseLabel } from '@xnetjs/abuse'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { navigateToNode } from '../workbench/navigation'
 import { mergeMentionables, type Mentionable, type ProfileEntry } from './comms-utils'
@@ -151,11 +154,13 @@ function MessageLinkChips({
 function MessageRow({
   message,
   profiles,
-  linkTargets
+  linkTargets,
+  labels
 }: {
   message: ChatMessageRow
   profiles: ProfileEntry[]
   linkTargets: WikilinkTarget[]
+  labels: readonly AbuseLabel[]
 }) {
   const author = displayName(message.createdBy ?? '?', profiles)
   return (
@@ -165,13 +170,19 @@ function MessageRow({
         <span className="font-mono text-[10px] text-ink-3">{formatTime(message.createdAt)}</span>
         <EditedTag message={message} />
       </div>
-      <MessageBody message={message} />
+      {/* Sensitive-content render gate (0176): a self-labelled or ML-flagged
+          message is blurred per the viewer's dial. */}
+      <ModeratedPost labels={labels}>
+        <MessageBody message={message} />
+      </ModeratedPost>
       <MessageMentionChips message={message} />
       <MessageTagChips message={message} />
       <MessageLinkChips message={message} linkTargets={linkTargets} />
     </li>
   )
 }
+
+const NO_LABELS: readonly AbuseLabel[] = []
 
 function MessageList({
   messages,
@@ -184,6 +195,8 @@ function MessageList({
   linkTargets: WikilinkTarget[]
   listRef: React.RefObject<HTMLUListElement>
 }) {
+  const ids = useMemo(() => messages.map((message) => message.id), [messages])
+  const labelsByTarget = useContentLabelsBatch(ids)
   if (messages.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center text-xs text-ink-3">
@@ -199,6 +212,7 @@ function MessageList({
           message={message}
           profiles={profiles}
           linkTargets={linkTargets}
+          labels={labelsByTarget.get(message.id) ?? NO_LABELS}
         />
       ))}
     </ul>
