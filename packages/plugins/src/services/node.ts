@@ -30,6 +30,10 @@ export type {
 } from './mcp-server'
 export { MCPServer, createMCPServer } from './mcp-server'
 
+// MCP HTTP transport (uses Node.js http module; exploration 0175)
+export type { McpHttpServerConfig, McpHttpServerHandle } from './mcp-http'
+export { createMcpHttpServer } from './mcp-http'
+
 // AI workspace exporter (uses Node.js fs/path/crypto modules)
 export type {
   AiWorkspaceChangedFile,
