@@ -276,6 +276,8 @@ status.addEventListener('change', () => {
 
 ## Validation Checklist
 
+Implementation-time verification (June 2026, headless Chromium against the worktree vite preview): startup auto-request ran silently and logged `{lever: 'startup', state: 'not-granted'}` to `xnet:durability-log`, the banner rendered as info-tone "Durable storage pending" with the new recovery copy, the Retry action re-requested and logged `lever: 'banner'`, and the console stayed clean. Unit tests cover the per-browser banner matrix, `isSilentPersistRequestSafe`, the permission watcher, the durability log, and the notification-grant chain. The items below are the remaining real-browser/production checks:
+
 - [ ] Fresh Chrome profile on `https://xnet.fyi/app/`: startup auto-request returns `false` silently; no prompt appears; banner is informational.
 - [ ] Same profile after granting notifications via the opt-in: `persist()` returns `true` in the same session; banner flips to success without reload.
 - [ ] Same profile, no notifications, 2–3 days of normal use: a later startup auto-request returns `true` (engagement signal).
