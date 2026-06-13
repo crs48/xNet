@@ -11,6 +11,7 @@ import { getCommandRegistry } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
 import {
   CheckSquare2,
+  Compass,
   Files,
   MessageSquare,
   Network,
@@ -90,6 +91,14 @@ export function Rail() {
           onClick={() => showPanelView('left', item.id)}
         />
       ))}
+
+      <div className="my-1 h-px w-5 bg-hairline" />
+
+      <RailButton
+        label="Discover people"
+        icon={Compass}
+        onClick={() => void navigate({ to: '/discover' })}
+      />
 
       {railItems.length > 0 && <div className="my-1 h-px w-5 bg-hairline" />}
       {railItems.map((item) => {

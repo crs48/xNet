@@ -49,6 +49,36 @@ export function useContentLabels(targetId: string | undefined): AbuseLabel[] {
   }, [data, targetId])
 }
 
+/**
+ * Group moderation-label rows by their target node. The render gate uses this to
+ * resolve labels for a whole feed/thread from a single query instead of N
+ * per-node queries (0176, Phase 1).
+ */
+export function groupLabelsByTarget(rows: readonly Row[]): Map<string, AbuseLabel[]> {
+  const byTarget = new Map<string, AbuseLabel[]>()
+  for (const row of rows) {
+    const target = str(row.target)
+    if (!target) continue
+    const list = byTarget.get(target) ?? []
+    list.push(moderationRowToAbuseLabel(row))
+    byTarget.set(target, list)
+  }
+  return byTarget
+}
+
+/** Batched label lookup for a set of node ids — one query, grouped by target. */
+export function useContentLabelsBatch(targetIds: readonly string[]): Map<string, AbuseLabel[]> {
+  const { data } = useQuery(ModerationLabelSchema, {})
+  const wanted = useMemo(() => new Set(targetIds), [targetIds])
+  return useMemo(() => {
+    const rows = ((data ?? []) as unknown as Row[]).filter((row) => {
+      const target = str(row.target)
+      return target !== undefined && wanted.has(target)
+    })
+    return groupLabelsByTarget(rows)
+  }, [data, wanted])
+}
+
 export interface SelfLabelController {
   selfLabel: (targetId: string, value: SensitivityLabelValue) => Promise<void>
 }

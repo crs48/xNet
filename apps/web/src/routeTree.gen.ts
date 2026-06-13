@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as SocialImportRouteImport } from './routes/social-import'
@@ -26,6 +27,11 @@ import { Route as DashboardDashboardIdRouteImport } from './routes/dashboard.$da
 import { Route as ChannelChannelIdRouteImport } from './routes/channel.$channelId'
 import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
 
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/social-import': typeof SocialImportRoute
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
+  '/welcome': typeof WelcomeRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/channel/$channelId': typeof ChannelChannelIdRoute
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/social-import': typeof SocialImportRoute
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
+  '/welcome': typeof WelcomeRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/channel/$channelId': typeof ChannelChannelIdRoute
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/social-import': typeof SocialImportRoute
   '/stories': typeof StoriesRoute
   '/tasks': typeof TasksRoute
+  '/welcome': typeof WelcomeRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/channel/$channelId': typeof ChannelChannelIdRoute
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/social-import'
     | '/stories'
     | '/tasks'
+    | '/welcome'
     | '/canvas/$canvasId'
     | '/channel/$channelId'
     | '/dashboard/$dashboardId'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/social-import'
     | '/stories'
     | '/tasks'
+    | '/welcome'
     | '/canvas/$canvasId'
     | '/channel/$channelId'
     | '/dashboard/$dashboardId'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/social-import'
     | '/stories'
     | '/tasks'
+    | '/welcome'
     | '/canvas/$canvasId'
     | '/channel/$channelId'
     | '/dashboard/$dashboardId'
@@ -228,6 +240,7 @@ export interface RootRouteChildren {
   SocialImportRoute: typeof SocialImportRoute
   StoriesRoute: typeof StoriesRoute
   TasksRoute: typeof TasksRoute
+  WelcomeRoute: typeof WelcomeRoute
   CanvasCanvasIdRoute: typeof CanvasCanvasIdRoute
   ChannelChannelIdRoute: typeof ChannelChannelIdRoute
   DashboardDashboardIdRoute: typeof DashboardDashboardIdRoute
@@ -240,6 +253,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tasks': {
       id: '/tasks'
       path: '/tasks'
@@ -364,6 +384,7 @@ const rootRouteChildren: RootRouteChildren = {
   SocialImportRoute: SocialImportRoute,
   StoriesRoute: StoriesRoute,
   TasksRoute: TasksRoute,
+  WelcomeRoute: WelcomeRoute,
   CanvasCanvasIdRoute: CanvasCanvasIdRoute,
   ChannelChannelIdRoute: ChannelChannelIdRoute,
   DashboardDashboardIdRoute: DashboardDashboardIdRoute,
