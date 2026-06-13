@@ -109,6 +109,44 @@ export {
   publicAppealChannels,
   verifySignedHubPolicyServiceOffer
 } from './hub-policy-offer'
+export {
+  DEFAULT_SENSITIVITY_PREFERENCES,
+  SENSITIVITY_LABEL_VALUES,
+  SENSITIVITY_PRESENCE_FLOOR,
+  SENSITIVITY_SOURCE_WEIGHT,
+  assessSensitivity,
+  buildSensitivityLabel,
+  decideSensitivityVisibility,
+  isSensitivityLabelValue,
+  resolveContentVisibility,
+  sensitivityLabels,
+  sensitivityOverride,
+  strictestVisibility
+} from './sensitivity'
+export type {
+  BuildSensitivityLabelInput,
+  SensitivityAssessment,
+  SensitivityLabelValue,
+  SensitivityPreference,
+  SensitivitySource,
+  SensitivityVisibilityOptions,
+  UserSensitivityPreferences
+} from './sensitivity'
+export {
+  averageHash,
+  differenceHash,
+  hammingDistanceHex,
+  imageHashSimilarity,
+  matchKnownImageHash,
+  perceptualHash
+} from './image-fingerprint'
+export type { GrayscaleImage, KnownHashMatch, KnownImageHash } from './image-fingerprint'
+export { createNsfwImageClassifier, mapNsfwLabelToSensitivity } from './local-image-classifier'
+export type {
+  NsfwImageClassifierOptions,
+  NsfwImageDetection,
+  NsfwImageDetector
+} from './local-image-classifier'
 export { createPublicWriteBudgetKey, evaluatePublicWriteBudget } from './public-write-budget'
 export { createQueryCostBudgetKey, evaluateQueryCostBudget } from './query-cost-budget'
 export {

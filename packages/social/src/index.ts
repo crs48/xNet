@@ -9,6 +9,7 @@ export * from './lenses'
 export * from './patterns'
 export * from './projection'
 export * from './schemas'
+export * from './connect'
 export * from './views'
 export * from './workspace'
 
