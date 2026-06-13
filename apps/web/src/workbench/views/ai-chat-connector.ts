@@ -84,5 +84,65 @@ export function providerConfigForConnector(
 export function baseUrlFromDetail(detail: string | undefined): string | undefined {
   if (!detail) return undefined
   const match = detail.match(/\((https?:\/\/[^)]+)\)/)
-  return match?.[1] ?? (/^https?:\/\//.test(detail) ? detail : undefined)
+  if (match) return match[1]
+  return /^https?:\/\//.test(detail) ? detail : undefined
+}
+
+// ─── Chat runtime event handling (extracted so it stays pure + tested) ──────────
+
+export interface RuntimeEventLike {
+  type: string
+  threadId?: string
+  payload?: unknown
+}
+
+/** The state change a runtime event implies, or null if it's not interesting. */
+export interface ChatEventEffect {
+  delta?: string
+  settled?: boolean
+  error?: string
+}
+
+export function reduceRuntimeEvent(event: RuntimeEventLike): ChatEventEffect | null {
+  if (event.type === 'model.delta') {
+    const text = (event.payload as { text?: string } | undefined)?.text
+    return text ? { delta: text } : null
+  }
+  if (event.type === 'run.completed' || event.type === 'model.completed') {
+    return { settled: true }
+  }
+  if (event.type === 'run.failed') {
+    const message = (event.payload as { error?: string } | undefined)?.error
+    return { settled: true, error: message ?? 'run failed' }
+  }
+  return null
+}
+
+export interface ChatEventHandlers {
+  onDelta: (text: string) => void
+  onSettled: () => void
+  onError: (message: string) => void
+}
+
+/** Apply a runtime event to the chat handlers, filtered to the active thread. */
+export function applyRuntimeEvent(
+  event: RuntimeEventLike,
+  activeThreadId: string | null,
+  handlers: ChatEventHandlers
+): void {
+  if (event.threadId && event.threadId !== activeThreadId) return
+  const effect = reduceRuntimeEvent(event)
+  if (!effect) return
+  if (effect.delta) handlers.onDelta(effect.delta)
+  if (effect.settled) handlers.onSettled()
+  if (effect.error) handlers.onError(effect.error)
+}
+
+/** Whether a message can be sent right now. */
+export function canSendMessage(content: string, streaming: boolean, hasRuntime: boolean): boolean {
+  return content.length > 0 && !streaming && hasRuntime
+}
+
+export function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }

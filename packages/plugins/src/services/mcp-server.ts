@@ -301,21 +301,24 @@ export class MCPServer {
 
     for await (const line of rl) {
       if (!this.running) break
+      await this.handleStdioLine(line)
+    }
+  }
 
-      try {
-        const request = JSON.parse(line) as MCPRequest
-        const response = await this.handleRequest(request)
-        console.log(JSON.stringify(response))
-      } catch {
-        // Invalid JSON - send parse error
-        console.log(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            id: null,
-            error: { code: -32700, message: 'Parse error' }
-          })
-        )
-      }
+  /** Parse one stdin line as a JSON-RPC request and write the response. */
+  private async handleStdioLine(line: string): Promise<void> {
+    try {
+      const response = await this.handleRequest(JSON.parse(line) as MCPRequest)
+      console.log(JSON.stringify(response))
+    } catch {
+      // Invalid JSON - send parse error
+      console.log(
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: null,
+          error: { code: -32700, message: 'Parse error' }
+        })
+      )
     }
   }
 

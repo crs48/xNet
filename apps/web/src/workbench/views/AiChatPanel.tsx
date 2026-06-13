@@ -8,9 +8,10 @@
  * when the model can reliably call tools, else `propose-only` — surfacing the
  * 0174 decision rule to the user.
  *
+ * Event handling, send-eligibility, and connector→provider mapping live in
+ * `ai-chat-connector.ts` (pure + tested); this file is mostly composition.
  * Live tool execution (the agent calling xnet_* against the workspace) reuses
- * the same runtime + MCP tool surface and is the next integration step; this
- * panel delivers connector selection + streaming chat + the approval scaffold.
+ * the same runtime + MCP tool surface and is the next integration step.
  */
 
 import {
@@ -29,6 +30,9 @@ import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AI_CHAT_STORAGE_KEYS,
+  applyRuntimeEvent,
+  canSendMessage,
+  errorMessage,
   providerConfigForConnector,
   type AiChatSettings,
   type CloudProvider
@@ -59,6 +63,7 @@ export function AiChatPanel() {
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
 
   const runtimeRef = useRef<AiAgentRuntime | null>(null)
   const threadIdRef = useRef<string | null>(null)
@@ -67,6 +72,15 @@ export function AiChatPanel() {
   const settings = useMemo<AiChatSettings>(
     () => ({ apiKey: apiKey || undefined, cloudProvider }),
     [apiKey, cloudProvider]
+  )
+
+  const handlers = useMemo(
+    () => ({
+      onDelta: (text: string) => setMessages((prev) => appendToAssistant(prev, text)),
+      onSettled: () => setStreaming(false),
+      onError: (message: string) => setError(message)
+    }),
+    []
   )
 
   // Detect connectors (re-runs when the key changes so cloud-key flips available).
@@ -89,53 +103,43 @@ export function AiChatPanel() {
   useEffect(() => {
     runtimeRef.current = null
     threadIdRef.current = null
-    if (!selected || !selected.available) return
-
+    setReady(false)
+    if (!selected?.available) return
     let cancelled = false
     void resolveProvider(selected, settings).then((provider) => {
       if (cancelled || !provider) return
       const runtime = createAiAgentRuntime({ provider })
       void runtime.load().then(() => {
-        if (!cancelled) runtimeRef.current = runtime
+        if (cancelled) return
+        runtimeRef.current = runtime
+        setReady(true)
       })
-      const unsubscribe = runtime.subscribe((event) => {
-        if (event.threadId && event.threadId !== threadIdRef.current) return
-        if (event.type === 'model.delta') {
-          const text = (event.payload as { text?: string }).text ?? ''
-          setMessages((prev) => appendToAssistant(prev, text))
-        } else if (event.type === 'run.completed' || event.type === 'model.completed') {
-          setStreaming(false)
-        } else if (event.type === 'run.failed') {
-          setStreaming(false)
-          setError(String((event.payload as { error?: string }).error ?? 'run failed'))
-        }
-      })
-      cleanupRef.current = unsubscribe
+      cleanupRef.current = runtime.subscribe((event) =>
+        applyRuntimeEvent(event, threadIdRef.current, handlers)
+      )
     })
     return () => {
       cancelled = true
       cleanupRef.current?.()
       cleanupRef.current = null
     }
-  }, [selected, settings])
+  }, [selected, settings, handlers])
 
   const send = useCallback(async () => {
     const content = input.trim()
-    const runtime = runtimeRef.current
-    if (!content || streaming || !runtime) return
+    const rt = runtimeRef.current
+    if (!canSendMessage(content, streaming, !!rt)) return
+    const runtime = rt as AiAgentRuntime
     setError(null)
     setInput('')
     setMessages((prev) => [...prev, { role: 'user', content }, { role: 'assistant', content: '' }])
     setStreaming(true)
     try {
-      if (!threadIdRef.current) {
-        const thread = await runtime.createThread({ title: 'AI chat' })
-        threadIdRef.current = thread.id
-      }
+      threadIdRef.current ??= (await runtime.createThread({ title: 'AI chat' })).id
       await runtime.runTurn({ threadId: threadIdRef.current, content })
     } catch (err) {
       setStreaming(false)
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorMessage(err))
     }
   }, [input, streaming])
 
@@ -167,58 +171,93 @@ export function AiChatPanel() {
         </p>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-ink-3">
-            <Bot size={22} strokeWidth={1.5} />
-            <p className="text-xs">Chat with an AI that can help manage your workspace.</p>
-            <p className="text-[11px]">
-              Your model runs locally or on your own key — never on our servers.
-            </p>
-          </div>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {messages.map((message, index) => (
-              <li key={index} className={message.role === 'user' ? 'text-right' : ''}>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-ink-3">
-                  {message.role === 'user' ? 'You' : 'Assistant'}
-                </div>
-                <p className="whitespace-pre-wrap break-words text-xs text-ink-1">
-                  {message.content || (streaming ? '…' : '')}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
+      <ChatBody messages={messages} streaming={streaming} />
       {error && <p className="px-3 py-1 text-[11px] text-rose-500">{error}</p>}
+      <ChatComposer
+        value={input}
+        ready={ready}
+        streaming={streaming}
+        onChange={setInput}
+        onSend={() => void send()}
+      />
+    </div>
+  )
+}
 
-      <div className="flex items-end gap-2 border-t border-hairline p-2">
-        <textarea
-          value={input}
-          rows={2}
-          placeholder={runtimeRef.current ? 'Message…' : 'Select and configure a model above'}
-          disabled={!runtimeRef.current}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-              event.preventDefault()
-              void send()
-            }
-          }}
-          className="min-h-0 flex-1 resize-none rounded-md border border-hairline bg-surface-0 px-2 py-1.5 text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis disabled:opacity-50"
-        />
-        <button
-          type="button"
-          onClick={() => void send()}
-          disabled={!input.trim() || streaming || !runtimeRef.current}
-          aria-label="Send"
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-hairline bg-surface-0 text-ink-2 hover:text-ink-1 disabled:cursor-default disabled:opacity-50"
-        >
-          {streaming ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-        </button>
+function ChatBody({ messages, streaming }: { messages: ChatMessage[]; streaming: boolean }) {
+  if (messages.length === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-3 text-center text-ink-3">
+        <Bot size={22} strokeWidth={1.5} />
+        <p className="text-xs">Chat with an AI that can help manage your workspace.</p>
+        <p className="text-[11px]">
+          Your model runs locally or on your own key — never on our servers.
+        </p>
       </div>
+    )
+  }
+  const placeholder = streaming ? '…' : ''
+  return (
+    <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-2">
+      {messages.map((message, index) => (
+        <ChatMessageItem key={index} message={message} placeholder={placeholder} />
+      ))}
+    </ul>
+  )
+}
+
+function ChatMessageItem({ message, placeholder }: { message: ChatMessage; placeholder: string }) {
+  const isUser = message.role === 'user'
+  return (
+    <li className={isUser ? 'text-right' : ''}>
+      <div className="text-[10px] font-medium uppercase tracking-wider text-ink-3">
+        {isUser ? 'You' : 'Assistant'}
+      </div>
+      <p className="whitespace-pre-wrap break-words text-xs text-ink-1">
+        {message.content || placeholder}
+      </p>
+    </li>
+  )
+}
+
+function ChatComposer({
+  value,
+  ready,
+  streaming,
+  onChange,
+  onSend
+}: {
+  value: string
+  ready: boolean
+  streaming: boolean
+  onChange: (value: string) => void
+  onSend: () => void
+}) {
+  return (
+    <div className="flex items-end gap-2 border-t border-hairline p-2">
+      <textarea
+        value={value}
+        rows={2}
+        placeholder={ready ? 'Message…' : 'Select and configure a model above'}
+        disabled={!ready}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+            event.preventDefault()
+            onSend()
+          }
+        }}
+        className="min-h-0 flex-1 resize-none rounded-md border border-hairline bg-surface-0 px-2 py-1.5 text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis disabled:opacity-50"
+      />
+      <button
+        type="button"
+        onClick={onSend}
+        disabled={!value.trim() || streaming || !ready}
+        aria-label="Send"
+        className="flex h-7 w-7 items-center justify-center rounded-md border border-hairline bg-surface-0 text-ink-2 hover:text-ink-1 disabled:cursor-default disabled:opacity-50"
+      >
+        {streaming ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+      </button>
     </div>
   )
 }
@@ -248,19 +287,23 @@ function ConnectorBar({
           </option>
         ))}
       </select>
-      {writeMode && (
-        <span
-          title={
-            writeMode === 'agentic'
-              ? 'This model can call tools, so it can apply changes (with approval).'
-              : 'This model proposes changes for you to apply.'
-          }
-          className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-3"
-        >
-          {writeMode}
-        </span>
-      )}
+      {writeMode && <WriteModeBadge writeMode={writeMode} />}
     </div>
+  )
+}
+
+function WriteModeBadge({ writeMode }: { writeMode: 'agentic' | 'propose-only' }) {
+  const title =
+    writeMode === 'agentic'
+      ? 'This model can call tools, so it can apply changes (with approval).'
+      : 'This model proposes changes for you to apply.'
+  return (
+    <span
+      title={title}
+      className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-3"
+    >
+      {writeMode}
+    </span>
   )
 }
 
@@ -309,6 +352,5 @@ async function resolveProvider(
 ): Promise<AIProvider | null> {
   if (detection.tier === 'prompt-api') return createPromptApiProvider()
   const config = providerConfigForConnector(detection, settings)
-  if (!config) return null
-  return createAIProvider(config)
+  return config ? createAIProvider(config) : null
 }

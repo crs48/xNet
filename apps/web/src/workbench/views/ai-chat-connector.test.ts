@@ -1,6 +1,13 @@
 import type { ConnectorDetection } from '@xnetjs/plugins'
-import { describe, expect, it } from 'vitest'
-import { baseUrlFromDetail, providerConfigForConnector } from './ai-chat-connector'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  applyRuntimeEvent,
+  baseUrlFromDetail,
+  canSendMessage,
+  errorMessage,
+  providerConfigForConnector,
+  reduceRuntimeEvent
+} from './ai-chat-connector'
 
 const det = (over: Partial<ConnectorDetection>): ConnectorDetection => ({
   tier: 'cloud-key',
@@ -75,5 +82,63 @@ describe('baseUrlFromDetail', () => {
   it('returns undefined for non-urls', () => {
     expect(baseUrlFromDetail(undefined)).toBeUndefined()
     expect(baseUrlFromDetail('nope')).toBeUndefined()
+  })
+})
+
+describe('reduceRuntimeEvent', () => {
+  it('maps a model delta to a delta effect', () => {
+    expect(reduceRuntimeEvent({ type: 'model.delta', payload: { text: 'hi' } })).toEqual({
+      delta: 'hi'
+    })
+  })
+  it('ignores an empty delta', () => {
+    expect(reduceRuntimeEvent({ type: 'model.delta', payload: { text: '' } })).toBeNull()
+  })
+  it('marks completion as settled', () => {
+    expect(reduceRuntimeEvent({ type: 'run.completed' })).toEqual({ settled: true })
+    expect(reduceRuntimeEvent({ type: 'model.completed' })).toEqual({ settled: true })
+  })
+  it('maps a failure to settled + error', () => {
+    expect(reduceRuntimeEvent({ type: 'run.failed', payload: { error: 'boom' } })).toEqual({
+      settled: true,
+      error: 'boom'
+    })
+  })
+  it('ignores unrelated events', () => {
+    expect(reduceRuntimeEvent({ type: 'thread.created' })).toBeNull()
+  })
+})
+
+describe('applyRuntimeEvent', () => {
+  const handlers = () => ({ onDelta: vi.fn(), onSettled: vi.fn(), onError: vi.fn() })
+
+  it('routes a delta to onDelta', () => {
+    const h = handlers()
+    applyRuntimeEvent({ type: 'model.delta', threadId: 't1', payload: { text: 'x' } }, 't1', h)
+    expect(h.onDelta).toHaveBeenCalledWith('x')
+  })
+  it('routes a failure to onSettled + onError', () => {
+    const h = handlers()
+    applyRuntimeEvent({ type: 'run.failed', payload: { error: 'e' } }, 't1', h)
+    expect(h.onSettled).toHaveBeenCalled()
+    expect(h.onError).toHaveBeenCalledWith('e')
+  })
+  it('ignores events for a different thread', () => {
+    const h = handlers()
+    applyRuntimeEvent({ type: 'model.delta', threadId: 'other', payload: { text: 'x' } }, 't1', h)
+    expect(h.onDelta).not.toHaveBeenCalled()
+  })
+})
+
+describe('canSendMessage / errorMessage', () => {
+  it('requires content, idle, and a runtime', () => {
+    expect(canSendMessage('hi', false, true)).toBe(true)
+    expect(canSendMessage('', false, true)).toBe(false)
+    expect(canSendMessage('hi', true, true)).toBe(false)
+    expect(canSendMessage('hi', false, false)).toBe(false)
+  })
+  it('extracts an error message', () => {
+    expect(errorMessage(new Error('nope'))).toBe('nope')
+    expect(errorMessage('raw')).toBe('raw')
   })
 })
