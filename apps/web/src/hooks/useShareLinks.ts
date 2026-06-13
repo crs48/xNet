@@ -6,7 +6,7 @@
 
 import { useXNet } from '@xnetjs/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { normalizeHubHttpUrl } from '../lib/share-links'
+import { hubApiFetch, normalizeHubHttpUrl } from '../lib/share-links'
 
 export type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view'
 export type ShareRole = 'read' | 'comment' | 'write'
@@ -91,30 +91,70 @@ const useHubApi = (): HubApi => {
       if (!hubHttpUrl || !getHubAuthToken) {
         throw new Error('Hub connection is not configured')
       }
-      const token = await getHubAuthToken()
-      const response = await fetch(`${hubHttpUrl}${path}`, {
-        method: init.method ?? 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
-        cache: 'no-store'
-      })
-      const data = (await response.json().catch(() => null)) as {
-        error?: string
-        code?: string
-      } | null
-      if (!response.ok) {
-        throw new Error(data?.error ?? `Hub request failed (${response.status})`)
-      }
-      return data
+      return hubApiFetch(hubHttpUrl, await getHubAuthToken(), path, init)
     },
     [hubHttpUrl, getHubAuthToken]
   )
 
   return { ready: Boolean(hubHttpUrl && getHubAuthToken), hubHttpUrl, request }
 }
+
+type HubCollection<T> = {
+  items: T[]
+  loading: boolean
+  error: string | null
+  refresh: () => void
+  api: HubApi
+}
+
+/** Shared fetch-list-with-refresh state for hub-backed collections. */
+const useHubCollection = <T,>(
+  docId: string,
+  path: string,
+  extract: (data: unknown) => T[]
+): HubCollection<T> => {
+  const api = useHubApi()
+  const [items, setItems] = useState<T[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [refreshTick, setRefreshTick] = useState(0)
+  const { ready, request } = api
+
+  useEffect(() => {
+    if (!ready || !docId) return
+    let cancelled = false
+    setLoading(true)
+    request(path)
+      .then((data) => {
+        if (cancelled) return
+        setItems(extract(data))
+        setError(null)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- extract is identity-stable per call site
+  }, [ready, docId, path, request, refreshTick])
+
+  const refresh = useCallback(() => setRefreshTick((tick) => tick + 1), [])
+
+  return { items, loading, error, refresh, api }
+}
+
+const extractLinks = (data: unknown): ShareLink[] =>
+  ((data as { links?: ShareLink[] })?.links ?? []).map((link) => ({
+    ...link,
+    url: cachedLinkUrl(link.linkId)
+  }))
+
+const extractGrants = (data: unknown): ShareGrant[] =>
+  (data as { grants?: ShareGrant[] })?.grants ?? []
 
 export function useShareLinks(
   docId: string,
@@ -130,38 +170,12 @@ export function useShareLinks(
   setLinkDisabled: (linkId: string, disabled: boolean) => Promise<void>
   deleteLink: (linkId: string) => Promise<void>
 } {
-  const { ready, hubHttpUrl, request } = useHubApi()
-  const [links, setLinks] = useState<ShareLink[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshTick, setRefreshTick] = useState(0)
-
-  useEffect(() => {
-    if (!ready || !docId) return
-    let cancelled = false
-    setLoading(true)
-    request(`/shares/links?docId=${encodeURIComponent(docId)}`)
-      .then((data) => {
-        if (cancelled) return
-        const rows = ((data as { links?: ShareLink[] })?.links ?? []).map((link) => ({
-          ...link,
-          url: cachedLinkUrl(link.linkId)
-        }))
-        setLinks(rows)
-        setError(null)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [ready, docId, request, refreshTick])
-
-  const refresh = useCallback(() => setRefreshTick((tick) => tick + 1), [])
+  const { items, loading, error, refresh, api } = useHubCollection<ShareLink>(
+    docId,
+    `/shares/links?docId=${encodeURIComponent(docId)}`,
+    extractLinks
+  )
+  const { request, ready, hubHttpUrl } = api
 
   const createLink = useCallback(
     async (options: CreateLinkOptions): Promise<ShareLink> => {
@@ -204,7 +218,7 @@ export function useShareLinks(
   )
 
   return {
-    links,
+    links: items,
     loading,
     error,
     hubHttpUrl,
@@ -223,34 +237,12 @@ export function useShareGrants(docId: string): {
   refresh: () => void
   revokeGrant: (grantId: string) => Promise<void>
 } {
-  const { ready, request } = useHubApi()
-  const [grants, setGrants] = useState<ShareGrant[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshTick, setRefreshTick] = useState(0)
-
-  useEffect(() => {
-    if (!ready || !docId) return
-    let cancelled = false
-    setLoading(true)
-    request(`/shares/grants?docId=${encodeURIComponent(docId)}`)
-      .then((data) => {
-        if (cancelled) return
-        setGrants((data as { grants?: ShareGrant[] })?.grants ?? [])
-        setError(null)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [ready, docId, request, refreshTick])
-
-  const refresh = useCallback(() => setRefreshTick((tick) => tick + 1), [])
+  const { items, loading, error, refresh, api } = useHubCollection<ShareGrant>(
+    docId,
+    `/shares/grants?docId=${encodeURIComponent(docId)}`,
+    extractGrants
+  )
+  const { request } = api
 
   const revokeGrant = useCallback(
     async (grantId: string): Promise<void> => {
@@ -263,7 +255,7 @@ export function useShareGrants(docId: string): {
     [request, docId, refresh]
   )
 
-  return { grants, loading, error, refresh, revokeGrant }
+  return { grants: items, loading, error, refresh, revokeGrant }
 }
 
 export const roleFromGrantActions = (actions: string[]): ShareRole => {

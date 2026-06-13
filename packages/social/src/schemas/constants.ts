@@ -188,3 +188,22 @@ export const identityClaimKinds = [
 ] as const
 
 export type SocialIdentityClaimKind = (typeof identityClaimKinds)[number]['id']
+
+export const enrichmentStatuses = [
+  { id: 'pending', name: 'Pending', color: 'gray' },
+  { id: 'resolved', name: 'Resolved', color: 'green' },
+  { id: 'unavailable', name: 'Unavailable', color: 'yellow' },
+  { id: 'blocked', name: 'Blocked', color: 'orange' },
+  { id: 'error', name: 'Error', color: 'red' }
+] as const
+
+export type SocialEnrichmentStatus = (typeof enrichmentStatuses)[number]['id']
+
+export const enrichmentSources = [
+  { id: 'oembed', name: 'oEmbed' },
+  { id: 'open-graph', name: 'Open Graph' },
+  { id: 'data-api', name: 'Data API' },
+  { id: 'derived', name: 'Derived' }
+] as const
+
+export type SocialEnrichmentSource = (typeof enrichmentSources)[number]['id']

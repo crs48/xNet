@@ -134,6 +134,108 @@ export function shareClaimErrorMessage(code: string): string {
   }
 }
 
+/** Human-readable text for any claim failure. */
+export function claimErrorText(err: unknown): string {
+  if (err instanceof ShareClaimError) return shareClaimErrorMessage(err.code)
+  return err instanceof Error ? err.message : String(err)
+}
+
+export type ClaimDestination =
+  | { kind: 'navigate' }
+  | { kind: 'switch-hub'; endpoint: string }
+
+/**
+ * Where a successful claim should take the user: same-hub claims navigate
+ * in-SPA (the doc syncs over the existing connection); cross-hub claims
+ * need a reload against the issuing hub.
+ */
+export function decideClaimDestination(
+  resultEndpoint: string,
+  linkHub: string,
+  currentHubUrl: string | null
+): ClaimDestination {
+  const linkHubWs = normalizeHubWsUrl(resultEndpoint || linkHub)
+  const sameHub = currentHubUrl !== null && normalizeHubWsUrl(currentHubUrl) === linkHubWs
+  return sameHub ? { kind: 'navigate' } : { kind: 'switch-hub', endpoint: linkHubWs }
+}
+
+export type ShareRouteInput =
+  | { kind: 'link'; value: ShareLinkInput }
+  | { kind: 'handle'; value: string }
+  | { kind: 'payload'; value: string }
+  | { kind: 'missing'; value: '' }
+
+const readParam = (
+  hashParams: URLSearchParams,
+  searchParams: URLSearchParams,
+  name: string
+): string => hashParams.get(name) ?? searchParams.get(name) ?? ''
+
+const readLinkInput = (
+  hash: string,
+  hashParams: URLSearchParams,
+  searchParams: URLSearchParams
+): ShareLinkInput | null => {
+  const linkId = readParam(hashParams, searchParams, 'link')
+  const hub = readParam(hashParams, searchParams, 'hub')
+  // Path-routed deployments carry the secret in a plain #s= fragment;
+  // hash-routed ones carry it inside the hash query.
+  const fragmentSecret = !hash.includes('?')
+    ? new URLSearchParams(hash.replace(/^#/, '')).get('s')
+    : null
+  const secret = hashParams.get('s') ?? fragmentSecret ?? ''
+  if (!LINK_ID_RE.test(linkId) || !hub || !secret) return null
+  return { linkId, hub: normalizeHubHttpUrl(hub), secret }
+}
+
+/**
+ * Parse the /share route's inputs from a window location. Query params live
+ * in the hash query under hash routing and in the search string otherwise.
+ */
+export function parseShareRouteInput(location: { hash: string; href: string }): ShareRouteInput {
+  const hash = location.hash
+  const hashQuery = hash.includes('?') ? hash.split('?')[1] : ''
+  const hashParams = new URLSearchParams(hashQuery)
+  const searchParams = new URL(location.href).searchParams
+
+  if (readParam(hashParams, searchParams, 'link')) {
+    const value = readLinkInput(hash, hashParams, searchParams)
+    return value ? { kind: 'link', value } : { kind: 'missing', value: '' }
+  }
+
+  const handle = readParam(hashParams, searchParams, 'handle')
+  if (handle) return { kind: 'handle', value: handle }
+  const payload = readParam(hashParams, searchParams, 'payload')
+  if (payload) return { kind: 'payload', value: payload }
+  return { kind: 'missing', value: '' }
+}
+
+/**
+ * Authenticated JSON request against a hub's HTTP API. Throws with the
+ * hub's error text when the response is not OK.
+ */
+export async function hubApiFetch(
+  hubHttpUrl: string,
+  authToken: string,
+  path: string,
+  init: { method?: string; body?: unknown } = {}
+): Promise<unknown> {
+  const response = await fetch(`${hubHttpUrl}${path}`, {
+    method: init.method ?? 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`
+    },
+    ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+    cache: 'no-store'
+  })
+  const data = (await response.json().catch(() => null)) as { error?: string } | null
+  if (!response.ok) {
+    throw new Error(data?.error ?? `Hub request failed (${response.status})`)
+  }
+  return data
+}
+
 /** Route descriptor for a claimed doc. */
 export function docRouteFor(
   docType: ShareClaimResult['docType'],

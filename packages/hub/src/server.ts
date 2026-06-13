@@ -36,6 +36,7 @@ import { createShardRoutes } from './routes/shards'
 import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
 import { createShareLinkRoutes } from './routes/share-links'
 import { createTaskRoutes } from './routes/tasks'
+import { createUnfurlRoutes } from './routes/unfurl'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
@@ -743,6 +744,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       appleAppId: config.appleAppId,
       androidPackage: config.androidPackage,
       androidCertSha256: config.androidCertSha256
+    })
+  )
+  app.route(
+    '/unfurl',
+    createUnfurlRoutes({
+      requireAuth,
+      userAgent: crawlConfig.userAgent
     })
   )
 

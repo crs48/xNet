@@ -8,7 +8,11 @@
 import { useXNet } from '@xnetjs/react'
 import { Link, X } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import { claimShareLink, parseShareInput } from '../lib/share-payload'
+import {
+  describeShareSecurityNotice,
+  parseShareInput,
+  resolveShareInputToAdd
+} from '../lib/share-payload'
 
 export interface AddSharedInput {
   docType: 'page' | 'database' | 'canvas'
@@ -50,96 +54,13 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
 
     try {
       const parsed = parseShareInput(docId)
-      if (parsed.kind === 'v2' && parsed.securityWarnings && parsed.securityWarnings.length > 0) {
-        const notice = parsed.securityWarnings.join(' ')
-        setSecurityNotice(notice)
-        console.warn('[AddSharedDialog] Secure-share ICE policy warning:', notice)
-      } else {
-        setSecurityNotice(null)
-      }
-
-      if (parsed.kind === 'link') {
-        if (!getHubAuthToken) {
-          throw new Error('Hub authentication is not available')
-        }
-        const token = await getHubAuthToken()
-        const claimed = await claimShareLink(parsed, token)
-        if (
-          claimed.docType !== 'page' &&
-          claimed.docType !== 'database' &&
-          claimed.docType !== 'canvas'
-        ) {
-          throw new Error(
-            `This link shares a ${claimed.docType}, which is not supported on desktop yet — open it on the web app.`
-          )
-        }
-        await onAdd({
-          docType: claimed.docType,
-          docId: claimed.resource,
-          share: {
-            endpoint: claimed.endpoint,
-            token,
-            transport: 'ws'
-          }
+      setSecurityNotice(describeShareSecurityNotice(parsed))
+      await onAdd(
+        await resolveShareInputToAdd(parsed, {
+          hubHttpUrl: resolveHubHttpUrl(),
+          getHubAuthToken
         })
-      } else if (parsed.kind === 'handle') {
-        const hubHttpUrl = resolveHubHttpUrl()
-        if (!hubHttpUrl) {
-          throw new Error('Hub URL is not configured for secure share redemption')
-        }
-
-        const redeemResponse = await fetch(`${hubHttpUrl}/shares/redeem`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ handle: parsed.handle })
-        })
-
-        const redeemed = (await redeemResponse.json().catch(() => null)) as
-          | {
-              endpoint: string
-              token: string
-              resource: string
-              docType: 'page' | 'database' | 'canvas'
-              exp: number
-            }
-          | { code?: string; error?: string }
-          | null
-
-        if (!redeemResponse.ok || !redeemed || !('endpoint' in redeemed)) {
-          throw new Error(
-            getRedeemErrorMessage(redeemed && !('endpoint' in redeemed) ? redeemed : null)
-          )
-        }
-
-        if (!redeemed.token || redeemed.exp <= Date.now()) {
-          throw new Error('Secure share session is expired')
-        }
-
-        await onAdd({
-          docType: redeemed.docType,
-          docId: redeemed.resource,
-          share: {
-            endpoint: redeemed.endpoint,
-            token: redeemed.token,
-            transport: 'ws'
-          }
-        })
-      } else {
-        const hints = parsed.payload.transportHints
-        if (!parsed.payload.token) {
-          throw new Error('Secure share payload is missing token material')
-        }
-        await onAdd({
-          docType: parsed.payload.docType,
-          docId: parsed.payload.resource,
-          share: {
-            endpoint: parsed.payload.endpoint,
-            token: parsed.payload.token,
-            transport: hints?.webrtc ? 'auto' : 'ws',
-            iceServers: hints?.iceServers
-          }
-        })
-      }
+      )
 
       setDocId('')
       setError(null)
@@ -274,20 +195,6 @@ function resolveHubHttpUrl(): string | null {
     return null
   }
   return configured.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/$/, '')
-}
-
-function getRedeemErrorMessage(payload: { code?: string; error?: string } | null): string {
-  const code = payload?.code ?? ''
-  switch (code) {
-    case 'TOKEN_EXPIRED':
-      return 'This secure link expired. Ask the owner to generate a new link.'
-    case 'TOKEN_REPLAYED':
-      return 'This secure link was already used. Ask the owner to generate a fresh link.'
-    case 'INVALID_HANDLE':
-      return 'This secure link is invalid. Copy it again or ask the owner for a new link.'
-    default:
-      return payload?.error ?? 'Secure share link could not be redeemed'
-  }
 }
 
 function formatAddSharedError(message: string): string {

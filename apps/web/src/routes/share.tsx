@@ -14,19 +14,18 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useXNet } from '@xnetjs/react'
 import { useEffect, useMemo, useState } from 'react'
 import {
+  claimErrorText,
   claimShareLink,
-  normalizeHubHttpUrl,
-  normalizeHubWsUrl,
-  ShareClaimError,
-  shareClaimErrorMessage,
-  type ShareLinkInput
+  decideClaimDestination,
+  docRouteFor,
+  parseShareRouteInput,
+  type ShareRouteInput
 } from '../lib/share-links'
 
 const DEEP_LINK_TIMEOUT_MS = 1000
 const BASE_PATH = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
 const USE_HASH_ROUTER = import.meta.env.VITE_USE_HASH_ROUTER === 'true'
 const SHARE_HANDLE_RE = /^sh_[A-Za-z0-9_-]{16,}$/
-const SHARE_LINK_ID_RE = /^[A-Za-z0-9_-]{8,64}$/
 
 type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view'
 
@@ -47,49 +46,9 @@ type RedeemedShare = {
   exp: number
 }
 
-type ShareInput =
-  | { kind: 'link'; value: ShareLinkInput }
-  | { kind: 'handle'; value: string }
-  | { kind: 'payload'; value: string }
-  | { kind: 'missing'; value: '' }
-
 export const Route = createFileRoute('/share')({
   component: ShareBridgePage
 })
-
-function parseShareInputFromLocation(): ShareInput {
-  const hash = window.location.hash
-  const hashQuery = hash.includes('?') ? hash.split('?')[1] : ''
-  const hashParams = new URLSearchParams(hashQuery)
-  const parsed = new URL(window.location.href)
-
-  const param = (name: string): string =>
-    hashParams.get(name) ?? parsed.searchParams.get(name) ?? ''
-
-  const linkId = param('link')
-  if (linkId) {
-    const hub = param('hub')
-    // Path-routed deployments carry the secret in a plain #s= fragment;
-    // hash-routed ones carry it inside the hash query.
-    const fragmentSecret = !hash.includes('?')
-      ? new URLSearchParams(hash.replace(/^#/, '')).get('s')
-      : null
-    const secret = hashParams.get('s') ?? fragmentSecret ?? ''
-    if (SHARE_LINK_ID_RE.test(linkId) && hub && secret) {
-      return {
-        kind: 'link',
-        value: { linkId, hub: normalizeHubHttpUrl(hub), secret }
-      }
-    }
-    return { kind: 'missing', value: '' }
-  }
-
-  const handle = param('handle')
-  if (handle) return { kind: 'handle', value: handle }
-  const payload = param('payload')
-  if (payload) return { kind: 'payload', value: payload }
-  return { kind: 'missing', value: '' }
-}
 
 function ShareBridgePage(): JSX.Element {
   const [status, setStatus] = useState<'launching' | 'fallback' | 'error'>('launching')
@@ -97,7 +56,7 @@ function ShareBridgePage(): JSX.Element {
   const navigate = useNavigate()
   const { getHubAuthToken, hubUrl } = useXNet()
 
-  const shareInput = useMemo<ShareInput>(() => parseShareInputFromLocation(), [])
+  const shareInput = useMemo<ShareRouteInput>(() => parseShareRouteInput(window.location), [])
 
   useEffect(() => {
     const sanitizedPath = `${window.location.pathname}${window.location.hash.split('?')[0] || ''}`
@@ -123,45 +82,26 @@ function ShareBridgePage(): JSX.Element {
     if (shareInput.kind === 'link') {
       const input = shareInput.value
 
-      const openClaimedDoc = (docType: ShareDocType, resource: string): void => {
-        switch (docType) {
-          case 'database':
-            void navigate({ to: '/db/$dbId', params: { dbId: resource } })
-            break
-          case 'canvas':
-            void navigate({ to: '/canvas/$canvasId', params: { canvasId: resource } })
-            break
-          case 'dashboard':
-            void navigate({ to: '/dashboard/$dashboardId', params: { dashboardId: resource } })
-            break
-          case 'view':
-            void navigate({ to: '/view/$viewId', params: { viewId: resource } })
-            break
-          default:
-            void navigate({ to: '/doc/$docId', params: { docId: resource } })
-        }
-      }
-
       const claim = async (): Promise<void> => {
         if (!getHubAuthToken) {
           throw new Error('Hub authentication is not available')
         }
         const token = await getHubAuthToken()
         const result = await claimShareLink(input, token)
-        const linkHubWs = normalizeHubWsUrl(result.endpoint || input.hub)
-        const sameHub = hubUrl !== null && normalizeHubWsUrl(hubUrl) === linkHubWs
+        const destination = decideClaimDestination(result.endpoint, input.hub, hubUrl)
 
-        if (sameHub) {
+        if (destination.kind === 'navigate') {
           // Visiting the doc subscribes + materializes it locally,
           // which pins it into the workspace sidebar.
-          openClaimedDoc(result.docType, result.resource)
+          const route = docRouteFor(result.docType, result.resource)
+          void navigate({ to: route.to, params: route.params } as never)
           return
         }
 
         // The doc lives on a different hub than this app is connected to:
         // store a hub session and reload so the app boots against it.
         const key = persistShareSession({
-          endpoint: linkHubWs,
+          endpoint: destination.endpoint,
           token,
           resource: result.resource,
           docType: result.docType,
@@ -176,13 +116,7 @@ function ShareBridgePage(): JSX.Element {
         setStatus('fallback')
         void claim().catch((err) => {
           setStatus('error')
-          setError(
-            err instanceof ShareClaimError
-              ? shareClaimErrorMessage(err.code)
-              : err instanceof Error
-                ? err.message
-                : String(err)
-          )
+          setError(claimErrorText(err))
         })
       }, DEEP_LINK_TIMEOUT_MS)
 

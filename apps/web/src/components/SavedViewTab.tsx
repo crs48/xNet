@@ -6,6 +6,7 @@ import { validateSavedViewDescriptor, type SavedViewDescriptor } from '@xnetjs/d
 import { SavedViewSchema } from '@xnetjs/data'
 import { SavedViewRunner, useQuery } from '@xnetjs/react'
 import { useEffect, useMemo } from 'react'
+import { useSocialFeedEnrichment } from '../hooks/useSocialFeedEnrichment'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
 import { useWorkbench } from '../workbench/state'
 
@@ -48,6 +49,8 @@ function SavedViewReady({
   title: string | undefined
   descriptor: SavedViewDescriptor
 }) {
+  const feedEnrichment = useSocialFeedEnrichment()
+
   return (
     <SavedViewRunner
       descriptor={descriptor}
@@ -55,6 +58,7 @@ function SavedViewReady({
       title={title ?? null}
       fallbackId={viewId}
       resetKey={viewId}
+      feedEnrichment={feedEnrichment}
     />
   )
 }

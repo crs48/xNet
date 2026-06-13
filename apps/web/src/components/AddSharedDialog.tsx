@@ -11,10 +11,10 @@ import { useXNet } from '@xnetjs/react'
 import { Link, X } from 'lucide-react'
 import { useState } from 'react'
 import {
+  claimErrorText,
   claimShareLink,
+  docRouteFor,
   parseShareUrl,
-  ShareClaimError,
-  shareClaimErrorMessage,
   type ShareClaimResult
 } from '../lib/share-links'
 
@@ -33,25 +33,8 @@ export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
   if (!isOpen) return null
 
   const openClaimedDoc = (result: ShareClaimResult): void => {
-    switch (result.docType) {
-      case 'database':
-        void navigate({ to: '/db/$dbId', params: { dbId: result.resource } })
-        break
-      case 'canvas':
-        void navigate({ to: '/canvas/$canvasId', params: { canvasId: result.resource } })
-        break
-      case 'dashboard':
-        void navigate({
-          to: '/dashboard/$dashboardId',
-          params: { dashboardId: result.resource }
-        })
-        break
-      case 'view':
-        void navigate({ to: '/view/$viewId', params: { viewId: result.resource } })
-        break
-      default:
-        void navigate({ to: '/doc/$docId', params: { docId: result.resource } })
-    }
+    const route = docRouteFor(result.docType, result.resource)
+    void navigate({ to: route.to, params: route.params } as never)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,13 +59,7 @@ export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
       setShareUrl('')
       onClose()
     } catch (err) {
-      setError(
-        err instanceof ShareClaimError
-          ? shareClaimErrorMessage(err.code)
-          : err instanceof Error
-            ? err.message
-            : String(err)
-      )
+      setError(claimErrorText(err))
     } finally {
       setClaiming(false)
     }
