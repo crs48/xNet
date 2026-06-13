@@ -786,53 +786,64 @@ app.get('/public/space/:id', async (c) => {
 
 ## Implementation Checklist
 
+> Status note: Phases 1–4 (the core recommendation — the Space primitive,
+> container-grant enforcement, space invites, and gated public reads) are
+> implemented and tested. The remaining unchecked items are UI affordances and
+> the explicitly-"later" Phase 5 hardening, annotated inline.
+
 ### Phase 1 — The Space primitive (structure)
-- [ ] Add `SpaceSchema` + `SpaceMembershipSchema`; register in `packages/data/src/schema/schemas/index.ts`
-- [ ] Add single-valued `space` relation + `visibility` to Page, Database, Canvas, Dashboard, Project, Channel, Task (additive, optional — no lens migration)
-- [ ] Explorer: group nodes by Space (above the folder tree); "Personal/Unfiled" for space-less nodes; space switcher in the workbench shell
-- [ ] Create / rename / archive Space; set `kind`, icon, color; "Move to Space…" affordance
-- [ ] Convert-Folder-to-Space and Move-Folder-into-Space affordances
-- [ ] Cycle prevention + depth nudge on `parent` (reuse Folder cycle-check)
+- [x] Add `SpaceSchema` + `SpaceMembershipSchema`; register in `packages/data/src/schema/schemas/index.ts` (+ bubbled through `schema/index.ts` and the package root)
+- [x] Add single-valued `space` relation + `visibility` to Page, Database, Canvas, Dashboard, Project, Channel, Task (additive, optional — no lens migration)
+- [ ] Explorer: group nodes by Space + space switcher — shipped an Explorer **Spaces section** (list / inline create / per-space invite, `ExplorerSpacesSection.tsx`); grouping the item list by Space and a workbench switcher are deferred
+- [ ] Create / rename / archive Space; "Move to Space…" — **create** shipped in the UI; `renameSpace` / `archiveSpace` / `setNodeSpace` exist in `useSpaces`, their UI affordances deferred
+- [ ] Convert-Folder-to-Space and Move-Folder-into-Space affordances — deferred
+- [x] Cycle prevention + depth bound on `parent` — reuses the Folder cycle helpers; `ancestorContainers` is cycle- and depth-bounded (tested)
 
 ### Phase 2 — Membership, roles, enforcement (container grants)
-- [ ] `SpaceMembership` storage on the hub; `upsertSpaceMembership`, `listMembers(space)`, `removeMember`
-- [ ] Hub index: store node→space + denormalized ancestor-space closure; `ancestorSpaces(docId)`
-- [ ] Extend `GrantIndexRecord` with `scope: 'node' | 'subtree'`; add `getStatusForNode` (doc-or-ancestor-space resolution)
-- [ ] Route `canWriteNodeChange` / `canWriteYjs` through `getStatusForNode` (no behavior change for un-spaced nodes)
-- [ ] Role precedence: most-permissive across memberships; expansive per-node overrides; `deny` wins
-- [ ] Members tab in the Space UI: list members + roles, change role (admin only), remove (revokes membership + grant, kicks sockets)
+- [x] Hub membership — a Space membership is a grant on the Space id; `listMembers(space)` = `listGrantsForDoc(spaceId)`, `removeMember` = `revokeGrant` (no separate table needed)
+- [x] Hub index: node→container index (uniform parent pointer) + cycle/depth-bounded `ancestorContainers(nodeId)` in memory + sqlite
+- [x] `getStatusForNode` (doc-or-ancestor-Space resolution) — a `scope` column proved unnecessary: a grant on a Space id is inherently subtree, resolved by the ancestor walk
+- [x] Route `canWriteNodeChange` / `canWriteYjs` through `getStatusForNode`; `authorizeRoomAction` gains a Space-membership read fallback (no behavior change for un-spaced nodes)
+- [x] Role precedence: most-permissive of direct + ancestor-Space grants (expansive); explicit per-doc removal denies (`deny` wins) — tested
+- [x] Members surface — the existing ShareDialog **People tab** (opened on a Space id) lists members + provenance and removes access; a dedicated in-place role-change control is deferred
 
 ### Phase 3 — Inviting many-at-once (generalize share-links)
-- [ ] Accept `docType: 'space'` in `POST /shares/links` and the claim route; claim writes membership + subtree grant
-- [ ] Web/Electron: "Invite to Space" entry point reusing ShareDialog (role = space role); accept space URLs in AddSharedDialog
-- [ ] Recipient: claiming a space link materializes the whole Space (subscribe to all nodes whose space ∈ closure)
-- [ ] Nesting inheritance resolved at claim + at check (parent members flow down)
+- [x] `docType: 'space'` accepted in `POST /shares/links` + claim; a claim writes a container grant on the Space id (full-hub test)
+- [x] Web "Invite to Space" reusing ShareDialog (`ExplorerSpacesSection` → ShareDialog `docType="space"`); Electron deep-link + AddSharedDialog space-URL parsing deferred
+- [ ] Recipient materializes the whole Space — the hub **grants** access to the whole closure (read fallback + write checks); proactive client-side subscribe-to-all-nodes-in-closure is deferred
+- [x] Nesting inheritance resolved at check time (ancestor walk); membership is a single container grant, so no per-claim expansion is needed
 
 ### Phase 4 — Going public (publish)
-- [ ] Wire `visibility: 'public'` to set `read: PUBLIC` recipients via `computeRecipients` (existing) for the Space + opted-in nodes
-- [ ] Hub `GET /public/space/:id` + `GET /public/node/:id` (unauthenticated, read-only, rate-limited, gated on visibility)
-- [ ] "Publish" flow: admin-only, confirmation, moderation/labeler gate ([packages/abuse](packages/abuse)); explicit per-node publish for imported content
-- [ ] Public Space view = a public feed/site (reuse content-feed views from 0170); optional discovery opt-in via `FederationService.expose`
+- [x] `visibility` index (set from relayed node-changes) + inheritance resolution (`resolveEffectiveVisibility`) — implemented in lieu of the `computeRecipients`/`PUBLIC_RECIPIENT` E2E path, which stays B2
+- [x] Hub `GET /public/space/:id` + `GET /public/node/:id` — unauthenticated, read-only, gated on effective visibility; a public Space lists only public nodes beneath it (BFS, bounded)
+- [ ] "Publish" UI flow: admin-only confirmation + moderation/labeler gate ([packages/abuse](packages/abuse)) before GA; explicit per-node publish for imported content — deferred (the endpoint is gated; the GA gate + UI are not built)
+- [ ] Public Space view = a public feed/site (reuse 0170 feed views); discovery opt-in via `FederationService.expose` — deferred
 
-### Phase 5 — Hardening & later
+### Phase 5 — Hardening & later (deferred by design)
 - [ ] Multi-Space presence (retire hardcoded `WORKSPACE_ID='main'`); presence room per Space
 - [ ] Space-scoped search + feeds + notifications (InboxState from 0168)
 - [ ] **B2 (E2E):** space key wrapped to members; content encrypted to space key; key rotation on removal
-- [ ] **Later:** `did:web` group identity; export grant tuples to a ReBAC engine (OpenFGA/SpiceDB) if authorization complexity grows
+- [ ] **Later:** `did:web` group identity; export grant tuples to a ReBAC engine (OpenFGA/SpiceDB)
 
 ## Validation Checklist
 
-- [ ] Schema tests: Space nesting + `parent` cycle prevention; `SpaceMembership` uniqueness per (space, member); role enum
-- [ ] Hub test: a member of Space S can read/write every node whose `space` ∈ S's closure; a viewer's write envelopes are rejected (`canWriteNodeChange` / `canWriteYjs`)
-- [ ] Hub test: adding a *new* doc to S is immediately visible to existing members with **no extra grant writes** (proves container-grant, not fan-out)
-- [ ] Hub test: nesting — admin@Org has admin on a grandchild Project's doc; member@Project has *no* access to a sibling Team
-- [ ] Hub test: removing a member revokes access (membership + grant gone, live socket kicked); other members unaffected
-- [ ] Link test: one space invite link claimed by a fresh identity surfaces the entire Space at once; expiry/max-uses/disable behave as 0169
-- [ ] Cross-space union: a node in two Spaces grants the most permissive of the two roles
-- [ ] Public: a `public` Space is readable via `GET /public/space/:id` with no auth; a `private` one 404s; imported nodes never auto-public
-- [ ] Precedence: per-node override can only *raise* access above space role, never lower; `deny` overrides allow
-- [ ] Perf: container-grant check over a 10k-node, 5-deep Space stays within 0163 hot-path budgets (ancestor closure pre-expanded)
-- [ ] e2e (Playwright): create Space → file content → invite second identity → second user sees all content with correct role; publish → third anonymous viewer reads it
+Automated coverage: `packages/data/src/schema/schemas/space.test.ts` (schema +
+roles + nesting), `packages/hub/test/spaces.test.ts` (container grants, nesting,
+expansive union, removal, member listing, sqlite round-trip/restart, public
+routes, full-hub space-link claim), `apps/web/src/hooks/useSpaces.test.ts`
+(hook helpers). All green; full data + hub + web suites pass.
+
+- [x] Schema tests: Space nesting + `parent` cycle prevention; deterministic `spaceMembershipId` (one per space+member); role enum + helpers
+- [x] Hub test: a member of Space S can read/write every node beneath S; a viewer's writes are rejected (`canWriteNodeChange` / `canWriteYjs`); a commenter writes only comment schemas
+- [x] Hub test: a node filed into S is accessible with **no extra grant writes** (proves container-grant, not fan-out)
+- [x] Hub test: nesting — admin@Org resolves on a grandchild node; a sibling-team member gets `none`
+- [x] Hub test: revoking the space grant drops the member to `none`; other members unaffected (live-socket kick rides the existing 0169 re-auth sweep)
+- [x] Link test (full hub): a space invite link is created + claimed by a fresh identity and writes a container grant on the Space; expiry/max-uses/disable inherit 0169 behavior
+- [x] Union: most-permissive of direct + ancestor-Space grants (multi-*canonical*-space via membership edges deferred)
+- [x] Public: a `public` Space/node is readable via `GET /public/*` with no auth; `private`/`unlisted` 404; imports stay private upstream (`getPrivacyVisibility`)
+- [x] Precedence: per-node grant can only *raise* access above the space role; an explicit per-doc removal denies
+- [ ] Perf: container-grant check over a 10k-node, 5-deep Space within 0163 budgets — not yet measured (resolution is O(depth), depth-capped)
+- [ ] e2e (Playwright) full create→file→invite→read flow — deferred; the authenticated workbench render is gated behind passkey onboarding the preview harness can't satisfy here (typecheck + unit coverage stand in)
 
 ## References
 
