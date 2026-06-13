@@ -11,6 +11,7 @@ import type { ReactNode } from 'react'
 import { DemoBanner, useDemoMode } from '@xnetjs/react'
 import { Group, Panel, useDefaultLayout } from 'react-resizable-panels'
 import { GlobalSearch } from '../components/GlobalSearch'
+import { UndoToastProvider } from '../components/UndoToast'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { useWorkbenchCommands, useZenEscape } from './commands'
 import { ContextPanel } from './ContextPanel'
@@ -111,42 +112,48 @@ export function Workbench({ children }: { children: ReactNode }) {
   const { horizontal, vertical } = useWorkbenchLayouts(left.open, right.open, bottom.open)
 
   if (mode === 'zen') {
-    return <ZenSurface>{children}</ZenSurface>
+    return (
+      <UndoToastProvider>
+        <ZenSurface>{children}</ZenSurface>
+      </UndoToastProvider>
+    )
   }
 
   return (
-    <div className={`${SHELL_FRAME} bg-surface-1`}>
-      <WorkspaceCommands />
-      <GlobalSearch />
-      <WorkbenchDemoBanner />
+    <UndoToastProvider>
+      <div className={`${SHELL_FRAME} bg-surface-1`}>
+        <WorkspaceCommands />
+        <GlobalSearch />
+        <WorkbenchDemoBanner />
 
-      <div className="flex min-h-0 flex-1">
-        <Rail />
-        <Group
-          orientation="horizontal"
-          id="xnet-wb-h"
-          defaultLayout={horizontal.defaultLayout}
-          onLayoutChanged={horizontal.onLayoutChanged}
-        >
-          <LeftPanelSlot open={left.open} />
-          <Panel id="center" minSize="30%">
-            <Group
-              orientation="vertical"
-              id="xnet-wb-v"
-              defaultLayout={vertical.defaultLayout}
-              onLayoutChanged={vertical.onLayoutChanged}
-            >
-              <Panel id="editor" minSize="30%">
-                <EditorArea>{children}</EditorArea>
-              </Panel>
-              <BottomPanelSlot open={bottom.open} />
-            </Group>
-          </Panel>
-          <RightPanelSlot open={right.open} />
-        </Group>
+        <div className="flex min-h-0 flex-1">
+          <Rail />
+          <Group
+            orientation="horizontal"
+            id="xnet-wb-h"
+            defaultLayout={horizontal.defaultLayout}
+            onLayoutChanged={horizontal.onLayoutChanged}
+          >
+            <LeftPanelSlot open={left.open} />
+            <Panel id="center" minSize="30%">
+              <Group
+                orientation="vertical"
+                id="xnet-wb-v"
+                defaultLayout={vertical.defaultLayout}
+                onLayoutChanged={vertical.onLayoutChanged}
+              >
+                <Panel id="editor" minSize="30%">
+                  <EditorArea>{children}</EditorArea>
+                </Panel>
+                <BottomPanelSlot open={bottom.open} />
+              </Group>
+            </Panel>
+            <RightPanelSlot open={right.open} />
+          </Group>
+        </div>
+
+        <StatusBar />
       </div>
-
-      <StatusBar />
-    </div>
+    </UndoToastProvider>
   )
 }

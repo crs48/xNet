@@ -92,6 +92,9 @@ export {
 } from './scene/doc-layout'
 export type { CanvasDocMaps } from './scene/doc-layout'
 
+// Canvas document-local undo/redo (0179)
+export { createCanvasUndoManager, CANVAS_UNDO_CAPTURE_TIMEOUT_MS } from './undo'
+
 export {
   CANVAS_SCENE_NODE_KINDS,
   getCanvasResolvedNodeKind,

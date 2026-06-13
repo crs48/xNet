@@ -22,6 +22,7 @@ import {
   Trash2
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { useUndoToast } from '../../components/UndoToast'
 import { navigateToNode } from '../navigation'
 import { useWorkbench } from '../state'
 import { useExplorerFolders, type ExplorerFolderEntry } from './explorer-folders-context'
@@ -106,6 +107,7 @@ function FolderHoverActions({
 }) {
   const navigate = useNavigate()
   const { createPageInFolder, deleteFolder } = useExplorerFolders()
+  const { showUndoToast } = useUndoToast()
   const expand = useEnsureFolderExpanded()
 
   const action = (label: string, onClick: () => void, icon: ReactNode) => (
@@ -138,7 +140,10 @@ function FolderHoverActions({
       {action('Rename folder', onRename, <Pencil size={11} strokeWidth={1.5} />)}
       {action(
         'Delete folder (contents move up)',
-        () => void deleteFolder(folder.id),
+        () => {
+          const label = folder.name?.trim() || 'Folder'
+          void deleteFolder(folder.id).then(() => showUndoToast(`${label} deleted`))
+        },
         <Trash2 size={11} strokeWidth={1.5} />
       )}
     </>

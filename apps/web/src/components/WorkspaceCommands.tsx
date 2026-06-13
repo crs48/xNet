@@ -8,17 +8,44 @@
  */
 import { useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry, installCommandHandler } from '@xnetjs/plugins'
-import { useEffect, useState, type JSX } from 'react'
+import { useGlobalUndo } from '@xnetjs/react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 
 export function WorkspaceCommands(): JSX.Element | null {
   const navigate = useNavigate()
   const [helpOpen, setHelpOpen] = useState(false)
+
+  // App-wide undo/redo (0179). Held in a ref so the commands register once
+  // but always call the current handlers. allowInInput is left off so the
+  // rich-text editor (TipTap) and plain inputs keep their own Cmd+Z; the
+  // canvas overrides via a higher-priority 'surface:canvas' scope.
+  const undo = useGlobalUndo()
+  const undoRef = useRef(undo)
+  undoRef.current = undo
 
   useEffect(() => {
     const registry = getCommandRegistry()
     const uninstall = installCommandHandler()
 
     const disposables = [
+      registry.register({
+        id: 'edit.undo',
+        title: 'Undo',
+        key: 'Mod-Z',
+        run: () => void undoRef.current.undo()
+      }),
+      registry.register({
+        id: 'edit.redo',
+        title: 'Redo',
+        key: 'Mod-Shift-Z',
+        run: () => void undoRef.current.redo()
+      }),
+      registry.register({
+        id: 'edit.redoAlt',
+        title: 'Redo (alternate binding)',
+        key: 'Mod-Y',
+        run: () => void undoRef.current.redo()
+      }),
       registry.register({
         id: 'nav.home',
         title: 'Go to home',
