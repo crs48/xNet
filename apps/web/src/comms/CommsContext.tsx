@@ -23,6 +23,7 @@ import { useDataBridge } from '@xnetjs/react/internal'
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { tabFromPathname } from '../workbench/tabs'
 import { userCardFrom } from './comms-utils'
+import { useDesktopNotificationDelivery } from './desktop-notifications'
 import { useRoomSession } from './use-room-session'
 
 /** Single-workspace deployments share one well-known roster room. */
@@ -102,6 +103,7 @@ export function CommsProvider({ children }: { children: ReactNode }) {
   )
   useViewingBroadcast(workspaceSession)
   useNotifierFeed(notifier)
+  useDesktopNotificationDelivery(notifier)
 
   const value = useMemo<CommsValue>(
     () => ({ me, roomManager, notifier, workspacePeers, workspaceSession }),

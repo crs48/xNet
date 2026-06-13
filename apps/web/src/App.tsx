@@ -23,9 +23,11 @@ import {
 import {
   checkBrowserSupport,
   checkPersistentStorage,
+  isSilentPersistRequestSafe,
   isSQLiteCorruptionError,
   requestPersistentStorage,
   showUnsupportedBrowserMessage,
+  watchPersistentStoragePermission,
   SCHEMA_VERSION,
   SCHEMA_DDL
 } from '@xnetjs/sqlite'
@@ -41,6 +43,7 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { identityManager } from './lib/identity'
+import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -160,9 +163,6 @@ function getStorageRecoveryItems(input: {
     return []
   }
 
-  const common = storageStatus.requested
-    ? ['Browsers do not expose an override after they decline this request.']
-    : ['Browsers decide durable-storage requests from install and engagement signals.']
   const localhostHint =
     typeof window !== 'undefined' && window.location.hostname === 'localhost'
       ? [
@@ -172,34 +172,34 @@ function getStorageRecoveryItems(input: {
 
   if (browserFamily === 'safari') {
     return [
-      ...common,
-      'Safari usually needs xNet installed first. On macOS, use Share > Add to Dock, open xNet from the Dock, then retry.',
-      'On iPhone or iPad, use Share > Add to Home Screen, open xNet from the Home Screen, then retry.',
+      'Safari only grants durable storage to installed web apps, and clears data from sites unused for 7 days of Safari browsing.',
+      'On macOS, use Share > Add to Dock. On iPhone or iPad, use Share > Add to Home Screen. Installed apps are exempt from that cleanup.',
+      'Until then, opening xNet at least weekly resets the cleanup timer, and hub sync keeps your data recoverable.',
       ...localhostHint
     ]
   }
 
   if (browserFamily === 'chromium') {
     return [
-      ...common,
+      'No action needed: this browser re-evaluates the request automatically, and regular use grants it within a few days.',
       installAvailable && !isInstalled
-        ? 'Install xNet with the Install app button, open the installed app, then retry durable storage.'
-        : 'If install is unavailable, use the browser install icon or bookmark xNet, keep using it, then retry.',
+        ? 'To enable it now, turn on desktop alerts in the Notifications panel or install xNet with the Install app button.'
+        : 'To enable it now, turn on desktop alerts in the Notifications panel or install xNet from the browser menu.',
       ...localhostHint
     ]
   }
 
   if (browserFamily === 'firefox') {
     return [
-      ...common,
-      'Firefox may show a persistent-storage permission prompt. Allow it if prompted, then retry.',
+      storageStatus.requested
+        ? 'Firefox remembers a blocked prompt. Re-allow it from the permissions icon in the address bar or Page Info > Permissions > Store data in persistent storage.'
+        : 'Firefox shows a permission prompt. Choose Allow, and check "Remember this decision" to keep it.',
       ...localhostHint
     ]
   }
 
   return [
-    ...common,
-    'Install or bookmark xNet, keep using it from the same browser profile, then retry durable storage.',
+    'Browsers grant durable storage from install, notification, and usage signals. Keep using xNet from this profile, then retry.',
     ...localhostHint
   ]
 }
@@ -408,16 +408,28 @@ function getStorageBanner(input: {
         usageBytes: storageStatus.usageBytes,
         quotaBytes: storageStatus.quotaBytes
       }
-    case 'not-granted':
+    case 'not-granted': {
+      // Chrome's denial is re-evaluated on every visit and resolves itself
+      // with regular use — an informational note, not a warning. Safari's
+      // best-effort storage has a date-certain ITP cleanup, and an in-tab
+      // retry cannot succeed there, so it warns and drops the retry
+      // action in favor of the install guidance (0172).
+      const tone: StorageBannerTone = browserFamily === 'chromium' ? 'info' : 'warning'
+      const title = !storageStatus.requested
+        ? 'Enable durable local storage'
+        : browserFamily === 'chromium'
+          ? 'Durable storage pending'
+          : browserFamily === 'safari'
+            ? 'Safari limits durable storage in browser tabs'
+            : 'Browser declined durable storage'
+      const retryCanSucceed = browserFamily !== 'safari' || isInstalled
       return {
-        tone: 'warning',
-        title: storageStatus.requested
-          ? 'Browser declined durable storage'
-          : 'Enable durable local storage',
+        tone,
+        title,
         message: storageStatus.message,
         usageBytes: storageStatus.usageBytes,
         quotaBytes: storageStatus.quotaBytes,
-        ...(storageStatus.requestable
+        ...(storageStatus.requestable && retryCanSucceed
           ? {
               actionLabel: storageStatus.requested
                 ? 'Retry durable storage'
@@ -433,6 +445,7 @@ function getStorageBanner(input: {
             }
           : {})
       }
+    }
     case 'unsupported':
     case 'error':
       return {
@@ -491,7 +504,15 @@ export function App(): JSX.Element {
         }
 
         const storageWarning = support.warning
-        const storageStatus = await checkPersistentStorage()
+        // Chromium/WebKit decide persist() silently and re-evaluate it on
+        // every call, so requesting at startup is free — returning users
+        // flip to granted once engagement/install/notification signals
+        // land. Firefox would show a modal prompt here, so it stays
+        // read-only until the user clicks the banner action (0172).
+        const storageStatus = isSilentPersistRequestSafe()
+          ? await requestPersistentStorage()
+          : await checkPersistentStorage()
+        recordDurabilityTransition('startup', storageStatus)
 
         // Dynamically import the web proxy to enable code splitting
         const { WebSQLiteProxy } = await import('@xnetjs/sqlite/web-proxy')
@@ -622,6 +643,27 @@ export function App(): JSX.Element {
     }
   }, [])
 
+  // A persistent-storage grant can land mid-session (notification opt-in,
+  // install, engagement crossing Chrome's threshold). Watching the
+  // permission is free — it never spends or triggers a request (0172).
+  useEffect(() => {
+    return watchPersistentStoragePermission((state) => {
+      if (state !== 'granted') return
+      void checkPersistentStorage().then((storageStatus) => {
+        recordDurabilityTransition('permission-change', storageStatus)
+        setAppState((current) => updateAppStorageStatus(current, storageStatus))
+      })
+    })
+  }, [])
+
+  // Statuses produced outside App's own handlers (the desktop-alerts
+  // opt-in chains a persist() request after a notification grant).
+  useEffect(() => {
+    return subscribeStorageStatus((storageStatus) => {
+      setAppState((current) => updateAppStorageStatus(current, storageStatus))
+    })
+  }, [])
+
   useEffect(() => {
     return subscribeXNetStorageCorruption((error) => {
       const storage = storageRef.current
@@ -650,6 +692,7 @@ export function App(): JSX.Element {
 
     try {
       const storageStatus = await requestPersistentStorage()
+      recordDurabilityTransition('banner', storageStatus)
       setAppState((current) => updateAppStorageStatus(current, storageStatus))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
@@ -676,7 +719,10 @@ export function App(): JSX.Element {
       const userChoice = await promptInstall()
 
       if (userChoice?.outcome === 'accepted') {
-        const storageStatus = await checkPersistentStorage()
+        // Installing makes the grant available but the browser does not
+        // flip persisted() on its own — request, don't just check (0172).
+        const storageStatus = await requestPersistentStorage()
+        recordDurabilityTransition('install', storageStatus)
         setAppState((current) => updateAppStorageStatus(current, storageStatus))
       }
     } finally {

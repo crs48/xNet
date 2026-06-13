@@ -262,16 +262,16 @@ status.addEventListener('change', () => {
 ## Implementation Checklist
 
 - [x] `packages/sqlite/src/browser-support.ts`: accept a `silentRequestSafe` (or `browserFamily`) hint so callers can express "request at startup is free here"; keep API backward-compatible. _(Shipped as exported `isSilentPersistRequestSafe()` + `watchPersistentStoragePermission()` helpers.)_
-- [ ] `apps/web/src/App.tsx`: startup calls `requestPersistentStorage()` for Chromium/WebKit, `checkPersistentStorage()` for Firefox/unknown.
-- [ ] `apps/web/src/App.tsx` `handleInstallApp()`: after accepted install, call `requestPersistentStorage()` (request mode) instead of the read-only check.
-- [ ] Add `navigator.permissions.query({name:'persistent-storage'})` + `change` listener to refresh banner state mid-session (feature-detected; Chromium-only is fine).
-- [ ] Update `getPersistenceMessage()` and `getStorageRecoveryItems()`:
-  - [ ] Chromium: drop "Browsers do not expose an override…"; say xNet retries automatically as the site is used, and that enabling notifications or installing flips it immediately.
-  - [ ] Safari: state the 7-day inactive-site deletion explicitly; present install as protection from cleanup, not as a persist-retry trick; remove the implication that in-tab retry can succeed.
-  - [ ] Tone: Chromium not-granted → `info`; Safari not-granted → `warning`.
-- [ ] Ship OS notification delivery for inbox items (deferred from 0167/0168): contextual pre-prompt UI, `Notification.requestPermission()` on gesture, deliver via existing `Notifier` subscription.
-- [ ] Chain `requestPersistentStorage()` after a notification-permission grant.
-- [ ] Record persist-state transitions (granted/denied/error + which lever) in the storage diagnostics surface proposed in 0154.
+- [x] `apps/web/src/App.tsx`: startup calls `requestPersistentStorage()` for Chromium/WebKit (via `isSilentPersistRequestSafe()`), `checkPersistentStorage()` for Firefox/unknown.
+- [x] `apps/web/src/App.tsx` `handleInstallApp()`: after accepted install, call `requestPersistentStorage()` (request mode) instead of the read-only check.
+- [x] Add `navigator.permissions.query({name:'persistent-storage'})` + `change` listener to refresh banner state mid-session (feature-detected; Chromium-only is fine). _(`watchPersistentStoragePermission()` wired in App.tsx.)_
+- [x] Update `getPersistenceMessage()` and `getStorageRecoveryItems()`:
+  - [x] Chromium: drop "Browsers do not expose an override…"; say xNet retries automatically as the site is used, and that enabling notifications or installing flips it immediately.
+  - [x] Safari: state the 7-day inactive-site deletion explicitly; present install as protection from cleanup, not as a persist-retry trick; remove the implication that in-tab retry can succeed. _(Safari in-tab also drops the retry action; installed Safari keeps it.)_
+  - [x] Tone: Chromium not-granted → `info`; Safari not-granted → `warning`.
+- [x] Ship OS notification delivery for inbox items (deferred from 0167/0168): contextual pre-prompt UI, `Notification.requestPermission()` on gesture, deliver via existing `Notifier` subscription. _(`comms/desktop-notifications.ts`; opt-in row in InboxTray; delivery only while the tab is hidden.)_
+- [x] Chain `requestPersistentStorage()` after a notification-permission grant.
+- [x] Record persist-state transitions (granted/denied/error + which lever) in the storage diagnostics surface proposed in 0154. _(`lib/storage-durability.ts` keeps a scope-aware localStorage ring buffer, `xnet:durability-log`, readable from devtools.)_
 - [ ] Docs site: update any storage/durability page to the per-browser truth table.
 
 ## Validation Checklist
