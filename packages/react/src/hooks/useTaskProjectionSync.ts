@@ -118,6 +118,12 @@ function normalizeAssignees(assignees: string[]): TaskAssignees {
   return Array.from(new Set(assignees)).filter(isDid)
 }
 
+/**
+ * "YYYY-MM-DD" → UTC-midnight ms. Mirrors the canonical `isoToDueDateMs`
+ * contract in @xnetjs/ui (exploration 0172): the sync layer must not depend
+ * on the UI kit, so the conversion is duplicated here and the shared
+ * timezone invariant is enforced by tests in both packages. Keep UTC-only.
+ */
 function toDateTimestamp(date: string | null): number | undefined {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined
 
