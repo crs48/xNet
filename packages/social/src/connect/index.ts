@@ -72,3 +72,16 @@ export {
   type WaveInput,
   type WaveRecord
 } from './wave'
+
+export { mutualItems, psiEncode, psiHash, psiIntersect } from './psi'
+
+export {
+  coarsenGeohash,
+  decodeGeohash,
+  encodeGeohash,
+  geohashNeighbors,
+  geohashProximity,
+  kAnonymityCells,
+  sharedPrefixLength,
+  type GeohashBounds
+} from './geohash'
