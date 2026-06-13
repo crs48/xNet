@@ -245,6 +245,13 @@ const labelValues = [
   { id: 'unsupported', name: 'Unsupported', color: 'yellow' },
   { id: 'stale', name: 'Stale', color: 'gray' },
   { id: 'synthetic', name: 'Synthetic', color: 'blue' },
+  // Sensitivity labels (exploration 0175) — aligned to the ATProto/Bluesky
+  // moderation lexicon so third-party labelers interoperate. These are a
+  // per-viewer filtering concern, not a platform-hide concern.
+  { id: 'sexual', name: 'Sexually suggestive', color: 'pink' },
+  { id: 'nudity', name: 'Non-sexual nudity', color: 'pink' },
+  { id: 'porn', name: 'Explicit / pornographic', color: 'red' },
+  { id: 'graphic-media', name: 'Graphic / violent', color: 'orange' },
   { id: 'safe', name: 'Safe', color: 'green' }
 ] as const
 
@@ -253,6 +260,7 @@ const signalSources = [
   { id: 'local-ai', name: 'Local AI', color: 'green' },
   { id: 'cloud-ai', name: 'Cloud AI', color: 'purple' },
   { id: 'community-note', name: 'Community Note', color: 'yellow' },
+  { id: 'labeler', name: 'Labeler', color: 'teal' },
   { id: 'policy-list', name: 'Policy List', color: 'orange' },
   { id: 'hub', name: 'Hub', color: 'red' },
   { id: 'crawler', name: 'Crawler', color: 'gray' }

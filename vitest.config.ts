@@ -82,8 +82,12 @@ export default defineConfig({
           include: [
             'packages/{abuse,canvas-core,cli,cloud-plans,cloud-provisioner,cloud-identity,comms,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
             'packages/{abuse,canvas-core,cli,cloud-plans,cloud-provisioner,cloud-identity,comms,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
-            // Control-plane app logic (xNet Cloud, explorations 0174/0175)
-            'apps/cloud/src/**/*.test.ts'
+            // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
+            'apps/cloud/src/**/*.test.ts',
+            // Social matching layer — pure connect modules only; the
+            // social importer/view tests need package subpath resolution that
+            // this shared pool doesn't provide, so they stay on the package config.
+            'packages/social/src/connect/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread

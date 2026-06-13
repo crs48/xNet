@@ -40,7 +40,10 @@ describe('social schemas', () => {
       `${SOCIAL_NAMESPACE}SocialConversation@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialMessage@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialCollection@1.0.0`,
-      `${SOCIAL_NAMESPACE}SocialCollectionItem@1.0.0`
+      `${SOCIAL_NAMESPACE}SocialCollectionItem@1.0.0`,
+      `${SOCIAL_NAMESPACE}ConnectableProfile@1.0.0`,
+      `${SOCIAL_NAMESPACE}ConnectionIntent@1.0.0`,
+      `${SOCIAL_NAMESPACE}ConnectionWave@1.0.0`
     ])
   })
 

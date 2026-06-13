@@ -176,6 +176,12 @@ export {
 } from './components/Skeleton'
 export { MarkdownContent, type MarkdownContentProps } from './components/MarkdownContent'
 export { LinkifiedText, type LinkifiedTextProps } from './components/LinkifiedText'
+export {
+  SensitiveContent,
+  labelText,
+  type SensitiveContentProps,
+  type SensitiveVisibility
+} from './components/SensitiveContent'
 
 // ─── DevTools Components ──────────────────────────────────────────
 export { ThemeToggle } from './composed/ThemeToggle'
