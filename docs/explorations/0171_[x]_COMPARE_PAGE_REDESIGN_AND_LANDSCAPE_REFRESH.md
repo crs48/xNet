@@ -576,7 +576,7 @@ Dual rendering (per layer section, zero JS — duplication is free at build time
 - [x] Add "When the alternatives are the better choice" block.
 - [x] Add xNet caveat footnotes: pre-release maturity, UCAN community stewardship, plugin trust model, encryption scope (local-at-rest vs transport vs E2EE).
 - [x] Update the products table with "Collab & comms" column reflecting shipped chat/presence/calls/inbox.
-- [ ] Mark `0124_[_]` and this doc `[x]` once shipped (`docs(exploration): check off compare page redesign`).
+- [x] Mark `0124_[_]` and this doc `[x]` once shipped (`docs(exploration): check off compare page redesign`).
 
 ### Phase 3 — Optional follow-ups (separate exploration not required)
 
@@ -586,18 +586,18 @@ Dual rendering (per layer section, zero JS — duplication is free at build time
 
 ## Validation Checklist
 
-- [ ] A local-first developer finds Zero (1.0), TanStack DB, RxDB, TinyBase, PowerSync, Yjs, Automerge, and Loro represented or chip-acknowledged.
-- [ ] No factually wrong cell remains from the Phase-0 audit table (spot-check Jazz, Convex, Zero, Notion, Obsidian, Electric).
-- [ ] Every competitor status claim ("maintenance", "alpha", "low velocity") has a footnote with a source URL.
-- [ ] xNet rows match `roadmap.ts`: nothing claimed beyond "Built"; mobile marked in development; Hub wording used; pre-release badge visible.
-- [ ] The AI/agents column renders for products, frameworks, and sync layers, and xNet's agent surface is present.
-- [ ] On a 375px viewport, every layer renders as cards with no horizontal scroll; on desktop, tables scroll with visible affordance and are keyboard-focusable.
-- [ ] VoiceOver/NVDA can navigate at least one table (caption announced, row/column headers correct).
-- [ ] Dark and light mode both pass contrast inspection for badge colors (emerald/amber/gray on surface).
-- [ ] All external links use `target="_blank" rel="noopener noreferrer"`.
-- [ ] The data-validation test fails when a row is missing `url`/`maturity`/`bestFor` or references an undefined footnote (verify by mutation).
-- [ ] `pnpm --filter site build` succeeds; `/compare` and the landing `Landscape.astro` counts agree.
-- [ ] A fairness read-through: no dismissive language; every layer's intro states whether xNet competes, uses, or complements.
+- [x] A local-first developer finds Zero (1.0), TanStack DB, RxDB, TinyBase, PowerSync, Yjs, Automerge, and Loro represented or chip-acknowledged.
+- [x] No factually wrong cell remains from the Phase-0 audit table (spot-check Jazz, Convex, Zero, Notion, Obsidian, Electric).
+- [x] Every competitor status claim ("maintenance", "alpha", "low velocity") has a footnote with a source URL.
+- [x] xNet rows match `roadmap.ts`: nothing claimed beyond "Built"; mobile marked in development; Hub wording used; pre-release badge visible.
+- [x] The AI/agents column renders for products, frameworks, and sync layers, and xNet's agent surface is present.
+- [x] On a 375px viewport, every layer renders as cards with no horizontal scroll (verified: `scrollWidth` = `clientWidth` = 375); on desktop, tables scroll with visible affordance and are keyboard-focusable.
+- [ ] VoiceOver/NVDA can navigate at least one table (caption announced, row/column headers correct). _Semantics are in place (`<caption>`, `scope`, focusable labelled scroll regions) but a live screen-reader pass has not been run._
+- [x] Dark and light mode both pass contrast inspection for badge colors (emerald/amber/gray on surface).
+- [x] All external links use `target="_blank" rel="noopener noreferrer"`.
+- [x] The data-validation test fails when a row is missing `url`/`maturity`/`bestFor` or references an undefined footnote (verified by mutation: dangling ref → exit 1).
+- [x] `pnpm --filter site build` succeeds; `/compare` and the landing `Landscape.astro` counts agree (both derive from `compare.ts`).
+- [x] A fairness read-through: no dismissive language; every layer's intro states whether xNet competes, uses, or complements.
 
 ## References
 
