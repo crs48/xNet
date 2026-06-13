@@ -8,12 +8,13 @@ import type { WikilinkTarget } from '@xnetjs/editor/react'
 import { useNavigate } from '@tanstack/react-router'
 import { sendMessage, typingPeers, type PeerPresence } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { cn, LinkifiedText, useListboxNavigation } from '@xnetjs/ui'
-import { Send } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { cn, LinkifiedText, Popover, useListboxNavigation } from '@xnetjs/ui'
+import { sensitivityLabels, type SensitivityLabelValue } from '@xnetjs/abuse'
+import { Send, Shield } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { ModeratedPost } from '../components/ModeratedMedia'
 import { PersonMentionChip } from '../components/PersonHovercard'
-import { useContentLabelsBatch } from '../lib/self-label'
+import { useContentLabelsBatch, useSelfLabel } from '../lib/self-label'
 import { hidesContent, useBlockList } from '../lib/block-list'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import type { AbuseLabel } from '@xnetjs/abuse'
@@ -205,6 +206,9 @@ function MessageList({
   const ids = useMemo(() => messages.map((message) => message.id), [messages])
   const labelsByTarget = useContentLabelsBatch(ids)
   const blocks = useBlockList()
+  const hiddenCount = messages.filter(
+    (message) => message.createdBy && hidesContent(blocks.list, message.createdBy)
+  ).length
   if (messages.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center text-xs text-ink-3">
@@ -214,6 +218,11 @@ function MessageList({
   }
   return (
     <ul ref={listRef} className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 py-2">
+      {hiddenCount > 0 && (
+        <li className="px-3 py-1 text-[10px] text-ink-3">
+          🛡 {hiddenCount} message(s) hidden by your block/mute list
+        </li>
+      )}
       {messages.map((message) => (
         <MessageRow
           key={message.id}
@@ -405,6 +414,52 @@ function useWatermarkAdvance(channelId: string, newest: ChatMessageRow | undefin
   }, [channelId, newest?.id, newest?.createdAt, markChannelRead])
 }
 
+/** Composer "mark sensitive" shield (0176): self-label the next message. */
+function ComposerSelfLabel({
+  value,
+  onChange
+}: {
+  value: SensitivityLabelValue | null
+  onChange: (value: SensitivityLabelValue | null) => void
+}) {
+  const trigger: ReactElement = (
+    <button
+      type="button"
+      title="Mark sensitive"
+      aria-label="Mark message sensitive"
+      className={cn(
+        'flex h-7 w-7 items-center justify-center rounded-md border border-hairline bg-surface-0',
+        value ? 'text-accent-ink' : 'text-ink-3 hover:text-ink-1'
+      )}
+    >
+      <Shield size={12} strokeWidth={1.5} />
+    </button>
+  )
+  return (
+    <Popover trigger={trigger} side="top" align="end">
+      <div className="flex w-44 flex-col gap-0.5">
+        <span className="px-2 py-1 text-[10px] uppercase tracking-wider text-ink-3">
+          Mark message as
+        </span>
+        {sensitivityLabels.map((label) => (
+          <button
+            key={label.id}
+            type="button"
+            onClick={() => onChange(value === label.id ? null : label.id)}
+            className={cn(
+              'rounded px-2 py-1.5 text-left text-xs hover:bg-surface-2',
+              value === label.id ? 'text-accent-ink' : 'text-ink-1'
+            )}
+          >
+            {label.name}
+            {value === label.id ? ' ✓' : ''}
+          </button>
+        ))}
+      </div>
+    </Popover>
+  )
+}
+
 export function ChannelChat({ channelId }: { channelId: string }) {
   const bridge = useDataBridge()
   const { messages } = useChannelMessages(channelId)
@@ -414,6 +469,10 @@ export function ChannelChat({ channelId }: { channelId: string }) {
 
   const [text, setText] = useState('')
   const [caret, setCaret] = useState(0)
+  // Pending self-label for the next message (0176): applied after send, when the
+  // new message node has an id.
+  const [pendingLabel, setPendingLabel] = useState<SensitivityLabelValue | null>(null)
+  const { selfLabel } = useSelfLabel()
   // Escape hides the active picker until the query next changes (the pickers
   // are otherwise derived purely from text + caret, with no open/close state).
   const [pickerDismissed, setPickerDismissed] = useState(false)
@@ -563,17 +622,23 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     if (!content || !bridge) return
     setText('')
     session?.setTyping(null)
-    await sendMessage(bridge, {
+    const created = await sendMessage(bridge, {
       channelId,
       content,
       mentions: composerMentions(content, picked.current),
       tags: composerTags(content, pickedTags.current),
       links: composerLinks(content, pickedLinks.current)
     })
+    // Apply the author's pending self-label to the just-sent message (0176).
+    if (pendingLabel) {
+      const messageId = (created as { id?: string } | undefined)?.id
+      if (messageId) await selfLabel(messageId, pendingLabel)
+      setPendingLabel(null)
+    }
     picked.current.clear()
     pickedTags.current.clear()
     pickedLinks.current.clear()
-  }, [text, bridge, channelId, session])
+  }, [text, bridge, channelId, session, pendingLabel, selfLabel])
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -615,6 +680,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
             }}
             className="min-h-0 flex-1 resize-none rounded-md border border-hairline bg-surface-0 px-2 py-1.5 text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
           />
+          <ComposerSelfLabel value={pendingLabel} onChange={setPendingLabel} />
           <button
             type="button"
             title="Send"
