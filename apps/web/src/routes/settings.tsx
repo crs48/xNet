@@ -16,10 +16,12 @@ import {
   Puzzle,
   User,
   UserRound,
-  Wifi
+  Wifi,
+  ShieldCheck
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { ProfileSettings } from '../comms/ProfileSettings'
+import { ContentSafetySettings } from '../components/ContentSafetySettings'
 import { PluginManager } from '../components/PluginManager'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { logout } from '../lib/identity'
@@ -31,6 +33,7 @@ export const Route = createFileRoute('/settings')({
 type SettingsSection =
   | 'profile'
   | 'appearance'
+  | 'safety'
   | 'data'
   | 'network'
   | 'plugins'
@@ -56,6 +59,12 @@ const SECTIONS: SectionConfig[] = [
     label: 'Appearance',
     icon: <Palette size={18} />,
     description: 'Theme and display'
+  },
+  {
+    id: 'safety',
+    label: 'Content & Safety',
+    icon: <ShieldCheck size={18} />,
+    description: 'Sensitive content filters'
   },
   {
     id: 'data',
@@ -120,6 +129,7 @@ function SettingsPage() {
       <div className="flex-1 overflow-auto p-6">
         {activeSection === 'profile' && <ProfileSettings />}
         {activeSection === 'appearance' && <AppearanceSettings />}
+        {activeSection === 'safety' && <ContentSafetySettings />}
         {activeSection === 'data' && <DataSettings />}
         {activeSection === 'network' && <NetworkSettings />}
         {activeSection === 'plugins' && <PluginManager />}
