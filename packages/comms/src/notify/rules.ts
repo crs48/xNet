@@ -15,6 +15,8 @@ import { isDmChannelId } from '../chat/dm'
 const CHAT_MESSAGE_SCHEMA = 'xnet://xnet.fyi/ChatMessage@1.0.0'
 const COMMENT_SCHEMA = 'xnet://xnet.fyi/Comment@1.0.0'
 const TASK_SCHEMA = 'xnet://xnet.fyi/Task@1.0.0'
+const MESSAGE_REQUEST_SCHEMA = 'xnet://xnet.fyi/MessageRequest@1.0.0'
+const CONNECTION_WAVE_SCHEMA = 'xnet://xnet.fyi/social/ConnectionWave@1.0.0'
 
 type NodeShape = Record<string, unknown>
 
@@ -43,7 +45,8 @@ function contextOf(node: NodeShape): string | undefined {
 }
 
 function preview(node: NodeShape): string | undefined {
-  const content = asString(node.content) ?? asString(node.title)
+  const content =
+    asString(node.content) ?? asString(node.firstMessagePreview) ?? asString(node.title)
   return content ? content.slice(0, 140) : undefined
 }
 
@@ -126,9 +129,33 @@ function keywordReason(
   return matchesKeyword(node, ctx.keywords) ? 'keyword' : null
 }
 
+/** A pending first-contact message request addressed to me (0176/0177). */
+function messageRequestReason(
+  node: NodeShape,
+  previous: NodeShape | null,
+  ctx: NotifierContext
+): NotificationReason | null {
+  if (asString(node.schemaId) !== MESSAGE_REQUEST_SCHEMA || previous !== null) return null
+  const status = asString(node.status) ?? 'pending'
+  return asString(node.recipient) === ctx.me && status === 'pending' ? 'message-request' : null
+}
+
+/** A pending wave addressed to me — the receiving side of the double opt-in (0174). */
+function connectionRequestReason(
+  node: NodeShape,
+  previous: NodeShape | null,
+  ctx: NotifierContext
+): NotificationReason | null {
+  if (asString(node.schemaId) !== CONNECTION_WAVE_SCHEMA || previous !== null) return null
+  const status = asString(node.status) ?? 'pending'
+  return asString(node.toDid) === ctx.me && status === 'pending' ? 'connection-request' : null
+}
+
 const RULES = [
   mentionReason,
   dmReason,
+  messageRequestReason,
+  connectionRequestReason,
   assignedReason,
   replyReason,
   commentReason,

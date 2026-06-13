@@ -10,7 +10,6 @@
  */
 import type { TabNodeType } from '../workbench/state'
 import { useNavigate } from '@tanstack/react-router'
-import { ensureDmChannel } from '@xnetjs/comms'
 import {
   CanvasSchema,
   ChannelSchema,
@@ -21,10 +20,10 @@ import {
   TaskSchema
 } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
-import { useDataBridge } from '@xnetjs/react/internal'
+import { useDmOpen } from '../hooks/useDmOpen'
 import { DIDAvatar } from '@xnetjs/ui'
 import { MessageCircle } from 'lucide-react'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { channelLabel, displayName as resolveName, type ProfileEntry } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
@@ -147,8 +146,9 @@ function Section({
 
 export function PersonView({ did }: { did: string }) {
   const navigate = useNavigate()
-  const bridge = useDataBridge()
   const { me } = useComms()
+  const { openDm } = useDmOpen()
+  const [requested, setRequested] = useState(false)
   const profiles = useProfiles()
   const { data: profileNodes } = useQuery(ProfileSchema, { orderBy: { createdAt: 'desc' } })
 
@@ -174,10 +174,10 @@ export function PersonView({ did }: { did: string }) {
   }, [did, name])
 
   const message = useCallback(async () => {
-    if (!bridge || isSelf) return
-    const { channelId } = await ensureDmChannel(bridge, [me.did, did])
-    navigateToNode(navigate, 'channel', channelId)
-  }, [bridge, isSelf, me.did, did, navigate])
+    if (isSelf) return
+    const result = await openDm(did)
+    if ('requested' in result) setRequested(true)
+  }, [isSelf, did, openDm])
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -203,10 +203,11 @@ export function PersonView({ did }: { did: string }) {
             <button
               type="button"
               onClick={() => void message()}
-              className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2"
+              disabled={requested}
+              className="flex items-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:opacity-60"
             >
               <MessageCircle size={14} strokeWidth={1.5} />
-              Message
+              {requested ? 'Request sent' : 'Message'}
             </button>
             <PersonActions did={did} label={name} />
           </div>

@@ -544,9 +544,9 @@ type InboxReason = 'mention' | 'dm' | 'assigned' | 'reply' | 'comment'
 - [x] Apply blocks/mutes in `decideAbuse` facts at render (`actor.localBlocked`).
 
 ### Phase 3 — Safe contact (first-contact gating)
-- [ ] Message-requests inbox: route non-mutual/non-roster DMs to a request state (`MessageRequestSchema`); accept/decline/block.
+- [x] Message-requests inbox: route non-mutual/non-roster DMs to a request state (`MessageRequestSchema`); accept/decline/block.
 - [ ] Blur unsolicited media until accepted (`ModeratedMedia unsolicitedMedia`).
-- [ ] Inbox reasons `match-request` + `message-request` in [InboxTray.tsx](apps/web/src/comms/InboxTray.tsx) + a Rail inbox badge.
+- [x] Inbox reasons `match-request` + `message-request` in [InboxTray.tsx](apps/web/src/comms/InboxTray.tsx) + a Rail inbox badge.
 
 ### Phase 4 — Onboarding + transparency
 - [x] `/welcome` onboarding: age confirm → content dial → discovery opt-in (skippable); set sensitivity defaults + optionally seed `ConnectableProfile`.
