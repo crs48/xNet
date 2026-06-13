@@ -25,6 +25,7 @@ import {
   type RemoteNodeQueryClient,
   type SyncManagerLike
 } from '@xnetjs/data-bridge'
+import { UndoManager } from '@xnetjs/history'
 import { createUCAN } from '@xnetjs/identity'
 import { PluginRegistry, type Platform } from '@xnetjs/plugins'
 import React, {
@@ -480,6 +481,12 @@ export interface XNetContextValue {
   pluginRegistry: PluginRegistry | null
   /** Runtime mode request, fallback behavior, and active runtime status */
   runtimeStatus: XNetRuntimeStatus
+  /**
+   * App-wide undo manager — one stack across every node-backed surface
+   * (folders, tasks, databases, chat, settings). Drives Cmd+Z via
+   * undoLatest/redoLatest. Null until the NodeStore is ready (0179).
+   */
+  undoManager: UndoManager | null
 }
 
 export type XNetInternalContextValue = {
@@ -529,6 +536,7 @@ export interface XNetProviderProps {
 export function XNetProvider({ config, children }: XNetProviderProps): JSX.Element {
   const [nodeStore, setNodeStore] = useState<NodeStore | null>(null)
   const [nodeStoreReady, setNodeStoreReady] = useState(false)
+  const [undoManager, setUndoManager] = useState<UndoManager | null>(null)
   const [dataBridge, setDataBridge] = useState<DataBridge | null>(null)
   const [syncManager, setSyncManager] = useState<SyncManager | null>(null)
   const [hubStatus, setHubStatus] = useState<SyncStatus>('disconnected')
@@ -1032,6 +1040,32 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     }
   }, [nodeStore, nodeStoreReady, config.disablePlugins, config.platform])
 
+  // App-wide undo manager (0179): a single UndoManager subscribed to the
+  // one NodeStore gives Cmd+Z a global stack across folders, tasks,
+  // databases, chat, and settings — undoLatest() pops the most recent
+  // action regardless of which surface produced it. local-only so a user
+  // only ever reverses their own changes, never a collaborator's.
+  useEffect(() => {
+    if (!nodeStore || !nodeStoreReady || !authorDID) {
+      setUndoManager(null)
+      return
+    }
+
+    const manager = new UndoManager(
+      nodeStore,
+      authorDID as DID,
+      { localOnly: true, maxStackSize: 200 },
+      config.telemetry
+    )
+    manager.start()
+    setUndoManager(manager)
+
+    return () => {
+      manager.stop()
+      setUndoManager(null)
+    }
+  }, [nodeStore, nodeStoreReady, authorDID, config.telemetry])
+
   const value: XNetContextValue = useMemo(
     () => ({
       nodeStore,
@@ -1046,7 +1080,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       encryptionKey,
       blobStore: config.blobStore ?? null,
       pluginRegistry,
-      runtimeStatus
+      runtimeStatus,
+      undoManager
     }),
     [
       nodeStore,
@@ -1060,7 +1095,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       encryptionKey,
       config.blobStore,
       pluginRegistry,
-      runtimeStatus
+      runtimeStatus,
+      undoManager
     ]
   )
 
