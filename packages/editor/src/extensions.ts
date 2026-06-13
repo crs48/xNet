@@ -41,8 +41,46 @@ function generatePageId(title: string): string {
 const wikilinkInputRegex = /\[\[([^\]]+)\]\]$/
 const wikilinkClickPluginKey = new PluginKey('wikilinkClick')
 
+/**
+ * Markdown form: `[[target|label]]` when the link carries an explicit
+ * target (node id or xnet:// URI from the `[[` typeahead / drop chips),
+ * legacy `[[title]]` when the href is just the derived title slug.
+ */
+const wikilinkTokenRegex = /^\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/
+
 function getWikilinkTitle(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+/**
+ * Markdown source for a wikilink mark (exported for tests). `title` is
+ * the stable attribute used to detect legacy slug hrefs; `text` is the
+ * rendered link text (the markdown bridge passes a placeholder that it
+ * substitutes with the real children afterwards).
+ */
+export function serializeWikilink(href: unknown, title: string, text = title): string {
+  const target = getWikilinkTitle(href)
+  if (!target || target === generatePageId(title)) return `[[${text}]]`
+  return `[[${target}|${text}]]`
+}
+
+/** Tokenize `[[target]]` / `[[target|label]]` (exported for tests). */
+export function tokenizeWikilink(src: string) {
+  const match = src.match(wikilinkTokenRegex)
+  if (!match) return undefined
+
+  const target = getWikilinkTitle(match[1])
+  const alias = getWikilinkTitle(match[2] ?? '')
+  if (!target) return undefined
+
+  const text = alias || target
+  return {
+    type: 'wikilink',
+    raw: match[0],
+    text,
+    href: alias ? target : generatePageId(target),
+    tokens: [{ type: 'text', raw: text, text }]
+  }
 }
 
 function findWikilinkAnchor(target: EventTarget | null): HTMLAnchorElement | null {
@@ -104,35 +142,21 @@ export const Wikilink = Mark.create<WikilinkOptions>({
     name: 'wikilink',
     level: 'inline' as const,
     start: (src: string) => src.indexOf('[['),
-    tokenize: (src: string) => {
-      const match = src.match(/^\[\[([^\]\n]+)\]\]/)
-      if (!match) return undefined
-
-      const title = getWikilinkTitle(match[1])
-      if (!title) return undefined
-
-      return {
-        type: 'wikilink',
-        raw: match[0],
-        text: title,
-        tokens: [{ type: 'text', raw: title, text: title }]
-      }
-    }
+    tokenize: (src: string) => tokenizeWikilink(src)
   },
 
   parseMarkdown: (token, helpers) => {
     const title = getWikilinkTitle(token.text)
     if (!title) return []
 
-    return helpers.applyMark('wikilink', [helpers.createTextNode(title)], {
-      href: generatePageId(title),
-      title
-    })
+    const href = getWikilinkTitle((token as { href?: unknown }).href) || generatePageId(title)
+    return helpers.applyMark('wikilink', [helpers.createTextNode(title)], { href, title })
   },
 
   renderMarkdown: (node, helpers) => {
-    const title = helpers.renderChildren(node) || getWikilinkTitle(node.attrs?.title)
-    return `[[${title}]]`
+    const text = helpers.renderChildren(node) || getWikilinkTitle(node.attrs?.title)
+    const title = getWikilinkTitle(node.attrs?.title) || text
+    return serializeWikilink(node.attrs?.href, title, text)
   },
 
   addInputRules() {
@@ -720,6 +744,26 @@ export {
   type HashtagOptions,
   type HashtagSuggestion
 } from './extensions/hashtag'
+export {
+  CREATE_WIKILINK_ID,
+  WikilinkSuggestionExtension,
+  buildWikilinkMenuItems,
+  endAfterClosingBrackets,
+  matchWikilinkTargets,
+  parseWikilinkQuery,
+  wikilinkInsertContent,
+  type WikilinkQueryParts,
+  type WikilinkSuggestionOptions,
+  type WikilinkTarget
+} from './extensions/wikilink-suggestion'
+export { LinkTargetMenu, wikilinkKindIcon } from './components/LinkTargetMenu'
+export type { WikilinkMenuItem, LinkTargetMenuRef } from './components/LinkTargetMenu'
+export {
+  createSuggestionPopupRender,
+  updateSuggestionPopup,
+  type SuggestionMenuProps,
+  type SuggestionMenuRef
+} from './extensions/suggestion-popup'
 export { formatTaskDueDateLabel, getCurrentTaskDueDate } from './extensions/task-metadata'
 export { createGravatarUrl, md5 } from './utils/gravatar'
 

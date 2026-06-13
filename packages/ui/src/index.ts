@@ -175,6 +175,7 @@ export {
   type SkeletonButtonProps
 } from './components/Skeleton'
 export { MarkdownContent, type MarkdownContentProps } from './components/MarkdownContent'
+export { LinkifiedText, type LinkifiedTextProps } from './components/LinkifiedText'
 
 // ─── DevTools Components ──────────────────────────────────────────
 export { ThemeToggle } from './composed/ThemeToggle'
@@ -244,11 +245,13 @@ export {
 export {
   CommentBubble,
   CommentPopover,
+  MentionTextArea,
   useCommentPopover,
   OrphanedThreadList,
   ThreadPicker,
   type CommentBubbleProps,
   type CommentPopoverProps,
+  type MentionTextAreaProps,
   type CommentData,
   type CommentThreadData,
   type PopoverState,
@@ -371,6 +374,17 @@ export {
   type ContrastLevel,
   type ContrastResult
 } from './utils/contrast'
+
+// ─── Link enrichment (0171) ───────────────────────────────────────
+export {
+  findLinkTokens,
+  mergeLinkTokens,
+  segmentText,
+  safeHref,
+  type LinkToken,
+  type LinkTokenType,
+  type TextSegment
+} from './utils/linkify'
 
 // ─── Drag & Drop (0166 unified node transfer) ─────────────────────
 export {

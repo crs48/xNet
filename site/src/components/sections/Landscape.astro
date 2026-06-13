@@ -1,5 +1,6 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
+import { rowCount, chipCount } from '../../data/compare'
 
 // Abbreviated comparison for landing page - just the key differentiators
 const comparisons = [
@@ -51,7 +52,7 @@ const comparisons = [
         href="/compare"
         class="inline-flex items-center gap-2 text-sm font-medium text-indigo-500 hover:text-indigo-400 transition-colors"
       >
-        See full comparison with 25+ frameworks and apps
+        See the full landscape: {rowCount} projects compared, {chipCount} more acknowledged
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
         </svg>

@@ -1,0 +1,23 @@
+---
+import type { Maturity } from '../../data/compare'
+
+interface Props {
+  maturity: Maturity
+}
+
+const { maturity } = Astro.props
+
+const tones: Record<Maturity, string> = {
+  production: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
+  beta: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300',
+  alpha: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300',
+  'pre-release': 'border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300',
+  maintenance: 'border-gray-500/30 bg-gray-500/10 text-gray-500 dark:text-gray-400'
+}
+---
+
+<span
+  class={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium ${tones[maturity]}`}
+>
+  {maturity}
+</span>

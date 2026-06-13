@@ -1,0 +1,34 @@
+---
+import type { CellValue, Footnote } from '../../data/compare'
+
+interface Props {
+  value: CellValue
+  footnotes: Footnote[]
+  anchor: string
+}
+
+const { value, footnotes, anchor } = Astro.props
+
+const raw = typeof value === 'object' ? value.v : value
+const fn = typeof value === 'object' ? value.fn : undefined
+const fnIndex = fn ? footnotes.findIndex((f) => f.id === fn) + 1 : 0
+
+// Ternary values render as icon + text, never color alone.
+const ternary: Record<string, { label: string; tone: string }> = {
+  yes: { label: '✓ Yes', tone: 'text-emerald-600 dark:text-emerald-400' },
+  partial: { label: '◐ Partial', tone: 'text-amber-600 dark:text-amber-400' },
+  no: { label: '✗ No', tone: 'text-gray-400 dark:text-gray-600' }
+}
+const t = ternary[raw]
+const tone = t ? t.tone : raw === '—' ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'
+---
+
+<span class={tone}>
+  {t ? t.label : raw}{
+    fnIndex > 0 && (
+      <a href={`#${anchor}-fn-${fnIndex}`} class="align-super text-[10px] text-indigo-400 hover:underline">
+        {fnIndex}
+      </a>
+    )
+  }
+</span>

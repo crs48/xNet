@@ -1464,6 +1464,12 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      libphonenumber-js:
+        specifier: ^1.12.0
+        version: 1.13.6
+      linkifyjs:
+        specifier: ^4.3.2
+        version: 4.3.2
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
@@ -14202,6 +14208,12 @@ packages:
     resolution:
       {
         integrity: sha512-tgDz7YuGg1XX7UfxebCUii+IGsly/8V0ZRZdFJSDySY2i3UuqpCTsEbRApH3cBKFhcAf00nx9xj8GL9zfo+XWw==
+      }
+
+  libphonenumber-js@1.13.6:
+    resolution:
+      {
+        integrity: sha512-NdB6O6QvlGMCoG003m0YIKG2+Xw7DjmCZhmc1RH+K6HncADUbRf8TZeLegxBBN1VFyPHcNpPTKpIhYLXzJVy1Q==
       }
 
   lighthouse-logger@1.4.2:
@@ -31936,6 +31948,8 @@ snapshots:
       race-event: 1.6.1
       race-signal: 1.1.3
       uint8arrays: 5.1.0
+
+  libphonenumber-js@1.13.6: {}
 
   lighthouse-logger@1.4.2:
     dependencies:

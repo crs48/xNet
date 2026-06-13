@@ -1,13 +1,8 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { PluginKey } from '@tiptap/pm/state'
-import { ReactRenderer } from '@tiptap/react'
 import Suggestion from '@tiptap/suggestion'
-import tippy, { type Instance, type Props as TippyProps } from 'tippy.js'
-import {
-  TaskMentionMenu,
-  type TaskMentionMenuRef,
-  type TaskMentionSuggestion
-} from '../../components/TaskMentionMenu'
+import { TaskMentionMenu, type TaskMentionSuggestion } from '../../components/TaskMentionMenu'
+import { createSuggestionPopupRender } from '../suggestion-popup'
 
 const TaskMentionSuggestionPluginKey = new PluginKey('taskMentionSuggestion')
 
@@ -95,6 +90,13 @@ export const TaskMentionExtension = Node.create<TaskMentionOptions>({
     ]
   },
 
+  // Pills degrade to plain `@label` text on markdown export; body text is
+  // never parsed back into mentions (composer-declared invariant, 0168).
+  renderMarkdown: (node) => {
+    const label = typeof node.attrs?.label === 'string' ? node.attrs.label : ''
+    return `@${label || truncateDid(String(node.attrs?.id ?? ''))}`
+  },
+
   addCommands() {
     return {
       setTaskMention:
@@ -131,73 +133,7 @@ export const TaskMentionExtension = Node.create<TaskMentionOptions>({
         command: ({ editor, range, props }) => {
           editor.chain().focus().deleteRange(range).setTaskMention(props).run()
         },
-        render: () => {
-          let component: ReactRenderer<TaskMentionMenuRef> | null = null
-          let popup: Instance<TippyProps>[] | null = null
-
-          return {
-            onStart: (props) => {
-              component = new ReactRenderer(TaskMentionMenu, {
-                props: {
-                  items: props.items,
-                  command: (item: TaskMentionSuggestion) => props.command(item)
-                },
-                editor: props.editor
-              })
-
-              if (!props.clientRect) return
-
-              popup = tippy('body', {
-                getReferenceClientRect: props.clientRect as () => DOMRect,
-                appendTo: () => document.body,
-                content: component.element,
-                showOnCreate: true,
-                interactive: true,
-                trigger: 'manual',
-                placement: 'bottom-start',
-                theme: 'slash-menu',
-                maxWidth: 'none',
-                popperOptions: {
-                  modifiers: [
-                    { name: 'flip', enabled: true },
-                    { name: 'preventOverflow', enabled: true }
-                  ]
-                }
-              })
-            },
-
-            onUpdate(props) {
-              if (!component) return
-
-              component.updateProps({
-                items: props.items,
-                command: (item: TaskMentionSuggestion) => props.command(item)
-              })
-
-              if (props.clientRect && popup?.[0]) {
-                popup[0].setProps({
-                  getReferenceClientRect: props.clientRect as () => DOMRect
-                })
-              }
-            },
-
-            onKeyDown(props) {
-              if (props.event.key === 'Escape') {
-                popup?.[0]?.hide()
-                return true
-              }
-
-              return component?.ref?.onKeyDown(props.event) ?? false
-            },
-
-            onExit() {
-              popup?.[0]?.destroy()
-              component?.destroy()
-              popup = null
-              component = null
-            }
-          }
-        }
+        render: createSuggestionPopupRender<TaskMentionSuggestion>(TaskMentionMenu)
       })
     ]
   }

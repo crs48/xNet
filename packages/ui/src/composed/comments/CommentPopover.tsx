@@ -9,7 +9,9 @@
 import React, { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react'
 import { Button } from '../../primitives/Button'
 import { cn } from '../../utils'
+import { type TaskPersonOption } from '../tasks/people'
 import { CommentBubble } from './CommentBubble'
+import { MentionTextArea } from './MentionTextArea'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -62,6 +64,8 @@ export interface CommentPopoverProps {
   onMouseLeave?: () => void
   /** When true, auto-focus the reply textarea on open */
   focusReply?: boolean
+  /** Candidates for @mention typeahead in the reply box (0170) */
+  people?: TaskPersonOption[]
   /** Custom className */
   className?: string
 }
@@ -84,6 +88,7 @@ export function CommentPopover({
   onMouseEnter,
   onMouseLeave,
   focusReply = false,
+  people = [],
   className
 }: CommentPopoverProps) {
   const [replyText, setReplyText] = useState('')
@@ -194,12 +199,14 @@ export function CommentPopover({
           {/* Reply input */}
           <div className="mt-3 pt-3 border-t">
             <div className="flex gap-2">
-              <textarea
-                ref={replyTextareaRef}
-                className="flex-1 p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[60px]"
+              <MentionTextArea
+                textareaRef={replyTextareaRef}
+                containerClassName="flex-1"
+                className="p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[60px]"
                 placeholder="Reply..."
                 value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
+                onChange={setReplyText}
+                people={people}
                 rows={2}
               />
             </div>
