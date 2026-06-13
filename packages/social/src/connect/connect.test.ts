@@ -76,7 +76,14 @@ describe('graph proximity', () => {
   it('finds common neighbors and weights niche ones higher (adamic-adar)', () => {
     expect(commonNeighbors(adjacency, 'alice', 'bob').sort()).toEqual(['carol', 'dave'])
     // carol (degree 2) should contribute more than dave (degree 4)
-    const onlyCarol = adamicAdar(buildAdjacency([['alice', 'carol'], ['bob', 'carol']]), 'alice', 'bob')
+    const onlyCarol = adamicAdar(
+      buildAdjacency([
+        ['alice', 'carol'],
+        ['bob', 'carol']
+      ]),
+      'alice',
+      'bob'
+    )
     const onlyDave = adamicAdar(
       buildAdjacency([
         ['alice', 'dave'],

@@ -74,7 +74,8 @@ export function ConnectableProfileEditor() {
       interests: selectedInterests
     }
     if (profile) await bridge.update(String(profile.id), fields)
-    else await bridge.create(ConnectableProfileSchema, { did: did as `did:key:${string}`, ...fields })
+    else
+      await bridge.create(ConnectableProfileSchema, { did: did as `did:key:${string}`, ...fields })
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }
@@ -166,7 +167,11 @@ export function ConnectableProfileEditor() {
           <span className="text-sm font-medium">Discoverable</span>
           <p className="text-xs text-muted-foreground">Enable to appear in matching.</p>
         </div>
-        <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} />
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(event) => setEnabled(event.target.checked)}
+        />
       </label>
 
       <div className="space-y-2">
@@ -194,7 +199,9 @@ export function ConnectableProfileEditor() {
           })}
         </div>
         {!profileId && (
-          <p className="text-xs text-muted-foreground">Save your profile first to choose intents.</p>
+          <p className="text-xs text-muted-foreground">
+            Save your profile first to choose intents.
+          </p>
         )}
       </div>
 

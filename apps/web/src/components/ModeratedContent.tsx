@@ -42,9 +42,14 @@ export function ModeratedContent({
 
   const { visibility, presentLabels } = useMemo(() => {
     const present = assessSensitivity(labels).values
-    const resolved = resolveContentVisibility({ visibility: platformVisibility }, labels, preferences, {
-      unsolicitedMedia
-    })
+    const resolved = resolveContentVisibility(
+      { visibility: platformVisibility },
+      labels,
+      preferences,
+      {
+        unsolicitedMedia
+      }
+    )
     return { visibility: resolved, presentLabels: present }
   }, [labels, platformVisibility, preferences, unsolicitedMedia])
 

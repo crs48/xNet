@@ -87,14 +87,16 @@ describe('decideSensitivityVisibility', () => {
   })
 
   it('blurs unsolicited media from a non-mutual sender (dating default 0174)', () => {
-    expect(
-      decideSensitivityVisibility([], adultViewer, { unsolicitedMedia: true })
-    ).toBe('blur')
+    expect(decideSensitivityVisibility([], adultViewer, { unsolicitedMedia: true })).toBe('blur')
     // an explicit user opt-out turns the dating default off
     expect(
-      decideSensitivityVisibility([], { ...adultViewer, blurUnsolicitedMedia: false }, {
-        unsolicitedMedia: true
-      })
+      decideSensitivityVisibility(
+        [],
+        { ...adultViewer, blurUnsolicitedMedia: false },
+        {
+          unsolicitedMedia: true
+        }
+      )
     ).toBe('show')
   })
 })

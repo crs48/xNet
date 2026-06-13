@@ -140,11 +140,7 @@ export {
   matchKnownImageHash,
   perceptualHash
 } from './image-fingerprint'
-export type {
-  GrayscaleImage,
-  KnownHashMatch,
-  KnownImageHash
-} from './image-fingerprint'
+export type { GrayscaleImage, KnownHashMatch, KnownImageHash } from './image-fingerprint'
 export { createNsfwImageClassifier, mapNsfwLabelToSensitivity } from './local-image-classifier'
 export type {
   NsfwImageClassifierOptions,

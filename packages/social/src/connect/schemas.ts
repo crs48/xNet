@@ -20,7 +20,12 @@ import {
   text
 } from '@xnetjs/data'
 import { visibilityOptions } from '../schemas/constants'
-import { CONNECT_NAMESPACE, connectionIntentKinds, intentReachOptions, waveStatuses } from './constants'
+import {
+  CONNECT_NAMESPACE,
+  connectionIntentKinds,
+  intentReachOptions,
+  waveStatuses
+} from './constants'
 
 export const ConnectableProfileSchema = defineSchema({
   name: 'ConnectableProfile',

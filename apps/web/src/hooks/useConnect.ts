@@ -34,7 +34,9 @@ function str(value: unknown): string | undefined {
 }
 
 function strArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : []
 }
 
 export type MatchListing = MatchResult & {
@@ -153,16 +155,15 @@ export function useWave(): WaveController {
       })
 
       // Find an existing reverse wave (the other side already waved at me).
-      const reverse = ((waves ?? []) as unknown as Row[]).find(
-        (row) =>
-          isMutualPair(
-            { fromDid: me, toDid, intentKind: intent },
-            {
-              fromDid: str(row.fromDid) ?? '',
-              toDid: str(row.toDid) ?? '',
-              intentKind: (str(row.intentKind) as ConnectionIntentKind) ?? intent
-            }
-          )
+      const reverse = ((waves ?? []) as unknown as Row[]).find((row) =>
+        isMutualPair(
+          { fromDid: me, toDid, intentKind: intent },
+          {
+            fromDid: str(row.fromDid) ?? '',
+            toDid: str(row.toDid) ?? '',
+            intentKind: (str(row.intentKind) as ConnectionIntentKind) ?? intent
+          }
+        )
       )
 
       const matched = reverse !== undefined

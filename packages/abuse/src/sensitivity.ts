@@ -118,7 +118,10 @@ export type SensitivityAssessment = {
 }
 
 /** Drop expired labels and any label negated by an active `negates` reference. */
-function activeSensitivityLabels(labels: readonly AbuseLabel[], now: number): readonly AbuseLabel[] {
+function activeSensitivityLabels(
+  labels: readonly AbuseLabel[],
+  now: number
+): readonly AbuseLabel[] {
   const active = labels.filter(
     (label) =>
       isSensitivityLabelValue(label.value) &&

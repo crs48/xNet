@@ -20,9 +20,9 @@ import { buildSensitivityLabel, isSensitivityLabelValue } from './sensitivity'
 /** A single category score from an NSFW image model (e.g. NSFWJS / Falconsai). */
 export type NsfwImageDetection = { label: string; score: number }
 
-export type NsfwImageDetector = (
-  input: { metadata?: Record<string, unknown> }
-) => Promise<readonly NsfwImageDetection[]> | readonly NsfwImageDetection[]
+export type NsfwImageDetector = (input: {
+  metadata?: Record<string, unknown>
+}) => Promise<readonly NsfwImageDetection[]> | readonly NsfwImageDetection[]
 
 export type NsfwImageClassifierOptions = {
   /** The injected model. */

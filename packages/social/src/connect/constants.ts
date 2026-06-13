@@ -41,6 +41,5 @@ export const waveStatuses = [
 
 export type WaveStatus = (typeof waveStatuses)[number]['id']
 
-export const CONNECT_INTENT_KIND_VALUES: readonly ConnectionIntentKind[] = connectionIntentKinds.map(
-  (kind) => kind.id
-)
+export const CONNECT_INTENT_KIND_VALUES: readonly ConnectionIntentKind[] =
+  connectionIntentKinds.map((kind) => kind.id)

@@ -8,10 +8,7 @@ import {
   matchKnownImageHash,
   perceptualHash
 } from '../src/image-fingerprint'
-import {
-  createNsfwImageClassifier,
-  mapNsfwLabelToSensitivity
-} from '../src/local-image-classifier'
+import { createNsfwImageClassifier, mapNsfwLabelToSensitivity } from '../src/local-image-classifier'
 
 function gradient(width: number, height: number, invert = false): GrayscaleImage {
   const luma: number[] = []
@@ -103,9 +100,9 @@ describe('nsfw image classifier adapter', () => {
       threshold: 0.5,
       sourceDid: 'did:model'
     })
-    expect(classifier.supports?.({ surface: 'feed', body: '', metadata: { mediaKind: 'image/png' } })).toBe(
-      true
-    )
+    expect(
+      classifier.supports?.({ surface: 'feed', body: '', metadata: { mediaKind: 'image/png' } })
+    ).toBe(true)
     const result = await classifier.classify({
       surface: 'feed',
       body: '',

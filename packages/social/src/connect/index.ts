@@ -48,11 +48,7 @@ export {
   type RankedCandidate
 } from './matching'
 
-export {
-  friendsOfFriends,
-  shortestSocialPath,
-  type FriendOfFriend
-} from './graph'
+export { friendsOfFriends, shortestSocialPath, type FriendOfFriend } from './graph'
 
 export {
   deriveAffinity,

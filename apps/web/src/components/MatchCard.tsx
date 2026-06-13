@@ -47,7 +47,9 @@ export function MatchCard({ match, onWave }: MatchCardProps) {
             </li>
           )}
           {match.why.proximity !== null && <li>Nearby</li>}
-          <li className="opacity-70">{match.source === 'local' ? 'In your network' : 'Open match'}</li>
+          <li className="opacity-70">
+            {match.source === 'local' ? 'In your network' : 'Open match'}
+          </li>
         </ul>
       </div>
       <button
