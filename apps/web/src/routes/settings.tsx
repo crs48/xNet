@@ -1,13 +1,18 @@
 /**
- * Settings page - expanded with theme, data, plugins, and about sections
+ * Settings page — workbench-idiom shell (exploration 0179).
+ *
+ * Flat surfaces, hairline separators, a 13px type scale, and the Rail's
+ * activity-bar active indicator (a 2px left bar, not a filled pill). Rows
+ * and panels come from the shared settings kit in @xnetjs/ui; booleans use
+ * the design-system <Switch>; data atoms (DID, version, hub URL) read mono.
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
+import { SettingRow, SettingsGroup, SettingsPanel } from '@xnetjs/ui'
 import {
   Palette,
   Database,
   Info,
-  ChevronRight,
   Sun,
   Moon,
   Monitor,
@@ -22,8 +27,8 @@ import {
 import { useState, useCallback } from 'react'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
-import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { PluginManager } from '../components/PluginManager'
+import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { logout } from '../lib/identity'
 
@@ -45,89 +50,72 @@ interface SectionConfig {
   id: SettingsSection
   label: string
   icon: React.ReactNode
-  description: string
 }
 
+/** Quiet bordered button — the workbench's default action affordance. */
+const QUIET_BUTTON =
+  'flex items-center gap-2 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:cursor-default disabled:opacity-50'
+
+const ICON_PROPS = { size: 16, strokeWidth: 1.5 } as const
+
 const SECTIONS: SectionConfig[] = [
-  {
-    id: 'profile',
-    label: 'Profile',
-    icon: <UserRound size={18} />,
-    description: 'Name and avatar'
-  },
-  {
-    id: 'appearance',
-    label: 'Appearance',
-    icon: <Palette size={18} />,
-    description: 'Theme and display'
-  },
-  {
-    id: 'safety',
-    label: 'Content & Safety',
-    icon: <ShieldCheck size={18} />,
-    description: 'Sensitive content filters'
-  },
-  {
-    id: 'data',
-    label: 'Data',
-    icon: <Database size={18} />,
-    description: 'Storage and export'
-  },
-  {
-    id: 'network',
-    label: 'Network',
-    icon: <Wifi size={18} />,
-    description: 'Sync settings'
-  },
-  {
-    id: 'plugins',
-    label: 'Plugins',
-    icon: <Puzzle size={18} />,
-    description: 'Extensions'
-  },
-  {
-    id: 'account',
-    label: 'Account',
-    icon: <User size={18} />,
-    description: 'Identity and session'
-  },
-  {
-    id: 'about',
-    label: 'About',
-    icon: <Info size={18} />,
-    description: 'Version info'
-  }
+  { id: 'profile', label: 'Profile', icon: <UserRound {...ICON_PROPS} /> },
+  { id: 'appearance', label: 'Appearance', icon: <Palette {...ICON_PROPS} /> },
+  { id: 'safety', label: 'Content & Safety', icon: <ShieldCheck {...ICON_PROPS} /> },
+  { id: 'data', label: 'Data', icon: <Database {...ICON_PROPS} /> },
+  { id: 'network', label: 'Network', icon: <Wifi {...ICON_PROPS} /> },
+  { id: 'plugins', label: 'Plugins', icon: <Puzzle {...ICON_PROPS} /> },
+  { id: 'account', label: 'Account', icon: <User {...ICON_PROPS} /> },
+  { id: 'about', label: 'About', icon: <Info {...ICON_PROPS} /> }
 ]
+
+function NavItem({
+  section,
+  active,
+  onClick
+}: {
+  section: SectionConfig
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-current={active ? 'page' : undefined}
+      onClick={onClick}
+      className={`relative flex w-full items-center gap-2.5 px-3 py-1.5 text-sm transition-colors ${
+        active ? 'text-ink-1' : 'text-ink-3 hover:text-ink-1'
+      }`}
+    >
+      {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-accent-ink" />}
+      <span className="flex-shrink-0">{section.icon}</span>
+      <span className="flex-1 text-left">{section.label}</span>
+    </button>
+  )
+}
 
 function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('appearance')
 
   return (
-    <div className="flex h-full -m-6">
+    <div className="-m-6 flex h-full">
       {/* Sidebar Navigation */}
-      <nav className="w-[200px] border-r border-border p-4 space-y-1 bg-secondary">
-        <h1 className="text-lg font-semibold px-3 py-2 mb-2">Settings</h1>
+      <nav className="w-[200px] shrink-0 space-y-0.5 border-r border-hairline bg-surface-1 p-2">
+        <h1 className="px-3 pb-2 pt-1 text-[10px] font-medium uppercase tracking-wider text-ink-3">
+          Settings
+        </h1>
         {SECTIONS.map((section) => (
-          <button
+          <NavItem
             key={section.id}
+            section={section}
+            active={activeSection === section.id}
             onClick={() => setActiveSection(section.id)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
-              activeSection === section.id
-                ? 'bg-accent text-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-            }`}
-          >
-            <span className="flex-shrink-0">{section.icon}</span>
-            <span className="flex-1 text-left">{section.label}</span>
-            {activeSection === section.id && (
-              <ChevronRight size={14} className="text-muted-foreground" />
-            )}
-          </button>
+          />
         ))}
       </nav>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto bg-surface-0 p-6">
         {activeSection === 'profile' && <ProfileSettings />}
         {activeSection === 'appearance' && <AppearanceSettings />}
         {activeSection === 'safety' && (
@@ -171,37 +159,32 @@ function AppearanceSettings() {
   }, [])
 
   return (
-    <div className="max-w-xl space-y-6">
-      <div>
-        <h2 className="text-lg font-medium mb-1">Appearance</h2>
-        <p className="text-sm text-muted-foreground">Customize how xNet looks</p>
-      </div>
-
-      <div className="space-y-4">
+    <SettingsPanel title="Appearance" description="Customize how xNet looks">
+      <SettingsGroup>
         <SettingRow label="Theme" description="Choose your preferred color scheme">
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <ThemeButton
-              icon={<Sun size={16} />}
+              icon={<Sun size={14} strokeWidth={1.5} />}
               label="Light"
               active={theme === 'light'}
               onClick={() => handleThemeChange('light')}
             />
             <ThemeButton
-              icon={<Moon size={16} />}
+              icon={<Moon size={14} strokeWidth={1.5} />}
               label="Dark"
               active={theme === 'dark'}
               onClick={() => handleThemeChange('dark')}
             />
             <ThemeButton
-              icon={<Monitor size={16} />}
+              icon={<Monitor size={14} strokeWidth={1.5} />}
               label="System"
               active={theme === 'system'}
               onClick={() => handleThemeChange('system')}
             />
           </div>
         </SettingRow>
-      </div>
-    </div>
+      </SettingsGroup>
+    </SettingsPanel>
   )
 }
 
@@ -218,11 +201,13 @@ function ThemeButton({
 }) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
-      className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+      className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
         active
-          ? 'bg-primary text-primary-foreground'
-          : 'bg-secondary border border-border hover:bg-accent'
+          ? 'border-accent-ink bg-accent text-ink-1'
+          : 'border-hairline bg-surface-0 text-ink-2 hover:bg-surface-2 hover:text-ink-1'
       }`}
     >
       {icon}
@@ -319,25 +304,16 @@ function DataSettings() {
   }, [])
 
   return (
-    <div className="max-w-xl space-y-6">
-      <div>
-        <h2 className="text-lg font-medium mb-1">Data</h2>
-        <p className="text-sm text-muted-foreground">Manage your local data</p>
-      </div>
-
-      <div className="space-y-4">
+    <SettingsPanel title="Data" description="Manage your local data">
+      <SettingsGroup>
         <SettingRow label="Storage" description="Data is stored locally in your browser">
-          <span className="text-sm text-muted-foreground">SQLite OPFS</span>
+          <span className="font-mono text-xs text-ink-3">SQLite OPFS</span>
         </SettingRow>
 
         <SettingRow label="Export data" description="Download a backup of all your documents">
-          <button
-            onClick={handleExportData}
-            disabled={exporting}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm border border-border hover:bg-accent transition-colors disabled:opacity-50"
-          >
-            <Download size={14} />
-            {exporting ? 'Exporting...' : 'Export'}
+          <button onClick={handleExportData} disabled={exporting} className={QUIET_BUTTON}>
+            <Download size={14} strokeWidth={1.5} />
+            {exporting ? 'Exporting…' : 'Export'}
           </button>
         </SettingRow>
 
@@ -346,34 +322,31 @@ function DataSettings() {
           description="Remove all documents, settings, and identity (cannot be undone)"
         >
           {cleared ? (
-            <span className="text-sm text-green-500">Data cleared! Reloading...</span>
+            <span className="text-xs text-success">Data cleared! Reloading…</span>
           ) : confirmClear ? (
             <div className="flex gap-2">
-              <button
-                onClick={handleCancelClear}
-                className="px-3 py-1.5 rounded-md text-sm border border-border hover:bg-accent transition-colors"
-              >
+              <button onClick={handleCancelClear} className={QUIET_BUTTON}>
                 Cancel
               </button>
               <button
                 onClick={handleClearData}
                 disabled={clearing}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 px-3 py-1.5 rounded-md text-sm transition-colors disabled:opacity-50"
+                className="rounded-md bg-destructive px-3 py-1.5 text-xs text-destructive-foreground transition-colors hover:bg-destructive-hover disabled:opacity-50"
               >
-                {clearing ? 'Clearing...' : 'Confirm'}
+                {clearing ? 'Clearing…' : 'Confirm'}
               </button>
             </div>
           ) : (
             <button
               onClick={handleClearData}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 px-3 py-1.5 rounded-md text-sm transition-colors"
+              className="rounded-md bg-destructive px-3 py-1.5 text-xs text-destructive-foreground transition-colors hover:bg-destructive-hover"
             >
               Clear Data
             </button>
           )}
         </SettingRow>
-      </div>
-    </div>
+      </SettingsGroup>
+    </SettingsPanel>
   )
 }
 
@@ -404,42 +377,29 @@ function NetworkSettings() {
   const isModified = hubUrl !== DEFAULT_HUB_URL
 
   return (
-    <div className="max-w-xl space-y-6">
-      <div>
-        <h2 className="text-lg font-medium mb-1">Network</h2>
-        <p className="text-sm text-muted-foreground">Configure sync and connectivity</p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="py-3 border-b border-border">
-          <div className="flex items-center justify-between mb-2">
+    <SettingsPanel title="Network" description="Configure sync and connectivity">
+      <SettingsGroup>
+        <div className="border-b border-hairline py-3">
+          <div className="mb-2 flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium">Hub URL</div>
-              <div className="text-xs text-muted-foreground">
-                WebSocket server for peer discovery and sync
-              </div>
+              <div className="text-sm text-ink-1">Hub URL</div>
+              <div className="text-xs text-ink-3">WebSocket server for peer discovery and sync</div>
             </div>
-            {saved && <span className="text-xs text-green-500">Saved! Reload to apply.</span>}
+            {saved && <span className="text-xs text-success">Saved! Reload to apply.</span>}
           </div>
-          <div className="flex gap-2 mt-2">
+          <div className="mt-2 flex gap-2">
             <input
               type="text"
               value={hubUrl}
               onChange={(e) => setHubUrl(e.target.value)}
               placeholder="wss://hub.xnet.fyi"
-              className="flex-1 px-3 py-1.5 rounded-md text-sm border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+              className="h-8 flex-1 rounded-md border border-hairline bg-surface-0 px-2 font-mono text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
             />
-            <button
-              onClick={handleSave}
-              className="px-3 py-1.5 rounded-md text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
+            <button onClick={handleSave} className={QUIET_BUTTON}>
               Save
             </button>
             {isModified && (
-              <button
-                onClick={handleReset}
-                className="px-3 py-1.5 rounded-md text-sm border border-border hover:bg-accent transition-colors"
-              >
+              <button onClick={handleReset} className={QUIET_BUTTON}>
                 Reset
               </button>
             )}
@@ -447,26 +407,22 @@ function NetworkSettings() {
         </div>
 
         <SettingRow label="Protocol" description="Connection type used for sync">
-          <span className="text-sm text-muted-foreground">WebSocket + WebRTC</span>
+          <span className="text-xs text-ink-3">WebSocket + WebRTC</span>
         </SettingRow>
 
         <SettingRow label="Encryption" description="All sync traffic is encrypted">
-          <span className="text-sm text-muted-foreground">XChaCha20-Poly1305</span>
+          <span className="text-xs text-ink-3">XChaCha20-Poly1305</span>
         </SettingRow>
-      </div>
+      </SettingsGroup>
 
-      <div className="pt-4 border-t border-border">
-        <p className="text-xs text-muted-foreground">
-          Changes to the Hub URL require reloading the app to take effect. The default hub at{' '}
-          <code className="font-mono">hub.xnet.fyi</code> is provided for convenience, but you can
-          run your own signaling server.
-        </p>
-      </div>
-    </div>
+      <p className="text-xs text-ink-3">
+        Changes to the Hub URL require reloading the app to take effect. The default hub at{' '}
+        <code className="font-mono">hub.xnet.fyi</code> is provided for convenience, but you can run
+        your own signaling server.
+      </p>
+    </SettingsPanel>
   )
 }
-
-// ─── About Settings ───────────────────────────────────────────────────────────
 
 // ─── Account Settings ─────────────────────────────────────────────────────────
 
@@ -485,15 +441,10 @@ function AccountSettings() {
   }, [])
 
   return (
-    <div className="max-w-xl space-y-6">
-      <div>
-        <h2 className="text-lg font-medium mb-1">Account</h2>
-        <p className="text-sm text-muted-foreground">Your identity and session on this device</p>
-      </div>
-
-      <div className="space-y-4">
+    <SettingsPanel title="Account" description="Your identity and session on this device">
+      <SettingsGroup>
         <SettingRow label="Identity" description="Your decentralized identifier (DID)">
-          <span className="max-w-[280px] break-all font-mono text-xs text-muted-foreground">
+          <span className="max-w-[280px] break-all font-mono text-[10px] text-ink-3">
             {identity?.did || 'Not initialized'}
           </span>
         </SettingRow>
@@ -502,17 +453,13 @@ function AccountSettings() {
           label="Log out"
           description="Ends your session on this device. Your data stays local — sign back in with your passkey."
         >
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm border border-border hover:bg-accent transition-colors disabled:opacity-50"
-          >
-            <LogOut size={14} />
-            {loggingOut ? 'Logging out...' : 'Log out'}
+          <button onClick={handleLogout} disabled={loggingOut} className={QUIET_BUTTON}>
+            <LogOut size={14} strokeWidth={1.5} />
+            {loggingOut ? 'Logging out…' : 'Log out'}
           </button>
         </SettingRow>
-      </div>
-    </div>
+      </SettingsGroup>
+    </SettingsPanel>
   )
 }
 
@@ -522,52 +469,42 @@ function AboutSettings() {
   const { identity } = useIdentity()
 
   return (
-    <div className="max-w-xl space-y-6">
-      <div>
-        <h2 className="text-lg font-medium mb-1">About</h2>
-        <p className="text-sm text-muted-foreground">Information about xNet</p>
-      </div>
-
-      <div className="space-y-4">
+    <SettingsPanel title="About" description="Information about xNet">
+      <SettingsGroup>
         <SettingRow label="Version" description="Current application version">
-          <span className="text-sm font-mono">1.0.0</span>
+          <span className="font-mono text-xs text-ink-1">1.0.0</span>
         </SettingRow>
 
         <SettingRow label="Platform" description="Runtime environment">
-          <span className="text-sm text-muted-foreground">Web (PWA)</span>
+          <span className="text-xs text-ink-3">Web (PWA)</span>
         </SettingRow>
 
         <SettingRow label="Built with" description="Core technologies">
-          <span className="text-sm text-muted-foreground">xNet SDK + React</span>
+          <span className="text-xs text-ink-3">xNet SDK + React</span>
         </SettingRow>
-      </div>
+      </SettingsGroup>
 
-      <div className="pt-4 border-t border-border">
-        <h3 className="text-sm font-medium mb-2">Your Identity</h3>
-        <div className="bg-secondary p-3 rounded-lg">
-          <label className="text-xs text-muted-foreground">DID (Decentralized Identifier)</label>
-          <p className="font-mono text-xs mt-1 break-all text-foreground">
+      <SettingsGroup label="Your identity">
+        <div className="rounded-md border border-hairline bg-surface-1 p-3">
+          <div className="text-[10px] font-medium uppercase tracking-wider text-ink-3">
+            DID (Decentralized Identifier)
+          </div>
+          <p className="mt-1 break-all font-mono text-[10px] text-ink-1">
             {identity?.did || 'Not initialized'}
           </p>
         </div>
-      </div>
+      </SettingsGroup>
 
-      <div className="pt-4">
-        <h3 className="text-sm font-medium mb-2">Links</h3>
+      <SettingsGroup label="Links">
         <div className="flex gap-3">
-          <a
-            href="https://xnet.fyi"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary hover:underline"
-          >
+          <a href="https://xnet.fyi" target="_blank" rel="noopener noreferrer" className="text-xs">
             Website
           </a>
           <a
             href="https://github.com/xnetfyi/xnet"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-primary hover:underline"
+            className="text-xs"
           >
             GitHub
           </a>
@@ -575,34 +512,12 @@ function AboutSettings() {
             href="https://xnet.fyi/docs"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-primary hover:underline"
+            className="text-xs"
           >
             Documentation
           </a>
         </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Shared Components ────────────────────────────────────────────────────────
-
-function SettingRow({
-  label,
-  description,
-  children
-}: {
-  label: string
-  description: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-      <div>
-        <div className="text-sm font-medium">{label}</div>
-        <div className="text-xs text-muted-foreground">{description}</div>
-      </div>
-      <div>{children}</div>
-    </div>
+      </SettingsGroup>
+    </SettingsPanel>
   )
 }

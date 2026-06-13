@@ -9,13 +9,15 @@
  */
 import {
   assessSensitivity,
-  resolveContentVisibility,
+  explainSensitivityVisibility,
+  strictestVisibility,
   type AbuseLabel,
   type AbuseVisibility
 } from '@xnetjs/abuse'
 import { SensitiveContent } from '@xnetjs/ui'
 import * as React from 'react'
 import { useMemo } from 'react'
+import { filterReasons } from '../lib/filter-reasons'
 import { useSensitivityPreferences } from '../lib/sensitivity-preferences'
 
 export interface ModeratedContentProps {
@@ -43,17 +45,15 @@ export function ModeratedContent({
 }: ModeratedContentProps) {
   const { preferences } = useSensitivityPreferences()
 
-  const { visibility, presentLabels } = useMemo(() => {
+  const { visibility, presentLabels, reasons } = useMemo(() => {
     const present = assessSensitivity(labels).values
-    const resolved = resolveContentVisibility(
-      { visibility: platformVisibility },
-      labels,
-      preferences,
-      {
-        unsolicitedMedia
-      }
-    )
-    return { visibility: resolved, presentLabels: present }
+    const explanation = explainSensitivityVisibility(labels, preferences, { unsolicitedMedia })
+    const resolved = strictestVisibility(platformVisibility, explanation.visibility)
+    return {
+      visibility: resolved,
+      presentLabels: present,
+      reasons: filterReasons(explanation, platformVisibility !== 'show')
+    }
   }, [labels, platformVisibility, preferences, unsolicitedMedia])
 
   return (
@@ -61,6 +61,7 @@ export function ModeratedContent({
       visibility={visibility}
       labels={presentLabels}
       attribution={attribution}
+      reasons={reasons}
       hiddenPlaceholder={hiddenPlaceholder}
       className={className}
     >

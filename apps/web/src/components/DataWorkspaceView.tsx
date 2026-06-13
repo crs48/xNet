@@ -50,13 +50,23 @@ import {
   Table,
   UserRound
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSocialFeedEnrichment } from '../hooks/useSocialFeedEnrichment'
 import {
   getDefaultSocialWorkspaceSeeds,
   upsertDefaultSocialWorkspace,
   type SocialWorkspaceSeedSummary
 } from '../lib/social-workspace'
+import { ModeratedMedia } from './ModeratedMedia'
+
+/**
+ * Route each visual card through the moderation render gate (0177 W1): a
+ * self-labelled / labeler-flagged item is blurred per the viewer's dial, with
+ * the "why was this filtered?" explainer. Module-level so its identity is stable.
+ */
+const gateVisualItem = (nodeId: string, content: ReactNode): ReactNode => (
+  <ModeratedMedia nodeId={nodeId}>{content}</ModeratedMedia>
+)
 
 type SavedViewRow = {
   id: string
@@ -628,6 +638,7 @@ export function DataWorkspaceView(): JSX.Element {
             resetKey={selectedView?.id ?? null}
             onSaveLens={handleSaveLens}
             feedEnrichment={feedEnrichment}
+            wrapItem={gateVisualItem}
           />
 
           <section className="mt-6 space-y-3">

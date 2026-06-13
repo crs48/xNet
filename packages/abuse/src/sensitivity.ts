@@ -224,6 +224,63 @@ export function decideSensitivityVisibility(
   return visibility
 }
 
+/** Why a sensitivity label or rule contributed to the resolved visibility. */
+export type SensitivityReasonCause = 'adult-disabled' | 'dial' | 'unsolicited-media'
+
+export type SensitivityReason = {
+  /** The sensitivity value involved, or undefined for the unsolicited-media rule. */
+  label?: SensitivityLabelValue
+  /** The visibility this reason contributed (`show` for a present-but-allowed label). */
+  effect: AbuseVisibility
+  cause: SensitivityReasonCause
+}
+
+export type SensitivityExplanation = {
+  /** The resolved visibility — identical to `decideSensitivityVisibility`. */
+  visibility: AbuseVisibility
+  /** Per-label / per-rule breakdown of what drove the decision. */
+  reasons: readonly SensitivityReason[]
+}
+
+/**
+ * Explain *why* content resolved to its sensitivity visibility for this viewer —
+ * the transparency primitive behind a "why was this filtered?" affordance. Walks
+ * the same logic as `decideSensitivityVisibility`, recording each present label's
+ * effect (and the unsolicited-media rule) so the UI can render it.
+ */
+export function explainSensitivityVisibility(
+  labels: readonly AbuseLabel[],
+  preferences: UserSensitivityPreferences = DEFAULT_SENSITIVITY_PREFERENCES,
+  options: SensitivityVisibilityOptions = {}
+): SensitivityExplanation {
+  const assessment = assessSensitivity(labels, options)
+  const adultEnabled = preferences.adultContentEnabled && preferences.ageConfirmed
+  const reasons: SensitivityReason[] = []
+  let visibility: AbuseVisibility = 'show'
+
+  for (const value of assessment.values) {
+    if (!adultEnabled && ADULT_LABELS.has(value)) {
+      visibility = strictestVisibility(visibility, 'hide')
+      reasons.push({ label: value, effect: 'hide', cause: 'adult-disabled' })
+      continue
+    }
+    const pref = preferences.labels[value] ?? defaultVisibilityFor(value)
+    visibility = strictestVisibility(visibility, pref)
+    reasons.push({ label: value, effect: pref, cause: 'dial' })
+  }
+
+  if (
+    visibility === 'show' &&
+    options.unsolicitedMedia === true &&
+    (preferences.blurUnsolicitedMedia ?? true)
+  ) {
+    visibility = 'blur'
+    reasons.push({ effect: 'blur', cause: 'unsolicited-media' })
+  }
+
+  return { visibility, reasons }
+}
+
 /**
  * Express the viewer's sensitivity dial as an `AbuseDecisionOverride` so callers
  * can feed it through the existing `decideAbuse` pipeline. Only ever tightens

@@ -2,6 +2,11 @@
  * Settings View
  *
  * A settings panel with sections and plugin extension points.
+ *
+ * @deprecated Prefer the workbench-idiom settings kit (`SettingsPanel`,
+ * `SettingsGroup`, `SettingRow`, `SettingToggle`) from `./settings-kit`.
+ * This scaffold uses the older web-app aesthetic (rounded cards, text-2xl
+ * headings, icon chips) that diverges from the workbench shell (0179).
  */
 
 import * as icons from 'lucide-react'
