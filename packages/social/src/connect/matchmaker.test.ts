@@ -58,6 +58,50 @@ describe('rankMatches', () => {
     expect(ranked.map((r) => r.did)).toEqual(['fof'])
   })
 
+  it('UCB1 exploration lifts an under-observed candidate above an identical, well-observed one', () => {
+    // Identical affinity (so content/reciprocal tie); they differ only in how
+    // much they've been observed → the fresh one gets the UCB optimism bonus.
+    const candidates: CandidateProfile[] = [
+      {
+        did: 'seen',
+        affinityVector: encodeVector([1, 0, 0]),
+        reach: 'public',
+        source: 'hub',
+        observations: 50
+      },
+      {
+        did: 'fresh',
+        affinityVector: encodeVector([1, 0, 0]),
+        reach: 'public',
+        source: 'hub',
+        observations: 0
+      }
+    ]
+    const ranked = rankMatches({ me, candidates, intent: 'friends' })
+    expect(ranked[0].did).toBe('fresh')
+  })
+
+  it('the bandit feedback path favors an unproven candidate over a saturated one', () => {
+    const candidates: CandidateProfile[] = [
+      {
+        did: 'proven',
+        affinityVector: encodeVector([1, 0, 0]),
+        reach: 'public',
+        source: 'hub',
+        outcomes: { successes: 100, failures: 100 }
+      },
+      {
+        did: 'unproven',
+        affinityVector: encodeVector([1, 0, 0]),
+        reach: 'public',
+        source: 'hub',
+        outcomes: { successes: 0, failures: 0 }
+      }
+    ]
+    const ranked = rankMatches({ me, candidates, intent: 'friends' })
+    expect(ranked[0].did).toBe('unproven')
+  })
+
   it('in-person intents require geohash proximity', () => {
     const candidates: CandidateProfile[] = [
       { did: 'nearby', reach: 'public', source: 'hub', geohashCell: '9q8yy' },
