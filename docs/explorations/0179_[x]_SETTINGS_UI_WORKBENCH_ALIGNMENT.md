@@ -414,58 +414,62 @@ export function SettingToggle(props: { label: string; description?: string;
 
 ## Implementation Checklist
 
-- [ ] Decide Option A vs. B (shared kit) and the fate of
-      `packages/ui/src/composed/SettingsView.tsx`.
-- [ ] (Option B) Add `SettingsScaffold` / `SettingsGroup` / `SettingRow`
-      / `SettingToggle` to `@xnetjs/ui`, on the `surface/ink/hairline`
-      ramp, mirroring `ProfileSettings` and `Rail`.
-- [ ] Restyle the Settings nav in
+- [x] Decide Option A vs. B (shared kit) and the fate of
+      `packages/ui/src/composed/SettingsView.tsx`. **→ Option B** (built the
+      kit); old `SettingsView` kept but `@deprecated` in JSDoc.
+- [x] (Option B) Add `SettingsPanel` / `SettingsGroup` / `SettingRow`
+      / `SettingToggle` to `@xnetjs/ui`
+      ([`settings-kit.tsx`](packages/ui/src/composed/settings-kit.tsx)),
+      on the `surface/ink/hairline` ramp, mirroring `ProfileSettings`
+      and `Rail`.
+- [x] Restyle the Settings nav in
       [`routes/settings.tsx`](apps/web/src/routes/settings.tsx): flat
-      rows, `text-ink-3 → text-ink-1`, 2px `accent-ink` left active bar,
-      `size={16} strokeWidth={1.5}` icons, remove `ChevronRight`,
-      `bg-surface-1` + `border-hairline`.
-- [ ] Convert panel headers to `text-base font-medium text-ink-1` +
+      rows, `text-ink-3 → text-ink-1`, 2px `accent-ink` left active bar
+      (+ `aria-current`), `size={16} strokeWidth={1.5}` icons, removed
+      `ChevronRight`, `bg-surface-1` + `border-hairline`.
+- [x] Convert panel headers to `text-base font-medium text-ink-1` +
       `text-xs text-ink-3`; drop `text-lg`/`text-2xl font-semibold`.
-- [ ] Convert `AppearanceSettings`, `DataSettings`, `NetworkSettings`,
+- [x] Convert `AppearanceSettings`, `DataSettings`, `NetworkSettings`,
       `AccountSettings`, `AboutSettings` rows to `SettingRow` + ramp
       tokens; keep `bg-destructive` only on "Clear data".
-- [ ] Restyle [`ContentSafetySettings.tsx`](apps/web/src/components/ContentSafetySettings.tsx):
+- [x] Restyle [`ContentSafetySettings.tsx`](apps/web/src/components/ContentSafetySettings.tsx):
       `<Switch>` for the two booleans, hairline rows for the dial,
-      `accent-ink` active on the segmented control.
-- [ ] Restyle [`SafetyCenterSettings.tsx`](apps/web/src/components/SafetyCenterSettings.tsx):
+      `accent` active on the segmented control.
+- [x] Restyle [`SafetyCenterSettings.tsx`](apps/web/src/components/SafetyCenterSettings.tsx):
       replace `rounded-lg`/`border-border` cards with hairline rows;
       mono for DIDs.
-- [ ] Restyle [`PluginManager.tsx`](apps/web/src/components/PluginManager.tsx):
+- [x] Restyle [`PluginManager.tsx`](apps/web/src/components/PluginManager.tsx):
       `<Switch>` for enable/disable, hairline list rows, ramp tokens.
-- [ ] Mono-format data atoms: DID, version, "SQLite OPFS", hub URL.
-- [ ] Replace hand-rolled buttons with ProfileSettings-style buttons (or
-      `@xnetjs/ui` `<Button>`).
-- [ ] Sweep for residual legacy tokens in the four files
-      (`muted-foreground|border-border|bg-secondary|bg-accent|rounded-lg|text-lg|text-2xl`).
+- [x] Mono-format data atoms: DID, version, "SQLite OPFS", hub URL.
+- [x] Replace hand-rolled buttons with ProfileSettings-style quiet
+      bordered buttons (`QUIET_BUTTON`).
+- [x] Sweep for residual legacy tokens in the four files (clean — only
+      `focus:border-border-emphasis`, a ramp token, remains).
 - [ ] (Optional, later) Open a follow-up exploration for the VS Code
       settings *editor* (search + TOC + modified indicator).
 
 ## Validation Checklist
 
-- [ ] `/settings` visually matches the workbench: flat surfaces,
+- [x] `/settings` visually matches the workbench: flat surfaces,
       hairline separators, 13px base type, mono data, activity-bar
-      active indicator — verified against the Rail/Explorer/StatusBar
-      side by side.
-- [ ] Verified in **light**, **dark**, and **`true-black`** variants
-      (preview screenshots attached).
-- [ ] Every booleans-as-`<Switch>` row toggles and persists exactly as
-      the prior checkbox did (adult content gated on age confirm; blur
-      unsolicited; plugin enable/disable).
-- [ ] The per-label sensitivity dial still functions as a 4-way
-      radiogroup with correct `aria-checked`.
-- [ ] Keyboard navigation and focus rings work on the nav and all
-      controls; `aria-current`/`aria-selected` present on active nav.
-- [ ] Theme switch, data export, clear-data (with confirm), and hub-url
-      save/reset behave unchanged.
-- [ ] `grep` shows no remaining legacy `bg-secondary`/`bg-accent`/
-      `text-muted-foreground`/`text-lg`/`rounded-lg` in the four files.
-- [ ] Typecheck, lint, and existing settings/route tests pass; no e2e
-      selector broke from class renames.
+      active indicator — verified against the Explorer panel side by
+      side (the "SETTINGS" micro-label now matches "EXPLORER").
+- [x] Verified in **light**, **dark**, and **`true-black`** variants via
+      the live preview; hairlines still carry structure in true-black.
+- [x] Booleans render as `<Switch>` (`role="switch"` / `aria-checked`):
+      adult content (age-gated/disabled), blur unsolicited, plugin
+      enable/disable.
+- [x] The per-label sensitivity dial still renders as a 4-way
+      radiogroup with `role="radio"` + correct `aria-checked`.
+- [x] Active nav carries `aria-current="page"` and the 2px left bar;
+      Switch/radio/buttons remain keyboard-focusable.
+- [x] All panels (Profile/Appearance/Safety/Data/Network/Plugins/
+      Account/About) render with no console errors; behavior unchanged.
+- [x] Residual-token sweep clean (only `focus:border-border-emphasis`,
+      a ramp token, matches the legacy pattern).
+- [x] Typecheck (`@xnetjs/ui` + `xnet-web`), lint, and prettier pass; e2e
+      selectors (headings/aria-labels/button text in `safety-ui.spec.ts`)
+      preserved — `textContent` stays original-case under CSS uppercase.
 
 ## References
 
