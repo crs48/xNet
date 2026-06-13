@@ -158,6 +158,7 @@ export function PersonView({ did }: { did: string }) {
   )
 
   const name = resolveName(did, profiles)
+  const handle = profile?.handle?.trim()
   const statusEmoji = profile?.statusEmoji
   const statusMessage = profile?.statusMessage
   const isSelf = did === me.did
@@ -186,6 +187,7 @@ export function PersonView({ did }: { did: string }) {
             {name}
             {isSelf && <span className="text-xs font-normal text-ink-3">(you)</span>}
           </h1>
+          {handle && <p className="m-0 text-sm text-ink-3">@{handle}</p>}
           {statusMessage && (
             <p className="m-0 mt-0.5 text-sm text-ink-2">
               {statusEmoji} {statusMessage}

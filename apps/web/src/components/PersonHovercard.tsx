@@ -12,7 +12,7 @@ import { useDataBridge } from '@xnetjs/react/internal'
 import { DIDAvatar, Popover } from '@xnetjs/ui'
 import { MessageCircle, UserRound } from 'lucide-react'
 import { useCallback, type ReactElement } from 'react'
-import { displayName } from '../comms/comms-utils'
+import { displayName, mentionLabel } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
 import { navigateToNode } from '../workbench/navigation'
@@ -73,7 +73,8 @@ function PersonCard({ did }: { did: string }) {
  */
 export function PersonMentionChip({ did, label }: { did: string; label?: string }) {
   const profiles = useProfiles()
-  const name = label ?? displayName(did, profiles)
+  // Prefer the @handle, then display name (0172).
+  const name = label ?? mentionLabel(did, profiles)
   const trigger: ReactElement = (
     <button
       type="button"
