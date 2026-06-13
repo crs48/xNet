@@ -521,11 +521,13 @@ export function RichTextEditor({
       nested: true
     }),
     TaskMentionExtension.configure({
-      getSuggestions: () => mentionSuggestionsRef.current
+      getSuggestions: () => mentionSuggestionsRef.current,
+      onNavigate: onNavigate || (() => {})
     }),
     HashtagExtension.configure({
       getSuggestions: () => hashtagSuggestionsRef.current,
       createTag: (name: string) => onCreateHashtagRef.current?.(name) ?? Promise.resolve(null),
+      onNavigate: onNavigate || (() => {}),
       ...(normalizeHashtagName ? { normalizeName: normalizeHashtagName } : {})
     }),
     TaskDueDateExtension,

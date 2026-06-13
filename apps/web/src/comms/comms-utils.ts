@@ -8,6 +8,31 @@ export interface ProfileEntry {
   did: string
   name?: string
   avatar?: string
+  /** Optional workspace-unique @handle (0172) */
+  handle?: string
+}
+
+/** Lowercase slug a raw handle input; '' means unusable. */
+export function normalizeHandle(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/^@+/, '')
+    .replace(/[^a-z0-9_-]/g, '')
+    .slice(0, 32)
+}
+
+/** True when `handle` is already used by a different DID in the workspace. */
+export function isHandleTaken(handle: string, did: string, profiles: ProfileEntry[]): boolean {
+  const normalized = normalizeHandle(handle)
+  if (!normalized) return false
+  return profiles.some((p) => p.did !== did && p.handle === normalized)
+}
+
+/** How to render a mention: @handle when set, else the display name. */
+export function mentionLabel(did: string, profiles: ProfileEntry[]): string {
+  const profile = profiles.find((p) => p.did === did)
+  return profile?.handle?.trim() || displayName(did, profiles)
 }
 
 const USER_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4']
@@ -44,7 +69,8 @@ export function dedupeProfiles(
     seen.set(did, {
       did,
       name: node.displayName as string | undefined,
-      avatar: node.avatar as string | undefined
+      avatar: node.avatar as string | undefined,
+      handle: (node.handle as string | undefined)?.trim() || undefined
     })
   }
   return [...seen.values()]
@@ -91,6 +117,8 @@ export function channelHeaderModel(
 export interface Mentionable {
   label: string
   did: string
+  /** Optional @handle, also matched by the picker filter (0172) */
+  handle?: string
 }
 
 /** Mention picker candidates: profiles ∪ live presence roster, minus self. */
@@ -101,7 +129,11 @@ export function mergeMentionables(
 ): Mentionable[] {
   const byDid = new Map<string, Mentionable>()
   for (const profile of profiles) {
-    byDid.set(profile.did, { did: profile.did, label: displayName(profile.did, profiles) })
+    byDid.set(profile.did, {
+      did: profile.did,
+      label: displayName(profile.did, profiles),
+      handle: profile.handle
+    })
   }
   for (const peer of peers) {
     const user = peer.user
@@ -119,11 +151,13 @@ export function mergeMentionables(
 /** Form values for the profile editor (empty strings for absent fields). */
 export function profileFormValues(profile: Record<string, unknown> | null | undefined): {
   name: string
+  handle: string
   emoji: string
   message: string
 } {
   return {
     name: (profile?.displayName as string | undefined) ?? '',
+    handle: (profile?.handle as string | undefined) ?? '',
     emoji: (profile?.statusEmoji as string | undefined) ?? '',
     message: (profile?.statusMessage as string | undefined) ?? ''
   }

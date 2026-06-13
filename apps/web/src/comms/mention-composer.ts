@@ -51,19 +51,27 @@ export function composerMentions(
   return dids.length > 0 ? { dids: [...new Set(dids)] } : undefined
 }
 
-/** Case-insensitive prefix-then-substring filtering for the picker. */
-export function filterMentionables<T extends { label: string }>(items: T[], query: string): T[] {
+/**
+ * Case-insensitive prefix-then-substring filtering for the picker. Matches the
+ * display label or the optional @handle (0172), so typing `@alice` surfaces a
+ * person whose display name is "Alice Lovelace".
+ */
+export function filterMentionables<T extends { label: string; handle?: string }>(
+  items: T[],
+  query: string
+): T[] {
   const q = query.toLowerCase()
   if (!q) return items.slice(0, 6)
-  const starts = items.filter((i) => i.label.toLowerCase().startsWith(q))
+  const keys = (i: T) => [i.label.toLowerCase(), i.handle?.toLowerCase() ?? '']
+  const starts = items.filter((i) => keys(i).some((k) => k.startsWith(q)))
   const contains = items.filter(
-    (i) => !i.label.toLowerCase().startsWith(q) && i.label.toLowerCase().includes(q)
+    (i) => !keys(i).some((k) => k.startsWith(q)) && keys(i).some((k) => k.includes(q))
   )
   return [...starts, ...contains].slice(0, 6)
 }
 
 /** Picker candidates for the current caret position (empty when inactive). */
-export function pickerOptionsFor<T extends { label: string }>(
+export function pickerOptionsFor<T extends { label: string; handle?: string }>(
   text: string,
   caret: number,
   items: T[]
