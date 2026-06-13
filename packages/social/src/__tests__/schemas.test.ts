@@ -4,12 +4,14 @@ import {
   SocialActorSchema,
   SocialContentSchema,
   SocialConversationSchema,
+  SocialEnrichmentSchema,
   SocialImportArchiveSchema,
   SocialImportJobSchema,
   SocialImportRunSchema,
   SocialInteractionSchema,
   SocialMessageSchema,
   SocialSourceRecordSchema,
+  createSocialEnrichmentId,
   socialSchemas
 } from '../schemas'
 
@@ -33,6 +35,7 @@ describe('social schemas', () => {
       `${SOCIAL_NAMESPACE}SocialActor@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialIdentityClaim@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialContent@1.0.0`,
+      `${SOCIAL_NAMESPACE}SocialEnrichment@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialInteraction@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialConversation@1.0.0`,
       `${SOCIAL_NAMESPACE}SocialMessage@1.0.0`,
@@ -46,6 +49,19 @@ describe('social schemas', () => {
     expect(propertyNames(SocialImportRunSchema)).toContain('selectedBucketsJson')
     expect(propertyNames(SocialImportJobSchema)).toContain('checkpointJson')
     expect(propertyNames(SocialSourceRecordSchema)).toContain('sourceRecordHash')
+  })
+
+  it('keys enrichment nodes deterministically per platform content id', () => {
+    expect(propertyNames(SocialEnrichmentSchema)).toContain('thumbnailBlobCid')
+    expect(createSocialEnrichmentId('youtube', 'abc123')).toBe(
+      createSocialEnrichmentId('youtube', 'abc123')
+    )
+    expect(createSocialEnrichmentId('youtube', 'abc123')).not.toBe(
+      createSocialEnrichmentId('instagram', 'abc123')
+    )
+    expect(createSocialEnrichmentId('youtube', 'abc123').startsWith('social:enrichment:')).toBe(
+      true
+    )
   })
 
   it('separates actors, content, interactions, conversations, and messages', () => {

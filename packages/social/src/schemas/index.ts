@@ -6,6 +6,7 @@ import { SocialActorSchema, SocialIdentityClaimSchema } from './actor'
 import { SocialCollectionItemSchema, SocialCollectionSchema } from './collection'
 import { SocialContentSchema } from './content'
 import { SocialConversationSchema, SocialMessageSchema } from './conversation'
+import { SocialEnrichmentSchema } from './enrichment'
 import {
   SocialImportArchiveSchema,
   SocialImportJobSchema,
@@ -30,10 +31,14 @@ export {
   socialPlatforms,
   sourceRecordKinds,
   visibilityOptions,
+  enrichmentSources,
+  enrichmentStatuses,
   type SocialActorKind,
   type SocialCollectionKind,
   type SocialContentKind,
   type SocialConversationKind,
+  type SocialEnrichmentSource,
+  type SocialEnrichmentStatus,
   type SocialIdentityClaimKind,
   type SocialImportJobPhase,
   type SocialImportJobStatus,
@@ -63,6 +68,11 @@ export {
   type SocialIdentityClaim
 } from './actor'
 export { SocialContentSchema, type SocialContent } from './content'
+export {
+  SocialEnrichmentSchema,
+  createSocialEnrichmentId,
+  type SocialEnrichment
+} from './enrichment'
 export { SocialInteractionSchema, type SocialInteraction } from './interaction'
 export {
   SocialConversationSchema,
@@ -85,6 +95,7 @@ export const socialSchemas = [
   SocialActorSchema,
   SocialIdentityClaimSchema,
   SocialContentSchema,
+  SocialEnrichmentSchema,
   SocialInteractionSchema,
   SocialConversationSchema,
   SocialMessageSchema,

@@ -1,6 +1,7 @@
 import { validateSavedViewDescriptor } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import {
+  createDefaultSocialFeedViews,
   createDefaultSocialGraphLenses,
   createDefaultSocialGraphAtlas,
   createDefaultSocialSavedViews,
@@ -86,6 +87,31 @@ describe('social graph lenses', () => {
   })
 })
 
+describe('social feed views', () => {
+  it('creates platform feed descriptors that open in feed presentation', () => {
+    const feeds = createDefaultSocialFeedViews({ pageSize: 50 })
+
+    expect(feeds.map((feed) => feed.id)).toEqual([
+      'social.feed.youtube-videos',
+      'social.feed.youtube-playlists',
+      'social.feed.instagram-saved',
+      'social.feed.instagram-likes'
+    ])
+
+    for (const feed of feeds) {
+      expect(validateSavedViewDescriptor(feed.descriptor).valid).toBe(true)
+      expect(feed.descriptor.presentation).toEqual({
+        mode: 'feed',
+        feedLayout: 'grid',
+        feedDensity: 'cozy'
+      })
+      expect(JSON.parse(feed.savedViewProperties.descriptor).presentation).toEqual(
+        feed.descriptor.presentation
+      )
+    }
+  })
+})
+
 describe('social workspace seeds', () => {
   it('creates deterministic saved-view seeds for schema views and graph lenses', () => {
     const seeds = createDefaultSocialWorkspaceSavedViewSeeds({
@@ -104,6 +130,10 @@ describe('social workspace seeds', () => {
       'social.messages',
       'social.collections',
       'social.import-runs',
+      'social.feed.youtube-videos',
+      'social.feed.youtube-playlists',
+      'social.feed.instagram-saved',
+      'social.feed.instagram-likes',
       'social.lens.people-i-follow',
       'social.lens.saved-content-by-creator',
       'social.lens.conversation-references',
@@ -113,6 +143,7 @@ describe('social workspace seeds', () => {
       repeated.map((seed) => seed.deterministicId)
     )
     expect(seeds.filter((seed) => seed.seedKind === 'schema-view')).toHaveLength(6)
+    expect(seeds.filter((seed) => seed.seedKind === 'feed-view')).toHaveLength(4)
     expect(seeds.filter((seed) => seed.seedKind === 'graph-lens')).toHaveLength(4)
 
     for (const seed of seeds) {
