@@ -42,7 +42,7 @@ import type {
   NodeBatchWriteResult
 } from '@xnetjs/data'
 import { isTempId } from '@xnetjs/data'
-import { useCallback, useRef, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
@@ -503,23 +503,30 @@ export function useMutate(): UseMutateResult {
     [bridge, telemetry, withPending]
   )
 
-  return {
-    create,
-    update,
-    remove,
-    restore,
-    mutate,
-    bulk,
-    // Lazy getters record how much pending detail this component reads, so
-    // the external-store snapshot above can avoid re-rendering components
-    // that never look at pending state.
-    get isPending(): boolean {
-      pendingReadLevelRef.current = Math.max(pendingReadLevelRef.current, 1)
-      return pendingRef.current > 0
-    },
-    get pendingCount(): number {
-      pendingReadLevelRef.current = 2
-      return pendingRef.current
-    }
-  }
+  // Return a stable object so consumers that memoize on the whole mutate
+  // result do not churn every render. The callbacks are useCallback-stable
+  // and the pending getters read live ref values at access time, so a single
+  // memoized object stays correct across pending transitions.
+  return useMemo(
+    () => ({
+      create,
+      update,
+      remove,
+      restore,
+      mutate,
+      bulk,
+      // Lazy getters record how much pending detail this component reads, so
+      // the external-store snapshot above can avoid re-rendering components
+      // that never look at pending state.
+      get isPending(): boolean {
+        pendingReadLevelRef.current = Math.max(pendingReadLevelRef.current, 1)
+        return pendingRef.current > 0
+      },
+      get pendingCount(): number {
+        pendingReadLevelRef.current = 2
+        return pendingRef.current
+      }
+    }),
+    [create, update, remove, restore, mutate, bulk]
+  )
 }

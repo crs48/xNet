@@ -482,11 +482,11 @@ if (this.storage.queryNodes && !this.nodeContentCipher && (!this.authEvaluator |
 
 Phase 5 — per-hook trim (independent):
 
-- [ ] Lazy-init `queryStartRef` and `queryIdRef` in `useQuery` (no `Date.now()`/`Math.random()` per render)
-- [ ] Reuse `descriptorRef.current.key` instead of re-serializing the descriptor each render
-- [ ] Stabilize the `useMutate` return object (memo/ref the result shape; keep the lazy pending getters)
-- [ ] (Optional) Field-granular result subscription so `data`-only readers skip metadata-driven renders
-- [ ] Re-run `pnpm bench:core-platform`; confirm no regression and a steady-state render-cost drop
+- [x] Lazy-init `queryStartRef` and `queryIdRef` in `useQuery` (no `Date.now()`/`Math.random()` per render) — lazy `useRef(null)` init; `Math.random()` replaced with a module-level monotonic counter
+- [x] Reuse `descriptorRef.current.key` instead of re-serializing the descriptor each render — descriptor build + serialize now guarded on caller-input identity; stable inputs (no-arg list, single-by-id, memoized filters) skip it entirely, inline filters reuse the prior descriptor object when the key is unchanged
+- [x] Stabilize the `useMutate` return object (memo/ref the result shape; keep the lazy pending getters) — `useMemo` over the stable callbacks; pending getters still read live refs at access time
+- [ ] (Optional) Field-granular result subscription so `data`-only readers skip metadata-driven renders — deferred; lower-value than Phases 6–8 and a larger semantic change to `useQuery`'s render contract
+- [x] Re-run `pnpm bench:core-platform`; confirm no regression and a steady-state render-cost drop — see consolidated validation run (Phase 8); react suite (279 tests) green
 
 Phase 6 — pagination deltas:
 
