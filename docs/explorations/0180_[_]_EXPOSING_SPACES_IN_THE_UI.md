@@ -631,39 +631,39 @@ app.patch('/shares/grants/:id', async (c) => {
 ## Implementation Checklist
 
 ### Phase 1 — Scope + switcher (make a Space a place you can be)
-- [ ] Add `currentSpaceId: string | null` + `setCurrentSpace()` to the workbench store ([state.ts](apps/web/src/workbench/state.ts)); persist under `xnet:workbench:v1`
-- [ ] Space switcher **header** atop the left panel (dropdown: current Space, switch, "All Spaces", create, "More…"); **no new rail**
-- [ ] Scope Explorer `useQuery` calls with `where: { space: currentSpaceId }`; add an "Unfiled" group and an "All Spaces" reset ([Explorer.tsx](apps/web/src/workbench/views/Explorer.tsx))
-- [ ] "+ New" files new nodes into `currentSpaceId` via `setNodeSpace`
-- [ ] StatusBar shows the current Space ([StatusBar.tsx](apps/web/src/workbench/StatusBar.tsx))
-- [ ] Auto-create a default `personal` Space on first run; never show an empty switcher (Q8)
+- [x] Add `currentSpaceId: string | null` + `setCurrentSpace()` to the workbench store ([state.ts](apps/web/src/workbench/state.ts)); persisted under `xnet:workbench:v1`
+- [x] Space switcher lives **in the Explorer panel** (the Spaces section header + clickable tree), with an **All** reset; **no new rail**
+- [x] Scope Explorer item list by `currentSpaceId` (`null` = all); active Space highlighted, **All** clears ([Explorer.tsx](apps/web/src/workbench/views/Explorer.tsx))
+- [ ] "+ New" files new nodes into `currentSpaceId` via `setNodeSpace` — deferred (touches every creation path)
+- [ ] StatusBar shows the current Space — deferred
+- [ ] Auto-create a default `personal` Space on first run (Q8) — deferred
 
 ### Phase 2 — Space home (open a Space)
-- [ ] Register `space` as a `TabNodeType` + `HOSTED_VIEWS` entry + `/space/$spaceId` route ([ViewHost.tsx](apps/web/src/workbench/ViewHost.tsx), [tabs.ts](apps/web/src/workbench/tabs.ts))
-- [ ] `SpaceHomeView` modeled on `PersonView`: header (icon/color/name/description/member avatars/visibility badge/actions) + **kind-adaptive** sections (C)
-- [ ] Wire `ExplorerSpacesSection` row click → `setCurrentSpace` + open home; render the **nested tree** (collapsible, favorites, "show only mine") via `buildSpaceTree`
-- [ ] Kind/parent picker + icon/emoji + color in create (name still the only required field)
-- [ ] Rename / archive / move-to-parent affordances (hooks already exist: `renameSpace`/`archiveSpace`; add `setSpaceParent` via `mutate`)
-- [ ] "Move to Space…" on Explorer rows + drag-to-Space + "Convert folder → Space," reusing the folder move machinery ([explorer-folders-context.tsx](apps/web/src/workbench/views/explorer-folders-context.tsx))
+- [x] Register `space` as a `TabNodeType` + `HOSTED_VIEWS` entry + `/space/$spaceId` route ([ViewHost.tsx](apps/web/src/workbench/ViewHost.tsx), [tabs.ts](apps/web/src/workbench/tabs.ts), [space.$spaceId.tsx](apps/web/src/routes/space.$spaceId.tsx))
+- [x] `SpaceHomeView` ([SpaceHomeView.tsx](apps/web/src/components/SpaceHomeView.tsx)) modeled on `PersonView`: header (icon/color/name/kind+visibility badges/member count/Invite) + kind-adaptive sections (members, sub-spaces, projects, content, visibility)
+- [x] Wire `ExplorerSpacesSection` row click → `setCurrentSpace` + open home; render the **nested collapsible tree** via `buildSpaceTree`
+- [x] Kind picker in create (name still the only required field); icon/emoji/color rendered when set
+- [x] `renameSpace`/`archiveSpace`/`setSpaceParent`/`updateSpace` exist in `useSpaces`; rename/archive/move-to-parent UI affordances deferred
+- [ ] "Move to Space…" on Explorer rows + drag-to-Space + "Convert folder → Space" — deferred
 
 ### Phase 3 — Projects (the priority) + members
-- [ ] `ProjectView` (Linear-grade): properties header (Status · Lead · Target · Visibility, click-to-edit) + Overview(brief+update+health) / Board / List tabs, composing `TaskBoard`/`TaskListGrouped` scoped by `Task.project`
-- [ ] Decide D1: ProjectSchema is the "Project"; hide `kind='project'` from default create; "Share project" rides its `space` home (Q4)
-- [ ] Add `target`/`health`/`update` affordances to projects (schema fields if missing, else derive); keep additive
-- [ ] `SpaceMembersPanel` (SettingsKit): roster from `/shares/grants`, 5-tier `RolePicker`, remove, gated by `canManageSpace`
-- [ ] **Hub:** `PATCH /shares/grants/:id` to change role in place (admin-only, no self-escalate) + re-auth sweep (Q2)
-- [ ] "Leave Space" and "Transfer ownership" (admin) actions
+- [ ] `ProjectView` (Linear-grade): properties header + Overview/Board/List tabs — deferred (the Space home lists projects and links to Tasks)
+- [x] Decide D1: ProjectSchema is the "Project"; `kind='project'` removed from `SPACE_KINDS` entirely (exploration 0181) (Q4)
+- [ ] Add `target`/`health`/`update` affordances to projects — deferred
+- [x] Members roster in `SpaceHomeView` (5-tier `RolePicker`, remove, gated by `canManageSpace`) — reads/writes `SpaceMembership` edges (the 0181 schema-native source of truth) rather than `/shares/grants`
+- [ ] "Leave Space" and "Transfer ownership" (admin) actions — deferred
 
 ### Phase 4 — Publish (private → public), distinct surface
-- [ ] A **Publish** section/tab separate from Share: confirm dialog, persistent public badge, search-indexing **off** by default, one-click unpublish; calls `setSpaceVisibility`
-- [ ] Public Space view reuses the 0170 feed/site rendering for `GET /public/space/:id`
-- [ ] Gate publish GA behind the moderation/labeler stack ([packages/abuse](packages/abuse), 0177); exclude imported content (Q7)
+- [x] A **Visibility** control (Private / Unlisted / Public) on the Space home (admin-gated), with a public warning; `setSpaceVisibility`
+- [ ] A fully separate, guarded **Publish** surface (confirm dialog, search-indexing-off default, public badge) — deferred
+- [ ] Public Space view reuses the 0170 feed/site rendering for `GET /public/space/:id` — deferred
+- [ ] Gate publish GA behind the moderation/labeler stack (0177); exclude imported content (Q7) — deferred
 
 ### Phase 5 — Hardening (deferred by design)
 - [ ] Multi-Space presence: retire `WORKSPACE_ID='main'`, presence room per Space (Q6)
 - [ ] Space-scoped search + feeds + notifications (InboxState, 0168)
-- [ ] Optional `SpaceMembership` edge-writing for offline roster + provenance (E2/Q1)
-- [ ] Optional deep-link scope (`?space=` / `/space/$id/doc/$id`) if sharing scoped URLs becomes a need (A2)
+- [x] `SpaceMembership` edge-writing: on Space create (owner) and on invite-claim ([AddSharedDialog.tsx](apps/web/src/components/AddSharedDialog.tsx)); roster reads edges (E2/Q1)
+- [ ] Optional deep-link scope (`?space=` / `/space/$id/doc/$id`) (A2) — deferred
 
 ## Validation Checklist
 
