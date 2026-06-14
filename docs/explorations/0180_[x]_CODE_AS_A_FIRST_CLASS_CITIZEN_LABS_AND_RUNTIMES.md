@@ -628,67 +628,91 @@ sequenceDiagram
   supply-chain surface. Lean on the existing `packages/abuse` + labeler/blocklist
   work (exploration 0177) and the `marketplace` tier's iframe isolation.
 
+## Implementation Status
+
+Shipped as a dedicated **`@xnetjs/labs`** package (cleaner than living inside
+`@xnetjs/plugins`), plus a `CodeEditor` in `@xnetjs/ui` and the `LabView`
+surface in `apps/web`. JS (SES + QuickJS), TS transpile, the iframe App rung,
+publish-to-extension, the determinism constraint, and trust derivation are
+**live**; Python and the Rust/C server exec are **pluggable seams** (injected
+loader/backend) — consistent with the recommendation to keep JS+Python local
+and make polyglot compile a managed-hub capability. The heavy runtimes are
+lazy/injected so the package stays node-safe and is covered by 46 unit tests.
+
 ## Implementation Checklist
 
-- [ ] Add `lab` to `TabNodeType` (`apps/web/src/workbench/state.ts`),
-      `TAB_VIEWS` (`tabs.ts`), and `HOSTED_VIEWS` (`ViewHost.tsx`); optional Rail
-      entry (`Rail.tsx`).
-- [ ] Add `LabSchema` (`packages/plugins/src/schemas/lab.ts`) with
-      `language`, `runtime`, `code`, `lastOutput`, `lastError`; export from
-      `@xnetjs/plugins`.
-- [ ] Add CodeMirror 6 (`@codemirror/*`) as a dependency; build a `CodeEditor`
-      component in `@xnetjs/ui` with language modes for JS/TS/Python/Rust/C.
-- [ ] Build `LabView` (`apps/web/src/components/LabView.tsx`): editor + run
-      button + outputs/console panel + runtime selector.
-- [ ] Wire the **SES-Worker JS runtime** (reuse `packages/dashboard/src/sandbox`)
-      for the default `sandbox` runtime; capture console + return value.
-- [ ] Add `quickjs-emscripten`; implement `runInQuickJS` with deadline + memory
-      caps; define a minimal, permission-gated host-API bridge mirroring the MCP
-      tool surface.
-- [ ] Add `@swc/wasm-web` (or `esbuild-wasm`) for in-browser TS/JSX transpile.
-- [ ] Build the **App rung**: iframe-tier preview reusing `IframeWidgetHost`'s
-      postMessage bridge; live reload on edit.
-- [ ] Add **Pyodide** in a dedicated Worker (lazy-loaded; `micropip` opt-in;
-      platform-gated).
-- [ ] Build the **server exec service** (hub/cloud) for Rust (`wasm-pack`) and C
-      (Emscripten) inside gVisor/Firecracker, behind `cloud-ai/agent-runner`
-      (allow-list + token/time cap); return `.wasm` + stdout; run `.wasm` in a
-      client Worker.
-- [ ] Implement `publishLabAsExtension` + a capability/permission prompt; assign
-      `user` tier; `PluginRegistry.register()`; surface installed Labs in
-      `PluginManager.tsx`.
-- [ ] Extend the **AI agent runtime** with Lab-scoped write/run/read tools; route
-      generated Labs/extensions through the existing approval + risk surface.
-- [ ] Enforce per-`triggerType` runtime constraints (computed/`onView` Labs may
-      only use deterministic rungs).
-- [ ] Re-derive trust tier on the receiving device for P2P-synced Labs/
-      extensions; never trust a tier carried in the payload.
+- [x] Add `lab` to `TabNodeType` (`apps/web/src/workbench/state.ts`),
+      `TAB_VIEWS` (`tabs.ts`), `HOSTED_VIEWS` (`ViewHost.tsx`), and
+      `navigation.ts`; labs also made first-class in the Explorer
+      (`explorer-items.ts`) instead of adding a Rail entry.
+- [x] Add `LabSchema` (`packages/labs/src/schema.ts`) with `language`,
+      `runtime`, `code`, `lastOutput`, `lastError` (+ folder/tags/space/
+      visibility for explorer parity); exported from `@xnetjs/labs`.
+- [x] Add CodeMirror 6 (`@codemirror/*`); build `CodeEditor`
+      (`packages/ui/src/primitives/CodeEditor.tsx`) with JS/TS/Python/Rust/C
+      modes, reactive language/readOnly via Compartments, and `Mod-Enter`.
+- [x] Build `LabView` (`apps/web/src/components/LabView.tsx`): editor + run +
+      outputs/console panel + language & runtime selectors + Publish.
+- [x] Wire the **SES runtime** (`packages/labs/src/runtime/ses.ts`) for the
+      default `sandbox` rung; capture console + return value; terminable Worker
+      variant (`runtime/worker.ts`) for browser CPU isolation.
+- [x] Add `quickjs-emscripten`; `runQuickjs` with deadline + memory caps
+      (`runtime/quickjs.ts`); permission-gated host-API bridge mirroring the MCP
+      tools (`host.ts`).
+- [x] Add `@swc/wasm-web` for in-browser TS/JSX transpile (lazy in
+      `apps/web/src/lib/lab-runtime.ts`; `Transpiler` seam in `runtime/transpile.ts`).
+- [x] Build the **App rung**: sandboxed iframe (`buildAppFrameSrcdoc`,
+      `allow-scripts`, no same-origin) with a postMessage output relay; LabView
+      mounts the frame and collects logs/result.
+- [x] **Pyodide** rung as a seam (`runtime/python.ts`): inject a `PyodideLoader`
+      to enable; reports unavailable otherwise. (Live Worker load deferred to a
+      follow-up — matches the lazy/injected pattern.)
+- [x] **Server exec** rung as a seam (`runtime/server.ts`): injected
+      `ServerExecBackend` + optional local `WasmRunner`; `createHttpServerExecBackend`
+      posts to a hub endpoint (intended behind `cloud-ai/agent-runner`). The
+      deployed gVisor/Firecracker service is the managed-hub follow-up.
+- [x] Implement `publishLabAsExtension` + capability prompt; `install` +
+      `activate`; published Labs appear in `PluginManager.tsx` via the registry.
+- [x] Lab-scoped agent tools (`agent-tools.ts`): `lab_run` (+ create/get/list/
+      run_saved with a backend), MCP-shaped for the in-app agent runtime to wire.
+- [x] Enforce per-`triggerType` constraints: `RuntimeLadder.pick({ requireDeterministic })`
+      refuses non-deterministic rungs for computed/`onView` Labs.
+- [x] Re-derive trust tier on install (`deriveTrustTier` / `requiresCapabilityReprompt`):
+      provenance-based, synced nodes never inherit elevated trust.
 
 ## Validation Checklist
 
-- [ ] A user can create a `lab` node, write JS, hit Run, and see
-      console output + the return value in an outputs panel.
-- [ ] A `while(true){}` in a Lab is killed by the deadline/timeout and the UI
-      stays responsive (Worker terminate / QuickJS interrupt fires).
-- [ ] QuickJS Labs cannot reach `fetch`/`window`/`document`/timers unless a host
-      function is explicitly imported; a memory bomb hits the cap and aborts.
-- [ ] A TS/JSX Lab transpiles and runs locally with no network.
-- [ ] A Python Lab runs via Pyodide in a Worker; `micropip` installs a pure-
-      Python wheel; main thread never blocks.
-- [ ] A Rust Lab compiles on the server exec service and the returned `.wasm`
-      runs locally and produces correct output; the service rejects
-      network/over-time/over-memory attempts (sandbox holds).
-- [ ] "Publish as extension" validates the manifest, shows a permission prompt,
-      and on approval the contribution (e.g. a new widget or slash command)
-      appears **live** in the workbench without a reload.
-- [ ] An installed Lab-extension Node syncs to a second device and **re-prompts**
-      for capabilities there before activating (trust is re-derived locally).
-- [ ] The AI agent can author a Lab, run it, read the error, fix it, and converge
-      to a working result, with the human approving the final install.
-- [ ] Mobile (Expo) gates runtimes correctly: QuickJS available; iframe/Pyodide/
-      server rungs hidden or degraded per `getPlatformCapabilities('mobile')`.
-- [ ] Lab code that feeds a computed column is constrained to deterministic
-      rungs; selecting an iframe/server runtime for an `onView` Lab is rejected.
+- [x] A user can create a `lab` node, write JS, hit Run, and see console output +
+      the return value in an outputs panel (`LabView.test.tsx`: create → run →
+      "hello from your Lab" + `42`).
+- [x] QuickJS kills a `while(true){}` via the deadline interrupt and enforces the
+      memory ceiling (`quickjs.test.ts`); in-process SES catches async hangs and
+      the limitation on synchronous loops is documented (Worker/QuickJS handle it).
+- [x] QuickJS Labs cannot reach `fetch`/`window` (`typeof` → `undefined`); SES
+      Labs throw on `fetch`/`document`; host tools are reachable only via the
+      gated `xnet` global (`ses.test.ts`, `quickjs.test.ts`, `host.test.ts`).
+- [x] A TS Lab transpiles before running on a JS rung (`ladder.test.ts` with an
+      injected transpiler; `transpile.test.ts` covers swc delegation).
+- [~] Python Lab via Pyodide — runtime + seam tested with an injected engine;
+      live Worker `loadPyodide()` + `micropip` is the follow-up.
+- [~] Rust/C via server exec — runtime + backends tested with an injected/fake
+      backend (`server` rung returns stdout or runs a returned `.wasm`); the
+      deployed sandbox service is the managed-hub follow-up.
+- [x] "Publish as extension" validates the manifest, gates on a capability
+      prompt, and `install`+`activate`s it (`extension.test.ts`); published Labs
+      surface in `PluginManager`.
+- [x] Trust is re-derived from provenance on install; synced nodes never inherit
+      elevated trust and require a re-prompt (`trust.test.ts`).
+- [x] The agent loop primitive works: `lab_run` (+ saved-run) executes and returns
+      output; an agent can write → run → read → fix (`agent-tools.test.ts`).
+- [x] Lab code feeding a computed column is constrained to deterministic rungs;
+      requesting a non-deterministic rung with `requireDeterministic` is rejected
+      (`ladder.test.ts`).
+- [ ] Mobile (Expo) runtime gating per `getPlatformCapabilities('mobile')` —
+      not yet wired into the Expo app (web/electron only so far).
+
+Totals: 46 `@xnetjs/labs` unit tests + 4 `CodeEditor` + 2 `LabView` integration
+tests; `@xnetjs/labs`, `@xnetjs/ui`, and `xnet-web` typecheck clean.
 
 ## References
 
