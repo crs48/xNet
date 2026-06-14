@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  createSwcTranspiler,
-  identityTranspiler,
-  isJsTranspilable
-} from '../runtime/transpile'
+import { createSwcTranspiler, identityTranspiler, isJsTranspilable } from '../runtime/transpile'
 
 describe('identityTranspiler', () => {
   it('passes JavaScript through untouched', async () => {
@@ -11,7 +7,9 @@ describe('identityTranspiler', () => {
   })
 
   it('refuses TypeScript (needs a real transpiler)', async () => {
-    await expect(identityTranspiler.transpile('const x: number = 1', 'typescript')).rejects.toThrow()
+    await expect(
+      identityTranspiler.transpile('const x: number = 1', 'typescript')
+    ).rejects.toThrow()
   })
 
   it('refuses compiled languages', async () => {

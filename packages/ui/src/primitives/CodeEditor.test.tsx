@@ -26,8 +26,6 @@ describe('CodeEditor', () => {
 
   it('accepts an onRun handler prop', () => {
     const onRun = vi.fn()
-    expect(() =>
-      render(<CodeEditor value="" language="javascript" onRun={onRun} />)
-    ).not.toThrow()
+    expect(() => render(<CodeEditor value="" language="javascript" onRun={onRun} />)).not.toThrow()
   })
 })

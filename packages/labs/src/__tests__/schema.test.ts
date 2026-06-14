@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  LAB_SCHEMA_IRI,
-  LabSchema,
-  isLabLanguage,
-  isLabRuntimeTier
-} from '../schema'
+import { LAB_SCHEMA_IRI, LabSchema, isLabLanguage, isLabRuntimeTier } from '../schema'
 
 describe('LabSchema', () => {
   it('builds the versioned Lab IRI', () => {

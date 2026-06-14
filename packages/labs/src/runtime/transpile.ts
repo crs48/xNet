@@ -35,10 +35,7 @@ export const identityTranspiler: Transpiler = {
 
 /** Minimal structural shape of the initialized `@swc/wasm-web` module. */
 export interface SwcModuleLike {
-  transformSync: (
-    code: string,
-    options: Record<string, unknown>
-  ) => { code: string }
+  transformSync: (code: string, options: Record<string, unknown>) => { code: string }
 }
 
 /**

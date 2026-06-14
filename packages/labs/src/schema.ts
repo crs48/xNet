@@ -6,8 +6,8 @@
  * a `defineSchema` Node so it syncs over P2P like everything else.
  */
 
-import { defineSchema, json, relation, select, text } from '@xnetjs/data'
 import type { LabLanguage, LabRuntimeTier } from './runtime/types'
+import { defineSchema, json, relation, select, text } from '@xnetjs/data'
 
 export const LAB_LANGUAGE_OPTIONS = [
   { id: 'javascript', name: 'JavaScript', color: 'yellow' },
@@ -81,13 +81,7 @@ export interface LabNode {
 /** Schema IRI for Lab nodes (matches the versioned IRI `defineSchema` builds). */
 export const LAB_SCHEMA_IRI = 'xnet://xnet.fyi/Lab@1.0.0'
 
-const VALID_LANGUAGES = new Set<LabLanguage>([
-  'javascript',
-  'typescript',
-  'python',
-  'rust',
-  'c'
-])
+const VALID_LANGUAGES = new Set<LabLanguage>(['javascript', 'typescript', 'python', 'rust', 'c'])
 const VALID_RUNTIMES = new Set<LabRuntimeTier>(['sandbox', 'app', 'server'])
 
 export function isLabLanguage(value: unknown): value is LabLanguage {

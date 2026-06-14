@@ -6,15 +6,15 @@
  * grey out tiers this environment cannot run.
  */
 
-import type { LabRuntime } from './types'
 import type { ServerRuntimeOptions } from './server'
 import type { Transpiler } from './transpile'
-import { RuntimeLadder } from './ladder'
-import { isQuickjsAvailable, runQuickjs } from './quickjs'
-import { isPythonAvailable, runPython } from './python'
+import type { LabRuntime } from './types'
 import { runApp } from './app'
-import { runSes } from './ses'
+import { RuntimeLadder } from './ladder'
+import { isPythonAvailable, runPython } from './python'
+import { isQuickjsAvailable, runQuickjs } from './quickjs'
 import { createServerRuntimeRunner } from './server'
+import { runSes } from './ses'
 
 /** SES Compartment — always available, deterministic JS. */
 export const sesRuntime: LabRuntime = {

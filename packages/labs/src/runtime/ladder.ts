@@ -7,8 +7,8 @@
  * before a JS rung sees it.
  */
 
-import type { LabLanguage, LabRunInput, LabRunResult, LabRuntime, LabRuntimeTier } from './types'
 import type { Transpiler } from './transpile'
+import type { LabLanguage, LabRunInput, LabRunResult, LabRuntime, LabRuntimeTier } from './types'
 import { identityTranspiler, isJsTranspilable } from './transpile'
 
 export class LabRuntimeError extends Error {

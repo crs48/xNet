@@ -14,8 +14,7 @@
  */
 
 import type { LabRunResult } from './types'
-import { runSes } from './ses'
-import { lockdownRealm } from './ses'
+import { runSes, lockdownRealm } from './ses'
 
 export interface LabWorkerRequest {
   id: number

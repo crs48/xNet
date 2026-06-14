@@ -14,9 +14,11 @@ import type { PluginPermissions } from '@xnetjs/plugins'
 
 /** The minimal read surface a Lab host bridge needs. Async by design. */
 export interface LabStore {
-  list(query: { schemaId?: string; limit?: number; offset?: number }): Promise<
-    Array<{ id: string; schemaId: string; properties: Record<string, unknown> }>
-  >
+  list(query: {
+    schemaId?: string
+    limit?: number
+    offset?: number
+  }): Promise<Array<{ id: string; schemaId: string; properties: Record<string, unknown> }>>
   get(id: string): Promise<{
     id: string
     schemaId: string
@@ -112,7 +114,9 @@ export function createLabHostBridge(options: {
  * Materialize a host bridge into a plain object of bound async functions —
  * the value injected into a runtime as the `xnet` global.
  */
-export function bridgeToGlobal(bridge: LabHostBridge): Record<string, (args: Record<string, unknown>) => Promise<unknown>> {
+export function bridgeToGlobal(
+  bridge: LabHostBridge
+): Record<string, (args: Record<string, unknown>) => Promise<unknown>> {
   const api: Record<string, (args: Record<string, unknown>) => Promise<unknown>> = {}
   for (const tool of bridge.tools) {
     api[tool.name] = async (args: Record<string, unknown>) => tool.invoke(args ?? {})

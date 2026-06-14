@@ -62,9 +62,7 @@ export function labStoreFromNodeStore(store: NodeStore): LabStore {
     },
     get: async (id) => {
       const node = await store.get(id as never)
-      return node
-        ? { id: node.id, schemaId: node.schemaId, properties: node.properties }
-        : null
+      return node ? { id: node.id, schemaId: node.schemaId, properties: node.properties } : null
     }
   }
 }

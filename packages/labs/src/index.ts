@@ -52,10 +52,7 @@ export { runApp, buildAppFrameSrcdoc, APP_FRAME_SANDBOX } from './runtime/app'
 export type { LabFrameMessage } from './runtime/app'
 export { runPython, isPythonAvailable, setPyodideLoader } from './runtime/python'
 export type { PyodideLike, PyodideLoader } from './runtime/python'
-export {
-  createServerRuntimeRunner,
-  createHttpServerExecBackend
-} from './runtime/server'
+export { createServerRuntimeRunner, createHttpServerExecBackend } from './runtime/server'
 export type {
   ServerExecBackend,
   ServerExecRequest,
@@ -65,20 +62,11 @@ export type {
 } from './runtime/server'
 
 // Transpilation
-export {
-  identityTranspiler,
-  createSwcTranspiler,
-  isJsTranspilable
-} from './runtime/transpile'
+export { identityTranspiler, createSwcTranspiler, isJsTranspilable } from './runtime/transpile'
 export type { Transpiler, SwcModuleLike } from './runtime/transpile'
 
 // Host bridge
-export {
-  createLabHostBridge,
-  bridgeToGlobal,
-  isSchemaReadable,
-  LabPermissionError
-} from './host'
+export { createLabHostBridge, bridgeToGlobal, isSchemaReadable, LabPermissionError } from './host'
 export type { LabStore } from './host'
 
 // Trust
@@ -95,11 +83,7 @@ export type {
 } from './agent-tools'
 
 // Extension publishing
-export {
-  buildLabExtensionManifest,
-  publishLabAsExtension,
-  slugifyForId
-} from './extension'
+export { buildLabExtensionManifest, publishLabAsExtension, slugifyForId } from './extension'
 export type {
   LabExtensionOptions,
   LabExtensionInstaller,

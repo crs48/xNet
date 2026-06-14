@@ -9,8 +9,8 @@
  * backend so this stays testable without a live NodeStore.
  */
 
-import type { LabHostBridge, LabLanguage, LabRunResult, LabRuntimeTier } from './runtime/types'
 import type { RuntimeLadder } from './runtime/ladder'
+import type { LabHostBridge, LabLanguage, LabRunResult, LabRuntimeTier } from './runtime/types'
 import type { LabNode } from './schema'
 
 /** JSON-schema property (subset; matches the MCP server's property shape). */
@@ -71,8 +71,11 @@ function asTier(value: unknown): LabRuntimeTier {
 export function createLabAgentTools(options: LabAgentToolsOptions): LabAgentTool[] {
   const { ladder, host, backend, timeoutMs = 2000 } = options
 
-  const runCode = (code: string, language: LabLanguage, tier: LabRuntimeTier): Promise<LabRunResult> =>
-    ladder.run({ code, language, tier, host, timeoutMs })
+  const runCode = (
+    code: string,
+    language: LabLanguage,
+    tier: LabRuntimeTier
+  ): Promise<LabRunResult> => ladder.run({ code, language, tier, host, timeoutMs })
 
   const tools: LabAgentTool[] = [
     {
@@ -144,7 +147,8 @@ export function createLabAgentTools(options: LabAgentToolsOptions): LabAgentTool
         },
         invoke: async (args) => {
           const lab = await backend.getLab(String(args.id ?? ''))
-          if (!lab) return { ok: false, logs: [], error: 'Lab not found', durationMs: 0, engine: 'none' }
+          if (!lab)
+            return { ok: false, logs: [], error: 'Lab not found', durationMs: 0, engine: 'none' }
           return runCode(lab.code, lab.language, lab.runtime)
         }
       }

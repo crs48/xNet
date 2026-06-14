@@ -22,8 +22,8 @@ import { useNode, useXNet } from '@xnetjs/react'
 import { CodeEditor, type CodeEditorLanguage } from '@xnetjs/ui'
 import { CheckCircle2, Loader2, Play, Upload } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useWorkbench } from '../workbench/state'
 import { createWebLabLadder, labStoreFromNodeStore } from '../lib/lab-runtime'
+import { useWorkbench } from '../workbench/state'
 
 const DEFAULT_CODE = `// Write code, then Run (Cmd/Ctrl+Enter).
 // 'return' a value and use console.log; read your data via xnet.query(...).

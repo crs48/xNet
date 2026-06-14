@@ -1,10 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
 import type { XNetExtension } from '@xnetjs/plugins'
-import {
-  buildLabExtensionManifest,
-  publishLabAsExtension,
-  slugifyForId
-} from '../extension'
+import { describe, expect, it, vi } from 'vitest'
+import { buildLabExtensionManifest, publishLabAsExtension, slugifyForId } from '../extension'
 
 const lab = { id: 'lab-1', title: 'Overdue Tasks', description: 'counts overdue tasks' }
 

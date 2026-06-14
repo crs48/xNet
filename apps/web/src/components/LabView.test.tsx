@@ -37,7 +37,9 @@ describe('LabView', () => {
     expect(await screen.findByLabelText('Lab title')).toBeTruthy()
     expect(screen.getByLabelText('Language')).toBeTruthy()
     expect(screen.getByLabelText('Runtime')).toBeTruthy()
-    await waitFor(() => expect(screen.getByTestId('code-editor').querySelector('.cm-editor')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByTestId('code-editor').querySelector('.cm-editor')).toBeTruthy()
+    )
   })
 
   it('runs the default code on the sandbox rung and shows the output', async () => {

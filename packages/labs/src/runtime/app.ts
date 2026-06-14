@@ -50,7 +50,7 @@ for (const level of ['log', 'info', 'warn', 'error']) {
     post({ type: 'lab:error', error: err && err.message ? err.message : String(err) });
   }
 })();
-<\/script>
+</script>
 </body></html>`
 }
 

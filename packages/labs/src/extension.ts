@@ -9,14 +9,10 @@
  * tier from provenance.
  */
 
+import type { LabTrustTier } from './runtime/types'
 import type { LabNode } from './schema'
 import type { LabInstallSource } from './trust'
-import type { LabTrustTier } from './runtime/types'
-import type {
-  PluginPermissions,
-  SlashCommandContext,
-  XNetExtension
-} from '@xnetjs/plugins'
+import type { PluginPermissions, SlashCommandContext, XNetExtension } from '@xnetjs/plugins'
 import { validateManifest } from '@xnetjs/plugins'
 import { deriveTrustTier } from './trust'
 
@@ -121,9 +117,7 @@ export interface PublishLabResult {
  * Validate, gate, and hot-install a Lab extension. Throws if validation fails
  * or the user declines the capability prompt.
  */
-export async function publishLabAsExtension(
-  request: PublishLabRequest
-): Promise<PublishLabResult> {
+export async function publishLabAsExtension(request: PublishLabRequest): Promise<PublishLabResult> {
   const manifest = validateManifest(request.manifest)
 
   if (request.requestPermission) {

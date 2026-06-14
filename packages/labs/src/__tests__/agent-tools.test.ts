@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
-import { createLabAgentTools } from '../agent-tools'
 import type { LabAgentBackend } from '../agent-tools'
 import type { LabNode } from '../schema'
+import { describe, expect, it } from 'vitest'
+import { createLabAgentTools } from '../agent-tools'
 import { RuntimeLadder } from '../runtime/ladder'
 import { sesRuntime } from '../runtime/runtimes'
 

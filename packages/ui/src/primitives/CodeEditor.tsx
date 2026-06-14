@@ -7,24 +7,18 @@
  * mounted lazily on a real DOM node so this degrades gracefully under SSR.
  */
 
+import type { Extension } from '@codemirror/state'
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { cpp } from '@codemirror/lang-cpp'
 import { javascript } from '@codemirror/lang-javascript'
 import { python } from '@codemirror/lang-python'
 import { rust } from '@codemirror/lang-rust'
-import type { Extension } from '@codemirror/state'
 import { Compartment, EditorState } from '@codemirror/state'
 import { EditorView, keymap, placeholder as placeholderExt } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import * as React from 'react'
 import { cn } from '../utils'
 
-export type CodeEditorLanguage =
-  | 'javascript'
-  | 'typescript'
-  | 'python'
-  | 'rust'
-  | 'c'
-  | 'plaintext'
+export type CodeEditorLanguage = 'javascript' | 'typescript' | 'python' | 'rust' | 'c' | 'plaintext'
 
 export interface CodeEditorProps {
   value: string

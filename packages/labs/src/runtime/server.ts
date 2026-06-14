@@ -65,7 +65,13 @@ export function createServerRuntimeRunner(options: ServerRuntimeOptions) {
       })
 
       if (response.kind === 'error') {
-        return { ok: false, logs: [], error: response.error, durationMs: Date.now() - start, engine }
+        return {
+          ok: false,
+          logs: [],
+          error: response.error,
+          durationMs: Date.now() - start,
+          engine
+        }
       }
 
       if (response.kind === 'stdout') {

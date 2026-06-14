@@ -1,7 +1,7 @@
+import type { Transpiler } from '../runtime/transpile'
 import { describe, expect, it } from 'vitest'
 import { LabRuntimeError, RuntimeLadder } from '../runtime/ladder'
 import { appRuntime, sesRuntime, createDefaultLadder } from '../runtime/runtimes'
-import type { Transpiler } from '../runtime/transpile'
 
 describe('RuntimeLadder.pick', () => {
   const ladder = new RuntimeLadder([sesRuntime, appRuntime])
@@ -63,7 +63,11 @@ describe('createDefaultLadder', () => {
     expect(ids).toContain('ses')
     expect(ids).toContain('quickjs')
 
-    const minimal = createDefaultLadder({ includeQuickjs: false, includeApp: false, includePython: false })
+    const minimal = createDefaultLadder({
+      includeQuickjs: false,
+      includeApp: false,
+      includePython: false
+    })
       .list()
       .map((r) => r.id)
     expect(minimal).toEqual(['ses'])
@@ -71,7 +75,9 @@ describe('createDefaultLadder', () => {
 
   it('adds a server rung when a backend is supplied', () => {
     const ladder = createDefaultLadder({
-      server: { backend: { supports: () => true, exec: async () => ({ kind: 'stdout', logs: [] }) } }
+      server: {
+        backend: { supports: () => true, exec: async () => ({ kind: 'stdout', logs: [] }) }
+      }
     })
     expect(ladder.list().some((r) => r.tier === 'server')).toBe(true)
   })

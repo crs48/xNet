@@ -1,11 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import {
-  LabPermissionError,
-  bridgeToGlobal,
-  createLabHostBridge,
-  isSchemaReadable
-} from '../host'
 import type { LabStore } from '../host'
+import { describe, expect, it } from 'vitest'
+import { LabPermissionError, bridgeToGlobal, createLabHostBridge, isSchemaReadable } from '../host'
 
 const TASK = 'xnet://xnet.fyi/Task@1.0.0'
 const PAGE = 'xnet://xnet.fyi/Page@1.0.0'
