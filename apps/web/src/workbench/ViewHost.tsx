@@ -16,6 +16,7 @@ import { DatabaseView } from '../components/DatabaseView'
 import { DataWorkspaceView } from '../components/DataWorkspaceView'
 import { PageView } from '../components/PageView'
 import { PersonView } from '../components/PersonView'
+import { SpaceHomeView } from '../components/SpaceHomeView'
 import { TagView } from '../components/TagView'
 import { TasksView } from '../components/TasksView'
 
@@ -33,7 +34,8 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   data: () => <DataWorkspaceView />,
   channel: ({ nodeId }) => <ChannelView channelId={nodeId} />,
   tag: ({ nodeId }) => <TagView tagId={nodeId} />,
-  person: ({ nodeId }) => <PersonView did={nodeId} />
+  person: ({ nodeId }) => <PersonView did={nodeId} />,
+  space: ({ nodeId }) => <SpaceHomeView spaceId={nodeId} />
 }
 
 export function ViewHost({ tab }: { tab: WorkbenchTab }) {
