@@ -32,6 +32,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Cloud license boundary
+        run: pnpm check:cloud-boundary
+
   test:
     runs-on: ubuntu-latest
     strategy:

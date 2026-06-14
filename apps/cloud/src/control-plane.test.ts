@@ -1,5 +1,5 @@
-import { MemoryBindingStore } from '@xnetjs/cloud-identity'
-import { MemoryProvisioner } from '@xnetjs/cloud-provisioner'
+import { MemoryBindingStore } from '@xnetjs/cloud/identity'
+import { MemoryProvisioner } from '@xnetjs/cloud/provisioner'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ControlPlane } from './control-plane'
 import { MemoryTenantStore } from './registry'
