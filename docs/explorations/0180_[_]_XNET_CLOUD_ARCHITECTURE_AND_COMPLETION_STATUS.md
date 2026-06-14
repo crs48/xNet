@@ -55,6 +55,14 @@ xNet Cloud lives in seven `@xnetjs/cloud-*` packages plus one app. All are
 licensed FSL-1.1-Apache-2.0 (source-available, non-compete), deliberately *not*
 MIT like the rest of the core — the open-core boundary from exploration 0174.
 
+> **Update (exploration 0181, implemented):** the seven `@xnetjs/cloud-*`
+> packages below were consolidated into a single FSL `@xnetjs/cloud` package
+> (module seams kept as subpath exports — `/provisioner`, `/identity`,
+> `/billing`, `/ai`, `/storage`, `/litestream`, `/cost`) plus a small MIT
+> `@xnetjs/entitlements` holding the hub-facing entitlement contract. The
+> capability inventory below is unchanged; only the packaging differs. See
+> [0181](0181_[_]_CONSOLIDATE_CLOUD_INTO_ONE_PACKAGE.md).
+
 | Package / app | Role | Status |
 |---|---|---|
 | [`packages/cloud-plans`](packages/cloud-plans/src/index.ts) | Plan catalog, isolation tiers, signed `HUB_PLAN` entitlement tokens, COGS/pricing model | **Shipped** |
