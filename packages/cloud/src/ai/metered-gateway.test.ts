@@ -1,6 +1,6 @@
 import type { ChatGateway, ChatRequest, ChatResult } from './gateway'
-import { FakeStripeBilling, MemoryUsageLedger, type TokenPricing } from '../billing'
 import { describe, expect, it } from 'vitest'
+import { FakeStripeBilling, MemoryUsageLedger, type TokenPricing } from '../billing'
 import { BudgetExceededError, MeteredGateway } from './metered-gateway'
 import { meterUsage } from './metering'
 
