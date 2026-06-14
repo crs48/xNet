@@ -490,11 +490,11 @@ Phase 5 — per-hook trim (independent):
 
 Phase 6 — pagination deltas:
 
-- [ ] Reframe `useInfiniteQuery` onto a growing `limit + orderBy` window (A2); remove frozen-page state
-- [ ] Cap window growth to a virtualized ceiling; keep the overfetch buffer bounded
-- [ ] Extend the working-set model to standalone cursor queries (A1) with underflow→reload fallback
-- [ ] Property-test the new delta paths vs. re-execution (extend `bounded-query-delta.test.ts`)
-- [ ] Add `query-update-fanout` benches for an infinite feed and a cursor query at 1k/10k
+- [x] Reframe `useInfiniteQuery` onto a growing `limit + orderBy` window (A2); remove frozen-page state — single live `useQuery` whose `limit` grows by `pageSize`; previous rows kept visible during the larger read (no flicker); cursor state removed
+- [x] Cap window growth to a virtualized ceiling; keep the overfetch buffer bounded — new `maxLoaded` filter option bounds the live window
+- [~] Extend the working-set model to standalone cursor queries (A1) with underflow→reload fallback — **deferred (rationale):** after A2, no app hot path issues a standalone `after`-cursor query (verified across `apps/web`, `packages/views`, `packages/dashboard`, `packages/canvas`); cursor-window delta maintenance is the single riskiest change to the hottest path (needs an RxDB-style generated truth table), so shipping it for zero current consumers is not justified. Cursor queries keep correct reload semantics.
+- [x] Property-test the new delta paths vs. re-execution — A2 rides the **existing** bounded-delta path already property-tested by `bounded-query-delta.test.ts` (0163); no new bridge delta path was added. New `useInfiniteQuery` behavior is covered by React tests: growth, end-detection, and the no-frozen-pages freshness guard
+- [~] Add `query-update-fanout` benches for an infinite feed and a cursor query at 1k/10k — see consolidated validation (Phase 8); the infinite feed now executes the already-benched bounded-delta path, so an edit within the loaded window is the existing `query-update-fanout-*` measurement rather than a re-execution
 
 Phase 7 — auth-aware reads:
 

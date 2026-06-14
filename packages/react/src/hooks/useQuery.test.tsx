@@ -761,21 +761,23 @@ describe('useQuery', () => {
       expect(mock.getQueryCount()).toBe(1)
     })
 
-    it('should fetch and flatten cursor pages with useInfiniteQuery', async () => {
+    it('grows a single limit+orderBy window with useInfiniteQuery', async () => {
       const mock = createMockBridge()
       const firstNode = createTaskNode('task-1', 'First Task', 'todo')
       const secondNode = createTaskNode('task-2', 'Second Task', 'todo')
-      const firstFilter: QueryFilter<typeof TaskSchema._properties> = {
+      // The window grows by changing `limit`, NOT by advancing a cursor, so it
+      // stays on the bridge's bounded-delta fast path.
+      const firstWindow: QueryFilter<typeof TaskSchema._properties> = {
         orderBy: { updatedAt: 'desc' },
-        page: { first: 1 }
+        limit: 1
       }
-      const secondFilter: QueryFilter<typeof TaskSchema._properties> = {
+      const secondWindow: QueryFilter<typeof TaskSchema._properties> = {
         orderBy: { updatedAt: 'desc' },
-        page: { first: 1, after: 'cursor-1' }
+        limit: 2
       }
 
-      mock.setSnapshot(TaskSchema, firstFilter, [firstNode])
-      mock.setMetadata(TaskSchema, firstFilter, {
+      mock.setSnapshot(TaskSchema, firstWindow, [firstNode])
+      mock.setMetadata(TaskSchema, firstWindow, {
         source: 'local',
         updatedAt: Date.now(),
         pageInfo: {
@@ -784,25 +786,17 @@ describe('useQuery', () => {
           hasMore: true,
           hasNextPage: true,
           hasPreviousPage: false,
-          endCursor: 'cursor-1',
           loadedCount: 1
         }
       })
-      mock.setSnapshot(TaskSchema, secondFilter, [secondNode])
-      mock.setMetadata(TaskSchema, secondFilter, {
-        source: 'local',
-        updatedAt: Date.now(),
-        pageInfo: {
-          totalCount: 2,
-          countMode: 'exact',
-          hasMore: false,
-          hasNextPage: false,
-          hasPreviousPage: true,
-          startCursor: 'cursor-1',
-          endCursor: 'cursor-2',
-          loadedCount: 1
-        }
-      })
+      mock.setSnapshot(TaskSchema, secondWindow, [firstNode, secondNode])
+      // A third window (limit 3) returns only the 2 existing rows, so the
+      // hook can detect the end of the list (returned fewer than requested).
+      const thirdWindow: QueryFilter<typeof TaskSchema._properties> = {
+        orderBy: { updatedAt: 'desc' },
+        limit: 3
+      }
+      mock.setSnapshot(TaskSchema, thirdWindow, [firstNode, secondNode])
 
       const wrapper = ({ children }: { children: ReactNode }) => (
         <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
@@ -815,6 +809,7 @@ describe('useQuery', () => {
       await waitFor(() => {
         expect(result.current.data.map((task) => task.id)).toEqual(['task-1'])
       })
+      expect(result.current.hasMore).toBe(true)
 
       await act(async () => {
         await result.current.fetchNextPage()
@@ -823,11 +818,76 @@ describe('useQuery', () => {
       await waitFor(() => {
         expect(result.current.data.map((task) => task.id)).toEqual(['task-1', 'task-2'])
       })
-
       expect(result.current.pages).toHaveLength(2)
       expect(result.current.pageInfo.loadedCount).toBe(2)
-      expect(result.current.hasMore).toBe(false)
       expect(result.current.isFetchingNextPage).toBe(false)
+
+      // Final grow returns fewer rows than requested → end of list reached.
+      await act(async () => {
+        await result.current.fetchNextPage()
+      })
+      await waitFor(() => {
+        expect(result.current.hasMore).toBe(false)
+      })
+      expect(result.current.data.map((task) => task.id)).toEqual(['task-1', 'task-2'])
+    })
+
+    it('keeps already-loaded rows live after fetchNextPage (no frozen pages)', async () => {
+      // Regression guard for the freshness bug in the old cursor-paging
+      // implementation: rows loaded on an earlier "page" stayed frozen and did
+      // not reflect later edits. With a single growing window, every loaded row
+      // is live and updates in place.
+      const wrapper = createWrapper()
+
+      const { result } = renderHook(
+        () => ({
+          infinite: useInfiniteQuery(TaskSchema, {
+            pageSize: 2,
+            orderBy: { title: 'asc' }
+          }),
+          mutate: useMutate()
+        }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.infinite.loading).toBe(false)
+      })
+
+      let firstId = ''
+      await act(async () => {
+        const a = await result.current.mutate.create(TaskSchema, { title: 'A', status: 'todo' })
+        await result.current.mutate.create(TaskSchema, { title: 'B', status: 'todo' })
+        await result.current.mutate.create(TaskSchema, { title: 'C', status: 'todo' })
+        firstId = a!.id
+      })
+
+      // First window: pageSize 2 → ['A', 'B'].
+      await waitFor(() => {
+        expect(result.current.infinite.data.map((t) => t.title)).toEqual(['A', 'B'])
+      })
+      expect(result.current.infinite.hasMore).toBe(true)
+
+      // Grow the window to include the third row.
+      await act(async () => {
+        await result.current.infinite.fetchNextPage()
+      })
+      await waitFor(() => {
+        expect(result.current.infinite.data.map((t) => t.title)).toEqual(['A', 'B', 'C'])
+      })
+
+      // Edit a row in the FIRST page region; it must reflect in place (it would
+      // be stale under the old frozen-page implementation). Order is stable
+      // because we sort by title, which is unchanged.
+      await act(async () => {
+        await result.current.mutate.update(TaskSchema, firstId, { status: 'done' })
+      })
+
+      await waitFor(() => {
+        const a = result.current.infinite.data.find((t) => t.id === firstId)
+        expect(a?.status).toBe('done')
+      })
+      expect(result.current.infinite.data.map((t) => t.title)).toEqual(['A', 'B', 'C'])
     })
   })
 

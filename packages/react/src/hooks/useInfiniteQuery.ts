@@ -1,11 +1,29 @@
 /**
- * useInfiniteQuery - cursor-page convenience wrapper over useQuery.
+ * useInfiniteQuery - incremental "load more" wrapper over useQuery.
+ *
+ * Unlike a cursor-paged implementation (which freezes earlier pages and keeps
+ * the live page on `after` cursor semantics — a shape that falls off the
+ * bridge's incremental delta path and re-executes storage on every matching
+ * edit), this hook models the loaded region as a single GROWING
+ * `limit + orderBy` window. That descriptor stays on the bounded-delta fast
+ * path, so:
+ *
+ * - edits to any already-loaded row update in place without re-querying, and
+ * - every loaded row stays live (no stale frozen pages).
+ *
+ * Calling `fetchNextPage()` grows the window by `pageSize`; the previous rows
+ * are retained during the (single) read for the larger window so the list
+ * does not flicker.
  */
 
 import type { DefinedSchema, PropertyBuilder } from '@xnetjs/data'
-import type { QueryMaterializedMetadata, QueryPageInfo, QuerySource } from '@xnetjs/data-bridge'
+import type {
+  QueryMaterializedMetadata,
+  QueryPageInfo,
+  QuerySource
+} from '@xnetjs/data-bridge'
 import { createQueryDescriptor, serializeQueryDescriptor } from '@xnetjs/data-bridge'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   useQuery,
   type FlatNode,
@@ -22,10 +40,16 @@ const DEFAULT_PAGE_SIZE = 50
 export interface InfiniteQueryFilter<
   P extends Record<string, PropertyBuilder> = Record<string, PropertyBuilder>
 > extends Omit<QueryFilter<P>, 'limit' | 'offset' | 'page'> {
-  /** Number of rows to request per cursor page. */
+  /** Number of rows to grow the window by on each `fetchNextPage()`. */
   pageSize?: number
   /** Optional page metadata. `first` defaults to `pageSize` when omitted. */
   page?: Omit<NonNullable<QueryFilter<P>['page']>, 'first'> & { first?: number }
+  /**
+   * Upper bound on the live window size. Once reached, `fetchNextPage()` is a
+   * no-op and `hasMore` is false. Defaults to unbounded — set this for
+   * virtualized lists so the overfetch buffer and live snapshot stay bounded.
+   */
+  maxLoaded?: number
 }
 
 export interface InfiniteQueryPage<P extends Record<string, PropertyBuilder>> {
@@ -37,23 +61,23 @@ export interface InfiniteQueryPage<P extends Record<string, PropertyBuilder>> {
 export interface InfiniteQueryResult<
   P extends Record<string, PropertyBuilder>
 > extends QueryBaseResult {
-  /** Flattened rows across all loaded pages. */
+  /** All loaded rows in descriptor order. */
   data: FlatNode<P>[]
-  /** Individual cursor pages retained for virtualized or grouped rendering. */
+  /** Loaded rows grouped into `pageSize` chunks for grouped/virtualized rendering. */
   pages: InfiniteQueryPage<P>[]
-  /** Aggregated pagination metadata for the loaded page window. */
+  /** Aggregated pagination metadata for the loaded window. */
   pageInfo: QueryPageInfo
   /** Total matching count when known. Null means unavailable or intentionally not counted. */
   totalCount: number | null
-  /** Whether another page may be available. */
+  /** Whether the window can grow further. */
   hasMore: boolean
-  /** Whether `fetchNextPage()` has advanced the active cursor and is awaiting data. */
+  /** Whether `fetchNextPage()` has grown the window and is awaiting the larger read. */
   isFetchingNextPage: boolean
-  /** Advance to the next cursor page when `pageInfo.endCursor` is available. */
+  /** Grow the loaded window by `pageSize` (bounded by `maxLoaded`). */
   fetchNextPage: () => Promise<void>
-  /** Clear accumulated pages and return to the first page. */
+  /** Shrink the window back to the first page. */
   reset: () => void
-  /** Migration warnings for the currently active page. */
+  /** Migration warnings across the loaded window. */
   migrationWarnings: MigrationWarning[]
 }
 
@@ -62,8 +86,10 @@ function getBaseFilter<P extends Record<string, PropertyBuilder>>(
 ): QueryFilter<P> {
   const baseFilter = { ...filter } as QueryFilter<P> & {
     pageSize?: number
+    maxLoaded?: number
   }
   delete baseFilter.pageSize
+  delete baseFilter.maxLoaded
   delete baseFilter.page
 
   return {
@@ -72,29 +98,17 @@ function getBaseFilter<P extends Record<string, PropertyBuilder>>(
   }
 }
 
-function getAggregatePageInfo<P extends Record<string, PropertyBuilder>>(input: {
-  pages: InfiniteQueryPage<P>[]
-  current: QueryListResult<P>
-  data: FlatNode<P>[]
-}): QueryPageInfo {
-  const { pages, current, data } = input
-  if (pages.length === 0) {
-    return current.pageInfo
+function chunkIntoPages<P extends Record<string, PropertyBuilder>>(
+  data: FlatNode<P>[],
+  pageSize: number,
+  pageInfo: QueryPageInfo
+): InfiniteQueryPage<P>[] {
+  if (data.length === 0) return []
+  const pages: InfiniteQueryPage<P>[] = []
+  for (let i = 0; i < data.length; i += pageSize) {
+    pages.push({ cursor: null, data: data.slice(i, i + pageSize), pageInfo })
   }
-
-  const first = pages[0]
-  const last = pages[pages.length - 1]
-
-  return {
-    ...last.pageInfo,
-    totalCount: current.totalCount ?? last.pageInfo.totalCount,
-    hasMore: last.pageInfo.hasMore,
-    hasNextPage: last.pageInfo.hasNextPage,
-    hasPreviousPage: pages.length > 1 || last.pageInfo.hasPreviousPage,
-    startCursor: first.pageInfo.startCursor,
-    endCursor: last.pageInfo.endCursor,
-    loadedCount: data.length
-  }
+  return pages
 }
 
 export function useInfiniteQuery<P extends Record<string, PropertyBuilder>>(
@@ -103,84 +117,85 @@ export function useInfiniteQuery<P extends Record<string, PropertyBuilder>>(
 ): InfiniteQueryResult<P> {
   const pageSize = filter.page?.first ?? filter.pageSize ?? DEFAULT_PAGE_SIZE
   const count = filter.page?.count
+  const maxLoaded = filter.maxLoaded
   const baseFilter = useMemo(() => getBaseFilter(filter), [filter])
   const baseKey = useMemo(
     () => serializeQueryDescriptor(createQueryDescriptor(schema._schemaId, baseFilter)),
     [schema._schemaId, baseFilter]
   )
-  const [cursor, setCursor] = useState<string | undefined>()
-  const [pages, setPages] = useState<InfiniteQueryPage<P>[]>([])
-  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false)
 
-  useEffect(() => {
-    setCursor(undefined)
-    setPages([])
-    setIsFetchingNextPage(false)
-  }, [baseKey, pageSize, count])
-
-  const activeFilter = useMemo<QueryFilter<P>>(
-    () => ({
-      ...baseFilter,
-      page: {
-        first: pageSize,
-        ...(cursor ? { after: cursor } : {}),
-        ...(count ? { count } : {})
-      }
-    }),
-    [baseFilter, pageSize, cursor, count]
+  // The window grows by pageSize; the descriptor stays on the bounded-delta
+  // fast path (limit + orderBy, offset 0, no cursor) so edits never reload.
+  const [loadedCount, setLoadedCount] = useState(() =>
+    maxLoaded === undefined ? pageSize : Math.min(pageSize, maxLoaded)
   )
-  const current = useQuery(schema, activeFilter) as QueryListResult<P>
-  const activeCursor = cursor ?? null
 
   useEffect(() => {
-    if (current.loading) return
+    setLoadedCount(maxLoaded === undefined ? pageSize : Math.min(pageSize, maxLoaded))
+  }, [baseKey, pageSize, maxLoaded])
 
-    setPages((existing) => {
-      const nextPage: InfiniteQueryPage<P> = {
-        cursor: activeCursor,
-        data: current.data,
-        pageInfo: current.pageInfo
-      }
-      const index = existing.findIndex((page) => page.cursor === activeCursor)
+  const windowFilter = useMemo<QueryFilter<P>>(
+    () =>
+      count
+        ? { ...baseFilter, page: { first: loadedCount, count } }
+        : { ...baseFilter, limit: loadedCount },
+    [baseFilter, loadedCount, count]
+  )
+  const current = useQuery(schema, windowFilter) as QueryListResult<P>
 
-      if (index === -1) {
-        return [...existing, nextPage]
-      }
+  // Keep the previously loaded rows visible while the larger window reads, so
+  // growing the window does not flash an empty list. A grow is a new
+  // descriptor (different limit) and therefore a fresh cache entry that starts
+  // empty until storage responds.
+  const lastDataRef = useRef<FlatNode<P>[]>([])
+  if (!current.loading) {
+    lastDataRef.current = current.data
+  }
+  const data =
+    current.loading && current.data.length === 0 ? lastDataRef.current : current.data
 
-      return existing.map((page, pageIndex) => (pageIndex === index ? nextPage : page))
-    })
-    setIsFetchingNextPage(false)
-  }, [activeCursor, current.data, current.loading, current.pageInfo])
-
-  const reset = useCallback(() => {
-    setCursor(undefined)
-    setPages([])
-    setIsFetchingNextPage(false)
-  }, [])
-
-  const reload = useCallback(() => {
-    reset()
-    current.reload()
-  }, [current, reset])
+  const atCeiling = maxLoaded !== undefined && loadedCount >= maxLoaded
+  // "Can grow" is derived from the visible result, not from the bridge's
+  // pageInfo: for a bounded query `pageInfo.hasMore` only reports overfetch
+  // saturation and `totalCount` is not populated, so neither distinguishes
+  // "exactly a full window" from "a full window with more behind it". A window
+  // that returned at least as many rows as it asked for may have more behind
+  // it; one that returned fewer is definitively complete. The cost is at most
+  // one extra, no-op grow at the very end of a list.
+  const moreAvailable =
+    current.pageInfo.hasMore || (!current.loading && current.data.length >= loadedCount)
+  const hasMore = moreAvailable && !atCeiling
+  const isFetchingNextPage = current.loading && data.length > 0
 
   const fetchNextPage = useCallback(async () => {
-    if (isFetchingNextPage || !current.pageInfo.hasNextPage || !current.pageInfo.endCursor) {
-      return
-    }
+    if (current.loading || !hasMore) return
+    setLoadedCount((n) => {
+      if (maxLoaded !== undefined && n >= maxLoaded) return n
+      const next = n + pageSize
+      return maxLoaded === undefined ? next : Math.min(next, maxLoaded)
+    })
+  }, [current.loading, hasMore, maxLoaded, pageSize])
 
-    setIsFetchingNextPage(true)
-    setCursor(current.pageInfo.endCursor)
-  }, [current.pageInfo.endCursor, current.pageInfo.hasNextPage, isFetchingNextPage])
+  const reset = useCallback(() => {
+    lastDataRef.current = []
+    setLoadedCount(maxLoaded === undefined ? pageSize : Math.min(pageSize, maxLoaded))
+  }, [maxLoaded, pageSize])
 
-  const data = useMemo(
-    () => (pages.length > 0 ? pages.flatMap((page) => page.data) : current.data),
-    [current.data, pages]
+  const reload = useCallback(() => {
+    current.reload()
+  }, [current])
+
+  const pages = useMemo(
+    () => chunkIntoPages(data, pageSize, current.pageInfo),
+    [data, pageSize, current.pageInfo]
   )
-  const pageInfo = useMemo(
-    () => getAggregatePageInfo({ pages, current, data }),
-    [current, data, pages]
+
+  const pageInfo = useMemo<QueryPageInfo>(
+    () => ({ ...current.pageInfo, hasMore, hasNextPage: hasMore, loadedCount: data.length }),
+    [current.pageInfo, hasMore, data.length]
   )
-  const loading = current.loading && pages.length === 0
+
+  const loading = current.loading && data.length === 0
 
   return {
     data,
@@ -199,7 +214,7 @@ export function useInfiniteQuery<P extends Record<string, PropertyBuilder>>(
     migrationWarnings: current.migrationWarnings,
     pageInfo,
     totalCount: pageInfo.totalCount,
-    hasMore: pageInfo.hasMore,
+    hasMore,
     plan: current.plan as QueryPlanSummary | null,
     materialized: current.materialized as QueryMaterializedMetadata | null,
     completeness: current.completeness,
