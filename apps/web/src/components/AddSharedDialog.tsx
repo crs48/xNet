@@ -7,7 +7,8 @@
  */
 
 import { useNavigate } from '@tanstack/react-router'
-import { useXNet } from '@xnetjs/react'
+import { SpaceMembershipSchema, spaceMembershipId } from '@xnetjs/data'
+import { useIdentity, useMutate, useXNet } from '@xnetjs/react'
 import { Link, X } from 'lucide-react'
 import { useState } from 'react'
 import {
@@ -15,6 +16,7 @@ import {
   claimShareLink,
   docRouteFor,
   parseShareUrl,
+  spaceRoleFromShareRole,
   type ShareClaimResult
 } from '../lib/share-links'
 
@@ -26,11 +28,32 @@ interface AddSharedDialogProps {
 export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
   const navigate = useNavigate()
   const { getHubAuthToken } = useXNet()
+  const { create } = useMutate()
+  const { did } = useIdentity()
   const [shareUrl, setShareUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [claiming, setClaiming] = useState(false)
 
   if (!isOpen) return null
+
+  const recordSpaceMembership = async (result: ShareClaimResult): Promise<void> => {
+    // A claimed Space invite grants hub access; also write a membership edge so
+    // the new member appears in the roster and the schema cascade resolves
+    // (exploration 0181). The edge id is deterministic, so re-claims upsert.
+    if (result.docType !== 'space' || !did) return
+    const member = did as `did:key:${string}`
+    await create(
+      SpaceMembershipSchema,
+      {
+        space: result.resource,
+        member,
+        role: spaceRoleFromShareRole(result.role),
+        addedBy: member,
+        addedAt: Date.now()
+      },
+      spaceMembershipId(result.resource, did)
+    )
+  }
 
   const openClaimedDoc = (result: ShareClaimResult): void => {
     const route = docRouteFor(result.docType, result.resource)
@@ -55,6 +78,7 @@ export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
     try {
       const token = await getHubAuthToken()
       const result = await claimShareLink(parsed, token)
+      await recordSpaceMembership(result)
       openClaimedDoc(result)
       setShareUrl('')
       onClose()

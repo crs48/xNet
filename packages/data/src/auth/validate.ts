@@ -193,6 +193,18 @@ export function validateAuthorization(
         })
       }
     }
+
+    if (resolver._tag === 'membership') {
+      // Membership resolvers look up an external edge schema, so there is no
+      // local property to validate — only the rung must be a known role id.
+      if (!resolver.roleOrder.includes(resolver.minRole)) {
+        errors.push({
+          code: 'AUTH_SCHEMA_INVALID_ROLE_REF',
+          message: `Role '${roleName}' membership minRole '${resolver.minRole}' is not in its roleOrder`,
+          path: `authorization.roles.${roleName}`
+        })
+      }
+    }
   }
 
   // 3. Validate publicProps reference existing properties

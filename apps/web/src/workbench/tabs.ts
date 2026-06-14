@@ -17,6 +17,7 @@ import {
   Network,
   Table2,
   User,
+  Users,
   type LucideIcon
 } from 'lucide-react'
 import { tabIdFor, useWorkbench, type TabNodeType } from './state'
@@ -43,7 +44,8 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   data: { label: 'Data', icon: Network, toRoute: () => '/data', singleton: true },
   channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` },
   tag: { label: 'Tag', icon: Hash, toRoute: (id) => `/tag/${id}` },
-  person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` }
+  person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` },
+  space: { label: 'Space', icon: Users, toRoute: (id) => `/space/${encodeURIComponent(id)}` }
 }
 
 const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
@@ -54,7 +56,8 @@ const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/view/', nodeType: 'savedview' },
   { prefix: '/channel/', nodeType: 'channel' },
   { prefix: '/tag/', nodeType: 'tag' },
-  { prefix: '/person/', nodeType: 'person' }
+  { prefix: '/person/', nodeType: 'person' },
+  { prefix: '/space/', nodeType: 'space' }
 ]
 
 export interface RouteTabDescriptor {

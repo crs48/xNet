@@ -22,9 +22,13 @@ export interface GrantIndexReader {
 export interface RecipientDependencies {
   getNode: (nodeId: string) => Promise<NodeState | null>
   getSchema?: (schemaId: SchemaIRI) => Promise<Schema | undefined>
+  /** Lists all nodes of a schema — required to expand membership-edge roles. */
+  listNodes?: (schemaId: string) => Promise<NodeState[]>
   grantIndex?: GrantIndexReader
   maxDepth?: number
 }
+
+const MAX_CONTAINER_DEPTH = 32
 
 export async function computeRecipients(
   schema: Schema,
@@ -114,7 +118,53 @@ async function resolveRoleMembers(
 
       return resolveRoleMembers(targetResolver, targetNode, targetSchema, dependencies, depth + 1)
     }
+    case 'membership': {
+      if (!dependencies.listNodes) {
+        return []
+      }
+      const containerIds = await collectContainerIds(node, resolver.parentProp, dependencies)
+      const edges = await dependencies.listNodes(resolver.edgeSchema)
+      const members = new Set<DID>()
+      for (const edge of edges) {
+        if (edge.deleted) continue
+        const container = edge.properties[resolver.containerProp]
+        if (typeof container !== 'string' || !containerIds.has(container)) continue
+        const edgeRole = edge.properties[resolver.roleProp]
+        if (typeof edgeRole !== 'string') continue
+        const have = resolver.roleOrder.indexOf(edgeRole)
+        const need = resolver.roleOrder.indexOf(resolver.minRole)
+        if (have < 0 || need < 0 || have < need) continue
+        for (const did of readDidProperty(edge.properties[resolver.memberProp])) {
+          members.add(did)
+        }
+      }
+      return [...members]
+    }
   }
+}
+
+async function collectContainerIds(
+  node: NodeState,
+  parentProp: string | undefined,
+  dependencies: RecipientDependencies
+): Promise<Set<string>> {
+  const ids = new Set<string>([node.id])
+  if (!parentProp) {
+    return ids
+  }
+
+  let current: NodeState | null = node
+  let depth = 0
+  while (current && depth < MAX_CONTAINER_DEPTH) {
+    const parentId = current.properties[parentProp]
+    if (typeof parentId !== 'string' || ids.has(parentId)) {
+      break
+    }
+    ids.add(parentId)
+    current = await dependencies.getNode(parentId)
+    depth += 1
+  }
+  return ids
 }
 
 function readDidProperty(value: unknown): DID[] {

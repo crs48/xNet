@@ -150,6 +150,7 @@ export {
   type TaskShortIdBlock
 } from './schemas'
 export { ProjectSchema, type Project } from './schemas'
+export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './schemas'
 export {
   SPACE_SCHEMA_IRI,
   SPACE_KINDS,

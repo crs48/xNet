@@ -81,6 +81,17 @@ export function serializeRoleResolver(resolver: RoleResolver): SerializedRoleRes
         relationName: resolver.relationName,
         targetRole: resolver.targetRole
       }
+    case 'membership':
+      return {
+        _tag: 'membership',
+        edgeSchema: resolver.edgeSchema,
+        containerProp: resolver.containerProp,
+        memberProp: resolver.memberProp,
+        roleProp: resolver.roleProp,
+        minRole: resolver.minRole,
+        roleOrder: [...resolver.roleOrder],
+        parentProp: resolver.parentProp
+      }
   }
 }
 
@@ -98,6 +109,17 @@ export function deserializeRoleResolver(serialized: SerializedRoleResolver): Rol
         _tag: 'relation',
         relationName: serialized.relationName,
         targetRole: serialized.targetRole
+      }
+    case 'membership':
+      return {
+        _tag: 'membership',
+        edgeSchema: serialized.edgeSchema,
+        containerProp: serialized.containerProp,
+        memberProp: serialized.memberProp,
+        roleProp: serialized.roleProp,
+        minRole: serialized.minRole,
+        roleOrder: [...serialized.roleOrder],
+        parentProp: serialized.parentProp
       }
   }
 }
