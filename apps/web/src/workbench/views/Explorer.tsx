@@ -141,18 +141,20 @@ function collectItems(
   type: ExplorerNodeType,
   spaceScope: string | null
 ): ExplorerItem[] {
-  return (docs ?? [])
-    // When a Space is active, show only its content; `null` = all (exploration 0181).
-    .filter((doc) => spaceScope === null || (doc.space ?? '') === spaceScope)
-    .map((doc) => ({
-      id: doc.id,
-      title: doc.title ?? '',
-      type,
-      updatedAt: doc.updatedAt ?? 0,
-      folder: doc.folder ?? null,
-      sortKey: doc.sortKey,
-      tags: doc.tags
-    }))
+  return (
+    (docs ?? [])
+      // When a Space is active, show only its content; `null` = all (exploration 0181).
+      .filter((doc) => spaceScope === null || (doc.space ?? '') === spaceScope)
+      .map((doc) => ({
+        id: doc.id,
+        title: doc.title ?? '',
+        type,
+        updatedAt: doc.updatedAt ?? 0,
+        folder: doc.folder ?? null,
+        sortKey: doc.sortKey,
+        tags: doc.tags
+      }))
+  )
 }
 
 /** All organizable nodes, newest first, with folder/sortKey projected. */

@@ -52,10 +52,7 @@ export {
 } from './task-identifiers'
 export { ProjectSchema, type Project } from './project'
 export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './milestone'
-export {
-  spaceOwnAuthorization,
-  spaceCascadeAuthorization
-} from './space-authorization'
+export { spaceOwnAuthorization, spaceCascadeAuthorization } from './space-authorization'
 export {
   SPACE_SCHEMA_IRI,
   SPACE_KINDS,

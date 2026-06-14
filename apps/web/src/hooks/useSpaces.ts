@@ -243,7 +243,10 @@ type MembershipDoc = {
 export function useSpaceMembers(spaceId: string | null): SpaceMembersApi {
   const { create, mutate } = useMutate()
   const { did } = useIdentity()
-  const { data: docs } = useQuery(SpaceMembershipSchema, spaceId ? { where: { space: spaceId } } : {})
+  const { data: docs } = useQuery(
+    SpaceMembershipSchema,
+    spaceId ? { where: { space: spaceId } } : {}
+  )
 
   const members = useMemo<SpaceMemberEntry[]>(() => {
     if (!spaceId) return []
@@ -280,9 +283,7 @@ export function useSpaceMembers(spaceId: string | null): SpaceMembersApi {
   const setMemberRole = useCallback<SpaceMembersApi['setMemberRole']>(
     async (memberDid, role) => {
       if (!spaceId || !memberDid) return
-      await mutate([
-        { type: 'update', id: spaceMembershipId(spaceId, memberDid), data: { role } }
-      ])
+      await mutate([{ type: 'update', id: spaceMembershipId(spaceId, memberDid), data: { role } }])
     },
     [mutate, spaceId]
   )

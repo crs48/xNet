@@ -56,11 +56,12 @@ const KIND_META: Record<SpaceKind, { icon: LucideIcon; label: string }> = {
   family: { icon: Heart, label: 'Family' }
 }
 
-const VISIBILITY_META: Record<SpaceVisibility, { icon: LucideIcon; label: string; tone: string }> = {
-  private: { icon: Lock, label: 'Private', tone: 'text-ink-3' },
-  unlisted: { icon: Link2, label: 'Unlisted', tone: 'text-amber-500' },
-  public: { icon: Globe, label: 'Public', tone: 'text-emerald-500' }
-}
+const VISIBILITY_META: Record<SpaceVisibility, { icon: LucideIcon; label: string; tone: string }> =
+  {
+    private: { icon: Lock, label: 'Private', tone: 'text-ink-3' },
+    unlisted: { icon: Link2, label: 'Unlisted', tone: 'text-amber-500' },
+    public: { icon: Globe, label: 'Public', tone: 'text-emerald-500' }
+  }
 
 const BOUNDED = { orderBy: { updatedAt: 'desc' as const }, limit: 200 }
 
@@ -79,7 +80,9 @@ function useSpaceContent(spaceId: string): { projects: ContentRow[]; content: Co
 
   return useMemo(() => {
     const inSpace = (doc: { space?: string }) => doc.space === spaceId
-    const projectRows: ContentRow[] = ((projects ?? []) as Array<{ id: string; name?: string; space?: string }>)
+    const projectRows: ContentRow[] = (
+      (projects ?? []) as Array<{ id: string; name?: string; space?: string }>
+    )
       .filter(inSpace)
       .map((p) => ({ id: p.id, title: p.name?.trim() || 'Untitled project', type: 'tasks' }))
 
@@ -90,9 +93,18 @@ function useSpaceContent(spaceId: string): { projects: ContentRow[]; content: Co
     ]
     const content: ContentRow[] = []
     for (const { type, docs } of groups) {
-      for (const doc of (docs ?? []) as Array<{ id: string; title?: string; name?: string; space?: string }>) {
+      for (const doc of (docs ?? []) as Array<{
+        id: string
+        title?: string
+        name?: string
+        space?: string
+      }>) {
         if (!inSpace(doc)) continue
-        content.push({ id: doc.id, title: doc.title?.trim() || doc.name?.trim() || 'Untitled', type })
+        content.push({
+          id: doc.id,
+          title: doc.title?.trim() || doc.name?.trim() || 'Untitled',
+          type
+        })
       }
     }
     const taskRows = ((tasks ?? []) as Array<{ id: string; title?: string; space?: string }>)
@@ -119,7 +131,9 @@ function Section({
       <div className="flex items-center justify-between">
         <h2 className="m-0 text-xs font-semibold uppercase tracking-wider text-ink-3">
           {title}
-          {typeof count === 'number' && count > 0 && <span className="ml-1 text-ink-3">({count})</span>}
+          {typeof count === 'number' && count > 0 && (
+            <span className="ml-1 text-ink-3">({count})</span>
+          )}
         </h2>
         {action}
       </div>
@@ -149,7 +163,9 @@ function ContentList({
           >
             <RowIcon type={row.type} />
             <span className="min-w-0 flex-1 truncate">{row.title}</span>
-            <span className="shrink-0 text-[10px] uppercase tracking-wider text-ink-3">{row.type}</span>
+            <span className="shrink-0 text-[10px] uppercase tracking-wider text-ink-3">
+              {row.type}
+            </span>
           </button>
         </li>
       ))}
@@ -172,10 +188,7 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
   const [inviteOpen, setInviteOpen] = useState(false)
 
   const space = getSpace(spaceId)
-  const subSpaces = useMemo(
-    () => tree.flatMap((n) => collectChildren(n, spaceId)),
-    [tree, spaceId]
-  )
+  const subSpaces = useMemo(() => tree.flatMap((n) => collectChildren(n, spaceId)), [tree, spaceId])
 
   useEffect(() => {
     if (space?.name) useWorkbench.getState().setTabTitle(spaceId, space.name)
@@ -208,9 +221,17 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
       <header className="flex items-start gap-4">
         <div
           className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-hairline text-ink-2"
-          style={space.color ? { background: space.color, color: '#fff', borderColor: 'transparent' } : undefined}
+          style={
+            space.color
+              ? { background: space.color, color: '#fff', borderColor: 'transparent' }
+              : undefined
+          }
         >
-          {space.icon ? <span className="text-2xl leading-none">{space.icon}</span> : <KindIcon size={26} strokeWidth={1.5} />}
+          {space.icon ? (
+            <span className="text-2xl leading-none">{space.icon}</span>
+          ) : (
+            <KindIcon size={26} strokeWidth={1.5} />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="m-0 text-lg font-semibold text-ink-1">{space.name}</h1>
