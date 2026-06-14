@@ -498,11 +498,11 @@ Phase 6 — pagination deltas:
 
 Phase 7 — auth-aware reads:
 
-- [ ] Move `authEvaluator.invalidate` off the per-node write path onto membership-change events (B2)
-- [ ] Add a per-`(viewer, space)` readable-resolution cache with a TTL/version backstop
-- [ ] Add a coarse SQL auth pre-filter path in `store.query` so authorized queries keep pushdown (B1)
-- [ ] Verify fine-grained rules only on SQL-survivor candidates
-- [ ] Add a `query-authorized-fanout` bench (Space-scoped descriptor, edit-heavy)
+- [x] Add a SQL pre-filter path in `store.query` so authorized queries keep pushdown (B1, safe variant) — when an `authEvaluator` is present (no cipher, no `nodeId`, no materialized view), `where`/`orderBy`/`search`/`spatial` are now pushed to indexed storage to shrink the candidate set from O(schema) to O(predicate-matching); authorization stays an unchanged pure post-filter applied to the (smaller) candidate set. This captures B1's candidate-reduction without inventing a schema-specific coarse auth predicate or touching authorization correctness.
+- [x] Verify fine-grained rules only on SQL-survivor candidates — `filterReadableNodes` runs on the reduced candidate set; the surfaced plan reports only post-authorization counts and never the compiled SQL/params, so it cannot reveal hidden-row counts (regression test in `store.test.ts`)
+- [~] Move `authEvaluator.invalidate` off the per-node write path onto membership-change events (B2) — **deferred (rationale):** authorization-cache coherency is security-critical and the current per-node invalidation has subtle semantics (it under-invalidates on membership-edge changes and over-invalidates on content changes). Rewiring it safely needs a membership-change event channel that does not exist yet and its own adversarial test pass — too risky to bundle with a read-path perf change.
+- [~] Add a per-`(viewer, space)` readable-resolution cache with a TTL/version backstop — **deferred (rationale):** depends on B2; the evaluator already has a TTL+LRU `DecisionCache`, and a separate readable-set cache is a larger redesign best done with the B2 invalidation rework.
+- [~] Add a `query-authorized-fanout` bench (Space-scoped descriptor, edit-heavy) — deferred with B2; the candidate-reduction win is covered by the correctness test and is the same indexed read the no-auth path already benches, now reached under auth
 
 Phase 8 — flip the worker default:
 

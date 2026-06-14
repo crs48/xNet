@@ -731,6 +731,42 @@ export class NodeStore {
         }
       }
 
+      // Authorization-scoped reads: authorization is a pure post-filter that
+      // only ever REMOVES rows, so we can still push `where`/`orderBy`/
+      // `search`/`spatial` down to indexed storage to shrink the candidate
+      // set from O(schema) to O(predicate-matching), then authorize and
+      // paginate the (smaller) result in JS. Pagination itself cannot be
+      // pushed down because rows the viewer cannot read must be removed
+      // before the window is applied. Re-applying the descriptor in JS also
+      // acts as the parity guard for the compiled SQL predicate.
+      if (
+        this.storage.queryNodes &&
+        !this.nodeContentCipher &&
+        this.authEvaluator &&
+        !descriptor.nodeId &&
+        descriptor.materializedView === undefined
+      ) {
+        const candidates = await this.storage.queryNodes(
+          withoutNodeQueryPagination(descriptor)
+        )
+        const readable = await this.filterReadableNodes(candidates.nodes)
+        const result = applyNodeQueryDescriptor(readable, descriptor)
+        return {
+          nodes: result,
+          totalCount: readable.length,
+          plan: {
+            // Report only post-authorization counts and never the compiled
+            // SQL/params, so the surfaced plan cannot reveal how many rows the
+            // viewer is not allowed to see.
+            strategy: 'auth-pushdown-candidates',
+            candidateNodeCount: readable.length,
+            hydratedNodeCount: readable.length,
+            returnedNodeCount: result.length,
+            durationMs: Date.now() - start
+          }
+        }
+      }
+
       const fallback = await this.loadQueryFallbackCandidates(descriptor)
       const nodes = fallback.nodes
       const decrypted = await Promise.all(
