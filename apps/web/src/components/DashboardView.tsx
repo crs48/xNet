@@ -9,6 +9,9 @@ import { DashboardSurface } from '@xnetjs/dashboard'
 import {
   CanvasSchema,
   DatabaseSchema,
+  ExperimentSchema,
+  MetricSchema,
+  ObservationSchema,
   PageSchema,
   ProjectSchema,
   SavedViewSchema,
@@ -24,6 +27,9 @@ export const DASHBOARD_SCHEMA_REGISTRY = [
   ProjectSchema,
   CanvasSchema,
   SavedViewSchema,
+  MetricSchema,
+  ObservationSchema,
+  ExperimentSchema,
   ...socialSchemas
 ] as unknown as SavedViewSchemaRegistry
 

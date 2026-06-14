@@ -24,6 +24,7 @@
     "@xnetjs/data-bridge": "workspace:*",
     "@xnetjs/devtools": "workspace:*",
     "@xnetjs/editor": "workspace:*",
+    "@xnetjs/experiments": "workspace:*",
     "@xnetjs/identity": "workspace:*",
     "@xnetjs/labs": "workspace:*",
     "@xnetjs/plugins": "workspace:*",

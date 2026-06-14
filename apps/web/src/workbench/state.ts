@@ -24,6 +24,7 @@ export type TabNodeType =
   | 'savedview'
   | 'tasks'
   | 'data'
+  | 'experiments'
   | 'channel'
   | 'tag'
   | 'person'

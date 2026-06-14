@@ -31,6 +31,7 @@ const workspaceAliases = {
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
   '@xnetjs/devtools': new URL('./packages/devtools/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/experiments': new URL('./packages/experiments/src/index.ts', import.meta.url).pathname,
   '@xnetjs/editor/react': new URL('./packages/editor/src/react.ts', import.meta.url).pathname,
   '@xnetjs/editor': new URL('./packages/editor/src/index.ts', import.meta.url).pathname,
   '@xnetjs/formula': new URL('./packages/formula/src/index.ts', import.meta.url).pathname,
@@ -91,8 +92,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,canvas-core,cli,cloud,entitlements,comms,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
-            'packages/{abuse,canvas-core,cli,cloud,entitlements,comms,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
+            'packages/{abuse,canvas-core,cli,cloud,entitlements,comms,crypto,core,data,experiments,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
+            'packages/{abuse,canvas-core,cli,cloud,entitlements,comms,crypto,core,data,experiments,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Social matching layer — pure connect modules only; the

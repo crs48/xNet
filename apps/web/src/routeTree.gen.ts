@@ -16,6 +16,7 @@ import { Route as SocialImportRouteImport } from './routes/social-import'
 import { Route as ShareRouteImport } from './routes/share'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RequestsRouteImport } from './routes/requests'
+import { Route as ExperimentsRouteImport } from './routes/experiments'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as DataRouteImport } from './routes/data'
 import { Route as IndexRouteImport } from './routes/index'
@@ -63,6 +64,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const RequestsRoute = RequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExperimentsRoute = ExperimentsRouteImport.update({
+  id: '/experiments',
+  path: '/experiments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoverRoute = DiscoverRouteImport.update({
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/data': typeof DataRoute
   '/discover': typeof DiscoverRoute
+  '/experiments': typeof ExperimentsRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/data': typeof DataRoute
   '/discover': typeof DiscoverRoute
+  '/experiments': typeof ExperimentsRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/data': typeof DataRoute
   '/discover': typeof DiscoverRoute
+  '/experiments': typeof ExperimentsRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/'
     | '/data'
     | '/discover'
+    | '/experiments'
     | '/requests'
     | '/settings'
     | '/share'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/'
     | '/data'
     | '/discover'
+    | '/experiments'
     | '/requests'
     | '/settings'
     | '/share'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/'
     | '/data'
     | '/discover'
+    | '/experiments'
     | '/requests'
     | '/settings'
     | '/share'
@@ -271,6 +283,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DataRoute: typeof DataRoute
   DiscoverRoute: typeof DiscoverRoute
+  ExperimentsRoute: typeof ExperimentsRoute
   RequestsRoute: typeof RequestsRoute
   SettingsRoute: typeof SettingsRoute
   ShareRoute: typeof ShareRoute
@@ -339,6 +352,13 @@ declare module '@tanstack/react-router' {
       path: '/requests'
       fullPath: '/requests'
       preLoaderRoute: typeof RequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/experiments': {
+      id: '/experiments'
+      path: '/experiments'
+      fullPath: '/experiments'
+      preLoaderRoute: typeof ExperimentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discover': {
@@ -439,6 +459,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DataRoute: DataRoute,
   DiscoverRoute: DiscoverRoute,
+  ExperimentsRoute: ExperimentsRoute,
   RequestsRoute: RequestsRoute,
   SettingsRoute: SettingsRoute,
   ShareRoute: ShareRoute,

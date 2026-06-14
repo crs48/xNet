@@ -8,12 +8,14 @@ import { AiChatPanel } from './AiChatPanel'
 import { Explorer } from './Explorer'
 import { DataPanelView, TasksPanelView } from './left'
 import { ShelfTray } from './Shelf'
+import { TodayPanel } from './TodayPanel'
 import { NotificationsTray, QueryConsoleTray, QuickCaptureTray, SyncTray } from './tray'
 
 export function registerBuiltinPanelViews(): void {
   registerPanelView('left', { id: 'explorer', title: 'Explorer', component: Explorer })
   registerPanelView('left', { id: 'chats', title: 'Chats', component: ChatsPanel })
   registerPanelView('left', { id: 'tasks', title: 'Tasks', component: TasksPanelView })
+  registerPanelView('left', { id: 'today', title: 'Today', component: TodayPanel })
   registerPanelView('left', { id: 'data', title: 'Data', component: DataPanelView })
   registerPanelView('left', { id: 'ai-chat', title: 'AI', component: AiChatPanel })
 

@@ -150,6 +150,21 @@ export {
   type TaskShortIdBlock
 } from './schemas'
 export { ProjectSchema, type Project } from './schemas'
+export {
+  MetricSchema,
+  type Metric,
+  type MetricKind,
+  type MetricScheduleId,
+  type MetricPolarity
+} from './schemas'
+export { ObservationSchema, type Observation, type ObservationPhase } from './schemas'
+export {
+  ExperimentSchema,
+  type Experiment,
+  type ExperimentStatus,
+  type ExperimentDesign,
+  type ExperimentPhase
+} from './schemas'
 export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './schemas'
 export {
   SPACE_SCHEMA_IRI,
