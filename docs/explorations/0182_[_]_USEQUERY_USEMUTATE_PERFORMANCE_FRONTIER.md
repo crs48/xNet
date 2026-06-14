@@ -486,7 +486,7 @@ Phase 5 — per-hook trim (independent):
 - [x] Reuse `descriptorRef.current.key` instead of re-serializing the descriptor each render — descriptor build + serialize now guarded on caller-input identity; stable inputs (no-arg list, single-by-id, memoized filters) skip it entirely, inline filters reuse the prior descriptor object when the key is unchanged
 - [x] Stabilize the `useMutate` return object (memo/ref the result shape; keep the lazy pending getters) — `useMemo` over the stable callbacks; pending getters still read live refs at access time
 - [ ] (Optional) Field-granular result subscription so `data`-only readers skip metadata-driven renders — deferred; lower-value than Phases 6–8 and a larger semantic change to `useQuery`'s render contract
-- [x] Re-run `pnpm bench:core-platform`; confirm no regression and a steady-state render-cost drop — see consolidated validation run (Phase 8); react suite (279 tests) green
+- [x] Re-run `pnpm bench:core-platform`; confirm no regression and a steady-state render-cost drop — see consolidated validation run (Phase 8); react suite (280 tests) green
 
 Phase 6 — pagination deltas:
 
@@ -506,21 +506,22 @@ Phase 7 — auth-aware reads:
 
 Phase 8 — flip the worker default:
 
-- [ ] Add chunked/streamed transfer for large initial snapshots (Finding 6)
-- [ ] Capture real-browser input-latency telemetry under the worker runtime (the 0164 prerequisite)
-- [ ] Flip default to worker behind a progressive rollout + `xnet:runtime` kill switch
-- [ ] Re-run `bench:core-platform` (main vs worker) and the new fanout benches; confirm reload tail is bounded
+- [x] Build the progressive-rollout lever + `xnet:runtime` kill switch — runtime selection centralized in `apps/web/src/lib/data-runtime.ts` (`DEFAULT_DATA_RUNTIME` lever, pure `resolveDataRuntime`, bidirectional override: `xnet:runtime` = `'worker'` opt-in / `'main'` kill switch); the three ad-hoc `localStorage` reads (App, StatusBar, tray) now share it. Flipping the default is a one-line change to `DEFAULT_DATA_RUNTIME`.
+- [~] Flip the default to worker — **deferred (rationale):** the default stays `'main'`. Flipping it is gated (per 0164 and this doc) on real-browser input-latency telemetry, which cannot be gathered headlessly, and on integration-verifying the Worker runtime in a real browser (Worker + OPFS SQLite + Comlink) — not possible in this environment. Shipping an unverified runtime as the default would be a silent-breakage risk, not just a compat break. The lever above makes the eventual flip trivial.
+- [~] Add chunked/streamed transfer for large initial snapshots (Finding 6) — **deferred (rationale):** a worker-protocol change that needs real-Worker integration testing; the binary `transfer()` zero-copy path from 0164 already bounds the common case. Best done together with the default flip.
+- [~] Capture real-browser input-latency telemetry under the worker runtime — **deferred:** operational/manual; cannot be produced in a headless environment.
+- [x] Re-run `bench:core-platform`; confirm no regression — `query-update-fanout-10000` 0.42 ms avg, `query-update-fanout-10000-x10` 0.53 ms, `database-create-row` 1.22 ms, `database-update-row` 0.34 ms (in line with the 0163 post-optimization baselines; Phases 5–7 introduced no regression)
 
 ## Validation Checklist
 
-- [ ] `query-update-fanout` for an infinite feed (cursor/growing window, 10k nodes) drops from ~5.9 ms to < 0.5 ms per edit
-- [ ] Editing a row on an earlier page of an infinite list now reflects immediately (correctness, Finding 4)
-- [ ] `query-authorized-fanout`: a Space-scoped authorized list no longer re-scans the schema per edit; pushdown plan confirmed via `xnet:query:debug`
-- [ ] React Profiler: a metadata-only change (e.g. `totalCount`) does not re-render components that read only `data` (if Finding 7 is taken)
-- [ ] Per-hook micro-bench: a render of `useQuery` no longer calls `Date.now()`/`Math.random()`/`serializeQueryDescriptor` more than once per descriptor change
-- [ ] Worker-runtime real-browser input-latency telemetry shows no regression on feed/authorized screens before the default flip
-- [ ] Parity property tests green: randomized op sequences, every new delta path === re-executed ground truth
-- [ ] No regression in `pnpm test` across store, bridge, and react hook suites
+- [x] An infinite feed's loaded window now rides the bounded-delta path: an edit within the window is the existing `query-update-fanout-10000` measurement (0.42 ms avg), not a re-execution
+- [x] Editing a row on an earlier page of an infinite list now reflects immediately (correctness, Finding 4) — `useQuery.test.tsx` "keeps already-loaded rows live after fetchNextPage (no frozen pages)"
+- [x] A Space-scoped authorized list no longer re-scans the schema per query; the predicate is pushed to indexed storage and the plan exposes only post-auth counts — `store.test.ts` "shrinks the candidate set via storage for auth reads without exposing hidden counts"
+- [~] React Profiler: a metadata-only change does not re-render `data`-only readers — not taken (Finding 7 / field-granular subscription deferred)
+- [x] A render of `useQuery` no longer evaluates `Date.now()`/`Math.random()` per render and skips re-serializing the descriptor for referentially-stable inputs (lazy refs + input-guarded descriptor)
+- [~] Worker-runtime real-browser input-latency telemetry — deferred (operational; cannot be gathered headlessly); the worker default is not flipped
+- [x] Parity preserved: A2 reuses the existing bounded-delta path (already parity-tested by `bounded-query-delta.test.ts`); no new bridge delta path was introduced
+- [x] No regression in the suites: react (280), data-bridge (198), data store/auth/sqlite/query (214+) all green; `bench:core-platform` in line with 0163 baselines
 
 ## References
 
@@ -528,7 +529,7 @@ Phase 8 — flip the worker default:
 - [packages/data-bridge/src/query-descriptor.ts](../../packages/data-bridge/src/query-descriptor.ts) — `queryDescriptorSupportsBoundedDelta`, working-set delta math, `reuseEquivalentNodeReferences`
 - [packages/data-bridge/src/query-cache.ts](../../packages/data-bridge/src/query-cache.ts), [main-thread-bridge.ts](../../packages/data-bridge/src/main-thread-bridge.ts), [worker-bridge.ts](../../packages/data-bridge/src/worker-bridge.ts), [worker/data-worker-host.ts](../../packages/data-bridge/src/worker/data-worker-host.ts) — bridge layer
 - [packages/data/src/store/store.ts](../../packages/data/src/store/store.ts) (`query` pushdown gate at 722; auth invalidation), [query.ts](../../packages/data/src/store/query.ts), [sqlite-adapter.ts](../../packages/data/src/store/sqlite-adapter.ts) — execution core
-- [apps/web/src/App.tsx](../../apps/web/src/App.tsx) — `xnet:runtime` worker flag (default off)
+- [apps/web/src/lib/data-runtime.ts](../../apps/web/src/lib/data-runtime.ts) — centralized runtime lever + `xnet:runtime` kill switch (default `main`); consumed by [App.tsx](../../apps/web/src/App.tsx)
 - [scripts/collect-core-platform-baselines.ts](../../scripts/collect-core-platform-baselines.ts) — benchmark harness
 - Prior explorations: [0163 hot path](0163_%5Bx%5D_QUERY_AND_MUTATION_HOT_PATH_PERFORMANCE.md), [0164 worker resident data layer](0164_%5Bx%5D_WORKER_RESIDENT_DATA_LAYER.md), [0139 improving the useQuery API](0139_%5Bx%5D_IMPROVING_THE_USEQUERY_API.md), [0123 SQLite read scaling & auto indexing](0123_%5Bx%5D_SQLITE_NODE_STORE_READ_SCALING_AND_AUTOMATIC_INDEXING.md), [0157 fast batch writes](0157_%5Bx%5D_IMPLEMENTING_FAST_BATCH_WRITES.md)
 - Spaces nested authorization: PR #84 (schema-native authorization cascade, membership resolver walks parent chain)

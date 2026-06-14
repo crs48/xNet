@@ -9,6 +9,7 @@ import { SavedViewRunner, useHubStatus, useMutate, useQuery } from '@xnetjs/reac
 import { CheckSquare2, CornerDownLeft, FileText } from 'lucide-react'
 import { useState } from 'react'
 import { InboxTray } from '../../comms/InboxTray'
+import { isWorkerRuntimeEnabled } from '../../lib/data-runtime'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../../lib/saved-view-registry'
 import { useWorkbenchStatus } from '../status'
 import { parseConsoleInput } from './console-input'
@@ -140,9 +141,7 @@ export function SyncTray() {
       <div>
         runtime:{' '}
         <span className="text-ink-1">
-          {typeof localStorage !== 'undefined' && localStorage.getItem('xnet:runtime') === 'worker'
-            ? 'worker'
-            : 'main-thread'}
+          {isWorkerRuntimeEnabled() ? 'worker' : 'main-thread'}
         </span>
       </div>
       <div>

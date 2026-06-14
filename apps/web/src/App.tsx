@@ -42,6 +42,7 @@ import {
   shouldResetXNetBrowserStorageOnLoad,
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
+import { isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { identityManager } from './lib/identity'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
@@ -233,14 +234,6 @@ interface StorageContext {
   dataWorkerStoragePort?: MessagePort
 }
 
-/**
- * Worker-resident data layer rollout flag (exploration 0164).
- * Enable with `localStorage.setItem('xnet:runtime', 'worker')` and reload;
- * remove the key to return to the main-thread bridge.
- */
-function isWorkerRuntimeEnabled(): boolean {
-  return typeof localStorage !== 'undefined' && localStorage.getItem('xnet:runtime') === 'worker'
-}
 
 /**
  * With the worker runtime enabled, hand the data worker its own port into

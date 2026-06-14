@@ -10,6 +10,7 @@ import { getCommandRegistry } from '@xnetjs/plugins'
 import { useHubStatus } from '@xnetjs/react'
 import { useTheme } from '@xnetjs/ui'
 import { Moon, Sun } from 'lucide-react'
+import { getDataRuntime } from '../lib/data-runtime'
 import { statusContributionText, useWorkbenchContributions } from './contributions'
 import { useWorkbenchStatus, type StatusBarItem } from './status'
 
@@ -21,11 +22,7 @@ const HUB_LABEL: Record<string, { label: string; tone: string }> = {
 }
 
 function runtimeMode(): string {
-  try {
-    return localStorage.getItem('xnet:runtime') === 'worker' ? 'worker' : 'main'
-  } catch {
-    return 'main'
-  }
+  return getDataRuntime()
 }
 
 function StatusEntry({ item }: { item: StatusBarItem }) {
