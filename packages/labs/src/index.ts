@@ -85,6 +85,15 @@ export type { LabStore } from './host'
 export { deriveTrustTier, requiresCapabilityReprompt } from './trust'
 export type { LabInstallSource } from './trust'
 
+// Agent tools (agentic coding surface)
+export { createLabAgentTools } from './agent-tools'
+export type {
+  LabAgentTool,
+  LabAgentBackend,
+  LabAgentToolsOptions,
+  LabToolPropertySchema
+} from './agent-tools'
+
 // Extension publishing
 export {
   buildLabExtensionManifest,
