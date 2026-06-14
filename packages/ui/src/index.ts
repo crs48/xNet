@@ -10,6 +10,12 @@ export { cn, cva, type VariantProps } from './utils'
 
 // ─── Primitives (existing, migrated to semantic tokens) ───────────
 export { Button, buttonVariants, type ButtonProps } from './primitives/Button'
+export {
+  CodeEditor,
+  codeMirrorLanguage,
+  type CodeEditorProps,
+  type CodeEditorLanguage
+} from './primitives/CodeEditor'
 export { Input, type InputProps } from './primitives/Input'
 export {
   Select,

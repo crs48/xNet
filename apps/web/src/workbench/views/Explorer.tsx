@@ -65,7 +65,7 @@ function ExplorerCreateMenu({
       {open && (
         <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-md border border-hairline bg-popover py-1">
           <CreateDocMenuItems
-            types={['page', 'database', 'canvas', 'dashboard']}
+            types={['page', 'database', 'canvas', 'dashboard', 'lab']}
             onCreate={onCreate}
           />
           <hr className="my-1 border-hairline" />

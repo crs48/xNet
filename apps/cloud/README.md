@@ -6,12 +6,12 @@ A [Hono](https://hono.dev/) HTTP service that composes the cloud packages into a
 
 ## Composition
 
-| Concern          | Default (dev)                   | Production                                |
-| ---------------- | ------------------------------- | ----------------------------------------- |
-| Billing identity | `MemoryBillingIdentityProvider` | `WorkOSAuthKitProvider` (when env is set) |
-| Identity binding | `MemoryBindingStore`            | durable store                             |
-| Provisioner      | `MemoryProvisioner`             | real adapter (Cloud Run + Turso, etc.)    |
-| Tenant registry  | `MemoryTenantStore`             | durable store                             |
+| Concern          | Default (dev)                   | Production                                  |
+| ---------------- | ------------------------------- | ------------------------------------------- |
+| Billing identity | `MemoryBillingIdentityProvider` | `WorkOSAuthKitProvider` (when env is set)   |
+| Identity binding | `MemoryBindingStore`            | durable store                               |
+| Provisioner      | `MemoryProvisioner`             | real adapter (Cloud Run + Litestream, etc.) |
+| Tenant registry  | `MemoryTenantStore`             | durable store                               |
 
 `resolveBillingProvider` picks WorkOS AuthKit when `WORKOS_CLIENT_ID`, `WORKOS_API_KEY`, and `WORKOS_REDIRECT_URI` are set, otherwise the in-memory provider.
 
@@ -39,9 +39,9 @@ pnpm --filter xnet-cloud start
 
 ## Dependencies
 
-- [`@xnetjs/cloud-identity`](../../packages/cloud-identity) — billing identity ↔ data DID
-- [`@xnetjs/cloud-plans`](../../packages/cloud-plans) — plan catalog + entitlements
-- [`@xnetjs/cloud-provisioner`](../../packages/cloud-provisioner) — per-tenant hub provisioning
+- [`@xnetjs/cloud/identity`](../../packages/cloud-identity) — billing identity ↔ data DID
+- [`@xnetjs/entitlements`](../../packages/cloud-plans) — plan catalog + entitlements
+- [`@xnetjs/cloud/provisioner`](../../packages/cloud-provisioner) — per-tenant hub provisioning
 
 ## Testing
 

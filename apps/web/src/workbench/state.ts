@@ -28,6 +28,7 @@ export type TabNodeType =
   | 'channel'
   | 'tag'
   | 'person'
+  | 'lab'
   | 'space'
 
 export interface WorkbenchTab {

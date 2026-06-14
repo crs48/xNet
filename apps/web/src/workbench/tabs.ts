@@ -8,6 +8,7 @@
  */
 import {
   CheckSquare2,
+  Code2,
   Database,
   FileText,
   FlaskConical,
@@ -52,6 +53,7 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` },
   tag: { label: 'Tag', icon: Hash, toRoute: (id) => `/tag/${id}` },
   person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` },
+  lab: { label: 'Lab', icon: Code2, toRoute: (id) => `/lab/${id}` },
   space: { label: 'Space', icon: Users, toRoute: (id) => `/space/${encodeURIComponent(id)}` }
 }
 
@@ -64,6 +66,7 @@ const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/channel/', nodeType: 'channel' },
   { prefix: '/tag/', nodeType: 'tag' },
   { prefix: '/person/', nodeType: 'person' },
+  { prefix: '/lab/', nodeType: 'lab' },
   { prefix: '/space/', nodeType: 'space' }
 ]
 

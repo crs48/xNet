@@ -38,5 +38,30 @@ module.exports = {
     ],
     'import/no-duplicates': 'warn'
   },
+  overrides: [
+    {
+      // Exploration 0181: the consolidated @xnetjs/cloud package keeps its module
+      // seams crisp. A module may only reach a sibling module through its public
+      // index (e.g. `../billing`), never into a sibling's internals
+      // (`../billing/ledger`). Same-module imports and the entitlements contract
+      // are unaffected.
+      files: ['packages/cloud/src/**/*.ts'],
+      excludedFiles: ['**/*.test.ts'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['../*/*', '../../*/*'],
+                message:
+                  'Import a sibling @xnetjs/cloud module via its index (e.g. "../billing"), not its internals.'
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
   ignorePatterns: ['dist', 'node_modules', '*.js', '*.cjs', '!.storybook', '!.storybook/**']
 }

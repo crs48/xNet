@@ -15,9 +15,8 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.0.0",
-    "@xnetjs/cloud-identity": "workspace:*",
-    "@xnetjs/cloud-plans": "workspace:*",
-    "@xnetjs/cloud-provisioner": "workspace:*",
+    "@xnetjs/cloud": "workspace:*",
+    "@xnetjs/entitlements": "workspace:*",
     "hono": "^4.0.0"
   },
   "devDependencies": {

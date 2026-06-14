@@ -1,4 +1,4 @@
-import { MemoryBillingIdentityProvider } from '@xnetjs/cloud-identity'
+import { MemoryBillingIdentityProvider } from '@xnetjs/cloud/identity'
 import { describe, expect, it } from 'vitest'
 import { createControlPlaneApp } from './server'
 import { buildControlPlane } from './index'

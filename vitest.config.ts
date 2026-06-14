@@ -12,18 +12,21 @@ const workspaceAliases = {
   '@xnetjs/core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
   '@xnetjs/crypto': new URL('./packages/crypto/src/index.ts', import.meta.url).pathname,
   '@xnetjs/charts': new URL('./packages/charts/src/index.ts', import.meta.url).pathname,
-  '@xnetjs/cloud-plans': new URL('./packages/cloud-plans/src/index.ts', import.meta.url).pathname,
-  '@xnetjs/cloud-provisioner': new URL('./packages/cloud-provisioner/src/index.ts', import.meta.url)
+  '@xnetjs/entitlements': new URL('./packages/entitlements/src/index.ts', import.meta.url).pathname,
+  // Subpath aliases MUST precede the bare '@xnetjs/cloud' (Vite uses first match).
+  '@xnetjs/cloud/provisioner': new URL('./packages/cloud/src/provisioner/index.ts', import.meta.url)
     .pathname,
-  '@xnetjs/cloud-identity': new URL('./packages/cloud-identity/src/index.ts', import.meta.url)
+  '@xnetjs/cloud/identity': new URL('./packages/cloud/src/identity/index.ts', import.meta.url)
     .pathname,
-  '@xnetjs/cloud-storage': new URL('./packages/cloud-storage/src/index.ts', import.meta.url)
+  '@xnetjs/cloud/billing': new URL('./packages/cloud/src/billing/index.ts', import.meta.url)
     .pathname,
-  '@xnetjs/cloud-billing': new URL('./packages/cloud-billing/src/index.ts', import.meta.url)
+  '@xnetjs/cloud/ai': new URL('./packages/cloud/src/ai/index.ts', import.meta.url).pathname,
+  '@xnetjs/cloud/storage': new URL('./packages/cloud/src/storage/index.ts', import.meta.url)
     .pathname,
-  '@xnetjs/cloud-ai': new URL('./packages/cloud-ai/src/index.ts', import.meta.url).pathname,
-  '@xnetjs/cloud-litestream': new URL('./packages/cloud-litestream/src/index.ts', import.meta.url)
+  '@xnetjs/cloud/litestream': new URL('./packages/cloud/src/litestream/index.ts', import.meta.url)
     .pathname,
+  '@xnetjs/cloud/cost': new URL('./packages/cloud/src/cost/index.ts', import.meta.url).pathname,
+  '@xnetjs/cloud': new URL('./packages/cloud/src/index.ts', import.meta.url).pathname,
   '@xnetjs/dashboard': new URL('./packages/dashboard/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
@@ -35,6 +38,7 @@ const workspaceAliases = {
   '@xnetjs/history': new URL('./packages/history/src/index.ts', import.meta.url).pathname,
   '@xnetjs/hub': new URL('./packages/hub/src/index.ts', import.meta.url).pathname,
   '@xnetjs/identity': new URL('./packages/identity/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/labs': new URL('./packages/labs/src/index.ts', import.meta.url).pathname,
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins/node': new URL('./packages/plugins/src/services/node.ts', import.meta.url)
     .pathname,
@@ -88,8 +92,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,canvas-core,cli,cloud-plans,cloud-provisioner,cloud-identity,cloud-storage,cloud-billing,cloud-ai,cloud-litestream,comms,crypto,core,data,experiments,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
-            'packages/{abuse,canvas-core,cli,cloud-plans,cloud-provisioner,cloud-identity,cloud-storage,cloud-billing,cloud-ai,cloud-litestream,comms,crypto,core,data,experiments,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
+            'packages/{abuse,canvas-core,cli,cloud,entitlements,comms,crypto,core,data,experiments,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
+            'packages/{abuse,canvas-core,cli,cloud,entitlements,comms,crypto,core,data,experiments,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Social matching layer — pure connect modules only; the
@@ -166,6 +170,18 @@ export default defineConfig({
           pool: 'forks',
           isolate: true,
           include: ['packages/data-bridge/src/**/*.test.ts']
+        }
+      },
+      {
+        // Labs package (0180) — SES lockdown() freezes realm intrinsics and
+        // QuickJS loads a WASM module, so each file must be process-isolated.
+        extends: true,
+        test: {
+          name: 'labs',
+          environment: 'node',
+          pool: 'forks',
+          isolate: true,
+          include: ['packages/labs/src/**/*.test.ts']
         }
       }
     ]

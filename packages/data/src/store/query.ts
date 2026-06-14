@@ -111,7 +111,7 @@ export interface NodeQueryDescriptor {
 }
 
 export interface NodeQueryPlanMetadata {
-  strategy: 'storage-query' | 'list-fallback'
+  strategy: 'storage-query' | 'list-fallback' | 'auth-pushdown-candidates'
   candidateNodeCount: number
   hydratedNodeCount: number
   returnedNodeCount: number
