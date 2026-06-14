@@ -198,6 +198,12 @@ const EMPTY_QUERY_FILTER: QueryFilter = Object.freeze({})
 const DISABLED_QUERY_SNAPSHOT: never[] = []
 
 /**
+ * Monotonic per-instance counter for devtools query ids. Cheaper and more
+ * deterministic than `Math.random()` and only consumed once per hook mount.
+ */
+let nextQueryInstanceId = 0
+
+/**
  * Global flatten cache: a NodeState reference always flattens to the same
  * FlatNode reference. The bridge preserves NodeState identities for
  * unchanged rows, so memoized children keyed on FlatNode identity skip
@@ -338,8 +344,10 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const instrumentation = useInstrumentation()
   const telemetry = useTelemetryReporter()
   const schemaId = schema._schemaId
-  // Track query start time for first-load timing
-  const queryStartRef = useRef<number>(Date.now())
+  // Track query start time for first-load timing. Lazily initialized so we
+  // don't evaluate Date.now() on every render of every mounted useQuery.
+  const queryStartRef = useRef<number | null>(null)
+  if (queryStartRef.current === null) queryStartRef.current = Date.now()
 
   // Determine query mode
   const isSingleQuery = typeof idOrFilter === 'string'
@@ -353,17 +361,33 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   // object identity churns every render. Building + serializing costs ~1 µs;
   // the important part is reusing the PREVIOUS descriptor object whenever the
   // canonical key is unchanged so downstream memos and callbacks stay stable.
-  const descriptorRef = useRef<{ key: string; descriptor: QueryDescriptor } | null>(null)
-  {
+  // Skip the rebuild + serialize entirely when the caller's input is
+  // referentially stable (the no-arg list, single-by-id, and memoized-filter
+  // cases). Inline filter literals still churn identity every render, so for
+  // those we rebuild + serialize but reuse the PREVIOUS descriptor object
+  // whenever the canonical key is unchanged, keeping downstream memos stable.
+  const descriptorRef = useRef<{
+    input: string | QueryFilter<P> | undefined
+    schemaId: string
+    key: string
+    descriptor: QueryDescriptor
+  } | null>(null)
+  if (
+    !descriptorRef.current ||
+    descriptorRef.current.input !== idOrFilter ||
+    descriptorRef.current.schemaId !== schemaId
+  ) {
     const options: QueryOptions<P> = isSingleQuery && nodeId ? { nodeId } : filter
     const candidate = createQueryDescriptor(schemaId, options)
     const candidateKey = serializeQueryDescriptor(candidate)
-    if (descriptorRef.current?.key !== candidateKey) {
-      descriptorRef.current = { key: candidateKey, descriptor: candidate }
-    }
+    const descriptor =
+      descriptorRef.current && descriptorRef.current.key === candidateKey
+        ? descriptorRef.current.descriptor
+        : candidate
+    descriptorRef.current = { input: idOrFilter, schemaId, key: candidateKey, descriptor }
   }
-  const descriptor = descriptorRef.current!.descriptor
-  const queryKey = descriptorRef.current!.key
+  const descriptor = descriptorRef.current.descriptor
+  const queryKey = descriptorRef.current.key
 
   // Create subscription via DataBridge (memoized by schema + options)
   // When bridge is null (initializing), use a dummy subscription that returns loading state
@@ -489,13 +513,15 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     [isSingleQuery, queryKey]
   )
 
-  // Query tracking for devtools
-  const queryIdRef = useRef(
-    `useQuery-${schemaId}-${nodeId || 'list'}-${Math.random().toString(36).slice(2, 8)}`
-  )
+  // Query tracking for devtools. Lazily initialized with a monotonic counter
+  // so we don't build a random string on every render of every useQuery.
+  const queryIdRef = useRef<string | null>(null)
+  if (queryIdRef.current === null) {
+    queryIdRef.current = `useQuery-${schemaId}-${nodeId || 'list'}-${(nextQueryInstanceId++).toString(36)}`
+  }
   useEffect(() => {
     if (!instrumentation?.queryTracker) return
-    const queryId = queryIdRef.current
+    const queryId = queryIdRef.current!
     instrumentation.queryTracker.register(queryId, {
       type: 'useQuery',
       schemaId,
@@ -513,7 +539,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   useEffect(() => {
     if (!instrumentation?.queryTracker || loading) return
     const count = isSingleQuery ? (data ? 1 : 0) : Array.isArray(data) ? data.length : 0
-    instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0, {
+    instrumentation.queryTracker.recordUpdate(queryIdRef.current!, count, 0, {
       source,
       plan,
       materialized,
@@ -543,7 +569,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
     lastRecordedStreamEventAtRef.current = stream.lastEventAt
     const count = isSingleQuery ? (data ? 1 : 0) : Array.isArray(data) ? data.length : 0
-    instrumentation.queryTracker.recordStreamEvent(queryIdRef.current, stream, count, {
+    instrumentation.queryTracker.recordStreamEvent(queryIdRef.current!, stream, count, {
       source
     })
   }, [data, instrumentation, isSingleQuery, source, stream])
@@ -567,7 +593,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   useEffect(() => {
     if (!telemetry || loading || hasReportedTimingRef.current) return
     hasReportedTimingRef.current = true
-    const elapsed = Date.now() - queryStartRef.current
+    const elapsed = Date.now() - (queryStartRef.current ?? Date.now())
     telemetry.reportPerformance('react.useQuery', elapsed)
     // Cache hit: data immediately available (< 5ms means it was cached)
     if (elapsed < 5) {

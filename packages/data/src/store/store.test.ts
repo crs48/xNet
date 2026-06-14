@@ -3,6 +3,7 @@
  */
 
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
+import { applyNodeQueryDescriptor } from './query'
 import type {
   ApplyNodeBatchInput,
   ApplyNodeBatchResult,
@@ -177,11 +178,27 @@ function createMockStoreAuth(actorDid: DID, allowed: boolean): StoreAuthAPI {
 }
 
 class QueryCapableMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
-  readonly queryNodes = vi.fn(
-    async (_descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> => {
-      throw new Error('storage query should not run while read authorization is active')
+  readonly queryNodes = vi.fn(async (descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> => {
+    // Naive but faithful descriptor execution for tests: list the schema
+    // then apply the descriptor in JS. Authorization-scoped reads push the
+    // predicate (minus pagination) through this, then authorize + paginate.
+    const all = await this.listNodes({
+      schemaId: descriptor.schemaId,
+      includeDeleted: descriptor.includeDeleted
+    })
+    const nodes = applyNodeQueryDescriptor(all, descriptor)
+    return {
+      nodes,
+      totalCount: nodes.length,
+      plan: {
+        strategy: 'storage-query',
+        candidateNodeCount: all.length,
+        hydratedNodeCount: all.length,
+        returnedNodeCount: nodes.length,
+        durationMs: 0
+      }
     }
-  )
+  })
 }
 
 class TransactionTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
@@ -1600,7 +1617,7 @@ describe('authorization enforcement', () => {
     expect(callback).toHaveBeenCalledTimes(2)
   })
 
-  it('filters auth-sensitive reads without exposing hidden query counts', async () => {
+  it('shrinks the candidate set via storage for auth reads without exposing hidden counts', async () => {
     const keyPair = generateSigningKeyPair()
     const did = createDID(keyPair.publicKey) as DID
     const adapter = new QueryCapableMemoryNodeStorageAdapter()
@@ -1631,6 +1648,7 @@ describe('authorization enforcement', () => {
     await expect(store.get(hiddenId)).resolves.toBeNull()
     await expect(store.list({ schemaId: TEST_SCHEMA })).resolves.toMatchObject([{ id: visibleId }])
 
+    adapter.queryNodes.mockClear()
     const result = await store.query({
       schemaId: TEST_SCHEMA,
       includeDeleted: false,
@@ -1639,14 +1657,26 @@ describe('authorization enforcement', () => {
       offset: 0
     })
 
-    expect(adapter.queryNodes).not.toHaveBeenCalled()
+    // The predicate is now pushed to storage (candidate reduction), but
+    // WITHOUT pagination — rows the viewer cannot read must be removed before
+    // the window is applied.
+    expect(adapter.queryNodes).toHaveBeenCalledTimes(1)
+    const pushed = adapter.queryNodes.mock.calls[0]![0]
+    expect(pushed.where).toEqual({ status: 'open' })
+    expect(pushed.limit).toBeUndefined()
+    expect(pushed.offset).toBeUndefined()
+
+    // Authorization still removes the hidden node; only the visible row is returned.
     expect(result.nodes.map((node) => node.id)).toEqual([visibleId])
+    expect(result.totalCount).toBe(1)
+
+    // The surfaced plan must not reveal that a hidden candidate existed, nor
+    // expose any compiled SQL.
     expect(result.plan).toMatchObject({
-      strategy: 'list-fallback',
+      strategy: 'auth-pushdown-candidates',
       candidateNodeCount: 1,
       hydratedNodeCount: 1,
-      returnedNodeCount: 1,
-      postFilterReason: 'read-authorization-filtered'
+      returnedNodeCount: 1
     })
     expect(result.plan.sql).toBeUndefined()
     expect(result.plan.params).toBeUndefined()
