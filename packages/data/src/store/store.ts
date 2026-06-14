@@ -746,9 +746,7 @@ export class NodeStore {
         !descriptor.nodeId &&
         descriptor.materializedView === undefined
       ) {
-        const candidates = await this.storage.queryNodes(
-          withoutNodeQueryPagination(descriptor)
-        )
+        const candidates = await this.storage.queryNodes(withoutNodeQueryPagination(descriptor))
         const readable = await this.filterReadableNodes(candidates.nodes)
         const result = applyNodeQueryDescriptor(readable, descriptor)
         return {

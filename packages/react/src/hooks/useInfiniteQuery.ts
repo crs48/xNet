@@ -17,11 +17,7 @@
  */
 
 import type { DefinedSchema, PropertyBuilder } from '@xnetjs/data'
-import type {
-  QueryMaterializedMetadata,
-  QueryPageInfo,
-  QuerySource
-} from '@xnetjs/data-bridge'
+import type { QueryMaterializedMetadata, QueryPageInfo, QuerySource } from '@xnetjs/data-bridge'
 import { createQueryDescriptor, serializeQueryDescriptor } from '@xnetjs/data-bridge'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -151,8 +147,7 @@ export function useInfiniteQuery<P extends Record<string, PropertyBuilder>>(
   if (!current.loading) {
     lastDataRef.current = current.data
   }
-  const data =
-    current.loading && current.data.length === 0 ? lastDataRef.current : current.data
+  const data = current.loading && current.data.length === 0 ? lastDataRef.current : current.data
 
   const atCeiling = maxLoaded !== undefined && loadedCount >= maxLoaded
   // "Can grow" is derived from the visible result, not from the bridge's

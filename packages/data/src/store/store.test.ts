@@ -178,29 +178,27 @@ function createMockStoreAuth(actorDid: DID, allowed: boolean): StoreAuthAPI {
 }
 
 class QueryCapableMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {
-  readonly queryNodes = vi.fn(
-    async (descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> => {
-      // Naive but faithful descriptor execution for tests: list the schema
-      // then apply the descriptor in JS. Authorization-scoped reads push the
-      // predicate (minus pagination) through this, then authorize + paginate.
-      const all = await this.listNodes({
-        schemaId: descriptor.schemaId,
-        includeDeleted: descriptor.includeDeleted
-      })
-      const nodes = applyNodeQueryDescriptor(all, descriptor)
-      return {
-        nodes,
-        totalCount: nodes.length,
-        plan: {
-          strategy: 'storage-query',
-          candidateNodeCount: all.length,
-          hydratedNodeCount: all.length,
-          returnedNodeCount: nodes.length,
-          durationMs: 0
-        }
+  readonly queryNodes = vi.fn(async (descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> => {
+    // Naive but faithful descriptor execution for tests: list the schema
+    // then apply the descriptor in JS. Authorization-scoped reads push the
+    // predicate (minus pagination) through this, then authorize + paginate.
+    const all = await this.listNodes({
+      schemaId: descriptor.schemaId,
+      includeDeleted: descriptor.includeDeleted
+    })
+    const nodes = applyNodeQueryDescriptor(all, descriptor)
+    return {
+      nodes,
+      totalCount: nodes.length,
+      plan: {
+        strategy: 'storage-query',
+        candidateNodeCount: all.length,
+        hydratedNodeCount: all.length,
+        returnedNodeCount: nodes.length,
+        durationMs: 0
       }
     }
-  )
+  })
 }
 
 class TransactionTrackingMemoryNodeStorageAdapter extends MemoryNodeStorageAdapter {

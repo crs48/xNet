@@ -140,9 +140,7 @@ export function SyncTray() {
       </div>
       <div>
         runtime:{' '}
-        <span className="text-ink-1">
-          {isWorkerRuntimeEnabled() ? 'worker' : 'main-thread'}
-        </span>
+        <span className="text-ink-1">{isWorkerRuntimeEnabled() ? 'worker' : 'main-thread'}</span>
       </div>
       <div>
         background jobs:{' '}

@@ -234,7 +234,6 @@ interface StorageContext {
   dataWorkerStoragePort?: MessagePort
 }
 
-
 /**
  * With the worker runtime enabled, hand the data worker its own port into
  * the SQLite worker so storage calls skip the main thread.
