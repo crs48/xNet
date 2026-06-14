@@ -8,6 +8,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, checkbox, select, date, person, relation } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const TaskSchema = defineSchema({
   name: 'Task',
@@ -74,6 +75,9 @@ export const TaskSchema = defineSchema({
     /** Project this task belongs to */
     project: relation({ target: 'xnet://xnet.fyi/Project@1.0.0' as const }),
 
+    /** Milestone within the project this task targets (one per task) */
+    milestone: relation({ target: 'xnet://xnet.fyi/Milestone@1.0.0' as const }),
+
     /** Page that currently hosts this task */
     page: relation({ target: 'xnet://xnet.fyi/Page@1.0.0' as const }),
 
@@ -122,7 +126,9 @@ export const TaskSchema = defineSchema({
       default: 'inherit'
     })
   },
-  document: 'yjs' // Collaborative Y.Doc for description
+  document: 'yjs', // Collaborative Y.Doc for description
+  // Inherits access from its home Space (exploration 0181).
+  authorization: spaceCascadeAuthorization()
 })
 
 /**

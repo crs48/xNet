@@ -112,15 +112,12 @@ importers:
       '@hono/node-server':
         specifier: ^1.0.0
         version: 1.19.9(hono@4.11.7)
-      '@xnetjs/cloud-identity':
+      '@xnetjs/cloud':
         specifier: workspace:*
-        version: link:../../packages/cloud-identity
-      '@xnetjs/cloud-plans':
+        version: link:../../packages/cloud
+      '@xnetjs/entitlements':
         specifier: workspace:*
-        version: link:../../packages/cloud-plans
-      '@xnetjs/cloud-provisioner':
-        specifier: workspace:*
-        version: link:../../packages/cloud-provisioner
+        version: link:../../packages/entitlements
       hono:
         specifier: ^4.0.0
         version: 4.11.7
@@ -639,27 +636,20 @@ importers:
         specifier: ^4.0.0
         version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
 
-  packages/cloud-ai:
+  packages/cloud:
     dependencies:
-      '@xnetjs/cloud-billing':
+      '@aws-sdk/client-s3':
+        specifier: ^3.0.0
+        version: 3.1068.0
+      '@xnetjs/core':
         specifier: workspace:*
-        version: link:../cloud-billing
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.30
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
-      typescript:
-        specifier: ^5.4.0
-        version: 5.9.3
-      vitest:
-        specifier: ^4.0.0
-        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
-
-  packages/cloud-billing:
-    dependencies:
+        version: link:../core
+      '@xnetjs/entitlements':
+        specifier: workspace:*
+        version: link:../entitlements
+      '@xnetjs/storage':
+        specifier: workspace:*
+        version: link:../storage
       stripe:
         specifier: ^17.0.0
         version: 17.7.0
@@ -667,21 +657,9 @@ importers:
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.30
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
-      typescript:
-        specifier: ^5.4.0
-        version: 5.9.3
-      vitest:
+      aws-sdk-client-mock:
         specifier: ^4.0.0
-        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
-
-  packages/cloud-identity:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.30
+        version: 4.1.0
       msw:
         specifier: ^2.0.0
         version: 2.10.4(@types/node@20.19.30)(typescript@5.9.3)
@@ -694,83 +672,6 @@ importers:
       vitest:
         specifier: ^4.0.0
         version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.10.4(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
-
-  packages/cloud-litestream:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.30
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
-      typescript:
-        specifier: ^5.4.0
-        version: 5.9.3
-      vitest:
-        specifier: ^4.0.0
-        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
-
-  packages/cloud-plans:
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.30
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
-      typescript:
-        specifier: ^5.4.0
-        version: 5.9.3
-      vitest:
-        specifier: ^4.0.0
-        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
-
-  packages/cloud-provisioner:
-    dependencies:
-      '@xnetjs/cloud-plans':
-        specifier: workspace:*
-        version: link:../cloud-plans
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.30
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
-      typescript:
-        specifier: ^5.4.0
-        version: 5.9.3
-      vitest:
-        specifier: ^4.0.0
-        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
-
-  packages/cloud-storage:
-    dependencies:
-      '@aws-sdk/client-s3':
-        specifier: ^3.0.0
-        version: 3.1068.0
-      '@xnetjs/core':
-        specifier: workspace:*
-        version: link:../core
-      '@xnetjs/storage':
-        specifier: workspace:*
-        version: link:../storage
-    devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.30
-      aws-sdk-client-mock:
-        specifier: ^4.0.0
-        version: 4.1.0
-      tsup:
-        specifier: ^8.0.0
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
-      typescript:
-        specifier: ^5.4.0
-        version: 5.9.3
-      vitest:
-        specifier: ^4.0.0
-        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/comms:
     dependencies:
@@ -1137,6 +1038,21 @@ importers:
         specifier: ^4.0.0
         version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
 
+  packages/entitlements:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
+
   packages/formula:
     devDependencies:
       tsup:
@@ -1185,9 +1101,6 @@ importers:
       '@xnetjs/abuse':
         specifier: workspace:*
         version: link:../abuse
-      '@xnetjs/cloud-plans':
-        specifier: workspace:*
-        version: link:../cloud-plans
       '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
@@ -1197,6 +1110,9 @@ importers:
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/entitlements':
+        specifier: workspace:*
+        version: link:../entitlements
       '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity

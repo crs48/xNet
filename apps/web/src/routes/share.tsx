@@ -27,7 +27,7 @@ const BASE_PATH = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
 const USE_HASH_ROUTER = import.meta.env.VITE_USE_HASH_ROUTER === 'true'
 const SHARE_HANDLE_RE = /^sh_[A-Za-z0-9_-]{16,}$/
 
-type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view'
+type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space'
 
 type SharePayloadV2 = {
   v: 2
@@ -313,7 +313,8 @@ function getWebFallbackPath(docType: ShareDocType, resource: string, shareSessio
     database: `/db/${encodeURIComponent(resource)}`,
     canvas: `/canvas/${encodeURIComponent(resource)}`,
     dashboard: `/dashboard/${encodeURIComponent(resource)}`,
-    view: `/view/${encodeURIComponent(resource)}`
+    view: `/view/${encodeURIComponent(resource)}`,
+    space: `/space/${encodeURIComponent(resource)}`
   }
 
   return `${routePrefix}${docPath[docType]}?${query}`

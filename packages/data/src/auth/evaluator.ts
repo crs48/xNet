@@ -28,6 +28,13 @@ export interface NodeStoreReader {
   subscribe(listener: (event: NodeChangeEvent) => void): () => void
 }
 
+/**
+ * How far the membership resolver walks a container's `parent` chain when
+ * cascading inherited access. Bounds the ancestor scan independently of the
+ * relation-hop `maxDepth`, and prevents runaway walks on malformed data.
+ */
+const MAX_CONTAINER_DEPTH = 32
+
 export interface DecisionCacheOptions {
   ttlMs?: number
   maxSize?: number
@@ -207,6 +214,20 @@ export class DefaultRoleResolver {
 
         return [...members]
       }
+      case 'membership': {
+        const containerIds = await this.collectContainerIds(node, resolver.parentProp)
+        const edges = await this.store.list({ schemaId: resolver.edgeSchema })
+        const members = new Set<DID>()
+        for (const edge of edges) {
+          if (edge.deleted) continue
+          if (!this.membershipMatchesContainer(edge, resolver, containerIds)) continue
+          if (!membershipRoleAtLeast(edge.properties[resolver.roleProp], resolver)) continue
+          for (const did of readDidProperty(edge.properties[resolver.memberProp])) {
+            members.add(did)
+          }
+        }
+        return [...members]
+      }
     }
   }
 
@@ -254,7 +275,60 @@ export class DefaultRoleResolver {
 
         return false
       }
+      case 'membership': {
+        // `node` is the container (e.g. a Space). The subject holds the role
+        // when a membership edge with rank >= minRole references this container
+        // OR any of its ancestors — the downward access cascade.
+        const containerIds = await this.collectContainerIds(node, resolver.parentProp)
+        const edges = await this.store.list({ schemaId: resolver.edgeSchema })
+        for (const edge of edges) {
+          if (edge.deleted) continue
+          if (!this.membershipMatchesContainer(edge, resolver, containerIds)) continue
+          if (!readDidProperty(edge.properties[resolver.memberProp]).includes(did)) continue
+          if (membershipRoleAtLeast(edge.properties[resolver.roleProp], resolver)) {
+            return true
+          }
+        }
+        return false
+      }
     }
+  }
+
+  private membershipMatchesContainer(
+    edge: NodeState,
+    resolver: Extract<RoleResolver, { _tag: 'membership' }>,
+    containerIds: Set<string>
+  ): boolean {
+    const value = edge.properties[resolver.containerProp]
+    return typeof value === 'string' && containerIds.has(value)
+  }
+
+  /**
+   * The node's own id plus the ids of every ancestor reachable by walking
+   * `parentProp`. Cycle- and depth-bounded. When `parentProp` is undefined the
+   * set is just the node itself (no inheritance).
+   */
+  private async collectContainerIds(
+    node: NodeState,
+    parentProp: string | undefined
+  ): Promise<Set<string>> {
+    const ids = new Set<string>([node.id])
+    if (!parentProp) {
+      return ids
+    }
+
+    let current: NodeState | null = node
+    let depth = 0
+    while (current && depth < MAX_CONTAINER_DEPTH) {
+      const parentId = current.properties[parentProp]
+      if (typeof parentId !== 'string' || ids.has(parentId)) {
+        break
+      }
+      ids.add(parentId)
+      current = await this.store.get(parentId)
+      depth += 1
+    }
+    return ids
   }
 
   private async loadRelatedNodes(node: NodeState, relationName: string): Promise<NodeState[]> {
@@ -739,6 +813,22 @@ function readDidProperty(value: unknown): DID[] {
   }
 
   return []
+}
+
+/**
+ * Whether an edge's role rank meets the resolver's `minRole` per its
+ * `roleOrder` ladder (least → most privileged). Unknown roles never qualify.
+ */
+function membershipRoleAtLeast(
+  edgeRole: unknown,
+  resolver: Extract<RoleResolver, { _tag: 'membership' }>
+): boolean {
+  if (typeof edgeRole !== 'string') {
+    return false
+  }
+  const have = resolver.roleOrder.indexOf(edgeRole)
+  const need = resolver.roleOrder.indexOf(resolver.minRole)
+  return have >= 0 && need >= 0 && have >= need
 }
 
 function isDid(value: unknown): value is DID {

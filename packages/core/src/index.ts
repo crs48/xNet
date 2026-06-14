@@ -106,6 +106,7 @@ export type {
   CreatorRoleResolver,
   PropertyRoleResolver,
   RelationRoleResolver,
+  MembershipRoleResolver,
   AuthCheckInput,
   PolicyEvaluator
 } from './auth-types'

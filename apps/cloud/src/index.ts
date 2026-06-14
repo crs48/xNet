@@ -14,8 +14,8 @@ import {
   WorkOSAuthKitProvider,
   type BillingIdentityProvider,
   type DidChallengeVerifier
-} from '@xnetjs/cloud-identity'
-import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud-provisioner'
+} from '@xnetjs/cloud/identity'
+import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud/provisioner'
 import { ControlPlane } from './control-plane'
 import { MemoryTenantStore } from './registry'
 import { createControlPlaneApp } from './server'

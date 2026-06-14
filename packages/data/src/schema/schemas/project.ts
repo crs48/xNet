@@ -1,15 +1,17 @@
 /**
  * ProjectSchema - Lightweight grouping for tasks (Linear-style project).
  *
- * Deliberately thin: name/icon/status/lead plus a collaborative document
- * body for the project brief. Cycles, milestones, and estimates are
- * intentionally out of scope until the task primitive is everywhere
- * (exploration 0161).
+ * A Project is a *work-grouping*, not a security boundary: it has no members of
+ * its own and inherits access from its home [[SpaceSchema|Space]] via the
+ * `space` relation (exploration 0181). Deliberately thin: name/icon/status/lead
+ * plus a collaborative brief. Milestones are now a sibling work-grouping
+ * ([[MilestoneSchema]]); estimates/cycles remain out of scope (exploration 0161).
  */
 
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, select, person, date, relation } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const ProjectSchema = defineSchema({
   name: 'Project',
@@ -62,7 +64,9 @@ export const ProjectSchema = defineSchema({
       default: 'inherit'
     })
   },
-  document: 'yjs' // Collaborative project brief
+  document: 'yjs', // Collaborative project brief
+  // Inherits access from its home Space (exploration 0181).
+  authorization: spaceCascadeAuthorization()
 })
 
 /**

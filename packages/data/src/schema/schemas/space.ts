@@ -27,16 +27,21 @@ import {
   type FolderLike,
   type FolderTreeNode
 } from './folder'
+import { spaceOwnAuthorization } from './space-authorization'
 
 export const SPACE_SCHEMA_IRI = 'xnet://xnet.fyi/Space@1.0.0'
 
-/** Space flavors. They differ only in presets, never in structure. */
+/**
+ * Space flavors. They differ only in presets, never in structure. These are the
+ * genuine *people-containers*; `project` is intentionally NOT a kind — a Project
+ * is a work-grouping ([[ProjectSchema]]) that lives inside a Space, not a
+ * security boundary of its own (exploration 0181).
+ */
 export const SPACE_KINDS = [
   'personal',
   'workspace',
   'organization',
   'team',
-  'project',
   'community',
   'family'
 ] as const
@@ -68,7 +73,6 @@ export const SpaceSchema = defineSchema({
         { id: 'workspace', name: 'Workspace', color: 'blue' },
         { id: 'organization', name: 'Organization', color: 'purple' },
         { id: 'team', name: 'Team', color: 'green' },
-        { id: 'project', name: 'Project', color: 'orange' },
         { id: 'community', name: 'Community', color: 'pink' },
         { id: 'family', name: 'Family', color: 'red' }
       ] as const,
@@ -111,7 +115,10 @@ export const SpaceSchema = defineSchema({
     createdAt: created(),
     createdBy: createdBy()
   },
-  document: undefined
+  document: undefined,
+  // Members resolve from SpaceMembership edges and cascade down the `parent`
+  // chain (exploration 0181). Content inherits these via `role.relation`.
+  authorization: spaceOwnAuthorization()
 })
 
 export type Space = InferNode<(typeof SpaceSchema)['_properties']>

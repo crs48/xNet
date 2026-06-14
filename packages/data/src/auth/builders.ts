@@ -37,7 +37,8 @@ import type {
   AuthExpression,
   CreatorRoleResolver,
   PropertyRoleResolver,
-  RelationRoleResolver
+  RelationRoleResolver,
+  MembershipRoleResolver
 } from '@xnetjs/core'
 
 // ─── Expression Builders ──────────────────────────────────────────────────────
@@ -168,6 +169,45 @@ export const role = {
    */
   relation(relationName: string, targetRole: string): RelationRoleResolver {
     return { _tag: 'relation', relationName, targetRole }
+  },
+
+  /**
+   * Role determined by membership edges that reference THIS node.
+   *
+   * Unlike `relation` (which follows a forward relation) this is a reverse-edge
+   * lookup: the subject holds the role when a `config.edgeSchema` edge points at
+   * this node (or, when `parentProp` is set, any ancestor) with the subject as
+   * `memberProp` and a `roleProp` rank `>= minRole`. This is how Space
+   * membership cascades down a nested container tree.
+   *
+   * @example
+   * ```typescript
+   * spaceMember: role.members({
+   *   edgeSchema: SPACE_MEMBERSHIP_SCHEMA_IRI, containerProp: 'space',
+   *   memberProp: 'member', roleProp: 'role', minRole: 'member',
+   *   roleOrder: SPACE_ROLES, parentProp: 'parent'
+   * })
+   * ```
+   */
+  members(config: {
+    edgeSchema: string
+    containerProp: string
+    memberProp: string
+    roleProp: string
+    minRole: string
+    roleOrder: readonly string[]
+    parentProp?: string
+  }): MembershipRoleResolver {
+    return {
+      _tag: 'membership',
+      edgeSchema: config.edgeSchema,
+      containerProp: config.containerProp,
+      memberProp: config.memberProp,
+      roleProp: config.roleProp,
+      minRole: config.minRole,
+      roleOrder: config.roleOrder,
+      parentProp: config.parentProp
+    }
   }
 }
 

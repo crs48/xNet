@@ -43,5 +43,8 @@ export function navigateToNode(navigate: Navigate, nodeType: TabNodeType, nodeId
     case 'lab':
       void navigate({ to: '/lab/$labId' as never, params: { labId: nodeId } as never })
       break
+    case 'space':
+      void navigate({ to: '/space/$spaceId' as never, params: { spaceId: nodeId } as never })
+      break
   }
 }

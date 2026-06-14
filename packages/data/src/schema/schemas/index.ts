@@ -51,6 +51,8 @@ export {
   type TaskShortIdBlock
 } from './task-identifiers'
 export { ProjectSchema, type Project } from './project'
+export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './milestone'
+export { spaceOwnAuthorization, spaceCascadeAuthorization } from './space-authorization'
 export {
   SPACE_SCHEMA_IRI,
   SPACE_KINDS,
@@ -261,6 +263,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/TaskView@1.0.0': () => import('./task-view').then((m) => m.TaskViewSchema),
   'xnet://xnet.fyi/Project@1.0.0': () => import('./project').then((m) => m.ProjectSchema),
+  'xnet://xnet.fyi/Milestone@1.0.0': () => import('./milestone').then((m) => m.MilestoneSchema),
   'xnet://xnet.fyi/Space@1.0.0': () => import('./space').then((m) => m.SpaceSchema),
   'xnet://xnet.fyi/SpaceMembership@1.0.0': () =>
     import('./space-membership').then((m) => m.SpaceMembershipSchema),
@@ -321,6 +324,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/TaskView': () => import('./task-view').then((m) => m.TaskViewSchema),
   'xnet://xnet.fyi/Project': () => import('./project').then((m) => m.ProjectSchema),
+  'xnet://xnet.fyi/Milestone': () => import('./milestone').then((m) => m.MilestoneSchema),
   'xnet://xnet.fyi/Space': () => import('./space').then((m) => m.SpaceSchema),
   'xnet://xnet.fyi/SpaceMembership': () =>
     import('./space-membership').then((m) => m.SpaceMembershipSchema),

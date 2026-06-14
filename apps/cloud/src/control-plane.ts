@@ -2,30 +2,30 @@
  * xNet Cloud — control plane orchestration.
  *
  * Composes the four shipped primitives into the managed-fleet lifecycle:
- *   - `@xnetjs/cloud-plans`        — resolve + sign per-tenant entitlements
- *   - `@xnetjs/cloud-identity`     — bind the billing identity to the data DID
- *   - `@xnetjs/cloud-provisioner`  — create / flip / migrate the hub
+ *   - `@xnetjs/entitlements`        — resolve + sign per-tenant entitlements
+ *   - `@xnetjs/cloud/identity`     — bind the billing identity to the data DID
+ *   - `@xnetjs/cloud/provisioner`  — create / flip / migrate the hub
  *   - tenant registry              — remember what we provisioned
  *
  * This is the seam a Stripe `checkout.completed` webhook drives (provision) and a
  * Customer-Portal plan change drives (changePlan), per explorations 0174/0175.
  */
 
-import type { Provisioner } from '@xnetjs/cloud-provisioner'
+import type { Provisioner } from '@xnetjs/cloud/provisioner'
 import {
   bindIdentities,
   recoverPaidAccount,
   type BindingStore,
   type DidChallenge,
   type DidChallengeVerifier
-} from '@xnetjs/cloud-identity'
+} from '@xnetjs/cloud/identity'
 import {
   requiresMigration,
   resolveEntitlements,
   signEntitlements,
   type PlanEntitlements,
   type PlanId
-} from '@xnetjs/cloud-plans'
+} from '@xnetjs/entitlements'
 import { type TenantRecord, type TenantStore } from './registry'
 
 export interface ControlPlaneDeps {

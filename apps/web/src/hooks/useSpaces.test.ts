@@ -33,9 +33,9 @@ describe('toSpaceEntry', () => {
 describe('activeSpaces', () => {
   it('drops archived and unnamed spaces', () => {
     const spaces: SpaceEntry[] = [
-      { id: 's1', name: 'Eng', kind: 'team', visibility: 'private' },
-      { id: 's2', name: 'Old', kind: 'team', visibility: 'private', archived: true },
-      { id: 's3', name: '', kind: 'team', visibility: 'private' }
+      { id: 's1', name: 'Eng', kind: 'team', visibility: 'private', owners: [] },
+      { id: 's2', name: 'Old', kind: 'team', visibility: 'private', archived: true, owners: [] },
+      { id: 's3', name: '', kind: 'team', visibility: 'private', owners: [] }
     ]
     expect(activeSpaces(spaces).map((s) => s.id)).toEqual(['s1'])
   })
