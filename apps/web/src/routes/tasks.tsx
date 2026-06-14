@@ -6,7 +6,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { TasksView } from '../components/TasksView'
 
-export interface TasksSearch {
+interface TasksSearch {
   task?: string
   project?: string
 }

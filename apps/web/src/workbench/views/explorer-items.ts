@@ -4,8 +4,9 @@
  * cycle (rows → context → items, rows → items).
  */
 import { CanvasSchema, DashboardSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
+import { LabSchema } from '@xnetjs/labs'
 
-export type ExplorerNodeType = 'page' | 'database' | 'canvas' | 'dashboard'
+export type ExplorerNodeType = 'page' | 'database' | 'canvas' | 'dashboard' | 'lab'
 
 export interface ExplorerItem {
   id: string
@@ -21,14 +22,16 @@ export const EXPLORER_SCHEMAS = {
   page: PageSchema,
   database: DatabaseSchema,
   canvas: CanvasSchema,
-  dashboard: DashboardSchema
+  dashboard: DashboardSchema,
+  lab: LabSchema
 } as const
 
 export const SCHEMA_IDS: Record<ExplorerNodeType, string> = {
   page: PageSchema._schemaId,
   database: DatabaseSchema._schemaId,
   canvas: CanvasSchema._schemaId,
-  dashboard: DashboardSchema._schemaId
+  dashboard: DashboardSchema._schemaId,
+  lab: LabSchema._schemaId
 }
 
 export function isExplorerNodeType(value: string): value is ExplorerNodeType {

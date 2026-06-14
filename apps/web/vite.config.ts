@@ -71,9 +71,12 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,wasm}'],
+        // WASM is excluded from precache: the Lab runtimes (@swc/wasm-web ~15MB,
+        // quickjs-emscripten ~6.6MB) are lazy, on-demand assets — precaching tens
+        // of MB at install is wrong; they are fetched the first time a Lab runs.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Increase limit for large bundles (elk.js, canvas, database tooling, etc.)
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6 MB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com/,

@@ -37,6 +37,7 @@ const workspaceAliases = {
   '@xnetjs/history': new URL('./packages/history/src/index.ts', import.meta.url).pathname,
   '@xnetjs/hub': new URL('./packages/hub/src/index.ts', import.meta.url).pathname,
   '@xnetjs/identity': new URL('./packages/identity/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/labs': new URL('./packages/labs/src/index.ts', import.meta.url).pathname,
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins/node': new URL('./packages/plugins/src/services/node.ts', import.meta.url)
     .pathname,
@@ -168,6 +169,18 @@ export default defineConfig({
           pool: 'forks',
           isolate: true,
           include: ['packages/data-bridge/src/**/*.test.ts']
+        }
+      },
+      {
+        // Labs package (0180) — SES lockdown() freezes realm intrinsics and
+        // QuickJS loads a WASM module, so each file must be process-isolated.
+        extends: true,
+        test: {
+          name: 'labs',
+          environment: 'node',
+          pool: 'forks',
+          isolate: true,
+          include: ['packages/labs/src/**/*.test.ts']
         }
       }
     ]

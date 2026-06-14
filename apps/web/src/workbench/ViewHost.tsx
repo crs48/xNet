@@ -14,6 +14,7 @@ import { CanvasView } from '../components/CanvasView'
 import { DashboardView } from '../components/DashboardView'
 import { DatabaseView } from '../components/DatabaseView'
 import { DataWorkspaceView } from '../components/DataWorkspaceView'
+import { LabView } from '../components/LabView'
 import { PageView } from '../components/PageView'
 import { PersonView } from '../components/PersonView'
 import { SpaceHomeView } from '../components/SpaceHomeView'
@@ -35,6 +36,7 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   channel: ({ nodeId }) => <ChannelView channelId={nodeId} />,
   tag: ({ nodeId }) => <TagView tagId={nodeId} />,
   person: ({ nodeId }) => <PersonView did={nodeId} />,
+  lab: ({ nodeId }) => <LabView labId={nodeId} />,
   space: ({ nodeId }) => <SpaceHomeView spaceId={nodeId} />
 }
 
