@@ -3,7 +3,7 @@
  *
  * The control plane (`apps/cloud`) drives a `Provisioner` to create, upgrade,
  * sleep, and destroy one isolated hub per tenant. Adapters implement this against
- * different substrates (Cloud Run + Turso, Fargate + Litestream, …) so the product
+ * different substrates (Cloud Run + Litestream→R2, Fargate, in-memory) so the product
  * is never hostage to one vendor's Terms of Service (Railway/Fly prohibit reselling
  * compute — see exploration 0175).
  */
@@ -52,7 +52,7 @@ export type HubState = 'provisioning' | 'running' | 'sleeping' | 'destroyed'
  * control plane is written once against this interface.
  */
 export interface Provisioner {
-  /** Human/telemetry label for the substrate (e.g. `cloud-run-turso`). */
+  /** Human/telemetry label for the substrate (e.g. `cloud-run-litestream`). */
   readonly substrate: string
 
   /** Create + boot an isolated hub for a tenant. */

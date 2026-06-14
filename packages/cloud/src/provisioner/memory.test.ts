@@ -1,6 +1,6 @@
 import { resolveEntitlements } from '@xnetjs/entitlements'
 import { describe, expect, it } from 'vitest'
-import { CloudRunTursoProvisioner } from './adapters/cloud-run-turso'
+import { CloudRunLitestreamProvisioner } from './adapters/cloud-run-litestream'
 import { MemoryProvisioner } from './memory'
 import { NotImplementedError, UnknownTenantError, type ProvisionSpec } from './types'
 
@@ -71,14 +71,13 @@ describe('MemoryProvisioner lifecycle', () => {
 
 describe('cloud adapter skeletons', () => {
   it('expose the Provisioner shape but are not implemented yet', async () => {
-    const p = new CloudRunTursoProvisioner({
+    const p = new CloudRunLitestreamProvisioner({
       projectPrefix: 'xnet-hub',
       region: 'us-central1',
       imageRepository: 'us-docker.pkg.dev/xnet/hub',
-      tursoGroup: 'xnet',
       r2Bucket: 'xnet-blobs'
     })
-    expect(p.substrate).toBe('cloud-run-turso')
+    expect(p.substrate).toBe('cloud-run-litestream')
     await expect(p.provision(spec('z'))).rejects.toThrow(NotImplementedError)
   })
 })
