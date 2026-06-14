@@ -856,78 +856,90 @@ registerPanelView('left', { id: 'today', title: 'Today', component: TodayCheckin
 
 ## Implementation Checklist
 
+> Status legend: `[x]` shipped + verified by typecheck/tests, `[ ]` deferred
+> (with a note). Shipped in PR for 0180; the full `xnet-web` + `@xnetjs/dashboard`
+> typecheck is green and 54 logic + ~12 app/dashboard tests cover the core.
+
 ### Phase 0 — Data model & dates
-- [ ] Add a shared `canonicalDay()` UTC-midnight helper and reconcile with the
-      0172 date module; unit-test DST/timezone boundaries.
-- [ ] Define `MetricSchema`, `ObservationSchema`, `ExperimentSchema`
+- [x] Add a shared `canonicalDay()` UTC-midnight helper (in
+      [`@xnetjs/experiments`](../../packages/experiments/src/day.ts)); DST/timezone
+      boundaries unit-tested.
+- [x] Define `MetricSchema`, `ObservationSchema`, `ExperimentSchema`
       ([schemas/](../../packages/data/src/schema/schemas)); `Experiment` carries
       `document: 'yjs'`.
-- [ ] Register all three (versioned + legacy IRIs) in
-      [`builtInSchemas`](../../packages/data/src/schema/schemas/index.ts:247).
-- [ ] Wire FTS indexing for `Metric.name` / `Experiment.title` / `Observation.note`.
-- [ ] Default `visibility: private`; verify Space scoping + encryption posture.
+- [x] Register all three (versioned + legacy IRIs) in
+      [`builtInSchemas`](../../packages/data/src/schema/schemas/index.ts).
+- [x] Default `visibility: private` on all three (asserted in the schema test).
+- [ ] FTS: `Experiment.title` indexes via the default `title` field; `Metric.name`
+      / `Observation.note` need an explicit searchable-field config (follow-up).
+- [ ] Verify Space-cascade authorization + encryption posture end-to-end.
 
 ### Phase 1 — Capture (the habit half)
-- [ ] Metric/Habit definition UI (kind, schedule, target, cue, polarity, color).
-- [ ] `TodayCheckinPanel` left-panel view with one-tap `Observation` writes via
-      `useMutate`; register via `registerPanelView('left', …)`.
-- [ ] `packages/experiments` package: `computeStreak`, completion-rate, EWMA
-      habit-strength.
-- [ ] Streak chips + mini heatmap in the panel.
+- [x] `TodayPanel` left-panel view with one-tap `Observation` writes via
+      `useHabits`/`useMutate`; registered via `registerPanelView('left', …)`.
+- [x] `@xnetjs/experiments`: `computeStreak`, `longestStreak`, `completionRate`,
+      EWMA `habitStrength` (unit-tested).
+- [x] Streak chips + strength bars in the panel; quick-add to create a habit.
+- [ ] Full Metric/Habit definition editor (kind, schedule, target, cue, polarity,
+      color) — quick-add currently mints a daily boolean habit (follow-up).
 
 ### Phase 2 — Experiments (the journal half)
-- [ ] `/experiments` route + `TabNodeType` + `TAB_VIEWS` + `HOSTED_VIEWS` entries.
-- [ ] `ExperimentsView` list/board (reuse views registry) keyed on `status`.
-- [ ] Experiment detail = TipTap protocol/journal doc + linked metrics + phase
-      editor (json `phases`); status workflow incl. `washout`/`analysis`.
-- [ ] Explicit null + alternative hypothesis fields; stamp `Observation.phase`
-      from the active phase at entry time.
-- [ ] Confound logging on observations.
-- [ ] Optional: "turn phase into a Task" projection.
+- [x] `/experiments` route + `TabNodeType` + `TAB_VIEWS` + `HOSTED_VIEWS` + Rail.
+- [x] `ExperimentsView` master/detail list grouped by `status`.
+- [x] Experiment detail = collaborative Yjs journal (app `Editor`) + primary-metric
+      picker + phase editor (json `phases`) + heatmap; status workflow incl.
+      `washout`/`analysis`.
+- [x] Explicit null + alternative hypothesis fields.
+- [ ] Stamp `Observation.phase` from the active phase at entry time — analysis
+      currently derives phase from the experiment's date ranges (more robust for
+      retro-analysis), so the denormalized field is unused for now (follow-up).
+- [ ] Confound-logging UI on observations (`confounds` is read by the verdict
+      engine; entry UI is a follow-up).
+- [ ] Optional "turn phase into a Task" projection.
 
 ### Phase 3 — Analysis & rigor (the differentiator)
-- [ ] `packages/experiments` verdict engine: descriptive stats, Cohen's d, %
-      change, Tau-U (validated vs. `singlecaseresearch.org`), Normal-Normal /
-      Beta-Binomial posterior.
-- [ ] Pitfall caveat checks (too-short, unbalanced, confounds, regression-to-mean,
+- [x] `@xnetjs/experiments` verdict engine: descriptive stats, Cohen's d, %
+      change, Tau-U (trend-corrected), flat-prior credible interval, Beta-Binomial
+      posterior — validated by hand-computed unit tests.
+- [x] Pitfall caveat checks (too-short, unbalanced, confounds, regression-to-mean,
       multiplicity, unblinded self-report).
-- [ ] Verdict panel UI framed against the null; never "proven."
-- [ ] Dashboard widgets: streak-heatmap, phase-comparison, correlation-matrix;
-      register alongside metric/chart widgets
-      ([widgets/](../../packages/dashboard/src/widgets)).
-- [ ] Reuse the existing chart widget for day/week trend lines.
+- [x] `VerdictPanel` framed against the null; never prints "proven."
+- [x] Dashboard widgets: streak-heatmap + correlation insights registered as
+      first-party ([widgets/](../../packages/dashboard/src/widgets)); shared
+      `HabitHeatmap` in `@xnetjs/dashboard`.
+- [ ] Phase-comparison as a standalone widget — currently lives in the experiment
+      detail's `VerdictPanel` (its natural home); a dedicated widget is a follow-up.
+- [ ] Dedicated day/week trend-line widget instance over `Observation` (the generic
+      chart widget already works against the registered schema).
 
 ### Phase 4 — Glue & long tail
-- [ ] `/metric` and `/experiment` slash commands + inline embeds in Pages
-      ([editor/extensions](../../packages/editor/src/extensions)).
-- [ ] Seed database templates ("Experiment Log", "Habit Tracker", "Mood
-      Journal") for the customization long tail.
-- [ ] Mood quick-entry (1–5 scale metric + activity tags, Daylio-style).
-- [ ] Rail icon for Experiments; "Today" surfaced prominently.
-- [ ] Docs/site update (per the 0170 sidebar single-sourcing invariant).
+- [x] Rail icon for Experiments; `Today` panel + Rail icon surfaced.
+- [x] `Metric`/`Observation`/`Experiment` added to the dashboard schema registry.
+- [ ] `/metric` and `/experiment` slash commands + inline page embeds (follow-up).
+- [ ] Seed database templates ("Experiment Log", "Habit Tracker", "Mood Journal").
+- [ ] Mood quick-entry UI (`useHabits.logValue` supports it; no scale-input UI yet).
+- [ ] Docs/site page (per the 0170 sidebar single-sourcing invariant).
 
 ## Validation Checklist
 
-- [ ] Logging today's habit in the Today panel increments the streak and fills
-      the correct heatmap cell across a DST boundary (no off-by-one).
-- [ ] An `Observation` created in one surface reactively updates the streak,
-      heatmap, trend, and verdict in every other open surface (`useQuery`
-      invalidation).
-- [ ] A canned ABAB dataset produces the same Cohen's d / Tau-U as a reference
-      computation; the Bayesian posterior matches a known closed-form case.
-- [ ] A 4-day intervention phase triggers the `phaseTooShort` caveat and the
-      verdict refuses a confident claim.
-- [ ] An experiment started after an extreme baseline reading shows the
-      `regressionToMean` caveat.
-- [ ] Examining many secondary metrics surfaces the `multipleComparisons` caveat.
-- [ ] Correlation matrix labels every cell "correlation, not causation" and
-      hides |r| below threshold.
-- [ ] 20 metrics × 3 years (~22k observations) keeps Today-panel and dashboard
-      queries within interactive latency on the materialized-view path.
-- [ ] `Experiment`/`Metric`/`Observation` default to private and never appear on
-      public/feed surfaces.
-- [ ] Verdict copy contains no instance of "proven" / "proves"; always frames
-      against the stated null hypothesis.
+- [x] Canonical-day math is DST-safe (UTC arithmetic); covered by `day.test.ts`
+      and `habit-logic.test.ts` (specific-day scheduling, streak across days).
+- [x] A canned upward/ABAB-style dataset yields the expected Cohen's d / Tau-U /
+      polarity-aware verdict; Beta-Binomial posterior matches the closed form
+      (`stats.test.ts`, `verdict.test.ts`).
+- [x] A short (sub-`minPhaseN`) phase triggers `phaseTooShort` and forces an
+      `inconclusive` verdict (`verdict.test.ts`).
+- [x] A baseline-at-extreme experiment surfaces the `regressionToMean` caveat, and
+      many secondary metrics surface `multipleComparisons` (`verdict.test.ts`).
+- [x] Correlation widget captions every result "correlation, not causation" and
+      hides `|r|` below threshold (implemented in `correlation-widget.tsx`).
+- [x] `Experiment`/`Metric`/`Observation` default to `private` (schema test).
+- [x] Verdict copy never contains "proven"/"proves"; always frames against the
+      null (`verdict.test.ts`).
+- [x] Full `xnet-web` + `@xnetjs/dashboard` typecheck green (29/29 turbo tasks).
+- [ ] Live cross-surface reactive update (Today ↔ heatmap ↔ verdict) — relies on
+      `useQuery` invalidation; not yet verified in a running browser.
+- [ ] 20 metrics × 3 years (~22k observations) interactive-latency soak test.
 
 ## References
 

@@ -47,7 +47,12 @@ describe('longestStreak + completionRate', () => {
   ]
 
   it('finds the longest historical run', () => {
-    const completed = new Set([day('2026-06-01'), day('2026-06-03'), day('2026-06-04'), day('2026-06-05')])
+    const completed = new Set([
+      day('2026-06-01'),
+      day('2026-06-03'),
+      day('2026-06-04'),
+      day('2026-06-05')
+    ])
     expect(longestStreak(completed, scheduled)).toBe(3)
   })
 

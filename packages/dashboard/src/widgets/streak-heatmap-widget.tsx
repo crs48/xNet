@@ -34,14 +34,19 @@ interface MetricRow {
 }
 
 function scheduleOf(metric: MetricRow): { schedule: MetricSchedule; scheduleDays?: number[] } {
-  const schedule = (typeof metric.schedule === 'string' ? metric.schedule : 'none') as MetricSchedule
+  const schedule = (
+    typeof metric.schedule === 'string' ? metric.schedule : 'none'
+  ) as MetricSchedule
   const scheduleDays = Array.isArray(metric.scheduleDays)
     ? metric.scheduleDays.filter((d): d is number => typeof d === 'number')
     : undefined
   return { schedule, scheduleDays }
 }
 
-function StreakHeatmapWidget({ config, data }: WidgetProps<StreakHeatmapWidgetConfig>): JSX.Element {
+function StreakHeatmapWidget({
+  config,
+  data
+}: WidgetProps<StreakHeatmapWidgetConfig>): JSX.Element {
   const weeks = typeof config.weeks === 'number' ? config.weeks : 16
   const { data: metricNodes } = useQuery(MetricSchema)
   const metrics = ((metricNodes ?? []) as unknown as MetricRow[]).filter(

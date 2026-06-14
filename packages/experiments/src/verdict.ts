@@ -10,13 +10,7 @@
  * credibility, so the bias is always toward caution.
  */
 
-import {
-  cohensD,
-  mean,
-  meanDifferenceInterval,
-  percentChange,
-  tauU
-} from './stats'
+import { cohensD, mean, meanDifferenceInterval, percentChange, tauU } from './stats'
 
 export type Polarity = 'higherBetter' | 'lowerBetter' | 'neutral'
 
@@ -125,8 +119,7 @@ export function evaluate(input: EvaluateInput): Verdict {
   // Does the credible interval exclude "no difference" in the beneficial
   // direction? (Polarity-aware: for lowerBetter, a beneficial effect means the
   // whole interval sits below zero.)
-  const ciExcludesZeroBeneficially =
-    sign > 0 ? ci[0] > 0 : ci[1] < 0
+  const ciExcludesZeroBeneficially = sign > 0 ? ci[0] > 0 : ci[1] < 0
   const magnitudeMeaningful = Math.abs(d) >= 0.2
 
   let direction: VerdictDirection

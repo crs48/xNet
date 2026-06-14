@@ -5,8 +5,8 @@
  * lives in its collaborative Yjs document; the verdict panel reads the primary
  * metric's observations and frames the result against the null.
  */
-import { ExperimentSchema, MetricSchema, ObservationSchema } from '@xnetjs/data'
 import { HabitHeatmap } from '@xnetjs/dashboard'
+import { ExperimentSchema, MetricSchema, ObservationSchema } from '@xnetjs/data'
 import { dayToIso, isoToDay } from '@xnetjs/experiments'
 import { useIdentity, useNode, useQuery } from '@xnetjs/react'
 import { Plus, Trash2 } from 'lucide-react'
@@ -57,7 +57,10 @@ function PhaseEditor({
   const update = (i: number, patch: Partial<PhaseDef>) =>
     onChange(phases.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
   const add = (kind: PhaseKind) =>
-    onChange([...phases, { label: kind[0].toUpperCase() + kind.slice(1), kind, start: 0, end: null }])
+    onChange([
+      ...phases,
+      { label: kind[0].toUpperCase() + kind.slice(1), kind, start: 0, end: null }
+    ])
 
   return (
     <div className="flex flex-col gap-2">
@@ -132,7 +135,10 @@ export function ExperimentDetail({ experimentId }: { experimentId: string }): JS
     orderBy: { day: 'asc' },
     limit: 2000
   })
-  const observations = (obsQ.data ?? []) as unknown as ObservationLike[]
+  const observations = useMemo(
+    () => (obsQ.data ?? []) as unknown as ObservationLike[],
+    [obsQ.data]
+  )
 
   const phases = useMemo(() => parsePhases(data?.phases), [data?.phases])
   const setPhases = useCallback((next: PhaseDef[]) => void update({ phases: next }), [update])
@@ -267,7 +273,12 @@ export function ExperimentDetail({ experimentId }: { experimentId: string }): JS
         </div>
         <div className="rounded-lg border border-hairline">
           {doc ? (
-            <Editor doc={doc} awareness={awareness} did={did ?? undefined} className="min-h-[160px] p-3" />
+            <Editor
+              doc={doc}
+              awareness={awareness}
+              did={did ?? undefined}
+              className="min-h-[160px] p-3"
+            />
           ) : (
             <p className="p-3 text-xs text-ink-3">Loading editor…</p>
           )}

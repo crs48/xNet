@@ -4,8 +4,8 @@
  * the set of completed canonical days and the window length. Reused by the
  * Today panel and the streak-heatmap dashboard widget.
  */
-import { addDays, canonicalDay, dayToIso, weekStart } from '@xnetjs/experiments'
 import type { JSX } from 'react'
+import { addDays, canonicalDay, dayToIso, weekStart } from '@xnetjs/experiments'
 
 export interface HabitHeatmapProps {
   /** Completed canonical days (UTC-midnight ms). */

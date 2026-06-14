@@ -50,7 +50,9 @@ export function metricScheduleConfig(metric: MetricLike): {
   schedule: MetricSchedule
   scheduleDays?: number[]
 } {
-  const schedule = (typeof metric.schedule === 'string' ? metric.schedule : 'none') as MetricSchedule
+  const schedule = (
+    typeof metric.schedule === 'string' ? metric.schedule : 'none'
+  ) as MetricSchedule
   const scheduleDays = Array.isArray(metric.scheduleDays)
     ? metric.scheduleDays.filter((d): d is number => typeof d === 'number')
     : undefined
@@ -79,7 +81,10 @@ export function observationsByDay(
 }
 
 /** Did this observation count as "completed"? Booleans need value ≥ 1. */
-export function isCompletedObservation(metric: MetricLike, obs: ObservationLike | undefined): boolean {
+export function isCompletedObservation(
+  metric: MetricLike,
+  obs: ObservationLike | undefined
+): boolean {
   if (!obs) return false
   if (metricKind(metric) === 'boolean') {
     return typeof obs.value === 'number' && obs.value >= 1

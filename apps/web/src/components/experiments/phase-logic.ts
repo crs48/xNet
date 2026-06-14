@@ -80,7 +80,10 @@ export function partitionByPhase(
 }
 
 /** Count distinct days that have a logged confound inside any phase. */
-export function confoundDaysInWindow(observations: PhasedObservation[], phases: PhaseDef[]): number {
+export function confoundDaysInWindow(
+  observations: PhasedObservation[],
+  phases: PhaseDef[]
+): number {
   if (phases.length === 0) return 0
   const days = new Set<number>()
   for (const obs of observations) {

@@ -40,7 +40,9 @@ function HabitRow({
       <button
         type="button"
         aria-pressed={summary.done}
-        aria-label={summary.done ? `Mark ${metricName(metric)} not done` : `Mark ${metricName(metric)} done`}
+        aria-label={
+          summary.done ? `Mark ${metricName(metric)} not done` : `Mark ${metricName(metric)} done`
+        }
         onClick={() => onToggle(!summary.done)}
         className={cn(
           'flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border transition-colors',
@@ -96,7 +98,6 @@ function QuickAdd({ onAdd }: { onAdd: (name: string) => void }): JSX.Element {
   }
   return (
     <div className="px-2 py-1.5">
-      {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
       <input
         autoFocus
         value={name}

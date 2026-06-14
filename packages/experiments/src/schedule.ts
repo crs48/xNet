@@ -35,11 +35,7 @@ export function isScheduledOn(day: number, config: ScheduleConfig): boolean {
 }
 
 /** Every scheduled canonical day in `[start, end]` (inclusive). */
-export function scheduledDaysInRange(
-  start: number,
-  end: number,
-  config: ScheduleConfig
-): number[] {
+export function scheduledDaysInRange(start: number, end: number, config: ScheduleConfig): number[] {
   if (config.schedule === 'none') return []
   return eachDay(start, end).filter((day) => isScheduledOn(day, config))
 }

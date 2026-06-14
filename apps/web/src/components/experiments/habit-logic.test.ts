@@ -1,4 +1,4 @@
-import { addDays, isoToDay } from '@xnetjs/experiments'
+import { isoToDay } from '@xnetjs/experiments'
 import { describe, expect, it } from 'vitest'
 import {
   habitSummary,
@@ -62,7 +62,12 @@ describe('habit-logic', () => {
   })
 
   it('lists only habits due today', () => {
-    const tueOnly: MetricLike = { id: 'm2', name: 'Gym', schedule: 'specificDays', scheduleDays: [2] }
+    const tueOnly: MetricLike = {
+      id: 'm2',
+      name: 'Gym',
+      schedule: 'specificDays',
+      scheduleDays: [2]
+    }
     const today = day('2026-06-15') // Monday
     const list = todaysHabits([meditate, tueOnly], [], today)
     expect(list.map((h) => h.metric.id)).toEqual(['m1']) // gym (Tue) excluded

@@ -6,7 +6,7 @@
 import { MetricSchema, ObservationSchema } from '@xnetjs/data'
 import { canonicalDay } from '@xnetjs/experiments'
 import { useMutate, useQuery } from '@xnetjs/react'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   habitSummary,
   todaysHabits,
@@ -43,7 +43,10 @@ export function useHabits(): UseHabitsResult {
   const { create, update, remove } = useMutate()
 
   const metrics = (metricsQ.data ?? []) as unknown as MetricLike[]
-  const observations = (obsQ.data ?? []) as unknown as ObservationLike[]
+  const observations = useMemo(
+    () => (obsQ.data ?? []) as unknown as ObservationLike[],
+    [obsQ.data]
+  )
   const today = canonicalDay()
 
   const toggleHabit = useCallback(

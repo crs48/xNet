@@ -20,16 +20,14 @@ describe('habit schedules', () => {
   it('weekly is anchored to one weekday (Monday default)', () => {
     expect(isScheduledOn(day('2026-06-15'), { schedule: 'weekly' })).toBe(true) // Mon
     expect(isScheduledOn(day('2026-06-16'), { schedule: 'weekly' })).toBe(false)
-    expect(
-      isScheduledOn(day('2026-06-14'), { schedule: 'weekly', scheduleDays: [0] })
-    ).toBe(true) // anchored Sunday
+    expect(isScheduledOn(day('2026-06-14'), { schedule: 'weekly', scheduleDays: [0] })).toBe(true) // anchored Sunday
   })
 
   it('none is never scheduled (ad-hoc / continuous metrics)', () => {
     expect(isScheduledOn(day('2026-06-14'), { schedule: 'none' })).toBe(false)
-    expect(scheduledDaysInRange(day('2026-06-01'), day('2026-06-30'), { schedule: 'none' })).toEqual(
-      []
-    )
+    expect(
+      scheduledDaysInRange(day('2026-06-01'), day('2026-06-30'), { schedule: 'none' })
+    ).toEqual([])
   })
 
   it('enumerates scheduled days in a range', () => {

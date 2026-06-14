@@ -118,9 +118,7 @@ export const correlationWidget: WidgetDefinition<CorrelationWidgetConfig> = {
   description: 'Metrics that move together (correlation, not causation)',
   trustTier: 'first-party',
   defaultSize: { w: 4, h: 3, minW: 3, minH: 2 },
-  configFields: [
-    { key: 'threshold', label: 'Min |r|', type: 'number', defaultValue: 0.3 }
-  ],
+  configFields: [{ key: 'threshold', label: 'Min |r|', type: 'number', defaultValue: 0.3 }],
   getStubConfig: () => ({
     config: { threshold: 0.3 },
     query: {

@@ -51,7 +51,10 @@ export function cohensD(baseline: readonly number[], intervention: readonly numb
 }
 
 /** Percent change of the intervention mean relative to the baseline mean. */
-export function percentChange(baseline: readonly number[], intervention: readonly number[]): number {
+export function percentChange(
+  baseline: readonly number[],
+  intervention: readonly number[]
+): number {
   const mb = mean(baseline)
   if (mb === 0) return 0
   return ((mean(intervention) - mb) / Math.abs(mb)) * 100
