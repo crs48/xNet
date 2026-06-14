@@ -4,7 +4,7 @@
  * Wires the dev/default composition (in-memory stores + provisioner, WorkOS AuthKit
  * when configured) and serves the HTTP API. Production swaps the in-memory stores
  * for durable ones and the `MemoryProvisioner` for a real adapter (Cloud Run +
- * Turso, etc.) — the control-plane code is unchanged (explorations 0174/0175).
+ * Litestream→R2, etc.) — the control-plane code is unchanged (explorations 0174/0175).
  */
 
 import { serve } from '@hono/node-server'

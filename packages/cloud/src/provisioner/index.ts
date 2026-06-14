@@ -19,7 +19,10 @@ export { ShardAllocator, projectForServiceIndex, type ShardingConfig } from './s
 
 export { MemoryProvisioner, type MemoryProvisionerOptions } from './memory'
 
-export { CloudRunTursoProvisioner, type CloudRunTursoConfig } from './adapters/cloud-run-turso'
+export {
+  CloudRunLitestreamProvisioner,
+  type CloudRunLitestreamConfig
+} from './adapters/cloud-run-litestream'
 
 export {
   FargateLitestreamProvisioner,
