@@ -6,7 +6,7 @@
  * a `defineSchema` Node so it syncs over P2P like everything else.
  */
 
-import { defineSchema, json, select, text } from '@xnetjs/data'
+import { defineSchema, json, relation, select, text } from '@xnetjs/data'
 import type { LabLanguage, LabRuntimeTier } from './runtime/types'
 
 export const LAB_LANGUAGE_OPTIONS = [
@@ -40,7 +40,29 @@ export const LabSchema = defineSchema({
     /** Last run's captured output ({ value, logs }) — display only */
     lastOutput: json({}),
     /** Last run's error message (empty when the last run succeeded) */
-    lastError: text({})
+    lastError: text({}),
+
+    // ─── Explorer / organization (mirrors Page; exploration 0169/0179) ───
+    /** Emoji or icon */
+    icon: text({}),
+    /** Canonical home; empty = Unfiled */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+    /** Order among folder siblings — fractional index */
+    sortKey: text({ maxLength: 500 }),
+    /** Workspace-wide labels, referenced by id */
+    tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true }),
+    /** Canonical SECURITY home; empty = personal/private */
+    space: relation({ target: 'xnet://xnet.fyi/Space@1.0.0' as const }),
+    /** Per-node visibility; `inherit` defers to the Space */
+    visibility: select({
+      options: [
+        { id: 'inherit', name: 'Inherit', color: 'gray' },
+        { id: 'private', name: 'Private', color: 'gray' },
+        { id: 'unlisted', name: 'Unlisted', color: 'yellow' },
+        { id: 'public', name: 'Public', color: 'green' }
+      ] as const,
+      default: 'inherit'
+    })
   }
 })
 

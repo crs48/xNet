@@ -3,9 +3,9 @@
  * and the "New …" dropdown items used by both the sidebar and the home page.
  */
 import type { ComponentType } from 'react'
-import { Database, FileText, Layout, LayoutDashboard } from 'lucide-react'
+import { Code2, Database, FileText, Layout, LayoutDashboard } from 'lucide-react'
 
-export type CreatableDocType = 'page' | 'database' | 'canvas' | 'dashboard'
+export type CreatableDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'lab'
 
 export interface DocTypeRoute {
   to: string
@@ -23,7 +23,8 @@ export const DOC_TYPE_ROUTES: Record<CreatableDocType, DocTypeRoute> = {
     paramKey: 'dashboardId',
     label: 'Dashboard',
     icon: LayoutDashboard
-  }
+  },
+  lab: { to: '/lab/$labId', paramKey: 'labId', label: 'Lab', icon: Code2 }
 }
 
 export function newDocId(): string {

@@ -367,6 +367,9 @@ importers:
       '@sqlite.org/sqlite-wasm':
         specifier: 3.51.2-build6
         version: 3.51.2-build6
+      '@swc/wasm-web':
+        specifier: ^1.7.26
+        version: 1.15.41
       '@tanstack/react-router':
         specifier: ^1.57.0
         version: 1.153.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -400,6 +403,9 @@ importers:
       '@xnetjs/identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@xnetjs/labs':
+        specifier: workspace:*
+        version: link:../../packages/labs
       '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../../packages/plugins
@@ -5495,6 +5501,9 @@ packages:
 
   '@surma/rollup-plugin-off-main-thread@2.2.3':
     resolution: {integrity: sha512-lR8q/9W7hZpMWweNiAKU7NQerBnzQQLvi8qnTDU/fxItPhtZVMbPV3lbCwjhIlNBe9Bbr5V+KHshvWmVSG9cxQ==}
+
+  '@swc/wasm-web@1.15.41':
+    resolution: {integrity: sha512-HrMYfKbtgChMoKqpyegLb91ix5XOrIX8Qq7woo+kZiPXYzEV72I99NaiZsc6IrgvXlixS1hD+8tPRA5HTCM7yA==}
 
   '@szmarczak/http-timer@4.0.6':
     resolution: {integrity: sha512-4BAffykYOgO+5nzBWYwE3W90sBgLJoUPRWWcL8wlyiM8IB8ipJz3UMJ9KXQd1RKQXpKp8Tutn80HZtWsu2u76w==}
@@ -19567,6 +19576,8 @@ snapshots:
       json5: 2.2.3
       magic-string: 0.25.9
       string.prototype.matchall: 4.0.12
+
+  '@swc/wasm-web@1.15.41': {}
 
   '@szmarczak/http-timer@4.0.6':
     dependencies:

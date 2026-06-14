@@ -8,6 +8,7 @@
  */
 import {
   CheckSquare2,
+  Code2,
   Database,
   FileText,
   Hash,
@@ -43,7 +44,8 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   data: { label: 'Data', icon: Network, toRoute: () => '/data', singleton: true },
   channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` },
   tag: { label: 'Tag', icon: Hash, toRoute: (id) => `/tag/${id}` },
-  person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` }
+  person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` },
+  lab: { label: 'Lab', icon: Code2, toRoute: (id) => `/lab/${id}` }
 }
 
 const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
@@ -54,7 +56,8 @@ const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/view/', nodeType: 'savedview' },
   { prefix: '/channel/', nodeType: 'channel' },
   { prefix: '/tag/', nodeType: 'tag' },
-  { prefix: '/person/', nodeType: 'person' }
+  { prefix: '/person/', nodeType: 'person' },
+  { prefix: '/lab/', nodeType: 'lab' }
 ]
 
 export interface RouteTabDescriptor {

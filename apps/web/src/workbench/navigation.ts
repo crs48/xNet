@@ -40,5 +40,8 @@ export function navigateToNode(navigate: Navigate, nodeType: TabNodeType, nodeId
     case 'person':
       void navigate({ to: '/person/$did' as never, params: { did: nodeId } as never })
       break
+    case 'lab':
+      void navigate({ to: '/lab/$labId' as never, params: { labId: nodeId } as never })
+      break
   }
 }

@@ -27,6 +27,7 @@ export type TabNodeType =
   | 'channel'
   | 'tag'
   | 'person'
+  | 'lab'
 
 export interface WorkbenchTab {
   /** `${nodeType}:${nodeId}` — stable across sessions */
