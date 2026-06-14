@@ -134,8 +134,8 @@ const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/data': typeof DataRoute
-  '/experiments': typeof ExperimentsRoute
   '/discover': typeof DiscoverRoute
+  '/experiments': typeof ExperimentsRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -156,8 +156,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/data': typeof DataRoute
-  '/experiments': typeof ExperimentsRoute
   '/discover': typeof DiscoverRoute
+  '/experiments': typeof ExperimentsRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -179,8 +179,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/data': typeof DataRoute
-  '/experiments': typeof ExperimentsRoute
   '/discover': typeof DiscoverRoute
+  '/experiments': typeof ExperimentsRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -203,8 +203,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/data'
-    | '/experiments'
     | '/discover'
+    | '/experiments'
     | '/requests'
     | '/settings'
     | '/share'
@@ -225,8 +225,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/data'
-    | '/experiments'
     | '/discover'
+    | '/experiments'
     | '/requests'
     | '/settings'
     | '/share'
@@ -247,8 +247,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/data'
-    | '/experiments'
     | '/discover'
+    | '/experiments'
     | '/requests'
     | '/settings'
     | '/share'
