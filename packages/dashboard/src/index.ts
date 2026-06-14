@@ -47,6 +47,9 @@ export {
 } from './runtime/context'
 export { useWidgetData } from './runtime/useWidgetData'
 
+// Shared viz
+export { HabitHeatmap, type HabitHeatmapProps } from './components/HabitHeatmap'
+
 // Built-in widgets
 export { registerBuiltinWidgets } from './widgets/builtins'
 export { metricWidget, type MetricWidgetConfig } from './widgets/metric-widget'

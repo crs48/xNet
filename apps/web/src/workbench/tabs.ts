@@ -10,6 +10,7 @@ import {
   CheckSquare2,
   Database,
   FileText,
+  FlaskConical,
   Hash,
   Layout,
   LayoutDashboard,
@@ -42,6 +43,12 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   savedview: { label: 'Saved view', icon: Table2, toRoute: (id) => `/view/${id}` },
   tasks: { label: 'Tasks', icon: CheckSquare2, toRoute: () => '/tasks', singleton: true },
   data: { label: 'Data', icon: Network, toRoute: () => '/data', singleton: true },
+  experiments: {
+    label: 'Experiments',
+    icon: FlaskConical,
+    toRoute: () => '/experiments',
+    singleton: true
+  },
   channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` },
   tag: { label: 'Tag', icon: Hash, toRoute: (id) => `/tag/${id}` },
   person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` },
@@ -69,6 +76,7 @@ export interface RouteTabDescriptor {
 export function tabFromPathname(pathname: string): RouteTabDescriptor | null {
   if (pathname === '/tasks') return { nodeType: 'tasks', nodeId: 'tasks' }
   if (pathname === '/data') return { nodeType: 'data', nodeId: 'data' }
+  if (pathname === '/experiments') return { nodeType: 'experiments', nodeId: 'experiments' }
 
   for (const { prefix, nodeType } of ROUTE_PREFIXES) {
     if (pathname.startsWith(prefix)) {
