@@ -51,6 +51,21 @@ export {
   type TaskShortIdBlock
 } from './task-identifiers'
 export { ProjectSchema, type Project } from './project'
+export {
+  MetricSchema,
+  type Metric,
+  type MetricKind,
+  type MetricScheduleId,
+  type MetricPolarity
+} from './metric'
+export { ObservationSchema, type Observation, type ObservationPhase } from './observation'
+export {
+  ExperimentSchema,
+  type Experiment,
+  type ExperimentStatus,
+  type ExperimentDesign,
+  type ExperimentPhase
+} from './experiment'
 export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './milestone'
 export { spaceOwnAuthorization, spaceCascadeAuthorization } from './space-authorization'
 export {
@@ -263,6 +278,10 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/TaskView@1.0.0': () => import('./task-view').then((m) => m.TaskViewSchema),
   'xnet://xnet.fyi/Project@1.0.0': () => import('./project').then((m) => m.ProjectSchema),
+  'xnet://xnet.fyi/Metric@1.0.0': () => import('./metric').then((m) => m.MetricSchema),
+  'xnet://xnet.fyi/Observation@1.0.0': () =>
+    import('./observation').then((m) => m.ObservationSchema),
+  'xnet://xnet.fyi/Experiment@1.0.0': () => import('./experiment').then((m) => m.ExperimentSchema),
   'xnet://xnet.fyi/Milestone@1.0.0': () => import('./milestone').then((m) => m.MilestoneSchema),
   'xnet://xnet.fyi/Space@1.0.0': () => import('./space').then((m) => m.SpaceSchema),
   'xnet://xnet.fyi/SpaceMembership@1.0.0': () =>
@@ -324,6 +343,9 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/TaskView': () => import('./task-view').then((m) => m.TaskViewSchema),
   'xnet://xnet.fyi/Project': () => import('./project').then((m) => m.ProjectSchema),
+  'xnet://xnet.fyi/Metric': () => import('./metric').then((m) => m.MetricSchema),
+  'xnet://xnet.fyi/Observation': () => import('./observation').then((m) => m.ObservationSchema),
+  'xnet://xnet.fyi/Experiment': () => import('./experiment').then((m) => m.ExperimentSchema),
   'xnet://xnet.fyi/Milestone': () => import('./milestone').then((m) => m.MilestoneSchema),
   'xnet://xnet.fyi/Space': () => import('./space').then((m) => m.SpaceSchema),
   'xnet://xnet.fyi/SpaceMembership': () =>
