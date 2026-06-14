@@ -1,4 +1,4 @@
-import { resolveEntitlements, signEntitlements, withStorage } from '@xnetjs/cloud-plans'
+import { resolveEntitlements, signEntitlements, withStorage } from '@xnetjs/entitlements'
 import { afterEach, describe, expect, it } from 'vitest'
 import { resolveConfig } from './config'
 import { DEFAULT_CONFIG } from './types'

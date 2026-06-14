@@ -39,9 +39,9 @@ pnpm --filter xnet-cloud start
 
 ## Dependencies
 
-- [`@xnetjs/cloud-identity`](../../packages/cloud-identity) — billing identity ↔ data DID
-- [`@xnetjs/cloud-plans`](../../packages/cloud-plans) — plan catalog + entitlements
-- [`@xnetjs/cloud-provisioner`](../../packages/cloud-provisioner) — per-tenant hub provisioning
+- [`@xnetjs/cloud/identity`](../../packages/cloud-identity) — billing identity ↔ data DID
+- [`@xnetjs/entitlements`](../../packages/cloud-plans) — plan catalog + entitlements
+- [`@xnetjs/cloud/provisioner`](../../packages/cloud-provisioner) — per-tenant hub provisioning
 
 ## Testing
 

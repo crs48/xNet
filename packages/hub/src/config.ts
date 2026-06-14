@@ -3,7 +3,7 @@
  */
 
 import type { HubConfig, DemoOverrides } from './types'
-import { entitlementsFromEnv } from '@xnetjs/cloud-plans'
+import { entitlementsFromEnv } from '@xnetjs/entitlements'
 import { DEFAULT_CONFIG, DEMO_DEFAULTS } from './types'
 
 const toNumber = (value: string | undefined): number | undefined => {

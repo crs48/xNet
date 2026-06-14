@@ -6,7 +6,7 @@
  * swap `MemoryTenantStore` for a durable store later.
  */
 
-import type { PlanEntitlements, PlanId } from '@xnetjs/cloud-plans'
+import type { PlanEntitlements, PlanId } from '@xnetjs/entitlements'
 
 export interface TenantRecord {
   tenantId: string
