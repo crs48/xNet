@@ -27,6 +27,7 @@ export type TabNodeType =
   | 'channel'
   | 'tag'
   | 'person'
+  | 'space'
 
 export interface WorkbenchTab {
   /** `${nodeType}:${nodeId}` — stable across sessions */
@@ -109,6 +110,14 @@ interface WorkbenchState {
   shelf: ShelfEntry[]
   /** Tab opened when the workspace starts at '/' (configurable) */
   startupTab: { nodeType: TabNodeType; nodeId: string } | null
+  /**
+   * Active Space scope (exploration 0181). When set, the Explorer and new-doc
+   * filing are scoped to this Space. `null` = All (the global, pre-Spaces view).
+   */
+  currentSpaceId: string | null
+
+  // ─── Spaces ────────────────────────────────────────────────────
+  setCurrentSpace: (spaceId: string | null) => void
 
   // ─── Panels ────────────────────────────────────────────────────
   setPanelOpen: (side: PanelSide, open: boolean) => void
@@ -179,6 +188,9 @@ export const useWorkbench = create<WorkbenchState>()(
       expandedFolderIds: [],
       shelf: [],
       startupTab: null,
+      currentSpaceId: null,
+
+      setCurrentSpace: (spaceId) => set({ currentSpaceId: spaceId }),
 
       setPanelOpen: (side, open) => set((state) => ({ [side]: { ...state[side], open } })),
 

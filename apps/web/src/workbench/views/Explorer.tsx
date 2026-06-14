@@ -133,21 +133,28 @@ interface ExplorerDocShape {
   folder?: string
   sortKey?: string
   tags?: string[]
+  space?: string
 }
 
 function collectItems(
   docs: ExplorerDocShape[] | undefined | null,
-  type: ExplorerNodeType
+  type: ExplorerNodeType,
+  spaceScope: string | null
 ): ExplorerItem[] {
-  return (docs ?? []).map((doc) => ({
-    id: doc.id,
-    title: doc.title ?? '',
-    type,
-    updatedAt: doc.updatedAt ?? 0,
-    folder: doc.folder ?? null,
-    sortKey: doc.sortKey,
-    tags: doc.tags
-  }))
+  return (
+    (docs ?? [])
+      // When a Space is active, show only its content; `null` = all (exploration 0181).
+      .filter((doc) => spaceScope === null || (doc.space ?? '') === spaceScope)
+      .map((doc) => ({
+        id: doc.id,
+        title: doc.title ?? '',
+        type,
+        updatedAt: doc.updatedAt ?? 0,
+        folder: doc.folder ?? null,
+        sortKey: doc.sortKey,
+        tags: doc.tags
+      }))
+  )
 }
 
 /** All organizable nodes, newest first, with folder/sortKey projected. */
@@ -157,16 +164,17 @@ function useExplorerItems(): ExplorerItem[] {
   const { data: databases } = useQuery(DatabaseSchema, options)
   const { data: canvases } = useQuery(CanvasSchema, options)
   const { data: dashboards } = useQuery(DashboardSchema, options)
+  const spaceScope = useWorkbench((s) => s.currentSpaceId)
 
   return useMemo<ExplorerItem[]>(
     () =>
       [
-        ...collectItems(pages, 'page'),
-        ...collectItems(databases, 'database'),
-        ...collectItems(canvases, 'canvas'),
-        ...collectItems(dashboards, 'dashboard')
+        ...collectItems(pages, 'page', spaceScope),
+        ...collectItems(databases, 'database', spaceScope),
+        ...collectItems(canvases, 'canvas', spaceScope),
+        ...collectItems(dashboards, 'dashboard', spaceScope)
       ].sort((a, b) => b.updatedAt - a.updatedAt),
-    [pages, databases, canvases, dashboards]
+    [pages, databases, canvases, dashboards, spaceScope]
   )
 }
 

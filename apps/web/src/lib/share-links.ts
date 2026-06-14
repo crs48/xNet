@@ -15,7 +15,7 @@ export type ShareLinkInput = {
 
 export type ShareClaimResult = {
   resource: string
-  docType: 'page' | 'database' | 'canvas' | 'dashboard' | 'view'
+  docType: 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space'
   role: 'read' | 'comment' | 'write'
   endpoint: string
 }
@@ -248,9 +248,20 @@ export function docRouteFor(
       return { to: '/dashboard/$dashboardId', params: { dashboardId: resource } }
     case 'view':
       return { to: '/view/$viewId', params: { viewId: resource } }
+    case 'space':
+      return { to: '/space/$spaceId', params: { spaceId: resource } }
     default:
       return { to: '/doc/$docId', params: { docId: resource } }
   }
+}
+
+/** Map a coarse share-link role onto a Space role for a claimed membership. */
+export function spaceRoleFromShareRole(
+  role: ShareClaimResult['role']
+): 'viewer' | 'commenter' | 'member' {
+  if (role === 'read') return 'viewer'
+  if (role === 'comment') return 'commenter'
+  return 'member'
 }
 
 /** Hosts that are only reachable from the issuing machine or LAN. */
