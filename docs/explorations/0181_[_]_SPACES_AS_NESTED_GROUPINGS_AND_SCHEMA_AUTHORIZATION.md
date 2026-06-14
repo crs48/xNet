@@ -588,31 +588,32 @@ export const MilestoneSchema = defineSchema({
 ## Implementation Checklist
 
 ### Phase 1 — Taxonomy cleanup (people vs work)
-- [ ] Remove `project` from `SPACE_KINDS` (reserve the value); migrate/relabel any existing `kind:'project'` spaces ([space.ts](packages/data/src/schema/schemas/space.ts)) (Q4)
-- [ ] Confirm `Project`/`Task` carry `space` + `visibility` (they do); ensure new content defaults to inheriting its Space
-- [ ] Delete or quarantine the dead [core/permissions.ts](packages/core/src/permissions.ts) spec (Q8)
+- [x] Remove `project` from `SPACE_KINDS`; not-live so no migration needed ([space.ts](packages/data/src/schema/schemas/space.ts)) (Q4)
+- [x] Confirm `Project`/`Task` carry `space` + `visibility` (they do); content inherits its Space via the cascade block
+- [ ] ~~Delete the dead `core/permissions.ts` spec~~ — investigated and **kept**: `Capability` (13 refs) and `evaluateCondition` (4 refs) are still live, so the file is not actually dormant (the exploration overstated this). (Q8)
 
 ### Phase 2 — The membership resolver (one addition)
-- [ ] Add `MembershipRoleResolver` to the `RoleResolver` union ([auth-types.ts](packages/core/src/auth-types.ts)) + `role.members()` builder ([builders.ts](packages/data/src/auth/builders.ts))
-- [ ] Implement the `'membership'` case in `checkRole` ([evaluator.ts](packages/data/src/auth/evaluator.ts)) using the store query + `compareSpaceRoles`; respect `maxDepth`/cache
-- [ ] Extend `validate.ts` (edge schema + props exist) and `serialize.ts` (round-trip the new resolver)
-- [ ] Teach `computeRecipients` ([recipients.ts](packages/data/src/auth/recipients.ts)) to expand `role.members()` into member DIDs for the E2E set
-- [ ] On invite-claim, write the `SpaceMembership` edge *and* the hub grant (Q3), keyed by `spaceMembershipId`
+- [x] Add `MembershipRoleResolver` to the `RoleResolver` union ([auth-types.ts](packages/core/src/auth-types.ts)) + `role.members()` builder ([builders.ts](packages/data/src/auth/builders.ts))
+- [x] Implement the `'membership'` case in `checkRole` ([evaluator.ts](packages/data/src/auth/evaluator.ts)) with an internal `parent`-chain ancestor walk (cycle/depth-bounded); rank-compare via `roleOrder`
+- [x] Extend `validate.ts` (minRole ∈ roleOrder) and `serialize.ts` (round-trip the new resolver)
+- [x] Teach `computeRecipients` ([recipients.ts](packages/data/src/auth/recipients.ts)) to expand `role.members()` into member DIDs (via an optional node lister) for the E2E set
+- [ ] On invite-claim, write the `SpaceMembership` edge *and* the hub grant (Q3), keyed by `spaceMembershipId` — client wiring (see UI phase)
 
 ### Phase 3 — Declare the cascade in schemas
-- [ ] Add the `authorization` block to `Space` (own-ladder via `role.members`, parent via `role.relation('parent',…)`)
-- [ ] Add inheriting `authorization` blocks to Page/Database/Canvas/Dashboard/Project/Task (`role.relation('space',…)`; Task also `role.relation('project',…)`)
-- [ ] Wire `PUBLIC` into read actions gated on `visibility==='public'` (honored by `recipients.ts`); never inherit public for imports (Q7)
-- [ ] Honor the expansive default + an explicit `inheritFromParent:false` (`deny('p*')`) escape hatch (Q6)
+- [x] Add the `authorization` block to `Space` (own ladder via `role.members`; the membership resolver walks the `parent` chain so inheritance is built in — no separate parent roles needed)
+- [x] Add inheriting `authorization` blocks to Project, Task, and the new Milestone (`role.relation('space',…)` via the shared `spaceCascadeAuthorization()` helper). Page/Database/Canvas/Dashboard/Channel deferred (they keep the hub-grant path; flipping collaborative docs to enforce-mode is a separate, riskier pass)
+- [ ] Wire `PUBLIC` into read actions gated on `visibility==='public'` — **deferred**: the action-expression AST can't condition on a node property, so public stays in the hub visibility index (shipped in 0179). Needs a `propertyEquals` condition expr (Q7)
+- [ ] Honor an explicit `inheritFromParent:false` (`deny`) escape hatch (Q6) — deferred
 
 ### Phase 4 — Unify enforcement
-- [ ] Keep the hub grant index as the relay fast path; add a **conformance suite** asserting hub ≡ evaluator on shared fixtures (Q1), extending [spaces.test.ts](packages/hub/test/spaces.test.ts)
-- [ ] Perf-test the evaluator cascade against 0163 budgets (10k nodes, 5 deep, many roles) with the DecisionCache on (Q2)
+- [x] Evaluator-level **conformance suite** ([space-cascade.test.ts](packages/data/src/auth/space-cascade.test.ts)): cascade, most-permissive, sibling isolation, owner-only, milestone, deny-stranger — using the real schemas
+- [ ] Assert hub `getStatusForNode` ≡ evaluator `can()` on shared fixtures (Q1) — deferred (hub keeps its grant-index fast path; cross-engine parity is a follow-up)
+- [ ] Perf-test the evaluator cascade against 0163 budgets (Q2) — deferred
 
-### Phase 5 — Milestones (optional / deferred)
-- [ ] Add the thin `Milestone` schema under `Project`; register it ([schemas/index.ts](packages/data/src/schema/schemas/index.ts))
-- [ ] Add `Task.milestone` (single, optional); group/scope tasks by milestone in the project views
-- [ ] Milestone authz inherits via `project → space`; no new policy code
+### Phase 5 — Milestones
+- [x] Add the thin `Milestone` schema under `Project`; register it ([milestone.ts](packages/data/src/schema/schemas/milestone.ts), [schemas/index.ts](packages/data/src/schema/schemas/index.ts))
+- [x] Add `Task.milestone` (single, optional)
+- [x] Milestone authz inherits via `space`; no new policy code
 
 ## Validation Checklist
 

@@ -272,7 +272,11 @@ export interface AuthenticatedExpr {
 /**
  * How to determine if a user holds a role.
  */
-export type RoleResolver = CreatorRoleResolver | PropertyRoleResolver | RelationRoleResolver
+export type RoleResolver =
+  | CreatorRoleResolver
+  | PropertyRoleResolver
+  | RelationRoleResolver
+  | MembershipRoleResolver
 
 /**
  * Serialized form of RoleResolver for JSON storage.
@@ -281,6 +285,16 @@ export type SerializedRoleResolver =
   | { _tag: 'creator' }
   | { _tag: 'property'; propertyName: string }
   | { _tag: 'relation'; relationName: string; targetRole: string }
+  | {
+      _tag: 'membership'
+      edgeSchema: string
+      containerProp: string
+      memberProp: string
+      roleProp: string
+      minRole: string
+      roleOrder: string[]
+      parentProp?: string
+    }
 
 /**
  * Role held by the node's creator.
@@ -306,6 +320,35 @@ export interface RelationRoleResolver {
   readonly _tag: 'relation'
   readonly relationName: string
   readonly targetRole: string
+}
+
+/**
+ * Role determined by membership edges that point at THIS node (a reverse-edge
+ * lookup the forward `relation`/`property` resolvers can't express).
+ *
+ * Given a container node (e.g. a Space), the subject holds this role when an
+ * edge node of `edgeSchema` exists whose `containerProp` references this node
+ * (or, when `parentProp` is set, any of its ancestors), whose `memberProp`
+ * holds the subject DID, and whose `roleProp` rank is `>= minRole` per the
+ * `roleOrder` ladder (least → most privileged). The ancestor walk is how
+ * membership cascades down a nested container tree without fanning grants out.
+ */
+export interface MembershipRoleResolver {
+  readonly _tag: 'membership'
+  /** Schema IRI of the membership edge node (e.g. SpaceMembership). */
+  readonly edgeSchema: string
+  /** Edge property that references the container node. */
+  readonly containerProp: string
+  /** Edge property holding the member DID. */
+  readonly memberProp: string
+  /** Edge property holding the member's role id. */
+  readonly roleProp: string
+  /** Minimum role rung this resolver represents. */
+  readonly minRole: string
+  /** Role ids ordered least → most privileged (for rank comparison). */
+  readonly roleOrder: readonly string[]
+  /** Container relation to walk for ancestor inheritance (e.g. `parent`). */
+  readonly parentProp?: string
 }
 
 // ─── Check Input ──────────────────────────────────────────────────────────────
