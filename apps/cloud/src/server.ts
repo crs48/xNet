@@ -9,7 +9,7 @@
  */
 
 import type { ControlPlane } from './control-plane'
-import type { BillingIdentityProvider, DidChallenge } from '@xnetjs/cloud-identity'
+import type { BillingIdentityProvider, DidChallenge } from '@xnetjs/cloud/identity'
 import { Hono } from 'hono'
 
 export interface ControlPlaneAppDeps {
