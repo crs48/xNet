@@ -4,8 +4,8 @@
  * ones inline (with a kind), opens a Space's home, sets the active scope, and
  * opens the share dialog to invite someone to a whole Space at once.
  */
-import { type SpaceKind, type SpaceTreeNode } from '@xnetjs/data'
 import { useNavigate } from '@tanstack/react-router'
+import { type SpaceKind, type SpaceTreeNode } from '@xnetjs/data'
 import {
   Building2,
   ChevronDown,
@@ -22,8 +22,8 @@ import { useState } from 'react'
 import { ShareDialog } from '../../components/ShareDialog'
 import { useSpaces, type SpaceEntry } from '../../hooks/useSpaces'
 import { navigateToNode } from '../navigation'
-import { setPreviewIntent } from '../tabs'
 import { useWorkbench } from '../state'
+import { setPreviewIntent } from '../tabs'
 
 const KIND_ICON: Record<SpaceKind, LucideIcon> = {
   personal: User,

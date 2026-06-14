@@ -7,6 +7,7 @@
  * once (a share link with `docType: 'space'`; the claim writes a membership
  * edge that the authorization cascade resolves against).
  */
+import { useNavigate } from '@tanstack/react-router'
 import {
   CanvasSchema,
   DatabaseSchema,
@@ -22,7 +23,6 @@ import {
 } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { DIDAvatar } from '@xnetjs/ui'
-import { useNavigate } from '@tanstack/react-router'
 import {
   Building2,
   CheckSquare2,
@@ -39,9 +39,9 @@ import {
   X
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { displayName as resolveName } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
-import { displayName as resolveName } from '../comms/comms-utils'
 import { useSpaceMembers, useSpaces } from '../hooks/useSpaces'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
