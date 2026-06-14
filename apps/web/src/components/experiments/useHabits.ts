@@ -43,10 +43,7 @@ export function useHabits(): UseHabitsResult {
   const { create, update, remove } = useMutate()
 
   const metrics = (metricsQ.data ?? []) as unknown as MetricLike[]
-  const observations = useMemo(
-    () => (obsQ.data ?? []) as unknown as ObservationLike[],
-    [obsQ.data]
-  )
+  const observations = useMemo(() => (obsQ.data ?? []) as unknown as ObservationLike[], [obsQ.data])
   const today = canonicalDay()
 
   const toggleHabit = useCallback(

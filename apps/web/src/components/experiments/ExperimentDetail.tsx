@@ -135,10 +135,7 @@ export function ExperimentDetail({ experimentId }: { experimentId: string }): JS
     orderBy: { day: 'asc' },
     limit: 2000
   })
-  const observations = useMemo(
-    () => (obsQ.data ?? []) as unknown as ObservationLike[],
-    [obsQ.data]
-  )
+  const observations = useMemo(() => (obsQ.data ?? []) as unknown as ObservationLike[], [obsQ.data])
 
   const phases = useMemo(() => parsePhases(data?.phases), [data?.phases])
   const setPhases = useCallback((next: PhaseDef[]) => void update({ phases: next }), [update])
