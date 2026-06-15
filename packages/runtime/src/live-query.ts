@@ -13,8 +13,8 @@
  * `$liveQuery(...)` auto-subscription.
  */
 import type { XNetClient } from './client'
-import type { QueryOptions } from '@xnetjs/data-bridge'
 import type { DefinedSchema, NodeState, PropertyBuilder } from '@xnetjs/data'
+import type { QueryOptions } from '@xnetjs/data-bridge'
 
 /** The current value of a live query: `null` while loading, then the rows. */
 export type LiveQueryValue = NodeState[] | null

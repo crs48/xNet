@@ -16,15 +16,6 @@ import type { BlobStoreForSync } from './sync/blob-sync'
 import type { SyncManager } from './sync/sync-manager'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
 import type {
-  AcquiredDoc,
-  BridgeTransactionResult,
-  DataBridge,
-  MainThreadBridgeOptions,
-  QueryOptions,
-  SyncManagerLike,
-  SyncStatus
-} from '@xnetjs/data-bridge'
-import type {
   DefinedSchema,
   LensRegistry,
   NodeContentCipher,
@@ -35,12 +26,21 @@ import type {
   StoreAuthAPI,
   TransactionOperation
 } from '@xnetjs/data'
+import type {
+  AcquiredDoc,
+  BridgeTransactionResult,
+  DataBridge,
+  MainThreadBridgeOptions,
+  QueryOptions,
+  SyncManagerLike,
+  SyncStatus
+} from '@xnetjs/data-bridge'
 import type { Identity } from '@xnetjs/identity'
 import type { Platform } from '@xnetjs/plugins'
 import type { ChangeSigner, SyncReplicationConfig } from '@xnetjs/sync'
+import { getSigningPublicKeyFromPrivate, sign, verify } from '@xnetjs/crypto'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import { createMainThreadBridgeSync } from '@xnetjs/data-bridge'
-import { getSigningPublicKeyFromPrivate, sign, verify } from '@xnetjs/crypto'
 import { UndoManager } from '@xnetjs/history'
 import { PluginRegistry } from '@xnetjs/plugins'
 import { createSyncManager } from './sync/sync-manager'
@@ -469,7 +469,8 @@ export async function createXNetClient(options: CreateXNetClientOptions): Promis
       }
 
       // Detach the sync manager from the bridge before teardown.
-      ;(bridge as SyncManagedBridge).setSyncManager?.(null)
+      const managedBridge = bridge as SyncManagedBridge
+      managedBridge.setSyncManager?.(null)
 
       if (bridgeCreatedInternally) {
         bridge.destroy()

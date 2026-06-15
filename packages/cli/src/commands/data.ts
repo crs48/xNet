@@ -9,10 +9,10 @@
  * It operates on a built-in demonstration `Note` schema (title + body) so it is
  * self-contained; the same pattern works for any app schema.
  */
-import type { XNetClient } from '@xnetjs/runtime'
-import type { Command } from 'commander'
 import type { DID } from '@xnetjs/core'
 import type { NodeState, NodeStorageAdapter } from '@xnetjs/data'
+import type { XNetClient } from '@xnetjs/runtime'
+import type { Command } from 'commander'
 import { generateSigningKeyPair, getSigningPublicKeyFromPrivate } from '@xnetjs/crypto'
 import { defineSchema, SQLiteNodeStorageAdapter, text } from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
