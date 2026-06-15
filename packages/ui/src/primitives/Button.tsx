@@ -36,7 +36,7 @@ export const buttonVariants = cva(
   // Base styles
   [
     'inline-flex items-center justify-center gap-2',
-    'whitespace-nowrap rounded-md text-sm font-medium',
+    'whitespace-nowrap rounded-full text-sm font-medium',
     'transition-base',
     // Focus state
     'focus-visible:outline-none focus-visible:ring-2',
