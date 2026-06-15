@@ -67,7 +67,11 @@ jobs:
         with:
           source: /tmp/xnet-pages-root
           target: .
+          # These gh-pages dirs are owned by other workflows; the root sync's
+          # --delete must not wipe them. visuals-baseline holds the Visual UI
+          # Capture baseline that PR diffs compare against.
           exclude: |
             pr
             branch
+            visuals-baseline
           commit-message: 'deploy(site): publish production site'
