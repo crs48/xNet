@@ -232,22 +232,49 @@ function flattenNodeCached<P extends Record<string, PropertyBuilder>>(
  */
 const SYSTEM_ORDER_FIELDS = new Set(['createdAt', 'updatedAt'])
 const warnedUnboundedSorts = new Set<string>()
+
+function isProductionEnv(): boolean {
+  return typeof process !== 'undefined' && process.env?.NODE_ENV === 'production'
+}
+
+/** A list read with no limit/offset/cursor — every matching row is returned. */
+function isUnboundedListQuery(descriptor: QueryDescriptor): boolean {
+  if (descriptor.nodeId) return false
+  if (descriptor.limit !== undefined) return false
+  if (descriptor.after !== undefined) return false
+  return !descriptor.offset
+}
+
+/** Order-by keys that are properties (not indexable system fields). */
+function propertyOrderKeys(descriptor: QueryDescriptor): string[] {
+  return Object.keys(descriptor.orderBy ?? {}).filter((key) => !SYSTEM_ORDER_FIELDS.has(key))
+}
+
+/** Once-per-shape dedup key when a query is unbounded AND property-sorted; else null. */
+function unboundedPropertySortKey(schemaId: string, descriptor: QueryDescriptor): string | null {
+  if (isProductionEnv()) return null
+  if (!isUnboundedListQuery(descriptor)) return null
+  const propertyKeys = propertyOrderKeys(descriptor)
+  return propertyKeys.length > 0 ? `${schemaId}:${propertyKeys.join(',')}` : null
+}
+
+/**
+ * Dev-only guard against the "unbounded + property-sorted" antipattern: a query
+ * with no `limit`/`offset`/`after` that orders by a non-system property cannot
+ * be pushed to SQL, so it full-scans and JS-sorts the whole schema — fine for a
+ * tiny schema, a latent O(n) startup stall once that schema grows (0184).
+ * Warns once per (schema, orderBy) shape; compiled out of production builds.
+ */
 function warnIfUnboundedPropertySort(schemaId: string, descriptor: QueryDescriptor): void {
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') return
-  if (descriptor.nodeId) return
-  const bounded =
-    descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0 || descriptor.after !== undefined
-  if (bounded) return
-  const orderKeys = Object.keys(descriptor.orderBy ?? {})
-  const propertySorted = orderKeys.some((key) => !SYSTEM_ORDER_FIELDS.has(key))
-  if (!propertySorted) return
-  const warnKey = `${schemaId}:${orderKeys.join(',')}`
+  const warnKey = unboundedPropertySortKey(schemaId, descriptor)
+  if (warnKey === null) return
   if (warnedUnboundedSorts.has(warnKey)) return
   warnedUnboundedSorts.add(warnKey)
   console.warn(
-    `[useQuery] Unbounded query on "${schemaId}" ordered by property ${JSON.stringify(orderKeys)} ` +
-      `cannot use an index — it full-scans and JS-sorts the whole schema. Add a \`limit\` and ` +
-      `order by a system field (createdAt/updatedAt), then sort in JS if needed (exploration 0184).`
+    `[useQuery] Unbounded query on "${schemaId}" ordered by property ` +
+      `${JSON.stringify(propertyOrderKeys(descriptor))} cannot use an index — it full-scans and ` +
+      `JS-sorts the whole schema. Add a \`limit\` and order by a system field ` +
+      `(createdAt/updatedAt), then sort in JS if needed (exploration 0184).`
   )
 }
 

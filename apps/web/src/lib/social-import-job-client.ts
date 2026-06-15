@@ -436,17 +436,25 @@ async function commitBrowserSocialImportStage(input: {
     metrics.totalWriteMs += metrics.lastWriteMs
   }
 
-  // Refresh planner statistics so the first post-import load uses indexes
-  // (exploration 0184). Best-effort: a failed ANALYZE must not fail the import.
-  if (input.analyzeDatabase && affectedSchemaIds.size > 0) {
-    try {
-      await input.analyzeDatabase()
-    } catch (err) {
-      console.warn('[social-import] ANALYZE after commit failed', err)
-    }
-  }
+  await analyzeAfterCommit(input.analyzeDatabase, affectedSchemaIds.size)
 
   return { created, updated, batches: completedBatches }
+}
+
+/**
+ * Refresh planner statistics so the first post-import load uses indexes
+ * (exploration 0184). Best-effort: a failed ANALYZE must not fail the import.
+ */
+async function analyzeAfterCommit(
+  analyzeDatabase: (() => Promise<void>) | undefined,
+  affectedSchemaCount: number
+): Promise<void> {
+  if (!analyzeDatabase || affectedSchemaCount === 0) return
+  try {
+    await analyzeDatabase()
+  } catch (err) {
+    console.warn('[social-import] ANALYZE after commit failed', err)
+  }
 }
 
 function assertBrowserSocialImportCommitNotCancelled(jobId: string): void {
