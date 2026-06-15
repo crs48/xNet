@@ -725,35 +725,43 @@ export function CrmKeepInTouchPanel() {
 
 ## Implementation Checklist
 
-- [ ] **M0 — Spike & decide.** Confirm `@xnetjs/history`/change-log can support
-  an audit trail; confirm `email`/`phone` support `multiple`; lock the party +
-  product master shape. Write an ADR for "lifecycle-as-field" and
-  "Contact references social, never forks it."
+- [x] **M0 — Spike & decide.** Confirmed only `person`/`relation` support
+  `multiple` (so `email`/`phone` are single primary fields); locked the party +
+  product master shape; encoded the "lifecycle-as-field" and "Contact references
+  social, never forks it" decisions as the `crm.ts` schema-pack docblock.
+  (Audit-trail-via-`@xnetjs/history` confirmation remains a M3 open item.)
 - [ ] **M1 — Personal CRM (data + logic + surface).**
-  - [ ] Add `Contact`, `Relationship`, `Activity` schemas in `@xnetjs/data`;
-    register in `builtInSchemas`; export from the barrel.
+  - [x] Add `Contact`, `Relationship`, `Activity` schemas in `@xnetjs/data`;
+    register in `builtInSchemas` (versioned + legacy IRIs); export through the
+    `schemas` → `schema` → package barrels. (`packages/data/src/schema/schemas/crm.ts`,
+    validated by `crm.test.ts` — 14 tests; data package typechecks clean.)
   - [ ] Create `@xnetjs/crm` with `cadence.ts` (next-touch/overdue via
     canonical-day) + `vcard.ts` (import/export); unit tests.
-  - [ ] `/crm` singleton tab + route + master/detail view; contact record
-    composing `PersonView` (notes Yjs doc + activity timeline + relationship
-    graph).
+  - [ ] `/crm` singleton tab + route + master/detail view; contact record with
+    notes + activity timeline + relationship list.
   - [ ] "Keep in touch" panel (overdue contacts).
-  - [ ] vCard/CardDAV import; FTS verified on name/email/phone.
+  - [ ] vCard import/export (logic); FTS auto-indexes name/email/phone via the
+    existing indexer (no extra wiring). _(CardDAV sync deferred.)_
 - [ ] **M2 — Business CRM (pipeline).**
-  - [ ] Add `Organization`, `Pipeline`, `Stage`, `Deal`, `DealContactRole`
-    schemas; default saved views (Pipeline board, Contacts, Companies,
-    Activities).
+  - [x] Add `Organization`, `Pipeline`, `Stage`, `Deal`, `DealContactRole`
+    schemas.
+  - [ ] Default pipeline + stages seeded on first use; Pipeline board + Contacts
+    / Companies / Deals surfaces in the CRM workspace.
   - [ ] `pipeline.ts` + `forecast.ts` (weighted value, win rate, velocity,
     funnel, time-in-stage) with tests.
-  - [ ] Pipeline dashboard (metric cards + value-by-stage bar + closing-soon).
-  - [ ] `dedup.ts` (blocking + Jaro-Winkler) emitting `SocialIdentityClaim`
-    candidates; merge UI as master+duplicates graph.
+  - [ ] Pipeline dashboard (metric cards: weighted pipeline, win rate, open
+    count + value-by-stage breakdown), computed via `@xnetjs/crm`.
+  - [ ] `dedup.ts` (blocking + Jaro-Winkler) with tests. _(Merge UI + emitting
+    `SocialIdentityClaim` candidates deferred to a follow-up.)_
   - [ ] LinkedIn-class importer → `SocialActor` → `Contact`/`Organization`
-    mapper, reusing the social import pipeline.
+    mapper, reusing the social import pipeline. _(Deferred — vCard import ships
+    now as the portable on-ramp.)_
 - [ ] **M3 — Enterprise / ERP seam (mostly deferred to follow-ups).**
-  - [ ] `Product` + `LineItem` master; deal line items + deal value rollup.
+  - [x] `Product` + `LineItem` master schemas. _(Line-item editing UI + rollup
+    in `@xnetjs/crm` land with the logic package.)_
   - [ ] Territories via nested Spaces; field-history audit surface.
-  - [ ] Erasure job (`piiErasedAt`, anonymize-not-delete, null activity PII).
+  - [ ] Erasure helper (`anonymizeContact` — `piiErasedAt`, anonymize-not-delete)
+    in `@xnetjs/crm`. _(Background cascade job to null activity PII deferred.)_
   - [ ] Document the `Database` custom-objects path for bespoke objects.
   - [ ] Spawn explorations: **0188 Quote-to-Cash doc chain**, **0189 user-owned /
     bilateral DID contacts & consent**, **0190 ERP accounting (GL/AR/AP)**.
