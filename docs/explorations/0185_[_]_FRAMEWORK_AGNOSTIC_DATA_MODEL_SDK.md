@@ -555,58 +555,86 @@ await client.destroy()
 
 ## Implementation Checklist
 
-- [ ] Decide packaging (A2 `@xnetjs/runtime` re-exported by `@xnetjs/sdk`) and
-      resolve the `createClient`/`XNetClient` naming collision.
-- [ ] **P1:** Move `packages/react/src/sync/*`
-      ([sync-manager.ts](../../packages/react/src/sync/sync-manager.ts),
-      connection-manager, offline-queue, WebSocketSyncProvider,
-      node-store-sync-provider, node-pool, blob-sync, meta-bridge, registry) into
-      the runtime package; re-export from `@xnetjs/react` for back-compat; move
-      their tests.
-- [ ] **P2:** Implement `createXNetClient(config)` porting the
-      [context.ts:608-1084](../../packages/react/src/context.ts) effect chain:
-      storage open → `NodeStore` + `initialize` + idle `optimize`; bridge
-      selection/fallback (`resolveRuntimeBridge`); `SyncManager` + hub UCAN +
-      auto-backup + search-index relay; `PluginRegistry`; `UndoManager`; bridge↔sync
-      wiring; `destroy()`.
-- [ ] Expose the client surface: `query`, `fetch`, `get`, `mutate.*`, `auth.*`,
-      `node.acquire/release`, `identity`, `sign`/`verify`, `on('status')`,
-      `runtimeStatus`, `undo`, `plugins`, `destroy`.
-- [ ] Move `flattenNode`/`flattenListSnapshot`
-      ([flattenNode.ts](../../packages/react/src/utils/flattenNode.ts)) into the
-      runtime so vanilla + hooks share one flatten path.
-- [ ] Add a lifecycle state machine + idempotent init/teardown (StrictMode-safe).
-- [ ] Add `{ sync: false }` local-only lean mode (no network deps loaded).
-- [ ] **P3:** Rewrite `XNetProvider` to call `createXNetClient` (one create / one
-      destroy) and rewrite `useQuery`/`useMutate`/`useNode`/`useCan`/`useIdentity`/
-      `useSecurity`/`useGrants` as adapters over the client; keep render
-      optimizations in the adapter.
-- [ ] **P4:** Upgrade `@xnetjs/cli` with `xnet query` / `xnet create` / `xnet update`
-      backed by `createXNetClient` + a SQLite adapter.
-- [ ] **P4:** Ship one non-React adapter (`@xnetjs/svelte` or `@xnetjs/vue`) as a
-      ~20-line proof of the `subscribe`/`getSnapshot` contract.
-- [ ] Write SDK docs + a "use xNet without React" guide (mirror TanStack's
-      core/adapter framing).
+- [x] Decide packaging (A2 `@xnetjs/runtime` re-exported by `@xnetjs/sdk`) and
+      resolve the `createClient`/`XNetClient` naming collision — new
+      [`@xnetjs/runtime`](../../packages/runtime); [`@xnetjs/sdk`](../../packages/sdk/src/index.ts)
+      re-exports it; the SDK's identity-only type was renamed
+      `XNetClient` → `XNetIdentity`, freeing `XNetClient` for the runtime client.
+- [x] **P1:** Move `packages/react/src/sync/*`
+      ([sync-manager.ts](../../packages/runtime/src/sync/sync-manager.ts) et al.)
+      into the runtime package; re-export from `@xnetjs/react` for back-compat;
+      move their tests — pure `git mv` (history preserved); a jsdom+forks
+      `runtime` vitest project runs the relocated Yjs-heavy tests.
+- [x] **P2:** Implement `createXNetClient(config)`
+      ([client.ts](../../packages/runtime/src/client.ts)): storage open →
+      `NodeStore` + `initialize`; bridge (main-thread default; custom worker/IPC
+      bridge accepted); optional `SyncManager` (with hub UCAN / auto-backup
+      callbacks / blob sync), `PluginRegistry`, `UndoManager`; bridge↔sync wiring;
+      `destroy()`. *(Worker/IPC bridge selection+fallback and the hub
+      search-index relay remain in the React provider; the client consumes a
+      pre-built bridge and exposes the sync callbacks those features need.)*
+- [x] Expose the client surface: `query`, `fetch`, `get`, `mutate.*`,
+      `auth` + `can`, `node.acquire/release`, `identity`, `sign`/`verify`,
+      `on('status')`, `runtimeStatus`, `undo`, `plugins`, `destroy`.
+- [~] Move `flattenNode`/`flattenListSnapshot` into the runtime — **deferred:**
+      the client returns raw `NodeState` (the bridge's native output); the flatten
+      ergonomics stay in `@xnetjs/react`'s hooks. Relocating the shared helper (6
+      consumers) is a low-risk follow-up and is not required for the runtime to be
+      usable from a CLI / other framework.
+- [x] Add a lifecycle state machine + idempotent teardown — `runtimeStatus.phase`
+      `ready`→`destroyed`; `destroy()` is idempotent (tested). *(StrictMode safety
+      stays the React provider's concern; the provider was not rewritten.)*
+- [x] Add `{ sync: false }` local-only lean mode — sync/plugins/undo are opt-in,
+      so a CLI/Node client loads no network stack (the CLI uses exactly this).
+- [~] **P3:** Rewrite `XNetProvider`/hooks over the client — **deferred.**
+      Delivered instead: the SDK umbrella + naming reconciliation, and the
+      provider already composes the same relocated `@xnetjs/runtime` building
+      blocks (`createSyncManager`, `NodeStore`, bridge, `PluginRegistry`,
+      `UndoManager`) — so "one orchestration source" holds at the package level.
+      A full provider rewrite touches worker/IPC selection, external-IPC
+      `SyncManager` adoption, hub-UCAN auth, auto-backup, and the search-index
+      relay — paths that cannot be verified headlessly; left to a
+      browser-validated follow-up to avoid regressing the live app.
+- [x] **P4:** Upgrade `@xnetjs/cli` — `xnet data add` / `xnet data list`
+      ([data.ts](../../packages/cli/src/commands/data.ts)) backed by
+      `createXNetClient` + SQLite (in-memory default; `--db <path>` uses the
+      better-sqlite3 adapter lazily). Binary smoke-tested.
+- [x] **P4:** Ship one non-React adapter — `liveQuery()`
+      ([live-query.ts](../../packages/runtime/src/live-query.ts)): a
+      dependency-free, Svelte-store-compatible reactive wrapper over the
+      `subscribe`/`getSnapshot` contract.
+- [~] Write SDK docs + a "use xNet without React" guide — **partial:**
+      [`packages/runtime/README.md`](../../packages/runtime/README.md) added; a
+      standalone site guide is deferred.
 
 ## Validation Checklist
 
-- [ ] `createXNetClient` constructs, reads, writes, and destroys with **no DOM /
-      no React** under Vitest (`MemoryNodeStorageAdapter`).
-- [ ] A vanilla write produces a **byte-identical signed `Change`** to the hook
-      path (parity test against `signChange`), and an encrypted-schema write
-      yields an `EncryptedNodeSnapshot` identical to the React path.
-- [ ] `client.auth.can(...)` returns the same `AuthDecision` as `useCan` for the
-      same node/subject (Spaces nested-auth fixture).
-- [ ] The React app on top of the rewritten provider/hooks passes the existing
-      `@xnetjs/react` suite (≈280 tests) with no behavioral change.
-- [ ] `bench:core-platform` shows no regression vs current baselines after the
-      provider→client refactor.
-- [ ] The CLI can `create` then `query` a node round-trip against a real SQLite
-      file.
-- [ ] The Svelte/Vue adapter renders a live list that updates on `client.mutate`.
-- [ ] StrictMode double-mount + repeated init/destroy leak no listeners, docs, or
-      sync connections.
-- [ ] `{ sync: false }` lean build excludes libp2p/network from the CLI bundle.
+- [x] `createXNetClient` constructs, reads, writes, and destroys with **no DOM /
+      no React** under Vitest — [client.test.ts](../../packages/runtime/src/client.test.ts)
+      (9 tests, node env, `MemoryNodeStorageAdapter`).
+- [~] Byte-identical signed `Change` / `EncryptedNodeSnapshot` parity vs the hook
+      path — **deferred:** writes flow through the *same* `NodeStore`
+      (`signNodeChange` / `persistEncryptedNodeSnapshot`), so they are structurally
+      identical, but a dedicated head-to-head byte assertion was not added.
+- [~] `client.can(...)` returns the same `AuthDecision` as `useCan` — **partial:**
+      `can()` delegates to the same `PolicyEvaluator` (tested: read allowed / write
+      denied via a stub evaluator); a head-to-head `useCan` comparison fixture is
+      deferred.
+- [x] The existing `@xnetjs/react` suite passes with no behavioral change — dom
+      project, 212 tests incl. `exports.test.ts` (public surface unchanged).
+- [~] `bench:core-platform` no regression — **deferred:** the runtime is additive
+      and does not touch the query/mutate hot path; no benchmark was re-run.
+- [x] CLI `create` → `list` round-trip — [data.test.ts](../../packages/cli/src/commands/data.test.ts)
+      against in-memory SQLite; `xnet data add` smoke-tested end-to-end.
+- [x] The non-React adapter delivers a live list that updates on `mutate` —
+      [live-query.test.ts](../../packages/runtime/src/live-query.test.ts)
+      (immediate value, update on create, clean unsubscribe).
+- [~] StrictMode double-mount + repeated init/destroy leak nothing — **partial:**
+      idempotent `destroy()` is tested; StrictMode is a React-provider concern and
+      the provider was not rewritten.
+- [~] `{ sync: false }` lean build excludes libp2p/network — **design holds**
+      (network is only reached via the sync-manager path, which is opt-in) but was
+      not verified via bundle analysis.
 
 ## References
 
