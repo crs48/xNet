@@ -818,14 +818,22 @@ t.reportUsage('view.opened', 1)                                         // surfa
       anonymous tier carries `did_hash = NULL`.
 
 **Slice 3 — Analytics + dashboard**
-- [ ] Add `@duckdb/node-api`; `runTelemetryQuery` (lazy, `ATTACH` both DBs
-      read-only, memory-capped, torn down) in `src/telemetry/analytics.ts`.
-- [ ] Rollup cron (`metrics_hourly`/`_daily`) + `GET /telemetry/query` serving
-      named panels from rollups, escalating to DuckDB for joined/historical.
-- [ ] Phase 1: enrich `packages/devtools` `TelemetryPanel` with `@xnetjs/charts`
-      mini-panels over the live local stream.
-- [ ] Phase 2: `apps/web/src/routes/analytics.tsx`, lazy-loaded + capability/flag
-      gated, using chart widgets (E2 direct-fetch first).
+- [x] `runTelemetryJoinQuery` (lazy, `ATTACH` both DBs read-only, memory-capped,
+      torn down) in `src/telemetry/analytics.ts`. `@duckdb/node-api` is loaded as
+      an **optional** dynamic import (not a hard dep — native + non-replicable),
+      with `isDuckDbAvailable()` and a clear "not installed" error.
+- [x] Rollups maintained **incrementally on ingest** (no cron needed) +
+      admin-gated `GET /telemetry/summary` / `/rollups` / `/events` serving named
+      panels from the rollup table. DuckDB escalation is the
+      `runTelemetryJoinQuery` primitive (intentionally not arbitrary SQL over
+      HTTP — risk note).
+- [x] Phase 1: enriched `packages/devtools` `TelemetryPanel` with a **Usage**
+      sub-tab (per-metric bucket histograms over the live local stream). Uses
+      inline bars rather than adding `@xnetjs/charts` to devtools.
+- [x] Phase 2: `apps/web/src/routes/analytics.tsx` (code-split route) + 
+      `useTelemetryAnalytics` hook, flag-gated (`VITE_TELEMETRY_DASHBOARD`) and
+      admin-gated server-side, E2 direct-fetch of hub rollups, lightweight inline
+      bars (no charts dep → no app bloat).
 - [ ] (Stretch) E1 read-only "telemetry source" adapter so `views`/dashboard
       widgets can render telemetry generically without making it graph nodes.
 
