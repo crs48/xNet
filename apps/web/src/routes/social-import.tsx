@@ -234,6 +234,7 @@ function SocialImportPage(): React.ReactElement {
         },
         getOperationStats: async () =>
           (await store.getStorageAdapter().getOperationStats?.()) ?? null,
+        analyzeDatabase: () => store.analyze(),
         onProgress: (progress) => {
           setCommitProgress(progress)
           upsertResumeRecord(progress)
@@ -352,6 +353,7 @@ function SocialImportPage(): React.ReactElement {
           },
           getOperationStats: async () =>
             (await store.getStorageAdapter().getOperationStats?.()) ?? null,
+          analyzeDatabase: () => store.analyze(),
           onProgress: (progress) => {
             setCommitProgress(progress)
             upsertResumeRecord(progress)

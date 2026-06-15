@@ -476,6 +476,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       applyNodeBatch: (input) => this.applyNodeBatchInternal(input),
       rebuildIndexesForSchemas: (schemaIds, options) =>
         this.rebuildIndexesForSchemasInternal(schemaIds, options),
+      analyze: () => this.analyze(),
+      optimize: () => this.optimize(),
       deleteNode: (id) => this.deleteNodeInternal(id),
       listNodes: (options) => this.listNodes(options),
       countNodes: (options) => this.countNodes(options),
@@ -963,8 +965,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const ids = idRows.map((row) => row.id)
     const candidates = await this.hydrateNodesByIds(ids)
     const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
+    // Only pay the separate `COUNT(*)` when the caller explicitly asks for an
+    // exact total. Default/`none`/`estimate` reads leave `totalCount` undefined
+    // and the bridge derives a cheap value (candidate count / overfetch). This
+    // removes a per-list index-wide scan that grows with the schema and is
+    // never shown by list surfaces like the sidebar (exploration 0184). When
+    // the query isn't SQL-paginated every matching row is already in memory, so
+    // its count is free and exact regardless of mode.
     const totalCount = compiled.sqlPagination
-      ? await this.countCompiledNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
+      ? descriptor.count === 'exact'
+        ? await this.countCompiledNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
+        : undefined
       : applyNodeQueryDescriptor(
           candidates,
           withoutNodeQueryPagination(compiled.postFilterDescriptor)
@@ -1717,6 +1728,32 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     return { scalarRowsWritten, ftsRowsWritten }
+  }
+
+  /**
+   * Refresh the full query-planner statistics (`ANALYZE`). Call after a bulk
+   * import: SQLite does not auto-maintain stats, so a large insert leaves the
+   * planner "out of sync" and reads can pick full scans over indexes
+   * (exploration 0184). Best-effort — never throws into the caller.
+   */
+  async analyze(): Promise<void> {
+    try {
+      await this.db.exec('ANALYZE')
+    } catch {
+      // ANALYZE is an optimization, never correctness-critical.
+    }
+  }
+
+  /**
+   * Incremental planner maintenance (`PRAGMA optimize`) — only ANALYZEs tables
+   * whose row counts have drifted. Cheap; safe to call at idle / before close.
+   */
+  async optimize(): Promise<void> {
+    try {
+      await this.db.exec('PRAGMA optimize')
+    } catch {
+      // best-effort
+    }
   }
 
   async rebuildIndexesForSchemas(

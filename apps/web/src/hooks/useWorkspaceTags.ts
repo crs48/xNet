@@ -50,9 +50,15 @@ export interface WorkspaceTagsApi {
 
 export function useWorkspaceTags(): WorkspaceTagsApi {
   const { create, mutate } = useMutate()
-  const { data: tagDocs } = useQuery(TagSchema, { orderBy: { name: 'asc' } })
+  // Sort by an indexed system field (not the `name` property, which can't be
+  // pushed to SQL and forces a full-schema scan) and bound the read, then sort
+  // by name in JS. Keeps the picker fast as the workspace grows (0184).
+  const { data: tagDocs } = useQuery(TagSchema, { orderBy: { updatedAt: 'desc' }, limit: 500 })
 
-  const allTags = useMemo(() => (tagDocs ?? []).map(toTagEntry), [tagDocs])
+  const allTags = useMemo(
+    () => (tagDocs ?? []).map(toTagEntry).sort((a, b) => a.name.localeCompare(b.name)),
+    [tagDocs]
+  )
   const active = useMemo(() => dedupeTagsByName(allTags), [allTags])
   const suggestions = useMemo<HashtagSuggestion[]>(
     () => active.map((tag) => ({ id: tag.id, name: tag.name })),

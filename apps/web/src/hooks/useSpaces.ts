@@ -109,9 +109,15 @@ export interface SpacesApi {
 export function useSpaces(): SpacesApi {
   const { create, mutate } = useMutate()
   const { did } = useIdentity()
-  const { data: spaceDocs } = useQuery(SpaceSchema, { orderBy: { name: 'asc' } })
+  // Indexed system order + bounded read (sorting by the `name` property can't
+  // be pushed to SQL and would full-scan the schema); name order is applied in
+  // JS below (exploration 0184).
+  const { data: spaceDocs } = useQuery(SpaceSchema, { orderBy: { updatedAt: 'desc' }, limit: 500 })
 
-  const allSpaces = useMemo(() => (spaceDocs ?? []).map(toSpaceEntry), [spaceDocs])
+  const allSpaces = useMemo(
+    () => (spaceDocs ?? []).map(toSpaceEntry).sort((a, b) => a.name.localeCompare(b.name)),
+    [spaceDocs]
+  )
   const spaces = useMemo(() => activeSpaces(allSpaces), [allSpaces])
   const tree = useMemo(() => buildSpaceTree(spaces), [spaces])
   const byId = useMemo(() => new Map(allSpaces.map((s) => [s.id, s])), [allSpaces])

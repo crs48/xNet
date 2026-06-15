@@ -218,14 +218,43 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       this.execSync('PRAGMA busy_timeout = 5000')
     }
 
-    // Performance settings
+    // Performance settings — tuned for large (multi-hundred-MB / GB) OPFS
+    // databases, see exploration 0184. `page_size` only takes effect on a
+    // fresh database (or after a VACUUM), and must be set before any table
+    // exists — `applySchema()` runs after `open()`, so this is the right spot.
+    // Larger pages mean fewer (synchronous) OPFS reads per index/table scan.
+    try {
+      this.execSync('PRAGMA page_size = 8192')
+    } catch (err) {
+      log('[WebSQLiteAdapter] page_size pragma not applied:', err)
+    }
     this.execSync('PRAGMA synchronous = NORMAL')
-    this.execSync('PRAGMA cache_size = -64000') // 64MB
+    // 256 MB page cache (negative = KiB). The previous 64 MB could not hold the
+    // working set of a 1 GB+ database, so cold reads thrashed OPFS. This is the
+    // single biggest documented OPFS speedup.
+    this.execSync('PRAGMA cache_size = -262144')
     this.execSync('PRAGMA temp_store = MEMORY')
+    // TRUNCATE journaling is the fastest durable mode on OPFS per wa-sqlite
+    // benchmarks (faster than both DELETE and WAL). Guard it: some OPFS VFS
+    // builds constrain the available journal modes.
+    try {
+      this.execSync('PRAGMA journal_mode = TRUNCATE')
+    } catch (err) {
+      log('[WebSQLiteAdapter] journal_mode pragma not applied:', err)
+    }
   }
 
   async close(): Promise<void> {
     if (this.db) {
+      // Refresh query-planner statistics on the way out (SQLite-recommended:
+      // run `PRAGMA optimize` before closing each connection). Cheap — it only
+      // ANALYZEs tables whose row counts drifted — and keeps the next cold
+      // start fast as the database grows (exploration 0184).
+      try {
+        this.execSync('PRAGMA optimize')
+      } catch (err) {
+        log('[WebSQLiteAdapter] optimize on close skipped:', err)
+      }
       this.db.close()
       this.db = null
     }

@@ -1287,7 +1287,8 @@ describe('SQLiteNodeStorageAdapter', () => {
         includeDeleted: false,
         where: { status: 'open' },
         orderBy: { updatedAt: 'desc' },
-        limit: 1
+        limit: 1,
+        count: 'exact'
       }
 
       const result = await adapter.queryNodes(descriptor)
@@ -1364,18 +1365,22 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
 
     it('pushes down limit and offset for system-field ordering', async () => {
+      // `count: 'exact'` opts in to the COUNT(*) total (exploration 0184); by
+      // default it is skipped to avoid an index-wide scan per list read.
       const byCreatedAt = await adapter.queryNodes({
         schemaId: taskSchemaId,
         includeDeleted: false,
         orderBy: { createdAt: 'asc' },
         limit: 2,
-        offset: 1
+        offset: 1,
+        count: 'exact'
       })
       const byUpdatedAt = await adapter.queryNodes({
         schemaId: taskSchemaId,
         includeDeleted: false,
         orderBy: { updatedAt: 'desc' },
-        limit: 2
+        limit: 2,
+        count: 'exact'
       })
 
       expect(byCreatedAt.nodes.map((node) => node.id)).toEqual(['task-open-low', 'task-done'])
@@ -1384,6 +1389,19 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(byUpdatedAt.totalCount).toBe(4)
       expect(byCreatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
       expect(byUpdatedAt.plan.postFilterReason).toBe('pagination-pushed-down')
+    })
+
+    it('skips the COUNT(*) total unless an exact count is requested', async () => {
+      // Default list read: total is left undefined so the bridge derives a
+      // cheap value; the expensive per-list COUNT scan is avoided (0184).
+      const withoutCount = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 2
+      })
+      expect(withoutCount.nodes).toHaveLength(2)
+      expect(withoutCount.totalCount).toBeUndefined()
     })
 
     it('uses node ID as the cursor tie-breaker for duplicate sort values', async () => {

@@ -95,6 +95,13 @@ export type StartBrowserSocialImportCommitJobInput = {
   }>
   getOperationStats?: () => Promise<SQLiteOperationStats | null>
   rebuildIndexesForSchemas?: (schemaIds: readonly SchemaIRI[]) => Promise<void>
+  /**
+   * Refresh query-planner statistics (ANALYZE) once the import has committed.
+   * SQLite does not auto-maintain stats after a bulk insert, so without this
+   * the first post-import reads can pick full scans over indexes — the cause
+   * of the slow-after-import sidebar (exploration 0184).
+   */
+  analyzeDatabase?: () => Promise<void>
   onProgress?: (progress: BrowserSocialImportCommitProgress) => void
 }
 
@@ -242,6 +249,7 @@ async function commitBrowserSocialImportStage(input: {
   importDrafts: StartBrowserSocialImportCommitJobInput['importDrafts']
   getOperationStats?: StartBrowserSocialImportCommitJobInput['getOperationStats']
   rebuildIndexesForSchemas?: StartBrowserSocialImportCommitJobInput['rebuildIndexesForSchemas']
+  analyzeDatabase?: StartBrowserSocialImportCommitJobInput['analyzeDatabase']
   onProgress?: (progress: BrowserSocialImportCommitProgress) => void
   jobId: string
   initialProgress?: StartBrowserSocialImportCommitJobInput['initialProgress']
@@ -428,7 +436,25 @@ async function commitBrowserSocialImportStage(input: {
     metrics.totalWriteMs += metrics.lastWriteMs
   }
 
+  await analyzeAfterCommit(input.analyzeDatabase, affectedSchemaIds.size)
+
   return { created, updated, batches: completedBatches }
+}
+
+/**
+ * Refresh planner statistics so the first post-import load uses indexes
+ * (exploration 0184). Best-effort: a failed ANALYZE must not fail the import.
+ */
+async function analyzeAfterCommit(
+  analyzeDatabase: (() => Promise<void>) | undefined,
+  affectedSchemaCount: number
+): Promise<void> {
+  if (!analyzeDatabase || affectedSchemaCount === 0) return
+  try {
+    await analyzeDatabase()
+  } catch (err) {
+    console.warn('[social-import] ANALYZE after commit failed', err)
+  }
 }
 
 function assertBrowserSocialImportCommitNotCancelled(jobId: string): void {

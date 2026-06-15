@@ -94,7 +94,12 @@ export function ExplorerFoldersProvider({
   children: ReactNode
 }) {
   const { create, mutate } = useMutate()
-  const { data: folderDocs } = useQuery(FolderSchema, { orderBy: { createdAt: 'asc' } })
+  // Bounded read; `createdAt` is an indexed system order so this stays on the
+  // fast path as the workspace grows (exploration 0184).
+  const { data: folderDocs } = useQuery(FolderSchema, {
+    orderBy: { createdAt: 'asc' },
+    limit: 500
+  })
 
   const folders = useMemo(() => (folderDocs ?? []).map(toFolderEntry), [folderDocs])
   const foldersById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders])
