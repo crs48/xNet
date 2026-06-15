@@ -648,7 +648,7 @@ sequenceDiagram
 
 ### V1 — Personal finance, local-first (no cloud dependency)
 
-- [ ] Add `money()` property helper + `MoneyValue` type in
+- [x] Add `money()` property helper + `MoneyValue` type in
       `packages/data/src/schema/properties/money.ts`; wire into the property
       barrel and validation/coercion paths.
 - [ ] Define `AccountSchema`, `TransactionSchema`, `PostingSchema` (+ `BudgetSchema`,
