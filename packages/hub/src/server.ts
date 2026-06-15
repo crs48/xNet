@@ -63,6 +63,7 @@ import { TaskIdentifierService } from './services/task-identifiers'
 import { createStorage } from './storage'
 import { createHubTelemetry } from './telemetry/bridge'
 import { createTelemetryStore } from './telemetry/store'
+import { createTelemetryMaintenance } from './telemetry/tiering'
 
 const getMessageSize = (data: RawData): number => {
   if (typeof data === 'string') {
@@ -629,6 +630,20 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     config.storage === 'memory' ? ':memory:' : config.dataDir
   )
   const hubTelemetry = createHubTelemetry({ store: telemetryStore, metrics })
+  // Tiering/retention (exploration 0187): keep telemetry.db bounded — export aged
+  // raw rows to Parquet on R2 when configured, then prune. Rollups are retained.
+  const telemetryRetentionDays = Number(process.env.HUB_TELEMETRY_RETENTION_DAYS) || 7
+  const telemetryMaintenance = createTelemetryMaintenance({
+    store: telemetryStore,
+    retentionMs: telemetryRetentionDays * 24 * 60 * 60 * 1000,
+    coldBucket: process.env.HUB_TELEMETRY_COLD_BUCKET || undefined,
+    credentials: {
+      endpoint: process.env.HUB_TELEMETRY_R2_ENDPOINT,
+      accessKeyId: process.env.HUB_TELEMETRY_R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.HUB_TELEMETRY_R2_SECRET_ACCESS_KEY,
+      region: process.env.HUB_TELEMETRY_R2_REGION
+    }
+  })
   const rateLimiter = new RateLimiter({
     perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
     maxConnections: config.rateLimit?.maxConnections ?? config.maxConnections,
@@ -964,6 +979,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const start = async (): Promise<void> => {
     if (httpServer) return
     hubTelemetry.start()
+    // Memory storage is ephemeral, so retention/tiering is pointless there.
+    if (config.storage !== 'memory') telemetryMaintenance.start()
     awareness.start()
     discovery.start()
     if (federationConfig.enabled) {
@@ -1624,6 +1641,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     await storage.close()
 
     hubTelemetry.stop()
+    telemetryMaintenance.stop()
     telemetryStore.close()
     awareness.stop()
     discovery.stop()

@@ -736,6 +736,21 @@ t.reportUsage('view.opened', 1)                                         // surfa
 // crashes: <TelemetryErrorBoundary> already reports via reportCrash on throw
 ```
 
+### 8. Operator configuration (as built)
+
+Hub-side env vars (all optional; sensible defaults):
+
+| Env var | Default | Effect |
+|---|---|---|
+| `HUB_TELEMETRY_SALT` | `''` | Salt for hashing sender DIDs at ingest. **Set this** for real anonymity. |
+| `HUB_TELEMETRY_RETENTION_DAYS` | `7` | Age after which raw events are exported (if cold tier set) + pruned. Rollups are kept indefinitely. |
+| `HUB_TELEMETRY_COLD_BUCKET` | unset | e.g. `s3://xnet-telemetry`. When set (and `@duckdb/node-api` installed), aged raw rows are exported to Parquet before prune; otherwise prune-only. |
+| `HUB_TELEMETRY_R2_ENDPOINT` / `_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` / `_REGION` | unset | R2/S3 credentials for the cold export. |
+
+Client-side (web): `VITE_TELEMETRY_DASHBOARD=1` enables the `/analytics` route
+(still admin-gated server-side). For Litestream replication of the second DB,
+add a `telemetry.db` entry to the operator's `litestream.yml`.
+
 ## Risks And Open Questions
 
 - **Consent honesty.** `apps/electron/src/renderer/main.tsx` currently forces
@@ -838,11 +853,18 @@ t.reportUsage('view.opened', 1)                                         // surfa
       widgets can render telemetry generically without making it graph nodes.
 
 **Slice 4 — Tiering + retention**
-- [ ] Nightly `exportColdTier` (DuckDB → Parquet on R2, day/kind-partitioned) +
-      `DELETE` aged raw rows; schedule away from ingest peaks.
+- [x] `exportColdTier` (DuckDB → Parquet on R2, `kind`-partitioned, zstd) +
+      `DELETE` aged raw rows, run by a periodic `createTelemetryMaintenance` loop
+      (default 6h, `unref`'d) wired into the server lifecycle. Guarded: degrades
+      to prune-only when DuckDB/R2 aren't configured.
 - [ ] Dashboard fan-out: hot SQLite `UNION` cold `read_parquet('s3://…')`.
-- [ ] Document retention windows + per-plan ingest/storage budgets;
-      reuse rate-limit machinery for per-hub ingest caps.
+      (Deferred — hourly **rollups are retained indefinitely**, so the dashboard
+      time-series already survives the raw-row prune; cold-Parquet fan-out is only
+      needed for raw-event drill-down beyond the retention window.)
+- [x] Retention window configurable via `HUB_TELEMETRY_RETENTION_DAYS` (default 7)
+      + cold tier via `HUB_TELEMETRY_COLD_BUCKET` / `HUB_TELEMETRY_R2_*`; documented
+      below. (Per-plan ingest/storage budgets + per-route ingest rate-limit reuse
+      tracked as a follow-up.)
 
 ## Validation Checklist
 
