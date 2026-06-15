@@ -600,10 +600,7 @@ export {
 // Sync
 // =============================================================================
 
-export {
-  WebSocketSyncProvider,
-  type WebSocketSyncProviderOptions
-} from '@xnetjs/runtime'
+export { WebSocketSyncProvider, type WebSocketSyncProviderOptions } from '@xnetjs/runtime'
 
 export {
   createSyncManager,

@@ -138,10 +138,7 @@ export {
   flattenNodesWithSchemaCheck,
   type FlattenNodeOptions
 } from './utils/flattenNode'
-export {
-  WebSocketSyncProvider,
-  type WebSocketSyncProviderOptions
-} from '@xnetjs/runtime'
+export { WebSocketSyncProvider, type WebSocketSyncProviderOptions } from '@xnetjs/runtime'
 export {
   createSyncManager,
   type SyncManager,

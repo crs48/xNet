@@ -14,12 +14,7 @@
  */
 import type { BlobStoreForSync } from './sync/blob-sync'
 import type { SyncManager } from './sync/sync-manager'
-import type {
-  AuthCheckInput,
-  AuthDecision,
-  DID,
-  PolicyEvaluator
-} from '@xnetjs/core'
+import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
 import type {
   AcquiredDoc,
   BridgeTransactionResult,
@@ -305,8 +300,7 @@ export async function createXNetClient(options: CreateXNetClientOptions): Promis
   // ── sync manager (optional) ──────────────────────────────────────
   let syncManager: SyncManager | null = null
   if (sync) {
-    const signalingUrl =
-      sync.signalingUrl ?? sync.signalingUrls?.[0] ?? 'ws://localhost:4444'
+    const signalingUrl = sync.signalingUrl ?? sync.signalingUrls?.[0] ?? 'ws://localhost:4444'
     syncManager = createSyncManager({
       nodeStore: store,
       storage,
