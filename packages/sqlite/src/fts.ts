@@ -243,6 +243,19 @@ export function extractSearchableContent(properties: Record<string, unknown>): s
     parts.push(body)
   }
 
+  // Check for name property (schemas that use `name` instead of `title`,
+  // e.g. Project, Channel, Metric — exploration 0180).
+  const name = properties.name
+  if (typeof name === 'string') {
+    parts.push(name)
+  }
+
+  // Check for note property (e.g. Observation — exploration 0180).
+  const note = properties.note
+  if (typeof note === 'string') {
+    parts.push(note)
+  }
+
   return parts.length > 0 ? parts.join(' ') : null
 }
 

@@ -35,6 +35,12 @@ export interface UseHabitsResult {
     schedule?: string
     scheduleDays?: number[]
   }) => Promise<string | null>
+  /** Create a blank metric (defaults: boolean kind, no schedule) for the editor. */
+  createMetric: (input?: {
+    name?: string
+    kind?: string
+    schedule?: string
+  }) => Promise<string | null>
 }
 
 export function useHabits(): UseHabitsResult {
@@ -101,6 +107,18 @@ export function useHabits(): UseHabitsResult {
     [create]
   )
 
+  const createMetric = useCallback<UseHabitsResult['createMetric']>(
+    async (input) => {
+      const node = await create(MetricSchema, {
+        name: input?.name ?? 'New metric',
+        kind: (input?.kind ?? 'boolean') as 'boolean',
+        schedule: (input?.schedule ?? 'none') as 'none'
+      })
+      return node?.id ?? null
+    },
+    [create]
+  )
+
   return {
     metrics,
     observations,
@@ -110,6 +128,7 @@ export function useHabits(): UseHabitsResult {
     summaryFor: (metric) => habitSummary(metric, observations, today),
     toggleHabit,
     logValue,
-    createHabit
+    createHabit,
+    createMetric
   }
 }
