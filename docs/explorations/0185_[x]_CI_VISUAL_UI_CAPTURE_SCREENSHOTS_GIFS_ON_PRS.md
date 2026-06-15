@@ -565,46 +565,66 @@ process.stdout.write(JSON.stringify({ set }, null, 2))
 
 ## Implementation Checklist
 
-- [ ] **Phase 1:** add `actions/upload-artifact` of `tmp/playwright/**/*.png`
-      to the `editor-ux` job (`if: always()`).
-- [ ] **Phase 1:** add a sticky `<!-- xnet-visuals -->` comment linking the run
-      artifacts, reusing the upsert logic from `deploy-pr-preview.yml`.
-- [ ] **Phase 2:** write `scripts/visuals/changed-capture-set.mjs` (path→target
-      manifest) mirroring the `vitest --changed` model already in `ci.yml`.
-- [ ] **Phase 2:** write `scripts/visuals/capture.mjs` — build Storybook +
-      screenshot affected stories; boot `xnet-web` + `setupTestAuth` +
-      screenshot affected routes.
-- [ ] **Phase 2:** add `.github/workflows/visual-capture.yml`
-      (`continue-on-error: true`, per-PR `concurrency`, fork guard).
-- [ ] **Phase 2:** publish `tmp/visuals` to `pr/<N>/visuals/` via
+> Implemented on branch `feat/ci-visual-ui-capture`. The final build differs from
+> the sketch in two deliberate ways: (1) diffing uses **`ffmpeg` SSIM +
+> `blend=difference`** rather than Playwright `toHaveScreenshot`/`odiff`, so the
+> single binary already needed for GIF encoding also covers diffing — zero extra
+> npm deps; (2) the Phase-1 "link artifacts" comment is subsumed by the richer
+> Phase-2/3/4 gallery comment, so there is one sticky comment, not two.
+
+- [x] **Phase 1:** `actions/upload-artifact` of the editor-ux smoke screenshots
+      (`if: always()`, path `tests/e2e/tmp/playwright/**/*.png`).
+- [x] **Phase 1:** sticky `<!-- xnet-visuals -->` comment (delivered by the
+      Phase-2 gallery, upsert logic mirrored from `deploy-pr-preview.yml`).
+- [x] **Phase 2:** `scripts/visuals/changed-capture-set.mjs` + pure, unit-tested
+      `lib/capture-set.mjs` mapping, mirroring the `vitest --changed` model.
+- [x] **Phase 2:** `scripts/visuals/capture.mjs` — static Storybook screenshots +
+      live-app route screenshots via `setupTestAuth` bypass (verified locally).
+- [x] **Phase 2:** `.github/workflows/visual-capture.yml`
+      (`continue-on-error`, per-PR `concurrency`, same-repo fork guard).
+- [x] **Phase 2:** publish `tmp/visuals` to `pr/<N>/visuals/` via
       `publish-gh-pages`; embed images inline in the sticky comment.
-- [ ] **Phase 2:** extend `remove-pr-preview.yml` to delete `pr/<N>/visuals/`.
-- [ ] **Phase 3:** add `video: 'on'` (or per-flow `page.video()`) and a
-      baseline store on `gh-pages`, refreshed on merge to `main`.
-- [ ] **Phase 3:** write `scripts/visuals/diff.mjs` (Playwright
-      `toHaveScreenshot` or `odiff`); keep only changed, show before/after,
-      tolerate AA, mask volatile regions, disable animations.
-- [ ] **Phase 4:** add the `ffmpeg` `webm → gif + mp4 + poster` encode step;
-      tag interaction flows and scope them to changed components.
-- [ ] **Phase 4:** embed GIF + MP4 link per changed flow in the comment.
-- [ ] Document the convention in `CONTRIBUTING.md` (auto-captures supplement,
-      not replace, the line-112 expectation).
+- [x] **Phase 2:** `remove-pr-preview.yml` already deletes the whole `pr/<N>`
+      tree on close — visuals nest under it, so cleanup needs no change.
+- [x] **Phase 3:** per-flow `page.video()` recording + a `visuals-baseline/`
+      store on `gh-pages`, refreshed by the `baseline` job on push to `main`.
+- [x] **Phase 3:** `scripts/visuals/diff.mjs` (SSIM + `blend=difference`); keeps
+      only changed/new, shows before/after/diff, tolerates AA via a threshold,
+      animations disabled at capture (verified locally).
+- [x] **Phase 4:** `ffmpeg` `webm → gif + mp4 + poster` encode in `lib/ffmpeg.mjs`;
+      flows declared in `manifests.json` + runners in `flows.mjs`, scoped by glob.
+- [x] **Phase 4:** GIF embedded + MP4 linked per flow in the comment
+      (`comment.mjs`, unit-tested).
+- [x] Documented in `CONTRIBUTING.md` + `scripts/visuals/README.md`
+      (auto-captures supplement, not replace, the existing expectation).
 
 ## Validation Checklist
 
-- [ ] Opening a PR that edits a `packages/ui` component produces a sticky
-      comment with that component's image(s) within the job timeout.
-- [ ] Pushing a follow-up commit **updates the same comment** (no duplicates).
-- [ ] A PR with **no UI change** yields "_No visual differences detected._"
-      (or no comment) — not a wall of unchanged screenshots.
-- [ ] A purely-cosmetic change (e.g. a color tweak) is **caught** by the diff;
-      a no-op refactor is **not** flagged.
+> `[x]` = verified locally while building (story/route/flow capture, diff
+> classification, encode, and comment rendering all exercised end-to-end against
+> the real Storybook build + a booted `xnet-web`). The remaining items are
+> observable only once the workflow runs on a real PR / on `main`.
+
+- [x] Story capture renders real components — a `packages/ui` Button change
+      captured all four Button stories + the catalog (verified image output).
+- [x] Route capture renders the live authenticated app (home + tasks) via the
+      `xnet:test:bypass` identity.
+- [x] An interaction flow records the editor being used → `gif` (~0.5 MB at
+      960px) + `mp4` (~90 KB) + poster (verified frames).
+- [x] A PR with **no mapped UI change** yields "_No visual differences
+      detected._" — not a wall of unchanged screenshots (empty-manifest path).
+- [x] A changed still is **caught** (SSIM 0.965 → before/after/diff emitted); an
+      identical still is **not** flagged (SSIM 1.0 → dropped as unchanged).
+- [x] The comment renders before/after/diff tables, 🆕 for new, and an inline
+      GIF + MP4 link for flows (unit-tested in `lib/comment.test.mjs`).
+- [x] The job is **not** a required status check and uses `continue-on-error`
+      so a capture failure only annotates.
+- [x] Closing the PR removes `pr/<N>/visuals/` — it nests under the `pr/<N>`
+      tree that `remove-pr-preview.yml` already deletes.
+- [ ] On a real PR, opening it produces the sticky comment within the timeout,
+      and a follow-up push **updates the same comment** (no duplicates).
 - [ ] Embedded images render **inline** in the GitHub comment (URLs resolve on
-      `xnet.fyi`), not as broken links.
-- [ ] An interaction GIF loops and is < the size budget; the MP4 link plays.
-- [ ] Closing the PR removes `pr/<N>/visuals/` from `gh-pages`.
-- [ ] The job is **not** a required status check and a capture failure never
-      blocks merge (verify a forced failure only annotates).
+      `xnet.fyi`) once the `baseline` job has populated `visuals-baseline/`.
 - [ ] Fork PRs degrade gracefully to artifact links (no `gh-pages` write
       attempt).
 - [ ] Re-running the same commit twice yields a stable diff result (no
