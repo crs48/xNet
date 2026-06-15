@@ -1,0 +1,226 @@
+name: Visual UI Capture
+
+# Screenshots (and, for tagged flows, interaction GIF/MP4) of the UI a PR
+# changes, published to gh-pages and embedded in a sticky PR comment. Diffs
+# against a `main` baseline so only genuinely-changed UI surfaces.
+#
+# This is INFORMATIONAL: it is never a required check and a capture failure must
+# never block a merge (continue-on-error throughout). Path-filtered so pure
+# backend PRs don't pay for an app boot.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'packages/ui/**'
+      - 'packages/editor/**'
+      - 'packages/views/**'
+      - 'packages/canvas/**'
+      - 'packages/canvas-core/**'
+      - 'packages/dashboard/**'
+      - 'packages/experiments/**'
+      - 'packages/social/**'
+      - 'packages/abuse/**'
+      - 'apps/web/src/**'
+      - 'scripts/visuals/**'
+      - '.storybook/**'
+      - '.github/workflows/visual-capture.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/ui/**'
+      - 'packages/editor/**'
+      - 'packages/views/**'
+      - 'packages/canvas/**'
+      - 'packages/canvas-core/**'
+      - 'packages/dashboard/**'
+      - 'packages/experiments/**'
+      - 'packages/social/**'
+      - 'packages/abuse/**'
+      - 'apps/web/src/**'
+      - 'scripts/visuals/**'
+      - '.storybook/**'
+      - '.github/workflows/visual-capture.yml'
+
+permissions:
+  contents: write # publish-gh-pages
+  pull-requests: write # sticky comment
+
+concurrency:
+  group: visuals-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  BASELINE_URL: https://xnet.fyi/visuals-baseline
+  WEB_URL: http://127.0.0.1:5173
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # PR: capture changed UI, diff vs baseline, publish + comment.
+  # ---------------------------------------------------------------------------
+  capture:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: ./.github/actions/setup
+
+      - name: Fetch diff base
+        run: git fetch --no-tags origin "${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+
+      - name: Build packages
+        run: pnpm turbo run build --filter='./packages/*'
+
+      - name: Build Storybook
+        run: pnpm build:stories
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start web app
+        run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
+
+      - name: Wait for web app
+        run: for i in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
+
+      - name: Compute capture set
+        id: set
+        run: |
+          node scripts/visuals/changed-capture-set.mjs \
+            --base "origin/${{ github.base_ref }}" \
+            --storybook-index storybook-static/index.json \
+            --out tmp/capture-set.json
+          echo "empty=$(node -p "require('./tmp/capture-set.json').empty")" >> "$GITHUB_OUTPUT"
+
+      - name: Capture
+        if: steps.set.outputs.empty != 'true'
+        continue-on-error: true
+        run: |
+          node scripts/visuals/capture.mjs \
+            --set tmp/capture-set.json \
+            --out tmp/visuals \
+            --storybook-static storybook-static \
+            --web-url "$WEB_URL"
+
+      - name: Diff vs baseline
+        if: steps.set.outputs.empty != 'true' && hashFiles('tmp/visuals/manifest.json') != ''
+        continue-on-error: true
+        run: |
+          node scripts/visuals/diff.mjs \
+            --manifest tmp/visuals/manifest.json \
+            --baseline-url "$BASELINE_URL" \
+            --out tmp/visuals
+
+      - name: Upload artifact
+        if: always() && hashFiles('tmp/visuals/**') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-visuals-pr-${{ github.event.pull_request.number }}
+          path: tmp/visuals
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Publish visuals to gh-pages
+        if: hashFiles('tmp/visuals/**') != ''
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          source: tmp/visuals
+          target: pr/${{ github.event.pull_request.number }}/visuals
+          commit-message: 'deploy(visuals): publish PR #${{ github.event.pull_request.number }} UI captures'
+
+      - name: Build comment body
+        run: |
+          mkdir -p tmp/visuals
+          BASE_URL="https://xnet.fyi/pr/${{ github.event.pull_request.number }}/visuals"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -f tmp/visuals/diff-manifest.json ]; then
+            node scripts/visuals/comment.mjs --diff-manifest tmp/visuals/diff-manifest.json --base-url "$BASE_URL" --run-url "$RUN_URL" > tmp/visuals/body.md
+          else
+            printf '%s\n## 🖼️ UI changes in this PR\n\n_No UI changes detected in this PR._\n' '<!-- xnet-visuals -->' > tmp/visuals/body.md
+          fi
+
+      - name: Upsert sticky comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const body = fs.readFileSync('tmp/visuals/body.md', 'utf8')
+            const marker = '<!-- xnet-visuals -->'
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number
+            })
+            const existing = comments.find(
+              (c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(marker)
+            )
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              })
+              return
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body
+            })
+
+  # ---------------------------------------------------------------------------
+  # main: refresh the visual baseline every story + route lands on gh-pages.
+  # ---------------------------------------------------------------------------
+  baseline:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Build packages
+        run: pnpm turbo run build --filter='./packages/*'
+
+      - name: Build Storybook
+        run: pnpm build:stories
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start web app
+        run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
+
+      - name: Wait for web app
+        run: for i in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
+
+      - name: Compute full capture set
+        run: |
+          node scripts/visuals/changed-capture-set.mjs \
+            --all \
+            --storybook-index storybook-static/index.json \
+            --out tmp/capture-set.json
+
+      - name: Capture baseline
+        continue-on-error: true
+        run: |
+          node scripts/visuals/capture.mjs \
+            --set tmp/capture-set.json \
+            --out tmp/visuals \
+            --storybook-static storybook-static \
+            --web-url "$WEB_URL"
+
+      - name: Publish baseline to gh-pages
+        if: hashFiles('tmp/visuals/**') != ''
+        uses: ./.github/actions/publish-gh-pages
+        with:
+          source: tmp/visuals
+          target: visuals-baseline
+          commit-message: 'deploy(visuals): refresh UI baseline'
