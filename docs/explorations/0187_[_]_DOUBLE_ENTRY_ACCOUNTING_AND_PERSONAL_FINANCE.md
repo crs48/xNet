@@ -655,13 +655,13 @@ sequenceDiagram
       `ImportBatchSchema`) in `packages/data/src/schema/schemas/`; register in
       `schemas/index.ts`; default `visibility: 'private'` +
       `spaceCascadeAuthorization()`.
-- [ ] Create `@xnetjs/ledger` package (mirror `@xnetjs/experiments`):
+- [x] Create `@xnetjs/ledger` package (mirror `@xnetjs/experiments`):
       `balance.ts` (isBalanced, accountBalance, naturalBalance, trial balance),
       `currency.ts` (minor-unit parse/format, ISO-4217 exponents),
       `report.ts` (income statement, balance sheet, net worth, cashflow),
       `budget.ts` (period rollups, remaining), `reconcile.ts` (matching/dedupe).
       Zero `@xnetjs/*` deps; full unit + property tests.
-- [ ] Seed a default chart of accounts (personal preset) generator.
+- [x] Seed a default chart of accounts (personal preset) generator.
 - [ ] Add `/finance` route + `FinanceView` in `apps/web/src/components/finance/`;
       use `useQuery`/`useMutate`. Build the **smart entry form** that emits a
       balanced batch atomically.
