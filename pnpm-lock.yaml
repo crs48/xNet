@@ -610,12 +610,27 @@ importers:
 
   packages/cli:
     dependencies:
+      '@xnetjs/core':
+        specifier: workspace:*
+        version: link:../core
+      '@xnetjs/crypto':
+        specifier: workspace:*
+        version: link:../crypto
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/identity':
+        specifier: workspace:*
+        version: link:../identity
       '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../plugins
+      '@xnetjs/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@xnetjs/sqlite':
+        specifier: workspace:*
+        version: link:../sqlite
       '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync

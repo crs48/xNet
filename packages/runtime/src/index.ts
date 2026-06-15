@@ -25,6 +25,8 @@ export {
   type XNetClientBridgeMode
 } from './client'
 
+export { liveQuery, type LiveQuery, type LiveQueryValue } from './live-query'
+
 // =============================================================================
 // Sync orchestration (relocated from @xnetjs/react — these never imported React)
 // =============================================================================

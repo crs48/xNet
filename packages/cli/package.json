@@ -36,8 +36,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
+    "@xnetjs/runtime": "workspace:*",
+    "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/sync": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^12.0.0"
