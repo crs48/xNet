@@ -142,7 +142,12 @@ export function detectAndParseStatement(
   if (lower.endsWith('.qif') || head.includes('!TYPE:')) {
     return { rows: importQif(text, currency).rows, source: 'qif' }
   }
-  if (lower.endsWith('.ofx') || lower.endsWith('.qfx') || head.includes('<OFX') || head.includes('<STMTTRN')) {
+  if (
+    lower.endsWith('.ofx') ||
+    lower.endsWith('.qfx') ||
+    head.includes('<OFX') ||
+    head.includes('<STMTTRN')
+  ) {
     return { rows: importOfx(text, currency).rows, source: 'ofx' }
   }
   const mapping = autoCsvMapping(text, currency)

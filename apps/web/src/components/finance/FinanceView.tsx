@@ -5,12 +5,7 @@
  * this-month income/expense summaries derived live by @xnetjs/ledger.
  */
 
-import {
-  AccountSchema,
-  TransactionSchema,
-  PostingSchema,
-  BudgetSchema
-} from '@xnetjs/data'
+import { AccountSchema, TransactionSchema, PostingSchema, BudgetSchema } from '@xnetjs/data'
 import {
   accountBalances,
   accountRegister,
@@ -63,7 +58,9 @@ function SummaryCard({
   return (
     <div className="flex flex-col gap-1 rounded-md border border-hairline bg-surface-1 px-3 py-2">
       <span className="text-[10px] uppercase tracking-wide text-ink-3">{label}</span>
-      <span className={`text-sm font-semibold tabular-nums ${accent ? 'text-ink-1' : 'text-ink-1'}`}>
+      <span
+        className={`text-sm font-semibold tabular-nums ${accent ? 'text-ink-1' : 'text-ink-1'}`}
+      >
         {formatAmount(minor, currency)}
       </span>
     </div>
@@ -85,16 +82,23 @@ export function FinanceView(): JSX.Element {
     [accountRows]
   )
   const transactions = useMemo(
-    () => toLedgerTransactions((txnRows ?? []) as unknown as Row[], (postingRows ?? []) as unknown as Row[]),
+    () =>
+      toLedgerTransactions(
+        (txnRows ?? []) as unknown as Row[],
+        (postingRows ?? []) as unknown as Row[]
+      ),
     [txnRows, postingRows]
   )
-  const budgets = useMemo(() => toLedgerBudgets((budgetRows ?? []) as unknown as Row[]), [budgetRows])
+  const budgets = useMemo(
+    () => toLedgerBudgets((budgetRows ?? []) as unknown as Row[]),
+    [budgetRows]
+  )
 
   const currency = accounts.find((a) => a.currency)?.currency ?? 'USD'
-  const balances = useMemo(() => accountBalances(accounts, allPostings(transactions)), [
-    accounts,
-    transactions
-  ])
+  const balances = useMemo(
+    () => accountBalances(accounts, allPostings(transactions)),
+    [accounts, transactions]
+  )
   const nw = useMemo(() => netWorth(accounts, transactions), [accounts, transactions])
   const period = useMemo(() => monthRange(Date.now()), [])
   const income = useMemo(
@@ -108,7 +112,7 @@ export function FinanceView(): JSX.Element {
 
   const postable = accounts.filter((a) => a.id)
   const selected = selectedAccountId
-    ? accounts.find((a) => a.id === selectedAccountId) ?? null
+    ? (accounts.find((a) => a.id === selectedAccountId) ?? null)
     : null
 
   const seed = async () => {
@@ -153,9 +157,22 @@ export function FinanceView(): JSX.Element {
       </header>
 
       <div className="grid grid-cols-3 gap-2 px-4 py-3">
-        <SummaryCard label="Net worth" minor={nw.net.get(currency) ?? 0} currency={currency} accent />
-        <SummaryCard label="Income (this month)" minor={income.income.get(currency) ?? 0} currency={currency} />
-        <SummaryCard label="Spent (this month)" minor={income.expense.get(currency) ?? 0} currency={currency} />
+        <SummaryCard
+          label="Net worth"
+          minor={nw.net.get(currency) ?? 0}
+          currency={currency}
+          accent
+        />
+        <SummaryCard
+          label="Income (this month)"
+          minor={income.income.get(currency) ?? 0}
+          currency={currency}
+        />
+        <SummaryCard
+          label="Spent (this month)"
+          minor={income.expense.get(currency) ?? 0}
+          currency={currency}
+        />
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-[18rem_1fr] gap-0 overflow-hidden">
@@ -176,7 +193,9 @@ export function FinanceView(): JSX.Element {
                       <li key={a.id}>
                         <button
                           type="button"
-                          onClick={() => setSelectedAccountId(a.id === selectedAccountId ? null : a.id)}
+                          onClick={() =>
+                            setSelectedAccountId(a.id === selectedAccountId ? null : a.id)
+                          }
                           className={`flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1 text-left text-xs hover:bg-accent ${
                             a.id === selectedAccountId ? 'bg-accent text-ink-1' : 'text-ink-2'
                           }`}
@@ -196,16 +215,25 @@ export function FinanceView(): JSX.Element {
         {/* Register + entry + budgets */}
         <section className="min-h-0 overflow-y-auto px-4 py-3">
           <div className="mb-4 grid grid-cols-[1fr_18rem] gap-4">
-            <RegisterPanel selected={selected} accounts={postable} transactions={transactions} currency={currency} />
+            <RegisterPanel
+              selected={selected}
+              accounts={postable}
+              transactions={transactions}
+              currency={currency}
+            />
             <div className="flex flex-col gap-3">
-              <div className="text-[10px] uppercase tracking-wide text-ink-3">Add a transaction</div>
+              <div className="text-[10px] uppercase tracking-wide text-ink-3">
+                Add a transaction
+              </div>
               <TransactionForm accounts={postable} onDone={() => undefined} />
             </div>
           </div>
 
           {budgetRows2.length > 0 && (
             <div className="mb-4">
-              <div className="mb-2 text-[10px] uppercase tracking-wide text-ink-3">Budgets (this month)</div>
+              <div className="mb-2 text-[10px] uppercase tracking-wide text-ink-3">
+                Budgets (this month)
+              </div>
               <ul className="flex flex-col gap-1.5">
                 {budgetRows2.map((b) => {
                   const acct = accounts.find((a) => a.id === b.budget.account)

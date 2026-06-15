@@ -67,12 +67,7 @@ export {
   type ExperimentPhase
 } from './experiment'
 export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './milestone'
-export {
-  AccountSchema,
-  ACCOUNT_SCHEMA_IRI,
-  type Account,
-  type AccountClassId
-} from './account'
+export { AccountSchema, ACCOUNT_SCHEMA_IRI, type Account, type AccountClassId } from './account'
 export {
   TransactionSchema,
   TRANSACTION_SCHEMA_IRI,

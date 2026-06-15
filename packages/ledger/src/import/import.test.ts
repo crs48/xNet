@@ -15,9 +15,11 @@ describe('parseCsv tokenizer', () => {
 
 describe('importCsv', () => {
   it('maps a signed-amount CSV by header name', () => {
-    const csv = ['Date,Description,Amount', '2026-01-05,Grocery Store,-40.00', '2026-01-06,Paycheck,1500.00'].join(
-      '\n'
-    )
+    const csv = [
+      'Date,Description,Amount',
+      '2026-01-05,Grocery Store,-40.00',
+      '2026-01-06,Paycheck,1500.00'
+    ].join('\n')
     const { rows, skipped } = importCsv(csv, {
       date: 'Date',
       payee: 'Description',
@@ -31,7 +33,11 @@ describe('importCsv', () => {
   })
 
   it('combines separate debit/credit columns (credit = money in)', () => {
-    const csv = ['Date,Payee,Debit,Credit', '01/05/2026,Coffee,4.50,', '01/06/2026,Refund,,12.00'].join('\n')
+    const csv = [
+      'Date,Payee,Debit,Credit',
+      '01/05/2026,Coffee,4.50,',
+      '01/06/2026,Refund,,12.00'
+    ].join('\n')
     const { rows } = importCsv(csv, {
       date: 'Date',
       payee: 'Payee',
@@ -88,9 +94,19 @@ OFXHEADER:100
 
 describe('importQif', () => {
   it('parses ^-separated records', () => {
-    const qif = ['!Type:Bank', 'D01/05/2026', 'T-40.00', 'PGrocery Store', 'MMemo', 'N100', '^', 'D01/06/2026', 'T1500.00', 'PPaycheck', '^'].join(
-      '\n'
-    )
+    const qif = [
+      '!Type:Bank',
+      'D01/05/2026',
+      'T-40.00',
+      'PGrocery Store',
+      'MMemo',
+      'N100',
+      '^',
+      'D01/06/2026',
+      'T1500.00',
+      'PPaycheck',
+      '^'
+    ].join('\n')
     const { rows } = importQif(qif, 'USD')
     expect(rows).toHaveLength(2)
     expect(rows[0]).toMatchObject({

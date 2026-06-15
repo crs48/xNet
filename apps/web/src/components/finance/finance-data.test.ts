@@ -60,12 +60,19 @@ describe('statement detection + parsing', () => {
   })
 
   it('detects QIF / OFX / CSV by content', () => {
-    expect(detectAndParseStatement('!Type:Bank\nD01/05/2026\nT-5.00\n^', 'x.qif', 'USD')?.source).toBe('qif')
     expect(
-      detectAndParseStatement('<OFX><STMTTRN><DTPOSTED>20260105<TRNAMT>-5.00</STMTTRN></OFX>', 's', 'USD')
-        ?.source
+      detectAndParseStatement('!Type:Bank\nD01/05/2026\nT-5.00\n^', 'x.qif', 'USD')?.source
+    ).toBe('qif')
+    expect(
+      detectAndParseStatement(
+        '<OFX><STMTTRN><DTPOSTED>20260105<TRNAMT>-5.00</STMTTRN></OFX>',
+        's',
+        'USD'
+      )?.source
     ).toBe('ofx')
-    expect(detectAndParseStatement('Date,Amount\n2026-01-05,-5.00', 's.csv', 'USD')?.source).toBe('csv')
+    expect(detectAndParseStatement('Date,Amount\n2026-01-05,-5.00', 's.csv', 'USD')?.source).toBe(
+      'csv'
+    )
   })
 
   it('returns null for an unmappable CSV', () => {
@@ -76,7 +83,12 @@ describe('statement detection + parsing', () => {
     const txns = toLedgerTransactions(
       [{ id: 't1', date: 1, payee: 'Store' }],
       [
-        { id: 'p1', transaction: 't1', account: 'cash', amount: { amount: -4000, currency: 'USD' } },
+        {
+          id: 'p1',
+          transaction: 't1',
+          account: 'cash',
+          amount: { amount: -4000, currency: 'USD' }
+        },
         { id: 'p2', transaction: 't1', account: 'exp', amount: { amount: 4000, currency: 'USD' } }
       ]
     )

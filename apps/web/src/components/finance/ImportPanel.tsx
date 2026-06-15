@@ -9,18 +9,16 @@
  * headers; OFX/QIF are self-describing).
  */
 
+import { TransactionSchema, PostingSchema, ImportBatchSchema } from '@xnetjs/data'
 import {
-  TransactionSchema,
-  PostingSchema,
-  ImportBatchSchema
-} from '@xnetjs/data'
-import { dedupeRows, type LedgerAccount, type LedgerTransaction, type ImportedRow } from '@xnetjs/ledger'
+  dedupeRows,
+  type LedgerAccount,
+  type LedgerTransaction,
+  type ImportedRow
+} from '@xnetjs/ledger'
 import { useMutate } from '@xnetjs/react'
 import { useState, type JSX } from 'react'
-import {
-  detectAndParseStatement,
-  existingEntriesForAccount
-} from './finance-data'
+import { detectAndParseStatement, existingEntriesForAccount } from './finance-data'
 
 interface Parsed {
   filename: string
@@ -57,10 +55,15 @@ export function ImportPanel({
     const text = await file.text()
     const result = detectAndParseStatement(text, file.name, currency)
     if (!result || result.rows.length === 0) {
-      setError('Could not parse this file. Try OFX/QFX or QIF, or a CSV with Date and Amount columns.')
+      setError(
+        'Could not parse this file. Try OFX/QFX or QIF, or a CSV with Date and Amount columns.'
+      )
       return
     }
-    const { fresh, duplicates } = dedupeRows(result.rows, existingEntriesForAccount(targetId, existing))
+    const { fresh, duplicates } = dedupeRows(
+      result.rows,
+      existingEntriesForAccount(targetId, existing)
+    )
     setParsed({ filename: file.name, source: result.source, fresh, duplicates: duplicates.length })
   }
 
@@ -104,12 +107,20 @@ export function ImportPanel({
       ops.push({
         type: 'create',
         schema: PostingSchema,
-        data: { transaction: txnTemp, account: targetId, amount: { amount: row.amount, currency: row.currency } }
+        data: {
+          transaction: txnTemp,
+          account: targetId,
+          amount: { amount: row.amount, currency: row.currency }
+        }
       })
       ops.push({
         type: 'create',
         schema: PostingSchema,
-        data: { transaction: txnTemp, account: counterId, amount: { amount: -row.amount, currency: row.currency } }
+        data: {
+          transaction: txnTemp,
+          account: counterId,
+          amount: { amount: -row.amount, currency: row.currency }
+        }
       })
     })
     await mutate(ops)
@@ -131,7 +142,11 @@ export function ImportPanel({
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
           <span className="text-[10px] uppercase tracking-wide text-ink-3">Account</span>
-          <select value={targetId} onChange={(e) => setTargetId(e.target.value)} className={selectClass}>
+          <select
+            value={targetId}
+            onChange={(e) => setTargetId(e.target.value)}
+            className={selectClass}
+          >
             <option value="">Select…</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -142,7 +157,11 @@ export function ImportPanel({
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-[10px] uppercase tracking-wide text-ink-3">Default category</span>
-          <select value={counterId} onChange={(e) => setCounterId(e.target.value)} className={selectClass}>
+          <select
+            value={counterId}
+            onChange={(e) => setCounterId(e.target.value)}
+            className={selectClass}
+          >
             <option value="">Select…</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>

@@ -91,8 +91,4 @@ export {
 } from './import'
 
 // Default chart of accounts
-export {
-  PERSONAL_CHART,
-  chartCreateOrder,
-  type ChartAccountSpec
-} from './chart-of-accounts'
+export { PERSONAL_CHART, chartCreateOrder, type ChartAccountSpec } from './chart-of-accounts'

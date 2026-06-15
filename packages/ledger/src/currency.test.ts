@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  currencyExponent,
-  parseAmount,
-  formatAmount,
-  toMajorUnits,
-  toMinorUnits
-} from './currency'
+import { currencyExponent, parseAmount, formatAmount, toMajorUnits, toMinorUnits } from './currency'
 
 describe('currency exponents', () => {
   it('defaults to 2, knows zero- and three-decimal currencies', () => {
