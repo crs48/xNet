@@ -12,6 +12,7 @@ import { useIdentity, useNode, useQuery } from '@xnetjs/react'
 import { Plus, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, type JSX } from 'react'
 import { Editor } from '../Editor'
+import { ConfoundLog } from './ConfoundLog'
 import { metricName, type MetricLike, type ObservationLike } from './habit-logic'
 import { parsePhases, type PhaseDef, type PhaseKind } from './phase-logic'
 import { VerdictPanel } from './VerdictPanel'
@@ -254,6 +255,10 @@ export function ExperimentDetail({ experimentId }: { experimentId: string }): JS
           </p>
         )}
       </div>
+
+      {primaryMetricId && (
+        <ConfoundLog observations={observations as never} phasesRaw={data?.phases} />
+      )}
 
       {primaryMetric && primaryMetric.kind === 'boolean' && (
         <div>

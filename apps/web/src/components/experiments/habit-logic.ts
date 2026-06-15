@@ -29,6 +29,7 @@ export interface MetricLike {
   scaleMax?: unknown
   target?: unknown
   polarity?: unknown
+  cue?: unknown
 }
 
 export interface ObservationLike {

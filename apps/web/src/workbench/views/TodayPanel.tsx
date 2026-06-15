@@ -1,18 +1,25 @@
 /**
  * Today check-in panel (exploration 0180) — the friction-free heart of the
- * habit tracker. Lists every habit due today; one tap logs an Observation and
- * the streak/strength update live. Lives in the left panel beside Tasks.
+ * habit tracker. Lists habits/metrics due today (one tap to log a boolean, or
+ * a value control for numeric/scale/mood metrics) plus a "track anytime"
+ * section for continuous metrics, and an editor for configuring any metric.
  */
 import { Link } from '@tanstack/react-router'
 import { cn } from '@xnetjs/ui'
-import { ArrowUpRight, Check, Flame, FlaskConical, Plus } from 'lucide-react'
+import { ArrowUpRight, Check, Flame, FlaskConical, Pencil, Plus } from 'lucide-react'
 import { useState, type JSX } from 'react'
 import {
+  isHabit,
   metricName,
   type HabitSummary,
   type MetricLike
 } from '../../components/experiments/habit-logic'
+import { MetricEditor } from '../../components/experiments/MetricEditor'
 import { useHabits } from '../../components/experiments/useHabits'
+
+function metricKindOf(metric: MetricLike): string {
+  return typeof metric.kind === 'string' ? metric.kind : 'boolean'
+}
 
 function StrengthBar({ value }: { value: number }): JSX.Element {
   return (
@@ -25,18 +32,27 @@ function StrengthBar({ value }: { value: number }): JSX.Element {
   )
 }
 
-function HabitRow({
+/** The kind-specific logging control for a metric's value today. */
+function ValueControl({
   metric,
   summary,
-  onToggle
+  today,
+  onToggle,
+  onLog
 }: {
   metric: MetricLike
   summary: HabitSummary
+  today: number
   onToggle: (done: boolean) => void
+  onLog: (value: number) => void
 }): JSX.Element {
+  const kind = metricKindOf(metric)
   const color = typeof metric.color === 'string' ? metric.color : undefined
-  return (
-    <div className="group flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+  const todayObs = summary.byDay.get(today)
+  const todayValue = typeof todayObs?.value === 'number' ? todayObs.value : null
+
+  if (kind === 'boolean') {
+    return (
       <button
         type="button"
         aria-pressed={summary.done}
@@ -54,22 +70,105 @@ function HabitRow({
       >
         <Check size={13} strokeWidth={3} />
       </button>
+    )
+  }
+
+  if (kind === 'scale') {
+    const min = typeof metric.scaleMin === 'number' ? metric.scaleMin : 1
+    const max = typeof metric.scaleMax === 'number' ? metric.scaleMax : 5
+    const steps = []
+    for (let v = min; v <= max && steps.length < 10; v++) steps.push(v)
+    return (
+      <div className="flex gap-0.5">
+        {steps.map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-label={`Log ${metricName(metric)} = ${v}`}
+            onClick={() => onLog(v)}
+            className={cn(
+              'h-5 w-5 rounded-[5px] border text-[10px] tabular-nums transition-colors',
+              todayValue === v
+                ? 'border-transparent bg-[var(--primary,#6366f1)] text-white'
+                : 'border-hairline text-ink-2 hover:bg-accent'
+            )}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  // count / duration / number → inline number input
+  return (
+    <input
+      type="number"
+      defaultValue={todayValue ?? ''}
+      aria-label={`Log ${metricName(metric)}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onLog(Number((e.target as HTMLInputElement).value))
+      }}
+      onBlur={(e) => {
+        if (e.target.value !== '') onLog(Number(e.target.value))
+      }}
+      placeholder={typeof metric.unit === 'string' ? metric.unit : '0'}
+      className="h-6 w-16 rounded-md border border-hairline bg-transparent px-1.5 text-right text-xs tabular-nums text-ink-1 outline-none focus:border-ink-3"
+    />
+  )
+}
+
+function MetricRow({
+  metric,
+  summary,
+  today,
+  onToggle,
+  onLog,
+  onEdit
+}: {
+  metric: MetricLike
+  summary: HabitSummary
+  today: number
+  onToggle: (done: boolean) => void
+  onLog: (value: number) => void
+  onEdit: () => void
+}): JSX.Element {
+  const habit = isHabit(metric)
+  return (
+    <div className="group flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+      <ValueControl
+        metric={metric}
+        summary={summary}
+        today={today}
+        onToggle={onToggle}
+        onLog={onLog}
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className={cn('truncate text-xs', summary.done ? 'text-ink-2' : 'text-ink-1')}>
             {typeof metric.icon === 'string' && metric.icon ? `${metric.icon} ` : ''}
             {metricName(metric)}
           </span>
-          {summary.streak > 0 && (
-            <span className="ml-auto flex shrink-0 items-center gap-0.5 text-[10px] text-orange-500">
+          {habit && summary.streak > 0 && (
+            <span className="flex shrink-0 items-center gap-0.5 text-[10px] text-orange-500">
               <Flame size={10} strokeWidth={2} />
               {summary.streak}
             </span>
           )}
+          <button
+            type="button"
+            aria-label={`Edit ${metricName(metric)}`}
+            onClick={onEdit}
+            className="ml-auto shrink-0 text-ink-3 opacity-0 transition-opacity hover:text-ink-1 group-hover:opacity-100"
+          >
+            <Pencil size={11} strokeWidth={1.5} />
+          </button>
         </div>
-        <div className="mt-1">
-          <StrengthBar value={summary.strength} />
-        </div>
+        {habit && (
+          <div className="mt-1">
+            <StrengthBar value={summary.strength} />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -114,15 +213,41 @@ function QuickAdd({ onAdd }: { onAdd: (name: string) => void }): JSX.Element {
   )
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }): JSX.Element {
+  return (
+    <div className="px-2 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wider text-ink-3">
+      {children}
+    </div>
+  )
+}
+
 export function TodayPanel(): JSX.Element {
-  const { due, loading, toggleHabit, createHabit } = useHabits()
+  const {
+    metrics,
+    due,
+    loading,
+    today,
+    summaryFor,
+    toggleHabit,
+    logValue,
+    createHabit,
+    createMetric
+  } = useHabits()
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  const dueIds = new Set(due.map((d) => d.metric.id))
+  // Everything not already shown under "Due today": other habits + continuous metrics.
+  const tracked = metrics.filter((m) => !dueIds.has(m.id))
+
+  const openNewMetric = async () => {
+    const id = await createMetric()
+    if (id) setEditingId(id)
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        <div className="px-2 pb-1 pt-1 text-[10px] font-medium uppercase tracking-wider text-ink-3">
-          Due today
-        </div>
+        <SectionLabel>Due today</SectionLabel>
         {loading ? (
           <p className="px-2 text-xs text-ink-3">Loading…</p>
         ) : due.length === 0 ? (
@@ -132,19 +257,54 @@ export function TodayPanel(): JSX.Element {
         ) : (
           <div className="flex flex-col">
             {due.map(({ metric, summary }) => (
-              <HabitRow
+              <MetricRow
                 key={metric.id}
                 metric={metric}
                 summary={summary}
+                today={today}
                 onToggle={(done) => void toggleHabit(metric, summary, done)}
+                onLog={(value) => void logValue(metric, value)}
+                onEdit={() => setEditingId(metric.id)}
               />
             ))}
           </div>
         )}
-        <div className="mt-1 border-t border-hairline pt-1">
+
+        {tracked.length > 0 && (
+          <>
+            <SectionLabel>Track anytime</SectionLabel>
+            <div className="flex flex-col">
+              {tracked.map((metric) => {
+                const summary = summaryFor(metric)
+                return (
+                  <MetricRow
+                    key={metric.id}
+                    metric={metric}
+                    summary={summary}
+                    today={today}
+                    onToggle={(done) => void toggleHabit(metric, summary, done)}
+                    onLog={(value) => void logValue(metric, value)}
+                    onEdit={() => setEditingId(metric.id)}
+                  />
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        <div className="mt-1 flex flex-col border-t border-hairline pt-1">
           <QuickAdd onAdd={(name) => void createHabit({ name })} />
+          <button
+            type="button"
+            onClick={() => void openNewMetric()}
+            className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs text-ink-3 transition-colors hover:bg-accent hover:text-ink-1"
+          >
+            <Plus size={13} strokeWidth={1.5} />
+            New metric…
+          </button>
         </div>
       </div>
+
       <div className="shrink-0 border-t border-hairline p-2">
         <Link
           to="/experiments"
@@ -155,6 +315,15 @@ export function TodayPanel(): JSX.Element {
           <ArrowUpRight size={11} strokeWidth={1.5} className="ml-auto" />
         </Link>
       </div>
+
+      {editingId && (
+        <MetricEditor
+          metricId={editingId}
+          open={editingId !== null}
+          onOpenChange={(open) => !open && setEditingId(null)}
+          onDeleted={() => setEditingId(null)}
+        />
+      )}
     </div>
   )
 }

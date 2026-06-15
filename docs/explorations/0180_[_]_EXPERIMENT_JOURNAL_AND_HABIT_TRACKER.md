@@ -9,7 +9,7 @@ habit tracker** — something that helps you:
   personal experiments against them, and log results.
 - **Track habits**, mood, and lived experience over time.
 - **Aggregate** all of that into trends, streaks, and comparisons.
-- **Reason rigorously** — explicitly frame a *null hypothesis*, gather evidence
+- **Reason rigorously** — explicitly frame a _null hypothesis_, gather evidence
   for or against it, and stay honest about confounds, too-short trials, and the
   difference between correlation and cause.
 
@@ -18,14 +18,14 @@ Tasks, Databases, Dashboards, Spaces, Tags — rather than bolt on a parallel
 silo. The intended users span two poles that turn out to want the same tool:
 the **individual** ("did dry January actually help my energy?") and the
 **engineer / researcher / scientist** ("run a clean n=1 ABAB trial and tell me
-the effect size"). Both are doing the same thing — *self-experimentation* — at
+the effect size"). Both are doing the same thing — _self-experimentation_ — at
 different levels of rigor.
 
 ## Executive Summary
 
 The headline mirrors the 0172 finding: **most of the substrate already exists.**
 xNet already has everything a tracker needs except three things: a typed domain
-model for *experiments / metrics / datapoints*, a couple of domain-specific
+model for _experiments / metrics / datapoints_, a couple of domain-specific
 visualizations (streak heatmap, phase comparison), and a **rigor engine** that
 turns a pile of datapoints into an honest verdict about the null hypothesis.
 
@@ -50,14 +50,14 @@ What already exists and should be reused wholesale:
   ([query-ast.ts](../../packages/data/src/store/query-ast.ts),
   [dashboard/types.ts](../../packages/dashboard/src/types.ts),
   [charts/spec.ts](../../packages/charts/src/spec.ts)).
-- **Pages** (collaborative TipTap docs) for the *journal* narrative, with a
+- **Pages** (collaborative TipTap docs) for the _journal_ narrative, with a
   slash-command + inline-embed system so structured data can live inside prose
   ([editor/extensions](../../packages/editor/src/extensions)).
 
 **Recommendation: a hybrid.** Introduce three small built-in schemas —
 **`Experiment`**, **`Metric`**, **`Observation`** — that capture the typed,
-queryable, analyzable core, where a *Habit is just a `Metric` with a recurring
-schedule*. Layer dedicated surfaces (an Experiments workspace, a friction-free
+queryable, analyzable core, where a _Habit is just a `Metric` with a recurring
+schedule_. Layer dedicated surfaces (an Experiments workspace, a friction-free
 "Today" check-in panel) and a few domain dashboard widgets on top, plus a
 **rigor engine** package that produces a conservative, pitfall-aware verdict.
 Then ship database templates and page-embeds for the long tail so the casual
@@ -85,13 +85,20 @@ export const ProjectSchema = defineSchema({
   namespace: 'xnet://xnet.fyi/',
   properties: {
     name: text({ required: true, maxLength: 200 }),
-    status: select({ options: [/* planned … cancelled */], default: 'planned' }),
+    status: select({
+      options: [
+        /* planned … cancelled */
+      ],
+      default: 'planned'
+    }),
     lead: person({}),
     targetDate: date({}),
     folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
     tags: relation({ target: 'xnet://xnet.fyi/Tag@1.0.0' as const, multiple: true }),
     space: relation({ target: 'xnet://xnet.fyi/Space@1.0.0' as const }),
-    visibility: select({ /* inherit/private/unlisted/public */ })
+    visibility: select({
+      /* inherit/private/unlisted/public */
+    })
   },
   document: 'yjs' // Collaborative project brief
 })
@@ -119,7 +126,7 @@ recurring-work primitive with `status` categories
 ([task.ts:155](../../packages/data/src/schema/schemas/task.ts)), `dueDate`,
 `project`/`page`/`canvas` host relations, and `tags`. An Experiment can **spawn
 tasks** ("collect 14 days of baseline") and a Habit can be **surfaced as a
-recurring task** — but we should *not* duplicate Task's recurrence engine;
+recurring task** — but we should _not_ duplicate Task's recurrence engine;
 instead, a daily check-in is an `Observation`, and Task integration is a
 projection. The task primitive shipped in 0161 and is "everywhere," so relating
 to it is cheap.
@@ -166,8 +173,12 @@ The query AST already supports aggregation
 ```ts
 type QueryASTAggregateFunction = 'count' | 'countDistinct' | 'sum' | 'avg' | 'min' | 'max'
 type QueryASTAggregate = {
-  kind: 'aggregate'; alias: string; function: QueryASTAggregateFunction
-  field?: string; groupBy?: string[]; having?: QueryASTPredicate
+  kind: 'aggregate'
+  alias: string
+  function: QueryASTAggregateFunction
+  field?: string
+  groupBy?: string[]
+  having?: QueryASTPredicate
 }
 ```
 
@@ -182,7 +193,7 @@ client-side ([spec.ts](../../packages/charts/src/spec.ts),
 [XChart.tsx](../../packages/charts/src/XChart.tsx)).
 
 **Gaps the research surfaced** (see External Research): there is no widget that
-visualizes per-group aggregate *streaks* or *non-overlap*, no server-side time
+visualizes per-group aggregate _streaks_ or _non-overlap_, no server-side time
 bucketing (must bucket client-side), and no streak/effect-size/Bayesian math
 anywhere. Those are exactly the domain pieces we add.
 
@@ -211,7 +222,7 @@ pattern already used by page/database embeds and page-tasks
 `/experiment` slash command can drop a live chip into the journal. There is also
 a **plugin contribution API** (`schemas`, `views`, `widgets`, `slashCommands`,
 `sidebarItems`) ([packages/plugins](../../packages/plugins/src)) — the whole
-feature *could* ship as an extension, which is a useful design constraint even
+feature _could_ ship as an extension, which is a useful design constraint even
 if we build it first-party.
 
 ## External Research
@@ -222,11 +233,11 @@ Across Loop Habit Tracker (open source, `github.com/iSoron/uhabits`), Habitica,
 Streaks, Beeminder, and Exist.io, the data model is consistently:
 
 - A **habit definition** — `{name, type: boolean|count|duration|value, target,
-  unit, frequency (daily/weekly/specific-days), color, archived_at, position}`.
+unit, frequency (daily/weekly/specific-days), color, archived_at, position}`.
 - A **check-in / repetition log** — `{habit_id, date (day-granularity, one per
-  scheduled day), value (1.0 for boolean), notes}`.
+scheduled day), value (1.0 for boolean), notes}`.
 
-This is *exactly* the `Metric` (definition) + `Observation` (log) split this
+This is _exactly_ the `Metric` (definition) + `Observation` (log) split this
 exploration recommends. The **type axis** (boolean vs count vs duration vs scale)
 is the most important design decision — it determines how a value is logged and
 aggregated.
@@ -237,20 +248,20 @@ libs: `cal-heatmap`, `react-activity-calendar`, `@uiw/react-heat-map`), the
 innovation — degrades gracefully vs. a brittle integer streak), and
 **completion rate** rings.
 
-Psychology to bake into the UX: BJ Fogg's *Tiny Habits* (B=MAP — anchor new
-habits to existing cues, make them tiny), James Clear's *Atomic Habits* (make it
+Psychology to bake into the UX: BJ Fogg's _Tiny Habits_ (B=MAP — anchor new
+habits to existing cues, make them tiny), James Clear's _Atomic Habits_ (make it
 easy/obvious/satisfying; habit stacking), Gollwitzer's **implementation
 intentions** ("when X, I will Y" roughly doubles follow-through — argues for a
 `cue`/`when` field on a Habit), and loss-aversion **streak mechanics** (Duolingo
 streak-freeze, Habitica damage). Lally et al. (2010) found automaticity takes a
-median 66 days — so trials and habits both need to run *long*, and friction
+median 66 days — so trials and habits both need to run _long_, and friction
 must be near-zero (one-tap logging from a widget/panel).
 
 ### Self-experimentation / Quantified Self gives us the rigor structure
 
 The Quantified Self movement (Gary Wolf & Kevin Kelly, 2007;
-`quantifiedself.com`) frames every project around three questions: *what did you
-do, how, and what did you learn.* A rigorous n=1 self-experiment has a
+`quantifiedself.com`) frames every project around three questions: _what did you
+do, how, and what did you learn._ A rigorous n=1 self-experiment has a
 recognizable structure (per the QS guide and Guyatt et al.'s n-of-1 trial
 framework, JAMA 1986):
 
@@ -266,7 +277,7 @@ confounds_tracked: [string]
 status: design | baseline | intervention | analysis | concluded
 ```
 
-**Single-Case Experimental Designs** (Kazdin, *Single-Case Research Designs*;
+**Single-Case Experimental Designs** (Kazdin, _Single-Case Research Designs_;
 Barlow & Hersen) are the credible methodology for n=1:
 
 - **ABAB reversal** — baseline → intervention → baseline → intervention; proves
@@ -290,11 +301,11 @@ Classical NHST assumes large samples; n=1 needs different tools:
 - **Effect size over p-values**: Cohen's d = `(mean_int − mean_base) / pooled_SD`
   (0.2/0.5/0.8 = small/medium/large), and plain **% change from baseline**.
 - **Non-overlap** for SCED: **PND** (% of intervention points beyond all
-  baseline points) and the better **Tau-U** (Parker et al., 2011, *Behavior
-  Modification* 35(4):303 — combines non-overlap with trend correction, −1..+1;
+  baseline points) and the better **Tau-U** (Parker et al., 2011, _Behavior
+  Modification_ 35(4):303 — combines non-overlap with trend correction, −1..+1;
   reference calculator at `singlecaseresearch.org`). No maintained JS impl
   exists; the formula is implementable.
-- **Bayesian updating** is arguably the *correct* frame for personal science —
+- **Bayesian updating** is arguably the _correct_ frame for personal science —
   you have a strong prior (your own body), you update continuously, you want a
   posterior over effect size, not a binary verdict. Beta-Binomial conjugate for
   boolean outcomes, Normal-Normal for continuous (≈10 lines each), and **BEST**
@@ -303,19 +314,19 @@ Classical NHST assumes large samples; n=1 needs different tools:
 **Pitfalls the tool must actively warn about** (this is the "keep you honest"
 feature):
 
-| Pitfall | Tool guard |
-|---|---|
-| Regression to the mean | Flag when an experiment *starts* after an extreme baseline reading |
-| Confirmation bias / post-hoc metric picking | Lock the **primary** metric before the intervention starts |
-| Too-short trials | Warn if a phase is < ~14 days or < ~5 datapoints |
-| Confounds | Require a confound log; flag result windows that overlap logged confounds |
-| Multiple comparisons / p-hacking | Warn when many secondary metrics are examined; suggest correction |
-| Placebo / expectation | Flag unblinded self-report metrics; nudge toward objective measures |
-| Carryover | Enforce washout for crossover/ABAB designs |
-| Unbalanced phases | Flag baseline vs intervention length mismatch |
+| Pitfall                                     | Tool guard                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| Regression to the mean                      | Flag when an experiment _starts_ after an extreme baseline reading        |
+| Confirmation bias / post-hoc metric picking | Lock the **primary** metric before the intervention starts                |
+| Too-short trials                            | Warn if a phase is < ~14 days or < ~5 datapoints                          |
+| Confounds                                   | Require a confound log; flag result windows that overlap logged confounds |
+| Multiple comparisons / p-hacking            | Warn when many secondary metrics are examined; suggest correction         |
+| Placebo / expectation                       | Flag unblinded self-report metrics; nudge toward objective measures       |
+| Carryover                                   | Enforce washout for crossover/ABAB designs                                |
+| Unbalanced phases                           | Flag baseline vs intervention length mismatch                             |
 
-The verdict copy must never say "proven." It says *"the evidence does / does not
-reject your null hypothesis"* with an effect size and the caveats attached.
+The verdict copy must never say "proven." It says _"the evidence does / does not
+reject your null hypothesis"_ with an effect size and the caveats attached.
 
 ### Electronic Lab Notebooks (ELN) — the journal structure
 
@@ -346,17 +357,17 @@ outcome and tracked factors as predictors, for partial effects.
 - **`jstat`** — distributions (Beta/t/F/χ²) for CIs and p-values when needed.
 - Custom **Beta-Binomial / Normal-Normal** Bayesian updating (tiny, no dep).
 - **Tau-U** — implement from Parker 2011; validate against `singlecaseresearch.org`.
-- Heatmaps — `react-activity-calendar` / `cal-heatmap`, *or* just reuse the
+- Heatmaps — `react-activity-calendar` / `cal-heatmap`, _or_ just reuse the
   existing calendar view + ECharts (charts already ship ECharts, ~100KB).
 
 ## Key Findings
 
 1. **A Habit and an experiment outcome are the same primitive at different
-   rigor.** Both are a *time series of measurements of a defined variable*. The
+   rigor.** Both are a _time series of measurements of a defined variable_. The
    unifying model is `Metric` (the variable definition) + `Observation` (one
    datapoint). A Habit = a `Metric` with a recurring schedule and a
-   boolean/count type. An Experiment = a hypothesis + phases layered *over the
-   same observations*. This collapses the two halves of the prompt into one
+   boolean/count type. An Experiment = a hypothesis + phases layered _over the
+   same observations_. This collapses the two halves of the prompt into one
    data model.
 
 2. **~80% of the stack is reusable.** Schemas, node-per-record data layer,
@@ -365,7 +376,7 @@ outcome and tracked factors as predictors, for partial effects.
    is: 3 schemas, 2 surfaces, ~4 domain widgets, and 1 stats engine.
 
 3. **The differentiator is rigor, not tracking.** Dozens of apps track habits.
-   Almost none *close the loop* from null hypothesis → datapoints → honest
+   Almost none _close the loop_ from null hypothesis → datapoints → honest
    statistical verdict → decision, with pitfall warnings. That is the product.
 
 4. **Friction is the make-or-break for the habit half.** A "Today" panel with
@@ -374,7 +385,7 @@ outcome and tracked factors as predictors, for partial effects.
 
 5. **Observation volume is fine.** Node-per-datapoint matches the existing
    ChatMessage pattern; SQLite indexing + materialized views handle it. The real
-   constraint is *date canonicalization* (the 0172 timezone bug), not row count.
+   constraint is _date canonicalization_ (the 0172 timezone bug), not row count.
 
 6. **Don't over-claim.** The tool's credibility dies the first time it tells
    someone a 5-day fluke "worked." Conservative verdicts and visible caveats are
@@ -424,7 +435,7 @@ stats engine; no templates.
 - **Pros:** typed, queryable, analyzable; everything (streaks, verdicts,
   correlations, calendar binding) is possible and first-class.
 - **Cons:** more build; the casual "I want a column for X" user is less served
-  (mitigated — *metrics are user-defined*; the schema is the meta-structure, not
+  (mitigated — _metrics are user-defined_; the schema is the meta-structure, not
   the domain content).
 
 ### Option C — Hybrid (recommended)
@@ -446,7 +457,7 @@ Ship the whole thing through the plugin contribution API.
 - **Cons:** deep integrations (calendar `dateProperty` binding, Task generation,
   FTS indexing, Space-scoped privacy) are easier and more robust first-party.
   **Recommendation:** build first-party, but keep the schemas/widgets
-  *plugin-shaped* so they could be extracted later — a free validation of the
+  _plugin-shaped_ so they could be extracted later — a free validation of the
   plugin API.
 
 ## Recommendation
@@ -509,13 +520,13 @@ Why this shape:
 - **`Observation` is the universal log entry.** A habit check-in, a mood rating,
   a sleep-latency reading, and an experiment outcome are all `Observation`s of
   some `Metric`. One reactive query (`useQuery(ObservationSchema, {where:{metric},
-  orderBy:{day}})`) powers streaks, heatmaps, trends, and stats alike.
+orderBy:{day}})`) powers streaks, heatmaps, trends, and stats alike.
 - **`phase` is denormalized onto each `Observation`** (stamped from the
   experiment's active phase at entry time), so analysis is a `groupBy: ['phase']`
   with no join-walking — matching how `DatabaseView` stores config as `json` and
   how the aggregation layer already groups.
-- **`Metric.experiment` is optional.** Mood and sleep are tracked *continuously*
-  and standalone; an experiment simply *references* existing metrics. This lets
+- **`Metric.experiment` is optional.** Mood and sleep are tracked _continuously_
+  and standalone; an experiment simply _references_ existing metrics. This lets
   correlations span metrics that aren't part of any single experiment (Exist
   model).
 - **The journal is a Page.** `Experiment` carries `document: 'yjs'` for the
@@ -592,7 +603,7 @@ explicit null. It never prints "proven."
   made visual).
 - **Correlation matrix** — Exist-style point-biserial/Pearson across metrics,
   thresholded, captioned "correlation, not causation."
-- **Trend line** — mostly the *existing* chart widget with day/week bucketing.
+- **Trend line** — mostly the _existing_ chart widget with day/week bucketing.
 
 ### Sequence: a daily check-in
 
@@ -632,11 +643,11 @@ export const MetricSchema = defineSchema({
     /** What kind of value an Observation carries. Drives logging + aggregation. */
     kind: select({
       options: [
-        { id: 'boolean', name: 'Yes/No' },   // habit check-in
-        { id: 'count', name: 'Count' },       // e.g. pushups
+        { id: 'boolean', name: 'Yes/No' }, // habit check-in
+        { id: 'count', name: 'Count' }, // e.g. pushups
         { id: 'duration', name: 'Duration' }, // minutes
-        { id: 'scale', name: 'Scale' },       // e.g. mood 1–5
-        { id: 'number', name: 'Number' }      // arbitrary measure
+        { id: 'scale', name: 'Scale' }, // e.g. mood 1–5
+        { id: 'number', name: 'Number' } // arbitrary measure
       ] as const,
       default: 'boolean'
     }),
@@ -733,7 +744,8 @@ export function computeStreak(
   for (let i = scheduledDays.length - 1; i >= 0; i--) {
     const d = scheduledDays[i]
     if (completedDays.has(d)) streak++
-    else if (d === today) continue // today not yet a miss
+    else if (d === today)
+      continue // today not yet a miss
     else break
   }
   return streak
@@ -750,11 +762,11 @@ export interface Verdict {
   direction: 'favorsAlternative' | 'favorsNull' | 'inconclusive'
   cohensD: number
   percentChange: number
-  tauU: number | null         // trend-corrected non-overlap (Parker 2011)
+  tauU: number | null // trend-corrected non-overlap (Parker 2011)
   credibleInterval: [number, number] // Bayesian posterior over mean diff
   nBaseline: number
   nIntervention: number
-  caveats: Caveat[]           // the "keep you honest" payload
+  caveats: Caveat[] // the "keep you honest" payload
 }
 
 export type Caveat =
@@ -766,11 +778,13 @@ export type Caveat =
   | { kind: 'unblindedSelfReport' }
 
 export function evaluate(baseline: number[], intervention: number[], opts: EvalOpts): Verdict {
-  const mb = mean(baseline), mi = mean(intervention)
+  const mb = mean(baseline),
+    mi = mean(intervention)
   const pooledSd = pooledStdDev(baseline, intervention)
   const cohensD = pooledSd === 0 ? 0 : (mi - mb) / pooledSd
   const caveats: Caveat[] = []
-  if (baseline.length < 5) caveats.push({ kind: 'phaseTooShort', phase: 'baseline', days: baseline.length })
+  if (baseline.length < 5)
+    caveats.push({ kind: 'phaseTooShort', phase: 'baseline', days: baseline.length })
   // …unbalanced / confounds / regression-to-mean / multiplicity / blinding checks…
   return {
     direction: classify(cohensD, opts.posterior, caveats),
@@ -831,7 +845,7 @@ registerPanelView('left', { id: 'today', title: 'Today', component: TodayCheckin
   materialized-view query performance early; bucket aggregation client-side as
   the chart widgets already do.
 - **Habit vs. recurring Task overlap.** A daily check-in resembles a recurring
-  task. Decision: a check-in is an `Observation`, *not* a Task; Task integration
+  task. Decision: a check-in is an `Observation`, _not_ a Task; Task integration
   is an optional projection ("turn this experiment phase into a 14-day task").
   Avoid duplicating recurrence logic.
 - **Privacy / sensitivity.** Mood, health, and sleep data are sensitive. Default
@@ -861,6 +875,7 @@ registerPanelView('left', { id: 'today', title: 'Today', component: TodayCheckin
 > typecheck is green and 54 logic + ~12 app/dashboard tests cover the core.
 
 ### Phase 0 — Data model & dates
+
 - [x] Add a shared `canonicalDay()` UTC-midnight helper (in
       [`@xnetjs/experiments`](../../packages/experiments/src/day.ts)); DST/timezone
       boundaries unit-tested.
@@ -870,20 +885,23 @@ registerPanelView('left', { id: 'today', title: 'Today', component: TodayCheckin
 - [x] Register all three (versioned + legacy IRIs) in
       [`builtInSchemas`](../../packages/data/src/schema/schemas/index.ts).
 - [x] Default `visibility: private` on all three (asserted in the schema test).
-- [ ] FTS: `Experiment.title` indexes via the default `title` field; `Metric.name`
-      / `Observation.note` need an explicit searchable-field config (follow-up).
+- [x] FTS: `Metric.name` / `Observation.note` are indexed (`extractSearchableContent`
+      now also pulls `name` + `note`, alongside `Experiment.title`).
 - [ ] Verify Space-cascade authorization + encryption posture end-to-end.
 
 ### Phase 1 — Capture (the habit half)
+
 - [x] `TodayPanel` left-panel view with one-tap `Observation` writes via
       `useHabits`/`useMutate`; registered via `registerPanelView('left', …)`.
 - [x] `@xnetjs/experiments`: `computeStreak`, `longestStreak`, `completionRate`,
       EWMA `habitStrength` (unit-tested).
 - [x] Streak chips + strength bars in the panel; quick-add to create a habit.
-- [ ] Full Metric/Habit definition editor (kind, schedule, target, cue, polarity,
-      color) — quick-add currently mints a daily boolean habit (follow-up).
+- [x] Full Metric editor (`MetricEditor` modal) — kind, unit, scale min/max,
+      schedule + weekday picker, polarity, target, cue, icon, color; reachable from
+      every metric row and the "New metric…" action.
 
 ### Phase 2 — Experiments (the journal half)
+
 - [x] `/experiments` route + `TabNodeType` + `TAB_VIEWS` + `HOSTED_VIEWS` + Rail.
 - [x] `ExperimentsView` master/detail list grouped by `status`.
 - [x] Experiment detail = collaborative Yjs journal (app `Editor`) + primary-metric
@@ -893,11 +911,12 @@ registerPanelView('left', { id: 'today', title: 'Today', component: TodayCheckin
 - [ ] Stamp `Observation.phase` from the active phase at entry time — analysis
       currently derives phase from the experiment's date ranges (more robust for
       retro-analysis), so the denormalized field is unused for now (follow-up).
-- [ ] Confound-logging UI on observations (`confounds` is read by the verdict
-      engine; entry UI is a follow-up).
+- [x] Confound-logging UI (`ConfoundLog` in the experiment detail — tag confounds
+      per day within the phase window; feeds the verdict engine's confound caveat).
 - [ ] Optional "turn phase into a Task" projection.
 
 ### Phase 3 — Analysis & rigor (the differentiator)
+
 - [x] `@xnetjs/experiments` verdict engine: descriptive stats, Cohen's d, %
       change, Tau-U (trend-corrected), flat-prior credible interval, Beta-Binomial
       posterior — validated by hand-computed unit tests.
@@ -913,11 +932,14 @@ registerPanelView('left', { id: 'today', title: 'Today', component: TodayCheckin
       chart widget already works against the registered schema).
 
 ### Phase 4 — Glue & long tail
+
 - [x] Rail icon for Experiments; `Today` panel + Rail icon surfaced.
 - [x] `Metric`/`Observation`/`Experiment` added to the dashboard schema registry.
 - [ ] `/metric` and `/experiment` slash commands + inline page embeds (follow-up).
 - [ ] Seed database templates ("Experiment Log", "Habit Tracker", "Mood Journal").
-- [ ] Mood quick-entry UI (`useHabits.logValue` supports it; no scale-input UI yet).
+- [x] Mood/numeric quick-entry: scale metrics get segmented value buttons,
+      count/duration/number get an inline input; continuous metrics surface under
+      "Track anytime" in the Today panel.
 - [ ] Docs/site page (per the 0170 sidebar single-sourcing invariant).
 
 ## Validation Checklist
@@ -944,6 +966,7 @@ registerPanelView('left', { id: 'today', title: 'Today', component: TodayCheckin
 ## References
 
 ### Codebase
+
 - [Schema system — `define.ts`](../../packages/data/src/schema/define.ts), [property builders](../../packages/data/src/schema/properties), [`builtInSchemas` registration](../../packages/data/src/schema/schemas/index.ts)
 - [`TaskSchema`](../../packages/data/src/schema/schemas/task.ts), [`ProjectSchema`](../../packages/data/src/schema/schemas/project.ts) — schema templates
 - [`DatabaseRow`](../../packages/data/src/schema/schemas/database-row.ts), [`DatabaseView`](../../packages/data/src/schema/schemas/database-view.ts) — ad-hoc/template path
@@ -954,11 +977,12 @@ registerPanelView('left', { id: 'today', title: 'Today', component: TodayCheckin
 - Related explorations: 0161 (task primitive), 0162 (dashboard builder), 0169 (folders/tags), 0172 (canonical due-date / timezone bug), 0179 (Spaces / visibility)
 
 ### External
+
 - Quantified Self — `quantifiedself.com`; QS guide to self-tracking
-- Guyatt et al., *N-of-1 trials* (JAMA, 1986); Kazdin, *Single-Case Research Designs*; Barlow & Hersen, *Single Case Experimental Designs*
-- Parker, Vannest & Davis (2011), "Effect Size in Single-Case Research" / **Tau-U**, *Behavior Modification* 35(4):303; reference calculator `singlecaseresearch.org`
+- Guyatt et al., _N-of-1 trials_ (JAMA, 1986); Kazdin, _Single-Case Research Designs_; Barlow & Hersen, _Single Case Experimental Designs_
+- Parker, Vannest & Davis (2011), "Effect Size in Single-Case Research" / **Tau-U**, _Behavior Modification_ 35(4):303; reference calculator `singlecaseresearch.org`
 - Kruschke (2013), **BEST** — Bayesian estimation; Wagenmakers et al. (2010), Bayes factors
-- Gollwitzer (1999), implementation intentions; Lally et al. (2010), habit automaticity (~66 days); Fogg, *Tiny Habits*; Clear, *Atomic Habits*
+- Gollwitzer (1999), implementation intentions; Lally et al. (2010), habit automaticity (~66 days); Fogg, _Tiny Habits_; Clear, _Atomic Habits_
 - Trackers: Loop Habit Tracker (`github.com/iSoron/uhabits`), Habitica, Beeminder, Exist.io, Streaks; mood: Daylio, Bearable
 - ELNs: Benchling, eLabFTW (`elabftw.net`), LabArchives, SciNote; Gwern's self-experiments (`gwern.net/Self-Experiment`)
 - Libraries: `simple-statistics`, `jstat`, `cal-heatmap`, `react-activity-calendar`
