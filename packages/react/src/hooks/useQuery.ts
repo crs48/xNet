@@ -223,6 +223,34 @@ function flattenNodeCached<P extends Record<string, PropertyBuilder>>(
   return flat
 }
 
+/**
+ * Dev-only guard against the "unbounded + property-sorted" antipattern: a query
+ * with no `limit`/`offset`/`after` that orders by a non-system property cannot
+ * be pushed to SQL, so it full-scans and JS-sorts the whole schema — fine for a
+ * tiny schema, a latent O(n) startup stall once that schema grows (0184).
+ * Warns once per (schema, orderBy) shape; compiled out of production builds.
+ */
+const SYSTEM_ORDER_FIELDS = new Set(['createdAt', 'updatedAt'])
+const warnedUnboundedSorts = new Set<string>()
+function warnIfUnboundedPropertySort(schemaId: string, descriptor: QueryDescriptor): void {
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') return
+  if (descriptor.nodeId) return
+  const bounded =
+    descriptor.limit !== undefined || (descriptor.offset ?? 0) > 0 || descriptor.after !== undefined
+  if (bounded) return
+  const orderKeys = Object.keys(descriptor.orderBy ?? {})
+  const propertySorted = orderKeys.some((key) => !SYSTEM_ORDER_FIELDS.has(key))
+  if (!propertySorted) return
+  const warnKey = `${schemaId}:${orderKeys.join(',')}`
+  if (warnedUnboundedSorts.has(warnKey)) return
+  warnedUnboundedSorts.add(warnKey)
+  console.warn(
+    `[useQuery] Unbounded query on "${schemaId}" ordered by property ${JSON.stringify(orderKeys)} ` +
+      `cannot use an index — it full-scans and JS-sorts the whole schema. Add a \`limit\` and ` +
+      `order by a system field (createdAt/updatedAt), then sort in JS if needed (exploration 0184).`
+  )
+}
+
 function getFallbackPageInfo(input: {
   metadata: QueryMetadata | null
   loading: boolean
@@ -385,6 +413,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
         ? descriptorRef.current.descriptor
         : candidate
     descriptorRef.current = { input: idOrFilter, schemaId, key: candidateKey, descriptor }
+    warnIfUnboundedPropertySort(schemaId, descriptor)
   }
   const descriptor = descriptorRef.current.descriptor
   const queryKey = descriptorRef.current.key
