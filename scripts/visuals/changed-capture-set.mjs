@@ -11,7 +11,7 @@
  * what the PR touched. Pure mapping lives in lib/capture-set.mjs.
  */
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { computeCaptureSet, captureSetIsEmpty } from './lib/capture-set.mjs'
@@ -96,6 +96,8 @@ const result = {
   ...set
 }
 
+const outDir = dirname(out)
+if (outDir && outDir !== '.') mkdirSync(outDir, { recursive: true })
 writeFileSync(out, JSON.stringify(result, null, 2))
 console.error(
   `[capture-set] ${changedFiles.length} changed file(s) -> ` +
