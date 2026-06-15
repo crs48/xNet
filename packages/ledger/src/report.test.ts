@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import type { LedgerAccount, LedgerTransaction } from './balance'
+import { describe, expect, it } from 'vitest'
 import { netWorth, incomeStatement, balanceSheet, spendingByCategory } from './report'
 
 const accounts: LedgerAccount[] = [

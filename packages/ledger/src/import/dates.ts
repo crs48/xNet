@@ -35,9 +35,9 @@ export function parseStatementDate(value: string, dayFirst = false): number | nu
   }
 
   // Separated numeric: parts split on / . - or QIF apostrophe.
-  const parts = s.split(/['/.\-]/).filter((p) => p !== '')
+  const parts = s.split(/['/.-]/).filter((p) => p !== '')
   if (parts.length >= 3 && parts.every((p) => /^\d+$/.test(p))) {
-    let [a, b, c] = parts.map(Number)
+    const [a, b, c] = parts.map(Number)
     // If the first chunk is a 4-digit year, it's Y M D.
     if (parts[0].length === 4) {
       return Date.UTC(a, b - 1, c)

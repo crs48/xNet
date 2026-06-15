@@ -662,15 +662,23 @@ sequenceDiagram
       `budget.ts` (period rollups, remaining), `reconcile.ts` (matching/dedupe).
       Zero `@xnetjs/*` deps; full unit + property tests.
 - [x] Seed a default chart of accounts (personal preset) generator.
-- [ ] Add `/finance` route + `FinanceView` in `apps/web/src/components/finance/`;
-      use `useQuery`/`useMutate`. Build the **smart entry form** that emits a
-      balanced batch atomically.
-- [ ] Register a **`register`** (ledger) view type in `packages/views` with
-      running balances; reuse the table view for the chart of accounts.
-- [ ] File import: CSV (mapping UI) + OFX/QIF parsers → parse → dedupe →
-      `ImportBatch` → balanced transactions. Keep parsers in `@xnetjs/ledger`.
-- [ ] Budgets + net-worth + simple reports (income statement, balance sheet)
-      rendered from `@xnetjs/ledger` outputs.
+- [x] Add `/finance` route + `FinanceView` in `apps/web/src/components/finance/`;
+      use `useQuery`/`useMutate`. Build the **smart entry form** (`TransactionForm`)
+      that emits a balanced batch atomically. Singleton workbench surface wired
+      into `state.ts`/`tabs.ts`/`ViewHost.tsx` + a `nav.finance` command (`g f`).
+- [x] Register view with running balances — shipped as the `RegisterPanel`
+      inside the finance surface (per-account register via
+      `@xnetjs/ledger.accountRegister`). _Deferred:_ exposing a generic
+      `register` view type through `packages/views` `ViewRegistry` (additive
+      seam; the running-balance semantics don't fit the row-based `ViewProps`
+      cleanly yet).
+- [x] File import: OFX/QFX + QIF (self-describing) and CSV with common-header
+      auto-detection → parse → dedupe → `ImportBatch` → balanced transactions
+      (`ImportPanel`). Parsers live in `@xnetjs/ledger`. _Deferred:_ the full
+      interactive CSV column-mapping UI (the parser already accepts an explicit
+      mapping).
+- [x] Budgets + net-worth + income/expense summaries rendered from
+      `@xnetjs/ledger` outputs in `FinanceView`.
 
 ### V1.5 — Paid bank sync (cloud, metered)
 

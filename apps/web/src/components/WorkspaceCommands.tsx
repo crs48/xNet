@@ -65,6 +65,12 @@ export function WorkspaceCommands(): JSX.Element | null {
         run: () => void navigate({ to: '/data' })
       }),
       registry.register({
+        id: 'nav.finance',
+        title: 'Go to finance',
+        key: 'g f',
+        run: () => void navigate({ to: '/finance' })
+      }),
+      registry.register({
         id: 'nav.discover',
         title: 'Discover people',
         key: 'g m',
