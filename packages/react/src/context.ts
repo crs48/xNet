@@ -5,8 +5,8 @@
  * All data access happens through useQuery/useMutate/useNode hooks.
  */
 import type { XNetRuntimeConfig, XNetRuntimeStatus, XNetRuntimeMode } from './runtime'
-import type { BlobStoreForSync } from './sync/blob-sync'
-import type { ConnectionManager } from './sync/connection-manager'
+import type { BlobStoreForSync } from '@xnetjs/runtime'
+import type { ConnectionManager } from '@xnetjs/runtime'
 import type { DID } from '@xnetjs/core'
 import type { SecurityLevel } from '@xnetjs/crypto'
 import type { NodeChangeEvent, NodeStorageAdapter } from '@xnetjs/data'
@@ -43,7 +43,7 @@ import { PluginRegistryContext } from './hooks/usePlugins'
 import { AutoBackup } from './hub/auto-backup'
 import { uploadBackup } from './hub/backup'
 import { createRuntimeStatus, resolveRuntimeConfig } from './runtime'
-import { createSyncManager, type SyncManager, type SyncStatus } from './sync/sync-manager'
+import { createSyncManager, type SyncManager, type SyncStatus } from '@xnetjs/runtime'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(...args: unknown[]): void {

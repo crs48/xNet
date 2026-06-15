@@ -46,6 +46,7 @@ const workspaceAliases = {
   '@xnetjs/query': new URL('./packages/query/src/index.ts', import.meta.url).pathname,
   '@xnetjs/react/internal': new URL('./packages/react/src/internal.ts', import.meta.url).pathname,
   '@xnetjs/react': new URL('./packages/react/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/runtime': new URL('./packages/runtime/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sdk': new URL('./packages/sdk/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sqlite/memory': new URL('./packages/sqlite/src/adapters/memory.ts', import.meta.url)
     .pathname,
@@ -170,6 +171,19 @@ export default defineConfig({
           pool: 'forks',
           isolate: true,
           include: ['packages/data-bridge/src/**/*.test.ts']
+        }
+      },
+      {
+        // Runtime package (framework-agnostic client + relocated sync) — uses
+        // Yjs heavily, so process-isolate like data-bridge; jsdom mirrors the
+        // environment these sync tests had while living in @xnetjs/react.
+        extends: true,
+        test: {
+          name: 'runtime',
+          environment: 'jsdom',
+          pool: 'forks',
+          isolate: true,
+          include: ['packages/runtime/src/**/*.test.ts']
         }
       },
       {

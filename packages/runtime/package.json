@@ -1,7 +1,7 @@
 {
-  "name": "@xnetjs/cli",
-  "version": "0.0.2",
-  "description": "xNet CLI - Schema migrations, diagnostics, and development tools",
+  "name": "@xnetjs/runtime",
+  "version": "0.0.1",
+  "description": "Framework-agnostic xNet runtime: createXNetClient() and sync orchestration, usable from any framework, a CLI, a worker, or a Node service",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -10,9 +10,6 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "xnet": "./dist/cli.js"
-  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -29,9 +26,9 @@
     "provenance": true
   },
   "scripts": {
-    "dev": "tsx src/cli.ts",
-    "build": "tsup src/index.ts src/cli.ts --format esm --dts",
+    "build": "tsup src/index.ts --format esm --dts",
     "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
@@ -39,17 +36,18 @@
     "@xnetjs/core": "workspace:*",
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/data-bridge": "workspace:*",
+    "@xnetjs/history": "workspace:*",
     "@xnetjs/identity": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
-    "@xnetjs/runtime": "workspace:*",
-    "@xnetjs/sqlite": "workspace:*",
+    "@xnetjs/storage": "workspace:*",
     "@xnetjs/sync": "workspace:*",
-    "chalk": "^5.3.0",
-    "commander": "^12.0.0"
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.24"
   },
   "devDependencies": {
+    "jsdom": "^26.0.0",
     "tsup": "^8.0.0",
-    "tsx": "^4.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"
   }

@@ -30,15 +30,15 @@
  * update({ typo: 'x' })           // Type error!
  * ```
  */
-import type { SyncManager } from '../sync/sync-manager'
+import type { SyncManager } from '@xnetjs/runtime'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { useDataBridge, useXNetInternal } from '../context'
 import { useInstrumentation } from '../instrumentation'
-import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN } from '../sync/meta-bridge'
-import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
+import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN } from '@xnetjs/runtime'
+import { WebSocketSyncProvider } from '@xnetjs/runtime'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
 import { useNodeStore } from './useNodeStore'
 import { useSyncManager } from './useSyncManager'

@@ -138,10 +138,7 @@ export {
   flattenNodesWithSchemaCheck,
   type FlattenNodeOptions
 } from './utils/flattenNode'
-export {
-  WebSocketSyncProvider,
-  type WebSocketSyncProviderOptions
-} from './sync/WebSocketSyncProvider'
+export { WebSocketSyncProvider, type WebSocketSyncProviderOptions } from '@xnetjs/runtime'
 export {
   createSyncManager,
   type SyncManager,
@@ -149,45 +146,45 @@ export {
   type SyncLifecyclePhase,
   type SyncLifecycleState,
   type SyncStatus as SyncManagerStatus
-} from './sync/sync-manager'
+} from '@xnetjs/runtime'
 export { useSyncManager } from './hooks/useSyncManager'
 export {
   createNodePool,
   type NodePool,
   type NodePoolConfig,
   type PoolEntryState
-} from './sync/node-pool'
+} from '@xnetjs/runtime'
 export {
   createConnectionManager,
   type ConnectionManager,
   type ConnectionManagerConfig,
   type ConnectionStatus
-} from './sync/connection-manager'
+} from '@xnetjs/runtime'
 export {
   NodeStoreSyncProvider,
   type SerializedNodeChange,
   type NodeSyncResponse
-} from './sync/node-store-sync-provider'
+} from '@xnetjs/runtime'
 export {
   createRegistry,
   type Registry,
   type RegistryConfig,
   type RegistryStorage,
   type TrackedNode
-} from './sync/registry'
+} from '@xnetjs/runtime'
 export {
   createMetaBridge,
   type MetaBridge,
   METABRIDGE_ORIGIN,
   METABRIDGE_SEED_ORIGIN
-} from './sync/meta-bridge'
+} from '@xnetjs/runtime'
 export {
   createOfflineQueue,
   type OfflineQueue,
   type OfflineQueueConfig,
   type QueueEntry
-} from './sync/offline-queue'
-export { type BlobStoreForSync } from './sync/blob-sync'
+} from '@xnetjs/runtime'
+export { type BlobStoreForSync } from '@xnetjs/runtime'
 export {
   OnboardingProvider,
   useOnboarding,
@@ -224,7 +221,7 @@ export {
   type SyncProgress,
   type SyncPhase,
   type ProgressListener
-} from './sync/InitialSyncManager'
+} from '@xnetjs/runtime'
 export { PageTasksPanel, type PageTasksPanelProps } from './components/PageTasksPanel'
 export {
   TaskCollectionEmbed,

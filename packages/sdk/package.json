@@ -23,6 +23,7 @@
     "@xnetjs/identity": "workspace:*",
     "@xnetjs/network": "workspace:*",
     "@xnetjs/query": "workspace:*",
+    "@xnetjs/runtime": "workspace:*",
     "@xnetjs/storage": "workspace:*"
   },
   "devDependencies": {

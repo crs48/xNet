@@ -26,9 +26,12 @@ export interface SdkTelemetry {
 // ─── Client ──────────────────────────────────────────────
 
 /**
- * An initialized xNet client with identity information.
+ * An initialized xNet identity (DID + key material).
+ *
+ * Renamed from `XNetClient` so the name `XNetClient` can denote the full
+ * framework-agnostic runtime client from `@xnetjs/runtime` (exploration 0185).
  */
-export interface XNetClient {
+export interface XNetIdentity {
   /** DID identifier for this client */
   did: string
   /** The full identity object */
@@ -66,7 +69,7 @@ export interface CreateClientOptions {
  * // Restore existing client
  * const client = await createClient({ privateKey: storedKey, telemetry })
  */
-export async function createClient(options: CreateClientOptions = {}): Promise<XNetClient> {
+export async function createClient(options: CreateClientOptions = {}): Promise<XNetIdentity> {
   const { privateKey: existingKey, telemetry } = options
 
   try {

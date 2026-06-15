@@ -33,8 +33,23 @@ export { MemoryAdapter } from '@xnetjs/storage'
 export { hashContent, createContentId, verifyContent } from '@xnetjs/core'
 
 // Client initialization with telemetry
+// Framework-agnostic runtime client (the headless engine — exploration 0185).
+// @xnetjs/sdk is the friendly umbrella over @xnetjs/runtime.
+export {
+  createXNetClient,
+  type XNetClient,
+  type CreateXNetClientOptions,
+  type XNetClientSyncOptions,
+  type XNetClientPluginOptions,
+  type XNetClientUndoOptions,
+  type XNetClientTelemetry,
+  type XNetClientRuntimeStatus
+} from '@xnetjs/runtime'
+
+// Lightweight identity initialization with telemetry.
+// (`createClient` returns an identity; for the full runtime use `createXNetClient`.)
 export { createClient } from './client'
-export type { XNetClient, CreateClientOptions, SdkTelemetry } from './client'
+export type { XNetIdentity, CreateClientOptions, SdkTelemetry } from './client'
 
 // Node-native schema discovery
 export { createSchemaDiscovery } from './discovery'

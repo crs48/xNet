@@ -600,10 +600,7 @@ export {
 // Sync
 // =============================================================================
 
-export {
-  WebSocketSyncProvider,
-  type WebSocketSyncProviderOptions
-} from './sync/WebSocketSyncProvider'
+export { WebSocketSyncProvider, type WebSocketSyncProviderOptions } from '@xnetjs/runtime'
 
 export {
   createSyncManager,
@@ -612,7 +609,7 @@ export {
   type SyncReconciliationOptions,
   type SyncReconciliationReport,
   type SyncStatus as SyncManagerStatus
-} from './sync/sync-manager'
+} from '@xnetjs/runtime'
 
 export { useSyncManager } from './hooks/useSyncManager'
 
@@ -621,7 +618,7 @@ export {
   type NodePool,
   type NodePoolConfig,
   type PoolEntryState
-} from './sync/node-pool'
+} from '@xnetjs/runtime'
 
 export {
   createConnectionManager,
@@ -630,13 +627,13 @@ export {
   type ConnectionManagerConfig,
   type MultiHubConnectionManagerConfig,
   type ConnectionStatus
-} from './sync/connection-manager'
+} from '@xnetjs/runtime'
 
 export {
   NodeStoreSyncProvider,
   type SerializedNodeChange,
   type NodeSyncResponse
-} from './sync/node-store-sync-provider'
+} from '@xnetjs/runtime'
 
 export {
   createRegistry,
@@ -644,23 +641,23 @@ export {
   type RegistryConfig,
   type RegistryStorage,
   type TrackedNode
-} from './sync/registry'
+} from '@xnetjs/runtime'
 
 export {
   createMetaBridge,
   type MetaBridge,
   METABRIDGE_ORIGIN,
   METABRIDGE_SEED_ORIGIN
-} from './sync/meta-bridge'
+} from '@xnetjs/runtime'
 
 export {
   createOfflineQueue,
   type OfflineQueue,
   type OfflineQueueConfig,
   type QueueEntry
-} from './sync/offline-queue'
+} from '@xnetjs/runtime'
 
-export { type BlobStoreForSync } from './sync/blob-sync'
+export { type BlobStoreForSync } from '@xnetjs/runtime'
 
 // =============================================================================
 // Identity
@@ -713,7 +710,7 @@ export {
   type SyncProgress,
   type SyncPhase,
   type ProgressListener
-} from './sync/InitialSyncManager'
+} from '@xnetjs/runtime'
 
 // =============================================================================
 // Provider
