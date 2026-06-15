@@ -107,7 +107,11 @@ describe('TelemetryCollector durable buffer', () => {
       status: 'shared'
     })
 
-    const collector = new TelemetryCollector({ consent, buffer, bufferKeepMs: 7 * 24 * 60 * 60 * 1000 })
+    const collector = new TelemetryCollector({
+      consent,
+      buffer,
+      bufferKeepMs: 7 * 24 * 60 * 60 * 1000
+    })
     await collector.hydrate()
     expect(collector.getLocalTelemetry()).toHaveLength(0)
     expect(await buffer.all()).toHaveLength(0)

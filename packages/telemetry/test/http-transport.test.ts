@@ -6,7 +6,11 @@ const batch: TelemetryBatch = {
   batchId: 'batch_1',
   timestamp: Date.now(),
   records: [
-    { schemaId: 'xnet://xnet.fyi/telemetry/UsageMetric', data: { metricName: 'x' }, createdAt: Date.now() }
+    {
+      schemaId: 'xnet://xnet.fyi/telemetry/UsageMetric',
+      data: { metricName: 'x' },
+      createdAt: Date.now()
+    }
   ]
 }
 

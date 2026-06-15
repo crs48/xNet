@@ -54,12 +54,7 @@ describe('TelemetryStore', () => {
   })
 
   it('ranks top names by count', () => {
-    store.appendBatch([
-      ev({ name: 'a' }),
-      ev({ name: 'a' }),
-      ev({ name: 'a' }),
-      ev({ name: 'b' })
-    ])
+    store.appendBatch([ev({ name: 'a' }), ev({ name: 'a' }), ev({ name: 'a' }), ev({ name: 'b' })])
     const top = store.topNames()
     expect(top[0]).toMatchObject({ name: 'a', count: 3 })
     expect(top[1]).toMatchObject({ name: 'b', count: 1 })

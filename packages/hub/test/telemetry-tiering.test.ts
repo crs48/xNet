@@ -70,7 +70,11 @@ describe('telemetry tiering / retention', () => {
   })
 
   it('start/stop are idempotent', () => {
-    const maintenance = createTelemetryMaintenance({ store, retentionMs: 7 * DAY, intervalMs: 999_999 })
+    const maintenance = createTelemetryMaintenance({
+      store,
+      retentionMs: 7 * DAY,
+      intervalMs: 999_999
+    })
     maintenance.start()
     maintenance.start()
     maintenance.stop()

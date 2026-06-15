@@ -82,7 +82,11 @@ describe('telemetry normalize', () => {
         },
         { didHash: null, now }
       )
-      expect(security).toMatchObject({ kind: 'security', name: 'hub.rate_limit.rejections', severity: 'medium' })
+      expect(security).toMatchObject({
+        kind: 'security',
+        name: 'hub.rate_limit.rejections',
+        severity: 'medium'
+      })
 
       const crash = normalizeRecord(
         {
