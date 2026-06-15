@@ -1,4 +1,4 @@
-import type { SyncManager } from './sync/sync-manager'
+import type { SyncManager } from '@xnetjs/runtime'
 import type { DID } from '@xnetjs/core'
 import type { Identity } from '@xnetjs/identity'
 import { renderHook, waitFor } from '@testing-library/react'

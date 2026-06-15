@@ -1,7 +1,7 @@
 /**
  * useHubStatus - Access hub connection status from context.
  */
-import type { SyncStatus } from '../sync/sync-manager'
+import type { SyncStatus } from '@xnetjs/runtime'
 import { useContext } from 'react'
 import { XNetContext } from '../context'
 

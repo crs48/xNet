@@ -4,7 +4,7 @@
  * Returns null if SyncManager is not available (disabled, not initialized,
  * or when running outside XNetProvider).
  */
-import type { SyncManager } from '../sync/sync-manager'
+import type { SyncManager } from '@xnetjs/runtime'
 import { useContext } from 'react'
 import { XNetContext } from '../context'
 

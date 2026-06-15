@@ -1401,6 +1401,9 @@ importers:
       '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../plugins
+      '@xnetjs/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync
@@ -1441,6 +1444,55 @@ importers:
       y-webrtc:
         specifier: ^10.3.0
         version: 10.3.0(patch_hash=4d16af1c85349d375eae1f4b72449eef7f06864dbc31d84aecf09b53cb0dedd9)(yjs@13.6.29)
+
+  packages/runtime:
+    dependencies:
+      '@xnetjs/core':
+        specifier: workspace:*
+        version: link:../core
+      '@xnetjs/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+      '@xnetjs/data':
+        specifier: workspace:*
+        version: link:../data
+      '@xnetjs/data-bridge':
+        specifier: workspace:*
+        version: link:../data-bridge
+      '@xnetjs/history':
+        specifier: workspace:*
+        version: link:../history
+      '@xnetjs/identity':
+        specifier: workspace:*
+        version: link:../identity
+      '@xnetjs/plugins':
+        specifier: workspace:*
+        version: link:../plugins
+      '@xnetjs/storage':
+        specifier: workspace:*
+        version: link:../storage
+      '@xnetjs/sync':
+        specifier: workspace:*
+        version: link:../sync
+      y-protocols:
+        specifier: ^1.0.6
+        version: 1.0.7(yjs@13.6.29)
+      yjs:
+        specifier: ^13.6.24
+        version: 13.6.29
+    devDependencies:
+      jsdom:
+        specifier: ^26.0.0
+        version: 26.1.0
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/sdk:
     dependencies:
@@ -3325,8 +3377,8 @@ packages:
     resolution: {integrity: sha512-aO5l99BQJ0X34ft8b0h7QFkQlqxC6e7ZPVmBKz13xM9O8obDaM1Cld4sQlJDXXU/VFuUzQ30mVtHjVz74TuStw==}
     engines: {node: '>=v18'}
 
-  '@csstools/color-helpers@5.1.0':
-    resolution: {integrity: sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==}
+  '@csstools/color-helpers@5.0.2':
+    resolution: {integrity: sha512-JqWH1vsgdGcw2RR6VliXXdA0/59LttzlU8UlRT/iUUsEeWfYq8I+K0yhihEUTTHLRm1EXvpsCx3083EU15ecsA==}
     engines: {node: '>=18'}
 
   '@csstools/css-calc@2.1.4':
@@ -3336,8 +3388,8 @@ packages:
       '@csstools/css-parser-algorithms': ^3.0.5
       '@csstools/css-tokenizer': ^3.0.4
 
-  '@csstools/css-color-parser@3.1.0':
-    resolution: {integrity: sha512-nbtKwh3a6xNVIp/VRuXV64yTKnb1IjTAEEh3irzS+HkKjAOYLTGNb9pmVNntZ8iVBHcWDA2Dof0QtPgFI1BaTA==}
+  '@csstools/css-color-parser@3.0.10':
+    resolution: {integrity: sha512-TiJ5Ajr6WRd1r8HSiwJvZBiJOqtH86aHpUjq5aEKWHiII2Qfjqd/HCWKPOW8EP4vcspXbHnXrwIDlu5savQipg==}
     engines: {node: '>=18'}
     peerDependencies:
       '@csstools/css-parser-algorithms': ^3.0.5
@@ -10462,6 +10514,9 @@ packages:
   nullthrows@1.1.1:
     resolution: {integrity: sha512-2vPPEi+Z7WqML2jZYddDIfy5Dqb0r2fze2zTxNNknZaFpVHU3mFB3R+DWeJWGVx0ecvttSGlJTI+WG+8Z4cDWw==}
 
+  nwsapi@2.2.21:
+    resolution: {integrity: sha512-o6nIY3qwiSXl7/LuOU0Dmuctd34Yay0yeuZRLFmDPrrdHpXKFndPj3hM+YEPVHYC5fx2otBx4Ilc/gyYSAUaIA==}
+
   nwsapi@2.2.23:
     resolution: {integrity: sha512-7wfH4sLbt4M0gCDzGE6vzQBo0bfTKjU7Sfpqy/7gs1qBfYz2vEJH6vXcBKpO3+6Yu1telwd0t9HpyOoLEQQbIQ==}
 
@@ -12328,9 +12383,6 @@ packages:
   tldts-core@6.1.86:
     resolution: {integrity: sha512-Je6p7pkk+KMzMv2XXKmAE3McmolOQFdxkKw0R8EYNr7sELW46JqnNeTX8ybPiQgvg1ymCoF8LXs5fzFaZvJPTA==}
 
-  tldts-core@7.0.19:
-    resolution: {integrity: sha512-lJX2dEWx0SGH4O6p+7FPwYmJ/bu1JbcGJ8RLaG9b7liIgZ85itUVEPbMtWRVrde/0fnDPEPHW10ZsKW3kVsE9A==}
-
   tldts-core@7.4.2:
     resolution: {integrity: sha512-nwEyF4vl4RSJjwSjBUmOSxc3BFPoIFdlRthJ6e+5v9P3bHNsoD06UjuqMUspqp7vsEZ1beaHi1km+optiE17yA==}
 
@@ -13141,7 +13193,6 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
-    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-fetch@3.6.20:
     resolution: {integrity: sha512-EqhiFU6daOA8kpjOWTL0olhVOF3i7OrFzSYiGsEMB8GcXS+RrzauAERX65xMeNWVqxA6HXH2m69Z9LaKKdisfg==}
@@ -13513,7 +13564,7 @@ snapshots:
   '@asamuzakjp/css-color@3.2.0':
     dependencies:
       '@csstools/css-calc': 2.1.4(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)
-      '@csstools/css-color-parser': 3.1.0(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)
+      '@csstools/css-color-parser': 3.0.10(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
       lru-cache: 10.4.3
@@ -16594,16 +16645,16 @@ snapshots:
       conventional-commits-parser: 6.2.1
       picocolors: 1.1.1
 
-  '@csstools/color-helpers@5.1.0': {}
+  '@csstools/color-helpers@5.0.2': {}
 
   '@csstools/css-calc@2.1.4(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
     dependencies:
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
 
-  '@csstools/css-color-parser@3.1.0(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
+  '@csstools/css-color-parser@3.0.10(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
     dependencies:
-      '@csstools/color-helpers': 5.1.0
+      '@csstools/color-helpers': 5.0.2
       '@csstools/css-calc': 2.1.4(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
@@ -24885,7 +24936,7 @@ snapshots:
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       is-potential-custom-element-name: 1.0.1
-      nwsapi: 2.2.23
+      nwsapi: 2.2.21
       parse5: 7.3.0
       rrweb-cssom: 0.8.0
       saxes: 6.0.0
@@ -26299,6 +26350,8 @@ snapshots:
       boolbase: 1.0.0
 
   nullthrows@1.1.1: {}
+
+  nwsapi@2.2.21: {}
 
   nwsapi@2.2.23: {}
 
@@ -28637,10 +28690,7 @@ snapshots:
 
   tldts-core@6.1.86: {}
 
-  tldts-core@7.0.19: {}
-
-  tldts-core@7.4.2:
-    optional: true
+  tldts-core@7.4.2: {}
 
   tldts@6.1.86:
     dependencies:
@@ -28648,7 +28698,7 @@ snapshots:
 
   tldts@7.0.19:
     dependencies:
-      tldts-core: 7.0.19
+      tldts-core: 7.4.2
 
   tldts@7.4.2:
     dependencies:
