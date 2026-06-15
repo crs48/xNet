@@ -774,12 +774,20 @@ export class NodeStore {
         decrypted.filter((node): node is NodeState => node !== null)
       )
       const result = applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+      // When pagination was pushed to storage, `readable` holds only the window,
+      // so an in-memory count would report the page size, not the true total —
+      // leave it undefined (the bridge derives a cheap value). Only count the
+      // in-memory candidate set when it actually holds every matching row
+      // (no storage-side pagination). `fallback.totalCount` is the exact total
+      // when `count: 'exact'` was requested (exploration 0184).
       const totalCount =
         fallback.totalCount ??
-        applyNodeQueryDescriptor(
-          readable,
-          withoutNodeQueryPagination(fallback.postFilterDescriptor)
-        ).length
+        (fallback.paginatedInStorage
+          ? undefined
+          : applyNodeQueryDescriptor(
+              readable,
+              withoutNodeQueryPagination(fallback.postFilterDescriptor)
+            ).length)
 
       return {
         nodes: result,
@@ -805,12 +813,15 @@ export class NodeStore {
     nodes: NodeState[]
     postFilterDescriptor: NodeQueryDescriptor
     totalCount?: number
+    /** True when storage already applied the limit/offset window. */
+    paginatedInStorage: boolean
   }> {
     if (descriptor.nodeId) {
       const node = await this.storage.getNode(descriptor.nodeId)
       return {
         nodes: node ? [node] : [],
-        postFilterDescriptor: descriptor
+        postFilterDescriptor: descriptor,
+        paginatedInStorage: false
       }
     }
 
@@ -821,8 +832,11 @@ export class NodeStore {
       descriptor.limit !== undefined ||
       (descriptor.offset ?? 0) > 0 ||
       descriptor.after !== undefined
+    // Only pay the extra `COUNT(*)` when an exact total was explicitly
+    // requested (exploration 0184). Otherwise leave it undefined so the bridge
+    // derives a cheap count / overfetch-based `hasMore`.
     const totalCount =
-      canPushPagination && hasPagination
+      canPushPagination && hasPagination && descriptor.count === 'exact'
         ? await this.storage.countNodes({
             schemaId: descriptor.schemaId,
             includeDeleted: descriptor.includeDeleted
@@ -840,7 +854,8 @@ export class NodeStore {
       nodes,
       totalCount,
       postFilterDescriptor:
-        canPushPagination && hasPagination ? withoutNodeQueryPagination(descriptor) : descriptor
+        canPushPagination && hasPagination ? withoutNodeQueryPagination(descriptor) : descriptor,
+      paginatedInStorage: canPushPagination && hasPagination
     }
   }
 
@@ -1532,6 +1547,23 @@ export class NodeStore {
     await this.storage.rebuildIndexesForSchemas(uniqueSchemaIds, {
       indexProperties: !this.nodeContentCipher
     })
+  }
+
+  /**
+   * Refresh query-planner statistics (ANALYZE). Call after a bulk import so the
+   * first post-import reads use indexes instead of full scans (exploration
+   * 0184). No-op when the storage backend doesn't support it.
+   */
+  async analyze(): Promise<void> {
+    await this.storage.analyze?.()
+  }
+
+  /**
+   * Incremental planner maintenance (`PRAGMA optimize`). Cheap; intended for an
+   * idle tick after first paint and before close.
+   */
+  async optimize(): Promise<void> {
+    await this.storage.optimize?.()
   }
 
   private async appendImportedChanges(

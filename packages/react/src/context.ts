@@ -52,6 +52,15 @@ function log(...args: unknown[]): void {
   }
 }
 
+/** Run `fn` when the main thread is idle, falling back to a timer. */
+function scheduleIdle(fn: () => void): void {
+  if (typeof window === 'undefined') return
+  const ric = (window as Window & { requestIdleCallback?: (cb: () => void) => void })
+    .requestIdleCallback
+  if (typeof ric === 'function') ric(fn)
+  else setTimeout(fn, 1000)
+}
+
 function resolveConfiguredSignalingUrls(
   hubUrl: string | null,
   signalingServers: string[] | undefined
@@ -690,6 +699,14 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         const win = window as Window & { __xnetNodeStore?: NodeStore }
         win.__xnetNodeStore = ns
       }
+
+      // Refresh query-planner statistics at idle, after first paint, so the
+      // planner stays in sync as the database grows (exploration 0184). Cheap
+      // (`PRAGMA optimize` only ANALYZEs drifted tables) and never blocks the
+      // initial render.
+      scheduleIdle(() => {
+        if (!cancelled) void ns.optimize()
+      })
     }
 
     let bridgeRef: DataBridge | null = null

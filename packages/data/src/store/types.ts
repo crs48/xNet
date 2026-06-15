@@ -182,6 +182,17 @@ export interface NodeStorageAdapter {
     schemaIds: readonly SchemaIRI[],
     options?: RebuildNodeIndexesOptions
   ): Promise<void>
+  /**
+   * Refresh query-planner statistics (ANALYZE). Call after a bulk import:
+   * SQLite does not auto-maintain stats, so a large insert leaves the planner
+   * "out of sync" and reads may pick full scans over indexes (exploration 0184).
+   */
+  analyze?(): Promise<void>
+  /**
+   * Incremental planner maintenance (`PRAGMA optimize`) — ANALYZEs only the
+   * tables that drifted. Cheap; safe to call at idle and before close.
+   */
+  optimize?(): Promise<void>
   deleteNode(id: NodeId): Promise<void>
   listNodes(options?: ListNodesOptions): Promise<NodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>

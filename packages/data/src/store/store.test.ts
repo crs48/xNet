@@ -1708,7 +1708,9 @@ describe('authorization enforcement', () => {
       includeDeleted: false,
       orderBy: { updatedAt: 'desc' },
       limit: 2,
-      offset: 1
+      offset: 1,
+      // Opt in to the exact total — by default the COUNT(*) is skipped (0184).
+      count: 'exact'
     })
 
     expect(listNodes).toHaveBeenCalledWith({
@@ -1730,6 +1732,40 @@ describe('authorization enforcement', () => {
       hydratedNodeCount: 2,
       returnedNodeCount: 2
     })
+  })
+
+  it('skips the COUNT(*) for paginated reads that do not request an exact total', async () => {
+    const { adapter, did, store } = createTestStore()
+    await store.initialize()
+
+    for (let index = 1; index <= 5; index++) {
+      await adapter.setNode({
+        id: `task-${index}`,
+        schemaId: TEST_SCHEMA,
+        properties: { title: `Task ${index}` },
+        timestamps: {},
+        deleted: false,
+        createdAt: 1_000 + index,
+        createdBy: did,
+        updatedAt: 2_000 + index,
+        updatedBy: did
+      })
+    }
+
+    const countNodes = vi.spyOn(adapter, 'countNodes')
+
+    const result = await store.query({
+      schemaId: TEST_SCHEMA,
+      includeDeleted: false,
+      orderBy: { updatedAt: 'desc' },
+      limit: 2,
+      offset: 1
+    })
+
+    // No `count` requested → the index-wide COUNT(*) is never run (0184).
+    expect(countNodes).not.toHaveBeenCalled()
+    expect(result.totalCount).toBeUndefined()
+    expect(result.nodes.map((node) => node.id)).toEqual(['task-4', 'task-3'])
   })
 
   it('should deny entire transaction when one operation is unauthorized', async () => {
