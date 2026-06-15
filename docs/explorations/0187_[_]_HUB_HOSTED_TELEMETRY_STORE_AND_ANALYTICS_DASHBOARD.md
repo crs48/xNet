@@ -780,17 +780,21 @@ t.reportUsage('view.opened', 1)                                         // surfa
 ## Implementation Checklist
 
 **Slice 1 — Persist + transport (client)**
-- [ ] Add `TelemetryBufferStore` interface + IndexedDB impl (web) and SQLite impl
-      (electron/expo) in `packages/telemetry/src/collection/persistence.ts`.
-- [ ] Thread an optional `buffer` into `TelemetryCollector` so `report()`,
-      `getLocalTelemetry()`, status changes, and a new `markShared()` go through
-      durable storage; keep the in-memory path as the default/no-buffer fallback.
-- [ ] Add `createHttpTransport` in `packages/telemetry/src/sync/http-transport.ts`
+- [x] Add `TelemetryBufferStore` interface + IndexedDB impl (web) in
+      `packages/telemetry/src/collection/persistence.ts` (`MemoryTelemetryBuffer`,
+      `IndexedDBTelemetryBuffer`, `createDefaultTelemetryBuffer`). A native
+      SQLite-backed adapter for expo can be supplied later via the same interface.
+- [x] Thread an optional `buffer` into `TelemetryCollector` with `hydrate()`,
+      write-through status changes, and a new `markShared()`; the in-memory path
+      stays the default/no-buffer fallback.
+- [x] Add `createHttpTransport` in `packages/telemetry/src/sync/http-transport.ts`
       and export it.
-- [ ] Wire collector buffer + sync transport in `apps/web`, `apps/electron`,
-      `apps/expo`; remove the forced `setTier('anonymous')` from production paths.
-- [ ] Unit tests: persistence round-trip, transport success/failure/markShared,
-      consent-gated drain.
+- [x] Wire collector buffer + hydrate into `apps/electron`; gate the dev-only
+      `setTier('anonymous')` behind `import.meta.env.DEV` (never a production
+      default). `apps/web` sync-transport wiring lands with the dashboard (Slice 3);
+      `apps/expo` deferred.
+- [x] Unit tests: persistence round-trip, transport success/failure, collector
+      buffer mirroring / hydrate / markShared, consent-gated drain.
 
 **Slice 2 — Hub ingest + store**
 - [ ] `packages/hub/src/telemetry/schema.sql` + `TelemetryStore` (`appendBatch`,

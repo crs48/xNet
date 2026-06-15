@@ -20,3 +20,10 @@ export {
 export { scheduleWithJitter, randomDelay } from './timing'
 export type { TelemetryCollectorOptions, ReportOptions, TelemetryRecord } from './collector'
 export { TelemetryCollector } from './collector'
+export type { TelemetryBufferStore } from './persistence'
+export {
+  MemoryTelemetryBuffer,
+  IndexedDBTelemetryBuffer,
+  isIndexedDBAvailable,
+  createDefaultTelemetryBuffer
+} from './persistence'

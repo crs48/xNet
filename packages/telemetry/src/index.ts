@@ -42,6 +42,13 @@ export {
 } from './collection'
 export { scheduleWithJitter, randomDelay } from './collection'
 export { TelemetryCollector } from './collection'
+export type { TelemetryBufferStore } from './collection'
+export {
+  MemoryTelemetryBuffer,
+  IndexedDBTelemetryBuffer,
+  isIndexedDBAvailable,
+  createDefaultTelemetryBuffer
+} from './collection'
 
 // Hooks
 export {
@@ -61,3 +68,5 @@ export type { TelemetrySyncConfig, SyncResult } from './sync'
 export { TelemetrySyncProvider } from './sync'
 export type { TelemetryBatch, TelemetryBatchRecord, AggregatorResponse } from './sync'
 export { TELEMETRY_PROTOCOL } from './sync'
+export type { HttpTransportOptions, TelemetryTransport } from './sync'
+export { createHttpTransport } from './sync'

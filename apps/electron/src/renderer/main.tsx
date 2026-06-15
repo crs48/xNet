@@ -13,7 +13,12 @@ import { BlobProvider } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { XNetProvider } from '@xnetjs/react'
 import { ChunkManager } from '@xnetjs/storage'
-import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnetjs/telemetry'
+import {
+  ConsentManager,
+  TelemetryCollector,
+  TelemetryProvider,
+  createDefaultTelemetryBuffer
+} from '@xnetjs/telemetry'
 import { ThemeProvider } from '@xnetjs/ui'
 import React, { useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -155,10 +160,21 @@ const makeTestKey = (profileName: string): Uint8Array => {
 let AUTHOR_DID: `did:key:${string}`
 let SIGNING_KEY: Uint8Array
 
-// Telemetry: consent set to 'anonymous' for dev (enables all collection tiers, visible in devtools)
+// Telemetry (exploration 0187): respect persisted consent (default 'off' — we
+// collect/transmit nothing until the user opts in). In a DEV build only we bump
+// to 'anonymous' purely so the devtools telemetry panel has something to show;
+// this must never apply to a production build. A durable IndexedDB buffer keeps
+// un-synced records across reloads, and hydrate() restores them on startup.
 const consentManager = new ConsentManager({ autoLoad: true })
-consentManager.setTier('anonymous') // Enable all collection tiers for devtools visibility
-const telemetryCollector = new TelemetryCollector({ consent: consentManager })
+if (import.meta.env.DEV) {
+  void consentManager.setTier('anonymous')
+}
+const telemetryBuffer = createDefaultTelemetryBuffer()
+const telemetryCollector = new TelemetryCollector({
+  consent: consentManager,
+  buffer: telemetryBuffer
+})
+void telemetryCollector.hydrate()
 
 // IPC-based sync manager routes sync through the main process BSM
 const ipcSyncManager = createIPCSyncManager()
