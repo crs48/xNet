@@ -84,7 +84,11 @@ export function ssim(baseline, candidate) {
   }
 }
 
-/** Write an amplified difference image highlighting what changed. */
+/**
+ * Write an amplified difference image: unchanged pixels read black, changed
+ * pixels read white. Grayscale avoids the misleading color cast a tinted
+ * `eq` left on near-zero differences, and is the conventional diff look.
+ */
 export function diffImage(baseline, candidate, outPath) {
   run([
     '-i',
@@ -92,7 +96,7 @@ export function diffImage(baseline, candidate, outPath) {
     '-i',
     candidate,
     '-filter_complex',
-    '[1:v][0:v]scale2ref[c][b];[b][c]blend=all_mode=difference,eq=contrast=3.0:brightness=0.05',
+    '[1:v][0:v]scale2ref[c][b];[b][c]blend=all_mode=difference,format=gray,eq=contrast=4.0',
     '-frames:v',
     '1',
     outPath
