@@ -33,6 +33,10 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "test:integration": "pnpm --filter @xnetjs/integration-tests test",
     "test:integration:watch": "pnpm --filter @xnetjs/integration-tests test:watch",
+    "test:visuals": "node --test scripts/visuals/lib/*.test.mjs",
+    "visuals:capture-set": "node scripts/visuals/changed-capture-set.mjs",
+    "visuals:capture": "node scripts/visuals/capture.mjs",
+    "visuals:diff": "node scripts/visuals/diff.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -40,6 +44,7 @@
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@github-ui/storybook-addon-performance-panel": "^1.1.4",
+    "@playwright/test": "1.58.1",
     "@storybook/addon-a11y": "^10.2.16",
     "@storybook/addon-links": "^10.2.16",
     "@storybook/addon-themes": "^10.2.16",
