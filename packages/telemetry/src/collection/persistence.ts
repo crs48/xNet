@@ -111,7 +111,10 @@ export class IndexedDBTelemetryBuffer implements TelemetryBufferStore {
     return this.dbPromise
   }
 
-  private async tx<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+  private async tx<T>(
+    mode: IDBTransactionMode,
+    fn: (store: IDBObjectStore) => IDBRequest<T>
+  ): Promise<T> {
     const db = await this.open()
     return new Promise<T>((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, mode)

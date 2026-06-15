@@ -72,7 +72,8 @@ async function exportColdTier(
   const conn = await instance.connect()
   try {
     await conn.run('INSTALL sqlite; LOAD sqlite; INSTALL httpfs; LOAD httpfs;')
-    if (credentials.endpoint) await conn.run(`SET s3_endpoint = '${sqlLiteral(credentials.endpoint)}';`)
+    if (credentials.endpoint)
+      await conn.run(`SET s3_endpoint = '${sqlLiteral(credentials.endpoint)}';`)
     if (credentials.region) await conn.run(`SET s3_region = '${sqlLiteral(credentials.region)}';`)
     if (credentials.accessKeyId)
       await conn.run(`SET s3_access_key_id = '${sqlLiteral(credentials.accessKeyId)}';`)
@@ -145,7 +146,9 @@ export interface TelemetryMaintenanceConfig extends TelemetryTieringConfig {
  * shutdown. Idempotent start/stop; never throws from the timer (errors go to
  * `onError`).
  */
-export function createTelemetryMaintenance(config: TelemetryMaintenanceConfig): TelemetryMaintenance {
+export function createTelemetryMaintenance(
+  config: TelemetryMaintenanceConfig
+): TelemetryMaintenance {
   const intervalMs = config.intervalMs ?? DEFAULT_INTERVAL_MS
   let timer: ReturnType<typeof setInterval> | null = null
 

@@ -75,7 +75,9 @@ export async function runTelemetryJoinQuery(
   paths: TelemetryJoinPaths,
   opts: DuckDbQueryOptions = {}
 ): Promise<Array<Record<string, unknown>>> {
-  let duck: { DuckDBInstance: { create(path: string, config?: Record<string, string>): Promise<DuckInstance> } }
+  let duck: {
+    DuckDBInstance: { create(path: string, config?: Record<string, string>): Promise<DuckInstance> }
+  }
   try {
     duck = (await import(DUCKDB_MODULE)) as typeof duck
   } catch {

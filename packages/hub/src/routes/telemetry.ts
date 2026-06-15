@@ -32,7 +32,9 @@ export interface TelemetryRoutesDeps {
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
 
-const parseFilter = (c: { req: { query: (k: string) => string | undefined } }): TelemetryQueryFilter => {
+const parseFilter = (c: {
+  req: { query: (k: string) => string | undefined }
+}): TelemetryQueryFilter => {
   const q = c.req.query.bind(c.req)
   const sinceParam = Number(q('sinceMs'))
   const untilParam = Number(q('untilMs'))
@@ -40,7 +42,8 @@ const parseFilter = (c: { req: { query: (k: string) => string | undefined } }): 
   return {
     kind: q('kind') || undefined,
     name: q('name') || undefined,
-    sinceMs: Number.isFinite(sinceParam) && sinceParam > 0 ? sinceParam : Date.now() - DEFAULT_WINDOW_MS,
+    sinceMs:
+      Number.isFinite(sinceParam) && sinceParam > 0 ? sinceParam : Date.now() - DEFAULT_WINDOW_MS,
     untilMs: Number.isFinite(untilParam) && untilParam > 0 ? untilParam : undefined,
     limit: Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined
   }
