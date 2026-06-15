@@ -50,6 +50,7 @@
     "maxCognitive": 30,
     "maxCrap": 30.0,
     "ignore": [
+      "scripts/visuals/**",
       "apps/web/src/components/CanvasView.tsx",
       "apps/web/src/components/DatabaseView.tsx",
       "apps/web/src/components/PageView.tsx",

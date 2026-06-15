@@ -9,8 +9,9 @@
 import { useNavigate } from '@tanstack/react-router'
 import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
 import { hasNodeTransfer, getNodeTransfer, setNodeTransfer, type NodeTransfer } from '@xnetjs/ui'
-import { FolderInput, Pin } from 'lucide-react'
+import { FolderInput, Pin, Users } from 'lucide-react'
 import { useState } from 'react'
+import { useSpaces } from '../../hooks/useSpaces'
 import { navigateToNode } from '../navigation'
 import { tabIdFor, useWorkbench } from '../state'
 import { setPreviewIntent, TAB_VIEWS } from '../tabs'
@@ -102,6 +103,67 @@ function MoveToFolderButton({ item }: { item: ExplorerItem }) {
   )
 }
 
+/** Move-to-Space menu. Mounted only when open, so `useSpaces` doesn't run per row. */
+function MoveToSpaceMenu({ item, onClose }: { item: ExplorerItem; onClose: () => void }) {
+  const { spaces, setNodeSpace } = useSpaces()
+  const choose = (spaceId: string | null) => {
+    void setNodeSpace(item.id, spaceId)
+    onClose()
+  }
+  return (
+    <div className="absolute right-0 top-full z-20 mt-1 max-h-64 w-44 overflow-y-auto rounded-md border border-hairline bg-popover py-1">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          choose(null)
+        }}
+        className="block w-full cursor-pointer border-none bg-transparent px-3 py-1.5 text-left text-xs text-ink-2 hover:bg-accent hover:text-ink-1"
+      >
+        No Space
+      </button>
+      {spaces.length === 0 ? (
+        <p className="m-0 px-3 py-1.5 text-[11px] text-ink-3">No Spaces yet.</p>
+      ) : (
+        spaces.map((space) => (
+          <button
+            key={space.id}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              choose(space.id)
+            }}
+            className="block w-full cursor-pointer truncate border-none bg-transparent px-3 py-1.5 text-left text-xs text-ink-2 hover:bg-accent hover:text-ink-1"
+          >
+            {space.name || 'Untitled space'}
+          </button>
+        ))
+      )}
+    </div>
+  )
+}
+
+function MoveToSpaceButton({ item }: { item: ExplorerItem }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span className="relative shrink-0">
+      <button
+        type="button"
+        title="Move to Space…"
+        aria-label="Move to Space…"
+        onClick={(event) => {
+          event.stopPropagation()
+          setOpen((prev) => !prev)
+        }}
+        className="invisible cursor-pointer border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:visible"
+      >
+        <Users size={11} strokeWidth={1.5} />
+      </button>
+      {open && <MoveToSpaceMenu item={item} onClose={() => setOpen(false)} />}
+    </span>
+  )
+}
+
 export function ExplorerRow({
   item,
   pinned,
@@ -177,6 +239,7 @@ export function ExplorerRow({
     >
       <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
       <span className="min-w-0 flex-1 truncate text-xs">{title}</span>
+      <MoveToSpaceButton item={item} />
       <MoveToFolderButton item={item} />
       <ExplorerPinToggle nodeId={item.id} pinned={pinned} />
     </div>

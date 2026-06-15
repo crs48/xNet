@@ -15,6 +15,7 @@ import { useQuery } from '@xnetjs/react'
 import { ChevronDown, Link as LinkIcon, Plus } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { AddSharedDialog } from '../../components/AddSharedDialog'
+import { useCreateInSpace } from '../../hooks/useCreateInSpace'
 import { CreateDocMenuItems, navigateToNewDoc, type NavigateLike } from '../../lib/doc-creation'
 import { useWorkbench } from '../state'
 import { filterExplorerItems } from './explorer-filter'
@@ -264,6 +265,8 @@ export function Explorer() {
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const pinnedNodeIds = useWorkbench((state) => state.pinnedNodeIds)
   const recents = useWorkbench((state) => state.recents)
+  const currentSpaceId = useWorkbench((state) => state.currentSpaceId)
+  const createInSpace = useCreateInSpace()
 
   const allItems = useExplorerItems()
   const byId = useMemo(() => new Map(allItems.map((item) => [item.id, item])), [allItems])
@@ -292,6 +295,11 @@ export function Explorer() {
 
   const handleCreate = (type: ExplorerNodeType) => {
     setShowCreateMenu(false)
+    // When a Space is active, new docs are filed into it (exploration 0181).
+    if (currentSpaceId) {
+      void createInSpace(type, currentSpaceId)
+      return
+    }
     navigateToNewDoc(navigate as unknown as NavigateLike, type)
   }
 

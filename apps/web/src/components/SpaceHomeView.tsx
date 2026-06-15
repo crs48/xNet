@@ -42,6 +42,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { displayName as resolveName } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
+import { useCreateInSpace } from '../hooks/useCreateInSpace'
 import { useSpaceMembers, useSpaces } from '../hooks/useSpaces'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
@@ -185,6 +186,7 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
   const { tree, getSpace, setSpaceVisibility } = useSpaces()
   const { members, setMemberRole, removeMember } = useSpaceMembers(spaceId)
   const { projects, content } = useSpaceContent(spaceId)
+  const createInSpace = useCreateInSpace()
   const [inviteOpen, setInviteOpen] = useState(false)
 
   const space = getSpace(spaceId)
@@ -352,7 +354,19 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
         />
       </Section>
 
-      <Section title="Content" count={content.length}>
+      <Section
+        title="Content"
+        count={content.length}
+        action={
+          <button
+            type="button"
+            onClick={() => void createInSpace('page', spaceId)}
+            className="flex items-center gap-1 text-[11px] text-ink-3 transition-colors hover:text-ink-1"
+          >
+            <FileText size={12} /> New page
+          </button>
+        }
+      >
         <ContentList
           rows={content}
           emptyLabel="Nothing filed in this Space yet."
