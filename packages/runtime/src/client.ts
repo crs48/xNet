@@ -235,6 +235,108 @@ function permissiveDecision(input: AuthCheckInput): AuthDecision {
   }
 }
 
+function reportCrash(
+  telemetry: XNetClientTelemetry | undefined,
+  err: unknown,
+  codeNamespace: string
+): void {
+  telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), { codeNamespace })
+}
+
+/** Build the NodeStore from client options (optional seams pass through as undefined). */
+function buildNodeStore(options: CreateXNetClientOptions, storage: NodeStorageAdapter): NodeStore {
+  return new NodeStore({
+    storage,
+    authorDID: options.authorDID,
+    signingKey: options.signingKey,
+    changeSigner: options.changeSigner,
+    authEvaluator: options.authEvaluator,
+    nodeContentCipher: options.nodeContentCipher,
+    auth: options.auth,
+    schemaLookup: options.schemaLookup,
+    propertyLookup: options.propertyLookup,
+    lensRegistry: options.lensRegistry,
+    telemetry: options.telemetry
+  })
+}
+
+/** Build the SyncManager when sync is enabled (else null). */
+function buildSyncManager(
+  store: NodeStore,
+  storage: NodeStorageAdapter,
+  options: CreateXNetClientOptions
+): SyncManager | null {
+  const sync = options.sync
+  if (!sync) return null
+  const signalingUrl = sync.signalingUrl ?? sync.signalingUrls?.[0] ?? 'ws://localhost:4444'
+  return createSyncManager({
+    nodeStore: store,
+    storage,
+    signalingUrl,
+    authorDID: options.authorDID,
+    signingKey: options.signingKey,
+    signalingUrls: sync.signalingUrls,
+    replication: sync.replication,
+    blobStore: sync.blobStore,
+    nodeSyncRoom: sync.nodeSyncRoom,
+    ucanToken: sync.ucanToken,
+    getUCANToken: sync.getUCANToken,
+    poolSize: sync.poolSize,
+    trackTTL: sync.trackTTL,
+    onDocUpdate: sync.onDocUpdate,
+    onDocEvict: sync.onDocEvict
+  })
+}
+
+/** Wire a SyncManager into the bridge and start it (unless autoStart is false). */
+function startSyncManager(
+  syncManager: SyncManager,
+  bridge: DataBridge,
+  sync: XNetClientSyncOptions,
+  telemetry: XNetClientTelemetry | undefined
+): void {
+  const managed = bridge as SyncManagedBridge
+  managed.setSyncManager?.(syncManager)
+  if (sync.autoStart === false) return
+  syncManager.start().catch((err) => reportCrash(telemetry, err, 'runtime.syncManager.start'))
+}
+
+/** Build the PluginRegistry when plugins are enabled (else null). */
+function buildPlugins(store: NodeStore, options: CreateXNetClientOptions): PluginRegistry | null {
+  const plugins = options.plugins
+  if (!plugins) return null
+  const registry = new PluginRegistry(store, plugins.platform ?? 'web')
+  if (plugins.autoLoad !== false) {
+    registry
+      .loadFromStore()
+      .catch((err: unknown) => reportCrash(options.telemetry, err, 'runtime.plugins.loadFromStore'))
+  }
+  return registry
+}
+
+/** Build the app-wide UndoManager when undo is enabled (else null). */
+function buildUndo(store: NodeStore, options: CreateXNetClientOptions): UndoManager | null {
+  const undo = options.undo
+  if (!undo) return null
+  const manager = new UndoManager(
+    store,
+    options.authorDID,
+    { localOnly: undo.localOnly ?? true, maxStackSize: undo.maxStackSize ?? 200 },
+    options.telemetry
+  )
+  manager.start()
+  return manager
+}
+
+/** Deactivate every active plugin (best-effort) during teardown. */
+async function deactivateAllPlugins(registry: PluginRegistry): Promise<void> {
+  for (const plugin of registry.getAll()) {
+    if (plugin.status === 'active') {
+      await registry.deactivate(plugin.manifest.id).catch(() => {})
+    }
+  }
+}
+
 /**
  * Construct an xNet runtime. Returns a ready-to-use {@link XNetClient}.
  *
@@ -249,24 +351,7 @@ function permissiveDecision(input: AuthCheckInput): AuthDecision {
  * await client.destroy()
  */
 export async function createXNetClient(options: CreateXNetClientOptions): Promise<XNetClient> {
-  const {
-    authorDID,
-    signingKey,
-    identity,
-    changeSigner,
-    authEvaluator,
-    nodeContentCipher,
-    auth,
-    schemaLookup,
-    propertyLookup,
-    lensRegistry,
-    telemetry,
-    dataBridge,
-    bridgeOptions,
-    sync,
-    plugins,
-    undo
-  } = options
+  const { authorDID, signingKey, identity, telemetry, dataBridge, bridgeOptions, sync } = options
 
   if (!authorDID || !signingKey) {
     throw new Error('createXNetClient requires both authorDID and signingKey.')
@@ -278,84 +363,18 @@ export async function createXNetClient(options: CreateXNetClientOptions): Promis
     await storage.open()
   }
 
-  const store = new NodeStore({
-    storage,
-    authorDID,
-    signingKey,
-    ...(changeSigner ? { changeSigner } : {}),
-    ...(authEvaluator ? { authEvaluator } : {}),
-    ...(nodeContentCipher ? { nodeContentCipher } : {}),
-    ...(auth ? { auth } : {}),
-    ...(schemaLookup ? { schemaLookup } : {}),
-    ...(propertyLookup ? { propertyLookup } : {}),
-    ...(lensRegistry ? { lensRegistry } : {}),
-    ...(telemetry ? { telemetry } : {})
-  })
+  const store = buildNodeStore(options, storage)
   await store.initialize()
 
   // ── bridge ───────────────────────────────────────────────────────
   const bridgeCreatedInternally = !dataBridge
   const bridge: DataBridge = dataBridge ?? createMainThreadBridgeSync(store, bridgeOptions)
 
-  // ── sync manager (optional) ──────────────────────────────────────
-  let syncManager: SyncManager | null = null
-  if (sync) {
-    const signalingUrl = sync.signalingUrl ?? sync.signalingUrls?.[0] ?? 'ws://localhost:4444'
-    syncManager = createSyncManager({
-      nodeStore: store,
-      storage,
-      signalingUrl,
-      authorDID,
-      signingKey,
-      ...(sync.signalingUrls ? { signalingUrls: sync.signalingUrls } : {}),
-      ...(sync.replication ? { replication: sync.replication } : {}),
-      ...(sync.blobStore ? { blobStore: sync.blobStore } : {}),
-      ...(sync.nodeSyncRoom ? { nodeSyncRoom: sync.nodeSyncRoom } : {}),
-      ...(sync.ucanToken ? { ucanToken: sync.ucanToken } : {}),
-      ...(sync.getUCANToken ? { getUCANToken: sync.getUCANToken } : {}),
-      ...(sync.poolSize !== undefined ? { poolSize: sync.poolSize } : {}),
-      ...(sync.trackTTL !== undefined ? { trackTTL: sync.trackTTL } : {}),
-      ...(sync.onDocUpdate ? { onDocUpdate: sync.onDocUpdate } : {}),
-      ...(sync.onDocEvict ? { onDocEvict: sync.onDocEvict } : {})
-    })
-
-    // Wire the SyncManager into the bridge so node.acquire() can mint Y.Docs.
-    const managed = bridge as SyncManagedBridge
-    managed.setSyncManager?.(syncManager)
-
-    if (sync.autoStart !== false) {
-      syncManager.start().catch((err) => {
-        telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
-          codeNamespace: 'runtime.syncManager.start'
-        })
-      })
-    }
-  }
-
-  // ── plugin registry (optional) ───────────────────────────────────
-  let pluginRegistry: PluginRegistry | null = null
-  if (plugins) {
-    pluginRegistry = new PluginRegistry(store, plugins.platform ?? 'web')
-    if (plugins.autoLoad !== false) {
-      pluginRegistry.loadFromStore().catch((err: unknown) => {
-        telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
-          codeNamespace: 'runtime.plugins.loadFromStore'
-        })
-      })
-    }
-  }
-
-  // ── undo manager (optional) ──────────────────────────────────────
-  let undoManager: UndoManager | null = null
-  if (undo) {
-    undoManager = new UndoManager(
-      store,
-      authorDID,
-      { localOnly: undo.localOnly ?? true, maxStackSize: undo.maxStackSize ?? 200 },
-      telemetry
-    )
-    undoManager.start()
-  }
+  // ── optional subsystems ──────────────────────────────────────────
+  const syncManager = buildSyncManager(store, storage, options)
+  if (syncManager && sync) startSyncManager(syncManager, bridge, sync, telemetry)
+  const pluginRegistry = buildPlugins(store, options)
+  const undoManager = buildUndo(store, options)
 
   // ── derived crypto ───────────────────────────────────────────────
   const publicKey = getSigningPublicKeyFromPrivate(signingKey)
@@ -416,10 +435,10 @@ export async function createXNetClient(options: CreateXNetClientOptions): Promis
       }
     },
 
-    auth: auth ?? null,
+    auth: options.auth ?? null,
 
     async can(input) {
-      if (authEvaluator) return authEvaluator.can(input)
+      if (options.authEvaluator) return options.authEvaluator.can(input)
       return permissiveDecision(input)
     },
 
@@ -457,11 +476,7 @@ export async function createXNetClient(options: CreateXNetClientOptions): Promis
       undoManager?.stop()
 
       if (pluginRegistry) {
-        for (const plugin of pluginRegistry.getAll()) {
-          if (plugin.status === 'active') {
-            await pluginRegistry.deactivate(plugin.manifest.id).catch(() => {})
-          }
-        }
+        await deactivateAllPlugins(pluginRegistry)
       }
 
       if (syncManager) {
