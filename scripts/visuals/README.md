@@ -27,6 +27,13 @@ Driven by `.github/workflows/visual-capture.yml`:
 Cleanup is automatic: `remove-pr-preview.yml` deletes the whole `pr/<N>` tree
 (app preview + visuals) when the PR closes.
 
+> **gh-pages layout coupling.** The production site deploy (`deploy-site.yml`)
+> rsyncs the gh-pages **root** with `--delete`, so any top-level dir it doesn't
+> `exclude` is wiped on every push to `main`. `visuals-baseline/` is therefore
+> listed in that workflow's `exclude` (alongside `pr` and `branch`) — without it,
+> the baseline disappears and PR diffs degrade to all-"new". If you rename the
+> baseline path, update the exclude list too.
+
 ## Scripts
 
 | Script                    | Role                                                                        |
