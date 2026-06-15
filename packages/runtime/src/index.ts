@@ -9,6 +9,23 @@
  */
 
 // =============================================================================
+// Client — the framework-agnostic runtime factory
+// =============================================================================
+
+export {
+  createXNetClient,
+  type XNetClient,
+  type CreateXNetClientOptions,
+  type XNetClientSyncOptions,
+  type XNetClientPluginOptions,
+  type XNetClientUndoOptions,
+  type XNetClientTelemetry,
+  type XNetClientRuntimeStatus,
+  type XNetClientRuntimePhase,
+  type XNetClientBridgeMode
+} from './client'
+
+// =============================================================================
 // Sync orchestration (relocated from @xnetjs/react — these never imported React)
 // =============================================================================
 

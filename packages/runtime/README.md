@@ -32,8 +32,9 @@ const { identity, privateKey } = generateIdentity()
 const client = await createXNetClient({
   nodeStorage: new MemoryNodeStorageAdapter(),
   authorDID: identity.did,
-  signingKey: privateKey,
-  sync: false // local-only; omit to enable sync
+  signingKey: privateKey
+  // local-only by default; pass `sync: { signalingUrl }` to enable background sync,
+  // `plugins: { platform }` for the plugin registry, `undo: {}` for app-wide undo.
 })
 
 const sub = client.query(TaskSchema, { where: { status: 'todo' } })
