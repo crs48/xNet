@@ -1,0 +1,78 @@
+{
+  "_comment": "Maps changed source globs to capturable app routes and interaction flows. Routes must render without URL params and without bespoke seed data. Tune freely -- the mapping is intentionally conservative; over-matching just captures an extra screen.",
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "path": "/",
+      "globs": [
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/routes/__root.tsx",
+        "apps/web/src/App.tsx",
+        "apps/web/src/workbench/**",
+        "apps/web/src/components/**",
+        "packages/ui/**"
+      ]
+    },
+    {
+      "id": "discover",
+      "label": "Discover",
+      "path": "/discover",
+      "globs": ["apps/web/src/routes/discover.tsx", "packages/abuse/**", "packages/social/**"]
+    },
+    {
+      "id": "data",
+      "label": "Data",
+      "path": "/data",
+      "globs": ["apps/web/src/routes/data.tsx", "packages/views/**", "packages/data/**"]
+    },
+    {
+      "id": "tasks",
+      "label": "Tasks",
+      "path": "/tasks",
+      "globs": ["apps/web/src/routes/tasks.tsx"]
+    },
+    {
+      "id": "experiments",
+      "label": "Experiments",
+      "path": "/experiments",
+      "globs": ["apps/web/src/routes/experiments.tsx", "packages/experiments/**"]
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "path": "/settings",
+      "globs": [
+        "apps/web/src/routes/settings.tsx",
+        "packages/ui/src/composed/SettingsView*",
+        "packages/ui/src/composed/settings/**"
+      ]
+    },
+    {
+      "id": "requests",
+      "label": "Requests",
+      "path": "/requests",
+      "globs": ["apps/web/src/routes/requests.tsx"]
+    }
+  ],
+  "flows": [
+    {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "globs": [
+        "packages/editor/**",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/routes/doc.$docId.tsx"
+      ]
+    },
+    {
+      "id": "canvas",
+      "label": "Open the canvas",
+      "globs": [
+        "packages/canvas/**",
+        "packages/canvas-core/**",
+        "apps/web/src/routes/canvas.$canvasId.tsx"
+      ]
+    }
+  ]
+}
