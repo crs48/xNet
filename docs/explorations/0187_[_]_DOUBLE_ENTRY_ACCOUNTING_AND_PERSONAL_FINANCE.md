@@ -651,7 +651,7 @@ sequenceDiagram
 - [x] Add `money()` property helper + `MoneyValue` type in
       `packages/data/src/schema/properties/money.ts`; wire into the property
       barrel and validation/coercion paths.
-- [ ] Define `AccountSchema`, `TransactionSchema`, `PostingSchema` (+ `BudgetSchema`,
+- [x] Define `AccountSchema`, `TransactionSchema`, `PostingSchema` (+ `BudgetSchema`,
       `ImportBatchSchema`) in `packages/data/src/schema/schemas/`; register in
       `schemas/index.ts`; default `visibility: 'private'` +
       `spaceCascadeAuthorization()`.

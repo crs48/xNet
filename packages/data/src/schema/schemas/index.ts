@@ -67,6 +67,26 @@ export {
   type ExperimentPhase
 } from './experiment'
 export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './milestone'
+export {
+  AccountSchema,
+  ACCOUNT_SCHEMA_IRI,
+  type Account,
+  type AccountClassId
+} from './account'
+export {
+  TransactionSchema,
+  TRANSACTION_SCHEMA_IRI,
+  type Transaction,
+  type TransactionStatus
+} from './transaction'
+export { PostingSchema, POSTING_SCHEMA_IRI, type Posting } from './posting'
+export { BudgetSchema, BUDGET_SCHEMA_IRI, type Budget, type BudgetPeriod } from './budget'
+export {
+  ImportBatchSchema,
+  IMPORT_BATCH_SCHEMA_IRI,
+  type ImportBatch,
+  type ImportSource
+} from './import-batch'
 export { spaceOwnAuthorization, spaceCascadeAuthorization } from './space-authorization'
 export {
   SPACE_SCHEMA_IRI,
@@ -283,6 +303,13 @@ export const builtInSchemas = {
     import('./observation').then((m) => m.ObservationSchema),
   'xnet://xnet.fyi/Experiment@1.0.0': () => import('./experiment').then((m) => m.ExperimentSchema),
   'xnet://xnet.fyi/Milestone@1.0.0': () => import('./milestone').then((m) => m.MilestoneSchema),
+  'xnet://xnet.fyi/Account@1.0.0': () => import('./account').then((m) => m.AccountSchema),
+  'xnet://xnet.fyi/Transaction@1.0.0': () =>
+    import('./transaction').then((m) => m.TransactionSchema),
+  'xnet://xnet.fyi/Posting@1.0.0': () => import('./posting').then((m) => m.PostingSchema),
+  'xnet://xnet.fyi/Budget@1.0.0': () => import('./budget').then((m) => m.BudgetSchema),
+  'xnet://xnet.fyi/ImportBatch@1.0.0': () =>
+    import('./import-batch').then((m) => m.ImportBatchSchema),
   'xnet://xnet.fyi/Space@1.0.0': () => import('./space').then((m) => m.SpaceSchema),
   'xnet://xnet.fyi/SpaceMembership@1.0.0': () =>
     import('./space-membership').then((m) => m.SpaceMembershipSchema),
@@ -347,6 +374,11 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Observation': () => import('./observation').then((m) => m.ObservationSchema),
   'xnet://xnet.fyi/Experiment': () => import('./experiment').then((m) => m.ExperimentSchema),
   'xnet://xnet.fyi/Milestone': () => import('./milestone').then((m) => m.MilestoneSchema),
+  'xnet://xnet.fyi/Account': () => import('./account').then((m) => m.AccountSchema),
+  'xnet://xnet.fyi/Transaction': () => import('./transaction').then((m) => m.TransactionSchema),
+  'xnet://xnet.fyi/Posting': () => import('./posting').then((m) => m.PostingSchema),
+  'xnet://xnet.fyi/Budget': () => import('./budget').then((m) => m.BudgetSchema),
+  'xnet://xnet.fyi/ImportBatch': () => import('./import-batch').then((m) => m.ImportBatchSchema),
   'xnet://xnet.fyi/Space': () => import('./space').then((m) => m.SpaceSchema),
   'xnet://xnet.fyi/SpaceMembership': () =>
     import('./space-membership').then((m) => m.SpaceMembershipSchema),
