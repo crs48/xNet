@@ -37,6 +37,7 @@ import { createShardRoutes } from './routes/shards'
 import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
 import { createShareLinkRoutes } from './routes/share-links'
 import { createTaskRoutes } from './routes/tasks'
+import { createTelemetryRoutes } from './routes/telemetry'
 import { createUnfurlRoutes } from './routes/unfurl'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
@@ -60,6 +61,8 @@ import { ShareAccessService } from './services/share-access'
 import { createSignalingService } from './services/signaling'
 import { TaskIdentifierService } from './services/task-identifiers'
 import { createStorage } from './storage'
+import { createHubTelemetry } from './telemetry/bridge'
+import { createTelemetryStore } from './telemetry/store'
 
 const getMessageSize = (data: RawData): number => {
   if (typeof data === 'string') {
@@ -619,6 +622,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   })
   const schemas = new SchemaRegistryService(storage)
   const metrics = new Metrics()
+  // Telemetry store (exploration 0187): a SEPARATE telemetry.db, never in hub.db,
+  // so high-volume append-only telemetry never contends with app writes. The hub
+  // bridge funnels the hub's own Prometheus metrics into it as producer='hub'.
+  const telemetryStore = createTelemetryStore(
+    config.storage === 'memory' ? ':memory:' : config.dataDir
+  )
+  const hubTelemetry = createHubTelemetry({ store: telemetryStore, metrics })
   const rateLimiter = new RateLimiter({
     perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
     maxConnections: config.rateLimit?.maxConnections ?? config.maxConnections,
@@ -784,6 +794,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     })
   )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
+  app.route(
+    '/telemetry',
+    createTelemetryRoutes({
+      store: telemetryStore,
+      hashSalt: config.telemetryPeerHashSalt ?? '',
+      requireAuth
+    })
+  )
   app.route('/federation', createFederationRoutes(federation, { requireAuth }))
   if (shardConfig.enabled) {
     app.route(
@@ -945,6 +963,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   const start = async (): Promise<void> => {
     if (httpServer) return
+    hubTelemetry.start()
     awareness.start()
     discovery.start()
     if (federationConfig.enabled) {
@@ -1604,6 +1623,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     pool.destroy()
     await storage.close()
 
+    hubTelemetry.stop()
+    telemetryStore.close()
     awareness.stop()
     discovery.stop()
     federationHealth.stop()

@@ -797,19 +797,24 @@ t.reportUsage('view.opened', 1)                                         // surfa
       buffer mirroring / hydrate / markShared, consent-gated drain.
 
 **Slice 2 — Hub ingest + store**
-- [ ] `packages/hub/src/telemetry/schema.sql` + `TelemetryStore` (`appendBatch`,
-      `queryRollups`, `pruneRaw`) over a **separate** `telemetry.db` (WAL).
-- [ ] `createTelemetryRoutes` with `POST /telemetry/ingest`: UCAN cap
-      `telemetry/ingest`, DID hashing via `config.telemetryPeerHashSalt`,
-      server-side clip/bucket, `MAX_BATCH` cap, rate-limit.
-- [ ] Mount `/telemetry` in `server.ts`; add `telemetry/ingest` to the capability
-      grammar in `src/auth/capabilities.ts`.
-- [ ] Add `telemetry.db` to the Litestream config + `litestream-entrypoint.sh`
-      restore; apply `wal_autocheckpoint=0` when `LITESTREAM=1` (mirror
-      `src/storage/litestream.ts`).
-- [ ] Server-side collector + flip `TelemetryBridge` `enabled: true`, writing hub
-      ops metrics (`producer='hub'`) into `telemetry.db`.
-- [ ] Integration test: client batch → ingest → row in `telemetry.db`, DID hashed,
+- [x] `TelemetryStore` (`appendBatch`, rollups/`timeseries`/`kindCounts`/
+      `topNames`, `recentEvents`, `pruneRaw`) over a **separate** `telemetry.db`
+      (WAL) in `packages/hub/src/telemetry/store.ts` (schema inline, not a `.sql`
+      file). Pure normalization helpers in `telemetry/normalize.ts`.
+- [x] `createTelemetryRoutes` with `POST /telemetry/ingest`: `requireAuth` (any
+      authenticated identity), DID hashing via `config.telemetryPeerHashSalt`,
+      server-side clip/bucket, `MAX_BATCH` cap. (Per-route ingest rate-limit
+      reuses the hub's existing limiter — tracked as a follow-up.)
+- [x] Mount `/telemetry` in `server.ts`; add `telemetry/ingest` + `telemetry/read`
+      to the capability grammar in `src/auth/capabilities.ts`.
+- [x] Apply `wal_autocheckpoint=0` when `LITESTREAM=1` in the store (mirrors
+      `src/storage/litestream.ts`) + restore `telemetry.db` in
+      `litestream-entrypoint.sh`. (The operator's `litestream.yml` adds the
+      second `dbs:` entry — external config.)
+- [x] Server-side collector + `TelemetryBridge` `enabled: true` via
+      `createHubTelemetry`, writing hub ops metrics (`producer='hub'`) into
+      `telemetry.db`.
+- [x] Integration test: client batch → ingest → row in `telemetry.db`, DID hashed,
       anonymous tier carries `did_hash = NULL`.
 
 **Slice 3 — Analytics + dashboard**
