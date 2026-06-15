@@ -92,3 +92,19 @@ jobs:
         env:
           CI: 'true'
           PLAYWRIGHT_TEST_BASE_URL: 'http://127.0.0.1:5173'
+
+      # Preserve the screenshots these smoke specs already take (they were
+      # written to tmp/playwright and discarded). The richer changed-UI gallery
+      # lives in the visual-capture workflow; this just keeps debug evidence.
+      - name: Upload editor UX screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-ux-screenshots
+          # Playwright runs with cwd=tests/e2e, so screenshots land there; the
+          # root glob is a fallback for any spec run from the repo root.
+          path: |
+            tests/e2e/tmp/playwright/**/*.png
+            tmp/playwright/**/*.png
+          if-no-files-found: ignore
+          retention-days: 14

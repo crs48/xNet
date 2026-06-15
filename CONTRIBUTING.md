@@ -111,6 +111,13 @@ Include in your PR description:
 - Test evidence (commands run)
 - Screenshots/video for UI changes
 
+> For UI changes, CI also auto-captures this. The **Visual UI Capture** workflow
+> (`.github/workflows/visual-capture.yml`) screenshots the components and screens
+> your PR touches, diffs them against `main`, and posts a before/after gallery
+> (plus an interaction GIF for tagged flows) as a sticky PR comment. It is
+> informational — not a required check — and supplements, not replaces, the
+> screenshots you add yourself. See [`scripts/visuals/README.md`](scripts/visuals/README.md).
+
 ## UI and app-specific notes
 
 - Prefer implementing and validating new product features in `apps/electron` first
