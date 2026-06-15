@@ -735,8 +735,10 @@ export function CrmKeepInTouchPanel() {
     register in `builtInSchemas` (versioned + legacy IRIs); export through the
     `schemas` → `schema` → package barrels. (`packages/data/src/schema/schemas/crm.ts`,
     validated by `crm.test.ts` — 14 tests; data package typechecks clean.)
-  - [ ] Create `@xnetjs/crm` with `cadence.ts` (next-touch/overdue via
-    canonical-day) + `vcard.ts` (import/export); unit tests.
+  - [x] Create `@xnetjs/crm` with `cadence.ts` (next-touch/overdue via
+    canonical-day) + `vcard.ts` (import/export); unit tests. (Pure,
+    dependency-free package — 38 tests across cadence/pipeline/forecast/dedup/
+    vcard/catalog/erasure; typechecks clean.)
   - [ ] `/crm` singleton tab + route + master/detail view; contact record with
     notes + activity timeline + relationship list.
   - [ ] "Keep in touch" panel (overdue contacts).
@@ -747,21 +749,22 @@ export function CrmKeepInTouchPanel() {
     schemas.
   - [ ] Default pipeline + stages seeded on first use; Pipeline board + Contacts
     / Companies / Deals surfaces in the CRM workspace.
-  - [ ] `pipeline.ts` + `forecast.ts` (weighted value, win rate, velocity,
-    funnel, time-in-stage) with tests.
+  - [x] `pipeline.ts` + `forecast.ts` (weighted value, win rate, velocity,
+    stage breakdown, funnel, deal age) with tests.
   - [ ] Pipeline dashboard (metric cards: weighted pipeline, win rate, open
     count + value-by-stage breakdown), computed via `@xnetjs/crm`.
-  - [ ] `dedup.ts` (blocking + Jaro-Winkler) with tests. _(Merge UI + emitting
+  - [x] `dedup.ts` (blocking + Jaro-Winkler) with tests. _(Merge UI + emitting
     `SocialIdentityClaim` candidates deferred to a follow-up.)_
   - [ ] LinkedIn-class importer → `SocialActor` → `Contact`/`Organization`
     mapper, reusing the social import pipeline. _(Deferred — vCard import ships
     now as the portable on-ramp.)_
 - [ ] **M3 — Enterprise / ERP seam (mostly deferred to follow-ups).**
-  - [x] `Product` + `LineItem` master schemas. _(Line-item editing UI + rollup
-    in `@xnetjs/crm` land with the logic package.)_
+  - [x] `Product` + `LineItem` master schemas + `dealLineItemTotal` rollup in
+    `@xnetjs/crm`. _(Line-item editing UI deferred.)_
   - [ ] Territories via nested Spaces; field-history audit surface.
-  - [ ] Erasure helper (`anonymizeContact` — `piiErasedAt`, anonymize-not-delete)
-    in `@xnetjs/crm`. _(Background cascade job to null activity PII deferred.)_
+  - [x] Erasure helper (`anonymizeContactPatch` — `piiErasedAt`,
+    anonymize-not-delete) in `@xnetjs/crm`. _(Background cascade job to null
+    activity PII deferred.)_
   - [ ] Document the `Database` custom-objects path for bespoke objects.
   - [ ] Spawn explorations: **0188 Quote-to-Cash doc chain**, **0189 user-owned /
     bilateral DID contacts & consent**, **0190 ERP accounting (GL/AR/AP)**.
