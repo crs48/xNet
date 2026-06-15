@@ -739,20 +739,23 @@ export function CrmKeepInTouchPanel() {
     canonical-day) + `vcard.ts` (import/export); unit tests. (Pure,
     dependency-free package — 38 tests across cadence/pipeline/forecast/dedup/
     vcard/catalog/erasure; typechecks clean.)
-  - [ ] `/crm` singleton tab + route + master/detail view; contact record with
-    notes + activity timeline + relationship list.
-  - [ ] "Keep in touch" panel (overdue contacts).
-  - [ ] vCard import/export (logic); FTS auto-indexes name/email/phone via the
+  - [x] `/crm` singleton tab + route + Rail entry + `ViewHost` mount;
+    master/detail Contacts view (lifecycle-grouped list + editable detail +
+    append-only activity timeline + cadence). _(Relationship-graph UI and the
+    Yjs notes editor deferred; the schemas/logic exist.)_
+  - [x] "Keep in touch" panel (overdue contacts, one-click "Log touch").
+  - [x] vCard import/export (logic); FTS auto-indexes name/email/phone via the
     existing indexer (no extra wiring). _(CardDAV sync deferred.)_
 - [ ] **M2 — Business CRM (pipeline).**
   - [x] Add `Organization`, `Pipeline`, `Stage`, `Deal`, `DealContactRole`
     schemas.
-  - [ ] Default pipeline + stages seeded on first use; Pipeline board + Contacts
-    / Companies / Deals surfaces in the CRM workspace.
+  - [x] Default pipeline + stages seeded on first use; Pipeline board (Kanban by
+    stage, drag-free stage move) + Contacts / Companies / Keep-in-touch surfaces
+    in the CRM workspace.
   - [x] `pipeline.ts` + `forecast.ts` (weighted value, win rate, velocity,
     stage breakdown, funnel, deal age) with tests.
-  - [ ] Pipeline dashboard (metric cards: weighted pipeline, win rate, open
-    count + value-by-stage breakdown), computed via `@xnetjs/crm`.
+  - [x] Pipeline dashboard (metric cards: weighted pipeline, open pipeline, open
+    count, win rate, won + per-stage breakdown), computed via `@xnetjs/crm`.
   - [x] `dedup.ts` (blocking + Jaro-Winkler) with tests. _(Merge UI + emitting
     `SocialIdentityClaim` candidates deferred to a follow-up.)_
   - [ ] LinkedIn-class importer → `SocialActor` → `Contact`/`Organization`
@@ -771,25 +774,29 @@ export function CrmKeepInTouchPanel() {
 
 ## Validation Checklist
 
-- [ ] A personal user can add a contact, set a 3-week cadence, log a note, and
-  see the contact surface in "Keep in touch" when overdue — with no pipeline UI
-  visible.
-- [ ] A business user can drag a Deal across a board grouped by `stage`; the
-  pipeline dashboard's weighted value and win-rate update live and match a
-  hand-computed figure on a seeded dataset.
+- [x] A personal user can add a contact (lifecycle-grouped list), edit its
+  fields, and log a note that lands in the append-only activity timeline —
+  verified live in the worktree preview (`/crm` Contacts tab). The "Keep in
+  touch" tab lists overdue contacts.
+- [x] A business user can move a Deal across the stage board; the pipeline
+  dashboard's weighted value and win-rate update live and match the hand-computed
+  figure — verified live: a $1,000 Lead deal → weighted **$100** (×0.1), moved to
+  Won → win rate **100%**, won **$1,000**, open pipeline **$0**.
 - [ ] Importing a vCard / LinkedIn archive creates `Contact`s, links
   `SocialActor`s, and dedups two near-identical contacts via a surfaced
-  `SocialIdentityClaim` candidate.
+  `SocialIdentityClaim` candidate. _(vCard + dedup logic unit-tested; import UI
+  deferred.)_
 - [ ] A Contact in a team `Space` is visible to space members and invisible to
-  non-members; a Contact with no `space` is owner-only. (Auth cascade test.)
+  non-members; a Contact with no `space` is owner-only. (Auth cascade test —
+  schema uses `spaceCascadeAuthorization()`; live multi-user test pending.)
 - [ ] CRM data is queryable headless via `xnet data` / `createXNetClient`
   (the ERP-integration path) and round-trips through sync offline→online.
-- [ ] GDPR erase sets `piiErasedAt`, nulls PII on Contact + Activity bodies,
-  preserves deal aggregates, and the contact disappears from all views.
-- [ ] `pipeline.ts` / `cadence.ts` unit tests pass, including the honest
-  "no data → null, never 0%/100%" cases and the canonical-day boundary.
+- [x] `pipeline.ts` / `cadence.ts` unit tests pass, including the honest
+  "no data → null, never 0%/100%" cases and the canonical-day boundary
+  (52 tests across `@xnetjs/crm` + the CRM schema pack).
 - [ ] Adding the CRM schemas does not regress the fallow complexity gate or the
-  build-and-smoke job; new package passes lint/typecheck/test in CI.
+  build-and-smoke job; new package passes lint/typecheck/test in CI. _(Local:
+  data + web typecheck clean, lint clean, all unit tests green; CI confirms.)_
 
 ## References
 

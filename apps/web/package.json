@@ -20,6 +20,7 @@
     "@xnetjs/canvas": "workspace:*",
     "@xnetjs/comms": "workspace:*",
     "@xnetjs/dashboard": "workspace:*",
+    "@xnetjs/crm": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/data-bridge": "workspace:*",
     "@xnetjs/devtools": "workspace:*",

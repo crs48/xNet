@@ -25,6 +25,7 @@ export type TabNodeType =
   | 'tasks'
   | 'data'
   | 'experiments'
+  | 'crm'
   | 'channel'
   | 'tag'
   | 'person'

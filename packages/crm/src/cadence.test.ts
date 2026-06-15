@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { DAY_MS, canonicalDay } from './day'
 import {
   computeNextTouch,
   daysUntilTouch,
@@ -7,6 +6,7 @@ import {
   effectiveNextTouch,
   isOverdue
 } from './cadence'
+import { DAY_MS, canonicalDay } from './day'
 
 const NOW = Date.UTC(2026, 5, 15, 9, 30) // 2026-06-15T09:30Z
 const today = canonicalDay(NOW)
