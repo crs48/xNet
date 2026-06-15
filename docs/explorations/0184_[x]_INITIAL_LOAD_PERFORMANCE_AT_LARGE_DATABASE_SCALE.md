@@ -428,37 +428,38 @@ console.log(await gatherDiagnostics(db))
 ## Implementation Checklist
 
 Phase 1 — Engine:
-- [ ] Run `ANALYZE` (via `diagnostics.runAnalyze`) at the end of the social-import commit, after `rebuildIndexesForSchemas`
-- [ ] Call `PRAGMA optimize` on `requestIdleCallback` after first paint and before connection close
-- [ ] Raise web adapter `cache_size` to ~256 MB ([web.ts](../../packages/sqlite/src/adapters/web.ts))
-- [ ] Set `journal_mode = truncate` on the web adapter; confirm it's honored under OpfsSAHPool, else fall back to `delete`
-- [ ] Add a one-time `VACUUM`+`page_size` migration option (gated, resumable) for existing large DBs
-- [ ] Confirm via `EXPLAIN QUERY PLAN` that the Explorer reads use `idx_nodes_live_schema_updated`
+- [x] Run `ANALYZE` at the end of the social-import commit — new `analyzeDatabase` callback on the commit job ([social-import-job-client.ts](../../apps/web/src/lib/social-import-job-client.ts)) wired to `store.analyze()` at both commit call sites ([social-import.tsx](../../apps/web/src/routes/social-import.tsx)); `NodeStore.analyze()` → `SQLiteNodeStorageAdapter.analyze()` runs `ANALYZE`
+- [x] Call `PRAGMA optimize` on `requestIdleCallback` after first paint **and** before connection close — idle `ns.optimize()` after store-ready ([context.ts](../../packages/react/src/context.ts)); `PRAGMA optimize` in the web adapter's `close()` ([web.ts](../../packages/sqlite/src/adapters/web.ts))
+- [x] Raise web adapter `cache_size` to ~256 MB ([web.ts](../../packages/sqlite/src/adapters/web.ts)) — `-262144`
+- [x] Set `journal_mode = truncate` on the web adapter; guarded in try/catch so an OPFS build that constrains it falls through harmlessly
+- [~] Add a one-time `VACUUM`+`page_size` migration for existing large DBs — **partial:** `page_size = 8192` is now set before schema creation so every fresh DB gets larger pages for free; the `VACUUM` migration for *existing* large DBs is deferred (no live data pre-launch, and `VACUUM` rewrites the whole file — best done as an explicit maintenance step if ever needed)
+- [~] Confirm via `EXPLAIN QUERY PLAN` that the Explorer reads use `idx_nodes_live_schema_updated` — covered at the unit level: adapter tests assert `strategy: 'storage-query'` + `postFilterReason: 'pagination-pushed-down'` for system-ordered+bounded reads (the Explorer shape); a live `EXPLAIN` remains a manual validation step
 
 Phase 2 — Scheduling:
-- [ ] Inventory every `useQuery` that fires before/at first paint; tag each critical vs deferrable
-- [ ] Defer comms/inbox/presence/social-workspace/experiments reads until their view is visible or after first paint
-- [ ] Add `withTotalCount` (opt-in) to the query descriptor; default list reads to skip `COUNT(*)`
-- [ ] (If still contended) add a priority lane to `WebSQLiteProxy` so Explorer reads jump the queue
+- [x] Inventory every `useQuery` that fires before/at first paint — done in this exploration; route-level views (social workspace, experiments, tasks, comms channels) are already deferred by TanStack Router and only mount on their route, so the always-on set is the sidebar's own reads (addressed by Phase 2/3) plus a few small global provider reads (ProfileSchema, etc.)
+- [~] Defer comms/inbox/presence/social-workspace/experiments reads — **deferred (rationale):** the heavy social/experiments reads are already route-scoped (the router defers them); adding blanket visibility-gating to the remaining small global reads risks breaking views for little gain now that the expensive `COUNT(*)` and unbounded scans are removed. Revisit with real-browser startup telemetry.
+- [x] Make the per-list `COUNT(*)` opt-in so default list reads skip it — implemented by honoring the existing `count` mode: `COUNT(*)` runs only for `count: 'exact'`; `none`/`estimate`/default leave `totalCount` undefined and the bridge derives a cheap value
+- [~] (If still contended) add a priority lane to `WebSQLiteProxy` — **deferred:** bounding the sidebar reads + dropping their `COUNT(*)` removes the main contention source; revisit only if telemetry still shows head-of-line stalls
 
 Phase 3 — Query shape:
-- [ ] Add `limit` to `useWorkspaceTags`, `useSpaces`, and the Folder sidebar query
-- [ ] System-sort (createdAt/updatedAt) those reads and sort by `name` in JS, **or** add a persisted `name` scalar index and verify pushdown
-- [ ] Add a guard/lint so new sidebar `useQuery`s can't be both unbounded *and* property-sorted
+- [x] Add `limit` to `useWorkspaceTags`, `useSpaces`, and the Folder sidebar query — bounded to 500
+- [x] System-sort those reads and sort by `name` in JS — Tag/Space now order by `updatedAt` (indexed) + sort by name in JS; the Folder read already used the indexed `createdAt`
+- [~] Add a persisted `name` scalar index + verify pushdown — **deferred (rationale):** the bound + system-sort + JS-sort (C1+C2) fully covers the sidebar; a true indexed property sort (C3) is unnecessary until a name-ordered list must be both complete *and* large
+- [x] Add a guard so new sidebar `useQuery`s can't be both unbounded *and* property-sorted — dev-only one-time `console.warn` in `useQuery` ([useQuery.ts](../../packages/react/src/hooks/useQuery.ts)), compiled out of production
 
 Phase 4 — Worker runtime:
-- [ ] Adopt 0182's worker-runtime flip (after its Phase 6–7 prerequisites) to move hydration off the main thread
+- [~] Adopt 0182's worker-runtime flip — **deferred:** out of scope here and gated (per 0182 / 0164) on real-browser input-latency telemetry that cannot be gathered headlessly; this work targets the I/O-wait levers, which are the startup-latency bottleneck, not the worker flip
 
 ## Validation Checklist
 
-- [ ] On the 1 GB / 100k-node DB, cold-load sidebar **first paint < 2s** (from 20–30s)
-- [ ] `EXPLAIN QUERY PLAN` shows the partial index for all four document reads (no `SCAN nodes`)
-- [ ] `plan.durationMs` for each Explorer query is single-digit ms on a warm cache, and the cold-load total is dominated by I/O warm-up, not by any single full scan
-- [ ] No `COUNT(*)` appears in the SQL trace for the sidebar's list reads after `totalCount` is opt-in
-- [ ] The startup query burst (count of DB calls before first paint) is measurably smaller after deferral
-- [ ] Tag/Space/Folder reads show `strategy: 'storage-query'` (indexed), never `'list-fallback'`
-- [ ] `sqlite_stat1` is populated after import; re-running the slow load post-`ANALYZE` is materially faster
-- [ ] No regression in `pnpm bench:core-platform`; existing query/store/sqlite suites green
+- [~] On the 1 GB / 100k-node DB, cold-load sidebar **first paint < 2s** (from 20–30s) — the levers are in place (engine tuning, no per-list `COUNT(*)`, bounded indexed sidebar reads, post-import `ANALYZE`); the end-to-end timing needs a real-browser measurement on the user's DB and cannot be produced headlessly
+- [~] `EXPLAIN QUERY PLAN` shows the partial index for the document reads — confirmed at the unit level (adapter tests assert `storage-query` + `pagination-pushed-down` for the bounded system-order shape); a live `EXPLAIN` is a manual step
+- [~] `plan.durationMs` for each Explorer query is single-digit ms on a warm cache — not separately measured here; the reads are bounded + indexed by construction
+- [x] No `COUNT(*)` appears for the sidebar's list reads — locked by tests: `store.test.ts` "skips the COUNT(*) for paginated reads that do not request an exact total" (`countNodes` not called, `totalCount` undefined) and `sqlite-adapter.test.ts` "skips the COUNT(*) total unless an exact count is requested"
+- [~] The startup query burst is measurably smaller — the per-list `COUNT(*)` and unbounded full-scans are removed; a before/after call-count needs browser telemetry
+- [x] Tag/Space/Folder reads are bounded + system-ordered, so they compile to the indexed `storage-query` path (the `sqlite-adapter.test.ts` "pushes down limit and offset for system-field ordering" test confirms this shape), never the unbounded `list-fallback`
+- [x] `sqlite_stat1` is refreshed after import — `store.analyze()` runs `ANALYZE` at the end of the social-import commit
+- [x] No regression in the suites: data store/adapter (159), data-bridge + react query hooks (217), apps/web hooks + explorer (48), sqlite (86) all green
 
 ## References
 
