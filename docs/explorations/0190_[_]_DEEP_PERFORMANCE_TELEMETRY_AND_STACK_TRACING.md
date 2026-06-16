@@ -588,8 +588,8 @@ function Waterfall({ trace }: { trace: Trace }) {
 
 - [x] Add `Span`/`Trace`/`SpanAttributes` types in `packages/telemetry/src/tracing/types.ts`.
 - [x] Implement `TraceCollector` (ring buffer, head sample, tail keep-if-slow) + unit tests.
-- [ ] Add a `useTracing()` React context (duck-typed, null when disabled), parallel to `TelemetryReporter`.
-- [ ] Instrument `useQuery` main-thread stages (descriptor-build, bridge.dispatch, flatten, commit); fold existing `NodeQueryPlanMetadata` into the trace.
+- [x] Add a `useTracing()` React context (duck-typed, null when disabled), parallel to `TelemetryReporter`.
+- [x] Instrument `useQuery`/`useMutate` main-thread stages (query commit + row count; mutate bridge span). Folding `NodeQueryPlanMetadata` + finer stages happens via worker spans in Phase 2.
 - [ ] Build the devtools `Waterfall` SVG component; add a "Trace" view to the Queries panel listing `traceCollector.recent()`.
 - [ ] Gate everything behind `localStorage['xnet:trace'] === '1'` (dev-only default).
 

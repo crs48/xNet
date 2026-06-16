@@ -39,6 +39,7 @@ import React, {
 } from 'react'
 import { SecurityProvider } from './context/security-context'
 import { TelemetryContext, type TelemetryReporter } from './context/telemetry-context'
+import { TracingContext, type TracingReporter } from './context/tracing-context'
 import { PluginRegistryContext } from './hooks/usePlugins'
 import { AutoBackup } from './hub/auto-backup'
 import { uploadBackup } from './hub/backup'
@@ -475,6 +476,15 @@ export interface XNetConfig {
    * ```
    */
   telemetry?: TelemetryReporter
+  /**
+   * Optional full-stack tracing reporter (exploration 0190).
+   *
+   * When provided, useQuery/useMutate open a per-call trace and record
+   * main-thread stage spans, assembled into a local waterfall (devtools) and
+   * — when sampled — folded into bucketed performance metrics. Satisfied by
+   * @xnetjs/telemetry's `TraceCollector`. Duck-typed to avoid a circular dep.
+   */
+  tracing?: TracingReporter
 }
 
 /**
@@ -1164,6 +1174,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     { value: config.telemetry ?? null },
     content
   )
+
+  content = React.createElement(TracingContext.Provider, { value: config.tracing ?? null }, content)
 
   // Wrap with SecurityProvider for multi-level crypto support
   content = React.createElement(SecurityProvider, {

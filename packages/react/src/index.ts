@@ -827,3 +827,14 @@ export {
   useTelemetryReporter,
   type TelemetryReporter
 } from './context/telemetry-context'
+
+export {
+  TracingContext,
+  useTracingReporter,
+  TRACE_STAGES,
+  type TracingReporter,
+  type TracingHandle,
+  type TracingSpanInput,
+  type TracingRootKind,
+  type TracingAttributes
+} from './context/tracing-context'
