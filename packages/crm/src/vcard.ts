@@ -49,80 +49,79 @@ export function toVCards(contacts: VCardContact[]): string {
 function splitLine(line: string): { name: string; value: string } | null {
   const colon = line.indexOf(':')
   if (colon < 0) return null
-  const rawName = line.slice(0, colon)
-  const value = line.slice(colon + 1)
-  const name = rawName.split(';')[0].toUpperCase()
-  return { name, value }
+  const name = line.slice(0, colon).split(';')[0].toUpperCase()
+  return { name, value: line.slice(colon + 1) }
 }
 
 /**
- * Parse a vCard document into contacts. Handles multiple cards, RFC line
- * folding (continuation lines start with a space/tab), and the common
- * properties. Cards without an `FN` fall back to a name built from `N`.
+ * Per-property field setters — a dispatch table keeps `parseVCard` flat (one
+ * lookup instead of a long switch). The first value wins for EMAIL/TEL.
+ */
+const FIELD_SETTERS: Record<string, (c: Partial<VCardContact>, value: string) => void> = {
+  FN: (c, v) => {
+    c.displayName = unescape(v)
+  },
+  N: (c, v) => {
+    const [last, first] = v.split(';').map(unescape)
+    if (last) c.lastName = last
+    if (first) c.firstName = first
+  },
+  ORG: (c, v) => {
+    c.org = unescape(v.split(';')[0])
+  },
+  TITLE: (c, v) => {
+    c.title = unescape(v)
+  },
+  EMAIL: (c, v) => {
+    c.email ??= unescape(v).trim()
+  },
+  TEL: (c, v) => {
+    c.phone ??= unescape(v).trim()
+  },
+  BDAY: (c, v) => {
+    c.birthday = v.trim()
+  },
+  NOTE: (c, v) => {
+    c.note = unescape(v)
+  }
+}
+
+/** Unfold RFC-6350 line folding: a leading space/tab continues the prior line. */
+function unfoldLines(text: string): string[] {
+  const out: string[] = []
+  for (const raw of text.split(/\r\n|\r|\n/)) {
+    const isContinuation = raw.startsWith(' ') || raw.startsWith('\t')
+    if (isContinuation && out.length > 0) out[out.length - 1] += raw.slice(1)
+    else out.push(raw)
+  }
+  return out
+}
+
+/** Finalize a card: fill `displayName` from `N` when `FN` was absent. */
+function finalizeCard(card: Partial<VCardContact>): VCardContact | null {
+  const name =
+    card.displayName || [card.firstName, card.lastName].filter(Boolean).join(' ').trim()
+  return name ? ({ ...card, displayName: name } as VCardContact) : null
+}
+
+/**
+ * Parse a vCard document into contacts. Handles multiple cards, line folding,
+ * and the common properties. Cards without an `FN` fall back to a name from `N`.
  */
 export function parseVCard(text: string): VCardContact[] {
-  // Unfold: a leading space/tab continues the previous line.
-  const unfolded: string[] = []
-  for (const raw of text.split(/\r\n|\r|\n/)) {
-    if ((raw.startsWith(' ') || raw.startsWith('\t')) && unfolded.length > 0) {
-      unfolded[unfolded.length - 1] += raw.slice(1)
-    } else {
-      unfolded.push(raw)
-    }
-  }
-
   const contacts: VCardContact[] = []
   let current: Partial<VCardContact> | null = null
-  for (const line of unfolded) {
-    const trimmed = line.trim()
-    if (trimmed.toUpperCase() === 'BEGIN:VCARD') {
+  for (const line of unfoldLines(text)) {
+    const upper = line.trim().toUpperCase()
+    if (upper === 'BEGIN:VCARD') {
       current = {}
-      continue
-    }
-    if (trimmed.toUpperCase() === 'END:VCARD') {
-      if (current) {
-        const name =
-          current.displayName ||
-          [current.firstName, current.lastName].filter(Boolean).join(' ').trim()
-        if (name) contacts.push({ ...current, displayName: name } as VCardContact)
-      }
+    } else if (upper === 'END:VCARD') {
+      const card = current && finalizeCard(current)
+      if (card) contacts.push(card)
       current = null
-      continue
-    }
-    if (!current) continue
-    const parsed = splitLine(line)
-    if (!parsed) continue
-    const { name, value } = parsed
-    switch (name) {
-      case 'FN':
-        current.displayName = unescape(value)
-        break
-      case 'N': {
-        const [last, first] = value.split(';').map(unescape)
-        if (last) current.lastName = last
-        if (first) current.firstName = first
-        break
-      }
-      case 'ORG':
-        current.org = unescape(value.split(';')[0])
-        break
-      case 'TITLE':
-        current.title = unescape(value)
-        break
-      case 'EMAIL':
-        if (!current.email) current.email = unescape(value).trim()
-        break
-      case 'TEL':
-        if (!current.phone) current.phone = unescape(value).trim()
-        break
-      case 'BDAY':
-        current.birthday = value.trim()
-        break
-      case 'NOTE':
-        current.note = unescape(value)
-        break
-      default:
-        break
+    } else if (current) {
+      const parsed = splitLine(line)
+      parsed && FIELD_SETTERS[parsed.name]?.(current, parsed.value)
     }
   }
   return contacts

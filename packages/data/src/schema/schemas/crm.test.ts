@@ -4,7 +4,6 @@ import {
   OrganizationSchema,
   ContactSchema,
   RelationshipSchema,
-  PipelineSchema,
   StageSchema,
   DealSchema,
   DealContactRoleSchema,
