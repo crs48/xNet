@@ -34,7 +34,9 @@ function ScopeChip({
   return (
     <span
       className={`inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-[11px] transition-colors ${
-        active ? 'bg-ink-1 text-surface-0' : 'border border-hairline text-ink-2 hover:bg-accent hover:text-ink-1'
+        active
+          ? 'bg-ink-1 text-surface-0'
+          : 'border border-hairline text-ink-2 hover:bg-accent hover:text-ink-1'
       }`}
     >
       <button

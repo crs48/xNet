@@ -9,11 +9,7 @@ import {
 } from './explorer-scope'
 
 describe('nodeSpaceId', () => {
-  const nodes = [
-    { id: 'n1', space: 's1' },
-    { id: 'n2', space: '' },
-    { id: 'n3' }
-  ]
+  const nodes = [{ id: 'n1', space: 's1' }, { id: 'n2', space: '' }, { id: 'n3' }]
   it('returns the space id for a filed node', () => {
     expect(nodeSpaceId('n1', nodes)).toBe('s1')
   })
