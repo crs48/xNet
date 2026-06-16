@@ -34,6 +34,7 @@ import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
+import { ProjectHeader } from './ProjectHeader'
 import { TaskDueDatePalette } from './TaskDueDatePalette'
 import { TaskInlineEditor } from './TaskInlineEditor'
 import { TaskMiniPalette } from './TaskMiniPalette'
@@ -417,7 +418,20 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
           </span>
         )}
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1" data-tasks-view-toggle>
+          {!projectId && (
+            <button
+              type="button"
+              onClick={() =>
+                void create(ProjectSchema, { name: 'New project' }).then((p) => {
+                  if (p?.id) void navigate({ to: '/tasks', search: { project: p.id } })
+                })
+              }
+              className="mr-1 flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Plus size={13} /> Project
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setMode('list')}
@@ -440,6 +454,8 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
           </button>
         </div>
       </div>
+
+      {projectId && <ProjectHeader projectId={projectId} />}
 
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Plus size={14} className="shrink-0 text-muted-foreground" />
