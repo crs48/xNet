@@ -77,11 +77,7 @@ export function ExplorerSpacesSection() {
 
   return (
     <div className="max-h-[34%] shrink-0 overflow-y-auto px-1">
-      <SectionHeader
-        scoped={currentSpaceId !== null}
-        onClearScope={() => setCurrentSpace(null)}
-        onAdd={() => setCreating(true)}
-      />
+      <SectionHeader onAdd={() => setCreating(true)} />
       {creating && (
         <div className="mx-2 mb-1 flex items-center gap-1">
           <select
@@ -221,38 +217,20 @@ function SpaceRow({
   )
 }
 
-function SectionHeader({
-  scoped,
-  onClearScope,
-  onAdd
-}: {
-  scoped: boolean
-  onClearScope: () => void
-  onAdd: () => void
-}) {
+function SectionHeader({ onAdd }: { onAdd: () => void }) {
+  // Scope filtering moved to the Scope Bar (exploration 0190); this header is
+  // now navigation/manage only — open a Space home, create a new one.
   return (
     <div className="flex items-center justify-between px-2 pb-1 pt-3">
       <span className="text-[10px] font-medium uppercase tracking-wider text-ink-3">Spaces</span>
-      <div className="flex items-center gap-1">
-        {scoped && (
-          <button
-            type="button"
-            title="Show all (clear Space scope)"
-            onClick={onClearScope}
-            className="cursor-pointer border-none bg-transparent text-[10px] uppercase tracking-wider text-ink-3 hover:text-ink-1"
-          >
-            All
-          </button>
-        )}
-        <button
-          type="button"
-          title="New space"
-          onClick={onAdd}
-          className="flex cursor-pointer items-center border-none bg-transparent p-0.5 text-ink-3 hover:text-ink-1"
-        >
-          <Plus size={13} />
-        </button>
-      </div>
+      <button
+        type="button"
+        title="New space"
+        onClick={onAdd}
+        className="flex cursor-pointer items-center border-none bg-transparent p-0.5 text-ink-3 hover:text-ink-1"
+      >
+        <Plus size={13} />
+      </button>
     </div>
   )
 }
