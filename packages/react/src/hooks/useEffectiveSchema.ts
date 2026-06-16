@@ -13,7 +13,6 @@
  * effective schema in sync as `SchemaExtension`/`ExtensionField` nodes change.
  */
 
-import { useEffect, useMemo, useState } from 'react'
 import {
   buildEffectiveSchema,
   selectExtensionFields,
@@ -25,6 +24,7 @@ import {
   type ExtensionRecord,
   type ExtensionFieldRecord
 } from '@xnetjs/data'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from './useQuery'
 
 export interface UseEffectiveSchemaResult {

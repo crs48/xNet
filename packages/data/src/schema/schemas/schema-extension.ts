@@ -17,8 +17,8 @@
  * instead of forking a second overlay.
  */
 
-import type { InferNode } from '../types'
 import type { SchemaIRI } from '../node'
+import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, relation, number, json } from '../properties'
 import { spaceCascadeAuthorization } from './space-authorization'

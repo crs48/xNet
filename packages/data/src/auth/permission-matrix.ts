@@ -64,9 +64,11 @@ function collect(expr: SerializedAuthExpression, polarity: boolean, acc: Collect
     case 'allow':
       for (const role of expr.roles) (polarity ? acc.allow : acc.deny).add(role)
       return
-    case 'roleRef':
-      ;(polarity ? acc.allow : acc.deny).add(expr.role)
+    case 'roleRef': {
+      const bucket = polarity ? acc.allow : acc.deny
+      bucket.add(expr.role)
       return
+    }
     case 'deny':
       for (const role of expr.roles) (polarity ? acc.deny : acc.allow).add(role)
       return

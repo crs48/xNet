@@ -8,8 +8,8 @@
  * flows through the evaluator (and the People tab shows actual grantees).
  */
 
-import { useNodeStore, useEffectiveSchema } from '@xnetjs/react'
 import { buildPermissionMatrix, type SchemaIRI } from '@xnetjs/data'
+import { useNodeStore, useEffectiveSchema } from '@xnetjs/react'
 import { Globe, KeyRound, ShieldCheck, UserCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 

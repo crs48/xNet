@@ -9,17 +9,17 @@
  * locked and routed nowhere — only extension fields are mutable.
  */
 
-import type { NodeStore } from '../store/store'
 import type { SchemaIRI } from '../schema/node'
-import { createNodeQueryDescriptor } from '../store/query'
-import { generateSortKeyWithJitter } from './fractional-index'
-import { isFieldType } from './field-types'
+import type { NodeStore } from '../store/store'
+import { extKey } from '../schema/extension'
 import {
   SchemaExtensionSchema,
   ExtensionFieldSchema,
   schemaExtensionId
 } from '../schema/schemas/schema-extension'
-import { extKey } from '../schema/extension'
+import { createNodeQueryDescriptor } from '../store/query'
+import { isFieldType } from './field-types'
+import { generateSortKeyWithJitter } from './fractional-index'
 
 const EXTENSION_SCHEMA_ID = SchemaExtensionSchema.schema['@id']
 const EXTENSION_FIELD_SCHEMA_ID = ExtensionFieldSchema.schema['@id']

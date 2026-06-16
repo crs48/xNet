@@ -13,9 +13,9 @@
  * cell edits map straight back to node properties with no translation layer.
  */
 
+import type { GridField, GridFieldOption } from './model.js'
 import type { Schema, PropertyDefinition, FieldType } from '@xnetjs/data'
 import { parseExtKey } from '@xnetjs/data'
-import type { GridField, GridFieldOption } from './model.js'
 
 /** Default column width when the schema carries none. */
 const DEFAULT_WIDTH = 180
