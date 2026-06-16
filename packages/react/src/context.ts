@@ -75,7 +75,11 @@ function resolveConfiguredSignalingUrls(
       return true
     })
 
-  return urls.length > 0 ? urls : ['ws://localhost:4444']
+  // No hub and no signaling servers → no URLs (stay offline / local-first).
+  // The old `['ws://localhost:4444']` default dialed a hub that nothing is
+  // serving, producing ERR_CONNECTION_REFUSED console errors (exploration 0188);
+  // a real signaling server is opted into via hubUrl / signalingServers.
+  return urls
 }
 
 const HUB_CAPABILITIES = [
