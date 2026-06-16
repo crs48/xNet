@@ -57,7 +57,10 @@ export function resolveDeal(deal: DealLike, stage?: StageLike | null): ResolvedD
 }
 
 /** Resolve a list of deals against a map of stages keyed by stage id. */
-export function resolveDeals(deals: DealLike[], stagesById: Map<string, StageLike>): ResolvedDeal[] {
+export function resolveDeals(
+  deals: DealLike[],
+  stagesById: Map<string, StageLike>
+): ResolvedDeal[] {
   return deals.map((d) => resolveDeal(d, d.stage != null ? stagesById.get(d.stage) : null))
 }
 
@@ -133,7 +136,10 @@ export interface StageBreakdown {
  * board summary or a "value by stage" bar chart. Pass the original deals (with
  * `stage`) and their resolution map.
  */
-export function dealsByStage(deals: DealLike[], stagesById: Map<string, StageLike>): StageBreakdown[] {
+export function dealsByStage(
+  deals: DealLike[],
+  stagesById: Map<string, StageLike>
+): StageBreakdown[] {
   const groups = new Map<string, StageBreakdown>()
   for (const deal of deals) {
     const stageId = deal.stage ?? 'unstaged'

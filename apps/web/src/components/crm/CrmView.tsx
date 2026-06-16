@@ -6,12 +6,7 @@
  * the board is never empty.
  */
 import { computeNextTouch, dueForFollowUp, daysUntilTouch } from '@xnetjs/crm'
-import {
-  ContactSchema,
-  OrganizationSchema,
-  PipelineSchema,
-  StageSchema
-} from '@xnetjs/data'
+import { ContactSchema, OrganizationSchema, PipelineSchema, StageSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import { Plus } from 'lucide-react'
@@ -148,7 +143,9 @@ function CompaniesPanel(): JSX.Element {
               <input
                 defaultValue={str(o.domain)}
                 placeholder="domain.com"
-                onBlur={(e) => void update(OrganizationSchema, o.id, { domain: e.target.value || undefined })}
+                onBlur={(e) =>
+                  void update(OrganizationSchema, o.id, { domain: e.target.value || undefined })
+                }
                 className="w-40 border-none bg-transparent text-right text-xs text-ink-3 outline-none"
               />
             </li>
@@ -205,7 +202,9 @@ function KeepInTouchPanel(): JSX.Element {
             const until = daysUntilTouch(c, Date.now())
             return (
               <li key={c.id} className="flex items-center gap-3 py-2 text-sm">
-                <span className="flex-1 text-ink-1">{str(c.displayName) || 'Untitled contact'}</span>
+                <span className="flex-1 text-ink-1">
+                  {str(c.displayName) || 'Untitled contact'}
+                </span>
                 <span className="text-xs text-red-500">{relDays(until)}</span>
                 <button
                   type="button"

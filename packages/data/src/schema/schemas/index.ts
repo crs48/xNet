@@ -335,11 +335,9 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Experiment@1.0.0': () => import('./experiment').then((m) => m.ExperimentSchema),
   'xnet://xnet.fyi/Milestone@1.0.0': () => import('./milestone').then((m) => m.MilestoneSchema),
   // CRM schema pack (exploration 0187)
-  'xnet://xnet.fyi/Organization@1.0.0': () =>
-    import('./crm').then((m) => m.OrganizationSchema),
+  'xnet://xnet.fyi/Organization@1.0.0': () => import('./crm').then((m) => m.OrganizationSchema),
   'xnet://xnet.fyi/Contact@1.0.0': () => import('./crm').then((m) => m.ContactSchema),
-  'xnet://xnet.fyi/Relationship@1.0.0': () =>
-    import('./crm').then((m) => m.RelationshipSchema),
+  'xnet://xnet.fyi/Relationship@1.0.0': () => import('./crm').then((m) => m.RelationshipSchema),
   'xnet://xnet.fyi/Pipeline@1.0.0': () => import('./crm').then((m) => m.PipelineSchema),
   'xnet://xnet.fyi/Stage@1.0.0': () => import('./crm').then((m) => m.StageSchema),
   'xnet://xnet.fyi/Deal@1.0.0': () => import('./crm').then((m) => m.DealSchema),

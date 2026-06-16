@@ -44,14 +44,16 @@ describe('vCard round-trip', () => {
     ])
     expect(parseVCard(doc)).toHaveLength(2)
 
-    const folded = 'BEGIN:VCARD\r\nVERSION:3.0\r\nNOTE:hello \r\n world\r\nFN:Folded Name\r\nEND:VCARD'
+    const folded =
+      'BEGIN:VCARD\r\nVERSION:3.0\r\nNOTE:hello \r\n world\r\nFN:Folded Name\r\nEND:VCARD'
     const [c] = parseVCard(folded)
     expect(c.displayName).toBe('Folded Name')
     expect(c.note).toBe('hello world')
   })
 
   it('falls back to N when FN is absent and skips empty cards', () => {
-    const doc = 'BEGIN:VCARD\r\nVERSION:3.0\r\nN:Doe;Jane;;;\r\nEND:VCARD\r\nBEGIN:VCARD\r\nEND:VCARD'
+    const doc =
+      'BEGIN:VCARD\r\nVERSION:3.0\r\nN:Doe;Jane;;;\r\nEND:VCARD\r\nBEGIN:VCARD\r\nEND:VCARD'
     const parsed = parseVCard(doc)
     expect(parsed).toHaveLength(1)
     expect(parsed[0].displayName).toBe('Jane Doe')

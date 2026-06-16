@@ -67,9 +67,7 @@ export function CrmContacts(): JSX.Element {
             <p className="px-2 py-1 text-xs text-ink-3">No contacts yet.</p>
           ) : (
             CONTACT_LIFECYCLE.map((stage) => {
-              const group = contacts.filter(
-                (c) => (str(c.lifecycle) || 'lead') === stage.id
-              )
+              const group = contacts.filter((c) => (str(c.lifecycle) || 'lead') === stage.id)
               if (group.length === 0) return null
               return (
                 <div key={stage.id} className="mb-2">
@@ -137,7 +135,10 @@ function ContactDetail({ contactId }: { contactId: string }): JSX.Element {
   const orgs = (orgsData ?? []) as Array<{ id: string; name?: unknown }>
   const activities = ((activityData ?? []) as ActivityRow[])
     .filter((a) => str(a.contact) === contactId)
-    .sort((a, b) => (num(b.occurredAt) ?? num(b.createdAt) ?? 0) - (num(a.occurredAt) ?? num(a.createdAt) ?? 0))
+    .sort(
+      (a, b) =>
+        (num(b.occurredAt) ?? num(b.createdAt) ?? 0) - (num(a.occurredAt) ?? num(a.createdAt) ?? 0)
+    )
 
   const touchEveryDays = num(contact.touchEveryDays)
   const until = daysUntilTouch(
@@ -214,13 +215,22 @@ function ContactDetail({ contactId }: { contactId: string }): JSX.Element {
           </select>
         </Field>
         <Field label="Email">
-          <TextField defaultValue={str(contact.email)} onCommit={(v) => commit({ email: v || undefined })} />
+          <TextField
+            defaultValue={str(contact.email)}
+            onCommit={(v) => commit({ email: v || undefined })}
+          />
         </Field>
         <Field label="Phone">
-          <TextField defaultValue={str(contact.phone)} onCommit={(v) => commit({ phone: v || undefined })} />
+          <TextField
+            defaultValue={str(contact.phone)}
+            onCommit={(v) => commit({ phone: v || undefined })}
+          />
         </Field>
         <Field label="Title">
-          <TextField defaultValue={str(contact.title)} onCommit={(v) => commit({ title: v || undefined })} />
+          <TextField
+            defaultValue={str(contact.title)}
+            onCommit={(v) => commit({ title: v || undefined })}
+          />
         </Field>
         <Field label="Keep in touch (days)">
           <TextField
@@ -297,7 +307,9 @@ function ContactDetail({ contactId }: { contactId: string }): JSX.Element {
                 </span>
                 <span className="flex-1 text-ink-1">{str(a.summary)}</span>
                 <span className="text-[10px] text-ink-3">
-                  {new Date(num(a.occurredAt) ?? num(a.createdAt) ?? Date.now()).toLocaleDateString()}
+                  {new Date(
+                    num(a.occurredAt) ?? num(a.createdAt) ?? Date.now()
+                  ).toLocaleDateString()}
                 </span>
               </li>
             ))}

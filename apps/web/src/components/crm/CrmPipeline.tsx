@@ -50,8 +50,7 @@ export function CrmPipeline({ pipelineId }: { pipelineId: string }): JSX.Element
   const { identity } = useIdentity()
 
   const stages = useMemo(
-    () =>
-      ((stageData ?? []) as StageNode[]).filter((s) => str(s.pipeline) === pipelineId),
+    () => ((stageData ?? []) as StageNode[]).filter((s) => str(s.pipeline) === pipelineId),
     [stageData, pipelineId]
   )
   const deals = useMemo(

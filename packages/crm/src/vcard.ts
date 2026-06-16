@@ -99,8 +99,7 @@ function unfoldLines(text: string): string[] {
 
 /** Finalize a card: fill `displayName` from `N` when `FN` was absent. */
 function finalizeCard(card: Partial<VCardContact>): VCardContact | null {
-  const name =
-    card.displayName || [card.firstName, card.lastName].filter(Boolean).join(' ').trim()
+  const name = card.displayName || [card.firstName, card.lastName].filter(Boolean).join(' ').trim()
   return name ? ({ ...card, displayName: name } as VCardContact) : null
 }
 

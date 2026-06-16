@@ -78,7 +78,10 @@ export function jaroWinkler(a: string, b: string, prefixScale = 0.1): number {
 }
 
 const normName = (s: string | null | undefined): string =>
-  (s ?? '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim()
+  (s ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim()
 
 /** Name similarity via Jaro-Winkler on normalized names. */
 export function nameSimilarity(a: string | null | undefined, b: string | null | undefined): number {

@@ -28,7 +28,18 @@
 
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text, number, checkbox, select, date, email, phone, url, person, relation } from '../properties'
+import {
+  text,
+  number,
+  checkbox,
+  select,
+  date,
+  email,
+  phone,
+  url,
+  person,
+  relation
+} from '../properties'
 import { spaceCascadeAuthorization } from './space-authorization'
 
 export const CRM_NAMESPACE = 'xnet://xnet.fyi/' as const

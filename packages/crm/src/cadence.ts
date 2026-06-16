@@ -53,7 +53,10 @@ export function isOverdue(c: CadenceContact, now: number = Date.now()): boolean 
  * The subset of contacts due for follow-up (overdue or due today), most
  * overdue first. Contacts without a cadence are excluded.
  */
-export function dueForFollowUp<T extends CadenceContact>(contacts: T[], now: number = Date.now()): T[] {
+export function dueForFollowUp<T extends CadenceContact>(
+  contacts: T[],
+  now: number = Date.now()
+): T[] {
   return contacts
     .map((c) => ({ c, days: daysUntilTouch(c, now) }))
     .filter((x): x is { c: T; days: number } => x.days != null && x.days <= 0)
