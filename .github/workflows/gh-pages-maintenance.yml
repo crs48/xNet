@@ -38,6 +38,8 @@ jobs:
 
           stale_file=$(mktemp)
           touch "$stale_file"
+          tombstone_file=$(mktemp)
+          touch "$tombstone_file"
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
             git fetch origin gh-pages
@@ -56,17 +58,43 @@ jobs:
                 echo "branch/$dir" >> "$stale_file"
               fi
             done
+
+            # Age-based retention for durable PR visuals (exploration 0189,
+            # Stage 2). Unlike pr/<N> previews (swept the moment a PR closes),
+            # visuals/pr/<N> is intentionally durable so merged-PR galleries keep
+            # rendering — so it must be reaped on age instead. Remove a PR's
+            # visuals once it merged/closed more than VISUALS_RETENTION_DAYS ago,
+            # and record the number so the next step can tombstone its comment.
+            # Guarded so a gh/date hiccup never fails the critical squash step.
+            retention_days="${VISUALS_RETENTION_DAYS:-30}"
+            cutoff=$(date -u -d "-${retention_days} days" +%s 2>/dev/null || echo 0)
+            for dir in $(git ls-tree --name-only "origin/gh-pages:visuals/pr" 2>/dev/null || true); do
+              [ "$cutoff" -gt 0 ] || break
+              closed_at=$(gh pr view "$dir" --json mergedAt,closedAt,state \
+                --jq '(.mergedAt // .closedAt) // ""' 2>/dev/null || echo "")
+              [ -n "$closed_at" ] || continue   # still open / unknown -> keep
+              ts=$(date -u -d "$closed_at" +%s 2>/dev/null || echo 0)
+              if [ "$ts" -gt 0 ] && [ "$ts" -lt "$cutoff" ]; then
+                echo "visuals/pr/$dir" >> "$stale_file"
+                echo "$dir" >> "$tombstone_file"
+              fi
+            done
           else
             echo "No gh-pages branch; nothing to sweep."
           fi
 
           echo "Stale previews:"
           cat "$stale_file"
+          echo "Visuals to tombstone:"
+          cat "$tombstone_file"
 
           {
             echo 'stale<<XNET_STALE_EOF'
             cat "$stale_file"
             echo 'XNET_STALE_EOF'
+            echo 'tombstone<<XNET_TOMB_EOF'
+            cat "$tombstone_file"
+            echo 'XNET_TOMB_EOF'
           } >> "$GITHUB_OUTPUT"
 
       - name: Remove orphaned previews
@@ -74,6 +102,44 @@ jobs:
         with:
           remove: ${{ steps.sweep.outputs.stale }}
           commit-message: 'deploy(preview): sweep orphaned previews'
+
+      # Exploration 0189, Stage 2: once a PR's durable visuals are reaped above,
+      # rewrite its sticky <!-- xnet-visuals --> comment to a tombstone so the
+      # merged PR never shows broken images. Comment-only; safe to no-op.
+      - name: Tombstone expired visuals comments
+        if: steps.sweep.outputs.tombstone != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- xnet-visuals -->'
+            const numbers = `${{ steps.sweep.outputs.tombstone }}`
+              .split('\n')
+              .map((s) => s.trim())
+              .filter(Boolean)
+            for (const n of numbers) {
+              const issue_number = Number(n)
+              if (!Number.isInteger(issue_number)) continue
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number
+              })
+              const existing = comments.find(
+                (c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(marker)
+              )
+              if (!existing) continue
+              const body =
+                `${marker}\n## 🖼️ UI changes in this PR\n\n` +
+                '_Visual captures for this PR have expired and were removed to bound ' +
+                'gh-pages storage. Re-run the Visual UI Capture workflow on a fresh ' +
+                'branch to regenerate them._'
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              })
+            }
 
       - name: Squash gh-pages history
         run: |

@@ -135,13 +135,18 @@ jobs:
         uses: ./.github/actions/publish-gh-pages
         with:
           source: tmp/visuals
-          target: pr/${{ github.event.pull_request.number }}/visuals
+          # Durable top-level namespace (exploration 0189): keeping visuals OUT of
+          # pr/<N>/ means remove-pr-preview.yml and the per-PR sweep no longer
+          # delete them when the PR is merged/closed, so merged-PR galleries keep
+          # rendering. Protected from the production root --delete by deploy-site's
+          # `visuals` exclude.
+          target: visuals/pr/${{ github.event.pull_request.number }}
           commit-message: 'deploy(visuals): publish PR #${{ github.event.pull_request.number }} UI captures'
 
       - name: Build comment body
         run: |
           mkdir -p tmp/visuals
-          BASE_URL="https://xnet.fyi/pr/${{ github.event.pull_request.number }}/visuals"
+          BASE_URL="https://xnet.fyi/visuals/pr/${{ github.event.pull_request.number }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           if [ -f tmp/visuals/diff-manifest.json ]; then
             node scripts/visuals/comment.mjs --diff-manifest tmp/visuals/diff-manifest.json --base-url "$BASE_URL" --run-url "$RUN_URL" > tmp/visuals/body.md
