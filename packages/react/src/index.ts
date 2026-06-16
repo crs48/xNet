@@ -47,6 +47,10 @@ export {
 } from './hooks/useInfiniteQuery'
 export { useFind, type UseFindOptions, type UseFindResult } from './hooks/useFind'
 export {
+  useEffectiveSchema,
+  type UseEffectiveSchemaResult
+} from './hooks/useEffectiveSchema'
+export {
   useSavedView,
   type SavedViewPrivacySummary,
   type SavedViewQueryOverride,

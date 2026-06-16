@@ -154,8 +154,11 @@ export {
 } from './effective-schema'
 export {
   loadExtensionFields,
+  selectExtensionFields,
   resolveEffectiveSchema,
-  type CoreSchemaResolver
+  type CoreSchemaResolver,
+  type ExtensionRecord,
+  type ExtensionFieldRecord
 } from './extension-resolver'
 // Sidecar (join-node) extensions
 export {

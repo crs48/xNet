@@ -594,8 +594,11 @@ const members = await Promise.all(
         `fieldsToStoredColumns`) so any `Schema` yields `GridField[]`.
         → `packages/views/src/grid/schema-to-grid-fields.ts` (carries
         `readonly`, unwraps `ext:` labels, resolves select options).
-  - [ ] Add a node-backed data source for `GridSurface` driven by
-        `useQuery(schema, options)` (rows = nodes, cells = node properties).
+  - [x] Add the schema half of the node-backed grid source:
+        `useEffectiveSchema(schemaId)` resolves core + live extensions reactively
+        (`packages/react/src/hooks/useEffectiveSchema.ts`), feeding
+        `schemaToGridFields`. Rows/edit callbacks bind via the existing
+        `useQuery`/`useMutate` (cells = node properties; keys map 1:1).
   - [ ] Extend `DatabaseView` (or a new `/data` mode) with a **schema/database
         quick-select** that builds a `SavedViewDescriptor`.
   - [ ] Support an **arbitrary query** input feeding `useSavedView`, savable as

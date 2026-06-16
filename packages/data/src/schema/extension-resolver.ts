@@ -31,54 +31,94 @@ function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
+/** Normalized SchemaExtension record (shape-agnostic: NodeState or FlatNode). */
+export interface ExtensionRecord {
+  id: string
+  deleted?: boolean
+  targetSchema?: unknown
+  authority?: unknown
+}
+
+/** Normalized ExtensionField record (shape-agnostic: NodeState or FlatNode). */
+export interface ExtensionFieldRecord {
+  deleted?: boolean
+  extension?: unknown
+  name?: unknown
+  type?: unknown
+  config?: unknown
+  sortKey?: unknown
+}
+
 /**
- * Load the extension fields registered for a target schema, ordered by their
- * fractional `sortKey`. Matches `SchemaExtension.targetSchema` against the
- * exact IRI and its unversioned base, so an extension declared against
- * `Contact` applies to `Contact@1.0.0` and vice versa.
+ * Pure join: select + order the extension fields that apply to a target
+ * schema, given the full set of extension and field records. Shared by the
+ * store-backed `loadExtensionFields` and the React `useEffectiveSchema` hook so
+ * the matching/ordering rules live in exactly one place.
+ *
+ * Matches `targetSchema` against the exact IRI and its unversioned base, so an
+ * extension declared against `Contact` applies to `Contact@1.0.0` and vice
+ * versa.
  */
-export async function loadExtensionFields(
-  store: NodeStore,
-  targetSchema: SchemaIRI
-): Promise<EffectiveExtensionField[]> {
+export function selectExtensionFields(
+  targetSchema: SchemaIRI,
+  extensions: ExtensionRecord[],
+  fields: ExtensionFieldRecord[]
+): EffectiveExtensionField[] {
   const base = getBaseSchemaIRI(targetSchema)
 
-  const extensionNodes = await store.list({ schemaId: SCHEMA_EXTENSION_SCHEMA_IRI })
   const authorityByExtensionId = new Map<string, string>()
-  for (const node of extensionNodes) {
-    if (node.deleted) continue
-    const target = readString(node.properties.targetSchema)
-    const authority = readString(node.properties.authority)
+  for (const ext of extensions) {
+    if (ext.deleted) continue
+    const target = readString(ext.targetSchema)
+    const authority = readString(ext.authority)
     if (!target || !authority) continue
     if (target === targetSchema || getBaseSchemaIRI(target as SchemaIRI) === base) {
-      authorityByExtensionId.set(node.id, authority)
+      authorityByExtensionId.set(ext.id, authority)
     }
   }
   if (authorityByExtensionId.size === 0) return []
 
-  const fieldNodes = await store.list({ schemaId: EXTENSION_FIELD_SCHEMA_IRI })
   const collected: Array<{ sortKey: string; field: EffectiveExtensionField }> = []
-  for (const node of fieldNodes) {
-    if (node.deleted) continue
-    const extensionId = readString(node.properties.extension)
+  for (const field of fields) {
+    if (field.deleted) continue
+    const extensionId = readString(field.extension)
     if (!extensionId) continue
     const authority = authorityByExtensionId.get(extensionId)
     if (!authority) continue
-    const name = readString(node.properties.name)
-    const type = readString(node.properties.type)
+    const name = readString(field.name)
+    const type = readString(field.type)
     if (!name || !type) continue
     const config =
-      node.properties.config && typeof node.properties.config === 'object'
-        ? (node.properties.config as Record<string, unknown>)
+      field.config && typeof field.config === 'object'
+        ? (field.config as Record<string, unknown>)
         : undefined
     collected.push({
-      sortKey: readString(node.properties.sortKey) ?? '',
+      sortKey: readString(field.sortKey) ?? '',
       field: { authority, name, type: type as PropertyType, ...(config ? { config } : {}) }
     })
   }
 
   collected.sort((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0))
   return collected.map((entry) => entry.field)
+}
+
+/**
+ * Load the extension fields registered for a target schema, ordered by their
+ * fractional `sortKey`.
+ */
+export async function loadExtensionFields(
+  store: NodeStore,
+  targetSchema: SchemaIRI
+): Promise<EffectiveExtensionField[]> {
+  const [extensionNodes, fieldNodes] = await Promise.all([
+    store.list({ schemaId: SCHEMA_EXTENSION_SCHEMA_IRI }),
+    store.list({ schemaId: EXTENSION_FIELD_SCHEMA_IRI })
+  ])
+  return selectExtensionFields(
+    targetSchema,
+    extensionNodes.map((node) => ({ id: node.id, deleted: node.deleted, ...node.properties })),
+    fieldNodes.map((node) => ({ deleted: node.deleted, ...node.properties }))
+  )
 }
 
 /**
