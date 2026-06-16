@@ -109,6 +109,28 @@ export {
   type DatabaseSelectOption,
   DatabaseViewSchema,
   type DatabaseView,
+  SchemaExtensionSchema,
+  ExtensionFieldSchema,
+  SCHEMA_EXTENSION_SCHEMA_IRI,
+  EXTENSION_FIELD_SCHEMA_IRI,
+  schemaExtensionId,
+  type SchemaExtension,
+  type ExtensionField,
+  EXT_PREFIX,
+  extKey,
+  isExtKey,
+  parseExtKey,
+  buildEffectiveSchema,
+  lockedPropertyKeys,
+  canModifyColumn,
+  findLockedColumns,
+  type EffectiveExtensionField,
+  loadExtensionFields,
+  selectExtensionFields,
+  resolveEffectiveSchema,
+  type CoreSchemaResolver,
+  type ExtensionRecord,
+  type ExtensionFieldRecord,
   TaskSchema,
   TASK_STATUS_CATEGORIES,
   getTaskStatusCategory,
@@ -430,7 +452,14 @@ export {
   when,
   composeLens,
   createOperations,
-  identity
+  identity,
+  promoteOverlay,
+  // Sidecar (join-node) extensions
+  SIDECAR_PREFIX,
+  sidecarId,
+  sidecarOverlayKeys,
+  mergeSidecarsIntoRow,
+  type SidecarOverlay
 } from './schema'
 
 // External reference and embed parsing
@@ -700,7 +729,12 @@ export {
   type Grant as AuthGrant,
   type OfflineAuthPolicy,
   StoreAuthError,
-  type StoreAuthErrorCode
+  type StoreAuthErrorCode,
+  buildPermissionMatrix,
+  describeRoleResolver,
+  type PermissionMatrix,
+  type ActionPermission,
+  type RoleSummary
 } from './auth'
 
 // Blob service
@@ -789,6 +823,12 @@ export {
   deleteField,
   moveField,
   duplicateField,
+  ensureSchemaExtension,
+  createExtensionField,
+  renameExtensionField,
+  deleteExtensionField,
+  type EnsureExtensionOptions,
+  type CreateExtensionFieldOptions,
   getSelectOptions,
   getDatabaseSelectOptions,
   createSelectOption,

@@ -1,0 +1,110 @@
+---
+title: 'Extending Schemas'
+draft: false
+description: 'Add custom fields to a shipped schema with overlays, sidecars, or a new schema version.'
+---
+
+xNet ships typed schemas like `Task`, `Contact`, and `Page` with a fixed set of
+properties. When you need to track something they don't model — a `leadScore`
+on a contact, a `billableRate` on a task — you have three ways to extend them,
+from lightest to heaviest.
+
+## 1. Overlay fields (the everyday path)
+
+An **overlay** stores custom attributes directly on the node under a reserved,
+namespaced key: `ext:<authority>/<field>`. The `authority` (a Space id, a DID,
+or a domain) keeps two parties from colliding. Overlay values are ordinary node
+properties, so they sync and conflict-resolve per-key (LWW) and inherit the
+node's authorization automatically — no join, no schema fork.
+
+Add a field with `createExtensionField`:
+
+```ts
+import { createExtensionField } from '@xnetjs/data'
+
+const { key } = await createExtensionField(store, {
+  targetSchema: 'xnet://xnet.fyi/Contact@1.0.0',
+  authority: 'acme.com',
+  name: 'leadScore',
+  type: 'number',
+  config: { min: 0, max: 100 }
+})
+// key === 'ext:acme.com/leadScore'
+```
+
+Read and write the value like any other property — the overlay key rides along
+on the node:
+
+```ts
+const { update } = useMutate()
+await update(ContactSchema, contact.id, { 'ext:acme.com/leadScore': 87 })
+
+// Filtering uses the standard where path (it pushes down like any property):
+const hot = useQuery(ContactSchema, { where: { 'ext:acme.com/leadScore': 87 } })
+```
+
+The grid composes the **effective schema** — core columns plus your overlay
+columns — via `useEffectiveSchema`. Schema-defined (core) columns are
+structurally **locked**: you can edit their values but not rename, retype, or
+delete them. Only overlay columns are restructurable.
+
+```ts
+const { schema } = useEffectiveSchema('xnet://xnet.fyi/Contact@1.0.0')
+// schema.properties includes 'name' (readonly) … 'ext:acme.com/leadScore'
+```
+
+## 2. Sidecar extensions (when access differs)
+
+An overlay inherits the target node's authorization. When the attributes need
+their **own** owner or access — say, _your_ private notes on a `Contact`
+someone else shares with you — use a **sidecar**: a separate node that
+references the target and carries its own `authorization` (typically
+`presets.private()`).
+
+```ts
+import { defineSchema, relation, text, presets, sidecarId } from '@xnetjs/data'
+
+const ContactNotes = defineSchema({
+  name: 'ContactNotes',
+  namespace: 'xnet://did:key:.../',
+  properties: {
+    target: relation({ target: 'xnet://xnet.fyi/Contact@1.0.0', required: true }),
+    notes: text({})
+  },
+  authorization: presets.private()
+})
+// one sidecar per (authority, target): id = sidecarId(authority, contactId)
+```
+
+The grid folds a sidecar's attributes into the same `ext:<authority>/<field>`
+column space as overlays via `mergeSidecarsIntoRow`, so both render uniformly.
+
+## 3. A new schema version (custom objects)
+
+When you're really creating a new _type_ — not just decorating an existing one
+— define a new schema (optionally `extends` the base) and migrate existing
+nodes with a **lens**. To graduate an overlay into a first-class property, use
+`promoteOverlay`:
+
+```ts
+import { composeLens, promoteOverlay } from '@xnetjs/data'
+
+const v1ToV2 = composeLens(
+  'xnet://xnet.fyi/Contact@1.0.0',
+  'xnet://xnet.fyi/Contact@2.0.0',
+  promoteOverlay('acme.com', 'leadScore', 'leadScore')
+)
+// { 'ext:acme.com/leadScore': 87 } → { leadScore: 87 }  (lossless)
+```
+
+## Which one?
+
+| Need                                      | Use                               |
+| ----------------------------------------- | --------------------------------- |
+| A custom field, same record + permissions | **Overlay** (`ext:` key)          |
+| A field with its own owner / access       | **Sidecar** (join node)           |
+| A distinct, fully-typed type              | **New schema** (`extends` + lens) |
+
+Overlay is the default — it's the cheapest to store and query. Reach for a
+sidecar only when access must differ, and a new schema only when you're
+authoring a genuinely new type.
