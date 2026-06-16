@@ -755,8 +755,14 @@ Shipped in the implementation PR (as-built notes where it diverged from the plan
 - [x] Add **`useBilling()`** in `packages/react/src/hooks/useBilling.ts`; export
       from `packages/react/src/index.ts`; extend `XNetConfig`/`XNetContext` with
       `billing` (`apiBase` + publishable key — secret never client-side).
-- [ ] Wire an **entitlements tie-in**: on `subscription.active`, mint a
-      `PlanEntitlements` token via `@xnetjs/entitlements`. _(deferred follow-up)_
+- [x] Wire an **entitlements tie-in**: an active/trialing subscription whose
+      price maps (via `XNET_BILLING_PRICE_PLANS`) to a plan resolves to that
+      plan's `PlanEntitlements`, exposed at `GET /billing/entitlements`
+      (`packages/hub/src/services/billing-entitlements.ts`). _As-built: the bridge
+      lives in the hub (the only package depending on both billing + entitlements),
+      so `@xnetjs/billing` stays decoupled; it's a separate route, not folded into
+      `/me`, for the same reason. Enforcing the entitlements against hub quota is
+      the remaining step._
 - [x] **Docs**: [`docs/guides/add-billing.md`](../guides/add-billing.md) — hub
       env + webhook URL + the `useBilling` snippet, Stripe + Bitcoin + fake.
 - [ ] **(Phase 2 / follow-up)** spec the server-authored read-only node path and

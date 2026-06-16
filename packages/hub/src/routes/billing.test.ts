@@ -25,7 +25,11 @@ const sub = (did: string) =>
     }
   })
 
-function mount(opts: { provider?: ReturnType<typeof createFakeProvider> | null; did?: string }) {
+function mount(opts: {
+  provider?: ReturnType<typeof createFakeProvider> | null
+  did?: string
+  pricePlans?: Record<string, string>
+}) {
   const store = new MemoryBillingStore()
   const app = new Hono()
   app.route(
@@ -34,7 +38,8 @@ function mount(opts: { provider?: ReturnType<typeof createFakeProvider> | null; 
       provider: opts.provider === undefined ? createFakeProvider() : opts.provider,
       store,
       requireAuth: authAs(opts.did ?? 'did:key:alice'),
-      appUrl: 'https://app.example'
+      appUrl: 'https://app.example',
+      pricePlans: opts.pricePlans
     })
   )
   return { app, store }
@@ -53,6 +58,30 @@ describe('billing routes', () => {
     const me = await app.request('/billing/me')
     const state = await me.json()
     expect(state.subscription).toMatchObject({ status: 'active', priceRef: 'price_pro' })
+  })
+
+  it('exposes plan entitlements for an active mapped subscription (0187 tie-in)', async () => {
+    const { app, store } = mount({ pricePlans: { price_pro: 'team' } })
+    // No subscription yet → null entitlements.
+    const before = await (await app.request('/billing/entitlements')).json()
+    expect(before.entitlements).toBeNull()
+
+    await store.applyMutation({
+      kind: 'subscription',
+      data: {
+        id: 'sub_1',
+        did: 'did:key:alice',
+        provider: 'fake',
+        externalRef: 'sub_1',
+        status: 'active',
+        priceRef: 'price_pro',
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        updatedAt: 1
+      }
+    })
+    const after = await (await app.request('/billing/entitlements')).json()
+    expect(after.entitlements?.plan).toBe('team')
   })
 
   it('scopes /me to the caller — other DIDs see nothing', async () => {

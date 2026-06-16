@@ -23,6 +23,7 @@ import {
   type PaymentProvider
 } from '@xnetjs/billing'
 import { Hono } from 'hono'
+import { entitlementsForBillingState, type PriceToPlan } from '../services/billing-entitlements'
 import { isRecord } from '../utils/validation'
 
 type Env = { Variables: { auth: AuthContext } }
@@ -36,6 +37,8 @@ export interface BillingRoutesOptions {
   requireAuth?: MiddlewareHandler
   /** Web app base URL used as the default checkout success/cancel target. */
   appUrl: string
+  /** Price→plan map for the entitlements tie-in (0187); empty disables it. */
+  pricePlans?: PriceToPlan
 }
 
 const notConfigured = (c: Context) =>
@@ -44,6 +47,7 @@ const notConfigured = (c: Context) =>
 export const createBillingRoutes = (options: BillingRoutesOptions): Hono<Env> => {
   const app = new Hono<Env>()
   const { provider, store, requireAuth, appUrl } = options
+  const pricePlans = options.pricePlans ?? {}
 
   // Gate only the money/read routes (the webhook stays unauthenticated — it is
   // verified by the provider signature). Same `app.use(path, requireAuth)` shape
@@ -51,6 +55,7 @@ export const createBillingRoutes = (options: BillingRoutesOptions): Hono<Env> =>
   if (requireAuth) {
     app.use('/checkout', requireAuth)
     app.use('/me', requireAuth)
+    app.use('/entitlements', requireAuth)
     app.use('/portal', requireAuth)
   }
 
@@ -95,6 +100,17 @@ export const createBillingRoutes = (options: BillingRoutesOptions): Hono<Env> =>
     const auth = c.get('auth') as AuthContext | undefined
     if (!auth) return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401)
     return c.json(await store.forDid(auth.did))
+  })
+
+  // ── Entitlements ── authed; the plan limits the caller's active subscription
+  // grants (0187 tie-in). `null` when there's no active/mapped subscription —
+  // the hub keeps its own defaults. Kept separate from /me so @xnetjs/billing
+  // stays decoupled from @xnetjs/entitlements.
+  app.get('/entitlements', async (c) => {
+    const auth = c.get('auth') as AuthContext | undefined
+    if (!auth) return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401)
+    const state = await store.forDid(auth.did)
+    return c.json({ entitlements: entitlementsForBillingState(state, pricePlans) })
   })
 
   // ── Portal ── authed; manage an existing subscription (Stripe).
