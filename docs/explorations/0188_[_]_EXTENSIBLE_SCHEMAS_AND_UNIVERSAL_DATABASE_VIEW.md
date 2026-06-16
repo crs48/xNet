@@ -618,23 +618,28 @@ const members = await Promise.all(
         → `packages/data/src/schema/extension.ts` (`ext:` namespace),
         `PropertyDefinition.readonly`, `buildEffectiveSchema` locks core props.
         `validate()` already passes unknown keys, so `ext:*` overlays persist.
-  - [ ] Enforce field locking in the write/mutate path (reject writes to
-        readonly core keys).
-        → pure helpers `canModifyColumn` / `findLockedColumns` done; grid wiring
-        next. Decision: lock is **structural** (no rename/retype/delete of core
-        columns); cell *values* stay editable.
-  - [ ] Grid UI: "+ Add field" on a typed schema creates an `ExtensionField`;
-        render core columns locked, `ext:*` columns editable.
+  - [x] Enforce field locking (structural: no rename/retype/delete of core
+        columns; cell *values* stay editable).
+        → `canModifyColumn` / `findLockedColumns` (data) + `GridField.readonly`
+        carried by `schemaToGridFields`; the grid's field menu honors it.
+  - [x] "+ Add field" on a typed schema creates an `ExtensionField` (logic);
+        core columns render locked, `ext:*` columns editable.
+        → `createExtensionField` / `ensureSchemaExtension`
+        (`packages/data/src/database/extension-field-operations.ts`), tested.
   - [x] Push overlay keys through query pushdown for `where`/`orderBy`.
         → No new code needed: overlay keys are ordinary node properties, so the
         existing `NodeQueryDescriptor.where` path handles them. Proven by
         `extension-resolver.test.ts` ("filterable through the standard where path").
 - [ ] **Layer 3 — Sidecar extensions**
-  - [ ] Document/scaffold the join-node pattern (deterministic
-        `ext:<authority>:<targetId>` id) with its own `authorization`.
-  - [ ] Grid merges sidecar attributes into the logical row (opt-in join
-        column group).
-  - [ ] Verify independent recipient computation for sidecars.
+  - [x] Scaffold the join-node pattern (deterministic `sidecar:<authority>:<targetId>`
+        id) with its own `authorization`.
+        → `packages/data/src/schema/sidecar.ts` (`sidecarId`), tested.
+  - [x] Grid merges sidecar attributes into the logical row under the same
+        `ext:<authority>/<field>` keys overlays use.
+        → `sidecarOverlayKeys` / `mergeSidecarsIntoRow`, tested.
+  - [ ] Verify independent recipient computation for sidecars (uses existing
+        `computeRecipients` against the sidecar's own authorization — left as a
+        follow-up integration check).
 - [ ] **Layer 4 — Permissions**
   - [x] Build the role × action matrix from `schema.authorization`.
         → `packages/data/src/auth/permission-matrix.ts`
@@ -646,7 +651,9 @@ const members = await Promise.all(
         per-viewer summary.
   - [ ] Render base vs sidecar-extension auth as distinct sections.
 - [ ] **Cross-cutting**
-  - [ ] Author a lens template for "overlay → core property" graduation.
+  - [x] Author a lens template for "overlay → core property" graduation.
+        → `promoteOverlay(authority, field, coreProp)` in
+        `packages/data/src/schema/lens-builders.ts` (lossless), tested.
   - [ ] Docs page: custom fields (overlay), custom overlays (sidecar), custom
         objects (`extends`).
 

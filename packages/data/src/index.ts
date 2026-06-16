@@ -386,7 +386,14 @@ export {
   when,
   composeLens,
   createOperations,
-  identity
+  identity,
+  promoteOverlay,
+  // Sidecar (join-node) extensions
+  SIDECAR_PREFIX,
+  sidecarId,
+  sidecarOverlayKeys,
+  mergeSidecarsIntoRow,
+  type SidecarOverlay
 } from './schema'
 
 // External reference and embed parsing
@@ -750,6 +757,12 @@ export {
   deleteField,
   moveField,
   duplicateField,
+  ensureSchemaExtension,
+  createExtensionField,
+  renameExtensionField,
+  deleteExtensionField,
+  type EnsureExtensionOptions,
+  type CreateExtensionFieldOptions,
   getSelectOptions,
   getDatabaseSelectOptions,
   createSelectOption,

@@ -157,6 +157,14 @@ export {
   resolveEffectiveSchema,
   type CoreSchemaResolver
 } from './extension-resolver'
+// Sidecar (join-node) extensions
+export {
+  SIDECAR_PREFIX,
+  sidecarId,
+  sidecarOverlayKeys,
+  mergeSidecarsIntoRow,
+  type SidecarOverlay
+} from './sidecar'
 export {
   TaskSchema,
   TASK_STATUS_CATEGORIES,
@@ -422,5 +430,6 @@ export {
   when,
   composeLens,
   createOperations,
-  identity
+  identity,
+  promoteOverlay
 } from './lens-builders'
