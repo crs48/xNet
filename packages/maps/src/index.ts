@@ -26,6 +26,7 @@ export {
 export {
   type MapStyle,
   type MapStyleLayer,
+  type DataLayerPlan,
   PROTOMAPS_DEMO_PMTILES,
   DEFAULT_VIEWPORT,
   LAYER_PALETTE,
@@ -33,8 +34,16 @@ export {
   paletteColor,
   buildBasemapStyle,
   buildDataLayers,
-  dataSourceId
+  dataSourceId,
+  ownedLayerIds,
+  ownedSourceIds,
+  planDataLayers,
+  layerSpecIdFromMapLayerId,
+  popupTableHtml
 } from './style'
+
+// Pure: map-document state derivation
+export { mapDocState, type MapDocInput, type MapDocState } from './doc'
 
 // Pure: layer construction + immutable list edits
 export {

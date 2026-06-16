@@ -5,10 +5,10 @@
  * stack, basemap, and viewport persist as whole-value LWW json properties
  * (same pattern as DatabaseView wrapping the grid). The WebGL engine is
  * lazy-loaded inside MapCanvas, so opening a map is the only thing that pulls
- * maplibre-gl.
+ * maplibre-gl. State derivation lives in @xnetjs/maps' pure `mapDocState`.
  */
 import { MapSchema, type MapBasemapId, type MapLayerSpec, type MapViewport } from '@xnetjs/data'
-import { LayerPanel, MapCanvas, DEFAULT_VIEWPORT } from '@xnetjs/maps'
+import { LayerPanel, MapCanvas, mapDocState } from '@xnetjs/maps'
 import { useIdentity, useNode } from '@xnetjs/react'
 import { useCallback, useEffect, useRef } from 'react'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -16,6 +16,24 @@ import { useWorkbench } from '../workbench/state'
 
 interface MapViewProps {
   mapId: string
+}
+
+/** A debounced viewport persister — keeps MapView's own complexity low. */
+function useDebouncedViewport(persist: (v: MapViewport) => void): (v: MapViewport) => void {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current)
+    },
+    []
+  )
+  return useCallback(
+    (next: MapViewport) => {
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = setTimeout(() => persist(next), 600)
+    },
+    [persist]
+  )
 }
 
 export function MapView({ mapId }: MapViewProps) {
@@ -29,40 +47,21 @@ export function MapView({ mapId }: MapViewProps) {
     did: did ?? undefined
   })
 
-  const basemap = (map?.basemap as MapBasemapId) || 'protomaps-light'
-  const viewport = map?.viewport ?? DEFAULT_VIEWPORT
-  const layers = map?.layers ?? []
+  const { basemap, viewport, layers, title } = mapDocState(map)
 
-  // ─── Tab title ────────────────────────────────────────────────────────────
-  const title = map?.title
   useEffect(() => {
     if (title) useWorkbench.getState().setTabTitle(mapId, title)
   }, [mapId, title])
 
-  // ─── Debounced viewport persistence (the map is the source of truth) ──────
-  const viewportTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const handleViewportChange = useCallback(
-    (next: MapViewport) => {
-      if (viewportTimer.current) clearTimeout(viewportTimer.current)
-      viewportTimer.current = setTimeout(() => {
-        void update({ viewport: next })
-      }, 600)
-    },
-    [update]
+  const persistViewport = useDebouncedViewport(
+    useCallback((next: MapViewport) => void update({ viewport: next }), [update])
   )
-  useEffect(() => () => void (viewportTimer.current && clearTimeout(viewportTimer.current)), [])
-
   const handleLayersChange = useCallback(
-    (next: MapLayerSpec[]) => {
-      void update({ layers: next })
-    },
+    (next: MapLayerSpec[]) => void update({ layers: next }),
     [update]
   )
-
   const handleBasemapChange = useCallback(
-    (next: MapBasemapId) => {
-      void update({ basemap: next })
-    },
+    (next: MapBasemapId) => void update({ basemap: next }),
     [update]
   )
 
@@ -79,7 +78,7 @@ export function MapView({ mapId }: MapViewProps) {
         <input
           type="text"
           className="border-none bg-transparent text-lg font-semibold text-foreground outline-none placeholder:text-muted-foreground"
-          value={map?.title || ''}
+          value={title}
           onChange={(event) => void update({ title: event.target.value })}
           placeholder="Untitled"
         />
@@ -92,7 +91,7 @@ export function MapView({ mapId }: MapViewProps) {
             basemap={basemap}
             viewport={viewport}
             layers={layers}
-            onViewportChange={handleViewportChange}
+            onViewportChange={persistViewport}
             className="absolute inset-0"
           />
         </div>

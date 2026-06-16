@@ -7,7 +7,13 @@
  * than importing maplibre-gl's types, keeping this module dependency-free.
  */
 
-import type { MapBasemapId, MapLayerSpec, MapViewport } from '@xnetjs/data'
+import type {
+  GeoFeatureCollection,
+  MapBasemapId,
+  MapLayerSource,
+  MapLayerSpec,
+  MapViewport
+} from '@xnetjs/data'
 
 /** A minimal MapLibre style-layer shape (structurally compatible). */
 export interface MapStyleLayer {
@@ -254,4 +260,61 @@ export function buildDataLayers(layer: MapLayerSpec): MapStyleLayer[] {
         }
       ]
   }
+}
+
+/** Style-layer ids we own (added by sync, prefixed `xnet-`). */
+export function ownedLayerIds(styleLayerIds: string[]): string[] {
+  return styleLayerIds.filter((id) => id.startsWith('xnet-'))
+}
+
+/** Source ids we own (prefixed `xnet-src-`). */
+export function ownedSourceIds(sourceIds: string[]): string[] {
+  return sourceIds.filter((id) => id.startsWith('xnet-src-'))
+}
+
+/** A render plan for one data layer: a GeoJSON source + its paint layers. */
+export interface DataLayerPlan {
+  sourceId: string
+  data: GeoFeatureCollection
+  layers: MapStyleLayer[]
+}
+
+/** Compute the source+layers to add for the visible inline-GeoJSON layers. */
+export function planDataLayers(layers: MapLayerSpec[]): DataLayerPlan[] {
+  return layers
+    .filter((l) => l.visible && l.source.kind === 'geojson')
+    .map((l) => ({
+      sourceId: dataSourceId(l),
+      data: (l.source as Extract<MapLayerSource, { kind: 'geojson' }>).data,
+      layers: buildDataLayers(l)
+    }))
+}
+
+/** Recover a layer-spec id from a clicked MapLibre layer id. */
+export function layerSpecIdFromMapLayerId(id: string): string {
+  return id.replace(/^xnet-/, '').replace(/-(point|line|fill|outline|heatmap)$/, '')
+}
+
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;'
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"]/g, (c) => HTML_ESCAPES[c] ?? c)
+}
+
+/** Build the (escaped) popup table HTML for a feature's properties. */
+export function popupTableHtml(props: Record<string, unknown>): string {
+  const rows = Object.entries(props)
+    .map(
+      ([k, v]) =>
+        `<tr><td style="color:#888;padding-right:8px">${escapeHtml(k)}</td><td>${escapeHtml(
+          String(v)
+        )}</td></tr>`
+    )
+    .join('')
+  return `<table style="font-size:12px;border-collapse:collapse">${rows}</table>`
 }

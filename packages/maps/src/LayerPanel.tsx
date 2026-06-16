@@ -28,6 +28,10 @@ export interface LayerPanelProps {
 
 const GEOMETRIES: MapLayerGeometry[] = ['point', 'line', 'fill', 'heatmap']
 
+function layerCountLabel(n: number): string {
+  return `${n} layer${n === 1 ? '' : 's'}`
+}
+
 export function LayerPanel({ layers, basemap, onChange, onBasemapChange }: LayerPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const inputId = useId()
@@ -106,9 +110,7 @@ export function LayerPanel({ layers, basemap, onChange, onBasemapChange }: Layer
       {/* Layer list (top of list = top of draw stack) */}
       <div className="flex items-center gap-1.5 pt-1 text-ink-3">
         <Layers className="h-3.5 w-3.5" />
-        <span>
-          {layers.length} layer{layers.length === 1 ? '' : 's'}
-        </span>
+        <span>{layerCountLabel(layers.length)}</span>
       </div>
 
       <div className="flex flex-col gap-2 overflow-y-auto">
