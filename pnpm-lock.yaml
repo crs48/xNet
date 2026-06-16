@@ -1431,6 +1431,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.18
         version: 3.13.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@xnetjs/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@xnetjs/core':
         specifier: workspace:*
         version: link:../core

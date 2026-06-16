@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.18",
+    "@xnetjs/billing": "workspace:*",
     "@xnetjs/core": "workspace:*",
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",
