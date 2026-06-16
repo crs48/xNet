@@ -648,11 +648,16 @@ const members = await Promise.all(
         → `packages/data/src/auth/permission-matrix.ts`
         (`buildPermissionMatrix`, negation-aware allow/deny/public/authenticated
         summary + `describeRoleResolver` provenance). Fully unit-tested.
-  - [ ] Resolve members per role via the evaluator (creator / space cascade /
+  - [~] Resolve members per role via the evaluator (creator / space cascade /
         grants), grouped by provenance.
-  - [ ] Add a "Permissions" tab to `ShareDialog`, auto-populated, with a
-        per-viewer summary.
-  - [ ] Render base vs sidecar-extension auth as distinct sections.
+        → roles + provenance are shown structurally; actual grantees appear in
+        the existing People tab. Full per-role member *enumeration* via the
+        evaluator is left as a follow-up.
+  - [x] Add a "Permissions" tab to `ShareDialog`, auto-populated.
+        → `apps/web/src/components/PermissionMatrixPanel.tsx` + new tab in
+        `ShareDialog.tsx` (role × action grid, public/authenticated/deny badges,
+        role provenance). apps/web typechecks clean.
+  - [ ] Render base vs sidecar-extension auth as distinct sections. (follow-up)
 - [ ] **Cross-cutting**
   - [x] Author a lens template for "overlay → core property" graduation.
         → `promoteOverlay(authority, field, coreProp)` in
