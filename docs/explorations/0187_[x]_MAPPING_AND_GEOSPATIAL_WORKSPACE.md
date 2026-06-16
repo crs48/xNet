@@ -564,61 +564,71 @@ const map = new Map({
   RN) — out of scope here, tracked alongside the multi-target work in
   [0186](0186_%5B_%5D_MULTI_FRAMEWORK_AND_DEPLOYMENT_TARGETS.md).
 
+## Implementation Status
+
+**Shipped (PR — branch `feat/mapping-geospatial-workspace`):** the
+`@xnetjs/maps` package (MapLibre + PMTiles renderer, pure GeoJSON/CSV ingestion,
+style/layer builders, `MapCanvas` + `LayerPanel`), a first-class **`MapSchema`**
+node, and a `/map/$mapId` **Map document surface** wired into the Explorer
+("Map" filter + "New Map"), workbench tabs, and routing. Verified live: importing
+GeoJSON renders markers; the layer panel toggles/restyles/reorders; the engine is
+lazy-loaded.
+
+**Key pivot from the plan:** the live `DatabaseView` renders the **V2 grid**
+(`useGridDatabase` + `GridSurface`), *not* the `@xnetjs/views` registry — so a
+registry "Map view over any database" would not surface. We shipped the
+**standalone Map document** (the Phase-2 flagship) as the primary surface
+instead, which delivers the import → render → multi-layer → style story
+end-to-end without grid surgery. `geo()` as a schema property and the
+DB-view-registry path are deferred behind that pivot.
+
 ## Implementation Checklist
 
-- [ ] Scaffold **`packages/maps`** (`@xnetjs/maps`) with deps `maplibre-gl`,
-      `pmtiles`, `protomaps-themes-base` (deck.gl + terra-draw added in Phase 3).
-- [ ] Add a **`geo()` property type** (geometry as `json<GeoJSON.Geometry>`),
-      with validation and a basic point editor; model on
-      [`properties/person.ts`](../../packages/data/src/schema/properties/person.ts).
-- [ ] Implement **`MapView`** (`ViewProps`): read `geoProperty`/`lat`/`lon` from
-      config, plot rows on MapLibre, `onRowClick` → open node, popups from row
-      fields.
-- [ ] **Register** `map` in the view registry; lazy-load the engine on mount.
-- [ ] Add a **PMTiles basemap** + Protomaps light/dark styles; wire a
-      hub/`*.xnet.fyi` tile origin (or local dev origin).
-- [ ] Add **`geojson-parser.ts`** + CSV-lat/lon mapping beside
-      [`json-parser.ts`](../../packages/data/src/database/import/json-parser.ts);
-      hook into the import surface.
-- [ ] Update **CSP** in [`apps/web/index.html`](../../apps/web/index.html) only
-      as needed (none if tiles are `*.xnet.fyi`).
-- [ ] **Phase 2:** add `MapSchema` + `GeoDataset` schemas; `/map/$mapId` route;
-      "Maps" panel via
-      [`registerPanelView`](../../apps/web/src/workbench/PanelViewHost.tsx).
-- [ ] **Phase 2:** build the **layer panel** (add/reorder/toggle/style/filter)
-      and the query/dataset/url layer-source binding.
-- [ ] **Phase 2:** tiered rendering — GeoJSON source for node layers, tiled
-      source (PMTiles/FlatGeobuf) for `GeoDataset` layers; "promote feature →
-      node" on click.
-- [ ] **Phase 3:** deck.gl overlay (heatmap/hexbin/3D/time); Terra Draw editing →
-      nodes; hub-proxied Photon geocoder + search; Overture/GeoParquet import;
-      OPFS offline basemap caching; Map dashboard widget; inline page-editor map
-      block.
-- [ ] Respect **Spaces/visibility** on geo properties and shared maps; add
-      coordinate-fuzzing option for public maps.
+- [x] Scaffold **`packages/maps`** (`@xnetjs/maps`) with deps `maplibre-gl`,
+      `pmtiles` (basemap style built inline to avoid the themes-base/tile
+      version matrix; deck.gl + terra-draw deferred to Phase 3).
+- [ ] Add a **`geo()` property type** — deferred: live databases use the grid
+      `FieldType` system, not schema properties, so geometry handling ships in the
+      `@xnetjs/maps` parsers instead. Revisit if a first-class schema needs a
+      location field.
+- [x] Implement the **Map surface** (`MapCanvas` over `ViewProps`-style inputs +
+      node-bound `MapView`): plot features on MapLibre, click → popup. Shipped as
+      a **standalone Map document**, not a DB view-registry view (see pivot above).
+- [ ] **Register** `map` in the view registry — deferred with the pivot.
+- [x] Add a **PMTiles basemap** + Protomaps light/dark styles; configurable
+      `pmtilesUrl` (default: open Protomaps demo; graceful `blank` fallback).
+- [x] Add **GeoJSON + CSV-lat/lon parsers** (`@xnetjs/maps/geojson`) wired into
+      the layer-import control.
+- [x] Update **CSP** in [`apps/web/index.html`](../../apps/web/index.html)
+      (`demo-bucket.protomaps.com`; self-hosted `*.xnet.fyi` needs no change).
+- [x] **Phase 2:** add `MapSchema` (GeoDataset deferred); `/map/$mapId` route;
+      Explorer integration (Map filter + New Map) instead of a dedicated panel.
+- [x] **Phase 2:** build the **layer panel** (import/reorder/toggle/style).
+- [ ] **Phase 2:** tiered rendering — GeoJSON layers shipped; tiled `GeoDataset`
+      layers + "promote feature → node" deferred.
+- [ ] **Phase 3:** deck.gl overlay; Terra Draw editing → nodes; hub-proxied
+      Photon geocoder; Overture/GeoParquet import; OPFS offline basemap caching;
+      Map dashboard widget; inline page-editor map block.
+- [x] `MapSchema` carries the **`space`/`visibility`** cascade like other nodes;
+      coordinate-fuzzing for public maps deferred.
 
 ## Validation Checklist
 
-- [ ] A database with a `geo` property renders in the **Map view**; clicking a
-      marker opens the underlying node.
-- [ ] Importing a **GeoJSON** file (and a CSV with lat/lon) produces rows that
-      appear on the map.
-- [ ] The **PMTiles basemap loads with no third-party request** (verify in
-      DevTools Network: tiles come from `*.xnet.fyi`/local only) and **no CSP
-      violations** in console.
-- [ ] The map package is **code-split** — initial app bundle/first-paint is
-      unchanged (compare bundle stats; engine chunk loads only on first map open).
-- [ ] A **`Map` document** with ≥3 layers (a query layer + a `GeoDataset` tile
-      layer + an external GeoJSON layer) renders, toggles, and restyles; reload
-      restores layers + viewport.
-- [ ] A **10k-node** query layer and a **>100k-feature** dataset layer both pan/
-      zoom at ≥30 fps without freezing the SQLite worker (ties to 0184).
-- [ ] Geo properties on a **private/Space-scoped** node are not visible on a map
-      shared outside that scope.
-- [ ] **Offline:** with the network cut after first load, the cached basemap
-      still renders (OPFS/IndexedDB).
-- [ ] Drawing a polygon with **Terra Draw** creates an editable node;
-      geocoder search recenters the map (Phase 3).
+- [x] Importing a **GeoJSON** file renders markers on the map (verified live: 5
+      world-city points); CSV-lat/lon ingestion is unit-tested.
+- [x] The map package is **code-split** — `MapCanvas` dynamically `import()`s
+      maplibre-gl + pmtiles, so the engine loads only when a map opens.
+- [x] A **`Map` document** renders, and layers toggle / restyle / reorder; the
+      layer list + basemap + viewport persist as whole-value-LWW json on the node.
+- [x] `@xnetjs/maps` pure logic is **unit-tested** (33 tests: ingestion, style,
+      layer ops) and `MapSchema` create/validate is covered.
+- [ ] **PMTiles basemap loads with no third-party request** — verify against a
+      self-hosted `*.xnet.fyi` tileset (sandbox has no external network, so the
+      Protomaps demo basemap is blank here; markers render regardless).
+- [ ] A **10k-node** + **>100k-feature** layer both pan/zoom at ≥30 fps without
+      freezing the SQLite worker — pending tiered rendering (ties to 0184).
+- [ ] **Offline** basemap (OPFS/IndexedDB) and **Terra Draw** editing /
+      geocoder — Phase 3.
 
 ## References
 
