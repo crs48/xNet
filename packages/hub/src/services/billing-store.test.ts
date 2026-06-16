@@ -140,6 +140,56 @@ describe('SqliteBillingStore', () => {
     expect((await store.forDid('did:key:alice')).payments.map((p) => p.id)).toEqual(['pi_x'])
   })
 
+  it('keeps the pending row when replay throws mid-apply (apply-then-delete, not delete-then-apply)', async () => {
+    // White-box: inject a pending invoice that will throw on apply (amount_due_minor
+    // is NOT NULL) to prove a mid-replay throw does NOT lose the buffered row.
+    type RawDb = {
+      prepare: (sql: string) => {
+        run: (...a: unknown[]) => void
+        get: (...a: unknown[]) => { n: number }
+      }
+    }
+    const db = (store as unknown as { db: RawDb }).db
+    const bad = JSON.stringify({
+      kind: 'invoice',
+      data: {
+        id: 'in_bad',
+        did: '',
+        provider: 'stripe',
+        externalRef: 'in_bad',
+        customerRef: 'cus_1',
+        amountDueMinor: null, // → NOT NULL violation on upsert
+        currency: 'USD',
+        status: 'open',
+        updatedAt: 1
+      }
+    })
+    db.prepare('INSERT INTO billing_pending (customer_ref, mutation) VALUES (?, ?)').run(
+      'cus_1',
+      bad
+    )
+
+    // Mapping cus_1 triggers replay → upsertInvoice throws on the null amount.
+    await expect(
+      store.applyMutation({
+        kind: 'customer',
+        data: {
+          id: 'cus_1',
+          did: 'did:key:alice',
+          provider: 'stripe',
+          externalRef: 'cus_1',
+          updatedAt: 1
+        }
+      })
+    ).rejects.toThrow()
+
+    // The row survived for a later retry — under delete-then-apply it would be gone.
+    const { n } = db
+      .prepare('SELECT COUNT(*) AS n FROM billing_pending WHERE customer_ref = ?')
+      .get('cus_1')
+    expect(n).toBe(1)
+  })
+
   it('refuses to backfill an ambiguous customer ref shared by two DIDs', async () => {
     for (const did of ['did:key:alice', 'did:key:bob']) {
       await store.applyMutation({
