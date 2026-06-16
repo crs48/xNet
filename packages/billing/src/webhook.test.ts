@@ -54,6 +54,39 @@ describe('processWebhook (Stripe, real signature path)', () => {
     expect(state.subscription?.currentPeriodEnd).toBe(1_700_000_000 * 1000)
   })
 
+  it('acks an out-of-order invoice (200, counted) without losing it, then surfaces it once checkout maps the customer', async () => {
+    const store = new MemoryBillingStore()
+
+    // The invoice settles BEFORE checkout.session.completed creates the mapping.
+    const invoice = delivery({
+      id: 'evt_invoice',
+      type: 'invoice.paid',
+      data: {
+        object: {
+          id: 'in_1',
+          customer: 'cus_1', // no metadata.did → unattributable on arrival
+          amount_due: 1999,
+          currency: 'usd',
+          status: 'paid'
+        }
+      }
+    })
+    const r1 = await processWebhook(provider, store, invoice.body, invoice.headers)
+    // Acked (so Stripe stops retrying) and counted — NOT dropped — but not yet visible.
+    expect(r1).toMatchObject({ received: true, duplicate: false, mutations: 1 })
+    expect((await store.forDid(DID)).invoices).toEqual([])
+
+    const checkout = delivery({
+      id: 'evt_checkout',
+      type: 'checkout.session.completed',
+      data: { object: { client_reference_id: DID, customer: 'cus_1' } }
+    })
+    await processWebhook(provider, store, checkout.body, checkout.headers)
+
+    // The buffered invoice is replayed and now attributed to its owner.
+    expect((await store.forDid(DID)).invoices.map((i) => i.id)).toEqual(['in_1'])
+  })
+
   it('is idempotent on redelivered event ids', async () => {
     const store = new MemoryBillingStore()
     const sub = delivery({

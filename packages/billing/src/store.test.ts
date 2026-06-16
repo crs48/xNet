@@ -188,4 +188,32 @@ describe('MemoryBillingStore', () => {
     })
     expect((await store.forDid('did:key:alice')).payments).toEqual([])
   })
+
+  it('refuses to backfill an ambiguous customer ref shared by two DIDs (parity with SQLite)', async () => {
+    const store = new MemoryBillingStore()
+    for (const did of ['did:key:alice', 'did:key:bob']) {
+      await store.applyMutation({
+        kind: 'customer',
+        data: { id: did, did, provider: 'stripe', externalRef: 'cus_shared', updatedAt: 1 }
+      })
+    }
+    expect(await store.didForCustomerRef('cus_shared')).toBeNull()
+    await store.applyMutation({
+      kind: 'invoice',
+      data: {
+        id: 'in_amb',
+        did: '',
+        provider: 'stripe',
+        externalRef: 'in_amb',
+        customerRef: 'cus_shared',
+        amountDueMinor: 1,
+        currency: 'USD',
+        status: 'open',
+        updatedAt: 2
+      }
+    })
+    // Held, not misattributed to either tenant.
+    expect((await store.forDid('did:key:alice')).invoices).toEqual([])
+    expect((await store.forDid('did:key:bob')).invoices).toEqual([])
+  })
 })

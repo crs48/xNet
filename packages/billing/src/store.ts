@@ -60,7 +60,9 @@ export function pickCurrentSubscription(subs: Subscription[]): Subscription | nu
 export class MemoryBillingStore implements BillingStore {
   private readonly seenEvents = new Set<string>()
   private readonly customers = new Map<DID, Customer>()
-  private readonly customerRefToDid = new Map<string, DID>()
+  /** customer ref → the DID(s) that claim it. A ref is only resolved when EXACTLY
+   *  one DID owns it (mirrors SqliteBillingStore) — ambiguous refs never backfill. */
+  private readonly customerRefToDid = new Map<string, Set<DID>>()
   private readonly subscriptions = new Map<string, Subscription>()
   private readonly invoices = new Map<string, Invoice>()
   private readonly payments = new Map<string, Payment>()
@@ -76,7 +78,13 @@ export class MemoryBillingStore implements BillingStore {
   }
 
   async didForCustomerRef(externalRef: string): Promise<DID | null> {
-    return this.customerRefToDid.get(externalRef) ?? null
+    return this.soleOwner(externalRef) ?? null
+  }
+
+  /** The single DID owning `ref`, or undefined if unknown OR ambiguous (>1 owner). */
+  private soleOwner(ref: string): DID | undefined {
+    const owners = this.customerRefToDid.get(ref)
+    return owners && owners.size === 1 ? owners.values().next().value : undefined
   }
 
   async applyMutation(mutation: BillingMutation): Promise<void> {
@@ -85,9 +93,11 @@ export class MemoryBillingStore implements BillingStore {
         const c = mutation.data
         if (this.isNewer(this.customers.get(c.did), c)) this.customers.set(c.did, c)
         if (c.externalRef) {
-          // Always (re)register the ref→DID mapping and drain anything that
+          // Register this DID as an owner of the ref and drain anything that
           // arrived before it — even if this customer record itself was stale.
-          this.customerRefToDid.set(c.externalRef, c.did)
+          const owners = this.customerRefToDid.get(c.externalRef) ?? new Set<DID>()
+          owners.add(c.did)
+          this.customerRefToDid.set(c.externalRef, owners)
           await this.replayPending(c.externalRef)
         }
         return
@@ -157,7 +167,7 @@ export class MemoryBillingStore implements BillingStore {
   /** Backfill `did` from the customer ref map when an object carried no DID metadata. */
   private resolveDid<T extends { did: DID; customerRef?: string }>(record: T): T {
     if (record.did) return record
-    const did = record.customerRef ? this.customerRefToDid.get(record.customerRef) : undefined
+    const did = record.customerRef ? this.soleOwner(record.customerRef) : undefined
     return did ? { ...record, did } : record
   }
 
