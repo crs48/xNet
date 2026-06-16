@@ -764,7 +764,7 @@ export function OrganizeBar({ nodeId, schema }: { nodeId: string; schema: Schema
 - [ ] Wire `NodeInspector` through the existing `ContextPanel` contribution mechanism.
 
 ### Workstream 2 — Uniform organization & sharing
-- [ ] Add `folder` relation to Task, Contact, Organization, Deal, Account, Transaction, Budget.
+- [x] Add `folder` relation to Task, Contact, Organization, Deal, Account, Transaction, Budget.
 - [ ] Add those types to `explorer-items.ts` so they can be filed/dragged.
 - [ ] Extend `ShareDocType` + hub endpoints to task/contact/organization/deal/account/project/experiment.
 - [ ] Build the Space editor (icon/color/description via `updateSpace`).
@@ -779,9 +779,9 @@ export function OrganizeBar({ nodeId, schema }: { nodeId: string; schema: Schema
 - [ ] Experiments: conclusion recording, observation notes, Metric↔Experiment picker, embed heatmap + correlation widgets in `ExperimentDetail`, start/end dates, observation source.
 
 ### Workstream 4 — Cross-domain integration
-- [ ] Deal ↔ Transaction/LineItem relations + revenue rollup.
+- [x] Deal ↔ Transaction relations (`Deal.transactions`, `Transaction.deal`) — revenue rollup UI pending.
 - [ ] Generalize `Activity.about` as the universal timeline; render in every inspector.
-- [ ] Task ↔ Metric/Experiment relations.
+- [x] Task ↔ Metric/Experiment relations (`Task.metric`, `Task.experiment`).
 - [ ] Wire `Transaction.counterparty` to CRM Contact/Organization (AR/AP, revenue-by-contact).
 
 ## Validation Checklist

@@ -36,6 +36,9 @@ export const BudgetSchema = defineSchema({
       default: 'monthly'
     }),
 
+    /** Optional folder home for uniform filing; empty = Unfiled (0190). */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
     /** Canonical SECURITY home; empty = personal/private book (0179/0181). */
     space: relation({ target: 'xnet://xnet.fyi/Space@1.0.0' as const }),
 

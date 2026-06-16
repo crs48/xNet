@@ -112,6 +112,18 @@ export const TaskSchema = defineSchema({
       multiple: true
     }),
 
+    /** Canonical folder home for uniform filing; empty = Unfiled (0190) */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
+    /**
+     * Optional habit/metric this task tracks — completing the task can log an
+     * observation against the metric (cross-domain integration, 0190).
+     */
+    metric: relation({ target: 'xnet://xnet.fyi/Metric@1.0.0' as const }),
+
+    /** Optional experiment this task belongs to (cross-domain, 0190). */
+    experiment: relation({ target: 'xnet://xnet.fyi/Experiment@1.0.0' as const }),
+
     /** Canonical SECURITY home; empty = personal/private (exploration 0179) */
     space: relation({ target: 'xnet://xnet.fyi/Space@1.0.0' as const }),
 

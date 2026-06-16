@@ -51,6 +51,12 @@ export const TransactionSchema = defineSchema({
     /** Stable provider/file id for de-duplication on re-import. */
     externalId: text({ maxLength: 200 }),
 
+    /** Optional folder home for uniform filing; empty = Unfiled (0190). */
+    folder: relation({ target: 'xnet://xnet.fyi/Folder@1.0.0' as const }),
+
+    /** Optional CRM deal this transaction realizes (quote-to-cash, 0190). */
+    deal: relation({ target: 'xnet://xnet.fyi/Deal@1.0.0' as const }),
+
     /** Canonical SECURITY home; empty = personal/private book (0179/0181). */
     space: relation({ target: 'xnet://xnet.fyi/Space@1.0.0' as const }),
 
