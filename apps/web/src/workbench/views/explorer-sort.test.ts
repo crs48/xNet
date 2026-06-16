@@ -32,6 +32,27 @@ describe('sortExplorerItems', () => {
     ])
   })
 
+  it('created sorts by createdAt desc (independent of updatedAt)', () => {
+    const dated = [
+      { title: 'old-edit-new', type: 'page', updatedAt: 9, createdAt: 1 },
+      { title: 'new-edit-old', type: 'page', updatedAt: 1, createdAt: 9 },
+      { title: 'middle', type: 'page', updatedAt: 5, createdAt: 5 }
+    ]
+    expect(sortExplorerItems(dated, 'created').map((i) => i.title)).toEqual([
+      'new-edit-old',
+      'middle',
+      'old-edit-new'
+    ])
+  })
+
+  it('created falls back to recency when createdAt is missing', () => {
+    expect(sortExplorerItems(items, 'created').map((i) => i.title)).toEqual([
+      'Apple',
+      'cherry',
+      'banana'
+    ])
+  })
+
   it('does not mutate the input', () => {
     const input = items.slice()
     sortExplorerItems(input, 'name')

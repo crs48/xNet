@@ -197,6 +197,7 @@ interface ExplorerDocShape {
   id: string
   title?: string
   updatedAt?: number
+  createdAt?: number
   folder?: string
   sortKey?: string
   tags?: string[]
@@ -219,6 +220,7 @@ function collectItems(
         title: doc.title ?? '',
         type,
         updatedAt: doc.updatedAt ?? 0,
+        createdAt: doc.createdAt ?? 0,
         folder: doc.folder ?? null,
         sortKey: doc.sortKey,
         tags: doc.tags
