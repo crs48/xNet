@@ -1,26 +1,17 @@
 /**
- * @xnetjs/hub - Task identifier and GitHub integration routes.
+ * @xnetjs/hub - Task short-id allocation route.
+ *
+ * The GitHub → Tasks webhook moved to a declarative `HubFeature` webhook
+ * (`features/first-party.ts`, exploration 0189); this route now owns only
+ * short-id allocation.
  */
 
 import { Hono } from 'hono'
-import {
-  processGithubEvent,
-  verifyWebhookSignature,
-  type TaskAutomationAction
-} from '../services/github-integration'
 import { TaskIdentifierError, type TaskIdentifierService } from '../services/task-identifiers'
 import { isRecord } from '../utils/validation'
 
 export interface TaskRoutesOptions {
   identifiers: TaskIdentifierService
-  /** GitHub webhook secret; webhook route is disabled when absent */
-  githubWebhookSecret?: string
-  /**
-   * Applies automation actions to the workspace's Task nodes (resolve
-   * shortId → node, attach ExternalReference, set status). Injected so the
-   * route stays transport-only.
-   */
-  applyAutomationActions?: (actions: TaskAutomationAction[]) => Promise<void>
 }
 
 export const createTaskRoutes = (options: TaskRoutesOptions): Hono => {
@@ -49,34 +40,6 @@ export const createTaskRoutes = (options: TaskRoutesOptions): Hono => {
       }
       throw err
     }
-  })
-
-  app.post('/github/webhook', async (c) => {
-    const secret = options.githubWebhookSecret
-    if (!secret) {
-      return c.json({ error: 'GitHub integration is not configured', code: 'NOT_CONFIGURED' }, 503)
-    }
-
-    const rawBody = await c.req.text()
-    const signature = c.req.header('x-hub-signature-256')
-    if (!verifyWebhookSignature(secret, rawBody, signature)) {
-      return c.json({ error: 'Invalid webhook signature', code: 'INVALID_SIGNATURE' }, 401)
-    }
-
-    const eventType = c.req.header('x-github-event') ?? ''
-    let payload: unknown
-    try {
-      payload = JSON.parse(rawBody)
-    } catch {
-      return c.json({ error: 'Invalid JSON payload', code: 'INVALID_INPUT' }, 400)
-    }
-
-    const actions = processGithubEvent(eventType, payload)
-    if (actions.length > 0 && options.applyAutomationActions) {
-      await options.applyAutomationActions(actions)
-    }
-
-    return c.json({ ok: true, actions: actions.length })
   })
 
   return app

@@ -10,13 +10,18 @@
 import type { Env } from './broker'
 import type { HubFeature, HubFeatureDeps } from './types'
 import { scopedEnv } from './broker'
+import { mountWebhook } from './webhooks'
 
 /** Shared deps, but with the FULL env — the registry scopes it per feature. */
 export type MountFeaturesDeps = Omit<HubFeatureDeps, 'env'> & { env: Env }
 
-/** Mount every feature, handing each one only the env keys it declared. */
+/** Mount every feature (routes + declarative webhooks), each scoped to its secrets. */
 export function mountFeatures(features: readonly HubFeature[], deps: MountFeaturesDeps): void {
   for (const feature of features) {
-    feature.mount({ ...deps, env: scopedEnv(deps.env, feature.secrets ?? []) })
+    const env = scopedEnv(deps.env, feature.secrets ?? [])
+    feature.mount?.({ ...deps, env })
+    for (const webhook of feature.webhooks ?? []) {
+      mountWebhook(deps.app, webhook, env)
+    }
   }
 }
