@@ -5,8 +5,8 @@
  * onto the Metric node.
  */
 import type { JSX } from 'react'
-import { MetricSchema } from '@xnetjs/data'
-import { useNode } from '@xnetjs/react'
+import { ExperimentSchema, MetricSchema } from '@xnetjs/data'
+import { useNode, useQuery } from '@xnetjs/react'
 import { Modal, cn } from '@xnetjs/ui'
 import { Trash2 } from 'lucide-react'
 import { metricName, type MetricLike } from './habit-logic'
@@ -58,6 +58,9 @@ export function MetricEditor({
 }: MetricEditorProps): JSX.Element {
   const { data, update, remove } = useNode(MetricSchema, metricId)
   const metric = (data ?? { id: metricId }) as unknown as MetricLike
+  const { data: experimentData } = useQuery(ExperimentSchema, { orderBy: { updatedAt: 'desc' } })
+  const experiments = (experimentData ?? []) as Array<{ id: string; title?: unknown }>
+  const experimentId = typeof metric.experiment === 'string' ? metric.experiment : ''
 
   const kind = typeof metric.kind === 'string' ? metric.kind : 'boolean'
   const schedule = typeof metric.schedule === 'string' ? metric.schedule : 'none'
@@ -84,6 +87,22 @@ export function MetricEditor({
             placeholder="e.g. Meditate, Mood, Sleep latency"
             className={fieldCls}
           />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <Label>Experiment</Label>
+          <select
+            value={experimentId}
+            onChange={(e) => void update({ experiment: e.target.value })}
+            className={fieldCls}
+          >
+            <option value="">— None —</option>
+            {experiments.map((x) => (
+              <option key={x.id} value={x.id}>
+                {typeof x.title === 'string' && x.title ? x.title : 'Untitled experiment'}
+              </option>
+            ))}
+          </select>
         </label>
 
         <div className="grid grid-cols-2 gap-3">

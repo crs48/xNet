@@ -14,6 +14,7 @@ import { useCallback, useMemo, type JSX } from 'react'
 import { Editor } from '../Editor'
 import { ConfoundLog } from './ConfoundLog'
 import { metricName, type MetricLike, type ObservationLike } from './habit-logic'
+import { MetricCorrelations } from './MetricCorrelations'
 import { parsePhases, type PhaseDef, type PhaseKind } from './phase-logic'
 import { VerdictPanel } from './VerdictPanel'
 
@@ -313,6 +314,10 @@ export function ExperimentDetail({ experimentId }: { experimentId: string }): JS
           </div>
           <HabitHeatmap completedDays={completedDays} weeks={16} />
         </div>
+      )}
+
+      {primaryMetricId && (
+        <MetricCorrelations primaryMetricId={primaryMetricId} metrics={metrics} />
       )}
 
       <div>
