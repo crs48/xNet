@@ -475,25 +475,33 @@ stateDiagram-v2
 
 ## Implementation Checklist
 
-- [ ] **Bridge daemon** (`packages/plugins/src/services/agent-bridge.ts`, Electron
-      main): spawn the user's `claude`/`codex`/`aider` CLI; expose `:31416/health` + `/run` (the connector ladder already detects it).
-- [ ] **Git module** (in-app): worktree add/remove, branch, commit, reset, push;
-      `gh` PR create. Prefer spawning system `git`/`gh` (Electron) and
-      `isomorphic-git` (WebContainers).
+- [~] **Bridge daemon** (Electron main): spawn the user's `claude`/`codex`/`aider`
+  CLI; expose `:31416/health` + `/run`. _As-built: the bring-your-own-agent
+  seam (`AgentRunner` port + `cliAgentRunner` that spawns the user's CLI) ships
+  in `@xnetjs/devkit`; the HTTP daemon + connector-ladder wiring is deferred to
+  the Electron phase._
+- [x] **Git module** (`@xnetjs/devkit/src/git.ts`): worktree add/remove, branch,
+      commit, reset, push, log/status over an injectable `CommandRunner`.
+      _(`gh pr create` is in `openPullRequest`.)_
 - [ ] **Shell/exec seam**: an Electron-main↔renderer IPC (and an MCP `run_shell`
       tool, risk `critical`, confirm-gated) routed through `process-manager`,
-      scoped to the worktree.
+      scoped to the worktree. _(deferred — Electron phase.)_
 - [ ] **AI terminal panel** (`apps/web/src/workbench/views/AiTerminal.tsx`):
       xterm.js streaming the agent subprocess + the validation-gate log; one-click
-      "Open PR" / "Publish plugin" / "Restore checkpoint".
-- [ ] **Validation gate runner**: `typecheck`/`lint`/`vitest`/`fallow audit` over
-      changed files; on fail → `git reset --hard`; on pass → checkpoint commit.
-- [ ] **Checkpoint model**: git commit + (atomically) a node-store snapshot via
-      `packages/history`; a "restore point" timeline UI + panic button.
+      "Open PR" / "Publish plugin" / "Restore checkpoint". _(deferred — UI phase.)_
+- [x] **Validation gate runner** (`@xnetjs/devkit/src/validation-gate.ts`):
+      `runValidationGate` runs ordered steps, short-circuits on failure;
+      `defaultXnetGate` encodes typecheck/lint/test/fallow as data. The dev loop
+      `git reset --hard`s on fail and checkpoints on pass.
+- [x] **Checkpoint model** (`@xnetjs/devkit/src/git.ts`): `checkpoint(label)` =
+      commit, `restore(sha)` = hard reset (the git half). _As-built: atomic
+      node-store snapshot via `packages/history` + the timeline/panic-button UI are
+      deferred._
 - [ ] **Plugin scaffold + hot-preview**: `create-xnet-plugin` (0047/0189) →
-      WebContainer/worktree → build → `registry.rehydrate()` live-load.
-- [ ] **Publish paths**: `gh pr create` to the open-source repo; push plugin repo +
-      PR to `registry.yaml` (0047) with provenance + capability manifest (0189).
+      WebContainer/worktree → build → `registry.rehydrate()` live-load. _(deferred.)_
+- [~] **Publish paths**: `gh pr create` to the open-source repo
+  (`@xnetjs/devkit` `openPullRequest`); pushing a plugin repo + a `registry.yaml`
+  PR (0047) with provenance + capability manifest (0189) is deferred.
 - [ ] **WebContainers surface** (web): boot a plugin scaffold, `isomorphic-git`
       checkpoints, in-tab preview.
 - [ ] **Remote sandbox adapter** (E2B/Daytona/Codespaces) for web/mobile/managed,
@@ -510,8 +518,11 @@ stateDiagram-v2
 
 - [ ] A user with a Claude Code subscription clicks "Mod this", the bridge spawns
       their CLI in a worktree, and the AI terminal streams its output.
-- [ ] An AI edit that fails `typecheck`/`lint`/`test`/`fallow` is **automatically
-      rolled back** (`git reset`), leaving the worktree at the last green checkpoint.
+- [x] An agent edit that fails the gate is **automatically rolled back**
+      (`git reset --hard`), discarding the edits; a passing edit becomes a
+      checkpoint commit on the branch (`@xnetjs/devkit` dev-loop tests, real temp
+      repo). _(End-to-end with a real Claude Code subscription is the Electron
+      phase.)_
 - [ ] A passing plugin edit **hot-loads** into the running app (`rehydrate`) and is
       visible without restart; a crashing one **auto-disables** and the app stays up.
 - [ ] "Restore checkpoint" returns code **and** data to a prior working point.
