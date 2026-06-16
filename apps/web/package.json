@@ -37,6 +37,7 @@
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/storage": "workspace:*",
     "@xnetjs/sync": "workspace:*",
+    "@xnetjs/telemetry": "workspace:*",
     "@xnetjs/ui": "workspace:*",
     "@xnetjs/views": "workspace:*",
     "lucide-react": "^0.453.0",

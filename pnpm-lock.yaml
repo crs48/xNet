@@ -439,6 +439,9 @@ importers:
       '@xnetjs/sync':
         specifier: workspace:*
         version: link:../../packages/sync
+      '@xnetjs/telemetry':
+        specifier: workspace:*
+        version: link:../../packages/telemetry
       '@xnetjs/ui':
         specifier: workspace:*
         version: link:../../packages/ui

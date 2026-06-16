@@ -591,7 +591,7 @@ function Waterfall({ trace }: { trace: Trace }) {
 - [x] Add a `useTracing()` React context (duck-typed, null when disabled), parallel to `TelemetryReporter`.
 - [x] Instrument `useQuery`/`useMutate` main-thread stages (query commit + row count; mutate bridge span). Folding `NodeQueryPlanMetadata` + finer stages happens via worker spans in Phase 2.
 - [x] Build the devtools `Waterfall` SVG component; add a "Traces" panel listing recent traces (fed by `tracing:trace` bus events via `instrumentTracing`).
-- [ ] Gate everything behind `localStorage['xnet:trace'] === '1'` (dev-only default) — app wiring in apps/web.
+- [x] Gate everything behind `localStorage['xnet:trace'] === '1'` (dev-only default) — wired in apps/web (`lib/tracing.ts`); same collector handed to `config.tracing` and `XNetDevToolsProvider.traceCollector`.
 
 ### Phase 2 — Write path + worker boundary
 
