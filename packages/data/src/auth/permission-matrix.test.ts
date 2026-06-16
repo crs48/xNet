@@ -51,8 +51,8 @@ describe('buildPermissionMatrix', () => {
 
   it('describes role provenance', () => {
     expect(describeRoleResolver({ _tag: 'creator' })).toBe('Node creator')
-    expect(describeRoleResolver({ _tag: 'relation', relationName: 'space', targetRole: 'spaceOwner' })).toMatch(
-      /Inherited from "space"/
-    )
+    expect(
+      describeRoleResolver({ _tag: 'relation', relationName: 'space', targetRole: 'spaceOwner' })
+    ).toMatch(/Inherited from "space"/)
   })
 })

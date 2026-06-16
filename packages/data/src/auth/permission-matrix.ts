@@ -86,7 +86,10 @@ function collect(expr: SerializedAuthExpression, polarity: boolean, acc: Collect
   }
 }
 
-function summarizeAction(action: string, expr: SerializedAuthExpression | undefined): ActionPermission {
+function summarizeAction(
+  action: string,
+  expr: SerializedAuthExpression | undefined
+): ActionPermission {
   const acc: Collected = { allow: new Set(), deny: new Set(), public: false, authenticated: false }
   if (expr) collect(expr, true, acc)
   return {

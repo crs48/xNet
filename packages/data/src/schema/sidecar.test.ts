@@ -18,12 +18,9 @@ describe('sidecar helpers', () => {
   })
 
   it('merges sidecars into a row with base winning collisions', () => {
-    const row = mergeSidecarsIntoRow(
-      { name: 'Ada', 'ext:acme.com/leadScore': 90 },
-      [
-        { authority: 'acme.com', properties: { leadScore: 10, region: 'EU' } } // base wins leadScore
-      ]
-    )
+    const row = mergeSidecarsIntoRow({ name: 'Ada', 'ext:acme.com/leadScore': 90 }, [
+      { authority: 'acme.com', properties: { leadScore: 10, region: 'EU' } } // base wins leadScore
+    ])
     expect(row).toEqual({
       name: 'Ada',
       'ext:acme.com/leadScore': 90,

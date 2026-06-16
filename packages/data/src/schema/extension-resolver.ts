@@ -17,10 +17,7 @@ import type { SchemaIRI } from './node'
 import type { Schema, PropertyType } from './types'
 import { getBaseSchemaIRI } from './node'
 import { buildEffectiveSchema, type EffectiveExtensionField } from './effective-schema'
-import {
-  SCHEMA_EXTENSION_SCHEMA_IRI,
-  EXTENSION_FIELD_SCHEMA_IRI
-} from './schemas/schema-extension'
+import { SCHEMA_EXTENSION_SCHEMA_IRI, EXTENSION_FIELD_SCHEMA_IRI } from './schemas/schema-extension'
 
 /** Minimal registry surface needed to resolve a core schema. */
 export interface CoreSchemaResolver {

@@ -6,7 +6,17 @@
  */
 
 import { useXNet } from '@xnetjs/react'
-import { Check, Copy, Link2, QrCode, ShieldAlert, ShieldCheck, Trash2, Users, X } from 'lucide-react'
+import {
+  Check,
+  Copy,
+  Link2,
+  QrCode,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  Users,
+  X
+} from 'lucide-react'
 import { PermissionMatrixPanel } from './PermissionMatrixPanel'
 import QRCode from 'qrcode'
 import { useMemo, useState } from 'react'

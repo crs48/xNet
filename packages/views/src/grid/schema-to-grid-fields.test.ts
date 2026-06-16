@@ -66,9 +66,9 @@ describe('schemaToGridFields', () => {
   })
 
   it('displayLabelForProperty unwraps extension keys', () => {
-    expect(displayLabelForProperty({ '@id': '#x', name: 'title', type: 'text', required: false })).toBe(
-      'title'
-    )
+    expect(
+      displayLabelForProperty({ '@id': '#x', name: 'title', type: 'text', required: false })
+    ).toBe('title')
     expect(
       displayLabelForProperty({
         '@id': '#x',

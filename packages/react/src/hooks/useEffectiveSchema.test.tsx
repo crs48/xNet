@@ -127,9 +127,9 @@ describe('useEffectiveSchema', () => {
     })
 
     await waitFor(() =>
-      expect(result.current.schema?.properties.some((p) => p.name === 'ext:acme.com/billableRate')).toBe(
-        true
-      )
+      expect(
+        result.current.schema?.properties.some((p) => p.name === 'ext:acme.com/billableRate')
+      ).toBe(true)
     )
     const titleCol = result.current.schema?.properties.find((p) => p.name === 'title')
     expect(titleCol?.readonly).toBe(true)

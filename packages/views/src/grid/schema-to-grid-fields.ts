@@ -41,7 +41,9 @@ export function displayLabelForProperty(property: PropertyDefinition): string {
   return property.name
 }
 
-function optionsFromConfig(config: Record<string, unknown> | undefined): GridFieldOption[] | undefined {
+function optionsFromConfig(
+  config: Record<string, unknown> | undefined
+): GridFieldOption[] | undefined {
   const raw = config?.options
   if (!Array.isArray(raw)) return undefined
   const options: GridFieldOption[] = []

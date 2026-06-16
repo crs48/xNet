@@ -56,7 +56,7 @@ const { schema } = useEffectiveSchema('xnet://xnet.fyi/Contact@1.0.0')
 ## 2. Sidecar extensions (when access differs)
 
 An overlay inherits the target node's authorization. When the attributes need
-their **own** owner or access — say, *your* private notes on a `Contact`
+their **own** owner or access — say, _your_ private notes on a `Contact`
 someone else shares with you — use a **sidecar**: a separate node that
 references the target and carries its own `authorization` (typically
 `presets.private()`).
@@ -81,7 +81,7 @@ column space as overlays via `mergeSidecarsIntoRow`, so both render uniformly.
 
 ## 3. A new schema version (custom objects)
 
-When you're really creating a new *type* — not just decorating an existing one
+When you're really creating a new _type_ — not just decorating an existing one
 — define a new schema (optionally `extends` the base) and migrate existing
 nodes with a **lens**. To graduate an overlay into a first-class property, use
 `promoteOverlay`:
@@ -99,11 +99,11 @@ const v1ToV2 = composeLens(
 
 ## Which one?
 
-| Need | Use |
-| --- | --- |
-| A custom field, same record + permissions | **Overlay** (`ext:` key) |
-| A field with its own owner / access | **Sidecar** (join node) |
-| A distinct, fully-typed type | **New schema** (`extends` + lens) |
+| Need                                      | Use                               |
+| ----------------------------------------- | --------------------------------- |
+| A custom field, same record + permissions | **Overlay** (`ext:` key)          |
+| A field with its own owner / access       | **Sidecar** (join node)           |
+| A distinct, fully-typed type              | **New schema** (`extends` + lens) |
 
 Overlay is the default — it's the cheapest to store and query. Reach for a
 sidecar only when access must differ, and a new schema only when you're

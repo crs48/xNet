@@ -39,10 +39,7 @@ export interface EffectiveExtensionField {
  * When there are no extensions the core schema is returned unchanged (no
  * spurious lock flags), so callers can pass any schema through unconditionally.
  */
-export function buildEffectiveSchema(
-  core: Schema,
-  extensions: EffectiveExtensionField[]
-): Schema {
+export function buildEffectiveSchema(core: Schema, extensions: EffectiveExtensionField[]): Schema {
   if (extensions.length === 0) return core
 
   const lockedCore: PropertyDefinition[] = core.properties.map((property) => ({

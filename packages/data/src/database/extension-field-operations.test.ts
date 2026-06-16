@@ -55,19 +55,44 @@ describe('extension field operations', () => {
   })
 
   it('adds multiple fields in stable sortKey order', async () => {
-    await createExtensionField(store, { targetSchema: CONTACT, authority: 'acme.com', name: 'a', type: 'text' })
-    await createExtensionField(store, { targetSchema: CONTACT, authority: 'acme.com', name: 'b', type: 'text' })
-    await createExtensionField(store, { targetSchema: CONTACT, authority: 'acme.com', name: 'c', type: 'text' })
+    await createExtensionField(store, {
+      targetSchema: CONTACT,
+      authority: 'acme.com',
+      name: 'a',
+      type: 'text'
+    })
+    await createExtensionField(store, {
+      targetSchema: CONTACT,
+      authority: 'acme.com',
+      name: 'b',
+      type: 'text'
+    })
+    await createExtensionField(store, {
+      targetSchema: CONTACT,
+      authority: 'acme.com',
+      name: 'c',
+      type: 'text'
+    })
     const fields = await loadExtensionFields(store, CONTACT)
     expect(fields.map((f) => f.name)).toEqual(['a', 'b', 'c'])
   })
 
   it('rejects invalid field types and field names', async () => {
     await expect(
-      createExtensionField(store, { targetSchema: CONTACT, authority: 'acme.com', name: 'x', type: 'bogus' })
+      createExtensionField(store, {
+        targetSchema: CONTACT,
+        authority: 'acme.com',
+        name: 'x',
+        type: 'bogus'
+      })
     ).rejects.toThrow(/Invalid field type/)
     await expect(
-      createExtensionField(store, { targetSchema: CONTACT, authority: 'acme.com', name: 'has/slash', type: 'text' })
+      createExtensionField(store, {
+        targetSchema: CONTACT,
+        authority: 'acme.com',
+        name: 'has/slash',
+        type: 'text'
+      })
     ).rejects.toThrow()
   })
 
