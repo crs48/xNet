@@ -17,19 +17,22 @@ import { billingProviderFromEnv } from '@xnetjs/billing'
 import { createBillingRoutes } from '../routes/billing'
 import { createTaskRoutes } from '../routes/tasks'
 import { createUnfurlRoutes } from '../routes/unfurl'
+import { parsePricePlans } from '../services/billing-entitlements'
 import { createBillingStore } from '../services/billing-store'
 
 /** Billing (Stripe + Bitcoin) — opt-in via env; 503 when unconfigured (0187). */
 export function billingFeature(): HubFeature {
   return {
     id: 'fyi.xnet.billing',
-    // Every env key `billingProviderFromEnv` reads — and nothing else.
+    // Every env key `billingProviderFromEnv` reads, plus the price→plan map for
+    // the entitlements tie-in — and nothing else.
     secrets: [
       'XNET_BILLING_PROVIDER',
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
       'BTCPAY_*',
-      'BILLING_FAKE_SECRET'
+      'BILLING_FAKE_SECRET',
+      'XNET_BILLING_PRICE_PLANS'
     ],
     mount({ app, env, requireAuth, storage, dataDir, appUrl }) {
       app.route(
@@ -38,7 +41,8 @@ export function billingFeature(): HubFeature {
           provider: billingProviderFromEnv(env),
           store: createBillingStore({ storage, dataDir }),
           requireAuth,
-          appUrl
+          appUrl,
+          pricePlans: parsePricePlans(env.XNET_BILLING_PRICE_PLANS)
         })
       )
     }
