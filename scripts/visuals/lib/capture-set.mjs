@@ -49,6 +49,7 @@ function dirOf(p) {
  * @param {boolean} [opts.matchSiblingComponents=true]  capture a story when a file co-located with it changed
  * @param {string}  [opts.homeRouteId='home']           fallback route when web UI changed but no route matched
  * @param {RegExp}  [opts.webUiPattern]                 what counts as "a web UI change" for the fallback
+ *   (app source + shared `packages/ui` source, since `home` no longer globs either directly)
  * @returns {{stories:Array, routes:Array, flows:Array}}
  */
 export function computeCaptureSet(input, opts = {}) {
@@ -56,7 +57,12 @@ export function computeCaptureSet(input, opts = {}) {
   const {
     matchSiblingComponents = true,
     homeRouteId = 'home',
-    webUiPattern = /^apps\/web\/src\/.*\.(tsx|css)$/
+    // App source OR shared `packages/ui` source. `home` deliberately no longer
+    // globs `apps/web/src/components/**`/`packages/ui/**` (that false-matched
+    // every domain surface onto `/` -- see exploration 0191), so the home
+    // fallback is the only safety net for a generic UI change that maps to no
+    // specific route and has no story; it must still recognize ui/ changes.
+    webUiPattern = /^(?:apps\/web\/src|packages\/ui\/src)\/.*\.(tsx|css)$/
   } = opts
 
   const changed = changedFiles.map(normalizePath)

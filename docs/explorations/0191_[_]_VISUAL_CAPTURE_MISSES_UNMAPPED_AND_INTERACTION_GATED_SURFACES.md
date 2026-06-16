@@ -434,16 +434,19 @@ test('CRM component change maps to the /crm route, not just home', () => {
 
 ## Implementation Checklist
 
-- [ ] Add `crm`, `finance`, `analytics` route entries to
+- [x] Add `crm`, `finance`, `analytics` route entries to
       [`manifests.json`](scripts/visuals/manifests.json) with route‑file +
       `components/<domain>/**` + package globs.
-- [ ] Narrow the `home` route globs to shell files only (drop
-      `apps/web/src/components/**` and `packages/ui/**`).
-- [ ] Add a `crm-quote` flow entry to `manifests.json#flows` and a matching
+- [x] Narrow the `home` route globs to shell files only (drop
+      `apps/web/src/components/**` and `packages/ui/**`); broaden the fallback
+      `webUiPattern` in [`capture-set.mjs`](scripts/visuals/lib/capture-set.mjs)
+      to also cover `packages/ui/src` so story‑less ui changes still reach home.
+- [x] Add a `crm-quote` flow entry to `manifests.json#flows` and a matching
       runner in [`flows.mjs`](scripts/visuals/flows.mjs).
-- [ ] Add a `data-testid`/`aria-label` to the deal row / inspector opener in
-      [`CrmPipeline.tsx`](apps/web/src/components/crm/CrmPipeline.tsx) if the flow
-      needs a stable selector.
+- [x] ~~Add a `data-testid`/`aria-label` to the deal row / inspector opener~~ —
+      not needed: [`CrmPipeline.tsx:155`](apps/web/src/components/crm/CrmPipeline.tsx)
+      already exposes `aria-label="Deal details"`, and its `opacity-0` is still
+      clickable in Playwright, so the flow needs no app source change.
 - [ ] Add the **drift‑guard** test (every singleton route mapped or exempt).
 - [ ] Add the **regression** test (CRM change → `/crm` route + `crm-quote` flow).
 - [ ] Update [`scripts/visuals/README.md`](scripts/visuals/README.md) "Tuning"
