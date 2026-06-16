@@ -47,14 +47,15 @@ export interface SchemaToFormOptions extends SchemaToGridFieldsOptions {
 }
 
 /**
- * Fields that are plumbing, not user-facing content. Never shown in a form by
- * default (the grid may still show them as columns).
+ * Structural plumbing hidden by default everywhere (the grid may still show
+ * these as columns). Note `source` is deliberately NOT here: it is
+ * domain-meaningful for some types (Deal lead source, Activity direction) and
+ * only plumbing for others (Task) — those callers hide it via `hidden`.
  */
 const INTERNAL_FIELDS = new Set([
   'sortKey',
   'shortId',
   'anchorBlockId',
-  'source',
   'externalId',
   'piiErasedAt'
 ])
