@@ -26,8 +26,13 @@ const deal: Schema = {
 }
 
 describe('schemaToFormFields', () => {
-  it('hides internal and auto fields by default', () => {
+  it('hides internal (sortKey) and auto fields by default, but keeps domain fields like source', () => {
     const fields = schemaToFormFields(deal)
+    expect(fields.map((f) => f.id)).toEqual(['title', 'amount', 'stage', 'source'])
+  })
+
+  it('hides a field passed in hidden (e.g. source as plumbing for tasks)', () => {
+    const fields = schemaToFormFields(deal, { hidden: ['source'] })
     expect(fields.map((f) => f.id)).toEqual(['title', 'amount', 'stage'])
   })
 
@@ -50,7 +55,7 @@ describe('schemaToFormFields', () => {
 
   it('reorders by the order list, unlisted fields keep schema order', () => {
     const fields = schemaToFormFields(deal, { order: ['stage', 'title'] })
-    expect(fields.map((f) => f.id)).toEqual(['stage', 'title', 'amount'])
+    expect(fields.map((f) => f.id)).toEqual(['stage', 'title', 'amount', 'source'])
   })
 
   it('carries readonly + extension fields through from an effective schema', () => {
