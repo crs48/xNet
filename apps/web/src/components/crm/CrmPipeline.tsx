@@ -20,6 +20,7 @@ import { Plus, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
 import { NodePeek } from '../NodeInspector'
 import { money, num, str } from './crm-helpers'
+import { DealLineItems } from './DealLineItems'
 import { DealStakeholders } from './DealStakeholders'
 
 interface StageNode {
@@ -220,6 +221,11 @@ export function CrmPipeline({ pipelineId }: { pipelineId: string }): JSX.Element
                   id: 'stakeholders',
                   title: 'Stakeholders',
                   render: () => <DealStakeholders dealId={peekDealId} />
+                },
+                {
+                  id: 'lineitems',
+                  title: 'Line items',
+                  render: () => <DealLineItems dealId={peekDealId} />
                 }
               ]
             : undefined
