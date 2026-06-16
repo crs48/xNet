@@ -454,29 +454,32 @@ test('CRM component change maps to the /crm route, not just home', () => {
 - [x] Add the **regression** test (CRM change → `/crm` route + `crm-quote` flow) —
       in both [`capture-set.test.mjs`](scripts/visuals/lib/capture-set.test.mjs)
       (pure) and `manifest-coverage.test.mjs` (against the real manifest).
-- [ ] Update [`scripts/visuals/README.md`](scripts/visuals/README.md) "Tuning"
+- [x] Update [`scripts/visuals/README.md`](scripts/visuals/README.md) "Tuning"
       to note: *new workbench surface ⇒ add a route entry (and a flow if the UI
       is interaction‑gated); the drift test enforces it.*
-- [ ] File a follow‑up task for Option D (XNetProvider story decorator →
+- [x] File a follow‑up task for Option D (XNetProvider story decorator →
       `ProductsPanel`/`DealLineItems` stories).
 
 ## Validation Checklist
 
-- [ ] `pnpm test:visuals` passes, including the new drift‑guard + regression
-      tests; the drift test goes **red** if `analytics`/`crm`/`finance` are
-      removed from the manifest.
-- [ ] Local dry run on the PR #118 diff:
+- [x] `pnpm test:visuals` passes (20/20), including the new drift‑guard +
+      regression tests; the drift test goes **red** if `crm`/`finance`/`analytics`
+      are removed from the manifest (verified by simulating `/crm`'s removal →
+      `missing = ["crm"]`).
+- [x] Local dry run on the PR #118 diff:
       `node scripts/visuals/changed-capture-set.mjs --diff-from-file <crm-files.txt> --out tmp/set.json`
-      yields `routes: ['crm']` (not `home`) and `flows: ['crm-quote']`.
+      yields `routes: ['crm']` (not `home`) and `flows: ['crm-quote']`. ✔
 - [ ] On a re‑run of an equivalent CRM PR, the sticky comment shows a **Screens →
       CRM** entry and an **Interactions → Build a CRM quote** GIF — *not* "No
-      visual differences detected."
-- [ ] A pure‑`packages/ui` PR with a story still diffs via the **Components**
+      visual differences detected." _(CI‑only — needs the app boot; the mapping +
+      flow‑runner wiring is unit‑covered, but the rendered GIF can't be produced
+      in this env.)_
+- [x] A pure‑`packages/ui` PR with a story still diffs via the **Components**
       section; a shell‑only `apps/web/src/App.tsx` change still captures `home`
-      via the fallback.
+      via the fallback. _(Both paths asserted by `capture-set.test.mjs`.)_
 - [ ] The `main` `baseline` job captures `crm`/`finance`/`analytics`; the first
       post‑merge PR touching them shows `new` (baseline seeded), then `changed`
-      thereafter.
+      thereafter. _(CI‑only — happens on the next push to `main`.)_
 
 ## References
 
