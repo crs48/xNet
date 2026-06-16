@@ -636,7 +636,10 @@ const members = await Promise.all(
         column group).
   - [ ] Verify independent recipient computation for sidecars.
 - [ ] **Layer 4 — Permissions**
-  - [ ] Build the role × action matrix from `schema.authorization`.
+  - [x] Build the role × action matrix from `schema.authorization`.
+        → `packages/data/src/auth/permission-matrix.ts`
+        (`buildPermissionMatrix`, negation-aware allow/deny/public/authenticated
+        summary + `describeRoleResolver` provenance). Fully unit-tested.
   - [ ] Resolve members per role via the evaluator (creator / space cascade /
         grants), grouped by provenance.
   - [ ] Add a "Permissions" tab to `ShareDialog`, auto-populated, with a

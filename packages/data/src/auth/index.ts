@@ -61,6 +61,15 @@ export {
 // Presets
 export { presets } from './presets'
 
+// Permission-matrix reflection (for "who can do what" UIs)
+export {
+  buildPermissionMatrix,
+  describeRoleResolver,
+  type PermissionMatrix,
+  type ActionPermission,
+  type RoleSummary
+} from './permission-matrix'
+
 // Schema mode helpers
 export type { AuthMode } from './mode'
 export { getAuthMode, warnLegacySchema } from './mode'

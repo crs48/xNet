@@ -656,7 +656,12 @@ export {
   type Grant as AuthGrant,
   type OfflineAuthPolicy,
   StoreAuthError,
-  type StoreAuthErrorCode
+  type StoreAuthErrorCode,
+  buildPermissionMatrix,
+  describeRoleResolver,
+  type PermissionMatrix,
+  type ActionPermission,
+  type RoleSummary
 } from './auth'
 
 // Blob service
