@@ -98,6 +98,43 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     }
   }
 
+  /** Detach handlers and close a socket we're abandoning (e.g. on timeout). */
+  function abandonSocket(socket: WebSocket | null): void {
+    if (!socket) return
+    socket.onopen = null
+    socket.onmessage = null
+    socket.onclose = null
+    socket.onerror = null
+    try {
+      socket.close()
+    } catch {
+      // already closing/closed
+    }
+  }
+
+  /** Fired when the handshake stalls past connectTimeout — tear down and back off. */
+  function onConnectTimeout(): void {
+    connectTimer = null
+    if (status !== 'connecting') return
+    log('WebSocket connect timeout after', connectTimeout, 'ms')
+    connectInProgress = false
+    const stalled = ws
+    ws = null
+    abandonSocket(stalled)
+    setStatus('error')
+    scheduleReconnect()
+  }
+
+  /**
+   * Bound the handshake: a browser WebSocket has no connect timeout, so a
+   * stalled (not refused) handshake would otherwise hang indefinitely
+   * (exploration 0188). Set connectTimeout to 0 to disable.
+   */
+  function armConnectTimeout(): void {
+    if (connectTimeout <= 0 || !Number.isFinite(connectTimeout)) return
+    connectTimer = setTimeout(onConnectTimeout, connectTimeout)
+  }
+
   const rooms = new Map<string, Set<RoomHandler>>()
   const statusListeners = new Set<StatusHandler>()
   const messageListeners = new Set<(message: Record<string, unknown>) => void>()
@@ -219,34 +256,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     try {
       const token = await resolveAuthToken()
       ws = new WebSocket(config.url, buildProtocols(token))
-
-      // Bound the handshake: a browser WebSocket has no connect timeout, so a
-      // stalled (not refused) handshake would otherwise hang indefinitely
-      // (exploration 0188). On timeout, tear down the half-open socket and back
-      // off like any other failure.
-      if (connectTimeout > 0 && Number.isFinite(connectTimeout)) {
-        connectTimer = setTimeout(() => {
-          connectTimer = null
-          if (status !== 'connecting') return
-          log('WebSocket connect timeout after', connectTimeout, 'ms')
-          connectInProgress = false
-          const stalled = ws
-          ws = null
-          if (stalled) {
-            stalled.onopen = null
-            stalled.onmessage = null
-            stalled.onclose = null
-            stalled.onerror = null
-            try {
-              stalled.close()
-            } catch {
-              // ignore — already closing/closed
-            }
-          }
-          setStatus('error')
-          scheduleReconnect()
-        }, connectTimeout)
-      }
+      armConnectTimeout()
 
       ws.onopen = () => {
         clearConnectTimer()

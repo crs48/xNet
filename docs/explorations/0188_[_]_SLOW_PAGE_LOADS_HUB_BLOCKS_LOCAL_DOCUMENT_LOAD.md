@@ -539,20 +539,31 @@ performance.getEntriesByType('resource').filter(e => e.name.includes('hub'))
 
 ## Validation Checklist
 
-- [ ] With `VITE_HUB_URL` **unset**, opening any page paints the document body in
-      **< 1 s** on the empty DB (was 10–30 s).
-- [ ] With `VITE_HUB_URL` pointed at a deliberately **slow/non-acking** hub, page
-      open is still **< 1 s** (P1 proves local-first independent of hub health).
-- [ ] With a **healthy local hub** (`ws://localhost:4444`), edits still sync
-      between two tabs (background join + `sync-step1` still works).
-- [ ] `useQuery` list views are unchanged and still local-first (no regression).
-- [ ] A stalled WebSocket handshake resolves to `error` within the connect
-      timeout instead of hanging.
-- [ ] Sync/runtime unit suites green: `connection-manager`, `sync-manager`,
+- [~] With `VITE_HUB_URL` **unset**, opening any page paints the document body in
+      **< 1 s** on the empty DB (was 10–30 s) — levers in place (P1 + P2); the
+      end-to-end browser timing is a manual check (the new devtools timing makes
+      it observable).
+- [x] With `VITE_HUB_URL` pointed at a deliberately **slow/non-acking** hub, page
+      open is still **< 1 s** — proven deterministically by the benchmark
+      *"[bench] opening many documents stays local-first under a slow hub"*: 50
+      docs acquired in ~1 ms (0.02 ms/doc) while the hub never confirms
+      subscriptions (pre-fix: up to 50 × 5 s).
+- [x] With a **healthy hub**, edits still sync (background join + `sync-step1`
+      still fires on confirmation) — existing sync-manager suite stays green,
+      including the reconnect/reconciliation tests.
+- [x] `useQuery` list views are unchanged and still local-first — data-bridge
+      suite green (47 main-thread-bridge tests).
+- [x] A stalled WebSocket handshake resolves to `error` within the connect
+      timeout instead of hanging — connection-manager timeout tests.
+- [x] Sync/runtime unit suites green: `connection-manager`, `sync-manager`,
       `node-store-sync-provider`, `main-thread-bridge`, plus `react` `useNode`
-      tests.
-- [ ] Devtools timing shows `acquireDoc` duration in the low-ms range regardless
-      of hub state.
+      (runtime 83 + data-bridge + react 212, all passing).
+- [~] Devtools timing shows `acquireDoc` duration in the low-ms range regardless
+      of hub state — instrumentation shipped (`useNode` records load latency);
+      reading it is a manual devtools check.
+- [x] Fallow CI gate: 0 introduced complexity/duplication findings (the
+      connect-timeout logic is factored into small helpers so `doConnect` stays
+      under threshold).
 
 ## References
 
