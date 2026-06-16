@@ -53,10 +53,14 @@ export {
   number,
   checkbox,
   json,
+  money,
+  isMoneyValue,
   type TextOptions,
   type NumberOptions,
   type CheckboxOptions,
-  type JsonOptions
+  type JsonOptions,
+  type MoneyOptions,
+  type MoneyValue
 } from './properties'
 
 // Property helpers - Temporal
@@ -166,6 +170,72 @@ export {
   type ExperimentPhase
 } from './schemas'
 export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './schemas'
+export { AccountSchema, ACCOUNT_SCHEMA_IRI, type Account, type AccountClassId } from './schemas'
+export {
+  TransactionSchema,
+  TRANSACTION_SCHEMA_IRI,
+  type Transaction,
+  type TransactionStatus
+} from './schemas'
+export { PostingSchema, POSTING_SCHEMA_IRI, type Posting } from './schemas'
+export { BudgetSchema, BUDGET_SCHEMA_IRI, type Budget, type BudgetPeriod } from './schemas'
+export {
+  ImportBatchSchema,
+  IMPORT_BATCH_SCHEMA_IRI,
+  type ImportBatch,
+  type ImportSource
+} from './schemas'
+export {
+  CRM_NAMESPACE,
+  ORGANIZATION_SCHEMA_IRI,
+  CONTACT_SCHEMA_IRI,
+  RELATIONSHIP_SCHEMA_IRI,
+  PIPELINE_SCHEMA_IRI,
+  STAGE_SCHEMA_IRI,
+  DEAL_SCHEMA_IRI,
+  DEAL_CONTACT_ROLE_SCHEMA_IRI,
+  ACTIVITY_SCHEMA_IRI,
+  PRODUCT_SCHEMA_IRI,
+  LINE_ITEM_SCHEMA_IRI,
+  OrganizationSchema,
+  ORGANIZATION_SIZES,
+  ContactSchema,
+  CONTACT_LIFECYCLE,
+  RelationshipSchema,
+  RELATIONSHIP_KINDS,
+  PipelineSchema,
+  StageSchema,
+  DealSchema,
+  FORECAST_CATEGORIES,
+  DEAL_SOURCES,
+  DealContactRoleSchema,
+  DEAL_CONTACT_ROLES,
+  ActivitySchema,
+  ACTIVITY_KINDS,
+  ProductSchema,
+  PRODUCT_KINDS,
+  LineItemSchema,
+  crmSchemas,
+  type CrmVisibility,
+  type Organization,
+  type OrganizationSize,
+  type Contact,
+  type ContactLifecycle,
+  type Relationship,
+  type RelationshipKind,
+  type Pipeline,
+  type Stage,
+  type Deal,
+  type ForecastCategory,
+  type DealSource,
+  type DealContactRole,
+  type DealContactRoleKind,
+  type Activity,
+  type ActivityKind,
+  type Product,
+  type ProductKind,
+  type LineItem
+} from './schemas'
 export {
   SPACE_SCHEMA_IRI,
   SPACE_KINDS,

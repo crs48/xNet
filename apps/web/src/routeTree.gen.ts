@@ -16,9 +16,12 @@ import { Route as SocialImportRouteImport } from './routes/social-import'
 import { Route as ShareRouteImport } from './routes/share'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RequestsRouteImport } from './routes/requests'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as ExperimentsRouteImport } from './routes/experiments'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as DataRouteImport } from './routes/data'
+import { Route as CrmRouteImport } from './routes/crm'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ViewViewIdRouteImport } from './routes/view.$viewId'
 import { Route as TagTagIdRouteImport } from './routes/tag.$tagId'
@@ -67,6 +70,11 @@ const RequestsRoute = RequestsRouteImport.update({
   path: '/requests',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExperimentsRoute = ExperimentsRouteImport.update({
   id: '/experiments',
   path: '/experiments',
@@ -80,6 +88,16 @@ const DiscoverRoute = DiscoverRouteImport.update({
 const DataRoute = DataRouteImport.update({
   id: '/data',
   path: '/data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmRoute = CrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -145,9 +163,12 @@ const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/crm': typeof CrmRoute
   '/data': typeof DataRoute
   '/discover': typeof DiscoverRoute
   '/experiments': typeof ExperimentsRoute
+  '/finance': typeof FinanceRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -169,9 +190,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/crm': typeof CrmRoute
   '/data': typeof DataRoute
   '/discover': typeof DiscoverRoute
   '/experiments': typeof ExperimentsRoute
+  '/finance': typeof FinanceRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -194,9 +218,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
+  '/crm': typeof CrmRoute
   '/data': typeof DataRoute
   '/discover': typeof DiscoverRoute
   '/experiments': typeof ExperimentsRoute
+  '/finance': typeof FinanceRoute
   '/requests': typeof RequestsRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -220,9 +247,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/analytics'
+    | '/crm'
     | '/data'
     | '/discover'
     | '/experiments'
+    | '/finance'
     | '/requests'
     | '/settings'
     | '/share'
@@ -244,9 +274,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/analytics'
+    | '/crm'
     | '/data'
     | '/discover'
     | '/experiments'
+    | '/finance'
     | '/requests'
     | '/settings'
     | '/share'
@@ -268,9 +301,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/analytics'
+    | '/crm'
     | '/data'
     | '/discover'
     | '/experiments'
+    | '/finance'
     | '/requests'
     | '/settings'
     | '/share'
@@ -293,9 +329,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
+  CrmRoute: typeof CrmRoute
   DataRoute: typeof DataRoute
   DiscoverRoute: typeof DiscoverRoute
   ExperimentsRoute: typeof ExperimentsRoute
+  FinanceRoute: typeof FinanceRoute
   RequestsRoute: typeof RequestsRoute
   SettingsRoute: typeof SettingsRoute
   ShareRoute: typeof ShareRoute
@@ -367,6 +406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/experiments': {
       id: '/experiments'
       path: '/experiments'
@@ -386,6 +432,20 @@ declare module '@tanstack/react-router' {
       path: '/data'
       fullPath: '/data'
       preLoaderRoute: typeof DataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm': {
+      id: '/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof CrmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -477,9 +537,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
+  CrmRoute: CrmRoute,
   DataRoute: DataRoute,
   DiscoverRoute: DiscoverRoute,
   ExperimentsRoute: ExperimentsRoute,
+  FinanceRoute: FinanceRoute,
   RequestsRoute: RequestsRoute,
   SettingsRoute: SettingsRoute,
   ShareRoute: ShareRoute,

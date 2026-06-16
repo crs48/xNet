@@ -67,6 +67,72 @@ export {
   type ExperimentPhase
 } from './experiment'
 export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './milestone'
+export {
+  CRM_NAMESPACE,
+  ORGANIZATION_SCHEMA_IRI,
+  CONTACT_SCHEMA_IRI,
+  RELATIONSHIP_SCHEMA_IRI,
+  PIPELINE_SCHEMA_IRI,
+  STAGE_SCHEMA_IRI,
+  DEAL_SCHEMA_IRI,
+  DEAL_CONTACT_ROLE_SCHEMA_IRI,
+  ACTIVITY_SCHEMA_IRI,
+  PRODUCT_SCHEMA_IRI,
+  LINE_ITEM_SCHEMA_IRI,
+  OrganizationSchema,
+  ORGANIZATION_SIZES,
+  ContactSchema,
+  CONTACT_LIFECYCLE,
+  RelationshipSchema,
+  RELATIONSHIP_KINDS,
+  PipelineSchema,
+  StageSchema,
+  DealSchema,
+  FORECAST_CATEGORIES,
+  DEAL_SOURCES,
+  DealContactRoleSchema,
+  DEAL_CONTACT_ROLES,
+  ActivitySchema,
+  ACTIVITY_KINDS,
+  ProductSchema,
+  PRODUCT_KINDS,
+  LineItemSchema,
+  crmSchemas,
+  type CrmVisibility,
+  type Organization,
+  type OrganizationSize,
+  type Contact,
+  type ContactLifecycle,
+  type Relationship,
+  type RelationshipKind,
+  type Pipeline,
+  type Stage,
+  type Deal,
+  type ForecastCategory,
+  type DealSource,
+  type DealContactRole,
+  type DealContactRoleKind,
+  type Activity,
+  type ActivityKind,
+  type Product,
+  type ProductKind,
+  type LineItem
+} from './crm'
+export { AccountSchema, ACCOUNT_SCHEMA_IRI, type Account, type AccountClassId } from './account'
+export {
+  TransactionSchema,
+  TRANSACTION_SCHEMA_IRI,
+  type Transaction,
+  type TransactionStatus
+} from './transaction'
+export { PostingSchema, POSTING_SCHEMA_IRI, type Posting } from './posting'
+export { BudgetSchema, BUDGET_SCHEMA_IRI, type Budget, type BudgetPeriod } from './budget'
+export {
+  ImportBatchSchema,
+  IMPORT_BATCH_SCHEMA_IRI,
+  type ImportBatch,
+  type ImportSource
+} from './import-batch'
 export { spaceOwnAuthorization, spaceCascadeAuthorization } from './space-authorization'
 export {
   SPACE_SCHEMA_IRI,
@@ -297,6 +363,26 @@ export const builtInSchemas = {
     import('./observation').then((m) => m.ObservationSchema),
   'xnet://xnet.fyi/Experiment@1.0.0': () => import('./experiment').then((m) => m.ExperimentSchema),
   'xnet://xnet.fyi/Milestone@1.0.0': () => import('./milestone').then((m) => m.MilestoneSchema),
+  // CRM schema pack (exploration 0188)
+  'xnet://xnet.fyi/Organization@1.0.0': () => import('./crm').then((m) => m.OrganizationSchema),
+  'xnet://xnet.fyi/Contact@1.0.0': () => import('./crm').then((m) => m.ContactSchema),
+  'xnet://xnet.fyi/Relationship@1.0.0': () => import('./crm').then((m) => m.RelationshipSchema),
+  'xnet://xnet.fyi/Pipeline@1.0.0': () => import('./crm').then((m) => m.PipelineSchema),
+  'xnet://xnet.fyi/Stage@1.0.0': () => import('./crm').then((m) => m.StageSchema),
+  'xnet://xnet.fyi/Deal@1.0.0': () => import('./crm').then((m) => m.DealSchema),
+  'xnet://xnet.fyi/DealContactRole@1.0.0': () =>
+    import('./crm').then((m) => m.DealContactRoleSchema),
+  'xnet://xnet.fyi/Activity@1.0.0': () => import('./crm').then((m) => m.ActivitySchema),
+  'xnet://xnet.fyi/Product@1.0.0': () => import('./crm').then((m) => m.ProductSchema),
+  'xnet://xnet.fyi/LineItem@1.0.0': () => import('./crm').then((m) => m.LineItemSchema),
+  // Double-entry accounting + personal finance (exploration 0187)
+  'xnet://xnet.fyi/Account@1.0.0': () => import('./account').then((m) => m.AccountSchema),
+  'xnet://xnet.fyi/Transaction@1.0.0': () =>
+    import('./transaction').then((m) => m.TransactionSchema),
+  'xnet://xnet.fyi/Posting@1.0.0': () => import('./posting').then((m) => m.PostingSchema),
+  'xnet://xnet.fyi/Budget@1.0.0': () => import('./budget').then((m) => m.BudgetSchema),
+  'xnet://xnet.fyi/ImportBatch@1.0.0': () =>
+    import('./import-batch').then((m) => m.ImportBatchSchema),
   'xnet://xnet.fyi/Space@1.0.0': () => import('./space').then((m) => m.SpaceSchema),
   'xnet://xnet.fyi/SpaceMembership@1.0.0': () =>
     import('./space-membership').then((m) => m.SpaceMembershipSchema),
@@ -362,6 +448,21 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Observation': () => import('./observation').then((m) => m.ObservationSchema),
   'xnet://xnet.fyi/Experiment': () => import('./experiment').then((m) => m.ExperimentSchema),
   'xnet://xnet.fyi/Milestone': () => import('./milestone').then((m) => m.MilestoneSchema),
+  'xnet://xnet.fyi/Organization': () => import('./crm').then((m) => m.OrganizationSchema),
+  'xnet://xnet.fyi/Contact': () => import('./crm').then((m) => m.ContactSchema),
+  'xnet://xnet.fyi/Relationship': () => import('./crm').then((m) => m.RelationshipSchema),
+  'xnet://xnet.fyi/Pipeline': () => import('./crm').then((m) => m.PipelineSchema),
+  'xnet://xnet.fyi/Stage': () => import('./crm').then((m) => m.StageSchema),
+  'xnet://xnet.fyi/Deal': () => import('./crm').then((m) => m.DealSchema),
+  'xnet://xnet.fyi/DealContactRole': () => import('./crm').then((m) => m.DealContactRoleSchema),
+  'xnet://xnet.fyi/Activity': () => import('./crm').then((m) => m.ActivitySchema),
+  'xnet://xnet.fyi/Product': () => import('./crm').then((m) => m.ProductSchema),
+  'xnet://xnet.fyi/LineItem': () => import('./crm').then((m) => m.LineItemSchema),
+  'xnet://xnet.fyi/Account': () => import('./account').then((m) => m.AccountSchema),
+  'xnet://xnet.fyi/Transaction': () => import('./transaction').then((m) => m.TransactionSchema),
+  'xnet://xnet.fyi/Posting': () => import('./posting').then((m) => m.PostingSchema),
+  'xnet://xnet.fyi/Budget': () => import('./budget').then((m) => m.BudgetSchema),
+  'xnet://xnet.fyi/ImportBatch': () => import('./import-batch').then((m) => m.ImportBatchSchema),
   'xnet://xnet.fyi/Space': () => import('./space').then((m) => m.SpaceSchema),
   'xnet://xnet.fyi/SpaceMembership': () =>
     import('./space-membership').then((m) => m.SpaceMembershipSchema),
