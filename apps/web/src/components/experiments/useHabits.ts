@@ -29,6 +29,8 @@ export interface UseHabitsResult {
   toggleHabit: (metric: MetricLike, summary: HabitSummary, done: boolean) => Promise<void>
   /** Log a numeric/scale value for today (upserts today's observation). */
   logValue: (metric: MetricLike, value: number) => Promise<void>
+  /** Annotate today's observation with a free-text note (upserts). */
+  setNote: (metric: MetricLike, note: string) => Promise<void>
   createHabit: (input: {
     name: string
     kind?: string
@@ -94,6 +96,26 @@ export function useHabits(): UseHabitsResult {
     [create, update, observations, today]
   )
 
+  const setNote = useCallback(
+    async (metric: MetricLike, note: string) => {
+      const existing = observations.find(
+        (o) => o.metric === metric.id && typeof o.day === 'number' && canonicalDay(o.day) === today
+      )
+      if (existing) {
+        await update(ObservationSchema, existing.id, { note })
+      } else if (note.trim()) {
+        await create(ObservationSchema, {
+          metric: metric.id,
+          day: today,
+          note,
+          phase: 'none',
+          source: 'manual'
+        })
+      }
+    },
+    [create, update, observations, today]
+  )
+
   const createHabit = useCallback<UseHabitsResult['createHabit']>(
     async (input) => {
       const node = await create(MetricSchema, {
@@ -128,6 +150,7 @@ export function useHabits(): UseHabitsResult {
     summaryFor: (metric) => habitSummary(metric, observations, today),
     toggleHabit,
     logValue,
+    setNote,
     createHabit,
     createMetric
   }

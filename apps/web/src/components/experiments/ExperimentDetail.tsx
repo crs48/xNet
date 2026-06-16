@@ -36,6 +36,19 @@ const DESIGN_OPTIONS = [
   ['alternating', 'Alternating treatments']
 ] as const
 
+/** Recorded outcome — deliberately never "proven" (exploration 0180). */
+const CONCLUSION_OPTIONS = [
+  ['', '— Not concluded —'],
+  ['rejectsNull', 'Rejects the null'],
+  ['failsToRejectNull', 'Fails to reject the null'],
+  ['inconclusive', 'Inconclusive']
+] as const
+
+/** date({}) fields store UTC-midnight ms; reuse the canonical day codecs. */
+const msToIso = (value: unknown): string =>
+  typeof value === 'number' && value > 0 ? dayToIso(value) : ''
+const isoToMs = (iso: string): number | undefined => (iso ? (isoToDay(iso) ?? undefined) : undefined)
+
 function Field({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
   return (
     <label className="flex flex-col gap-1">
@@ -231,6 +244,38 @@ export function ExperimentDetail({ experimentId }: { experimentId: string }): JS
               </option>
             ))}
           </select>
+        </Field>
+        <Field label="Conclusion (record when concluded)">
+          <select
+            value={typeof data?.conclusion === 'string' ? data.conclusion : ''}
+            onChange={(e) => void update({ conclusion: e.target.value as 'rejectsNull' })}
+            className={inputCls}
+          >
+            {CONCLUSION_OPTIONS.map(([id, label]) => (
+              <option key={id || 'none'} value={id}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Start date">
+          <input
+            type="date"
+            value={msToIso(data?.startDate)}
+            onChange={(e) => void update({ startDate: isoToMs(e.target.value) })}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="End date">
+          <input
+            type="date"
+            value={msToIso(data?.endDate)}
+            onChange={(e) => void update({ endDate: isoToMs(e.target.value) })}
+            className={inputCls}
+          />
         </Field>
       </div>
 

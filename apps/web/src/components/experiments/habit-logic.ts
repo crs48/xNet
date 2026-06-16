@@ -37,6 +37,7 @@ export interface ObservationLike {
   metric?: unknown
   day?: unknown
   value?: unknown
+  note?: unknown
 }
 
 export function metricName(metric: MetricLike): string {

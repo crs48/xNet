@@ -6,7 +6,15 @@
  */
 import { Link } from '@tanstack/react-router'
 import { cn } from '@xnetjs/ui'
-import { ArrowUpRight, Check, Flame, FlaskConical, Pencil, Plus } from 'lucide-react'
+import {
+  ArrowUpRight,
+  Check,
+  Flame,
+  FlaskConical,
+  Pencil,
+  Plus,
+  StickyNote
+} from 'lucide-react'
 import { useState, type JSX } from 'react'
 import {
   isHabit,
@@ -124,6 +132,7 @@ function MetricRow({
   today,
   onToggle,
   onLog,
+  onNote,
   onEdit
 }: {
   metric: MetricLike
@@ -131,45 +140,80 @@ function MetricRow({
   today: number
   onToggle: (done: boolean) => void
   onLog: (value: number) => void
+  onNote: (note: string) => void
   onEdit: () => void
 }): JSX.Element {
   const habit = isHabit(metric)
+  const todayObs = summary.byDay.get(today)
+  const currentNote = typeof todayObs?.note === 'string' ? todayObs.note : ''
+  const [noteOpen, setNoteOpen] = useState(currentNote !== '')
   return (
-    <div className="group flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent">
-      <ValueControl
-        metric={metric}
-        summary={summary}
-        today={today}
-        onToggle={onToggle}
-        onLog={onLog}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className={cn('truncate text-xs', summary.done ? 'text-ink-2' : 'text-ink-1')}>
-            {typeof metric.icon === 'string' && metric.icon ? `${metric.icon} ` : ''}
-            {metricName(metric)}
-          </span>
-          {habit && summary.streak > 0 && (
-            <span className="flex shrink-0 items-center gap-0.5 text-[10px] text-orange-500">
-              <Flame size={10} strokeWidth={2} />
-              {summary.streak}
+    <div className="group rounded-sm px-2 py-1.5 hover:bg-accent">
+      <div className="flex items-center gap-2">
+        <ValueControl
+          metric={metric}
+          summary={summary}
+          today={today}
+          onToggle={onToggle}
+          onLog={onLog}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className={cn('truncate text-xs', summary.done ? 'text-ink-2' : 'text-ink-1')}>
+              {typeof metric.icon === 'string' && metric.icon ? `${metric.icon} ` : ''}
+              {metricName(metric)}
             </span>
-          )}
-          <button
-            type="button"
-            aria-label={`Edit ${metricName(metric)}`}
-            onClick={onEdit}
-            className="ml-auto shrink-0 text-ink-3 opacity-0 transition-opacity hover:text-ink-1 group-hover:opacity-100"
-          >
-            <Pencil size={11} strokeWidth={1.5} />
-          </button>
-        </div>
-        {habit && (
-          <div className="mt-1">
-            <StrengthBar value={summary.strength} />
+            {habit && summary.streak > 0 && (
+              <span className="flex shrink-0 items-center gap-0.5 text-[10px] text-orange-500">
+                <Flame size={10} strokeWidth={2} />
+                {summary.streak}
+              </span>
+            )}
+            <button
+              type="button"
+              aria-label={`Note for ${metricName(metric)}`}
+              aria-pressed={noteOpen}
+              onClick={() => setNoteOpen((v) => !v)}
+              className={cn(
+                'ml-auto shrink-0 transition-opacity hover:text-ink-1',
+                currentNote || noteOpen
+                  ? 'text-ink-2 opacity-100'
+                  : 'text-ink-3 opacity-0 group-hover:opacity-100'
+              )}
+            >
+              <StickyNote size={11} strokeWidth={1.5} />
+            </button>
+            <button
+              type="button"
+              aria-label={`Edit ${metricName(metric)}`}
+              onClick={onEdit}
+              className="shrink-0 text-ink-3 opacity-0 transition-opacity hover:text-ink-1 group-hover:opacity-100"
+            >
+              <Pencil size={11} strokeWidth={1.5} />
+            </button>
           </div>
-        )}
+          {habit && (
+            <div className="mt-1">
+              <StrengthBar value={summary.strength} />
+            </div>
+          )}
+        </div>
       </div>
+      {noteOpen && (
+        <input
+          type="text"
+          defaultValue={currentNote}
+          aria-label={`Note for ${metricName(metric)} today`}
+          placeholder="Add a note for today…"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+          }}
+          onBlur={(e) => {
+            if (e.target.value !== currentNote) onNote(e.target.value)
+          }}
+          className="mt-1.5 w-full rounded-sm border border-hairline bg-transparent px-2 py-1 text-[11px] text-ink-1 outline-none focus:border-ink-3"
+        />
+      )}
     </div>
   )
 }
@@ -230,6 +274,7 @@ export function TodayPanel(): JSX.Element {
     summaryFor,
     toggleHabit,
     logValue,
+    setNote,
     createHabit,
     createMetric
   } = useHabits()
@@ -264,6 +309,7 @@ export function TodayPanel(): JSX.Element {
                 today={today}
                 onToggle={(done) => void toggleHabit(metric, summary, done)}
                 onLog={(value) => void logValue(metric, value)}
+                onNote={(note) => void setNote(metric, note)}
                 onEdit={() => setEditingId(metric.id)}
               />
             ))}
@@ -284,6 +330,7 @@ export function TodayPanel(): JSX.Element {
                     today={today}
                     onToggle={(done) => void toggleHabit(metric, summary, done)}
                     onLog={(value) => void logValue(metric, value)}
+                    onNote={(note) => void setNote(metric, note)}
                     onEdit={() => setEditingId(metric.id)}
                   />
                 )
