@@ -135,6 +135,24 @@ export { DatabaseFieldSchema, type DatabaseField } from './schemas'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './schemas'
 export { DatabaseViewSchema, type DatabaseView } from './schemas'
 export {
+  SchemaExtensionSchema,
+  ExtensionFieldSchema,
+  SCHEMA_EXTENSION_SCHEMA_IRI,
+  EXTENSION_FIELD_SCHEMA_IRI,
+  schemaExtensionId,
+  type SchemaExtension,
+  type ExtensionField
+} from './schemas'
+// Extension overlay + effective-schema composition
+export { EXT_PREFIX, extKey, isExtKey, parseExtKey } from './extension'
+export {
+  buildEffectiveSchema,
+  lockedPropertyKeys,
+  canModifyColumn,
+  findLockedColumns,
+  type EffectiveExtensionField
+} from './effective-schema'
+export {
   TaskSchema,
   TASK_STATUS_CATEGORIES,
   getTaskStatusCategory,

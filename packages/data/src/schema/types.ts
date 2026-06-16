@@ -43,6 +43,14 @@ export interface PropertyDefinition {
   required: boolean
   /** Type-specific configuration */
   config?: Record<string, unknown>
+  /**
+   * When true, this property is schema-defined and structurally locked: the
+   * universal/extension grid must not let the user rename, retype, or delete
+   * the column (values stay editable). Set by `buildEffectiveSchema` on the
+   * core properties of a schema that is being extended; user-added extension
+   * fields are never readonly. Absent/false for ordinary schema properties.
+   */
+  readonly?: boolean
 }
 
 /**

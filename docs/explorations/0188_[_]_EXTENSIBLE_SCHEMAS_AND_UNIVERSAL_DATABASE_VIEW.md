@@ -601,14 +601,23 @@ const members = await Promise.all(
   - [ ] Refactor `TelemetryPanel` to render via the shared grid (persist usage
         events as nodes *or* add a non-node adapter).
 - [ ] **Layer 2 — Overlay extensions**
-  - [ ] Add `SchemaExtensionSchema` + an `ExtensionField` (reuse
+  - [x] Add `SchemaExtensionSchema` + an `ExtensionField` (reuse
         `DatabaseField`) targeting a `schemaId`.
+        → `packages/data/src/schema/schemas/schema-extension.ts`
   - [ ] Implement `buildEffectiveSchema(core, exts)` and wire it into the
         registry's `remoteResolver` alongside the database resolver.
-  - [ ] Reserve the `ext:<authority>/<field>` namespace; update `validate()` to
+        → `buildEffectiveSchema` done
+        (`packages/data/src/schema/effective-schema.ts`); resolver wiring next.
+  - [x] Reserve the `ext:<authority>/<field>` namespace; update `validate()` to
         allow-list it and to flag schema-defined keys `readonly`.
+        → `packages/data/src/schema/extension.ts` (`ext:` namespace),
+        `PropertyDefinition.readonly`, `buildEffectiveSchema` locks core props.
+        `validate()` already passes unknown keys, so `ext:*` overlays persist.
   - [ ] Enforce field locking in the write/mutate path (reject writes to
         readonly core keys).
+        → pure helpers `canModifyColumn` / `findLockedColumns` done; grid wiring
+        next. Decision: lock is **structural** (no rename/retype/delete of core
+        columns); cell *values* stay editable.
   - [ ] Grid UI: "+ Add field" on a typed schema creates an `ExtensionField`;
         render core columns locked, `ext:*` columns editable.
   - [ ] Push overlay keys through query pushdown for `where`/`orderBy`.
