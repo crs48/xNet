@@ -20,7 +20,8 @@ import type {
   CanvasEdgeContribution,
   CanvasInspectorContribution,
   CanvasTemplateContribution,
-  WidgetContribution
+  WidgetContribution,
+  ImporterContribution
 } from './contributions'
 import type { Platform, PluginPermissions } from './types'
 
@@ -78,6 +79,8 @@ export interface PluginContributions {
   canvasEdges?: CanvasEdgeContribution[]
   canvasInspectors?: CanvasInspectorContribution[]
   canvasTemplates?: CanvasTemplateContribution[]
+  /** Data-export / source importers (exploration 0189). */
+  importers?: ImporterContribution[]
 }
 
 type CanvasContributionArrayKey =

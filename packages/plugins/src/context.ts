@@ -18,7 +18,8 @@ import type {
   CanvasLayoutContribution,
   CanvasEdgeContribution,
   CanvasInspectorContribution,
-  CanvasTemplateContribution
+  CanvasTemplateContribution,
+  ImporterContribution
 } from './contributions'
 import type { NodeStoreMiddleware } from './middleware'
 import type { Disposable, Platform, PlatformCapabilities, ExtensionStorage } from './types'
@@ -103,6 +104,8 @@ export interface ExtensionContext {
   registerCanvasInspector(inspector: CanvasInspectorContribution): Disposable
   /** Register a canvas template descriptor */
   registerCanvasTemplate(template: CanvasTemplateContribution): Disposable
+  /** Register a data-export / source importer (exploration 0189) */
+  registerImporter(importer: ImporterContribution): Disposable
   /** Add middleware to NodeStore */
   addMiddleware(middleware: NodeStoreMiddleware): Disposable
 
@@ -289,6 +292,12 @@ export function createExtensionContext(options: CreateContextOptions): Extension
 
     registerCanvasTemplate(template) {
       const d = contributions.canvasTemplates.register(template)
+      disposables.push(d)
+      return d
+    },
+
+    registerImporter(importer) {
+      const d = contributions.importers.register(importer)
       disposables.push(d)
       return d
     },
