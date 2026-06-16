@@ -18,6 +18,8 @@ import type { TelemetryBufferStore, TelemetryRecord } from '@xnetjs/telemetry'
 import { ConsentManager, MemoryConsentStorage, TelemetryCollector } from '@xnetjs/telemetry'
 import { TelemetryBridge } from '../middleware/telemetry-bridge'
 import { normalizeRecord } from './normalize'
+import { createTelemetryStore } from './store'
+import { createTelemetryMaintenance } from './tiering'
 
 /**
  * A write-only TelemetryBufferStore that funnels collected hub records straight
@@ -89,5 +91,58 @@ export function createHubTelemetry({
   return {
     start: () => bridge.start(),
     stop: () => bridge.stop()
+  }
+}
+
+export interface HubTelemetrySubsystem {
+  /** The telemetry store (for the ingest/analytics routes). */
+  store: TelemetryStore
+  /** Start the metrics bridge + retention maintenance. */
+  start(): void
+  /** Stop both and close the store. */
+  stop(): void
+}
+
+/**
+ * Assemble the whole hub telemetry subsystem — store + metrics bridge +
+ * retention/tiering — behind one handle the server lifecycle drives. Reading the
+ * env config here keeps `createServer` free of telemetry branching.
+ */
+export function setupHubTelemetry(opts: {
+  storage: 'sqlite' | 'memory'
+  dataDir: string
+  metrics: Metrics
+  env?: NodeJS.ProcessEnv
+}): HubTelemetrySubsystem {
+  const env = opts.env ?? process.env
+  const isMemory = opts.storage === 'memory'
+  // SEPARATE telemetry.db, never in hub.db (':memory:' is ephemeral → no tiering).
+  const store = createTelemetryStore(isMemory ? ':memory:' : opts.dataDir)
+  const bridge = createHubTelemetry({ store, metrics: opts.metrics })
+
+  const retentionDays = Number(env.HUB_TELEMETRY_RETENTION_DAYS) || 7
+  const maintenance = createTelemetryMaintenance({
+    store,
+    retentionMs: retentionDays * 24 * 60 * 60 * 1000,
+    coldBucket: env.HUB_TELEMETRY_COLD_BUCKET || undefined,
+    credentials: {
+      endpoint: env.HUB_TELEMETRY_R2_ENDPOINT,
+      accessKeyId: env.HUB_TELEMETRY_R2_ACCESS_KEY_ID,
+      secretAccessKey: env.HUB_TELEMETRY_R2_SECRET_ACCESS_KEY,
+      region: env.HUB_TELEMETRY_R2_REGION
+    }
+  })
+
+  return {
+    store,
+    start() {
+      bridge.start()
+      if (!isMemory) maintenance.start()
+    },
+    stop() {
+      bridge.stop()
+      maintenance.stop()
+      store.close()
+    }
   }
 }

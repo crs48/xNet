@@ -11,9 +11,11 @@ import type { ReactNode } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import {
   useTelemetryAnalytics,
+  type TelemetryAnalytics,
   type TelemetryBucketPoint,
   type TelemetryKindCount,
-  type TelemetryNameCount
+  type TelemetryNameCount,
+  type TelemetrySummary
 } from '../hooks/useTelemetryAnalytics'
 
 export const Route = createFileRoute('/analytics')({
@@ -21,75 +23,104 @@ export const Route = createFileRoute('/analytics')({
 })
 
 function AnalyticsPage() {
-  const { enabled, ready, summary, loading, error, refresh } = useTelemetryAnalytics()
+  const state = useTelemetryAnalytics()
+  if (!state.enabled) return <GateNotice variant="disabled" />
+  if (!state.ready) return <GateNotice variant="disconnected" />
+  return <AnalyticsDashboard state={state} />
+}
 
-  if (!enabled) {
-    return (
-      <Centered>
-        <h1 className="text-lg font-semibold">Telemetry dashboard</h1>
+function GateNotice({ variant }: { variant: 'disabled' | 'disconnected' }) {
+  return (
+    <Centered>
+      <h1 className="text-lg font-semibold">Telemetry dashboard</h1>
+      {variant === 'disabled' ? (
         <p className="text-sm text-ink-3 mt-2 max-w-md">
           This surface is off by default. Set <code>VITE_TELEMETRY_DASHBOARD=1</code> to enable it.
           The hub still requires an admin capability to return any data.
         </p>
-      </Centered>
-    )
-  }
-
-  if (!ready) {
-    return (
-      <Centered>
-        <h1 className="text-lg font-semibold">Telemetry dashboard</h1>
+      ) : (
         <p className="text-sm text-ink-3 mt-2">Connect to a hub to view analytics.</p>
-      </Centered>
-    )
-  }
+      )}
+    </Centered>
+  )
+}
 
+function AnalyticsDashboard({ state }: { state: TelemetryAnalytics }) {
+  const { summary, loading, error, refresh } = state
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">Telemetry</h1>
-          <p className="text-xs text-ink-3">
-            {summary
-              ? `${summary.total.toLocaleString()} events · last 7 days`
-              : 'Loading aggregate telemetry from the hub…'}
-          </p>
-        </div>
-        <button
-          onClick={refresh}
-          className="text-xs px-2 py-1 rounded border border-hairline hover:bg-accent"
-        >
-          Refresh
-        </button>
-      </header>
-
-      {error && (
-        <div className="text-sm text-destructive border border-hairline rounded p-3">
-          {error.includes('403') || /forbidden/i.test(error)
-            ? 'This identity is not authorized to read hub telemetry (admin only).'
-            : error}
-        </div>
-      )}
-
-      {loading && !summary && <div className="text-sm text-ink-3">Loading…</div>}
-
-      {summary && (
-        <>
-          <Card title="Events over time">
-            <Sparkbars points={summary.timeseries} />
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card title="By kind">
-              <KindBars kinds={summary.kinds} />
-            </Card>
-            <Card title="Top metrics">
-              <NameBars names={summary.topNames} />
-            </Card>
-          </div>
-        </>
-      )}
+      <AnalyticsHeader summary={summary} onRefresh={refresh} />
+      <AnalyticsError error={error} />
+      <AnalyticsLoading loading={loading} summary={summary} />
+      <AnalyticsCards summary={summary} />
     </div>
+  )
+}
+
+function AnalyticsHeader({
+  summary,
+  onRefresh
+}: {
+  summary: TelemetrySummary | null
+  onRefresh: () => void
+}) {
+  return (
+    <header className="flex items-center justify-between">
+      <div>
+        <h1 className="text-lg font-semibold">Telemetry</h1>
+        <p className="text-xs text-ink-3">
+          {summary
+            ? `${summary.total.toLocaleString()} events · last 7 days`
+            : 'Loading aggregate telemetry from the hub…'}
+        </p>
+      </div>
+      <button
+        onClick={onRefresh}
+        className="text-xs px-2 py-1 rounded border border-hairline hover:bg-accent"
+      >
+        Refresh
+      </button>
+    </header>
+  )
+}
+
+function AnalyticsError({ error }: { error: string | null }) {
+  if (!error) return null
+  const forbidden = error.includes('403') || /forbidden/i.test(error)
+  return (
+    <div className="text-sm text-destructive border border-hairline rounded p-3">
+      {forbidden ? 'This identity is not authorized to read hub telemetry (admin only).' : error}
+    </div>
+  )
+}
+
+function AnalyticsLoading({
+  loading,
+  summary
+}: {
+  loading: boolean
+  summary: TelemetrySummary | null
+}) {
+  if (!loading || summary) return null
+  return <div className="text-sm text-ink-3">Loading…</div>
+}
+
+function AnalyticsCards({ summary }: { summary: TelemetrySummary | null }) {
+  if (!summary) return null
+  return (
+    <>
+      <Card title="Events over time">
+        <Sparkbars points={summary.timeseries} />
+      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card title="By kind">
+          <KindBars kinds={summary.kinds} />
+        </Card>
+        <Card title="Top metrics">
+          <NameBars names={summary.topNames} />
+        </Card>
+      </div>
+    </>
   )
 }
 

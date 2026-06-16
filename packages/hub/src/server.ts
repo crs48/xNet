@@ -61,9 +61,7 @@ import { ShareAccessService } from './services/share-access'
 import { createSignalingService } from './services/signaling'
 import { TaskIdentifierService } from './services/task-identifiers'
 import { createStorage } from './storage'
-import { createHubTelemetry } from './telemetry/bridge'
-import { createTelemetryStore } from './telemetry/store'
-import { createTelemetryMaintenance } from './telemetry/tiering'
+import { setupHubTelemetry } from './telemetry/bridge'
 
 const getMessageSize = (data: RawData): number => {
   if (typeof data === 'string') {
@@ -623,26 +621,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   })
   const schemas = new SchemaRegistryService(storage)
   const metrics = new Metrics()
-  // Telemetry store (exploration 0187): a SEPARATE telemetry.db, never in hub.db,
-  // so high-volume append-only telemetry never contends with app writes. The hub
-  // bridge funnels the hub's own Prometheus metrics into it as producer='hub'.
-  const telemetryStore = createTelemetryStore(
-    config.storage === 'memory' ? ':memory:' : config.dataDir
-  )
-  const hubTelemetry = createHubTelemetry({ store: telemetryStore, metrics })
-  // Tiering/retention (exploration 0187): keep telemetry.db bounded — export aged
-  // raw rows to Parquet on R2 when configured, then prune. Rollups are retained.
-  const telemetryRetentionDays = Number(process.env.HUB_TELEMETRY_RETENTION_DAYS) || 7
-  const telemetryMaintenance = createTelemetryMaintenance({
-    store: telemetryStore,
-    retentionMs: telemetryRetentionDays * 24 * 60 * 60 * 1000,
-    coldBucket: process.env.HUB_TELEMETRY_COLD_BUCKET || undefined,
-    credentials: {
-      endpoint: process.env.HUB_TELEMETRY_R2_ENDPOINT,
-      accessKeyId: process.env.HUB_TELEMETRY_R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.HUB_TELEMETRY_R2_SECRET_ACCESS_KEY,
-      region: process.env.HUB_TELEMETRY_R2_REGION
-    }
+  // Telemetry subsystem (exploration 0187): a SEPARATE telemetry.db (never in
+  // hub.db) + metrics bridge + retention/tiering, assembled behind one handle so
+  // createServer stays free of telemetry branching.
+  const telemetry = setupHubTelemetry({
+    storage: config.storage,
+    dataDir: config.dataDir,
+    metrics
   })
   const rateLimiter = new RateLimiter({
     perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
@@ -812,7 +797,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   app.route(
     '/telemetry',
     createTelemetryRoutes({
-      store: telemetryStore,
+      store: telemetry.store,
       hashSalt: config.telemetryPeerHashSalt ?? '',
       requireAuth
     })
@@ -978,9 +963,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   const start = async (): Promise<void> => {
     if (httpServer) return
-    hubTelemetry.start()
-    // Memory storage is ephemeral, so retention/tiering is pointless there.
-    if (config.storage !== 'memory') telemetryMaintenance.start()
+    telemetry.start()
     awareness.start()
     discovery.start()
     if (federationConfig.enabled) {
@@ -1640,9 +1623,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     pool.destroy()
     await storage.close()
 
-    hubTelemetry.stop()
-    telemetryMaintenance.stop()
-    telemetryStore.close()
+    telemetry.stop()
     awareness.stop()
     discovery.stop()
     federationHealth.stop()

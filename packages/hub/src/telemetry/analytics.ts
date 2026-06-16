@@ -3,23 +3,18 @@
  *
  * DuckDB is the only embedded engine that can ATTACH both telemetry.db AND
  * hub.db and JOIN across them in one SQL statement — the answer to "join
- * telemetry with canonical xNet data". It is loaded LAZILY and OPTIONALLY:
- * `@duckdb/node-api` is NOT a hard dependency (it carries a native binary and
- * can't be Litestream-replicated), so it is resolved at call time and a clear
- * error is thrown when it isn't installed.
- *
- * Each query spins up an in-memory DuckDB capped to a small memory budget,
- * attaches both SQLite files READ-ONLY, runs one query, and tears the instance
- * down to free RAM. Read-only ATTACH is safe while better-sqlite3 holds the
- * write lock; the two libraries bundle their own SQLite copies.
+ * telemetry with canonical xNet data". Each query spins up an in-memory DuckDB
+ * capped to a small memory budget, attaches both SQLite files READ-ONLY, runs
+ * one query, and tears the instance down. Read-only ATTACH is safe while
+ * better-sqlite3 holds the write lock.
  *
  * SQL is NOT taken from untrusted callers — the hub exposes named/allowlisted
  * aggregates, never arbitrary ad-hoc SQL over HTTP (exploration 0187 risk note).
  */
 
-// Non-literal specifier so TypeScript does not try to resolve the optional
-// module at build time; it stays a runtime dynamic import returning `unknown`.
-const DUCKDB_MODULE = '@duckdb/node-api'
+import { createCappedInstance, loadDuckDb, sqlLiteral } from './duckdb'
+
+export { isDuckDbAvailable, resetDuckDbAvailabilityCache } from './duckdb'
 
 export interface TelemetryJoinPaths {
   /** Absolute path to telemetry.db (must be a real file, not ':memory:'). */
@@ -34,27 +29,6 @@ export interface DuckDbQueryOptions {
   /** DuckDB threads. Default 1. */
   threads?: number
 }
-
-let availability: boolean | null = null
-
-/** Whether @duckdb/node-api can be loaded in this process. Cached. */
-export async function isDuckDbAvailable(): Promise<boolean> {
-  if (availability !== null) return availability
-  try {
-    await import(DUCKDB_MODULE)
-    availability = true
-  } catch {
-    availability = false
-  }
-  return availability
-}
-
-/** Reset the cached availability flag (tests). */
-export function resetDuckDbAvailabilityCache(): void {
-  availability = null
-}
-
-const sqlLiteral = (value: string): string => value.replace(/'/g, "''")
 
 /**
  * Run a single read-only SQL query with both SQLite databases attached as
@@ -75,21 +49,8 @@ export async function runTelemetryJoinQuery(
   paths: TelemetryJoinPaths,
   opts: DuckDbQueryOptions = {}
 ): Promise<Array<Record<string, unknown>>> {
-  let duck: {
-    DuckDBInstance: { create(path: string, config?: Record<string, string>): Promise<DuckInstance> }
-  }
-  try {
-    duck = (await import(DUCKDB_MODULE)) as typeof duck
-  } catch {
-    throw new Error(
-      '@duckdb/node-api is not installed. Install it on the hub to enable joined/columnar telemetry analytics.'
-    )
-  }
-
-  const instance = await duck.DuckDBInstance.create(':memory:', {
-    memory_limit: opts.memoryLimit ?? '256MB',
-    threads: String(opts.threads ?? 1)
-  })
+  const duck = await loadDuckDb('joined/columnar telemetry analytics')
+  const instance = await createCappedInstance(duck, opts.memoryLimit ?? '256MB', opts.threads ?? 1)
   const conn = await instance.connect()
   try {
     await conn.run('INSTALL sqlite; LOAD sqlite;')
@@ -100,14 +61,4 @@ export async function runTelemetryJoinQuery(
   } finally {
     conn.closeSync?.()
   }
-}
-
-// Minimal structural types for the slice of the DuckDB API we use.
-interface DuckInstance {
-  connect(): Promise<DuckConnection>
-}
-interface DuckConnection {
-  run(sql: string): Promise<unknown>
-  runAndReadAll(sql: string): Promise<{ getRowObjects(): Array<Record<string, unknown>> }>
-  closeSync?: () => void
 }

@@ -41,6 +41,21 @@ export const isTelemetryDashboardEnabled = (): boolean =>
 const isSummary = (data: unknown): data is TelemetrySummary =>
   typeof data === 'object' && data !== null && 'kinds' in data && 'timeseries' in data
 
+const toMessage = (err: unknown): string =>
+  err instanceof Error ? err.message : 'Failed to load telemetry'
+
+/** Fetch + validate the admin telemetry summary. Throws if unauthenticated. */
+export async function fetchTelemetrySummary(
+  hubHttpUrl: string,
+  getToken: () => Promise<string | null> | string | null,
+  sinceMs: number
+): Promise<TelemetrySummary | null> {
+  const token = await getToken()
+  if (!token) throw new Error('Not authenticated with the hub')
+  const data = await hubApiFetch(hubHttpUrl, token, `/telemetry/summary?sinceMs=${sinceMs}`)
+  return isSummary(data) ? data : null
+}
+
 export function useTelemetryAnalytics(windowMs = 7 * 24 * 60 * 60 * 1000): TelemetryAnalytics {
   const { hubUrl, getHubAuthToken } = useXNet()
   const enabled = isTelemetryDashboardEnabled()
@@ -57,24 +72,15 @@ export function useTelemetryAnalytics(windowMs = 7 * 24 * 60 * 60 * 1000): Telem
   useEffect(() => {
     if (!ready || !hubHttpUrl || !getHubAuthToken) return
     let cancelled = false
+    const apply = (fn: () => void) => {
+      if (!cancelled) fn()
+    }
     setLoading(true)
     setError(null)
-
-    const sinceMs = Date.now() - windowMs
-    void (async () => {
-      try {
-        const token = await getHubAuthToken()
-        if (!token) throw new Error('Not authenticated with the hub')
-        const data = await hubApiFetch(hubHttpUrl, token, `/telemetry/summary?sinceMs=${sinceMs}`)
-        if (cancelled) return
-        setSummary(isSummary(data) ? data : null)
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load telemetry')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-
+    fetchTelemetrySummary(hubHttpUrl, getHubAuthToken, Date.now() - windowMs)
+      .then((s) => apply(() => setSummary(s)))
+      .catch((err) => apply(() => setError(toMessage(err))))
+      .finally(() => apply(() => setLoading(false)))
     return () => {
       cancelled = true
     }

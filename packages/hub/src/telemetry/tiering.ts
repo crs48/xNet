@@ -14,9 +14,10 @@
  * pure retention prune.
  */
 
+import type { DuckConnection } from './duckdb'
 import type { TelemetryStore } from './store'
+import { createCappedInstance, loadDuckDb, sqlLiteral } from './duckdb'
 
-const DUCKDB_MODULE = '@duckdb/node-api'
 const DEFAULT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000 // every 6h
 
@@ -43,7 +44,21 @@ export interface TieringResult {
   deleted: number
 }
 
-const sqlLiteral = (value: string): string => value.replace(/'/g, "''")
+/** Apply the (optional) S3/R2 credentials as DuckDB session settings. */
+async function applyS3Credentials(
+  conn: DuckConnection,
+  credentials: ColdStorageCredentials
+): Promise<void> {
+  const settings: Array<[string, string | undefined]> = [
+    ['s3_endpoint', credentials.endpoint],
+    ['s3_region', credentials.region],
+    ['s3_access_key_id', credentials.accessKeyId],
+    ['s3_secret_access_key', credentials.secretAccessKey]
+  ]
+  for (const [key, value] of settings) {
+    if (value) await conn.run(`SET ${key} = '${sqlLiteral(value)}';`)
+  }
+}
 
 /**
  * Export aged raw events to partitioned Parquet on R2/S3, then return how many
@@ -56,41 +71,23 @@ async function exportColdTier(
   coldBucket: string,
   credentials: ColdStorageCredentials = {}
 ): Promise<number> {
-  let duck: {
-    DuckDBInstance: { create(path: string, config?: Record<string, string>): Promise<DuckInstance> }
-  }
-  try {
-    duck = (await import(DUCKDB_MODULE)) as typeof duck
-  } catch {
-    throw new Error('@duckdb/node-api is not installed; cold-tier export unavailable')
-  }
-
-  const instance = await duck.DuckDBInstance.create(':memory:', {
-    memory_limit: '256MB',
-    threads: '1'
-  })
+  const cutoff = Math.floor(cutoffMs)
+  const duck = await loadDuckDb('cold-tier export')
+  const instance = await createCappedInstance(duck)
   const conn = await instance.connect()
   try {
     await conn.run('INSTALL sqlite; LOAD sqlite; INSTALL httpfs; LOAD httpfs;')
-    if (credentials.endpoint)
-      await conn.run(`SET s3_endpoint = '${sqlLiteral(credentials.endpoint)}';`)
-    if (credentials.region) await conn.run(`SET s3_region = '${sqlLiteral(credentials.region)}';`)
-    if (credentials.accessKeyId)
-      await conn.run(`SET s3_access_key_id = '${sqlLiteral(credentials.accessKeyId)}';`)
-    if (credentials.secretAccessKey)
-      await conn.run(`SET s3_secret_access_key = '${sqlLiteral(credentials.secretAccessKey)}';`)
+    await applyS3Credentials(conn, credentials)
     await conn.run(`ATTACH '${sqlLiteral(telemetryDbPath)}' AS tel (TYPE sqlite, READ_ONLY);`)
 
     const dest = `${coldBucket.replace(/\/+$/, '')}/events`
+    const where = `tel.telemetry_events WHERE ts < ${cutoff}`
     await conn.run(
-      `COPY (SELECT * FROM tel.telemetry_events WHERE ts < ${Math.floor(cutoffMs)})
+      `COPY (SELECT * FROM ${where})
        TO '${sqlLiteral(dest)}' (FORMAT parquet, COMPRESSION zstd, PARTITION_BY (kind), OVERWRITE_OR_IGNORE);`
     )
-    const reader = await conn.runAndReadAll(
-      `SELECT count(*) AS n FROM tel.telemetry_events WHERE ts < ${Math.floor(cutoffMs)}`
-    )
-    const rows = reader.getRowObjects()
-    return Number(rows[0]?.n ?? 0)
+    const reader = await conn.runAndReadAll(`SELECT count(*) AS n FROM ${where}`)
+    return Number(reader.getRowObjects()[0]?.n ?? 0)
   } finally {
     conn.closeSync?.()
   }
@@ -178,14 +175,4 @@ export function createTelemetryMaintenance(
     },
     runOnce
   }
-}
-
-// Minimal structural types for the DuckDB surface used here.
-interface DuckInstance {
-  connect(): Promise<DuckConnection>
-}
-interface DuckConnection {
-  run(sql: string): Promise<unknown>
-  runAndReadAll(sql: string): Promise<{ getRowObjects(): Array<Record<string, unknown>> }>
-  closeSync?: () => void
 }
