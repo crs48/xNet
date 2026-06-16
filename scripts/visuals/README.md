@@ -53,11 +53,23 @@ the corresponding sticky comment to a tombstone so no broken image survives.
 | `lib/static-server.mjs`   | Zero-dep static server for the Storybook iframe                             |
 | `flows.mjs`               | Interaction-flow runners, keyed to `manifests.json` flow ids                |
 | `manifests.json`          | Maps source globs → app routes and interaction flows                        |
+| `lib/manifest-coverage.test.mjs` | Drift guard: every singleton route must be mapped (or `EXEMPT`)        |
 
 ## Tuning
 
 - **What maps to what**: edit `manifests.json` (routes/flows) and the rules in
   `lib/capture-set.mjs` (stories match by `importPath` or co-located component).
+- **New workbench surface** (`apps/web/src/routes/<name>.tsx`): add a `routes[]`
+  entry mapping its globs → `path`. If the change you want reviewed lives **behind
+  a tab, inspector, modal, or seed data** (so a first‑paint route shot can't see
+  it), also add a `flows[]` entry + a runner in `flows.mjs` — a static route only
+  ever captures the top of funnel. `lib/manifest-coverage.test.mjs` **fails** if a
+  new singleton route is left unmapped (or not explicitly `EXEMPT`), so this isn't
+  optional. Background: [`docs/explorations/0191`](../../docs/explorations/0191_%5B_%5D_VISUAL_CAPTURE_MISSES_UNMAPPED_AND_INTERACTION_GATED_SURFACES.md).
+- **Don't broaden `home`**: keep its globs to the shell (`index`/`__root`/`App`/
+  `workbench`). A broad `apps/web/src/components/**` glob false‑matches every
+  domain surface onto `/`, hiding the real diff (the 0191 bug); generic UI changes
+  that map to no specific route still reach `home` via the fallback.
 - **Diff sensitivity**: `diff.mjs --threshold <0..1>` (default `0.998`; lower =
   more tolerant of sub-pixel noise).
 - **New flows**: add an entry to `manifests.json#flows` and a runner of the same

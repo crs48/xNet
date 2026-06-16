@@ -43,5 +43,51 @@ export const FLOWS = {
       await page.waitForURL(/\/canvas\//, { timeout: 30_000 })
       await wait(page, 1200)
     }
+  },
+
+  // The quote-to-cash UI (Products catalog + the in-inspector line-item builder)
+  // is tab- and inspector-gated and needs seed data, so a static /crm route shot
+  // can't see it -- this flow drives it into a GIF. Every step is best-effort:
+  // run() must reach its end so capture.mjs finalizes the recording, so we click
+  // through `tryClick` and swallow any single missing step rather than throwing.
+  'crm-quote': {
+    label: 'Build a CRM quote (product + line item)',
+    async run(page) {
+      const tryClick = async (name) => {
+        try {
+          await page.getByRole('button', { name }).first().click({ timeout: 5000 })
+        } catch {
+          /* best-effort: a missing control must not abort the recording */
+        }
+      }
+
+      await page.goto(new URL('/crm', page.url()).toString(), {
+        waitUntil: 'domcontentloaded',
+        timeout: 30_000
+      })
+      await wait(page, 800)
+
+      // Products tab: seed a product so the catalog table (not the empty state) shows.
+      await tryClick(/^Products$/)
+      await wait(page, 500)
+      await tryClick(/New product/i)
+      await wait(page, 900)
+
+      // Pipeline tab: seed a deal, then open its inspector -- the line-item
+      // builder lives in the Deal inspector's "Line items" panel.
+      await tryClick(/^Pipeline$/)
+      await wait(page, 800)
+      await tryClick(/New deal/i)
+      await wait(page, 900)
+      // The "Deal details" opener is opacity-0 until hover, but opacity:0 is
+      // still clickable in Playwright; hover first so the GIF shows it appear.
+      try {
+        await page.getByLabel('Deal details').first().hover({ timeout: 4000 })
+      } catch {
+        /* hover is cosmetic */
+      }
+      await tryClick(/Deal details/i)
+      await wait(page, 1200)
+    }
   }
 }

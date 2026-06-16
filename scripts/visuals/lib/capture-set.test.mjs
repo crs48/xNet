@@ -131,3 +131,49 @@ test('a non-UI change captures nothing', () => {
   })
   assert.equal(captureSetIsEmpty(set), true)
 })
+
+// --- 0191 regressions: a domain surface must win over the home fallback. ----
+
+test('a domain-component change maps to its own route, not home (0191)', () => {
+  // Home no longer globs apps/web/src/components/** — so a CRM change must hit
+  // the /crm route and NOT also drag in home (which renders no CRM).
+  const routes = [
+    { id: 'home', label: 'Home', path: '/', globs: ['apps/web/src/routes/index.tsx'] },
+    { id: 'crm', label: 'CRM', path: '/crm', globs: ['apps/web/src/components/crm/**'] }
+  ]
+  const flows = [{ id: 'crm-quote', label: 'Quote', globs: ['apps/web/src/components/crm/**'] }]
+  const set = computeCaptureSet({
+    changedFiles: [
+      'apps/web/src/components/crm/ProductsPanel.tsx',
+      'apps/web/src/components/crm/DealLineItems.tsx'
+    ],
+    storyEntries: [],
+    routeManifest: routes,
+    flowManifest: flows
+  })
+  assert.deepEqual(
+    set.routes.map((r) => r.id),
+    ['crm']
+  )
+  assert.deepEqual(
+    set.flows.map((f) => f.id),
+    ['crm-quote']
+  )
+})
+
+test('a packages/ui change with no story still falls back to home (0191)', () => {
+  // Dropping packages/ui/** from home's globs is only safe because the fallback
+  // webUiPattern was broadened to recognize packages/ui/src as a web-UI change.
+  const set = computeCaptureSet({
+    changedFiles: ['packages/ui/src/primitives/Spinner.tsx'],
+    storyEntries: [],
+    routeManifest: [
+      { id: 'home', label: 'Home', path: '/', globs: ['apps/web/src/routes/index.tsx'] }
+    ],
+    flowManifest: []
+  })
+  assert.deepEqual(
+    set.routes.map((r) => r.id),
+    ['home']
+  )
+})

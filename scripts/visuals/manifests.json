@@ -5,13 +5,12 @@
       "id": "home",
       "label": "Home",
       "path": "/",
+      "_comment": "Shell only. Domain surfaces map themselves (crm/finance/data/...); a generic web-UI change that matches no specific route still lands here via the fallback in lib/capture-set.mjs. Do NOT re-add a broad apps/web/src/components/** glob -- it false-matches every domain surface onto home (see 0191).",
       "globs": [
         "apps/web/src/routes/index.tsx",
         "apps/web/src/routes/__root.tsx",
         "apps/web/src/App.tsx",
-        "apps/web/src/workbench/**",
-        "apps/web/src/components/**",
-        "packages/ui/**"
+        "apps/web/src/workbench/**"
       ]
     },
     {
@@ -39,6 +38,28 @@
       "globs": ["apps/web/src/routes/experiments.tsx", "packages/experiments/**"]
     },
     {
+      "id": "crm",
+      "label": "CRM",
+      "path": "/crm",
+      "globs": ["apps/web/src/routes/crm.tsx", "apps/web/src/components/crm/**", "packages/crm/**"]
+    },
+    {
+      "id": "finance",
+      "label": "Finance",
+      "path": "/finance",
+      "globs": [
+        "apps/web/src/routes/finance.tsx",
+        "apps/web/src/components/finance/**",
+        "packages/ledger/**"
+      ]
+    },
+    {
+      "id": "analytics",
+      "label": "Analytics",
+      "path": "/analytics",
+      "globs": ["apps/web/src/routes/analytics.tsx", "apps/web/src/hooks/useTelemetryAnalytics*"]
+    },
+    {
       "id": "settings",
       "label": "Settings",
       "path": "/settings",
@@ -53,6 +74,12 @@
       "label": "Requests",
       "path": "/requests",
       "globs": ["apps/web/src/routes/requests.tsx"]
+    },
+    {
+      "id": "social-import",
+      "label": "Social import",
+      "path": "/social-import",
+      "globs": ["apps/web/src/routes/social-import.tsx"]
     }
   ],
   "flows": [
@@ -73,6 +100,11 @@
         "packages/canvas-core/**",
         "apps/web/src/routes/canvas.$canvasId.tsx"
       ]
+    },
+    {
+      "id": "crm-quote",
+      "label": "Build a CRM quote (product + line item)",
+      "globs": ["apps/web/src/components/crm/**", "packages/crm/**"]
     }
   ]
 }
