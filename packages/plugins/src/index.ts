@@ -85,6 +85,9 @@ export { TypedRegistry, ContributionRegistry } from './contributions'
 export type { FeatureModule, ModuleCapabilities } from './feature-module'
 export { defineFeatureModule } from './feature-module'
 
+// Importer resolution (exploration 0189) — consume the `importers` contribution point
+export { importerAdapters, resolveImporters } from './importers'
+
 // Canvas plugin fixtures
 export {
   CANVAS_PLUGIN_FIXTURES,
