@@ -21,6 +21,7 @@ import {
   Table2,
   User,
   Users,
+  Wallet,
   type LucideIcon
 } from 'lucide-react'
 import { tabIdFor, useWorkbench, type TabNodeType } from './state'
@@ -52,6 +53,7 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
     singleton: true
   },
   crm: { label: 'CRM', icon: Contact, toRoute: () => '/crm', singleton: true },
+  finance: { label: 'Finance', icon: Wallet, toRoute: () => '/finance', singleton: true },
   channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` },
   tag: { label: 'Tag', icon: Hash, toRoute: (id) => `/tag/${id}` },
   person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` },
@@ -83,6 +85,7 @@ export function tabFromPathname(pathname: string): RouteTabDescriptor | null {
   if (pathname === '/data') return { nodeType: 'data', nodeId: 'data' }
   if (pathname === '/experiments') return { nodeType: 'experiments', nodeId: 'experiments' }
   if (pathname === '/crm') return { nodeType: 'crm', nodeId: 'crm' }
+  if (pathname === '/finance') return { nodeType: 'finance', nodeId: 'finance' }
 
   for (const { prefix, nodeType } of ROUTE_PREFIXES) {
     if (pathname.startsWith(prefix)) {

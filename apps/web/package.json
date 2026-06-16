@@ -28,6 +28,7 @@
     "@xnetjs/experiments": "workspace:*",
     "@xnetjs/identity": "workspace:*",
     "@xnetjs/labs": "workspace:*",
+    "@xnetjs/ledger": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
     "@xnetjs/react": "workspace:*",
     "@xnetjs/sdk": "workspace:*",

@@ -53,10 +53,14 @@ export {
   number,
   checkbox,
   json,
+  money,
+  isMoneyValue,
   type TextOptions,
   type NumberOptions,
   type CheckboxOptions,
-  type JsonOptions
+  type JsonOptions,
+  type MoneyOptions,
+  type MoneyValue
 } from './properties'
 
 // Property helpers - Temporal
@@ -166,6 +170,21 @@ export {
   type ExperimentPhase
 } from './schemas'
 export { MilestoneSchema, MILESTONE_SCHEMA_IRI, type Milestone } from './schemas'
+export { AccountSchema, ACCOUNT_SCHEMA_IRI, type Account, type AccountClassId } from './schemas'
+export {
+  TransactionSchema,
+  TRANSACTION_SCHEMA_IRI,
+  type Transaction,
+  type TransactionStatus
+} from './schemas'
+export { PostingSchema, POSTING_SCHEMA_IRI, type Posting } from './schemas'
+export { BudgetSchema, BUDGET_SCHEMA_IRI, type Budget, type BudgetPeriod } from './schemas'
+export {
+  ImportBatchSchema,
+  IMPORT_BATCH_SCHEMA_IRI,
+  type ImportBatch,
+  type ImportSource
+} from './schemas'
 export {
   CRM_NAMESPACE,
   ORGANIZATION_SCHEMA_IRI,

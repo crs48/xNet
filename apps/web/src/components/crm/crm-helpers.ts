@@ -1,5 +1,5 @@
 /**
- * Small shared helpers for the CRM surface (exploration 0187). Node property
+ * Small shared helpers for the CRM surface (exploration 0188). Node property
  * values arrive loosely typed at the component boundary, so these readers keep
  * the JSX terse and defensive.
  */

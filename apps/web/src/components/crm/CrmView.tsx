@@ -1,5 +1,5 @@
 /**
- * CRM workspace (exploration 0187) — a singleton surface, like /tasks and
+ * CRM workspace (exploration 0188) — a singleton surface, like /tasks and
  * /experiments. An internal segmented switcher moves between the
  * relationship-centric Contacts view, the deal Pipeline, Companies, and the
  * "Keep in touch" follow-up queue. A default pipeline is seeded on first use so

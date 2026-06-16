@@ -769,8 +769,10 @@ export function CrmKeepInTouchPanel() {
     anonymize-not-delete) in `@xnetjs/crm`. _(Background cascade job to null
     activity PII deferred.)_
   - [ ] Document the `Database` custom-objects path for bespoke objects.
-  - [ ] Spawn explorations: **0188 Quote-to-Cash doc chain**, **0189 user-owned /
-    bilateral DID contacts & consent**, **0190 ERP accounting (GL/AR/AP)**.
+  - [ ] Spawn explorations: **0189 Quote-to-Cash doc chain**, **0190 user-owned /
+    bilateral DID contacts & consent**, **0191 ERP accounting (GL/AR/AP)**.
+    _(Exploration 0187 — double-entry accounting & personal finance — is the
+    ledger backbone an ERP accounting module would build on.)_
 
 ## Validation Checklist
 

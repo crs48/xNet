@@ -82,6 +82,11 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      # ffmpeg is NOT preinstalled on ubuntu-latest; diff.mjs (SSIM +
+      # blend=difference) and flow GIF/MP4 encoding both shell out to it.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Start web app
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
 
@@ -194,6 +199,11 @@ jobs:
 
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
+
+      # ffmpeg is NOT preinstalled on ubuntu-latest; diff.mjs (SSIM +
+      # blend=difference) and flow GIF/MP4 encoding both shell out to it.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Start web app
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &

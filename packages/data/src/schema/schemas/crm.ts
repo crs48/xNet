@@ -1,11 +1,11 @@
 /**
- * CRM schema pack (exploration 0187) — a native CRM that grows into an ERP.
+ * CRM schema pack (exploration 0188) — a native CRM that grows into an ERP.
  *
  * One typed domain model serves the individual (personal contacts + keep-in-touch),
  * the business (a deal pipeline), and — via the shared party/product master and
  * the deferred quote-to-cash document chain — the enterprise.
  *
- * Design decisions, all argued in exploration 0187:
+ * Design decisions, all argued in exploration 0188:
  *   - **Universal party model**: `Organization` (a company) and `Contact` (a
  *     person) are the two party kinds. Both stand alone (personal use) or
  *     interlink (B2B). Deciding this now is what keeps the CRM→ERP transition
@@ -168,7 +168,7 @@ export const ContactSchema = defineSchema({
     /**
      * OPTIONAL: the contact's *own* xNet identity (a DID). When set, the
      * contact can control their own half of the record — the user-owned,
-     * bilateral-consent differentiator (exploration 0187).
+     * bilateral-consent differentiator (exploration 0188).
      */
     did: person({}),
     /** Optional link to a `@xnetjs/social` actor for import/dedup. */

@@ -1,5 +1,5 @@
 /**
- * Contacts surface (exploration 0187) — master/detail. The list groups
+ * Contacts surface (exploration 0188) — master/detail. The list groups
  * contacts by lifecycle; the detail edits the core fields, drives the
  * keep-in-touch cadence, and shows the append-only activity timeline. Personal
  * CRM users live entirely here; the pipeline is a separate surface they can

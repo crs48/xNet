@@ -1,6 +1,6 @@
 /**
  * @xnetjs/crm — pure, dependency-free logic for the native CRM (exploration
- * 0187). No UI and no data-layer coupling: every function takes plain objects
+ * 0188). No UI and no data-layer coupling: every function takes plain objects
  * so it unit-tests trivially and runs anywhere (web, CLI, server, agent).
  *
  * The typed domain model (Contact, Organization, Pipeline, Stage, Deal,

@@ -62,16 +62,24 @@ async function classifyStill(entry) {
     } catch {}
     return { ...entry, status: 'unchanged', ssim: score }
   }
-  const diffPath = join(outDir, 'diff', entry.file)
-  mkdirSync(dirname(diffPath), { recursive: true })
-  diffImage(before, after, diffPath)
+  // A diff-image failure (e.g. ffmpeg hiccup) must not sink the whole run:
+  // still report the change with before/after, just without the diff image.
+  let diff = null
+  try {
+    const diffPath = join(outDir, 'diff', entry.file)
+    mkdirSync(dirname(diffPath), { recursive: true })
+    diffImage(before, after, diffPath)
+    diff = relative(outDir, diffPath)
+  } catch (err) {
+    console.error(`[diff] diff image failed for ${entry.file}: ${err.message}`)
+  }
   return {
     ...entry,
     status: 'changed',
     ssim: Number.isFinite(score) ? score : null,
     before: relative(outDir, before),
     after: entry.file,
-    diff: relative(outDir, diffPath)
+    diff
   }
 }
 

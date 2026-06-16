@@ -412,6 +412,9 @@ importers:
       '@xnetjs/labs':
         specifier: workspace:*
         version: link:../../packages/labs
+      '@xnetjs/ledger':
+        specifier: workspace:*
+        version: link:../../packages/ledger
       '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../../packages/plugins
@@ -1256,6 +1259,18 @@ importers:
       ses:
         specifier: ^1.10.0
         version: 1.15.0
+    devDependencies:
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  packages/ledger:
     devDependencies:
       tsup:
         specifier: ^8.0.0

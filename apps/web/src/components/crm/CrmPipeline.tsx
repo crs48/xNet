@@ -1,5 +1,5 @@
 /**
- * Pipeline surface (exploration 0187) — a Kanban board grouped by stage with a
+ * Pipeline surface (exploration 0188) — a Kanban board grouped by stage with a
  * live metrics header. The economics (weighted value, win rate, …) are computed
  * by `@xnetjs/crm`, so the UI is a thin projection of pure logic.
  */

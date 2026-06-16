@@ -16,6 +16,7 @@ import { DashboardView } from '../components/DashboardView'
 import { DatabaseView } from '../components/DatabaseView'
 import { DataWorkspaceView } from '../components/DataWorkspaceView'
 import { ExperimentsView } from '../components/experiments/ExperimentsView'
+import { FinanceView } from '../components/finance/FinanceView'
 import { LabView } from '../components/LabView'
 import { PageView } from '../components/PageView'
 import { PersonView } from '../components/PersonView'
@@ -37,6 +38,7 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   data: () => <DataWorkspaceView />,
   experiments: () => <ExperimentsView />,
   crm: () => <CrmView />,
+  finance: () => <FinanceView />,
   channel: ({ nodeId }) => <ChannelView channelId={nodeId} />,
   tag: ({ nodeId }) => <TagView tagId={nodeId} />,
   person: ({ nodeId }) => <PersonView did={nodeId} />,

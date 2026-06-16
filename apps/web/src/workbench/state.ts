@@ -26,6 +26,7 @@ export type TabNodeType =
   | 'data'
   | 'experiments'
   | 'crm'
+  | 'finance'
   | 'channel'
   | 'tag'
   | 'person'
