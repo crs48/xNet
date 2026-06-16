@@ -20,7 +20,7 @@ import { useDevTools } from '../../provider/useDevTools'
 
 // ─── Types ─────────────────────────────────────────────────
 
-export type SubTab = 'security' | 'performance' | 'consent'
+export type SubTab = 'security' | 'performance' | 'usage' | 'consent'
 
 export interface SecurityEntry {
   id: string
@@ -274,8 +274,9 @@ export function useTelemetryPanel() {
   // Computed: network health
   const networkHealth = computeNetworkHealth(securityEvents)
 
-  // Computed: performance groups
+  // Computed: performance + usage groups (same metric→bucket shape)
   const performanceGroups = computePerformanceGroups(performanceEvents)
+  const usageGroups = computeMetricGroups(usageEvents)
 
   return {
     subTab,
@@ -287,7 +288,8 @@ export function useTelemetryPanel() {
     peerScores,
     consent,
     networkHealth,
-    performanceGroups
+    performanceGroups,
+    usageGroups
   }
 }
 
@@ -304,6 +306,13 @@ function computeNetworkHealth(events: SecurityEntry[]): NetworkHealth {
 }
 
 function computePerformanceGroups(events: PerformanceEntry[]): PerformanceGroup[] {
+  return computeMetricGroups(events)
+}
+
+/** Group any {metric, bucket} entries into per-metric bucket histograms. */
+function computeMetricGroups(
+  events: Array<{ metric: string; bucket: string }>
+): PerformanceGroup[] {
   const groups = new Map<string, { buckets: Map<string, number>; total: number }>()
 
   for (const entry of events) {
@@ -316,9 +325,7 @@ function computePerformanceGroups(events: PerformanceEntry[]): PerformanceGroup[
     group.total++
   }
 
-  return Array.from(groups.entries()).map(([metric, data]) => ({
-    metric,
-    buckets: data.buckets,
-    total: data.total
-  }))
+  return Array.from(groups.entries())
+    .map(([metric, data]) => ({ metric, buckets: data.buckets, total: data.total }))
+    .sort((a, b) => b.total - a.total)
 }

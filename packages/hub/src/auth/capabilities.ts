@@ -20,6 +20,8 @@ export type HubAction =
   | 'call/signal'
   | 'notify/register'
   | 'notify/push'
+  | 'telemetry/ingest'
+  | 'telemetry/read'
 
 /** Canonical bridge from hub actions to AuthAction. */
 export const HUB_ACTION_MAP: Record<HubAction, AuthAction> = {
@@ -36,7 +38,12 @@ export const HUB_ACTION_MAP: Record<HubAction, AuthAction> = {
   // Push (exploration 0168): registering device push endpoints and
   // triggering wakeups.
   'notify/register': 'write',
-  'notify/push': 'write'
+  'notify/push': 'write',
+  // Telemetry (exploration 0187): ingest is a write (any authenticated identity
+  // may submit its own telemetry; the hub hashes the DID), reads are admin-only
+  // (an aggregate of everyone's usage).
+  'telemetry/ingest': 'write',
+  'telemetry/read': 'admin'
 }
 
 /** Check if a granted action pattern covers the requested action. */

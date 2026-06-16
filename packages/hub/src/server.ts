@@ -38,6 +38,7 @@ import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-i
 import { createShareLinkRoutes } from './routes/share-links'
 import { createTaskRoutes } from './routes/tasks'
 import { createBillingRoutes } from './routes/billing'
+import { createTelemetryRoutes } from './routes/telemetry'
 import { createUnfurlRoutes } from './routes/unfurl'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
@@ -63,6 +64,7 @@ import { TaskIdentifierService } from './services/task-identifiers'
 import { createBillingStore } from './services/billing-store'
 import { billingProviderFromEnv } from '@xnetjs/billing'
 import { createStorage } from './storage'
+import { setupHubTelemetry } from './telemetry/bridge'
 
 const getMessageSize = (data: RawData): number => {
   if (typeof data === 'string') {
@@ -622,6 +624,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   })
   const schemas = new SchemaRegistryService(storage)
   const metrics = new Metrics()
+  // Telemetry subsystem (exploration 0187): a SEPARATE telemetry.db (never in
+  // hub.db) + metrics bridge + retention/tiering, assembled behind one handle so
+  // createServer stays free of telemetry branching.
+  const telemetry = setupHubTelemetry({
+    storage: config.storage,
+    dataDir: config.dataDir,
+    metrics
+  })
   const rateLimiter = new RateLimiter({
     perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
     maxConnections: config.rateLimit?.maxConnections ?? config.maxConnections,
@@ -799,6 +809,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     })
   )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
+  app.route(
+    '/telemetry',
+    createTelemetryRoutes({
+      store: telemetry.store,
+      hashSalt: config.telemetryPeerHashSalt ?? '',
+      requireAuth
+    })
+  )
   app.route('/federation', createFederationRoutes(federation, { requireAuth }))
   if (shardConfig.enabled) {
     app.route(
@@ -960,6 +978,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   const start = async (): Promise<void> => {
     if (httpServer) return
+    telemetry.start()
     awareness.start()
     discovery.start()
     if (federationConfig.enabled) {
@@ -1619,6 +1638,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     pool.destroy()
     await storage.close()
 
+    telemetry.stop()
     awareness.stop()
     discovery.stop()
     federationHealth.stop()

@@ -5,6 +5,7 @@
  * and stores them using the schema system.
  */
 
+import type { TelemetryBufferStore } from './persistence'
 import type { ConsentManager } from '../consent/manager'
 import type { TelemetryTier } from '../consent/types'
 import { TelemetrySchemaIRIs } from '../schemas'
@@ -18,6 +19,18 @@ export interface TelemetryCollectorOptions {
   scrubOptions?: Partial<ScrubOptions>
   /** Default minimum tier for generic reports */
   defaultMinTier?: TelemetryTier
+  /**
+   * Optional durable buffer. When supplied, every collected record is mirrored
+   * to it and status changes are written through, so un-synced records survive
+   * a reload (exploration 0187). The in-memory list stays the live working set;
+   * the buffer is the durability layer.
+   */
+  buffer?: TelemetryBufferStore
+  /**
+   * How long to keep terminal (shared/dismissed) records in the buffer before
+   * pruning. Default: 7 days.
+   */
+  bufferKeepMs?: number
 }
 
 export interface ReportOptions {
@@ -44,11 +57,37 @@ export class TelemetryCollector {
   private defaultMinTier: TelemetryTier
   private records: TelemetryRecord[] = []
   private idCounter = 0
+  private buffer?: TelemetryBufferStore
+  private bufferKeepMs: number
 
   constructor(options: TelemetryCollectorOptions) {
     this.consent = options.consent
     this.scrubOptions = { ...DEFAULT_SCRUB_OPTIONS, ...options.scrubOptions }
     this.defaultMinTier = options.defaultMinTier ?? 'local'
+    this.buffer = options.buffer
+    this.bufferKeepMs = options.bufferKeepMs ?? 7 * 24 * 60 * 60 * 1000
+  }
+
+  /**
+   * Load any durably-buffered records into the live working set. Call once at
+   * startup (after constructing the collector with a `buffer`) so records that
+   * survived a reload are picked back up and can finish syncing. Records already
+   * present in memory are not duplicated. No-op when there is no buffer.
+   */
+  async hydrate(): Promise<void> {
+    if (!this.buffer) return
+    await this.buffer.prune(this.bufferKeepMs)
+    const persisted = await this.buffer.all()
+    const known = new Set(this.records.map((r) => r.id))
+    let maxCounter = this.idCounter
+    for (const record of persisted) {
+      if (known.has(record.id)) continue
+      this.records.push(record)
+      // Keep idCounter ahead of any restored id so new ids never collide.
+      const seq = parseSeq(record.id)
+      if (seq > maxCounter) maxCounter = seq
+    }
+    this.idCounter = maxCounter
   }
 
   /**
@@ -74,13 +113,17 @@ export class TelemetryCollector {
     }
 
     const id = `tel_${++this.idCounter}_${Date.now()}`
-    this.records.push({
+    const record: TelemetryRecord = {
       id,
       schemaId,
       data: processed,
       createdAt: Date.now(),
       status: 'local'
-    })
+    }
+    this.records.push(record)
+    // Mirror to the durable buffer (fire-and-forget; the in-memory list is the
+    // source of truth for the synchronous return value).
+    void this.buffer?.append(record).catch(() => {})
     return id
   }
 
@@ -198,31 +241,41 @@ export class TelemetryCollector {
     const ids = Array.isArray(nodeIds) ? nodeIds : [nodeIds]
     const idSet = new Set(ids)
     this.records = this.records.filter((r) => !idSet.has(r.id))
+    void this.buffer?.remove(ids).catch(() => {})
   }
 
   /** Delete all telemetry records */
   deleteAllTelemetry(): void {
     this.records = []
+    void this.buffer?.clear().catch(() => {})
   }
 
   /** Mark records as approved for sharing */
   approveForSharing(nodeIds: string | string[]): void {
-    const ids = Array.isArray(nodeIds) ? new Set(nodeIds) : new Set([nodeIds])
-    for (const record of this.records) {
-      if (ids.has(record.id)) {
-        record.status = 'pending'
-      }
-    }
+    this.setStatus(nodeIds, 'pending')
   }
 
   /** Dismiss records (won't be shared) */
   dismiss(nodeIds: string | string[]): void {
-    const ids = Array.isArray(nodeIds) ? new Set(nodeIds) : new Set([nodeIds])
+    this.setStatus(nodeIds, 'dismissed')
+  }
+
+  /**
+   * Mark records as successfully shared. Wired to TelemetrySyncProvider's
+   * `markSynced` callback so the durable buffer learns which records left the
+   * device and can prune them later.
+   */
+  markShared(nodeIds: string | string[]): void {
+    this.setStatus(nodeIds, 'shared')
+  }
+
+  private setStatus(nodeIds: string | string[], status: TelemetryRecord['status']): void {
+    const ids = Array.isArray(nodeIds) ? nodeIds : [nodeIds]
+    const idSet = new Set(ids)
     for (const record of this.records) {
-      if (ids.has(record.id)) {
-        record.status = 'dismissed'
-      }
+      if (idSet.has(record.id)) record.status = status
     }
+    void this.buffer?.setStatus(ids, status).catch(() => {})
   }
 
   /** Get count of records by status */
@@ -233,4 +286,10 @@ export class TelemetryCollector {
     }
     return stats
   }
+}
+
+/** Extract the numeric sequence from an id like `tel_<seq>_<ts>` (0 if absent). */
+function parseSeq(id: string): number {
+  const match = /^tel_(\d+)_/.exec(id)
+  return match ? Number(match[1]) : 0
 }
