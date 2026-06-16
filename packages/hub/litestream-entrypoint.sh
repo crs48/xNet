@@ -15,6 +15,10 @@ HUB="node packages/hub/dist/cli.js --port ${PORT} --data ${DATA_DIR}"
 if [ "$LITESTREAM" = "1" ] && [ -f "$CONFIG" ]; then
   echo "[entrypoint] Litestream enabled — restoring ${DATA_DIR}/hub.db from R2 replica"
   litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/hub.db"
+  # Telemetry lives in a SEPARATE DB (exploration 0187). Restore it too when the
+  # operator's litestream.yml replicates it; harmless no-op if it has no replica.
+  echo "[entrypoint] restoring ${DATA_DIR}/telemetry.db from R2 replica (if configured)"
+  litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/telemetry.db"
   echo "[entrypoint] starting hub under litestream replicate -exec"
   exec litestream replicate -config "$CONFIG" -exec "$HUB"
 fi
