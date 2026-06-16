@@ -30,6 +30,7 @@ export interface MetricLike {
   target?: unknown
   polarity?: unknown
   cue?: unknown
+  experiment?: unknown
 }
 
 export interface ObservationLike {
@@ -37,6 +38,7 @@ export interface ObservationLike {
   metric?: unknown
   day?: unknown
   value?: unknown
+  note?: unknown
 }
 
 export function metricName(metric: MetricLike): string {

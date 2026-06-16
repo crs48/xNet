@@ -10,6 +10,7 @@
  * and the route effect in EditorArea reconciles the tab store against
  * the URL. Store actions never call the router.
  */
+import type { ExplorerSort } from './views/explorer-sort'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
@@ -120,9 +121,21 @@ interface WorkbenchState {
    * filing are scoped to this Space. `null` = All (the global, pre-Spaces view).
    */
   currentSpaceId: string | null
+  /**
+   * Multi-select view filter (exploration 0190). Empty = follow
+   * `currentSpaceId`. When non-empty the Explorer list shows the union of these
+   * Spaces, while the create target stays the single `currentSpaceId` primary.
+   */
+  spaceFilter: string[]
+  /** Sort order for the flat Explorer list (exploration 0190). */
+  explorerSort: ExplorerSort
 
   // ─── Spaces ────────────────────────────────────────────────────
   setCurrentSpace: (spaceId: string | null) => void
+  setSpaceFilter: (ids: string[]) => void
+  setExplorerSort: (sort: ExplorerSort) => void
+  /** Set the primary scope and the multi-filter together, atomically. */
+  applyScopeSelection: (scope: string | null, filter: string[]) => void
 
   // ─── Panels ────────────────────────────────────────────────────
   setPanelOpen: (side: PanelSide, open: boolean) => void
@@ -194,8 +207,15 @@ export const useWorkbench = create<WorkbenchState>()(
       shelf: [],
       startupTab: null,
       currentSpaceId: null,
+      spaceFilter: [],
+      explorerSort: 'recent',
 
-      setCurrentSpace: (spaceId) => set({ currentSpaceId: spaceId }),
+      // Setting a single scope always exits multi-select (keeps the create
+      // target unambiguous — exploration 0190).
+      setCurrentSpace: (spaceId) => set({ currentSpaceId: spaceId, spaceFilter: [] }),
+      setSpaceFilter: (ids) => set({ spaceFilter: ids }),
+      setExplorerSort: (sort) => set({ explorerSort: sort }),
+      applyScopeSelection: (scope, filter) => set({ currentSpaceId: scope, spaceFilter: filter }),
 
       setPanelOpen: (side, open) => set((state) => ({ [side]: { ...state[side], open } })),
 

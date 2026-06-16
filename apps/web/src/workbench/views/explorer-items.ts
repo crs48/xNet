@@ -13,6 +13,7 @@ export interface ExplorerItem {
   title: string
   type: ExplorerNodeType
   updatedAt: number
+  createdAt?: number
   folder?: string | null
   sortKey?: string
   tags?: string[]

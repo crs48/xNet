@@ -33,6 +33,7 @@ import {
   Link2,
   Lock,
   type LucideIcon,
+  Pencil,
   User,
   UserPlus,
   Users,
@@ -179,15 +180,144 @@ function RowIcon({ type }: { type: TabNodeType }) {
   return <Icon size={13} className="shrink-0 text-ink-3" />
 }
 
+/** Preset workspace colors for the space header swatch. */
+const SPACE_COLORS = [
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#06b6d4',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899'
+] as const
+
+/**
+ * Manager-only editor for a Space's presentation fields. Previously these were
+ * render-only (the "janky workspace editing" gap, exploration 0190) even though
+ * `updateSpace`/`renameSpace` already supported them.
+ */
+function SpaceSettingsForm({
+  spaceId,
+  name,
+  icon,
+  color,
+  description,
+  onRename,
+  onUpdate,
+  onClose
+}: {
+  spaceId: string
+  name: string
+  icon?: string
+  color?: string
+  description?: string
+  onRename: (spaceId: string, name: string) => Promise<void>
+  onUpdate: (
+    spaceId: string,
+    patch: Partial<{ name: string; description: string; icon: string; color: string }>
+  ) => Promise<void>
+  onClose: () => void
+}) {
+  return (
+    <Section
+      title="Settings"
+      action={
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center gap-1 text-[11px] text-ink-3 transition-colors hover:text-ink-1"
+        >
+          Done
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-3 rounded-md border border-hairline bg-surface-0 p-3">
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] uppercase tracking-wider text-ink-3">Name</span>
+          <input
+            type="text"
+            defaultValue={name}
+            placeholder="Workspace name"
+            className="rounded-md border border-hairline bg-bg-1 px-2 py-1.5 text-sm text-ink-1 outline-none focus:border-ink-3"
+            onBlur={(e) => {
+              const next = e.target.value.trim()
+              if (next && next !== name) void onRename(spaceId, next)
+            }}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] uppercase tracking-wider text-ink-3">Icon (emoji)</span>
+          <input
+            type="text"
+            defaultValue={icon ?? ''}
+            maxLength={4}
+            placeholder="🚀"
+            className="w-20 rounded-md border border-hairline bg-bg-1 px-2 py-1.5 text-center text-lg outline-none focus:border-ink-3"
+            onBlur={(e) => {
+              const next = e.target.value.trim()
+              if (next !== (icon ?? '')) void onUpdate(spaceId, { icon: next })
+            }}
+          />
+        </label>
+
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] uppercase tracking-wider text-ink-3">Color</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {SPACE_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Set color ${c}`}
+                onClick={() => void onUpdate(spaceId, { color: c })}
+                className={`size-6 rounded-full border-2 transition-transform hover:scale-110 ${
+                  color === c ? 'border-ink-1' : 'border-transparent'
+                }`}
+                style={{ background: c }}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => void onUpdate(spaceId, { color: '' })}
+              className={`flex size-6 items-center justify-center rounded-full border-2 text-ink-3 transition-transform hover:scale-110 ${
+                color ? 'border-transparent bg-surface-2' : 'border-ink-1 bg-surface-2'
+              }`}
+              title="No color"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        </div>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] uppercase tracking-wider text-ink-3">Description</span>
+          <textarea
+            defaultValue={description ?? ''}
+            rows={2}
+            placeholder="What is this space for?"
+            className="resize-y rounded-md border border-hairline bg-bg-1 px-2 py-1.5 text-sm text-ink-1 outline-none focus:border-ink-3"
+            onBlur={(e) => {
+              const next = e.target.value.trim()
+              if (next !== (description ?? '')) void onUpdate(spaceId, { description: next })
+            }}
+          />
+        </label>
+      </div>
+    </Section>
+  )
+}
+
 export function SpaceHomeView({ spaceId }: { spaceId: string }) {
   const navigate = useNavigate()
   const { me } = useComms()
   const profiles = useProfiles()
-  const { tree, getSpace, setSpaceVisibility } = useSpaces()
+  const { tree, getSpace, setSpaceVisibility, updateSpace, renameSpace } = useSpaces()
   const { members, setMemberRole, removeMember } = useSpaceMembers(spaceId)
   const { projects, content } = useSpaceContent(spaceId)
   const createInSpace = useCreateInSpace()
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   const space = getSpace(spaceId)
   const subSpaces = useMemo(() => tree.flatMap((n) => collectChildren(n, spaceId)), [tree, spaceId])
@@ -252,16 +382,44 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
           </div>
           {space.description && <p className="m-0 mt-2 text-sm text-ink-2">{space.description}</p>}
         </div>
-        {!isPersonal && (
-          <button
-            type="button"
-            onClick={() => setInviteOpen(true)}
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-hairline bg-accent px-3 py-1.5 text-xs font-medium text-ink-1 transition-colors hover:bg-surface-2"
-          >
-            <UserPlus size={14} strokeWidth={1.5} /> Invite
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              aria-pressed={editing}
+              title="Edit space details"
+              className={`flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-xs font-medium transition-colors hover:bg-surface-2 ${
+                editing ? 'bg-surface-2 text-ink-1' : 'bg-surface-0 text-ink-2'
+              }`}
+            >
+              <Pencil size={14} strokeWidth={1.5} /> Edit
+            </button>
+          )}
+          {!isPersonal && (
+            <button
+              type="button"
+              onClick={() => setInviteOpen(true)}
+              className="flex items-center gap-1.5 rounded-md border border-hairline bg-accent px-3 py-1.5 text-xs font-medium text-ink-1 transition-colors hover:bg-surface-2"
+            >
+              <UserPlus size={14} strokeWidth={1.5} /> Invite
+            </button>
+          )}
+        </div>
       </header>
+
+      {editing && canManage && (
+        <SpaceSettingsForm
+          spaceId={spaceId}
+          name={space.name}
+          icon={space.icon}
+          color={space.color}
+          description={space.description}
+          onRename={renameSpace}
+          onUpdate={updateSpace}
+          onClose={() => setEditing(false)}
+        />
+      )}
 
       {!isPersonal && (
         <Section

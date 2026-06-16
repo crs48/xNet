@@ -9,18 +9,24 @@ import { computeNextTouch, dueForFollowUp, daysUntilTouch } from '@xnetjs/crm'
 import { ContactSchema, OrganizationSchema, PipelineSchema, StageSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
-import { Plus } from 'lucide-react'
+import { Plus, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX } from 'react'
+import { ActivityTimeline } from '../ActivityTimeline'
+import { NodePeek } from '../NodeInspector'
 import { num, relDays, str } from './crm-helpers'
 import { CrmContacts } from './CrmContacts'
+import { CrmForecast } from './CrmForecast'
 import { CrmPipeline } from './CrmPipeline'
+import { ProductsPanel } from './ProductsPanel'
 
-type CrmTab = 'contacts' | 'pipeline' | 'companies' | 'keep'
+type CrmTab = 'contacts' | 'pipeline' | 'forecast' | 'companies' | 'products' | 'keep'
 
 const TABS: Array<{ id: CrmTab; label: string }> = [
   { id: 'contacts', label: 'Contacts' },
   { id: 'pipeline', label: 'Pipeline' },
+  { id: 'forecast', label: 'Forecast' },
   { id: 'companies', label: 'Companies' },
+  { id: 'products', label: 'Products' },
   { id: 'keep', label: 'Keep in touch' }
 ]
 
@@ -97,7 +103,14 @@ export function CrmView(): JSX.Element {
           ) : (
             <p className="p-6 text-xs text-ink-3">Setting up your pipeline…</p>
           ))}
+        {tab === 'forecast' &&
+          (defaultPipeline ? (
+            <CrmForecast pipelineId={defaultPipeline.id} />
+          ) : (
+            <p className="p-6 text-xs text-ink-3">Setting up your pipeline…</p>
+          ))}
         {tab === 'companies' && <CompaniesPanel />}
+        {tab === 'products' && <ProductsPanel />}
         {tab === 'keep' && <KeepInTouchPanel />}
       </div>
     </div>
@@ -114,6 +127,7 @@ function CompaniesPanel(): JSX.Element {
   const { data, loading } = useQuery(OrganizationSchema, { orderBy: { createdAt: 'desc' } })
   const { create, update } = useMutate()
   const orgs = (data ?? []) as OrgRow[]
+  const [peekOrgId, setPeekOrgId] = useState<string | null>(null)
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -134,7 +148,7 @@ function CompaniesPanel(): JSX.Element {
       ) : (
         <ul className="divide-y divide-hairline">
           {orgs.map((o) => (
-            <li key={o.id} className="flex items-center gap-3 py-2">
+            <li key={o.id} className="group flex items-center gap-3 py-2">
               <input
                 defaultValue={str(o.name)}
                 onBlur={(e) => void update(OrganizationSchema, o.id, { name: e.target.value })}
@@ -148,10 +162,50 @@ function CompaniesPanel(): JSX.Element {
                 }
                 className="w-40 border-none bg-transparent text-right text-xs text-ink-3 outline-none"
               />
+              <button
+                type="button"
+                aria-label="Company details"
+                title="Edit all fields"
+                onClick={() => setPeekOrgId(o.id)}
+                className="shrink-0 text-ink-3 opacity-0 transition-opacity hover:text-ink-1 group-hover:opacity-100"
+              >
+                <SlidersHorizontal size={13} strokeWidth={1.5} />
+              </button>
             </li>
           ))}
         </ul>
       )}
+
+      <NodePeek
+        schema={OrganizationSchema}
+        nodeId={peekOrgId ?? ''}
+        open={peekOrgId != null}
+        onClose={() => setPeekOrgId(null)}
+        formOptions={{
+          highlights: ['name', 'domain', 'industry', 'website'],
+          groups: {
+            street: 'Address',
+            city: 'Address',
+            region: 'Address',
+            postalCode: 'Address',
+            country: 'Address',
+            annualRevenue: 'Firmographics',
+            size: 'Firmographics',
+            currency: 'Firmographics'
+          }
+        }}
+        extraPanels={
+          peekOrgId
+            ? [
+                {
+                  id: 'activity',
+                  title: 'Activity',
+                  render: () => <ActivityTimeline aboutId={peekOrgId} />
+                }
+              ]
+            : undefined
+        }
+      />
     </div>
   )
 }

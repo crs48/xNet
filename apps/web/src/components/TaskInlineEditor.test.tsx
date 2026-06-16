@@ -19,7 +19,9 @@ const {
 } = mocks
 
 vi.mock('@xnetjs/react', () => ({
-  useMutate: () => ({ update: mocks.updateMock })
+  useMutate: () => ({ update: mocks.updateMock }),
+  // MilestonePicker (0190) queries milestones; no milestones in these tests.
+  useQuery: () => ({ data: [], loading: false })
 }))
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => mocks.navigateMock

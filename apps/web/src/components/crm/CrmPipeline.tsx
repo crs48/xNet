@@ -16,9 +16,13 @@ import {
 } from '@xnetjs/crm'
 import { DealSchema, StageSchema } from '@xnetjs/data'
 import { useIdentity, useMutate, useQuery } from '@xnetjs/react'
-import { Plus } from 'lucide-react'
-import { useMemo, type JSX } from 'react'
+import { Plus, SlidersHorizontal } from 'lucide-react'
+import { useMemo, useState, type JSX } from 'react'
+import { ActivityTimeline } from '../ActivityTimeline'
+import { NodePeek } from '../NodeInspector'
 import { money, num, str } from './crm-helpers'
+import { DealLineItems } from './DealLineItems'
+import { DealStakeholders } from './DealStakeholders'
 
 interface StageNode {
   id: string
@@ -48,6 +52,7 @@ export function CrmPipeline({ pipelineId }: { pipelineId: string }): JSX.Element
   const { data: dealData } = useQuery(DealSchema, { orderBy: { createdAt: 'desc' } })
   const { create, update } = useMutate()
   const { identity } = useIdentity()
+  const [peekDealId, setPeekDealId] = useState<string | null>(null)
 
   const stages = useMemo(
     () => ((stageData ?? []) as StageNode[]).filter((s) => str(s.pipeline) === pipelineId),
@@ -137,13 +142,24 @@ export function CrmPipeline({ pipelineId }: { pipelineId: string }): JSX.Element
                 {stageDeals.map((deal) => (
                   <div
                     key={deal.id}
-                    className="rounded-sm border border-hairline bg-surface-0 p-2 text-xs"
+                    className="group/card rounded-sm border border-hairline bg-surface-0 p-2 text-xs"
                   >
-                    <input
-                      defaultValue={str(deal.title)}
-                      onBlur={(e) => void update(DealSchema, deal.id, { title: e.target.value })}
-                      className="w-full border-none bg-transparent font-medium text-ink-1 outline-none"
-                    />
+                    <div className="flex items-start gap-1">
+                      <input
+                        defaultValue={str(deal.title)}
+                        onBlur={(e) => void update(DealSchema, deal.id, { title: e.target.value })}
+                        className="w-full border-none bg-transparent font-medium text-ink-1 outline-none"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Deal details"
+                        title="Edit all fields"
+                        onClick={() => setPeekDealId(deal.id)}
+                        className="shrink-0 text-ink-3 opacity-0 transition-opacity hover:text-ink-1 group-hover/card:opacity-100"
+                      >
+                        <SlidersHorizontal size={12} strokeWidth={1.5} />
+                      </button>
+                    </div>
                     <input
                       defaultValue={num(deal.amount) != null ? String(num(deal.amount)) : ''}
                       onBlur={(e) => {
@@ -180,6 +196,47 @@ export function CrmPipeline({ pipelineId }: { pipelineId: string }): JSX.Element
           )
         })}
       </div>
+
+      <NodePeek
+        schema={DealSchema}
+        nodeId={peekDealId ?? ''}
+        open={peekDealId != null}
+        onClose={() => setPeekDealId(null)}
+        formOptions={{
+          highlights: ['title', 'amount', 'stage', 'closeDate', 'forecastCategory'],
+          groups: {
+            org: 'Account',
+            primaryContact: 'Account',
+            owner: 'Ownership',
+            collaborators: 'Ownership',
+            source: 'Attribution',
+            wonAt: 'Outcome',
+            lostAt: 'Outcome',
+            lostReason: 'Outcome'
+          }
+        }}
+        extraPanels={
+          peekDealId
+            ? [
+                {
+                  id: 'stakeholders',
+                  title: 'Stakeholders',
+                  render: () => <DealStakeholders dealId={peekDealId} />
+                },
+                {
+                  id: 'lineitems',
+                  title: 'Line items',
+                  render: () => <DealLineItems dealId={peekDealId} />
+                },
+                {
+                  id: 'activity',
+                  title: 'Activity',
+                  render: () => <ActivityTimeline aboutId={peekDealId} />
+                }
+              ]
+            : undefined
+        }
+      />
     </div>
   )
 }

@@ -12,17 +12,21 @@ import { useNavigate } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { CanvasSchema, DashboardSchema, DatabaseSchema, MapSchema, PageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
-import { ChevronDown, Link as LinkIcon, Plus } from 'lucide-react'
+import { ArrowUpDown, Check, ChevronDown, Link as LinkIcon, Plus } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { AddSharedDialog } from '../../components/AddSharedDialog'
 import { useCreateInSpace } from '../../hooks/useCreateInSpace'
+import { useSpaces } from '../../hooks/useSpaces'
 import { CreateDocMenuItems, navigateToNewDoc, type NavigateLike } from '../../lib/doc-creation'
 import { useWorkbench } from '../state'
 import { filterExplorerItems } from './explorer-filter'
 import { partitionByFolder } from './explorer-folders'
 import { ExplorerFoldersProvider } from './explorer-folders-context'
 import { ExplorerRow, type ExplorerItem, type ExplorerNodeType } from './explorer-rows'
+import { NO_SPACE, isRealSpace, matchesScope } from './explorer-scope'
+import { EXPLORER_SORTS, sortExplorerItems, type ExplorerSort } from './explorer-sort'
 import { ExplorerFoldersSection } from './ExplorerFolderTree'
+import { ExplorerScopeBar } from './ExplorerScopeBar'
 import { ExplorerSpacesSection } from './ExplorerSpacesSection'
 import { ExplorerTagsSection } from './ExplorerTagsSection'
 
@@ -42,34 +46,48 @@ function ExplorerCreateMenu({
   open,
   onToggle,
   onCreate,
-  onAddShared
+  onAddShared,
+  targetName
 }: {
   open: boolean
   onToggle: () => void
   onCreate: (type: ExplorerNodeType) => void
   onAddShared: () => void
+  /** Name of the Space new docs file into, or null when creating unfiled. */
+  targetName: string | null
 }) {
   return (
     <div className="relative">
       <button
         type="button"
         onClick={onToggle}
-        className="flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-hairline bg-surface-0 text-xs text-ink-1 transition-colors hover:bg-accent"
+        className={`flex h-7 w-full cursor-pointer items-center gap-1.5 rounded-md border border-hairline bg-surface-0 text-xs text-ink-1 transition-colors hover:bg-accent ${
+          targetName ? 'justify-start px-2' : 'justify-center'
+        }`}
       >
-        <Plus size={13} strokeWidth={1.5} />
-        New
+        <Plus size={13} strokeWidth={1.5} className="shrink-0" />
+        <span className="shrink-0">New</span>
+        {targetName ? <span className="min-w-0 truncate text-ink-3">in {targetName}</span> : null}
         <ChevronDown
           size={12}
           strokeWidth={1.5}
-          className={`transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`${targetName ? 'ml-auto' : ''} shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (
         <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-md border border-hairline bg-popover py-1">
+          <div className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-ink-3">
+            {targetName ? `Creating in ${targetName}` : 'Not in any workspace'}
+          </div>
           <CreateDocMenuItems
             types={['page', 'database', 'canvas', 'dashboard', 'map', 'lab']}
             onCreate={onCreate}
           />
+          {targetName ? (
+            <p className="m-0 px-3 pt-1 text-[10px] text-ink-3">
+              Dashboards &amp; Labs file after you move them.
+            </p>
+          ) : null}
           <hr className="my-1 border-hairline" />
           <button
             onClick={onAddShared}
@@ -81,6 +99,53 @@ function ExplorerCreateMenu({
         </div>
       )}
     </div>
+  )
+}
+
+/** Compact sort picker for the flat list (exploration 0190). */
+function SortMenu({
+  value,
+  onChange
+}: {
+  value: ExplorerSort
+  onChange: (sort: ExplorerSort) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const current = EXPLORER_SORTS.find((entry) => entry.id === value) ?? EXPLORER_SORTS[0]
+  return (
+    <span className="relative ml-auto">
+      <button
+        type="button"
+        title="Sort list"
+        onClick={() => setOpen((prev) => !prev)}
+        className="inline-flex h-[18px] cursor-pointer items-center gap-0.5 rounded-full border border-hairline px-1.5 text-[10px] text-ink-3 transition-colors hover:text-ink-1"
+      >
+        <ArrowUpDown size={10} />
+        {current.label}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-20 mt-1 w-28 rounded-md border border-hairline bg-popover py-1 shadow-md">
+          {EXPLORER_SORTS.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => {
+                onChange(entry.id)
+                setOpen(false)
+              }}
+              className={`flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-xs hover:bg-accent hover:text-ink-1 ${
+                entry.id === value ? 'text-ink-1' : 'text-ink-2'
+              }`}
+            >
+              <span className="flex w-3 shrink-0 justify-center">
+                {entry.id === value ? <Check size={11} /> : null}
+              </span>
+              {entry.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
   )
 }
 
@@ -132,6 +197,7 @@ interface ExplorerDocShape {
   id: string
   title?: string
   updatedAt?: number
+  createdAt?: number
   folder?: string
   sortKey?: string
   tags?: string[]
@@ -141,17 +207,20 @@ interface ExplorerDocShape {
 function collectItems(
   docs: ExplorerDocShape[] | undefined | null,
   type: ExplorerNodeType,
-  spaceScope: string | null
+  spaceScope: string | null,
+  spaceFilter: string[]
 ): ExplorerItem[] {
   return (
     (docs ?? [])
-      // When a Space is active, show only its content; `null` = all (exploration 0181).
-      .filter((doc) => spaceScope === null || (doc.space ?? '') === spaceScope)
+      // Scope: a single Space, the No-workspace bucket, or a multi-Space view
+      // filter (exploration 0190); `null` + empty filter = All.
+      .filter((doc) => matchesScope(doc.space, spaceScope, spaceFilter))
       .map((doc) => ({
         id: doc.id,
         title: doc.title ?? '',
         type,
         updatedAt: doc.updatedAt ?? 0,
+        createdAt: doc.createdAt ?? 0,
         folder: doc.folder ?? null,
         sortKey: doc.sortKey,
         tags: doc.tags
@@ -168,26 +237,29 @@ function useExplorerItems(): ExplorerItem[] {
   const { data: dashboards } = useQuery(DashboardSchema, options)
   const { data: maps } = useQuery(MapSchema, options)
   const spaceScope = useWorkbench((s) => s.currentSpaceId)
+  const spaceFilter = useWorkbench((s) => s.spaceFilter)
 
   return useMemo<ExplorerItem[]>(
     () =>
       [
-        ...collectItems(pages, 'page', spaceScope),
-        ...collectItems(databases, 'database', spaceScope),
-        ...collectItems(canvases, 'canvas', spaceScope),
-        ...collectItems(dashboards, 'dashboard', spaceScope),
-        ...collectItems(maps, 'map', spaceScope)
+        ...collectItems(pages, 'page', spaceScope, spaceFilter),
+        ...collectItems(databases, 'database', spaceScope, spaceFilter),
+        ...collectItems(canvases, 'canvas', spaceScope, spaceFilter),
+        ...collectItems(dashboards, 'dashboard', spaceScope, spaceFilter),
+        ...collectItems(maps, 'map', spaceScope, spaceFilter)
       ].sort((a, b) => b.updatedAt - a.updatedAt),
-    [pages, databases, canvases, dashboards, maps, spaceScope]
+    [pages, databases, canvases, dashboards, maps, spaceScope, spaceFilter]
   )
 }
 
 function VirtualizedItemList({
   items,
-  pinnedNodeIds
+  pinnedNodeIds,
+  emptyMessage = 'No items'
 }: {
   items: ExplorerItem[]
   pinnedNodeIds: string[]
+  emptyMessage?: string
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
@@ -200,7 +272,7 @@ function VirtualizedItemList({
   return (
     <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-1">
       {items.length === 0 ? (
-        <p className="mt-6 text-center text-xs text-ink-3">No items</p>
+        <p className="mt-6 text-center text-xs text-ink-3">{emptyMessage}</p>
       ) : (
         <div
           style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
@@ -237,7 +309,8 @@ function ExplorerSections({
   listItems,
   pinnedItems,
   recentItems,
-  pinnedNodeIds
+  pinnedNodeIds,
+  listEmptyMessage
 }: {
   filterActive: boolean
   allItems: ExplorerItem[]
@@ -245,6 +318,7 @@ function ExplorerSections({
   pinnedItems: ExplorerItem[]
   recentItems: ExplorerItem[]
   pinnedNodeIds: string[]
+  listEmptyMessage: string
 }) {
   return (
     <div className="min-h-0 flex-1 overflow-hidden">
@@ -254,7 +328,11 @@ function ExplorerSections({
         {!filterActive && <ExplorerFoldersSection pinnedNodeIds={pinnedNodeIds} />}
         {!filterActive && <ExplorerTagsSection items={allItems} />}
         <SectionLabel>{filterActive ? 'Results' : 'Unfiled'}</SectionLabel>
-        <VirtualizedItemList items={listItems} pinnedNodeIds={pinnedNodeIds} />
+        <VirtualizedItemList
+          items={listItems}
+          pinnedNodeIds={pinnedNodeIds}
+          emptyMessage={listEmptyMessage}
+        />
       </div>
     </div>
   )
@@ -269,17 +347,31 @@ export function Explorer() {
   const pinnedNodeIds = useWorkbench((state) => state.pinnedNodeIds)
   const recents = useWorkbench((state) => state.recents)
   const currentSpaceId = useWorkbench((state) => state.currentSpaceId)
+  const explorerSort = useWorkbench((state) => state.explorerSort)
+  const setExplorerSort = useWorkbench((state) => state.setExplorerSort)
+  const { getSpace } = useSpaces()
   const createInSpace = useCreateInSpace()
+
+  // The Space new docs file into (null = All / No-workspace → unfiled).
+  const createTarget = isRealSpace(currentSpaceId) ? getSpace(currentSpaceId) : null
 
   const allItems = useExplorerItems()
   const byId = useMemo(() => new Map(allItems.map((item) => [item.id, item])), [allItems])
 
   const filterActive = filter !== 'all' || search.trim() !== ''
   const unfiled = useMemo(() => partitionByFolder(allItems).unfiled, [allItems])
-  const listItems = useMemo(
-    () => (filterActive ? filterExplorerItems(allItems, filter, search) : unfiled),
-    [filterActive, allItems, filter, search, unfiled]
-  )
+  const listItems = useMemo(() => {
+    const base = filterActive ? filterExplorerItems(allItems, filter, search) : unfiled
+    return sortExplorerItems(base, explorerSort)
+  }, [filterActive, allItems, filter, search, unfiled, explorerSort])
+
+  const listEmptyMessage = filterActive
+    ? 'No matches'
+    : createTarget
+      ? `Nothing in ${createTarget.name} yet`
+      : currentSpaceId === NO_SPACE
+        ? 'Nothing outside a workspace'
+        : 'No items'
 
   const pinnedItems = useMemo(
     () => pinnedNodeIds.map((id) => byId.get(id)).filter((item): item is ExplorerItem => !!item),
@@ -298,8 +390,8 @@ export function Explorer() {
 
   const handleCreate = (type: ExplorerNodeType) => {
     setShowCreateMenu(false)
-    // When a Space is active, new docs are filed into it (exploration 0181).
-    if (currentSpaceId) {
+    // File into the active Space; All / No-workspace create unfiled (0190).
+    if (isRealSpace(currentSpaceId)) {
       void createInSpace(type, currentSpaceId)
       return
     }
@@ -309,6 +401,8 @@ export function Explorer() {
   return (
     <ExplorerFoldersProvider items={allItems}>
       <div className="flex h-full min-h-0 flex-col">
+        {/* Workspace scope — persistent, always visible (exploration 0190) */}
+        <ExplorerScopeBar />
         {/* Tools */}
         <div className="flex flex-col gap-2 border-b border-hairline p-2">
           <ExplorerCreateMenu
@@ -319,6 +413,7 @@ export function Explorer() {
               setShowCreateMenu(false)
               setShowAddSharedDialog(true)
             }}
+            targetName={createTarget?.name ?? null}
           />
           <input
             type="text"
@@ -327,7 +422,7 @@ export function Explorer() {
             placeholder="Filter…"
             className="h-6 w-full rounded-sm border border-hairline bg-surface-0 px-2 text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
           />
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             {TYPE_FILTERS.map((entry) => (
               <button
                 key={entry.id}
@@ -342,6 +437,7 @@ export function Explorer() {
                 {entry.label}
               </button>
             ))}
+            <SortMenu value={explorerSort} onChange={setExplorerSort} />
           </div>
         </div>
 
@@ -352,6 +448,7 @@ export function Explorer() {
           pinnedItems={pinnedItems}
           recentItems={recentItems}
           pinnedNodeIds={pinnedNodeIds}
+          listEmptyMessage={listEmptyMessage}
         />
 
         <AddSharedDialog

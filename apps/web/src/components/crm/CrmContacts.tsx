@@ -16,8 +16,10 @@ import {
 } from '@xnetjs/data'
 import { useIdentity, useMutate, useQuery } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
-import { CalendarClock, Plus } from 'lucide-react'
+import { CalendarClock, Plus, SlidersHorizontal } from 'lucide-react'
 import { useState, type JSX } from 'react'
+import { NodePeek } from '../NodeInspector'
+import { ContactTools } from './ContactTools'
 import { num, relDays, str } from './crm-helpers'
 
 const ACTIVITY_KIND_OPTIONS: Array<{ id: ActivityKind; label: string }> = [
@@ -60,6 +62,7 @@ export function CrmContacts(): JSX.Element {
             <Plus size={14} strokeWidth={1.5} />
           </button>
         </div>
+        <ContactTools contacts={contacts} />
         <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">
           {loading ? (
             <p className="px-2 text-xs text-ink-3">Loading…</p>
@@ -129,6 +132,7 @@ function ContactDetail({ contactId }: { contactId: string }): JSX.Element {
 
   const [composerKind, setComposerKind] = useState<ActivityKind>('note')
   const [composerText, setComposerText] = useState('')
+  const [allFieldsOpen, setAllFieldsOpen] = useState(false)
 
   if (!contact) return <p className="p-6 text-xs text-ink-3">Loading…</p>
 
@@ -179,11 +183,32 @@ function ContactDetail({ contactId }: { contactId: string }): JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <input
-        defaultValue={str(contact.displayName)}
-        onBlur={(e) => commit({ displayName: e.target.value })}
-        placeholder="Name"
-        className="w-full border-none bg-transparent text-xl font-semibold text-ink-1 outline-none"
+      <div className="flex items-center gap-2">
+        <input
+          defaultValue={str(contact.displayName)}
+          onBlur={(e) => commit({ displayName: e.target.value })}
+          placeholder="Name"
+          className="flex-1 border-none bg-transparent text-xl font-semibold text-ink-1 outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => setAllFieldsOpen(true)}
+          title="Edit all fields"
+          className="flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1 text-xs text-ink-2 hover:bg-accent hover:text-ink-1"
+        >
+          <SlidersHorizontal size={13} strokeWidth={1.5} /> All fields
+        </button>
+      </div>
+
+      <NodePeek
+        schema={ContactSchema}
+        nodeId={contactId}
+        open={allFieldsOpen}
+        onClose={() => setAllFieldsOpen(false)}
+        formOptions={{
+          highlights: ['displayName', 'email', 'phone', 'title'],
+          groups: { firstName: 'Name', lastName: 'Name' }
+        }}
       />
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
