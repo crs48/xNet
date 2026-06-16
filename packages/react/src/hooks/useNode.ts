@@ -222,6 +222,11 @@ function hasSyncManagerSetter(
  */
 const pendingFlushes = new Map<string, Promise<void>>()
 
+/** High-resolution clock with a Date.now fallback for non-DOM runtimes. */
+function nowMs(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now()
+}
+
 /**
  * Load a Node with its CRDT document.
  *
@@ -301,6 +306,10 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   storeRef.current = store
   const dataRef = useRef<FlatNode<P> | null>(null)
   dataRef.current = data
+  // Wall-clock duration of the most recent document load (acquireDoc + local
+  // content), surfaced to devtools so the local-first first-paint latency is
+  // measurable on a real load (exploration 0188). Not read per render.
+  const loadDurationRef = useRef(0)
 
   // Query tracking for devtools
   const queryIdRef = useRef(
@@ -340,6 +349,11 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     setError(null)
     setWasCreated(false)
     setSyncError(null)
+
+    // Measure the full local load (node read + acquireDoc + local content). With
+    // local-first acquisition this should be low single-digit ms regardless of
+    // hub state (exploration 0188); surfaced to devtools via recordUpdate below.
+    const loadStartedAt = nowMs()
 
     try {
       // Await any in-flight flush from a previous unmount to ensure
@@ -502,6 +516,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
     } finally {
+      loadDurationRef.current = Math.max(0, nowMs() - loadStartedAt)
       setLoading(false)
     }
   }, [store, isReady, id, schemaId, hasDocument, syncManager, disableSync])
@@ -1100,10 +1115,18 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     return unsubscribe
   }, [store, id, schemaId])
 
-  // Report updates to devtools whenever data changes
+  // Report updates to devtools whenever data changes. The first post-load report
+  // carries the measured local load latency (exploration 0188); we then clear it
+  // so subsequent data-change reports don't re-attribute the same timing.
   useEffect(() => {
     if (!instrumentation?.queryTracker || !id || loading) return
-    instrumentation.queryTracker.recordUpdate(queryIdRef.current, data ? 1 : 0, 0)
+    instrumentation.queryTracker.recordUpdate(
+      queryIdRef.current,
+      data ? 1 : 0,
+      loadDurationRef.current,
+      { source: 'local' }
+    )
+    loadDurationRef.current = 0
   }, [data, instrumentation, id, loading])
 
   return {

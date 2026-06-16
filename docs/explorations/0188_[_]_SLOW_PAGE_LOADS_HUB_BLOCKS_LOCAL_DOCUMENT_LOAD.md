@@ -526,12 +526,16 @@ performance.getEntriesByType('resource').filter(e => e.name.includes('hub'))
       by two new tests (timeout fires → error → reconnect, abandoned socket can't
       flip connected; healthy open doesn't trip the timeout)
       ([connection-manager.ts](../../packages/runtime/src/sync/connection-manager.ts)).
-- [ ] **P4 (optional):** In `useNode`, apply local `storedContent` before/around
-      the acquire await so the body never waits on the network ([useNode.ts:426-435](../../packages/react/src/hooks/useNode.ts)).
-- [ ] Consider lowering the 5 s subscription timeout (C2) only if P1 is deferred
-      ([connection-manager.ts:338](../../packages/runtime/src/sync/connection-manager.ts)).
-- [ ] Add a `console.time`/devtools timing around `acquireDoc` to capture
-      before/after numbers on a real load.
+- [x] **P4:** With P1, `acquireDoc` already returns the local doc before any hub
+      round-trip and `useNode` applies local `storedContent` immediately after,
+      so the body never waits on the network. Added wall-clock timing of the full
+      local load, surfaced to devtools via `recordUpdate(renderTime)` so the
+      first-paint latency is measurable on a real load ([useNode.ts](../../packages/react/src/hooks/useNode.ts)).
+- [~] Lowering the 5 s subscription timeout (C2) is unnecessary now that P1 moved
+      the wait off the critical path — left as-is to preserve catch-up sync
+      behavior ([connection-manager.ts](../../packages/runtime/src/sync/connection-manager.ts)).
+- [x] Added a deterministic benchmark proving acquire latency is independent of a
+      slow/unconfirmed hub (see Tests + benchmarks below).
 
 ## Validation Checklist
 
