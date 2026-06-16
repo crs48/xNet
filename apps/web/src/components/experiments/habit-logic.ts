@@ -30,6 +30,7 @@ export interface MetricLike {
   target?: unknown
   polarity?: unknown
   cue?: unknown
+  experiment?: unknown
 }
 
 export interface ObservationLike {
