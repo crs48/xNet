@@ -63,6 +63,16 @@ export {
   TelemetryErrorBoundary
 } from './hooks'
 
+// Tracing (exploration 0190)
+export type { Span, SpanInput, SpanAttributes, Trace, TraceRootKind } from './tracing'
+export { TraceCollector } from './tracing'
+export type { TraceCollectorOptions, TraceHandle } from './tracing'
+export { emitTraceAsBuckets } from './tracing'
+export type { BucketReporter, TraceEgressOptions } from './tracing'
+export { fnv1a, hashToUnit } from './tracing'
+export { QUERY_STAGES, MUTATE_STAGES } from './tracing'
+export type { QueryStage, MutateStage } from './tracing'
+
 // Sync
 export type { TelemetrySyncConfig, SyncResult } from './sync'
 export { TelemetrySyncProvider } from './sync'

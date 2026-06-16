@@ -45,6 +45,7 @@ import { isTempId } from '@xnetjs/data'
 import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react'
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
+import { useTracingReporter, TRACE_STAGES } from '../context/tracing-context'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
 
 // =============================================================================
@@ -257,6 +258,7 @@ export interface UseMutateResult {
 export function useMutate(): UseMutateResult {
   const bridge = useDataBridge()
   const telemetry = useTelemetryReporter()
+  const tracing = useTracingReporter()
 
   // Pending state is tracked subscription-on-read: the snapshot only
   // reflects what the component actually read on a previous render
@@ -309,15 +311,20 @@ export function useMutate(): UseMutateResult {
     ): Promise<FlatNode<P> | null> => {
       if (!bridge) return null
       const start = telemetry ? Date.now() : 0
+      const trace = tracing?.startTrace('mutate', 'mutate:create')
       try {
         const result = await withPending(async () => {
+          const endBridge = trace?.mark(TRACE_STAGES.mutateBridge)
           const node = await bridge.create(schema, data, id)
+          endBridge?.()
           return flattenNode<P>(node)
         })
         telemetry?.reportPerformance('react.useMutate.create', Date.now() - start)
         telemetry?.reportUsage('react.useMutate.create.success', 1)
+        trace?.end()
         return result
       } catch (err) {
+        trace?.end()
         telemetry?.reportUsage('react.useMutate.create.failure', 1)
         telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
           codeNamespace: 'react.useMutate.create'
@@ -325,7 +332,7 @@ export function useMutate(): UseMutateResult {
         throw err
       }
     },
-    [bridge, telemetry, withPending]
+    [bridge, telemetry, tracing, withPending]
   )
 
   // Update an existing node (type-safe)
@@ -337,15 +344,20 @@ export function useMutate(): UseMutateResult {
     ): Promise<FlatNode<P> | null> => {
       if (!bridge) return null
       const start = telemetry ? Date.now() : 0
+      const trace = tracing?.startTrace('mutate', 'mutate:update')
       try {
         const result = await withPending(async () => {
+          const endBridge = trace?.mark(TRACE_STAGES.mutateBridge)
           const node = await bridge.update(id, data as Record<string, unknown>)
+          endBridge?.()
           return flattenNode<P>(node)
         })
         telemetry?.reportPerformance('react.useMutate.update', Date.now() - start)
         telemetry?.reportUsage('react.useMutate.update.success', 1)
+        trace?.end()
         return result
       } catch (err) {
+        trace?.end()
         telemetry?.reportUsage('react.useMutate.update.failure', 1)
         telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
           codeNamespace: 'react.useMutate.update',
@@ -354,7 +366,7 @@ export function useMutate(): UseMutateResult {
         throw err
       }
     },
-    [bridge, telemetry, withPending]
+    [bridge, telemetry, tracing, withPending]
   )
 
   // Delete a node
@@ -362,13 +374,18 @@ export function useMutate(): UseMutateResult {
     async (id: string): Promise<void> => {
       if (!bridge) return
       const start = telemetry ? Date.now() : 0
+      const trace = tracing?.startTrace('mutate', 'mutate:delete')
       try {
         await withPending(async () => {
+          const endBridge = trace?.mark(TRACE_STAGES.mutateBridge)
           await bridge.delete(id)
+          endBridge?.()
         })
         telemetry?.reportPerformance('react.useMutate.delete', Date.now() - start)
         telemetry?.reportUsage('react.useMutate.delete.success', 1)
+        trace?.end()
       } catch (err) {
+        trace?.end()
         telemetry?.reportUsage('react.useMutate.delete.failure', 1)
         telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
           codeNamespace: 'react.useMutate.delete',
@@ -377,7 +394,7 @@ export function useMutate(): UseMutateResult {
         throw err
       }
     },
-    [bridge, telemetry, withPending]
+    [bridge, telemetry, tracing, withPending]
   )
 
   // Restore a deleted node
@@ -385,15 +402,20 @@ export function useMutate(): UseMutateResult {
     async (id: string): Promise<FlatNode<Record<string, PropertyBuilder>> | null> => {
       if (!bridge) return null
       const start = telemetry ? Date.now() : 0
+      const trace = tracing?.startTrace('mutate', 'mutate:restore')
       try {
         const result = await withPending(async () => {
+          const endBridge = trace?.mark(TRACE_STAGES.mutateBridge)
           const node = await bridge.restore(id)
+          endBridge?.()
           return flattenNode<Record<string, PropertyBuilder>>(node)
         })
         telemetry?.reportPerformance('react.useMutate.restore', Date.now() - start)
         telemetry?.reportUsage('react.useMutate.restore.success', 1)
+        trace?.end()
         return result
       } catch (err) {
+        trace?.end()
         telemetry?.reportUsage('react.useMutate.restore.failure', 1)
         telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
           codeNamespace: 'react.useMutate.restore',
@@ -402,7 +424,7 @@ export function useMutate(): UseMutateResult {
         throw err
       }
     },
-    [bridge, telemetry, withPending]
+    [bridge, telemetry, tracing, withPending]
   )
 
   // Execute a transaction via DataBridge.transaction when the bridge supports
@@ -412,64 +434,72 @@ export function useMutate(): UseMutateResult {
       if (!bridge || ops.length === 0) return null
 
       const start = telemetry ? Date.now() : 0
+      const trace = tracing?.startTrace('mutate', 'mutate:transaction')
       try {
         const result = await withPending(async () => {
-          const canUseTransactions = typeof bridge.transaction === 'function'
-          const usesTempIds = hasTempIdsInOps(ops)
+          const endBridge = trace?.mark(TRACE_STAGES.mutateBridge)
+          try {
+            const canUseTransactions = typeof bridge.transaction === 'function'
+            const usesTempIds = hasTempIdsInOps(ops)
 
-          if (usesTempIds && !canUseTransactions) {
-            throw new Error(
-              'Temp IDs in useMutate.mutate() require a transaction-capable bridge (DataBridge.transaction). ' +
-                'Current bridge executes operations sequentially and cannot resolve temp IDs.'
-            )
-          }
-
-          if (canUseTransactions) {
-            const tx = await bridge.transaction!(toTransactionOperations(ops))
-            return {
-              results: tx.results,
-              batchId: tx.batchId,
-              tempIds: tx.tempIds
+            if (usesTempIds && !canUseTransactions) {
+              throw new Error(
+                'Temp IDs in useMutate.mutate() require a transaction-capable bridge (DataBridge.transaction). ' +
+                  'Current bridge executes operations sequentially and cannot resolve temp IDs.'
+              )
             }
-          }
 
-          const results: (NodeState | null)[] = []
-
-          for (const op of ops) {
-            switch (op.type) {
-              case 'create': {
-                const node = await bridge.create(
-                  op.schema,
-                  op.data as Record<string, unknown>,
-                  op.id
-                )
-                results.push(node)
-                break
-              }
-              case 'update': {
-                const node = await bridge.update(op.id, op.data)
-                results.push(node)
-                break
-              }
-              case 'delete': {
-                await bridge.delete(op.id)
-                results.push(null)
-                break
-              }
-              case 'restore': {
-                const node = await bridge.restore(op.id)
-                results.push(node)
-                break
+            if (canUseTransactions) {
+              const tx = await bridge.transaction!(toTransactionOperations(ops))
+              return {
+                results: tx.results,
+                batchId: tx.batchId,
+                tempIds: tx.tempIds
               }
             }
-          }
 
-          return { results }
+            const results: (NodeState | null)[] = []
+
+            for (const op of ops) {
+              switch (op.type) {
+                case 'create': {
+                  const node = await bridge.create(
+                    op.schema,
+                    op.data as Record<string, unknown>,
+                    op.id
+                  )
+                  results.push(node)
+                  break
+                }
+                case 'update': {
+                  const node = await bridge.update(op.id, op.data)
+                  results.push(node)
+                  break
+                }
+                case 'delete': {
+                  await bridge.delete(op.id)
+                  results.push(null)
+                  break
+                }
+                case 'restore': {
+                  const node = await bridge.restore(op.id)
+                  results.push(node)
+                  break
+                }
+              }
+            }
+
+            return { results }
+          } finally {
+            endBridge?.()
+          }
         })
         telemetry?.reportPerformance('react.useMutate.transaction', Date.now() - start)
         telemetry?.reportUsage('react.useMutate.transaction.success', 1)
+        trace?.end()
         return result
       } catch (err) {
+        trace?.end()
         telemetry?.reportUsage('react.useMutate.transaction.failure', 1)
         telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
           codeNamespace: 'react.useMutate.transaction',
@@ -478,7 +508,7 @@ export function useMutate(): UseMutateResult {
         throw err
       }
     },
-    [bridge, telemetry, withPending]
+    [bridge, telemetry, tracing, withPending]
   )
 
   const bulk = useCallback(

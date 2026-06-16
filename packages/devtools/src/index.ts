@@ -14,6 +14,8 @@ export interface XNetDevToolsProviderProps {
   position?: 'bottom' | 'right' | 'floating'
   height?: number
   maxEvents?: number
+  /** TraceCollector instance for the Traces panel (exploration 0190). Ignored in production. */
+  traceCollector?: unknown
 }
 
 /**

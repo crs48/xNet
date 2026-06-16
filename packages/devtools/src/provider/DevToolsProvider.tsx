@@ -29,6 +29,7 @@ import { DevToolsEventBus } from '../core/event-bus'
 import { QueryTracker } from '../instrumentation/query'
 import { instrumentChangeFeed, instrumentStore } from '../instrumentation/store'
 import { instrumentTelemetry } from '../instrumentation/telemetry'
+import { instrumentTracing, type TraceCollectorLike } from '../instrumentation/tracing'
 import { instrumentYDoc } from '../instrumentation/yjs'
 import { DevToolsPanel } from '../panels/Shell'
 import {
@@ -234,6 +235,8 @@ export interface XNetDevToolsProviderProps {
   telemetryCollector?: any
   /** ConsentManager instance for telemetry panel instrumentation */
   consentManager?: any
+  /** TraceCollector instance for the Traces panel (exploration 0190) */
+  traceCollector?: TraceCollectorLike
   /** Optional storage durability status supplied by the host app */
   storageDurability?: StorageDurabilityInfo | null
   /** Floating action button offset from the bottom-right corner */
@@ -286,6 +289,7 @@ function loadStoredPanel(defaultPanel: PanelId): PanelId {
       'authz',
       'abuse',
       'queries',
+      'traces',
       'telemetry',
       'schemas',
       'schema-history',
@@ -320,6 +324,7 @@ export function XNetDevToolsProvider({
   maxEvents = DEFAULTS.MAX_EVENTS,
   telemetryCollector,
   consentManager,
+  traceCollector,
   storageDurability = null,
   fabInitialOffset = { x: 16, y: 16 }
 }: XNetDevToolsProviderProps) {
@@ -420,6 +425,19 @@ export function XNetDevToolsProvider({
       cleanupsRef.current = cleanupsRef.current.filter((fn) => fn !== cleanup)
     }
   }, [telemetryCollector, consentManager])
+
+  // Set up tracing instrumentation when a TraceCollector is available (0190)
+  useEffect(() => {
+    if (!traceCollector) return
+
+    const cleanup = instrumentTracing(traceCollector, busRef.current)
+    cleanupsRef.current.push(cleanup)
+
+    return () => {
+      cleanup()
+      cleanupsRef.current = cleanupsRef.current.filter((fn) => fn !== cleanup)
+    }
+  }, [traceCollector])
 
   // Cleanup all instrumentation on unmount
   useEffect(() => {

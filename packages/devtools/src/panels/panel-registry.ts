@@ -8,6 +8,7 @@ export const DEVTOOLS_PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'authz', label: 'AuthZ' },
   { id: 'abuse', label: 'Abuse' },
   { id: 'queries', label: 'Queries' },
+  { id: 'traces', label: 'Traces' },
   { id: 'telemetry', label: 'Telemetry' },
   { id: 'schemas', label: 'Schemas' },
   { id: 'schema-history', label: 'Schema Hist' },

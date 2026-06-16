@@ -26,6 +26,7 @@ import { SQLitePanel } from './SQLitePanel/SQLitePanel'
 import { useSQLiteStatus } from './SQLitePanel/useSQLitePanel'
 import { SyncMonitor } from './SyncMonitor/SyncMonitor'
 import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
+import { TracesPanel } from './TracesPanel/TracesPanel'
 import { VersionPanel } from './VersionPanel/VersionPanel'
 import { YjsInspector } from './YjsInspector/YjsInspector'
 
@@ -141,6 +142,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <YjsInspector />
     case 'queries':
       return <QueryDebugger />
+    case 'traces':
+      return <TracesPanel />
     case 'authz':
       return <AuthZPanel />
     case 'abuse':
