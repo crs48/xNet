@@ -269,6 +269,20 @@ export {
 export { ExternalReferenceSchema, type ExternalReference } from './schemas'
 export { MediaAssetSchema, type MediaAsset } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
+export {
+  MapSchema,
+  type Map,
+  type MapBasemapId,
+  type MapViewport,
+  type MapLayerGeometry,
+  type MapLayerStyle,
+  type MapLayerSource,
+  type MapLayerSpec,
+  type GeoPosition,
+  type GeoGeometry,
+  type GeoFeature,
+  type GeoFeatureCollection
+} from './schemas'
 export { CommentSchema, type Comment } from './schemas'
 export { ReactionSchema, type Reaction } from './schemas'
 export { ProfileSchema, type Profile } from './schemas'
