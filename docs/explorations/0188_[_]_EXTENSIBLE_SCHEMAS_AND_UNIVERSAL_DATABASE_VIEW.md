@@ -590,8 +590,10 @@ const members = await Promise.all(
 ## Implementation Checklist
 
 - [ ] **Layer 1 — Universal view**
-  - [ ] Add `schemaToGridFields(schema)` adapter (mirror of
+  - [x] Add `schemaToGridFields(schema)` adapter (mirror of
         `fieldsToStoredColumns`) so any `Schema` yields `GridField[]`.
+        → `packages/views/src/grid/schema-to-grid-fields.ts` (carries
+        `readonly`, unwraps `ext:` labels, resolves select options).
   - [ ] Add a node-backed data source for `GridSurface` driven by
         `useQuery(schema, options)` (rows = nodes, cells = node properties).
   - [ ] Extend `DatabaseView` (or a new `/data` mode) with a **schema/database
