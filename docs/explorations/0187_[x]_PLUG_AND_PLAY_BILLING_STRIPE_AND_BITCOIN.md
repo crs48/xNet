@@ -18,12 +18,12 @@ words:
 And critically: **not just Stripe.** The same seam should accept **Bitcoin**
 (self-hosted, no-KYC, via BTCPay Server / Lightning) so that the billing rail
 matches xNet's decentralization ethos. This must land in the **open-source MIT
-repository** — a feature of the hub itself, usable by anyone — *not* locked
+repository** — a feature of the hub itself, usable by anyone — _not_ locked
 behind the FSL-licensed `@xnetjs/cloud` control plane.
 
 The question this exploration answers: **what is the smallest, most secure,
 genuinely plug-and-play billing layer we can build into the hub + hooks, that is
-provider-agnostic (Stripe *and* Bitcoin) and that turns billing state into
+provider-agnostic (Stripe _and_ Bitcoin) and that turns billing state into
 first-class, reactive xNet data?**
 
 The short answer: a new MIT package **`@xnetjs/billing`** defining a
@@ -33,7 +33,7 @@ DID-scoped read endpoint, a SQLite mirror table) modeled directly on the
 proven [Stripe Sync Engine](https://github.com/supabase/stripe-sync-engine)
 pattern; and a **`useBilling()` hook** that reads it. Start with the secret key
 **server-side only** (the user's "keys on the client" instinct needs one
-correction — only the *publishable* key is ever client-side), and grow the
+correction — only the _publishable_ key is ever client-side), and grow the
 client surface from a fetch-hook into full node-sync once the server-authored
 node path exists.
 
@@ -43,15 +43,15 @@ node path exists.
    license for this.** `@xnetjs/cloud/billing`
    (`packages/cloud/src/billing/`) is **FSL-1.1**, and it is **usage-metering**
    billing (Stripe Billing Meters: token-usage → marked-up USD → meter event),
-   built for xNet's *own* managed cloud. It is not subscription/checkout billing,
+   built for xNet's _own_ managed cloud. It is not subscription/checkout billing,
    and the hub is **forbidden** from importing it (the `check:cloud-boundary`
-   ESLint rule). So we reuse its *patterns* (idempotent ledger, `verifyWebhook`,
+   ESLint rule). So we reuse its _patterns_ (idempotent ledger, `verifyWebhook`,
    the port/adapter shape) but must re-implement them MIT-side.
 
 2. **The hub is already a Hono server with a working webhook precedent.** The
    GitHub webhook in `packages/hub/src/routes/tasks.ts` reads the raw body,
    verifies an HMAC signature, parses, and dispatches. A Stripe/BTCPay webhook is
-   the *exact same shape*. The hub also already loads secrets from env
+   the _exact same shape_. The hub also already loads secrets from env
    (`packages/hub/src/config.ts`), owns a SQLite store
    (`packages/hub/src/storage/sqlite.ts`), and authenticates clients by DID via
    UCAN. Every seam billing needs already exists.
@@ -82,10 +82,10 @@ node path exists.
    `Payment`/credit concept.
 
 6. **One correction to the brief:** the **secret key never goes on the client.**
-   Only the *publishable* key (`pk_…`) is client-side (it can only create
-   tokens, not move money). The *secret* key (`sk_…`) and the *webhook signing
-   secret* (`whsec_…`) live **only in the hub**. Checkout sessions are created
-   *by the hub* (secret-key call) and the client just redirects to the returned
+   Only the _publishable_ key (`pk_…`) is client-side (it can only create
+   tokens, not move money). The _secret_ key (`sk_…`) and the _webhook signing
+   secret_ (`whsec_…`) live **only in the hub**. Checkout sessions are created
+   _by the hub_ (secret-key call) and the client just redirects to the returned
    URL. This keeps the app out of PCI scope and out of key-leak risk.
 
 ## Current State In The Repository
@@ -108,12 +108,14 @@ in `packages/hub/src/server.ts`. The relevant existing pieces:
   app.post('/github/webhook', async (c) => {
     const secret = options.githubWebhookSecret
     if (!secret) return c.json({ error: 'GitHub integration is not configured' }, 503)
-    const rawBody = await c.req.text()                       // raw body BEFORE JSON parse
+    const rawBody = await c.req.text() // raw body BEFORE JSON parse
     const signature = c.req.header('x-hub-signature-256')
-    if (!verifyWebhookSignature(secret, rawBody, signature)) // HMAC verify
+    if (!verifyWebhookSignature(secret, rawBody, signature))
+      // HMAC verify
       return c.json({ error: 'Invalid webhook signature' }, 401)
     const actions = processGithubEvent(c.req.header('x-github-event') ?? '', JSON.parse(rawBody))
-    if (actions.length && options.applyAutomationActions) await options.applyAutomationActions(actions)
+    if (actions.length && options.applyAutomationActions)
+      await options.applyAutomationActions(actions)
     return c.json({ ok: true, actions: actions.length })
   })
   ```
@@ -121,6 +123,7 @@ in `packages/hub/src/server.ts`. The relevant existing pieces:
   A Stripe webhook is the identical shape — read raw body, verify
   `stripe-signature`, dispatch by `event.type`. BTCPay is the same with an
   `InvoiceSettled` event and a store-webhook HMAC.
+
 - **Auth by DID** — `packages/hub/src/auth/ucan.ts` exposes
   `authenticateHttpRequest()`, used by a `requireAuth` middleware in `server.ts`
   to gate routes. A `GET /billing/me` read endpoint reuses it directly:
@@ -132,7 +135,7 @@ in `packages/hub/src/server.ts`. The relevant existing pieces:
 - **Dockerfile** — `packages/hub/Dockerfile` already injects runtime env; new
   secrets are operator configuration, no code change.
 
-### The existing (FSL, metering) Stripe code we must *not* import
+### The existing (FSL, metering) Stripe code we must _not_ import
 
 `packages/cloud/src/billing/` — licensed **FSL-1.1-Apache-2.0**
 (`packages/cloud/package.json` → `"license": "FSL-1.1-Apache-2.0"`,
@@ -146,20 +149,21 @@ in `packages/hub/src/server.ts`. The relevant existing pieces:
 
 This is **usage-based metering** for xNet's own cloud, not general
 subscription/checkout billing. And the **boundary is enforced**: an ESLint rule
-+ `check:cloud-boundary` CI step forbid the hub (and any MIT package) from
-importing `@xnetjs/cloud`. The hub's `package.json` depends only on the MIT
-`@xnetjs/entitlements`.
+
+- `check:cloud-boundary` CI step forbid the hub (and any MIT package) from
+  importing `@xnetjs/cloud`. The hub's `package.json` depends only on the MIT
+  `@xnetjs/entitlements`.
 
 ### The entitlements contract — the licensing-clean precedent to copy
 
-`packages/entitlements` (**MIT**, zero external deps) is the *only* billing-ish
+`packages/entitlements` (**MIT**, zero external deps) is the _only_ billing-ish
 thing the hub already imports. `packages/entitlements/src/plans.ts` defines a
 `PlanId` catalog (`demo`→`enterprise`) and `PlanEntitlements`
 (`quotaBytes`, `maxConnections`, `seats`, `aiEnabled`, `sla`…), and
 `entitlements.ts` signs/verifies entitlement tokens the hub reads **locally**
 (anti-lock-in). This is the exact licensing shape `@xnetjs/billing` should
 follow — **MIT, dependency-light, hub-importable** — and there's a natural
-integration: *an active paid subscription mints entitlements*.
+integration: _an active paid subscription mints entitlements_.
 
 ### The hook + provider system a `useBilling` hook plugs into
 
@@ -216,7 +220,7 @@ described — already battle-tested:
 **Lesson for xNet:** don't invent a billing model from scratch. Mirror the
 provider's objects into a small canonical table/schema + a raw JSON blob, driven
 by webhooks, with a backfill path. The xNet twist is that "our own schema" can
-be *nodes that sync to the client*, not just server rows.
+be _nodes that sync to the client_, not just server rows.
 
 ### Stripe webhook security & subscription best practices
 
@@ -235,7 +239,7 @@ From Stripe's docs and practitioner guides
   `invoice.payment_failed`. For SaaS, `invoice.paid` is the primary
   "access-granting" event (covers both first charge and renewals).
 - **Out-of-order delivery:** Stripe does **not** guarantee event order; the
-  robust pattern is to treat the event as a *signal* and, for critical objects,
+  robust pattern is to treat the event as a _signal_ and, for critical objects,
   refetch the current object from the API (or accept the object only if newer).
 
 ### Bitcoin / Lightning — BTCPay Server vs hosted (OpenNode)
@@ -252,12 +256,12 @@ thematic and practical fit:
 - **OpenNode** (hosted) — 1% fee (free on Lightning), instant settlement, fiat
   settlement and compliance support, **but** counterparty risk + KYC.
 - **LNbits / Lightning addresses / BOLT12 offers** — lighter-weight Lightning
-  options; BOLT12 offers in particular enable *recurring*-ish payments.
+  options; BOLT12 offers in particular enable _recurring_-ish payments.
 
 **Key structural difference from Stripe:** Lightning/Bitcoin has **no native
 subscription primitive**. Recurring revenue is modeled as repeated invoices, a
 prepaid **credit/top-up balance**, or BOLT12 recurrence. The canonical model
-must therefore support *both* `Subscription` (Stripe-native) and
+must therefore support _both_ `Subscription` (Stripe-native) and
 `Payment`/credit (Bitcoin-native) shapes. This is the crux of making one
 `useBilling()` cover both rails honestly rather than pretending Bitcoin is
 Stripe.
@@ -266,7 +270,7 @@ Stripe.
 
 [Hook0](https://www.blog.brightcoding.dev/2025/08/10/hook0-the-open-source-webhook-server-that-lets-your-app-speak-to-the-world/)
 and Hookdeck show the broader "webhook gateway" ecosystem, but for xNet the hub
-*is* the webhook receiver — we don't need an external gateway, just signature
+_is_ the webhook receiver — we don't need an external gateway, just signature
 verification + idempotency + a durable store, all of which the hub already has
 primitives for.
 
@@ -274,7 +278,7 @@ primitives for.
 
 1. **Every seam already exists in the hub.** Hono routing, a raw-body HMAC
    webhook precedent, env-based secrets, DID auth middleware, and a SQLite store.
-   Billing is *additive wiring*, not new infrastructure.
+   Billing is _additive wiring_, not new infrastructure.
 
 2. **Reuse patterns, not code, from `@xnetjs/cloud/billing`.** The license
    boundary is real and CI-enforced. `verifyWebhook`, the idempotent ledger, and
@@ -283,12 +287,12 @@ primitives for.
 
 3. **The user's "our own schema" instinct is the Stripe Sync Engine pattern**,
    and it's the right one. The differentiator: xNet can make that schema
-   *reactive nodes that sync to the owner*, so `useBilling()` updates live with
+   _reactive nodes that sync to the owner_, so `useBilling()` updates live with
    no polling.
 
 4. **The secret-key-on-client idea must be corrected.** Publishable key →
    client; secret + webhook secret → hub only; checkout sessions created by the
-   hub. This is both more secure and *simpler* (the app never touches the Stripe
+   hub. This is both more secure and _simpler_ (the app never touches the Stripe
    SDK's money-moving surface).
 
 5. **The hard architectural unknown is server-authored, user-readable nodes.**
@@ -323,11 +327,11 @@ flowchart TB
     end
 ```
 
-| Option | Pros | Cons | Verdict |
-|---|---|---|---|
-| **A — Hub tables + REST** | Simplest; exact Sync-Engine model; secret stays server-side; no CRDT/identity work; ships in days | Billing isn't in the node/query/offline/graph model; separate read path; no offline cache | **Ship first (MVP)** |
-| **B — Server-authored nodes** | Fully unified: billing is queryable, offline-cached, reactive, shows in dashboards/graph for free | Needs a **new server-authoritative write+grant path** (doesn't exist); encryption-recipient computation; system-DID key mgmt; must guarantee client can't *write* | **Aspirational** |
-| **C — Hybrid projection** | Authoritative server tables **and** node-native client surface; REST always works, nodes when available | Projection shim is net-new; two representations to keep consistent | **Target architecture** |
+| Option                        | Pros                                                                                                    | Cons                                                                                                                                                              | Verdict                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| **A — Hub tables + REST**     | Simplest; exact Sync-Engine model; secret stays server-side; no CRDT/identity work; ships in days       | Billing isn't in the node/query/offline/graph model; separate read path; no offline cache                                                                         | **Ship first (MVP)**    |
+| **B — Server-authored nodes** | Fully unified: billing is queryable, offline-cached, reactive, shows in dashboards/graph for free       | Needs a **new server-authoritative write+grant path** (doesn't exist); encryption-recipient computation; system-DID key mgmt; must guarantee client can't _write_ | **Aspirational**        |
+| **C — Hybrid projection**     | Authoritative server tables **and** node-native client surface; REST always works, nodes when available | Projection shim is net-new; two representations to keep consistent                                                                                                | **Target architecture** |
 
 ### Package placement + licensing
 
@@ -351,7 +355,7 @@ flowchart LR
 
 - **New MIT `@xnetjs/billing`** — `PaymentProvider` port, canonical schemas,
   Stripe + BTCPay adapters, webhook normalizers, idempotent ledger. Hub-safe.
-- The FSL `@xnetjs/cloud` stays as-is (usage metering). It *may* later consume
+- The FSL `@xnetjs/cloud` stays as-is (usage metering). It _may_ later consume
   `@xnetjs/billing`, never the reverse. The boundary check is unchanged.
 - Optional tie-in: `@xnetjs/billing` depends on `@xnetjs/entitlements` so an
   active subscription can mint a `PlanEntitlements` token the hub already knows
@@ -375,14 +379,14 @@ flowchart TB
 The port normalizes both rails into the same canonical events. Stripe maps
 cleanly to `Subscription`; BTCPay maps to `Payment`/credit and (optionally)
 synthesizes a `Subscription` from recurring invoices. Apps pick a provider by
-config; advanced apps can offer *both* at checkout.
+config; advanced apps can offer _both_ at checkout.
 
 ### Checkout flow — who creates the session
 
 Recommended: **hub-created checkout** (secret key never leaves the server). The
 client calls an authenticated `POST /billing/checkout`; the hub creates the
 Stripe Checkout Session / BTCPay invoice (stamping the caller's DID into
-metadata — *server-set, never client-trusted*) and returns the redirect URL.
+metadata — _server-set, never client-trusted_) and returns the redirect URL.
 Alternative (Stripe Elements with the publishable key + a hub-created
 PaymentIntent) is available later for embedded UIs, but redirect-to-hosted is
 the zero-PCI, zero-friction default.
@@ -395,9 +399,9 @@ shipped as Option A first and evolved toward Option C.** Concretely:
 1. **`@xnetjs/billing` (MIT, hub-safe).** Define the `PaymentProvider` port, the
    canonical billing model (`Customer`, `Subscription`, `Invoice`, `Payment`,
    `Price`/plan, each with `provider`, `externalRef`, and a raw JSON blob à la
-   Sync Engine), an idempotent ledger, webhook-normalizers, and **StripeProvider
-   + BTCPayProvider** adapters. Re-implement `verifyWebhook`/ledger MIT-side
-   (don't import the FSL cloud package).
+   Sync Engine), an idempotent ledger, webhook-normalizers, and \*\*StripeProvider
+   - BTCPayProvider\*\* adapters. Re-implement `verifyWebhook`/ledger MIT-side
+     (don't import the FSL cloud package).
 
 2. **Hub billing service + routes.** `packages/hub/src/services/billing.ts` +
    `packages/hub/src/routes/billing.ts`, mounted in `server.ts`. Endpoints:
@@ -442,8 +446,8 @@ decision we shouldn't block the MVP on.
 export type ProviderId = 'stripe' | 'btcpay' | 'opennode'
 
 export interface CheckoutRequest {
-  did: DID                 // server-set into provider metadata; NEVER from client body
-  priceRef: string         // provider price/plan id, or a sats amount for BTCPay
+  did: DID // server-set into provider metadata; NEVER from client body
+  priceRef: string // provider price/plan id, or a sats amount for BTCPay
   successUrl: string
   cancelUrl: string
   mode: 'subscription' | 'payment'
@@ -460,10 +464,14 @@ export interface PaymentProvider {
 
 // Canonical, provider-agnostic shape (also the schema shape if/when nodes land)
 export interface Subscription {
-  id: string; did: DID; provider: ProviderId; externalRef: string
+  id: string
+  did: DID
+  provider: ProviderId
+  externalRef: string
   status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete'
-  priceRef: string; currentPeriodEnd: number | null
-  raw: unknown            // full provider object — JSONB-style fidelity
+  priceRef: string
+  currentPeriodEnd: number | null
+  raw: unknown // full provider object — JSONB-style fidelity
   updatedAt: number
 }
 export type BillingMutation =
@@ -478,7 +486,10 @@ export type BillingMutation =
 // packages/billing/src/providers/stripe.ts  (MIT)
 import Stripe from 'stripe'
 
-export function createStripeProvider(cfg: { secretKey: string; webhookSecret: string }): PaymentProvider {
+export function createStripeProvider(cfg: {
+  secretKey: string
+  webhookSecret: string
+}): PaymentProvider {
   const stripe = new Stripe(cfg.secretKey)
   return {
     id: 'stripe',
@@ -486,9 +497,10 @@ export function createStripeProvider(cfg: { secretKey: string; webhookSecret: st
       const s = await stripe.checkout.sessions.create({
         mode: req.mode,
         line_items: [{ price: req.priceRef, quantity: 1 }],
-        success_url: req.successUrl, cancel_url: req.cancelUrl,
-        client_reference_id: req.did,            // server-stamped DID
-        metadata: { did: req.did },              // tamper-proof binding
+        success_url: req.successUrl,
+        cancel_url: req.cancelUrl,
+        client_reference_id: req.did, // server-stamped DID
+        metadata: { did: req.did } // tamper-proof binding
       })
       return { url: s.url!, externalRef: s.id }
     },
@@ -501,19 +513,34 @@ export function createStripeProvider(cfg: { secretKey: string; webhookSecret: st
         case 'customer.subscription.updated':
         case 'customer.subscription.deleted': {
           const s = event.data.object as Stripe.Subscription
-          return [{ kind: 'subscription', data: {
-            id: s.id, did: (s.metadata.did ?? '') as DID, provider: 'stripe', externalRef: s.id,
-            status: s.status as Subscription['status'], priceRef: s.items.data[0]?.price.id ?? '',
-            currentPeriodEnd: s.current_period_end * 1000, raw: s, updatedAt: Date.now(),
-          } }]
+          return [
+            {
+              kind: 'subscription',
+              data: {
+                id: s.id,
+                did: (s.metadata.did ?? '') as DID,
+                provider: 'stripe',
+                externalRef: s.id,
+                status: s.status as Subscription['status'],
+                priceRef: s.items.data[0]?.price.id ?? '',
+                currentPeriodEnd: s.current_period_end * 1000,
+                raw: s,
+                updatedAt: Date.now()
+              }
+            }
+          ]
         }
-        default: return []
+        default:
+          return []
       }
     },
     async getPortalUrl(customerRef, returnUrl) {
-      const p = await stripe.billingPortal.sessions.create({ customer: customerRef, return_url: returnUrl })
+      const p = await stripe.billingPortal.sessions.create({
+        customer: customerRef,
+        return_url: returnUrl
+      })
       return { url: p.url }
-    },
+    }
   }
 }
 ```
@@ -528,12 +555,15 @@ export function createBillingRoutes(deps: BillingDeps): Hono {
   app.post('/webhook/:provider', async (c) => {
     const provider = deps.providers[c.req.param('provider')]
     if (!provider) return c.json({ error: 'provider not configured' }, 503)
-    const rawBody = await c.req.text()                          // raw, like tasks.ts
+    const rawBody = await c.req.text() // raw, like tasks.ts
     let event
-    try { event = await provider.verifyWebhook(rawBody, Object.fromEntries(c.req.raw.headers)) }
-    catch { return c.json({ error: 'invalid signature' }, 401) }
-    if (await deps.store.seenEvent(event.id)) return c.json({ received: true })  // idempotency
-    for (const m of provider.normalize(event)) await deps.store.upsert(m)        // DB sync
+    try {
+      event = await provider.verifyWebhook(rawBody, Object.fromEntries(c.req.raw.headers))
+    } catch {
+      return c.json({ error: 'invalid signature' }, 401)
+    }
+    if (await deps.store.seenEvent(event.id)) return c.json({ received: true }) // idempotency
+    for (const m of provider.normalize(event)) await deps.store.upsert(m) // DB sync
     await deps.store.markSeen(event.id)
     return c.json({ received: true })
   })
@@ -541,15 +571,16 @@ export function createBillingRoutes(deps: BillingDeps): Hono {
   app.post('/checkout', deps.requireAuth, async (c) => {
     const { priceRef, provider = 'stripe' } = await c.req.json()
     const { url } = await deps.providers[provider].createCheckout({
-      did: c.get('auth').did,                                   // server-trusted DID
-      priceRef, mode: 'subscription',
-      successUrl: deps.appUrl + '/billing/ok', cancelUrl: deps.appUrl + '/billing/cancel',
+      did: c.get('auth').did, // server-trusted DID
+      priceRef,
+      mode: 'subscription',
+      successUrl: deps.appUrl + '/billing/ok',
+      cancelUrl: deps.appUrl + '/billing/cancel'
     })
     return c.json({ url })
   })
 
-  app.get('/me', deps.requireAuth, async (c) =>
-    c.json(await deps.store.forDid(c.get('auth').did)))         // DID-scoped read only
+  app.get('/me', deps.requireAuth, async (c) => c.json(await deps.store.forDid(c.get('auth').did))) // DID-scoped read only
   return app
 }
 ```
@@ -564,19 +595,23 @@ export function useBilling(): UseBillingResult {
 
   useEffect(() => {
     if (!hubUrl) return
-    const es = new EventSource(`${billingConfig.apiBase}/billing/me/stream`)  // or poll GET /billing/me
+    const es = new EventSource(`${billingConfig.apiBase}/billing/me/stream`) // or poll GET /billing/me
     es.onmessage = (e) => setState({ loading: false, ...JSON.parse(e.data) })
     return () => es.close()
   }, [hubUrl, billingConfig.apiBase])
 
-  const openCheckout = useCallback(async (priceRef: string) => {
-    const token = await getHubAuthToken?.()
-    const res = await fetch(`${billingConfig.apiBase}/billing/checkout`, {
-      method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ priceRef }),
-    })
-    window.location.href = (await res.json()).url
-  }, [getHubAuthToken, billingConfig.apiBase])
+  const openCheckout = useCallback(
+    async (priceRef: string) => {
+      const token = await getHubAuthToken?.()
+      const res = await fetch(`${billingConfig.apiBase}/billing/checkout`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ priceRef })
+      })
+      window.location.href = (await res.json()).url
+    },
+    [getHubAuthToken, billingConfig.apiBase]
+  )
 
   return {
     subscription: state.subscription ?? null,
@@ -584,7 +619,7 @@ export function useBilling(): UseBillingResult {
     plan: state.subscription?.priceRef ?? null,
     loading: state.loading,
     openCheckout,
-    openPortal: state.portalUrl ? () => (window.location.href = state.portalUrl!) : undefined,
+    openPortal: state.portalUrl ? () => (window.location.href = state.portalUrl!) : undefined
   }
 }
 ```
@@ -654,7 +689,7 @@ sequenceDiagram
 
 - **Server-authoritative, user-readable nodes (Option B/C) don't exist yet.**
   This is the gating unknown. Needs a "hub system identity" (a DID + key the hub
-  authors with) plus a grant/recipient model so a user can *read but not write*
+  authors with) plus a grant/recipient model so a user can _read but not write_
   their billing nodes, and the encryption layer can produce a copy they can
   decrypt. Until then, Option A's REST read is the honest path.
 - **Secret handling.** `STRIPE_SECRET_KEY` / `whsec_…` / BTCPay keys must be
@@ -684,73 +719,82 @@ sequenceDiagram
   lazy import and the port so a BTC-only or self-host-only operator doesn't pay
   for it.
 - **Relationship to `@xnetjs/cloud/billing`.** Avoid confusion/overlap: cloud =
-  *usage metering for xNet's own product*; `@xnetjs/billing` = *general
-  subscription/checkout billing for any app*. Document the split; optionally let
+  _usage metering for xNet's own product_; `@xnetjs/billing` = _general
+  subscription/checkout billing for any app_. Document the split; optionally let
   cloud consume the new package later.
 
 ## Implementation Checklist
 
-- [ ] Create **`packages/billing`** (MIT) with `package.json`, `tsconfig`,
-      vitest project wiring, and a `LICENSE`/README; add to
-      `pnpm-workspace.yaml` and root `vitest.config.ts` aliases.
-- [ ] Define the **`PaymentProvider` port** + canonical model
-      (`Customer`/`Subscription`/`Invoice`/`Payment`/`Price`, each with
-      `provider`, `externalRef`, `raw`) in `packages/billing/src/`.
-- [ ] Implement **`createStripeProvider`** (checkout, `verifyWebhook`,
-      `normalize`, portal) and a **`FakeProvider`** for keyless tests.
-- [ ] Implement **`createBTCPayProvider`** (Greenfield invoice create, store
-      webhook verify, `InvoiceSettled` → `Payment`/credit normalize).
-- [ ] Implement an **idempotent event ledger** (MIT re-impl of the
-      `cloud/billing` ledger pattern) keyed by provider event id.
-- [ ] Add **`billing_*` tables** to `packages/hub/src/storage/sqlite.ts` and
-      extend the `HubStorage` interface (`upsert`, `forDid`, `seenEvent`,
-      `markSeen`).
-- [ ] Add **billing config** to `packages/hub/src/config.ts`
-      (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `BTCPAY_*`,
-      `XNET_BILLING_PROVIDER`).
-- [ ] Add **`packages/hub/src/services/billing.ts`** + **`routes/billing.ts`**
-      (`/webhook/:provider`, `/checkout`, `/me`, `/me/stream`, `/portal`),
-      reusing `requireAuth`; mount in `packages/hub/src/server.ts`.
-- [ ] Add **`useBilling()`** in `packages/react/src/hooks/useBilling.ts`; export
+Shipped in the implementation PR (as-built notes where it diverged from the plan):
+
+- [x] Create **`packages/billing`** (MIT) with `package.json`, `tsconfig`,
+      README; wired into root `vitest.config.ts` (alias + `unit` glob). No own
+      `LICENSE` file (matches `@xnetjs/entitlements`); workspace auto-discovers
+      `packages/*`.
+- [x] Define the **`PaymentProvider` port** + canonical model
+      (`Customer`/`Subscription`/`Invoice`/`Payment`, money in integer minor
+      units; `Price` modeled as a `priceRef` string, not an entity).
+- [x] Implement **`createStripeProvider`** (checkout, signature-verified
+      `parseWebhook`, `normalize`, portal) and a **`FakeProvider`** for keyless
+      tests. Webhook verification is local HMAC (`verifyStripeSignature`), no SDK.
+- [x] Implement **`createBtcpayProvider`** (Greenfield invoice create,
+      `BTCPay-Sig` verify, `InvoiceSettled` → `Payment` normalize).
+- [x] **Idempotent event dedup** — folded into the `BillingStore`
+      (`hasSeenEvent`/`markEventSeen`) rather than a separate ledger object.
+- [x] Add **`billing_*` tables** — implemented as a separate durable
+      `SqliteBillingStore` over its own `billing.db`
+      (`packages/hub/src/services/billing-store.ts`), following the telemetry-db
+      precedent, instead of extending the core `HubStorage`.
+- [x] Add **billing config** — `billingProviderFromEnv()` in `@xnetjs/billing`
+      reads `XNET_BILLING_PROVIDER` / `STRIPE_*` / `BTCPAY_*`; resolved at the
+      `server.ts` mount (the GitHub-webhook precedent), not `config.ts`.
+- [x] Add **`routes/billing.ts`** (`/webhook`, `/checkout`, `/me`, `/portal`),
+      reusing `requireAuth`; mounted in `packages/hub/src/server.ts`. Single
+      configured provider (not `/webhook/:provider`); `/me/stream` deferred — v1
+      uses fetch + `reload()`.
+- [x] Add **`useBilling()`** in `packages/react/src/hooks/useBilling.ts`; export
       from `packages/react/src/index.ts`; extend `XNetConfig`/`XNetContext` with
-      `billing` (publishable key + `apiBase`).
+      `billing` (`apiBase` + publishable key — secret never client-side).
 - [ ] Wire an **entitlements tie-in**: on `subscription.active`, mint a
-      `PlanEntitlements` token via `@xnetjs/entitlements`.
-- [ ] **Docs**: a "Add billing in 5 minutes" page (hub env + provider dashboard
-      webhook URL + the `useBilling` snippet) under `site/`/`docs/`.
+      `PlanEntitlements` token via `@xnetjs/entitlements`. _(deferred follow-up)_
+- [x] **Docs**: [`docs/guides/add-billing.md`](../guides/add-billing.md) — hub
+      env + webhook URL + the `useBilling` snippet, Stripe + Bitcoin + fake.
 - [ ] **(Phase 2 / follow-up)** spec the server-authored read-only node path and
       the Option C projection shim; open a follow-up exploration for the "hub
-      system identity" decision.
+      system identity" decision. _(deferred)_
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter @xnetjs/billing test` passes with the **`FakeProvider`** (no
-      real keys), covering normalize + idempotency + out-of-order events.
-- [ ] **Signature rejection**: a webhook with a bad/absent signature returns 401
-      and writes nothing.
-- [ ] **Idempotency**: replaying the same Stripe `event.id` produces no
-      duplicate rows.
-- [ ] **DID scoping**: user A's `GET /billing/me` never returns user B's
-      subscription/invoices (authz test).
-- [ ] **Secret hygiene**: a grep/CI check confirms no `sk_`/`whsec_`/BTCPay key
-      is referenced in any client/`apps/web` bundle; only `pk_` reaches the
-      client.
-- [ ] **End-to-end Stripe (test mode)**: `openCheckout` → Stripe test card →
-      webhook → `useBilling().isActive` flips to `true` reactively (Stripe CLI
-      `stripe listen --forward-to localhost:4444/billing/webhook/stripe`).
-- [ ] **End-to-end BTCPay (testnet/regtest)**: create invoice → pay over
-      Lightning → `InvoiceSettled` webhook → balance/credit updates.
-- [ ] **`check:cloud-boundary` + ESLint** still pass — `@xnetjs/billing` and the
-      hub import **no** `@xnetjs/cloud` code; `@xnetjs/billing` stays MIT and
-      dependency-light.
-- [ ] **Portal**: `openPortal()` returns a working Stripe customer-portal URL for
-      a subscribed user.
-- [ ] **Fallow/quality gate** green; new package wired into CI (lint, types,
-      tests, build).
+- [x] `@xnetjs/billing` tests pass with the **`FakeProvider`** (no real keys):
+      normalize + idempotency + LWW upserts + signature paths (38 unit tests).
+- [x] **Signature rejection**: a webhook with a bad/absent signature returns 401
+      and writes nothing (hub route test + provider tests).
+- [x] **Idempotency**: replaying the same `event.id` is a no-op (store +
+      `processWebhook` tests; durable `SqliteBillingStore` test).
+- [x] **DID scoping**: `GET /billing/me` returns only the caller's own records
+      (hub route test; store scoping tests).
+- [x] **Secret hygiene** _(design-enforced)_: only the publishable key is ever
+      client-side; `useBilling` uses a **type-only** import from `@xnetjs/billing`
+      so no `node:crypto`/adapter code reaches the browser bundle. _(No dedicated
+      CI grep added.)_
+- [ ] **End-to-end Stripe (test mode, real keys)** via the Stripe CLI. _(deferred
+      — needs a real account; simulated end-to-end is covered by signed-payload
+      tests through `processWebhook`.)_
+- [ ] **End-to-end BTCPay (regtest)** with a live node. _(deferred — needs a
+      BTCPay instance; simulated end-to-end covered in tests.)_
+- [x] **`check:cloud-boundary` + ESLint** pass — `@xnetjs/billing` is MIT,
+      zero-runtime-dep, imports **no** `@xnetjs/cloud`; the hub imports only
+      `@xnetjs/billing`.
+- [x] **Portal**: `/billing/portal` returns the provider portal URL for a
+      customer, 404s without one, 503s when unsupported (hub route tests).
+- [x] **Fallow/quality gate** green — `fallow audit --changed-since origin/main`
+      passes (no new complexity/duplication findings); typecheck + lint green;
+      package wired into the `unit` vitest project.
 
 ## References
 
 ### Codebase
+
 - `packages/hub/src/routes/tasks.ts` — existing raw-body HMAC webhook precedent (GitHub)
 - `packages/hub/src/server.ts`, `packages/hub/src/config.ts` — route mounting + env-based secrets
 - `packages/hub/src/auth/ucan.ts` — `authenticateHttpRequest()` / `requireAuth` (DID auth)
@@ -767,6 +811,7 @@ sequenceDiagram
 - `docs/explorations/0176_[_]_TESTABLE_CLOUD_INTEGRATIONS_WITHOUT_API_KEYS.md` — keyless-testing patterns (`FakeProvider`)
 
 ### External
+
 - [Stripe Sync Engine (supabase → stripe, Apache-2.0)](https://github.com/supabase/stripe-sync-engine) — webhook→DB mirror pattern
 - [Stripe Sync Engine as a standalone library](https://supabase.com/blog/stripe-engine-as-sync-library) — incremental sync + JSONB storage + CLI
 - [We're transferring the Stripe Sync Engine to Stripe](https://supabase.com/blog/stripe-sync-engine-transfer)
