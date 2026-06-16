@@ -29,17 +29,17 @@ The short answer: xNet already has ~80% of the machinery. There is a mature
 **client** plugin system (`@xnetjs/plugins`, 17 working contribution points), a
 production **trust-tier + sandbox** stack (`packages/labs` runtime ladder +
 `packages/dashboard` SES/Worker/iframe widget tiers), and the importers are
-*already* a uniform adapter registry. Three things are genuinely missing, and
+_already_ a uniform adapter registry. Three things are genuinely missing, and
 they are the spine of this exploration:
 
 1. A **two-sided (client + hub) plugin contract** — today plugins are
-   client-only, main-thread; billing/GitHub need a *hub half* (webhook routes,
+   client-only, main-thread; billing/GitHub need a _hub half_ (webhook routes,
    secret-key calls) that no plugin abstraction covers.
 2. A **unified capability manifest** that folds the existing trust tiers,
    sandbox tiers, and 0006's permission model into one MetaMask-Snaps-style
    "endowments" declaration.
-3. **Registries to replace hardcoded mounting** — a client *route* registry
-   (web routing is file-based today) and a hub *feature* registry (every route
+3. **Registries to replace hardcoded mounting** — a client _route_ registry
+   (web routing is file-based today) and a hub _feature_ registry (every route
    is a hand-written `app.route(...)` in `server.ts`).
 
 This is the natural successor to two existing explorations:
@@ -59,9 +59,9 @@ that makes first-party features ride the same rails as community plugins.**
 
 2. **Security is mostly solved — and unusually good.** xNet already runs
    untrusted widget code in a **three-tier sandbox**
-   (`packages/dashboard/src/sandbox/`): *first-party* (host realm), *user* (SES
+   (`packages/dashboard/src/sandbox/`): _first-party_ (host realm), _user_ (SES
    `Compartment` inside a Web Worker, endowments limited to `console`/`JSON`/
-   `Math`), *marketplace* (sandboxed `iframe sandbox="allow-scripts"`, opaque
+   `Math`), _marketplace_ (sandboxed `iframe sandbox="allow-scripts"`, opaque
    origin, postMessage props-in/SafeNodes-out). Trust tiers are **derived from
    provenance, never self-declared**, and **synced nodes re-confirm on the
    receiver** (`packages/labs/src/trust.ts`). This is the same model MetaMask
@@ -77,16 +77,16 @@ that makes first-party features ride the same rails as community plugins.**
 4. **The importers are already plugins in disguise.**
    `packages/social/src/importers/registry.ts` is a uniform
    `SocialImportAdapter` registry (`detect`/`probe`/`stage`) with 8 live + 5
-   planned adapters. Pulling them out as installable plugins is the *easiest*
+   planned adapters. Pulling them out as installable plugins is the _easiest_
    first migration and the best reference example.
 
 5. **"Everything is a plugin" is a spectrum, not a binary.** The WordPress
-   lesson: *"plugins are not second-class — many core features are implemented
-   through the same hooks system."* Recommend the same: make first-party
+   lesson: _"plugins are not second-class — many core features are implemented
+   through the same hooks system."_ Recommend the same: make first-party
    features **bundled feature modules that ride the plugin rails but ship
    non-uninstallable**, rather than chasing literally-removable documents/canvas/
    tasks (which buys little and costs perf, stability, and a much larger API
-   surface). Canvas already *defines* `canvasCards`/`canvasTools`/`canvasIngestors`
+   surface). Canvas already _defines_ `canvasCards`/`canvasTools`/`canvasIngestors`
    contribution points but **does not consume them yet** — closing that gap is
    the highest-value dogfooding step.
 
@@ -94,7 +94,7 @@ that makes first-party features ride the same rails as community plugins.**
    `contributes` + `hub` features + declared `capabilities`/endowments + trust
    tier), add a **client route registry** and a **hub feature registry**, then
    migrate importers → billing → GitHub onto it as bundled modules, and wire
-   0047's marketplace on top. Hub-side *community* code stays first-party/vetted
+   0047's marketplace on top. Hub-side _community_ code stays first-party/vetted
    only until a server isolate story (QuickJS/WASM/Workers-style) is justified;
    client community code rides the existing tiered sandbox immediately.
 
@@ -131,7 +131,7 @@ that makes first-party features ride the same rails as community plugins.**
 `packages/plugins/src/services/{mcp-server,local-api,process-manager,webhook-emitter}.ts`
 (exported via `@xnetjs/plugins/node`) are real, but they run in the **Electron
 main process / standalone Node**, never in the hub. So "background services"
-exist, but not as *hub* extensibility.
+exist, but not as _hub_ extensibility.
 
 ### The trust + sandbox stack (the security foundation)
 
@@ -141,8 +141,8 @@ exist, but not as *hub* extensibility.
 - `packages/labs/src/runtime/ladder.ts` — runtime ladder selecting by
   `(language, tier)`: **SES Compartment**, **QuickJS-WASM** (memory cap +
   interrupt handler, sync-only), **iframe ("app")**, **Pyodide**, **server**.
-  Invariant: deterministic rungs only for computed/`onView` code; *even SES
-  cannot interrupt a synchronous busy loop* — only Worker termination can.
+  Invariant: deterministic rungs only for computed/`onView` code; _even SES
+  cannot interrupt a synchronous busy loop_ — only Worker termination can.
 - `packages/dashboard/src/sandbox/` — the widget tiers in production:
   `compartment.ts` (`lockdown()` + `Compartment({ globals:{console,JSON,Math} })`
   in a Worker), `UserWidgetHost.tsx`, `IframeWidgetHost.tsx` (marketplace tier,
@@ -150,16 +150,16 @@ exist, but not as *hub* extensibility.
 
 ### The integrations to extract (three different shapes)
 
-| Integration | Client surface | Hub surface | Secrets | Schemas owned |
-|---|---|---|---|---|
-| **Billing** (`packages/billing`) | `useBilling()` hook, `XNetConfig.billing` | `routes/billing.ts` (`/webhook`,`/checkout`,`/me`,`/portal`) + `services/billing-store.ts` (`billing.db`) | `STRIPE_*` / `BTCPAY_*` (hub env) | `Customer`/`Subscription`/`Invoice`/`Payment` |
-| **GitHub** | none (webhook-driven) | `routes/tasks.ts` `/github/webhook` + `services/github-integration.ts` (`applyAutomationActions`) | `HUB_GITHUB_WEBHOOK_SECRET` | none (mutates `Task`/`ExternalReference`) |
-| **Social importers** (`packages/social`) | `SocialImportAdapter` registry + import worker (`apps/web/src/routes/social-import.tsx`) | shared `routes/unfurl.ts` (metadata + CDN image proxy) | none (user data exports) | ~10 `Social*` schemas |
+| Integration                              | Client surface                                                                           | Hub surface                                                                                               | Secrets                           | Schemas owned                                 |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------- |
+| **Billing** (`packages/billing`)         | `useBilling()` hook, `XNetConfig.billing`                                                | `routes/billing.ts` (`/webhook`,`/checkout`,`/me`,`/portal`) + `services/billing-store.ts` (`billing.db`) | `STRIPE_*` / `BTCPAY_*` (hub env) | `Customer`/`Subscription`/`Invoice`/`Payment` |
+| **GitHub**                               | none (webhook-driven)                                                                    | `routes/tasks.ts` `/github/webhook` + `services/github-integration.ts` (`applyAutomationActions`)         | `HUB_GITHUB_WEBHOOK_SECRET`       | none (mutates `Task`/`ExternalReference`)     |
+| **Social importers** (`packages/social`) | `SocialImportAdapter` registry + import worker (`apps/web/src/routes/social-import.tsx`) | shared `routes/unfurl.ts` (metadata + CDN image proxy)                                                    | none (user data exports)          | ~10 `Social*` schemas                         |
 
 Each is mounted by hand in `packages/hub/src/server.ts` (`app.route('/billing',…)`,
-`app.route('/tasks',…)`, `app.route('/unfurl',…)`). The three shapes — *client
-hook + hub routes + secrets + schemas* (billing), *hub-only webhook* (GitHub),
-*client adapter + shared hub proxy + schemas* (importers) — are exactly the
+`app.route('/tasks',…)`, `app.route('/unfurl',…)`). The three shapes — _client
+hook + hub routes + secrets + schemas_ (billing), _hub-only webhook_ (GitHub),
+_client adapter + shared hub proxy + schemas_ (importers) — are exactly the
 surface a uniform `FeatureModule` must cover.
 
 ### Core surfaces (docs / canvas / tasks)
@@ -177,7 +177,7 @@ surface a uniform `FeatureModule` must cover.
   formalize: each Snap runs in a **SES `Compartment`** after global `lockdown()`;
   capabilities are **"endowments"** (`endowment:*`) declared in
   `snap.manifest.json` (`initialPermissions`) and requestable dynamically. xNet's
-  dashboard SES-Compartment-in-Worker tier is *the same architecture*; the work
+  dashboard SES-Compartment-in-Worker tier is _the same architecture_; the work
   is to lift "endowments" into the plugin manifest.
   ([docs](https://docs.metamask.io/snaps/learn/about-snaps/execution-environment/),
   [permissions](https://docs.metamask.io/snaps/reference/permissions/),
@@ -185,23 +185,23 @@ surface a uniform `FeatureModule` must cover.
 - **VS Code** — micro-kernel: `contributes` points in `package.json` +
   **activation events** + a separate **extension host** process. The
   contribution-point catalog is the model for declarative client capability;
-  the separate host is the model for *not* running extensions on the UI thread.
+  the separate host is the model for _not_ running extensions on the UI thread.
 - **Figma** — sandboxed main (QuickJS) + iframe UI over postMessage — validates
   xNet's iframe marketplace tier.
 - **Obsidian** — single JSON in a GitHub repo lists ~2000 community plugins;
   reviews only on first submission (0047's chosen distribution model).
-- **WordPress hooks** — *"plugins are not second-class functionality; many core
-  WordPress features are implemented through the hooks system."* The canonical
-  "everything is a plugin" precedent, with the honest tradeoff: hooks *"push
-  complexity onto the systems that interact with them,"* but let core update
+- **WordPress hooks** — _"plugins are not second-class functionality; many core
+  WordPress features are implemented through the hooks system."_ The canonical
+  "everything is a plugin" precedent, with the honest tradeoff: hooks _"push
+  complexity onto the systems that interact with them,"_ but let core update
   independently of plugins. ([wpshout](https://wpshout.com/wordpress-event-system-understanding-hooks/))
 - **Microkernel / plug-in architecture** — separate minimal core from features
   behind well-defined interfaces; VS Code/Firefox/Chrome/WordPress cited as
   exemplars. ([TechTarget](https://www.techtarget.com/searchapparchitecture/tip/What-is-a-microkernel-architecture-and-is-it-right-for-you))
 
-**Lesson:** nobody runs *untrusted server-side* plugin code casually — Snaps,
-Figma, VS Code all sandbox on the *client* and treat server reach as a
-*permissioned capability*, not arbitrary hosted code. This directly shapes the
+**Lesson:** nobody runs _untrusted server-side_ plugin code casually — Snaps,
+Figma, VS Code all sandbox on the _client_ and treat server reach as a
+_permissioned capability_, not arbitrary hosted code. This directly shapes the
 hub recommendation below.
 
 ## Key Findings
@@ -211,7 +211,7 @@ hub recommendation below.
    three-tier sandbox already exist and ship.
 
 2. **The hub is the real frontier.** "Plugin" today means "client contribution."
-   Billing/GitHub prove that real integrations are *two-sided*. A
+   Billing/GitHub prove that real integrations are _two-sided_. A
    `FeatureModule` must declare a **hub half** — and the hub must gain a
    **feature registry** (so `server.ts` iterates modules instead of hardcoding
    mounts) and a **capability/secret broker** (so module code never sees raw
@@ -227,7 +227,7 @@ hub recommendation below.
    already a uniform registry with zero secrets and clean schema ownership.
 
 5. **"Everything a plugin" pays off as dogfooding, not as removability.** Making
-   canvas *consume* its dormant contribution points, and expressing docs/canvas/
+   canvas _consume_ its dormant contribution points, and expressing docs/canvas/
    tasks as bundled feature packs, gives third parties real extension power. True
    uninstallable-core is mostly downside (perf, stability, giant stable API).
 
@@ -252,11 +252,11 @@ flowchart TB
     end
 ```
 
-| Option | Pros | Cons | Verdict |
-|---|---|---|---|
-| **Client-only plugins** (status quo) | Already works; safe | Can't express billing/GitHub; integrations stay bespoke | Insufficient |
-| **Two-sided `FeatureModule`** (client + hub) | Covers every real integration; one mental model | New hub registry + capability broker | **Recommended core** |
-| **Everything incl. uninstallable core** | Maximal purity | Perf tax, giant stable API, fragile core, little user value | Reject the *uninstallable* part; keep the *dogfooding* part |
+| Option                                       | Pros                                            | Cons                                                        | Verdict                                                     |
+| -------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------- |
+| **Client-only plugins** (status quo)         | Already works; safe                             | Can't express billing/GitHub; integrations stay bespoke     | Insufficient                                                |
+| **Two-sided `FeatureModule`** (client + hub) | Covers every real integration; one mental model | New hub registry + capability broker                        | **Recommended core**                                        |
+| **Everything incl. uninstallable core**      | Maximal purity                                  | Perf tax, giant stable API, fragile core, little user value | Reject the _uninstallable_ part; keep the _dogfooding_ part |
 
 ### B. The hub-plugin security model (the hard one)
 
@@ -270,11 +270,11 @@ flowchart TB
     GATE -.->|"v1: not allowed"| X[Reject / defer]
 ```
 
-| Option | Pros | Cons | Verdict |
-|---|---|---|---|
-| **First-party hub features only** (community = client-only) | Zero server-RCE risk; ship now; matches Snaps/Figma/VSCode (server reach is permissioned, not hosted) | Community can't add hub webhooks/secrets | **v1** |
-| **Declarative hub manifests** (webhook route + capability grants, *no arbitrary code*) | Community can register a signature-verified webhook → node writes, without running code | Limited to declarative shapes; needs a safe "normalize" DSL | **v2 (strong)** |
-| **Sandboxed hub code** (QuickJS/WASM/Workers-isolate per request, capability injection) | Arbitrary community server logic, safely | Heavy; cold starts; the runtime ladder's `server` rung is "compiled off-device," not a hosted isolate yet | **v3 / deferred** |
+| Option                                                                                  | Pros                                                                                                  | Cons                                                                                                      | Verdict           |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------- |
+| **First-party hub features only** (community = client-only)                             | Zero server-RCE risk; ship now; matches Snaps/Figma/VSCode (server reach is permissioned, not hosted) | Community can't add hub webhooks/secrets                                                                  | **v1**            |
+| **Declarative hub manifests** (webhook route + capability grants, _no arbitrary code_)  | Community can register a signature-verified webhook → node writes, without running code               | Limited to declarative shapes; needs a safe "normalize" DSL                                               | **v2 (strong)**   |
+| **Sandboxed hub code** (QuickJS/WASM/Workers-isolate per request, capability injection) | Arbitrary community server logic, safely                                                              | Heavy; cold starts; the runtime ladder's `server` rung is "compiled off-device," not a hosted isolate yet | **v3 / deferred** |
 
 The runtime ladder (`packages/labs`) already conceptualizes a `server` tier and
 QuickJS/WASM isolation client-side — v3 is "lift that to the hub," which is real
@@ -301,18 +301,18 @@ Concretely:
    Trust tier is **derived** (`packages/labs/src/trust.ts`), never declared.
 
 2. **Add the two missing registries.**
-   - *Client route registry*: a catch-all `/x/$pluginId/$rest` TanStack route +
+   - _Client route registry_: a catch-all `/x/$pluginId/$rest` TanStack route +
      a registry so a module can own a workbench surface (unblocks docs/canvas/
      tasks-as-modules later). Sidebar/panel/command bridges already exist
      (`apps/web/src/workbench/contributions.tsx`).
-   - *Hub feature registry*: replace the hand-written `app.route(...)` block in
+   - _Hub feature registry_: replace the hand-written `app.route(...)` block in
      `packages/hub/src/server.ts` with iteration over a list of first-party
      `HubFeature`s; add a **capability/secret broker** so a feature only sees the
      env secrets and node-write scopes it declared.
 
 3. **Unify the sandbox under the manifest.** The dashboard tiers
    (`packages/dashboard/src/sandbox`) and labs ladder (`packages/labs`) become
-   *the* plugin sandbox: `first-party→host`, `user→SES+Worker`,
+   _the_ plugin sandbox: `first-party→host`, `user→SES+Worker`,
    `marketplace→iframe`. Endowments in the manifest gate which host APIs the
    sandbox injects (start from the dashboard's `console/JSON/Math` set and grow
    deliberately).
@@ -321,11 +321,11 @@ Concretely:
    1. **Social importers** — wrap `SocialImportAdapter` as a `FeatureModule`
       `importers` contribution; ship each platform as its own bundled module.
       Zero secrets, clean schemas, immediate "uninstall TikTok importer" UX.
-   2. **Billing** — the canonical *two-sided* module: client `useBilling` +
+   2. **Billing** — the canonical _two-sided_ module: client `useBilling` +
       settings UI as contributions, `hub` half = the existing `routes/billing.ts`
-      + `billing-store.ts`, capability = `secret:STRIPE_*` + `schema-write`.
-      First-party tier (holds secrets).
-   3. **GitHub** — *hub-only* module: `hub.webhook('/github')` + `mutates: Task`
+      - `billing-store.ts`, capability = `secret:STRIPE_*` + `schema-write`.
+        First-party tier (holds secrets).
+   3. **GitHub** — _hub-only_ module: `hub.webhook('/github')` + `mutates: Task`
       capability; proves the declarative-webhook (v2) shape.
 
 5. **Wire 0047's marketplace** on top, extended to show capability consent and
@@ -334,7 +334,7 @@ Concretely:
 
 6. **Dogfood core carefully:** make `CanvasView` actually consume its dormant
    `canvasCards`/`canvasTools`/`canvasIngestors` registries; express docs/canvas/
-   tasks as bundled feature packs that third parties can *extend* — but keep them
+   tasks as bundled feature packs that third parties can _extend_ — but keep them
    **non-uninstallable** (the WordPress model). Do **not** pursue uninstallable
    core.
 
@@ -351,7 +351,7 @@ of literally removable core.
 ```ts
 // packages/plugins/src/feature-module.ts
 export interface FeatureModule {
-  id: string                       // reverse-domain, e.g. "fyi.xnet.billing"
+  id: string // reverse-domain, e.g. "fyi.xnet.billing"
   name: string
   version: string
   xnetVersion: string
@@ -365,27 +365,27 @@ export interface FeatureModule {
     views?: ViewContribution[]
     sidebarItems?: SidebarContribution[]
     slashCommands?: SlashCommandContribution[]
-    importers?: ImporterContribution[]        // NEW: wraps SocialImportAdapter
-    routes?: RouteContribution[]              // NEW: registry-driven workbench surfaces
+    importers?: ImporterContribution[] // NEW: wraps SocialImportAdapter
+    routes?: RouteContribution[] // NEW: registry-driven workbench surfaces
     settings?: SettingContribution[]
     // …all existing contribution points…
   }
 
   /** HUB half — declarative; first-party gets code, community gets manifests. */
   hub?: {
-    routes?: HubRouteFactory[]                // e.g. createBillingRoutes(...)
-    webhooks?: HubWebhook[]                    // { path, verify, normalize → mutations }
-    store?: HubStoreMigration                  // its own subsystem DB (like billing.db)
+    routes?: HubRouteFactory[] // e.g. createBillingRoutes(...)
+    webhooks?: HubWebhook[] // { path, verify, normalize → mutations }
+    store?: HubStoreMigration // its own subsystem DB (like billing.db)
   }
 
   /** Capability/endowment declarations (MetaMask-Snaps style). The hub/sandbox
    *  injects ONLY what is declared and granted. */
   capabilities?: {
-    secrets?: string[]                         // env keys, first-party tier only
-    schemaWrite?: SchemaIRI[]                  // node-write scopes
+    secrets?: string[] // env keys, first-party tier only
+    schemaWrite?: SchemaIRI[] // node-write scopes
     schemaRead?: SchemaIRI[]
-    network?: string[]                         // domain allowlist (unfurl-style)
-    endowments?: string[]                      // host APIs the client sandbox exposes
+    network?: string[] // domain allowlist (unfurl-style)
+    endowments?: string[] // host APIs the client sandbox exposes
   }
 
   activate?(ctx: ExtensionContext): void | Promise<void>
@@ -397,7 +397,7 @@ export interface FeatureModule {
 
 ```ts
 // packages/billing/src/module.ts  (bundled, first-party tier)
-import { createBillingRoutes } from '@xnetjs/hub/billing'   // the existing factory
+import { createBillingRoutes } from '@xnetjs/hub/billing' // the existing factory
 import { billingProviderFromEnv, createBillingStore } from '@xnetjs/billing'
 
 export const BillingModule: FeatureModule = {
@@ -408,24 +408,25 @@ export const BillingModule: FeatureModule = {
   schemas: [CustomerSchema, SubscriptionSchema, InvoiceSchema, PaymentSchema],
 
   contributes: {
-    settings: [{ id: 'billing', name: 'Billing', component: BillingSettings }],
+    settings: [{ id: 'billing', name: 'Billing', component: BillingSettings }]
     // useBilling() stays the public hook; the module just owns its registration
   },
 
   hub: {
     routes: [
-      (deps) => createBillingRoutes({
-        provider: billingProviderFromEnv(deps.env),       // broker-scoped env
-        store: createBillingStore({ storage: deps.storage, dataDir: deps.dataDir }),
-        requireAuth: deps.requireAuth,
-        appUrl: deps.appUrl
-      })
+      (deps) =>
+        createBillingRoutes({
+          provider: billingProviderFromEnv(deps.env), // broker-scoped env
+          store: createBillingStore({ storage: deps.storage, dataDir: deps.dataDir }),
+          requireAuth: deps.requireAuth,
+          appUrl: deps.appUrl
+        })
     ]
   },
 
   capabilities: {
     secrets: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'BTCPAY_*'],
-    schemaWrite: ['xnet://xnet.fyi/Subscription@1.0.0', /* … */]
+    schemaWrite: ['xnet://xnet.fyi/Subscription@1.0.0' /* … */]
   }
 }
 ```
@@ -437,9 +438,9 @@ export const BillingModule: FeatureModule = {
 export function mountFeatures(app: Hono, modules: FeatureModule[], deps: HubDeps) {
   for (const m of modules) {
     if (!m.hub) continue
-    const env = deps.broker.scopedEnv(m.id, m.capabilities?.secrets ?? [])  // only declared keys
+    const env = deps.broker.scopedEnv(m.id, m.capabilities?.secrets ?? []) // only declared keys
     for (const factory of m.hub.routes ?? []) {
-      app.route(`/x/${m.id}`, factory({ ...deps, env }))                     // namespaced mount
+      app.route(`/x/${m.id}`, factory({ ...deps, env })) // namespaced mount
     }
     for (const wh of m.hub.webhooks ?? []) {
       app.post(`/x/${m.id}/webhooks/${wh.path}`, makeWebhookHandler(wh, deps))
@@ -457,14 +458,18 @@ export const GithubModule: FeatureModule = {
   name: 'GitHub → Tasks',
   version: '1.0.0',
   hub: {
-    webhooks: [{
-      path: 'github',
-      secretRef: 'HUB_GITHUB_WEBHOOK_SECRET',
-      verify: verifyWebhookSignature,              // existing helper
-      normalize: processGithubEvent                 // existing pure fn → TaskAutomationAction[]
-    }]
+    webhooks: [
+      {
+        path: 'github',
+        secretRef: 'HUB_GITHUB_WEBHOOK_SECRET',
+        verify: verifyWebhookSignature, // existing helper
+        normalize: processGithubEvent // existing pure fn → TaskAutomationAction[]
+      }
+    ]
   },
-  capabilities: { schemaWrite: ['xnet://xnet.fyi/Task@1.0.0', 'xnet://xnet.fyi/ExternalReference@1.0.0'] }
+  capabilities: {
+    schemaWrite: ['xnet://xnet.fyi/Task@1.0.0', 'xnet://xnet.fyi/ExternalReference@1.0.0']
+  }
 }
 ```
 
@@ -504,7 +509,7 @@ flowchart LR
 
 - **Hub RCE is the showstopper risk.** Never run marketplace server code in v1.
   Even v2 declarative webhooks must constrain `normalize` to a safe transform (no
-  arbitrary fetch/exec). Secrets are injected *only* into first-party modules via
+  arbitrary fetch/exec). Secrets are injected _only_ into first-party modules via
   the broker; community modules get capability tokens, never raw keys.
 - **Capability creep / consent fatigue.** If every plugin asks for `schemaWrite:*`
   the dialog becomes meaningless (the npm/permissions problem). Default to
@@ -515,7 +520,7 @@ flowchart LR
   dynamic typed routes are a larger lift. Mind deep-link/SSR/preview behavior.
 - **Performance of "everything a plugin."** Indirection through registries on the
   doc/canvas/task hot paths could regress first-load and interaction latency
-  (see exploration 0184). Keep core surfaces *bundled* and avoid sandboxing
+  (see exploration 0184). Keep core surfaces _bundled_ and avoid sandboxing
   first-party code; measure before pluginizing any hot path.
 - **API stability tax.** The moment core is expressed via contribution points,
   those points become a public API you can't break (the WordPress hook-stability
@@ -525,7 +530,7 @@ flowchart LR
   rules so a plugin can't hijack `Task@1.0.0`. Tie schema namespaces to the
   author DID (the `share-via-url`/schema-registry precedent) and reserve
   `xnet.fyi` for first-party.
-- **Secrets a *community* hub feature would need** (e.g., a community payment
+- **Secrets a _community_ hub feature would need** (e.g., a community payment
   rail) — no clean answer in v1; that's exactly why hub-side community code is
   deferred to v2/v3.
 - **Conflicts & ordering** — two plugins registering the same slash command /
@@ -535,23 +540,34 @@ flowchart LR
   differ (no Worker/iframe parity on RN). Marketplace plugins likely web/desktop
   first.
 - **Does pluginizing core actually help users, or just developers?** Be honest:
-  the win is *third-party extension* + *one mental model*, not removability.
+  the win is _third-party extension_ + _one mental model_, not removability.
   Resist pluginizing where it doesn't add user-visible capability.
 
 ## Implementation Checklist
 
-- [ ] Write `FeatureModule` type in `@xnetjs/plugins` as a superset of
-      `XNetExtension`; add `hub`, `schemas`, `capabilities`/`endowments`, and a
-      new `routes` + `importers` client contribution point.
+- [x] Write `FeatureModule` type in `@xnetjs/plugins`
+      (`packages/plugins/src/feature-module.ts`) as a superset of `XNetExtension`
+      with `capabilities`/`endowments` and a declarative `hub: { featureId }`
+      pointer; add the **`importers`** client contribution point
+      (`ImporterContribution` + `registerImporter` + registry + manifest +
+      static-apply). _As-built: the `routes` contribution point + `schemas` array
+      are deferred to the route-registry phase._
 - [ ] Add a **client route registry** + a catch-all `/x/$pluginId/$rest`
       TanStack route in `apps/web`; bridge to the existing workbench
-      contributions (`apps/web/src/workbench/contributions.tsx`).
-- [ ] Add a **hub feature registry** (`packages/hub/src/features/registry.ts`)
-      and refactor `server.ts` to iterate `FIRST_PARTY_MODULES` instead of
-      hardcoded `app.route(...)` (namespace community mounts under `/x/<id>`).
-- [ ] Add a **capability/secret broker** in the hub: `scopedEnv(id, declaredKeys)`
-      so a feature only sees the env secrets it declared; node-write scope
-      enforcement keyed to `capabilities.schemaWrite`.
+      contributions (`apps/web/src/workbench/contributions.tsx`). _(deferred — web
+      routing is build-time/file-based; larger lift.)_
+- [x] Add a **hub feature registry** (`packages/hub/src/features/registry.ts` +
+      `types.ts` + `first-party.ts`) and refactor `server.ts` to iterate
+      `HubFeature`s (`mountFeatures([billingFeature(), tasksFeature(…),
+    unfurlFeature(…)], …)`) instead of hardcoded `app.route(...)`.
+      _As-built: behaviour-preserving (full hub suite green); community `/x/<id>`
+      namespacing is deferred to the marketplace phase._
+- [x] Add a **capability/secret broker** in the hub
+      (`packages/hub/src/features/broker.ts`): `scopedEnv(env, declaredKeys)` with
+      exact + `PREFIX_*` globs, so a feature only sees the env secrets it declared
+      (billing reads `STRIPE_*`/`BTCPAY_*`, never the GitHub secret).
+      _As-built: node-write scope enforcement keyed to `capabilities.schemaWrite`
+      is deferred._
 - [ ] Unify the sandbox: route plugin code through the dashboard tiers
       (`packages/dashboard/src/sandbox`) + labs trust derivation
       (`packages/labs/src/trust.ts`); gate host-API endowments by manifest.
@@ -575,14 +591,17 @@ flowchart LR
 
 ## Validation Checklist
 
-- [ ] Importers, billing, and GitHub all behave identically after migration
-      (existing tests green: `packages/billing`, hub `routes/billing.test.ts`,
-      `routes/tasks.test.ts`, social import tests).
+- [x] Billing, GitHub-tasks, and unfurl behave identically after being mounted
+      through the feature registry — the full hub integration suite (341 tests,
+      incl. `routes/billing.test.ts` + the tasks/github webhook tests) is green.
+      _(Full client-side importer/billing/github migration remains.)_
 - [ ] A bundled module can be **disabled** in the Plugin Manager and its
       surfaces/routes/hub-mounts disappear; re-enabling restores them.
-- [ ] **Secret isolation**: a module without `capabilities.secrets` for
-      `STRIPE_*` cannot read it from the hub (broker test); grep/CI confirms no
-      secret reaches a non-first-party module.
+- [x] **Secret isolation**: the broker scopes each feature's env to its declared
+      keys — a feature without `STRIPE_*`/`BTCPAY_*` in `secrets` cannot read them,
+      and billing cannot read `HUB_GITHUB_WEBHOOK_SECRET`
+      (`packages/hub/src/features/features.test.ts`). _(Marketplace per-module
+      enforcement remains.)_
 - [ ] **Tier routing**: a `marketplace`-provenance plugin loads in the iframe
       sandbox and cannot touch host DOM/storage/secrets; a `user` one runs in
       SES+Worker with only declared endowments (mirror `packages/dashboard`
@@ -597,11 +616,14 @@ flowchart LR
 - [ ] Install → capability consent → activate → P2P-sync of the `PluginSchema`
       node works end-to-end; a synced plugin **re-confirms trust** on the
       receiver (`packages/labs/src/trust.ts` invariant).
-- [ ] `check:cloud-boundary`, fallow audit, typecheck, and lint all green.
+- [x] fallow audit (`--changed-since origin/main`), `turbo typecheck`
+      (`@xnetjs/plugins` + `@xnetjs/hub`), eslint, and prettier all green for the
+      foundations; full plugins suite (373 tests) + hub suite (341 tests) pass.
 
 ## References
 
 ### Codebase
+
 - `packages/plugins/src/{registry.ts,contributions.ts,context.ts,manifest.ts}` — client plugin core (17 contribution points)
 - `packages/plugins/src/sandbox/{sandbox.ts,ast-validator.ts}` — AST script sandbox
 - `packages/plugins/src/services/{mcp-server,local-api,process-manager,webhook-emitter,node}.ts` — Electron/Node services (not hub)
@@ -617,6 +639,7 @@ flowchart LR
 - `apps/web/src/plugins/index.ts`, `apps/web/src/components/{PluginManager,BundledPluginInstaller}.tsx`, `packages/react/src/hooks/usePlugins.ts` — bundled-plugin install path
 
 ### Prior explorations
+
 - [0006 Plugin Architecture](./0006_[x]_PLUGIN_ARCHITECTURE.md) — the implemented client plugin system (the engine)
 - [0047 Plugin Marketplace](./0047_[_]_PLUGIN_MARKETPLACE.md) — GitHub-registry distribution (the storefront)
 - [0162 Dashboard Builder With Pluggable Widgets](./0162_[x]_DASHBOARD_BUILDER_WITH_PLUGGABLE_WIDGETS.md) — widget contract + sandbox tiers
@@ -624,6 +647,7 @@ flowchart LR
 - [0187 Plug-And-Play Billing](./0187_[x]_PLUG_AND_PLAY_BILLING_STRIPE_AND_BITCOIN.md) — the first two-sided integration to extract
 
 ### External
+
 - [MetaMask Snaps — execution environment](https://docs.metamask.io/snaps/learn/about-snaps/execution-environment/), [permissions/endowments](https://docs.metamask.io/snaps/reference/permissions/), [security review (osec)](https://osec.io/blog/2023-11-01-metamask-snaps/)
 - [VS Code — extension contribution points](https://code.visualstudio.com/api/references/contribution-points) and [activation events](https://code.visualstudio.com/api/references/activation-events)
 - [WordPress hooks — event system](https://wpshout.com/wordpress-event-system-understanding-hooks/)
