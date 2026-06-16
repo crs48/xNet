@@ -25,6 +25,13 @@ export interface ConnectionManagerConfig {
   reconnectDelay?: number
   /** Max reconnect attempts (default: Infinity) */
   maxReconnects?: number
+  /**
+   * Max time to wait for the WebSocket handshake to open before treating the
+   * attempt as failed and backing off (default: 10000). A browser WebSocket has
+   * no built-in connect timeout, so a stalled handshake can otherwise hang for
+   * tens of seconds (exploration 0188). Set to 0 to disable.
+   */
+  connectTimeout?: number
   /** UCAN token for hub auth */
   ucanToken?: string
   /** Async UCAN token provider (preferred for rotation) */
@@ -76,11 +83,57 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   let status: ConnectionStatus = 'disconnected'
   let reconnectAttempts = 0
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let connectTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
   let connectInProgress = false
 
   const reconnectDelay = config.reconnectDelay ?? 2000
   const maxReconnects = config.maxReconnects ?? Infinity
+  const connectTimeout = config.connectTimeout ?? 10000
+
+  function clearConnectTimer(): void {
+    if (connectTimer) {
+      clearTimeout(connectTimer)
+      connectTimer = null
+    }
+  }
+
+  /** Detach handlers and close a socket we're abandoning (e.g. on timeout). */
+  function abandonSocket(socket: WebSocket | null): void {
+    if (!socket) return
+    socket.onopen = null
+    socket.onmessage = null
+    socket.onclose = null
+    socket.onerror = null
+    try {
+      socket.close()
+    } catch {
+      // already closing/closed
+    }
+  }
+
+  /** Fired when the handshake stalls past connectTimeout — tear down and back off. */
+  function onConnectTimeout(): void {
+    connectTimer = null
+    if (status !== 'connecting') return
+    log('WebSocket connect timeout after', connectTimeout, 'ms')
+    connectInProgress = false
+    const stalled = ws
+    ws = null
+    abandonSocket(stalled)
+    setStatus('error')
+    scheduleReconnect()
+  }
+
+  /**
+   * Bound the handshake: a browser WebSocket has no connect timeout, so a
+   * stalled (not refused) handshake would otherwise hang indefinitely
+   * (exploration 0188). Set connectTimeout to 0 to disable.
+   */
+  function armConnectTimeout(): void {
+    if (connectTimeout <= 0 || !Number.isFinite(connectTimeout)) return
+    connectTimer = setTimeout(onConnectTimeout, connectTimeout)
+  }
 
   const rooms = new Map<string, Set<RoomHandler>>()
   const statusListeners = new Set<StatusHandler>()
@@ -186,15 +239,32 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     return protocols
   }
 
-  async function doConnect(): Promise<void> {
+  /** Whether a real hub URL is configured. An empty URL means "offline". */
+  function hubConfigured(): boolean {
+    return Boolean(config.url) && config.url.trim().length > 0
+  }
+
+  /** Guards for doConnect: destroyed, already connecting, or no hub configured. */
+  function shouldSkipConnect(): boolean {
     if (destroyed) {
       log('doConnect called but manager is destroyed')
-      return
+      return true
     }
     if (connectInProgress) {
       log('doConnect called but connection already in progress')
-      return
+      return true
     }
+    if (!hubConfigured()) {
+      // No hub configured — stay offline (local-first) without opening a socket
+      // or logging a browser connection error (exploration 0188).
+      log('No hub URL configured — staying offline')
+      return true
+    }
+    return false
+  }
+
+  async function doConnect(): Promise<void> {
+    if (shouldSkipConnect()) return
 
     connectInProgress = true
     log('Connecting to:', config.url)
@@ -203,8 +273,10 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     try {
       const token = await resolveAuthToken()
       ws = new WebSocket(config.url, buildProtocols(token))
+      armConnectTimeout()
 
       ws.onopen = () => {
+        clearConnectTimer()
         connectInProgress = false
         log('WebSocket connected')
         setStatus('connected')
@@ -221,6 +293,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
       ws.onmessage = handleMessage
 
       ws.onclose = (event) => {
+        clearConnectTimer()
         connectInProgress = false
         log('WebSocket closed, code:', event.code, 'reason:', event.reason || '(none)')
         ws = null
@@ -229,11 +302,13 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
       }
 
       ws.onerror = (event) => {
+        clearConnectTimer()
         connectInProgress = false
         log('WebSocket error:', event)
         setStatus('error')
       }
     } catch (err) {
+      clearConnectTimer()
       connectInProgress = false
       log('Failed to create WebSocket:', err)
       setStatus('error')
@@ -267,6 +342,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
 
     disconnect() {
       destroyed = true
+      clearConnectTimer()
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
         reconnectTimer = null

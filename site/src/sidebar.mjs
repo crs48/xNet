@@ -34,7 +34,8 @@ export const sidebar = [
       { slug: 'docs/schemas/defineschema' },
       { slug: 'docs/schemas/property-types' },
       { slug: 'docs/schemas/relations' },
-      { slug: 'docs/schemas/type-inference' }
+      { slug: 'docs/schemas/type-inference' },
+      { slug: 'docs/schemas/extending-schemas' }
     ]
   },
   {

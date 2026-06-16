@@ -6,7 +6,17 @@
  */
 
 import { useXNet } from '@xnetjs/react'
-import { Check, Copy, Link2, QrCode, ShieldAlert, Trash2, Users, X } from 'lucide-react'
+import {
+  Check,
+  Copy,
+  Link2,
+  QrCode,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  Users,
+  X
+} from 'lucide-react'
 import QRCode from 'qrcode'
 import { useMemo, useState } from 'react'
 import {
@@ -18,6 +28,7 @@ import {
   type ShareRole
 } from '../hooks/useShareLinks'
 import { isPrivateHubHost } from '../lib/share-links'
+import { PermissionMatrixPanel } from './PermissionMatrixPanel'
 
 interface ShareDialogProps {
   docId: string
@@ -105,7 +116,7 @@ function ShareDialogBody({
   docType,
   onClose
 }: Omit<ShareDialogProps, 'isOpen'>): JSX.Element {
-  const [tab, setTab] = useState<'links' | 'people'>('links')
+  const [tab, setTab] = useState<'links' | 'people' | 'permissions'>('links')
   const [role, setRole] = useState<ShareRole>('read')
   const [label, setLabel] = useState('')
   const [expiresIn, setExpiresIn] = useState<number>(0)
@@ -210,10 +221,21 @@ function ShareDialogBody({
           >
             <Users size={13} /> People{activeGrants.length > 0 ? ` (${activeGrants.length})` : ''}
           </button>
+          <button
+            type="button"
+            onClick={() => setTab('permissions')}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs border-b-2 transition-colors ${
+              tab === 'permissions'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ShieldCheck size={13} /> Permissions
+          </button>
         </div>
 
         <div className="p-4 max-h-[60vh] overflow-y-auto">
-          {!ready && (
+          {!ready && tab !== 'permissions' && (
             <p className="text-xs text-muted-foreground">Connect to a hub to create share links.</p>
           )}
 
@@ -434,6 +456,8 @@ function ShareDialogBody({
               </ul>
             </>
           )}
+
+          {tab === 'permissions' && <PermissionMatrixPanel docId={docId} />}
         </div>
 
         <div className="px-4 py-3 bg-secondary/50 border-t border-border rounded-b-lg">

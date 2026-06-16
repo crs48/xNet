@@ -20,6 +20,7 @@
 
 import type { SchemaLens, LensOperation } from './lens'
 import type { SchemaIRI } from './node'
+import { extKey } from './extension'
 
 // ─── Property Operations ─────────────────────────────────────────────────────
 
@@ -80,6 +81,26 @@ export function convert<T extends string | number | boolean, U extends string | 
     },
     lossless: true
   }
+}
+
+/**
+ * Promote an overlay attribute into a first-class (core) property — the
+ * "graduate an extension into a real schema property" migration. The forward
+ * transform moves `ext:<authority>/<field>` onto `coreProp`; the backward
+ * transform restores the overlay key. Losslessly round-trips.
+ *
+ * @example
+ * ```typescript
+ * composeLens(
+ *   'xnet://xnet.fyi/Contact@1.0.0',
+ *   'xnet://xnet.fyi/Contact@2.0.0',
+ *   promoteOverlay('acme.com', 'leadScore', 'leadScore')
+ * )
+ * // { 'ext:acme.com/leadScore': 87 } → { leadScore: 87 }
+ * ```
+ */
+export function promoteOverlay(authority: string, field: string, coreProp: string): LensOperation {
+  return rename(extKey(authority, field), coreProp)
 }
 
 /**

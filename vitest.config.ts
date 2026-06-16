@@ -6,6 +6,7 @@ const skipThresholds = process.env.CI === 'true'
 
 const workspaceAliases = {
   '@xnetjs/abuse': new URL('./packages/abuse/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/billing': new URL('./packages/billing/src/index.ts', import.meta.url).pathname,
   '@xnetjs/canvas': new URL('./packages/canvas/src/index.ts', import.meta.url).pathname,
   '@xnetjs/canvas-core': new URL('./packages/canvas-core/src/index.ts', import.meta.url).pathname,
   '@xnetjs/cli': new URL('./packages/cli/src/index.ts', import.meta.url).pathname,
@@ -41,6 +42,7 @@ const workspaceAliases = {
   '@xnetjs/identity': new URL('./packages/identity/src/index.ts', import.meta.url).pathname,
   '@xnetjs/labs': new URL('./packages/labs/src/index.ts', import.meta.url).pathname,
   '@xnetjs/ledger': new URL('./packages/ledger/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/maps': new URL('./packages/maps/src/index.ts', import.meta.url).pathname,
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins/node': new URL('./packages/plugins/src/services/node.ts', import.meta.url)
     .pathname,
@@ -95,8 +97,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,canvas-core,cli,cloud,crm,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
-            'packages/{abuse,canvas-core,cli,cloud,crm,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
+            'packages/{abuse,billing,canvas-core,cli,cloud,crm,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
+            'packages/{abuse,billing,canvas-core,cli,cloud,crm,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Social matching layer — pure connect modules only; the
@@ -118,8 +120,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: true,
           include: [
-            'packages/{canvas,react,views,devtools,ui,dashboard,charts}/src/**/*.test.{ts,tsx}',
-            'packages/{canvas,react,views,devtools,ui,dashboard,charts}/test/**/*.test.{ts,tsx}',
+            'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps}/src/**/*.test.{ts,tsx}',
+            'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps}/test/**/*.test.{ts,tsx}',
             // App-level logic tests (workbench shell, 0166)
             'apps/web/src/**/*.test.{ts,tsx}'
           ]

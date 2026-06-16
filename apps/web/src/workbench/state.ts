@@ -21,6 +21,7 @@ export type TabNodeType =
   | 'database'
   | 'canvas'
   | 'dashboard'
+  | 'map'
   | 'savedview'
   | 'tasks'
   | 'data'

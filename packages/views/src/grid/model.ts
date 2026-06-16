@@ -25,6 +25,13 @@ export interface GridField {
   isTitle?: boolean
   /** Select/multiSelect options (resolved from SelectOption nodes) */
   options?: GridFieldOption[]
+  /**
+   * Structurally locked column: the grid must not offer rename / retype /
+   * delete (cell values stay editable). Set for schema-defined ("core")
+   * columns when a typed schema is rendered in the universal grid; user-added
+   * extension columns are never locked. See `buildEffectiveSchema`.
+   */
+  readonly?: boolean
 }
 
 export interface GridRowData {

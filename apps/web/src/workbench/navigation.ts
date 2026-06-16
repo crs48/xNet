@@ -22,6 +22,9 @@ export function navigateToNode(navigate: Navigate, nodeType: TabNodeType, nodeId
     case 'dashboard':
       void navigate({ to: '/dashboard/$dashboardId', params: { dashboardId: nodeId } })
       break
+    case 'map':
+      void navigate({ to: '/map/$mapId' as never, params: { mapId: nodeId } as never })
+      break
     case 'savedview':
       void navigate({ to: '/view/$viewId' as never, params: { viewId: nodeId } as never })
       break

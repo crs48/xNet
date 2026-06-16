@@ -46,6 +46,7 @@ export {
   type InfiniteQueryResult
 } from './hooks/useInfiniteQuery'
 export { useFind, type UseFindOptions, type UseFindResult } from './hooks/useFind'
+export { useEffectiveSchema, type UseEffectiveSchemaResult } from './hooks/useEffectiveSchema'
 export {
   useSavedView,
   type SavedViewPrivacySummary,
@@ -664,6 +665,7 @@ export { type BlobStoreForSync } from '@xnetjs/runtime'
 // =============================================================================
 
 export { useIdentity, type UseIdentityResult } from './hooks/useIdentity'
+export { useBilling, type UseBillingResult, type CheckoutOptions } from './hooks/useBilling'
 
 // =============================================================================
 // Onboarding

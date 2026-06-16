@@ -110,6 +110,82 @@ describe('createConnectionManager', () => {
     })
   })
 
+  it('errors and backs off when the handshake never opens (connect timeout, 0188)', async () => {
+    const manager = createConnectionManager({
+      url: 'ws://localhost:4444',
+      connectTimeout: 1000,
+      reconnectDelay: 250
+    })
+    const statuses: string[] = []
+    manager.onStatus((status) => {
+      statuses.push(status)
+    })
+
+    manager.connect()
+    await Promise.resolve()
+
+    const first = MockWebSocket.instances[0]
+    expect(first).toBeDefined()
+    expect(statuses.at(-1)).toBe('connecting')
+
+    // Never emitOpen — the handshake stalls. The connect timeout must fire.
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(statuses).toContain('error')
+
+    // After backoff, a fresh socket is created (the manager keeps trying).
+    await vi.advanceTimersByTimeAsync(250)
+    const second = MockWebSocket.instances[1]
+    expect(second).toBeDefined()
+    expect(second).not.toBe(first)
+
+    // A later open on the *first* (abandoned) socket must not flip us connected.
+    first.emitOpen()
+    expect(statuses.at(-1)).not.toBe('connected')
+  })
+
+  it('does not fire the connect timeout once the socket opens', async () => {
+    const manager = createConnectionManager({
+      url: 'ws://localhost:4444',
+      connectTimeout: 1000
+    })
+    const statuses: string[] = []
+    manager.onStatus((status) => {
+      statuses.push(status)
+    })
+
+    manager.connect()
+    await Promise.resolve()
+    const socket = MockWebSocket.instances[0]
+    socket.emitOpen()
+    expect(statuses.at(-1)).toBe('connected')
+
+    // Advancing past the timeout must not error a healthy connection.
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(statuses.at(-1)).toBe('connected')
+    expect(statuses).not.toContain('error')
+  })
+
+  it('stays offline without opening a socket when no hub URL is configured (0188)', async () => {
+    const manager = createConnectionManager({ url: '' })
+    const statuses: string[] = []
+    manager.onStatus((status) => {
+      statuses.push(status)
+    })
+
+    manager.connect()
+    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(100)
+
+    // No WebSocket is attempted, so the browser never logs a connection error.
+    expect(MockWebSocket.instances).toHaveLength(0)
+    expect(manager.status).toBe('disconnected')
+    expect(statuses).not.toContain('connecting')
+
+    // Room joins resolve immediately (never 'connected') → local-first.
+    const subscription = manager.joinRoomAsync('xnet-doc-x', vi.fn())
+    await expect(subscription.ready).resolves.toBeUndefined()
+  })
+
   it('resolves joinRoomAsync when the server confirms the subscription', async () => {
     const manager = createConnectionManager({
       url: 'ws://localhost:4444'

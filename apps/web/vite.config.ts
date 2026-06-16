@@ -24,7 +24,8 @@ export default defineConfig({
   resolve: {
     alias: {
       // Use source files directly for hot reload during development
-      '@xnetjs/react': path.resolve(__dirname, '../../packages/react/src')
+      '@xnetjs/react': path.resolve(__dirname, '../../packages/react/src'),
+      '@xnetjs/maps': path.resolve(__dirname, '../../packages/maps/src')
     }
   },
   optimizeDeps: {

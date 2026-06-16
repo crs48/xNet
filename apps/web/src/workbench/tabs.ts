@@ -16,6 +16,7 @@ import {
   Hash,
   Layout,
   LayoutDashboard,
+  MapPin,
   MessageSquare,
   Network,
   Table2,
@@ -43,6 +44,7 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
     icon: LayoutDashboard,
     toRoute: (id) => `/dashboard/${id}`
   },
+  map: { label: 'Map', icon: MapPin, toRoute: (id) => `/map/${id}` },
   savedview: { label: 'Saved view', icon: Table2, toRoute: (id) => `/view/${id}` },
   tasks: { label: 'Tasks', icon: CheckSquare2, toRoute: () => '/tasks', singleton: true },
   data: { label: 'Data', icon: Network, toRoute: () => '/data', singleton: true },
@@ -66,6 +68,7 @@ const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/db/', nodeType: 'database' },
   { prefix: '/canvas/', nodeType: 'canvas' },
   { prefix: '/dashboard/', nodeType: 'dashboard' },
+  { prefix: '/map/', nodeType: 'map' },
   { prefix: '/view/', nodeType: 'savedview' },
   { prefix: '/channel/', nodeType: 'channel' },
   { prefix: '/tag/', nodeType: 'tag' },

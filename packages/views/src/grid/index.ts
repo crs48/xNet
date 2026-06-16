@@ -46,6 +46,12 @@ export {
   type GridCallbacks
 } from './model'
 
+export {
+  schemaToGridFields,
+  displayLabelForProperty,
+  type SchemaToGridFieldsOptions
+} from './schema-to-grid-fields'
+
 export { GridSurface, type GridSurfaceProps } from './GridSurface'
 export { GridCell, type GridCellProps } from './GridCell'
 export { GridPeek, type GridPeekProps } from './GridPeek'

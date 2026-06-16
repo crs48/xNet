@@ -32,6 +32,15 @@ export { DatabaseFieldSchema, type DatabaseField } from './database-field'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './database-select-option'
 export { DatabaseViewSchema, type DatabaseView } from './database-view'
 export {
+  SchemaExtensionSchema,
+  ExtensionFieldSchema,
+  SCHEMA_EXTENSION_SCHEMA_IRI,
+  EXTENSION_FIELD_SCHEMA_IRI,
+  schemaExtensionId,
+  type SchemaExtension,
+  type ExtensionField
+} from './schema-extension'
+export {
   TaskSchema,
   TASK_STATUS_CATEGORIES,
   getTaskStatusCategory,
@@ -169,6 +178,20 @@ export {
 export { ExternalReferenceSchema, type ExternalReference } from './external-reference'
 export { MediaAssetSchema, type MediaAsset } from './media-asset'
 export { CanvasSchema, type Canvas } from './canvas'
+export {
+  MapSchema,
+  type Map,
+  type MapBasemapId,
+  type MapViewport,
+  type MapLayerGeometry,
+  type MapLayerStyle,
+  type MapLayerSource,
+  type MapLayerSpec,
+  type GeoPosition,
+  type GeoGeometry,
+  type GeoFeature,
+  type GeoFeatureCollection
+} from './map'
 export { CommentSchema, type Comment } from './comment'
 export { ReactionSchema, type Reaction } from './reaction'
 export { ProfileSchema, type Profile } from './profile'
@@ -341,6 +364,10 @@ export const builtInSchemas = {
     import('./database-select-option').then((m) => m.DatabaseSelectOptionSchema),
   'xnet://xnet.fyi/DatabaseView@1.0.0': () =>
     import('./database-view').then((m) => m.DatabaseViewSchema),
+  'xnet://xnet.fyi/SchemaExtension@1.0.0': () =>
+    import('./schema-extension').then((m) => m.SchemaExtensionSchema),
+  'xnet://xnet.fyi/ExtensionField@1.0.0': () =>
+    import('./schema-extension').then((m) => m.ExtensionFieldSchema),
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/TaskView@1.0.0': () => import('./task-view').then((m) => m.TaskViewSchema),
   'xnet://xnet.fyi/Project@1.0.0': () => import('./project').then((m) => m.ProjectSchema),
@@ -376,6 +403,7 @@ export const builtInSchemas = {
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset@1.0.0': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
+  'xnet://xnet.fyi/Map@1.0.0': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Profile@1.0.0': () => import('./profile').then((m) => m.ProfileSchema),
@@ -426,6 +454,10 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/DatabaseSelectOption': () =>
     import('./database-select-option').then((m) => m.DatabaseSelectOptionSchema),
   'xnet://xnet.fyi/DatabaseView': () => import('./database-view').then((m) => m.DatabaseViewSchema),
+  'xnet://xnet.fyi/SchemaExtension': () =>
+    import('./schema-extension').then((m) => m.SchemaExtensionSchema),
+  'xnet://xnet.fyi/ExtensionField': () =>
+    import('./schema-extension').then((m) => m.ExtensionFieldSchema),
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/TaskView': () => import('./task-view').then((m) => m.TaskViewSchema),
   'xnet://xnet.fyi/Project': () => import('./project').then((m) => m.ProjectSchema),
@@ -455,6 +487,7 @@ export const builtInSchemas = {
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
+  'xnet://xnet.fyi/Map': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Profile': () => import('./profile').then((m) => m.ProfileSchema),

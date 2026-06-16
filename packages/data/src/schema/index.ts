@@ -135,6 +135,40 @@ export { DatabaseFieldSchema, type DatabaseField } from './schemas'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './schemas'
 export { DatabaseViewSchema, type DatabaseView } from './schemas'
 export {
+  SchemaExtensionSchema,
+  ExtensionFieldSchema,
+  SCHEMA_EXTENSION_SCHEMA_IRI,
+  EXTENSION_FIELD_SCHEMA_IRI,
+  schemaExtensionId,
+  type SchemaExtension,
+  type ExtensionField
+} from './schemas'
+// Extension overlay + effective-schema composition
+export { EXT_PREFIX, extKey, isExtKey, parseExtKey } from './extension'
+export {
+  buildEffectiveSchema,
+  lockedPropertyKeys,
+  canModifyColumn,
+  findLockedColumns,
+  type EffectiveExtensionField
+} from './effective-schema'
+export {
+  loadExtensionFields,
+  selectExtensionFields,
+  resolveEffectiveSchema,
+  type CoreSchemaResolver,
+  type ExtensionRecord,
+  type ExtensionFieldRecord
+} from './extension-resolver'
+// Sidecar (join-node) extensions
+export {
+  SIDECAR_PREFIX,
+  sidecarId,
+  sidecarOverlayKeys,
+  mergeSidecarsIntoRow,
+  type SidecarOverlay
+} from './sidecar'
+export {
   TaskSchema,
   TASK_STATUS_CATEGORIES,
   getTaskStatusCategory,
@@ -269,6 +303,20 @@ export {
 export { ExternalReferenceSchema, type ExternalReference } from './schemas'
 export { MediaAssetSchema, type MediaAsset } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
+export {
+  MapSchema,
+  type Map,
+  type MapBasemapId,
+  type MapViewport,
+  type MapLayerGeometry,
+  type MapLayerStyle,
+  type MapLayerSource,
+  type MapLayerSpec,
+  type GeoPosition,
+  type GeoGeometry,
+  type GeoFeature,
+  type GeoFeatureCollection
+} from './schemas'
 export { CommentSchema, type Comment } from './schemas'
 export { ReactionSchema, type Reaction } from './schemas'
 export { ProfileSchema, type Profile } from './schemas'
@@ -450,5 +498,6 @@ export {
   when,
   composeLens,
   createOperations,
-  identity
+  identity,
+  promoteOverlay
 } from './lens-builders'

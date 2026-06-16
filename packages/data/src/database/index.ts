@@ -114,6 +114,16 @@ export {
   moveSelectOption
 } from './field-operations'
 
+// Extension field operations (custom columns on an existing schema)
+export {
+  type EnsureExtensionOptions,
+  type CreateExtensionFieldOptions,
+  ensureSchemaExtension,
+  createExtensionField,
+  renameExtensionField,
+  deleteExtensionField
+} from './extension-field-operations'
+
 // View operations (V2 node model)
 export {
   type ViewNode,
