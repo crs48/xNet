@@ -18,6 +18,7 @@ import { DealSchema, StageSchema } from '@xnetjs/data'
 import { useIdentity, useMutate, useQuery } from '@xnetjs/react'
 import { Plus, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
+import { ActivityTimeline } from '../ActivityTimeline'
 import { NodePeek } from '../NodeInspector'
 import { money, num, str } from './crm-helpers'
 import { DealLineItems } from './DealLineItems'
@@ -226,6 +227,11 @@ export function CrmPipeline({ pipelineId }: { pipelineId: string }): JSX.Element
                   id: 'lineitems',
                   title: 'Line items',
                   render: () => <DealLineItems dealId={peekDealId} />
+                },
+                {
+                  id: 'activity',
+                  title: 'Activity',
+                  render: () => <ActivityTimeline aboutId={peekDealId} />
                 }
               ]
             : undefined
