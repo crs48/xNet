@@ -286,6 +286,7 @@ function loadStoredPanel(defaultPanel: PanelId): PanelId {
       'authz',
       'abuse',
       'queries',
+      'traces',
       'telemetry',
       'schemas',
       'schema-history',
