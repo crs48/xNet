@@ -668,6 +668,7 @@ export { type BlobStoreForSync } from '@xnetjs/runtime'
 // =============================================================================
 
 export { useIdentity, type UseIdentityResult } from './hooks/useIdentity'
+export { useBilling, type UseBillingResult, type CheckoutOptions } from './hooks/useBilling'
 
 // =============================================================================
 // Onboarding

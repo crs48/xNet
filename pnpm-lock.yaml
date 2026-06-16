@@ -385,6 +385,9 @@ importers:
       '@xnetjs/comms':
         specifier: workspace:*
         version: link:../../packages/comms
+      '@xnetjs/crm':
+        specifier: workspace:*
+        version: link:../../packages/crm
       '@xnetjs/dashboard':
         specifier: workspace:*
         version: link:../../packages/dashboard
@@ -515,6 +518,21 @@ importers:
       '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
+
+  packages/billing:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/canvas:
     dependencies:
@@ -734,6 +752,18 @@ importers:
       typescript:
         specifier: ^5.4.0
         version: 5.9.3
+
+  packages/crm:
+    devDependencies:
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/crypto:
     dependencies:
@@ -1140,6 +1170,9 @@ importers:
       '@xnetjs/abuse':
         specifier: workspace:*
         version: link:../abuse
+      '@xnetjs/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
@@ -1413,6 +1446,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.18
         version: 3.13.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@xnetjs/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@xnetjs/core':
         specifier: workspace:*
         version: link:../core

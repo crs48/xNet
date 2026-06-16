@@ -35,8 +35,4 @@ pnpm-debug.log*
 
 # graphify local runtime state
 .codex/hooks.json
-graphify-out/.graphify_*
-graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
-graphify-out/cache/
-graphify-out/cost.json
-graphify-out/manifest.json
+graphify-out/

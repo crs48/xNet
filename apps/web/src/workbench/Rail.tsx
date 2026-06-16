@@ -12,6 +12,7 @@ import { useIdentity } from '@xnetjs/react'
 import {
   CheckSquare2,
   Compass,
+  Contact,
   Files,
   MessageSquare,
   Network,
@@ -105,6 +106,8 @@ export function Rail() {
       ))}
 
       <div className="my-1 h-px w-5 bg-hairline" />
+
+      <RailButton label="CRM" icon={Contact} onClick={() => void navigate({ to: '/crm' })} />
 
       <RailButton
         label="Discover people"
