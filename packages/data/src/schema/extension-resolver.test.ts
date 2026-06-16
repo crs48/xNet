@@ -1,13 +1,13 @@
+import type { SchemaIRI } from './node'
 import type { DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach } from 'vitest'
-import type { SchemaIRI } from './node'
 import { MemoryNodeStorageAdapter } from '../store/memory-adapter'
 import { NodeStore } from '../store/store'
-import { schemaRegistry } from './registry'
 import { extKey } from './extension'
 import { loadExtensionFields, resolveEffectiveSchema } from './extension-resolver'
+import { schemaRegistry } from './registry'
 import {
   SchemaExtensionSchema,
   ExtensionFieldSchema,

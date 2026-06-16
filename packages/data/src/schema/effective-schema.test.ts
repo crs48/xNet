@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import type { Schema } from './types'
 import type { SchemaIRI } from './node'
+import type { Schema } from './types'
+import { describe, it, expect } from 'vitest'
 import {
   buildEffectiveSchema,
   canModifyColumn,

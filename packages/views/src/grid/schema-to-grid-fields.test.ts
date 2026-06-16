@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
 import type { Schema } from '@xnetjs/data'
 import { buildEffectiveSchema } from '@xnetjs/data'
+import { describe, it, expect } from 'vitest'
 import { schemaToGridFields, displayLabelForProperty } from './schema-to-grid-fields'
 
 const contact: Schema = {

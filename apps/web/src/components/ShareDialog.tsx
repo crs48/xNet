@@ -17,7 +17,6 @@ import {
   Users,
   X
 } from 'lucide-react'
-import { PermissionMatrixPanel } from './PermissionMatrixPanel'
 import QRCode from 'qrcode'
 import { useMemo, useState } from 'react'
 import {
@@ -29,6 +28,7 @@ import {
   type ShareRole
 } from '../hooks/useShareLinks'
 import { isPrivateHubHost } from '../lib/share-links'
+import { PermissionMatrixPanel } from './PermissionMatrixPanel'
 
 interface ShareDialogProps {
   docId: string

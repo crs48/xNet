@@ -3,7 +3,6 @@
  * extension fields read through the data bridge.
  */
 
-import type { QueryFilter } from './useQuery'
 import type { DataBridge } from '@xnetjs/data-bridge'
 import { renderHook, waitFor } from '@testing-library/react'
 import {

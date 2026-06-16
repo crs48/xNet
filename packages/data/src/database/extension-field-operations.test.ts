@@ -2,10 +2,10 @@ import type { DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach } from 'vitest'
-import { MemoryNodeStorageAdapter } from '../store/memory-adapter'
-import { NodeStore } from '../store/store'
 import { loadExtensionFields } from '../schema/extension-resolver'
 import { schemaExtensionId } from '../schema/schemas/schema-extension'
+import { MemoryNodeStorageAdapter } from '../store/memory-adapter'
+import { NodeStore } from '../store/store'
 import {
   ensureSchemaExtension,
   createExtensionField,

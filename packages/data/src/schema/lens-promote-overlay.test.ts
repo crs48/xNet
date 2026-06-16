@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
 import type { SchemaIRI } from './node'
+import { describe, it, expect } from 'vitest'
 import { composeLens, promoteOverlay } from './lens-builders'
 
 describe('promoteOverlay lens (overlay → core graduation)', () => {

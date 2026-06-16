@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { serializeAuthorization } from './serialize'
-import { presets } from './presets'
-import { buildPermissionMatrix, describeRoleResolver } from './permission-matrix'
 import { spaceCascadeAuthorization } from '../schema/schemas/space-authorization'
+import { buildPermissionMatrix, describeRoleResolver } from './permission-matrix'
+import { presets } from './presets'
+import { serializeAuthorization } from './serialize'
 
 describe('buildPermissionMatrix', () => {
   it('summarizes a private preset (owner-only)', () => {
