@@ -16,14 +16,16 @@ import { num, relDays, str } from './crm-helpers'
 import { CrmContacts } from './CrmContacts'
 import { CrmForecast } from './CrmForecast'
 import { CrmPipeline } from './CrmPipeline'
+import { ProductsPanel } from './ProductsPanel'
 
-type CrmTab = 'contacts' | 'pipeline' | 'forecast' | 'companies' | 'keep'
+type CrmTab = 'contacts' | 'pipeline' | 'forecast' | 'companies' | 'products' | 'keep'
 
 const TABS: Array<{ id: CrmTab; label: string }> = [
   { id: 'contacts', label: 'Contacts' },
   { id: 'pipeline', label: 'Pipeline' },
   { id: 'forecast', label: 'Forecast' },
   { id: 'companies', label: 'Companies' },
+  { id: 'products', label: 'Products' },
   { id: 'keep', label: 'Keep in touch' }
 ]
 
@@ -107,6 +109,7 @@ export function CrmView(): JSX.Element {
             <p className="p-6 text-xs text-ink-3">Setting up your pipeline…</p>
           ))}
         {tab === 'companies' && <CompaniesPanel />}
+        {tab === 'products' && <ProductsPanel />}
         {tab === 'keep' && <KeepInTouchPanel />}
       </div>
     </div>
