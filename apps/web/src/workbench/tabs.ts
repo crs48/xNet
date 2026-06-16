@@ -9,6 +9,7 @@
 import {
   CheckSquare2,
   Code2,
+  Contact,
   Database,
   FileText,
   FlaskConical,
@@ -51,6 +52,7 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
     toRoute: () => '/experiments',
     singleton: true
   },
+  crm: { label: 'CRM', icon: Contact, toRoute: () => '/crm', singleton: true },
   finance: { label: 'Finance', icon: Wallet, toRoute: () => '/finance', singleton: true },
   channel: { label: 'Channel', icon: MessageSquare, toRoute: (id) => `/channel/${id}` },
   tag: { label: 'Tag', icon: Hash, toRoute: (id) => `/tag/${id}` },
@@ -82,6 +84,7 @@ export function tabFromPathname(pathname: string): RouteTabDescriptor | null {
   if (pathname === '/tasks') return { nodeType: 'tasks', nodeId: 'tasks' }
   if (pathname === '/data') return { nodeType: 'data', nodeId: 'data' }
   if (pathname === '/experiments') return { nodeType: 'experiments', nodeId: 'experiments' }
+  if (pathname === '/crm') return { nodeType: 'crm', nodeId: 'crm' }
   if (pathname === '/finance') return { nodeType: 'finance', nodeId: 'finance' }
 
   for (const { prefix, nodeType } of ROUTE_PREFIXES) {
