@@ -550,8 +550,13 @@ flowchart LR
       with `capabilities`/`endowments` and a declarative `hub: { featureId }`
       pointer; add the **`importers`** client contribution point
       (`ImporterContribution` + `registerImporter` + registry + manifest +
-      static-apply). _As-built: the `routes` contribution point + `schemas` array
-      are deferred to the route-registry phase._
+      static-apply). _As-built: the contribution point is **consumable** —
+      `useImporters()` (react) + `importerAdapters`/`resolveImporters`
+      (`packages/plugins/src/importers.ts`) merge plugin importers with a built-in
+      set (deduped by id). The `routes` contribution point + `schemas` array, and
+      wiring importers into the live social-import **detection** path (the
+      worker-client; functions can't cross the worker boundary, so plugin importers
+      run main-thread — see "Migrate importers" below), are deferred._
 - [ ] Add a **client route registry** + a catch-all `/x/$pluginId/$rest`
       TanStack route in `apps/web`; bridge to the existing workbench
       contributions (`apps/web/src/workbench/contributions.tsx`). _(deferred — web
@@ -559,7 +564,7 @@ flowchart LR
 - [x] Add a **hub feature registry** (`packages/hub/src/features/registry.ts` +
       `types.ts` + `first-party.ts`) and refactor `server.ts` to iterate
       `HubFeature`s (`mountFeatures([billingFeature(), tasksFeature(…),
-    unfurlFeature(…)], …)`) instead of hardcoded `app.route(...)`.
+  unfurlFeature(…)], …)`) instead of hardcoded `app.route(...)`.
       _As-built: behaviour-preserving (full hub suite green); community `/x/<id>`
       namespacing is deferred to the marketplace phase._
 - [x] Add a **capability/secret broker** in the hub
@@ -571,9 +576,14 @@ flowchart LR
 - [ ] Unify the sandbox: route plugin code through the dashboard tiers
       (`packages/dashboard/src/sandbox`) + labs trust derivation
       (`packages/labs/src/trust.ts`); gate host-API endowments by manifest.
-- [ ] **Migrate importers**: wrap `SocialImportAdapter`
-      (`packages/social/src/importers/registry.ts`) as bundled `FeatureModule`s
-      with an `importers` contribution; ship one per platform; add uninstall UX.
+- [~] **Migrate importers**: wrap `SocialImportAdapter`
+  (`packages/social/src/importers/registry.ts`) as bundled `FeatureModule`s
+  with an `importers` contribution; ship one per platform; add uninstall UX.
+  _As-built: the consumer plumbing exists (`useImporters` + `resolveImporters`);
+  the remaining work is the bundled per-platform modules + threading
+  plugin importers through the social-import worker-client (main-thread path)
+  so they participate in archive detection — left as its own focused PR to
+  avoid destabilising the shipped social-import flow._
 - [ ] **Migrate billing**: re-express as `BillingModule` (client settings + hook
       contribution; hub routes/store via the feature registry; first-party tier
       with `secrets`).

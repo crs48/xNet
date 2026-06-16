@@ -800,6 +800,7 @@ export {
   useCommands,
   useSlashCommands,
   useSidebarItems,
+  useImporters,
   useEditorExtensions,
   useEditorExtensionsSafe,
   useView,

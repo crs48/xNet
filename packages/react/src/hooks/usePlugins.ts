@@ -12,7 +12,8 @@ import type {
   EditorContribution,
   PropertyHandlerContribution,
   BlockContribution,
-  SettingContribution
+  SettingContribution,
+  ImporterContribution
 } from '@xnetjs/plugins'
 import { createContext, useContext, useState, useEffect } from 'react'
 
@@ -100,6 +101,7 @@ type ContributionTypeMap = {
   propertyHandlers: PropertyHandlerContribution
   blocks: BlockContribution
   settings: SettingContribution
+  importers: ImporterContribution
 }
 
 /**
@@ -126,6 +128,8 @@ function getTypedRegistry<K extends keyof ContributionTypeMap>(
       return contributions.blocks
     case 'settings':
       return contributions.settings
+    case 'importers':
+      return contributions.importers
     default:
       throw new Error(`Unknown contribution type: ${type}`)
   }
@@ -195,6 +199,16 @@ export function useSlashCommands(): SlashCommandContribution[] {
  */
 export function useSidebarItems(): SidebarContribution[] {
   return useContributions('sidebar')
+}
+
+/**
+ * Get all registered importer contributions (exploration 0189).
+ *
+ * Pair with `resolveImporters`/`importerAdapters` from `@xnetjs/plugins` to merge
+ * plugin-contributed importers with a built-in set (e.g. the social importers).
+ */
+export function useImporters(): ImporterContribution[] {
+  return useContributions('importers')
 }
 
 /**
