@@ -662,8 +662,10 @@ const members = await Promise.all(
   - [x] Author a lens template for "overlay → core property" graduation.
         → `promoteOverlay(authority, field, coreProp)` in
         `packages/data/src/schema/lens-builders.ts` (lossless), tested.
-  - [ ] Docs page: custom fields (overlay), custom overlays (sidecar), custom
+  - [x] Docs page: custom fields (overlay), custom overlays (sidecar), custom
         objects (`extends`).
+        → `site/src/content/docs/docs/schemas/extending-schemas.mdx`
+        (+ registered in `site/src/sidebar.mjs`).
 
 ## Validation Checklist
 
