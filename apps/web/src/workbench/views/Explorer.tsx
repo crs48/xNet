@@ -10,7 +10,7 @@
  */
 import { useNavigate } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { CanvasSchema, DashboardSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
+import { CanvasSchema, DashboardSchema, DatabaseSchema, MapSchema, PageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { ChevronDown, Link as LinkIcon, Plus } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
@@ -31,7 +31,8 @@ const TYPE_FILTERS: Array<{ id: ExplorerNodeType | 'all'; label: string }> = [
   { id: 'page', label: 'Page' },
   { id: 'database', label: 'Database' },
   { id: 'canvas', label: 'Canvas' },
-  { id: 'dashboard', label: 'Dashboard' }
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'map', label: 'Map' }
 ]
 
 const QUERY_LIMIT = 500
@@ -66,7 +67,7 @@ function ExplorerCreateMenu({
       {open && (
         <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-md border border-hairline bg-popover py-1">
           <CreateDocMenuItems
-            types={['page', 'database', 'canvas', 'dashboard', 'lab']}
+            types={['page', 'database', 'canvas', 'dashboard', 'map', 'lab']}
             onCreate={onCreate}
           />
           <hr className="my-1 border-hairline" />
@@ -165,6 +166,7 @@ function useExplorerItems(): ExplorerItem[] {
   const { data: databases } = useQuery(DatabaseSchema, options)
   const { data: canvases } = useQuery(CanvasSchema, options)
   const { data: dashboards } = useQuery(DashboardSchema, options)
+  const { data: maps } = useQuery(MapSchema, options)
   const spaceScope = useWorkbench((s) => s.currentSpaceId)
 
   return useMemo<ExplorerItem[]>(
@@ -173,9 +175,10 @@ function useExplorerItems(): ExplorerItem[] {
         ...collectItems(pages, 'page', spaceScope),
         ...collectItems(databases, 'database', spaceScope),
         ...collectItems(canvases, 'canvas', spaceScope),
-        ...collectItems(dashboards, 'dashboard', spaceScope)
+        ...collectItems(dashboards, 'dashboard', spaceScope),
+        ...collectItems(maps, 'map', spaceScope)
       ].sort((a, b) => b.updatedAt - a.updatedAt),
-    [pages, databases, canvases, dashboards, spaceScope]
+    [pages, databases, canvases, dashboards, maps, spaceScope]
   )
 }
 

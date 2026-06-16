@@ -3,10 +3,10 @@
  * context and the row components can share types without an import
  * cycle (rows → context → items, rows → items).
  */
-import { CanvasSchema, DashboardSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
+import { CanvasSchema, DashboardSchema, DatabaseSchema, MapSchema, PageSchema } from '@xnetjs/data'
 import { LabSchema } from '@xnetjs/labs'
 
-export type ExplorerNodeType = 'page' | 'database' | 'canvas' | 'dashboard' | 'lab'
+export type ExplorerNodeType = 'page' | 'database' | 'canvas' | 'dashboard' | 'map' | 'lab'
 
 export interface ExplorerItem {
   id: string
@@ -23,6 +23,7 @@ export const EXPLORER_SCHEMAS = {
   database: DatabaseSchema,
   canvas: CanvasSchema,
   dashboard: DashboardSchema,
+  map: MapSchema,
   lab: LabSchema
 } as const
 
@@ -31,6 +32,7 @@ export const SCHEMA_IDS: Record<ExplorerNodeType, string> = {
   database: DatabaseSchema._schemaId,
   canvas: CanvasSchema._schemaId,
   dashboard: DashboardSchema._schemaId,
+  map: MapSchema._schemaId,
   lab: LabSchema._schemaId
 }
 

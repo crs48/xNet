@@ -16,6 +16,7 @@ import { DatabaseView } from '../components/DatabaseView'
 import { DataWorkspaceView } from '../components/DataWorkspaceView'
 import { ExperimentsView } from '../components/experiments/ExperimentsView'
 import { LabView } from '../components/LabView'
+import { MapView } from '../components/MapView'
 import { PageView } from '../components/PageView'
 import { PersonView } from '../components/PersonView'
 import { SpaceHomeView } from '../components/SpaceHomeView'
@@ -27,6 +28,7 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   database: ({ nodeId }) => <DatabaseView docId={nodeId} />,
   canvas: ({ nodeId }) => <CanvasView docId={nodeId} />,
   dashboard: ({ nodeId }) => <DashboardView dashboardId={nodeId} />,
+  map: ({ nodeId }) => <MapView mapId={nodeId} />,
   savedview: ({ nodeId }) => (
     <div className="flex h-full items-center justify-center text-xs text-ink-3">
       Saved view {nodeId}

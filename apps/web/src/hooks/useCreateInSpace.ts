@@ -11,7 +11,7 @@
  * afterwards via "Move to Space…".
  */
 import { useNavigate } from '@tanstack/react-router'
-import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
+import { CanvasSchema, DatabaseSchema, MapSchema, PageSchema } from '@xnetjs/data'
 import { useMutate } from '@xnetjs/react'
 import { useCallback } from 'react'
 import { DOC_TYPE_ROUTES, newDocId, type CreatableDocType } from '../lib/doc-creation'
@@ -36,6 +36,8 @@ export function useCreateInSpace(): (
           await create(DatabaseSchema, { title: 'Untitled Database', space: spaceId }, id)
         } else if (type === 'canvas') {
           await create(CanvasSchema, { title: 'Untitled Canvas', space: spaceId }, id)
+        } else if (type === 'map') {
+          await create(MapSchema, { title: 'Untitled Map', space: spaceId }, id)
         }
         // lab/dashboard: not eager-filed (richer createIfMissing) — Move to Space… instead.
       }
