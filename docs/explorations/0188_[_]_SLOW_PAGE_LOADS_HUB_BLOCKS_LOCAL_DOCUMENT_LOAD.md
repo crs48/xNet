@@ -515,9 +515,11 @@ performance.getEntriesByType('resource').filter(e => e.name.includes('hub'))
       `syncManager.acquire()`; the worker host loads doc content from storage
       directly ([data-worker-host.ts:412-420](../../packages/data-bridge/src/worker/data-worker-host.ts))
       and never blocked on a room join, so both paths are now local-first.
-- [ ] **P2:** Default `VITE_HUB_URL` to empty/local in dev; require explicit
-      opt-in for the production hub ([App.tsx:67](../../apps/web/src/App.tsx)).
-      Log the resolved hub URL at startup.
+- [x] **P2:** Default `VITE_HUB_URL` to empty in dev (`import.meta.env.DEV ? '' :
+      'wss://hub.xnet.fyi'`); a falsy hub URL keeps the app local-first
+      (`resolveConfiguredSignalingUrls` yields no production socket,
+      [context.ts:65-70](../../packages/react/src/context.ts)). Production is
+      unchanged. Resolved hub URL is logged at startup ([App.tsx:66-83](../../apps/web/src/App.tsx)).
 - [ ] **P3:** Add a connect timeout to `doConnect()` and assert reconnect
       backoff is bounded/non-hot ([connection-manager.ts:189-253](../../packages/runtime/src/sync/connection-manager.ts)).
 - [ ] **P4 (optional):** In `useNode`, apply local `storedContent` before/around

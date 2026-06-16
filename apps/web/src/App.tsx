@@ -63,8 +63,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
-// Hub URL from env or default
-const DEFAULT_HUB_URL = import.meta.env.VITE_HUB_URL || 'wss://hub.xnet.fyi'
+// Hub URL from env or default.
+//
+// In development an unset VITE_HUB_URL means "no hub" (empty string) rather than
+// the production hub: dialing wss://hub.xnet.fyi by accident makes the socket
+// reach `connected` against a server that won't ack this client's document
+// subscriptions, which used to stall page loads (exploration 0188) and also
+// leaked dev presence to production. A falsy hub URL keeps the app local-first;
+// opt into a real hub by setting VITE_HUB_URL (e.g. ws://localhost:4444).
+const DEFAULT_HUB_URL =
+  import.meta.env.VITE_HUB_URL ?? (import.meta.env.DEV ? '' : 'wss://hub.xnet.fyi')
+
+if (typeof console !== 'undefined') {
+  console.info(
+    '[xNet] hub:',
+    DEFAULT_HUB_URL || '(none — local-first; set VITE_HUB_URL to connect to a hub)'
+  )
+}
 
 type SharedHubSession = {
   endpoint: string
