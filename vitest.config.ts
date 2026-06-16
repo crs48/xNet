@@ -39,6 +39,7 @@ const workspaceAliases = {
   '@xnetjs/hub': new URL('./packages/hub/src/index.ts', import.meta.url).pathname,
   '@xnetjs/identity': new URL('./packages/identity/src/index.ts', import.meta.url).pathname,
   '@xnetjs/labs': new URL('./packages/labs/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/maps': new URL('./packages/maps/src/index.ts', import.meta.url).pathname,
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins/node': new URL('./packages/plugins/src/services/node.ts', import.meta.url)
     .pathname,
@@ -116,8 +117,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: true,
           include: [
-            'packages/{canvas,react,views,devtools,ui,dashboard,charts}/src/**/*.test.{ts,tsx}',
-            'packages/{canvas,react,views,devtools,ui,dashboard,charts}/test/**/*.test.{ts,tsx}',
+            'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps}/src/**/*.test.{ts,tsx}',
+            'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps}/test/**/*.test.{ts,tsx}',
             // App-level logic tests (workbench shell, 0166)
             'apps/web/src/**/*.test.{ts,tsx}'
           ]
