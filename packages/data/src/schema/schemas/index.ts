@@ -103,6 +103,20 @@ export {
 export { ExternalReferenceSchema, type ExternalReference } from './external-reference'
 export { MediaAssetSchema, type MediaAsset } from './media-asset'
 export { CanvasSchema, type Canvas } from './canvas'
+export {
+  MapSchema,
+  type Map,
+  type MapBasemapId,
+  type MapViewport,
+  type MapLayerGeometry,
+  type MapLayerStyle,
+  type MapLayerSource,
+  type MapLayerSpec,
+  type GeoPosition,
+  type GeoGeometry,
+  type GeoFeature,
+  type GeoFeatureCollection
+} from './map'
 export { CommentSchema, type Comment } from './comment'
 export { ReactionSchema, type Reaction } from './reaction'
 export { ProfileSchema, type Profile } from './profile'
@@ -290,6 +304,7 @@ export const builtInSchemas = {
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset@1.0.0': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
+  'xnet://xnet.fyi/Map@1.0.0': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Profile@1.0.0': () => import('./profile').then((m) => m.ProfileSchema),
@@ -354,6 +369,7 @@ export const builtInSchemas = {
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
+  'xnet://xnet.fyi/Map': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/Profile': () => import('./profile').then((m) => m.ProfileSchema),
