@@ -37,6 +37,7 @@ import { createShardRoutes } from './routes/shards'
 import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
 import { createShareLinkRoutes } from './routes/share-links'
 import { createTaskRoutes } from './routes/tasks'
+import { createBillingRoutes } from './routes/billing'
 import { createTelemetryRoutes } from './routes/telemetry'
 import { createUnfurlRoutes } from './routes/unfurl'
 import { AwarenessService } from './services/awareness'
@@ -60,6 +61,8 @@ import { ShardQueryRouter } from './services/shard-router'
 import { ShareAccessService } from './services/share-access'
 import { createSignalingService } from './services/signaling'
 import { TaskIdentifierService } from './services/task-identifiers'
+import { createBillingStore } from './services/billing-store'
+import { billingProviderFromEnv } from '@xnetjs/billing'
 import { createStorage } from './storage'
 import { setupHubTelemetry } from './telemetry/bridge'
 
@@ -791,6 +794,18 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     createTaskRoutes({
       identifiers: taskIdentifiers,
       githubWebhookSecret: process.env.HUB_GITHUB_WEBHOOK_SECRET
+    })
+  )
+  // Billing (Stripe + Bitcoin) — opt-in via env (exploration 0187). The webhook is
+  // unauthenticated (verified by provider signature); the money/read routes are
+  // gated by requireAuth and always DID-scoped.
+  app.route(
+    '/billing',
+    createBillingRoutes({
+      provider: billingProviderFromEnv(process.env),
+      store: createBillingStore({ storage: config.storage, dataDir: config.dataDir }),
+      requireAuth,
+      appUrl: config.appUrl ?? DEFAULT_APP_URL
     })
   )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
