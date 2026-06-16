@@ -156,6 +156,26 @@ describe('publishPluginRepo', () => {
     expect(gh?.cwd).toBe('/tmp/plugin')
   })
 
+  it('finds the repo URL even when it is not the last stdout line', async () => {
+    const runner = new FakeCommandRunner([
+      {
+        match: cmd('gh', ['repo', 'create']),
+        result: {
+          stdout: [
+            '✓ Created repository alice/xnet-plugin-kanban on GitHub',
+            'https://github.com/alice/xnet-plugin-kanban',
+            '✓ Added remote https://github.com/alice/xnet-plugin-kanban.git',
+            '✓ Pushed commits to https://github.com/alice/xnet-plugin-kanban.git'
+          ].join('\n')
+        }
+      }
+    ])
+    const { repoUrl } = await publishPluginRepo(runner, '/tmp/plugin', {
+      repo: 'alice/xnet-plugin-kanban'
+    })
+    expect(repoUrl).toBe('https://github.com/alice/xnet-plugin-kanban')
+  })
+
   it('honours private visibility and throws on failure', async () => {
     const ok = new FakeCommandRunner([
       { match: cmd('gh', ['repo', 'create']), result: { stdout: 'https://github.com/a/b\n' } }

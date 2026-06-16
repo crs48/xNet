@@ -16,6 +16,8 @@ export interface DeclarativeWebhook {
   path: string
   /** Env key holding the signing secret; the route answers 503 when it's unset. */
   secretRef?: string
+  /** Human message for the 503 when `secretRef` is unset (defaults to a generic one). */
+  notConfiguredMessage?: string
   /** Verify the raw body against the secret + headers. Return false → 401. */
   verify: (rawBody: string, headers: Record<string, string>, secret: string) => boolean
   /** Pure: turn the verified, parsed delivery into actions (an opaque list). */
@@ -33,7 +35,8 @@ export function mountWebhook(app: Hono, webhook: DeclarativeWebhook, env: Env): 
   app.post(webhook.path, async (c) => {
     const secret = webhook.secretRef ? env[webhook.secretRef] : ''
     if (webhook.secretRef && !secret) {
-      return c.json({ error: 'Webhook is not configured', code: 'NOT_CONFIGURED' }, 503)
+      const error = webhook.notConfiguredMessage ?? 'Webhook is not configured'
+      return c.json({ error, code: 'NOT_CONFIGURED' }, 503)
     }
     const rawBody = await c.req.text()
     const headers = c.req.header() as Record<string, string>

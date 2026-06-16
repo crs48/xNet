@@ -84,6 +84,27 @@ describe('billing routes', () => {
     expect(after.entitlements?.plan).toBe('team')
   })
 
+  it('scopes /entitlements to the caller — another DID leaks no plan', async () => {
+    const { app, store } = mount({ did: 'did:key:bob', pricePlans: { price_pro: 'team' } })
+    // Alice has an active, mapped subscription; bob (the caller) must not inherit it.
+    await store.applyMutation({
+      kind: 'subscription',
+      data: {
+        id: 'sub_alice',
+        did: 'did:key:alice',
+        provider: 'fake',
+        externalRef: 'sub_alice',
+        status: 'active',
+        priceRef: 'price_pro',
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        updatedAt: 1
+      }
+    })
+    const res = await app.request('/billing/entitlements')
+    expect((await res.json()).entitlements).toBeNull()
+  })
+
   it('scopes /me to the caller — other DIDs see nothing', async () => {
     const { app, store } = mount({ did: 'did:key:bob' })
     // Alice's subscription is in the store, but the caller is bob.

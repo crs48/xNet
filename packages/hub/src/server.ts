@@ -789,6 +789,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // 0189). Each receives a broker-scoped env — only the secrets it declared — so
   // billing reads STRIPE_*/BTCPAY_* but never the GitHub webhook secret, and
   // vice-versa. Behaviour is identical to the previous hardcoded mounts.
+  //
+  // `tasksFeature` is mounted WITHOUT an `applyAutomationActions` callback: the
+  // GitHub webhook verifies signatures and normalizes deliveries into
+  // `TaskAutomationAction[]`, but applying them to a workspace's Task nodes needs
+  // server-authoritative node writes (a hub system identity), which the hub does
+  // not yet have. Until then the actions are reported (`{ ok, actions }`) but not
+  // applied — matching the previous hand-written route, which also never wired
+  // apply. See exploration 0189 (deferred: server-side action application).
   mountFeatures(
     [billingFeature(), tasksFeature(taskIdentifiers), unfurlFeature(crawlConfig.userAgent)],
     {
