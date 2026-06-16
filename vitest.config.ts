@@ -32,6 +32,7 @@ const workspaceAliases = {
   '@xnetjs/dashboard': new URL('./packages/dashboard/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/devkit': new URL('./packages/devkit/src/index.ts', import.meta.url).pathname,
   '@xnetjs/devtools': new URL('./packages/devtools/src/index.ts', import.meta.url).pathname,
   '@xnetjs/experiments': new URL('./packages/experiments/src/index.ts', import.meta.url).pathname,
   '@xnetjs/editor/react': new URL('./packages/editor/src/react.ts', import.meta.url).pathname,
@@ -144,8 +145,8 @@ export default defineConfig({
           isolate: true,
           testTimeout: 15000,
           include: [
-            'packages/{hub,plugins,sdk}/src/**/*.test.ts',
-            'packages/{hub,plugins,sdk}/test/**/*.test.ts'
+            'packages/{hub,plugins,sdk,devkit}/src/**/*.test.ts',
+            'packages/{hub,plugins,sdk,devkit}/test/**/*.test.ts'
           ],
           server: {
             deps: {
