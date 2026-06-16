@@ -165,6 +165,27 @@ describe('createConnectionManager', () => {
     expect(statuses).not.toContain('error')
   })
 
+  it('stays offline without opening a socket when no hub URL is configured (0188)', async () => {
+    const manager = createConnectionManager({ url: '' })
+    const statuses: string[] = []
+    manager.onStatus((status) => {
+      statuses.push(status)
+    })
+
+    manager.connect()
+    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(100)
+
+    // No WebSocket is attempted, so the browser never logs a connection error.
+    expect(MockWebSocket.instances).toHaveLength(0)
+    expect(manager.status).toBe('disconnected')
+    expect(statuses).not.toContain('connecting')
+
+    // Room joins resolve immediately (never 'connected') → local-first.
+    const subscription = manager.joinRoomAsync('xnet-doc-x', vi.fn())
+    await expect(subscription.ready).resolves.toBeUndefined()
+  })
+
   it('resolves joinRoomAsync when the server confirms the subscription', async () => {
     const manager = createConnectionManager({
       url: 'ws://localhost:4444'

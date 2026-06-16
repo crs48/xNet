@@ -795,7 +795,11 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       return
     }
 
-    const signalingUrl = signalingUrls[0] ?? 'ws://localhost:4444'
+    // No hub and no signaling servers → empty URL. The connection manager treats
+    // that as "stay offline" (no socket, no browser connection error) instead of
+    // dialing a hardcoded localhost hub that nothing is serving (exploration
+    // 0188). A real hub is opted into via hubUrl / signalingServers.
+    const signalingUrl = signalingUrls[0] ?? ''
 
     if (autoAuth && hubUrl && (!authorDID || !config.signingKey)) {
       console.warn('[XNetProvider] Hub auth enabled but authorDID/signingKey missing')

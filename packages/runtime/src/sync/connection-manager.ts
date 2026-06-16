@@ -239,15 +239,32 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     return protocols
   }
 
-  async function doConnect(): Promise<void> {
+  /** Whether a real hub URL is configured. An empty URL means "offline". */
+  function hubConfigured(): boolean {
+    return Boolean(config.url) && config.url.trim().length > 0
+  }
+
+  /** Guards for doConnect: destroyed, already connecting, or no hub configured. */
+  function shouldSkipConnect(): boolean {
     if (destroyed) {
       log('doConnect called but manager is destroyed')
-      return
+      return true
     }
     if (connectInProgress) {
       log('doConnect called but connection already in progress')
-      return
+      return true
     }
+    if (!hubConfigured()) {
+      // No hub configured — stay offline (local-first) without opening a socket
+      // or logging a browser connection error (exploration 0188).
+      log('No hub URL configured — staying offline')
+      return true
+    }
+    return false
+  }
+
+  async function doConnect(): Promise<void> {
+    if (shouldSkipConnect()) return
 
     connectInProgress = true
     log('Connecting to:', config.url)

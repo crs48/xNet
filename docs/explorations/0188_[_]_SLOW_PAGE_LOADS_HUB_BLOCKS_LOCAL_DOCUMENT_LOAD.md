@@ -520,6 +520,13 @@ performance.getEntriesByType('resource').filter(e => e.name.includes('hub'))
       (`resolveConfiguredSignalingUrls` yields no production socket,
       [context.ts:65-70](../../packages/react/src/context.ts)). Production is
       unchanged. Resolved hub URL is logged at startup ([App.tsx:66-83](../../apps/web/src/App.tsx)).
+      Follow-up: with no hub, the SyncManager now passes an **empty** signaling
+      URL (not the legacy `ws://localhost:4444` fallback,
+      [context.ts:798](../../packages/react/src/context.ts)) and the connection
+      manager treats an empty URL as **stay-offline** — no socket is opened, so
+      there is no `ERR_CONNECTION_REFUSED` console error (this was caught by the
+      `editor-ux` e2e smoke test, which asserts zero console errors). Guarded by
+      a new connection-manager test.
 - [x] **P3:** Add a connect timeout to `doConnect()` (default 10s, configurable,
       0 to disable) that tears down a stalled half-open socket and backs off;
       reconnect backoff is bounded (`reconnectDelay` + `maxReconnects`). Guarded
