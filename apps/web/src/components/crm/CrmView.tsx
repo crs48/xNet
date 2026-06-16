@@ -11,6 +11,7 @@ import { useMutate, useQuery } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import { Plus, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX } from 'react'
+import { ActivityTimeline } from '../ActivityTimeline'
 import { NodePeek } from '../NodeInspector'
 import { num, relDays, str } from './crm-helpers'
 import { CrmContacts } from './CrmContacts'
@@ -193,6 +194,17 @@ function CompaniesPanel(): JSX.Element {
             currency: 'Firmographics'
           }
         }}
+        extraPanels={
+          peekOrgId
+            ? [
+                {
+                  id: 'activity',
+                  title: 'Activity',
+                  render: () => <ActivityTimeline aboutId={peekOrgId} />
+                }
+              ]
+            : undefined
+        }
       />
     </div>
   )
