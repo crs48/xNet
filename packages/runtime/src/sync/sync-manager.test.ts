@@ -351,6 +351,83 @@ describe('createSyncManager', () => {
     expect(remainingClientIds).toEqual([awareness!.clientID])
   })
 
+  it('returns the local doc without blocking on the hub subscription (0188)', async () => {
+    // A subscription confirmation that never arrives. With the old
+    // `await joinNodeRoom`, acquire() would hang here (up to the real 5s
+    // connection timeout); local-first requires it to resolve immediately.
+    const readyGate = createDeferred<void>()
+    roomReadyPromise = readyGate.promise
+
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+
+    await manager.start()
+    emitConnectionStatus('connected')
+
+    // Resolves to the local doc even though the room subscription is unconfirmed.
+    const doc = await manager.acquire('node-1')
+    expect(doc).toBe(sharedDoc)
+
+    // The background join started (handler registered synchronously)...
+    expect(roomHandlers.has('xnet-doc-node-1')).toBe(true)
+    // ...but no sync-step1 yet, because the subscription is still pending.
+    expect(
+      mockConnection.publish.mock.calls.filter(([, data]) => data?.type === 'sync-step1')
+    ).toHaveLength(0)
+
+    // Once the hub confirms the subscription, the background join performs
+    // catch-up sync — proving the round-trip moved off the critical path.
+    mockPool.has.mockReturnValue(true)
+    readyGate.resolve()
+    await vi.waitFor(() => {
+      expect(
+        mockConnection.publish.mock.calls.filter(([, data]) => data?.type === 'sync-step1')
+      ).not.toHaveLength(0)
+    })
+  })
+
+  it('[bench] opening many documents stays local-first under a slow hub (0188)', async () => {
+    // The hub is connected but never confirms subscriptions — the exact case
+    // that used to make every document open block up to the 5s timeout. With a
+    // background join, acquire() resolves at local-read speed.
+    const readyGate = createDeferred<void>()
+    roomReadyPromise = readyGate.promise
+
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+
+    await manager.start()
+    emitConnectionStatus('connected')
+
+    const DOC_COUNT = 50
+    const startedAt = performance.now()
+    for (let i = 0; i < DOC_COUNT; i++) {
+      await manager.acquire(`node-${i}`)
+    }
+    const elapsed = performance.now() - startedAt
+    const perDoc = elapsed / DOC_COUNT
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `[bench] opened ${DOC_COUNT} docs in ${elapsed.toFixed(1)}ms ` +
+        `(${perDoc.toFixed(2)}ms/doc) with hub subscriptions unconfirmed`
+    )
+
+    // Pre-fix, each acquire awaited up to the 5s subscription timeout, so this
+    // batch would have taken ~DOC_COUNT × 5s (and timed out the test). Local-
+    // first keeps the whole batch in the low-ms range — a generous bound that
+    // still proves the round-trip is off the critical path.
+    expect(elapsed).toBeLessThan(1000)
+
+    readyGate.resolve()
+  })
+
   it('signs outgoing sync updates by default', async () => {
     const identity = generateIdentity()
     const manager = createSyncManager({

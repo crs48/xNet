@@ -972,10 +972,17 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       // Start blob sync if configured
       blobSync?.start()
 
-      // Join rooms for all tracked Nodes (in parallel)
+      // Join rooms for all tracked Nodes in the BACKGROUND. Startup must never
+      // block on hub round-trips (exploration 0188) — each join sends sync-step1
+      // once its subscription confirms, and reconnect recovery re-syncs them, so
+      // awaiting here only delayed readiness behind a slow/unacked hub.
       const tracked = registry.getTracked()
       log('Joining rooms for', tracked.length, 'tracked nodes')
-      await Promise.all(tracked.map((entry) => joinNodeRoom(entry.nodeId)))
+      for (const entry of tracked) {
+        void joinNodeRoom(entry.nodeId).catch((err) => {
+          log('Background room join failed during start for node:', entry.nodeId, err)
+        })
+      }
       log('SyncManager started')
     },
 
@@ -1017,7 +1024,6 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     },
 
     async acquire(nodeId) {
-      console.log('[SyncManager] acquire() called for:', nodeId)
       log('Acquiring doc for node:', nodeId)
       registry.touch(nodeId)
 
@@ -1028,18 +1034,20 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       setupDocBroadcast(nodeId, doc)
       getOrCreateAwareness(nodeId, doc)
 
-      // Join room if not already joined - await to ensure subscription is confirmed
-      // before sending sync-step1
+      // Join the hub room in the BACKGROUND. The local doc is already in hand,
+      // so first paint must never wait on a network round-trip (exploration
+      // 0188 — the old `await joinNodeRoom` blocked acquire up to the 5s
+      // subscription timeout whenever the socket was connected-but-unacked).
+      // joinNodeRoom() itself sends sync-step1 once the subscription confirms,
+      // and handleConnected() re-syncs tracked rooms on reconnect, so catch-up
+      // sync still happens — just off the critical path.
       if (!roomCleanups.has(nodeId)) {
-        await joinNodeRoom(nodeId)
-      }
-
-      // Send sync-step1 to get any updates we missed (room join is now confirmed)
-      if (connection.status === 'connected') {
-        log('Connection is connected, sending sync-step1')
+        void joinNodeRoom(nodeId).catch((err) => {
+          log('Background room join failed for node:', nodeId, err)
+        })
+      } else if (connection.status === 'connected') {
+        // Room already joined — kick a fresh sync-step1 to catch up.
         sendSyncStep1(nodeId, doc)
-      } else {
-        log('Connection not connected, status:', connection.status)
       }
 
       // Eager blob sync: scan Y.Doc for CID references and request missing ones

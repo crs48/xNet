@@ -75,7 +75,11 @@ function resolveConfiguredSignalingUrls(
       return true
     })
 
-  return urls.length > 0 ? urls : ['ws://localhost:4444']
+  // No hub and no signaling servers → no URLs (stay offline / local-first).
+  // The old `['ws://localhost:4444']` default dialed a hub that nothing is
+  // serving, producing ERR_CONNECTION_REFUSED console errors (exploration 0188);
+  // a real signaling server is opted into via hubUrl / signalingServers.
+  return urls
 }
 
 const HUB_CAPABILITIES = [
@@ -810,7 +814,11 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       return
     }
 
-    const signalingUrl = signalingUrls[0] ?? 'ws://localhost:4444'
+    // No hub and no signaling servers → empty URL. The connection manager treats
+    // that as "stay offline" (no socket, no browser connection error) instead of
+    // dialing a hardcoded localhost hub that nothing is serving (exploration
+    // 0188). A real hub is opted into via hubUrl / signalingServers.
+    const signalingUrl = signalingUrls[0] ?? ''
 
     if (autoAuth && hubUrl && (!authorDID || !config.signingKey)) {
       console.warn('[XNetProvider] Hub auth enabled but authorDID/signingKey missing')
