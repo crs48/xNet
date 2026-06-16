@@ -64,6 +64,7 @@ export function TelemetryPanel() {
           onClick={state.setSubTab}
           label="Performance"
         />
+        <TabButton id="usage" active={state.subTab} onClick={state.setSubTab} label="Usage" />
         <TabButton id="consent" active={state.subTab} onClick={state.setSubTab} label="Consent" />
         <div className="ml-auto">
           <CopyButton getData={getTelemetryData} label="Copy Telemetry" />
@@ -81,6 +82,7 @@ export function TelemetryPanel() {
           />
         )}
         {state.subTab === 'performance' && <PerformanceSubPanel groups={state.performanceGroups} />}
+        {state.subTab === 'usage' && <UsageSubPanel groups={state.usageGroups} />}
         {state.subTab === 'consent' && <ConsentSubPanel consent={state.consent} />}
       </div>
     </div>
@@ -498,6 +500,38 @@ function BucketDistribution({ buckets, total }: { buckets: Map<string, number>; 
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ─── Usage Sub-Panel ───────────────────────────────────────
+
+function UsageSubPanel({ groups }: { groups: PerformanceGroup[] }) {
+  if (groups.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-ink-3 text-[10px]">
+        No usage metrics recorded
+      </div>
+    )
+  }
+
+  const totalEvents = groups.reduce((sum, g) => sum + g.total, 0)
+
+  return (
+    <div className="p-3 space-y-4 overflow-y-auto h-full">
+      <div className="flex items-center justify-between">
+        <h4 className="text-[10px] font-semibold text-ink-2 uppercase">Usage metrics</h4>
+        <span className="text-[9px] text-ink-3">{totalEvents} events</span>
+      </div>
+      {groups.map((group) => (
+        <div key={group.metric}>
+          <div className="flex items-center justify-between mb-1.5">
+            <h4 className="text-[11px] font-semibold text-ink-2">{group.metric}</h4>
+            <span className="text-[9px] text-ink-3">{group.total} samples</span>
+          </div>
+          <BucketDistribution buckets={group.buckets} total={group.total} />
+        </div>
+      ))}
     </div>
   )
 }
