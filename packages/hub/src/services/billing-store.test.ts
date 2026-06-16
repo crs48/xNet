@@ -109,7 +109,8 @@ describe('SqliteBillingStore', () => {
     expect(state.payments.map((p) => p.amountMinor)).toEqual([2100])
   })
 
-  it('drops mutations that cannot be attributed to any DID', async () => {
+  it('buffers an unattributed payment and replays it once the customer maps (out-of-order)', async () => {
+    // Settlement webhook arrives BEFORE checkout creates the mapping.
     await store.applyMutation({
       kind: 'payment',
       data: {
@@ -117,14 +118,53 @@ describe('SqliteBillingStore', () => {
         did: '',
         provider: 'stripe',
         externalRef: 'pi_x',
-        customerRef: 'cus_unknown',
-        amountMinor: 1,
+        customerRef: 'cus_1',
+        amountMinor: 700,
         currency: 'USD',
-        status: 'failed',
+        status: 'succeeded',
         updatedAt: 1
       }
     })
-    expect((await store.forDid('did:key:alice')).payments).toEqual([])
+    expect((await store.forDid('did:key:alice')).payments).toEqual([]) // held, not lost
+
+    await store.applyMutation({
+      kind: 'customer',
+      data: {
+        id: 'cus_1',
+        did: 'did:key:alice',
+        provider: 'stripe',
+        externalRef: 'cus_1',
+        updatedAt: 2
+      }
+    })
+    expect((await store.forDid('did:key:alice')).payments.map((p) => p.id)).toEqual(['pi_x'])
+  })
+
+  it('refuses to backfill an ambiguous customer ref shared by two DIDs', async () => {
+    for (const did of ['did:key:alice', 'did:key:bob']) {
+      await store.applyMutation({
+        kind: 'customer',
+        data: { id: did, did, provider: 'stripe', externalRef: 'cus_shared', updatedAt: 1 }
+      })
+    }
+    // Ambiguous → no backfill, so the invoice is held rather than misattributed.
+    expect(await store.didForCustomerRef('cus_shared')).toBeNull()
+    await store.applyMutation({
+      kind: 'invoice',
+      data: {
+        id: 'in_amb',
+        did: '',
+        provider: 'stripe',
+        externalRef: 'in_amb',
+        customerRef: 'cus_shared',
+        amountDueMinor: 1,
+        currency: 'USD',
+        status: 'open',
+        updatedAt: 2
+      }
+    })
+    expect((await store.forDid('did:key:alice')).invoices).toEqual([])
+    expect((await store.forDid('did:key:bob')).invoices).toEqual([])
   })
 
   it('persists across reopen (durability)', async () => {

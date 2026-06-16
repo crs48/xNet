@@ -64,6 +64,8 @@ export class MemoryBillingStore implements BillingStore {
   private readonly subscriptions = new Map<string, Subscription>()
   private readonly invoices = new Map<string, Invoice>()
   private readonly payments = new Map<string, Payment>()
+  /** Unattributed invoice/payment mutations, held by customerRef until a customer maps it. */
+  private readonly pending = new Map<string, BillingMutation[]>()
 
   async hasSeenEvent(eventId: string): Promise<boolean> {
     return this.seenEvents.has(eventId)
@@ -81,30 +83,57 @@ export class MemoryBillingStore implements BillingStore {
     switch (mutation.kind) {
       case 'customer': {
         const c = mutation.data
-        if (!this.isNewer(this.customers.get(c.did), c)) return
-        this.customers.set(c.did, c)
-        if (c.externalRef) this.customerRefToDid.set(c.externalRef, c.did)
+        if (this.isNewer(this.customers.get(c.did), c)) this.customers.set(c.did, c)
+        if (c.externalRef) {
+          // Always (re)register the ref→DID mapping and drain anything that
+          // arrived before it — even if this customer record itself was stale.
+          this.customerRefToDid.set(c.externalRef, c.did)
+          await this.replayPending(c.externalRef)
+        }
         return
       }
       case 'subscription': {
         const s = this.resolveDid(mutation.data)
-        if (!s.did) return
+        if (!s.did) return this.bufferUnattributed(mutation)
         if (this.isNewer(this.subscriptions.get(s.id), s)) this.subscriptions.set(s.id, s)
         return
       }
       case 'invoice': {
         const i = this.resolveDid(mutation.data)
-        if (!i.did) return
+        if (!i.did) return this.bufferUnattributed(mutation)
         if (this.isNewer(this.invoices.get(i.id), i)) this.invoices.set(i.id, i)
         return
       }
       case 'payment': {
         const p = this.resolveDid(mutation.data)
-        if (!p.did) return
+        if (!p.did) return this.bufferUnattributed(mutation)
         if (this.isNewer(this.payments.get(p.id), p)) this.payments.set(p.id, p)
         return
       }
     }
+  }
+
+  /**
+   * Hold a mutation we can't yet attribute to a DID, keyed by its customer ref,
+   * so it isn't lost when its `invoice.paid`/`payment` webhook arrives before the
+   * `customer`/`checkout` event that establishes the mapping (Stripe webhooks are
+   * unordered). Replayed by `replayPending` once the mapping exists. A mutation
+   * with no customer ref is genuinely unattributable and dropped.
+   */
+  private bufferUnattributed(mutation: BillingMutation): void {
+    const ref = 'customerRef' in mutation.data ? mutation.data.customerRef : undefined
+    if (!ref) return
+    const queue = this.pending.get(ref) ?? []
+    queue.push(mutation)
+    this.pending.set(ref, queue)
+  }
+
+  /** Re-apply mutations that were waiting on this customer ref's DID mapping. */
+  private async replayPending(customerRef: string): Promise<void> {
+    const queue = this.pending.get(customerRef)
+    if (!queue) return
+    this.pending.delete(customerRef)
+    for (const m of queue) await this.applyMutation(m)
   }
 
   async forDid(did: DID): Promise<BillingState> {

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { fakeAgentRunner } from './agent'
-import { bridgeHealth, handleBridgeRun } from './bridge'
+import { bridgeHealth, handleBridgeRun, resolveWorktreePath } from './bridge'
 import { FakeCommandRunner, NodeCommandRunner } from './command-runner'
 import { Git } from './git'
 
@@ -15,6 +15,24 @@ describe('bridgeHealth', () => {
       agent: 'claude',
       version: '1.2.3'
     })
+  })
+})
+
+describe('resolveWorktreePath (containment)', () => {
+  const root = '/var/xnet/worktrees'
+
+  it('maps a plain name to a direct child of the root', () => {
+    expect(resolveWorktreePath(root, 'XN-42')).toBe('/var/xnet/worktrees/XN-42')
+  })
+
+  it('rejects traversal, separators, absolute paths, and empties', () => {
+    for (const bad of ['..', '../evil', '../../etc/evil', 'a/b', 'a\\b', '/abs', '', '.', 'x\0y']) {
+      expect(() => resolveWorktreePath(root, bad)).toThrow()
+    }
+  })
+
+  it('stays contained even with an awkward root', () => {
+    expect(resolveWorktreePath('/', 'task')).toBe('/task')
   })
 })
 

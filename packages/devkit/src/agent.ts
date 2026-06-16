@@ -42,8 +42,12 @@ export interface CliAgentOptions {
 export function cliAgentRunner(runner: CommandRunner, options: CliAgentOptions): AgentRunner {
   return {
     async run(workdir, task) {
+      // split/join (not String.replace): the prompt is arbitrary text, and
+      // replace() would interpret `$&`/`$\``/`$'`/`$$`/`$n` in it as special
+      // replacement patterns (corrupting any prompt with `$`), and only swap the
+      // first `{prompt}` token. split/join is literal and replaces every token.
       const args = (options.args ?? ['-p', '{prompt}']).map((a) =>
-        a.replace('{prompt}', task.prompt)
+        a.split('{prompt}').join(task.prompt)
       )
       const r = await runner.run(options.command, args, {
         cwd: workdir,

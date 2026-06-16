@@ -12,7 +12,7 @@ import type { AgentRunner } from './agent'
 import type { CommandRunner } from './command-runner'
 import type { Git } from './git'
 import type { ValidationStep } from './validation-gate'
-import { join } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { runAgentTask, type AgentTaskResult } from './dev-loop'
 
 export interface BridgeHealthPayload {
@@ -49,6 +49,25 @@ export interface BridgeRunRequest {
 }
 
 /**
+ * Resolve a per-task worktree path that is guaranteed to be a direct child of
+ * `worktreeRoot`. `name` comes from the (untrusted) request body, so reject any
+ * value that is empty, a path separator / traversal segment, or otherwise escapes
+ * the root — a `/run` caller must not control where the worktree (and the agent's
+ * edits + gate) land.
+ */
+export function resolveWorktreePath(worktreeRoot: string, name: string): string {
+  if (!name || name === '.' || name === '..' || /[/\\\0]/.test(name)) {
+    throw new Error(`Invalid worktree name: ${JSON.stringify(name)}`)
+  }
+  const root = resolve(worktreeRoot)
+  const target = resolve(root, name)
+  if (dirname(target) !== root) {
+    throw new Error(`Worktree path escapes root: ${JSON.stringify(name)}`)
+  }
+  return target
+}
+
+/**
  * The `/run` handler. Constructs the task + a per-task worktree path and runs the
  * dev loop, keeping the worktree so a PR / publish can follow. The Electron
  * server is just: parse JSON body → `handleBridgeRun` → JSON response.
@@ -62,7 +81,7 @@ export async function handleBridgeRun(
     runner: deps.runner,
     agent: deps.agent,
     task: { id: request.taskId, prompt: request.prompt },
-    worktreePath: join(deps.worktreeRoot, request.worktreeName ?? request.taskId),
+    worktreePath: resolveWorktreePath(deps.worktreeRoot, request.worktreeName ?? request.taskId),
     gate: deps.gate,
     keepWorktree: true
   })

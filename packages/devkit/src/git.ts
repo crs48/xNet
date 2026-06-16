@@ -75,7 +75,14 @@ export class Git {
     return this.headSha()
   }
 
-  /** Discard ALL changes (tracked + untracked) back to `ref` — the rollback. */
+  /**
+   * Discard tracked changes and untracked files back to `ref` — the rollback.
+   * `clean -fd` (no `-x`) intentionally PRESERVES gitignored files (e.g.
+   * `node_modules`, build output): blowing those away would force a reinstall in
+   * a kept worktree. The default loop removes the worktree after a failed run, so
+   * any ignored artifacts go with it; on the `keepWorktree`/`restore` paths they
+   * survive by design.
+   */
   async resetHard(ref = 'HEAD'): Promise<void> {
     await this.out(['reset', '--hard', ref])
     await this.out(['clean', '-fd'])

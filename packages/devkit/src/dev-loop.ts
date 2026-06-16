@@ -38,12 +38,14 @@ export interface AgentTaskResult {
   ok: boolean
   branch: string
   worktreePath: string
-  /** The restore point, present only when the gate passed. */
+  /** The restore point, present only when the gate passed AND the agent made edits. */
   checkpoint?: GitCheckpoint
   /** Gate outcome (empty steps if the agent itself failed before the gate ran). */
   gate: GateResult
   /** True when edits were discarded because the gate failed. */
   rolledBack: boolean
+  /** True when the agent succeeded but produced no file changes (no checkpoint). */
+  noChanges?: boolean
   /** Agent stdout/stderr, for surfacing in the terminal UI. */
   agentOutput: string
 }
@@ -86,7 +88,21 @@ export async function runAgentTask(options: RunAgentTaskOptions): Promise<AgentT
       }
     }
 
-    // 3. Checkpoint — a restore point on the branch.
+    // 3. Checkpoint — a restore point on the branch. A successful agent that made
+    //    no edits (common with a bring-your-own CLI that decides nothing needs
+    //    changing) leaves a clean tree; committing that would fail ("nothing to
+    //    commit"), so report no-changes instead of crashing the loop.
+    if (await wt.isClean()) {
+      return {
+        ok: true,
+        branch,
+        worktreePath: options.worktreePath,
+        gate,
+        rolledBack: false,
+        noChanges: true,
+        agentOutput: agentResult.output
+      }
+    }
     const checkpoint = await wt.checkpoint(options.task.id)
     return {
       ok: true,

@@ -80,6 +80,15 @@ CREATE TABLE IF NOT EXISTS billing_payments (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_billing_payments_did ON billing_payments(did);
+
+-- Invoice/payment mutations that arrived before the customer→DID mapping existed
+-- (Stripe webhooks are unordered). Held here, replayed once the mapping lands.
+CREATE TABLE IF NOT EXISTS billing_pending (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_ref TEXT NOT NULL,
+  mutation TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_billing_pending_ref ON billing_pending(customer_ref);
 `
 
 type Row = Record<string, unknown>
@@ -110,31 +119,66 @@ export class SqliteBillingStore implements BillingStore {
   }
 
   async didForCustomerRef(externalRef: string): Promise<DID | null> {
-    const row = this.db
-      .prepare('SELECT did FROM billing_customers WHERE external_ref = ?')
-      .get(externalRef) as { did: string } | undefined
-    return row?.did ?? null
+    // `external_ref` is not unique (a customer object could, via misconfiguration,
+    // be associated with two DIDs). Only backfill when EXACTLY one DID owns the
+    // ref — 0 (unknown) or >1 (ambiguous) returns null so an object is never
+    // attributed to the wrong tenant.
+    const rows = this.db
+      .prepare('SELECT DISTINCT did FROM billing_customers WHERE external_ref = ? LIMIT 2')
+      .all(externalRef) as { did: string }[]
+    return rows.length === 1 ? rows[0].did : null
   }
 
   async applyMutation(mutation: BillingMutation): Promise<void> {
     switch (mutation.kind) {
       case 'customer':
-        return this.upsertCustomer(mutation.data)
+        this.upsertCustomer(mutation.data)
+        if (mutation.data.externalRef) await this.replayPending(mutation.data.externalRef)
+        return
       case 'subscription': {
         const did = await this.resolveDid(mutation.data)
         if (did) this.upsertSubscription({ ...mutation.data, did })
+        else this.bufferUnattributed(mutation)
         return
       }
       case 'invoice': {
         const did = await this.resolveDid(mutation.data)
         if (did) this.upsertInvoice({ ...mutation.data, did })
+        else this.bufferUnattributed(mutation)
         return
       }
       case 'payment': {
         const did = await this.resolveDid(mutation.data)
         if (did) this.upsertPayment({ ...mutation.data, did })
+        else this.bufferUnattributed(mutation)
         return
       }
+    }
+  }
+
+  /**
+   * Hold an invoice/payment we can't yet attribute (keyed by its customer ref) so
+   * an out-of-order webhook isn't lost. A mutation with no customer ref is
+   * genuinely unattributable and dropped (nothing to key the replay on).
+   */
+  private bufferUnattributed(mutation: BillingMutation): void {
+    const ref = 'customerRef' in mutation.data ? mutation.data.customerRef : undefined
+    if (!ref) return
+    this.db
+      .prepare('INSERT INTO billing_pending (customer_ref, mutation) VALUES (?, ?)')
+      .run(ref, JSON.stringify(mutation))
+  }
+
+  /** Re-apply mutations that were waiting on this customer ref's DID mapping. */
+  private async replayPending(customerRef: string): Promise<void> {
+    const rows = this.db
+      .prepare('SELECT seq, mutation FROM billing_pending WHERE customer_ref = ? ORDER BY seq')
+      .all(customerRef) as { seq: number; mutation: string }[]
+    if (rows.length === 0) return
+    const del = this.db.prepare('DELETE FROM billing_pending WHERE seq = ?')
+    for (const row of rows) {
+      del.run(row.seq)
+      await this.applyMutation(JSON.parse(row.mutation) as BillingMutation)
     }
   }
 

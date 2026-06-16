@@ -67,6 +67,29 @@ describe('mountWebhook', () => {
     expect(applied).toEqual([[{ n: 1 }]])
   })
 
+  it('does NOT call apply when normalize yields zero actions', async () => {
+    let applyCalls = 0
+    const app = mount(
+      { SECRET: 's' },
+      {
+        ...webhook,
+        apply: async () => {
+          applyCalls++
+        }
+      }
+    )
+    const body = JSON.stringify({ n: 1 })
+    // No 'x-event: go' header → normalize returns [] → apply must be skipped.
+    const res = await app.request('/hook', {
+      method: 'POST',
+      body,
+      headers: { 'x-sig': sign(body, 's') }
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true, actions: 0 })
+    expect(applyCalls).toBe(0)
+  })
+
   it('skips the secret gate when no secretRef is declared', async () => {
     const open: DeclarativeWebhook = { path: '/open', verify: () => true, normalize: () => [] }
     const res = await mount({}, open).request('/open', { method: 'POST', body: '{}' })

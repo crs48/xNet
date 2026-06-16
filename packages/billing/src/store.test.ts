@@ -121,8 +121,23 @@ describe('MemoryBillingStore', () => {
     expect(state.customer?.externalRef).toBe('cus_1')
   })
 
-  it('drops mutations that cannot be attributed to any DID', async () => {
+  it('buffers an unattributed invoice/payment and replays it once the customer maps (out-of-order webhooks)', async () => {
     const store = new MemoryBillingStore()
+    // The settlement webhooks land FIRST, before checkout creates the mapping.
+    await store.applyMutation({
+      kind: 'invoice',
+      data: {
+        id: 'in_1',
+        did: '',
+        provider: 'stripe',
+        externalRef: 'in_1',
+        customerRef: 'cus_1',
+        amountDueMinor: 999,
+        currency: 'USD',
+        status: 'paid',
+        updatedAt: 2
+      }
+    })
     await store.applyMutation({
       kind: 'payment',
       data: {
@@ -130,7 +145,41 @@ describe('MemoryBillingStore', () => {
         did: '',
         provider: 'stripe',
         externalRef: 'pi_1',
-        customerRef: 'cus_unknown',
+        customerRef: 'cus_1',
+        amountMinor: 999,
+        currency: 'USD',
+        status: 'succeeded',
+        updatedAt: 3
+      }
+    })
+    // Not lost, but not visible to anyone yet (no mapping).
+    expect((await store.forDid('did:key:alice')).invoices).toEqual([])
+
+    // The customer event arrives and the buffered records surface for the owner.
+    await store.applyMutation({
+      kind: 'customer',
+      data: {
+        id: 'cus_1',
+        did: 'did:key:alice',
+        provider: 'stripe',
+        externalRef: 'cus_1',
+        updatedAt: 1
+      }
+    })
+    const state = await store.forDid('did:key:alice')
+    expect(state.invoices.map((i) => i.id)).toEqual(['in_1'])
+    expect(state.payments.map((p) => p.id)).toEqual(['pi_1'])
+  })
+
+  it('drops a mutation with neither a DID nor a customer ref (truly unattributable)', async () => {
+    const store = new MemoryBillingStore()
+    await store.applyMutation({
+      kind: 'payment',
+      data: {
+        id: 'pi_orphan',
+        did: '',
+        provider: 'stripe',
+        externalRef: 'pi_orphan',
         amountMinor: 500,
         currency: 'USD',
         status: 'succeeded',
