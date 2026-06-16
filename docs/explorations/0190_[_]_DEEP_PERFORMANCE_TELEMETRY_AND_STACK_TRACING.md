@@ -14,7 +14,7 @@ reports a single `react.useQuery` first-load number; `useMutate` reports one
 aggregate number per `create`/`update`/`delete`/`transaction`
 ([packages/react/src/hooks/useQuery.ts:642-660](../../packages/react/src/hooks/useQuery.ts),
 [packages/react/src/hooks/useMutate.ts:304-482](../../packages/react/src/hooks/useMutate.ts)).
-That tells us *that* a query was slow, never *why*. A 250 ms query could be 240 ms
+That tells us _that_ a query was slow, never _why_. A 250 ms query could be 240 ms
 of SQLite, 240 ms of decryption, 240 ms of auth-filter fallback, or 240 ms of React
 reconciliation — the number alone can't distinguish them.
 
@@ -25,8 +25,8 @@ We want the opposite: a **causal breakdown** of every read and write, end to end
 - **Writes:** mutate call → worker RPC → authorize → clock tick → encrypt →
   persist (SQLite write) → emit to sync → offline-queue enqueue → WebSocket → hub ack.
 
-…plus context — *how many rows came back, how big the database is, whether a full
-table scan happened, which index was used* — and we want it (a) visualised as
+…plus context — _how many rows came back, how big the database is, whether a full
+table scan happened, which index was used_ — and we want it (a) visualised as
 waterfalls and heatmaps in devtools at the user's fingertips, and (b) automatically
 collected in **anonymous, bucketed** form on the hub so we can answer "what are the
 slowest queries across the fleet, and on what hardware?" — without ever shipping the
@@ -62,7 +62,7 @@ What is missing is the connective tissue:
    "anonymous fleet telemetry."
 4. **Waterfall + heatmap views.** The charts package today is ECharts bar/line/area/pie
    only; a hand-rolled SVG waterfall (the `HabitHeatmap` precedent) is the lightest path.
-5. **A consent default decision.** Auto-opting users into *performance-only, bucketed*
+5. **A consent default decision.** Auto-opting users into _performance-only, bucketed_
    collection means flipping the default tier from `off` to `anonymous` for a narrow
    schema — the most sensitive decision here, addressed explicitly below.
 
@@ -98,9 +98,9 @@ useQuery (packages/react/src/hooks/useQuery.ts:394)
 ```ts
 export interface NodeQueryPlanMetadata {
   strategy: 'storage-query' | 'list-fallback' | 'auth-pushdown-candidates'
-  candidateNodeCount: number   // rows SQLite produced
-  hydratedNodeCount: number    // rows after decrypt/auth
-  returnedNodeCount: number    // rows after pagination
+  candidateNodeCount: number // rows SQLite produced
+  hydratedNodeCount: number // rows after decrypt/auth
+  returnedNodeCount: number // rows after pagination
   durationMs: number
   usedIndexNames?: string[]
   fullTableScan?: boolean
@@ -140,27 +140,27 @@ stages inside are invisible.
 
 ### The existing telemetry stack (what we build on, not around)
 
-| Layer | Location | What it gives us |
-|---|---|---|
-| Consent | [packages/telemetry/src/consent/manager.ts](../../packages/telemetry/src/consent/manager.ts) | 5 tiers `off → local → crashes → anonymous → identified`; `DEFAULT_CONSENT.tier = 'off'` |
-| Collector | [packages/telemetry/src/collection/collector.ts](../../packages/telemetry/src/collection/collector.ts) | `reportPerformance(name, ms, ns?)`, tier-gating, durable buffer |
-| Bucketing | [packages/telemetry/src/collection/bucketing.ts](../../packages/telemetry/src/collection/bucketing.ts) | `bucketLatency` `<10ms…>1000ms`, `bucketCount`, `bucketSize`, `bucketTimestamp` |
-| Scrubbing | [packages/telemetry/src/collection/scrubbing.ts](../../packages/telemetry/src/collection/scrubbing.ts) | paths/emails/IPs/UUIDs/DIDs/tokens redaction |
-| Schemas | [packages/telemetry/src/schemas/performance.ts](../../packages/telemetry/src/schemas/performance.ts) | flat `PerformanceMetric` (leaf, no hierarchy) |
-| Transport | [packages/telemetry/src/sync/http-transport.ts](../../packages/telemetry/src/sync/http-transport.ts) | `POST {hub}/telemetry/ingest`, Bearer auth |
-| React bridge | [packages/react/src/context/telemetry-context.ts](../../packages/react/src/context/telemetry-context.ts) | duck-typed `TelemetryReporter` injected via context |
-| Hub ingest | [packages/hub/src/routes/telemetry.ts](../../packages/hub/src/routes/telemetry.ts) | DID-hashed ingest + admin-gated summary/rollups/events |
-| Hub store | [packages/hub/src/telemetry/store.ts:22](../../packages/hub/src/telemetry/store.ts) | `telemetry_events(… trace_id, span_id, attributes)` + hourly rollups |
-| Hub analytics | [packages/hub/src/telemetry/analytics.ts](../../packages/hub/src/telemetry/analytics.ts) | DuckDB ATTACH telemetry.db + hub.db joins; Parquet/R2 tiering |
-| Devtools | [packages/devtools/src/panels/TelemetryPanel](../../packages/devtools/src/panels/TelemetryPanel) | Security/Performance/Usage/Consent tabs; `QueryTracker` with plan+render metadata |
-| Web | [apps/web/src/routes/analytics.tsx](../../apps/web/src/routes/analytics.tsx) | flag-gated (`VITE_TELEMETRY_DASHBOARD=1`), admin-gated, inline bars (no charts dep) |
+| Layer         | Location                                                                                                 | What it gives us                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Consent       | [packages/telemetry/src/consent/manager.ts](../../packages/telemetry/src/consent/manager.ts)             | 5 tiers `off → local → crashes → anonymous → identified`; `DEFAULT_CONSENT.tier = 'off'` |
+| Collector     | [packages/telemetry/src/collection/collector.ts](../../packages/telemetry/src/collection/collector.ts)   | `reportPerformance(name, ms, ns?)`, tier-gating, durable buffer                          |
+| Bucketing     | [packages/telemetry/src/collection/bucketing.ts](../../packages/telemetry/src/collection/bucketing.ts)   | `bucketLatency` `<10ms…>1000ms`, `bucketCount`, `bucketSize`, `bucketTimestamp`          |
+| Scrubbing     | [packages/telemetry/src/collection/scrubbing.ts](../../packages/telemetry/src/collection/scrubbing.ts)   | paths/emails/IPs/UUIDs/DIDs/tokens redaction                                             |
+| Schemas       | [packages/telemetry/src/schemas/performance.ts](../../packages/telemetry/src/schemas/performance.ts)     | flat `PerformanceMetric` (leaf, no hierarchy)                                            |
+| Transport     | [packages/telemetry/src/sync/http-transport.ts](../../packages/telemetry/src/sync/http-transport.ts)     | `POST {hub}/telemetry/ingest`, Bearer auth                                               |
+| React bridge  | [packages/react/src/context/telemetry-context.ts](../../packages/react/src/context/telemetry-context.ts) | duck-typed `TelemetryReporter` injected via context                                      |
+| Hub ingest    | [packages/hub/src/routes/telemetry.ts](../../packages/hub/src/routes/telemetry.ts)                       | DID-hashed ingest + admin-gated summary/rollups/events                                   |
+| Hub store     | [packages/hub/src/telemetry/store.ts:22](../../packages/hub/src/telemetry/store.ts)                      | `telemetry_events(… trace_id, span_id, attributes)` + hourly rollups                     |
+| Hub analytics | [packages/hub/src/telemetry/analytics.ts](../../packages/hub/src/telemetry/analytics.ts)                 | DuckDB ATTACH telemetry.db + hub.db joins; Parquet/R2 tiering                            |
+| Devtools      | [packages/devtools/src/panels/TelemetryPanel](../../packages/devtools/src/panels/TelemetryPanel)         | Security/Performance/Usage/Consent tabs; `QueryTracker` with plan+render metadata        |
+| Web           | [apps/web/src/routes/analytics.tsx](../../apps/web/src/routes/analytics.tsx)                             | flag-gated (`VITE_TELEMETRY_DASHBOARD=1`), admin-gated, inline bars (no charts dep)      |
 
 ### What is conspicuously absent
 
 - **No span hierarchy.** `PerformanceMetric` cannot express "stage X is a child of trace Y."
 - **No worker-boundary trace propagation.** The worker
   ([data-worker-host.ts](../../packages/data-bridge/src/worker/data-worker-host.ts)) has
-  *no* timing instrumentation; everything is measured on the main thread, so the RPC hop
+  _no_ timing instrumentation; everything is measured on the main thread, so the RPC hop
   and the SQLite time are lumped together.
 - **No waterfall / heatmap primitive.** [packages/charts](../../packages/charts) is
   ECharts `bar|line|area|pie` only; the only grid-style viz is the hand-rolled SVG
@@ -172,24 +172,24 @@ stages inside are invisible.
 
 **OpenTelemetry browser RUM = the canonical model.** OTel's browser SDK auto-instruments
 page load and resource timing into a **span waterfall**: a top-level span with child spans
-for each asset/fetch, visualised as a horizontal timeline that shows *where* time went, not
+for each asset/fetch, visualised as a horizontal timeline that shows _where_ time went, not
 just total. Frontend spans link to backend spans via **W3C Trace Context** propagation
 ([Honeycomb](https://www.honeycomb.io/blog/opentelemetry-browser-instrumentation),
 [Dash0](https://www.dash0.com/guides/website-monitoring-with-opentelemetry-and-dash0)).
 This is exactly the data shape we want — our "backend" hops are the Web Worker and the hub.
-**Takeaway:** adopt OTel's *data model* (trace/span/parent/attributes, `service.*` semantic
-names — already half-done per exploration 0015) without adopting the OTel *SDK* (heavy,
+**Takeaway:** adopt OTel's _data model_ (trace/span/parent/attributes, `service.*` semantic
+names — already half-done per exploration 0015) without adopting the OTel _SDK_ (heavy,
 server-shaped, and our 0015 exploration already rejected the protocol for a local-first P2P
 world).
 
 **Sampling controls overhead.** Tracing every request is expensive; the standard split is
 **head-based** (decide at span start, propagate the decision) vs **tail-based** (decide after
-the trace completes, so you can keep *slow* or *errored* traces)
+the trace completes, so you can keep _slow_ or _errored_ traces)
 ([Uptrace](https://uptrace.dev/opentelemetry/sampling),
 [Datadog](https://www.datadoghq.com/architecture/mastering-distributed-tracing-data-volume-challenges-and-datadogs-approach-to-efficient-sampling/)).
 Guidance: 100% in low-traffic, 1–5% in high-traffic. **Takeaway:** the read path fires on
 every keystroke, so we need head-based sampling (full span tree only for ~1-in-N calls) plus
-a "keep-if-slow" tail rule — and since the trace ring buffer is *local*, tail sampling is
+a "keep-if-slow" tail rule — and since the trace ring buffer is _local_, tail sampling is
 free (we already have the whole trace before deciding to keep it).
 
 **Privacy aggregation has a real ladder.** Beyond bucketing, the field has
@@ -199,7 +199,7 @@ nothing"), and **Divvi Up / DAP** (ISRG's hosted distributed aggregation with di
 privacy) ([Privacy Guides](https://www.privacyguides.org/articles/2025/09/30/differential-privacy/),
 [Divvi Up](https://divviup.org/blog/combining-privacy-preserving-telemetry-with-differential-privacy/)).
 **Takeaway:** our current bucket-and-scrub is the pragmatic v1 (matches what 0007 chose);
-DP/Prio is a credible *future* upgrade for the hub egress path, not a v1 blocker — but the
+DP/Prio is a credible _future_ upgrade for the hub egress path, not a v1 blocker — but the
 design should keep the egress mapping pluggable so a DAP aggregator can slot in later.
 
 ## Key Findings
@@ -207,7 +207,7 @@ design should keep the egress mapping pluggable so a DAP aggregator can slot in 
 1. **The data we want mostly already exists, unassembled.** Plan metadata
    (`candidate/hydrated/returnedNodeCount`, `durationMs`, `usedIndexNames`, `fullTableScan`)
    and React `renderTime` are computed and already pushed to the devtools `QueryTracker`.
-   The gap is a *trace spine* to hang them on and a *persistence/visualisation* path.
+   The gap is a _trace spine_ to hang them on and a _persistence/visualisation_ path.
 2. **The hub is already trace-shaped.** `trace_id`/`span_id`/`attributes` columns exist and
    the DuckDB join layer can already correlate telemetry with hub data ("slow queries by
    Space"). Egress is a mapping problem, not a schema migration.
@@ -215,8 +215,8 @@ design should keep the egress mapping pluggable so a DAP aggregator can slot in 
    worker and timing inside `DataWorker`, we cannot separate "RPC + serialization cost" from
    "SQLite cost" — which is the single most valuable split for deciding whether the
    flag-gated worker runtime (0182 Frontier #1) actually helps.
-4. **Privacy and waterfalls are in direct tension** and must be resolved by *where the data
-   lives*, not by collecting less. Exact per-stage timings are what make a waterfall useful,
+4. **Privacy and waterfalls are in direct tension** and must be resolved by _where the data
+   lives_, not by collecting less. Exact per-stage timings are what make a waterfall useful,
    but exact timings + query shape are high-cardinality and content-adjacent. The resolution:
    **exact stays local; only bucketed leaves.**
 5. **Overhead is the real constraint, not feasibility.** `performance.now()` is sub-microsecond,
@@ -237,7 +237,7 @@ Keep `PerformanceMetric`, just emit more named numbers (`react.useQuery.sqlite`,
 - ✅ Buckets fine for the hub.
 - ❌ **No hierarchy → no waterfalls.** You get more bars, never a causal timeline. A stage
   emitted as a sibling metric can't be attributed to the trace it belongs to.
-- ❌ Can't answer "for *this slow* query, where did the time go?"
+- ❌ Can't answer "for _this slow_ query, where did the time go?"
 
 ### Option B — Full OTel-style spans, end-to-end, synced
 
@@ -250,12 +250,12 @@ context everywhere, and sync spans to the hub.
 - ❌ Overhead if unsampled; meaningful work to make it allocation-light.
 - ❌ Syncing raw spans collides head-on with the anonymous-telemetry goal.
 
-### Option C — Two-track: local full-fidelity traces + bucketed hub egress *(recommended)*
+### Option C — Two-track: local full-fidelity traces + bucketed hub egress _(recommended)_
 
 A local `TraceCollector` (ring buffer, exact timings, **never synced**) feeds the devtools
-waterfall. A thin **egress adapter** folds each completed trace into the *existing* bucketed
+waterfall. A thin **egress adapter** folds each completed trace into the _existing_ bucketed
 `PerformanceMetric` records (one per stage: `name = data.query.sqlite`, `durationBucket`,
-`valueBucket` for row counts) that flow through the *existing* consent/scrub/transport/hub
+`valueBucket` for row counts) that flow through the _existing_ consent/scrub/transport/hub
 pipeline.
 
 - ✅ Rich, exact waterfalls locally with **zero** network/privacy surface (Phases 1–2 ship
@@ -291,15 +291,15 @@ flowchart TB
 
 ### Decision sub-axes
 
-| Axis | Choice | Rationale |
-|---|---|---|
-| Data model | Lightweight span tree (not OTel SDK) | Waterfalls need hierarchy; SDK is too heavy / server-shaped (0015) |
-| Where exact data lives | Local ring buffer only | Resolves privacy↔fidelity tension by *location* |
-| Hub data | Bucketed per-stage `PerformanceMetric` | Reuses shipped pipeline + dormant columns; preserves anonymity |
-| Sampling | Head (~1/N) + tail "keep-if-slow" locally | Bounds hot-path overhead and egress volume |
-| Worker boundary | Propagate `traceId` in Comlink payload; time inside worker | Only way to split RPC cost from SQLite cost |
-| Viz | Hand-rolled SVG waterfall + heatmap (HabitHeatmap precedent) | Lightest; charts dep is bar/line/area/pie only |
-| Consent | New `performance` sub-tier; opt-in default debated in Phase 4 | Most sensitive lever; isolate it |
+| Axis                   | Choice                                                        | Rationale                                                          |
+| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Data model             | Lightweight span tree (not OTel SDK)                          | Waterfalls need hierarchy; SDK is too heavy / server-shaped (0015) |
+| Where exact data lives | Local ring buffer only                                        | Resolves privacy↔fidelity tension by _location_                    |
+| Hub data               | Bucketed per-stage `PerformanceMetric`                        | Reuses shipped pipeline + dormant columns; preserves anonymity     |
+| Sampling               | Head (~1/N) + tail "keep-if-slow" locally                     | Bounds hot-path overhead and egress volume                         |
+| Worker boundary        | Propagate `traceId` in Comlink payload; time inside worker    | Only way to split RPC cost from SQLite cost                        |
+| Viz                    | Hand-rolled SVG waterfall + heatmap (HabitHeatmap precedent)  | Lightest; charts dep is bar/line/area/pie only                     |
+| Consent                | New `performance` sub-tier; opt-in default debated in Phase 4 | Most sensitive lever; isolate it                                   |
 
 ## Recommendation
 
@@ -319,7 +319,7 @@ Adopt **Option C**, sequenced so value lands early and the privacy-sensitive bit
    collector/transport, and add waterfall + latency-heatmap widgets to `/analytics`
    (reading hub rollups + a DuckDB span-tree join).
 4. **Phase 4 — Auto-anonymous performance consent.** Introduce a `performance`-only consent
-   surface and a *transparent* default: first run shows a one-line, one-tap disclosure ("Share
+   surface and a _transparent_ default: first run shows a one-line, one-tap disclosure ("Share
    anonymous performance stats? Buckets only, never your content — see exactly what in
    DevTools"). Only this phase changes any default; gate it behind a flag and a real consent UX.
 
@@ -382,10 +382,10 @@ gantt
 export interface Span {
   spanId: string
   parentSpanId?: string
-  name: string                 // e.g. 'data.query.sqlite'
-  startOffsetMs: number        // relative to trace start (keeps it low-cardinality)
+  name: string // e.g. 'data.query.sqlite'
+  startOffsetMs: number // relative to trace start (keeps it low-cardinality)
   durationMs: number
-  attributes?: SpanAttributes  // exact locally; bucketed on egress
+  attributes?: SpanAttributes // exact locally; bucketed on egress
 }
 
 export interface SpanAttributes {
@@ -393,17 +393,17 @@ export interface SpanAttributes {
   returnedRows?: number
   fullTableScan?: boolean
   usedIndex?: string
-  bytes?: number               // payload / snapshot size
+  bytes?: number // payload / snapshot size
   thread?: 'main' | 'worker'
 }
 
 export interface Trace {
   traceId: string
-  rootName: string             // 'query:Task.list' | 'mutate:create'
-  startTime: number            // wall clock (local only)
+  rootName: string // 'query:Task.list' | 'mutate:create'
+  startTime: number // wall clock (local only)
   totalMs: number
   spans: Span[]
-  sampled: boolean             // chosen for egress (head sample or kept-if-slow)
+  sampled: boolean // chosen for egress (head sample or kept-if-slow)
 }
 ```
 
@@ -412,20 +412,25 @@ export interface Trace {
 ```ts
 // packages/telemetry/src/tracing/trace-collector.ts
 export class TraceCollector {
-  private ring: Trace[] = []          // bounded; never synced
+  private ring: Trace[] = [] // bounded; never synced
   private readonly cap = 200
   private active = new Map<string, { trace: Trace; perfStart: number }>()
 
-  constructor(
-    private opts: { sampleRate: number; slowMs: number; enabled: () => boolean }
-  ) {}
+  constructor(private opts: { sampleRate: number; slowMs: number; enabled: () => boolean }) {}
 
   start(traceId: string, rootName: string): boolean {
     if (!this.opts.enabled()) return false
     // head sample: full span capture only for a fraction of traces…
     const headSampled = hashToUnit(traceId) < this.opts.sampleRate
     this.active.set(traceId, {
-      trace: { traceId, rootName, startTime: Date.now(), totalMs: 0, spans: [], sampled: headSampled },
+      trace: {
+        traceId,
+        rootName,
+        startTime: Date.now(),
+        totalMs: 0,
+        spans: [],
+        sampled: headSampled
+      },
       perfStart: performance.now()
     })
     return headSampled
@@ -453,10 +458,12 @@ export class TraceCollector {
     a.trace.sampled = a.trace.sampled || a.trace.totalMs >= this.opts.slowMs
     this.ring.push(a.trace)
     if (this.ring.length > this.cap) this.ring.shift()
-    if (a.trace.sampled) emit?.(a.trace)   // → devtools + egress adapter
+    if (a.trace.sampled) emit?.(a.trace) // → devtools + egress adapter
   }
 
-  recent(): readonly Trace[] { return this.ring }
+  recent(): readonly Trace[] {
+    return this.ring
+  }
 }
 ```
 
@@ -464,17 +471,17 @@ export class TraceCollector {
 
 ```ts
 // in useQuery.ts — gated so it compiles out / no-ops when tracing is off
-const tracing = useTracing()                       // null unless enabled
-const traceId = tracing?.beginQuery(queryKey)      // returns id or undefined
+const tracing = useTracing() // null unless enabled
+const traceId = tracing?.beginQuery(queryKey) // returns id or undefined
 
 // around the bridge call:
 const t0 = performance.now()
-const sub = bridge.query(schema, options, { traceId })   // traceId rides into worker
+const sub = bridge.query(schema, options, { traceId }) // traceId rides into worker
 tracing?.span(traceId, 'react.bridge.dispatch', performance.now() - t0)
 
 // when results land (the existing telemetry effect, extended):
 tracing?.span(traceId, 'react.flatten', flattenMs, { returnedRows: data.length })
-tracing?.endQuery(traceId, plan)  // folds NodeQueryPlanMetadata into worker spans
+tracing?.endQuery(traceId, plan) // folds NodeQueryPlanMetadata into worker spans
 ```
 
 ### 4. Worker-boundary propagation + worker-side spans
@@ -505,7 +512,7 @@ export function emitTraceAsBuckets(trace: Trace, collector: TelemetryCollector) 
   for (const span of trace.spans) {
     // reuses the SHIPPED bucketing + consent + scrub + transport pipeline.
     // exact ms NEVER leaves; only the bucket label + the trace/span ids do.
-    collector.reportPerformance(span.name, span.durationMs, 'data')           // → durationBucket
+    collector.reportPerformance(span.name, span.durationMs, 'data') // → durationBucket
     if (span.attributes?.returnedRows != null)
       collector.reportUsage(`${span.name}.rows`, span.attributes.returnedRows) // → metricBucket
   }
@@ -523,9 +530,14 @@ function Waterfall({ trace }: { trace: Trace }) {
     <svg width={WIDTH} height={trace.spans.length * ROW}>
       {trace.spans.map((s, i) => (
         <g key={s.spanId} transform={`translate(${s.startOffsetMs * scale}, ${i * ROW})`}>
-          <rect width={Math.max(s.durationMs * scale, 1)} height={ROW - 2}
-                fill={colorForStage(s.name)} />
-          <title>{s.name}: {s.durationMs.toFixed(1)}ms {s.attributes?.fullTableScan ? '⚠ full scan' : ''}</title>
+          <rect
+            width={Math.max(s.durationMs * scale, 1)}
+            height={ROW - 2}
+            fill={colorForStage(s.name)}
+          />
+          <title>
+            {s.name}: {s.durationMs.toFixed(1)}ms {s.attributes?.fullTableScan ? '⚠ full scan' : ''}
+          </title>
         </g>
       ))}
     </svg>
@@ -548,10 +560,10 @@ function Waterfall({ trace }: { trace: Trace }) {
   (~1/50 by default), no-op when tracing disabled, allocation-light span pushes, and a hard
   rule that production default sampling is low. **Open:** what sample rate keeps p99 input
   latency unmoved? (Validate with the worker-runtime A/B from 0182.)
-- **Consent default (the big one).** Auto-opting users into *any* network collection is a
+- **Consent default (the big one).** Auto-opting users into _any_ network collection is a
   values decision. Even bucketed, per-stage timing + query-shape is more revealing than
   today's coarse usage metrics. Proposal: a dedicated `performance` schema allowlist that the
-  user can see *exactly* (the same waterfall they get in devtools), one-tap off, and **no**
+  user can see _exactly_ (the same waterfall they get in devtools), one-tap off, and **no**
   content/labels ever — but whether the default is on-with-disclosure or off-until-asked is a
   product call, not an engineering one. Default to **off-with-prominent-prompt** unless there's
   an explicit decision otherwise.
@@ -573,20 +585,23 @@ function Waterfall({ trace }: { trace: Trace }) {
 ## Implementation Checklist
 
 ### Phase 1 — Local trace spine + read waterfall (no network, no consent)
-- [ ] Add `Span`/`Trace`/`SpanAttributes` types in `packages/telemetry/src/tracing/types.ts`.
-- [ ] Implement `TraceCollector` (ring buffer, head sample, tail keep-if-slow) + unit tests.
+
+- [x] Add `Span`/`Trace`/`SpanAttributes` types in `packages/telemetry/src/tracing/types.ts`.
+- [x] Implement `TraceCollector` (ring buffer, head sample, tail keep-if-slow) + unit tests.
 - [ ] Add a `useTracing()` React context (duck-typed, null when disabled), parallel to `TelemetryReporter`.
 - [ ] Instrument `useQuery` main-thread stages (descriptor-build, bridge.dispatch, flatten, commit); fold existing `NodeQueryPlanMetadata` into the trace.
 - [ ] Build the devtools `Waterfall` SVG component; add a "Trace" view to the Queries panel listing `traceCollector.recent()`.
 - [ ] Gate everything behind `localStorage['xnet:trace'] === '1'` (dev-only default).
 
 ### Phase 2 — Write path + worker boundary
+
 - [ ] Thread an optional `{ traceId }` through `WorkerBridge.query/create/update/delete/transaction` and the Comlink RPC signatures.
 - [ ] Time stages inside `DataWorker` (sqlite.exec via plan, hydrate, auth.filter, rpc.out) and ship spans back with the delta when sampled.
 - [ ] Instrument the mutation pipeline: authorize → tick → encrypt → persist → emit → offline-queue.enqueue → ws-send/ack.
 - [ ] Add a mutation waterfall view; verify RPC-vs-SQLite split is visible.
 
 ### Phase 3 — Bucketed hub egress + fleet views
+
 - [ ] Implement `emitTraceAsBuckets` egress adapter (per-stage `PerformanceMetric` + row-count `UsageMetric`, populating `trace_id`/`span_id`).
 - [ ] Extend hub normalize/store to retain `trace_id`/`span_id`/`attributes` end-to-end (columns already exist; confirm ingest path carries them).
 - [ ] Add an aggregate "stage latency" rollup (p50/p95 per stage name) — or compute on read via DuckDB.
@@ -594,11 +609,13 @@ function Waterfall({ trace }: { trace: Trace }) {
 - [ ] DuckDB join: "slowest query stages by Space / by os_type / by db-size bucket."
 
 ### Phase 4 — Auto-anonymous performance consent
+
 - [ ] Add a `performance` schema allowlist + a first-run disclosure surface (one line, one-tap off, "view what's collected" → opens devtools waterfall).
 - [ ] Decide + implement the default (recommend off-with-prompt) behind a config flag.
 - [ ] Document the data dictionary (every stage name + bucket) in `docs/`.
 
 ### Follow-ups
+
 - [ ] Use the RPC-vs-SQLite split to make the worker-runtime default-flip call (0182 Frontier #1).
 - [ ] Spike a Divvi Up / DAP aggregator behind the egress adapter.
 
@@ -617,6 +634,7 @@ function Waterfall({ trace }: { trace: Trace }) {
 ## References
 
 ### In-repo
+
 - Read path: [packages/react/src/hooks/useQuery.ts](../../packages/react/src/hooks/useQuery.ts), [packages/data-bridge/src/worker-bridge.ts](../../packages/data-bridge/src/worker-bridge.ts), [packages/data-bridge/src/worker/data-worker-host.ts](../../packages/data-bridge/src/worker/data-worker-host.ts), [packages/data/src/store/store.ts](../../packages/data/src/store/store.ts), [packages/data/src/store/query.ts](../../packages/data/src/store/query.ts)
 - Write path: [packages/react/src/hooks/useMutate.ts](../../packages/react/src/hooks/useMutate.ts), [packages/runtime/src/sync/sync-manager.ts](../../packages/runtime/src/sync/sync-manager.ts), [packages/runtime/src/sync/offline-queue.ts](../../packages/runtime/src/sync/offline-queue.ts)
 - Telemetry client: [packages/telemetry/src/collection/collector.ts](../../packages/telemetry/src/collection/collector.ts), [bucketing.ts](../../packages/telemetry/src/collection/bucketing.ts), [scrubbing.ts](../../packages/telemetry/src/collection/scrubbing.ts), [consent/manager.ts](../../packages/telemetry/src/consent/manager.ts), [schemas/performance.ts](../../packages/telemetry/src/schemas/performance.ts), [sync/http-transport.ts](../../packages/telemetry/src/sync/http-transport.ts)
@@ -626,6 +644,7 @@ function Waterfall({ trace }: { trace: Trace }) {
 - Prior explorations: 0007 Telemetry Design, 0015 OpenTelemetry Evaluation, 0087 Instrumentation Strategy, 0163 Query/Mutation Hot Path, 0182 Perf Frontier, 0187 Hub Telemetry Store
 
 ### External
+
 - [Honeycomb — Understanding OpenTelemetry's Browser Instrumentation](https://www.honeycomb.io/blog/opentelemetry-browser-instrumentation)
 - [Dash0 — Website Monitoring with OpenTelemetry](https://www.dash0.com/guides/website-monitoring-with-opentelemetry-and-dash0)
 - [OpenTelemetry — Browser getting started](https://opentelemetry.io/docs/languages/js/getting-started/browser/)
