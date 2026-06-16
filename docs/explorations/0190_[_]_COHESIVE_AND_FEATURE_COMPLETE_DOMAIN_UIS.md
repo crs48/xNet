@@ -756,8 +756,8 @@ export function OrganizeBar({ nodeId, schema }: { nodeId: string; schema: Schema
 ## Implementation Checklist
 
 ### Workstream 1 — Substrate
-- [ ] Add `packages/views/src/form/schema-to-form-fields.ts` (+ test) mirroring `schema-to-grid-fields`.
-- [ ] Add `SchemaForm` reusing existing grid `CellEditor`s; honor effective-schema overlays (0188) and `readonly`.
+- [x] Add `packages/views/src/form/schema-to-form-fields.ts` (+ test) mirroring `schema-to-grid-fields`.
+- [x] Add `SchemaForm` reusing existing grid property editors; honor effective-schema overlays (0188) and `readonly`.
 - [ ] Build `NodeInspector` (header + highlights + `SchemaForm` + relations-by-type + `ReverseRelationsPanel` backlinks + activity timeline + organize/share bar).
 - [ ] Build global `NodePeek` slide-over rendering `NodeInspector` for any node id.
 - [ ] Build shared `OrganizeBar` (space / folder / tag / share).

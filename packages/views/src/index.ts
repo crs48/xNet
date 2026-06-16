@@ -280,3 +280,12 @@ export {
   type TaskBoardStatusChange,
   type TaskListGroupedProps
 } from './tasks/index.js'
+
+// Schema-driven forms (exploration 0190)
+export {
+  schemaToFormFields,
+  SchemaForm,
+  type FormField,
+  type SchemaToFormOptions,
+  type SchemaFormProps
+} from './form/index.js'
