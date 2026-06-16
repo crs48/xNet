@@ -324,6 +324,27 @@ describe('PluginRegistry', () => {
       expect(commands[0].id).toBe('test.command')
     })
 
+    it('registers importer contributions from manifest (0189)', async () => {
+      await registry.install({
+        id: 'com.test.importer',
+        name: 'Importer Plugin',
+        version: '1.0.0',
+        contributes: {
+          importers: [
+            {
+              id: 'fyi.xnet.import.instagram',
+              platform: 'instagram',
+              version: '1.0.0',
+              adapter: { detect: () => 1 }
+            }
+          ]
+        }
+      })
+
+      const importer = registry.getContributions().importers.get('fyi.xnet.import.instagram')
+      expect(importer?.platform).toBe('instagram')
+    })
+
     it('registers canvas contributions from manifest', async () => {
       await registry.install({
         id: 'com.test.canvas',

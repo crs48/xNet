@@ -22,6 +22,8 @@ import {
   removeSession,
   toAuthContext
 } from './auth/ucan'
+import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
+import { mountFeatures } from './features/registry'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
@@ -36,10 +38,7 @@ import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
 import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
 import { createShareLinkRoutes } from './routes/share-links'
-import { createTaskRoutes } from './routes/tasks'
-import { createBillingRoutes } from './routes/billing'
 import { createTelemetryRoutes } from './routes/telemetry'
-import { createUnfurlRoutes } from './routes/unfurl'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
@@ -61,8 +60,6 @@ import { ShardQueryRouter } from './services/shard-router'
 import { ShareAccessService } from './services/share-access'
 import { createSignalingService } from './services/signaling'
 import { TaskIdentifierService } from './services/task-identifiers'
-import { createBillingStore } from './services/billing-store'
-import { billingProviderFromEnv } from '@xnetjs/billing'
 import { createStorage } from './storage'
 import { setupHubTelemetry } from './telemetry/bridge'
 
@@ -788,25 +785,20 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
-  app.use('/tasks/short-ids/*', requireAuth)
-  app.route(
-    '/tasks',
-    createTaskRoutes({
-      identifiers: taskIdentifiers,
-      githubWebhookSecret: process.env.HUB_GITHUB_WEBHOOK_SECRET
-    })
-  )
-  // Billing (Stripe + Bitcoin) — opt-in via env (exploration 0187). The webhook is
-  // unauthenticated (verified by provider signature); the money/read routes are
-  // gated by requireAuth and always DID-scoped.
-  app.route(
-    '/billing',
-    createBillingRoutes({
-      provider: billingProviderFromEnv(process.env),
-      store: createBillingStore({ storage: config.storage, dataDir: config.dataDir }),
+  // First-party hub features mount through the feature registry (exploration
+  // 0189). Each receives a broker-scoped env — only the secrets it declared — so
+  // billing reads STRIPE_*/BTCPAY_* but never the GitHub webhook secret, and
+  // vice-versa. Behaviour is identical to the previous hardcoded mounts.
+  mountFeatures(
+    [billingFeature(), tasksFeature(taskIdentifiers), unfurlFeature(crawlConfig.userAgent)],
+    {
+      app,
+      env: process.env,
       requireAuth,
+      storage: config.storage,
+      dataDir: config.dataDir,
       appUrl: config.appUrl ?? DEFAULT_APP_URL
-    })
+    }
   )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
   app.route(
@@ -865,14 +857,6 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       androidCertSha256: config.androidCertSha256
     })
   )
-  app.route(
-    '/unfurl',
-    createUnfurlRoutes({
-      requireAuth,
-      userAgent: crawlConfig.userAgent
-    })
-  )
-
   app.post('/shares/issue', requireAuth, async (c) => {
     const body = await c.req.json().catch(() => null)
     if (!isRecord(body)) {

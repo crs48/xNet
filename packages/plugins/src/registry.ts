@@ -365,6 +365,11 @@ export class PluginRegistry {
         ctx.registerCanvasTemplate(template)
       }
     }
+    if (c.importers) {
+      for (const importer of c.importers) {
+        ctx.registerImporter(importer)
+      }
+    }
   }
 
   // ─── Load from Store ───────────────────────────────────────────────────

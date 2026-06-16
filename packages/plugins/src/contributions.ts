@@ -404,6 +404,32 @@ export type CanvasContribution =
   | CanvasInspectorContribution
   | CanvasTemplateContribution
 
+/**
+ * Importer contribution (exploration 0189).
+ *
+ * A data-export / source importer — e.g. an Instagram or YouTube archive
+ * importer. Mirrors `@xnetjs/social`'s `SocialImportAdapter` *structurally* so
+ * the first-party social adapters can register through the plugin system
+ * without `@xnetjs/plugins` depending on `@xnetjs/social` (dependency direction
+ * stays social → plugins). The `adapter` is opaque to the registry; the consumer
+ * (the import flow) casts it to its known importer shape. This is the same
+ * "defined now, consumed later" pattern as the canvas contributions.
+ */
+export interface ImporterContribution {
+  /** Unique importer ID, preferably plugin-scoped (e.g. 'fyi.xnet.import.instagram'). */
+  id: string
+  /** Source platform/system this importer handles (e.g. 'instagram', 'youtube'). */
+  platform: string
+  /** Importer version. */
+  version: string
+  /** Human-readable label for the import picker. */
+  name?: string
+  /** Lucide icon name. */
+  icon?: string
+  /** The importer adapter implementation (structurally a `SocialImportAdapter`). */
+  adapter: unknown
+}
+
 // ─── Typed Registry ────────────────────────────────────────────────────────
 
 /**
@@ -492,6 +518,7 @@ export class ContributionRegistry {
   readonly canvasEdges = new TypedRegistry<CanvasEdgeContribution>()
   readonly canvasInspectors = new TypedRegistry<CanvasInspectorContribution>()
   readonly canvasTemplates = new TypedRegistry<CanvasTemplateContribution>()
+  readonly importers = new TypedRegistry<ImporterContribution>()
 
   /**
    * Clear all registries (for cleanup/testing)
@@ -514,5 +541,6 @@ export class ContributionRegistry {
     this.canvasEdges.clear()
     this.canvasInspectors.clear()
     this.canvasTemplates.clear()
+    this.importers.clear()
   }
 }

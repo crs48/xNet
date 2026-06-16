@@ -76,9 +76,14 @@ export type {
   SettingContribution,
   SettingsPanelProps,
   SchemaContribution,
-  StatusBarContribution
+  StatusBarContribution,
+  ImporterContribution
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
+
+// Feature modules (exploration 0189) — the two-sided plugin shape
+export type { FeatureModule, ModuleCapabilities } from './feature-module'
+export { defineFeatureModule } from './feature-module'
 
 // Canvas plugin fixtures
 export {
