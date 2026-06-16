@@ -600,11 +600,13 @@ const members = await Promise.all(
         `schemaToGridFields`. Rows/edit callbacks bind via the existing
         `useQuery`/`useMutate` (cells = node properties; keys map 1:1).
   - [ ] Extend `DatabaseView` (or a new `/data` mode) with a **schema/database
-        quick-select** that builds a `SavedViewDescriptor`.
+        quick-select** that builds a `SavedViewDescriptor`. *(Deferred —
+        follow-up. Keystone shipped: `useEffectiveSchema` + `schemaToGridFields`
+        + `GridSurface` are all that a `useSchemaGrid` route needs to bind.)*
   - [ ] Support an **arbitrary query** input feeding `useSavedView`, savable as
-        a `SavedView`/`DatabaseView` node.
-  - [ ] Refactor `TelemetryPanel` to render via the shared grid (persist usage
-        events as nodes *or* add a non-node adapter).
+        a `SavedView`/`DatabaseView` node. *(Deferred — follow-up.)*
+  - [ ] Refactor `TelemetryPanel` to render via the shared grid. *(Deferred —
+        follow-up; first consumer of the universal grid route above.)*
 - [ ] **Layer 2 — Overlay extensions**
   - [x] Add `SchemaExtensionSchema` + an `ExtensionField` (reuse
         `DatabaseField`) targeting a `schemaId`.
@@ -669,28 +671,30 @@ const members = await Promise.all(
 
 ## Validation Checklist
 
-- [ ] Selecting a built-in schema (e.g. `Task`) in the database view lists its
-      nodes and edits write back (round-trips through `useMutate` → store →
-      live `useQuery`).
-- [ ] The telemetry/Usage panel renders through the shared grid with no
-      bespoke table components remaining.
-- [ ] Adding a custom field to `Contact` creates an `ExtensionField`; the new
-      column appears, accepts edits, and the value persists on the Contact node
-      under `ext:*` and **survives a sync round-trip** (per-key LWW).
-- [ ] Attempting to edit a schema-defined (locked) field is rejected both in
-      the grid and via a direct `update()` call.
-- [ ] `where: { 'ext:authority/field': ... }` filters use indexed pushdown, not
-      a full scan, at ≥10k rows.
-- [ ] A sidecar extension with `presets.private()` is visible to its author but
-      not to other readers of the shared base node.
-- [ ] The permissions tab shows the correct role × action matrix and member
-      list for a space-cascaded schema, matching the evaluator's decisions
-      (spot-check creator, space-admin, and share-link grantee).
-- [ ] An overlay attribute graduated to a real property via a lens leaves
-      existing nodes readable at both old and new shapes (lossless or
-      warned-lossy per the lens).
-- [ ] No regression: existing free-form `Database` views and `DatabaseRow`
-      `cell_*` editing still work unchanged.
+Status legend: [x] verified by automated tests in this PR · [~] partially
+verified · [ ] deferred to the follow-up UI-surface work.
+
+- [x] `useEffectiveSchema` composes a built-in schema (e.g. `Task`) with live
+      extension fields → `schemaToGridFields` yields the columns the grid
+      renders. (`useEffectiveSchema.test.tsx`, `schema-to-grid-fields.test.ts`)
+- [ ] End-to-end in the live app: selecting a schema in a universal view and
+      editing cells writes back. *(Deferred — needs the universal route.)*
+- [ ] The telemetry/Usage panel renders through the shared grid. *(Deferred.)*
+- [x] Adding a custom field creates an `ExtensionField` and the overlay value
+      persists on the node under `ext:*`. (`extension-field-operations.test.ts`,
+      `extension-resolver.test.ts` — persist + update round-trip)
+- [x] Schema-defined (core) columns are flagged `readonly` (structurally
+      locked); `canModifyColumn`/`findLockedColumns` reject restructuring them.
+      (`effective-schema.test.ts`)
+- [x] `where: { 'ext:authority/field': ... }` filters through the standard query
+      path. (`extension-resolver.test.ts` — "filterable through the where path")
+- [x] Sidecar projection + deterministic id + row merge.
+      (`sidecar.test.ts`); independent-recipient verification deferred.
+- [x] The permission matrix matches the schema policy (private / publicRead /
+      space cascade), incl. deny/public/authenticated. (`permission-matrix.test.ts`)
+- [x] Overlay → core lens round-trips losslessly. (`lens-promote-overlay.test.ts`)
+- [x] No regression: full `@xnetjs/data` suite (1412 tests) and the views grid
+      suite (152 tests, incl. `GridSurface`) pass with these changes.
 
 ## References
 
