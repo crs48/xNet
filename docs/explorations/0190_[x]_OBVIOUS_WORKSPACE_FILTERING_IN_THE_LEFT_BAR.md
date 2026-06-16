@@ -1,5 +1,12 @@
 # Obvious Workspace Filtering: A Scope Bar, a Space Breadcrumb, and a Clear "Create Here" Target
 
+> **Status: shipped ✅** — Phases 1–4 of the recommendation landed in PR #111
+> (Scope Bar, breadcrumb + status-bar echoes, "+ New in «Space»", multi-select
+> view filter, sort) and the `Created` sort in PR #114. Deferred by design:
+> saved scope presets, a single merged active-filters chip row, folder-tree
+> space-scoping (Q7 — folders stay global), and the passkey-gated Playwright e2e
+> (unit + typecheck + lint are the standing verification).
+
 ## Problem Statement
 
 Today, clicking a Space in the left bar **does** filter every document, canvas,
@@ -610,8 +617,8 @@ const space = useSpaces().getSpace(useWorkbench((s) => s.currentSpaceId))
 - [ ] "All teams"-style saved scope presets — **deferred** (optional, Linear-style)
 
 ### Phase 4 — Better left-bar filtering & sorting (the broader ask)
-- [x] **Sort control** (Recent · A–Z · Type) for the list — `Sort` menu in the
-  tools cluster ([explorer-sort.ts](apps/web/src/workbench/views/explorer-sort.ts)); `Created` deferred (needs `createdAt` in the projection)
+- [x] **Sort control** (Recent · Created · A–Z · Type) for the list — `Sort` menu
+  in the tools cluster ([explorer-sort.ts](apps/web/src/workbench/views/explorer-sort.ts); `createdAt` projected onto `ExplorerItem`)
 - [ ] Combine scope + type + text into one "active filters" chip row — **deferred**
   (scope bar + type pills stay visually grouped but separate for now)
 - [ ] Scope the **Folders** tree to the active Space — **deferred by decision**
