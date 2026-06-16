@@ -6,15 +6,7 @@
  */
 import { Link } from '@tanstack/react-router'
 import { cn } from '@xnetjs/ui'
-import {
-  ArrowUpRight,
-  Check,
-  Flame,
-  FlaskConical,
-  Pencil,
-  Plus,
-  StickyNote
-} from 'lucide-react'
+import { ArrowUpRight, Check, Flame, FlaskConical, Pencil, Plus, StickyNote } from 'lucide-react'
 import { useState, type JSX } from 'react'
 import {
   isHabit,

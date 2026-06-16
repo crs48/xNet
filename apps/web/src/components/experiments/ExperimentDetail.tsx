@@ -47,7 +47,8 @@ const CONCLUSION_OPTIONS = [
 /** date({}) fields store UTC-midnight ms; reuse the canonical day codecs. */
 const msToIso = (value: unknown): string =>
   typeof value === 'number' && value > 0 ? dayToIso(value) : ''
-const isoToMs = (iso: string): number | undefined => (iso ? (isoToDay(iso) ?? undefined) : undefined)
+const isoToMs = (iso: string): number | undefined =>
+  iso ? (isoToDay(iso) ?? undefined) : undefined
 
 function Field({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
   return (

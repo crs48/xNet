@@ -17,8 +17,11 @@
  */
 
 import type { GridField } from '../grid/model.js'
-import { schemaToGridFields, type SchemaToGridFieldsOptions } from '../grid/schema-to-grid-fields.js'
 import type { Schema } from '@xnetjs/data'
+import {
+  schemaToGridFields,
+  type SchemaToGridFieldsOptions
+} from '../grid/schema-to-grid-fields.js'
 
 export interface FormField extends GridField {
   /** Rendered in the pinned header zone of the inspector. */
@@ -61,10 +64,7 @@ const INTERNAL_FIELDS = new Set([
  * the same cell editors render. Auto fields (created/updated/createdBy) are
  * hidden by default since they are not editable.
  */
-export function schemaToFormFields(
-  schema: Schema,
-  options: SchemaToFormOptions = {}
-): FormField[] {
+export function schemaToFormFields(schema: Schema, options: SchemaToFormOptions = {}): FormField[] {
   const { highlights, hidden, order, groups, hideInternal = true, ...gridOptions } = options
 
   const hiddenKeys = new Set(hidden ?? [])
