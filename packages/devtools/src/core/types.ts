@@ -303,6 +303,33 @@ export interface PeerScoreSnapshot {
   lastSeen: number
 }
 
+// ─── Tracing Events (exploration 0190) ─────────────────────
+
+/** One stage span within a trace (duck of @xnetjs/telemetry's Span). */
+export interface DevToolsTraceSpan {
+  spanId: string
+  parentSpanId?: string
+  name: string
+  startOffsetMs: number
+  durationMs: number
+  attributes?: Record<string, string | number | boolean | undefined>
+}
+
+/** A completed operation trace (duck of @xnetjs/telemetry's Trace). */
+export interface DevToolsTrace {
+  traceId: string
+  rootKind: string
+  rootName: string
+  startedAt: number
+  totalMs: number
+  spans: DevToolsTraceSpan[]
+}
+
+export interface TracingTraceEvent extends DevToolsEventBase {
+  type: 'tracing:trace'
+  trace: DevToolsTrace
+}
+
 // ─── Abuse Events ─────────────────────────────────────────
 
 export interface AbusePolicyDecisionEvent extends DevToolsEventBase {
@@ -434,6 +461,7 @@ export type DevToolsEvent =
   | TelemetryPerformanceEvent
   | TelemetryConsentEvent
   | TelemetryPeerScoresEvent
+  | TracingTraceEvent
   | AbusePolicyDecisionEvent
   | AbuseLabelEvent
   | AbuseQueueStateEvent

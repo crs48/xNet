@@ -55,6 +55,7 @@ import {
 import { useSyncExternalStore, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
+import { useTracingReporter, TRACE_STAGES, type TracingHandle } from '../context/tracing-context'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
 import {
@@ -398,6 +399,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const bridge = useDataBridge()
   const instrumentation = useInstrumentation()
   const telemetry = useTelemetryReporter()
+  const tracing = useTracingReporter()
   const schemaId = schema._schemaId
   // Track query start time for first-load timing. Lazily initialized so we
   // don't evaluate Date.now() on every render of every mounted useQuery.
@@ -641,23 +643,48 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
   // ─── Telemetry: Query timing (first-load latency) ─────────────────────────
   const hasReportedTimingRef = useRef(false)
+  // ─── Tracing: a per-query trace spanning first load (exploration 0190) ────
+  // Opened on each query key, closed when the first results land. Worker-side
+  // stage spans (sqlite/hydrate/auth) attach by traceId in a later phase.
+  const queryTraceRef = useRef<TracingHandle | null>(null)
   useEffect(() => {
     queryStartRef.current = Date.now()
     hasReportedTimingRef.current = false
-  }, [queryKey])
+    queryTraceRef.current?.end()
+    queryTraceRef.current = tracing?.startTrace('query', `query:${schemaId}`) ?? null
+    return () => {
+      queryTraceRef.current?.end()
+      queryTraceRef.current = null
+    }
+  }, [queryKey, tracing, schemaId])
 
   useEffect(() => {
-    if (!telemetry || loading || hasReportedTimingRef.current) return
+    if (loading || hasReportedTimingRef.current) return
     hasReportedTimingRef.current = true
     const elapsed = Date.now() - (queryStartRef.current ?? Date.now())
-    telemetry.reportPerformance('react.useQuery', elapsed)
-    // Cache hit: data immediately available (< 5ms means it was cached)
-    if (elapsed < 5) {
-      telemetry.reportUsage('react.useQuery.cache_hit', 1)
-    } else {
-      telemetry.reportUsage('react.useQuery.cache_miss', 1)
+    if (telemetry) {
+      telemetry.reportPerformance('react.useQuery', elapsed)
+      // Cache hit: data immediately available (< 5ms means it was cached)
+      if (elapsed < 5) {
+        telemetry.reportUsage('react.useQuery.cache_hit', 1)
+      } else {
+        telemetry.reportUsage('react.useQuery.cache_miss', 1)
+      }
     }
-  }, [loading, telemetry])
+    // Close the trace, recording a commit span with the row count for egress.
+    const trace = queryTraceRef.current
+    if (trace) {
+      const rows = isSingleQuery ? (data ? 1 : 0) : Array.isArray(data) ? data.length : 0
+      trace.addSpan({
+        name: TRACE_STAGES.queryCommit,
+        startOffsetMs: 0,
+        durationMs: elapsed,
+        attributes: { returnedRows: rows }
+      })
+      trace.end()
+      queryTraceRef.current = null
+    }
+  }, [loading, telemetry, data, isSingleQuery])
 
   return {
     data,

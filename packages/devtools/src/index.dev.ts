@@ -18,6 +18,11 @@ export { instrumentSync } from './instrumentation/sync'
 export { instrumentYDoc } from './instrumentation/yjs'
 export { instrumentTelemetry } from './instrumentation/telemetry'
 export type { InstrumentTelemetryOptions } from './instrumentation/telemetry'
+export { instrumentTracing } from './instrumentation/tracing'
+export type { TraceCollectorLike } from './instrumentation/tracing'
+export { Waterfall } from './panels/TracesPanel/Waterfall'
+export type { WaterfallProps } from './panels/TracesPanel/Waterfall'
+export type { DevToolsTrace, DevToolsTraceSpan } from './core/types'
 export {
   emitAbuseLabel,
   emitAbusePeerScores,

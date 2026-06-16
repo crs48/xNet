@@ -7,6 +7,7 @@
 import type { NodeStorageAdapter } from '@xnetjs/data'
 import type { Identity, KeyBundle } from '@xnetjs/identity'
 import type { PersistentStorageStatus, SQLiteAdapter } from '@xnetjs/sqlite'
+import type { TraceCollector } from '@xnetjs/telemetry'
 import { RouterProvider, createRouter, createHashHistory } from '@tanstack/react-router'
 import { SQLiteNodeStorageAdapter, BlobService } from '@xnetjs/data'
 import { getDefaultDataWorkerUrl } from '@xnetjs/data-bridge'
@@ -46,6 +47,7 @@ import { isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { identityManager } from './lib/identity'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
+import { createWebTraceCollector } from './lib/tracing'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -315,6 +317,12 @@ export function App(): JSX.Element {
   } = useWebInstallPrompt()
   const [{ hubUrl, authToken }] = useState(() => resolveHubSessionFromLocation())
   const storageRef = useRef<StorageContext | null>(null)
+  // Opt-in performance tracing (exploration 0190): one collector shared by the
+  // hooks (config.tracing) and the devtools Traces panel. Off unless the user
+  // sets localStorage['xnet:trace'] = '1', so the hot path pays nothing.
+  const traceRef = useRef<{ collector?: TraceCollector } | null>(null)
+  if (traceRef.current === null) traceRef.current = { collector: createWebTraceCollector() }
+  const traceCollector = traceRef.current.collector
 
   // Initialize SQLite and storage on mount
   useEffect(() => {
@@ -761,7 +769,8 @@ export function App(): JSX.Element {
             hubUrl,
             hubOptions: authToken ? { autoAuth: false, authToken } : undefined,
             runtime: resolveWebRuntime(storage),
-            platform: 'web'
+            platform: 'web',
+            tracing: traceCollector
           }}
         >
           <BundledPluginInstaller />
@@ -769,6 +778,7 @@ export function App(): JSX.Element {
             position="bottom"
             defaultOpen={false}
             storageDurability={appState.storageStatus ?? null}
+            traceCollector={traceCollector}
           >
             <BlobProvider blobService={storage.blobService}>
               <OfflineIndicator />

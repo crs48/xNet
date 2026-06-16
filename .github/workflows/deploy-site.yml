@@ -69,9 +69,12 @@ jobs:
           target: .
           # These gh-pages dirs are owned by other workflows; the root sync's
           # --delete must not wipe them. visuals-baseline holds the Visual UI
-          # Capture baseline that PR diffs compare against.
+          # Capture baseline that PR diffs compare against; visuals/ holds the
+          # durable per-PR UI captures (exploration 0189) so merged-PR galleries
+          # survive PR-preview cleanup.
           exclude: |
             pr
             branch
             visuals-baseline
+            visuals
           commit-message: 'deploy(site): publish production site'

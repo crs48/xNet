@@ -134,3 +134,40 @@ export async function openPullRequest(
   if (!pr.ok) throw new Error(`gh pr create failed: ${pr.stderr.trim()}`)
   return { url: pr.stdout.trim() }
 }
+
+export interface PublishPluginRepoOptions {
+  /** New GitHub repo, e.g. `'alice/xnet-plugin-kanban'` or `'xnet-plugin-kanban'`. */
+  repo: string
+  /** Visibility for `gh repo create`. Default `'public'`. */
+  visibility?: 'public' | 'private'
+}
+
+/**
+ * Create a GitHub repo from a plugin directory and push it — the "create your own
+ * plugin repo" output path (exploration 0190). The marketplace-manifest PR
+ * (adding the repo to 0047's `registry.yaml`) is a follow-up once that registry
+ * repo exists.
+ */
+export async function publishPluginRepo(
+  runner: CommandRunner,
+  cwd: string,
+  options: PublishPluginRepoOptions
+): Promise<{ repoUrl: string }> {
+  const visibility = options.visibility ?? 'public'
+  const r = await runner.run(
+    'gh',
+    ['repo', 'create', options.repo, `--${visibility}`, '--source=.', '--remote=origin', '--push'],
+    { cwd }
+  )
+  if (!r.ok) throw new Error(`gh repo create failed: ${r.stderr.trim()}`)
+  // `gh repo create` prints a few progress lines; pull the repo URL out by
+  // pattern rather than assuming it is the last line — the trailing line varies
+  // with gh's version and the `--push`/`--remote` flags (e.g. it can end on a
+  // "✓ Pushed commits" status line instead of the URL).
+  const lines = r.stdout
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const repoUrl = lines.find((l) => /^https?:\/\/\S+$/.test(l)) ?? lines.at(-1) ?? ''
+  return { repoUrl }
+}

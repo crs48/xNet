@@ -16,6 +16,7 @@ export type PanelId =
   | 'authz'
   | 'abuse'
   | 'queries'
+  | 'traces'
   | 'telemetry'
   | 'schemas'
   | 'schema-history'

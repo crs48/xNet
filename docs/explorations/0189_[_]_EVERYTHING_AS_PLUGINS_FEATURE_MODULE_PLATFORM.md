@@ -564,7 +564,7 @@ flowchart LR
 - [x] Add a **hub feature registry** (`packages/hub/src/features/registry.ts` +
       `types.ts` + `first-party.ts`) and refactor `server.ts` to iterate
       `HubFeature`s (`mountFeatures([billingFeature(), tasksFeature(…),
-  unfurlFeature(…)], …)`) instead of hardcoded `app.route(...)`.
+unfurlFeature(…)], …)`) instead of hardcoded `app.route(...)`.
       _As-built: behaviour-preserving (full hub suite green); community `/x/<id>`
       namespacing is deferred to the marketplace phase._
 - [x] Add a **capability/secret broker** in the hub
@@ -587,8 +587,17 @@ flowchart LR
 - [ ] **Migrate billing**: re-express as `BillingModule` (client settings + hook
       contribution; hub routes/store via the feature registry; first-party tier
       with `secrets`).
-- [ ] **Migrate GitHub**: re-express as a declarative hub-only webhook module
-      (`hub.webhooks` + `verify`/`normalize`); validates the v2 shape.
+- [x] **Migrate GitHub**: re-expressed as a declarative `HubFeature` **webhook**
+      (`HubFeature.webhooks: [{ path, secretRef, verify, normalize, apply? }]`,
+      mounted generically by `features/webhooks.ts` `mountWebhook`) — the GitHub
+      handler left `routes/tasks.ts` (now short-ids only) for the v2 shape;
+      behaviour preserved (full hub suite green). **Note:** the `apply` step —
+      writing normalized `TaskAutomationAction[]` onto a workspace's `Task` nodes
+      — is intentionally **not** wired in `server.ts` (and was never wired in the
+      old route either): it needs server-authoritative node writes the hub lacks
+      today, so the webhook verifies + normalizes + reports `{ ok, actions }` but
+      does not mutate. The injection seam (`applyAutomationActions`) is in place
+      for a future hub system identity. _(Deferred — same gap as 0187 Option C.)_
 - [ ] Extend 0047's marketplace index entry with `hub`/`capabilities`/`trustTier`;
       add a **capability-consent dialog** to the install flow; route installs by
       tier into the correct sandbox.
