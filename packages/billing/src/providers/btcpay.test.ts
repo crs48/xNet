@@ -127,4 +127,31 @@ describe('createBtcpayProvider.createCheckout', () => {
       metadata: { did: 'did:key:alice', amountMinor: 999, currency: 'USD' }
     })
   })
+
+  it('scales amountMinor by the currency exponent (zero-decimal JPY)', async () => {
+    const fetchImpl = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: 'inv_jpy', checkoutLink: 'https://btcpay/i/inv_jpy' }), {
+          status: 200
+        })
+    )
+    const provider = createBtcpayProvider({
+      url: 'https://btcpay.example.com',
+      apiKey: 'k',
+      storeId: 'store_1',
+      webhookSecret: SECRET,
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    })
+    await provider.createCheckout({
+      did: 'did:key:alice',
+      priceRef: '1000:JPY',
+      mode: 'payment',
+      successUrl: 'https://app/ok',
+      cancelUrl: 'https://app/cancel'
+    })
+    const [, init] = fetchImpl.mock.calls[0]
+    const payload = JSON.parse(String((init as RequestInit).body))
+    // 1000 JPY is already minor units (0 decimals) — NOT 100000.
+    expect(payload.metadata).toMatchObject({ amountMinor: 1000, currency: 'JPY' })
+  })
 })

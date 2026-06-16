@@ -5,7 +5,8 @@
  * the feature registry instead of bespoke `app.route(...)` calls in `server.ts`.
  * Behaviour is identical to the previous hardcoded mounts — the only change is
  * that each feature now receives a broker-scoped env (e.g. billing can read
- * `STRIPE_*`/`BTCPAY_*` but never `HUB_GITHUB_WEBHOOK_SECRET`).
+ * `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`/`BTCPAY_*` but never
+ * `HUB_GITHUB_WEBHOOK_SECRET`).
  *
  * Feature-specific services are closed over here; the shared deps come from the
  * registry.

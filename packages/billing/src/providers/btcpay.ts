@@ -16,6 +16,7 @@ import type { CheckoutRequest, CheckoutSession, PaymentProvider } from '../provi
 import type { BillingMutation, PaymentStatus, ProviderEvent } from '../types'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { asObj, num, str } from '../internal/coerce'
+import { toMinorUnits } from '../internal/currency'
 import { BillingSignatureError } from '../provider'
 
 export interface BtcpayProviderConfig {
@@ -109,7 +110,8 @@ export function createBtcpayProvider(config: BtcpayProviderConfig): PaymentProvi
       const [amountPart, currencyPart] = req.priceRef.split(':')
       const amount = amountPart?.trim() || '0'
       const currency = (currencyPart?.trim() || defaultCurrency).toUpperCase()
-      const amountMinor = Math.round(Number(amount) * 100)
+      // Minor units are currency-specific (JPY/KRW have 0 decimals, not 2).
+      const amountMinor = toMinorUnits(Number(amount), currency)
 
       const res = await doFetch(`${base}/api/v1/stores/${config.storeId}/invoices`, {
         method: 'POST',

@@ -43,9 +43,10 @@ describe('entitlementsForSubscription', () => {
     expect(entitlementsForSubscription(sub({ status: 'trialing' }), map)?.plan).toBe('team')
   })
 
-  it('returns null for an inactive subscription', () => {
-    expect(entitlementsForSubscription(sub({ status: 'past_due' }), map)).toBeNull()
-    expect(entitlementsForSubscription(sub({ status: 'canceled' }), map)).toBeNull()
+  it('returns null for every non-active/trialing status (the paid gate)', () => {
+    for (const status of ['past_due', 'canceled', 'incomplete', 'unpaid'] as const) {
+      expect(entitlementsForSubscription(sub({ status }), map)).toBeNull()
+    }
   })
 
   it('returns null when there is no subscription', () => {

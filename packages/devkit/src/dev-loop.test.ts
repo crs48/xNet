@@ -84,6 +84,28 @@ describe('runAgentTask (real temp repo)', () => {
     await git.worktreeRemove(wtPath)
   })
 
+  it('reports noChanges (no checkpoint, no crash) when the agent edits nothing', async () => {
+    const wtPath = join(wtParent, 'noop')
+    const result = await runAgentTask({
+      git,
+      runner: new FakeCommandRunner(), // gate passes
+      agent: fakeAgentRunner(() => {}), // succeeds but writes nothing → clean tree
+      task: { id: 'XN-noop', prompt: 'no-op' },
+      worktreePath: wtPath,
+      gate: [{ name: 'typecheck', command: 'pnpm', args: ['typecheck'] }],
+      keepWorktree: true
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.noChanges).toBe(true)
+    expect(result.rolledBack).toBe(false)
+    expect(result.checkpoint).toBeUndefined()
+    // No checkpoint commit was made: HEAD is still the initial commit.
+    const wtGit = new Git(new NodeCommandRunner(), wtPath)
+    expect((await wtGit.log(1))[0].label).toBe('initial')
+    await git.worktreeRemove(wtPath)
+  })
+
   it('removes the worktree by default but keeps the branch/checkpoint', async () => {
     const wtPath = join(wtParent, 'cleanup')
     const result = await runAgentTask({

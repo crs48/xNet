@@ -787,8 +787,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
   // First-party hub features mount through the feature registry (exploration
   // 0189). Each receives a broker-scoped env — only the secrets it declared — so
-  // billing reads STRIPE_*/BTCPAY_* but never the GitHub webhook secret, and
-  // vice-versa. Behaviour is identical to the previous hardcoded mounts.
+  // billing reads STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET/BTCPAY_* but never the
+  // GitHub webhook secret, and vice-versa. Behaviour is identical to the previous
+  // hardcoded mounts.
   //
   // `tasksFeature` is mounted WITHOUT an `applyAutomationActions` callback: the
   // GitHub webhook verifies signatures and normalizes deliveries into

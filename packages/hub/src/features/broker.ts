@@ -13,7 +13,13 @@
 
 export type Env = Record<string, string | undefined>
 
-/** Is `key` permitted by the allowlist (exact match or `PREFIX_*` glob)? */
+/**
+ * Is `key` permitted by the allowlist (exact match or `PREFIX_*` glob)?
+ *
+ * Only a TRAILING `*` is a glob; any other `*` (e.g. `A*B`) is treated as a
+ * literal and matches nothing. The failure mode is always under-match (a feature
+ * gets fewer keys than intended), never a leak of another feature's secret.
+ */
 export function isEnvKeyAllowed(key: string, allow: readonly string[]): boolean {
   for (const pattern of allow) {
     if (pattern.endsWith('*')) {
