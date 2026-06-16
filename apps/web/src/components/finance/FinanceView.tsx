@@ -21,8 +21,10 @@ import {
   type AccountClass
 } from '@xnetjs/ledger'
 import { useMutate, useQuery } from '@xnetjs/react'
-import { Wallet, Plus } from 'lucide-react'
+import { Wallet, Plus, SlidersHorizontal } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
+import { NodePeek } from '../NodeInspector'
+import { BudgetForm } from './BudgetForm'
 import {
   toLedgerAccounts,
   toLedgerTransactions,
@@ -80,6 +82,7 @@ export function FinanceView(): JSX.Element {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
   const [mode, setMode] = useState<'ledger' | 'reports'>('ledger')
+  const [peekAccountId, setPeekAccountId] = useState<string | null>(null)
 
   const accounts = useMemo(
     () => toLedgerAccounts((accountRows ?? []) as unknown as Row[]),
@@ -210,18 +213,27 @@ export function FinanceView(): JSX.Element {
                   {inClass.map((a) => {
                     const bal = balances.get(a.id)
                     return (
-                      <li key={a.id}>
+                      <li key={a.id} className="group flex items-center">
                         <button
                           type="button"
                           onClick={() =>
                             setSelectedAccountId(a.id === selectedAccountId ? null : a.id)
                           }
-                          className={`flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1 text-left text-xs hover:bg-accent ${
+                          className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-sm px-2 py-1 text-left text-xs hover:bg-accent ${
                             a.id === selectedAccountId ? 'bg-accent text-ink-1' : 'text-ink-2'
                           }`}
                         >
                           <span className="truncate">{a.name}</span>
                           <Money minor={bal?.natural ?? 0} currency={a.currency ?? currency} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Edit ${a.name}`}
+                          title="Edit account"
+                          onClick={() => setPeekAccountId(a.id)}
+                          className="shrink-0 px-1 text-ink-3 opacity-0 transition-opacity hover:text-ink-1 group-hover:opacity-100"
+                        >
+                          <SlidersHorizontal size={12} strokeWidth={1.5} />
                         </button>
                       </li>
                     )
@@ -259,11 +271,12 @@ export function FinanceView(): JSX.Element {
                 </div>
               </div>
 
-              {budgetRows2.length > 0 && (
-                <div className="mb-4">
-                  <div className="mb-2 text-[10px] uppercase tracking-wide text-ink-3">
-                    Budgets (this month)
-                  </div>
+              <div className="mb-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-wide text-ink-3">Budgets</div>
+                  <BudgetForm accounts={accounts} currency={currency} />
+                </div>
+                {budgetRows2.length > 0 && (
                   <ul className="flex flex-col gap-1.5">
                     {budgetRows2.map((b) => {
                       const acct = accounts.find((a) => a.id === b.budget.account)
@@ -290,12 +303,22 @@ export function FinanceView(): JSX.Element {
                       )
                     })}
                   </ul>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
         </section>
       </div>
+
+      <NodePeek
+        schema={AccountSchema}
+        nodeId={peekAccountId ?? ''}
+        open={peekAccountId != null}
+        onClose={() => setPeekAccountId(null)}
+        formOptions={{
+          highlights: ['name', 'class', 'code', 'currency']
+        }}
+      />
 
       {showImport && (
         <ImportPanel
@@ -320,6 +343,7 @@ function RegisterPanel({
   transactions: ReturnType<typeof toLedgerTransactions>
   currency: string
 }): JSX.Element {
+  const [peekTxnId, setPeekTxnId] = useState<string | null>(null)
   const account = selected ?? accounts[0] ?? null
   if (!account) {
     return <p className="text-xs text-ink-3">No accounts yet.</p>
@@ -342,11 +366,12 @@ function RegisterPanel({
               <th className="py-1 font-normal">Payee</th>
               <th className="py-1 text-right font-normal">Amount</th>
               <th className="py-1 text-right font-normal">Balance</th>
+              <th className="w-6" />
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.transaction.id} className="border-t border-hairline">
+              <tr key={r.transaction.id} className="group border-t border-hairline">
                 <td className="py-1 text-ink-3 tabular-nums">{formatDay(r.transaction.date)}</td>
                 <td className="py-1 text-ink-2">{r.transaction.payee ?? '—'}</td>
                 <td className="py-1 text-right tabular-nums">
@@ -357,11 +382,33 @@ function RegisterPanel({
                 <td className="py-1 text-right tabular-nums text-ink-2">
                   {formatAmount(r.balance, r.currency || currency)}
                 </td>
+                <td className="py-1 text-right">
+                  <button
+                    type="button"
+                    aria-label="Edit transaction"
+                    title="Edit transaction (memo, status, counterparty, deal)"
+                    onClick={() => setPeekTxnId(r.transaction.id)}
+                    className="text-ink-3 opacity-0 transition-opacity hover:text-ink-1 group-hover:opacity-100"
+                  >
+                    <SlidersHorizontal size={12} strokeWidth={1.5} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+
+      <NodePeek
+        schema={TransactionSchema}
+        nodeId={peekTxnId ?? ''}
+        open={peekTxnId != null}
+        onClose={() => setPeekTxnId(null)}
+        formOptions={{
+          highlights: ['date', 'payee', 'memo', 'status'],
+          groups: { counterparty: 'Links', deal: 'Links', importBatch: 'Links' }
+        }}
+      />
     </div>
   )
 }
