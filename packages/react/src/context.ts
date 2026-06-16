@@ -334,6 +334,19 @@ export interface XNetConfig {
   signalingServers?: string[]
   /** Hub WebSocket URL for always-on sync (overrides signalingServers[0]) */
   hubUrl?: string
+  /**
+   * Optional billing config (exploration 0187), surfaced to `useBilling`. The
+   * default redirect-checkout flow needs neither field — the hub creates checkout
+   * sessions server-side with the secret key. Use `apiBase` only to point billing
+   * at a different origin than the hub, and `publishableKey` only for future
+   * embedded (Stripe Elements) checkout.
+   */
+  billing?: {
+    /** Base URL for the hub billing routes. Defaults to the hub's HTTP URL. */
+    apiBase?: string
+    /** Stripe publishable key (`pk_…`). The secret key NEVER goes on the client. */
+    publishableKey?: string
+  }
   /** Hub integration options */
   hubOptions?: {
     /** Auto-generate UCAN for hub auth (default: true) */
@@ -486,6 +499,8 @@ export interface XNetContextValue {
   hubConnection: ConnectionManager | null
   /** Hub auth token provider (for HTTP requests) */
   getHubAuthToken?: () => Promise<string>
+  /** Billing config (exploration 0187), surfaced to useBilling. */
+  billing?: { apiBase?: string; publishableKey?: string }
   /** Encryption key for hub backups */
   encryptionKey: Uint8Array | null
   /** Blob store for content-addressed storage (null if not configured) */
@@ -1102,6 +1117,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       hubStatus,
       hubConnection: syncManager?.connection ?? null,
       getHubAuthToken: hubUrl ? getHubAuthToken : undefined,
+      billing: config.billing,
       encryptionKey,
       blobStore: config.blobStore ?? null,
       pluginRegistry,
@@ -1117,6 +1133,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       hubUrl,
       hubStatus,
       getHubAuthToken,
+      config.billing,
       encryptionKey,
       config.blobStore,
       pluginRegistry,
