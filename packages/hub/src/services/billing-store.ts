@@ -160,6 +160,11 @@ export class SqliteBillingStore implements BillingStore {
    * Hold an invoice/payment we can't yet attribute (keyed by its customer ref) so
    * an out-of-order webhook isn't lost. A mutation with no customer ref is
    * genuinely unattributable and dropped (nothing to key the replay on).
+   *
+   * Note: rows for a customer ref that NEVER maps to a DID are retained
+   * indefinitely (held-not-lost is the whole point). That's a bounded, slow,
+   * signature-gated accumulation — a TTL/GC sweep past Stripe's redelivery
+   * horizon is a tracked operational follow-up, not a correctness concern.
    */
   private bufferUnattributed(mutation: BillingMutation): void {
     const ref = 'customerRef' in mutation.data ? mutation.data.customerRef : undefined
@@ -169,7 +174,14 @@ export class SqliteBillingStore implements BillingStore {
       .run(ref, JSON.stringify(mutation))
   }
 
-  /** Re-apply mutations that were waiting on this customer ref's DID mapping. */
+  /**
+   * Re-apply mutations that were waiting on this customer ref's DID mapping.
+   * Apply BEFORE deleting (not after): better-sqlite3 autocommits each statement
+   * and can't wrap this async loop in a transaction, so if `applyMutation` throws
+   * (a transient DB error) the row must survive for a later replay. A successful
+   * apply is idempotent (LWW upsert by id), so re-applying a row whose delete was
+   * somehow missed is harmless — the safe failure direction.
+   */
   private async replayPending(customerRef: string): Promise<void> {
     const rows = this.db
       .prepare('SELECT seq, mutation FROM billing_pending WHERE customer_ref = ? ORDER BY seq')
@@ -177,8 +189,8 @@ export class SqliteBillingStore implements BillingStore {
     if (rows.length === 0) return
     const del = this.db.prepare('DELETE FROM billing_pending WHERE seq = ?')
     for (const row of rows) {
-      del.run(row.seq)
       await this.applyMutation(JSON.parse(row.mutation) as BillingMutation)
+      del.run(row.seq)
     }
   }
 
