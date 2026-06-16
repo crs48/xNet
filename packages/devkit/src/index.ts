@@ -40,7 +40,17 @@ export {
 export {
   runAgentTask,
   openPullRequest,
+  publishPluginRepo,
   type RunAgentTaskOptions,
   type AgentTaskResult,
-  type OpenPullRequestOptions
+  type OpenPullRequestOptions,
+  type PublishPluginRepoOptions
 } from './dev-loop'
+
+export {
+  bridgeHealth,
+  handleBridgeRun,
+  type BridgeHealthPayload,
+  type BridgeDeps,
+  type BridgeRunRequest
+} from './bridge'

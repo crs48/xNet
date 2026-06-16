@@ -134,3 +134,33 @@ export async function openPullRequest(
   if (!pr.ok) throw new Error(`gh pr create failed: ${pr.stderr.trim()}`)
   return { url: pr.stdout.trim() }
 }
+
+export interface PublishPluginRepoOptions {
+  /** New GitHub repo, e.g. `'alice/xnet-plugin-kanban'` or `'xnet-plugin-kanban'`. */
+  repo: string
+  /** Visibility for `gh repo create`. Default `'public'`. */
+  visibility?: 'public' | 'private'
+}
+
+/**
+ * Create a GitHub repo from a plugin directory and push it — the "create your own
+ * plugin repo" output path (exploration 0190). The marketplace-manifest PR
+ * (adding the repo to 0047's `registry.yaml`) is a follow-up once that registry
+ * repo exists.
+ */
+export async function publishPluginRepo(
+  runner: CommandRunner,
+  cwd: string,
+  options: PublishPluginRepoOptions
+): Promise<{ repoUrl: string }> {
+  const visibility = options.visibility ?? 'public'
+  const r = await runner.run(
+    'gh',
+    ['repo', 'create', options.repo, `--${visibility}`, '--source=.', '--remote=origin', '--push'],
+    { cwd }
+  )
+  if (!r.ok) throw new Error(`gh repo create failed: ${r.stderr.trim()}`)
+  // `gh repo create` prints the repo URL (last line of stdout).
+  const repoUrl = r.stdout.trim().split('\n').pop()?.trim() ?? ''
+  return { repoUrl }
+}
