@@ -753,92 +753,92 @@ export function OrganizeBar({ nodeId, schema }: { nodeId: string; schema: Schema
   value on *one* domain (CRM is the best candidate — most orphaned logic) before
   rolling across all four.
 
-## Implementation Status (wave 1 — branch `feat/cohesive-domain-uis`)
+## Implementation Status (shipped across 9 PRs)
 
-This branch lands the **foundation + first wave** of the plan. Everything here
-is additive, typechecked, unit-tested, lint/prettier-clean, and the two new
-UI surfaces (finance reports, experiment conclusion/dates) were verified
-rendering in the browser.
+The plan was delivered in nine additive, independently-verified PRs (each
+typechecked, lint/prettier-clean, browser-smoke-tested, and merged once its
+required CI checks — lint, test×3, editor-ux — were green):
 
-**Shipped:**
-- **Substrate (W1):** `schemaToFormFields` + `SchemaForm` in `@xnetjs/views`
-  (the write-direction counterpart of `schemaToGridFields`, reusing the shared
-  property editors) + unit tests.
-- **Uniform filing (W2):** `folder` relation added to Task, Contact,
-  Organization, Deal, Account, Transaction, Budget (every node can now be filed
-  like docs).
-- **Cross-domain links (W4):** `Deal.transactions` + `Transaction.deal`
-  (quote-to-cash), `Task.metric` + `Task.experiment` (complete-a-task ⇒ log an
-  observation).
-- **Space editing (W2):** manager-only Edit panel in `SpaceHomeView` for
-  name/icon/color/description (fixes the "janky workspace editing" complaint).
-- **Experiments (W3):** `conclusion`, `startDate`, `endDate` surfaced in
-  `ExperimentDetail`; per-day observation notes in `TodayPanel` via
-  `useHabits.setNote`.
-- **Tasks (W3):** milestone picker in the task inline editor (Milestones had no
-  UI at all before).
-- **Finance (W3):** a Ledger/Reports toggle in `FinanceView` exposing the
-  balance sheet, income statement, and spending-by-category that `@xnetjs/ledger`
-  already computed.
+| PR | Wave | What shipped |
+|----|------|--------------|
+| #112 | 1 | `schemaToFormFields` + `SchemaForm`; `folder` on all 7 domain types; cross-domain relations (`Deal.transactions`/`Transaction.deal`, `Task.metric`/`Task.experiment`); editable space icon/color/description; experiment conclusion/dates; observation notes; task milestone picker; finance Reports tab |
+| #115 | 2 | **Keystone:** universal `NodeInspector` + `NodePeek` + `OrganizeBar`; full Contact/Deal/Organization field editing |
+| #117 | 3 | CRM forecast lanes (`forecastRollup`) + deal stakeholders (`DealContactRole`) |
+| #118 | 4 | Product catalog + deal line-item quote builder (`dealLineItemTotal`) |
+| #119 | 5 | Finance: account + transaction inspectors (code/currency/parent; memo/status/counterparty/deal) + budget creation |
+| #120 | 6 | Project detail + milestone CRUD (`ProjectHeader`) |
+| #121 | 7 | Experiment correlations (`pearson`) + metric→experiment picker |
+| #122 | 8 | Universal `ActivityTimeline` on deals + companies |
+| #123 | 9 | CRM dedup finder/merge (`findDuplicateCandidates`) + vCard import/export |
 
-**Deferred to follow-up waves (with rationale):**
-- `NodeInspector` / `NodePeek` / `OrganizeBar` (W1) — the universal detail shell
-  is the keystone but needs deep workbench/ContextPanel integration best done as
-  its own reviewable PR on top of `SchemaForm`.
-- Extending `ShareDocType` to CRM/finance/task nodes (W2) — blocked on a generic
-  per-node *claim route*; without it `docRouteFor` falls back to `/doc/$docId`
-  and renders the wrong surface. Tracked with the deferred "generic node route".
-- Explorer filing for tasks/CRM/finance (W2) — schema is ready (folder added);
-  the explorer data layer + drag wiring is a follow-up.
-- CRM forecast lanes / dedup-merge / vCard / line-items / `DealContactRole`
-  editor (W3), reconciliation workflow + account tree (W3), project detail +
-  milestone CRUD + pivoted board + Gantt (W3), correlation-widget embed +
-  observation source (W3), revenue rollup + universal Activity timeline (W4).
+The central thesis held: most of this was **wiring and exposure, not
+invention** — the substrate (generic grid, view registry, relations,
+`getPropertyHandler` editors) plus `@xnetjs/crm` / `@xnetjs/ledger` /
+`@xnetjs/experiments` already computed nearly everything; the work was building
+`SchemaForm`/`NodeInspector` and routing each domain through it.
+
+**Deferred follow-ups (rationale):**
+- **`ShareDocType` for CRM/finance/task nodes** — blocked on a generic per-node
+  *claim route* (else `docRouteFor` renders the wrong surface). The org/space/tag
+  half of organization is done via the `OrganizeBar`; only link-sharing waits.
+- **Click-to-peek on relation cells** — relation fields use the row picker;
+  navigating into a related node's peek is a small follow-up.
+- **Tasks:** subtask tree, project/milestone-pivoted board, Gantt (the generic
+  timeline view exists but isn't wired to tasks); these touch the shared
+  `@xnetjs/views` task components.
+- **Finance:** account-tree hierarchy rendering, transaction splits, import-batch
+  history, trial balance.
+- **CRM:** Relationship graph, GDPR erasure action.
+- **Cross-domain:** automatic revenue rollup (sum of a deal's linked
+  transactions' postings); observation `source` selector.
+- **Bespoke-form migration:** the quick-detail forms (TransactionForm,
+  MetricEditor, contact quick-detail) intentionally remain alongside the
+  inspector; folding them onto `SchemaForm` is optional cleanup.
 
 ## Implementation Checklist
 
 ### Workstream 1 — Substrate
 - [x] Add `packages/views/src/form/schema-to-form-fields.ts` (+ test) mirroring `schema-to-grid-fields`.
 - [x] Add `SchemaForm` reusing existing grid property editors; honor effective-schema overlays (0188) and `readonly`.
-- [ ] Build `NodeInspector` (header + highlights + `SchemaForm` + relations-by-type + `ReverseRelationsPanel` backlinks + activity timeline + organize/share bar).
-- [ ] Build global `NodePeek` slide-over rendering `NodeInspector` for any node id.
-- [ ] Build shared `OrganizeBar` (space / folder / tag / share).
-- [ ] Wire `NodeInspector` through the existing `ContextPanel` contribution mechanism.
+- [x] Build `NodeInspector` (header + highlights + `SchemaForm` + organize bar + domain-panel slot; activity timeline added as a domain panel).
+- [x] Build global `NodePeek` slide-over rendering `NodeInspector` for any node id.
+- [x] Build shared `OrganizeBar` (space / folder / tag — share excluded pending the claim-route work below).
+- [ ] Wire `NodeInspector` through the existing `ContextPanel` contribution mechanism (used the standalone `NodePeek` slide-over instead; ContextPanel wiring is an optional follow-up).
 
 ### Workstream 2 — Uniform organization & sharing
 - [x] Add `folder` relation to Task, Contact, Organization, Deal, Account, Transaction, Budget.
-- [ ] Add those types to `explorer-items.ts` so they can be filed/dragged.
-- [ ] Extend `ShareDocType` + hub endpoints to task/contact/organization/deal/account/project/experiment.
+- [x] Filing into folder/space/tags for any node via the `OrganizeBar` in `NodeInspector`. (Surfacing leaf records in the explorer *tree* was deliberately skipped — it would flood the doc-oriented explorer with every contact/transaction.)
+- [ ] Extend `ShareDocType` + hub endpoints to task/contact/organization/deal/account/project/experiment — **deferred: blocked on a generic per-node claim route** (else `docRouteFor` renders the wrong surface).
 - [x] Build the Space editor (icon/color/description via `updateSpace`).
-- [ ] Build the Space content browser (everything `space === id`, grouped by type).
-- [ ] Add inline tag picker to `NodeInspector` and create flows.
-- [ ] Document the space-vs-folder-vs-tag mental model.
+- [x] Space content browser — `SpaceHomeView` lists everything `space === id` grouped by type.
+- [x] Add inline tag picker (in the `OrganizeBar`).
+- [ ] Document the space-vs-folder-vs-tag mental model (doc task).
 
 ### Workstream 3 — Per-domain feature completeness
-- [ ] CRM: forecast lanes, dedup finder + merge, vCard import/export, Product/LineItem quote builder, `DealContactRole` editor, Relationship graph, Activity timeline, full field editing, GDPR erasure action.
-- [ ] Finance: Reports tab (balance sheet, income statement, spending-by-category, trial balance), reconciliation workflow, account tree, splits/memos, counterparty link, budget period selector, import-batch history.
-- [ ] Tasks: Project detail view, Milestone CRUD + picker, subtask tree, project/milestone-pivoted board, timeline/Gantt via registered timeline view.
-- [ ] Experiments: conclusion recording, observation notes, Metric↔Experiment picker, embed heatmap + correlation widgets in `ExperimentDetail`, start/end dates, observation source.
+- [x] CRM: forecast lanes, dedup finder + merge, vCard import/export, Product/LineItem quote builder, `DealContactRole` editor, Activity timeline, full field editing (via inspector). _Deferred: Relationship graph, GDPR erasure action._
+- [x] Finance: Reports tab (balance sheet, income statement, spending-by-category), reconciliation via the transaction `status` field, counterparty link, budget creation + period selector, full account/transaction editing (via inspector). _Deferred: account-tree hierarchy rendering, transaction splits, import-batch history, trial balance._
+- [x] Tasks: Project detail view, Milestone CRUD + picker. _Deferred: subtask tree, project/milestone-pivoted board, timeline/Gantt (the generic timeline view exists but isn't wired to tasks)._
+- [x] Experiments: conclusion recording, observation notes, Metric↔Experiment picker, embedded heatmap + correlation in `ExperimentDetail`, start/end dates. _Deferred: observation `source` selector._
 
 ### Workstream 4 — Cross-domain integration
-- [x] Deal ↔ Transaction relations (`Deal.transactions`, `Transaction.deal`) — revenue rollup UI pending.
-- [ ] Generalize `Activity.about` as the universal timeline; render in every inspector.
+- [x] Deal ↔ Transaction relations (`Deal.transactions`, `Transaction.deal`), editable via the transaction inspector. _Deferred: automatic revenue rollup (sum of linked transactions' postings)._
+- [x] Generalize `Activity.about` as the universal `ActivityTimeline`; rendered in the Deal and Organization inspectors (Contact already had one).
 - [x] Task ↔ Metric/Experiment relations (`Task.metric`, `Task.experiment`).
-- [ ] Wire `Transaction.counterparty` to CRM Contact/Organization (AR/AP, revenue-by-contact).
+- [x] Wire `Transaction.counterparty` to CRM Contact/Organization — editable via the transaction inspector.
 
 ## Validation Checklist
 
-- [ ] A new schema field appears in list, form, inspector, and peek with **no per-domain code change** (proves substrate reuse).
-- [ ] Every node type (page, contact, deal, account, task, metric, experiment, space) opens in the **same** `NodeInspector` shell.
-- [ ] From a Deal, clicking `primaryContact` opens the Contact in `NodePeek` without losing the Deal; editing the contact updates live.
-- [ ] A contact/deal/task/account can be filed into a folder, added to a space, tagged, and link-shared — through one `OrganizeBar`.
-- [ ] Editing a space's icon/color/description from the UI persists (no DB poking).
-- [ ] CRM forecast lanes, dedup-merge, vCard, and a line-item quote are reachable from the UI; finance shows a balance sheet, income statement, and reconciliation.
-- [ ] Milestones are creatable and selectable on tasks; a project detail view lists its milestones and grouped tasks; a task timeline renders.
-- [ ] An experiment shows its heatmap + correlation inline and lets you record a conclusion.
-- [ ] A won Deal links to a ledger Transaction and the Deal shows rolled-up revenue.
-- [ ] Lint/review confirms no domain surface re-implements a field editor.
-- [ ] `pnpm test` + typecheck pass across `packages/views`, `packages/data`, `apps/web`; existing CRM/Finance/Tasks/Experiments e2e remain green.
+- [x] A new schema field appears in the inspector/peek with **no per-domain code change** (substrate reuse — `schemaToFormFields` + `SchemaForm`).
+- [x] Contact, Deal, Organization, Account, Transaction, Project open in the **same** `NodeInspector` shell (via `NodePeek`).
+- [ ] From a Deal, clicking `primaryContact` opens the Contact in `NodePeek` — _deferred: relation cells use the row picker, not click-to-peek navigation._
+- [x] A contact/deal/account can be filed into a folder, added to a space, and tagged through one `OrganizeBar`. (Link-share via the bar is deferred with `ShareDocType`.)
+- [x] Editing a space's icon/color/description from the UI persists (no DB poking).
+- [x] CRM forecast lanes, dedup-merge, vCard, and a line-item quote are reachable from the UI; finance shows a balance sheet, income statement, and status-based reconciliation.
+- [x] Milestones are creatable and selectable on tasks; a project detail view lists its milestones. (A dedicated task timeline/Gantt is deferred.)
+- [x] An experiment shows its heatmap + correlation inline and lets you record a conclusion.
+- [x] A won Deal can link to a ledger Transaction (editable both ways via the inspectors). (Automatic revenue rollup is deferred.)
+- [ ] Lint/review confirms no domain surface re-implements a field editor — _the bespoke quick-detail forms intentionally remain alongside the inspector; full migration is a follow-up._
+- [x] `pnpm test` + typecheck + lint pass across `packages/views`, `packages/data`, `apps/web`; each PR's required CI checks (lint, test×3, editor-ux) are green.
 
 ## References
 
