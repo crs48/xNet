@@ -15,6 +15,7 @@
 import type { CheckoutRequest, CheckoutSession, PaymentProvider } from '../provider'
 import type { BillingMutation, PaymentStatus, ProviderEvent } from '../types'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { asObj, num, str } from '../internal/coerce'
 import { BillingSignatureError } from '../provider'
 
 export interface BtcpayProviderConfig {
@@ -30,16 +31,6 @@ export interface BtcpayProviderConfig {
   defaultCurrency?: string
   fetchImpl?: typeof fetch
 }
-
-type Obj = Record<string, unknown>
-const asObj = (v: unknown): Obj => (v && typeof v === 'object' ? (v as Obj) : {})
-const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
-const num = (v: unknown): number | undefined =>
-  typeof v === 'number'
-    ? v
-    : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))
-      ? Number(v)
-      : undefined
 
 const SETTLED = new Set(['InvoiceSettled', 'InvoicePaymentSettled'])
 const PENDING = new Set(['InvoiceProcessing', 'InvoiceReceivedPayment', 'InvoiceCreated'])

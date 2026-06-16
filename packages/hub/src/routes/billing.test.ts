@@ -134,4 +134,45 @@ describe('billing routes', () => {
     const res = await app.request('/billing/checkout', { method: 'POST', body: '{}' })
     expect(res.status).toBe(400)
   })
+
+  it('portal returns 503 when the provider has no customer portal', async () => {
+    const { app } = mount({}) // fake provider has no createPortalSession
+    const res = await app.request('/billing/portal', { method: 'POST', body: '{}' })
+    expect(res.status).toBe(503)
+  })
+
+  it('portal 404s without a customer, then returns a URL once one exists', async () => {
+    const store = new MemoryBillingStore()
+    const provider = {
+      ...createFakeProvider(),
+      createPortalSession: async () => ({ url: 'https://portal.example/x' })
+    }
+    const app = new Hono()
+    app.route(
+      '/billing',
+      createBillingRoutes({
+        provider,
+        store,
+        requireAuth: authAs('did:key:alice'),
+        appUrl: 'https://app.example'
+      })
+    )
+
+    const noCustomer = await app.request('/billing/portal', { method: 'POST', body: '{}' })
+    expect(noCustomer.status).toBe(404)
+
+    await store.applyMutation({
+      kind: 'customer',
+      data: {
+        id: 'cus_1',
+        did: 'did:key:alice',
+        provider: 'fake',
+        externalRef: 'cus_1',
+        updatedAt: 1
+      }
+    })
+    const ok = await app.request('/billing/portal', { method: 'POST', body: '{}' })
+    expect(ok.status).toBe(200)
+    expect((await ok.json()).url).toBe('https://portal.example/x')
+  })
 })

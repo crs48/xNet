@@ -13,9 +13,9 @@ import type {
   InvoiceStatus,
   PaymentStatus,
   ProviderEvent,
-  Subscription,
   SubscriptionStatus
 } from '../types'
+import { asObj, num, str, type Obj } from '../internal/coerce'
 import { BillingSignatureError } from '../provider'
 import { verifyStripeSignature } from '../stripe-signature'
 
@@ -31,11 +31,6 @@ export interface StripeProviderConfig {
   /** Signature freshness tolerance in seconds (0 disables). */
   signatureToleranceSec?: number
 }
-
-type Obj = Record<string, unknown>
-const asObj = (v: unknown): Obj => (v && typeof v === 'object' ? (v as Obj) : {})
-const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
-const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined)
 
 const STRIPE_SUB_STATUS: Record<string, SubscriptionStatus> = {
   trialing: 'trialing',
@@ -66,118 +61,127 @@ const STRIPE_PI_STATUS: Record<string, PaymentStatus> = {
   canceled: 'failed'
 }
 
-/** Normalize a verified Stripe event into canonical mutations. Pure + defensive. */
-export function normalizeStripeEvent(event: ProviderEvent, now: number): BillingMutation[] {
-  const obj = asObj(event.data)
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const did = str(obj.client_reference_id) ?? str(asObj(obj.metadata).did)
-      const customer = str(obj.customer)
-      if (!did || !customer) return []
-      const email = str(asObj(obj.customer_details).email) ?? str(obj.customer_email)
-      return [
-        {
-          kind: 'customer',
-          data: {
-            id: customer,
-            did,
-            provider: 'stripe',
-            externalRef: customer,
-            ...(email ? { email } : {}),
-            updatedAt: now
-          }
-        }
-      ]
-    }
+type StripeNormalizer = (obj: Obj, raw: unknown, now: number) => BillingMutation[]
 
-    case 'customer.subscription.created':
-    case 'customer.subscription.updated':
-    case 'customer.subscription.deleted': {
-      const id = str(obj.id)
-      const did = str(asObj(obj.metadata).did)
-      if (!id || !did) return []
-      const rawStatus = str(obj.status) ?? ''
-      const status: SubscriptionStatus =
-        event.type === 'customer.subscription.deleted'
-          ? 'canceled'
-          : (STRIPE_SUB_STATUS[rawStatus] ?? 'incomplete')
-      const periodEnd = num(obj.current_period_end)
-      const firstItem = asObj((asObj(obj.items).data as unknown[] | undefined)?.[0])
-      const priceRef = str(asObj(firstItem.price).id) ?? ''
-      const sub: Subscription = {
-        id,
+function normalizeCheckout(obj: Obj, _raw: unknown, now: number): BillingMutation[] {
+  const did = str(obj.client_reference_id) ?? str(asObj(obj.metadata).did)
+  const customer = str(obj.customer)
+  if (!did || !customer) return []
+  const email = str(asObj(obj.customer_details).email) ?? str(obj.customer_email)
+  return [
+    {
+      kind: 'customer',
+      data: {
+        id: customer,
         did,
         provider: 'stripe',
-        externalRef: id,
-        status,
-        priceRef,
-        currentPeriodEnd: periodEnd ? periodEnd * 1000 : null,
-        cancelAtPeriodEnd: obj.cancel_at_period_end === true,
-        raw: event.data,
+        externalRef: customer,
+        ...(email ? { email } : {}),
         updatedAt: now
       }
-      return [{ kind: 'subscription', data: sub }]
     }
+  ]
+}
 
-    case 'invoice.paid':
-    case 'invoice.payment_succeeded':
-    case 'invoice.payment_failed':
-    case 'invoice.finalized': {
-      const id = str(obj.id)
-      const customer = str(obj.customer)
-      if (!id) return []
-      const rawStatus = str(obj.status) as InvoiceStatus | undefined
-      const status: InvoiceStatus =
-        rawStatus && STRIPE_INVOICE_STATUS.has(rawStatus) ? rawStatus : 'open'
-      return [
-        {
-          kind: 'invoice',
-          data: {
-            id,
-            did: str(asObj(obj.metadata).did) ?? '',
-            provider: 'stripe',
-            externalRef: id,
-            ...(customer ? { customerRef: customer } : {}),
-            amountDueMinor: num(obj.amount_due) ?? 0,
-            currency: (str(obj.currency) ?? 'usd').toUpperCase(),
-            status,
-            ...(str(obj.hosted_invoice_url) ? { hostedUrl: str(obj.hosted_invoice_url) } : {}),
-            raw: event.data,
-            updatedAt: now
-          }
+function makeSubscriptionNormalizer(deleted: boolean): StripeNormalizer {
+  return (obj, raw, now) => {
+    const id = str(obj.id)
+    const did = str(asObj(obj.metadata).did)
+    if (!id || !did) return []
+    const status: SubscriptionStatus = deleted
+      ? 'canceled'
+      : (STRIPE_SUB_STATUS[str(obj.status) ?? ''] ?? 'incomplete')
+    const periodEnd = num(obj.current_period_end)
+    const firstItem = asObj((asObj(obj.items).data as unknown[] | undefined)?.[0])
+    return [
+      {
+        kind: 'subscription',
+        data: {
+          id,
+          did,
+          provider: 'stripe',
+          externalRef: id,
+          status,
+          priceRef: str(asObj(firstItem.price).id) ?? '',
+          currentPeriodEnd: periodEnd ? periodEnd * 1000 : null,
+          cancelAtPeriodEnd: obj.cancel_at_period_end === true,
+          raw,
+          updatedAt: now
         }
-      ]
-    }
-
-    case 'payment_intent.succeeded':
-    case 'payment_intent.payment_failed':
-    case 'payment_intent.processing': {
-      const id = str(obj.id)
-      const customer = str(obj.customer)
-      if (!id) return []
-      const status = STRIPE_PI_STATUS[str(obj.status) ?? ''] ?? 'pending'
-      return [
-        {
-          kind: 'payment',
-          data: {
-            id,
-            did: str(asObj(obj.metadata).did) ?? '',
-            provider: 'stripe',
-            externalRef: id,
-            ...(customer ? { customerRef: customer } : {}),
-            amountMinor: num(obj.amount) ?? 0,
-            currency: (str(obj.currency) ?? 'usd').toUpperCase(),
-            status,
-            raw: event.data,
-            updatedAt: now
-          }
-        }
-      ]
-    }
-
-    default:
-      return []
+      }
+    ]
   }
+}
+
+function normalizeInvoice(obj: Obj, raw: unknown, now: number): BillingMutation[] {
+  const id = str(obj.id)
+  if (!id) return []
+  const customer = str(obj.customer)
+  const rawStatus = str(obj.status) as InvoiceStatus | undefined
+  const status: InvoiceStatus =
+    rawStatus && STRIPE_INVOICE_STATUS.has(rawStatus) ? rawStatus : 'open'
+  const hostedUrl = str(obj.hosted_invoice_url)
+  return [
+    {
+      kind: 'invoice',
+      data: {
+        id,
+        did: str(asObj(obj.metadata).did) ?? '',
+        provider: 'stripe',
+        externalRef: id,
+        ...(customer ? { customerRef: customer } : {}),
+        amountDueMinor: num(obj.amount_due) ?? 0,
+        currency: (str(obj.currency) ?? 'usd').toUpperCase(),
+        status,
+        ...(hostedUrl ? { hostedUrl } : {}),
+        raw,
+        updatedAt: now
+      }
+    }
+  ]
+}
+
+function normalizePaymentIntent(obj: Obj, raw: unknown, now: number): BillingMutation[] {
+  const id = str(obj.id)
+  if (!id) return []
+  const customer = str(obj.customer)
+  return [
+    {
+      kind: 'payment',
+      data: {
+        id,
+        did: str(asObj(obj.metadata).did) ?? '',
+        provider: 'stripe',
+        externalRef: id,
+        ...(customer ? { customerRef: customer } : {}),
+        amountMinor: num(obj.amount) ?? 0,
+        currency: (str(obj.currency) ?? 'usd').toUpperCase(),
+        status: STRIPE_PI_STATUS[str(obj.status) ?? ''] ?? 'pending',
+        raw,
+        updatedAt: now
+      }
+    }
+  ]
+}
+
+/** Event type → normalizer. Keeps `normalizeStripeEvent` a flat lookup (low complexity). */
+const STRIPE_NORMALIZERS: Record<string, StripeNormalizer> = {
+  'checkout.session.completed': normalizeCheckout,
+  'customer.subscription.created': makeSubscriptionNormalizer(false),
+  'customer.subscription.updated': makeSubscriptionNormalizer(false),
+  'customer.subscription.deleted': makeSubscriptionNormalizer(true),
+  'invoice.paid': normalizeInvoice,
+  'invoice.payment_succeeded': normalizeInvoice,
+  'invoice.payment_failed': normalizeInvoice,
+  'invoice.finalized': normalizeInvoice,
+  'payment_intent.succeeded': normalizePaymentIntent,
+  'payment_intent.payment_failed': normalizePaymentIntent,
+  'payment_intent.processing': normalizePaymentIntent
+}
+
+/** Normalize a verified Stripe event into canonical mutations. Pure + defensive. */
+export function normalizeStripeEvent(event: ProviderEvent, now: number): BillingMutation[] {
+  return STRIPE_NORMALIZERS[event.type]?.(asObj(event.data), event.data, now) ?? []
 }
 
 export function createStripeProvider(config: StripeProviderConfig): PaymentProvider {

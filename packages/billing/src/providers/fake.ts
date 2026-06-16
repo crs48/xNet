@@ -10,6 +10,7 @@
 
 import type { CheckoutRequest, CheckoutSession, PaymentProvider } from '../provider'
 import type { BillingMutation, ProviderEvent } from '../types'
+import { asObj, str } from '../internal/coerce'
 import { BillingSignatureError } from '../provider'
 import { verifyStripeSignature } from '../stripe-signature'
 import { normalizeStripeEvent } from './stripe'
@@ -18,10 +19,6 @@ export interface FakeProviderConfig {
   /** When set, webhooks must carry a valid `stripe-signature` for this secret. */
   secret?: string
 }
-
-const asObj = (v: unknown): Record<string, unknown> =>
-  v && typeof v === 'object' ? (v as Record<string, unknown>) : {}
-const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
 
 export function createFakeProvider(config: FakeProviderConfig = {}): PaymentProvider {
   return {

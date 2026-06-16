@@ -32,6 +32,47 @@ export interface CheckoutOptions {
   customerEmail?: string
 }
 
+const toError = (err: unknown): Error => (err instanceof Error ? err : new Error(String(err)))
+
+/** Build the `/billing/checkout` body, omitting unset options (kept out of the hook). */
+function buildCheckoutBody(priceRef: string, options: CheckoutOptions): Record<string, unknown> {
+  return {
+    priceRef,
+    ...(options.mode ? { mode: options.mode } : {}),
+    ...(options.successUrl ? { successUrl: options.successUrl } : {}),
+    ...(options.cancelUrl ? { cancelUrl: options.cancelUrl } : {}),
+    ...(options.customerEmail ? { customerEmail: options.customerEmail } : {})
+  }
+}
+
+type BillingFields = Pick<
+  UseBillingResult,
+  | 'subscription'
+  | 'isActive'
+  | 'plan'
+  | 'status'
+  | 'customer'
+  | 'subscriptions'
+  | 'invoices'
+  | 'payments'
+>
+
+/** Derive the public read-fields from billing state (pure; keeps the hook flat). */
+function deriveBilling(state: BillingState | null): BillingFields {
+  const subscription = state?.subscription ?? null
+  const active = subscription?.status === 'active' || subscription?.status === 'trialing'
+  return {
+    subscription,
+    isActive: active,
+    plan: subscription?.priceRef ?? null,
+    status: subscription?.status ?? null,
+    customer: state?.customer ?? null,
+    subscriptions: state?.subscriptions ?? [],
+    invoices: state?.invoices ?? [],
+    payments: state?.payments ?? []
+  }
+}
+
 export interface UseBillingResult {
   /** The most relevant subscription (active/trialing first), or null. */
   subscription: Subscription | null
@@ -87,7 +128,7 @@ export function useBilling(): UseBillingResult {
       if (!res.ok) throw new Error(`Billing fetch failed: ${res.status}`)
       setState((await res.json()) as BillingState)
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
+      setError(toError(err))
     } finally {
       setLoading(false)
     }
@@ -114,13 +155,7 @@ export function useBilling(): UseBillingResult {
 
   const openCheckout = useCallback(
     (priceRef: string, options: CheckoutOptions = {}): Promise<void> =>
-      redirectVia('/billing/checkout', {
-        priceRef,
-        ...(options.mode ? { mode: options.mode } : {}),
-        ...(options.successUrl ? { successUrl: options.successUrl } : {}),
-        ...(options.cancelUrl ? { cancelUrl: options.cancelUrl } : {}),
-        ...(options.customerEmail ? { customerEmail: options.customerEmail } : {})
-      }),
+      redirectVia('/billing/checkout', buildCheckoutBody(priceRef, options)),
     [redirectVia]
   )
 
@@ -130,16 +165,8 @@ export function useBilling(): UseBillingResult {
     [redirectVia]
   )
 
-  const subscription = state?.subscription ?? null
   return {
-    subscription,
-    isActive: subscription?.status === 'active' || subscription?.status === 'trialing',
-    plan: subscription?.priceRef ?? null,
-    status: subscription?.status ?? null,
-    customer: state?.customer ?? null,
-    subscriptions: state?.subscriptions ?? [],
-    invoices: state?.invoices ?? [],
-    payments: state?.payments ?? [],
+    ...deriveBilling(state),
     loading,
     error,
     reload,
