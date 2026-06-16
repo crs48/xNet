@@ -14,13 +14,15 @@ import { useEffect, useRef, useState, type JSX } from 'react'
 import { NodePeek } from '../NodeInspector'
 import { num, relDays, str } from './crm-helpers'
 import { CrmContacts } from './CrmContacts'
+import { CrmForecast } from './CrmForecast'
 import { CrmPipeline } from './CrmPipeline'
 
-type CrmTab = 'contacts' | 'pipeline' | 'companies' | 'keep'
+type CrmTab = 'contacts' | 'pipeline' | 'forecast' | 'companies' | 'keep'
 
 const TABS: Array<{ id: CrmTab; label: string }> = [
   { id: 'contacts', label: 'Contacts' },
   { id: 'pipeline', label: 'Pipeline' },
+  { id: 'forecast', label: 'Forecast' },
   { id: 'companies', label: 'Companies' },
   { id: 'keep', label: 'Keep in touch' }
 ]
@@ -95,6 +97,12 @@ export function CrmView(): JSX.Element {
         {tab === 'pipeline' &&
           (defaultPipeline ? (
             <CrmPipeline pipelineId={defaultPipeline.id} />
+          ) : (
+            <p className="p-6 text-xs text-ink-3">Setting up your pipeline…</p>
+          ))}
+        {tab === 'forecast' &&
+          (defaultPipeline ? (
+            <CrmForecast pipelineId={defaultPipeline.id} />
           ) : (
             <p className="p-6 text-xs text-ink-3">Setting up your pipeline…</p>
           ))}
