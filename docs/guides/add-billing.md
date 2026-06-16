@@ -3,7 +3,7 @@
 xNet ships **plug-and-play billing** as a feature of the open-source hub. Drop two
 secrets into the hub, add one hook to your app, and subscriptions/payments stream
 into your own store and show up reactively — the same way `useIdentity` exposes
-identity ([exploration 0187](../explorations/0187_[_]_PLUG_AND_PLAY_BILLING_STRIPE_AND_BITCOIN.md)).
+identity ([exploration 0187](../explorations/0187_[x]_PLUG_AND_PLAY_BILLING_STRIPE_AND_BITCOIN.md)).
 
 It is **provider-agnostic**: the same routes and the same `useBilling()` hook work
 with **Stripe** (subscriptions + customer portal) or **Bitcoin/Lightning** via a
