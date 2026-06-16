@@ -19,6 +19,7 @@ import { cn } from '@xnetjs/ui'
 import { CalendarClock, Plus, SlidersHorizontal } from 'lucide-react'
 import { useState, type JSX } from 'react'
 import { NodePeek } from '../NodeInspector'
+import { ContactTools } from './ContactTools'
 import { num, relDays, str } from './crm-helpers'
 
 const ACTIVITY_KIND_OPTIONS: Array<{ id: ActivityKind; label: string }> = [
@@ -61,6 +62,7 @@ export function CrmContacts(): JSX.Element {
             <Plus size={14} strokeWidth={1.5} />
           </button>
         </div>
+        <ContactTools contacts={contacts} />
         <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">
           {loading ? (
             <p className="px-2 text-xs text-ink-3">Loading…</p>
