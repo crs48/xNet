@@ -160,7 +160,14 @@ export async function publishPluginRepo(
     { cwd }
   )
   if (!r.ok) throw new Error(`gh repo create failed: ${r.stderr.trim()}`)
-  // `gh repo create` prints the repo URL (last line of stdout).
-  const repoUrl = r.stdout.trim().split('\n').pop()?.trim() ?? ''
+  // `gh repo create` prints a few progress lines; pull the repo URL out by
+  // pattern rather than assuming it is the last line — the trailing line varies
+  // with gh's version and the `--push`/`--remote` flags (e.g. it can end on a
+  // "✓ Pushed commits" status line instead of the URL).
+  const lines = r.stdout
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const repoUrl = lines.find((l) => /^https?:\/\/\S+$/.test(l)) ?? lines.at(-1) ?? ''
   return { repoUrl }
 }

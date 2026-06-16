@@ -59,6 +59,13 @@ export function billingFeature(): HubFeature {
  * **declarative webhook** (exploration 0189 "v2" shape) rather than a hand-written
  * route. `applyAutomationActions` is optional — when provided, normalized actions
  * mutate the workspace's Task nodes.
+ *
+ * Production `server.ts` currently mounts this WITHOUT an apply callback: the
+ * webhook verifies + normalizes deliveries into `TaskAutomationAction[]`, but
+ * applying them to Task nodes needs server-authoritative node writes the hub does
+ * not yet have, so the normalized actions are reported and discarded (same as the
+ * previous hand-written route). The injection seam stays here so an authorized
+ * caller — or a future hub system identity — can wire apply without re-plumbing.
  */
 export function tasksFeature(
   identifiers: TaskIdentifierService,
@@ -71,6 +78,7 @@ export function tasksFeature(
       {
         path: '/tasks/github/webhook',
         secretRef: 'HUB_GITHUB_WEBHOOK_SECRET',
+        notConfiguredMessage: 'GitHub integration is not configured',
         verify: (rawBody, headers, secret) =>
           verifyWebhookSignature(secret, rawBody, headers['x-hub-signature-256']),
         normalize: (headers, payload) =>

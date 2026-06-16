@@ -93,6 +93,11 @@ describe('first-party features mount with preserved behaviour', () => {
     mountFeatures([tasksFeature(stubIdentifiers)], { ...baseDeps(app, {}), env: {} })
     const res = await app.request('/tasks/github/webhook', { method: 'POST', body: '{}' })
     expect(res.status).toBe(503)
+    // Preserve the original hand-written route's exact message/code.
+    expect(await res.json()).toEqual({
+      error: 'GitHub integration is not configured',
+      code: 'NOT_CONFIGURED'
+    })
   })
 
   it('accepts a correctly-signed github webhook via the declarative mount', async () => {
