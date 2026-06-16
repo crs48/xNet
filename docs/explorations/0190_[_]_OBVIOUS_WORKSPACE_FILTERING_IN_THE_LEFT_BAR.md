@@ -576,44 +576,48 @@ const space = useSpaces().getSpace(useWorkbench((s) => s.currentSpaceId))
 ## Implementation Checklist
 
 ### Phase 1 — Make the current scope unmistakable (the core ask)
-- [ ] New `ExplorerScopeBar` mounted at the **top** of `Explorer`, **outside** the
-  `{!filterActive && …}` gate ([Explorer.tsx](apps/web/src/workbench/views/Explorer.tsx))
-- [ ] `ScopeChip` with **active styling distinct from hover** (filled + ring + ✕),
-  fixing [ExplorerSpacesSection.tsx:166-168](apps/web/src/workbench/views/ExplorerSpacesSection.tsx)
-- [ ] `All` and `No workspace` scopes; `NO_SPACE` sentinel + `collectItems`
-  handles it ([Explorer.tsx:141-160](apps/web/src/workbench/views/Explorer.tsx))
-- [ ] Favorites-as-pills inline (cap ~4) + `More ▾` switcher menu (search) for
-  large-N, reading `useSpaces().spaces`
-- [ ] De-emphasize the old mid-panel Spaces section to *navigation/manage* only
-  (open home, create, invite) — scope lives in the bar now
-- [ ] Empty-under-scope state ("Nothing in «Space» yet — + New files here") (Q6)
+- [x] New `ExplorerScopeBar` mounted at the **top** of `Explorer`, **outside** the
+  `{!filterActive && …}` gate ([Explorer.tsx](apps/web/src/workbench/views/Explorer.tsx), [ExplorerScopeBar.tsx](apps/web/src/workbench/views/ExplorerScopeBar.tsx))
+- [x] `ScopeChip` with **active styling distinct from hover** — filled `bg-ink-1
+  text-surface-0` + ✕ (the codebase "selected" treatment), no longer the
+  hover-identical `bg-accent` of [ExplorerSpacesSection.tsx](apps/web/src/workbench/views/ExplorerSpacesSection.tsx)
+- [x] `All` and `No workspace` scopes; `NO_SPACE` sentinel + `matchesScope`
+  three-way in `collectItems` ([explorer-scope.ts](apps/web/src/workbench/views/explorer-scope.ts), [Explorer.tsx](apps/web/src/workbench/views/Explorer.tsx))
+- [x] Favorites-as-pills inline (cap 4, selected always kept visible) + `More`
+  searchable switcher menu for large-N, reading `useSpaces().spaces`
+- [x] De-emphasize the old mid-panel Spaces section to *navigation/manage* only
+  (open home, create, invite) — scope lives in the bar; redundant "All" removed
+- [x] Empty-under-scope state ("Nothing in «Space» yet" / "Nothing outside a
+  workspace") via a scope-aware `emptyMessage` on the list (Q6)
 
 ### Phase 2 — Propagate scope to the passive echoes
-- [ ] Prepend a clickable **Space crumb** to `TabBreadcrumb`; render it even when
+- [x] Prepend a clickable **Space crumb** to `TabBreadcrumb`; rendered even when
   the node has no folder ([TabBreadcrumb.tsx](apps/web/src/workbench/TabBreadcrumb.tsx), [EditorArea.tsx:229](apps/web/src/workbench/EditorArea.tsx))
-- [ ] `useNodeSpace(tab)` helper reusing the shared `useSpaces()` subscription (Q4)
-- [ ] Relabel **"+ New in «Space» ▾"** + add a target line to the create menu;
-  honest copy for dashboard/lab (Q8) ([Explorer.tsx:41-85, 299-307](apps/web/src/workbench/views/Explorer.tsx))
-- [ ] **StatusBar** left-zone scope badge, click → open Space home
-  ([StatusBar.tsx:73-78](apps/web/src/workbench/StatusBar.tsx)) (0180-deferred)
+- [x] Pure `nodeSpaceId(nodeId, nodes)` helper + `useBreadcrumb` hook reusing the
+  existing breadcrumb node query (no extra subscription) (Q4)
+- [x] Relabel **"+ New in «Space»"** + create-menu target line + honest
+  "Dashboards & Labs file after you move them" note (Q8) ([Explorer.tsx](apps/web/src/workbench/views/Explorer.tsx))
+- [x] **StatusBar** left-zone scope badge, click → open Space home; also shows
+  "no workspace" / "N workspaces" ([StatusBar.tsx](apps/web/src/workbench/StatusBar.tsx)) (0180-deferred)
 
 ### Phase 3 — Multi-select view filter (additive, view-only)
-- [ ] Add `spaceFilter: string[]` + `setSpaceFilter` to the store (B3); precedence
-  rules vs `currentSpaceId` (Q2)
-- [ ] Scope Bar gains multi-select (cmd/ctrl-click or a checklist in `More ▾`);
-  active filter renders as multiple removable chips
-- [ ] `collectItems` honors `spaceFilter` (∈ set) when non-empty; **creation still
-  targets the single primary scope** (or prompts when ambiguous)
-- [ ] "All teams"-style saved scope presets (optional, Linear-style)
+- [x] Add `spaceFilter: string[]` + `setSpaceFilter` / `applyScopeSelection` to the
+  store; `setCurrentSpace` clears the filter so the primary stays unambiguous (Q2)
+- [x] Scope Bar multi-select via ⌘/Ctrl-click (chips and `More` rows); active
+  filter renders as multiple removable chips + a "Clear filter" affordance
+- [x] `matchesScope` honors `spaceFilter` (∈ set) when non-empty; **creation still
+  targets the single primary `currentSpaceId`** ([explorer-scope.ts](apps/web/src/workbench/views/explorer-scope.ts))
+- [ ] "All teams"-style saved scope presets — **deferred** (optional, Linear-style)
 
 ### Phase 4 — Better left-bar filtering & sorting (the broader ask)
-- [ ] **Sort control** (Recent · A–Z · Type · Created) for the list — small `Sort ▾`
-  in the tools cluster
-- [ ] Combine scope + type + text into one coherent "active filters" chip row with
-  per-chip ✕ (so type+space+tag filters are all visible & removable together)
-- [ ] Optionally scope the **Folders** tree to the active Space (Q7) — decide the
-  folder↔space rule first
-- [ ] Persist sort + filter preferences per the existing `xnet:workbench:v1` store
+- [x] **Sort control** (Recent · A–Z · Type) for the list — `Sort` menu in the
+  tools cluster ([explorer-sort.ts](apps/web/src/workbench/views/explorer-sort.ts)); `Created` deferred (needs `createdAt` in the projection)
+- [ ] Combine scope + type + text into one "active filters" chip row — **deferred**
+  (scope bar + type pills stay visually grouped but separate for now)
+- [ ] Scope the **Folders** tree to the active Space — **deferred by decision**
+  (Q7: folders stay global; only the flat list + breadcrumb are space-aware)
+- [x] Persist sort + filter preferences in the `xnet:workbench:v1` store
+  (`explorerSort` + `spaceFilter` ride the existing persist)
 
 ## Validation Checklist
 
@@ -622,8 +626,9 @@ const space = useSpaces().getSpace(useWorkbench((s) => s.currentSpaceId))
   with the mouse away (Q10)
 - [ ] Selecting a type pill / typing a search no longer hides the scope indicator
   (Scope Bar stays mounted) — the [Explorer.tsx:253](apps/web/src/workbench/views/Explorer.tsx) gate no longer affects it
-- [ ] `All` shows every Space's items; `No workspace` shows only space-less items;
-  a specific Space shows only its items (`collectItems` three-way) (Q3)
+- [x] `All` shows every Space's items; `No workspace` shows only space-less items;
+  a specific Space shows only its items (`collectItems` three-way) (Q3) — proven by
+  `matchesScope` unit tests ([explorer-scope.test.ts](apps/web/src/workbench/views/explorer-scope.test.ts))
 - [ ] Opening any document shows `◇ Space › 📁 Folder › …` in the breadcrumb;
   a spaced-but-folderless node shows the Space crumb (no longer blank) (D1)
 - [ ] Clicking the Space crumb re-scopes the panel without navigating away (Q9)
@@ -632,13 +637,17 @@ const space = useSpaces().getSpace(useWorkbench((s) => s.currentSpaceId))
 - [ ] Dashboard/Lab creation copy is honest about deferred filing (Q8)
 - [ ] StatusBar shows the current Space; clicking opens its home
 - [ ] Empty-under-scope renders the guided empty state, not a bare "No items" (Q6)
-- [ ] (Phase 3) A 2-Space filter widens the view to X∪Y while "+ New" still files
-  into the single primary scope (no ambiguous creation) (Q2)
-- [ ] Persisted scope survives reload and is *obvious* on return (no "where did my
-  docs go?" — the loud bar answers it) (Q5)
+- [x] (Phase 3) A 2-Space filter widens the view to X∪Y while "+ New" still files
+  into the single primary scope (no ambiguous creation) (Q2) — proven by
+  `matchesScope` + `toggleScopeSelection` unit tests + `handleCreate` (`isRealSpace`)
+- [x] Persisted scope survives reload (rides the existing `xnet:workbench:v1`
+  persist, same mechanism as `currentSpaceId`) and the loud bar makes it obvious (Q5)
 - [ ] e2e (Playwright): scope → create-in-space → verify breadcrumb + statusbar →
-  clear → "No workspace" → create unspaced. (Same passkey-onboarding gate 0179/0180
-  hit headless; unit + typecheck stand in until a virtual-authenticator e2e runs.)
+  clear → "No workspace" → create unspaced. **Gated**: the authenticated workbench
+  sits behind passkey onboarding the preview harness can't satisfy headless (same
+  constraint 0179/0180 hit), and the worktree web preview needs a full
+  `turbo build --filter=./packages/*` first — so unit + typecheck + lint are the
+  standing verification, exactly as those explorations resolved it.
 
 ## References
 
