@@ -520,8 +520,12 @@ performance.getEntriesByType('resource').filter(e => e.name.includes('hub'))
       (`resolveConfiguredSignalingUrls` yields no production socket,
       [context.ts:65-70](../../packages/react/src/context.ts)). Production is
       unchanged. Resolved hub URL is logged at startup ([App.tsx:66-83](../../apps/web/src/App.tsx)).
-- [ ] **P3:** Add a connect timeout to `doConnect()` and assert reconnect
-      backoff is bounded/non-hot ([connection-manager.ts:189-253](../../packages/runtime/src/sync/connection-manager.ts)).
+- [x] **P3:** Add a connect timeout to `doConnect()` (default 10s, configurable,
+      0 to disable) that tears down a stalled half-open socket and backs off;
+      reconnect backoff is bounded (`reconnectDelay` + `maxReconnects`). Guarded
+      by two new tests (timeout fires → error → reconnect, abandoned socket can't
+      flip connected; healthy open doesn't trip the timeout)
+      ([connection-manager.ts](../../packages/runtime/src/sync/connection-manager.ts)).
 - [ ] **P4 (optional):** In `useNode`, apply local `storedContent` before/around
       the acquire await so the body never waits on the network ([useNode.ts:426-435](../../packages/react/src/hooks/useNode.ts)).
 - [ ] Consider lowering the 5 s subscription timeout (C2) only if P1 is deferred
