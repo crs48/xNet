@@ -753,6 +753,48 @@ export function OrganizeBar({ nodeId, schema }: { nodeId: string; schema: Schema
   value on *one* domain (CRM is the best candidate — most orphaned logic) before
   rolling across all four.
 
+## Implementation Status (wave 1 — branch `feat/cohesive-domain-uis`)
+
+This branch lands the **foundation + first wave** of the plan. Everything here
+is additive, typechecked, unit-tested, lint/prettier-clean, and the two new
+UI surfaces (finance reports, experiment conclusion/dates) were verified
+rendering in the browser.
+
+**Shipped:**
+- **Substrate (W1):** `schemaToFormFields` + `SchemaForm` in `@xnetjs/views`
+  (the write-direction counterpart of `schemaToGridFields`, reusing the shared
+  property editors) + unit tests.
+- **Uniform filing (W2):** `folder` relation added to Task, Contact,
+  Organization, Deal, Account, Transaction, Budget (every node can now be filed
+  like docs).
+- **Cross-domain links (W4):** `Deal.transactions` + `Transaction.deal`
+  (quote-to-cash), `Task.metric` + `Task.experiment` (complete-a-task ⇒ log an
+  observation).
+- **Space editing (W2):** manager-only Edit panel in `SpaceHomeView` for
+  name/icon/color/description (fixes the "janky workspace editing" complaint).
+- **Experiments (W3):** `conclusion`, `startDate`, `endDate` surfaced in
+  `ExperimentDetail`; per-day observation notes in `TodayPanel` via
+  `useHabits.setNote`.
+- **Tasks (W3):** milestone picker in the task inline editor (Milestones had no
+  UI at all before).
+- **Finance (W3):** a Ledger/Reports toggle in `FinanceView` exposing the
+  balance sheet, income statement, and spending-by-category that `@xnetjs/ledger`
+  already computed.
+
+**Deferred to follow-up waves (with rationale):**
+- `NodeInspector` / `NodePeek` / `OrganizeBar` (W1) — the universal detail shell
+  is the keystone but needs deep workbench/ContextPanel integration best done as
+  its own reviewable PR on top of `SchemaForm`.
+- Extending `ShareDocType` to CRM/finance/task nodes (W2) — blocked on a generic
+  per-node *claim route*; without it `docRouteFor` falls back to `/doc/$docId`
+  and renders the wrong surface. Tracked with the deferred "generic node route".
+- Explorer filing for tasks/CRM/finance (W2) — schema is ready (folder added);
+  the explorer data layer + drag wiring is a follow-up.
+- CRM forecast lanes / dedup-merge / vCard / line-items / `DealContactRole`
+  editor (W3), reconciliation workflow + account tree (W3), project detail +
+  milestone CRUD + pivoted board + Gantt (W3), correlation-widget embed +
+  observation source (W3), revenue rollup + universal Activity timeline (W4).
+
 ## Implementation Checklist
 
 ### Workstream 1 — Substrate
