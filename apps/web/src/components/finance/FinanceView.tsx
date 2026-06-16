@@ -11,10 +11,13 @@ import {
   accountRegister,
   netWorth,
   incomeStatement,
+  balanceSheet,
+  spendingByCategory,
   budgetStatuses,
   monthRange,
   formatAmount,
   type LedgerAccount,
+  type LedgerTransaction,
   type AccountClass
 } from '@xnetjs/ledger'
 import { useMutate, useQuery } from '@xnetjs/react'
@@ -76,6 +79,7 @@ export function FinanceView(): JSX.Element {
 
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [mode, setMode] = useState<'ledger' | 'reports'>('ledger')
 
   const accounts = useMemo(
     () => toLedgerAccounts((accountRows ?? []) as unknown as Row[]),
@@ -147,13 +151,29 @@ export function FinanceView(): JSX.Element {
           <Wallet size={14} strokeWidth={1.5} />
           Finance
         </span>
-        <button
-          type="button"
-          onClick={() => setShowImport((v) => !v)}
-          className="rounded-sm px-2 py-1 text-xs text-ink-3 hover:bg-accent hover:text-ink-1"
-        >
-          {showImport ? 'Close import' : 'Import statement'}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-hairline p-0.5">
+            {(['ledger', 'reports'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`rounded-sm px-2 py-0.5 text-xs capitalize transition-colors ${
+                  mode === m ? 'bg-accent text-ink-1' : 'text-ink-3 hover:text-ink-1'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowImport((v) => !v)}
+            className="rounded-sm px-2 py-1 text-xs text-ink-3 hover:bg-accent hover:text-ink-1"
+          >
+            {showImport ? 'Close import' : 'Import statement'}
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-3 gap-2 px-4 py-3">
@@ -212,52 +232,67 @@ export function FinanceView(): JSX.Element {
           })}
         </aside>
 
-        {/* Register + entry + budgets */}
+        {/* Register + entry + budgets, or financial reports */}
         <section className="min-h-0 overflow-y-auto px-4 py-3">
-          <div className="mb-4 grid grid-cols-[1fr_18rem] gap-4">
-            <RegisterPanel
-              selected={selected}
-              accounts={postable}
+          {mode === 'reports' && (
+            <ReportsPanel
+              accounts={accounts}
               transactions={transactions}
               currency={currency}
+              period={period}
             />
-            <div className="flex flex-col gap-3">
-              <div className="text-[10px] uppercase tracking-wide text-ink-3">
-                Add a transaction
+          )}
+          {mode === 'ledger' && (
+            <>
+              <div className="mb-4 grid grid-cols-[1fr_18rem] gap-4">
+                <RegisterPanel
+                  selected={selected}
+                  accounts={postable}
+                  transactions={transactions}
+                  currency={currency}
+                />
+                <div className="flex flex-col gap-3">
+                  <div className="text-[10px] uppercase tracking-wide text-ink-3">
+                    Add a transaction
+                  </div>
+                  <TransactionForm accounts={postable} onDone={() => undefined} />
+                </div>
               </div>
-              <TransactionForm accounts={postable} onDone={() => undefined} />
-            </div>
-          </div>
 
-          {budgetRows2.length > 0 && (
-            <div className="mb-4">
-              <div className="mb-2 text-[10px] uppercase tracking-wide text-ink-3">
-                Budgets (this month)
-              </div>
-              <ul className="flex flex-col gap-1.5">
-                {budgetRows2.map((b) => {
-                  const acct = accounts.find((a) => a.id === b.budget.account)
-                  const pct = Math.min(100, Math.round(b.ratio * 100))
-                  return (
-                    <li key={b.budget.id} className="rounded-sm border border-hairline px-3 py-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-ink-2">{acct?.name ?? 'Account'}</span>
-                        <span className={b.over ? 'text-red-500' : 'text-ink-3'}>
-                          {formatAmount(b.spent, b.budget.currency)} /{' '}
-                          {formatAmount(b.budget.limit, b.budget.currency)}
-                        </span>
-                      </div>
-                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface-2">
-                        <div
-                          className={`h-full ${b.over ? 'bg-red-500' : 'bg-ink-2'}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
+              {budgetRows2.length > 0 && (
+                <div className="mb-4">
+                  <div className="mb-2 text-[10px] uppercase tracking-wide text-ink-3">
+                    Budgets (this month)
+                  </div>
+                  <ul className="flex flex-col gap-1.5">
+                    {budgetRows2.map((b) => {
+                      const acct = accounts.find((a) => a.id === b.budget.account)
+                      const pct = Math.min(100, Math.round(b.ratio * 100))
+                      return (
+                        <li
+                          key={b.budget.id}
+                          className="rounded-sm border border-hairline px-3 py-1.5"
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-ink-2">{acct?.name ?? 'Account'}</span>
+                            <span className={b.over ? 'text-red-500' : 'text-ink-3'}>
+                              {formatAmount(b.spent, b.budget.currency)} /{' '}
+                              {formatAmount(b.budget.limit, b.budget.currency)}
+                            </span>
+                          </div>
+                          <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface-2">
+                            <div
+                              className={`h-full ${b.over ? 'bg-red-500' : 'bg-ink-2'}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
@@ -327,6 +362,152 @@ function RegisterPanel({
           </tbody>
         </table>
       )}
+    </div>
+  )
+}
+
+function ReportRow({
+  label,
+  minor,
+  currency,
+  strong,
+  indent
+}: {
+  label: string
+  minor: number
+  currency: string
+  strong?: boolean
+  indent?: boolean
+}): JSX.Element {
+  return (
+    <div className={`flex items-center justify-between py-0.5 text-xs ${indent ? 'pl-3' : ''}`}>
+      <span className={strong ? 'font-medium text-ink-1' : 'text-ink-2'}>{label}</span>
+      <Money minor={minor} currency={currency} />
+    </div>
+  )
+}
+
+function ReportSection({
+  title,
+  children
+}: {
+  title: string
+  children: React.ReactNode
+}): JSX.Element {
+  return (
+    <div className="rounded-md border border-hairline p-3">
+      <div className="mb-2 text-[10px] uppercase tracking-wide text-ink-3">{title}</div>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Financial reports (exploration 0190) — surfaces the balance sheet, income
+ * statement, and spending breakdown that @xnetjs/ledger already computed but
+ * the UI never showed.
+ */
+function ReportsPanel({
+  accounts,
+  transactions,
+  currency,
+  period
+}: {
+  accounts: LedgerAccount[]
+  transactions: LedgerTransaction[]
+  currency: string
+  period: { start?: number; end?: number }
+}): JSX.Element {
+  const sheet = useMemo(() => balanceSheet(accounts, transactions), [accounts, transactions])
+  const stmt = useMemo(
+    () => incomeStatement(accounts, transactions, period),
+    [accounts, transactions, period]
+  )
+  const spending = useMemo(
+    () => spendingByCategory(accounts, transactions, currency, period),
+    [accounts, transactions, currency, period]
+  )
+  const nameOf = (id: string): string => accounts.find((a) => a.id === id)?.name ?? 'Account'
+  const get = (m: Map<string, number>): number => m.get(currency) ?? 0
+  const totalSpend = spending.reduce((sum, slice) => sum + slice.amount, 0)
+  const incomeAccounts = stmt.byAccount.filter((a) => a.class === 'income')
+  const expenseAccounts = stmt.byAccount.filter((a) => a.class === 'expense')
+
+  return (
+    <div className="flex flex-col gap-4">
+      <ReportSection title="Balance sheet (today)">
+        <ReportRow label="Assets" minor={get(sheet.assets)} currency={currency} strong />
+        <ReportRow label="Liabilities" minor={get(sheet.liabilities)} currency={currency} strong />
+        <ReportRow label="Equity" minor={get(sheet.equity)} currency={currency} />
+        <ReportRow
+          label="Retained earnings"
+          minor={get(sheet.retainedEarnings)}
+          currency={currency}
+        />
+        <div className="mt-1 border-t border-hairline pt-1">
+          <ReportRow
+            label="Liabilities + equity"
+            minor={get(sheet.liabilitiesAndEquity)}
+            currency={currency}
+            strong
+          />
+        </div>
+        <div className={`mt-1 text-[10px] ${sheet.balanced ? 'text-emerald-500' : 'text-red-500'}`}>
+          {sheet.balanced ? '✓ Balanced' : '⚠ Out of balance'}
+        </div>
+      </ReportSection>
+
+      <ReportSection title="Income statement (this month)">
+        {incomeAccounts.map((a) => (
+          <ReportRow
+            key={a.accountId}
+            label={nameOf(a.accountId)}
+            minor={a.amount}
+            currency={a.currency}
+            indent
+          />
+        ))}
+        <ReportRow label="Total income" minor={get(stmt.income)} currency={currency} strong />
+        {expenseAccounts.map((a) => (
+          <ReportRow
+            key={a.accountId}
+            label={nameOf(a.accountId)}
+            minor={a.amount}
+            currency={a.currency}
+            indent
+          />
+        ))}
+        <ReportRow label="Total expense" minor={get(stmt.expense)} currency={currency} strong />
+        <div className="mt-1 border-t border-hairline pt-1">
+          <ReportRow label="Net" minor={get(stmt.net)} currency={currency} strong />
+        </div>
+      </ReportSection>
+
+      <ReportSection title="Spending by category (this month)">
+        {spending.length === 0 ? (
+          <p className="text-xs text-ink-3">No spending recorded this month.</p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {spending.map((slice) => {
+              const pct = totalSpend > 0 ? Math.round((slice.amount / totalSpend) * 100) : 0
+              return (
+                <li key={slice.accountId}>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-ink-2">{nameOf(slice.accountId)}</span>
+                    <span className="tabular-nums text-ink-1">
+                      {formatAmount(slice.amount, slice.currency)}
+                      <span className="ml-1 text-ink-3">{pct}%</span>
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface-2">
+                    <div className="h-full bg-ink-2" style={{ width: `${pct}%` }} />
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </ReportSection>
     </div>
   )
 }

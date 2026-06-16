@@ -58,6 +58,9 @@ export const LINE_ITEM_SCHEMA_IRI = 'xnet://xnet.fyi/LineItem@1.0.0' as const
 
 const SPACE_TARGET = 'xnet://xnet.fyi/Space@1.0.0' as const
 const TAG_TARGET = 'xnet://xnet.fyi/Tag@1.0.0' as const
+const FOLDER_TARGET = 'xnet://xnet.fyi/Folder@1.0.0' as const
+/** Ledger transaction — referenced by IRI so `data` keeps no extra dep. */
+const TRANSACTION_TARGET = 'xnet://xnet.fyi/Transaction@1.0.0' as const
 /** A `@xnetjs/social` actor — referenced as a string IRI so `data` never
  * depends on `social` (social depends on data, not the reverse). */
 const SOCIAL_ACTOR_TARGET = 'xnet://xnet.social/SocialActor@1.0.0' as const
@@ -74,6 +77,8 @@ const VISIBILITY_OPTIONS = [
 
 const visibility = () => select({ options: VISIBILITY_OPTIONS, default: 'inherit' })
 const space = () => relation({ target: SPACE_TARGET })
+/** Uniform folder filing (exploration 0190) — empty = Unfiled. */
+const folder = () => relation({ target: FOLDER_TARGET })
 
 export type CrmVisibility = (typeof VISIBILITY_OPTIONS)[number]['id']
 
@@ -121,6 +126,7 @@ export const OrganizationSchema = defineSchema({
     tags: relation({ target: TAG_TARGET, multiple: true }),
     /** Erasure-by-design: set when PII is anonymized (GDPR Art. 17). */
     piiErasedAt: date({}),
+    folder: folder(),
     space: space(),
     visibility: visibility()
   },
@@ -186,6 +192,7 @@ export const ContactSchema = defineSchema({
     introducedBy: relation({ target: CONTACT_SCHEMA_IRI }),
     tags: relation({ target: TAG_TARGET, multiple: true }),
     piiErasedAt: date({}),
+    folder: folder(),
     space: space(),
     visibility: visibility()
   },
@@ -315,7 +322,14 @@ export const DealSchema = defineSchema({
     wonAt: date({}),
     lostAt: date({}),
     lostReason: text({ maxLength: 500 }),
+    /**
+     * Ledger transactions that realize this deal's revenue (quote-to-cash
+     * bridge, exploration 0190). A won deal can link the booked income so
+     * pipeline and books reconcile.
+     */
+    transactions: relation({ target: TRANSACTION_TARGET, multiple: true }),
     tags: relation({ target: TAG_TARGET, multiple: true }),
+    folder: folder(),
     space: space(),
     visibility: visibility()
   },

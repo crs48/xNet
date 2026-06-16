@@ -16,7 +16,13 @@
  */
 import type { JSX } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { TaskSchema, isCompletedTaskStatus, type DID, type TaskStatusId } from '@xnetjs/data'
+import {
+  MilestoneSchema,
+  TaskSchema,
+  isCompletedTaskStatus,
+  type DID,
+  type TaskStatusId
+} from '@xnetjs/data'
 import {
   addTaskAssigneeToDoc,
   removeTaskAssigneeFromDoc,
@@ -24,9 +30,9 @@ import {
   type Editor,
   type TaskMentionSuggestion
 } from '@xnetjs/editor/react'
-import { useMutate } from '@xnetjs/react'
+import { useMutate, useQuery } from '@xnetjs/react'
 import { TaskDetailForm, type TaskTagOption } from '@xnetjs/ui'
-import { Pin } from 'lucide-react'
+import { Flag, Pin } from 'lucide-react'
 import { useMemo } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
@@ -69,6 +75,55 @@ function pickMetaHandler<T>(
 ): T | undefined {
   if (docEditable) return docHandler
   return host.hostOwned ? undefined : nodeHandler
+}
+
+/**
+ * Milestone picker (exploration 0190) — Milestones previously had no UI at all,
+ * even though Task.milestone existed in the schema. Lists milestones scoped to
+ * the task's project (or all, when the task has no project) and writes the
+ * single milestone the task targets.
+ */
+function MilestonePicker({
+  task,
+  onChange
+}: {
+  task: TaskNode
+  onChange: (milestoneId: string) => void
+}): JSX.Element | null {
+  const projectId = typeof task.project === 'string' ? task.project : ''
+  const { data } = useQuery(MilestoneSchema, { limit: 200 })
+  const milestones = useMemo(() => {
+    const all = (data ?? []) as Array<{ id: string; name?: string; project?: string }>
+    const scoped = projectId ? all.filter((m) => m.project === projectId) : all
+    return scoped.map((m) => ({ id: m.id, name: m.name?.trim() || 'Untitled milestone' }))
+  }, [data, projectId])
+  const current = typeof task.milestone === 'string' ? task.milestone : ''
+
+  // Nothing to pick and nothing set → don't clutter the footer.
+  if (milestones.length === 0 && !current) return null
+
+  return (
+    <label className="flex items-center gap-1 text-xs text-ink-3">
+      <Flag size={11} strokeWidth={1.5} />
+      <select
+        aria-label="Milestone"
+        value={current}
+        onChange={(e) => onChange(e.target.value)}
+        className="max-w-[140px] truncate rounded-sm border border-hairline bg-transparent px-1 py-0.5 text-xs text-ink-2 outline-none focus:border-ink-3"
+      >
+        <option value="">No milestone</option>
+        {/* Keep a stale selection visible even if it falls outside the scope. */}
+        {current && !milestones.some((m) => m.id === current) && (
+          <option value={current}>Current milestone</option>
+        )}
+        {milestones.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
 }
 
 function PinToggle({ taskId }: { taskId: string }): JSX.Element {
@@ -188,7 +243,17 @@ export function TaskInlineEditor({
       onTagsChange={(taskId, tagIds) => void update(TaskSchema, taskId, { tags: tagIds })}
       onCreateTag={async (name) => (await getOrCreateTag(name))?.id ?? null}
       onOpenSource={host.sourceLabel ? handleOpenSource : undefined}
-      footerExtra={<PinToggle taskId={task.id} />}
+      footerExtra={
+        <div className="flex items-center gap-3">
+          <MilestonePicker
+            task={task}
+            onChange={(milestoneId) =>
+              void update(TaskSchema, task.id, { milestone: milestoneId || undefined })
+            }
+          />
+          <PinToggle taskId={task.id} />
+        </div>
+      }
     />
   )
 }
