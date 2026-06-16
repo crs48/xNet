@@ -41,11 +41,7 @@
       "id": "crm",
       "label": "CRM",
       "path": "/crm",
-      "globs": [
-        "apps/web/src/routes/crm.tsx",
-        "apps/web/src/components/crm/**",
-        "packages/crm/**"
-      ]
+      "globs": ["apps/web/src/routes/crm.tsx", "apps/web/src/components/crm/**", "packages/crm/**"]
     },
     {
       "id": "finance",
@@ -78,6 +74,12 @@
       "label": "Requests",
       "path": "/requests",
       "globs": ["apps/web/src/routes/requests.tsx"]
+    },
+    {
+      "id": "social-import",
+      "label": "Social import",
+      "path": "/social-import",
+      "globs": ["apps/web/src/routes/social-import.tsx"]
     }
   ],
   "flows": [

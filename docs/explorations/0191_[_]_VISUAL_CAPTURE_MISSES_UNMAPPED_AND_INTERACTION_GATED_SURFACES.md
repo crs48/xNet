@@ -436,7 +436,8 @@ test('CRM component change maps to the /crm route, not just home', () => {
 
 - [x] Add `crm`, `finance`, `analytics` route entries to
       [`manifests.json`](scripts/visuals/manifests.json) with route‑file +
-      `components/<domain>/**` + package globs.
+      `components/<domain>/**` + package globs. (The drift‑guard below also
+      surfaced `social-import` as a real unmapped surface — mapped it too.)
 - [x] Narrow the `home` route globs to shell files only (drop
       `apps/web/src/components/**` and `packages/ui/**`); broaden the fallback
       `webUiPattern` in [`capture-set.mjs`](scripts/visuals/lib/capture-set.mjs)
@@ -447,8 +448,12 @@ test('CRM component change maps to the /crm route, not just home', () => {
       not needed: [`CrmPipeline.tsx:155`](apps/web/src/components/crm/CrmPipeline.tsx)
       already exposes `aria-label="Deal details"`, and its `opacity-0` is still
       clickable in Playwright, so the flow needs no app source change.
-- [ ] Add the **drift‑guard** test (every singleton route mapped or exempt).
-- [ ] Add the **regression** test (CRM change → `/crm` route + `crm-quote` flow).
+- [x] Add the **drift‑guard** test (every singleton route mapped or exempt) —
+      [`manifest-coverage.test.mjs`](scripts/visuals/lib/manifest-coverage.test.mjs);
+      also guards against broad‑`home`‑glob re‑introduction and flow/runner skew.
+- [x] Add the **regression** test (CRM change → `/crm` route + `crm-quote` flow) —
+      in both [`capture-set.test.mjs`](scripts/visuals/lib/capture-set.test.mjs)
+      (pure) and `manifest-coverage.test.mjs` (against the real manifest).
 - [ ] Update [`scripts/visuals/README.md`](scripts/visuals/README.md) "Tuning"
       to note: *new workbench surface ⇒ add a route entry (and a flow if the UI
       is interaction‑gated); the drift test enforces it.*
