@@ -1,6 +1,7 @@
 import type { HubFeature } from './types'
 import type { TaskIdentifierService } from '../services/task-identifiers'
 import type { MiddlewareHandler } from 'hono'
+import { createHmac } from 'node:crypto'
 import { Hono } from 'hono'
 import { describe, expect, it } from 'vitest'
 import { isEnvKeyAllowed, scopedEnv, type Env } from './broker'
@@ -88,12 +89,27 @@ describe('first-party features mount with preserved behaviour', () => {
 
   it('github webhook answers 503 when the secret is not granted', async () => {
     const app = new Hono()
-    // HUB_GITHUB_WEBHOOK_SECRET is present in env but the broker scopes it away
-    // from… well, tasks declares it, so it IS granted; with no secret value the
-    // route reports not-configured.
+    // No HUB_GITHUB_WEBHOOK_SECRET in env → the declarative webhook reports 503.
     mountFeatures([tasksFeature(stubIdentifiers)], { ...baseDeps(app, {}), env: {} })
     const res = await app.request('/tasks/github/webhook', { method: 'POST', body: '{}' })
     expect(res.status).toBe(503)
+  })
+
+  it('accepts a correctly-signed github webhook via the declarative mount', async () => {
+    const app = new Hono()
+    mountFeatures([tasksFeature(stubIdentifiers)], {
+      ...baseDeps(app, {}),
+      env: { HUB_GITHUB_WEBHOOK_SECRET: 'whsec' }
+    })
+    const body = JSON.stringify({ action: 'opened' })
+    const sig = `sha256=${createHmac('sha256', 'whsec').update(body).digest('hex')}`
+    const res = await app.request('/tasks/github/webhook', {
+      method: 'POST',
+      body,
+      headers: { 'x-hub-signature-256': sig, 'x-github-event': 'ping' }
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ ok: true }) // 'ping' → 0 actions, still 200
   })
 
   it('mounts unfurl without throwing', () => {

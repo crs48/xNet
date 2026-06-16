@@ -13,6 +13,7 @@
  */
 
 import type { Env } from './broker'
+import type { DeclarativeWebhook } from './webhooks'
 import type { Hono, MiddlewareHandler } from 'hono'
 
 /** Shared dependencies handed to every feature's `mount`. */
@@ -39,6 +40,11 @@ export interface HubFeature {
    * calling `mount`, so the feature can't read another feature's secrets.
    */
   secrets?: string[]
-  /** Mount the feature's routes onto `deps.app`. */
-  mount(deps: HubFeatureDeps): void
+  /**
+   * Declarative signature-verified webhooks (0189 "v2" shape) — mounted by the
+   * registry without the feature hand-writing a route.
+   */
+  webhooks?: DeclarativeWebhook[]
+  /** Mount the feature's routes onto `deps.app` (optional for webhook-only features). */
+  mount?(deps: HubFeatureDeps): void
 }
