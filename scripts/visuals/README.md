@@ -18,21 +18,27 @@ git diff ──▶ changed-capture-set.mjs ──▶ capture.mjs ──▶ diff.
 Driven by `.github/workflows/visual-capture.yml`:
 
 - **On PRs** (`capture` job): compute the changed set, screenshot it, diff
-  against the `main` baseline, publish to `pr/<N>/visuals/` on gh-pages, and
-  upsert a `<!-- xnet-visuals -->` comment. Path-filtered to UI changes;
-  `continue-on-error` throughout; never a required check.
+  against the `main` baseline, publish to the durable top-level
+  `visuals/pr/<N>/` namespace on gh-pages, and upsert a `<!-- xnet-visuals -->`
+  comment. Path-filtered to UI changes; `continue-on-error` throughout; never a
+  required check.
 - **On push to `main`** (`baseline` job): capture _every_ story + route and
   publish to `visuals-baseline/` so PRs have something to diff against.
 
-Cleanup is automatic: `remove-pr-preview.yml` deletes the whole `pr/<N>` tree
-(app preview + visuals) when the PR closes.
+Cleanup (exploration 0189): PR visuals live **outside** the `pr/<N>` preview
+tree, so `remove-pr-preview.yml` (which deletes `pr/<N>` on PR close) no longer
+takes them with it — merged-PR galleries keep rendering. Instead they are reaped
+on **age**: `gh-pages-maintenance.yml` removes `visuals/pr/<N>` for PRs that
+merged/closed more than `VISUALS_RETENTION_DAYS` (default 30) ago and rewrites
+the corresponding sticky comment to a tombstone so no broken image survives.
 
 > **gh-pages layout coupling.** The production site deploy (`deploy-site.yml`)
 > rsyncs the gh-pages **root** with `--delete`, so any top-level dir it doesn't
-> `exclude` is wiped on every push to `main`. `visuals-baseline/` is therefore
-> listed in that workflow's `exclude` (alongside `pr` and `branch`) — without it,
-> the baseline disappears and PR diffs degrade to all-"new". If you rename the
-> baseline path, update the exclude list too.
+> `exclude` is wiped on every push to `main`. Both `visuals-baseline/` (the diff
+> baseline) and `visuals/` (durable per-PR captures) are therefore listed in that
+> workflow's `exclude` (alongside `pr` and `branch`) — without them, they
+> disappear and PR galleries break. If you rename either path, update the exclude
+> list (and the `capture`-job publish `target` / `BASE_URL`) too.
 
 ## Scripts
 

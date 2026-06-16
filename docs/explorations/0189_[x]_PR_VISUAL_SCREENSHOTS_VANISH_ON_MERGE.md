@@ -450,20 +450,20 @@ done
 
 ## Implementation Checklist
 
-- [ ] `visual-capture.yml`: change capture-job publish `target` to
+- [x] `visual-capture.yml`: change capture-job publish `target` to
   `visuals/pr/<N>` and the comment `BASE_URL` to `https://xnet.fyi/visuals/pr/<N>`.
-- [ ] `deploy-site.yml`: add `visuals` to the `exclude:` list.
-- [ ] `scripts/visuals/README.md`: update the layout/cleanup section to reflect
+- [x] `deploy-site.yml`: add `visuals` to the `exclude:` list.
+- [x] `scripts/visuals/README.md`: update the layout/cleanup section to reflect
   that visuals now live in a durable top-level `visuals/` dir (and update the
   gh-pages-layout-coupling warning to list `visuals` too).
-- [ ] Confirm `remove-pr-preview.yml` needs **no** change (visuals no longer
+- [x] Confirm `remove-pr-preview.yml` needs **no** change (visuals no longer
   under `pr/<N>`), and that the per-PR sweep in `gh-pages-maintenance.yml` no
-  longer touches them.
-- [ ] Stage 2: add age-based retention for `visuals/pr/<N>` to
-  `gh-pages-maintenance.yml`, removing dirs for PRs merged > N days ago.
-- [ ] Stage 2: when retention (or the close hook) removes a PR's visuals, rewrite
-  its `<!-- xnet-visuals -->` comment to a tombstone (reuse the upsert/find
-  logic already in the workflows).
+  longer touches them. (The sweep only enumerates the `pr` and `branch` trees.)
+- [x] Stage 2: add age-based retention for `visuals/pr/<N>` to
+  `gh-pages-maintenance.yml`, removing dirs for PRs merged > `VISUALS_RETENTION_DAYS`
+  (default 30) days ago.
+- [x] Stage 2: when retention removes a PR's visuals, rewrite its
+  `<!-- xnet-visuals -->` comment to a tombstone (new github-script step).
 - [ ] Optional: one-shot `gh` script to tombstone the dead visuals comments on
   #94–103.
 - [ ] Optional follow-up: add a `?v=<run_id>` cache-bust suffix to image URLs in
