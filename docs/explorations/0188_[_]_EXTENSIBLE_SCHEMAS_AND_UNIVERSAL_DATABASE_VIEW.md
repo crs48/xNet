@@ -606,10 +606,13 @@ const members = await Promise.all(
   - [x] Add `SchemaExtensionSchema` + an `ExtensionField` (reuse
         `DatabaseField`) targeting a `schemaId`.
         → `packages/data/src/schema/schemas/schema-extension.ts`
-  - [ ] Implement `buildEffectiveSchema(core, exts)` and wire it into the
-        registry's `remoteResolver` alongside the database resolver.
-        → `buildEffectiveSchema` done
-        (`packages/data/src/schema/effective-schema.ts`); resolver wiring next.
+  - [x] Implement `buildEffectiveSchema(core, exts)` and wire it into schema
+        resolution alongside the database resolver.
+        → `buildEffectiveSchema` (`effective-schema.ts`) + `resolveEffectiveSchema`
+        / `loadExtensionFields` (`extension-resolver.ts`). NOTE: built-ins
+        short-circuit the registry's `remoteResolver` and effective schemas are
+        dynamic, so composition happens **reactively at read time**, not cached
+        in the registry. Tests prove built-ins + DB schemas both compose.
   - [x] Reserve the `ext:<authority>/<field>` namespace; update `validate()` to
         allow-list it and to flag schema-defined keys `readonly`.
         → `packages/data/src/schema/extension.ts` (`ext:` namespace),
@@ -622,7 +625,10 @@ const members = await Promise.all(
         columns); cell *values* stay editable.
   - [ ] Grid UI: "+ Add field" on a typed schema creates an `ExtensionField`;
         render core columns locked, `ext:*` columns editable.
-  - [ ] Push overlay keys through query pushdown for `where`/`orderBy`.
+  - [x] Push overlay keys through query pushdown for `where`/`orderBy`.
+        → No new code needed: overlay keys are ordinary node properties, so the
+        existing `NodeQueryDescriptor.where` path handles them. Proven by
+        `extension-resolver.test.ts` ("filterable through the standard where path").
 - [ ] **Layer 3 — Sidecar extensions**
   - [ ] Document/scaffold the join-node pattern (deterministic
         `ext:<authority>:<targetId>` id) with its own `authorization`.

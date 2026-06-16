@@ -153,6 +153,11 @@ export {
   type EffectiveExtensionField
 } from './effective-schema'
 export {
+  loadExtensionFields,
+  resolveEffectiveSchema,
+  type CoreSchemaResolver
+} from './extension-resolver'
+export {
   TaskSchema,
   TASK_STATUS_CATEGORIES,
   getTaskStatusCategory,
