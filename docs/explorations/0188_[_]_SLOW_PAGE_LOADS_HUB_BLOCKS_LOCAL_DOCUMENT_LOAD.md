@@ -504,11 +504,17 @@ performance.getEntriesByType('resource').filter(e => e.name.includes('hub'))
 
 ## Implementation Checklist
 
-- [ ] **P1:** Change `SyncManager.acquire()` to return the local doc without
+- [x] **P1:** Change `SyncManager.acquire()` to return the local doc without
       `await`ing `joinNodeRoom`; join in the background and send `sync-step1`
-      from the confirmation continuation ([sync-manager.ts:1019-1045](../../packages/runtime/src/sync/sync-manager.ts)).
-- [ ] **P1:** Verify the legacy `useNode` SyncManager branch and `WorkerBridge`
-      path inherit the non-blocking behavior ([useNode.ts:441-453](../../packages/react/src/hooks/useNode.ts), [worker-bridge.ts:386-410](../../packages/data-bridge/src/worker-bridge.ts)).
+      from the confirmation continuation ([sync-manager.ts:1026-1055](../../packages/runtime/src/sync/sync-manager.ts)).
+      `start()`'s tracked-room joins were also made fire-and-forget so startup
+      can't hang on a slow hub. Guarded by a new test: *"returns the local doc
+      without blocking on the hub subscription (0188)"*.
+- [x] **P1:** Verify the legacy `useNode` SyncManager branch and `WorkerBridge`
+      path inherit the non-blocking behavior — the legacy branch calls the same
+      `syncManager.acquire()`; the worker host loads doc content from storage
+      directly ([data-worker-host.ts:412-420](../../packages/data-bridge/src/worker/data-worker-host.ts))
+      and never blocked on a room join, so both paths are now local-first.
 - [ ] **P2:** Default `VITE_HUB_URL` to empty/local in dev; require explicit
       opt-in for the production hub ([App.tsx:67](../../apps/web/src/App.tsx)).
       Log the resolved hub URL at startup.
