@@ -767,7 +767,7 @@ export function OrganizeBar({ nodeId, schema }: { nodeId: string; schema: Schema
 - [x] Add `folder` relation to Task, Contact, Organization, Deal, Account, Transaction, Budget.
 - [ ] Add those types to `explorer-items.ts` so they can be filed/dragged.
 - [ ] Extend `ShareDocType` + hub endpoints to task/contact/organization/deal/account/project/experiment.
-- [ ] Build the Space editor (icon/color/description via `updateSpace`).
+- [x] Build the Space editor (icon/color/description via `updateSpace`).
 - [ ] Build the Space content browser (everything `space === id`, grouped by type).
 - [ ] Add inline tag picker to `NodeInspector` and create flows.
 - [ ] Document the space-vs-folder-vs-tag mental model.
