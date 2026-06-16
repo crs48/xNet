@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { fakeAgentRunner } from './agent'
 import { FakeCommandRunner, NodeCommandRunner, cmd } from './command-runner'
-import { openPullRequest, runAgentTask } from './dev-loop'
+import { openPullRequest, publishPluginRepo, runAgentTask } from './dev-loop'
 import { Git } from './git'
 
 describe('runAgentTask (real temp repo)', () => {
@@ -127,6 +127,47 @@ describe('openPullRequest', () => {
     ])
     await expect(openPullRequest(runner, '/tmp/wt', 'agent/XN-9')).rejects.toThrow(
       /git push failed/
+    )
+  })
+})
+
+describe('publishPluginRepo', () => {
+  it('creates a GitHub repo from the plugin dir and returns its URL', async () => {
+    const runner = new FakeCommandRunner([
+      {
+        match: cmd('gh', ['repo', 'create']),
+        result: { stdout: 'https://github.com/alice/xnet-plugin-kanban\n' }
+      }
+    ])
+    const { repoUrl } = await publishPluginRepo(runner, '/tmp/plugin', {
+      repo: 'alice/xnet-plugin-kanban'
+    })
+    expect(repoUrl).toBe('https://github.com/alice/xnet-plugin-kanban')
+    const gh = runner.calls.find((c) => c.command === 'gh')
+    expect(gh?.args).toEqual([
+      'repo',
+      'create',
+      'alice/xnet-plugin-kanban',
+      '--public',
+      '--source=.',
+      '--remote=origin',
+      '--push'
+    ])
+    expect(gh?.cwd).toBe('/tmp/plugin')
+  })
+
+  it('honours private visibility and throws on failure', async () => {
+    const ok = new FakeCommandRunner([
+      { match: cmd('gh', ['repo', 'create']), result: { stdout: 'https://github.com/a/b\n' } }
+    ])
+    await publishPluginRepo(ok, '/tmp/p', { repo: 'a/b', visibility: 'private' })
+    expect(ok.calls[0].args).toContain('--private')
+
+    const fail = new FakeCommandRunner([
+      { match: cmd('gh', ['repo', 'create']), result: { code: 1, stderr: 'name taken' } }
+    ])
+    await expect(publishPluginRepo(fail, '/tmp/p', { repo: 'a/b' })).rejects.toThrow(
+      /gh repo create failed/
     )
   })
 })

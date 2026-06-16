@@ -63,11 +63,14 @@ if (result.ok) {
 
 ## What this is / isn't
 
-This is the **pure orchestration spine**. The host wiring it composes into —
-the Electron bridge daemon that exposes the user's CLI at `:31416`, the AI
-terminal UI, the WebContainers (web) and remote-sandbox (mobile/managed) tiers,
-and the Projects/Tasks board — are the later phases of exploration 0190 and live
-outside this package. Running the _result_ (an AI-authored plugin) safely is the
+This is the **pure orchestration spine** — including the **bridge daemon's logic**
+(`bridgeHealth` for the `:31416` health probe the connector ladder detects, and
+`handleBridgeRun` for `/run`) and both **output paths** (`openPullRequest` to the
+open-source repo, `publishPluginRepo` to a new plugin repo). What lives outside
+this package is the thin host wiring: the Electron HTTP server around the bridge
+handlers, the AI terminal UI, the WebContainers (web) and remote-sandbox
+(mobile/managed) tiers, and the Projects/Tasks board — the later phases of
+exploration 0190. Running the _result_ (an AI-authored plugin) safely is the
 job of `@xnetjs/labs` (the sandbox runtime ladder + trust tiers) and the 0189
 capability model — not this package.
 
