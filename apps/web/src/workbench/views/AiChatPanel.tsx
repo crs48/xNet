@@ -35,15 +35,30 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AI_CHAT_STORAGE_KEYS,
   applyRuntimeEvent,
+  baseUrlFromDetail,
   canSendMessage,
   errorMessage,
+  KNOWN_BRIDGE_AGENTS,
+  parseBridgeHealth,
   pickUsableConnector,
   providerConfigForConnector,
   type AiChatSettings,
+  type BridgeHealth,
   type CloudProvider
 } from './ai-chat-connector'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
 import { schemaRegistryApi } from './ai-schemas'
+
+/** Electron preload control channel for the local agent bridge (absent on web). */
+interface AgentBridgeControl {
+  start: (agent?: string) => Promise<unknown>
+}
+
+declare global {
+  interface Window {
+    xnetAgentBridge?: AgentBridgeControl
+  }
+}
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -73,6 +88,8 @@ export function AiChatPanel() {
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  const [bridgeHealth, setBridgeHealth] = useState<BridgeHealth | null>(null)
+  const [bridgeRefresh, setBridgeRefresh] = useState(0)
 
   const runtimeRef = useRef<AiAgentRuntime | null>(null)
   const threadIdRef = useRef<string | null>(null)
@@ -123,6 +140,39 @@ export function AiChatPanel() {
   }, [apiKey])
 
   const selected = detections.find((d) => d.tier === selectedTier) ?? null
+
+  // Surface which agent the local bridge is driving (from its /health), so the
+  // user can see + (in Electron) switch the running agent (exploration 0194).
+  const bridgeBaseUrl =
+    selected?.tier === 'bridge' && selected.available
+      ? baseUrlFromDetail(selected.detail)
+      : undefined
+  useEffect(() => {
+    if (!bridgeBaseUrl || typeof fetch === 'undefined') {
+      setBridgeHealth(null)
+      return
+    }
+    let cancelled = false
+    void fetch(`${bridgeBaseUrl}/health`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled) setBridgeHealth(parseBridgeHealth(data))
+      })
+      .catch(() => {
+        if (!cancelled) setBridgeHealth(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [bridgeBaseUrl, bridgeRefresh])
+
+  // Switch the running agent — only possible where a control channel exists
+  // (the Electron preload bridge); the web daemon is launched with a fixed agent.
+  const switchBridgeAgent = useCallback(async (agent: string) => {
+    if (typeof window === 'undefined' || !window.xnetAgentBridge || !agent) return
+    await window.xnetAgentBridge.start(agent)
+    setBridgeRefresh((count) => count + 1)
+  }, [])
 
   // (Re)build the runtime when the active connector/settings change.
   useEffect(() => {
@@ -187,6 +237,13 @@ export function AiChatPanel() {
         onSelect={selectTier}
         hasSelection={!!selected}
       />
+      {selected?.tier === 'bridge' && (
+        <BridgeStatus
+          health={bridgeHealth}
+          canSwitch={typeof window !== 'undefined' && !!window.xnetAgentBridge}
+          onSwitchAgent={switchBridgeAgent}
+        />
+      )}
       {selected?.tier === 'cloud-key' && (
         <CloudKeyFields
           apiKey={apiKey}
@@ -295,6 +352,48 @@ function ChatComposer({
       >
         {streaming ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
       </button>
+    </div>
+  )
+}
+
+function BridgeStatus({
+  health,
+  canSwitch,
+  onSwitchAgent
+}: {
+  health: BridgeHealth | null
+  canSwitch: boolean
+  onSwitchAgent: (agent: string) => void
+}) {
+  const running = health?.ok ?? false
+  const agent = health?.agent
+  const knownAgent = agent && KNOWN_BRIDGE_AGENTS.some((option) => option.id === agent) ? agent : ''
+  return (
+    <div className="flex items-center gap-2 border-b border-hairline px-3 py-2 text-[11px]">
+      <span
+        aria-hidden
+        className={`h-2 w-2 shrink-0 rounded-full ${running ? 'bg-emerald-500' : 'bg-ink-3'}`}
+      />
+      <span className="text-ink-2">
+        {running
+          ? `Running ${agent ?? 'agent'}${health?.version ? ` · v${health.version}` : ''}`
+          : 'Bridge detected'}
+      </span>
+      {canSwitch && (
+        <select
+          aria-label="Bridge agent"
+          value={knownAgent}
+          onChange={(event) => onSwitchAgent(event.target.value)}
+          className="ml-auto rounded-md border border-hairline bg-surface-0 px-2 py-0.5 text-[11px] text-ink-1 outline-none"
+        >
+          {!knownAgent && <option value="">Choose agent…</option>}
+          {KNOWN_BRIDGE_AGENTS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   )
 }

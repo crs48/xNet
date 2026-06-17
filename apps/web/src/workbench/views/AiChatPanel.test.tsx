@@ -1,5 +1,6 @@
+import type { ConnectorDetection } from '@xnetjs/plugins'
 import { render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const fixture = vi.hoisted(() => ({
   detections: [
@@ -18,7 +19,7 @@ const fixture = vi.hoisted(() => ({
       toolCalling: 'reliable',
       preference: 3
     }
-  ]
+  ] as ConnectorDetection[]
 }))
 
 vi.mock('@xnetjs/plugins', () => ({
@@ -43,6 +44,14 @@ vi.mock('@xnetjs/data', () => ({ schemaRegistry: {} }))
 // Imported after the mock so the panel binds to the mocked module.
 const { AiChatPanel } = await import('./AiChatPanel')
 
+const DEFAULT_DETECTIONS = fixture.detections
+
+afterEach(() => {
+  fixture.detections = DEFAULT_DETECTIONS
+  if (typeof window !== 'undefined') window.localStorage.clear()
+  vi.unstubAllGlobals()
+})
+
 describe('AiChatPanel', () => {
   it('renders the empty state and the connector picker', async () => {
     render(<AiChatPanel />)
@@ -63,5 +72,25 @@ describe('AiChatPanel', () => {
     await waitFor(() =>
       expect(screen.getByPlaceholderText(/Select and configure a model/)).toBeTruthy()
     )
+  })
+
+  it('shows the local bridge agent + running status from /health', async () => {
+    fixture.detections = [
+      {
+        tier: 'bridge',
+        label: 'Local bridge',
+        available: true,
+        detail: 'http://127.0.0.1:31416',
+        toolCalling: 'reliable',
+        preference: 1
+      }
+    ]
+    window.localStorage.setItem('xnet:ai-tier', 'bridge')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ json: async () => ({ ok: true, agent: 'claude', version: '1.0.0' }) }))
+    )
+    render(<AiChatPanel />)
+    await waitFor(() => expect(screen.getByText(/Running claude/)).toBeTruthy())
   })
 })

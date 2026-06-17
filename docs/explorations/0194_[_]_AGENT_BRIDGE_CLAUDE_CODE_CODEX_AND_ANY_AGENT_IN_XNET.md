@@ -447,9 +447,13 @@ export const AGENTS = {
 - [ ] Add a native "bridge/agent" panel provider (graduate off the facade).
 
 **Phase 3 — any agent**
-- [ ] Agent registry (Claude Code / Codex / Gemini / OpenCode-Kimi) with
-      installed-CLI detection; expose the choice in the connector bar.
-- [ ] Per-agent adapter args + smoke test each.
+- [x] Agent registry (`KNOWN_BRIDGE_AGENTS`: Claude Code / Codex / Gemini /
+      OpenCode) surfaced in the panel: when the bridge is selected it shows the
+      running agent + status from `/health`, with an agent picker where a control
+      channel exists (Electron `window.xnetAgentBridge`). Installed-CLI detection
+      is daemon-side (the Electron `--version` probe).
+- [ ] Per-agent adapter args beyond claude/codex (gemini/opencode) + smoke test;
+      live agent-switch for the web/CLI daemon (needs a control channel).
 
 **Phase 4 — web + code/plugins**
 - [x] `xnet bridge serve [--agent claude|codex] [--port] [--allow-origin] [--cwd]`

@@ -6,6 +6,8 @@ import {
   canSendMessage,
   errorMessage,
   isUsableTier,
+  KNOWN_BRIDGE_AGENTS,
+  parseBridgeHealth,
   pickUsableConnector,
   providerConfigForConnector,
   reduceRuntimeEvent
@@ -179,5 +181,34 @@ describe('isUsableTier / pickUsableConnector', () => {
 
   it('ignores unavailable tiers', () => {
     expect(pickUsableConnector([det({ tier: 'cloud-key', available: false })])).toBeNull()
+  })
+})
+
+describe('parseBridgeHealth', () => {
+  it('extracts ok/agent/version from a bridge /health body', () => {
+    expect(
+      parseBridgeHealth({
+        ok: true,
+        service: 'xnet-agent-bridge',
+        agent: 'claude',
+        version: '1.2.0'
+      })
+    ).toEqual({ ok: true, agent: 'claude', version: '1.2.0' })
+  })
+  it('reports not-ok for malformed or empty bodies', () => {
+    expect(parseBridgeHealth(null)).toEqual({ ok: false })
+    expect(parseBridgeHealth('nope')).toEqual({ ok: false })
+    expect(parseBridgeHealth({ ok: false })).toEqual({ ok: false })
+  })
+  it('omits non-string agent/version', () => {
+    expect(parseBridgeHealth({ ok: true, agent: 5, version: null })).toEqual({ ok: true })
+  })
+})
+
+describe('KNOWN_BRIDGE_AGENTS', () => {
+  it('includes the primary agents', () => {
+    const ids = KNOWN_BRIDGE_AGENTS.map((agent) => agent.id)
+    expect(ids).toContain('claude')
+    expect(ids).toContain('codex')
   })
 })
