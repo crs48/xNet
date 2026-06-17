@@ -596,10 +596,14 @@ flowchart LR
 
 ## Implementation Checklist
 
-- [ ] **Connector package** `packages/connectors-slack` (or under existing
+- [x] **Connector package** `packages/connectors-slack` (or under existing
       connectors home): `defineConnector('dev.xnet.connector.slack')` with a
       `pull` that imports a Slack export `.zip` into `Channel`/`ChatMessage`/
-      members/files/reactions; unit tests with a fixture export.
+      members/files/reactions; unit tests with a fixture export. *(Shipped as
+      `buildSlackConnector` in `@xnetjs/plugins/connectors`: pulls channels +
+      history via the Slack **Web API** into `Channel`/`ChatMessage` with
+      markdown-translated bodies, governance guards proven by test. Export-`.zip`
+      ingest, members/files/reactions, and pagination are deferred.)*
 - [ ] Wire the migration connector's hub half via `connectorSyncFeature` and add
       it to the CLI (`xnet connector …`) and an import UI entry point.
 - [x] **`slackToMarkdown` / `blockKitToMarkdown`** translator package (shared by

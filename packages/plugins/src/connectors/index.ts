@@ -34,3 +34,11 @@ export type { ConnectorInstallGate } from './install-gate'
 
 export { wrapCliConnector } from './cli-wrap'
 export type { WrapCliConnectorOptions } from './cli-wrap'
+
+export {
+  buildSlackConnector,
+  SLACK_CONNECTOR_ID,
+  CHANNEL_SCHEMA,
+  CHAT_MESSAGE_SCHEMA
+} from './slack-migration'
+export type { SlackConnectorOptions } from './slack-migration'

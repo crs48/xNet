@@ -1488,6 +1488,9 @@ importers:
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/slack-compat':
+        specifier: workspace:*
+        version: link:../slack-compat
       '@xnetjs/trust':
         specifier: workspace:*
         version: link:../trust
