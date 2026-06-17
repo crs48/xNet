@@ -38,6 +38,36 @@ There are **two milestones**, so you only provision what you need next:
 
 ---
 
+## Environments (dev · staging · production)
+
+Each environment is **fully isolated** — its own GCP project, R2 bucket, WorkOS environment, Stripe mode, subdomain, and secrets — so a mistake in one can never touch another. **Development is the exception:** it runs on in-memory fakes and needs no cloud accounts at all.
+
+|                   | Development        | Staging                     | Production                  |
+| ----------------- | ------------------ | --------------------------- | --------------------------- |
+| Runs on           | in-memory fakes    | real cloud                  | real cloud                  |
+| GCP project       | — (none)           | `xnet-cloud-staging-0`      | `xnet-cloud-0`              |
+| R2 bucket         | — (none)           | `xnet-hub-data-staging`     | `xnet-hub-data`             |
+| WorkOS            | fake (skipped)     | Staging environment         | Production environment      |
+| Stripe            | skipped            | **Test** mode (`sk_test_…`) | **Live** mode (`sk_live_…`) |
+| Control-plane URL | `localhost:4455`   | `cloud-staging.xnet.fyi`    | `cloud.xnet.fyi`            |
+| Secrets           | `.env.development` | GCP Secret Manager          | GCP Secret Manager          |
+| Idle cost         | $0                 | ~$0 (scale-to-zero)         | ~$0 (scale-to-zero)         |
+
+**The rules**
+
+- **One GCP project family per real environment.** The project is GCP's hard isolation boundary (IAM, quota, billing, the 1,000-service cap). The provisioner _shards within_ a family — `xnet-cloud-0`, `-1`, … — only as you approach that cap, so one project per env is all you need to start.
+- **Run the bootstrap once per real environment**, pointing at that env's `-0` project:
+  ```bash
+  PROJECT=xnet-cloud-staging-0 REGION=us-central1 BILLING_ACCOUNT=… bash scripts/cloud-gcp-bootstrap.sh   # staging
+  PROJECT=xnet-cloud-0         REGION=us-central1 BILLING_ACCOUNT=… bash scripts/cloud-gcp-bootstrap.sh   # production
+  ```
+  Then scaffold the **matching** env file and paste the values the script printed (they override the scaffold defaults).
+- **The `.env.<env>` file's environment must match the GCP project you bootstrapped.** If you created `xnet-cloud-0` (prefix `xnet-cloud`), that's **production** → use `.env.production`. Want a separate staging too? Bootstrap `xnet-cloud-staging-0` as well.
+- **Deployed secrets live in GCP Secret Manager, not the `.env` file.** The `.env.<env>` file is for local runs + scaffolding; the deployed Cloud Run service reads secrets from Secret Manager (the deployer SA already has `secretAccessor`). Each environment gets its own distinct secret values.
+- **You don't need all three on day one.** Dev (fakes) for the inner loop + **one** real environment to dogfood is enough. Add the second real env when you have customers and want a safe place to test changes — an idle environment costs ~nothing (scale-to-zero), so the separation is cheap insurance.
+
+---
+
 ## Part 0 — Local development (zero setup)
 
 ```bash
