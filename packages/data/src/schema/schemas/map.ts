@@ -17,6 +17,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { json, relation, select, text } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 // ─── Minimal structural GeoJSON (dependency-free) ────────────────────────────
 // Just enough of the GeoJSON shape to persist imported features and feed them
@@ -155,7 +156,9 @@ export const MapSchema = defineSchema({
       ] as const,
       default: 'inherit'
     })
-  }
+  },
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 /**

@@ -8,6 +8,7 @@
  */
 
 import type { InferNode } from '../types'
+import { presets } from '../../auth'
 import { defineSchema } from '../define'
 import { json, text } from '../properties'
 
@@ -44,7 +45,9 @@ export const UserWidgetSchema = defineSchema({
 
     /** Default tile size in 12-column grid units — whole-value LWW */
     defaultSize: json<UserWidgetSize>({})
-  }
+  },
+  // Standalone/personal content: owner-only by default (exploration 0192).
+  authorization: presets.private()
 })
 
 export type UserWidget = InferNode<(typeof UserWidgetSchema)['_properties']>

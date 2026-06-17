@@ -18,6 +18,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, file, select, number, relation } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const DatabaseSchema = defineSchema({
   name: 'Database',
@@ -84,7 +85,9 @@ export const DatabaseSchema = defineSchema({
     })
   },
   // Y.Doc used ONLY as the awareness/presence channel — no persistent state
-  document: 'yjs'
+  document: 'yjs',
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 /**

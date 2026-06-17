@@ -16,6 +16,7 @@ import type { InferNode } from '../types'
 import type { MessageMentions } from './mentions'
 import { defineSchema } from '../define'
 import { checkbox, created, createdBy, date, file, json, relation, text } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const ChatMessageSchema = defineSchema({
   name: 'ChatMessage',
@@ -54,7 +55,9 @@ export const ChatMessageSchema = defineSchema({
     createdAt: created(),
     createdBy: createdBy()
   },
-  document: undefined
+  document: undefined,
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('channel')
 })
 
 export type ChatMessage = InferNode<(typeof ChatMessageSchema)['_properties']>

@@ -8,6 +8,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { relation, select, text } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const SavedViewSchema = defineSchema({
   name: 'SavedView',
@@ -34,7 +35,9 @@ export const SavedViewSchema = defineSchema({
 
     /** Optional database that owns database-scoped views */
     database: relation({ target: 'xnet://xnet.fyi/Database@2.0.0' as const })
-  }
+  },
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('database')
 })
 
 export type SavedView = InferNode<(typeof SavedViewSchema)['_properties']>
