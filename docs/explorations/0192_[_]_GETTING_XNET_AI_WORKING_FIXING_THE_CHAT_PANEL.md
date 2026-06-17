@@ -400,24 +400,39 @@ export function errorMessage(err: unknown): string {
 }
 ```
 
-### Fix 4 (Phase 1 sketch) — give the runtime tools
+### Fix 4 (Phase 1a — shipped) — ground the runtime in the workspace
+
+Reality check against the code: `createAiAgentRuntime` has **no `tools`/`callTool`**
+config, and `completeRun` sent only `[{ role:'user', content }]` — no system
+prompt, no history, and the `generate()` fallback (Anthropic) ignored the
+request entirely. So before any tool-calling, the runtime needed history +
+context plumbing. What shipped (Phase 1a):
 
 ```ts
-import { createAiSurfaceService } from '@xnetjs/plugins'
-// store + schemas come from the web app's existing data layer.
-const surface = createAiSurfaceService({ store, schemas })
-
+// Runtime: AiAgentRuntimeConfig gains systemPrompt + contextProvider; completeRun
+// composes [system, context, ...thread history, latest user] for every provider.
 const runtime = createAiAgentRuntime({
   provider,
-  tools: surface.getTools(),          // xnet_search, xnet_plan_page_patch, …
-  callTool: (name, args) => surface.callTool(name, args),
-  // mutations return a plan → render approval via classifyAiAgentDisplayState
+  systemPrompt: AI_SYSTEM_PROMPT,
+  contextProvider: async ({ content }) => {
+    const pack = await surface.createContextPack({ query: content, limit: 6 })
+    return formatContextMessages(pack) // read-only system message, with citations
+  }
 })
+
+// Web: the local NodeStore satisfies NodeStoreAPI directly; schemas need a thin
+// DefinedSchema → SchemaData adapter (see ai-schemas.ts).
+const surface = createAiSurfaceService({ store, schemas: schemaRegistryApi() })
 ```
 
-(Exact `createAiAgentRuntime` tool hooks must be confirmed against
-[runtime.ts](packages/plugins/src/ai/runtime.ts); `completeRun` already routes
-`generateWithTools` tool calls and emits `tool.call` events to build on.)
+### Fix 5 (Phase 1b — deferred) — live tool execution + approval-gated writes
+
+This is the larger piece: the runtime has **no tool-execution loop** (it surfaces
+`tool.call` events but never runs the tool or feeds the result back). Real
+agentic writes need (a) a loop that executes `AiSurfaceService.callTool` and
+continues the turn, (b) the mutation-plan → approval flow rendered via
+`classifyAiAgentDisplayState`, and (c) a tool-capable provider (OpenAI/OpenRouter/
+local — `AnthropicProvider` implements neither `generateWithTools` nor `stream`).
 
 ## Risks And Open Questions
 
@@ -461,16 +476,26 @@ const runtime = createAiAgentRuntime({
 - [x] Unit-test the new header + tier-selection logic (mirror existing
       `ai-chat-connector.test.ts` / `providers.test.ts`).
 
-**Phase 1 — wire the tool surface (target: 1 sprint)**
-- [ ] Construct `AiSurfaceService` in the web app from the live NodeStore +
-      SchemaRegistry.
-- [ ] Pass `getTools()` / `callTool` into `createAiAgentRuntime`; confirm the
-      runtime's tool-call loop.
+**Phase 1a — read-only workspace grounding** — ✅ shipped
+- [x] Construct `AiSurfaceService` in the web app from the live NodeStore +
+      SchemaRegistry (store satisfies `NodeStoreAPI` directly; schemas via a thin
+      `DefinedSchema → SchemaData` adapter, `ai-schemas.ts`).
+- [x] Carry conversation history + a system prompt + injected context in the
+      runtime (`systemPrompt` + `contextProvider` on `AiAgentRuntimeConfig`;
+      `completeRun` composes the full message list for every provider).
+- [x] Inject workspace context into turns (per-message `createContextPack` →
+      `formatContextMessages`, read-only with citations).
+
+**Phase 1b — live tool execution + writes (target: 1 sprint)** — deferred
+- [ ] Add a tool-execution loop to the runtime (today it surfaces `tool.call`
+      events but never runs the tool or feeds the result back).
+- [ ] Pass `getTools()` / `callTool` from `AiSurfaceService` into the loop.
 - [ ] Render the approval / mutation-plan flow using
       `classifyAiAgentDisplayState` (`applied` / `proposed` / `read-only`).
 - [ ] Default the agentic path to a tool-capable provider; either extend
-      `AnthropicProvider` with tools or document the limitation.
-- [ ] Inject minimal workspace context (current page / selection) into turns.
+      `AnthropicProvider` with tools/streaming or document the limitation.
+- [ ] Selection-aware context (current page / selection) in addition to the
+      query-based search grounding shipped in 1a.
 
 **Phase 2 — managed cloud (optional)**
 - [ ] Add a hub route that calls `MeteredGateway` → `AgentRunner`.
@@ -499,10 +524,16 @@ const runtime = createAiAgentRuntime({
 - [x] A CORS/network failure shows the actionable message, not raw
       "Failed to fetch". *(Covered by `errorMessage` unit tests.)*
 - [x] Selected tier survives a page reload (`xnet:ai-tier` persistence).
-- [ ] (Phase 1) Asking the agent to "create a task / edit this page" produces a
+- [x] (Phase 1a) Each turn carries the system prompt + grounding context + prior
+      history; a failing context provider never breaks the run. *(Covered by
+      runtime message-composition + resilience unit tests.)*
+- [ ] (Phase 1a) With a real key/model, asking "what's in my workspace?" returns
+      an answer grounded in the user's own nodes. *(Needs a live model to confirm
+      end-to-end; the context pack + injection are unit-tested.)*
+- [ ] (Phase 1b) Asking the agent to "create a task / edit this page" produces a
       **mutation plan** that requires approval, then applies through the
       guardrail and is visible in the workspace.
-- [ ] (Phase 1) A tool failure surfaces in the thread without crashing the
+- [ ] (Phase 1b) A tool failure surfaces in the thread without crashing the
       panel.
 - [x] Targeted tests green for `@xnetjs/plugins` (integration) and `apps/web`
       (dom) view tests + `typecheck` + `eslint` + `prettier`; full suite +
