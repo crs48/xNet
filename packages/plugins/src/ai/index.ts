@@ -91,6 +91,7 @@ export type {
   AiAgentBackgroundJobInput,
   AiAgentBackgroundJobRunner,
   AiAgentBackgroundJobStatus,
+  AiAgentContextProvider,
   AiAgentDisplayState,
   AiAgentDisplayStateKind,
   AiAgentEvent,

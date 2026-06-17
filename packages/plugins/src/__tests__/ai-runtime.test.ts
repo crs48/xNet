@@ -2,7 +2,12 @@
  * Tests for the in-app AI agent runtime.
  */
 
-import type { AIGenerateRequest, AIProvider, AIStreamChunk } from '../ai/providers'
+import type {
+  AIGenerateRequest,
+  AIGenerateResponse,
+  AIProvider,
+  AIStreamChunk
+} from '../ai/providers'
 import { describe, expect, it } from 'vitest'
 import {
   classifyAiAgentDisplayState,
@@ -56,6 +61,33 @@ class SlowStreamingProvider extends StreamingProvider {
       provider: this.name,
       model: 'mock-stream'
     }
+  }
+}
+
+/** Captures the request it receives so tests can assert message composition. */
+class CapturingProvider implements AIProvider {
+  readonly name = 'Capturing'
+  lastRequest?: AIGenerateRequest
+
+  getCapabilities() {
+    return {
+      tools: false,
+      structuredOutputs: false,
+      streaming: false,
+      contextWindow: 8192,
+      local: true,
+      privacy: 'local' as const,
+      quality: 'local' as const
+    }
+  }
+
+  async generate(_prompt: string): Promise<string> {
+    return 'reply'
+  }
+
+  async generateWithTools(request: AIGenerateRequest): Promise<AIGenerateResponse> {
+    this.lastRequest = request
+    return { text: 'reply', provider: this.name, model: 'capture' }
   }
 }
 
@@ -143,6 +175,48 @@ describe('AiAgentRuntime', () => {
       expect.arrayContaining(['model.delta', 'tool.call', 'usage', 'run.completed'])
     )
     expect(persisted.threads[0].id).toBe(thread.id)
+  })
+
+  it('injects the system prompt + context and carries thread history', async () => {
+    const provider = new CapturingProvider()
+    const runtime = createAiAgentRuntime({
+      provider,
+      clock: () => new Date('2026-06-02T12:00:00.000Z'),
+      systemPrompt: 'SYS',
+      contextProvider: ({ content }) => [{ role: 'system', content: `CTX:${content}` }]
+    })
+    const thread = await runtime.createThread({ title: 'History' })
+
+    await runtime.runTurn({ threadId: thread.id, content: 'first' })
+    await waitFor(() => runtime.getSnapshot().telemetry.runsCompleted === 1)
+    await runtime.runTurn({ threadId: thread.id, content: 'second' })
+    await waitFor(() => runtime.getSnapshot().telemetry.runsCompleted === 2)
+
+    // System prompt, then per-turn context, then the full prior dialogue.
+    expect(provider.lastRequest?.messages).toEqual([
+      { role: 'system', content: 'SYS' },
+      { role: 'system', content: 'CTX:second' },
+      { role: 'user', content: 'first' },
+      { role: 'assistant', content: 'reply' },
+      { role: 'user', content: 'second' }
+    ])
+  })
+
+  it('never fails a run when the context provider throws', async () => {
+    const provider = new CapturingProvider()
+    const runtime = createAiAgentRuntime({
+      provider,
+      clock: () => new Date('2026-06-02T12:00:00.000Z'),
+      contextProvider: () => {
+        throw new Error('context boom')
+      }
+    })
+    const thread = await runtime.createThread({ title: 'Resilient' })
+
+    await runtime.runTurn({ threadId: thread.id, content: 'hi' })
+    await waitFor(() => runtime.getSnapshot().telemetry.runsCompleted === 1)
+
+    expect(provider.lastRequest?.messages).toEqual([{ role: 'user', content: 'hi' }])
   })
 
   it('tracks approval controls and accepted or rejected telemetry', async () => {

@@ -1,29 +1,35 @@
 /**
- * AI Chat panel (exploration 0174).
+ * AI Chat panel (explorations 0174 + 0192).
  *
  * A Bring-Your-Own-Model chat surface: detects the available model connectors,
  * lets the user pick/configure one (cloud key, local Ollama/LM Studio, bridge,
  * or in-tab Gemini Nano), and streams an assistant reply through the shared
- * AiAgentRuntime. The header shows the active tier's write mode — `agentic`
- * when the model can reliably call tools, else `propose-only` — surfacing the
- * 0174 decision rule to the user.
+ * AiAgentRuntime.
+ *
+ * The runtime is grounded in the user's workspace (0192 Phase 1): an
+ * AiSurfaceService built from the local NodeStore + schema registry produces a
+ * read-only context pack for each turn, injected ahead of the conversation so
+ * the assistant answers about the user's own pages/databases/nodes. This is
+ * read-only — live tool execution + approval-gated writes are the next step.
  *
  * Event handling, send-eligibility, and connector→provider mapping live in
- * `ai-chat-connector.ts` (pure + tested); this file is mostly composition.
- * Live tool execution (the agent calling xnet_* against the workspace) reuses
- * the same runtime + MCP tool surface and is the next integration step.
+ * `ai-chat-connector.ts`; context formatting in `ai-context.ts` and the schema
+ * adapter in `ai-schemas.ts` (all pure + tested); this file is composition.
  */
 
 import {
   createAIProvider,
   createAiAgentRuntime,
+  createAiSurfaceService,
   createPromptApiProvider,
   detectConnectors,
   type AiAgentRuntime,
+  type AiSurfaceService,
   type AIProvider,
   type ConnectorDetection,
   type ConnectorTier
 } from '@xnetjs/plugins'
+import { useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -36,6 +42,8 @@ import {
   type AiChatSettings,
   type CloudProvider
 } from './ai-chat-connector'
+import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
+import { schemaRegistryApi } from './ai-schemas'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -73,6 +81,15 @@ export function AiChatPanel() {
   const settings = useMemo<AiChatSettings>(
     () => ({ apiKey: apiKey || undefined, cloudProvider }),
     [apiKey, cloudProvider]
+  )
+
+  // Read-only workspace grounding: the local NodeStore + schema registry already
+  // satisfy the AiSurfaceService contract, so the assistant can search the
+  // user's own pages/databases/nodes for context (exploration 0192, Phase 1).
+  const { store } = useNodeStore()
+  const surface = useMemo<AiSurfaceService | null>(
+    () => (store ? createAiSurfaceService({ store, schemas: schemaRegistryApi() }) : null),
+    [store]
   )
 
   const handlers = useMemo(
@@ -116,7 +133,18 @@ export function AiChatPanel() {
     let cancelled = false
     void resolveProvider(selected, settings).then((provider) => {
       if (cancelled || !provider) return
-      const runtime = createAiAgentRuntime({ provider })
+      const runtime = createAiAgentRuntime({
+        provider,
+        systemPrompt: AI_SYSTEM_PROMPT,
+        ...(surface
+          ? {
+              contextProvider: async ({ content }) => {
+                const pack = await surface.createContextPack({ query: content, limit: 6 })
+                return formatContextMessages(pack)
+              }
+            }
+          : {})
+      })
       void runtime.load().then(() => {
         if (cancelled) return
         runtimeRef.current = runtime
@@ -131,7 +159,7 @@ export function AiChatPanel() {
       cleanupRef.current?.()
       cleanupRef.current = null
     }
-  }, [selected, settings, handlers])
+  }, [selected, settings, handlers, surface])
 
   const send = useCallback(async () => {
     const content = input.trim()
@@ -197,9 +225,10 @@ function ChatBody({ messages, streaming }: { messages: ChatMessage[]; streaming:
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-3 text-center text-ink-3">
         <Bot size={22} strokeWidth={1.5} />
-        <p className="text-xs">Chat with an AI using your own model or API key.</p>
+        <p className="text-xs">Ask about your workspace, using your own model or API key.</p>
         <p className="text-[11px]">
-          Your model runs locally or on your own key — never on our servers.
+          The assistant reads your pages and data for context; your model runs locally or on your
+          own key — never on our servers.
         </p>
       </div>
     )
@@ -307,10 +336,10 @@ function ConnectorBar({
 function CapabilityBadge() {
   return (
     <span
-      title="This assistant replies in chat. Acting on your workspace is coming soon."
+      title="This assistant can read your workspace for context. Making changes is coming soon."
       className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-3"
     >
-      chat
+      reads workspace
     </span>
   )
 }
