@@ -5,6 +5,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { created, createdBy, person, relation, select, text } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 const reactionTypes = [
   { id: 'like', name: 'Like', color: 'green' },
@@ -30,7 +31,9 @@ export const ReactionSchema = defineSchema({
     createdAt: created(),
     createdBy: createdBy()
   },
-  document: undefined
+  document: undefined,
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('target')
 })
 
 export type Reaction = InferNode<(typeof ReactionSchema)['_properties']>

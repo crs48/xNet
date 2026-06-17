@@ -19,6 +19,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, relation, number, checkbox, json } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const DatabaseFieldSchema = defineSchema({
   name: 'DatabaseField',
@@ -55,7 +56,9 @@ export const DatabaseFieldSchema = defineSchema({
 
     /** Hidden by default (views can override) */
     hidden: checkbox({})
-  }
+  },
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('database')
 })
 
 /**

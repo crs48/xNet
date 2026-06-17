@@ -15,6 +15,7 @@
  */
 
 import type { InferNode } from '../types'
+import { presets } from '../../auth'
 import { defineSchema } from '../define'
 import { created, createdBy, json, person } from '../properties'
 
@@ -71,7 +72,9 @@ export const InboxStateSchema = defineSchema({
     createdAt: created(),
     createdBy: createdBy()
   },
-  document: undefined
+  document: undefined,
+  // Standalone/personal content: owner-only by default (exploration 0192).
+  authorization: presets.private()
 })
 
 export type InboxState = InferNode<(typeof InboxStateSchema)['_properties']>

@@ -17,6 +17,7 @@ import type { FilterGroup, SortConfig } from '../../database/view-types'
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, relation, select, json } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const DatabaseViewSchema = defineSchema({
   name: 'DatabaseView',
@@ -84,7 +85,9 @@ export const DatabaseViewSchema = defineSchema({
 
     /** End date field ID */
     endDateField: text({ maxLength: 100 })
-  }
+  },
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('database')
 })
 
 /**

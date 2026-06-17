@@ -160,6 +160,55 @@ describe('GrantIndex', () => {
 })
 
 describe('DefaultPolicyEvaluator', () => {
+  it('honors hub grants for non-owners on legacy schemas (0192 Landmine #1)', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const carol = createIdentity()
+    const store = await createStore(alice)
+
+    const LegacyDoc = defineSchema({
+      name: 'AuthLegacyDoc',
+      namespace: 'xnet://tests/',
+      properties: { title: text({ required: true }) }
+    })
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(LegacyDoc)
+
+    const node = await store.create({
+      schemaId: LegacyDoc.schema['@id'],
+      properties: { title: 'shared' }
+    })
+    await store.create({
+      schemaId: GRANT_SCHEMA_ID,
+      properties: {
+        grantee: bob.did,
+        resource: node.id,
+        actions: JSON.stringify(['read']),
+        revokedAt: 0,
+        expiresAt: Date.now() + 10_000
+      }
+    })
+
+    const grantIndex = new GrantIndex(store)
+    await grantIndex.initialize()
+    const evaluator = new DefaultPolicyEvaluator({ store, schemaRegistry, grantIndex })
+
+    // Owner is always allowed.
+    expect(
+      (await evaluator.can({ subject: alice.did, action: 'read', nodeId: node.id })).allowed
+    ).toBe(true)
+    // Non-owner WITH a grant is allowed — the fix. Previously a flat deny here
+    // hid grant-shared legacy-schema nodes from their collaborators.
+    expect(
+      (await evaluator.can({ subject: bob.did, action: 'read', nodeId: node.id })).allowed
+    ).toBe(true)
+    // Non-owner WITHOUT a grant stays denied.
+    expect(
+      (await evaluator.can({ subject: carol.did, action: 'read', nodeId: node.id })).allowed
+    ).toBe(false)
+    grantIndex.dispose()
+  })
+
   it('allows relation-derived roles and caches decisions', async () => {
     const alice = createIdentity()
     const bob = createIdentity()

@@ -74,6 +74,9 @@ export {
 export type { AuthMode } from './mode'
 export { getAuthMode, warnLegacySchema } from './mode'
 
+// Schema → hub grant-action projection + parity (exploration 0192)
+export { schemaToHubPolicy, hubActionsForSpaceRole, type HubPolicy } from './hub-policy'
+
 // Recipient computation + migration helpers
 export {
   PUBLIC_CONTENT_KEY,

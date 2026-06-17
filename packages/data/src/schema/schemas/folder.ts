@@ -12,6 +12,7 @@
  */
 
 import type { InferNode } from '../types'
+import { presets } from '../../auth'
 import { compareSortKeys } from '../../database/fractional-index'
 import { defineSchema } from '../define'
 import { created, createdBy, relation, text } from '../properties'
@@ -37,7 +38,9 @@ export const FolderSchema = defineSchema({
     createdAt: created(),
     createdBy: createdBy()
   },
-  document: undefined
+  document: undefined,
+  // Standalone/personal content: owner-only by default (exploration 0192).
+  authorization: presets.private()
 })
 
 export type Folder = InferNode<(typeof FolderSchema)['_properties']>

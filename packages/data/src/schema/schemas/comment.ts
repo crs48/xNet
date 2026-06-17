@@ -22,6 +22,7 @@ import {
   createdBy,
   json
 } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const CommentSchema = defineSchema({
   name: 'Comment',
@@ -112,7 +113,9 @@ export const CommentSchema = defineSchema({
   },
 
   // Comments are plain text + markdown, no collaborative Y.Doc needed
-  document: undefined
+  document: undefined,
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('target')
 })
 
 /**

@@ -10,6 +10,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, file, relation, select } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const PageSchema = defineSchema({
   name: 'Page',
@@ -47,7 +48,9 @@ export const PageSchema = defineSchema({
       default: 'inherit'
     })
   },
-  document: 'yjs' // Collaborative Y.Doc for rich text
+  document: 'yjs', // Collaborative Y.Doc for rich text
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 /**
