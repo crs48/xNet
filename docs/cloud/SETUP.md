@@ -60,33 +60,25 @@ hub.
 4. **[R2 → Manage API Tokens](https://dash.cloudflare.com/?to=/:account/r2/api-tokens)** → _Create API token_ → **Object Read & Write**, scoped to your bucket → Create.
 5. Copy the **Access Key ID** and **Secret Access Key** (shown once). → `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
 
-### 1b. Google Cloud — compute + durable state
+_CLI alternative for the bucket: `npx wrangler login && npx wrangler r2 bucket create xnet-hub-data`. The S3 API token in step 4 is still created in the dashboard (or via the Cloudflare API)._
 
-1. Open the **[Google Cloud console](https://console.cloud.google.com/)** and **[create a project](https://console.cloud.google.com/projectcreate)** named `xnet-cloud-0` (the `-0` matters — we shard at 1,000 services/project). → `GCP_PROJECT_PREFIX=xnet-cloud`
-2. **Enable the APIs** (one click each, or the `gcloud` line below):
-   [Cloud Run](https://console.cloud.google.com/apis/library/run.googleapis.com) ·
-   [Artifact Registry](https://console.cloud.google.com/apis/library/artifactregistry.googleapis.com) ·
-   [Firestore](https://console.cloud.google.com/apis/library/firestore.googleapis.com) ·
-   [Secret Manager](https://console.cloud.google.com/apis/library/secretmanager.googleapis.com) ·
-   [IAM](https://console.cloud.google.com/apis/library/iam.googleapis.com)
-   ```bash
-   gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
-     firestore.googleapis.com secretmanager.googleapis.com iam.googleapis.com --project xnet-cloud-0
-   ```
-3. **[Artifact Registry → create a Docker repo](https://console.cloud.google.com/artifacts)** named `hub` in your region (`us-central1`). → `GCP_ARTIFACT_REGISTRY=us-docker.pkg.dev/xnet-cloud-0/hub`
-4. **[Create a Firestore database](https://console.cloud.google.com/firestore)** in **Native mode**, same region. → `GCP_FIRESTORE_DATABASE=(default)`
-5. **[Create a deployer service account](https://console.cloud.google.com/iam-admin/serviceaccounts)** `xnet-deployer`, then grant it these roles ([IAM](https://console.cloud.google.com/iam-admin/iam)):
-   `Cloud Run Admin`, `Artifact Registry Writer`, `Service Account User`, `Secret Manager Secret Accessor`, `Cloud Datastore User`.
-   ```bash
-   for role in run.admin artifactregistry.writer iam.serviceAccountUser \
-     secretmanager.secretAccessor datastore.user; do
-     gcloud projects add-iam-policy-binding xnet-cloud-0 \
-       --member="serviceAccount:xnet-deployer@xnet-cloud-0.iam.gserviceaccount.com" \
-       --role="roles/$role"
-   done
-   ```
-6. Create a **key** for that service account (JSON) and save it somewhere safe on your machine. → `GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/key.json`
-   _(Prefer no long-lived keys? Skip this and we'll wire Workload Identity Federation in CI for M2.)_
+### 1b. Google Cloud — one script does it all
+
+**Fastest path.** [`scripts/cloud-gcp-bootstrap.sh`](../../scripts/cloud-gcp-bootstrap.sh) creates the project, enables the APIs, the Artifact Registry Docker repo, the Firestore database, the deployer service account + least-privilege roles + key, and Docker push auth — then prints the `GCP_*` values to paste. It's **idempotent** (safe to re-run). First [install the gcloud CLI](https://cloud.google.com/sdk/docs/install):
+
+```bash
+gcloud auth login
+gcloud billing accounts list          # copy your billing account id (XXXXXX-XXXXXX-XXXXXX)
+
+PROJECT=xnet-cloud-0 REGION=us-central1 BILLING_ACCOUNT=XXXXXX-XXXXXX-XXXXXX \
+  bash scripts/cloud-gcp-bootstrap.sh
+```
+
+It prints these, ready to paste into your env file:
+`GCP_PROJECT_PREFIX`, `GCP_REGION`, `GCP_ARTIFACT_REGISTRY`, `GCP_FIRESTORE_DATABASE`, `GOOGLE_APPLICATION_CREDENTIALS`.
+Override any default via env vars (`AR_LOCATION`, `AR_REPO`, `SA_NAME`, `KEY_FILE`). Prefer no long-lived key? Add `MAKE_KEY=0` and we'll wire Workload Identity Federation in CI.
+
+**Prefer clicking?** The same steps by hand in the [console](https://console.cloud.google.com/): [create a project](https://console.cloud.google.com/projectcreate) `xnet-cloud-0` (the `-0` matters — we shard at 1,000 services/project) → enable [Cloud Run](https://console.cloud.google.com/apis/library/run.googleapis.com) / [Artifact Registry](https://console.cloud.google.com/apis/library/artifactregistry.googleapis.com) / [Firestore](https://console.cloud.google.com/apis/library/firestore.googleapis.com) / [Secret Manager](https://console.cloud.google.com/apis/library/secretmanager.googleapis.com) / [IAM](https://console.cloud.google.com/apis/library/iam.googleapis.com) → an [Artifact Registry](https://console.cloud.google.com/artifacts) Docker repo `hub` → a [Firestore](https://console.cloud.google.com/firestore) database (Native mode) → a [deployer service account](https://console.cloud.google.com/iam-admin/serviceaccounts) `xnet-deployer` with roles **Cloud Run Admin · Artifact Registry Writer · Service Account User · Secret Manager Secret Accessor · Cloud Datastore User**, then a JSON key.
 
 ### 1c. Generate the control-plane secrets
 
@@ -135,4 +127,4 @@ Manager instead: `./scripts/cloud-gen-secrets.sh`.
 
 - Every variable, annotated (the source of truth the scaffolder reads): [`scripts/cloud-env-schema.mjs`](../../scripts/cloud-env-schema.mjs)
 - Why it's built this way: [0196 runbook](../explorations/0196_[_]_XNET_CLOUD_PATH_TO_PRODUCTION_RUNBOOK.md), [0180 architecture](../explorations/0180_[_]_XNET_CLOUD_ARCHITECTURE_AND_COMPLETION_STATUS.md)
-- Scripts: `scripts/cloud-init-env.mjs` (scaffold) · `scripts/cloud-env-doctor.mjs` (check) · `scripts/cloud-gen-secrets.sh` (secrets)
+- Scripts: `scripts/cloud-init-env.mjs` (scaffold env) · `scripts/cloud-env-doctor.mjs` (check env) · `scripts/cloud-gen-secrets.sh` (secrets) · `scripts/cloud-gcp-bootstrap.sh` (provision GCP)
