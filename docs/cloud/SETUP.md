@@ -38,6 +38,19 @@ There are **two milestones**, so you only provision what you need next:
 
 ---
 
+## The scripts at a glance
+
+Everything here is driven by four scripts in [`scripts/`](../../scripts/):
+
+| Script                                     | What it does                                                                                                                         | When                           |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| `node scripts/cloud-init-env.mjs <env>`    | Scaffolds `apps/cloud/.env.<env>` — non-secret config pre-filled, the 3 control-plane secrets generated, externals left as CHANGEME  | first, once per environment    |
+| `bash scripts/cloud-gcp-bootstrap.sh`      | Provisions the entire GCP side (project, APIs, Artifact Registry, Firestore, deployer SA + roles + key, Docker auth); prints `GCP_*` | once per real environment      |
+| `bash scripts/cloud-gen-secrets.sh`        | Prints the 3 random control-plane secrets (for pasting into Secret Manager)                                                          | optional                       |
+| `node scripts/cloud-env-doctor.mjs <file>` | Reports ✓/✗ per variable + an M1/M2 readiness verdict; exits non-zero if anything required is missing                                | after filling in, and any time |
+
+---
+
 ## Environments (dev · staging · production)
 
 Each environment is **fully isolated** — its own GCP project, R2 bucket, WorkOS environment, Stripe mode, subdomain, and secrets — so a mistake in one can never touch another. **Development is the exception:** it runs on in-memory fakes and needs no cloud accounts at all.
@@ -98,11 +111,13 @@ _CLI alternative for the bucket: `npx wrangler login && npx wrangler r2 bucket c
 
 ```bash
 gcloud auth login
-gcloud billing accounts list          # copy your billing account id (XXXXXX-XXXXXX-XXXXXX)
+gcloud billing accounts list          # find one with OPEN: True; copy its id (XXXXXX-XXXXXX-XXXXXX)
 
 PROJECT=xnet-cloud-0 REGION=us-central1 BILLING_ACCOUNT=XXXXXX-XXXXXX-XXXXXX \
   bash scripts/cloud-gcp-bootstrap.sh
 ```
+
+> **Heads-up:** the billing account must be **`OPEN: True`** — a linked-but-_closed_ account still 403s every paid API with `BILLING_DISABLED` even though the project reports `billingEnabled: true`. The script verifies the account is open, links it, and waits for billing + service-account propagation, so if a step ever trips on a propagation race just **re-run it** (the whole script is idempotent).
 
 It prints these, ready to paste into your env file:
 `GCP_PROJECT_PREFIX`, `GCP_REGION`, `GCP_ARTIFACT_REGISTRY`, `GCP_FIRESTORE_DATABASE`, `GOOGLE_APPLICATION_CREDENTIALS`.
@@ -152,6 +167,14 @@ Manager instead: `./scripts/cloud-gen-secrets.sh`.
 - [ ] No `dev-insecure-*` value survives into staging/production (the doctor + generated secrets handle this).
 - [ ] In production, store secrets in **GCP Secret Manager**, not a file on disk; the deployer SA reads them at boot.
 - [ ] The R2 token is scoped to **one bucket**, Object Read & Write only.
+
+## Troubleshooting
+
+- **`BILLING_DISABLED` / "requires billing to be enabled"** even after linking → your billing account is **closed**. Run `gcloud billing accounts list`; you need a row with `OPEN  True`. Open it (add a payment method) at [console.cloud.google.com/billing](https://console.cloud.google.com/billing) or create a new one, then re-run the bootstrap with that account id.
+- **"Service account … does not exist"** while granting roles, or any other mid-run 4xx → a freshly-created resource hadn't propagated yet. The script now waits + retries; if you still hit it, just **re-run** (idempotent — it skips what already exists).
+- **Wrong environment provisioned?** Project ids are **immutable**. `xnet-cloud-0` → prefix `xnet-cloud` = **production**. For staging, bootstrap a separate `xnet-cloud-staging-0`; you can't rename the existing one.
+- **The doctor says a value is missing but you filled it** → make sure it isn't still `CHANGEME_*` or empty, and that you're checking the right file (`.env.staging` vs `.env.production`). The doctor infers the environment from the filename.
+- **`--env-file` not recognized** → needs Node ≥ 20.6. Otherwise export the vars first: `set -a; . apps/cloud/.env.development; set +a`.
 
 ## Reference
 
