@@ -10,6 +10,7 @@
 
 import type { TenantRecord } from './registry'
 import type { PlanId } from '@xnetjs/entitlements'
+import { sloForPlan } from './observability/slo'
 
 export interface DashboardView {
   billingUserId: string
@@ -69,6 +70,8 @@ function hubCard(tenant: TenantRecord): string {
         <div><dt>Region</dt><dd>${esc(tenant.region || 'auto')}</dd></div>
         <div><dt>Storage</dt><dd>${fmtBytes(e.quotaBytes)}</dd></div>
         <div><dt>Seats</dt><dd>${e.seats}</dd></div>
+        <div><dt>Uptime</dt><dd>${esc(sloForPlan(tenant.plan).label)}</dd></div>
+        <div><dt>Backups</dt><dd>Continuous → object storage</dd></div>
         <div><dt>Data identity</dt><dd>${
           tenant.did
             ? `<code>${esc(tenant.did)}</code>`
