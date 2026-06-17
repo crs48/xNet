@@ -2,8 +2,11 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 
 export type Theme = 'light' | 'dark' | 'system'
 
-/** 'true-black' collapses dark surfaces to #000 for OLED (0166). */
-export type ThemeVariant = 'default' | 'true-black'
+/**
+ * 'true-black' collapses dark surfaces to #000 for OLED (0166).
+ * 'linear' adds Linear's opt-in violet accent over the monochrome ramp (0198).
+ */
+export type ThemeVariant = 'default' | 'true-black' | 'linear'
 
 interface ThemeContextValue {
   theme: Theme

@@ -144,10 +144,18 @@ function SettingsPage() {
 
 type Theme = 'light' | 'dark' | 'system'
 
+/** Accent variants (exploration 0198). 'linear' overlays a violet accent. */
+type Accent = 'default' | 'linear'
+
 function AppearanceSettings() {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'system'
     return (localStorage.getItem('xnet:theme') as Theme) || 'system'
+  })
+
+  const [accent, setAccent] = useState<Accent>(() => {
+    if (typeof window === 'undefined') return 'default'
+    return (localStorage.getItem('xnet-theme-variant') as Accent) || 'default'
   })
 
   const handleThemeChange = useCallback((newTheme: Theme) => {
@@ -161,6 +169,18 @@ function AppearanceSettings() {
       root.classList.toggle('dark', prefersDark)
     } else {
       root.classList.toggle('dark', newTheme === 'dark')
+    }
+  }, [])
+
+  // Shares the ThemeProvider's storage key so the choice survives reloads.
+  const handleAccentChange = useCallback((next: Accent) => {
+    setAccent(next)
+    localStorage.setItem('xnet-theme-variant', next)
+    const root = document.documentElement
+    if (next === 'default') {
+      delete root.dataset.variant
+    } else {
+      root.dataset.variant = next
     }
   }, [])
 
@@ -186,6 +206,30 @@ function AppearanceSettings() {
               label="System"
               active={theme === 'system'}
               onClick={() => handleThemeChange('system')}
+            />
+          </div>
+        </SettingRow>
+        <SettingRow
+          label="Accent"
+          description="Monochrome chrome, or Linear's signature violet accent"
+        >
+          <div className="flex gap-1.5">
+            <ThemeButton
+              icon={<span className="h-3.5 w-3.5 rounded-full bg-ink-1" />}
+              label="Monochrome"
+              active={accent === 'default'}
+              onClick={() => handleAccentChange('default')}
+            />
+            <ThemeButton
+              icon={
+                <span
+                  className="h-3.5 w-3.5 rounded-full"
+                  style={{ background: 'hsl(231 56% 60%)' }}
+                />
+              }
+              label="Linear"
+              active={accent === 'linear'}
+              onClick={() => handleAccentChange('linear')}
             />
           </div>
         </SettingRow>

@@ -73,6 +73,47 @@ describe('TaskListGrouped', () => {
     render(<TaskListGrouped tasks={[]} />)
     expect(screen.getByText('No tasks yet')).toBeTruthy()
   })
+
+  it('shows selection checkboxes and emits select intents with modifiers', () => {
+    const onSelectTask = vi.fn()
+    render(
+      <TaskListGrouped
+        tasks={tasks}
+        selectedTaskIds={new Set(['task_b'])}
+        onSelectTask={onSelectTask}
+      />
+    )
+
+    const checkboxes = screen.getAllByTestId('task-row-select')
+    expect(checkboxes).toHaveLength(3)
+
+    // The todo group (task_b) renders first; it is the pre-selected row.
+    fireEvent.click(checkboxes[0], { shiftKey: true })
+    expect(onSelectTask).toHaveBeenCalledWith('task_b', {
+      shiftKey: true,
+      metaKey: false
+    })
+    expect(screen.getByTestId('task-list-grouped').querySelector('[data-selected]')).toBeTruthy()
+  })
+
+  it('omits selection checkboxes when onSelectTask is absent', () => {
+    render(<TaskListGrouped tasks={tasks} />)
+    expect(screen.queryByTestId('task-row-select')).toBeNull()
+  })
+
+  it('emits create-in-group from the header "+" affordance', () => {
+    const onCreateInGroup = vi.fn()
+    render(<TaskListGrouped tasks={tasks} onCreateInGroup={onCreateInGroup} />)
+
+    fireEvent.click(screen.getByLabelText('Add task to To Do'))
+    expect(onCreateInGroup).toHaveBeenCalledWith('todo')
+  })
+
+  it('renders compact rows at a tighter height', () => {
+    const { container } = render(<TaskListGrouped tasks={tasks} density="compact" />)
+    const row = container.querySelector('[data-testid="task-row"]')
+    expect(row?.className).toContain('h-[30px]')
+  })
 })
 
 describe('TaskBoard', () => {

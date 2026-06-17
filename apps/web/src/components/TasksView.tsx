@@ -26,10 +26,22 @@ import {
   formatDueDate,
   getTaskStatusMeta,
   taskPersonLabel,
-  type TaskDisplayData
+  type TaskDisplayData,
+  type TaskRowDensity
 } from '@xnetjs/ui'
 import { TaskBoard, TaskListGrouped, type TaskBoardStatusChange } from '@xnetjs/views'
-import { CalendarDays, Hash, Inbox, KanbanSquare, List, Plus, User, X } from 'lucide-react'
+import {
+  CalendarDays,
+  Hash,
+  Inbox,
+  KanbanSquare,
+  List,
+  Plus,
+  Rows2,
+  Rows3,
+  User,
+  X
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
@@ -88,6 +100,7 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [miniPalette, setMiniPalette] = useState<'status' | 'priority' | 'dueDate' | null>(null)
+  const [density, setDensity] = useState<TaskRowDensity>('comfortable')
   const quickAddRef = useRef<HTMLInputElement>(null)
 
   const { data: tasks, loading } = useTasks({ includeCompleted: true })
@@ -336,6 +349,29 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
     setEditingTaskId((current) => (current === taskId ? null : taskId))
   }
 
+  // Linear's group-header "+": create a task already in that status and
+  // open it for naming (assignee/project inherit the active scope).
+  const handleCreateInGroup = async (status: TaskStatusId) => {
+    const id = generateTaskId()
+    const assignees = tab === 'mine' && did ? [did] : []
+    await create(
+      TaskSchema,
+      {
+        title: '',
+        completed: isCompletedTaskStatus(status),
+        status,
+        source: 'api',
+        ...(projectId ? { project: projectId } : {}),
+        ...(assignees.length
+          ? { assignee: assignees[0] as DID, assignees: assignees as DID[] }
+          : {})
+      },
+      id
+    )
+    setFocusedTaskId(id)
+    setEditingTaskId(id)
+  }
+
   const handleCreate = async () => {
     const title = draft.trim()
     if (!title) return
@@ -419,6 +455,17 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         )}
 
         <div className="ml-auto flex items-center gap-1" data-tasks-view-toggle>
+          {mode === 'list' && (
+            <button
+              type="button"
+              onClick={() => setDensity((d) => (d === 'compact' ? 'comfortable' : 'compact'))}
+              aria-label={density === 'compact' ? 'Comfortable density' : 'Compact density'}
+              title={density === 'compact' ? 'Comfortable density' : 'Compact density'}
+              className="mr-1 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              {density === 'compact' ? <Rows3 size={14} /> : <Rows2 size={14} />}
+            </button>
+          )}
           {!projectId && (
             <button
               type="button"
@@ -548,7 +595,9 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         ) : (
           <TaskListGrouped
             tasks={displayTasks}
+            density={density}
             focusedTaskId={focusedTaskId}
+            onCreateInGroup={(status) => void handleCreateInGroup(status)}
             expandedTaskId={editingTaskId}
             renderTaskEditor={() =>
               editingTask ? (

@@ -523,12 +523,12 @@ export const SavedViewSchema = defineSchema('SavedView', {
 ## Implementation Checklist
 
 ### Phase 1 — Render & density
-- [ ] Sticky group headers with count badge + hover "+add" in `TaskListGrouped.tsx`.
-- [ ] Right-aligned, toggleable metadata zone in `TaskRow.tsx` (labels/project/due/avatar).
-- [ ] Compact/comfortable density toggle (row height token).
-- [ ] 120–160ms `transform`/`opacity` transitions on rows, peek, slide-over.
-- [ ] Opt-in **Linear theme variant** (violet accent) in `ThemeProvider` + tokens.
-- [ ] Board card polish parity (`TaskCard.tsx`): glyph/ID/title/labels/avatar/due.
+- [x] Sticky group headers with count badge + hover "+add" in `TaskListGrouped.tsx`.
+- [x] Right-aligned, two-zone metadata in `TaskRow.tsx` (labels/project/due/avatar); column show/hide lands with Display Options (Phase 3).
+- [x] Compact/comfortable density toggle (row height token).
+- [x] 120–160ms transitions on rows, peek, slide-over (`duration-150`; palette/sheet already animate).
+- [x] Opt-in **Linear theme variant** (violet accent) in `ThemeProvider` + tokens + Settings → Appearance → Accent.
+- [x] Board card polish parity (`TaskCard.tsx`): glyph/ID/title/labels/avatar/due.
 
 ### Phase 2 — Interaction parity
 - [ ] Rebind command menu to `Cmd+K`; source commands from active registry scopes.
