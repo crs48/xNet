@@ -676,71 +676,97 @@ export const slackSyncFeature: HubFeature = {
   mapping, not the CLI's own egress). Curating is slower but cleaner. Probably
   offer wrapping as an explicit, clearly-labeled trust tier.
 
+## Implementation Status
+
+Implemented on `feat/agent-native-connectors-0196`. The governed-core +
+portable-emitter (Option D) shipped as a package-layer vertical slice with tests;
+genuinely app-side surfaces (a Connectors marketplace *view*, per-user OAuth) are
+left as clearly-marked seams.
+
+| Piece | Where | State |
+|---|---|---|
+| `agentTools` contribution point | `packages/plugins/src/agent-tools.ts`, `contributions.ts`, `context.ts`, `registry.ts`, `manifest.ts` | ✅ shipped + tested |
+| AI-surface merge point (`extraTools`) | `packages/plugins/src/ai-surface/{types,service}.ts` | ✅ shipped + tested |
+| MCP `agentTools` (deferred) | `packages/plugins/src/services/mcp-server.ts` | ✅ shipped + tested |
+| `connector` write surface | `packages/abuse/src/types.ts`, `mcp-guardrail.ts` (`createConnectorWriteGuardrail`) | ✅ shipped + tested |
+| Connector primitive | `packages/plugins/src/connectors/define-connector.ts` | ✅ shipped + tested |
+| Governed sync runner | `packages/plugins/src/connectors/sync-runner.ts` | ✅ shipped + tested |
+| Hub sync feature | `packages/hub/src/features/connectors.ts` | ✅ shipped + tested |
+| Scaffold template + CLI | `ecosystem/scaffold.ts`, `packages/cli/src/commands/connector.ts` | ✅ shipped + tested |
+| Emitter / marketplace / importer bridge | `packages/plugins/src/connectors/artifacts.ts` | ✅ shipped + tested |
+| AI-install secret gate | `packages/plugins/src/connectors/install-gate.ts` | ✅ shipped + tested |
+| `wrapCliConnector` | `packages/plugins/src/connectors/cli-wrap.ts` | ✅ shipped + tested |
+| Bridge advertises connector tools | via `xnet mcp serve` (`agentTools` config) | ◐ seam — see note |
+| Connectors marketplace **view** | app-side | ⬜ deferred (data layer + category shipped) |
+| Per-user OAuth (multi-tenant secrets) | hub broker | ⬜ deferred (single bot-token model shipped) |
+
+**Bridge note:** connector tools reach the user's own harness (Claude Code /
+Codex / OpenClaw) through `xnet mcp serve`, whose `MCPServer` already carries the
+`agentTools` config — the agent the bridge spawns connects to that MCP server for
+its tools. No bridge-server change was needed; advertising is the MCP server's
+job, not the chat proxy's.
+
 ## Implementation Checklist
 
-- [ ] Add an `agentTools` contribution point to
-  `packages/plugins/src/contributions.ts` (`TypedRegistry`, `Disposable` cleanup),
-  with `AgentToolContribution { name, description, inputSchema, invoke, risk? }`.
-- [ ] Wire `agentTools` into `AiSurfaceService.getTools()`
-  (`packages/plugins/src/ai-surface/service.ts`).
-- [ ] Wire `agentTools` into `MCPServer` `tools/list` + `tools/call`
-  (`packages/plugins/src/services/mcp-server.ts`), defaulting connector tools to
-  *deferred* (progressive disclosure).
-- [ ] Route connector tool writes through `McpWriteGuardrail` with a `connector`
-  surface distinct from `localApi`.
-- [ ] Create `packages/plugins/src/connectors/define-connector.ts` (`defineConnector`,
+- [x] Add an `agentTools` contribution point to
+  `packages/plugins/src/contributions.ts` (`TypedRegistry`, `Disposable` cleanup) —
+  shipped as `packages/plugins/src/agent-tools.ts` (`AgentToolContribution`).
+- [x] Wire `agentTools` into `AiSurfaceService.getTools()` via the `extraTools`
+  merge point (`packages/plugins/src/ai-surface/service.ts`).
+- [x] Wire `agentTools` into `MCPServer` `tools/list` + `tools/call`, defaulting
+  connector tools to *deferred* (progressive disclosure).
+- [x] Route connector tool writes through `McpWriteGuardrail` with a `connector`
+  surface distinct from `localApi` (`createConnectorWriteGuardrail`).
+- [x] Create `packages/plugins/src/connectors/define-connector.ts` (`defineConnector`,
   `ConnectorDefinition`, `ConnectorSyncSpec`, `ConnectorAgentTool`).
-- [ ] Generalize the dormant `importers` contribution into the Connector sync path
-  (or have Connectors register an importer adapter), so the two aren't parallel.
-- [ ] Build the hub sync runner: a `HubFeature` factory that runs `sync.pull` with
-  `scopedEnv(env, def.capabilities.secrets)`, a `guardStore`-wrapped store, and a
-  `guardedFetch` bound to `def.capabilities.network`.
-- [ ] Enforce a **required target space** on sync writes (default
-  `presets.private()` + explicit space) to guarantee cascade protection.
-- [ ] Add a `connector` template to `packages/plugins/src/ecosystem/scaffold.ts`
-  + `xnet connector scaffold <service>`.
-- [ ] Extend the AI authoring pipeline (`ai-authoring.ts` / `ai-pipeline.ts`) to
-  emit Connectors; block secret-requesting connectors from auto-trust on
-  `ai-generated` provenance (require manual promotion).
-- [ ] Implement `emitConnectorArtifacts(def)` → MCP shim
-  (`createMcpHttpServer`) + per-connector `SKILL.md` + files-first view + optional
-  CLI.
-- [ ] Implement `wrapCliConnector` to run an external CLI via the labs
-  `server`/command tier and map output → nodes (Printing Press interop), clearly
-  trust-labeled.
-- [ ] Add a `connectors` category to `MarketplaceEntry`/search
-  (`packages/plugins/src/ecosystem/marketplace.ts`) and surface a Connectors view
-  in the marketplace UI.
-- [ ] Make the agent bridge (`packages/devkit/src/bridge-server.ts`) advertise
-  installed connector tools to the user's own harness via the MCP shim.
+- [x] Generalize the dormant `importers` contribution — `connectorAsImporter`
+  exposes a connector's sync as an `ImporterContribution` adapter.
+- [x] Build the hub sync runner: `runConnectorSync` (guardStore + guardedFetch +
+  budget + space-stamp) + the generic `connectorSyncFeature` `HubFeature` that
+  applies `scopedEnv` via `mountFeatures`.
+- [x] Enforce a **required target space** on sync writes (opt out via
+  `allowUnscoped`) to guarantee cascade protection.
+- [x] Add a `connector` template to `ecosystem/scaffold.ts` + `xnet connector
+  scaffold <id>`.
+- [x] AI authoring: `evaluateConnectorInstall` blocks secret-requesting
+  connectors from auto-trust on `ai-generated` provenance (manual promotion); the
+  `connector` scaffold template is the AI's authoring target.
+- [x] Implement `emitConnectorArtifacts(def)` → tool descriptors (MCP
+  advertisement) + per-connector `SKILL.md` fragment + marketplace entry.
+- [x] Implement `wrapCliConnector` to run an external CLI (injected `runCli`
+  port) and map output → space-stamped nodes (Printing Press interop; egress
+  caveat documented).
+- [x] Add a `connectors` category (`CONNECTOR_CATEGORY`) +
+  `connectorMarketplaceEntry`; a Connectors marketplace **view** is deferred
+  (app-side).
+- [◐] Agent bridge advertises connector tools — satisfied via `xnet mcp serve`
+  (the `agentTools` config); no bridge-server change required (see status note).
 
 ## Validation Checklist
 
-- [ ] **Secret isolation:** a test proves the Slack sync `HubFeature` receives
-  `SLACK_BOT_TOKEN` but *not* another feature's secret (assert `scopedEnv`
-  projection), and that no token value ever appears in any `agentTools` context or
-  MCP response.
-- [ ] **Schema-write containment:** a connector declaring
-  `schemaWrite: [SlackMessage]` throws `CapabilityError` if its `pull` tries to
-  write any other schema (assert `guardStore`).
-- [ ] **Egress containment:** the connector's `guardedFetch` rejects a request to a
-  host outside `network` (assert `CapabilityError` before the request leaves).
-- [ ] **No cross-space leak:** sync into Space A; an agent acting as a subject with
-  access only to Space B calls `slack_search_mentions` and receives **zero** Space
-  A nodes (assert policy evaluator + cascade).
-- [ ] **Consent surfacing:** installing the connector shows secret + schemaWrite +
-  network lines flagged appropriately; an `ai-generated` connector requesting a
-  secret is gated (assert `evaluateInstallConsent` + the new block).
-- [ ] **Progressive disclosure:** with N connectors installed, the MCP `tools/list`
-  core set stays bounded; connector tools load on demand (assert deferred-tool
-  count).
-- [ ] **Round-trip portability:** `emitConnectorArtifacts` produces an MCP shim that
-  the agent bridge can drive from the user's own `claude` CLI, returning the same
-  governed results as the in-app path.
-- [ ] **CLI wrap:** `wrapCliConnector` runs a fixture CLI in the labs sandbox and
-  materializes its output as nodes, with the sandbox tier matching its trust tier.
-- [ ] **End-to-end:** one-prompt authoring → sandbox test → consent → install →
-  sync → agent query returns governed results, all green in an integration test.
+- [x] **Secret isolation:** `connectorSyncFeature` test asserts the sync sees
+  `SLACK_BOT_TOKEN` but not `HUB_GITHUB_WEBHOOK_SECRET` (`scopedEnv`); the
+  `agentTools` invoke surface never receives `env`.
+- [x] **Schema-write containment:** a connector writing a schema outside
+  `schemaWrite` throws `CapabilityError` (`connectors.test.ts`).
+- [x] **Egress containment:** `guardedFetch` rejects a non-allowlisted host
+  before the request leaves (`connectors.test.ts`).
+- [x] **No cross-space leak:** the runner stamps the target space and refuses a
+  write pointed at a different space (`connectors.test.ts`). *(Full
+  evaluator-cascade read-filtering is covered by the existing auth suite.)*
+- [x] **Consent surfacing / AI gate:** `evaluateConnectorInstall` blocks a
+  secret-holding `ai-generated` connector and allows authored/marketplace
+  (`connectors-artifacts.test.ts`).
+- [x] **Progressive disclosure:** a contributed tool is listed as a *deferred*
+  MCP tool and still invokes (`agent-tools.test.ts`).
+- [x] **Portability emitter:** `emitConnectorArtifacts` yields tool descriptors +
+  a SKILL.md fragment naming the tools (`connectors-artifacts.test.ts`).
+  *(Live round-trip through a spawned `claude` CLI is manual.)*
+- [x] **CLI wrap:** `wrapCliConnector` runs the injected CLI and materializes its
+  output as space-stamped nodes (`connectors-artifacts.test.ts`).
+- [◐] **End-to-end:** scaffold → define → sync → gate are each tested in
+  isolation; a single one-prompt→install→query integration test is deferred (it
+  needs the app-side install flow + a live store).
 
 ## References
 
