@@ -14,6 +14,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, number, select, file, relation } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const TRANSCRIPTION_SCHEMA_IRI = 'xnet://xnet.fyi/Transcription@1.0.0' as const
 
@@ -89,7 +90,11 @@ export const TranscriptionSchema = defineSchema({
       default: 'private'
     })
   },
-  document: undefined
+  document: undefined,
+  // Owner-only by default; inherits access from its home Space when filed into
+  // one — same model as Metric, since transcripts are equally sensitive
+  // (explorations 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 /** A Transcription node type (inferred from schema). */
