@@ -39,6 +39,7 @@
     "@xnetjs/core": "workspace:*",
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/devkit": "workspace:*",
     "@xnetjs/identity": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
     "@xnetjs/runtime": "workspace:*",
