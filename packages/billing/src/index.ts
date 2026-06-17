@@ -25,7 +25,20 @@ export type {
 } from './types'
 
 export { BillingSignatureError } from './provider'
-export type { PaymentProvider, CheckoutRequest, CheckoutSession, PortalRequest } from './provider'
+export type {
+  PaymentProvider,
+  CheckoutRequest,
+  CheckoutSession,
+  PortalRequest,
+  ConnectCharge
+} from './provider'
+
+export {
+  DEFAULT_MARKETPLACE_FEE_BPS,
+  applicationFeeMinor,
+  feeBpsToPercent,
+  sellerNetMinor
+} from './connect'
 
 export { MemoryBillingStore, isActiveSubscription, pickCurrentSubscription } from './store'
 export type { BillingStore } from './store'
