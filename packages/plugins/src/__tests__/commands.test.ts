@@ -143,6 +143,25 @@ describe('CommandRegistry', () => {
     expect(registry.getAvailableCommands().map((c) => c.id)).toEqual(['a', 'b'])
   })
 
+  it('lists commands by scope regardless of activation (commandsForScopes)', () => {
+    registry.register({ id: 'g', title: 'G', run: vi.fn() })
+    registry.register({ id: 'tf', title: 'TF', scope: 'task-focused', run: vi.fn() })
+    registry.register({
+      id: 'tf-guarded',
+      title: 'TF guarded',
+      scope: 'task-focused',
+      when: () => false,
+      run: vi.fn()
+    })
+
+    // task-focused is NOT active, but commandsForScopes still surfaces it.
+    expect(registry.commandsForScopes(['global', 'task-focused']).map((c) => c.id)).toEqual([
+      'g',
+      'tf'
+    ])
+    expect(registry.commandsForScopes(['task-focused']).map((c) => c.id)).toEqual(['tf'])
+  })
+
   it('runs palette commands by id', async () => {
     const run = vi.fn()
     registry.register({ id: 'test.run', title: 'Run', run })

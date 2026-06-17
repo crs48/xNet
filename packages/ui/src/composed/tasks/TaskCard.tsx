@@ -104,7 +104,7 @@ export function TaskCard({
       data-focused={focused || undefined}
       className={cn(
         'group flex cursor-pointer flex-col gap-2 rounded-lg border border-border bg-background p-3',
-        'transition-colors hover:bg-background-subtle',
+        'transition-colors duration-150 hover:bg-background-subtle',
         focused && 'ring-1 ring-ring',
         className
       )}
