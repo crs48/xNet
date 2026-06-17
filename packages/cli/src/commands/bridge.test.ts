@@ -35,4 +35,25 @@ describe('buildBridgeServer', () => {
     expect(runner.calls[0].command).toBe('codex')
     expect(runner.calls[0].args).toEqual(['exec', 'hi'])
   })
+
+  it('hands XNet workspace tools to the agent when mcpConfigPath is set', async () => {
+    const runner = new FakeCommandRunner([{ match: () => true, result: { stdout: 'ok' } }])
+    handle = buildBridgeServer({ agent: 'claude', port: 0, mcpConfigPath: '/tmp/cfg.json' }, runner)
+    await handle.start()
+    await fetch(`${handle.url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(runner.calls[0].args).toEqual([
+      '-p',
+      'hi',
+      '--output-format',
+      'text',
+      '--mcp-config',
+      '/tmp/cfg.json',
+      '--allowedTools',
+      'mcp__xnet__*'
+    ])
+  })
 })
