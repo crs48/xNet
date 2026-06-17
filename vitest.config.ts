@@ -62,6 +62,7 @@ const workspaceAliases = {
   '@xnetjs/storage': new URL('./packages/storage/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sync': new URL('./packages/sync/src/index.ts', import.meta.url).pathname,
   '@xnetjs/telemetry': new URL('./packages/telemetry/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/trust': new URL('./packages/trust/src/index.ts', import.meta.url).pathname,
   '@xnetjs/ui': new URL('./packages/ui/src/index.ts', import.meta.url).pathname,
   '@xnetjs/vectors': new URL('./packages/vectors/src/index.ts', import.meta.url).pathname,
   '@xnetjs/views': new URL('./packages/views/src/index.ts', import.meta.url).pathname
@@ -99,8 +100,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
-            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts',
+            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,network,query,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
+            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,network,query,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Social matching layer — pure connect modules only; the

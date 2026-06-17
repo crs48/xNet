@@ -19,9 +19,10 @@ export type LabRuntimeTier = 'sandbox' | 'app' | 'server'
 
 /**
  * Capability follows provenance, never self-declaration. Assigned by the host
- * from where the Lab/extension came from — mirrors `WidgetTrustTier`.
+ * from where the Lab/extension came from — mirrors `WidgetTrustTier`. Aliased to
+ * the shared `@xnetjs/trust` `TrustTier` (0194) so labs and plugins agree.
  */
-export type LabTrustTier = 'first-party' | 'user' | 'marketplace'
+export type { TrustTier as LabTrustTier } from '@xnetjs/trust'
 
 export type LabLogLevel = 'log' | 'info' | 'warn' | 'error'
 

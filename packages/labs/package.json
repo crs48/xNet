@@ -25,6 +25,7 @@
   "dependencies": {
     "@xnetjs/data": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
+    "@xnetjs/trust": "workspace:*",
     "quickjs-emscripten": "^0.31.0",
     "ses": "^1.10.0"
   },
