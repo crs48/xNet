@@ -1,0 +1,16 @@
+{
+  "id": "2026-06-04",
+  "date": "June 2026",
+  "title": "Double-entry accounting",
+  "summary": "Track your money in xNet. A local-first, double-entry ledger brings accounts, transactions, budgets and reconciliation — with CSV/OFX/QIF import.",
+  "highlights": [
+    "Balanced double-entry transactions with integer-precise money",
+    "Budgets, reconciliation and chart-of-accounts reports",
+    "Import from CSV, OFX and QIF"
+  ],
+  "tags": [
+    "finance",
+    "app"
+  ],
+  "pr": 101
+}

@@ -1,16 +1,28 @@
 /**
- * Build-time validation for site/src/data/changelog.ts.
+ * Build-time validation for the changelog fragment files (site/src/data/changelog/*.json,
+ * loaded via src/data/changelog.ts).
  *
  * Runs as part of `pnpm build` (before astro build) so CI fails on malformed
- * changelog data: bad ids/dates, out-of-order or duplicate entries, empty
- * required fields, or hero images that are neither absolute site paths nor
- * https URLs. Keeps the JSON/RSS feeds and the in-app "What's New" honest.
+ * changelog data: bad ids/dates, duplicate ids, empty required fields, or hero
+ * images that are neither absolute site paths nor https URLs. The loader sorts
+ * entries newest-first, so fragment file order is irrelevant. Keeps the
+ * JSON/RSS feeds and the in-app "What's New" honest.
  */
 
-import { entries } from '../src/data/changelog'
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { ChangelogEntry } from '../src/data/changelog'
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+// Read the fragments directly (type-only import above is erased, so `tsx` never
+// evaluates the Vite `import.meta.glob` in changelog.ts).
+const fragmentDir = join(dirname(fileURLToPath(import.meta.url)), '../src/data/changelog')
+const entries: ChangelogEntry[] = readdirSync(fragmentDir)
+  .filter((f) => f.endsWith('.json'))
+  .map((f) => JSON.parse(readFileSync(join(fragmentDir, f), 'utf8')) as ChangelogEntry)
+
+// `YYYY-MM-DD`, optionally `-pr<N>` to disambiguate same-day merges.
+const ENTRY_ID = /^\d{4}-\d{2}-\d{2}(-pr\d+)?$/
 
 const errors: string[] = []
 
@@ -20,7 +32,7 @@ function err(id: string, msg: string): void {
 
 function checkRequired(e: ChangelogEntry): void {
   const id = e.id || '(missing id)'
-  if (!ISO_DATE.test(e.id)) err(id, `id must be an ISO date YYYY-MM-DD`)
+  if (!ENTRY_ID.test(e.id)) err(id, `id must be YYYY-MM-DD or YYYY-MM-DD-pr<N>`)
   if (!e.date) err(id, 'missing date label')
   if (!e.title) err(id, 'missing title')
   if (!e.summary) err(id, 'missing summary')
@@ -52,14 +64,6 @@ function checkUniqueIds(): void {
   for (const d of new Set(dupes)) err(d, `duplicate entry id "${d}"`)
 }
 
-function checkDescending(): void {
-  for (let i = 1; i < entries.length; i++) {
-    if (entries[i - 1].id < entries[i].id) {
-      err(entries[i].id, `entries must be newest-first (after ${entries[i - 1].id})`)
-    }
-  }
-}
-
 function report(): void {
   if (errors.length === 0) return
   console.error(`changelog.ts validation failed with ${errors.length} error(s):`)
@@ -69,7 +73,6 @@ function report(): void {
 
 for (const e of entries) checkRequired(e)
 checkUniqueIds()
-checkDescending()
 report()
 
-console.log(`changelog.ts OK: ${entries.length} entries (latest ${entries[0]?.id})`)
+console.log(`changelog OK: ${entries.length} fragment(s) valid`)

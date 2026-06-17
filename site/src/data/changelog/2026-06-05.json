@@ -1,0 +1,16 @@
+{
+  "id": "2026-06-05",
+  "date": "June 2026",
+  "title": "Native CRM & ERP foundation",
+  "summary": "xNet grew a native CRM — a universal party model, pipelines, deals and activities that reuse the same social and schema primitives as the rest of the app.",
+  "highlights": [
+    "Organizations, contacts, pipelines, deals, products and quotes",
+    "Append-only activity timeline and contact de-duplication",
+    "vCard import/export and GDPR helpers"
+  ],
+  "tags": [
+    "crm",
+    "app"
+  ],
+  "pr": 102
+}

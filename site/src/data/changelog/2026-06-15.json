@@ -1,0 +1,21 @@
+{
+  "id": "2026-06-15",
+  "date": "June 2026",
+  "title": "Extensibility fabric: one home for plugins, labs & AI",
+  "summary": "Plugins, labs, the AI surface, and the editor are converging into a single extensibility fabric, so a capability built in one place can be reused everywhere.",
+  "highlights": [
+    "Shared trust and consent model across plugins and labs",
+    "Plugin contributions and lab tools can be exposed to the AI assistant",
+    "Foundations for an AI → Lab → Plugin assembly line"
+  ],
+  "tags": [
+    "plugins",
+    "ai",
+    "editor",
+    "platform"
+  ],
+  "author": {
+    "login": "crs48"
+  },
+  "pr": 144
+}
