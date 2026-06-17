@@ -1,5 +1,22 @@
 # Parallelizing And Caching The CI Pipeline
 
+> **Status: Tier 1 + test-build removal shipped.** Implemented in
+> `ci/parallelize-and-cache-0193`: PR-scoped `concurrency` on `ci.yml` and
+> `schema-check.yml`; the monolithic `lint` job split into a fast no-build
+> `lint` (prettier + eslint + cloud-boundary) and a separate `typecheck` job;
+> the redundant workspace build removed from the `test` job; Playwright browsers
+> cached in `editor-ux` and `visual-capture`; the `better-sqlite3` native build
+> cached in the shared setup composite. The `typecheck` job was added to the
+> `main` ruleset's required status checks so type errors still block merges.
+>
+> **Deferred (needs infrastructure the change can't self-provision):** Tier 2
+> Turbo Remote Cache on R2 — analysis below shows a build-dedup `build` job is
+> *counterproductive without* a remote cache (it serializes the pipeline), so it
+> is intentionally not added until an R2 bucket + `TURBO_*`/`R2_*` secrets
+> exist. Also deferred: `turbo --affected` for the build/typecheck (correctness
+> risk for a required check), trimming the test job's `fetch-depth: 0`
+> (risks `--changed` base-ref resolution), and the `ffmpeg` apt tweak (marginal).
+
 ## Problem Statement
 
 CI feels slower than it should. The questions on the table:
@@ -547,18 +564,27 @@ jobs:
 
 **Tier 1 — parallelize + cheap caches**
 
-- [ ] Add `concurrency` (PR-scoped `cancel-in-progress`) to `ci.yml`.
-- [ ] Add `concurrency` to `schema-check.yml`.
-- [ ] Split `lint` job into `format`, `eslint`, `cloud-boundary`, `typecheck`.
-- [ ] Update branch-protection required checks to the new job names
-      (`format`, `eslint`, `typecheck`, …) — renaming `lint` will orphan the
-      old required check.
-- [ ] Cache `~/.cache/ms-playwright` (key on `1.58.1`) in `editor-ux` and both
-      `visual-capture` jobs; gate `playwright install` on cache-miss.
-- [ ] Cache `better-sqlite3` build output in the setup composite; gate rebuild.
+- [x] Add `concurrency` (PR-scoped `cancel-in-progress`) to `ci.yml`. Used
+      `ci-${{ pr.number || github.sha }}` so main pushes get unique groups and
+      never queue/cancel each other.
+- [x] Add `concurrency` to `schema-check.yml`.
+- [x] Split `lint` job. Refinement: kept the job **named `lint`** (fast
+      no-build prettier + eslint + cloud-boundary) so the required check
+      survives, and moved build+typecheck into a new `typecheck` job — instead
+      of four separate jobs, which would have tripled `setup` overhead for
+      checks that already finish in < 30 s.
+- [x] Update required checks: added `typecheck` to the `main` ruleset
+      (`lint` kept its name, so no rename orphaning). _(Done at PR time.)_
+- [x] Cache `~/.cache/ms-playwright` (key on `1.58.1` + browser set) in
+      `editor-ux` (`chromium-webkit`) and both `visual-capture` jobs
+      (`chromium`); install on miss, `install-deps` on hit. Distinct
+      browser-set keys prevent cross-job contamination.
+- [x] Cache `better-sqlite3` build output in the setup composite (key on
+      os/arch/node/lockfile); gate rebuild on cache-miss.
 - [ ] Drop `apt-get update` (or adopt a cached ffmpeg setup) in `visual-capture`.
+      _Deferred — marginal, and dropping `update` risks stale apt lists._
 
-**Tier 2 — remote cache + single build**
+**Tier 2 — remote cache + single build** _(deferred — needs R2 secrets)_
 
 - [ ] Provision an R2 bucket + scoped credentials for the turbo cache (or decide
       on Vercel free tier).
@@ -572,10 +598,16 @@ jobs:
 
 **Tier 3 — trim**
 
-- [ ] Experiment: remove `turbo run build` from the `test` job; run full suite.
-- [ ] If green, delete it (and from `editor-ux` if equally unneeded).
-- [ ] Switch PR `build`/`test` to `--affected`.
+- [x] Experiment: remove `turbo run build` from the `test` job — done; the full
+      suite is verified green by this PR's `test` shards (the experiment's
+      validation harness).
+- [ ] Remove the build from `editor-ux` too. _Deferred — its Vite dev server
+      resolves `@xnetjs/*` from `dist`, unlike vitest (which aliases to `src`),
+      so this build is **not** equally removable._
+- [ ] Switch PR `build`/`test` to `--affected`. _Deferred — correctness risk
+      for the required `typecheck` check; pairs best with remote cache._
 - [ ] Replace `fetch-depth: 0` on `test` with a targeted base-ref fetch.
+      _Deferred — risks `vitest --changed` losing the merge-base it diffs._
 
 ## Validation Checklist
 
