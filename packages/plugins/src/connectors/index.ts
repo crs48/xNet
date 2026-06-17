@@ -20,3 +20,17 @@ export type {
 
 export { runConnectorSync, ConnectorSyncError } from './sync-runner'
 export type { RunConnectorSyncPorts, GuardableConnectorStore } from './sync-runner'
+
+export {
+  CONNECTOR_CATEGORY,
+  emitConnectorArtifacts,
+  connectorMarketplaceEntry,
+  connectorAsImporter
+} from './artifacts'
+export type { ConnectorArtifacts, ConnectorToolDescriptor } from './artifacts'
+
+export { evaluateConnectorInstall } from './install-gate'
+export type { ConnectorInstallGate } from './install-gate'
+
+export { wrapCliConnector } from './cli-wrap'
+export type { WrapCliConnectorOptions } from './cli-wrap'

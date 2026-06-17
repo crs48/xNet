@@ -159,7 +159,13 @@ export {
   defineConnector,
   ConnectorDefinitionError,
   runConnectorSync,
-  ConnectorSyncError
+  ConnectorSyncError,
+  CONNECTOR_CATEGORY,
+  emitConnectorArtifacts,
+  connectorMarketplaceEntry,
+  connectorAsImporter,
+  evaluateConnectorInstall,
+  wrapCliConnector
 } from './connectors'
 export type {
   ConnectorDefinition,
@@ -171,7 +177,11 @@ export type {
   ConnectorFetch,
   ConnectorCadence,
   RunConnectorSyncPorts,
-  GuardableConnectorStore
+  GuardableConnectorStore,
+  ConnectorArtifacts,
+  ConnectorToolDescriptor,
+  ConnectorInstallGate,
+  WrapCliConnectorOptions
 } from './connectors'
 
 // Middleware
