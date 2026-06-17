@@ -35,8 +35,8 @@ export type {
 } from './canvas-permissions'
 
 // Manifest
-export type { XNetExtension, PluginContributions } from './manifest'
-export { validateManifest, defineExtension, PluginValidationError } from './manifest'
+export type { XNetExtension, PluginContributions, PluginPricing } from './manifest'
+export { validateManifest, defineExtension, PluginValidationError, isPaidPricing } from './manifest'
 
 // Contributions
 export type {
@@ -163,8 +163,8 @@ export type {
 export { createExtensionContext } from './context'
 
 // Registry
-export type { PluginStatus, RegisteredPlugin, InstallOptions } from './registry'
-export { PluginRegistry, PluginError } from './registry'
+export type { PluginStatus, RegisteredPlugin, InstallOptions, LicenseCheckResult } from './registry'
+export { PluginRegistry, PluginError, LicenseRequiredError } from './registry'
 
 // Ecosystem platform layer (exploration 0192) — capability enforcement,
 // provenance/trust, install consent, version compatibility, dependency

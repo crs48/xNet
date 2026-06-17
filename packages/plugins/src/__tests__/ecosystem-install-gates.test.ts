@@ -5,9 +5,17 @@
 
 import type { ExtensionContext } from '../context'
 import { describe, it, expect, vi } from 'vitest'
+import {
+  generateLicenseKeypair,
+  mintPluginLicense,
+  checkLicenseFor,
+  publicKeyFromHex,
+  privateKeyFromHex
+} from '@xnetjs/licenses'
 import { CapabilityError } from '../ecosystem/capability-guard'
 import { createTestPluginHarness } from '../ecosystem/testing'
 import { defineFeatureModule } from '../feature-module'
+import { LicenseRequiredError } from '../registry'
 
 const NOTE = 'xnet://xnet.fyi/Note@1.0.0' as const
 const SECRET = 'xnet://xnet.fyi/Secret@1.0.0' as const
@@ -92,6 +100,71 @@ describe('consent gate', () => {
     await h.registry.install(mod, { provenance: 'authored', onConsent })
     expect(onConsent).not.toHaveBeenCalled()
     expect(h.registry.get('com.acme.kanban')?.trustTier).toBe('user')
+  })
+})
+
+describe('paid-license gate (0196)', () => {
+  const paidPlugin = defineFeatureModule({
+    id: 'com.acme.pro',
+    name: 'Acme Pro',
+    version: '1.0.0',
+    license: 'FSL-1.1-MIT',
+    pricing: { mode: 'one-time', amountMinor: 999, currency: 'USD' }
+  })
+  const buyerDid = 'did:key:zBuyer'
+
+  it('blocks a paid install when no license provider is wired in (fail-closed)', async () => {
+    const h = createTestPluginHarness()
+    await expect(
+      h.registry.install(paidPlugin, { provenance: 'marketplace' })
+    ).rejects.toBeInstanceOf(LicenseRequiredError)
+    expect(h.registry.has('com.acme.pro')).toBe(false)
+  })
+
+  it('blocks when the buyer has no valid license', async () => {
+    const h = createTestPluginHarness()
+    const { publicKeyHex } = generateLicenseKeypair()
+    const checkLicense = vi.fn(() =>
+      checkLicenseFor(undefined, {
+        pluginId: paidPlugin.id,
+        buyerDid,
+        publicKey: publicKeyFromHex(publicKeyHex),
+        now: 1_700_000_000_000
+      })
+    )
+    await expect(
+      h.registry.install(paidPlugin, { provenance: 'marketplace', checkLicense })
+    ).rejects.toThrow(/no-license/)
+    expect(checkLicense).toHaveBeenCalledOnce()
+  })
+
+  it('installs a paid plugin when the buyer holds a valid minted license', async () => {
+    const h = createTestPluginHarness()
+    const { publicKeyHex, privateKeyHex } = generateLicenseKeypair()
+    const now = 1_700_000_000_000
+    const token = mintPluginLicense(
+      { pluginId: paidPlugin.id, buyerDid, mode: 'one-time', now },
+      privateKeyFromHex(privateKeyHex)
+    )
+    const checkLicense = vi.fn((manifest) =>
+      checkLicenseFor(token, {
+        pluginId: manifest.id,
+        buyerDid,
+        publicKey: publicKeyFromHex(publicKeyHex),
+        now
+      })
+    )
+    await h.registry.install(paidPlugin, { provenance: 'marketplace', checkLicense })
+    expect(h.registry.get('com.acme.pro')?.status).toBe('active')
+  })
+
+  it('does not run the license check for free plugins', async () => {
+    const h = createTestPluginHarness()
+    const checkLicense = vi.fn(() => ({ ok: true }))
+    const free = defineFeatureModule({ id: 'com.acme.free', name: 'Free', version: '1.0.0' })
+    await h.registry.install(free, { checkLicense })
+    expect(checkLicense).not.toHaveBeenCalled()
+    expect(h.registry.get('com.acme.free')?.status).toBe('active')
   })
 })
 

@@ -1501,6 +1501,9 @@ importers:
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.27
+      '@xnetjs/licenses':
+        specifier: workspace:*
+        version: link:../licenses
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0

@@ -20,7 +20,7 @@ import {
   type InstallProvenance,
   type PluginTrustTier
 } from './ecosystem/provenance-trust'
-import { validateManifest, PluginValidationError } from './manifest'
+import { validateManifest, PluginValidationError, isPaidPricing } from './manifest'
 import { MiddlewareChain } from './middleware'
 import { PluginSchema } from './schemas/plugin'
 
@@ -39,6 +39,18 @@ export interface RegisteredPlugin {
   trustTier?: PluginTrustTier
 }
 
+/**
+ * Result of a paid-plugin license check (exploration 0196). The host wires this
+ * to `@xnetjs/licenses`' `checkLicenseFor`; the plugin package stays free of a
+ * hard dependency on the license verifier.
+ */
+export interface LicenseCheckResult {
+  /** `true` if the buyer holds a valid license for this plugin. */
+  ok: boolean
+  /** Why it failed (`no-license`, `expired`, `bad-signature`, …) — surfaced to UI. */
+  reason?: string
+}
+
 /** Options for {@link PluginRegistry.install} (all optional, back-compatible). */
 export interface InstallOptions {
   /** Where the plugin came from. Drives trust tier + consent. Default `imported`. */
@@ -50,12 +62,29 @@ export interface InstallOptions {
    * plugin actually requests capabilities. Return `false` to abort the install.
    */
   onConsent?: (decision: ConsentDecision) => boolean | Promise<boolean>
+  /**
+   * Paid-license callback (exploration 0196). Called only when the manifest's
+   * `pricing` is non-free. Return `{ ok: false }` to block the install with a
+   * {@link LicenseRequiredError}. Absent ⇒ paid plugins are blocked (fail-closed).
+   */
+  checkLicense?: (manifest: XNetExtension) => LicenseCheckResult | Promise<LicenseCheckResult>
 }
 
 export class PluginError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'PluginError'
+  }
+}
+
+/** Thrown when a paid plugin is installed without a valid license (0196). */
+export class LicenseRequiredError extends PluginError {
+  constructor(
+    public readonly pluginId: string,
+    public readonly reason: string
+  ) {
+    super(`Plugin '${pluginId}' requires a valid license (${reason})`)
+    this.name = 'LicenseRequiredError'
   }
 }
 
@@ -129,6 +158,17 @@ export class PluginRegistry {
       const granted = await options.onConsent(decision)
       if (!granted) {
         throw new PluginError(`Plugin '${manifest.id}' install declined at capability consent`)
+      }
+    }
+
+    // 6.5. Paid-license gate (0196). Fail-closed: a priced plugin with no
+    // license provider wired in is blocked, never silently installed for free.
+    if (isPaidPricing(manifest.pricing)) {
+      const result = options.checkLicense
+        ? await options.checkLicense(manifest)
+        : { ok: false, reason: 'no-license-provider' }
+      if (!result.ok) {
+        throw new LicenseRequiredError(manifest.id, result.reason ?? 'no-license')
       }
     }
 
