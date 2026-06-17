@@ -96,11 +96,15 @@ describe('slack-compat — Tier 1 slash commands', () => {
   const SECRET = 'sign-me'
   const body = 'command=%2Fdeploy&text=web&channel_id=C1'
 
-  function signedHeaders(rawBody: string, secret = SECRET, ts = Math.floor(Date.now() / 1000)) {
+  async function signedHeaders(
+    rawBody: string,
+    secret = SECRET,
+    ts = Math.floor(Date.now() / 1000)
+  ) {
     return {
       'content-type': 'application/x-www-form-urlencoded',
       'x-slack-request-timestamp': String(ts),
-      'x-slack-signature': signSlackRequest({ signingSecret: secret, timestamp: ts, rawBody })
+      'x-slack-signature': await signSlackRequest({ signingSecret: secret, timestamp: ts, rawBody })
     }
   }
 
@@ -112,7 +116,7 @@ describe('slack-compat — Tier 1 slash commands', () => {
     const app = mount(basePorts({ handleCommand }), { SLACK_SIGNING_SECRET: SECRET })
     const res = await app.request('/slack/commands', {
       method: 'POST',
-      headers: signedHeaders(body),
+      headers: await signedHeaders(body),
       body
     })
     expect(res.status).toBe(200)
@@ -126,7 +130,7 @@ describe('slack-compat — Tier 1 slash commands', () => {
     const app = mount(basePorts(), { SLACK_SIGNING_SECRET: SECRET })
     const res = await app.request('/slack/commands', {
       method: 'POST',
-      headers: signedHeaders(body),
+      headers: await signedHeaders(body),
       body
     })
     const json = (await res.json()) as { response_type: string; text: string }
@@ -139,7 +143,7 @@ describe('slack-compat — Tier 1 slash commands', () => {
     const app = mount(basePorts({ handleCommand }), { SLACK_SIGNING_SECRET: SECRET })
     const res = await app.request('/slack/commands', {
       method: 'POST',
-      headers: signedHeaders(body, 'wrong-secret'),
+      headers: await signedHeaders(body, 'wrong-secret'),
       body
     })
     expect(res.status).toBe(401)
@@ -150,7 +154,7 @@ describe('slack-compat — Tier 1 slash commands', () => {
     const app = mount(basePorts(), {})
     const res = await app.request('/slack/commands', {
       method: 'POST',
-      headers: signedHeaders(body),
+      headers: await signedHeaders(body),
       body
     })
     expect(res.status).toBe(503)

@@ -7,30 +7,52 @@
  * the same scheme so an integration written against Slack verifies unchanged,
  * and we verify *inbound* deliveries the same way the GitHub webhook does
  * (`packages/hub/src/services/github-integration.ts`).
+ *
+ * Implemented over the **Web Crypto API** (`crypto.subtle`), not `node:crypto`,
+ * so the package stays isomorphic — it's pulled into the browser/renderer bundle
+ * via the plugins connector, where a `node:crypto` import would break the build.
+ * `crypto.subtle` is a global in Node 20+ and every browser. The HMAC is async
+ * as a result.
  */
-
-import { createHmac, timingSafeEqual } from 'node:crypto'
 
 /** Default replay window: reject deliveries whose timestamp is >5 minutes off. */
 export const DEFAULT_TOLERANCE_SECONDS = 300
 
+/** HMAC-SHA256 of `message` under `secret`, hex-encoded (Web Crypto). */
+async function hmacSha256Hex(secret: string, message: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message))
+  return Array.from(new Uint8Array(signature))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
 /** Compute the `v0=...` signature for a request body (used to verify and to sign). */
-export function signSlackRequest(options: {
+export async function signSlackRequest(options: {
   signingSecret: string
   timestamp: string | number
   rawBody: string
-}): string {
-  const base = `v0:${options.timestamp}:${options.rawBody}`
-  const digest = createHmac('sha256', options.signingSecret).update(base).digest('hex')
+}): Promise<string> {
+  const digest = await hmacSha256Hex(
+    options.signingSecret,
+    `v0:${options.timestamp}:${options.rawBody}`
+  )
   return `v0=${digest}`
 }
 
-/** Constant-time string compare that tolerates length mismatch without throwing. */
+/** Constant-time string compare that tolerates length mismatch without leaking it. */
 function safeEqual(a: string, b: string): boolean {
-  const bufA = Buffer.from(a)
-  const bufB = Buffer.from(b)
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
 }
 
 /**
@@ -38,7 +60,7 @@ function safeEqual(a: string, b: string): boolean {
  * missing/blank secret, missing headers, a stale timestamp (replay), or a
  * signature mismatch.
  */
-export function verifySlackSignature(options: {
+export async function verifySlackSignature(options: {
   signingSecret: string | undefined
   timestamp: string | undefined
   signature: string | undefined
@@ -47,7 +69,7 @@ export function verifySlackSignature(options: {
   toleranceSeconds?: number
   /** Current time in seconds since epoch (injectable for tests). */
   nowSeconds?: number
-}): boolean {
+}): Promise<boolean> {
   const { signingSecret, timestamp, signature, rawBody } = options
   if (!signingSecret || !timestamp || !signature) return false
 
@@ -57,6 +79,6 @@ export function verifySlackSignature(options: {
   const tolerance = options.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS
   if (Math.abs(now - ts) > tolerance) return false
 
-  const expected = signSlackRequest({ signingSecret, timestamp, rawBody })
+  const expected = await signSlackRequest({ signingSecret, timestamp, rawBody })
   return safeEqual(expected, signature)
 }

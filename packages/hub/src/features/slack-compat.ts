@@ -91,7 +91,7 @@ export function slackCompatFeature(ports: SlackCompatPorts): HubFeature {
           )
         }
         const rawBody = await c.req.text()
-        const ok = verifySlackSignature({
+        const ok = await verifySlackSignature({
           signingSecret: secret,
           timestamp: c.req.header('x-slack-request-timestamp'),
           signature: c.req.header('x-slack-signature'),
