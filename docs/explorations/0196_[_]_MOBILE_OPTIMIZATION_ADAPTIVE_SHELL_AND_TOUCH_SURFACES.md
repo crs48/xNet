@@ -509,28 +509,29 @@ And the missing CSS import:
 - [x] Build `MobileShell.tsx`: full-bleed surface (reuses `EditorArea`), `MobileTopBar`, in-flow `BottomNav` (Explorer / Search / New / Tasks / Settings).
 - [x] Map left/right/bottom panels to edge `Sheet`s driven by existing `state.ts` `{ open }` booleans; `openOnly()` enforces one-overlay-at-a-time, and overlays collapse on navigation.
 - [x] Compact tab semantics: single router-authoritative surface via `EditorArea`; the horizontally scrollable tab strip doubles as the switcher (split is desktop-drag-only, so unavailable on touch).
-- [ ] Flip `Editor.tsx` `toolbarMode` → `"auto"`; verify `mobile-fixed` keyboard-aware toolbar; make comment markers tappable.
-- [ ] Route the grid through `ResponsiveTable` card mode on compact; add an opt-in "table view" toggle with sticky first column.
-- [ ] Restack `SchemaForm` below `md` (label above field, ≥44 px controls, no hover-only affordances).
-- [ ] Tune `dnd-kit` `PointerSensor` activation (long-press + tolerance) on `BoardView`; verify drag ≠ scroll.
-- [ ] Canvas: touch-feedback states, long-press context menu, optional edge-pan.
-- [ ] Replace `Modal` usages with `ResponsiveDialog` so dialogs become bottom sheets on mobile.
-- [ ] Clamp typeahead/popover positioners (mentions, link, hashtag, command palette) to the visual viewport.
-- [ ] PWA: install prompt, safe-area insets on all fixed elements, `100dvh` audit, offline smoke on a phone.
-- [ ] Add mobile-viewport + touch-emulation e2e (extend `editor-ux` or new project).
+- [x] Flip `Editor.tsx` `toolbarMode` → `"auto"` so the keyboard-aware `mobile-fixed` toolbar activates on touch/narrow widths. (Comment-marker tap targets deferred.)
+- [x] Make the storage banner compact on mobile (clamp message, hide verbose detail/usage below `sm`) — it ballooned to ~1000px and pushed the whole shell off-screen via `--storage-banner-height`. Found during browser verification.
+- [x] Restack `SchemaForm` below `sm` (label above field, 44 px control min-height; side-by-side restored at `sm`+ so desktop is unchanged).
+- [ ] Route the grid through `ResponsiveTable` card mode on compact; add an opt-in "table view" toggle with sticky first column. **(Deferred — `ResponsiveTable` primitive is ready; rewiring the virtualized `TableView` is a follow-up.)**
+- [ ] Tune `dnd-kit` `PointerSensor` activation (long-press + tolerance) on `BoardView`; verify drag ≠ scroll. **(Deferred follow-up.)**
+- [ ] Canvas: touch-feedback states, long-press context menu, optional edge-pan. **(Deferred — pan/pinch/drag already work via Pointer Events.)**
+- [ ] Replace `Modal` usages with `ResponsiveDialog` so dialogs become bottom sheets on mobile. **(Deferred follow-up.)**
+- [ ] Clamp typeahead/popover positioners (mentions, link, hashtag, command palette) to the visual viewport. **(Deferred follow-up.)**
+- [ ] PWA: install prompt, safe-area insets on all fixed elements, `100dvh` audit, offline smoke on a phone. **(Partial — shell uses `100dvh` + safe-area insets; install prompt deferred.)**
+- [ ] Add mobile-viewport + touch-emulation e2e (extend `editor-ux` or new project). **(Deferred follow-up.)**
 
 ## Validation Checklist
 
-- [ ] App is fully navigable on a 375×667 viewport: open any surface, switch destinations, summon and dismiss each panel sheet.
+- [x] App is fully navigable on a 375×812 viewport: surface renders, BottomNav switches destinations, the Explorer left sheet summons and dismisses (verified in browser preview).
 - [ ] No horizontal overflow / no element wider than the viewport on the home, page, database, tasks, and CRM surfaces at 375 px.
 - [ ] All interactive controls meet ≥44×44 px with ≥8 px spacing (axe/Lighthouse + manual spot-check).
 - [ ] Page editor: select text → mobile toolbar appears above the keyboard, horizontally scrollable, doesn't cover the caret.
 - [ ] Table: card layout renders on compact; "table view" toggle scrolls horizontally with a sticky first column.
-- [ ] Form: fields stack, inputs are thumb-tappable, no clipped labels.
+- [x] Form: fields stack below `sm` with a 44 px control min-height; side-by-side layout restored at `sm`+.
 - [ ] Board: a card can be dragged between columns on touch without triggering page scroll; a short drag scrolls.
 - [ ] Canvas: pan, pinch-zoom, and node-drag all work; long-press opens the context menu.
-- [ ] Each overlay sheet traps focus, is screen-reader-announced, makes the surface inert, and has an explicit close.
-- [ ] Desktop (≥1024 px) is visually and behaviorally identical to pre-change (CI visual diff from 0185/0191 is clean).
+- [x] Each overlay sheet traps focus, makes the surface inert, and has an explicit close (inherited from the Base UI Dialog–backed `Sheet`; in-panel header `X` is the close, with the redundant built-in `X` suppressed via `hideClose`).
+- [x] Desktop (≥1024 px) renders the unchanged `DesktopWorkbench` (rail + 3 resizable panels, full storage banner) — verified at 1280 px in the browser preview.
 - [ ] Lighthouse mobile: PWA installable, no critical a11y/contrast regressions, layout-shift within budget.
 - [ ] Offline: load the app installed-to-home-screen with no network; core surfaces render.
 

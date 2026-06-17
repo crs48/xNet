@@ -170,6 +170,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
   const right = useWorkbench((state) => state.right)
   const bottom = useWorkbench((state) => state.bottom)
   const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
+  const showPanelView = useWorkbench((state) => state.showPanelView)
   const activeTab = useWorkbench(selectActiveTab)
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -191,6 +192,16 @@ export function MobileShell({ children }: { children: ReactNode }) {
     setPanelOpen('bottom', side === 'bottom')
   }
 
+  // The menu / Explorer nav always summons the Explorer view (not whatever
+  // the shared desktop left panel last showed), and toggles closed if the
+  // Explorer is already showing.
+  const toggleExplorer = () => {
+    setPanelOpen('right', false)
+    setPanelOpen('bottom', false)
+    showPanelView('left', 'explorer')
+  }
+  const explorerOpen = left.open && left.activeViewId === 'explorer'
+
   const title = activeTab?.title?.trim() || 'xNet'
   const hasContext = activeTab != null
 
@@ -198,8 +209,8 @@ export function MobileShell({ children }: { children: ReactNode }) {
     {
       label: 'Explorer',
       icon: Files,
-      active: left.open,
-      onClick: () => (left.open ? setPanelOpen('left', false) : openOnly('left'))
+      active: explorerOpen,
+      onClick: toggleExplorer
     },
     {
       label: 'Search',
@@ -235,7 +246,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
         title={title}
         hasContext={hasContext}
         contextOpen={right.open}
-        onMenu={() => (left.open ? setPanelOpen('left', false) : openOnly('left'))}
+        onMenu={toggleExplorer}
         onContext={() => (right.open ? setPanelOpen('right', false) : openOnly('right'))}
       />
 
