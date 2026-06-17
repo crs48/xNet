@@ -296,6 +296,29 @@ export {
   type GroupAggregates
 } from './group-engine'
 
+// Summary engine (footer aggregations)
+export {
+  SUMMARY_FUNCTIONS_BY_TYPE,
+  summaryFunctionLabel,
+  isFilledValue,
+  computeColumnSummary,
+  type SummaryFunction,
+  type SummaryRow,
+  type SummaryColumnLike,
+  type ColumnSummaryResult
+} from './summary-engine'
+
+// Row-height density tiers
+export {
+  ROW_HEIGHT_PX,
+  ROW_HEIGHTS,
+  DEFAULT_ROW_HEIGHT,
+  rowHeightLabel,
+  resolveRowHeightPx,
+  asRowHeight,
+  type RowHeight
+} from './row-height'
+
 // Query pipeline
 export {
   executeQuery,
