@@ -13,6 +13,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, relation } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const DatabaseSelectOptionSchema = defineSchema({
   name: 'DatabaseSelectOption',
@@ -41,7 +42,9 @@ export const DatabaseSelectOptionSchema = defineSchema({
 
     /** Fractional index for option ordering in pickers */
     sortKey: text({ required: true })
-  }
+  },
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('database')
 })
 
 /**
