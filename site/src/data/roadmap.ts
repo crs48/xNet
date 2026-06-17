@@ -52,6 +52,7 @@ export const phases: RoadmapPhase[] = [
       'Polished desktop experience',
       'Workspace invites & sharing flows',
       'Sharing UI (useCan / useGrants in app)',
+      'Managed hub hosting — xNet Cloud (signup, pricing, connect-your-hub)',
       'Push notification delivery (Web Push, Electron, mobile)',
       'Query API improvements'
     ]
