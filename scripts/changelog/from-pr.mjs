@@ -12,12 +12,9 @@
  */
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { KNOWN_TAGS, cleanTags, extractChangelogBlock, parseChangelogBlock } from './lib.mjs'
 
 const DIR = 'site/src/data/changelog'
-const KNOWN_TAGS = new Set([
-  'app', 'crm', 'finance', 'tasks', 'ai', 'plugins', 'editor',
-  'sync', 'identity', 'platform', 'performance', 'devtools', 'ci'
-])
 const MODEL = process.env.CHANGELOG_MODEL || 'claude-haiku-4-5'
 
 function out(key, value) {
@@ -28,43 +25,6 @@ function out(key, value) {
 function monthLabel(iso) {
   const d = iso ? new Date(iso) : new Date()
   return d.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-}
-
-/** Pull the text under a `## Changelog` heading, up to the next heading. */
-function extractBlock(body) {
-  if (!body) return ''
-  const lines = body.split(/\r?\n/)
-  const start = lines.findIndex((l) => /^#{1,4}\s*changelog\s*$/i.test(l.trim()))
-  if (start === -1) return ''
-  const rest = []
-  for (let i = start + 1; i < lines.length; i++) {
-    if (/^#{1,4}\s+\S/.test(lines[i])) break
-    rest.push(lines[i])
-  }
-  return rest.join('\n').replace(/<!--[\s\S]*?-->/g, '').trim()
-}
-
-function cleanTags(raw) {
-  const tags = (raw || []).map((t) => String(t).trim().toLowerCase()).filter((t) => KNOWN_TAGS.has(t))
-  return tags.length ? [...new Set(tags)] : ['app']
-}
-
-/** Parse the block: first line = title, `-`/`*` lines = highlights, `tags:` line = tags, rest = summary. */
-function parseProse(block, fallbackTitle) {
-  const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
-  let title = ''
-  const summary = []
-  const highlights = []
-  let tags = []
-  for (const line of lines) {
-    const tagsMatch = line.match(/^tags?:\s*(.+)$/i)
-    if (tagsMatch) { tags = tagsMatch[1].split(','); continue }
-    if (/^[-*]\s+/.test(line)) { highlights.push(line.replace(/^[-*]\s+/, '')); continue }
-    if (!title) { title = line; continue }
-    summary.push(line)
-  }
-  title = title || fallbackTitle || ''
-  return { title, summary: summary.join(' ') || title, highlights, tags: cleanTags(tags) }
 }
 
 /** Ask Claude for a structured entry. Fail-open: returns null on any error. */
@@ -115,8 +75,8 @@ async function main() {
     return out('written', 'false')
   }
 
-  const block = extractBlock(process.env.PR_BODY)
-  let parsed = block ? parseProse(block, process.env.PR_TITLE) : null
+  const block = extractChangelogBlock(process.env.PR_BODY)
+  let parsed = block ? parseChangelogBlock(block, process.env.PR_TITLE) : null
   if (!parsed || !parsed.summary) parsed = await aiDraft(process.env.PR_TITLE, process.env.PR_BODY)
   if (!parsed || !parsed.title || !parsed.summary) {
     console.log('no changelog block and no AI draft — nothing written')
