@@ -1,0 +1,19 @@
+{
+  "id": "2026-06-14",
+  "date": "June 2026",
+  "title": "Plugin ecosystem: scaffolding, marketplace & trust",
+  "summary": "Building and sharing plugins is now first-class. A scaffolder gets you from zero to a working plugin in seconds, and an enforceable capability model keeps installs safe.",
+  "highlights": [
+    "xnet plugin scaffold command and an AI \"script → plugin\" path",
+    "Capability enforcement, semver compatibility gates and inter-plugin dependencies",
+    "A searchable marketplace index with install-consent prompts"
+  ],
+  "tags": [
+    "plugins",
+    "platform"
+  ],
+  "author": {
+    "login": "crs48"
+  },
+  "pr": 142
+}

@@ -1,0 +1,19 @@
+{
+  "id": "2026-06-11",
+  "date": "June 2026",
+  "title": "xNet AI chat panel works out of the box",
+  "summary": "The in-app AI assistant is wired up end-to-end — the chat panel now connects, picks a sensible model tier automatically, and reports errors honestly.",
+  "highlights": [
+    "Fixed the connection so the assistant responds on a fresh install",
+    "Automatic model-tier selection with a clear status badge",
+    "Tier preference persists between sessions"
+  ],
+  "tags": [
+    "ai",
+    "app"
+  ],
+  "author": {
+    "login": "crs48"
+  },
+  "pr": 137
+}

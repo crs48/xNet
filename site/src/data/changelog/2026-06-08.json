@@ -1,0 +1,23 @@
+{
+  "id": "2026-06-08",
+  "date": "June 2026",
+  "title": "Cohesive, feature-complete domain apps",
+  "summary": "CRM, accounting, tasks, experiments and spaces are now fully editable and consistent. Open any record to see every field, with bespoke views where they help.",
+  "highlights": [
+    "Full CRM: contacts, deals, organizations, forecast lanes, quotes and de-dup merge",
+    "Finance: account and transaction inspectors, reports tab and budgeting",
+    "Tasks: project detail headers and milestone management",
+    "A shared inspector substrate (NodePeek + SchemaForm) across every domain"
+  ],
+  "tags": [
+    "crm",
+    "finance",
+    "tasks",
+    "app"
+  ],
+  "hero": {
+    "src": "/images/workbench-light.png",
+    "alt": "Domain workspace in xNet"
+  },
+  "pr": 123
+}

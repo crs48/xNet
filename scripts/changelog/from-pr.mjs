@@ -1,0 +1,143 @@
+#!/usr/bin/env node
+/**
+ * Build a changelog fragment from a merged PR (exploration 0197). Run by
+ * .github/workflows/changelog.yml on `pull_request: closed`. Reads PR metadata
+ * from the environment, writes site/src/data/changelog/<date>-pr<N>.json, and
+ * reports `written=true|false` via $GITHUB_OUTPUT.
+ *
+ * Content comes from a `## Changelog` block in the PR body; if absent and
+ * ANTHROPIC_API_KEY is set, it is drafted by Claude. Authoritative metadata
+ * (id, date, pr, author) is stamped here from the event payload, never guessed
+ * by the author. Idempotent: a fragment that already exists is left untouched.
+ */
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const DIR = 'site/src/data/changelog'
+const KNOWN_TAGS = new Set([
+  'app', 'crm', 'finance', 'tasks', 'ai', 'plugins', 'editor',
+  'sync', 'identity', 'platform', 'performance', 'devtools', 'ci'
+])
+const MODEL = process.env.CHANGELOG_MODEL || 'claude-haiku-4-5'
+
+function out(key, value) {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`)
+  else console.log(`${key}=${value}`)
+}
+
+function monthLabel(iso) {
+  const d = iso ? new Date(iso) : new Date()
+  return d.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+}
+
+/** Pull the text under a `## Changelog` heading, up to the next heading. */
+function extractBlock(body) {
+  if (!body) return ''
+  const lines = body.split(/\r?\n/)
+  const start = lines.findIndex((l) => /^#{1,4}\s*changelog\s*$/i.test(l.trim()))
+  if (start === -1) return ''
+  const rest = []
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^#{1,4}\s+\S/.test(lines[i])) break
+    rest.push(lines[i])
+  }
+  return rest.join('\n').replace(/<!--[\s\S]*?-->/g, '').trim()
+}
+
+function cleanTags(raw) {
+  const tags = (raw || []).map((t) => String(t).trim().toLowerCase()).filter((t) => KNOWN_TAGS.has(t))
+  return tags.length ? [...new Set(tags)] : ['app']
+}
+
+/** Parse the block: first line = title, `-`/`*` lines = highlights, `tags:` line = tags, rest = summary. */
+function parseProse(block, fallbackTitle) {
+  const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  let title = ''
+  const summary = []
+  const highlights = []
+  let tags = []
+  for (const line of lines) {
+    const tagsMatch = line.match(/^tags?:\s*(.+)$/i)
+    if (tagsMatch) { tags = tagsMatch[1].split(','); continue }
+    if (/^[-*]\s+/.test(line)) { highlights.push(line.replace(/^[-*]\s+/, '')); continue }
+    if (!title) { title = line; continue }
+    summary.push(line)
+  }
+  title = title || fallbackTitle || ''
+  return { title, summary: summary.join(' ') || title, highlights, tags: cleanTags(tags) }
+}
+
+/** Ask Claude for a structured entry. Fail-open: returns null on any error. */
+async function aiDraft(prTitle, prBody) {
+  const key = process.env.ANTHROPIC_API_KEY
+  if (!key) return null
+  const system =
+    'You write one xNet changelog entry for end users from a merged PR. Reply with ONLY a JSON object: ' +
+    '{"title": string, "summary": string (one benefit-focused sentence), "highlights": string[] (0-4 user-visible points), ' +
+    `"tags": string[] (from: ${[...KNOWN_TAGS].join(', ')})}. ` +
+    'No commit jargon. If the PR is purely internal, reply {"skip": true}.'
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 500,
+        system,
+        messages: [{ role: 'user', content: `Title: ${prTitle}\n\nBody:\n${(prBody || '').slice(0, 6000)}` }]
+      })
+    })
+    if (!res.ok) return null
+    const json = await res.json()
+    const text = json?.content?.find((b) => b.type === 'text')?.text ?? ''
+    const obj = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1))
+    if (obj.skip || !obj.title) return null
+    return {
+      title: String(obj.title),
+      summary: String(obj.summary || obj.title),
+      highlights: Array.isArray(obj.highlights) ? obj.highlights.map(String) : [],
+      tags: cleanTags(obj.tags)
+    }
+  } catch {
+    return null
+  }
+}
+
+async function main() {
+  const pr = Number(process.env.PR_NUMBER)
+  if (!pr) return out('written', 'false')
+
+  const date = (process.env.MERGED_AT || new Date().toISOString()).slice(0, 10)
+  const id = `${date}-pr${pr}`
+  const file = join(DIR, `${id}.json`)
+  if (existsSync(file)) {
+    console.log(`changelog fragment ${id} already exists — skipping`)
+    return out('written', 'false')
+  }
+
+  const block = extractBlock(process.env.PR_BODY)
+  let parsed = block ? parseProse(block, process.env.PR_TITLE) : null
+  if (!parsed || !parsed.summary) parsed = await aiDraft(process.env.PR_TITLE, process.env.PR_BODY)
+  if (!parsed || !parsed.title || !parsed.summary) {
+    console.log('no changelog block and no AI draft — nothing written')
+    return out('written', 'false')
+  }
+
+  mkdirSync(DIR, { recursive: true })
+  const entry = {
+    id,
+    date: monthLabel(process.env.MERGED_AT),
+    title: parsed.title,
+    summary: parsed.summary,
+    highlights: parsed.highlights,
+    tags: parsed.tags,
+    author: { login: process.env.PR_AUTHOR || 'github' },
+    pr
+  }
+  writeFileSync(file, JSON.stringify(entry, null, 2) + '\n')
+  console.log(`wrote ${file}`)
+  out('written', 'true')
+  out('id', id)
+}
+
+await main()

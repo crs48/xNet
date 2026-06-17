@@ -1,0 +1,37 @@
+{
+  "id": "2026-06-17",
+  "date": "June 17, 2026",
+  "title": "Automated changelog & in-app \"What’s New\"",
+  "summary": "xNet now keeps a changelog you can actually read. Every release is summarized here, on the website, and inside the app — so you always know what changed when a new version lands.",
+  "highlights": [
+    "A public changelog page with a JSON and RSS feed you can subscribe to",
+    "An in-app \"What’s New\" panel that flags updates since your last visit",
+    "Release notes on the desktop app are now written in plain language, not raw commit logs",
+    "UI screenshots captured by CI can be embedded directly in changelog entries"
+  ],
+  "tags": [
+    "app",
+    "platform",
+    "ci"
+  ],
+  "hero": {
+    "src": "/images/workbench-dark.png",
+    "alt": "The xNet workbench"
+  },
+  "images": [
+    {
+      "src": "https://xnet.fyi/visuals/pr/147/routes/home.png",
+      "alt": "The xNet home view",
+      "caption": "Home — captured by CI"
+    },
+    {
+      "src": "/images/workbench-light.png",
+      "alt": "The xNet workbench in light mode",
+      "caption": "Workbench (light)"
+    }
+  ],
+  "author": {
+    "login": "crs48"
+  },
+  "pr": 147
+}
