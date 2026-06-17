@@ -15,15 +15,19 @@ import {
   type ColumnDefinition,
   type FieldType,
   type FilterGroup,
+  type RowHeight,
   type SortConfig,
+  type SummaryFunction,
   convertCellValue,
   filterRows,
+  resolveRowHeightPx,
   sortRows
 } from '@xnetjs/data'
 import { useCallback, useMemo, useState, type ReactElement } from 'react'
 import { GridFieldMenu } from './GridFieldMenu'
 import { GridPeek } from './GridPeek'
 import { GridSkeleton } from './GridSkeleton'
+import { GridSummaryBar } from './GridSummaryBar'
 import { GridSurface } from './GridSurface'
 import { GridToolbar } from './GridToolbar'
 
@@ -45,6 +49,7 @@ const nextId = (prefix: string): string => `${prefix}-${++idCounter}`
 interface DemoSeed {
   fields: GridField[]
   rows: GridRowData[]
+  summaries?: Record<string, SummaryFunction>
 }
 
 interface DemoGridProps {
@@ -77,6 +82,8 @@ function DemoGrid({
   const [search, setSearch] = useState('')
   const [peekRowId, setPeekRowId] = useState<string | null>(null)
   const [fieldMenu, setFieldMenu] = useState<{ fieldId: string; anchor: HTMLElement } | null>(null)
+  const [rowHeight, setRowHeight] = useState<RowHeight>('short')
+  const [summaries, setSummaries] = useState<Record<string, SummaryFunction>>(seed.summaries ?? {})
 
   const visibleFields = useMemo(
     () => fields.filter((f) => !hidden.includes(f.id)),
@@ -213,6 +220,8 @@ function DemoGrid({
           onClearSorts={() => setSorts([])}
           filters={filters}
           onChangeFilters={setFilters}
+          rowHeight={rowHeight}
+          onChangeRowHeight={setRowHeight}
           search={search}
           onSearchChange={setSearch}
           rowCount={viewRows.length}
@@ -220,72 +229,90 @@ function DemoGrid({
       )}
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          <GridSurface
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <GridSurface
+              fields={visibleFields}
+              rows={viewRows}
+              rowHeight={resolveRowHeightPx(rowHeight)}
+              sorts={sorts}
+              readOnly={readOnly}
+              presences={presences}
+              cellCommentCounts={cellCommentCounts}
+              onUpdateCell={updateCell}
+              onClearCells={(cells) =>
+                cells.forEach(({ rowId, fieldId }) => updateCell(rowId, fieldId, null))
+              }
+              onAddRow={() => setRows((prev) => [...prev, { id: nextId('row'), cells: {} }])}
+              onAddRowWithCells={
+                withGhost
+                  ? (cells) => setRows((prev) => [...prev, { id: nextId('row'), cells }])
+                  : undefined
+              }
+              onAddFieldWithCell={
+                withGhost
+                  ? (rowId, value) => {
+                      const field: GridField = {
+                        id: nextId('field'),
+                        name: `Column ${fields.length + 1}`,
+                        type: 'text',
+                        config: {},
+                        width: 140
+                      }
+                      setFields((prev) => [...prev, field])
+                      updateCell(rowId, field.id, value)
+                    }
+                  : undefined
+              }
+              onDeleteRows={(rowIds) =>
+                setRows((prev) => prev.filter((r) => !rowIds.includes(r.id)))
+              }
+              onMoveRow={(rowId, targetIndex) =>
+                setRows((prev) => {
+                  const next = prev.filter((r) => r.id !== rowId)
+                  const moved = prev.find((r) => r.id === rowId)
+                  if (moved) next.splice(targetIndex, 0, moved)
+                  return next
+                })
+              }
+              onMoveField={(fieldId, targetIndex) =>
+                setFields((prev) => {
+                  const next = prev.filter((f) => f.id !== fieldId)
+                  const moved = prev.find((f) => f.id === fieldId)
+                  if (moved) next.splice(targetIndex, 0, moved)
+                  return next
+                })
+              }
+              onResizeField={(fieldId, width) =>
+                setFields((prev) => prev.map((f) => (f.id === fieldId ? { ...f, width } : f)))
+              }
+              onToggleSort={(fieldId) =>
+                setSorts((prev) => {
+                  const current = prev.find((s) => s.columnId === fieldId)
+                  if (!current) return [{ columnId: fieldId, direction: 'asc' }]
+                  if (current.direction === 'asc') return [{ columnId: fieldId, direction: 'desc' }]
+                  return []
+                })
+              }
+              onCreateOption={createOption}
+              onResolveFileUrl={resolveFileUrl as never}
+              onOpenRow={withPeek ? setPeekRowId : undefined}
+              onFieldMenu={
+                readOnly ? undefined : (fieldId, anchor) => setFieldMenu({ fieldId, anchor })
+              }
+            />
+          </div>
+          <GridSummaryBar
             fields={visibleFields}
             rows={viewRows}
-            sorts={sorts}
-            readOnly={readOnly}
-            presences={presences}
-            cellCommentCounts={cellCommentCounts}
-            onUpdateCell={updateCell}
-            onClearCells={(cells) =>
-              cells.forEach(({ rowId, fieldId }) => updateCell(rowId, fieldId, null))
-            }
-            onAddRow={() => setRows((prev) => [...prev, { id: nextId('row'), cells: {} }])}
-            onAddRowWithCells={
-              withGhost
-                ? (cells) => setRows((prev) => [...prev, { id: nextId('row'), cells }])
-                : undefined
-            }
-            onAddFieldWithCell={
-              withGhost
-                ? (rowId, value) => {
-                    const field: GridField = {
-                      id: nextId('field'),
-                      name: `Column ${fields.length + 1}`,
-                      type: 'text',
-                      config: {},
-                      width: 140
-                    }
-                    setFields((prev) => [...prev, field])
-                    updateCell(rowId, field.id, value)
-                  }
-                : undefined
-            }
-            onDeleteRows={(rowIds) => setRows((prev) => prev.filter((r) => !rowIds.includes(r.id)))}
-            onMoveRow={(rowId, targetIndex) =>
-              setRows((prev) => {
-                const next = prev.filter((r) => r.id !== rowId)
-                const moved = prev.find((r) => r.id === rowId)
-                if (moved) next.splice(targetIndex, 0, moved)
+            summaries={summaries}
+            onChangeSummary={(fieldId, fn) =>
+              setSummaries((prev) => {
+                const next = { ...prev }
+                if (fn === 'none') delete next[fieldId]
+                else next[fieldId] = fn
                 return next
               })
-            }
-            onMoveField={(fieldId, targetIndex) =>
-              setFields((prev) => {
-                const next = prev.filter((f) => f.id !== fieldId)
-                const moved = prev.find((f) => f.id === fieldId)
-                if (moved) next.splice(targetIndex, 0, moved)
-                return next
-              })
-            }
-            onResizeField={(fieldId, width) =>
-              setFields((prev) => prev.map((f) => (f.id === fieldId ? { ...f, width } : f)))
-            }
-            onToggleSort={(fieldId) =>
-              setSorts((prev) => {
-                const current = prev.find((s) => s.columnId === fieldId)
-                if (!current) return [{ columnId: fieldId, direction: 'asc' }]
-                if (current.direction === 'asc') return [{ columnId: fieldId, direction: 'desc' }]
-                return []
-              })
-            }
-            onCreateOption={createOption}
-            onResolveFileUrl={resolveFileUrl as never}
-            onOpenRow={withPeek ? setPeekRowId : undefined}
-            onFieldMenu={
-              readOnly ? undefined : (fieldId, anchor) => setFieldMenu({ fieldId, anchor })
             }
           />
         </div>
@@ -401,9 +428,10 @@ const TASK_ROWS: GridRowData[] = [
   }
 ]
 
-const clone = (): { fields: GridField[]; rows: GridRowData[] } => ({
+const clone = (): DemoSeed => ({
   fields: TASK_FIELDS.map((f) => ({ ...f, options: f.options?.map((o) => ({ ...o })) })),
-  rows: TASK_ROWS.map((r) => ({ ...r, cells: { ...r.cells } }))
+  rows: TASK_ROWS.map((r) => ({ ...r, cells: { ...r.cells } })),
+  summaries: { points: 'sum', status: 'filled', shipped: 'percentChecked' }
 })
 
 // An inline SVG so image cells need no network
