@@ -146,6 +146,52 @@ describe('createStripeProvider.createCheckout', () => {
     expect(body).toContain('line_items%5B0%5D%5Bprice%5D=price_pro')
   })
 
+  it('routes a subscription to a connected account with an application fee percent', async () => {
+    const fetchImpl = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: 'cs_2', url: 'https://checkout/y' }), { status: 200 })
+    )
+    const provider = createStripeProvider({
+      secretKey: 'sk_test',
+      webhookSecret: 'whsec',
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    })
+    await provider.createCheckout({
+      did: 'did:key:alice',
+      priceRef: 'price_pro',
+      mode: 'subscription',
+      successUrl: 'https://app/ok',
+      cancelUrl: 'https://app/cancel',
+      connect: { destination: 'acct_seller', feePercent: 10 }
+    })
+    const body = String((fetchImpl.mock.calls[0][1] as RequestInit).body)
+    expect(body).toContain('subscription_data%5Btransfer_data%5D%5Bdestination%5D=acct_seller')
+    expect(body).toContain('subscription_data%5Bapplication_fee_percent%5D=10')
+  })
+
+  it('routes a one-time payment to a connected account with an application fee amount', async () => {
+    const fetchImpl = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ id: 'cs_3', url: 'https://checkout/z' }), { status: 200 })
+    )
+    const provider = createStripeProvider({
+      secretKey: 'sk_test',
+      webhookSecret: 'whsec',
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    })
+    await provider.createCheckout({
+      did: 'did:key:alice',
+      priceRef: 'price_once',
+      mode: 'payment',
+      successUrl: 'https://app/ok',
+      cancelUrl: 'https://app/cancel',
+      connect: { destination: 'acct_seller', feeMinor: 100 }
+    })
+    const body = String((fetchImpl.mock.calls[0][1] as RequestInit).body)
+    expect(body).toContain('payment_intent_data%5Btransfer_data%5D%5Bdestination%5D=acct_seller')
+    expect(body).toContain('payment_intent_data%5Bapplication_fee_amount%5D=100')
+  })
+
   it('throws when Stripe returns an error status', async () => {
     const fetchImpl = vi.fn(
       async (_url: string | URL | Request, _init?: RequestInit) =>

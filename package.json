@@ -12,6 +12,7 @@
     "dev:stories": "storybook dev --ci --no-open --host 127.0.0.1 --port 6006",
     "test": "pnpm --filter xnet-desktop run deps:node && vitest run",
     "check:cloud-boundary": "bash scripts/check-cloud-boundary.sh",
+    "check:plugin-licenses": "node scripts/check-plugin-licenses.mjs",
     "test:editor": "pnpm --filter @xnetjs/editor test",
     "test:stories": "storybook test --url http://127.0.0.1:6006",
     "test:watch": "vitest",

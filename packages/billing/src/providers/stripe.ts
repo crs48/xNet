@@ -7,7 +7,13 @@
  * dependency-free. The secret key is used only here, server-side.
  */
 
-import type { CheckoutRequest, CheckoutSession, PaymentProvider, PortalRequest } from '../provider'
+import type {
+  CheckoutRequest,
+  CheckoutSession,
+  ConnectCharge,
+  PaymentProvider,
+  PortalRequest
+} from '../provider'
 import type {
   BillingMutation,
   InvoiceStatus,
@@ -184,6 +190,28 @@ export function normalizeStripeEvent(event: ProviderEvent, now: number): Billing
   return STRIPE_NORMALIZERS[event.type]?.(asObj(event.data), event.data, now) ?? []
 }
 
+/**
+ * Add Connect destination + application-fee fields to a checkout form. Uses
+ * destination charges (`transfer_data[destination]`): the charge is made on the
+ * platform account and the seller's cut is transferred to their connected
+ * account, with the platform keeping the application fee.
+ */
+function applyConnect(
+  form: URLSearchParams,
+  mode: CheckoutRequest['mode'],
+  connect: ConnectCharge
+): void {
+  const root = mode === 'subscription' ? 'subscription_data' : 'payment_intent_data'
+  form.set(`${root}[transfer_data][destination]`, connect.destination)
+  if (mode === 'subscription') {
+    if (connect.feePercent !== undefined) {
+      form.set('subscription_data[application_fee_percent]', String(connect.feePercent))
+    }
+  } else if (connect.feeMinor !== undefined) {
+    form.set('payment_intent_data[application_fee_amount]', String(connect.feeMinor))
+  }
+}
+
 export function createStripeProvider(config: StripeProviderConfig): PaymentProvider {
   const apiBase = config.apiBase ?? 'https://api.stripe.com'
   const doFetch = config.fetchImpl ?? fetch
@@ -219,6 +247,10 @@ export function createStripeProvider(config: StripeProviderConfig): PaymentProvi
       if (req.mode === 'subscription') form.set('subscription_data[metadata][did]', req.did)
       else form.set('payment_intent_data[metadata][did]', req.did)
       if (req.customerEmail) form.set('customer_email', req.customerEmail)
+
+      // Marketplace (Connect) routing: settle to the seller's connected account
+      // and keep the platform application fee (exploration 0196).
+      if (req.connect) applyConnect(form, req.mode, req.connect)
 
       const json = await post('/v1/checkout/sessions', form)
       const url = str(json.url)

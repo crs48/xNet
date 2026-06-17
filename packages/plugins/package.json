@@ -49,6 +49,7 @@
   "devDependencies": {
     "@tiptap/core": "^2.0.0",
     "@types/react": "^18.2.0",
+    "@xnetjs/licenses": "workspace:*",
     "jsdom": "^26.0.0",
     "react": "^18.3.1",
     "tsup": "^8.0.0",

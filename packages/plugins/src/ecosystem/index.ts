@@ -75,6 +75,15 @@ export type { FetchLike } from './network-endowment'
 export { scaffoldPlugin, pascalCase, packageName, ScaffoldError } from './scaffold'
 export type { ScaffoldTemplate, ScaffoldSpec, ScaffoldResult } from './scaffold'
 
+// Paid-plugin license policy (exploration 0196) — allowed SPDX set + LICENSE text.
+export {
+  ALLOWED_PLUGIN_LICENSES,
+  DEFAULT_PLUGIN_LICENSE,
+  isAllowedPluginLicense,
+  pluginLicenseText
+} from './license-policy'
+export type { AllowedPluginLicense } from './license-policy'
+
 // AI-authored plugin transform — validated generated script → installable plugin.
 export { scriptToPluginManifest, AiAuthoringError } from './ai-authoring'
 export type {

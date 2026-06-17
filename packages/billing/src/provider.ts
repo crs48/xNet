@@ -17,6 +17,21 @@ export class BillingSignatureError extends Error {
   }
 }
 
+/**
+ * Stripe Connect routing for a marketplace charge (exploration 0196). When
+ * present, funds settle to the connected (seller) account and the platform keeps
+ * an application fee — this is "bring your own Stripe" (Connect Standard) plus a
+ * captured marketplace fee. Server-set only; never trusted from a client body.
+ */
+export interface ConnectCharge {
+  /** Connected account id (`acct_…`) that receives the funds. */
+  destination: string
+  /** Platform fee as a percent of each invoice (subscriptions). */
+  feePercent?: number
+  /** Platform fee in integer minor units (one-time payments). */
+  feeMinor?: number
+}
+
 export interface CheckoutRequest {
   /** The DID to bind the checkout to. Server-set — NEVER trusted from a client body. */
   did: DID
@@ -26,6 +41,11 @@ export interface CheckoutRequest {
   successUrl: string
   cancelUrl: string
   customerEmail?: string
+  /**
+   * Marketplace routing (Stripe only). Set by the hub from a paid listing's
+   * seller account + fee; routes funds to the seller and keeps the platform fee.
+   */
+  connect?: ConnectCharge
 }
 
 export interface CheckoutSession {

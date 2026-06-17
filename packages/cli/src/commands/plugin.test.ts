@@ -38,6 +38,7 @@ describe('writeScaffoldFiles', () => {
     const { io } = fakeIO()
     const paths = writeScaffoldFiles(files, '/tmp/x', io).sort()
     expect(paths).toEqual([
+      'LICENSE',
       'README.md',
       'package.json',
       'src/index.test.ts',

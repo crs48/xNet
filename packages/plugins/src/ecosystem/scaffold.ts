@@ -13,6 +13,8 @@
  */
 
 import type { ModuleCapabilities } from '../feature-module'
+import type { PluginPricing } from '../manifest'
+import { DEFAULT_PLUGIN_LICENSE, pluginLicenseText } from './license-policy'
 
 export type ScaffoldTemplate = 'client' | 'two-sided' | 'ai-script' | 'connector'
 
@@ -27,6 +29,14 @@ export interface ScaffoldSpec {
   description?: string
   /** Declared capability grant (two-sided templates surface this in the manifest). */
   capabilities?: ModuleCapabilities
+  /** SPDX license id (exploration 0196). Defaults to FSL-1.1-MIT. */
+  license?: string
+  /** Monetization (exploration 0196). When paid, the manifest declares `pricing`. */
+  pricing?: PluginPricing
+  /** Publisher DID for paid plugins (exploration 0196). */
+  publisherDid?: string
+  /** Copyright year for the generated LICENSE (defaults supplied by the caller). */
+  year?: number
 }
 
 export interface ScaffoldResult {
@@ -75,6 +85,7 @@ function packageJson(spec: ScaffoldSpec): string {
       name: packageName(spec.id),
       version: '0.1.0',
       description: spec.description ?? `${spec.name} — an xNet plugin`,
+      license: spec.license ?? DEFAULT_PLUGIN_LICENSE,
       type: 'module',
       main: 'src/index.ts',
       scripts: { test: 'vitest run', typecheck: 'tsc --noEmit' },
@@ -231,6 +242,9 @@ describe('${spec.name}', () => {
 function indexSource(spec: ScaffoldSpec): string {
   if (spec.template === 'connector') return connectorIndexSource(spec)
   const ctor = pascalCase(spec.id)
+  const license = spec.license ?? DEFAULT_PLUGIN_LICENSE
+  const pricing = spec.pricing ? `\n  pricing: ${JSON.stringify(spec.pricing)},` : ''
+  const publisher = spec.publisherDid ? `\n  publisherDid: '${spec.publisherDid}',` : ''
   return `import { defineFeatureModule } from '@xnetjs/plugins'
 
 export const ${ctor}Module = defineFeatureModule({
@@ -238,6 +252,7 @@ export const ${ctor}Module = defineFeatureModule({
   name: '${spec.name}',
   version: '0.1.0',${spec.author ? `\n  author: '${spec.author}',` : ''}
   description: '${spec.description ?? `${spec.name} — an xNet plugin`}',
+  license: '${license}',${pricing}${publisher}
 ${MODULE_BODIES[spec.template](spec)}
 })
 `
@@ -284,13 +299,21 @@ publish to the marketplace or share the manifest directly.
  */
 export function scaffoldPlugin(spec: ScaffoldSpec): ScaffoldResult {
   validateSpec(spec)
-  return {
-    files: {
-      'package.json': packageJson(spec),
-      'tsconfig.json': tsconfig(),
-      'src/index.ts': indexSource(spec),
-      'src/index.test.ts': testSource(spec),
-      'README.md': readme(spec)
-    }
+  const files: Record<string, string> = {
+    'package.json': packageJson(spec),
+    'tsconfig.json': tsconfig(),
+    'src/index.ts': indexSource(spec),
+    'src/index.test.ts': testSource(spec),
+    'README.md': readme(spec)
   }
+  // Emit a real LICENSE for the recognized licenses (FSL variants + MIT) so a
+  // published plugin satisfies the marketplace license-policy CI check (0196).
+  const year = spec.year ?? new Date().getFullYear()
+  const license = pluginLicenseText(
+    spec.license ?? DEFAULT_PLUGIN_LICENSE,
+    year,
+    spec.author ?? spec.name
+  )
+  if (license) files['LICENSE'] = license
+  return { files }
 }
