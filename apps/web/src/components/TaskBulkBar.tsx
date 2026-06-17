@@ -6,8 +6,8 @@
  * batch (status/priority via the shared mini-palette, assign-to-me and
  * delete directly). Escape / Clear empties the selection.
  */
-import { CircleDot, Flag, Trash2, UserPlus, X } from 'lucide-react'
 import type { JSX } from 'react'
+import { CircleDot, Flag, Trash2, UserPlus, X } from 'lucide-react'
 
 export interface TaskBulkBarProps {
   count: number

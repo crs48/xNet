@@ -541,14 +541,14 @@ export const SavedViewSchema = defineSchema('SavedView', {
 - [ ] Multi-trigger composer + UTC date canonicalization ([0172]) — deferred to its own change.
 
 ### Phase 3 — IA & detail
-- [ ] Tasks sub-nav (Inbox / My Issues / Projects / Views / Triage) as an in-surface pane.
-- [ ] Detail **slide-over** replacing the centered modal overlay.
-- [ ] `PropertiesRail` (`@xnetjs/views`) with inline pickers for every property.
-- [ ] `FilterBar` (`F`) — `Property: Value` chips, `Shift+F`/`Alt+Shift+F`.
-- [ ] `DisplayOptions` (`Shift+V`) — group / sub-group / order / show-hide.
-- [ ] `SavedView` schema + persistence + sidebar surfacing (authorization presets).
-- [ ] Extract `IssueList`/`PropertiesRail`/`FilterBar`/`DisplayOptions`/`CommandMenu` into `@xnetjs/views`.
-- [ ] Mobile: slide-over → full-screen sheet; long-press selection in `MobileShell`.
+- [x] Tasks sub-nav (All / My Issues / Triage / Projects) as an in-surface left pane.
+- [x] Detail **slide-over** (right `Sheet`) replacing the centered modal overlay.
+- [x] Properties editing in the slide-over via `TaskDetailForm` (status/priority/assignee/labels/milestone/due); standalone `PropertiesRail` extraction deferred.
+- [x] `FilterBar` (`F`) — `Property: Value` chips with add/remove (pure `task-filter` + tests).
+- [x] `DisplayOptions` (`V`) — group (status/priority/assignee/none) / order / density / show-completed (registry can't distinguish `Shift+V` from `V` for printable keys).
+- [x] Display settings persist to `localStorage` (lightweight saved view); node-backed `SavedView` + sidebar surfacing deferred.
+- [ ] Extract `IssueList`/`PropertiesRail`/`FilterBar`/`DisplayOptions` into `@xnetjs/views` — deferred (ship tasks-first; generalize once a 2nd consumer is real, per Option C).
+- [ ] Mobile: slide-over → full-screen sheet; long-press selection in `MobileShell` — deferred follow-up.
 
 ### Phase 4 — Deferred
 - [ ] `estimate` field on Task schema.

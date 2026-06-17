@@ -23,32 +23,38 @@ import { useIdentity, useMutate, useQuery, useTasks } from '@xnetjs/react'
 import {
   DIDAvatar,
   MentionTextInput,
+  Sheet,
+  SheetContent,
+  TaskPriorityIcon,
+  TaskStatusIcon,
   formatDueDate,
   getTaskStatusMeta,
   taskPersonLabel,
-  type TaskDisplayData,
-  type TaskRowDensity
+  type TaskDisplayData
 } from '@xnetjs/ui'
-import { TaskBoard, TaskListGrouped, type TaskBoardStatusChange } from '@xnetjs/views'
 import {
-  CalendarDays,
-  Hash,
-  Inbox,
-  KanbanSquare,
-  List,
-  Plus,
-  Rows2,
-  Rows3,
-  User,
-  X
-} from 'lucide-react'
+  TaskBoard,
+  TaskListGrouped,
+  buildTaskGroups,
+  type TaskBoardStatusChange,
+  type TaskGroupRef
+} from '@xnetjs/views'
+import { CalendarDays, Hash, Inbox, KanbanSquare, List, Plus, User, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { ProjectHeader } from './ProjectHeader'
+import {
+  EMPTY_TASK_FILTER,
+  applyTaskFilter,
+  type TaskFilter,
+  type TaskFilterField
+} from './task-filter'
 import { TaskBulkBar } from './TaskBulkBar'
+import { TaskDisplayOptions, type TaskDisplaySettings } from './TaskDisplayOptions'
 import { TaskDueDatePalette } from './TaskDueDatePalette'
+import { TaskFilterBar, type FilterValueOption } from './TaskFilterBar'
 import { TaskInlineEditor } from './TaskInlineEditor'
 import { TaskMiniPalette } from './TaskMiniPalette'
 import { TaskPeek } from './TaskPeek'
@@ -78,6 +84,35 @@ function generateTaskId(): string {
   return `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
+// Display Options persist locally (a lightweight saved-view; node-backed
+// SavedView is a follow-up — see exploration 0198).
+const DISPLAY_STORAGE_KEY = 'xnet:tasks:display'
+const DEFAULT_DISPLAY: TaskDisplaySettings = {
+  groupBy: 'status',
+  orderBy: 'manual',
+  density: 'comfortable',
+  showCompleted: true
+}
+
+function loadDisplaySettings(): TaskDisplaySettings {
+  if (typeof window === 'undefined') return DEFAULT_DISPLAY
+  try {
+    const raw = window.localStorage.getItem(DISPLAY_STORAGE_KEY)
+    if (!raw) return DEFAULT_DISPLAY
+    return { ...DEFAULT_DISPLAY, ...(JSON.parse(raw) as Partial<TaskDisplaySettings>) }
+  } catch {
+    return DEFAULT_DISPLAY
+  }
+}
+
+function saveDisplaySettings(settings: TaskDisplaySettings): void {
+  try {
+    window.localStorage.setItem(DISPLAY_STORAGE_KEY, JSON.stringify(settings))
+  } catch {
+    // Silent fail (incognito, etc.)
+  }
+}
+
 export interface TasksViewProps {
   /** Task whose inline editor opens on mount (`/tasks?task=`) */
   openTaskId?: string | null
@@ -104,7 +139,12 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
   const [miniPalette, setMiniPalette] = useState<
     'status' | 'priority' | 'dueDate' | 'assignee' | 'label' | null
   >(null)
-  const [density, setDensity] = useState<TaskRowDensity>('comfortable')
+  // Display Options (grouping/ordering/density/show-completed), persisted.
+  const [display, setDisplay] = useState<TaskDisplaySettings>(() => loadDisplaySettings())
+  const [displayOpen, setDisplayOpen] = useState(false)
+  // Filter bar.
+  const [filter, setFilter] = useState<TaskFilter>(EMPTY_TASK_FILTER)
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false)
   // Multi-select (bulk edit). `anchorId` is the shift-range pivot.
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set())
   const [anchorId, setAnchorId] = useState<string | null>(null)
@@ -127,13 +167,15 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
     })
   }, [navigate, openTaskId, projectId])
 
+  useEffect(() => saveDisplaySettings(display), [display])
+
   const scopedProject = useMemo(
     () => (projectId ? (projects.find((project) => project.id === projectId) ?? null) : null),
     [projectId, projects]
   )
 
   const visibleTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    const scoped = tasks.filter((task) => {
       if (projectId && task.project !== projectId) return false
       if (tab === 'mine') {
         if (!did) return false
@@ -145,7 +187,17 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
       }
       return true
     })
-  }, [tasks, tab, did, projectId])
+    const completedHidden = display.showCompleted
+      ? scoped
+      : scoped.filter(
+          (task) =>
+            !(
+              task.completed ||
+              (typeof task.status === 'string' && isCompletedTaskStatus(task.status))
+            )
+        )
+    return applyTaskFilter(completedHidden, filter)
+  }, [tasks, tab, did, projectId, filter, display.showCompleted])
 
   const displayTasks = useMemo<Array<TaskDisplayData & { sortKey?: string | null }>>(() => {
     return visibleTasks.map((task) => ({
@@ -158,20 +210,22 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
       assignees: Array.isArray(task.assignees) ? task.assignees.map(String) : [],
       referenceCount: Array.isArray(task.references) ? task.references.length : 0,
       shortId: typeof task.shortId === 'string' ? task.shortId : null,
-      sortKey: typeof task.sortKey === 'string' ? task.sortKey : null
+      sortKey: typeof task.sortKey === 'string' ? task.sortKey : null,
+      createdAt: typeof task.createdAt === 'number' ? task.createdAt : undefined,
+      updatedAt: typeof task.updatedAt === 'number' ? task.updatedAt : undefined
     }))
   }, [visibleTasks])
 
-  // Ordered ids matching the grouped-list render order (workflow groups,
-  // then input order) so focus movement walks rows the way they look.
-  const orderedTaskIds = useMemo(() => {
-    const byStatus = new Map<TaskStatusId, string[]>(WORKFLOW_ORDER.map((s) => [s, []]))
-    for (const task of displayTasks) {
-      const status = (task.status ?? 'todo') as TaskStatusId
-      ;(byStatus.get(status) ?? byStatus.get('todo'))?.push(task.id)
-    }
-    return WORKFLOW_ORDER.flatMap((status) => byStatus.get(status) ?? [])
-  }, [displayTasks])
+  // Ordered ids matching the grouped-list render order (current grouping +
+  // ordering) so focus movement walks rows the way they look.
+  const orderedTaskIds = useMemo(
+    () =>
+      buildTaskGroups(displayTasks, {
+        groupBy: display.groupBy,
+        orderBy: display.orderBy
+      }).flatMap((group) => group.tasks.map((task) => task.id)),
+    [displayTasks, display.groupBy, display.orderBy]
+  )
 
   const stateRef = useRef({
     focusedTaskId,
@@ -276,13 +330,25 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         run: () => setSelectedIds(new Set(stateRef.current.orderedTaskIds))
       }),
       registry.register({
+        id: 'tasks.filter',
+        title: 'Filter tasks…',
+        scope: 'surface:tasks',
+        key: 'f',
+        run: () => setFilterMenuOpen(true)
+      }),
+      registry.register({
+        id: 'tasks.display',
+        title: 'Display options…',
+        scope: 'surface:tasks',
+        key: 'v',
+        run: () => setDisplayOpen((open) => !open)
+      }),
+      registry.register({
         id: 'tasks.clearOrPeekClose',
         title: 'Clear selection / close peek',
         scope: 'surface:tasks',
         key: 'escape',
-        when: () =>
-          stateRef.current.peekOpen ||
-          stateRef.current.selectedIds.size > 0,
+        when: () => stateRef.current.peekOpen || stateRef.current.selectedIds.size > 0,
         run: () => {
           if (stateRef.current.peekOpen) {
             setPeekOpen(false)
@@ -443,11 +509,18 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
     setEditingTaskId((current) => (current === taskId ? null : taskId))
   }
 
-  // Linear's group-header "+": create a task already in that status and
-  // open it for naming (assignee/project inherit the active scope).
-  const handleCreateInGroup = async (status: TaskStatusId) => {
+  // Linear's group-header "+": create a task already in that group (status /
+  // priority / assignee) and open it for naming.
+  const handleCreateInGroup = async (group: TaskGroupRef) => {
     const id = generateTaskId()
-    const assignees = tab === 'mine' && did ? [did] : []
+    const status: TaskStatusId =
+      group.groupBy === 'status'
+        ? (group.key as TaskStatusId)
+        : tab === 'triage'
+          ? 'triage'
+          : 'todo'
+    const assignees =
+      group.groupBy === 'assignee' && group.key ? [group.key] : tab === 'mine' && did ? [did] : []
     await create(
       TaskSchema,
       {
@@ -455,6 +528,9 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         completed: isCompletedTaskStatus(status),
         status,
         source: 'api',
+        ...(group.groupBy === 'priority'
+          ? { priority: group.key as 'low' | 'medium' | 'high' | 'urgent' }
+          : {}),
         ...(projectId ? { project: projectId } : {}),
         ...(assignees.length
           ? { assignee: assignees[0] as DID, assignees: assignees as DID[] }
@@ -587,11 +663,40 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
     () => (editingTaskId ? (tasks.find((task) => task.id === editingTaskId) ?? null) : null),
     [editingTaskId, tasks]
   )
-  const editorInList =
-    mode === 'list' && editingTaskId != null && visibleTasks.some((t) => t.id === editingTaskId)
   const peekDisplayTask = useMemo(
     () => (focusedTaskId ? (displayTasks.find((t) => t.id === focusedTaskId) ?? null) : null),
     [focusedTaskId, displayTasks]
+  )
+
+  const assigneeLabel = useMemo(() => {
+    const byDid = new Map(people.map((person) => [person.did, taskPersonLabel(person)]))
+    return (did: string) => byDid.get(did) ?? did
+  }, [people])
+
+  const filterOptions = useMemo<Record<TaskFilterField, FilterValueOption[]>>(
+    () => ({
+      status: STATUS_OPTIONS.map((option) => ({
+        id: option.id,
+        label: option.label,
+        icon: <TaskStatusIcon status={option.id} size={13} />
+      })),
+      priority: PRIORITY_OPTIONS.map((option) => ({
+        id: option.id,
+        label: option.label,
+        icon: <TaskPriorityIcon priority={option.id} size={13} />
+      })),
+      assignee: people.map((person) => ({
+        id: person.did,
+        label: taskPersonLabel(person),
+        icon: <DIDAvatar did={person.did} size={16} />
+      })),
+      label: tagOptions.map((tag) => ({
+        id: tag.id,
+        label: tag.name,
+        icon: <Hash size={13} className="text-muted-foreground" />
+      }))
+    }),
+    [people, tagOptions]
   )
 
   const tabs: Array<{ id: TasksTab; label: string; icon: JSX.Element }> = [
@@ -640,17 +745,6 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         )}
 
         <div className="ml-auto flex items-center gap-1" data-tasks-view-toggle>
-          {mode === 'list' && (
-            <button
-              type="button"
-              onClick={() => setDensity((d) => (d === 'compact' ? 'comfortable' : 'compact'))}
-              aria-label={density === 'compact' ? 'Comfortable density' : 'Compact density'}
-              title={density === 'compact' ? 'Comfortable density' : 'Compact density'}
-              className="mr-1 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              {density === 'compact' ? <Rows3 size={14} /> : <Rows2 size={14} />}
-            </button>
-          )}
           {!projectId && (
             <button
               type="button"
@@ -688,6 +782,26 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
       </div>
 
       {projectId && <ProjectHeader projectId={projectId} />}
+
+      <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
+        <TaskFilterBar
+          filter={filter}
+          onChange={setFilter}
+          options={filterOptions}
+          menuOpen={filterMenuOpen}
+          onMenuOpenChange={setFilterMenuOpen}
+        />
+        {mode === 'list' && (
+          <div className="ml-auto">
+            <TaskDisplayOptions
+              settings={display}
+              onChange={(patch) => setDisplay((current) => ({ ...current, ...patch }))}
+              open={displayOpen}
+              onOpenChange={setDisplayOpen}
+            />
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Plus size={14} className="shrink-0 text-muted-foreground" />
@@ -780,43 +894,43 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         ) : (
           <TaskListGrouped
             tasks={displayTasks}
-            density={density}
+            groupBy={display.groupBy}
+            orderBy={display.orderBy}
+            density={display.density}
+            assigneeLabel={assigneeLabel}
             focusedTaskId={focusedTaskId}
             selectedTaskIds={selectedIds}
             onSelectTask={toggleSelect}
-            onCreateInGroup={(status) => void handleCreateInGroup(status)}
-            expandedTaskId={editingTaskId}
-            renderTaskEditor={() =>
-              editingTask ? (
-                <TaskInlineEditor
-                  task={editingTask}
-                  autoFocusTitle
-                  onClose={() => setEditingTaskId(null)}
-                />
-              ) : null
-            }
+            onCreateInGroup={(group) => void handleCreateInGroup(group)}
             onOpenTask={handleEditTask}
             onToggleCompleted={handleToggleCompleted}
           />
         )}
       </div>
 
-      {editingTask && !editorInList && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-32"
-          data-testid="task-editor-overlay"
-          onClick={() => setEditingTaskId(null)}
-        >
-          <div className="w-full max-w-lg" onClick={(event) => event.stopPropagation()}>
+      {/* Linear-style detail slide-over: the list stays visible behind it. */}
+      <Sheet
+        open={Boolean(editingTask)}
+        onOpenChange={(open) => {
+          if (!open) setEditingTaskId(null)
+        }}
+      >
+        {editingTask && (
+          <SheetContent
+            side="right"
+            hideClose
+            className="w-full overflow-y-auto p-0 sm:max-w-lg"
+            data-testid="task-detail-sheet"
+          >
             <TaskInlineEditor
               task={editingTask}
               autoFocusTitle
               onClose={() => setEditingTaskId(null)}
-              className="shadow-2xl"
+              className="border-none"
             />
-          </div>
-        </div>
-      )}
+          </SheetContent>
+        )}
+      </Sheet>
 
       {selectedIds.size > 0 && (
         <TaskBulkBar

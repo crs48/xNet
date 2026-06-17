@@ -33,6 +33,12 @@ export interface TaskDisplayData {
   assignees?: string[]
   /** Human-readable identifier, e.g. "XN-142" */
   shortId?: string | null
+  /** Fractional ordering key (manual order) */
+  sortKey?: string | null
+  /** Node create time (ms) — for ordering */
+  createdAt?: number
+  /** Node update time (ms) — for ordering */
+  updatedAt?: number
   /** Count of linked external references (PRs, issues, designs) */
   referenceCount?: number
   /** Live GitHub state mirrored from linked references */

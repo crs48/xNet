@@ -6,6 +6,7 @@
  * j/k keep moving rows while the peek stays open — so the host re-renders it
  * with the newly focused task. Enter/click opens the full editor.
  */
+import type { JSX } from 'react'
 import {
   DIDAvatar,
   TaskPriorityIcon,
@@ -15,7 +16,6 @@ import {
   type TaskDisplayData
 } from '@xnetjs/ui'
 import { CornerDownLeft } from 'lucide-react'
-import type { JSX } from 'react'
 
 export interface TaskPeekProps {
   task: TaskDisplayData

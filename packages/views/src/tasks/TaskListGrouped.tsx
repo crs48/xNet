@@ -1,5 +1,6 @@
 /**
- * TaskListGrouped - Linear-style task list grouped by workflow status.
+ * TaskListGrouped - Linear-style task list grouped by a Display-Options
+ * dimension (status / priority / assignee / none).
  *
  * Pure projection: rows render live Task node state via TaskRow and emit
  * intents (toggle/open/select). `focusedTaskId` highlights the row keyboard
@@ -9,6 +10,8 @@
  */
 import { type TaskStatusId } from '@xnetjs/data'
 import {
+  DIDAvatar,
+  TaskPriorityIcon,
   TaskRow,
   TaskStatusIcon,
   getTaskStatusMeta,
@@ -17,12 +20,29 @@ import {
 } from '@xnetjs/ui'
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
-import { TASK_WORKFLOW_ORDER, groupTasksByStatus } from './grouping'
+import {
+  TASK_WORKFLOW_ORDER,
+  buildTaskGroups,
+  type TaskGroup,
+  type TaskGroupBy,
+  type TaskOrderBy
+} from './grouping'
+
+export interface TaskGroupRef {
+  groupBy: TaskGroupBy
+  key: string
+}
 
 export interface TaskListGroupedProps {
   tasks: TaskDisplayData[]
-  /** Group order; defaults to the full workflow */
+  /** Grouping dimension (default 'status') */
+  groupBy?: TaskGroupBy
+  /** Ordering within a group (default 'manual') */
+  orderBy?: TaskOrderBy
+  /** Status group order (status grouping); defaults to the full workflow */
   statuses?: TaskStatusId[]
+  /** Resolve an assignee DID to a display label (assignee grouping) */
+  assigneeLabel?: (did: string) => string
   /** Hide empty groups (default true) */
   hideEmptyGroups?: boolean
   /** Row density (default 'comfortable') */
@@ -32,47 +52,73 @@ export interface TaskListGroupedProps {
   selectedTaskIds?: ReadonlySet<string>
   onSelectTask?: (taskId: string, modifiers: { shiftKey: boolean; metaKey: boolean }) => void
   /** Quick-create in a group (renders a hover "+" on the group header) */
-  onCreateInGroup?: (status: TaskStatusId) => void
-  /** Task whose row expands to show `renderTaskEditor` beneath it */
-  expandedTaskId?: string | null
-  /** Inline editor for the expanded row (host-provided) */
-  renderTaskEditor?: (task: TaskDisplayData) => React.ReactNode
+  onCreateInGroup?: (group: TaskGroupRef) => void
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
 }
 
 const DEFAULT_STATUSES: TaskStatusId[] = TASK_WORKFLOW_ORDER
 
+function GroupHeaderLabel({
+  group,
+  assigneeLabel
+}: {
+  group: TaskGroup<TaskDisplayData>
+  assigneeLabel?: (did: string) => string
+}) {
+  if (group.groupBy === 'status') {
+    return (
+      <>
+        <TaskStatusIcon status={group.key} size={12} />
+        {getTaskStatusMeta(group.key).name}
+      </>
+    )
+  }
+  if (group.groupBy === 'priority') {
+    return (
+      <>
+        <TaskPriorityIcon priority={group.key} size={12} />
+        {group.key.charAt(0).toUpperCase() + group.key.slice(1)}
+      </>
+    )
+  }
+  // assignee
+  if (!group.key) return <span className="text-foreground-muted">No assignee</span>
+  return (
+    <>
+      <DIDAvatar did={group.key} size={14} />
+      {assigneeLabel?.(group.key) ?? group.key}
+    </>
+  )
+}
+
 export function TaskListGrouped({
   tasks,
+  groupBy = 'status',
+  orderBy = 'manual',
   statuses = DEFAULT_STATUSES,
+  assigneeLabel,
   hideEmptyGroups = true,
   density = 'comfortable',
   focusedTaskId = null,
   selectedTaskIds,
   onSelectTask,
   onCreateInGroup,
-  expandedTaskId = null,
-  renderTaskEditor,
   onOpenTask,
   onToggleCompleted
 }: TaskListGroupedProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
-  const groups = useMemo(() => {
-    return groupTasksByStatus(tasks, statuses).filter(
-      (group) => !hideEmptyGroups || group.tasks.length > 0
-    )
-  }, [tasks, statuses, hideEmptyGroups])
+  const groups = useMemo(
+    () => buildTaskGroups(tasks, { groupBy, orderBy, statuses, hideEmpty: hideEmptyGroups }),
+    [tasks, groupBy, orderBy, statuses, hideEmptyGroups]
+  )
 
-  const toggleGroup = (status: string) => {
+  const toggleGroup = (key: string) => {
     setCollapsed((current) => {
       const next = new Set(current)
-      if (next.has(status)) {
-        next.delete(status)
-      } else {
-        next.add(status)
-      }
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -85,42 +131,44 @@ export function TaskListGrouped({
     )
   }
 
+  const flat = groupBy === 'none'
+
   return (
     <div className="flex flex-col" data-testid="task-list-grouped">
       {groups.map((group) => {
-        const meta = getTaskStatusMeta(group.status)
-        const isCollapsed = collapsed.has(group.status)
+        const isCollapsed = !flat && collapsed.has(group.key)
 
         return (
-          <div key={group.status}>
-            <div className="group/header sticky top-0 z-10 flex items-center gap-1.5 border-b border-border bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground backdrop-blur">
-              <button
-                type="button"
-                className="flex flex-1 items-center gap-1.5 text-left"
-                onClick={() => toggleGroup(group.status)}
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-3 w-3 text-foreground-muted" aria-hidden />
-                ) : (
-                  <ChevronDown className="h-3 w-3 text-foreground-muted" aria-hidden />
-                )}
-                <TaskStatusIcon status={group.status} size={12} />
-                {meta.name}
-                <span className="rounded bg-background-muted px-1 text-[11px] tabular-nums text-foreground-muted">
-                  {group.tasks.length}
-                </span>
-              </button>
-              {onCreateInGroup && (
+          <div key={`${group.groupBy}:${group.key}`}>
+            {!flat && (
+              <div className="group/header sticky top-0 z-10 flex items-center gap-1.5 border-b border-border bg-background/95 px-3 py-1.5 text-xs font-medium text-foreground backdrop-blur">
                 <button
                   type="button"
-                  aria-label={`Add task to ${meta.name}`}
-                  className="rounded p-0.5 text-foreground-muted opacity-0 transition-opacity hover:bg-background-muted hover:text-foreground group-hover/header:opacity-100"
-                  onClick={() => onCreateInGroup(group.status)}
+                  className="flex flex-1 items-center gap-1.5 text-left"
+                  onClick={() => toggleGroup(group.key)}
                 >
-                  <Plus className="h-3.5 w-3.5" aria-hidden />
+                  {isCollapsed ? (
+                    <ChevronRight className="h-3 w-3 text-foreground-muted" aria-hidden />
+                  ) : (
+                    <ChevronDown className="h-3 w-3 text-foreground-muted" aria-hidden />
+                  )}
+                  <GroupHeaderLabel group={group} assigneeLabel={assigneeLabel} />
+                  <span className="rounded bg-background-muted px-1 text-[11px] tabular-nums text-foreground-muted">
+                    {group.tasks.length}
+                  </span>
                 </button>
-              )}
-            </div>
+                {onCreateInGroup && (
+                  <button
+                    type="button"
+                    aria-label={`Add task to ${group.key || 'group'}`}
+                    className="rounded p-0.5 text-foreground-muted opacity-0 transition-opacity hover:bg-background-muted hover:text-foreground group-hover/header:opacity-100"
+                    onClick={() => onCreateInGroup({ groupBy: group.groupBy, key: group.key })}
+                  >
+                    <Plus className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                )}
+              </div>
+            )}
             {!isCollapsed && (
               <div className="flex flex-col px-1 py-0.5">
                 {group.tasks.map((task) => (
@@ -134,9 +182,6 @@ export function TaskListGrouped({
                       onOpen={onOpenTask}
                       onToggleCompleted={onToggleCompleted}
                     />
-                    {task.id === expandedTaskId && renderTaskEditor && (
-                      <div className="px-1 pb-1.5 pt-0.5">{renderTaskEditor(task)}</div>
-                    )}
                   </React.Fragment>
                 ))}
               </div>
