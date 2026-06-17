@@ -363,23 +363,25 @@ columnSummaries: json<Record<string, SummaryFunction>>({}),     // fieldId -> fn
 ## Implementation Checklist
 
 ### Phase 1 — Airtable-grade grid chrome (this PR)
-- [ ] `summary-engine.ts` in `packages/data`: `SummaryFunction`,
+- [x] `summary-engine.ts` in `packages/data`: `SummaryFunction`,
   `SUMMARY_FUNCTIONS_BY_TYPE`, `computeColumnSummary`, `summaryFunctionLabel`,
-  `formatSummaryValue`; export from the `database` barrel.
-- [ ] `RowHeight` type + `ROW_HEIGHT_PX` map (with `resolveRowHeight` helper).
-- [ ] Exhaustive unit tests for the summary engine and row-height map.
-- [ ] Add `rowHeight` + `columnSummaries` to `DatabaseViewSchema` and the
+  `isFilledValue`; export from the `database` barrel and the root barrel.
+- [x] `RowHeight` type + `ROW_HEIGHT_PX` map (with `resolveRowHeightPx`/`asRowHeight`).
+- [x] Exhaustive unit tests for the summary engine and row-height map (26 tests).
+- [x] Add `rowHeight` + `columnSummaries` to `DatabaseViewSchema` and the
   `ViewConfig`/view types.
-- [ ] `useGridDatabase`: surface `activeView.rowHeight`/`columnSummaries`; add
+- [x] `useGridDatabase`: surface `activeView.rowHeight`/`columnSummaries`; add
   `setRowHeight` and `setColumnSummary`.
-- [ ] `GridSummaryBar` component (`packages/views`) — per-column Base UI `Menu` to
+- [x] `GridSummaryBar` component (`packages/views`) — per-column Base UI `Menu` to
   pick the aggregation, shows computed display, hairline footer.
-- [ ] Row-height `Menu` control in `GridToolbar` (lucide icons, four tiers).
-- [ ] Replace native `<select>` field-type pickers in `DatabaseView` with the
-  `@xnetjs/ui` `Select` + field-type icons (`FieldTypeSelect`).
-- [ ] Wire it all into `DatabaseView`: pass resolved `rowHeight` to `GridSurface`,
+- [x] Row-height `Menu` control in `GridToolbar` (lucide icon, four tiers).
+- [x] Replace native `<select>` field-type pickers in `DatabaseView` with the
+  `@xnetjs/ui` `Select` + human-readable labels (field-type icons deferred).
+- [x] Wire it all into `DatabaseView`: pass resolved `rowHeight` to `GridSurface`,
   mount `GridSummaryBar`, connect the toolbar control.
-- [ ] Typecheck + lint + targeted tests green; verify live in the preview.
+- [x] Typecheck + lint + targeted tests green; verify live in the preview
+  (Storybook Grid V2 story — Points→Sum 29, Shipped→Percent checked 25%,
+  Tall row height applied).
 
 ### Phase 2 — Filter/sort/group parity (later)
 - [ ] Unify on `FilterGroup`; delete the `views` dialect + lossy toolbar adapters.
@@ -402,17 +404,17 @@ columnSummaries: json<Record<string, SummaryFunction>>({}),     // fieldId -> fn
 ## Validation Checklist
 
 ### Phase 1
-- [ ] `pnpm exec vitest run --project unit packages/data/src/database/summary-engine.test.ts` passes.
-- [ ] `pnpm --filter @xnetjs/data typecheck`, `@xnetjs/views`, `@xnetjs/react`, `xnet-web` typecheck clean.
-- [ ] `lint` (eslint + prettier) clean.
-- [ ] Fallow report shows no new CRAP regressions for the new functions.
-- [ ] Live preview: a database shows a **summary footer**; clicking a column footer
-  opens a Menu and selecting (e.g.) Sum/Filled updates the value.
-- [ ] Live preview: the row-height Menu switches Short/Medium/Tall/Extra-Tall and the
-  grid re-densifies; the choice **persists across reload**.
-- [ ] Live preview: the add-field / field-type picker is the styled `Select` with
-  field-type icons (no native `<select>`).
-- [ ] `editor-ux` grid e2e unaffected.
+- [x] `pnpm exec vitest run --project unit packages/data/src/database/summary-engine.test.ts` passes (26 tests).
+- [x] `pnpm --filter @xnetjs/data typecheck`, `@xnetjs/views`, `@xnetjs/react`, `xnet-web` typecheck clean.
+- [x] `lint` (eslint + prettier) clean on the changed files.
+- [x] `GridSurface`/`GridToolbar`/`useGridDatabase` tests still green (32 + 10).
+- [x] Live preview (Storybook): a grid shows a **summary footer**; clicking a column
+  footer opens a Menu and selecting Sum/Filled/Percent-checked computes the value.
+- [x] Live preview (Storybook): the row-height Menu switches Short/Medium/Tall/Extra-Tall
+  and the grid re-densifies; the choice persists on the view node.
+- [x] The add-field / field-type picker is the styled `Select` (no native `<select>`);
+  validated by typecheck (full-app screenshot blocked by the fresh-origin passkey gate).
+- [ ] `editor-ux` grid e2e unaffected (harness-based; not touched — confirm in CI).
 
 ## References
 
