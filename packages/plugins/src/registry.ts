@@ -2,11 +2,24 @@
  * PluginRegistry - Central coordinator for plugin lifecycle
  */
 
+import type { ModuleCapabilities } from './feature-module'
 import type { XNetExtension } from './manifest'
 import type { Platform, Disposable } from './types'
 import type { NodeStore } from '@xnetjs/data'
 import { createExtensionContext, type ExtensionContext } from './context'
 import { ContributionRegistry } from './contributions'
+import { isHostCompatible } from './ecosystem/compatibility'
+import { evaluateInstallConsent, type ConsentDecision } from './ecosystem/consent'
+import {
+  findMissingDependencies,
+  type DependencyNode,
+  type MissingDependency
+} from './ecosystem/dependencies'
+import {
+  deriveTrustTier,
+  type InstallProvenance,
+  type PluginTrustTier
+} from './ecosystem/provenance-trust'
 import { validateManifest, PluginValidationError } from './manifest'
 import { MiddlewareChain } from './middleware'
 import { PluginSchema } from './schemas/plugin'
@@ -20,6 +33,23 @@ export interface RegisteredPlugin {
   status: PluginStatus
   context?: ExtensionContext
   error?: Error
+  /** Where this plugin was installed from — derives its trust tier (0192). */
+  provenance?: InstallProvenance
+  /** Provenance-derived execution trust tier (0192). */
+  trustTier?: PluginTrustTier
+}
+
+/** Options for {@link PluginRegistry.install} (all optional, back-compatible). */
+export interface InstallOptions {
+  /** Where the plugin came from. Drives trust tier + consent. Default `imported`. */
+  provenance?: InstallProvenance
+  /** Host app version, for the `xnetVersion` compatibility gate. Skipped if absent. */
+  hostVersion?: string
+  /**
+   * Consent callback. Called only when provenance requires a re-prompt and the
+   * plugin actually requests capabilities. Return `false` to abort the install.
+   */
+  onConsent?: (decision: ConsentDecision) => boolean | Promise<boolean>
 }
 
 export class PluginError extends Error {
@@ -48,9 +78,13 @@ export class PluginRegistry {
   // ─── Lifecycle ─────────────────────────────────────────────────────────
 
   /**
-   * Install and activate a plugin
+   * Install and activate a plugin.
+   *
+   * Beyond manifest/platform validation, install runs the 0192 trust gates:
+   * host-version compatibility, dependency resolution, and (for non-local
+   * provenance) capability consent. Provenance derives the plugin's trust tier.
    */
-  async install(manifest: XNetExtension): Promise<void> {
+  async install(manifest: XNetExtension, options: InstallOptions = {}): Promise<void> {
     // 1. Validate manifest
     try {
       validateManifest(manifest)
@@ -73,7 +107,32 @@ export class PluginRegistry {
       throw new PluginError(`Plugin '${manifest.id}' is already installed`)
     }
 
-    // 4. Store plugin metadata as Node
+    // 4. Host-version compatibility gate (0192)
+    if (options.hostVersion && !isHostCompatible(manifest.xnetVersion, options.hostVersion)) {
+      throw new PluginError(
+        `Plugin '${manifest.id}' requires xNet ${manifest.xnetVersion} (current: ${options.hostVersion})`
+      )
+    }
+
+    // 5. Dependency gate (0192)
+    const missing = this.missingDependencies(manifest)
+    if (missing.length > 0) {
+      throw new PluginError(
+        `Plugin '${manifest.id}' has unmet dependencies: ${formatMissing(missing)}`
+      )
+    }
+
+    // 6. Capability consent gate (0192)
+    const provenance: InstallProvenance = options.provenance ?? 'imported'
+    const decision = evaluateInstallConsent(provenance, capabilitiesOf(manifest))
+    if (decision.needsPrompt && options.onConsent) {
+      const granted = await options.onConsent(decision)
+      if (!granted) {
+        throw new PluginError(`Plugin '${manifest.id}' install declined at capability consent`)
+      }
+    }
+
+    // 7. Store plugin metadata as Node
     await this.store.create({
       schemaId: PluginSchema._schemaId,
       properties: {
@@ -88,12 +147,30 @@ export class PluginRegistry {
       }
     })
 
-    // 5. Register plugin
-    this.plugins.set(manifest.id, { manifest, status: 'installed' })
+    // 8. Register plugin
+    this.plugins.set(manifest.id, {
+      manifest,
+      status: 'installed',
+      provenance,
+      trustTier: deriveTrustTier(provenance)
+    })
     this.notify()
 
-    // 6. Activate
+    // 9. Activate
     await this.activate(manifest.id)
+  }
+
+  /** Dependencies of `manifest` not satisfied by currently installed plugins. */
+  private missingDependencies(manifest: XNetExtension): MissingDependency[] {
+    const installed: DependencyNode[] = [...this.plugins.values()].map((p) => ({
+      id: p.manifest.id,
+      version: p.manifest.version,
+      dependencies: p.manifest.dependencies
+    }))
+    return findMissingDependencies(
+      { id: manifest.id, version: manifest.version, dependencies: manifest.dependencies },
+      installed
+    )
   }
 
   /**
@@ -109,13 +186,14 @@ export class PluginRegistry {
     }
 
     try {
-      // Create extension context
+      // Create extension context (capabilities → enforced store guard, 0192)
       const context = createExtensionContext({
         pluginId,
         store: this.store,
         contributions: this.contributions,
         platform: this.platform,
-        middlewareChain: this.middleware
+        middlewareChain: this.middleware,
+        capabilities: capabilitiesOf(plugin.manifest)
       })
 
       // Register static contributions from manifest
@@ -398,4 +476,22 @@ export class PluginRegistry {
       }
     }
   }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Read the declared capability grant off a manifest (FeatureModules carry it). */
+function capabilitiesOf(manifest: XNetExtension): ModuleCapabilities | undefined {
+  return (manifest as { capabilities?: ModuleCapabilities }).capabilities
+}
+
+/** Render unmet dependencies as a compact human string. */
+function formatMissing(missing: MissingDependency[]): string {
+  return missing
+    .map((m) =>
+      m.reason === 'not-installed'
+        ? `${m.required}@${m.range} (not installed)`
+        : `${m.required}@${m.range} (have ${m.installedVersion})`
+    )
+    .join(', ')
 }

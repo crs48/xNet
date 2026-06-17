@@ -21,6 +21,7 @@ import type {
   CanvasTemplateContribution,
   ImporterContribution
 } from './contributions'
+import type { ModuleCapabilities } from './feature-module'
 import type { NodeStoreMiddleware } from './middleware'
 import type { Disposable, Platform, PlatformCapabilities, ExtensionStorage } from './types'
 import type {
@@ -30,6 +31,7 @@ import type {
   NodeChangeListener as StoreChangeListener,
   NodeChangeEvent as StoreChangeEvent
 } from '@xnetjs/data'
+import { guardStore } from './ecosystem/capability-guard'
 import { getPlatformCapabilities, createExtensionStorage } from './types'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -132,13 +134,22 @@ export interface CreateContextOptions {
   middlewareChain?: {
     add(middleware: NodeStoreMiddleware): Disposable
   }
+  /**
+   * Declared capability grant (exploration 0192). When present, the plugin's
+   * `store` handle is wrapped so writes outside `schemaWrite` throw — turning the
+   * declaration into an enforced gate at the one choke point a plugin can't
+   * route around. Absent/empty → the store is handed through unguarded.
+   */
+  capabilities?: ModuleCapabilities
 }
 
 /**
  * Create an ExtensionContext for a plugin
  */
 export function createExtensionContext(options: CreateContextOptions): ExtensionContext {
-  const { pluginId, store, contributions, platform, middlewareChain } = options
+  const { pluginId, contributions, platform, middlewareChain, capabilities } = options
+  // Enforce the declared capability grant at the store boundary.
+  const store = guardStore(options.store, capabilities, pluginId)
   const disposables: Disposable[] = []
   const storage = createExtensionStorage()
 

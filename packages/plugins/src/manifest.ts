@@ -41,12 +41,17 @@ export interface XNetExtension {
   description?: string
   /** Author name or organization */
   author?: string
-  /** Minimum compatible xNet version */
+  /** Minimum compatible xNet version (semver range, e.g. ">=0.6.0") */
   xnetVersion?: string
   /** Platforms this plugin supports (default: all) */
   platforms?: Platform[]
   /** Permission declarations */
   permissions?: PluginPermissions
+  /**
+   * Other plugins this one requires, as `{ '<pluginId>': '<versionRange>' }`
+   * (exploration 0192). Resolved at install time — see `ecosystem/dependencies`.
+   */
+  dependencies?: Record<string, string>
 
   /** Static contributions declared in manifest */
   contributes?: PluginContributions
@@ -174,6 +179,7 @@ export function validateManifest(manifest: unknown): XNetExtension {
     issues.push('deactivate must be a function')
   }
 
+  validateDependencies(m.dependencies, issues)
   validateContributions(m.contributes, issues)
 
   if (issues.length > 0) {
@@ -184,6 +190,18 @@ export function validateManifest(manifest: unknown): XNetExtension {
   }
 
   return manifest as XNetExtension
+}
+
+/** Validate the optional `dependencies` map (exploration 0192). */
+function validateDependencies(dependencies: unknown, issues: string[]): void {
+  if (dependencies === undefined) return
+  if (!dependencies || typeof dependencies !== 'object' || Array.isArray(dependencies)) {
+    issues.push('dependencies must be an object of pluginId → versionRange')
+    return
+  }
+  if (Object.values(dependencies).some((v) => typeof v !== 'string')) {
+    issues.push('dependencies values must be version-range strings')
+  }
 }
 
 function validateContributions(contributes: unknown, issues: string[]): void {

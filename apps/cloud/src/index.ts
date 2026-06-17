@@ -16,6 +16,7 @@ import {
   type DidChallengeVerifier
 } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud/provisioner'
+import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
 import { MemoryTenantStore } from './registry'
 import { createControlPlaneApp } from './server'
@@ -23,6 +24,22 @@ import { createControlPlaneApp } from './server'
 export { ControlPlane } from './control-plane'
 export { MemoryTenantStore, type TenantRecord, type TenantStore } from './registry'
 export { createControlPlaneApp, type ControlPlaneAppDeps } from './server'
+export {
+  FakeTenantBillingGateway,
+  PRICE_BY_PLAN,
+  WebhookSignatureError,
+  type TenantBillingGateway
+} from './billing-gateway'
+export { sealSession, readSession, SESSION_COOKIE, type SessionData } from './session'
+export {
+  MemoryDeviceGrantStore,
+  cryptoCodes,
+  isExpired,
+  DEVICE_GRANT_TTL_MS,
+  type DeviceGrant,
+  type DeviceGrantStore,
+  type CodeGenerator
+} from './device-grant'
 
 /**
  * Pick the billing identity provider from the environment. WorkOS AuthKit (free
@@ -71,16 +88,28 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
   return { controlPlane, billing }
 }
 
+/**
+ * Pick the plan-subscription gateway. The real Stripe adapter is deferred; until
+ * then a keyless fake drives the funnel locally (and in tests). The webhook secret,
+ * when set, makes the fake require a signed webhook.
+ */
+export function resolveBillingGateway(env: NodeJS.ProcessEnv = process.env): TenantBillingGateway {
+  return new FakeTenantBillingGateway(env.XNET_CLOUD_WEBHOOK_SECRET)
+}
+
 function start(): void {
   const { controlPlane, billing } = buildControlPlane()
+  const env = process.env
   const app = createControlPlaneApp({
     controlPlane,
     billing,
-    ...(process.env.XNET_CLOUD_INTERNAL_SECRET
-      ? { internalSecret: process.env.XNET_CLOUD_INTERNAL_SECRET }
-      : {})
+    payments: resolveBillingGateway(env),
+    sessionSecret: env.XNET_CLOUD_SESSION_SECRET ?? 'dev-insecure-session-secret',
+    baseUrl: env.XNET_CLOUD_BASE_URL ?? '',
+    marketingUrl: env.XNET_CLOUD_MARKETING_URL ?? 'https://xnet.fyi/cloud',
+    ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {})
   })
-  const port = Number(process.env.PORT ?? 4455)
+  const port = Number(env.PORT ?? 4455)
   serve({ fetch: app.fetch, port })
   // eslint-disable-next-line no-console
   console.log(`xnet-cloud control plane listening on :${port} (billing: ${billing.name})`)
