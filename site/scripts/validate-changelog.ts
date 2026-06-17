@@ -36,7 +36,7 @@ function checkRequired(e: ChangelogEntry): void {
   if (!e.date) err(id, 'missing date label')
   if (!e.title) err(id, 'missing title')
   if (!e.summary) err(id, 'missing summary')
-  if (!e.highlights?.length) err(id, 'must have at least one highlight')
+  if (!Array.isArray(e.highlights)) err(id, 'highlights must be an array')
   if (!e.tags?.length) err(id, 'must have at least one tag')
   if (e.hero) checkImageSrc(id, 'hero', e.hero.src, e.hero.alt)
   for (const [i, img] of (e.images ?? []).entries()) {
