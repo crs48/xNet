@@ -79,6 +79,14 @@ export {
   type WaveOptions
 } from './rollout/engine'
 export { controlPlaneRolloutDeps } from './rollout/control-plane-deps'
+export {
+  verifyRestore,
+  runRestoreDrills,
+  pickDrillSample,
+  type RestoreProbe,
+  type RestoreDrillResult
+} from './backup/restore-drill'
+export { reconcileTenant, type ReconcileInput, type ReconcileAction } from './reconcile/reconcile'
 
 /**
  * Pick the billing identity provider from the environment. WorkOS AuthKit (free
