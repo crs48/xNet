@@ -82,6 +82,9 @@ export type {
   LabToolPropertySchema
 } from './agent-tools'
 
+// Lab agent tools as AI tools (0194 Phase 2) — for the MCP server / agent runtime.
+export { labAgentToolsToAiTools } from './agent-tools-ai'
+
 // Extension publishing
 export { buildLabExtensionManifest, publishLabAsExtension, slugifyForId } from './extension'
 export type {

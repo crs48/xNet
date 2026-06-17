@@ -526,12 +526,15 @@ classDiagram
 
 ### Phase 2 — AI drives the ecosystem
 
-- [ ] Register `@xnetjs/labs/agent-tools` (`lab_run`/`lab_list`/`lab_create`/
+- [~] Register `@xnetjs/labs/agent-tools` (`lab_run`/`lab_list`/`lab_create`/
       `lab_get`/`lab_run_saved`) with `mcp-server.ts` and the in-app agent runtime,
-      backed by an injected `LabAgentBackend`. _(deferred — the labs `LabAgentTool`
-      shape is already MCP-shaped; the remaining work is the cross-package adapter
-      (lives in labs, which already depends on plugins) + the app/electron MCP
-      registration.)_
+      backed by an injected `LabAgentBackend`. _As-built: `labs/agent-tools-ai.ts`'s
+      `labAgentToolsToAiTools()` adapts the (already MCP-shaped) `LabAgentTool`s to
+      the `AiCallableTool` shape `@xnetjs/plugins` uses — execution tools (`lab_run`
+      etc.) flagged `high` risk, reads `low`, input schemas pass straight through
+      (`LabToolPropertySchema ⊆ AiJsonSchema`). Lives in labs (which already
+      depends on plugins, avoiding the cycle). The app/electron MCP-server +
+      agent-runtime registration of the result is the remaining wiring._
 - [x] Add `contributionsAsAiTools()` + an `aiExposed`/`inputSchema` opt-in on
       `CommandContribution`; expose them as capability-scoped, callable
       `AiToolDefinition`s. _As-built: `AiCommandExposure` adds
