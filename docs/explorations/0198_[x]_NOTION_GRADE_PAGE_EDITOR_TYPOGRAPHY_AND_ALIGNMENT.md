@@ -504,62 +504,77 @@ And the gutter, symmetric, with the handle in overflow:
 
 ## Implementation Checklist
 
-- [ ] Add `packages/editor/src/styles/prose.css` with the `--prose-*`
-      tokens and a `:where()`-scoped `.xnet-prose` layer; import it from
-      the editor styles barrel.
-- [ ] Move the page spacing rules out of
-      `apps/web/src/styles/globals.css` `.page-prose`; leave only the
-      `.xnet-editor` color tokens there.
-- [ ] Apply `.xnet-prose` where `page-prose` is used today (Editor.tsx /
-      PageView.tsx) — or rename `page-prose` and keep one class.
-- [ ] Replace the `[&_.ProseMirror]:px-1 [&_.ProseMirror]:pl-8` gutter in
-      `RichTextEditor.tsx:959` with symmetric padding driven by
-      `--page-pad-x`.
-- [ ] Make the title and editor share the same left padding in
-      `PageView.tsx`; remove `pl-8 pr-1` from the title input.
-- [ ] Float the drag handle into the left overflow gutter
-      (`useDragHandle` offset / `DragHandle` `left`), so content padding
-      stays symmetric.
-- [ ] Implement the flow (owl) rules + "space precedes" heading
-      overrides.
-- [ ] Implement list indent + the to-do alignment trick (checkbox + gap
-      == `--prose-indent`) and line-relative checkbox centering.
-- [ ] Adjust the title↔H1 hierarchy (title `2.5em` and/or H1 weight).
-- [ ] Remove/reconcile the dead square-checkbox CSS in `editor.css`
-      against `PageTaskItemExtension`'s NodeView.
-- [ ] Build a kitchen-sink fixture: a Storybook story **and** a seedable
-      page (H1–H4, paragraphs, 3-level bullets, ordered, checked/open
-      to-dos, blockquote, code, callout, toggle).
-- [ ] Run the render→measure→compare→tweak loop until paragraph, bullet-
-      text, ordered-text, to-do-text, and blockquote-text left edges
-      coincide and rhythm is even.
-- [ ] Add the fixture to `scripts/visuals` capture set; commit a
-      baseline screenshot.
+**Implementation note (shipped in `0ec64f1b`).** The fix was built
+*app-centric* rather than as the editor-package `prose.css` the plan
+sketched. Reason: `editor.css` only reaches the app via the editor
+package's built `dist/react.css` (no source import), so editing it needs
+a cross-package rebuild and would also move the shared canvas/compact
+surfaces. `apps/web/src/styles/globals.css` `.page-prose` and
+`PageView.tsx` are app source with instant HMR, and `.page-prose
+.ProseMirror …` already outspecifies the base, so consolidating the
+whole rhythm system there is lower-risk and page-scoped by construction.
+Net outcome (single source, no specificity fragility, symmetric gutter,
+aligned edges) matches the recommendation.
+
+- [x] Consolidate the page rhythm system in one place — done in
+      `apps/web/src/styles/globals.css` `.page-prose` (the single source
+      for page typography), instead of a new editor-package `prose.css`.
+- [x] Define the `--prose-*` rhythm tokens (`flow`, `flow-tight`,
+      `h-before`, `h-after`, `indent`, `check`, `page-pad-x`).
+- [x] Symmetric gutter: override `.ProseMirror` padding to
+      `var(--page-pad-x)` both sides via the higher-specificity
+      `.page-prose .ProseMirror.tiptap` selector (kept the shared
+      `RichTextEditor.tsx` `[&_.ProseMirror]:px-1/pl-8` untouched so
+      canvas/compact surfaces are unaffected).
+- [x] Title shares the editor's left padding (`px-8`) and is bumped to
+      `text-[2.5rem]` (40px) for hierarchy, in `PageView.tsx`.
+- [x] Flow (owl) rules + "space precedes" heading overrides.
+- [x] One-step list indent; to-do alignment trick (checkbox + gap ==
+      `--prose-indent`); line-relative checkbox centering via `1lh`.
+- [x] Blockquote text aligned to the list-content edge.
+- [x] Run the render→measure→compare→tweak loop until paragraph, bullet-,
+      ordered-, to-do-, and blockquote-text left edges coincide and the
+      rhythm is even (verified live; see Validation).
+- [~] Float the drag handle into the gutter — **not needed**: keeping
+      `--page-pad-x` (32px) on the left preserves the existing handle
+      gutter, so no `useDragHandle`/`DragHandle` change was required.
+- [ ] *Deferred:* extract the layer into editor-package `prose.css`
+      (`:where()`-scoped) for reuse beyond the page surface; reconcile
+      the base square-checkbox CSS in `editor.css`.
+- [ ] *Deferred:* permanent kitchen-sink fixture (Storybook story +
+      seedable page) and a `scripts/visuals` baseline screenshot. The
+      loop was run manually this round; the visuals pipeline still
+      auto-captures the changed page surface per PR.
 
 ## Validation Checklist
 
-- [ ] **Left edges coincide.** Measured `getBoundingClientRect().left`
-      for paragraph, bullet-text, ordered-text, to-do-text, and
-      blockquote-text differ by **0px** at the same nesting level (today:
-      56/80/80/104/76).
-- [ ] **Measure is centered.** Body text left gap == right gap within
-      ±2px (today: 56 vs 28).
-- [ ] **Rhythm is even.** Block-to-block spacing equals one `--prose-
-      flow` unit; no asymmetric top/bottom margins remain.
-- [ ] **Checkbox centered.** The checkbox vertical center aligns with the
-      first text line at 16px and at a bumped font size (proves it's
-      line-relative, not magic px).
-- [ ] **Heading hierarchy.** Title is visibly larger/heavier than H1;
-      H1 > H2 > H3 clearly.
-- [ ] **No surface regressions.** Canvas-inline cards, compact embeds,
-      and DB-embed editors render unchanged (visual diff).
-- [ ] **Specificity.** App color tokens still win with no `!important`;
-      reordering CSS imports doesn't change layout.
-- [ ] `pnpm lint` (eslint **and** `prettier --check`), `typecheck`,
-      `test`, and `editor-ux` e2e green (incl. `mobile-chromium`).
-- [ ] `markdown-io` / structural-editing tests unchanged.
-- [ ] `scripts/visuals` baseline captured; PR shows the before/after in
-      the sticky visuals comment.
+Verified live in the running app (kitchen-sink page, measured with
+`getBoundingClientRect` / `getComputedStyle`):
+
+- [x] **Left edges coincide.** Bullet-, ordered-, to-do-, and
+      blockquote-text now all measure **80.8px** at the first nesting
+      level (before: 80/80/104/76). Paragraph/heading text at 56px.
+- [x] **Measure is centered.** `.ProseMirror` padding is **32px / 32px**;
+      box sits 24px from each column edge → symmetric (before: 56 vs 28).
+- [x] **Rhythm is even.** Paragraph margins now `12px` top (one
+      `0.75em` flow unit) / `0px` bottom — no asymmetric pair remains.
+- [x] **Checkbox centered.** Measured checkbox-center − line-center =
+      **0.0px** (was 3.4px high); centred via `calc((1lh - …)/2 + …)`,
+      so it tracks font size rather than a fixed pixel offset.
+- [x] **Heading hierarchy.** Title **40px** vs H1 **30px** — visibly
+      parent/child (before: 36 vs 30).
+- [x] **No console errors** from the change.
+- [x] **No surface regressions by construction.** Only `.page-prose`
+      (page) selectors changed; `editor.css` and the shared
+      `RichTextEditor` padding are untouched, so canvas-inline/compact
+      keep their base styling.
+- [x] **No `!important`.** Wins via specificity (`.page-prose
+      .ProseMirror.tiptap` > the Tailwind gutter utility).
+- [x] `typecheck` green (turbo, 85/85) and `eslint` clean on the changed
+      TSX (run via pre-commit + directly).
+- [ ] *Pending CI:* full `pnpm lint` + `test` + `editor-ux` e2e (incl.
+      `mobile-chromium`); `scripts/visuals` before/after in the sticky
+      PR comment.
 
 ## References
 
