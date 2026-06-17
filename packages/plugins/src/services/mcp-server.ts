@@ -9,6 +9,7 @@
 
 import type { NodeStoreAPI, SchemaRegistryAPI } from './local-api'
 import type { AISignalProvenanceInput } from '@xnetjs/abuse'
+import { agentToolsAsExtraTools, type AgentToolContribution } from '../agent-tools'
 import {
   AiSurfaceService,
   createAiSurfaceService,
@@ -118,6 +119,13 @@ export interface MCPServerConfig {
   /** Optional output and pagination limits for the default AI surface. */
   aiLimits?: Partial<AiSurfaceLimits>
   /**
+   * Plugin/connector agent tools to expose (exploration 0196). Folded into the
+   * default AI surface's `extraTools`, so they appear in `tools/list` (deferred,
+   * since not in {@link MCP_CORE_TOOL_NAMES}) and dispatch through `tools/call`.
+   * Ignored when a pre-built `aiSurface` is supplied — wire `extraTools` there.
+   */
+  agentTools?: AgentToolContribution[]
+  /**
    * Write guardrail for the generic + first-class write tools. A default
    * guardrail (delete/outward writes need confirmation, cost budget, audit) is
    * created when omitted. Pass a configured instance to tune it.
@@ -172,7 +180,8 @@ export class MCPServer {
       createAiSurfaceService({
         store: config.store,
         schemas: config.schemas,
-        limits: config.aiLimits
+        limits: config.aiLimits,
+        extraTools: agentToolsAsExtraTools(config.agentTools ?? [])
       })
 
     this.config = {

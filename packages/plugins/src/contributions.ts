@@ -2,6 +2,7 @@
  * Contribution types and registry for plugin-provided extensions
  */
 
+import type { AgentToolContribution } from './agent-tools'
 import type { AiJsonSchema, AiRiskLevel, AiScope } from './ai-surface/types'
 import type { MentionProviderContribution } from './mention-providers'
 import type { Disposable } from './types'
@@ -543,6 +544,7 @@ export class ContributionRegistry {
   readonly canvasTemplates = new TypedRegistry<CanvasTemplateContribution>()
   readonly importers = new TypedRegistry<ImporterContribution>()
   readonly mentionProviders = new TypedRegistry<MentionProviderContribution>()
+  readonly agentTools = new TypedRegistry<AgentToolContribution>()
 
   /**
    * Clear all registries (for cleanup/testing)
@@ -567,5 +569,6 @@ export class ContributionRegistry {
     this.canvasTemplates.clear()
     this.importers.clear()
     this.mentionProviders.clear()
+    this.agentTools.clear()
   }
 }

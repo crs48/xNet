@@ -453,6 +453,11 @@ export class PluginRegistry {
         ctx.registerMentionProvider(provider)
       }
     }
+    if (c.agentTools) {
+      for (const tool of c.agentTools) {
+        ctx.registerAgentTool(tool)
+      }
+    }
   }
 
   // ─── Load from Store ───────────────────────────────────────────────────

@@ -17,6 +17,7 @@ export type {
   AiMutationPlan,
   AiMutationPlanStatus,
   AiOperation,
+  AiExtraTool,
   AiResource,
   AiRiskLevel,
   AiScope,

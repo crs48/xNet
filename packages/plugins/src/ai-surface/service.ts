@@ -8,6 +8,7 @@ import type {
   AiContextPack,
   AiContextPackResource,
   AiContextSeed,
+  AiExtraTool,
   AiMutationPlan,
   AiOperation,
   AiResource,
@@ -150,6 +151,14 @@ export type AiSurfaceServiceConfig = {
   limits?: Partial<AiSurfaceLimits>
   clock?: () => Date
   pageMarkdownAdapter?: AiPageMarkdownApplyAdapter
+  /**
+   * Tools contributed from outside the surface — plugin/connector `agentTools`
+   * (exploration 0196). They are appended to `getTools()` and dispatched by
+   * `callTool()`, so every consumer (in-app AI, the MCP server, the files-first
+   * skill) sees them by registering once. A built-in `xnet_*` name always wins
+   * over a colliding extra tool.
+   */
+  extraTools?: AiExtraTool[]
 }
 
 const DEFAULT_LIMITS: AiSurfaceLimits = {
@@ -171,10 +180,23 @@ export class AiSurfaceService {
   private sequence = 0
   private auditEvents: AiAuditEvent[] = []
   private readonly rollbackSnapshots = new Map<string, AiPageMarkdownRollbackSnapshot>()
+  /** Contributed tools by name (exploration 0196), de-duped at construction. */
+  private readonly extraTools = new Map<string, AiExtraTool>()
 
   constructor(private readonly config: AiSurfaceServiceConfig) {
     this.limits = { ...DEFAULT_LIMITS, ...config.limits }
     this.clock = config.clock ?? (() => new Date())
+    for (const tool of config.extraTools ?? []) {
+      // First registration wins; built-in `xnet_*` names are reserved (a clash
+      // is dropped by `getTools()`/`callTool()` favouring the built-in).
+      if (!this.extraTools.has(tool.name)) this.extraTools.set(tool.name, tool)
+    }
+  }
+
+  /** The contributed (non-built-in) tools, with built-in name collisions removed. */
+  private getExtraTools(): AiExtraTool[] {
+    const builtIn = new Set(this.builtInTools().map((t) => t.name))
+    return [...this.extraTools.values()].filter((t) => !builtIn.has(t.name))
   }
 
   getResources(): AiResource[] {
@@ -295,7 +317,15 @@ export class AiSurfaceService {
     ]
   }
 
+  /** The full tool surface: built-in `xnet_*` tools plus contributed extras. */
   getTools(): AiToolDefinition[] {
+    const extras: AiToolDefinition[] = this.getExtraTools().map(
+      ({ invoke: _invoke, ...def }) => def
+    )
+    return [...this.builtInTools(), ...extras]
+  }
+
+  private builtInTools(): AiToolDefinition[] {
     return [
       {
         name: 'xnet_search',
@@ -913,8 +943,12 @@ export class AiSurfaceService {
         return { validation }
       }
 
-      default:
+      default: {
+        // Contributed tools (plugin/connector `agentTools`, exploration 0196).
+        const extra = this.extraTools.get(name)
+        if (extra) return await extra.invoke(args)
         throw new Error(`Unknown AI surface tool: ${name}`)
+      }
     }
   }
 

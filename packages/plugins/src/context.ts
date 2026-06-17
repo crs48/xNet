@@ -2,6 +2,7 @@
  * ExtensionContext - The API surface available to plugins
  */
 
+import type { AgentToolContribution } from './agent-tools'
 import type {
   ContributionRegistry,
   ViewContribution,
@@ -111,6 +112,8 @@ export interface ExtensionContext {
   registerImporter(importer: ImporterContribution): Disposable
   /** Register a mention/typeahead provider (exploration 0194) */
   registerMentionProvider(provider: MentionProviderContribution): Disposable
+  /** Register a model-facing agent tool (exploration 0196) */
+  registerAgentTool(tool: AgentToolContribution): Disposable
   /** Add middleware to NodeStore */
   addMiddleware(middleware: NodeStoreMiddleware): Disposable
 
@@ -318,6 +321,12 @@ export function createExtensionContext(options: CreateContextOptions): Extension
 
     registerMentionProvider(provider) {
       const d = contributions.mentionProviders.register(provider)
+      disposables.push(d)
+      return d
+    },
+
+    registerAgentTool(tool) {
+      const d = contributions.agentTools.register(tool)
       disposables.push(d)
       return d
     },

@@ -149,6 +149,41 @@ export type {
   ResolveMentionOptions
 } from './mention-providers'
 
+// Agent tools (exploration 0196) — model-facing tools a Connector exposes.
+export { agentToolToExtraTool, agentToolsAsExtraTools } from './agent-tools'
+export type { AgentToolContribution, AgentToolInputSchema } from './agent-tools'
+
+// Connectors (exploration 0196) — sync an external service into governed nodes
+// and expose agent-callable tools over them. xNet's agent-native-CLI equivalent.
+export {
+  defineConnector,
+  ConnectorDefinitionError,
+  runConnectorSync,
+  ConnectorSyncError,
+  CONNECTOR_CATEGORY,
+  emitConnectorArtifacts,
+  connectorMarketplaceEntry,
+  connectorAsImporter,
+  evaluateConnectorInstall,
+  wrapCliConnector
+} from './connectors'
+export type {
+  ConnectorDefinition,
+  DefinedConnector,
+  ConnectorSyncSpec,
+  ConnectorSyncContext,
+  ConnectorSyncResult,
+  ConnectorStore,
+  ConnectorFetch,
+  ConnectorCadence,
+  RunConnectorSyncPorts,
+  GuardableConnectorStore,
+  ConnectorArtifacts,
+  ConnectorToolDescriptor,
+  ConnectorInstallGate,
+  WrapCliConnectorOptions
+} from './connectors'
+
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'
 export { MiddlewareChain } from './middleware'
@@ -451,6 +486,7 @@ export type {
   AiTargetKind,
   AiToolCallResult,
   AiToolDefinition,
+  AiExtraTool,
   AiValidationResult,
   AiResourceContent,
   AiSearchOptions,

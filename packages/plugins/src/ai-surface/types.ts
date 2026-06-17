@@ -111,6 +111,16 @@ export type AiToolCallResult = {
   content: Array<{ type: 'text'; text: string }>
 }
 
+/**
+ * A tool the AI surface can list and call but whose implementation lives outside
+ * the surface (a plugin/connector contribution, exploration 0196). `invoke`
+ * returns raw data; the surface serializes it for the model, keeping contributed
+ * tools symmetric with the built-in `xnet_*` tools.
+ */
+export type AiExtraTool = AiToolDefinition & {
+  invoke: (args: Record<string, unknown>) => unknown | Promise<unknown>
+}
+
 // ─── Mutation Plans ─────────────────────────────────────────────────────────
 
 export type AiValidationResult = {
