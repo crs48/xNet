@@ -2,9 +2,31 @@
  * Contribution types and registry for plugin-provided extensions
  */
 
+import type { AiJsonSchema, AiRiskLevel, AiScope } from './ai-surface/types'
 import type { Disposable } from './types'
 import type { Extension } from '@tiptap/core'
 import type { ComponentType } from 'react'
+
+/**
+ * How a command opts in to being callable by the AI agent as a tool
+ * (exploration 0194 Phase 2). Absent / `aiExposed:false` → the AI never sees it.
+ */
+export interface AiCommandExposure {
+  /** Expose this command to the AI agent as a callable tool. Opt-in. */
+  aiExposed?: boolean
+  /** JSON schema for the tool's args (defaults to an empty object schema). */
+  aiInputSchema?: {
+    type: 'object'
+    properties: Record<string, AiJsonSchema>
+    required?: readonly string[]
+  }
+  /** Risk level surfaced to the agent + consent (default `medium`). */
+  aiRisk?: AiRiskLevel
+  /** AI scopes this command requires (checked against the plugin's grant; default none). */
+  aiScopes?: AiScope[]
+  /** Arg-taking AI invocation; falls back to `execute()` when absent. */
+  aiInvoke?: (args: Record<string, unknown>) => unknown | Promise<unknown>
+}
 
 // ─── Contribution Types ────────────────────────────────────────────────────
 
@@ -26,7 +48,7 @@ export interface ViewProps {
   schemaId: string
 }
 
-export interface CommandContribution {
+export interface CommandContribution extends AiCommandExposure {
   /** Unique command ID */
   id: string
   /** Display name */

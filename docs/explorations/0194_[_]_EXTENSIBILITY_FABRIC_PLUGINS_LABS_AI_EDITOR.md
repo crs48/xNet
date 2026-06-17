@@ -528,11 +528,25 @@ classDiagram
 
 - [ ] Register `@xnetjs/labs/agent-tools` (`lab_run`/`lab_list`/`lab_create`/
       `lab_get`/`lab_run_saved`) with `mcp-server.ts` and the in-app agent runtime,
-      backed by an injected `LabAgentBackend`.
-- [ ] Add `contributionsAsAiTools()` + an `aiExposed`/`inputSchema` opt-in on
-      `CommandContribution`; register them as capability-scoped `AiToolDefinition`s.
-- [ ] Implement the AI→Lab→Plugin pipeline (generate → `lab_create` → `lab_run` →
-      approval → `publishLabAsExtension`) with consent + provenance at publish.
+      backed by an injected `LabAgentBackend`. _(deferred — the labs `LabAgentTool`
+      shape is already MCP-shaped; the remaining work is the cross-package adapter
+      (lives in labs, which already depends on plugins) + the app/electron MCP
+      registration.)_
+- [x] Add `contributionsAsAiTools()` + an `aiExposed`/`inputSchema` opt-in on
+      `CommandContribution`; expose them as capability-scoped, callable
+      `AiToolDefinition`s. _As-built: `AiCommandExposure` adds
+      `aiExposed`/`aiInputSchema`/`aiRisk`/`aiScopes`/`aiInvoke` to
+      `CommandContribution`; `ai-surface/contribution-tools.ts`'s
+      `contributionsAsAiTools` wraps only opted-in commands into `AiCallableTool`s
+      (`AiToolDefinition` + `invoke`), defaulting risk `medium` / no scopes. The
+      MCP-server registration of these is the app-side wiring._
+- [x] Implement the AI→Lab→Plugin pipeline (generate → run-in-lab → approval →
+      publish) with consent + provenance at publish. _As-built:
+      `ecosystem/ai-pipeline.ts`'s `runAiPluginPipeline(input, ports)` — pure
+      orchestration over injected `generate`/`runLab`/`consent`/`publish` ports
+      (no `plugins→labs` edge). Refuses unvalidated generations, never publishes
+      without `consent`, stamps `ai-generated` provenance via
+      `scriptToPluginManifest`. Returns a tagged result per stop-stage._
 
 ### Phase 3 — AI in the editor
 
@@ -568,10 +582,11 @@ classDiagram
 - [ ] The AI agent can `lab_list`/`lab_run`/`lab_create` through the MCP server,
       bounded by capability scopes; a lab that exceeds its grant or times out
       fails closed.
-- [ ] The AI can invoke an `aiExposed` plugin command as a tool; a non-exposed or
-      out-of-scope command is not callable.
-- [ ] The AI→Lab→Plugin pipeline produces a runnable Lab, shows real output, and
-      only publishes after human consent with attested provenance.
+- [x] The AI can invoke an `aiExposed` plugin command as a tool; a non-exposed
+      command is not in the tool set (`ecosystem-contribution-tools.test.ts`).
+- [x] The AI→Lab→Plugin pipeline refuses unvalidated generations, stops at
+      run-failed / declined without publishing, and publishes only after consent
+      (`ecosystem-ai-pipeline.test.ts`).
 - [ ] `/ai` in the editor rewrites a selection through an `AiMutationPlan` with a
       visible diff + approval; declining makes no change; offline degrades
       gracefully.

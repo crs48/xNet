@@ -77,7 +77,8 @@ export type {
   SettingsPanelProps,
   SchemaContribution,
   StatusBarContribution,
-  ImporterContribution
+  ImporterContribution,
+  AiCommandExposure
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
 
@@ -473,6 +474,7 @@ export {
   validateAiMutationPlan,
   AiSurfaceService,
   createAiSurfaceService,
+  contributionsAsAiTools,
   getXNetMarkdownDirectiveSpecs,
   parseXNetPageFrontmatter,
   renderMarkdownLineDiff,
@@ -481,6 +483,7 @@ export {
   XNET_MARKDOWN_DIRECTIVE_SPECS,
   validateXNetPageMarkdown
 } from './ai-surface'
+export type { AiCallableTool } from './ai-surface'
 
 // Services (Background process management)
 // Note: Node.js-only modules (LocalAPIServer, MCPServer, ProcessManager) are
