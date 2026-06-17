@@ -13,6 +13,7 @@ import { useTheme } from '@xnetjs/ui'
 import { Moon, Sun, Users } from 'lucide-react'
 import { useSpaces } from '../hooks/useSpaces'
 import { getDataRuntime } from '../lib/data-runtime'
+import { WhatsNewButton } from '../whats-new/WhatsNewButton'
 import { statusContributionText, useWorkbenchContributions } from './contributions'
 import { navigateToNode } from './navigation'
 import { useWorkbench } from './state'
@@ -140,6 +141,7 @@ export function StatusBar() {
       {rightItems.map((item) => (
         <StatusEntry key={item.id} item={item} />
       ))}
+      <WhatsNewButton />
       <button
         type="button"
         onClick={toggleTheme}

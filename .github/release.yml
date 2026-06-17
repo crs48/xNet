@@ -1,0 +1,29 @@
+# Categories for GitHub's auto-generated release notes (used with
+# `gh release create --generate-notes`). Merged PRs are grouped by label.
+# See exploration 0195 — these notes are appended below the AI "What's New".
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+      - internal
+      - dependencies
+  categories:
+    - title: New Features
+      labels:
+        - enhancement
+        - feature
+    - title: Bug Fixes
+      labels:
+        - bug
+        - fix
+    - title: Performance
+      labels:
+        - performance
+        - perf
+    - title: Documentation
+      labels:
+        - documentation
+        - docs
+    - title: Other Changes
+      labels:
+        - '*'

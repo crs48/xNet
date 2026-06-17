@@ -129,6 +129,12 @@ interface WorkbenchState {
   spaceFilter: string[]
   /** Sort order for the flat Explorer list (exploration 0190). */
   explorerSort: ExplorerSort
+  /**
+   * Newest changelog entry id the user has acknowledged (in-app What's New,
+   * exploration 0195). `null` = never seen; seeded to the latest on first run
+   * so existing users don't get a wall of history.
+   */
+  lastSeenChangelogId: string | null
 
   // ─── Spaces ────────────────────────────────────────────────────
   setCurrentSpace: (spaceId: string | null) => void
@@ -185,6 +191,9 @@ interface WorkbenchState {
   shelfClear: () => void
 
   setStartupTab: (tab: { nodeType: TabNodeType; nodeId: string } | null) => void
+
+  // ─── What's New ────────────────────────────────────────────────
+  setLastSeenChangelogId: (id: string) => void
 }
 
 function freshGroups(): EditorGroup[] {
@@ -209,6 +218,7 @@ export const useWorkbench = create<WorkbenchState>()(
       currentSpaceId: null,
       spaceFilter: [],
       explorerSort: 'recent',
+      lastSeenChangelogId: null,
 
       // Setting a single scope always exits multi-select (keeps the create
       // target unambiguous — exploration 0190).
@@ -490,7 +500,9 @@ export const useWorkbench = create<WorkbenchState>()(
 
       shelfClear: () => set({ shelf: [] }),
 
-      setStartupTab: (tab) => set({ startupTab: tab })
+      setStartupTab: (tab) => set({ startupTab: tab }),
+
+      setLastSeenChangelogId: (id) => set({ lastSeenChangelogId: id })
     }),
     {
       name: 'xnet:workbench:v1'
