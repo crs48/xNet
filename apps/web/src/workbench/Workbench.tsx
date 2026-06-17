@@ -18,10 +18,12 @@ import { ContextPanel } from './ContextPanel'
 import { EditorArea } from './EditorArea'
 import { useFocusRing } from './focus'
 import { Hairline } from './Hairline'
+import { MobileShell } from './MobileShell'
 import { PanelViewHost } from './PanelViewHost'
 import { Rail } from './Rail'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
+import { useIsCompact } from './use-layout-mode'
 import { registerBuiltinPanelViews } from './views/register'
 
 registerBuiltinPanelViews()
@@ -99,7 +101,20 @@ function WorkbenchDemoBanner() {
   return <DemoBanner evictionHours={limits.evictionHours} />
 }
 
+/**
+ * Workbench — the adaptive shell entry point (exploration 0196).
+ *
+ * On phone-class (compact) widths the desktop multi-pane grid can't
+ * fit, so we render the content-first {@link MobileShell}. At medium
+ * and expanded widths we render the desktop grid below, unchanged.
+ */
 export function Workbench({ children }: { children: ReactNode }) {
+  const compact = useIsCompact()
+  if (compact) return <MobileShell>{children}</MobileShell>
+  return <DesktopWorkbench>{children}</DesktopWorkbench>
+}
+
+function DesktopWorkbench({ children }: { children: ReactNode }) {
   const mode = useWorkbench((state) => state.mode)
   const left = useWorkbench((state) => state.left)
   const right = useWorkbench((state) => state.right)

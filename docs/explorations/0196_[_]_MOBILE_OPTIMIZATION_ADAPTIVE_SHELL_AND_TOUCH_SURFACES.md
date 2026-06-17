@@ -505,10 +505,10 @@ And the missing CSS import:
 - [x] Add `apps/web/src/workbench/use-layout-mode.ts` (`compact`/`medium`/`expanded`) over `useMediaQuery`.
 - [x] Import `@xnetjs/ui/responsive.css` in `apps/web/src/styles/globals.css`; verify `.touch-target`/`.safe-area-*` reach the bundle.
 - [x] Confirm/adjust viewport meta for `viewport-fit=cover` so safe-area insets apply.
-- [ ] Extract today's shell into `DesktopWorkbench.tsx` (no behavior change) and branch `Workbench` on `useLayoutMode()`.
-- [ ] Build `MobileShell.tsx`: full-bleed `<Outlet/>`, `MobileTopBar`, `BottomNav` (5 primary destinations + More), `BottomNavSpacer`.
-- [ ] Map left/right/bottom panels to edge `Sheet`s driven by existing `state.ts` `{ open }` booleans; enforce one-overlay-at-a-time.
-- [ ] Decide + implement compact tab semantics (single-surface history vs compact switcher); disable split groups on compact.
+- [x] Branch `Workbench` on `useIsCompact()` into an internal `DesktopWorkbench` (unchanged grid) and `MobileShell`.
+- [x] Build `MobileShell.tsx`: full-bleed surface (reuses `EditorArea`), `MobileTopBar`, in-flow `BottomNav` (Explorer / Search / New / Tasks / Settings).
+- [x] Map left/right/bottom panels to edge `Sheet`s driven by existing `state.ts` `{ open }` booleans; `openOnly()` enforces one-overlay-at-a-time, and overlays collapse on navigation.
+- [x] Compact tab semantics: single router-authoritative surface via `EditorArea`; the horizontally scrollable tab strip doubles as the switcher (split is desktop-drag-only, so unavailable on touch).
 - [ ] Flip `Editor.tsx` `toolbarMode` → `"auto"`; verify `mobile-fixed` keyboard-aware toolbar; make comment markers tappable.
 - [ ] Route the grid through `ResponsiveTable` card mode on compact; add an opt-in "table view" toggle with sticky first column.
 - [ ] Restack `SchemaForm` below `md` (label above field, ≥44 px controls, no hover-only affordances).
