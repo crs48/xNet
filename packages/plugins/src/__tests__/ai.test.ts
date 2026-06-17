@@ -254,6 +254,36 @@ describe('AnthropicProvider', () => {
 
     expect(result).toBe('(node) => node.value * 1.08')
   })
+
+  it('sends the browser-CORS header when allowBrowser is set', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ content: [{ type: 'text', text: 'ok' }] })
+    })
+    global.fetch = fetchMock
+
+    const provider = new AnthropicProvider({ apiKey: 'k', allowBrowser: true })
+    await provider.generate('hi')
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(init.headers).toMatchObject({
+      'anthropic-dangerous-direct-browser-access': 'true'
+    })
+  })
+
+  it('omits the browser-CORS header when allowBrowser is false', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ content: [{ type: 'text', text: 'ok' }] })
+    })
+    global.fetch = fetchMock
+
+    const provider = new AnthropicProvider({ apiKey: 'k', allowBrowser: false })
+    await provider.generate('hi')
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(init.headers).not.toHaveProperty('anthropic-dangerous-direct-browser-access')
+  })
 })
 
 describe('OpenAIProvider', () => {
