@@ -36,3 +36,12 @@ pnpm-debug.log*
 # graphify local runtime state
 .codex/hooks.json
 graphify-out/
+
+# Secrets / local env — NEVER commit filled-in env files.
+# The committed templates end in `.example`; your real copies do not.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.env.local
+.env.secrets
