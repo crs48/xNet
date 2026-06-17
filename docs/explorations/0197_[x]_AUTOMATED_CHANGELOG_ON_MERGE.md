@@ -442,48 +442,58 @@ CI stamps the date, PR number, and author automatically.
 
 ## Implementation Checklist
 
+> **Refinements during build:** (1) the loader uses Vite's `import.meta.glob`,
+> not `node:fs` — a runtime `fs` read keyed on `import.meta.url` breaks once the
+> module is bundled into `dist/` (ENOENT); the validator reads the fragments via
+> `fs` since it runs under `tsx`. (2) Existing entries keep their bare-date ids;
+> CI-written entries use `<date>-pr<N>` ids (unique per PR, so same-day merges
+> never collide). (3) **No `[skip ci]`** on the bot commit — `deploy-site` *must*
+> fire to republish, and there's no loop because the trigger is the merge event,
+> not a push.
+
 ### Phase 1 — fragment storage
-- [ ] Create `site/src/data/changelog/` and split the 13 existing entries into
-      `<id>-pr<N>.json` (or `<id>.json` where no PR) files
-- [ ] Refactor `changelog.ts` to load + sort fragments via `node:fs` (keep the
-      `ChangelogEntry` type + `updated` export)
-- [ ] Update `validate-changelog.ts` to validate every fragment (unique ids,
-      descending, required fields)
-- [ ] Confirm `astro build`, `/changelog.json`, `/changelog.xml`, and the page
-      are byte-identical to before (pure refactor)
+- [x] Split the 13 entries into `site/src/data/changelog/<id>.json` fragments
+- [x] Refactor `changelog.ts` to load + sort fragments (via `import.meta.glob`)
+- [x] `validate-changelog.ts` reads + validates every fragment (type-only import
+      so `tsx` doesn't evaluate the Vite glob); id accepts a `-pr<N>` suffix
+- [x] `astro build`, `/changelog.json`, `/changelog.xml`, and the page render
+      identically (13 items, #140 before/after gallery intact)
 
 ### Phase 2 — merge workflow
-- [ ] `scripts/changelog/from-pr.mjs`: parse `## Changelog` block → fallback AI →
+- [x] `scripts/changelog/from-pr.mjs`: parse `## Changelog` block → AI fallback →
       stamp id/pr/author/date → idempotent write → `GITHUB_OUTPUT` `written`
-- [ ] `.github/workflows/changelog.yml`: `pull_request: closed` + merged +
-      own-repo + `skip-changelog` guard + `concurrency` + PAT checkout + commit +
-      `needs-changelog` fallback
-- [ ] Verify the bot commit triggers `deploy-site` (PAT, not `GITHUB_TOKEN`)
-- [ ] Confirm no self-loop (merge event ≠ push; bot push doesn't re-fire it)
-- [ ] Add `skip-changelog` and `needs-changelog` labels to the repo
+      (tested locally: block, idempotent re-run, and no-block paths)
+- [x] `.github/workflows/changelog.yml`: `pull_request: closed` + merged +
+      own-repo + `skip-changelog` guard + `concurrency` + PAT checkout + rebase +
+      commit + `needs-changelog` fallback (valid YAML)
+- [x] Commit uses `RELEASE_GITHUB_TOKEN` (PAT) so it triggers `deploy-site`
+- [x] No self-loop by construction (merge event ≠ push)
+- [x] Created `skip-changelog` and `needs-changelog` labels in the repo
+- [ ] (Live, post-merge) confirm a real merge writes a fragment + redeploys
 
 ### Phase 3 — author ergonomics
-- [ ] Add a `## Changelog` section to `.github/pull_request_template.md`
-- [ ] Update the `AGENTS.md` "Changelog Entries" section: fill the PR-body block,
-      not `changelog.ts`
-- [ ] (Optional) soft CI comment when a user-facing PR has an empty block
-- [ ] (Optional) nightly/`push` reconcile job that back-fills missed merges
+- [x] Added a `## Changelog` section to the PR template
+- [x] Rewrote the `AGENTS.md` "Changelog Entries" section: fill the PR-body block
+- [ ] (Optional, deferred) soft CI comment when a user-facing PR has an empty block
+- [ ] (Optional, deferred) nightly/`push` reconcile job that back-fills misses
 
 ## Validation Checklist
 
-- [ ] Merge a test PR **with** a `## Changelog` block → a fragment file lands on
-      `main` within a minute, with the correct PR number, merge date, and author
-- [ ] `deploy-site` runs off that commit and the live page + `/changelog.json`
-      show the new entry (and its auto-gallery if the PR has captured surfaces)
-- [ ] Merge a PR **without** a block → `needs-changelog` label applied, no broken
-      build, nothing published
-- [ ] Merge a PR labeled `skip-changelog` → workflow skips entirely
-- [ ] Re-run the workflow on an already-processed PR → idempotent (no duplicate
-      fragment, no empty commit)
-- [ ] Two PRs merged seconds apart → both fragments land, no push rejection
-      survives the rebase/concurrency handling
-- [ ] With `ANTHROPIC_API_KEY` unset, a block-less PR degrades to `needs-changelog`
-      (no hard failure)
+Verified locally:
+- [x] `from-pr.mjs` with a `## Changelog` block → valid fragment with correct
+      id/date/pr/author; tag filtering drops unknown tags
+- [x] Idempotent re-run on an existing fragment → `written=false`, no overwrite
+- [x] Block-less PR with no `ANTHROPIC_API_KEY` → `written=false` (→ label path)
+- [x] `validate:changelog` accepts a generated fragment; `astro build` clean
+- [x] Workflow YAML parses; `skip-changelog`/`needs-changelog` labels exist
+
+Requires the workflow to be on `main` (post-merge):
+- [ ] Merge a PR **with** a block → fragment lands on `main` within ~a minute
+- [ ] `deploy-site` runs off that commit; the live page + `/changelog.json` show
+      the entry (and its auto-gallery if the PR captured surfaces)
+- [ ] Merge **without** a block → `needs-changelog` label, no broken build
+- [ ] Merge with `skip-changelog` → workflow skips entirely
+- [ ] Two PRs merged seconds apart → both fragments land (concurrency + rebase)
 - [ ] The in-app "What's New" panel shows the new entry after the feed redeploys
 
 ## References
