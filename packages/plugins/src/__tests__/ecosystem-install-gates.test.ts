@@ -4,7 +4,6 @@
  */
 
 import type { ExtensionContext } from '../context'
-import { describe, it, expect, vi } from 'vitest'
 import {
   generateLicenseKeypair,
   mintPluginLicense,
@@ -12,6 +11,7 @@ import {
   publicKeyFromHex,
   privateKeyFromHex
 } from '@xnetjs/licenses'
+import { describe, it, expect, vi } from 'vitest'
 import { CapabilityError } from '../ecosystem/capability-guard'
 import { createTestPluginHarness } from '../ecosystem/testing'
 import { defineFeatureModule } from '../feature-module'

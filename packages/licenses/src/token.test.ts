@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
-import { signPluginLicense, verifyPluginLicense, type PluginLicenseClaims } from './token'
+import { describe, it, expect } from 'vitest'
 import {
   generateLicenseKeypair,
   publicKeyFromHex,
@@ -8,6 +7,7 @@ import {
   publicKeyHexFromPrivateHex
 } from './keys'
 import { mintPluginLicense, checkLicenseFor, PERPETUAL_EXPIRY_MS, DEFAULT_GRACE_SEC } from './mint'
+import { signPluginLicense, verifyPluginLicense, type PluginLicenseClaims } from './token'
 
 const NOW = 1_700_000_000_000
 const BUYER = 'did:key:zBuyer'

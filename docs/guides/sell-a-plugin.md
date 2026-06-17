@@ -56,28 +56,28 @@ flowchart LR
 
 This is genuinely "use your own Stripe" — you are the merchant of record for your
 sales — plus an automatically-captured marketplace fee. (There is **no** way for
-a platform to skim a fee from a *standalone* Stripe account it doesn't control;
+a platform to skim a fee from a _standalone_ Stripe account it doesn't control;
 Connect is the supported version of that.)
 
 ### BYO (fully sovereign): your own checkout, 0% fee
 
 Set `pricing.billing: 'byo'` and xNet takes **nothing**. You run your own
 checkout and mint your own license tokens (publishing your public key in the
-listing's provenance); xNet only *verifies* the resulting license at install.
+listing's provenance); xNet only _verifies_ the resulting license at install.
 
 ## 3. Licensing + enforcement
 
 Paid plugins must declare a **marketplace-approved** license — enforced in CI by
 `pnpm check:plugin-licenses`:
 
-| License | Source-available | Converts to open |
-| --- | --- | --- |
-| `FSL-1.1-MIT` *(default)* | ✅ | ✅ MIT, after 2 years |
-| `FSL-1.1-Apache-2.0` | ✅ | ✅ Apache-2.0, after 2 years |
-| `MIT` / `Apache-2.0` / `AGPL-3.0-only` | ✅ | already open |
+| License                                | Source-available | Converts to open             |
+| -------------------------------------- | ---------------- | ---------------------------- |
+| `FSL-1.1-MIT` _(default)_              | ✅               | ✅ MIT, after 2 years        |
+| `FSL-1.1-Apache-2.0`                   | ✅               | ✅ Apache-2.0, after 2 years |
+| `MIT` / `Apache-2.0` / `AGPL-3.0-only` | ✅               | already open                 |
 
 **FSL** (the Functional Source License, same one [`@xnetjs/cloud`](../../packages/cloud/LICENSE)
-uses) keeps your source published, forbids only a *competing* marketplace, and
+uses) keeps your source published, forbids only a _competing_ marketplace, and
 auto-converts each version to MIT/Apache exactly two years after it ships. The
 scaffolder writes the matching `LICENSE` file automatically.
 
