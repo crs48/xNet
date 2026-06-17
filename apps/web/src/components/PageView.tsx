@@ -882,7 +882,7 @@ export function PageView({ docId }: { docId: string }) {
             ref={titleInputRef}
             type="text"
             aria-label="Page title"
-            className="w-full shrink-0 border-none bg-transparent pl-8 pr-1 text-4xl font-bold leading-tight tracking-tight text-ink-1 outline-none placeholder:text-ink-3"
+            className="w-full shrink-0 border-none bg-transparent px-8 text-[2.5rem] font-bold leading-tight tracking-tight text-ink-1 outline-none placeholder:text-ink-3"
             value={page!.title || ''}
             onChange={(e) => update({ title: e.target.value })}
             onKeyDown={handleTitleKeyDown}

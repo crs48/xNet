@@ -1,6 +1,6 @@
 import { resolveEntitlements } from '@xnetjs/entitlements'
 import { describe, expect, it } from 'vitest'
-import { CloudRunLitestreamProvisioner } from './adapters/cloud-run-litestream'
+import { FargateLitestreamProvisioner } from './adapters/fargate-litestream'
 import { MemoryProvisioner } from './memory'
 import { NotImplementedError, UnknownTenantError, type ProvisionSpec } from './types'
 
@@ -70,14 +70,14 @@ describe('MemoryProvisioner lifecycle', () => {
 })
 
 describe('cloud adapter skeletons', () => {
-  it('expose the Provisioner shape but are not implemented yet', async () => {
-    const p = new CloudRunLitestreamProvisioner({
-      projectPrefix: 'xnet-hub',
-      region: 'us-central1',
-      imageRepository: 'us-docker.pkg.dev/xnet/hub',
-      r2Bucket: 'xnet-blobs'
+  it('the Fargate adapter exposes the shape but is not implemented yet', async () => {
+    const p = new FargateLitestreamProvisioner({
+      cluster: 'arn:aws:ecs:us-east-1:0:cluster/xnet',
+      region: 'us-east-1',
+      imageRepository: '0.dkr.ecr.us-east-1.amazonaws.com/hub',
+      s3Bucket: 'xnet-blobs'
     })
-    expect(p.substrate).toBe('cloud-run-litestream')
+    expect(p.substrate).toBe('fargate-litestream')
     await expect(p.provision(spec('z'))).rejects.toThrow(NotImplementedError)
   })
 })
