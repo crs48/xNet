@@ -1046,18 +1046,23 @@ from the feed.
 
 ### Phase 0 — Electron release notes
 
-- [ ] Add `.github/release.yml` with PR label categories
+> **Implementation note.** Rather than depend on the external `communique`
+> binary, AI enrichment is a self-contained, fail-open Node script
+> (`scripts/changelog/ai-release-notes.mjs`) — no new CI dependency, and with no
+> API key it is a no-op passthrough so releases never break.
+
+- [x] Add `.github/release.yml` with PR label categories
   (`enhancement→New Features`, `bug→Bug Fixes`, `perf→Performance`,
   `documentation→Documentation`)
-- [ ] Replace `git log --pretty=format:"- %s"` block in `electron-release.yml`
-  with `gh release create --generate-notes`
-- [ ] Add `communique.toml` to repo root with Claude prompt config
-- [ ] Add `ANTHROPIC_API_KEY` to GitHub repository secrets
-- [ ] Add `communique` post-release step in `electron-release.yml`
-  (`continue-on-error: true`)
+- [x] `electron-release.yml` pipes the commit list through the enrichment script
+  and adds `--generate-notes` (GitHub PR categories appended below the prose)
+- [x] `scripts/changelog/ai-release-notes.mjs` — Haiku call via global `fetch`,
+  fail-open passthrough (smoke-tested locally with no key)
+- [ ] Add `ANTHROPIC_API_KEY` to GitHub repository secrets (repo-admin action;
+  until then the script passes through raw commits)
 - [ ] Test: trigger `workflow_dispatch` on `electron-release.yml`, confirm
   release notes are AI-enriched prose
-- [ ] Add standing instruction to `AGENTS.md` for changeset file authoring
+- [x] Add standing instruction to `AGENTS.md` for changelog entry authoring
 
 ### Phase 1 — Changelog feed
 
@@ -1093,60 +1098,64 @@ from the feed.
 
 ### Phase 3 — In-app What's New
 
-- [ ] Inject `VITE_APP_VERSION` at build time (`apps/web/vite.config.ts` `define`
-  + `apps/web/src/env.d.ts`) — the app currently has no notion of its version
-- [ ] Add `ChangelogEntry` type and `useWhatsNew` hook to a shared location
-  (e.g., `packages/core/src/whats-new.ts` or `apps/web/src/hooks/useWhatsNew.ts`)
-- [ ] Add `lastSeenChangelogVersion` to the workbench store
-  (`apps/web/src/workbench/state.ts`, persisted; seed from `VITE_APP_VERSION`
-  on first install)
-- [ ] (Alternative) reuse the notification center: add a `changelog`/`system`
-  `NotificationReason` and `notifier.push()` one synthetic item on version bump
-  (`packages/comms/src/notify/`, rendered by `InboxTray`)
-- [ ] Add `WhatsNewPanel` component
-  - [ ] Renders `ChangelogEntry[]` as a feed (title, summary, hero image,
-    date, link-to-website)
-  - [ ] "Mark as seen" button updates `lastSeenChangelogVersion`
-- [ ] Register `WhatsNewPanel` as a workbench panel view
-- [ ] Add badge to workbench panel trigger when `hasNew`
-- [ ] In `apps/electron/src/main/updater.ts`, augment `update-available` IPC
-  with the changelog feed entry for the new version
-- [ ] Add `WhatsNewModal` to the Electron renderer, rendering the enriched
-  entry instead of using native `dialog.showMessageBox`
-- [ ] Electron: skip native dialog for patch releases (`versionBump < 'minor'`)
+> **Implementation note.** The feed is fetched **only when the panel is opened**
+> (not on startup), so the app makes no background network request — which would
+> otherwise surface as a console error and fail the offline `editor-ux` e2e. The
+> "last seen" key is the entry `id` (an ISO date), not a semver, so it tracks
+> changelog cadence independent of the rarely-bumped app version.
+
+- [x] Inject `VITE_APP_VERSION` at build time (`apps/web/vite.config.ts` `define`
+  from `package.json` + `apps/web/src/env.d.ts`); verified present in the bundle
+- [x] `apps/web/src/whats-new/feed.ts` — pure, tested feed parse + `selectUnseen`
+  + fail-open `fetchChangelog` (9 unit tests)
+- [x] `apps/web/src/whats-new/useWhatsNew.ts` — lazy-load hook
+- [x] Add `lastSeenChangelogId` to the workbench store
+  (`apps/web/src/workbench/state.ts`, persisted; seeded to latest on first open)
+- [x] `WhatsNewButton` + `WhatsNewPanel` — Sparkles affordance in the StatusBar
+  right cluster; panel lists entries with hero images, "New" markers, and a
+  link to the full website changelog
+- [x] Electron: `UpdateNotification.tsx` now renders the `releaseNotes` the
+  updater already passes over IPC (HTML stripped to text)
+- [ ] (Deferred) proactive "new" badge without opening the panel — needs a
+  safe local signal (e.g. bump the web app version per release)
+- [ ] (Deferred) Electron: skip the update prompt for patch-only releases
 
 ### Phase 4 — Author-time agent integration
 
-- [ ] Update `AGENTS.md` with changeset authoring instructions
-- [ ] (Optional) Implement custom `.changeset/changelog-with-ai.cjs` Changesets
-  hook using Claude Haiku for one-sentence enrichment
-- [ ] (Optional) Update `.changeset/config.json` `changelog` field to point
-  to the custom module
-- [ ] Wire `ANTHROPIC_API_KEY` into the `version-packages` CI step
+- [x] Update `AGENTS.md` with changelog-entry authoring instructions (prepend
+  to `site/src/data/changelog.ts` for user-facing changes)
+- [ ] (Optional, deferred) custom `.changeset/changelog-with-ai.cjs` Changesets
+  hook + `ANTHROPIC_API_KEY` in the `version-packages` step — author-time prose
+  already covers the user changelog, so this is polish for the developer one
 
 ## Validation Checklist
 
-- [ ] A merged PR with a `feature` label appears in the Electron release notes
-  under "New Features" (not under "Other Changes")
-- [ ] The AI-generated release notes for a real release contain no hallucinated
-  features (manual review of first 3 releases)
-- [ ] `https://xnet.fyi/site-changelog/changelog.json` returns valid JSON Feed
-  1.1 with at least one entry after a release
-- [ ] `https://xnet.fyi/changelog` renders with at least one hero image
-- [ ] `https://xnet.fyi/changelog.xml` is a valid RSS feed that can be
-  subscribed to in a feed reader
-- [ ] In the web PWA, opening a fresh session (cleared localStorage) shows the
-  What's New badge on the first load
-- [ ] After clicking "Mark as seen," the badge disappears and does not reappear
-  on refresh
-- [ ] In the Electron app, after an update, the What's New modal shows the
-  AI-enriched release notes (not the raw git log)
-- [ ] In the Electron app, a patch release (`0.x.y → 0.x.y+1`) does not show
-  the What's New modal
-- [ ] If the `ANTHROPIC_API_KEY` is absent from CI, `changeset version` still
-  succeeds (using the raw summary as fallback)
-- [ ] A Claude Code agent writing a new PR creates a `.changeset/*.md` file
-  with a human-prose summary (verify by reviewing 3 consecutive agent PRs)
+Verified locally during the build:
+
+- [x] `validate:changelog` passes and is wired into the site build (12 entries)
+- [x] `astro build` emits `/changelog`, `/changelog.json` (valid JSON Feed 1.1),
+  and `/changelog.xml` (valid RSS 2.0); feeds carry hero `image` fields
+- [x] `https://xnet.fyi/changelog` renders the timeline with hero images
+  (local preview + screenshot)
+- [x] Pure feed logic unit-tested — parse, `selectUnseen`, fail-open fetch
+  (9 tests green in the `dom` project)
+- [x] `pnpm --filter xnet-web typecheck` is clean; the web app builds with
+  `VITE_APP_VERSION` injected (literal present in the bundle)
+- [x] ESLint + Prettier clean on all changed `apps/**` files
+- [x] `ai-release-notes.mjs` is a no-op passthrough with no API key (exit 0)
+- [x] In the web PWA, opening the What's New panel lazily fetches the feed
+  (no network on startup → `editor-ux` e2e unaffected)
+
+Requires a deployed environment / repo secrets (post-merge):
+
+- [ ] After a real Electron release, the GitHub Release shows AI-enriched
+  "What's New" prose followed by GitHub's label-categorized PR notes
+- [ ] `https://xnet.fyi/changelog.json` is reachable cross-origin from the
+  desktop app (GitHub Pages serves `Access-Control-Allow-Origin: *`)
+- [ ] After "Mark as seen," reopening the panel shows no "New" markers and the
+  state persists across reloads
+- [ ] An agent PR for a user-facing change adds a `site/src/data/changelog.ts`
+  entry (verify on the next few agent PRs)
 
 ## References
 
