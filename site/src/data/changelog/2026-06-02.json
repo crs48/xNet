@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-02",
+  "date": "June 2026",
+  "title": "Plug-and-play billing (Stripe & Bitcoin)",
+  "summary": "A provider-agnostic billing layer lets xNet apps take payments via Stripe or Bitcoin (BTCPay) without locking into either.",
+  "highlights": [
+    "Stripe and BTCPay adapters behind one payment interface",
+    "Signed webhooks with idempotent processing",
+    "A useBilling() hook for checkout and subscription status"
+  ],
+  "tags": [
+    "platform"
+  ],
+  "pr": 106
+}

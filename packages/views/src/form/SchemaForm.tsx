@@ -70,12 +70,15 @@ function SchemaFormRow({
     [onChange]
   )
 
+  // Mobile-first (exploration 0196): label stacks above the field with a
+  // 44px touch target below sm; the original side-by-side 28px layout
+  // returns at sm+ so desktop is unchanged.
   return (
-    <div className="flex items-start gap-3 px-1 py-1.5 group">
-      <div className="w-32 shrink-0 pt-1 text-xs text-gray-500 dark:text-gray-400 truncate">
+    <div className="group flex flex-col gap-1 px-1 py-1.5 sm:flex-row sm:items-start sm:gap-3">
+      <div className="text-xs text-gray-500 dark:text-gray-400 sm:w-32 sm:shrink-0 sm:truncate sm:pt-1">
         {field.name}
       </div>
-      <div className="flex-1 min-h-[28px] rounded px-1 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+      <div className="min-h-[44px] flex-1 rounded px-1 hover:bg-gray-50 dark:hover:bg-gray-800/50 sm:min-h-[28px]">
         {locked ? (
           <div className="pt-0.5 text-sm">{handler.render(cellValue, config)}</div>
         ) : (

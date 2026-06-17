@@ -97,7 +97,14 @@ const sheetVariants = cva(
 export interface SheetContentProps
   extends
     React.ComponentPropsWithoutRef<typeof BaseDialog.Popup>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  /**
+   * Suppress the built-in top-right close button. Use when the hosted
+   * content already provides its own close affordance (e.g. a panel
+   * header), so the sheet doesn't render a redundant second X.
+   */
+  hideClose?: boolean
+}
 
 /**
  * Sheet content - the slide-out panel.
@@ -115,24 +122,26 @@ export interface SheetContentProps
  * </Sheet>
  */
 export const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
-  ({ side = 'right', className, children, ...props }, ref) => (
+  ({ side = 'right', className, children, hideClose = false, ...props }, ref) => (
     <SheetPortal>
       <SheetOverlay />
       <BaseDialog.Popup ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-        <BaseDialog.Close
-          className={cn(
-            'absolute right-4 top-4',
-            'rounded-sm opacity-70',
-            'ring-offset-background',
-            'transition-opacity',
-            'hover:opacity-100',
-            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-            'disabled:pointer-events-none'
-          )}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </BaseDialog.Close>
+        {!hideClose && (
+          <BaseDialog.Close
+            className={cn(
+              'absolute right-4 top-4',
+              'rounded-sm opacity-70',
+              'ring-offset-background',
+              'transition-opacity',
+              'hover:opacity-100',
+              'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+              'disabled:pointer-events-none'
+            )}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </BaseDialog.Close>
+        )}
         {children}
       </BaseDialog.Popup>
     </SheetPortal>

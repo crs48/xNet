@@ -4,6 +4,20 @@
 
 <!-- What changed and why. Link the exploration doc if one drove this. -->
 
+## Changelog
+
+<!--
+One user-facing entry. On merge, CI turns this into a changelog entry on the
+site (and stamps the date, PR number, and author automatically — exploration
+0197). For internal-only PRs, leave this empty and add the `skip-changelog`
+label. Format:
+  First line = headline.
+  Then a sentence of benefit-focused prose (what the user can now do).
+  Then `- ` bullets for specific user-visible points (optional).
+  Then `tags: app, ai` (from: app, crm, finance, tasks, ai, plugins, editor,
+  sync, identity, platform, performance, devtools, ci).
+-->
+
 ## Verification
 
 <!-- Tests run, browser checks, benchmarks, screenshots. -->

@@ -115,6 +115,38 @@ export function baseUrlFromDetail(detail: string | undefined): string | undefine
   return /^https?:\/\//.test(detail) ? detail : undefined
 }
 
+// ─── Bridge status (which agent the local bridge is driving) ────────────────────
+
+export interface BridgeAgentOption {
+  id: string
+  label: string
+}
+
+/** Coding agents the local bridge can drive (for the in-panel picker). */
+export const KNOWN_BRIDGE_AGENTS: readonly BridgeAgentOption[] = [
+  { id: 'claude', label: 'Claude Code' },
+  { id: 'codex', label: 'Codex' },
+  { id: 'gemini', label: 'Gemini CLI' },
+  { id: 'opencode', label: 'OpenCode' }
+]
+
+export interface BridgeHealth {
+  ok: boolean
+  agent?: string
+  version?: string
+}
+
+/** Parse a bridge daemon `/health` body (`bridgeHealth()` output). */
+export function parseBridgeHealth(data: unknown): BridgeHealth {
+  if (!data || typeof data !== 'object') return { ok: false }
+  const record = data as Record<string, unknown>
+  return {
+    ok: record.ok === true,
+    ...(typeof record.agent === 'string' ? { agent: record.agent } : {}),
+    ...(typeof record.version === 'string' ? { version: record.version } : {})
+  }
+}
+
 // ─── Chat runtime event handling (extracted so it stays pure + tested) ──────────
 
 export interface RuntimeEventLike {

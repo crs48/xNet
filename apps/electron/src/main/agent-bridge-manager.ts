@@ -12,9 +12,13 @@
  * is spawned per chat turn by `cliChatAgent`.
  */
 
+import { writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
+  buildAgentArgs,
   cliChatAgent,
   createBridgeServer,
+  mcpConfigFor,
   NodeCommandRunner,
   type BridgeServerHandle
 } from '@xnetjs/devkit'
@@ -34,9 +38,21 @@ function resolveAgent(explicit?: string): string {
   return explicit ?? process.env.XNET_BRIDGE_AGENT ?? 'claude'
 }
 
-function argsForAgent(command: string): string[] | undefined {
-  if (command === 'codex') return ['exec', '{prompt}']
-  return undefined // claude / default → cliChatAgent default ['-p', '{prompt}']
+/**
+ * Opt-in: give the agent XNet's workspace tools by pointing its MCP config at a
+ * resolvable `xnet mcp serve`. Requires `XNET_BRIDGE_MCP=1` and a CLI entry
+ * (`XNET_BRIDGE_MCP_CLI`, run via this process's node), because in a packaged
+ * app `xnet` isn't on PATH. Returns the written config path, or undefined.
+ */
+function resolveMcpConfigPath(): string | undefined {
+  if (!process.env.XNET_BRIDGE_MCP) return undefined
+  const cli = process.env.XNET_BRIDGE_MCP_CLI
+  if (!cli) return undefined
+  const apiUrl = process.env.XNET_BRIDGE_MCP_API_URL ?? 'http://127.0.0.1:31415'
+  const spec = { command: process.execPath, args: [cli, 'mcp', 'serve', '--api-url', apiUrl] }
+  const configPath = join(app.getPath('userData'), 'agent-bridge-mcp.json')
+  writeFileSync(configPath, JSON.stringify(mcpConfigFor(spec)))
+  return configPath
 }
 
 export function getAgentBridgeStatus(): AgentBridgeStatus {
@@ -58,8 +74,9 @@ export async function startAgentBridge(
     return status
   }
 
-  const args = argsForAgent(agentCmd)
-  const agent = cliChatAgent(runner, { command: agentCmd, cwd, ...(args ? { args } : {}) })
+  const mcpConfigPath = resolveMcpConfigPath()
+  const args = buildAgentArgs(agentCmd, { ...(mcpConfigPath ? { mcpConfigPath } : {}) })
+  const agent = cliChatAgent(runner, { command: agentCmd, cwd, args })
   const server = createBridgeServer({ agent, agentName: agentCmd, version: app.getVersion() })
   try {
     await server.start()

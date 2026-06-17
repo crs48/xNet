@@ -1,0 +1,16 @@
+{
+  "id": "2026-05-28",
+  "date": "May 2026",
+  "title": "Screenshots of every UI change, automatically",
+  "summary": "Every pull request that touches the interface now gets before/after screenshots and GIFs captured by CI — the same visuals that can feed this changelog.",
+  "highlights": [
+    "Automatic screenshot, diff and GIF capture for changed UI",
+    "A sticky gallery comment on each pull request",
+    "Durable galleries that survive after merge"
+  ],
+  "tags": [
+    "ci",
+    "devtools"
+  ],
+  "pr": 94
+}

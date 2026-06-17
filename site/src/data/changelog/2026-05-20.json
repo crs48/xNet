@@ -1,0 +1,15 @@
+{
+  "id": "2026-05-20",
+  "date": "May 2026",
+  "title": "Experiment journal & habit tracker",
+  "summary": "Run personal experiments and track habits in xNet, with streaks, correlations and a verdict engine that stays honest about what the data can and can’t show.",
+  "highlights": [
+    "Metrics, observations and experiments as first-class data",
+    "Streak heatmaps and correlation widgets",
+    "A \"Today\" panel for quick logging"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 89
+}

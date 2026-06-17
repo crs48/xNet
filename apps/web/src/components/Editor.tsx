@@ -90,7 +90,11 @@ export function Editor({
       awareness={awareness}
       did={did}
       showToolbar={true}
-      toolbarMode="desktop"
+      // Auto-detect (exploration 0196): the editor-ux-state machine picks
+      // the floating bubble menu on pointer/desktop and the keyboard-aware
+      // fixed bottom toolbar on touch/narrow widths. Previously hardcoded
+      // to "desktop", which disabled the entire mobile toolbar path.
+      toolbarMode="auto"
       onNavigate={onNavigate}
       onImageUpload={onImageUpload ?? undefined}
       onFileUpload={onFileUpload ?? undefined}

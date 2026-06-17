@@ -70,3 +70,11 @@ export {
   type BridgeServerConfig,
   type BridgeServerHandle
 } from './bridge-server'
+
+export {
+  buildAgentArgs,
+  mcpConfigFor,
+  DEFAULT_XNET_ALLOWED_TOOLS,
+  type AgentLaunchOptions,
+  type McpServerSpec
+} from './agent-launch'

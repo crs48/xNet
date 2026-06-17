@@ -6,14 +6,17 @@
  * path→content map. Keeping it pure means it's unit-testable without touching
  * disk; a thin CLI writes the map out.
  *
- * Three templates mirror the three authoring tracks in the exploration:
- * `client` (contributions only), `two-sided` (client + a hub feature + declared
- * capabilities), and `ai-script` (a script-backed slash command).
+ * Templates mirror the authoring tracks in the explorations: `client`
+ * (contributions only), `two-sided` (client + a hub feature + declared
+ * capabilities), `ai-script` (a script-backed slash command), and `connector`
+ * (0196 — sync an external service into governed nodes + expose agent tools).
  */
 
 import type { ModuleCapabilities } from '../feature-module'
+import type { PluginPricing } from '../manifest'
+import { DEFAULT_PLUGIN_LICENSE, pluginLicenseText } from './license-policy'
 
-export type ScaffoldTemplate = 'client' | 'two-sided' | 'ai-script'
+export type ScaffoldTemplate = 'client' | 'two-sided' | 'ai-script' | 'connector'
 
 export interface ScaffoldSpec {
   /** Reverse-domain plugin id, e.g. `com.acme.kanban`. */
@@ -26,6 +29,14 @@ export interface ScaffoldSpec {
   description?: string
   /** Declared capability grant (two-sided templates surface this in the manifest). */
   capabilities?: ModuleCapabilities
+  /** SPDX license id (exploration 0196). Defaults to FSL-1.1-MIT. */
+  license?: string
+  /** Monetization (exploration 0196). When paid, the manifest declares `pricing`. */
+  pricing?: PluginPricing
+  /** Publisher DID for paid plugins (exploration 0196). */
+  publisherDid?: string
+  /** Copyright year for the generated LICENSE (defaults supplied by the caller). */
+  year?: number
 }
 
 export interface ScaffoldResult {
@@ -41,7 +52,7 @@ export class ScaffoldError extends Error {
 }
 
 const ID_RE = /^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$/i
-const TEMPLATES: readonly ScaffoldTemplate[] = ['client', 'two-sided', 'ai-script']
+const TEMPLATES: readonly ScaffoldTemplate[] = ['client', 'two-sided', 'ai-script', 'connector']
 
 function validateSpec(spec: ScaffoldSpec): void {
   if (!spec.id || !ID_RE.test(spec.id)) {
@@ -74,6 +85,7 @@ function packageJson(spec: ScaffoldSpec): string {
       name: packageName(spec.id),
       version: '0.1.0',
       description: spec.description ?? `${spec.name} — an xNet plugin`,
+      license: spec.license ?? DEFAULT_PLUGIN_LICENSE,
       type: 'module',
       main: 'src/index.ts',
       scripts: { test: 'vitest run', typecheck: 'tsc --noEmit' },
@@ -104,7 +116,7 @@ function tsconfig(): string {
 }
 
 /** The body of the FeatureModule per template (kept in a lookup to bound complexity). */
-const MODULE_BODIES: Record<ScaffoldTemplate, (s: ScaffoldSpec) => string> = {
+const MODULE_BODIES: Record<Exclude<ScaffoldTemplate, 'connector'>, (s: ScaffoldSpec) => string> = {
   client: (s) => `  contributes: {
     commands: [
       {
@@ -146,8 +158,93 @@ const MODULE_BODIES: Record<ScaffoldTemplate, (s: ScaffoldSpec) => string> = {
   }`
 }
 
-function indexSource(spec: ScaffoldSpec): string {
+/** `dev.xnet.connector.slack` → `SLACK` (an env-prefix-safe token). */
+function lastSegmentToken(id: string): string {
+  return (id.split('.').pop() ?? id).replace(/-/g, '_')
+}
+
+/** The connector template emits a `defineConnector(...)` project (exploration 0196). */
+function connectorIndexSource(spec: ScaffoldSpec): string {
   const ctor = pascalCase(spec.id)
+  const envPrefix = lastSegmentToken(spec.id).toUpperCase()
+  const toolName = lastSegmentToken(spec.id).toLowerCase()
+  const schema = `xnet://${spec.id}/Item@1.0.0`
+  return `import { defineConnector } from '@xnetjs/plugins'
+
+/**
+ * ${spec.name} — an xNet Connector (exploration 0196). Syncs an external service
+ * into governed nodes and exposes agent tools over them. The token lives in the
+ * hub broker (never handed to the agent); writes are space-scoped + schema-guarded.
+ */
+const SCHEMA = '${schema}'
+
+export const ${ctor}Connector = defineConnector({
+  id: '${spec.id}',
+  name: '${spec.name}',
+  version: '0.1.0',${spec.author ? `\n  author: '${spec.author}',` : ''}
+  capabilities: {
+    secrets: ['${envPrefix}_TOKEN'], // held by the hub broker
+    schemaWrite: [SCHEMA], // what this connector may materialize
+    network: ['api.example.com'] // hosts it may reach (closed by default)
+  },
+  sync: {
+    schemas: [SCHEMA],
+    pull: async ({ env, fetch, store, space }) => {
+      // 'fetch' is host-allowlisted; 'store' is schema-guarded + space-stamped.
+      const res = await fetch('https://api.example.com/items', {
+        headers: { authorization: \`Bearer \${env.${envPrefix}_TOKEN}\` }
+      })
+      const items = ((await (res as { json(): Promise<unknown> }).json()) ??
+        []) as Array<{ text: string }>
+      for (const item of items) {
+        await store.create({ schemaId: SCHEMA, properties: { text: item.text, space } })
+      }
+      return { written: items.length }
+    }
+  },
+  agentTools: [
+    {
+      id: '${spec.id}.search',
+      name: '${toolName}_search',
+      description: 'Search the synced ${spec.name} items the current user can read.',
+      inputSchema: {
+        type: 'object',
+        properties: { query: { type: 'string' } },
+        required: ['query']
+      },
+      invoke: async () => {
+        // Wire a policy-evaluated read over the synced nodes here.
+        return []
+      }
+    }
+  ]
+})
+`
+}
+
+function connectorTestSource(spec: ScaffoldSpec): string {
+  const ctor = pascalCase(spec.id)
+  return `import { describe, it, expect } from 'vitest'
+import { createTestPluginHarness } from '@xnetjs/plugins'
+import { ${ctor}Connector } from './index'
+
+describe('${spec.name}', () => {
+  it('defines a connector whose module installs and activates', async () => {
+    expect(${ctor}Connector.module.hub?.featureId).toBe('${spec.id}.sync')
+    const harness = createTestPluginHarness()
+    await harness.install(${ctor}Connector.module)
+    expect(harness.registry.get('${spec.id}')?.status).toBe('active')
+  })
+})
+`
+}
+
+function indexSource(spec: ScaffoldSpec): string {
+  if (spec.template === 'connector') return connectorIndexSource(spec)
+  const ctor = pascalCase(spec.id)
+  const license = spec.license ?? DEFAULT_PLUGIN_LICENSE
+  const pricing = spec.pricing ? `\n  pricing: ${JSON.stringify(spec.pricing)},` : ''
+  const publisher = spec.publisherDid ? `\n  publisherDid: '${spec.publisherDid}',` : ''
   return `import { defineFeatureModule } from '@xnetjs/plugins'
 
 export const ${ctor}Module = defineFeatureModule({
@@ -155,12 +252,14 @@ export const ${ctor}Module = defineFeatureModule({
   name: '${spec.name}',
   version: '0.1.0',${spec.author ? `\n  author: '${spec.author}',` : ''}
   description: '${spec.description ?? `${spec.name} — an xNet plugin`}',
+  license: '${license}',${pricing}${publisher}
 ${MODULE_BODIES[spec.template](spec)}
 })
 `
 }
 
 function testSource(spec: ScaffoldSpec): string {
+  if (spec.template === 'connector') return connectorTestSource(spec)
   const ctor = pascalCase(spec.id)
   return `import { describe, it, expect } from 'vitest'
 import { createTestPluginHarness } from '@xnetjs/plugins'
@@ -200,13 +299,21 @@ publish to the marketplace or share the manifest directly.
  */
 export function scaffoldPlugin(spec: ScaffoldSpec): ScaffoldResult {
   validateSpec(spec)
-  return {
-    files: {
-      'package.json': packageJson(spec),
-      'tsconfig.json': tsconfig(),
-      'src/index.ts': indexSource(spec),
-      'src/index.test.ts': testSource(spec),
-      'README.md': readme(spec)
-    }
+  const files: Record<string, string> = {
+    'package.json': packageJson(spec),
+    'tsconfig.json': tsconfig(),
+    'src/index.ts': indexSource(spec),
+    'src/index.test.ts': testSource(spec),
+    'README.md': readme(spec)
   }
+  // Emit a real LICENSE for the recognized licenses (FSL variants + MIT) so a
+  // published plugin satisfies the marketplace license-policy CI check (0196).
+  const year = spec.year ?? new Date().getFullYear()
+  const license = pluginLicenseText(
+    spec.license ?? DEFAULT_PLUGIN_LICENSE,
+    year,
+    spec.author ?? spec.name
+  )
+  if (license) files['LICENSE'] = license
+  return { files }
 }

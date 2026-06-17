@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-10",
+  "date": "June 2026",
+  "title": "Faster, cheaper CI",
+  "summary": "Behind the scenes, the build pipeline got faster and more reliable — which means features reach you sooner.",
+  "highlights": [
+    "Parallelized lint, typecheck and test jobs",
+    "Cached browser and native build dependencies"
+  ],
+  "tags": [
+    "ci",
+    "performance"
+  ],
+  "pr": 141
+}

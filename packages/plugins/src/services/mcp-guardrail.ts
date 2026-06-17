@@ -166,3 +166,14 @@ export class McpWriteGuardrail {
 export function createMcpWriteGuardrail(options?: McpWriteGuardrailOptions): McpWriteGuardrail {
   return new McpWriteGuardrail(options)
 }
+
+/**
+ * A guardrail for connector sync writes (exploration 0196), keyed on the
+ * `connector` surface so a bulk external-data backfill is budgeted separately
+ * from the interactive agent's `localApi` writes — neither can starve the other.
+ */
+export function createConnectorWriteGuardrail(
+  options: Omit<McpWriteGuardrailOptions, 'surface'> = {}
+): McpWriteGuardrail {
+  return new McpWriteGuardrail({ ...options, surface: 'connector' })
+}

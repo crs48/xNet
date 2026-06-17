@@ -516,22 +516,30 @@ classDiagram
       `PluginTrustTier`/`InstallProvenance`/`SandboxKind` preserved as aliases of
       the shared types; `LabTrustTier` (in `labs/runtime/types.ts`) aliased to the
       shared `TrustTier`. labs (46) + plugins (452) suites unchanged & green._
-- [ ] Add `packages/plugins/src/ecosystem/runtime.ts`: run user/marketplace-tier
+- [~] Add `packages/plugins/src/ecosystem/runtime.ts`: run user/marketplace-tier
       plugin code on the labs `RuntimeLadder`; first-party stays host-realm.
-      _(deferred — needs the benchmark below + a port to avoid the `plugins→labs`
-      cycle, since labs already depends on plugins.)_
+      _As-built: `runPluginCode(ladder, {code, trustTier, …})` + `ladderTierForTrust`
+      route `user`→`sandbox` (SES/QuickJS) and `marketplace`→`app` (iframe), and
+      **reject first-party** (host realm only). The ladder is a structural port
+      (`PluginRuntimeLadder`), not an `@xnetjs/labs` import, so there's no
+      `plugins→labs` cycle — the host passes its concrete ladder. The registry
+      *switch* to this (replacing the current sandbox) + the benchmark below are
+      the remaining work._
 - [ ] Benchmark plugin activation + a representative editor interaction against
       0184 budgets; gate the runtime switch on no regression. _(deferred with the
       runtime switch above.)_
 
 ### Phase 2 — AI drives the ecosystem
 
-- [ ] Register `@xnetjs/labs/agent-tools` (`lab_run`/`lab_list`/`lab_create`/
+- [~] Register `@xnetjs/labs/agent-tools` (`lab_run`/`lab_list`/`lab_create`/
       `lab_get`/`lab_run_saved`) with `mcp-server.ts` and the in-app agent runtime,
-      backed by an injected `LabAgentBackend`. _(deferred — the labs `LabAgentTool`
-      shape is already MCP-shaped; the remaining work is the cross-package adapter
-      (lives in labs, which already depends on plugins) + the app/electron MCP
-      registration.)_
+      backed by an injected `LabAgentBackend`. _As-built: `labs/agent-tools-ai.ts`'s
+      `labAgentToolsToAiTools()` adapts the (already MCP-shaped) `LabAgentTool`s to
+      the `AiCallableTool` shape `@xnetjs/plugins` uses — execution tools (`lab_run`
+      etc.) flagged `high` risk, reads `low`, input schemas pass straight through
+      (`LabToolPropertySchema ⊆ AiJsonSchema`). Lives in labs (which already
+      depends on plugins, avoiding the cycle). The app/electron MCP-server +
+      agent-runtime registration of the result is the remaining wiring._
 - [x] Add `contributionsAsAiTools()` + an `aiExposed`/`inputSchema` opt-in on
       `CommandContribution`; expose them as capability-scoped, callable
       `AiToolDefinition`s. _As-built: `AiCommandExposure` adds
@@ -550,12 +558,25 @@ classDiagram
 
 ### Phase 3 — AI in the editor
 
-- [ ] Add an `ai` editor extension package surface: `/ai` slash command + a
-      selection toolbar button that build an `AiMutationPlan` via `AiSurfaceService`.
-- [ ] Diff + approval UI before applying; wire apply through
-      `editor.commands.insertContentAt` / structural edits.
-- [ ] Offline/local-model path via the 0174 BYO-model connectors; honest "AI
-      unavailable" state.
+- [~] Add an `ai` editor surface: `/ai` slash command + selection-toolbar
+      transforms. _As-built: `packages/editor/src/extensions/ai/ai-commands.ts` —
+      `AI_INTENTS` (improve/rewrite/summarize/expand/shorten/fix-grammar),
+      `applyAiTransform(editor, intent, deps)` (read selection → injected
+      `AiTransformFn` → replace via `insertContentAt`, errors routed to `onError`
+      never thrown), and `createAiSlashCommands(deps)` (one slash item per intent).
+      Exported via `@xnetjs/editor/extensions`; tested with a fake editor (6
+      tests). The transform is **injected** (provider-agnostic). The selection
+      toolbar button + the `AiSurfaceService`/BYO-model wiring are app-side._
+- [~] Diff + approval before applying; wire apply through `insertContentAt`.
+      _As-built: `previewAiTransform` runs the transform and returns an
+      `AiTransformPreview` (`{intent, from, to, before, after}`) **without touching
+      the document** — the data a diff renders; `acceptAiTransform` applies an
+      approved preview; declining = never calling accept (tested). The visual diff
+      component is app-side; the gate logic + apply are here._
+- [~] Offline/local-model path via the 0174 BYO-model connectors; honest "AI
+      unavailable" state. _As-built: the provider-agnostic injected `AiTransformFn`
+      is the seam — the host can supply a local/offline transform; the connector
+      wiring + unavailable-state UI are app-side._
 
 ### Phase 4 — Editor seams + smart marketplace
 
@@ -597,9 +618,12 @@ classDiagram
 - [x] The AI→Lab→Plugin pipeline refuses unvalidated generations, stops at
       run-failed / declined without publishing, and publishes only after consent
       (`ecosystem-ai-pipeline.test.ts`).
-- [ ] `/ai` in the editor rewrites a selection through an `AiMutationPlan` with a
-      visible diff + approval; declining makes no change; offline degrades
-      gracefully.
+- [~] `applyAiTransform` reads the selection, runs the injected transform, and
+      replaces the selection; `previewAiTransform` returns the proposed change
+      without touching the doc and `acceptAiTransform` applies it on approval
+      (declining = no change); a no-selection call is a no-op and a transform error
+      routes to `onError`, never thrown (`ai-commands.test.ts`). _The visible
+      diff/approval UI + offline-state UI are app-side._
 - [x] A plugin contributes a **mentionProvider** that adds a new `@`/`[[` entity
       type; two providers on one trigger are ordered + deduped, and a slow/throwing
       provider can't block or break the menu (`mention-providers.test.ts`). _(The

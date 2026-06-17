@@ -1,0 +1,19 @@
+{
+  "id": "2026-06-16",
+  "date": "June 2026",
+  "title": "xNet Cloud — managed hub hosting",
+  "summary": "Don’t want to run your own hub? xNet Cloud hosts one for you. A new onboarding flow takes you from signup to a provisioned hub, then lets you claim it from the app.",
+  "highlights": [
+    "Marketing and pricing pages for managed hub hosting",
+    "Signup → provision → claim flow",
+    "Connect the app to your hosted hub from Settings"
+  ],
+  "tags": [
+    "platform",
+    "app"
+  ],
+  "author": {
+    "login": "crs48"
+  },
+  "pr": 140
+}

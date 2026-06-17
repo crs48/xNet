@@ -1,6 +1,10 @@
 @import '@fontsource-variable/inter';
 @import '@fontsource/geist-mono';
 @import '@xnetjs/ui/tokens.css';
+/* Mobile foundation (exploration 0196): touch-target sizing, safe-area
+   insets, scrollbar + tap-highlight utilities. Declares an `@layer
+   utilities` block, so it must run through the Tailwind pipeline here. */
+@import '@xnetjs/ui/responsive.css';
 
 @tailwind base;
 @tailwind components;

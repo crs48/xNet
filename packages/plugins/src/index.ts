@@ -35,8 +35,8 @@ export type {
 } from './canvas-permissions'
 
 // Manifest
-export type { XNetExtension, PluginContributions } from './manifest'
-export { validateManifest, defineExtension, PluginValidationError } from './manifest'
+export type { XNetExtension, PluginContributions, PluginPricing } from './manifest'
+export { validateManifest, defineExtension, PluginValidationError, isPaidPricing } from './manifest'
 
 // Contributions
 export type {
@@ -149,6 +149,41 @@ export type {
   ResolveMentionOptions
 } from './mention-providers'
 
+// Agent tools (exploration 0196) — model-facing tools a Connector exposes.
+export { agentToolToExtraTool, agentToolsAsExtraTools } from './agent-tools'
+export type { AgentToolContribution, AgentToolInputSchema } from './agent-tools'
+
+// Connectors (exploration 0196) — sync an external service into governed nodes
+// and expose agent-callable tools over them. xNet's agent-native-CLI equivalent.
+export {
+  defineConnector,
+  ConnectorDefinitionError,
+  runConnectorSync,
+  ConnectorSyncError,
+  CONNECTOR_CATEGORY,
+  emitConnectorArtifacts,
+  connectorMarketplaceEntry,
+  connectorAsImporter,
+  evaluateConnectorInstall,
+  wrapCliConnector
+} from './connectors'
+export type {
+  ConnectorDefinition,
+  DefinedConnector,
+  ConnectorSyncSpec,
+  ConnectorSyncContext,
+  ConnectorSyncResult,
+  ConnectorStore,
+  ConnectorFetch,
+  ConnectorCadence,
+  RunConnectorSyncPorts,
+  GuardableConnectorStore,
+  ConnectorArtifacts,
+  ConnectorToolDescriptor,
+  ConnectorInstallGate,
+  WrapCliConnectorOptions
+} from './connectors'
+
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'
 export { MiddlewareChain } from './middleware'
@@ -163,8 +198,8 @@ export type {
 export { createExtensionContext } from './context'
 
 // Registry
-export type { PluginStatus, RegisteredPlugin, InstallOptions } from './registry'
-export { PluginRegistry, PluginError } from './registry'
+export type { PluginStatus, RegisteredPlugin, InstallOptions, LicenseCheckResult } from './registry'
+export { PluginRegistry, PluginError, LicenseRequiredError } from './registry'
 
 // Ecosystem platform layer (exploration 0192) — capability enforcement,
 // provenance/trust, install consent, version compatibility, dependency
@@ -218,9 +253,22 @@ export {
   pascalCase,
   packageName,
   ScaffoldError,
+  // Paid-plugin license policy (0196)
+  ALLOWED_PLUGIN_LICENSES,
+  DEFAULT_PLUGIN_LICENSE,
+  isAllowedPluginLicense,
+  pluginLicenseText,
   // AI-authored plugin transform
   scriptToPluginManifest,
-  AiAuthoringError
+  AiAuthoringError,
+  // Plugin runtime on the labs ladder (0194 Phase 1)
+  ladderTierForTrust,
+  runPluginCode,
+  PluginRuntimeError,
+  // AI→Lab→Plugin pipeline (0194 Phase 2)
+  runAiPluginPipeline,
+  // Marketplace recommendations (0194 Phase 4)
+  recommendExtensions
 } from './ecosystem'
 export type {
   InstallProvenance,
@@ -248,10 +296,25 @@ export type {
   ScaffoldTemplate,
   ScaffoldSpec,
   ScaffoldResult,
+  AllowedPluginLicense,
   GeneratedScript,
   ScriptExecutor,
   ScriptToManifestInput,
-  AiAuthoredPlugin
+  AiAuthoredPlugin,
+  // Plugin runtime (0194 Phase 1)
+  LadderRuntimeTier,
+  PluginRunInput,
+  PluginRunResult,
+  PluginRuntimeLadder,
+  RunPluginCodeInput,
+  // AI→Lab→Plugin pipeline (0194 Phase 2)
+  LabRunOutcome,
+  AiPluginPipelinePorts,
+  AiPluginPipelineInput,
+  AiPluginPipelineResult,
+  // Marketplace recommendations (0194 Phase 4)
+  UsageSignal,
+  RecommendOptions
 } from './ecosystem'
 
 // Schemas
@@ -451,6 +514,7 @@ export type {
   AiTargetKind,
   AiToolCallResult,
   AiToolDefinition,
+  AiExtraTool,
   AiValidationResult,
   AiResourceContent,
   AiSearchOptions,

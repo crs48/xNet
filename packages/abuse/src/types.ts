@@ -13,6 +13,11 @@ export type AbuseSurface =
   | 'feed'
   | 'crawl'
   | 'localApi'
+  // Connector sync writes (exploration 0196): a connector materializing an
+  // external service into nodes runs on its own budget, separate from the
+  // agent-initiated `localApi` writes, so a bulk backfill never starves the
+  // interactive agent's budget (and vice versa).
+  | 'connector'
 
 export type PolicyScope = 'user' | 'workspace' | 'community' | 'hub' | 'appView' | 'protocol'
 

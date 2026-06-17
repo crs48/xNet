@@ -16,15 +16,54 @@ describe('pascalCase / packageName', () => {
 })
 
 describe('scaffoldPlugin', () => {
-  it('produces the expected project files', () => {
+  it('produces the expected project files (incl. a LICENSE for the default FSL license)', () => {
     const { files } = scaffoldPlugin({ id: 'com.acme.kanban', name: 'Kanban', template: 'client' })
     expect(Object.keys(files).sort()).toEqual([
+      'LICENSE',
       'README.md',
       'package.json',
       'src/index.test.ts',
       'src/index.ts',
       'tsconfig.json'
     ])
+  })
+
+  it('defaults to FSL-1.1-MIT and emits its LICENSE + manifest license field', () => {
+    const { files } = scaffoldPlugin({
+      id: 'com.acme.kanban',
+      name: 'Kanban',
+      template: 'client',
+      author: 'Acme Inc',
+      year: 2026
+    })
+    expect(JSON.parse(files['package.json']).license).toBe('FSL-1.1-MIT')
+    expect(files['src/index.ts']).toContain("license: 'FSL-1.1-MIT'")
+    expect(files['LICENSE']).toContain('Functional Source License, Version 1.1, MIT Future License')
+    expect(files['LICENSE']).toContain('Copyright 2026 Acme Inc')
+    expect(files['LICENSE']).toContain('second anniversary')
+  })
+
+  it('embeds pricing + publisherDid for a paid plugin', () => {
+    const { files } = scaffoldPlugin({
+      id: 'com.acme.pro',
+      name: 'Pro',
+      template: 'client',
+      pricing: { mode: 'one-time', amountMinor: 999, currency: 'USD' },
+      publisherDid: 'did:key:zPub'
+    })
+    expect(files['src/index.ts']).toContain('pricing: {"mode":"one-time"')
+    expect(files['src/index.ts']).toContain("publisherDid: 'did:key:zPub'")
+  })
+
+  it('omits the LICENSE for an unrecognized license (author supplies their own)', () => {
+    const { files } = scaffoldPlugin({
+      id: 'com.acme.x',
+      name: 'X',
+      template: 'client',
+      license: 'GPL-3.0-only'
+    })
+    expect(files.LICENSE).toBeUndefined()
+    expect(JSON.parse(files['package.json']).license).toBe('GPL-3.0-only')
   })
 
   it('emits a valid package.json named after the id', () => {
@@ -85,5 +124,31 @@ describe('scaffoldPlugin', () => {
         commands: [{ id: 'hello', name: 'Say hello', execute: () => {} }]
       }
     })
+  })
+})
+
+describe('scaffoldPlugin — connector template (0196)', () => {
+  it('emits a defineConnector project with coherent capabilities + sync', () => {
+    const { files } = scaffoldPlugin({
+      id: 'dev.acme.connector.slack',
+      name: 'Slack',
+      template: 'connector'
+    })
+    const index = files['src/index.ts']
+    expect(index).toContain('defineConnector')
+    expect(index).toContain("id: 'dev.acme.connector.slack'")
+    // schemaWrite and sync.schemas reference the same SCHEMA const (so the
+    // defineConnector coherence check passes at runtime).
+    expect(index).toContain("const SCHEMA = 'xnet://dev.acme.connector.slack/Item@1.0.0'")
+    expect(index).toContain('SLACK_TOKEN') // env-prefix derived from the last id segment
+    expect(index).toContain('slack_search') // contributed agent tool
+    // The test it scaffolds installs the connector module.
+    expect(files['src/index.test.ts']).toContain('SlackConnector.module')
+  })
+
+  it('connector is a recognized template (does not throw)', () => {
+    expect(() =>
+      scaffoldPlugin({ id: 'dev.acme.connector.x', name: 'X', template: 'connector' })
+    ).not.toThrow()
   })
 })

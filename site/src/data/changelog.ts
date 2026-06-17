@@ -1,24 +1,26 @@
 /**
  * Single source of truth for the xNet changelog / "What's New".
  *
- * This is the user-facing record of what shipped — written in plain prose, not
- * commit subjects. It is rendered three ways from this one module:
+ * Entries are **per-PR fragment files** in `./changelog/*.json` (exploration
+ * 0197), loaded and sorted here. One file per change means CI can drop a new
+ * entry on merge with no TS-array surgery and no merge conflicts between
+ * concurrent PRs. This module is rendered three ways:
  *   - the public page  → site/src/pages/changelog/index.astro
  *   - a JSON feed       → site/src/pages/changelog.json.ts   (JSON Feed 1.1)
  *   - an RSS feed       → site/src/pages/changelog.xml.ts
- * The in-app "What's New" surfaces (web PWA + Electron) fetch the JSON feed at
+ * The in-app "What's New" surfaces fetch the JSON feed at
  * https://xnet.fyi/changelog.json and compare each entry `id` against the
  * user's last-seen id.
  *
  * Conventions (enforced by site/scripts/validate-changelog.ts):
- *   - `id` is an ISO date `YYYY-MM-DD`, unique, and entries are newest-first.
+ *   - `id` is `YYYY-MM-DD` (optionally `-pr<N>` to disambiguate same-day PRs),
+ *     unique across fragments. The loader sorts newest-first by id.
  *   - Every entry maps to real shipped work (a merged PR where applicable).
  *   - `summary` leads with the user benefit; `highlights` are user-visible.
- *   - `hero.src` is an absolute site path (/images/…) or an https:// URL
- *     (e.g. a gh-pages visual-capture screenshot).
- * When you ship a user-facing change, prepend an entry here and bump `updated`.
+ *   - `hero.src`/`images[].src` is an absolute path (/images/…) or https URL.
+ * To add an entry by hand, drop a `<id>.json` file in ./changelog/. In CI, the
+ * Changelog workflow writes one automatically from each merged PR.
  */
-
 export type ChangelogTag =
   | 'app'
   | 'crm'
@@ -35,7 +37,7 @@ export type ChangelogTag =
   | 'ci'
 
 export interface ChangelogEntry {
-  /** ISO date `YYYY-MM-DD`. Doubles as the stable id for "last seen" tracking. */
+  /** `YYYY-MM-DD` (optionally `-pr<N>`). The stable id for "last seen" + anchors. */
   id: string
   /** Human-facing release label shown on the page (e.g. "June 2026"). */
   date: string
@@ -48,182 +50,32 @@ export interface ChangelogEntry {
   tags: ChangelogTag[]
   /** Optional hero image (absolute site path or https URL). */
   hero?: { src: string; alt: string }
+  /**
+   * Curated gallery images (absolute path or https URL). Shown in addition to
+   * any auto-pulled diff-manifest gallery (exploration 0196); use for entries
+   * whose PR predates the durable visual capture, or to hand-pick screenshots.
+   */
+  images?: { src: string; alt: string; caption?: string }[]
+  /** Autoplay-muted, click-to-play video clip (replaces a GIF). */
+  video?: { src: string; poster: string; alt: string }
+  /** Primary author, surfaced as a GitHub avatar + link. */
+  author?: { login: string; name?: string }
   /** Originating pull request number, when applicable. */
   pr?: number
 }
 
-export const updated = 'June 2026'
+// Vite resolves this glob at build time and inlines every fragment's JSON, so
+// there is no runtime filesystem read (which would break once this module is
+// bundled into dist/). The build-time validator reads the same files via fs.
+const fragments = import.meta.glob<ChangelogEntry>('./changelog/*.json', {
+  eager: true,
+  import: 'default'
+})
 
-export const entries: ChangelogEntry[] = [
-  {
-    id: '2026-06-17',
-    date: 'June 17, 2026',
-    title: 'Automated changelog & in-app "What’s New"',
-    summary:
-      'xNet now keeps a changelog you can actually read. Every release is summarized here, on the website, and inside the app — so you always know what changed when a new version lands.',
-    highlights: [
-      'A public changelog page with a JSON and RSS feed you can subscribe to',
-      'An in-app "What’s New" panel that flags updates since your last visit',
-      'Release notes on the desktop app are now written in plain language, not raw commit logs',
-      'UI screenshots captured by CI can be embedded directly in changelog entries'
-    ],
-    tags: ['app', 'platform', 'ci'],
-    hero: { src: '/images/workbench-dark.png', alt: 'The xNet workbench' },
-    pr: 147
-  },
-  {
-    id: '2026-06-15',
-    date: 'June 2026',
-    title: 'Extensibility fabric: one home for plugins, labs & AI',
-    summary:
-      'Plugins, labs, the AI surface, and the editor are converging into a single extensibility fabric, so a capability built in one place can be reused everywhere.',
-    highlights: [
-      'Shared trust and consent model across plugins and labs',
-      'Plugin contributions and lab tools can be exposed to the AI assistant',
-      'Foundations for an AI → Lab → Plugin assembly line'
-    ],
-    tags: ['plugins', 'ai', 'editor', 'platform'],
-    pr: 144
-  },
-  {
-    id: '2026-06-14',
-    date: 'June 2026',
-    title: 'Plugin ecosystem: scaffolding, marketplace & trust',
-    summary:
-      'Building and sharing plugins is now first-class. A scaffolder gets you from zero to a working plugin in seconds, and an enforceable capability model keeps installs safe.',
-    highlights: [
-      'xnet plugin scaffold command and an AI "script → plugin" path',
-      'Capability enforcement, semver compatibility gates and inter-plugin dependencies',
-      'A searchable marketplace index with install-consent prompts'
-    ],
-    tags: ['plugins', 'platform'],
-    pr: 142
-  },
-  {
-    id: '2026-06-12',
-    date: 'June 2026',
-    title: 'On-device dictation',
-    summary:
-      'Talk to xNet. A new dictation engine turns speech into text locally, with hold-to-talk and private-by-default transcripts.',
-    highlights: [
-      'Zero-dependency dictation engine with hold-to-talk',
-      'Private-by-default transcription with full-text search',
-      'Pluggable speech backends (bring-your-own engine)'
-    ],
-    tags: ['app', 'ai'],
-    pr: 136
-  },
-  {
-    id: '2026-06-11',
-    date: 'June 2026',
-    title: 'xNet AI chat panel works out of the box',
-    summary:
-      'The in-app AI assistant is wired up end-to-end — the chat panel now connects, picks a sensible model tier automatically, and reports errors honestly.',
-    highlights: [
-      'Fixed the connection so the assistant responds on a fresh install',
-      'Automatic model-tier selection with a clear status badge',
-      'Tier preference persists between sessions'
-    ],
-    tags: ['ai', 'app'],
-    pr: 137
-  },
-  {
-    id: '2026-06-10',
-    date: 'June 2026',
-    title: 'Faster, cheaper CI',
-    summary:
-      'Behind the scenes, the build pipeline got faster and more reliable — which means features reach you sooner.',
-    highlights: [
-      'Parallelized lint, typecheck and test jobs',
-      'Cached browser and native build dependencies'
-    ],
-    tags: ['ci', 'performance'],
-    pr: 141
-  },
-  {
-    id: '2026-06-08',
-    date: 'June 2026',
-    title: 'Cohesive, feature-complete domain apps',
-    summary:
-      'CRM, accounting, tasks, experiments and spaces are now fully editable and consistent. Open any record to see every field, with bespoke views where they help.',
-    highlights: [
-      'Full CRM: contacts, deals, organizations, forecast lanes, quotes and de-dup merge',
-      'Finance: account and transaction inspectors, reports tab and budgeting',
-      'Tasks: project detail headers and milestone management',
-      'A shared inspector substrate (NodePeek + SchemaForm) across every domain'
-    ],
-    tags: ['crm', 'finance', 'tasks', 'app'],
-    hero: { src: '/images/workbench-light.png', alt: 'Domain workspace in xNet' },
-    pr: 123
-  },
-  {
-    id: '2026-06-05',
-    date: 'June 2026',
-    title: 'Native CRM & ERP foundation',
-    summary:
-      'xNet grew a native CRM — a universal party model, pipelines, deals and activities that reuse the same social and schema primitives as the rest of the app.',
-    highlights: [
-      'Organizations, contacts, pipelines, deals, products and quotes',
-      'Append-only activity timeline and contact de-duplication',
-      'vCard import/export and GDPR helpers'
-    ],
-    tags: ['crm', 'app'],
-    pr: 102
-  },
-  {
-    id: '2026-06-04',
-    date: 'June 2026',
-    title: 'Double-entry accounting',
-    summary:
-      'Track your money in xNet. A local-first, double-entry ledger brings accounts, transactions, budgets and reconciliation — with CSV/OFX/QIF import.',
-    highlights: [
-      'Balanced double-entry transactions with integer-precise money',
-      'Budgets, reconciliation and chart-of-accounts reports',
-      'Import from CSV, OFX and QIF'
-    ],
-    tags: ['finance', 'app'],
-    pr: 101
-  },
-  {
-    id: '2026-06-02',
-    date: 'June 2026',
-    title: 'Plug-and-play billing (Stripe & Bitcoin)',
-    summary:
-      'A provider-agnostic billing layer lets xNet apps take payments via Stripe or Bitcoin (BTCPay) without locking into either.',
-    highlights: [
-      'Stripe and BTCPay adapters behind one payment interface',
-      'Signed webhooks with idempotent processing',
-      'A useBilling() hook for checkout and subscription status'
-    ],
-    tags: ['platform'],
-    pr: 106
-  },
-  {
-    id: '2026-05-28',
-    date: 'May 2026',
-    title: 'Screenshots of every UI change, automatically',
-    summary:
-      'Every pull request that touches the interface now gets before/after screenshots and GIFs captured by CI — the same visuals that can feed this changelog.',
-    highlights: [
-      'Automatic screenshot, diff and GIF capture for changed UI',
-      'A sticky gallery comment on each pull request',
-      'Durable galleries that survive after merge'
-    ],
-    tags: ['ci', 'devtools'],
-    pr: 94
-  },
-  {
-    id: '2026-05-20',
-    date: 'May 2026',
-    title: 'Experiment journal & habit tracker',
-    summary:
-      'Run personal experiments and track habits in xNet, with streaks, correlations and a verdict engine that stays honest about what the data can and can’t show.',
-    highlights: [
-      'Metrics, observations and experiments as first-class data',
-      'Streak heatmaps and correlation widgets',
-      'A "Today" panel for quick logging'
-    ],
-    tags: ['app'],
-    pr: 89
-  }
-]
+/** Newest-first by id (date prefix, then any `-pr<N>` suffix). */
+export const entries: ChangelogEntry[] = Object.values(fragments).sort((a, b) =>
+  a.id < b.id ? 1 : a.id > b.id ? -1 : 0
+)
+
+/** The most recent entry's date label, shown in the page footer. */
+export const updated = entries[0]?.date ?? 'June 2026'

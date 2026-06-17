@@ -20,7 +20,17 @@ import * as React from 'react'
  * const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = React.useState(false)
+  // Initialise synchronously from matchMedia (guarded for SSR) so the very
+  // first render already has the correct value. Starting from a fixed
+  // `false` caused a one-frame flash of the wrong layout — e.g. the mobile
+  // shell briefly rendering on a desktop load before the effect corrected
+  // it (exploration 0196). This app is a client-only SPA, so there is no
+  // hydration mismatch to worry about.
+  const [matches, setMatches] = React.useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia(query).matches
+      : false
+  )
 
   React.useEffect(() => {
     // Check if window is available (SSR safety)

@@ -305,32 +305,38 @@ Only use `--no-verify` when hooks are genuinely broken or blocking an emergency 
 
 ## Changelog Entries (User-Facing Changes)
 
-xNet keeps a user-facing changelog (exploration 0195). It surfaces on the
+xNet keeps a user-facing changelog (explorations 0195–0197). It surfaces on the
 website (`/changelog`), as JSON/RSS feeds, and inside the app's "What's New"
-panel. The single source is **`site/src/data/changelog.ts`**.
+panel.
 
-When your change ships something a user will notice — a new feature, a fixed
-bug, a visible UX or performance improvement — **prepend an entry** to the
-`entries` array (newest-first) and bump `updated`:
+**Required — every PR must do one of two things, or it cannot merge.** A
+required CI check (`changelog-section`) fails the PR unless it either has a
+`## Changelog` section **or** carries the `skip-changelog` label. Don't edit the
+changelog data by hand — fill the **`## Changelog` section of the PR
+description**. On merge, CI (`.github/workflows/changelog.yml`) turns that block
+into a fragment file and commits it, stamping the date, PR number, and author
+automatically:
 
-```ts
-{
-  id: '2026-06-20',              // ISO date, unique, newest-first
-  date: 'June 2026',            // human label shown on the page
-  title: 'Short, benefit-first headline',
-  summary: 'One paragraph in plain language — what the user can now do.',
-  highlights: ['User-visible point', 'Another user-visible point'],
-  tags: ['app'],               // see ChangelogTag in the same file
-  hero: { src: '/images/...', alt: '...' }, // optional; a CI visual works too
-  pr: 0                         // your PR number
-}
+```markdown
+## Changelog
+
+Short, benefit-first headline
+One sentence in plain language — what the user can now do.
+- A specific user-visible point
+- Another one
+tags: app, ai
 ```
 
 Write for end users, not engineers: "Deals now sync after import," not
-`fix(schema): correct relation validation`. Skip internal refactors and chores.
-`pnpm --filter site validate:changelog` enforces the shape. This is separate
-from the per-package Changesets developer changelog (`pnpm changeset`), which
-stays focused on library/API consumers.
+`fix(schema): correct relation validation`. For internal-only PRs (refactors,
+chores, CI), add the **`skip-changelog`** label instead — that satisfies the
+check. (If a PR is ever admin-merged past the check without either, it gets a
+`needs-changelog` label so it isn't lost.)
+
+To hand-author or correct an entry, drop/edit a `site/src/data/changelog/<id>.json`
+fragment directly; `pnpm --filter site validate:changelog` enforces the shape.
+This is separate from the per-package Changesets developer changelog
+(`pnpm changeset`), which stays focused on library/API consumers.
 
 ## Key Constraints
 

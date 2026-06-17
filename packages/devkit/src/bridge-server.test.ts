@@ -96,4 +96,64 @@ describe('createBridgeServer', () => {
     })
     expect(res.status).toBe(502)
   })
+
+  it('answers /run with 501 when code tasks are not enabled', async () => {
+    const url = await start()
+    const res = await fetch(`${url}/run`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ taskId: 't1', prompt: 'do it' })
+    })
+    expect(res.status).toBe(501)
+  })
+
+  it('delegates /run to the configured handler', async () => {
+    let seen: { taskId: string; prompt: string } | undefined
+    const url = await start({
+      run: async (request) => {
+        seen = { taskId: request.taskId, prompt: request.prompt }
+        return {
+          ok: true,
+          branch: `agent/${request.taskId}`,
+          worktreePath: '/wt',
+          gate: { ok: true, steps: [] },
+          rolledBack: false,
+          agentOutput: 'done'
+        }
+      }
+    })
+    const res = await fetch(`${url}/run`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ taskId: 't1', prompt: 'add a toggle' })
+    })
+    const body = (await res.json()) as { ok: boolean; branch: string }
+    expect(res.status).toBe(200)
+    expect(body).toMatchObject({ ok: true, branch: 'agent/t1' })
+    expect(seen).toEqual({ taskId: 't1', prompt: 'add a toggle' })
+  })
+
+  it('rejects /run without taskId + prompt (400)', async () => {
+    const url = await start({ run: async () => ({}) as never })
+    const res = await fetch(`${url}/run`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ prompt: 'no id' })
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 502 when the /run handler throws', async () => {
+    const url = await start({
+      run: async () => {
+        throw new Error('worktree boom')
+      }
+    })
+    const res = await fetch(`${url}/run`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ taskId: 't1', prompt: 'x' })
+    })
+    expect(res.status).toBe(502)
+  })
 })

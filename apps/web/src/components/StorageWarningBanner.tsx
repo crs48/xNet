@@ -139,12 +139,19 @@ export function StorageWarningBanner({
             <span className={`flex p-2 rounded-lg ${toneClasses.icon}`}>
               <Icon className="h-5 w-5" aria-hidden="true" />
             </span>
+            {/* Compact on mobile (exploration 0196): the verbose message,
+                usage line, and detail list stack to ~1000px on a phone and
+                would push the whole shell off-screen via
+                --storage-banner-height. Below sm we clamp the message and
+                hide the rest; sm+ restores the full desktop banner. */}
             <div className={`ml-3 min-w-0 ${toneClasses.text}`}>
               <p className="text-sm font-semibold">{title}</p>
-              <p className="text-sm mt-0.5">{message}</p>
-              {usageLabel && <p className="text-xs mt-1 opacity-80">{usageLabel}</p>}
+              <p className="mt-0.5 line-clamp-2 text-sm sm:line-clamp-none">{message}</p>
+              {usageLabel && (
+                <p className="mt-1 hidden text-xs opacity-80 sm:block">{usageLabel}</p>
+              )}
               {detailItems && detailItems.length > 0 && (
-                <ul className="mt-2 space-y-1 text-xs opacity-90">
+                <ul className="mt-2 hidden space-y-1 text-xs opacity-90 sm:block">
                   {detailItems.map((item) => (
                     <li key={item}>{item}</li>
                   ))}

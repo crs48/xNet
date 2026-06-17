@@ -9,6 +9,7 @@
  */
 
 import type { ModuleCapabilities } from '../feature-module'
+import type { PluginPricing } from '../manifest'
 import type { InstallProvenance } from './provenance-trust'
 
 /** A single entry in the marketplace index (`registry.json`). */
@@ -30,6 +31,12 @@ export interface MarketplaceEntry {
   installs?: number
   /** GitHub stars / community signal. */
   stars?: number
+  /** SPDX license id (exploration 0196) — shown as a badge; gated by CI policy. */
+  license?: string
+  /** Monetization (exploration 0196). Absent = free. */
+  pricing?: PluginPricing
+  /** Publisher identity for paid listings (exploration 0196). */
+  publisherDid?: string
   /** Provenance reference for verification (see `./provenance`). */
   provenance?: { sigstoreBundleUrl?: string; sourceRepo?: string; sourceCommit?: string }
 }

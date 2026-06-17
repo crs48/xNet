@@ -1,0 +1,16 @@
+{
+  "id": "2026-06-12",
+  "date": "June 2026",
+  "title": "On-device dictation",
+  "summary": "Talk to xNet. A new dictation engine turns speech into text locally, with hold-to-talk and private-by-default transcripts.",
+  "highlights": [
+    "Zero-dependency dictation engine with hold-to-talk",
+    "Private-by-default transcription with full-text search",
+    "Pluggable speech backends (bring-your-own engine)"
+  ],
+  "tags": [
+    "app",
+    "ai"
+  ],
+  "pr": 136
+}
