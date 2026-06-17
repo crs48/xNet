@@ -58,6 +58,11 @@ export type PlanChangeResult =
   | { kind: 'flipped'; tenant: TenantRecord }
   | { kind: 'migration-required'; from: PlanEntitlements; to: PlanEntitlements }
 
+/** Deterministic tenant id for a billing identity (so a replayed webhook is idempotent). */
+export function tenantIdForBilling(billingUserId: string): string {
+  return `t_${billingUserId.replace(/[^a-zA-Z0-9_-]/g, '')}`
+}
+
 export class ControlPlane {
   constructor(private readonly deps: ControlPlaneDeps) {}
 
@@ -111,6 +116,97 @@ export class ControlPlane {
     }
     await this.deps.tenants.put(record)
     return record
+  }
+
+  /**
+   * Provision a hub for a paid billing identity whose DATA identity is not yet
+   * known — the Stripe `checkout.session.completed` path. The hub comes up with an
+   * empty `did`; the data DID is bound later, when the user opens the app and
+   * approves the device-grant claim flow (exploration 0192). Idempotent: a replayed
+   * webhook for the same billing user returns the existing record.
+   */
+  async provisionForBilling(args: {
+    plan: PlanId
+    billingUserId: string
+    region?: string
+    overrides?: Partial<Omit<PlanEntitlements, 'plan'>>
+  }): Promise<TenantRecord> {
+    const tenantId = tenantIdForBilling(args.billingUserId)
+    const existing = await this.deps.tenants.get(tenantId)
+    if (existing) {
+      // Re-subscribe / replay: reactivate a suspended hub, otherwise return as-is.
+      if (existing.dataTier === 'cold') return this.reactivate(tenantId)
+      if (existing.subscriptionStatus === 'canceled') {
+        const reactivated: TenantRecord = { ...existing, subscriptionStatus: 'active' }
+        await this.deps.tenants.put(reactivated)
+        return reactivated
+      }
+      return existing
+    }
+
+    const entitlements = resolveEntitlements(args.plan, args.overrides)
+    const handle = await this.deps.provisioner.provision({
+      tenantId,
+      entitlements,
+      targetVersion: this.deps.defaultTargetVersion,
+      region: args.region,
+      env: this.hubEnv(entitlements)
+    })
+    const record: TenantRecord = {
+      tenantId,
+      plan: args.plan,
+      entitlements,
+      billingUserId: args.billingUserId,
+      did: '', // bound later via the claim flow (exploration 0192)
+      hubUrl: handle.hubUrl,
+      substrateRef: handle.substrateRef,
+      region: handle.region,
+      targetVersion: handle.targetVersion,
+      createdAt: this.now(),
+      lastActiveMs: this.now(),
+      dataTier: 'hot',
+      subscriptionStatus: 'active'
+    }
+    await this.deps.tenants.put(record)
+    return record
+  }
+
+  /** Find the tenant owned by a billing identity (dashboard + claim lookup). */
+  async getTenantForBilling(billingUserId: string): Promise<TenantRecord | null> {
+    const all = await this.deps.tenants.list()
+    return all.find((t) => t.billingUserId === billingUserId) ?? null
+  }
+
+  /**
+   * Suspend a tenant on subscription cancellation: tear down the live machine but
+   * keep the record and the R2 replica so a re-subscribe can reactivate it. The
+   * encrypted data is retained until the user explicitly deletes it.
+   */
+  async suspendTenant(tenantId: string): Promise<TenantRecord | null> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return null
+    if (record.substrateRef) await this.deps.provisioner.destroy(record.substrateRef)
+    const updated: TenantRecord = {
+      ...record,
+      subscriptionStatus: 'canceled',
+      dataTier: 'cold',
+      substrateRef: '',
+      hubUrl: ''
+    }
+    await this.deps.tenants.put(updated)
+    return updated
+  }
+
+  /**
+   * Destroy a tenant's hub and forget it — the "delete my data" path. Irreversible:
+   * the encrypted DB/replica is the user's, and the company cannot recover it.
+   */
+  async deleteTenant(tenantId: string): Promise<{ deleted: boolean }> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) return { deleted: false }
+    if (record.substrateRef) await this.deps.provisioner.destroy(record.substrateRef)
+    await this.deps.tenants.delete(tenantId)
+    return { deleted: true }
   }
 
   /**
