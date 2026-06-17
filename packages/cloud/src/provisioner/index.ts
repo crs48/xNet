@@ -21,7 +21,13 @@ export { MemoryProvisioner, type MemoryProvisionerOptions } from './memory'
 
 export {
   CloudRunLitestreamProvisioner,
-  type CloudRunLitestreamConfig
+  FakeCloudRunClient,
+  serviceIdForTenant,
+  type CloudRunLitestreamConfig,
+  type CloudRunClient,
+  type CloudRunRef,
+  type CloudRunUpsert,
+  type CloudRunService
 } from './adapters/cloud-run-litestream'
 
 export {
