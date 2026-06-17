@@ -27,7 +27,9 @@ export const AI_CHAT_STORAGE_KEYS = {
   apiKey: 'xnet:ai-api-key',
   cloudProvider: 'xnet:ai-cloud-provider',
   model: 'xnet:ai-model',
-  localBaseUrl: 'xnet:ai-local-base-url'
+  localBaseUrl: 'xnet:ai-local-base-url',
+  /** The connector tier the user last selected (survives reload). */
+  tier: 'xnet:ai-tier'
 } as const
 
 /** Connector tiers that resolve to a `createAIProvider` config (vs. in-tab). */
@@ -36,6 +38,31 @@ export const PROVIDER_CONFIG_TIERS: readonly ConnectorTier[] = [
   'local-server',
   'bridge'
 ]
+
+/**
+ * Tiers the panel can actually instantiate a provider for today: the
+ * config-backed tiers plus `prompt-api` (built from an injected session). The
+ * `webllm` tier is detectable (WebGPU present) but has no engine-injection path
+ * yet, so it must never be *auto*-selected — it would leave the composer
+ * permanently disabled. It stays selectable in the dropdown for when it's wired.
+ */
+export const USABLE_TIERS: readonly ConnectorTier[] = [...PROVIDER_CONFIG_TIERS, 'prompt-api']
+
+/** Whether the panel can build a working provider for this tier right now. */
+export function isUsableTier(tier: ConnectorTier): boolean {
+  return USABLE_TIERS.includes(tier)
+}
+
+/**
+ * The most-preferred *available and usable* connector, or null. Mirrors
+ * `pickBestConnector` but skips tiers the panel can't instantiate (webllm),
+ * relying on the same preference ordering of the input.
+ */
+export function pickUsableConnector(
+  detections: readonly ConnectorDetection[]
+): ConnectorDetection | null {
+  return detections.find((d) => d.available && isUsableTier(d.tier)) ?? null
+}
 
 /**
  * Resolve an AIProviderConfig for a connector, or null when the tier needs an
@@ -144,5 +171,15 @@ export function canSendMessage(content: string, streaming: boolean, hasRuntime: 
 }
 
 export function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
+  const raw = err instanceof Error ? err.message : String(err)
+  // A browser CORS block and an unreachable local server both surface as an
+  // opaque "Failed to fetch" / "Load failed" / "NetworkError". Turn that into
+  // the actionable next step instead of a dead-end stack message.
+  if (/failed to fetch|networkerror|load failed|\bcors\b/i.test(raw)) {
+    return (
+      'Could not reach the model. For a cloud key this is usually a CORS block; ' +
+      'for a local model, allow this origin (set OLLAMA_ORIGINS or enable the LM Studio CORS toggle).'
+    )
+  }
+  return raw
 }
