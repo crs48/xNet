@@ -153,6 +153,27 @@ export type {
 export { agentToolToExtraTool, agentToolsAsExtraTools } from './agent-tools'
 export type { AgentToolContribution, AgentToolInputSchema } from './agent-tools'
 
+// Connectors (exploration 0196) — sync an external service into governed nodes
+// and expose agent-callable tools over them. xNet's agent-native-CLI equivalent.
+export {
+  defineConnector,
+  ConnectorDefinitionError,
+  runConnectorSync,
+  ConnectorSyncError
+} from './connectors'
+export type {
+  ConnectorDefinition,
+  DefinedConnector,
+  ConnectorSyncSpec,
+  ConnectorSyncContext,
+  ConnectorSyncResult,
+  ConnectorStore,
+  ConnectorFetch,
+  ConnectorCadence,
+  RunConnectorSyncPorts,
+  GuardableConnectorStore
+} from './connectors'
+
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'
 export { MiddlewareChain } from './middleware'
