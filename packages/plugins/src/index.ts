@@ -77,7 +77,8 @@ export type {
   SettingsPanelProps,
   SchemaContribution,
   StatusBarContribution,
-  ImporterContribution
+  ImporterContribution,
+  AiCommandExposure
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
 
@@ -139,6 +140,14 @@ export {
   type CommandContext,
   type CommandScope
 } from './commands'
+
+// Mention/typeahead providers (exploration 0194) — extensible [[ / # / @
+export { resolveMentionProviders } from './mention-providers'
+export type {
+  MentionProviderContribution,
+  MentionSuggestion,
+  ResolveMentionOptions
+} from './mention-providers'
 
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'
@@ -473,6 +482,7 @@ export {
   validateAiMutationPlan,
   AiSurfaceService,
   createAiSurfaceService,
+  contributionsAsAiTools,
   getXNetMarkdownDirectiveSpecs,
   parseXNetPageFrontmatter,
   renderMarkdownLineDiff,
@@ -481,6 +491,7 @@ export {
   XNET_MARKDOWN_DIRECTIVE_SPECS,
   validateXNetPageMarkdown
 } from './ai-surface'
+export type { AiCallableTool } from './ai-surface'
 
 // Services (Background process management)
 // Note: Node.js-only modules (LocalAPIServer, MCPServer, ProcessManager) are

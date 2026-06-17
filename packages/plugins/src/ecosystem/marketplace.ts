@@ -116,6 +116,61 @@ export function filterByCategory(
   return entries.filter((e) => (e.category ?? '').toLowerCase() === c)
 }
 
+/** A weighted signal about what the user works with (from workspace usage). */
+export interface UsageSignal {
+  /** A category the user engages with (e.g. `finance`). */
+  category?: string
+  /** A keyword the user engages with (e.g. `invoice`). */
+  keyword?: string
+  /** Relative strength (default 1). */
+  weight?: number
+}
+
+export interface RecommendOptions {
+  /** Ids already installed — excluded from recommendations. */
+  installedIds?: readonly string[]
+  /** Cap the number of recommendations (default 5). */
+  limit?: number
+}
+
+/** How well an entry matches a single signal. */
+function signalScore(entry: MarketplaceEntry, signal: UsageSignal): number {
+  const weight = signal.weight ?? 1
+  const cat = (signal.category ?? '').toLowerCase()
+  const kw = (signal.keyword ?? '').toLowerCase()
+  let score = 0
+  if (cat && (entry.category ?? '').toLowerCase() === cat) score += 3 * weight
+  if (kw) {
+    const keywords = (entry.keywords ?? []).map((k) => k.toLowerCase())
+    if (keywords.includes(kw)) score += 2 * weight
+    if (entry.description.toLowerCase().includes(kw)) score += weight
+  }
+  return score
+}
+
+/**
+ * Recommend extensions from the marketplace index for a user, given weighted
+ * usage signals (category/keyword affinity). Excludes already-installed ids and
+ * ranks by match score, with install-count as a tiebreaker. Pure — the "AI
+ * brain" decides the signals; this turns them into a ranked shortlist.
+ */
+export function recommendExtensions(
+  index: readonly MarketplaceEntry[],
+  signals: readonly UsageSignal[],
+  options: RecommendOptions = {}
+): MarketplaceEntry[] {
+  const installed = new Set(options.installedIds ?? [])
+  const scored = index
+    .filter((e) => !installed.has(e.id))
+    .map((entry) => ({
+      entry,
+      score: signals.reduce((sum, signal) => sum + signalScore(entry, signal), 0)
+    }))
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score || (b.entry.installs ?? 0) - (a.entry.installs ?? 0))
+  return scored.slice(0, options.limit ?? 5).map((s) => s.entry)
+}
+
 /** A single rating (one node per rating; aggregated for display). */
 export interface PluginRating {
   pluginId: string

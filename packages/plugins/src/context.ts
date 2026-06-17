@@ -22,6 +22,7 @@ import type {
   ImporterContribution
 } from './contributions'
 import type { ModuleCapabilities } from './feature-module'
+import type { MentionProviderContribution } from './mention-providers'
 import type { NodeStoreMiddleware } from './middleware'
 import type { Disposable, Platform, PlatformCapabilities, ExtensionStorage } from './types'
 import type {
@@ -108,6 +109,8 @@ export interface ExtensionContext {
   registerCanvasTemplate(template: CanvasTemplateContribution): Disposable
   /** Register a data-export / source importer (exploration 0189) */
   registerImporter(importer: ImporterContribution): Disposable
+  /** Register a mention/typeahead provider (exploration 0194) */
+  registerMentionProvider(provider: MentionProviderContribution): Disposable
   /** Add middleware to NodeStore */
   addMiddleware(middleware: NodeStoreMiddleware): Disposable
 
@@ -309,6 +312,12 @@ export function createExtensionContext(options: CreateContextOptions): Extension
 
     registerImporter(importer) {
       const d = contributions.importers.register(importer)
+      disposables.push(d)
+      return d
+    },
+
+    registerMentionProvider(provider) {
+      const d = contributions.mentionProviders.register(provider)
       disposables.push(d)
       return d
     },

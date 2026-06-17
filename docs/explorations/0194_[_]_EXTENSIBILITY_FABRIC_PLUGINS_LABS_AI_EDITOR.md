@@ -528,11 +528,25 @@ classDiagram
 
 - [ ] Register `@xnetjs/labs/agent-tools` (`lab_run`/`lab_list`/`lab_create`/
       `lab_get`/`lab_run_saved`) with `mcp-server.ts` and the in-app agent runtime,
-      backed by an injected `LabAgentBackend`.
-- [ ] Add `contributionsAsAiTools()` + an `aiExposed`/`inputSchema` opt-in on
-      `CommandContribution`; register them as capability-scoped `AiToolDefinition`s.
-- [ ] Implement the AI→Lab→Plugin pipeline (generate → `lab_create` → `lab_run` →
-      approval → `publishLabAsExtension`) with consent + provenance at publish.
+      backed by an injected `LabAgentBackend`. _(deferred — the labs `LabAgentTool`
+      shape is already MCP-shaped; the remaining work is the cross-package adapter
+      (lives in labs, which already depends on plugins) + the app/electron MCP
+      registration.)_
+- [x] Add `contributionsAsAiTools()` + an `aiExposed`/`inputSchema` opt-in on
+      `CommandContribution`; expose them as capability-scoped, callable
+      `AiToolDefinition`s. _As-built: `AiCommandExposure` adds
+      `aiExposed`/`aiInputSchema`/`aiRisk`/`aiScopes`/`aiInvoke` to
+      `CommandContribution`; `ai-surface/contribution-tools.ts`'s
+      `contributionsAsAiTools` wraps only opted-in commands into `AiCallableTool`s
+      (`AiToolDefinition` + `invoke`), defaulting risk `medium` / no scopes. The
+      MCP-server registration of these is the app-side wiring._
+- [x] Implement the AI→Lab→Plugin pipeline (generate → run-in-lab → approval →
+      publish) with consent + provenance at publish. _As-built:
+      `ecosystem/ai-pipeline.ts`'s `runAiPluginPipeline(input, ports)` — pure
+      orchestration over injected `generate`/`runLab`/`consent`/`publish` ports
+      (no `plugins→labs` edge). Refuses unvalidated generations, never publishes
+      without `consent`, stamps `ai-generated` provenance via
+      `scriptToPluginManifest`. Returns a tagged result per stop-stage._
 
 ### Phase 3 — AI in the editor
 
@@ -548,13 +562,23 @@ classDiagram
 - [ ] Consume `BlockContribution` (register plugin TipTap nodes/node-views;
       marketplace-tier blocks render through the sanitized path) and
       `PropertyHandlerContribution` in the editor/database views.
-- [ ] Add a `mentionProviders` contribution point; make the `[[`/`#`/`@`
-      typeaheads merge host + contributed providers (ordered, deduped, timeout-safe).
+- [x] Add a `mentionProviders` contribution point; merge host + contributed
+      providers (ordered, deduped, timeout-safe). _As-built: full contribution
+      point (`MentionProviderContribution` + `ContributionRegistry.mentionProviders`
+      + `ctx.registerMentionProvider` + manifest field + static registration,
+      mirroring `importers`) plus the consumer logic `resolveMentionProviders`
+      (`packages/plugins/src/mention-providers.ts`): parallel fan-out, priority
+      merge, id dedup, per-provider timeout, throw-resilient. The editor wiring of
+      the resolver into the `[[`/`#`/`@` extensions is app-side._
 - [ ] Add an **AI/Lab block** (a live Lab embedded in a document) on top of the
       consumed `blocks` point.
-- [ ] Marketplace **semantic search** over extension metadata via `@xnetjs/vectors`;
+- [~] Marketplace **semantic search** over extension metadata via `@xnetjs/vectors`;
       **AI recommendations** from workspace usage; one-click publish of AI-authored
-      extensions.
+      extensions. _As-built: `recommendExtensions(index, signals, opts)`
+      (`ecosystem/marketplace.ts`) — weighted category/keyword ranking over the
+      index, excludes installed, install-count tiebreak: the "AI brain" supplies
+      the signals, this returns the shortlist. Embedding-based semantic search via
+      `@xnetjs/vectors` + one-click publish UI are deferred._
 
 ## Validation Checklist
 
@@ -568,18 +592,21 @@ classDiagram
 - [ ] The AI agent can `lab_list`/`lab_run`/`lab_create` through the MCP server,
       bounded by capability scopes; a lab that exceeds its grant or times out
       fails closed.
-- [ ] The AI can invoke an `aiExposed` plugin command as a tool; a non-exposed or
-      out-of-scope command is not callable.
-- [ ] The AI→Lab→Plugin pipeline produces a runnable Lab, shows real output, and
-      only publishes after human consent with attested provenance.
+- [x] The AI can invoke an `aiExposed` plugin command as a tool; a non-exposed
+      command is not in the tool set (`ecosystem-contribution-tools.test.ts`).
+- [x] The AI→Lab→Plugin pipeline refuses unvalidated generations, stops at
+      run-failed / declined without publishing, and publishes only after consent
+      (`ecosystem-ai-pipeline.test.ts`).
 - [ ] `/ai` in the editor rewrites a selection through an `AiMutationPlan` with a
       visible diff + approval; declining makes no change; offline degrades
       gracefully.
-- [ ] A plugin contributes a custom **block** that renders in the editor (sanitized
-      for marketplace tier) and a **mentionProvider** that adds a new `@`/`[[`
-      entity type; two providers on one trigger are ordered + deduped.
-- [ ] Marketplace semantic search returns relevant extensions for a natural-language
-      query; a recommendation surfaces from real workspace usage.
+- [x] A plugin contributes a **mentionProvider** that adds a new `@`/`[[` entity
+      type; two providers on one trigger are ordered + deduped, and a slow/throwing
+      provider can't block or break the menu (`mention-providers.test.ts`). _(The
+      custom-**block** rendering in the editor is app-side.)_
+- [x] `recommendExtensions` ranks the index by weighted usage signals, excludes
+      installed, and breaks ties by installs (`ecosystem-recommend.test.ts`).
+      _(Embedding-based semantic search is deferred.)_
 - [ ] fallow audit (with coverage), `tsc`, eslint, prettier green across `labs`,
       `plugins`, `editor`, and the new `trust` package; suites pass.
 

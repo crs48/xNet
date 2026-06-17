@@ -41,6 +41,7 @@ export {
   sortMarketplace,
   filterByCategory,
   aggregateRatings,
+  recommendExtensions,
   MarketplaceClient,
   MARKETPLACE_PROVENANCE
 } from './marketplace'
@@ -50,7 +51,9 @@ export type {
   MarketplaceClientOptions,
   FetchJson,
   PluginRating,
-  RatingSummary
+  RatingSummary,
+  UsageSignal,
+  RecommendOptions
 } from './marketplace'
 
 export { failClosedVerifier, verifyProvenance, summarizeProvenance } from './provenance'
@@ -80,3 +83,12 @@ export type {
   ScriptToManifestInput,
   AiAuthoredPlugin
 } from './ai-authoring'
+
+// AI→Lab→Plugin assembly line (0194 Phase 2) — generate → lab-test → consent → publish.
+export { runAiPluginPipeline } from './ai-pipeline'
+export type {
+  LabRunOutcome,
+  AiPluginPipelinePorts,
+  AiPluginPipelineInput,
+  AiPluginPipelineResult
+} from './ai-pipeline'

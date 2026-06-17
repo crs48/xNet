@@ -2,6 +2,10 @@
  * AI surface contract for xNet agent resources, tools, and mutation plans.
  */
 
+// Plugin contributions as AI tools (0194 Phase 2).
+export { contributionsAsAiTools } from './contribution-tools'
+export type { AiCallableTool } from './contribution-tools'
+
 export type {
   AiAuditEvent,
   AiChangeSet,
