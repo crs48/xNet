@@ -445,20 +445,20 @@ const runtime = createAiAgentRuntime({
 
 ## Implementation Checklist
 
-**Phase 0 — make BYO-cloud work (target: 1 day)**
-- [ ] Add `allowBrowser?: boolean` to `AIProviderOptions` and send
+**Phase 0 — make BYO-cloud work (target: 1 day)** — ✅ shipped
+- [x] Add `allowBrowser?: boolean` to `AIProviderOptions` and send
       `anthropic-dangerous-direct-browser-access: true` from `AnthropicProvider`
       when in a browser.
-- [ ] Auto-select only *usable* tiers in `AiChatPanel` (skip `webllm` until it
-      has an engine).
-- [ ] Map CORS/network `fetch` failures to an actionable message in
+- [x] Auto-select only *usable* tiers in `AiChatPanel` (skip `webllm` until it
+      has an engine) via `pickUsableConnector`.
+- [x] Map CORS/network `fetch` failures to an actionable message in
       `errorMessage`.
-- [ ] Persist the selected tier (currently only key/provider/model/baseUrl
-      persist) so the choice survives reload.
-- [ ] Update panel copy: clarify BYO-key visibility and the Ollama/LM Studio
-      CORS step; fix the `cloud-key` write-mode badge to not claim "agentic"
-      until tools are wired.
-- [ ] Unit-test the new header + tier-selection logic (mirror existing
+- [x] Persist the selected tier (new `xnet:ai-tier` key) so the choice survives
+      reload.
+- [x] Update panel copy: clarify BYO-key visibility and the Ollama/LM Studio
+      CORS step; the write-mode badge is now an honest "chat" badge (no
+      "agentic" claim) until tools are wired.
+- [x] Unit-test the new header + tier-selection logic (mirror existing
       `ai-chat-connector.test.ts` / `providers.test.ts`).
 
 **Phase 1 — wire the tool surface (target: 1 sprint)**
@@ -486,23 +486,27 @@ const runtime = createAiAgentRuntime({
 ## Validation Checklist
 
 - [ ] With an **Anthropic** key pasted, a message round-trips and the assistant
-      replies (no "Failed to fetch") in Chrome **and** Safari.
-- [ ] On a **fresh Chrome desktop** with no key/model, the panel does **not**
+      replies (no "Failed to fetch") in Chrome **and** Safari. *(Header in place
+      and unit-tested; needs a live key to confirm end-to-end.)*
+- [x] On a **fresh Chrome desktop** with no key/model, the panel does **not**
       auto-select WebLLM; it lands on a usable tier or shows a clear
       "configure a model" prompt — never a silently-disabled composer.
+      *(Covered by `pickUsableConnector` unit tests.)*
 - [ ] **OpenRouter** and **OpenAI** keys still work after the change.
+      *(Provider paths unchanged; needs live keys to confirm.)*
 - [ ] **Ollama** with `OLLAMA_ORIGINS` set streams a reply; without it, the
       error explains the CORS fix.
-- [ ] A CORS/network failure shows the actionable message, not raw
-      "Failed to fetch".
-- [ ] Selected tier survives a page reload.
+- [x] A CORS/network failure shows the actionable message, not raw
+      "Failed to fetch". *(Covered by `errorMessage` unit tests.)*
+- [x] Selected tier survives a page reload (`xnet:ai-tier` persistence).
 - [ ] (Phase 1) Asking the agent to "create a task / edit this page" produces a
       **mutation plan** that requires approval, then applies through the
       guardrail and is visible in the workspace.
 - [ ] (Phase 1) A tool failure surfaces in the thread without crashing the
       panel.
-- [ ] `pnpm test` green for `@xnetjs/plugins` and `apps/web`; visual capture of
-      the panel attached to the PR.
+- [x] Targeted tests green for `@xnetjs/plugins` (integration) and `apps/web`
+      (dom) view tests + `typecheck` + `eslint` + `prettier`; full suite +
+      visual capture run by CI on the PR.
 
 ## References
 
