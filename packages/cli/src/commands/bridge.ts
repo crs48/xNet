@@ -14,9 +14,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   buildAgentArgs,
+  cliAgentRunner,
   cliChatAgent,
   createBridgeServer,
   DEFAULT_BRIDGE_PORT,
+  defaultXnetGate,
+  Git,
+  handleBridgeRun,
   mcpConfigFor,
   NodeCommandRunner,
   type BridgeServerHandle,
@@ -34,6 +38,8 @@ export interface BridgeServeOptions {
   cwd?: string
   /** Path to an MCP config JSON giving the agent XNet's workspace tools. */
   mcpConfigPath?: string
+  /** Enable `POST /run` — agentic code tasks (worktree → gate → checkpoint/PR). */
+  code?: boolean
 }
 
 /** Build (but don't start) the bridge server for the chosen agent. Injectable runner for tests. */
@@ -42,17 +48,30 @@ export function buildBridgeServer(
   runner: CommandRunner = new NodeCommandRunner()
 ): BridgeServerHandle {
   const command = options.agent ?? 'claude'
+  const cwd = options.cwd ?? process.cwd()
   const args = buildAgentArgs(command, {
     ...(options.mcpConfigPath ? { mcpConfigPath: options.mcpConfigPath } : {})
   })
-  const agent = cliChatAgent(runner, {
-    command,
-    cwd: options.cwd ?? process.cwd(),
-    args
-  })
+  const agent = cliChatAgent(runner, { command, cwd, args })
+  // `--code` enables the agentic dev-loop over HTTP (powerful → opt-in): the
+  // coding agent edits in a worktree off `cwd`, then the gate runs.
+  const run = options.code
+    ? (request: Parameters<typeof handleBridgeRun>[1]) =>
+        handleBridgeRun(
+          {
+            git: new Git(runner, cwd),
+            runner,
+            agent: cliAgentRunner(runner, { command }),
+            gate: defaultXnetGate(),
+            worktreeRoot: join(cwd, '.xnet', 'agent-worktrees')
+          },
+          request
+        )
+    : undefined
   return createBridgeServer({
     agent,
     agentName: command,
+    ...(run ? { run } : {}),
     ...(options.host ? { host: options.host } : {}),
     ...(options.port !== undefined ? { port: options.port } : {}),
     ...(options.allowOrigin ? { allowedOrigins: options.allowOrigin } : {})
@@ -75,6 +94,7 @@ export function registerBridgeCommand(program: Command): void {
       'Browser origins permitted (e.g. https://user.github.io for the web deployment)'
     )
     .option('--cwd <dir>', 'Working directory the agent runs in (default current dir)')
+    .option('--code', 'Enable POST /run agentic code tasks (worktree → gate → checkpoint/PR)')
     .option('--mcp', "Give the agent XNet's workspace tools via `xnet mcp serve`")
     .option(
       '--mcp-api-url <url>',

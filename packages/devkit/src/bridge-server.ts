@@ -18,8 +18,9 @@
  */
 
 import type { ChatAgent, ChatMessage } from './chat-agent'
+import type { AgentTaskResult } from './dev-loop'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
-import { bridgeHealth } from './bridge'
+import { bridgeHealth, type BridgeRunRequest } from './bridge'
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 /** Default port — the address the connector ladder (0174) probes. */
@@ -42,6 +43,13 @@ export interface BridgeServerConfig {
    * web origin must be listed here to reach the local agent.
    */
   allowedOrigins?: string[]
+  /**
+   * Optional code-task handler for `POST /run` (e.g. devkit `handleBridgeRun`):
+   * isolate in a worktree → agent edits → gate → checkpoint/rollback. Opt-in —
+   * when absent, `/run` answers 501. This is powerful (runs a coding agent + the
+   * gate), so callers enable it explicitly.
+   */
+  run?: (request: BridgeRunRequest) => Promise<AgentTaskResult>
 }
 
 export interface BridgeServerHandle {
@@ -111,6 +119,37 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
       }
       if (stream) sendSse(res, text, model)
       else sendJson(res, 200, completion(text, model))
+      return
+    }
+
+    if (req.method === 'POST' && path === '/run') {
+      if (!config.run) {
+        sendJson(res, 501, { error: 'code tasks are not enabled on this bridge' })
+        return
+      }
+      let body: Record<string, unknown>
+      try {
+        body = await readJson(req)
+      } catch (err) {
+        sendJson(res, 400, { error: { message: messageOf(err) } })
+        return
+      }
+      const taskId = typeof body.taskId === 'string' ? body.taskId : ''
+      const prompt = typeof body.prompt === 'string' ? body.prompt : ''
+      if (!taskId || !prompt) {
+        sendJson(res, 400, { error: 'taskId and prompt are required' })
+        return
+      }
+      const request: BridgeRunRequest = {
+        taskId,
+        prompt,
+        ...(typeof body.worktreeName === 'string' ? { worktreeName: body.worktreeName } : {})
+      }
+      try {
+        sendJson(res, 200, await config.run(request))
+      } catch (err) {
+        sendJson(res, 502, { error: { message: messageOf(err) } })
+      }
       return
     }
 
