@@ -58,6 +58,7 @@ import { TaskFilterBar, type FilterValueOption } from './TaskFilterBar'
 import { TaskInlineEditor } from './TaskInlineEditor'
 import { TaskMiniPalette } from './TaskMiniPalette'
 import { TaskPeek } from './TaskPeek'
+import { TaskSidebar } from './TaskSidebar'
 
 const WORKFLOW_ORDER = Object.keys(TASK_STATUS_CATEGORIES) as TaskStatusId[]
 
@@ -705,308 +706,330 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
     { id: 'triage', label: 'Triage', icon: <Inbox size={13} /> }
   ]
 
+  const selectView = (next: TasksTab) => {
+    setTab(next)
+    if (projectId) void navigate({ to: '/tasks', search: {}, replace: true })
+  }
+
+  const createProject = () =>
+    void create(ProjectSchema, { name: 'New project' }).then((p) => {
+      if (p?.id) void navigate({ to: '/tasks', search: { project: p.id } })
+    })
+
   return (
-    <div className="flex h-full flex-col" data-testid="tasks-view">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <div className="flex items-center gap-1">
-          {tabs.map(({ id, label, icon }) => (
+    <div className="flex h-full" data-testid="tasks-view">
+      <TaskSidebar
+        className="hidden md:flex"
+        view={tab}
+        activeProjectId={projectId}
+        projects={projects}
+        onSelectView={selectView}
+        onSelectProject={(id) => void navigate({ to: '/tasks', search: { project: id } })}
+        onCreateProject={createProject}
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col" data-testid="tasks-main">
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+          <div className="flex items-center gap-1 md:hidden">
+            {tabs.map(({ id, label, icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors ${
+                  tab === id
+                    ? 'bg-accent text-foreground'
+                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                }`}
+              >
+                {icon}
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {scopedProject && (
+            <span
+              data-testid="tasks-project-chip"
+              className="flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs text-foreground"
+            >
+              {scopedProject.icon ? `${scopedProject.icon} ` : ''}
+              {scopedProject.name || 'Untitled project'}
+              <button
+                type="button"
+                aria-label="Clear project filter"
+                onClick={() => void navigate({ to: '/tasks', search: {}, replace: true })}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X size={11} />
+              </button>
+            </span>
+          )}
+
+          <div className="ml-auto flex items-center gap-1" data-tasks-view-toggle>
+            {!projectId && (
+              <button
+                type="button"
+                onClick={createProject}
+                className="mr-1 flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
+              >
+                <Plus size={13} /> Project
+              </button>
+            )}
             <button
-              key={id}
               type="button"
-              onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors ${
-                tab === id
-                  ? 'bg-accent text-foreground'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+              onClick={() => setMode('list')}
+              aria-label="List view"
+              className={`rounded-md p-1.5 transition-colors ${
+                mode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground'
               }`}
             >
-              {icon}
-              {label}
+              <List size={14} />
             </button>
+            <button
+              type="button"
+              onClick={() => setMode('board')}
+              aria-label="Board view"
+              className={`rounded-md p-1.5 transition-colors ${
+                mode === 'board' ? 'bg-accent text-foreground' : 'text-muted-foreground'
+              }`}
+            >
+              <KanbanSquare size={14} />
+            </button>
+          </div>
+        </div>
+
+        {projectId && <ProjectHeader projectId={projectId} />}
+
+        <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
+          <TaskFilterBar
+            filter={filter}
+            onChange={setFilter}
+            options={filterOptions}
+            menuOpen={filterMenuOpen}
+            onMenuOpenChange={setFilterMenuOpen}
+          />
+          {mode === 'list' && (
+            <div className="ml-auto">
+              <TaskDisplayOptions
+                settings={display}
+                onChange={(patch) => setDisplay((current) => ({ ...current, ...patch }))}
+                open={displayOpen}
+                onOpenChange={setDisplayOpen}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+          <Plus size={14} className="shrink-0 text-muted-foreground" />
+          <MentionTextInput
+            value={draft}
+            onChange={setDraft}
+            people={people.filter((person) => !draftAssignees.includes(person.did))}
+            onMention={(mentioned) => setDraftAssignees((current) => [...current, mentioned])}
+            tags={tagOptions.filter((tag) => !draftTags.includes(tag.id))}
+            onTag={(tagId) => setDraftTags((current) => [...current, tagId])}
+            onCreateTag={(name) => {
+              void getOrCreateTag(name).then((tag) => {
+                if (tag) setDraftTags((current) => [...current, tag.id])
+              })
+            }}
+            onDueDate={(ms) => setDraftDue(ms)}
+            onSubmit={() => void handleCreate()}
+            inputRef={quickAddRef}
+            placeholder={
+              tab === 'triage'
+                ? 'Add to triage… (@ assign · # tag · due date)'
+                : 'Add a task… (@ assign · # tag · type a due date)'
+            }
+            data-testid="task-quick-add"
+          />
+          {draftDue != null && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-xs text-foreground">
+              <CalendarDays size={12} className="text-muted-foreground" />
+              {formatDueDate(draftDue).label}
+              <button
+                type="button"
+                aria-label="Remove pending due date"
+                onClick={() => setDraftDue(null)}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X size={10} />
+              </button>
+            </span>
+          )}
+          {draftTags.map((tagId) => (
+            <span
+              key={tagId}
+              className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-xs text-foreground"
+            >
+              <Hash size={11} className="text-muted-foreground" />
+              {tagOptions.find((tag) => tag.id === tagId)?.name ?? 'tag'}
+              <button
+                type="button"
+                aria-label="Remove pending tag"
+                onClick={() => setDraftTags((current) => current.filter((id) => id !== tagId))}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+          {draftAssignees.map((assignee) => (
+            <span
+              key={assignee}
+              className="flex shrink-0 items-center gap-1 rounded-full border border-border py-0.5 pl-0.5 pr-1.5 text-xs text-foreground"
+            >
+              <DIDAvatar did={assignee} size={14} />
+              {taskPersonLabel(
+                people.find((person) => person.did === assignee) ?? { did: assignee }
+              )}
+              <button
+                type="button"
+                aria-label="Remove pending assignee"
+                onClick={() =>
+                  setDraftAssignees((current) =>
+                    current.filter((existing) => existing !== assignee)
+                  )
+                }
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X size={10} />
+              </button>
+            </span>
           ))}
         </div>
 
-        {scopedProject && (
-          <span
-            data-testid="tasks-project-chip"
-            className="flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs text-foreground"
-          >
-            {scopedProject.icon ? `${scopedProject.icon} ` : ''}
-            {scopedProject.name || 'Untitled project'}
-            <button
-              type="button"
-              aria-label="Clear project filter"
-              onClick={() => void navigate({ to: '/tasks', search: {}, replace: true })}
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <X size={11} />
-            </button>
-          </span>
-        )}
-
-        <div className="ml-auto flex items-center gap-1" data-tasks-view-toggle>
-          {!projectId && (
-            <button
-              type="button"
-              onClick={() =>
-                void create(ProjectSchema, { name: 'New project' }).then((p) => {
-                  if (p?.id) void navigate({ to: '/tasks', search: { project: p.id } })
-                })
-              }
-              className="mr-1 flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <Plus size={13} /> Project
-            </button>
+        <div className="min-h-0 flex-1 overflow-auto">
+          {loading ? (
+            <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
+              Loading tasks…
+            </div>
+          ) : mode === 'board' ? (
+            <TaskBoard
+              tasks={displayTasks}
+              onStatusChange={handleStatusChange}
+              onOpenTask={handleEditTask}
+              onToggleCompleted={handleToggleCompleted}
+            />
+          ) : (
+            <TaskListGrouped
+              tasks={displayTasks}
+              groupBy={display.groupBy}
+              orderBy={display.orderBy}
+              density={display.density}
+              assigneeLabel={assigneeLabel}
+              focusedTaskId={focusedTaskId}
+              selectedTaskIds={selectedIds}
+              onSelectTask={toggleSelect}
+              onCreateInGroup={(group) => void handleCreateInGroup(group)}
+              onOpenTask={handleEditTask}
+              onToggleCompleted={handleToggleCompleted}
+            />
           )}
-          <button
-            type="button"
-            onClick={() => setMode('list')}
-            aria-label="List view"
-            className={`rounded-md p-1.5 transition-colors ${
-              mode === 'list' ? 'bg-accent text-foreground' : 'text-muted-foreground'
-            }`}
-          >
-            <List size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('board')}
-            aria-label="Board view"
-            className={`rounded-md p-1.5 transition-colors ${
-              mode === 'board' ? 'bg-accent text-foreground' : 'text-muted-foreground'
-            }`}
-          >
-            <KanbanSquare size={14} />
-          </button>
         </div>
-      </div>
 
-      {projectId && <ProjectHeader projectId={projectId} />}
-
-      <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
-        <TaskFilterBar
-          filter={filter}
-          onChange={setFilter}
-          options={filterOptions}
-          menuOpen={filterMenuOpen}
-          onMenuOpenChange={setFilterMenuOpen}
-        />
-        {mode === 'list' && (
-          <div className="ml-auto">
-            <TaskDisplayOptions
-              settings={display}
-              onChange={(patch) => setDisplay((current) => ({ ...current, ...patch }))}
-              open={displayOpen}
-              onOpenChange={setDisplayOpen}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <Plus size={14} className="shrink-0 text-muted-foreground" />
-        <MentionTextInput
-          value={draft}
-          onChange={setDraft}
-          people={people.filter((person) => !draftAssignees.includes(person.did))}
-          onMention={(mentioned) => setDraftAssignees((current) => [...current, mentioned])}
-          tags={tagOptions.filter((tag) => !draftTags.includes(tag.id))}
-          onTag={(tagId) => setDraftTags((current) => [...current, tagId])}
-          onCreateTag={(name) => {
-            void getOrCreateTag(name).then((tag) => {
-              if (tag) setDraftTags((current) => [...current, tag.id])
-            })
+        {/* Linear-style detail slide-over: the list stays visible behind it. */}
+        <Sheet
+          open={Boolean(editingTask)}
+          onOpenChange={(open) => {
+            if (!open) setEditingTaskId(null)
           }}
-          onDueDate={(ms) => setDraftDue(ms)}
-          onSubmit={() => void handleCreate()}
-          inputRef={quickAddRef}
-          placeholder={
-            tab === 'triage'
-              ? 'Add to triage… (@ assign · # tag · due date)'
-              : 'Add a task… (@ assign · # tag · type a due date)'
-          }
-          data-testid="task-quick-add"
-        />
-        {draftDue != null && (
-          <span className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-xs text-foreground">
-            <CalendarDays size={12} className="text-muted-foreground" />
-            {formatDueDate(draftDue).label}
-            <button
-              type="button"
-              aria-label="Remove pending due date"
-              onClick={() => setDraftDue(null)}
-              className="text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {editingTask && (
+            <SheetContent
+              side="right"
+              hideClose
+              className="w-full overflow-y-auto p-0 sm:max-w-lg"
+              data-testid="task-detail-sheet"
             >
-              <X size={10} />
-            </button>
-          </span>
-        )}
-        {draftTags.map((tagId) => (
-          <span
-            key={tagId}
-            className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-xs text-foreground"
-          >
-            <Hash size={11} className="text-muted-foreground" />
-            {tagOptions.find((tag) => tag.id === tagId)?.name ?? 'tag'}
-            <button
-              type="button"
-              aria-label="Remove pending tag"
-              onClick={() => setDraftTags((current) => current.filter((id) => id !== tagId))}
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <X size={10} />
-            </button>
-          </span>
-        ))}
-        {draftAssignees.map((assignee) => (
-          <span
-            key={assignee}
-            className="flex shrink-0 items-center gap-1 rounded-full border border-border py-0.5 pl-0.5 pr-1.5 text-xs text-foreground"
-          >
-            <DIDAvatar did={assignee} size={14} />
-            {taskPersonLabel(people.find((person) => person.did === assignee) ?? { did: assignee })}
-            <button
-              type="button"
-              aria-label="Remove pending assignee"
-              onClick={() =>
-                setDraftAssignees((current) => current.filter((existing) => existing !== assignee))
-              }
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <X size={10} />
-            </button>
-          </span>
-        ))}
-      </div>
+              <TaskInlineEditor
+                task={editingTask}
+                autoFocusTitle
+                onClose={() => setEditingTaskId(null)}
+                className="border-none"
+              />
+            </SheetContent>
+          )}
+        </Sheet>
 
-      <div className="min-h-0 flex-1 overflow-auto">
-        {loading ? (
-          <div className="flex items-center justify-center p-8 text-sm text-muted-foreground">
-            Loading tasks…
-          </div>
-        ) : mode === 'board' ? (
-          <TaskBoard
-            tasks={displayTasks}
-            onStatusChange={handleStatusChange}
-            onOpenTask={handleEditTask}
-            onToggleCompleted={handleToggleCompleted}
-          />
-        ) : (
-          <TaskListGrouped
-            tasks={displayTasks}
-            groupBy={display.groupBy}
-            orderBy={display.orderBy}
-            density={display.density}
-            assigneeLabel={assigneeLabel}
-            focusedTaskId={focusedTaskId}
-            selectedTaskIds={selectedIds}
-            onSelectTask={toggleSelect}
-            onCreateInGroup={(group) => void handleCreateInGroup(group)}
-            onOpenTask={handleEditTask}
-            onToggleCompleted={handleToggleCompleted}
+        {selectedIds.size > 0 && (
+          <TaskBulkBar
+            count={selectedIds.size}
+            onStatus={() => setMiniPalette('status')}
+            onPriority={() => setMiniPalette('priority')}
+            onAssignMe={() => did && bulkAddAssignee(did as DID)}
+            onDelete={bulkDelete}
+            onClear={clearSelection}
           />
         )}
-      </div>
 
-      {/* Linear-style detail slide-over: the list stays visible behind it. */}
-      <Sheet
-        open={Boolean(editingTask)}
-        onOpenChange={(open) => {
-          if (!open) setEditingTaskId(null)
-        }}
-      >
-        {editingTask && (
-          <SheetContent
-            side="right"
-            hideClose
-            className="w-full overflow-y-auto p-0 sm:max-w-lg"
-            data-testid="task-detail-sheet"
-          >
-            <TaskInlineEditor
-              task={editingTask}
-              autoFocusTitle
-              onClose={() => setEditingTaskId(null)}
-              className="border-none"
+        {peekOpen && peekDisplayTask && (
+          <div className="fixed inset-0 z-40" onClick={() => setPeekOpen(false)}>
+            <TaskPeek
+              task={peekDisplayTask}
+              onOpen={(taskId) => {
+                setPeekOpen(false)
+                handleEditTask(taskId)
+              }}
+              onClose={() => setPeekOpen(false)}
             />
-          </SheetContent>
+          </div>
         )}
-      </Sheet>
 
-      {selectedIds.size > 0 && (
-        <TaskBulkBar
-          count={selectedIds.size}
-          onStatus={() => setMiniPalette('status')}
-          onPriority={() => setMiniPalette('priority')}
-          onAssignMe={() => did && bulkAddAssignee(did as DID)}
-          onDelete={bulkDelete}
-          onClear={clearSelection}
-        />
-      )}
+        {(miniPalette === 'status' || miniPalette === 'priority') &&
+          (focusedTaskId || selectedIds.size > 0) && (
+            <TaskMiniPalette
+              title={miniPalette === 'status' ? 'Change status…' : 'Change priority…'}
+              kind={miniPalette}
+              options={miniPalette === 'status' ? STATUS_OPTIONS : PRIORITY_OPTIONS}
+              onSelect={(optionId) => {
+                if (miniPalette === 'status') {
+                  bulkSetStatus(optionId as TaskStatusId)
+                } else {
+                  bulkSetPriority(optionId as 'low' | 'medium' | 'high' | 'urgent')
+                }
+              }}
+              onClose={() => setMiniPalette(null)}
+            />
+          )}
 
-      {peekOpen && peekDisplayTask && (
-        <div className="fixed inset-0 z-40" onClick={() => setPeekOpen(false)}>
-          <TaskPeek
-            task={peekDisplayTask}
-            onOpen={(taskId) => {
-              setPeekOpen(false)
-              handleEditTask(taskId)
-            }}
-            onClose={() => setPeekOpen(false)}
-          />
-        </div>
-      )}
-
-      {(miniPalette === 'status' || miniPalette === 'priority') &&
-        (focusedTaskId || selectedIds.size > 0) && (
+        {miniPalette === 'assignee' && (focusedTaskId || selectedIds.size > 0) && (
           <TaskMiniPalette
-            title={miniPalette === 'status' ? 'Change status…' : 'Change priority…'}
-            kind={miniPalette}
-            options={miniPalette === 'status' ? STATUS_OPTIONS : PRIORITY_OPTIONS}
-            onSelect={(optionId) => {
-              if (miniPalette === 'status') {
-                bulkSetStatus(optionId as TaskStatusId)
-              } else {
-                bulkSetPriority(optionId as 'low' | 'medium' | 'high' | 'urgent')
-              }
-            }}
+            title="Assign to…"
+            kind="generic"
+            options={people.map((person) => ({
+              id: person.did,
+              label: taskPersonLabel(person),
+              icon: <DIDAvatar did={person.did} size={16} />
+            }))}
+            onSelect={(personId) => bulkAddAssignee(personId as DID)}
             onClose={() => setMiniPalette(null)}
           />
         )}
 
-      {miniPalette === 'assignee' && (focusedTaskId || selectedIds.size > 0) && (
-        <TaskMiniPalette
-          title="Assign to…"
-          kind="generic"
-          options={people.map((person) => ({
-            id: person.did,
-            label: taskPersonLabel(person),
-            icon: <DIDAvatar did={person.did} size={16} />
-          }))}
-          onSelect={(personId) => bulkAddAssignee(personId as DID)}
-          onClose={() => setMiniPalette(null)}
-        />
-      )}
+        {miniPalette === 'label' && (focusedTaskId || selectedIds.size > 0) && (
+          <TaskMiniPalette
+            title="Add label…"
+            kind="generic"
+            options={tagOptions.map((tag) => ({
+              id: tag.id,
+              label: tag.name,
+              icon: <Hash size={13} className="text-muted-foreground" />
+            }))}
+            onSelect={(tagId) => bulkAddTag(tagId)}
+            onClose={() => setMiniPalette(null)}
+          />
+        )}
 
-      {miniPalette === 'label' && (focusedTaskId || selectedIds.size > 0) && (
-        <TaskMiniPalette
-          title="Add label…"
-          kind="generic"
-          options={tagOptions.map((tag) => ({
-            id: tag.id,
-            label: tag.name,
-            icon: <Hash size={13} className="text-muted-foreground" />
-          }))}
-          onSelect={(tagId) => bulkAddTag(tagId)}
-          onClose={() => setMiniPalette(null)}
-        />
-      )}
-
-      {miniPalette === 'dueDate' && (focusedTaskId || selectedIds.size > 0) && (
-        <TaskDueDatePalette
-          onSelect={(dueDate) => bulkUpdate({ dueDate: dueDate ?? undefined })}
-          onClose={() => setMiniPalette(null)}
-        />
-      )}
+        {miniPalette === 'dueDate' && (focusedTaskId || selectedIds.size > 0) && (
+          <TaskDueDatePalette
+            onSelect={(dueDate) => bulkUpdate({ dueDate: dueDate ?? undefined })}
+            onClose={() => setMiniPalette(null)}
+          />
+        )}
+      </div>
     </div>
   )
 }
