@@ -33,12 +33,25 @@ KEY_FILE="${KEY_FILE:-$HOME/.config/xnet/${SA_NAME}-${PROJECT}.json}"  # key pat
 SA_EMAIL="${SA_NAME}@${PROJECT}.iam.gserviceaccount.com"
 AR_HOST="${AR_LOCATION}-docker.pkg.dev"
 
+# The provisioner shards tenants across projects named <prefix>-0, -1, … so the
+# bootstrapped project MUST be the first shard, <prefix>-0. Derive the prefix by
+# stripping a trailing -<number>; warn loudly if PROJECT doesn't follow that.
+if [[ "$PROJECT" =~ ^(.+)-[0-9]+$ ]]; then
+  PROJECT_PREFIX="${BASH_REMATCH[1]}"
+else
+  PROJECT_PREFIX="$PROJECT"
+  echo "⚠ PROJECT '$PROJECT' doesn't end in a shard number." >&2
+  echo "  The fleet shards as <prefix>-0, -1, … — name it '${PROJECT}-0' instead" >&2
+  echo "  (e.g. staging → xnet-cloud-staging-0). Ctrl-C now to rename, or continue." >&2
+  sleep 3
+fi
+
 command -v gcloud >/dev/null || {
   echo "✗ gcloud not found. Install: https://cloud.google.com/sdk/docs/install" >&2
   exit 1
 }
 
-echo "▶ project=$PROJECT region=$REGION registry=${AR_HOST}/${PROJECT}/${AR_REPO}"
+echo "▶ project=$PROJECT prefix=$PROJECT_PREFIX region=$REGION registry=${AR_HOST}/${PROJECT}/${AR_REPO}"
 
 # 1. Project ------------------------------------------------------------------
 if ! gcloud projects describe "$PROJECT" >/dev/null 2>&1; then
@@ -163,7 +176,7 @@ gcloud auth configure-docker "$AR_HOST" --quiet >/dev/null
 # ── Summary: paste into your env file ────────────────────────────────────────
 echo
 echo "✅ GCP ready. Paste these into apps/cloud/.env.<env>:"
-echo "  GCP_PROJECT_PREFIX=${PROJECT%-*}"
+echo "  GCP_PROJECT_PREFIX=${PROJECT_PREFIX}"
 echo "  GCP_REGION=${REGION}"
 echo "  GCP_ARTIFACT_REGISTRY=${AR_HOST}/${PROJECT}/${AR_REPO}"
 echo "  GCP_FIRESTORE_DATABASE=(default)"
