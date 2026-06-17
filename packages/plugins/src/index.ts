@@ -149,6 +149,10 @@ export type {
   ResolveMentionOptions
 } from './mention-providers'
 
+// Agent tools (exploration 0196) — model-facing tools a Connector exposes.
+export { agentToolToExtraTool, agentToolsAsExtraTools } from './agent-tools'
+export type { AgentToolContribution, AgentToolInputSchema } from './agent-tools'
+
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'
 export { MiddlewareChain } from './middleware'
@@ -451,6 +455,7 @@ export type {
   AiTargetKind,
   AiToolCallResult,
   AiToolDefinition,
+  AiExtraTool,
   AiValidationResult,
   AiResourceContent,
   AiSearchOptions,

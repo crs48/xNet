@@ -2,6 +2,7 @@
  * Plugin manifest types and validation
  */
 
+import type { AgentToolContribution } from './agent-tools'
 import type { ExtensionContext } from './context'
 import type {
   ViewContribution,
@@ -89,6 +90,8 @@ export interface PluginContributions {
   importers?: ImporterContribution[]
   /** Mention/typeahead providers — extend `[[`/`#`/`@` (exploration 0194). */
   mentionProviders?: MentionProviderContribution[]
+  /** Model-facing agent tools — what a Connector exposes (exploration 0196). */
+  agentTools?: AgentToolContribution[]
 }
 
 type CanvasContributionArrayKey =
