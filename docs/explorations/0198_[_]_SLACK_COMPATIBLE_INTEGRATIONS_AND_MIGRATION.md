@@ -602,9 +602,12 @@ flowchart LR
       members/files/reactions; unit tests with a fixture export.
 - [ ] Wire the migration connector's hub half via `connectorSyncFeature` and add
       it to the CLI (`xnet connector …`) and an import UI entry point.
-- [ ] **`slackToMarkdown` / `blockKitToMarkdown`** translator package (shared by
+- [x] **`slackToMarkdown` / `blockKitToMarkdown`** translator package (shared by
       migration + all compat tiers); table-driven tests over real Block Kit and
-      legacy `attachments` samples; document divergences.
+      legacy `attachments` samples; document divergences. *(Shipped as the
+      `@xnetjs/slack-compat` package: `slackMrkdwnToMarkdown`, `blockKitToMarkdown`,
+      `normalizeIncomingWebhook`, slash parse/format, signing-secret verify — 45
+      unit tests.)*
 - [ ] **Tier 0:** `slackCompatFeature()` `HubFeature` mounting
       `/slack/services/hooks/:token` via `mountWebhook`; channel-name → node
       mapping table; `SLACK_SIGNING_SECRET` declared in `secrets`; writes through
