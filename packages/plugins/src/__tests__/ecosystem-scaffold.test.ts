@@ -87,3 +87,29 @@ describe('scaffoldPlugin', () => {
     })
   })
 })
+
+describe('scaffoldPlugin — connector template (0196)', () => {
+  it('emits a defineConnector project with coherent capabilities + sync', () => {
+    const { files } = scaffoldPlugin({
+      id: 'dev.acme.connector.slack',
+      name: 'Slack',
+      template: 'connector'
+    })
+    const index = files['src/index.ts']
+    expect(index).toContain('defineConnector')
+    expect(index).toContain("id: 'dev.acme.connector.slack'")
+    // schemaWrite and sync.schemas reference the same SCHEMA const (so the
+    // defineConnector coherence check passes at runtime).
+    expect(index).toContain("const SCHEMA = 'xnet://dev.acme.connector.slack/Item@1.0.0'")
+    expect(index).toContain('SLACK_TOKEN') // env-prefix derived from the last id segment
+    expect(index).toContain('slack_search') // contributed agent tool
+    // The test it scaffolds installs the connector module.
+    expect(files['src/index.test.ts']).toContain('SlackConnector.module')
+  })
+
+  it('connector is a recognized template (does not throw)', () => {
+    expect(() =>
+      scaffoldPlugin({ id: 'dev.acme.connector.x', name: 'X', template: 'connector' })
+    ).not.toThrow()
+  })
+})
