@@ -177,6 +177,12 @@ export {
 } from './space-membership'
 export { ExternalReferenceSchema, type ExternalReference } from './external-reference'
 export { MediaAssetSchema, type MediaAsset } from './media-asset'
+export {
+  TranscriptionSchema,
+  TRANSCRIPTION_SCHEMA_IRI,
+  type Transcription,
+  type TranscriptionSourceId
+} from './transcription'
 export { CanvasSchema, type Canvas } from './canvas'
 export {
   MapSchema,
@@ -402,6 +408,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/ExternalReference@1.0.0': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset@1.0.0': () => import('./media-asset').then((m) => m.MediaAssetSchema),
+  'xnet://xnet.fyi/Transcription@1.0.0': () =>
+    import('./transcription').then((m) => m.TranscriptionSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Map@1.0.0': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
@@ -486,6 +494,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/ExternalReference': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
   'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),
+  'xnet://xnet.fyi/Transcription': () =>
+    import('./transcription').then((m) => m.TranscriptionSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Map': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),

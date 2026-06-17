@@ -603,14 +603,23 @@ export const TranscriptionSchema = defineSchema({
 
 ## Implementation Checklist
 
-- [ ] Create **`@xnetjs/dictation`** (MIT, zero-dep): `DictationEngine` port,
+> **Status:** the cross-platform, CI-verifiable **foundation** (Phase 1 logic +
+> data model) is implemented and tested. The native engine sidecars, iOS Swift
+> module, push-to-talk helper, UI surface, and codesigning require native
+> toolchains / hardware / model downloads that can't be exercised in CI, and
+> remain as later-phase work.
+
+- [x] Create **`@xnetjs/dictation`** (MIT, zero-dep): `DictationEngine` port,
       `TranscriptResult`/options types, hold-to-talk **state machine**, and
       history/store helpers (retention/prune). Unit-test the state machine and
       helpers (mirror `@xnetjs/billing` layout). Run `pnpm install` + commit the
-      lockfile (new workspace package — CI frozen-install gotcha).
-- [ ] Add **`TranscriptionSchema`** in
+      lockfile (new workspace package — CI frozen-install gotcha). *Also ships the
+      `EngineRegistry`, a scripted `FakeDictationEngine`, and the
+      `ByoEndpointEngine` (the "use your existing local server" path). 40 tests.*
+- [x] Add **`TranscriptionSchema`** in
       `packages/data/src/schema/schemas/transcription.ts`; export from the schema
-      barrel `index.ts`; FTS-index `text`; `visibility` default `private`.
+      barrels + `builtInSchemas`; `text` field FTS-indexed by the store layer;
+      `visibility` default `private`; `starred` for retention pinning.
 - [ ] **Web/renderer:** `useDictation()` hook + a mic button component for text
       fields; reuse the `getUserMedia` pattern from `apps/web/src/comms/CallDock.tsx`.
 - [ ] **Electron engine (sidecar):** wrap `whisper-node-addon` (default) as a
@@ -638,13 +647,15 @@ export const TranscriptionSchema = defineSchema({
       `build/entitlements.mac.plist` for the helper and native binaries; verify
       notarized DMG (decide MAS vs Developer-ID given the sandbox limitation).
 - [ ] **Phase 3:** Windows (`SendInput`/`RegisterHotKey`) + Linux (X11; document
-      Wayland limits) adapters; `ByoEndpointEngine` (local OpenAI-compatible STT).
+      Wayland limits) adapters. *(The `ByoEndpointEngine` — local OpenAI-compatible
+      STT — is already implemented in `@xnetjs/dictation`.)*
 
 ## Validation Checklist
 
-- [ ] `@xnetjs/dictation` unit tests pass: state-machine transitions
-      (tap-vs-hold, error, discard) and retention/prune logic; CRAP/Fallow gate
-      green.
+- [x] `@xnetjs/dictation` unit tests pass: state-machine transitions
+      (tap-vs-hold, error, discard), retention/prune logic, registry resolution,
+      transcript shaping, and the BYO engine (40 tests). `TranscriptionSchema`
+      asserts the `private` default. typecheck + eslint + prettier clean.
 - [ ] **In-app dictation E2E (Electron):** hold mic button, speak a known
       phrase, release → correct text inserted at the caret; a `Transcription`
       node is written with `visibility: private` and FTS-searchable text.
