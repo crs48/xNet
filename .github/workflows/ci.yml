@@ -44,6 +44,9 @@ jobs:
       - name: Cloud license boundary
         run: pnpm check:cloud-boundary
 
+      - name: Plugin license policy (0196)
+        run: pnpm check:plugin-licenses
+
   # The heavy half of the old lint job: build the workspace and typecheck it.
   # typecheck genuinely needs `^build` (turbo builds dependencies first), so it
   # stays coupled to the build. Runs in parallel with `lint`, `test`, and

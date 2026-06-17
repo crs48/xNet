@@ -218,6 +218,11 @@ export {
   pascalCase,
   packageName,
   ScaffoldError,
+  // Paid-plugin license policy (0196)
+  ALLOWED_PLUGIN_LICENSES,
+  DEFAULT_PLUGIN_LICENSE,
+  isAllowedPluginLicense,
+  pluginLicenseText,
   // AI-authored plugin transform
   scriptToPluginManifest,
   AiAuthoringError
@@ -248,6 +253,7 @@ export type {
   ScaffoldTemplate,
   ScaffoldSpec,
   ScaffoldResult,
+  AllowedPluginLicense,
   GeneratedScript,
   ScriptExecutor,
   ScriptToManifestInput,
