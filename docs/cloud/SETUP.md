@@ -40,12 +40,13 @@ There are **two milestones**, so you only provision what you need next:
 
 ## The scripts at a glance
 
-Everything here is driven by four scripts in [`scripts/`](../../scripts/):
+Everything here is driven by these scripts in [`scripts/`](../../scripts/):
 
 | Script                                     | What it does                                                                                                                         | When                           |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
 | `node scripts/cloud-init-env.mjs <env>`    | Scaffolds `apps/cloud/.env.<env>` — non-secret config pre-filled, the 3 control-plane secrets generated, externals left as CHANGEME  | first, once per environment    |
 | `bash scripts/cloud-gcp-bootstrap.sh`      | Provisions the entire GCP side (project, APIs, Artifact Registry, Firestore, deployer SA + roles + key, Docker auth); prints `GCP_*` | once per real environment      |
+| `bash scripts/cloud-build-hub-image.sh`    | Builds + pushes the hub container image (linux/amd64) to your Artifact Registry; prints `HUB_IMAGE_TAG`                              | once per hub release           |
 | `bash scripts/cloud-gen-secrets.sh`        | Prints the 3 random control-plane secrets (for pasting into Secret Manager)                                                          | optional                       |
 | `node scripts/cloud-env-doctor.mjs <file>` | Reports ✓/✗ per variable + an M1/M2 readiness verdict; exits non-zero if anything required is missing                                | after filling in, and any time |
 

@@ -101,11 +101,20 @@ COPY --from=builder /build/packages/telemetry/dist packages/telemetry/dist/
 # silent-replication bug (#1083) — stay on a known-good pin.
 ARG LITESTREAM_VERSION=0.5.3
 ARG TARGETARCH=amd64
+# The v0.5.x release asset is `litestream-<version>-linux-<arch>.tar.gz` — note
+# there is NO leading `v` in the filename, and amd64's asset arch is `x86_64`
+# (the old `litestream-v<version>-linux-amd64.tar.gz` name 404s — exploration 0196).
 RUN apk add --no-cache ca-certificates \
-  && wget -qO /tmp/litestream.tar.gz \
-     "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-v${LITESTREAM_VERSION}-linux-${TARGETARCH}.tar.gz" \
+  && case "${TARGETARCH}" in \
+       amd64) LS_ARCH=x86_64 ;; \
+       arm64) LS_ARCH=arm64 ;; \
+       *) LS_ARCH="${TARGETARCH}" ;; \
+     esac \
+  && wget -q --tries=3 --timeout=30 -O /tmp/litestream.tar.gz \
+     "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-${LITESTREAM_VERSION}-linux-${LS_ARCH}.tar.gz" \
   && tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz litestream \
-  && rm /tmp/litestream.tar.gz
+  && rm /tmp/litestream.tar.gz \
+  && litestream version
 COPY packages/hub/litestream-entrypoint.sh /usr/local/bin/xnet-entrypoint.sh
 RUN chmod +x /usr/local/bin/xnet-entrypoint.sh
 
