@@ -23,6 +23,7 @@ import type {
   WidgetContribution,
   ImporterContribution
 } from './contributions'
+import type { MentionProviderContribution } from './mention-providers'
 import type { Platform, PluginPermissions } from './types'
 
 // ─── Manifest Types ────────────────────────────────────────────────────────
@@ -86,6 +87,8 @@ export interface PluginContributions {
   canvasTemplates?: CanvasTemplateContribution[]
   /** Data-export / source importers (exploration 0189). */
   importers?: ImporterContribution[]
+  /** Mention/typeahead providers — extend `[[`/`#`/`@` (exploration 0194). */
+  mentionProviders?: MentionProviderContribution[]
 }
 
 type CanvasContributionArrayKey =

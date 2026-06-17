@@ -3,6 +3,7 @@
  */
 
 import type { AiJsonSchema, AiRiskLevel, AiScope } from './ai-surface/types'
+import type { MentionProviderContribution } from './mention-providers'
 import type { Disposable } from './types'
 import type { Extension } from '@tiptap/core'
 import type { ComponentType } from 'react'
@@ -541,6 +542,7 @@ export class ContributionRegistry {
   readonly canvasInspectors = new TypedRegistry<CanvasInspectorContribution>()
   readonly canvasTemplates = new TypedRegistry<CanvasTemplateContribution>()
   readonly importers = new TypedRegistry<ImporterContribution>()
+  readonly mentionProviders = new TypedRegistry<MentionProviderContribution>()
 
   /**
    * Clear all registries (for cleanup/testing)
@@ -564,5 +566,6 @@ export class ContributionRegistry {
     this.canvasInspectors.clear()
     this.canvasTemplates.clear()
     this.importers.clear()
+    this.mentionProviders.clear()
   }
 }

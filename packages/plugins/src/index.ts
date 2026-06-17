@@ -141,6 +141,14 @@ export {
   type CommandScope
 } from './commands'
 
+// Mention/typeahead providers (exploration 0194) — extensible [[ / # / @
+export { resolveMentionProviders } from './mention-providers'
+export type {
+  MentionProviderContribution,
+  MentionSuggestion,
+  ResolveMentionOptions
+} from './mention-providers'
+
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'
 export { MiddlewareChain } from './middleware'

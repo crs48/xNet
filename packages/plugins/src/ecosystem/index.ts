@@ -41,6 +41,7 @@ export {
   sortMarketplace,
   filterByCategory,
   aggregateRatings,
+  recommendExtensions,
   MarketplaceClient,
   MARKETPLACE_PROVENANCE
 } from './marketplace'
@@ -50,7 +51,9 @@ export type {
   MarketplaceClientOptions,
   FetchJson,
   PluginRating,
-  RatingSummary
+  RatingSummary,
+  UsageSignal,
+  RecommendOptions
 } from './marketplace'
 
 export { failClosedVerifier, verifyProvenance, summarizeProvenance } from './provenance'

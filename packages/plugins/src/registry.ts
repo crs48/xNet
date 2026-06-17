@@ -448,6 +448,11 @@ export class PluginRegistry {
         ctx.registerImporter(importer)
       }
     }
+    if (c.mentionProviders) {
+      for (const provider of c.mentionProviders) {
+        ctx.registerMentionProvider(provider)
+      }
+    }
   }
 
   // ─── Load from Store ───────────────────────────────────────────────────
