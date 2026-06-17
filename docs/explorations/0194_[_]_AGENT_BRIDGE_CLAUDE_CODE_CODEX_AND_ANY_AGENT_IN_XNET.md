@@ -456,9 +456,12 @@ export const AGENTS = {
       standalone daemon — loopback-only bind, Origin allowlist, Private Network
       Access — so the web deployment drives the same bridge. (Pairing-token gate
       deferred; loopback + Origin allowlist is the current protection.)
-- [ ] Expose devkit `runAgentTask` (worktree → gate → PR) and the plugin
-      scaffolder as agent-invokable "code" tasks; wire "create/edit plugin" from
-      the UI.
+- [x] Expose devkit `runAgentTask` as a command: `xnet code "<intent>"`
+      (worktree → gate → checkpoint/rollback → optional `--pr`), so an agent can
+      author/edit xNet or a scaffolded plugin from the CLI.
+- [ ] Wire "create/edit plugin" into the in-app UI (e.g. the bridge daemon's
+      `/run` endpoint over devkit `handleBridgeRun`) + combine with the plugin
+      scaffolder.
 - [ ] Surface honest unavailability when no local daemon/agent is present (the
       Electron manager already records a `detail` reason; surface it in the panel).
 
@@ -485,8 +488,10 @@ export const AGENTS = {
       the config — covered by `agent-launch.test.ts` + the bridge MCP-args test.
 - [ ] With a real `claude` + `xnet` CLI, "create a page titled X" actually edits
       the workspace via `xnet_*` (end-to-end; needs a live agent, not in CI).
-- [ ] (Phase 4) "Create a plugin that …" scaffolds/edits plugin code via
-      `runAgentTask` (worktree → gate → PR).
+- [x] (Phase 4) `xnet code "<intent>"` runs a coding agent in a worktree, gates,
+      and checkpoints/rolls back — covered by `code.test.ts` (config + summary)
+      atop devkit's real-temp-git dev-loop tests. *(End-to-end with a live agent
+      not in CI; in-app UI wiring still pending.)*
 
 ## References
 

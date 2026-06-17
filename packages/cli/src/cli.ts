@@ -21,6 +21,7 @@
 import { program } from 'commander'
 import { registerAgentCommands } from './commands/agent.js'
 import { registerBridgeCommand } from './commands/bridge.js'
+import { registerCodeCommand } from './commands/code.js'
 import { registerDataCommand } from './commands/data.js'
 import { registerDoctorCommand } from './commands/doctor.js'
 import { registerMcpCommand } from './commands/mcp.js'
@@ -40,6 +41,7 @@ registerDoctorCommand(program)
 registerAgentCommands(program)
 registerMcpCommand(program)
 registerBridgeCommand(program)
+registerCodeCommand(program)
 registerDataCommand(program)
 registerPluginCommand(program)
 
