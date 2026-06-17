@@ -69,7 +69,7 @@ export const entries: ChangelogEntry[] = [
     ],
     tags: ['app', 'platform', 'ci'],
     hero: { src: '/images/workbench-dark.png', alt: 'The xNet workbench' },
-    pr: 146
+    pr: 147
   },
   {
     id: '2026-06-15',
