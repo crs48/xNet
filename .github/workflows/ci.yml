@@ -16,7 +16,19 @@ on:
       - 'docs/**'
       - '.github/*.md'
 
+# Cancel superseded PR runs (group keyed on the PR number). Pushes to main key
+# on the commit SHA so each merge gets a unique group — never cancelled, never
+# queued behind the previous merge's run. (Exploration 0193.)
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
+  # Fast checks that need NO build: prettier, eslint (not type-aware), and the
+  # cloud license-boundary grep. Kept under the name `lint` so the existing
+  # required status check still resolves. These used to sit serially behind the
+  # ~250s build+typecheck step; now a formatting/lint failure surfaces in under
+  # a minute instead of after the build (exploration 0193).
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -26,14 +38,24 @@ jobs:
       - name: Format check
         run: pnpm prettier --check "packages/**/*.{ts,tsx}" "apps/**/*.{ts,tsx}"
 
-      - name: Build & Type check
-        run: pnpm turbo run build typecheck
-
       - name: Lint
         run: pnpm lint
 
       - name: Cloud license boundary
         run: pnpm check:cloud-boundary
+
+  # The heavy half of the old lint job: build the workspace and typecheck it.
+  # typecheck genuinely needs `^build` (turbo builds dependencies first), so it
+  # stays coupled to the build. Runs in parallel with `lint`, `test`, and
+  # `editor-ux`; it is the pipeline's long pole.
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Build & Type check
+        run: pnpm turbo run build typecheck
 
   test:
     runs-on: ubuntu-latest
@@ -46,8 +68,10 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup
 
-      - name: Build packages
-        run: pnpm turbo run build --filter='./packages/*'
+      # No build step: vitest.config.ts aliases every @xnetjs/* import to the
+      # package's src/, and no test imports from dist/, so the workspace build
+      # is dead weight for the test run (exploration 0193). better-sqlite3 — the
+      # only native dependency tests touch — is rebuilt in the setup composite.
 
       - name: Run tests (shard ${{ matrix.shard }})
         if: github.event_name == 'push'
@@ -75,11 +99,28 @@ jobs:
       - name: Build packages
         run: pnpm turbo run build --filter='./packages/*'
 
+      # Cache the Playwright browser binaries (~/.cache/ms-playwright), keyed on
+      # the pinned @playwright/test version and the browser set this job needs.
+      # The big cost is the browser download; OS deps are not in this path, so
+      # on a cache hit we still run `install-deps` (apt only) to keep webkit's
+      # libraries present. (Exploration 0193.)
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.58.1-chromium-webkit
+
+      - name: Install Playwright browsers (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium webkit
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install-deps chromium webkit
+
       - name: Run focused editor interaction tests
         run: pnpm --filter @xnetjs/editor exec vitest run src/nodeviews/hooks/useNodeFocus.test.ts src/components/FloatingToolbar.test.tsx src/components/SlashMenu.test.tsx src/components/editor-ux-state.test.ts src/extensions/live-preview/inline-marks.integration.test.ts
-
-      - name: Install Playwright browsers
-        run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium webkit
 
       - name: Start web app
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &

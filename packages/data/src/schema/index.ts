@@ -302,6 +302,12 @@ export {
 } from './schemas'
 export { ExternalReferenceSchema, type ExternalReference } from './schemas'
 export { MediaAssetSchema, type MediaAsset } from './schemas'
+export {
+  TranscriptionSchema,
+  TRANSCRIPTION_SCHEMA_IRI,
+  type Transcription,
+  type TranscriptionSourceId
+} from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export {
   MapSchema,

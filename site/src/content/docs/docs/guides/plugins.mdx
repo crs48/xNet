@@ -819,3 +819,48 @@ await harness.install(KanbanModule)
 expect(harness.registry.get('com.acme.kanban')?.status).toBe('active')
 expect(harness.registry.getContributions().slashCommands.getAll()).toHaveLength(1)
 ```
+
+### Scaffolding a new plugin
+
+`xnet plugin scaffold` writes a ready-to-edit project (manifest, harness test, `package.json`, README) from one of three templates — `client`, `two-sided`, or `ai-script`:
+
+```bash
+xnet plugin scaffold com.acme.kanban --name "Kanban Board" --template client
+# → com.acme.kanban/{package.json,tsconfig.json,src/index.ts,src/index.test.ts,README.md}
+```
+
+The pure core, `scaffoldPlugin(spec)`, returns the project as a path→content map, so tooling can generate plugins without touching disk:
+
+```ts
+import { scaffoldPlugin } from '@xnetjs/plugins'
+
+const { files } = scaffoldPlugin({ id: 'com.acme.kanban', name: 'Kanban', template: 'client' })
+// files['src/index.ts'] is a defineFeatureModule(...) ; files['src/index.test.ts'] uses the harness
+```
+
+### Authoring a plugin with AI
+
+The AI generators in `@xnetjs/plugins/ai` turn natural language into an AST-validated script. `scriptToPluginManifest` wraps a **validated** generated script into an installable plugin stamped with `ai-generated` provenance (so the install path sandboxes it at the `user` tier and still routes its capability requests through consent). It refuses unvalidated code — "the AI made it" never bypasses the gate.
+
+```ts
+import { scriptToPluginManifest } from '@xnetjs/plugins'
+
+const { manifest, provenance } = scriptToPluginManifest({
+  id: 'com.me.counter',
+  script: generated, // { code, suggestedName, validated, explanation } from the AI generator
+  run: (code) => runInSandbox(code) // how the command executes the script
+})
+await registry.install(manifest, { provenance }) // provenance === 'ai-generated'
+```
+
+### Reaching the network safely
+
+A plugin that declares `network` hosts is handed a `guardedFetch` instead of the ambient `fetch`. Every request is checked against the allowlist before it leaves; an undeclared host rejects with `CapabilityError`, and a plugin with no `network` grant gets no egress at all.
+
+```ts
+import { guardedFetch } from '@xnetjs/plugins'
+
+const fetch = guardedFetch({ network: ['api.acme.com'] }, 'com.acme.kanban')
+await fetch('https://api.acme.com/cards') // ok
+await fetch('https://evil.example.com') // rejects: CapabilityError
+```

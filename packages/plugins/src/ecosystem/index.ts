@@ -63,3 +63,20 @@ export type {
 
 export { createTestNodeStore, createTestPluginHarness } from './testing'
 export type { TestNodeStore, TestPluginHarness, TestHarnessOptions } from './testing'
+
+// Network endowment — enforce the `network` allowlist at the fetch boundary.
+export { guardedFetch } from './network-endowment'
+export type { FetchLike } from './network-endowment'
+
+// Plugin project scaffolder (the pure core behind `create-xnet-plugin`).
+export { scaffoldPlugin, pascalCase, packageName, ScaffoldError } from './scaffold'
+export type { ScaffoldTemplate, ScaffoldSpec, ScaffoldResult } from './scaffold'
+
+// AI-authored plugin transform — validated generated script → installable plugin.
+export { scriptToPluginManifest, AiAuthoringError } from './ai-authoring'
+export type {
+  GeneratedScript,
+  ScriptExecutor,
+  ScriptToManifestInput,
+  AiAuthoredPlugin
+} from './ai-authoring'
