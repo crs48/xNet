@@ -303,6 +303,35 @@ Only use `--no-verify` when hooks are genuinely broken or blocking an emergency 
 - **Commitlint error**: Reformat your commit message to `type(scope): description`.
 - **Lockfile drift**: Run `pnpm install` and stage `pnpm-lock.yaml`.
 
+## Changelog Entries (User-Facing Changes)
+
+xNet keeps a user-facing changelog (exploration 0195). It surfaces on the
+website (`/changelog`), as JSON/RSS feeds, and inside the app's "What's New"
+panel. The single source is **`site/src/data/changelog.ts`**.
+
+When your change ships something a user will notice — a new feature, a fixed
+bug, a visible UX or performance improvement — **prepend an entry** to the
+`entries` array (newest-first) and bump `updated`:
+
+```ts
+{
+  id: '2026-06-20',              // ISO date, unique, newest-first
+  date: 'June 2026',            // human label shown on the page
+  title: 'Short, benefit-first headline',
+  summary: 'One paragraph in plain language — what the user can now do.',
+  highlights: ['User-visible point', 'Another user-visible point'],
+  tags: ['app'],               // see ChangelogTag in the same file
+  hero: { src: '/images/...', alt: '...' }, // optional; a CI visual works too
+  pr: 0                         // your PR number
+}
+```
+
+Write for end users, not engineers: "Deals now sync after import," not
+`fix(schema): correct relation validation`. Skip internal refactors and chores.
+`pnpm --filter site validate:changelog` enforces the shape. This is separate
+from the per-package Changesets developer changelog (`pnpm changeset`), which
+stays focused on library/API consumers.
+
 ## Key Constraints
 
 **DO:**

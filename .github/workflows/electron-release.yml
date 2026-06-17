@@ -280,8 +280,14 @@ jobs:
         with:
           path: artifacts
 
+      - uses: ./.github/actions/setup
+
       - name: Generate release notes
         id: notes
+        env:
+          # Optional: when set, raw commits are rewritten into user-facing prose.
+          # Absent → the script is a no-op passthrough (release still gets notes).
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           # Get commits since last release
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -291,10 +297,15 @@ jobs:
             COMMITS=$(git log --pretty=format:"- %s" -20 -- apps/electron packages)
           fi
 
+          # Rewrite the commit list into user-facing "What's New" prose. This is
+          # fail-open: with no API key it echoes the raw commits unchanged.
+          WHATS_NEW=$(printf '%s\n' "$COMMITS" \
+            | node scripts/changelog/ai-release-notes.mjs "v${{ needs.version.outputs.version }}")
+
           cat << EOF > release-notes.md
           ## What's New
 
-          $COMMITS
+          $WHATS_NEW
 
           ## Downloads
 
@@ -346,6 +357,7 @@ jobs:
           gh release create "v${{ needs.version.outputs.version }}" \
             --title "xNet v${{ needs.version.outputs.version }}" \
             --notes-file release-notes.md \
+            --generate-notes \
             ${{ github.event.inputs.release_type == 'draft' && '--draft' || '' }} \
             ${{ github.event.inputs.release_type == 'prerelease' && '--prerelease' || '' }} \
             "${FILES[@]}"
