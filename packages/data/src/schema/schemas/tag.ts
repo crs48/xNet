@@ -14,6 +14,7 @@
  */
 
 import type { InferNode } from '../types'
+import { presets } from '../../auth'
 import { defineSchema } from '../define'
 import { checkbox, created, createdBy, text } from '../properties'
 
@@ -40,7 +41,9 @@ export const TagSchema = defineSchema({
     createdAt: created(),
     createdBy: createdBy()
   },
-  document: undefined
+  document: undefined,
+  // Standalone/personal content: owner-only by default (exploration 0192).
+  authorization: presets.private()
 })
 
 export type Tag = InferNode<(typeof TagSchema)['_properties']>

@@ -50,6 +50,22 @@ describe('computeRecipients', () => {
     expect(recipients).toEqual([OWNER_DID])
   })
 
+  it('includes grant recipients even for legacy schemas (0192 Landmine #3)', async () => {
+    const recipients = await computeRecipients(legacySchema(), createNodeState(), {
+      getNode: async () => null,
+      grantIndex: {
+        findGrantsForResource: () => [
+          {
+            id: 'grant-1',
+            properties: { actions: JSON.stringify(['read']), grantee: GRANTEE_DID }
+          }
+        ]
+      }
+    })
+
+    expect(new Set(recipients)).toEqual(new Set([OWNER_DID, GRANTEE_DID]))
+  })
+
   it('returns PUBLIC sentinel when read expression is public', async () => {
     const TaskSchema = defineSchema({
       name: 'Task',

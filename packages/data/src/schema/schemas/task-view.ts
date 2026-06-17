@@ -11,6 +11,7 @@ import type { FilterGroup, SortConfig } from '../../database/view-types'
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, relation, select, json } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const TaskViewSchema = defineSchema({
   name: 'TaskView',
@@ -48,7 +49,9 @@ export const TaskViewSchema = defineSchema({
 
     /** Fractional index for view tab ordering */
     sortKey: text({ required: true })
-  }
+  },
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('project')
 })
 
 /**
