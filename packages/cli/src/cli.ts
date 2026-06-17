@@ -24,6 +24,7 @@ import { registerDataCommand } from './commands/data.js'
 import { registerDoctorCommand } from './commands/doctor.js'
 import { registerMcpCommand } from './commands/mcp.js'
 import { registerMigrateCommand } from './commands/migrate.js'
+import { registerPluginCommand } from './commands/plugin.js'
 import { registerSchemaCommand } from './commands/schema.js'
 
 program
@@ -38,6 +39,7 @@ registerDoctorCommand(program)
 registerAgentCommands(program)
 registerMcpCommand(program)
 registerDataCommand(program)
+registerPluginCommand(program)
 
 // Parse and run
 program.parse()

@@ -201,7 +201,17 @@ export {
   summarizeProvenance,
   // Test harness
   createTestNodeStore,
-  createTestPluginHarness
+  createTestPluginHarness,
+  // Network endowment
+  guardedFetch,
+  // Scaffolder (create-xnet-plugin core)
+  scaffoldPlugin,
+  pascalCase,
+  packageName,
+  ScaffoldError,
+  // AI-authored plugin transform
+  scriptToPluginManifest,
+  AiAuthoringError
 } from './ecosystem'
 export type {
   InstallProvenance,
@@ -224,7 +234,15 @@ export type {
   VerifyProvenanceInput,
   TestNodeStore,
   TestPluginHarness,
-  TestHarnessOptions
+  TestHarnessOptions,
+  FetchLike,
+  ScaffoldTemplate,
+  ScaffoldSpec,
+  ScaffoldResult,
+  GeneratedScript,
+  ScriptExecutor,
+  ScriptToManifestInput,
+  AiAuthoredPlugin
 } from './ecosystem'
 
 // Schemas
