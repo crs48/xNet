@@ -67,14 +67,7 @@ const COUNT_FAMILY: SummaryFunction[] = [
   'unique'
 ]
 
-const NUMBER_FAMILY: SummaryFunction[] = [
-  'sum',
-  'average',
-  'min',
-  'max',
-  'range',
-  'median'
-]
+const NUMBER_FAMILY: SummaryFunction[] = ['sum', 'average', 'min', 'max', 'range', 'median']
 
 const CHECKBOX_FAMILY: SummaryFunction[] = [
   'checked',
