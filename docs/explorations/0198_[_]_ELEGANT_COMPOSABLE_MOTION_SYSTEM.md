@@ -445,9 +445,9 @@ mounted and flips `data-ending-style` before unmounting. We generalize that to
 No library.
 
 ```tsx
-// packages/ui/src/motion/Presence.tsx
+// packages/ui/src/motion/Presence.tsx (sketch — see the file for the shipped version)
 import { useEffect, useRef, useState } from 'react'
-import { cn } from '../utils/cn'
+import { cn } from '../utils'
 
 type MotionName = 'fade' | 'scale' | 'slide-up' | 'slide-down' | 'pop'
 
@@ -571,11 +571,11 @@ sequenceDiagram
     participant Dev as Dev / AI agent
     participant MD as MOTION.md (vocabulary)
     participant Code as Component
-    participant Lint as ESLint motion rule
+    participant Lint as check-motion-vocab (CI)
     participant CSS as motion.css (compositor)
     Dev->>MD: read the ~10 primitives + 2 laws
     Dev->>Code: <Presence motion="slide-up"> / className="transition-base"
-    Code->>Lint: build
+    Code->>Lint: pnpm check:motion-vocab
     alt off-vocabulary (transition-all, duration-200, ease-bounce)
         Lint-->>Dev: error + the right token to use
         Dev->>Code: self-correct
@@ -639,67 +639,96 @@ stateDiagram-v2
 
 ## Implementation Checklist
 
-- [ ] **Freeze the vocabulary.** In `packages/ui/src/theme/motion.css`, add a
+- [x] **Freeze the vocabulary.** In `packages/ui/src/theme/motion.css`, add a
   header comment declaring the canonical set (3 everyday durations, 4+1
-  easings, ~10 primitives, the two laws). Retire `--ease-bounce` (no consumers).
-- [ ] **Add `packages/ui/src/motion/Presence.tsx`** with the
+  easings, ~10 primitives, the two laws). Retire `--ease-bounce` (no consumers;
+  also dropped from `packages/ui/tailwind.config.js`).
+- [x] **Add `packages/ui/src/motion/Presence.tsx`** with the
   `data-state`/`data-motion` keyframe pattern; export from
-  `packages/ui/src/index.ts`.
-- [ ] **Add the `.motion-presence[...]` keyframe rules** to `motion.css`
-  (fade/scale/slide‑up/slide‑down/pop, two lines each, token‑driven).
-- [ ] **Add `packages/ui/src/motion/useViewTransition.ts`** with reduced‑motion
-  + feature‑detect fallback; export it.
-- [ ] **Add a `.stagger`** utility to `motion.css` (single `--i` delay var).
-- [ ] **Write `docs/MOTION.md`** — the one‑page style guide: the vocabulary
-  table, the two laws, do/don't examples, and a "for AI agents" section that
-  can be pasted into a system prompt. Link it from `CLAUDE.md`/contributor docs.
-- [ ] **Write the ESLint rule** (`no-offvocab-motion`): ban `transition-all`,
-  raw `duration-N` literals, `ease-bounce`, arbitrary `animate-[…]`. Wire into
-  the existing lint job (a required check per `0193`).
-- [ ] **De‑drift the editor.** Delete `menu-appear` from
-  `packages/editor/tailwind.config.js`; switch `SlashMenu`, `TaskMentionMenu`,
-  `LinkTargetMenu` to the shared `scale-in` / `.menu-popup` vocabulary.
-- [ ] **Codemod the easy wins.** Replace `transition-all`→`transition-base`,
-  `duration-200`→`duration-slow` (or `-normal`) across `apps/web/src` where
-  semantics match (mechanical, reviewable).
-- [ ] **Apply `<Presence>` to the gaps:** `UndoToast.tsx` (slide‑up),
-  `StorageWarningBanner.tsx` (slide‑down), `TabBar.tsx` tab enter/exit.
-- [ ] **Apply `useViewTransition()`** to surface swaps in
-  `EditorArea.tsx` and folder navigation in `TabBreadcrumb.tsx`.
-- [ ] **Narrow the reduced‑motion blanket** in `motion.css:273` to spatial
-  motion; preserve opacity fades; confirm against
-  `usePrefersReducedMotion()` parity.
-- [ ] **(Optional) Decide on `auto-animate`** for Explorer/TabBar reorder;
-  if adopted, gate behind the list‑reorder use case only.
-- [ ] **(Optional) Wire the lazy `motion/react` escape hatch** behind a
-  code‑split boundary for any future drag/FLIP canvas; document that it must
-  never be imported on the default path.
+  `packages/ui/src/index.ts`. (+ 5 unit tests.)
+- [x] **Add the `.motion-presence[...]` keyframe rules** to `motion.css`
+  (fade/scale/slide‑up/slide‑down/pop, two lines each, token‑driven). Added a
+  `pop-in` keyframe to both `motion.css` and the Tailwind config.
+- [x] **Add `packages/ui/src/motion/useViewTransition.ts`** with reduced‑motion
+  + feature‑detect fallback; export it. (+ 6 unit tests.)
+- [x] **Add a `.stagger`** utility to `motion.css` (single `--i` delay var).
+- [x] **Write `docs/MOTION.md`** — the one‑page style guide with the vocabulary
+  table, the two laws, do/don't examples, and a "for AI agents" section.
+- [x] **Ship the enforcement gate** — **as a standalone checker, not an ESLint
+  rule.** `scripts/check-motion-vocab.mjs` bans `transition-all`, raw
+  `duration-<ms>` literals, `ease-bounce`, and arbitrary `animate-[…]`, scoped
+  to `packages/ui/src` + `apps/web/src`; wired into the CI `lint` job as
+  `pnpm check:motion-vocab`. (Deviation rationale below.)
+- [x] **De‑drift the editor** — **aligned, not deleted.** Fixed
+  `menu-disappear` to use `ease-in` (the exit law) and cross‑referenced
+  `MOTION.md`. (Deviation rationale below.)
+- [x] **Codemod the footguns.** Converted the 18 `transition-all` + 3 raw‑
+  duration sites in scope to explicit/token forms
+  (`transition-[opacity,transform]`, `transition-[width]`, `transition-transform`,
+  `duration-slow/normal`). Checker: 0 violations across 370 files.
+- [x] **Apply `<Presence>` to the gaps:** `UndoToast.tsx` (slide‑up, message
+  latched, auto‑margin centering) and `StorageWarningBanner.tsx` (slide‑down).
+  `TabBar.tsx` tab enter/exit deferred (see notes).
+- [x] **Apply `useViewTransition()`** to the `TabBreadcrumb.tsx` space
+  re‑scope. `EditorArea.tsx` route‑level transition deferred (see notes).
+- [x] **Review the reduced‑motion blanket.** Kept the canonical reduce‑to‑
+  instant pattern (it is the WCAG‑safe standard and covers the new primitives;
+  `<Presence>` still unmounts because `animationend` fires) and documented it
+  as the single primary strategy that `base-ui-animations.css` defers to.
+- [ ] **(Optional) Decide on `auto-animate`** for Explorer/TabBar reorder.
+  Not adopted — kept zero‑dep; revisit if reorder UX demands it.
+- [ ] **(Optional) Wire the lazy `motion/react` escape hatch.** Not needed yet;
+  documented in `MOTION.md` for the first drag/FLIP screen.
+
+### Implementation notes / deviations
+
+- **Checker instead of an ESLint rule.** This repo has no custom‑ESLint‑plugin
+  infrastructure but a well‑established `scripts/check-*.mjs` pattern
+  (`check-plugin-licenses.mjs`, `check-cloud-boundary.sh`) wired into the same
+  CI `lint` job. A text scanner is also *more* reliable than an AST rule for
+  Tailwind class strings (which live in template literals, `cn()`, and `cva`
+  variants). Same outcome: off‑vocabulary motion fails CI.
+- **Enforcement scope = `packages/ui` + `apps/web`.** Only these build with the
+  token‑bearing Tailwind config (web extends the UI base). Other packages have
+  their own design systems (the editor's `--editor-*` theme, its own config),
+  where `duration-200` is a *correct* Tailwind default, not a violation —
+  enforcing the shared vocabulary there would be wrong.
+- **Editor aligned, not gutted.** The slash/mention/link menus are custom‑
+  positioned floating elements, not Base UI popups, so they can't drop into
+  `.menu-popup`. Deleting the keyframes would force a disproportionate Base‑UI
+  rewrite of three components. The on‑spec fix (exit → `ease-in`) + a cross‑
+  reference removes the real drift while keeping the package self‑contained.
+- **EditorArea / TabBar deferred deliberately.** Both are router‑authoritative
+  and exercised by the `editor-ux` e2e suite (which is historically flake‑
+  sensitive). A route‑level View Transition there risks strict‑mode element
+  races during the cross‑fade overlap. The reusable `useViewTransition()` helper
+  ships and is proven on the contained `TabBreadcrumb` re‑scope; wiring the
+  router transition is a focused follow‑up that deserves its own e2e pass.
 
 ## Validation Checklist
 
-- [ ] **Bundle:** default `apps/web` bundle grows by **0 KB** (no new runtime
-  dep on the main path); any `motion/react` use is in a separate lazy chunk.
-- [ ] **Perf:** record a Performance trace of toast enter/exit, surface swap,
-  and tab open — all animations stay on the compositor (no purple "Layout"
-  bars); 60fps under a 4× CPU throttle.
-- [ ] **Lint:** the `no-offvocab-motion` rule fails CI on a planted
-  `transition-all` / `duration-200` / `ease-bounce`, and passes on the
-  vocabulary.
-- [ ] **Drift count:** `grep -r "transition-all"` and `grep -r "menu-appear"`
-  return **0** in `apps/web/src` and `packages/editor` after the codemod.
-- [ ] **Reduced motion:** with `prefers-reduced-motion: reduce`, spatial
-  motion is gone but opacity fades remain; nothing flashes or jumps; Base UI
-  components still open/close instantly.
-- [ ] **Exit animations actually play:** `UndoToast` and `StorageWarningBanner`
-  visibly animate *out* (not just in) — verify in the Playwright/preview
-  harness with a screenshot or short capture.
-- [ ] **Surface swap:** switching CRM↔finance↔tasks cross‑fades on Chrome/Safari
-  and instantly swaps (no error) on Firefox.
-- [ ] **AI legibility spot‑check:** give an agent only `MOTION.md` and ask it to
-  "animate this dropdown's appearance" — it emits in‑vocabulary classes /
-  `<Presence motion="scale">` without inventing keyframes.
-- [ ] **No regressions:** existing Base UI dialog/popover/menu/accordion
-  animations unchanged; `editor-ux` e2e green.
+- [x] **Bundle:** **0 KB** added on the default path — no runtime animation
+  dependency; the helpers are plain React + CSS.
+- [ ] **Perf:** Performance‑trace the toast/banner/breadcrumb motions to confirm
+  compositor‑only (no Layout). Deferred to a manual pass; primitives are
+  `transform`/`opacity`‑only by construction.
+- [x] **Gate works:** `pnpm check:motion-vocab` exits 0 on the repo and exits 1
+  on a planted `transition-all` / `duration-200` / `ease-bounce` /
+  `animate-[…]` (verified all four).
+- [x] **Drift count:** `transition-all` and raw durations return **0** in
+  `packages/ui/src` + `apps/web/src`; the editor's `menu-disappear` is on‑spec.
+- [x] **Boots clean:** the worktree dev server renders the full workbench with
+  the `<Presence>`‑wrapped `StorageWarningBanner` live and **no console
+  errors**; `--ease-bounce` is gone without breakage.
+- [x] **Exit lifecycle:** covered by the `Presence` unit test ("keeps the child
+  mounted during exit, then unmounts on animationend") + the latch test.
+- [ ] **Surface swap cross‑browser:** verify the `TabBreadcrumb` re‑scope cross‑
+  fades on Chrome/Safari and instant‑swaps on Firefox. Deferred to manual pass.
+- [x] **Typecheck:** `@xnetjs/ui` and `xnet-web` typecheck clean against built
+  deps (turbo `^build`); 11 motion unit tests green.
+- [ ] **AI legibility spot‑check:** give an agent only `MOTION.md` and confirm
+  it emits in‑vocabulary classes. Deferred (qualitative).
+- [ ] **No regressions:** confirm `editor-ux` e2e green in CI on the PR.
 
 ---
 
