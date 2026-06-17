@@ -5,6 +5,8 @@ import {
   baseUrlFromDetail,
   canSendMessage,
   errorMessage,
+  isUsableTier,
+  pickUsableConnector,
   providerConfigForConnector,
   reduceRuntimeEvent
 } from './ai-chat-connector'
@@ -140,5 +142,42 @@ describe('canSendMessage / errorMessage', () => {
   it('extracts an error message', () => {
     expect(errorMessage(new Error('nope'))).toBe('nope')
     expect(errorMessage('raw')).toBe('raw')
+  })
+  it('maps a CORS/network failure to an actionable hint', () => {
+    expect(errorMessage(new Error('Failed to fetch'))).toMatch(/CORS|OLLAMA_ORIGINS/i)
+    expect(errorMessage(new Error('Load failed'))).toMatch(/OLLAMA_ORIGINS/i)
+    expect(errorMessage(new TypeError('NetworkError when attempting to fetch'))).toMatch(/CORS/i)
+  })
+})
+
+describe('isUsableTier / pickUsableConnector', () => {
+  it('treats config tiers and prompt-api as usable, webllm as not', () => {
+    expect(isUsableTier('cloud-key')).toBe(true)
+    expect(isUsableTier('local-server')).toBe(true)
+    expect(isUsableTier('bridge')).toBe(true)
+    expect(isUsableTier('prompt-api')).toBe(true)
+    expect(isUsableTier('webllm')).toBe(false)
+  })
+
+  it('skips webllm even when it is the most-preferred available tier', () => {
+    const detections = [
+      det({ tier: 'cloud-key', available: false, preference: 2 }),
+      det({ tier: 'local-server', available: false, preference: 3 }),
+      det({ tier: 'webllm', available: true, preference: 4 }),
+      det({ tier: 'prompt-api', available: false, preference: 5 })
+    ]
+    expect(pickUsableConnector(detections)).toBeNull()
+  })
+
+  it('picks the first available usable tier in preference order', () => {
+    const detections = [
+      det({ tier: 'cloud-key', available: true, preference: 2 }),
+      det({ tier: 'webllm', available: true, preference: 4 })
+    ]
+    expect(pickUsableConnector(detections)?.tier).toBe('cloud-key')
+  })
+
+  it('ignores unavailable tiers', () => {
+    expect(pickUsableConnector([det({ tier: 'cloud-key', available: false })])).toBeNull()
   })
 })

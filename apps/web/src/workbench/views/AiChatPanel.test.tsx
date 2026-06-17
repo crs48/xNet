@@ -23,8 +23,6 @@ const fixture = vi.hoisted(() => ({
 
 vi.mock('@xnetjs/plugins', () => ({
   detectConnectors: async () => fixture.detections,
-  pickBestConnector: (d: Array<{ available: boolean }>) => d.find((x) => x.available) ?? null,
-  writeModeFor: (t: string) => (t === 'reliable' ? 'agentic' : 'propose-only'),
   createAIProvider: () => ({ name: 'mock', generate: async () => '' }),
   createAiAgentRuntime: () => ({
     load: async () => undefined,
@@ -46,10 +44,11 @@ describe('AiChatPanel', () => {
     expect(screen.getByText(/Local model — unavailable/)).toBeTruthy()
   })
 
-  it('shows the cloud-key fields and the write-mode badge for the active tier', async () => {
+  it('shows the cloud-key fields and the capability badge for the active tier', async () => {
     render(<AiChatPanel />)
     await waitFor(() => expect(screen.getByPlaceholderText(/API key/)).toBeTruthy())
-    expect(screen.getByText('agentic')).toBeTruthy()
+    // Phase 0: chat-only on every tier until the tool surface is wired in.
+    expect(screen.getByText('chat')).toBeTruthy()
   })
 
   it('disables the composer until a model is configured', async () => {
