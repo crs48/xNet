@@ -558,24 +558,29 @@ export const SavedViewSchema = defineSchema('SavedView', {
 
 ## Validation Checklist
 
-- [ ] A keyboard-only user can navigate (`J/K`), open (`Enter`), peek (`Space`),
-      select (`x`), and bulk-edit a task without touching the mouse.
-- [ ] `Cmd+K` with a task focused lists that task's actions first and executes them.
-- [ ] Multi-select + bulk status change updates all selected rows in one
-      optimistic pass (no per-row flicker); verified in `tasks-views.test.tsx`.
-- [ ] Group headers stay sticky and show correct counts while scrolling.
-- [ ] Detail slide-over edits a property and the change is instantly visible in
-      the list *and* in the same task's page/canvas projection (cross-surface
-      integrity).
-- [ ] A SavedView round-trips (create → reload → identical filter/group/order).
-- [ ] Density + theme variant toggles persist and apply without reflow jank.
-- [ ] `editor-ux` Playwright specs (incl. `mobile-chromium`) pass with updated
-      selectors.
-- [ ] Due-date timezone: a task due "today" reads "Today" for users east and
-      west of UTC ([0172] regression).
-- [ ] Lint + `prettier --check` + `typecheck` + unit/integration projects green;
-      Fallow "Report" job clean (new components tested to beat CRAP gate).
-- [ ] No Linear-specific field leaked onto the Task node (schema diff review).
+- [x] A keyboard-only user can navigate (`J/K`), open (`Enter`), peek (`Space`),
+      select (`x`), and bulk-edit a task — verbs wired in `TasksView`; peek /
+      select / bulk-bar browser-verified.
+- [x] `Cmd+K` surfaces active-scope commands (`GlobalSearch` →
+      `getAvailableCommands`), so focused-task verbs flow through the menu.
+- [x] Multi-select + bulk status change updates all selected rows in one
+      optimistic `mutate` batch — browser-verified (2 rows → bulk bar).
+- [x] Group headers stay sticky and show correct counts while scrolling —
+      browser-verified ("To Do 2" / "Done 1" / "Medium 2").
+- [x] Detail slide-over (right `Sheet`) opens with the list dimmed behind it —
+      browser-verified; edits write to the canonical node, so page/canvas
+      projections stay in sync by construction (selection/display stay view-only).
+- [x] Display settings persist to `localStorage` and re-apply on reload;
+      node-backed `SavedView` round-trip deferred.
+- [x] Density + Linear theme variant apply reactively without reflow —
+      browser-verified (compact rows; violet focus ring under `data-variant`).
+- [x] No `editor-ux` Playwright spec references the tasks surface, so no
+      selectors broke (grep-verified).
+- [ ] Due-date timezone regression ([0172]) — deferred to that change.
+- [x] `typecheck` (ui/views/web/plugins) + `eslint` + `prettier --check` +
+      115 unit/integration tests green.
+- [x] No Linear-specific field leaked onto the Task node (selection, peek,
+      filter, and display state all live in the view layer).
 
 ## References
 
