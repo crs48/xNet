@@ -48,12 +48,24 @@ fi
 gcloud config set project "$PROJECT" >/dev/null
 
 # 2. Billing (Cloud Run + Artifact Registry + Firestore all require it) -------
+# The account must be OPEN *and* linked. A closed account still reports
+# billingEnabled:true once linked, but every paid API 403s with BILLING_DISABLED.
 if [ -n "$BILLING_ACCOUNT" ]; then
-  echo "• linking billing account $BILLING_ACCOUNT"
+  acct_open="$(gcloud billing accounts describe "$BILLING_ACCOUNT" \
+    --format='value(open)' 2>/dev/null || echo '')"
+  if [ "$acct_open" != "True" ]; then
+    echo "✗ Billing account $BILLING_ACCOUNT is not OPEN (open=${acct_open:-unknown})." >&2
+    echo "  A closed account can't fund a project — this is why paid APIs 403." >&2
+    echo "  • Open it / add a payment method: https://console.cloud.google.com/billing" >&2
+    echo "  • Or create a new one, then: gcloud billing accounts list   # need OPEN: True" >&2
+    echo "  • Then re-run this script (it's idempotent)." >&2
+    exit 1
+  fi
+  echo "• linking billing account $BILLING_ACCOUNT (open ✓)"
   gcloud billing projects link "$PROJECT" --billing-account="$BILLING_ACCOUNT"
 fi
-# Billing takes a few seconds to propagate; the API calls below 403 until it does.
-echo "• waiting for billing to be active"
+# Linking still takes a few seconds to propagate to the paid APIs.
+echo "• waiting for billing to propagate"
 billing_enabled=""
 for attempt in $(seq 1 18); do
   billing_enabled="$(gcloud billing projects describe "$PROJECT" \
@@ -62,10 +74,7 @@ for attempt in $(seq 1 18); do
   sleep 5
 done
 if [ "$billing_enabled" != "True" ]; then
-  echo "✗ Billing is not active on $PROJECT." >&2
-  echo "  • Enable it: https://console.cloud.google.com/billing/enable?project=$PROJECT" >&2
-  echo "  • Check 'gcloud billing accounts list' shows OPEN: True for your account." >&2
-  echo "  • Then re-run this script (it's idempotent)." >&2
+  echo "✗ Billing is not active on $PROJECT — see https://console.cloud.google.com/billing" >&2
   exit 1
 fi
 echo "  billing active ✓"
