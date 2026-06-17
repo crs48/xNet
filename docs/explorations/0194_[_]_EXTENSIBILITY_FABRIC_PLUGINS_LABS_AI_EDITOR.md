@@ -516,10 +516,15 @@ classDiagram
       `PluginTrustTier`/`InstallProvenance`/`SandboxKind` preserved as aliases of
       the shared types; `LabTrustTier` (in `labs/runtime/types.ts`) aliased to the
       shared `TrustTier`. labs (46) + plugins (452) suites unchanged & green._
-- [ ] Add `packages/plugins/src/ecosystem/runtime.ts`: run user/marketplace-tier
+- [~] Add `packages/plugins/src/ecosystem/runtime.ts`: run user/marketplace-tier
       plugin code on the labs `RuntimeLadder`; first-party stays host-realm.
-      _(deferred — needs the benchmark below + a port to avoid the `plugins→labs`
-      cycle, since labs already depends on plugins.)_
+      _As-built: `runPluginCode(ladder, {code, trustTier, …})` + `ladderTierForTrust`
+      route `user`→`sandbox` (SES/QuickJS) and `marketplace`→`app` (iframe), and
+      **reject first-party** (host realm only). The ladder is a structural port
+      (`PluginRuntimeLadder`), not an `@xnetjs/labs` import, so there's no
+      `plugins→labs` cycle — the host passes its concrete ladder. The registry
+      *switch* to this (replacing the current sandbox) + the benchmark below are
+      the remaining work._
 - [ ] Benchmark plugin activation + a representative editor interaction against
       0184 budgets; gate the runtime switch on no regression. _(deferred with the
       runtime switch above.)_

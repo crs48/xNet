@@ -220,7 +220,15 @@ export {
   ScaffoldError,
   // AI-authored plugin transform
   scriptToPluginManifest,
-  AiAuthoringError
+  AiAuthoringError,
+  // Plugin runtime on the labs ladder (0194 Phase 1)
+  ladderTierForTrust,
+  runPluginCode,
+  PluginRuntimeError,
+  // AI→Lab→Plugin pipeline (0194 Phase 2)
+  runAiPluginPipeline,
+  // Marketplace recommendations (0194 Phase 4)
+  recommendExtensions
 } from './ecosystem'
 export type {
   InstallProvenance,
@@ -251,7 +259,21 @@ export type {
   GeneratedScript,
   ScriptExecutor,
   ScriptToManifestInput,
-  AiAuthoredPlugin
+  AiAuthoredPlugin,
+  // Plugin runtime (0194 Phase 1)
+  LadderRuntimeTier,
+  PluginRunInput,
+  PluginRunResult,
+  PluginRuntimeLadder,
+  RunPluginCodeInput,
+  // AI→Lab→Plugin pipeline (0194 Phase 2)
+  LabRunOutcome,
+  AiPluginPipelinePorts,
+  AiPluginPipelineInput,
+  AiPluginPipelineResult,
+  // Marketplace recommendations (0194 Phase 4)
+  UsageSignal,
+  RecommendOptions
 } from './ecosystem'
 
 // Schemas
