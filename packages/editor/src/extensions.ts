@@ -631,6 +631,8 @@ export { COMMAND_GROUPS, getAllCommands, filterCommands } from './extensions/sla
 export {
   AI_INTENTS,
   applyAiTransform,
+  previewAiTransform,
+  acceptAiTransform,
   createAiSlashCommands,
   selectedText
 } from './extensions/ai/ai-commands'
@@ -640,6 +642,7 @@ export type {
   AiTransformRequest,
   AiTransformFn,
   AiCommandDeps,
+  AiTransformPreview,
   AiEditorLike,
   AiEditorChain
 } from './extensions/ai/ai-commands'
