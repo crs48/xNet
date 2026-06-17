@@ -69,6 +69,16 @@ export {
   type TenantSli,
   type FleetSummary
 } from './observability/health'
+export {
+  rollWave,
+  runRollout,
+  type RolloutEngineDeps,
+  type RolloutPlan,
+  type RolloutReport,
+  type WaveResult,
+  type WaveOptions
+} from './rollout/engine'
+export { controlPlaneRolloutDeps } from './rollout/control-plane-deps'
 
 /**
  * Pick the billing identity provider from the environment. WorkOS AuthKit (free
