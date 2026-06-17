@@ -531,13 +531,14 @@ export const SavedViewSchema = defineSchema('SavedView', {
 - [x] Board card polish parity (`TaskCard.tsx`): glyph/ID/title/labels/avatar/due.
 
 ### Phase 2 — Interaction parity
-- [ ] Rebind command menu to `Cmd+K`; source commands from active registry scopes.
-- [ ] `commandsForScopes()` helper on `CommandRegistry`.
-- [ ] Peek preview component (`Space`), `J/K` traversal while open.
-- [ ] Multi-select: migrate `x` → select, `Shift+Click` range, `Cmd+A` all.
-- [ ] Floating bulk-action bar (status/priority/assign/label/delete) → batched `useMutate`.
-- [ ] Keyboard verbs: `a` assign, `i` assign-me, `l` label, `r` rename, `Cmd+.` copy id, `Alt+↑/↓` reorder.
-- [ ] Multi-trigger composer + UTC date canonicalization (fold in [0172]).
+- [x] Command menu already opens on `Cmd+K` (`GlobalSearch`) and sources active-scope commands via `getAvailableCommands()`; focused-task verbs now flow through it.
+- [x] `commandsForScopes()` helper on `CommandRegistry` (+ test).
+- [x] Peek preview component (`Space`), `J/K` traversal while open (peek follows focus).
+- [x] Multi-select: migrate `x` → select, `Shift+Click` range, `Cmd+A` all, `Esc` clear.
+- [x] Floating bulk-action bar (status/priority/assign-me/delete) → batched `useMutate.mutate`.
+- [x] Keyboard verbs: `a` assign, `i` assign-me, `l` label, `r` rename, `Cmd+.` copy id.
+- [ ] `Alt+↑/↓` manual reorder — deferred (interacts with sortKey/grouping; lower value than the above).
+- [ ] Multi-trigger composer + UTC date canonicalization ([0172]) — deferred to its own change.
 
 ### Phase 3 — IA & detail
 - [ ] Tasks sub-nav (Inbox / My Issues / Projects / Views / Triage) as an in-surface pane.

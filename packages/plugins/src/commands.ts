@@ -178,6 +178,20 @@ export class CommandRegistry {
     return [...this.commands.values()]
   }
 
+  /**
+   * Commands declared in any of the given scopes (passing `when()`),
+   * regardless of whether those scopes are currently active. Lets a
+   * context-aware command menu surface, say, the focused-task verbs even
+   * when its own input has stolen scope focus.
+   */
+  commandsForScopes(scopes: readonly CommandScope[]): WorkspaceCommand[] {
+    const wanted = new Set(scopes)
+    return [...this.commands.values()].filter((command) => {
+      if (!wanted.has(command.scope ?? 'global')) return false
+      return command.when ? command.when() : true
+    })
+  }
+
   getCommand(id: string): WorkspaceCommand | undefined {
     return this.commands.get(id)
   }

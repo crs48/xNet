@@ -47,9 +47,11 @@ import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { ProjectHeader } from './ProjectHeader'
+import { TaskBulkBar } from './TaskBulkBar'
 import { TaskDueDatePalette } from './TaskDueDatePalette'
 import { TaskInlineEditor } from './TaskInlineEditor'
 import { TaskMiniPalette } from './TaskMiniPalette'
+import { TaskPeek } from './TaskPeek'
 
 const WORKFLOW_ORDER = Object.keys(TASK_STATUS_CATEGORIES) as TaskStatusId[]
 
@@ -88,7 +90,7 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
   // `did` (not `identity?.did`): restored sessions carry only the author
   // DID, and "My Tasks" must still scope to it.
   const { did } = useIdentity()
-  const { create, update } = useMutate()
+  const { create, update, mutate, remove } = useMutate()
   const people = useWorkspacePeople()
   const { suggestions: tagOptions, getOrCreateTag } = useWorkspaceTags()
   const [tab, setTab] = useState<TasksTab>('all')
@@ -99,8 +101,14 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
   const [draftDue, setDraftDue] = useState<number | null>(null)
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
-  const [miniPalette, setMiniPalette] = useState<'status' | 'priority' | 'dueDate' | null>(null)
+  const [miniPalette, setMiniPalette] = useState<
+    'status' | 'priority' | 'dueDate' | 'assignee' | 'label' | null
+  >(null)
   const [density, setDensity] = useState<TaskRowDensity>('comfortable')
+  // Multi-select (bulk edit). `anchorId` is the shift-range pivot.
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set())
+  const [anchorId, setAnchorId] = useState<string | null>(null)
+  const [peekOpen, setPeekOpen] = useState(false)
   const quickAddRef = useRef<HTMLInputElement>(null)
 
   const { data: tasks, loading } = useTasks({ includeCompleted: true })
@@ -165,8 +173,24 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
     return WORKFLOW_ORDER.flatMap((status) => byStatus.get(status) ?? [])
   }, [displayTasks])
 
-  const stateRef = useRef({ focusedTaskId, orderedTaskIds, editingTaskId, miniPalette })
-  stateRef.current = { focusedTaskId, orderedTaskIds, editingTaskId, miniPalette }
+  const stateRef = useRef({
+    focusedTaskId,
+    orderedTaskIds,
+    editingTaskId,
+    miniPalette,
+    selectedIds,
+    anchorId,
+    peekOpen
+  })
+  stateRef.current = {
+    focusedTaskId,
+    orderedTaskIds,
+    editingTaskId,
+    miniPalette,
+    selectedIds,
+    anchorId,
+    peekOpen
+  }
   const tasksRef = useRef(tasks)
   tasksRef.current = tasks
 
@@ -243,6 +267,30 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         scope: 'surface:tasks',
         key: 'c',
         run: () => quickAddRef.current?.focus()
+      }),
+      registry.register({
+        id: 'tasks.selectAll',
+        title: 'Select all tasks',
+        scope: 'surface:tasks',
+        key: 'Mod-a',
+        run: () => setSelectedIds(new Set(stateRef.current.orderedTaskIds))
+      }),
+      registry.register({
+        id: 'tasks.clearOrPeekClose',
+        title: 'Clear selection / close peek',
+        scope: 'surface:tasks',
+        key: 'escape',
+        when: () =>
+          stateRef.current.peekOpen ||
+          stateRef.current.selectedIds.size > 0,
+        run: () => {
+          if (stateRef.current.peekOpen) {
+            setPeekOpen(false)
+            return
+          }
+          setSelectedIds(new Set())
+          setAnchorId(null)
+        }
       })
     ]
 
@@ -270,14 +318,18 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
 
     const disposables = [
       registry.register({
-        id: 'task.toggleCompleted',
-        title: 'Toggle task completion',
+        id: 'task.select',
+        title: 'Select task',
         scope: 'task-focused',
         key: 'x',
-        run: withFocused((taskId) => {
-          const task = tasksRef.current.find((t) => t.id === taskId)
-          handleToggleCompleted(taskId, !task?.completed)
-        })
+        run: withFocused((taskId) => toggleSelect(taskId))
+      }),
+      registry.register({
+        id: 'task.peek',
+        title: 'Peek task',
+        scope: 'task-focused',
+        key: 'space',
+        run: withFocused(() => setPeekOpen((open) => !open))
       }),
       registry.register({
         id: 'task.setStatus',
@@ -285,6 +337,48 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         scope: 'task-focused',
         key: 's',
         run: withFocused(() => setMiniPalette('status'))
+      }),
+      registry.register({
+        id: 'task.assignMe',
+        title: 'Assign to me',
+        scope: 'task-focused',
+        key: 'i',
+        when: () => Boolean(did),
+        run: withFocused(() => {
+          if (did) bulkAddAssignee(did as DID)
+        })
+      }),
+      registry.register({
+        id: 'task.assign',
+        title: 'Assign task…',
+        scope: 'task-focused',
+        key: 'a',
+        run: withFocused(() => setMiniPalette('assignee'))
+      }),
+      registry.register({
+        id: 'task.label',
+        title: 'Add label…',
+        scope: 'task-focused',
+        key: 'l',
+        run: withFocused(() => setMiniPalette('label'))
+      }),
+      registry.register({
+        id: 'task.rename',
+        title: 'Rename task',
+        scope: 'task-focused',
+        key: 'r',
+        run: withFocused((taskId) => setEditingTaskId(taskId))
+      }),
+      registry.register({
+        id: 'task.copyId',
+        title: 'Copy task id',
+        scope: 'task-focused',
+        key: 'Mod-.',
+        run: withFocused((taskId) => {
+          const task = tasksRef.current.find((t) => t.id === taskId)
+          const shortId = typeof task?.shortId === 'string' && task.shortId ? task.shortId : taskId
+          void navigator.clipboard?.writeText(shortId)
+        })
       }),
       registry.register({
         id: 'task.setPriority',
@@ -372,6 +466,93 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
     setEditingTaskId(id)
   }
 
+  // ─── Multi-select + bulk edit (Linear `x` / shift-click / ⌘A) ─────────────
+  const toggleSelect = (
+    taskId: string,
+    modifiers: { shiftKey: boolean; metaKey: boolean } = { shiftKey: false, metaKey: false }
+  ) => {
+    // Read pivot + order from the ref so keyboard and click paths agree.
+    const { anchorId: anchor, orderedTaskIds: ids } = stateRef.current
+    setFocusedTaskId(taskId)
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (modifiers.shiftKey && anchor) {
+        const from = ids.indexOf(anchor)
+        const to = ids.indexOf(taskId)
+        if (from !== -1 && to !== -1) {
+          const [lo, hi] = from < to ? [from, to] : [to, from]
+          for (const id of ids.slice(lo, hi + 1)) next.add(id)
+        } else {
+          next.add(taskId)
+        }
+      } else if (next.has(taskId)) {
+        next.delete(taskId)
+      } else {
+        next.add(taskId)
+      }
+      return next
+    })
+    if (!modifiers.shiftKey) setAnchorId(taskId)
+  }
+
+  const clearSelection = () => {
+    setSelectedIds(new Set())
+    setAnchorId(null)
+  }
+
+  /** Tasks a bulk action targets: the selection, else the focused task. */
+  const bulkTargets = (): string[] => {
+    const { selectedIds: sel, focusedTaskId: focused } = stateRef.current
+    if (sel.size > 0) return [...sel]
+    return focused ? [focused] : []
+  }
+
+  const bulkUpdate = (data: Record<string, unknown>) => {
+    const ids = bulkTargets()
+    if (ids.length === 0) return
+    if (ids.length === 1) {
+      void update(TaskSchema, ids[0], data as never)
+      return
+    }
+    void mutate(ids.map((id) => ({ type: 'update' as const, id, data })))
+  }
+
+  const bulkSetStatus = (status: TaskStatusId) =>
+    bulkUpdate({ status, completed: isCompletedTaskStatus(status) })
+
+  const bulkSetPriority = (priority: 'low' | 'medium' | 'high' | 'urgent') =>
+    bulkUpdate({ priority })
+
+  // Add a DID to each target's assignees (keeps existing assignees).
+  const bulkAddAssignee = (assignee: DID) => {
+    const ops = bulkTargets().map((id) => {
+      const task = tasksRef.current.find((t) => t.id === id)
+      const current = Array.isArray(task?.assignees) ? task.assignees.map(String) : []
+      const assignees = current.includes(assignee) ? current : [...current, assignee]
+      return { type: 'update' as const, id, data: { assignees, assignee: assignees[0] } }
+    })
+    if (ops.length === 1) void update(TaskSchema, ops[0].id, ops[0].data as never)
+    else if (ops.length > 1) void mutate(ops)
+  }
+
+  const bulkAddTag = (tagId: string) => {
+    const ops = bulkTargets().map((id) => {
+      const task = tasksRef.current.find((t) => t.id === id)
+      const current = Array.isArray(task?.tags) ? task.tags.map(String) : []
+      const tags = current.includes(tagId) ? current : [...current, tagId]
+      return { type: 'update' as const, id, data: { tags } }
+    })
+    if (ops.length === 1) void update(TaskSchema, ops[0].id, ops[0].data as never)
+    else if (ops.length > 1) void mutate(ops)
+  }
+
+  const bulkDelete = () => {
+    // Component delete = remove(id); a mutate delete op is a silent no-op here.
+    void Promise.all(bulkTargets().map((id) => remove(id)))
+    clearSelection()
+    setPeekOpen(false)
+  }
+
   const handleCreate = async () => {
     const title = draft.trim()
     if (!title) return
@@ -408,6 +589,10 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
   )
   const editorInList =
     mode === 'list' && editingTaskId != null && visibleTasks.some((t) => t.id === editingTaskId)
+  const peekDisplayTask = useMemo(
+    () => (focusedTaskId ? (displayTasks.find((t) => t.id === focusedTaskId) ?? null) : null),
+    [focusedTaskId, displayTasks]
+  )
 
   const tabs: Array<{ id: TasksTab; label: string; icon: JSX.Element }> = [
     { id: 'all', label: 'All Tasks', icon: <List size={13} /> },
@@ -597,6 +782,8 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
             tasks={displayTasks}
             density={density}
             focusedTaskId={focusedTaskId}
+            selectedTaskIds={selectedIds}
+            onSelectTask={toggleSelect}
             onCreateInGroup={(status) => void handleCreateInGroup(status)}
             expandedTaskId={editingTaskId}
             renderTaskEditor={() =>
@@ -631,33 +818,78 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         </div>
       )}
 
-      {(miniPalette === 'status' || miniPalette === 'priority') && focusedTaskId && (
+      {selectedIds.size > 0 && (
+        <TaskBulkBar
+          count={selectedIds.size}
+          onStatus={() => setMiniPalette('status')}
+          onPriority={() => setMiniPalette('priority')}
+          onAssignMe={() => did && bulkAddAssignee(did as DID)}
+          onDelete={bulkDelete}
+          onClear={clearSelection}
+        />
+      )}
+
+      {peekOpen && peekDisplayTask && (
+        <div className="fixed inset-0 z-40" onClick={() => setPeekOpen(false)}>
+          <TaskPeek
+            task={peekDisplayTask}
+            onOpen={(taskId) => {
+              setPeekOpen(false)
+              handleEditTask(taskId)
+            }}
+            onClose={() => setPeekOpen(false)}
+          />
+        </div>
+      )}
+
+      {(miniPalette === 'status' || miniPalette === 'priority') &&
+        (focusedTaskId || selectedIds.size > 0) && (
+          <TaskMiniPalette
+            title={miniPalette === 'status' ? 'Change status…' : 'Change priority…'}
+            kind={miniPalette}
+            options={miniPalette === 'status' ? STATUS_OPTIONS : PRIORITY_OPTIONS}
+            onSelect={(optionId) => {
+              if (miniPalette === 'status') {
+                bulkSetStatus(optionId as TaskStatusId)
+              } else {
+                bulkSetPriority(optionId as 'low' | 'medium' | 'high' | 'urgent')
+              }
+            }}
+            onClose={() => setMiniPalette(null)}
+          />
+        )}
+
+      {miniPalette === 'assignee' && (focusedTaskId || selectedIds.size > 0) && (
         <TaskMiniPalette
-          title={miniPalette === 'status' ? 'Change status…' : 'Change priority…'}
-          kind={miniPalette}
-          options={miniPalette === 'status' ? STATUS_OPTIONS : PRIORITY_OPTIONS}
-          onSelect={(optionId) => {
-            if (miniPalette === 'status') {
-              const status = optionId as TaskStatusId
-              void update(TaskSchema, focusedTaskId, {
-                status,
-                completed: isCompletedTaskStatus(status)
-              })
-            } else {
-              void update(TaskSchema, focusedTaskId, {
-                priority: optionId as 'low' | 'medium' | 'high' | 'urgent'
-              })
-            }
-          }}
+          title="Assign to…"
+          kind="generic"
+          options={people.map((person) => ({
+            id: person.did,
+            label: taskPersonLabel(person),
+            icon: <DIDAvatar did={person.did} size={16} />
+          }))}
+          onSelect={(personId) => bulkAddAssignee(personId as DID)}
           onClose={() => setMiniPalette(null)}
         />
       )}
 
-      {miniPalette === 'dueDate' && focusedTaskId && (
+      {miniPalette === 'label' && (focusedTaskId || selectedIds.size > 0) && (
+        <TaskMiniPalette
+          title="Add label…"
+          kind="generic"
+          options={tagOptions.map((tag) => ({
+            id: tag.id,
+            label: tag.name,
+            icon: <Hash size={13} className="text-muted-foreground" />
+          }))}
+          onSelect={(tagId) => bulkAddTag(tagId)}
+          onClose={() => setMiniPalette(null)}
+        />
+      )}
+
+      {miniPalette === 'dueDate' && (focusedTaskId || selectedIds.size > 0) && (
         <TaskDueDatePalette
-          onSelect={(dueDate) =>
-            void update(TaskSchema, focusedTaskId, { dueDate: dueDate ?? undefined })
-          }
+          onSelect={(dueDate) => bulkUpdate({ dueDate: dueDate ?? undefined })}
           onClose={() => setMiniPalette(null)}
         />
       )}

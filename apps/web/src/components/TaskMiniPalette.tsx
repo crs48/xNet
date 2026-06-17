@@ -7,16 +7,19 @@
  * single-key verbs are automatically suppressed while it is open.
  */
 import { TaskStatusIcon, TaskPriorityIcon } from '@xnetjs/ui'
-import { useMemo, useRef, useState, type JSX } from 'react'
+import { useMemo, useRef, useState, type JSX, type ReactNode } from 'react'
 
 export interface MiniPaletteOption {
   id: string
   label: string
+  /** Optional leading glyph (people/label palettes supply their own) */
+  icon?: ReactNode
 }
 
 export interface TaskMiniPaletteProps {
   title: string
-  kind: 'status' | 'priority'
+  /** Status/priority render the workflow glyphs; others rely on option.icon */
+  kind?: 'status' | 'priority' | 'generic'
   options: MiniPaletteOption[]
   onSelect: (optionId: string) => void
   onClose: () => void
@@ -94,11 +97,13 @@ export function TaskMiniPalette({
               }}
               onMouseEnter={() => setActiveIndex(index)}
             >
-              {kind === 'status' ? (
+              {option.icon !== undefined ? (
+                option.icon
+              ) : kind === 'status' ? (
                 <TaskStatusIcon status={option.id} size={13} />
-              ) : (
+              ) : kind === 'priority' ? (
                 <TaskPriorityIcon priority={option.id} size={13} />
-              )}
+              ) : null}
               {option.label}
             </li>
           ))}
