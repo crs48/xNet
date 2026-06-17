@@ -40,6 +40,35 @@ export {
   type DeviceGrantStore,
   type CodeGenerator
 } from './device-grant'
+export {
+  availability,
+  errorRate,
+  latencyPercentile,
+  errorBudgetRemaining,
+  burnRate,
+  backupHealthy,
+  windowed,
+  type HealthSample
+} from './observability/sli'
+export {
+  sloForSla,
+  sloForPlan,
+  errorBudgetMs,
+  budgetPolicy,
+  type SloTarget,
+  type BudgetPolicy
+} from './observability/slo'
+export {
+  HealthSampleStore,
+  FakeHealthProbe,
+  httpHealthProbe,
+  sampleTenantHealth,
+  tenantSli,
+  fleetSummary,
+  type HealthProbe,
+  type TenantSli,
+  type FleetSummary
+} from './observability/health'
 
 /**
  * Pick the billing identity provider from the environment. WorkOS AuthKit (free
