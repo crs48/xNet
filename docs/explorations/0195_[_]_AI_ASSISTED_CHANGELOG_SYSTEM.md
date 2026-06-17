@@ -1061,30 +1061,35 @@ from the feed.
 
 ### Phase 1 — Changelog feed
 
-- [ ] Write `scripts/generate-changelog-feed.mjs`
-  - [ ] Parse all non-ignored package CHANGELOG.md files
-  - [ ] Parse optional `WHATS_NEW.md` for curated overrides
-  - [ ] Emit `tmp/changelog/changelog.json` (JSON Feed 1.1 schema)
-  - [ ] Emit `tmp/changelog/changelog.xml` (RSS/Atom)
-  - [ ] Link hero images from `visuals/pr/$PR/` manifest if available
-- [ ] Add step to `npm-release.yml` post-changesets: run the feed script
-- [ ] Add `.github/actions/publish-gh-pages` call targeting `site-changelog/`
-- [ ] Add `site-changelog` to the `--exclude` list in `deploy-site.yml`
-- [ ] Verify feed is accessible at `https://xnet.fyi/site-changelog/changelog.json`
+> **Implementation note (refined during build).** Rather than parse the
+> per-package `CHANGELOG.md` files (developer-facing, noisy) and juggle a
+> separate `site-changelog/` gh-pages path + `--delete` exclude, the feed is
+> generated from a single curated **data module** (`site/src/data/changelog.ts`)
+> and served by Astro endpoints. This avoids the gh-pages path juggling
+> entirely and matches the repo's existing `roadmap.ts`/`compare.ts` pattern.
+
+- [x] `site/src/data/changelog.ts` — typed `ChangelogEntry[]` single source,
+  backfilled with shipped history (newest-first)
+- [x] `site/src/lib/changelog-feed.ts` — pure `buildJsonFeed` / `buildRssXml`
+  builders (hero image URLs resolved to absolute)
+- [x] `site/src/pages/changelog.json.ts` — JSON Feed 1.1 endpoint (CORS `*`)
+- [x] `site/src/pages/changelog.xml.ts` — RSS 2.0 endpoint (hand-rolled, zero deps)
+- [x] `site/scripts/validate-changelog.ts` + `validate:changelog` in the site
+  build (fails on bad ids/dates, out-of-order/duplicate entries, bad hero src)
+- [x] Feeds served at `https://xnet.fyi/changelog.json` and `/changelog.xml`
+  (verified in local `astro build`)
 
 ### Phase 2 — Website changelog page
 
-- [ ] Add `changelogEntry` schema to `site/src/content.config.ts`
-  (`date`, `version`, `title`, `summary`, `heroImage`, `heroAlt`, `tags`)
-- [ ] Create `site/src/content/changelog/` directory
-- [ ] Add `site/src/pages/changelog/index.astro` (listing page)
-- [ ] Add `site/src/pages/changelog/[slug].astro` (per-entry page)
-- [ ] Add `site/src/pages/changelog.xml.ts` (RSS endpoint via `@astrojs/rss`)
-- [ ] Add `{ label: 'Changelog', slug: 'changelog' }` to `site/src/sidebar.mjs`
-- [ ] Wire `generate-changelog-feed.mjs` output to populate
-  `site/src/content/changelog/` automatically (in `deploy-site.yml` or
-  `npm-release.yml`)
-- [ ] Verify `https://xnet.fyi/changelog` renders entries with visuals
+- [x] `site/src/pages/changelog/index.astro` — timeline listing page with
+  hero images, highlights, tag chips, PR links, and per-entry `#id` anchors
+- [x] RSS + JSON feed links surfaced on the page header
+- [x] `{ label: 'Changelog', link: '/changelog' }` added to
+  `site/src/sidebar.mjs` Resources and to the top `Nav.astro`
+- [x] Verified `https://xnet.fyi/changelog` renders entries with visuals
+  (local build + screenshot)
+- [ ] (Deferred) per-entry permalink pages — anchors on the index page cover
+  the feed `url` for now
 
 ### Phase 3 — In-app What's New
 

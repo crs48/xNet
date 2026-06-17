@@ -105,6 +105,7 @@ export const sidebar = [
     collapsed: true,
     items: [
       { slug: 'docs/ai/understanding-xnet', label: 'For AI Assistants' },
+      { label: 'Changelog', link: '/changelog' },
       { label: 'Compare to Alternatives', link: '/compare' },
       { label: 'Roadmap', link: '/#roadmap' }
     ]

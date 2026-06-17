@@ -1,0 +1,112 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import { entries, updated } from '../../data/changelog'
+
+const repo = 'https://github.com/crs48/xNet'
+const editUrl = `${repo}/blob/main/site/src/data/changelog.ts`
+
+const tagColor: Record<string, string> = {
+  app: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  crm: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
+  finance: 'bg-green-500/15 text-green-700 dark:text-green-300',
+  tasks: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  ai: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
+  plugins: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
+  editor: 'bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300',
+  sync: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300',
+  identity: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+  platform: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
+  performance: 'bg-orange-500/15 text-orange-700 dark:text-orange-300',
+  devtools: 'bg-slate-500/15 text-slate-700 dark:text-slate-300',
+  ci: 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
+}
+---
+
+<Base
+  title="xNet Changelog — What's New"
+  description={`Everything that's shipped in xNet, newest first. ${entries.length} releases, updated ${updated}. Subscribe via RSS or the JSON feed.`}
+>
+  <Nav />
+
+  <main class="py-24 lg:py-32">
+    <div class="mx-auto max-w-3xl px-6">
+      <!-- Hero -->
+      <div class="mb-12 text-center">
+        <h1 class="mb-4 text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl">
+          What's New
+        </h1>
+        <p class="mx-auto max-w-xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+          Everything that's shipped in xNet, newest first.
+        </p>
+        <div class="mt-5 flex items-center justify-center gap-4 text-sm">
+          <a href="/changelog.xml" class="text-indigo-400 hover:underline">RSS</a>
+          <span class="text-gray-300 dark:text-gray-600">·</span>
+          <a href="/changelog.json" class="text-indigo-400 hover:underline">JSON feed</a>
+          <span class="text-gray-300 dark:text-gray-600">·</span>
+          <a href={editUrl} target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">Edit on GitHub</a>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="relative">
+        <div class="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-emerald-500/40 via-indigo-500/25 to-transparent"></div>
+
+        <div class="space-y-12">
+          {entries.map((entry) => (
+            <article id={entry.id} class="animate-on-scroll relative pl-10 scroll-mt-24">
+              <div class="absolute left-0 top-1.5 h-[17px] w-[17px] rounded-full bg-indigo-400 ring-4 ring-white dark:ring-[#0a0a0f]"></div>
+
+              <div class="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <time class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{entry.date}</time>
+                {entry.pr && (
+                  <a
+                    href={`${repo}/pull/${entry.pr}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-xs text-gray-400 hover:text-indigo-400 hover:underline"
+                  >#{entry.pr}</a>
+                )}
+              </div>
+
+              <h2 class="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
+                <a href={`#${entry.id}`} class="hover:text-indigo-400">{entry.title}</a>
+              </h2>
+
+              <p class="mb-4 text-gray-600 dark:text-gray-300">{entry.summary}</p>
+
+              {entry.hero && (
+                <img
+                  src={entry.hero.src}
+                  alt={entry.hero.alt}
+                  loading="lazy"
+                  class="mb-4 w-full rounded-xl border border-border"
+                />
+              )}
+
+              <ul class="mb-4 grid gap-1.5">
+                {entry.highlights.map((h) => (
+                  <li class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div class="flex flex-wrap gap-1.5">
+                {entry.tags.map((tag) => (
+                  <span class={`rounded-full px-2 py-0.5 text-xs font-medium ${tagColor[tag] ?? 'bg-gray-500/15 text-gray-600 dark:text-gray-300'}`}>{tag}</span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <p class="mt-16 text-center text-xs text-gray-400 dark:text-gray-500">Updated {updated}</p>
+    </div>
+  </main>
+
+  <Footer />
+</Base>
