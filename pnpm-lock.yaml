@@ -1233,6 +1233,9 @@ importers:
       '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
+      '@xnetjs/slack-compat':
+        specifier: workspace:*
+        version: link:../slack-compat
       '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync

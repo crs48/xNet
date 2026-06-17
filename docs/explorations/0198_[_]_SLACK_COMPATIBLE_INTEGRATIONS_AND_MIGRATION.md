@@ -612,13 +612,21 @@ flowchart LR
       `@xnetjs/slack-compat` package: `slackMrkdwnToMarkdown`, `blockKitToMarkdown`,
       `normalizeIncomingWebhook`, slash parse/format, signing-secret verify — 45
       unit tests.)*
-- [ ] **Tier 0:** `slackCompatFeature()` `HubFeature` mounting
+- [x] **Tier 0:** `slackCompatFeature()` `HubFeature` mounting
       `/slack/services/hooks/:token` via `mountWebhook`; channel-name → node
       mapping table; `SLACK_SIGNING_SECRET` declared in `secrets`; writes through
-      the guarded connector store on the `connector` budget surface.
-- [ ] **Tier 1:** chat-level Slack-compatible slash-command router (NOT the
+      the guarded connector store on the `connector` budget surface. *(Shipped in
+      `packages/hub/src/features/slack-compat.ts`: token-authed incoming webhook
+      → `normalizeIncomingWebhook` → injected `deliverMessage` sink — same
+      injection seam as `connectorSyncFeature`/the GitHub webhook, since the hub
+      has no server-authoritative node writes yet. Channel mapping + the real
+      ChatMessage write are the deferred app-wiring step. 8 tests.)*
+- [x] **Tier 1:** chat-level Slack-compatible slash-command router (NOT the
       editor `SlashCommandContribution`): form-encoded request, 3s ack,
       `response_type`, `response_url` delayed replies; per-command secret.
+      *(Shipped: `POST /slack/commands` — signing-secret verify (replay-protected)
+      → `parseSlashCommand` → injected `handleCommand` → `formatSlashResponse`.
+      `response_url` delayed replies deferred with the delivery wiring.)*
 - [ ] **Identity:** add a `bot`/`app` `SocialActor` kind; mint a synthetic
       per-app DID; decide hub-system-identity vs per-app keypair for signing.
 - [ ] **OAuth:** minimal OAuth 2.0 authorization server issuing scoped bot
