@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs'
 import path from 'path'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
@@ -8,8 +9,16 @@ import { coopCoepHeaders } from './vite-plugins/coop-coep-headers'
 // Base path for deployment (default: '/', set VITE_BASE_PATH for custom paths like '/app/')
 const basePath = process.env.VITE_BASE_PATH || '/'
 
+// App version, injected at build time so the in-app "What's New" surface
+// (exploration 0195) can show the running version. Read from package.json.
+const appVersion = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'))
+  .version as string
+
 export default defineConfig({
   base: basePath,
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion)
+  },
   build: {
     // Target modern browsers for SQLite WASM + OPFS support
     // Safari 16.4+ is required for OPFS

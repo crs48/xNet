@@ -10,6 +10,14 @@ interface UpdateInfo {
   releaseNotes?: string
 }
 
+/** electron-updater may hand us HTML release notes; render them as plain text. */
+function toPlainText(notes: string): string {
+  return notes
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 interface UpdateProgress {
   percent: number
   transferred: number
@@ -72,20 +80,32 @@ export function UpdateNotification() {
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
       {available && !progress && !ready && (
-        <div className="flex items-center gap-3">
-          <span className="text-sm">Version {available.version} is available</span>
-          <button
-            className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
-            onClick={() => invoke('download-update')}
-          >
-            Download
-          </button>
-          <button
-            className="rounded px-3 py-1 text-xs text-neutral-500 hover:text-neutral-700"
-            onClick={() => setAvailable(null)}
-          >
-            Later
-          </button>
+        <div className="space-y-2">
+          <div className="text-sm font-medium">
+            <span role="img" aria-label="sparkles">
+              ✨
+            </span>{' '}
+            Version {available.version} is available
+          </div>
+          {available.releaseNotes && (
+            <div className="max-h-44 overflow-y-auto whitespace-pre-wrap rounded bg-neutral-50 p-2 text-xs leading-relaxed text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">
+              {toPlainText(available.releaseNotes)}
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
+              onClick={() => invoke('download-update')}
+            >
+              Download
+            </button>
+            <button
+              className="rounded px-3 py-1 text-xs text-neutral-500 hover:text-neutral-700"
+              onClick={() => setAvailable(null)}
+            >
+              Later
+            </button>
+          </div>
         </div>
       )}
 
