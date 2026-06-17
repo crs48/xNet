@@ -26,11 +26,24 @@ function checkRequired(e: ChangelogEntry): void {
   if (!e.summary) err(id, 'missing summary')
   if (!e.highlights?.length) err(id, 'must have at least one highlight')
   if (!e.tags?.length) err(id, 'must have at least one tag')
-  if (e.hero) {
-    const ok = e.hero.src.startsWith('/') || e.hero.src.startsWith('https://')
-    if (!ok) err(id, `hero.src must be an absolute path or https URL (${e.hero.src})`)
-    if (!e.hero.alt) err(id, 'hero is missing alt text')
+  if (e.hero) checkImageSrc(id, 'hero', e.hero.src, e.hero.alt)
+  for (const [i, img] of (e.images ?? []).entries()) {
+    checkImageSrc(id, `images[${i}]`, img.src, img.alt)
   }
+  if (e.video) {
+    checkImageSrc(id, 'video.poster', e.video.poster, e.video.alt)
+    if (!e.video.src.startsWith('/') && !e.video.src.startsWith('https://')) {
+      err(id, `video.src must be an absolute path or https URL (${e.video.src})`)
+    }
+  }
+  if (e.author && !e.author.login) err(id, 'author is missing a login')
+}
+
+function checkImageSrc(id: string, field: string, src: string, alt: string): void {
+  if (!src.startsWith('/') && !src.startsWith('https://')) {
+    err(id, `${field}.src must be an absolute path or https URL (${src})`)
+  }
+  if (!alt) err(id, `${field} is missing alt text`)
 }
 
 function checkUniqueIds(): void {

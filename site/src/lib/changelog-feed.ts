@@ -44,7 +44,20 @@ export function buildJsonFeed(entries: ChangelogEntry[]): object {
         date: entry.date,
         summary: entry.summary,
         highlights: entry.highlights,
-        ...(entry.pr ? { pr: entry.pr } : {})
+        ...(entry.pr ? { pr: entry.pr } : {}),
+        ...(entry.author ? { author: entry.author } : {}),
+        ...(entry.images?.length
+          ? { images: entry.images.map((img) => ({ ...img, src: absoluteImage(img.src) })) }
+          : {}),
+        ...(entry.video
+          ? {
+              video: {
+                ...entry.video,
+                src: absoluteImage(entry.video.src),
+                poster: absoluteImage(entry.video.poster)
+              }
+            }
+          : {})
       }
     }))
   }

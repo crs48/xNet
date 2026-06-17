@@ -48,6 +48,16 @@ export interface ChangelogEntry {
   tags: ChangelogTag[]
   /** Optional hero image (absolute site path or https URL). */
   hero?: { src: string; alt: string }
+  /**
+   * Curated gallery images (absolute path or https URL). Shown in addition to
+   * any auto-pulled diff-manifest gallery (exploration 0196); use for entries
+   * whose PR predates the durable visual capture, or to hand-pick screenshots.
+   */
+  images?: { src: string; alt: string; caption?: string }[]
+  /** Autoplay-muted, click-to-play video clip (replaces a GIF). */
+  video?: { src: string; poster: string; alt: string }
+  /** Primary author, surfaced as a GitHub avatar + link. */
+  author?: { login: string; name?: string }
   /** Originating pull request number, when applicable. */
   pr?: number
 }
@@ -69,7 +79,35 @@ export const entries: ChangelogEntry[] = [
     ],
     tags: ['app', 'platform', 'ci'],
     hero: { src: '/images/workbench-dark.png', alt: 'The xNet workbench' },
+    images: [
+      {
+        src: 'https://xnet.fyi/visuals/pr/147/routes/home.png',
+        alt: 'The xNet home view',
+        caption: 'Home — captured by CI'
+      },
+      {
+        src: '/images/workbench-light.png',
+        alt: 'The xNet workbench in light mode',
+        caption: 'Workbench (light)'
+      }
+    ],
+    author: { login: 'crs48' },
     pr: 147
+  },
+  {
+    id: '2026-06-16',
+    date: 'June 2026',
+    title: 'xNet Cloud — managed hub hosting',
+    summary:
+      'Don’t want to run your own hub? xNet Cloud hosts one for you. A new onboarding flow takes you from signup to a provisioned hub, then lets you claim it from the app.',
+    highlights: [
+      'Marketing and pricing pages for managed hub hosting',
+      'Signup → provision → claim flow',
+      'Connect the app to your hosted hub from Settings'
+    ],
+    tags: ['platform', 'app'],
+    author: { login: 'crs48' },
+    pr: 140
   },
   {
     id: '2026-06-15',
@@ -83,6 +121,7 @@ export const entries: ChangelogEntry[] = [
       'Foundations for an AI → Lab → Plugin assembly line'
     ],
     tags: ['plugins', 'ai', 'editor', 'platform'],
+    author: { login: 'crs48' },
     pr: 144
   },
   {
@@ -97,6 +136,7 @@ export const entries: ChangelogEntry[] = [
       'A searchable marketplace index with install-consent prompts'
     ],
     tags: ['plugins', 'platform'],
+    author: { login: 'crs48' },
     pr: 142
   },
   {
@@ -125,6 +165,7 @@ export const entries: ChangelogEntry[] = [
       'Tier preference persists between sessions'
     ],
     tags: ['ai', 'app'],
+    author: { login: 'crs48' },
     pr: 137
   },
   {
