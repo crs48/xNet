@@ -12,6 +12,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, select, json, date, relation } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const ExperimentSchema = defineSchema({
   name: 'Experiment',
@@ -108,7 +109,9 @@ export const ExperimentSchema = defineSchema({
       default: 'private'
     })
   },
-  document: 'yjs' // Collaborative protocol / journal / observations narrative
+  document: 'yjs', // Collaborative protocol / journal / observations narrative
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 /** An Experiment node type (inferred from schema). */

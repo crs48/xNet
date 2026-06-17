@@ -8,6 +8,7 @@
  */
 
 import type { InferNode } from '../types'
+import { presets } from '../../auth'
 import { defineSchema } from '../define'
 import { select, text, url } from '../properties'
 
@@ -69,7 +70,9 @@ export const ExternalReferenceSchema = defineSchema({
     /** Provider-specific metadata stored as JSON */
     metadata: text({ maxLength: 10000 })
   },
-  document: undefined
+  document: undefined,
+  // Standalone/personal content: owner-only by default (exploration 0192).
+  authorization: presets.private()
 })
 
 /**

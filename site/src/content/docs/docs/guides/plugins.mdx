@@ -735,3 +735,87 @@ permissions: {
 | Webhooks             | Yes      | Yes | Yes    |
 
 If a plugin specifies `platforms` and the current platform isn't included, installation is rejected. Use `ctx.capabilities` to check feature availability at runtime.
+
+## Ecosystem APIs: capabilities, marketplace, testing
+
+The `@xnetjs/plugins` ecosystem layer turns a [`FeatureModule`](#the-four-layers) manifest into something installable, trustworthy, and testable. Every export below is available from `@xnetjs/plugins`.
+
+### Declared capabilities are enforced
+
+A `FeatureModule` declares a `capabilities` grant. At install, the registry hands the plugin a `NodeStore` wrapped by a guard, so a write outside the grant throws a `CapabilityError` — the declaration is a runtime gate, not a label.
+
+```ts
+import { defineFeatureModule } from '@xnetjs/plugins'
+
+export const KanbanModule = defineFeatureModule({
+  id: 'com.acme.kanban',
+  name: 'Kanban Board',
+  version: '1.0.0',
+  capabilities: {
+    schemaWrite: ['xnet://xnet.fyi/Task@*'], // may write any Task version…
+    network: ['api.acme.com'] //               …and reach only this host
+  }
+})
+// Inside activate(ctx): ctx.store.create({ schemaId: 'xnet://xnet.fyi/Secret@1.0.0' })
+// → throws CapabilityError — Secret is outside the grant.
+```
+
+Patterns: exact (`…/Task@1.0.0`), version-wildcard (`…/Task@*`), authority-wildcard (`…/fyi/*`), or `*` (all — rendered as a danger in the consent dialog). Reads default open; declare `schemaRead` to restrict them.
+
+### Provenance, trust tier, and install consent
+
+A plugin's trust tier follows its **provenance** (where it came from), never anything it declares about itself. Pass `provenance` to `install`; the registry derives the tier and prompts for consent when needed.
+
+```ts
+import { evaluateInstallConsent } from '@xnetjs/plugins'
+
+await registry.install(manifest, {
+  provenance: 'marketplace', // → marketplace tier (iframe sandbox)
+  hostVersion: '0.7.0', //       gates on manifest.xnetVersion
+  onConsent: async (decision) => {
+    // decision.lines describes each requested capability (danger-flagged)
+    return confirm(decision.lines.map((l) => l.text).join('\n'))
+  }
+})
+```
+
+`deriveTrustTier`/`requiresCapabilityReprompt` map provenance to tier and consent: `builtin`→first-party, `authored`/`ai-generated`/`imported`/`synced`→user, `marketplace`→marketplace. Synced and marketplace installs always re-prompt — sync is not consent.
+
+### Version compatibility and dependencies
+
+Declare a host requirement with `xnetVersion` (a semver range) and other plugins with `dependencies`. Install gates on both.
+
+```ts
+defineFeatureModule({
+  id: 'com.acme.app',
+  name: 'App',
+  version: '1.0.0',
+  xnetVersion: '>=0.6.0', // satisfiesRange / isHostCompatible
+  dependencies: { 'com.acme.core': '^1.2.0' } // resolveInstallOrder / findMissingDependencies
+})
+```
+
+### Marketplace index and supply-chain provenance
+
+The marketplace is a GitHub-hosted `registry.json` of `MarketplaceEntry`s. `MarketplaceClient` fetches once and searches in memory; `verifyProvenance` checks a Sigstore-style attestation and **fails closed** (no verifier configured ⇒ "unverified", never a false green).
+
+```ts
+import { MarketplaceClient, verifyProvenance } from '@xnetjs/plugins'
+
+const market = new MarketplaceClient({ indexUrl: REGISTRY_URL })
+const results = await market.search('tasks', { sort: 'installs', category: 'productivity' })
+const { verified, reason } = await verifyProvenance({ artifactDigest, provenance })
+```
+
+### Testing a plugin
+
+`createTestPluginHarness` wires an in-memory store into a real `PluginRegistry`, so you can install a manifest and assert on its contributions without the app.
+
+```ts
+import { createTestPluginHarness } from '@xnetjs/plugins'
+
+const harness = createTestPluginHarness()
+await harness.install(KanbanModule)
+expect(harness.registry.get('com.acme.kanban')?.status).toBe('active')
+expect(harness.registry.getContributions().slashCommands.getAll()).toHaveLength(1)
+```

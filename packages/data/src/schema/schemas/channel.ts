@@ -16,6 +16,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { checkbox, created, createdBy, person, relation, select, text } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const CHANNEL_KINDS = ['channel', 'dm', 'voice'] as const
 export type ChannelKind = (typeof CHANNEL_KINDS)[number]
@@ -76,7 +77,9 @@ export const ChannelSchema = defineSchema({
     createdAt: created(),
     createdBy: createdBy()
   },
-  document: undefined
+  document: undefined,
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 export type Channel = InferNode<(typeof ChannelSchema)['_properties']>

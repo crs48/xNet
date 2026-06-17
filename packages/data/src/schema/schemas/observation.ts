@@ -13,6 +13,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, number, select, json, date, relation } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const ObservationSchema = defineSchema({
   name: 'Observation',
@@ -74,7 +75,9 @@ export const ObservationSchema = defineSchema({
       ] as const,
       default: 'private'
     })
-  }
+  },
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 /** An Observation node type (inferred from schema). */

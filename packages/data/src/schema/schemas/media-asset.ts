@@ -3,6 +3,7 @@
  */
 
 import type { InferNode } from '../types'
+import { presets } from '../../auth'
 import { defineSchema } from '../define'
 import { file, number, select, text } from '../properties'
 
@@ -37,7 +38,9 @@ export const MediaAssetSchema = defineSchema({
     /** Natural height when known */
     height: number({ integer: true, min: 0 })
   },
-  document: undefined
+  document: undefined,
+  // Standalone/personal content: owner-only by default (exploration 0192).
+  authorization: presets.private()
 })
 
 export type MediaAsset = InferNode<(typeof MediaAssetSchema)['_properties']>
