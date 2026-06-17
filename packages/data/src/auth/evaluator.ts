@@ -478,17 +478,33 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       return decision
     }
 
+    // `getAuthMode` returns 'legacy' exactly when the schema has no
+    // authorization block; the `!authorization` disjunct is redundant at
+    // runtime but lets the compiler narrow `authorization` to defined below.
     const mode = getAuthMode(schema.schema)
-    if (mode === 'legacy') {
-      const allowed = node.createdBy === input.subject
-      const decision = this.decision(input, allowed, allowed ? ['owner'] : [], start)
-      this.cache.set(input.subject, input.action, input.nodeId, decision)
-      this.emitDecision(decision)
-      return decision
-    }
-
-    if (!schema.schema.authorization) {
-      const decision = this.deny(input, ['DENY_NO_ROLE_MATCH'], start)
+    if (mode === 'legacy' || !schema.schema.authorization) {
+      // Owner is always allowed.
+      if (node.createdBy === input.subject) {
+        const decision = this.decision(input, true, ['owner'], start)
+        this.cache.set(input.subject, input.action, input.nodeId, decision)
+        this.emitDecision(decision)
+        return decision
+      }
+      // Non-owner: fall through to the grant index so hub/share grants still
+      // apply. Returning a flat deny here (the old behavior) silently ignored
+      // valid grants, making any shared legacy-schema node invisible to its
+      // collaborators (exploration 0192, Landmine #1).
+      const grant = this.findMatchingGrant(
+        input,
+        this.grantIndex?.findGrants(input.nodeId, input.subject) ?? []
+      )
+      if (grant) {
+        const decision = this.decision(input, true, [], start, [grant.id])
+        this.cache.set(input.subject, input.action, input.nodeId, decision)
+        this.emitDecision(decision)
+        return decision
+      }
+      const decision = this.deny(input, ['DENY_NO_ROLE_MATCH', 'DENY_NO_GRANT'], start)
       this.emitDecision(decision)
       return decision
     }

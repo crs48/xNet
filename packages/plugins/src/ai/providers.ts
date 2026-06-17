@@ -170,6 +170,13 @@ export interface AIProviderOptions {
   apiKeyRequired?: boolean
   /** Capability overrides for routing */
   capabilities?: Partial<AIModelCapabilities>
+  /**
+   * Send the Anthropic browser-CORS header
+   * (`anthropic-dangerous-direct-browser-access`) so a bring-your-own-key call
+   * succeeds from browser JavaScript. Only `AnthropicProvider` reads this.
+   * Defaults to `true` when a DOM is present (`typeof window !== 'undefined'`).
+   */
+  allowBrowser?: boolean
 }
 
 export type OpenAICompatibleProviderOptions = AIProviderOptions
@@ -345,6 +352,7 @@ export class AnthropicProvider implements AIProvider {
   private model: string
   private maxTokens: number
   private temperature: number
+  private allowBrowser: boolean
 
   constructor(options: AIProviderOptions) {
     if (!options.apiKey) {
@@ -355,6 +363,7 @@ export class AnthropicProvider implements AIProvider {
     this.model = options.model ?? 'claude-sonnet-4-20250514'
     this.maxTokens = options.maxTokens ?? 2048
     this.temperature = options.temperature ?? 0.3
+    this.allowBrowser = options.allowBrowser ?? typeof window !== 'undefined'
   }
 
   getCapabilities(): AIModelCapabilities {
@@ -378,7 +387,10 @@ export class AnthropicProvider implements AIProvider {
         headers: {
           'content-type': 'application/json',
           'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
+          'anthropic-version': '2023-06-01',
+          // Anthropic blocks browser requests unless this header opts in to
+          // direct (CORS) access. Required for the BYO-key web chat path.
+          ...(this.allowBrowser ? { 'anthropic-dangerous-direct-browser-access': 'true' } : {})
         },
         body: JSON.stringify({
           model: this.model,

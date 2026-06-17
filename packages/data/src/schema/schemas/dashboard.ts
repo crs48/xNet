@@ -17,6 +17,7 @@ import type { SavedViewDescriptor } from '../../store/query-ast'
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { json, relation, select, text } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 /** Refresh policy for a widget's query subscription. */
 export type DashboardWidgetRefresh = 'live' | 'on-open' | { intervalMs: number }
@@ -120,7 +121,9 @@ export const DashboardSchema = defineSchema({
       ] as const,
       default: 'inherit'
     })
-  }
+  },
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 /**

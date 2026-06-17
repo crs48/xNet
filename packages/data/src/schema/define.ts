@@ -16,8 +16,9 @@ import type {
   InferNode
 } from './types'
 import type { AuthorizationDefinition } from '@xnetjs/core'
-import { validateAuthorization, serializeAuthorization } from '../auth'
+import { validateAuthorization, serializeAuthorization, warnLegacySchema } from '../auth'
 import { createNodeId } from './node'
+import { isAuthExemptSchema } from './schemas/auth-exempt'
 
 /**
  * Default schema version when not specified.
@@ -150,6 +151,16 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
     extends: options.extends?.schema['@id'],
     document: options.document,
     authorization: options.authorization ? serializeAuthorization(options.authorization) : undefined
+  }
+
+  // ─── Dev-time guard rail: every schema should declare an authorization block
+  // (or be on the intentional auth-exempt allowlist). Without one the engine
+  // treats nodes as owner-only "legacy" mode (exploration 0192). The coverage
+  // test enforces this in CI; this warning surfaces it while authoring in the
+  // dev server. Gated to `development` (not merely non-production) so the many
+  // ad-hoc minimal schemas defined inside test suites don't spam warnings.
+  if (process.env.NODE_ENV === 'development' && !isAuthExemptSchema(schemaId)) {
+    warnLegacySchema(schema)
   }
 
   // Validation function

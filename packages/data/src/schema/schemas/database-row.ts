@@ -15,6 +15,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, relation } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const DatabaseRowSchema = defineSchema({
   name: 'DatabaseRow',
@@ -46,7 +47,9 @@ export const DatabaseRowSchema = defineSchema({
    * Only created when the row has rich text columns.
    * Each rich text column gets its own Y.XmlFragment in the doc.
    */
-  document: 'yjs'
+  document: 'yjs',
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization('database')
 })
 
 /**

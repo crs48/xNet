@@ -734,7 +734,10 @@ export {
   describeRoleResolver,
   type PermissionMatrix,
   type ActionPermission,
-  type RoleSummary
+  type RoleSummary,
+  schemaToHubPolicy,
+  hubActionsForSpaceRole,
+  type HubPolicy
 } from './auth'
 
 // Blob service

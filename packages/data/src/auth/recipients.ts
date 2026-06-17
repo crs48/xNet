@@ -38,7 +38,25 @@ export async function computeRecipients(
   const recipients = new Set<Recipient>()
   recipients.add(node.createdBy)
 
+  // Grant-index recipients apply regardless of whether the schema declares
+  // roles: a node shared purely via a hub/share grant must still reach its
+  // grantees, including legacy (authorization-less) schemas. Folding this in
+  // for every path fixes the owner-only lockout (exploration 0192, Landmine #3).
+  const addGrantRecipients = () => {
+    const grants = dependencies.grantIndex?.findGrantsForResource(node.id) ?? []
+    for (const grant of grants) {
+      const actions = parseGrantActions(grant.properties.actions)
+      if (actions.includes('read') || actions.includes('write')) {
+        const grantee = grant.properties.grantee
+        if (typeof grantee === 'string' && grantee.startsWith('did:key:')) {
+          recipients.add(grantee as DID)
+        }
+      }
+    }
+  }
+
   if (!schema.authorization) {
+    addGrantRecipients()
     return [...recipients]
   }
 
@@ -46,6 +64,7 @@ export async function computeRecipients(
   const readExpr = auth.actions.read
 
   if (!readExpr) {
+    addGrantRecipients()
     return [...recipients]
   }
 
@@ -64,16 +83,7 @@ export async function computeRecipients(
     }
   }
 
-  const grants = dependencies.grantIndex?.findGrantsForResource(node.id) ?? []
-  for (const grant of grants) {
-    const actions = parseGrantActions(grant.properties.actions)
-    if (actions.includes('read') || actions.includes('write')) {
-      const grantee = grant.properties.grantee
-      if (typeof grantee === 'string' && grantee.startsWith('did:key:')) {
-        recipients.add(grantee as DID)
-      }
-    }
-  }
+  addGrantRecipients()
 
   return [...recipients]
 }

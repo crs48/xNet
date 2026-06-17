@@ -10,6 +10,7 @@
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, relation, select } from '../properties'
+import { spaceCascadeAuthorization } from './space-authorization'
 
 export const CanvasSchema = defineSchema({
   name: 'Canvas',
@@ -44,7 +45,9 @@ export const CanvasSchema = defineSchema({
       default: 'inherit'
     })
   },
-  document: 'yjs' // Collaborative Y.Doc for canvas data (nodes, edges)
+  document: 'yjs', // Collaborative Y.Doc for canvas data (nodes, edges)
+  // Inherits access from its home Space (exploration 0181/0192).
+  authorization: spaceCascadeAuthorization()
 })
 
 /**

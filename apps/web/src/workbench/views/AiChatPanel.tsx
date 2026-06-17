@@ -19,8 +19,6 @@ import {
   createAiAgentRuntime,
   createPromptApiProvider,
   detectConnectors,
-  pickBestConnector,
-  writeModeFor,
   type AiAgentRuntime,
   type AIProvider,
   type ConnectorDetection,
@@ -33,6 +31,7 @@ import {
   applyRuntimeEvent,
   canSendMessage,
   errorMessage,
+  pickUsableConnector,
   providerConfigForConnector,
   type AiChatSettings,
   type CloudProvider
@@ -54,7 +53,9 @@ const writeSetting = (key: string, value: string): void => {
 
 export function AiChatPanel() {
   const [detections, setDetections] = useState<ConnectorDetection[]>([])
-  const [selectedTier, setSelectedTier] = useState<ConnectorTier | null>(null)
+  const [selectedTier, setSelectedTier] = useState<ConnectorTier | null>(
+    () => (readSetting(AI_CHAT_STORAGE_KEYS.tier) as ConnectorTier) || null
+  )
   const [apiKey, setApiKey] = useState(() => readSetting(AI_CHAT_STORAGE_KEYS.apiKey))
   const [cloudProvider, setCloudProvider] = useState<CloudProvider>(
     () => (readSetting(AI_CHAT_STORAGE_KEYS.cloudProvider) as CloudProvider) || 'anthropic'
@@ -83,13 +84,21 @@ export function AiChatPanel() {
     []
   )
 
+  // Persist the selected tier so the choice survives a reload.
+  const selectTier = useCallback((tier: ConnectorTier) => {
+    setSelectedTier(tier)
+    writeSetting(AI_CHAT_STORAGE_KEYS.tier, tier)
+  }, [])
+
   // Detect connectors (re-runs when the key changes so cloud-key flips available).
+  // Auto-select only a tier we can actually instantiate (never the webllm trap);
+  // a previously chosen tier is kept as-is.
   useEffect(() => {
     let cancelled = false
     void detectConnectors({ hasCloudKey: () => apiKey.length > 0 }).then((result) => {
       if (cancelled) return
       setDetections(result)
-      setSelectedTier((current) => current ?? pickBestConnector(result)?.tier ?? null)
+      setSelectedTier((current) => current ?? pickUsableConnector(result)?.tier ?? null)
     })
     return () => {
       cancelled = true
@@ -97,7 +106,6 @@ export function AiChatPanel() {
   }, [apiKey])
 
   const selected = detections.find((d) => d.tier === selectedTier) ?? null
-  const writeMode = selected ? writeModeFor(selected.toolCalling) : null
 
   // (Re)build the runtime when the active connector/settings change.
   useEffect(() => {
@@ -148,8 +156,8 @@ export function AiChatPanel() {
       <ConnectorBar
         detections={detections}
         selectedTier={selectedTier}
-        onSelect={setSelectedTier}
-        writeMode={writeMode}
+        onSelect={selectTier}
+        hasSelection={!!selected}
       />
       {selected?.tier === 'cloud-key' && (
         <CloudKeyFields
@@ -189,7 +197,7 @@ function ChatBody({ messages, streaming }: { messages: ChatMessage[]; streaming:
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-3 text-center text-ink-3">
         <Bot size={22} strokeWidth={1.5} />
-        <p className="text-xs">Chat with an AI that can help manage your workspace.</p>
+        <p className="text-xs">Chat with an AI using your own model or API key.</p>
         <p className="text-[11px]">
           Your model runs locally or on your own key — never on our servers.
         </p>
@@ -266,12 +274,12 @@ function ConnectorBar({
   detections,
   selectedTier,
   onSelect,
-  writeMode
+  hasSelection
 }: {
   detections: ConnectorDetection[]
   selectedTier: ConnectorTier | null
   onSelect: (tier: ConnectorTier) => void
-  writeMode: 'agentic' | 'propose-only' | null
+  hasSelection: boolean
 }) {
   return (
     <div className="flex items-center gap-2 border-b border-hairline px-3 py-2">
@@ -287,22 +295,22 @@ function ConnectorBar({
           </option>
         ))}
       </select>
-      {writeMode && <WriteModeBadge writeMode={writeMode} />}
+      {hasSelection && <CapabilityBadge />}
     </div>
   )
 }
 
-function WriteModeBadge({ writeMode }: { writeMode: 'agentic' | 'propose-only' }) {
-  const title =
-    writeMode === 'agentic'
-      ? 'This model can call tools, so it can apply changes (with approval).'
-      : 'This model proposes changes for you to apply.'
+// Phase 0: the in-app chat is reply-only on every tier because the workspace
+// tool surface (AiSurfaceService) is not yet wired into the runtime. Until then
+// we don't advertise "agentic" — that would over-promise. Reintroduce a
+// tool-calling badge once tools are passed to the runtime (Phase 1).
+function CapabilityBadge() {
   return (
     <span
-      title={title}
+      title="This assistant replies in chat. Acting on your workspace is coming soon."
       className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-3"
     >
-      {writeMode}
+      chat
     </span>
   )
 }
@@ -319,23 +327,28 @@ function CloudKeyFields({
   onProvider: (value: CloudProvider) => void
 }) {
   return (
-    <div className="flex gap-2 border-b border-hairline px-3 py-2">
-      <select
-        value={cloudProvider}
-        onChange={(event) => onProvider(event.target.value as CloudProvider)}
-        className="rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none"
-      >
-        <option value="anthropic">Anthropic</option>
-        <option value="openai">OpenAI</option>
-        <option value="openrouter">OpenRouter</option>
-      </select>
-      <input
-        type="password"
-        value={apiKey}
-        placeholder="API key (stored locally)"
-        onChange={(event) => onApiKey(event.target.value)}
-        className="min-w-0 flex-1 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
-      />
+    <div className="flex flex-col gap-1 border-b border-hairline px-3 py-2">
+      <div className="flex gap-2">
+        <select
+          value={cloudProvider}
+          onChange={(event) => onProvider(event.target.value as CloudProvider)}
+          className="rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none"
+        >
+          <option value="anthropic">Anthropic</option>
+          <option value="openai">OpenAI</option>
+          <option value="openrouter">OpenRouter</option>
+        </select>
+        <input
+          type="password"
+          value={apiKey}
+          placeholder="API key"
+          onChange={(event) => onApiKey(event.target.value)}
+          className="min-w-0 flex-1 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
+        />
+      </div>
+      <p className="text-[10px] text-ink-3">
+        Stored in this browser and sent only to {cloudProvider} — never to our servers.
+      </p>
     </div>
   )
 }
