@@ -308,7 +308,7 @@ export function CommandPalette({
             // Animation
             'opacity-0 scale-95',
             'data-[open]:opacity-100 data-[open]:scale-100',
-            'transition-all duration-normal ease-out',
+            'transition-[opacity,transform] duration-normal ease-out',
             'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
             'data-[ending-style]:duration-fast',
             className

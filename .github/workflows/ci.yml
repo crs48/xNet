@@ -47,6 +47,9 @@ jobs:
       - name: Plugin license policy (0196)
         run: pnpm check:plugin-licenses
 
+      - name: Motion vocabulary (0198)
+        run: pnpm check:motion-vocab
+
   # The heavy half of the old lint job: build the workspace and typecheck it.
   # typecheck genuinely needs `^build` (turbo builds dependencies first), so it
   # stays coupled to the build. Runs in parallel with `lint`, `test`, and

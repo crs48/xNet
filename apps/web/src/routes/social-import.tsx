@@ -1032,7 +1032,7 @@ function CommitProgressPanel({ progress }: { progress: CommitProgress }): React.
         aria-label="Commit progress"
       >
         <div
-          className="h-full rounded-full bg-primary transition-[width] duration-200"
+          className="h-full rounded-full bg-primary transition-[width] duration-slow"
           style={{ width: `${percent}%` }}
         />
       </div>

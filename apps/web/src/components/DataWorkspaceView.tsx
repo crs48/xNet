@@ -701,7 +701,7 @@ function SocialImportJobsPanel({ jobs }: { jobs: SocialImportJobProgress[] }): J
                 aria-label={`Import progress for ${job.archiveName}`}
               >
                 <div
-                  className="h-full rounded-full bg-primary transition-[width] duration-200"
+                  className="h-full rounded-full bg-primary transition-[width] duration-slow"
                   style={{ width: `${percent}%` }}
                 />
               </div>

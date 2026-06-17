@@ -55,7 +55,7 @@ export function Popover({
               'opacity-0 translate-y-1',
               'data-[open]:opacity-100 data-[open]:translate-y-0',
               'data-[ending-style]:opacity-0 data-[ending-style]:translate-y-1',
-              'transition-all duration-fast ease-out',
+              'transition-[opacity,transform] duration-fast ease-out',
               className
             )}
           >
@@ -129,7 +129,7 @@ export const PopoverPopup = React.forwardRef<
       'opacity-0 translate-y-1',
       'data-[open]:opacity-100 data-[open]:translate-y-0',
       'data-[ending-style]:opacity-0 data-[ending-style]:translate-y-1',
-      'transition-all duration-fast ease-out',
+      'transition-[opacity,transform] duration-fast ease-out',
       className
     )}
     {...props}
@@ -177,7 +177,7 @@ export const PopoverContent = React.forwardRef<
           'opacity-0 translate-y-1',
           'data-[open]:opacity-100 data-[open]:translate-y-0',
           'data-[ending-style]:opacity-0 data-[ending-style]:translate-y-1',
-          'transition-all duration-fast ease-out',
+          'transition-[opacity,transform] duration-fast ease-out',
           className
         )}
         {...props}

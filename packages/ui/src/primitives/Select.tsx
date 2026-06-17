@@ -91,7 +91,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                   // Animation
                   'opacity-0 scale-95',
                   'data-[open]:opacity-100 data-[open]:scale-100',
-                  'transition-all duration-fast ease-out',
+                  'transition-[opacity,transform] duration-fast ease-out',
                   'data-[ending-style]:opacity-0 data-[ending-style]:scale-95'
                 )}
               >
@@ -199,7 +199,7 @@ export const SelectContent = React.forwardRef<
           // Animation
           'opacity-0 scale-95',
           'data-[open]:opacity-100 data-[open]:scale-100',
-          'transition-all duration-fast ease-out',
+          'transition-[opacity,transform] duration-fast ease-out',
           'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
           className
         )}
