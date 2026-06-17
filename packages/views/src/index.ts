@@ -277,10 +277,18 @@ export {
 export {
   TaskBoard,
   TaskListGrouped,
+  buildTaskGroups,
+  orderTasks,
+  PRIORITY_ORDER,
   type TaskBoardProps,
   type TaskBoardItem,
   type TaskBoardStatusChange,
-  type TaskListGroupedProps
+  type TaskListGroupedProps,
+  type TaskGroupRef,
+  type TaskGroup,
+  type TaskGroupBy,
+  type TaskOrderBy,
+  type BuildTaskGroupsOptions
 } from './tasks/index.js'
 
 // Schema-driven forms (exploration 0190)

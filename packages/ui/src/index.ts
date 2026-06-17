@@ -231,6 +231,7 @@ export {
   type TaskPersonOption,
   type TaskChipProps,
   type TaskRowProps,
+  type TaskRowDensity,
   type TaskCardProps,
   type TaskCardMode,
   type TaskStatusIconProps,
