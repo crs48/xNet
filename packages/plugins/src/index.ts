@@ -154,8 +154,78 @@ export type {
 export { createExtensionContext } from './context'
 
 // Registry
-export type { PluginStatus, RegisteredPlugin } from './registry'
+export type { PluginStatus, RegisteredPlugin, InstallOptions } from './registry'
 export { PluginRegistry, PluginError } from './registry'
+
+// Ecosystem platform layer (exploration 0192) — capability enforcement,
+// provenance/trust, install consent, version compatibility, dependency
+// resolution, marketplace index/search, provenance verification, test harness.
+export {
+  // Capability enforcement
+  CapabilityError,
+  matchSchemaIri,
+  isSchemaWriteAllowed,
+  isSchemaReadAllowed,
+  isNetworkAllowed,
+  assertSchemaWrite,
+  assertNetwork,
+  guardStore,
+  // Provenance → trust
+  deriveTrustTier,
+  requiresCapabilityReprompt,
+  sandboxForTier,
+  // Consent
+  describeCapabilities,
+  evaluateInstallConsent,
+  shortSchemaName,
+  // Compatibility
+  parseVersion,
+  compareVersions,
+  satisfiesRange,
+  isHostCompatible,
+  hasUpdate,
+  // Dependencies
+  findMissingDependencies,
+  resolveInstallOrder,
+  DependencyCycleError,
+  // Marketplace
+  searchMarketplace,
+  sortMarketplace,
+  filterByCategory,
+  aggregateRatings,
+  MarketplaceClient,
+  MARKETPLACE_PROVENANCE,
+  // Supply-chain provenance
+  failClosedVerifier,
+  verifyProvenance,
+  summarizeProvenance,
+  // Test harness
+  createTestNodeStore,
+  createTestPluginHarness
+} from './ecosystem'
+export type {
+  InstallProvenance,
+  PluginTrustTier,
+  SandboxKind,
+  ConsentLine,
+  ConsentDecision,
+  SemVer,
+  DependencyNode,
+  MissingDependency,
+  MarketplaceEntry,
+  MarketplaceSort,
+  MarketplaceClientOptions,
+  FetchJson,
+  PluginRating,
+  RatingSummary,
+  Provenance,
+  ProvenanceResult,
+  ProvenanceVerifier,
+  VerifyProvenanceInput,
+  TestNodeStore,
+  TestPluginHarness,
+  TestHarnessOptions
+} from './ecosystem'
 
 // Schemas
 export { PluginSchema } from './schemas/plugin'
