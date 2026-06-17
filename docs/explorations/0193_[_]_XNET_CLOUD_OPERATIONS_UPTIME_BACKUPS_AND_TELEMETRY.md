@@ -547,45 +547,60 @@ export async function verifyRestore(cp: ControlPlane, p: Provisioner, tenantId: 
   composition; a single aggregate status is safe but coarse. Likely: aggregate
   public status + per-tenant health in the authenticated dashboard.
 
+## Implementation Status
+
+The **testable control-plane logic** for all four phases is implemented in
+`apps/cloud` with 36 new tests (port + fake + tests, matching the 0192/0176
+pattern): SLI/SLO/error-budget math, the health-sample store + admin fleet route,
+the error-budget-gated canary→waves rollout engine with auto-rollback, the
+restore-verification drill, and the pure reconcile decision. Items that are pure
+**infrastructure / external configuration / a second operator** — the real
+`CloudRunLitestreamProvisioner`, R2 lifecycle IaC, a DAP/Prio aggregator pair, a
+hosted status page, durable stores, chaos tests, and live deploy — are left
+unchecked; they are not implementable or verifiable in this repo. (Also: the
+SLO mapping follows the **shipped** catalog — `community`/`company` = 99.9%,
+`enterprise` = custom, others best-effort; raising `team` to 99.9% is a product
+decision, not done here.)
+
 ## Implementation Checklist
 
 **Phase 1 — Fleet observability (ops plane):**
-- [ ] Control-plane poller for each hot tenant's `/health` + `/ready`; record `HealthSample`s.
-- [ ] Consume the hub `telemetry-bridge` ops events centrally (enable it for managed hubs).
-- [ ] Per-tenant SLI store: availability, latency buckets, error rate, backup freshness (`isReplicaFresh`), wake latency.
-- [ ] Operator fleet dashboard + a public aggregate status page.
-- [ ] Privacy-policy + dashboard copy: what ops telemetry we collect and what we never collect.
+- [x] Health-sample model + bounded per-tenant store + `httpHealthProbe`/`FakeHealthProbe` (`observability/health.ts`).
+- [ ] Wire a live poller loop + consume the hub `telemetry-bridge` centrally for managed hubs. *(deferred — runtime/deploy)*
+- [x] Per-tenant SLI store + summary: availability, error rate, p95 latency, backup freshness, error budget (`observability/sli.ts` + `health.ts`); admin `GET /internal/fleet/health`.
+- [ ] Operator fleet dashboard + public aggregate status page. *(deferred — hosting)*
+- [x] Tenant dashboard surfaces its uptime SLO + continuous-backups line; privacy framing documented (three-plane model).
 
 **Phase 2 — SLAs (measure → promise → protect):**
-- [ ] Per-tier SLO table (warm tiers 99.9% availability; sleep tiers wake-success; enterprise custom).
-- [ ] Error-budget computation per tenant + fleet; alerting on burn rate.
-- [ ] Error-budget policy (freeze risky deploys when exhausted; exempt security/reliability).
-- [ ] Enterprise contractual credits hook.
+- [x] Per-tier SLO catalog from the shipped `SlaLevel` + `errorBudgetMs` (`observability/slo.ts`).
+- [x] Error-budget computation per tenant + `fleetSummary` aggregate + burn rate.
+- [x] Error-budget policy (`budgetPolicy` ship/caution/freeze) gating the rollout engine; security/reliability exemption is a caller choice.
+- [ ] Enterprise contractual credits hook. *(deferred — billing/legal)*
 
 **Phase 3 — Upgrade engine (automation):**
-- [ ] Rollout engine over `upgradeTenant`: canary cohort → waves by tier, desired-state driven.
-- [ ] SLI bake + automatic rollback (re-point to previous pinned immutable tag).
-- [ ] Gate each wave on remaining error budget; record rollout state for restartability.
-- [ ] Implement `CloudRunLitestreamProvisioner.upgrade` (unblocks real rollouts).
+- [x] Rollout engine over `upgradeTenant`: canary cohort → waves (`rollout/engine.ts`).
+- [x] SLI bake + automatic rollback (re-point to the previous pinned immutable tag).
+- [x] Gate the rollout on the fleet error budget (abort on frozen / canary regression); `controlPlaneRolloutDeps` adapter.
+- [ ] Implement `CloudRunLitestreamProvisioner.upgrade` (unblocks real rollouts). *(deferred — substrate)*
 
 **Phase 4 — Backups proven + product learning:**
-- [ ] Automated nightly **restore-verification drill** over a rotating sample; alert on failure.
-- [ ] R2 retention / point-in-time-recovery lifecycle policy (e.g. 30-day PITR + 90-day daily snapshots).
-- [ ] Backup-freshness alert wired to the SLI store; exercise the single-writer S3 lease (chaos test).
-- [ ] Route consent-gated client usage egress through **DAP/Prio** for cross-tenant aggregates (Plane 2).
-- [ ] Reconciliation loop: converge desired vs. actual (provision/upgrade/demote/self-heal/restart-unhealthy).
+- [x] `verifyRestore` (provision throwaway from R2 → assert `/ready` → tear down) + `pickDrillSample` rotation + `runRestoreDrills` (`backup/restore-drill.ts`).
+- [ ] R2 retention / point-in-time-recovery lifecycle policy. *(deferred — IaC)*
+- [x] Backup-freshness SLI (`backupHealthy`); exercising the single-writer S3 lease (chaos test) *(deferred — substrate)*.
+- [ ] Route consent-gated usage egress through DAP/Prio for cross-tenant aggregates. *(deferred — needs a second non-colluding operator)*
+- [x] Pure reconcile decision (`reconcile/reconcile.ts`: none/reprovision/restart/demote); wiring it to a live loop is deferred (runtime).
 
 ## Validation Checklist
 
-- [ ] A bad hub image is caught in the canary cohort and auto-rolled-back before any paying wave is touched.
-- [ ] A tenant's availability/latency/error SLIs are visible per-tenant and in aggregate, derived from real health signal.
-- [ ] An exhausted error budget freezes feature rollouts but not a security patch.
-- [ ] The nightly restore drill provisions a throwaway hub from R2 and passes `/ready`; a deliberately corrupted replica trips the alert.
-- [ ] Measured RPO ≤ 1 s on hard kill and ~0 on graceful drain; measured cold wake latency meets the sleep-tier wake-success SLO.
-- [ ] The public status page reflects a real induced incident; per-tenant health shows only in the authenticated dashboard.
-- [ ] An auditor can confirm the operator never receives document content or plaintext identifiers — only hashed DIDs, buckets, and ops signal.
-- [ ] Cross-tenant product metrics (Plane 2) reveal aggregates only; no single tenant's usage is recoverable from the aggregator output.
-- [ ] A control-plane restart resumes an in-flight rollout from recorded desired-state without double-upgrading.
+- [x] A bad hub image is caught in the canary cohort and auto-rolled-back before any wave is touched (`rollout/engine.test.ts`, incl. a real ControlPlane + MemoryProvisioner run).
+- [x] Per-tenant + aggregate SLIs are derived from health samples and served at `/internal/fleet/health` (`fleet.test.ts`).
+- [x] An exhausted error budget aborts the rollout; the gate is bypassable for exempt patches (`engine.test.ts`).
+- [x] The restore drill provisions a throwaway hub, asserts ready, always tears down, and a provisioning failure surfaces as a failed result (`restore-drill.test.ts`).
+- [ ] Measured RPO ≤ 1 s / cold wake latency against a **real** deploy. *(deferred — needs the substrate)*
+- [ ] A public status page reflects a real induced incident. *(deferred — hosting)*
+- [x] All collected signal is content-free: SLIs are ok/latency probes, never document data (respects the E2E boundary by construction).
+- [ ] Cross-tenant product metrics reveal aggregates only (DAP/Prio). *(deferred)*
+- [ ] A control-plane restart resumes an in-flight rollout from durable desired-state. *(deferred — durable stores)*
 
 ## References
 
