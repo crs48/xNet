@@ -87,20 +87,35 @@ gcloud services enable \
   firestore.googleapis.com \
   secretmanager.googleapis.com \
   iam.googleapis.com
+# Right after a service is enabled, its IAM permissions lag for the project owner
+# (the next call 403s with IAM_PERMISSION_DENIED). Let it settle, then retry below.
+echo "• waiting for APIs to settle"
+sleep 15
 
 # 4. Artifact Registry (Docker) -----------------------------------------------
-if ! gcloud artifacts repositories describe "$AR_REPO" --location="$AR_LOCATION" >/dev/null 2>&1; then
-  echo "• creating Artifact Registry repo $AR_REPO ($AR_LOCATION)"
+echo "• ensuring Artifact Registry repo $AR_REPO ($AR_LOCATION)"
+for attempt in $(seq 1 8); do
+  gcloud artifacts repositories describe "$AR_REPO" --location="$AR_LOCATION" >/dev/null 2>&1 && break
   gcloud artifacts repositories create "$AR_REPO" \
-    --repository-format=docker --location="$AR_LOCATION" --description="xNet hub images"
-fi
+    --repository-format=docker --location="$AR_LOCATION" --description="xNet hub images" >/dev/null 2>&1 && break
+  [ "$attempt" = "8" ] && {
+    echo "✗ Could not create the Artifact Registry repo (API/IAM still propagating?) — re-run." >&2
+    exit 1
+  }
+  sleep 10
+done
 
 # 5. Firestore (Native mode, default database) --------------------------------
-if ! gcloud firestore databases describe --database="(default)" >/dev/null 2>&1; then
-  echo "• creating Firestore database (Native mode, $REGION)"
-  gcloud firestore databases create --location="$REGION" --type=firestore-native \
-    || echo "  (continuing — Firestore database may already exist)"
-fi
+echo "• ensuring Firestore database (Native mode, $REGION)"
+for attempt in $(seq 1 8); do
+  gcloud firestore databases describe --database="(default)" >/dev/null 2>&1 && break
+  gcloud firestore databases create --location="$REGION" --type=firestore-native >/dev/null 2>&1 && break
+  [ "$attempt" = "8" ] && {
+    echo "✗ Could not create the Firestore database (API/IAM still propagating?) — re-run." >&2
+    exit 1
+  }
+  sleep 10
+done
 
 # 6. Deployer service account + least-privilege roles -------------------------
 if ! gcloud iam service-accounts describe "$SA_EMAIL" >/dev/null 2>&1; then
