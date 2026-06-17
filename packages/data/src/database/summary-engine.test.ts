@@ -4,6 +4,14 @@
 
 import { describe, it, expect } from 'vitest'
 import {
+  ROW_HEIGHT_PX,
+  ROW_HEIGHTS,
+  rowHeightLabel,
+  resolveRowHeightPx,
+  asRowHeight,
+  DEFAULT_ROW_HEIGHT
+} from './row-height'
+import {
   SUMMARY_FUNCTIONS_BY_TYPE,
   summaryFunctionLabel,
   isFilledValue,
@@ -12,14 +20,6 @@ import {
   type SummaryColumnLike,
   type SummaryFunction
 } from './summary-engine'
-import {
-  ROW_HEIGHT_PX,
-  ROW_HEIGHTS,
-  rowHeightLabel,
-  resolveRowHeightPx,
-  asRowHeight,
-  DEFAULT_ROW_HEIGHT
-} from './row-height'
 
 const rows = (...values: unknown[]): SummaryRow[] => values.map((v) => ({ cells: { c: v } }))
 const numCol: SummaryColumnLike = { id: 'c', type: 'number' }
@@ -58,7 +58,14 @@ describe('SUMMARY_FUNCTIONS_BY_TYPE', () => {
 
   it('covers every column type', () => {
     // formula/rollup/auto types still resolve to the base set
-    expect(SUMMARY_FUNCTIONS_BY_TYPE.formula).toEqual(['none', 'filled', 'empty', 'percentFilled', 'percentEmpty', 'unique'])
+    expect(SUMMARY_FUNCTIONS_BY_TYPE.formula).toEqual([
+      'none',
+      'filled',
+      'empty',
+      'percentFilled',
+      'percentEmpty',
+      'unique'
+    ])
     expect(SUMMARY_FUNCTIONS_BY_TYPE.createdBy.length).toBeGreaterThan(0)
   })
 })
@@ -164,7 +171,10 @@ describe('computeColumnSummary — date family', () => {
   })
 
   it('returns — when no parseable dates', () => {
-    expect(compute(rows('nope', null), dateCol, 'earliest')).toMatchObject({ value: null, display: '—' })
+    expect(compute(rows('nope', null), dateCol, 'earliest')).toMatchObject({
+      value: null,
+      display: '—'
+    })
   })
 })
 

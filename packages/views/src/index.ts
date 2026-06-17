@@ -252,6 +252,8 @@ export {
   type GridCallbacks,
   GridSurface,
   type GridSurfaceProps,
+  GridSummaryBar,
+  type GridSummaryBarProps,
   GridCell,
   type GridCellProps,
   GridPeek,
