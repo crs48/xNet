@@ -107,11 +107,27 @@ if ! gcloud iam service-accounts describe "$SA_EMAIL" >/dev/null 2>&1; then
   echo "• creating service account $SA_NAME"
   gcloud iam service-accounts create "$SA_NAME" --display-name="xNet Cloud deployer"
 fi
+# A freshly-created SA takes a few seconds to become visible to IAM bindings
+# (otherwise the grants below 400 with "Service account ... does not exist").
+echo "• waiting for service account to propagate"
+for attempt in $(seq 1 18); do
+  gcloud iam service-accounts describe "$SA_EMAIL" >/dev/null 2>&1 && break
+  sleep 5
+done
 echo "• granting roles to $SA_EMAIL"
 for role in run.admin artifactregistry.writer iam.serviceAccountUser \
   secretmanager.secretAccessor datastore.user; do
-  gcloud projects add-iam-policy-binding "$PROJECT" \
-    --member="serviceAccount:${SA_EMAIL}" --role="roles/${role}" --condition=None >/dev/null
+  for attempt in $(seq 1 6); do
+    if gcloud projects add-iam-policy-binding "$PROJECT" \
+      --member="serviceAccount:${SA_EMAIL}" --role="roles/${role}" --condition=None >/dev/null 2>&1; then
+      break
+    fi
+    if [ "$attempt" = "6" ]; then
+      echo "✗ Could not grant roles/${role} (SA still propagating?) — re-run the script." >&2
+      exit 1
+    fi
+    sleep 5
+  done
 done
 
 # 7. Service-account key (or skip for Workload Identity Federation) ------------
