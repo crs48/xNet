@@ -942,75 +942,79 @@ export interface ChangelogEntry {
 
 ## Implementation Checklist
 
+> **Implementation note.** Shipped as **Option D (zero new dependencies)** rather
+> than Option B: a native `<dialog>` lightbox instead of PhotoSwipe, a hand-rolled
+> CSS `input[type=range]` before/after slider instead of `<img-comparison-slider>`,
+> and a substring search instead of Fuse.js. This matches the repo's zero-dep
+> ethos, adds no lockfile/CDN/CSP surface, and the site stays framework-free. The
+> page is site-only, so no required CI check is touched.
+
 ### Phase 0 — auto-gallery from the diff manifest (centerpiece)
 
-- [ ] Add `site/src/lib/changelog-gallery.ts` with `loadPrGallery(pr)` (build-time
-  fetch of `visuals/pr/<pr>/diff-manifest.json`, filter `unchanged`, cap surfaces)
-- [ ] Resolve a gallery per entry with a `pr` in `changelog/index.astro`
+- [x] `site/src/lib/changelog-gallery.ts` — `loadPrGallery(pr)` (build-time fetch
+  of `visuals/pr/<pr>/diff-manifest.json`, filter `unchanged`, cap 12, fail-open)
+- [x] Resolve a gallery per entry with a `pr` in `changelog/index.astro`
   frontmatter (`Promise.all`, try/catch, tolerant of offline builds)
-- [ ] Render the gallery below each entry's summary (thumbnails + before/after
-  sliders + click-to-play video), falling back to `hero`/`images[]` on null
-- [ ] Add "View all N screenshots on PR #<pr>" link → durable gallery + PR thread
-- [ ] Filter out `status: "unchanged"` rows; cap at ~12 surfaces per entry
-- [ ] Verify build still succeeds when the manifest is 404 (older PRs) or the
-  network is unavailable (CI offline) — no hard failure
-- [ ] Backfill: confirm pre-0189 entries (no manifest) still render their `hero`
+- [x] `Gallery.astro` renders below each summary: before/after sliders (changed
+  surfaces), thumbnail strip (new/curated), click-to-play video (flows)
+- [x] "View all N screenshots on PR #<pr>" link → durable gallery + PR thread
+- [x] Filter out `status: "unchanged"`; cap at 12 surfaces per entry
+- [x] Build succeeds on 404 / offline — `loadPrGallery` returns null, falls back
+- [x] Pre-0189 entries (no manifest) render their `hero`/`images[]`; added a real
+  entry (xNet Cloud, #140) that exercises a live before/after slider
 
 ### Phase 1 — data model + video + filter + copy-link
 
-- [ ] Extend `ChangelogEntry` with `images?: ChangelogImage[]`, `video?: {...}`, `author?: { login: string }`, `issues?: number[]`
-- [ ] Update `validate-changelog.ts`: enforce non-empty `alt` on each `images[]` element; enforce `video.poster` is present when `video` is set
-- [ ] Fix LCP bug: first `entry.hero` should use `loading="eager"` not `loading="lazy"` in `changelog/index.astro`
-- [ ] Add `srcset` + WebP `<source>` for hero images (`<picture>` element)
-- [ ] Render `<video autoplay muted loop playsinline poster=…>` when `entry.video` is present
-- [ ] Add `prefers-reduced-motion` JS hook that pauses all `.changelog-video` elements on load
-- [ ] Add `data-tags={entry.tags.join(' ')}` attribute to each `<article>`
-- [ ] Add tag filter chip row above the timeline
-- [ ] Wire filter chips to `article.hidden` toggling via vanilla JS
-- [ ] Persist active tag in URL `?tag=X` and read it on load
-- [ ] Add copy-link `<button>` to each `<h2>` entry title using Clipboard API
-- [ ] Add `author` rendering: GitHub avatar + login link when `entry.author` is set
-- [ ] Update `buildJsonFeed()` in `changelog-feed.ts` to include `images` and `video` in JSON output
-- [ ] Update `ChangelogEntry` Zod/TypeScript types in any downstream consumers (in-app What's New)
+- [x] Extend `ChangelogEntry` with `images?`, `video?`, `author?` (issues deferred)
+- [x] `validate-changelog.ts` enforces non-empty `alt` on `hero`/`images[]`/`video`,
+  and `video.poster`/`author.login` presence
+- [x] LCP fix: first `entry.hero` uses `loading="eager"` + `fetchpriority="high"`,
+  others `lazy`
+- [x] Render click-to-play `<video controls muted loop playsinline preload="none">`
+  with a poster — sidesteps WCAG 2.2.2 (no autoplay, so no reduced-motion hook)
+- [x] `data-tags` + `data-text` on each `<article>`; tag filter chip row
+- [x] Filter chips toggle `article.hidden` via vanilla JS; active tag persisted in
+  `?tag=X` and pre-activated on load
+- [x] Client substring search input (`#cl-search`) combined with the tag filter
+- [x] Copy-link button on each `<h2>` (Clipboard API, "copied" feedback)
+- [x] Author rendering: GitHub avatar + login link when `entry.author` set
+- [x] `buildJsonFeed()` includes `author`/`images`/`video` in the `_xnet` extension
+- [ ] (Deferred) `srcset` + WebP `<picture>`; WebP output from `scripts/visuals/capture.mjs`
+- [ ] (Deferred) render the gallery in the in-app What's New surface (feed already
+  carries the fields; `parseFeed` ignores unknowns safely)
 
-### Phase 2 — gallery + before/after
+### Phase 2 — gallery + before/after (zero-dep)
 
-- [ ] Render CSS scroll-snap `<ul class="thumbnail-strip">` for entries with `entry.images`
-- [ ] Add `aria-label` to the thumbnail strip `<ul>`
-- [ ] Wrap thumbnails in `<a data-pswp-src data-pswp-width data-pswp-height>`
-- [ ] Add PhotoSwipe v5 as a bundled Astro import (not CDN) conditionally when `hasGalleryEntries`
-- [ ] Initialize PhotoSwipe on the thumbnail strip anchors
-- [ ] Detect `before`/`after` image pairs and render `<img-comparison-slider>` instead of thumbnails
-- [ ] Add `<script type="module">` import for `img-comparison-slider`
-- [ ] Add keyboard focus style to `<img-comparison-slider>` (CSS custom property override)
-- [ ] Add Fuse.js search: generate search index at build, add `<input>` island
-- [ ] Add `data-pswp-width`/`data-pswp-height` support in CI's `ai-release-notes.mjs`
-- [ ] Add WebP output to `scripts/visuals/capture.mjs`
-- [ ] Document gallery fields in `site/src/data/changelog.ts` JSDoc
+- [x] CSS scroll-snap thumbnail strip with `aria-label`
+- [x] Native `<dialog>` lightbox: prev/next, Esc-to-close, backdrop click, arrow
+  keys, focus returns to the trigger, live caption "N / M"
+- [x] Hand-rolled before/after slider: full-size `after` + clipped `before`,
+  range input (native keyboard a11y), draggable divider
+- [x] Gallery field JSDoc in `site/src/data/changelog.ts`
+- [ ] (Deferred) PhotoSwipe / `<img-comparison-slider>` / Fuse.js — the zero-dep
+  equivalents shipped; revisit only if their extra polish is wanted at scale
 
 ## Validation Checklist
 
-- [ ] For an entry with a post-0189 `pr`, the page renders a gallery sourced
-  from that PR's `diff-manifest.json` (e.g. PR #147 shows its captured surfaces)
-- [ ] `status: "unchanged"` surfaces do NOT appear in the gallery
-- [ ] An entry whose `pr` has no manifest (404) falls back to its `hero` cleanly
-- [ ] `astro build` succeeds with the network disabled (manifest fetch degrades,
-  no hard failure) — `loadPrGallery` returns null
-- [ ] "View all N screenshots on PR #<pr>" links resolve to a live gallery + PR
-- [ ] Run axe DevTools or Lighthouse accessibility audit: zero critical violations on the changelog page
-- [ ] Verify keyboard-only navigation: Tab reaches each article, Enter activates copy-link, Escape closes lightbox, Arrow keys navigate lightbox slides
-- [ ] Verify `<img-comparison-slider>` is keyboard-operable: focus the slider and use Left/Right arrow keys to move the divider
-- [ ] `prefers-reduced-motion: reduce` in OS settings: all videos pause; no carousel animation
-- [ ] LCP score: first entry hero image should be LCP element with ≥90 score in Lighthouse
-- [ ] `loading="lazy"` is absent from the first hero image; present on all others
-- [ ] Tag filter: clicking a tag hides unrelated articles; "All" restores all; `aria-pressed` state matches visual state
-- [ ] URL `?tag=crm` on page load pre-activates the CRM chip
-- [ ] Copy-link button: clicking copies the correct URL including `#` anchor
-- [ ] JSON feed (`/changelog.json`) includes `images` and `video` fields for entries that have them
-- [ ] RSS feed includes image URLs for entries with galleries
-- [ ] PhotoSwipe lightbox renders at 100vw/100vh; Escape closes it; focus returns to the trigger thumbnail
-- [ ] `<video>` renders a `poster` frame before playback; no layout shift on load
-- [ ] No console errors on a page with all new field types populated
+Verified locally (build + headless browser):
+
+- [x] PR #140's entry renders a real before/after slider sourced from its
+  `diff-manifest.json` (Settings route, before+after URLs baked into the page)
+- [x] `status: "unchanged"` surfaces do NOT appear (PR #147's all-unchanged
+  manifest yields no auto-gallery; the entry falls back to hero + curated images)
+- [x] Entries whose `pr` 404s (pre-0189) fall back to `hero` cleanly
+- [x] `loadPrGallery` returns null on fetch failure; build never hard-fails
+- [x] "View all N screenshots on PR #140" link resolves to the PR
+- [x] Tag filter hides unrelated articles, `aria-pressed` tracks state
+  (`ai` → 3 articles); "All" restores; `?tag=` persisted + re-applied on load
+- [x] Search filters by text (`dictation` → 1 article), combined with tag filter
+- [x] Copy-link copies `origin/changelog#<id>`
+- [x] Lightbox opens from a thumbnail with correct image + "1 / 2" caption,
+  closes, returns focus
+- [x] Before/after slider updates `--cl-pos` on range input (verified 20%)
+- [x] First hero is `eager`/`fetchpriority=high`; others `lazy`
+- [x] JSON feed includes `author`/`images` for entries that have them
+- [ ] (Deferred) formal axe/Lighthouse audit + keyboard-only pass + LCP score
 
 ## References
 
