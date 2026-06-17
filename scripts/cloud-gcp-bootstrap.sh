@@ -47,13 +47,28 @@ if ! gcloud projects describe "$PROJECT" >/dev/null 2>&1; then
 fi
 gcloud config set project "$PROJECT" >/dev/null
 
-# 2. Billing (Cloud Run + Artifact Registry need it) --------------------------
+# 2. Billing (Cloud Run + Artifact Registry + Firestore all require it) -------
 if [ -n "$BILLING_ACCOUNT" ]; then
-  echo "• linking billing account"
-  gcloud billing projects link "$PROJECT" --billing-account="$BILLING_ACCOUNT" >/dev/null
-else
-  echo "⚠ BILLING_ACCOUNT not set — link billing in the console or the next step fails."
+  echo "• linking billing account $BILLING_ACCOUNT"
+  gcloud billing projects link "$PROJECT" --billing-account="$BILLING_ACCOUNT"
 fi
+# Billing takes a few seconds to propagate; the API calls below 403 until it does.
+echo "• waiting for billing to be active"
+billing_enabled=""
+for attempt in $(seq 1 18); do
+  billing_enabled="$(gcloud billing projects describe "$PROJECT" \
+    --format='value(billingEnabled)' 2>/dev/null || echo '')"
+  [ "$billing_enabled" = "True" ] && break
+  sleep 5
+done
+if [ "$billing_enabled" != "True" ]; then
+  echo "✗ Billing is not active on $PROJECT." >&2
+  echo "  • Enable it: https://console.cloud.google.com/billing/enable?project=$PROJECT" >&2
+  echo "  • Check 'gcloud billing accounts list' shows OPEN: True for your account." >&2
+  echo "  • Then re-run this script (it's idempotent)." >&2
+  exit 1
+fi
+echo "  billing active ✓"
 
 # 3. Enable APIs --------------------------------------------------------------
 echo "• enabling APIs"
