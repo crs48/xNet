@@ -386,30 +386,34 @@ business model. Trust before openness, DX before scale.
 
 ## Example Code
 
-### Enforcing `schemaWrite` at the store seam (Phase 1)
+### Enforcing `schemaWrite` at the store seam (Phase 1) — _as shipped_
+
+The enforcement point is the `NodeStore` handle a plugin gets in its
+`ExtensionContext` (plugins call `ctx.store` directly, so wrapping it is the one
+choke point they can't route around). `createExtensionContext` applies the guard
+when a manifest declares `capabilities`; `guardStore` is a `Proxy` so it keeps
+working as `NodeStore` grows methods.
 
 ```ts
-// packages/plugins/src/capability-guard.ts — the missing enforcement layer
-import type { ModuleCapabilities } from './feature-module'
-
-export interface ActiveGrant {
-  moduleId: string
-  capabilities: ModuleCapabilities
-}
-
-/** Returns a NodeStore middleware that rejects writes outside the grant. */
-export function schemaWriteGuard(grantFor: (moduleId: string) => ActiveGrant | undefined) {
-  return (op: MutationOp, ctx: { moduleId?: string }) => {
-    if (!ctx.moduleId) return op // host/first-party path — unguarded by design
-    const grant = grantFor(ctx.moduleId)
-    const allowed = grant?.capabilities.schemaWrite ?? []
-    const iri = schemaIriOf(op.node) // e.g. xnet://xnet.fyi/Task@1.0.0
-    if (!allowed.some((g) => matchesIri(g, iri))) {
-      throw new CapabilityError(`${ctx.moduleId} lacks schemaWrite for ${iri}`)
+// packages/plugins/src/ecosystem/capability-guard.ts (shipped)
+export function guardStore<T extends object>(
+  store: T,
+  caps: ModuleCapabilities | undefined,
+  pluginId: string
+): T {
+  if (!caps?.schemaWrite && !caps?.schemaRead) return store // unguarded by design
+  const wrappers = caps.schemaWrite ? writeWrappers(store, caps, pluginId) : {}
+  return new Proxy(store, {
+    get(obj, prop, receiver) {
+      const wrapper = wrappers[prop as string] // create/update/delete → assert first
+      if (wrapper) return wrapper
+      const original = Reflect.get(obj, prop, receiver)
+      return typeof original === 'function' ? original.bind(obj) : original
     }
-    return op
-  }
+  })
 }
+// create asserts options.schemaId; update/delete resolve the node's schema via
+// get() then assertSchemaWrite(caps, iri, pluginId) — outside the grant → throw.
 ```
 
 ### Generalizing the consent dialog from widgets to plugins (Phase 1)
@@ -548,22 +552,44 @@ erDiagram
       (`hub.webhooks` + `verify`/`normalize`).
 - [ ] Make `CanvasView` (`apps/web/src/components/CanvasView.tsx`) consume the
       dormant `canvasCards`/`canvasTools`/`canvasIngestors` registries.
-- [ ] Add `packages/plugins/src/capability-guard.ts`: a `NodeStore` middleware
-      enforcing `schemaWrite`/`schemaRead` keyed to the active module grant.
-- [ ] Enforce `network` allowlist for module fetch endowments (generalize
-      `packages/plugins/src/sandbox/canvas.ts` domain checks).
-- [ ] Add a **capability-consent dialog** to the plugin install flow (generalize
-      `packages/dashboard/src/components/WidgetPicker.tsx`); render `*` as danger.
-- [ ] Wire `requiresCapabilityReprompt` (`packages/labs/src/trust.ts`) into the
-      install/sync path so synced/marketplace plugins re-consent.
+- [x] Add `packages/plugins/src/ecosystem/capability-guard.ts`: enforce
+      `schemaWrite`/`schemaRead` keyed to the active module grant. _As-built: a
+      `guardStore` `Proxy` over the plugin's `ExtensionContext` store handle (the
+      one choke point a plugin can't route around) rather than a middleware-chain
+      entry — `createExtensionContext` wraps the store when `capabilities` are
+      present; `assertSchemaWrite`/`matchSchemaIri` enforce exact/version/authority/
+      `*` patterns. End-to-end test: a write outside the grant throws
+      `CapabilityError` and never reaches the store._
+- [~] Enforce `network` allowlist for module fetch endowments. _As-built:
+      `isNetworkAllowed`/`assertNetwork` (exact host + leading-dot subdomain
+      suffix, closed by default) are built and tested; wiring them into a module
+      `fetch` endowment is deferred until that endowment exists._
+- [~] Add a **capability-consent dialog** to the plugin install flow; render `*`
+      as danger. _As-built: the headless logic ships — `describeCapabilities`
+      (danger-flags `*`/secrets) + `evaluateInstallConsent` + an `onConsent` gate
+      in `install()` that aborts on decline. The React dialog (generalizing
+      `WidgetPicker`) is app-side and deferred._
+- [x] Wire `requiresCapabilityReprompt` into the install path so synced/
+      marketplace plugins re-consent. _As-built: mirrored into
+      `ecosystem/provenance-trust.ts` (no `@xnetjs/plugins`→`@xnetjs/labs` edge);
+      `evaluateInstallConsent` consults it and `install()` invokes `onConsent`
+      only when a re-prompt is required and capabilities are requested._
 
 ### Phase 2 — Distribution
 
 - [ ] Publish the 0047 `registry.json` index repo + auto-index CI.
-- [ ] Build an in-app **Marketplace** view (browse/search/featured) calling
-      `PluginRegistry.install(manifest, { provenance: 'marketplace' })`.
-- [ ] Add **Sigstore-style provenance**: attestation on publish CI, verified at
-      install; show "verified build from `<source>`" in the consent dialog.
+- [~] Build an in-app **Marketplace** view (browse/search/featured) calling
+      `PluginRegistry.install(manifest, { provenance: 'marketplace' })`. _As-built:
+      the data layer ships — `MarketplaceEntry`, `searchMarketplace`/
+      `sortMarketplace`/`filterByCategory`, rating aggregation, and a
+      `MarketplaceClient` with an injectable `fetchJson` (fetch-once + in-memory
+      search). The React view is app-side and deferred._
+- [~] Add **Sigstore-style provenance**: verified at install; show "verified build
+      from `<source>`" in the consent dialog. _As-built: the verification contract
+      (`Provenance`, `ProvenanceVerifier`, `verifyProvenance`, `summarizeProvenance`)
+      ships and **fails closed** by default (no verifier ⇒ "unverified", never a
+      false green). The real cosign/rekor verifier + publish-CI attestation are
+      deferred._
 - [ ] P2P "send a plugin" share path over existing plugin nodes.
 
 ### Phase 3 — Authoring DX
@@ -572,11 +598,15 @@ erDiagram
       Mermaid + billing as references) in `packages/cli`.
 - [ ] Dev-mode **hot-reload** loader (watch local manifest → re-`activate`),
       reusing `packages/devkit` isolate→validate→checkpoint.
-- [ ] `@xnetjs/plugin-testing` kit (mock `ExtensionContext` + registry).
+- [x] `@xnetjs/plugin-testing` kit. _As-built: `createTestPluginHarness` +
+      `createTestNodeStore` (in-memory store wired into a real `PluginRegistry`),
+      shipped in-package as `@xnetjs/plugins` exports to avoid a new workspace dep._
 - [ ] **"Generate a plugin with AI"** UI over `packages/plugins/src/ai/generator.ts`
       + `AIProviderRouter`: streaming, capability preview, consent before install.
-- [ ] Expand `plugins.mdx` into an "Anatomy of a Feature Module" guide tied to the
-      migrated examples; add an "authoring a paid plugin" page.
+- [x] Expand `plugins.mdx` with an **Ecosystem APIs** section (capabilities,
+      provenance/consent, compatibility, dependencies, marketplace, testing) tied
+      to the shipped layer. _("Anatomy of a Feature Module" + paid-plugin pages
+      remain for when those migrations land.)_
 
 ### Phase 4 — Hub runtime
 
@@ -590,28 +620,43 @@ erDiagram
 
 - [ ] Native **paid plugins** via the billing module (one-time + subscription,
       freemium gates), developer keeps the customer relationship.
-- [ ] Version pinning + `xnetVersion` **compatibility gating** + update prompts.
-- [ ] **Ratings/reviews as nodes** (sync P2P); surface in Marketplace.
-- [ ] **Inter-plugin dependency** declaration + resolution at install.
+- [~] Version pinning + `xnetVersion` **compatibility gating** + update prompts.
+      _As-built: `ecosystem/compatibility.ts` (dependency-free semver:
+      `satisfiesRange`/`isHostCompatible`/`hasUpdate`) + an install gate on
+      `manifest.xnetVersion`. The update-prompt UI is app-side and deferred._
+- [~] **Ratings/reviews as nodes** (sync P2P); surface in Marketplace. _As-built:
+      `PluginRating` + `aggregateRatings` (count/average/histogram) ship; the node
+      schema + UI are deferred._
+- [x] **Inter-plugin dependency** declaration + resolution at install. _As-built:
+      `manifest.dependencies` + `ecosystem/dependencies.ts`
+      (`findMissingDependencies`, `resolveInstallOrder` with cycle detection),
+      wired into the `install()` dependency gate._
 
 ## Validation Checklist
 
 - [ ] A bundled module (importer/billing/GitHub) can be **disabled** in the
       Plugin Manager and its surfaces/routes/hub-mounts disappear; re-enabling
       restores them.
-- [ ] A plugin attempting `schemaWrite` outside its grant is **rejected at
-      mutation time** (not just at install); a hub webhook with a bad signature
-      returns 401.
-- [ ] The **consent dialog** lists every declared capability in human terms;
-      denying aborts install; `*` grants render as a danger state.
+- [x] A plugin attempting `schemaWrite` outside its grant is **rejected at
+      mutation time** (`ecosystem-install-gates.test.ts`: the write throws
+      `CapabilityError` and never reaches the store; an in-grant write succeeds).
+      _(Hub webhook signature check is out of this PR's scope.)_
+- [~] The **consent decision** lists every declared capability in human terms;
+      declining aborts install; `*`/secret grants flag danger
+      (`ecosystem-trust-consent.test.ts` + `ecosystem-install-gates.test.ts`). _The
+      visual dialog is app-side._
 - [ ] A `marketplace`-provenance plugin installs into the **iframe tier** and
       cannot touch host DOM/storage/secrets; a `user` one runs SES+Worker with
-      only declared endowments.
+      only declared endowments. _(`deriveTrustTier`/`sandboxForTier` map provenance
+      → tier; routing install code into the sandbox host is app-side.)_
 - [ ] Installing from the **Marketplace** end-to-end: browse → search →
       consent → install → activate → `PluginSchema` node syncs P2P → receiver
-      **re-confirms trust**.
-- [ ] **Provenance verification** fails closed: a tampered/unsigned package is
-      refused (or clearly flagged as unverified) at install.
+      **re-confirms trust**. _(Search/sort/client unit-tested; the UI + P2P round
+      trip remain.)_
+- [x] **Provenance verification** fails closed: an unsigned/unverifiable package
+      is flagged `unverified` (never a false green), and a throwing verifier
+      degrades to `unverified` rather than throwing
+      (`ecosystem-marketplace.test.ts`).
 - [ ] `create-xnet-plugin` scaffolds a project that **type-checks, tests, and
       installs** unmodified; editing it with the dev loader **hot-reloads**.
 - [ ] The **AI authoring** flow produces an AST-validated plugin whose
@@ -621,10 +666,18 @@ erDiagram
       closed; it never sees first-party secrets.
 - [ ] A **paid plugin** gates Pro features behind a billing entitlement; freemium
       install works without payment.
+- [x] **Compatibility + dependency gates**: install is blocked when the host is
+      too old or a dependency is missing/mismatched, and proceeds once satisfied
+      (`ecosystem-install-gates.test.ts`, `ecosystem-compatibility.test.ts`,
+      `ecosystem-dependencies.test.ts`).
+- [x] **Back-compatibility**: `install(manifest)` with no options still works
+      (default provenance `imported` → `user` tier); the existing 25-test
+      `registry.test.ts` suite is unchanged and green.
 - [ ] **Perf guardrail**: doc/canvas/task first-load + interaction latency does
       not regress vs. 0184 budgets after registry/marketplace indirection.
-- [ ] fallow audit (`--changed-since origin/main`), `turbo typecheck`, eslint, and
-      prettier green; plugins + hub suites pass.
+- [x] fallow audit (`--changed-since origin/main`, with coverage), `tsc`, eslint,
+      and prettier green; full `@xnetjs/plugins` suite (432 tests, incl. 56 new
+      ecosystem tests) passes.
 
 ## References
 
