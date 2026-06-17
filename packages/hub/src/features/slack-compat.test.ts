@@ -5,13 +5,12 @@
  */
 
 import type { Env } from './broker'
-import type { SlackDelivery } from './slack-compat'
 import type { MiddlewareHandler } from 'hono'
+import { signSlackRequest } from '@xnetjs/slack-compat'
 import { Hono } from 'hono'
 import { describe, expect, it, vi } from 'vitest'
-import { signSlackRequest } from '@xnetjs/slack-compat'
-import { slackCompatFeature, type SlackCompatPorts } from './slack-compat'
 import { mountFeatures } from './registry'
+import { slackCompatFeature, type SlackCompatPorts, type SlackDelivery } from './slack-compat'
 
 const noopAuth: MiddlewareHandler = async (_c, next) => {
   await next()
@@ -106,7 +105,10 @@ describe('slack-compat — Tier 1 slash commands', () => {
   }
 
   it('verifies the signature and returns the handler response', async () => {
-    const handleCommand = vi.fn(() => ({ response_type: 'in_channel' as const, text: 'deploying web' }))
+    const handleCommand = vi.fn(() => ({
+      response_type: 'in_channel' as const,
+      text: 'deploying web'
+    }))
     const app = mount(basePorts({ handleCommand }), { SLACK_SIGNING_SECRET: SECRET })
     const res = await app.request('/slack/commands', {
       method: 'POST',
@@ -115,7 +117,9 @@ describe('slack-compat — Tier 1 slash commands', () => {
     })
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ response_type: 'in_channel', text: 'deploying web' })
-    expect(handleCommand).toHaveBeenCalledWith(expect.objectContaining({ command: '/deploy', text: 'web' }))
+    expect(handleCommand).toHaveBeenCalledWith(
+      expect.objectContaining({ command: '/deploy', text: 'web' })
+    )
   })
 
   it('returns a default ephemeral reply when no handler is wired', async () => {

@@ -74,10 +74,19 @@ describe('verifySlackSignature', () => {
   })
 
   it('rejects missing secret, timestamp, or signature', () => {
-    const base = { timestamp: String(TS), signature: validSignature(), rawBody: BODY, nowSeconds: TS }
+    const base = {
+      timestamp: String(TS),
+      signature: validSignature(),
+      rawBody: BODY,
+      nowSeconds: TS
+    }
     expect(verifySlackSignature({ ...base, signingSecret: undefined })).toBe(false)
-    expect(verifySlackSignature({ ...base, signingSecret: SECRET, timestamp: undefined })).toBe(false)
-    expect(verifySlackSignature({ ...base, signingSecret: SECRET, signature: undefined })).toBe(false)
+    expect(verifySlackSignature({ ...base, signingSecret: SECRET, timestamp: undefined })).toBe(
+      false
+    )
+    expect(verifySlackSignature({ ...base, signingSecret: SECRET, signature: undefined })).toBe(
+      false
+    )
   })
 
   it('rejects a non-numeric timestamp', () => {

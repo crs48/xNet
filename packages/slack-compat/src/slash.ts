@@ -20,9 +20,7 @@ function field(source: URLSearchParams | Record<string, string>, key: string): s
 }
 
 /** Parse a Slack slash-command body (urlencoded string or decoded record). */
-export function parseSlashCommand(
-  body: string | Record<string, string>
-): SlackSlashCommand {
+export function parseSlashCommand(body: string | Record<string, string>): SlackSlashCommand {
   const source = typeof body === 'string' ? new URLSearchParams(body) : body
   const command: SlackSlashCommand = {
     command: field(source, 'command') ?? '',

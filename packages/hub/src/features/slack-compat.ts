@@ -20,14 +20,18 @@
  */
 
 import type { HubFeature } from './types'
-import type { NormalizedSlackMessage, SlackSlashCommand, SlackSlashResponse } from '@xnetjs/slack-compat'
-import { Hono } from 'hono'
+import type {
+  NormalizedSlackMessage,
+  SlackSlashCommand,
+  SlackSlashResponse
+} from '@xnetjs/slack-compat'
 import {
   formatSlashResponse,
   normalizeIncomingWebhook,
   parseSlashCommand,
   verifySlackSignature
 } from '@xnetjs/slack-compat'
+import { Hono } from 'hono'
 import { isRecord } from '../utils/validation'
 
 /** A normalized incoming-webhook message plus the URL token it arrived on. */
@@ -65,7 +69,8 @@ export function slackCompatFeature(ports: SlackCompatPorts): HubFeature {
         if (!context) return c.json({ error: 'Unknown webhook', code: 'UNKNOWN_HOOK' }, 404)
 
         const body: unknown = await c.req.json().catch(() => null)
-        if (!isRecord(body)) return c.json({ error: 'Invalid JSON payload', code: 'INVALID_INPUT' }, 400)
+        if (!isRecord(body))
+          return c.json({ error: 'Invalid JSON payload', code: 'INVALID_INPUT' }, 400)
 
         const normalized = normalizeIncomingWebhook(body)
         if (!normalized.channelHint && context.channelHint) {
@@ -80,7 +85,10 @@ export function slackCompatFeature(ports: SlackCompatPorts): HubFeature {
       routes.post('/commands', async (c) => {
         const secret = env[ENV_SIGNING_SECRET]
         if (!secret) {
-          return c.json({ error: 'Slack signing secret is not configured', code: 'NOT_CONFIGURED' }, 503)
+          return c.json(
+            { error: 'Slack signing secret is not configured', code: 'NOT_CONFIGURED' },
+            503
+          )
         }
         const rawBody = await c.req.text()
         const ok = verifySlackSignature({
@@ -89,11 +97,14 @@ export function slackCompatFeature(ports: SlackCompatPorts): HubFeature {
           signature: c.req.header('x-slack-signature'),
           rawBody
         })
-        if (!ok) return c.json({ error: 'Invalid request signature', code: 'INVALID_SIGNATURE' }, 401)
+        if (!ok)
+          return c.json({ error: 'Invalid request signature', code: 'INVALID_SIGNATURE' }, 401)
 
         const command = parseSlashCommand(rawBody)
         if (!ports.handleCommand) {
-          return c.json(formatSlashResponse({ text: `\`${command.command}\` is not handled here.` }))
+          return c.json(
+            formatSlashResponse({ text: `\`${command.command}\` is not handled here.` })
+          )
         }
         return c.json(await ports.handleCommand(command))
       })

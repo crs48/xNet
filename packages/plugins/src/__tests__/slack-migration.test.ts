@@ -7,13 +7,13 @@
 
 import type { ConnectorFetch, ConnectorStore } from '../connectors/define-connector'
 import { describe, it, expect, vi } from 'vitest'
+import { runConnectorSync } from '../connectors'
 import {
   buildSlackConnector,
   CHANNEL_SCHEMA,
   CHAT_MESSAGE_SCHEMA,
   SLACK_CONNECTOR_ID
 } from '../connectors/slack-migration'
-import { runConnectorSync } from '../connectors'
 
 /** In-memory store recording every create, returning stable ids. */
 function memStore(): ConnectorStore & {

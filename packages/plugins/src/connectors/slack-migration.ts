@@ -16,8 +16,8 @@
 
 import type { AgentToolContribution } from '../agent-tools'
 import type { ConnectorSyncContext, DefinedConnector } from './define-connector'
-import { blockKitToMarkdown, slackMrkdwnToMarkdown } from '@xnetjs/slack-compat'
 import type { SlackBlock } from '@xnetjs/slack-compat'
+import { blockKitToMarkdown, slackMrkdwnToMarkdown } from '@xnetjs/slack-compat'
 import { defineConnector } from './define-connector'
 
 /** Default reverse-domain id; matches the worked example in the connector docs. */

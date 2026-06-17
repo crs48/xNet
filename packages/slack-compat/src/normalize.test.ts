@@ -14,10 +14,7 @@ describe('legacyAttachmentsToMarkdown', () => {
           pretext: 'New *deploy*',
           title: 'web',
           text: 'shipped <https://x|build 42>',
-          fields: [
-            { title: 'env', value: 'prod' },
-            { value: 'no-title' }
-          ]
+          fields: [{ title: 'env', value: 'prod' }, { value: 'no-title' }]
         }
       ])
     ).toBe('New **deploy**\n**web**\nshipped [build 42](https://x)\n**env**: prod\nno-title')

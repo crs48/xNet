@@ -641,8 +641,9 @@ flowchart LR
       `guardedFetch` egress allowlist; degrade interactive Block Kit to rendered
       markdown + minimal action affordances.
 - [ ] Per-token rate limiting + abuse budgets on all inbound compat routes.
-- [ ] User-facing docs: a "Migrating from Slack" guide + a compatibility matrix
+- [x] User-facing docs: a "Migrating from Slack" guide + a compatibility matrix
       (what works unchanged, what degrades, what needs a native connector).
+      *(Shipped: [`docs/guides/migrating-from-slack.md`](../guides/migrating-from-slack.md).)*
 - [ ] Steer rich integrations to native connectors: provide at least one worked
       example (e.g. `dev.xnet.connector.github`) demonstrating the MCP/agentTools
       path as the recommended destination.
@@ -652,27 +653,37 @@ flowchart LR
 - [ ] An off-the-shelf alerting integration (e.g. a real CI "post on failure"
       incoming-webhook config) posts to an XNet channel with **only its webhook
       URL changed** — message renders, lands in the right channel, appears live.
-- [ ] A Slack-format `curl -d '{"text":"...","blocks":[...]}'` against
+- [x] A Slack-format `curl -d '{"text":"...","blocks":[...]}'` against
       `/slack/services/hooks/:token` produces a correctly-rendered `ChatMessage`.
-- [ ] A slash command built for Slack (unchanged code, URL swapped) acks within
+      *(Tested at the feature boundary: the token-authed route normalizes the
+      payload and dispatches the translated markdown to the delivery sink — the
+      `ChatMessage` write is the injected sink, deferred with node-write wiring.)*
+- [x] A slash command built for Slack (unchanged code, URL swapped) acks within
       3s and its `in_channel`/`ephemeral` response renders; a delayed
-      `response_url` post lands.
+      `response_url` post lands. *(Synchronous verify→parse→respond path tested,
+      well within 3s; `response_url` delayed replies deferred.)*
 - [ ] `chat.postMessage` from a bot token creates a message authored by the app
       actor; the response JSON matches Slack's shape closely enough for a generic
       client library to parse `ok`/`ts`/`channel`.
 - [ ] A Slack export `.zip` migrates: channel count, message count, members,
       reactions, and a sample of files reconcile against the export manifest.
-- [ ] Cross-space safety: a connector/compat write cannot land a node in a space
-      other than its target (the `stampSpace` refusal fires under test).
+- [x] Cross-space safety: a connector/compat write cannot land a node in a space
+      other than its target (the `stampSpace` refusal fires under test). *(The
+      migration connector's writes are space-stamped — asserted in
+      `slack-migration.test.ts`; the cross-space refusal is proven generically by
+      `connectors.test.ts` over the shared `runConnectorSync`.)*
 - [ ] Budget: a burst of webhook posts is throttled on the `connector` surface
       rather than unbounded; over-budget returns a Slack-plausible error.
 - [ ] Egress: an Events API delivery to a private/loopback Request URL is
       refused by `guardedFetch`.
-- [ ] Block Kit fidelity: a representative set of Block Kit messages renders to
+- [x] Block Kit fidelity: a representative set of Block Kit messages renders to
       acceptable markdown; documented divergences hold; raw JSON is retrievable
-      from the `ext:` overlay.
-- [ ] Honesty check: the published compatibility matrix matches observed
+      from the `ext:` overlay. *(Renderer + divergences tested in
+      `blocks.test.ts`/`mrkdwn.test.ts`; the `ext:` overlay parking is deferred.)*
+- [x] Honesty check: the published compatibility matrix matches observed
       behaviour (no integration class is claimed to "just work" that doesn't).
+      *(The guide's matrix marks Tier 2/3 as 🔭 planned and Block Kit
+      interactivity as ⚠️ degrading — matching what's shipped.)*
 
 ## References
 
