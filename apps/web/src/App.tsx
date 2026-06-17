@@ -44,6 +44,7 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
+import { persistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
@@ -76,10 +77,15 @@ declare module '@tanstack/react-router' {
 const DEFAULT_HUB_URL =
   import.meta.env.VITE_HUB_URL ?? (import.meta.env.DEV ? '' : 'wss://hub.xnet.fyi')
 
+// A hub the user connected via Settings or the xNet Cloud claim flow (persisted in
+// localStorage) wins over the build-time default — this is the read half of that
+// setting, without which "connect your cloud hub" did nothing (exploration 0192).
+const resolveConfiguredHubUrl = (): string => persistedHubUrl(DEFAULT_HUB_URL)
+
 if (typeof console !== 'undefined') {
   console.info(
     '[xNet] hub:',
-    DEFAULT_HUB_URL || '(none — local-first; set VITE_HUB_URL to connect to a hub)'
+    resolveConfiguredHubUrl() || '(none — local-first; set a hub in Settings or VITE_HUB_URL)'
   )
 }
 
@@ -126,13 +132,13 @@ function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | 
       stripParams('payload', 'handle')
     }
     if (!shareSession) {
-      return { hubUrl: DEFAULT_HUB_URL, authToken: null }
+      return { hubUrl: resolveConfiguredHubUrl(), authToken: null }
     }
 
     const stored = sessionStorage.getItem(`xnet:share-session:${shareSession}`)
     stripParams('shareSession')
     if (!stored) {
-      return { hubUrl: DEFAULT_HUB_URL, authToken: null }
+      return { hubUrl: resolveConfiguredHubUrl(), authToken: null }
     }
 
     sessionStorage.removeItem(`xnet:share-session:${shareSession}`)
@@ -146,7 +152,7 @@ function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | 
       !Number.isFinite(session.exp) ||
       session.exp <= Date.now()
     ) {
-      return { hubUrl: DEFAULT_HUB_URL, authToken: null }
+      return { hubUrl: resolveConfiguredHubUrl(), authToken: null }
     }
 
     return { hubUrl: session.endpoint, authToken: session.token }

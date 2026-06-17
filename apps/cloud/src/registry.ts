@@ -27,12 +27,20 @@ export interface TenantRecord {
   lastActiveMs: number
   /** `hot` = live hub; `cold` = DB lives only in R2, restored on reactivation. */
   dataTier: 'hot' | 'cold'
+  /**
+   * Subscription lifecycle from the billing provider's view. `active` while paid;
+   * `canceled` after a cancel webhook (hub suspended, R2 retained until deleted).
+   * Undefined for tenants provisioned by the internal/admin route.
+   */
+  subscriptionStatus?: 'active' | 'canceled'
 }
 
 export interface TenantStore {
   get(tenantId: string): Promise<TenantRecord | null>
   put(record: TenantRecord): Promise<void>
   list(): Promise<TenantRecord[]>
+  /** Forget a tenant entirely (the "delete my data" path). */
+  delete(tenantId: string): Promise<void>
 }
 
 export class MemoryTenantStore implements TenantStore {
@@ -49,5 +57,9 @@ export class MemoryTenantStore implements TenantStore {
 
   async list(): Promise<TenantRecord[]> {
     return [...this.records.values()].map((r) => ({ ...r }))
+  }
+
+  async delete(tenantId: string): Promise<void> {
+    this.records.delete(tenantId)
   }
 }
