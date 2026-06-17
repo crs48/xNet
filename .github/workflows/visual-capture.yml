@@ -79,8 +79,23 @@ jobs:
       - name: Build Storybook
         run: pnpm build:stories
 
-      - name: Install Playwright Chromium
+      # Cache the Chromium binary (~/.cache/ms-playwright), keyed on the pinned
+      # @playwright/test version + browser set. OS deps aren't in this path, so
+      # on a hit we still run install-deps (apt only). (Exploration 0193.)
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.58.1-chromium
+
+      - name: Install Playwright Chromium (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
 
       # ffmpeg is NOT preinstalled on ubuntu-latest; diff.mjs (SSIM +
       # blend=difference) and flow GIF/MP4 encoding both shell out to it.
@@ -202,8 +217,23 @@ jobs:
       - name: Build Storybook
         run: pnpm build:stories
 
-      - name: Install Playwright Chromium
+      # Cache the Chromium binary (~/.cache/ms-playwright), keyed on the pinned
+      # @playwright/test version + browser set. OS deps aren't in this path, so
+      # on a hit we still run install-deps (apt only). (Exploration 0193.)
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.58.1-chromium
+
+      - name: Install Playwright Chromium (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
 
       # ffmpeg is NOT preinstalled on ubuntu-latest; diff.mjs (SSIM +
       # blend=difference) and flow GIF/MP4 encoding both shell out to it.

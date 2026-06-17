@@ -57,7 +57,22 @@ runs:
     - run: pnpm install --frozen-lockfile
       shell: bash
 
+    # Cache the compiled better-sqlite3 native binary so we don't re-fetch /
+    # rebuild it in every job. The .node ABI is fixed by (OS, arch, Node major),
+    # and the resolved version by the lockfile — keying on all four guarantees a
+    # restored binary matches this runner, so a hit is always safe to use.
+    # (Exploration 0193.)
+    - name: Cache better-sqlite3 build
+      id: sqlite-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build
+          node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/prebuilds
+        key: bsqlite-${{ runner.os }}-${{ runner.arch }}-node${{ inputs.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}
+
     - name: Rebuild better-sqlite3 for correct Node version
+      if: steps.sqlite-cache.outputs.cache-hit != 'true'
       run: |
         echo "Node version: $(node --version)"
         echo "Removing cached better-sqlite3 binary..."
