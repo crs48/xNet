@@ -413,21 +413,28 @@ export const AGENTS = {
 
 ## Implementation Checklist
 
-**Phase 0 — daemon skeleton + detection (Electron)**
-- [ ] Export `bridgeHealth` / `handleBridgeRun` from `@xnetjs/devkit` (logic
-      exists in `bridge.ts`; confirm it's in the package barrel).
-- [ ] New `apps/electron/src/main/agent-bridge-manager.ts` serving `GET /health`
-      on `:31416` (mirror `cloudflare-tunnel-manager.ts` lifecycle).
-- [ ] Start/stop it in `apps/electron/src/main/index.ts` boot/quit; add
-      preload IPC (`xnet:agent-bridge:status/start/stop`).
-- [ ] Verify the panel's `bridge` tier flips to "available."
+**Phase 0 — daemon skeleton + detection + facade chat** — ✅ shipped
+- [x] Export the bridge daemon pieces from `@xnetjs/devkit`: `bridgeHealth`
+      (already), plus the new `createBridgeServer` + `ChatAgent`/`cliChatAgent`.
+- [x] `createBridgeServer` (in devkit) serves `GET /health` on `:31416` so the
+      panel detects the bridge tier; `apps/electron/src/main/agent-bridge-manager.ts`
+      runs it on boot (mirrors `cloudflare-tunnel-manager` lifecycle), gated on a
+      `--version` probe so it only advertises when the agent CLI is runnable.
+- [x] Start/stop in `apps/electron/src/main/index.ts` boot/quit; preload IPC
+      (`window.xnetAgentBridge` → `xnet:agent-bridge:status/start/stop`).
+- [x] **Facade chat (the quick win):** `POST /v1/chat/completions` (OpenAI-compatible,
+      streaming SSE + one-shot) backed by the user's own `claude -p` / `codex exec`
+      CLI — so the existing `bridge` tier (which maps to `openai-compatible`) chats
+      through the agent with **zero panel changes**.
+- [ ] Verify in a running Electron build that the tier flips to "available" and a
+      prompt round-trips (covered by unit tests; not exercised in CI).
 
-**Phase 1 — Claude Code via ACP, read-only**
+**Phase 1 — Claude Code via ACP, read-only** — deferred (facade shipped instead)
 - [ ] Add a minimal ACP client (JSON-RPC/stdio) in the bridge.
 - [ ] Spawn `@zed-industries/claude-code-acp`; `initialize` → `session/new`
-      declaring the `xnet` MCP server (stdio, `--api-url :31415`).
-- [ ] Stream `session/prompt` → forward `session/update` text deltas to the panel
-      (behind the existing openai-compatible facade for the quick win).
+      declaring the `xnet` MCP server (stdio, `--api-url :31415`) — so the agent
+      can read/edit the workspace via MCP rather than only chatting.
+- [ ] Stream `session/update` natively (graduate off the OpenAI-compatible facade).
 
 **Phase 2 — writes + approvals**
 - [ ] Map ACP `session/request_permission` → `AiAgentRuntime.requestApproval` +
@@ -441,33 +448,39 @@ export const AGENTS = {
 - [ ] Per-agent adapter args + smoke test each.
 
 **Phase 4 — web + code/plugins**
-- [ ] `xnet bridge serve` standalone daemon (reuse MCP HTTP hardening: pairing
-      token, Origin allowlist, PNA) so the web deployment drives the same bridge.
+- [x] `xnet bridge serve [--agent claude|codex] [--port] [--allow-origin] [--cwd]`
+      standalone daemon — loopback-only bind, Origin allowlist, Private Network
+      Access — so the web deployment drives the same bridge. (Pairing-token gate
+      deferred; loopback + Origin allowlist is the current protection.)
 - [ ] Expose devkit `runAgentTask` (worktree → gate → PR) and the plugin
       scaffolder as agent-invokable "code" tasks; wire "create/edit plugin" from
       the UI.
-- [ ] Surface honest unavailability when no local daemon/agent is present.
+- [ ] Surface honest unavailability when no local daemon/agent is present (the
+      Electron manager already records a `detail` reason; surface it in the panel).
 
 ## Validation Checklist
 
+- [x] The daemon serves `/health` (so the tier detects) and a streaming
+      OpenAI-compatible chat endpoint that drives the agent CLI — covered by
+      `bridge-server.test.ts` (real ephemeral server, SSE, agent error → 502).
 - [ ] With the Electron app running and `claude` installed, the panel shows
       **Local bridge — available** and a prompt round-trips through Claude Code.
-- [ ] Asking "summarize my workspace" causes the agent to call `xnet_search` /
-      read tools (visible in logs) and answer from real data.
-- [ ] Asking "create a page titled X with these sections" produces a **mutation
-      plan + approval**, and on approve the page exists in the workspace.
-- [ ] "Build a canvas of …" and "add a row to database …" work via the
-      corresponding `xnet_*` tools with approval.
-- [ ] Switching the agent to **Codex** (and **OpenCode/Kimi**) works with no
-      panel changes beyond the registry selection.
-- [ ] The **web** deployment, with `xnet bridge serve` running locally, drives the
-      same agent (loopback, pairing token, no CORS errors).
-- [ ] "Create a plugin that …" scaffolds/edits plugin code via `runAgentTask`
-      (worktree), passes the validation gate, and opens a PR / installs locally.
-- [ ] **No subscription token is ever read by XNet** — the agent CLI
-      authenticates itself (verify by inspecting what the bridge spawns/sends).
-- [ ] Bridge daemon refuses non-loopback binds; pairing token + Origin allowlist
-      enforced on the web path.
+      *(Needs a packaged build + installed CLI; not exercised in CI.)*
+- [x] Switching the agent CLI is a config choice (`--agent` / `XNET_BRIDGE_AGENT`):
+      Codex uses `['exec','{prompt}']`, others the Claude headless default —
+      covered by `chat-agent.test.ts` + `bridge.test.ts`.
+- [x] The **web** deployment can drive the bridge via `xnet bridge serve` on
+      loopback (Origin allowlist + Private Network Access; no CORS errors for an
+      allowed origin) — covered by the preflight/origin tests.
+- [x] **No subscription token is ever read by XNet** — the bridge spawns the
+      user's own CLI, which authenticates itself (BYO-agent by construction).
+- [x] Bridge daemon refuses non-loopback binds; Origin allowlist enforced —
+      covered by `bridge-server.test.ts`. *(Pairing-token gate deferred.)*
+- [ ] (ACP/Phase 1+) Asking "summarize my workspace" / "create a page" drives the
+      `xnet_*` MCP tools with approval and edits the workspace — deferred until
+      the agent is wired to XNet's MCP server (ACP `session/new mcpServers`).
+- [ ] (Phase 4) "Create a plugin that …" scaffolds/edits plugin code via
+      `runAgentTask` (worktree → gate → PR).
 
 ## References
 
