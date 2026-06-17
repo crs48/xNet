@@ -459,9 +459,11 @@ export const AGENTS = {
 - [x] Expose devkit `runAgentTask` as a command: `xnet code "<intent>"`
       (worktree → gate → checkpoint/rollback → optional `--pr`), so an agent can
       author/edit xNet or a scaffolded plugin from the CLI.
-- [ ] Wire "create/edit plugin" into the in-app UI (e.g. the bridge daemon's
-      `/run` endpoint over devkit `handleBridgeRun`) + combine with the plugin
-      scaffolder.
+- [x] Bridge daemon `POST /run` endpoint over devkit `handleBridgeRun`
+      (opt-in via `xnet bridge serve --code`; 501 when disabled) — the HTTP seam
+      the in-app UI will call to trigger a gated code task.
+- [ ] Wire a "create/edit plugin" button in the UI to `POST /run` + combine with
+      the plugin scaffolder.
 - [ ] Surface honest unavailability when no local daemon/agent is present (the
       Electron manager already records a `detail` reason; surface it in the panel).
 
