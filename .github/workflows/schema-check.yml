@@ -8,6 +8,11 @@ on:
       - 'packages/data/src/schema/**'
       - 'packages/*/src/schemas/**'
 
+# Cancel superseded runs when a PR is updated (exploration 0193).
+concurrency:
+  group: schema-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
