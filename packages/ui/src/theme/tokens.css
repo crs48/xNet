@@ -218,6 +218,33 @@
     --surface-1: 0 0% 0%;
     --surface-2: 0 0% 3.9%;
   }
+
+  /* Linear variant (exploration 0198): opt-in violet accent.
+     Honors the 0166 monochrome doctrine — surfaces and ink stay neutral;
+     only the focus/selection/primary accent gains Linear's signature
+     blue-violet (#5E6AD2). Default chrome remains hue-free. */
+  [data-variant='linear'] {
+    --accent-ink: 231 56% 60%; /* #5E6AD2 */
+    --primary: 231 56% 60%;
+    --primary-hover: 231 56% 66%;
+    --primary-active: 231 56% 54%;
+    --primary-muted: 231 56% 94%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 231 56% 60%;
+  }
+  .light[data-variant='linear'] {
+    --accent: 231 56% 95%;
+    --accent-foreground: 231 50% 42%;
+    --sidebar-accent: 231 56% 95%;
+    --sidebar-accent-foreground: 231 50% 42%;
+  }
+  .dark[data-variant='linear'] {
+    --primary-muted: 231 40% 18%;
+    --accent: 231 38% 18%;
+    --accent-foreground: 231 60% 82%;
+    --sidebar-accent: 231 38% 18%;
+    --sidebar-accent-foreground: 231 60% 82%;
+  }
 }
 
 @layer base {

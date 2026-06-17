@@ -1,5 +1,5 @@
 export { TaskChip, type TaskChipProps } from './TaskChip'
-export { TaskRow, type TaskRowProps } from './TaskRow'
+export { TaskRow, type TaskRowProps, type TaskRowDensity } from './TaskRow'
 export { TaskCard, type TaskCardProps, type TaskCardMode } from './TaskCard'
 export {
   TaskStatusIcon,

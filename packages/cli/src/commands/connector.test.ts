@@ -28,6 +28,7 @@ describe('connector scaffold', () => {
     const paths = writeScaffoldFiles(files, '/tmp/slack', io).sort()
 
     expect(paths).toEqual([
+      'LICENSE',
       'README.md',
       'package.json',
       'src/index.test.ts',
