@@ -553,12 +553,22 @@ classDiagram
 
 ### Phase 3 — AI in the editor
 
-- [ ] Add an `ai` editor extension package surface: `/ai` slash command + a
-      selection toolbar button that build an `AiMutationPlan` via `AiSurfaceService`.
+- [~] Add an `ai` editor surface: `/ai` slash command + selection-toolbar
+      transforms. _As-built: `packages/editor/src/extensions/ai/ai-commands.ts` —
+      `AI_INTENTS` (improve/rewrite/summarize/expand/shorten/fix-grammar),
+      `applyAiTransform(editor, intent, deps)` (read selection → injected
+      `AiTransformFn` → replace via `insertContentAt`, errors routed to `onError`
+      never thrown), and `createAiSlashCommands(deps)` (one slash item per intent).
+      Exported via `@xnetjs/editor/extensions`; tested with a fake editor (6
+      tests). The transform is **injected** (provider-agnostic). The selection
+      toolbar button + the `AiSurfaceService`/BYO-model wiring are app-side._
 - [ ] Diff + approval UI before applying; wire apply through
-      `editor.commands.insertContentAt` / structural edits.
-- [ ] Offline/local-model path via the 0174 BYO-model connectors; honest "AI
-      unavailable" state.
+      `editor.commands.insertContentAt` / structural edits. _(`applyAiTransform`
+      does the apply; the diff/approval UI is app-side.)_
+- [~] Offline/local-model path via the 0174 BYO-model connectors; honest "AI
+      unavailable" state. _As-built: the provider-agnostic injected `AiTransformFn`
+      is the seam — the host can supply a local/offline transform; the connector
+      wiring + unavailable-state UI are app-side._
 
 ### Phase 4 — Editor seams + smart marketplace
 
@@ -600,9 +610,11 @@ classDiagram
 - [x] The AI→Lab→Plugin pipeline refuses unvalidated generations, stops at
       run-failed / declined without publishing, and publishes only after consent
       (`ecosystem-ai-pipeline.test.ts`).
-- [ ] `/ai` in the editor rewrites a selection through an `AiMutationPlan` with a
-      visible diff + approval; declining makes no change; offline degrades
-      gracefully.
+- [~] `applyAiTransform` reads the selection, runs the injected transform, and
+      replaces the selection with the result; a no-selection call is a no-op and a
+      transform error is routed to `onError` (never thrown at the editor)
+      (`ai-commands.test.ts`). _The visible diff/approval UI + offline-state UI are
+      app-side._
 - [x] A plugin contributes a **mentionProvider** that adds a new `@`/`[[` entity
       type; two providers on one trigger are ordered + deduped, and a slow/throwing
       provider can't block or break the menu (`mention-providers.test.ts`). _(The
