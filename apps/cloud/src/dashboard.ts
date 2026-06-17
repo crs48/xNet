@@ -164,9 +164,26 @@ const STYLE = `
   ol { margin: 0 0 16px; padding-left: 20px; } ol li { margin-bottom: 6px; }
 `
 
+/** Wrap inner HTML in the shared dark-themed document chrome. */
+function page(title: string, who: string, inner: string): string {
+  return `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${esc(title)}</title>
+<style>${STYLE}</style>
+</head><body><div class="wrap">
+  <header>
+    <span class="brand">xNet Cloud</span>
+    <span class="who">${esc(who)} · <a href="/logout" style="color:#9ca3af">Sign out</a></span>
+  </header>
+  ${inner}
+</div></body></html>`
+}
+
 /** Render the full dashboard HTML document. */
 export function renderDashboard(view: DashboardView): string {
-  const who = view.email ? esc(view.email) : esc(view.billingUserId)
+  const who = view.email ?? view.billingUserId
   const body = view.tenant
     ? `${hubCard(view.tenant)}${connectCard(view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}`
     : `<div class="card">
@@ -174,19 +191,47 @@ export function renderDashboard(view: DashboardView): string {
          <p class="muted">Pick a plan to spin up your dedicated hub. You can change or cancel any time.</p>
          ${planPicker(view)}
        </div>`
-  return `<!doctype html>
-<html lang="en"><head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>xNet Cloud — Dashboard</title>
-<style>${STYLE}</style>
-</head><body><div class="wrap">
-  <header>
-    <span class="brand">xNet Cloud</span>
-    <span class="who">${who} · <a href="/logout" style="color:#9ca3af">Sign out</a></span>
-  </header>
-  <h1>Dashboard</h1>
-  <p class="lead">Manage your managed hub, billing, and data.</p>
-  ${body}
-</div></body></html>`
+  return page(
+    'xNet Cloud — Dashboard',
+    who,
+    `<h1>Dashboard</h1>
+     <p class="lead">Manage your managed hub, billing, and data.</p>
+     ${body}`
+  )
+}
+
+/** Render the device-grant approval form (the dashboard side of "claim your hub"). */
+export function renderClaimForm(opts: { who: string; prefill?: string; error?: string }): string {
+  const err = opts.error ? `<p style="color:#fbbf24">${esc(opts.error)}</p>` : ''
+  return page(
+    'xNet Cloud — Connect a device',
+    opts.who,
+    `<h1>Connect a device</h1>
+     <p class="lead">Enter the code shown in your xNet app to link it to your hub.</p>
+     <div class="card">
+       ${err}
+       <form method="post" action="/claim">
+         <label style="display:block;margin-bottom:10px;color:#9ca3af;font-size:14px">Device code</label>
+         <input name="userCode" value="${esc(opts.prefill ?? '')}" placeholder="ABCD-7K2P" autocapitalize="characters" autocomplete="off"
+           style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid #2a2a33;background:#0d0d12;color:#e5e7eb;font-size:16px;letter-spacing:0.1em;margin-bottom:14px" />
+         <button type="submit">Approve device</button>
+       </form>
+     </div>`
+  )
+}
+
+/** Render the result after approving (or failing to find) a device code. */
+export function renderClaimResult(opts: { who: string; ok: boolean }): string {
+  const inner = opts.ok
+    ? `<div class="card">
+         <h2>Device approved <span class="badge badge-ok">Done</span></h2>
+         <p class="muted">Return to your xNet app — it will finish connecting to your hub automatically.</p>
+         <a class="btn" href="/dashboard">Back to dashboard</a>
+       </div>`
+    : `<div class="card">
+         <h2>Code not found</h2>
+         <p class="muted">That code is unknown or has expired. Restart the connection from your app and try again.</p>
+         <a class="btn" href="/claim">Try again</a>
+       </div>`
+  return page('xNet Cloud — Connect a device', opts.who, `<h1>Connect a device</h1>${inner}`)
 }

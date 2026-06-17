@@ -178,6 +178,29 @@ export class ControlPlane {
   }
 
   /**
+   * Bind a data DID to a billing identity's tenant — the second half of the
+   * device-grant "claim your hub" flow (exploration 0192). Dual proof: the
+   * billing session was proven when the user approved the device code; the DID is
+   * proven now by the signed challenge. Stamps the DID onto the tenant record.
+   */
+  async bindDataIdentity(args: {
+    billingUserId: string
+    challenge: DidChallenge
+  }): Promise<TenantRecord> {
+    const tenant = await this.getTenantForBilling(args.billingUserId)
+    if (!tenant) throw new Error(`No tenant for billing user: ${args.billingUserId}`)
+    await bindIdentities(this.deps.bindings, this.deps.verifyDid, {
+      tenantId: tenant.tenantId,
+      billingUserId: args.billingUserId,
+      challenge: args.challenge,
+      nowMs: this.now()
+    })
+    const updated: TenantRecord = { ...tenant, did: args.challenge.did }
+    await this.deps.tenants.put(updated)
+    return updated
+  }
+
+  /**
    * Suspend a tenant on subscription cancellation: tear down the live machine but
    * keep the record and the R2 replica so a re-subscribe can reactivate it. The
    * encrypted data is retained until the user explicitly deletes it.

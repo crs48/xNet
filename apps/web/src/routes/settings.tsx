@@ -22,7 +22,8 @@ import {
   User,
   UserRound,
   Wifi,
-  ShieldCheck
+  ShieldCheck,
+  Cloud
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { ProfileSettings } from '../comms/ProfileSettings'
@@ -30,7 +31,12 @@ import { ContentSafetySettings } from '../components/ContentSafetySettings'
 import { PluginManager } from '../components/PluginManager'
 import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
+import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { logout } from '../lib/identity'
+
+/** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
+const CLOUD_MARKETING_URL = 'https://xnet.fyi/cloud'
+const CLOUD_DASHBOARD_URL = 'https://cloud.xnet.fyi/dashboard'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage
@@ -355,21 +361,20 @@ function DataSettings() {
 const DEFAULT_HUB_URL = import.meta.env.VITE_HUB_URL || 'wss://hub.xnet.fyi'
 
 function NetworkSettings() {
-  const [hubUrl, setHubUrl] = useState(() => {
-    if (typeof window === 'undefined') return DEFAULT_HUB_URL
-    return localStorage.getItem('xnet:hub-url') || DEFAULT_HUB_URL
-  })
+  const [hubUrl, setHubUrl] = useState(() =>
+    typeof window === 'undefined' ? DEFAULT_HUB_URL : persistedHubUrl(DEFAULT_HUB_URL)
+  )
   const [saved, setSaved] = useState(false)
 
   const handleSave = useCallback(() => {
-    localStorage.setItem('xnet:hub-url', hubUrl)
+    setPersistedHubUrl(hubUrl)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }, [hubUrl])
 
   const handleReset = useCallback(() => {
     setHubUrl(DEFAULT_HUB_URL)
-    localStorage.removeItem('xnet:hub-url')
+    setPersistedHubUrl('')
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }, [])
@@ -420,6 +425,37 @@ function NetworkSettings() {
         <code className="font-mono">hub.xnet.fyi</code> is provided for convenience, but you can run
         your own signaling server.
       </p>
+
+      <SettingsGroup label="xNet Cloud">
+        <SettingRow
+          label="Managed hub"
+          description="Don't want to run a server? xNet Cloud hosts a dedicated hub for you — backed up, always reachable, and yours alone."
+        >
+          <a
+            href={CLOUD_MARKETING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={QUIET_BUTTON}
+          >
+            <Cloud size={14} strokeWidth={1.5} />
+            See plans
+          </a>
+        </SettingRow>
+
+        <SettingRow
+          label="Connect a cloud hub"
+          description="Already subscribed? Open your dashboard and choose “Approve a device”, then enter the code shown when you connect from this app."
+        >
+          <a
+            href={CLOUD_DASHBOARD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={QUIET_BUTTON}
+          >
+            Open dashboard
+          </a>
+        </SettingRow>
+      </SettingsGroup>
     </SettingsPanel>
   )
 }

@@ -18,7 +18,8 @@ import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { WebhookSignatureError, type TenantBillingGateway } from './billing-gateway'
-import { renderDashboard } from './dashboard'
+import { renderClaimForm, renderClaimResult, renderDashboard } from './dashboard'
+import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
 
 export interface ControlPlaneAppDeps {
@@ -26,6 +27,8 @@ export interface ControlPlaneAppDeps {
   billing: BillingIdentityProvider
   /** Plan-subscription gateway (Stripe/fake). If unset, checkout/portal/webhook are 503. */
   payments?: TenantBillingGateway
+  /** Device-grant store for the "claim your hub" flow. Defaults to in-memory. */
+  deviceGrants?: DeviceGrantStore
   /** Secret used to sign session cookies. If unset, the dashboard + auth callback are disabled. */
   sessionSecret?: string
   /** Absolute origin for building checkout success/cancel URLs (e.g. https://cloud.xnet.fyi). */
@@ -58,6 +61,7 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   const app = new Hono()
   const now = (): number => (deps.nowMs ? deps.nowMs() : Date.now())
   const base = deps.baseUrl ?? ''
+  const devices = deps.deviceGrants ?? new MemoryDeviceGrantStore()
 
   /** Read + verify the session cookie, or null. */
   const session = (c: Context): SessionData | null => {
@@ -199,6 +203,69 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
     if (tenant) await deps.controlPlane.deleteTenant(tenant.tenantId)
     return c.redirect('/dashboard')
+  })
+
+  // ── Device-grant "claim your hub" flow (RFC 8628 shaped) ─────────────────────
+
+  // The app (no WorkOS) starts a grant with its locally-created DID, then polls.
+  app.post('/device/start', async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as { did?: string }
+    if (!body.did) return c.json({ error: 'missing_did' }, 400)
+    const grant = devices.start(body.did, now())
+    return c.json({
+      deviceCode: grant.deviceCode,
+      userCode: grant.userCode,
+      verificationUri: `${base}/claim`,
+      intervalSec: 2,
+      expiresInSec: 600
+    })
+  })
+
+  // The app polls here with a DID challenge until the user approves the code.
+  app.post('/device/token', async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as {
+      deviceCode?: string
+      challenge?: DidChallenge
+    }
+    if (!body.deviceCode || !body.challenge) return c.json({ error: 'bad_request' }, 400)
+    const grant = devices.getByDeviceCode(body.deviceCode)
+    if (!grant) return c.json({ error: 'invalid_grant' }, 400)
+    if (isExpired(grant, now())) return c.json({ error: 'expired_token' }, 400)
+    // The polled DID must be the one the grant was started with (and was shown).
+    if (body.challenge.did !== grant.did) return c.json({ error: 'did_mismatch' }, 400)
+    if (grant.status === 'pending') return c.json({ status: 'pending' })
+    if (!grant.approvedBy) return c.json({ status: 'pending' })
+    try {
+      const tenant = await deps.controlPlane.bindDataIdentity({
+        billingUserId: grant.approvedBy,
+        challenge: body.challenge
+      })
+      devices.markClaimed(grant.deviceCode)
+      return c.json({ status: 'complete', hubUrl: tenant.hubUrl })
+    } catch (err) {
+      return c.json({ error: (err as Error).message }, 422)
+    }
+  })
+
+  // The dashboard side: the signed-in user approves a device code (proves billing).
+  app.get('/claim', (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    return c.html(
+      renderClaimForm({
+        who: s.email ?? s.billingUserId,
+        ...(c.req.query('code') ? { prefill: c.req.query('code') as string } : {})
+      })
+    )
+  })
+
+  app.post('/claim', async (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    const body = await c.req.parseBody()
+    const userCode = String(body.userCode ?? '')
+    const grant = devices.approve(userCode, s.billingUserId)
+    return c.html(renderClaimResult({ who: s.email ?? s.billingUserId, ok: Boolean(grant) }))
   })
 
   app.get('/tenants/:id', async (c) => {

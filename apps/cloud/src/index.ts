@@ -31,6 +31,15 @@ export {
   type TenantBillingGateway
 } from './billing-gateway'
 export { sealSession, readSession, SESSION_COOKIE, type SessionData } from './session'
+export {
+  MemoryDeviceGrantStore,
+  cryptoCodes,
+  isExpired,
+  DEVICE_GRANT_TTL_MS,
+  type DeviceGrant,
+  type DeviceGrantStore,
+  type CodeGenerator
+} from './device-grant'
 
 /**
  * Pick the billing identity provider from the environment. WorkOS AuthKit (free
