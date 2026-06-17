@@ -9,10 +9,15 @@
  * the web deployment talking to a local daemon).
  */
 
+import { writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
+  buildAgentArgs,
   cliChatAgent,
   createBridgeServer,
   DEFAULT_BRIDGE_PORT,
+  mcpConfigFor,
   NodeCommandRunner,
   type BridgeServerHandle,
   type CommandRunner
@@ -27,12 +32,8 @@ export interface BridgeServeOptions {
   allowOrigin?: string[]
   /** Working directory the agent runs in (default `process.cwd()`). */
   cwd?: string
-}
-
-/** Headless arg template for a known agent CLI (falls back to Claude Code's). */
-function argsForAgent(command: string): string[] | undefined {
-  if (command === 'codex') return ['exec', '{prompt}']
-  return undefined // claude / default → cliChatAgent default ['-p', '{prompt}']
+  /** Path to an MCP config JSON giving the agent XNet's workspace tools. */
+  mcpConfigPath?: string
 }
 
 /** Build (but don't start) the bridge server for the chosen agent. Injectable runner for tests. */
@@ -41,11 +42,13 @@ export function buildBridgeServer(
   runner: CommandRunner = new NodeCommandRunner()
 ): BridgeServerHandle {
   const command = options.agent ?? 'claude'
-  const args = argsForAgent(command)
+  const args = buildAgentArgs(command, {
+    ...(options.mcpConfigPath ? { mcpConfigPath: options.mcpConfigPath } : {})
+  })
   const agent = cliChatAgent(runner, {
     command,
     cwd: options.cwd ?? process.cwd(),
-    ...(args ? { args } : {})
+    args
   })
   return createBridgeServer({
     agent,
@@ -72,12 +75,37 @@ export function registerBridgeCommand(program: Command): void {
       'Browser origins permitted (e.g. https://user.github.io for the web deployment)'
     )
     .option('--cwd <dir>', 'Working directory the agent runs in (default current dir)')
-    .action(async (options: BridgeServeOptions) => {
-      const handle = buildBridgeServer(options)
+    .option('--mcp', "Give the agent XNet's workspace tools via `xnet mcp serve`")
+    .option(
+      '--mcp-api-url <url>',
+      'xNet local API URL the MCP server talks to (default http://127.0.0.1:31415)'
+    )
+    .action(async (options: BridgeServeOptions & { mcp?: boolean; mcpApiUrl?: string }) => {
+      const resolved: BridgeServeOptions = { ...options }
+      if (options.mcp) {
+        // Point the agent's MCP server at THIS CLI (`node <cli> mcp serve …`), so
+        // it resolves without `xnet` needing to be on PATH.
+        const spec = {
+          command: process.execPath,
+          args: [
+            process.argv[1],
+            'mcp',
+            'serve',
+            '--api-url',
+            options.mcpApiUrl ?? 'http://127.0.0.1:31415'
+          ]
+        }
+        const mcpConfigPath = join(tmpdir(), `xnet-bridge-mcp-${process.pid}.json`)
+        writeFileSync(mcpConfigPath, JSON.stringify(mcpConfigFor(spec)))
+        resolved.mcpConfigPath = mcpConfigPath
+      }
+      const handle = buildBridgeServer(resolved)
       await handle.start()
       // stderr so stdout stays clean for any tooling that scrapes it.
       console.error(
-        `xNet agent bridge listening on ${handle.url} (agent: ${options.agent ?? 'claude'})`
+        `xNet agent bridge listening on ${handle.url} (agent: ${options.agent ?? 'claude'}${
+          options.mcp ? ', workspace tools enabled' : ''
+        })`
       )
       console.error('In XNet, open the AI panel and select "Local bridge".')
       const shutdown = (): void => {
