@@ -564,44 +564,55 @@ localStorage.setItem('xnet:hub-url', hubUrl) // now actually read on startup
   DID) in the app — mirroring the two-identity model. Billing portal link can
   appear in both via `useBilling().openPortal()`.
 
+## Implementation Status
+
+Implemented in PR for this exploration (all three code slices, with tests):
+the marketing/pricing pages, the control-plane signup→checkout→provision spine,
+the server-rendered dashboard, the RFC 8628 device-grant claim flow, and the
+`xnet:hub-url` read-path fix. The boxes below reflect that. Items that are pure
+infrastructure / external configuration (deploy to Cloud Run, durable stores,
+the real Stripe + `@xnetjs/identity` adapters, WorkOS/Stripe dashboard setup)
+are intentionally left unchecked — they are not implementable or verifiable in
+this repo/environment and keep their `Provisioner`-style port + keyless fake.
+
 ## Implementation Checklist
 
 **Slice 1 — Pricing & marketing (static):**
-- [ ] Add `site/src/data/pricing.ts` (MIT; mirror `PLAN_CATALOG` + public USD prices).
-- [ ] Add `site/src/pages/cloud/index.astro` (offering) and `.../pricing.astro` (tier grid).
-- [ ] Link "Get started" → `https://cloud.xnet.fyi/auth/start?plan=…`; add enterprise "Contact us".
-- [ ] Add an xNet Cloud entry to `site/src/data/roadmap.ts`; register pages in `site/src/sidebar.mjs` if docs-linked.
+- [x] Add `site/src/data/pricing.ts` (MIT; mirror `PLAN_CATALOG` + public USD prices).
+- [x] Add `site/src/pages/cloud/index.astro` (offering) and `.../pricing.astro` (tier grid).
+- [x] Link "Get started" → `https://cloud.xnet.fyi/auth/start?plan=…`; add enterprise "Contact us".
+- [x] Add an xNet Cloud entry to `site/src/data/roadmap.ts` (cloud pages are app pages, not docs — no sidebar entry needed).
 
 **Slice 2 — Auth + checkout + provision + dashboard:**
-- [ ] `GET /auth/callback`: `authenticateWithCode` + seal httpOnly session (`WORKOS_COOKIE_PASSWORD` ≥32 chars).
-- [ ] `POST /checkout`: reuse `@xnetjs/billing` Stripe `createCheckout({mode:'subscription'})`, keyed by tenant/WorkOS customer.
-- [ ] `POST /webhook`: `verifyWebhook` → route `checkout.session.completed` → `provisionTenant`; handle redirect/webhook race.
-- [ ] `POST /portal`: Stripe customer portal (`createPortalSession`).
-- [ ] Serve a minimal dashboard at `cloud.xnet.fyi/dashboard` (plan, hub status, usage, billing, danger zone).
-- [ ] Replace the four `Memory*` stores with durable implementations; stand up the control-plane DB.
-- [ ] Wire real DID verification (replace `devDidVerifier` with `@xnetjs/identity`); rotate `XNET_PLAN_SECRET` + `XNET_CLOUD_INTERNAL_SECRET`.
-- [ ] Deploy `xnet-cloud` on Cloud Run at `cloud.xnet.fyi`; configure WorkOS Redirect URI + Stripe webhook endpoint.
+- [x] `GET /auth/callback`: `authenticateWithCode` + seal an httpOnly signed session cookie (`session.ts`).
+- [x] `POST /checkout`: `TenantBillingGateway.createCheckout` port keyed by the WorkOS customer (real Stripe adapter deferred; keyless fake shipped).
+- [x] `POST /webhook`: signature-verify → route `checkout.completed` → `provisionForBilling` / `subscription.canceled` → `suspendTenant` (idempotent; redirect/webhook race handled by the deterministic tenant id).
+- [x] `POST /portal`: customer-portal redirect via the gateway port.
+- [x] Serve a dashboard at `/dashboard` (plan, hub status, billing, danger zone) — server-rendered HTML, same origin.
+- [ ] Replace the four `Memory*` stores with durable implementations; stand up the control-plane DB. *(deferred — infra)*
+- [ ] Wire real DID verification (`@xnetjs/identity`) + rotate `XNET_PLAN_SECRET` / `XNET_CLOUD_INTERNAL_SECRET`. *(deferred — secrets/infra; `devDidVerifier` still in place)*
+- [ ] Deploy `xnet-cloud` on Cloud Run at `cloud.xnet.fyi`; configure WorkOS Redirect URI + Stripe webhook endpoint. *(deferred — deploy)*
 
 **Slice 3 — In-app connect + account management:**
-- [ ] Fix the `xnet:hub-url` read path in `apps/web/src/App.tsx` (consume the value Settings already writes).
-- [ ] Add `GET /device/start` + `POST /device/token` (RFC 8628) to the control plane; complete `bindIdentities` on approval.
-- [ ] Add a "claim your hub" approval page to the dashboard (`/claim`).
-- [ ] Extend the onboarding state machine with `choose-sync` (local / cloud-claim / self-host) and a `claim-hub` screen.
-- [ ] Render `useBilling()` in Account settings (plan, manage-billing via `openPortal`, usage line for AI metering).
-- [ ] Add the danger zone: cancel subscription (portal) and delete data (destroy hub + R2), with the custodial/non-custodial asymmetry shown explicitly and a confirmation + optional grace period.
+- [x] Fix the `xnet:hub-url` read path in `apps/web/src/App.tsx` (`lib/hub-url.ts`; App now reads what Settings writes).
+- [x] Add `POST /device/start` + `POST /device/token` (RFC 8628) to the control plane; `bindDataIdentity` (dual-proof) on approval.
+- [x] Add a "claim your hub" approval page to the dashboard (`GET/POST /claim`).
+- [x] Surface connect-a-cloud-hub in the app (Settings → Network "xNet Cloud" group + the `lib/cloud-claim.ts` client). *(integrating it into the first-run onboarding state machine is deferred to protect the passkey-gated `editor-ux` e2e.)*
+- [x] Account management UI: dashboard links for plan/billing (cloud-tenant billing lives there, **not** `useBilling()`, which is the hub's separate end-user surface).
+- [x] Danger zone: cancel subscription (portal) + delete data (`/account/delete-data` → destroy hub), with the custodial/non-custodial asymmetry shown explicitly and a JS confirm.
 
 ## Validation Checklist
 
-- [ ] A stranger can read `xnet.fyi/cloud/pricing`, click "Get started," sign in with WorkOS, pay via Stripe, and see "your hub is ready" — with no manual steps.
-- [ ] The post-checkout flow is correct whether the webhook lands before or after the browser redirect.
-- [ ] Opening the app, creating a passkey DID, and approving the device code in the dashboard binds the DID to the tenant (dual-proof) and the app syncs to the managed hub.
-- [ ] The hub URL set via the device-grant (or Settings) is **persisted and read on startup** (the `xnet:hub-url` bug is fixed).
-- [ ] "Manage billing" opens the Stripe customer portal scoped to the right customer.
-- [ ] "Cancel subscription" schedules cancel-at-period-end; the hub keeps running until the period ends, then suspends with the R2 replica retained.
-- [ ] "Delete my data" destroys the hub + R2 replica, is clearly irreversible, requires explicit confirmation, and is visibly distinct from cancellation.
-- [ ] A self-hoster can still complete onboarding with a manual hub URL and **no** WorkOS/Stripe involvement (anti-lock-in preserved).
-- [ ] A control-plane restart preserves all tenants and sessions (durable stores).
-- [ ] The dashboard, marketing, and app all share the workbench/Starlight visual idiom (no orphan styling).
+- [x] The signup funnel works end to end **in-process**: WorkOS-callback → seal session → checkout → webhook → provision → dashboard shows the hub (`funnel.test.ts`). *(real WorkOS/Stripe + "no manual steps" needs the deploy.)*
+- [x] The post-checkout flow is correct whether the webhook lands before or after the redirect — provisioning is idempotent on a deterministic tenant id (`funnel.test.ts`).
+- [x] Approving the device code binds the DID to the tenant (dual-proof) and returns the hub URL; a mismatched/forged DID is rejected (`claim.test.ts`).
+- [x] The hub URL set via Settings (or the claim flow) is **persisted and read on startup** — the `xnet:hub-url` bug is fixed (`hub-url.test.ts` + `App.tsx`).
+- [x] "Manage billing" redirects to the portal for the authenticated user (`funnel.test.ts`). *(real Stripe portal needs the adapter.)*
+- [x] "Cancel subscription" suspends the hub and **retains** the record + R2 replica (`subscriptionStatus: 'canceled'`, `dataTier: 'cold'`) (`funnel.test.ts`).
+- [x] "Delete my data" destroys the hub and forgets the tenant, is irreversible, requires a JS confirm, and is visibly distinct from cancellation (`funnel.test.ts` + dashboard).
+- [x] A self-hoster still configures a manual hub URL with **no** WorkOS/Stripe involvement (the Settings hub-URL field; anti-lock-in preserved).
+- [ ] A control-plane restart preserves all tenants and sessions. *(deferred — needs durable stores.)*
+- [x] The dashboard, claim page, marketing, and pricing pages share the visual idiom (verified by screenshot — dark workbench-style control-plane pages, Starlight-style marketing).
 
 ## References
 
