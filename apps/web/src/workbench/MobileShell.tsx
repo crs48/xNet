@@ -28,7 +28,7 @@ import {
   Settings,
   type LucideIcon
 } from 'lucide-react'
-import { useLayoutEffect } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { navigateToNewDoc, type NavigateLike } from '../lib/doc-creation'
@@ -175,14 +175,20 @@ export function MobileShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
-  // Content-first: any open panel collapses on mount and on every
-  // navigation, giving the list-detail "select → sheet dismisses"
-  // feel. useLayoutEffect runs before paint, so a panel left open by
-  // the shared desktop store never flashes over the surface.
+  // Sheets stay closed on the very first render (and never auto-open from a
+  // persisted desktop `open: true`) until `armed` flips. This matters: the
+  // shared store defaults `left.open = true`, and letting a Base UI Dialog
+  // mount-then-immediately-close leaves its `fixed inset-0` backdrop stuck
+  // in the DOM intercepting taps on the surface beneath. So we close every
+  // panel and arm in the same pre-paint effect — content-first, and any open
+  // panel also collapses on navigation (the list-detail "select → dismiss"
+  // feel).
+  const [armed, setArmed] = useState(false)
   useLayoutEffect(() => {
     setPanelOpen('left', false)
     setPanelOpen('right', false)
     setPanelOpen('bottom', false)
+    setArmed(true)
   }, [pathname, setPanelOpen])
 
   // One overlay at a time: opening a side closes the others.
@@ -250,9 +256,12 @@ export function MobileShell({ children }: { children: ReactNode }) {
         onContext={() => (right.open ? setPanelOpen('right', false) : openOnly('right'))}
       />
 
-      <main className="relative min-h-0 flex-1 overflow-hidden">
+      {/* A plain div, not <main>: EditorArea's active surface already
+          renders the <main> landmark, and a second one breaks
+          getByRole('main') (and is a duplicate-landmark a11y issue). */}
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         <EditorArea>{children}</EditorArea>
-      </main>
+      </div>
 
       <MobileBottomNav destinations={destinations} />
 
@@ -260,7 +269,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
       <PanelSheet
         side="left"
         variant="left"
-        open={left.open}
+        open={armed && left.open}
         onOpenChange={(open) => setPanelOpen('left', open)}
         className="w-[86vw] max-w-[20rem] safe-area-inset-y"
       >
@@ -271,7 +280,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
       <PanelSheet
         side="right"
         variant="bottom"
-        open={right.open}
+        open={armed && right.open}
         onOpenChange={(open) => setPanelOpen('right', open)}
         className="h-[85vh] rounded-t-2xl safe-area-inset-bottom"
       >
@@ -282,7 +291,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
       <PanelSheet
         side="bottom"
         variant="bottom"
-        open={bottom.open}
+        open={armed && bottom.open}
         onOpenChange={(open) => setPanelOpen('bottom', open)}
         className="h-[70vh] rounded-t-2xl safe-area-inset-bottom"
       >
