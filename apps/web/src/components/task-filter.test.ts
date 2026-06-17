@@ -21,7 +21,11 @@ describe('task-filter', () => {
   })
 
   it('ORs values within a field', () => {
-    const filter = addFilterValue(addFilterValue(EMPTY_TASK_FILTER, 'status', 'todo'), 'status', 'in-progress')
+    const filter = addFilterValue(
+      addFilterValue(EMPTY_TASK_FILTER, 'status', 'todo'),
+      'status',
+      'in-progress'
+    )
     expect(applyTaskFilter(tasks, filter).map((t) => t.id)).toEqual(['a', 'b', 'c'])
   })
 
