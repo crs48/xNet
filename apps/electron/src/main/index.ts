@@ -4,6 +4,7 @@
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { app, BrowserWindow } from 'electron'
+import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
 import {
   spawnDataProcess,
@@ -221,6 +222,9 @@ app.whenReady().then(async () => {
   // Setup Cloudflare tunnel IPC handlers
   cleanupTunnelIPC = setupCloudflareTunnelIPC()
 
+  // Setup agent bridge IPC handlers (drives the user's claude/codex CLI)
+  setupAgentBridgeIPC()
+
   // Setup dev-only Storybook IPC handlers
   if (process.env.NODE_ENV === 'development') {
     setupStorybookIPC()
@@ -228,6 +232,10 @@ app.whenReady().then(async () => {
 
   // Start Local API server (for external integrations)
   await startLocalAPI()
+
+  // Start the agent bridge daemon (no-op if the agent CLI isn't installed).
+  // Fire-and-forget: a slow `--version` probe must not delay window creation.
+  void startAgentBridge().catch(() => undefined)
 
   // Create menu
   createMenu()
@@ -258,6 +266,9 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async () => {
+  // Stop the agent bridge daemon
+  await stopAgentBridge()
+
   // Stop Local API server
   await stopLocalAPI()
 

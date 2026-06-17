@@ -282,6 +282,12 @@ contextBridge.exposeInMainWorld('xnetServices', {
 })
 
 // Expose Local API status/control for renderer
+contextBridge.exposeInMainWorld('xnetAgentBridge', {
+  status: () => ipcRenderer.invoke('xnet:agent-bridge:status'),
+  start: (agent?: string) => ipcRenderer.invoke('xnet:agent-bridge:start', agent),
+  stop: () => ipcRenderer.invoke('xnet:agent-bridge:stop')
+})
+
 contextBridge.exposeInMainWorld('xnetLocalAPI', {
   status: () => ipcRenderer.invoke('xnet:localapi:status'),
   start: () => ipcRenderer.invoke('xnet:localapi:start'),

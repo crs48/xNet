@@ -30,6 +30,7 @@
     "@xnetjs/canvas": "workspace:*",
     "@xnetjs/core": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/devkit": "workspace:*",
     "@xnetjs/devtools": "workspace:*",
     "@xnetjs/editor": "workspace:*",
     "@xnetjs/identity": "workspace:*",

@@ -54,3 +54,19 @@ export {
   type BridgeDeps,
   type BridgeRunRequest
 } from './bridge'
+
+export {
+  cliChatAgent,
+  fakeChatAgent,
+  flattenChat,
+  type ChatAgent,
+  type ChatMessage,
+  type CliChatAgentOptions
+} from './chat-agent'
+
+export {
+  createBridgeServer,
+  DEFAULT_BRIDGE_PORT,
+  type BridgeServerConfig,
+  type BridgeServerHandle
+} from './bridge-server'
