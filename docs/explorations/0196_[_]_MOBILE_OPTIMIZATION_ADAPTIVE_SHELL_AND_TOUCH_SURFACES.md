@@ -502,9 +502,9 @@ And the missing CSS import:
 
 ## Implementation Checklist
 
-- [ ] Add `apps/web/src/workbench/use-layout-mode.ts` (`compact`/`medium`/`expanded`) over `useMediaQuery`.
-- [ ] Import `@xnetjs/ui/responsive.css` in `apps/web/src/styles/globals.css`; verify `.touch-target`/`.safe-area-*` reach the bundle.
-- [ ] Confirm/adjust viewport meta for `viewport-fit=cover` so safe-area insets apply.
+- [x] Add `apps/web/src/workbench/use-layout-mode.ts` (`compact`/`medium`/`expanded`) over `useMediaQuery`.
+- [x] Import `@xnetjs/ui/responsive.css` in `apps/web/src/styles/globals.css`; verify `.touch-target`/`.safe-area-*` reach the bundle.
+- [x] Confirm/adjust viewport meta for `viewport-fit=cover` so safe-area insets apply.
 - [ ] Extract today's shell into `DesktopWorkbench.tsx` (no behavior change) and branch `Workbench` on `useLayoutMode()`.
 - [ ] Build `MobileShell.tsx`: full-bleed `<Outlet/>`, `MobileTopBar`, `BottomNav` (5 primary destinations + More), `BottomNavSpacer`.
 - [ ] Map left/right/bottom panels to edge `Sheet`s driven by existing `state.ts` `{ open }` booleans; enforce one-overlay-at-a-time.
