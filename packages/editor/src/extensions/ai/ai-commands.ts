@@ -92,26 +92,69 @@ function reportError(deps: AiCommandDeps, error: unknown): void {
 }
 
 /**
+ * A proposed transform the user can review before it lands — the data behind the
+ * diff/approval UI. `before`/`after` + the range are everything a diff needs;
+ * nothing has been written to the document yet.
+ */
+export interface AiTransformPreview {
+  intent: AiIntent
+  /** The selection range the change targets. */
+  from: number
+  to: number
+  /** The original selected text. */
+  before: string
+  /** The AI-proposed replacement. */
+  after: string
+}
+
+/**
+ * Run the transform and return a reviewable {@link AiTransformPreview} WITHOUT
+ * touching the document. Returns `null` if there was no selection or the
+ * transform failed (errors route to `onError`, never thrown at the editor). The
+ * host renders the before/after diff and, on approval, calls
+ * {@link acceptAiTransform}.
+ */
+export async function previewAiTransform(
+  editor: AiEditorLike,
+  intent: AiIntent,
+  deps: AiCommandDeps
+): Promise<AiTransformPreview | null> {
+  const { from, to } = editor.state.selection
+  const before = editor.state.doc.textBetween(from, to, ' ')
+  if (!before.trim()) return null
+  try {
+    const after = await deps.transform({ intent, selectedText: before })
+    return { intent, from, to, before, after }
+  } catch (error) {
+    reportError(deps, error)
+    return null
+  }
+}
+
+/** Apply an approved {@link AiTransformPreview} — replace the range with `after`. */
+export function acceptAiTransform(editor: AiEditorLike, preview: AiTransformPreview): void {
+  editor
+    .chain()
+    .focus()
+    .insertContentAt({ from: preview.from, to: preview.to }, preview.after)
+    .run()
+}
+
+/**
  * Read the selection, run the transform, and replace the selection with the
- * result. Returns the inserted text, or `null` if there was no selection or the
- * transform failed (errors are routed to `onError`, never thrown at the editor).
+ * result in one step (no approval gate). Returns the inserted text, or `null` if
+ * there was no selection or the transform failed. For a review-first flow, use
+ * {@link previewAiTransform} + {@link acceptAiTransform} instead.
  */
 export async function applyAiTransform(
   editor: AiEditorLike,
   intent: AiIntent,
   deps: AiCommandDeps
 ): Promise<string | null> {
-  const { from, to } = editor.state.selection
-  const text = editor.state.doc.textBetween(from, to, ' ')
-  if (!text.trim()) return null
-  try {
-    const result = await deps.transform({ intent, selectedText: text })
-    editor.chain().focus().insertContentAt({ from, to }, result).run()
-    return result
-  } catch (error) {
-    reportError(deps, error)
-    return null
-  }
+  const preview = await previewAiTransform(editor, intent, deps)
+  if (!preview) return null
+  acceptAiTransform(editor, preview)
+  return preview.after
 }
 
 /** Slash-menu items (one per AI intent) that transform the current selection. */

@@ -562,9 +562,12 @@ classDiagram
       Exported via `@xnetjs/editor/extensions`; tested with a fake editor (6
       tests). The transform is **injected** (provider-agnostic). The selection
       toolbar button + the `AiSurfaceService`/BYO-model wiring are app-side._
-- [ ] Diff + approval UI before applying; wire apply through
-      `editor.commands.insertContentAt` / structural edits. _(`applyAiTransform`
-      does the apply; the diff/approval UI is app-side.)_
+- [~] Diff + approval before applying; wire apply through `insertContentAt`.
+      _As-built: `previewAiTransform` runs the transform and returns an
+      `AiTransformPreview` (`{intent, from, to, before, after}`) **without touching
+      the document** — the data a diff renders; `acceptAiTransform` applies an
+      approved preview; declining = never calling accept (tested). The visual diff
+      component is app-side; the gate logic + apply are here._
 - [~] Offline/local-model path via the 0174 BYO-model connectors; honest "AI
       unavailable" state. _As-built: the provider-agnostic injected `AiTransformFn`
       is the seam — the host can supply a local/offline transform; the connector
@@ -611,10 +614,11 @@ classDiagram
       run-failed / declined without publishing, and publishes only after consent
       (`ecosystem-ai-pipeline.test.ts`).
 - [~] `applyAiTransform` reads the selection, runs the injected transform, and
-      replaces the selection with the result; a no-selection call is a no-op and a
-      transform error is routed to `onError` (never thrown at the editor)
-      (`ai-commands.test.ts`). _The visible diff/approval UI + offline-state UI are
-      app-side._
+      replaces the selection; `previewAiTransform` returns the proposed change
+      without touching the doc and `acceptAiTransform` applies it on approval
+      (declining = no change); a no-selection call is a no-op and a transform error
+      routes to `onError`, never thrown (`ai-commands.test.ts`). _The visible
+      diff/approval UI + offline-state UI are app-side._
 - [x] A plugin contributes a **mentionProvider** that adds a new `@`/`[[` entity
       type; two providers on one trigger are ordered + deduped, and a slow/throwing
       provider can't block or break the menu (`mention-providers.test.ts`). _(The

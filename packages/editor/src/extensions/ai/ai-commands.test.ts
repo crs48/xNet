@@ -6,6 +6,8 @@ import { describe, it, expect, vi } from 'vitest'
 import {
   AI_INTENTS,
   applyAiTransform,
+  previewAiTransform,
+  acceptAiTransform,
   createAiSlashCommands,
   selectedText,
   type AiEditorLike
@@ -69,6 +71,61 @@ describe('applyAiTransform', () => {
     const transform = vi.fn().mockRejectedValue(new Error('model offline'))
     const result = await applyAiTransform(editor, 'summarize', { transform, onError })
     expect(result).toBeNull()
+    expect(onError).toHaveBeenCalledOnce()
+  })
+})
+
+describe('previewAiTransform / acceptAiTransform (the approval gate)', () => {
+  it('preview returns the proposed change WITHOUT touching the document', async () => {
+    const { editor, calls } = fakeEditor('the cat sat')
+    const transform = vi.fn().mockResolvedValue('THE CAT SAT')
+    const preview = await previewAiTransform(editor, 'improve', { transform })
+
+    expect(preview).toEqual({
+      intent: 'improve',
+      from: 0,
+      to: 11,
+      before: 'the cat sat',
+      after: 'THE CAT SAT'
+    })
+    expect(calls).toHaveLength(0) // nothing applied — this is the diff data
+  })
+
+  it('declining a preview (not calling accept) leaves the document unchanged', async () => {
+    const { editor, calls } = fakeEditor('draft')
+    const preview = await previewAiTransform(editor, 'rewrite', {
+      transform: vi.fn().mockResolvedValue('final')
+    })
+    expect(preview).not.toBeNull()
+    // User declines → we simply never call acceptAiTransform.
+    expect(calls).toHaveLength(0)
+  })
+
+  it('accept applies the approved preview to its range', () => {
+    const { editor, calls } = fakeEditor('draft')
+    acceptAiTransform(editor, {
+      intent: 'rewrite',
+      from: 0,
+      to: 5,
+      before: 'draft',
+      after: 'final'
+    })
+    expect(calls).toContainEqual({
+      method: 'insertContentAt',
+      args: [{ from: 0, to: 5 }, 'final']
+    })
+  })
+
+  it('preview returns null for an empty selection or a failed transform', async () => {
+    const { editor } = fakeEditor('   ', 0, 3)
+    expect(await previewAiTransform(editor, 'improve', { transform: vi.fn() })).toBeNull()
+
+    const onError = vi.fn()
+    const failed = await previewAiTransform(fakeEditor('x').editor, 'improve', {
+      transform: vi.fn().mockRejectedValue(new Error('offline')),
+      onError
+    })
+    expect(failed).toBeNull()
     expect(onError).toHaveBeenCalledOnce()
   })
 })
