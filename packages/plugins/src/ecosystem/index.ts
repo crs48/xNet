@@ -84,6 +84,16 @@ export type {
   AiAuthoredPlugin
 } from './ai-authoring'
 
+// Run plugin code on the labs runtime ladder (0194 Phase 1) — port-based.
+export { ladderTierForTrust, runPluginCode, PluginRuntimeError } from './runtime'
+export type {
+  LadderRuntimeTier,
+  PluginRunInput,
+  PluginRunResult,
+  PluginRuntimeLadder,
+  RunPluginCodeInput
+} from './runtime'
+
 // AI→Lab→Plugin assembly line (0194 Phase 2) — generate → lab-test → consent → publish.
 export { runAiPluginPipeline } from './ai-pipeline'
 export type {
