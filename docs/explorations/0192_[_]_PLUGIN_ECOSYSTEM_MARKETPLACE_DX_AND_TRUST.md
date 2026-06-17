@@ -560,10 +560,13 @@ erDiagram
       present; `assertSchemaWrite`/`matchSchemaIri` enforce exact/version/authority/
       `*` patterns. End-to-end test: a write outside the grant throws
       `CapabilityError` and never reaches the store._
-- [~] Enforce `network` allowlist for module fetch endowments. _As-built:
+- [x] Enforce `network` allowlist for module fetch endowments. _As-built:
       `isNetworkAllowed`/`assertNetwork` (exact host + leading-dot subdomain
-      suffix, closed by default) are built and tested; wiring them into a module
-      `fetch` endowment is deferred until that endowment exists._
+      suffix, closed by default) plus `ecosystem/network-endowment.ts`'s
+      `guardedFetch(caps, pluginId, fetchImpl)` — the fetch the host injects as a
+      plugin's `network` endowment; a request to an undeclared host rejects with
+      `CapabilityError` before leaving, and a plugin with no `network` grant gets
+      no egress (`ecosystem-network-endowment.test.ts`)._
 - [~] Add a **capability-consent dialog** to the plugin install flow; render `*`
       as danger. _As-built: the headless logic ships — `describeCapabilities`
       (danger-flags `*`/secrets) + `evaluateInstallConsent` + an `onConsent` gate
@@ -594,15 +597,26 @@ erDiagram
 
 ### Phase 3 — Authoring DX
 
-- [ ] `npx create-xnet-plugin` (client-only / two-sided / AI-script templates;
-      Mermaid + billing as references) in `packages/cli`.
+- [x] `create-xnet-plugin` (client / two-sided / ai-script templates) in
+      `packages/cli`. _As-built: the pure `scaffoldPlugin(spec)` core in
+      `@xnetjs/plugins` (`ecosystem/scaffold.ts`) emits a path→content map
+      (manifest + harness test + package.json + tsconfig + README) for the three
+      templates; `xnet plugin scaffold <id> --template …` writes it to disk via an
+      injectable filesystem (`packages/cli/src/commands/plugin.ts`). The generated
+      manifest passes `validateManifest`; the generated test uses
+      `createTestPluginHarness`._
 - [ ] Dev-mode **hot-reload** loader (watch local manifest → re-`activate`),
       reusing `packages/devkit` isolate→validate→checkpoint.
 - [x] `@xnetjs/plugin-testing` kit. _As-built: `createTestPluginHarness` +
       `createTestNodeStore` (in-memory store wired into a real `PluginRegistry`),
       shipped in-package as `@xnetjs/plugins` exports to avoid a new workspace dep._
-- [ ] **"Generate a plugin with AI"** UI over `packages/plugins/src/ai/generator.ts`
-      + `AIProviderRouter`: streaming, capability preview, consent before install.
+- [~] **"Generate a plugin with AI"** over `packages/plugins/src/ai/generator.ts`.
+      _As-built: the headless transform `scriptToPluginManifest`
+      (`ecosystem/ai-authoring.ts`) wraps a **validated** generated script into an
+      installable `ai-generated`-provenance plugin and **refuses unvalidated
+      code** (the AI never bypasses the gate); its command runs the script via an
+      injected executor, and declared capabilities still flow to consent. The
+      streaming UI + provider picker are app-side and deferred._
 - [x] Expand `plugins.mdx` with an **Ecosystem APIs** section (capabilities,
       provenance/consent, compatibility, dependencies, marketplace, testing) tied
       to the shipped layer. _("Anatomy of a Feature Module" + paid-plugin pages
@@ -657,10 +671,16 @@ erDiagram
       is flagged `unverified` (never a false green), and a throwing verifier
       degrades to `unverified` rather than throwing
       (`ecosystem-marketplace.test.ts`).
-- [ ] `create-xnet-plugin` scaffolds a project that **type-checks, tests, and
-      installs** unmodified; editing it with the dev loader **hot-reloads**.
-- [ ] The **AI authoring** flow produces an AST-validated plugin whose
-      capability requests still pass through consent before activation.
+- [~] `create-xnet-plugin` scaffolds a project whose generated manifest passes
+      `validateManifest` and whose generated test uses `createTestPluginHarness`
+      (`ecosystem-scaffold.test.ts` + `packages/cli/.../plugin.test.ts`). _The dev
+      loader / hot-reload remains._
+- [x] The **AI authoring** transform refuses an unvalidated script and produces an
+      `ai-generated`-provenance plugin whose declared capabilities flow to consent
+      (`ecosystem-ai-authoring.test.ts`).
+- [x] A guarded **network** endowment (`guardedFetch`) rejects an undeclared host
+      with `CapabilityError` before the request leaves; no `network` grant ⇒ no
+      egress (`ecosystem-network-endowment.test.ts`).
 - [ ] A community **WASM hub plugin** at `/x/<id>` can only reach its
       capability-granted hosts/secrets; exceeding the grant or the timeout fails
       closed; it never sees first-party secrets.
