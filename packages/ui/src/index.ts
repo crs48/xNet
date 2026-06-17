@@ -294,7 +294,7 @@ export {
 // ─── Theme ────────────────────────────────────────────────────────
 export { ThemeProvider, useTheme, type Theme, type ThemeVariant } from './theme/ThemeProvider'
 
-// ─── Motion (exploration 0198) ─────────────────────────────────────
+// ─── Motion (exploration 0199) ─────────────────────────────────────
 // The canonical motion vocabulary's React surface. CSS tokens/keyframes
 // live in ./theme/motion.css; see docs/MOTION.md for the style guide.
 export { Presence, type PresenceProps, type PresenceMotion } from './motion/Presence'

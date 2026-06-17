@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Enforce the canonical motion vocabulary (exploration 0198).
+ * Enforce the canonical motion vocabulary (exploration 0199).
  *
  * Motion in xNet is a small, named vocabulary defined in
  * packages/ui/src/theme/motion.css and documented in docs/MOTION.md. This

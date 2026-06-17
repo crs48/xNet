@@ -7,7 +7,7 @@ probably over-animating.
 
 Source of truth: [`packages/ui/src/theme/motion.css`](../packages/ui/src/theme/motion.css).
 Enforcement: [`scripts/check-motion-vocab.mjs`](../scripts/check-motion-vocab.mjs)
-(runs in CI). Origin: [exploration 0198](explorations/0198_[_]_ELEGANT_COMPOSABLE_MOTION_SYSTEM.md).
+(runs in CI). Origin: [exploration 0199](explorations/0199_[_]_ELEGANT_COMPOSABLE_MOTION_SYSTEM.md).
 
 ## The two laws
 
