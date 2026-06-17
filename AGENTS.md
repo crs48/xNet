@@ -309,11 +309,13 @@ xNet keeps a user-facing changelog (explorations 0195–0197). It surfaces on th
 website (`/changelog`), as JSON/RSS feeds, and inside the app's "What's New"
 panel.
 
-**You don't edit the changelog data by hand.** When your change ships something
-a user will notice — a new feature, a fixed bug, a visible UX or performance
-improvement — fill the **`## Changelog` section of the PR description**. On merge,
-CI (`.github/workflows/changelog.yml`) turns that block into a fragment file and
-commits it, stamping the date, PR number, and author automatically:
+**Required — every PR must do one of two things, or it cannot merge.** A
+required CI check (`changelog-section`) fails the PR unless it either has a
+`## Changelog` section **or** carries the `skip-changelog` label. Don't edit the
+changelog data by hand — fill the **`## Changelog` section of the PR
+description**. On merge, CI (`.github/workflows/changelog.yml`) turns that block
+into a fragment file and commits it, stamping the date, PR number, and author
+automatically:
 
 ```markdown
 ## Changelog
@@ -327,8 +329,9 @@ tags: app, ai
 
 Write for end users, not engineers: "Deals now sync after import," not
 `fix(schema): correct relation validation`. For internal-only PRs (refactors,
-chores, CI), leave the block empty and add the **`skip-changelog`** label — a PR
-merged without either gets a `needs-changelog` label so it isn't lost.
+chores, CI), add the **`skip-changelog`** label instead — that satisfies the
+check. (If a PR is ever admin-merged past the check without either, it gets a
+`needs-changelog` label so it isn't lost.)
 
 To hand-author or correct an entry, drop/edit a `site/src/data/changelog/<id>.json`
 fragment directly; `pnpm --filter site validate:changelog` enforces the shape.
