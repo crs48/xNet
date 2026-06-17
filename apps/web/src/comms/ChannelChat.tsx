@@ -1,28 +1,26 @@
 /**
- * ChannelChat — message list + composer, shared by the channel tab and the
- * Room context section (0167). Typing indicators ride room presence; the
- * channel watermark advances (debounced) while the chat is visible.
+ * ChannelChat — the channel message feed + composer (0198), shared by the
+ * channel tab and the Room context section (0167). Rendering is delegated to
+ * ChannelMessageList (grouped rows, reactions, threads); this owns the rich
+ * composer (the @ / # / [[ pickers and emoji insert), the read watermark,
+ * typing presence, inline edit, and the right-hand thread pane.
  */
-import type { TabNodeType } from '../workbench/state'
+import type { ChatRow } from './message-grouping'
 import type { WikilinkTarget } from '@xnetjs/editor/react'
-import { useNavigate } from '@tanstack/react-router'
-import { sensitivityLabels, type AbuseLabel, type SensitivityLabelValue } from '@xnetjs/abuse'
-import { sendMessage, typingPeers, type PeerPresence } from '@xnetjs/comms'
+import { sensitivityLabels, type SensitivityLabelValue } from '@xnetjs/abuse'
+import { editMessage, sendMessage, typingPeers, type PresenceStatus } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { cn, LinkifiedText, Popover, useListboxNavigation } from '@xnetjs/ui'
-import { Send, Shield } from 'lucide-react'
+import { cn, Popover, useListboxNavigation } from '@xnetjs/ui'
+import { Send, Shield, Smile } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
-import { MessageActions } from '../components/MessageActions'
-import { ModeratedPost } from '../components/ModeratedMedia'
-import { PersonMentionChip } from '../components/PersonHovercard'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
-import { hidesContent, useBlockList } from '../lib/block-list'
-import { attributionText, useTrustedContentLabelsBatch } from '../lib/content-labels-trust'
 import { useSelfLabel } from '../lib/self-label'
-import { navigateToNode } from '../workbench/navigation'
-import { mergeMentionables, type Mentionable, type ProfileEntry } from './comms-utils'
+import { ChannelMessageList } from './ChannelMessageList'
+import { useChatDensity } from './chat-prefs'
+import { mergeMentionables, type Mentionable } from './comms-utils'
 import { useComms } from './CommsContext'
+import { EmojiPicker } from './EmojiPicker'
 import {
   applyHashtagPick,
   composerTags,
@@ -31,7 +29,7 @@ import {
   tagOptionsFor,
   type TagOption
 } from './hashtag-composer'
-import { useChannelMessages, useInbox, useProfiles, useRoomPresence, displayName } from './hooks'
+import { useChannelMessages, useInbox, useProfiles, useRoomPresence } from './hooks'
 import {
   applyLinkPick,
   composerLinks,
@@ -45,236 +43,8 @@ import {
   mentionQueryAt,
   pickerOptionsFor
 } from './mention-composer'
+import { ThreadPane } from './ThreadPane'
 
-interface ChatMessageRow {
-  id: string
-  content?: string
-  createdBy?: string
-  createdAt?: number
-  edited?: boolean
-  redacted?: boolean
-  /** Structured mentions declared by the composer (0168) */
-  mentions?: { dids?: string[]; room?: boolean }
-  /** Tag node ids declared by the composer (0169) */
-  tags?: string[]
-  /** Linked node ids declared by the composer (0170) */
-  links?: string[]
-}
-
-function formatTime(at: number | undefined): string {
-  if (!at) return ''
-  return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
-
-function EditedTag({ message }: { message: ChatMessageRow }) {
-  if (!message.edited || message.redacted) return null
-  return <span className="text-[10px] text-ink-3">(edited)</span>
-}
-
-/**
- * Unlike tags/mentions (structured, composer-declared — see MessageTagChips),
- * links are render-time decoration: a URL's meaning lives in its text, so the
- * stored content is never parsed into structure or rewritten (0171).
- */
-function MessageBody({ message }: { message: ChatMessageRow }) {
-  if (message.redacted) {
-    return <span className="text-xs italic text-ink-3">message deleted</span>
-  }
-  return (
-    <LinkifiedText
-      value={message.content ?? ''}
-      className="whitespace-pre-wrap break-words text-xs text-ink-2"
-      detectPhones
-    />
-  )
-}
-
-/** Mention chips from the message's structured DIDs — open the person popover (0172). */
-function MessageMentionChips({ message }: { message: ChatMessageRow }) {
-  const dids = message.mentions?.dids ?? []
-  if (dids.length === 0 || message.redacted) return null
-  return (
-    <div className="flex flex-wrap gap-1">
-      {dids.map((did) => (
-        <PersonMentionChip key={did} did={did} />
-      ))}
-    </div>
-  )
-}
-
-/** Chips rendered from the message's structured tags — never parsed text (0169). */
-function MessageTagChips({ message }: { message: ChatMessageRow }) {
-  const navigate = useNavigate()
-  const { allTags } = useWorkspaceTags()
-  const tagIds = message.tags ?? []
-  if (tagIds.length === 0 || message.redacted) return null
-  return (
-    <div className="flex flex-wrap gap-1">
-      {tagIds.map((tagId) => (
-        <button
-          key={tagId}
-          type="button"
-          onClick={() => navigateToNode(navigate, 'tag', tagId)}
-          className="cursor-pointer rounded-full border border-hairline bg-transparent px-1.5 py-px text-[10px] text-ink-3 transition-colors hover:text-ink-1"
-        >
-          #{allTags.find((tag) => tag.id === tagId)?.name ?? tagId}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-/** Chips for the message's structured node links — never parsed text (0170). */
-function MessageLinkChips({
-  message,
-  linkTargets
-}: {
-  message: ChatMessageRow
-  linkTargets: WikilinkTarget[]
-}) {
-  const navigate = useNavigate()
-  const linkIds = message.links ?? []
-  if (linkIds.length === 0 || message.redacted) return null
-  return (
-    <div className="flex flex-wrap gap-1">
-      {linkIds.map((id) => {
-        const target = linkTargets.find((t) => nodeIdFromHref(t.href) === id)
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => navigateToNode(navigate, (target?.kind ?? 'page') as TabNodeType, id)}
-            className="cursor-pointer rounded-full border border-hairline bg-transparent px-1.5 py-px text-[10px] text-ink-3 transition-colors hover:text-ink-1"
-          >
-            [[{target?.title ?? `${id.slice(0, 8)}…`}]]
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-function MessageRow({
-  message,
-  profiles,
-  linkTargets,
-  labels,
-  attribution,
-  hiddenByBlock,
-  me
-}: {
-  message: ChatMessageRow
-  profiles: ProfileEntry[]
-  linkTargets: WikilinkTarget[]
-  labels: readonly AbuseLabel[]
-  attribution?: string
-  hiddenByBlock: boolean
-  me: string
-}) {
-  const author = displayName(message.createdBy ?? '?', profiles)
-  return (
-    <li className="group flex flex-col gap-0.5 px-3 py-1.5 hover:bg-surface-2/50">
-      <div className="flex items-baseline gap-2">
-        <span className="text-xs font-medium text-ink-1">{author}</span>
-        <span className="font-mono text-[10px] text-ink-3">{formatTime(message.createdAt)}</span>
-        <EditedTag message={message} />
-        <span className="ml-auto">
-          <MessageActions targetId={message.id} isOwn={message.createdBy === me} />
-        </span>
-      </div>
-      {/* Render gate (0176): blurred per the viewer's dial for sensitive labels,
-          and hidden entirely for a blocked/muted author. */}
-      <ModeratedPost
-        labels={labels}
-        attribution={attribution}
-        platformVisibility={hiddenByBlock ? 'hide' : undefined}
-        hiddenPlaceholder={<span className="text-xs italic text-ink-3">message hidden</span>}
-      >
-        <MessageBody message={message} />
-      </ModeratedPost>
-      <MessageMentionChips message={message} />
-      <MessageTagChips message={message} />
-      <MessageLinkChips message={message} linkTargets={linkTargets} />
-    </li>
-  )
-}
-
-const NO_LABELS: readonly AbuseLabel[] = []
-
-function MessageList({
-  messages,
-  profiles,
-  linkTargets,
-  listRef,
-  me
-}: {
-  messages: ChatMessageRow[]
-  profiles: ProfileEntry[]
-  linkTargets: WikilinkTarget[]
-  listRef: React.RefObject<HTMLUListElement>
-  me: string
-}) {
-  const navigate = useNavigate()
-  const ids = useMemo(() => messages.map((message) => message.id), [messages])
-  const labelsByTarget = useTrustedContentLabelsBatch(ids)
-  const blocks = useBlockList()
-  const hiddenCount = messages.filter(
-    (message) => message.createdBy && hidesContent(blocks.list, message.createdBy)
-  ).length
-  if (messages.length === 0) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-xs text-ink-3">
-        No messages yet. Say hi!
-      </div>
-    )
-  }
-  return (
-    <ul ref={listRef} className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0 py-2">
-      {hiddenCount > 0 && (
-        <li className="px-3 py-1">
-          <button
-            type="button"
-            onClick={() => void navigate({ to: '/settings' })}
-            className="text-[10px] text-ink-3 hover:text-ink-1"
-          >
-            🛡 {hiddenCount} message(s) hidden by your block/mute list — review
-          </button>
-        </li>
-      )}
-      {messages.map((message) => {
-        const trusted = labelsByTarget.get(message.id)
-        return (
-          <MessageRow
-            key={message.id}
-            message={message}
-            profiles={profiles}
-            linkTargets={linkTargets}
-            labels={trusted?.labels ?? NO_LABELS}
-            attribution={trusted ? attributionText(trusted.attributions) : undefined}
-            hiddenByBlock={message.createdBy ? hidesContent(blocks.list, message.createdBy) : false}
-            me={me}
-          />
-        )
-      })}
-    </ul>
-  )
-}
-
-function TypingLine({ peers, profiles }: { peers: PeerPresence[]; profiles: ProfileEntry[] }) {
-  if (peers.length === 0) return <div className="h-4" />
-  const names = peers.map((p) => displayName(p.user?.did ?? '?', profiles)).join(', ')
-  return (
-    <div className="h-4 truncate px-3 text-[10px] italic text-ink-3">
-      {names} {peers.length === 1 ? 'is' : 'are'} typing…
-    </div>
-  )
-}
-
-/**
- * Shared keyboard state the chat pickers receive (0172). Only one picker is
- * ever open at a time (the active query is exclusive), so a single
- * useListboxNavigation in ChannelChat drives whichever is showing.
- */
 interface PickerNav {
   activeIndex: number
   optionId: (index: number) => string | undefined
@@ -426,7 +196,7 @@ const TYPING_THROTTLE_MS = 1500
 const WATERMARK_DEBOUNCE_MS = 800
 
 /** Advance the channel's read watermark while its newest message is visible. */
-function useWatermarkAdvance(channelId: string, newest: ChatMessageRow | undefined): void {
+function useWatermarkAdvance(channelId: string, newest: ChatRow | undefined): void {
   const { markChannelRead } = useInbox()
   useEffect(() => {
     if (!newest?.createdAt) return
@@ -483,6 +253,11 @@ function ComposerSelfLabel({
   )
 }
 
+function watermarkAt(state: { watermarks?: unknown }, channelId: string): number {
+  const map = state.watermarks as Record<string, { at?: number }> | undefined
+  return map?.[channelId]?.at ?? 0
+}
+
 export function ChannelChat({ channelId }: { channelId: string }) {
   const bridge = useDataBridge()
   const { me } = useComms()
@@ -490,22 +265,21 @@ export function ChannelChat({ channelId }: { channelId: string }) {
   const { peers, session } = useRoomPresence(channelId)
   const profiles = useProfiles()
   const mentionables = useMentionables()
+  const { state } = useInbox()
+  const [density] = useChatDensity()
 
   const [text, setText] = useState('')
   const [caret, setCaret] = useState(0)
-  // Pending self-label for the next message (0176): applied after send, when the
-  // new message node has an id.
   const [pendingLabel, setPendingLabel] = useState<SensitivityLabelValue | null>(null)
   const { selfLabel } = useSelfLabel()
-  // Escape hides the active picker until the query next changes (the pickers
-  // are otherwise derived purely from text + caret, with no open/close state).
   const [pickerDismissed, setPickerDismissed] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null)
   const picked = useRef(new Map<string, string>())
   const pickedTags = useRef(new Map<string, string>())
   const pickedLinks = useRef(new Map<string, string>())
   const lastTypingSent = useRef(0)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const listRef = useRef<HTMLUListElement>(null)
 
   const { suggestions: tagSuggestions, getOrCreateTag } = useWorkspaceTags()
   const { linkTargets } = useLinkTargets()
@@ -516,14 +290,20 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       ? tagOptionsFor(text, caret, tagSuggestions)
       : []
   const typing = useMemo(() => typingPeers(peers, channelId, Date.now()), [peers, channelId])
-  const rows = messages as unknown as ChatMessageRow[]
+  const rows = messages as unknown as ChatRow[]
+
+  const presenceByDid = useMemo(() => {
+    const map = new Map<string, PresenceStatus>()
+    for (const peer of peers) {
+      const did = peer.user?.did
+      if (did) map.set(did, peer.status ?? 'active')
+    }
+    return map
+  }, [peers])
+
+  const lastReadAt = watermarkAt(state, channelId)
 
   useWatermarkAdvance(channelId, rows.at(-1))
-
-  // Keep scrolled to the bottom on new messages.
-  useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
-  }, [messages.length])
 
   const handleChange = useCallback(
     (value: string, caretPos: number) => {
@@ -560,7 +340,6 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       setText(next.text)
       setCaret(next.caret)
       inputRef.current?.focus()
-      // Resolve the id in the background; an unresolved pick sends as plain text.
       void getOrCreateTag(option.name).then((tag) => {
         if (tag) pickedTags.current.set(tag.name, tag.id)
       })
@@ -581,8 +360,6 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [text, caret]
   )
 
-  // Exactly one picker can be active at a caret (the @/[[/# queries are
-  // mutually exclusive), so a single listbox nav drives whichever is showing.
   const activeKind: 'mention' | 'link' | 'tag' | null = pickerDismissed
     ? null
     : pickerOptions.length > 0
@@ -600,8 +377,6 @@ export function ChannelChat({ channelId }: { channelId: string }) {
         : activeKind === 'tag'
           ? tagOptions.length
           : 0
-  // Stable across re-renders for the same query (option arrays are rebuilt each
-  // render); changes only when the query does, so arrowing never resets to 0.
   const pickerResetKey =
     activeKind === 'mention'
       ? `mention:${pickerOptions.map((o) => o.did).join(',')}`
@@ -653,7 +428,6 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       tags: composerTags(content, pickedTags.current),
       links: composerLinks(content, pickedLinks.current)
     })
-    // Apply the author's pending self-label to the just-sent message (0176).
     if (pendingLabel) {
       const messageId = (created as { id?: string } | undefined)?.id
       if (messageId) await selfLabel(messageId, pendingLabel)
@@ -664,60 +438,139 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     pickedLinks.current.clear()
   }, [text, bridge, channelId, session, pendingLabel, selfLabel])
 
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      const el = inputRef.current
+      const pos = el?.selectionStart ?? text.length
+      setText((prev) => prev.slice(0, pos) + emoji + prev.slice(pos))
+      requestAnimationFrame(() => {
+        const input = inputRef.current
+        if (input) {
+          input.focus()
+          input.setSelectionRange(pos + emoji.length, pos + emoji.length)
+        }
+      })
+    },
+    [text]
+  )
+
+  const submitEdit = useCallback(
+    async (message: ChatRow, content: string) => {
+      if (!bridge) return
+      await editMessage(bridge, message.id, content)
+      setEditingId(null)
+    },
+    [bridge]
+  )
+
+  const editLastOwnMessage = useCallback(() => {
+    const mine = rows.filter((m) => m.createdBy === me.did && !m.inReplyTo && !m.redacted)
+    const last = mine.at(-1)
+    if (last) setEditingId(last.id)
+  }, [rows, me.did])
+
+  const openThread = useCallback((rootId: string) => setOpenThreadId(rootId), [])
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <MessageList
-        messages={rows}
-        profiles={profiles}
-        linkTargets={linkTargets}
-        listRef={listRef}
-        me={me.did}
-      />
-      <TypingLine peers={typing} profiles={profiles} />
-      <div className="relative border-t border-hairline p-2">
-        {activeKind === 'mention' && (
-          <MentionPicker options={pickerOptions} nav={navProps} onPick={pickMention} />
-        )}
-        {activeKind === 'tag' && <TagPicker options={tagOptions} nav={navProps} onPick={pickTag} />}
-        {activeKind === 'link' && (
-          <LinkPicker options={linkOptions} nav={navProps} onPick={pickLink} />
-        )}
-        <div className="flex items-end gap-2">
-          <textarea
-            ref={inputRef}
-            value={text}
-            rows={2}
-            placeholder="Message… (@ mention, # tag, [[ link, Enter to send)"
-            role={activeKind ? 'combobox' : undefined}
-            aria-expanded={activeKind ? true : undefined}
-            aria-controls={activeKind ? 'chat-suggest-listbox' : undefined}
-            aria-activedescendant={activeKind ? pickerNav.activeDescendantId : undefined}
-            aria-autocomplete={activeKind ? 'list' : undefined}
-            onChange={(event) => handleChange(event.target.value, event.target.selectionStart ?? 0)}
-            onKeyDown={(event) => {
-              // Active picker gets first refusal on arrows/Enter/Tab/Escape.
-              if (activeKind && pickerNav.onKeyDown(event)) return
-              // No picker open: Enter sends (unless mid-IME-composition).
-              if (!event.nativeEvent.isComposing && shouldSendOnEnter(event, 0)) {
-                event.preventDefault()
-                void send()
+    <div className="flex h-full min-h-0">
+      <div className="flex h-full min-h-0 flex-1 flex-col">
+        <ChannelMessageList
+          channelId={channelId}
+          messages={rows}
+          profiles={profiles}
+          linkTargets={linkTargets}
+          me={me.did}
+          presenceByDid={presenceByDid}
+          lastReadAt={lastReadAt}
+          density={density}
+          typingPeers={typing}
+          editingId={editingId}
+          onStartEdit={(message) => setEditingId(message.id)}
+          onCancelEdit={() => setEditingId(null)}
+          onSubmitEdit={submitEdit}
+          onReply={(message) => openThread(message.id)}
+          onOpenThread={openThread}
+        />
+        <div className="relative border-t border-hairline p-2">
+          {activeKind === 'mention' && (
+            <MentionPicker options={pickerOptions} nav={navProps} onPick={pickMention} />
+          )}
+          {activeKind === 'tag' && (
+            <TagPicker options={tagOptions} nav={navProps} onPick={pickTag} />
+          )}
+          {activeKind === 'link' && (
+            <LinkPicker options={linkOptions} nav={navProps} onPick={pickLink} />
+          )}
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
+              value={text}
+              rows={2}
+              placeholder="Message… (@ mention, # tag, [[ link, Enter to send)"
+              role={activeKind ? 'combobox' : undefined}
+              aria-expanded={activeKind ? true : undefined}
+              aria-controls={activeKind ? 'chat-suggest-listbox' : undefined}
+              aria-activedescendant={activeKind ? pickerNav.activeDescendantId : undefined}
+              aria-autocomplete={activeKind ? 'list' : undefined}
+              onChange={(event) =>
+                handleChange(event.target.value, event.target.selectionStart ?? 0)
               }
-            }}
-            className="min-h-0 flex-1 resize-none rounded-md border border-hairline bg-surface-0 px-2 py-1.5 text-xs text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
-          />
-          <ComposerSelfLabel value={pendingLabel} onChange={setPendingLabel} />
-          <button
-            type="button"
-            title="Send"
-            aria-label="Send message"
-            onClick={() => void send()}
-            disabled={!text.trim()}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-hairline bg-surface-0 text-ink-2 hover:text-ink-1 disabled:cursor-default disabled:opacity-50"
-          >
-            <Send size={12} strokeWidth={1.5} />
-          </button>
+              onKeyDown={(event) => {
+                if (activeKind && pickerNav.onKeyDown(event)) return
+                if (
+                  event.key === 'ArrowUp' &&
+                  !activeKind &&
+                  text.trim() === '' &&
+                  !event.nativeEvent.isComposing
+                ) {
+                  event.preventDefault()
+                  editLastOwnMessage()
+                  return
+                }
+                if (!event.nativeEvent.isComposing && shouldSendOnEnter(event, 0)) {
+                  event.preventDefault()
+                  void send()
+                }
+              }}
+              className="min-h-0 flex-1 resize-none rounded-md border border-hairline bg-surface-0 px-2 py-1.5 text-sm text-ink-1 outline-none placeholder:text-ink-3 focus:border-border-emphasis"
+            />
+            <EmojiPicker
+              side="top"
+              align="end"
+              onSelect={insertEmoji}
+              trigger={
+                <button
+                  type="button"
+                  title="Emoji"
+                  aria-label="Insert emoji"
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-hairline bg-surface-0 text-ink-3 hover:text-ink-1"
+                >
+                  <Smile size={12} strokeWidth={1.5} />
+                </button>
+              }
+            />
+            <ComposerSelfLabel value={pendingLabel} onChange={setPendingLabel} />
+            <button
+              type="button"
+              title="Send"
+              aria-label="Send message"
+              onClick={() => void send()}
+              disabled={!text.trim()}
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-hairline bg-surface-0 text-ink-2 hover:text-ink-1 disabled:cursor-default disabled:opacity-50"
+            >
+              <Send size={12} strokeWidth={1.5} />
+            </button>
+          </div>
         </div>
       </div>
+      {openThreadId && (
+        <ThreadPane
+          channelId={channelId}
+          rootId={openThreadId}
+          me={me.did}
+          onClose={() => setOpenThreadId(null)}
+        />
+      )}
     </div>
   )
 }

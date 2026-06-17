@@ -1,7 +1,8 @@
 /**
  * ChatsPanel — Left Panel view listing channels, DMs, and voice rooms
- * (0167). Unread mention counts come from the local notifier; voice-room
- * occupancy and DM partner presence come from the workspace roster.
+ * (0167/0198). DM rows show the partner's avatar + live presence dot; rows with
+ * unread mentions are emphasised. Voice-room occupancy and DM partner presence
+ * come from the workspace roster; mention counts from the local notifier.
  */
 import { useNavigate } from '@tanstack/react-router'
 import {
@@ -10,11 +11,15 @@ import {
   isUnread,
   peersInCall,
   type InboxItem,
-  type InboxStateData
+  type InboxStateData,
+  type PeerPresence,
+  type PresenceStatus
 } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
+import { cn } from '@xnetjs/ui'
 import { Hash, MessageCircle, Plus, Volume2 } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
+import { ChatAvatar } from './ChatAvatar'
 import { channelLabel, type ChannelEntry } from './comms-utils'
 import { useComms } from './CommsContext'
 import { useChannels, useInbox, useProfiles, displayName } from './hooks'
@@ -33,7 +38,7 @@ function unreadMentionCount(channelId: string, items: InboxItem[], state: InboxS
 function MentionBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
-    <span className="rounded-full bg-ink-1 px-1.5 font-mono text-[10px] leading-4 text-surface-0">
+    <span className="rounded-full bg-destructive px-1.5 font-mono text-[10px] leading-4 text-surface-0">
       {count}
     </span>
   )
@@ -41,31 +46,34 @@ function MentionBadge({ count }: { count: number }) {
 
 function OccupancyBadge({ count }: { count: number }) {
   if (count === 0) return null
-  return <span className="font-mono text-[10px] text-ink-3">◉ {count}</span>
+  return <span className="font-mono text-[10px] text-success">◉ {count}</span>
 }
 
 function ChannelRow({
-  channel,
+  leading,
   label,
   mentionCount,
   occupancy,
   onOpen
 }: {
-  channel: ChannelEntry
+  leading: ReactNode
   label: string
   mentionCount: number
   occupancy: number
   onOpen: () => void
 }) {
-  const Icon = KIND_ICONS[channel.kind ?? 'channel'] ?? Hash
+  const unread = mentionCount > 0
   return (
     <li>
       <button
         type="button"
         onClick={onOpen}
-        className="flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1 text-left text-xs text-ink-2 hover:bg-surface-2 hover:text-ink-1"
+        className={cn(
+          'flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1 text-left text-xs hover:bg-surface-2 hover:text-ink-1',
+          unread ? 'font-medium text-ink-1' : 'text-ink-2'
+        )}
       >
-        <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+        <span className="flex w-[18px] shrink-0 items-center justify-center">{leading}</span>
         <span className="min-w-0 flex-1 truncate">{label}</span>
         <OccupancyBadge count={occupancy} />
         <MentionBadge count={mentionCount} />
@@ -128,8 +136,9 @@ function NewDmList({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={() => void open(profile.did)}
-            className="w-full cursor-pointer truncate rounded border-none bg-transparent px-2 py-1 text-left text-xs text-ink-2 hover:bg-surface-2"
+            className="flex w-full cursor-pointer items-center gap-2 truncate rounded border-none bg-transparent px-2 py-1 text-left text-xs text-ink-2 hover:bg-surface-2"
           >
+            <ChatAvatar did={profile.did} src={profile.avatar} size={18} />
             {displayName(profile.did, profiles)}
           </button>
         </li>
@@ -169,6 +178,15 @@ export function ChatsPanel() {
   const profiles = useProfiles()
   const [creating, setCreating] = useState<'channel' | 'dm' | null>(null)
 
+  const presenceByDid = useMemo(() => {
+    const map = new Map<string, PresenceStatus>()
+    for (const peer of workspacePeers as PeerPresence[]) {
+      const did = peer.user?.did
+      if (did) map.set(did, peer.status ?? 'active')
+    }
+    return map
+  }, [workspacePeers])
+
   const groups = useMemo(() => {
     const list = channels as unknown as ChannelEntry[]
     return {
@@ -178,11 +196,32 @@ export function ChatsPanel() {
     }
   }, [channels])
 
+  const leadingFor = (channel: ChannelEntry): ReactNode => {
+    if (channel.kind === 'dm') {
+      const partner = (channel.members ?? []).find((m) => m !== me.did)
+      if (partner) {
+        const profile = profiles.find((p) => p.did === partner)
+        return (
+          <ChatAvatar
+            did={partner}
+            src={profile?.avatar}
+            size={18}
+            status={presenceByDid.get(partner)}
+            showPresence={presenceByDid.has(partner)}
+          />
+        )
+      }
+      return <MessageCircle size={13} strokeWidth={1.5} className="text-ink-3" />
+    }
+    const Icon = KIND_ICONS[channel.kind ?? 'channel'] ?? Hash
+    return <Icon size={13} strokeWidth={1.5} className="text-ink-3" />
+  }
+
   const rows = (list: ChannelEntry[]) =>
     list.map((channel) => (
       <ChannelRow
         key={channel.id}
-        channel={channel}
+        leading={leadingFor(channel)}
         label={channelLabel(channel, me.did, profiles)}
         mentionCount={unreadMentionCount(channel.id, items, state)}
         occupancy={peersInCall(workspacePeers, channel.id).length}
