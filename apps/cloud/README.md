@@ -4,6 +4,8 @@ The xNet Cloud control plane — billing, provisioning, and fleet management. Se
 
 A [Hono](https://hono.dev/) HTTP service that composes the cloud packages into a working control plane. It is written once against the package interfaces; production swaps the in-memory stores and provisioner for durable, real-substrate implementations without touching the control-plane code.
 
+> **Going to production?** Follow [`docs/cloud/SETUP.md`](../../docs/cloud/SETUP.md) — the click-through checklist for the accounts/credentials you provision (R2, GCP, WorkOS, Stripe). Scaffold an env file with `node scripts/cloud-init-env.mjs <development|staging|production>` and check it with `node scripts/cloud-env-doctor.mjs apps/cloud/.env.<env>`.
+
 ## Composition
 
 | Concern          | Default (dev)                   | Production                                  |
