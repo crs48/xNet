@@ -5,6 +5,8 @@
 import type {
   AIGenerateRequest,
   AIGenerateResponse,
+  AIMessage,
+  AIMessageRole,
   AIProvider,
   AIStreamChunk,
   AIToolCall,
@@ -136,12 +138,28 @@ export type AiAgentRuntimeStorage = {
   save(snapshot: AiAgentRuntimeSnapshot): Promise<void>
 }
 
+/**
+ * Builds extra messages (workspace context, retrieved resources, …) to inject
+ * before the conversation history on each run. Returned messages are placed
+ * after {@link AiAgentRuntimeConfig.systemPrompt} and before the thread
+ * history, so the model sees grounding context ahead of the dialogue. Resolve
+ * to `[]` (or throw — failures are swallowed) to skip context for a turn.
+ */
+export type AiAgentContextProvider = (input: {
+  threadId: string
+  content: string
+}) => AIMessage[] | Promise<AIMessage[]>
+
 export type AiAgentRuntimeConfig = {
   provider: AIProvider
   storage?: AiAgentRuntimeStorage
   clock?: () => Date
   mode?: AiAgentOrchestratorMode
   maxEvents?: number
+  /** Optional system prompt prepended to every run. */
+  systemPrompt?: string
+  /** Optional hook injecting grounding context messages before the history. */
+  contextProvider?: AiAgentContextProvider
 }
 
 export type AiAgentThreadCreateInput = {
@@ -486,6 +504,39 @@ export class AiAgentRuntime {
     return true
   }
 
+  /**
+   * Compose the messages sent to the provider for a run: the optional system
+   * prompt, then optional grounding context, then the thread's prior
+   * user/assistant turns in chronological order (which already include the
+   * just-created user message). The in-flight (empty) assistant turn is
+   * excluded. Context is best-effort — a throwing provider never fails the run.
+   */
+  private async buildRunMessages(
+    threadId: string,
+    assistantTurnId: string,
+    content: string
+  ): Promise<AIMessage[]> {
+    const messages: AIMessage[] = []
+    if (this.config.systemPrompt) {
+      messages.push({ role: 'system', content: this.config.systemPrompt })
+    }
+    if (this.config.contextProvider) {
+      try {
+        const context = await this.config.contextProvider({ threadId, content })
+        messages.push(...context)
+      } catch {
+        // Grounding is best-effort; never fail a run because context failed.
+      }
+    }
+    for (const turn of this.snapshot.turns) {
+      if (turn.threadId !== threadId || turn.id === assistantTurnId) continue
+      if (turn.role !== 'user' && turn.role !== 'assistant') continue
+      if (!turn.content.trim()) continue
+      messages.push({ role: turn.role as AIMessageRole, content: turn.content })
+    }
+    return messages
+  }
+
   private async completeRun(input: {
     runId: string
     threadId: string
@@ -496,7 +547,12 @@ export class AiAgentRuntime {
     startedAt: number
   }): Promise<void> {
     try {
-      const request = createGenerateRequest(input.content, input.request)
+      const messages = await this.buildRunMessages(
+        input.threadId,
+        input.assistantTurnId,
+        input.content
+      )
+      const request = createGenerateRequest(messages, input.request)
       if (this.config.provider.stream) {
         await this.completeStreamingRun(input, request)
       } else {
@@ -504,7 +560,9 @@ export class AiAgentRuntime {
         if (response) {
           await this.applyGenerateResponse(input, response)
         } else {
-          const text = await this.config.provider.generate(input.content)
+          // Providers with only `generate(prompt)` (e.g. Anthropic) can't take a
+          // message array, so flatten the composed messages into one prompt.
+          const text = await this.config.provider.generate(flattenMessagesToPrompt(messages))
           await this.appendAssistantText(input.threadId, input.assistantTurnId, text)
         }
       }
@@ -911,13 +969,27 @@ export function classifyAiAgentDisplayState(input: {
 }
 
 function createGenerateRequest(
-  content: string,
+  messages: AIMessage[],
   request: Omit<AIGenerateRequest, 'prompt' | 'messages'> | undefined
 ): AIGenerateRequest {
   return {
     ...request,
-    messages: [{ role: 'user', content }]
+    messages
   }
+}
+
+/**
+ * Flatten a message list into a single prompt for providers that only expose
+ * `generate(prompt)`. A lone user message passes through unchanged (preserving
+ * prior single-turn behaviour); otherwise each message is role-prefixed.
+ */
+function flattenMessagesToPrompt(messages: AIMessage[]): string {
+  if (messages.length === 1 && messages[0].role === 'user') return messages[0].content
+  return messages
+    .map((message) =>
+      message.role === 'user' ? message.content : `${message.role}: ${message.content}`
+    )
+    .join('\n\n')
 }
 
 function createEmptySnapshot(): AiAgentRuntimeSnapshot {

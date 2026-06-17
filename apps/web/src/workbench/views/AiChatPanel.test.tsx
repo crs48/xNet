@@ -30,8 +30,15 @@ vi.mock('@xnetjs/plugins', () => ({
     createThread: async () => ({ id: 't1' }),
     runTurn: async () => ({})
   }),
+  createAiSurfaceService: () => ({ createContextPack: async () => ({ resources: [] }) }),
   createPromptApiProvider: async () => null
 }))
+
+// The panel reads the workspace store + schema registry to ground replies.
+vi.mock('@xnetjs/react/internal', () => ({
+  useNodeStore: () => ({ store: { name: 'fake-store' }, isReady: true, error: null })
+}))
+vi.mock('@xnetjs/data', () => ({ schemaRegistry: {} }))
 
 // Imported after the mock so the panel binds to the mocked module.
 const { AiChatPanel } = await import('./AiChatPanel')
@@ -39,7 +46,7 @@ const { AiChatPanel } = await import('./AiChatPanel')
 describe('AiChatPanel', () => {
   it('renders the empty state and the connector picker', async () => {
     render(<AiChatPanel />)
-    expect(screen.getByText(/Chat with an AI/)).toBeTruthy()
+    expect(screen.getByText(/Ask about your workspace/)).toBeTruthy()
     await waitFor(() => expect(screen.getByText('Cloud API key')).toBeTruthy())
     expect(screen.getByText(/Local model — unavailable/)).toBeTruthy()
   })
@@ -47,8 +54,8 @@ describe('AiChatPanel', () => {
   it('shows the cloud-key fields and the capability badge for the active tier', async () => {
     render(<AiChatPanel />)
     await waitFor(() => expect(screen.getByPlaceholderText(/API key/)).toBeTruthy())
-    // Phase 0: chat-only on every tier until the tool surface is wired in.
-    expect(screen.getByText('chat')).toBeTruthy()
+    // Phase 1: the assistant reads the workspace but can't write yet.
+    expect(screen.getByText('reads workspace')).toBeTruthy()
   })
 
   it('disables the composer until a model is configured', async () => {
