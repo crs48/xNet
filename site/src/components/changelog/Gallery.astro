@@ -1,0 +1,239 @@
+---
+/**
+ * Changelog media gallery (exploration 0196). Zero runtime dependencies:
+ *  - before/after surfaces → a hand-rolled, keyboard-accessible CSS slider
+ *  - new/curated surfaces  → a CSS scroll-snap thumbnail strip → <dialog> lightbox
+ *  - interaction flows      → a click-to-play <video> with a poster frame
+ * The interactive behaviour (lightbox + slider drag) is wired by the island
+ * script in changelog/index.astro, which operates on the markup rendered here.
+ */
+interface Thumb {
+  src: string
+  alt: string
+  caption?: string
+}
+interface Comparison {
+  before: string
+  after: string
+  alt: string
+}
+interface Video {
+  mp4: string
+  poster: string
+  alt: string
+}
+interface Props {
+  entryId: string
+  comparisons?: Comparison[]
+  thumbs?: Thumb[]
+  video?: Video
+  galleryLink?: { prUrl: string; count: number; pr: number }
+}
+const { entryId, comparisons = [], thumbs = [], video, galleryLink } = Astro.props
+const hasMedia = comparisons.length > 0 || thumbs.length > 0 || Boolean(video)
+---
+
+{
+  hasMedia && (
+    <div class="cl-gallery mb-4 mt-1">
+      {comparisons.map((c) => (
+        <figure
+          class="cl-cmp"
+          tabindex="0"
+          aria-label={`Before and after: ${c.alt}. Use left and right arrow keys to compare.`}
+        >
+          <img class="cl-cmp-after" src={c.after} alt={`After — ${c.alt}`} loading="lazy" />
+          <div class="cl-cmp-before-wrap" aria-hidden="true">
+            <img class="cl-cmp-before" src={c.before} alt="" loading="lazy" />
+          </div>
+          <span class="cl-cmp-divider" aria-hidden="true" />
+          <input
+            class="cl-cmp-range"
+            type="range"
+            min="0"
+            max="100"
+            value="50"
+            aria-label={`Reveal before/after for ${c.alt}`}
+          />
+          <figcaption class="cl-cmp-cap">{c.alt} — before / after</figcaption>
+        </figure>
+      ))}
+
+      {thumbs.length > 0 && (
+        <ul class="cl-strip" role="list" aria-label="Screenshots for this release">
+          {thumbs.map((t) => (
+            <li>
+              <button
+                type="button"
+                class="cl-thumb"
+                data-full={t.src}
+                data-alt={t.alt}
+                data-group={entryId}
+                aria-label={`View ${t.alt}`}
+              >
+                <img src={t.src} alt={t.alt} loading="lazy" />
+                {t.caption && <span class="cl-thumb-cap">{t.caption}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {video && (
+        <figure class="cl-video-wrap">
+          <video
+            class="cl-video"
+            poster={video.poster}
+            controls
+            muted
+            loop
+            playsinline
+            preload="none"
+            aria-label={video.alt}
+          >
+            <source src={video.mp4} type="video/mp4" />
+          </video>
+          <figcaption class="cl-cmp-cap">{video.alt}</figcaption>
+        </figure>
+      )}
+
+      {galleryLink && (
+        <a
+          class="cl-gallery-link"
+          href={galleryLink.prUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View all {galleryLink.count} screenshot{galleryLink.count === 1 ? '' : 's'} on PR #
+          {galleryLink.pr} →
+        </a>
+      )}
+    </div>
+  )
+}
+
+<style>
+  .cl-gallery > * + * {
+    margin-top: 0.75rem;
+  }
+
+  /* Before/after comparison — the "after" image defines the box; "before" is
+     overlaid and clipped to --cl-pos (set by the island script in index.astro). */
+  .cl-cmp {
+    position: relative;
+    display: block;
+    margin: 0;
+    border: 1px solid var(--lp-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    --cl-pos: 50%;
+  }
+  .cl-cmp:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+  }
+  .cl-cmp-after {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .cl-cmp-before-wrap {
+    position: absolute;
+    inset: 0;
+    clip-path: inset(0 calc(100% - var(--cl-pos)) 0 0);
+  }
+  .cl-cmp-before {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .cl-cmp-divider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--cl-pos);
+    width: 2px;
+    margin-left: -1px;
+    background: #6366f1;
+    pointer-events: none;
+  }
+  .cl-cmp-range {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: ew-resize;
+  }
+  .cl-cmp-cap {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+    color: #9ca3af;
+  }
+
+  /* Thumbnail strip → lightbox */
+  .cl-strip {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0.35rem 0;
+    scrollbar-width: thin;
+  }
+  .cl-strip li {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+  .cl-thumb {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 1px solid var(--lp-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    cursor: pointer;
+    background: none;
+  }
+  .cl-thumb:hover {
+    border-color: #6366f1;
+  }
+  .cl-thumb img {
+    display: block;
+    width: 220px;
+    height: 138px;
+    object-fit: cover;
+  }
+  .cl-thumb-cap {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.15rem 0.4rem;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.65rem;
+    text-align: left;
+  }
+
+  .cl-video-wrap {
+    margin: 0;
+  }
+  .cl-video {
+    width: 100%;
+    border: 1px solid var(--lp-border);
+    border-radius: 0.5rem;
+  }
+
+  .cl-gallery-link {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: #6366f1;
+  }
+  .cl-gallery-link:hover {
+    text-decoration: underline;
+  }
+</style>

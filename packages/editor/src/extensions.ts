@@ -627,6 +627,23 @@ export { SlashCommand } from './extensions/slash-command'
 export type { SlashCommandItem, SlashCommandGroup } from './extensions/slash-command'
 export { COMMAND_GROUPS, getAllCommands, filterCommands } from './extensions/slash-command'
 
+// AI in the editor (exploration 0194 Phase 3) — provider-agnostic transforms.
+export {
+  AI_INTENTS,
+  applyAiTransform,
+  createAiSlashCommands,
+  selectedText
+} from './extensions/ai/ai-commands'
+export type {
+  AiIntent,
+  AiIntentSpec,
+  AiTransformRequest,
+  AiTransformFn,
+  AiCommandDeps,
+  AiEditorLike,
+  AiEditorChain
+} from './extensions/ai/ai-commands'
+
 // DragHandle - Drag handle with block DnD and drop indicator
 export { DragHandleExtension } from './extensions/drag-handle'
 export type { DragHandleExtensionOptions } from './extensions/drag-handle'
