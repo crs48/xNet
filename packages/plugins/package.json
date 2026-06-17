@@ -38,6 +38,7 @@
   "dependencies": {
     "@xnetjs/abuse": "workspace:*",
     "@xnetjs/core": "workspace:*",
+    "@xnetjs/trust": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "acorn": "^8.15.0"
   },

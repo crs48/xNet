@@ -507,16 +507,22 @@ classDiagram
 
 ### Phase 1 — Unify the substrate
 
-- [ ] Create `@xnetjs/trust` (zero-dep): `InstallProvenance`, `TrustTier`,
-      `SandboxKind`, `deriveTrustTier`, `requiresCapabilityReprompt`,
-      `sandboxForTier`, with tests.
-- [ ] Re-export from `packages/labs/src/trust.ts` and
+- [x] Create `@xnetjs/trust` (zero-dep MIT leaf): `InstallProvenance`,
+      `TrustTier`, `SandboxKind`, `deriveTrustTier`, `requiresCapabilityReprompt`,
+      `sandboxForTier`, with tests (`packages/trust/`).
+- [x] Re-export from `packages/labs/src/trust.ts` and
       `packages/plugins/src/ecosystem/provenance-trust.ts`; delete the duplicated
-      bodies; keep the public APIs stable.
+      bodies; keep the public APIs stable. _As-built: `LabInstallSource`/
+      `PluginTrustTier`/`InstallProvenance`/`SandboxKind` preserved as aliases of
+      the shared types; `LabTrustTier` (in `labs/runtime/types.ts`) aliased to the
+      shared `TrustTier`. labs (46) + plugins (452) suites unchanged & green._
 - [ ] Add `packages/plugins/src/ecosystem/runtime.ts`: run user/marketplace-tier
       plugin code on the labs `RuntimeLadder`; first-party stays host-realm.
+      _(deferred — needs the benchmark below + a port to avoid the `plugins→labs`
+      cycle, since labs already depends on plugins.)_
 - [ ] Benchmark plugin activation + a representative editor interaction against
-      0184 budgets; gate the runtime switch on no regression.
+      0184 budgets; gate the runtime switch on no regression. _(deferred with the
+      runtime switch above.)_
 
 ### Phase 2 — AI drives the ecosystem
 
@@ -552,9 +558,10 @@ classDiagram
 
 ## Validation Checklist
 
-- [ ] `@xnetjs/trust` is the single source of trust logic; `labs` and `plugins`
+- [x] `@xnetjs/trust` is the single source of trust logic; `labs` and `plugins`
       both consume it; the byte-identical mirror is gone; all existing trust tests
-      pass against the shared package.
+      pass against the shared package (trust 10, plugins 452, labs 46 — green;
+      typecheck/eslint/prettier/fallow clean).
 - [ ] A user-tier plugin and a user-tier Lab run on the **same** ladder rung
       (SES Worker); a marketplace one on the iframe rung; first-party stays
       host-realm; no plugin activation/editor-latency regression vs 0184 budgets.
