@@ -20,6 +20,7 @@ import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { WebhookSignatureError, type TenantBillingGateway } from './billing-gateway'
 import { renderClaimForm, renderClaimResult, renderDashboard } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
+import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
 
 export interface ControlPlaneAppDeps {
@@ -29,6 +30,8 @@ export interface ControlPlaneAppDeps {
   payments?: TenantBillingGateway
   /** Device-grant store for the "claim your hub" flow. Defaults to in-memory. */
   deviceGrants?: DeviceGrantStore
+  /** Fleet health samples (Phase 1 observability). If set, exposes /internal/fleet/health. */
+  health?: HealthSampleStore
   /** Secret used to sign session cookies. If unset, the dashboard + auth callback are disabled. */
   sessionSecret?: string
   /** Absolute origin for building checkout success/cancel URLs (e.g. https://cloud.xnet.fyi). */
@@ -316,6 +319,22 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     } catch (err) {
       return c.json({ error: (err as Error).message }, 422)
     }
+  })
+
+  // Fleet observability — per-tenant SLIs + an aggregate (exploration 0193).
+  app.get('/internal/fleet/health', async (c) => {
+    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
+    if (!deps.health) return c.json({ error: 'observability_not_configured' }, 503)
+    const tenants = await deps.controlPlane.listTenants()
+    const live = tenants.filter((t) => t.dataTier === 'hot' && t.hubUrl)
+    const slis = live.map((t) =>
+      tenantSli(deps.health!, { tenantId: t.tenantId, plan: t.plan, hubUrl: t.hubUrl }, now())
+    )
+    return c.json({
+      fleet: fleetSummary(slis),
+      cold: tenants.length - live.length,
+      tenants: slis
+    })
   })
 
   app.post('/internal/account/recover', async (c) => {

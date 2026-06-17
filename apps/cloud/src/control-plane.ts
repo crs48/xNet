@@ -63,6 +63,11 @@ export function tenantIdForBilling(billingUserId: string): string {
   return `t_${billingUserId.replace(/[^a-zA-Z0-9_-]/g, '')}`
 }
 
+/** R2 object path holding a tenant's SQLite snapshot (matches the Litestream replica path). */
+export function snapshotKeyFor(tenantId: string): string {
+  return `t/${tenantId}/db`
+}
+
 export class ControlPlane {
   constructor(private readonly deps: ControlPlaneDeps) {}
 
@@ -299,9 +304,14 @@ export class ControlPlane {
     return this.deps.tenants.get(tenantId)
   }
 
+  /** Every tenant the control plane knows about (fleet observability + rollouts). */
+  listTenants(): Promise<TenantRecord[]> {
+    return this.deps.tenants.list()
+  }
+
   /** R2 object path holding a tenant's SQLite snapshot (matches the Litestream replica path). */
   private snapshotKey(tenantId: string): string {
-    return `t/${tenantId}/db`
+    return snapshotKeyFor(tenantId)
   }
 
   /** Record activity so the cold-demotion clock resets (exploration 0178). */

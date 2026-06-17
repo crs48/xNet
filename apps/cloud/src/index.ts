@@ -40,6 +40,53 @@ export {
   type DeviceGrantStore,
   type CodeGenerator
 } from './device-grant'
+export {
+  availability,
+  errorRate,
+  latencyPercentile,
+  errorBudgetRemaining,
+  burnRate,
+  backupHealthy,
+  windowed,
+  type HealthSample
+} from './observability/sli'
+export {
+  sloForSla,
+  sloForPlan,
+  errorBudgetMs,
+  budgetPolicy,
+  type SloTarget,
+  type BudgetPolicy
+} from './observability/slo'
+export {
+  HealthSampleStore,
+  FakeHealthProbe,
+  httpHealthProbe,
+  sampleTenantHealth,
+  tenantSli,
+  fleetSummary,
+  type HealthProbe,
+  type TenantSli,
+  type FleetSummary
+} from './observability/health'
+export {
+  rollWave,
+  runRollout,
+  type RolloutEngineDeps,
+  type RolloutPlan,
+  type RolloutReport,
+  type WaveResult,
+  type WaveOptions
+} from './rollout/engine'
+export { controlPlaneRolloutDeps } from './rollout/control-plane-deps'
+export {
+  verifyRestore,
+  runRestoreDrills,
+  pickDrillSample,
+  type RestoreProbe,
+  type RestoreDrillResult
+} from './backup/restore-drill'
+export { reconcileTenant, type ReconcileInput, type ReconcileAction } from './reconcile/reconcile'
 
 /**
  * Pick the billing identity provider from the environment. WorkOS AuthKit (free
