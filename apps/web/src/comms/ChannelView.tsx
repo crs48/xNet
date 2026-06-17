@@ -7,16 +7,34 @@ import { rosterUsers, type UserCard } from '@xnetjs/comms'
 import { ChannelSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { cn, Popover } from '@xnetjs/ui'
-import { Hash, MessageCircle, Users, Volume2 } from 'lucide-react'
+import { Hash, MessageCircle, Rows2, Rows3, Users, Volume2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { CallControls } from './CallDock'
 import { ChannelChat } from './ChannelChat'
+import { useChatDensity } from './chat-prefs'
 import { ChatAvatar } from './ChatAvatar'
 import { channelHeaderModel } from './comms-utils'
 import { useComms } from './CommsContext'
 import { displayName, useProfiles, useRoomPresence, type ProfileEntry } from './hooks'
 
 const KIND_ICONS = { channel: Hash, dm: MessageCircle, voice: Volume2 } as const
+
+function DensityToggle() {
+  const [density, setDensity] = useChatDensity()
+  const compact = density === 'compact'
+  return (
+    <button
+      type="button"
+      title={compact ? 'Comfortable density' : 'Compact density'}
+      aria-label={compact ? 'Switch to comfortable density' : 'Switch to compact density'}
+      aria-pressed={compact}
+      onClick={() => setDensity(compact ? 'comfortable' : 'compact')}
+      className="flex h-7 w-7 items-center justify-center rounded-md text-ink-3 hover:bg-surface-2 hover:text-ink-1"
+    >
+      {compact ? <Rows3 size={14} strokeWidth={1.5} /> : <Rows2 size={14} strokeWidth={1.5} />}
+    </button>
+  )
+}
 
 function EditableTopic({ channelId, topic }: { channelId: string; topic?: string }) {
   const { update } = useMutate()
@@ -142,6 +160,7 @@ export function ChannelView({ channelId }: { channelId: string }) {
         <EditableTopic channelId={channelId} topic={header.topic} />
         <div className="min-w-0 flex-1" />
         <MembersButton roster={roster} memberCount={memberCount} profiles={profiles} />
+        <DensityToggle />
         <CallControls roomId={channelId} autoJoinVoice={header.kind === 'voice'} />
       </header>
       <div className="min-h-0 flex-1">

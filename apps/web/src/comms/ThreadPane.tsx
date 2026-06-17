@@ -121,7 +121,14 @@ export function ThreadPane({
             placeholder="Reply…"
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+              if (event.key === 'Escape' && text.trim() === '') {
+                event.preventDefault()
+                onClose()
+              } else if (
+                event.key === 'Enter' &&
+                !event.shiftKey &&
+                !event.nativeEvent.isComposing
+              ) {
                 event.preventDefault()
                 void send()
               }
