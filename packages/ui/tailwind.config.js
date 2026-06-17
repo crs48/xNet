@@ -219,12 +219,14 @@ export default {
       },
 
       // ─── Transition Timing Functions ─────────────────────────────
+      // Canonical easings (see packages/ui/src/theme/motion.css). `bounce`
+      // was retired — spring covers direct-manipulation feedback; ambient
+      // motion uses ease-out/ease-in.
       transitionTimingFunction: {
         'ease-in': 'var(--ease-in)',
         'ease-out': 'var(--ease-out)',
         'ease-in-out': 'var(--ease-in-out)',
         spring: 'var(--ease-spring)',
-        bounce: 'var(--ease-bounce)',
         subtle: 'var(--ease-subtle)'
       },
 
@@ -292,6 +294,10 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.7' }
         },
+        'pop-in': {
+          from: { opacity: '0', transform: 'scale(0.9)' },
+          to: { opacity: '1', transform: 'scale(1)' }
+        },
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' }
@@ -329,6 +335,7 @@ export default {
         'slide-in-left': 'slide-in-left var(--duration-slow) var(--ease-out)',
         'slide-out-left': 'slide-out-left var(--duration-normal) var(--ease-in)',
         'pulse-subtle': 'pulse-subtle 2s var(--ease-in-out) infinite',
+        'pop-in': 'pop-in var(--duration-normal) var(--ease-spring)',
         shimmer: 'shimmer 1.5s linear infinite',
         'accordion-down': 'accordion-down var(--duration-slow) var(--ease-out)',
         'accordion-up': 'accordion-up var(--duration-normal) var(--ease-in)',
