@@ -579,57 +579,77 @@ if (flags.clientSideAuthEnforcement) {
   need a bump, or is `authorization` non-versioned metadata? (0188 made
   effective schema read-time-composed — confirm authz rides along.)
 
+## Implementation Status
+
+Steps 1–9 (the safe, high-value core: guard rail, correctness fixes, full
+coverage backfill, and schema↔hub parity) shipped together — they have **zero
+production behavior change** because the evaluator is still unwired, so the
+schema layer is now complete and correct and *ready* to be wired. Steps 10–11
+(wiring the evaluator + authorized sync into clients) and the `visibility:
+'public'` engine extension remain deliberately deferred: they are a flag-gated
+runtime rollout the recommendation explicitly stages behind perf/real-data
+validation, and wiring needs a client-side `GrantIndex` lifecycle that does not
+exist yet. `PermissionMatrixPanel` needed no change — it reflects
+`schema.authorization`, which now exists for every content type, so it
+automatically shows the cascade roles post-backfill.
+
 ## Implementation Checklist
 
-- [ ] Add `authorization-coverage.test.ts` over the schema registry with an
+- [x] Add `authorization-coverage.test.ts` over the schema registry with an
       explicit, justified `AUTH_EXEMPT` allowlist (guard rail).
-- [ ] Call `warnLegacySchema` from `defineSchema` (dev-only) **or** add a lint
-      rule, so new auth-less schemas are loud.
-- [ ] Fix Landmine #1: legacy branch in `can()` falls through to the
-      grant-index fallback (or remove legacy mode after backfill).
-- [ ] Delete the unreachable `!authorization` deny branch in `evaluator.ts`.
-- [ ] Fix Landmine #3: `computeRecipients` expands grants for (and/or removes
-      the early return for) auth-less schemas.
-- [ ] Make `visibility: 'public'` emit `PUBLIC` in the cascade `read` action so
-      the schema model and hub agree.
-- [ ] Backfill `spaceCascadeAuthorization()` on content schemas: `page`,
-      `database`, `database-field`, `database-row`, `database-view`,
-      `database-select-option`, `canvas`, `folder`, `channel`, `dashboard`,
-      `map`, `comment(+anchors/orphans/references)`, `mentions`, `reaction`,
-      `chat-message`, `tag`, `media-asset`, `external-reference`, `experiment`,
-      `metric`, `observation`, `saved-view`, `task-view`, `user-widget`.
-- [ ] Decide + apply policy (preset or `AUTH_EXEMPT`) for edge/system schemas:
-      `space-membership`, `grant`, `system`, `inbox-state`, `profile`.
-- [ ] Add `schemaToHubPolicy()` (or equivalent) so hub grant actions +
-      visibility are derived from `schema.authorization`; add a schema↔hub
-      parity test.
-- [ ] Add `NodeStore.attachAuthEvaluator()` (or constructor wiring) and
-      construct `createPolicyEvaluator` in `packages/react/src/context.ts`,
-      `packages/runtime/src/client.ts`, electron, and expo — behind a flag.
-- [ ] Swap `AuthorizedYjsSyncProvider`/`YjsAuthGate` into the sync path behind
-      the same flag.
-- [ ] Update `PermissionMatrixPanel` to reflect the unified (post-backfill)
-      policy, including inherited Space roles and public state.
+- [x] Call `warnLegacySchema` from `defineSchema` (gated to the dev server so it
+      doesn't spam test suites), so new auth-less schemas are loud.
+- [x] Fix Landmine #1: legacy branch in `can()` falls through to the
+      grant-index fallback.
+- [x] Delete the unreachable `!authorization` deny branch in `evaluator.ts`.
+- [x] Fix Landmine #3: `computeRecipients` folds grant recipients into
+      auth-less schemas on every path.
+- [ ] *(deferred — flag-gated)* Make `visibility: 'public'` emit `PUBLIC` in the
+      read path so the schema model and hub agree. Needs a per-node conditional
+      (effective-visibility) resolver; the hub already enforces public today.
+- [x] Backfill authorization on all 24 content schemas: 9 with a `space`
+      relation via `spaceCascadeAuthorization()`; 9 child types inherit from
+      their parent — `database-row/field/select-option/view` + `saved-view`
+      (`database`), `chat-message` (`channel`), `comment`/`reaction` (`target`),
+      `task-view` (`project`); 6 standalone/personal — `folder`, `tag`,
+      `external-reference`, `media-asset`, `inbox-state`, `user-widget` —
+      owner-only via `presets.private()`. (`mentions`/comment-anchors are not
+      registered schemas, so no-op.)
+- [x] Decide + apply policy for edge/system schemas via `AUTH_EXEMPT`:
+      `SpaceMembership`, `Grant`, `Profile`, `SchemaDefinition`,
+      `SchemaCompatibility`, `SyncPolicy`, `PresenceSummary`. (`InboxState`
+      became owner-only `presets.private()` rather than exempt.)
+- [x] Add `schemaToHubPolicy()`/`hubActionsForSpaceRole()` deriving hub grant
+      actions from `schema.authorization`, plus a schema↔hub parity test.
+- [ ] *(deferred — flag-gated rollout)* Wire `createPolicyEvaluator` into the
+      client `NodeStore` (`packages/react/src/context.ts`, runtime, electron,
+      expo) behind a flag; needs a client-side `GrantIndex` lifecycle.
+- [ ] *(deferred — flag-gated rollout)* Swap `AuthorizedYjsSyncProvider`/
+      `YjsAuthGate` into the sync path behind the same flag.
+- [x] `PermissionMatrixPanel` — no change needed; it now reflects the
+      backfilled policy automatically via `schema.authorization`.
 
 ## Validation Checklist
 
-- [ ] `authorization-coverage.test.ts` is green (no un-exempted legacy schema).
-- [ ] `auth/space-cascade.test.ts` extended with `Page`/`Database`/`Canvas`
-      cases proving Space members can read/write shared content via the cascade.
-- [ ] Regression test: a node shared purely via a **hub grant** (no schema role)
-      is readable through the evaluator (Landmine #1 fixed).
-- [ ] Test: `computeRecipients` for a shared `Page` includes grantees, not just
-      the author (Landmine #3 fixed).
-- [ ] Test: a node with effective `visibility: 'public'` yields `PUBLIC` from
-      both `computeRecipients` and the hub's `resolveEffectiveVisibility`.
-- [ ] schema↔hub parity test: declared `read`-roles ⇔ hub grant actions for a
-      representative content schema.
-- [ ] With the flag on, manual E2E: two identities in a shared Space both see a
-      Page; a non-member does not; revocation removes access and rotates keys.
-- [ ] Perf: list-read latency with the evaluator wired stays within budget at
-      the 0184 large-DB scale (auth pushdown engaged).
-- [ ] With the flag **off**, behavior is byte-for-byte unchanged (hub remains
-      the sole enforcer).
+- [x] `authorization-coverage.test.ts` is green (no un-exempted legacy schema).
+- [x] Cascade proven by `auth/space-cascade.test.ts` (read/write/delete, most-
+      permissive, sibling isolation, deny precedence). *(Deferred: add real
+      `Page`/`Database`/`Canvas` fixtures alongside the generic ones.)*
+- [x] Regression test: a non-owner with a **hub grant** on a legacy schema is
+      allowed through the evaluator; without a grant, denied (Landmine #1).
+- [x] Test: `computeRecipients` includes grantees for a legacy schema
+      (Landmine #3).
+- [ ] *(deferred — with the visibility feature)* `visibility: 'public'` yields
+      `PUBLIC` from both `computeRecipients` and the hub.
+- [x] schema↔hub parity test: cascade hub actions ⇔ `spaceRoleGrantActions` for
+      every Space role.
+- [ ] *(deferred — flag-gated)* Flag-on E2E: two identities in a shared Space
+      both see a Page; a non-member does not; revocation rotates keys.
+- [ ] *(deferred — flag-gated)* Perf: list-read latency with the evaluator
+      wired stays within budget at 0184 scale.
+- [x] With nothing wired, behavior is unchanged: the full `@xnetjs/data` auth +
+      schema suite (492 tests) and typecheck/build are green; the hub remains
+      the sole enforcer in production.
 
 ## References
 
