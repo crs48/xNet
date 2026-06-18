@@ -50,6 +50,31 @@ jobs:
       - name: Motion vocabulary (0199)
         run: pnpm check:motion-vocab
 
+  # Validate changelog fragments and dry-run PR-number resolution on PRs, so a
+  # malformed entry (which would otherwise fail only the production deploy and
+  # freeze the whole changelog) or one that would ship numberless fails the PR
+  # instead (exploration 0203). Deliberately light: plain Node + on-the-fly tsx,
+  # no workspace install — both scripts are dependency-free / type-only.
+  changelog:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '23'
+
+      - name: Validate changelog fragments
+        run: npx --yes tsx site/scripts/validate-changelog.ts
+
+      - name: Dry-run PR-number resolution
+        run: node scripts/changelog/resolve-prs.mjs --check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CHANGELOG_BASE_REF: ${{ github.event.pull_request.base.sha }}
+
   # The heavy half of the old lint job: build the workspace and typecheck it.
   # typecheck genuinely needs `^build` (turbo builds dependencies first), so it
   # stays coupled to the build. Runs in parallel with `lint`, `test`, and
