@@ -90,4 +90,33 @@ describe('control-plane HTTP API', () => {
     })
     expect((await migrate.json()).kind).toBe('migration-required')
   })
+
+  it('mounts POST /ai/chat only when AI deps are configured', async () => {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const { controlPlane } = buildControlPlane({ billing })
+
+    // Without `ai`, the route is absent (404).
+    const without = createControlPlaneApp({ controlPlane, billing })
+    expect((await without.request('/ai/chat', { method: 'POST' })).status).toBe(404)
+
+    // With `ai`, the route is mounted; an unresolved tenant yields 401 (not 404).
+    const { FakeStripeBilling, MemoryUsageLedger } = await import('@xnetjs/cloud')
+    const withAi = createControlPlaneApp({
+      controlPlane,
+      billing,
+      ai: {
+        gateway: { chat: async () => ({ text: '', model: 'm', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }) },
+        ledger: new MemoryUsageLedger(),
+        billing: new FakeStripeBilling(),
+        pricingFor: () => ({ inputUsdPerMillion: 3, outputUsdPerMillion: 15, markup: 1.25 }),
+        resolveTenant: async () => null
+      }
+    })
+    const res = await withAi.request('/ai/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'm', messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.status).toBe(401)
+  })
 })

@@ -17,6 +17,7 @@ import type { PlanId } from '@xnetjs/entitlements'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { createAiRoute, type AiChatDeps } from './ai/route'
 import { WebhookSignatureError, type TenantBillingGateway } from './billing-gateway'
 import { renderClaimForm, renderClaimResult, renderDashboard } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
@@ -32,6 +33,8 @@ export interface ControlPlaneAppDeps {
   deviceGrants?: DeviceGrantStore
   /** Fleet health samples (Phase 1 observability). If set, exposes /internal/fleet/health. */
   health?: HealthSampleStore
+  /** Managed AI chat deps. If set, exposes `POST /ai/chat` (metered gateway). */
+  ai?: AiChatDeps
   /** Secret used to sign session cookies. If unset, the dashboard + auth callback are disabled. */
   sessionSecret?: string
   /** Absolute origin for building checkout success/cancel URLs (e.g. https://cloud.xnet.fyi). */
@@ -75,6 +78,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   app.get('/health', (c) =>
     c.json({ status: 'ok', service: 'xnet-cloud', substrate: deps.controlPlane ? 'ready' : 'init' })
   )
+
+  // Managed AI: `POST /ai/chat` (metered gateway). Mounted only when configured.
+  if (deps.ai) app.route('/', createAiRoute(deps.ai))
 
   // ── Auth funnel ───────────────────────────────────────────────────────────
 

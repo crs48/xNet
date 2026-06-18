@@ -34,6 +34,12 @@ export interface MeteredGatewayDeps {
   budgetUsdFor: (tenantId: string) => Promise<number>
   /** Map a tenant to its Stripe customer id. */
   customerIdFor: (tenantId: string) => string
+  /**
+   * Start of the tenant's current billing period (ms). The budget check sums only
+   * spend since this instant, so a *monthly* cap resets each period. Omit for an
+   * all-time budget (the default — preserves the original behavior).
+   */
+  periodStartMsFor?: (tenantId: string) => Promise<number>
   timestampMs?: () => number
 }
 
@@ -49,7 +55,8 @@ export class MeteredGateway {
 
   async chat(args: MeteredChatArgs): Promise<ChatResult> {
     const { tenantId } = args
-    const spent = await this.deps.ledger.totalChargeUsd(tenantId)
+    const periodStartMs = await this.deps.periodStartMsFor?.(tenantId)
+    const spent = await this.deps.ledger.totalChargeUsd(tenantId, periodStartMs)
     const budget = await this.deps.budgetUsdFor(tenantId)
     if (spent >= budget) {
       throw new BudgetExceededError(tenantId, spent, budget) // hard stop — no provider call
