@@ -5,6 +5,7 @@ import {
   asPlanId,
   requiresMigration,
   resolveEntitlements,
+  withAiBudget,
   withConcurrency,
   withSeats,
   withStorage
@@ -28,6 +29,18 @@ describe('PLAN_CATALOG', () => {
     const quotas = PLAN_ORDER.map((p) => PLAN_CATALOG[p].quotaBytes)
     expect(Math.min(...quotas)).toBe(PLAN_CATALOG.demo.quotaBytes)
     expect(Math.max(...quotas)).toBe(PLAN_CATALOG.enterprise.quotaBytes)
+  })
+
+  it('gives the free tier no AI budget and every paid tier a positive included + cap', () => {
+    expect(PLAN_CATALOG.demo.includedAiUsd).toBe(0)
+    expect(PLAN_CATALOG.demo.aiMonthlyBudgetUsd).toBe(0)
+    for (const plan of PLAN_ORDER) {
+      const ent = PLAN_CATALOG[plan]
+      if (!ent.aiEnabled) continue
+      expect(ent.includedAiUsd).toBeGreaterThan(0)
+      // The hard cap is always at least the included (free first tier) amount.
+      expect(ent.aiMonthlyBudgetUsd).toBeGreaterThanOrEqual(ent.includedAiUsd)
+    }
   })
 })
 
@@ -66,11 +79,22 @@ describe('capacity flips', () => {
     expect(withConcurrency(base, 4000).maxConnections).toBe(4000)
   })
 
+  it('sets the AI budget and toggles aiEnabled off when the cap is zero', () => {
+    const richer = withAiBudget(base, 10, 100)
+    expect(richer.includedAiUsd).toBe(10)
+    expect(richer.aiMonthlyBudgetUsd).toBe(100)
+    expect(richer.aiEnabled).toBe(true)
+    expect(base.includedAiUsd).toBe(PLAN_CATALOG.personal.includedAiUsd) // immutable
+    expect(withAiBudget(base, 0, 0).aiEnabled).toBe(false)
+  })
+
   it('rejects invalid values', () => {
     expect(() => withStorage(base, -1)).toThrow()
     expect(() => withSeats(base, 0)).toThrow()
     expect(() => withSeats(base, 1.5)).toThrow()
     expect(() => withConcurrency(base, 0)).toThrow()
+    expect(() => withAiBudget(base, -1, 10)).toThrow()
+    expect(() => withAiBudget(base, 20, 10)).toThrow(/must be >= includedAiUsd/) // cap < included
   })
 })
 

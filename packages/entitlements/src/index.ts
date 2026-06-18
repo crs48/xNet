@@ -19,6 +19,7 @@ export {
   withStorage,
   withSeats,
   withConcurrency,
+  withAiBudget,
   requiresMigration,
   asPlanId,
   type PlanId,
