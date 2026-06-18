@@ -40,6 +40,7 @@
     "@xnetjs/core": "workspace:*",
     "@xnetjs/trust": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/slack-compat": "workspace:*",
     "acorn": "^8.15.0"
   },
   "peerDependencies": {

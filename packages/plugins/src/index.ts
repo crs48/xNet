@@ -165,7 +165,11 @@ export {
   connectorMarketplaceEntry,
   connectorAsImporter,
   evaluateConnectorInstall,
-  wrapCliConnector
+  wrapCliConnector,
+  buildSlackConnector,
+  SLACK_CONNECTOR_ID,
+  CHANNEL_SCHEMA,
+  CHAT_MESSAGE_SCHEMA
 } from './connectors'
 export type {
   ConnectorDefinition,
@@ -181,7 +185,8 @@ export type {
   ConnectorArtifacts,
   ConnectorToolDescriptor,
   ConnectorInstallGate,
-  WrapCliConnectorOptions
+  WrapCliConnectorOptions,
+  SlackConnectorOptions
 } from './connectors'
 
 // Middleware
