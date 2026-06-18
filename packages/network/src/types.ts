@@ -71,6 +71,15 @@ export interface HubHandshake {
   protocolVersion?: number
   /** Minimum supported protocol version */
   minProtocolVersion?: number
+  /**
+   * Umbrella XNet Protocol Versions this hub speaks, newest first (e.g.
+   * `['xnet/1.0']`). Bundles the per-subsystem versions into one negotiable
+   * token. See docs/specs/protocol/03-replication.md §7 and
+   * `XNET_PROTOCOL_VERSION` in @xnetjs/sdk.
+   */
+  xnetProtocol?: string[]
+  /** Oldest umbrella version this hub still accepts. */
+  minXnetProtocol?: string
   /** Feature flags supported by this hub */
   features?: string[]
   hubDid?: string
@@ -89,6 +98,12 @@ export interface ClientHandshake {
   protocolVersion: number
   /** Minimum supported protocol version */
   minProtocolVersion: number
+  /**
+   * Umbrella XNet Protocol Versions this client speaks, newest first (e.g.
+   * `['xnet/1.0']`). The hub picks the newest shared id, or replies with a
+   * version-mismatch when the sets do not intersect.
+   */
+  xnetProtocol?: string[]
   /** Feature flags supported by this client */
   features: string[]
   /** Package version */

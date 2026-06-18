@@ -101,3 +101,18 @@ export {
   type SyncPhase,
   type ProgressListener
 } from './sync/InitialSyncManager'
+
+// The umbrella XNet Protocol Version — the machine-readable counterpart of the
+// normative spec in docs/specs/protocol/. See exploration 0200.
+export {
+  XNET_PROTOCOL_VERSION,
+  XNET_SUPPORTED_PROTOCOL_VERSIONS,
+  XNET_SCHEMA_VERSION,
+  XNET_SYNC_ENVELOPE_VERSION,
+  XNET_AWARENESS_VERSION,
+  XNET_DATA_MODEL_VERSION,
+  XNET_UCAN_PROFILE,
+  negotiateProtocolVersion,
+  isProtocolCompatible,
+  type XNetProtocolBundle
+} from './protocol'

@@ -1,0 +1,35 @@
+{
+  "description": "same property: higher lamport wins regardless of order",
+  "input": {
+    "changes": [
+      {
+        "authorDID": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
+        "lamport": 1,
+        "wallTime": 999,
+        "properties": {
+          "title": "old"
+        }
+      },
+      {
+        "authorDID": "did:key:z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX",
+        "lamport": 2,
+        "wallTime": 100,
+        "properties": {
+          "title": "new"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "properties": {
+      "title": "new"
+    },
+    "timestamps": {
+      "title": {
+        "lamport": 2,
+        "wallTime": 100,
+        "author": "did:key:z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX"
+      }
+    }
+  }
+}

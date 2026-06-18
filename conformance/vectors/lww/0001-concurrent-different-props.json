@@ -1,0 +1,41 @@
+{
+  "description": "concurrent edits to different properties both survive",
+  "input": {
+    "changes": [
+      {
+        "authorDID": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
+        "lamport": 1,
+        "wallTime": 100,
+        "properties": {
+          "title": "A"
+        }
+      },
+      {
+        "authorDID": "did:key:z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX",
+        "lamport": 1,
+        "wallTime": 100,
+        "properties": {
+          "status": "open"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "properties": {
+      "title": "A",
+      "status": "open"
+    },
+    "timestamps": {
+      "title": {
+        "lamport": 1,
+        "wallTime": 100,
+        "author": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH"
+      },
+      "status": {
+        "lamport": 1,
+        "wallTime": 100,
+        "author": "did:key:z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX"
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "description": "soft delete (tombstone) of the node",
+  "input": {
+    "authorSeedHex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "unsignedChange": {
+      "protocolVersion": 3,
+      "id": "chg-0003",
+      "type": "node-change",
+      "payload": {
+        "nodeId": "node-0001",
+        "properties": {},
+        "deleted": true
+      },
+      "parentHash": "cid:blake3:1111111111111111111111111111111111111111111111111111111111111111",
+      "authorDID": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
+      "wallTime": 1718641320000,
+      "lamport": 3
+    }
+  },
+  "expected": {
+    "authorDID": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
+    "canonicalJson": "{\"authorDID\":\"did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH\",\"id\":\"chg-0003\",\"lamport\":3,\"parentHash\":\"cid:blake3:1111111111111111111111111111111111111111111111111111111111111111\",\"payload\":{\"deleted\":true,\"nodeId\":\"node-0001\",\"properties\":{}},\"protocolVersion\":3,\"type\":\"node-change\",\"wallTime\":1718641320000}",
+    "hash": "cid:blake3:2df02a006db9a59ddb99196c7eaca529c3e221cfa9cbfc053afd73b1358d78d7",
+    "signatureBase64": "g0ifMedriptQV/qtJDi3ZdFaiivAwnS8MPXhVFRaOGl6/UF6U7+O5OFbFaBwrCH6oNxoDFKdH07Qv2po5XoADg=="
+  }
+}

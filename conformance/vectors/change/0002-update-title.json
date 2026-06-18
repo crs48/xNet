@@ -1,0 +1,27 @@
+{
+  "description": "sparse update to one property, chained to the first change",
+  "input": {
+    "authorSeedHex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "unsignedChange": {
+      "protocolVersion": 3,
+      "id": "chg-0002",
+      "type": "node-change",
+      "payload": {
+        "nodeId": "node-0001",
+        "properties": {
+          "title": "Welcome, world"
+        }
+      },
+      "parentHash": "cid:blake3:0000000000000000000000000000000000000000000000000000000000000000",
+      "authorDID": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
+      "wallTime": 1718641260000,
+      "lamport": 2
+    }
+  },
+  "expected": {
+    "authorDID": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
+    "canonicalJson": "{\"authorDID\":\"did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH\",\"id\":\"chg-0002\",\"lamport\":2,\"parentHash\":\"cid:blake3:0000000000000000000000000000000000000000000000000000000000000000\",\"payload\":{\"nodeId\":\"node-0001\",\"properties\":{\"title\":\"Welcome, world\"}},\"protocolVersion\":3,\"type\":\"node-change\",\"wallTime\":1718641260000}",
+    "hash": "cid:blake3:e9921f3a32af4c603b31584c3cf97be9a3aebc8c23442dbe2b978936b24bdd90",
+    "signatureBase64": "x5yEBQFugKlsPFePtedf29WuM7iJxy9WEwLiStuPbjyJowKIP/xlwZknttFmSoQRpcxgYX0Sii+S6q2syKBLCg=="
+  }
+}

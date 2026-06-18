@@ -1,0 +1,35 @@
+{
+  "description": "lamport+wallTime tie resolved by higher author DID",
+  "input": {
+    "changes": [
+      {
+        "authorDID": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
+        "lamport": 5,
+        "wallTime": 500,
+        "properties": {
+          "title": "from-A"
+        }
+      },
+      {
+        "authorDID": "did:key:z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX",
+        "lamport": 5,
+        "wallTime": 500,
+        "properties": {
+          "title": "from-B"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "properties": {
+      "title": "from-A"
+    },
+    "timestamps": {
+      "title": {
+        "lamport": 5,
+        "wallTime": 500,
+        "author": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH"
+      }
+    }
+  }
+}
