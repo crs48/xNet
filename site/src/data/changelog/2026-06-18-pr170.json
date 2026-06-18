@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-pr170",
+  "date": "June 2026",
+  "title": "Bring your Slack data into xNet",
+  "summary": "Moving from Slack just got easier. A new Slack connector imports your channels and message history into native xNet messages, and a Slack-compatibility layer translates Slack formatting so existing integrations are easier to carry across.",
+  "highlights": [
+    "Import Slack channels and message history into native xNet channels",
+    "Slack mrkdwn and Block Kit messages translate to xNet-flavored markdown",
+    "A migration guide with an honest compatibility matrix"
+  ],
+  "tags": ["plugins", "platform"],
+  "author": { "login": "crs48" },
+  "pr": 170
+}

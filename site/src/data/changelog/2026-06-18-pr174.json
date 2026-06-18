@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-18-pr174",
+  "date": "June 2026",
+  "title": "A redesigned chat & channels experience",
+  "summary": "Chat and channels are rebuilt to feel like Slack, Discord, or Zulip — grouped messages with avatars, emoji reactions, threaded replies, presence, and a smarter scroll.",
+  "highlights": [
+    "Grouped messages with avatars, date separators, and a \"new messages\" divider",
+    "Emoji reactions, threaded replies, and inline edit-in-place",
+    "Presence dots, editable channel topics, and a comfortable/compact density toggle",
+    "Smart stick-to-bottom with a jump-to-latest pill and unread count"
+  ],
+  "tags": ["app"],
+  "author": { "login": "crs48" },
+  "pr": 174
+}
