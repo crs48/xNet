@@ -386,11 +386,11 @@ done
 - [ ] Tell me the non-secret config: project id, region, Artifact Registry path, R2 bucket + endpoint.
 
 **MY tasks (code + deploy):**
-- [ ] Fix the hub Dockerfile Litestream v0.5.3 download (mirror/vendor the pinned binary) and build the hub image; push to Artifact Registry as `hub@1.0.0`.
-- [ ] Add `@pulumi/pulumi` + `@pulumi/gcp`; implement `CloudRunLitestreamProvisioner` (provision/upgrade/setEnv/sleep/destroy/get) via the Automation API; validate with `pulumi.runtime.setMocks`, then against your project.
-- [ ] Implement Firestore durable stores for `TenantStore`, `BindingStore`, `UsageLedger`, and (for restartable rollouts/claims) `DeviceGrantStore` + health samples; wire `buildControlPlane` to use them when configured.
+- [ ] Fix the hub Dockerfile Litestream v0.5.3 download and build the hub image; push to Artifact Registry as `hub@1.0.0`. _(Dockerfile fixed + `scripts/cloud-build-hub-image.sh` shipped in #166 — build-and-smoke is green; the build + push to AR is your operator step.)_
+- [x] Implement `CloudRunLitestreamProvisioner` (provision/upgrade/setEnv/sleep/destroy/get) over a `CloudRunClient` port — built on the **direct Google Cloud SDK** (`@google-cloud/run`), not Pulumi (#168 port + `FakeCloudRunClient`; #175 `GoogleCloudRunClient` real wrapper, env-selected by `cloudRunProvisionerFromEnv`). Proven by fakes; needs a live smoke test at first deploy.
+- [x] Implement Firestore durable stores for `TenantStore` + `BindingStore` and wire `buildControlPlane` to use them when `GCP_FIRESTORE_DATABASE` is set (#175: `DocStore` port → `InMemoryDocStore`/`FirestoreDocStore`). _Deferred:_ `UsageLedger`, `DeviceGrantStore`, and health samples stay in memory for now (losing them on restart costs a re-claim or a rebuilt window, not a tenant).
 - [ ] Author the `xnet-cloud` Cloud Run deploy (its own image + service), reading env from Secret Manager; rotate off `dev-insecure-*`.
-- [ ] Provide the exact `gcloud`/Pulumi commands for you to run the first deploy with your credentials.
+- [x] Provide the exact `gcloud` commands for you to bootstrap + deploy with your credentials (`docs/cloud/SETUP.md` + `scripts/cloud-gcp-bootstrap.sh`).
 
 **Validation gate for M1:** provision your own tenant via `POST /internal/tenants`, get a `*.run.app` hub URL, connect the app, sync data, then kill + reactivate and confirm the data restores from R2.
 
@@ -402,9 +402,9 @@ done
 - [ ] **DNS:** point `cloud.xnet.fyi` at the control-plane Cloud Run service (domain mapping or load balancer); add all secrets/price-ids to Secret Manager.
 
 **MY tasks:**
-- [ ] Implement `StripeTenantBillingGateway` (replace the fake) over `@xnetjs/billing`'s Stripe provider, keyed by the WorkOS customer; map `PRICE_BY_PLAN` from your price ids.
+- [x] Implement `StripeTenantBillingGateway` (replace the fake) over a narrow Stripe client, keyed by the WorkOS `customerRef`; `PRICE_BY_PLAN` from `STRIPE_PRICE_*`; env-selected by `stripeGatewayFromEnv`, webhook signature verified via `webhooks.constructEvent` (#175).
 - [ ] Replace `devDidVerifier` with real `@xnetjs/identity` passkey-challenge verification.
-- [ ] Set `XNET_CLOUD_BASE_URL=https://cloud.xnet.fyi`, wire WorkOS + Stripe env; deploy.
+- [ ] Set `XNET_CLOUD_BASE_URL=https://cloud.xnet.fyi`, wire WorkOS + Stripe env; deploy. _(Env wiring is code-complete — `resolveBillingProvider`/`resolveBillingGateway` + store/provisioner selection are all env-driven (#175); the deploy is your operator step.)_
 - [ ] Recommend/author GitHub Actions + Workload Identity Federation for keyless deploys.
 
 **Validation gate for M2:** a hand-invited user completes the real funnel (WorkOS sign-in → Stripe test checkout → webhook → provision → claim → sync) with no manual steps.
