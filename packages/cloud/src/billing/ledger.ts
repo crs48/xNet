@@ -23,11 +23,19 @@ export interface UsageEntry {
 export interface UsageLedger {
   /** Record an entry. Returns `{ recorded: false }` if the key was already seen. */
   record(entry: UsageEntry): Promise<{ recorded: boolean }>
-  /** Total marked-up charge for a tenant (omit for all tenants). */
-  totalChargeUsd(tenantId?: string): Promise<number>
-  /** All entries for a tenant (omit for all). */
-  entries(tenantId?: string): Promise<UsageEntry[]>
+  /**
+   * Total marked-up charge for a tenant (omit for all tenants). Pass `sinceMs` to
+   * scope to a billing period (entries with `timestampMs >= sinceMs`) — this is
+   * how a *monthly* AI budget resets each period rather than accruing for life.
+   */
+  totalChargeUsd(tenantId?: string, sinceMs?: number): Promise<number>
+  /** All entries for a tenant (omit for all), optionally scoped to `sinceMs`. */
+  entries(tenantId?: string, sinceMs?: number): Promise<UsageEntry[]>
 }
+
+/** True when an entry is in scope for `(tenantId, sinceMs)` filters. */
+export const inScope = (e: UsageEntry, tenantId?: string, sinceMs?: number): boolean =>
+  (!tenantId || e.tenantId === tenantId) && (sinceMs === undefined || e.timestampMs >= sinceMs)
 
 /** In-memory idempotent ledger for dev + tests; swap for a durable store in prod. */
 export class MemoryUsageLedger implements UsageLedger {
@@ -39,16 +47,15 @@ export class MemoryUsageLedger implements UsageLedger {
     return { recorded: true }
   }
 
-  async totalChargeUsd(tenantId?: string): Promise<number> {
+  async totalChargeUsd(tenantId?: string, sinceMs?: number): Promise<number> {
     let total = 0
     for (const e of this.byKey.values()) {
-      if (!tenantId || e.tenantId === tenantId) total += e.chargeUsd
+      if (inScope(e, tenantId, sinceMs)) total += e.chargeUsd
     }
     return total
   }
 
-  async entries(tenantId?: string): Promise<UsageEntry[]> {
-    const all = [...this.byKey.values()].map((e) => ({ ...e }))
-    return tenantId ? all.filter((e) => e.tenantId === tenantId) : all
+  async entries(tenantId?: string, sinceMs?: number): Promise<UsageEntry[]> {
+    return [...this.byKey.values()].filter((e) => inScope(e, tenantId, sinceMs)).map((e) => ({ ...e }))
   }
 }

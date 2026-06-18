@@ -37,4 +37,13 @@ describe('MemoryUsageLedger', () => {
     expect(await l.totalChargeUsd()).toBeCloseTo(0.6, 8)
     expect(await l.entries('t1')).toHaveLength(2)
   })
+
+  it('scopes totals + entries to a billing period via sinceMs (monthly reset)', async () => {
+    const l = new MemoryUsageLedger()
+    await l.record({ ...entry('t1:old', 't1', 1.0), timestampMs: 1_000 }) // last period
+    await l.record({ ...entry('t1:new', 't1', 0.25), timestampMs: 5_000 }) // this period
+    expect(await l.totalChargeUsd('t1')).toBeCloseTo(1.25, 8) // all-time
+    expect(await l.totalChargeUsd('t1', 5_000)).toBeCloseTo(0.25, 8) // this period only
+    expect(await l.entries('t1', 5_000)).toHaveLength(1)
+  })
 })
