@@ -1,0 +1,82 @@
+name: deploy-cloud
+
+# Deploy the xNet Cloud control plane to Cloud Run (exploration 0201).
+#
+# INERT BY DEFAULT: the deploy job is guarded by `vars.CLOUD_DEPLOY_ENABLED`, so
+# until an operator opts in (repo variable + Workload Identity Federation secrets)
+# the job is skipped — a skipped job is green, so merging this workflow never reds
+# out main. Turn it on once the GCP side exists:
+#   • Repo variable  CLOUD_DEPLOY_ENABLED = true
+#   • Repo secrets   WIF_PROVIDER (workloadIdentityPools/.../providers/...),
+#                    DEPLOYER_SA (xnet-deployer@xnet-cloud-staging-0.iam.gserviceaccount.com)
+#   • A protected GitHub Environment `cloud-staging` (reviewers) so real infra is
+#     never touched by a fork PR.
+# Secrets are read from GCP Secret Manager by Cloud Run at boot — never from CI.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging]
+        default: staging
+  push:
+    branches: [main]
+    paths:
+      - 'apps/cloud/**'
+      - 'packages/cloud/**'
+      - 'packages/entitlements/**'
+      - '.github/workflows/deploy-cloud.yml'
+
+permissions:
+  contents: read
+  id-token: write # OIDC token for Workload Identity Federation (no long-lived key)
+
+concurrency:
+  group: deploy-cloud-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    if: ${{ vars.CLOUD_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: cloud-staging
+    env:
+      PROJECT: xnet-cloud-staging-0
+      REGION: us-central1
+      SERVICE: xnet-cloud-staging
+      REPO: hub # the Artifact Registry repo the bootstrap created
+      BASE_URL: https://cloud-staging.xnet.fyi
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.DEPLOYER_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build + push control-plane image
+        run: |
+          IMAGE="us-docker.pkg.dev/${PROJECT}/${REPO}/control-plane:${GITHUB_SHA::8}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          gcloud auth configure-docker us-docker.pkg.dev --quiet
+          docker buildx build --platform linux/amd64 \
+            -f apps/cloud/Dockerfile -t "$IMAGE" --push .
+
+      - name: Deploy to Cloud Run
+        run: |
+          # Non-secret config inline; secrets resolved from Secret Manager by the
+          # service at boot (the deployer SA already has secretAccessor). The
+          # secret *names* below must exist in the project — see docs/cloud/SETUP.md.
+          gcloud run deploy "$SERVICE" \
+            --project "$PROJECT" --region "$REGION" \
+            --image "$IMAGE" --allow-unauthenticated --min-instances=1 \
+            --set-env-vars "NODE_ENV=production,XNET_CLOUD_BASE_URL=${BASE_URL},XNET_CLOUD_MARKETING_URL=https://xnet.fyi/cloud,GCP_PROJECT_PREFIX=xnet-cloud-staging,GCP_REGION=${REGION},GCP_FIRESTORE_DATABASE=(default),R2_BUCKET=xnet-hub-data-staging,AI_MARKUP=1.25" \
+            --set-secrets "XNET_PLAN_SECRET=xnet-plan-secret:latest,XNET_CLOUD_SESSION_SECRET=session-secret:latest,XNET_CLOUD_INTERNAL_SECRET=internal-secret:latest,WORKOS_CLIENT_ID=workos-client-id:latest,WORKOS_API_KEY=workos-api-key:latest,WORKOS_REDIRECT_URI=workos-redirect-uri:latest,STRIPE_SECRET_KEY=stripe-secret:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook:latest,STRIPE_PRICE_PERSONAL=stripe-price-personal:latest,STRIPE_PRICE_FAMILY=stripe-price-family:latest,STRIPE_PRICE_TEAM=stripe-price-team:latest,R2_ACCOUNT_ID=r2-account-id:latest,R2_ENDPOINT=r2-endpoint:latest,R2_ACCESS_KEY_ID=r2-key-id:latest,R2_SECRET_ACCESS_KEY=r2-secret:latest,GCP_ARTIFACT_REGISTRY=gcp-artifact-registry:latest"
+
+      - name: Smoke test the deploy
+        run: node scripts/cloud-smoke.mjs "$BASE_URL"

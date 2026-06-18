@@ -1,0 +1,15 @@
+# Dockerfile-scoped ignore for the control-plane image (BuildKit picks this over
+# the repo-root .dockerignore, which excludes apps/ for the hub build). We keep
+# apps/cloud + packages/ but drop the other apps and the site to slim the context.
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/*.log
+.git
+.github
+apps/web
+apps/electron
+apps/expo
+site
+docs
