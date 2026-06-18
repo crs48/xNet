@@ -8,7 +8,13 @@
     "Workspace re-scoping cross-fades smoothly",
     "Honors your system \"reduce motion\" setting"
   ],
-  "tags": ["app"],
-  "author": { "login": "crs48" },
-  "pr": 171
+  "tags": [
+    "app"
+  ],
+  "pr": 171,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

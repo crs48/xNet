@@ -12,5 +12,10 @@
     "crm",
     "app"
   ],
-  "pr": 102
+  "pr": 102,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

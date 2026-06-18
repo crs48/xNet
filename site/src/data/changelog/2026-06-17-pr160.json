@@ -8,7 +8,15 @@
     "Agent tools are surfaced to the AI automatically",
     "Tokens stay server-side; the agent sees only what policy allows"
   ],
-  "tags": ["ai", "plugins", "platform"],
-  "author": { "login": "crs48" },
-  "pr": 160
+  "tags": [
+    "ai",
+    "plugins",
+    "platform"
+  ],
+  "pr": 160,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

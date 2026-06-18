@@ -12,5 +12,10 @@
     "ci",
     "devtools"
   ],
-  "pr": 94
+  "pr": 94,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

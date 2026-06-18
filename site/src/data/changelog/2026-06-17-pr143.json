@@ -8,7 +8,13 @@
     "Conversations have memory — the assistant sees the whole thread, not just your last message",
     "A clear \"reads workspace\" badge and privacy note explain what it can see"
   ],
-  "tags": ["ai"],
-  "author": { "login": "crs48" },
-  "pr": 143
+  "tags": [
+    "ai"
+  ],
+  "pr": 143,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

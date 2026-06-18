@@ -12,5 +12,10 @@
     "finance",
     "app"
   ],
-  "pr": 101
+  "pr": 101,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

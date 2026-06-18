@@ -11,5 +11,10 @@
     "ci",
     "performance"
   ],
-  "pr": 141
+  "pr": 141,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

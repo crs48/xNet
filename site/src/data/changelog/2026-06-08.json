@@ -19,5 +19,10 @@
     "src": "/images/workbench-light.png",
     "alt": "Domain workspace in xNet"
   },
-  "pr": 123
+  "pr": 123,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
