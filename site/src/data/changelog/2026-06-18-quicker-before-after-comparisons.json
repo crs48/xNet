@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-quicker-before-after-comparisons",
+  "date": "June 18, 2026",
+  "title": "Quicker before/after comparisons",
+  "summary": "Changelog screenshots now show the after image and instantly swap to before when you hover — easier to flick between than the old drag slider.",
+  "highlights": [
+    "Hover or focus to flip between after and before",
+    "A corner label shows which you're viewing"
+  ],
+  "tags": [
+    "platform",
+    "devtools"
+  ]
+}
