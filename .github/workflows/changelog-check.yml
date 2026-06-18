@@ -1,12 +1,12 @@
 name: Changelog Check
 
-# Exploration 0197: require every PR to either describe its user-facing change in
-# a `## Changelog` section or carry the `skip-changelog` label. Runs on body and
-# label edits so the check clears as soon as the PR is fixed. Add the job name
-# `changelog-section` to the branch ruleset to make it block merges.
+# Exploration 0197: require every PR to either add a changelog fragment
+# (site/src/data/changelog/*.json) or carry the `skip-changelog` label. The
+# fragment rides in with the PR — nothing is written to main out of band. Keep
+# the job name `changelog-section`; it's the required check in the main ruleset.
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
     branches: [main]
 
 permissions:
@@ -21,68 +21,61 @@ jobs:
   changelog-section:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Require a Changelog section (or skip-changelog label)
-        id: check
-        continue-on-error: true
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-        run: node scripts/changelog/check.mjs
-
-      - name: Post / resolve the helper comment
-        if: always()
-        continue-on-error: true
+      - name: Require a changelog fragment (or skip-changelog label)
         uses: actions/github-script@v7
         with:
           script: |
-            const passed = '${{ steps.check.outcome }}' === 'success'
-            const marker = '<!-- changelog-check -->'
             const { owner, repo } = context.repo
-            const issue_number = context.payload.pull_request.number
-            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number })
+            const pr = context.payload.pull_request
+            const labels = pr.labels.map((l) => l.name)
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner, repo, pull_number: pr.number
+            })
+            const hasFragment = files.some(
+              (f) =>
+                /^site\/src\/data\/changelog\/.+\.json$/.test(f.filename) &&
+                f.status !== 'removed'
+            )
+            const passed = labels.includes('skip-changelog') || hasFragment
+
+            const marker = '<!-- changelog-check -->'
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: pr.number
+            })
             const existing = comments.find(
               (c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(marker)
             )
+
             if (passed) {
               if (existing) {
                 await github.rest.issues.updateComment({
                   owner, repo, comment_id: existing.id,
-                  body: `${marker}\n✓ Changelog section found — thanks!`
+                  body: `${marker}\n✓ Changelog fragment found — thanks!`
                 })
               }
               return
             }
+
             const body = [
               marker,
-              '**This PR needs a `## Changelog` section.**',
+              '**This PR needs a changelog entry.**',
               '',
-              'Add one to the PR description so the change reaches the public',
-              'changelog (CI publishes it automatically on merge):',
+              'Add a fragment file to the PR (it lands with the merge — nothing is',
+              'written to `main` separately, and the PR number is filled in at deploy):',
               '',
-              '```markdown',
-              '## Changelog',
-              '',
-              'Short, benefit-first headline',
-              'One sentence on what the user can now do.',
-              '- A specific user-visible point',
-              'tags: app, ai',
+              '```bash',
+              'node scripts/changelog/new.mjs --title "Short, benefit-first headline" \\',
+              '  --summary "One sentence on what the user can now do." \\',
+              '  --tags app,ai --highlight "A specific user-visible point"',
               '```',
               '',
               'No user-facing change? Add the **`skip-changelog`** label instead.'
             ].join('\n')
+
             if (existing) {
               await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body })
             } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body })
+              await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body })
             }
-
-      - name: Enforce the result
-        if: steps.check.outcome != 'success'
-        run: |
-          echo "Changelog section missing — see the PR comment above."
-          exit 1
+            core.setFailed('No changelog fragment and no skip-changelog label.')

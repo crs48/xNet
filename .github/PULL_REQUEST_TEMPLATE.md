@@ -7,15 +7,13 @@
 ## Changelog
 
 <!--
-One user-facing entry. On merge, CI turns this into a changelog entry on the
-site (and stamps the date, PR number, and author automatically — exploration
-0197). For internal-only PRs, leave this empty and add the `skip-changelog`
-label. Format:
-  First line = headline.
-  Then a sentence of benefit-focused prose (what the user can now do).
-  Then `- ` bullets for specific user-visible points (optional).
-  Then `tags: app, ai` (from: app, crm, finance, tasks, ai, plugins, editor,
-  sync, identity, platform, performance, devtools, ci).
+For a user-facing change, add a changelog fragment to this PR (the PR number is
+filled in at deploy — exploration 0197):
+  node scripts/changelog/new.mjs --title "Short, benefit-first headline" \
+    --summary "One sentence on what the user can now do." \
+    --tags app,ai --highlight "A specific user-visible point"
+Commit the resulting site/src/data/changelog/<id>.json. For internal-only PRs,
+add the `skip-changelog` label instead. The changelog-section check enforces this.
 -->
 
 ## Verification

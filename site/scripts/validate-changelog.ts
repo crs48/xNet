@@ -21,8 +21,9 @@ const entries: ChangelogEntry[] = readdirSync(fragmentDir)
   .filter((f) => f.endsWith('.json'))
   .map((f) => JSON.parse(readFileSync(join(fragmentDir, f), 'utf8')) as ChangelogEntry)
 
-// `YYYY-MM-DD`, optionally `-pr<N>` to disambiguate same-day merges.
-const ENTRY_ID = /^\d{4}-\d{2}-\d{2}(-pr\d+)?$/
+// `YYYY-MM-DD`, optionally followed by `-<slug>` (e.g. `-deals-sync` or the
+// legacy `-pr147`) to disambiguate same-day entries.
+const ENTRY_ID = /^\d{4}-\d{2}-\d{2}(-[a-z0-9-]+)?$/
 
 const errors: string[] = []
 

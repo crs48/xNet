@@ -25,6 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so resolve-prs can find each fragment's merge commit.
+          fetch-depth: 0
 
       - uses: ./.github/actions/setup
 
@@ -47,6 +50,11 @@ jobs:
       - name: Install site dependencies
         run: pnpm install --ignore-workspace
         working-directory: site
+
+      # Fill in each changelog fragment's PR number from git history (the merge
+      # commit that introduced it). Edits the workspace only — nothing committed.
+      - name: Resolve changelog PR numbers
+        run: node scripts/changelog/resolve-prs.mjs
 
       - name: Build site
         run: pnpm build
