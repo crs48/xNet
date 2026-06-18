@@ -18,7 +18,10 @@ import {
   FakeStripeBilling,
   GatewayClient,
   LiteLLMKeyManager,
+  OpenRouterGatewayClient,
+  OpenRouterKeyManager,
   StripeBillingAdapter,
+  type ChatGateway,
   type StripeBilling,
   type UsageLedger,
   type VirtualKeyManager
@@ -28,13 +31,50 @@ import { currentPeriodStartMs } from '../control-plane'
 import { pricingFromEnv } from './pricing'
 
 /**
- * The LiteLLM virtual-key manager when the admin API is reachable: a master key
- * (`LITELLM_MASTER_KEY`) plus a base URL (`LITELLM_BASE_URL`, defaulting to the
- * shared `AI_GATEWAY_BASE_URL` — usually the same LiteLLM proxy). Key provisioning
- * is LiteLLM-specific even when the chat path points at an OpenAI-compatible
- * upstream like OpenRouter.
+ * Which gateway the managed-AI path talks to. Set `AI_GATEWAY_PROVIDER`
+ * (`openrouter` | `litellm`) explicitly, or we sniff it from the base URL
+ * (`openrouter.ai` → OpenRouter, else LiteLLM). Drives both the chat client and
+ * the key manager so they always agree (exploration 0201).
+ */
+export type AiGatewayProvider = 'openrouter' | 'litellm'
+
+export function aiGatewayProvider(env: NodeJS.ProcessEnv = process.env): AiGatewayProvider {
+  const explicit = env.AI_GATEWAY_PROVIDER?.trim().toLowerCase()
+  if (explicit === 'openrouter' || explicit === 'litellm') return explicit
+  return (env.AI_GATEWAY_BASE_URL ?? '').includes('openrouter.ai') ? 'openrouter' : 'litellm'
+}
+
+/** The OpenAI-compatible chat client for the configured provider. */
+function gatewayFromEnv(env: NodeJS.ProcessEnv, baseUrl: string): ChatGateway {
+  if (aiGatewayProvider(env) === 'openrouter') {
+    return new OpenRouterGatewayClient({
+      baseUrl,
+      referer: env.AI_GATEWAY_REFERER ?? 'https://xnet.fyi',
+      title: env.AI_GATEWAY_TITLE ?? 'xNet Cloud'
+    })
+  }
+  return new GatewayClient({ baseUrl })
+}
+
+/**
+ * The virtual-key manager the control plane uses to mint per-tenant budgeted keys.
+ *
+ * - OpenRouter: a management key (`OPENROUTER_MANAGEMENT_KEY`) over the Provisioning
+ *   API; keys carry a USD `limit` that resets monthly.
+ * - LiteLLM: a master key (`LITELLM_MASTER_KEY`) + base URL (`LITELLM_BASE_URL`,
+ *   defaulting to the shared `AI_GATEWAY_BASE_URL`).
+ *
+ * Returns undefined when the chosen provider's admin credential is absent, so key
+ * provisioning is simply skipped (null-fallback, like the rest of the control plane).
  */
 export function aiKeysFromEnv(env: NodeJS.ProcessEnv = process.env): VirtualKeyManager | undefined {
+  if (aiGatewayProvider(env) === 'openrouter') {
+    if (!env.OPENROUTER_MANAGEMENT_KEY) return undefined
+    return new OpenRouterKeyManager({
+      managementKey: env.OPENROUTER_MANAGEMENT_KEY,
+      ...(env.AI_GATEWAY_BASE_URL ? { baseUrl: env.AI_GATEWAY_BASE_URL } : {})
+    })
+  }
   const baseUrl = env.LITELLM_BASE_URL ?? env.AI_GATEWAY_BASE_URL
   if (!baseUrl || !env.LITELLM_MASTER_KEY) return undefined
   return new LiteLLMKeyManager({ baseUrl, masterKey: env.LITELLM_MASTER_KEY })
@@ -69,7 +109,11 @@ function tenantResolver(
       tenantId: record.tenantId,
       virtualKey: record.aiKeyRef,
       customerId: record.stripeCustomerId ?? record.billingUserId,
-      budgetUsd: record.entitlements.aiMonthlyBudgetUsd,
+      // Enforce the lower of the plan's hard cap and the tenant's self-set cap.
+      budgetUsd: Math.min(
+        record.aiCapUsd ?? Number.POSITIVE_INFINITY,
+        record.entitlements.aiMonthlyBudgetUsd
+      ),
       includedUsd: record.entitlements.includedAiUsd,
       periodStartMs: currentPeriodStartMs(nowMs())
     }
@@ -95,7 +139,7 @@ export function aiChatDepsFromEnv(
         .filter(Boolean)
     : undefined
   return {
-    gateway: new GatewayClient({ baseUrl: env.AI_GATEWAY_BASE_URL }),
+    gateway: gatewayFromEnv(env, env.AI_GATEWAY_BASE_URL),
     ledger,
     billing: billingFromEnv(env),
     pricingFor: pricingFromEnv(env),

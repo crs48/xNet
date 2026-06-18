@@ -24,17 +24,24 @@ export interface CreateVirtualKeyInput {
 }
 
 export interface VirtualKey {
-  /** The LiteLLM virtual key (`sk-…`). A server-side secret. */
+  /** The virtual key (`sk-…`) used as the gateway Bearer. A server-side secret. */
   key: string
+  /**
+   * Handle for management calls (`update`/`remove`). Equals `key` for LiteLLM; for
+   * OpenRouter it's the key's `hash` — the secret is only returned once at create
+   * and the Provisioning API addresses keys by hash. Falls back to `key` when omitted.
+   */
+  manageId?: string
   alias: string
   maxBudgetUsd: number
 }
 
-/** Create / update / remove a tenant's LiteLLM virtual key. */
+/** Create / update / remove a tenant's managed-AI virtual key. */
 export interface VirtualKeyManager {
   create(input: CreateVirtualKeyInput): Promise<VirtualKey>
-  update(key: string, patch: { maxBudgetUsd?: number; models?: string[] }): Promise<void>
-  remove(key: string): Promise<void>
+  /** `manageId` is {@link VirtualKey.manageId} (= `key` for LiteLLM, the hash for OpenRouter). */
+  update(manageId: string, patch: { maxBudgetUsd?: number; models?: string[] }): Promise<void>
+  remove(manageId: string): Promise<void>
 }
 
 /** In-memory manager for dev + tests: deterministic keys, no proxy required. */
@@ -42,8 +49,10 @@ export class FakeVirtualKeyManager implements VirtualKeyManager {
   private readonly byKey = new Map<string, VirtualKey>()
 
   async create(input: CreateVirtualKeyInput): Promise<VirtualKey> {
+    const key = `sk-fake-${input.alias}`
     const vk: VirtualKey = {
-      key: `sk-fake-${input.alias}`,
+      key,
+      manageId: key, // LiteLLM-style: the secret is also the management handle
       alias: input.alias,
       maxBudgetUsd: input.maxBudgetUsd
     }
@@ -114,7 +123,13 @@ export class LiteLLMKeyManager implements VirtualKeyManager {
       ...(input.budgetDuration ? { budget_duration: input.budgetDuration } : {})
     })) as { key?: string }
     if (!data.key) throw new VirtualKeyError('litellm /key/generate returned no key', 502)
-    return { key: data.key, alias: input.alias, maxBudgetUsd: input.maxBudgetUsd }
+    // LiteLLM addresses keys by the key value itself, so manageId === key.
+    return {
+      key: data.key,
+      manageId: data.key,
+      alias: input.alias,
+      maxBudgetUsd: input.maxBudgetUsd
+    }
   }
 
   async update(key: string, patch: { maxBudgetUsd?: number; models?: string[] }): Promise<void> {

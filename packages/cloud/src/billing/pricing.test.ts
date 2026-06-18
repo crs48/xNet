@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { computeChargeUsd, computeProviderCostUsd, type TokenPricing } from './pricing'
+import {
+  computeChargeFromCostUsd,
+  computeChargeUsd,
+  computeProviderCostUsd,
+  type TokenPricing
+} from './pricing'
 
 const pricing: TokenPricing = {
   inputUsdPerMillion: 3,
@@ -40,5 +45,26 @@ describe('computeChargeUsd', () => {
   it('charge always exceeds raw provider cost when marked up', () => {
     const provider = computeProviderCostUsd(10_000, 4_000, pricing)
     expect(computeChargeUsd(10_000, 4_000, pricing)).toBeGreaterThan(provider)
+  })
+})
+
+describe('computeChargeFromCostUsd (exact provider cost → marked-up charge)', () => {
+  it('applies the markup to a known provider cost and rounds up', () => {
+    expect(computeChargeFromCostUsd(0.01, 1.3)).toBeCloseTo(0.013, 8)
+    // sub-cent cost rounds UP to the 1e-8 unit, never below
+    expect(computeChargeFromCostUsd(0.000123, 1.3)).toBe(Math.ceil(0.000123 * 1.3 * 1e8) / 1e8)
+  })
+
+  it('never undercharges relative to the exact marked-up cost', () => {
+    for (let i = 1; i < 1000; i++) {
+      const cost = (i * 7.31) / 1e6
+      expect(computeChargeFromCostUsd(cost, 1.3)).toBeGreaterThanOrEqual(cost * 1.3 - 1e-12)
+    }
+  })
+
+  it('is zero for zero cost and rejects bad inputs', () => {
+    expect(computeChargeFromCostUsd(0, 1.3)).toBe(0)
+    expect(() => computeChargeFromCostUsd(1, 0.9)).toThrow(/markup/)
+    expect(() => computeChargeFromCostUsd(-0.01, 1.3)).toThrow(/providerCostUsd/)
   })
 })

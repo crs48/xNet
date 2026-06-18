@@ -160,32 +160,57 @@ Manager instead: `./scripts/cloud-gen-secrets.sh`.
 
 ## Part 3 — Optional: managed AI (metered, billed) + run-in-public metrics
 
-### 3a. Managed AI gateway (LiteLLM) — exploration 0200
+### 3a. Managed AI gateway (OpenRouter or LiteLLM) — explorations 0200/0201
 
 Offer AI to customers without them bringing a key: we host an AI gateway, meter
 token usage with a markup, and bill the overage with a hard budget cap (no
 surprise bills). The control plane has the whole metered pipeline already
-(`MeteredGateway`); it just needs a proxy to point at.
+(`MeteredGateway`); it just needs a gateway to point at. The gateway is selected
+by `AI_GATEWAY_PROVIDER` (`openrouter` | `litellm`), or sniffed from the base URL.
 
-1. **Deploy a [LiteLLM proxy](https://docs.litellm.ai/docs/proxy/deploy)** (its own
-   Cloud Run service + a small Postgres for keys/spend). Configure upstreams —
-   either direct providers (best margin) or **[OpenRouter](https://openrouter.ai)**
-   as a multi-provider upstream for breadth/failover. → `AI_GATEWAY_BASE_URL`
-2. Copy LiteLLM's **master key** so the control plane can mint each tenant a
-   budgeted virtual key at provision time. → `LITELLM_MASTER_KEY` (Secret Manager)
-3. **Pricing:** set the retail markup over provider cost (default `1.25` = 25%).
-   → `AI_MARKUP`. Optionally restrict models with `AI_ALLOWED_MODELS` (comma-list).
-4. **Stripe meter:** create a **metered Price** on a [Billing Meter](https://dashboard.stripe.com/test/billing/meters)
+**Recommended: [OpenRouter](https://openrouter.ai) direct** — no proxy to run,
+exact per-call cost (`usage.cost`), and managed per-tenant budgets.
+
+1. Top up an OpenRouter credit balance and create an **inference** key plus a
+   **management** key (Settings → Management Keys; mint-only, can't run inference).
+2. Set the env (Secret Manager for the keys):
+   ```bash
+   AI_GATEWAY_PROVIDER=openrouter
+   AI_GATEWAY_BASE_URL=https://openrouter.ai/api/v1
+   OPENROUTER_MANAGEMENT_KEY=sk-or-mgmt-...   # mints per-tenant keys (Provisioning API)
+   AI_MARKUP=1.3                              # absorbs OpenRouter's ~5.5% buy-in + Stripe fees
+   AI_ALLOWED_MODELS=anthropic/claude-sonnet-4-6,openai/gpt-4o-mini   # optional allow-list
+   ```
+   At provision time the control plane mints each `aiEnabled` tenant an OpenRouter
+   key with a monthly USD `limit`; inference uses the secret, update/delete address
+   it by `hash` (stored as `aiKeyManageRef`). The metered layer charges off the
+   exact `usage.cost` returned per call, so margin reconciliation is measured, not
+   modeled.
+
+**Alternative: self-hosted [LiteLLM proxy](https://docs.litellm.ai/docs/proxy/deploy)**
+— no platform fee, you hold the provider keys, full data-plane control (best at
+high volume). Deploy the proxy (+ Postgres), point upstreams at direct providers
+and/or OpenRouter, then set `AI_GATEWAY_PROVIDER=litellm`, `AI_GATEWAY_BASE_URL`,
+and `LITELLM_MASTER_KEY`. Cost is estimated from the static `PROVIDER_RATES` table
+× `AI_MARKUP` (verify the rates before launch).
+
+**Common to both:**
+
+3. **Stripe meter:** create a **metered Price** on a [Billing Meter](https://dashboard.stripe.com/test/billing/meters)
    named `ai_usage_usd` (aggregation **sum**), with a **graduated** tier where the
    first _included_ amount per plan is $0 and the rest is 1:1 — that's how the
    plan's `includedAiUsd` becomes "included" while overage bills.
-5. Per-plan included + cap live in `@xnetjs/entitlements` (`includedAiUsd` /
-   `aiMonthlyBudgetUsd`); they ride the signed `HUB_PLAN` token. Tune them there.
+4. Per-plan included + cap live in `@xnetjs/entitlements` (`includedAiUsd` /
+   `aiMonthlyBudgetUsd`); they ride the signed `HUB_PLAN` token. Tune them there. A
+   tenant can also set a lower self-serve cap (`ControlPlane.setAiCap`, clamped to ≤
+   the plan cap); the gateway stops at the lower of the two.
 
 When `AI_GATEWAY_BASE_URL` is set the control plane mounts `POST /ai/chat`
 (budget hard-stop → meter → Stripe) and shows live "used / included / cap" on the
-dashboard. Unset = no managed AI (BYO-key stays the default). Validate against the
-live proxy with a `mock_response` call once deployed.
+dashboard; the response carries a `budgetState` (`included`/`overage`/`near-cap`/
+`over-cap`) for the client gauge. Unset = no managed AI (BYO-key stays the
+default). Validate against the live gateway with a `mock_response` call once
+deployed.
 
 ### 3b. Run-the-company-in-public metrics — the `/open` page
 

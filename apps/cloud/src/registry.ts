@@ -34,12 +34,24 @@ export interface TenantRecord {
    */
   subscriptionStatus?: 'active' | 'canceled'
   /**
-   * The tenant's LiteLLM virtual key (`sk-…`) for managed AI — a server-side
-   * secret used as the gateway Bearer; never sent to the client. Set when the
-   * plan is `aiEnabled` and a key manager is configured. The matching budget +
-   * included amount live on `entitlements` (exploration 0200).
+   * The tenant's managed-AI virtual key (`sk-…`) — a server-side secret used as the
+   * gateway Bearer; never sent to the client. Set when the plan is `aiEnabled` and a
+   * key manager is configured. The matching budget + included amount live on
+   * `entitlements` (explorations 0200/0201). Works for both LiteLLM and OpenRouter.
    */
   aiKeyRef?: string
+  /**
+   * Management handle for the AI key (`VirtualKey.manageId`) when it differs from the
+   * Bearer secret — the OpenRouter key `hash` used for update/delete. Unset for
+   * LiteLLM, where the key value is its own handle (falls back to `aiKeyRef`).
+   */
+  aiKeyManageRef?: string
+  /**
+   * Per-tenant hard AI spend cap (USD/month) the customer set for themselves. Always
+   * clamped to ≤ the plan's `aiMonthlyBudgetUsd`; the metered gateway stops at the
+   * lower of the two. Unset = the full plan cap (exploration 0201).
+   */
+  aiCapUsd?: number
   /**
    * Stripe customer id (`cus_…`) captured at checkout, needed to bill metered AI
    * overage. Falls back to `billingUserId` for the meter event when unset.

@@ -8,6 +8,7 @@
 
 import type { TokenUsage } from './gateway'
 import {
+  computeChargeFromCostUsd,
   computeChargeUsd,
   computeProviderCostUsd,
   type StripeBilling,
@@ -24,6 +25,13 @@ export interface MeterUsageArgs {
   model: string
   usage: TokenUsage
   pricing: TokenPricing
+  /**
+   * Exact provider cost (USD) reported by the gateway (e.g. OpenRouter `usage.cost`).
+   * When set, the charge is `providerCostUsd × markup` (rounded up) and this exact
+   * value is recorded as the ledger's `providerCostUsd`. When omitted, both are
+   * estimated from `usage` × `pricing` (the static-table path).
+   */
+  providerCostUsd?: number
   ledger: UsageLedger
   billing: StripeBilling
   /** Meter event name; defaults to `ai_usage_usd`. */
@@ -38,12 +46,14 @@ export interface MeterUsageResult {
 }
 
 export async function meterUsage(args: MeterUsageArgs): Promise<MeterUsageResult> {
-  const chargeUsd = computeChargeUsd(args.usage.inputTokens, args.usage.outputTokens, args.pricing)
-  const providerCostUsd = computeProviderCostUsd(
-    args.usage.inputTokens,
-    args.usage.outputTokens,
-    args.pricing
-  )
+  // Prefer the gateway's ground-truth cost; fall back to the static-table estimate.
+  const hasExactCost = args.providerCostUsd !== undefined
+  const providerCostUsd = hasExactCost
+    ? args.providerCostUsd!
+    : computeProviderCostUsd(args.usage.inputTokens, args.usage.outputTokens, args.pricing)
+  const chargeUsd = hasExactCost
+    ? computeChargeFromCostUsd(providerCostUsd, args.pricing.markup)
+    : computeChargeUsd(args.usage.inputTokens, args.usage.outputTokens, args.pricing)
   const { recorded } = await args.ledger.record({
     key: args.key,
     tenantId: args.tenantId,

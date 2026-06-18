@@ -66,6 +66,29 @@ describe('meterUsage', () => {
     expect(billing.events()).toHaveLength(1)
     expect(billing.total('ai_usage_usd', 'cus_t1')).toBeCloseTo(0.01365, 8)
   })
+
+  it('charges off the exact providerCostUsd when supplied (ignores the token table)', async () => {
+    const ledger = new MemoryUsageLedger()
+    const billing = new FakeStripeBilling()
+    const res = await meterUsage({
+      tenantId: 't1',
+      customerId: 'cus_t1',
+      key: 't1:s1:r1',
+      model: 'anthropic/claude-sonnet-4-6',
+      // Token counts that the static table would price very differently…
+      usage: { inputTokens: 1000, outputTokens: 500, totalTokens: 1500 },
+      // …but the gateway reported the ground-truth cost, so we use it.
+      providerCostUsd: 0.002,
+      pricing,
+      ledger,
+      billing
+    })
+    // charge = ceil(0.002 * 1.3) ≈ 0.0026 (rounded UP), NOT the 0.01365 the table gives
+    expect(res.chargeUsd).toBe(Math.ceil(0.002 * 1.3 * 1e8) / 1e8)
+    expect(res.chargeUsd).toBeCloseTo(0.0026, 6)
+    const [entry] = await ledger.entries('t1')
+    expect(entry?.providerCostUsd).toBeCloseTo(0.002, 8)
+  })
 })
 
 describe('MeteredGateway budget hard-stop', () => {
@@ -74,6 +97,32 @@ describe('MeteredGateway budget hard-stop', () => {
     await mg.chat({ tenantId: 't1', key: 't1:s:1', request: req() })
     expect(await ledger.totalChargeUsd('t1')).toBeGreaterThan(0)
     expect(billing.events()).toHaveLength(1)
+  })
+
+  it('passes a gateway-reported providerCostUsd through to the ledger', async () => {
+    const ledger = new MemoryUsageLedger()
+    const exactCostGateway: ChatGateway = {
+      async chat() {
+        return {
+          text: 'ok',
+          model: 'anthropic/claude-sonnet-4-6',
+          usage: { inputTokens: 1000, outputTokens: 500, totalTokens: 1500 },
+          providerCostUsd: 0.004 // ground truth from OpenRouter usage.cost
+        }
+      }
+    }
+    const mg = new MeteredGateway({
+      gateway: exactCostGateway,
+      ledger,
+      billing: new FakeStripeBilling(),
+      pricingFor: () => pricing,
+      budgetUsdFor: async () => 10,
+      customerIdFor: (t) => `cus_${t}`
+    })
+    await mg.chat({ tenantId: 't1', key: 't1:s:1', request: req() })
+    const [entry] = await ledger.entries('t1')
+    expect(entry?.providerCostUsd).toBeCloseTo(0.004, 8)
+    expect(entry?.chargeUsd).toBe(Math.ceil(0.004 * 1.3 * 1e8) / 1e8) // 0.004 * 1.3, rounded up
   })
 
   it('scopes the budget check to the current period (last period does not count)', async () => {
