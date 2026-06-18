@@ -2,11 +2,15 @@
  * xNet Cloud — managed-AI retail pricing table.
  *
  * Maps a model id to its provider token rates and applies our retail markup, so
- * the metered gateway charges cost-plus (exploration 0200). Rates are USD per 1M
- * tokens (June 2026 list prices; verify against the provider before launch). The
- * markup defaults to 1.25× (≈20% gross over provider cost, before gateway/Stripe
- * overhead) and is overridable with `AI_MARKUP`. An unknown model falls back to a
- * conservative default so we never charge $0 for a billable call.
+ * the metered gateway charges cost-plus (explorations 0200/0201). Rates are USD per
+ * 1M tokens (June 2026 list prices; verify against the provider before launch).
+ *
+ * This static table is the FALLBACK path: when the gateway reports a ground-truth
+ * cost (OpenRouter's `usage.cost`), the metered layer charges off that instead and
+ * only the `markup` here applies. The markup defaults to 1.3× (≈23% gross, sized to
+ * absorb OpenRouter's ~5.5% credit-purchase fee + Stripe fees) and is overridable
+ * with `AI_MARKUP`. An unknown model falls back to a conservative default so we
+ * never charge $0 for a billable call.
  */
 
 import type { TokenPricing } from '@xnetjs/cloud'
@@ -25,10 +29,10 @@ export const PROVIDER_RATES: Record<string, { input: number; output: number }> =
 /** Conservative fallback for an unmapped model — priced like a mid-tier model. */
 export const DEFAULT_RATE = { input: 3, output: 15 }
 
-/** Parse `AI_MARKUP` (default 1.25); clamp to >= 1 so we never charge below cost. */
+/** Parse `AI_MARKUP` (default 1.3); clamp to >= 1 so we never charge below cost. */
 export function markupFromEnv(env: NodeJS.ProcessEnv = process.env): number {
   const raw = Number(env.AI_MARKUP)
-  return Number.isFinite(raw) && raw >= 1 ? raw : 1.25
+  return Number.isFinite(raw) && raw >= 1 ? raw : 1.3
 }
 
 /** A `pricingFor(model)` resolver for the metered gateway, with the env markup baked in. */

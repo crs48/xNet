@@ -164,6 +164,36 @@ describe('ControlPlane managed-AI key provisioning (0200)', () => {
   })
 })
 
+describe('ControlPlane.setAiCap (self-serve spend cap, 0201)', () => {
+  it('clamps the cap to the plan budget and clears it with undefined', async () => {
+    const { cp } = build()
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal', // plan cap $25
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    // A cap below the plan budget is kept verbatim.
+    expect((await cp.setAiCap('acme', 10)).aiCapUsd).toBe(10)
+    // A cap above the plan budget is clamped down to the plan cap.
+    expect((await cp.setAiCap('acme', 1000)).aiCapUsd).toBe(25)
+    // undefined clears it (back to the full plan cap).
+    expect((await cp.setAiCap('acme', undefined)).aiCapUsd).toBeUndefined()
+  })
+
+  it('rejects a negative cap and an unknown tenant', async () => {
+    const { cp } = build()
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    await expect(cp.setAiCap('acme', -5)).rejects.toThrow(/Invalid AI cap/)
+    await expect(cp.setAiCap('ghost', 5)).rejects.toThrow(/Unknown tenant/)
+  })
+})
+
 describe('currentPeriodStartMs', () => {
   it('returns the UTC start of the month containing the instant', () => {
     const mid = Date.UTC(2026, 5, 17, 13, 30) // 2026-06-17T13:30Z

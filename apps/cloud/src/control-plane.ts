@@ -11,7 +11,7 @@
  * Customer-Portal plan change drives (changePlan), per explorations 0174/0175.
  */
 
-import type { VirtualKeyManager } from '@xnetjs/cloud'
+import type { VirtualKey, VirtualKeyManager } from '@xnetjs/cloud'
 import type { Provisioner } from '@xnetjs/cloud/provisioner'
 import {
   bindIdentities,
@@ -101,22 +101,42 @@ export class ControlPlane {
   private async provisionAiKey(
     tenantId: string,
     entitlements: PlanEntitlements
-  ): Promise<string | undefined> {
+  ): Promise<VirtualKey | undefined> {
     if (!this.deps.aiKeys || !entitlements.aiEnabled || entitlements.aiMonthlyBudgetUsd <= 0) {
       return undefined
     }
-    const vk = await this.deps.aiKeys.create({
+    return this.deps.aiKeys.create({
       alias: tenantId,
       maxBudgetUsd: entitlements.aiMonthlyBudgetUsd,
       budgetDuration: '30d'
     })
-    return vk.key
+  }
+
+  /**
+   * Record fields for a freshly-minted key. Stores the management handle separately
+   * only when it differs from the Bearer secret (OpenRouter); for LiteLLM the key is
+   * its own handle, so `aiKeyManageRef` stays unset.
+   */
+  private aiKeyFields(
+    vk: VirtualKey | undefined
+  ): Partial<Pick<TenantRecord, 'aiKeyRef' | 'aiKeyManageRef'>> {
+    if (!vk) return {}
+    return {
+      aiKeyRef: vk.key,
+      ...(vk.manageId && vk.manageId !== vk.key ? { aiKeyManageRef: vk.manageId } : {})
+    }
+  }
+
+  /** The handle the key manager addresses for update/delete (hash for OpenRouter). */
+  private aiManageHandle(record: TenantRecord): string | undefined {
+    return record.aiKeyManageRef ?? record.aiKeyRef
   }
 
   /** Best-effort teardown of a tenant's virtual key (suspend/delete). */
   private async revokeAiKey(record: TenantRecord): Promise<void> {
-    if (this.deps.aiKeys && record.aiKeyRef) {
-      await this.deps.aiKeys.remove(record.aiKeyRef)
+    const handle = this.aiManageHandle(record)
+    if (this.deps.aiKeys && handle) {
+      await this.deps.aiKeys.remove(handle)
     }
   }
 
@@ -144,7 +164,7 @@ export class ControlPlane {
       env: this.hubEnv(entitlements)
     })
 
-    const aiKeyRef = await this.provisionAiKey(args.tenantId, entitlements)
+    const aiVk = await this.provisionAiKey(args.tenantId, entitlements)
     const record: TenantRecord = {
       tenantId: args.tenantId,
       plan: args.plan,
@@ -158,7 +178,7 @@ export class ControlPlane {
       createdAt: this.now(),
       lastActiveMs: this.now(),
       dataTier: 'hot',
-      ...(aiKeyRef ? { aiKeyRef } : {})
+      ...this.aiKeyFields(aiVk)
     }
     await this.deps.tenants.put(record)
     return record
@@ -198,7 +218,7 @@ export class ControlPlane {
       region: args.region,
       env: this.hubEnv(entitlements)
     })
-    const aiKeyRef = await this.provisionAiKey(tenantId, entitlements)
+    const aiVk = await this.provisionAiKey(tenantId, entitlements)
     const record: TenantRecord = {
       tenantId,
       plan: args.plan,
@@ -213,7 +233,7 @@ export class ControlPlane {
       lastActiveMs: this.now(),
       dataTier: 'hot',
       subscriptionStatus: 'active',
-      ...(aiKeyRef ? { aiKeyRef } : {})
+      ...this.aiKeyFields(aiVk)
     }
     await this.deps.tenants.put(record)
     return record
@@ -302,7 +322,7 @@ export class ControlPlane {
     }
 
     const handle = await this.deps.provisioner.setEnv(record.substrateRef, this.hubEnv(next))
-    const aiKeyRef = await this.reconcileAiKey(record, next)
+    const aiPatch = await this.reconcileAiKey(record, next)
     const updated: TenantRecord = {
       ...record,
       plan,
@@ -310,7 +330,7 @@ export class ControlPlane {
       hubUrl: handle.hubUrl,
       region: handle.region,
       targetVersion: handle.targetVersion,
-      ...(aiKeyRef === undefined ? {} : { aiKeyRef: aiKeyRef || undefined })
+      ...(aiPatch ?? {})
     }
     await this.deps.tenants.put(updated)
     return { kind: 'flipped', tenant: updated }
@@ -318,27 +338,48 @@ export class ControlPlane {
 
   /**
    * Reconcile a tenant's AI key against new entitlements: update the budget on an
-   * existing key, mint one when AI is newly enabled, or revoke when disabled.
-   * Returns the new key ref ('' when revoked, undefined to leave unchanged).
+   * existing key, mint one when AI is newly enabled, or revoke when disabled. Returns
+   * a record patch ({@link TenantRecord.aiKeyRef}/`aiKeyManageRef`) to apply, or
+   * `undefined` to leave the key fields unchanged.
    */
   private async reconcileAiKey(
     record: TenantRecord,
     next: PlanEntitlements
-  ): Promise<string | undefined | ''> {
+  ): Promise<Partial<Pick<TenantRecord, 'aiKeyRef' | 'aiKeyManageRef'>> | undefined> {
     if (!this.deps.aiKeys) return undefined
     const wantsAi = next.aiEnabled && next.aiMonthlyBudgetUsd > 0
-    if (wantsAi && record.aiKeyRef) {
-      await this.deps.aiKeys.update(record.aiKeyRef, { maxBudgetUsd: next.aiMonthlyBudgetUsd })
-      return undefined // key ref unchanged
+    const handle = this.aiManageHandle(record)
+    if (wantsAi && record.aiKeyRef && handle) {
+      await this.deps.aiKeys.update(handle, { maxBudgetUsd: next.aiMonthlyBudgetUsd })
+      return undefined // key unchanged
     }
     if (wantsAi && !record.aiKeyRef) {
-      return (await this.provisionAiKey(record.tenantId, next)) ?? undefined
+      return this.aiKeyFields(await this.provisionAiKey(record.tenantId, next))
     }
-    if (!wantsAi && record.aiKeyRef) {
-      await this.deps.aiKeys.remove(record.aiKeyRef)
-      return '' // signal removal
+    if (!wantsAi && record.aiKeyRef && handle) {
+      await this.deps.aiKeys.remove(handle)
+      return { aiKeyRef: undefined, aiKeyManageRef: undefined } // signal removal
     }
     return undefined
+  }
+
+  /**
+   * Set a tenant's self-serve AI spend cap (USD/month), clamped to ≤ the plan's
+   * `aiMonthlyBudgetUsd`. `undefined` clears it (back to the full plan cap). The
+   * metered gateway enforces the lower of cap and plan budget (exploration 0201).
+   */
+  async setAiCap(tenantId: string, capUsd: number | undefined): Promise<TenantRecord> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
+    const planCap = record.entitlements.aiMonthlyBudgetUsd
+    let aiCapUsd: number | undefined
+    if (capUsd !== undefined) {
+      if (!Number.isFinite(capUsd) || capUsd < 0) throw new Error(`Invalid AI cap: ${capUsd}`)
+      aiCapUsd = Math.min(capUsd, planCap)
+    }
+    const updated: TenantRecord = { ...record, aiCapUsd }
+    await this.deps.tenants.put(updated)
+    return updated
   }
 
   /**

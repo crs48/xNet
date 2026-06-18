@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { GatewayClient, OpenRouterGatewayClient, OpenRouterKeyManager } from '@xnetjs/cloud'
 import { pricingFromEnv } from './ai/pricing'
-import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
+import { aiChatDepsFromEnv, aiGatewayProvider, aiKeysFromEnv } from './ai/wiring'
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
 import { firestoreStoresFromEnv } from './stores/firestore'
 import { usageLedgerFromEnv } from './stores/usage-ledger'
@@ -55,7 +56,28 @@ describe('env-driven wiring', () => {
       env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000' })
     )
     expect(deps?.gateway).toBeDefined()
-    expect(deps?.pricingFor('claude-sonnet-4-6').markup).toBe(1.25)
+    expect(deps?.gateway).toBeInstanceOf(GatewayClient)
+    expect(deps?.pricingFor('claude-sonnet-4-6').markup).toBe(1.3)
+  })
+
+  it('selects the OpenRouter gateway when the base URL is openrouter.ai (or AI_GATEWAY_PROVIDER)', () => {
+    expect(aiGatewayProvider(env({}))).toBe('litellm')
+    expect(aiGatewayProvider(env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000' }))).toBe('litellm')
+    expect(
+      aiGatewayProvider(env({ AI_GATEWAY_BASE_URL: 'https://openrouter.ai/api/v1' }))
+    ).toBe('openrouter')
+    expect(
+      aiGatewayProvider(env({ AI_GATEWAY_PROVIDER: 'openrouter', AI_GATEWAY_BASE_URL: 'http://x' }))
+    ).toBe('openrouter')
+
+    const { controlPlane } = buildControlPlane({ env: env({}) })
+    const ledger = usageLedgerFromEnv(env({}))
+    const deps = aiChatDepsFromEnv(
+      controlPlane,
+      ledger,
+      env({ AI_GATEWAY_BASE_URL: 'https://openrouter.ai/api/v1' })
+    )
+    expect(deps?.gateway).toBeInstanceOf(OpenRouterGatewayClient)
   })
 
   it('selects the LiteLLM key manager only when a base URL + master key are set', () => {
@@ -68,15 +90,24 @@ describe('env-driven wiring', () => {
     ).toBeDefined()
   })
 
+  it('selects the OpenRouter key manager only when a management key is set', () => {
+    const orEnv = (o: Record<string, string>) =>
+      env({ AI_GATEWAY_BASE_URL: 'https://openrouter.ai/api/v1', ...o })
+    expect(aiKeysFromEnv(orEnv({}))).toBeUndefined() // needs the management key
+    expect(aiKeysFromEnv(orEnv({ OPENROUTER_MANAGEMENT_KEY: 'sk-or-mgmt' }))).toBeInstanceOf(
+      OpenRouterKeyManager
+    )
+  })
+
   it('prices known models from the table and unknown models from the default, with the env markup', () => {
     const priceDefault = pricingFromEnv(env({}))
     expect(priceDefault('claude-sonnet-4-6')).toMatchObject({
       inputUsdPerMillion: 3,
       outputUsdPerMillion: 15,
-      markup: 1.25
+      markup: 1.3
     })
     expect(priceDefault('some-unknown-model').inputUsdPerMillion).toBe(3) // DEFAULT_RATE
     expect(pricingFromEnv(env({ AI_MARKUP: '1.4' }))('gpt-4o').markup).toBe(1.4)
-    expect(pricingFromEnv(env({ AI_MARKUP: '0.5' }))('gpt-4o').markup).toBe(1.25) // clamped >= 1
+    expect(pricingFromEnv(env({ AI_MARKUP: '0.5' }))('gpt-4o').markup).toBe(1.3) // clamped >= 1
   })
 })
