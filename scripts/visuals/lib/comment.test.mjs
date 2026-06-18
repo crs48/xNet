@@ -10,6 +10,33 @@ test('empty manifest yields the "no differences" body with the marker', () => {
   assert.match(body, /No visual differences detected/)
 })
 
+test('fallback-only capture flags the coverage gap, not "no differences" (0200)', () => {
+  const body = buildBody(
+    {
+      stories: [],
+      routes: [{ id: 'home', label: 'Home', status: 'unchanged', ssim: 1 }],
+      flows: [],
+      fallbackUsed: true,
+      unmappedFiles: ['apps/web/src/comms/ChannelChat.tsx', 'apps/web/src/comms/MessageRow.tsx']
+    },
+    { baseUrl: BASE }
+  )
+  assert.match(body, /\[!WARNING\]/)
+  assert.match(body, /map to no capture target/)
+  assert.match(body, /manifests\.json/)
+  assert.match(body, /apps\/web\/src\/comms\/ChannelChat\.tsx/)
+  assert.doesNotMatch(body, /No visual differences detected/)
+})
+
+test('a genuine no-op (no fallback) still says "no differences" — no false alarm (0200)', () => {
+  const body = buildBody(
+    { stories: [], routes: [], flows: [], fallbackUsed: false, unmappedFiles: [] },
+    { baseUrl: BASE }
+  )
+  assert.match(body, /No visual differences detected/)
+  assert.doesNotMatch(body, /WARNING/)
+})
+
 test('unchanged stills are not rendered', () => {
   const body = buildBody(
     {

@@ -63,6 +63,34 @@ export function buildBody(manifest, { baseUrl, runUrl } = {}) {
 
   const out = [MARKER, '## 🖼️ UI changes in this PR', '']
 
+  // Coverage-gap signal (exploration 0200): the changed UI files mapped to no
+  // story/route/flow, so only the home shell was captured -- and it diffs clean.
+  // Say so loudly instead of the misleading "no visual differences", which made
+  // big UI changes (e.g. PR #174's chat redesign) look like no-ops.
+  const unmapped = manifest.unmappedFiles ?? []
+  if (manifest.fallbackUsed && total === 0) {
+    out.push(
+      '> [!WARNING]',
+      `> **${unmapped.length} changed UI file(s) map to no capture target.**`,
+      '> Only the home shell was captured, so the surface you changed is not shown',
+      '> here. Add a `routes[]` entry — or a `flows[]` entry + runner if the UI is',
+      '> behind a tab/inspector/modal/seed data — in `scripts/visuals/manifests.json`',
+      '> (`scripts/visuals/README.md` → Tuning).'
+    )
+    if (unmapped.length) {
+      out.push(
+        '',
+        '<details><summary>Unmapped files</summary>',
+        '',
+        ...unmapped.map((f) => `- \`${f}\``),
+        '',
+        '</details>'
+      )
+    }
+    if (runUrl) out.push('', `<sub>[CI run](${runUrl})</sub>`)
+    return out.join('\n')
+  }
+
   if (total === 0) {
     out.push('_No visual differences detected in the changed UI._')
     if (runUrl) out.push('', `<sub>[CI run](${runUrl})</sub>`)

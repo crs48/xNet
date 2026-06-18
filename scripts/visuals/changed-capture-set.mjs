@@ -72,7 +72,9 @@ if (all) {
       label: r.label,
       path: r.path
     })),
-    flows: []
+    flows: [],
+    fallbackUsed: false,
+    unmappedFiles: []
   }
 } else {
   changedFiles = diffFile

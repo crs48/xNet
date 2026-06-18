@@ -87,24 +87,38 @@ export function computeCaptureSet(input, opts = {}) {
     .filter((route) => changed.some((f) => matchesAny(f, route.globs)))
     .map((route) => ({ kind: 'route', id: route.id, label: route.label, path: route.path }))
 
-  // Fallback: web UI changed but nothing route-specific matched -> capture home
-  // so the reviewer still sees the shell the change lives in.
-  const webUiChanged = changed.some((f) => webUiPattern.test(f))
-  if (webUiChanged && routes.length === 0) {
-    const home = routeManifest.find((r) => r.id === homeRouteId)
-    if (home) routes.push({ kind: 'route', id: home.id, label: home.label, path: home.path })
-  }
-
   // --- Flows: any changed file matches the flow's globs. ---
   const flows = flowManifest
     .filter((flow) => changed.some((f) => matchesAny(f, flow.globs)))
     .map((flow) => ({ kind: 'flow', id: flow.id, label: flow.label }))
 
+  // Fallback: web UI changed but NOTHING specific matched (no route, no story,
+  // no flow) -> capture home so the reviewer still sees the shell the change
+  // lives in, AND record why. Without this signal the home shot diffs clean
+  // against the baseline and the comment reports "no visual differences" -- a
+  // coverage gap made indistinguishable from a no-op (exploration 0200, the
+  // PR #174 chat-redesign miss). The comment uses `fallbackUsed`/`unmappedFiles`
+  // to flag the gap instead. Tightened from the old `routes.length === 0`: a
+  // story or flow match is "something specific", so home is no longer piled on.
+  const webUiChanged = changed.some((f) => webUiPattern.test(f))
+  let fallbackUsed = false
+  let unmappedFiles = []
+  if (webUiChanged && routes.length === 0 && stories.length === 0 && flows.length === 0) {
+    const home = routeManifest.find((r) => r.id === homeRouteId)
+    if (home) {
+      routes.push({ kind: 'route', id: home.id, label: home.label, path: home.path })
+      fallbackUsed = true
+      unmappedFiles = changed.filter((f) => webUiPattern.test(f)).sort()
+    }
+  }
+
   const byId = (a, b) => String(a.id).localeCompare(String(b.id))
   return {
     stories: stories.sort(byId),
     routes: routes.sort(byId),
-    flows: flows.sort(byId)
+    flows: flows.sort(byId),
+    fallbackUsed,
+    unmappedFiles
   }
 }
 

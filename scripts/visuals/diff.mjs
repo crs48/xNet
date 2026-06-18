@@ -91,6 +91,9 @@ for (const r of manifest.routes ?? []) routes.push(await classifyStill(r))
 const result = {
   threshold,
   baseline: baselineDir || baselineUrl || null,
+  // Pass the coverage-gap signal through to the comment (exploration 0200).
+  fallbackUsed: manifest.fallbackUsed ?? false,
+  unmappedFiles: manifest.unmappedFiles ?? [],
   stories,
   routes,
   flows: manifest.flows ?? [], // videos always pass through

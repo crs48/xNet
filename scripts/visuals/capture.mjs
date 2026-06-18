@@ -38,7 +38,16 @@ const VIEWPORT = { width: 1280, height: 800 }
 const NO_MOTION = `*,*::before,*::after{transition:none!important;animation:none!important;
   caret-color:transparent!important;scroll-behavior:auto!important}`
 
-const manifest = { stories: [], routes: [], flows: [] }
+// Carry the coverage-gap signal (exploration 0200) from the capture set through
+// to the diff/comment stages: if `home` is here only because nothing specific
+// matched, the comment flags it instead of reporting "no visual differences".
+const manifest = {
+  stories: [],
+  routes: [],
+  flows: [],
+  fallbackUsed: set.fallbackUsed ?? false,
+  unmappedFiles: set.unmappedFiles ?? []
+}
 mkdirSync(outDir, { recursive: true })
 
 async function settle(page) {

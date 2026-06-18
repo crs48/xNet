@@ -526,13 +526,14 @@ test('every parameterized route is flow-covered or explicitly exempt — 0200', 
 
 ## Implementation Checklist
 
-- [ ] **C1** — `computeCaptureSet` returns `fallbackUsed` + `unmappedFiles`; only
+- [x] **C1** — `computeCaptureSet` returns `fallbackUsed` + `unmappedFiles`; only
       sets them when no story/route/flow matched and the home fallback fired.
-- [ ] **C2** — `changed-capture-set.mjs` writes both fields into
-      `capture-set.json`; `diff.mjs` passes them through to `diff-manifest.json`.
-- [ ] **C3** — `comment.mjs` `buildBody` renders the `> [!WARNING]` gap block
+- [x] **C2** — `changed-capture-set.mjs` writes both fields into
+      `capture-set.json`; `capture.mjs` carries them into `manifest.json`;
+      `diff.mjs` passes them through to `diff-manifest.json`.
+- [x] **C3** — `comment.mjs` `buildBody` renders the `> [!WARNING]` gap block
       (with the unmapped file list) instead of "No visual differences detected"
-      when `fallbackUsed && total === 0`. Update `comment.test.mjs`.
+      when `fallbackUsed && total === 0`. Updated `comment.test.mjs`.
 - [ ] **A1** — add the `chat` flow entry to `manifests.json#flows` mapping
       `apps/web/src/comms/**`.
 - [ ] **A2** — add the `chat` runner to `flows.mjs`; confirm the channel‑creation
