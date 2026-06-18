@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-changelog-now-credits-everyone-who-contr",
+  "date": "June 18, 2026",
+  "title": "Changelog now credits everyone who contributed",
+  "summary": "Each changelog entry now shows every contributor to its pull request — not just a single author — as linked GitHub avatars, on the website and in the in-app What's New.",
+  "highlights": [
+    "Avatars for every PR contributor (the author plus any co-committers), linking to their GitHub profile",
+    "Filled automatically from the merge event, and backfilled across past entries"
+  ],
+  "tags": [
+    "platform",
+    "devtools"
+  ]
+}
