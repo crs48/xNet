@@ -63,7 +63,13 @@ const view = entries.map((entry, i) => {
   const galleryLink =
     gallery && entry.pr ? { prUrl: gallery.prUrl, count: gallery.count, pr: entry.pr } : undefined
   const dataText = [entry.title, entry.summary, ...entry.highlights].join(' ').toLowerCase()
-  return { entry, items, video, galleryLink, dataText }
+  // Everyone who contributed; fall back to the legacy single author.
+  const contributors = entry.authors?.length
+    ? entry.authors
+    : entry.author
+      ? [entry.author]
+      : []
+  return { entry, items, video, galleryLink, dataText, contributors }
 })
 ---
 
@@ -113,7 +119,7 @@ const view = entries.map((entry, i) => {
         <div class="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-emerald-500/40 via-indigo-500/25 to-transparent"></div>
 
         <div class="space-y-12">
-          {view.map(({ entry, items, video, galleryLink, dataText }, i) => (
+          {view.map(({ entry, items, video, galleryLink, dataText, contributors }, i) => (
             <article
               id={entry.id}
               class="cl-entry animate-on-scroll relative pl-10 scroll-mt-24"
@@ -132,25 +138,25 @@ const view = entries.map((entry, i) => {
                     class="text-xs text-gray-400 hover:text-indigo-400 hover:underline"
                   >#{entry.pr}</a>
                 )}
-                {entry.author && (
+                {contributors.map((c) => (
                   <a
-                    href={`https://github.com/${entry.author.login}`}
+                    href={`https://github.com/${c.login}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-indigo-400"
-                    title={`By ${entry.author.name ?? entry.author.login}`}
+                    title={`By ${c.name ?? c.login}`}
                   >
                     <img
-                      src={`https://github.com/${entry.author.login}.png?size=40`}
+                      src={`https://github.com/${c.login}.png?size=40`}
                       alt=""
                       width="18"
                       height="18"
                       loading="lazy"
                       class="rounded-full"
                     />
-                    {entry.author.name ?? entry.author.login}
+                    {c.name ?? c.login}
                   </a>
-                )}
+                ))}
               </div>
 
               <h2 class="group mb-2 flex items-center gap-2 text-2xl font-bold text-gray-900 dark:text-white">

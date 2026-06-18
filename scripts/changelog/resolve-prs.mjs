@@ -102,6 +102,44 @@ async function resolvePr(addSha) {
   return prFromGit(addSha) ?? (await prFromApi(addSha))
 }
 
+/** Authenticated GitHub API GET → parsed JSON, or null on any failure. */
+async function ghJson(path) {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repoSlug()}${path}`, {
+      headers: {
+        accept: 'application/vnd.github+json',
+        'user-agent': 'xnet-changelog-resolve',
+        'x-github-api-version': '2022-11-28',
+        ...(token ? { authorization: `Bearer ${token}` } : {})
+      }
+    })
+    return res.ok ? await res.json() : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Everyone who contributed to a PR: the PR author first, then any other
+ * GitHub-matched (non-bot) commit authors, deduped by login. Returns
+ * [{ login }] or null if not even the PR author could be read.
+ */
+async function contributorsFromApi(pr) {
+  const seen = new Set()
+  const out = []
+  const add = (login) => {
+    if (login && !login.endsWith('[bot]') && !seen.has(login)) {
+      seen.add(login)
+      out.push({ login })
+    }
+  }
+  add((await ghJson(`/pulls/${pr}`))?.user?.login)
+  const commits = await ghJson(`/pulls/${pr}/commits?per_page=100`)
+  if (Array.isArray(commits)) for (const c of commits) add(c?.author?.login)
+  return out.length ? out : null
+}
+
 /** Was `addSha` introduced by this PR (i.e. not already reachable from base)? */
 function isNewVsBase(addSha) {
   if (!BASE_REF || !addSha) return false
@@ -158,22 +196,40 @@ if (CHECK) {
   )
   if (unresolvedNew.length) process.exit(1)
 } else {
-  // ── Deploy: write resolved numbers into the workspace (safety net). ────────
-  let resolved = 0
+  // ── Deploy: write resolved numbers + contributors into the workspace. ──────
+  let prFilled = 0
+  let authorsFilled = 0
   const unresolved = []
   for (const file of files) {
     const path = join(DIR, file)
     const entry = JSON.parse(readFileSync(path, 'utf8'))
-    if (entry.pr) continue
-    const pr = await resolvePr(addShaFor(file))
-    if (!pr) {
-      unresolved.push(entry.id ?? file)
-      continue
+    let changed = false
+
+    if (!entry.pr) {
+      const pr = await resolvePr(addShaFor(file))
+      if (pr) {
+        entry.pr = pr
+        prFilled++
+        changed = true
+        console.log(`resolved ${file} → PR #${pr}`)
+      } else {
+        unresolved.push(entry.id ?? file)
+      }
     }
-    entry.pr = pr
-    writeFileSync(path, JSON.stringify(entry, null, 2) + '\n')
-    resolved++
-    console.log(`resolved ${file} → PR #${pr}`)
+
+    // Fill contributors once the PR is known (skips entries already populated).
+    if (entry.pr && !entry.authors) {
+      const authors = await contributorsFromApi(entry.pr)
+      if (authors) {
+        entry.authors = authors
+        delete entry.author // migrate the legacy single author into `authors`
+        authorsFilled++
+        changed = true
+        console.log(`contributors ${file} → ${authors.map((a) => '@' + a.login).join(', ')}`)
+      }
+    }
+
+    if (changed) writeFileSync(path, JSON.stringify(entry, null, 2) + '\n')
   }
   // Fail-loud: surface unresolved fragments as warnings (GitHub annotates these),
   // but never block the deploy — a numberless entry still renders, just bare.
@@ -183,7 +239,7 @@ if (CHECK) {
     )
   }
   console.log(
-    `resolve-prs: filled ${resolved} PR number(s)` +
+    `resolve-prs: filled ${prFilled} PR number(s), ${authorsFilled} contributor list(s)` +
       (unresolved.length ? `, ${unresolved.length} unresolved: ${unresolved.join(', ')}` : '')
   )
 }
