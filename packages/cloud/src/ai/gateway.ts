@@ -31,6 +31,14 @@ export interface ChatResult {
   text: string
   model: string
   usage: TokenUsage
+  /**
+   * Ground-truth provider cost (USD) for this call, when the upstream reports it
+   * (e.g. OpenRouter's `usage.cost`). When present, the metered layer charges off
+   * this exact figure instead of estimating from a static price table — caching,
+   * reasoning, and image tokens are already baked in. Undefined for upstreams that
+   * don't report cost (raw OpenAI, dev mocks) → the table estimate is used.
+   */
+  providerCostUsd?: number
 }
 
 /** The gateway surface the metered layer depends on (real client or a fake). */

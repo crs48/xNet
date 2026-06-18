@@ -71,6 +71,9 @@ export class MeteredGateway {
       model: result.model,
       usage: result.usage,
       pricing: this.deps.pricingFor(result.model),
+      ...(result.providerCostUsd !== undefined
+        ? { providerCostUsd: result.providerCostUsd }
+        : {}),
       ledger: this.deps.ledger,
       billing: this.deps.billing,
       timestampMs: this.deps.timestampMs?.() ?? 0

@@ -37,6 +37,17 @@ export function computeChargeUsd(
   return ceil8(providerUsd * pricing.markup)
 }
 
+/**
+ * The marked-up retail charge from a *known* provider cost (USD), e.g. OpenRouter's
+ * `usage.cost`. Same `markup ≥ 1`, **always rounds up** invariant as
+ * {@link computeChargeUsd} — but off ground-truth cost rather than a token estimate.
+ */
+export function computeChargeFromCostUsd(providerCostUsd: number, markup: number): number {
+  if (markup < 1) throw new Error(`markup must be >= 1, got ${markup}`)
+  if (providerCostUsd < 0) throw new Error('providerCostUsd must be >= 0')
+  return ceil8(providerCostUsd * markup)
+}
+
 /** The provider's own (un-marked-up) cost, for margin reconciliation/telemetry. */
 export function computeProviderCostUsd(
   inputTokens: number,

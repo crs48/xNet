@@ -17,6 +17,8 @@ export {
   type TokenUsage
 } from './gateway'
 
+export { OpenRouterGatewayClient, type OpenRouterGatewayConfig } from './openrouter-gateway'
+
 export { meterUsage, type MeterUsageArgs, type MeterUsageResult } from './metering'
 
 export {
@@ -28,6 +30,8 @@ export {
   type CreateVirtualKeyInput,
   type LiteLLMKeyManagerConfig
 } from './keys'
+
+export { OpenRouterKeyManager, type OpenRouterKeyManagerConfig } from './openrouter-keys'
 
 export {
   MeteredGateway,

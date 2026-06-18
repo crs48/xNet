@@ -6,7 +6,12 @@
  * an in-memory fake for keyless testing.
  */
 
-export { computeChargeUsd, computeProviderCostUsd, type TokenPricing } from './pricing'
+export {
+  computeChargeUsd,
+  computeChargeFromCostUsd,
+  computeProviderCostUsd,
+  type TokenPricing
+} from './pricing'
 
 export { MemoryUsageLedger, inScope, type UsageLedger, type UsageEntry } from './ledger'
 
