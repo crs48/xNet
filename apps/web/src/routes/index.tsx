@@ -7,6 +7,7 @@ import { useQuery } from '@xnetjs/react'
 import { FileText, Database, Layout, Plus, ChevronDown, Network, Compass } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { hasOnboarded } from './welcome'
+import { bootMark } from '../lib/boot-timeline'
 import {
   CreateDocMenuItems,
   navigateToNewDoc,
@@ -56,6 +57,13 @@ function HomePage() {
   })
 
   const loading = pagesLoading || databasesLoading || canvasesLoading
+
+  // Mark the boot timeline the first time the landing surface has rows to
+  // paint — this anchors `firstPaint` (init:start → query:first-rows), the
+  // wall-clock a returning user actually feels (exploration 0204).
+  useEffect(() => {
+    if (!loading) bootMark('query:first-rows')
+  }, [loading])
 
   // Combine and sort all documents
   const allDocs: DocInfo[] = [

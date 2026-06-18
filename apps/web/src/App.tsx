@@ -35,6 +35,7 @@ import {
 import { SQLiteStorageAdapter, BlobStore, ChunkManager } from '@xnetjs/storage'
 import { ThemeProvider } from '@xnetjs/ui'
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import {
@@ -43,6 +44,7 @@ import {
   shouldResetXNetBrowserStorageOnLoad,
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
+import { bootMark } from './lib/boot-timeline'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { persistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
@@ -338,6 +340,7 @@ export function App(): JSX.Element {
 
     async function initialize() {
       try {
+        bootMark('init:start')
         if (shouldResetXNetBrowserStorageOnLoad()) {
           clearXNetBrowserStorageResetRequest()
           await clearXNetBrowserStorage()
@@ -376,6 +379,7 @@ export function App(): JSX.Element {
         }
 
         await sqliteAdapter.open({ path: '/xnet.db' })
+        bootMark('sqlite:open')
 
         if (cancelled) {
           await sqliteAdapter.close()
@@ -384,6 +388,7 @@ export function App(): JSX.Element {
 
         // Apply schema
         await sqliteAdapter.applySchema(SCHEMA_VERSION, SCHEMA_DDL)
+        bootMark('sqlite:schema')
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
@@ -426,6 +431,7 @@ export function App(): JSX.Element {
           if (cancelled) return
 
           if (resumed) {
+            bootMark('identity:ready')
             setAppState({
               status: 'authenticated',
               identity: resumed.identity,
@@ -440,6 +446,7 @@ export function App(): JSX.Element {
           try {
             const keyBundle = await identityManager.unlock()
             if (cancelled) return
+            bootMark('identity:ready')
             setAppState({
               status: 'authenticated',
               identity: keyBundle.identity,
@@ -779,6 +786,7 @@ export function App(): JSX.Element {
             tracing: traceCollector
           }}
         >
+          <BootTimelineProbe />
           <BundledPluginInstaller />
           <XNetDevToolsProvider
             position="bottom"
