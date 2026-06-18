@@ -580,51 +580,52 @@ stateDiagram-v2
 
 ## Implementation Checklist
 
+Legend: `[x]` shipped in this PR · `[ ] (operator)` requires your accounts/infra ·
+`[ ] (follow-up)` a deliberate next step.
+
 **Phase A — deploy cloud-staging**
-- [ ] Add `apps/cloud/Dockerfile` (multi-stage, monorepo context, `CMD node apps/cloud/dist/index.js`).
-- [ ] Add `scripts/cloud-build-control-plane.sh` (build/push `linux/amd64` to Artifact Registry), symmetric with `cloud-build-hub-image.sh`.
-- [ ] Push the 3 control-plane secrets + WorkOS/Stripe/R2 secrets into **Secret Manager** for `xnet-cloud-staging-0`.
-- [ ] `gcloud run deploy xnet-cloud-staging` with `--set-env-vars` (non-secret) + `--set-secrets` (secret).
-- [ ] `gcloud run domain-mappings create` for `cloud-staging.xnet.fyi`; add the printed CNAME at the DNS provider.
-- [ ] Update WorkOS staging redirect + Stripe test webhook endpoint to the real `cloud-staging.xnet.fyi` URLs.
-- [ ] Add `scripts/cloud-smoke.mjs <baseUrl>`: assert `/health` 200, `/auth/start` 302→WorkOS, `/status.json` shape, `/ai/chat` with `mock_response` (if AI), Stripe test checkout creation.
-- [ ] Set up **Workload Identity Federation** (bind `xnet-deployer` SA to the repo's OIDC) and add `.github/workflows/deploy-cloud.yml` gated by a protected `cloud-staging` Environment, running the smoke script post-deploy.
+- [x] Add `apps/cloud/Dockerfile` (single-stage pnpm-workspace build — no native deps in the closure) + a Dockerfile-scoped `.dockerignore` so `apps/cloud` survives the hub-tuned root ignore.
+- [x] Add `scripts/cloud-build-control-plane.sh` (build/push `linux/amd64` to the existing `hub` Artifact Registry repo), symmetric with `cloud-build-hub-image.sh`.
+- [ ] (operator) Push the 3 control-plane secrets + WorkOS/Stripe/R2 secrets into **Secret Manager** for `xnet-cloud-staging-0`.
+- [ ] (operator) `gcloud run deploy xnet-cloud-staging` with `--set-env-vars` (non-secret) + `--set-secrets` (secret).
+- [ ] (operator) `gcloud run domain-mappings create` for `cloud-staging.xnet.fyi`; add the printed CNAME at the DNS provider.
+- [ ] (operator) Update WorkOS staging redirect + Stripe test webhook endpoint to the real `cloud-staging.xnet.fyi` URLs.
+- [x] Add `scripts/cloud-smoke.mjs <baseUrl>`: asserts `/health` 200, `/status.json` shape + no-leak, `/auth/start` redirect. (`/ai/chat` + Stripe-checkout assertions remain a follow-up.)
+- [x] Add `.github/workflows/deploy-cloud.yml` (Cloud Run via WIF, secrets from Secret Manager, post-deploy smoke), guarded by `vars.CLOUD_DEPLOY_ENABLED` so it's inert until enabled. [ ] (operator) bind `xnet-deployer` SA to the repo's OIDC + add the `cloud-staging` Environment.
 
 **Phase B — local dev against staging creds**
-- [ ] Document the one-liner: `node --env-file=apps/cloud/.env.staging apps/cloud/dist/index.js`.
-- [ ] Add a `.env.staging.local` override convention (redirect URI → `http://localhost:4455/auth/callback`; webhook secret → Stripe CLI value) and teach `cloud-init-env.mjs`/doctor about it, or document an export-and-run snippet.
-- [ ] Register `http://localhost:4455/auth/callback` in the WorkOS **staging** app.
-- [ ] Document the Stripe CLI loop: `stripe listen --forward-to localhost:4455/webhooks/stripe` + `stripe trigger checkout.session.completed`.
-- [ ] Add a `pnpm --filter xnet-cloud dev:staging` script that loads the env file + overrides.
+- [x] Add a `pnpm --filter xnet-cloud dev:staging` script that loads `.env.staging` (+ optional `.env.staging.local`) and document the loop in SETUP.md (Part 4).
+- [x] Add the `.env.staging.local` override convention (redirect URI → `http://localhost:4455/auth/callback`; webhook secret → Stripe CLI value) and teach `cloud-env-doctor.mjs` to fold the overlay in.
+- [x] Document the Stripe CLI loop: `stripe listen --forward-to localhost:4455/webhooks/stripe` + `stripe trigger checkout.session.completed`.
+- [ ] (operator) Register `http://localhost:4455/auth/callback` in the WorkOS **staging** app.
 
 **Phase C — status page**
-- [ ] In `start()`, construct `HealthSampleStore`, pass `health` into `createControlPlaneApp`, and run a probe loop (or add `/internal/probe` + Cloud Scheduler; set Cloud Run `min-instances=1` if using `setInterval`).
-- [ ] Add public `GET /status.json` (aggregate-only, k-anon) + a serializer test asserting no tenant-identifying field.
-- [ ] Wire `backupHealthy()` into the `backups` component using the Litestream replica freshness signal.
-- [ ] Commit an initial `site/src/data/status.json` fallback; add `site/src/pages/status.astro` (fetch-live + fallback) reusing `OpenMetrics`-style inline SVG.
-- [ ] Link `/status` from the site footer and the `/open` page.
-- [ ] (Follow-up) Add Upptime (or a Cloud Scheduler ping) for independent off-infra black-box probing of `cloud.xnet.fyi` + the demo hub.
+- [x] In `start()`, construct `HealthSampleStore`, pass `health` into `createControlPlaneApp`, and run a probe loop (`probeFleet`, `unref`'d; `XNET_CLOUD_PROBE_MS`); `min-instances=1` set in the deploy workflow.
+- [x] Add public `GET /status.json` (aggregate-only, k-anon via `publicStatus`) + serializer/route tests asserting no tenant-identifying field.
+- [x] Commit an initial `site/src/data/status.json` fallback; add `site/src/pages/status.astro` (fetch-live + committed fallback) in the `/open` inline style.
+- [x] Link `/status` from the site footer and the `/open` page.
+- [ ] (follow-up) Wire a real Litestream replica-freshness signal into the `backups` component (currently `configured ⇒ operational` via `backupsConfigured`).
+- [ ] (follow-up) Add Upptime (or a Cloud Scheduler ping) for independent off-infra black-box probing of `cloud.xnet.fyi` + the demo hub.
 
 **Phase D — real `/open` data**
-- [ ] Add `scripts/cloud-company-metrics.mjs`: read subscription count + MRR from Stripe and AI COGS from the `UsageLedger`, join opex, emit `company-metrics.json`.
-- [ ] Pipe it through `scripts/cloud-metrics-rollup.mjs` (existing k-anon + banned-keys gate).
-- [ ] Add a weekly GitHub Actions cron that runs the rollup and opens a PR (nothing publishes without review).
-- [ ] Flip `metrics.json` `sample:true` → off once inputs are real; add an uptime headline stat sourced from `/status.json`.
+- [x] Add `scripts/cloud-company-metrics.mjs`: reads active-subscription count + monthly-normalized MRR from the Stripe REST API, carries forward costs, emits `company-metrics.json`; clean no-op without `STRIPE_SECRET_KEY`. (AI COGS from the metered ledger is carried forward — a follow-up.)
+- [x] Pipe it through `scripts/cloud-metrics-rollup.mjs` (existing k-anon + banned-keys gate) in the workflow.
+- [x] Add a weekly GitHub Actions cron (`cloud-metrics.yml`) that runs the rollup and opens a PR; guarded by `vars.CLOUD_METRICS_ENABLED` so it's inert until enabled.
+- [ ] (follow-up) Flip `metrics.json` `sample:true` → off once inputs are real; add an uptime headline stat sourced from `/status.json`.
 
 ## Validation Checklist
 
-- [ ] `node scripts/cloud-env-doctor.mjs apps/cloud/.env.staging` prints **✓ M1** and **✓ M2**.
-- [ ] `docker build -f apps/cloud/Dockerfile .` succeeds; the image boots and logs `xnet-cloud listening on :4455 — {auth:"workos", payments:"stripe", provisioner:"cloud-run", stores:"firestore", ai:…}`.
-- [ ] `curl https://cloud-staging.xnet.fyi/health` → `{"status":"ok",...}` over a valid TLS cert.
-- [ ] A WorkOS sign-in completes end to end against `cloud-staging.xnet.fyi` and lands on `/dashboard` with a sealed session cookie.
-- [ ] A Stripe **test-mode** checkout completes; the `checkout.completed` webhook provisions a real staging hub; `subscription.canceled` suspends it.
-- [ ] Locally, `stripe trigger checkout.session.completed` forwarded to `localhost:4455/webhooks/stripe` provisions/suspends a throwaway tenant.
-- [ ] `/ai/chat` with `mock_response` returns canned text, records a ledger entry, and the dashboard shows updated "used / included / cap".
-- [ ] `GET /status.json` returns named components + policy counts, and a test proves the payload contains **no** tenant id / hub URL / per-tenant SLI.
-- [ ] `xnet.fyi/status` renders live data, and still renders the committed fallback when the control plane is unreachable.
-- [ ] `scripts/cloud-smoke.mjs https://cloud-staging.xnet.fyi` passes in CI as a post-deploy gate.
-- [ ] The weekly rollup PR regenerates `metrics.json` deterministically and the `/open` page renders it; below-floor weeks are suppressed.
-- [ ] `pnpm check:cloud-boundary` still passes (the site never imports `@xnetjs/cloud`).
+- [x] `apps/cloud` unit suite green (124 tests incl. new `status.test.ts` + `probeFleet`); `tsc --noEmit`, `prettier --check`, `eslint`, and `pnpm check:cloud-boundary` all clean.
+- [x] `GET /status.json` returns named components + policy counts; unit + route tests prove the payload contains **no** tenant id / hub URL / per-tenant SLI.
+- [x] `scripts/cloud-smoke.mjs http://localhost:4455` passes against a locally-booted control plane (`/health`, `/status.json` no-leak, `/auth/start`). Boot log confirmed.
+- [x] `xnet.fyi/status` renders the committed fallback (verified in the Astro preview) and silently keeps it when the live fetch fails; updates in place on a successful fetch.
+- [x] `cloud-env-doctor.mjs` folds in a `.env.<env>.local` overlay (verified: a localhost redirect in `.local` flips the var ✓).
+- [x] `cloud-company-metrics.mjs` is a clean no-op (exit 0) without `STRIPE_SECRET_KEY`, so the scheduled job stays green.
+- [ ] (operator) `node scripts/cloud-env-doctor.mjs apps/cloud/.env.staging` prints **✓ M1** and **✓ M2** against the real env file.
+- [ ] (operator) `docker build -f apps/cloud/Dockerfile .` succeeds and the image boots logging `provisioner:"cloud-run", stores:"firestore"`.
+- [ ] (operator) `curl https://cloud-staging.xnet.fyi/health` → 200 over a valid TLS cert; `scripts/cloud-smoke.mjs https://cloud-staging.xnet.fyi` passes as the post-deploy gate.
+- [ ] (operator) WorkOS sign-in completes end to end and a Stripe **test-mode** checkout provisions a staging hub; `subscription.canceled` suspends it.
+- [ ] (operator) The weekly rollup PR regenerates `metrics.json` from live Stripe; below-floor weeks are suppressed.
 
 ## References
 
