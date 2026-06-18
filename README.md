@@ -18,6 +18,12 @@ Decentralized data infrastructure and application. Local-first, P2P-synced, user
 
 xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
 
+> **This repository is one implementation of xNet.** xNet is also an open
+> **protocol** you can re-implement in any language, over any database, and
+> interoperate. See [`docs/specs/protocol/`](./docs/specs/protocol/) (normative
+> spec), [`conformance/`](./conformance/) (golden vectors + a second-language
+> kernel), and [xnet.fyi/docs/protocol](https://xnet.fyi/docs/protocol/overview/).
+
 ## Try It Now
 
 **[Try the demo at xnet.fyi/app](https://xnet.fyi/app)** — no signup required, just use your device's passkey (Touch ID, Face ID, Windows Hello).
@@ -378,6 +384,7 @@ See [`docs/ROADMAP.md`](./docs/ROADMAP.md) for the detailed execution plan.
 ## Documentation
 
 - [Site](./site) -- Astro + Starlight documentation website
+- [Protocol Spec](./docs/specs/protocol/) -- the normative, re-implementable standard (L0–L3 + conformance corpus)
 - [Vision](./docs/VISION.md) -- The big picture: micro-to-macro data sovereignty
 - [Tradeoffs](./docs/TRADEOFFS.md) -- Why hybrid sync (Yjs + event sourcing)
 - [Roadmap](./docs/ROADMAP.md) -- current 6-month execution plan (Mar-Sep 2026)

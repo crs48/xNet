@@ -290,6 +290,12 @@ flowchart TD
 
 ## Technical Foundation
 
+> These primitives are now written down as a **normative, re-implementable
+> protocol** in [`docs/specs/protocol/`](./specs/protocol/) — four layers
+> (primitives, data model, replication, authorization), an umbrella version
+> (`xnet/1.0`), and a language-agnostic [conformance corpus](../conformance/).
+> The vision below is the *why*; the spec is the *exactly how*.
+
 ### The Core Primitives
 
 Everything in xNet is built on four primitives:
