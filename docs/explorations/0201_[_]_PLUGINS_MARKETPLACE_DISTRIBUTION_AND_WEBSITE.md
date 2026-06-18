@@ -594,36 +594,44 @@ export const BUNDLED_PLUGINS = [mermaidPlugin /*, kanban, slackConnector, … */
 
 **Phase 1 — Website live from a committed index (highest visible value)**
 
-- [ ] Create `registry/registry.json` seeded with the mermaid first-party entry
-      + 2–3 example community entries.
-- [ ] Add `site/src/data/plugins.ts` (import + types, derived `firstParty` /
+- [x] Create `registry/registry.json` seeded with first-party entries (mermaid +
+      slack + unreal connectors). Community section starts empty with an
+      inviting empty-state (honest > fake entries).
+- [x] Add `site/src/data/plugins.ts` (import + types, derived `firstParty` /
       `community` / `categories`), mirroring `metrics.ts`.
-- [ ] Add `site/scripts/validate-plugins.ts`; wire into `site/package.json`
-      `build` before `astro build` (mirror `validate:compare`).
-- [ ] Build `site/src/pages/plugins.astro` (featured + community grids,
-      client-side search/filter) and `PluginCard.astro` (reusing `Badge`).
-- [ ] Build `site/src/pages/plugins/[id].astro` detail page via
-      `getStaticPaths()` (README/screenshots, capabilities, trust + pricing
-      badges, "Open in xNet" + repo links).
-- [ ] Add a **Plugins** link to [`Nav.astro`](../../site/src/components/sections/Nav.astro)
-      and a column in [`Footer.astro`](../../site/src/components/sections/Footer.astro).
-- [ ] Add a "Publish your plugin" CTA section + `/docs/building-plugins` page
-      (scaffolder, manifest, submission steps).
+- [x] Add `site/scripts/validate-plugins.ts`; wire into `site/package.json`
+      `build` before `astro build` (mirror `validate:compare`). Also publishes
+      `public/registry.json` for the app to fetch.
+- [x] Build `site/src/pages/plugins.astro` (built-in + community grids,
+      client-side search + category filter) and `PluginCard.astro`.
+- [x] Build `site/src/pages/plugins/[id].astro` detail page via
+      `getStaticPaths()` (facts grid, capabilities/contributes, trust + pricing
+      badges, "Open in xNet" deep link + repo links).
+- [x] Add a **Plugins** link to [`Nav.astro`](../../site/src/components/sections/Nav.astro)
+      and the Product column in [`Footer.astro`](../../site/src/components/sections/Footer.astro).
+- [x] Add a "Publish your plugin" CTA section (scaffolder one-liner + guide +
+      submit links). CTA links to the existing `/docs/guides/plugins` guide;
+      a "Publishing to the marketplace" section is added there in Phase 2.
 
 **Phase 2 — Community submission pipeline (monorepo PR → enriched index)**
 
-- [ ] Add `registry/community.json` (the human-edited `{repo, category}` list)
-      + `CONTRIBUTING-plugins.md` + a PR template.
-- [ ] `validate-plugin-submission` Action (paths: `registry/**`): repo exists,
-      release + valid `manifest.json`, reverse-domain id, unique, not blocked
-      (0047 design).
-- [ ] `build-plugin-index` Action (on merge + daily cron): enrich entries with
-      GitHub stars/latest-release/download counts, write `registry.json`, commit;
-      triggers site redeploy.
-- [ ] `registry/blocked.yaml` + a `revoked[]` array in the index (0047
-      blocklist/revocation).
-- [ ] Publish `crs48/xnet-plugin-template` ("Use this template") with a release
-      workflow that attaches `plugin.js` + `manifest.json`.
+- [x] Add `registry/community.json` (the human-edited `{repo, category}` list),
+      `registry/README.md` (submission guide), and a non-default
+      `.github/PULL_REQUEST_TEMPLATE/plugin-submission.md`.
+- [x] Submission validation: `scripts/build-plugin-index.mjs --validate` (repo
+      `owner/name`, category, no dupes, not blocked) run by the
+      `plugins-registry` workflow on PRs touching `registry/**`. (Live repo/
+      release/manifest existence checks are best-effort in the rebuild step.)
+- [x] `build-plugin-index` Action (`plugins-registry.yml`, on merge + daily
+      cron): enrich community entries with GitHub stars/latest-release, write
+      `registry.json`, commit. Added `registry/**` to `deploy-site.yml` paths so
+      it redeploys.
+- [x] `registry/blocked.json` (repos/authors/pluginIds) + a `revoked[]` list
+      emitted to `site/public/revoked.json` for the app (0047 revocation).
+- [x] In-repo `examples/xnet-plugin-template` ("scaffold or copy this") with the
+      Release workflow that attaches `plugin.js` + `manifest.json`. (An external
+      "Use this template" repo can follow; the scaffolder already generates the
+      same project.)
 
 **Phase 3 — In-app marketplace + safe install loop**
 

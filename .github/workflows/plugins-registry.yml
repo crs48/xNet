@@ -1,0 +1,70 @@
+name: Plugins Registry
+
+# The plugins marketplace index (exploration 0201). Two roles:
+#   - validate: on PRs that touch a submission source, check community.json /
+#     blocked.json shape (no network) so a malformed submission fails fast.
+#   - rebuild: on merge to main (or daily) regenerate registry/registry.json +
+#     site/public/revoked.json from the sources, enriching community entries
+#     from the GitHub API, and commit the result. That commit touches
+#     registry/** which re-triggers the Deploy Site workflow.
+
+on:
+  pull_request:
+    paths:
+      - 'registry/community.json'
+      - 'registry/blocked.json'
+      - 'registry/first-party.json'
+      - 'scripts/build-plugin-index.mjs'
+  push:
+    branches: [main]
+    paths:
+      - 'registry/community.json'
+      - 'registry/blocked.json'
+      - 'registry/first-party.json'
+  schedule:
+    - cron: '0 6 * * *' # daily — refresh stars / latest releases
+  workflow_dispatch:
+
+concurrency:
+  group: plugins-registry-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate submission sources
+        run: node scripts/build-plugin-index.mjs --validate
+
+  rebuild:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Rebuild plugin index
+        run: node scripts/build-plugin-index.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add registry/registry.json site/public/revoked.json
+          if git diff --staged --quiet; then
+            echo "Plugin index unchanged."
+          else
+            git commit -m "chore(registry): rebuild plugin index"
+            git push
+          fi
