@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-17-your-agent-can-use-your-workspace",
+  "date": "June 17, 2026",
+  "title": "Your agent can use your workspace",
+  "summary": "When you drive a local agent from xNet, it now gets governed tools to read and write your workspace — with writes gated by policy and your token staying local.",
+  "highlights": [
+    "Workspace read/write tools exposed over MCP",
+    "Writes pass through a policy guardrail"
+  ],
+  "tags": [
+    "ai",
+    "devtools"
+  ],
+  "pr": 152,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

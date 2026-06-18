@@ -1,0 +1,21 @@
+{
+  "id": "2026-06-17-ai-that-can-act-on-your-workspace",
+  "date": "June 17, 2026",
+  "title": "AI that can act on your workspace",
+  "summary": "The assistant gained a tool surface, @-mention providers, and recommendations — so it can reference your data and take actions, not just chat.",
+  "highlights": [
+    "Plugin and Lab capabilities exposed to the AI as tools",
+    "Extensible @-mentions in chat",
+    "Contextual recommendations"
+  ],
+  "tags": [
+    "ai",
+    "plugins"
+  ],
+  "pr": 149,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-17-plugins-run-on-the-labs-runtime",
+  "date": "June 17, 2026",
+  "title": "Plugins run on the Labs runtime",
+  "summary": "Plugin code now executes on the same sandboxed Labs runtime, unifying how user code runs and receives capabilities across the app.",
+  "highlights": [
+    "Shared sandbox and runtime for plugins and Labs",
+    "Consistent capability grants for all user code"
+  ],
+  "tags": [
+    "plugins",
+    "platform"
+  ],
+  "pr": 162,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

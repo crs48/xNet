@@ -1,0 +1,21 @@
+{
+  "id": "2026-06-17-a-safer-foundation-for-plugins",
+  "date": "June 17, 2026",
+  "title": "A safer foundation for plugins",
+  "summary": "Plugins now run on an enforceable platform layer — capability gates, provenance and trust checks, dependency resolution, and a searchable marketplace index — so installing a plugin is governed end to end.",
+  "highlights": [
+    "Capability enforcement wraps each plugin's data access",
+    "Install-time consent prompts when a plugin needs new capabilities",
+    "Inter-plugin dependencies resolve with cycle detection"
+  ],
+  "tags": [
+    "plugins",
+    "platform"
+  ],
+  "pr": 138,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

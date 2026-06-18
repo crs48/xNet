@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-17-review-ai-edits-before-they-apply",
+  "date": "June 17, 2026",
+  "title": "Review AI edits before they apply",
+  "summary": "AI edits in the editor now show a preview with an approve or reject gate, so nothing changes your document until you say so.",
+  "highlights": [
+    "Diff preview of the proposed change",
+    "Approve or reject before it lands"
+  ],
+  "tags": [
+    "editor",
+    "ai"
+  ],
+  "pr": 158,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

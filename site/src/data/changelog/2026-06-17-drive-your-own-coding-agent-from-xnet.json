@@ -1,0 +1,21 @@
+{
+  "id": "2026-06-17-drive-your-own-coding-agent-from-xnet",
+  "date": "June 17, 2026",
+  "title": "Drive your own coding agent from xNet",
+  "summary": "A new local bridge lets xNet drive your own Claude Code or Codex CLI — bring your own agent, no extra API key, and your token never leaves your machine.",
+  "highlights": [
+    "Runs your local Claude Code / Codex from xNet's UI",
+    "Loopback-only, OpenAI-compatible streaming",
+    "No model cost to xNet — it uses your own agent"
+  ],
+  "tags": [
+    "ai",
+    "devtools"
+  ],
+  "pr": 148,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "2026-06-17-your-labs-become-ai-tools",
+  "date": "June 17, 2026",
+  "title": "Your Labs become AI tools",
+  "summary": "Tools you build in Labs are now available to the assistant, so your own automations can be called directly from AI chat.",
+  "highlights": [
+    "Lab agent-tools surface to the AI automatically",
+    "One ladder from a Lab to an AI tool"
+  ],
+  "tags": [
+    "ai"
+  ],
+  "pr": 150,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
