@@ -33,28 +33,37 @@ const usedTags = Object.keys(tagColor).filter((t) => entries.some((e) => e.tags.
 // yields null and the entry falls back to its curated hero/images.
 const galleries = await Promise.all(entries.map((e) => (e.pr ? loadPrGallery(e.pr) : null)))
 
-// Normalise per-entry media once, so the template stays declarative.
+// Normalise per-entry media into one ordered list of gallery items (changed
+// surfaces first, as before/after comparisons; then new + curated images).
 const view = entries.map((entry, i) => {
   const gallery = galleries[i]
-  const comparisons = (gallery?.images ?? [])
-    .filter((im) => im.before)
-    .map((im) => ({ before: im.before as string, after: im.src, alt: im.alt }))
-  const autoThumbs = (gallery?.images ?? [])
-    .filter((im) => !im.before)
-    .map((im) => ({ src: im.src, alt: im.alt }))
-  const curatedThumbs = (entry.images ?? []).map((im) => ({
-    src: im.src,
-    alt: im.alt,
-    caption: im.caption
-  }))
-  const thumbs = [...autoThumbs, ...curatedThumbs]
+  const items = [
+    ...(gallery?.images ?? [])
+      .filter((im) => im.before)
+      .map((im) => ({
+        type: 'cmp' as const,
+        after: im.src,
+        before: im.before as string,
+        diff: im.diff,
+        alt: im.alt
+      })),
+    ...(gallery?.images ?? [])
+      .filter((im) => !im.before)
+      .map((im) => ({ type: 'img' as const, after: im.src, alt: im.alt })),
+    ...(entry.images ?? []).map((im) => ({
+      type: 'img' as const,
+      after: im.src,
+      alt: im.alt,
+      caption: im.caption
+    }))
+  ]
   const video = entry.video
     ? { mp4: entry.video.src, poster: entry.video.poster, alt: entry.video.alt }
     : gallery?.videos?.[0]
   const galleryLink =
     gallery && entry.pr ? { prUrl: gallery.prUrl, count: gallery.count, pr: entry.pr } : undefined
   const dataText = [entry.title, entry.summary, ...entry.highlights].join(' ').toLowerCase()
-  return { entry, comparisons, thumbs, video, galleryLink, dataText }
+  return { entry, items, video, galleryLink, dataText }
 })
 ---
 
@@ -104,7 +113,7 @@ const view = entries.map((entry, i) => {
         <div class="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-emerald-500/40 via-indigo-500/25 to-transparent"></div>
 
         <div class="space-y-12">
-          {view.map(({ entry, comparisons, thumbs, video, galleryLink, dataText }, i) => (
+          {view.map(({ entry, items, video, galleryLink, dataText }, i) => (
             <article
               id={entry.id}
               class="cl-entry animate-on-scroll relative pl-10 scroll-mt-24"
@@ -169,13 +178,7 @@ const view = entries.map((entry, i) => {
                 />
               )}
 
-              <Gallery
-                entryId={entry.id}
-                comparisons={comparisons}
-                thumbs={thumbs}
-                video={video}
-                galleryLink={galleryLink}
-              />
+              <Gallery entryId={entry.id} items={items} video={video} galleryLink={galleryLink} />
 
               <ul class="mb-4 grid gap-1.5">
                 {entry.highlights.map((h) => (
@@ -202,11 +205,21 @@ const view = entries.map((entry, i) => {
 
   <Footer />
 
-  <!-- Lightbox (single, reused) -->
+  <!-- Lightbox (single, reused). For a comparison: after by default, before on
+       hover, diff while pressed — same as the row preview, just bigger. -->
   <dialog id="cl-lightbox" class="cl-lightbox" aria-label="Screenshot viewer">
     <button type="button" class="cl-lb-close" data-lb="close" aria-label="Close">✕</button>
     <button type="button" class="cl-lb-nav cl-lb-prev" data-lb="prev" aria-label="Previous">‹</button>
-    <img class="cl-lb-img" alt="" />
+    <div class="cl-lb-stage" id="cl-lb-stage">
+      <img class="cl-lb-after" alt="" />
+      <img class="cl-lb-before" alt="" aria-hidden="true" />
+      <img class="cl-lb-diff" alt="" aria-hidden="true" />
+      <span class="cl-lb-badge" aria-hidden="true">
+        <span class="b-after">After</span>
+        <span class="b-before">Before</span>
+        <span class="b-diff">Diff</span>
+      </span>
+    </div>
     <button type="button" class="cl-lb-nav cl-lb-next" data-lb="next" aria-label="Next">›</button>
     <p class="cl-lb-cap" aria-live="polite"></p>
   </dialog>
@@ -258,14 +271,67 @@ const view = entries.map((entry, i) => {
   .cl-lightbox::backdrop {
     background: rgba(0, 0, 0, 0.85);
   }
-  .cl-lb-img {
+  .cl-lb-stage {
     position: absolute;
-    inset: 5% 8%;
+    inset: 5% 7% 12%;
     margin: auto;
-    max-width: 84%;
-    max-height: 84%;
+  }
+  .cl-lb-after,
+  .cl-lb-before,
+  .cl-lb-diff {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    border-radius: 0.5rem;
+  }
+  .cl-lb-before,
+  .cl-lb-diff {
+    opacity: 0;
+  }
+  .cl-lb-stage.is-cmp:hover .cl-lb-before {
+    opacity: 1;
+  }
+  .cl-lb-stage.is-holding .cl-lb-diff {
+    opacity: 1;
+  }
+  .cl-lb-badge {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 0.3rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    pointer-events: none;
+    display: none;
+  }
+  .cl-lb-stage.is-cmp .cl-lb-badge {
+    display: inline-block;
+  }
+  .cl-lb-badge .b-before,
+  .cl-lb-badge .b-diff {
+    display: none;
+  }
+  .cl-lb-stage.is-cmp:hover .b-after {
+    display: none;
+  }
+  .cl-lb-stage.is-cmp:hover .b-before {
+    display: inline;
+  }
+  .cl-lb-stage.is-holding .b-after,
+  .cl-lb-stage.is-holding .b-before {
+    display: none;
+  }
+  .cl-lb-stage.is-holding .b-diff {
+    display: inline;
+  }
+  .cl-lb-stage.is-cmp.has-diff {
+    cursor: pointer;
   }
   .cl-lb-close,
   .cl-lb-nav {
@@ -375,36 +441,105 @@ const view = entries.map((entry, i) => {
     })
   })
 
-  // Before/after comparisons are pure CSS now (after by default → before on
-  // hover/focus), so no JS is needed for them.
-
-  // ── Lightbox ───────────────────────────────────────────────────────────
+  // ── Gallery row + lightbox ─────────────────────────────────────────────
+  // Hover→before and (CSS) is on the items already. JS handles press-hold→diff
+  // (in the row and the lightbox) and the click-to-enlarge lightbox itself.
+  interface Item {
+    type: string
+    after: string
+    before: string
+    diff: string
+    alt: string
+  }
   const lb = document.getElementById('cl-lightbox') as HTMLDialogElement | null
-  const lbImg = lb?.querySelector<HTMLImageElement>('.cl-lb-img')
+  const stage = document.getElementById('cl-lb-stage')
+  const lbAfter = lb?.querySelector<HTMLImageElement>('.cl-lb-after')
+  const lbBefore = lb?.querySelector<HTMLImageElement>('.cl-lb-before')
+  const lbDiff = lb?.querySelector<HTMLImageElement>('.cl-lb-diff')
   const lbCap = lb?.querySelector<HTMLParagraphElement>('.cl-lb-cap')
-  let group: { src: string; alt: string }[] = []
+  let group: Item[] = []
   let idx = 0
   let opener: HTMLElement | null = null
 
+  const itemOf = (el: HTMLElement): Item => ({
+    type: el.dataset.type === 'cmp' ? 'cmp' : 'img',
+    after: el.dataset.after ?? '',
+    before: el.dataset.before ?? '',
+    diff: el.dataset.diff ?? '',
+    alt: el.dataset.alt ?? ''
+  })
+
   function show(n: number) {
-    if (!group.length || !lbImg || !lbCap) return
+    if (!group.length || !stage) return
     idx = (n + group.length) % group.length
-    lbImg.src = group[idx].src
-    lbImg.alt = group[idx].alt
-    lbCap.textContent = `${group[idx].alt} · ${idx + 1} / ${group.length}`
+    const it = group[idx]
+    stage.classList.toggle('is-cmp', it.type === 'cmp')
+    stage.classList.toggle('has-diff', Boolean(it.diff))
+    stage.classList.remove('is-holding')
+    if (lbAfter) {
+      lbAfter.src = it.after
+      lbAfter.alt = it.alt
+    }
+    if (lbBefore) lbBefore.src = it.before
+    if (lbDiff) lbDiff.src = it.diff
+    if (lbCap) lbCap.textContent = `${it.alt} · ${idx + 1} / ${group.length}`
   }
 
-  document.querySelectorAll<HTMLButtonElement>('.cl-thumb').forEach((thumb) => {
-    thumb.addEventListener('click', () => {
-      const id = thumb.dataset.group
-      group = Array.from(document.querySelectorAll<HTMLButtonElement>(`.cl-thumb[data-group="${id}"]`)).map(
-        (t) => ({ src: t.dataset.full ?? '', alt: t.dataset.alt ?? '' })
-      )
-      opener = thumb
-      const start = group.findIndex((g) => g.src === thumb.dataset.full)
-      show(start < 0 ? 0 : start)
-      lb?.showModal()
+  function openFrom(el: HTMLElement) {
+    const id = el.dataset.group
+    const els = Array.from(document.querySelectorAll<HTMLElement>(`.cl-item[data-group="${id}"]`))
+    group = els.map(itemOf)
+    opener = el
+    show(Math.max(0, els.indexOf(el)))
+    lb?.showModal()
+  }
+
+  // Row items: click/Enter → lightbox. Press-and-hold a comparison → its diff
+  // in place (and the ensuing click is suppressed so it doesn't also open).
+  document.querySelectorAll<HTMLElement>('.cl-item').forEach((el) => {
+    const hasDiff = Boolean(el.dataset.diff)
+    let timer = 0
+    let held = false
+    let suppressClick = false
+
+    el.addEventListener('pointerdown', () => {
+      if (!hasDiff) return
+      held = false
+      timer = window.setTimeout(() => {
+        held = true
+        el.classList.add('is-holding')
+      }, 200)
     })
+    const endHold = () => {
+      if (!hasDiff) return
+      clearTimeout(timer)
+      if (held) {
+        el.classList.remove('is-holding')
+        suppressClick = true
+        held = false
+      }
+    }
+    el.addEventListener('pointerup', endHold)
+    el.addEventListener('pointerleave', endHold)
+    el.addEventListener('pointercancel', endHold)
+    el.addEventListener('click', () => {
+      if (suppressClick) {
+        suppressClick = false
+        return
+      }
+      openFrom(el)
+    })
+  })
+
+  // Lightbox stage: hover→before is CSS; press-and-hold→diff here.
+  stage?.addEventListener('pointerdown', () => {
+    if (stage.classList.contains('has-diff')) stage.classList.add('is-holding')
+  })
+  window.addEventListener('pointerup', () => stage?.classList.remove('is-holding'))
+
+  // Trailing fade only when the row actually overflows.
+  document.querySelectorAll<HTMLElement>('.cl-row').forEach((row) => {
+    if (row.scrollWidth > row.clientWidth + 4) row.classList.add('cl-row--overflow')
   })
 
   lb?.addEventListener('click', (e) => {

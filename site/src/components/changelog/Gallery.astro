@@ -1,21 +1,22 @@
 ---
 /**
- * Changelog media gallery (exploration 0196). Zero runtime dependencies:
- *  - before/after surfaces → "after" by default, instant swap to "before" on
- *    hover/focus (pure CSS), with a corner badge labelling which is shown
- *  - new/curated surfaces  → a CSS scroll-snap thumbnail strip → <dialog> lightbox
- *  - interaction flows      → a click-to-play <video> with a poster frame
- * The lightbox behaviour is wired by the island script in changelog/index.astro.
+ * Changelog media gallery (exploration 0196). Zero runtime dependencies.
+ *
+ * All screenshots live in one horizontally-scrolling row (~2.5 previews wide,
+ * with a fade on the trailing edge to hint there's more). Clicking a preview
+ * opens the lightbox. A comparison preview — and the lightbox — shows the
+ * "after" image by default, swaps to "before" on hover/focus, and shows the
+ * "diff" while pressed (all instant, pure CSS; the press-hold + lightbox are
+ * wired by the island script in changelog/index.astro). Interaction-flow
+ * videos render as a click-to-play <video> below the row.
  */
-interface Thumb {
-  src: string
+interface Item {
+  type: 'cmp' | 'img'
+  after: string
+  before?: string
+  diff?: string
   alt: string
   caption?: string
-}
-interface Comparison {
-  before: string
-  after: string
-  alt: string
 }
 interface Video {
   mp4: string
@@ -24,54 +25,55 @@ interface Video {
 }
 interface Props {
   entryId: string
-  comparisons?: Comparison[]
-  thumbs?: Thumb[]
+  items?: Item[]
   video?: Video
   galleryLink?: { prUrl: string; count: number; pr: number }
 }
-const { entryId, comparisons = [], thumbs = [], video, galleryLink } = Astro.props
-const hasMedia = comparisons.length > 0 || thumbs.length > 0 || Boolean(video)
+const { entryId, items = [], video, galleryLink } = Astro.props
+const hasMedia = items.length > 0 || Boolean(video)
 ---
 
 {
   hasMedia && (
     <div class="cl-gallery mb-4 mt-1">
-      {comparisons.map((c) => (
-        <figure
-          class="cl-cmp"
-          tabindex="0"
-          aria-label={`Before and after: ${c.alt}. Hover or focus to see the "before" image.`}
-        >
-          <span class="cl-cmp-media">
-            <img class="cl-cmp-after" src={c.after} alt={`${c.alt} — after`} loading="lazy" />
-            <img class="cl-cmp-before" src={c.before} alt={`${c.alt} — before`} loading="lazy" />
-            <span class="cl-cmp-badge" aria-hidden="true">
-              <span class="cl-cmp-badge-after">After</span>
-              <span class="cl-cmp-badge-before">Before</span>
-            </span>
-          </span>
-          <figcaption class="cl-cmp-cap">{c.alt} — hover to compare</figcaption>
-        </figure>
-      ))}
-
-      {thumbs.length > 0 && (
-        <ul class="cl-strip" role="list" aria-label="Screenshots for this release">
-          {thumbs.map((t) => (
-            <li>
-              <button
-                type="button"
-                class="cl-thumb"
-                data-full={t.src}
-                data-alt={t.alt}
-                data-group={entryId}
-                aria-label={`View ${t.alt}`}
-              >
-                <img src={t.src} alt={t.alt} loading="lazy" />
-                {t.caption && <span class="cl-thumb-cap">{t.caption}</span>}
-              </button>
-            </li>
+      {items.length > 0 && (
+        <div class="cl-row" aria-label="Screenshots for this release">
+          {items.map((it) => (
+            <button
+              type="button"
+              class:list={['cl-item', it.type === 'cmp' && 'cl-item--cmp']}
+              data-group={entryId}
+              data-type={it.type}
+              data-after={it.after}
+              data-before={it.before}
+              data-diff={it.diff}
+              data-alt={it.alt}
+              aria-label={
+                it.type === 'cmp'
+                  ? `Before and after: ${it.alt}. Click to enlarge; hover for before, press and hold for the diff.`
+                  : `View screenshot: ${it.alt}`
+              }
+            >
+              <span class="cl-item-media">
+                <img class="cl-item-after" src={it.after} alt={it.alt} loading="lazy" />
+                {it.before && (
+                  <img class="cl-item-before" src={it.before} alt="" aria-hidden="true" loading="lazy" />
+                )}
+                {it.diff && (
+                  <img class="cl-item-diff" src={it.diff} alt="" aria-hidden="true" loading="lazy" />
+                )}
+                {it.type === 'cmp' && (
+                  <span class="cl-item-badge" aria-hidden="true">
+                    <span class="b-after">After</span>
+                    <span class="b-before">Before</span>
+                    {it.diff && <span class="b-diff">Diff</span>}
+                  </span>
+                )}
+                {it.caption && <span class="cl-item-cap">{it.caption}</span>}
+              </span>
+            </button>
           ))}
-        </ul>
+        </div>
       )}
 
       {video && (
@@ -88,7 +90,7 @@ const hasMedia = comparisons.length > 0 || thumbs.length > 0 || Boolean(video)
           >
             <source src={video.mp4} type="video/mp4" />
           </video>
-          <figcaption class="cl-cmp-cap">{video.alt}</figcaption>
+          <figcaption class="cl-media-cap">{video.alt}</figcaption>
         </figure>
       )}
 
@@ -112,116 +114,112 @@ const hasMedia = comparisons.length > 0 || thumbs.length > 0 || Boolean(video)
     margin-top: 0.75rem;
   }
 
-  /* Before/after comparison — "after" defines the box and shows by default;
-     hovering or keyboard-focusing the figure instantly swaps to "before" (no
-     animation). A corner badge labels which image is showing. */
-  .cl-cmp {
-    display: block;
+  /* Horizontal preview row — ~2.5 items visible; a trailing fade (added by JS
+     only when the row overflows) hints there's more to scroll. */
+  .cl-row {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.4rem;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+  }
+  .cl-row.cl-row--overflow {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 3rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 3rem), transparent);
+  }
+  .cl-item {
+    flex: 0 0 auto;
+    width: clamp(180px, 40%, 280px);
+    scroll-snap-align: start;
     margin: 0;
+    padding: 0;
     border: 1px solid var(--lp-border);
     border-radius: 0.5rem;
     overflow: hidden;
+    background: none;
+    cursor: pointer;
   }
-  .cl-cmp:focus-visible {
+  .cl-item:hover {
+    border-color: #6366f1;
+  }
+  .cl-item:focus-visible {
     outline: 2px solid #6366f1;
     outline-offset: 2px;
   }
-  .cl-cmp-media {
+  .cl-item-media {
     position: relative;
     display: block;
+    aspect-ratio: 16 / 10;
   }
-  .cl-cmp-after {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-  .cl-cmp-before {
+  .cl-item-after,
+  .cl-item-before,
+  .cl-item-diff {
     position: absolute;
     inset: 0;
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0; /* after shown by default; no transition = instant swap */
   }
-  .cl-cmp:hover .cl-cmp-before,
-  .cl-cmp:focus .cl-cmp-before {
+  /* after shown by default; no transition = instant swap */
+  .cl-item-before,
+  .cl-item-diff {
+    opacity: 0;
+  }
+  .cl-item:hover .cl-item-before {
     opacity: 1;
   }
-  .cl-cmp-badge {
+  .cl-item.is-holding .cl-item-diff {
+    opacity: 1;
+  }
+
+  .cl-item-badge {
     position: absolute;
-    top: 0.4rem;
-    left: 0.4rem;
-    padding: 0.1rem 0.45rem;
+    top: 0.3rem;
+    left: 0.3rem;
+    padding: 0.08rem 0.4rem;
     border-radius: 0.25rem;
     background: rgba(0, 0, 0, 0.65);
     color: #fff;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     pointer-events: none;
   }
-  .cl-cmp-badge-before {
+  .cl-item-badge .b-before,
+  .cl-item-badge .b-diff {
     display: none;
   }
-  .cl-cmp:hover .cl-cmp-badge-after,
-  .cl-cmp:focus .cl-cmp-badge-after {
+  .cl-item:hover .b-after {
     display: none;
   }
-  .cl-cmp:hover .cl-cmp-badge-before,
-  .cl-cmp:focus .cl-cmp-badge-before {
+  .cl-item:hover .b-before {
     display: inline;
   }
-  .cl-cmp-cap {
-    padding: 0.35rem 0.5rem;
-    font-size: 0.7rem;
-    color: #9ca3af;
+  .cl-item.is-holding .b-after,
+  .cl-item.is-holding .b-before {
+    display: none;
+  }
+  .cl-item.is-holding .b-diff {
+    display: inline;
   }
 
-  /* Thumbnail strip → lightbox */
-  .cl-strip {
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    list-style: none;
-    margin: 0;
-    padding: 0 0 0.35rem 0;
-    scrollbar-width: thin;
-  }
-  .cl-strip li {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-  }
-  .cl-thumb {
-    position: relative;
-    display: block;
-    padding: 0;
-    border: 1px solid var(--lp-border);
-    border-radius: 0.5rem;
-    overflow: hidden;
-    cursor: pointer;
-    background: none;
-  }
-  .cl-thumb:hover {
-    border-color: #6366f1;
-  }
-  .cl-thumb img {
-    display: block;
-    width: 220px;
-    height: 138px;
-    object-fit: cover;
-  }
-  .cl-thumb-cap {
+  .cl-item-cap {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 0.15rem 0.4rem;
+    padding: 0.12rem 0.4rem;
     background: rgba(0, 0, 0, 0.55);
     color: #fff;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
   }
 
   .cl-video-wrap {
@@ -231,6 +229,11 @@ const hasMedia = comparisons.length > 0 || thumbs.length > 0 || Boolean(video)
     width: 100%;
     border: 1px solid var(--lp-border);
     border-radius: 0.5rem;
+  }
+  .cl-media-cap {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+    color: #9ca3af;
   }
 
   .cl-gallery-link {
