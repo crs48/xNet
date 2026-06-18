@@ -105,6 +105,12 @@
       "id": "crm-quote",
       "label": "Build a CRM quote (product + line item)",
       "globs": ["apps/web/src/components/crm/**", "packages/crm/**"]
+    },
+    {
+      "id": "chat",
+      "label": "Open a channel and post a message",
+      "_comment": "Chat only renders at the parameterized /channel/$channelId route (needs a channel id + seed messages), so a static route shot can't reach it -- this flow seeds a channel and drives the redesigned feed into a GIF. Mapping apps/web/src/comms/** here is what keeps a chat-only PR (e.g. #174) from falling through to the silent home fallback (exploration 0200).",
+      "globs": ["apps/web/src/comms/**", "apps/web/src/routes/channel.$channelId.tsx"]
     }
   ]
 }

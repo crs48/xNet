@@ -10,9 +10,7 @@
 /** Strip a leading `./` and normalize separators so git paths and Storybook
  * `importPath`s compare equal. */
 export function normalizePath(p) {
-  return String(p)
-    .replace(/\\/g, '/')
-    .replace(/^\.\//, '')
+  return String(p).replace(/\\/g, '/').replace(/^\.\//, '')
 }
 
 /**

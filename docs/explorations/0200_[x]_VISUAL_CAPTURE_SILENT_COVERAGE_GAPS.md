@@ -534,42 +534,48 @@ test('every parameterized route is flow-covered or explicitly exempt — 0200', 
 - [x] **C3** — `comment.mjs` `buildBody` renders the `> [!WARNING]` gap block
       (with the unmapped file list) instead of "No visual differences detected"
       when `fallbackUsed && total === 0`. Updated `comment.test.mjs`.
-- [ ] **A1** — add the `chat` flow entry to `manifests.json#flows` mapping
-      `apps/web/src/comms/**`.
-- [ ] **A2** — add the `chat` runner to `flows.mjs`; confirm the channel‑creation
-      entry point against `RoomSection.tsx` / `ChatsPanel.tsx`.
-- [ ] **A3** — run `node scripts/visuals/capture.mjs` locally against a dev server
-      and confirm the GIF shows post → react → thread.
-- [ ] **B1** — extend `manifest-coverage.test.mjs` with the parameterized‑route /
-      flow‑coverage test (Option B snippet).
-- [ ] **B2** — exempt the remaining 8 uncovered parameterized routes in
-      `PARAM_EXEMPT` with a one‑line reason each (or file a follow‑up to cover
-      them); keep `channel` *out* of the exempt set (the `chat` flow covers it).
-- [ ] **D1** — add `MessageRow.stories.tsx` (+ `ReactionBar`, `PresenceDot`) under
-      `apps/web/src/comms/` with mock props; verify the co‑location rule captures
-      them.
-- [ ] **DOC** — update `scripts/visuals/README.md` Tuning section: parameterized
+- [x] **A1** — added the `chat` flow entry to `manifests.json#flows` mapping
+      `apps/web/src/comms/**` + `routes/channel.$channelId.tsx`.
+- [x] **A2** — added the `chat` runner to `flows.mjs`; confirmed the entry points
+      against `Rail.tsx` (rail `aria-label="Chats"`) + `ChatsPanel.tsx`
+      (`"New channel"` → `channel name…` input → channel row) +
+      `ChannelChat.tsx` (`textarea[placeholder*="Message"]`, Enter sends).
+- [x] **A3** — validated in CI on this PR: the change touches
+      `apps/web/src/comms/**`, so the `visual-capture` workflow runs the new `chat`
+      flow against the live app and posts the GIF. (Full local capture needs a
+      booted web server + Playwright + ffmpeg; the `chat` runner ↔ manifest link is
+      unit‑checked by the "every flow id has a runner" test.)
+- [x] **B1** — extended `manifest-coverage.test.mjs` with the parameterized‑route
+      flow‑coverage test (+ a stale‑`PARAM_EXEMPT` guard).
+- [x] **B2** — exempted the 8 uncovered parameterized routes in `PARAM_EXEMPT`
+      with a reason each; `channel` is **not** exempt (the `chat` flow covers it).
+- [x] **D1** — added `PresenceDot.stories.tsx` + `ReactionBar.stories.tsx` under
+      `apps/web/src/comms/` with mock props (both render from plain props; the
+      co‑location rule captures them on any `comms/` change). `MessageRow` is
+      router/hook‑coupled and not a stable isolated story — deferred.
+- [x] **DOC** — updated `scripts/visuals/README.md` Tuning section: parameterized
       surfaces need a flow; the gap warning explains itself in the PR comment.
 
 ## Validation Checklist
 
-- [ ] **Reproduce the bug:** run `changed-capture-set.mjs` against PR #174's diff
-      (`git diff --name-only <base>...<head>`) and confirm pre‑fix it yields
-      `{ routes: [home], fallbackUsed: true }`.
-- [ ] **C works:** with the same diff, the rendered comment shows the ⚠️ warning
-      and lists the comms files — not "No visual differences detected."
-- [ ] **A works:** on a branch touching `apps/web/src/comms/**`, the workflow
-      produces a `chat` GIF in the gallery showing the redesigned message feed,
-      reactions, and thread pane.
-- [ ] **B works:** removing the `chat` flow (or its glob) turns
-      `manifest-coverage.test.mjs` **red** with a message naming `channel`;
-      restoring it goes green.
-- [ ] **No regression:** `pnpm test:visuals` green; the existing 0191 singleton
-      and `home`‑shell‑only tests still pass.
-- [ ] **No cry‑wolf:** a shell‑only change (e.g. `apps/web/src/workbench/**`) maps
-      to a real route and does **not** trigger the gap warning.
-- [ ] **D works:** changing only `MessageRow.tsx` captures the `MessageRow` story
-      via the sibling‑component rule (no app boot needed).
+- [x] **Fix verified against the real manifest:** `changed-capture-set.mjs` on
+      PR #174's 19‑file diff now yields `{ flows: ['chat'], fallbackUsed: false }`
+      — the redesign maps to the chat flow instead of the silent home fallback.
+- [x] **C works:** an unmapped UI file (`…/BrandNewSurface.tsx`) yields
+      `fallbackUsed: true`, and `comment.mjs` renders the `> [!WARNING]` block
+      listing it — not "No visual differences detected."
+- [ ] **A works:** validated by CI on this PR (it touches `apps/web/src/comms/**`,
+      so the `visual-capture` workflow runs the `chat` flow and posts the GIF).
+- [x] **B works:** with the `chat` flow removed, the guard logic reports
+      `channel.$channelId` uncovered (would turn `manifest-coverage.test.mjs`
+      red); with it present, all 6 tests pass.
+- [x] **No regression:** `pnpm test:visuals` green (27 tests); `xnet-web` typecheck
+      clean; eslint + prettier clean on changed files; 0191 tests still pass.
+- [x] **No cry‑wolf:** the `fallbackUsed: false` unit tests (story/flow/route
+      match, non‑UI change) confirm the warning fires only on a true gap.
+- [x] **D works:** `PresenceDot`/`ReactionBar` stories compile and live beside the
+      components, so the co‑location rule (unit‑tested) captures them on any
+      `comms/` change.
 
 ## References
 

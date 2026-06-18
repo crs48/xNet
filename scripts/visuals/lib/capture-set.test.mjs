@@ -132,7 +132,9 @@ test('a matched story suppresses the home fallback — not a coverage gap (0200)
   const set = computeCaptureSet({
     changedFiles: ['packages/ui/src/primitives/Button.tsx'],
     storyEntries: STORIES,
-    routeManifest: [{ id: 'home', label: 'Home', path: '/', globs: ['apps/web/src/routes/index.tsx'] }],
+    routeManifest: [
+      { id: 'home', label: 'Home', path: '/', globs: ['apps/web/src/routes/index.tsx'] }
+    ],
     flowManifest: FLOWS
   })
   assert.deepEqual(
@@ -153,7 +155,9 @@ test('a matched flow suppresses the home fallback — not a coverage gap (0200)'
   const set = computeCaptureSet({
     changedFiles: ['packages/editor/src/Editor.tsx'],
     storyEntries: [],
-    routeManifest: [{ id: 'home', label: 'Home', path: '/', globs: ['apps/web/src/routes/index.tsx'] }],
+    routeManifest: [
+      { id: 'home', label: 'Home', path: '/', globs: ['apps/web/src/routes/index.tsx'] }
+    ],
     flowManifest: FLOWS
   })
   assert.deepEqual(
