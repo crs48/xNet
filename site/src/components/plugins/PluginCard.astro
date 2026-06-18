@@ -1,0 +1,58 @@
+---
+import { type PluginListing, tierLabel, priceLabel, searchText } from '../../data/plugins'
+
+interface Props {
+  plugin: PluginListing
+}
+
+const { plugin } = Astro.props
+const isBuiltIn = plugin.tier === 'bundled'
+const tags = (plugin.keywords ?? []).slice(0, 3)
+const paid = plugin.pricing && plugin.pricing.mode !== 'free'
+---
+
+<a
+  href={`/plugins/${plugin.id}/`}
+  class="animate-on-scroll group flex flex-col rounded-xl border border-border bg-surface/30 p-6 transition-all hover:-translate-y-0.5 hover:border-indigo-500/50 hover:bg-indigo-500/[0.04] hover:shadow-lg hover:shadow-indigo-500/5"
+  data-search={searchText(plugin)}
+  data-category={plugin.category}
+>
+  <div class="mb-3 flex items-start justify-between gap-3">
+    <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+      {plugin.name}
+    </h3>
+    <span
+      class={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+        isBuiltIn
+          ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'
+      }`}
+    >
+      {tierLabel(plugin.tier)}
+    </span>
+  </div>
+
+  <p class="flex-1 text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3">
+    {plugin.description}
+  </p>
+
+  {tags.length > 0 && (
+    <div class="mt-4 flex flex-wrap gap-1.5">
+      {tags.map((t) => (
+        <span class="rounded bg-border/60 px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+          {t}
+        </span>
+      ))}
+    </div>
+  )}
+
+  <div class="mt-4 flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+    <span>by {plugin.author}</span>
+    <span class="flex items-center gap-2">
+      {plugin.stars != null && <span>★ {plugin.stars}</span>}
+      <span class={paid ? 'font-medium text-gray-600 dark:text-gray-300' : ''}>
+        {priceLabel(plugin.pricing)}
+      </span>
+    </span>
+  </div>
+</a>

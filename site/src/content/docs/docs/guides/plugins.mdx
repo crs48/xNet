@@ -864,3 +864,33 @@ const fetch = guardedFetch({ network: ['api.acme.com'] }, 'com.acme.kanban')
 await fetch('https://api.acme.com/cards') // ok
 await fetch('https://evil.example.com') // rejects: CapabilityError
 ```
+
+## Publishing to the marketplace
+
+Your plugin's code stays in **your own repo** — getting listed on the
+[plugins marketplace](/plugins) is a one-line pull request, not a code dump into
+the monorepo.
+
+<Steps>
+
+1. **Ship a Release.** Build your plugin into a single `plugin.js` and attach it,
+   with `manifest.json`, to a GitHub Release. (A copyable template with a release
+   workflow lives in
+   [`examples/xnet-plugin-template`](https://github.com/crs48/xNet/tree/main/examples/xnet-plugin-template).)
+
+2. **Add one entry** to [`registry/community.json`](https://github.com/crs48/xNet/tree/main/registry):
+
+   ```jsonc
+   [{ "repo": "you/xnet-plugin-kanban", "category": "views" }]
+   ```
+
+3. **Open a PR.** CI validates the submission; after merge, a daily job enriches
+   your entry from the GitHub API and points the install link at your Release's
+   `manifest.json`. Updates you ship afterward are picked up automatically.
+
+</Steps>
+
+The app installs community plugins in a sandbox scoped to their trust tier,
+after showing the user the capabilities the plugin requests and verifying its
+provenance. See [`registry/README.md`](https://github.com/crs48/xNet/tree/main/registry)
+for the full flow.

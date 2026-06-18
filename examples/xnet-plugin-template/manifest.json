@@ -1,0 +1,15 @@
+{
+  "id": "com.example.hello",
+  "name": "Hello Plugin",
+  "version": "1.0.0",
+  "description": "A minimal xNet plugin — adds a slash command. Use this as a starting point.",
+  "author": "Your Name",
+  "license": "MIT",
+  "xnetVersion": ">=0.6.0",
+  "platforms": ["web", "electron"],
+  "contributes": {
+    "slashCommands": [
+      { "id": "hello", "name": "Say hello", "description": "Inserts a greeting" }
+    ]
+  }
+}

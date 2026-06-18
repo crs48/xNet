@@ -1,0 +1,44 @@
+[
+  {
+    "id": "fyi.xnet.mermaid",
+    "name": "Mermaid Diagrams",
+    "description": "Add flowcharts, sequence diagrams, class diagrams, and more to the editor using Mermaid syntax via the /mermaid command.",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "editor",
+    "keywords": ["diagram", "flowchart", "sequence", "mermaid", "markdown"],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": ["web", "electron"],
+    "contributes": ["editorExtensions", "slashCommands"],
+    "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/mermaid-plugin.ts"
+  },
+  {
+    "id": "fyi.xnet.slack-connector",
+    "name": "Slack Connector",
+    "description": "Sync Slack channels and messages into governed xNet nodes, with Block-Kit/mrkdwn conversion and slash-command + webhook ingestion. A migration-friendly Slack alternative.",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "connector",
+    "keywords": ["slack", "chat", "messaging", "connector", "integration", "import"],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": ["web", "electron"],
+    "contributes": ["agentTools", "importers"],
+    "homepage": "https://github.com/crs48/xNet/tree/main/packages/slack-compat"
+  },
+  {
+    "id": "fyi.xnet.unreal",
+    "name": "Unreal Engine 6 Connector",
+    "description": "A governed bridge between xNet and Unreal Engine 6 — map player identity, inventory, achievements, match sessions, and economy events into schema nodes (save-file cadence, not netcode).",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "connector",
+    "keywords": ["unreal", "game", "gamedev", "connector", "interop", "ue6"],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": ["web", "electron"],
+    "contributes": ["agentTools"],
+    "homepage": "https://github.com/crs48/xNet/tree/main/packages/unreal"
+  }
+]
