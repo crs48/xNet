@@ -57,6 +57,18 @@ export interface PlanEntitlements {
   seats: number
   /** Whether the managed AI gateway is enabled for this tenant. */
   aiEnabled: boolean
+  /**
+   * Marked-up AI spend (USD) included each month before metered overage begins.
+   * Surfaced on the dashboard and mirrored by the Stripe metered Price's first
+   * (free) tier. `0` = no included AI. See exploration 0200.
+   */
+  includedAiUsd: number
+  /**
+   * Hard monthly AI budget (USD), inclusive of `includedAiUsd`. The metered
+   * gateway stops issuing provider calls once accrued spend reaches this — the
+   * surprise-bill guard promised on the pricing page. `0` = AI off.
+   */
+  aiMonthlyBudgetUsd: number
   /** ISO region the tenant's data is pinned to (enterprise residency); undefined = unpinned. */
   residency?: string
   sla: SlaLevel
@@ -72,6 +84,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     maxConnections: 50,
     seats: 1,
     aiEnabled: false,
+    includedAiUsd: 0,
+    aiMonthlyBudgetUsd: 0,
     sla: 'none'
   },
   personal: {
@@ -82,6 +96,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     maxConnections: 250,
     seats: 1,
     aiEnabled: true,
+    includedAiUsd: 2,
+    aiMonthlyBudgetUsd: 25,
     sla: 'best-effort'
   },
   family: {
@@ -92,6 +108,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     maxConnections: 500,
     seats: 5,
     aiEnabled: true,
+    includedAiUsd: 5,
+    aiMonthlyBudgetUsd: 60,
     sla: 'best-effort'
   },
   team: {
@@ -102,6 +120,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     maxConnections: 1000,
     seats: 3,
     aiEnabled: true,
+    includedAiUsd: 8,
+    aiMonthlyBudgetUsd: 200,
     sla: 'best-effort'
   },
   community: {
@@ -112,6 +132,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     maxConnections: 2000,
     seats: 10,
     aiEnabled: true,
+    includedAiUsd: 10,
+    aiMonthlyBudgetUsd: 300,
     sla: '99.9'
   },
   company: {
@@ -122,6 +144,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     maxConnections: 4000,
     seats: 10,
     aiEnabled: true,
+    includedAiUsd: 15,
+    aiMonthlyBudgetUsd: 500,
     sla: '99.9'
   },
   enterprise: {
@@ -132,6 +156,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     maxConnections: 10000,
     seats: 25,
     aiEnabled: true,
+    includedAiUsd: 25,
+    aiMonthlyBudgetUsd: 2000,
     sla: 'custom'
   }
 }
@@ -178,6 +204,25 @@ export function withSeats(entitlements: PlanEntitlements, seats: number): PlanEn
     throw new Error(`Invalid seats: ${seats}`)
   }
   return { ...entitlements, seats }
+}
+
+/**
+ * Set the included AI spend and hard monthly budget — an in-place entitlement
+ * flip, no migration. The cap must be >= the included amount (the included
+ * portion is the free first tier of the same budget).
+ */
+export function withAiBudget(
+  entitlements: PlanEntitlements,
+  includedAiUsd: number,
+  aiMonthlyBudgetUsd: number
+): PlanEntitlements {
+  if (!Number.isFinite(includedAiUsd) || includedAiUsd < 0) {
+    throw new Error(`Invalid includedAiUsd: ${includedAiUsd}`)
+  }
+  if (!Number.isFinite(aiMonthlyBudgetUsd) || aiMonthlyBudgetUsd < includedAiUsd) {
+    throw new Error(`aiMonthlyBudgetUsd must be >= includedAiUsd, got ${aiMonthlyBudgetUsd}`)
+  }
+  return { ...entitlements, includedAiUsd, aiMonthlyBudgetUsd, aiEnabled: aiMonthlyBudgetUsd > 0 }
 }
 
 /** Raise the concurrency ceiling — an in-place entitlement flip, no migration. */

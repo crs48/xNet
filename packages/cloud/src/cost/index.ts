@@ -14,3 +14,13 @@ export {
   type PlanCostBreakdown,
   type PricingScenario
 } from './pricing'
+
+export {
+  measuredCogs,
+  reconcileTenantMargin,
+  aggregateMargin,
+  type TenantUsageMeasurement,
+  type TenantCostBreakdown,
+  type TenantMargin,
+  type FleetMargin
+} from './reconcile'

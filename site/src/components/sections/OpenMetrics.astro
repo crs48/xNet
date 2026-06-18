@@ -1,0 +1,154 @@
+---
+/**
+ * Run-the-company-in-public metrics, rendered with dependency-light inline SVG
+ * (no charting library — same approach as the app's analytics route). Reads the
+ * committed snapshot in src/data/metrics.json via metrics.ts (exploration 0200).
+ */
+import {
+  weeks,
+  latest,
+  first,
+  customerWoW,
+  mrrWoW,
+  cumulativeNet,
+  latestCostBreakdown,
+  weekCost,
+  metrics,
+  updated
+} from '../../data/metrics'
+import { monthlyOpexTotal } from '../../data/opex'
+
+const W = 680
+const H = 200
+
+// Build an area + line path for a numeric series scaled to [0, max].
+function series(values: number[]) {
+  const max = Math.max(...values, 1)
+  const stepX = values.length > 1 ? W / (values.length - 1) : W
+  const pts = values.map((v, i) => [i * stepX, H - (v / max) * (H - 12) - 6] as const)
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')
+  const area = `${line} L ${W} ${H} L 0 ${H} Z`
+  return { line, area, max, last: pts[pts.length - 1] }
+}
+
+const customers = series(weeks.map((w) => w.customers))
+const mrr = series(weeks.map((w) => w.mrrUsd))
+
+// Weekly stacked cost bars (payroll / infra / software / overhead).
+const costMax = Math.max(...weeks.map(weekCost), 1)
+const barW = W / weeks.length
+const stackOrder = [
+  { key: 'payrollUsd', color: '#6366f1' },
+  { key: 'infraUsd', color: '#10b981' },
+  { key: 'saasUsd', color: '#f59e0b' },
+  { key: 'otherUsd', color: '#9ca3af' }
+] as const
+const costBars = weeks.map((w, i) => {
+  let y = H
+  const segs = stackOrder.map((s) => {
+    const v = (w.costs as Record<string, number>)[s.key]
+    const h = (v / costMax) * (H - 8)
+    y -= h
+    return { x: i * barW + 3, y, w: barW - 6, h, color: s.color }
+  })
+  return segs
+})
+
+const monthlyRevRunRate = Math.round(latest.mrrUsd)
+const monthlyCostRunRate = Math.round(weekCost(latest) * 4.345)
+const finalNet = cumulativeNet[cumulativeNet.length - 1].net
+const breakEvenCustomers = Math.ceil((monthlyCostRunRate / (latest.mrrUsd / latest.customers)) || 0)
+
+const fmtUsd = (n: number) => `$${n.toLocaleString('en-US')}`
+const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`)
+---
+
+<section class="mx-auto max-w-5xl px-6 py-12">
+  <div class="mb-8 flex items-baseline justify-between gap-4">
+    <h2 class="text-2xl font-semibold tracking-tight">The numbers, in the open</h2>
+    <span class="text-sm text-neutral-500">Updated {updated}</span>
+  </div>
+
+  {metrics.sample && (
+    <p class="mb-8 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+      These are <strong>illustrative sample figures</strong> wired through the real pipeline — they'll be
+      replaced with the live P&amp;L when xNet Cloud opens to the public.
+    </p>
+  )}
+
+  <!-- Headline stat cards -->
+  <div class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+      <div class="text-sm text-neutral-500">Paying customers</div>
+      <div class="mt-1 text-3xl font-semibold tabular-nums">{latest.customers}</div>
+      <div class="mt-1 text-sm text-emerald-600 dark:text-emerald-400">{sign(customerWoW)}% week over week</div>
+    </div>
+    <div class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+      <div class="text-sm text-neutral-500">Monthly recurring revenue</div>
+      <div class="mt-1 text-3xl font-semibold tabular-nums">{fmtUsd(monthlyRevRunRate)}</div>
+      <div class="mt-1 text-sm text-emerald-600 dark:text-emerald-400">{sign(mrrWoW)}% week over week</div>
+    </div>
+    <div class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+      <div class="text-sm text-neutral-500">Monthly cost run-rate</div>
+      <div class="mt-1 text-3xl font-semibold tabular-nums">{fmtUsd(monthlyCostRunRate)}</div>
+      <div class="mt-1 text-sm text-neutral-500">incl. measured infra COGS</div>
+    </div>
+  </div>
+
+  <!-- Growth charts -->
+  <div class="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <figure class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+      <figcaption class="mb-3 text-sm font-medium">Customer growth</figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} class="h-44 w-full" preserveAspectRatio="none" role="img" aria-label="Customer growth over time">
+        <path d={customers.area} fill="#6366f1" fill-opacity="0.12" />
+        <path d={customers.line} fill="none" stroke="#6366f1" stroke-width="2" />
+        <circle cx={customers.last[0]} cy={customers.last[1]} r="3.5" fill="#6366f1" />
+      </svg>
+      <div class="mt-2 flex justify-between text-xs text-neutral-500"><span>{first.week}</span><span>{latest.week}</span></div>
+    </figure>
+
+    <figure class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+      <figcaption class="mb-3 text-sm font-medium">Revenue growth (MRR)</figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} class="h-44 w-full" preserveAspectRatio="none" role="img" aria-label="MRR growth over time">
+        <path d={mrr.area} fill="#10b981" fill-opacity="0.12" />
+        <path d={mrr.line} fill="none" stroke="#10b981" stroke-width="2" />
+        <circle cx={mrr.last[0]} cy={mrr.last[1]} r="3.5" fill="#10b981" />
+      </svg>
+      <div class="mt-2 flex justify-between text-xs text-neutral-500"><span>{first.week}</span><span>{latest.week}</span></div>
+    </figure>
+  </div>
+
+  <!-- Weekly cost stack -->
+  <figure class="mb-10 rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+    <figcaption class="mb-3 flex flex-wrap items-center justify-between gap-3 text-sm font-medium">
+      <span>Where the money goes, week by week</span>
+      <span class="flex flex-wrap gap-3 text-xs font-normal text-neutral-500">
+        {latestCostBreakdown.map((c) => (
+          <span class="flex items-center gap-1.5"><span class="inline-block h-2.5 w-2.5 rounded-sm" style={`background:${c.color}`}></span>{c.label}</span>
+        ))}
+      </span>
+    </figcaption>
+    <svg viewBox={`0 0 ${W} ${H}`} class="h-48 w-full" preserveAspectRatio="none" role="img" aria-label="Weekly cost breakdown">
+      {costBars.map((segs) => segs.map((s) => (
+        <rect x={s.x} y={s.y} width={s.w} height={s.h} fill={s.color} />
+      )))}
+    </svg>
+    <div class="mt-2 flex justify-between text-xs text-neutral-500"><span>{first.week}</span><span>{latest.week}</span></div>
+  </figure>
+
+  <!-- Break-even framing -->
+  <div class="rounded-xl border border-neutral-200 p-6 dark:border-neutral-800">
+    <h3 class="text-lg font-medium">How we get to break-even</h3>
+    <p class="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+      Per-hub infrastructure is a thin, measured slice of cost — the bulk is people and fixed overhead, kept
+      deliberately lean. Revenue is compounding while those costs stay roughly flat, so the gap narrows every week.
+      {metrics.breakEven.reached
+        ? ` We crossed cumulative break-even in the week of ${metrics.breakEven.targetWeek}.`
+        : ` At the current cost run-rate of ${fmtUsd(monthlyCostRunRate)}/mo and ~${fmtUsd(Math.round(latest.mrrUsd / latest.customers))}/customer MRR, operational break-even is roughly ${breakEvenCustomers.toLocaleString('en-US')} paying customers.`}
+    </p>
+    <p class="mt-3 text-xs text-neutral-500">
+      Cumulative net to date: {fmtUsd(finalNet)} · No per-customer figures are ever published; weeks below a
+      {' '}{metrics.cohortFloor}-customer floor are suppressed.
+    </p>
+  </div>
+</section>

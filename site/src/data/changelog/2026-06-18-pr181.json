@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-pr181",
+  "date": "June 2026",
+  "title": "Managed AI, fair billing, and a company we run in the open",
+  "summary": "xNet Cloud gains a managed AI gateway with transparent, metered billing — usage is shown against an included budget with a hard cap so there are no surprise bills — plus self-serve plan changes. And a new public dashboard shows our real customer growth, revenue, and full cost breakdown as we build toward break-even.",
+  "highlights": [
+    "Managed AI on paid plans: included monthly budget, metered overage, and a hard cap that stops before a surprise bill",
+    "See your AI usage against the included budget and change plans yourself, right from the dashboard",
+    "A public /open page: customer and revenue growth week over week, with an honest cost breakdown"
+  ],
+  "tags": ["cloud", "platform"],
+  "author": { "login": "crs48" },
+  "pr": 181
+}

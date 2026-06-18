@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { entitlementsFromEnv, signEntitlements, verifyEntitlements } from './entitlements'
-import { resolveEntitlements, withStorage } from './plans'
+import { resolveEntitlements, withAiBudget, withStorage } from './plans'
 
 const SECRET = 'test-signing-secret'
 
@@ -10,6 +10,14 @@ describe('signEntitlements / verifyEntitlements', () => {
     const token = signEntitlements(ent, SECRET)
     expect(token).toContain('.')
     expect(verifyEntitlements(token, SECRET)).toEqual(ent)
+  })
+
+  it('carries the AI budget through the token (the hub reads its included + cap)', () => {
+    const ent = withAiBudget(resolveEntitlements('personal'), 3, 40)
+    const back = verifyEntitlements(signEntitlements(ent, SECRET), SECRET)
+    expect(back.includedAiUsd).toBe(3)
+    expect(back.aiMonthlyBudgetUsd).toBe(40)
+    expect(back.aiEnabled).toBe(true)
   })
 
   it('rejects a token signed with a different secret', () => {

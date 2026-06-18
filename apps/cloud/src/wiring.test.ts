@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { pricingFromEnv } from './ai/pricing'
+import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
 import { firestoreStoresFromEnv } from './stores/firestore'
-import { resolveBillingGateway, stripeGatewayFromEnv } from './index'
+import { usageLedgerFromEnv } from './stores/usage-ledger'
+import { buildControlPlane, resolveBillingGateway, stripeGatewayFromEnv } from './index'
 
 const env = (o: Record<string, string>): NodeJS.ProcessEnv => o as NodeJS.ProcessEnv
 
@@ -40,5 +43,40 @@ describe('env-driven wiring', () => {
     )
     expect(stores?.tenants).toBeDefined()
     expect(stores?.bindings).toBeDefined()
+  })
+
+  it('mounts managed AI only when AI_GATEWAY_BASE_URL is set', () => {
+    const { controlPlane } = buildControlPlane({ env: env({}) })
+    const ledger = usageLedgerFromEnv(env({}))
+    expect(aiChatDepsFromEnv(controlPlane, ledger, env({}))).toBeNull()
+    const deps = aiChatDepsFromEnv(
+      controlPlane,
+      ledger,
+      env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000' })
+    )
+    expect(deps?.gateway).toBeDefined()
+    expect(deps?.pricingFor('claude-sonnet-4-6').markup).toBe(1.25)
+  })
+
+  it('selects the LiteLLM key manager only when a base URL + master key are set', () => {
+    expect(aiKeysFromEnv(env({}))).toBeUndefined()
+    expect(aiKeysFromEnv(env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000' }))).toBeUndefined() // needs master key
+    expect(
+      aiKeysFromEnv(
+        env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000', LITELLM_MASTER_KEY: 'sk-master' })
+      )
+    ).toBeDefined()
+  })
+
+  it('prices known models from the table and unknown models from the default, with the env markup', () => {
+    const priceDefault = pricingFromEnv(env({}))
+    expect(priceDefault('claude-sonnet-4-6')).toMatchObject({
+      inputUsdPerMillion: 3,
+      outputUsdPerMillion: 15,
+      markup: 1.25
+    })
+    expect(priceDefault('some-unknown-model').inputUsdPerMillion).toBe(3) // DEFAULT_RATE
+    expect(pricingFromEnv(env({ AI_MARKUP: '1.4' }))('gpt-4o').markup).toBe(1.4)
+    expect(pricingFromEnv(env({ AI_MARKUP: '0.5' }))('gpt-4o').markup).toBe(1.25) // clamped >= 1
   })
 })

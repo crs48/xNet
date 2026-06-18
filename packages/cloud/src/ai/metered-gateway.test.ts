@@ -76,6 +76,41 @@ describe('MeteredGateway budget hard-stop', () => {
     expect(billing.events()).toHaveLength(1)
   })
 
+  it('scopes the budget check to the current period (last period does not count)', async () => {
+    let calls = 0
+    const counting: ChatGateway = {
+      async chat(r) {
+        calls++
+        return fakeGateway().chat(r)
+      }
+    }
+    const ledger = new MemoryUsageLedger()
+    // A big charge in the PREVIOUS period (timestamp before the period start).
+    await meterUsage({
+      tenantId: 't1',
+      customerId: 'cus_t1',
+      key: 'last-period',
+      model: 'gpt-4o',
+      usage: { inputTokens: 10_000_000, outputTokens: 5_000_000, totalTokens: 15_000_000 },
+      pricing,
+      ledger,
+      billing: new FakeStripeBilling(),
+      timestampMs: 1_000
+    })
+    const mg = new MeteredGateway({
+      gateway: counting,
+      ledger,
+      billing: new FakeStripeBilling(),
+      pricingFor: () => pricing,
+      budgetUsdFor: async () => 0.5,
+      customerIdFor: (t) => `cus_${t}`,
+      periodStartMsFor: async () => 100_000 // this period starts after the old charge
+    })
+    // Over the all-time budget, but THIS period is empty → the call goes through.
+    await mg.chat({ tenantId: 't1', key: 't1:s:now', request: req() })
+    expect(calls).toBe(1)
+  })
+
   it('hard-stops (no provider call) once accrued spend reaches the budget', async () => {
     // Budget is tiny; one expensive call pushes spend over it.
     const expensive = fakeGateway({ input: 10_000_000, output: 5_000_000 })

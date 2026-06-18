@@ -7,6 +7,7 @@
  * Litestream→R2, etc.) — the control-plane code is unchanged (explorations 0174/0175).
  */
 
+import type { VirtualKeyManager } from '@xnetjs/cloud'
 import { serve } from '@hono/node-server'
 import {
   MemoryBillingIdentityProvider,
@@ -17,6 +18,7 @@ import {
   type DidChallengeVerifier
 } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud/provisioner'
+import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
 import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
@@ -24,6 +26,7 @@ import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-clien
 import { MemoryTenantStore, type TenantStore } from './registry'
 import { createControlPlaneApp } from './server'
 import { firestoreStoresFromEnv } from './stores/firestore'
+import { usageLedgerFromEnv } from './stores/usage-ledger'
 
 export { ControlPlane } from './control-plane'
 export { MemoryTenantStore, type TenantRecord, type TenantStore } from './registry'
@@ -95,7 +98,26 @@ export {
   bindingStoreFromDocs,
   type DocStore
 } from './stores/durable'
-export { FirestoreDocStore, firestoreStoresFromEnv, type DurableStores } from './stores/firestore'
+export {
+  FirestoreDocStore,
+  firestoreFromEnv,
+  firestoreStoresFromEnv,
+  type DurableStores
+} from './stores/firestore'
+export { usageLedgerFromDocs, usageLedgerFromEnv } from './stores/usage-ledger'
+export { createAiRoute, type AiChatDeps, type AiTenantContext } from './ai/route'
+export { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
+export { pricingFromEnv, markupFromEnv, PROVIDER_RATES, DEFAULT_RATE } from './ai/pricing'
+export { currentPeriodStartMs } from './control-plane'
+export {
+  buildCompanyMetrics,
+  computeBreakEven,
+  type CompanyMetrics,
+  type CompanyMetricsWeek,
+  type BuildMetricsInput,
+  type WeeklyInput,
+  type WeeklyOpex
+} from './metrics/rollup'
 export {
   GoogleCloudRunClient,
   cloudRunProvisionerFromEnv,
@@ -139,6 +161,8 @@ export interface BuildControlPlaneOptions {
   verifyDid?: DidChallengeVerifier
   tenants?: TenantStore
   bindings?: BindingStore
+  /** Managed-AI virtual-key manager; defaults to LiteLLM when configured (0200). */
+  aiKeys?: VirtualKeyManager
   env?: NodeJS.ProcessEnv
 }
 
@@ -156,13 +180,15 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
   const env = options.env ?? process.env
   const billing = options.billing ?? resolveBillingProvider(env)
   const stores = firestoreStoresFromEnv(env)
+  const aiKeys = options.aiKeys ?? aiKeysFromEnv(env)
   const controlPlane = new ControlPlane({
     tenants: options.tenants ?? stores?.tenants ?? new MemoryTenantStore(),
     bindings: options.bindings ?? stores?.bindings ?? new MemoryBindingStore(),
     provisioner: options.provisioner ?? cloudRunProvisionerFromEnv(env) ?? new MemoryProvisioner(),
     verifyDid: options.verifyDid ?? devDidVerifier,
     planSecret: env.XNET_PLAN_SECRET ?? 'dev-insecure-plan-secret',
-    defaultTargetVersion: env.HUB_IMAGE_TAG ?? 'xnet-hub@0.0.1'
+    defaultTargetVersion: env.HUB_IMAGE_TAG ?? 'xnet-hub@0.0.1',
+    ...(aiKeys ? { aiKeys } : {})
   })
   return { controlPlane, billing }
 }
@@ -180,6 +206,9 @@ function start(): void {
   const env = process.env
   const { controlPlane, billing } = buildControlPlane()
   const payments = resolveBillingGateway(env)
+  // One usage ledger, shared by the metered route and the dashboard's spend view.
+  const usage = usageLedgerFromEnv(env)
+  const ai = aiChatDepsFromEnv(controlPlane, usage, env)
   const app = createControlPlaneApp({
     controlPlane,
     billing,
@@ -187,7 +216,8 @@ function start(): void {
     sessionSecret: env.XNET_CLOUD_SESSION_SECRET ?? 'dev-insecure-session-secret',
     baseUrl: env.XNET_CLOUD_BASE_URL ?? '',
     marketingUrl: env.XNET_CLOUD_MARKETING_URL ?? 'https://xnet.fyi/cloud',
-    ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {})
+    ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {}),
+    ...(ai ? { ai } : {})
   })
   const port = Number(env.PORT ?? 4455)
   serve({ fetch: app.fetch, port })
@@ -195,7 +225,8 @@ function start(): void {
     auth: billing.name,
     payments: payments.id,
     provisioner: env.GCP_ARTIFACT_REGISTRY ? 'cloud-run' : 'memory',
-    stores: env.GCP_FIRESTORE_DATABASE ? 'firestore' : 'memory'
+    stores: env.GCP_FIRESTORE_DATABASE ? 'firestore' : 'memory',
+    ai: ai ? 'litellm' : 'off'
   }
   // eslint-disable-next-line no-console
   console.log(`xnet-cloud listening on :${port} — ${JSON.stringify(mode)}`)

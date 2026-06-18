@@ -17,8 +17,15 @@ import type { PlanId } from '@xnetjs/entitlements'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { createAiRoute, type AiChatDeps } from './ai/route'
 import { WebhookSignatureError, type TenantBillingGateway } from './billing-gateway'
-import { renderClaimForm, renderClaimResult, renderDashboard } from './dashboard'
+import { currentPeriodStartMs } from './control-plane'
+import {
+  renderClaimForm,
+  renderClaimResult,
+  renderDashboard,
+  renderPlanChangeNotice
+} from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
@@ -32,6 +39,8 @@ export interface ControlPlaneAppDeps {
   deviceGrants?: DeviceGrantStore
   /** Fleet health samples (Phase 1 observability). If set, exposes /internal/fleet/health. */
   health?: HealthSampleStore
+  /** Managed AI chat deps. If set, exposes `POST /ai/chat` (metered gateway). */
+  ai?: AiChatDeps
   /** Secret used to sign session cookies. If unset, the dashboard + auth callback are disabled. */
   sessionSecret?: string
   /** Absolute origin for building checkout success/cancel URLs (e.g. https://cloud.xnet.fyi). */
@@ -75,6 +84,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   app.get('/health', (c) =>
     c.json({ status: 'ok', service: 'xnet-cloud', substrate: deps.controlPlane ? 'ready' : 'init' })
   )
+
+  // Managed AI: `POST /ai/chat` (metered gateway). Mounted only when configured.
+  if (deps.ai) app.route('/', createAiRoute(deps.ai))
 
   // ── Auth funnel ───────────────────────────────────────────────────────────
 
@@ -131,15 +143,53 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const s = session(c)
     if (!s) return c.redirect('/auth/start')
     const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    // Surface the period's AI spend when AI is wired and the tenant has it enabled.
+    let aiUsage: { usedUsd: number; includedUsd: number; budgetUsd: number } | undefined
+    if (tenant?.entitlements.aiEnabled && deps.ai) {
+      const usedUsd = await deps.ai.ledger.totalChargeUsd(
+        tenant.tenantId,
+        currentPeriodStartMs(now())
+      )
+      aiUsage = {
+        usedUsd,
+        includedUsd: tenant.entitlements.includedAiUsd,
+        budgetUsd: tenant.entitlements.aiMonthlyBudgetUsd
+      }
+    }
     return c.html(
       renderDashboard({
         billingUserId: s.billingUserId,
         ...(s.email ? { email: s.email } : {}),
         tenant,
         checkoutPlans: CHECKOUT_PLANS,
-        billingEnabled: Boolean(deps.payments)
+        billingEnabled: Boolean(deps.payments),
+        ...(aiUsage ? { aiUsage } : {})
       })
     )
+  })
+
+  // Self-serve plan change for the signed-in tenant. An in-tier change applies
+  // live (entitlement flip); a tier crossing returns a migration-required notice
+  // rather than silently moving data. (Exploration 0200, slice B.)
+  app.post('/account/plan', async (c) => {
+    const s = session(c)
+    if (!s) return c.json({ error: 'unauthorized' }, 401)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.redirect('/dashboard')
+    const body = await c.req.parseBody()
+    const plan = String(body.plan ?? '')
+    if (!CHECKOUT_PLANS.some((p) => p.id === plan)) return c.json({ error: 'bad_plan' }, 400)
+    const result = await deps.controlPlane.changePlan(tenant.tenantId, plan as PlanId)
+    if (result.kind === 'migration-required') {
+      return c.html(
+        renderPlanChangeNotice({
+          who: s.email ?? s.billingUserId,
+          from: result.from.plan,
+          to: result.to.plan
+        })
+      )
+    }
+    return c.redirect('/dashboard')
   })
 
   // ── Checkout + portal + webhook ──────────────────────────────────────────────

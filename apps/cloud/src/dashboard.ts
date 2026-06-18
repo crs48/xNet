@@ -20,6 +20,65 @@ export interface DashboardView {
   checkoutPlans: { id: PlanId; label: string; price: string }[]
   /** Whether checkout/portal are wired (a billing gateway is configured). */
   billingEnabled: boolean
+  /** Managed-AI spend for the current billing period (from the usage ledger). */
+  aiUsage?: { usedUsd: number; includedUsd: number; budgetUsd: number }
+}
+
+const usd = (n: number): string => `$${n.toFixed(2)}`
+
+/** A meter showing AI spend vs the included amount and the hard cap. */
+function aiUsageCard(view: DashboardView, tenant: TenantRecord): string {
+  if (!tenant.entitlements.aiEnabled) return ''
+  const u = view.aiUsage ?? {
+    usedUsd: 0,
+    includedUsd: tenant.entitlements.includedAiUsd,
+    budgetUsd: tenant.entitlements.aiMonthlyBudgetUsd
+  }
+  const pct = u.budgetUsd > 0 ? Math.min(100, Math.round((u.usedUsd / u.budgetUsd) * 100)) : 0
+  const includedPct = u.budgetUsd > 0 ? Math.min(100, (u.includedUsd / u.budgetUsd) * 100) : 0
+  const overIncluded = u.usedUsd > u.includedUsd
+  const near = pct >= 80
+  const fill = near ? '#fbbf24' : '#4f46e5'
+  const overageNote = overIncluded
+    ? `<p class="muted">You're past the included ${usd(u.includedUsd)} — extra usage is metered to your card up to the ${usd(u.budgetUsd)} cap.</p>`
+    : `<p class="muted">${usd(u.includedUsd)} of AI is included each month; a hard ${usd(u.budgetUsd)} cap prevents surprise bills.</p>`
+  return `
+    <div class="card">
+      <h2>Managed AI</h2>
+      <div class="meter" title="${usd(u.usedUsd)} of ${usd(u.budgetUsd)} used">
+        <div class="meter-fill" style="width:${pct}%;background:${fill}"></div>
+        <div class="meter-included" style="left:${includedPct}%" title="included ${usd(u.includedUsd)}"></div>
+      </div>
+      <div class="meter-legend">
+        <span><strong>${usd(u.usedUsd)}</strong> used this month</span>
+        <span class="muted">included ${usd(u.includedUsd)} · cap ${usd(u.budgetUsd)}</span>
+      </div>
+      ${overageNote}
+    </div>`
+}
+
+/** Let an existing tenant switch plans (an in-tier flip applies live; a tier change migrates). */
+function planChangeCard(view: DashboardView, tenant: TenantRecord): string {
+  if (!view.billingEnabled) return ''
+  const options = view.checkoutPlans
+    .filter((p) => p.id !== tenant.plan)
+    .map(
+      (p) => `
+      <form method="post" action="/account/plan" class="plan">
+        <input type="hidden" name="plan" value="${esc(p.id)}" />
+        <div class="plan-name">${esc(p.label)}</div>
+        <div class="plan-price">${esc(p.price)}</div>
+        <button type="submit" class="ghost">Switch</button>
+      </form>`
+    )
+    .join('')
+  if (!options) return ''
+  return `
+    <div class="card">
+      <h2>Change plan</h2>
+      <p class="muted">You're on <strong>${esc(tenant.plan)}</strong>. Switching within the same tier applies instantly; a bigger change may move your data.</p>
+      <div class="plans">${options}</div>
+    </div>`
 }
 
 const esc = (s: string): string =>
@@ -165,6 +224,10 @@ const STYLE = `
   .plan-name { font-weight: 600; } .plan-price { color: #9ca3af; font-size: 13px; margin: 4px 0 12px; }
   .danger-actions { display: flex; gap: 12px; flex-wrap: wrap; }
   ol { margin: 0 0 16px; padding-left: 20px; } ol li { margin-bottom: 6px; }
+  .meter { position: relative; height: 12px; background: #1c1c24; border-radius: 999px; overflow: hidden; margin-bottom: 10px; }
+  .meter-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+  .meter-included { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #6b7280; }
+  .meter-legend { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
 `
 
 /** Wrap inner HTML in the shared dark-themed document chrome. */
@@ -188,7 +251,7 @@ function page(title: string, who: string, inner: string): string {
 export function renderDashboard(view: DashboardView): string {
   const who = view.email ?? view.billingUserId
   const body = view.tenant
-    ? `${hubCard(view.tenant)}${connectCard(view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}`
+    ? `${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}`
     : `<div class="card">
          <h2>Welcome to xNet Cloud</h2>
          <p class="muted">Pick a plan to spin up your dedicated hub. You can change or cancel any time.</p>
@@ -200,6 +263,22 @@ export function renderDashboard(view: DashboardView): string {
     `<h1>Dashboard</h1>
      <p class="lead">Manage your managed hub, billing, and data.</p>
      ${body}`
+  )
+}
+
+/** Shown when a plan change crosses an isolation tier and needs a data migration. */
+export function renderPlanChangeNotice(opts: { who: string; from: PlanId; to: PlanId }): string {
+  return page(
+    'xNet Cloud — Plan change',
+    opts.who,
+    `<h1>Plan change</h1>
+     <div class="card">
+       <h2>Moving ${esc(opts.from)} → ${esc(opts.to)} needs a migration</h2>
+       <p class="muted">This change crosses hosting tiers, so we move your data to new
+       infrastructure rather than flipping it live. We'll email you to schedule it with
+       zero data loss; nothing has changed yet.</p>
+       <a class="btn" href="/dashboard">Back to dashboard</a>
+     </div>`
   )
 }
 
