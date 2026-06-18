@@ -53,6 +53,7 @@ export {
 } from './schema-to-grid-fields'
 
 export { GridSurface, type GridSurfaceProps } from './GridSurface'
+export { GridSummaryBar, type GridSummaryBarProps } from './GridSummaryBar'
 export { GridCell, type GridCellProps } from './GridCell'
 export { GridPeek, type GridPeekProps } from './GridPeek'
 export { FieldConfigEditor, type FieldConfigEditorProps } from './FieldConfigEditor'

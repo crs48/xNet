@@ -15,6 +15,7 @@ COPY packages/core/package.json packages/core/
 COPY packages/crypto/package.json packages/crypto/
 COPY packages/data/package.json packages/data/
 COPY packages/identity/package.json packages/identity/
+COPY packages/slack-compat/package.json packages/slack-compat/
 COPY packages/sqlite/package.json packages/sqlite/
 COPY packages/storage/package.json packages/storage/
 COPY packages/sync/package.json packages/sync/
@@ -35,6 +36,7 @@ COPY packages/core/ packages/core/
 COPY packages/crypto/ packages/crypto/
 COPY packages/data/ packages/data/
 COPY packages/identity/ packages/identity/
+COPY packages/slack-compat/ packages/slack-compat/
 COPY packages/sqlite/ packages/sqlite/
 COPY packages/storage/ packages/storage/
 COPY packages/sync/ packages/sync/
@@ -59,6 +61,7 @@ COPY --from=builder /build/packages/core/package.json packages/core/
 COPY --from=builder /build/packages/crypto/package.json packages/crypto/
 COPY --from=builder /build/packages/data/package.json packages/data/
 COPY --from=builder /build/packages/identity/package.json packages/identity/
+COPY --from=builder /build/packages/slack-compat/package.json packages/slack-compat/
 COPY --from=builder /build/packages/sqlite/package.json packages/sqlite/
 COPY --from=builder /build/packages/storage/package.json packages/storage/
 COPY --from=builder /build/packages/sync/package.json packages/sync/
@@ -90,6 +93,7 @@ COPY --from=builder /build/packages/core/dist packages/core/dist/
 COPY --from=builder /build/packages/crypto/dist packages/crypto/dist/
 COPY --from=builder /build/packages/data/dist packages/data/dist/
 COPY --from=builder /build/packages/identity/dist packages/identity/dist/
+COPY --from=builder /build/packages/slack-compat/dist packages/slack-compat/dist/
 COPY --from=builder /build/packages/sqlite/dist packages/sqlite/dist/
 COPY --from=builder /build/packages/storage/dist packages/storage/dist/
 COPY --from=builder /build/packages/sync/dist packages/sync/dist/

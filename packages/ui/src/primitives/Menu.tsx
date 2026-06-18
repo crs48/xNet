@@ -42,7 +42,7 @@ export function Menu({ trigger, children, align = 'end', sideOffset = 4, classNa
               // Animation
               'opacity-0 scale-95',
               'data-[open]:opacity-100 data-[open]:scale-100',
-              'transition-all duration-fast ease-out',
+              'transition-[opacity,transform] duration-fast ease-out',
               'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
               className
             )}
@@ -158,7 +158,7 @@ export const DropdownMenuContent = React.forwardRef<
           // Animation
           'opacity-0 scale-95',
           'data-[open]:opacity-100 data-[open]:scale-100',
-          'transition-all duration-fast ease-out',
+          'transition-[opacity,transform] duration-fast ease-out',
           'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
           className
         )}
@@ -330,7 +330,7 @@ export const DropdownMenuSubContent = React.forwardRef<
           // Animation
           'opacity-0 scale-95',
           'data-[open]:opacity-100 data-[open]:scale-100',
-          'transition-all duration-fast',
+          'transition-[opacity,transform] duration-fast',
           'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
           className
         )}

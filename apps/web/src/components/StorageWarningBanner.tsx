@@ -1,3 +1,4 @@
+import { Presence } from '@xnetjs/ui'
 import { AlertTriangle, CheckCircle2, Info, ShieldCheck, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -126,14 +127,13 @@ export function StorageWarningBanner({
       ? `${formatBytes(usageBytes)} used of ${formatBytes(quotaBytes)} available`
       : null
 
-  if (dismissed) return null
-
   return (
-    <div
-      ref={rootRef}
+    <Presence
+      show={!dismissed}
+      motion="slide-down"
       className={`pointer-events-none fixed top-0 left-0 right-0 z-50 border-b ${toneClasses.container}`}
     >
-      <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
+      <div ref={rootRef} className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-start flex-1 min-w-0">
             <span className={`flex p-2 rounded-lg ${toneClasses.icon}`}>
@@ -204,6 +204,6 @@ export function StorageWarningBanner({
           </button>
         </div>
       </div>
-    </div>
+    </Presence>
   )
 }

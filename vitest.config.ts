@@ -55,6 +55,7 @@ const workspaceAliases = {
   '@xnetjs/react': new URL('./packages/react/src/index.ts', import.meta.url).pathname,
   '@xnetjs/runtime': new URL('./packages/runtime/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sdk': new URL('./packages/sdk/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/slack-compat': new URL('./packages/slack-compat/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sqlite/memory': new URL('./packages/sqlite/src/adapters/memory.ts', import.meta.url)
     .pathname,
   '@xnetjs/sqlite/electron': new URL('./packages/sqlite/src/adapters/electron.ts', import.meta.url)
@@ -101,8 +102,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
-            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
+            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
+            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Social matching layer — pure connect modules only; the

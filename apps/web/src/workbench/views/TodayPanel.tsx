@@ -25,7 +25,7 @@ function StrengthBar({ value }: { value: number }): JSX.Element {
   return (
     <div className="h-1 w-full overflow-hidden rounded-full bg-accent">
       <div
-        className="h-full rounded-full bg-[var(--primary,#6366f1)] transition-all"
+        className="h-full rounded-full bg-[var(--primary,#6366f1)] transition-[width] duration-slow"
         style={{ width: `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%` }}
       />
     </div>

@@ -40,7 +40,7 @@ const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
             className={cn(
               'flex items-center justify-center text-current',
               'opacity-0 scale-75',
-              'transition-all duration-fast ease-spring',
+              'transition-[opacity,transform] duration-fast ease-spring',
               'data-[checked]:opacity-100 data-[checked]:scale-100'
             )}
           >

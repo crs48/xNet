@@ -13,6 +13,7 @@
  * reorder/resize/hide without duplicating the schema.
  */
 
+import type { SummaryFunction } from '../../database/summary-engine'
 import type { FilterGroup, SortConfig } from '../../database/view-types'
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
@@ -68,6 +69,12 @@ export const DatabaseViewSchema = defineSchema({
 
     /** Per-view hidden field IDs */
     hiddenFields: json<string[]>({}),
+
+    /** Row-height density tier (RowHeight: short | medium | tall | extraTall) */
+    rowHeight: text({ maxLength: 12 }),
+
+    /** Per-column footer summary functions: fieldId -> SummaryFunction */
+    columnSummaries: json<Record<string, SummaryFunction>>({}),
 
     /** Fractional index for view tab ordering */
     sortKey: text({ required: true }),

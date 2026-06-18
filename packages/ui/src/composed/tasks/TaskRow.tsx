@@ -69,7 +69,7 @@ export function TaskRow({
       className={cn(
         'group flex cursor-pointer items-center gap-2 rounded-md px-2 text-sm',
         DENSITY_HEIGHT[density],
-        'transition-colors duration-150 hover:bg-background-subtle',
+        'transition-colors duration-normal hover:bg-background-subtle',
         focused && 'bg-background-subtle ring-1 ring-ring',
         selected && 'bg-accent ring-1 ring-ring',
         className

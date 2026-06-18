@@ -18,6 +18,9 @@ import {
   type FilterGroup,
   type SortConfig,
   type ViewType,
+  type RowHeight,
+  type SummaryFunction,
+  asRowHeight,
   DatabaseFieldSchema,
   DatabaseRowSchema,
   DatabaseSchema,
@@ -76,6 +79,8 @@ export interface GridViewModel {
   fieldOrder: Record<string, string>
   fieldWidths: Record<string, number>
   hiddenFields: string[]
+  rowHeight: RowHeight
+  columnSummaries: Record<string, SummaryFunction>
   sortKey: string
 }
 
@@ -137,6 +142,8 @@ export interface UseGridDatabaseResult {
   toggleSort: (fieldId: string) => Promise<void>
   setFilters: (filters: FilterGroup | null) => Promise<void>
   setGroupBy: (fieldId: string | null) => Promise<void>
+  setRowHeight: (rowHeight: RowHeight) => Promise<void>
+  setColumnSummary: (fieldId: string, fn: SummaryFunction) => Promise<void>
   addView: (name: string, type: ViewType) => Promise<string | null>
   renameView: (viewId: string, name: string) => Promise<void>
   removeView: (viewId: string) => Promise<void>
@@ -178,6 +185,8 @@ function toViewModel(node: Flat): GridViewModel {
     fieldOrder: (node.fieldOrder as Record<string, string> | undefined) ?? {},
     fieldWidths: (node.fieldWidths as Record<string, number> | undefined) ?? {},
     hiddenFields: (node.hiddenFields as string[] | undefined) ?? [],
+    rowHeight: asRowHeight(node.rowHeight as string | undefined),
+    columnSummaries: (node.columnSummaries as Record<string, SummaryFunction> | undefined) ?? {},
     sortKey: (node.sortKey as string) ?? ''
   }
 }
@@ -781,6 +790,25 @@ export function useGridDatabase(
     [mutate, activeView]
   )
 
+  const setRowHeight = useCallback(
+    async (rowHeight: RowHeight): Promise<void> => {
+      if (!activeView) return
+      await mutate.update(DatabaseViewSchema, activeView.id, { rowHeight })
+    },
+    [mutate, activeView]
+  )
+
+  const setColumnSummary = useCallback(
+    async (fieldId: string, fn: SummaryFunction): Promise<void> => {
+      if (!activeView) return
+      const next = { ...activeView.columnSummaries }
+      if (fn === 'none') delete next[fieldId]
+      else next[fieldId] = fn
+      await mutate.update(DatabaseViewSchema, activeView.id, { columnSummaries: next as never })
+    },
+    [mutate, activeView]
+  )
+
   const addView = useCallback(
     async (name: string, type: ViewType): Promise<string | null> => {
       const node = await mutate.create(DatabaseViewSchema, {
@@ -833,6 +861,8 @@ export function useGridDatabase(
     toggleSort,
     setFilters,
     setGroupBy,
+    setRowHeight,
+    setColumnSummary,
     addView,
     renameView,
     removeView,

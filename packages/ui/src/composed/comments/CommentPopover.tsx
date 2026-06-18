@@ -269,7 +269,7 @@ export function CommentPopover({
     : { position: 'fixed', top: 0, left: 0, zIndex: 50 }
 
   return open ? (
-    <div style={style} className="animate-in fade-in-0 zoom-in-95 duration-150">
+    <div style={style} className="animate-in fade-in-0 zoom-in-95 duration-normal">
       {content}
     </div>
   ) : null
