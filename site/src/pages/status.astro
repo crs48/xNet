@@ -1,0 +1,166 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+import {
+  fallback,
+  COMPONENT_LABELS,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  STATUS_URL
+} from '../data/status'
+
+const overallColor = STATUS_COLORS[fallback.overall]
+const overallLabel =
+  fallback.overall === 'operational' ? 'All systems operational' : STATUS_LABELS[fallback.overall]
+const fmtPct = (a: number | null | undefined) =>
+  a === null || a === undefined ? '' : `${(a * 100).toFixed(2)}% uptime`
+---
+
+<Base
+  title="xNet Cloud — Status"
+  description="Live operational status for xNet Cloud — control plane, hub fleet, managed AI, and backups."
+>
+  <Nav />
+  <main class="py-20 lg:py-28" data-status-url={STATUS_URL}>
+    <div class="mx-auto max-w-3xl px-6">
+      <h1 class="mb-3 text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl">System status</h1>
+      <p class="mb-8 max-w-2xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+        Live status for xNet Cloud, published straight from the control plane's own health probes.
+      </p>
+
+      <!-- Overall banner -->
+      <div
+        id="overall-banner"
+        class="mb-8 flex items-center gap-3 rounded-xl border px-5 py-4"
+        style={`border-color:${overallColor}55;background:${overallColor}14`}
+      >
+        <span
+          id="overall-dot"
+          class="inline-block h-3 w-3 shrink-0 rounded-full"
+          style={`background:${overallColor}`}
+        ></span>
+        <span id="overall-label" class="text-base font-semibold text-gray-800 dark:text-gray-100"
+          >{overallLabel}</span
+        >
+      </div>
+
+      <!-- Components -->
+      <ul id="components" class="divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+        {
+          fallback.components.map((c) => (
+            <li
+              data-component={c.id}
+              class="flex items-center justify-between gap-4 bg-white/40 px-5 py-4 dark:bg-white/[0.02]"
+            >
+              <span class="font-medium text-gray-700 dark:text-gray-200">
+                {COMPONENT_LABELS[c.id] ?? c.id}
+              </span>
+              <span class="flex items-center gap-2 text-sm">
+                <span data-availability class="text-gray-400">{fmtPct(c.availability)}</span>
+                <span
+                  data-dot
+                  class="inline-block h-2.5 w-2.5 rounded-full"
+                  style={`background:${STATUS_COLORS[c.status]}`}
+                />
+                <span data-label class="text-gray-600 dark:text-gray-300">
+                  {STATUS_LABELS[c.status]}
+                </span>
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+
+      <!-- Error-budget policy summary -->
+      <div id="budget" class="mt-6 text-sm text-gray-500">
+        Deploy posture (Google-SRE error budget):
+        <span id="budget-ship">{fallback.errorBudgetPolicy.ship}</span> shipping ·
+        <span id="budget-caution">{fallback.errorBudgetPolicy.caution}</span> cautious ·
+        <span id="budget-freeze">{fallback.errorBudgetPolicy.freeze}</span> frozen
+      </div>
+
+      <p id="freshness" class="mt-8 text-sm text-gray-500">
+        Showing the last published snapshot — live status at
+        <a href={STATUS_URL} class="text-indigo-400 hover:underline">{STATUS_URL}</a>.
+      </p>
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<script>
+  import { STATUS_COLORS, STATUS_LABELS } from '../data/status'
+
+  type ComponentStatus = keyof typeof STATUS_COLORS
+  interface Component {
+    id: string
+    status: ComponentStatus
+    availability?: number | null
+  }
+  interface PublicStatus {
+    updatedMs: number
+    overall: ComponentStatus
+    components: Component[]
+    errorBudgetPolicy: { ship: number; caution: number; freeze: number }
+  }
+
+  const main = document.querySelector('main[data-status-url]') as HTMLElement | null
+  const url = main?.dataset.statusUrl
+  if (url) void hydrate(url)
+
+  async function hydrate(statusUrl: string) {
+    let data: PublicStatus
+    try {
+      const res = await fetch(statusUrl, { headers: { accept: 'application/json' } })
+      if (!res.ok) return // keep the SSR'd fallback
+      data = (await res.json()) as PublicStatus
+    } catch {
+      return // offline / unreachable → keep the fallback snapshot + note
+    }
+    render(data)
+  }
+
+  function setText(sel: string, text: string) {
+    const el = document.querySelector(sel)
+    if (el) el.textContent = text
+  }
+
+  function render(data: PublicStatus) {
+    const overallColor = STATUS_COLORS[data.overall] ?? STATUS_COLORS['not-configured']
+    const banner = document.getElementById('overall-banner')
+    if (banner) {
+      banner.style.borderColor = `${overallColor}55`
+      banner.style.background = `${overallColor}14`
+    }
+    const dot = document.getElementById('overall-dot')
+    if (dot) dot.style.background = overallColor
+    setText(
+      '#overall-label',
+      data.overall === 'operational' ? 'All systems operational' : STATUS_LABELS[data.overall]
+    )
+
+    for (const c of data.components) {
+      const row = document.querySelector(`[data-component="${c.id}"]`)
+      if (!row) continue
+      const color = STATUS_COLORS[c.status] ?? STATUS_COLORS['not-configured']
+      const rowDot = row.querySelector<HTMLElement>('[data-dot]')
+      if (rowDot) rowDot.style.background = color
+      const label = row.querySelector('[data-label]')
+      if (label) label.textContent = STATUS_LABELS[c.status]
+      const avail = row.querySelector('[data-availability]')
+      if (avail)
+        avail.textContent =
+          c.availability === null || c.availability === undefined
+            ? ''
+            : `${(c.availability * 100).toFixed(2)}% uptime`
+    }
+
+    setText('#budget-ship', String(data.errorBudgetPolicy.ship))
+    setText('#budget-caution', String(data.errorBudgetPolicy.caution))
+    setText('#budget-freeze', String(data.errorBudgetPolicy.freeze))
+
+    const when = new Date(data.updatedMs)
+    setText('#freshness', `Updated ${when.toLocaleString()} · live from the control plane.`)
+  }
+</script>

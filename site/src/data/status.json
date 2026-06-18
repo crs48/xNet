@@ -1,0 +1,11 @@
+{
+  "updatedMs": 1781740800000,
+  "overall": "operational",
+  "components": [
+    { "id": "control-plane", "status": "operational" },
+    { "id": "hub-fleet", "status": "operational", "availability": null },
+    { "id": "ai-gateway", "status": "not-configured" },
+    { "id": "backups", "status": "not-configured" }
+  ],
+  "errorBudgetPolicy": { "ship": 0, "caution": 0, "freeze": 0 }
+}

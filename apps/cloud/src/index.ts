@@ -22,6 +22,7 @@ import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
 import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
+import { HealthSampleStore, httpHealthProbe, probeFleet } from './observability/health'
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
 import { MemoryTenantStore, type TenantStore } from './registry'
 import { createControlPlaneApp } from './server'
@@ -70,12 +71,21 @@ export {
   FakeHealthProbe,
   httpHealthProbe,
   sampleTenantHealth,
+  probeFleet,
   tenantSli,
   fleetSummary,
   type HealthProbe,
   type TenantSli,
   type FleetSummary
 } from './observability/health'
+export {
+  publicStatus,
+  STATUS_K_ANON_FLOOR,
+  type PublicStatus,
+  type PublicStatusInput,
+  type StatusComponent,
+  type ComponentStatus
+} from './observability/status'
 export {
   rollWave,
   runRollout,
@@ -209,10 +219,26 @@ function start(): void {
   // One usage ledger, shared by the metered route and the dashboard's spend view.
   const usage = usageLedgerFromEnv(env)
   const ai = aiChatDepsFromEnv(controlPlane, usage, env)
+
+  // Fleet observability (exploration 0201): poll each hot tenant's hub `/health`
+  // on an interval and feed the rolling SLI window behind /internal/fleet/health
+  // and the public /status.json. unref() so the loop never keeps the process alive.
+  const health = new HealthSampleStore()
+  const probe = httpHealthProbe()
+  const probeMs = Number(env.XNET_CLOUD_PROBE_MS ?? 60_000)
+  const timer = setInterval(() => {
+    void controlPlane
+      .listTenants()
+      .then((tenants) => probeFleet(probe, health, tenants, Date.now()))
+  }, probeMs)
+  timer.unref()
+
   const app = createControlPlaneApp({
     controlPlane,
     billing,
     payments,
+    health,
+    backupsConfigured: Boolean(env.R2_BUCKET),
     sessionSecret: env.XNET_CLOUD_SESSION_SECRET ?? 'dev-insecure-session-secret',
     baseUrl: env.XNET_CLOUD_BASE_URL ?? '',
     marketingUrl: env.XNET_CLOUD_MARKETING_URL ?? 'https://xnet.fyi/cloud',
