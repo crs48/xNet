@@ -15,6 +15,7 @@ import ReactDOM from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
+import { preconnectHub } from './lib/preconnect-hub'
 
 type WebCanvasNodeRecord = {
   id: string
@@ -407,6 +408,10 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
 }
 
 window.__xnetCanvasTestHarness = createCanvasTestHarness()
+
+// Warm the hub's DNS/TCP/TLS during SQLite boot so the later dial is fast
+// (exploration 0204). Pure resource hint — issued before React mounts.
+preconnectHub()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

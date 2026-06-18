@@ -47,7 +47,7 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
-import { persistedHubUrl } from './lib/hub-url'
+import { defaultHubUrl, persistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
@@ -78,8 +78,7 @@ declare module '@tanstack/react-router' {
 // subscriptions, which used to stall page loads (exploration 0188) and also
 // leaked dev presence to production. A falsy hub URL keeps the app local-first;
 // opt into a real hub by setting VITE_HUB_URL (e.g. ws://localhost:4444).
-const DEFAULT_HUB_URL =
-  import.meta.env.VITE_HUB_URL ?? (import.meta.env.DEV ? '' : 'wss://hub.xnet.fyi')
+const DEFAULT_HUB_URL = defaultHubUrl()
 
 // A hub the user connected via Settings or the xNet Cloud claim flow (persisted in
 // localStorage) wins over the build-time default — this is the read half of that

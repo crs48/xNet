@@ -10,6 +10,20 @@
 export const HUB_URL_STORAGE_KEY = 'xnet:hub-url'
 
 /**
+ * The build-time default hub URL. An unset VITE_HUB_URL means "no hub" in dev
+ * (empty string → local-first) rather than the production hub (exploration
+ * 0188). Single source of truth shared by App.tsx and the boot preconnect.
+ */
+export function defaultHubUrl(): string {
+  return import.meta.env.VITE_HUB_URL ?? (import.meta.env.DEV ? '' : 'wss://hub.xnet.fyi')
+}
+
+/** The hub URL the client should dial: a user/Cloud override, else the build default. */
+export function configuredHubUrl(): string {
+  return persistedHubUrl(defaultHubUrl())
+}
+
+/**
  * The persisted hub URL if the user configured one, else `fallback` (the
  * build-time default). A share-session endpoint, when present, still takes
  * precedence over this — see `resolveHubSessionFromLocation` in App.tsx.
