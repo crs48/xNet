@@ -192,4 +192,15 @@ describe('xNet Cloud signup → provision → manage funnel', () => {
     })
     expect(signed.status).toBe(200)
   })
+
+  it('accepts the same webhook at the provider-scoped /webhooks/stripe path', async () => {
+    const { app, controlPlane } = funnelApp()
+    const res = await app.request('/webhooks/stripe', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'checkout.completed', customerRef: 'user_a', plan: 'personal' })
+    })
+    expect(res.status).toBe(200)
+    expect((await controlPlane.getTenant('t_user_a'))?.plan).toBe('personal')
+  })
 })

@@ -173,8 +173,12 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   })
 
   // Provider webhook — unauthenticated, verified by the gateway's signature check.
-  // `checkout.completed` provisions a hub; `subscription.canceled` suspends it.
-  app.post('/webhook', async (c) => {
+  // Provider-scoped path so each provider gets its own endpoint + signature scheme
+  // (Stripe now, e.g. BTCPay later); `/webhook` kept as a back-compat alias. Only
+  // v1 snapshot events are handled — `checkout.completed` provisions a hub,
+  // `subscription.canceled` suspends it. (Stripe v2 "thin" event destinations, if
+  // ever adopted, would get their own endpoint — see exploration 0192 / SETUP.)
+  const billingWebhook = async (c: Context): Promise<Response> => {
     if (!deps.payments) return c.json({ error: 'billing_not_configured' }, 503)
     const raw = await c.req.text()
     const headers: Record<string, string> = {}
@@ -196,7 +200,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       if (tenant) await deps.controlPlane.suspendTenant(tenant.tenantId)
     }
     return c.json({ received: true })
-  })
+  }
+  app.post('/webhooks/stripe', billingWebhook)
+  app.post('/webhook', billingWebhook) // deprecated alias for the canonical path above
 
   // ── Account management ────────────────────────────────────────────────────────
 

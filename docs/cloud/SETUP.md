@@ -149,8 +149,10 @@ Manager instead: `./scripts/cloud-gen-secrets.sh`.
 1. **[Stripe dashboard](https://dashboard.stripe.com/)** — start in **Test mode**.
 2. **[Products](https://dashboard.stripe.com/test/products)** → create _Personal_, _Family_, _Team_ with **recurring** Prices; copy each `price_…`. → `STRIPE_PRICE_PERSONAL` / `_FAMILY` / `_TEAM`
 3. **[API keys](https://dashboard.stripe.com/test/apikeys)** → copy the **Secret key** (`sk_test_…`). → `STRIPE_SECRET_KEY`
-4. **[Webhooks](https://dashboard.stripe.com/test/webhooks)** → add endpoint `https://cloud.xnet.fyi/webhook`, events `checkout.session.completed` + `customer.subscription.deleted`; copy the **Signing secret** (`whsec_…`). → `STRIPE_WEBHOOK_SECRET`
-5. Go live later by repeating with **Live mode** keys in `.env.production`.
+4. **[Webhooks](https://dashboard.stripe.com/test/webhooks)** → add endpoint `https://cloud.xnet.fyi/webhooks/stripe`, events `checkout.session.completed` + `customer.subscription.deleted`; copy the **Signing secret** (`whsec_…`). → `STRIPE_WEBHOOK_SECRET`
+   _(The webhook path is provider-scoped — `/webhooks/stripe`, not a generic `/webhook` — so other providers can have their own endpoints. We only consume v1 snapshot events; Stripe v2 "thin" event destinations, if ever adopted, would get a separate endpoint.)_
+5. **Optional:** copy the **Publishable key** (`pk_test_…` / `pk_live_…`, [API keys](https://dashboard.stripe.com/test/apikeys)). → `STRIPE_PUBLISHABLE_KEY`. It's **not secret** and is only needed for embedded checkout — the hosted-Checkout flow we use doesn't require it.
+6. Go live later by repeating with **Live mode** keys in `.env.production`.
 
 ✅ **M2 done when** the doctor prints **✓ M2**.
 

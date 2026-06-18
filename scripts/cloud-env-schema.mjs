@@ -145,8 +145,17 @@ export const VARS = [
     group: 'Stripe (https://dashboard.stripe.com)',
     secret: true,
     milestone: 'M2',
-    where: 'whsec_… — Developers → Webhooks → <endpoint>/webhook → Signing secret',
+    where: 'whsec_… — Developers → Webhooks → <endpoint>/webhooks/stripe → Signing secret',
     values: { development: '', staging: F, production: F }
+  },
+  {
+    key: 'STRIPE_PUBLISHABLE_KEY',
+    group: 'Stripe (https://dashboard.stripe.com)',
+    secret: false,
+    milestone: 'optional',
+    where:
+      'pk_test_… / pk_live_… — NOT secret; only needed for embedded checkout (hosted Checkout works without it)',
+    values: { development: '', staging: '', production: '' }
   },
   {
     key: 'STRIPE_PRICE_PERSONAL',
