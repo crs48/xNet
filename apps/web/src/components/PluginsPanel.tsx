@@ -11,8 +11,7 @@ import { PluginManager } from './PluginManager'
 
 type Tab = 'installed' | 'browse'
 
-const TAB_BASE =
-  'rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none'
+const TAB_BASE = 'rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none'
 
 export function PluginsPanel() {
   const [tab, setTab] = useState<Tab>('installed')

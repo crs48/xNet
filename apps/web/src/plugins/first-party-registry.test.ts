@@ -20,7 +20,9 @@ describe('first-party registry', () => {
   it('lists every bundled plugin', () => {
     const listed = new Set(firstParty.map((e) => e.id))
     for (const plugin of BUNDLED_PLUGINS) {
-      expect(listed.has(plugin.id), `${plugin.id} missing from registry/first-party.json`).toBe(true)
+      expect(listed.has(plugin.id), `${plugin.id} missing from registry/first-party.json`).toBe(
+        true
+      )
     }
   })
 

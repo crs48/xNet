@@ -57,7 +57,9 @@ export function partitionListings(
 
 /** True when a listing is installable from the marketplace (community + has a manifest URL). */
 export function isInstallable(entry: MarketplaceListing): boolean {
-  return entry.tier !== 'bundled' && typeof entry.manifestUrl === 'string' && entry.manifestUrl !== ''
+  return (
+    entry.tier !== 'bundled' && typeof entry.manifestUrl === 'string' && entry.manifestUrl !== ''
+  )
 }
 
 /** Fetch and parse a plugin manifest from its `manifestUrl`. Throws on a bad response. */

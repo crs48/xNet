@@ -53,9 +53,9 @@ describe('isInstallable', () => {
 describe('fetchManifest', () => {
   it('parses a successful response', async () => {
     const fake = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'a' }) })
-    await expect(fetchManifest('https://x/m.json', fake as unknown as typeof fetch)).resolves.toEqual(
-      { id: 'a' }
-    )
+    await expect(
+      fetchManifest('https://x/m.json', fake as unknown as typeof fetch)
+    ).resolves.toEqual({ id: 'a' })
     expect(fake).toHaveBeenCalledWith('https://x/m.json')
   })
 

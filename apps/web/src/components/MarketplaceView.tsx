@@ -355,9 +355,7 @@ function ConsentDialog({
               <div
                 key={i}
                 className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs ${
-                  line.danger
-                    ? 'bg-destructive-muted text-destructive'
-                    : 'bg-surface-1 text-ink-2'
+                  line.danger ? 'bg-destructive-muted text-destructive' : 'bg-surface-1 text-ink-2'
                 }`}
               >
                 <Icon size={14} strokeWidth={1.5} />
