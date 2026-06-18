@@ -8,5 +8,9 @@
     "Hover or focus to flip instantly between after and before",
     "Press and hold to reveal the diff — in the row or the lightbox"
   ],
-  "tags": ["platform", "devtools"]
+  "tags": [
+    "platform",
+    "devtools"
+  ],
+  "pr": 180
 }

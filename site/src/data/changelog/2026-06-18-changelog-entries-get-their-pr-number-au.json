@@ -12,5 +12,6 @@
     "platform",
     "devtools",
     "ci"
-  ]
+  ],
+  "pr": 192
 }

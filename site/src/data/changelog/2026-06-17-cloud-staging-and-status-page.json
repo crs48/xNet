@@ -9,5 +9,8 @@
     "Run against staging credentials locally with `pnpm --filter xnet-cloud dev:staging` plus a git-ignored .env.staging.local for localhost OAuth/webhook overrides",
     "A weekly job refreshes the run-in-public /open metrics from live Stripe and opens a PR for review"
   ],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 189
 }
