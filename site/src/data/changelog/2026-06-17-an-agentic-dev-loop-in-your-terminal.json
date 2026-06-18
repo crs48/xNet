@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-17-an-agentic-dev-loop-in-your-terminal",
+  "date": "June 17, 2026",
+  "title": "An agentic dev loop in your terminal",
+  "summary": "The new xnet code command runs an isolated edit → validate → commit loop with your own agent, so you can vibe-code changes to xNet from the CLI.",
+  "highlights": [
+    "Each task runs in an isolated git worktree",
+    "Runs the validation gate, commits on pass and rolls back on fail"
+  ],
+  "tags": [
+    "devtools",
+    "ai"
+  ],
+  "pr": 155,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

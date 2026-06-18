@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-17-kick-off-agentic-code-tasks-from-xnet",
+  "date": "June 17, 2026",
+  "title": "Kick off agentic code tasks from xNet",
+  "summary": "The local bridge gained a run endpoint that executes a full agentic code task end to end, powering one-click dev tasks from the app.",
+  "highlights": [
+    "A single call drives an end-to-end agent task",
+    "Foundation for in-app developer workflows"
+  ],
+  "tags": [
+    "devtools",
+    "ai"
+  ],
+  "pr": 159,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

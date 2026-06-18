@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-17-one-trust-model-across-plugins-and-labs",
+  "date": "June 17, 2026",
+  "title": "One trust model across plugins and Labs",
+  "summary": "Plugins and Labs now share a single trust and provenance system, so “is this code trusted?” is answered the same way everywhere in xNet.",
+  "highlights": [
+    "Unified provenance and trust checks for plugins and Labs",
+    "Consistent install and run consent across the app"
+  ],
+  "tags": [
+    "plugins",
+    "platform"
+  ],
+  "pr": 145,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

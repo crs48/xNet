@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-17-reliability-you-can-see-for-managed-hubs",
+  "date": "June 17, 2026",
+  "title": "Reliability you can see for managed hubs",
+  "summary": "xNet Cloud now measures uptime against real service-level objectives, ties upgrades to error budgets, and runs backup restore drills — the operational backbone behind the managed fleet.",
+  "highlights": [
+    "Measured SLIs/SLOs for each managed hub",
+    "Error-budget-gated rollouts",
+    "Routine backup restore drills"
+  ],
+  "tags": [
+    "platform"
+  ],
+  "pr": 146,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

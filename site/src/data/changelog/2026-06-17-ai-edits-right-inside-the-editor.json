@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-17-ai-edits-right-inside-the-editor",
+  "date": "June 17, 2026",
+  "title": "AI edits, right inside the editor",
+  "summary": "Select text in the page editor and ask AI to rewrite, summarize, or transform it — inline, without leaving the document.",
+  "highlights": [
+    "Trigger AI transforms on a selection",
+    "Uses your configured AI provider"
+  ],
+  "tags": [
+    "editor",
+    "ai"
+  ],
+  "pr": 154,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
