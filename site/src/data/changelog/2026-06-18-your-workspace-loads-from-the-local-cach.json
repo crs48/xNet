@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-your-workspace-loads-from-the-local-cach",
+  "date": "June 18, 2026",
+  "title": "Your workspace loads from the local cache again — no waiting for sync",
+  "summary": "Fixed a regression where a reload race could drop the local database into memory-only mode, so the app appeared empty until it re-synced from the hub; it now retries and stays on persistent storage.",
+  "highlights": [
+    "OPFS storage no longer silently falls back to in-memory on a reload race",
+    "Returning users see their data immediately from the local cache, before the hub connects"
+  ],
+  "tags": [
+    "performance",
+    "app"
+  ]
+}
