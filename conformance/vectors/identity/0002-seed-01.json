@@ -1,0 +1,10 @@
+{
+  "description": "did:key derivation from a 32-byte seed (0x1 repeated)",
+  "input": {
+    "seedHex": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "expected": {
+    "publicKeyHex": "8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c",
+    "did": "did:key:z6Mkon3Necd6NkkyfoGoHxid2znGc59LU3K7mubaRcFbLfLX"
+  }
+}

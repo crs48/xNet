@@ -46,6 +46,16 @@ export {
   type XNetClientRuntimeStatus
 } from '@xnetjs/runtime'
 
+// The umbrella XNet Protocol Version — the negotiable identity of the wire
+// protocol this SDK speaks. The normative spec lives in docs/specs/protocol/.
+export {
+  XNET_PROTOCOL_VERSION,
+  XNET_SUPPORTED_PROTOCOL_VERSIONS,
+  negotiateProtocolVersion,
+  isProtocolCompatible,
+  type XNetProtocolBundle
+} from '@xnetjs/runtime'
+
 // Lightweight identity initialization with telemetry.
 // (`createClient` returns an identity; for the full runtime use `createXNetClient`.)
 export { createClient } from './client'
