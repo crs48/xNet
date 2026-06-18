@@ -1,0 +1,13 @@
+{
+  "id": "2026-06-17-cloud-staging-and-status-page",
+  "date": "June 17, 2026",
+  "title": "A public status page and a one-command path to cloud staging",
+  "summary": "xNet Cloud now publishes its live operational status, ships a containerized control plane you can deploy to Cloud Run, and can run against real Stripe/WorkOS APIs straight from your laptop.",
+  "highlights": [
+    "New /status page — control plane, hub fleet, managed AI, and backups, with aggregate-only uptime (no tenant is ever identifiable)",
+    "The control plane is now containerized (apps/cloud/Dockerfile) with a build + smoke-test script and a keyless (Workload Identity Federation) deploy workflow",
+    "Run against staging credentials locally with `pnpm --filter xnet-cloud dev:staging` plus a git-ignored .env.staging.local for localhost OAuth/webhook overrides",
+    "A weekly job refreshes the run-in-public /open metrics from live Stripe and opens a PR for review"
+  ],
+  "tags": ["platform"]
+}

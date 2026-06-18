@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import type { FleetSummary } from './health'
+import { describe, expect, it } from 'vitest'
 import { STATUS_K_ANON_FLOOR, publicStatus } from './status'
 
 const fleet = (over: Partial<FleetSummary> = {}): FleetSummary => ({
