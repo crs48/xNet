@@ -50,7 +50,10 @@ describe('OpenRouterGatewayClient', () => {
         usage: { prompt_tokens: 5, completion_tokens: 5, total_tokens: 10 }
       })
     ) as unknown as typeof fetch
-    const client = new OpenRouterGatewayClient({ baseUrl: 'https://openrouter.ai/api/v1', fetchImpl })
+    const client = new OpenRouterGatewayClient({
+      baseUrl: 'https://openrouter.ai/api/v1',
+      fetchImpl
+    })
     const res = await client.chat({ virtualKey: 'k', model: 'openai/gpt-4o', messages: [] })
     expect(res.providerCostUsd).toBeUndefined()
   })
@@ -59,7 +62,10 @@ describe('OpenRouterGatewayClient', () => {
     const fetchImpl = vi.fn(
       async () => new Response('insufficient credits', { status: 402 })
     ) as unknown as typeof fetch
-    const client = new OpenRouterGatewayClient({ baseUrl: 'https://openrouter.ai/api/v1', fetchImpl })
+    const client = new OpenRouterGatewayClient({
+      baseUrl: 'https://openrouter.ai/api/v1',
+      fetchImpl
+    })
     await expect(
       client.chat({ virtualKey: 'k', model: 'openai/gpt-4o', messages: [] })
     ).rejects.toMatchObject({ name: 'GatewayError', status: 402 })

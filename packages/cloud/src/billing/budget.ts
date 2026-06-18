@@ -33,11 +33,7 @@ export const DEFAULT_BUDGET_THRESHOLDS = [0.5, 0.8, 0.95, 1] as const
 export const NEAR_CAP_FRACTION = 0.8
 
 /** Classify accrued spend against the included allotment and the hard cap. */
-export function aiBudgetStatus(
-  usedUsd: number,
-  includedUsd: number,
-  capUsd: number
-): BudgetStatus {
+export function aiBudgetStatus(usedUsd: number, includedUsd: number, capUsd: number): BudgetStatus {
   const pctOfCap = capUsd > 0 ? usedUsd / capUsd : 0
   let state: BudgetState
   if (capUsd > 0 && usedUsd >= capUsd) state = 'over-cap'

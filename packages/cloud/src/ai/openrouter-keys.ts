@@ -80,7 +80,8 @@ export class OpenRouterKeyManager implements VirtualKeyManager {
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {})
     })
-    if (!res.ok) throw new VirtualKeyError(`openrouter ${method} ${path} → ${res.status}`, res.status)
+    if (!res.ok)
+      throw new VirtualKeyError(`openrouter ${method} ${path} → ${res.status}`, res.status)
     return res.json().catch(() => ({}))
   }
 }

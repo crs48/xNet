@@ -124,7 +124,12 @@ export class LiteLLMKeyManager implements VirtualKeyManager {
     })) as { key?: string }
     if (!data.key) throw new VirtualKeyError('litellm /key/generate returned no key', 502)
     // LiteLLM addresses keys by the key value itself, so manageId === key.
-    return { key: data.key, manageId: data.key, alias: input.alias, maxBudgetUsd: input.maxBudgetUsd }
+    return {
+      key: data.key,
+      manageId: data.key,
+      alias: input.alias,
+      maxBudgetUsd: input.maxBudgetUsd
+    }
   }
 
   async update(key: string, patch: { maxBudgetUsd?: number; models?: string[] }): Promise<void> {

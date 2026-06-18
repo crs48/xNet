@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
 import { GatewayClient, OpenRouterGatewayClient, OpenRouterKeyManager } from '@xnetjs/cloud'
+import { describe, expect, it } from 'vitest'
 import { pricingFromEnv } from './ai/pricing'
 import { aiChatDepsFromEnv, aiGatewayProvider, aiKeysFromEnv } from './ai/wiring'
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
@@ -63,9 +63,9 @@ describe('env-driven wiring', () => {
   it('selects the OpenRouter gateway when the base URL is openrouter.ai (or AI_GATEWAY_PROVIDER)', () => {
     expect(aiGatewayProvider(env({}))).toBe('litellm')
     expect(aiGatewayProvider(env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000' }))).toBe('litellm')
-    expect(
-      aiGatewayProvider(env({ AI_GATEWAY_BASE_URL: 'https://openrouter.ai/api/v1' }))
-    ).toBe('openrouter')
+    expect(aiGatewayProvider(env({ AI_GATEWAY_BASE_URL: 'https://openrouter.ai/api/v1' }))).toBe(
+      'openrouter'
+    )
     expect(
       aiGatewayProvider(env({ AI_GATEWAY_PROVIDER: 'openrouter', AI_GATEWAY_BASE_URL: 'http://x' }))
     ).toBe('openrouter')
