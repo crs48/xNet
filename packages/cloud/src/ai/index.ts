@@ -20,6 +20,16 @@ export {
 export { meterUsage, type MeterUsageArgs, type MeterUsageResult } from './metering'
 
 export {
+  FakeVirtualKeyManager,
+  LiteLLMKeyManager,
+  VirtualKeyError,
+  type VirtualKeyManager,
+  type VirtualKey,
+  type CreateVirtualKeyInput,
+  type LiteLLMKeyManagerConfig
+} from './keys'
+
+export {
   MeteredGateway,
   BudgetExceededError,
   type MeteredGatewayDeps,
