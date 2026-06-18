@@ -11,6 +11,11 @@
 export const CHANGELOG_FEED_URL = 'https://xnet.fyi/changelog.json'
 export const CHANGELOG_PAGE_URL = 'https://xnet.fyi/changelog'
 
+export interface ChangelogContributor {
+  login: string
+  name?: string
+}
+
 export interface ChangelogFeedItem {
   id: string
   url: string
@@ -22,6 +27,8 @@ export interface ChangelogFeedItem {
   tags: string[]
   image?: string
   pr?: number
+  /** Everyone who contributed (PR author + commit authors), each a GitHub login. */
+  authors: ChangelogContributor[]
 }
 
 interface RawFeedItem {
@@ -36,7 +43,18 @@ interface RawFeedItem {
     summary?: unknown
     highlights?: unknown
     pr?: unknown
+    authors?: unknown
+    author?: unknown
   }
+}
+
+function asContributors(value: unknown, legacy: unknown): ChangelogContributor[] {
+  const raw = Array.isArray(value) ? value : legacy ? [legacy] : []
+  return raw
+    .map((c) =>
+      c && typeof (c as { login?: unknown }).login === 'string' ? (c as ChangelogContributor) : null
+    )
+    .filter((c): c is ChangelogContributor => c !== null)
 }
 
 function asString(value: unknown, fallback = ''): string {
@@ -61,7 +79,8 @@ function toItem(raw: RawFeedItem): ChangelogFeedItem | null {
     highlights: asStringArray(ext.highlights),
     tags: asStringArray(raw.tags),
     image: typeof raw.image === 'string' ? raw.image : undefined,
-    pr: typeof ext.pr === 'number' ? ext.pr : undefined
+    pr: typeof ext.pr === 'number' ? ext.pr : undefined,
+    authors: asContributors(ext.authors, ext.author)
   }
 }
 

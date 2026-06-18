@@ -50,6 +50,9 @@ function checkRequired(e: ChangelogEntry): void {
     }
   }
   if (e.author && !e.author.login) err(id, 'author is missing a login')
+  for (const [i, a] of (e.authors ?? []).entries()) {
+    if (!a?.login) err(id, `authors[${i}] is missing a login`)
+  }
 }
 
 function checkImageSrc(id: string, field: string, src: string, alt: string): void {

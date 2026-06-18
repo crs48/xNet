@@ -63,17 +63,34 @@ jobs:
           # is honoured as a fallback for setups that prefer a PAT over an App.
           token: ${{ steps.app-token.outputs.token || secrets.CHANGELOG_BOT_TOKEN || github.token }}
 
-      - name: Write the PR number into this PR's changelog fragment(s)
+      - name: Stamp PR number + contributors into this PR's changelog fragment(s)
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('node:fs')
             const path = require('node:path')
-            const pr = context.payload.pull_request.number
+            const { owner, repo } = context.repo
+            const prObj = context.payload.pull_request
+            const pr = prObj.number
+
+            // Everyone who contributed: PR author first, then any other non-bot
+            // commit authors (the GitHub-matched ones), deduped by login.
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner, repo, pull_number: pr
+            })
+            const seen = new Set()
+            const authors = []
+            const add = (login) => {
+              if (login && !login.endsWith('[bot]') && !seen.has(login)) {
+                seen.add(login)
+                authors.push({ login })
+              }
+            }
+            add(prObj.user?.login)
+            for (const c of commits) add(c.author?.login)
+
             const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr
+              owner, repo, pull_number: pr
             })
             const fragments = files
               .filter(
@@ -81,17 +98,28 @@ jobs:
                   /^site\/src\/data\/changelog\/.+\.json$/.test(f.filename) && f.status !== 'removed'
               )
               .map((f) => f.filename)
+
             let changed = 0
             for (const file of fragments) {
               if (!fs.existsSync(file)) continue // renamed/removed after merge
               const entry = JSON.parse(fs.readFileSync(file, 'utf8'))
-              if (entry.pr) continue // already baked (--pr auto) — leave it
-              entry.pr = pr
+              let touched = false
+              if (!entry.pr) {
+                entry.pr = pr // (--pr auto may already have baked it)
+                touched = true
+              }
+              if (!entry.authors && authors.length) {
+                entry.authors = authors
+                delete entry.author // migrate the legacy single author
+                touched = true
+              }
+              if (!touched) continue
               fs.writeFileSync(file, JSON.stringify(entry, null, 2) + '\n')
               changed++
-              core.notice(`Stamped ${path.basename(file)} → PR #${pr}`)
+              const who = authors.length ? ` (${authors.map((a) => '@' + a.login).join(', ')})` : ''
+              core.notice(`Stamped ${path.basename(file)} → PR #${entry.pr}${who}`)
             }
-            if (changed === 0) core.info('No fragment needed a PR number.')
+            if (changed === 0) core.info('Nothing to stamp — fragments already complete.')
 
       - name: Commit the stamp back to main
         env:

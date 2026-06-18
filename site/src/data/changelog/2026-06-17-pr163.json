@@ -7,7 +7,14 @@
     "Live status for the local bridge agent",
     "Pick which agent runs (your own Claude Code, Codex, …)"
   ],
-  "tags": ["ai", "app"],
-  "author": { "login": "crs48" },
-  "pr": 163
+  "tags": [
+    "ai",
+    "app"
+  ],
+  "pr": 163,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

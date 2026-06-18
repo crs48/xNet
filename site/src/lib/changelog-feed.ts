@@ -45,6 +45,15 @@ export function buildJsonFeed(entries: ChangelogEntry[]): object {
         summary: entry.summary,
         highlights: entry.highlights,
         ...(entry.pr ? { pr: entry.pr } : {}),
+        ...(() => {
+          // Everyone who contributed; fall back to the legacy single author.
+          const authors = entry.authors?.length
+            ? entry.authors
+            : entry.author
+              ? [entry.author]
+              : []
+          return authors.length ? { authors } : {}
+        })(),
         ...(entry.author ? { author: entry.author } : {}),
         ...(entry.images?.length
           ? { images: entry.images.map((img) => ({ ...img, src: absoluteImage(img.src) })) }

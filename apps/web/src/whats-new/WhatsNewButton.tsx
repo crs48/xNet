@@ -20,6 +20,28 @@ function EntryCard({ item, isNew }: { item: ChangelogFeedItem; isNew: boolean })
             New
           </span>
         )}
+        {item.authors.length > 0 && (
+          <span className="ml-auto flex items-center gap-1">
+            {item.authors.map((c) => (
+              <a
+                key={c.login}
+                href={`https://github.com/${c.login}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={c.name ?? c.login}
+              >
+                <img
+                  src={`https://github.com/${c.login}.png?size=32`}
+                  alt={c.name ?? c.login}
+                  width={16}
+                  height={16}
+                  loading="lazy"
+                  className="rounded-full"
+                />
+              </a>
+            ))}
+          </span>
+        )}
       </div>
       <h3 className="mb-1 text-sm font-semibold text-ink-1">{item.title}</h3>
       <p className="mb-2 text-xs leading-relaxed text-ink-2">{item.summary}</p>

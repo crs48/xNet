@@ -8,7 +8,14 @@
     "Stripe Connect payouts (publishers keep their own account)",
     "Installs are gated on a valid license"
   ],
-  "tags": ["plugins", "platform"],
-  "author": { "login": "crs48" },
-  "pr": 157
+  "tags": [
+    "plugins",
+    "platform"
+  ],
+  "pr": 157,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

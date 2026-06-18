@@ -9,7 +9,13 @@
     "Presence dots, editable channel topics, and a comfortable/compact density toggle",
     "Smart stick-to-bottom with a jump-to-latest pill and unread count"
   ],
-  "tags": ["app"],
-  "author": { "login": "crs48" },
-  "pr": 174
+  "tags": [
+    "app"
+  ],
+  "pr": 174,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

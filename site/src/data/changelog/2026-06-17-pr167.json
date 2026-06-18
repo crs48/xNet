@@ -9,7 +9,14 @@
     "Filter bar, Display Options (group / order / density), Space-to-peek, and a detail slide-over",
     "Opt-in violet \"Linear\" accent theme (Settings → Appearance → Accent)"
   ],
-  "tags": ["tasks", "app"],
-  "author": { "login": "crs48" },
-  "pr": 167
+  "tags": [
+    "tasks",
+    "app"
+  ],
+  "pr": 167,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

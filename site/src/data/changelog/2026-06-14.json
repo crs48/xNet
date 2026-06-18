@@ -12,8 +12,10 @@
     "plugins",
     "platform"
   ],
-  "author": {
-    "login": "crs48"
-  },
-  "pr": 142
+  "pr": 142,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

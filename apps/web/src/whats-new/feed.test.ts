@@ -11,13 +11,19 @@ const SAMPLE = {
       content_text: 'fallback text',
       image: 'https://xnet.fyi/images/workbench-dark.png',
       tags: ['app', 'ci'],
-      _xnet: { date: 'June 17, 2026', summary: 'A real summary', highlights: ['a', 'b'], pr: 146 }
+      _xnet: {
+        date: 'June 17, 2026',
+        summary: 'A real summary',
+        highlights: ['a', 'b'],
+        pr: 146,
+        authors: [{ login: 'crs48' }, { login: 'octocat', name: 'The Octocat' }]
+      }
     },
     {
       id: '2026-06-10',
       title: 'Older release',
       tags: ['ci'],
-      _xnet: { date: 'June 2026', summary: 'Older', highlights: ['x'] }
+      _xnet: { date: 'June 2026', summary: 'Older', highlights: ['x'], author: { login: 'legacy' } }
     }
   ]
 }
@@ -49,6 +55,22 @@ describe('parseFeed', () => {
     expect(parseFeed({ items: [{ title: 'no id' }, { id: 'x', title: 'ok' }] })).toHaveLength(1)
     expect(parseFeed(null)).toEqual([])
     expect(parseFeed({})).toEqual([])
+  })
+
+  it('parses contributors, falls back to the legacy author, and defaults to []', () => {
+    const items = parseFeed(SAMPLE)
+    expect(items[0].authors).toEqual([
+      { login: 'crs48' },
+      { login: 'octocat', name: 'The Octocat' }
+    ])
+    expect(items[1].authors).toEqual([{ login: 'legacy' }]) // legacy single `author`
+    const [bare] = parseFeed({ items: [{ id: '2026-01-01', title: 'X' }] })
+    expect(bare.authors).toEqual([])
+    // malformed contributor entries (no login) are dropped
+    const [filtered] = parseFeed({
+      items: [{ id: 'a', title: 'b', _xnet: { authors: [{ name: 'no login' }, { login: 'ok' }] } }]
+    })
+    expect(filtered.authors).toEqual([{ login: 'ok' }])
   })
 })
 

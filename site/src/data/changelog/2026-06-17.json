@@ -30,8 +30,10 @@
       "caption": "Workbench (light)"
     }
   ],
-  "author": {
-    "login": "crs48"
-  },
-  "pr": 147
+  "pr": 147,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

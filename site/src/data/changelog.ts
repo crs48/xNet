@@ -64,10 +64,22 @@ export interface ChangelogEntry {
   images?: { src: string; alt: string; caption?: string }[]
   /** Autoplay-muted, click-to-play video clip (replaces a GIF). */
   video?: { src: string; poster: string; alt: string }
-  /** Primary author, surfaced as a GitHub avatar + link. */
-  author?: { login: string; name?: string }
+  /**
+   * Everyone who contributed to the PR (the PR author plus any other commit
+   * authors), each a GitHub login surfaced as an avatar + profile link. Filled
+   * from the merge event / GitHub API by the stamp workflow and resolve-prs.mjs.
+   */
+  authors?: ChangelogContributor[]
+  /** @deprecated single primary author; superseded by `authors`. Still rendered as a fallback. */
+  author?: ChangelogContributor
   /** Originating pull request number, when applicable. */
   pr?: number
+}
+
+/** A GitHub contributor shown on an entry (avatar + link, label is name||login). */
+export interface ChangelogContributor {
+  login: string
+  name?: string
 }
 
 // Vite resolves this glob at build time and inlines every fragment's JSON, so

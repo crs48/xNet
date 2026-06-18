@@ -8,7 +8,13 @@
     "Row-height control (Short / Medium / Tall / Extra tall), saved per view",
     "Polished field-type pickers with readable labels"
   ],
-  "tags": ["app"],
-  "author": { "login": "crs48" },
-  "pr": 173
+  "tags": [
+    "app"
+  ],
+  "pr": 173,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

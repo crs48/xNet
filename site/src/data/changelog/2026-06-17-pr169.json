@@ -8,7 +8,13 @@
     "Centered text column with consistent vertical rhythm between blocks",
     "Checkboxes sit centered on their first line; the page title now clearly outranks H1"
   ],
-  "tags": ["editor"],
-  "author": { "login": "crs48" },
-  "pr": 169
+  "tags": [
+    "editor"
+  ],
+  "pr": 169,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

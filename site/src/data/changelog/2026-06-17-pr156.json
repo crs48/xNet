@@ -8,7 +8,13 @@
     "A content-first shell that gets out of the way",
     "The desktop experience is unchanged"
   ],
-  "tags": ["app"],
-  "author": { "login": "crs48" },
-  "pr": 156
+  "tags": [
+    "app"
+  ],
+  "pr": 156,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

@@ -8,7 +8,14 @@
     "Slack mrkdwn and Block Kit messages translate to xNet-flavored markdown",
     "A migration guide with an honest compatibility matrix"
   ],
-  "tags": ["plugins", "platform"],
-  "author": { "login": "crs48" },
-  "pr": 170
+  "tags": [
+    "plugins",
+    "platform"
+  ],
+  "pr": 170,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

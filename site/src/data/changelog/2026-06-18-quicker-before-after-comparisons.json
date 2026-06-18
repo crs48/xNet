@@ -12,5 +12,10 @@
     "platform",
     "devtools"
   ],
-  "pr": 180
+  "pr": 180,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
