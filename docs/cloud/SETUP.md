@@ -205,6 +205,82 @@ in `site/src/data/opex.ts` (hand-maintained).
 
 ---
 
+## Part 4 — Test against live APIs from your laptop
+
+Dev runs on fakes by default. When you want to exercise the **real** Stripe/WorkOS/
+Firestore/Cloud Run/R2 from your laptop — without deploying — run the control plane
+with the staging env file:
+
+```bash
+pnpm --filter xnet-cloud dev:staging   # loads .env.staging (+ .env.staging.local if present)
+```
+
+Two flows have a callback that can't reach `localhost`, so they need a small override.
+Put it in **`apps/cloud/.env.staging.local`** — a git-ignored overlay (it matches the
+`.env.*` ignore rule) that the dev server and the doctor both read on top of
+`.env.staging`, so you never edit the shared file:
+
+```bash
+# apps/cloud/.env.staging.local — local-only overrides
+WORKOS_REDIRECT_URI=http://localhost:4455/auth/callback
+STRIPE_WEBHOOK_SECRET=whsec_...        # the value `stripe listen` prints (below)
+```
+
+- **WorkOS sign-in.** WorkOS only redirects to a URI you've registered, so add
+  `http://localhost:4455/auth/callback` to the **redirect URIs** of your WorkOS
+  *staging* app (it allows several), then set the override above. Without it, sign-in
+  bounces back to `cloud-staging.xnet.fyi` and your local server never sees the code.
+- **Stripe webhooks.** Forward live test-mode events to your laptop with the
+  [Stripe CLI](https://stripe.com/docs/stripe-cli) — no public tunnel needed:
+  ```bash
+  stripe listen --forward-to localhost:4455/webhooks/stripe   # prints a whsec_… → put it in .env.staging.local
+  stripe trigger checkout.session.completed                   # provision a throwaway tenant
+  ```
+
+Everything else (Firestore, R2, Cloud Run provisioning) works directly from your
+laptop using the staging service-account key — just remember that provisioning from
+here creates a **real** hub in the staging project, so use throwaway tenant ids and
+clean them up. Confirm the effective env with
+`node scripts/cloud-env-doctor.mjs apps/cloud/.env.staging` (it folds in the `.local` overlay).
+
+> Once `cloud-staging.xnet.fyi` is deployed (Part 5), you can also just test against
+> the deployed service and skip the localhost overrides entirely.
+
+## Part 5 — Deploy a control-plane environment
+
+The hub image already had a Dockerfile + build script; the **control plane** now does
+too (`apps/cloud/Dockerfile`). Build, push, and deploy to Cloud Run:
+
+```bash
+# 1. Gate on the env being complete (exits non-zero if not).
+node scripts/cloud-env-doctor.mjs apps/cloud/.env.staging        # expect ✓ M1 (and ✓ M2)
+
+# 2. Build + push the control-plane image (reuses the `hub` Artifact Registry repo).
+GCP_ARTIFACT_REGISTRY=us-docker.pkg.dev/xnet-cloud-staging-0/hub VERSION=$(git rev-parse --short HEAD) \
+  bash scripts/cloud-build-control-plane.sh
+
+# 3. Deploy (secrets come from Secret Manager, not the .env file — the deployer SA
+#    already has secretAccessor). See the deploy workflow for the full flag list.
+gcloud run deploy xnet-cloud-staging --image <printed-image> \
+  --project xnet-cloud-staging-0 --region us-central1 --allow-unauthenticated --min-instances=1
+
+# 4. Map the subdomain (one-time), then add the printed CNAME at your DNS provider.
+gcloud run domain-mappings create --service xnet-cloud-staging \
+  --domain cloud-staging.xnet.fyi --region us-central1 --project xnet-cloud-staging-0
+
+# 5. Prove it.
+node scripts/cloud-smoke.mjs https://cloud-staging.xnet.fyi
+```
+
+**CI deploys** are wired in [`.github/workflows/deploy-cloud.yml`](../../.github/workflows/deploy-cloud.yml)
+but **inert by default** — the deploy job is skipped until you opt in (so merging it
+never reds out CI). To enable keyless CI deploys:
+
+- Set up **Workload Identity Federation** (`scripts/cloud-gcp-bootstrap.sh` supports
+  `MAKE_KEY=0`) binding the `xnet-deployer` SA to this repo's GitHub OIDC provider.
+- Add repo secrets `WIF_PROVIDER` + `DEPLOYER_SA`, a protected GitHub Environment
+  `cloud-staging`, and the repo variable **`CLOUD_DEPLOY_ENABLED=true`**.
+
 ## Anything you can hand me to go faster
 
 - The **non-secret** config (project id, region, Artifact Registry path, R2 bucket + endpoint) — paste it in chat; none of it is sensitive.

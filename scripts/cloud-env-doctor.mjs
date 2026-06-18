@@ -26,7 +26,13 @@ if (!existsSync(path)) {
 }
 
 // Derive the environment from the filename (.env.staging → staging), else NODE_ENV.
+// A sibling `<file>.local` overlays the shared env file (git-ignored, never
+// committed) — used for local-dev-against-staging overrides like a localhost
+// WorkOS redirect or a `stripe listen` webhook secret (exploration 0201). The
+// doctor reports the *effective* env so the verdict matches what the dev server sees.
 const parsed = parseEnv(readFileSync(path, 'utf8'))
+const localPath = `${path}.local`
+if (existsSync(localPath)) Object.assign(parsed, parseEnv(readFileSync(localPath, 'utf8')))
 const fromName = ENVIRONMENTS.find((e) => basename(path).includes(e))
 const env = fromName ?? (parsed.NODE_ENV === 'development' ? 'development' : 'production')
 

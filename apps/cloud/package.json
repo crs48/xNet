@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "node --loader tsx src/index.ts",
+    "dev:staging": "node --env-file=.env.staging --env-file-if-exists=.env.staging.local --loader tsx src/index.ts",
     "build": "tsup src/index.ts --format esm",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
