@@ -12,6 +12,11 @@ name: Stamp Changelog PR Number
 # reconciles the repo with production without triggering a redundant deploy/CI.
 # If this can't push (e.g. the token lacks bypass on the `main` ruleset), it
 # degrades to a warning — resolve-prs.mjs remains the deploy-time safety net.
+#
+# Setup (one-time, to let the push land in source): create a GitHub App with
+# repository `Contents: write`, install it on this repo, set the `CHANGELOG_APP_ID`
+# repo *variable* + `CHANGELOG_APP_PRIVATE_KEY` secret, and add the App to the
+# `main` ruleset bypass list. Until then this safely no-ops to a warning.
 
 on:
   pull_request:
@@ -33,14 +38,30 @@ jobs:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
+      # Mint a short-lived installation token from a GitHub App, so the push to
+      # `main` is made by an actor that can be added to the ruleset bypass list
+      # (preferred over a long-lived PAT). Gated on the App-id repo *variable*
+      # (not a secret, so it's usable in `if`); `continue-on-error` means a
+      # missing/invalid key never fails the job — checkout then falls back to the
+      # default token and the push degrades to a warning (handled below).
+      - name: Mint a GitHub App token (when configured)
+        id: app-token
+        if: ${{ vars.CHANGELOG_APP_ID != '' }}
+        continue-on-error: true
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.CHANGELOG_APP_ID }}
+          private-key: ${{ secrets.CHANGELOG_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
-          # A dedicated bypass token (GitHub App / PAT added to the `main`
-          # ruleset bypass list) when available; otherwise the default token,
-          # which a protected branch may reject — handled gracefully below.
-          token: ${{ secrets.CHANGELOG_BOT_TOKEN || github.token }}
+          # The App token when available (it can bypass the `main` ruleset);
+          # otherwise the default token, which a protected branch rejects — that
+          # path is handled gracefully below. A `CHANGELOG_BOT_TOKEN` PAT, if set,
+          # is honoured as a fallback for setups that prefer a PAT over an App.
+          token: ${{ steps.app-token.outputs.token || secrets.CHANGELOG_BOT_TOKEN || github.token }}
 
       - name: Write the PR number into this PR's changelog fragment(s)
         uses: actions/github-script@v7
@@ -95,5 +116,6 @@ jobs:
           done
           echo "::warning title=changelog::Could not push the PR-number stamp to main. \
           The deploy-time resolver (resolve-prs.mjs) still fills it on the live site; \
-          add CHANGELOG_BOT_TOKEN (with bypass on the main ruleset) to persist it in source."
+          configure the changelog GitHub App (CHANGELOG_APP_ID + CHANGELOG_APP_PRIVATE_KEY) \
+          and add it to the main ruleset bypass list to persist it in source."
           exit 0

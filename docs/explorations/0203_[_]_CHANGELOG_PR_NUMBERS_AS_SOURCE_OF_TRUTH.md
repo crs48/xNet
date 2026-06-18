@@ -440,10 +440,14 @@ const res = await fetch(`${base}/diff-manifest.json`, { signal: AbortSignal.time
       fragments), write `pr` (from the merge event) into the PR's fragment(s) and
       commit to `main` with `[skip ci]`; degrades to a `::warning` if the push is
       rejected. (C)
-- [ ] **Ops, manual:** provision a bypass token (GitHub App via
-      `actions/create-github-app-token`, or PAT) and add it to the `main` ruleset
-      bypass list; set the `CHANGELOG_BOT_TOKEN` secret. Until then C degrades to a
-      warning and `resolve-prs.mjs` (the net) keeps the live site correct.
+- [x] Wire the bypass-token plumbing: `stamp-pr-number.yml` mints a GitHub App
+      token via `actions/create-github-app-token` (gated on the `CHANGELOG_APP_ID`
+      var, `continue-on-error`, PAT/`github.token` fallback) — never hard-fails.
+- [ ] **Ops, manual (one-time):** create the GitHub App (repo `Contents: write`),
+      install it, set the `CHANGELOG_APP_ID` variable + `CHANGELOG_APP_PRIVATE_KEY`
+      secret, and add the App to the `main` ruleset bypass list. Until then C
+      degrades to a warning and `resolve-prs.mjs` (the net) keeps the live site
+      correct.
 - [x] Bound the build-time fetch in
       [`site/src/lib/changelog-gallery.ts`](../../site/src/lib/changelog-gallery.ts)
       with `AbortSignal.timeout(5000)`.
