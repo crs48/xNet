@@ -14,6 +14,7 @@
 
 import type { Context } from 'hono'
 import {
+  aiBudgetStatus,
   BudgetExceededError,
   GatewayError,
   MeteredGateway,
@@ -111,7 +112,9 @@ export function createAiRoute(deps: AiChatDeps): Hono {
         usage: result.usage,
         spendThisPeriodUsd: spent,
         includedUsd: t.includedUsd,
-        budgetUsd: t.budgetUsd
+        budgetUsd: t.budgetUsd,
+        // 'included' | 'overage' | 'near-cap' | 'over-cap' — drives the client gauge.
+        budgetState: aiBudgetStatus(spent, t.includedUsd, t.budgetUsd).state
       })
     } catch (err) {
       if (err instanceof BudgetExceededError) {

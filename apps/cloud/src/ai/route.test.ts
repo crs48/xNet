@@ -95,6 +95,7 @@ describe('POST /ai/chat', () => {
     expect(json.spendThisPeriodUsd).toBeGreaterThan(0)
     expect(json.includedUsd).toBe(2)
     expect(json.budgetUsd).toBe(25)
+    expect(json.budgetState).toBe('included') // small spend, well under included
     expect(await ledger.totalChargeUsd('t1')).toBeCloseTo(json.spendThisPeriodUsd, 8)
     expect(billing.events()).toHaveLength(1)
   })

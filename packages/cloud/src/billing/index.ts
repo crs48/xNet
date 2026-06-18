@@ -16,6 +16,15 @@ export {
 export { MemoryUsageLedger, inScope, type UsageLedger, type UsageEntry } from './ledger'
 
 export {
+  aiBudgetStatus,
+  crossedThresholds,
+  DEFAULT_BUDGET_THRESHOLDS,
+  NEAR_CAP_FRACTION,
+  type BudgetState,
+  type BudgetStatus
+} from './budget'
+
+export {
   FakeStripeBilling,
   StripeBillingAdapter,
   verifyWebhook,
