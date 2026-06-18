@@ -19,6 +19,12 @@ export interface ColdStartProbe {
   empty: boolean
   /** Whether storage is persisted (eviction-safe). null when unknown. */
   persisted: boolean | null
+  /**
+   * Whether a hub is configured. A "restoring from hub" affordance only makes
+   * sense with a hub to restore from — without one an empty store is just a
+   * genuinely new/empty workspace.
+   */
+  hubConfigured: boolean
 }
 
 /**
@@ -28,13 +34,14 @@ export interface ColdStartProbe {
  */
 export async function probeStoreColdStart(
   adapter: Pick<SQLiteAdapter, 'queryOne'>,
-  persisted: boolean | null
+  persisted: boolean | null,
+  hubConfigured: boolean
 ): Promise<ColdStartProbe> {
   try {
     const row = await adapter.queryOne<{ n: number }>('SELECT COUNT(*) AS n FROM nodes')
-    return { empty: !row || Number(row.n) === 0, persisted }
+    return { empty: !row || Number(row.n) === 0, persisted, hubConfigured }
   } catch {
-    return { empty: false, persisted }
+    return { empty: false, persisted, hubConfigured }
   }
 }
 
@@ -45,6 +52,15 @@ export async function probeStoreColdStart(
  */
 export function looksEvicted(probe: ColdStartProbe): boolean {
   return probe.empty && probe.persisted === false
+}
+
+/**
+ * Whether to offer a "restoring from hub" affordance: the cache looks evicted
+ * AND a hub is configured to restore it from. Without a hub an empty store is
+ * just a new workspace, so we must not imply data is on its way.
+ */
+export function shouldOfferRestore(probe: ColdStartProbe): boolean {
+  return looksEvicted(probe) && probe.hubConfigured
 }
 
 let lastProbe: ColdStartProbe | null = null

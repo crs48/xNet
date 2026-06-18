@@ -38,6 +38,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
+import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
 import { bootMark } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
@@ -394,7 +395,11 @@ export function App(): JSX.Element {
         // Probe whether the local cache is cold/evicted so views can show a
         // "restoring from hub" affordance instead of a blank screen, and so a
         // silent OPFS eviction is diagnosable (exploration 0204).
-        const coldStart = await probeStoreColdStart(sqliteAdapter, storageStatus.persisted)
+        const coldStart = await probeStoreColdStart(
+          sqliteAdapter,
+          storageStatus.persisted,
+          Boolean(hubUrl)
+        )
         recordColdStartProbe(coldStart)
         if (looksEvicted(coldStart)) {
           console.warn(
@@ -511,7 +516,10 @@ export function App(): JSX.Element {
         storageRef.current.sqliteAdapter.close().catch(console.error)
       }
     }
-  }, [])
+    // hubUrl is resolved once from a useState initializer and never re-set, so
+    // this still runs a single time; it's listed to satisfy exhaustive-deps now
+    // that the cold-start probe reads it (exploration 0204).
+  }, [hubUrl])
 
   // A persistent-storage grant can land mid-session (notification opt-in,
   // install, engagement crossing Chrome's threshold). Watching the
@@ -801,6 +809,7 @@ export function App(): JSX.Element {
           }}
         >
           <BootTimelineProbe />
+          <WorkingSetPrewarm />
           <BundledPluginInstaller />
           <XNetDevToolsProvider
             position="bottom"

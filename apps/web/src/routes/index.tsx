@@ -6,7 +6,7 @@ import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { FileText, Database, Layout, Plus, ChevronDown, Network, Compass } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { hasOnboarded } from './welcome'
+import { RestoringNotice } from '../components/RestoringNotice'
 import { bootMark } from '../lib/boot-timeline'
 import {
   CreateDocMenuItems,
@@ -14,8 +14,10 @@ import {
   type CreatableDocType,
   type NavigateLike
 } from '../lib/doc-creation'
+import { useRestoringFromHub } from '../lib/use-restoring'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench } from '../workbench/state'
+import { hasOnboarded } from './welcome'
 
 export const Route = createFileRoute('/')({
   component: HomePage
@@ -57,6 +59,7 @@ function HomePage() {
   })
 
   const loading = pagesLoading || databasesLoading || canvasesLoading
+  const restoring = useRestoringFromHub()
 
   // Mark the boot timeline the first time the landing surface has rows to
   // paint — this anchors `firstPaint` (init:start → query:first-rows), the
@@ -100,6 +103,7 @@ function HomePage() {
   }
 
   if (loading) {
+    if (restoring) return <RestoringNotice />
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         Loading...
@@ -166,9 +170,13 @@ function HomePage() {
       </Link>
 
       {allDocs.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>No documents yet. Create your first page, database, or canvas!</p>
-        </div>
+        restoring ? (
+          <RestoringNotice />
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No documents yet. Create your first page, database, or canvas!</p>
+          </div>
+        )
       ) : (
         <ul className="list-none">
           {allDocs.map((doc) => {
