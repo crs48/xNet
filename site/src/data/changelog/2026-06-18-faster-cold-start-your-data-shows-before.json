@@ -11,5 +11,11 @@
   "tags": [
     "performance",
     "app"
+  ],
+  "pr": 199,
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
