@@ -427,47 +427,57 @@ const res = await fetch(`${base}/diff-manifest.json`, { signal: AbortSignal.time
 
 ## Implementation Checklist
 
-- [ ] Add `--check` (dry-run, non-writing) mode to
+- [x] Add `--check` (dry-run, non-writing) mode to
       [`scripts/changelog/resolve-prs.mjs`](../../scripts/changelog/resolve-prs.mjs):
-      resolve via the head SHA, print the would-be number, exit non-zero on an
-      unresolvable *changed* fragment.
-- [ ] Add a fast `changelog-dry` PR job to [`ci.yml`](../../.github/workflows/ci.yml)
-      (or `changelog-check.yml`) that runs `validate-changelog.ts` + `resolve-prs --check`
-      — no full site build. (D)
-- [ ] Add [`.github/workflows/stamp-pr-number.yml`](../../.github/workflows/stamp-pr-number.yml):
-      on `pull_request: closed` + `merged == true`, write `pr` into the PR's
-      fragment(s) and commit to `main` with `[skip ci]`. (C)
-- [ ] Provision a bypass token (GitHub App via `actions/create-github-app-token`,
-      or PAT) and add it to the `main` ruleset bypass list; wire `CHANGELOG_BOT_TOKEN`.
-- [ ] Bound the build-time fetch in
+      resolves but never writes; prints the would-be number; exits non-zero on a
+      fragment *introduced by this PR* (scoped via `CHANGELOG_BASE_REF`) that can't
+      be resolved; pre-existing gaps stay warnings.
+- [x] Add a fast `changelog` PR job to [`ci.yml`](../../.github/workflows/ci.yml)
+      that runs `validate-changelog.ts` (via on-the-fly `tsx`) + `resolve-prs
+      --check` — plain Node, no workspace install. (D)
+- [x] Add [`.github/workflows/stamp-pr-number.yml`](../../.github/workflows/stamp-pr-number.yml):
+      on `pull_request: closed` + `merged == true` (path-scoped to changelog
+      fragments), write `pr` (from the merge event) into the PR's fragment(s) and
+      commit to `main` with `[skip ci]`; degrades to a `::warning` if the push is
+      rejected. (C)
+- [ ] **Ops, manual:** provision a bypass token (GitHub App via
+      `actions/create-github-app-token`, or PAT) and add it to the `main` ruleset
+      bypass list; set the `CHANGELOG_BOT_TOKEN` secret. Until then C degrades to a
+      warning and `resolve-prs.mjs` (the net) keeps the live site correct.
+- [x] Bound the build-time fetch in
       [`site/src/lib/changelog-gallery.ts`](../../site/src/lib/changelog-gallery.ts)
       with `AbortSignal.timeout(5000)`.
-- [ ] Update the header comments in `changelog.ts` / `resolve-prs.mjs` to describe
-      the new "stamped at merge, deploy-resolve is the net" flow.
+- [x] Update the header comment in `changelog.ts` to describe the new
+      "stamped at merge, deploy-resolve is the net" flow (and `resolve-prs.mjs`).
 - [ ] (Optional, only if "make it a requirement") tighten `changelog-section` to
-      require a baked-or-resolvable `pr`.
-- [ ] Add a changelog fragment for this change (dogfood the new flow) and a
-      `skip-changelog`-free PR.
+      require a baked-or-resolvable `pr`. **Deferred** — C + D already make a
+      numberless entry effectively impossible to ship unnoticed.
+- [x] Add a changelog fragment for this change (dogfood the new flow).
+      **Note:** `stamp-pr-number.yml` runs from the *base* branch's copy, so it
+      can't stamp its own introducing PR — this PR's fragment is filled by the
+      deploy-time net; the stamp takes effect for subsequent PRs.
 
 ## Validation Checklist
 
-- [ ] On a test PR with a numberless fragment, `changelog-dry` prints
-      "will link #N" and is green.
-- [ ] On a PR with a deliberately malformed fragment (bad id / missing title),
-      `changelog-dry` **fails the PR** (no longer only at deploy).
-- [ ] After merging that test PR, `stamp-pr-number.yml` commits
-      `"pr": <N>` into the fragment on `main` within ~1 min, with a `[skip ci]`
-      subject, and does not loop.
-- [ ] The write-back commit triggers exactly one `deploy-site` run; the published
-      entry shows the `#N` link and the feed exposes `_xnet.pr`.
-- [ ] `git show main:site/src/data/changelog/<id>.json` now contains `"pr"` —
-      i.e. **source matches production** (the original complaint is gone).
+- [x] `resolve-prs.mjs --check` over current fragments prints "would link #N"
+      for each numberless entry and exits 0 (local: 28 baked, 6 will resolve).
+- [x] With `CHANGELOG_BASE_REF` set, a numberless fragment *introduced since the
+      base* makes `--check` emit `::error` and **exit 1** (verified locally).
+- [x] `validate-changelog.ts` exits non-zero on a malformed fragment
+      (bad id / non-array highlights) — so this now fails the PR, not the deploy.
+- [x] Workflow YAML (`ci.yml`, `stamp-pr-number.yml`) parses.
+- [ ] **Post-merge (future PR):** `stamp-pr-number.yml` commits `"pr": <N>` into
+      the fragment on `main` with a `[skip ci]` subject and does not loop.
+      *(Can't be exercised by this PR — the workflow runs from the base branch's
+      copy, which doesn't have it yet.)*
+- [ ] **Ops-gated:** once `CHANGELOG_BOT_TOKEN` has ruleset bypass, the stamp push
+      succeeds and `git show main:…/<id>.json` contains `"pr"` (source = prod).
 - [ ] `resolve-prs.mjs` at deploy reports the already-stamped entry as a no-op
       (filled 0), and still resolves any direct-push fragment.
-- [ ] A simulated slow `diff-manifest.json` fetch aborts at 5s; the deploy
-      completes instead of hanging.
+- [ ] A simulated slow `diff-manifest.json` fetch aborts at 5s (code in place;
+      not yet simulated against a hung host).
 - [ ] Concurrent merges of two changelog PRs both land their numbers without a
-      lost update.
+      lost update (rebase-retry loop in place).
 
 ## References
 
