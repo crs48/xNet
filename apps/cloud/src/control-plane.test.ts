@@ -1,12 +1,13 @@
+import { FakeVirtualKeyManager } from '@xnetjs/cloud'
 import { MemoryBindingStore } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner } from '@xnetjs/cloud/provisioner'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ControlPlane } from './control-plane'
+import { ControlPlane, currentPeriodStartMs } from './control-plane'
 import { MemoryTenantStore } from './registry'
 
 const challenge = (did: string) => ({ did, nonce: 'n', signature: 'sig' })
 
-function build() {
+function build(opts: { aiKeys?: FakeVirtualKeyManager } = {}) {
   let clock = 1000
   const cp = new ControlPlane({
     tenants: new MemoryTenantStore(),
@@ -17,6 +18,7 @@ function build() {
     verifyDid: async (c) => Boolean(c.did && c.signature),
     planSecret: 'test-secret',
     defaultTargetVersion: 'xnet-hub@1.0.0',
+    ...(opts.aiKeys ? { aiKeys: opts.aiKeys } : {}),
     nowMs: () => clock
   })
   return { cp, tick: (n: number) => (clock += n) }
@@ -108,6 +110,64 @@ describe('ControlPlane.changePlan', () => {
   it('treats an in-tier storage add-on as a flip', async () => {
     const result = await cp.changePlan('acme', 'personal', { quotaBytes: 100 * 1024 * 1024 * 1024 })
     expect(result.kind).toBe('flipped')
+  })
+})
+
+describe('ControlPlane managed-AI key provisioning (0200)', () => {
+  it('mints a budgeted virtual key for an aiEnabled tenant and stores the ref', async () => {
+    const aiKeys = new FakeVirtualKeyManager()
+    const { cp } = build({ aiKeys })
+    const record = await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal', // aiEnabled, $25 cap
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    expect(record.aiKeyRef).toBe('sk-fake-acme')
+    expect(aiKeys.list()[0]?.maxBudgetUsd).toBe(25)
+  })
+
+  it('does not mint a key for the free (aiEnabled:false) tier', async () => {
+    const aiKeys = new FakeVirtualKeyManager()
+    const { cp } = build({ aiKeys })
+    const record = await cp.provisionForBilling({ plan: 'demo', billingUserId: 'user_free' })
+    expect(record.aiKeyRef).toBeUndefined()
+    expect(aiKeys.list()).toHaveLength(0)
+  })
+
+  it('updates the key budget on an in-tier plan flip', async () => {
+    const aiKeys = new FakeVirtualKeyManager()
+    const { cp } = build({ aiKeys })
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    await cp.changePlan('acme', 'family') // both dedicated-sleep; family cap $60
+    expect(aiKeys.list()[0]?.maxBudgetUsd).toBe(60)
+    expect((await cp.getTenant('acme'))?.aiKeyRef).toBe('sk-fake-acme') // unchanged ref
+  })
+
+  it('revokes the key when the tenant is deleted', async () => {
+    const aiKeys = new FakeVirtualKeyManager()
+    const { cp } = build({ aiKeys })
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    expect(aiKeys.list()).toHaveLength(1)
+    await cp.deleteTenant('acme')
+    expect(aiKeys.list()).toHaveLength(0)
+  })
+})
+
+describe('currentPeriodStartMs', () => {
+  it('returns the UTC start of the month containing the instant', () => {
+    const mid = Date.UTC(2026, 5, 17, 13, 30) // 2026-06-17T13:30Z
+    expect(currentPeriodStartMs(mid)).toBe(Date.UTC(2026, 5, 1))
   })
 })
 

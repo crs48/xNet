@@ -12,8 +12,9 @@
  * scale; swap for an indexed/period-partitioned query if the ledger grows large.
  */
 
-import { inScope, type UsageEntry, type UsageLedger } from '@xnetjs/cloud/billing'
+import { MemoryUsageLedger, inScope, type UsageEntry, type UsageLedger } from '@xnetjs/cloud/billing'
 import type { DocStore } from './durable'
+import { FirestoreDocStore, firestoreFromEnv } from './firestore'
 
 /** A durable, idempotent UsageLedger over a DocStore keyed by `entry.key`. */
 export function usageLedgerFromDocs(docs: DocStore<UsageEntry>): UsageLedger {
@@ -32,4 +33,15 @@ export function usageLedgerFromDocs(docs: DocStore<UsageEntry>): UsageLedger {
       return all.filter((e) => inScope(e, tenantId, sinceMs))
     }
   }
+}
+
+/**
+ * The durable usage ledger when Firestore is configured (collection `usage`),
+ * else an in-memory ledger for dev/tests. Survives a control-plane restart so a
+ * tenant's accrued AI spend is not forgotten (exploration 0200).
+ */
+export function usageLedgerFromEnv(env: NodeJS.ProcessEnv = process.env): UsageLedger {
+  const firestore = firestoreFromEnv(env)
+  if (!firestore) return new MemoryUsageLedger()
+  return usageLedgerFromDocs(new FirestoreDocStore<UsageEntry>(firestore.collection('usage')))
 }

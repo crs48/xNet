@@ -38,19 +38,27 @@ export interface DurableStores {
 }
 
 /**
- * Firestore-backed tenant + binding stores when GCP/Firestore is configured, else
- * null (caller falls back to in-memory). Firestore lives in the shard-0 project
- * (`<prefix>-0`), where `cloud-gcp-bootstrap.sh` created it; auth comes from
- * GOOGLE_APPLICATION_CREDENTIALS.
+ * A Firestore client for the control-plane state, or null when GCP/Firestore is
+ * unconfigured. Firestore lives in the shard-0 project (`<prefix>-0`), where
+ * `cloud-gcp-bootstrap.sh` created it; auth comes from GOOGLE_APPLICATION_CREDENTIALS.
  */
-export function firestoreStoresFromEnv(env: NodeJS.ProcessEnv = process.env): DurableStores | null {
+export function firestoreFromEnv(env: NodeJS.ProcessEnv = process.env): Firestore | null {
   if (!env.GCP_PROJECT_PREFIX || !env.GCP_FIRESTORE_DATABASE) return null
-  const firestore = new Firestore({
+  return new Firestore({
     projectId: `${env.GCP_PROJECT_PREFIX}-0`,
     ...(env.GCP_FIRESTORE_DATABASE !== '(default)'
       ? { databaseId: env.GCP_FIRESTORE_DATABASE }
       : {})
   })
+}
+
+/**
+ * Firestore-backed tenant + binding stores when GCP/Firestore is configured, else
+ * null (caller falls back to in-memory).
+ */
+export function firestoreStoresFromEnv(env: NodeJS.ProcessEnv = process.env): DurableStores | null {
+  const firestore = firestoreFromEnv(env)
+  if (!firestore) return null
   return {
     tenants: tenantStoreFromDocs(
       new FirestoreDocStore<TenantRecord>(firestore.collection('tenants'))

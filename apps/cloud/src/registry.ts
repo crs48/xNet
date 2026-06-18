@@ -33,6 +33,18 @@ export interface TenantRecord {
    * Undefined for tenants provisioned by the internal/admin route.
    */
   subscriptionStatus?: 'active' | 'canceled'
+  /**
+   * The tenant's LiteLLM virtual key (`sk-…`) for managed AI — a server-side
+   * secret used as the gateway Bearer; never sent to the client. Set when the
+   * plan is `aiEnabled` and a key manager is configured. The matching budget +
+   * included amount live on `entitlements` (exploration 0200).
+   */
+  aiKeyRef?: string
+  /**
+   * Stripe customer id (`cus_…`) captured at checkout, needed to bill metered AI
+   * overage. Falls back to `billingUserId` for the meter event when unset.
+   */
+  stripeCustomerId?: string
 }
 
 export interface TenantStore {
