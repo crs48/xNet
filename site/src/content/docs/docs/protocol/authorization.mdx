@@ -1,0 +1,94 @@
+---
+title: 'Authorization (L3)'
+draft: false
+description: 'Access control as data: schema rules, role resolvers, the expression AST, grants, and UCAN — enforced at the sync boundary.'
+sidebar:
+  order: 4
+  label: 'Authorization'
+---
+
+In XNet, authorization is **data, not application logic**: rules are declared on
+schemas and delegated through grant nodes and UCAN tokens, and enforced at the
+sync boundary. Because two implementations that disagree on policy make different
+read/write decisions on the same graph, the decision *semantics* are normative.
+Normative text:
+[`04-authorization.md`](https://github.com/crs48/xNet/blob/main/docs/specs/protocol/04-authorization.md).
+
+## Actions and decisions
+
+```
+action ∈ { read, write, delete, share, admin }
+can(subject: DID, action, nodeId) → { allowed, reasons }
+```
+
+## Schema authorization
+
+A schema may carry an `authorization` block defining **roles** (how a subject
+earns a role on a node) and **actions** (which roles may perform each action):
+
+```ts
+interface AuthorizationDefinition {
+  roles:   Record<string, RoleResolver>
+  actions: Record<AuthAction, AuthExpression>
+  publicProps?: string[]
+  fieldRules?: Record<string, { allow: AuthExpression; deny?: AuthExpression }>
+}
+```
+
+## Role resolvers
+
+| Kind | Subject earns the role when… |
+|---|---|
+| **creator** | `subject == node.createdBy` |
+| **property** | it appears in a named `person`/`relation` property (e.g. `editors`) |
+| **relation** | it holds a role on a *related* node (inheritance) |
+| **membership** | a membership edge (e.g. `SpaceMembership`) links it to a container with a role ≥ `minRole`, cascading to nested containers |
+
+Resolution walks relations/memberships with a bounded depth and must terminate.
+
+## The expression AST
+
+```
+expr ::= allow(role…) | deny(role…) | roleRef(name)
+       | and(expr…) | or(expr…) | not(expr) | PUBLIC | AUTHENTICATED
+```
+
+**Deny wins:** if any matching `deny` is true, the action is denied regardless of
+any `allow`. Evaluation is total and deterministic.
+
+## Encryption as access control
+
+For private nodes, **the ability to decrypt is the read‑control mechanism**:
+content keys are wrapped per recipient (X25519 + XChaCha20). A subject not in the
+recipient set can't read encrypted properties even if it receives the bytes.
+`publicProps` and the four universal node fields stay readable for indexing and
+attribution.
+
+## Grants and UCAN
+
+- **Grant nodes** — ordinary XNet nodes recording `{ issuer, grantee, resource,
+  actions, expiresAt, revokedAt }`. Active iff not revoked and not expired.
+- **UCAN tokens** — capability tokens (JWT/EdDSA) with a proof chain. Each
+  capability must be an attenuation of its proof; child expiry ≤ parent; chains
+  acyclic.
+
+## Deterministic pipeline
+
+```mermaid
+flowchart TB
+  Q["can(subject, action, node)"] --> ND{node-level deny?}
+  ND -->|yes| DENY
+  ND -->|no| RR["resolve roles (depth-bounded)"]
+  RR --> SE["evaluate schema expression (deny-wins)"]
+  SE -->|allowed| ALLOW
+  SE -->|no| GR{active grant / UCAN?}
+  GR -->|yes| ALLOW
+  GR -->|no| PUB{PUBLIC / publicProps?}
+  PUB -->|yes| ALLOW
+  PUB -->|no| DENY
+```
+
+Caching and indexing are private; the *decisions* must match the
+decision‑trace [conformance vectors](/docs/protocol/conformance/).
+
+Next: [Implement it in your language →](/docs/protocol/implement-in-your-language/)

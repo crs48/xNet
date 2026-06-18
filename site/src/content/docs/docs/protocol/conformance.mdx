@@ -1,0 +1,83 @@
+---
+title: 'Conformance'
+draft: false
+description: 'The language-agnostic golden-vector corpus that proves independent XNet implementations interoperate.'
+sidebar:
+  order: 6
+  label: 'Conformance'
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+A specification without a conformance suite drifts — independent implementations
+diverge silently. (ActivityPub shipped a W3C Recommendation with no test suite
+for ~5 years; the fediverse is still paying for it.) XNet ships a
+**language‑agnostic golden‑vector corpus alongside the spec, from day one**, and
+re‑verifies it in CI.
+
+The corpus lives at
+[`conformance/`](https://github.com/crs48/xNet/tree/main/conformance).
+
+## What conformance means
+
+You claim conformance to a layer by **reproducing that layer's vectors
+byte‑for‑byte**. The vectors are plain JSON `{ description, input, expected }` —
+any language can load them.
+
+| Suite | Layer | Proves |
+|---|---|---|
+| `vectors/identity/` | L0 | seed → `did:key` + public key |
+| `vectors/change/` | L1 | unsigned change → canonical bytes → BLAKE3 hash → Ed25519 signature |
+| `vectors/lww/` | L1 | change sequence → converged state (order‑independent) |
+| `vectors/replication/` | L2 | *planned* |
+| `vectors/authz/` | L3 | *planned* |
+
+`xnet/1.0`'s first corpus covers the **interop kernel** (L0 + L1). L2/L3 suites
+are tracked as [XPPs](https://github.com/crs48/xNet/tree/main/docs/specs/protocol/xpp).
+
+## Example vector
+
+```jsonc
+{
+  "description": "First change for a Page node, fixed author seed",
+  "input": { "authorSeedHex": "aaaa…", "unsignedChange": { /* … */ } },
+  "expected": {
+    "authorDID": "did:key:z6Mkv1o2…",
+    "canonicalJson": "{\"authorDID\":\"did:key:z6Mkv1o2…\",…}",
+    "hash": "cid:blake3:76fdfa20…",
+    "signatureBase64": "UcVsz+sh…=="
+  }
+}
+```
+
+## The drift guard
+
+<Aside type="tip">
+  The reference implementation re‑derives every vector from its own code and
+  asserts equality in CI. A change to canonicalization, hashing, or DID
+  derivation that isn't reflected in the corpus **fails the build** — the spec's
+  central claim is executable, not aspirational.
+</Aside>
+
+```bash
+# verify (CI drift guard)
+pnpm exec vitest run --project runtime packages/runtime/src/conformance.test.ts
+
+# the second-language proof
+pip install pynacl blake3 base58
+python conformance/reference/python/verify_vectors.py
+```
+
+## The conformance matrix
+
+Following [Willow](https://willowprotocol.org/)'s lightweight model, conforming
+implementations are tracked per layer:
+
+| Implementation | Language | L0 identity | L1 change | L1 lww | L2 | L3 |
+|---|---|:--:|:--:|:--:|:--:|:--:|
+| `xNet` (reference) | TypeScript | ✅ | ✅ | ✅ | reference | reference |
+| `reference/python` | Python | ✅ | ✅ | — | — | — |
+| _add yours_ | | | | | | |
+
+To add your implementation, reproduce the vectors and open a PR against
+[`conformance/README.md`](https://github.com/crs48/xNet/blob/main/conformance/README.md).

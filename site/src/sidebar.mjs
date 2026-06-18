@@ -39,6 +39,18 @@ export const sidebar = [
     ]
   },
   {
+    label: 'The Protocol',
+    collapsed: true,
+    items: [
+      { slug: 'docs/protocol/overview' },
+      { slug: 'docs/protocol/data-model' },
+      { slug: 'docs/protocol/replication' },
+      { slug: 'docs/protocol/authorization' },
+      { slug: 'docs/protocol/implement-in-your-language' },
+      { slug: 'docs/protocol/conformance' }
+    ]
+  },
+  {
     label: 'The App',
     collapsed: true,
     items: [

@@ -1,0 +1,98 @@
+---
+title: 'Implement XNet in Your Language'
+draft: false
+description: 'A step-by-step path to a second XNet implementation: the interop kernel, the golden vectors, and how to claim conformance.'
+sidebar:
+  order: 5
+  label: 'Implement it'
+---
+
+import { Steps, Aside, LinkCard } from '@astrojs/starlight/components'
+
+You don't need to port the whole `xNet` codebase to build a compatible
+implementation. You need the **interop kernel** (L0 + L1) — and the
+[golden vectors](/docs/protocol/conformance/) tell you exactly when you've got it
+right.
+
+<Aside type="tip">
+  The proof this is real: a ~100‑line Python kernel reproduces the same DIDs and
+  verifies — and re‑signs byte‑for‑byte — changes signed by the TypeScript
+  reference implementation. The full kernel is at
+  [`conformance/reference/python`](https://github.com/crs48/xNet/tree/main/conformance/reference/python).
+</Aside>
+
+## The path
+
+<Steps>
+
+1. **Identity — `did:key` over Ed25519.** Generate an Ed25519 key, prefix the
+   public key with multicodec `0xed 0x01`, base58btc‑encode, prepend
+   `did:key:z`. Check against `conformance/vectors/identity/`.
+
+2. **Canonicalize a change.** Sort keys lexicographically and recursively,
+   serialize to compact UTF‑8 JSON. Check against the `canonicalJson` field in
+   `conformance/vectors/change/`.
+
+3. **Hash & sign.** `"cid:blake3:" + hex(BLAKE3(bytes))`, then Ed25519‑sign the
+   **UTF‑8 bytes of that hash string**. Reproduce `hash` and `signatureBase64`.
+
+4. **Last‑Write‑Wins.** Fold a change sequence with per‑property
+   `{lamport, wallTime, authorDID}` resolution (higher wins, author breaks ties).
+   Check against `conformance/vectors/lww/`.
+
+5. **(Optional) Replication & authorization.** Implement the
+   [wire messages](/docs/protocol/replication/) and
+   [policy evaluation](/docs/protocol/authorization/) to join live rooms.
+
+</Steps>
+
+## The kernel, in ~30 lines
+
+This is the entire L0 + L1 verify path in Python — proof that the spec, not the
+TypeScript source, is enough to interoperate:
+
+```python
+import base64, json, base58
+from blake3 import blake3
+from nacl.signing import SigningKey, VerifyKey
+
+ED25519_MULTICODEC = b"\xed\x01"
+
+def did_from_public_key(pub: bytes) -> str:                       # L0 §1
+    return "did:key:z" + base58.b58encode(ED25519_MULTICODEC + pub).decode()
+
+def canonical_json(value) -> bytes:                               # L1 §6
+    return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False).encode("utf-8")
+
+def change_hash(unsigned: dict) -> str:                           # L1 §6
+    to_hash = {k: v for k, v in unsigned.items() if k != "protocolVersion"} \
+        if unsigned.get("protocolVersion", 0) in (0, None) else unsigned
+    return "cid:blake3:" + blake3(canonical_json(to_hash)).hexdigest()
+
+def verify_change(unsigned: dict, sig: bytes, pub: bytes) -> bool:
+    try:
+        VerifyKey(pub).verify(change_hash(unsigned).encode(), sig); return True
+    except Exception:
+        return False
+```
+
+## Run the proof
+
+```bash
+git clone https://github.com/crs48/xNet && cd xNet
+pip install pynacl blake3 base58
+python conformance/reference/python/verify_vectors.py
+# → 18 passed, 0 failed
+```
+
+## Claim conformance
+
+Reproduce a layer's [golden vectors](/docs/protocol/conformance/) byte‑for‑byte,
+then open a PR adding a row to the
+[conformance matrix](https://github.com/crs48/xNet/blob/main/conformance/README.md).
+Proposing a change to the protocol itself? File an
+[XPP](https://github.com/crs48/xNet/tree/main/docs/specs/protocol/xpp) — the
+lightweight, "prove‑it‑before‑you‑spec‑it" proposal process.
+
+<LinkCard title="Conformance corpus & matrix →" href="/docs/protocol/conformance/" description="The golden vectors every implementation must reproduce." />

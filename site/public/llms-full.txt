@@ -28,6 +28,13 @@ Before reading this documentation, understand that xNet works differently:
   - Property Types
   - Relations
   - Type Inference
+  - Extending Schemas
+- The XNet Protocol
+- Data Model (L1)
+- Replication (L2)
+- Authorization (L3)
+- Implement XNet in Your Language
+- Conformance
   - The Workbench
   - Tasks
   - Dashboards & Widgets
@@ -2332,6 +2339,630 @@ tasks[0].id // string (from base fields)
 Because schemas are plain objects with typed descriptors, you can compose them, create utility types around them, and build higher-level abstractions without losing type information. The property builder pattern ensures that new property types automatically flow through `InferCreateProps` and `FlatNode` without any changes to the inference machinery.
 
 If you're building a custom property type, implement the `PropertyBuilder` interface and the inference pipeline will pick it up automatically.
+
+---
+
+## Extending Schemas
+
+xNet ships typed schemas like `Task`, `Contact`, and `Page` with a fixed set of
+properties. When you need to track something they don't model — a `leadScore`
+on a contact, a `billableRate` on a task — you have three ways to extend them,
+from lightest to heaviest.
+
+## 1. Overlay fields (the everyday path)
+
+An **overlay** stores custom attributes directly on the node under a reserved,
+namespaced key: `ext:<authority>/<field>`. The `authority` (a Space id, a DID,
+or a domain) keeps two parties from colliding. Overlay values are ordinary node
+properties, so they sync and conflict-resolve per-key (LWW) and inherit the
+node's authorization automatically — no join, no schema fork.
+
+Add a field with `createExtensionField`:
+
+```ts
+
+const { key } = await createExtensionField(store, {
+  targetSchema: 'xnet://xnet.fyi/Contact@1.0.0',
+  authority: 'acme.com',
+  name: 'leadScore',
+  type: 'number',
+  config: { min: 0, max: 100 }
+})
+// key === 'ext:acme.com/leadScore'
+```
+
+Read and write the value like any other property — the overlay key rides along
+on the node:
+
+```ts
+const { update } = useMutate()
+await update(ContactSchema, contact.id, { 'ext:acme.com/leadScore': 87 })
+
+// Filtering uses the standard where path (it pushes down like any property):
+const hot = useQuery(ContactSchema, { where: { 'ext:acme.com/leadScore': 87 } })
+```
+
+The grid composes the **effective schema** — core columns plus your overlay
+columns — via `useEffectiveSchema`. Schema-defined (core) columns are
+structurally **locked**: you can edit their values but not rename, retype, or
+delete them. Only overlay columns are restructurable.
+
+```ts
+const { schema } = useEffectiveSchema('xnet://xnet.fyi/Contact@1.0.0')
+// schema.properties includes 'name' (readonly) … 'ext:acme.com/leadScore'
+```
+
+## 2. Sidecar extensions (when access differs)
+
+An overlay inherits the target node's authorization. When the attributes need
+their **own** owner or access — say, _your_ private notes on a `Contact`
+someone else shares with you — use a **sidecar**: a separate node that
+references the target and carries its own `authorization` (typically
+`presets.private()`).
+
+```ts
+
+const ContactNotes = defineSchema({
+  name: 'ContactNotes',
+  namespace: 'xnet://did:key:.../',
+  properties: {
+    target: relation({ target: 'xnet://xnet.fyi/Contact@1.0.0', required: true }),
+    notes: text({})
+  },
+  authorization: presets.private()
+})
+// one sidecar per (authority, target): id = sidecarId(authority, contactId)
+```
+
+The grid folds a sidecar's attributes into the same `ext:<authority>/<field>`
+column space as overlays via `mergeSidecarsIntoRow`, so both render uniformly.
+
+## 3. A new schema version (custom objects)
+
+When you're really creating a new _type_ — not just decorating an existing one
+— define a new schema (optionally `extends` the base) and migrate existing
+nodes with a **lens**. To graduate an overlay into a first-class property, use
+`promoteOverlay`:
+
+```ts
+
+const v1ToV2 = composeLens(
+  'xnet://xnet.fyi/Contact@1.0.0',
+  'xnet://xnet.fyi/Contact@2.0.0',
+  promoteOverlay('acme.com', 'leadScore', 'leadScore')
+)
+// { 'ext:acme.com/leadScore': 87 } → { leadScore: 87 }  (lossless)
+```
+
+## Which one?
+
+| Need                                      | Use                               |
+| ----------------------------------------- | --------------------------------- |
+| A custom field, same record + permissions | **Overlay** (`ext:` key)          |
+| A field with its own owner / access       | **Sidecar** (join node)           |
+| A distinct, fully-typed type              | **New schema** (`extends` + lens) |
+
+Overlay is the default — it's the cheapest to store and query. Reach for a
+sidecar only when access must differ, and a new schema only when you're
+authoring a genuinely new type.
+
+---
+
+## The XNet Protocol
+
+The `xNet` repository is **one implementation** of XNet. XNet itself is a
+**protocol** — a written interface you can re‑implement in any language, over any
+database, and still interoperate with every other conforming implementation. Like
+Matrix, the AT Protocol, or ActivityPub, the standard is separate from any one
+codebase.
+
+  This page is the friendly tour. The **normative source of truth** is
+  [`docs/specs/protocol/`](https://github.com/crs48/xNet/tree/main/docs/specs/protocol)
+  — versioned with the code, backed by a machine‑checked conformance corpus.
+
+## The boundary in one sentence
+
+> A conforming XNet implementation agrees on the **cryptographic primitives**,
+> the **data model** (especially the byte‑exact canonicalization of a change),
+> the **replication wire format**, and the **authorization semantics** — and
+> treats everything above (query, storage layout, UI, the built‑in app schemas)
+> as private.
+
+## Four normative layers
+
+```mermaid
+flowchart TB
+  L4["L4 · Application Profile — NON-NORMATIVE\nbuilt-in schemas, spaces, query, UI"]
+  L3["L3 · Authorization\nschema rules, roles, grants, UCAN"]
+  L2["L2 · Replication\nchange relay, signed Yjs envelope, handshake, transports"]
+  L1["L1 · Data Model\nNode, SchemaIRI, properties, Change, canonicalization, LWW, document codec"]
+  L0["L0 · Primitives\ndid:key/Ed25519, XChaCha20, X25519, BLAKE3, UCAN"]
+  L4 --> L3 --> L2 --> L1 --> L0
+```
+
+  
+  
+  
+  
+
+## The interop kernel (the part that makes it XNet)
+
+The irreducible core is small. An implementation that does **only L0 + L1** can
+already create, sign, verify, and converge nodes — fully participating in the
+graph:
+
+1. A **`did:key`** identity from an Ed25519 key.
+2. A **Node** = four universal fields (`id`, `schemaId`, `createdAt`,
+   `createdBy`) plus schema‑defined properties.
+3. A **Change** = a signed, hash‑chained, Lamport‑stamped mutation whose
+   canonical bytes and BLAKE3 hash are specified exactly.
+4. **Last‑Write‑Wins** per‑property conflict resolution on the Lamport clock.
+
+## Yjs is *not* the protocol
+
+A common misconception: "XNet is built on Yjs, so I'd have to port a CRDT." Not
+so. Yjs is used only for the optional rich‑text **document body** of certain
+nodes, and it travels the wire as **opaque bytes inside a signed envelope**. A
+second implementation can relay and store that blob without parsing it, and still
+participate fully. The CRDT is a **pluggable document codec**, not the
+interop kernel. (See [data model](/docs/protocol/data-model/).)
+
+## One umbrella version
+
+Peers negotiate a single named bundle — `xnet/1.0` — exactly as Matrix bundles
+breaking changes into *room versions*. It expands to the per‑subsystem versions
+(change record, sync envelope, awareness, schema, crypto level). The
+machine‑readable constant is `XNET_PROTOCOL_VERSION`, exported by `@xnetjs/sdk`.
+
+## Prove it, don't just read it
+
+Every claim in the spec is backed by a **language‑agnostic golden‑vector
+corpus** shipped *with* the spec and re‑checked in CI — so the prose can't drift
+from reality. A ~100‑line Python kernel reproduces the same DIDs and verifies
+TypeScript‑signed changes. Want to build your own implementation?
+
+---
+
+## Data Model (L1)
+
+This is the heart of the protocol. Get it right and your implementation can
+participate in the node graph. The normative text is
+[`02-data-model.md`](https://github.com/crs48/xNet/blob/main/docs/specs/protocol/02-data-model.md).
+
+## The Node
+
+Every node, in every implementation, has exactly four universal fields; all
+others are schema‑defined:
+
+```ts
+interface Node {
+  id: string            // opaque, collision-resistant (nanoid in the reference impl)
+  schemaId: SchemaIRI   // "xnet://authority/Name@version"
+  createdAt: number     // Unix ms, set on first change
+  createdBy: DID         // did:key of the creator — immutable
+  [key: string]: unknown // schema-defined properties
+}
+```
+
+`createdBy` is the root of a node's provenance and never changes. Nodes are
+**soft‑deleted** (tombstoned), never hard‑deleted.
+
+## Schema references
+
+```
+SchemaIRI = "xnet://" authority "/" Name ( "@" semver )?
+```
+
+The `authority` names who governs the schema — `xnet.fyi` for built‑ins, a domain
+for organizations, or a DID for personal schemas. Nodes are self‑describing via
+`schemaId`, so relays and stores can process them without resolving the schema.
+Schemas are JSON‑Schema‑shaped — **not** JSON‑LD/RDF (a deliberate choice; full
+JSON‑LD is the reason ActivityPub implementations diverge).
+
+## The Change
+
+A node is never mutated in place. Its state is the fold of an append‑only log of
+signed **Change** records:
+
+```ts
+interface Change {
+  protocolVersion: 3
+  id: string
+  type: 'node-change'
+  payload: { nodeId, schemaId?, properties, deleted? }  // sparse
+  hash: string                  // "cid:blake3:<hex>"
+  parentHash: string | null     // the causal hash chain
+  authorDID: DID
+  signature: Uint8Array         // Ed25519 over UTF-8(hash)
+  wallTime: number
+  lamport: number               // ordering / LWW
+}
+```
+
+The **first** change for a node carries `schemaId`; later changes carry only the
+properties that changed.
+
+## The byte‑exact contract
+
+  Two implementations that disagree on these bytes cannot verify each other's
+  signatures. The reference impl hashes with **BLAKE3** (not SHA‑256) and signs
+  the **UTF‑8 bytes of the hash string** `cid:blake3:<hex>` — not the raw digest.
+
+1. Take the unsigned change (all fields except `hash`/`signature`).
+2. **Canonical JSON:** sort object keys lexicographically and recursively, no
+   whitespace, arrays in order, `undefined` omitted, UTF‑8 bytes.
+3. **Hash:** `"cid:blake3:" + hex(BLAKE3(bytes))`.
+4. **Sign:** `Ed25519(UTF8(hash_string), key)`.
+
+```js
+const sorted = sortKeysRecursively(unsigned)        // recursive key sort
+const bytes  = utf8(JSON.stringify(sorted))          // compact
+const hash   = "cid:blake3:" + hex(blake3(bytes))
+const sig    = ed25519.sign(utf8(hash), signingKey)  // sign the STRING bytes
+```
+
+This exact transform is pinned by the
+[golden vectors](/docs/protocol/conformance/), so any implementation can check
+itself byte‑for‑byte.
+
+## Conflict resolution: Lamport + LWW
+
+Materialized state keeps a `{ lamport, wallTime }` timestamp **per property**.
+When two changes touch the same property:
+
+1. higher **`lamport`** wins;
+2. tie → higher `wallTime`;
+3. tie → higher `authorDID` (lexicographic) — a deterministic final tiebreak so
+   all peers converge identically.
+
+Because LWW is per‑property, concurrent edits to *different* properties of the
+same node both survive.
+
+## The document codec (where Yjs lives — and why it's opaque)
+
+A schema may declare a collaborative body with `document: 'yjs'`. Such nodes
+carry a `documentContent` blob identified by a `documentCodec` discriminator
+(`yjs-v1`, `automerge-2`, `none`). Implementations **must transport and persist**
+the blob faithfully, but **interpreting it is optional** — a peer that can't parse
+`yjs-v1` still fully participates in the graph. This is the seam that makes XNet
+portable without porting a CRDT byte format across languages.
+
+Next: [Replication (L2) →](/docs/protocol/replication/)
+
+---
+
+## Replication (L2)
+
+How nodes and document bodies move between peers. The message *semantics* are
+defined once and bind to multiple transports. Normative text:
+[`03-replication.md`](https://github.com/crs48/xNet/blob/main/docs/specs/protocol/03-replication.md).
+
+## Two streams per document
+
+A document (room) carries two complementary streams. An implementation must relay
+both faithfully; it need only *interpret* the first.
+
+```mermaid
+flowchart LR
+  P1["Peer A"] <-->|relay / P2P| Room
+  Room["Room = one document (docId)"] <-->|relay / P2P| P2["Peer B"]
+  Room --- A["Structured node sync\nsigned Change records"]
+  Room --- B["Document body sync\nsigned Yjs envelope (opaque)"]
+```
+
+## Structured node sync
+
+```ts
+{ type: "node-change", room, change }                    // one new signed change
+{ type: "node-sync-request", room, sinceLamport }        // catch-up request
+{ type: "node-sync-response", room, changes, highWaterMark } // catch-up batch
+```
+
+A receiver verifies each change's signature, applies idempotently (re‑applying a
+known `hash` is a no‑op), and orders by `lamport`. `highWaterMark` enables
+resumable catch‑up.
+
+## The signed Yjs envelope
+
+Document bodies sync with [y‑protocols](https://github.com/yjs/y-protocols)
+sync v1, each update wrapped so the relay can authenticate authorship **without
+parsing the CRDT**:
+
+```jsonc
+{
+  "v": 2,
+  "u": "base64(Yjs update bytes)",   // OPAQUE codec payload
+  "m": { "a": "did:key:…", "c": 12345, "t": 1718641200000, "d": "<docId>" },
+  "s": { "ed25519": "base64", "mlDsa": null, "level": 0 }
+}
+```
+
+The signature covers `BLAKE3(update || JSON(meta))` and is verified against the
+author DID. Relays forward the envelope byte‑preserving; a peer that doesn't
+implement `yjs-v1` still forwards and stores `u`.
+
+## Awareness
+
+Ephemeral presence (cursor, selection, online status) uses y‑protocols
+awareness. It is **not** persisted as node data and is exempt from the hash
+chain; relays should rate‑limit and expire it.
+
+## The version handshake
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant H as Hub
+  H->>C: handshake { xnetProtocol:["xnet/1.0"], minXnetProtocol, hubDid }
+  C->>H: client-handshake { did, xnetProtocol:["xnet/1.0"] }
+  alt no shared umbrella version
+    H-->>C: version-mismatch { suggestion }
+  else compatible
+    C->>H: subscribe { topics:["xnet-doc-…"] }
+    H-->>C: relays node-change / sync-* / awareness
+  end
+```
+
+Two peers are compatible iff their `xnetProtocol` sets intersect; a peer with no
+acceptable version refuses with a typed `version-mismatch` rather than partially
+syncing. The token is `XNET_PROTOCOL_VERSION.id` (`"xnet/1.0"`) from `@xnetjs/sdk`.
+
+## Transport bindings
+
+The same logical messages bind to two transports: **WebSocket** (JSON frames,
+browser ↔ hub) and **libp2p** (length‑prefixed msgpack over `/xnet/sync/1.0.0`,
+P2P). A relay may bridge between them.
+
+Next: [Authorization (L3) →](/docs/protocol/authorization/)
+
+---
+
+## Authorization (L3)
+
+In XNet, authorization is **data, not application logic**: rules are declared on
+schemas and delegated through grant nodes and UCAN tokens, and enforced at the
+sync boundary. Because two implementations that disagree on policy make different
+read/write decisions on the same graph, the decision *semantics* are normative.
+Normative text:
+[`04-authorization.md`](https://github.com/crs48/xNet/blob/main/docs/specs/protocol/04-authorization.md).
+
+## Actions and decisions
+
+```
+action ∈ { read, write, delete, share, admin }
+can(subject: DID, action, nodeId) → { allowed, reasons }
+```
+
+## Schema authorization
+
+A schema may carry an `authorization` block defining **roles** (how a subject
+earns a role on a node) and **actions** (which roles may perform each action):
+
+```ts
+interface AuthorizationDefinition {
+  roles:   Record<string, RoleResolver>
+  actions: Record
+  publicProps?: string[]
+  fieldRules?: Record<string, { allow: AuthExpression; deny?: AuthExpression }>
+}
+```
+
+## Role resolvers
+
+| Kind | Subject earns the role when… |
+|---|---|
+| **creator** | `subject == node.createdBy` |
+| **property** | it appears in a named `person`/`relation` property (e.g. `editors`) |
+| **relation** | it holds a role on a *related* node (inheritance) |
+| **membership** | a membership edge (e.g. `SpaceMembership`) links it to a container with a role ≥ `minRole`, cascading to nested containers |
+
+Resolution walks relations/memberships with a bounded depth and must terminate.
+
+## The expression AST
+
+```
+expr ::= allow(role…) | deny(role…) | roleRef(name)
+       | and(expr…) | or(expr…) | not(expr) | PUBLIC | AUTHENTICATED
+```
+
+**Deny wins:** if any matching `deny` is true, the action is denied regardless of
+any `allow`. Evaluation is total and deterministic.
+
+## Encryption as access control
+
+For private nodes, **the ability to decrypt is the read‑control mechanism**:
+content keys are wrapped per recipient (X25519 + XChaCha20). A subject not in the
+recipient set can't read encrypted properties even if it receives the bytes.
+`publicProps` and the four universal node fields stay readable for indexing and
+attribution.
+
+## Grants and UCAN
+
+- **Grant nodes** — ordinary XNet nodes recording `{ issuer, grantee, resource,
+  actions, expiresAt, revokedAt }`. Active iff not revoked and not expired.
+- **UCAN tokens** — capability tokens (JWT/EdDSA) with a proof chain. Each
+  capability must be an attenuation of its proof; child expiry ≤ parent; chains
+  acyclic.
+
+## Deterministic pipeline
+
+```mermaid
+flowchart TB
+  Q["can(subject, action, node)"] --> ND{node-level deny?}
+  ND -->|yes| DENY
+  ND -->|no| RR["resolve roles (depth-bounded)"]
+  RR --> SE["evaluate schema expression (deny-wins)"]
+  SE -->|allowed| ALLOW
+  SE -->|no| GR{active grant / UCAN?}
+  GR -->|yes| ALLOW
+  GR -->|no| PUB{PUBLIC / publicProps?}
+  PUB -->|yes| ALLOW
+  PUB -->|no| DENY
+```
+
+Caching and indexing are private; the *decisions* must match the
+decision‑trace [conformance vectors](/docs/protocol/conformance/).
+
+Next: [Implement it in your language →](/docs/protocol/implement-in-your-language/)
+
+---
+
+## Implement XNet in Your Language
+
+You don't need to port the whole `xNet` codebase to build a compatible
+implementation. You need the **interop kernel** (L0 + L1) — and the
+[golden vectors](/docs/protocol/conformance/) tell you exactly when you've got it
+right.
+
+  The proof this is real: a ~100‑line Python kernel reproduces the same DIDs and
+  verifies — and re‑signs byte‑for‑byte — changes signed by the TypeScript
+  reference implementation. The full kernel is at
+  [`conformance/reference/python`](https://github.com/crs48/xNet/tree/main/conformance/reference/python).
+
+## The path
+
+1. **Identity — `did:key` over Ed25519.** Generate an Ed25519 key, prefix the
+   public key with multicodec `0xed 0x01`, base58btc‑encode, prepend
+   `did:key:z`. Check against `conformance/vectors/identity/`.
+
+2. **Canonicalize a change.** Sort keys lexicographically and recursively,
+   serialize to compact UTF‑8 JSON. Check against the `canonicalJson` field in
+   `conformance/vectors/change/`.
+
+3. **Hash & sign.** `"cid:blake3:" + hex(BLAKE3(bytes))`, then Ed25519‑sign the
+   **UTF‑8 bytes of that hash string**. Reproduce `hash` and `signatureBase64`.
+
+4. **Last‑Write‑Wins.** Fold a change sequence with per‑property
+   `{lamport, wallTime, authorDID}` resolution (higher wins, author breaks ties).
+   Check against `conformance/vectors/lww/`.
+
+5. **(Optional) Replication & authorization.** Implement the
+   [wire messages](/docs/protocol/replication/) and
+   [policy evaluation](/docs/protocol/authorization/) to join live rooms.
+
+## The kernel, in ~30 lines
+
+This is the entire L0 + L1 verify path in Python — proof that the spec, not the
+TypeScript source, is enough to interoperate:
+
+```python
+
+from blake3 import blake3
+from nacl.signing import SigningKey, VerifyKey
+
+ED25519_MULTICODEC = b"\xed\x01"
+
+def did_from_public_key(pub: bytes) -> str:                       # L0 §1
+    return "did:key:z" + base58.b58encode(ED25519_MULTICODEC + pub).decode()
+
+def canonical_json(value) -> bytes:                               # L1 §6
+    return json.dumps(value, sort_keys=True, separators=(",", ":"),
+                      ensure_ascii=False).encode("utf-8")
+
+def change_hash(unsigned: dict) -> str:                           # L1 §6
+    to_hash = {k: v for k, v in unsigned.items() if k != "protocolVersion"} \
+        if unsigned.get("protocolVersion", 0) in (0, None) else unsigned
+    return "cid:blake3:" + blake3(canonical_json(to_hash)).hexdigest()
+
+def verify_change(unsigned: dict, sig: bytes, pub: bytes) -> bool:
+    try:
+        VerifyKey(pub).verify(change_hash(unsigned).encode(), sig); return True
+    except Exception:
+        return False
+```
+
+## Run the proof
+
+```bash
+git clone https://github.com/crs48/xNet && cd xNet
+pip install pynacl blake3 base58
+python conformance/reference/python/verify_vectors.py
+# → 18 passed, 0 failed
+```
+
+## Claim conformance
+
+Reproduce a layer's [golden vectors](/docs/protocol/conformance/) byte‑for‑byte,
+then open a PR adding a row to the
+[conformance matrix](https://github.com/crs48/xNet/blob/main/conformance/README.md).
+Proposing a change to the protocol itself? File an
+[XPP](https://github.com/crs48/xNet/tree/main/docs/specs/protocol/xpp) — the
+lightweight, "prove‑it‑before‑you‑spec‑it" proposal process.
+
+---
+
+## Conformance
+
+A specification without a conformance suite drifts — independent implementations
+diverge silently. (ActivityPub shipped a W3C Recommendation with no test suite
+for ~5 years; the fediverse is still paying for it.) XNet ships a
+**language‑agnostic golden‑vector corpus alongside the spec, from day one**, and
+re‑verifies it in CI.
+
+The corpus lives at
+[`conformance/`](https://github.com/crs48/xNet/tree/main/conformance).
+
+## What conformance means
+
+You claim conformance to a layer by **reproducing that layer's vectors
+byte‑for‑byte**. The vectors are plain JSON `{ description, input, expected }` —
+any language can load them.
+
+| Suite | Layer | Proves |
+|---|---|---|
+| `vectors/identity/` | L0 | seed → `did:key` + public key |
+| `vectors/change/` | L1 | unsigned change → canonical bytes → BLAKE3 hash → Ed25519 signature |
+| `vectors/lww/` | L1 | change sequence → converged state (order‑independent) |
+| `vectors/replication/` | L2 | *planned* |
+| `vectors/authz/` | L3 | *planned* |
+
+`xnet/1.0`'s first corpus covers the **interop kernel** (L0 + L1). L2/L3 suites
+are tracked as [XPPs](https://github.com/crs48/xNet/tree/main/docs/specs/protocol/xpp).
+
+## Example vector
+
+```jsonc
+{
+  "description": "First change for a Page node, fixed author seed",
+  "input": { "authorSeedHex": "aaaa…", "unsignedChange": { /* … */ } },
+  "expected": {
+    "authorDID": "did:key:z6Mkv1o2…",
+    "canonicalJson": "{\"authorDID\":\"did:key:z6Mkv1o2…\",…}",
+    "hash": "cid:blake3:76fdfa20…",
+    "signatureBase64": "UcVsz+sh…=="
+  }
+}
+```
+
+## The drift guard
+
+  The reference implementation re‑derives every vector from its own code and
+  asserts equality in CI. A change to canonicalization, hashing, or DID
+  derivation that isn't reflected in the corpus **fails the build** — the spec's
+  central claim is executable, not aspirational.
+
+```bash
+# verify (CI drift guard)
+pnpm exec vitest run --project runtime packages/runtime/src/conformance.test.ts
+
+# the second-language proof
+pip install pynacl blake3 base58
+python conformance/reference/python/verify_vectors.py
+```
+
+## The conformance matrix
+
+Following [Willow](https://willowprotocol.org/)'s lightweight model, conforming
+implementations are tracked per layer:
+
+| Implementation | Language | L0 identity | L1 change | L1 lww | L2 | L3 |
+|---|---|:--:|:--:|:--:|:--:|:--:|
+| `xNet` (reference) | TypeScript | ✅ | ✅ | ✅ | reference | reference |
+| `reference/python` | Python | ✅ | ✅ | — | — | — |
+| _add yours_ | | | | | | |
+
+To add your implementation, reproduce the vectors and open a PR against
+[`conformance/README.md`](https://github.com/crs48/xNet/blob/main/conformance/README.md).
 
 ---
 
@@ -6168,6 +6799,128 @@ permissions: {
 | Webhooks             | Yes      | Yes | Yes    |
 
 If a plugin specifies `platforms` and the current platform isn't included, installation is rejected. Use `ctx.capabilities` to check feature availability at runtime.
+
+## Ecosystem APIs: capabilities, marketplace, testing
+
+The `@xnetjs/plugins` ecosystem layer turns a [`FeatureModule`](#the-four-layers) manifest into something installable, trustworthy, and testable. Every export below is available from `@xnetjs/plugins`.
+
+### Declared capabilities are enforced
+
+A `FeatureModule` declares a `capabilities` grant. At install, the registry hands the plugin a `NodeStore` wrapped by a guard, so a write outside the grant throws a `CapabilityError` — the declaration is a runtime gate, not a label.
+
+```ts
+
+export const KanbanModule = defineFeatureModule({
+  id: 'com.acme.kanban',
+  name: 'Kanban Board',
+  version: '1.0.0',
+  capabilities: {
+    schemaWrite: ['xnet://xnet.fyi/Task@*'], // may write any Task version…
+    network: ['api.acme.com'] //               …and reach only this host
+  }
+})
+// Inside activate(ctx): ctx.store.create({ schemaId: 'xnet://xnet.fyi/Secret@1.0.0' })
+// → throws CapabilityError — Secret is outside the grant.
+```
+
+Patterns: exact (`…/Task@1.0.0`), version-wildcard (`…/Task@*`), authority-wildcard (`…/fyi/*`), or `*` (all — rendered as a danger in the consent dialog). Reads default open; declare `schemaRead` to restrict them.
+
+### Provenance, trust tier, and install consent
+
+A plugin's trust tier follows its **provenance** (where it came from), never anything it declares about itself. Pass `provenance` to `install`; the registry derives the tier and prompts for consent when needed.
+
+```ts
+
+await registry.install(manifest, {
+  provenance: 'marketplace', // → marketplace tier (iframe sandbox)
+  hostVersion: '0.7.0', //       gates on manifest.xnetVersion
+  onConsent: async (decision) => {
+    // decision.lines describes each requested capability (danger-flagged)
+    return confirm(decision.lines.map((l) => l.text).join('\n'))
+  }
+})
+```
+
+`deriveTrustTier`/`requiresCapabilityReprompt` map provenance to tier and consent: `builtin`→first-party, `authored`/`ai-generated`/`imported`/`synced`→user, `marketplace`→marketplace. Synced and marketplace installs always re-prompt — sync is not consent.
+
+### Version compatibility and dependencies
+
+Declare a host requirement with `xnetVersion` (a semver range) and other plugins with `dependencies`. Install gates on both.
+
+```ts
+defineFeatureModule({
+  id: 'com.acme.app',
+  name: 'App',
+  version: '1.0.0',
+  xnetVersion: '>=0.6.0', // satisfiesRange / isHostCompatible
+  dependencies: { 'com.acme.core': '^1.2.0' } // resolveInstallOrder / findMissingDependencies
+})
+```
+
+### Marketplace index and supply-chain provenance
+
+The marketplace is a GitHub-hosted `registry.json` of `MarketplaceEntry`s. `MarketplaceClient` fetches once and searches in memory; `verifyProvenance` checks a Sigstore-style attestation and **fails closed** (no verifier configured ⇒ "unverified", never a false green).
+
+```ts
+
+const market = new MarketplaceClient({ indexUrl: REGISTRY_URL })
+const results = await market.search('tasks', { sort: 'installs', category: 'productivity' })
+const { verified, reason } = await verifyProvenance({ artifactDigest, provenance })
+```
+
+### Testing a plugin
+
+`createTestPluginHarness` wires an in-memory store into a real `PluginRegistry`, so you can install a manifest and assert on its contributions without the app.
+
+```ts
+
+const harness = createTestPluginHarness()
+await harness.install(KanbanModule)
+expect(harness.registry.get('com.acme.kanban')?.status).toBe('active')
+expect(harness.registry.getContributions().slashCommands.getAll()).toHaveLength(1)
+```
+
+### Scaffolding a new plugin
+
+`xnet plugin scaffold` writes a ready-to-edit project (manifest, harness test, `package.json`, README) from one of three templates — `client`, `two-sided`, or `ai-script`:
+
+```bash
+xnet plugin scaffold com.acme.kanban --name "Kanban Board" --template client
+# → com.acme.kanban/{package.json,tsconfig.json,src/index.ts,src/index.test.ts,README.md}
+```
+
+The pure core, `scaffoldPlugin(spec)`, returns the project as a path→content map, so tooling can generate plugins without touching disk:
+
+```ts
+
+const { files } = scaffoldPlugin({ id: 'com.acme.kanban', name: 'Kanban', template: 'client' })
+// files['src/index.ts'] is a defineFeatureModule(...) ; files['src/index.test.ts'] uses the harness
+```
+
+### Authoring a plugin with AI
+
+The AI generators in `@xnetjs/plugins/ai` turn natural language into an AST-validated script. `scriptToPluginManifest` wraps a **validated** generated script into an installable plugin stamped with `ai-generated` provenance (so the install path sandboxes it at the `user` tier and still routes its capability requests through consent). It refuses unvalidated code — "the AI made it" never bypasses the gate.
+
+```ts
+
+const { manifest, provenance } = scriptToPluginManifest({
+  id: 'com.me.counter',
+  script: generated, // { code, suggestedName, validated, explanation } from the AI generator
+  run: (code) => runInSandbox(code) // how the command executes the script
+})
+await registry.install(manifest, { provenance }) // provenance === 'ai-generated'
+```
+
+### Reaching the network safely
+
+A plugin that declares `network` hosts is handed a `guardedFetch` instead of the ambient `fetch`. Every request is checked against the allowlist before it leaves; an undeclared host rejects with `CapabilityError`, and a plugin with no `network` grant gets no egress at all.
+
+```ts
+
+const fetch = guardedFetch({ network: ['api.acme.com'] }, 'com.acme.kanban')
+await fetch('https://api.acme.com/cards') // ok
+await fetch('https://evil.example.com') // rejects: CapabilityError
+```
 
 ---
 

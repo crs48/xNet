@@ -1,0 +1,116 @@
+---
+title: 'Data Model (L1)'
+draft: false
+description: 'The Node, the signed Change, the byte-exact canonicalization, and Last-Write-Wins — the interop kernel of XNet.'
+sidebar:
+  order: 2
+  label: 'Data Model'
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+This is the heart of the protocol. Get it right and your implementation can
+participate in the node graph. The normative text is
+[`02-data-model.md`](https://github.com/crs48/xNet/blob/main/docs/specs/protocol/02-data-model.md).
+
+## The Node
+
+Every node, in every implementation, has exactly four universal fields; all
+others are schema‑defined:
+
+```ts
+interface Node {
+  id: string            // opaque, collision-resistant (nanoid in the reference impl)
+  schemaId: SchemaIRI   // "xnet://authority/Name@version"
+  createdAt: number     // Unix ms, set on first change
+  createdBy: DID         // did:key of the creator — immutable
+  [key: string]: unknown // schema-defined properties
+}
+```
+
+`createdBy` is the root of a node's provenance and never changes. Nodes are
+**soft‑deleted** (tombstoned), never hard‑deleted.
+
+## Schema references
+
+```
+SchemaIRI = "xnet://" authority "/" Name ( "@" semver )?
+```
+
+The `authority` names who governs the schema — `xnet.fyi` for built‑ins, a domain
+for organizations, or a DID for personal schemas. Nodes are self‑describing via
+`schemaId`, so relays and stores can process them without resolving the schema.
+Schemas are JSON‑Schema‑shaped — **not** JSON‑LD/RDF (a deliberate choice; full
+JSON‑LD is the reason ActivityPub implementations diverge).
+
+## The Change
+
+A node is never mutated in place. Its state is the fold of an append‑only log of
+signed **Change** records:
+
+```ts
+interface Change {
+  protocolVersion: 3
+  id: string
+  type: 'node-change'
+  payload: { nodeId, schemaId?, properties, deleted? }  // sparse
+  hash: string                  // "cid:blake3:<hex>"
+  parentHash: string | null     // the causal hash chain
+  authorDID: DID
+  signature: Uint8Array         // Ed25519 over UTF-8(hash)
+  wallTime: number
+  lamport: number               // ordering / LWW
+}
+```
+
+The **first** change for a node carries `schemaId`; later changes carry only the
+properties that changed.
+
+## The byte‑exact contract
+
+<Aside type="caution" title="This is the #1 interop rule">
+  Two implementations that disagree on these bytes cannot verify each other's
+  signatures. The reference impl hashes with **BLAKE3** (not SHA‑256) and signs
+  the **UTF‑8 bytes of the hash string** `cid:blake3:<hex>` — not the raw digest.
+</Aside>
+
+1. Take the unsigned change (all fields except `hash`/`signature`).
+2. **Canonical JSON:** sort object keys lexicographically and recursively, no
+   whitespace, arrays in order, `undefined` omitted, UTF‑8 bytes.
+3. **Hash:** `"cid:blake3:" + hex(BLAKE3(bytes))`.
+4. **Sign:** `Ed25519(UTF8(hash_string), key)`.
+
+```js
+const sorted = sortKeysRecursively(unsigned)        // recursive key sort
+const bytes  = utf8(JSON.stringify(sorted))          // compact
+const hash   = "cid:blake3:" + hex(blake3(bytes))
+const sig    = ed25519.sign(utf8(hash), signingKey)  // sign the STRING bytes
+```
+
+This exact transform is pinned by the
+[golden vectors](/docs/protocol/conformance/), so any implementation can check
+itself byte‑for‑byte.
+
+## Conflict resolution: Lamport + LWW
+
+Materialized state keeps a `{ lamport, wallTime }` timestamp **per property**.
+When two changes touch the same property:
+
+1. higher **`lamport`** wins;
+2. tie → higher `wallTime`;
+3. tie → higher `authorDID` (lexicographic) — a deterministic final tiebreak so
+   all peers converge identically.
+
+Because LWW is per‑property, concurrent edits to *different* properties of the
+same node both survive.
+
+## The document codec (where Yjs lives — and why it's opaque)
+
+A schema may declare a collaborative body with `document: 'yjs'`. Such nodes
+carry a `documentContent` blob identified by a `documentCodec` discriminator
+(`yjs-v1`, `automerge-2`, `none`). Implementations **must transport and persist**
+the blob faithfully, but **interpreting it is optional** — a peer that can't parse
+`yjs-v1` still fully participates in the graph. This is the seam that makes XNet
+portable without porting a CRDT byte format across languages.
+
+Next: [Replication (L2) →](/docs/protocol/replication/)
