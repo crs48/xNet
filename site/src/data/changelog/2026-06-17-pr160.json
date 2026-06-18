@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-17-pr160",
+  "date": "June 2026",
+  "title": "Agent-native Connectors",
+  "summary": "Connectors sync an external service into governed nodes and expose agent tools — your AI works with policy-checked data while the access token stays in the hub.",
+  "highlights": [
+    "Sync external services into governed nodes",
+    "Agent tools are surfaced to the AI automatically",
+    "Tokens stay server-side; the agent sees only what policy allows"
+  ],
+  "tags": ["ai", "plugins", "platform"],
+  "author": { "login": "crs48" },
+  "pr": 160
+}

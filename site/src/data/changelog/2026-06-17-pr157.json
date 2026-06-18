@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-17-pr157",
+  "date": "June 2026",
+  "title": "Paid plugins",
+  "summary": "Plugin authors can now sell their plugins — a licensing spine plus Stripe Connect payouts, with a fail-closed install gate that checks entitlements.",
+  "highlights": [
+    "DID-bound plugin licenses",
+    "Stripe Connect payouts (publishers keep their own account)",
+    "Installs are gated on a valid license"
+  ],
+  "tags": ["plugins", "platform"],
+  "author": { "login": "crs48" },
+  "pr": 157
+}

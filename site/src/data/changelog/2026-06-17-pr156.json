@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-17-pr156",
+  "date": "June 2026",
+  "title": "xNet adapts to your phone",
+  "summary": "On a small screen, xNet now uses a content-first mobile layout — bottom navigation and slide-in panels — instead of the desktop grid.",
+  "highlights": [
+    "Bottom navigation and edge sheets on mobile",
+    "A content-first shell that gets out of the way",
+    "The desktop experience is unchanged"
+  ],
+  "tags": ["app"],
+  "author": { "login": "crs48" },
+  "pr": 156
+}

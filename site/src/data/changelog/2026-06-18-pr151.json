@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-pr151",
+  "date": "June 2026",
+  "title": "A richer, interactive changelog",
+  "summary": "The changelog page now shows the actual UI that shipped — screenshots pulled straight from CI — and you can filter, search, and click through them.",
+  "highlights": [
+    "Auto-pulled screenshots, before/after sliders, and a click-to-zoom lightbox",
+    "Filter by tag and search across every entry",
+    "JSON and RSS feeds for the full history"
+  ],
+  "tags": ["platform", "devtools"],
+  "author": { "login": "crs48" },
+  "pr": 151
+}
