@@ -7,6 +7,7 @@
  * Litestream→R2, etc.) — the control-plane code is unchanged (explorations 0174/0175).
  */
 
+import type { VirtualKeyManager } from '@xnetjs/cloud'
 import { serve } from '@hono/node-server'
 import {
   MemoryBillingIdentityProvider,
@@ -17,7 +18,6 @@ import {
   type DidChallengeVerifier
 } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud/provisioner'
-import type { VirtualKeyManager } from '@xnetjs/cloud'
 import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
 import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'

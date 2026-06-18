@@ -11,6 +11,9 @@
  * smoke test at deploy; the logic around them is unit-tested with fakes.
  */
 
+import type { ControlPlane } from '../control-plane'
+import type { AiChatDeps, AiTenantContext } from './route'
+import type { Context } from 'hono'
 import {
   FakeStripeBilling,
   GatewayClient,
@@ -20,11 +23,8 @@ import {
   type UsageLedger,
   type VirtualKeyManager
 } from '@xnetjs/cloud'
-import type { Context } from 'hono'
 import Stripe from 'stripe'
-import type { ControlPlane } from '../control-plane'
 import { currentPeriodStartMs } from '../control-plane'
-import type { AiChatDeps, AiTenantContext } from './route'
 import { pricingFromEnv } from './pricing'
 
 /**

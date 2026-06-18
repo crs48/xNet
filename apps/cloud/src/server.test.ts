@@ -1,8 +1,8 @@
 import { MemoryBillingIdentityProvider } from '@xnetjs/cloud/identity'
 import { describe, expect, it } from 'vitest'
 import { createControlPlaneApp } from './server'
-import { buildControlPlane } from './index'
 import { SESSION_COOKIE, sealSession } from './session'
+import { buildControlPlane } from './index'
 
 const INTERNAL = 'secret123'
 const SESSION_SECRET = 'session-secret-xyz'
