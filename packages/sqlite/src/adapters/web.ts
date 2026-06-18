@@ -16,6 +16,7 @@ import type {
 } from '../types'
 import { isSQLiteCorruptionError } from '../errors'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
+import { isOpfsLockError, withOpfsLockRetry } from './opfs-retry'
 
 // We use 'any' types here because @sqlite.org/sqlite-wasm is a peer dependency
 // that may not be installed at build time. The actual types are checked at runtime.
@@ -151,30 +152,51 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     log('[WebSQLiteAdapter] sqlite3 module initialized')
 
     // Install OPFS SAH Pool VFS
-    // This is the recommended VFS for single-connection apps
+    // This is the recommended VFS for single-connection apps.
+    //
+    // The pool acquires an exclusive sync access handle per file at install
+    // time. On a RELOAD the new worker can start before the previous worker
+    // releases its handles, so the install throws NoModificationAllowedError.
+    // That is transient — retry with a short backoff so we stay on durable
+    // OPFS instead of silently dropping to an in-memory database (which made
+    // the app appear empty until the hub re-synced; exploration 0204).
     try {
-      log('[WebSQLiteAdapter] Installing OPFS-SAHPool VFS...')
-      this.poolUtil = await this.sqlite3.installOpfsSAHPoolVfs({
-        name: WEB_SQLITE_VFS_NAME,
-        directory: WEB_SQLITE_VFS_DIRECTORY,
-        initialCapacity: WEB_SQLITE_INITIAL_CAPACITY, // Support ~3-4 databases with journals
-        clearOnInit: false
-      })
-      log('[WebSQLiteAdapter] OPFS-SAHPool VFS installed')
+      await withOpfsLockRetry(
+        async () => {
+          log('[WebSQLiteAdapter] Installing OPFS-SAHPool VFS...')
+          this.poolUtil = await this.sqlite3.installOpfsSAHPoolVfs({
+            name: WEB_SQLITE_VFS_NAME,
+            directory: WEB_SQLITE_VFS_DIRECTORY,
+            initialCapacity: WEB_SQLITE_INITIAL_CAPACITY, // Support ~3-4 databases with journals
+            clearOnInit: false
+          })
+          log('[WebSQLiteAdapter] OPFS-SAHPool VFS installed')
 
-      // Ensure we have enough capacity
-      log('[WebSQLiteAdapter] Reserving capacity...')
-      await this.poolUtil.reserveMinimumCapacity(10)
-      log('[WebSQLiteAdapter] Capacity reserved')
+          // Ensure we have enough capacity
+          log('[WebSQLiteAdapter] Reserving capacity...')
+          await this.poolUtil.reserveMinimumCapacity(10)
+          log('[WebSQLiteAdapter] Capacity reserved')
 
-      // Path must be absolute for opfs-sahpool
-      const dbPath = getDatabasePath(config)
+          // Path must be absolute for opfs-sahpool
+          const dbPath = getDatabasePath(config)
 
-      // Open database using the pool VFS
-      log('[WebSQLiteAdapter] Opening database at', dbPath)
-      this.db = new this.poolUtil.OpfsSAHPoolDb(dbPath, 'c')
-      this.storageMode = 'opfs'
-      log('[WebSQLiteAdapter] Database opened with OPFS-SAHPool')
+          // Open database using the pool VFS
+          log('[WebSQLiteAdapter] Opening database at', dbPath)
+          this.db = new this.poolUtil.OpfsSAHPoolDb(dbPath, 'c')
+          this.storageMode = 'opfs'
+          log('[WebSQLiteAdapter] Database opened with OPFS-SAHPool')
+        },
+        {
+          onRetry: (attempt, retryErr) => {
+            console.warn(
+              `[WebSQLiteAdapter] OPFS access handles are busy (attempt ${attempt}) — a ` +
+                'previous tab/worker is likely still releasing them; retrying before any ' +
+                'in-memory fallback.',
+              retryErr
+            )
+          }
+        }
+      )
     } catch (err) {
       // If OPFS-SAHPool fails, try OPFS direct database before in-memory fallback.
       // Safari can fail SAH pool setup but still support OPFS persistence.
@@ -189,19 +211,29 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
           this.storageMode = 'opfs'
           log('[WebSQLiteAdapter] Database opened with OPFS direct mode')
         } catch (opfsErr) {
-          console.warn(
-            '[WebSQLiteAdapter] OPFS direct mode not available, using in-memory database:',
-            opfsErr
-          )
+          log('[WebSQLiteAdapter] OPFS direct mode not available:', opfsErr)
           this.db = new this.sqlite3.oo1.DB(':memory:', 'c')
           this.storageMode = 'memory'
-          log('[WebSQLiteAdapter] In-memory database opened')
         }
       } else {
-        console.warn('[WebSQLiteAdapter] OPFS direct mode unavailable, using in-memory database')
         this.db = new this.sqlite3.oo1.DB(':memory:', 'c')
         this.storageMode = 'memory'
-        log('[WebSQLiteAdapter] In-memory database opened')
+      }
+
+      // An in-memory database is NOT durable: nothing persists across reloads,
+      // so the app looks empty on every load and only fills in once the hub
+      // re-syncs. This used to be a quiet console.warn buried in noise — make
+      // it loud and actionable since it almost always means another open tab/
+      // worker is holding the OPFS handles (exploration 0204).
+      if (this.storageMode === 'memory') {
+        const cause = isOpfsLockError(err)
+          ? 'another xNet tab/worker is holding the local database'
+          : 'OPFS is unavailable in this browser context'
+        console.error(
+          `[WebSQLiteAdapter] Using an IN-MEMORY database (${cause}). Local data will NOT ` +
+            'persist across reloads and the workspace will appear empty until it re-syncs ' +
+            'from the hub. Close other xNet tabs and reload to restore persistent storage.'
+        )
       }
     }
 
