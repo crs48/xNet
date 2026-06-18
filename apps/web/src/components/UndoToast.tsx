@@ -7,6 +7,7 @@
  * keyboard hint reminds users the action is reversible.
  */
 import { useGlobalUndo } from '@xnetjs/react'
+import { Presence } from '@xnetjs/ui'
 import {
   createContext,
   useCallback,
@@ -57,28 +58,40 @@ export function UndoToastProvider({ children }: { children: ReactNode }): JSX.El
     await undo()
   }, [undo])
 
+  // Latch the last toast so its text survives the exit animation, when
+  // `toast` has already flipped to null but <Presence> is still animating out.
+  // Horizontal centering uses auto-margins (not -translate-x-1/2) so the
+  // slide-up keyframe's translateY animates cleanly without fighting a static
+  // transform.
+  const lastToastRef = useRef<{ id: number; message: string } | null>(null)
+  if (toast) lastToastRef.current = toast
+  const shown = toast ?? lastToastRef.current
+
   return (
     <UndoToastContext.Provider value={{ showUndoToast }}>
       {children}
-      {toast ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground shadow-2xl"
-        >
-          <span>{toast.message}</span>
-          <button
-            type="button"
-            onClick={() => void handleUndo()}
-            className="cursor-pointer rounded-md border-none bg-transparent p-0 font-semibold text-primary hover:underline"
-          >
-            Undo
-          </button>
-          <kbd className="rounded border border-border bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
-            ⌘Z
-          </kbd>
-        </div>
-      ) : null}
+      <Presence
+        show={toast != null}
+        motion="slide-up"
+        wrapperProps={{ role: 'status', 'aria-live': 'polite' }}
+        className="fixed bottom-4 left-0 right-0 z-50 mx-auto w-fit"
+      >
+        {shown ? (
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground shadow-2xl">
+            <span>{shown.message}</span>
+            <button
+              type="button"
+              onClick={() => void handleUndo()}
+              className="cursor-pointer rounded-md border-none bg-transparent p-0 font-semibold text-primary hover:underline"
+            >
+              Undo
+            </button>
+            <kbd className="rounded border border-border bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
+              ⌘Z
+            </kbd>
+          </div>
+        ) : null}
+      </Presence>
     </UndoToastContext.Provider>
   )
 }

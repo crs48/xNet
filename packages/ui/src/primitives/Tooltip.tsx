@@ -53,7 +53,7 @@ export function Tooltip({
                 'opacity-0 scale-95',
                 'data-[open]:opacity-100 data-[open]:scale-100',
                 'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
-                'transition-all duration-fast ease-out',
+                'transition-[opacity,transform] duration-fast ease-out',
                 className
               )}
             >
@@ -114,7 +114,7 @@ export const TooltipPopup = React.forwardRef<
       'opacity-0 scale-95',
       'data-[open]:opacity-100 data-[open]:scale-100',
       'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
-      'transition-all duration-fast ease-out',
+      'transition-[opacity,transform] duration-fast ease-out',
       className
     )}
     {...props}
@@ -162,7 +162,7 @@ export const TooltipContent = React.forwardRef<
           'opacity-0 scale-95',
           'data-[open]:opacity-100 data-[open]:scale-100',
           'data-[ending-style]:opacity-0 data-[ending-style]:scale-95',
-          'transition-all duration-fast ease-out',
+          'transition-[opacity,transform] duration-fast ease-out',
           className
         )}
         {...props}

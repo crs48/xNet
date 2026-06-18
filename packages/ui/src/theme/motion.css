@@ -1,33 +1,52 @@
 /**
- * @xnetjs/ui - Motion System
+ * @xnetjs/ui — Motion System (the canonical motion vocabulary)
  *
- * Comprehensive animation system with easing functions, durations,
- * keyframes, and reduced motion support.
+ * This file is the single source of truth for animation in xNet. The full
+ * style guide lives in docs/MOTION.md; the short version (and the only thing
+ * an author — human or AI — needs) is:
+ *
+ *   THE TWO LAWS
+ *     1. Enter is slower + decelerates  → --ease-out, --duration-normal
+ *     2. Exit is faster + accelerates   → --ease-in,  --duration-fast
+ *
+ *   THE VOCABULARY (compose from this; if you can't, you're over-animating)
+ *     durations  fast 100 · normal 150 · slow 200   (instant/slower/slowest = edge cases)
+ *     easings    ease-out (enter) · ease-in (exit) · ease-in-out (move/morph)
+ *                ease-spring (direct manipulation only) · linear (loops)
+ *     primitives fade · scale · slide-{up,down,left,right} · collapse
+ *                pop · shimmer · spin · pulse-subtle
+ *
+ *   ENFORCEMENT  scripts/check-motion-vocab.mjs bans the footguns in
+ *   packages/ui + apps/web: `transition-all`, raw `duration-<ms>` literals,
+ *   `ease-bounce`, and arbitrary `animate-[…]`. Use the tokens instead.
+ *
+ *   spring is for things the user is directly pushing (a toggle thumb, a drag
+ *   pickup), never for ambient enters. `--ease-bounce` was retired (its
+ *   negative anticipation is the opposite of "minimal").
  */
 
 @layer base {
   :root {
     /* ─── Easing Functions ──────────────────────────────────────── */
 
-    /* Standard easings */
-    --ease-in: cubic-bezier(0.4, 0, 1, 1);
-    --ease-out: cubic-bezier(0, 0, 0.2, 1);
-    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    /* Standard easings — the everyday set */
+    --ease-in: cubic-bezier(0.4, 0, 1, 1); /* exits: accelerate away */
+    --ease-out: cubic-bezier(0, 0, 0.2, 1); /* enters: decelerate in */
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1); /* moves/morphs */
 
-    /* Spring-like easings for more natural feel */
+    /* Spring — direct-manipulation feedback ONLY (toggle thumb, checkbox pop) */
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     /* Subtle easing for micro-interactions */
     --ease-subtle: cubic-bezier(0.25, 0.1, 0.25, 1);
 
     /* ─── Duration Scale ────────────────────────────────────────── */
     --duration-instant: 0ms;
-    --duration-fast: 100ms;
-    --duration-normal: 150ms;
-    --duration-slow: 200ms;
-    --duration-slower: 300ms;
-    --duration-slowest: 400ms;
+    --duration-fast: 100ms; /* micro-interaction / exit */
+    --duration-normal: 150ms; /* standard enter */
+    --duration-slow: 200ms; /* emphasis enter (panels, dialogs) */
+    --duration-slower: 300ms; /* background / large moves */
+    --duration-slowest: 400ms; /* rare, dramatic */
   }
 }
 
@@ -189,6 +208,19 @@
   }
 }
 
+/* pop — scale-in with a touch of overshoot (pairs with --ease-spring).
+   For direct-manipulation affordances, not ambient enters. */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Accordion-specific (for Base UI compatibility) */
 /* Base UI uses --accordion-panel-height CSS variable */
 @keyframes accordion-down {
@@ -268,7 +300,77 @@
   }
 }
 
-/* ─── Reduced Motion Support ──────────────────────────────────────── */
+/* ─── <Presence> enter/exit ───────────────────────────────────────────
+ *
+ * Extends the Base UI `data-ending-style` trick to ANY React child. The
+ * <Presence> component (packages/ui/src/motion/Presence.tsx) keeps the node
+ * mounted during exit and flips data-state to "closed"; these rules play the
+ * matching keyframe. Obeys the two laws: enter slower+ease-out, exit
+ * faster+ease-in. Add a new `motion` by adding two lines here.
+ */
+
+.motion-presence[data-state='open'][data-motion='fade'] {
+  animation: fade-in var(--duration-normal) var(--ease-out);
+}
+.motion-presence[data-state='closed'][data-motion='fade'] {
+  animation: fade-out var(--duration-fast) var(--ease-in);
+}
+
+.motion-presence[data-state='open'][data-motion='scale'] {
+  animation: scale-in var(--duration-normal) var(--ease-out);
+}
+.motion-presence[data-state='closed'][data-motion='scale'] {
+  animation: scale-out var(--duration-fast) var(--ease-in);
+}
+
+/* slide-up: rises into view from 8px below (toasts, bottom sheets) */
+.motion-presence[data-state='open'][data-motion='slide-up'] {
+  animation: slide-in-bottom var(--duration-slow) var(--ease-out);
+}
+.motion-presence[data-state='closed'][data-motion='slide-up'] {
+  animation: slide-out-bottom var(--duration-normal) var(--ease-in);
+}
+
+/* slide-down: descends into view from 8px above (top banners) */
+.motion-presence[data-state='open'][data-motion='slide-down'] {
+  animation: slide-in-top var(--duration-slow) var(--ease-out);
+}
+.motion-presence[data-state='closed'][data-motion='slide-down'] {
+  animation: slide-out-top var(--duration-normal) var(--ease-in);
+}
+
+/* pop: spring-flavored scale-in for direct-manipulation affordances */
+.motion-presence[data-state='open'][data-motion='pop'] {
+  animation: pop-in var(--duration-normal) var(--ease-spring);
+}
+.motion-presence[data-state='closed'][data-motion='pop'] {
+  animation: scale-out var(--duration-fast) var(--ease-in);
+}
+
+/* ─── Stagger ─────────────────────────────────────────────────────────
+ * Compose list entrances without a library: each child carries `--i` (its
+ * index) and inherits a sequential delay. Pair with any enter primitive.
+ *
+ *   <ul className="stagger">{items.map((it,i)=>(
+ *     <li key={it.id} style={{ '--i': i }}>…</li>))}</ul>
+ */
+@layer utilities {
+  .stagger > * {
+    animation: slide-in-bottom var(--duration-slow) var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+}
+
+/* ─── Reduced Motion Support ──────────────────────────────────────────
+ *
+ * The single, primary reduced-motion strategy (the canonical "reduce to
+ * instant" pattern). Everything — including the keyframes above, the
+ * <Presence> primitives, and `.stagger` — collapses to an imperceptible
+ * 0.01ms so nothing moves, while state still changes (and animationend
+ * still fires, so <Presence> unmounts correctly). base-ui-animations.css
+ * additionally pins component end-states to `transform: none` so no residual
+ * offset survives; that file defers to this one for timing.
+ */
 
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -11,6 +11,7 @@
  */
 import { FolderSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
+import { useViewTransition } from '@xnetjs/ui'
 import { FolderClosed, Users } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
 import { useSpaces } from '../hooks/useSpaces'
@@ -53,6 +54,7 @@ export function TabBreadcrumb({ tab }: { tab: WorkbenchTab | null }) {
   const { folderNames, spaceId } = useBreadcrumb(tab)
   const { getSpace } = useSpaces()
   const setCurrentSpace = useWorkbench((state) => state.setCurrentSpace)
+  const withTransition = useViewTransition()
   const space = getSpace(spaceId)
 
   if (!space && folderNames.length === 0) return null
@@ -62,7 +64,7 @@ export function TabBreadcrumb({ tab }: { tab: WorkbenchTab | null }) {
       {space ? (
         <button
           type="button"
-          onClick={() => setCurrentSpace(space.id)}
+          onClick={() => withTransition(() => setCurrentSpace(space.id))}
           title={`Filter to ${space.name}`}
           className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-ink-3 hover:text-ink-1"
         >

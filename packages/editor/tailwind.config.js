@@ -35,7 +35,14 @@ export default {
         }
       },
 
-      // Editor-specific animations
+      // Editor-specific animations.
+      //
+      // The editor is a standalone, separately-themed package (--editor-*), so
+      // it keeps a small local motion set rather than depending on @xnetjs/ui's
+      // internals. Values intentionally mirror the canonical vocabulary (see
+      // docs/MOTION.md): enter = 150ms (normal) ease-out, exit = 100ms (fast)
+      // ease-in. The slash/mention/link floating menus are custom-positioned
+      // (not Base UI popups), so they can't reuse `.menu-popup` directly.
       keyframes: {
         'syntax-fade-in': {
           from: { opacity: '0' },
@@ -53,8 +60,10 @@ export default {
 
       animation: {
         'syntax-fade-in': 'syntax-fade-in 150ms ease-out forwards',
+        // enter: slower + decelerate (ease-out)
         'menu-appear': 'menu-appear 150ms ease-out forwards',
-        'menu-disappear': 'menu-disappear 100ms ease-out forwards'
+        // exit: faster + accelerate away (ease-in) — the two laws
+        'menu-disappear': 'menu-disappear 100ms ease-in forwards'
       }
     }
   },
